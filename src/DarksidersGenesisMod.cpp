@@ -21,7 +21,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.5B-movement-virtual-fix-test";
+constexpr const char* kBuild = "0.6A-dodge-recovery-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -34,12 +34,17 @@ using ResizeBuffersFn = HRESULT(__stdcall*)(IDXGISwapChain*, UINT, UINT, UINT, D
 using HudHiddenGetterFn = bool(*)();
 using CharacterGetMaxSpeedFn = float(*)(void*);
 using ActionGateFn = bool(*)(void*, unsigned char);
+using DashVoidFn = void(*)(void*);
+using DashTickFn = void(*)(void*, float);
 
 PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
 HudHiddenGetterFn g_originalHudHiddenGetter = nullptr;
 CharacterGetMaxSpeedFn g_originalCharacterGetMaxSpeed = nullptr;
 ActionGateFn g_originalActionGate = nullptr;
+DashVoidFn g_originalDashStart = nullptr;
+DashTickFn g_originalDashTick = nullptr;
+DashVoidFn g_originalDashFinish = nullptr;
 
 ID3D11Device* g_device = nullptr;
 ID3D11DeviceContext* g_context = nullptr;
@@ -56,6 +61,10 @@ std::atomic_bool g_hudHidden{false};
 std::atomic_bool g_hudHookReady{false};
 std::atomic_bool g_movementHookReady{false};
 std::atomic_bool g_recoveryHookReady{false};
+std::atomic<void*> g_activeDashAbility{nullptr};
+std::atomic<float> g_dashElapsedSeconds{0.0f};
+std::atomic<float> g_lastNativeDashDuration{0.0f};
+std::atomic_bool g_dashEarlyUnlockApplied{false};
 std::array<bool, 256> g_keyDown{};
 std::string g_lastAction = "None";
 
@@ -73,7 +82,7 @@ constexpr std::array<const char*, static_cast<size_t>(Action::Count)> kActionLab
     "None",
     "Toggle HUD",
     "Movement Speed",
-    "Action Recovery",
+    "Dodge Recovery",
     "Skip Intro Videos",
     "Third Person"
 };
@@ -320,7 +329,8 @@ struct Config {
     // Tentative user-facing tuning values. They are inert until their gameplay
     // hooks are implemented and validated.
     float movementSpeedMultiplier = 1.15f;
-    float actionRecoveryMultiplier = 2.00f;
+    float actionRecoveryMultiplier = 2.00f; // legacy V0.5A value
+    float dodgeEarlyUnlockMs = 100.0f;
 
     std::array<Action, 12> hotkeys{};
 
@@ -362,6 +372,7 @@ struct Config {
         thirdPersonEnabled = true;
         movementSpeedMultiplier = 1.15f;
         actionRecoveryMultiplier = 2.00f;
+        dodgeEarlyUnlockMs = 100.0f;
 
         hotkeys.fill(Action::None);
         hotkeys[0] = Action::ToggleHUD;
@@ -400,6 +411,7 @@ struct Config {
 
         movementSpeedMultiplier = ReadFloat(L"Values", L"MovementSpeedMultiplier", 1.15f, g_iniPath);
         actionRecoveryMultiplier = ReadFloat(L"Values", L"ActionRecoveryMultiplier", 2.00f, g_iniPath);
+        dodgeEarlyUnlockMs = ReadFloat(L"Values", L"DodgeEarlyUnlockMs", 100.0f, g_iniPath);
 
         for (int i = 0; i < 12; ++i) {
             wchar_t key[8]{};
@@ -437,6 +449,7 @@ struct Config {
 
         WriteFloat(L"Values", L"MovementSpeedMultiplier", movementSpeedMultiplier, g_iniPath);
         WriteFloat(L"Values", L"ActionRecoveryMultiplier", actionRecoveryMultiplier, g_iniPath);
+        WriteFloat(L"Values", L"DodgeEarlyUnlockMs", dodgeEarlyUnlockMs, g_iniPath);
 
         for (int i = 0; i < 12; ++i) {
             wchar_t key[8]{};
@@ -971,6 +984,277 @@ bool InstallActionRecoveryHook() {
     return true;
 }
 
+
+struct DashHookTargets {
+    BYTE* start = nullptr;
+    BYTE* tick = nullptr;
+    BYTE* finish = nullptr;
+};
+
+DashHookTargets ResolveDashRecoveryTargets() {
+    DashHookTargets out{};
+
+    PeSectionView text{};
+    PeSectionView rdata{};
+    if (!GetMainModuleSection(".text", text) ||
+        !GetMainModuleSection(".rdata", rdata)) {
+        Log("Dodge recovery: failed to enumerate PE sections");
+        return out;
+    }
+
+    static constexpr int kStartPattern[] = {
+        0x40, 0x57,
+        0x48, 0x83, 0xEC, 0x60,
+        0x48, 0xC7, 0x44, 0x24, 0x30, 0xFE, 0xFF, 0xFF, 0xFF,
+        0x48, 0x89, 0x5C, 0x24, 0x70,
+        0x48, 0x89, 0x74, 0x24, 0x78,
+        0x48, 0x8B, 0xF9,
+        0xE8, -1, -1, -1, -1,
+        0x48, 0x8B, 0x9F, 0xB0, 0x01, 0x00, 0x00,
+        0x48, 0x85, 0xDB,
+        0x0F, 0x84, -1, -1, -1, -1,
+        0x80, 0xBF, 0xF1, 0x01, 0x00, 0x00, 0x00,
+        0x74, 0x07,
+        0xC6, 0x83, 0xAC, 0x0A, 0x00, 0x00, 0x01
+    };
+
+    static constexpr int kFinishPattern[] = {
+        0x40, 0x57,
+        0x48, 0x83, 0xEC, 0x60,
+        0x48, 0xC7, 0x44, 0x24, 0x30, 0xFE, 0xFF, 0xFF, 0xFF,
+        0x48, 0x89, 0x5C, 0x24, 0x70,
+        0x48, 0x8B, 0xF9,
+        0xE8, -1, -1, -1, -1,
+        0x48, 0x8B, 0x8F, 0xD8, 0x01, 0x00, 0x00,
+        0x48, 0x85, 0xC9,
+        0x74, -1,
+        0x33, 0xD2,
+        0xE8, -1, -1, -1, -1,
+        0x48, 0x8B, 0x9F, 0xB0, 0x01, 0x00, 0x00,
+        0x48, 0x85, 0xDB,
+        0x0F, 0x84, -1, -1, -1, -1,
+        0xC6, 0x83, 0xAC, 0x0A, 0x00, 0x00, 0x00
+    };
+
+    size_t startCount = 0;
+    size_t finishCount = 0;
+    out.start = FindUniquePattern(text, kStartPattern, ARRAYSIZE(kStartPattern), &startCount);
+    out.finish = FindUniquePattern(text, kFinishPattern, ARRAYSIZE(kFinishPattern), &finishCount);
+
+    if (!out.start || !out.finish) {
+        Log(
+            "Dodge recovery: start/finish signature mismatch start=%zu finish=%zu",
+            startCount,
+            finishCount
+        );
+        return {};
+    }
+
+    BYTE* commonTick = nullptr;
+    size_t relationCount = 0;
+
+    for (size_t i = 0; i + 0x60 <= rdata.size; i += sizeof(uintptr_t)) {
+        BYTE* p = rdata.begin + i;
+        const uintptr_t startPtr = *reinterpret_cast<const uintptr_t*>(p);
+        const uintptr_t finishPtr = *reinterpret_cast<const uintptr_t*>(p + 0x58);
+
+        if (startPtr != reinterpret_cast<uintptr_t>(out.start) ||
+            finishPtr != reinterpret_cast<uintptr_t>(out.finish)) {
+            continue;
+        }
+
+        BYTE* tick = reinterpret_cast<BYTE*>(
+            *reinterpret_cast<const uintptr_t*>(p + sizeof(uintptr_t))
+        );
+
+        if (!AddressInSection(text, tick)) {
+            continue;
+        }
+
+        if (!commonTick) {
+            commonTick = tick;
+        } else if (commonTick != tick) {
+            Log("Dodge recovery: vtable relation resolves conflicting tick targets");
+            return {};
+        }
+
+        ++relationCount;
+    }
+
+    if (!commonTick || relationCount == 0) {
+        Log("Dodge recovery: no start/tick/finish vtable relation found");
+        return {};
+    }
+
+    out.tick = commonTick;
+
+    HMODULE module = GetModuleHandleW(nullptr);
+    BYTE* base = reinterpret_cast<BYTE*>(module);
+    Log(
+        "Dodge recovery: targets start=0x%zX tick=0x%zX finish=0x%zX vtableRelations=%zu",
+        static_cast<size_t>(out.start - base),
+        static_cast<size_t>(out.tick - base),
+        static_cast<size_t>(out.finish - base),
+        relationCount
+    );
+
+    return out;
+}
+
+void HookDashStart(void* ability) {
+    g_originalDashStart(ability);
+
+    if (!ability) {
+        return;
+    }
+
+    BYTE* object = reinterpret_cast<BYTE*>(ability);
+    void* player = *reinterpret_cast<void**>(object + 0x1B0);
+    if (!player) {
+        return;
+    }
+
+    BYTE* movementLock = reinterpret_cast<BYTE*>(player) + 0xAAC;
+    if (*movementLock == 0) {
+        return;
+    }
+
+    g_activeDashAbility.store(ability);
+    g_dashElapsedSeconds.store(0.0f);
+    g_dashEarlyUnlockApplied.store(false);
+
+    Log(
+        "Dodge recovery: dash START ability=%p player=%p learnedNative=%.3f sec",
+        ability,
+        player,
+        g_lastNativeDashDuration.load()
+    );
+}
+
+void HookDashTick(void* ability, float deltaSeconds) {
+    if (ability == g_activeDashAbility.load() &&
+        deltaSeconds > 0.0f &&
+        deltaSeconds < 0.25f) {
+        g_dashElapsedSeconds.store(g_dashElapsedSeconds.load() + deltaSeconds);
+    }
+
+    g_originalDashTick(ability, deltaSeconds);
+
+    if (!g_config.actionRecoveryEnabled ||
+        ability != g_activeDashAbility.load() ||
+        g_dashEarlyUnlockApplied.load()) {
+        return;
+    }
+
+    const float nativeDuration = g_lastNativeDashDuration.load();
+    if (nativeDuration <= 0.05f) {
+        return;
+    }
+
+    float earlyMs = g_config.dodgeEarlyUnlockMs;
+    if (earlyMs < 0.0f) earlyMs = 0.0f;
+    if (earlyMs > 400.0f) earlyMs = 400.0f;
+
+    float releaseAt = nativeDuration - (earlyMs / 1000.0f);
+    if (releaseAt < 0.05f) {
+        releaseAt = 0.05f;
+    }
+
+    const float elapsed = g_dashElapsedSeconds.load();
+    if (elapsed < releaseAt) {
+        return;
+    }
+
+    BYTE* object = reinterpret_cast<BYTE*>(ability);
+    void* player = *reinterpret_cast<void**>(object + 0x1B0);
+    if (!player) {
+        return;
+    }
+
+    BYTE* movementLock = reinterpret_cast<BYTE*>(player) + 0xAAC;
+    if (*movementLock != 0) {
+        *movementLock = 0;
+        g_dashEarlyUnlockApplied.store(true);
+        Log(
+            "Dodge recovery: EARLY UNLOCK at %.3f sec (native %.3f sec, early %.0f ms)",
+            elapsed,
+            nativeDuration,
+            earlyMs
+        );
+    }
+}
+
+void HookDashFinish(void* ability) {
+    if (ability && ability == g_activeDashAbility.load()) {
+        const float elapsed = g_dashElapsedSeconds.load();
+        if (elapsed > 0.05f && elapsed < 5.0f) {
+            g_lastNativeDashDuration.store(elapsed);
+        }
+
+        Log(
+            "Dodge recovery: dash FINISH nativeLifetime=%.3f sec earlyUnlock=%d",
+            elapsed,
+            g_dashEarlyUnlockApplied.load() ? 1 : 0
+        );
+
+        g_activeDashAbility.store(nullptr);
+        g_dashElapsedSeconds.store(0.0f);
+        g_dashEarlyUnlockApplied.store(false);
+    }
+
+    g_originalDashFinish(ability);
+}
+
+bool InstallDodgeRecoveryHooks() {
+    const DashHookTargets targets = ResolveDashRecoveryTargets();
+    if (!targets.start || !targets.tick || !targets.finish) {
+        Log("Dodge recovery: resolver failed; feature remains fail-open");
+        return false;
+    }
+
+    const MH_STATUS initStatus = MH_Initialize();
+    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+        Log("Dodge recovery: MinHook initialize FAILED status=%d", static_cast<int>(initStatus));
+        return false;
+    }
+
+    struct HookSpec {
+        BYTE* target;
+        LPVOID detour;
+        LPVOID* original;
+        const char* name;
+    };
+
+    HookSpec specs[] = {
+        { targets.start, reinterpret_cast<LPVOID>(&HookDashStart), reinterpret_cast<LPVOID*>(&g_originalDashStart), "start" },
+        { targets.tick, reinterpret_cast<LPVOID>(&HookDashTick), reinterpret_cast<LPVOID*>(&g_originalDashTick), "tick" },
+        { targets.finish, reinterpret_cast<LPVOID>(&HookDashFinish), reinterpret_cast<LPVOID*>(&g_originalDashFinish), "finish" }
+    };
+
+    for (const auto& spec : specs) {
+        MH_STATUS status = MH_CreateHook(spec.target, spec.detour, spec.original);
+        if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
+            Log("Dodge recovery: create %s FAILED status=%d", spec.name, static_cast<int>(status));
+            return false;
+        }
+    }
+
+    for (const auto& spec : specs) {
+        MH_STATUS status = MH_EnableHook(spec.target);
+        if (status != MH_OK && status != MH_ERROR_ENABLED) {
+            Log("Dodge recovery: enable %s FAILED status=%d", spec.name, static_cast<int>(status));
+            return false;
+        }
+    }
+
+    g_recoveryHookReady.store(true);
+    Log(
+        "Dodge recovery: READY earlyUnlock=%.0f ms firstDashLearnsNative=1",
+        g_config.dodgeEarlyUnlockMs
+    );
+    return true;
+}
+
 bool InstallHudHook() {
     BYTE* getter = ResolveHudHiddenGetter();
     if (!getter) {
@@ -1083,20 +1367,20 @@ void TriggerAction(Action action, int functionKey) {
 
     if (action == Action::ActionRecovery) {
         if (!g_recoveryHookReady.load()) {
-            g_lastAction = "Action Recovery [hook unavailable]";
-            Log("F%d -> Action Recovery ignored (native hook unavailable)", functionKey);
+            g_lastAction = "Dodge Recovery [hook unavailable]";
+            Log("F%d -> Dodge Recovery ignored (native hook unavailable)", functionKey);
             return;
         }
 
         g_config.actionRecoveryEnabled = !g_config.actionRecoveryEnabled;
         g_config.Save();
-        g_lastAction = std::string("Action Recovery ") +
+        g_lastAction = std::string("Dodge Recovery ") +
             (g_config.actionRecoveryEnabled ? "ON" : "OFF");
         Log(
-            "F%d -> Action Recovery %s multiplier=%.3fx",
+            "F%d -> Dodge Recovery %s earlyUnlock=%.0f ms",
             functionKey,
             g_config.actionRecoveryEnabled ? "ON" : "OFF",
-            g_config.actionRecoveryMultiplier
+            g_config.dodgeEarlyUnlockMs
         );
         return;
     }
@@ -1440,16 +1724,16 @@ void DrawOverlay() {
                 ImGui::Unindent();
             }
 
-            if (ImGui::Checkbox("Action Recovery", &g_config.actionRecoveryEnabled)) {
+            if (ImGui::Checkbox("Dodge Recovery", &g_config.actionRecoveryEnabled)) {
                 g_config.Save();
-                g_lastAction = std::string("Action Recovery ") +
+                g_lastAction = std::string("Dodge Recovery ") +
                     (g_config.actionRecoveryEnabled ? "ON" : "OFF");
             }
             ImGui::SameLine(260.0f);
             ImGui::TextDisabled(
                 "%s",
                 g_recoveryHookReady.load()
-                    ? "Native MOVE interrupt-delay gate"
+                    ? "GroundDash movement-lock hooks"
                     : "Native hook unavailable"
             );
 
@@ -1457,19 +1741,25 @@ void DrawOverlay() {
                 ImGui::Indent();
                 ImGui::SetNextItemWidth(260.0f);
                 if (ImGui::SliderFloat(
-                    "Recovery Multiplier",
-                    &g_config.actionRecoveryMultiplier,
-                    1.00f,
-                    5.00f,
-                    "%.2fx"
+                    "Early Unlock (ms)",
+                    &g_config.dodgeEarlyUnlockMs,
+                    0.0f,
+                    300.0f,
+                    "%.0f ms"
                 )) {
                     g_config.Save();
                 }
                 ImGui::SameLine();
                 ImGui::TextDisabled("F3 toggles");
                 ImGui::TextDisabled(
-                    "Effective MOVE lock = native MoveInterruptDelaySec / multiplier."
+                    "First dodge learns native duration; later dodges release movement near the end."
                 );
+                const float nativeMs = g_lastNativeDashDuration.load() * 1000.0f;
+                if (nativeMs > 1.0f) {
+                    ImGui::TextDisabled("Learned native dash lock: %.0f ms", nativeMs);
+                } else {
+                    ImGui::TextDisabled("Native dash lock: learning on first dodge...");
+                }
                 ImGui::Unindent();
             }
 
@@ -1478,7 +1768,7 @@ void DrawOverlay() {
 
             ImGui::Spacing();
             ImGui::TextDisabled(
-                "Toggle HUD, on-foot Movement Speed and Action Recovery are native; remaining features are pending."
+                "Toggle HUD and Movement Speed are native; Dodge Recovery V0.6A is experimental and self-calibrating."
             );
             ImGui::EndTabItem();
         }
@@ -1812,8 +2102,8 @@ DWORD WINAPI MainThread(LPVOID) {
         Log("Movement Speed unavailable; other ASI features remain active.");
     }
 
-    if (!InstallActionRecoveryHook()) {
-        Log("Action Recovery unavailable; other ASI features remain active.");
+    if (!InstallDodgeRecoveryHooks()) {
+        Log("Dodge Recovery unavailable; other ASI features remain active.");
     }
 
     Log("Core initialization complete. Press %s after the first game frame.",
