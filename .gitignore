@@ -1,0 +1,8 @@
+/build/
+/dist/
+*.user
+*.suo
+*.VC.db
+*.VC.VC.opendb
+DarksidersGenesisMod.log
+DarksidersGenesis_ASI_*.zip
