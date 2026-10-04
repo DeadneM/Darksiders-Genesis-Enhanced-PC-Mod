@@ -880,3 +880,53 @@ recovery.
 
 A separate TODO exists for **Horse Dash / Sprint Duration**, distinct from horse
 speed, so mount sprint duration can be tuned independently.
+
+
+## V0.6A — Self-calibrating Dodge Recovery
+
+**Status: TEST CANDIDATE**
+
+V0.5A `MoveInterruptDelaySec` recovery is no longer installed.
+
+V0.6A targets the dash ability's own movement-input lock:
+
+```text
+AMayhemPlayerCharacter + 0xAAC
+```
+
+Native audit:
+
+```text
+GroundDash start RVA   0x5B0440
+GroundDash tick RVA    0x5B72B0
+GroundDash finish RVA  0x59BF80
+lock set site          0x5B047A
+lock clear site        0x59BFBF
+```
+
+The runtime resolver does not blindly use those RVAs. It finds unique start and
+finish signatures, then derives the tick function from their shared vtable
+relationship.
+
+### Behavior
+
+- first observed dodge is left completely vanilla;
+- the ASI measures its native dash-lock lifetime;
+- later dodges release only the movement-input lock slightly before native
+  finalization;
+- dash animation, dash velocity, collision and ability finish remain native;
+- default early release: **100 ms**;
+- overlay range: **0 to 300 ms**;
+- F3 toggles Dodge Recovery;
+- the overlay shows the learned native dash-lock duration;
+- signature/vtable mismatch is fail-open.
+
+INI:
+
+```ini
+[Values]
+DodgeEarlyUnlockMs=100.000
+```
+
+This is intentionally a targeted test. If 100 ms is too early or too late, the
+value can be tuned directly from the overlay without rebuilding the ASI.
