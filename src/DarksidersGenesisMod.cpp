@@ -21,7 +21,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.6A-dodge-recovery-test";
+constexpr const char* kBuild = "0.6B-input-suppress-window-diagnostic";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -36,6 +36,7 @@ using CharacterGetMaxSpeedFn = float(*)(void*);
 using ActionGateFn = bool(*)(void*, unsigned char);
 using DashVoidFn = void(*)(void*);
 using DashTickFn = void(*)(void*, float);
+using InputSuppressNotifyFn = void(*)(void*, void*, void*);
 
 PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
@@ -45,6 +46,8 @@ ActionGateFn g_originalActionGate = nullptr;
 DashVoidFn g_originalDashStart = nullptr;
 DashTickFn g_originalDashTick = nullptr;
 DashVoidFn g_originalDashFinish = nullptr;
+InputSuppressNotifyFn g_originalInputSuppressBegin = nullptr;
+InputSuppressNotifyFn g_originalInputSuppressEnd = nullptr;
 
 ID3D11Device* g_device = nullptr;
 ID3D11DeviceContext* g_context = nullptr;
@@ -65,6 +68,7 @@ std::atomic<void*> g_activeDashAbility{nullptr};
 std::atomic<float> g_dashElapsedSeconds{0.0f};
 std::atomic<float> g_lastNativeDashDuration{0.0f};
 std::atomic_bool g_dashEarlyUnlockApplied{false};
+std::atomic_int g_bypassedInputSuppressWindows{0};
 std::array<bool, 256> g_keyDown{};
 std::string g_lastAction = "None";
 
@@ -1255,6 +1259,185 @@ bool InstallDodgeRecoveryHooks() {
     return true;
 }
 
+
+struct InputSuppressWindowTargets {
+    BYTE* begin = nullptr;
+    BYTE* end = nullptr;
+};
+
+InputSuppressWindowTargets ResolveInputSuppressWindowTargets() {
+    InputSuppressWindowTargets out{};
+
+    PeSectionView text{};
+    PeSectionView rdata{};
+    if (!GetMainModuleSection(".text", text) ||
+        !GetMainModuleSection(".rdata", rdata)) {
+        Log("InputSuppressWindow: failed to enumerate PE sections");
+        return out;
+    }
+
+    BYTE* displayNameString = FindWideString(rdata, L"Suppress Player Input Window");
+    if (!displayNameString) {
+        Log("InputSuppressWindow: display-name string not found");
+        return out;
+    }
+
+    BYTE* nameXref = FindRipRelativeLeaTo(text, displayNameString);
+    if (!nameXref) {
+        Log("InputSuppressWindow: unique display-name xref not found");
+        return out;
+    }
+
+    // UAnimNotify_InputSuppressWindow::GetNotifyName starts 9 bytes before
+    // the audited LEA of "Suppress Player Input Window".
+    BYTE* getNotifyName = nameXref - 9;
+    static constexpr BYTE kGetNamePrefix[] = {
+        0x40, 0x53,
+        0x48, 0x83, 0xEC, 0x20,
+        0x48, 0x8B, 0xDA
+    };
+
+    if (!AddressInSection(text, getNotifyName) ||
+        memcmp(getNotifyName, kGetNamePrefix, sizeof(kGetNamePrefix)) != 0) {
+        Log("InputSuppressWindow: GetNotifyName layout mismatch");
+        return out;
+    }
+
+    BYTE* vtableSlot = nullptr;
+    size_t slotCount = 0;
+
+    for (size_t i = 0; i + 32 <= rdata.size; i += sizeof(uintptr_t)) {
+        BYTE* p = rdata.begin + i;
+        if (*reinterpret_cast<const uintptr_t*>(p) ==
+            reinterpret_cast<uintptr_t>(getNotifyName)) {
+            vtableSlot = p;
+            ++slotCount;
+        }
+    }
+
+    if (slotCount != 1 || !vtableSlot) {
+        Log("InputSuppressWindow: GetNotifyName vtable slot count=%zu", slotCount);
+        return {};
+    }
+
+    // In this UAnimNotifyState-derived vtable:
+    //   +0x00 GetNotifyName
+    //   +0x08 NotifyBegin override
+    //   +0x10 inherited NotifyTick
+    //   +0x18 NotifyEnd override
+    out.begin = reinterpret_cast<BYTE*>(
+        *reinterpret_cast<const uintptr_t*>(vtableSlot + 0x08)
+    );
+    out.end = reinterpret_cast<BYTE*>(
+        *reinterpret_cast<const uintptr_t*>(vtableSlot + 0x18)
+    );
+
+    if (!AddressInSection(text, out.begin) ||
+        !AddressInSection(text, out.end)) {
+        Log("InputSuppressWindow: begin/end targets outside .text");
+        return {};
+    }
+
+    HMODULE module = GetModuleHandleW(nullptr);
+    BYTE* base = reinterpret_cast<BYTE*>(module);
+
+    Log(
+        "InputSuppressWindow: resolved GetNotifyName=0x%zX Begin=0x%zX End=0x%zX",
+        static_cast<size_t>(getNotifyName - base),
+        static_cast<size_t>(out.begin - base),
+        static_cast<size_t>(out.end - base)
+    );
+
+    return out;
+}
+
+void HookInputSuppressBegin(void* notifyState, void* meshComponent, void* eventData) {
+    if (!g_config.actionRecoveryEnabled) {
+        g_originalInputSuppressBegin(notifyState, meshComponent, eventData);
+        return;
+    }
+
+    const int count = g_bypassedInputSuppressWindows.fetch_add(1) + 1;
+    Log(
+        "InputSuppressWindow: BEGIN BYPASSED notify=%p mesh=%p event=%p activeBypasses=%d",
+        notifyState,
+        meshComponent,
+        eventData,
+        count
+    );
+}
+
+void HookInputSuppressEnd(void* notifyState, void* meshComponent, void* eventData) {
+    int count = g_bypassedInputSuppressWindows.load();
+
+    while (count > 0) {
+        if (g_bypassedInputSuppressWindows.compare_exchange_weak(count, count - 1)) {
+            Log(
+                "InputSuppressWindow: END BYPASSED notify=%p mesh=%p event=%p remaining=%d",
+                notifyState,
+                meshComponent,
+                eventData,
+                count - 1
+            );
+            return;
+        }
+    }
+
+    // If this window began before the mod feature was enabled, preserve the
+    // native End so the game's suppression counter is balanced correctly.
+    g_originalInputSuppressEnd(notifyState, meshComponent, eventData);
+}
+
+bool InstallInputSuppressWindowHooks() {
+    const InputSuppressWindowTargets targets = ResolveInputSuppressWindowTargets();
+    if (!targets.begin || !targets.end) {
+        Log("InputSuppressWindow: resolver failed; diagnostic remains fail-open");
+        return false;
+    }
+
+    const MH_STATUS initStatus = MH_Initialize();
+    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+        Log("InputSuppressWindow: MinHook initialize FAILED status=%d", static_cast<int>(initStatus));
+        return false;
+    }
+
+    MH_STATUS status = MH_CreateHook(
+        targets.begin,
+        reinterpret_cast<LPVOID>(&HookInputSuppressBegin),
+        reinterpret_cast<LPVOID*>(&g_originalInputSuppressBegin)
+    );
+    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
+        Log("InputSuppressWindow: create Begin FAILED status=%d", static_cast<int>(status));
+        return false;
+    }
+
+    status = MH_CreateHook(
+        targets.end,
+        reinterpret_cast<LPVOID>(&HookInputSuppressEnd),
+        reinterpret_cast<LPVOID*>(&g_originalInputSuppressEnd)
+    );
+    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
+        Log("InputSuppressWindow: create End FAILED status=%d", static_cast<int>(status));
+        return false;
+    }
+
+    status = MH_EnableHook(targets.begin);
+    if (status != MH_OK && status != MH_ERROR_ENABLED) {
+        Log("InputSuppressWindow: enable Begin FAILED status=%d", static_cast<int>(status));
+        return false;
+    }
+
+    status = MH_EnableHook(targets.end);
+    if (status != MH_OK && status != MH_ERROR_ENABLED) {
+        Log("InputSuppressWindow: enable End FAILED status=%d", static_cast<int>(status));
+        return false;
+    }
+
+    g_recoveryHookReady.store(true);
+    Log("InputSuppressWindow: DIAGNOSTIC BYPASS READY");
+    return true;
+}
+
 bool InstallHudHook() {
     BYTE* getter = ResolveHudHiddenGetter();
     if (!getter) {
@@ -1733,33 +1916,21 @@ void DrawOverlay() {
             ImGui::TextDisabled(
                 "%s",
                 g_recoveryHookReady.load()
-                    ? "GroundDash movement-lock hooks"
+                    ? "DIAGNOSTIC: bypass UAnimNotify_InputSuppressWindow"
                     : "Native hook unavailable"
             );
 
             if (g_config.actionRecoveryEnabled) {
                 ImGui::Indent();
-                ImGui::SetNextItemWidth(260.0f);
-                if (ImGui::SliderFloat(
-                    "Early Unlock (ms)",
-                    &g_config.dodgeEarlyUnlockMs,
-                    0.0f,
-                    300.0f,
-                    "%.0f ms"
-                )) {
-                    g_config.Save();
-                }
-                ImGui::SameLine();
                 ImGui::TextDisabled("F3 toggles");
-                ImGui::TextDisabled(
-                    "First dodge learns native duration; later dodges release movement near the end."
+                ImGui::TextWrapped(
+                    "V0.6B diagnostic: completely bypasses the animation-driven input-suppression "
+                    "window. If dodge recovery changes now, this proves the real blocker."
                 );
-                const float nativeMs = g_lastNativeDashDuration.load() * 1000.0f;
-                if (nativeMs > 1.0f) {
-                    ImGui::TextDisabled("Learned native dash lock: %.0f ms", nativeMs);
-                } else {
-                    ImGui::TextDisabled("Native dash lock: learning on first dodge...");
-                }
+                ImGui::TextDisabled(
+                    "Active bypassed windows: %d",
+                    g_bypassedInputSuppressWindows.load()
+                );
                 ImGui::Unindent();
             }
 
@@ -1768,7 +1939,7 @@ void DrawOverlay() {
 
             ImGui::Spacing();
             ImGui::TextDisabled(
-                "Toggle HUD and Movement Speed are native; Dodge Recovery V0.6A is experimental and self-calibrating."
+                "Toggle HUD and Movement Speed remain; Dodge Recovery V0.6B is a diagnostic InputSuppressWindow bypass."
             );
             ImGui::EndTabItem();
         }
@@ -2102,8 +2273,8 @@ DWORD WINAPI MainThread(LPVOID) {
         Log("Movement Speed unavailable; other ASI features remain active.");
     }
 
-    if (!InstallDodgeRecoveryHooks()) {
-        Log("Dodge Recovery unavailable; other ASI features remain active.");
+    if (!InstallInputSuppressWindowHooks()) {
+        Log("Dodge Recovery diagnostic unavailable; other ASI features remain active.");
     }
 
     Log("Core initialization complete. Press %s after the first game frame.",
