@@ -44,6 +44,7 @@ using AddJuiceFn = void(*)(void*, float);
 using DoDamageToActorFn = void(*)(void*, void*, void*, void*);
 using ExecGetBaseDamageFn = void(*)(void*, void*, void*);
 using FilterOutgoingDamageFn = void(*)(void*, void*);
+using IsHorseActiveFn = bool(*)(void*);
 
 PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
@@ -63,6 +64,7 @@ AddJuiceFn g_originalAddJuice = nullptr;
 DoDamageToActorFn g_originalDoDamageToActor = nullptr;
 ExecGetBaseDamageFn g_originalExecGetBaseDamage = nullptr;
 FilterOutgoingDamageFn g_originalFilterOutgoingDamage = nullptr;
+IsHorseActiveFn g_originalIsHorseActive = nullptr;
 
 ID3D11Device* g_device = nullptr;
 ID3D11DeviceContext* g_context = nullptr;
@@ -1806,6 +1808,467 @@ float ClampFloat(float value, float minValue, float maxValue) {
 
 bool IsReasonablePositiveFloat(float value, float minValue, float maxValue) {
     return value >= minValue && value <= maxValue;
+}
+
+bool IsReadableMemoryRange(const void* address, size_t bytes) {
+    if (!address || bytes == 0) {
+        return false;
+    }
+
+    MEMORY_BASIC_INFORMATION mbi{};
+    if (!VirtualQuery(address, &mbi, sizeof(mbi))) {
+        return false;
+    }
+
+    if (mbi.State != MEM_COMMIT ||
+        (mbi.Protect & PAGE_GUARD) ||
+        (mbi.Protect & PAGE_NOACCESS)) {
+        return false;
+    }
+
+    const uintptr_t begin = reinterpret_cast<uintptr_t>(address);
+    const uintptr_t regionBegin = reinterpret_cast<uintptr_t>(mbi.BaseAddress);
+    const uintptr_t regionEnd = regionBegin + mbi.RegionSize;
+    return begin >= regionBegin && begin + bytes >= begin && begin + bytes <= regionEnd;
+}
+
+bool SafeReadPointer(const void* base, size_t offset, void** out) {
+    if (!base || !out) {
+        return false;
+    }
+
+    const BYTE* p = reinterpret_cast<const BYTE*>(base) + offset;
+    if (!IsReadableMemoryRange(p, sizeof(void*))) {
+        return false;
+    }
+
+    *out = *reinterpret_cast<void* const*>(p);
+    return true;
+}
+
+bool SafeReadFloat(const void* base, size_t offset, float* out) {
+    if (!base || !out) {
+        return false;
+    }
+
+    const BYTE* p = reinterpret_cast<const BYTE*>(base) + offset;
+    if (!IsReadableMemoryRange(p, sizeof(float))) {
+        return false;
+    }
+
+    const float value = *reinterpret_cast<const float*>(p);
+    if (!isfinite(value)) {
+        return false;
+    }
+
+    *out = value;
+    return true;
+}
+
+bool SafeWriteFloat(void* base, size_t offset, float value) {
+    if (!base || !isfinite(value)) {
+        return false;
+    }
+
+    BYTE* p = reinterpret_cast<BYTE*>(base) + offset;
+    if (!IsReadableMemoryRange(p, sizeof(float))) {
+        return false;
+    }
+
+    *reinterpret_cast<float*>(p) = value;
+    return true;
+}
+
+bool DiscoverCharacterMovementMemberOffset(void* player, void* movementComponent) {
+    if (!player || !movementComponent) {
+        return false;
+    }
+
+    const ptrdiff_t known = g_characterMovementMemberOffset.load();
+    if (known >= 0) {
+        void* check = nullptr;
+        return SafeReadPointer(player, static_cast<size_t>(known), &check) &&
+               check == movementComponent;
+    }
+
+    ptrdiff_t found = -1;
+    int matches = 0;
+
+    // ACharacter / Mayhem player instances are comfortably below this window.
+    // We only inspect aligned pointer fields and require an exact pointer match.
+    for (size_t offset = 0x100; offset <= 0x1200; offset += sizeof(void*)) {
+        void* value = nullptr;
+        if (!SafeReadPointer(player, offset, &value)) {
+            continue;
+        }
+
+        if (value == movementComponent) {
+            found = static_cast<ptrdiff_t>(offset);
+            ++matches;
+        }
+    }
+
+    if (matches != 1 || found < 0) {
+        if (matches > 0) {
+            Log(
+                "Horse runtime: CharacterMovement member discovery ambiguous matches=%d",
+                matches
+            );
+        }
+        return false;
+    }
+
+    g_characterMovementMemberOffset.store(found);
+    Log(
+        "Horse runtime: discovered CharacterMovement member offset=0x%zX",
+        static_cast<size_t>(found)
+    );
+    return true;
+}
+
+void RestoreHorseRuntimeState() {
+    AcquireSRWLockExclusive(&g_tuningLock);
+
+    if (g_horseRuntimeState.captured &&
+        g_horseRuntimeState.horse &&
+        IsReadableMemoryRange(
+            reinterpret_cast<BYTE*>(g_horseRuntimeState.horse) + 0x918,
+            sizeof(float)
+        )) {
+        SafeWriteFloat(
+            g_horseRuntimeState.horse,
+            0x918,
+            g_horseRuntimeState.staminaSprintPercentageRate
+        );
+    }
+
+    g_horseRuntimeState = {};
+    g_validatedHorseCharacter.store(nullptr);
+    g_validatedHorseMovement.store(nullptr);
+    g_horseRuntimeReady.store(false);
+    g_horseNormalSpeedBaseline.store(0.0f);
+    g_lastHorseNativeSpeed.store(0.0f);
+    g_lastHorseEffectiveSpeed.store(0.0f);
+    g_lastHorseSpeedClassifiedSprint.store(false);
+    g_lastHorseNativeSprintDrain.store(0.0f);
+    g_lastHorseEffectiveSprintDrain.store(0.0f);
+
+    ReleaseSRWLockExclusive(&g_tuningLock);
+}
+
+float ApplyHorseSpeedPolicy(void* movementComponent, float nativeSpeed) {
+    if (!movementComponent ||
+        movementComponent != g_validatedHorseMovement.load() ||
+        nativeSpeed <= 0.0f ||
+        !isfinite(nativeSpeed)) {
+        return nativeSpeed;
+    }
+
+    float baseline = g_horseNormalSpeedBaseline.load();
+    if (baseline <= 0.0f || nativeSpeed < baseline) {
+        // The lowest positive GetMaxSpeed observed for the validated mount is
+        // treated as its normal-speed baseline. The reference PAK reports
+        // vanilla MaxWalkSpeed around 1300.
+        baseline = nativeSpeed;
+        g_horseNormalSpeedBaseline.store(baseline);
+    }
+
+    const bool sprint = baseline > 0.0f && nativeSpeed > baseline * 1.08f;
+    g_lastHorseSpeedClassifiedSprint.store(sprint);
+    g_lastHorseNativeSpeed.store(nativeSpeed);
+
+    float multiplier = sprint
+        ? g_config.horseSprintSpeedMultiplier
+        : g_config.horseSpeedMultiplier;
+
+    const bool enabled = sprint
+        ? g_config.horseSprintSpeedEnabled
+        : g_config.horseSpeedEnabled;
+
+    multiplier = ClampFloat(multiplier, 0.0f, 10.0f);
+
+    const float effective = enabled ? nativeSpeed * multiplier : nativeSpeed;
+    g_lastHorseEffectiveSpeed.store(effective);
+    return effective;
+}
+
+float HookHorseGetMaxSpeed(void* movementComponent) {
+    const float nativeSpeed = g_originalHorseGetMaxSpeed
+        ? g_originalHorseGetMaxSpeed(movementComponent)
+        : 0.0f;
+
+    return ApplyHorseSpeedPolicy(movementComponent, nativeSpeed);
+}
+
+bool InstallDynamicHorseGetMaxSpeedHook(void* horseMovement) {
+    if (!horseMovement) {
+        return false;
+    }
+
+    void* vtableAddress = nullptr;
+    if (!SafeReadPointer(horseMovement, 0, &vtableAddress) || !vtableAddress) {
+        return false;
+    }
+
+    if (!IsReadableMemoryRange(
+            reinterpret_cast<BYTE*>(vtableAddress) + 0x3D0,
+            sizeof(void*))) {
+        return false;
+    }
+
+    void* target = *reinterpret_cast<void**>(
+        reinterpret_cast<BYTE*>(vtableAddress) + 0x3D0
+    );
+    if (!target) {
+        return false;
+    }
+
+    PeSectionView text{};
+    if (!GetMainModuleSection(".text", text) ||
+        !AddressInSection(text, reinterpret_cast<BYTE*>(target))) {
+        Log("Horse runtime: GetMaxSpeed vtable target is outside .text target=%p", target);
+        return false;
+    }
+
+    if (target == g_playerGetMaxSpeedTarget) {
+        // Horse and player share the same Mayhem override. The already
+        // installed HookCharacterGetMaxSpeed handles the validated horse path.
+        g_horseSpeedHookReady.store(true);
+        Log("Horse runtime: horse shares player GetMaxSpeed target=%p", target);
+        return true;
+    }
+
+    if (g_horseSpeedHookReady.load()) {
+        return true;
+    }
+
+    const MH_STATUS initStatus = MH_Initialize();
+    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+        Log("Horse runtime: MinHook initialize FAILED status=%d", static_cast<int>(initStatus));
+        return false;
+    }
+
+    MH_STATUS status = MH_CreateHook(
+        target,
+        reinterpret_cast<LPVOID>(&HookHorseGetMaxSpeed),
+        reinterpret_cast<LPVOID*>(&g_originalHorseGetMaxSpeed)
+    );
+    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
+        Log("Horse runtime: GetMaxSpeed create FAILED status=%d target=%p", static_cast<int>(status), target);
+        return false;
+    }
+
+    status = MH_EnableHook(target);
+    if (status != MH_OK && status != MH_ERROR_ENABLED) {
+        Log("Horse runtime: GetMaxSpeed enable FAILED status=%d target=%p", static_cast<int>(status), target);
+        return false;
+    }
+
+    g_horseSpeedHookReady.store(true);
+
+    HMODULE module = GetModuleHandleW(nullptr);
+    BYTE* base = reinterpret_cast<BYTE*>(module);
+    Log(
+        "Horse runtime: dedicated GetMaxSpeed READY RVA=0x%zX slot=0x3D0",
+        static_cast<size_t>(reinterpret_cast<BYTE*>(target) - base)
+    );
+    return true;
+}
+
+bool ValidateAndApplyHorseRuntime(void* player) {
+    if (!player) {
+        return false;
+    }
+
+    const ptrdiff_t movementOffset = g_characterMovementMemberOffset.load();
+    if (movementOffset < 0) {
+        return false;
+    }
+
+    void* candidateHorse = nullptr;
+    if (!SafeReadPointer(player, 0xE70, &candidateHorse) || !candidateHorse) {
+        RestoreHorseRuntimeState();
+        return false;
+    }
+
+    void* horseMovement = nullptr;
+    if (!SafeReadPointer(
+            candidateHorse,
+            static_cast<size_t>(movementOffset),
+            &horseMovement) ||
+        !horseMovement) {
+        g_horseValidationRejects.fetch_add(1);
+        return false;
+    }
+
+    // Structural proof: the candidate must expose a CharacterMovement field at
+    // the exact offset discovered on the local player, and that movement
+    // component must point back to the candidate through CharacterOwner +0x190.
+    void* ownerBack = nullptr;
+    if (!SafeReadPointer(horseMovement, 0x190, &ownerBack) ||
+        ownerBack != candidateHorse) {
+        g_horseValidationRejects.fetch_add(1);
+        return false;
+    }
+
+    float recovery = 0.0f;
+    float totalRecovery = 0.0f;
+    float sprintDrain = 0.0f;
+
+    if (!SafeReadFloat(candidateHorse, 0x910, &recovery) ||
+        !SafeReadFloat(candidateHorse, 0x914, &totalRecovery) ||
+        !SafeReadFloat(candidateHorse, 0x918, &sprintDrain) ||
+        recovery < 0.0f || recovery > 500.0f ||
+        totalRecovery < 0.0f || totalRecovery > 500.0f ||
+        sprintDrain < 0.0f || sprintDrain > 500.0f) {
+        g_horseValidationRejects.fetch_add(1);
+        return false;
+    }
+
+    AcquireSRWLockExclusive(&g_tuningLock);
+
+    if (!g_horseRuntimeState.captured ||
+        g_horseRuntimeState.horse != candidateHorse) {
+        g_horseRuntimeState = {};
+        g_horseRuntimeState.horse = candidateHorse;
+        g_horseRuntimeState.movement = horseMovement;
+        g_horseRuntimeState.staminaRecoveryPercentageRate = recovery;
+        g_horseRuntimeState.staminaTotalRecoveryPercentageRate = totalRecovery;
+        g_horseRuntimeState.staminaSprintPercentageRate = sprintDrain;
+        g_horseRuntimeState.captured = true;
+
+        g_horseNormalSpeedBaseline.store(0.0f);
+
+        Log(
+            "Horse runtime: VALIDATED horse=%p movement=%p stamina recovery=%.3f total=%.3f sprintDrain=%.3f",
+            candidateHorse,
+            horseMovement,
+            recovery,
+            totalRecovery,
+            sprintDrain
+        );
+    }
+
+    float durationMultiplier = ClampFloat(
+        g_config.horseSprintDurationMultiplier,
+        0.0f,
+        100.0f
+    );
+
+    float effectiveDrain = g_horseRuntimeState.staminaSprintPercentageRate;
+    if (g_config.horseSprintDurationEnabled) {
+        if (durationMultiplier <= 0.0001f) {
+            // 0x duration means essentially no sustainable sprint.
+            effectiveDrain = 100000.0f;
+        } else {
+            effectiveDrain =
+                g_horseRuntimeState.staminaSprintPercentageRate /
+                durationMultiplier;
+        }
+    }
+
+    const bool wroteDrain = SafeWriteFloat(candidateHorse, 0x918, effectiveDrain);
+
+    g_validatedHorseCharacter.store(candidateHorse);
+    g_validatedHorseMovement.store(horseMovement);
+    g_horseRuntimeReady.store(wroteDrain);
+    g_lastHorseNativeSprintDrain.store(
+        g_horseRuntimeState.staminaSprintPercentageRate
+    );
+    g_lastHorseEffectiveSprintDrain.store(effectiveDrain);
+
+    ReleaseSRWLockExclusive(&g_tuningLock);
+
+    if (!wroteDrain) {
+        g_horseValidationRejects.fetch_add(1);
+        return false;
+    }
+
+    g_horseValidationSuccesses.fetch_add(1);
+    InstallDynamicHorseGetMaxSpeedHook(horseMovement);
+    return true;
+}
+
+BYTE* ResolveIsHorseActiveNative() {
+    PeSectionView text{};
+    if (!GetMainModuleSection(".text", text)) {
+        Log("Horse runtime: failed to enumerate .text for IsHorseActive");
+        return nullptr;
+    }
+
+    // Audited AMayhemPlayerCharacter::IsHorseActive:
+    //   cmp qword ptr [rcx+0xE70],0
+    //   setne al
+    //   ret
+    static constexpr int kPattern[] = {
+        0x48, 0x83, 0xB9, 0x70, 0x0E, 0x00, 0x00, 0x00,
+        0x0F, 0x95, 0xC0,
+        0xC3
+    };
+
+    size_t count = 0;
+    BYTE* target = FindUniquePattern(text, kPattern, ARRAYSIZE(kPattern), &count);
+    if (!target) {
+        Log("Horse runtime: IsHorseActive signature match count=%zu", count);
+        return nullptr;
+    }
+
+    HMODULE module = GetModuleHandleW(nullptr);
+    BYTE* base = reinterpret_cast<BYTE*>(module);
+    Log(
+        "Horse runtime: IsHorseActive resolved RVA=0x%zX",
+        static_cast<size_t>(target - base)
+    );
+    return target;
+}
+
+bool HookIsHorseActive(void* player) {
+    const bool active = g_originalIsHorseActive
+        ? g_originalIsHorseActive(player)
+        : false;
+
+    if (!active) {
+        if (g_validatedHorseCharacter.load()) {
+            RestoreHorseRuntimeState();
+        }
+        return false;
+    }
+
+    ValidateAndApplyHorseRuntime(player);
+    return true;
+}
+
+bool InstallSafeHorseRuntimeHook() {
+    BYTE* target = ResolveIsHorseActiveNative();
+    if (!target) {
+        Log("Horse runtime: IsHorseActive resolver failed; horse features remain fail-open");
+        return false;
+    }
+
+    const MH_STATUS initStatus = MH_Initialize();
+    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+        Log("Horse runtime: MinHook initialize FAILED status=%d", static_cast<int>(initStatus));
+        return false;
+    }
+
+    MH_STATUS status = MH_CreateHook(
+        target,
+        reinterpret_cast<LPVOID>(&HookIsHorseActive),
+        reinterpret_cast<LPVOID*>(&g_originalIsHorseActive)
+    );
+    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
+        Log("Horse runtime: IsHorseActive create FAILED status=%d", static_cast<int>(status));
+        return false;
+    }
+
+    status = MH_EnableHook(target);
+    if (status != MH_OK && status != MH_ERROR_ENABLED) {
+        Log("Horse runtime: IsHorseActive enable FAILED status=%d", static_cast<int>(status));
+        return false;
+    }
+
+    Log("Horse runtime: IsHorseActive hook READY; waiting for structurally validated mount");
+    return true;
 }
 
 PlayerMovementTuningState* FindOrCapturePlayerMovementState(void* movementComponent) {
