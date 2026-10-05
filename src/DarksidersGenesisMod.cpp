@@ -370,6 +370,7 @@ struct Config {
     float horseSprintSpeedMultiplier = 1.25f;
     float horseSprintDurationMultiplier = 2.00f;
     float fovDegrees = 90.0f;
+    float thirdPersonDistanceMultiplier = 1.00f;
     float hotstreakChargeMultiplier = 2.00f;
 
     std::array<Action, 12> hotkeys{};
@@ -430,6 +431,7 @@ struct Config {
         horseSprintSpeedMultiplier = 1.25f;
         horseSprintDurationMultiplier = 2.00f;
         fovDegrees = 90.0f;
+        thirdPersonDistanceMultiplier = 1.00f;
         hotstreakChargeMultiplier = 2.00f;
 
         hotkeys.fill(Action::None);
@@ -486,6 +488,7 @@ struct Config {
         horseSprintSpeedMultiplier = ReadFloat(L"Values", L"HorseSprintSpeedMultiplier", 1.25f, g_iniPath);
         horseSprintDurationMultiplier = ReadFloat(L"Values", L"HorseSprintDurationMultiplier", 2.00f, g_iniPath);
         fovDegrees = ReadFloat(L"Values", L"FOVDegrees", 90.0f, g_iniPath);
+        thirdPersonDistanceMultiplier = ReadFloat(L"Values", L"ThirdPersonDistanceMultiplier", 1.00f, g_iniPath);
         hotstreakChargeMultiplier = ReadFloat(L"Values", L"HotstreakChargeMultiplier", 2.00f, g_iniPath);
 
         for (int i = 0; i < 12; ++i) {
@@ -541,6 +544,7 @@ struct Config {
         WriteFloat(L"Values", L"HorseSprintSpeedMultiplier", horseSprintSpeedMultiplier, g_iniPath);
         WriteFloat(L"Values", L"HorseSprintDurationMultiplier", horseSprintDurationMultiplier, g_iniPath);
         WriteFloat(L"Values", L"FOVDegrees", fovDegrees, g_iniPath);
+        WriteFloat(L"Values", L"ThirdPersonDistanceMultiplier", thirdPersonDistanceMultiplier, g_iniPath);
         WriteFloat(L"Values", L"HotstreakChargeMultiplier", hotstreakChargeMultiplier, g_iniPath);
 
         for (int i = 0; i < 12; ++i) {
