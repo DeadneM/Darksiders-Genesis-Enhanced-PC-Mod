@@ -22,7 +22,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.13B-final-damage-skip-intro-test";
+constexpr const char* kBuild = "0.14A-safe-horse-runtime-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -49,6 +49,8 @@ PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
 HudHiddenGetterFn g_originalHudHiddenGetter = nullptr;
 CharacterGetMaxSpeedFn g_originalCharacterGetMaxSpeed = nullptr;
+CharacterGetMaxSpeedFn g_originalHorseGetMaxSpeed = nullptr;
+void* g_playerGetMaxSpeedTarget = nullptr;
 ActionGateFn g_originalActionGate = nullptr;
 DashVoidFn g_originalDashStart = nullptr;
 DashTickFn g_originalDashTick = nullptr;
@@ -119,6 +121,20 @@ std::atomic<float> g_lastActionMoveElapsed{0.0f};
 std::atomic<void*> g_recoveryTailAbility{nullptr};
 std::atomic<float> g_recoveryTailStartElapsed{0.0f};
 
+std::atomic_bool g_horseRuntimeReady{false};
+std::atomic_bool g_horseSpeedHookReady{false};
+std::atomic<void*> g_validatedHorseCharacter{nullptr};
+std::atomic<void*> g_validatedHorseMovement{nullptr};
+std::atomic_ptrdiff_t g_characterMovementMemberOffset{-1};
+std::atomic<float> g_lastHorseNativeSpeed{0.0f};
+std::atomic<float> g_lastHorseEffectiveSpeed{0.0f};
+std::atomic<float> g_horseNormalSpeedBaseline{0.0f};
+std::atomic_bool g_lastHorseSpeedClassifiedSprint{false};
+std::atomic<float> g_lastHorseNativeSprintDrain{0.0f};
+std::atomic<float> g_lastHorseEffectiveSprintDrain{0.0f};
+std::atomic_int g_horseValidationSuccesses{0};
+std::atomic_int g_horseValidationRejects{0};
+
 struct PlayerMovementTuningState {
     void* component = nullptr;
     float jumpZVelocity = 0.0f;
@@ -126,8 +142,18 @@ struct PlayerMovementTuningState {
     float glideDurationSeconds = 0.0f;
 };
 
+struct HorseRuntimeState {
+    void* horse = nullptr;
+    void* movement = nullptr;
+    float staminaRecoveryPercentageRate = 0.0f;
+    float staminaTotalRecoveryPercentageRate = 0.0f;
+    float staminaSprintPercentageRate = 0.0f;
+    bool captured = false;
+};
+
 SRWLOCK g_tuningLock = SRWLOCK_INIT;
 std::array<PlayerMovementTuningState, 4> g_playerMovementStates{};
+HorseRuntimeState g_horseRuntimeState{};
 
 bool IsLocallyControlledMayhemCharacter(void* character);
 
