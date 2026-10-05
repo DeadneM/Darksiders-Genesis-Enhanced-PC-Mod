@@ -1503,4 +1503,25 @@ ability path.
 
 No read or write to `horse + 0x918` occurs in V0.9B.
 
-**Validation:** awaiting in-game test.
+**Validation:** **VALIDATED IN GAME.** User confirmed V0.9B works correctly after removing the unsafe horse pointer path.
+
+
+### V0.9B validation result
+
+User validation:
+
+```text
+"nickel"
+```
+
+Confirmed:
+
+- level loading no longer crashes;
+- the V0.9A horse pointer crash path is removed;
+- Jump Height remains usable;
+- Glide / Flight Duration remains usable.
+
+V0.9B therefore becomes the new validated base for the movement/glide branch.
+
+Horse Sprint Duration remains pending until a safe horse-instance resolver is
+found.
