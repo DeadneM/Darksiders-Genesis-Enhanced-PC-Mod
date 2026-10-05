@@ -10,9 +10,11 @@ Darksiders Genesis ASI mod. It is intentionally cumulative so development can
 be resumed later without reconstructing decisions from chat history.
 
 > Public `main` currently tracks the validated **V0.13B ASI base**.
-> **V0.14A Safe Horse Runtime is rejected after in-game testing** because the
-> mount was not detected while the player was visibly mounted. V0.14B continues
-> on a development branch without touching the canonical V0.13B base.
+> **V0.14A is rejected** because it failed to identify the mounted horse.
+> **V0.14B is rejected for horse-speed control** because user testing produced
+> no perceptible horse acceleration. V0.14C now tests the direct movement
+> properties proven by the reference Horse PAK, without touching the canonical
+> V0.13B base.
 
 ---
 
@@ -380,25 +382,47 @@ MoveInterruptDelaySec > elapsed timer
 
 V0.5A therefore scales only this delay during the native check.
 
-### 4. Skip Intro Videos
+### 4. Skip Intro Cinematic
 
 Goal:
 
-- skip startup intro videos through the ASI;
+- skip the game's opening story cinematic through the ASI;
 - do not delete/rename original game files;
-- leave normal loading/movie systems intact when possible.
+- leave normal loading/movie systems intact.
 
-Current lead:
+Implementation:
 
 ```text
-UE4 DefaultGameMoviePlayer
-StartupMovies
-WindowsMoviePlayer
+g.PlayIntroCinematicOnBoot = 0
 ```
 
 Default option state: **Enabled**.
 
-Status: **first binary lead confirmed; runtime hook not implemented yet**.
+Status: **VALIDATED IN GAME in V0.13B**. This skips the game's opening
+cinematic, but it does **not** skip the developer/publisher startup logos.
+
+### 4B. Skip Logos
+
+Goal:
+
+- skip startup company/developer/publisher logos;
+- arrive directly at the title / **Press Any Key** screen;
+- keep this independent from Skip Intro Cinematic;
+- do not rename or delete original game files.
+
+Known movie targets from the retail content layout:
+
+```text
+ProjectMayhem/Content/Movies/THQ_LogoBasic.mp4
+ProjectMayhem/Content/Movies/AS_LogoBasic.mp4
+```
+
+The existing `g.PlayIntroCinematicOnBoot` control does not affect these two
+startup movies. The ASI therefore needs a separate MoviePlayer/file-selection
+path that suppresses only these logo movies while leaving normal cutscenes and
+loading movies intact.
+
+Status: **pending dedicated startup-logo hook**.
 
 ### 5. Third Person
 
@@ -1642,7 +1666,18 @@ correct gameplay target, but it is Blueprint-defined rather than a simple
 native reflected field in the executable. A safe projectile/damage-call filter
 will be audited separately rather than guessing an object offset.
 
-**Validation:** awaiting in-game test.
+**Validation:** **REJECTED FOR HORSE SPEED IN GAME.**
+
+User feedback:
+
+```text
+The horses do not seem to accelerate.
+```
+
+Regardless of whether the safer V0.14B mount telemetry resolves correctly,
+multiplying the horse `GetMaxSpeed` return is not accepted as a working speed
+control. V0.14C therefore stops using that return value as the gameplay lever
+and moves to the direct movement properties proven by the reference Horse PAK.
 
 
 ## V0.10B — Expanded tuning ranges
@@ -2246,7 +2281,7 @@ horse actor or as the basis for horse gameplay reads/writes.
 
 ## V0.14B - Movement-owner horse detection
 
-**Status: TEST CANDIDATE**
+**Status: REJECTED FOR HORSE SPEED**
 
 V0.14B starts from V0.14A but removes the failed mount-identification chain.
 
@@ -2309,5 +2344,106 @@ Added to the TODO list:
 
 These remain separate from FOV and Third Person so each camera behavior can be
 tuned independently.
+
+**Validation:** awaiting in-game test.
+
+
+## V0.14C - Direct Horse Movement Properties
+
+**Status: TEST CANDIDATE**
+
+V0.14C keeps the safer horse discovery work from V0.14B but changes the actual
+speed-control mechanism.
+
+### Why V0.14B is not the speed base
+
+V0.14B attempted to multiply the result of the horse movement
+`GetMaxSpeed` virtual. In-game testing did not produce perceptible horse
+acceleration.
+
+The reference Horse PAK provides a much stronger gameplay target because it
+changes the horse CharacterMovement defaults directly:
+
+```text
+MaxWalkSpeed      1300.0 -> 1500.0
+MaxAcceleration    600.0 -> 700.0
+```
+
+V0.14C therefore treats the GetMaxSpeed hook as telemetry only.
+
+### Runtime offsets under test
+
+The target executable already gave three exact CharacterMovement anchors:
+
+```text
+CharacterOwner  +0x190
+JumpZVelocity   +0x1A0
+MovementMode    +0x1B0
+```
+
+These align with the UE4 CharacterMovement property sequence used by this
+engine build. V0.14C derives the following **test candidates**:
+
+```text
+MaxWalkSpeed    +0x1D4
+MaxAcceleration +0x1E8
+```
+
+These are not blindly written. The horse candidate must first pass all V0.14B
+structural validation and the live values must also fall inside horse-specific
+ranges consistent with the reference PAK:
+
+```text
+MaxWalkSpeed    1000 .. 2000
+MaxAcceleration  250 .. 1500
+```
+
+This intentionally rejects the known local-player movement defaults such as
+the much higher player MaxAcceleration.
+
+### Application model
+
+Once the horse movement component is validated, V0.14C captures its native
+values once and applies:
+
+```text
+effective MaxWalkSpeed    = native MaxWalkSpeed    * HorseSpeedMultiplier
+effective MaxAcceleration = native MaxAcceleration * HorseSpeedMultiplier
+```
+
+Disabling Horse Speed or unmounting restores the captured native values.
+
+The direct values are re-applied while mounted so runtime overlay changes take
+effect without requiring a remount.
+
+### Sprint separation
+
+**Horse Sprint Speed is not claimed as implemented by V0.14C.**
+
+The reference assets indicate that sprint has its own ability/runtime
+`RunSpeed` path. Until that path is resolved, Horse Sprint Speed remains
+pending instead of pretending that GetMaxSpeed scaling works.
+
+Horse Sprint Duration remains a separate stamina-drain feature through
+`StaminaSprintPercentageRate`.
+
+### New telemetry
+
+The Horse overlay reports:
+
+- native and applied `MaxWalkSpeed`;
+- native and applied `MaxAcceleration`;
+- native mounted signal;
+- horse/player movement member offsets;
+- GetMaxSpeed telemetry only;
+- validation/rejection counters and last rejection reason.
+
+Additional V0.14C rejection reasons:
+
+```text
+9  direct movement properties unreadable
+10 direct movement values outside horse-specific range
+11 MaxWalkSpeed / MaxAcceleration not writable
+```
 
 **Validation:** awaiting in-game test.
