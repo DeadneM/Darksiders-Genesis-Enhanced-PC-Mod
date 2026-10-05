@@ -903,12 +903,213 @@ bool IsLocallyControlledMayhemCharacter(void* character) {
     return fn(character);
 }
 
+float ClampFloat(float value, float minValue, float maxValue) {
+    if (value < minValue) return minValue;
+    if (value > maxValue) return maxValue;
+    return value;
+}
+
+bool IsReasonablePositiveFloat(float value, float minValue, float maxValue) {
+    return value >= minValue && value <= maxValue;
+}
+
+PlayerMovementTuningState* FindOrCapturePlayerMovementState(void* movementComponent) {
+    if (!movementComponent) {
+        return nullptr;
+    }
+
+    for (auto& state : g_playerMovementStates) {
+        if (state.component == movementComponent) {
+            return &state;
+        }
+    }
+
+    BYTE* component = reinterpret_cast<BYTE*>(movementComponent);
+
+    // Offsets recovered directly from UE4 generated reflection property params
+    // in the audited executable:
+    // UCharacterMovementComponent::JumpZVelocity                 +0x1A0
+    // UMayhemPlayerCharacterMovementComponent::DoubleJumpZVelocity +0x85C
+    // UMayhemPlayerCharacterMovementComponent::GlideDurationSeconds +0x86C
+    const float jumpZ = *reinterpret_cast<float*>(component + 0x1A0);
+    const float doubleJumpZ = *reinterpret_cast<float*>(component + 0x85C);
+    const float glideDuration = *reinterpret_cast<float*>(component + 0x86C);
+
+    if (!IsReasonablePositiveFloat(jumpZ, 100.0f, 10000.0f) ||
+        !IsReasonablePositiveFloat(doubleJumpZ, 100.0f, 10000.0f) ||
+        !IsReasonablePositiveFloat(glideDuration, 0.05f, 60.0f)) {
+        Log(
+            "Runtime tuning: movement capture rejected component=%p jump=%.3f double=%.3f glide=%.3f",
+            movementComponent,
+            jumpZ,
+            doubleJumpZ,
+            glideDuration
+        );
+        return nullptr;
+    }
+
+    PlayerMovementTuningState* slot = nullptr;
+    for (auto& state : g_playerMovementStates) {
+        if (!state.component) {
+            slot = &state;
+            break;
+        }
+    }
+    if (!slot) {
+        slot = &g_playerMovementStates[0];
+    }
+
+    slot->component = movementComponent;
+    slot->jumpZVelocity = jumpZ;
+    slot->doubleJumpZVelocity = doubleJumpZ;
+    slot->glideDurationSeconds = glideDuration;
+
+    Log(
+        "Runtime tuning: captured movement component=%p JumpZ=%.3f DoubleJumpZ=%.3f GlideDuration=%.3f",
+        movementComponent,
+        jumpZ,
+        doubleJumpZ,
+        glideDuration
+    );
+
+    return slot;
+}
+
+void ApplyPlayerMovementTunings(void* movementComponent) {
+    AcquireSRWLockExclusive(&g_tuningLock);
+
+    PlayerMovementTuningState* state = FindOrCapturePlayerMovementState(movementComponent);
+    if (!state) {
+        ReleaseSRWLockExclusive(&g_tuningLock);
+        return;
+    }
+
+    BYTE* component = reinterpret_cast<BYTE*>(movementComponent);
+
+    float heightMultiplier = ClampFloat(g_config.jumpHeightMultiplier, 0.25f, 9.0f);
+    // Jump apex height is approximately proportional to velocity squared when
+    // gravity is unchanged, so use sqrt(multiplier) for a true height scalar.
+    const float velocityMultiplier = sqrtf(heightMultiplier);
+
+    *reinterpret_cast<float*>(component + 0x1A0) =
+        g_config.jumpHeightEnabled
+            ? state->jumpZVelocity * velocityMultiplier
+            : state->jumpZVelocity;
+
+    *reinterpret_cast<float*>(component + 0x85C) =
+        g_config.jumpHeightEnabled
+            ? state->doubleJumpZVelocity * velocityMultiplier
+            : state->doubleJumpZVelocity;
+
+    const float glideMultiplier = ClampFloat(g_config.glideDurationMultiplier, 0.25f, 10.0f);
+    *reinterpret_cast<float*>(component + 0x86C) =
+        g_config.glideDurationEnabled
+            ? state->glideDurationSeconds * glideMultiplier
+            : state->glideDurationSeconds;
+
+    ReleaseSRWLockExclusive(&g_tuningLock);
+}
+
+HorseTuningState* FindOrCaptureHorseState(void* horse) {
+    if (!horse) {
+        return nullptr;
+    }
+
+    for (auto& state : g_horseStates) {
+        if (state.horse == horse) {
+            return &state;
+        }
+    }
+
+    BYTE* object = reinterpret_cast<BYTE*>(horse);
+
+    // AMayhemHorseCharacter reflection offsets recovered from the executable:
+    // StaminaRecoveryPercentageRate       +0x910
+    // StaminaTotalRecoveryPercentageRate  +0x914
+    // StaminaSprintPercentageRate         +0x918
+    const float sprintDrain = *reinterpret_cast<float*>(object + 0x918);
+
+    if (sprintDrain < 0.0f || sprintDrain > 1000.0f) {
+        Log(
+            "Runtime tuning: horse capture rejected horse=%p sprintDrain=%.3f",
+            horse,
+            sprintDrain
+        );
+        return nullptr;
+    }
+
+    HorseTuningState* slot = nullptr;
+    for (auto& state : g_horseStates) {
+        if (!state.horse) {
+            slot = &state;
+            break;
+        }
+    }
+    if (!slot) {
+        slot = &g_horseStates[0];
+    }
+
+    slot->horse = horse;
+    slot->staminaSprintPercentageRate = sprintDrain;
+
+    Log(
+        "Runtime tuning: captured horse=%p StaminaSprintPercentageRate=%.3f",
+        horse,
+        sprintDrain
+    );
+
+    return slot;
+}
+
+void ApplyHorseSprintDurationTuning(void* playerCharacter) {
+    if (!playerCharacter) {
+        return;
+    }
+
+    // AMayhemPlayerCharacter::IsHorseActive audit showed m_pHorseMount at +0xE70.
+    void* horse = *reinterpret_cast<void**>(
+        reinterpret_cast<BYTE*>(playerCharacter) + 0xE70
+    );
+
+    if (!horse) {
+        return;
+    }
+
+    AcquireSRWLockExclusive(&g_tuningLock);
+
+    HorseTuningState* state = FindOrCaptureHorseState(horse);
+    if (!state) {
+        ReleaseSRWLockExclusive(&g_tuningLock);
+        return;
+    }
+
+    float durationMultiplier = ClampFloat(
+        g_config.horseSprintDurationMultiplier,
+        0.25f,
+        20.0f
+    );
+
+    float effectiveDrain = state->staminaSprintPercentageRate;
+    if (g_config.horseSprintDurationEnabled) {
+        effectiveDrain =
+            durationMultiplier > 0.0001f
+                ? state->staminaSprintPercentageRate / durationMultiplier
+                : state->staminaSprintPercentageRate;
+    }
+
+    *reinterpret_cast<float*>(
+        reinterpret_cast<BYTE*>(horse) + 0x918
+    ) = effectiveDrain;
+
+    ReleaseSRWLockExclusive(&g_tuningLock);
+}
+
 float HookCharacterGetMaxSpeed(void* movementComponent) {
     const float nativeSpeed = g_originalCharacterGetMaxSpeed
         ? g_originalCharacterGetMaxSpeed(movementComponent)
         : 0.0f;
 
-    if (nativeSpeed <= 0.0f || !movementComponent) {
+    if (!movementComponent) {
         return nativeSpeed;
     }
 
@@ -922,7 +1123,12 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
 
     g_localPlayerCharacter.store(characterOwner);
 
-    if (!g_config.movementSpeedEnabled) {
+    // This frequently-called physics virtual is also our safe game-thread
+    // heartbeat for player/horse property tuning.
+    ApplyPlayerMovementTunings(movementComponent);
+    ApplyHorseSprintDurationTuning(characterOwner);
+
+    if (!g_config.movementSpeedEnabled || nativeSpeed <= 0.0f) {
         return nativeSpeed;
     }
 
@@ -933,10 +1139,7 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         return nativeSpeed;
     }
 
-    float multiplier = g_config.movementSpeedMultiplier;
-    if (multiplier < 0.10f) multiplier = 0.10f;
-    if (multiplier > 5.00f) multiplier = 5.00f;
-
+    float multiplier = ClampFloat(g_config.movementSpeedMultiplier, 0.10f, 5.00f);
     return nativeSpeed * multiplier;
 }
 
