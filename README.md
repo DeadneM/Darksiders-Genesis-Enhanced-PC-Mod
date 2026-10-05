@@ -1766,3 +1766,64 @@ testing produced no pistol-damage change.
 
 The hook is no longer installed in V0.11B. The menu entry remains available as
 a pending feature while a better projectile/damage path is audited.
+
+
+## V0.12A — Melee Damage / GetBaseDamage Diagnostic
+
+**Status: TEST CANDIDATE**
+
+The executable exposes a generated Blueprint exec wrapper for:
+
+```text
+GetBaseDamage
+```
+
+Audited wrapper:
+
+```text
+RVA 0x770D90
+virtual slot +0x928
+```
+
+The wrapper calls the character virtual, receives the native float in XMM0 and
+writes it to the Blueprint result pointer.
+
+### V0.12A policy
+
+The hook:
+
+1. runs the native wrapper first;
+2. only accepts the locally controlled player character;
+3. reads the returned BaseDamage float;
+4. applies `MeleeDamageMultiplier`;
+5. writes only the Blueprint result value.
+
+No character stats or UObject fields are permanently modified.
+
+This is intentionally diagnostic because `BaseDamage` may feed more than one
+player attack family. The overlay telemetry shows:
+
+```text
+Boost calls
+Last native BaseDamage
+Last boosted BaseDamage
+```
+
+Testing should compare melee attacks against pistol/ranged attacks. If melee
+damage changes while projectile damage does not, the path is suitable for the
+feature. If unrelated player damage scales too, the next build will filter the
+callsite/ability rather than keeping the broad BaseDamage result override.
+
+### Cumulative UI/value policy retained
+
+V0.12A includes V0.11B:
+
+- visible manual numeric entry beside every slider;
+- multiplier minima at 0;
+- Movement Speed default 1.50x;
+- Jump Height default 1.25x, 0..5x;
+- Glide / Flight Duration default 10x, 0..100x;
+- Hotstreak Charge 0..25x;
+- Pistol Damage V0.11A rejected and not installed.
+
+**Validation:** awaiting in-game test.
