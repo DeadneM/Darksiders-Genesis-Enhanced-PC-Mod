@@ -901,11 +901,9 @@ void HookAddJuice(void* hotStreakComponent, float amount) {
         void* localPlayer = g_localPlayerCharacter.load();
 
         if (localPlayer && owner == localPlayer) {
-            const float multiplier = ClampFloat(
-                g_config.hotstreakChargeMultiplier,
-                0.10f,
-                20.0f
-            );
+            float multiplier = g_config.hotstreakChargeMultiplier;
+            if (multiplier < 0.10f) multiplier = 0.10f;
+            if (multiplier > 20.0f) multiplier = 20.0f;
 
             effectiveAmount = amount * multiplier;
             if (effectiveAmount > 100000.0f) {
