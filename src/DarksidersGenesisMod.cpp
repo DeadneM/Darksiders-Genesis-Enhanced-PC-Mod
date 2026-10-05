@@ -22,7 +22,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.12A-melee-base-damage-test";
+constexpr const char* kBuild = "0.12B-melee-100x-diagnostic";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1654,7 +1654,7 @@ bool HookActionGate(void* abilityComponent, unsigned char action) {
 
     float multiplier = g_config.actionRecoveryMultiplier;
     if (multiplier < 1.0f) multiplier = 1.0f;
-    if (multiplier > 10.0f) multiplier = 10.0f;
+    if (multiplier > 100.0f) multiplier = 100.0f;
 
     if (multiplier <= 1.0001f) {
         return g_originalActionGate(abilityComponent, action);
@@ -3139,7 +3139,7 @@ void DrawOverlay() {
                 &g_config.meleeDamageEnabled,
                 &g_config.meleeDamageMultiplier,
                 0.00f,
-                10.00f,
+                100.00f,
                 "%.2fx",
                 g_meleeDamageHookReady.load()
                     ? "Diagnostic GetBaseDamage hook | local player"
