@@ -22,7 +22,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.11B-manual-values-pistol-rollback-test";
+constexpr const char* kBuild = "0.12A-melee-base-damage-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -42,6 +42,7 @@ using AbilityInterruptEnabledFn = bool(*)(void*, unsigned char);
 using AbilityActionEnabledFn = bool(*)(void*, unsigned char);
 using AddJuiceFn = void(*)(void*, float);
 using DoDamageToActorFn = void(*)(void*, void*, void*, void*);
+using ExecGetBaseDamageFn = void(*)(void*, void*, void*);
 
 PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
@@ -57,6 +58,7 @@ AbilityInterruptEnabledFn g_originalAbilityInterruptEnabled = nullptr;
 AbilityActionEnabledFn g_originalAbilityActionEnabled = nullptr;
 AddJuiceFn g_originalAddJuice = nullptr;
 DoDamageToActorFn g_originalDoDamageToActor = nullptr;
+ExecGetBaseDamageFn g_originalExecGetBaseDamage = nullptr;
 
 ID3D11Device* g_device = nullptr;
 ID3D11DeviceContext* g_context = nullptr;
@@ -82,6 +84,10 @@ std::atomic_int g_pistolDamageBoostCalls{0};
 std::atomic<float> g_lastNativePistolDamage{0.0f};
 std::atomic<float> g_lastBoostedPistolDamage{0.0f};
 std::atomic<float> g_lastPistolBaseJuice{0.0f};
+std::atomic_bool g_meleeDamageHookReady{false};
+std::atomic_int g_meleeDamageBoostCalls{0};
+std::atomic<float> g_lastNativeBaseDamage{0.0f};
+std::atomic<float> g_lastBoostedBaseDamage{0.0f};
 std::atomic<void*> g_activeDashAbility{nullptr};
 std::atomic<float> g_dashElapsedSeconds{0.0f};
 std::atomic<float> g_lastNativeDashDuration{0.0f};
@@ -1250,6 +1256,154 @@ bool IsLocallyControlledMayhemCharacter(void* character) {
     }
 
     return fn(character);
+}
+
+
+BYTE* ResolveExecGetBaseDamage() {
+    PeSectionView text{};
+    if (!GetMainModuleSection(".text", text)) {
+        Log("Melee damage hook: failed to enumerate .text");
+        return nullptr;
+    }
+
+    // Generated exec wrapper for GetBaseDamage.
+    //
+    // Audited RVA: 0x770D90
+    // It advances the Blueprint VM frame, calls virtual slot +0x928 on the
+    // character, then writes XMM0 to the result pointer.
+    static constexpr int kPattern[] = {
+        0x40, 0x53,
+        0x48, 0x83, 0xEC, 0x20,
+        0x48, 0x8B, 0x42, 0x20,
+        0x45, 0x33, 0xC9,
+        0x48, 0x85, 0xC0,
+        0x49, 0x8B, 0xD8,
+        0x41, 0x0F, 0x95, 0xC1,
+        0x4C, 0x03, 0xC8,
+        0x4C, 0x89, 0x4A, 0x20,
+        0x48, 0x8B, 0x01,
+        0xFF, 0x90, 0x28, 0x09, 0x00, 0x00,
+        0xF3, 0x0F, 0x11, 0x03,
+        0x48, 0x83, 0xC4, 0x20,
+        0x5B,
+        0xC3
+    };
+
+    size_t matchCount = 0;
+    BYTE* target = FindUniquePattern(
+        text,
+        kPattern,
+        ARRAYSIZE(kPattern),
+        &matchCount
+    );
+
+    if (!target) {
+        Log("Melee damage hook: GetBaseDamage wrapper match count=%zu", matchCount);
+        return nullptr;
+    }
+
+    HMODULE module = GetModuleHandleW(nullptr);
+    BYTE* base = reinterpret_cast<BYTE*>(module);
+    Log(
+        "Melee damage hook: GetBaseDamage exec resolved RVA=0x%zX virtualSlot=0x928",
+        static_cast<size_t>(target - base)
+    );
+
+    return target;
+}
+
+void HookExecGetBaseDamage(void* character, void* frame, void* result) {
+    if (!g_originalExecGetBaseDamage) {
+        return;
+    }
+
+    g_originalExecGetBaseDamage(character, frame, result);
+
+    if (!g_config.meleeDamageEnabled ||
+        !character ||
+        !result ||
+        !IsLocallyControlledMayhemCharacter(character)) {
+        return;
+    }
+
+    float* value = reinterpret_cast<float*>(result);
+    const float nativeDamage = *value;
+
+    if (!(nativeDamage > 0.0f && nativeDamage < 100000.0f)) {
+        return;
+    }
+
+    float multiplier = g_config.meleeDamageMultiplier;
+    if (multiplier < 0.0f) multiplier = 0.0f;
+    if (multiplier > 25.0f) multiplier = 25.0f;
+
+    float boosted = nativeDamage * multiplier;
+    if (boosted > 100000.0f) {
+        boosted = 100000.0f;
+    }
+
+    *value = boosted;
+
+    g_lastNativeBaseDamage.store(nativeDamage);
+    g_lastBoostedBaseDamage.store(boosted);
+
+    const int count = g_meleeDamageBoostCalls.fetch_add(1) + 1;
+    if (count <= 40 || (count % 100) == 0) {
+        Log(
+            "Melee damage hook: GetBaseDamage local %.3f -> %.3f (%.2fx) count=%d",
+            nativeDamage,
+            boosted,
+            multiplier,
+            count
+        );
+    }
+}
+
+bool InstallMeleeDamageHook() {
+    BYTE* target = ResolveExecGetBaseDamage();
+    if (!target) {
+        Log("Melee damage hook: resolver failed; feature remains fail-open");
+        return false;
+    }
+
+    const MH_STATUS initStatus = MH_Initialize();
+    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+        Log(
+            "Melee damage hook: MinHook initialize FAILED status=%d",
+            static_cast<int>(initStatus)
+        );
+        return false;
+    }
+
+    MH_STATUS status = MH_CreateHook(
+        target,
+        reinterpret_cast<LPVOID>(&HookExecGetBaseDamage),
+        reinterpret_cast<LPVOID*>(&g_originalExecGetBaseDamage)
+    );
+
+    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
+        Log(
+            "Melee damage hook: create FAILED status=%d",
+            static_cast<int>(status)
+        );
+        return false;
+    }
+
+    status = MH_EnableHook(target);
+    if (status != MH_OK && status != MH_ERROR_ENABLED) {
+        Log(
+            "Melee damage hook: enable FAILED status=%d",
+            static_cast<int>(status)
+        );
+        return false;
+    }
+
+    g_meleeDamageHookReady.store(true);
+    Log(
+        "Melee damage hook: READY local GetBaseDamage multiplier=%.3fx",
+        g_config.meleeDamageMultiplier
+    );
+    return true;
 }
 
 float ClampFloat(float value, float minValue, float maxValue) {
@@ -2987,8 +3141,21 @@ void DrawOverlay() {
                 0.00f,
                 10.00f,
                 "%.2fx",
-                "Pending hook | BaseDamage path"
+                g_meleeDamageHookReady.load()
+                    ? "Diagnostic GetBaseDamage hook | local player"
+                    : "Native GetBaseDamage hook unavailable"
             );
+
+            if (g_meleeDamageHookReady.load()) {
+                ImGui::Indent();
+                ImGui::TextDisabled(
+                    "Boost calls: %d | Last base %.2f -> %.2f",
+                    g_meleeDamageBoostCalls.load(),
+                    g_lastNativeBaseDamage.load(),
+                    g_lastBoostedBaseDamage.load()
+                );
+                ImGui::Unindent();
+            }
 
             DrawTunableFeature(
                 "Hotstreak Charge",
@@ -3462,6 +3629,10 @@ DWORD WINAPI MainThread(LPVOID) {
 
     if (!InstallHotstreakChargeHook()) {
         Log("Hotstreak Charge unavailable; other ASI features remain active.");
+    }
+
+    if (!InstallMeleeDamageHook()) {
+        Log("Melee Damage unavailable; other ASI features remain active.");
     }
 
     Log("Core initialization complete. Press %s after the first game frame.",
