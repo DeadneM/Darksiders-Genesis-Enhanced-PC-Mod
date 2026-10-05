@@ -996,3 +996,103 @@ The log prints every bypassed Begin/End. If the feature has no visible effect,
 those lines tell us whether the dodge montage actually uses this notify state.
 
 **Do not treat V0.6B as a final implementation.**
+
+
+## V0.7A — Common Ability MOVE Recovery
+
+**Status: TEST CANDIDATE**
+
+The latest user report clarified that the dead movement tail is **not dodge-specific**:
+many player actions can finish visually, then leave the character fixed for roughly
+half a second before movement resumes.
+
+### What the V0.6 logs proved
+
+V0.6A did not actually install in the tested executable because its dash resolver
+failed closed:
+
+```text
+Dodge recovery: start/finish signature mismatch start=1 finish=2
+Dodge recovery: resolver failed; feature remains fail-open
+```
+
+V0.6B did install its `UAnimNotify_InputSuppressWindow` diagnostic hooks, but no
+Begin/End bypass events were recorded during the supplied test session. That
+system therefore does not explain the common recovery tail observed across many
+actions.
+
+### Common ability system audit
+
+The native ability base exposes:
+
+```text
+EnableInterrupt
+IsInterruptEnabled
+ProcessInterrupt
+AbilityInterruptsFlags
+AllowedActionsFlags
+```
+
+The interrupt enum includes:
+
+```text
+EAbilityInterrupt::NONE
+EAbilityInterrupt::MOVE
+EAbilityInterrupt::JUMP
+...
+```
+
+The audited native `IsInterruptEnabled` function reads the ability interrupt
+bitset directly from the ability object:
+
+```text
+bitset storage: +0xB0
+ability state:  +0xD8
+elapsed time:   +0xDC
+```
+
+The ability lifecycle enum is:
+
+```text
+0 INITIALIZING
+1 STARTING
+2 RUNNING
+3 SUSPENDED
+4 AWAITING_FINISH
+5 FINISHED
+6 FINALIZED
+```
+
+### V0.7A policy
+
+V0.7A hooks the common native `IsInterruptEnabled` path.
+
+For `EAbilityInterrupt::MOVE` only:
+
+- native MOVE permission is always preserved;
+- STARTING and RUNNING remain untouched;
+- movement is **not** allowed to cancel an action early;
+- if native MOVE is still disabled while the ability is in
+  `AWAITING_FINISH`, the mod returns true.
+
+This specifically targets the dead post-action tail without turning movement
+into a universal animation cancel.
+
+### Runtime diagnostics
+
+The overlay shows:
+
+- total MOVE interrupt queries;
+- queries where native code blocked MOVE;
+- queries forced by V0.7A;
+- last observed ability state;
+- last elapsed ability time.
+
+The log records state transitions and the first forced MOVE events.
+
+If the user still feels no difference:
+
+- `Forced > 0` means the common interrupt path is active but another movement
+  gate remains downstream;
+- `Forced = 0` means the observed dead tail occurs before/after
+  `AWAITING_FINISH`, and the logged state transition tells us where to move next.
