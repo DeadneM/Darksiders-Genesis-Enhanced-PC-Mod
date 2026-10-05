@@ -21,7 +21,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.8A-action-enabled-move-diagnostic";
+constexpr const char* kBuild = "0.8B-safe-tail-ui-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -87,6 +87,8 @@ std::atomic_int g_actionMoveForced{0};
 std::atomic<void*> g_lastActionMoveAbility{nullptr};
 std::atomic_int g_lastActionMoveState{-1};
 std::atomic<float> g_lastActionMoveElapsed{0.0f};
+std::atomic<void*> g_recoveryTailAbility{nullptr};
+std::atomic<float> g_recoveryTailStartElapsed{0.0f};
 std::array<bool, 256> g_keyDown{};
 std::string g_lastAction = "None";
 
@@ -347,12 +349,28 @@ struct Config {
     bool actionRecoveryEnabled = true;
     bool skipIntroEnabled = true;
     bool thirdPersonEnabled = true;
+    bool pistolDamageEnabled = true;
+    bool meleeDamageEnabled = true;
+    bool jumpHeightEnabled = true;
+    bool horseSpeedEnabled = true;
+    bool horseSprintSpeedEnabled = true;
+    bool horseSprintDurationEnabled = true;
+    bool fovEnabled = true;
+    bool hotstreakChargeEnabled = true;
 
-    // Tentative user-facing tuning values. They are inert until their gameplay
-    // hooks are implemented and validated.
+    // User-facing tuning values.
     float movementSpeedMultiplier = 1.15f;
-    float actionRecoveryMultiplier = 2.00f; // legacy V0.5A value
-    float dodgeEarlyUnlockMs = 100.0f;
+    float actionRecoveryDelayMs = 0.0f;
+    float actionRecoveryMultiplier = 2.00f; // legacy compatibility, not used by V0.8B
+    float dodgeEarlyUnlockMs = 100.0f;      // legacy compatibility, not used by V0.8B
+    float pistolDamageMultiplier = 2.00f;
+    float meleeDamageMultiplier = 2.00f;
+    float jumpHeightMultiplier = 1.25f;
+    float horseSpeedMultiplier = 1.25f;
+    float horseSprintSpeedMultiplier = 1.25f;
+    float horseSprintDurationMultiplier = 2.00f;
+    float fovDegrees = 90.0f;
+    float hotstreakChargeMultiplier = 2.00f;
 
     std::array<Action, 12> hotkeys{};
 
@@ -392,9 +410,27 @@ struct Config {
         actionRecoveryEnabled = true;
         skipIntroEnabled = true;
         thirdPersonEnabled = true;
+        pistolDamageEnabled = true;
+        meleeDamageEnabled = true;
+        jumpHeightEnabled = true;
+        horseSpeedEnabled = true;
+        horseSprintSpeedEnabled = true;
+        horseSprintDurationEnabled = true;
+        fovEnabled = true;
+        hotstreakChargeEnabled = true;
+
         movementSpeedMultiplier = 1.15f;
+        actionRecoveryDelayMs = 0.0f;
         actionRecoveryMultiplier = 2.00f;
         dodgeEarlyUnlockMs = 100.0f;
+        pistolDamageMultiplier = 2.00f;
+        meleeDamageMultiplier = 2.00f;
+        jumpHeightMultiplier = 1.25f;
+        horseSpeedMultiplier = 1.25f;
+        horseSprintSpeedMultiplier = 1.25f;
+        horseSprintDurationMultiplier = 2.00f;
+        fovDegrees = 90.0f;
+        hotstreakChargeMultiplier = 2.00f;
 
         hotkeys.fill(Action::None);
         hotkeys[0] = Action::ToggleHUD;
@@ -430,10 +466,27 @@ struct Config {
         actionRecoveryEnabled = ReadBool(L"Features", L"ActionRecovery", true, g_iniPath);
         skipIntroEnabled = ReadBool(L"Features", L"SkipIntroVideos", true, g_iniPath);
         thirdPersonEnabled = ReadBool(L"Features", L"ThirdPerson", true, g_iniPath);
+        pistolDamageEnabled = ReadBool(L"Features", L"PistolDamage", true, g_iniPath);
+        meleeDamageEnabled = ReadBool(L"Features", L"MeleeDamage", true, g_iniPath);
+        jumpHeightEnabled = ReadBool(L"Features", L"JumpHeight", true, g_iniPath);
+        horseSpeedEnabled = ReadBool(L"Features", L"HorseSpeed", true, g_iniPath);
+        horseSprintSpeedEnabled = ReadBool(L"Features", L"HorseSprintSpeed", true, g_iniPath);
+        horseSprintDurationEnabled = ReadBool(L"Features", L"HorseSprintDuration", true, g_iniPath);
+        fovEnabled = ReadBool(L"Features", L"FOV", true, g_iniPath);
+        hotstreakChargeEnabled = ReadBool(L"Features", L"HotstreakCharge", true, g_iniPath);
 
         movementSpeedMultiplier = ReadFloat(L"Values", L"MovementSpeedMultiplier", 1.15f, g_iniPath);
+        actionRecoveryDelayMs = ReadFloat(L"Values", L"ActionRecoveryDelayMs", 0.0f, g_iniPath);
         actionRecoveryMultiplier = ReadFloat(L"Values", L"ActionRecoveryMultiplier", 2.00f, g_iniPath);
         dodgeEarlyUnlockMs = ReadFloat(L"Values", L"DodgeEarlyUnlockMs", 100.0f, g_iniPath);
+        pistolDamageMultiplier = ReadFloat(L"Values", L"PistolDamageMultiplier", 2.00f, g_iniPath);
+        meleeDamageMultiplier = ReadFloat(L"Values", L"MeleeDamageMultiplier", 2.00f, g_iniPath);
+        jumpHeightMultiplier = ReadFloat(L"Values", L"JumpHeightMultiplier", 1.25f, g_iniPath);
+        horseSpeedMultiplier = ReadFloat(L"Values", L"HorseSpeedMultiplier", 1.25f, g_iniPath);
+        horseSprintSpeedMultiplier = ReadFloat(L"Values", L"HorseSprintSpeedMultiplier", 1.25f, g_iniPath);
+        horseSprintDurationMultiplier = ReadFloat(L"Values", L"HorseSprintDurationMultiplier", 2.00f, g_iniPath);
+        fovDegrees = ReadFloat(L"Values", L"FOVDegrees", 90.0f, g_iniPath);
+        hotstreakChargeMultiplier = ReadFloat(L"Values", L"HotstreakChargeMultiplier", 2.00f, g_iniPath);
 
         for (int i = 0; i < 12; ++i) {
             wchar_t key[8]{};
@@ -468,10 +521,27 @@ struct Config {
         WriteBool(L"Features", L"ActionRecovery", actionRecoveryEnabled, g_iniPath);
         WriteBool(L"Features", L"SkipIntroVideos", skipIntroEnabled, g_iniPath);
         WriteBool(L"Features", L"ThirdPerson", thirdPersonEnabled, g_iniPath);
+        WriteBool(L"Features", L"PistolDamage", pistolDamageEnabled, g_iniPath);
+        WriteBool(L"Features", L"MeleeDamage", meleeDamageEnabled, g_iniPath);
+        WriteBool(L"Features", L"JumpHeight", jumpHeightEnabled, g_iniPath);
+        WriteBool(L"Features", L"HorseSpeed", horseSpeedEnabled, g_iniPath);
+        WriteBool(L"Features", L"HorseSprintSpeed", horseSprintSpeedEnabled, g_iniPath);
+        WriteBool(L"Features", L"HorseSprintDuration", horseSprintDurationEnabled, g_iniPath);
+        WriteBool(L"Features", L"FOV", fovEnabled, g_iniPath);
+        WriteBool(L"Features", L"HotstreakCharge", hotstreakChargeEnabled, g_iniPath);
 
         WriteFloat(L"Values", L"MovementSpeedMultiplier", movementSpeedMultiplier, g_iniPath);
+        WriteFloat(L"Values", L"ActionRecoveryDelayMs", actionRecoveryDelayMs, g_iniPath);
         WriteFloat(L"Values", L"ActionRecoveryMultiplier", actionRecoveryMultiplier, g_iniPath);
         WriteFloat(L"Values", L"DodgeEarlyUnlockMs", dodgeEarlyUnlockMs, g_iniPath);
+        WriteFloat(L"Values", L"PistolDamageMultiplier", pistolDamageMultiplier, g_iniPath);
+        WriteFloat(L"Values", L"MeleeDamageMultiplier", meleeDamageMultiplier, g_iniPath);
+        WriteFloat(L"Values", L"JumpHeightMultiplier", jumpHeightMultiplier, g_iniPath);
+        WriteFloat(L"Values", L"HorseSpeedMultiplier", horseSpeedMultiplier, g_iniPath);
+        WriteFloat(L"Values", L"HorseSprintSpeedMultiplier", horseSprintSpeedMultiplier, g_iniPath);
+        WriteFloat(L"Values", L"HorseSprintDurationMultiplier", horseSprintDurationMultiplier, g_iniPath);
+        WriteFloat(L"Values", L"FOVDegrees", fovDegrees, g_iniPath);
+        WriteFloat(L"Values", L"HotstreakChargeMultiplier", hotstreakChargeMultiplier, g_iniPath);
 
         for (int i = 0; i < 12; ++i) {
             wchar_t key[8]{};
