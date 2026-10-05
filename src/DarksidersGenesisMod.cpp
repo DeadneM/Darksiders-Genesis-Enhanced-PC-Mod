@@ -22,7 +22,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.14A-safe-horse-runtime-test";
+constexpr const char* kBuild = "0.14B-horse-movement-owner-detection-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -125,6 +125,8 @@ std::atomic<float> g_recoveryTailStartElapsed{0.0f};
 
 std::atomic_bool g_horseRuntimeReady{false};
 std::atomic_bool g_horseSpeedHookReady{false};
+std::atomic_bool g_nativeHorseActive{false};
+std::atomic_int g_lastHorseRejectReason{0};
 std::atomic<void*> g_validatedHorseCharacter{nullptr};
 std::atomic<void*> g_validatedHorseMovement{nullptr};
 std::atomic<intptr_t> g_characterMovementMemberOffset{-1};
@@ -361,6 +363,28 @@ void InitializePaths() {
 
     g_logPath = path;
     g_logPath += kLogName;
+}
+
+void ResetLogFile() {
+    if (g_logPath.empty()) {
+        return;
+    }
+
+    // Logs are intentionally per-session. Truncate the previous run before
+    // writing the first line so diagnostics never become cumulative.
+    HANDLE file = CreateFileW(
+        g_logPath.c_str(),
+        GENERIC_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        nullptr,
+        CREATE_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr
+    );
+
+    if (file != INVALID_HANDLE_VALUE) {
+        CloseHandle(file);
+    }
 }
 
 void Log(const char* format, ...) {
@@ -2100,39 +2124,29 @@ bool InstallDynamicHorseGetMaxSpeedHook(void* horseMovement) {
     return true;
 }
 
-bool ValidateAndApplyHorseRuntime(void* player) {
-    if (!player) {
+void NoteHorseValidationReject(int reason, const char* text) {
+    g_horseValidationRejects.fetch_add(1);
+    const int previous = g_lastHorseRejectReason.exchange(reason);
+    if (previous != reason) {
+        Log("Horse runtime: candidate rejected reason=%d (%s)", reason, text ? text : "unknown");
+    }
+}
+
+bool ValidateHorseFromMovementPath(void* candidateHorse, void* horseMovement) {
+    if (!g_nativeHorseActive.load() ||
+        !candidateHorse ||
+        !horseMovement ||
+        candidateHorse == g_localPlayerCharacter.load()) {
         return false;
     }
 
-    const ptrdiff_t movementOffset = g_characterMovementMemberOffset.load();
-    if (movementOffset < 0) {
-        return false;
-    }
-
-    void* candidateHorse = nullptr;
-    if (!SafeReadPointer(player, 0xE70, &candidateHorse) || !candidateHorse) {
-        RestoreHorseRuntimeState();
-        return false;
-    }
-
-    void* horseMovement = nullptr;
-    if (!SafeReadPointer(
-            candidateHorse,
-            static_cast<size_t>(movementOffset),
-            &horseMovement) ||
-        !horseMovement) {
-        g_horseValidationRejects.fetch_add(1);
-        return false;
-    }
-
-    // Structural proof: the candidate must expose a CharacterMovement field at
-    // the exact offset discovered on the local player, and that movement
-    // component must point back to the candidate through CharacterOwner +0x190.
+    // V0.14B deliberately does NOT use Player+0xE70 as the horse pointer.
+    // We arrive here from a live CharacterMovement::GetMaxSpeed call and treat
+    // its CharacterOwner as the candidate mount.
     void* ownerBack = nullptr;
     if (!SafeReadPointer(horseMovement, 0x190, &ownerBack) ||
         ownerBack != candidateHorse) {
-        g_horseValidationRejects.fetch_add(1);
+        NoteHorseValidationReject(1, "CharacterOwner back-pointer mismatch");
         return false;
     }
 
@@ -2142,18 +2156,51 @@ bool ValidateAndApplyHorseRuntime(void* player) {
 
     if (!SafeReadFloat(candidateHorse, 0x910, &recovery) ||
         !SafeReadFloat(candidateHorse, 0x914, &totalRecovery) ||
-        !SafeReadFloat(candidateHorse, 0x918, &sprintDrain) ||
-        recovery < 0.0f || recovery > 500.0f ||
-        totalRecovery < 0.0f || totalRecovery > 500.0f ||
-        sprintDrain < 0.0f || sprintDrain > 500.0f) {
-        g_horseValidationRejects.fetch_add(1);
+        !SafeReadFloat(candidateHorse, 0x918, &sprintDrain)) {
+        NoteHorseValidationReject(2, "horse stamina fields unreadable");
+        return false;
+    }
+
+    // The reference horse data uses percentage-rate fields and a vanilla
+    // sprint drain around 25. Keep the acceptance window intentionally tight
+    // enough to avoid accidentally adopting an unrelated moving actor.
+    if (recovery < 0.0f || recovery > 100.0f ||
+        totalRecovery < 0.0f || totalRecovery > 100.0f ||
+        sprintDrain <= 0.0f || sprintDrain > 100.0f) {
+        NoteHorseValidationReject(3, "horse stamina fields outside sane range");
+        return false;
+    }
+
+    void* vtableAddress = nullptr;
+    if (!SafeReadPointer(horseMovement, 0, &vtableAddress) || !vtableAddress ||
+        !IsReadableMemoryRange(
+            reinterpret_cast<BYTE*>(vtableAddress) + 0x3D0,
+            sizeof(void*)
+        )) {
+        NoteHorseValidationReject(4, "movement vtable/slot unreadable");
+        return false;
+    }
+
+    void* maxSpeedTarget = *reinterpret_cast<void**>(
+        reinterpret_cast<BYTE*>(vtableAddress) + 0x3D0
+    );
+
+    PeSectionView text{};
+    if (!maxSpeedTarget ||
+        !GetMainModuleSection(".text", text) ||
+        !AddressInSection(text, reinterpret_cast<BYTE*>(maxSpeedTarget))) {
+        NoteHorseValidationReject(5, "GetMaxSpeed target outside executable .text");
         return false;
     }
 
     AcquireSRWLockExclusive(&g_tuningLock);
 
-    if (!g_horseRuntimeState.captured ||
-        g_horseRuntimeState.horse != candidateHorse) {
+    const bool newHorse =
+        !g_horseRuntimeState.captured ||
+        g_horseRuntimeState.horse != candidateHorse ||
+        g_horseRuntimeState.movement != horseMovement;
+
+    if (newHorse) {
         g_horseRuntimeState = {};
         g_horseRuntimeState.horse = candidateHorse;
         g_horseRuntimeState.movement = horseMovement;
@@ -2161,16 +2208,17 @@ bool ValidateAndApplyHorseRuntime(void* player) {
         g_horseRuntimeState.staminaTotalRecoveryPercentageRate = totalRecovery;
         g_horseRuntimeState.staminaSprintPercentageRate = sprintDrain;
         g_horseRuntimeState.captured = true;
-
         g_horseNormalSpeedBaseline.store(0.0f);
 
         Log(
-            "Horse runtime: VALIDATED horse=%p movement=%p stamina recovery=%.3f total=%.3f sprintDrain=%.3f",
+            "Horse runtime: VALIDATED from movement owner horse=%p movement=%p "
+            "stamina recovery=%.3f total=%.3f sprintDrain=%.3f maxSpeed=%p",
             candidateHorse,
             horseMovement,
             recovery,
             totalRecovery,
-            sprintDrain
+            sprintDrain,
+            maxSpeedTarget
         );
     }
 
@@ -2183,7 +2231,6 @@ bool ValidateAndApplyHorseRuntime(void* player) {
     float effectiveDrain = g_horseRuntimeState.staminaSprintPercentageRate;
     if (g_config.horseSprintDurationEnabled) {
         if (durationMultiplier <= 0.0001f) {
-            // 0x duration means essentially no sustainable sprint.
             effectiveDrain = 100000.0f;
         } else {
             effectiveDrain =
@@ -2194,18 +2241,21 @@ bool ValidateAndApplyHorseRuntime(void* player) {
 
     const bool wroteDrain = SafeWriteFloat(candidateHorse, 0x918, effectiveDrain);
 
-    g_validatedHorseCharacter.store(candidateHorse);
-    g_validatedHorseMovement.store(horseMovement);
-    g_horseRuntimeReady.store(wroteDrain);
-    g_lastHorseNativeSprintDrain.store(
-        g_horseRuntimeState.staminaSprintPercentageRate
-    );
-    g_lastHorseEffectiveSprintDrain.store(effectiveDrain);
+    if (wroteDrain) {
+        g_validatedHorseCharacter.store(candidateHorse);
+        g_validatedHorseMovement.store(horseMovement);
+        g_horseRuntimeReady.store(true);
+        g_lastHorseNativeSprintDrain.store(
+            g_horseRuntimeState.staminaSprintPercentageRate
+        );
+        g_lastHorseEffectiveSprintDrain.store(effectiveDrain);
+        g_lastHorseRejectReason.store(0);
+    }
 
     ReleaseSRWLockExclusive(&g_tuningLock);
 
     if (!wroteDrain) {
-        g_horseValidationRejects.fetch_add(1);
+        NoteHorseValidationReject(6, "sprint-drain field not writable");
         return false;
     }
 
@@ -2252,14 +2302,33 @@ bool HookIsHorseActive(void* player) {
         ? g_originalIsHorseActive(player)
         : false;
 
+    // Only the locally controlled player is allowed to drive the mount state.
+    // This also avoids a remote co-op player changing our local horse flag.
+    if (!player || !IsLocallyControlledMayhemCharacter(player)) {
+        return active;
+    }
+
+    g_localPlayerCharacter.store(player);
+
+    const bool previous = g_nativeHorseActive.exchange(active);
+
     if (!active) {
-        if (g_validatedHorseCharacter.load()) {
+        if (previous || g_validatedHorseCharacter.load()) {
+            Log("Horse runtime: local player unmounted -> restoring captured horse state");
             RestoreHorseRuntimeState();
         }
         return false;
     }
 
-    ValidateAndApplyHorseRuntime(player);
+    if (!previous) {
+        Log(
+            "Horse runtime: native mounted state detected; "
+            "waiting for a live movement-owner horse candidate"
+        );
+    }
+
+    // V0.14B intentionally does not dereference Player+0xE70 here.
+    // The actual mount is discovered from movement activity instead.
     return true;
 }
 
@@ -2292,7 +2361,7 @@ bool InstallSafeHorseRuntimeHook() {
         return false;
     }
 
-    Log("Horse runtime: IsHorseActive hook READY; waiting for structurally validated mount");
+    Log("Horse runtime: IsHorseActive hook READY; movement-owner mount discovery armed");
     return true;
 }
 
@@ -2412,6 +2481,22 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
 
     if (characterOwner == g_validatedHorseCharacter.load()) {
         return ApplyHorseSpeedPolicy(movementComponent, nativeSpeed);
+    }
+
+    // When the local player is mounted, observe other movement owners reaching
+    // this real GetMaxSpeed hook. The horse is accepted only after structural
+    // CharacterOwner, stamina-field and vtable validation.
+    void* localPlayer = g_localPlayerCharacter.load();
+    if (g_nativeHorseActive.load() &&
+        localPlayer &&
+        characterOwner != localPlayer) {
+        if (ValidateHorseFromMovementPath(characterOwner, movementComponent)) {
+            return ApplyHorseSpeedPolicy(movementComponent, nativeSpeed);
+        }
+
+        // Never let an unvalidated mounted-time movement owner replace our
+        // known local-player pointer.
+        return nativeSpeed;
     }
 
     if (!IsLocallyControlledMayhemCharacter(characterOwner)) {
@@ -4577,6 +4662,7 @@ bool DiscoverAndHookD3D11() {
 
 DWORD WINAPI MainThread(LPVOID) {
     InitializePaths();
+    ResetLogFile();
     Log("============================================================");
     Log("Darksiders Genesis Enhanced ASI %s starting", kBuild);
     Log("Target EXE audit SHA256=9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54");
