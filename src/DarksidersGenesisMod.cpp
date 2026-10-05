@@ -1836,32 +1836,64 @@ bool HookAbilityActionEnabled(void* ability, unsigned char action) {
         g_lastActionMoveAbility.store(ability);
         g_lastActionMoveState.store(static_cast<int>(state));
         Log(
-            "Action Recovery V0.8: MOVE action query ability=%p state=%s(%u) elapsed=%.3f native=%d instigator=%p",
+            "Action Recovery V0.8B: MOVE query ability=%p state=%s(%u) elapsed=%.3f native=%d",
             ability,
             AbilityStateName(state),
             static_cast<unsigned>(state),
             elapsed,
-            nativeEnabled ? 1 : 0,
-            instigator
+            nativeEnabled ? 1 : 0
         );
     }
 
     if (!g_config.actionRecoveryEnabled || nativeEnabled) {
+        if (nativeEnabled || state != 4) {
+            g_recoveryTailAbility.store(nullptr);
+            g_recoveryTailStartElapsed.store(0.0f);
+        }
         return nativeEnabled;
     }
 
-    // Diagnostic hammer: if the local player's active ability says MOVE is
-    // disabled, return true. If this removes the dead recovery tail, the
-    // AllowedActionsFlags path is proven and the next build will narrow the
-    // timing using the state/elapsed telemetry gathered here.
+    // V0.8A proved that AllowedActions/MOVE can affect the lock, but forcing
+    // MOVE during RUNNING lets interactions (e.g. chest opening) slide without
+    // their animation. V0.8B therefore preserves STARTING/RUNNING entirely and
+    // only trims the common AWAITING_FINISH tail.
+    if (state != 4) {
+        g_recoveryTailAbility.store(nullptr);
+        g_recoveryTailStartElapsed.store(0.0f);
+        return nativeEnabled;
+    }
+
+    if (g_recoveryTailAbility.load() != ability) {
+        g_recoveryTailAbility.store(ability);
+        g_recoveryTailStartElapsed.store(elapsed);
+        Log(
+            "Action Recovery V0.8B: tail START ability=%p elapsed=%.3f",
+            ability,
+            elapsed
+        );
+    }
+
+    float delayMs = g_config.actionRecoveryDelayMs;
+    if (delayMs < 0.0f) delayMs = 0.0f;
+    if (delayMs > 500.0f) delayMs = 500.0f;
+
+    float tailElapsed = elapsed - g_recoveryTailStartElapsed.load();
+    if (tailElapsed < 0.0f || tailElapsed > 10.0f) {
+        g_recoveryTailStartElapsed.store(elapsed);
+        tailElapsed = 0.0f;
+    }
+
+    if (tailElapsed * 1000.0f < delayMs) {
+        return nativeEnabled;
+    }
+
     const int forced = g_actionMoveForced.fetch_add(1) + 1;
     if (forced <= 30 || (forced % 100) == 0) {
         Log(
-            "Action Recovery V0.8: FORCE MOVE ACTION ability=%p state=%s(%u) elapsed=%.3f forcedCount=%d",
+            "Action Recovery V0.8B: FORCE MOVE TAIL ability=%p tail=%.3f sec delay=%.0f ms forcedCount=%d",
             ability,
-            AbilityStateName(state),
-            static_cast<unsigned>(state),
-            elapsed,
+            tailElapsed,
+            delayMs,
             forced
         );
     }
@@ -1900,7 +1932,7 @@ bool InstallActionEnabledRecoveryDiagnostic() {
     }
 
     g_recoveryHookReady.store(true);
-    Log("Action Recovery V0.8: READY policy=force local-player IsActionEnabled(MOVE)");
+    Log("Action Recovery V0.8B: READY policy=force local MOVE only in AWAITING_FINISH");
     return true;
 }
 
@@ -2026,7 +2058,7 @@ void TriggerAction(Action action, int functionKey) {
         g_lastAction = std::string("Action Recovery ") +
             (g_config.actionRecoveryEnabled ? "ON" : "OFF");
         Log(
-            "F%d -> Action Recovery %s policy=force local IsActionEnabled(MOVE)",
+            "F%d -> Action Recovery %s policy=AWAITING_FINISH tail only",
             functionKey,
             g_config.actionRecoveryEnabled ? "ON" : "OFF"
         );
