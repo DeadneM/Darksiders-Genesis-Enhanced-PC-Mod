@@ -22,7 +22,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.10A-hotstreak-charge-hook-test";
+constexpr const char* kBuild = "0.11A-pistol-damage-hook-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -41,6 +41,7 @@ using InputSuppressNotifyFn = void(*)(void*, void*, void*);
 using AbilityInterruptEnabledFn = bool(*)(void*, unsigned char);
 using AbilityActionEnabledFn = bool(*)(void*, unsigned char);
 using AddJuiceFn = void(*)(void*, float);
+using DoDamageToActorFn = void(*)(void*, void*, void*, void*);
 
 PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
@@ -55,6 +56,7 @@ InputSuppressNotifyFn g_originalInputSuppressEnd = nullptr;
 AbilityInterruptEnabledFn g_originalAbilityInterruptEnabled = nullptr;
 AbilityActionEnabledFn g_originalAbilityActionEnabled = nullptr;
 AddJuiceFn g_originalAddJuice = nullptr;
+DoDamageToActorFn g_originalDoDamageToActor = nullptr;
 
 ID3D11Device* g_device = nullptr;
 ID3D11DeviceContext* g_context = nullptr;
@@ -75,6 +77,11 @@ std::atomic_bool g_hotstreakHookReady{false};
 std::atomic_int g_hotstreakBoostCalls{0};
 std::atomic<float> g_lastNativeJuiceGain{0.0f};
 std::atomic<float> g_lastBoostedJuiceGain{0.0f};
+std::atomic_bool g_pistolDamageHookReady{false};
+std::atomic_int g_pistolDamageBoostCalls{0};
+std::atomic<float> g_lastNativePistolDamage{0.0f};
+std::atomic<float> g_lastBoostedPistolDamage{0.0f};
+std::atomic<float> g_lastPistolBaseJuice{0.0f};
 std::atomic<void*> g_activeDashAbility{nullptr};
 std::atomic<float> g_dashElapsedSeconds{0.0f};
 std::atomic<float> g_lastNativeDashDuration{0.0f};
@@ -972,6 +979,204 @@ bool InstallHotstreakChargeHook() {
     Log(
         "Hotstreak hook: READY AddJuice positive local gains multiplier=%.3fx",
         g_config.hotstreakChargeMultiplier
+    );
+    return true;
+}
+
+
+BYTE* ResolveDoDamageToActorNative() {
+    PeSectionView text{};
+    if (!GetMainModuleSection(".text", text)) {
+        Log("Pistol damage hook: failed to enumerate .text");
+        return nullptr;
+    }
+
+    // Blueprint library native DoDamageToActor body.
+    //
+    // Audited native RVA: 0x667300
+    //
+    // Generated UFunction parameters:
+    //   Actor         +0x00
+    //   DamageRecord  +0x08
+    //   DamageCauser  +0x18
+    //   DamageSource  +0x20
+    //
+    // FMayhemDamageEventRecord:
+    //   Damage        +0x08
+    //   ScaleType     +0x0C
+    //   ElementTypes  +0x10
+    //   DamageSourceTags +0x18
+    //   HotStreak     +0x28
+    //     BaseJuice   +0x00
+    static constexpr int kPattern[] = {
+        0x48, 0x8B, 0xC4,
+        0x57,
+        0x41, 0x56,
+        0x41, 0x57,
+        0x48, 0x81, 0xEC, 0x70, 0x01, 0x00, 0x00,
+        0x48, 0xC7, 0x44, 0x24, 0x40, 0xFE, 0xFF, 0xFF, 0xFF,
+        0x48, 0x89, 0x58, 0x08,
+        0x48, 0x89, 0x68, 0x10,
+        0x48, 0x89, 0x70, 0x18,
+        0x4D, 0x8B, 0xF1,
+        0x49, 0x8B, 0xF8,
+        0x4C, 0x8B, 0xFA,
+        0x48, 0x8B, 0xF1
+    };
+
+    size_t matchCount = 0;
+    BYTE* target = FindUniquePattern(
+        text,
+        kPattern,
+        ARRAYSIZE(kPattern),
+        &matchCount
+    );
+
+    if (!target) {
+        Log("Pistol damage hook: DoDamageToActor signature match count=%zu", matchCount);
+        return nullptr;
+    }
+
+    HMODULE module = GetModuleHandleW(nullptr);
+    BYTE* base = reinterpret_cast<BYTE*>(module);
+    Log(
+        "Pistol damage hook: DoDamageToActor resolved RVA=0x%zX",
+        static_cast<size_t>(target - base)
+    );
+
+    return target;
+}
+
+void HookDoDamageToActor(
+    void* actorStorage,
+    void* damageRecord,
+    void* damageCauserStorage,
+    void* damageSource
+) {
+    if (!g_originalDoDamageToActor) {
+        return;
+    }
+
+    if (!g_config.pistolDamageEnabled || !damageRecord) {
+        g_originalDoDamageToActor(
+            actorStorage,
+            damageRecord,
+            damageCauserStorage,
+            damageSource
+        );
+        return;
+    }
+
+    BYTE* record = reinterpret_cast<BYTE*>(damageRecord);
+    float* damagePtr = reinterpret_cast<float*>(record + 0x08);
+    const float originalDamage = *damagePtr;
+    const float baseJuice = *reinterpret_cast<float*>(record + 0x28);
+
+    // The supplied DualPistols PAKs show BaseJuice on the same projectile
+    // records whose Damage is being increased. War/melee/enemy damage records
+    // are expected to have zero juice and therefore stay native.
+    //
+    // Keep strict sanity bounds and use a temporary override only for the
+    // duration of the game's DoDamageToActor call, restoring the record after.
+    const bool looksLikePistolRecord =
+        originalDamage > 0.0f &&
+        originalDamage < 100000.0f &&
+        baseJuice > 0.0f &&
+        baseJuice < 1000.0f;
+
+    if (!looksLikePistolRecord) {
+        g_originalDoDamageToActor(
+            actorStorage,
+            damageRecord,
+            damageCauserStorage,
+            damageSource
+        );
+        return;
+    }
+
+    float multiplier = g_config.pistolDamageMultiplier;
+    if (multiplier < 0.10f) multiplier = 0.10f;
+    if (multiplier > 25.0f) multiplier = 25.0f;
+
+    float boostedDamage = originalDamage * multiplier;
+    if (boostedDamage > 100000.0f) {
+        boostedDamage = 100000.0f;
+    }
+
+    *damagePtr = boostedDamage;
+
+    g_lastNativePistolDamage.store(originalDamage);
+    g_lastBoostedPistolDamage.store(boostedDamage);
+    g_lastPistolBaseJuice.store(baseJuice);
+
+    const int count = g_pistolDamageBoostCalls.fetch_add(1) + 1;
+    if (count <= 40 || (count % 100) == 0) {
+        Log(
+            "Pistol damage hook: record=%p Damage %.3f -> %.3f BaseJuice=%.3f (%.2fx) count=%d source=%p",
+            damageRecord,
+            originalDamage,
+            boostedDamage,
+            baseJuice,
+            multiplier,
+            count,
+            damageSource
+        );
+    }
+
+    g_originalDoDamageToActor(
+        actorStorage,
+        damageRecord,
+        damageCauserStorage,
+        damageSource
+    );
+
+    // Never permanently mutate shared Blueprint/projectile defaults.
+    *damagePtr = originalDamage;
+}
+
+bool InstallPistolDamageHook() {
+    BYTE* target = ResolveDoDamageToActorNative();
+    if (!target) {
+        Log("Pistol damage hook: resolver failed; feature remains fail-open");
+        return false;
+    }
+
+    const MH_STATUS initStatus = MH_Initialize();
+    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+        Log(
+            "Pistol damage hook: MinHook initialize FAILED status=%d",
+            static_cast<int>(initStatus)
+        );
+        return false;
+    }
+
+    MH_STATUS status = MH_CreateHook(
+        target,
+        reinterpret_cast<LPVOID>(&HookDoDamageToActor),
+        reinterpret_cast<LPVOID*>(&g_originalDoDamageToActor)
+    );
+
+    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
+        Log(
+            "Pistol damage hook: create FAILED status=%d",
+            static_cast<int>(status)
+        );
+        return false;
+    }
+
+    status = MH_EnableHook(target);
+    if (status != MH_OK && status != MH_ERROR_ENABLED) {
+        Log(
+            "Pistol damage hook: enable FAILED status=%d",
+            static_cast<int>(status)
+        );
+        return false;
+    }
+
+    g_pistolDamageHookReady.store(true);
+    Log(
+        "Pistol damage hook: READY filter=DamageRecord.BaseJuice>0 multiplier=%.3fx",
+        g_config.pistolDamageMultiplier
     );
     return true;
 }
@@ -2752,8 +2957,22 @@ void DrawOverlay() {
                 0.50f,
                 10.00f,
                 "%.2fx",
-                "Pending hook | Projectile Damage"
+                g_pistolDamageHookReady.load()
+                    ? "Runtime DoDamageToActor hook | BaseJuice projectile filter"
+                    : "Native damage hook unavailable"
             );
+
+            if (g_pistolDamageHookReady.load()) {
+                ImGui::Indent();
+                ImGui::TextDisabled(
+                    "Boost calls: %d | Last %.2f -> %.2f | BaseJuice %.2f",
+                    g_pistolDamageBoostCalls.load(),
+                    g_lastNativePistolDamage.load(),
+                    g_lastBoostedPistolDamage.load(),
+                    g_lastPistolBaseJuice.load()
+                );
+                ImGui::Unindent();
+            }
 
             DrawTunableFeature(
                 "Melee Damage",
@@ -3237,6 +3456,10 @@ DWORD WINAPI MainThread(LPVOID) {
 
     if (!InstallHotstreakChargeHook()) {
         Log("Hotstreak Charge unavailable; other ASI features remain active.");
+    }
+
+    if (!InstallPistolDamageHook()) {
+        Log("Pistol Damage unavailable; other ASI features remain active.");
     }
 
     Log("Core initialization complete. Press %s after the first game frame.",
