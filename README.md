@@ -1704,3 +1704,65 @@ This will quickly confirm whether the expected DualPistols records are flowing
 through the hook.
 
 **Validation:** awaiting in-game test.
+
+
+## V0.11B — Manual Numeric Input + Zero-Minimum Policy
+
+**Status: TEST CANDIDATE**
+
+User-requested UI/value policy:
+
+- every tunable numeric option now exposes both a slider and an explicit manual
+  input field;
+- multiplier-style values use **0** as their minimum;
+- future multiplier-style options should also default to a minimum of 0 unless
+  zero is semantically invalid.
+
+New requested defaults/ranges:
+
+```text
+Movement Speed
+  default 1.50x
+  min 0.00x
+
+Jump Height
+  default 1.25x
+  min 0.00x
+  max 5.00x
+
+Glide / Flight Duration
+  default 10.00x
+  min 0.00x
+  max 100.00x
+
+Pistol Damage
+  min 0.00x
+  V0.11A hook rejected by user: no gameplay effect
+
+Melee Damage
+  min 0.00x
+
+Hotstreak Charge
+  min 0.00x
+  max 25.00x
+
+Horse Speed
+  min 0.00x
+
+Horse Sprint Speed
+  min 0.00x
+
+Horse Sprint Duration
+  min 0.00x
+```
+
+Third-person distance is also treated as a multiplier and now allows 0. FOV
+remains an absolute camera angle and keeps its safe nonzero range.
+
+### Pistol Damage rollback
+
+V0.11A `DoDamageToActor + BaseJuice` filtering is **REJECTED** because user
+testing produced no pistol-damage change.
+
+The hook is no longer installed in V0.11B. The menu entry remains available as
+a pending feature while a better projectile/damage path is audited.
