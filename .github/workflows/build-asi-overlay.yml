@@ -41,7 +41,7 @@ jobs:
           Copy-Item "config/DarksidersGenesisMod.ini" $dist
           Copy-Item "README.md" $dist
 
-          $zip = Join-Path $PWD "DarksidersGenesis_ASI_V0.6B_INPUT_SUPPRESS_DIAG_TEST.zip"
+          $zip = Join-Path $PWD "DarksidersGenesis_ASI_V0.7A_COMMON_RECOVERY_TEST.zip"
           if (Test-Path $zip) { Remove-Item $zip -Force }
           Compress-Archive -Path "$dist\*" -DestinationPath $zip -CompressionLevel Optimal
 
@@ -52,6 +52,6 @@ jobs:
       - name: Upload test build
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_ASI_V0.6B_INPUT_SUPPRESS_DIAG_TEST
-          path: DarksidersGenesis_ASI_V0.6B_INPUT_SUPPRESS_DIAG_TEST.zip
+          name: DarksidersGenesis_ASI_V0.7A_COMMON_RECOVERY_TEST
+          path: DarksidersGenesis_ASI_V0.7A_COMMON_RECOVERY_TEST.zip
           if-no-files-found: error
