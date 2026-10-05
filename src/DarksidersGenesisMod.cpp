@@ -22,7 +22,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.9B-crash-fix-jump-glide-only-test";
+constexpr const char* kBuild = "0.13B-final-damage-skip-intro-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -40,6 +40,10 @@ using DashTickFn = void(*)(void*, float);
 using InputSuppressNotifyFn = void(*)(void*, void*, void*);
 using AbilityInterruptEnabledFn = bool(*)(void*, unsigned char);
 using AbilityActionEnabledFn = bool(*)(void*, unsigned char);
+using AddJuiceFn = void(*)(void*, float);
+using DoDamageToActorFn = void(*)(void*, void*, void*, void*);
+using ExecGetBaseDamageFn = void(*)(void*, void*, void*);
+using FilterOutgoingDamageFn = void(*)(void*, void*);
 
 PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
@@ -53,6 +57,10 @@ InputSuppressNotifyFn g_originalInputSuppressBegin = nullptr;
 InputSuppressNotifyFn g_originalInputSuppressEnd = nullptr;
 AbilityInterruptEnabledFn g_originalAbilityInterruptEnabled = nullptr;
 AbilityActionEnabledFn g_originalAbilityActionEnabled = nullptr;
+AddJuiceFn g_originalAddJuice = nullptr;
+DoDamageToActorFn g_originalDoDamageToActor = nullptr;
+ExecGetBaseDamageFn g_originalExecGetBaseDamage = nullptr;
+FilterOutgoingDamageFn g_originalFilterOutgoingDamage = nullptr;
 
 ID3D11Device* g_device = nullptr;
 ID3D11DeviceContext* g_context = nullptr;
@@ -69,6 +77,26 @@ std::atomic_bool g_hudHidden{false};
 std::atomic_bool g_hudHookReady{false};
 std::atomic_bool g_movementHookReady{false};
 std::atomic_bool g_recoveryHookReady{false};
+std::atomic_bool g_skipIntroReady{false};
+LONG** g_skipIntroDataSlot = nullptr;
+LONG* g_skipIntroData = nullptr;
+LONG g_skipIntroOriginalValue = 1;
+std::atomic_bool g_hotstreakHookReady{false};
+std::atomic_int g_hotstreakBoostCalls{0};
+std::atomic<float> g_lastNativeJuiceGain{0.0f};
+std::atomic<float> g_lastBoostedJuiceGain{0.0f};
+std::atomic_bool g_pistolDamageHookReady{false};
+std::atomic_int g_pistolDamageBoostCalls{0};
+std::atomic<float> g_lastNativePistolDamage{0.0f};
+std::atomic<float> g_lastBoostedPistolDamage{0.0f};
+std::atomic<float> g_lastPistolBaseJuice{0.0f};
+std::atomic_bool g_meleeDamageHookReady{false};
+std::atomic_int g_meleeDamageBoostCalls{0};
+std::atomic<float> g_lastNativeBaseDamage{0.0f};
+std::atomic<float> g_lastBoostedBaseDamage{0.0f};
+std::atomic_bool g_finalOutgoingDamageHookReady{false};
+std::atomic_uint g_lastOutgoingScaleType{0};
+std::atomic_int g_lastOutgoingTagCount{0};
 std::atomic<void*> g_activeDashAbility{nullptr};
 std::atomic<float> g_dashElapsedSeconds{0.0f};
 std::atomic<float> g_lastNativeDashDuration{0.0f};
@@ -100,6 +128,8 @@ struct PlayerMovementTuningState {
 
 SRWLOCK g_tuningLock = SRWLOCK_INIT;
 std::array<PlayerMovementTuningState, 4> g_playerMovementStates{};
+
+bool IsLocallyControlledMayhemCharacter(void* character);
 
 std::array<bool, 256> g_keyDown{};
 std::string g_lastAction = "None";
@@ -372,14 +402,14 @@ struct Config {
     bool hotstreakChargeEnabled = true;
 
     // User-facing tuning values.
-    float movementSpeedMultiplier = 1.15f;
+    float movementSpeedMultiplier = 1.50f;
     float actionRecoveryDelayMs = 0.0f;
     float actionRecoveryMultiplier = 2.00f; // legacy compatibility, not used by V0.8B
     float dodgeEarlyUnlockMs = 100.0f;      // legacy compatibility, not used by V0.8B
     float pistolDamageMultiplier = 2.00f;
     float meleeDamageMultiplier = 2.00f;
     float jumpHeightMultiplier = 1.25f;
-    float glideDurationMultiplier = 1.50f;
+    float glideDurationMultiplier = 10.00f;
     float horseSpeedMultiplier = 1.25f;
     float horseSprintSpeedMultiplier = 1.25f;
     float horseSprintDurationMultiplier = 2.00f;
@@ -435,14 +465,14 @@ struct Config {
         fovEnabled = true;
         hotstreakChargeEnabled = true;
 
-        movementSpeedMultiplier = 1.15f;
+        movementSpeedMultiplier = 1.50f;
         actionRecoveryDelayMs = 0.0f;
         actionRecoveryMultiplier = 2.00f;
         dodgeEarlyUnlockMs = 100.0f;
         pistolDamageMultiplier = 2.00f;
         meleeDamageMultiplier = 2.00f;
         jumpHeightMultiplier = 1.25f;
-        glideDurationMultiplier = 1.50f;
+        glideDurationMultiplier = 10.00f;
         horseSpeedMultiplier = 1.25f;
         horseSprintSpeedMultiplier = 1.25f;
         horseSprintDurationMultiplier = 2.00f;
@@ -494,14 +524,14 @@ struct Config {
         fovEnabled = ReadBool(L"Features", L"FOV", true, g_iniPath);
         hotstreakChargeEnabled = ReadBool(L"Features", L"HotstreakCharge", true, g_iniPath);
 
-        movementSpeedMultiplier = ReadFloat(L"Values", L"MovementSpeedMultiplier", 1.15f, g_iniPath);
+        movementSpeedMultiplier = ReadFloat(L"Values", L"MovementSpeedMultiplier", 1.50f, g_iniPath);
         actionRecoveryDelayMs = ReadFloat(L"Values", L"ActionRecoveryDelayMs", 0.0f, g_iniPath);
         actionRecoveryMultiplier = ReadFloat(L"Values", L"ActionRecoveryMultiplier", 2.00f, g_iniPath);
         dodgeEarlyUnlockMs = ReadFloat(L"Values", L"DodgeEarlyUnlockMs", 100.0f, g_iniPath);
         pistolDamageMultiplier = ReadFloat(L"Values", L"PistolDamageMultiplier", 2.00f, g_iniPath);
         meleeDamageMultiplier = ReadFloat(L"Values", L"MeleeDamageMultiplier", 2.00f, g_iniPath);
         jumpHeightMultiplier = ReadFloat(L"Values", L"JumpHeightMultiplier", 1.25f, g_iniPath);
-        glideDurationMultiplier = ReadFloat(L"Values", L"GlideDurationMultiplier", 1.50f, g_iniPath);
+        glideDurationMultiplier = ReadFloat(L"Values", L"GlideDurationMultiplier", 10.00f, g_iniPath);
         horseSpeedMultiplier = ReadFloat(L"Values", L"HorseSpeedMultiplier", 1.25f, g_iniPath);
         horseSprintSpeedMultiplier = ReadFloat(L"Values", L"HorseSprintSpeedMultiplier", 1.25f, g_iniPath);
         horseSprintDurationMultiplier = ReadFloat(L"Values", L"HorseSprintDurationMultiplier", 2.00f, g_iniPath);
@@ -714,6 +744,164 @@ BYTE* FindRipRelativeLeaTo(const PeSectionView& text, BYTE* target) {
     return count == 1 ? match : nullptr;
 }
 
+
+LONG** ResolveSkipIntroCVarDataSlot() {
+    PeSectionView text{};
+    PeSectionView rdata{};
+    if (!GetMainModuleSection(".text", text) ||
+        !GetMainModuleSection(".rdata", rdata)) {
+        Log("Skip Intro: failed to enumerate PE sections");
+        return nullptr;
+    }
+
+    BYTE* cvarName = FindWideString(rdata, L"g.PlayIntroCinematicOnBoot");
+    if (!cvarName) {
+        Log("Skip Intro: g.PlayIntroCinematicOnBoot string not found");
+        return nullptr;
+    }
+
+    BYTE* nameXref = FindRipRelativeLeaTo(text, cvarName);
+    if (!nameXref) {
+        Log("Skip Intro: unique CVar registration xref not found");
+        return nullptr;
+    }
+
+    // Same UE4 TAutoConsoleVariable registration layout as ui.HideHud:
+    //   lea rdx,[rip+CVarName]
+    //   call qword ptr [rax+10h]
+    //   ...
+    //   call qword ptr [rdx+38h]
+    //   mov [rip+CVarDataSlot],rax
+    //
+    // In this executable the final data-slot store starts +40 bytes after the
+    // name LEA for g.PlayIntroCinematicOnBoot.
+    BYTE* dataStore = nameXref + 40;
+    if (dataStore + 7 > text.begin + text.size ||
+        dataStore[0] != 0x48 ||
+        dataStore[1] != 0x89 ||
+        dataStore[2] != 0x05) {
+        Log("Skip Intro: CVar registration layout mismatch");
+        return nullptr;
+    }
+
+    const int32_t slotDisp = *reinterpret_cast<const int32_t*>(dataStore + 3);
+    BYTE* dataSlot = dataStore + 7 + slotDisp;
+
+    // Validate against the native boot-time read:
+    //   mov rax,[rip+CVarDataSlot]
+    //   cmp dword ptr [rax],0
+    //   je ...
+    BYTE* bootCheck = nullptr;
+    size_t checkCount = 0;
+
+    for (size_t i = 0; i + 12 <= text.size; ++i) {
+        BYTE* p = text.begin + i;
+        if (p[0] != 0x48 || p[1] != 0x8B || p[2] != 0x05) {
+            continue;
+        }
+
+        const int32_t disp = *reinterpret_cast<const int32_t*>(p + 3);
+        BYTE* resolved = p + 7 + disp;
+        if (resolved != dataSlot) {
+            continue;
+        }
+
+        if (p[7] == 0x83 &&
+            p[8] == 0x38 &&
+            p[9] == 0x00 &&
+            p[10] == 0x74) {
+            bootCheck = p;
+            ++checkCount;
+        }
+    }
+
+    if (!bootCheck || checkCount != 1) {
+        Log("Skip Intro: native boot-check match count=%zu", checkCount);
+        return nullptr;
+    }
+
+    HMODULE module = GetModuleHandleW(nullptr);
+    BYTE* base = reinterpret_cast<BYTE*>(module);
+    Log(
+        "Skip Intro: CVar resolved nameRVA=0x%zX slotRVA=0x%zX bootCheckRVA=0x%zX",
+        static_cast<size_t>(cvarName - base),
+        static_cast<size_t>(dataSlot - base),
+        static_cast<size_t>(bootCheck - base)
+    );
+
+    return reinterpret_cast<LONG**>(dataSlot);
+}
+
+bool ApplySkipIntroSetting(bool logChange) {
+    if (!g_skipIntroDataSlot) {
+        return false;
+    }
+
+    LONG* currentData = *g_skipIntroDataSlot;
+    if (!currentData) {
+        return false;
+    }
+
+    if (g_skipIntroData != currentData) {
+        g_skipIntroData = currentData;
+        g_skipIntroOriginalValue = *currentData;
+        Log(
+            "Skip Intro: captured native g.PlayIntroCinematicOnBoot=%ld data=%p",
+            g_skipIntroOriginalValue,
+            g_skipIntroData
+        );
+    }
+
+    const LONG desired =
+        g_config.skipIntroEnabled ? 0 : g_skipIntroOriginalValue;
+
+    const LONG current = *g_skipIntroData;
+    if (current != desired) {
+        InterlockedExchange(
+            reinterpret_cast<volatile LONG*>(g_skipIntroData),
+            desired
+        );
+
+        if (logChange) {
+            Log(
+                "Skip Intro: g.PlayIntroCinematicOnBoot %ld -> %ld (%s)",
+                current,
+                desired,
+                g_config.skipIntroEnabled ? "SKIP" : "VANILLA"
+            );
+        }
+    }
+
+    g_skipIntroReady.store(true);
+    return true;
+}
+
+bool InstallSkipIntroControl() {
+    g_skipIntroDataSlot = ResolveSkipIntroCVarDataSlot();
+    if (!g_skipIntroDataSlot) {
+        Log("Skip Intro: resolver failed; feature remains fail-open");
+        return false;
+    }
+
+    // The DXGI proxy can load the ASI before the executable's static CVar
+    // constructors finish. Wait briefly on the ASI worker thread so the default
+    // ON setting is applied before the game reaches its boot cinematic check.
+    for (int i = 0; i < 5000; ++i) {
+        if (ApplySkipIntroSetting(i == 0)) {
+            Log(
+                "Skip Intro: READY nativeCVar=%ld requested=%s",
+                *g_skipIntroData,
+                g_config.skipIntroEnabled ? "SKIP" : "VANILLA"
+            );
+            return true;
+        }
+        Sleep(1);
+    }
+
+    Log("Skip Intro: CVar data pointer did not initialize within startup window");
+    return false;
+}
+
 BYTE* ResolveHudHiddenGetter() {
     PeSectionView text{};
     PeSectionView rdata{};
@@ -826,6 +1014,545 @@ bool AddressInSection(const PeSectionView& section, const void* address) {
     return section.begin && p >= section.begin && p < section.begin + section.size;
 }
 
+
+BYTE* ResolveAddJuiceNative() {
+    PeSectionView text{};
+    if (!GetMainModuleSection(".text", text)) {
+        Log("Hotstreak hook: failed to enumerate .text");
+        return nullptr;
+    }
+
+    // UMayhem Hotstreak AddJuice native body.
+    //
+    // Audited native RVA: 0x660260
+    // The generated AddJuice exec wrapper passes Amount in XMM1 and calls this
+    // native function. The signature below is unique in the target EXE.
+    static constexpr int kPattern[] = {
+        0x48, 0x89, 0x5C, 0x24, 0x10,
+        0x48, 0x89, 0x6C, 0x24, 0x18,
+        0x57,
+        0x48, 0x81, 0xEC, 0xB0, 0x00, 0x00, 0x00,
+        0x48, 0x8B, 0xB9, 0xE8, 0x00, 0x00, 0x00,
+        0x48, 0x8B, 0xD9,
+        0x0F, 0x29, 0xBC, 0x24, 0x90, 0x00, 0x00, 0x00,
+        0x0F, 0x28, 0xF9
+    };
+
+    size_t matchCount = 0;
+    BYTE* target = FindUniquePattern(
+        text,
+        kPattern,
+        ARRAYSIZE(kPattern),
+        &matchCount
+    );
+
+    if (!target) {
+        Log("Hotstreak hook: AddJuice signature match count=%zu", matchCount);
+        return nullptr;
+    }
+
+    HMODULE module = GetModuleHandleW(nullptr);
+    BYTE* base = reinterpret_cast<BYTE*>(module);
+    Log(
+        "Hotstreak hook: AddJuice resolved RVA=0x%zX",
+        static_cast<size_t>(target - base)
+    );
+
+    return target;
+}
+
+void HookAddJuice(void* hotStreakComponent, float amount) {
+    if (!g_originalAddJuice) {
+        return;
+    }
+
+    float effectiveAmount = amount;
+
+    if (g_config.hotstreakChargeEnabled &&
+        hotStreakComponent &&
+        amount > 0.0f &&
+        amount < 100000.0f) {
+
+        // The audited AddJuice body immediately reads component+0xE8 and treats
+        // it as its owning player object. Compare it to the locally controlled
+        // player captured by CharacterMovement. No arbitrary owner dereference
+        // is required here.
+        void* owner = *reinterpret_cast<void**>(
+            reinterpret_cast<BYTE*>(hotStreakComponent) + 0xE8
+        );
+        void* localPlayer = g_localPlayerCharacter.load();
+
+        if (localPlayer && owner == localPlayer) {
+            float multiplier = g_config.hotstreakChargeMultiplier;
+            if (multiplier < 0.0f) multiplier = 0.0f;
+            if (multiplier > 25.0f) multiplier = 25.0f;
+
+            effectiveAmount = amount * multiplier;
+            if (effectiveAmount > 100000.0f) {
+                effectiveAmount = 100000.0f;
+            }
+
+            g_lastNativeJuiceGain.store(amount);
+            g_lastBoostedJuiceGain.store(effectiveAmount);
+
+            const int count = g_hotstreakBoostCalls.fetch_add(1) + 1;
+            if (count <= 30 || (count % 100) == 0) {
+                Log(
+                    "Hotstreak hook: AddJuice local gain %.3f -> %.3f (%.2fx) count=%d",
+                    amount,
+                    effectiveAmount,
+                    multiplier,
+                    count
+                );
+            }
+        }
+    }
+
+    g_originalAddJuice(hotStreakComponent, effectiveAmount);
+}
+
+bool InstallHotstreakChargeHook() {
+    BYTE* target = ResolveAddJuiceNative();
+    if (!target) {
+        Log("Hotstreak hook: resolver failed; feature remains fail-open");
+        return false;
+    }
+
+    const MH_STATUS initStatus = MH_Initialize();
+    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+        Log(
+            "Hotstreak hook: MinHook initialize FAILED status=%d",
+            static_cast<int>(initStatus)
+        );
+        return false;
+    }
+
+    MH_STATUS status = MH_CreateHook(
+        target,
+        reinterpret_cast<LPVOID>(&HookAddJuice),
+        reinterpret_cast<LPVOID*>(&g_originalAddJuice)
+    );
+
+    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
+        Log(
+            "Hotstreak hook: create FAILED status=%d",
+            static_cast<int>(status)
+        );
+        return false;
+    }
+
+    status = MH_EnableHook(target);
+    if (status != MH_OK && status != MH_ERROR_ENABLED) {
+        Log(
+            "Hotstreak hook: enable FAILED status=%d",
+            static_cast<int>(status)
+        );
+        return false;
+    }
+
+    g_hotstreakHookReady.store(true);
+    Log(
+        "Hotstreak hook: READY AddJuice positive local gains multiplier=%.3fx",
+        g_config.hotstreakChargeMultiplier
+    );
+    return true;
+}
+
+
+BYTE* ResolveDoDamageToActorNative() {
+    PeSectionView text{};
+    if (!GetMainModuleSection(".text", text)) {
+        Log("Pistol damage hook: failed to enumerate .text");
+        return nullptr;
+    }
+
+    // Blueprint library native DoDamageToActor body.
+    //
+    // Audited native RVA: 0x667300
+    //
+    // Generated UFunction parameters:
+    //   Actor         +0x00
+    //   DamageRecord  +0x08
+    //   DamageCauser  +0x18
+    //   DamageSource  +0x20
+    //
+    // FMayhemDamageEventRecord:
+    //   Damage        +0x08
+    //   ScaleType     +0x0C
+    //   ElementTypes  +0x10
+    //   DamageSourceTags +0x18
+    //   HotStreak     +0x28
+    //     BaseJuice   +0x00
+    static constexpr int kPattern[] = {
+        0x48, 0x8B, 0xC4,
+        0x57,
+        0x41, 0x56,
+        0x41, 0x57,
+        0x48, 0x81, 0xEC, 0x70, 0x01, 0x00, 0x00,
+        0x48, 0xC7, 0x44, 0x24, 0x40, 0xFE, 0xFF, 0xFF, 0xFF,
+        0x48, 0x89, 0x58, 0x08,
+        0x48, 0x89, 0x68, 0x10,
+        0x48, 0x89, 0x70, 0x18,
+        0x4D, 0x8B, 0xF1,
+        0x49, 0x8B, 0xF8,
+        0x4C, 0x8B, 0xFA,
+        0x48, 0x8B, 0xF1
+    };
+
+    size_t matchCount = 0;
+    BYTE* target = FindUniquePattern(
+        text,
+        kPattern,
+        ARRAYSIZE(kPattern),
+        &matchCount
+    );
+
+    if (!target) {
+        Log("Pistol damage hook: DoDamageToActor signature match count=%zu", matchCount);
+        return nullptr;
+    }
+
+    HMODULE module = GetModuleHandleW(nullptr);
+    BYTE* base = reinterpret_cast<BYTE*>(module);
+    Log(
+        "Pistol damage hook: DoDamageToActor resolved RVA=0x%zX",
+        static_cast<size_t>(target - base)
+    );
+
+    return target;
+}
+
+void HookDoDamageToActor(
+    void* actorStorage,
+    void* damageRecord,
+    void* damageCauserStorage,
+    void* damageSource
+) {
+    if (!g_originalDoDamageToActor) {
+        return;
+    }
+
+    if (!g_config.pistolDamageEnabled || !damageRecord) {
+        g_originalDoDamageToActor(
+            actorStorage,
+            damageRecord,
+            damageCauserStorage,
+            damageSource
+        );
+        return;
+    }
+
+    BYTE* record = reinterpret_cast<BYTE*>(damageRecord);
+    float* damagePtr = reinterpret_cast<float*>(record + 0x08);
+    const float originalDamage = *damagePtr;
+    const float baseJuice = *reinterpret_cast<float*>(record + 0x28);
+
+    // The supplied DualPistols PAKs show BaseJuice on the same projectile
+    // records whose Damage is being increased. War/melee/enemy damage records
+    // are expected to have zero juice and therefore stay native.
+    //
+    // Keep strict sanity bounds and use a temporary override only for the
+    // duration of the game's DoDamageToActor call, restoring the record after.
+    const bool looksLikePistolRecord =
+        originalDamage > 0.0f &&
+        originalDamage < 100000.0f &&
+        baseJuice > 0.0f &&
+        baseJuice < 1000.0f;
+
+    if (!looksLikePistolRecord) {
+        g_originalDoDamageToActor(
+            actorStorage,
+            damageRecord,
+            damageCauserStorage,
+            damageSource
+        );
+        return;
+    }
+
+    float multiplier = g_config.pistolDamageMultiplier;
+    if (multiplier < 0.0f) multiplier = 0.0f;
+    if (multiplier > 25.0f) multiplier = 25.0f;
+
+    float boostedDamage = originalDamage * multiplier;
+    if (boostedDamage > 100000.0f) {
+        boostedDamage = 100000.0f;
+    }
+
+    *damagePtr = boostedDamage;
+
+    g_lastNativePistolDamage.store(originalDamage);
+    g_lastBoostedPistolDamage.store(boostedDamage);
+    g_lastPistolBaseJuice.store(baseJuice);
+
+    const int count = g_pistolDamageBoostCalls.fetch_add(1) + 1;
+    if (count <= 40 || (count % 100) == 0) {
+        Log(
+            "Pistol damage hook: record=%p Damage %.3f -> %.3f BaseJuice=%.3f (%.2fx) count=%d source=%p",
+            damageRecord,
+            originalDamage,
+            boostedDamage,
+            baseJuice,
+            multiplier,
+            count,
+            damageSource
+        );
+    }
+
+    g_originalDoDamageToActor(
+        actorStorage,
+        damageRecord,
+        damageCauserStorage,
+        damageSource
+    );
+
+    // Never permanently mutate shared Blueprint/projectile defaults.
+    *damagePtr = originalDamage;
+}
+
+bool InstallPistolDamageHook() {
+    BYTE* target = ResolveDoDamageToActorNative();
+    if (!target) {
+        Log("Pistol damage hook: resolver failed; feature remains fail-open");
+        return false;
+    }
+
+    const MH_STATUS initStatus = MH_Initialize();
+    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+        Log(
+            "Pistol damage hook: MinHook initialize FAILED status=%d",
+            static_cast<int>(initStatus)
+        );
+        return false;
+    }
+
+    MH_STATUS status = MH_CreateHook(
+        target,
+        reinterpret_cast<LPVOID>(&HookDoDamageToActor),
+        reinterpret_cast<LPVOID*>(&g_originalDoDamageToActor)
+    );
+
+    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
+        Log(
+            "Pistol damage hook: create FAILED status=%d",
+            static_cast<int>(status)
+        );
+        return false;
+    }
+
+    status = MH_EnableHook(target);
+    if (status != MH_OK && status != MH_ERROR_ENABLED) {
+        Log(
+            "Pistol damage hook: enable FAILED status=%d",
+            static_cast<int>(status)
+        );
+        return false;
+    }
+
+    g_pistolDamageHookReady.store(true);
+    Log(
+        "Pistol damage hook: READY filter=DamageRecord.BaseJuice>0 multiplier=%.3fx",
+        g_config.pistolDamageMultiplier
+    );
+    return true;
+}
+
+
+BYTE* ResolveFinalOutgoingDamageFilter() {
+    PeSectionView text{};
+    if (!GetMainModuleSection(".text", text)) {
+        Log("Final damage hook: failed to enumerate .text");
+        return nullptr;
+    }
+
+    // Player outgoing-damage filter.
+    //
+    // Audited RVA: 0x668BE0
+    //
+    // The native function:
+    //   - multiplies DamageRecord.Damage by d.PlayerOutgoingDamageMultiplier;
+    //   - applies player outgoing-damage filters/status effects;
+    //   - mutates the same FMayhemDamageEventRecord in place.
+    //
+    // V0.13A hooks the function and applies user multipliers only AFTER the
+    // native function returns, putting us downstream of GetBaseDamage.
+    static constexpr int kPattern[] = {
+        0x48, 0x89, 0x5C, 0x24, 0x08,
+        0x57,
+        0x48, 0x83, 0xEC, 0x20,
+        0x48, 0x8B, 0x05, -1, -1, -1, -1,
+        0x48, 0x8B, 0xFA,
+        0x48, 0x8B, 0xD9,
+        0xF3, 0x0F, 0x10, 0x00,
+        0xF3, 0x0F, 0x59, 0x42, 0x08,
+        0xF3, 0x0F, 0x11, 0x42, 0x08,
+        0xE8, -1, -1, -1, -1
+    };
+
+    size_t matchCount = 0;
+    BYTE* target = FindUniquePattern(
+        text,
+        kPattern,
+        ARRAYSIZE(kPattern),
+        &matchCount
+    );
+
+    if (!target) {
+        Log("Final damage hook: outgoing-filter signature match count=%zu", matchCount);
+        return nullptr;
+    }
+
+    HMODULE module = GetModuleHandleW(nullptr);
+    BYTE* base = reinterpret_cast<BYTE*>(module);
+    Log(
+        "Final damage hook: player outgoing filter resolved RVA=0x%zX",
+        static_cast<size_t>(target - base)
+    );
+
+    return target;
+}
+
+void HookFinalOutgoingDamage(void* playerCharacter, void* damageRecord) {
+    if (!g_originalFilterOutgoingDamage) {
+        return;
+    }
+
+    // Let the full native player-damage pipeline run first.
+    g_originalFilterOutgoingDamage(playerCharacter, damageRecord);
+
+    if (!playerCharacter ||
+        !damageRecord ||
+        !IsLocallyControlledMayhemCharacter(playerCharacter)) {
+        return;
+    }
+
+    BYTE* record = reinterpret_cast<BYTE*>(damageRecord);
+    float* damagePtr = reinterpret_cast<float*>(record + 0x08);
+    const float nativeFinalDamage = *damagePtr;
+
+    if (!(nativeFinalDamage >= 0.0f && nativeFinalDamage < 1000000.0f)) {
+        return;
+    }
+
+    const uint32_t scaleType = *reinterpret_cast<uint32_t*>(record + 0x0C);
+    const int32_t tagCount = *reinterpret_cast<int32_t*>(record + 0x20);
+    const float baseJuice = *reinterpret_cast<float*>(record + 0x28);
+
+    g_lastOutgoingScaleType.store(scaleType);
+    g_lastOutgoingTagCount.store(tagCount);
+
+    const bool pistolLike =
+        baseJuice > 0.0001f &&
+        baseJuice < 1000.0f;
+
+    // Diagnostic classification:
+    // supplied Strife projectile PAKs consistently carry BaseJuice > 0;
+    // ordinary melee records are expected to carry BaseJuice == 0.
+    //
+    // The zero-juice branch is intentionally marked diagnostic because it may
+    // also include non-pistol player abilities. ScaleType/tag telemetry is
+    // logged so we can tighten the discriminator after one real test.
+    float multiplier = 1.0f;
+    const char* kind = nullptr;
+
+    if (pistolLike && g_config.pistolDamageEnabled) {
+        multiplier = g_config.pistolDamageMultiplier;
+        if (multiplier < 0.0f) multiplier = 0.0f;
+        if (multiplier > 100.0f) multiplier = 100.0f;
+        kind = "PISTOL";
+
+        g_lastNativePistolDamage.store(nativeFinalDamage);
+        g_lastPistolBaseJuice.store(baseJuice);
+    } else if (!pistolLike && g_config.meleeDamageEnabled) {
+        multiplier = g_config.meleeDamageMultiplier;
+        if (multiplier < 0.0f) multiplier = 0.0f;
+        if (multiplier > 100.0f) multiplier = 100.0f;
+        kind = "ZERO_JUICE_MELEE_DIAG";
+
+        g_lastNativeBaseDamage.store(nativeFinalDamage);
+    } else {
+        return;
+    }
+
+    float boostedDamage = nativeFinalDamage * multiplier;
+    if (boostedDamage > 1000000.0f) {
+        boostedDamage = 1000000.0f;
+    }
+
+    *damagePtr = boostedDamage;
+
+    int count = 0;
+    if (pistolLike) {
+        g_lastBoostedPistolDamage.store(boostedDamage);
+        count = g_pistolDamageBoostCalls.fetch_add(1) + 1;
+    } else {
+        g_lastBoostedBaseDamage.store(boostedDamage);
+        count = g_meleeDamageBoostCalls.fetch_add(1) + 1;
+    }
+
+    if (count <= 60 || (count % 100) == 0) {
+        Log(
+            "Final damage hook: %s final %.3f -> %.3f BaseJuice=%.3f ScaleType=%u Tags=%d mult=%.2fx count=%d",
+            kind,
+            nativeFinalDamage,
+            boostedDamage,
+            baseJuice,
+            scaleType,
+            tagCount,
+            multiplier,
+            count
+        );
+    }
+}
+
+bool InstallFinalOutgoingDamageHook() {
+    BYTE* target = ResolveFinalOutgoingDamageFilter();
+    if (!target) {
+        Log("Final damage hook: resolver failed; Pistol/Melee remain fail-open");
+        return false;
+    }
+
+    const MH_STATUS initStatus = MH_Initialize();
+    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+        Log(
+            "Final damage hook: MinHook initialize FAILED status=%d",
+            static_cast<int>(initStatus)
+        );
+        return false;
+    }
+
+    MH_STATUS status = MH_CreateHook(
+        target,
+        reinterpret_cast<LPVOID>(&HookFinalOutgoingDamage),
+        reinterpret_cast<LPVOID*>(&g_originalFilterOutgoingDamage)
+    );
+
+    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
+        Log(
+            "Final damage hook: create FAILED status=%d",
+            static_cast<int>(status)
+        );
+        return false;
+    }
+
+    status = MH_EnableHook(target);
+    if (status != MH_OK && status != MH_ERROR_ENABLED) {
+        Log(
+            "Final damage hook: enable FAILED status=%d",
+            static_cast<int>(status)
+        );
+        return false;
+    }
+
+    g_finalOutgoingDamageHookReady.store(true);
+    g_pistolDamageHookReady.store(true);
+    g_meleeDamageHookReady.store(true);
+
+    Log(
+        "Final damage hook: READY RVA=0x668BE0 pistol=BaseJuice>0 meleeDiag=BaseJuice==0"
+    );
+    return true;
+}
+
 BYTE* ResolveMovementComponentGetMaxSpeedOverride() {
     PeSectionView text{};
     if (!GetMainModuleSection(".text", text)) {
@@ -895,6 +1622,154 @@ bool IsLocallyControlledMayhemCharacter(void* character) {
     }
 
     return fn(character);
+}
+
+
+BYTE* ResolveExecGetBaseDamage() {
+    PeSectionView text{};
+    if (!GetMainModuleSection(".text", text)) {
+        Log("Melee damage hook: failed to enumerate .text");
+        return nullptr;
+    }
+
+    // Generated exec wrapper for GetBaseDamage.
+    //
+    // Audited RVA: 0x770D90
+    // It advances the Blueprint VM frame, calls virtual slot +0x928 on the
+    // character, then writes XMM0 to the result pointer.
+    static constexpr int kPattern[] = {
+        0x40, 0x53,
+        0x48, 0x83, 0xEC, 0x20,
+        0x48, 0x8B, 0x42, 0x20,
+        0x45, 0x33, 0xC9,
+        0x48, 0x85, 0xC0,
+        0x49, 0x8B, 0xD8,
+        0x41, 0x0F, 0x95, 0xC1,
+        0x4C, 0x03, 0xC8,
+        0x4C, 0x89, 0x4A, 0x20,
+        0x48, 0x8B, 0x01,
+        0xFF, 0x90, 0x28, 0x09, 0x00, 0x00,
+        0xF3, 0x0F, 0x11, 0x03,
+        0x48, 0x83, 0xC4, 0x20,
+        0x5B,
+        0xC3
+    };
+
+    size_t matchCount = 0;
+    BYTE* target = FindUniquePattern(
+        text,
+        kPattern,
+        ARRAYSIZE(kPattern),
+        &matchCount
+    );
+
+    if (!target) {
+        Log("Melee damage hook: GetBaseDamage wrapper match count=%zu", matchCount);
+        return nullptr;
+    }
+
+    HMODULE module = GetModuleHandleW(nullptr);
+    BYTE* base = reinterpret_cast<BYTE*>(module);
+    Log(
+        "Melee damage hook: GetBaseDamage exec resolved RVA=0x%zX virtualSlot=0x928",
+        static_cast<size_t>(target - base)
+    );
+
+    return target;
+}
+
+void HookExecGetBaseDamage(void* character, void* frame, void* result) {
+    if (!g_originalExecGetBaseDamage) {
+        return;
+    }
+
+    g_originalExecGetBaseDamage(character, frame, result);
+
+    if (!g_config.meleeDamageEnabled ||
+        !character ||
+        !result ||
+        !IsLocallyControlledMayhemCharacter(character)) {
+        return;
+    }
+
+    float* value = reinterpret_cast<float*>(result);
+    const float nativeDamage = *value;
+
+    if (!(nativeDamage > 0.0f && nativeDamage < 100000.0f)) {
+        return;
+    }
+
+    float multiplier = g_config.meleeDamageMultiplier;
+    if (multiplier < 0.0f) multiplier = 0.0f;
+    if (multiplier > 100.0f) multiplier = 100.0f;
+
+    float boosted = nativeDamage * multiplier;
+    if (boosted > 100000.0f) {
+        boosted = 100000.0f;
+    }
+
+    *value = boosted;
+
+    g_lastNativeBaseDamage.store(nativeDamage);
+    g_lastBoostedBaseDamage.store(boosted);
+
+    const int count = g_meleeDamageBoostCalls.fetch_add(1) + 1;
+    if (count <= 40 || (count % 100) == 0) {
+        Log(
+            "Melee damage hook: GetBaseDamage local %.3f -> %.3f (%.2fx) count=%d",
+            nativeDamage,
+            boosted,
+            multiplier,
+            count
+        );
+    }
+}
+
+bool InstallMeleeDamageHook() {
+    BYTE* target = ResolveExecGetBaseDamage();
+    if (!target) {
+        Log("Melee damage hook: resolver failed; feature remains fail-open");
+        return false;
+    }
+
+    const MH_STATUS initStatus = MH_Initialize();
+    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+        Log(
+            "Melee damage hook: MinHook initialize FAILED status=%d",
+            static_cast<int>(initStatus)
+        );
+        return false;
+    }
+
+    MH_STATUS status = MH_CreateHook(
+        target,
+        reinterpret_cast<LPVOID>(&HookExecGetBaseDamage),
+        reinterpret_cast<LPVOID*>(&g_originalExecGetBaseDamage)
+    );
+
+    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
+        Log(
+            "Melee damage hook: create FAILED status=%d",
+            static_cast<int>(status)
+        );
+        return false;
+    }
+
+    status = MH_EnableHook(target);
+    if (status != MH_OK && status != MH_ERROR_ENABLED) {
+        Log(
+            "Melee damage hook: enable FAILED status=%d",
+            static_cast<int>(status)
+        );
+        return false;
+    }
+
+    g_meleeDamageHookReady.store(true);
+    Log(
+        "Melee damage hook: READY local GetBaseDamage multiplier=%.3fx",
+        g_config.meleeDamageMultiplier
+    );
+    return true;
 }
 
 float ClampFloat(float value, float minValue, float maxValue) {
@@ -980,7 +1855,7 @@ void ApplyPlayerMovementTunings(void* movementComponent) {
 
     BYTE* component = reinterpret_cast<BYTE*>(movementComponent);
 
-    float heightMultiplier = ClampFloat(g_config.jumpHeightMultiplier, 0.25f, 9.0f);
+    float heightMultiplier = ClampFloat(g_config.jumpHeightMultiplier, 0.0f, 5.0f);
     // Jump apex height is approximately proportional to velocity squared when
     // gravity is unchanged, so use sqrt(multiplier) for a true height scalar.
     const float velocityMultiplier = sqrtf(heightMultiplier);
@@ -995,7 +1870,7 @@ void ApplyPlayerMovementTunings(void* movementComponent) {
             ? state->doubleJumpZVelocity * velocityMultiplier
             : state->doubleJumpZVelocity;
 
-    const float glideMultiplier = ClampFloat(g_config.glideDurationMultiplier, 0.25f, 10.0f);
+    const float glideMultiplier = ClampFloat(g_config.glideDurationMultiplier, 0.0f, 100.0f);
     *reinterpret_cast<float*>(component + 0x86C) =
         g_config.glideDurationEnabled
             ? state->glideDurationSeconds * glideMultiplier
@@ -1040,7 +1915,7 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         return nativeSpeed;
     }
 
-    float multiplier = ClampFloat(g_config.movementSpeedMultiplier, 0.10f, 5.00f);
+    float multiplier = ClampFloat(g_config.movementSpeedMultiplier, 0.0f, 5.00f);
     return nativeSpeed * multiplier;
 }
 
@@ -2199,6 +3074,23 @@ void TriggerAction(Action action, int functionKey) {
         return;
     }
 
+    if (action == Action::SkipIntroVideos) {
+        g_config.skipIntroEnabled = !g_config.skipIntroEnabled;
+        g_config.Save();
+
+        const bool applied = ApplySkipIntroSetting(true);
+        g_lastAction = std::string("Skip Intro ") +
+            (g_config.skipIntroEnabled ? "ON" : "OFF");
+
+        Log(
+            "F%d -> Skip Intro %s nativeApply=%d (boot effect may require restart)",
+            functionKey,
+            g_config.skipIntroEnabled ? "ON" : "OFF",
+            applied ? 1 : 0
+        );
+        return;
+    }
+
     if (!IsFeatureEnabled(action)) {
         g_lastAction = std::string(label) + " disabled in config";
         Log("F%d -> %s ignored (feature disabled)", functionKey, label);
@@ -2426,17 +3318,36 @@ void DrawTunableFeature(
 
     if (*enabled) {
         ImGui::Indent();
-        ImGui::SetNextItemWidth(280.0f);
-        std::string sliderLabel = std::string("Value##") + id;
-        if (ImGui::SliderFloat(
+
+        ImGui::SetNextItemWidth(245.0f);
+        std::string sliderLabel = std::string("Value##Slider_") + id;
+        bool changed = ImGui::SliderFloat(
             sliderLabel.c_str(),
             value,
             minValue,
             maxValue,
             format
+        );
+
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(125.0f);
+        std::string inputLabel = std::string("Manual##Input_") + id;
+        if (ImGui::InputFloat(
+            inputLabel.c_str(),
+            value,
+            0.0f,
+            0.0f,
+            "%.3f"
         )) {
+            changed = true;
+        }
+
+        if (changed) {
+            if (*value < minValue) *value = minValue;
+            if (*value > maxValue) *value = maxValue;
             g_config.Save();
         }
+
         ImGui::Unindent();
     }
 }
@@ -2511,7 +3422,7 @@ void DrawOverlay() {
                 "MovementSpeed",
                 &g_config.movementSpeedEnabled,
                 &g_config.movementSpeedMultiplier,
-                0.50f,
+                0.00f,
                 3.00f,
                 "%.2fx",
                 g_movementHookReady.load()
@@ -2571,8 +3482,8 @@ void DrawOverlay() {
                 "JumpHeight",
                 &g_config.jumpHeightEnabled,
                 &g_config.jumpHeightMultiplier,
-                0.50f,
-                3.00f,
+                0.00f,
+                5.00f,
                 "%.2fx",
                 g_movementHookReady.load()
                     ? "Runtime property hook | JumpZ + DoubleJumpZ"
@@ -2584,8 +3495,8 @@ void DrawOverlay() {
                 "GlideDuration",
                 &g_config.glideDurationEnabled,
                 &g_config.glideDurationMultiplier,
-                0.50f,
-                5.00f,
+                0.00f,
+                100.00f,
                 "%.2fx",
                 g_movementHookReady.load()
                     ? "Runtime property hook | GlideDurationSeconds"
@@ -2599,33 +3510,78 @@ void DrawOverlay() {
                 "PistolDamage",
                 &g_config.pistolDamageEnabled,
                 &g_config.pistolDamageMultiplier,
-                0.50f,
-                10.00f,
+                0.00f,
+                100.00f,
                 "%.2fx",
-                "Pending hook | Projectile Damage"
+                g_finalOutgoingDamageHookReady.load()
+                    ? "Final outgoing-damage hook | BaseJuice > 0"
+                    : "Final outgoing-damage hook unavailable"
             );
+
+            if (g_finalOutgoingDamageHookReady.load()) {
+                ImGui::Indent();
+                ImGui::TextDisabled(
+                    "Pistol events: %d | Last final %.2f -> %.2f | BaseJuice %.2f",
+                    g_pistolDamageBoostCalls.load(),
+                    g_lastNativePistolDamage.load(),
+                    g_lastBoostedPistolDamage.load(),
+                    g_lastPistolBaseJuice.load()
+                );
+                ImGui::Unindent();
+            }
 
             DrawTunableFeature(
                 "Melee Damage",
                 "MeleeDamage",
                 &g_config.meleeDamageEnabled,
                 &g_config.meleeDamageMultiplier,
-                0.50f,
-                10.00f,
+                0.00f,
+                100.00f,
                 "%.2fx",
-                "Pending hook | BaseDamage path"
+                g_finalOutgoingDamageHookReady.load()
+                    ? "Final outgoing-damage hook | zero-juice diagnostic"
+                    : "Final outgoing-damage hook unavailable"
             );
+
+            if (g_finalOutgoingDamageHookReady.load()) {
+                ImGui::Indent();
+                ImGui::TextDisabled(
+                    "Melee-diag events: %d | Last final %.2f -> %.2f",
+                    g_meleeDamageBoostCalls.load(),
+                    g_lastNativeBaseDamage.load(),
+                    g_lastBoostedBaseDamage.load()
+                );
+                ImGui::TextDisabled(
+                    "Last DamageRecord: ScaleType %u | Tags %d",
+                    g_lastOutgoingScaleType.load(),
+                    g_lastOutgoingTagCount.load()
+                );
+                ImGui::Unindent();
+            }
 
             DrawTunableFeature(
                 "Hotstreak Charge",
                 "HotstreakCharge",
                 &g_config.hotstreakChargeEnabled,
                 &g_config.hotstreakChargeMultiplier,
-                0.50f,
-                10.00f,
+                0.00f,
+                25.00f,
                 "%.2fx",
-                "Pending hook | BaseJuice candidate"
+                g_hotstreakHookReady.load()
+                    ? "Runtime AddJuice hook | local positive gains"
+                    : "Native AddJuice hook unavailable"
             );
+
+            if (g_hotstreakHookReady.load()) {
+                ImGui::Indent();
+                ImGui::TextDisabled(
+                    "Boost calls: %d | Last gain %.2f -> %.2f",
+                    g_hotstreakBoostCalls.load(),
+                    g_lastNativeJuiceGain.load(),
+                    g_lastBoostedJuiceGain.load()
+                );
+                ImGui::Unindent();
+            }
 
             DrawSectionTitle("Horse");
 
@@ -2634,7 +3590,7 @@ void DrawOverlay() {
                 "HorseSpeed",
                 &g_config.horseSpeedEnabled,
                 &g_config.horseSpeedMultiplier,
-                0.50f,
+                0.00f,
                 3.00f,
                 "%.2fx",
                 "Pending hook | MaxWalkSpeed"
@@ -2645,7 +3601,7 @@ void DrawOverlay() {
                 "HorseSprintSpeed",
                 &g_config.horseSprintSpeedEnabled,
                 &g_config.horseSprintSpeedMultiplier,
-                0.50f,
+                0.00f,
                 3.00f,
                 "%.2fx",
                 "Pending hook | Sprint ability"
@@ -2656,7 +3612,7 @@ void DrawOverlay() {
                 "HorseSprintDuration",
                 &g_config.horseSprintDurationEnabled,
                 &g_config.horseSprintDurationMultiplier,
-                0.50f,
+                0.00f,
                 10.00f,
                 "%.2fx",
                 "Pending safe horse-instance resolver | V0.9A direct pointer path rejected"
@@ -2680,7 +3636,7 @@ void DrawOverlay() {
                 "ThirdPerson",
                 &g_config.thirdPersonEnabled,
                 &g_config.thirdPersonDistanceMultiplier,
-                0.50f,
+                0.00f,
                 3.00f,
                 "%.2fx",
                 "Pending camera hook | distance"
@@ -2688,11 +3644,29 @@ void DrawOverlay() {
 
             DrawSectionTitle("System");
 
-            DrawToggleFeature(
-                "Skip Intro Videos",
-                &g_config.skipIntroEnabled,
-                "Pending UE4 MoviePlayer hook"
+            if (ImGui::Checkbox("Skip Intro Videos", &g_config.skipIntroEnabled)) {
+                g_config.Save();
+                ApplySkipIntroSetting(true);
+                g_lastAction = std::string("Skip Intro ") +
+                    (g_config.skipIntroEnabled ? "ON" : "OFF");
+            }
+            ImGui::SameLine(310.0f);
+            ImGui::TextDisabled(
+                "%s",
+                g_skipIntroReady.load()
+                    ? "Native g.PlayIntroCinematicOnBoot control | restart applies boot state"
+                    : "Native CVar control unavailable"
             );
+
+            if (g_skipIntroReady.load() && g_skipIntroData) {
+                ImGui::Indent();
+                ImGui::TextDisabled(
+                    "Native CVar now: %ld | vanilla captured: %ld",
+                    *g_skipIntroData,
+                    g_skipIntroOriginalValue
+                );
+                ImGui::Unindent();
+            }
 
             ImGui::Spacing();
             ImGui::TextDisabled(
@@ -2803,8 +3777,9 @@ void DrawOverlay() {
             ImGui::Spacing();
             ImGui::TextWrapped(
                 "Reference PAK audits recovered concrete targets for jump, glide, horse stamina, "
-                "projectile damage and Hotstreak/juice. V0.9B keeps Jump Height and Glide Duration "
-                "active; Horse Sprint Duration is temporarily disabled until a safe horse-instance resolver is proven."
+                "projectile damage and Hotstreak/juice. Numeric options now expose both a slider "
+                "and a manual input field; multiplier minima use 0. Pistol Damage V0.11A is rejected "
+                "and remains pending a better filter."
             );
             ImGui::EndTabItem();
         }
@@ -2823,6 +3798,7 @@ void DrawOverlay() {
 }
 
 HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) {
+    ApplySkipIntroSetting(false);
     ProcessInput();
 
     if (!g_imguiReady.load()) {
@@ -3055,6 +4031,10 @@ DWORD WINAPI MainThread(LPVOID) {
 
     g_config.Load();
 
+    if (!InstallSkipIntroControl()) {
+        Log("Skip Intro unavailable; continuing with remaining ASI features.");
+    }
+
     if (!DiscoverAndHookD3D11()) {
         Log("Overlay hook setup FAILED. Mod stays fail-open; game should continue normally.");
         return 0;
@@ -3070,6 +4050,14 @@ DWORD WINAPI MainThread(LPVOID) {
 
     if (!InstallActionEnabledRecoveryDiagnostic()) {
         Log("Action Recovery V0.8 unavailable; other ASI features remain active.");
+    }
+
+    if (!InstallHotstreakChargeHook()) {
+        Log("Hotstreak Charge unavailable; other ASI features remain active.");
+    }
+
+    if (!InstallFinalOutgoingDamageHook()) {
+        Log("Final Pistol/Melee Damage hook unavailable; other ASI features remain active.");
     }
 
     Log("Core initialization complete. Press %s after the first game frame.",

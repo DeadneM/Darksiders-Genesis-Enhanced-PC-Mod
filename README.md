@@ -1525,3 +1525,559 @@ V0.9B therefore becomes the new validated base for the movement/glide branch.
 
 Horse Sprint Duration remains pending until a safe horse-instance resolver is
 found.
+
+
+## V0.10A — Hotstreak Charge / AddJuice Hook
+
+**Status: TEST CANDIDATE**
+
+V0.10A starts the combat-hook phase with the safest target recovered from the
+reference PAK audit.
+
+### Native target
+
+The executable exposes the Hotstreak API:
+
+```text
+AddJuice
+GetCurrentJuice
+GetCurrentJuiceRatio
+GetMaxJuice
+RemoveJuice
+TryActivateHotStreak
+TryConsumeJuice
+```
+
+The generated `AddJuice` exec wrapper resolves to the native function at:
+
+```text
+RVA 0x660260
+```
+
+The native body has a unique signature in the audited executable.
+
+### Runtime policy
+
+V0.10A hooks:
+
+```text
+AddJuice(void* component, float Amount)
+```
+
+Only positive gains are eligible.
+
+The native function immediately reads its player-owner pointer from:
+
+```text
+component + 0xE8
+```
+
+V0.10A compares that pointer to the already captured locally controlled player
+and only multiplies the gain when they match.
+
+No writes are made to arbitrary UObject/Blueprint fields.
+
+Formula:
+
+```text
+effective gain = native gain * HotstreakChargeMultiplier
+```
+
+Loss/consumption paths remain native.
+
+### UI telemetry
+
+The existing `Hotstreak Charge` checkbox/value is now active.
+
+The overlay displays:
+
+```text
+Boost calls
+Last native gain
+Last boosted gain
+```
+
+This lets the user confirm immediately whether gameplay is flowing through the
+hook.
+
+Default:
+
+```ini
+HotstreakCharge=1
+HotstreakChargeMultiplier=2.000
+```
+
+### Pistol Damage
+
+Pistol Damage remains pending in V0.10A.
+
+The reference PAK proves the projectile Blueprint `Damage` property is the
+correct gameplay target, but it is Blueprint-defined rather than a simple
+native reflected field in the executable. A safe projectile/damage-call filter
+will be audited separately rather than guessing an object offset.
+
+**Validation:** awaiting in-game test.
+
+
+## V0.10B — Expanded tuning ranges
+
+Requested maximum values:
+
+```text
+Jump Height        5.00x
+Glide Duration    10.00x
+Hotstreak Charge  25.00x
+```
+
+The runtime clamps were updated to match the UI limits, so the higher values are
+not cosmetic-only.
+
+Development continues on the same V0.10 combat branch.
+
+
+## V0.11A — Pistol Damage / DamageRecord Hook
+
+**Status: TEST CANDIDATE**
+
+The executable reflection metadata confirms:
+
+```text
+FMayhemDamageEventRecord
+  Damage          +0x08
+  ScaleType       +0x0C
+  ElementTypes    +0x10
+  DamageSourceTags +0x18
+  HotStreak       +0x28
+    BaseJuice     +0x00
+```
+
+The native projectile base also stores:
+
+```text
+DamageEventRecord +0x88
+HotStreak         +0x1B0
+```
+
+The Blueprint library `DoDamageToActor` native function resolves uniquely at:
+
+```text
+RVA 0x667300
+```
+
+### Filter
+
+The user-supplied DualPistols reference PAKs consistently modify both:
+
+```text
+Damage
+BaseJuice
+```
+
+on Strife gun projectiles.
+
+V0.11A therefore treats a positive, sane `BaseJuice` value in the outgoing
+`FMayhemDamageEventRecord` as the gun/projectile discriminator.
+
+### Mutation policy
+
+The hook:
+
+1. reads native Damage and BaseJuice;
+2. if BaseJuice > 0, multiplies Damage by the user value;
+3. calls native `DoDamageToActor`;
+4. restores the original Damage immediately.
+
+No Blueprint/CDO or projectile instance is permanently mutated.
+
+### Overlay telemetry
+
+Pistol Damage now shows:
+
+```text
+Boost calls
+Last native damage
+Last boosted damage
+Last BaseJuice
+```
+
+This will quickly confirm whether the expected DualPistols records are flowing
+through the hook.
+
+**Validation:** awaiting in-game test.
+
+
+## V0.11B — Manual Numeric Input + Zero-Minimum Policy
+
+**Status: TEST CANDIDATE**
+
+User-requested UI/value policy:
+
+- every tunable numeric option now exposes both a slider and an explicit manual
+  input field;
+- multiplier-style values use **0** as their minimum;
+- future multiplier-style options should also default to a minimum of 0 unless
+  zero is semantically invalid.
+
+New requested defaults/ranges:
+
+```text
+Movement Speed
+  default 1.50x
+  min 0.00x
+
+Jump Height
+  default 1.25x
+  min 0.00x
+  max 5.00x
+
+Glide / Flight Duration
+  default 10.00x
+  min 0.00x
+  max 100.00x
+
+Pistol Damage
+  min 0.00x
+  V0.11A hook rejected by user: no gameplay effect
+
+Melee Damage
+  min 0.00x
+
+Hotstreak Charge
+  min 0.00x
+  max 25.00x
+
+Horse Speed
+  min 0.00x
+
+Horse Sprint Speed
+  min 0.00x
+
+Horse Sprint Duration
+  min 0.00x
+```
+
+Third-person distance is also treated as a multiplier and now allows 0. FOV
+remains an absolute camera angle and keeps its safe nonzero range.
+
+### Pistol Damage rollback
+
+V0.11A `DoDamageToActor + BaseJuice` filtering is **REJECTED** because user
+testing produced no pistol-damage change.
+
+The hook is no longer installed in V0.11B. The menu entry remains available as
+a pending feature while a better projectile/damage path is audited.
+
+
+## V0.12A — Melee Damage / GetBaseDamage Diagnostic
+
+**Status: TEST CANDIDATE**
+
+The executable exposes a generated Blueprint exec wrapper for:
+
+```text
+GetBaseDamage
+```
+
+Audited wrapper:
+
+```text
+RVA 0x770D90
+virtual slot +0x928
+```
+
+The wrapper calls the character virtual, receives the native float in XMM0 and
+writes it to the Blueprint result pointer.
+
+### V0.12A policy
+
+The hook:
+
+1. runs the native wrapper first;
+2. only accepts the locally controlled player character;
+3. reads the returned BaseDamage float;
+4. applies `MeleeDamageMultiplier`;
+5. writes only the Blueprint result value.
+
+No character stats or UObject fields are permanently modified.
+
+This is intentionally diagnostic because `BaseDamage` may feed more than one
+player attack family. The overlay telemetry shows:
+
+```text
+Boost calls
+Last native BaseDamage
+Last boosted BaseDamage
+```
+
+Testing should compare melee attacks against pistol/ranged attacks. If melee
+damage changes while projectile damage does not, the path is suitable for the
+feature. If unrelated player damage scales too, the next build will filter the
+callsite/ability rather than keeping the broad BaseDamage result override.
+
+### Cumulative UI/value policy retained
+
+V0.12A includes V0.11B:
+
+- visible manual numeric entry beside every slider;
+- multiplier minima at 0;
+- Movement Speed default 1.50x;
+- Jump Height default 1.25x, 0..5x;
+- Glide / Flight Duration default 10x, 0..100x;
+- Hotstreak Charge 0..25x;
+- Pistol Damage V0.11A rejected and not installed.
+
+**Validation:** awaiting in-game test.
+
+
+## V0.12B — Melee 100x Diagnostic
+
+**Manual numeric UI: VALIDATED.**
+
+User confirmed the slider + manual-entry interface is good and should remain the
+standard numeric-control pattern.
+
+### Melee Damage status
+
+V0.12A is **not rejected**.
+
+User feedback indicates the setting appears to have some effect, but a 10x
+setting does not produce an obviously decisive one-shot result. This is
+consistent with `GetBaseDamage` potentially being only one term in the final
+damage formula.
+
+Current classification:
+
+```text
+Melee Damage / GetBaseDamage
+PROMISING / PARTIALLY OBSERVED
+not yet validated
+not rejected
+```
+
+### V0.12B diagnostic range
+
+Melee Damage maximum is raised to:
+
+```text
+100.00x
+```
+
+The runtime clamp is also 100x, so this is not UI-only.
+
+Test interpretation:
+
+- if 100x produces an unmistakable damage jump / one-shots, the
+  `GetBaseDamage` path is confirmed as materially contributing to combat;
+- if 100x still has only a modest effect, `GetBaseDamage` is not the final
+  applied-damage control and the next audit should move downstream into the
+  final damage-event scaling path.
+
+The existing overlay telemetry remains:
+
+```text
+Boost calls
+Last base damage -> boosted base damage
+```
+
+This lets the runtime call path be distinguished from the gameplay effect.
+
+
+## V0.13A — Final Player Outgoing Damage Hook
+
+**Status: TEST CANDIDATE**
+
+### V0.12B result
+
+V0.12B `GetBaseDamage` is **REJECTED**.
+
+User testing at **100x** still did not produce an unmistakable damage increase.
+Therefore `GetBaseDamage` is not the correct final applied-damage control for
+the requested Melee Damage option.
+
+### Native final outgoing-damage stage
+
+The executable contains the player outgoing-damage filter at:
+
+```text
+RVA 0x668BE0
+```
+
+The function directly mutates:
+
+```text
+FMayhemDamageEventRecord::Damage +0x08
+```
+
+and natively applies:
+
+```text
+d.PlayerOutgoingDamageMultiplier
+```
+
+before continuing through outgoing-damage filters/status effects.
+
+This is the lowest confirmed player-outgoing stage found so far and is
+downstream of `GetBaseDamage`.
+
+### V0.13A policy
+
+V0.13A calls the complete native outgoing-damage filter first, then applies the
+user multiplier to the resulting final outgoing Damage value.
+
+The hook is local-player-only.
+
+Current diagnostic classification:
+
+```text
+BaseJuice > 0
+  -> Pistol Damage
+
+BaseJuice == 0
+  -> Melee Damage diagnostic
+```
+
+The pistol discriminator comes directly from the supplied Strife projectile
+reference PAKs, where gun projectiles carry positive `BaseJuice`.
+
+The zero-juice branch is intentionally still diagnostic: it may also include
+some non-pistol abilities. Runtime telemetry logs `ScaleType` and damage-tag
+count so the filter can be tightened after testing.
+
+### Runtime telemetry
+
+Overlay/logs now report:
+
+```text
+Pistol:
+  event count
+  final native damage -> boosted damage
+  BaseJuice
+
+Melee diagnostic:
+  event count
+  final native damage -> boosted damage
+  ScaleType
+  DamageSourceTags count
+```
+
+### Range
+
+Both final-damage multipliers can reach 100x in this diagnostic build.
+
+If a 100x value still has no visible effect, the problem is no longer an
+upstream stat/filter issue and the next audit must move to the target-side
+health subtraction path.
+
+**Validation:** awaiting in-game test.
+
+
+## V0.13B — Final Outgoing Damage + Functional Skip Intro
+
+**Status: TEST CANDIDATE**
+
+V0.13B combines the new final outgoing-damage pipeline with a real native
+Skip Intro implementation in one cumulative build.
+
+### Functional Skip Intro
+
+The executable contains the native console variable:
+
+```text
+g.PlayIntroCinematicOnBoot
+default = 1
+```
+
+Its registration and boot-time use were audited directly in the target EXE.
+
+Registration xref:
+
+```text
+RVA 0x000E831D
+```
+
+Native boot read:
+
+```text
+RVA 0x0063C465
+
+mov rax,[g.PlayIntroCinematicOnBoot_data]
+cmp dword ptr [rax],0
+je  skip_intro_path
+```
+
+The resolver does not hardcode the runtime address. It:
+
+1. finds the UTF-16 CVar name;
+2. resolves the unique registration LEA;
+3. derives the UE4 CVar data-slot store;
+4. validates the unique boot-time `cmp [CVarData],0` use;
+5. waits briefly for UE4 static CVar initialization;
+6. captures the vanilla value;
+7. applies:
+   - Skip Intro ON -> `0`
+   - Skip Intro OFF -> captured vanilla value.
+
+The control is applied **before D3D11 probe initialization** so the default
+enabled state can take effect as early as possible during startup.
+
+The Present hook also reapplies the selected state so overlay/hotkey changes are
+kept synchronized. Turning Skip Intro on/off after boot naturally affects the
+next startup rather than retroactively cancelling an already-started cinematic.
+
+### UI / hotkey
+
+`Skip Intro Videos` is no longer marked Pending.
+
+The overlay shows:
+
+```text
+Native g.PlayIntroCinematicOnBoot control
+Native CVar now
+Vanilla captured value
+```
+
+F4 continues to be the default hotkey and now toggles the real native control.
+
+### Damage
+
+V0.13B also contains the V0.13A final player outgoing-damage hook:
+
+```text
+RVA 0x668BE0
+```
+
+Current diagnostic split:
+
+```text
+BaseJuice > 0  -> Pistol Damage
+BaseJuice == 0 -> Melee Damage diagnostic
+```
+
+Both are applied after the game's native outgoing-damage filtering.
+
+**Validation:** awaiting in-game test for both final damage and boot intro skip.
+
+
+## V0.13B validation result
+
+**VALIDATED IN GAME.**
+
+User feedback:
+
+```text
+"oui nickel"
+```
+
+Validated cumulative behavior:
+
+- functional native Skip Intro control through `g.PlayIntroCinematicOnBoot`;
+- final player outgoing-damage hook is accepted as the new damage base;
+- V0.13B remains cumulative with the previously validated manual numeric input,
+  Jump Height, Glide / Flight Duration, Movement Speed, HUD and safe Action
+  Recovery behavior.
+
+V0.13B becomes the new canonical development base.
+
+The next implementation phase targets the horse movement/stamina feature set,
+using a safe horse component / ability path rather than the rejected
+`Player + 0xE70` pointer assumption from V0.9A.

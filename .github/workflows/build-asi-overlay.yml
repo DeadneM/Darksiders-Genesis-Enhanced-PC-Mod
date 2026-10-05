@@ -1,5 +1,9 @@
 name: Build ASI Overlay
 
+concurrency:
+  group: build-asi-overlay-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
@@ -15,7 +19,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     steps:
       - name: Checkout
@@ -23,7 +27,7 @@ jobs:
 
       - name: Configure
         shell: pwsh
-        run: cmake -S . -B build -G "Visual Studio 18 2026" -A x64
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
 
       - name: Build
         shell: pwsh
@@ -41,7 +45,7 @@ jobs:
           Copy-Item "config/DarksidersGenesisMod.ini" $dist
           Copy-Item "README.md" $dist
 
-          $zip = Join-Path $PWD "DarksidersGenesis_ASI_V0.9B_JUMP_GLIDE_CRASH_FIX_TEST.zip"
+          $zip = Join-Path $PWD "DarksidersGenesis_ASI_V0.13B_FINAL_DAMAGE_SKIP_INTRO_TEST.zip"
           if (Test-Path $zip) { Remove-Item $zip -Force }
           Compress-Archive -Path "$dist\*" -DestinationPath $zip -CompressionLevel Optimal
 
@@ -52,6 +56,6 @@ jobs:
       - name: Upload test build
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_ASI_V0.9B_JUMP_GLIDE_CRASH_FIX_TEST
-          path: DarksidersGenesis_ASI_V0.9B_JUMP_GLIDE_CRASH_FIX_TEST.zip
+          name: DarksidersGenesis_ASI_V0.13B_FINAL_DAMAGE_SKIP_INTRO_TEST
+          path: DarksidersGenesis_ASI_V0.13B_FINAL_DAMAGE_SKIP_INTRO_TEST.zip
           if-no-files-found: error
