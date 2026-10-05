@@ -1525,3 +1525,95 @@ V0.9B therefore becomes the new validated base for the movement/glide branch.
 
 Horse Sprint Duration remains pending until a safe horse-instance resolver is
 found.
+
+
+## V0.10A — Hotstreak Charge / AddJuice Hook
+
+**Status: TEST CANDIDATE**
+
+V0.10A starts the combat-hook phase with the safest target recovered from the
+reference PAK audit.
+
+### Native target
+
+The executable exposes the Hotstreak API:
+
+```text
+AddJuice
+GetCurrentJuice
+GetCurrentJuiceRatio
+GetMaxJuice
+RemoveJuice
+TryActivateHotStreak
+TryConsumeJuice
+```
+
+The generated `AddJuice` exec wrapper resolves to the native function at:
+
+```text
+RVA 0x660260
+```
+
+The native body has a unique signature in the audited executable.
+
+### Runtime policy
+
+V0.10A hooks:
+
+```text
+AddJuice(void* component, float Amount)
+```
+
+Only positive gains are eligible.
+
+The native function immediately reads its player-owner pointer from:
+
+```text
+component + 0xE8
+```
+
+V0.10A compares that pointer to the already captured locally controlled player
+and only multiplies the gain when they match.
+
+No writes are made to arbitrary UObject/Blueprint fields.
+
+Formula:
+
+```text
+effective gain = native gain * HotstreakChargeMultiplier
+```
+
+Loss/consumption paths remain native.
+
+### UI telemetry
+
+The existing `Hotstreak Charge` checkbox/value is now active.
+
+The overlay displays:
+
+```text
+Boost calls
+Last native gain
+Last boosted gain
+```
+
+This lets the user confirm immediately whether gameplay is flowing through the
+hook.
+
+Default:
+
+```ini
+HotstreakCharge=1
+HotstreakChargeMultiplier=2.000
+```
+
+### Pistol Damage
+
+Pistol Damage remains pending in V0.10A.
+
+The reference PAK proves the projectile Blueprint `Damage` property is the
+correct gameplay target, but it is Blueprint-defined rather than a simple
+native reflected field in the executable. A safe projectile/damage-call filter
+will be audited separately rather than guessing an object offset.
+
+**Validation:** awaiting in-game test.
