@@ -22,7 +22,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.12B-melee-100x-diagnostic";
+constexpr const char* kBuild = "0.13A-final-outgoing-damage-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -43,6 +43,7 @@ using AbilityActionEnabledFn = bool(*)(void*, unsigned char);
 using AddJuiceFn = void(*)(void*, float);
 using DoDamageToActorFn = void(*)(void*, void*, void*, void*);
 using ExecGetBaseDamageFn = void(*)(void*, void*, void*);
+using FilterOutgoingDamageFn = void(*)(void*, void*);
 
 PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
@@ -59,6 +60,7 @@ AbilityActionEnabledFn g_originalAbilityActionEnabled = nullptr;
 AddJuiceFn g_originalAddJuice = nullptr;
 DoDamageToActorFn g_originalDoDamageToActor = nullptr;
 ExecGetBaseDamageFn g_originalExecGetBaseDamage = nullptr;
+FilterOutgoingDamageFn g_originalFilterOutgoingDamage = nullptr;
 
 ID3D11Device* g_device = nullptr;
 ID3D11DeviceContext* g_context = nullptr;
@@ -88,6 +90,9 @@ std::atomic_bool g_meleeDamageHookReady{false};
 std::atomic_int g_meleeDamageBoostCalls{0};
 std::atomic<float> g_lastNativeBaseDamage{0.0f};
 std::atomic<float> g_lastBoostedBaseDamage{0.0f};
+std::atomic_bool g_finalOutgoingDamageHookReady{false};
+std::atomic_uint g_lastOutgoingScaleType{0};
+std::atomic_int g_lastOutgoingTagCount{0};
 std::atomic<void*> g_activeDashAbility{nullptr};
 std::atomic<float> g_dashElapsedSeconds{0.0f};
 std::atomic<float> g_lastNativeDashDuration{0.0f};
@@ -1183,6 +1188,203 @@ bool InstallPistolDamageHook() {
     Log(
         "Pistol damage hook: READY filter=DamageRecord.BaseJuice>0 multiplier=%.3fx",
         g_config.pistolDamageMultiplier
+    );
+    return true;
+}
+
+
+BYTE* ResolveFinalOutgoingDamageFilter() {
+    PeSectionView text{};
+    if (!GetMainModuleSection(".text", text)) {
+        Log("Final damage hook: failed to enumerate .text");
+        return nullptr;
+    }
+
+    // Player outgoing-damage filter.
+    //
+    // Audited RVA: 0x668BE0
+    //
+    // The native function:
+    //   - multiplies DamageRecord.Damage by d.PlayerOutgoingDamageMultiplier;
+    //   - applies player outgoing-damage filters/status effects;
+    //   - mutates the same FMayhemDamageEventRecord in place.
+    //
+    // V0.13A hooks the function and applies user multipliers only AFTER the
+    // native function returns, putting us downstream of GetBaseDamage.
+    static constexpr int kPattern[] = {
+        0x48, 0x89, 0x5C, 0x24, 0x08,
+        0x57,
+        0x48, 0x83, 0xEC, 0x20,
+        0x48, 0x8B, 0x05, -1, -1, -1, -1,
+        0x48, 0x8B, 0xFA,
+        0x48, 0x8B, 0xD9,
+        0xF3, 0x0F, 0x10, 0x00,
+        0xF3, 0x0F, 0x59, 0x42, 0x08,
+        0xF3, 0x0F, 0x11, 0x42, 0x08,
+        0xE8, -1, -1, -1, -1
+    };
+
+    size_t matchCount = 0;
+    BYTE* target = FindUniquePattern(
+        text,
+        kPattern,
+        ARRAYSIZE(kPattern),
+        &matchCount
+    );
+
+    if (!target) {
+        Log("Final damage hook: outgoing-filter signature match count=%zu", matchCount);
+        return nullptr;
+    }
+
+    HMODULE module = GetModuleHandleW(nullptr);
+    BYTE* base = reinterpret_cast<BYTE*>(module);
+    Log(
+        "Final damage hook: player outgoing filter resolved RVA=0x%zX",
+        static_cast<size_t>(target - base)
+    );
+
+    return target;
+}
+
+void HookFinalOutgoingDamage(void* playerCharacter, void* damageRecord) {
+    if (!g_originalFilterOutgoingDamage) {
+        return;
+    }
+
+    // Let the full native player-damage pipeline run first.
+    g_originalFilterOutgoingDamage(playerCharacter, damageRecord);
+
+    if (!playerCharacter ||
+        !damageRecord ||
+        !IsLocallyControlledMayhemCharacter(playerCharacter)) {
+        return;
+    }
+
+    BYTE* record = reinterpret_cast<BYTE*>(damageRecord);
+    float* damagePtr = reinterpret_cast<float*>(record + 0x08);
+    const float nativeFinalDamage = *damagePtr;
+
+    if (!(nativeFinalDamage >= 0.0f && nativeFinalDamage < 1000000.0f)) {
+        return;
+    }
+
+    const uint32_t scaleType = *reinterpret_cast<uint32_t*>(record + 0x0C);
+    const int32_t tagCount = *reinterpret_cast<int32_t*>(record + 0x20);
+    const float baseJuice = *reinterpret_cast<float*>(record + 0x28);
+
+    g_lastOutgoingScaleType.store(scaleType);
+    g_lastOutgoingTagCount.store(tagCount);
+
+    const bool pistolLike =
+        baseJuice > 0.0001f &&
+        baseJuice < 1000.0f;
+
+    // Diagnostic classification:
+    // supplied Strife projectile PAKs consistently carry BaseJuice > 0;
+    // ordinary melee records are expected to carry BaseJuice == 0.
+    //
+    // The zero-juice branch is intentionally marked diagnostic because it may
+    // also include non-pistol player abilities. ScaleType/tag telemetry is
+    // logged so we can tighten the discriminator after one real test.
+    float multiplier = 1.0f;
+    const char* kind = nullptr;
+
+    if (pistolLike && g_config.pistolDamageEnabled) {
+        multiplier = g_config.pistolDamageMultiplier;
+        if (multiplier < 0.0f) multiplier = 0.0f;
+        if (multiplier > 100.0f) multiplier = 100.0f;
+        kind = "PISTOL";
+
+        g_lastNativePistolDamage.store(nativeFinalDamage);
+        g_lastPistolBaseJuice.store(baseJuice);
+    } else if (!pistolLike && g_config.meleeDamageEnabled) {
+        multiplier = g_config.meleeDamageMultiplier;
+        if (multiplier < 0.0f) multiplier = 0.0f;
+        if (multiplier > 100.0f) multiplier = 100.0f;
+        kind = "ZERO_JUICE_MELEE_DIAG";
+
+        g_lastNativeBaseDamage.store(nativeFinalDamage);
+    } else {
+        return;
+    }
+
+    float boostedDamage = nativeFinalDamage * multiplier;
+    if (boostedDamage > 1000000.0f) {
+        boostedDamage = 1000000.0f;
+    }
+
+    *damagePtr = boostedDamage;
+
+    int count = 0;
+    if (pistolLike) {
+        g_lastBoostedPistolDamage.store(boostedDamage);
+        count = g_pistolDamageBoostCalls.fetch_add(1) + 1;
+    } else {
+        g_lastBoostedBaseDamage.store(boostedDamage);
+        count = g_meleeDamageBoostCalls.fetch_add(1) + 1;
+    }
+
+    if (count <= 60 || (count % 100) == 0) {
+        Log(
+            "Final damage hook: %s final %.3f -> %.3f BaseJuice=%.3f ScaleType=%u Tags=%d mult=%.2fx count=%d",
+            kind,
+            nativeFinalDamage,
+            boostedDamage,
+            baseJuice,
+            scaleType,
+            tagCount,
+            multiplier,
+            count
+        );
+    }
+}
+
+bool InstallFinalOutgoingDamageHook() {
+    BYTE* target = ResolveFinalOutgoingDamageFilter();
+    if (!target) {
+        Log("Final damage hook: resolver failed; Pistol/Melee remain fail-open");
+        return false;
+    }
+
+    const MH_STATUS initStatus = MH_Initialize();
+    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+        Log(
+            "Final damage hook: MinHook initialize FAILED status=%d",
+            static_cast<int>(initStatus)
+        );
+        return false;
+    }
+
+    MH_STATUS status = MH_CreateHook(
+        target,
+        reinterpret_cast<LPVOID>(&HookFinalOutgoingDamage),
+        reinterpret_cast<LPVOID*>(&g_originalFilterOutgoingDamage)
+    );
+
+    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
+        Log(
+            "Final damage hook: create FAILED status=%d",
+            static_cast<int>(status)
+        );
+        return false;
+    }
+
+    status = MH_EnableHook(target);
+    if (status != MH_OK && status != MH_ERROR_ENABLED) {
+        Log(
+            "Final damage hook: enable FAILED status=%d",
+            static_cast<int>(status)
+        );
+        return false;
+    }
+
+    g_finalOutgoingDamageHookReady.store(true);
+    g_pistolDamageHookReady.store(true);
+    g_meleeDamageHookReady.store(true);
+
+    Log(
+        "Final damage hook: READY RVA=0x668BE0 pistol=BaseJuice>0 meleeDiag=BaseJuice==0"
     );
     return true;
 }
@@ -3128,10 +3330,24 @@ void DrawOverlay() {
                 &g_config.pistolDamageEnabled,
                 &g_config.pistolDamageMultiplier,
                 0.00f,
-                10.00f,
+                100.00f,
                 "%.2fx",
-                "Pending hook | V0.11A DoDamageToActor filter rejected"
+                g_finalOutgoingDamageHookReady.load()
+                    ? "Final outgoing-damage hook | BaseJuice > 0"
+                    : "Final outgoing-damage hook unavailable"
             );
+
+            if (g_finalOutgoingDamageHookReady.load()) {
+                ImGui::Indent();
+                ImGui::TextDisabled(
+                    "Pistol events: %d | Last final %.2f -> %.2f | BaseJuice %.2f",
+                    g_pistolDamageBoostCalls.load(),
+                    g_lastNativePistolDamage.load(),
+                    g_lastBoostedPistolDamage.load(),
+                    g_lastPistolBaseJuice.load()
+                );
+                ImGui::Unindent();
+            }
 
             DrawTunableFeature(
                 "Melee Damage",
@@ -3141,18 +3357,23 @@ void DrawOverlay() {
                 0.00f,
                 100.00f,
                 "%.2fx",
-                g_meleeDamageHookReady.load()
-                    ? "Diagnostic GetBaseDamage hook | local player"
-                    : "Native GetBaseDamage hook unavailable"
+                g_finalOutgoingDamageHookReady.load()
+                    ? "Final outgoing-damage hook | zero-juice diagnostic"
+                    : "Final outgoing-damage hook unavailable"
             );
 
-            if (g_meleeDamageHookReady.load()) {
+            if (g_finalOutgoingDamageHookReady.load()) {
                 ImGui::Indent();
                 ImGui::TextDisabled(
-                    "Boost calls: %d | Last base %.2f -> %.2f",
+                    "Melee-diag events: %d | Last final %.2f -> %.2f",
                     g_meleeDamageBoostCalls.load(),
                     g_lastNativeBaseDamage.load(),
                     g_lastBoostedBaseDamage.load()
+                );
+                ImGui::TextDisabled(
+                    "Last DamageRecord: ScaleType %u | Tags %d",
+                    g_lastOutgoingScaleType.load(),
+                    g_lastOutgoingTagCount.load()
                 );
                 ImGui::Unindent();
             }
@@ -3631,8 +3852,8 @@ DWORD WINAPI MainThread(LPVOID) {
         Log("Hotstreak Charge unavailable; other ASI features remain active.");
     }
 
-    if (!InstallMeleeDamageHook()) {
-        Log("Melee Damage unavailable; other ASI features remain active.");
+    if (!InstallFinalOutgoingDamageHook()) {
+        Log("Final Pistol/Melee Damage hook unavailable; other ASI features remain active.");
     }
 
     Log("Core initialization complete. Press %s after the first game frame.",
