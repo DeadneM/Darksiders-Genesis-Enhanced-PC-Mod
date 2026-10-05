@@ -9,9 +9,10 @@ This file is the **authoritative development notebook** for the experimental
 Darksiders Genesis ASI mod. It is intentionally cumulative so development can
 be resumed later without reconstructing decisions from chat history.
 
-> Public `main` currently remains the validated **Pre-Order Mounts PC Unlocker**.
-> **V0.1 overlay foundation is validated in game.** Further ASI work is kept on
-> experimental development branches until each feature is validated.
+> Public `main` currently tracks the validated **V0.13B ASI base**.
+> **V0.14A Safe Horse Runtime is rejected after in-game testing** because the
+> mount was not detected while the player was visibly mounted. V0.14B continues
+> on a development branch without touching the canonical V0.13B base.
 
 ---
 
@@ -472,6 +473,28 @@ Goal:
 
 Status: **pending camera/FOV audit**.
 
+### 10B. Character Zoom / Camera Distance
+
+Goal:
+
+- allow runtime zoom in and zoom out around the controlled character;
+- expose camera distance separately from FOV;
+- preserve combat, aiming and special camera transitions;
+- provide slider and manual numeric input when the native camera path is identified.
+
+Status: **pending camera/player-controller audit**.
+
+### 10C. Camera Angle
+
+Goal:
+
+- allow runtime adjustment of the gameplay camera angle;
+- target pitch/elevation first, with yaw/orbit adjustment if the native camera path safely supports it;
+- keep angle control independent from FOV and character zoom;
+- preserve scripted and special camera states.
+
+Status: **pending camera/player-controller audit**.
+
 ### 11. Hotstreak Charge
 
 Goal:
@@ -495,6 +518,9 @@ Status: **pending Hotstreak system audit**.
 6. **Keep public validated work safe.** The existing pre-order mounts release is
    untouched while this branch is experimental.
 7. **Journal every build here.** Never rely on chat history as the only source.
+8. **Per-session logging.** `DarksidersGenesisMod.log` must be truncated at
+   every game launch so it contains only the current session. Do not use a
+   cumulative append-across-launches log.
 
 ---
 
@@ -2085,7 +2111,7 @@ using a safe horse component / ability path rather than the rejected
 
 ## V0.14A — Safe Horse Runtime
 
-**Status: TEST CANDIDATE**
+**Status: REJECTED**
 
 V0.14A reintroduces the horse feature set after the V0.9A crash, but no longer
 trusts `Player + 0xE70` as a horse object by itself.
@@ -2199,5 +2225,80 @@ The Horse section now reports:
 - captured normal-speed baseline;
 - native -> effective sprint stamina drain;
 - validation success / rejection counters.
+
+**Validation:** **REJECTED IN GAME.**
+
+User feedback:
+
+```text
+V0.14A did not find the mount even while the player was mounted.
+```
+
+The native `IsHorseActive` heartbeat itself is still useful, but the
+V0.14A structural chain was too restrictive. In particular, it assumed that
+the object reachable through `Player + 0xE70` could expose its
+`CharacterMovement` pointer at the exact same member offset dynamically
+discovered on the player character.
+
+That assumption is now rejected. `Player + 0xE70` must not be treated as the
+horse actor or as the basis for horse gameplay reads/writes.
+
+
+## V0.14B - Movement-owner horse detection
+
+**Status: TEST CANDIDATE**
+
+V0.14B starts from V0.14A but removes the failed mount-identification chain.
+
+### Detection policy
+
+`AMayhemPlayerCharacter::IsHorseActive` is retained only as a native
+**mounted-state signal** for the locally controlled player.
+
+V0.14B no longer dereferences `Player + 0xE70` to obtain a horse object.
+
+Instead, while the native mounted state is true, the already validated
+`GetMaxSpeed` movement hook observes live movement components. A non-player
+movement owner is accepted as the horse only after all of these checks pass:
+
+```text
+live MovementComponent
+  -> CharacterOwner +0x190 points back to candidate actor
+candidate actor
+  -> horse stamina fields +0x910/+0x914/+0x918 are readable and sane
+movement vtable
+  -> GetMaxSpeed slot +0x3D0 points inside executable .text
+```
+
+Only after that structural proof does the mod:
+
+- capture the horse runtime state;
+- enable Horse Speed / Horse Sprint Speed classification;
+- apply Horse Sprint Duration through the captured native stamina drain;
+- install a dedicated horse GetMaxSpeed hook only if the mount does not share
+  the already hooked player movement target.
+
+This keeps V0.14B fail-open if the actual mount uses a different movement path.
+
+### Diagnostics
+
+Horse validation failures now keep a reason code and only log when the reason
+changes, avoiding per-frame log spam.
+
+### Log policy change
+
+Starting with V0.14B, `DarksidersGenesisMod.log` is truncated once at startup.
+The log therefore contains **only the current game session** and is no longer
+cumulative across launches.
+
+### Camera roadmap additions
+
+Added to the TODO list:
+
+- **Character Zoom / Camera Distance**
+- **Camera Angle**
+
+These remain separate from FOV and Third Person so each camera behavior can be
+tuned independently.
 
 **Validation:** awaiting in-game test.
