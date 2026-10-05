@@ -1857,7 +1857,7 @@ bool SafeReadFloat(const void* base, size_t offset, float* out) {
     }
 
     const float value = *reinterpret_cast<const float*>(p);
-    if (!isfinite(value)) {
+    if (!std::isfinite(value)) {
         return false;
     }
 
@@ -1866,12 +1866,37 @@ bool SafeReadFloat(const void* base, size_t offset, float* out) {
 }
 
 bool SafeWriteFloat(void* base, size_t offset, float value) {
-    if (!base || !isfinite(value)) {
+    if (!base || !std::isfinite(value)) {
         return false;
     }
 
     BYTE* p = reinterpret_cast<BYTE*>(base) + offset;
-    if (!IsReadableMemoryRange(p, sizeof(float))) {
+
+    MEMORY_BASIC_INFORMATION mbi{};
+    if (!VirtualQuery(p, &mbi, sizeof(mbi)) ||
+        mbi.State != MEM_COMMIT ||
+        (mbi.Protect & PAGE_GUARD) ||
+        (mbi.Protect & PAGE_NOACCESS)) {
+        return false;
+    }
+
+    const DWORD protect = mbi.Protect & 0xFF;
+    const bool writable =
+        protect == PAGE_READWRITE ||
+        protect == PAGE_WRITECOPY ||
+        protect == PAGE_EXECUTE_READWRITE ||
+        protect == PAGE_EXECUTE_WRITECOPY;
+
+    if (!writable) {
+        return false;
+    }
+
+    const uintptr_t begin = reinterpret_cast<uintptr_t>(p);
+    const uintptr_t regionBegin = reinterpret_cast<uintptr_t>(mbi.BaseAddress);
+    const uintptr_t regionEnd = regionBegin + mbi.RegionSize;
+    if (begin < regionBegin ||
+        begin + sizeof(float) < begin ||
+        begin + sizeof(float) > regionEnd) {
         return false;
     }
 
@@ -1960,7 +1985,7 @@ float ApplyHorseSpeedPolicy(void* movementComponent, float nativeSpeed) {
     if (!movementComponent ||
         movementComponent != g_validatedHorseMovement.load() ||
         nativeSpeed <= 0.0f ||
-        !isfinite(nativeSpeed)) {
+        !std::isfinite(nativeSpeed)) {
         return nativeSpeed;
     }
 
@@ -2381,16 +2406,23 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
 
     // UCharacterMovementComponent::CharacterOwner reflection offset.
     void* characterOwner = *reinterpret_cast<void**>(component + 0x190);
-    if (!characterOwner || !IsLocallyControlledMayhemCharacter(characterOwner)) {
+    if (!characterOwner) {
+        return nativeSpeed;
+    }
+
+    if (characterOwner == g_validatedHorseCharacter.load()) {
+        return ApplyHorseSpeedPolicy(movementComponent, nativeSpeed);
+    }
+
+    if (!IsLocallyControlledMayhemCharacter(characterOwner)) {
         return nativeSpeed;
     }
 
     g_localPlayerCharacter.store(characterOwner);
+    DiscoverCharacterMovementMemberOffset(characterOwner, movementComponent);
 
-    // This frequently-called physics virtual is our game-thread heartbeat for
-    // player movement property tuning. Horse tuning was removed in V0.9B after
-    // crash analysis proved Player+0xE70 is not a stable AMayhemHorseCharacter
-    // pointer across level-loading/runtime states.
+    // Player movement property tuning. The safe horse runtime has its own
+    // structurally validated actor -> movement path.
     ApplyPlayerMovementTunings(movementComponent);
 
     if (!g_config.movementSpeedEnabled || nativeSpeed <= 0.0f) {
@@ -2420,6 +2452,8 @@ bool InstallMovementSpeedHook() {
         Log("Movement hook: MinHook initialize FAILED status=%d", static_cast<int>(initStatus));
         return false;
     }
+
+    g_playerGetMaxSpeedTarget = target;
 
     MH_STATUS status = MH_CreateHook(
         target,
