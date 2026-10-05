@@ -880,3 +880,434 @@ recovery.
 
 A separate TODO exists for **Horse Dash / Sprint Duration**, distinct from horse
 speed, so mount sprint duration can be tuned independently.
+
+
+## V0.6A — Self-calibrating Dodge Recovery
+
+**Status: REJECTED**
+
+User testing reported no perceptible change. The `Player + 0xAAC` dash flag is therefore not accepted as the actual post-dodge movement blocker.
+
+V0.5A `MoveInterruptDelaySec` recovery is no longer installed.
+
+V0.6A targets the dash ability's own movement-input lock:
+
+```text
+AMayhemPlayerCharacter + 0xAAC
+```
+
+Native audit:
+
+```text
+GroundDash start RVA   0x5B0440
+GroundDash tick RVA    0x5B72B0
+GroundDash finish RVA  0x59BF80
+lock set site          0x5B047A
+lock clear site        0x59BFBF
+```
+
+The runtime resolver does not blindly use those RVAs. It finds unique start and
+finish signatures, then derives the tick function from their shared vtable
+relationship.
+
+### Behavior
+
+- first observed dodge is left completely vanilla;
+- the ASI measures its native dash-lock lifetime;
+- later dodges release only the movement-input lock slightly before native
+  finalization;
+- dash animation, dash velocity, collision and ability finish remain native;
+- default early release: **100 ms**;
+- overlay range: **0 to 300 ms**;
+- F3 toggles Dodge Recovery;
+- the overlay shows the learned native dash-lock duration;
+- signature/vtable mismatch is fail-open.
+
+INI:
+
+```ini
+[Values]
+DodgeEarlyUnlockMs=100.000
+```
+
+This is intentionally a targeted test. If 100 ms is too early or too late, the
+value can be tuned directly from the overlay without rebuilding the ASI.
+
+
+## V0.6B — InputSuppressWindow diagnostic bypass
+
+**Status: TEST CANDIDATE**
+
+V0.6A produced no perceptible change, so the dash-local flag at
+`AMayhemPlayerCharacter + 0xAAC` is now treated as an accompanying dash-state
+flag rather than the proven movement blocker.
+
+A deeper binary audit found a dedicated animation-notify state:
+
+```text
+UAnimNotify_InputSuppressWindow
+Display name: "Suppress Player Input Window"
+```
+
+Its vtable resolves semantically from that display-name string.
+
+Audited native methods:
+
+```text
+GetNotifyName : RVA 0x5D1230
+NotifyBegin   : RVA 0x5D8860
+NotifyEnd     : RVA 0x5D8F70
+```
+
+`NotifyBegin` resolves the player character and calls:
+
+```text
+AMayhemPlayerCharacter::SetInputSuppressed(reason, true)
+```
+
+`NotifyEnd` calls:
+
+```text
+AMayhemPlayerCharacter::SetInputSuppressed(reason, false)
+```
+
+The player keeps suppression reasons in a counted table at approximately
+`Player + 0xC20`, so this system can suppress input independently of the
+dash-local `+0xAAC` flag.
+
+### Diagnostic policy
+
+When Dodge Recovery is ON, V0.6B bypasses both
+`UAnimNotify_InputSuppressWindow::NotifyBegin` and matching `NotifyEnd`
+completely.
+
+This is intentionally aggressive and diagnostic.
+
+Goal:
+
+- if dodge recovery suddenly changes, the real blocker has been identified;
+- if nothing changes, InputSuppressWindow is eliminated as the cause and the
+  next audit moves to the ability/action state machine.
+
+A bypass counter is maintained so toggling the feature does not unbalance the
+game's native suppression counters.
+
+The log prints every bypassed Begin/End. If the feature has no visible effect,
+those lines tell us whether the dodge montage actually uses this notify state.
+
+**Do not treat V0.6B as a final implementation.**
+
+
+## V0.7A — Common Ability MOVE Recovery
+
+**Status: TEST CANDIDATE**
+
+The latest user report clarified that the dead movement tail is **not dodge-specific**:
+many player actions can finish visually, then leave the character fixed for roughly
+half a second before movement resumes.
+
+### What the V0.6 logs proved
+
+V0.6A did not actually install in the tested executable because its dash resolver
+failed closed:
+
+```text
+Dodge recovery: start/finish signature mismatch start=1 finish=2
+Dodge recovery: resolver failed; feature remains fail-open
+```
+
+V0.6B did install its `UAnimNotify_InputSuppressWindow` diagnostic hooks, but no
+Begin/End bypass events were recorded during the supplied test session. That
+system therefore does not explain the common recovery tail observed across many
+actions.
+
+### Common ability system audit
+
+The native ability base exposes:
+
+```text
+EnableInterrupt
+IsInterruptEnabled
+ProcessInterrupt
+AbilityInterruptsFlags
+AllowedActionsFlags
+```
+
+The interrupt enum includes:
+
+```text
+EAbilityInterrupt::NONE
+EAbilityInterrupt::MOVE
+EAbilityInterrupt::JUMP
+...
+```
+
+The audited native `IsInterruptEnabled` function reads the ability interrupt
+bitset directly from the ability object:
+
+```text
+bitset storage: +0xB0
+ability state:  +0xD8
+elapsed time:   +0xDC
+```
+
+The ability lifecycle enum is:
+
+```text
+0 INITIALIZING
+1 STARTING
+2 RUNNING
+3 SUSPENDED
+4 AWAITING_FINISH
+5 FINISHED
+6 FINALIZED
+```
+
+### V0.7A policy
+
+V0.7A hooks the common native `IsInterruptEnabled` path.
+
+For `EAbilityInterrupt::MOVE` only:
+
+- native MOVE permission is always preserved;
+- STARTING and RUNNING remain untouched;
+- movement is **not** allowed to cancel an action early;
+- if native MOVE is still disabled while the ability is in
+  `AWAITING_FINISH`, the mod returns true.
+
+This specifically targets the dead post-action tail without turning movement
+into a universal animation cancel.
+
+### Runtime diagnostics
+
+The overlay shows:
+
+- total MOVE interrupt queries;
+- queries where native code blocked MOVE;
+- queries forced by V0.7A;
+- last observed ability state;
+- last elapsed ability time.
+
+The log records state transitions and the first forced MOVE events.
+
+If the user still feels no difference:
+
+- `Forced > 0` means the common interrupt path is active but another movement
+  gate remains downstream;
+- `Forced = 0` means the observed dead tail occurs before/after
+  `AWAITING_FINISH`, and the logged state transition tells us where to move next.
+
+
+## V0.8A — AllowedActions MOVE diagnostic
+
+**Status: TEST CANDIDATE**
+
+### Why V0.7A is rejected
+
+The user reported no effect, and the supplied V0.7A log is decisive:
+
+- the `IsInterruptEnabled` hook resolved and installed successfully;
+- no `MOVE query`, `Native blocked` or `FORCE MOVE` events were emitted
+  during the test session.
+
+Therefore the observed post-action movement lock does **not** flow through
+`EAbilityInterrupt::MOVE` in the tested paths.
+
+### New target: IsActionEnabled
+
+The reflected `IsActionEnabled` wrapper calls a tiny native bit-test helper at
+audited RVA:
+
+```text
+0x5A6800
+```
+
+Its native code checks the ability's action bitset:
+
+```text
+ability + 0x80
+```
+
+This is distinct from `IsInterruptEnabled`, which reads from `ability + 0xB0`.
+
+The previously audited generic movement gate independently established:
+
+```text
+ECharacterActions::MOVE = 0x1D
+```
+
+### Local-player filtering
+
+The ability reflection data exposes `Instigator` at:
+
+```text
+ability + 0x48
+```
+
+V0.8A records the locally controlled player pointer from the already installed
+CharacterMovement hook, then applies the diagnostic only when:
+
+```text
+ability->Instigator == local player
+```
+
+Enemies and NPCs therefore keep native action permissions.
+
+### Diagnostic policy
+
+When Action Recovery is ON and the local player's ability receives:
+
+```text
+IsActionEnabled(MOVE)
+```
+
+V0.8A preserves native `true`, but overrides native `false` to `true`.
+
+This is intentionally aggressive. The purpose is to prove or reject
+`AllowedActionsFlags` as the common movement lock.
+
+Telemetry records:
+
+- all MOVE action queries;
+- local-player MOVE queries;
+- local queries where native code blocked MOVE;
+- forced MOVE results;
+- ability state and elapsed time at the last local query.
+
+If this finally removes the dead tail but allows movement too early during some
+actions, the path is proven and the next build can restrict the override by
+state/time using the captured telemetry.
+
+If counters remain at zero, `AllowedActionsFlags` is also eliminated.
+
+
+## V0.8B — Safe Action Tail + Unified Gameplay UI
+
+**Status: TEST CANDIDATE**
+
+### V0.8A user result
+
+V0.8A finally produced a visible gameplay change, which is important evidence
+that the `AllowedActionsFlags / IsActionEnabled(ECharacterActions::MOVE)` path
+is relevant.
+
+However the V0.8A diagnostic was intentionally aggressive and forced MOVE
+whenever the local player's active ability returned false.
+
+The user observed a concrete regression after opening a chest:
+
+- the character could move;
+- the interaction/character animation remained locked;
+- the result was movement without a valid locomotion animation.
+
+This proves that MOVE must **not** be forced while an interaction ability is
+still in its normal `RUNNING` phase.
+
+### V0.8B recovery policy
+
+V0.8B keeps the same proven `IsActionEnabled(MOVE)` path, but changes the
+policy:
+
+```text
+INITIALIZING     native
+STARTING         native
+RUNNING          native
+SUSPENDED        native
+AWAITING_FINISH  mod may release MOVE
+FINISHED         native
+FINALIZED        native
+```
+
+Only the `AWAITING_FINISH` dead tail is shortened.
+
+A new user setting controls how long to wait after first observing the tail:
+
+```ini
+ActionRecoveryDelayMs=0.000
+```
+
+Overlay range:
+
+```text
+0 ms -> 500 ms
+```
+
+Default `0 ms` means release MOVE immediately once the ability has already
+entered `AWAITING_FINISH`.
+
+This is designed specifically to avoid the chest/interactions regression seen
+with V0.8A while still attacking the common post-action freeze.
+
+### Overlay redesign
+
+The unused `General` tab has been removed.
+
+Tabs are now:
+
+```text
+Gameplay
+Hotkeys
+About
+```
+
+Menu-key rebinding and configuration buttons moved to `Hotkeys`.
+
+The Gameplay page is grouped into:
+
+```text
+Player
+Combat
+Horse
+Camera
+System
+```
+
+### Unified option model
+
+Where a numeric tuning value makes sense, every gameplay feature now follows:
+
+```text
+[checkbox] Feature
+           [value slider]
+```
+
+Persistent options now exist for:
+
+```text
+Movement Speed
+Action Recovery
+Jump Height
+Pistol Damage
+Melee Damage
+Hotstreak Charge
+Horse Speed
+Horse Sprint Speed
+Horse Sprint Duration
+FOV
+Third Person camera distance
+```
+
+Toggle-only features remain toggle-only where a scalar has no meaningful
+semantics:
+
+```text
+Toggle HUD
+Skip Intro Videos
+```
+
+Pending features are clearly labelled `Pending hook`; their values are saved
+now so future runtime implementations do not require another menu redesign.
+
+### Reference-PAK-driven defaults
+
+The new UI names follow the concrete systems recovered from the supplied
+reference PAKs:
+
+- Jump Height -> player Blueprint movement defaults;
+- Horse Speed -> `MaxWalkSpeed`;
+- Horse Sprint Duration -> `StaminaSprintPercentageRate`;
+- Pistol Damage -> projectile `Damage`;
+- Hotstreak Charge -> projectile `BaseJuice` candidate.
+
+These pending controls are configuration/UI infrastructure only until their
+runtime hooks are validated.

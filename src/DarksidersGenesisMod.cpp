@@ -21,7 +21,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.5B-movement-virtual-fix-test";
+constexpr const char* kBuild = "0.8B-safe-tail-ui-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -34,12 +34,24 @@ using ResizeBuffersFn = HRESULT(__stdcall*)(IDXGISwapChain*, UINT, UINT, UINT, D
 using HudHiddenGetterFn = bool(*)();
 using CharacterGetMaxSpeedFn = float(*)(void*);
 using ActionGateFn = bool(*)(void*, unsigned char);
+using DashVoidFn = void(*)(void*);
+using DashTickFn = void(*)(void*, float);
+using InputSuppressNotifyFn = void(*)(void*, void*, void*);
+using AbilityInterruptEnabledFn = bool(*)(void*, unsigned char);
+using AbilityActionEnabledFn = bool(*)(void*, unsigned char);
 
 PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
 HudHiddenGetterFn g_originalHudHiddenGetter = nullptr;
 CharacterGetMaxSpeedFn g_originalCharacterGetMaxSpeed = nullptr;
 ActionGateFn g_originalActionGate = nullptr;
+DashVoidFn g_originalDashStart = nullptr;
+DashTickFn g_originalDashTick = nullptr;
+DashVoidFn g_originalDashFinish = nullptr;
+InputSuppressNotifyFn g_originalInputSuppressBegin = nullptr;
+InputSuppressNotifyFn g_originalInputSuppressEnd = nullptr;
+AbilityInterruptEnabledFn g_originalAbilityInterruptEnabled = nullptr;
+AbilityActionEnabledFn g_originalAbilityActionEnabled = nullptr;
 
 ID3D11Device* g_device = nullptr;
 ID3D11DeviceContext* g_context = nullptr;
@@ -56,6 +68,27 @@ std::atomic_bool g_hudHidden{false};
 std::atomic_bool g_hudHookReady{false};
 std::atomic_bool g_movementHookReady{false};
 std::atomic_bool g_recoveryHookReady{false};
+std::atomic<void*> g_activeDashAbility{nullptr};
+std::atomic<float> g_dashElapsedSeconds{0.0f};
+std::atomic<float> g_lastNativeDashDuration{0.0f};
+std::atomic_bool g_dashEarlyUnlockApplied{false};
+std::atomic_int g_bypassedInputSuppressWindows{0};
+std::atomic_int g_moveInterruptQueries{0};
+std::atomic_int g_moveInterruptNativeBlocked{0};
+std::atomic_int g_moveInterruptForced{0};
+std::atomic<void*> g_lastMoveQueryAbility{nullptr};
+std::atomic_int g_lastMoveQueryState{-1};
+std::atomic<float> g_lastMoveQueryElapsed{0.0f};
+std::atomic<void*> g_localPlayerCharacter{nullptr};
+std::atomic_int g_actionMoveQueries{0};
+std::atomic_int g_actionMoveLocalQueries{0};
+std::atomic_int g_actionMoveNativeBlocked{0};
+std::atomic_int g_actionMoveForced{0};
+std::atomic<void*> g_lastActionMoveAbility{nullptr};
+std::atomic_int g_lastActionMoveState{-1};
+std::atomic<float> g_lastActionMoveElapsed{0.0f};
+std::atomic<void*> g_recoveryTailAbility{nullptr};
+std::atomic<float> g_recoveryTailStartElapsed{0.0f};
 std::array<bool, 256> g_keyDown{};
 std::string g_lastAction = "None";
 
@@ -316,11 +349,29 @@ struct Config {
     bool actionRecoveryEnabled = true;
     bool skipIntroEnabled = true;
     bool thirdPersonEnabled = true;
+    bool pistolDamageEnabled = true;
+    bool meleeDamageEnabled = true;
+    bool jumpHeightEnabled = true;
+    bool horseSpeedEnabled = true;
+    bool horseSprintSpeedEnabled = true;
+    bool horseSprintDurationEnabled = true;
+    bool fovEnabled = true;
+    bool hotstreakChargeEnabled = true;
 
-    // Tentative user-facing tuning values. They are inert until their gameplay
-    // hooks are implemented and validated.
+    // User-facing tuning values.
     float movementSpeedMultiplier = 1.15f;
-    float actionRecoveryMultiplier = 2.00f;
+    float actionRecoveryDelayMs = 0.0f;
+    float actionRecoveryMultiplier = 2.00f; // legacy compatibility, not used by V0.8B
+    float dodgeEarlyUnlockMs = 100.0f;      // legacy compatibility, not used by V0.8B
+    float pistolDamageMultiplier = 2.00f;
+    float meleeDamageMultiplier = 2.00f;
+    float jumpHeightMultiplier = 1.25f;
+    float horseSpeedMultiplier = 1.25f;
+    float horseSprintSpeedMultiplier = 1.25f;
+    float horseSprintDurationMultiplier = 2.00f;
+    float fovDegrees = 90.0f;
+    float thirdPersonDistanceMultiplier = 1.00f;
+    float hotstreakChargeMultiplier = 2.00f;
 
     std::array<Action, 12> hotkeys{};
 
@@ -360,8 +411,28 @@ struct Config {
         actionRecoveryEnabled = true;
         skipIntroEnabled = true;
         thirdPersonEnabled = true;
+        pistolDamageEnabled = true;
+        meleeDamageEnabled = true;
+        jumpHeightEnabled = true;
+        horseSpeedEnabled = true;
+        horseSprintSpeedEnabled = true;
+        horseSprintDurationEnabled = true;
+        fovEnabled = true;
+        hotstreakChargeEnabled = true;
+
         movementSpeedMultiplier = 1.15f;
+        actionRecoveryDelayMs = 0.0f;
         actionRecoveryMultiplier = 2.00f;
+        dodgeEarlyUnlockMs = 100.0f;
+        pistolDamageMultiplier = 2.00f;
+        meleeDamageMultiplier = 2.00f;
+        jumpHeightMultiplier = 1.25f;
+        horseSpeedMultiplier = 1.25f;
+        horseSprintSpeedMultiplier = 1.25f;
+        horseSprintDurationMultiplier = 2.00f;
+        fovDegrees = 90.0f;
+        thirdPersonDistanceMultiplier = 1.00f;
+        hotstreakChargeMultiplier = 2.00f;
 
         hotkeys.fill(Action::None);
         hotkeys[0] = Action::ToggleHUD;
@@ -397,9 +468,28 @@ struct Config {
         actionRecoveryEnabled = ReadBool(L"Features", L"ActionRecovery", true, g_iniPath);
         skipIntroEnabled = ReadBool(L"Features", L"SkipIntroVideos", true, g_iniPath);
         thirdPersonEnabled = ReadBool(L"Features", L"ThirdPerson", true, g_iniPath);
+        pistolDamageEnabled = ReadBool(L"Features", L"PistolDamage", true, g_iniPath);
+        meleeDamageEnabled = ReadBool(L"Features", L"MeleeDamage", true, g_iniPath);
+        jumpHeightEnabled = ReadBool(L"Features", L"JumpHeight", true, g_iniPath);
+        horseSpeedEnabled = ReadBool(L"Features", L"HorseSpeed", true, g_iniPath);
+        horseSprintSpeedEnabled = ReadBool(L"Features", L"HorseSprintSpeed", true, g_iniPath);
+        horseSprintDurationEnabled = ReadBool(L"Features", L"HorseSprintDuration", true, g_iniPath);
+        fovEnabled = ReadBool(L"Features", L"FOV", true, g_iniPath);
+        hotstreakChargeEnabled = ReadBool(L"Features", L"HotstreakCharge", true, g_iniPath);
 
         movementSpeedMultiplier = ReadFloat(L"Values", L"MovementSpeedMultiplier", 1.15f, g_iniPath);
+        actionRecoveryDelayMs = ReadFloat(L"Values", L"ActionRecoveryDelayMs", 0.0f, g_iniPath);
         actionRecoveryMultiplier = ReadFloat(L"Values", L"ActionRecoveryMultiplier", 2.00f, g_iniPath);
+        dodgeEarlyUnlockMs = ReadFloat(L"Values", L"DodgeEarlyUnlockMs", 100.0f, g_iniPath);
+        pistolDamageMultiplier = ReadFloat(L"Values", L"PistolDamageMultiplier", 2.00f, g_iniPath);
+        meleeDamageMultiplier = ReadFloat(L"Values", L"MeleeDamageMultiplier", 2.00f, g_iniPath);
+        jumpHeightMultiplier = ReadFloat(L"Values", L"JumpHeightMultiplier", 1.25f, g_iniPath);
+        horseSpeedMultiplier = ReadFloat(L"Values", L"HorseSpeedMultiplier", 1.25f, g_iniPath);
+        horseSprintSpeedMultiplier = ReadFloat(L"Values", L"HorseSprintSpeedMultiplier", 1.25f, g_iniPath);
+        horseSprintDurationMultiplier = ReadFloat(L"Values", L"HorseSprintDurationMultiplier", 2.00f, g_iniPath);
+        fovDegrees = ReadFloat(L"Values", L"FOVDegrees", 90.0f, g_iniPath);
+        thirdPersonDistanceMultiplier = ReadFloat(L"Values", L"ThirdPersonDistanceMultiplier", 1.00f, g_iniPath);
+        hotstreakChargeMultiplier = ReadFloat(L"Values", L"HotstreakChargeMultiplier", 2.00f, g_iniPath);
 
         for (int i = 0; i < 12; ++i) {
             wchar_t key[8]{};
@@ -434,9 +524,28 @@ struct Config {
         WriteBool(L"Features", L"ActionRecovery", actionRecoveryEnabled, g_iniPath);
         WriteBool(L"Features", L"SkipIntroVideos", skipIntroEnabled, g_iniPath);
         WriteBool(L"Features", L"ThirdPerson", thirdPersonEnabled, g_iniPath);
+        WriteBool(L"Features", L"PistolDamage", pistolDamageEnabled, g_iniPath);
+        WriteBool(L"Features", L"MeleeDamage", meleeDamageEnabled, g_iniPath);
+        WriteBool(L"Features", L"JumpHeight", jumpHeightEnabled, g_iniPath);
+        WriteBool(L"Features", L"HorseSpeed", horseSpeedEnabled, g_iniPath);
+        WriteBool(L"Features", L"HorseSprintSpeed", horseSprintSpeedEnabled, g_iniPath);
+        WriteBool(L"Features", L"HorseSprintDuration", horseSprintDurationEnabled, g_iniPath);
+        WriteBool(L"Features", L"FOV", fovEnabled, g_iniPath);
+        WriteBool(L"Features", L"HotstreakCharge", hotstreakChargeEnabled, g_iniPath);
 
         WriteFloat(L"Values", L"MovementSpeedMultiplier", movementSpeedMultiplier, g_iniPath);
+        WriteFloat(L"Values", L"ActionRecoveryDelayMs", actionRecoveryDelayMs, g_iniPath);
         WriteFloat(L"Values", L"ActionRecoveryMultiplier", actionRecoveryMultiplier, g_iniPath);
+        WriteFloat(L"Values", L"DodgeEarlyUnlockMs", dodgeEarlyUnlockMs, g_iniPath);
+        WriteFloat(L"Values", L"PistolDamageMultiplier", pistolDamageMultiplier, g_iniPath);
+        WriteFloat(L"Values", L"MeleeDamageMultiplier", meleeDamageMultiplier, g_iniPath);
+        WriteFloat(L"Values", L"JumpHeightMultiplier", jumpHeightMultiplier, g_iniPath);
+        WriteFloat(L"Values", L"HorseSpeedMultiplier", horseSpeedMultiplier, g_iniPath);
+        WriteFloat(L"Values", L"HorseSprintSpeedMultiplier", horseSprintSpeedMultiplier, g_iniPath);
+        WriteFloat(L"Values", L"HorseSprintDurationMultiplier", horseSprintDurationMultiplier, g_iniPath);
+        WriteFloat(L"Values", L"FOVDegrees", fovDegrees, g_iniPath);
+        WriteFloat(L"Values", L"ThirdPersonDistanceMultiplier", thirdPersonDistanceMultiplier, g_iniPath);
+        WriteFloat(L"Values", L"HotstreakChargeMultiplier", hotstreakChargeMultiplier, g_iniPath);
 
         for (int i = 0; i < 12; ++i) {
             wchar_t key[8]{};
@@ -773,9 +882,7 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         ? g_originalCharacterGetMaxSpeed(movementComponent)
         : 0.0f;
 
-    if (!g_config.movementSpeedEnabled ||
-        nativeSpeed <= 0.0f ||
-        !movementComponent) {
+    if (nativeSpeed <= 0.0f || !movementComponent) {
         return nativeSpeed;
     }
 
@@ -784,6 +891,12 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
     // UCharacterMovementComponent::CharacterOwner reflection offset.
     void* characterOwner = *reinterpret_cast<void**>(component + 0x190);
     if (!characterOwner || !IsLocallyControlledMayhemCharacter(characterOwner)) {
+        return nativeSpeed;
+    }
+
+    g_localPlayerCharacter.store(characterOwner);
+
+    if (!g_config.movementSpeedEnabled) {
         return nativeSpeed;
     }
 
@@ -971,6 +1084,862 @@ bool InstallActionRecoveryHook() {
     return true;
 }
 
+
+struct DashHookTargets {
+    BYTE* start = nullptr;
+    BYTE* tick = nullptr;
+    BYTE* finish = nullptr;
+};
+
+DashHookTargets ResolveDashRecoveryTargets() {
+    DashHookTargets out{};
+
+    PeSectionView text{};
+    PeSectionView rdata{};
+    if (!GetMainModuleSection(".text", text) ||
+        !GetMainModuleSection(".rdata", rdata)) {
+        Log("Dodge recovery: failed to enumerate PE sections");
+        return out;
+    }
+
+    static constexpr int kStartPattern[] = {
+        0x40, 0x57,
+        0x48, 0x83, 0xEC, 0x60,
+        0x48, 0xC7, 0x44, 0x24, 0x30, 0xFE, 0xFF, 0xFF, 0xFF,
+        0x48, 0x89, 0x5C, 0x24, 0x70,
+        0x48, 0x89, 0x74, 0x24, 0x78,
+        0x48, 0x8B, 0xF9,
+        0xE8, -1, -1, -1, -1,
+        0x48, 0x8B, 0x9F, 0xB0, 0x01, 0x00, 0x00,
+        0x48, 0x85, 0xDB,
+        0x0F, 0x84, -1, -1, -1, -1,
+        0x80, 0xBF, 0xF1, 0x01, 0x00, 0x00, 0x00,
+        0x74, 0x07,
+        0xC6, 0x83, 0xAC, 0x0A, 0x00, 0x00, 0x01
+    };
+
+    static constexpr int kFinishPattern[] = {
+        0x40, 0x57,
+        0x48, 0x83, 0xEC, 0x60,
+        0x48, 0xC7, 0x44, 0x24, 0x30, 0xFE, 0xFF, 0xFF, 0xFF,
+        0x48, 0x89, 0x5C, 0x24, 0x70,
+        0x48, 0x8B, 0xF9,
+        0xE8, -1, -1, -1, -1,
+        0x48, 0x8B, 0x8F, 0xD8, 0x01, 0x00, 0x00,
+        0x48, 0x85, 0xC9,
+        0x74, -1,
+        0x33, 0xD2,
+        0xE8, -1, -1, -1, -1,
+        0x48, 0x8B, 0x9F, 0xB0, 0x01, 0x00, 0x00,
+        0x48, 0x85, 0xDB,
+        0x0F, 0x84, -1, -1, -1, -1,
+        0xC6, 0x83, 0xAC, 0x0A, 0x00, 0x00, 0x00
+    };
+
+    size_t startCount = 0;
+    size_t finishCount = 0;
+    out.start = FindUniquePattern(text, kStartPattern, ARRAYSIZE(kStartPattern), &startCount);
+    out.finish = FindUniquePattern(text, kFinishPattern, ARRAYSIZE(kFinishPattern), &finishCount);
+
+    if (!out.start || !out.finish) {
+        Log(
+            "Dodge recovery: start/finish signature mismatch start=%zu finish=%zu",
+            startCount,
+            finishCount
+        );
+        return {};
+    }
+
+    BYTE* commonTick = nullptr;
+    size_t relationCount = 0;
+
+    for (size_t i = 0; i + 0x60 <= rdata.size; i += sizeof(uintptr_t)) {
+        BYTE* p = rdata.begin + i;
+        const uintptr_t startPtr = *reinterpret_cast<const uintptr_t*>(p);
+        const uintptr_t finishPtr = *reinterpret_cast<const uintptr_t*>(p + 0x58);
+
+        if (startPtr != reinterpret_cast<uintptr_t>(out.start) ||
+            finishPtr != reinterpret_cast<uintptr_t>(out.finish)) {
+            continue;
+        }
+
+        BYTE* tick = reinterpret_cast<BYTE*>(
+            *reinterpret_cast<const uintptr_t*>(p + sizeof(uintptr_t))
+        );
+
+        if (!AddressInSection(text, tick)) {
+            continue;
+        }
+
+        if (!commonTick) {
+            commonTick = tick;
+        } else if (commonTick != tick) {
+            Log("Dodge recovery: vtable relation resolves conflicting tick targets");
+            return {};
+        }
+
+        ++relationCount;
+    }
+
+    if (!commonTick || relationCount == 0) {
+        Log("Dodge recovery: no start/tick/finish vtable relation found");
+        return {};
+    }
+
+    out.tick = commonTick;
+
+    HMODULE module = GetModuleHandleW(nullptr);
+    BYTE* base = reinterpret_cast<BYTE*>(module);
+    Log(
+        "Dodge recovery: targets start=0x%zX tick=0x%zX finish=0x%zX vtableRelations=%zu",
+        static_cast<size_t>(out.start - base),
+        static_cast<size_t>(out.tick - base),
+        static_cast<size_t>(out.finish - base),
+        relationCount
+    );
+
+    return out;
+}
+
+void HookDashStart(void* ability) {
+    g_originalDashStart(ability);
+
+    if (!ability) {
+        return;
+    }
+
+    BYTE* object = reinterpret_cast<BYTE*>(ability);
+    void* player = *reinterpret_cast<void**>(object + 0x1B0);
+    if (!player) {
+        return;
+    }
+
+    BYTE* movementLock = reinterpret_cast<BYTE*>(player) + 0xAAC;
+    if (*movementLock == 0) {
+        return;
+    }
+
+    g_activeDashAbility.store(ability);
+    g_dashElapsedSeconds.store(0.0f);
+    g_dashEarlyUnlockApplied.store(false);
+
+    Log(
+        "Dodge recovery: dash START ability=%p player=%p learnedNative=%.3f sec",
+        ability,
+        player,
+        g_lastNativeDashDuration.load()
+    );
+}
+
+void HookDashTick(void* ability, float deltaSeconds) {
+    if (ability == g_activeDashAbility.load() &&
+        deltaSeconds > 0.0f &&
+        deltaSeconds < 0.25f) {
+        g_dashElapsedSeconds.store(g_dashElapsedSeconds.load() + deltaSeconds);
+    }
+
+    g_originalDashTick(ability, deltaSeconds);
+
+    if (!g_config.actionRecoveryEnabled ||
+        ability != g_activeDashAbility.load() ||
+        g_dashEarlyUnlockApplied.load()) {
+        return;
+    }
+
+    const float nativeDuration = g_lastNativeDashDuration.load();
+    if (nativeDuration <= 0.05f) {
+        return;
+    }
+
+    float earlyMs = g_config.dodgeEarlyUnlockMs;
+    if (earlyMs < 0.0f) earlyMs = 0.0f;
+    if (earlyMs > 400.0f) earlyMs = 400.0f;
+
+    float releaseAt = nativeDuration - (earlyMs / 1000.0f);
+    if (releaseAt < 0.05f) {
+        releaseAt = 0.05f;
+    }
+
+    const float elapsed = g_dashElapsedSeconds.load();
+    if (elapsed < releaseAt) {
+        return;
+    }
+
+    BYTE* object = reinterpret_cast<BYTE*>(ability);
+    void* player = *reinterpret_cast<void**>(object + 0x1B0);
+    if (!player) {
+        return;
+    }
+
+    BYTE* movementLock = reinterpret_cast<BYTE*>(player) + 0xAAC;
+    if (*movementLock != 0) {
+        *movementLock = 0;
+        g_dashEarlyUnlockApplied.store(true);
+        Log(
+            "Dodge recovery: EARLY UNLOCK at %.3f sec (native %.3f sec, early %.0f ms)",
+            elapsed,
+            nativeDuration,
+            earlyMs
+        );
+    }
+}
+
+void HookDashFinish(void* ability) {
+    if (ability && ability == g_activeDashAbility.load()) {
+        const float elapsed = g_dashElapsedSeconds.load();
+        if (elapsed > 0.05f && elapsed < 5.0f) {
+            g_lastNativeDashDuration.store(elapsed);
+        }
+
+        Log(
+            "Dodge recovery: dash FINISH nativeLifetime=%.3f sec earlyUnlock=%d",
+            elapsed,
+            g_dashEarlyUnlockApplied.load() ? 1 : 0
+        );
+
+        g_activeDashAbility.store(nullptr);
+        g_dashElapsedSeconds.store(0.0f);
+        g_dashEarlyUnlockApplied.store(false);
+    }
+
+    g_originalDashFinish(ability);
+}
+
+bool InstallDodgeRecoveryHooks() {
+    const DashHookTargets targets = ResolveDashRecoveryTargets();
+    if (!targets.start || !targets.tick || !targets.finish) {
+        Log("Dodge recovery: resolver failed; feature remains fail-open");
+        return false;
+    }
+
+    const MH_STATUS initStatus = MH_Initialize();
+    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+        Log("Dodge recovery: MinHook initialize FAILED status=%d", static_cast<int>(initStatus));
+        return false;
+    }
+
+    struct HookSpec {
+        BYTE* target;
+        LPVOID detour;
+        LPVOID* original;
+        const char* name;
+    };
+
+    HookSpec specs[] = {
+        { targets.start, reinterpret_cast<LPVOID>(&HookDashStart), reinterpret_cast<LPVOID*>(&g_originalDashStart), "start" },
+        { targets.tick, reinterpret_cast<LPVOID>(&HookDashTick), reinterpret_cast<LPVOID*>(&g_originalDashTick), "tick" },
+        { targets.finish, reinterpret_cast<LPVOID>(&HookDashFinish), reinterpret_cast<LPVOID*>(&g_originalDashFinish), "finish" }
+    };
+
+    for (const auto& spec : specs) {
+        MH_STATUS status = MH_CreateHook(spec.target, spec.detour, spec.original);
+        if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
+            Log("Dodge recovery: create %s FAILED status=%d", spec.name, static_cast<int>(status));
+            return false;
+        }
+    }
+
+    for (const auto& spec : specs) {
+        MH_STATUS status = MH_EnableHook(spec.target);
+        if (status != MH_OK && status != MH_ERROR_ENABLED) {
+            Log("Dodge recovery: enable %s FAILED status=%d", spec.name, static_cast<int>(status));
+            return false;
+        }
+    }
+
+    g_recoveryHookReady.store(true);
+    Log(
+        "Dodge recovery: READY earlyUnlock=%.0f ms firstDashLearnsNative=1",
+        g_config.dodgeEarlyUnlockMs
+    );
+    return true;
+}
+
+
+struct InputSuppressWindowTargets {
+    BYTE* begin = nullptr;
+    BYTE* end = nullptr;
+};
+
+InputSuppressWindowTargets ResolveInputSuppressWindowTargets() {
+    InputSuppressWindowTargets out{};
+
+    PeSectionView text{};
+    PeSectionView rdata{};
+    if (!GetMainModuleSection(".text", text) ||
+        !GetMainModuleSection(".rdata", rdata)) {
+        Log("InputSuppressWindow: failed to enumerate PE sections");
+        return out;
+    }
+
+    BYTE* displayNameString = FindWideString(rdata, L"Suppress Player Input Window");
+    if (!displayNameString) {
+        Log("InputSuppressWindow: display-name string not found");
+        return out;
+    }
+
+    BYTE* nameXref = FindRipRelativeLeaTo(text, displayNameString);
+    if (!nameXref) {
+        Log("InputSuppressWindow: unique display-name xref not found");
+        return out;
+    }
+
+    // UAnimNotify_InputSuppressWindow::GetNotifyName starts 9 bytes before
+    // the audited LEA of "Suppress Player Input Window".
+    BYTE* getNotifyName = nameXref - 9;
+    static constexpr BYTE kGetNamePrefix[] = {
+        0x40, 0x53,
+        0x48, 0x83, 0xEC, 0x20,
+        0x48, 0x8B, 0xDA
+    };
+
+    if (!AddressInSection(text, getNotifyName) ||
+        memcmp(getNotifyName, kGetNamePrefix, sizeof(kGetNamePrefix)) != 0) {
+        Log("InputSuppressWindow: GetNotifyName layout mismatch");
+        return out;
+    }
+
+    BYTE* vtableSlot = nullptr;
+    size_t slotCount = 0;
+
+    for (size_t i = 0; i + 32 <= rdata.size; i += sizeof(uintptr_t)) {
+        BYTE* p = rdata.begin + i;
+        if (*reinterpret_cast<const uintptr_t*>(p) ==
+            reinterpret_cast<uintptr_t>(getNotifyName)) {
+            vtableSlot = p;
+            ++slotCount;
+        }
+    }
+
+    if (slotCount != 1 || !vtableSlot) {
+        Log("InputSuppressWindow: GetNotifyName vtable slot count=%zu", slotCount);
+        return {};
+    }
+
+    // In this UAnimNotifyState-derived vtable:
+    //   +0x00 GetNotifyName
+    //   +0x08 NotifyBegin override
+    //   +0x10 inherited NotifyTick
+    //   +0x18 NotifyEnd override
+    out.begin = reinterpret_cast<BYTE*>(
+        *reinterpret_cast<const uintptr_t*>(vtableSlot + 0x08)
+    );
+    out.end = reinterpret_cast<BYTE*>(
+        *reinterpret_cast<const uintptr_t*>(vtableSlot + 0x18)
+    );
+
+    if (!AddressInSection(text, out.begin) ||
+        !AddressInSection(text, out.end)) {
+        Log("InputSuppressWindow: begin/end targets outside .text");
+        return {};
+    }
+
+    HMODULE module = GetModuleHandleW(nullptr);
+    BYTE* base = reinterpret_cast<BYTE*>(module);
+
+    Log(
+        "InputSuppressWindow: resolved GetNotifyName=0x%zX Begin=0x%zX End=0x%zX",
+        static_cast<size_t>(getNotifyName - base),
+        static_cast<size_t>(out.begin - base),
+        static_cast<size_t>(out.end - base)
+    );
+
+    return out;
+}
+
+void HookInputSuppressBegin(void* notifyState, void* meshComponent, void* eventData) {
+    if (!g_config.actionRecoveryEnabled) {
+        g_originalInputSuppressBegin(notifyState, meshComponent, eventData);
+        return;
+    }
+
+    const int count = g_bypassedInputSuppressWindows.fetch_add(1) + 1;
+    Log(
+        "InputSuppressWindow: BEGIN BYPASSED notify=%p mesh=%p event=%p activeBypasses=%d",
+        notifyState,
+        meshComponent,
+        eventData,
+        count
+    );
+}
+
+void HookInputSuppressEnd(void* notifyState, void* meshComponent, void* eventData) {
+    int count = g_bypassedInputSuppressWindows.load();
+
+    while (count > 0) {
+        if (g_bypassedInputSuppressWindows.compare_exchange_weak(count, count - 1)) {
+            Log(
+                "InputSuppressWindow: END BYPASSED notify=%p mesh=%p event=%p remaining=%d",
+                notifyState,
+                meshComponent,
+                eventData,
+                count - 1
+            );
+            return;
+        }
+    }
+
+    // If this window began before the mod feature was enabled, preserve the
+    // native End so the game's suppression counter is balanced correctly.
+    g_originalInputSuppressEnd(notifyState, meshComponent, eventData);
+}
+
+bool InstallInputSuppressWindowHooks() {
+    const InputSuppressWindowTargets targets = ResolveInputSuppressWindowTargets();
+    if (!targets.begin || !targets.end) {
+        Log("InputSuppressWindow: resolver failed; diagnostic remains fail-open");
+        return false;
+    }
+
+    const MH_STATUS initStatus = MH_Initialize();
+    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+        Log("InputSuppressWindow: MinHook initialize FAILED status=%d", static_cast<int>(initStatus));
+        return false;
+    }
+
+    MH_STATUS status = MH_CreateHook(
+        targets.begin,
+        reinterpret_cast<LPVOID>(&HookInputSuppressBegin),
+        reinterpret_cast<LPVOID*>(&g_originalInputSuppressBegin)
+    );
+    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
+        Log("InputSuppressWindow: create Begin FAILED status=%d", static_cast<int>(status));
+        return false;
+    }
+
+    status = MH_CreateHook(
+        targets.end,
+        reinterpret_cast<LPVOID>(&HookInputSuppressEnd),
+        reinterpret_cast<LPVOID*>(&g_originalInputSuppressEnd)
+    );
+    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
+        Log("InputSuppressWindow: create End FAILED status=%d", static_cast<int>(status));
+        return false;
+    }
+
+    status = MH_EnableHook(targets.begin);
+    if (status != MH_OK && status != MH_ERROR_ENABLED) {
+        Log("InputSuppressWindow: enable Begin FAILED status=%d", static_cast<int>(status));
+        return false;
+    }
+
+    status = MH_EnableHook(targets.end);
+    if (status != MH_OK && status != MH_ERROR_ENABLED) {
+        Log("InputSuppressWindow: enable End FAILED status=%d", static_cast<int>(status));
+        return false;
+    }
+
+    g_recoveryHookReady.store(true);
+    Log("InputSuppressWindow: DIAGNOSTIC BYPASS READY");
+    return true;
+}
+
+
+BYTE* ResolveAbilityInterruptEnabledNative() {
+    PeSectionView text{};
+    PeSectionView rdata{};
+    if (!GetMainModuleSection(".text", text) ||
+        !GetMainModuleSection(".rdata", rdata)) {
+        Log("Action Recovery: failed to enumerate PE sections");
+        return nullptr;
+    }
+
+    BYTE* name = FindAsciiString(rdata, "IsInterruptEnabled");
+    if (!name) {
+        Log("Action Recovery: IsInterruptEnabled string not found");
+        return nullptr;
+    }
+
+    static constexpr BYTE kNativePrefix[] = {
+        0x44, 0x0F, 0xB6, 0xC2,
+        0x41, 0x0F, 0xB6, 0xC0,
+        0x49, 0xC1, 0xE8, 0x06,
+        0x24, 0x3F,
+        0x0F, 0xB6, 0xD0,
+        0x4A, 0x8B, 0x84, 0xC1, 0xB0, 0x00, 0x00, 0x00
+    };
+
+    const uintptr_t nameVA = reinterpret_cast<uintptr_t>(name);
+    BYTE* native = nullptr;
+    size_t nativeCount = 0;
+
+    for (size_t i = 0; i + 16 <= rdata.size; i += sizeof(uintptr_t)) {
+        BYTE* entry = rdata.begin + i;
+        if (*reinterpret_cast<const uintptr_t*>(entry) != nameVA) {
+            continue;
+        }
+
+        BYTE* wrapper = reinterpret_cast<BYTE*>(
+            *reinterpret_cast<const uintptr_t*>(entry + sizeof(uintptr_t))
+        );
+        if (!AddressInSection(text, wrapper)) {
+            continue;
+        }
+
+        for (size_t j = 0; j + 5 <= 0x100; ++j) {
+            BYTE* p = wrapper + j;
+            if (!AddressInSection(text, p) || p[0] != 0xE8) {
+                continue;
+            }
+
+            const int32_t rel = *reinterpret_cast<const int32_t*>(p + 1);
+            BYTE* target = p + 5 + rel;
+            if (!AddressInSection(text, target)) {
+                continue;
+            }
+
+            if (memcmp(target, kNativePrefix, sizeof(kNativePrefix)) == 0) {
+                if (!native || native != target) {
+                    native = target;
+                    ++nativeCount;
+                }
+            }
+        }
+    }
+
+    if (!native || nativeCount != 1) {
+        Log("Action Recovery: native IsInterruptEnabled match count=%zu", nativeCount);
+        return nullptr;
+    }
+
+    HMODULE module = GetModuleHandleW(nullptr);
+    BYTE* base = reinterpret_cast<BYTE*>(module);
+    Log(
+        "Action Recovery: IsInterruptEnabled resolved RVA=0x%zX bitset=ability+0xB0 state=+0xD8 elapsed=+0xDC",
+        static_cast<size_t>(native - base)
+    );
+
+    return native;
+}
+
+const char* AbilityStateName(unsigned char state) {
+    switch (state) {
+    case 0: return "INITIALIZING";
+    case 1: return "STARTING";
+    case 2: return "RUNNING";
+    case 3: return "SUSPENDED";
+    case 4: return "AWAITING_FINISH";
+    case 5: return "FINISHED";
+    case 6: return "FINALIZED";
+    default: return "UNKNOWN";
+    }
+}
+
+bool HookAbilityInterruptEnabled(void* ability, unsigned char interrupt) {
+    const bool nativeEnabled = g_originalAbilityInterruptEnabled
+        ? g_originalAbilityInterruptEnabled(ability, interrupt)
+        : false;
+
+    // EAbilityInterrupt::MOVE is enum value 1 in the audited executable.
+    constexpr unsigned char kMoveInterrupt = 1;
+
+    if (!ability || interrupt != kMoveInterrupt) {
+        return nativeEnabled;
+    }
+
+    BYTE* object = reinterpret_cast<BYTE*>(ability);
+    const unsigned char state = *(object + 0xD8);
+    const float elapsed = *reinterpret_cast<float*>(object + 0xDC);
+
+    g_moveInterruptQueries.fetch_add(1);
+    g_lastMoveQueryElapsed.store(elapsed);
+
+    if (!nativeEnabled) {
+        g_moveInterruptNativeBlocked.fetch_add(1);
+    }
+
+    void* previousAbility = g_lastMoveQueryAbility.load();
+    const int previousState = g_lastMoveQueryState.load();
+
+    if (previousAbility != ability || previousState != static_cast<int>(state)) {
+        g_lastMoveQueryAbility.store(ability);
+        g_lastMoveQueryState.store(static_cast<int>(state));
+        Log(
+            "Action Recovery: MOVE query ability=%p state=%s(%u) elapsed=%.3f native=%d",
+            ability,
+            AbilityStateName(state),
+            static_cast<unsigned>(state),
+            elapsed,
+            nativeEnabled ? 1 : 0
+        );
+    }
+
+    if (!g_config.actionRecoveryEnabled || nativeEnabled) {
+        return nativeEnabled;
+    }
+
+    // The user-observed problem is a dead tail after the visible action has
+    // completed. AWAITING_FINISH is the common ability lifecycle state for that
+    // tail. Do not allow MOVE during STARTING/RUNNING, so attacks and actions
+    // cannot be cancelled prematurely.
+    if (state == 4) {
+        const int forced = g_moveInterruptForced.fetch_add(1) + 1;
+        if (forced <= 20 || (forced % 100) == 0) {
+            Log(
+                "Action Recovery: FORCE MOVE ability=%p state=AWAITING_FINISH elapsed=%.3f forcedCount=%d",
+                ability,
+                elapsed,
+                forced
+            );
+        }
+        return true;
+    }
+
+    return nativeEnabled;
+}
+
+bool InstallCommonActionRecoveryHook() {
+    BYTE* target = ResolveAbilityInterruptEnabledNative();
+    if (!target) {
+        Log("Action Recovery: resolver failed; feature remains fail-open");
+        return false;
+    }
+
+    const MH_STATUS initStatus = MH_Initialize();
+    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+        Log("Action Recovery: MinHook initialize FAILED status=%d", static_cast<int>(initStatus));
+        return false;
+    }
+
+    MH_STATUS status = MH_CreateHook(
+        target,
+        reinterpret_cast<LPVOID>(&HookAbilityInterruptEnabled),
+        reinterpret_cast<LPVOID*>(&g_originalAbilityInterruptEnabled)
+    );
+
+    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
+        Log("Action Recovery: create FAILED status=%d", static_cast<int>(status));
+        return false;
+    }
+
+    status = MH_EnableHook(target);
+    if (status != MH_OK && status != MH_ERROR_ENABLED) {
+        Log("Action Recovery: enable FAILED status=%d", static_cast<int>(status));
+        return false;
+    }
+
+    g_recoveryHookReady.store(true);
+    Log("Action Recovery: READY policy=force MOVE only in AWAITING_FINISH");
+    return true;
+}
+
+
+BYTE* ResolveAbilityActionEnabledNative() {
+    PeSectionView text{};
+    PeSectionView rdata{};
+    if (!GetMainModuleSection(".text", text) ||
+        !GetMainModuleSection(".rdata", rdata)) {
+        Log("Action Recovery V0.8: failed to enumerate PE sections");
+        return nullptr;
+    }
+
+    BYTE* name = FindAsciiString(rdata, "IsActionEnabled");
+    if (!name) {
+        Log("Action Recovery V0.8: IsActionEnabled string not found");
+        return nullptr;
+    }
+
+    static constexpr BYTE kNativePrefix[] = {
+        0x44, 0x0F, 0xB6, 0xC2,
+        0x41, 0x0F, 0xB6, 0xC0,
+        0x49, 0xC1, 0xE8, 0x06,
+        0x24, 0x3F,
+        0x0F, 0xB6, 0xD0,
+        0x4A, 0x8B, 0x84, 0xC1, 0x80, 0x00, 0x00, 0x00
+    };
+
+    const uintptr_t nameVA = reinterpret_cast<uintptr_t>(name);
+    BYTE* native = nullptr;
+    size_t nativeCount = 0;
+
+    for (size_t i = 0; i + 16 <= rdata.size; i += sizeof(uintptr_t)) {
+        BYTE* entry = rdata.begin + i;
+        if (*reinterpret_cast<const uintptr_t*>(entry) != nameVA) {
+            continue;
+        }
+
+        BYTE* wrapper = reinterpret_cast<BYTE*>(
+            *reinterpret_cast<const uintptr_t*>(entry + sizeof(uintptr_t))
+        );
+        if (!AddressInSection(text, wrapper)) {
+            continue;
+        }
+
+        for (size_t j = 0; j + 5 <= 0x100; ++j) {
+            BYTE* p = wrapper + j;
+            if (!AddressInSection(text, p) || p[0] != 0xE8) {
+                continue;
+            }
+
+            const int32_t rel = *reinterpret_cast<const int32_t*>(p + 1);
+            BYTE* target = p + 5 + rel;
+            if (!AddressInSection(text, target)) {
+                continue;
+            }
+
+            if (memcmp(target, kNativePrefix, sizeof(kNativePrefix)) == 0) {
+                if (!native || native != target) {
+                    native = target;
+                    ++nativeCount;
+                }
+            }
+        }
+    }
+
+    if (!native || nativeCount != 1) {
+        Log("Action Recovery V0.8: native IsActionEnabled match count=%zu", nativeCount);
+        return nullptr;
+    }
+
+    HMODULE module = GetModuleHandleW(nullptr);
+    BYTE* base = reinterpret_cast<BYTE*>(module);
+    Log(
+        "Action Recovery V0.8: IsActionEnabled resolved RVA=0x%zX actionBitset=ability+0x80 instigator=+0x48 state=+0xD8 elapsed=+0xDC",
+        static_cast<size_t>(native - base)
+    );
+
+    return native;
+}
+
+bool HookAbilityActionEnabled(void* ability, unsigned char action) {
+    const bool nativeEnabled = g_originalAbilityActionEnabled
+        ? g_originalAbilityActionEnabled(ability, action)
+        : false;
+
+    // ECharacterActions::MOVE was independently observed in the native player
+    // action gate as enum value 0x1D.
+    constexpr unsigned char kMoveAction = 0x1D;
+
+    if (!ability || action != kMoveAction) {
+        return nativeEnabled;
+    }
+
+    g_actionMoveQueries.fetch_add(1);
+
+    BYTE* object = reinterpret_cast<BYTE*>(ability);
+    void* instigator = *reinterpret_cast<void**>(object + 0x48);
+    void* localPlayer = g_localPlayerCharacter.load();
+
+    if (!instigator || !localPlayer || instigator != localPlayer) {
+        return nativeEnabled;
+    }
+
+    g_actionMoveLocalQueries.fetch_add(1);
+
+    const unsigned char state = *(object + 0xD8);
+    const float elapsed = *reinterpret_cast<float*>(object + 0xDC);
+    g_lastActionMoveElapsed.store(elapsed);
+
+    if (!nativeEnabled) {
+        g_actionMoveNativeBlocked.fetch_add(1);
+    }
+
+    void* previousAbility = g_lastActionMoveAbility.load();
+    const int previousState = g_lastActionMoveState.load();
+    if (previousAbility != ability || previousState != static_cast<int>(state)) {
+        g_lastActionMoveAbility.store(ability);
+        g_lastActionMoveState.store(static_cast<int>(state));
+        Log(
+            "Action Recovery V0.8B: MOVE query ability=%p state=%s(%u) elapsed=%.3f native=%d",
+            ability,
+            AbilityStateName(state),
+            static_cast<unsigned>(state),
+            elapsed,
+            nativeEnabled ? 1 : 0
+        );
+    }
+
+    if (!g_config.actionRecoveryEnabled || nativeEnabled) {
+        if (nativeEnabled || state != 4) {
+            g_recoveryTailAbility.store(nullptr);
+            g_recoveryTailStartElapsed.store(0.0f);
+        }
+        return nativeEnabled;
+    }
+
+    // V0.8A proved that AllowedActions/MOVE can affect the lock, but forcing
+    // MOVE during RUNNING lets interactions (e.g. chest opening) slide without
+    // their animation. V0.8B therefore preserves STARTING/RUNNING entirely and
+    // only trims the common AWAITING_FINISH tail.
+    if (state != 4) {
+        g_recoveryTailAbility.store(nullptr);
+        g_recoveryTailStartElapsed.store(0.0f);
+        return nativeEnabled;
+    }
+
+    if (g_recoveryTailAbility.load() != ability) {
+        g_recoveryTailAbility.store(ability);
+        g_recoveryTailStartElapsed.store(elapsed);
+        Log(
+            "Action Recovery V0.8B: tail START ability=%p elapsed=%.3f",
+            ability,
+            elapsed
+        );
+    }
+
+    float delayMs = g_config.actionRecoveryDelayMs;
+    if (delayMs < 0.0f) delayMs = 0.0f;
+    if (delayMs > 500.0f) delayMs = 500.0f;
+
+    float tailElapsed = elapsed - g_recoveryTailStartElapsed.load();
+    if (tailElapsed < 0.0f || tailElapsed > 10.0f) {
+        g_recoveryTailStartElapsed.store(elapsed);
+        tailElapsed = 0.0f;
+    }
+
+    if (tailElapsed * 1000.0f < delayMs) {
+        return nativeEnabled;
+    }
+
+    const int forced = g_actionMoveForced.fetch_add(1) + 1;
+    if (forced <= 30 || (forced % 100) == 0) {
+        Log(
+            "Action Recovery V0.8B: FORCE MOVE TAIL ability=%p tail=%.3f sec delay=%.0f ms forcedCount=%d",
+            ability,
+            tailElapsed,
+            delayMs,
+            forced
+        );
+    }
+
+    return true;
+}
+
+bool InstallActionEnabledRecoveryDiagnostic() {
+    BYTE* target = ResolveAbilityActionEnabledNative();
+    if (!target) {
+        Log("Action Recovery V0.8: resolver failed; feature remains fail-open");
+        return false;
+    }
+
+    const MH_STATUS initStatus = MH_Initialize();
+    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+        Log("Action Recovery V0.8: MinHook initialize FAILED status=%d", static_cast<int>(initStatus));
+        return false;
+    }
+
+    MH_STATUS status = MH_CreateHook(
+        target,
+        reinterpret_cast<LPVOID>(&HookAbilityActionEnabled),
+        reinterpret_cast<LPVOID*>(&g_originalAbilityActionEnabled)
+    );
+
+    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
+        Log("Action Recovery V0.8: create FAILED status=%d", static_cast<int>(status));
+        return false;
+    }
+
+    status = MH_EnableHook(target);
+    if (status != MH_OK && status != MH_ERROR_ENABLED) {
+        Log("Action Recovery V0.8: enable FAILED status=%d", static_cast<int>(status));
+        return false;
+    }
+
+    g_recoveryHookReady.store(true);
+    Log("Action Recovery V0.8B: READY policy=force local MOVE only in AWAITING_FINISH");
+    return true;
+}
+
 bool InstallHudHook() {
     BYTE* getter = ResolveHudHiddenGetter();
     if (!getter) {
@@ -1093,10 +2062,9 @@ void TriggerAction(Action action, int functionKey) {
         g_lastAction = std::string("Action Recovery ") +
             (g_config.actionRecoveryEnabled ? "ON" : "OFF");
         Log(
-            "F%d -> Action Recovery %s multiplier=%.3fx",
+            "F%d -> Action Recovery %s policy=AWAITING_FINISH tail only",
             functionKey,
-            g_config.actionRecoveryEnabled ? "ON" : "OFF",
-            g_config.actionRecoveryMultiplier
+            g_config.actionRecoveryEnabled ? "ON" : "OFF"
         );
         return;
     }
@@ -1309,14 +2277,58 @@ bool InitializeImGui(IDXGISwapChain* swapChain) {
     return true;
 }
 
-void DrawFeatureRow(const char* label, bool* enabled, const char* note) {
-    ImGui::Checkbox(label, enabled);
-    ImGui::SameLine(260.0f);
+void DrawTunableFeature(
+    const char* label,
+    const char* id,
+    bool* enabled,
+    float* value,
+    float minValue,
+    float maxValue,
+    const char* format,
+    const char* note
+) {
+    if (ImGui::Checkbox(label, enabled)) {
+        g_config.Save();
+    }
+
+    ImGui::SameLine(310.0f);
+    ImGui::TextDisabled("%s", note);
+
+    if (*enabled) {
+        ImGui::Indent();
+        ImGui::SetNextItemWidth(280.0f);
+        std::string sliderLabel = std::string("Value##") + id;
+        if (ImGui::SliderFloat(
+            sliderLabel.c_str(),
+            value,
+            minValue,
+            maxValue,
+            format
+        )) {
+            g_config.Save();
+        }
+        ImGui::Unindent();
+    }
+}
+
+void DrawToggleFeature(const char* label, bool* enabled, const char* note) {
+    if (ImGui::Checkbox(label, enabled)) {
+        g_config.Save();
+    }
+    ImGui::SameLine(310.0f);
     ImGui::TextDisabled("%s", note);
 }
 
+void DrawSectionTitle(const char* title) {
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Text("%s", title);
+    ImGui::Separator();
+    ImGui::Spacing();
+}
+
 void DrawOverlay() {
-    ImGui::SetNextWindowSize(ImVec2(780.0f, 570.0f), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(840.0f, 720.0f), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowPos(ImVec2(80.0f, 80.0f), ImGuiCond_FirstUseEver);
 
     bool open = true;
@@ -1335,61 +2347,15 @@ void DrawOverlay() {
     ImGui::Separator();
 
     if (ImGui::BeginTabBar("MainTabs")) {
-        if (ImGui::BeginTabItem("General")) {
+        if (ImGui::BeginTabItem("Gameplay")) {
             ImGui::Spacing();
-            ImGui::Text("Renderer");
-            ImGui::BulletText("DXGI proxy loader: active");
-            ImGui::BulletText("D3D11 Present hook: active");
-            ImGui::BulletText("Mouse capture: active while menu is open");
-            ImGui::BulletText("F1-F12 gameplay input: suppressed while menu is open");
 
-            ImGui::Spacing();
-            ImGui::Text("Menu");
-            ImGui::Text("Open / close key: %s", menuKeyName.c_str());
-            ImGui::SameLine(280.0f);
-            if (g_captureMenuKey.load()) {
-                ImGui::TextDisabled("Press a key...  Esc = cancel");
-            } else if (ImGui::Button("Rebind Menu Key", ImVec2(150.0f, 0.0f))) {
-                g_captureMenuKey.store(true);
-                g_lastAction = "Waiting for new menu key";
-                Log("Menu key capture started");
-            }
+            DrawSectionTitle("Player");
 
-            ImGui::Spacing();
-            ImGui::Text("Configuration");
-            if (ImGui::Button("Save", ImVec2(110.0f, 0.0f))) {
+            if (ImGui::Checkbox("Toggle HUD", &g_config.toggleHudEnabled)) {
                 g_config.Save();
-                g_lastAction = "Configuration saved";
             }
-            ImGui::SameLine();
-            if (ImGui::Button("Reload", ImVec2(110.0f, 0.0f))) {
-                g_config.Load();
-                g_lastAction = "Configuration reloaded";
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Reset Defaults", ImVec2(140.0f, 0.0f))) {
-                g_config.ResetDefaults(true);
-                g_hudHidden.store(false);
-                g_lastAction = "Defaults restored";
-            }
-
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::TextWrapped(
-                "V0.5 is cumulative: overlay foundation, rebindable menu key, native Toggle HUD, "
-                "player-only Movement Speed, plus Action Recovery. Recovery scales only the native "
-                "MOVE interrupt delay and leaves animations and all other action checks untouched."
-            );
-            ImGui::EndTabItem();
-        }
-
-        if (ImGui::BeginTabItem("Features")) {
-            ImGui::Spacing();
-            ImGui::Text("Default policy: all requested features are enabled.");
-            ImGui::Spacing();
-
-            ImGui::Checkbox("Toggle HUD", &g_config.toggleHudEnabled);
-            ImGui::SameLine(260.0f);
+            ImGui::SameLine(310.0f);
             ImGui::TextDisabled(
                 "%s",
                 g_hudHookReady.load()
@@ -1409,85 +2375,223 @@ void DrawOverlay() {
                 ImGui::TextDisabled("F1 default");
                 ImGui::Unindent();
             }
-            if (ImGui::Checkbox("Movement Speed", &g_config.movementSpeedEnabled)) {
-                g_config.Save();
-                g_lastAction = std::string("Movement Speed ") +
-                    (g_config.movementSpeedEnabled ? "ON" : "OFF");
-            }
-            ImGui::SameLine(260.0f);
-            ImGui::TextDisabled(
-                "%s",
+
+            DrawTunableFeature(
+                "Movement Speed",
+                "MovementSpeed",
+                &g_config.movementSpeedEnabled,
+                &g_config.movementSpeedMultiplier,
+                0.50f,
+                3.00f,
+                "%.2fx",
                 g_movementHookReady.load()
-                    ? "MovementComponent virtual GetMaxSpeed hook"
+                    ? "Runtime hook active"
                     : "Native hook unavailable"
             );
-
-            if (g_config.movementSpeedEnabled) {
-                ImGui::Indent();
-                ImGui::SetNextItemWidth(260.0f);
-                if (ImGui::SliderFloat(
-                    "Multiplier##Movement",
-                    &g_config.movementSpeedMultiplier,
-                    1.00f,
-                    2.50f,
-                    "%.2fx"
-                )) {
-                    g_config.Save();
-                }
-                ImGui::SameLine();
-                ImGui::TextDisabled("F2 toggles");
-                ImGui::TextDisabled("Walking/NavWalking only; physics virtual slot 0x3D0.");
-                ImGui::Unindent();
-            }
 
             if (ImGui::Checkbox("Action Recovery", &g_config.actionRecoveryEnabled)) {
                 g_config.Save();
                 g_lastAction = std::string("Action Recovery ") +
                     (g_config.actionRecoveryEnabled ? "ON" : "OFF");
             }
-            ImGui::SameLine(260.0f);
+            ImGui::SameLine(310.0f);
             ImGui::TextDisabled(
                 "%s",
                 g_recoveryHookReady.load()
-                    ? "Native MOVE interrupt-delay gate"
+                    ? "AllowedActions MOVE, tail-only safety"
                     : "Native hook unavailable"
             );
 
             if (g_config.actionRecoveryEnabled) {
                 ImGui::Indent();
-                ImGui::SetNextItemWidth(260.0f);
+                ImGui::SetNextItemWidth(280.0f);
                 if (ImGui::SliderFloat(
-                    "Recovery Multiplier",
-                    &g_config.actionRecoveryMultiplier,
-                    1.00f,
-                    5.00f,
-                    "%.2fx"
+                    "Recovery Delay##ActionRecovery",
+                    &g_config.actionRecoveryDelayMs,
+                    0.0f,
+                    500.0f,
+                    "%.0f ms"
                 )) {
                     g_config.Save();
                 }
-                ImGui::SameLine();
-                ImGui::TextDisabled("F3 toggles");
                 ImGui::TextDisabled(
-                    "Effective MOVE lock = native MoveInterruptDelaySec / multiplier."
+                    "MOVE is never forced during STARTING/RUNNING. Only AWAITING_FINISH is shortened."
                 );
+                ImGui::TextDisabled(
+                    "Queries %d | Local %d | Blocked %d | Forced %d",
+                    g_actionMoveQueries.load(),
+                    g_actionMoveLocalQueries.load(),
+                    g_actionMoveNativeBlocked.load(),
+                    g_actionMoveForced.load()
+                );
+                const int state = g_lastActionMoveState.load();
+                if (state >= 0) {
+                    ImGui::TextDisabled(
+                        "Last ability: %s (%d) | elapsed %.3f s",
+                        AbilityStateName(static_cast<unsigned char>(state)),
+                        state,
+                        g_lastActionMoveElapsed.load()
+                    );
+                }
                 ImGui::Unindent();
             }
 
-            DrawFeatureRow("Skip Intro Videos", &g_config.skipIntroEnabled, "UE4 MoviePlayer audit started");
-            DrawFeatureRow("Third Person", &g_config.thirdPersonEnabled, "Camera hook pending");
+            DrawTunableFeature(
+                "Jump Height",
+                "JumpHeight",
+                &g_config.jumpHeightEnabled,
+                &g_config.jumpHeightMultiplier,
+                0.50f,
+                3.00f,
+                "%.2fx",
+                "Pending hook | Blueprint targets recovered"
+            );
+
+            DrawSectionTitle("Combat");
+
+            DrawTunableFeature(
+                "Pistol Damage",
+                "PistolDamage",
+                &g_config.pistolDamageEnabled,
+                &g_config.pistolDamageMultiplier,
+                0.50f,
+                10.00f,
+                "%.2fx",
+                "Pending hook | Projectile Damage"
+            );
+
+            DrawTunableFeature(
+                "Melee Damage",
+                "MeleeDamage",
+                &g_config.meleeDamageEnabled,
+                &g_config.meleeDamageMultiplier,
+                0.50f,
+                10.00f,
+                "%.2fx",
+                "Pending hook | BaseDamage path"
+            );
+
+            DrawTunableFeature(
+                "Hotstreak Charge",
+                "HotstreakCharge",
+                &g_config.hotstreakChargeEnabled,
+                &g_config.hotstreakChargeMultiplier,
+                0.50f,
+                10.00f,
+                "%.2fx",
+                "Pending hook | BaseJuice candidate"
+            );
+
+            DrawSectionTitle("Horse");
+
+            DrawTunableFeature(
+                "Horse Speed",
+                "HorseSpeed",
+                &g_config.horseSpeedEnabled,
+                &g_config.horseSpeedMultiplier,
+                0.50f,
+                3.00f,
+                "%.2fx",
+                "Pending hook | MaxWalkSpeed"
+            );
+
+            DrawTunableFeature(
+                "Horse Sprint Speed",
+                "HorseSprintSpeed",
+                &g_config.horseSprintSpeedEnabled,
+                &g_config.horseSprintSpeedMultiplier,
+                0.50f,
+                3.00f,
+                "%.2fx",
+                "Pending hook | Sprint ability"
+            );
+
+            DrawTunableFeature(
+                "Horse Sprint Duration",
+                "HorseSprintDuration",
+                &g_config.horseSprintDurationEnabled,
+                &g_config.horseSprintDurationMultiplier,
+                0.50f,
+                10.00f,
+                "%.2fx",
+                "Pending hook | StaminaSprintPercentageRate"
+            );
+
+            DrawSectionTitle("Camera");
+
+            DrawTunableFeature(
+                "FOV",
+                "FOV",
+                &g_config.fovEnabled,
+                &g_config.fovDegrees,
+                60.0f,
+                140.0f,
+                "%.0f deg",
+                "Pending camera hook"
+            );
+
+            DrawTunableFeature(
+                "Third Person",
+                "ThirdPerson",
+                &g_config.thirdPersonEnabled,
+                &g_config.thirdPersonDistanceMultiplier,
+                0.50f,
+                3.00f,
+                "%.2fx",
+                "Pending camera hook | distance"
+            );
+
+            DrawSectionTitle("System");
+
+            DrawToggleFeature(
+                "Skip Intro Videos",
+                &g_config.skipIntroEnabled,
+                "Pending UE4 MoviePlayer hook"
+            );
 
             ImGui::Spacing();
             ImGui::TextDisabled(
-                "Toggle HUD, on-foot Movement Speed and Action Recovery are native; remaining features are pending."
+                "Checkboxes and values are authoritative and persisted to DarksidersGenesisMod.ini."
             );
+
             ImGui::EndTabItem();
         }
 
         if (ImGui::BeginTabItem("Hotkeys")) {
             ImGui::Spacing();
+
+            ImGui::Text("Menu key");
+            ImGui::Text("Open / close: %s", menuKeyName.c_str());
+            ImGui::SameLine(280.0f);
+            if (g_captureMenuKey.load()) {
+                ImGui::TextDisabled("Press a key...  Esc = cancel");
+            } else if (ImGui::Button("Rebind Menu Key", ImVec2(160.0f, 0.0f))) {
+                g_captureMenuKey.store(true);
+                g_lastAction = "Waiting for new menu key";
+                Log("Menu key capture started");
+            }
+
+            ImGui::Spacing();
+            if (ImGui::Button("Save", ImVec2(110.0f, 0.0f))) {
+                g_config.Save();
+                g_lastAction = "Configuration saved";
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Reload", ImVec2(110.0f, 0.0f))) {
+                g_config.Load();
+                g_lastAction = "Configuration reloaded";
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Reset Defaults", ImVec2(140.0f, 0.0f))) {
+                g_config.ResetDefaults(true);
+                g_hudHidden.store(false);
+                g_lastAction = "Defaults restored";
+            }
+
+            DrawSectionTitle("F1-F12");
+
             ImGui::TextWrapped(
-                "F1-F12 are fixed physical slots, Q Protocol style. "
-                "Each slot can be reassigned to any mod action or None."
+                "Each physical F-key slot can be reassigned to any implemented mod action or None."
             );
             ImGui::Spacing();
 
@@ -1516,6 +2620,7 @@ void DrawOverlay() {
                             const bool selected = current == a;
                             if (ImGui::Selectable(kActionLabels[static_cast<size_t>(a)], selected)) {
                                 g_config.hotkeys[static_cast<size_t>(i)] = static_cast<Action>(a);
+                                g_config.Save();
                             }
                             if (selected) {
                                 ImGui::SetItemDefaultFocus();
@@ -1538,7 +2643,7 @@ void DrawOverlay() {
             ImGui::Text("Darksiders Genesis Enhanced - experimental ASI core");
             ImGui::Spacing();
             ImGui::TextWrapped(
-                "Target executable audited for this branch: DarksidersGenesis-Win64-Shipping.exe"
+                "Target executable: DarksidersGenesis-Win64-Shipping.exe"
             );
             ImGui::TextWrapped(
                 "SHA-256: 9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54"
@@ -1546,9 +2651,15 @@ void DrawOverlay() {
             ImGui::TextWrapped("Size: 62,113,280 bytes");
             ImGui::Spacing();
             ImGui::TextWrapped(
-                "Toggle HUD uses ui.HideHud. Movement Speed hooks AMayhemCharacter::GetMaxSpeed. "
-                "Action Recovery hooks the UMayhemPlayerAbilityComponent MOVE gate and temporarily "
-                "scales MoveInterruptDelaySec only while the native action check is running."
+                "V0.8B keeps AllowedActions/MOVE as the proven recovery path but no longer "
+                "forces MOVE during RUNNING abilities. The chest interaction regression from "
+                "V0.8A is specifically protected by the tail-only policy."
+            );
+            ImGui::Spacing();
+            ImGui::TextWrapped(
+                "Reference PAK audits recovered concrete targets for jump, horse movement/stamina, "
+                "projectile damage and Hotstreak/juice. Pending options are already configurable "
+                "and persisted so their runtime hooks can be added without redesigning the UI."
             );
             ImGui::EndTabItem();
         }
@@ -1812,8 +2923,8 @@ DWORD WINAPI MainThread(LPVOID) {
         Log("Movement Speed unavailable; other ASI features remain active.");
     }
 
-    if (!InstallActionRecoveryHook()) {
-        Log("Action Recovery unavailable; other ASI features remain active.");
+    if (!InstallActionEnabledRecoveryDiagnostic()) {
+        Log("Action Recovery V0.8 unavailable; other ASI features remain active.");
     }
 
     Log("Core initialization complete. Press %s after the first game frame.",
