@@ -22,7 +22,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.11A-pistol-damage-hook-test";
+constexpr const char* kBuild = "0.11B-manual-values-pistol-rollback-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -385,14 +385,14 @@ struct Config {
     bool hotstreakChargeEnabled = true;
 
     // User-facing tuning values.
-    float movementSpeedMultiplier = 1.15f;
+    float movementSpeedMultiplier = 1.50f;
     float actionRecoveryDelayMs = 0.0f;
     float actionRecoveryMultiplier = 2.00f; // legacy compatibility, not used by V0.8B
     float dodgeEarlyUnlockMs = 100.0f;      // legacy compatibility, not used by V0.8B
     float pistolDamageMultiplier = 2.00f;
     float meleeDamageMultiplier = 2.00f;
     float jumpHeightMultiplier = 1.25f;
-    float glideDurationMultiplier = 1.50f;
+    float glideDurationMultiplier = 10.00f;
     float horseSpeedMultiplier = 1.25f;
     float horseSprintSpeedMultiplier = 1.25f;
     float horseSprintDurationMultiplier = 2.00f;
@@ -448,14 +448,14 @@ struct Config {
         fovEnabled = true;
         hotstreakChargeEnabled = true;
 
-        movementSpeedMultiplier = 1.15f;
+        movementSpeedMultiplier = 1.50f;
         actionRecoveryDelayMs = 0.0f;
         actionRecoveryMultiplier = 2.00f;
         dodgeEarlyUnlockMs = 100.0f;
         pistolDamageMultiplier = 2.00f;
         meleeDamageMultiplier = 2.00f;
         jumpHeightMultiplier = 1.25f;
-        glideDurationMultiplier = 1.50f;
+        glideDurationMultiplier = 10.00f;
         horseSpeedMultiplier = 1.25f;
         horseSprintSpeedMultiplier = 1.25f;
         horseSprintDurationMultiplier = 2.00f;
@@ -507,14 +507,14 @@ struct Config {
         fovEnabled = ReadBool(L"Features", L"FOV", true, g_iniPath);
         hotstreakChargeEnabled = ReadBool(L"Features", L"HotstreakCharge", true, g_iniPath);
 
-        movementSpeedMultiplier = ReadFloat(L"Values", L"MovementSpeedMultiplier", 1.15f, g_iniPath);
+        movementSpeedMultiplier = ReadFloat(L"Values", L"MovementSpeedMultiplier", 1.50f, g_iniPath);
         actionRecoveryDelayMs = ReadFloat(L"Values", L"ActionRecoveryDelayMs", 0.0f, g_iniPath);
         actionRecoveryMultiplier = ReadFloat(L"Values", L"ActionRecoveryMultiplier", 2.00f, g_iniPath);
         dodgeEarlyUnlockMs = ReadFloat(L"Values", L"DodgeEarlyUnlockMs", 100.0f, g_iniPath);
         pistolDamageMultiplier = ReadFloat(L"Values", L"PistolDamageMultiplier", 2.00f, g_iniPath);
         meleeDamageMultiplier = ReadFloat(L"Values", L"MeleeDamageMultiplier", 2.00f, g_iniPath);
         jumpHeightMultiplier = ReadFloat(L"Values", L"JumpHeightMultiplier", 1.25f, g_iniPath);
-        glideDurationMultiplier = ReadFloat(L"Values", L"GlideDurationMultiplier", 1.50f, g_iniPath);
+        glideDurationMultiplier = ReadFloat(L"Values", L"GlideDurationMultiplier", 10.00f, g_iniPath);
         horseSpeedMultiplier = ReadFloat(L"Values", L"HorseSpeedMultiplier", 1.25f, g_iniPath);
         horseSprintSpeedMultiplier = ReadFloat(L"Values", L"HorseSprintSpeedMultiplier", 1.25f, g_iniPath);
         horseSprintDurationMultiplier = ReadFloat(L"Values", L"HorseSprintDurationMultiplier", 2.00f, g_iniPath);
@@ -909,7 +909,7 @@ void HookAddJuice(void* hotStreakComponent, float amount) {
 
         if (localPlayer && owner == localPlayer) {
             float multiplier = g_config.hotstreakChargeMultiplier;
-            if (multiplier < 0.10f) multiplier = 0.10f;
+            if (multiplier < 0.0f) multiplier = 0.0f;
             if (multiplier > 25.0f) multiplier = 25.0f;
 
             effectiveAmount = amount * multiplier;
@@ -1095,7 +1095,7 @@ void HookDoDamageToActor(
     }
 
     float multiplier = g_config.pistolDamageMultiplier;
-    if (multiplier < 0.10f) multiplier = 0.10f;
+    if (multiplier < 0.0f) multiplier = 0.0f;
     if (multiplier > 25.0f) multiplier = 25.0f;
 
     float boostedDamage = originalDamage * multiplier;
@@ -1335,7 +1335,7 @@ void ApplyPlayerMovementTunings(void* movementComponent) {
 
     BYTE* component = reinterpret_cast<BYTE*>(movementComponent);
 
-    float heightMultiplier = ClampFloat(g_config.jumpHeightMultiplier, 0.25f, 5.0f);
+    float heightMultiplier = ClampFloat(g_config.jumpHeightMultiplier, 0.0f, 5.0f);
     // Jump apex height is approximately proportional to velocity squared when
     // gravity is unchanged, so use sqrt(multiplier) for a true height scalar.
     const float velocityMultiplier = sqrtf(heightMultiplier);
@@ -1350,7 +1350,7 @@ void ApplyPlayerMovementTunings(void* movementComponent) {
             ? state->doubleJumpZVelocity * velocityMultiplier
             : state->doubleJumpZVelocity;
 
-    const float glideMultiplier = ClampFloat(g_config.glideDurationMultiplier, 0.25f, 10.0f);
+    const float glideMultiplier = ClampFloat(g_config.glideDurationMultiplier, 0.0f, 100.0f);
     *reinterpret_cast<float*>(component + 0x86C) =
         g_config.glideDurationEnabled
             ? state->glideDurationSeconds * glideMultiplier
@@ -1395,7 +1395,7 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         return nativeSpeed;
     }
 
-    float multiplier = ClampFloat(g_config.movementSpeedMultiplier, 0.10f, 5.00f);
+    float multiplier = ClampFloat(g_config.movementSpeedMultiplier, 0.0f, 5.00f);
     return nativeSpeed * multiplier;
 }
 
@@ -2781,17 +2781,36 @@ void DrawTunableFeature(
 
     if (*enabled) {
         ImGui::Indent();
-        ImGui::SetNextItemWidth(280.0f);
-        std::string sliderLabel = std::string("Value##") + id;
-        if (ImGui::SliderFloat(
+
+        ImGui::SetNextItemWidth(245.0f);
+        std::string sliderLabel = std::string("Value##Slider_") + id;
+        bool changed = ImGui::SliderFloat(
             sliderLabel.c_str(),
             value,
             minValue,
             maxValue,
             format
+        );
+
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(125.0f);
+        std::string inputLabel = std::string("Manual##Input_") + id;
+        if (ImGui::InputFloat(
+            inputLabel.c_str(),
+            value,
+            0.0f,
+            0.0f,
+            "%.3f"
         )) {
+            changed = true;
+        }
+
+        if (changed) {
+            if (*value < minValue) *value = minValue;
+            if (*value > maxValue) *value = maxValue;
             g_config.Save();
         }
+
         ImGui::Unindent();
     }
 }
@@ -2866,7 +2885,7 @@ void DrawOverlay() {
                 "MovementSpeed",
                 &g_config.movementSpeedEnabled,
                 &g_config.movementSpeedMultiplier,
-                0.50f,
+                0.00f,
                 3.00f,
                 "%.2fx",
                 g_movementHookReady.load()
@@ -2926,7 +2945,7 @@ void DrawOverlay() {
                 "JumpHeight",
                 &g_config.jumpHeightEnabled,
                 &g_config.jumpHeightMultiplier,
-                0.50f,
+                0.00f,
                 5.00f,
                 "%.2fx",
                 g_movementHookReady.load()
@@ -2939,8 +2958,8 @@ void DrawOverlay() {
                 "GlideDuration",
                 &g_config.glideDurationEnabled,
                 &g_config.glideDurationMultiplier,
-                0.50f,
-                10.00f,
+                0.00f,
+                100.00f,
                 "%.2fx",
                 g_movementHookReady.load()
                     ? "Runtime property hook | GlideDurationSeconds"
@@ -2954,32 +2973,18 @@ void DrawOverlay() {
                 "PistolDamage",
                 &g_config.pistolDamageEnabled,
                 &g_config.pistolDamageMultiplier,
-                0.50f,
+                0.00f,
                 10.00f,
                 "%.2fx",
-                g_pistolDamageHookReady.load()
-                    ? "Runtime DoDamageToActor hook | BaseJuice projectile filter"
-                    : "Native damage hook unavailable"
+                "Pending hook | V0.11A DoDamageToActor filter rejected"
             );
-
-            if (g_pistolDamageHookReady.load()) {
-                ImGui::Indent();
-                ImGui::TextDisabled(
-                    "Boost calls: %d | Last %.2f -> %.2f | BaseJuice %.2f",
-                    g_pistolDamageBoostCalls.load(),
-                    g_lastNativePistolDamage.load(),
-                    g_lastBoostedPistolDamage.load(),
-                    g_lastPistolBaseJuice.load()
-                );
-                ImGui::Unindent();
-            }
 
             DrawTunableFeature(
                 "Melee Damage",
                 "MeleeDamage",
                 &g_config.meleeDamageEnabled,
                 &g_config.meleeDamageMultiplier,
-                0.50f,
+                0.00f,
                 10.00f,
                 "%.2fx",
                 "Pending hook | BaseDamage path"
@@ -2990,7 +2995,7 @@ void DrawOverlay() {
                 "HotstreakCharge",
                 &g_config.hotstreakChargeEnabled,
                 &g_config.hotstreakChargeMultiplier,
-                0.50f,
+                0.00f,
                 25.00f,
                 "%.2fx",
                 g_hotstreakHookReady.load()
@@ -3016,7 +3021,7 @@ void DrawOverlay() {
                 "HorseSpeed",
                 &g_config.horseSpeedEnabled,
                 &g_config.horseSpeedMultiplier,
-                0.50f,
+                0.00f,
                 3.00f,
                 "%.2fx",
                 "Pending hook | MaxWalkSpeed"
@@ -3027,7 +3032,7 @@ void DrawOverlay() {
                 "HorseSprintSpeed",
                 &g_config.horseSprintSpeedEnabled,
                 &g_config.horseSprintSpeedMultiplier,
-                0.50f,
+                0.00f,
                 3.00f,
                 "%.2fx",
                 "Pending hook | Sprint ability"
@@ -3038,7 +3043,7 @@ void DrawOverlay() {
                 "HorseSprintDuration",
                 &g_config.horseSprintDurationEnabled,
                 &g_config.horseSprintDurationMultiplier,
-                0.50f,
+                0.00f,
                 10.00f,
                 "%.2fx",
                 "Pending safe horse-instance resolver | V0.9A direct pointer path rejected"
@@ -3062,7 +3067,7 @@ void DrawOverlay() {
                 "ThirdPerson",
                 &g_config.thirdPersonEnabled,
                 &g_config.thirdPersonDistanceMultiplier,
-                0.50f,
+                0.00f,
                 3.00f,
                 "%.2fx",
                 "Pending camera hook | distance"
@@ -3185,8 +3190,9 @@ void DrawOverlay() {
             ImGui::Spacing();
             ImGui::TextWrapped(
                 "Reference PAK audits recovered concrete targets for jump, glide, horse stamina, "
-                "projectile damage and Hotstreak/juice. V0.9B keeps Jump Height and Glide Duration "
-                "active; Horse Sprint Duration is temporarily disabled until a safe horse-instance resolver is proven."
+                "projectile damage and Hotstreak/juice. Numeric options now expose both a slider "
+                "and a manual input field; multiplier minima use 0. Pistol Damage V0.11A is rejected "
+                "and remains pending a better filter."
             );
             ImGui::EndTabItem();
         }
@@ -3456,10 +3462,6 @@ DWORD WINAPI MainThread(LPVOID) {
 
     if (!InstallHotstreakChargeHook()) {
         Log("Hotstreak Charge unavailable; other ASI features remain active.");
-    }
-
-    if (!InstallPistolDamageHook()) {
-        Log("Pistol Damage unavailable; other ASI features remain active.");
     }
 
     Log("Core initialization complete. Press %s after the first game frame.",
