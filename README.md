@@ -1447,3 +1447,60 @@ Other roadmap controls remain visible and persistent but are still marked
 `Pending hook` until their runtime implementation lands.
 
 **Validation:** awaiting in-game V0.9A test.
+
+
+## V0.9B — Crash fix / Jump + Glide only
+
+**Status: TEST CANDIDATE**
+
+V0.9A is **REJECTED** because it crashes during level loading.
+
+Crash evidence from the supplied UE4 crash package:
+
+```text
+Crashed thread: GameThread
+Module frame: DarksidersGenesisMod + 0x3676
+```
+
+Disassembly of the exact V0.9A ASI maps RVA `0x3676` to:
+
+```asm
+movss xmm0, dword ptr [rbx + 0x918]
+```
+
+That instruction is the V0.9A read of:
+
+```text
+AMayhemHorseCharacter::StaminaSprintPercentageRate
+```
+
+inside `FindOrCaptureHorseState`.
+
+The unsafe assumption was:
+
+```text
+AMayhemPlayerCharacter + 0xE70
+    == stable live AMayhemHorseCharacter pointer
+```
+
+The crash proves that assumption is false in at least some loading/runtime
+states.
+
+### V0.9B correction
+
+The entire direct horse-pointer tuning path is removed.
+
+V0.9B keeps active only:
+
+```text
+Jump Height
+Glide / Flight Duration
+```
+
+Horse Sprint Duration remains visible/configurable but is marked pending until a
+safe horse-instance resolver is established from an actual horse component /
+ability path.
+
+No read or write to `horse + 0x918` occurs in V0.9B.
+
+**Validation:** awaiting in-game test.
