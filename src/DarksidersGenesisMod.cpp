@@ -2001,6 +2001,7 @@ void RestoreHorseRuntimeState() {
     g_lastHorseSpeedClassifiedSprint.store(false);
     g_lastHorseNativeSprintDrain.store(0.0f);
     g_lastHorseEffectiveSprintDrain.store(0.0f);
+    g_lastHorseRejectReason.store(0);
 
     ReleaseSRWLockExclusive(&g_tuningLock);
 }
@@ -4253,6 +4254,11 @@ void DrawOverlay() {
                 g_lastHorseEffectiveSprintDrain.load(),
                 g_horseValidationSuccesses.load(),
                 g_horseValidationRejects.load()
+            );
+            ImGui::TextDisabled(
+                "Native mounted signal: %s | last reject reason: %d",
+                g_nativeHorseActive.load() ? "YES" : "NO",
+                g_lastHorseRejectReason.load()
             );
             ImGui::Unindent();
 
