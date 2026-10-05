@@ -1827,3 +1827,56 @@ V0.12A includes V0.11B:
 - Pistol Damage V0.11A rejected and not installed.
 
 **Validation:** awaiting in-game test.
+
+
+## V0.12B — Melee 100x Diagnostic
+
+**Manual numeric UI: VALIDATED.**
+
+User confirmed the slider + manual-entry interface is good and should remain the
+standard numeric-control pattern.
+
+### Melee Damage status
+
+V0.12A is **not rejected**.
+
+User feedback indicates the setting appears to have some effect, but a 10x
+setting does not produce an obviously decisive one-shot result. This is
+consistent with `GetBaseDamage` potentially being only one term in the final
+damage formula.
+
+Current classification:
+
+```text
+Melee Damage / GetBaseDamage
+PROMISING / PARTIALLY OBSERVED
+not yet validated
+not rejected
+```
+
+### V0.12B diagnostic range
+
+Melee Damage maximum is raised to:
+
+```text
+100.00x
+```
+
+The runtime clamp is also 100x, so this is not UI-only.
+
+Test interpretation:
+
+- if 100x produces an unmistakable damage jump / one-shots, the
+  `GetBaseDamage` path is confirmed as materially contributing to combat;
+- if 100x still has only a modest effect, `GetBaseDamage` is not the final
+  applied-damage control and the next audit should move downstream into the
+  final damage-event scaling path.
+
+The existing overlay telemetry remains:
+
+```text
+Boost calls
+Last base damage -> boosted base damage
+```
+
+This lets the runtime call path be distinguished from the gameplay effect.
