@@ -130,6 +130,7 @@ std::atomic_int g_lastHorseRejectReason{0};
 std::atomic<void*> g_validatedHorseCharacter{nullptr};
 std::atomic<void*> g_validatedHorseMovement{nullptr};
 std::atomic<intptr_t> g_characterMovementMemberOffset{-1};
+std::atomic<intptr_t> g_horseMovementMemberOffset{-1};
 std::atomic<float> g_lastHorseNativeSpeed{0.0f};
 std::atomic<float> g_lastHorseEffectiveSpeed{0.0f};
 std::atomic<float> g_horseNormalSpeedBaseline{0.0f};
@@ -1995,6 +1996,7 @@ void RestoreHorseRuntimeState() {
     g_validatedHorseCharacter.store(nullptr);
     g_validatedHorseMovement.store(nullptr);
     g_horseRuntimeReady.store(false);
+    g_horseMovementMemberOffset.store(-1);
     g_horseNormalSpeedBaseline.store(0.0f);
     g_lastHorseNativeSpeed.store(0.0f);
     g_lastHorseEffectiveSpeed.store(0.0f);
@@ -2122,6 +2124,97 @@ bool InstallDynamicHorseGetMaxSpeedHook(void* horseMovement) {
         "Horse runtime: dedicated GetMaxSpeed READY RVA=0x%zX slot=0x3D0",
         static_cast<size_t>(reinterpret_cast<BYTE*>(target) - base)
     );
+    return true;
+}
+
+bool FindHorseMovementFromUntrustedCandidate(
+    void* candidateHorse,
+    void** outMovement,
+    size_t* outOffset
+) {
+    if (!candidateHorse || !outMovement || !outOffset) {
+        return false;
+    }
+
+    *outMovement = nullptr;
+    *outOffset = 0;
+
+    PeSectionView text{};
+    if (!GetMainModuleSection(".text", text)) {
+        return false;
+    }
+
+    void* found = nullptr;
+    size_t foundOffset = 0;
+    int distinctMatches = 0;
+
+    // V0.14A incorrectly required the horse movement pointer to live at the
+    // same member offset as the player movement pointer. V0.14B instead scans
+    // the untrusted candidate for a movement-like object whose CharacterOwner
+    // points back to the candidate and whose GetMaxSpeed virtual is executable.
+    for (size_t offset = 0x100; offset <= 0x1600; offset += sizeof(void*)) {
+        void* maybeMovement = nullptr;
+        if (!SafeReadPointer(candidateHorse, offset, &maybeMovement) ||
+            !maybeMovement ||
+            maybeMovement == candidateHorse) {
+            continue;
+        }
+
+        void* ownerBack = nullptr;
+        if (!SafeReadPointer(maybeMovement, 0x190, &ownerBack) ||
+            ownerBack != candidateHorse) {
+            continue;
+        }
+
+        // MovementMode should be a small EMovementMode value. This is a cheap
+        // additional discriminator before touching the vtable.
+        const BYTE* movementModeAddress =
+            reinterpret_cast<const BYTE*>(maybeMovement) + 0x1B0;
+        if (!IsReadableMemoryRange(movementModeAddress, sizeof(BYTE))) {
+            continue;
+        }
+        const unsigned char movementMode = *movementModeAddress;
+        if (movementMode > 6) {
+            continue;
+        }
+
+        void* vtableAddress = nullptr;
+        if (!SafeReadPointer(maybeMovement, 0, &vtableAddress) ||
+            !vtableAddress ||
+            !IsReadableMemoryRange(
+                reinterpret_cast<BYTE*>(vtableAddress) + 0x3D0,
+                sizeof(void*)
+            )) {
+            continue;
+        }
+
+        void* maxSpeedTarget = *reinterpret_cast<void**>(
+            reinterpret_cast<BYTE*>(vtableAddress) + 0x3D0
+        );
+        if (!maxSpeedTarget ||
+            !AddressInSection(text, reinterpret_cast<BYTE*>(maxSpeedTarget))) {
+            continue;
+        }
+
+        if (found == maybeMovement) {
+            continue;
+        }
+
+        found = maybeMovement;
+        foundOffset = offset;
+        ++distinctMatches;
+
+        if (distinctMatches > 1) {
+            return false;
+        }
+    }
+
+    if (distinctMatches != 1 || !found) {
+        return false;
+    }
+
+    *outMovement = found;
+    *outOffset = foundOffset;
     return true;
 }
 
@@ -2324,12 +2417,51 @@ bool HookIsHorseActive(void* player) {
     if (!previous) {
         Log(
             "Horse runtime: native mounted state detected; "
-            "waiting for a live movement-owner horse candidate"
+            "starting safe mount discovery"
         );
     }
 
-    // V0.14B intentionally does not dereference Player+0xE70 here.
-    // The actual mount is discovered from movement activity instead.
+    if (!g_validatedHorseCharacter.load()) {
+        // Player+0xE70 is only an opaque candidate source. It is never trusted
+        // as an AMayhemHorseCharacter by itself. Every later read/write requires
+        // independent structural proof.
+        void* opaqueCandidate = nullptr;
+        if (SafeReadPointer(player, 0xE70, &opaqueCandidate) &&
+            opaqueCandidate &&
+            opaqueCandidate != player) {
+            void* horseMovement = nullptr;
+            size_t horseMovementOffset = 0;
+
+            if (FindHorseMovementFromUntrustedCandidate(
+                    opaqueCandidate,
+                    &horseMovement,
+                    &horseMovementOffset)) {
+                if (ValidateHorseFromMovementPath(opaqueCandidate, horseMovement)) {
+                    g_horseMovementMemberOffset.store(
+                        static_cast<intptr_t>(horseMovementOffset)
+                    );
+                    Log(
+                        "Horse runtime: candidate scan found movement member "
+                        "offset=0x%zX",
+                        horseMovementOffset
+                    );
+                }
+            } else {
+                NoteHorseValidationReject(
+                    7,
+                    "no unique horse movement member found in opaque mounted candidate"
+                );
+            }
+        } else {
+            NoteHorseValidationReject(
+                8,
+                "native mounted state had no readable opaque candidate"
+            );
+        }
+    }
+
+    // If the opaque-candidate scan does not resolve the horse, the normal
+    // GetMaxSpeed hook still performs movement-owner discovery as a fallback.
     return true;
 }
 
@@ -4235,10 +4367,13 @@ void DrawOverlay() {
 
             ImGui::Indent();
             ImGui::TextDisabled(
-                "Horse runtime: %s | CharacterMovement offset: 0x%zX",
+                "Horse runtime: %s | player move offset 0x%zX | horse move offset 0x%zX",
                 g_horseRuntimeReady.load() ? "VALIDATED" : "waiting",
                 g_characterMovementMemberOffset.load() >= 0
                     ? static_cast<size_t>(g_characterMovementMemberOffset.load())
+                    : static_cast<size_t>(0),
+                g_horseMovementMemberOffset.load() >= 0
+                    ? static_cast<size_t>(g_horseMovementMemberOffset.load())
                     : static_cast<size_t>(0)
             );
             ImGui::TextDisabled(
