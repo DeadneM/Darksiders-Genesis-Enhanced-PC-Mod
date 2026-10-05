@@ -127,7 +127,7 @@ std::atomic_bool g_horseRuntimeReady{false};
 std::atomic_bool g_horseSpeedHookReady{false};
 std::atomic<void*> g_validatedHorseCharacter{nullptr};
 std::atomic<void*> g_validatedHorseMovement{nullptr};
-std::atomic_ptrdiff_t g_characterMovementMemberOffset{-1};
+std::atomic<intptr_t> g_characterMovementMemberOffset{-1};
 std::atomic<float> g_lastHorseNativeSpeed{0.0f};
 std::atomic<float> g_lastHorseEffectiveSpeed{0.0f};
 std::atomic<float> g_horseNormalSpeedBaseline{0.0f};
