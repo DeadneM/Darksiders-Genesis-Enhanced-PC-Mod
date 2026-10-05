@@ -1,5 +1,9 @@
 name: Build ASI Overlay
 
+concurrency:
+  group: build-asi-overlay-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
