@@ -22,7 +22,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.14B-horse-movement-owner-detection-test";
+constexpr const char* kBuild = "0.14C-direct-horse-movement-properties-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -125,6 +125,7 @@ std::atomic<float> g_recoveryTailStartElapsed{0.0f};
 
 std::atomic_bool g_horseRuntimeReady{false};
 std::atomic_bool g_horseSpeedHookReady{false};
+std::atomic_bool g_horseDirectMovementReady{false};
 std::atomic_bool g_nativeHorseActive{false};
 std::atomic_int g_lastHorseRejectReason{0};
 std::atomic<void*> g_validatedHorseCharacter{nullptr};
@@ -137,6 +138,10 @@ std::atomic<float> g_horseNormalSpeedBaseline{0.0f};
 std::atomic_bool g_lastHorseSpeedClassifiedSprint{false};
 std::atomic<float> g_lastHorseNativeSprintDrain{0.0f};
 std::atomic<float> g_lastHorseEffectiveSprintDrain{0.0f};
+std::atomic<float> g_lastHorseNativeMaxWalkSpeed{0.0f};
+std::atomic<float> g_lastHorseEffectiveMaxWalkSpeed{0.0f};
+std::atomic<float> g_lastHorseNativeMaxAcceleration{0.0f};
+std::atomic<float> g_lastHorseEffectiveMaxAcceleration{0.0f};
 std::atomic_int g_horseValidationSuccesses{0};
 std::atomic_int g_horseValidationRejects{0};
 
@@ -153,6 +158,8 @@ struct HorseRuntimeState {
     float staminaRecoveryPercentageRate = 0.0f;
     float staminaTotalRecoveryPercentageRate = 0.0f;
     float staminaSprintPercentageRate = 0.0f;
+    float maxWalkSpeed = 0.0f;
+    float maxAcceleration = 0.0f;
     bool captured = false;
 };
 
@@ -1976,26 +1983,100 @@ bool DiscoverCharacterMovementMemberOffset(void* player, void* movementComponent
     return true;
 }
 
+constexpr size_t kHorseMaxWalkSpeedOffset = 0x1D4;
+constexpr size_t kHorseMaxAccelerationOffset = 0x1E8;
+
+bool ApplyHorseDirectMovementPropertiesLocked() {
+    if (!g_horseRuntimeState.captured || !g_horseRuntimeState.movement) {
+        g_horseDirectMovementReady.store(false);
+        return false;
+    }
+
+    const float multiplier = ClampFloat(
+        g_config.horseSpeedMultiplier,
+        0.0f,
+        3.0f
+    );
+
+    const float effectiveSpeed = g_config.horseSpeedEnabled
+        ? g_horseRuntimeState.maxWalkSpeed * multiplier
+        : g_horseRuntimeState.maxWalkSpeed;
+
+    // The reference Horse PAK changes 1300 -> 1500 MaxWalkSpeed and
+    // 600 -> 700 MaxAcceleration together. Scale both from their captured
+    // vanilla values so the horse can actually reach the higher speed.
+    const float effectiveAcceleration = g_config.horseSpeedEnabled
+        ? g_horseRuntimeState.maxAcceleration * multiplier
+        : g_horseRuntimeState.maxAcceleration;
+
+    const bool wroteSpeed = SafeWriteFloat(
+        g_horseRuntimeState.movement,
+        kHorseMaxWalkSpeedOffset,
+        effectiveSpeed
+    );
+    const bool wroteAcceleration = SafeWriteFloat(
+        g_horseRuntimeState.movement,
+        kHorseMaxAccelerationOffset,
+        effectiveAcceleration
+    );
+
+    g_lastHorseNativeMaxWalkSpeed.store(g_horseRuntimeState.maxWalkSpeed);
+    g_lastHorseEffectiveMaxWalkSpeed.store(effectiveSpeed);
+    g_lastHorseNativeMaxAcceleration.store(g_horseRuntimeState.maxAcceleration);
+    g_lastHorseEffectiveMaxAcceleration.store(effectiveAcceleration);
+
+    const bool ready = wroteSpeed && wroteAcceleration;
+    g_horseDirectMovementReady.store(ready);
+    return ready;
+}
+
+bool ApplyHorseDirectMovementProperties(void* movementComponent) {
+    if (!movementComponent ||
+        movementComponent != g_validatedHorseMovement.load()) {
+        return false;
+    }
+
+    AcquireSRWLockExclusive(&g_tuningLock);
+    const bool result = ApplyHorseDirectMovementPropertiesLocked();
+    ReleaseSRWLockExclusive(&g_tuningLock);
+    return result;
+}
+
 void RestoreHorseRuntimeState() {
     AcquireSRWLockExclusive(&g_tuningLock);
 
-    if (g_horseRuntimeState.captured &&
-        g_horseRuntimeState.horse &&
-        IsReadableMemoryRange(
-            reinterpret_cast<BYTE*>(g_horseRuntimeState.horse) + 0x918,
-            sizeof(float)
-        )) {
-        SafeWriteFloat(
-            g_horseRuntimeState.horse,
-            0x918,
-            g_horseRuntimeState.staminaSprintPercentageRate
-        );
+    if (g_horseRuntimeState.captured) {
+        if (g_horseRuntimeState.horse &&
+            IsReadableMemoryRange(
+                reinterpret_cast<BYTE*>(g_horseRuntimeState.horse) + 0x918,
+                sizeof(float)
+            )) {
+            SafeWriteFloat(
+                g_horseRuntimeState.horse,
+                0x918,
+                g_horseRuntimeState.staminaSprintPercentageRate
+            );
+        }
+
+        if (g_horseRuntimeState.movement) {
+            SafeWriteFloat(
+                g_horseRuntimeState.movement,
+                kHorseMaxWalkSpeedOffset,
+                g_horseRuntimeState.maxWalkSpeed
+            );
+            SafeWriteFloat(
+                g_horseRuntimeState.movement,
+                kHorseMaxAccelerationOffset,
+                g_horseRuntimeState.maxAcceleration
+            );
+        }
     }
 
     g_horseRuntimeState = {};
     g_validatedHorseCharacter.store(nullptr);
     g_validatedHorseMovement.store(nullptr);
     g_horseRuntimeReady.store(false);
+    g_horseDirectMovementReady.store(false);
     g_horseMovementMemberOffset.store(-1);
     g_horseNormalSpeedBaseline.store(0.0f);
     g_lastHorseNativeSpeed.store(0.0f);
@@ -2003,6 +2084,10 @@ void RestoreHorseRuntimeState() {
     g_lastHorseSpeedClassifiedSprint.store(false);
     g_lastHorseNativeSprintDrain.store(0.0f);
     g_lastHorseEffectiveSprintDrain.store(0.0f);
+    g_lastHorseNativeMaxWalkSpeed.store(0.0f);
+    g_lastHorseEffectiveMaxWalkSpeed.store(0.0f);
+    g_lastHorseNativeMaxAcceleration.store(0.0f);
+    g_lastHorseEffectiveMaxAcceleration.store(0.0f);
     g_lastHorseRejectReason.store(0);
 
     ReleaseSRWLockExclusive(&g_tuningLock);
@@ -2016,11 +2101,14 @@ float ApplyHorseSpeedPolicy(void* movementComponent, float nativeSpeed) {
         return nativeSpeed;
     }
 
+    // V0.14B proved that multiplying the GetMaxSpeed return was not a useful
+    // gameplay control. V0.14C keeps this hook for telemetry only and applies
+    // speed through the native movement properties that the reference Horse
+    // PAK actually changes.
+    ApplyHorseDirectMovementProperties(movementComponent);
+
     float baseline = g_horseNormalSpeedBaseline.load();
     if (baseline <= 0.0f || nativeSpeed < baseline) {
-        // The lowest positive GetMaxSpeed observed for the validated mount is
-        // treated as its normal-speed baseline. The reference PAK reports
-        // vanilla MaxWalkSpeed around 1300.
         baseline = nativeSpeed;
         g_horseNormalSpeedBaseline.store(baseline);
     }
@@ -2028,20 +2116,9 @@ float ApplyHorseSpeedPolicy(void* movementComponent, float nativeSpeed) {
     const bool sprint = baseline > 0.0f && nativeSpeed > baseline * 1.08f;
     g_lastHorseSpeedClassifiedSprint.store(sprint);
     g_lastHorseNativeSpeed.store(nativeSpeed);
+    g_lastHorseEffectiveSpeed.store(nativeSpeed);
 
-    float multiplier = sprint
-        ? g_config.horseSprintSpeedMultiplier
-        : g_config.horseSpeedMultiplier;
-
-    const bool enabled = sprint
-        ? g_config.horseSprintSpeedEnabled
-        : g_config.horseSpeedEnabled;
-
-    multiplier = ClampFloat(multiplier, 0.0f, 10.0f);
-
-    const float effective = enabled ? nativeSpeed * multiplier : nativeSpeed;
-    g_lastHorseEffectiveSpeed.store(effective);
-    return effective;
+    return nativeSpeed;
 }
 
 float HookHorseGetMaxSpeed(void* movementComponent) {
@@ -2265,6 +2342,30 @@ bool ValidateHorseFromMovementPath(void* candidateHorse, void* horseMovement) {
         return false;
     }
 
+    float maxWalkSpeed = 0.0f;
+    float maxAcceleration = 0.0f;
+
+    if (!SafeReadFloat(
+            horseMovement,
+            kHorseMaxWalkSpeedOffset,
+            &maxWalkSpeed) ||
+        !SafeReadFloat(
+            horseMovement,
+            kHorseMaxAccelerationOffset,
+            &maxAcceleration)) {
+        NoteHorseValidationReject(9, "direct movement properties unreadable");
+        return false;
+    }
+
+    // Reference Horse PAK vanilla values are MaxWalkSpeed=1300 and
+    // MaxAcceleration=600. Accept a useful range rather than exact equality,
+    // but reject the local player defaults (950 / 5000) and unrelated actors.
+    if (maxWalkSpeed < 1000.0f || maxWalkSpeed > 2000.0f ||
+        maxAcceleration < 250.0f || maxAcceleration > 1500.0f) {
+        NoteHorseValidationReject(10, "direct movement properties outside horse range");
+        return false;
+    }
+
     void* vtableAddress = nullptr;
     if (!SafeReadPointer(horseMovement, 0, &vtableAddress) || !vtableAddress ||
         !IsReadableMemoryRange(
@@ -2301,17 +2402,22 @@ bool ValidateHorseFromMovementPath(void* candidateHorse, void* horseMovement) {
         g_horseRuntimeState.staminaRecoveryPercentageRate = recovery;
         g_horseRuntimeState.staminaTotalRecoveryPercentageRate = totalRecovery;
         g_horseRuntimeState.staminaSprintPercentageRate = sprintDrain;
+        g_horseRuntimeState.maxWalkSpeed = maxWalkSpeed;
+        g_horseRuntimeState.maxAcceleration = maxAcceleration;
         g_horseRuntimeState.captured = true;
         g_horseNormalSpeedBaseline.store(0.0f);
 
         Log(
             "Horse runtime: VALIDATED from movement owner horse=%p movement=%p "
-            "stamina recovery=%.3f total=%.3f sprintDrain=%.3f maxSpeed=%p",
+            "stamina recovery=%.3f total=%.3f sprintDrain=%.3f "
+            "MaxWalkSpeed=%.3f MaxAcceleration=%.3f maxSpeedFn=%p",
             candidateHorse,
             horseMovement,
             recovery,
             totalRecovery,
             sprintDrain,
+            maxWalkSpeed,
+            maxAcceleration,
             maxSpeedTarget
         );
     }
@@ -2334,8 +2440,9 @@ bool ValidateHorseFromMovementPath(void* candidateHorse, void* horseMovement) {
     }
 
     const bool wroteDrain = SafeWriteFloat(candidateHorse, 0x918, effectiveDrain);
+    const bool wroteDirectMovement = ApplyHorseDirectMovementPropertiesLocked();
 
-    if (wroteDrain) {
+    if (wroteDrain && wroteDirectMovement) {
         g_validatedHorseCharacter.store(candidateHorse);
         g_validatedHorseMovement.store(horseMovement);
         g_horseRuntimeReady.store(true);
@@ -2350,6 +2457,10 @@ bool ValidateHorseFromMovementPath(void* candidateHorse, void* horseMovement) {
 
     if (!wroteDrain) {
         NoteHorseValidationReject(6, "sprint-drain field not writable");
+        return false;
+    }
+    if (!wroteDirectMovement) {
+        NoteHorseValidationReject(11, "MaxWalkSpeed/MaxAcceleration not writable");
         return false;
     }
 
@@ -2419,6 +2530,10 @@ bool HookIsHorseActive(void* player) {
             "Horse runtime: native mounted state detected; "
             "starting safe mount discovery"
         );
+    }
+
+    if (g_validatedHorseMovement.load()) {
+        ApplyHorseDirectMovementProperties(g_validatedHorseMovement.load());
     }
 
     if (!g_validatedHorseCharacter.load()) {
@@ -4334,9 +4449,9 @@ void DrawOverlay() {
                 0.00f,
                 3.00f,
                 "%.2fx",
-                g_horseSpeedHookReady.load()
-                    ? "Validated horse GetMaxSpeed | normal-speed branch"
-                    : "Waiting for validated mount"
+                g_horseDirectMovementReady.load()
+                    ? "Direct MaxWalkSpeed + MaxAcceleration runtime control"
+                    : "Waiting for validated direct movement properties"
             );
 
             DrawTunableFeature(
@@ -4347,9 +4462,7 @@ void DrawOverlay() {
                 0.00f,
                 3.00f,
                 "%.2fx",
-                g_horseSpeedHookReady.load()
-                    ? "Validated horse GetMaxSpeed | sprint branch"
-                    : "Waiting for validated mount"
+                "Pending sprint ability RunSpeed hook | V0.14B GetMaxSpeed scaling rejected"
             );
 
             DrawTunableFeature(
@@ -4377,11 +4490,17 @@ void DrawOverlay() {
                     : static_cast<size_t>(0)
             );
             ImGui::TextDisabled(
-                "Speed %.1f -> %.1f | class: %s | baseline %.1f",
+                "GetMaxSpeed telemetry %.1f | class: %s | baseline %.1f",
                 g_lastHorseNativeSpeed.load(),
-                g_lastHorseEffectiveSpeed.load(),
                 g_lastHorseSpeedClassifiedSprint.load() ? "SPRINT" : "NORMAL",
                 g_horseNormalSpeedBaseline.load()
+            );
+            ImGui::TextDisabled(
+                "MaxWalkSpeed %.1f -> %.1f | MaxAcceleration %.1f -> %.1f",
+                g_lastHorseNativeMaxWalkSpeed.load(),
+                g_lastHorseEffectiveMaxWalkSpeed.load(),
+                g_lastHorseNativeMaxAcceleration.load(),
+                g_lastHorseEffectiveMaxAcceleration.load()
             );
             ImGui::TextDisabled(
                 "Sprint stamina drain %.3f -> %.3f | validation OK %d / reject %d",
