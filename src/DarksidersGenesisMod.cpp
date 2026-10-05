@@ -21,7 +21,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.7A-common-move-interrupt-test";
+constexpr const char* kBuild = "0.8A-action-enabled-move-diagnostic";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -38,6 +38,7 @@ using DashVoidFn = void(*)(void*);
 using DashTickFn = void(*)(void*, float);
 using InputSuppressNotifyFn = void(*)(void*, void*, void*);
 using AbilityInterruptEnabledFn = bool(*)(void*, unsigned char);
+using AbilityActionEnabledFn = bool(*)(void*, unsigned char);
 
 PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
@@ -50,6 +51,7 @@ DashVoidFn g_originalDashFinish = nullptr;
 InputSuppressNotifyFn g_originalInputSuppressBegin = nullptr;
 InputSuppressNotifyFn g_originalInputSuppressEnd = nullptr;
 AbilityInterruptEnabledFn g_originalAbilityInterruptEnabled = nullptr;
+AbilityActionEnabledFn g_originalAbilityActionEnabled = nullptr;
 
 ID3D11Device* g_device = nullptr;
 ID3D11DeviceContext* g_context = nullptr;
@@ -77,6 +79,14 @@ std::atomic_int g_moveInterruptForced{0};
 std::atomic<void*> g_lastMoveQueryAbility{nullptr};
 std::atomic_int g_lastMoveQueryState{-1};
 std::atomic<float> g_lastMoveQueryElapsed{0.0f};
+std::atomic<void*> g_localPlayerCharacter{nullptr};
+std::atomic_int g_actionMoveQueries{0};
+std::atomic_int g_actionMoveLocalQueries{0};
+std::atomic_int g_actionMoveNativeBlocked{0};
+std::atomic_int g_actionMoveForced{0};
+std::atomic<void*> g_lastActionMoveAbility{nullptr};
+std::atomic_int g_lastActionMoveState{-1};
+std::atomic<float> g_lastActionMoveElapsed{0.0f};
 std::array<bool, 256> g_keyDown{};
 std::string g_lastAction = "None";
 
@@ -798,9 +808,7 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         ? g_originalCharacterGetMaxSpeed(movementComponent)
         : 0.0f;
 
-    if (!g_config.movementSpeedEnabled ||
-        nativeSpeed <= 0.0f ||
-        !movementComponent) {
+    if (nativeSpeed <= 0.0f || !movementComponent) {
         return nativeSpeed;
     }
 
@@ -809,6 +817,12 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
     // UCharacterMovementComponent::CharacterOwner reflection offset.
     void* characterOwner = *reinterpret_cast<void**>(component + 0x190);
     if (!characterOwner || !IsLocallyControlledMayhemCharacter(characterOwner)) {
+        return nativeSpeed;
+    }
+
+    g_localPlayerCharacter.store(characterOwner);
+
+    if (!g_config.movementSpeedEnabled) {
         return nativeSpeed;
     }
 
@@ -1635,6 +1649,191 @@ bool InstallCommonActionRecoveryHook() {
     return true;
 }
 
+
+BYTE* ResolveAbilityActionEnabledNative() {
+    PeSectionView text{};
+    PeSectionView rdata{};
+    if (!GetMainModuleSection(".text", text) ||
+        !GetMainModuleSection(".rdata", rdata)) {
+        Log("Action Recovery V0.8: failed to enumerate PE sections");
+        return nullptr;
+    }
+
+    BYTE* name = FindAsciiString(rdata, "IsActionEnabled");
+    if (!name) {
+        Log("Action Recovery V0.8: IsActionEnabled string not found");
+        return nullptr;
+    }
+
+    static constexpr BYTE kNativePrefix[] = {
+        0x44, 0x0F, 0xB6, 0xC2,
+        0x41, 0x0F, 0xB6, 0xC0,
+        0x49, 0xC1, 0xE8, 0x06,
+        0x24, 0x3F,
+        0x0F, 0xB6, 0xD0,
+        0x4A, 0x8B, 0x84, 0xC1, 0x80, 0x00, 0x00, 0x00
+    };
+
+    const uintptr_t nameVA = reinterpret_cast<uintptr_t>(name);
+    BYTE* native = nullptr;
+    size_t nativeCount = 0;
+
+    for (size_t i = 0; i + 16 <= rdata.size; i += sizeof(uintptr_t)) {
+        BYTE* entry = rdata.begin + i;
+        if (*reinterpret_cast<const uintptr_t*>(entry) != nameVA) {
+            continue;
+        }
+
+        BYTE* wrapper = reinterpret_cast<BYTE*>(
+            *reinterpret_cast<const uintptr_t*>(entry + sizeof(uintptr_t))
+        );
+        if (!AddressInSection(text, wrapper)) {
+            continue;
+        }
+
+        for (size_t j = 0; j + 5 <= 0x100; ++j) {
+            BYTE* p = wrapper + j;
+            if (!AddressInSection(text, p) || p[0] != 0xE8) {
+                continue;
+            }
+
+            const int32_t rel = *reinterpret_cast<const int32_t*>(p + 1);
+            BYTE* target = p + 5 + rel;
+            if (!AddressInSection(text, target)) {
+                continue;
+            }
+
+            if (memcmp(target, kNativePrefix, sizeof(kNativePrefix)) == 0) {
+                if (!native || native != target) {
+                    native = target;
+                    ++nativeCount;
+                }
+            }
+        }
+    }
+
+    if (!native || nativeCount != 1) {
+        Log("Action Recovery V0.8: native IsActionEnabled match count=%zu", nativeCount);
+        return nullptr;
+    }
+
+    HMODULE module = GetModuleHandleW(nullptr);
+    BYTE* base = reinterpret_cast<BYTE*>(module);
+    Log(
+        "Action Recovery V0.8: IsActionEnabled resolved RVA=0x%zX actionBitset=ability+0x80 instigator=+0x48 state=+0xD8 elapsed=+0xDC",
+        static_cast<size_t>(native - base)
+    );
+
+    return native;
+}
+
+bool HookAbilityActionEnabled(void* ability, unsigned char action) {
+    const bool nativeEnabled = g_originalAbilityActionEnabled
+        ? g_originalAbilityActionEnabled(ability, action)
+        : false;
+
+    // ECharacterActions::MOVE was independently observed in the native player
+    // action gate as enum value 0x1D.
+    constexpr unsigned char kMoveAction = 0x1D;
+
+    if (!ability || action != kMoveAction) {
+        return nativeEnabled;
+    }
+
+    g_actionMoveQueries.fetch_add(1);
+
+    BYTE* object = reinterpret_cast<BYTE*>(ability);
+    void* instigator = *reinterpret_cast<void**>(object + 0x48);
+    void* localPlayer = g_localPlayerCharacter.load();
+
+    if (!instigator || !localPlayer || instigator != localPlayer) {
+        return nativeEnabled;
+    }
+
+    g_actionMoveLocalQueries.fetch_add(1);
+
+    const unsigned char state = *(object + 0xD8);
+    const float elapsed = *reinterpret_cast<float*>(object + 0xDC);
+    g_lastActionMoveElapsed.store(elapsed);
+
+    if (!nativeEnabled) {
+        g_actionMoveNativeBlocked.fetch_add(1);
+    }
+
+    void* previousAbility = g_lastActionMoveAbility.load();
+    const int previousState = g_lastActionMoveState.load();
+    if (previousAbility != ability || previousState != static_cast<int>(state)) {
+        g_lastActionMoveAbility.store(ability);
+        g_lastActionMoveState.store(static_cast<int>(state));
+        Log(
+            "Action Recovery V0.8: MOVE action query ability=%p state=%s(%u) elapsed=%.3f native=%d instigator=%p",
+            ability,
+            AbilityStateName(state),
+            static_cast<unsigned>(state),
+            elapsed,
+            nativeEnabled ? 1 : 0,
+            instigator
+        );
+    }
+
+    if (!g_config.actionRecoveryEnabled || nativeEnabled) {
+        return nativeEnabled;
+    }
+
+    // Diagnostic hammer: if the local player's active ability says MOVE is
+    // disabled, return true. If this removes the dead recovery tail, the
+    // AllowedActionsFlags path is proven and the next build will narrow the
+    // timing using the state/elapsed telemetry gathered here.
+    const int forced = g_actionMoveForced.fetch_add(1) + 1;
+    if (forced <= 30 || (forced % 100) == 0) {
+        Log(
+            "Action Recovery V0.8: FORCE MOVE ACTION ability=%p state=%s(%u) elapsed=%.3f forcedCount=%d",
+            ability,
+            AbilityStateName(state),
+            static_cast<unsigned>(state),
+            elapsed,
+            forced
+        );
+    }
+
+    return true;
+}
+
+bool InstallActionEnabledRecoveryDiagnostic() {
+    BYTE* target = ResolveAbilityActionEnabledNative();
+    if (!target) {
+        Log("Action Recovery V0.8: resolver failed; feature remains fail-open");
+        return false;
+    }
+
+    const MH_STATUS initStatus = MH_Initialize();
+    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+        Log("Action Recovery V0.8: MinHook initialize FAILED status=%d", static_cast<int>(initStatus));
+        return false;
+    }
+
+    MH_STATUS status = MH_CreateHook(
+        target,
+        reinterpret_cast<LPVOID>(&HookAbilityActionEnabled),
+        reinterpret_cast<LPVOID*>(&g_originalAbilityActionEnabled)
+    );
+
+    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
+        Log("Action Recovery V0.8: create FAILED status=%d", static_cast<int>(status));
+        return false;
+    }
+
+    status = MH_EnableHook(target);
+    if (status != MH_OK && status != MH_ERROR_ENABLED) {
+        Log("Action Recovery V0.8: enable FAILED status=%d", static_cast<int>(status));
+        return false;
+    }
+
+    g_recoveryHookReady.store(true);
+    Log("Action Recovery V0.8: READY policy=force local-player IsActionEnabled(MOVE)");
+    return true;
+}
+
 bool InstallHudHook() {
     BYTE* getter = ResolveHudHiddenGetter();
     if (!getter) {
@@ -1757,7 +1956,7 @@ void TriggerAction(Action action, int functionKey) {
         g_lastAction = std::string("Action Recovery ") +
             (g_config.actionRecoveryEnabled ? "ON" : "OFF");
         Log(
-            "F%d -> Action Recovery %s policy=AWAITING_FINISH MOVE",
+            "F%d -> Action Recovery %s policy=force local IsActionEnabled(MOVE)",
             functionKey,
             g_config.actionRecoveryEnabled ? "ON" : "OFF"
         );
@@ -2112,7 +2311,7 @@ void DrawOverlay() {
             ImGui::TextDisabled(
                 "%s",
                 g_recoveryHookReady.load()
-                    ? "Common EAbilityInterrupt::MOVE tail cut"
+                    ? "DIAGNOSTIC: force AllowedActions MOVE for local player"
                     : "Native hook unavailable"
             );
 
@@ -2120,23 +2319,26 @@ void DrawOverlay() {
                 ImGui::Indent();
                 ImGui::TextDisabled("F3 toggles");
                 ImGui::TextWrapped(
-                    "V0.7A allows MOVE only while the active ability is AWAITING_FINISH. "
-                    "RUNNING actions remain non-cancellable."
+                    "V0.8A forces ECharacterActions::MOVE when the local player's active ability "
+                    "blocks it. This is intentionally aggressive to prove or reject AllowedActionsFlags."
                 );
                 ImGui::TextDisabled(
-                    "MOVE queries: %d | Native blocked: %d | Forced: %d",
-                    g_moveInterruptQueries.load(),
-                    g_moveInterruptNativeBlocked.load(),
-                    g_moveInterruptForced.load()
+                    "MOVE queries: %d | Local: %d | Native blocked: %d | Forced: %d",
+                    g_actionMoveQueries.load(),
+                    g_actionMoveLocalQueries.load(),
+                    g_actionMoveNativeBlocked.load(),
+                    g_actionMoveForced.load()
                 );
-                const int state = g_lastMoveQueryState.load();
+                const int state = g_lastActionMoveState.load();
                 if (state >= 0) {
                     ImGui::TextDisabled(
-                        "Last state: %s (%d) | elapsed %.3f s",
+                        "Last local ability: %s (%d) | elapsed %.3f s",
                         AbilityStateName(static_cast<unsigned char>(state)),
                         state,
-                        g_lastMoveQueryElapsed.load()
+                        g_lastActionMoveElapsed.load()
                     );
+                } else if (!g_localPlayerCharacter.load()) {
+                    ImGui::TextDisabled("Local player pointer: waiting for CharacterMovement...");
                 }
                 ImGui::Unindent();
             }
@@ -2146,7 +2348,7 @@ void DrawOverlay() {
 
             ImGui::Spacing();
             ImGui::TextDisabled(
-                "V0.7A tests the common ability lifecycle: MOVE is forced only during AWAITING_FINISH."
+                "V0.8A tests the AllowedActionsFlags path: local-player MOVE is forced when native code blocks it."
             );
             ImGui::EndTabItem();
         }
@@ -2215,8 +2417,8 @@ void DrawOverlay() {
             ImGui::Spacing();
             ImGui::TextWrapped(
                 "Toggle HUD uses ui.HideHud. Movement Speed hooks the Mayhem CharacterMovement "
-                "GetMaxSpeed override. Action Recovery hooks UMayhemAbility::IsInterruptEnabled "
-                "and permits EAbilityInterrupt::MOVE only in AWAITING_FINISH."
+                "GetMaxSpeed override. V0.8 Action Recovery hooks UMayhemAbility::IsActionEnabled "
+                "and diagnoses ECharacterActions::MOVE / AllowedActionsFlags for the local player."
             );
             ImGui::EndTabItem();
         }
@@ -2480,8 +2682,8 @@ DWORD WINAPI MainThread(LPVOID) {
         Log("Movement Speed unavailable; other ASI features remain active.");
     }
 
-    if (!InstallCommonActionRecoveryHook()) {
-        Log("Action Recovery unavailable; other ASI features remain active.");
+    if (!InstallActionEnabledRecoveryDiagnostic()) {
+        Log("Action Recovery V0.8 unavailable; other ASI features remain active.");
     }
 
     Log("Core initialization complete. Press %s after the first game frame.",
