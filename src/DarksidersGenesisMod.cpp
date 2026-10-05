@@ -17,11 +17,12 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 #include <cstdio>
 #include <cstring>
 #include <cwchar>
+#include <cmath>
 #include <string>
 
 namespace {
 
-constexpr const char* kBuild = "0.8B-safe-tail-ui-test";
+constexpr const char* kBuild = "0.9A-movement-glide-horse-hooks-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -89,6 +90,23 @@ std::atomic_int g_lastActionMoveState{-1};
 std::atomic<float> g_lastActionMoveElapsed{0.0f};
 std::atomic<void*> g_recoveryTailAbility{nullptr};
 std::atomic<float> g_recoveryTailStartElapsed{0.0f};
+
+struct PlayerMovementTuningState {
+    void* component = nullptr;
+    float jumpZVelocity = 0.0f;
+    float doubleJumpZVelocity = 0.0f;
+    float glideDurationSeconds = 0.0f;
+};
+
+struct HorseTuningState {
+    void* horse = nullptr;
+    float staminaSprintPercentageRate = 0.0f;
+};
+
+SRWLOCK g_tuningLock = SRWLOCK_INIT;
+std::array<PlayerMovementTuningState, 4> g_playerMovementStates{};
+std::array<HorseTuningState, 4> g_horseStates{};
+
 std::array<bool, 256> g_keyDown{};
 std::string g_lastAction = "None";
 
@@ -352,6 +370,7 @@ struct Config {
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
     bool jumpHeightEnabled = true;
+    bool glideDurationEnabled = true;
     bool horseSpeedEnabled = true;
     bool horseSprintSpeedEnabled = true;
     bool horseSprintDurationEnabled = true;
@@ -366,6 +385,7 @@ struct Config {
     float pistolDamageMultiplier = 2.00f;
     float meleeDamageMultiplier = 2.00f;
     float jumpHeightMultiplier = 1.25f;
+    float glideDurationMultiplier = 1.50f;
     float horseSpeedMultiplier = 1.25f;
     float horseSprintSpeedMultiplier = 1.25f;
     float horseSprintDurationMultiplier = 2.00f;
@@ -414,6 +434,7 @@ struct Config {
         pistolDamageEnabled = true;
         meleeDamageEnabled = true;
         jumpHeightEnabled = true;
+        glideDurationEnabled = true;
         horseSpeedEnabled = true;
         horseSprintSpeedEnabled = true;
         horseSprintDurationEnabled = true;
@@ -427,6 +448,7 @@ struct Config {
         pistolDamageMultiplier = 2.00f;
         meleeDamageMultiplier = 2.00f;
         jumpHeightMultiplier = 1.25f;
+        glideDurationMultiplier = 1.50f;
         horseSpeedMultiplier = 1.25f;
         horseSprintSpeedMultiplier = 1.25f;
         horseSprintDurationMultiplier = 2.00f;
@@ -471,6 +493,7 @@ struct Config {
         pistolDamageEnabled = ReadBool(L"Features", L"PistolDamage", true, g_iniPath);
         meleeDamageEnabled = ReadBool(L"Features", L"MeleeDamage", true, g_iniPath);
         jumpHeightEnabled = ReadBool(L"Features", L"JumpHeight", true, g_iniPath);
+        glideDurationEnabled = ReadBool(L"Features", L"GlideDuration", true, g_iniPath);
         horseSpeedEnabled = ReadBool(L"Features", L"HorseSpeed", true, g_iniPath);
         horseSprintSpeedEnabled = ReadBool(L"Features", L"HorseSprintSpeed", true, g_iniPath);
         horseSprintDurationEnabled = ReadBool(L"Features", L"HorseSprintDuration", true, g_iniPath);
@@ -484,6 +507,7 @@ struct Config {
         pistolDamageMultiplier = ReadFloat(L"Values", L"PistolDamageMultiplier", 2.00f, g_iniPath);
         meleeDamageMultiplier = ReadFloat(L"Values", L"MeleeDamageMultiplier", 2.00f, g_iniPath);
         jumpHeightMultiplier = ReadFloat(L"Values", L"JumpHeightMultiplier", 1.25f, g_iniPath);
+        glideDurationMultiplier = ReadFloat(L"Values", L"GlideDurationMultiplier", 1.50f, g_iniPath);
         horseSpeedMultiplier = ReadFloat(L"Values", L"HorseSpeedMultiplier", 1.25f, g_iniPath);
         horseSprintSpeedMultiplier = ReadFloat(L"Values", L"HorseSprintSpeedMultiplier", 1.25f, g_iniPath);
         horseSprintDurationMultiplier = ReadFloat(L"Values", L"HorseSprintDurationMultiplier", 2.00f, g_iniPath);
@@ -527,6 +551,7 @@ struct Config {
         WriteBool(L"Features", L"PistolDamage", pistolDamageEnabled, g_iniPath);
         WriteBool(L"Features", L"MeleeDamage", meleeDamageEnabled, g_iniPath);
         WriteBool(L"Features", L"JumpHeight", jumpHeightEnabled, g_iniPath);
+        WriteBool(L"Features", L"GlideDuration", glideDurationEnabled, g_iniPath);
         WriteBool(L"Features", L"HorseSpeed", horseSpeedEnabled, g_iniPath);
         WriteBool(L"Features", L"HorseSprintSpeed", horseSprintSpeedEnabled, g_iniPath);
         WriteBool(L"Features", L"HorseSprintDuration", horseSprintDurationEnabled, g_iniPath);
@@ -540,6 +565,7 @@ struct Config {
         WriteFloat(L"Values", L"PistolDamageMultiplier", pistolDamageMultiplier, g_iniPath);
         WriteFloat(L"Values", L"MeleeDamageMultiplier", meleeDamageMultiplier, g_iniPath);
         WriteFloat(L"Values", L"JumpHeightMultiplier", jumpHeightMultiplier, g_iniPath);
+        WriteFloat(L"Values", L"GlideDurationMultiplier", glideDurationMultiplier, g_iniPath);
         WriteFloat(L"Values", L"HorseSpeedMultiplier", horseSpeedMultiplier, g_iniPath);
         WriteFloat(L"Values", L"HorseSprintSpeedMultiplier", horseSprintSpeedMultiplier, g_iniPath);
         WriteFloat(L"Values", L"HorseSprintDurationMultiplier", horseSprintDurationMultiplier, g_iniPath);
