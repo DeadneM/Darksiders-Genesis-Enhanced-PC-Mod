@@ -1617,3 +1617,19 @@ native reflected field in the executable. A safe projectile/damage-call filter
 will be audited separately rather than guessing an object offset.
 
 **Validation:** awaiting in-game test.
+
+
+## V0.10B — Expanded tuning ranges
+
+Requested maximum values:
+
+```text
+Jump Height        5.00x
+Glide Duration    10.00x
+Hotstreak Charge  25.00x
+```
+
+The runtime clamps were updated to match the UI limits, so the higher values are
+not cosmetic-only.
+
+Development continues on the same V0.10 combat branch.
