@@ -1179,3 +1179,135 @@ actions, the path is proven and the next build can restrict the override by
 state/time using the captured telemetry.
 
 If counters remain at zero, `AllowedActionsFlags` is also eliminated.
+
+
+## V0.8B — Safe Action Tail + Unified Gameplay UI
+
+**Status: TEST CANDIDATE**
+
+### V0.8A user result
+
+V0.8A finally produced a visible gameplay change, which is important evidence
+that the `AllowedActionsFlags / IsActionEnabled(ECharacterActions::MOVE)` path
+is relevant.
+
+However the V0.8A diagnostic was intentionally aggressive and forced MOVE
+whenever the local player's active ability returned false.
+
+The user observed a concrete regression after opening a chest:
+
+- the character could move;
+- the interaction/character animation remained locked;
+- the result was movement without a valid locomotion animation.
+
+This proves that MOVE must **not** be forced while an interaction ability is
+still in its normal `RUNNING` phase.
+
+### V0.8B recovery policy
+
+V0.8B keeps the same proven `IsActionEnabled(MOVE)` path, but changes the
+policy:
+
+```text
+INITIALIZING     native
+STARTING         native
+RUNNING          native
+SUSPENDED        native
+AWAITING_FINISH  mod may release MOVE
+FINISHED         native
+FINALIZED        native
+```
+
+Only the `AWAITING_FINISH` dead tail is shortened.
+
+A new user setting controls how long to wait after first observing the tail:
+
+```ini
+ActionRecoveryDelayMs=0.000
+```
+
+Overlay range:
+
+```text
+0 ms -> 500 ms
+```
+
+Default `0 ms` means release MOVE immediately once the ability has already
+entered `AWAITING_FINISH`.
+
+This is designed specifically to avoid the chest/interactions regression seen
+with V0.8A while still attacking the common post-action freeze.
+
+### Overlay redesign
+
+The unused `General` tab has been removed.
+
+Tabs are now:
+
+```text
+Gameplay
+Hotkeys
+About
+```
+
+Menu-key rebinding and configuration buttons moved to `Hotkeys`.
+
+The Gameplay page is grouped into:
+
+```text
+Player
+Combat
+Horse
+Camera
+System
+```
+
+### Unified option model
+
+Where a numeric tuning value makes sense, every gameplay feature now follows:
+
+```text
+[checkbox] Feature
+           [value slider]
+```
+
+Persistent options now exist for:
+
+```text
+Movement Speed
+Action Recovery
+Jump Height
+Pistol Damage
+Melee Damage
+Hotstreak Charge
+Horse Speed
+Horse Sprint Speed
+Horse Sprint Duration
+FOV
+Third Person camera distance
+```
+
+Toggle-only features remain toggle-only where a scalar has no meaningful
+semantics:
+
+```text
+Toggle HUD
+Skip Intro Videos
+```
+
+Pending features are clearly labelled `Pending hook`; their values are saved
+now so future runtime implementations do not require another menu redesign.
+
+### Reference-PAK-driven defaults
+
+The new UI names follow the concrete systems recovered from the supplied
+reference PAKs:
+
+- Jump Height -> player Blueprint movement defaults;
+- Horse Speed -> `MaxWalkSpeed`;
+- Horse Sprint Duration -> `StaminaSprintPercentageRate`;
+- Pistol Damage -> projectile `Damage`;
+- Hotstreak Charge -> projectile `BaseJuice` candidate.
+
+These pending controls are configuration/UI infrastructure only until their
+runtime hooks are validated.
