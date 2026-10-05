@@ -884,7 +884,9 @@ speed, so mount sprint duration can be tuned independently.
 
 ## V0.6A — Self-calibrating Dodge Recovery
 
-**Status: TEST CANDIDATE**
+**Status: REJECTED**
+
+User testing reported no perceptible change. The `Player + 0xAAC` dash flag is therefore not accepted as the actual post-dodge movement blocker.
 
 V0.5A `MoveInterruptDelaySec` recovery is no longer installed.
 
@@ -930,3 +932,67 @@ DodgeEarlyUnlockMs=100.000
 
 This is intentionally a targeted test. If 100 ms is too early or too late, the
 value can be tuned directly from the overlay without rebuilding the ASI.
+
+
+## V0.6B — InputSuppressWindow diagnostic bypass
+
+**Status: TEST CANDIDATE**
+
+V0.6A produced no perceptible change, so the dash-local flag at
+`AMayhemPlayerCharacter + 0xAAC` is now treated as an accompanying dash-state
+flag rather than the proven movement blocker.
+
+A deeper binary audit found a dedicated animation-notify state:
+
+```text
+UAnimNotify_InputSuppressWindow
+Display name: "Suppress Player Input Window"
+```
+
+Its vtable resolves semantically from that display-name string.
+
+Audited native methods:
+
+```text
+GetNotifyName : RVA 0x5D1230
+NotifyBegin   : RVA 0x5D8860
+NotifyEnd     : RVA 0x5D8F70
+```
+
+`NotifyBegin` resolves the player character and calls:
+
+```text
+AMayhemPlayerCharacter::SetInputSuppressed(reason, true)
+```
+
+`NotifyEnd` calls:
+
+```text
+AMayhemPlayerCharacter::SetInputSuppressed(reason, false)
+```
+
+The player keeps suppression reasons in a counted table at approximately
+`Player + 0xC20`, so this system can suppress input independently of the
+dash-local `+0xAAC` flag.
+
+### Diagnostic policy
+
+When Dodge Recovery is ON, V0.6B bypasses both
+`UAnimNotify_InputSuppressWindow::NotifyBegin` and matching `NotifyEnd`
+completely.
+
+This is intentionally aggressive and diagnostic.
+
+Goal:
+
+- if dodge recovery suddenly changes, the real blocker has been identified;
+- if nothing changes, InputSuppressWindow is eliminated as the cause and the
+  next audit moves to the ability/action state machine.
+
+A bypass counter is maintained so toggling the feature does not unbalance the
+game's native suppression counters.
+
+The log prints every bypassed Begin/End. If the feature has no visible effect,
+those lines tell us whether the dodge montage actually uses this notify state.
+
+**Do not treat V0.6B as a final implementation.**
