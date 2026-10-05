@@ -1096,3 +1096,86 @@ If the user still feels no difference:
   gate remains downstream;
 - `Forced = 0` means the observed dead tail occurs before/after
   `AWAITING_FINISH`, and the logged state transition tells us where to move next.
+
+
+## V0.8A — AllowedActions MOVE diagnostic
+
+**Status: TEST CANDIDATE**
+
+### Why V0.7A is rejected
+
+The user reported no effect, and the supplied V0.7A log is decisive:
+
+- the `IsInterruptEnabled` hook resolved and installed successfully;
+- no `MOVE query`, `Native blocked` or `FORCE MOVE` events were emitted
+  during the test session.
+
+Therefore the observed post-action movement lock does **not** flow through
+`EAbilityInterrupt::MOVE` in the tested paths.
+
+### New target: IsActionEnabled
+
+The reflected `IsActionEnabled` wrapper calls a tiny native bit-test helper at
+audited RVA:
+
+```text
+0x5A6800
+```
+
+Its native code checks the ability's action bitset:
+
+```text
+ability + 0x80
+```
+
+This is distinct from `IsInterruptEnabled`, which reads from `ability + 0xB0`.
+
+The previously audited generic movement gate independently established:
+
+```text
+ECharacterActions::MOVE = 0x1D
+```
+
+### Local-player filtering
+
+The ability reflection data exposes `Instigator` at:
+
+```text
+ability + 0x48
+```
+
+V0.8A records the locally controlled player pointer from the already installed
+CharacterMovement hook, then applies the diagnostic only when:
+
+```text
+ability->Instigator == local player
+```
+
+Enemies and NPCs therefore keep native action permissions.
+
+### Diagnostic policy
+
+When Action Recovery is ON and the local player's ability receives:
+
+```text
+IsActionEnabled(MOVE)
+```
+
+V0.8A preserves native `true`, but overrides native `false` to `true`.
+
+This is intentionally aggressive. The purpose is to prove or reject
+`AllowedActionsFlags` as the common movement lock.
+
+Telemetry records:
+
+- all MOVE action queries;
+- local-player MOVE queries;
+- local queries where native code blocked MOVE;
+- forced MOVE results;
+- ability state and elapsed time at the last local query.
+
+If this finally removes the dead tail but allows movement too early during some
+actions, the path is proven and the next build can restrict the override by
+state/time using the captured telemetry.
+
+If counters remain at zero, `AllowedActionsFlags` is also eliminated.
