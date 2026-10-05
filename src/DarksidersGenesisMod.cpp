@@ -22,7 +22,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.9A-movement-glide-horse-hooks-test";
+constexpr const char* kBuild = "0.9B-crash-fix-jump-glide-only-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -98,14 +98,8 @@ struct PlayerMovementTuningState {
     float glideDurationSeconds = 0.0f;
 };
 
-struct HorseTuningState {
-    void* horse = nullptr;
-    float staminaSprintPercentageRate = 0.0f;
-};
-
 SRWLOCK g_tuningLock = SRWLOCK_INIT;
 std::array<PlayerMovementTuningState, 4> g_playerMovementStates{};
-std::array<HorseTuningState, 4> g_horseStates{};
 
 std::array<bool, 256> g_keyDown{};
 std::string g_lastAction = "None";
@@ -1010,100 +1004,6 @@ void ApplyPlayerMovementTunings(void* movementComponent) {
     ReleaseSRWLockExclusive(&g_tuningLock);
 }
 
-HorseTuningState* FindOrCaptureHorseState(void* horse) {
-    if (!horse) {
-        return nullptr;
-    }
-
-    for (auto& state : g_horseStates) {
-        if (state.horse == horse) {
-            return &state;
-        }
-    }
-
-    BYTE* object = reinterpret_cast<BYTE*>(horse);
-
-    // AMayhemHorseCharacter reflection offsets recovered from the executable:
-    // StaminaRecoveryPercentageRate       +0x910
-    // StaminaTotalRecoveryPercentageRate  +0x914
-    // StaminaSprintPercentageRate         +0x918
-    const float sprintDrain = *reinterpret_cast<float*>(object + 0x918);
-
-    if (sprintDrain < 0.0f || sprintDrain > 1000.0f) {
-        Log(
-            "Runtime tuning: horse capture rejected horse=%p sprintDrain=%.3f",
-            horse,
-            sprintDrain
-        );
-        return nullptr;
-    }
-
-    HorseTuningState* slot = nullptr;
-    for (auto& state : g_horseStates) {
-        if (!state.horse) {
-            slot = &state;
-            break;
-        }
-    }
-    if (!slot) {
-        slot = &g_horseStates[0];
-    }
-
-    slot->horse = horse;
-    slot->staminaSprintPercentageRate = sprintDrain;
-
-    Log(
-        "Runtime tuning: captured horse=%p StaminaSprintPercentageRate=%.3f",
-        horse,
-        sprintDrain
-    );
-
-    return slot;
-}
-
-void ApplyHorseSprintDurationTuning(void* playerCharacter) {
-    if (!playerCharacter) {
-        return;
-    }
-
-    // AMayhemPlayerCharacter::IsHorseActive audit showed m_pHorseMount at +0xE70.
-    void* horse = *reinterpret_cast<void**>(
-        reinterpret_cast<BYTE*>(playerCharacter) + 0xE70
-    );
-
-    if (!horse) {
-        return;
-    }
-
-    AcquireSRWLockExclusive(&g_tuningLock);
-
-    HorseTuningState* state = FindOrCaptureHorseState(horse);
-    if (!state) {
-        ReleaseSRWLockExclusive(&g_tuningLock);
-        return;
-    }
-
-    float durationMultiplier = ClampFloat(
-        g_config.horseSprintDurationMultiplier,
-        0.25f,
-        20.0f
-    );
-
-    float effectiveDrain = state->staminaSprintPercentageRate;
-    if (g_config.horseSprintDurationEnabled) {
-        effectiveDrain =
-            durationMultiplier > 0.0001f
-                ? state->staminaSprintPercentageRate / durationMultiplier
-                : state->staminaSprintPercentageRate;
-    }
-
-    *reinterpret_cast<float*>(
-        reinterpret_cast<BYTE*>(horse) + 0x918
-    ) = effectiveDrain;
-
-    ReleaseSRWLockExclusive(&g_tuningLock);
-}
-
 float HookCharacterGetMaxSpeed(void* movementComponent) {
     const float nativeSpeed = g_originalCharacterGetMaxSpeed
         ? g_originalCharacterGetMaxSpeed(movementComponent)
@@ -1123,10 +1023,11 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
 
     g_localPlayerCharacter.store(characterOwner);
 
-    // This frequently-called physics virtual is also our safe game-thread
-    // heartbeat for player/horse property tuning.
+    // This frequently-called physics virtual is our game-thread heartbeat for
+    // player movement property tuning. Horse tuning was removed in V0.9B after
+    // crash analysis proved Player+0xE70 is not a stable AMayhemHorseCharacter
+    // pointer across level-loading/runtime states.
     ApplyPlayerMovementTunings(movementComponent);
-    ApplyHorseSprintDurationTuning(characterOwner);
 
     if (!g_config.movementSpeedEnabled || nativeSpeed <= 0.0f) {
         return nativeSpeed;
@@ -2758,9 +2659,7 @@ void DrawOverlay() {
                 0.50f,
                 10.00f,
                 "%.2fx",
-                g_movementHookReady.load()
-                    ? "Runtime property hook | inverse stamina drain"
-                    : "Native movement hook unavailable"
+                "Pending safe horse-instance resolver | V0.9A direct pointer path rejected"
             );
 
             DrawSectionTitle("Camera");
@@ -2904,8 +2803,8 @@ void DrawOverlay() {
             ImGui::Spacing();
             ImGui::TextWrapped(
                 "Reference PAK audits recovered concrete targets for jump, glide, horse stamina, "
-                "projectile damage and Hotstreak/juice. V0.9A activates Jump Height, Glide Duration "
-                "and Horse Sprint Duration through their audited runtime property offsets."
+                "projectile damage and Hotstreak/juice. V0.9B keeps Jump Height and Glide Duration "
+                "active; Horse Sprint Duration is temporarily disabled until a safe horse-instance resolver is proven."
             );
             ImGui::EndTabItem();
         }
