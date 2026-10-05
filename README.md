@@ -1880,3 +1880,92 @@ Last base damage -> boosted base damage
 ```
 
 This lets the runtime call path be distinguished from the gameplay effect.
+
+
+## V0.13A — Final Player Outgoing Damage Hook
+
+**Status: TEST CANDIDATE**
+
+### V0.12B result
+
+V0.12B `GetBaseDamage` is **REJECTED**.
+
+User testing at **100x** still did not produce an unmistakable damage increase.
+Therefore `GetBaseDamage` is not the correct final applied-damage control for
+the requested Melee Damage option.
+
+### Native final outgoing-damage stage
+
+The executable contains the player outgoing-damage filter at:
+
+```text
+RVA 0x668BE0
+```
+
+The function directly mutates:
+
+```text
+FMayhemDamageEventRecord::Damage +0x08
+```
+
+and natively applies:
+
+```text
+d.PlayerOutgoingDamageMultiplier
+```
+
+before continuing through outgoing-damage filters/status effects.
+
+This is the lowest confirmed player-outgoing stage found so far and is
+downstream of `GetBaseDamage`.
+
+### V0.13A policy
+
+V0.13A calls the complete native outgoing-damage filter first, then applies the
+user multiplier to the resulting final outgoing Damage value.
+
+The hook is local-player-only.
+
+Current diagnostic classification:
+
+```text
+BaseJuice > 0
+  -> Pistol Damage
+
+BaseJuice == 0
+  -> Melee Damage diagnostic
+```
+
+The pistol discriminator comes directly from the supplied Strife projectile
+reference PAKs, where gun projectiles carry positive `BaseJuice`.
+
+The zero-juice branch is intentionally still diagnostic: it may also include
+some non-pistol abilities. Runtime telemetry logs `ScaleType` and damage-tag
+count so the filter can be tightened after testing.
+
+### Runtime telemetry
+
+Overlay/logs now report:
+
+```text
+Pistol:
+  event count
+  final native damage -> boosted damage
+  BaseJuice
+
+Melee diagnostic:
+  event count
+  final native damage -> boosted damage
+  ScaleType
+  DamageSourceTags count
+```
+
+### Range
+
+Both final-damage multipliers can reach 100x in this diagnostic build.
+
+If a 100x value still has no visible effect, the problem is no longer an
+upstream stat/filter issue and the next audit must move to the target-side
+health subtraction path.
+
+**Validation:** awaiting in-game test.
