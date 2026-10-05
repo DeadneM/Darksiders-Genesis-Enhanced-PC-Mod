@@ -2056,3 +2056,28 @@ BaseJuice == 0 -> Melee Damage diagnostic
 Both are applied after the game's native outgoing-damage filtering.
 
 **Validation:** awaiting in-game test for both final damage and boot intro skip.
+
+
+## V0.13B validation result
+
+**VALIDATED IN GAME.**
+
+User feedback:
+
+```text
+"oui nickel"
+```
+
+Validated cumulative behavior:
+
+- functional native Skip Intro control through `g.PlayIntroCinematicOnBoot`;
+- final player outgoing-damage hook is accepted as the new damage base;
+- V0.13B remains cumulative with the previously validated manual numeric input,
+  Jump Height, Glide / Flight Duration, Movement Speed, HUD and safe Action
+  Recovery behavior.
+
+V0.13B becomes the new canonical development base.
+
+The next implementation phase targets the horse movement/stamina feature set,
+using a safe horse component / ability path rather than the rejected
+`Player + 0xE70` pointer assumption from V0.9A.
