@@ -1969,3 +1969,90 @@ upstream stat/filter issue and the next audit must move to the target-side
 health subtraction path.
 
 **Validation:** awaiting in-game test.
+
+
+## V0.13B — Final Outgoing Damage + Functional Skip Intro
+
+**Status: TEST CANDIDATE**
+
+V0.13B combines the new final outgoing-damage pipeline with a real native
+Skip Intro implementation in one cumulative build.
+
+### Functional Skip Intro
+
+The executable contains the native console variable:
+
+```text
+g.PlayIntroCinematicOnBoot
+default = 1
+```
+
+Its registration and boot-time use were audited directly in the target EXE.
+
+Registration xref:
+
+```text
+RVA 0x000E831D
+```
+
+Native boot read:
+
+```text
+RVA 0x0063C465
+
+mov rax,[g.PlayIntroCinematicOnBoot_data]
+cmp dword ptr [rax],0
+je  skip_intro_path
+```
+
+The resolver does not hardcode the runtime address. It:
+
+1. finds the UTF-16 CVar name;
+2. resolves the unique registration LEA;
+3. derives the UE4 CVar data-slot store;
+4. validates the unique boot-time `cmp [CVarData],0` use;
+5. waits briefly for UE4 static CVar initialization;
+6. captures the vanilla value;
+7. applies:
+   - Skip Intro ON -> `0`
+   - Skip Intro OFF -> captured vanilla value.
+
+The control is applied **before D3D11 probe initialization** so the default
+enabled state can take effect as early as possible during startup.
+
+The Present hook also reapplies the selected state so overlay/hotkey changes are
+kept synchronized. Turning Skip Intro on/off after boot naturally affects the
+next startup rather than retroactively cancelling an already-started cinematic.
+
+### UI / hotkey
+
+`Skip Intro Videos` is no longer marked Pending.
+
+The overlay shows:
+
+```text
+Native g.PlayIntroCinematicOnBoot control
+Native CVar now
+Vanilla captured value
+```
+
+F4 continues to be the default hotkey and now toggles the real native control.
+
+### Damage
+
+V0.13B also contains the V0.13A final player outgoing-damage hook:
+
+```text
+RVA 0x668BE0
+```
+
+Current diagnostic split:
+
+```text
+BaseJuice > 0  -> Pistol Damage
+BaseJuice == 0 -> Melee Damage diagnostic
+```
+
+Both are applied after the game's native outgoing-damage filtering.
+
+**Validation:** awaiting in-game test for both final damage and boot intro skip.
