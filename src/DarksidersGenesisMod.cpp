@@ -2673,7 +2673,22 @@ void DrawOverlay() {
                 0.50f,
                 3.00f,
                 "%.2fx",
-                "Pending hook | Blueprint targets recovered"
+                g_movementHookReady.load()
+                    ? "Runtime property hook | JumpZ + DoubleJumpZ"
+                    : "Native movement hook unavailable"
+            );
+
+            DrawTunableFeature(
+                "Glide / Flight Duration",
+                "GlideDuration",
+                &g_config.glideDurationEnabled,
+                &g_config.glideDurationMultiplier,
+                0.50f,
+                5.00f,
+                "%.2fx",
+                g_movementHookReady.load()
+                    ? "Runtime property hook | GlideDurationSeconds"
+                    : "Native movement hook unavailable"
             );
 
             DrawSectionTitle("Combat");
@@ -2743,7 +2758,9 @@ void DrawOverlay() {
                 0.50f,
                 10.00f,
                 "%.2fx",
-                "Pending hook | StaminaSprintPercentageRate"
+                g_movementHookReady.load()
+                    ? "Runtime property hook | inverse stamina drain"
+                    : "Native movement hook unavailable"
             );
 
             DrawSectionTitle("Camera");
@@ -2886,9 +2903,9 @@ void DrawOverlay() {
             );
             ImGui::Spacing();
             ImGui::TextWrapped(
-                "Reference PAK audits recovered concrete targets for jump, horse movement/stamina, "
-                "projectile damage and Hotstreak/juice. Pending options are already configurable "
-                "and persisted so their runtime hooks can be added without redesigning the UI."
+                "Reference PAK audits recovered concrete targets for jump, glide, horse stamina, "
+                "projectile damage and Hotstreak/juice. V0.9A activates Jump Height, Glide Duration "
+                "and Horse Sprint Duration through their audited runtime property offsets."
             );
             ImGui::EndTabItem();
         }
