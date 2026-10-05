@@ -2255,22 +2255,31 @@ V0.14B starts from V0.14A but removes the failed mount-identification chain.
 `AMayhemPlayerCharacter::IsHorseActive` is retained only as a native
 **mounted-state signal** for the locally controlled player.
 
-V0.14B no longer dereferences `Player + 0xE70` to obtain a horse object.
+V0.14B no longer **assumes** that `Player + 0xE70` is a ready-to-use
+`AMayhemHorseCharacter`.
 
-Instead, while the native mounted state is true, the already validated
-`GetMaxSpeed` movement hook observes live movement components. A non-player
-movement owner is accepted as the horse only after all of these checks pass:
+The native pointer is now treated only as an **opaque candidate**. While mounted,
+the mod safely scans aligned pointer members of that candidate and accepts a
+movement component only when:
 
 ```text
-live MovementComponent
-  -> CharacterOwner +0x190 points back to candidate actor
+candidate member pointer
+  -> CharacterOwner +0x190 points back to the same candidate
+  -> MovementMode is sane
+  -> GetMaxSpeed slot +0x3D0 points inside executable .text
 candidate actor
   -> horse stamina fields +0x910/+0x914/+0x918 are readable and sane
-movement vtable
-  -> GetMaxSpeed slot +0x3D0 points inside executable .text
 ```
 
-Only after that structural proof does the mod:
+This specifically removes the failed V0.14A assumption that the horse movement
+pointer must exist at the exact same member offset as the player movement
+pointer.
+
+A second fallback path remains active: while the native mounted state is true,
+the validated player `GetMaxSpeed` hook observes live non-player movement
+owners and can adopt one as the horse after the same structural checks.
+
+Only after structural proof does the mod:
 
 - capture the horse runtime state;
 - enable Horse Speed / Horse Sprint Speed classification;
@@ -2278,7 +2287,7 @@ Only after that structural proof does the mod:
 - install a dedicated horse GetMaxSpeed hook only if the mount does not share
   the already hooked player movement target.
 
-This keeps V0.14B fail-open if the actual mount uses a different movement path.
+This keeps V0.14B fail-open if neither discovery path can prove the mount.
 
 ### Diagnostics
 
