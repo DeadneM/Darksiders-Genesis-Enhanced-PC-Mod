@@ -2081,3 +2081,123 @@ V0.13B becomes the new canonical development base.
 The next implementation phase targets the horse movement/stamina feature set,
 using a safe horse component / ability path rather than the rejected
 `Player + 0xE70` pointer assumption from V0.9A.
+
+
+## V0.14A — Safe Horse Runtime
+
+**Status: TEST CANDIDATE**
+
+V0.14A reintroduces the horse feature set after the V0.9A crash, but no longer
+trusts `Player + 0xE70` as a horse object by itself.
+
+### Structural validation chain
+
+The previously audited native function:
+
+```text
+AMayhemPlayerCharacter::IsHorseActive
+cmp qword ptr [rcx + 0xE70], 0
+setne al
+ret
+```
+
+is now hooked and used only as the GameThread heartbeat.
+
+The pointer at `Player + 0xE70` is treated as a **candidate**, never as proof.
+
+Before V0.14A reads or writes any horse gameplay property it requires:
+
+```text
+local player
+  -> dynamically discovered CharacterMovement member offset
+candidate horse at player + 0xE70
+  -> CharacterMovement at the same member offset
+horse movement + 0x190
+  -> CharacterOwner == candidate horse
+horse stamina fields
+  -> finite and sane
+horse movement vtable + 0x3D0
+  -> GetMaxSpeed target inside executable .text
+```
+
+If any check fails the horse feature remains fail-open and vanilla.
+
+### Dynamic CharacterMovement member discovery
+
+The already validated player movement hook knows both:
+
+```text
+player CharacterOwner
+player MovementComponent
+```
+
+V0.14A scans aligned pointer members on the local player for that exact
+MovementComponent pointer and accepts the offset only when it occurs uniquely.
+
+The same discovered offset is then required to work on the candidate horse.
+
+This removes the need to guess the ACharacter CharacterMovement member offset.
+
+### Horse Speed
+
+The validated horse movement component provides its actual virtual
+`GetMaxSpeed` target from vtable slot:
+
+```text
++0x3D0
+```
+
+V0.14A dynamically hooks that horse-specific function when needed.
+
+If the horse happens to share the same Mayhem GetMaxSpeed implementation as the
+player, the existing movement hook handles the validated horse path without a
+second hook.
+
+The lowest positive native horse max speed observed is captured as the normal
+baseline.
+
+```text
+native <= baseline * 1.08 -> Horse Speed
+native >  baseline * 1.08 -> Horse Sprint Speed
+```
+
+This classification is diagnostic and telemetry is shown in the overlay.
+
+### Horse Sprint Duration
+
+After the actor/movement structural proof, the reflected horse properties are
+used:
+
+```text
+StaminaRecoveryPercentageRate       +0x910
+StaminaTotalRecoveryPercentageRate  +0x914
+StaminaSprintPercentageRate         +0x918
+```
+
+Only `StaminaSprintPercentageRate` is modified.
+
+Formula:
+
+```text
+effective drain = original drain / duration multiplier
+```
+
+A value of `0x` is treated as effectively no sustainable sprint and applies a
+very high drain rather than dividing by zero.
+
+Unmounting restores the captured original sprint-drain value when the object is
+still safely writable.
+
+### Overlay telemetry
+
+The Horse section now reports:
+
+- whether a structurally validated mount exists;
+- discovered CharacterMovement member offset;
+- native -> effective horse speed;
+- NORMAL / SPRINT classification;
+- captured normal-speed baseline;
+- native -> effective sprint stamina drain;
+- validation success / rejection counters.
+
+**Validation:** awaiting in-game test.
