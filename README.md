@@ -1633,3 +1633,74 @@ The runtime clamps were updated to match the UI limits, so the higher values are
 not cosmetic-only.
 
 Development continues on the same V0.10 combat branch.
+
+
+## V0.11A — Pistol Damage / DamageRecord Hook
+
+**Status: TEST CANDIDATE**
+
+The executable reflection metadata confirms:
+
+```text
+FMayhemDamageEventRecord
+  Damage          +0x08
+  ScaleType       +0x0C
+  ElementTypes    +0x10
+  DamageSourceTags +0x18
+  HotStreak       +0x28
+    BaseJuice     +0x00
+```
+
+The native projectile base also stores:
+
+```text
+DamageEventRecord +0x88
+HotStreak         +0x1B0
+```
+
+The Blueprint library `DoDamageToActor` native function resolves uniquely at:
+
+```text
+RVA 0x667300
+```
+
+### Filter
+
+The user-supplied DualPistols reference PAKs consistently modify both:
+
+```text
+Damage
+BaseJuice
+```
+
+on Strife gun projectiles.
+
+V0.11A therefore treats a positive, sane `BaseJuice` value in the outgoing
+`FMayhemDamageEventRecord` as the gun/projectile discriminator.
+
+### Mutation policy
+
+The hook:
+
+1. reads native Damage and BaseJuice;
+2. if BaseJuice > 0, multiplies Damage by the user value;
+3. calls native `DoDamageToActor`;
+4. restores the original Damage immediately.
+
+No Blueprint/CDO or projectile instance is permanently mutated.
+
+### Overlay telemetry
+
+Pistol Damage now shows:
+
+```text
+Boost calls
+Last native damage
+Last boosted damage
+Last BaseJuice
+```
+
+This will quickly confirm whether the expected DualPistols records are flowing
+through the hook.
+
+**Validation:** awaiting in-game test.
