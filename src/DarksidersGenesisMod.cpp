@@ -22,7 +22,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.13A-final-outgoing-damage-test";
+constexpr const char* kBuild = "0.13B-final-damage-skip-intro-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -77,6 +77,10 @@ std::atomic_bool g_hudHidden{false};
 std::atomic_bool g_hudHookReady{false};
 std::atomic_bool g_movementHookReady{false};
 std::atomic_bool g_recoveryHookReady{false};
+std::atomic_bool g_skipIntroReady{false};
+LONG** g_skipIntroDataSlot = nullptr;
+LONG* g_skipIntroData = nullptr;
+LONG g_skipIntroOriginalValue = 1;
 std::atomic_bool g_hotstreakHookReady{false};
 std::atomic_int g_hotstreakBoostCalls{0};
 std::atomic<float> g_lastNativeJuiceGain{0.0f};
@@ -736,6 +740,164 @@ BYTE* FindRipRelativeLeaTo(const PeSectionView& text, BYTE* target) {
     }
 
     return count == 1 ? match : nullptr;
+}
+
+
+LONG** ResolveSkipIntroCVarDataSlot() {
+    PeSectionView text{};
+    PeSectionView rdata{};
+    if (!GetMainModuleSection(".text", text) ||
+        !GetMainModuleSection(".rdata", rdata)) {
+        Log("Skip Intro: failed to enumerate PE sections");
+        return nullptr;
+    }
+
+    BYTE* cvarName = FindWideString(rdata, L"g.PlayIntroCinematicOnBoot");
+    if (!cvarName) {
+        Log("Skip Intro: g.PlayIntroCinematicOnBoot string not found");
+        return nullptr;
+    }
+
+    BYTE* nameXref = FindRipRelativeLeaTo(text, cvarName);
+    if (!nameXref) {
+        Log("Skip Intro: unique CVar registration xref not found");
+        return nullptr;
+    }
+
+    // Same UE4 TAutoConsoleVariable registration layout as ui.HideHud:
+    //   lea rdx,[rip+CVarName]
+    //   call qword ptr [rax+10h]
+    //   ...
+    //   call qword ptr [rdx+38h]
+    //   mov [rip+CVarDataSlot],rax
+    //
+    // In this executable the final data-slot store starts +40 bytes after the
+    // name LEA for g.PlayIntroCinematicOnBoot.
+    BYTE* dataStore = nameXref + 40;
+    if (dataStore + 7 > text.begin + text.size ||
+        dataStore[0] != 0x48 ||
+        dataStore[1] != 0x89 ||
+        dataStore[2] != 0x05) {
+        Log("Skip Intro: CVar registration layout mismatch");
+        return nullptr;
+    }
+
+    const int32_t slotDisp = *reinterpret_cast<const int32_t*>(dataStore + 3);
+    BYTE* dataSlot = dataStore + 7 + slotDisp;
+
+    // Validate against the native boot-time read:
+    //   mov rax,[rip+CVarDataSlot]
+    //   cmp dword ptr [rax],0
+    //   je ...
+    BYTE* bootCheck = nullptr;
+    size_t checkCount = 0;
+
+    for (size_t i = 0; i + 12 <= text.size; ++i) {
+        BYTE* p = text.begin + i;
+        if (p[0] != 0x48 || p[1] != 0x8B || p[2] != 0x05) {
+            continue;
+        }
+
+        const int32_t disp = *reinterpret_cast<const int32_t*>(p + 3);
+        BYTE* resolved = p + 7 + disp;
+        if (resolved != dataSlot) {
+            continue;
+        }
+
+        if (p[7] == 0x83 &&
+            p[8] == 0x38 &&
+            p[9] == 0x00 &&
+            p[10] == 0x74) {
+            bootCheck = p;
+            ++checkCount;
+        }
+    }
+
+    if (!bootCheck || checkCount != 1) {
+        Log("Skip Intro: native boot-check match count=%zu", checkCount);
+        return nullptr;
+    }
+
+    HMODULE module = GetModuleHandleW(nullptr);
+    BYTE* base = reinterpret_cast<BYTE*>(module);
+    Log(
+        "Skip Intro: CVar resolved nameRVA=0x%zX slotRVA=0x%zX bootCheckRVA=0x%zX",
+        static_cast<size_t>(cvarName - base),
+        static_cast<size_t>(dataSlot - base),
+        static_cast<size_t>(bootCheck - base)
+    );
+
+    return reinterpret_cast<LONG**>(dataSlot);
+}
+
+bool ApplySkipIntroSetting(bool logChange) {
+    if (!g_skipIntroDataSlot) {
+        return false;
+    }
+
+    LONG* currentData = *g_skipIntroDataSlot;
+    if (!currentData) {
+        return false;
+    }
+
+    if (g_skipIntroData != currentData) {
+        g_skipIntroData = currentData;
+        g_skipIntroOriginalValue = *currentData;
+        Log(
+            "Skip Intro: captured native g.PlayIntroCinematicOnBoot=%ld data=%p",
+            g_skipIntroOriginalValue,
+            g_skipIntroData
+        );
+    }
+
+    const LONG desired =
+        g_config.skipIntroEnabled ? 0 : g_skipIntroOriginalValue;
+
+    const LONG current = *g_skipIntroData;
+    if (current != desired) {
+        InterlockedExchange(
+            reinterpret_cast<volatile LONG*>(g_skipIntroData),
+            desired
+        );
+
+        if (logChange) {
+            Log(
+                "Skip Intro: g.PlayIntroCinematicOnBoot %ld -> %ld (%s)",
+                current,
+                desired,
+                g_config.skipIntroEnabled ? "SKIP" : "VANILLA"
+            );
+        }
+    }
+
+    g_skipIntroReady.store(true);
+    return true;
+}
+
+bool InstallSkipIntroControl() {
+    g_skipIntroDataSlot = ResolveSkipIntroCVarDataSlot();
+    if (!g_skipIntroDataSlot) {
+        Log("Skip Intro: resolver failed; feature remains fail-open");
+        return false;
+    }
+
+    // The DXGI proxy can load the ASI before the executable's static CVar
+    // constructors finish. Wait briefly on the ASI worker thread so the default
+    // ON setting is applied before the game reaches its boot cinematic check.
+    for (int i = 0; i < 5000; ++i) {
+        if (ApplySkipIntroSetting(i == 0)) {
+            Log(
+                "Skip Intro: READY nativeCVar=%ld requested=%s",
+                *g_skipIntroData,
+                g_config.skipIntroEnabled ? "SKIP" : "VANILLA"
+            );
+            return true;
+        }
+        Sleep(1);
+    }
+
+    Log("Skip Intro: CVar data pointer did not initialize within startup window");
+    return false;
 }
 
 BYTE* ResolveHudHiddenGetter() {
@@ -2910,6 +3072,23 @@ void TriggerAction(Action action, int functionKey) {
         return;
     }
 
+    if (action == Action::SkipIntroVideos) {
+        g_config.skipIntroEnabled = !g_config.skipIntroEnabled;
+        g_config.Save();
+
+        const bool applied = ApplySkipIntroSetting(true);
+        g_lastAction = std::string("Skip Intro ") +
+            (g_config.skipIntroEnabled ? "ON" : "OFF");
+
+        Log(
+            "F%d -> Skip Intro %s nativeApply=%d (boot effect may require restart)",
+            functionKey,
+            g_config.skipIntroEnabled ? "ON" : "OFF",
+            applied ? 1 : 0
+        );
+        return;
+    }
+
     if (!IsFeatureEnabled(action)) {
         g_lastAction = std::string(label) + " disabled in config";
         Log("F%d -> %s ignored (feature disabled)", functionKey, label);
@@ -3463,11 +3642,29 @@ void DrawOverlay() {
 
             DrawSectionTitle("System");
 
-            DrawToggleFeature(
-                "Skip Intro Videos",
-                &g_config.skipIntroEnabled,
-                "Pending UE4 MoviePlayer hook"
+            if (ImGui::Checkbox("Skip Intro Videos", &g_config.skipIntroEnabled)) {
+                g_config.Save();
+                ApplySkipIntroSetting(true);
+                g_lastAction = std::string("Skip Intro ") +
+                    (g_config.skipIntroEnabled ? "ON" : "OFF");
+            }
+            ImGui::SameLine(310.0f);
+            ImGui::TextDisabled(
+                "%s",
+                g_skipIntroReady.load()
+                    ? "Native g.PlayIntroCinematicOnBoot control | restart applies boot state"
+                    : "Native CVar control unavailable"
             );
+
+            if (g_skipIntroReady.load() && g_skipIntroData) {
+                ImGui::Indent();
+                ImGui::TextDisabled(
+                    "Native CVar now: %ld | vanilla captured: %ld",
+                    *g_skipIntroData,
+                    g_skipIntroOriginalValue
+                );
+                ImGui::Unindent();
+            }
 
             ImGui::Spacing();
             ImGui::TextDisabled(
@@ -3599,6 +3796,7 @@ void DrawOverlay() {
 }
 
 HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) {
+    ApplySkipIntroSetting(false);
     ProcessInput();
 
     if (!g_imguiReady.load()) {
@@ -3830,6 +4028,10 @@ DWORD WINAPI MainThread(LPVOID) {
     Log("Architecture: DXGI proxy -> ASI -> D3D11 Present/ResizeBuffers -> Dear ImGui");
 
     g_config.Load();
+
+    if (!InstallSkipIntroControl()) {
+        Log("Skip Intro unavailable; continuing with remaining ASI features.");
+    }
 
     if (!DiscoverAndHookD3D11()) {
         Log("Overlay hook setup FAILED. Mod stays fail-open; game should continue normally.");
