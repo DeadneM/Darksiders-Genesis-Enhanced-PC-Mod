@@ -1335,7 +1335,7 @@ void HookExecGetBaseDamage(void* character, void* frame, void* result) {
 
     float multiplier = g_config.meleeDamageMultiplier;
     if (multiplier < 0.0f) multiplier = 0.0f;
-    if (multiplier > 25.0f) multiplier = 25.0f;
+    if (multiplier > 100.0f) multiplier = 100.0f;
 
     float boosted = nativeDamage * multiplier;
     if (boosted > 100000.0f) {
@@ -1654,7 +1654,7 @@ bool HookActionGate(void* abilityComponent, unsigned char action) {
 
     float multiplier = g_config.actionRecoveryMultiplier;
     if (multiplier < 1.0f) multiplier = 1.0f;
-    if (multiplier > 100.0f) multiplier = 100.0f;
+    if (multiplier > 10.0f) multiplier = 10.0f;
 
     if (multiplier <= 1.0001f) {
         return g_originalActionGate(abilityComponent, action);
