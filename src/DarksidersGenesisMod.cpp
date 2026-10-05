@@ -903,7 +903,7 @@ void HookAddJuice(void* hotStreakComponent, float amount) {
         if (localPlayer && owner == localPlayer) {
             float multiplier = g_config.hotstreakChargeMultiplier;
             if (multiplier < 0.10f) multiplier = 0.10f;
-            if (multiplier > 20.0f) multiplier = 20.0f;
+            if (multiplier > 25.0f) multiplier = 25.0f;
 
             effectiveAmount = amount * multiplier;
             if (effectiveAmount > 100000.0f) {
@@ -1130,7 +1130,7 @@ void ApplyPlayerMovementTunings(void* movementComponent) {
 
     BYTE* component = reinterpret_cast<BYTE*>(movementComponent);
 
-    float heightMultiplier = ClampFloat(g_config.jumpHeightMultiplier, 0.25f, 9.0f);
+    float heightMultiplier = ClampFloat(g_config.jumpHeightMultiplier, 0.25f, 5.0f);
     // Jump apex height is approximately proportional to velocity squared when
     // gravity is unchanged, so use sqrt(multiplier) for a true height scalar.
     const float velocityMultiplier = sqrtf(heightMultiplier);
@@ -2722,7 +2722,7 @@ void DrawOverlay() {
                 &g_config.jumpHeightEnabled,
                 &g_config.jumpHeightMultiplier,
                 0.50f,
-                3.00f,
+                5.00f,
                 "%.2fx",
                 g_movementHookReady.load()
                     ? "Runtime property hook | JumpZ + DoubleJumpZ"
@@ -2735,7 +2735,7 @@ void DrawOverlay() {
                 &g_config.glideDurationEnabled,
                 &g_config.glideDurationMultiplier,
                 0.50f,
-                5.00f,
+                10.00f,
                 "%.2fx",
                 g_movementHookReady.load()
                     ? "Runtime property hook | GlideDurationSeconds"
@@ -2772,7 +2772,7 @@ void DrawOverlay() {
                 &g_config.hotstreakChargeEnabled,
                 &g_config.hotstreakChargeMultiplier,
                 0.50f,
-                10.00f,
+                25.00f,
                 "%.2fx",
                 g_hotstreakHookReady.load()
                     ? "Runtime AddJuice hook | local positive gains"
