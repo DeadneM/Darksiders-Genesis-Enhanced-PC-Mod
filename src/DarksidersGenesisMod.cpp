@@ -22,7 +22,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.9B-crash-fix-jump-glide-only-test";
+constexpr const char* kBuild = "0.10A-hotstreak-charge-hook-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -40,6 +40,7 @@ using DashTickFn = void(*)(void*, float);
 using InputSuppressNotifyFn = void(*)(void*, void*, void*);
 using AbilityInterruptEnabledFn = bool(*)(void*, unsigned char);
 using AbilityActionEnabledFn = bool(*)(void*, unsigned char);
+using AddJuiceFn = void(*)(void*, float);
 
 PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
@@ -53,6 +54,7 @@ InputSuppressNotifyFn g_originalInputSuppressBegin = nullptr;
 InputSuppressNotifyFn g_originalInputSuppressEnd = nullptr;
 AbilityInterruptEnabledFn g_originalAbilityInterruptEnabled = nullptr;
 AbilityActionEnabledFn g_originalAbilityActionEnabled = nullptr;
+AddJuiceFn g_originalAddJuice = nullptr;
 
 ID3D11Device* g_device = nullptr;
 ID3D11DeviceContext* g_context = nullptr;
@@ -69,6 +71,10 @@ std::atomic_bool g_hudHidden{false};
 std::atomic_bool g_hudHookReady{false};
 std::atomic_bool g_movementHookReady{false};
 std::atomic_bool g_recoveryHookReady{false};
+std::atomic_bool g_hotstreakHookReady{false};
+std::atomic_int g_hotstreakBoostCalls{0};
+std::atomic<float> g_lastNativeJuiceGain{0.0f};
+std::atomic<float> g_lastBoostedJuiceGain{0.0f};
 std::atomic<void*> g_activeDashAbility{nullptr};
 std::atomic<float> g_dashElapsedSeconds{0.0f};
 std::atomic<float> g_lastNativeDashDuration{0.0f};
@@ -824,6 +830,152 @@ BYTE* FindAsciiString(const PeSectionView& section, const char* text) {
 bool AddressInSection(const PeSectionView& section, const void* address) {
     const BYTE* p = reinterpret_cast<const BYTE*>(address);
     return section.begin && p >= section.begin && p < section.begin + section.size;
+}
+
+
+BYTE* ResolveAddJuiceNative() {
+    PeSectionView text{};
+    if (!GetMainModuleSection(".text", text)) {
+        Log("Hotstreak hook: failed to enumerate .text");
+        return nullptr;
+    }
+
+    // UMayhem Hotstreak AddJuice native body.
+    //
+    // Audited native RVA: 0x660260
+    // The generated AddJuice exec wrapper passes Amount in XMM1 and calls this
+    // native function. The signature below is unique in the target EXE.
+    static constexpr int kPattern[] = {
+        0x48, 0x89, 0x5C, 0x24, 0x10,
+        0x48, 0x89, 0x6C, 0x24, 0x18,
+        0x57,
+        0x48, 0x81, 0xEC, 0xB0, 0x00, 0x00, 0x00,
+        0x48, 0x8B, 0xB9, 0xE8, 0x00, 0x00, 0x00,
+        0x48, 0x8B, 0xD9,
+        0x0F, 0x29, 0xBC, 0x24, 0x90, 0x00, 0x00, 0x00,
+        0x0F, 0x28, 0xF9
+    };
+
+    size_t matchCount = 0;
+    BYTE* target = FindUniquePattern(
+        text,
+        kPattern,
+        ARRAYSIZE(kPattern),
+        &matchCount
+    );
+
+    if (!target) {
+        Log("Hotstreak hook: AddJuice signature match count=%zu", matchCount);
+        return nullptr;
+    }
+
+    HMODULE module = GetModuleHandleW(nullptr);
+    BYTE* base = reinterpret_cast<BYTE*>(module);
+    Log(
+        "Hotstreak hook: AddJuice resolved RVA=0x%zX",
+        static_cast<size_t>(target - base)
+    );
+
+    return target;
+}
+
+void HookAddJuice(void* hotStreakComponent, float amount) {
+    if (!g_originalAddJuice) {
+        return;
+    }
+
+    float effectiveAmount = amount;
+
+    if (g_config.hotstreakChargeEnabled &&
+        hotStreakComponent &&
+        amount > 0.0f &&
+        amount < 100000.0f) {
+
+        // The audited AddJuice body immediately reads component+0xE8 and treats
+        // it as its owning player object. Compare it to the locally controlled
+        // player captured by CharacterMovement. No arbitrary owner dereference
+        // is required here.
+        void* owner = *reinterpret_cast<void**>(
+            reinterpret_cast<BYTE*>(hotStreakComponent) + 0xE8
+        );
+        void* localPlayer = g_localPlayerCharacter.load();
+
+        if (localPlayer && owner == localPlayer) {
+            const float multiplier = ClampFloat(
+                g_config.hotstreakChargeMultiplier,
+                0.10f,
+                20.0f
+            );
+
+            effectiveAmount = amount * multiplier;
+            if (effectiveAmount > 100000.0f) {
+                effectiveAmount = 100000.0f;
+            }
+
+            g_lastNativeJuiceGain.store(amount);
+            g_lastBoostedJuiceGain.store(effectiveAmount);
+
+            const int count = g_hotstreakBoostCalls.fetch_add(1) + 1;
+            if (count <= 30 || (count % 100) == 0) {
+                Log(
+                    "Hotstreak hook: AddJuice local gain %.3f -> %.3f (%.2fx) count=%d",
+                    amount,
+                    effectiveAmount,
+                    multiplier,
+                    count
+                );
+            }
+        }
+    }
+
+    g_originalAddJuice(hotStreakComponent, effectiveAmount);
+}
+
+bool InstallHotstreakChargeHook() {
+    BYTE* target = ResolveAddJuiceNative();
+    if (!target) {
+        Log("Hotstreak hook: resolver failed; feature remains fail-open");
+        return false;
+    }
+
+    const MH_STATUS initStatus = MH_Initialize();
+    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+        Log(
+            "Hotstreak hook: MinHook initialize FAILED status=%d",
+            static_cast<int>(initStatus)
+        );
+        return false;
+    }
+
+    MH_STATUS status = MH_CreateHook(
+        target,
+        reinterpret_cast<LPVOID>(&HookAddJuice),
+        reinterpret_cast<LPVOID*>(&g_originalAddJuice)
+    );
+
+    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
+        Log(
+            "Hotstreak hook: create FAILED status=%d",
+            static_cast<int>(status)
+        );
+        return false;
+    }
+
+    status = MH_EnableHook(target);
+    if (status != MH_OK && status != MH_ERROR_ENABLED) {
+        Log(
+            "Hotstreak hook: enable FAILED status=%d",
+            static_cast<int>(status)
+        );
+        return false;
+    }
+
+    g_hotstreakHookReady.store(true);
+    Log(
+        "Hotstreak hook: READY AddJuice positive local gains multiplier=%.3fx",
+        g_config.hotstreakChargeMultiplier
+    );
+    return true;
 }
 
 BYTE* ResolveMovementComponentGetMaxSpeedOverride() {
@@ -2624,8 +2776,21 @@ void DrawOverlay() {
                 0.50f,
                 10.00f,
                 "%.2fx",
-                "Pending hook | BaseJuice candidate"
+                g_hotstreakHookReady.load()
+                    ? "Runtime AddJuice hook | local positive gains"
+                    : "Native AddJuice hook unavailable"
             );
+
+            if (g_hotstreakHookReady.load()) {
+                ImGui::Indent();
+                ImGui::TextDisabled(
+                    "Boost calls: %d | Last gain %.2f -> %.2f",
+                    g_hotstreakBoostCalls.load(),
+                    g_lastNativeJuiceGain.load(),
+                    g_lastBoostedJuiceGain.load()
+                );
+                ImGui::Unindent();
+            }
 
             DrawSectionTitle("Horse");
 
@@ -3070,6 +3235,10 @@ DWORD WINAPI MainThread(LPVOID) {
 
     if (!InstallActionEnabledRecoveryDiagnostic()) {
         Log("Action Recovery V0.8 unavailable; other ASI features remain active.");
+    }
+
+    if (!InstallHotstreakChargeHook()) {
+        Log("Hotstreak Charge unavailable; other ASI features remain active.");
     }
 
     Log("Core initialization complete. Press %s after the first game frame.",
