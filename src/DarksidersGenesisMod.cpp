@@ -21,7 +21,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.6B-input-suppress-window-diagnostic";
+constexpr const char* kBuild = "0.7A-common-move-interrupt-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -37,6 +37,7 @@ using ActionGateFn = bool(*)(void*, unsigned char);
 using DashVoidFn = void(*)(void*);
 using DashTickFn = void(*)(void*, float);
 using InputSuppressNotifyFn = void(*)(void*, void*, void*);
+using AbilityInterruptEnabledFn = bool(*)(void*, unsigned char);
 
 PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
@@ -48,6 +49,7 @@ DashTickFn g_originalDashTick = nullptr;
 DashVoidFn g_originalDashFinish = nullptr;
 InputSuppressNotifyFn g_originalInputSuppressBegin = nullptr;
 InputSuppressNotifyFn g_originalInputSuppressEnd = nullptr;
+AbilityInterruptEnabledFn g_originalAbilityInterruptEnabled = nullptr;
 
 ID3D11Device* g_device = nullptr;
 ID3D11DeviceContext* g_context = nullptr;
@@ -69,6 +71,12 @@ std::atomic<float> g_dashElapsedSeconds{0.0f};
 std::atomic<float> g_lastNativeDashDuration{0.0f};
 std::atomic_bool g_dashEarlyUnlockApplied{false};
 std::atomic_int g_bypassedInputSuppressWindows{0};
+std::atomic_int g_moveInterruptQueries{0};
+std::atomic_int g_moveInterruptNativeBlocked{0};
+std::atomic_int g_moveInterruptForced{0};
+std::atomic<void*> g_lastMoveQueryAbility{nullptr};
+std::atomic_int g_lastMoveQueryState{-1};
+std::atomic<float> g_lastMoveQueryElapsed{0.0f};
 std::array<bool, 256> g_keyDown{};
 std::string g_lastAction = "None";
 
@@ -86,7 +94,7 @@ constexpr std::array<const char*, static_cast<size_t>(Action::Count)> kActionLab
     "None",
     "Toggle HUD",
     "Movement Speed",
-    "Dodge Recovery",
+    "Action Recovery",
     "Skip Intro Videos",
     "Third Person"
 };
@@ -1438,6 +1446,195 @@ bool InstallInputSuppressWindowHooks() {
     return true;
 }
 
+
+BYTE* ResolveAbilityInterruptEnabledNative() {
+    PeSectionView text{};
+    PeSectionView rdata{};
+    if (!GetMainModuleSection(".text", text) ||
+        !GetMainModuleSection(".rdata", rdata)) {
+        Log("Action Recovery: failed to enumerate PE sections");
+        return nullptr;
+    }
+
+    BYTE* name = FindAsciiString(rdata, "IsInterruptEnabled");
+    if (!name) {
+        Log("Action Recovery: IsInterruptEnabled string not found");
+        return nullptr;
+    }
+
+    static constexpr BYTE kNativePrefix[] = {
+        0x44, 0x0F, 0xB6, 0xC2,
+        0x41, 0x0F, 0xB6, 0xC0,
+        0x49, 0xC1, 0xE8, 0x06,
+        0x24, 0x3F,
+        0x0F, 0xB6, 0xD0,
+        0x4A, 0x8B, 0x84, 0xC1, 0xB0, 0x00, 0x00, 0x00
+    };
+
+    const uintptr_t nameVA = reinterpret_cast<uintptr_t>(name);
+    BYTE* native = nullptr;
+    size_t nativeCount = 0;
+
+    for (size_t i = 0; i + 16 <= rdata.size; i += sizeof(uintptr_t)) {
+        BYTE* entry = rdata.begin + i;
+        if (*reinterpret_cast<const uintptr_t*>(entry) != nameVA) {
+            continue;
+        }
+
+        BYTE* wrapper = reinterpret_cast<BYTE*>(
+            *reinterpret_cast<const uintptr_t*>(entry + sizeof(uintptr_t))
+        );
+        if (!AddressInSection(text, wrapper)) {
+            continue;
+        }
+
+        for (size_t j = 0; j + 5 <= 0x100; ++j) {
+            BYTE* p = wrapper + j;
+            if (!AddressInSection(text, p) || p[0] != 0xE8) {
+                continue;
+            }
+
+            const int32_t rel = *reinterpret_cast<const int32_t*>(p + 1);
+            BYTE* target = p + 5 + rel;
+            if (!AddressInSection(text, target)) {
+                continue;
+            }
+
+            if (memcmp(target, kNativePrefix, sizeof(kNativePrefix)) == 0) {
+                if (!native || native != target) {
+                    native = target;
+                    ++nativeCount;
+                }
+            }
+        }
+    }
+
+    if (!native || nativeCount != 1) {
+        Log("Action Recovery: native IsInterruptEnabled match count=%zu", nativeCount);
+        return nullptr;
+    }
+
+    HMODULE module = GetModuleHandleW(nullptr);
+    BYTE* base = reinterpret_cast<BYTE*>(module);
+    Log(
+        "Action Recovery: IsInterruptEnabled resolved RVA=0x%zX bitset=ability+0xB0 state=+0xD8 elapsed=+0xDC",
+        static_cast<size_t>(native - base)
+    );
+
+    return native;
+}
+
+const char* AbilityStateName(unsigned char state) {
+    switch (state) {
+    case 0: return "INITIALIZING";
+    case 1: return "STARTING";
+    case 2: return "RUNNING";
+    case 3: return "SUSPENDED";
+    case 4: return "AWAITING_FINISH";
+    case 5: return "FINISHED";
+    case 6: return "FINALIZED";
+    default: return "UNKNOWN";
+    }
+}
+
+bool HookAbilityInterruptEnabled(void* ability, unsigned char interrupt) {
+    const bool nativeEnabled = g_originalAbilityInterruptEnabled
+        ? g_originalAbilityInterruptEnabled(ability, interrupt)
+        : false;
+
+    // EAbilityInterrupt::MOVE is enum value 1 in the audited executable.
+    constexpr unsigned char kMoveInterrupt = 1;
+
+    if (!ability || interrupt != kMoveInterrupt) {
+        return nativeEnabled;
+    }
+
+    BYTE* object = reinterpret_cast<BYTE*>(ability);
+    const unsigned char state = *(object + 0xD8);
+    const float elapsed = *reinterpret_cast<float*>(object + 0xDC);
+
+    g_moveInterruptQueries.fetch_add(1);
+    g_lastMoveQueryElapsed.store(elapsed);
+
+    if (!nativeEnabled) {
+        g_moveInterruptNativeBlocked.fetch_add(1);
+    }
+
+    void* previousAbility = g_lastMoveQueryAbility.load();
+    const int previousState = g_lastMoveQueryState.load();
+
+    if (previousAbility != ability || previousState != static_cast<int>(state)) {
+        g_lastMoveQueryAbility.store(ability);
+        g_lastMoveQueryState.store(static_cast<int>(state));
+        Log(
+            "Action Recovery: MOVE query ability=%p state=%s(%u) elapsed=%.3f native=%d",
+            ability,
+            AbilityStateName(state),
+            static_cast<unsigned>(state),
+            elapsed,
+            nativeEnabled ? 1 : 0
+        );
+    }
+
+    if (!g_config.actionRecoveryEnabled || nativeEnabled) {
+        return nativeEnabled;
+    }
+
+    // The user-observed problem is a dead tail after the visible action has
+    // completed. AWAITING_FINISH is the common ability lifecycle state for that
+    // tail. Do not allow MOVE during STARTING/RUNNING, so attacks and actions
+    // cannot be cancelled prematurely.
+    if (state == 4) {
+        const int forced = g_moveInterruptForced.fetch_add(1) + 1;
+        if (forced <= 20 || (forced % 100) == 0) {
+            Log(
+                "Action Recovery: FORCE MOVE ability=%p state=AWAITING_FINISH elapsed=%.3f forcedCount=%d",
+                ability,
+                elapsed,
+                forced
+            );
+        }
+        return true;
+    }
+
+    return nativeEnabled;
+}
+
+bool InstallCommonActionRecoveryHook() {
+    BYTE* target = ResolveAbilityInterruptEnabledNative();
+    if (!target) {
+        Log("Action Recovery: resolver failed; feature remains fail-open");
+        return false;
+    }
+
+    const MH_STATUS initStatus = MH_Initialize();
+    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+        Log("Action Recovery: MinHook initialize FAILED status=%d", static_cast<int>(initStatus));
+        return false;
+    }
+
+    MH_STATUS status = MH_CreateHook(
+        target,
+        reinterpret_cast<LPVOID>(&HookAbilityInterruptEnabled),
+        reinterpret_cast<LPVOID*>(&g_originalAbilityInterruptEnabled)
+    );
+
+    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
+        Log("Action Recovery: create FAILED status=%d", static_cast<int>(status));
+        return false;
+    }
+
+    status = MH_EnableHook(target);
+    if (status != MH_OK && status != MH_ERROR_ENABLED) {
+        Log("Action Recovery: enable FAILED status=%d", static_cast<int>(status));
+        return false;
+    }
+
+    g_recoveryHookReady.store(true);
+    Log("Action Recovery: READY policy=force MOVE only in AWAITING_FINISH");
+    return true;
+}
+
 bool InstallHudHook() {
     BYTE* getter = ResolveHudHiddenGetter();
     if (!getter) {
@@ -1550,20 +1747,19 @@ void TriggerAction(Action action, int functionKey) {
 
     if (action == Action::ActionRecovery) {
         if (!g_recoveryHookReady.load()) {
-            g_lastAction = "Dodge Recovery [hook unavailable]";
-            Log("F%d -> Dodge Recovery ignored (native hook unavailable)", functionKey);
+            g_lastAction = "Action Recovery [hook unavailable]";
+            Log("F%d -> Action Recovery ignored (native hook unavailable)", functionKey);
             return;
         }
 
         g_config.actionRecoveryEnabled = !g_config.actionRecoveryEnabled;
         g_config.Save();
-        g_lastAction = std::string("Dodge Recovery ") +
+        g_lastAction = std::string("Action Recovery ") +
             (g_config.actionRecoveryEnabled ? "ON" : "OFF");
         Log(
-            "F%d -> Dodge Recovery %s earlyUnlock=%.0f ms",
+            "F%d -> Action Recovery %s policy=AWAITING_FINISH MOVE",
             functionKey,
-            g_config.actionRecoveryEnabled ? "ON" : "OFF",
-            g_config.dodgeEarlyUnlockMs
+            g_config.actionRecoveryEnabled ? "ON" : "OFF"
         );
         return;
     }
@@ -1907,16 +2103,16 @@ void DrawOverlay() {
                 ImGui::Unindent();
             }
 
-            if (ImGui::Checkbox("Dodge Recovery", &g_config.actionRecoveryEnabled)) {
+            if (ImGui::Checkbox("Action Recovery", &g_config.actionRecoveryEnabled)) {
                 g_config.Save();
-                g_lastAction = std::string("Dodge Recovery ") +
+                g_lastAction = std::string("Action Recovery ") +
                     (g_config.actionRecoveryEnabled ? "ON" : "OFF");
             }
             ImGui::SameLine(260.0f);
             ImGui::TextDisabled(
                 "%s",
                 g_recoveryHookReady.load()
-                    ? "DIAGNOSTIC: bypass UAnimNotify_InputSuppressWindow"
+                    ? "Common EAbilityInterrupt::MOVE tail cut"
                     : "Native hook unavailable"
             );
 
@@ -1924,13 +2120,24 @@ void DrawOverlay() {
                 ImGui::Indent();
                 ImGui::TextDisabled("F3 toggles");
                 ImGui::TextWrapped(
-                    "V0.6B diagnostic: completely bypasses the animation-driven input-suppression "
-                    "window. If dodge recovery changes now, this proves the real blocker."
+                    "V0.7A allows MOVE only while the active ability is AWAITING_FINISH. "
+                    "RUNNING actions remain non-cancellable."
                 );
                 ImGui::TextDisabled(
-                    "Active bypassed windows: %d",
-                    g_bypassedInputSuppressWindows.load()
+                    "MOVE queries: %d | Native blocked: %d | Forced: %d",
+                    g_moveInterruptQueries.load(),
+                    g_moveInterruptNativeBlocked.load(),
+                    g_moveInterruptForced.load()
                 );
+                const int state = g_lastMoveQueryState.load();
+                if (state >= 0) {
+                    ImGui::TextDisabled(
+                        "Last state: %s (%d) | elapsed %.3f s",
+                        AbilityStateName(static_cast<unsigned char>(state)),
+                        state,
+                        g_lastMoveQueryElapsed.load()
+                    );
+                }
                 ImGui::Unindent();
             }
 
@@ -1939,7 +2146,7 @@ void DrawOverlay() {
 
             ImGui::Spacing();
             ImGui::TextDisabled(
-                "Toggle HUD and Movement Speed remain; Dodge Recovery V0.6B is a diagnostic InputSuppressWindow bypass."
+                "V0.7A tests the common ability lifecycle: MOVE is forced only during AWAITING_FINISH."
             );
             ImGui::EndTabItem();
         }
@@ -2007,9 +2214,9 @@ void DrawOverlay() {
             ImGui::TextWrapped("Size: 62,113,280 bytes");
             ImGui::Spacing();
             ImGui::TextWrapped(
-                "Toggle HUD uses ui.HideHud. Movement Speed hooks AMayhemCharacter::GetMaxSpeed. "
-                "Action Recovery hooks the UMayhemPlayerAbilityComponent MOVE gate and temporarily "
-                "scales MoveInterruptDelaySec only while the native action check is running."
+                "Toggle HUD uses ui.HideHud. Movement Speed hooks the Mayhem CharacterMovement "
+                "GetMaxSpeed override. Action Recovery hooks UMayhemAbility::IsInterruptEnabled "
+                "and permits EAbilityInterrupt::MOVE only in AWAITING_FINISH."
             );
             ImGui::EndTabItem();
         }
@@ -2273,8 +2480,8 @@ DWORD WINAPI MainThread(LPVOID) {
         Log("Movement Speed unavailable; other ASI features remain active.");
     }
 
-    if (!InstallInputSuppressWindowHooks()) {
-        Log("Dodge Recovery diagnostic unavailable; other ASI features remain active.");
+    if (!InstallCommonActionRecoveryHook()) {
+        Log("Action Recovery unavailable; other ASI features remain active.");
     }
 
     Log("Core initialization complete. Press %s after the first game frame.",
