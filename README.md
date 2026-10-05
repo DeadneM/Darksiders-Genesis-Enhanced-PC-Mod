@@ -1311,3 +1311,217 @@ reference PAKs:
 
 These pending controls are configuration/UI infrastructure only until their
 runtime hooks are validated.
+
+
+## V0.9A — Jump / Glide / Horse Sprint Duration Hooks
+
+**Status: TEST CANDIDATE**
+
+V0.9A starts converting the reference-PAK findings into real runtime hooks.
+
+### Reflection offsets recovered from the executable
+
+The UE4 generated property parameter tables in the audited executable expose the
+actual runtime offsets:
+
+```text
+UCharacterMovementComponent
+  JumpZVelocity                                      +0x1A0
+
+UMayhemPlayerCharacterMovementComponent
+  DoubleJumpZVelocity                                +0x85C
+  GlideDurationSeconds                               +0x86C
+
+AMayhemHorseCharacter
+  StaminaRecoveryPercentageRate                     +0x910
+  StaminaTotalRecoveryPercentageRate                +0x914
+  StaminaSprintPercentageRate                       +0x918
+```
+
+These offsets are derived from the generated reflection metadata for the target
+executable, not guessed from community SDK layouts.
+
+### Runtime application model
+
+The already-installed
+`UMayhemCharacterMovementComponent::GetMaxSpeed` hook is used as a safe
+game-thread heartbeat.
+
+For each local movement component, V0.9A captures the original values once and
+then applies or restores the selected settings.
+
+This means disabling an option restores the value that the game instance
+originally had instead of hardcoding one character's defaults.
+
+### Jump Height
+
+New active control:
+
+```text
+Jump Height [ON/OFF]
+0.50x .. 3.00x
+```
+
+Targets:
+
+```text
+JumpZVelocity
+DoubleJumpZVelocity
+```
+
+Because ballistic jump height is approximately proportional to vertical
+velocity squared when gravity is unchanged, V0.9A uses:
+
+```text
+velocity multiplier = sqrt(height multiplier)
+```
+
+This keeps the user-facing value closer to an actual height multiplier.
+
+### Glide / Flight Duration
+
+New option:
+
+```text
+Glide / Flight Duration [ON/OFF]
+0.50x .. 5.00x
+```
+
+Target:
+
+```text
+GlideDurationSeconds +0x86C
+```
+
+The original per-character duration is captured at runtime, so Strife and War
+can retain different vanilla durations while receiving the same multiplier.
+
+Default:
+
+```ini
+GlideDuration=1
+GlideDurationMultiplier=1.500
+```
+
+### Horse Sprint Duration
+
+The reference horse PAK proved that sprint duration is directly controlled by
+stamina drain:
+
+```text
+StaminaSprintPercentageRate
+```
+
+The example mod changes the observed vanilla value:
+
+```text
+25.0 -> 0.0
+```
+
+V0.9A implements a tunable duration multiplier without forcing infinite sprint:
+
+```text
+effective stamina drain = original drain / duration multiplier
+```
+
+Examples for an original drain of 25:
+
+```text
+1.00x -> 25.0
+2.00x -> 12.5
+5.00x -> 5.0
+10.0x -> 2.5
+```
+
+Disabling the option restores the captured original drain.
+
+### UI state
+
+The Gameplay page now contains active runtime controls for:
+
+- Jump Height
+- Glide / Flight Duration
+- Horse Sprint Duration
+
+Other roadmap controls remain visible and persistent but are still marked
+`Pending hook` until their runtime implementation lands.
+
+**Validation:** awaiting in-game V0.9A test.
+
+
+## V0.9B — Crash fix / Jump + Glide only
+
+**Status: TEST CANDIDATE**
+
+V0.9A is **REJECTED** because it crashes during level loading.
+
+Crash evidence from the supplied UE4 crash package:
+
+```text
+Crashed thread: GameThread
+Module frame: DarksidersGenesisMod + 0x3676
+```
+
+Disassembly of the exact V0.9A ASI maps RVA `0x3676` to:
+
+```asm
+movss xmm0, dword ptr [rbx + 0x918]
+```
+
+That instruction is the V0.9A read of:
+
+```text
+AMayhemHorseCharacter::StaminaSprintPercentageRate
+```
+
+inside `FindOrCaptureHorseState`.
+
+The unsafe assumption was:
+
+```text
+AMayhemPlayerCharacter + 0xE70
+    == stable live AMayhemHorseCharacter pointer
+```
+
+The crash proves that assumption is false in at least some loading/runtime
+states.
+
+### V0.9B correction
+
+The entire direct horse-pointer tuning path is removed.
+
+V0.9B keeps active only:
+
+```text
+Jump Height
+Glide / Flight Duration
+```
+
+Horse Sprint Duration remains visible/configurable but is marked pending until a
+safe horse-instance resolver is established from an actual horse component /
+ability path.
+
+No read or write to `horse + 0x918` occurs in V0.9B.
+
+**Validation:** **VALIDATED IN GAME.** User confirmed V0.9B works correctly after removing the unsafe horse pointer path.
+
+
+### V0.9B validation result
+
+User validation:
+
+```text
+"nickel"
+```
+
+Confirmed:
+
+- level loading no longer crashes;
+- the V0.9A horse pointer crash path is removed;
+- Jump Height remains usable;
+- Glide / Flight Duration remains usable.
+
+V0.9B therefore becomes the new validated base for the movement/glide branch.
+
+Horse Sprint Duration remains pending until a safe horse-instance resolver is
+found.

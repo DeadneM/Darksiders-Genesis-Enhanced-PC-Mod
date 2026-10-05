@@ -17,11 +17,12 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 #include <cstdio>
 #include <cstring>
 #include <cwchar>
+#include <cmath>
 #include <string>
 
 namespace {
 
-constexpr const char* kBuild = "0.8B-safe-tail-ui-test";
+constexpr const char* kBuild = "0.9B-crash-fix-jump-glide-only-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -89,6 +90,17 @@ std::atomic_int g_lastActionMoveState{-1};
 std::atomic<float> g_lastActionMoveElapsed{0.0f};
 std::atomic<void*> g_recoveryTailAbility{nullptr};
 std::atomic<float> g_recoveryTailStartElapsed{0.0f};
+
+struct PlayerMovementTuningState {
+    void* component = nullptr;
+    float jumpZVelocity = 0.0f;
+    float doubleJumpZVelocity = 0.0f;
+    float glideDurationSeconds = 0.0f;
+};
+
+SRWLOCK g_tuningLock = SRWLOCK_INIT;
+std::array<PlayerMovementTuningState, 4> g_playerMovementStates{};
+
 std::array<bool, 256> g_keyDown{};
 std::string g_lastAction = "None";
 
@@ -352,6 +364,7 @@ struct Config {
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
     bool jumpHeightEnabled = true;
+    bool glideDurationEnabled = true;
     bool horseSpeedEnabled = true;
     bool horseSprintSpeedEnabled = true;
     bool horseSprintDurationEnabled = true;
@@ -366,6 +379,7 @@ struct Config {
     float pistolDamageMultiplier = 2.00f;
     float meleeDamageMultiplier = 2.00f;
     float jumpHeightMultiplier = 1.25f;
+    float glideDurationMultiplier = 1.50f;
     float horseSpeedMultiplier = 1.25f;
     float horseSprintSpeedMultiplier = 1.25f;
     float horseSprintDurationMultiplier = 2.00f;
@@ -414,6 +428,7 @@ struct Config {
         pistolDamageEnabled = true;
         meleeDamageEnabled = true;
         jumpHeightEnabled = true;
+        glideDurationEnabled = true;
         horseSpeedEnabled = true;
         horseSprintSpeedEnabled = true;
         horseSprintDurationEnabled = true;
@@ -427,6 +442,7 @@ struct Config {
         pistolDamageMultiplier = 2.00f;
         meleeDamageMultiplier = 2.00f;
         jumpHeightMultiplier = 1.25f;
+        glideDurationMultiplier = 1.50f;
         horseSpeedMultiplier = 1.25f;
         horseSprintSpeedMultiplier = 1.25f;
         horseSprintDurationMultiplier = 2.00f;
@@ -471,6 +487,7 @@ struct Config {
         pistolDamageEnabled = ReadBool(L"Features", L"PistolDamage", true, g_iniPath);
         meleeDamageEnabled = ReadBool(L"Features", L"MeleeDamage", true, g_iniPath);
         jumpHeightEnabled = ReadBool(L"Features", L"JumpHeight", true, g_iniPath);
+        glideDurationEnabled = ReadBool(L"Features", L"GlideDuration", true, g_iniPath);
         horseSpeedEnabled = ReadBool(L"Features", L"HorseSpeed", true, g_iniPath);
         horseSprintSpeedEnabled = ReadBool(L"Features", L"HorseSprintSpeed", true, g_iniPath);
         horseSprintDurationEnabled = ReadBool(L"Features", L"HorseSprintDuration", true, g_iniPath);
@@ -484,6 +501,7 @@ struct Config {
         pistolDamageMultiplier = ReadFloat(L"Values", L"PistolDamageMultiplier", 2.00f, g_iniPath);
         meleeDamageMultiplier = ReadFloat(L"Values", L"MeleeDamageMultiplier", 2.00f, g_iniPath);
         jumpHeightMultiplier = ReadFloat(L"Values", L"JumpHeightMultiplier", 1.25f, g_iniPath);
+        glideDurationMultiplier = ReadFloat(L"Values", L"GlideDurationMultiplier", 1.50f, g_iniPath);
         horseSpeedMultiplier = ReadFloat(L"Values", L"HorseSpeedMultiplier", 1.25f, g_iniPath);
         horseSprintSpeedMultiplier = ReadFloat(L"Values", L"HorseSprintSpeedMultiplier", 1.25f, g_iniPath);
         horseSprintDurationMultiplier = ReadFloat(L"Values", L"HorseSprintDurationMultiplier", 2.00f, g_iniPath);
@@ -527,6 +545,7 @@ struct Config {
         WriteBool(L"Features", L"PistolDamage", pistolDamageEnabled, g_iniPath);
         WriteBool(L"Features", L"MeleeDamage", meleeDamageEnabled, g_iniPath);
         WriteBool(L"Features", L"JumpHeight", jumpHeightEnabled, g_iniPath);
+        WriteBool(L"Features", L"GlideDuration", glideDurationEnabled, g_iniPath);
         WriteBool(L"Features", L"HorseSpeed", horseSpeedEnabled, g_iniPath);
         WriteBool(L"Features", L"HorseSprintSpeed", horseSprintSpeedEnabled, g_iniPath);
         WriteBool(L"Features", L"HorseSprintDuration", horseSprintDurationEnabled, g_iniPath);
@@ -540,6 +559,7 @@ struct Config {
         WriteFloat(L"Values", L"PistolDamageMultiplier", pistolDamageMultiplier, g_iniPath);
         WriteFloat(L"Values", L"MeleeDamageMultiplier", meleeDamageMultiplier, g_iniPath);
         WriteFloat(L"Values", L"JumpHeightMultiplier", jumpHeightMultiplier, g_iniPath);
+        WriteFloat(L"Values", L"GlideDurationMultiplier", glideDurationMultiplier, g_iniPath);
         WriteFloat(L"Values", L"HorseSpeedMultiplier", horseSpeedMultiplier, g_iniPath);
         WriteFloat(L"Values", L"HorseSprintSpeedMultiplier", horseSprintSpeedMultiplier, g_iniPath);
         WriteFloat(L"Values", L"HorseSprintDurationMultiplier", horseSprintDurationMultiplier, g_iniPath);
@@ -877,12 +897,119 @@ bool IsLocallyControlledMayhemCharacter(void* character) {
     return fn(character);
 }
 
+float ClampFloat(float value, float minValue, float maxValue) {
+    if (value < minValue) return minValue;
+    if (value > maxValue) return maxValue;
+    return value;
+}
+
+bool IsReasonablePositiveFloat(float value, float minValue, float maxValue) {
+    return value >= minValue && value <= maxValue;
+}
+
+PlayerMovementTuningState* FindOrCapturePlayerMovementState(void* movementComponent) {
+    if (!movementComponent) {
+        return nullptr;
+    }
+
+    for (auto& state : g_playerMovementStates) {
+        if (state.component == movementComponent) {
+            return &state;
+        }
+    }
+
+    BYTE* component = reinterpret_cast<BYTE*>(movementComponent);
+
+    // Offsets recovered directly from UE4 generated reflection property params
+    // in the audited executable:
+    // UCharacterMovementComponent::JumpZVelocity                 +0x1A0
+    // UMayhemPlayerCharacterMovementComponent::DoubleJumpZVelocity +0x85C
+    // UMayhemPlayerCharacterMovementComponent::GlideDurationSeconds +0x86C
+    const float jumpZ = *reinterpret_cast<float*>(component + 0x1A0);
+    const float doubleJumpZ = *reinterpret_cast<float*>(component + 0x85C);
+    const float glideDuration = *reinterpret_cast<float*>(component + 0x86C);
+
+    if (!IsReasonablePositiveFloat(jumpZ, 100.0f, 10000.0f) ||
+        !IsReasonablePositiveFloat(doubleJumpZ, 100.0f, 10000.0f) ||
+        !IsReasonablePositiveFloat(glideDuration, 0.05f, 60.0f)) {
+        Log(
+            "Runtime tuning: movement capture rejected component=%p jump=%.3f double=%.3f glide=%.3f",
+            movementComponent,
+            jumpZ,
+            doubleJumpZ,
+            glideDuration
+        );
+        return nullptr;
+    }
+
+    PlayerMovementTuningState* slot = nullptr;
+    for (auto& state : g_playerMovementStates) {
+        if (!state.component) {
+            slot = &state;
+            break;
+        }
+    }
+    if (!slot) {
+        slot = &g_playerMovementStates[0];
+    }
+
+    slot->component = movementComponent;
+    slot->jumpZVelocity = jumpZ;
+    slot->doubleJumpZVelocity = doubleJumpZ;
+    slot->glideDurationSeconds = glideDuration;
+
+    Log(
+        "Runtime tuning: captured movement component=%p JumpZ=%.3f DoubleJumpZ=%.3f GlideDuration=%.3f",
+        movementComponent,
+        jumpZ,
+        doubleJumpZ,
+        glideDuration
+    );
+
+    return slot;
+}
+
+void ApplyPlayerMovementTunings(void* movementComponent) {
+    AcquireSRWLockExclusive(&g_tuningLock);
+
+    PlayerMovementTuningState* state = FindOrCapturePlayerMovementState(movementComponent);
+    if (!state) {
+        ReleaseSRWLockExclusive(&g_tuningLock);
+        return;
+    }
+
+    BYTE* component = reinterpret_cast<BYTE*>(movementComponent);
+
+    float heightMultiplier = ClampFloat(g_config.jumpHeightMultiplier, 0.25f, 9.0f);
+    // Jump apex height is approximately proportional to velocity squared when
+    // gravity is unchanged, so use sqrt(multiplier) for a true height scalar.
+    const float velocityMultiplier = sqrtf(heightMultiplier);
+
+    *reinterpret_cast<float*>(component + 0x1A0) =
+        g_config.jumpHeightEnabled
+            ? state->jumpZVelocity * velocityMultiplier
+            : state->jumpZVelocity;
+
+    *reinterpret_cast<float*>(component + 0x85C) =
+        g_config.jumpHeightEnabled
+            ? state->doubleJumpZVelocity * velocityMultiplier
+            : state->doubleJumpZVelocity;
+
+    const float glideMultiplier = ClampFloat(g_config.glideDurationMultiplier, 0.25f, 10.0f);
+    *reinterpret_cast<float*>(component + 0x86C) =
+        g_config.glideDurationEnabled
+            ? state->glideDurationSeconds * glideMultiplier
+            : state->glideDurationSeconds;
+
+    ReleaseSRWLockExclusive(&g_tuningLock);
+}
+
 float HookCharacterGetMaxSpeed(void* movementComponent) {
     const float nativeSpeed = g_originalCharacterGetMaxSpeed
         ? g_originalCharacterGetMaxSpeed(movementComponent)
         : 0.0f;
 
-    if (nativeSpeed <= 0.0f || !movementComponent) {
+    if (!movementComponent) {
         return nativeSpeed;
     }
 
@@ -896,7 +1023,13 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
 
     g_localPlayerCharacter.store(characterOwner);
 
-    if (!g_config.movementSpeedEnabled) {
+    // This frequently-called physics virtual is our game-thread heartbeat for
+    // player movement property tuning. Horse tuning was removed in V0.9B after
+    // crash analysis proved Player+0xE70 is not a stable AMayhemHorseCharacter
+    // pointer across level-loading/runtime states.
+    ApplyPlayerMovementTunings(movementComponent);
+
+    if (!g_config.movementSpeedEnabled || nativeSpeed <= 0.0f) {
         return nativeSpeed;
     }
 
@@ -907,10 +1040,7 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         return nativeSpeed;
     }
 
-    float multiplier = g_config.movementSpeedMultiplier;
-    if (multiplier < 0.10f) multiplier = 0.10f;
-    if (multiplier > 5.00f) multiplier = 5.00f;
-
+    float multiplier = ClampFloat(g_config.movementSpeedMultiplier, 0.10f, 5.00f);
     return nativeSpeed * multiplier;
 }
 
@@ -2444,7 +2574,22 @@ void DrawOverlay() {
                 0.50f,
                 3.00f,
                 "%.2fx",
-                "Pending hook | Blueprint targets recovered"
+                g_movementHookReady.load()
+                    ? "Runtime property hook | JumpZ + DoubleJumpZ"
+                    : "Native movement hook unavailable"
+            );
+
+            DrawTunableFeature(
+                "Glide / Flight Duration",
+                "GlideDuration",
+                &g_config.glideDurationEnabled,
+                &g_config.glideDurationMultiplier,
+                0.50f,
+                5.00f,
+                "%.2fx",
+                g_movementHookReady.load()
+                    ? "Runtime property hook | GlideDurationSeconds"
+                    : "Native movement hook unavailable"
             );
 
             DrawSectionTitle("Combat");
@@ -2514,7 +2659,7 @@ void DrawOverlay() {
                 0.50f,
                 10.00f,
                 "%.2fx",
-                "Pending hook | StaminaSprintPercentageRate"
+                "Pending safe horse-instance resolver | V0.9A direct pointer path rejected"
             );
 
             DrawSectionTitle("Camera");
@@ -2657,9 +2802,9 @@ void DrawOverlay() {
             );
             ImGui::Spacing();
             ImGui::TextWrapped(
-                "Reference PAK audits recovered concrete targets for jump, horse movement/stamina, "
-                "projectile damage and Hotstreak/juice. Pending options are already configurable "
-                "and persisted so their runtime hooks can be added without redesigning the UI."
+                "Reference PAK audits recovered concrete targets for jump, glide, horse stamina, "
+                "projectile damage and Hotstreak/juice. V0.9B keeps Jump Height and Glide Duration "
+                "active; Horse Sprint Duration is temporarily disabled until a safe horse-instance resolver is proven."
             );
             ImGui::EndTabItem();
         }
