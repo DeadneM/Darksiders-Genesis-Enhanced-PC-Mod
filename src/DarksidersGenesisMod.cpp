@@ -4116,7 +4116,9 @@ void DrawOverlay() {
                 0.00f,
                 3.00f,
                 "%.2fx",
-                "Pending hook | MaxWalkSpeed"
+                g_horseSpeedHookReady.load()
+                    ? "Validated horse GetMaxSpeed | normal-speed branch"
+                    : "Waiting for validated mount"
             );
 
             DrawTunableFeature(
@@ -4127,7 +4129,9 @@ void DrawOverlay() {
                 0.00f,
                 3.00f,
                 "%.2fx",
-                "Pending hook | Sprint ability"
+                g_horseSpeedHookReady.load()
+                    ? "Validated horse GetMaxSpeed | sprint branch"
+                    : "Waiting for validated mount"
             );
 
             DrawTunableFeature(
@@ -4138,8 +4142,34 @@ void DrawOverlay() {
                 0.00f,
                 10.00f,
                 "%.2fx",
-                "Pending safe horse-instance resolver | V0.9A direct pointer path rejected"
+                g_horseRuntimeReady.load()
+                    ? "Validated StaminaSprintPercentageRate runtime control"
+                    : "Waiting for validated mount"
             );
+
+            ImGui::Indent();
+            ImGui::TextDisabled(
+                "Horse runtime: %s | CharacterMovement offset: 0x%zX",
+                g_horseRuntimeReady.load() ? "VALIDATED" : "waiting",
+                g_characterMovementMemberOffset.load() >= 0
+                    ? static_cast<size_t>(g_characterMovementMemberOffset.load())
+                    : static_cast<size_t>(0)
+            );
+            ImGui::TextDisabled(
+                "Speed %.1f -> %.1f | class: %s | baseline %.1f",
+                g_lastHorseNativeSpeed.load(),
+                g_lastHorseEffectiveSpeed.load(),
+                g_lastHorseSpeedClassifiedSprint.load() ? "SPRINT" : "NORMAL",
+                g_horseNormalSpeedBaseline.load()
+            );
+            ImGui::TextDisabled(
+                "Sprint stamina drain %.3f -> %.3f | validation OK %d / reject %d",
+                g_lastHorseNativeSprintDrain.load(),
+                g_lastHorseEffectiveSprintDrain.load(),
+                g_horseValidationSuccesses.load(),
+                g_horseValidationRejects.load()
+            );
+            ImGui::Unindent();
 
             DrawSectionTitle("Camera");
 
@@ -4569,6 +4599,10 @@ DWORD WINAPI MainThread(LPVOID) {
 
     if (!InstallMovementSpeedHook()) {
         Log("Movement Speed unavailable; other ASI features remain active.");
+    }
+
+    if (!InstallSafeHorseRuntimeHook()) {
+        Log("Horse runtime unavailable; horse features remain fail-open.");
     }
 
     if (!InstallActionEnabledRecoveryDiagnostic()) {
