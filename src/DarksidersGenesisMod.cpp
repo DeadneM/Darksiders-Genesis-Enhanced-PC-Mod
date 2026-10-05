@@ -129,6 +129,8 @@ struct PlayerMovementTuningState {
 SRWLOCK g_tuningLock = SRWLOCK_INIT;
 std::array<PlayerMovementTuningState, 4> g_playerMovementStates{};
 
+bool IsLocallyControlledMayhemCharacter(void* character);
+
 std::array<bool, 256> g_keyDown{};
 std::string g_lastAction = "None";
 
