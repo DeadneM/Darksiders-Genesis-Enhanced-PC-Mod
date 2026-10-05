@@ -2277,14 +2277,58 @@ bool InitializeImGui(IDXGISwapChain* swapChain) {
     return true;
 }
 
-void DrawFeatureRow(const char* label, bool* enabled, const char* note) {
-    ImGui::Checkbox(label, enabled);
-    ImGui::SameLine(260.0f);
+void DrawTunableFeature(
+    const char* label,
+    const char* id,
+    bool* enabled,
+    float* value,
+    float minValue,
+    float maxValue,
+    const char* format,
+    const char* note
+) {
+    if (ImGui::Checkbox(label, enabled)) {
+        g_config.Save();
+    }
+
+    ImGui::SameLine(310.0f);
+    ImGui::TextDisabled("%s", note);
+
+    if (*enabled) {
+        ImGui::Indent();
+        ImGui::SetNextItemWidth(280.0f);
+        std::string sliderLabel = std::string("Value##") + id;
+        if (ImGui::SliderFloat(
+            sliderLabel.c_str(),
+            value,
+            minValue,
+            maxValue,
+            format
+        )) {
+            g_config.Save();
+        }
+        ImGui::Unindent();
+    }
+}
+
+void DrawToggleFeature(const char* label, bool* enabled, const char* note) {
+    if (ImGui::Checkbox(label, enabled)) {
+        g_config.Save();
+    }
+    ImGui::SameLine(310.0f);
     ImGui::TextDisabled("%s", note);
 }
 
+void DrawSectionTitle(const char* title) {
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Text("%s", title);
+    ImGui::Separator();
+    ImGui::Spacing();
+}
+
 void DrawOverlay() {
-    ImGui::SetNextWindowSize(ImVec2(780.0f, 570.0f), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(840.0f, 720.0f), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowPos(ImVec2(80.0f, 80.0f), ImGuiCond_FirstUseEver);
 
     bool open = true;
@@ -2303,61 +2347,15 @@ void DrawOverlay() {
     ImGui::Separator();
 
     if (ImGui::BeginTabBar("MainTabs")) {
-        if (ImGui::BeginTabItem("General")) {
+        if (ImGui::BeginTabItem("Gameplay")) {
             ImGui::Spacing();
-            ImGui::Text("Renderer");
-            ImGui::BulletText("DXGI proxy loader: active");
-            ImGui::BulletText("D3D11 Present hook: active");
-            ImGui::BulletText("Mouse capture: active while menu is open");
-            ImGui::BulletText("F1-F12 gameplay input: suppressed while menu is open");
 
-            ImGui::Spacing();
-            ImGui::Text("Menu");
-            ImGui::Text("Open / close key: %s", menuKeyName.c_str());
-            ImGui::SameLine(280.0f);
-            if (g_captureMenuKey.load()) {
-                ImGui::TextDisabled("Press a key...  Esc = cancel");
-            } else if (ImGui::Button("Rebind Menu Key", ImVec2(150.0f, 0.0f))) {
-                g_captureMenuKey.store(true);
-                g_lastAction = "Waiting for new menu key";
-                Log("Menu key capture started");
-            }
+            DrawSectionTitle("Player");
 
-            ImGui::Spacing();
-            ImGui::Text("Configuration");
-            if (ImGui::Button("Save", ImVec2(110.0f, 0.0f))) {
+            if (ImGui::Checkbox("Toggle HUD", &g_config.toggleHudEnabled)) {
                 g_config.Save();
-                g_lastAction = "Configuration saved";
             }
-            ImGui::SameLine();
-            if (ImGui::Button("Reload", ImVec2(110.0f, 0.0f))) {
-                g_config.Load();
-                g_lastAction = "Configuration reloaded";
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Reset Defaults", ImVec2(140.0f, 0.0f))) {
-                g_config.ResetDefaults(true);
-                g_hudHidden.store(false);
-                g_lastAction = "Defaults restored";
-            }
-
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::TextWrapped(
-                "V0.5 is cumulative: overlay foundation, rebindable menu key, native Toggle HUD, "
-                "player-only Movement Speed, plus Action Recovery. Recovery scales only the native "
-                "MOVE interrupt delay and leaves animations and all other action checks untouched."
-            );
-            ImGui::EndTabItem();
-        }
-
-        if (ImGui::BeginTabItem("Features")) {
-            ImGui::Spacing();
-            ImGui::Text("Default policy: all requested features are enabled.");
-            ImGui::Spacing();
-
-            ImGui::Checkbox("Toggle HUD", &g_config.toggleHudEnabled);
-            ImGui::SameLine(260.0f);
+            ImGui::SameLine(310.0f);
             ImGui::TextDisabled(
                 "%s",
                 g_hudHookReady.load()
@@ -2377,59 +2375,50 @@ void DrawOverlay() {
                 ImGui::TextDisabled("F1 default");
                 ImGui::Unindent();
             }
-            if (ImGui::Checkbox("Movement Speed", &g_config.movementSpeedEnabled)) {
-                g_config.Save();
-                g_lastAction = std::string("Movement Speed ") +
-                    (g_config.movementSpeedEnabled ? "ON" : "OFF");
-            }
-            ImGui::SameLine(260.0f);
-            ImGui::TextDisabled(
-                "%s",
+
+            DrawTunableFeature(
+                "Movement Speed",
+                "MovementSpeed",
+                &g_config.movementSpeedEnabled,
+                &g_config.movementSpeedMultiplier,
+                0.50f,
+                3.00f,
+                "%.2fx",
                 g_movementHookReady.load()
-                    ? "MovementComponent virtual GetMaxSpeed hook"
+                    ? "Runtime hook active"
                     : "Native hook unavailable"
             );
-
-            if (g_config.movementSpeedEnabled) {
-                ImGui::Indent();
-                ImGui::SetNextItemWidth(260.0f);
-                if (ImGui::SliderFloat(
-                    "Multiplier##Movement",
-                    &g_config.movementSpeedMultiplier,
-                    1.00f,
-                    2.50f,
-                    "%.2fx"
-                )) {
-                    g_config.Save();
-                }
-                ImGui::SameLine();
-                ImGui::TextDisabled("F2 toggles");
-                ImGui::TextDisabled("Walking/NavWalking only; physics virtual slot 0x3D0.");
-                ImGui::Unindent();
-            }
 
             if (ImGui::Checkbox("Action Recovery", &g_config.actionRecoveryEnabled)) {
                 g_config.Save();
                 g_lastAction = std::string("Action Recovery ") +
                     (g_config.actionRecoveryEnabled ? "ON" : "OFF");
             }
-            ImGui::SameLine(260.0f);
+            ImGui::SameLine(310.0f);
             ImGui::TextDisabled(
                 "%s",
                 g_recoveryHookReady.load()
-                    ? "DIAGNOSTIC: force AllowedActions MOVE for local player"
+                    ? "AllowedActions MOVE, tail-only safety"
                     : "Native hook unavailable"
             );
 
             if (g_config.actionRecoveryEnabled) {
                 ImGui::Indent();
-                ImGui::TextDisabled("F3 toggles");
-                ImGui::TextWrapped(
-                    "V0.8A forces ECharacterActions::MOVE when the local player's active ability "
-                    "blocks it. This is intentionally aggressive to prove or reject AllowedActionsFlags."
+                ImGui::SetNextItemWidth(280.0f);
+                if (ImGui::SliderFloat(
+                    "Recovery Delay##ActionRecovery",
+                    &g_config.actionRecoveryDelayMs,
+                    0.0f,
+                    500.0f,
+                    "%.0f ms"
+                )) {
+                    g_config.Save();
+                }
+                ImGui::TextDisabled(
+                    "MOVE is never forced during STARTING/RUNNING. Only AWAITING_FINISH is shortened."
                 );
                 ImGui::TextDisabled(
-                    "MOVE queries: %d | Local: %d | Native blocked: %d | Forced: %d",
+                    "Queries %d | Local %d | Blocked %d | Forced %d",
                     g_actionMoveQueries.load(),
                     g_actionMoveLocalQueries.load(),
                     g_actionMoveNativeBlocked.load(),
@@ -2438,32 +2427,171 @@ void DrawOverlay() {
                 const int state = g_lastActionMoveState.load();
                 if (state >= 0) {
                     ImGui::TextDisabled(
-                        "Last local ability: %s (%d) | elapsed %.3f s",
+                        "Last ability: %s (%d) | elapsed %.3f s",
                         AbilityStateName(static_cast<unsigned char>(state)),
                         state,
                         g_lastActionMoveElapsed.load()
                     );
-                } else if (!g_localPlayerCharacter.load()) {
-                    ImGui::TextDisabled("Local player pointer: waiting for CharacterMovement...");
                 }
                 ImGui::Unindent();
             }
 
-            DrawFeatureRow("Skip Intro Videos", &g_config.skipIntroEnabled, "UE4 MoviePlayer audit started");
-            DrawFeatureRow("Third Person", &g_config.thirdPersonEnabled, "Camera hook pending");
+            DrawTunableFeature(
+                "Jump Height",
+                "JumpHeight",
+                &g_config.jumpHeightEnabled,
+                &g_config.jumpHeightMultiplier,
+                0.50f,
+                3.00f,
+                "%.2fx",
+                "Pending hook | Blueprint targets recovered"
+            );
+
+            DrawSectionTitle("Combat");
+
+            DrawTunableFeature(
+                "Pistol Damage",
+                "PistolDamage",
+                &g_config.pistolDamageEnabled,
+                &g_config.pistolDamageMultiplier,
+                0.50f,
+                10.00f,
+                "%.2fx",
+                "Pending hook | Projectile Damage"
+            );
+
+            DrawTunableFeature(
+                "Melee Damage",
+                "MeleeDamage",
+                &g_config.meleeDamageEnabled,
+                &g_config.meleeDamageMultiplier,
+                0.50f,
+                10.00f,
+                "%.2fx",
+                "Pending hook | BaseDamage path"
+            );
+
+            DrawTunableFeature(
+                "Hotstreak Charge",
+                "HotstreakCharge",
+                &g_config.hotstreakChargeEnabled,
+                &g_config.hotstreakChargeMultiplier,
+                0.50f,
+                10.00f,
+                "%.2fx",
+                "Pending hook | BaseJuice candidate"
+            );
+
+            DrawSectionTitle("Horse");
+
+            DrawTunableFeature(
+                "Horse Speed",
+                "HorseSpeed",
+                &g_config.horseSpeedEnabled,
+                &g_config.horseSpeedMultiplier,
+                0.50f,
+                3.00f,
+                "%.2fx",
+                "Pending hook | MaxWalkSpeed"
+            );
+
+            DrawTunableFeature(
+                "Horse Sprint Speed",
+                "HorseSprintSpeed",
+                &g_config.horseSprintSpeedEnabled,
+                &g_config.horseSprintSpeedMultiplier,
+                0.50f,
+                3.00f,
+                "%.2fx",
+                "Pending hook | Sprint ability"
+            );
+
+            DrawTunableFeature(
+                "Horse Sprint Duration",
+                "HorseSprintDuration",
+                &g_config.horseSprintDurationEnabled,
+                &g_config.horseSprintDurationMultiplier,
+                0.50f,
+                10.00f,
+                "%.2fx",
+                "Pending hook | StaminaSprintPercentageRate"
+            );
+
+            DrawSectionTitle("Camera");
+
+            DrawTunableFeature(
+                "FOV",
+                "FOV",
+                &g_config.fovEnabled,
+                &g_config.fovDegrees,
+                60.0f,
+                140.0f,
+                "%.0f deg",
+                "Pending camera hook"
+            );
+
+            DrawTunableFeature(
+                "Third Person",
+                "ThirdPerson",
+                &g_config.thirdPersonEnabled,
+                &g_config.thirdPersonDistanceMultiplier,
+                0.50f,
+                3.00f,
+                "%.2fx",
+                "Pending camera hook | distance"
+            );
+
+            DrawSectionTitle("System");
+
+            DrawToggleFeature(
+                "Skip Intro Videos",
+                &g_config.skipIntroEnabled,
+                "Pending UE4 MoviePlayer hook"
+            );
 
             ImGui::Spacing();
             ImGui::TextDisabled(
-                "V0.8A tests the AllowedActionsFlags path: local-player MOVE is forced when native code blocks it."
+                "Checkboxes and values are authoritative and persisted to DarksidersGenesisMod.ini."
             );
+
             ImGui::EndTabItem();
         }
 
         if (ImGui::BeginTabItem("Hotkeys")) {
             ImGui::Spacing();
+
+            ImGui::Text("Menu key");
+            ImGui::Text("Open / close: %s", menuKeyName.c_str());
+            ImGui::SameLine(280.0f);
+            if (g_captureMenuKey.load()) {
+                ImGui::TextDisabled("Press a key...  Esc = cancel");
+            } else if (ImGui::Button("Rebind Menu Key", ImVec2(160.0f, 0.0f))) {
+                g_captureMenuKey.store(true);
+                g_lastAction = "Waiting for new menu key";
+                Log("Menu key capture started");
+            }
+
+            ImGui::Spacing();
+            if (ImGui::Button("Save", ImVec2(110.0f, 0.0f))) {
+                g_config.Save();
+                g_lastAction = "Configuration saved";
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Reload", ImVec2(110.0f, 0.0f))) {
+                g_config.Load();
+                g_lastAction = "Configuration reloaded";
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Reset Defaults", ImVec2(140.0f, 0.0f))) {
+                g_config.ResetDefaults(true);
+                g_hudHidden.store(false);
+                g_lastAction = "Defaults restored";
+            }
+
+            DrawSectionTitle("F1-F12");
+
             ImGui::TextWrapped(
-                "F1-F12 are fixed physical slots, Q Protocol style. "
-                "Each slot can be reassigned to any mod action or None."
+                "Each physical F-key slot can be reassigned to any implemented mod action or None."
             );
             ImGui::Spacing();
 
@@ -2492,6 +2620,7 @@ void DrawOverlay() {
                             const bool selected = current == a;
                             if (ImGui::Selectable(kActionLabels[static_cast<size_t>(a)], selected)) {
                                 g_config.hotkeys[static_cast<size_t>(i)] = static_cast<Action>(a);
+                                g_config.Save();
                             }
                             if (selected) {
                                 ImGui::SetItemDefaultFocus();
@@ -2514,7 +2643,7 @@ void DrawOverlay() {
             ImGui::Text("Darksiders Genesis Enhanced - experimental ASI core");
             ImGui::Spacing();
             ImGui::TextWrapped(
-                "Target executable audited for this branch: DarksidersGenesis-Win64-Shipping.exe"
+                "Target executable: DarksidersGenesis-Win64-Shipping.exe"
             );
             ImGui::TextWrapped(
                 "SHA-256: 9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54"
@@ -2522,9 +2651,15 @@ void DrawOverlay() {
             ImGui::TextWrapped("Size: 62,113,280 bytes");
             ImGui::Spacing();
             ImGui::TextWrapped(
-                "Toggle HUD uses ui.HideHud. Movement Speed hooks the Mayhem CharacterMovement "
-                "GetMaxSpeed override. V0.8 Action Recovery hooks UMayhemAbility::IsActionEnabled "
-                "and diagnoses ECharacterActions::MOVE / AllowedActionsFlags for the local player."
+                "V0.8B keeps AllowedActions/MOVE as the proven recovery path but no longer "
+                "forces MOVE during RUNNING abilities. The chest interaction regression from "
+                "V0.8A is specifically protected by the tail-only policy."
+            );
+            ImGui::Spacing();
+            ImGui::TextWrapped(
+                "Reference PAK audits recovered concrete targets for jump, horse movement/stamina, "
+                "projectile damage and Hotstreak/juice. Pending options are already configurable "
+                "and persisted so their runtime hooks can be added without redesigning the UI."
             );
             ImGui::EndTabItem();
         }
