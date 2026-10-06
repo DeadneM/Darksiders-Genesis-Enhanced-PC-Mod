@@ -12,9 +12,11 @@ be resumed later without reconstructing decisions from chat history.
 > Public `main` currently tracks the validated **V0.13B ASI base**.
 > **V0.14A is rejected** because it failed to identify the mounted horse.
 > **V0.14B is rejected for horse-speed control** because user testing produced
-> no perceptible horse acceleration. V0.14C now tests the direct movement
-> properties proven by the reference Horse PAK, without touching the canonical
-> V0.13B base.
+> no perceptible horse acceleration.
+> **V0.14C is rejected as a runtime test** because its IsHorseActive resolver
+> matched zero functions at startup, so none of the direct horse movement code
+> ever executed. V0.14D removes that resolver dependency while keeping the
+> still-unvalidated direct MaxWalkSpeed / MaxAcceleration experiment.
 
 ---
 
@@ -2445,5 +2447,116 @@ Additional V0.14C rejection reasons:
 10 direct movement values outside horse-specific range
 11 MaxWalkSpeed / MaxAcceleration not writable
 ```
+
+**Validation:** **REJECTED AS A RUNTIME TEST.**
+
+User feedback:
+
+```text
+Horse speed still does not change.
+```
+
+The supplied V0.14C log explains why this result does **not** invalidate the
+direct MaxWalkSpeed / MaxAcceleration path:
+
+```text
+Horse runtime: IsHorseActive signature match count=0
+Horse runtime: IsHorseActive resolver failed; horse features remain fail-open
+Horse runtime unavailable; horse features remain fail-open
+```
+
+No later `mounted`, `VALIDATED`, `MaxWalkSpeed`, or horse rejection-reason
+telemetry appears. Therefore V0.14C never reached horse discovery or any direct
+movement write.
+
+The same log also exposed excessive repeated diagnostics:
+
+```text
+Horse runtime: CharacterMovement member discovery ambiguous matches=2
+```
+
+This repeated thousands of times and is treated as a logging bug.
+
+
+
+
+## V0.14D - Horse Heartbeat Resolver Fix
+
+**Status: TEST CANDIDATE**
+
+V0.14D fixes the root cause proven by the V0.14C runtime log.
+
+### Remove the failed IsHorseActive byte hook
+
+The audited native logic is still:
+
+```text
+AMayhemPlayerCharacter::IsHorseActive
+    Player + 0xE70 != nullptr
+```
+
+V0.14A-C tried to locate and hook a tiny compiled helper implementing that
+check. In the actual V0.14C session the resolver returned zero signature
+matches, disabling all horse features before gameplay.
+
+V0.14D no longer installs or requires that hook.
+
+Instead, the already validated
+`UMayhemCharacterMovementComponent::GetMaxSpeed` hook acts as a GameThread
+heartbeat. From the last known locally controlled player it safely reads:
+
+```text
+Player + 0xE70
+```
+
+and derives the same mounted state directly:
+
+```text
+null     -> unmounted
+non-null -> mounted candidate present
+```
+
+The pointer remains an opaque candidate only. It is never trusted as a horse
+actor until the full structural validation chain passes.
+
+### Discovery sequence
+
+While mounted, V0.14D:
+
+1. reads the opaque candidate from `Player+0xE70`;
+2. scans that candidate for a unique movement-like member;
+3. requires `movement+0x190 -> CharacterOwner == candidate`;
+4. validates MovementMode and executable GetMaxSpeed vtable target;
+5. validates horse stamina fields;
+6. validates the direct movement property candidates;
+7. only then captures and modifies the horse.
+
+The V0.14B movement-owner fallback remains available as a second path.
+
+### Direct speed experiment retained
+
+Because V0.14C never executed the horse code, these candidates remain
+**unvalidated rather than rejected**:
+
+```text
+MaxWalkSpeed    +0x1D4
+MaxAcceleration +0x1E8
+```
+
+If V0.14D reaches validation, the overlay/log should finally expose the native
+and applied values and provide a real in-game test of this path.
+
+### Logging cleanup
+
+The log remains truncated at every game launch.
+
+V0.14D additionally suppresses per-frame diagnostic floods:
+
+- ambiguous CharacterMovement member count is logged only when the count changes;
+- rejected non-player movement captures have a small per-session log budget;
+- horse rejection reasons still log only when the reason changes.
+
+This keeps the current-session log useful instead of producing tens of
+thousands of duplicate lines.
 
 **Validation:** awaiting in-game test.
