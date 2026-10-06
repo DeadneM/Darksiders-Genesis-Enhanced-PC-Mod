@@ -8,7 +8,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 1806;
+constexpr int kConfigRevision = 1807;
 
 bool ReadBool(
     const wchar_t* section,
@@ -442,7 +442,7 @@ bool Store::Load() {
         skipLogosEnabled = true;
         skipIntroEnabled = true;
         SaveNow();
-        Log("INI migrated V0.18F -> Skip Logos ON, Skip Intro ON");
+        Log("INI migrated V0.18G -> Skip Logos ON, Skip Intro ON");
         return true;
     }
 
@@ -501,7 +501,7 @@ bool Store::SaveNow() {
     WritePrivateProfileStringW(
         L"Meta",
         L"ConfigRevision",
-        L"1806",
+        L"1807",
         path_.c_str()
     );
 
