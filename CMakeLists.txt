@@ -61,6 +61,7 @@ add_library(DarksidersGenesisMod SHARED
   src/DarksidersGenesisMod.cpp
   src/HorseFeature.cpp
   src/PlayerIdentity.cpp
+  src/RuntimeSettings.cpp
   src/TargetValidator.cpp
 )
 target_compile_definitions(DarksidersGenesisMod PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
