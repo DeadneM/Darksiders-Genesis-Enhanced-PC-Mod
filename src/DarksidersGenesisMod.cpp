@@ -22,7 +22,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.14E-ui-defaults-jump20-test";
+constexpr const char* kBuild = "0.14F-safe-horse-diagnostics-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -146,6 +146,10 @@ std::atomic_int g_horseValidationSuccesses{0};
 std::atomic_int g_horseValidationRejects{0};
 std::atomic_int g_lastMovementMemberMatchCount{-1};
 std::atomic_int g_movementCaptureRejectLogBudget{12};
+std::atomic<unsigned long long> g_lastHorseDiscoveryAttemptTick{0};
+std::atomic<unsigned long long> g_lastHorseRejectLogTick{0};
+std::atomic_int g_horseRejectsSuppressed{0};
+std::atomic_int g_lastHorseDiscoveryMatchCount{-1};
 
 struct PlayerMovementTuningState {
     void* component = nullptr;
@@ -2228,6 +2232,7 @@ bool FindHorseMovementFromUntrustedCandidate(
     void* found = nullptr;
     size_t foundOffset = 0;
     int distinctMatches = 0;
+    size_t diagnosticOffsets[4]{};
 
     // V0.14A incorrectly required the horse movement pointer to live at the
     // same member offset as the player movement pointer. V0.14B instead scans
@@ -2283,16 +2288,30 @@ bool FindHorseMovementFromUntrustedCandidate(
 
         found = maybeMovement;
         foundOffset = offset;
-        ++distinctMatches;
-
-        if (distinctMatches > 1) {
-            return false;
+        if (distinctMatches < 4) {
+            diagnosticOffsets[distinctMatches] = offset;
         }
+        ++distinctMatches;
     }
 
     if (distinctMatches != 1 || !found) {
+        const int previousMatches =
+            g_lastHorseDiscoveryMatchCount.exchange(distinctMatches);
+        if (previousMatches != distinctMatches) {
+            Log(
+                "Horse discovery snapshot: movement-like matches=%d "
+                "firstOffsets=[0x%zX,0x%zX,0x%zX,0x%zX]",
+                distinctMatches,
+                diagnosticOffsets[0],
+                diagnosticOffsets[1],
+                diagnosticOffsets[2],
+                diagnosticOffsets[3]
+            );
+        }
         return false;
     }
+
+    g_lastHorseDiscoveryMatchCount.store(1);
 
     *outMovement = found;
     *outOffset = foundOffset;
@@ -2301,10 +2320,28 @@ bool FindHorseMovementFromUntrustedCandidate(
 
 void NoteHorseValidationReject(int reason, const char* text) {
     g_horseValidationRejects.fetch_add(1);
-    const int previous = g_lastHorseRejectReason.exchange(reason);
-    if (previous != reason) {
-        Log("Horse runtime: candidate rejected reason=%d (%s)", reason, text ? text : "unknown");
+    g_lastHorseRejectReason.store(reason);
+
+    const unsigned long long now = GetTickCount64();
+    unsigned long long last = g_lastHorseRejectLogTick.load();
+
+    if (last != 0 && now - last < 1000ULL) {
+        g_horseRejectsSuppressed.fetch_add(1);
+        return;
     }
+
+    if (!g_lastHorseRejectLogTick.compare_exchange_strong(last, now)) {
+        g_horseRejectsSuppressed.fetch_add(1);
+        return;
+    }
+
+    const int suppressed = g_horseRejectsSuppressed.exchange(0);
+    Log(
+        "Horse runtime: candidate rejected reason=%d (%s) suppressed=%d",
+        reason,
+        text ? text : "unknown",
+        suppressed
+    );
 }
 
 bool ValidateHorseFromMovementPath(void* candidateHorse, void* horseMovement) {
@@ -2478,11 +2515,9 @@ void RefreshHorseRuntimeFromLocalPlayer(void* player) {
         return;
     }
 
-    // AMayhemPlayerCharacter::IsHorseActive was audited as a simple
-    // Player+0xE70 != nullptr test. V0.14A-C tried to hook that tiny helper,
-    // but V0.14C runtime logs proved the byte signature did not resolve in the
-    // retail executable. V0.14D performs the same native state test directly
-    // from the already validated movement hook on the GameThread.
+    // The audited IsHorseActive state is equivalent to Player+0xE70 != null.
+    // Keep this read cheap on the shared movement heartbeat, but NEVER run the
+    // expensive candidate scan every GetMaxSpeed call.
     void* opaqueCandidate = nullptr;
     const bool active =
         SafeReadPointer(player, 0xE70, &opaqueCandidate) &&
@@ -2492,6 +2527,9 @@ void RefreshHorseRuntimeFromLocalPlayer(void* player) {
     const bool previous = g_nativeHorseActive.exchange(active);
 
     if (!active) {
+        g_lastHorseDiscoveryAttemptTick.store(0);
+        g_lastHorseDiscoveryMatchCount.store(-1);
+
         if (previous || g_validatedHorseCharacter.load()) {
             Log("Horse runtime: local player unmounted -> restoring captured horse state");
             RestoreHorseRuntimeState();
@@ -2499,11 +2537,44 @@ void RefreshHorseRuntimeFromLocalPlayer(void* player) {
         return;
     }
 
+    const unsigned long long now = GetTickCount64();
+
     if (!previous) {
+        g_lastHorseDiscoveryAttemptTick.store(0);
+        g_lastHorseDiscoveryMatchCount.store(-1);
+
+        float recovery = 0.0f;
+        float totalRecovery = 0.0f;
+        float sprintDrain = 0.0f;
+        const bool staminaReadable =
+            SafeReadFloat(opaqueCandidate, 0x910, &recovery) &&
+            SafeReadFloat(opaqueCandidate, 0x914, &totalRecovery) &&
+            SafeReadFloat(opaqueCandidate, 0x918, &sprintDrain);
+
         Log(
-            "Horse runtime: mounted state detected from Player+0xE70; "
-            "starting safe mount discovery"
+            "Horse runtime: mounted state detected from Player+0xE70 "
+            "candidate=%p staminaReadable=%d raw=[%.3f,%.3f,%.3f]",
+            opaqueCandidate,
+            staminaReadable ? 1 : 0,
+            recovery,
+            totalRecovery,
+            sprintDrain
         );
+    }
+
+    if (g_validatedHorseMovement.load()) {
+        // A validated horse is re-applied at most once per second below.
+    }
+
+    // V0.14E proved that scanning on every shared GetMaxSpeed call can generate
+    // hundreds of thousands of rejects. Throttle all horse discovery/work to
+    // one attempt per second.
+    unsigned long long lastAttempt = g_lastHorseDiscoveryAttemptTick.load();
+    if (lastAttempt != 0 && now - lastAttempt < 1000ULL) {
+        return;
+    }
+    if (!g_lastHorseDiscoveryAttemptTick.compare_exchange_strong(lastAttempt, now)) {
+        return;
     }
 
     if (g_validatedHorseMovement.load()) {
@@ -2511,9 +2582,6 @@ void RefreshHorseRuntimeFromLocalPlayer(void* player) {
         return;
     }
 
-    // The pointer remains only an opaque candidate. No horse field is trusted
-    // until the candidate exposes exactly one movement-like component whose
-    // CharacterOwner points back to it and passes all structural/range checks.
     void* horseMovement = nullptr;
     size_t horseMovementOffset = 0;
 
@@ -2811,19 +2879,10 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         return ApplyHorseSpeedPolicy(movementComponent, nativeSpeed);
     }
 
-    // When mounted, observe other movement owners reaching this real
-    // GetMaxSpeed hook. This remains a second discovery path if the opaque
-    // Player+0xE70 candidate does not expose a uniquely discoverable component.
-    localPlayer = g_localPlayerCharacter.load();
-    if (g_nativeHorseActive.load() &&
-        localPlayer &&
-        characterOwner != localPlayer) {
-        if (ValidateHorseFromMovementPath(characterOwner, movementComponent)) {
-            return ApplyHorseSpeedPolicy(movementComponent, nativeSpeed);
-        }
-
-        return nativeSpeed;
-    }
+    // V0.14E's broad mounted-time fallback treated every non-local movement
+    // owner that reached this shared hook as a potential horse. That produced
+    // reason=3 / reason=7 storms and massive synchronous log I/O. V0.14F only
+    // accepts the structurally validated object reached from Player+0xE70.
 
     if (!IsLocallyControlledMayhemCharacter(characterOwner)) {
         return nativeSpeed;
