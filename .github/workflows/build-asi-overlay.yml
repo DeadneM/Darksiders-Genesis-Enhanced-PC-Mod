@@ -45,17 +45,18 @@ jobs:
           Copy-Item "config/DarksidersGenesisMod.ini" $dist
           Copy-Item "README.md" $dist
 
-          $zip = Join-Path $PWD "DarksidersGenesis_ASI_V0.14D_HORSE_HEARTBEAT_FIX_TEST.zip"
-          if (Test-Path $zip) { Remove-Item $zip -Force }
-          Compress-Archive -Path "$dist\*" -DestinationPath $zip -CompressionLevel Optimal
-
           Get-FileHash "build/out/dxgi.dll" -Algorithm SHA256
           Get-FileHash "build/out/DarksidersGenesisMod.asi" -Algorithm SHA256
-          Get-FileHash $zip -Algorithm SHA256
+          Get-FileHash "config/DarksidersGenesisMod.ini" -Algorithm SHA256
+          Get-FileHash "README.md" -Algorithm SHA256
 
       - name: Upload test build
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_ASI_V0.14D_HORSE_HEARTBEAT_FIX_TEST
-          path: DarksidersGenesis_ASI_V0.14D_HORSE_HEARTBEAT_FIX_TEST.zip
+          name: DarksidersGenesis_ASI_V0.14E_UI_DEFAULTS_JUMP20_TEST
+          path: |
+            dist/dxgi.dll
+            dist/DarksidersGenesisMod.asi
+            dist/DarksidersGenesisMod.ini
+            dist/README.md
           if-no-files-found: error
