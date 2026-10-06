@@ -592,3 +592,60 @@ independently through `g.PlayIntroCinematicOnBoot`.
 Next Skip Logos work must begin from fresh native analysis of the actual company
 logo playback path rather than another timing variation of the rejected
 `SetupLoadingScreenFromIni` route.
+
+
+## V0.18H - CustomSplashScreen branch bypass
+
+V0.18G proved that the MoviePlayer `SetupLoadingScreenFromIni` path was not the
+source of the visible THQ Nordic / Airship Syndicate logos: the exact target was
+validated and patched before game startup, yet both logos still appeared.
+
+A deeper audit of the surrounding `FEngineLoop::PreInitPostStartupScreen`
+control flow identified the second startup-screen path:
+
+```text
+GetMoviePlayer()->HasEarlyStartupMovie()
+    YES -> Initialize -> PlayEarlyStartupMovies()
+    NO  -> FPreLoadScreenManager
+           -> HasRegisteredPreLoadScreenType(CustomSplashScreen)
+           -> PlayFirstPreLoadScreen(CustomSplashScreen)
+```
+
+The executable's `EarlyStartupMovie` block matches the Unreal startup flow:
+when no early MoviePlayer startup movie owns the screen, the engine falls back
+to a registered `CustomSplashScreen`.
+
+Exact retail call-site:
+
+```text
+RVA 0x002535DE  test al, al
+RVA 0x002535E0  74 0F     je skip_custom_splash
+...
+RVA 0x002535EB  call FPreLoadScreenManager::PlayFirstPreLoadScreen
+```
+
+V0.18H owns one primitive only:
+
+```text
+dxgi.dll DllMain
+    -> validate PE64 + SizeOfImage 0x03DDF000
+    -> validate exact surrounding bytes
+    -> Skip Logos ON:
+       RVA 0x2535E0  74 -> EB
+       always skip PlayFirstPreLoadScreen(CustomSplashScreen)
+    -> Skip Logos OFF:
+       restore 74
+```
+
+No MoviePlayer setup patch, file hook, media hook, Game.ini override, MinHook,
+thread or fallback tree is active for Skip Logos.
+
+This follows the lesson from the validated POSTAL startup-logo fix: target the
+actual early startup-screen state/control path rather than the eventual media
+file open.
+
+Skip Intro remains fully independent on the validated native
+`g.PlayIntroCinematicOnBoot` path.
+
+Config revision `1808` resets `SkipLogos` and `SkipIntroVideos` to ON once
+when upgrading from older test builds.
