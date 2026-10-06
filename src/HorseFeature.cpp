@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cstdarg>
 #include <cmath>
 #include <cstdio>
 
