@@ -52,7 +52,7 @@ jobs:
       - name: Upload test build
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_ASI_V0.18H_CUSTOM_SPLASH_BYPASS_TEST
+          name: DarksidersGenesis_ASI_V0.18I_EARLY_STARTUP_SCREEN_BYPASS_TEST
           path: |
             dist/dxgi.dll
             dist/DarksidersGenesisMod.asi
