@@ -211,10 +211,6 @@ void LogCandidateOnce(
     void* owner,
     float nativeGetMaxSpeed
 ) {
-    if (!MarkCandidateForSingleSnapshot(movement)) {
-        return;
-    }
-
     float jumpZ = 0.0f;
     float maxWalkSpeed = 0.0f;
     float maxAcceleration = 0.0f;
@@ -235,6 +231,19 @@ void LogCandidateOnce(
         ReadFloat(owner, kStaminaRecoveryOffset, recovery) &&
         ReadFloat(owner, kStaminaTotalRecoveryOffset, totalRecovery) &&
         ReadFloat(owner, kStaminaSprintDrainOffset, sprintDrain);
+
+    // Do not spend the finite diagnostic budget on unrelated movement
+    // components. The broad range still comfortably contains the proven
+    // horse defaults 1300 / 600.
+    if (!walkOk ||
+        !accelerationOk ||
+        maxWalkSpeed < 800.0f ||
+        maxWalkSpeed > 1800.0f ||
+        maxAcceleration < 250.0f ||
+        maxAcceleration > 1600.0f ||
+        !MarkCandidateForSingleSnapshot(movement)) {
+        return;
+    }
 
     FeatureLog(
         "HorseFeature: candidate movement=%p owner=%p native=%.1f "
@@ -274,6 +283,37 @@ void PublishCleared() {
 
 void RestoreLocked() {
     if (!g_horse.captured) {
+        return;
+    }
+
+    void* ownerBack = nullptr;
+    float currentWalk = 0.0f;
+    float currentAcceleration = 0.0f;
+    float currentDrain = 0.0f;
+
+    const bool stillSameHorse =
+        ReadAt(
+            g_horse.movement,
+            kCharacterOwnerOffset,
+            ownerBack) &&
+        ownerBack == g_horse.owner &&
+        ReadFloat(
+            g_horse.movement,
+            kMaxWalkSpeedOffset,
+            currentWalk) &&
+        ReadFloat(
+            g_horse.movement,
+            kMaxAccelerationOffset,
+            currentAcceleration) &&
+        ReadFloat(
+            g_horse.owner,
+            kStaminaSprintDrainOffset,
+            currentDrain);
+
+    if (!stillSameHorse) {
+        FeatureLog(
+            "HorseFeature: restore skipped; captured object identity no longer valid"
+        );
         return;
     }
 
