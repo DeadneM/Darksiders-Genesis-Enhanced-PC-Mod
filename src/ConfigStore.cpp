@@ -280,6 +280,7 @@ void Store::ResetDefaults(bool persist) {
     toggleHudEnabled = true;
     movementSpeedEnabled = true;
     actionRecoveryEnabled = true;
+    skipLogosEnabled = true;
     skipIntroEnabled = true;
     thirdPersonEnabled = false;
     pistolDamageEnabled = true;
@@ -353,6 +354,8 @@ bool Store::Load() {
         ReadBool(L"Features", L"MovementSpeed", true, path_);
     actionRecoveryEnabled =
         ReadBool(L"Features", L"ActionRecovery", true, path_);
+    skipLogosEnabled =
+        ReadBool(L"Features", L"SkipLogos", true, path_);
     skipIntroEnabled =
         ReadBool(L"Features", L"SkipIntroVideos", true, path_);
     thirdPersonEnabled =
@@ -485,6 +488,7 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"ToggleHUD", toggleHudEnabled, path_);
     WriteBool(L"Features", L"MovementSpeed", movementSpeedEnabled, path_);
     WriteBool(L"Features", L"ActionRecovery", actionRecoveryEnabled, path_);
+    WriteBool(L"Features", L"SkipLogos", skipLogosEnabled, path_);
     WriteBool(L"Features", L"SkipIntroVideos", skipIntroEnabled, path_);
     WriteBool(L"Features", L"ThirdPerson", thirdPersonEnabled, path_);
     WriteBool(L"Features", L"PistolDamage", pistolDamageEnabled, path_);
