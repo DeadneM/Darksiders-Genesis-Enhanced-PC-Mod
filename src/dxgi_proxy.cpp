@@ -7,7 +7,8 @@ static HMODULE g_self = nullptr;
 static HMODULE g_realDxgi = nullptr;
 static INIT_ONCE g_dxgiOnce = INIT_ONCE_STATIC_INIT;
 static INIT_ONCE g_asiOnce = INIT_ONCE_STATIC_INIT;
-static wchar_t g_earlyCommandLine[16384]{};
+constexpr std::size_t kEarlyCommandLineCapacity = 16384;
+static wchar_t g_earlyCommandLine[kEarlyCommandLineCapacity]{};
 
 static bool InjectNoStartupMoviesFlagEarly() {
 #if defined(_M_X64)
@@ -25,13 +26,13 @@ static bool InjectNoStartupMoviesFlagEarly() {
     const std::size_t currentChars =
         static_cast<std::size_t>(commandLine.Length / sizeof(wchar_t));
 
-    if (currentChars + 2 >= _countof(g_earlyCommandLine)) {
+    if (currentChars + 2 >= kEarlyCommandLineCapacity) {
         return false;
     }
 
     wcsncpy_s(
         g_earlyCommandLine,
-        _countof(g_earlyCommandLine),
+        kEarlyCommandLineCapacity,
         commandLine.Buffer,
         currentChars
     );
@@ -39,18 +40,18 @@ static bool InjectNoStartupMoviesFlagEarly() {
     if (wcsstr(g_earlyCommandLine, flag) == nullptr) {
         const std::size_t flagChars = wcslen(flag);
         const std::size_t required = currentChars + 1 + flagChars + 1;
-        if (required >= _countof(g_earlyCommandLine)) {
+        if (required >= kEarlyCommandLineCapacity) {
             return false;
         }
 
         wcscat_s(
             g_earlyCommandLine,
-            _countof(g_earlyCommandLine),
+            kEarlyCommandLineCapacity,
             L" "
         );
         wcscat_s(
             g_earlyCommandLine,
-            _countof(g_earlyCommandLine),
+            kEarlyCommandLineCapacity,
             flag
         );
     }
