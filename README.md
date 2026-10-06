@@ -2796,3 +2796,69 @@ telemetry.
 - all previously validated non-horse hooks.
 
 **Validation:** awaiting in-game test.
+
+
+## V0.15B - Native Horse Base Hook + Early StartupMovies Flag
+
+**Status: TEST CANDIDATE**
+
+V0.15A proved two things in the runtime log:
+
+- the exact file-access Skip Logos module installed but never saw the two logo
+  movie files;
+- the player `UMayhemCharacterMovementComponent::GetMaxSpeed` hook did not
+  receive horse movement calls.
+
+V0.15B removes both dead-end assumptions.
+
+### Skip Logos
+
+The old `StartupMoviesFeature` file-hook module is removed completely.
+
+The DXGI proxy now injects:
+
+```text
+-nostartupmovies
+```
+
+into the process command line during `DLL_PROCESS_ATTACH`, before the game
+executable entry point and before UE4 `FEngineLoop::PreInit`.
+
+This is intentionally a proof build. The early flag is forced ON in V0.15B so
+we can validate the native UE4 StartupMovies path before reintroducing a
+config-aware boot toggle.
+
+The ASI logs whether the process command line still contains the flag.
+
+### Horse Speed
+
+HorseFeature no longer consumes the player movement hook and no longer uses
+`Player+0xE70`.
+
+It now resolves the base `UCharacterMovementComponent::GetMaxSpeed` directly
+from the target executable by requiring a unique function that reads both:
+
+```text
+MovementMode  +0x1B0
+MaxWalkSpeed +0x1D4
+```
+
+The resolver is fail-open: zero or multiple matches means no hook is installed.
+
+Once the base hook is active, a movement component is accepted as the horse
+only when all of the following are simultaneously true:
+
+```text
+CharacterOwner back-pointer valid
+MovementMode sane
+MaxWalkSpeed      near 1300
+MaxAcceleration   near 600
+Horse stamina fields +0x910/+0x914/+0x918 sane
+```
+
+Only then are the native values captured and Horse Speed / Horse Sprint
+Duration applied. There is no actor scan and no fallback tree.
+
+Horse Sprint Speed remains pending its separate `RunSpeed` primitive.
+
+**Validation:** awaiting in-game test.
