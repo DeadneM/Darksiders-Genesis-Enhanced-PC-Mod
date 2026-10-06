@@ -394,3 +394,52 @@ After that migration, user choices persist normally.
 Skip Logos changes require a game restart because UE4 reads StartupMovies during
 boot. Skip Intro remains the independent validated native
 `g.PlayIntroCinematicOnBoot` control.
+
+
+## V0.18E - Early global file-block test
+
+V0.18D UE4 `Game.ini` StartupMovies override is rejected after in-game testing:
+the override is written successfully but both company logos are still displayed.
+
+V0.18E returns to the original file-block idea, but moves it earlier and makes
+it process-wide.
+
+Single path:
+
+```text
+first DXGI factory call
+    -> outside DllMain
+    -> before ASI loading
+    -> MinHook KernelBase!CreateFileW
+    -> exact basenames only:
+       THQ_LogoBasic.mp4
+       AS_LogoBasic.mp4
+    -> ERROR_FILE_NOT_FOUND
+```
+
+This differs from V0.18/V0.18B:
+
+- no main-EXE IAT patch;
+- no Game.ini override;
+- no Media Foundation hook;
+- no extra fallback tree.
+
+Because the hook targets the actual Win32 function rather than one module's IAT,
+calls from any loaded game/UE4 module pass through the same detour.
+
+The proxy records:
+
+```text
+CreateFileW total calls
+.mp4 calls
+blocked target calls
+```
+
+The overlay exposes those counters beside Skip Logos.
+
+`SkipLogos=1` and `SkipIntroVideos=1` remain independent and ON by default.
+Config revision `1805` resets those two values to ON exactly once when upgrading
+from an older test build.
+
+Skip Intro remains exclusively on the validated native
+`g.PlayIntroCinematicOnBoot` path.
