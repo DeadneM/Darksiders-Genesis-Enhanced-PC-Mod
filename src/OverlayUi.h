@@ -22,10 +22,12 @@ struct Telemetry {
     bool finalDamageHookReady = false;
     bool hotstreakHookReady = false;
     bool skipIntroReady = false;
-    bool skipLogosInitialized = false;
-    bool skipLogosOverridePresent = false;
-    bool skipLogosLastApplyOk = false;
-    bool skipLogosRestartRequired = false;
+    bool skipLogosProxyAvailable = false;
+    bool skipLogosInstalled = false;
+    bool skipLogosEnabled = true;
+    LONG skipLogosCreateFileCalls = 0;
+    LONG skipLogosMp4Calls = 0;
+    LONG skipLogosBlocked = 0;
 
     int actionMoveQueries = 0;
     int actionMoveLocalQueries = 0;
