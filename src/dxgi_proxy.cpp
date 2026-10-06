@@ -1,4 +1,6 @@
 #include <windows.h>
+
+#include "EarlySkipLogos.h"
 #include <cwchar>
 
 static HMODULE g_self = nullptr;
@@ -113,6 +115,16 @@ HRESULT WINAPI DXGIDeclareAdapterRemovalSupport() {
 }
 
 extern "C" __declspec(dllexport)
+const wchar_t* WINAPI DGGetSkipLogosStatus() {
+    return dg::skip_logos::Status();
+}
+
+extern "C" __declspec(dllexport)
+LONG WINAPI DGGetSkipLogosBlockCount() {
+    return dg::skip_logos::BlockCount();
+}
+
+extern "C" __declspec(dllexport)
 HRESULT WINAPI DXGIDisableVBlankVirtualization() {
     using Fn = HRESULT(WINAPI*)();
     Fn fn = Resolve<Fn>("DXGIDisableVBlankVirtualization");
@@ -122,6 +134,11 @@ HRESULT WINAPI DXGIDisableVBlankVirtualization() {
 BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
     if (reason == DLL_PROCESS_ATTACH) {
         g_self = module;
+
+        // The proxy is loaded before the game entry point. Install only the
+        // exact logo file IAT hooks here, before UE4 can request the movies.
+        dg::skip_logos::InstallEarlyIatHooks();
+
         DisableThreadLibraryCalls(module);
     }
     return TRUE;
