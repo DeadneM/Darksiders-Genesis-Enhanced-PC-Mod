@@ -8,7 +8,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 1808;
+constexpr int kConfigRevision = 1809;
 
 bool ReadBool(
     const wchar_t* section,
@@ -442,7 +442,7 @@ bool Store::Load() {
         skipLogosEnabled = true;
         skipIntroEnabled = true;
         SaveNow();
-        Log("INI migrated V0.18H -> Skip Logos ON, Skip Intro ON");
+        Log("INI migrated V0.18I -> Skip Logos ON, Skip Intro ON");
         return true;
     }
 
@@ -457,7 +457,6 @@ void Store::PublishRuntime() const {
     runtime.toggleHudEnabled = toggleHudEnabled;
     runtime.movementSpeedEnabled = movementSpeedEnabled;
     runtime.actionRecoveryEnabled = actionRecoveryEnabled;
-    runtime.skipLogosEnabled = skipLogosEnabled;
     runtime.skipLogosEnabled = skipLogosEnabled;
     runtime.skipIntroEnabled = skipIntroEnabled;
     runtime.pistolDamageEnabled = pistolDamageEnabled;
@@ -501,7 +500,7 @@ bool Store::SaveNow() {
     WritePrivateProfileStringW(
         L"Meta",
         L"ConfigRevision",
-        L"1808",
+        L"1809",
         path_.c_str()
     );
 
