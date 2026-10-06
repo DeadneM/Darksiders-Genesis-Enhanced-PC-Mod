@@ -495,18 +495,25 @@ void Draw(Context& c) {
                     "Skip Logos",
                     &config.skipLogosEnabled)) {
                 config.Save();
+                const bool applied =
+                    c.applySkipLogos
+                        ? c.applySkipLogos(
+                            config.skipLogosEnabled)
+                        : false;
                 *c.lastAction =
                     std::string("Skip Logos ") +
                     (config.skipLogosEnabled ? "ON" : "OFF") +
-                    " (restart required)";
+                    (applied
+                        ? " (restart required)"
+                        : " (Game.ini write failed)");
             }
             ImGui::SameLine(310.0f);
             ImGui::TextDisabled(
-                "MF %s | resolver %s | URLs %ld | blocked %ld",
-                t.skipLogosInstalled ? "READY" : "OFF",
-                t.skipLogosResolverHooked ? "READY" : "waiting",
-                t.skipLogosUrlCalls,
-                t.skipLogosBlocked
+                "UE4 StartupMovies %s | write %s | restart required",
+                t.skipLogosOverridePresent
+                    ? "OVERRIDE ON"
+                    : "OVERRIDE OFF",
+                t.skipLogosLastApplyOk ? "OK" : "ERROR"
             );
 
             if (ImGui::Checkbox(
