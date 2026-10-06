@@ -2777,3 +2777,81 @@ attempt will not be shipped until a native target is proven from the retail
 executable or startup configuration.
 
 **Validation:** awaiting in-game test.
+
+
+## Horse Direction Reset - Reference PAK Becomes Authoritative
+
+The user correctly pointed back to the supplied working horse reference mod.
+This changes the implementation priority.
+
+Reference:
+
+```text
+ZZZ-Horse_P.pak
+SHA-256 3719ac840e1d0d7f137c9322580a3abe58cc5cf93d4b1ea97352c66490d3a920
+```
+
+The reference PAK contains direct edits to the horse Blueprint defaults and
+therefore provides a stronger source of truth than indirect movement-hook
+experiments.
+
+### Proven vanilla -> mod horse deltas
+
+```text
+GallopSpawnSpeedThreshold           300.0 -> 400.0
+StaminaRecoveryPercentageRate        15.0 -> 100.0
+StaminaTotalRecoveryPercentageRate   40.0 -> 100.0
+StaminaSprintPercentageRate          25.0 -> 0.0
+
+MaxWalkSpeed                       1300.0 -> 1500.0
+MaxAcceleration                     600.0 -> 700.0
+BrakingFrictionFactor                 1.0 -> 2.0
+```
+
+### New implementation rule
+
+Future horse work must prefer direct control of the same Blueprint/CDO
+properties proven by the reference PAK:
+
+```text
+MayhemHorseCharacter_Blueprint
+  MaxWalkSpeed
+  MaxAcceleration
+  BrakingFrictionFactor
+  GallopSpawnSpeedThreshold
+  StaminaRecoveryPercentageRate
+  StaminaTotalRecoveryPercentageRate
+  StaminaSprintPercentageRate
+```
+
+The V0.14/V0.15 experimental paths remain useful historical diagnostics but are
+no longer the preferred architecture:
+
+- Player+0xE70 horse-pointer interpretation;
+- actor/member scans;
+- secondary/base GetMaxSpeed hooks;
+- vtable ancestry resolver.
+
+Horse Sprint Duration continues to map to stamina drain:
+
+```text
+effective drain = vanilla StaminaSprintPercentageRate / duration multiplier
+```
+
+Example with vanilla drain 25:
+
+```text
+1.0x -> 25.0
+2.0x -> 12.5
+5.0x -> 5.0
+10x  -> 2.5
+infinite -> 0.0
+```
+
+Horse Sprint Speed remains separate and must be resolved from the sprint ability
+data rather than conflated with stamina duration.
+
+### Skip Logos
+
+Skip Logos remains paused after the rejected V0.15A/B/C methods. No new Skip
+Logos candidate should be shipped until a native retail target is proven.
