@@ -52,7 +52,7 @@ jobs:
       - name: Upload test build
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_ASI_V0.18_SKIP_LOGOS_EARLY_IAT_TEST
+          name: DarksidersGenesis_ASI_V0.18B_SKIP_LOGOS_MENU_TEST
           path: |
             dist/dxgi.dll
             dist/DarksidersGenesisMod.asi
