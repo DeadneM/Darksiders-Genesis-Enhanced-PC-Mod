@@ -562,3 +562,33 @@ Skip Intro remains entirely separate on the validated native
 
 Config revision `1807` resets `SkipLogos` and `SkipIntroVideos` to ON once
 when upgrading from an older test build.
+
+
+### V0.18G in-game verdict: REJECTED
+
+Latest runtime test:
+
+```text
+Target validation: exact=1
+Skip Logos EARLY: proxy=1 target=1 patched=1 enabled=1 RVA=0x160BC50
+```
+
+Despite the exact retail target being validated and the one-byte RET patch being
+successfully applied before normal game startup, the THQ Nordic / Airship
+Syndicate startup logos are still displayed.
+
+Conclusion:
+
+- the patch timing is early enough;
+- RVA `0x160BC50` is a real and valid MoviePlayer function;
+- bypassing `SetupLoadingScreenFromIni` does **not** control these two observed
+  company logos in this build;
+- V0.18G is rejected and must not be promoted to `main`;
+- do not revisit the V0.18G RET path without new executable evidence.
+
+The validated gameplay core remains unchanged. Skip Intro continues to work
+independently through `g.PlayIntroCinematicOnBoot`.
+
+Next Skip Logos work must begin from fresh native analysis of the actual company
+logo playback path rather than another timing variation of the rejected
+`SetupLoadingScreenFromIni` route.
