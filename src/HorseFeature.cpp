@@ -1,6 +1,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+#include <MinHook.h>
+
 #include "HorseFeature.h"
 
 #include <algorithm>
@@ -8,11 +10,13 @@
 #include <cstdarg>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 
 namespace dg::horse {
 namespace {
 
-constexpr std::size_t kMountedSignalOffset = 0xE70;
+using GetMaxSpeedFn = float(*)(void*);
+
 constexpr std::size_t kCharacterOwnerOffset = 0x190;
 constexpr std::size_t kMovementModeOffset = 0x1B0;
 constexpr std::size_t kMaxWalkSpeedOffset = 0x1D4;
@@ -24,6 +28,12 @@ constexpr std::size_t kStaminaSprintDrainOffset = 0x918;
 
 constexpr float kReferenceMaxWalkSpeed = 1300.0f;
 constexpr float kReferenceMaxAcceleration = 600.0f;
+constexpr ULONGLONG kHorseLostTimeoutMs = 1500;
+
+struct PeSection {
+    unsigned char* begin = nullptr;
+    std::size_t size = 0;
+};
 
 struct CapturedHorse {
     void* owner = nullptr;
@@ -31,45 +41,82 @@ struct CapturedHorse {
     float maxWalkSpeed = 0.0f;
     float maxAcceleration = 0.0f;
     float sprintDrain = 0.0f;
-    bool staminaReady = false;
     bool captured = false;
 };
 
 SRWLOCK g_lock = SRWLOCK_INIT;
 CapturedHorse g_horse{};
 
+GetMaxSpeedFn g_originalBaseGetMaxSpeed = nullptr;
+void* g_baseGetMaxSpeedTarget = nullptr;
+LogFn g_logger = nullptr;
+
+std::atomic_bool g_baseHookReady{false};
+std::atomic_bool g_validated{false};
+std::atomic_bool g_staminaReady{false};
+std::atomic<void*> g_owner{nullptr};
+std::atomic<void*> g_movement{nullptr};
+
 std::atomic_bool g_speedEnabled{true};
 std::atomic<float> g_speedMultiplier{1.25f};
 std::atomic_bool g_sprintDurationEnabled{true};
 std::atomic<float> g_sprintDurationMultiplier{2.0f};
 
-std::atomic_bool g_mounted{false};
-std::atomic_bool g_validated{false};
-std::atomic_bool g_staminaReady{false};
-std::atomic<void*> g_owner{nullptr};
-std::atomic<void*> g_movement{nullptr};
 std::atomic<float> g_nativeMaxWalkSpeed{0.0f};
 std::atomic<float> g_appliedMaxWalkSpeed{0.0f};
 std::atomic<float> g_nativeMaxAcceleration{0.0f};
 std::atomic<float> g_appliedMaxAcceleration{0.0f};
 std::atomic<float> g_nativeSprintDrain{0.0f};
 std::atomic<float> g_appliedSprintDrain{0.0f};
+
+std::atomic_uint32_t g_resolverMatches{0};
 std::atomic_uint32_t g_candidateChecks{0};
 std::atomic_uint32_t g_candidateMatches{0};
-
-LogFn g_logger = nullptr;
+std::atomic_ullong g_lastHorseSeenTick{0};
 
 void FeatureLog(const char* fmt, ...) {
     if (!g_logger) {
         return;
     }
 
-    char buffer[512]{};
+    char buffer[768]{};
     va_list args;
     va_start(args, fmt);
     vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, fmt, args);
     va_end(args);
     g_logger(buffer);
+}
+
+bool GetMainModuleSection(const char* name, PeSection& out) {
+    out = {};
+
+    auto* base = reinterpret_cast<unsigned char*>(GetModuleHandleW(nullptr));
+    if (!base) {
+        return false;
+    }
+
+    auto* dos = reinterpret_cast<IMAGE_DOS_HEADER*>(base);
+    if (dos->e_magic != IMAGE_DOS_SIGNATURE) {
+        return false;
+    }
+
+    auto* nt = reinterpret_cast<IMAGE_NT_HEADERS64*>(base + dos->e_lfanew);
+    if (nt->Signature != IMAGE_NT_SIGNATURE) {
+        return false;
+    }
+
+    auto* section = IMAGE_FIRST_SECTION(nt);
+    for (unsigned i = 0; i < nt->FileHeader.NumberOfSections; ++i) {
+        char sectionName[9]{};
+        memcpy(sectionName, section[i].Name, 8);
+        if (strcmp(sectionName, name) == 0) {
+            out.begin = base + section[i].VirtualAddress;
+            out.size = section[i].Misc.VirtualSize;
+            return true;
+        }
+    }
+
+    return false;
 }
 
 bool Readable(const void* address, std::size_t bytes) {
@@ -91,6 +138,7 @@ bool Readable(const void* address, std::size_t bytes) {
     const auto begin = reinterpret_cast<std::uintptr_t>(address);
     const auto regionBegin = reinterpret_cast<std::uintptr_t>(mbi.BaseAddress);
     const auto regionEnd = regionBegin + mbi.RegionSize;
+
     return begin >= regionBegin &&
            begin + bytes >= begin &&
            begin + bytes <= regionEnd;
@@ -153,23 +201,172 @@ float Clamp(float value, float low, float high) {
     return std::clamp(value, low, high);
 }
 
-bool IsMounted(void* localPlayer) {
-    void* opaque = nullptr;
-    return localPlayer &&
-           ReadAt(localPlayer, kMountedSignalOffset, opaque) &&
-           opaque != nullptr &&
-           opaque != localPlayer;
+bool IsRcXDisp32ByteRead(
+    const unsigned char* p,
+    std::uint32_t displacement
+) {
+    if (!p) {
+        return false;
+    }
+
+    // movzx r32, byte ptr [rcx+disp32]
+    return p[0] == 0x0F &&
+           p[1] == 0xB6 &&
+           (p[2] & 0xC7) == 0x81 &&
+           *reinterpret_cast<const std::uint32_t*>(p + 3) == displacement;
 }
 
-bool LooksLikeReferenceHorseMovement(
+bool IsRcXDisp32FloatRead(
+    const unsigned char* p,
+    std::uint32_t displacement
+) {
+    if (!p) {
+        return false;
+    }
+
+    // movss xmm?, dword ptr [rcx+disp32]
+    return p[0] == 0xF3 &&
+           p[1] == 0x0F &&
+           p[2] == 0x10 &&
+           (p[3] & 0xC7) == 0x81 &&
+           *reinterpret_cast<const std::uint32_t*>(p + 4) == displacement;
+}
+
+unsigned char* FindFunctionStart(
+    unsigned char* textBegin,
+    unsigned char* anchor
+) {
+    if (!textBegin || !anchor || anchor <= textBegin) {
+        return nullptr;
+    }
+
+    const std::size_t maxBack =
+        std::min<std::size_t>(48, static_cast<std::size_t>(anchor - textBegin));
+
+    for (std::size_t back = 1; back <= maxBack; ++back) {
+        unsigned char* p = anchor - back;
+        if (*p != 0xCC) {
+            continue;
+        }
+
+        while (p < anchor && *p == 0xCC) {
+            ++p;
+        }
+
+        if (p < anchor) {
+            return p;
+        }
+    }
+
+    return nullptr;
+}
+
+unsigned char* ResolveBaseGetMaxSpeed() {
+    PeSection text{};
+    if (!GetMainModuleSection(".text", text)) {
+        FeatureLog("HorseFeature: failed to enumerate .text");
+        return nullptr;
+    }
+
+    unsigned char* matches[8]{};
+    std::uint32_t matchCount = 0;
+
+    for (std::size_t i = 0; i + 8 < text.size; ++i) {
+        unsigned char* anchor = text.begin + i;
+        if (!IsRcXDisp32ByteRead(
+                anchor,
+                static_cast<std::uint32_t>(kMovementModeOffset))) {
+            continue;
+        }
+
+        unsigned char* start = FindFunctionStart(text.begin, anchor);
+        if (!start) {
+            continue;
+        }
+
+        bool readsMaxWalkSpeed = false;
+        for (std::size_t j = 0; j + 8 < 0x120; ++j) {
+            unsigned char* p = start + j;
+            if (p < text.begin || p + 8 >= text.begin + text.size) {
+                break;
+            }
+
+            if (IsRcXDisp32FloatRead(
+                    p,
+                    static_cast<std::uint32_t>(kMaxWalkSpeedOffset))) {
+                readsMaxWalkSpeed = true;
+                break;
+            }
+        }
+
+        if (!readsMaxWalkSpeed) {
+            continue;
+        }
+
+        bool duplicate = false;
+        for (std::uint32_t m = 0; m < matchCount && m < 8; ++m) {
+            if (matches[m] == start) {
+                duplicate = true;
+                break;
+            }
+        }
+
+        if (duplicate) {
+            continue;
+        }
+
+        if (matchCount < 8) {
+            matches[matchCount] = start;
+        }
+        ++matchCount;
+    }
+
+    g_resolverMatches.store(matchCount);
+
+    auto* module = reinterpret_cast<unsigned char*>(GetModuleHandleW(nullptr));
+    if (matchCount != 1) {
+        FeatureLog(
+            "HorseFeature: base GetMaxSpeed resolver match count=%u "
+            "rva0=0x%zX rva1=0x%zX rva2=0x%zX",
+            matchCount,
+            matches[0] ? static_cast<std::size_t>(matches[0] - module) : 0,
+            matches[1] ? static_cast<std::size_t>(matches[1] - module) : 0,
+            matches[2] ? static_cast<std::size_t>(matches[2] - module) : 0
+        );
+        return nullptr;
+    }
+
+    FeatureLog(
+        "HorseFeature: base UCharacterMovementComponent::GetMaxSpeed "
+        "candidate RVA=0x%zX",
+        static_cast<std::size_t>(matches[0] - module)
+    );
+    return matches[0];
+}
+
+bool ReadHorseStamina(void* owner, float& sprintDrain) {
+    float recovery = 0.0f;
+    float totalRecovery = 0.0f;
+
+    if (!ReadFloat(owner, kStaminaRecoveryOffset, recovery) ||
+        !ReadFloat(owner, kStaminaTotalRecoveryOffset, totalRecovery) ||
+        !ReadFloat(owner, kStaminaSprintDrainOffset, sprintDrain)) {
+        return false;
+    }
+
+    return recovery >= 0.0f && recovery <= 100.0f &&
+           totalRecovery >= 0.0f && totalRecovery <= 100.0f &&
+           sprintDrain > 0.0f && sprintDrain <= 100.0f;
+}
+
+bool LooksLikeHorse(
     void* movement,
     void* owner,
-    float nativeGetMaxSpeed,
     float& maxWalkSpeed,
-    float& maxAcceleration
+    float& maxAcceleration,
+    float& sprintDrain
 ) {
-    if (!movement || !owner || nativeGetMaxSpeed <= 0.0f ||
-        !std::isfinite(nativeGetMaxSpeed)) {
+    if (!movement || !owner) {
         return false;
     }
 
@@ -190,31 +387,15 @@ bool LooksLikeReferenceHorseMovement(
         return false;
     }
 
-    // Reference PAK values are 1300 / 600. Keep this intentionally tight.
-    // We want one recognizable horse component, not another actor scanner.
-    const bool speedMatches =
-        std::fabs(maxWalkSpeed - kReferenceMaxWalkSpeed) <= 250.0f;
-    const bool accelerationMatches =
+    const bool movementSignature =
+        std::fabs(maxWalkSpeed - kReferenceMaxWalkSpeed) <= 250.0f &&
         std::fabs(maxAcceleration - kReferenceMaxAcceleration) <= 250.0f;
-    const bool getMaxSpeedSane =
-        nativeGetMaxSpeed >= 800.0f && nativeGetMaxSpeed <= 1800.0f;
 
-    return speedMatches && accelerationMatches && getMaxSpeedSane;
-}
-
-bool CaptureStaminaIfValid(void* owner, float& sprintDrain) {
-    float recovery = 0.0f;
-    float totalRecovery = 0.0f;
-
-    if (!ReadFloat(owner, kStaminaRecoveryOffset, recovery) ||
-        !ReadFloat(owner, kStaminaTotalRecoveryOffset, totalRecovery) ||
-        !ReadFloat(owner, kStaminaSprintDrainOffset, sprintDrain)) {
+    if (!movementSignature) {
         return false;
     }
 
-    return recovery >= 0.0f && recovery <= 100.0f &&
-           totalRecovery >= 0.0f && totalRecovery <= 100.0f &&
-           sprintDrain > 0.0f && sprintDrain <= 100.0f;
+    return ReadHorseStamina(owner, sprintDrain);
 }
 
 void PublishCleared() {
@@ -228,6 +409,7 @@ void PublishCleared() {
     g_appliedMaxAcceleration.store(0.0f);
     g_nativeSprintDrain.store(0.0f);
     g_appliedSprintDrain.store(0.0f);
+    g_lastHorseSeenTick.store(0);
 }
 
 void RestoreLocked() {
@@ -235,31 +417,28 @@ void RestoreLocked() {
         return;
     }
 
-    WriteFloat(
-        g_horse.movement,
-        kMaxWalkSpeedOffset,
-        g_horse.maxWalkSpeed
-    );
+    WriteFloat(g_horse.movement, kMaxWalkSpeedOffset, g_horse.maxWalkSpeed);
     WriteFloat(
         g_horse.movement,
         kMaxAccelerationOffset,
         g_horse.maxAcceleration
     );
-
-    if (g_horse.staminaReady) {
-        WriteFloat(
-            g_horse.owner,
-            kStaminaSprintDrainOffset,
-            g_horse.sprintDrain
-        );
-    }
+    WriteFloat(
+        g_horse.owner,
+        kStaminaSprintDrainOffset,
+        g_horse.sprintDrain
+    );
 }
 
-void ClearHorse(bool restore) {
+void ClearHorse(bool restore, const char* reason) {
     AcquireSRWLockExclusive(&g_lock);
 
     if (restore) {
         RestoreLocked();
+    }
+
+    if (g_horse.captured && reason) {
+        FeatureLog("HorseFeature: release validated horse (%s)", reason);
     }
 
     g_horse = {};
@@ -273,7 +452,9 @@ void ApplyLocked() {
         return;
     }
 
-    const float speedMultiplier = Clamp(g_speedMultiplier.load(), 0.0f, 3.0f);
+    const float speedMultiplier =
+        Clamp(g_speedMultiplier.load(), 0.0f, 3.0f);
+
     const float targetSpeed = g_speedEnabled.load()
         ? g_horse.maxWalkSpeed * speedMultiplier
         : g_horse.maxWalkSpeed;
@@ -281,18 +462,14 @@ void ApplyLocked() {
         ? g_horse.maxAcceleration * speedMultiplier
         : g_horse.maxAcceleration;
 
-    const bool speedWritten =
-        WriteFloat(g_horse.movement, kMaxWalkSpeedOffset, targetSpeed);
-    const bool accelerationWritten =
-        WriteFloat(g_horse.movement, kMaxAccelerationOffset, targetAcceleration);
-
-    if (speedWritten && accelerationWritten) {
+    if (WriteFloat(g_horse.movement, kMaxWalkSpeedOffset, targetSpeed)) {
         g_appliedMaxWalkSpeed.store(targetSpeed);
-        g_appliedMaxAcceleration.store(targetAcceleration);
     }
-
-    if (!g_horse.staminaReady) {
-        return;
+    if (WriteFloat(
+            g_horse.movement,
+            kMaxAccelerationOffset,
+            targetAcceleration)) {
+        g_appliedMaxAcceleration.store(targetAcceleration);
     }
 
     const float durationMultiplier =
@@ -305,16 +482,15 @@ void ApplyLocked() {
             : g_horse.sprintDrain / durationMultiplier;
     }
 
-    if (WriteFloat(g_horse.owner, kStaminaSprintDrainOffset, targetDrain)) {
+    if (WriteFloat(
+            g_horse.owner,
+            kStaminaSprintDrainOffset,
+            targetDrain)) {
         g_appliedSprintDrain.store(targetDrain);
     }
 }
 
-bool TryCapture(
-    void* movement,
-    void* owner,
-    float nativeGetMaxSpeed
-) {
+bool TryCapture(void* movement, void* owner) {
     if (g_validated.load()) {
         return movement == g_movement.load();
     }
@@ -323,17 +499,16 @@ bool TryCapture(
 
     float maxWalkSpeed = 0.0f;
     float maxAcceleration = 0.0f;
-    if (!LooksLikeReferenceHorseMovement(
+    float sprintDrain = 0.0f;
+
+    if (!LooksLikeHorse(
             movement,
             owner,
-            nativeGetMaxSpeed,
             maxWalkSpeed,
-            maxAcceleration)) {
+            maxAcceleration,
+            sprintDrain)) {
         return false;
     }
-
-    float sprintDrain = 0.0f;
-    const bool staminaReady = CaptureStaminaIfValid(owner, sprintDrain);
 
     AcquireSRWLockExclusive(&g_lock);
 
@@ -343,29 +518,28 @@ bool TryCapture(
         g_horse.maxWalkSpeed = maxWalkSpeed;
         g_horse.maxAcceleration = maxAcceleration;
         g_horse.sprintDrain = sprintDrain;
-        g_horse.staminaReady = staminaReady;
         g_horse.captured = true;
 
         g_validated.store(true);
-        g_staminaReady.store(staminaReady);
+        g_staminaReady.store(true);
         g_owner.store(owner);
         g_movement.store(movement);
         g_nativeMaxWalkSpeed.store(maxWalkSpeed);
         g_appliedMaxWalkSpeed.store(maxWalkSpeed);
         g_nativeMaxAcceleration.store(maxAcceleration);
         g_appliedMaxAcceleration.store(maxAcceleration);
-        g_nativeSprintDrain.store(staminaReady ? sprintDrain : 0.0f);
-        g_appliedSprintDrain.store(staminaReady ? sprintDrain : 0.0f);
+        g_nativeSprintDrain.store(sprintDrain);
+        g_appliedSprintDrain.store(sprintDrain);
         g_candidateMatches.fetch_add(1);
+        g_lastHorseSeenTick.store(GetTickCount64());
 
         FeatureLog(
-            "HorseFeature: VALIDATED movement=%p owner=%p "
-            "MaxWalkSpeed=%.1f MaxAcceleration=%.1f stamina=%s drain=%.3f",
+            "HorseFeature: VALIDATED via base GetMaxSpeed movement=%p owner=%p "
+            "MaxWalkSpeed=%.1f MaxAcceleration=%.1f sprintDrain=%.3f",
             movement,
             owner,
             maxWalkSpeed,
             maxAcceleration,
-            staminaReady ? "READY" : "unavailable",
             sprintDrain
         );
 
@@ -377,14 +551,87 @@ bool TryCapture(
     return accepted;
 }
 
+float HookBaseGetMaxSpeed(void* movement) {
+    const float native = g_originalBaseGetMaxSpeed
+        ? g_originalBaseGetMaxSpeed(movement)
+        : 0.0f;
+
+    if (!movement) {
+        return native;
+    }
+
+    void* owner = nullptr;
+    if (!ReadAt(movement, kCharacterOwnerOffset, owner) || !owner) {
+        return native;
+    }
+
+    if (g_validated.load()) {
+        if (movement == g_movement.load()) {
+            g_lastHorseSeenTick.store(GetTickCount64());
+            AcquireSRWLockExclusive(&g_lock);
+            ApplyLocked();
+            ReleaseSRWLockExclusive(&g_lock);
+        }
+        return native;
+    }
+
+    TryCapture(movement, owner);
+    return native;
+}
+
 } // namespace
 
-void Initialize(LogFn logger) {
+bool Initialize(LogFn logger) {
     g_logger = logger;
+
+    unsigned char* target = ResolveBaseGetMaxSpeed();
+    if (!target) {
+        FeatureLog(
+            "HorseFeature: base hook unavailable; feature remains fail-open"
+        );
+        return false;
+    }
+
+    const MH_STATUS initStatus = MH_Initialize();
+    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+        FeatureLog(
+            "HorseFeature: MinHook initialize failed status=%d",
+            static_cast<int>(initStatus)
+        );
+        return false;
+    }
+
+    const MH_STATUS createStatus = MH_CreateHook(
+        target,
+        reinterpret_cast<LPVOID>(&HookBaseGetMaxSpeed),
+        reinterpret_cast<LPVOID*>(&g_originalBaseGetMaxSpeed)
+    );
+    if (createStatus != MH_OK &&
+        createStatus != MH_ERROR_ALREADY_CREATED) {
+        FeatureLog(
+            "HorseFeature: base hook create failed status=%d",
+            static_cast<int>(createStatus)
+        );
+        return false;
+    }
+
+    const MH_STATUS enableStatus = MH_EnableHook(target);
+    if (enableStatus != MH_OK &&
+        enableStatus != MH_ERROR_ENABLED) {
+        FeatureLog(
+            "HorseFeature: base hook enable failed status=%d",
+            static_cast<int>(enableStatus)
+        );
+        return false;
+    }
+
+    g_baseGetMaxSpeedTarget = target;
+    g_baseHookReady.store(true);
     FeatureLog(
-        "HorseFeature: clean movement-signature path armed "
+        "HorseFeature: base GetMaxSpeed hook READY "
         "reference MaxWalkSpeed=1300 MaxAcceleration=600"
     );
+    return true;
 }
 
 void SetSettings(const Settings& settings) {
@@ -394,52 +641,22 @@ void SetSettings(const Settings& settings) {
     g_sprintDurationMultiplier.store(settings.sprintDurationMultiplier);
 }
 
-void OnGetMaxSpeed(
-    void* movementComponent,
-    void* characterOwner,
-    void* localPlayer,
-    float nativeGetMaxSpeed
-) {
-    if (!movementComponent || !characterOwner || !localPlayer) {
+void Tick() {
+    if (!g_validated.load()) {
         return;
     }
 
-    const bool mounted = IsMounted(localPlayer);
-    const bool previousMounted = g_mounted.exchange(mounted);
+    const ULONGLONG lastSeen = g_lastHorseSeenTick.load();
+    const ULONGLONG now = GetTickCount64();
 
-    if (!mounted) {
-        if (previousMounted || g_validated.load()) {
-            FeatureLog("HorseFeature: unmounted -> restore captured values");
-            ClearHorse(true);
-        }
-        return;
+    if (lastSeen != 0 && now - lastSeen > kHorseLostTimeoutMs) {
+        ClearHorse(true, "movement no longer active");
     }
-
-    if (!previousMounted) {
-        FeatureLog("HorseFeature: mounted signal ON");
-    }
-
-    if (characterOwner == localPlayer) {
-        return;
-    }
-
-    if (g_validated.load()) {
-        if (movementComponent != g_movement.load()) {
-            return;
-        }
-
-        AcquireSRWLockExclusive(&g_lock);
-        ApplyLocked();
-        ReleaseSRWLockExclusive(&g_lock);
-        return;
-    }
-
-    TryCapture(movementComponent, characterOwner, nativeGetMaxSpeed);
 }
 
 Telemetry GetTelemetry() {
     Telemetry t{};
-    t.mounted = g_mounted.load();
+    t.baseHookReady = g_baseHookReady.load();
     t.movementValidated = g_validated.load();
     t.staminaReady = g_staminaReady.load();
     t.horseOwner = g_owner.load();
@@ -450,14 +667,20 @@ Telemetry GetTelemetry() {
     t.appliedMaxAcceleration = g_appliedMaxAcceleration.load();
     t.nativeSprintDrain = g_nativeSprintDrain.load();
     t.appliedSprintDrain = g_appliedSprintDrain.load();
+    t.resolverMatches = g_resolverMatches.load();
     t.candidateChecks = g_candidateChecks.load();
     t.candidateMatches = g_candidateMatches.load();
     return t;
 }
 
 void Shutdown() {
-    ClearHorse(true);
-    g_mounted.store(false);
+    ClearHorse(true, "shutdown");
+
+    if (g_baseGetMaxSpeedTarget) {
+        MH_DisableHook(g_baseGetMaxSpeedTarget);
+    }
+
+    g_baseHookReady.store(false);
     FeatureLog("HorseFeature: shutdown");
 }
 
