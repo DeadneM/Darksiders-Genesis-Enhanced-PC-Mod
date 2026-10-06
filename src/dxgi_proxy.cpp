@@ -117,6 +117,17 @@ static bool ReadSkipLogosEnabledFromIni() {
     lstrcpyW(iniPath, modulePath);
     lstrcatW(iniPath, L"DarksidersGenesisMod.ini");
 
+    const int revision = GetPrivateProfileIntW(
+        L"Meta",
+        L"ConfigRevision",
+        0,
+        iniPath
+    );
+
+    if (revision < 1805) {
+        return true;
+    }
+
     return GetPrivateProfileIntW(
         L"Features",
         L"SkipLogos",
