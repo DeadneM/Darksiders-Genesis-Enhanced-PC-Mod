@@ -509,11 +509,10 @@ void Draw(Context& c) {
             }
             ImGui::SameLine(310.0f);
             ImGui::TextDisabled(
-                "UE4 StartupMovies %s | write %s | restart required",
-                t.skipLogosOverridePresent
-                    ? "OVERRIDE ON"
-                    : "OVERRIDE OFF",
-                t.skipLogosLastApplyOk ? "OK" : "ERROR"
+                "FILE %s | MP4 %ld | blocked %ld | restart recommended",
+                t.skipLogosInstalled ? "READY" : "OFF",
+                t.skipLogosMp4Calls,
+                t.skipLogosBlocked
             );
 
             if (ImGui::Checkbox(
