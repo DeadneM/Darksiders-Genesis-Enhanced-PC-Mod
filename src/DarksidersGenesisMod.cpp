@@ -50,7 +50,6 @@ PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
 HudHiddenGetterFn g_originalHudHiddenGetter = nullptr;
 CharacterGetMaxSpeedFn g_originalCharacterGetMaxSpeed = nullptr;
-void* g_playerGetMaxSpeedTarget = nullptr;
 AbilityActionEnabledFn g_originalAbilityActionEnabled = nullptr;
 AddJuiceFn g_originalAddJuice = nullptr;
 FilterOutgoingDamageFn g_originalFilterOutgoingDamage = nullptr;
@@ -72,7 +71,6 @@ std::atomic_bool g_movementHookReady{false};
 std::atomic_bool g_recoveryHookReady{false};
 std::atomic_bool g_skipIntroReady{false};
 std::atomic_bool g_shuttingDown{false};
-std::atomic_bool g_gameplayHooksAllowed{false};
 dg::target::ValidationResult g_targetValidation{};
 LONG** g_skipIntroDataSlot = nullptr;
 LONG* g_skipIntroData = nullptr;
@@ -1217,8 +1215,6 @@ bool InstallMovementSpeedHook() {
         return false;
     }
 
-    g_playerGetMaxSpeedTarget = target;
-
     MH_STATUS status = MH_CreateHook(
         target,
         reinterpret_cast<LPVOID>(&HookCharacterGetMaxSpeed),
@@ -1438,7 +1434,7 @@ bool HookAbilityActionEnabled(void* ability, unsigned char action) {
     return true;
 }
 
-bool InstallActionEnabledRecoveryDiagnostic() {
+bool InstallActionRecoveryV08B() {
     BYTE* target = ResolveAbilityActionEnabledNative();
     if (!target) {
         Log("Action Recovery V0.8: resolver failed; feature remains fail-open");
@@ -1625,8 +1621,8 @@ void TriggerAction(Action action, int functionKey) {
         return;
     }
 
-    g_lastAction = std::string(label) + " [hook pending]";
-    Log("F%d -> %s (input OK, gameplay hook pending)", functionKey, label);
+    g_lastAction = std::string(label) + " [not implemented]";
+    Log("F%d -> %s (input OK, feature not implemented)", functionKey, label);
 }
 
 void ProcessInput() {
@@ -2190,8 +2186,6 @@ DWORD WINAPI MainThread(LPVOID) {
     g_config.Load();
 
     g_targetValidation = dg::target::ValidateCurrentExecutable();
-    g_gameplayHooksAllowed.store(g_targetValidation.exact);
-
     Log(
         "Target validation: exact=%d size=%llu sha256=%s reason=%s",
         g_targetValidation.exact ? 1 : 0,
@@ -2225,7 +2219,7 @@ DWORD WINAPI MainThread(LPVOID) {
     if (!InstallMovementSpeedHook()) {
         Log("Movement Speed unavailable; other ASI features remain active.");
     }
-    if (!InstallActionEnabledRecoveryDiagnostic()) {
+    if (!InstallActionRecoveryV08B()) {
         Log("Action Recovery V0.8 unavailable; other ASI features remain active.");
     }
     if (!InstallHotstreakChargeHook()) {
