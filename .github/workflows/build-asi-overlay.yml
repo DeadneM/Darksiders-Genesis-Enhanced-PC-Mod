@@ -53,7 +53,7 @@ jobs:
       - name: Upload test build
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_ASI_V0.14F_SAFE_HORSE_DIAGNOSTICS_TEST
+          name: DarksidersGenesis_ASI_V0.16A_CLEAN_HORSE_SHARED_HOOK_TEST
           path: |
             dist/dxgi.dll
             dist/DarksidersGenesisMod.asi
