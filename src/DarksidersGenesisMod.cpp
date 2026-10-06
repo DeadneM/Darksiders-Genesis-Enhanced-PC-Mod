@@ -8,6 +8,9 @@
 #include "imgui_impl_dx11.h"
 #include "imgui_impl_win32.h"
 
+#include "HorseFeature.h"
+#include "StartupMoviesFeature.h"
+
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 #include <array>
@@ -22,7 +25,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.14F-safe-horse-diagnostics-test";
+constexpr const char* kBuild = "0.15A-clean-horse-skiplogos-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -44,13 +47,11 @@ using AddJuiceFn = void(*)(void*, float);
 using DoDamageToActorFn = void(*)(void*, void*, void*, void*);
 using ExecGetBaseDamageFn = void(*)(void*, void*, void*);
 using FilterOutgoingDamageFn = void(*)(void*, void*);
-using IsHorseActiveFn = bool(*)(void*);
 
 PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
 HudHiddenGetterFn g_originalHudHiddenGetter = nullptr;
 CharacterGetMaxSpeedFn g_originalCharacterGetMaxSpeed = nullptr;
-CharacterGetMaxSpeedFn g_originalHorseGetMaxSpeed = nullptr;
 void* g_playerGetMaxSpeedTarget = nullptr;
 ActionGateFn g_originalActionGate = nullptr;
 DashVoidFn g_originalDashStart = nullptr;
@@ -64,7 +65,6 @@ AddJuiceFn g_originalAddJuice = nullptr;
 DoDamageToActorFn g_originalDoDamageToActor = nullptr;
 ExecGetBaseDamageFn g_originalExecGetBaseDamage = nullptr;
 FilterOutgoingDamageFn g_originalFilterOutgoingDamage = nullptr;
-IsHorseActiveFn g_originalIsHorseActive = nullptr;
 
 ID3D11Device* g_device = nullptr;
 ID3D11DeviceContext* g_context = nullptr;
@@ -123,33 +123,7 @@ std::atomic<float> g_lastActionMoveElapsed{0.0f};
 std::atomic<void*> g_recoveryTailAbility{nullptr};
 std::atomic<float> g_recoveryTailStartElapsed{0.0f};
 
-std::atomic_bool g_horseRuntimeReady{false};
-std::atomic_bool g_horseSpeedHookReady{false};
-std::atomic_bool g_horseDirectMovementReady{false};
-std::atomic_bool g_nativeHorseActive{false};
-std::atomic_int g_lastHorseRejectReason{0};
-std::atomic<void*> g_validatedHorseCharacter{nullptr};
-std::atomic<void*> g_validatedHorseMovement{nullptr};
-std::atomic<intptr_t> g_characterMovementMemberOffset{-1};
-std::atomic<intptr_t> g_horseMovementMemberOffset{-1};
-std::atomic<float> g_lastHorseNativeSpeed{0.0f};
-std::atomic<float> g_lastHorseEffectiveSpeed{0.0f};
-std::atomic<float> g_horseNormalSpeedBaseline{0.0f};
-std::atomic_bool g_lastHorseSpeedClassifiedSprint{false};
-std::atomic<float> g_lastHorseNativeSprintDrain{0.0f};
-std::atomic<float> g_lastHorseEffectiveSprintDrain{0.0f};
-std::atomic<float> g_lastHorseNativeMaxWalkSpeed{0.0f};
-std::atomic<float> g_lastHorseEffectiveMaxWalkSpeed{0.0f};
-std::atomic<float> g_lastHorseNativeMaxAcceleration{0.0f};
-std::atomic<float> g_lastHorseEffectiveMaxAcceleration{0.0f};
-std::atomic_int g_horseValidationSuccesses{0};
-std::atomic_int g_horseValidationRejects{0};
-std::atomic_int g_lastMovementMemberMatchCount{-1};
 std::atomic_int g_movementCaptureRejectLogBudget{12};
-std::atomic<unsigned long long> g_lastHorseDiscoveryAttemptTick{0};
-std::atomic<unsigned long long> g_lastHorseRejectLogTick{0};
-std::atomic_int g_horseRejectsSuppressed{0};
-std::atomic_int g_lastHorseDiscoveryMatchCount{-1};
 
 struct PlayerMovementTuningState {
     void* component = nullptr;
@@ -158,20 +132,9 @@ struct PlayerMovementTuningState {
     float glideDurationSeconds = 0.0f;
 };
 
-struct HorseRuntimeState {
-    void* horse = nullptr;
-    void* movement = nullptr;
-    float staminaRecoveryPercentageRate = 0.0f;
-    float staminaTotalRecoveryPercentageRate = 0.0f;
-    float staminaSprintPercentageRate = 0.0f;
-    float maxWalkSpeed = 0.0f;
-    float maxAcceleration = 0.0f;
-    bool captured = false;
-};
 
 SRWLOCK g_tuningLock = SRWLOCK_INIT;
 std::array<PlayerMovementTuningState, 4> g_playerMovementStates{};
-HorseRuntimeState g_horseRuntimeState{};
 
 bool IsLocallyControlledMayhemCharacter(void* character);
 
@@ -447,6 +410,12 @@ void Log(const char* format, ...) {
     }
 }
 
+void FeatureLog(const char* message) {
+    if (message && *message) {
+        Log("%s", message);
+    }
+}
+
 struct Config {
     bool overlayEnabled = true;
     int menuKey = VK_INSERT;
@@ -456,6 +425,7 @@ struct Config {
     bool movementSpeedEnabled = true;
     bool actionRecoveryEnabled = true;
     bool skipIntroEnabled = true;
+    bool skipLogosEnabled = true;
     bool thirdPersonEnabled = true;
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
@@ -520,6 +490,7 @@ struct Config {
         movementSpeedEnabled = true;
         actionRecoveryEnabled = true;
         skipIntroEnabled = true;
+        skipLogosEnabled = true;
         thirdPersonEnabled = true;
         pistolDamageEnabled = true;
         meleeDamageEnabled = true;
@@ -579,6 +550,7 @@ struct Config {
         movementSpeedEnabled = ReadBool(L"Features", L"MovementSpeed", true, g_iniPath);
         actionRecoveryEnabled = ReadBool(L"Features", L"ActionRecovery", true, g_iniPath);
         skipIntroEnabled = ReadBool(L"Features", L"SkipIntroVideos", true, g_iniPath);
+        skipLogosEnabled = ReadBool(L"Features", L"SkipLogos", true, g_iniPath);
         thirdPersonEnabled = ReadBool(L"Features", L"ThirdPerson", true, g_iniPath);
         pistolDamageEnabled = ReadBool(L"Features", L"PistolDamage", true, g_iniPath);
         meleeDamageEnabled = ReadBool(L"Features", L"MeleeDamage", true, g_iniPath);
@@ -637,6 +609,7 @@ struct Config {
         WriteBool(L"Features", L"MovementSpeed", movementSpeedEnabled, g_iniPath);
         WriteBool(L"Features", L"ActionRecovery", actionRecoveryEnabled, g_iniPath);
         WriteBool(L"Features", L"SkipIntroVideos", skipIntroEnabled, g_iniPath);
+        WriteBool(L"Features", L"SkipLogos", skipLogosEnabled, g_iniPath);
         WriteBool(L"Features", L"ThirdPerson", thirdPersonEnabled, g_iniPath);
         WriteBool(L"Features", L"PistolDamage", pistolDamageEnabled, g_iniPath);
         WriteBool(L"Features", L"MeleeDamage", meleeDamageEnabled, g_iniPath);
@@ -1848,908 +1821,6 @@ bool IsReasonablePositiveFloat(float value, float minValue, float maxValue) {
     return value >= minValue && value <= maxValue;
 }
 
-bool IsReadableMemoryRange(const void* address, size_t bytes) {
-    if (!address || bytes == 0) {
-        return false;
-    }
-
-    MEMORY_BASIC_INFORMATION mbi{};
-    if (!VirtualQuery(address, &mbi, sizeof(mbi))) {
-        return false;
-    }
-
-    if (mbi.State != MEM_COMMIT ||
-        (mbi.Protect & PAGE_GUARD) ||
-        (mbi.Protect & PAGE_NOACCESS)) {
-        return false;
-    }
-
-    const uintptr_t begin = reinterpret_cast<uintptr_t>(address);
-    const uintptr_t regionBegin = reinterpret_cast<uintptr_t>(mbi.BaseAddress);
-    const uintptr_t regionEnd = regionBegin + mbi.RegionSize;
-    return begin >= regionBegin && begin + bytes >= begin && begin + bytes <= regionEnd;
-}
-
-bool SafeReadPointer(const void* base, size_t offset, void** out) {
-    if (!base || !out) {
-        return false;
-    }
-
-    const BYTE* p = reinterpret_cast<const BYTE*>(base) + offset;
-    if (!IsReadableMemoryRange(p, sizeof(void*))) {
-        return false;
-    }
-
-    *out = *reinterpret_cast<void* const*>(p);
-    return true;
-}
-
-bool SafeReadFloat(const void* base, size_t offset, float* out) {
-    if (!base || !out) {
-        return false;
-    }
-
-    const BYTE* p = reinterpret_cast<const BYTE*>(base) + offset;
-    if (!IsReadableMemoryRange(p, sizeof(float))) {
-        return false;
-    }
-
-    const float value = *reinterpret_cast<const float*>(p);
-    if (!std::isfinite(value)) {
-        return false;
-    }
-
-    *out = value;
-    return true;
-}
-
-bool SafeWriteFloat(void* base, size_t offset, float value) {
-    if (!base || !std::isfinite(value)) {
-        return false;
-    }
-
-    BYTE* p = reinterpret_cast<BYTE*>(base) + offset;
-
-    MEMORY_BASIC_INFORMATION mbi{};
-    if (!VirtualQuery(p, &mbi, sizeof(mbi)) ||
-        mbi.State != MEM_COMMIT ||
-        (mbi.Protect & PAGE_GUARD) ||
-        (mbi.Protect & PAGE_NOACCESS)) {
-        return false;
-    }
-
-    const DWORD protect = mbi.Protect & 0xFF;
-    const bool writable =
-        protect == PAGE_READWRITE ||
-        protect == PAGE_WRITECOPY ||
-        protect == PAGE_EXECUTE_READWRITE ||
-        protect == PAGE_EXECUTE_WRITECOPY;
-
-    if (!writable) {
-        return false;
-    }
-
-    const uintptr_t begin = reinterpret_cast<uintptr_t>(p);
-    const uintptr_t regionBegin = reinterpret_cast<uintptr_t>(mbi.BaseAddress);
-    const uintptr_t regionEnd = regionBegin + mbi.RegionSize;
-    if (begin < regionBegin ||
-        begin + sizeof(float) < begin ||
-        begin + sizeof(float) > regionEnd) {
-        return false;
-    }
-
-    *reinterpret_cast<float*>(p) = value;
-    return true;
-}
-
-bool DiscoverCharacterMovementMemberOffset(void* player, void* movementComponent) {
-    if (!player || !movementComponent) {
-        return false;
-    }
-
-    const ptrdiff_t known = g_characterMovementMemberOffset.load();
-    if (known >= 0) {
-        void* check = nullptr;
-        return SafeReadPointer(player, static_cast<size_t>(known), &check) &&
-               check == movementComponent;
-    }
-
-    ptrdiff_t found = -1;
-    int matches = 0;
-
-    // ACharacter / Mayhem player instances are comfortably below this window.
-    // We only inspect aligned pointer fields and require an exact pointer match.
-    for (size_t offset = 0x100; offset <= 0x1200; offset += sizeof(void*)) {
-        void* value = nullptr;
-        if (!SafeReadPointer(player, offset, &value)) {
-            continue;
-        }
-
-        if (value == movementComponent) {
-            found = static_cast<ptrdiff_t>(offset);
-            ++matches;
-        }
-    }
-
-    if (matches != 1 || found < 0) {
-        const int previousMatches = g_lastMovementMemberMatchCount.exchange(matches);
-        if (matches > 0 && previousMatches != matches) {
-            Log(
-                "Horse runtime: CharacterMovement member discovery ambiguous matches=%d",
-                matches
-            );
-        }
-        return false;
-    }
-
-    g_lastMovementMemberMatchCount.store(1);
-    g_characterMovementMemberOffset.store(found);
-    Log(
-        "Horse runtime: discovered CharacterMovement member offset=0x%zX",
-        static_cast<size_t>(found)
-    );
-    return true;
-}
-
-constexpr size_t kHorseMaxWalkSpeedOffset = 0x1D4;
-constexpr size_t kHorseMaxAccelerationOffset = 0x1E8;
-
-bool ApplyHorseDirectMovementPropertiesLocked() {
-    if (!g_horseRuntimeState.captured || !g_horseRuntimeState.movement) {
-        g_horseDirectMovementReady.store(false);
-        return false;
-    }
-
-    const float multiplier = ClampFloat(
-        g_config.horseSpeedMultiplier,
-        0.0f,
-        3.0f
-    );
-
-    const float effectiveSpeed = g_config.horseSpeedEnabled
-        ? g_horseRuntimeState.maxWalkSpeed * multiplier
-        : g_horseRuntimeState.maxWalkSpeed;
-
-    // The reference Horse PAK changes 1300 -> 1500 MaxWalkSpeed and
-    // 600 -> 700 MaxAcceleration together. Scale both from their captured
-    // vanilla values so the horse can actually reach the higher speed.
-    const float effectiveAcceleration = g_config.horseSpeedEnabled
-        ? g_horseRuntimeState.maxAcceleration * multiplier
-        : g_horseRuntimeState.maxAcceleration;
-
-    const bool wroteSpeed = SafeWriteFloat(
-        g_horseRuntimeState.movement,
-        kHorseMaxWalkSpeedOffset,
-        effectiveSpeed
-    );
-    const bool wroteAcceleration = SafeWriteFloat(
-        g_horseRuntimeState.movement,
-        kHorseMaxAccelerationOffset,
-        effectiveAcceleration
-    );
-
-    g_lastHorseNativeMaxWalkSpeed.store(g_horseRuntimeState.maxWalkSpeed);
-    g_lastHorseEffectiveMaxWalkSpeed.store(effectiveSpeed);
-    g_lastHorseNativeMaxAcceleration.store(g_horseRuntimeState.maxAcceleration);
-    g_lastHorseEffectiveMaxAcceleration.store(effectiveAcceleration);
-
-    const bool ready = wroteSpeed && wroteAcceleration;
-    g_horseDirectMovementReady.store(ready);
-    return ready;
-}
-
-bool ApplyHorseDirectMovementProperties(void* movementComponent) {
-    if (!movementComponent ||
-        movementComponent != g_validatedHorseMovement.load()) {
-        return false;
-    }
-
-    AcquireSRWLockExclusive(&g_tuningLock);
-    const bool result = ApplyHorseDirectMovementPropertiesLocked();
-    ReleaseSRWLockExclusive(&g_tuningLock);
-    return result;
-}
-
-void RestoreHorseRuntimeState() {
-    AcquireSRWLockExclusive(&g_tuningLock);
-
-    if (g_horseRuntimeState.captured) {
-        if (g_horseRuntimeState.horse &&
-            IsReadableMemoryRange(
-                reinterpret_cast<BYTE*>(g_horseRuntimeState.horse) + 0x918,
-                sizeof(float)
-            )) {
-            SafeWriteFloat(
-                g_horseRuntimeState.horse,
-                0x918,
-                g_horseRuntimeState.staminaSprintPercentageRate
-            );
-        }
-
-        if (g_horseRuntimeState.movement) {
-            SafeWriteFloat(
-                g_horseRuntimeState.movement,
-                kHorseMaxWalkSpeedOffset,
-                g_horseRuntimeState.maxWalkSpeed
-            );
-            SafeWriteFloat(
-                g_horseRuntimeState.movement,
-                kHorseMaxAccelerationOffset,
-                g_horseRuntimeState.maxAcceleration
-            );
-        }
-    }
-
-    g_horseRuntimeState = {};
-    g_validatedHorseCharacter.store(nullptr);
-    g_validatedHorseMovement.store(nullptr);
-    g_horseRuntimeReady.store(false);
-    g_horseDirectMovementReady.store(false);
-    g_horseMovementMemberOffset.store(-1);
-    g_horseNormalSpeedBaseline.store(0.0f);
-    g_lastHorseNativeSpeed.store(0.0f);
-    g_lastHorseEffectiveSpeed.store(0.0f);
-    g_lastHorseSpeedClassifiedSprint.store(false);
-    g_lastHorseNativeSprintDrain.store(0.0f);
-    g_lastHorseEffectiveSprintDrain.store(0.0f);
-    g_lastHorseNativeMaxWalkSpeed.store(0.0f);
-    g_lastHorseEffectiveMaxWalkSpeed.store(0.0f);
-    g_lastHorseNativeMaxAcceleration.store(0.0f);
-    g_lastHorseEffectiveMaxAcceleration.store(0.0f);
-    g_lastHorseRejectReason.store(0);
-
-    ReleaseSRWLockExclusive(&g_tuningLock);
-}
-
-float ApplyHorseSpeedPolicy(void* movementComponent, float nativeSpeed) {
-    if (!movementComponent ||
-        movementComponent != g_validatedHorseMovement.load() ||
-        nativeSpeed <= 0.0f ||
-        !std::isfinite(nativeSpeed)) {
-        return nativeSpeed;
-    }
-
-    // V0.14B proved that multiplying the GetMaxSpeed return was not a useful
-    // gameplay control. V0.14D keeps this hook for telemetry only and applies
-    // speed through the native movement properties that the reference Horse
-    // PAK actually changes.
-    ApplyHorseDirectMovementProperties(movementComponent);
-
-    float baseline = g_horseNormalSpeedBaseline.load();
-    if (baseline <= 0.0f || nativeSpeed < baseline) {
-        baseline = nativeSpeed;
-        g_horseNormalSpeedBaseline.store(baseline);
-    }
-
-    const bool sprint = baseline > 0.0f && nativeSpeed > baseline * 1.08f;
-    g_lastHorseSpeedClassifiedSprint.store(sprint);
-    g_lastHorseNativeSpeed.store(nativeSpeed);
-    g_lastHorseEffectiveSpeed.store(nativeSpeed);
-
-    return nativeSpeed;
-}
-
-float HookHorseGetMaxSpeed(void* movementComponent) {
-    const float nativeSpeed = g_originalHorseGetMaxSpeed
-        ? g_originalHorseGetMaxSpeed(movementComponent)
-        : 0.0f;
-
-    return ApplyHorseSpeedPolicy(movementComponent, nativeSpeed);
-}
-
-bool InstallDynamicHorseGetMaxSpeedHook(void* horseMovement) {
-    if (!horseMovement) {
-        return false;
-    }
-
-    void* vtableAddress = nullptr;
-    if (!SafeReadPointer(horseMovement, 0, &vtableAddress) || !vtableAddress) {
-        return false;
-    }
-
-    if (!IsReadableMemoryRange(
-            reinterpret_cast<BYTE*>(vtableAddress) + 0x3D0,
-            sizeof(void*))) {
-        return false;
-    }
-
-    void* target = *reinterpret_cast<void**>(
-        reinterpret_cast<BYTE*>(vtableAddress) + 0x3D0
-    );
-    if (!target) {
-        return false;
-    }
-
-    PeSectionView text{};
-    if (!GetMainModuleSection(".text", text) ||
-        !AddressInSection(text, reinterpret_cast<BYTE*>(target))) {
-        Log("Horse runtime: GetMaxSpeed vtable target is outside .text target=%p", target);
-        return false;
-    }
-
-    if (target == g_playerGetMaxSpeedTarget) {
-        // Horse and player share the same Mayhem override. The already
-        // installed HookCharacterGetMaxSpeed handles the validated horse path.
-        g_horseSpeedHookReady.store(true);
-        Log("Horse runtime: horse shares player GetMaxSpeed target=%p", target);
-        return true;
-    }
-
-    if (g_horseSpeedHookReady.load()) {
-        return true;
-    }
-
-    const MH_STATUS initStatus = MH_Initialize();
-    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
-        Log("Horse runtime: MinHook initialize FAILED status=%d", static_cast<int>(initStatus));
-        return false;
-    }
-
-    MH_STATUS status = MH_CreateHook(
-        target,
-        reinterpret_cast<LPVOID>(&HookHorseGetMaxSpeed),
-        reinterpret_cast<LPVOID*>(&g_originalHorseGetMaxSpeed)
-    );
-    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
-        Log("Horse runtime: GetMaxSpeed create FAILED status=%d target=%p", static_cast<int>(status), target);
-        return false;
-    }
-
-    status = MH_EnableHook(target);
-    if (status != MH_OK && status != MH_ERROR_ENABLED) {
-        Log("Horse runtime: GetMaxSpeed enable FAILED status=%d target=%p", static_cast<int>(status), target);
-        return false;
-    }
-
-    g_horseSpeedHookReady.store(true);
-
-    HMODULE module = GetModuleHandleW(nullptr);
-    BYTE* base = reinterpret_cast<BYTE*>(module);
-    Log(
-        "Horse runtime: dedicated GetMaxSpeed READY RVA=0x%zX slot=0x3D0",
-        static_cast<size_t>(reinterpret_cast<BYTE*>(target) - base)
-    );
-    return true;
-}
-
-bool FindHorseMovementFromUntrustedCandidate(
-    void* candidateHorse,
-    void** outMovement,
-    size_t* outOffset
-) {
-    if (!candidateHorse || !outMovement || !outOffset) {
-        return false;
-    }
-
-    *outMovement = nullptr;
-    *outOffset = 0;
-
-    PeSectionView text{};
-    if (!GetMainModuleSection(".text", text)) {
-        return false;
-    }
-
-    void* found = nullptr;
-    size_t foundOffset = 0;
-    int distinctMatches = 0;
-    size_t diagnosticOffsets[4]{};
-
-    // V0.14A incorrectly required the horse movement pointer to live at the
-    // same member offset as the player movement pointer. V0.14B instead scans
-    // the untrusted candidate for a movement-like object whose CharacterOwner
-    // points back to the candidate and whose GetMaxSpeed virtual is executable.
-    for (size_t offset = 0x100; offset <= 0x1600; offset += sizeof(void*)) {
-        void* maybeMovement = nullptr;
-        if (!SafeReadPointer(candidateHorse, offset, &maybeMovement) ||
-            !maybeMovement ||
-            maybeMovement == candidateHorse) {
-            continue;
-        }
-
-        void* ownerBack = nullptr;
-        if (!SafeReadPointer(maybeMovement, 0x190, &ownerBack) ||
-            ownerBack != candidateHorse) {
-            continue;
-        }
-
-        // MovementMode should be a small EMovementMode value. This is a cheap
-        // additional discriminator before touching the vtable.
-        const BYTE* movementModeAddress =
-            reinterpret_cast<const BYTE*>(maybeMovement) + 0x1B0;
-        if (!IsReadableMemoryRange(movementModeAddress, sizeof(BYTE))) {
-            continue;
-        }
-        const unsigned char movementMode = *movementModeAddress;
-        if (movementMode > 6) {
-            continue;
-        }
-
-        void* vtableAddress = nullptr;
-        if (!SafeReadPointer(maybeMovement, 0, &vtableAddress) ||
-            !vtableAddress ||
-            !IsReadableMemoryRange(
-                reinterpret_cast<BYTE*>(vtableAddress) + 0x3D0,
-                sizeof(void*)
-            )) {
-            continue;
-        }
-
-        void* maxSpeedTarget = *reinterpret_cast<void**>(
-            reinterpret_cast<BYTE*>(vtableAddress) + 0x3D0
-        );
-        if (!maxSpeedTarget ||
-            !AddressInSection(text, reinterpret_cast<BYTE*>(maxSpeedTarget))) {
-            continue;
-        }
-
-        if (found == maybeMovement) {
-            continue;
-        }
-
-        found = maybeMovement;
-        foundOffset = offset;
-        if (distinctMatches < 4) {
-            diagnosticOffsets[distinctMatches] = offset;
-        }
-        ++distinctMatches;
-    }
-
-    if (distinctMatches != 1 || !found) {
-        const int previousMatches =
-            g_lastHorseDiscoveryMatchCount.exchange(distinctMatches);
-        if (previousMatches != distinctMatches) {
-            Log(
-                "Horse discovery snapshot: movement-like matches=%d "
-                "firstOffsets=[0x%zX,0x%zX,0x%zX,0x%zX]",
-                distinctMatches,
-                diagnosticOffsets[0],
-                diagnosticOffsets[1],
-                diagnosticOffsets[2],
-                diagnosticOffsets[3]
-            );
-        }
-        return false;
-    }
-
-    g_lastHorseDiscoveryMatchCount.store(1);
-
-    *outMovement = found;
-    *outOffset = foundOffset;
-    return true;
-}
-
-void NoteHorseValidationReject(int reason, const char* text) {
-    g_horseValidationRejects.fetch_add(1);
-    g_lastHorseRejectReason.store(reason);
-
-    const unsigned long long now = GetTickCount64();
-    unsigned long long last = g_lastHorseRejectLogTick.load();
-
-    if (last != 0 && now - last < 1000ULL) {
-        g_horseRejectsSuppressed.fetch_add(1);
-        return;
-    }
-
-    if (!g_lastHorseRejectLogTick.compare_exchange_strong(last, now)) {
-        g_horseRejectsSuppressed.fetch_add(1);
-        return;
-    }
-
-    const int suppressed = g_horseRejectsSuppressed.exchange(0);
-    Log(
-        "Horse runtime: candidate rejected reason=%d (%s) suppressed=%d",
-        reason,
-        text ? text : "unknown",
-        suppressed
-    );
-}
-
-bool ValidateHorseFromMovementPath(void* candidateHorse, void* horseMovement) {
-    if (!g_nativeHorseActive.load() ||
-        !candidateHorse ||
-        !horseMovement ||
-        candidateHorse == g_localPlayerCharacter.load()) {
-        return false;
-    }
-
-    // V0.14B deliberately does NOT use Player+0xE70 as the horse pointer.
-    // We arrive here from a live CharacterMovement::GetMaxSpeed call and treat
-    // its CharacterOwner as the candidate mount.
-    void* ownerBack = nullptr;
-    if (!SafeReadPointer(horseMovement, 0x190, &ownerBack) ||
-        ownerBack != candidateHorse) {
-        NoteHorseValidationReject(1, "CharacterOwner back-pointer mismatch");
-        return false;
-    }
-
-    float recovery = 0.0f;
-    float totalRecovery = 0.0f;
-    float sprintDrain = 0.0f;
-
-    if (!SafeReadFloat(candidateHorse, 0x910, &recovery) ||
-        !SafeReadFloat(candidateHorse, 0x914, &totalRecovery) ||
-        !SafeReadFloat(candidateHorse, 0x918, &sprintDrain)) {
-        NoteHorseValidationReject(2, "horse stamina fields unreadable");
-        return false;
-    }
-
-    // The reference horse data uses percentage-rate fields and a vanilla
-    // sprint drain around 25. Keep the acceptance window intentionally tight
-    // enough to avoid accidentally adopting an unrelated moving actor.
-    if (recovery < 0.0f || recovery > 100.0f ||
-        totalRecovery < 0.0f || totalRecovery > 100.0f ||
-        sprintDrain <= 0.0f || sprintDrain > 100.0f) {
-        NoteHorseValidationReject(3, "horse stamina fields outside sane range");
-        return false;
-    }
-
-    float maxWalkSpeed = 0.0f;
-    float maxAcceleration = 0.0f;
-
-    if (!SafeReadFloat(
-            horseMovement,
-            kHorseMaxWalkSpeedOffset,
-            &maxWalkSpeed) ||
-        !SafeReadFloat(
-            horseMovement,
-            kHorseMaxAccelerationOffset,
-            &maxAcceleration)) {
-        NoteHorseValidationReject(9, "direct movement properties unreadable");
-        return false;
-    }
-
-    // Reference Horse PAK vanilla values are MaxWalkSpeed=1300 and
-    // MaxAcceleration=600. Accept a useful range rather than exact equality,
-    // but reject the local player defaults (950 / 5000) and unrelated actors.
-    if (maxWalkSpeed < 1000.0f || maxWalkSpeed > 2000.0f ||
-        maxAcceleration < 250.0f || maxAcceleration > 1500.0f) {
-        NoteHorseValidationReject(10, "direct movement properties outside horse range");
-        return false;
-    }
-
-    void* vtableAddress = nullptr;
-    if (!SafeReadPointer(horseMovement, 0, &vtableAddress) || !vtableAddress ||
-        !IsReadableMemoryRange(
-            reinterpret_cast<BYTE*>(vtableAddress) + 0x3D0,
-            sizeof(void*)
-        )) {
-        NoteHorseValidationReject(4, "movement vtable/slot unreadable");
-        return false;
-    }
-
-    void* maxSpeedTarget = *reinterpret_cast<void**>(
-        reinterpret_cast<BYTE*>(vtableAddress) + 0x3D0
-    );
-
-    PeSectionView text{};
-    if (!maxSpeedTarget ||
-        !GetMainModuleSection(".text", text) ||
-        !AddressInSection(text, reinterpret_cast<BYTE*>(maxSpeedTarget))) {
-        NoteHorseValidationReject(5, "GetMaxSpeed target outside executable .text");
-        return false;
-    }
-
-    AcquireSRWLockExclusive(&g_tuningLock);
-
-    const bool newHorse =
-        !g_horseRuntimeState.captured ||
-        g_horseRuntimeState.horse != candidateHorse ||
-        g_horseRuntimeState.movement != horseMovement;
-
-    if (newHorse) {
-        g_horseRuntimeState = {};
-        g_horseRuntimeState.horse = candidateHorse;
-        g_horseRuntimeState.movement = horseMovement;
-        g_horseRuntimeState.staminaRecoveryPercentageRate = recovery;
-        g_horseRuntimeState.staminaTotalRecoveryPercentageRate = totalRecovery;
-        g_horseRuntimeState.staminaSprintPercentageRate = sprintDrain;
-        g_horseRuntimeState.maxWalkSpeed = maxWalkSpeed;
-        g_horseRuntimeState.maxAcceleration = maxAcceleration;
-        g_horseRuntimeState.captured = true;
-        g_horseNormalSpeedBaseline.store(0.0f);
-
-        Log(
-            "Horse runtime: VALIDATED from movement owner horse=%p movement=%p "
-            "stamina recovery=%.3f total=%.3f sprintDrain=%.3f "
-            "MaxWalkSpeed=%.3f MaxAcceleration=%.3f maxSpeedFn=%p",
-            candidateHorse,
-            horseMovement,
-            recovery,
-            totalRecovery,
-            sprintDrain,
-            maxWalkSpeed,
-            maxAcceleration,
-            maxSpeedTarget
-        );
-    }
-
-    float durationMultiplier = ClampFloat(
-        g_config.horseSprintDurationMultiplier,
-        0.0f,
-        100.0f
-    );
-
-    float effectiveDrain = g_horseRuntimeState.staminaSprintPercentageRate;
-    if (g_config.horseSprintDurationEnabled) {
-        if (durationMultiplier <= 0.0001f) {
-            effectiveDrain = 100000.0f;
-        } else {
-            effectiveDrain =
-                g_horseRuntimeState.staminaSprintPercentageRate /
-                durationMultiplier;
-        }
-    }
-
-    const bool wroteDrain = SafeWriteFloat(candidateHorse, 0x918, effectiveDrain);
-    const bool wroteDirectMovement = ApplyHorseDirectMovementPropertiesLocked();
-
-    if (wroteDrain && wroteDirectMovement) {
-        g_validatedHorseCharacter.store(candidateHorse);
-        g_validatedHorseMovement.store(horseMovement);
-        g_horseRuntimeReady.store(true);
-        g_lastHorseNativeSprintDrain.store(
-            g_horseRuntimeState.staminaSprintPercentageRate
-        );
-        g_lastHorseEffectiveSprintDrain.store(effectiveDrain);
-        g_lastHorseRejectReason.store(0);
-    }
-
-    ReleaseSRWLockExclusive(&g_tuningLock);
-
-    if (!wroteDrain) {
-        NoteHorseValidationReject(6, "sprint-drain field not writable");
-        return false;
-    }
-    if (!wroteDirectMovement) {
-        NoteHorseValidationReject(11, "MaxWalkSpeed/MaxAcceleration not writable");
-        return false;
-    }
-
-    g_horseValidationSuccesses.fetch_add(1);
-    InstallDynamicHorseGetMaxSpeedHook(horseMovement);
-    return true;
-}
-
-void RefreshHorseRuntimeFromLocalPlayer(void* player) {
-    if (!player) {
-        return;
-    }
-
-    // The audited IsHorseActive state is equivalent to Player+0xE70 != null.
-    // Keep this read cheap on the shared movement heartbeat, but NEVER run the
-    // expensive candidate scan every GetMaxSpeed call.
-    void* opaqueCandidate = nullptr;
-    const bool active =
-        SafeReadPointer(player, 0xE70, &opaqueCandidate) &&
-        opaqueCandidate &&
-        opaqueCandidate != player;
-
-    const bool previous = g_nativeHorseActive.exchange(active);
-
-    if (!active) {
-        g_lastHorseDiscoveryAttemptTick.store(0);
-        g_lastHorseDiscoveryMatchCount.store(-1);
-
-        if (previous || g_validatedHorseCharacter.load()) {
-            Log("Horse runtime: local player unmounted -> restoring captured horse state");
-            RestoreHorseRuntimeState();
-        }
-        return;
-    }
-
-    const unsigned long long now = GetTickCount64();
-
-    if (!previous) {
-        g_lastHorseDiscoveryAttemptTick.store(0);
-        g_lastHorseDiscoveryMatchCount.store(-1);
-
-        float recovery = 0.0f;
-        float totalRecovery = 0.0f;
-        float sprintDrain = 0.0f;
-        const bool staminaReadable =
-            SafeReadFloat(opaqueCandidate, 0x910, &recovery) &&
-            SafeReadFloat(opaqueCandidate, 0x914, &totalRecovery) &&
-            SafeReadFloat(opaqueCandidate, 0x918, &sprintDrain);
-
-        Log(
-            "Horse runtime: mounted state detected from Player+0xE70 "
-            "candidate=%p staminaReadable=%d raw=[%.3f,%.3f,%.3f]",
-            opaqueCandidate,
-            staminaReadable ? 1 : 0,
-            recovery,
-            totalRecovery,
-            sprintDrain
-        );
-    }
-
-    if (g_validatedHorseMovement.load()) {
-        // A validated horse is re-applied at most once per second below.
-    }
-
-    // V0.14E proved that scanning on every shared GetMaxSpeed call can generate
-    // hundreds of thousands of rejects. Throttle all horse discovery/work to
-    // one attempt per second.
-    unsigned long long lastAttempt = g_lastHorseDiscoveryAttemptTick.load();
-    if (lastAttempt != 0 && now - lastAttempt < 1000ULL) {
-        return;
-    }
-    if (!g_lastHorseDiscoveryAttemptTick.compare_exchange_strong(lastAttempt, now)) {
-        return;
-    }
-
-    if (g_validatedHorseMovement.load()) {
-        ApplyHorseDirectMovementProperties(g_validatedHorseMovement.load());
-        return;
-    }
-
-    void* horseMovement = nullptr;
-    size_t horseMovementOffset = 0;
-
-    if (FindHorseMovementFromUntrustedCandidate(
-            opaqueCandidate,
-            &horseMovement,
-            &horseMovementOffset)) {
-        if (ValidateHorseFromMovementPath(opaqueCandidate, horseMovement)) {
-            g_horseMovementMemberOffset.store(
-                static_cast<intptr_t>(horseMovementOffset)
-            );
-            Log(
-                "Horse runtime: candidate scan found movement member offset=0x%zX",
-                horseMovementOffset
-            );
-        }
-    } else {
-        NoteHorseValidationReject(
-            7,
-            "no unique horse movement member found in opaque mounted candidate"
-        );
-    }
-}
-
-BYTE* ResolveIsHorseActiveNative() {
-    PeSectionView text{};
-    if (!GetMainModuleSection(".text", text)) {
-        Log("Horse runtime: failed to enumerate .text for IsHorseActive");
-        return nullptr;
-    }
-
-    // Audited AMayhemPlayerCharacter::IsHorseActive:
-    //   cmp qword ptr [rcx+0xE70],0
-    //   setne al
-    //   ret
-    static constexpr int kPattern[] = {
-        0x48, 0x83, 0xB9, 0x70, 0x0E, 0x00, 0x00, 0x00,
-        0x0F, 0x95, 0xC0,
-        0xC3
-    };
-
-    size_t count = 0;
-    BYTE* target = FindUniquePattern(text, kPattern, ARRAYSIZE(kPattern), &count);
-    if (!target) {
-        Log("Horse runtime: IsHorseActive signature match count=%zu", count);
-        return nullptr;
-    }
-
-    HMODULE module = GetModuleHandleW(nullptr);
-    BYTE* base = reinterpret_cast<BYTE*>(module);
-    Log(
-        "Horse runtime: IsHorseActive resolved RVA=0x%zX",
-        static_cast<size_t>(target - base)
-    );
-    return target;
-}
-
-bool HookIsHorseActive(void* player) {
-    const bool active = g_originalIsHorseActive
-        ? g_originalIsHorseActive(player)
-        : false;
-
-    // Only the locally controlled player is allowed to drive the mount state.
-    // This also avoids a remote co-op player changing our local horse flag.
-    if (!player || !IsLocallyControlledMayhemCharacter(player)) {
-        return active;
-    }
-
-    g_localPlayerCharacter.store(player);
-
-    const bool previous = g_nativeHorseActive.exchange(active);
-
-    if (!active) {
-        if (previous || g_validatedHorseCharacter.load()) {
-            Log("Horse runtime: local player unmounted -> restoring captured horse state");
-            RestoreHorseRuntimeState();
-        }
-        return false;
-    }
-
-    if (!previous) {
-        Log(
-            "Horse runtime: native mounted state detected; "
-            "starting safe mount discovery"
-        );
-    }
-
-    if (g_validatedHorseMovement.load()) {
-        ApplyHorseDirectMovementProperties(g_validatedHorseMovement.load());
-    }
-
-    if (!g_validatedHorseCharacter.load()) {
-        // Player+0xE70 is only an opaque candidate source. It is never trusted
-        // as an AMayhemHorseCharacter by itself. Every later read/write requires
-        // independent structural proof.
-        void* opaqueCandidate = nullptr;
-        if (SafeReadPointer(player, 0xE70, &opaqueCandidate) &&
-            opaqueCandidate &&
-            opaqueCandidate != player) {
-            void* horseMovement = nullptr;
-            size_t horseMovementOffset = 0;
-
-            if (FindHorseMovementFromUntrustedCandidate(
-                    opaqueCandidate,
-                    &horseMovement,
-                    &horseMovementOffset)) {
-                if (ValidateHorseFromMovementPath(opaqueCandidate, horseMovement)) {
-                    g_horseMovementMemberOffset.store(
-                        static_cast<intptr_t>(horseMovementOffset)
-                    );
-                    Log(
-                        "Horse runtime: candidate scan found movement member "
-                        "offset=0x%zX",
-                        horseMovementOffset
-                    );
-                }
-            } else {
-                NoteHorseValidationReject(
-                    7,
-                    "no unique horse movement member found in opaque mounted candidate"
-                );
-            }
-        } else {
-            NoteHorseValidationReject(
-                8,
-                "native mounted state had no readable opaque candidate"
-            );
-        }
-    }
-
-    // If the opaque-candidate scan does not resolve the horse, the normal
-    // GetMaxSpeed hook still performs movement-owner discovery as a fallback.
-    return true;
-}
-
-bool InstallSafeHorseRuntimeHook() {
-    BYTE* target = ResolveIsHorseActiveNative();
-    if (!target) {
-        Log("Horse runtime: IsHorseActive resolver failed; horse features remain fail-open");
-        return false;
-    }
-
-    const MH_STATUS initStatus = MH_Initialize();
-    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
-        Log("Horse runtime: MinHook initialize FAILED status=%d", static_cast<int>(initStatus));
-        return false;
-    }
-
-    MH_STATUS status = MH_CreateHook(
-        target,
-        reinterpret_cast<LPVOID>(&HookIsHorseActive),
-        reinterpret_cast<LPVOID*>(&g_originalIsHorseActive)
-    );
-    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
-        Log("Horse runtime: IsHorseActive create FAILED status=%d", static_cast<int>(status));
-        return false;
-    }
-
-    status = MH_EnableHook(target);
-    if (status != MH_OK && status != MH_ERROR_ENABLED) {
-        Log("Horse runtime: IsHorseActive enable FAILED status=%d", static_cast<int>(status));
-        return false;
-    }
-
-    Log("Horse runtime: IsHorseActive hook READY; movement-owner mount discovery armed");
-    return true;
-}
-
 PlayerMovementTuningState* FindOrCapturePlayerMovementState(void* movementComponent) {
     if (!movementComponent) {
         return nullptr;
@@ -2860,29 +1931,27 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
     }
 
     BYTE* component = reinterpret_cast<BYTE*>(movementComponent);
-
-    // UCharacterMovementComponent::CharacterOwner reflection offset.
     void* characterOwner = *reinterpret_cast<void**>(component + 0x190);
     if (!characterOwner) {
         return nativeSpeed;
     }
 
-    // Refresh the mounted state from the last known local player on every
-    // Mayhem GetMaxSpeed heartbeat. This removes the failed IsHorseActive hook
-    // dependency while staying on a gameplay thread.
+    dg::horse::Settings horseSettings{};
+    horseSettings.speedEnabled = g_config.horseSpeedEnabled;
+    horseSettings.speedMultiplier = g_config.horseSpeedMultiplier;
+    horseSettings.sprintDurationEnabled = g_config.horseSprintDurationEnabled;
+    horseSettings.sprintDurationMultiplier = g_config.horseSprintDurationMultiplier;
+    dg::horse::SetSettings(horseSettings);
+
     void* localPlayer = g_localPlayerCharacter.load();
     if (localPlayer) {
-        RefreshHorseRuntimeFromLocalPlayer(localPlayer);
+        dg::horse::OnGetMaxSpeed(
+            movementComponent,
+            characterOwner,
+            localPlayer,
+            nativeSpeed
+        );
     }
-
-    if (characterOwner == g_validatedHorseCharacter.load()) {
-        return ApplyHorseSpeedPolicy(movementComponent, nativeSpeed);
-    }
-
-    // V0.14E's broad mounted-time fallback treated every non-local movement
-    // owner that reached this shared hook as a potential horse. That produced
-    // reason=3 / reason=7 storms and massive synchronous log I/O. V0.14F only
-    // accepts the structurally validated object reached from Player+0xE70.
 
     if (!IsLocallyControlledMayhemCharacter(characterOwner)) {
         return nativeSpeed;
@@ -2890,10 +1959,13 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
 
     g_localPlayerCharacter.store(characterOwner);
 
-    // The first local-player call can establish the mounted state immediately.
-    RefreshHorseRuntimeFromLocalPlayer(characterOwner);
-
-    DiscoverCharacterMovementMemberOffset(characterOwner, movementComponent);
+    // Give the isolated HorseFeature the authoritative local-player pointer.
+    dg::horse::OnGetMaxSpeed(
+        movementComponent,
+        characterOwner,
+        characterOwner,
+        nativeSpeed
+    );
 
     ApplyPlayerMovementTunings(movementComponent);
 
@@ -2901,8 +1973,7 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         return nativeSpeed;
     }
 
-    // EMovementMode:
-    // 1 = Walking, 2 = NavWalking. Do not modify falling/swimming/flying/custom.
+    // EMovementMode: 1 = Walking, 2 = NavWalking.
     const unsigned char movementMode = *(component + 0x1B0);
     if (movementMode != 1 && movementMode != 2) {
         return nativeSpeed;
@@ -4600,6 +3671,8 @@ void DrawOverlay() {
 
             DrawSectionTitle("Horse");
 
+            const dg::horse::Telemetry horseTelemetry = dg::horse::GetTelemetry();
+
             DrawTunableFeature(
                 "Horse Speed",
                 "HorseSpeed",
@@ -4609,9 +3682,9 @@ void DrawOverlay() {
                 3.00f,
                 1.25f,
                 "%.2fx",
-                g_horseDirectMovementReady.load()
-                    ? "Direct MaxWalkSpeed + MaxAcceleration runtime control"
-                    : "Waiting for validated direct movement properties"
+                horseTelemetry.movementValidated
+                    ? "Clean movement signature validated | MaxWalkSpeed + MaxAcceleration"
+                    : "Waiting for mounted 1300 / 600 movement signature"
             );
 
             DrawTunableFeature(
@@ -4623,7 +3696,7 @@ void DrawOverlay() {
                 3.00f,
                 1.25f,
                 "%.2fx",
-                "Pending sprint ability RunSpeed hook | V0.14B GetMaxSpeed scaling rejected"
+                "Pending dedicated RunSpeed primitive | intentionally isolated"
             );
 
             DrawTunableFeature(
@@ -4635,46 +3708,33 @@ void DrawOverlay() {
                 10.00f,
                 2.00f,
                 "%.2fx",
-                g_horseRuntimeReady.load()
-                    ? "Validated StaminaSprintPercentageRate runtime control"
-                    : "Waiting for validated mount"
+                horseTelemetry.staminaReady
+                    ? "Horse owner validated | StaminaSprintPercentageRate"
+                    : "Waiting for validated horse owner stamina fields"
             );
 
             ImGui::Indent();
             ImGui::TextDisabled(
-                "Horse runtime: %s | player move offset 0x%zX | horse move offset 0x%zX",
-                g_horseRuntimeReady.load() ? "VALIDATED" : "waiting",
-                g_characterMovementMemberOffset.load() >= 0
-                    ? static_cast<size_t>(g_characterMovementMemberOffset.load())
-                    : static_cast<size_t>(0),
-                g_horseMovementMemberOffset.load() >= 0
-                    ? static_cast<size_t>(g_horseMovementMemberOffset.load())
-                    : static_cast<size_t>(0)
-            );
-            ImGui::TextDisabled(
-                "GetMaxSpeed telemetry %.1f | class: %s | baseline %.1f",
-                g_lastHorseNativeSpeed.load(),
-                g_lastHorseSpeedClassifiedSprint.load() ? "SPRINT" : "NORMAL",
-                g_horseNormalSpeedBaseline.load()
+                "Mounted: %s | movement: %s | stamina: %s | checks %u / matches %u",
+                horseTelemetry.mounted ? "YES" : "NO",
+                horseTelemetry.movementValidated ? "VALIDATED" : "waiting",
+                horseTelemetry.staminaReady ? "READY" : "waiting",
+                horseTelemetry.candidateChecks,
+                horseTelemetry.candidateMatches
             );
             ImGui::TextDisabled(
                 "MaxWalkSpeed %.1f -> %.1f | MaxAcceleration %.1f -> %.1f",
-                g_lastHorseNativeMaxWalkSpeed.load(),
-                g_lastHorseEffectiveMaxWalkSpeed.load(),
-                g_lastHorseNativeMaxAcceleration.load(),
-                g_lastHorseEffectiveMaxAcceleration.load()
+                horseTelemetry.nativeMaxWalkSpeed,
+                horseTelemetry.appliedMaxWalkSpeed,
+                horseTelemetry.nativeMaxAcceleration,
+                horseTelemetry.appliedMaxAcceleration
             );
             ImGui::TextDisabled(
-                "Sprint stamina drain %.3f -> %.3f | validation OK %d / reject %d",
-                g_lastHorseNativeSprintDrain.load(),
-                g_lastHorseEffectiveSprintDrain.load(),
-                g_horseValidationSuccesses.load(),
-                g_horseValidationRejects.load()
-            );
-            ImGui::TextDisabled(
-                "Native mounted signal: %s | last reject reason: %d",
-                g_nativeHorseActive.load() ? "YES" : "NO",
-                g_lastHorseRejectReason.load()
+                "Sprint drain %.3f -> %.3f | owner %p | movement %p",
+                horseTelemetry.nativeSprintDrain,
+                horseTelemetry.appliedSprintDrain,
+                horseTelemetry.horseOwner,
+                horseTelemetry.horseMovement
             );
             ImGui::Unindent();
 
@@ -4729,6 +3789,29 @@ void DrawOverlay() {
                 );
                 ImGui::Unindent();
             }
+
+            if (ImGui::Checkbox("Skip Logos", &g_config.skipLogosEnabled)) {
+                g_config.Save();
+                dg::startup_movies::SetEnabled(g_config.skipLogosEnabled);
+                g_lastAction = std::string("Skip Logos ") +
+                    (g_config.skipLogosEnabled ? "ON" : "OFF");
+            }
+            ImGui::SameLine(310.0f);
+            const dg::startup_movies::Telemetry logoTelemetry =
+                dg::startup_movies::GetTelemetry();
+            ImGui::TextDisabled(
+                "%s | THQ + Airship startup movies only",
+                logoTelemetry.installed
+                    ? "Exact file hooks armed | restart tests boot logos"
+                    : "Startup movie hooks unavailable"
+            );
+            ImGui::Indent();
+            ImGui::TextDisabled(
+                "Blocked file checks: %u | blocked opens: %u",
+                logoTelemetry.blockedAttributeChecks,
+                logoTelemetry.blockedOpens
+            );
+            ImGui::Unindent();
 
             ImGui::Spacing();
             ImGui::TextDisabled(
@@ -5094,6 +4177,14 @@ DWORD WINAPI MainThread(LPVOID) {
 
     g_config.Load();
 
+    dg::horse::Initialize(&FeatureLog);
+
+    if (!dg::startup_movies::Install(
+            g_config.skipLogosEnabled,
+            &FeatureLog)) {
+        Log("Skip Logos unavailable; continuing with remaining ASI features.");
+    }
+
     if (!InstallSkipIntroControl()) {
         Log("Skip Intro unavailable; continuing with remaining ASI features.");
     }
@@ -5110,11 +4201,6 @@ DWORD WINAPI MainThread(LPVOID) {
     if (!InstallMovementSpeedHook()) {
         Log("Movement Speed unavailable; other ASI features remain active.");
     }
-
-    Log(
-        "Horse runtime: V0.14D armed from validated movement heartbeat; "
-        "IsHorseActive byte-signature hook disabled"
-    );
 
     if (!InstallActionEnabledRecoveryDiagnostic()) {
         Log("Action Recovery V0.8 unavailable; other ASI features remain active.");
