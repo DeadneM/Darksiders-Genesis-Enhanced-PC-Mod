@@ -1,6 +1,4 @@
 #include <windows.h>
-
-#include "EarlySkipLogos.h"
 #include <cwchar>
 
 static HMODULE g_self = nullptr;
@@ -67,31 +65,6 @@ static void EnsureAsisLoaded() {
     InitOnceExecuteOnce(&g_asiOnce, LoadAsiPlugins, nullptr, nullptr);
 }
 
-static bool ReadSkipLogosEnabledFromIni() {
-    wchar_t modulePath[MAX_PATH]{};
-    if (!g_self ||
-        !GetModuleFileNameW(g_self, modulePath, MAX_PATH)) {
-        return true;
-    }
-
-    wchar_t* slash = wcsrchr(modulePath, L'\\');
-    if (!slash) {
-        return true;
-    }
-    *(slash + 1) = L'\0';
-
-    wchar_t iniPath[MAX_PATH]{};
-    lstrcpyW(iniPath, modulePath);
-    lstrcatW(iniPath, L"DarksidersGenesisMod.ini");
-
-    return GetPrivateProfileIntW(
-        L"Features",
-        L"SkipLogos",
-        1,
-        iniPath
-    ) != 0;
-}
-
 template <typename T>
 static T Resolve(const char* name) {
     HMODULE real = RealDxgi();
@@ -140,21 +113,6 @@ HRESULT WINAPI DXGIDeclareAdapterRemovalSupport() {
 }
 
 extern "C" __declspec(dllexport)
-const wchar_t* WINAPI DGGetSkipLogosStatus() {
-    return dg::skip_logos::Status();
-}
-
-extern "C" __declspec(dllexport)
-LONG WINAPI DGGetSkipLogosBlockCount() {
-    return dg::skip_logos::BlockCount();
-}
-
-extern "C" __declspec(dllexport)
-BOOL WINAPI DGGetSkipLogosBootEnabled() {
-    return dg::skip_logos::BootEnabled() ? TRUE : FALSE;
-}
-
-extern "C" __declspec(dllexport)
 HRESULT WINAPI DXGIDisableVBlankVirtualization() {
     using Fn = HRESULT(WINAPI*)();
     Fn fn = Resolve<Fn>("DXGIDisableVBlankVirtualization");
@@ -164,15 +122,6 @@ HRESULT WINAPI DXGIDisableVBlankVirtualization() {
 BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
     if (reason == DLL_PROCESS_ATTACH) {
         g_self = module;
-
-        // The proxy is loaded before the game entry point. Install only the
-        // exact logo file IAT hooks here, before UE4 can request the movies.
-        const bool skipLogosEnabled =
-            ReadSkipLogosEnabledFromIni();
-        dg::skip_logos::InstallEarlyIatHooks(
-            skipLogosEnabled
-        );
-
         DisableThreadLibraryCalls(module);
     }
     return TRUE;
