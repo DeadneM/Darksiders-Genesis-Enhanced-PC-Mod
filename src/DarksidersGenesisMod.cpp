@@ -1190,22 +1190,18 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         nativeSpeed
     );
 
-    // Restore the player path that was already validated in V0.14F:
-    // 1) the pawn must be locally controlled;
-    // 2) the movement component must pass the proven player tuning signature
-    //    (JumpZ / DoubleJumpZ / GlideDuration).
+    // Keep player identity exactly as the already validated V0.14F path:
+    // locally controlled pawn -> local player.
     //
-    // This deliberately avoids the unvalidated V0.17 MaxWalkSpeed /
-    // MaxAcceleration identity heuristic that blocked all gameplay modifiers.
+    // JumpZ / DoubleJumpZ / Glide validation protects only those property
+    // writes. It must never decide whether Movement/Recovery/Damage are allowed.
     if (!IsLocallyControlledMayhemCharacter(characterOwner)) {
         return nativeSpeed;
     }
 
-    if (!ApplyPlayerMovementTunings(movementComponent)) {
-        return nativeSpeed;
-    }
-
     g_localPlayerCharacter.store(characterOwner);
+
+    ApplyPlayerMovementTunings(movementComponent);
 
     if (!runtime.movementSpeedEnabled.load(std::memory_order_relaxed) || nativeSpeed <= 0.0f) {
         return nativeSpeed;
@@ -2229,7 +2225,7 @@ DWORD WINAPI MainThread(LPVOID) {
 
     dg::horse::Initialize(&FeatureLog);
     Log(
-        "Player identity: V0.14F local-pawn + JumpZ/DoubleJumpZ/Glide signature restored"
+        "Player identity: exact V0.14F APawn::IsLocallyControlled path restored; Jump/Glide validation is non-blocking"
     );
 
     if (!InstallSkipIntroControl()) {
