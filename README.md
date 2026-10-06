@@ -2855,3 +2855,24 @@ data rather than conflated with stamina duration.
 
 Skip Logos remains paused after the rejected V0.15A/B/C methods. No new Skip
 Logos candidate should be shipped until a native retail target is proven.
+
+
+### V0.16A local-control correction
+
+The first V0.16A draft passed a boolean derived from
+`APawn::IsLocallyControlled` into HorseFeature and skipped those candidates.
+
+That was incorrect for mounts: a horse controlled by the local player can
+itself be locally controlled.
+
+The final V0.16A ordering is therefore:
+
+```text
+shared GetMaxSpeed hook
+  -> HorseFeature observes every movement component
+  -> exact reference-PAK property signature decides horse identity
+  -> APawn::IsLocallyControlled is evaluated only afterwards
+  -> normal player movement tuning path continues unchanged
+```
+
+Horse identification is now independent from pawn control state.
