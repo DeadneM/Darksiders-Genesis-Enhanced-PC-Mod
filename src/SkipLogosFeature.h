@@ -2,6 +2,8 @@
 
 namespace dg::skip_logos {
 
+// V0.18D: single UE4 StartupMovies config path. No runtime media fallback.
+
 using LogFn = void(*)(const char*);
 
 struct Telemetry {
