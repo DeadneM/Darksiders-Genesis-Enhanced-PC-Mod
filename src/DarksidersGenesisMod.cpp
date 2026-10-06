@@ -1631,6 +1631,19 @@ bool InstallMovementSpeedHook() {
     return true;
 }
 
+const char* AbilityStateName(unsigned char state) {
+    switch (state) {
+    case 0: return "INITIALIZING";
+    case 1: return "STARTING";
+    case 2: return "RUNNING";
+    case 3: return "SUSPENDED";
+    case 4: return "AWAITING_FINISH";
+    case 5: return "FINISHED";
+    case 6: return "FINALIZED";
+    default: return "UNKNOWN";
+    }
+}
+
 BYTE* ResolveAbilityActionEnabledNative() {
     PeSectionView text{};
     PeSectionView rdata{};
