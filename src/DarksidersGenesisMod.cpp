@@ -30,7 +30,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.18H-custom-splash-bypass-test";
+constexpr const char* kBuild = "0.18I-early-startup-screen-bypass-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -2227,11 +2227,12 @@ DWORD WINAPI MainThread(LPVOID) {
         g_targetValidation.reason.c_str()
     );
 
-    // Skip Logos bypasses only FEngineLoop's early CustomSplashScreen branch
-    // from dxgi.dll DllMain. The ASI only binds menu control + telemetry.
+    // Skip Logos bypasses the FEngineLoop selector that would play either the
+    // EarlyStartupMovie path or its CustomSplashScreen fallback. The proxy
+    // applies this before game entry; the ASI only binds control + telemetry.
     if (g_targetValidation.exact) {
         if (!dg::skip_logos::Initialize(&FeatureLog)) {
-            Log("Skip Logos CUSTOM_SPLASH unavailable; remaining mod features continue normally.");
+            Log("Skip Logos EARLY_SCREEN unavailable; remaining mod features continue normally.");
         }
     }
 
