@@ -477,10 +477,9 @@ void SetSettings(const Settings& settings) {
 void ObserveMovement(
     void* movementComponent,
     void* characterOwner,
-    float nativeGetMaxSpeed,
-    bool isLocalPlayer
+    float nativeGetMaxSpeed
 ) {
-    if (!movementComponent || !characterOwner || isLocalPlayer) {
+    if (!movementComponent || !characterOwner) {
         return;
     }
 
