@@ -12,6 +12,7 @@
 #include "HorseFeature.h"
 #include "OverlayUi.h"
 #include "RuntimeSettings.h"
+#include "SkipLogosFeature.h"
 #include "TargetValidator.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -29,7 +30,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.18B-skip-logos-menu-test";
+constexpr const char* kBuild = "0.18C-skip-logos-mediafoundation-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -71,8 +72,6 @@ std::atomic_bool g_recoveryHookReady{false};
 std::atomic_bool g_skipIntroReady{false};
 std::atomic_bool g_shuttingDown{false};
 dg::target::ValidationResult g_targetValidation{};
-std::atomic_bool g_skipLogosBootEnabled{true};
-std::atomic_long g_skipLogosBlocked{0};
 LONG** g_skipIntroDataSlot = nullptr;
 LONG* g_skipIntroData = nullptr;
 LONG g_skipIntroOriginalValue = 1;
@@ -216,45 +215,6 @@ void FeatureLog(const char* message) {
     }
 }
 
-void LogEarlySkipLogosStatus() {
-    HMODULE proxy = GetModuleHandleW(L"dxgi.dll");
-    if (!proxy) {
-        Log("Skip Logos: dxgi proxy unavailable");
-        return;
-    }
-
-    using StatusFn = const wchar_t* (WINAPI*)();
-    using CountFn = LONG (WINAPI*)();
-    using EnabledFn = BOOL (WINAPI*)();
-
-    auto statusFn = reinterpret_cast<StatusFn>(
-        GetProcAddress(proxy, "DGGetSkipLogosStatus")
-    );
-    auto countFn = reinterpret_cast<CountFn>(
-        GetProcAddress(proxy, "DGGetSkipLogosBlockCount")
-    );
-    auto enabledFn = reinterpret_cast<EnabledFn>(
-        GetProcAddress(proxy, "DGGetSkipLogosBootEnabled")
-    );
-
-    if (!statusFn || !countFn || !enabledFn) {
-        Log("Skip Logos: proxy diagnostics unavailable");
-        return;
-    }
-
-    const bool enabled = enabledFn() != FALSE;
-    const LONG blocked = countFn();
-
-    g_skipLogosBootEnabled.store(enabled);
-    g_skipLogosBlocked.store(blocked);
-
-    Log(
-        "Skip Logos: boot=%s %ls blocked=%ld targets=THQ_LogoBasic.mp4,AS_LogoBasic.mp4",
-        enabled ? "ON" : "OFF",
-        statusFn(),
-        blocked
-    );
-}
 
 struct PeSectionView {
     BYTE* begin = nullptr;
@@ -1900,10 +1860,19 @@ dg::overlay::Context BuildOverlayContext() {
         g_finalOutgoingDamageHookReady.load();
     t.hotstreakHookReady = g_hotstreakHookReady.load();
     t.skipIntroReady = g_skipIntroReady.load();
-    t.skipLogosBootEnabled =
-        g_skipLogosBootEnabled.load();
+
+    const dg::skip_logos::Telemetry skipLogosTelemetry =
+        dg::skip_logos::GetTelemetry();
+    t.skipLogosInstalled =
+        skipLogosTelemetry.installed;
+    t.skipLogosResolverHooked =
+        skipLogosTelemetry.resolverMethodHooked;
+    t.skipLogosResolverCreates =
+        skipLogosTelemetry.resolverCreateCalls;
+    t.skipLogosUrlCalls =
+        skipLogosTelemetry.urlCalls;
     t.skipLogosBlocked =
-        g_skipLogosBlocked.load();
+        skipLogosTelemetry.blocked;
 
     t.actionMoveQueries = g_actionMoveQueries.load();
     t.actionMoveLocalQueries =
@@ -2191,6 +2160,7 @@ void ShutdownMod() {
     Log("Shutdown: begin");
 
     g_config.FlushIfDue(true);
+    dg::skip_logos::Shutdown();
     dg::horse::Shutdown();
 
     if (g_skipIntroData) {
@@ -2245,7 +2215,6 @@ DWORD WINAPI MainThread(LPVOID) {
     g_config.SetPath(g_iniPath);
     g_config.SetLogger(&FeatureLog);
     g_config.Load();
-    LogEarlySkipLogosStatus();
 
     g_targetValidation = dg::target::ValidateCurrentExecutable();
     Log(
@@ -2268,6 +2237,10 @@ DWORD WINAPI MainThread(LPVOID) {
     if (!g_targetValidation.exact) {
         Log("Target mismatch: gameplay hooks DISABLED; overlay/log only.");
         return 0;
+    }
+
+    if (!dg::skip_logos::Initialize(&FeatureLog)) {
+        Log("Skip Logos MF unavailable; remaining mod features continue normally.");
     }
 
     dg::horse::Initialize(&FeatureLog);
