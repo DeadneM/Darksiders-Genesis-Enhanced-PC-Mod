@@ -2227,6 +2227,15 @@ DWORD WINAPI MainThread(LPVOID) {
         g_targetValidation.reason.c_str()
     );
 
+    // Skip Logos is boot-sensitive. Install its single Media Foundation
+    // primitive as soon as the exact retail target has been accepted, before
+    // D3D11 discovery can consume more startup time.
+    if (g_targetValidation.exact) {
+        if (!dg::skip_logos::Initialize(&FeatureLog)) {
+            Log("Skip Logos MF unavailable; remaining mod features continue normally.");
+        }
+    }
+
     // The overlay remains available on an unknown executable so users receive
     // a useful compatibility diagnostic. Gameplay hooks are fail-closed.
     if (!DiscoverAndHookD3D11()) {
@@ -2237,10 +2246,6 @@ DWORD WINAPI MainThread(LPVOID) {
     if (!g_targetValidation.exact) {
         Log("Target mismatch: gameplay hooks DISABLED; overlay/log only.");
         return 0;
-    }
-
-    if (!dg::skip_logos::Initialize(&FeatureLog)) {
-        Log("Skip Logos MF unavailable; remaining mod features continue normally.");
     }
 
     dg::horse::Initialize(&FeatureLog);
