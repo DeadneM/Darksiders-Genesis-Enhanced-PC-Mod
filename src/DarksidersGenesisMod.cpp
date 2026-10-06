@@ -10,6 +10,7 @@
 
 #include "ConfigStore.h"
 #include "HorseFeature.h"
+#include "OverlayUi.h"
 #include "PlayerIdentity.h"
 #include "RuntimeSettings.h"
 #include "TargetValidator.h"
@@ -120,7 +121,6 @@ std::string g_lastAction = "None";
 using dg::config::Action;
 using dg::config::ActionLabel;
 using dg::config::KeyDisplayName;
-using dg::config::kActionLabels;
 
 dg::config::Store g_config;
 
@@ -1827,577 +1827,75 @@ bool InitializeImGui(IDXGISwapChain* swapChain) {
     return true;
 }
 
-void DrawTunableFeature(
-    const char* label,
-    const char* id,
-    bool* enabled,
-    float* value,
-    float minValue,
-    float maxValue,
-    float defaultValue,
-    const char* format,
-    const char* note
-) {
-    if (ImGui::Checkbox(label, enabled)) {
-        g_config.Save();
-    }
+dg::overlay::Context BuildOverlayContext() {
+    dg::overlay::Context context{};
+    context.build = kBuild;
+    context.config = &g_config;
+    context.targetValidation = &g_targetValidation;
 
-    ImGui::SameLine(310.0f);
-    ImGui::TextDisabled("%s", note);
+    context.overlayVisible = &g_overlayVisible;
+    context.captureMenuKey = &g_captureMenuKey;
+    context.hudHidden = &g_hudHidden;
+    context.lastAction = &g_lastAction;
 
-    if (*enabled) {
-        ImGui::Indent();
+    auto& t = context.telemetry;
+    t.hudHookReady = g_hudHookReady.load();
+    t.movementHookReady = g_movementHookReady.load();
+    t.recoveryHookReady = g_recoveryHookReady.load();
+    t.finalDamageHookReady =
+        g_finalOutgoingDamageHookReady.load();
+    t.hotstreakHookReady = g_hotstreakHookReady.load();
+    t.skipIntroReady = g_skipIntroReady.load();
 
-        ImGui::SetNextItemWidth(245.0f);
-        std::string sliderLabel = std::string("Value##Slider_") + id;
-        bool changed = ImGui::SliderFloat(
-            sliderLabel.c_str(),
-            value,
-            minValue,
-            maxValue,
-            format
-        );
+    t.actionMoveQueries = g_actionMoveQueries.load();
+    t.actionMoveLocalQueries =
+        g_actionMoveLocalQueries.load();
+    t.actionMoveNativeBlocked =
+        g_actionMoveNativeBlocked.load();
+    t.actionMoveForced = g_actionMoveForced.load();
+    t.lastActionMoveState =
+        g_lastActionMoveState.load();
+    t.lastActionMoveElapsed =
+        g_lastActionMoveElapsed.load();
 
-        ImGui::SameLine();
-        ImGui::SetNextItemWidth(110.0f);
-        std::string inputLabel = std::string("Manual##Input_") + id;
-        if (ImGui::InputFloat(
-            inputLabel.c_str(),
-            value,
-            0.0f,
-            0.0f,
-            "%.3f"
-        )) {
-            changed = true;
-        }
+    t.pistolDamageBoostCalls =
+        g_pistolDamageBoostCalls.load();
+    t.lastNativePistolDamage =
+        g_lastNativePistolDamage.load();
+    t.lastBoostedPistolDamage =
+        g_lastBoostedPistolDamage.load();
+    t.lastPistolBaseJuice =
+        g_lastPistolBaseJuice.load();
 
-        ImGui::SameLine();
-        std::string defaultLabel = std::string("Default##Reset_") + id;
-        if (ImGui::Button(defaultLabel.c_str())) {
-            *value = defaultValue;
-            changed = true;
-        }
+    t.meleeDamageBoostCalls =
+        g_meleeDamageBoostCalls.load();
+    t.lastNativeBaseDamage =
+        g_lastNativeBaseDamage.load();
+    t.lastBoostedBaseDamage =
+        g_lastBoostedBaseDamage.load();
+    t.lastOutgoingScaleType =
+        g_lastOutgoingScaleType.load();
+    t.lastOutgoingTagCount =
+        g_lastOutgoingTagCount.load();
 
-        if (changed) {
-            if (*value < minValue) *value = minValue;
-            if (*value > maxValue) *value = maxValue;
-            g_config.Save();
-        }
+    t.hotstreakBoostCalls =
+        g_hotstreakBoostCalls.load();
+    t.lastNativeJuiceGain =
+        g_lastNativeJuiceGain.load();
+    t.lastBoostedJuiceGain =
+        g_lastBoostedJuiceGain.load();
 
-        ImGui::Unindent();
-    }
-}
+    t.skipIntroData = g_skipIntroData;
+    t.skipIntroOriginalValue =
+        g_skipIntroOriginalValue;
 
-void DrawToggleFeature(const char* label, bool* enabled, const char* note) {
-    if (ImGui::Checkbox(label, enabled)) {
-        g_config.Save();
-    }
-    ImGui::SameLine(310.0f);
-    ImGui::TextDisabled("%s", note);
-}
+    context.applySkipIntro =
+        &ApplySkipIntroSetting;
+    context.abilityStateName =
+        &AbilityStateName;
+    context.log = &Log;
 
-void DrawSectionTitle(const char* title) {
-    ImGui::Spacing();
-    ImGui::Separator();
-    ImGui::Text("%s", title);
-    ImGui::Separator();
-    ImGui::Spacing();
-}
-
-void DrawOverlay() {
-    ImGui::SetNextWindowSize(ImVec2(840.0f, 720.0f), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowPos(ImVec2(80.0f, 80.0f), ImGuiCond_FirstUseEver);
-
-    bool open = true;
-    if (!ImGui::Begin("Darksiders Genesis Enhanced", &open, ImGuiWindowFlags_NoCollapse)) {
-        ImGui::End();
-        if (!open) {
-            g_overlayVisible.store(false);
-        }
-        return;
-    }
-
-    ImGui::Text("ASI Overlay  v%s", kBuild);
-    ImGui::SameLine();
-    const std::string menuKeyName = KeyDisplayName(g_config.menuKey);
-    ImGui::TextDisabled("| %s to close", menuKeyName.c_str());
-    ImGui::Separator();
-
-    if (ImGui::BeginTabBar("MainTabs")) {
-        if (ImGui::BeginTabItem("Gameplay")) {
-            ImGui::Spacing();
-
-            DrawSectionTitle("Player");
-
-            if (ImGui::Checkbox("Toggle HUD", &g_config.toggleHudEnabled)) {
-                g_config.Save();
-            }
-            ImGui::SameLine(310.0f);
-            ImGui::TextDisabled(
-                "%s",
-                g_hudHookReady.load()
-                    ? "Native ui.HideHud getter hooked"
-                    : "Native hook unavailable"
-            );
-
-            if (g_config.toggleHudEnabled) {
-                bool hudHidden = g_hudHidden.load();
-                ImGui::Indent();
-                if (ImGui::Checkbox("HUD Hidden##RuntimeHUD", &hudHidden)) {
-                    g_hudHidden.store(hudHidden);
-                    g_lastAction = std::string("HUD ") + (hudHidden ? "hidden" : "visible");
-                    Log("Overlay -> HUD %s", hudHidden ? "HIDDEN" : "VISIBLE");
-                }
-                ImGui::SameLine();
-                ImGui::TextDisabled("F1 default");
-                ImGui::Unindent();
-            }
-
-            DrawTunableFeature(
-                "Movement Speed",
-                "MovementSpeed",
-                &g_config.movementSpeedEnabled,
-                &g_config.movementSpeedMultiplier,
-                0.00f,
-                3.00f,
-                1.50f,
-                "%.2fx",
-                g_movementHookReady.load()
-                    ? "Runtime hook active"
-                    : "Native hook unavailable"
-            );
-
-            if (ImGui::Checkbox("Action Recovery", &g_config.actionRecoveryEnabled)) {
-                g_config.Save();
-                g_lastAction = std::string("Action Recovery ") +
-                    (g_config.actionRecoveryEnabled ? "ON" : "OFF");
-            }
-            ImGui::SameLine(310.0f);
-            ImGui::TextDisabled(
-                "%s",
-                g_recoveryHookReady.load()
-                    ? "AllowedActions MOVE, tail-only safety"
-                    : "Native hook unavailable"
-            );
-
-            if (g_config.actionRecoveryEnabled) {
-                ImGui::Indent();
-                ImGui::SetNextItemWidth(280.0f);
-                bool recoveryChanged = ImGui::SliderFloat(
-                    "Recovery Delay##ActionRecovery",
-                    &g_config.actionRecoveryDelayMs,
-                    0.0f,
-                    500.0f,
-                    "%.0f ms"
-                );
-                ImGui::SameLine();
-                if (ImGui::Button("Default##Reset_ActionRecovery")) {
-                    g_config.actionRecoveryDelayMs = 0.0f;
-                    recoveryChanged = true;
-                }
-                if (recoveryChanged) {
-                    g_config.Save();
-                }
-                ImGui::TextDisabled(
-                    "MOVE is never forced during STARTING/RUNNING. Only AWAITING_FINISH is shortened."
-                );
-                ImGui::TextDisabled(
-                    "Queries %d | Local %d | Blocked %d | Forced %d",
-                    g_actionMoveQueries.load(),
-                    g_actionMoveLocalQueries.load(),
-                    g_actionMoveNativeBlocked.load(),
-                    g_actionMoveForced.load()
-                );
-                const int state = g_lastActionMoveState.load();
-                if (state >= 0) {
-                    ImGui::TextDisabled(
-                        "Last ability: %s (%d) | elapsed %.3f s",
-                        AbilityStateName(static_cast<unsigned char>(state)),
-                        state,
-                        g_lastActionMoveElapsed.load()
-                    );
-                }
-                ImGui::Unindent();
-            }
-
-            DrawTunableFeature(
-                "Jump Height",
-                "JumpHeight",
-                &g_config.jumpHeightEnabled,
-                &g_config.jumpHeightMultiplier,
-                0.00f,
-                20.00f,
-                1.25f,
-                "%.2fx",
-                g_movementHookReady.load()
-                    ? "Runtime property hook | JumpZ + DoubleJumpZ"
-                    : "Native movement hook unavailable"
-            );
-
-            DrawTunableFeature(
-                "Glide / Flight Duration",
-                "GlideDuration",
-                &g_config.glideDurationEnabled,
-                &g_config.glideDurationMultiplier,
-                0.00f,
-                100.00f,
-                10.00f,
-                "%.2fx",
-                g_movementHookReady.load()
-                    ? "Runtime property hook | GlideDurationSeconds"
-                    : "Native movement hook unavailable"
-            );
-
-            DrawSectionTitle("Combat");
-
-            DrawTunableFeature(
-                "Pistol Damage",
-                "PistolDamage",
-                &g_config.pistolDamageEnabled,
-                &g_config.pistolDamageMultiplier,
-                0.00f,
-                100.00f,
-                2.00f,
-                "%.2fx",
-                g_finalOutgoingDamageHookReady.load()
-                    ? "Final outgoing-damage hook | BaseJuice > 0"
-                    : "Final outgoing-damage hook unavailable"
-            );
-
-            if (g_finalOutgoingDamageHookReady.load()) {
-                ImGui::Indent();
-                ImGui::TextDisabled(
-                    "Pistol events: %d | Last final %.2f -> %.2f | BaseJuice %.2f",
-                    g_pistolDamageBoostCalls.load(),
-                    g_lastNativePistolDamage.load(),
-                    g_lastBoostedPistolDamage.load(),
-                    g_lastPistolBaseJuice.load()
-                );
-                ImGui::Unindent();
-            }
-
-            DrawTunableFeature(
-                "Melee Damage",
-                "MeleeDamage",
-                &g_config.meleeDamageEnabled,
-                &g_config.meleeDamageMultiplier,
-                0.00f,
-                100.00f,
-                2.00f,
-                "%.2fx",
-                g_finalOutgoingDamageHookReady.load()
-                    ? "Final outgoing-damage hook | zero-juice diagnostic"
-                    : "Final outgoing-damage hook unavailable"
-            );
-
-            if (g_finalOutgoingDamageHookReady.load()) {
-                ImGui::Indent();
-                ImGui::TextDisabled(
-                    "Melee-diag events: %d | Last final %.2f -> %.2f",
-                    g_meleeDamageBoostCalls.load(),
-                    g_lastNativeBaseDamage.load(),
-                    g_lastBoostedBaseDamage.load()
-                );
-                ImGui::TextDisabled(
-                    "Last DamageRecord: ScaleType %u | Tags %d",
-                    g_lastOutgoingScaleType.load(),
-                    g_lastOutgoingTagCount.load()
-                );
-                ImGui::Unindent();
-            }
-
-            DrawTunableFeature(
-                "Hotstreak Charge",
-                "HotstreakCharge",
-                &g_config.hotstreakChargeEnabled,
-                &g_config.hotstreakChargeMultiplier,
-                0.00f,
-                25.00f,
-                2.00f,
-                "%.2fx",
-                g_hotstreakHookReady.load()
-                    ? "Runtime AddJuice hook | local positive gains"
-                    : "Native AddJuice hook unavailable"
-            );
-
-            if (g_hotstreakHookReady.load()) {
-                ImGui::Indent();
-                ImGui::TextDisabled(
-                    "Boost calls: %d | Last gain %.2f -> %.2f",
-                    g_hotstreakBoostCalls.load(),
-                    g_lastNativeJuiceGain.load(),
-                    g_lastBoostedJuiceGain.load()
-                );
-                ImGui::Unindent();
-            }
-
-            DrawSectionTitle("Horse");
-
-            const dg::horse::Telemetry horseTelemetry =
-                dg::horse::GetTelemetry();
-
-            DrawTunableFeature(
-                "Horse Speed",
-                "HorseSpeed",
-                &g_config.horseSpeedEnabled,
-                &g_config.horseSpeedMultiplier,
-                0.00f,
-                3.00f,
-                1.25f,
-                "%.2fx",
-                horseTelemetry.validated
-                    ? "Validated on existing shared GetMaxSpeed hook"
-                    : "Waiting for exact horse signature 1300/600 + stamina"
-            );
-
-            ImGui::BeginDisabled();
-            DrawTunableFeature(
-                "Horse Sprint Speed",
-                "HorseSprintSpeed",
-                &g_config.horseSprintSpeedEnabled,
-                &g_config.horseSprintSpeedMultiplier,
-                0.00f,
-                3.00f,
-                1.25f,
-                "%.2fx",
-                "Pending dedicated RunSpeed primitive"
-            );
-
-            ImGui::EndDisabled();
-            DrawTunableFeature(
-                "Horse Sprint Duration",
-                "HorseSprintDuration",
-                &g_config.horseSprintDurationEnabled,
-                &g_config.horseSprintDurationMultiplier,
-                0.00f,
-                10.00f,
-                2.00f,
-                "%.2fx",
-                horseTelemetry.staminaReady
-                    ? "Validated StaminaSprintPercentageRate"
-                    : "Waiting for exact horse stamina signature"
-            );
-
-            ImGui::Indent();
-            ImGui::TextDisabled(
-                "Horse: %s | candidate snapshots %u | matches %u",
-                horseTelemetry.validated ? "VALIDATED" : "waiting",
-                horseTelemetry.uniqueCandidatesLogged,
-                horseTelemetry.candidateMatches
-            );
-            ImGui::TextDisabled(
-                "MaxWalkSpeed %.1f -> %.1f | MaxAcceleration %.1f -> %.1f",
-                horseTelemetry.nativeMaxWalkSpeed,
-                horseTelemetry.appliedMaxWalkSpeed,
-                horseTelemetry.nativeMaxAcceleration,
-                horseTelemetry.appliedMaxAcceleration
-            );
-            ImGui::TextDisabled(
-                "Sprint drain %.3f -> %.3f | owner %p | movement %p",
-                horseTelemetry.nativeSprintDrain,
-                horseTelemetry.appliedSprintDrain,
-                horseTelemetry.horseOwner,
-                horseTelemetry.horseMovement
-            );
-            ImGui::Unindent();
-
-            DrawSectionTitle("Camera");
-            ImGui::TextDisabled(
-                "Not implemented in V0.17 core. Controls stay locked until a native camera hook is proven."
-            );
-            ImGui::BeginDisabled();
-
-            DrawTunableFeature(
-                "FOV",
-                "FOV",
-                &g_config.fovEnabled,
-                &g_config.fovDegrees,
-                60.0f,
-                140.0f,
-                90.0f,
-                "%.0f deg",
-                "Pending camera hook"
-            );
-
-            DrawTunableFeature(
-                "Third Person",
-                "ThirdPerson",
-                &g_config.thirdPersonEnabled,
-                &g_config.thirdPersonDistanceMultiplier,
-                0.00f,
-                3.00f,
-                1.00f,
-                "%.2fx",
-                "Pending camera hook | distance"
-            );
-
-            ImGui::EndDisabled();
-
-            DrawSectionTitle("System");
-
-            if (ImGui::Checkbox("Skip Intro Videos", &g_config.skipIntroEnabled)) {
-                g_config.Save();
-                ApplySkipIntroSetting(true);
-                g_lastAction = std::string("Skip Intro ") +
-                    (g_config.skipIntroEnabled ? "ON" : "OFF");
-            }
-            ImGui::SameLine(310.0f);
-            ImGui::TextDisabled(
-                "%s",
-                g_skipIntroReady.load()
-                    ? "Native g.PlayIntroCinematicOnBoot control | restart applies boot state"
-                    : "Native CVar control unavailable"
-            );
-
-            if (g_skipIntroReady.load() && g_skipIntroData) {
-                ImGui::Indent();
-                ImGui::TextDisabled(
-                    "Native CVar now: %ld | vanilla captured: %ld",
-                    *g_skipIntroData,
-                    g_skipIntroOriginalValue
-                );
-                ImGui::Unindent();
-            }
-
-            ImGui::Spacing();
-            ImGui::TextDisabled(
-                "Checkboxes and values are authoritative and persisted to DarksidersGenesisMod.ini."
-            );
-
-            ImGui::EndTabItem();
-        }
-
-        if (ImGui::BeginTabItem("Hotkeys")) {
-            ImGui::Spacing();
-
-            ImGui::Text("Menu key");
-            ImGui::Text("Open / close: %s", menuKeyName.c_str());
-            ImGui::SameLine(280.0f);
-            if (g_captureMenuKey.load()) {
-                ImGui::TextDisabled("Press a key...  Esc = cancel");
-            } else if (ImGui::Button("Rebind Menu Key", ImVec2(160.0f, 0.0f))) {
-                g_captureMenuKey.store(true);
-                g_lastAction = "Waiting for new menu key";
-                Log("Menu key capture started");
-            }
-
-            ImGui::Spacing();
-            if (ImGui::Button("Save", ImVec2(110.0f, 0.0f))) {
-                g_config.SaveNow();
-                g_lastAction = "Configuration saved";
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Reload", ImVec2(110.0f, 0.0f))) {
-                g_config.Load();
-                g_config.PublishRuntime();
-                
-                g_lastAction = "Configuration reloaded";
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Reset Defaults", ImVec2(140.0f, 0.0f))) {
-                g_config.ResetDefaults(true);
-                g_hudHidden.store(false);
-                g_lastAction = "Defaults restored";
-            }
-
-            DrawSectionTitle("F1-F12");
-
-            ImGui::TextWrapped(
-                "Each physical F-key slot can be reassigned to any implemented mod action or None."
-            );
-            ImGui::Spacing();
-
-            if (ImGui::BeginTable("HotkeyTable", 2, ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_RowBg)) {
-                ImGui::TableSetupColumn("Key", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-                ImGui::TableSetupColumn("Action", ImGuiTableColumnFlags_WidthStretch);
-                ImGui::TableHeadersRow();
-
-                for (int i = 0; i < 12; ++i) {
-                    ImGui::TableNextRow();
-                    ImGui::TableSetColumnIndex(0);
-                    ImGui::Text("F%d", i + 1);
-
-                    ImGui::TableSetColumnIndex(1);
-                    char comboId[32]{};
-                    sprintf_s(comboId, sizeof(comboId), "##HotkeyF%d", i + 1);
-
-                    int current = static_cast<int>(g_config.hotkeys[static_cast<size_t>(i)]);
-                    if (current < 0 || current >= static_cast<int>(Action::Count)) {
-                        current = 0;
-                    }
-
-                    ImGui::SetNextItemWidth(-1.0f);
-                    if (ImGui::BeginCombo(comboId, kActionLabels[static_cast<size_t>(current)])) {
-                        for (int a = 0; a < static_cast<int>(Action::Count); ++a) {
-                            const bool selected = current == a;
-                            if (ImGui::Selectable(kActionLabels[static_cast<size_t>(a)], selected)) {
-                                g_config.hotkeys[static_cast<size_t>(i)] = static_cast<Action>(a);
-                                g_config.Save();
-                            }
-                            if (selected) {
-                                ImGui::SetItemDefaultFocus();
-                            }
-                        }
-                        ImGui::EndCombo();
-                    }
-                }
-
-                ImGui::EndTable();
-            }
-
-            ImGui::Spacing();
-            ImGui::TextDisabled("Default: F1 HUD | F2 Movement | F3 Recovery | F4 Skip Intro | F5-F12 None");
-            ImGui::EndTabItem();
-        }
-
-        if (ImGui::BeginTabItem("About")) {
-            ImGui::Spacing();
-            ImGui::Text("Darksiders Genesis Enhanced - experimental ASI core");
-            ImGui::Spacing();
-            ImGui::TextWrapped(
-                "Target executable: DarksidersGenesis-Win64-Shipping.exe"
-            );
-            ImGui::Text(
-                "Target validation: %s",
-                g_targetValidation.exact ? "EXACT / gameplay enabled" : "MISMATCH / overlay-only"
-            );
-            ImGui::TextWrapped(
-                "Runtime SHA-256: %s",
-                g_targetValidation.sha256.empty()
-                    ? "(not available)"
-                    : g_targetValidation.sha256.c_str()
-            );
-            ImGui::TextWrapped(
-                "Expected SHA-256: 9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54"
-            );
-            ImGui::TextWrapped("Size: 62,113,280 bytes");
-            ImGui::Spacing();
-            ImGui::TextWrapped(
-                "V0.8B keeps AllowedActions/MOVE as the proven recovery path but no longer "
-                "forces MOVE during RUNNING abilities. The chest interaction regression from "
-                "V0.8A is specifically protected by the tail-only policy."
-            );
-            ImGui::Spacing();
-            ImGui::TextWrapped(
-                "Reference PAK audits recovered concrete targets for jump, glide, horse stamina, "
-                "projectile damage and Hotstreak/juice. Numeric options now expose both a slider "
-                "and a manual input field; multiplier minima use 0. Pistol Damage V0.11A is rejected "
-                "and remains pending a better filter."
-            );
-            ImGui::EndTabItem();
-        }
-
-        ImGui::EndTabBar();
-    }
-
-    ImGui::Separator();
-    ImGui::Text("Last action: %s", g_lastAction.c_str());
-
-    ImGui::End();
-
-    if (!open) {
-        g_overlayVisible.store(false);
-    }
+    return context;
 }
 
 HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) {
@@ -2419,7 +1917,8 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
         ImGui::NewFrame();
 
         ImGui::GetIO().MouseDrawCursor = true;
-        DrawOverlay();
+        auto overlayContext = BuildOverlayContext();
+        dg::overlay::Draw(overlayContext);
 
         ImGui::Render();
 
