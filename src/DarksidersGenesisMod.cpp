@@ -30,7 +30,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.18D-skip-logos-ue4-config-test";
+constexpr const char* kBuild = "0.18E-early-global-file-block-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1863,14 +1863,18 @@ dg::overlay::Context BuildOverlayContext() {
 
     const dg::skip_logos::Telemetry skipLogosTelemetry =
         dg::skip_logos::GetTelemetry();
-    t.skipLogosInitialized =
-        skipLogosTelemetry.initialized;
-    t.skipLogosOverridePresent =
-        skipLogosTelemetry.overridePresent;
-    t.skipLogosLastApplyOk =
-        skipLogosTelemetry.lastApplyOk;
-    t.skipLogosRestartRequired =
-        skipLogosTelemetry.restartRequired;
+    t.skipLogosProxyAvailable =
+        skipLogosTelemetry.proxyAvailable;
+    t.skipLogosInstalled =
+        skipLogosTelemetry.installed;
+    t.skipLogosEnabled =
+        skipLogosTelemetry.enabled;
+    t.skipLogosCreateFileCalls =
+        skipLogosTelemetry.createFileCalls;
+    t.skipLogosMp4Calls =
+        skipLogosTelemetry.mp4Calls;
+    t.skipLogosBlocked =
+        skipLogosTelemetry.blocked;
 
     t.actionMoveQueries = g_actionMoveQueries.load();
     t.actionMoveLocalQueries =
@@ -2227,11 +2231,11 @@ DWORD WINAPI MainThread(LPVOID) {
         g_targetValidation.reason.c_str()
     );
 
-    // Skip Logos is a persistent UE4 StartupMovies config override.
-    // Applying it during this session affects the next launch only.
+    // Skip Logos is installed even earlier by the DXGI proxy on the first
+    // factory call. The ASI only binds menu control + telemetry here.
     if (g_targetValidation.exact) {
         if (!dg::skip_logos::Initialize(&FeatureLog)) {
-            Log("Skip Logos UE4 config unavailable; remaining mod features continue normally.");
+            Log("Skip Logos FILE proxy unavailable; remaining mod features continue normally.");
         }
     }
 
