@@ -62,7 +62,7 @@ The menu key and F1-F12 actions can be remapped from the overlay.
 | Horse Sprint Speed | Not implemented |
 | FOV | Not implemented |
 | Third Person camera | Not implemented |
-| Skip Logos | Paused after rejected V0.15 experiments |
+| Skip Logos | V0.18B test, independent boot option, ON by default |
 
 Unimplemented controls are disabled in the V0.17 overlay/default configuration
 instead of pretending to be active.
@@ -268,3 +268,36 @@ Runtime configuration will only be added after the primitive is validated.
 
 The ASI log reports both the early hook status and how many matching file
 requests were blocked.
+
+
+## V0.18B - Skip Logos / Skip Intro separation
+
+The menu and configuration now reflect the actual startup order:
+
+```text
+Skip Logos
+    -> company logos before the intro cinematic
+    -> boot-only
+    -> applies on next launch
+
+Skip Intro Videos
+    -> native g.PlayIntroCinematicOnBoot path
+    -> intro cinematic only
+```
+
+They are separate options and both default to ON:
+
+```ini
+SkipLogos=1
+SkipIntroVideos=1
+```
+
+Skip Logos is displayed directly above Skip Intro Videos in the System section.
+
+The DXGI proxy reads the same `[Features] SkipLogos` INI value before UE4
+startup. The overlay writes that same value, so there is one source of truth.
+The menu also shows the actual boot state and blocked-file count.
+
+V0.18's early-IAT primitive remains under test. The previous test produced no
+visible skip, so V0.18B does not claim it is validated. No alternate fallback is
+stacked into this build.
