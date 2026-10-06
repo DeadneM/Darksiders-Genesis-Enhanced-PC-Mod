@@ -437,6 +437,7 @@ void Store::PublishRuntime() const {
     runtime.toggleHudEnabled = toggleHudEnabled;
     runtime.movementSpeedEnabled = movementSpeedEnabled;
     runtime.actionRecoveryEnabled = actionRecoveryEnabled;
+    runtime.skipLogosEnabled = skipLogosEnabled;
     runtime.skipIntroEnabled = skipIntroEnabled;
     runtime.pistolDamageEnabled = pistolDamageEnabled;
     runtime.meleeDamageEnabled = meleeDamageEnabled;
