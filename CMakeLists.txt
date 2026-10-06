@@ -89,11 +89,7 @@ add_library(dxgi_proxy SHARED
   src/dxgi_proxy.cpp
 )
 target_compile_definitions(dxgi_proxy PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
-target_include_directories(dxgi_proxy PRIVATE ${minhook_SOURCE_DIR}/include)
-target_link_libraries(dxgi_proxy PRIVATE
-  ${DG_MINHOOK_TARGET}
-  user32
-)
+target_link_libraries(dxgi_proxy PRIVATE user32)
 set_target_properties(dxgi_proxy PROPERTIES
   OUTPUT_NAME "dxgi"
   PREFIX ""
