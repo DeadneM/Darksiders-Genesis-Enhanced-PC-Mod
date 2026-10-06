@@ -8,6 +8,8 @@
 namespace dg::config {
 namespace {
 
+constexpr int kConfigRevision = 1804;
+
 bool ReadBool(
     const wchar_t* section,
     const wchar_t* key,
@@ -426,6 +428,24 @@ bool Store::Load() {
             ParseAction(value);
     }
 
+    const int revision = GetPrivateProfileIntW(
+        L"Meta",
+        L"ConfigRevision",
+        0,
+        path_.c_str()
+    );
+
+    if (revision < kConfigRevision) {
+        // V0.18D migration: previous test runs could persist Skip Intro OFF.
+        // Reset only the two startup-skip defaults once, then preserve all
+        // future user choices normally.
+        skipLogosEnabled = true;
+        skipIntroEnabled = true;
+        SaveNow();
+        Log("INI migrated V0.18D -> Skip Logos ON, Skip Intro ON");
+        return true;
+    }
+
     PublishRuntime();
     dirty_.store(false, std::memory_order_relaxed);
     Log("INI loaded");
@@ -477,6 +497,13 @@ bool Store::SaveNow() {
     }
 
     PublishRuntime();
+
+    WritePrivateProfileStringW(
+        L"Meta",
+        L"ConfigRevision",
+        L"1804",
+        path_.c_str()
+    );
 
     WriteBool(L"Overlay", L"Enabled", overlayEnabled, path_);
     const std::wstring menuKeyToken = KeyTokenFromVK(menuKey);
