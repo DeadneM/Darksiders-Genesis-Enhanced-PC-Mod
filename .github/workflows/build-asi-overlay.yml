@@ -52,7 +52,7 @@ jobs:
       - name: Upload test build
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_ASI_V0.18F_NATIVE_SETUP_LOADING_SCREEN_TEST
+          name: DarksidersGenesis_ASI_V0.18G_DLLMAIN_NATIVE_RET_TEST
           path: |
             dist/dxgi.dll
             dist/DarksidersGenesisMod.asi
