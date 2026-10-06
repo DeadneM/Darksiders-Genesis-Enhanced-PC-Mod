@@ -10,6 +10,7 @@
 
 #include "HorseFeature.h"
 #include "PlayerIdentity.h"
+#include "RuntimeSettings.h"
 #include "TargetValidator.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -71,6 +72,8 @@ std::atomic_bool g_skipIntroReady{false};
 std::atomic_bool g_shuttingDown{false};
 std::atomic_bool g_gameplayHooksAllowed{false};
 dg::target::ValidationResult g_targetValidation{};
+std::atomic_bool g_configDirty{false};
+std::atomic_ullong g_configDirtyTick{0};
 LONG** g_skipIntroDataSlot = nullptr;
 LONG* g_skipIntroData = nullptr;
 LONG g_skipIntroOriginalValue = 1;
@@ -390,6 +393,9 @@ void FeatureLog(const char* message) {
     }
 }
 
+void PublishRuntimeConfig();
+void MarkConfigDirty();
+
 struct Config {
     bool overlayEnabled = true;
     int menuKey = VK_INSERT;
@@ -399,15 +405,15 @@ struct Config {
     bool movementSpeedEnabled = true;
     bool actionRecoveryEnabled = true;
     bool skipIntroEnabled = true;
-    bool thirdPersonEnabled = true;
+    bool thirdPersonEnabled = false;
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
     bool jumpHeightEnabled = true;
     bool glideDurationEnabled = true;
     bool horseSpeedEnabled = true;
-    bool horseSprintSpeedEnabled = true;
+    bool horseSprintSpeedEnabled = false;
     bool horseSprintDurationEnabled = true;
-    bool fovEnabled = true;
+    bool fovEnabled = false;
     bool hotstreakChargeEnabled = true;
 
     // User-facing tuning values.
@@ -463,15 +469,15 @@ struct Config {
         movementSpeedEnabled = true;
         actionRecoveryEnabled = true;
         skipIntroEnabled = true;
-        thirdPersonEnabled = true;
+        thirdPersonEnabled = false;
         pistolDamageEnabled = true;
         meleeDamageEnabled = true;
         jumpHeightEnabled = true;
         glideDurationEnabled = true;
         horseSpeedEnabled = true;
-        horseSprintSpeedEnabled = true;
+        horseSprintSpeedEnabled = false;
         horseSprintDurationEnabled = true;
-        fovEnabled = true;
+        fovEnabled = false;
         hotstreakChargeEnabled = true;
 
         movementSpeedMultiplier = 1.50f;
@@ -494,7 +500,7 @@ struct Config {
         hotkeys[1] = Action::MovementSpeed;
         hotkeys[2] = Action::ActionRecovery;
         hotkeys[3] = Action::SkipIntroVideos;
-        hotkeys[4] = Action::ThirdPerson;
+        hotkeys[4] = Action::None;
 
         if (save) {
             Save();
@@ -507,7 +513,8 @@ struct Config {
         }
 
         if (GetFileAttributesW(g_iniPath.c_str()) == INVALID_FILE_ATTRIBUTES) {
-            ResetDefaults(true);
+            ResetDefaults(false);
+            SaveNow();
             Log("INI not found -> wrote authoritative defaults");
             return;
         }
@@ -522,15 +529,15 @@ struct Config {
         movementSpeedEnabled = ReadBool(L"Features", L"MovementSpeed", true, g_iniPath);
         actionRecoveryEnabled = ReadBool(L"Features", L"ActionRecovery", true, g_iniPath);
         skipIntroEnabled = ReadBool(L"Features", L"SkipIntroVideos", true, g_iniPath);
-        thirdPersonEnabled = ReadBool(L"Features", L"ThirdPerson", true, g_iniPath);
+        thirdPersonEnabled = ReadBool(L"Features", L"ThirdPerson", false, g_iniPath);
         pistolDamageEnabled = ReadBool(L"Features", L"PistolDamage", true, g_iniPath);
         meleeDamageEnabled = ReadBool(L"Features", L"MeleeDamage", true, g_iniPath);
         jumpHeightEnabled = ReadBool(L"Features", L"JumpHeight", true, g_iniPath);
         glideDurationEnabled = ReadBool(L"Features", L"GlideDuration", true, g_iniPath);
         horseSpeedEnabled = ReadBool(L"Features", L"HorseSpeed", true, g_iniPath);
-        horseSprintSpeedEnabled = ReadBool(L"Features", L"HorseSprintSpeed", true, g_iniPath);
+        horseSprintSpeedEnabled = ReadBool(L"Features", L"HorseSprintSpeed", false, g_iniPath);
         horseSprintDurationEnabled = ReadBool(L"Features", L"HorseSprintDuration", true, g_iniPath);
-        fovEnabled = ReadBool(L"Features", L"FOV", true, g_iniPath);
+        fovEnabled = ReadBool(L"Features", L"FOV", false, g_iniPath);
         hotstreakChargeEnabled = ReadBool(L"Features", L"HotstreakCharge", true, g_iniPath);
 
         movementSpeedMultiplier = ReadFloat(L"Values", L"MovementSpeedMultiplier", 1.50f, g_iniPath);
@@ -567,7 +574,7 @@ struct Config {
         Log("INI loaded");
     }
 
-    void Save() const {
+    void SaveNow() const {
         if (g_iniPath.empty()) {
             return;
         }
@@ -617,11 +624,68 @@ struct Config {
             );
         }
 
+        g_configDirty.store(false, std::memory_order_relaxed);
         Log("INI saved");
+    }
+
+    // UI/input changes publish immediately to atomics, while disk persistence
+    // is debounced by HookPresent.
+    void Save() const {
+        PublishRuntimeConfig();
+        MarkConfigDirty();
     }
 };
 
 Config g_config;
+
+void MarkConfigDirty() {
+    g_configDirty.store(true, std::memory_order_relaxed);
+    g_configDirtyTick.store(GetTickCount64(), std::memory_order_relaxed);
+}
+
+void PublishRuntimeConfig() {
+    dg::runtime::Snapshot runtime{};
+    runtime.toggleHudEnabled = g_config.toggleHudEnabled;
+    runtime.movementSpeedEnabled = g_config.movementSpeedEnabled;
+    runtime.actionRecoveryEnabled = g_config.actionRecoveryEnabled;
+    runtime.skipIntroEnabled = g_config.skipIntroEnabled;
+    runtime.pistolDamageEnabled = g_config.pistolDamageEnabled;
+    runtime.meleeDamageEnabled = g_config.meleeDamageEnabled;
+    runtime.jumpHeightEnabled = g_config.jumpHeightEnabled;
+    runtime.glideDurationEnabled = g_config.glideDurationEnabled;
+    runtime.horseSpeedEnabled = g_config.horseSpeedEnabled;
+    runtime.horseSprintDurationEnabled = g_config.horseSprintDurationEnabled;
+    runtime.hotstreakChargeEnabled = g_config.hotstreakChargeEnabled;
+
+    runtime.movementSpeedMultiplier = g_config.movementSpeedMultiplier;
+    runtime.actionRecoveryDelayMs = g_config.actionRecoveryDelayMs;
+    runtime.pistolDamageMultiplier = g_config.pistolDamageMultiplier;
+    runtime.meleeDamageMultiplier = g_config.meleeDamageMultiplier;
+    runtime.jumpHeightMultiplier = g_config.jumpHeightMultiplier;
+    runtime.glideDurationMultiplier = g_config.glideDurationMultiplier;
+    runtime.horseSpeedMultiplier = g_config.horseSpeedMultiplier;
+    runtime.horseSprintDurationMultiplier = g_config.horseSprintDurationMultiplier;
+    runtime.hotstreakChargeMultiplier = g_config.hotstreakChargeMultiplier;
+
+    dg::runtime::Publish(runtime);
+}
+
+void FlushConfigIfDue(bool force = false) {
+    if (!g_configDirty.load(std::memory_order_relaxed)) {
+        return;
+    }
+
+    const ULONGLONG now = GetTickCount64();
+    const ULONGLONG dirtyAt =
+        g_configDirtyTick.load(std::memory_order_relaxed);
+
+    if (!force && now - dirtyAt < 500) {
+        return;
+    }
+
+    g_config.SaveNow();
+}
+
 
 struct PeSectionView {
     BYTE* begin = nullptr;
@@ -862,7 +926,7 @@ bool ApplySkipIntroSetting(bool logChange) {
     }
 
     const LONG desired =
-        g_config.skipIntroEnabled ? 0 : g_skipIntroOriginalValue;
+        dg::runtime::Get().skipIntroEnabled.load(std::memory_order_relaxed) ? 0 : g_skipIntroOriginalValue;
 
     const LONG current = *g_skipIntroData;
     if (current != desired) {
@@ -876,7 +940,7 @@ bool ApplySkipIntroSetting(bool logChange) {
                 "Skip Intro: g.PlayIntroCinematicOnBoot %ld -> %ld (%s)",
                 current,
                 desired,
-                g_config.skipIntroEnabled ? "SKIP" : "VANILLA"
+                dg::runtime::Get().skipIntroEnabled.load(std::memory_order_relaxed) ? "SKIP" : "VANILLA"
             );
         }
     }
@@ -1002,7 +1066,7 @@ bool HookHudHiddenGetter() {
         ? g_originalHudHiddenGetter()
         : false;
 
-    if (!g_config.toggleHudEnabled) {
+    if (!dg::runtime::Get().toggleHudEnabled.load(std::memory_order_relaxed)) {
         return nativeHidden;
     }
 
@@ -1077,7 +1141,7 @@ void HookAddJuice(void* hotStreakComponent, float amount) {
 
     float effectiveAmount = amount;
 
-    if (g_config.hotstreakChargeEnabled &&
+    if (dg::runtime::Get().hotstreakChargeEnabled.load(std::memory_order_relaxed) &&
         hotStreakComponent &&
         amount > 0.0f &&
         amount < 100000.0f) {
@@ -1092,7 +1156,7 @@ void HookAddJuice(void* hotStreakComponent, float amount) {
         void* localPlayer = g_localPlayerCharacter.load();
 
         if (localPlayer && owner == localPlayer) {
-            float multiplier = g_config.hotstreakChargeMultiplier;
+            float multiplier = dg::runtime::Get().hotstreakChargeMultiplier.load(std::memory_order_relaxed);
             if (multiplier < 0.0f) multiplier = 0.0f;
             if (multiplier > 25.0f) multiplier = 25.0f;
 
@@ -1270,16 +1334,18 @@ void HookFinalOutgoingDamage(void* playerCharacter, void* damageRecord) {
     float multiplier = 1.0f;
     const char* kind = nullptr;
 
-    if (pistolLike && g_config.pistolDamageEnabled) {
-        multiplier = g_config.pistolDamageMultiplier;
+    if (pistolLike &&
+        dg::runtime::Get().pistolDamageEnabled.load(std::memory_order_relaxed)) {
+        multiplier = dg::runtime::Get().pistolDamageMultiplier.load(std::memory_order_relaxed);
         if (multiplier < 0.0f) multiplier = 0.0f;
         if (multiplier > 100.0f) multiplier = 100.0f;
         kind = "PISTOL";
 
         g_lastNativePistolDamage.store(nativeFinalDamage);
         g_lastPistolBaseJuice.store(baseJuice);
-    } else if (!pistolLike && g_config.meleeDamageEnabled) {
-        multiplier = g_config.meleeDamageMultiplier;
+    } else if (!pistolLike &&
+               dg::runtime::Get().meleeDamageEnabled.load(std::memory_order_relaxed)) {
+        multiplier = dg::runtime::Get().meleeDamageMultiplier.load(std::memory_order_relaxed);
         if (multiplier < 0.0f) multiplier = 0.0f;
         if (multiplier > 100.0f) multiplier = 100.0f;
         kind = "ZERO_JUICE_MELEE_DIAG";
@@ -1504,24 +1570,36 @@ void ApplyPlayerMovementTunings(void* movementComponent) {
 
     BYTE* component = reinterpret_cast<BYTE*>(movementComponent);
 
-    float heightMultiplier = ClampFloat(g_config.jumpHeightMultiplier, 0.0f, 20.0f);
+    auto& runtime = dg::runtime::Get();
+
+    const float heightMultiplier = ClampFloat(
+        runtime.jumpHeightMultiplier.load(std::memory_order_relaxed),
+        0.0f,
+        20.0f
+    );
     // Jump apex height is approximately proportional to velocity squared when
     // gravity is unchanged, so use sqrt(multiplier) for a true height scalar.
     const float velocityMultiplier = sqrtf(heightMultiplier);
+    const bool jumpEnabled =
+        runtime.jumpHeightEnabled.load(std::memory_order_relaxed);
 
     *reinterpret_cast<float*>(component + 0x1A0) =
-        g_config.jumpHeightEnabled
+        jumpEnabled
             ? state->jumpZVelocity * velocityMultiplier
             : state->jumpZVelocity;
 
     *reinterpret_cast<float*>(component + 0x85C) =
-        g_config.jumpHeightEnabled
+        jumpEnabled
             ? state->doubleJumpZVelocity * velocityMultiplier
             : state->doubleJumpZVelocity;
 
-    const float glideMultiplier = ClampFloat(g_config.glideDurationMultiplier, 0.0f, 100.0f);
+    const float glideMultiplier = ClampFloat(
+        runtime.glideDurationMultiplier.load(std::memory_order_relaxed),
+        0.0f,
+        100.0f
+    );
     *reinterpret_cast<float*>(component + 0x86C) =
-        g_config.glideDurationEnabled
+        runtime.glideDurationEnabled.load(std::memory_order_relaxed)
             ? state->glideDurationSeconds * glideMultiplier
             : state->glideDurationSeconds;
 
@@ -1543,12 +1621,17 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         return nativeSpeed;
     }
 
+    auto& runtime = dg::runtime::Get();
+
     dg::horse::Settings horseSettings{};
-    horseSettings.speedEnabled = g_config.horseSpeedEnabled;
-    horseSettings.speedMultiplier = g_config.horseSpeedMultiplier;
-    horseSettings.sprintDurationEnabled = g_config.horseSprintDurationEnabled;
+    horseSettings.speedEnabled =
+        runtime.horseSpeedEnabled.load(std::memory_order_relaxed);
+    horseSettings.speedMultiplier =
+        runtime.horseSpeedMultiplier.load(std::memory_order_relaxed);
+    horseSettings.sprintDurationEnabled =
+        runtime.horseSprintDurationEnabled.load(std::memory_order_relaxed);
     horseSettings.sprintDurationMultiplier =
-        g_config.horseSprintDurationMultiplier;
+        runtime.horseSprintDurationMultiplier.load(std::memory_order_relaxed);
     dg::horse::SetSettings(horseSettings);
     dg::horse::Tick();
 
@@ -1576,7 +1659,7 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
 
     ApplyPlayerMovementTunings(movementComponent);
 
-    if (!g_config.movementSpeedEnabled || nativeSpeed <= 0.0f) {
+    if (!runtime.movementSpeedEnabled.load(std::memory_order_relaxed) || nativeSpeed <= 0.0f) {
         return nativeSpeed;
     }
 
@@ -1587,7 +1670,7 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
     }
 
     const float multiplier =
-        ClampFloat(g_config.movementSpeedMultiplier, 0.0f, 5.00f);
+        ClampFloat(runtime.movementSpeedMultiplier.load(std::memory_order_relaxed), 0.0f, 5.00f);
     return nativeSpeed * multiplier;
 }
 
@@ -1769,7 +1852,7 @@ bool HookAbilityActionEnabled(void* ability, unsigned char action) {
         );
     }
 
-    if (!g_config.actionRecoveryEnabled || nativeEnabled) {
+    if (!dg::runtime::Get().actionRecoveryEnabled.load(std::memory_order_relaxed) || nativeEnabled) {
         if (nativeEnabled || state != 4) {
             g_recoveryTailAbility.store(nullptr);
             g_recoveryTailStartElapsed.store(0.0f);
@@ -1797,7 +1880,7 @@ bool HookAbilityActionEnabled(void* ability, unsigned char action) {
         );
     }
 
-    float delayMs = g_config.actionRecoveryDelayMs;
+    float delayMs = dg::runtime::Get().actionRecoveryDelayMs.load(std::memory_order_relaxed);
     if (delayMs < 0.0f) delayMs = 0.0f;
     if (delayMs > 500.0f) delayMs = 500.0f;
 
@@ -2537,6 +2620,7 @@ void DrawOverlay() {
                     : "Waiting for exact horse signature 1300/600 + stamina"
             );
 
+            ImGui::BeginDisabled();
             DrawTunableFeature(
                 "Horse Sprint Speed",
                 "HorseSprintSpeed",
@@ -2549,6 +2633,7 @@ void DrawOverlay() {
                 "Pending dedicated RunSpeed primitive"
             );
 
+            ImGui::EndDisabled();
             DrawTunableFeature(
                 "Horse Sprint Duration",
                 "HorseSprintDuration",
@@ -2587,6 +2672,10 @@ void DrawOverlay() {
             ImGui::Unindent();
 
             DrawSectionTitle("Camera");
+            ImGui::TextDisabled(
+                "Not implemented in V0.17 core. Controls stay locked until a native camera hook is proven."
+            );
+            ImGui::BeginDisabled();
 
             DrawTunableFeature(
                 "FOV",
@@ -2611,6 +2700,8 @@ void DrawOverlay() {
                 "%.2fx",
                 "Pending camera hook | distance"
             );
+
+            ImGui::EndDisabled();
 
             DrawSectionTitle("System");
 
@@ -2662,12 +2753,15 @@ void DrawOverlay() {
 
             ImGui::Spacing();
             if (ImGui::Button("Save", ImVec2(110.0f, 0.0f))) {
-                g_config.Save();
+                PublishRuntimeConfig();
+                g_config.SaveNow();
                 g_lastAction = "Configuration saved";
             }
             ImGui::SameLine();
             if (ImGui::Button("Reload", ImVec2(110.0f, 0.0f))) {
                 g_config.Load();
+                PublishRuntimeConfig();
+                g_configDirty.store(false, std::memory_order_relaxed);
                 g_lastAction = "Configuration reloaded";
             }
             ImGui::SameLine();
@@ -2723,7 +2817,7 @@ void DrawOverlay() {
             }
 
             ImGui::Spacing();
-            ImGui::TextDisabled("Default: F1 HUD | F2 Movement | F3 Recovery | F4 Skip Intro | F5 Third Person");
+            ImGui::TextDisabled("Default: F1 HUD | F2 Movement | F3 Recovery | F4 Skip Intro | F5-F12 None");
             ImGui::EndTabItem();
         }
 
@@ -2780,6 +2874,7 @@ void DrawOverlay() {
 HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) {
     ApplySkipIntroSetting(false);
     ProcessInput();
+    FlushConfigIfDue(false);
 
     if (!g_imguiReady.load()) {
         InitializeImGui(swapChain);
@@ -3009,6 +3104,7 @@ void ShutdownMod() {
 
     Log("Shutdown: begin");
 
+    FlushConfigIfDue(true);
     dg::horse::Shutdown();
     dg::player::ClearIdentity();
 
@@ -3062,6 +3158,7 @@ DWORD WINAPI MainThread(LPVOID) {
     std::atexit(&ShutdownMod);
 
     g_config.Load();
+    PublishRuntimeConfig();
 
     g_targetValidation = dg::target::ValidateCurrentExecutable();
     g_gameplayHooksAllowed.store(g_targetValidation.exact);
