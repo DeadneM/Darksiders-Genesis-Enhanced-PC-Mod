@@ -502,8 +502,10 @@ void Draw(Context& c) {
             }
             ImGui::SameLine(310.0f);
             ImGui::TextDisabled(
-                "Boot %s | blocked %ld | applies next launch",
-                t.skipLogosBootEnabled ? "ON" : "OFF",
+                "MF %s | resolver %s | URLs %ld | blocked %ld",
+                t.skipLogosInstalled ? "READY" : "OFF",
+                t.skipLogosResolverHooked ? "READY" : "waiting",
+                t.skipLogosUrlCalls,
                 t.skipLogosBlocked
             );
 
