@@ -22,7 +22,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.14D-horse-heartbeat-fix-test";
+constexpr const char* kBuild = "0.14E-ui-defaults-jump20-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -2758,7 +2758,7 @@ void ApplyPlayerMovementTunings(void* movementComponent) {
 
     BYTE* component = reinterpret_cast<BYTE*>(movementComponent);
 
-    float heightMultiplier = ClampFloat(g_config.jumpHeightMultiplier, 0.0f, 5.0f);
+    float heightMultiplier = ClampFloat(g_config.jumpHeightMultiplier, 0.0f, 20.0f);
     // Jump apex height is approximately proportional to velocity squared when
     // gravity is unchanged, so use sqrt(multiplier) for a true height scalar.
     const float velocityMultiplier = sqrtf(heightMultiplier);
@@ -4242,6 +4242,7 @@ void DrawTunableFeature(
     float* value,
     float minValue,
     float maxValue,
+    float defaultValue,
     const char* format,
     const char* note
 ) {
@@ -4266,7 +4267,7 @@ void DrawTunableFeature(
         );
 
         ImGui::SameLine();
-        ImGui::SetNextItemWidth(125.0f);
+        ImGui::SetNextItemWidth(110.0f);
         std::string inputLabel = std::string("Manual##Input_") + id;
         if (ImGui::InputFloat(
             inputLabel.c_str(),
@@ -4275,6 +4276,13 @@ void DrawTunableFeature(
             0.0f,
             "%.3f"
         )) {
+            changed = true;
+        }
+
+        ImGui::SameLine();
+        std::string defaultLabel = std::string("Default##Reset_") + id;
+        if (ImGui::Button(defaultLabel.c_str())) {
+            *value = defaultValue;
             changed = true;
         }
 
@@ -4360,6 +4368,7 @@ void DrawOverlay() {
                 &g_config.movementSpeedMultiplier,
                 0.00f,
                 3.00f,
+                1.50f,
                 "%.2fx",
                 g_movementHookReady.load()
                     ? "Runtime hook active"
@@ -4382,13 +4391,19 @@ void DrawOverlay() {
             if (g_config.actionRecoveryEnabled) {
                 ImGui::Indent();
                 ImGui::SetNextItemWidth(280.0f);
-                if (ImGui::SliderFloat(
+                bool recoveryChanged = ImGui::SliderFloat(
                     "Recovery Delay##ActionRecovery",
                     &g_config.actionRecoveryDelayMs,
                     0.0f,
                     500.0f,
                     "%.0f ms"
-                )) {
+                );
+                ImGui::SameLine();
+                if (ImGui::Button("Default##Reset_ActionRecovery")) {
+                    g_config.actionRecoveryDelayMs = 0.0f;
+                    recoveryChanged = true;
+                }
+                if (recoveryChanged) {
                     g_config.Save();
                 }
                 ImGui::TextDisabled(
@@ -4419,7 +4434,8 @@ void DrawOverlay() {
                 &g_config.jumpHeightEnabled,
                 &g_config.jumpHeightMultiplier,
                 0.00f,
-                5.00f,
+                20.00f,
+                1.25f,
                 "%.2fx",
                 g_movementHookReady.load()
                     ? "Runtime property hook | JumpZ + DoubleJumpZ"
@@ -4433,6 +4449,7 @@ void DrawOverlay() {
                 &g_config.glideDurationMultiplier,
                 0.00f,
                 100.00f,
+                10.00f,
                 "%.2fx",
                 g_movementHookReady.load()
                     ? "Runtime property hook | GlideDurationSeconds"
@@ -4448,6 +4465,7 @@ void DrawOverlay() {
                 &g_config.pistolDamageMultiplier,
                 0.00f,
                 100.00f,
+                2.00f,
                 "%.2fx",
                 g_finalOutgoingDamageHookReady.load()
                     ? "Final outgoing-damage hook | BaseJuice > 0"
@@ -4473,6 +4491,7 @@ void DrawOverlay() {
                 &g_config.meleeDamageMultiplier,
                 0.00f,
                 100.00f,
+                2.00f,
                 "%.2fx",
                 g_finalOutgoingDamageHookReady.load()
                     ? "Final outgoing-damage hook | zero-juice diagnostic"
@@ -4502,6 +4521,7 @@ void DrawOverlay() {
                 &g_config.hotstreakChargeMultiplier,
                 0.00f,
                 25.00f,
+                2.00f,
                 "%.2fx",
                 g_hotstreakHookReady.load()
                     ? "Runtime AddJuice hook | local positive gains"
@@ -4528,6 +4548,7 @@ void DrawOverlay() {
                 &g_config.horseSpeedMultiplier,
                 0.00f,
                 3.00f,
+                1.25f,
                 "%.2fx",
                 g_horseDirectMovementReady.load()
                     ? "Direct MaxWalkSpeed + MaxAcceleration runtime control"
@@ -4541,6 +4562,7 @@ void DrawOverlay() {
                 &g_config.horseSprintSpeedMultiplier,
                 0.00f,
                 3.00f,
+                1.25f,
                 "%.2fx",
                 "Pending sprint ability RunSpeed hook | V0.14B GetMaxSpeed scaling rejected"
             );
@@ -4552,6 +4574,7 @@ void DrawOverlay() {
                 &g_config.horseSprintDurationMultiplier,
                 0.00f,
                 10.00f,
+                2.00f,
                 "%.2fx",
                 g_horseRuntimeReady.load()
                     ? "Validated StaminaSprintPercentageRate runtime control"
@@ -4605,6 +4628,7 @@ void DrawOverlay() {
                 &g_config.fovDegrees,
                 60.0f,
                 140.0f,
+                90.0f,
                 "%.0f deg",
                 "Pending camera hook"
             );
@@ -4616,6 +4640,7 @@ void DrawOverlay() {
                 &g_config.thirdPersonDistanceMultiplier,
                 0.00f,
                 3.00f,
+                1.00f,
                 "%.2fx",
                 "Pending camera hook | distance"
             );
