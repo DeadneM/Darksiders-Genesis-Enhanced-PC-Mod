@@ -31,6 +31,7 @@ GetFileAttributesWFn g_originalGetFileAttributesW = nullptr;
 GetFileAttributesExWFn g_originalGetFileAttributesExW = nullptr;
 
 std::atomic_long g_blockCount{0};
+std::atomic_bool g_bootEnabled{true};
 wchar_t g_status[192] = L"NOT_INSTALLED";
 
 const wchar_t* BaseName(const wchar_t* path) {
@@ -247,7 +248,13 @@ bool PatchImportByName(
 
 } // namespace
 
-bool InstallEarlyIatHooks() {
+bool InstallEarlyIatHooks(bool enabled) {
+    g_bootEnabled.store(enabled, std::memory_order_relaxed);
+
+    if (!enabled) {
+        wcscpy_s(g_status, L"DISABLED_BY_INI");
+        return true;
+    }
     HMODULE executable = GetModuleHandleW(nullptr);
     if (!executable) {
         wcscpy_s(g_status, L"NO_MAIN_MODULE");
@@ -303,6 +310,10 @@ const wchar_t* Status() {
 
 LONG BlockCount() {
     return g_blockCount.load(std::memory_order_relaxed);
+}
+
+bool BootEnabled() {
+    return g_bootEnabled.load(std::memory_order_relaxed);
 }
 
 } // namespace dg::skip_logos
