@@ -29,7 +29,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.17B-player-identity-rollback-fix-test";
+constexpr const char* kBuild = "0.18-skip-logos-early-iat-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -212,6 +212,35 @@ void FeatureLog(const char* message) {
     if (message && *message) {
         Log("%s", message);
     }
+}
+
+void LogEarlySkipLogosStatus() {
+    HMODULE proxy = GetModuleHandleW(L"dxgi.dll");
+    if (!proxy) {
+        Log("Skip Logos: dxgi proxy unavailable");
+        return;
+    }
+
+    using StatusFn = const wchar_t* (WINAPI*)();
+    using CountFn = LONG (WINAPI*)();
+
+    auto statusFn = reinterpret_cast<StatusFn>(
+        GetProcAddress(proxy, "DGGetSkipLogosStatus")
+    );
+    auto countFn = reinterpret_cast<CountFn>(
+        GetProcAddress(proxy, "DGGetSkipLogosBlockCount")
+    );
+
+    if (!statusFn || !countFn) {
+        Log("Skip Logos: proxy diagnostics unavailable");
+        return;
+    }
+
+    Log(
+        "Skip Logos: %ls blocked=%ld targets=THQ_LogoBasic.mp4,AS_LogoBasic.mp4",
+        statusFn(),
+        countFn()
+    );
 }
 
 struct PeSectionView {
@@ -2199,6 +2228,7 @@ DWORD WINAPI MainThread(LPVOID) {
     g_config.SetPath(g_iniPath);
     g_config.SetLogger(&FeatureLog);
     g_config.Load();
+    LogEarlySkipLogosStatus();
 
     g_targetValidation = dg::target::ValidateCurrentExecutable();
     Log(
