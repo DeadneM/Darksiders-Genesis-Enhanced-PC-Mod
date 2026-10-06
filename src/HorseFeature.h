@@ -33,8 +33,7 @@ void SetSettings(const Settings& settings);
 void ObserveMovement(
     void* movementComponent,
     void* characterOwner,
-    float nativeGetMaxSpeed,
-    bool isLocalPlayer);
+    float nativeGetMaxSpeed);
 void Tick();
 Telemetry GetTelemetry();
 void Shutdown();
