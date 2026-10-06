@@ -13,7 +13,6 @@ on:
       - "src/**"
       - "config/**"
       - "CMakeLists.txt"
-      - "README.md"
       - ".github/workflows/build-asi-overlay.yml"
   workflow_dispatch:
 
@@ -53,7 +52,7 @@ jobs:
       - name: Upload test build
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_ASI_V0.16A_CLEAN_HORSE_SHARED_HOOK_TEST
+          name: DarksidersGenesis_ASI_V0.17_CORE_CLEANUP_TEST
           path: |
             dist/dxgi.dll
             dist/DarksidersGenesisMod.asi
