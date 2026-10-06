@@ -30,7 +30,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.18C-skip-logos-mediafoundation-test";
+constexpr const char* kBuild = "0.18D-skip-logos-ue4-config-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1863,16 +1863,14 @@ dg::overlay::Context BuildOverlayContext() {
 
     const dg::skip_logos::Telemetry skipLogosTelemetry =
         dg::skip_logos::GetTelemetry();
-    t.skipLogosInstalled =
-        skipLogosTelemetry.installed;
-    t.skipLogosResolverHooked =
-        skipLogosTelemetry.resolverMethodHooked;
-    t.skipLogosResolverCreates =
-        skipLogosTelemetry.resolverCreateCalls;
-    t.skipLogosUrlCalls =
-        skipLogosTelemetry.urlCalls;
-    t.skipLogosBlocked =
-        skipLogosTelemetry.blocked;
+    t.skipLogosInitialized =
+        skipLogosTelemetry.initialized;
+    t.skipLogosOverridePresent =
+        skipLogosTelemetry.overridePresent;
+    t.skipLogosLastApplyOk =
+        skipLogosTelemetry.lastApplyOk;
+    t.skipLogosRestartRequired =
+        skipLogosTelemetry.restartRequired;
 
     t.actionMoveQueries = g_actionMoveQueries.load();
     t.actionMoveLocalQueries =
@@ -1918,6 +1916,8 @@ dg::overlay::Context BuildOverlayContext() {
 
     context.applySkipIntro =
         &ApplySkipIntroSetting;
+    context.applySkipLogos =
+        &dg::skip_logos::Apply;
     context.abilityStateName =
         &AbilityStateName;
     context.log = &Log;
@@ -2227,12 +2227,11 @@ DWORD WINAPI MainThread(LPVOID) {
         g_targetValidation.reason.c_str()
     );
 
-    // Skip Logos is boot-sensitive. Install its single Media Foundation
-    // primitive as soon as the exact retail target has been accepted, before
-    // D3D11 discovery can consume more startup time.
+    // Skip Logos is a persistent UE4 StartupMovies config override.
+    // Applying it during this session affects the next launch only.
     if (g_targetValidation.exact) {
         if (!dg::skip_logos::Initialize(&FeatureLog)) {
-            Log("Skip Logos MF unavailable; remaining mod features continue normally.");
+            Log("Skip Logos UE4 config unavailable; remaining mod features continue normally.");
         }
     }
 
