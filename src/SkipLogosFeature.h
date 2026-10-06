@@ -9,10 +9,8 @@ using LogFn = void(*)(const char*);
 struct Telemetry {
     bool proxyAvailable = false;
     bool targetValid = false;
-    bool installed = false;
+    bool patched = false;
     bool enabled = true;
-    LONG setupCalls = 0;
-    LONG skippedCalls = 0;
 };
 
 bool Initialize(LogFn logger);
