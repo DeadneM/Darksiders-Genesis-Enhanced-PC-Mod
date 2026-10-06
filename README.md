@@ -443,3 +443,73 @@ from an older test build.
 
 Skip Intro remains exclusively on the validated native
 `g.PlayIntroCinematicOnBoot` path.
+
+
+## V0.18F - native SetupLoadingScreenFromIni bypass
+
+V0.18E proved that a process-wide `CreateFileW` hook was installed and active,
+but no MP4 open ever passed through it. That file-open route is rejected.
+
+A direct executable audit identified the actual UE4 startup-movie path.
+
+Exact retail target:
+
+```text
+DarksidersGenesis-Win64-Shipping.exe
+size       62,113,280 bytes
+SHA-256    9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54
+SizeOfImage 0x03DDF000
+```
+
+Engine initialization contains the marker:
+
+```text
+GetMoviePlayer()->SetupLoadingScreenFromIni
+```
+
+The caller resolves `GetMoviePlayer()`, reads its vtable and invokes slot
+`+0x78`. The corresponding vtable entry points exactly to:
+
+```text
+FDefaultGameMoviePlayer::SetupLoadingScreenFromIni
+RVA 0x0160BC50
+VA  0x14160BC50
+```
+
+That function reads, in order:
+
+```text
+bWaitForMoviesToComplete
+bMoviesAreSkippable
+StartupMovies
+```
+
+V0.18F therefore owns one primitive only:
+
+```text
+first DXGI factory call
+    -> outside DllMain
+    -> before ASI startup
+    -> validate retail SizeOfImage + exact native prologue
+    -> MinHook RVA 0x160BC50
+    -> Skip Logos ON: return immediately
+    -> Skip Logos OFF: call original function
+```
+
+No file hook, no Media Foundation hook, no Game.ini override and no fallback
+tree remain in the active Skip Logos path.
+
+Overlay telemetry:
+
+```text
+NATIVE READY/OFF
+target VALID/INVALID
+calls
+skipped
+```
+
+Skip Intro stays entirely separate on the already validated native
+`g.PlayIntroCinematicOnBoot` control.
+
+Config revision `1806` resets `SkipLogos` and `SkipIntroVideos` to ON once
+when upgrading from an older test build.
