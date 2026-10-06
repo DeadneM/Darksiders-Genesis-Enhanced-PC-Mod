@@ -22,7 +22,7 @@ using CreateObjectFromURLFn =
         DWORD flags,
         void* propertyStore,
         int* objectType,
-        IUnknown** object
+        void** object
     );
 
 MFCreateSourceResolverFn g_originalCreateSourceResolver = nullptr;
@@ -112,7 +112,7 @@ HRESULT STDMETHODCALLTYPE HookCreateObjectFromURL(
     DWORD flags,
     void* propertyStore,
     int* objectType,
-    IUnknown** object
+    void** object
 ) {
     g_urlCalls.fetch_add(1, std::memory_order_relaxed);
 
