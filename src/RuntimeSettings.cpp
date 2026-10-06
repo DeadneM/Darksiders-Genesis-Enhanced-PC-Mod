@@ -15,6 +15,7 @@ void Publish(const Snapshot& s) {
     g_state.movementSpeedEnabled.store(s.movementSpeedEnabled, std::memory_order_relaxed);
     g_state.actionRecoveryEnabled.store(s.actionRecoveryEnabled, std::memory_order_relaxed);
     g_state.skipLogosEnabled.store(s.skipLogosEnabled, std::memory_order_relaxed);
+    g_state.skipLogosEnabled.store(s.skipLogosEnabled, std::memory_order_relaxed);
     g_state.skipIntroEnabled.store(s.skipIntroEnabled, std::memory_order_relaxed);
     g_state.pistolDamageEnabled.store(s.pistolDamageEnabled, std::memory_order_relaxed);
     g_state.meleeDamageEnabled.store(s.meleeDamageEnabled, std::memory_order_relaxed);
