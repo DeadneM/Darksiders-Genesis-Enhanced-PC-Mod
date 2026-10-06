@@ -24,10 +24,8 @@ struct Telemetry {
     bool skipIntroReady = false;
     bool skipLogosProxyAvailable = false;
     bool skipLogosTargetValid = false;
-    bool skipLogosInstalled = false;
+    bool skipLogosPatched = false;
     bool skipLogosEnabled = true;
-    LONG skipLogosSetupCalls = 0;
-    LONG skipLogosSkippedCalls = 0;
 
     int actionMoveQueries = 0;
     int actionMoveLocalQueries = 0;
