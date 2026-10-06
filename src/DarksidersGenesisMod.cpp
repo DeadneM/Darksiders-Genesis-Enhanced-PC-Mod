@@ -22,7 +22,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.14C-direct-horse-movement-properties-test";
+constexpr const char* kBuild = "0.14D-horse-heartbeat-fix-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -144,6 +144,8 @@ std::atomic<float> g_lastHorseNativeMaxAcceleration{0.0f};
 std::atomic<float> g_lastHorseEffectiveMaxAcceleration{0.0f};
 std::atomic_int g_horseValidationSuccesses{0};
 std::atomic_int g_horseValidationRejects{0};
+std::atomic_int g_lastMovementMemberMatchCount{-1};
+std::atomic_int g_movementCaptureRejectLogBudget{12};
 
 struct PlayerMovementTuningState {
     void* component = nullptr;
@@ -1966,7 +1968,8 @@ bool DiscoverCharacterMovementMemberOffset(void* player, void* movementComponent
     }
 
     if (matches != 1 || found < 0) {
-        if (matches > 0) {
+        const int previousMatches = g_lastMovementMemberMatchCount.exchange(matches);
+        if (matches > 0 && previousMatches != matches) {
             Log(
                 "Horse runtime: CharacterMovement member discovery ambiguous matches=%d",
                 matches
@@ -1975,6 +1978,7 @@ bool DiscoverCharacterMovementMemberOffset(void* player, void* movementComponent
         return false;
     }
 
+    g_lastMovementMemberMatchCount.store(1);
     g_characterMovementMemberOffset.store(found);
     Log(
         "Horse runtime: discovered CharacterMovement member offset=0x%zX",
@@ -2102,7 +2106,7 @@ float ApplyHorseSpeedPolicy(void* movementComponent, float nativeSpeed) {
     }
 
     // V0.14B proved that multiplying the GetMaxSpeed return was not a useful
-    // gameplay control. V0.14C keeps this hook for telemetry only and applies
+    // gameplay control. V0.14D keeps this hook for telemetry only and applies
     // speed through the native movement properties that the reference Horse
     // PAK actually changes.
     ApplyHorseDirectMovementProperties(movementComponent);
@@ -2469,6 +2473,71 @@ bool ValidateHorseFromMovementPath(void* candidateHorse, void* horseMovement) {
     return true;
 }
 
+void RefreshHorseRuntimeFromLocalPlayer(void* player) {
+    if (!player) {
+        return;
+    }
+
+    // AMayhemPlayerCharacter::IsHorseActive was audited as a simple
+    // Player+0xE70 != nullptr test. V0.14A-C tried to hook that tiny helper,
+    // but V0.14C runtime logs proved the byte signature did not resolve in the
+    // retail executable. V0.14D performs the same native state test directly
+    // from the already validated movement hook on the GameThread.
+    void* opaqueCandidate = nullptr;
+    const bool active =
+        SafeReadPointer(player, 0xE70, &opaqueCandidate) &&
+        opaqueCandidate &&
+        opaqueCandidate != player;
+
+    const bool previous = g_nativeHorseActive.exchange(active);
+
+    if (!active) {
+        if (previous || g_validatedHorseCharacter.load()) {
+            Log("Horse runtime: local player unmounted -> restoring captured horse state");
+            RestoreHorseRuntimeState();
+        }
+        return;
+    }
+
+    if (!previous) {
+        Log(
+            "Horse runtime: mounted state detected from Player+0xE70; "
+            "starting safe mount discovery"
+        );
+    }
+
+    if (g_validatedHorseMovement.load()) {
+        ApplyHorseDirectMovementProperties(g_validatedHorseMovement.load());
+        return;
+    }
+
+    // The pointer remains only an opaque candidate. No horse field is trusted
+    // until the candidate exposes exactly one movement-like component whose
+    // CharacterOwner points back to it and passes all structural/range checks.
+    void* horseMovement = nullptr;
+    size_t horseMovementOffset = 0;
+
+    if (FindHorseMovementFromUntrustedCandidate(
+            opaqueCandidate,
+            &horseMovement,
+            &horseMovementOffset)) {
+        if (ValidateHorseFromMovementPath(opaqueCandidate, horseMovement)) {
+            g_horseMovementMemberOffset.store(
+                static_cast<intptr_t>(horseMovementOffset)
+            );
+            Log(
+                "Horse runtime: candidate scan found movement member offset=0x%zX",
+                horseMovementOffset
+            );
+        }
+    } else {
+        NoteHorseValidationReject(
+            7,
+            "no unique horse movement member found in opaque mounted candidate"
+        );
+    }
+}
+
 BYTE* ResolveIsHorseActiveNative() {
     PeSectionView text{};
     if (!GetMainModuleSection(".text", text)) {
@@ -2638,13 +2707,16 @@ PlayerMovementTuningState* FindOrCapturePlayerMovementState(void* movementCompon
     if (!IsReasonablePositiveFloat(jumpZ, 100.0f, 10000.0f) ||
         !IsReasonablePositiveFloat(doubleJumpZ, 100.0f, 10000.0f) ||
         !IsReasonablePositiveFloat(glideDuration, 0.05f, 60.0f)) {
-        Log(
-            "Runtime tuning: movement capture rejected component=%p jump=%.3f double=%.3f glide=%.3f",
-            movementComponent,
-            jumpZ,
-            doubleJumpZ,
-            glideDuration
-        );
+        const int budget = g_movementCaptureRejectLogBudget.fetch_sub(1);
+        if (budget > 0) {
+            Log(
+                "Runtime tuning: movement capture rejected component=%p jump=%.3f double=%.3f glide=%.3f",
+                movementComponent,
+                jumpZ,
+                doubleJumpZ,
+                glideDuration
+            );
+        }
         return nullptr;
     }
 
@@ -2727,14 +2799,22 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         return nativeSpeed;
     }
 
+    // Refresh the mounted state from the last known local player on every
+    // Mayhem GetMaxSpeed heartbeat. This removes the failed IsHorseActive hook
+    // dependency while staying on a gameplay thread.
+    void* localPlayer = g_localPlayerCharacter.load();
+    if (localPlayer) {
+        RefreshHorseRuntimeFromLocalPlayer(localPlayer);
+    }
+
     if (characterOwner == g_validatedHorseCharacter.load()) {
         return ApplyHorseSpeedPolicy(movementComponent, nativeSpeed);
     }
 
-    // When the local player is mounted, observe other movement owners reaching
-    // this real GetMaxSpeed hook. The horse is accepted only after structural
-    // CharacterOwner, stamina-field and vtable validation.
-    void* localPlayer = g_localPlayerCharacter.load();
+    // When mounted, observe other movement owners reaching this real
+    // GetMaxSpeed hook. This remains a second discovery path if the opaque
+    // Player+0xE70 candidate does not expose a uniquely discoverable component.
+    localPlayer = g_localPlayerCharacter.load();
     if (g_nativeHorseActive.load() &&
         localPlayer &&
         characterOwner != localPlayer) {
@@ -2742,8 +2822,6 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
             return ApplyHorseSpeedPolicy(movementComponent, nativeSpeed);
         }
 
-        // Never let an unvalidated mounted-time movement owner replace our
-        // known local-player pointer.
         return nativeSpeed;
     }
 
@@ -2752,10 +2830,12 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
     }
 
     g_localPlayerCharacter.store(characterOwner);
+
+    // The first local-player call can establish the mounted state immediately.
+    RefreshHorseRuntimeFromLocalPlayer(characterOwner);
+
     DiscoverCharacterMovementMemberOffset(characterOwner, movementComponent);
 
-    // Player movement property tuning. The safe horse runtime has its own
-    // structurally validated actor -> movement path.
     ApplyPlayerMovementTunings(movementComponent);
 
     if (!g_config.movementSpeedEnabled || nativeSpeed <= 0.0f) {
@@ -4947,9 +5027,10 @@ DWORD WINAPI MainThread(LPVOID) {
         Log("Movement Speed unavailable; other ASI features remain active.");
     }
 
-    if (!InstallSafeHorseRuntimeHook()) {
-        Log("Horse runtime unavailable; horse features remain fail-open.");
-    }
+    Log(
+        "Horse runtime: V0.14D armed from validated movement heartbeat; "
+        "IsHorseActive byte-signature hook disabled"
+    );
 
     if (!InstallActionEnabledRecoveryDiagnostic()) {
         Log("Action Recovery V0.8 unavailable; other ASI features remain active.");
