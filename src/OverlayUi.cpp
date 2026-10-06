@@ -509,10 +509,11 @@ void Draw(Context& c) {
             }
             ImGui::SameLine(310.0f);
             ImGui::TextDisabled(
-                "FILE %s | MP4 %ld | blocked %ld | restart recommended",
+                "NATIVE %s | target %s | calls %ld | skipped %ld",
                 t.skipLogosInstalled ? "READY" : "OFF",
-                t.skipLogosMp4Calls,
-                t.skipLogosBlocked
+                t.skipLogosTargetValid ? "VALID" : "INVALID",
+                t.skipLogosSetupCalls,
+                t.skipLogosSkippedCalls
             );
 
             if (ImGui::Checkbox(
