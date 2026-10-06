@@ -9,6 +9,8 @@
 #include "imgui_impl_win32.h"
 
 #include "HorseFeature.h"
+#include "PlayerIdentity.h"
+#include "TargetValidator.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -21,10 +23,11 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 #include <cwchar>
 #include <cmath>
 #include <string>
+#include <cstdlib>
 
 namespace {
 
-constexpr const char* kBuild = "0.16A-clean-horse-shared-hook-test";
+constexpr const char* kBuild = "0.17-core-cleanup-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -36,15 +39,8 @@ using PresentFn = HRESULT(__stdcall*)(IDXGISwapChain*, UINT, UINT);
 using ResizeBuffersFn = HRESULT(__stdcall*)(IDXGISwapChain*, UINT, UINT, UINT, DXGI_FORMAT, UINT);
 using HudHiddenGetterFn = bool(*)();
 using CharacterGetMaxSpeedFn = float(*)(void*);
-using ActionGateFn = bool(*)(void*, unsigned char);
-using DashVoidFn = void(*)(void*);
-using DashTickFn = void(*)(void*, float);
-using InputSuppressNotifyFn = void(*)(void*, void*, void*);
-using AbilityInterruptEnabledFn = bool(*)(void*, unsigned char);
 using AbilityActionEnabledFn = bool(*)(void*, unsigned char);
 using AddJuiceFn = void(*)(void*, float);
-using DoDamageToActorFn = void(*)(void*, void*, void*, void*);
-using ExecGetBaseDamageFn = void(*)(void*, void*, void*);
 using FilterOutgoingDamageFn = void(*)(void*, void*);
 
 PresentFn g_originalPresent = nullptr;
@@ -52,17 +48,8 @@ ResizeBuffersFn g_originalResizeBuffers = nullptr;
 HudHiddenGetterFn g_originalHudHiddenGetter = nullptr;
 CharacterGetMaxSpeedFn g_originalCharacterGetMaxSpeed = nullptr;
 void* g_playerGetMaxSpeedTarget = nullptr;
-ActionGateFn g_originalActionGate = nullptr;
-DashVoidFn g_originalDashStart = nullptr;
-DashTickFn g_originalDashTick = nullptr;
-DashVoidFn g_originalDashFinish = nullptr;
-InputSuppressNotifyFn g_originalInputSuppressBegin = nullptr;
-InputSuppressNotifyFn g_originalInputSuppressEnd = nullptr;
-AbilityInterruptEnabledFn g_originalAbilityInterruptEnabled = nullptr;
 AbilityActionEnabledFn g_originalAbilityActionEnabled = nullptr;
 AddJuiceFn g_originalAddJuice = nullptr;
-DoDamageToActorFn g_originalDoDamageToActor = nullptr;
-ExecGetBaseDamageFn g_originalExecGetBaseDamage = nullptr;
 FilterOutgoingDamageFn g_originalFilterOutgoingDamage = nullptr;
 
 ID3D11Device* g_device = nullptr;
@@ -81,6 +68,9 @@ std::atomic_bool g_hudHookReady{false};
 std::atomic_bool g_movementHookReady{false};
 std::atomic_bool g_recoveryHookReady{false};
 std::atomic_bool g_skipIntroReady{false};
+std::atomic_bool g_shuttingDown{false};
+std::atomic_bool g_gameplayHooksAllowed{false};
+dg::target::ValidationResult g_targetValidation{};
 LONG** g_skipIntroDataSlot = nullptr;
 LONG* g_skipIntroData = nullptr;
 LONG g_skipIntroOriginalValue = 1;
@@ -88,29 +78,16 @@ std::atomic_bool g_hotstreakHookReady{false};
 std::atomic_int g_hotstreakBoostCalls{0};
 std::atomic<float> g_lastNativeJuiceGain{0.0f};
 std::atomic<float> g_lastBoostedJuiceGain{0.0f};
-std::atomic_bool g_pistolDamageHookReady{false};
 std::atomic_int g_pistolDamageBoostCalls{0};
 std::atomic<float> g_lastNativePistolDamage{0.0f};
 std::atomic<float> g_lastBoostedPistolDamage{0.0f};
 std::atomic<float> g_lastPistolBaseJuice{0.0f};
-std::atomic_bool g_meleeDamageHookReady{false};
 std::atomic_int g_meleeDamageBoostCalls{0};
 std::atomic<float> g_lastNativeBaseDamage{0.0f};
 std::atomic<float> g_lastBoostedBaseDamage{0.0f};
 std::atomic_bool g_finalOutgoingDamageHookReady{false};
 std::atomic_uint g_lastOutgoingScaleType{0};
 std::atomic_int g_lastOutgoingTagCount{0};
-std::atomic<void*> g_activeDashAbility{nullptr};
-std::atomic<float> g_dashElapsedSeconds{0.0f};
-std::atomic<float> g_lastNativeDashDuration{0.0f};
-std::atomic_bool g_dashEarlyUnlockApplied{false};
-std::atomic_int g_bypassedInputSuppressWindows{0};
-std::atomic_int g_moveInterruptQueries{0};
-std::atomic_int g_moveInterruptNativeBlocked{0};
-std::atomic_int g_moveInterruptForced{0};
-std::atomic<void*> g_lastMoveQueryAbility{nullptr};
-std::atomic_int g_lastMoveQueryState{-1};
-std::atomic<float> g_lastMoveQueryElapsed{0.0f};
 std::atomic<void*> g_localPlayerCharacter{nullptr};
 std::atomic_int g_actionMoveQueries{0};
 std::atomic_int g_actionMoveLocalQueries{0};
@@ -134,8 +111,6 @@ struct PlayerMovementTuningState {
 
 SRWLOCK g_tuningLock = SRWLOCK_INIT;
 std::array<PlayerMovementTuningState, 4> g_playerMovementStates{};
-
-bool IsLocallyControlledMayhemCharacter(void* character);
 
 std::array<bool, 256> g_keyDown{};
 std::string g_lastAction = "None";
@@ -1193,204 +1168,6 @@ bool InstallHotstreakChargeHook() {
 }
 
 
-BYTE* ResolveDoDamageToActorNative() {
-    PeSectionView text{};
-    if (!GetMainModuleSection(".text", text)) {
-        Log("Pistol damage hook: failed to enumerate .text");
-        return nullptr;
-    }
-
-    // Blueprint library native DoDamageToActor body.
-    //
-    // Audited native RVA: 0x667300
-    //
-    // Generated UFunction parameters:
-    //   Actor         +0x00
-    //   DamageRecord  +0x08
-    //   DamageCauser  +0x18
-    //   DamageSource  +0x20
-    //
-    // FMayhemDamageEventRecord:
-    //   Damage        +0x08
-    //   ScaleType     +0x0C
-    //   ElementTypes  +0x10
-    //   DamageSourceTags +0x18
-    //   HotStreak     +0x28
-    //     BaseJuice   +0x00
-    static constexpr int kPattern[] = {
-        0x48, 0x8B, 0xC4,
-        0x57,
-        0x41, 0x56,
-        0x41, 0x57,
-        0x48, 0x81, 0xEC, 0x70, 0x01, 0x00, 0x00,
-        0x48, 0xC7, 0x44, 0x24, 0x40, 0xFE, 0xFF, 0xFF, 0xFF,
-        0x48, 0x89, 0x58, 0x08,
-        0x48, 0x89, 0x68, 0x10,
-        0x48, 0x89, 0x70, 0x18,
-        0x4D, 0x8B, 0xF1,
-        0x49, 0x8B, 0xF8,
-        0x4C, 0x8B, 0xFA,
-        0x48, 0x8B, 0xF1
-    };
-
-    size_t matchCount = 0;
-    BYTE* target = FindUniquePattern(
-        text,
-        kPattern,
-        ARRAYSIZE(kPattern),
-        &matchCount
-    );
-
-    if (!target) {
-        Log("Pistol damage hook: DoDamageToActor signature match count=%zu", matchCount);
-        return nullptr;
-    }
-
-    HMODULE module = GetModuleHandleW(nullptr);
-    BYTE* base = reinterpret_cast<BYTE*>(module);
-    Log(
-        "Pistol damage hook: DoDamageToActor resolved RVA=0x%zX",
-        static_cast<size_t>(target - base)
-    );
-
-    return target;
-}
-
-void HookDoDamageToActor(
-    void* actorStorage,
-    void* damageRecord,
-    void* damageCauserStorage,
-    void* damageSource
-) {
-    if (!g_originalDoDamageToActor) {
-        return;
-    }
-
-    if (!g_config.pistolDamageEnabled || !damageRecord) {
-        g_originalDoDamageToActor(
-            actorStorage,
-            damageRecord,
-            damageCauserStorage,
-            damageSource
-        );
-        return;
-    }
-
-    BYTE* record = reinterpret_cast<BYTE*>(damageRecord);
-    float* damagePtr = reinterpret_cast<float*>(record + 0x08);
-    const float originalDamage = *damagePtr;
-    const float baseJuice = *reinterpret_cast<float*>(record + 0x28);
-
-    // The supplied DualPistols PAKs show BaseJuice on the same projectile
-    // records whose Damage is being increased. War/melee/enemy damage records
-    // are expected to have zero juice and therefore stay native.
-    //
-    // Keep strict sanity bounds and use a temporary override only for the
-    // duration of the game's DoDamageToActor call, restoring the record after.
-    const bool looksLikePistolRecord =
-        originalDamage > 0.0f &&
-        originalDamage < 100000.0f &&
-        baseJuice > 0.0f &&
-        baseJuice < 1000.0f;
-
-    if (!looksLikePistolRecord) {
-        g_originalDoDamageToActor(
-            actorStorage,
-            damageRecord,
-            damageCauserStorage,
-            damageSource
-        );
-        return;
-    }
-
-    float multiplier = g_config.pistolDamageMultiplier;
-    if (multiplier < 0.0f) multiplier = 0.0f;
-    if (multiplier > 25.0f) multiplier = 25.0f;
-
-    float boostedDamage = originalDamage * multiplier;
-    if (boostedDamage > 100000.0f) {
-        boostedDamage = 100000.0f;
-    }
-
-    *damagePtr = boostedDamage;
-
-    g_lastNativePistolDamage.store(originalDamage);
-    g_lastBoostedPistolDamage.store(boostedDamage);
-    g_lastPistolBaseJuice.store(baseJuice);
-
-    const int count = g_pistolDamageBoostCalls.fetch_add(1) + 1;
-    if (count <= 40 || (count % 100) == 0) {
-        Log(
-            "Pistol damage hook: record=%p Damage %.3f -> %.3f BaseJuice=%.3f (%.2fx) count=%d source=%p",
-            damageRecord,
-            originalDamage,
-            boostedDamage,
-            baseJuice,
-            multiplier,
-            count,
-            damageSource
-        );
-    }
-
-    g_originalDoDamageToActor(
-        actorStorage,
-        damageRecord,
-        damageCauserStorage,
-        damageSource
-    );
-
-    // Never permanently mutate shared Blueprint/projectile defaults.
-    *damagePtr = originalDamage;
-}
-
-bool InstallPistolDamageHook() {
-    BYTE* target = ResolveDoDamageToActorNative();
-    if (!target) {
-        Log("Pistol damage hook: resolver failed; feature remains fail-open");
-        return false;
-    }
-
-    const MH_STATUS initStatus = MH_Initialize();
-    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
-        Log(
-            "Pistol damage hook: MinHook initialize FAILED status=%d",
-            static_cast<int>(initStatus)
-        );
-        return false;
-    }
-
-    MH_STATUS status = MH_CreateHook(
-        target,
-        reinterpret_cast<LPVOID>(&HookDoDamageToActor),
-        reinterpret_cast<LPVOID*>(&g_originalDoDamageToActor)
-    );
-
-    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
-        Log(
-            "Pistol damage hook: create FAILED status=%d",
-            static_cast<int>(status)
-        );
-        return false;
-    }
-
-    status = MH_EnableHook(target);
-    if (status != MH_OK && status != MH_ERROR_ENABLED) {
-        Log(
-            "Pistol damage hook: enable FAILED status=%d",
-            static_cast<int>(status)
-        );
-        return false;
-    }
-
-    g_pistolDamageHookReady.store(true);
-    Log(
-        "Pistol damage hook: READY filter=DamageRecord.BaseJuice>0 multiplier=%.3fx",
-        g_config.pistolDamageMultiplier
-    );
-    return true;
-}
-
-
 BYTE* ResolveFinalOutgoingDamageFilter() {
     PeSectionView text{};
     if (!GetMainModuleSection(".text", text)) {
@@ -1453,9 +1230,14 @@ void HookFinalOutgoingDamage(void* playerCharacter, void* damageRecord) {
     // Let the full native player-damage pipeline run first.
     g_originalFilterOutgoingDamage(playerCharacter, damageRecord);
 
-    if (!playerCharacter ||
-        !damageRecord ||
-        !IsLocallyControlledMayhemCharacter(playerCharacter)) {
+    if (!playerCharacter || !damageRecord) {
+        return;
+    }
+
+    const dg::player::IdentityTelemetry playerIdentity =
+        dg::player::GetIdentityTelemetry();
+    if (!playerIdentity.validated ||
+        playerIdentity.character != playerCharacter) {
         return;
     }
 
@@ -1578,8 +1360,6 @@ bool InstallFinalOutgoingDamageHook() {
     }
 
     g_finalOutgoingDamageHookReady.store(true);
-    g_pistolDamageHookReady.store(true);
-    g_meleeDamageHookReady.store(true);
 
     Log(
         "Final damage hook: READY RVA=0x668BE0 pistol=BaseJuice>0 meleeDiag=BaseJuice==0"
@@ -1636,174 +1416,6 @@ BYTE* ResolveMovementComponentGetMaxSpeedOverride() {
     );
 
     return target;
-}
-
-bool IsLocallyControlledMayhemCharacter(void* character) {
-    if (!character) {
-        return false;
-    }
-
-    void** vtable = *reinterpret_cast<void***>(character);
-    if (!vtable) {
-        return false;
-    }
-
-    // APawn::IsLocallyControlled virtual slot in the audited UE4 build.
-    using IsLocallyControlledFn = bool(*)(void*);
-    auto fn = reinterpret_cast<IsLocallyControlledFn>(vtable[0x680 / sizeof(void*)]);
-    if (!fn) {
-        return false;
-    }
-
-    return fn(character);
-}
-
-
-BYTE* ResolveExecGetBaseDamage() {
-    PeSectionView text{};
-    if (!GetMainModuleSection(".text", text)) {
-        Log("Melee damage hook: failed to enumerate .text");
-        return nullptr;
-    }
-
-    // Generated exec wrapper for GetBaseDamage.
-    //
-    // Audited RVA: 0x770D90
-    // It advances the Blueprint VM frame, calls virtual slot +0x928 on the
-    // character, then writes XMM0 to the result pointer.
-    static constexpr int kPattern[] = {
-        0x40, 0x53,
-        0x48, 0x83, 0xEC, 0x20,
-        0x48, 0x8B, 0x42, 0x20,
-        0x45, 0x33, 0xC9,
-        0x48, 0x85, 0xC0,
-        0x49, 0x8B, 0xD8,
-        0x41, 0x0F, 0x95, 0xC1,
-        0x4C, 0x03, 0xC8,
-        0x4C, 0x89, 0x4A, 0x20,
-        0x48, 0x8B, 0x01,
-        0xFF, 0x90, 0x28, 0x09, 0x00, 0x00,
-        0xF3, 0x0F, 0x11, 0x03,
-        0x48, 0x83, 0xC4, 0x20,
-        0x5B,
-        0xC3
-    };
-
-    size_t matchCount = 0;
-    BYTE* target = FindUniquePattern(
-        text,
-        kPattern,
-        ARRAYSIZE(kPattern),
-        &matchCount
-    );
-
-    if (!target) {
-        Log("Melee damage hook: GetBaseDamage wrapper match count=%zu", matchCount);
-        return nullptr;
-    }
-
-    HMODULE module = GetModuleHandleW(nullptr);
-    BYTE* base = reinterpret_cast<BYTE*>(module);
-    Log(
-        "Melee damage hook: GetBaseDamage exec resolved RVA=0x%zX virtualSlot=0x928",
-        static_cast<size_t>(target - base)
-    );
-
-    return target;
-}
-
-void HookExecGetBaseDamage(void* character, void* frame, void* result) {
-    if (!g_originalExecGetBaseDamage) {
-        return;
-    }
-
-    g_originalExecGetBaseDamage(character, frame, result);
-
-    if (!g_config.meleeDamageEnabled ||
-        !character ||
-        !result ||
-        !IsLocallyControlledMayhemCharacter(character)) {
-        return;
-    }
-
-    float* value = reinterpret_cast<float*>(result);
-    const float nativeDamage = *value;
-
-    if (!(nativeDamage > 0.0f && nativeDamage < 100000.0f)) {
-        return;
-    }
-
-    float multiplier = g_config.meleeDamageMultiplier;
-    if (multiplier < 0.0f) multiplier = 0.0f;
-    if (multiplier > 100.0f) multiplier = 100.0f;
-
-    float boosted = nativeDamage * multiplier;
-    if (boosted > 100000.0f) {
-        boosted = 100000.0f;
-    }
-
-    *value = boosted;
-
-    g_lastNativeBaseDamage.store(nativeDamage);
-    g_lastBoostedBaseDamage.store(boosted);
-
-    const int count = g_meleeDamageBoostCalls.fetch_add(1) + 1;
-    if (count <= 40 || (count % 100) == 0) {
-        Log(
-            "Melee damage hook: GetBaseDamage local %.3f -> %.3f (%.2fx) count=%d",
-            nativeDamage,
-            boosted,
-            multiplier,
-            count
-        );
-    }
-}
-
-bool InstallMeleeDamageHook() {
-    BYTE* target = ResolveExecGetBaseDamage();
-    if (!target) {
-        Log("Melee damage hook: resolver failed; feature remains fail-open");
-        return false;
-    }
-
-    const MH_STATUS initStatus = MH_Initialize();
-    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
-        Log(
-            "Melee damage hook: MinHook initialize FAILED status=%d",
-            static_cast<int>(initStatus)
-        );
-        return false;
-    }
-
-    MH_STATUS status = MH_CreateHook(
-        target,
-        reinterpret_cast<LPVOID>(&HookExecGetBaseDamage),
-        reinterpret_cast<LPVOID*>(&g_originalExecGetBaseDamage)
-    );
-
-    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
-        Log(
-            "Melee damage hook: create FAILED status=%d",
-            static_cast<int>(status)
-        );
-        return false;
-    }
-
-    status = MH_EnableHook(target);
-    if (status != MH_OK && status != MH_ERROR_ENABLED) {
-        Log(
-            "Melee damage hook: enable FAILED status=%d",
-            static_cast<int>(status)
-        );
-        return false;
-    }
-
-    g_meleeDamageHookReady.store(true);
-    Log(
-        "Melee damage hook: READY local GetBaseDamage multiplier=%.3fx",
-        g_config.meleeDamageMultiplier
-    );
-    return true;
 }
 
 float ClampFloat(float value, float minValue, float maxValue) {
@@ -1951,7 +1563,10 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
     );
 
     const bool isLocalPlayer =
-        IsLocallyControlledMayhemCharacter(characterOwner);
+        dg::player::IsValidatedLocalPlayer(
+            characterOwner,
+            movementComponent
+        );
 
     if (!isLocalPlayer) {
         return nativeSpeed;
@@ -2015,778 +1630,6 @@ bool InstallMovementSpeedHook() {
     );
     return true;
 }
-
-BYTE* ResolveActionRecoveryGate() {
-    PeSectionView text{};
-    if (!GetMainModuleSection(".text", text)) {
-        Log("Recovery hook: failed to enumerate .text");
-        return nullptr;
-    }
-
-    // UMayhemPlayerAbilityComponent movement gate, audited against the supplied EXE.
-    // ECharacterActions::MOVE == 0x1D.
-    // The native function compares:
-    //   MoveInterruptDelaySec [this+0x110]
-    //   elapsed runtime timer [this+0x114]
-    // and rejects MOVE while delay > elapsed.
-    static constexpr int kPattern[] = {
-        0x40, 0x57,
-        0x48, 0x83, 0xEC, 0x20,
-        0x0F, 0xB6, 0xFA,
-        0x80, 0xFA, 0x1D,
-        0x75, -1,
-        0xF3, 0x0F, 0x10, 0x81, 0x10, 0x01, 0x00, 0x00,
-        0x0F, 0x2F, 0x81, 0x14, 0x01, 0x00, 0x00,
-        0x76, -1,
-        0x32, 0xC0
-    };
-
-    size_t matchCount = 0;
-    BYTE* target = FindUniquePattern(
-        text,
-        kPattern,
-        ARRAYSIZE(kPattern),
-        &matchCount
-    );
-
-    if (!target) {
-        Log("Recovery hook: movement-gate signature match count=%zu", matchCount);
-        return nullptr;
-    }
-
-    HMODULE module = GetModuleHandleW(nullptr);
-    BYTE* base = reinterpret_cast<BYTE*>(module);
-    Log(
-        "Recovery hook: movement gate resolved RVA=0x%zX",
-        static_cast<size_t>(target - base)
-    );
-
-    return target;
-}
-
-bool HookActionGate(void* abilityComponent, unsigned char action) {
-    if (!g_originalActionGate) {
-        return false;
-    }
-
-    constexpr unsigned char kMoveAction = 0x1D;
-
-    if (action != kMoveAction ||
-        !g_config.actionRecoveryEnabled ||
-        !abilityComponent) {
-        return g_originalActionGate(abilityComponent, action);
-    }
-
-    float multiplier = g_config.actionRecoveryMultiplier;
-    if (multiplier < 1.0f) multiplier = 1.0f;
-    if (multiplier > 10.0f) multiplier = 10.0f;
-
-    if (multiplier <= 1.0001f) {
-        return g_originalActionGate(abilityComponent, action);
-    }
-
-    BYTE* object = reinterpret_cast<BYTE*>(abilityComponent);
-    float* moveInterruptDelay = reinterpret_cast<float*>(object + 0x110);
-    float* elapsedTimer = reinterpret_cast<float*>(object + 0x114);
-
-    const float originalDelay = *moveInterruptDelay;
-    const float elapsed = *elapsedTimer;
-
-    // Reject obviously invalid/corrupt values and fall back to vanilla logic.
-    if (!(originalDelay >= 0.0f && originalDelay < 60.0f) ||
-        !(elapsed >= 0.0f && elapsed < 600.0f)) {
-        return g_originalActionGate(abilityComponent, action);
-    }
-
-    const float effectiveDelay = originalDelay / multiplier;
-
-    // Temporary, stack-scoped override only for this native gate evaluation.
-    // The original object value is restored immediately after the game finishes
-    // its full action checks.
-    *moveInterruptDelay = effectiveDelay;
-    const bool result = g_originalActionGate(abilityComponent, action);
-    *moveInterruptDelay = originalDelay;
-
-    return result;
-}
-
-bool InstallActionRecoveryHook() {
-    BYTE* target = ResolveActionRecoveryGate();
-    if (!target) {
-        Log("Recovery hook: resolver failed; feature remains fail-open");
-        return false;
-    }
-
-    const MH_STATUS initStatus = MH_Initialize();
-    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
-        Log("Recovery hook: MinHook initialize FAILED status=%d", static_cast<int>(initStatus));
-        return false;
-    }
-
-    MH_STATUS status = MH_CreateHook(
-        target,
-        reinterpret_cast<LPVOID>(&HookActionGate),
-        reinterpret_cast<LPVOID*>(&g_originalActionGate)
-    );
-
-    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
-        Log("Recovery hook: create FAILED status=%d", static_cast<int>(status));
-        return false;
-    }
-
-    status = MH_EnableHook(target);
-    if (status != MH_OK && status != MH_ERROR_ENABLED) {
-        Log("Recovery hook: enable FAILED status=%d", static_cast<int>(status));
-        return false;
-    }
-
-    g_recoveryHookReady.store(true);
-    Log(
-        "Recovery hook: READY multiplier=%.3fx move-action-only=1 field-write=purely-temporary",
-        g_config.actionRecoveryMultiplier
-    );
-    return true;
-}
-
-
-struct DashHookTargets {
-    BYTE* start = nullptr;
-    BYTE* tick = nullptr;
-    BYTE* finish = nullptr;
-};
-
-DashHookTargets ResolveDashRecoveryTargets() {
-    DashHookTargets out{};
-
-    PeSectionView text{};
-    PeSectionView rdata{};
-    if (!GetMainModuleSection(".text", text) ||
-        !GetMainModuleSection(".rdata", rdata)) {
-        Log("Dodge recovery: failed to enumerate PE sections");
-        return out;
-    }
-
-    static constexpr int kStartPattern[] = {
-        0x40, 0x57,
-        0x48, 0x83, 0xEC, 0x60,
-        0x48, 0xC7, 0x44, 0x24, 0x30, 0xFE, 0xFF, 0xFF, 0xFF,
-        0x48, 0x89, 0x5C, 0x24, 0x70,
-        0x48, 0x89, 0x74, 0x24, 0x78,
-        0x48, 0x8B, 0xF9,
-        0xE8, -1, -1, -1, -1,
-        0x48, 0x8B, 0x9F, 0xB0, 0x01, 0x00, 0x00,
-        0x48, 0x85, 0xDB,
-        0x0F, 0x84, -1, -1, -1, -1,
-        0x80, 0xBF, 0xF1, 0x01, 0x00, 0x00, 0x00,
-        0x74, 0x07,
-        0xC6, 0x83, 0xAC, 0x0A, 0x00, 0x00, 0x01
-    };
-
-    static constexpr int kFinishPattern[] = {
-        0x40, 0x57,
-        0x48, 0x83, 0xEC, 0x60,
-        0x48, 0xC7, 0x44, 0x24, 0x30, 0xFE, 0xFF, 0xFF, 0xFF,
-        0x48, 0x89, 0x5C, 0x24, 0x70,
-        0x48, 0x8B, 0xF9,
-        0xE8, -1, -1, -1, -1,
-        0x48, 0x8B, 0x8F, 0xD8, 0x01, 0x00, 0x00,
-        0x48, 0x85, 0xC9,
-        0x74, -1,
-        0x33, 0xD2,
-        0xE8, -1, -1, -1, -1,
-        0x48, 0x8B, 0x9F, 0xB0, 0x01, 0x00, 0x00,
-        0x48, 0x85, 0xDB,
-        0x0F, 0x84, -1, -1, -1, -1,
-        0xC6, 0x83, 0xAC, 0x0A, 0x00, 0x00, 0x00
-    };
-
-    size_t startCount = 0;
-    size_t finishCount = 0;
-    out.start = FindUniquePattern(text, kStartPattern, ARRAYSIZE(kStartPattern), &startCount);
-    out.finish = FindUniquePattern(text, kFinishPattern, ARRAYSIZE(kFinishPattern), &finishCount);
-
-    if (!out.start || !out.finish) {
-        Log(
-            "Dodge recovery: start/finish signature mismatch start=%zu finish=%zu",
-            startCount,
-            finishCount
-        );
-        return {};
-    }
-
-    BYTE* commonTick = nullptr;
-    size_t relationCount = 0;
-
-    for (size_t i = 0; i + 0x60 <= rdata.size; i += sizeof(uintptr_t)) {
-        BYTE* p = rdata.begin + i;
-        const uintptr_t startPtr = *reinterpret_cast<const uintptr_t*>(p);
-        const uintptr_t finishPtr = *reinterpret_cast<const uintptr_t*>(p + 0x58);
-
-        if (startPtr != reinterpret_cast<uintptr_t>(out.start) ||
-            finishPtr != reinterpret_cast<uintptr_t>(out.finish)) {
-            continue;
-        }
-
-        BYTE* tick = reinterpret_cast<BYTE*>(
-            *reinterpret_cast<const uintptr_t*>(p + sizeof(uintptr_t))
-        );
-
-        if (!AddressInSection(text, tick)) {
-            continue;
-        }
-
-        if (!commonTick) {
-            commonTick = tick;
-        } else if (commonTick != tick) {
-            Log("Dodge recovery: vtable relation resolves conflicting tick targets");
-            return {};
-        }
-
-        ++relationCount;
-    }
-
-    if (!commonTick || relationCount == 0) {
-        Log("Dodge recovery: no start/tick/finish vtable relation found");
-        return {};
-    }
-
-    out.tick = commonTick;
-
-    HMODULE module = GetModuleHandleW(nullptr);
-    BYTE* base = reinterpret_cast<BYTE*>(module);
-    Log(
-        "Dodge recovery: targets start=0x%zX tick=0x%zX finish=0x%zX vtableRelations=%zu",
-        static_cast<size_t>(out.start - base),
-        static_cast<size_t>(out.tick - base),
-        static_cast<size_t>(out.finish - base),
-        relationCount
-    );
-
-    return out;
-}
-
-void HookDashStart(void* ability) {
-    g_originalDashStart(ability);
-
-    if (!ability) {
-        return;
-    }
-
-    BYTE* object = reinterpret_cast<BYTE*>(ability);
-    void* player = *reinterpret_cast<void**>(object + 0x1B0);
-    if (!player) {
-        return;
-    }
-
-    BYTE* movementLock = reinterpret_cast<BYTE*>(player) + 0xAAC;
-    if (*movementLock == 0) {
-        return;
-    }
-
-    g_activeDashAbility.store(ability);
-    g_dashElapsedSeconds.store(0.0f);
-    g_dashEarlyUnlockApplied.store(false);
-
-    Log(
-        "Dodge recovery: dash START ability=%p player=%p learnedNative=%.3f sec",
-        ability,
-        player,
-        g_lastNativeDashDuration.load()
-    );
-}
-
-void HookDashTick(void* ability, float deltaSeconds) {
-    if (ability == g_activeDashAbility.load() &&
-        deltaSeconds > 0.0f &&
-        deltaSeconds < 0.25f) {
-        g_dashElapsedSeconds.store(g_dashElapsedSeconds.load() + deltaSeconds);
-    }
-
-    g_originalDashTick(ability, deltaSeconds);
-
-    if (!g_config.actionRecoveryEnabled ||
-        ability != g_activeDashAbility.load() ||
-        g_dashEarlyUnlockApplied.load()) {
-        return;
-    }
-
-    const float nativeDuration = g_lastNativeDashDuration.load();
-    if (nativeDuration <= 0.05f) {
-        return;
-    }
-
-    float earlyMs = g_config.dodgeEarlyUnlockMs;
-    if (earlyMs < 0.0f) earlyMs = 0.0f;
-    if (earlyMs > 400.0f) earlyMs = 400.0f;
-
-    float releaseAt = nativeDuration - (earlyMs / 1000.0f);
-    if (releaseAt < 0.05f) {
-        releaseAt = 0.05f;
-    }
-
-    const float elapsed = g_dashElapsedSeconds.load();
-    if (elapsed < releaseAt) {
-        return;
-    }
-
-    BYTE* object = reinterpret_cast<BYTE*>(ability);
-    void* player = *reinterpret_cast<void**>(object + 0x1B0);
-    if (!player) {
-        return;
-    }
-
-    BYTE* movementLock = reinterpret_cast<BYTE*>(player) + 0xAAC;
-    if (*movementLock != 0) {
-        *movementLock = 0;
-        g_dashEarlyUnlockApplied.store(true);
-        Log(
-            "Dodge recovery: EARLY UNLOCK at %.3f sec (native %.3f sec, early %.0f ms)",
-            elapsed,
-            nativeDuration,
-            earlyMs
-        );
-    }
-}
-
-void HookDashFinish(void* ability) {
-    if (ability && ability == g_activeDashAbility.load()) {
-        const float elapsed = g_dashElapsedSeconds.load();
-        if (elapsed > 0.05f && elapsed < 5.0f) {
-            g_lastNativeDashDuration.store(elapsed);
-        }
-
-        Log(
-            "Dodge recovery: dash FINISH nativeLifetime=%.3f sec earlyUnlock=%d",
-            elapsed,
-            g_dashEarlyUnlockApplied.load() ? 1 : 0
-        );
-
-        g_activeDashAbility.store(nullptr);
-        g_dashElapsedSeconds.store(0.0f);
-        g_dashEarlyUnlockApplied.store(false);
-    }
-
-    g_originalDashFinish(ability);
-}
-
-bool InstallDodgeRecoveryHooks() {
-    const DashHookTargets targets = ResolveDashRecoveryTargets();
-    if (!targets.start || !targets.tick || !targets.finish) {
-        Log("Dodge recovery: resolver failed; feature remains fail-open");
-        return false;
-    }
-
-    const MH_STATUS initStatus = MH_Initialize();
-    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
-        Log("Dodge recovery: MinHook initialize FAILED status=%d", static_cast<int>(initStatus));
-        return false;
-    }
-
-    struct HookSpec {
-        BYTE* target;
-        LPVOID detour;
-        LPVOID* original;
-        const char* name;
-    };
-
-    HookSpec specs[] = {
-        { targets.start, reinterpret_cast<LPVOID>(&HookDashStart), reinterpret_cast<LPVOID*>(&g_originalDashStart), "start" },
-        { targets.tick, reinterpret_cast<LPVOID>(&HookDashTick), reinterpret_cast<LPVOID*>(&g_originalDashTick), "tick" },
-        { targets.finish, reinterpret_cast<LPVOID>(&HookDashFinish), reinterpret_cast<LPVOID*>(&g_originalDashFinish), "finish" }
-    };
-
-    for (const auto& spec : specs) {
-        MH_STATUS status = MH_CreateHook(spec.target, spec.detour, spec.original);
-        if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
-            Log("Dodge recovery: create %s FAILED status=%d", spec.name, static_cast<int>(status));
-            return false;
-        }
-    }
-
-    for (const auto& spec : specs) {
-        MH_STATUS status = MH_EnableHook(spec.target);
-        if (status != MH_OK && status != MH_ERROR_ENABLED) {
-            Log("Dodge recovery: enable %s FAILED status=%d", spec.name, static_cast<int>(status));
-            return false;
-        }
-    }
-
-    g_recoveryHookReady.store(true);
-    Log(
-        "Dodge recovery: READY earlyUnlock=%.0f ms firstDashLearnsNative=1",
-        g_config.dodgeEarlyUnlockMs
-    );
-    return true;
-}
-
-
-struct InputSuppressWindowTargets {
-    BYTE* begin = nullptr;
-    BYTE* end = nullptr;
-};
-
-InputSuppressWindowTargets ResolveInputSuppressWindowTargets() {
-    InputSuppressWindowTargets out{};
-
-    PeSectionView text{};
-    PeSectionView rdata{};
-    if (!GetMainModuleSection(".text", text) ||
-        !GetMainModuleSection(".rdata", rdata)) {
-        Log("InputSuppressWindow: failed to enumerate PE sections");
-        return out;
-    }
-
-    BYTE* displayNameString = FindWideString(rdata, L"Suppress Player Input Window");
-    if (!displayNameString) {
-        Log("InputSuppressWindow: display-name string not found");
-        return out;
-    }
-
-    BYTE* nameXref = FindRipRelativeLeaTo(text, displayNameString);
-    if (!nameXref) {
-        Log("InputSuppressWindow: unique display-name xref not found");
-        return out;
-    }
-
-    // UAnimNotify_InputSuppressWindow::GetNotifyName starts 9 bytes before
-    // the audited LEA of "Suppress Player Input Window".
-    BYTE* getNotifyName = nameXref - 9;
-    static constexpr BYTE kGetNamePrefix[] = {
-        0x40, 0x53,
-        0x48, 0x83, 0xEC, 0x20,
-        0x48, 0x8B, 0xDA
-    };
-
-    if (!AddressInSection(text, getNotifyName) ||
-        memcmp(getNotifyName, kGetNamePrefix, sizeof(kGetNamePrefix)) != 0) {
-        Log("InputSuppressWindow: GetNotifyName layout mismatch");
-        return out;
-    }
-
-    BYTE* vtableSlot = nullptr;
-    size_t slotCount = 0;
-
-    for (size_t i = 0; i + 32 <= rdata.size; i += sizeof(uintptr_t)) {
-        BYTE* p = rdata.begin + i;
-        if (*reinterpret_cast<const uintptr_t*>(p) ==
-            reinterpret_cast<uintptr_t>(getNotifyName)) {
-            vtableSlot = p;
-            ++slotCount;
-        }
-    }
-
-    if (slotCount != 1 || !vtableSlot) {
-        Log("InputSuppressWindow: GetNotifyName vtable slot count=%zu", slotCount);
-        return {};
-    }
-
-    // In this UAnimNotifyState-derived vtable:
-    //   +0x00 GetNotifyName
-    //   +0x08 NotifyBegin override
-    //   +0x10 inherited NotifyTick
-    //   +0x18 NotifyEnd override
-    out.begin = reinterpret_cast<BYTE*>(
-        *reinterpret_cast<const uintptr_t*>(vtableSlot + 0x08)
-    );
-    out.end = reinterpret_cast<BYTE*>(
-        *reinterpret_cast<const uintptr_t*>(vtableSlot + 0x18)
-    );
-
-    if (!AddressInSection(text, out.begin) ||
-        !AddressInSection(text, out.end)) {
-        Log("InputSuppressWindow: begin/end targets outside .text");
-        return {};
-    }
-
-    HMODULE module = GetModuleHandleW(nullptr);
-    BYTE* base = reinterpret_cast<BYTE*>(module);
-
-    Log(
-        "InputSuppressWindow: resolved GetNotifyName=0x%zX Begin=0x%zX End=0x%zX",
-        static_cast<size_t>(getNotifyName - base),
-        static_cast<size_t>(out.begin - base),
-        static_cast<size_t>(out.end - base)
-    );
-
-    return out;
-}
-
-void HookInputSuppressBegin(void* notifyState, void* meshComponent, void* eventData) {
-    if (!g_config.actionRecoveryEnabled) {
-        g_originalInputSuppressBegin(notifyState, meshComponent, eventData);
-        return;
-    }
-
-    const int count = g_bypassedInputSuppressWindows.fetch_add(1) + 1;
-    Log(
-        "InputSuppressWindow: BEGIN BYPASSED notify=%p mesh=%p event=%p activeBypasses=%d",
-        notifyState,
-        meshComponent,
-        eventData,
-        count
-    );
-}
-
-void HookInputSuppressEnd(void* notifyState, void* meshComponent, void* eventData) {
-    int count = g_bypassedInputSuppressWindows.load();
-
-    while (count > 0) {
-        if (g_bypassedInputSuppressWindows.compare_exchange_weak(count, count - 1)) {
-            Log(
-                "InputSuppressWindow: END BYPASSED notify=%p mesh=%p event=%p remaining=%d",
-                notifyState,
-                meshComponent,
-                eventData,
-                count - 1
-            );
-            return;
-        }
-    }
-
-    // If this window began before the mod feature was enabled, preserve the
-    // native End so the game's suppression counter is balanced correctly.
-    g_originalInputSuppressEnd(notifyState, meshComponent, eventData);
-}
-
-bool InstallInputSuppressWindowHooks() {
-    const InputSuppressWindowTargets targets = ResolveInputSuppressWindowTargets();
-    if (!targets.begin || !targets.end) {
-        Log("InputSuppressWindow: resolver failed; diagnostic remains fail-open");
-        return false;
-    }
-
-    const MH_STATUS initStatus = MH_Initialize();
-    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
-        Log("InputSuppressWindow: MinHook initialize FAILED status=%d", static_cast<int>(initStatus));
-        return false;
-    }
-
-    MH_STATUS status = MH_CreateHook(
-        targets.begin,
-        reinterpret_cast<LPVOID>(&HookInputSuppressBegin),
-        reinterpret_cast<LPVOID*>(&g_originalInputSuppressBegin)
-    );
-    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
-        Log("InputSuppressWindow: create Begin FAILED status=%d", static_cast<int>(status));
-        return false;
-    }
-
-    status = MH_CreateHook(
-        targets.end,
-        reinterpret_cast<LPVOID>(&HookInputSuppressEnd),
-        reinterpret_cast<LPVOID*>(&g_originalInputSuppressEnd)
-    );
-    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
-        Log("InputSuppressWindow: create End FAILED status=%d", static_cast<int>(status));
-        return false;
-    }
-
-    status = MH_EnableHook(targets.begin);
-    if (status != MH_OK && status != MH_ERROR_ENABLED) {
-        Log("InputSuppressWindow: enable Begin FAILED status=%d", static_cast<int>(status));
-        return false;
-    }
-
-    status = MH_EnableHook(targets.end);
-    if (status != MH_OK && status != MH_ERROR_ENABLED) {
-        Log("InputSuppressWindow: enable End FAILED status=%d", static_cast<int>(status));
-        return false;
-    }
-
-    g_recoveryHookReady.store(true);
-    Log("InputSuppressWindow: DIAGNOSTIC BYPASS READY");
-    return true;
-}
-
-
-BYTE* ResolveAbilityInterruptEnabledNative() {
-    PeSectionView text{};
-    PeSectionView rdata{};
-    if (!GetMainModuleSection(".text", text) ||
-        !GetMainModuleSection(".rdata", rdata)) {
-        Log("Action Recovery: failed to enumerate PE sections");
-        return nullptr;
-    }
-
-    BYTE* name = FindAsciiString(rdata, "IsInterruptEnabled");
-    if (!name) {
-        Log("Action Recovery: IsInterruptEnabled string not found");
-        return nullptr;
-    }
-
-    static constexpr BYTE kNativePrefix[] = {
-        0x44, 0x0F, 0xB6, 0xC2,
-        0x41, 0x0F, 0xB6, 0xC0,
-        0x49, 0xC1, 0xE8, 0x06,
-        0x24, 0x3F,
-        0x0F, 0xB6, 0xD0,
-        0x4A, 0x8B, 0x84, 0xC1, 0xB0, 0x00, 0x00, 0x00
-    };
-
-    const uintptr_t nameVA = reinterpret_cast<uintptr_t>(name);
-    BYTE* native = nullptr;
-    size_t nativeCount = 0;
-
-    for (size_t i = 0; i + 16 <= rdata.size; i += sizeof(uintptr_t)) {
-        BYTE* entry = rdata.begin + i;
-        if (*reinterpret_cast<const uintptr_t*>(entry) != nameVA) {
-            continue;
-        }
-
-        BYTE* wrapper = reinterpret_cast<BYTE*>(
-            *reinterpret_cast<const uintptr_t*>(entry + sizeof(uintptr_t))
-        );
-        if (!AddressInSection(text, wrapper)) {
-            continue;
-        }
-
-        for (size_t j = 0; j + 5 <= 0x100; ++j) {
-            BYTE* p = wrapper + j;
-            if (!AddressInSection(text, p) || p[0] != 0xE8) {
-                continue;
-            }
-
-            const int32_t rel = *reinterpret_cast<const int32_t*>(p + 1);
-            BYTE* target = p + 5 + rel;
-            if (!AddressInSection(text, target)) {
-                continue;
-            }
-
-            if (memcmp(target, kNativePrefix, sizeof(kNativePrefix)) == 0) {
-                if (!native || native != target) {
-                    native = target;
-                    ++nativeCount;
-                }
-            }
-        }
-    }
-
-    if (!native || nativeCount != 1) {
-        Log("Action Recovery: native IsInterruptEnabled match count=%zu", nativeCount);
-        return nullptr;
-    }
-
-    HMODULE module = GetModuleHandleW(nullptr);
-    BYTE* base = reinterpret_cast<BYTE*>(module);
-    Log(
-        "Action Recovery: IsInterruptEnabled resolved RVA=0x%zX bitset=ability+0xB0 state=+0xD8 elapsed=+0xDC",
-        static_cast<size_t>(native - base)
-    );
-
-    return native;
-}
-
-const char* AbilityStateName(unsigned char state) {
-    switch (state) {
-    case 0: return "INITIALIZING";
-    case 1: return "STARTING";
-    case 2: return "RUNNING";
-    case 3: return "SUSPENDED";
-    case 4: return "AWAITING_FINISH";
-    case 5: return "FINISHED";
-    case 6: return "FINALIZED";
-    default: return "UNKNOWN";
-    }
-}
-
-bool HookAbilityInterruptEnabled(void* ability, unsigned char interrupt) {
-    const bool nativeEnabled = g_originalAbilityInterruptEnabled
-        ? g_originalAbilityInterruptEnabled(ability, interrupt)
-        : false;
-
-    // EAbilityInterrupt::MOVE is enum value 1 in the audited executable.
-    constexpr unsigned char kMoveInterrupt = 1;
-
-    if (!ability || interrupt != kMoveInterrupt) {
-        return nativeEnabled;
-    }
-
-    BYTE* object = reinterpret_cast<BYTE*>(ability);
-    const unsigned char state = *(object + 0xD8);
-    const float elapsed = *reinterpret_cast<float*>(object + 0xDC);
-
-    g_moveInterruptQueries.fetch_add(1);
-    g_lastMoveQueryElapsed.store(elapsed);
-
-    if (!nativeEnabled) {
-        g_moveInterruptNativeBlocked.fetch_add(1);
-    }
-
-    void* previousAbility = g_lastMoveQueryAbility.load();
-    const int previousState = g_lastMoveQueryState.load();
-
-    if (previousAbility != ability || previousState != static_cast<int>(state)) {
-        g_lastMoveQueryAbility.store(ability);
-        g_lastMoveQueryState.store(static_cast<int>(state));
-        Log(
-            "Action Recovery: MOVE query ability=%p state=%s(%u) elapsed=%.3f native=%d",
-            ability,
-            AbilityStateName(state),
-            static_cast<unsigned>(state),
-            elapsed,
-            nativeEnabled ? 1 : 0
-        );
-    }
-
-    if (!g_config.actionRecoveryEnabled || nativeEnabled) {
-        return nativeEnabled;
-    }
-
-    // The user-observed problem is a dead tail after the visible action has
-    // completed. AWAITING_FINISH is the common ability lifecycle state for that
-    // tail. Do not allow MOVE during STARTING/RUNNING, so attacks and actions
-    // cannot be cancelled prematurely.
-    if (state == 4) {
-        const int forced = g_moveInterruptForced.fetch_add(1) + 1;
-        if (forced <= 20 || (forced % 100) == 0) {
-            Log(
-                "Action Recovery: FORCE MOVE ability=%p state=AWAITING_FINISH elapsed=%.3f forcedCount=%d",
-                ability,
-                elapsed,
-                forced
-            );
-        }
-        return true;
-    }
-
-    return nativeEnabled;
-}
-
-bool InstallCommonActionRecoveryHook() {
-    BYTE* target = ResolveAbilityInterruptEnabledNative();
-    if (!target) {
-        Log("Action Recovery: resolver failed; feature remains fail-open");
-        return false;
-    }
-
-    const MH_STATUS initStatus = MH_Initialize();
-    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
-        Log("Action Recovery: MinHook initialize FAILED status=%d", static_cast<int>(initStatus));
-        return false;
-    }
-
-    MH_STATUS status = MH_CreateHook(
-        target,
-        reinterpret_cast<LPVOID>(&HookAbilityInterruptEnabled),
-        reinterpret_cast<LPVOID*>(&g_originalAbilityInterruptEnabled)
-    );
-
-    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
-        Log("Action Recovery: create FAILED status=%d", static_cast<int>(status));
-        return false;
-    }
-
-    status = MH_EnableHook(target);
-    if (status != MH_OK && status != MH_ERROR_ENABLED) {
-        Log("Action Recovery: enable FAILED status=%d", static_cast<int>(status));
-        return false;
-    }
-
-    g_recoveryHookReady.store(true);
-    Log("Action Recovery: READY policy=force MOVE only in AWAITING_FINISH");
-    return true;
-}
-
 
 BYTE* ResolveAbilityActionEnabledNative() {
     PeSectionView text{};
@@ -3878,8 +2721,18 @@ void DrawOverlay() {
             ImGui::TextWrapped(
                 "Target executable: DarksidersGenesis-Win64-Shipping.exe"
             );
+            ImGui::Text(
+                "Target validation: %s",
+                g_targetValidation.exact ? "EXACT / gameplay enabled" : "MISMATCH / overlay-only"
+            );
             ImGui::TextWrapped(
-                "SHA-256: 9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54"
+                "Runtime SHA-256: %s",
+                g_targetValidation.sha256.empty()
+                    ? "(not available)"
+                    : g_targetValidation.sha256.c_str()
+            );
+            ImGui::TextWrapped(
+                "Expected SHA-256: 9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54"
             );
             ImGui::TextWrapped("Size: 62,113,280 bytes");
             ImGui::Spacing();
@@ -4136,49 +2989,117 @@ bool DiscoverAndHookD3D11() {
     return true;
 }
 
+void ShutdownMod() {
+    if (g_shuttingDown.exchange(true)) {
+        return;
+    }
+
+    Log("Shutdown: begin");
+
+    dg::horse::Shutdown();
+    dg::player::ClearIdentity();
+
+    if (g_skipIntroData) {
+        *g_skipIntroData = g_skipIntroOriginalValue;
+    }
+
+    if (g_originalWndProc && g_hwnd && IsWindow(g_hwnd)) {
+        SetWindowLongPtrW(
+            g_hwnd,
+            GWLP_WNDPROC,
+            reinterpret_cast<LONG_PTR>(g_originalWndProc)
+        );
+        g_originalWndProc = nullptr;
+    }
+
+    if (g_imguiReady.exchange(false)) {
+        ImGui_ImplDX11_Shutdown();
+        ImGui_ImplWin32_Shutdown();
+        if (ImGui::GetCurrentContext()) {
+            ImGui::DestroyContext();
+        }
+    }
+
+    ReleaseRenderTarget();
+
+    if (g_context) {
+        g_context->Release();
+        g_context = nullptr;
+    }
+    if (g_device) {
+        g_device->Release();
+        g_device = nullptr;
+    }
+    g_gameSwapChain = nullptr;
+    g_hwnd = nullptr;
+
+    MH_DisableHook(MH_ALL_HOOKS);
+    MH_Uninitialize();
+
+    Log("Shutdown: complete");
+}
+
 DWORD WINAPI MainThread(LPVOID) {
     InitializePaths();
     ResetLogFile();
     Log("============================================================");
     Log("Darksiders Genesis Enhanced ASI %s starting", kBuild);
-    Log("Target EXE audit SHA256=9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54");
     Log("Architecture: DXGI proxy -> ASI -> D3D11 Present/ResizeBuffers -> Dear ImGui");
 
+    std::atexit(&ShutdownMod);
+
     g_config.Load();
+
+    g_targetValidation = dg::target::ValidateCurrentExecutable();
+    g_gameplayHooksAllowed.store(g_targetValidation.exact);
+
+    Log(
+        "Target validation: exact=%d size=%llu sha256=%s reason=%s",
+        g_targetValidation.exact ? 1 : 0,
+        static_cast<unsigned long long>(g_targetValidation.fileSize),
+        g_targetValidation.sha256.empty()
+            ? "(unavailable)"
+            : g_targetValidation.sha256.c_str(),
+        g_targetValidation.reason.c_str()
+    );
+
+    // The overlay remains available on an unknown executable so users receive
+    // a useful compatibility diagnostic. Gameplay hooks are fail-closed.
+    if (!DiscoverAndHookD3D11()) {
+        Log("Overlay hook setup FAILED. Mod stays fail-open; game should continue normally.");
+        return 0;
+    }
+
+    if (!g_targetValidation.exact) {
+        Log("Target mismatch: gameplay hooks DISABLED; overlay/log only.");
+        return 0;
+    }
 
     dg::horse::Initialize(&FeatureLog);
 
     if (!InstallSkipIntroControl()) {
         Log("Skip Intro unavailable; continuing with remaining ASI features.");
     }
-
-    if (!DiscoverAndHookD3D11()) {
-        Log("Overlay hook setup FAILED. Mod stays fail-open; game should continue normally.");
-        return 0;
-    }
-
     if (!InstallHudHook()) {
         Log("Toggle HUD unavailable; renderer/input core remains active.");
     }
-
     if (!InstallMovementSpeedHook()) {
         Log("Movement Speed unavailable; other ASI features remain active.");
     }
-
     if (!InstallActionEnabledRecoveryDiagnostic()) {
         Log("Action Recovery V0.8 unavailable; other ASI features remain active.");
     }
-
     if (!InstallHotstreakChargeHook()) {
         Log("Hotstreak Charge unavailable; other ASI features remain active.");
     }
-
     if (!InstallFinalOutgoingDamageHook()) {
         Log("Final Pistol/Melee Damage hook unavailable; other ASI features remain active.");
     }
 
-    Log("Core initialization complete. Press %s after the first game frame.",
-        KeyDisplayName(g_config.menuKey).c_str());
+    Log(
+        "Core initialization complete. Press %s after the first game frame.",
+        KeyDisplayName(g_config.menuKey).c_str()
+    );
     return 0;
 }
 
