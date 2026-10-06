@@ -30,7 +30,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.18F-native-setup-loading-screen-test";
+constexpr const char* kBuild = "0.18G-dllmain-native-ret-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1867,14 +1867,10 @@ dg::overlay::Context BuildOverlayContext() {
         skipLogosTelemetry.proxyAvailable;
     t.skipLogosTargetValid =
         skipLogosTelemetry.targetValid;
-    t.skipLogosInstalled =
-        skipLogosTelemetry.installed;
+    t.skipLogosPatched =
+        skipLogosTelemetry.patched;
     t.skipLogosEnabled =
         skipLogosTelemetry.enabled;
-    t.skipLogosSetupCalls =
-        skipLogosTelemetry.setupCalls;
-    t.skipLogosSkippedCalls =
-        skipLogosTelemetry.skippedCalls;
 
     t.actionMoveQueries = g_actionMoveQueries.load();
     t.actionMoveLocalQueries =
@@ -2231,12 +2227,11 @@ DWORD WINAPI MainThread(LPVOID) {
         g_targetValidation.reason.c_str()
     );
 
-    // Skip Logos is hooked directly at FDefaultGameMoviePlayer::
-    // SetupLoadingScreenFromIni (RVA 0x160BC50) by the DXGI proxy before
-    // ASI startup. The ASI only binds menu control + telemetry here.
+    // Skip Logos is patched even earlier in dxgi.dll DllMain. The ASI only
+    // binds menu control + telemetry here.
     if (g_targetValidation.exact) {
         if (!dg::skip_logos::Initialize(&FeatureLog)) {
-            Log("Skip Logos NATIVE unavailable; remaining mod features continue normally.");
+            Log("Skip Logos EARLY unavailable; remaining mod features continue normally.");
         }
     }
 
