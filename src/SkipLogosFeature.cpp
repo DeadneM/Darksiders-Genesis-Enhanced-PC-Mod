@@ -60,7 +60,7 @@ bool Initialize(LogFn logger) {
     g_logger = logger;
 
     if (!ResolveProxyExports()) {
-        LogText("Skip Logos CUSTOM_SPLASH: proxy exports unavailable");
+        LogText("Skip Logos EARLY_SCREEN: proxy exports unavailable");
         return false;
     }
 
@@ -69,14 +69,15 @@ bool Initialize(LogFn logger) {
             std::memory_order_relaxed
         );
 
-    g_setEnabledFn(enabled ? TRUE : FALSE);
+    const bool applied =
+        g_setEnabledFn(enabled ? TRUE : FALSE) != FALSE;
 
     const Telemetry t = GetTelemetry();
 
     char message[256]{};
     sprintf_s(
         message,
-        "Skip Logos CUSTOM_SPLASH: proxy=%d target=%d patched=%d enabled=%d branchRVA=0x2535E0",
+        "Skip Logos EARLY_SCREEN: proxy=%d target=%d patched=%d enabled=%d selectorRVA=0x253546 resumeRVA=0x2535FD",
         t.proxyAvailable ? 1 : 0,
         t.targetValid ? 1 : 0,
         t.patched ? 1 : 0,
@@ -85,8 +86,10 @@ bool Initialize(LogFn logger) {
     LogText(message);
 
     return
+        applied &&
         t.proxyAvailable &&
-        t.targetValid;
+        t.targetValid &&
+        (t.patched == enabled);
 }
 
 bool Apply(bool enabled) {
@@ -124,7 +127,7 @@ Telemetry GetTelemetry() {
 }
 
 void Shutdown() {
-    // The one-byte process patch is restored only when the user disables it.
+    // The five-byte startup selector patch is restored when the user disables it.
 }
 
 } // namespace dg::skip_logos
