@@ -301,3 +301,51 @@ The menu also shows the actual boot state and blocked-file count.
 V0.18's early-IAT primitive remains under test. The previous test produced no
 visible skip, so V0.18B does not claim it is validated. No alternate fallback is
 stacked into this build.
+
+
+## V0.18C - Skip Logos Media Foundation test
+
+Runtime evidence from V0.18B:
+
+```text
+Skip Logos boot=ON
+EARLY_IAT CreateFileW=1
+GetFileAttributesW=1
+GetFileAttributesExW=1
+blocked=0
+```
+
+Conclusion: the two startup movies do not travel through those main-EXE Win32
+IAT calls. V0.18/V0.18B early-IAT interception is rejected.
+
+V0.18C removes `EarlySkipLogos` from `dxgi.dll` completely. The DXGI proxy is
+restored to the validated minimal loader.
+
+Skip Logos now owns one primitive only:
+
+```text
+ASI startup on exact target
+    -> hook mfplat!MFCreateSourceResolver
+    -> capture IMFSourceResolver instance
+    -> hook CreateObjectFromURL
+    -> block only:
+       THQ_LogoBasic.mp4
+       AS_LogoBasic.mp4
+```
+
+The hook is installed from the ASI after normal DLL loading, never from
+`DllMain`.
+
+Diagnostics are bounded to the first eight Media Foundation URLs. The menu
+shows:
+
+```text
+MF READY/OFF
+resolver READY/waiting
+URL call count
+blocked count
+```
+
+`SkipLogos=1` and `SkipIntroVideos=1` remain independent and ON by default.
+Skip Intro continues to use only the validated native
+`g.PlayIntroCinematicOnBoot` CVar.
