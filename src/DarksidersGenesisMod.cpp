@@ -11,7 +11,6 @@
 #include "ConfigStore.h"
 #include "HorseFeature.h"
 #include "OverlayUi.h"
-#include "PlayerIdentity.h"
 #include "RuntimeSettings.h"
 #include "TargetValidator.h"
 
@@ -30,7 +29,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.17-core-cleanup-test";
+constexpr const char* kBuild = "0.17B-player-identity-rollback-fix-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -826,10 +825,8 @@ void HookFinalOutgoingDamage(void* playerCharacter, void* damageRecord) {
         return;
     }
 
-    const dg::player::IdentityTelemetry playerIdentity =
-        dg::player::GetIdentityTelemetry();
-    if (!playerIdentity.validated ||
-        playerIdentity.character != playerCharacter) {
+    void* localPlayer = g_localPlayerCharacter.load();
+    if (!localPlayer || localPlayer != playerCharacter) {
         return;
     }
 
@@ -1018,6 +1015,25 @@ float ClampFloat(float value, float minValue, float maxValue) {
     return value;
 }
 
+bool IsLocallyControlledMayhemCharacter(void* character) {
+    if (!character) {
+        return false;
+    }
+
+    void** vtable = *reinterpret_cast<void***>(character);
+    if (!vtable) {
+        return false;
+    }
+
+    // Proven V0.14F path: APawn::IsLocallyControlled in this audited UE4 build.
+    using IsLocallyControlledFn = bool(*)(void*);
+    auto fn = reinterpret_cast<IsLocallyControlledFn>(
+        vtable[0x680 / sizeof(void*)]
+    );
+
+    return fn ? fn(character) : false;
+}
+
 bool IsReasonablePositiveFloat(float value, float minValue, float maxValue) {
     return value >= minValue && value <= maxValue;
 }
@@ -1087,13 +1103,13 @@ PlayerMovementTuningState* FindOrCapturePlayerMovementState(void* movementCompon
     return slot;
 }
 
-void ApplyPlayerMovementTunings(void* movementComponent) {
+bool ApplyPlayerMovementTunings(void* movementComponent) {
     AcquireSRWLockExclusive(&g_tuningLock);
 
     PlayerMovementTuningState* state = FindOrCapturePlayerMovementState(movementComponent);
     if (!state) {
         ReleaseSRWLockExclusive(&g_tuningLock);
-        return;
+        return false;
     }
 
     BYTE* component = reinterpret_cast<BYTE*>(movementComponent);
@@ -1132,6 +1148,7 @@ void ApplyPlayerMovementTunings(void* movementComponent) {
             : state->glideDurationSeconds;
 
     ReleaseSRWLockExclusive(&g_tuningLock);
+    return true;
 }
 
 float HookCharacterGetMaxSpeed(void* movementComponent) {
@@ -1173,19 +1190,22 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         nativeSpeed
     );
 
-    const bool isLocalPlayer =
-        dg::player::IsValidatedLocalPlayer(
-            characterOwner,
-            movementComponent
-        );
+    // Restore the player path that was already validated in V0.14F:
+    // 1) the pawn must be locally controlled;
+    // 2) the movement component must pass the proven player tuning signature
+    //    (JumpZ / DoubleJumpZ / GlideDuration).
+    //
+    // This deliberately avoids the unvalidated V0.17 MaxWalkSpeed /
+    // MaxAcceleration identity heuristic that blocked all gameplay modifiers.
+    if (!IsLocallyControlledMayhemCharacter(characterOwner)) {
+        return nativeSpeed;
+    }
 
-    if (!isLocalPlayer) {
+    if (!ApplyPlayerMovementTunings(movementComponent)) {
         return nativeSpeed;
     }
 
     g_localPlayerCharacter.store(characterOwner);
-
-    ApplyPlayerMovementTunings(movementComponent);
 
     if (!runtime.movementSpeedEnabled.load(std::memory_order_relaxed) || nativeSpeed <= 0.0f) {
         return nativeSpeed;
@@ -2130,7 +2150,6 @@ void ShutdownMod() {
 
     g_config.FlushIfDue(true);
     dg::horse::Shutdown();
-    dg::player::ClearIdentity();
 
     if (g_skipIntroData) {
         *g_skipIntroData = g_skipIntroOriginalValue;
@@ -2209,6 +2228,9 @@ DWORD WINAPI MainThread(LPVOID) {
     }
 
     dg::horse::Initialize(&FeatureLog);
+    Log(
+        "Player identity: V0.14F local-pawn + JumpZ/DoubleJumpZ/Glide signature restored"
+    );
 
     if (!InstallSkipIntroControl()) {
         Log("Skip Intro unavailable; continuing with remaining ASI features.");
