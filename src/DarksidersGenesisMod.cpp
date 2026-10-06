@@ -8,6 +8,7 @@
 #include "imgui_impl_dx11.h"
 #include "imgui_impl_win32.h"
 
+#include "ConfigStore.h"
 #include "HorseFeature.h"
 #include "PlayerIdentity.h"
 #include "RuntimeSettings.h"
@@ -72,8 +73,6 @@ std::atomic_bool g_skipIntroReady{false};
 std::atomic_bool g_shuttingDown{false};
 std::atomic_bool g_gameplayHooksAllowed{false};
 dg::target::ValidationResult g_targetValidation{};
-std::atomic_bool g_configDirty{false};
-std::atomic_ullong g_configDirtyTick{0};
 LONG** g_skipIntroDataSlot = nullptr;
 LONG* g_skipIntroData = nullptr;
 LONG g_skipIntroOriginalValue = 1;
@@ -118,187 +117,12 @@ std::array<PlayerMovementTuningState, 4> g_playerMovementStates{};
 std::array<bool, 256> g_keyDown{};
 std::string g_lastAction = "None";
 
-enum class Action : int {
-    None = 0,
-    ToggleHUD,
-    MovementSpeed,
-    ActionRecovery,
-    SkipIntroVideos,
-    ThirdPerson,
-    Count
-};
+using dg::config::Action;
+using dg::config::ActionLabel;
+using dg::config::KeyDisplayName;
+using dg::config::kActionLabels;
 
-constexpr std::array<const char*, static_cast<size_t>(Action::Count)> kActionLabels = {
-    "None",
-    "Toggle HUD",
-    "Movement Speed",
-    "Action Recovery",
-    "Skip Intro Videos",
-    "Third Person"
-};
-
-constexpr std::array<const wchar_t*, static_cast<size_t>(Action::Count)> kActionTokens = {
-    L"None",
-    L"ToggleHUD",
-    L"MovementSpeed",
-    L"ActionRecovery",
-    L"SkipIntroVideos",
-    L"ThirdPerson"
-};
-
-const char* ActionLabel(Action action) {
-    const int i = static_cast<int>(action);
-    if (i < 0 || i >= static_cast<int>(Action::Count)) {
-        return "None";
-    }
-    return kActionLabels[static_cast<size_t>(i)];
-}
-
-const wchar_t* ActionToken(Action action) {
-    const int i = static_cast<int>(action);
-    if (i < 0 || i >= static_cast<int>(Action::Count)) {
-        return L"None";
-    }
-    return kActionTokens[static_cast<size_t>(i)];
-}
-
-Action ParseAction(const wchar_t* text) {
-    if (!text) {
-        return Action::None;
-    }
-    for (int i = 0; i < static_cast<int>(Action::Count); ++i) {
-        if (_wcsicmp(text, kActionTokens[static_cast<size_t>(i)]) == 0) {
-            return static_cast<Action>(i);
-        }
-    }
-    return Action::None;
-}
-
-bool IsExtendedVirtualKey(int vk) {
-    switch (vk) {
-    case VK_INSERT:
-    case VK_DELETE:
-    case VK_HOME:
-    case VK_END:
-    case VK_PRIOR:
-    case VK_NEXT:
-    case VK_LEFT:
-    case VK_RIGHT:
-    case VK_UP:
-    case VK_DOWN:
-    case VK_DIVIDE:
-    case VK_NUMLOCK:
-        return true;
-    default:
-        return false;
-    }
-}
-
-std::string KeyDisplayName(int vk) {
-    if (vk <= 0 || vk >= 256) {
-        return "Unbound";
-    }
-
-    UINT scan = MapVirtualKeyA(static_cast<UINT>(vk), MAPVK_VK_TO_VSC);
-    LONG keyData = static_cast<LONG>(scan << 16);
-    if (IsExtendedVirtualKey(vk)) {
-        keyData |= (1 << 24);
-    }
-
-    char name[64]{};
-    if (GetKeyNameTextA(keyData, name, static_cast<int>(sizeof(name))) > 0) {
-        return name;
-    }
-
-    char fallback[16]{};
-    sprintf_s(fallback, sizeof(fallback), "VK_%02X", vk & 0xFF);
-    return fallback;
-}
-
-std::wstring KeyTokenFromVK(int vk) {
-    switch (vk) {
-    case VK_INSERT: return L"Insert";
-    case VK_DELETE: return L"Delete";
-    case VK_HOME: return L"Home";
-    case VK_END: return L"End";
-    case VK_PRIOR: return L"PageUp";
-    case VK_NEXT: return L"PageDown";
-    case VK_TAB: return L"Tab";
-    case VK_CAPITAL: return L"CapsLock";
-    case VK_PAUSE: return L"Pause";
-    case VK_SCROLL: return L"ScrollLock";
-    case VK_SPACE: return L"Space";
-    default:
-        break;
-    }
-
-    if (vk >= VK_F1 && vk <= VK_F24) {
-        wchar_t text[16]{};
-        swprintf_s(text, L"F%d", (vk - VK_F1) + 1);
-        return text;
-    }
-
-    if ((vk >= '0' && vk <= '9') || (vk >= 'A' && vk <= 'Z')) {
-        wchar_t text[2]{ static_cast<wchar_t>(vk), L'\0' };
-        return text;
-    }
-
-    wchar_t fallback[16]{};
-    swprintf_s(fallback, L"VK_%02X", vk & 0xFF);
-    return fallback;
-}
-
-int ParseKeyToken(const wchar_t* text, int fallback) {
-    if (!text || !*text) {
-        return fallback;
-    }
-
-    struct NamedKey { const wchar_t* name; int vk; };
-    constexpr NamedKey named[] = {
-        {L"Insert", VK_INSERT},
-        {L"Delete", VK_DELETE},
-        {L"Home", VK_HOME},
-        {L"End", VK_END},
-        {L"PageUp", VK_PRIOR},
-        {L"PageDown", VK_NEXT},
-        {L"Tab", VK_TAB},
-        {L"CapsLock", VK_CAPITAL},
-        {L"Pause", VK_PAUSE},
-        {L"ScrollLock", VK_SCROLL},
-        {L"Space", VK_SPACE}
-    };
-
-    for (const auto& entry : named) {
-        if (_wcsicmp(text, entry.name) == 0) {
-            return entry.vk;
-        }
-    }
-
-    if ((text[0] == L'F' || text[0] == L'f') && text[1]) {
-        const int n = _wtoi(text + 1);
-        if (n >= 1 && n <= 24) {
-            return VK_F1 + (n - 1);
-        }
-    }
-
-    if (text[0] && !text[1]) {
-        wchar_t ch = text[0];
-        if (ch >= L'a' && ch <= L'z') ch = static_cast<wchar_t>(ch - L'a' + L'A');
-        if ((ch >= L'0' && ch <= L'9') || (ch >= L'A' && ch <= L'Z')) {
-            return static_cast<int>(ch);
-        }
-    }
-
-    if ((_wcsnicmp(text, L"VK_", 3) == 0) && text[3]) {
-        wchar_t* end = nullptr;
-        const long value = wcstol(text + 3, &end, 16);
-        if (end != text + 3 && value > 0 && value < 256) {
-            return static_cast<int>(value);
-        }
-    }
-
-    return fallback;
-}
+dg::config::Store g_config;
 
 void InitializePaths() {
     wchar_t path[MAX_PATH]{};
@@ -392,300 +216,6 @@ void FeatureLog(const char* message) {
         Log("%s", message);
     }
 }
-
-void PublishRuntimeConfig();
-void MarkConfigDirty();
-
-struct Config {
-    bool overlayEnabled = true;
-    int menuKey = VK_INSERT;
-
-    // Requested default policy: every planned feature is enabled by default.
-    bool toggleHudEnabled = true;
-    bool movementSpeedEnabled = true;
-    bool actionRecoveryEnabled = true;
-    bool skipIntroEnabled = true;
-    bool thirdPersonEnabled = false;
-    bool pistolDamageEnabled = true;
-    bool meleeDamageEnabled = true;
-    bool jumpHeightEnabled = true;
-    bool glideDurationEnabled = true;
-    bool horseSpeedEnabled = true;
-    bool horseSprintSpeedEnabled = false;
-    bool horseSprintDurationEnabled = true;
-    bool fovEnabled = false;
-    bool hotstreakChargeEnabled = true;
-
-    // User-facing tuning values.
-    float movementSpeedMultiplier = 1.50f;
-    float actionRecoveryDelayMs = 0.0f;
-    float actionRecoveryMultiplier = 2.00f; // legacy compatibility, not used by V0.8B
-    float dodgeEarlyUnlockMs = 100.0f;      // legacy compatibility, not used by V0.8B
-    float pistolDamageMultiplier = 2.00f;
-    float meleeDamageMultiplier = 2.00f;
-    float jumpHeightMultiplier = 1.25f;
-    float glideDurationMultiplier = 10.00f;
-    float horseSpeedMultiplier = 1.25f;
-    float horseSprintSpeedMultiplier = 1.25f;
-    float horseSprintDurationMultiplier = 2.00f;
-    float fovDegrees = 90.0f;
-    float thirdPersonDistanceMultiplier = 1.00f;
-    float hotstreakChargeMultiplier = 2.00f;
-
-    std::array<Action, 12> hotkeys{};
-
-    Config() {
-        ResetDefaults(false);
-    }
-
-    static bool ReadBool(const wchar_t* section, const wchar_t* key, bool fallback, const std::wstring& path) {
-        return GetPrivateProfileIntW(section, key, fallback ? 1 : 0, path.c_str()) != 0;
-    }
-
-    static float ReadFloat(const wchar_t* section, const wchar_t* key, float fallback, const std::wstring& path) {
-        wchar_t buffer[64]{};
-        wchar_t fallbackText[64]{};
-        swprintf_s(fallbackText, L"%.3f", fallback);
-        GetPrivateProfileStringW(section, key, fallbackText, buffer, 64, path.c_str());
-        wchar_t* end = nullptr;
-        const float value = wcstof(buffer, &end);
-        return (end && end != buffer) ? value : fallback;
-    }
-
-    static void WriteBool(const wchar_t* section, const wchar_t* key, bool value, const std::wstring& path) {
-        WritePrivateProfileStringW(section, key, value ? L"1" : L"0", path.c_str());
-    }
-
-    static void WriteFloat(const wchar_t* section, const wchar_t* key, float value, const std::wstring& path) {
-        wchar_t buffer[64]{};
-        swprintf_s(buffer, L"%.3f", value);
-        WritePrivateProfileStringW(section, key, buffer, path.c_str());
-    }
-
-    void ResetDefaults(bool save) {
-        overlayEnabled = true;
-        menuKey = VK_INSERT;
-        toggleHudEnabled = true;
-        movementSpeedEnabled = true;
-        actionRecoveryEnabled = true;
-        skipIntroEnabled = true;
-        thirdPersonEnabled = false;
-        pistolDamageEnabled = true;
-        meleeDamageEnabled = true;
-        jumpHeightEnabled = true;
-        glideDurationEnabled = true;
-        horseSpeedEnabled = true;
-        horseSprintSpeedEnabled = false;
-        horseSprintDurationEnabled = true;
-        fovEnabled = false;
-        hotstreakChargeEnabled = true;
-
-        movementSpeedMultiplier = 1.50f;
-        actionRecoveryDelayMs = 0.0f;
-        actionRecoveryMultiplier = 2.00f;
-        dodgeEarlyUnlockMs = 100.0f;
-        pistolDamageMultiplier = 2.00f;
-        meleeDamageMultiplier = 2.00f;
-        jumpHeightMultiplier = 1.25f;
-        glideDurationMultiplier = 10.00f;
-        horseSpeedMultiplier = 1.25f;
-        horseSprintSpeedMultiplier = 1.25f;
-        horseSprintDurationMultiplier = 2.00f;
-        fovDegrees = 90.0f;
-        thirdPersonDistanceMultiplier = 1.00f;
-        hotstreakChargeMultiplier = 2.00f;
-
-        hotkeys.fill(Action::None);
-        hotkeys[0] = Action::ToggleHUD;
-        hotkeys[1] = Action::MovementSpeed;
-        hotkeys[2] = Action::ActionRecovery;
-        hotkeys[3] = Action::SkipIntroVideos;
-        hotkeys[4] = Action::None;
-
-        if (save) {
-            Save();
-        }
-    }
-
-    void Load() {
-        if (g_iniPath.empty()) {
-            return;
-        }
-
-        if (GetFileAttributesW(g_iniPath.c_str()) == INVALID_FILE_ATTRIBUTES) {
-            ResetDefaults(false);
-            SaveNow();
-            Log("INI not found -> wrote authoritative defaults");
-            return;
-        }
-
-        overlayEnabled = ReadBool(L"Overlay", L"Enabled", true, g_iniPath);
-
-        wchar_t menuKeyText[64]{};
-        GetPrivateProfileStringW(L"Overlay", L"MenuKey", L"Insert", menuKeyText, 64, g_iniPath.c_str());
-        menuKey = ParseKeyToken(menuKeyText, VK_INSERT);
-
-        toggleHudEnabled = ReadBool(L"Features", L"ToggleHUD", true, g_iniPath);
-        movementSpeedEnabled = ReadBool(L"Features", L"MovementSpeed", true, g_iniPath);
-        actionRecoveryEnabled = ReadBool(L"Features", L"ActionRecovery", true, g_iniPath);
-        skipIntroEnabled = ReadBool(L"Features", L"SkipIntroVideos", true, g_iniPath);
-        thirdPersonEnabled = ReadBool(L"Features", L"ThirdPerson", false, g_iniPath);
-        pistolDamageEnabled = ReadBool(L"Features", L"PistolDamage", true, g_iniPath);
-        meleeDamageEnabled = ReadBool(L"Features", L"MeleeDamage", true, g_iniPath);
-        jumpHeightEnabled = ReadBool(L"Features", L"JumpHeight", true, g_iniPath);
-        glideDurationEnabled = ReadBool(L"Features", L"GlideDuration", true, g_iniPath);
-        horseSpeedEnabled = ReadBool(L"Features", L"HorseSpeed", true, g_iniPath);
-        horseSprintSpeedEnabled = ReadBool(L"Features", L"HorseSprintSpeed", false, g_iniPath);
-        horseSprintDurationEnabled = ReadBool(L"Features", L"HorseSprintDuration", true, g_iniPath);
-        fovEnabled = ReadBool(L"Features", L"FOV", false, g_iniPath);
-        hotstreakChargeEnabled = ReadBool(L"Features", L"HotstreakCharge", true, g_iniPath);
-
-        movementSpeedMultiplier = ReadFloat(L"Values", L"MovementSpeedMultiplier", 1.50f, g_iniPath);
-        actionRecoveryDelayMs = ReadFloat(L"Values", L"ActionRecoveryDelayMs", 0.0f, g_iniPath);
-        actionRecoveryMultiplier = ReadFloat(L"Values", L"ActionRecoveryMultiplier", 2.00f, g_iniPath);
-        dodgeEarlyUnlockMs = ReadFloat(L"Values", L"DodgeEarlyUnlockMs", 100.0f, g_iniPath);
-        pistolDamageMultiplier = ReadFloat(L"Values", L"PistolDamageMultiplier", 2.00f, g_iniPath);
-        meleeDamageMultiplier = ReadFloat(L"Values", L"MeleeDamageMultiplier", 2.00f, g_iniPath);
-        jumpHeightMultiplier = ReadFloat(L"Values", L"JumpHeightMultiplier", 1.25f, g_iniPath);
-        glideDurationMultiplier = ReadFloat(L"Values", L"GlideDurationMultiplier", 10.00f, g_iniPath);
-        horseSpeedMultiplier = ReadFloat(L"Values", L"HorseSpeedMultiplier", 1.25f, g_iniPath);
-        horseSprintSpeedMultiplier = ReadFloat(L"Values", L"HorseSprintSpeedMultiplier", 1.25f, g_iniPath);
-        horseSprintDurationMultiplier = ReadFloat(L"Values", L"HorseSprintDurationMultiplier", 2.00f, g_iniPath);
-        fovDegrees = ReadFloat(L"Values", L"FOVDegrees", 90.0f, g_iniPath);
-        thirdPersonDistanceMultiplier = ReadFloat(L"Values", L"ThirdPersonDistanceMultiplier", 1.00f, g_iniPath);
-        hotstreakChargeMultiplier = ReadFloat(L"Values", L"HotstreakChargeMultiplier", 2.00f, g_iniPath);
-
-        for (int i = 0; i < 12; ++i) {
-            wchar_t key[8]{};
-            swprintf_s(key, L"F%d", i + 1);
-
-            wchar_t value[64]{};
-            GetPrivateProfileStringW(
-                L"Hotkeys",
-                key,
-                ActionToken(hotkeys[static_cast<size_t>(i)]),
-                value,
-                64,
-                g_iniPath.c_str()
-            );
-            hotkeys[static_cast<size_t>(i)] = ParseAction(value);
-        }
-
-        Log("INI loaded");
-    }
-
-    void SaveNow() const {
-        if (g_iniPath.empty()) {
-            return;
-        }
-
-        WriteBool(L"Overlay", L"Enabled", overlayEnabled, g_iniPath);
-        const std::wstring menuKeyToken = KeyTokenFromVK(menuKey);
-        WritePrivateProfileStringW(L"Overlay", L"MenuKey", menuKeyToken.c_str(), g_iniPath.c_str());
-
-        WriteBool(L"Features", L"ToggleHUD", toggleHudEnabled, g_iniPath);
-        WriteBool(L"Features", L"MovementSpeed", movementSpeedEnabled, g_iniPath);
-        WriteBool(L"Features", L"ActionRecovery", actionRecoveryEnabled, g_iniPath);
-        WriteBool(L"Features", L"SkipIntroVideos", skipIntroEnabled, g_iniPath);
-        WriteBool(L"Features", L"ThirdPerson", thirdPersonEnabled, g_iniPath);
-        WriteBool(L"Features", L"PistolDamage", pistolDamageEnabled, g_iniPath);
-        WriteBool(L"Features", L"MeleeDamage", meleeDamageEnabled, g_iniPath);
-        WriteBool(L"Features", L"JumpHeight", jumpHeightEnabled, g_iniPath);
-        WriteBool(L"Features", L"GlideDuration", glideDurationEnabled, g_iniPath);
-        WriteBool(L"Features", L"HorseSpeed", horseSpeedEnabled, g_iniPath);
-        WriteBool(L"Features", L"HorseSprintSpeed", horseSprintSpeedEnabled, g_iniPath);
-        WriteBool(L"Features", L"HorseSprintDuration", horseSprintDurationEnabled, g_iniPath);
-        WriteBool(L"Features", L"FOV", fovEnabled, g_iniPath);
-        WriteBool(L"Features", L"HotstreakCharge", hotstreakChargeEnabled, g_iniPath);
-
-        WriteFloat(L"Values", L"MovementSpeedMultiplier", movementSpeedMultiplier, g_iniPath);
-        WriteFloat(L"Values", L"ActionRecoveryDelayMs", actionRecoveryDelayMs, g_iniPath);
-        WriteFloat(L"Values", L"ActionRecoveryMultiplier", actionRecoveryMultiplier, g_iniPath);
-        WriteFloat(L"Values", L"DodgeEarlyUnlockMs", dodgeEarlyUnlockMs, g_iniPath);
-        WriteFloat(L"Values", L"PistolDamageMultiplier", pistolDamageMultiplier, g_iniPath);
-        WriteFloat(L"Values", L"MeleeDamageMultiplier", meleeDamageMultiplier, g_iniPath);
-        WriteFloat(L"Values", L"JumpHeightMultiplier", jumpHeightMultiplier, g_iniPath);
-        WriteFloat(L"Values", L"GlideDurationMultiplier", glideDurationMultiplier, g_iniPath);
-        WriteFloat(L"Values", L"HorseSpeedMultiplier", horseSpeedMultiplier, g_iniPath);
-        WriteFloat(L"Values", L"HorseSprintSpeedMultiplier", horseSprintSpeedMultiplier, g_iniPath);
-        WriteFloat(L"Values", L"HorseSprintDurationMultiplier", horseSprintDurationMultiplier, g_iniPath);
-        WriteFloat(L"Values", L"FOVDegrees", fovDegrees, g_iniPath);
-        WriteFloat(L"Values", L"ThirdPersonDistanceMultiplier", thirdPersonDistanceMultiplier, g_iniPath);
-        WriteFloat(L"Values", L"HotstreakChargeMultiplier", hotstreakChargeMultiplier, g_iniPath);
-
-        for (int i = 0; i < 12; ++i) {
-            wchar_t key[8]{};
-            swprintf_s(key, L"F%d", i + 1);
-            WritePrivateProfileStringW(
-                L"Hotkeys",
-                key,
-                ActionToken(hotkeys[static_cast<size_t>(i)]),
-                g_iniPath.c_str()
-            );
-        }
-
-        g_configDirty.store(false, std::memory_order_relaxed);
-        Log("INI saved");
-    }
-
-    // UI/input changes publish immediately to atomics, while disk persistence
-    // is debounced by HookPresent.
-    void Save() const {
-        PublishRuntimeConfig();
-        MarkConfigDirty();
-    }
-};
-
-Config g_config;
-
-void MarkConfigDirty() {
-    g_configDirty.store(true, std::memory_order_relaxed);
-    g_configDirtyTick.store(GetTickCount64(), std::memory_order_relaxed);
-}
-
-void PublishRuntimeConfig() {
-    dg::runtime::Snapshot runtime{};
-    runtime.toggleHudEnabled = g_config.toggleHudEnabled;
-    runtime.movementSpeedEnabled = g_config.movementSpeedEnabled;
-    runtime.actionRecoveryEnabled = g_config.actionRecoveryEnabled;
-    runtime.skipIntroEnabled = g_config.skipIntroEnabled;
-    runtime.pistolDamageEnabled = g_config.pistolDamageEnabled;
-    runtime.meleeDamageEnabled = g_config.meleeDamageEnabled;
-    runtime.jumpHeightEnabled = g_config.jumpHeightEnabled;
-    runtime.glideDurationEnabled = g_config.glideDurationEnabled;
-    runtime.horseSpeedEnabled = g_config.horseSpeedEnabled;
-    runtime.horseSprintDurationEnabled = g_config.horseSprintDurationEnabled;
-    runtime.hotstreakChargeEnabled = g_config.hotstreakChargeEnabled;
-
-    runtime.movementSpeedMultiplier = g_config.movementSpeedMultiplier;
-    runtime.actionRecoveryDelayMs = g_config.actionRecoveryDelayMs;
-    runtime.pistolDamageMultiplier = g_config.pistolDamageMultiplier;
-    runtime.meleeDamageMultiplier = g_config.meleeDamageMultiplier;
-    runtime.jumpHeightMultiplier = g_config.jumpHeightMultiplier;
-    runtime.glideDurationMultiplier = g_config.glideDurationMultiplier;
-    runtime.horseSpeedMultiplier = g_config.horseSpeedMultiplier;
-    runtime.horseSprintDurationMultiplier = g_config.horseSprintDurationMultiplier;
-    runtime.hotstreakChargeMultiplier = g_config.hotstreakChargeMultiplier;
-
-    dg::runtime::Publish(runtime);
-}
-
-void FlushConfigIfDue(bool force = false) {
-    if (!g_configDirty.load(std::memory_order_relaxed)) {
-        return;
-    }
-
-    const ULONGLONG now = GetTickCount64();
-    const ULONGLONG dirtyAt =
-        g_configDirtyTick.load(std::memory_order_relaxed);
-
-    if (!force && now - dirtyAt < 500) {
-        return;
-    }
-
-    g_config.SaveNow();
-}
-
 
 struct PeSectionView {
     BYTE* begin = nullptr;
@@ -2753,15 +2283,14 @@ void DrawOverlay() {
 
             ImGui::Spacing();
             if (ImGui::Button("Save", ImVec2(110.0f, 0.0f))) {
-                PublishRuntimeConfig();
                 g_config.SaveNow();
                 g_lastAction = "Configuration saved";
             }
             ImGui::SameLine();
             if (ImGui::Button("Reload", ImVec2(110.0f, 0.0f))) {
                 g_config.Load();
-                PublishRuntimeConfig();
-                g_configDirty.store(false, std::memory_order_relaxed);
+                g_config.PublishRuntime();
+                
                 g_lastAction = "Configuration reloaded";
             }
             ImGui::SameLine();
@@ -2874,7 +2403,7 @@ void DrawOverlay() {
 HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) {
     ApplySkipIntroSetting(false);
     ProcessInput();
-    FlushConfigIfDue(false);
+    g_config.FlushIfDue(false);
 
     if (!g_imguiReady.load()) {
         InitializeImGui(swapChain);
@@ -3104,7 +2633,7 @@ void ShutdownMod() {
 
     Log("Shutdown: begin");
 
-    FlushConfigIfDue(true);
+    g_config.FlushIfDue(true);
     dg::horse::Shutdown();
     dg::player::ClearIdentity();
 
@@ -3157,8 +2686,9 @@ DWORD WINAPI MainThread(LPVOID) {
 
     std::atexit(&ShutdownMod);
 
+    g_config.SetPath(g_iniPath);
+    g_config.SetLogger(&FeatureLog);
     g_config.Load();
-    PublishRuntimeConfig();
 
     g_targetValidation = dg::target::ValidateCurrentExecutable();
     g_gameplayHooksAllowed.store(g_targetValidation.exact);
