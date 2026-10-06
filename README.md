@@ -349,3 +349,48 @@ blocked count
 `SkipLogos=1` and `SkipIntroVideos=1` remain independent and ON by default.
 Skip Intro continues to use only the validated native
 `g.PlayIntroCinematicOnBoot` CVar.
+
+
+## V0.18D - UE4 StartupMovies Skip Logos
+
+V0.18C Media Foundation is rejected after in-game testing: both company logos
+remain visible.
+
+The new path is deliberately simpler and targets the UE4 startup-movie
+configuration itself.
+
+Darksiders Genesis stores user configuration under:
+
+```text
+%LOCALAPPDATA%\THQ Nordic\Darksiders Genesis\Saved\Config\WindowsNoEditor\
+```
+
+V0.18D manages a small marked block in `Game.ini`:
+
+```ini
+; BEGIN DarksidersGenesisEnhanced SkipLogos
+[/Script/MoviePlayer.MoviePlayerSettings]
+-StartupMovies=THQ_LogoBasic
+-StartupMovies=AS_LogoBasic
+; END DarksidersGenesisEnhanced SkipLogos
+```
+
+This removes only the two company startup movies from UE4's
+`MoviePlayerSettings.StartupMovies` array. It does not touch the intro
+cinematic or any game files.
+
+`Skip Logos` remains directly above `Skip Intro Videos` in the menu.
+
+Both default ON. V0.18D introduces config revision `1804`; upgrading from any
+older test INI resets these two options to ON exactly once:
+
+```ini
+SkipLogos=1
+SkipIntroVideos=1
+```
+
+After that migration, user choices persist normally.
+
+Skip Logos changes require a game restart because UE4 reads StartupMovies during
+boot. Skip Intro remains the independent validated native
+`g.PlayIntroCinematicOnBoot` control.
