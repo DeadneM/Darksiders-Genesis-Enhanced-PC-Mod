@@ -1,16 +1,18 @@
 #pragma once
 
-namespace dg::skip_logos {
+#include <windows.h>
 
-// V0.18D: single UE4 StartupMovies config path. No runtime media fallback.
+namespace dg::skip_logos {
 
 using LogFn = void(*)(const char*);
 
 struct Telemetry {
-    bool initialized = false;
-    bool overridePresent = false;
-    bool lastApplyOk = false;
-    bool restartRequired = false;
+    bool proxyAvailable = false;
+    bool installed = false;
+    bool enabled = true;
+    LONG createFileCalls = 0;
+    LONG mp4Calls = 0;
+    LONG blocked = 0;
 };
 
 bool Initialize(LogFn logger);
