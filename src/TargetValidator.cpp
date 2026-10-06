@@ -84,7 +84,7 @@ bool HashFileSha256(const wchar_t* path, std::string& outHash) {
             break;
         }
 
-        std::array<unsigned char, 1024 * 1024> buffer{};
+        std::vector<unsigned char> buffer(1024 * 1024);
         for (;;) {
             DWORD read = 0;
             if (!ReadFile(
