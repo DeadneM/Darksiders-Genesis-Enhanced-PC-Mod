@@ -8,17 +8,16 @@
 namespace dg::skip_logos {
 namespace {
 
-using InstalledFn = BOOL (WINAPI*)();
-using EnabledFn = BOOL (WINAPI*)();
+using BoolFn = BOOL (WINAPI*)();
 using SetEnabledFn = void (WINAPI*)(BOOL);
 using CountFn = LONG (WINAPI*)();
 
-InstalledFn g_installedFn = nullptr;
-EnabledFn g_enabledFn = nullptr;
+BoolFn g_targetValidFn = nullptr;
+BoolFn g_installedFn = nullptr;
+BoolFn g_enabledFn = nullptr;
 SetEnabledFn g_setEnabledFn = nullptr;
-CountFn g_createFileCallsFn = nullptr;
-CountFn g_mp4CallsFn = nullptr;
-CountFn g_blockedCallsFn = nullptr;
+CountFn g_setupCallsFn = nullptr;
+CountFn g_skippedCallsFn = nullptr;
 
 LogFn g_logger = nullptr;
 
@@ -34,38 +33,38 @@ bool ResolveProxyExports() {
         return false;
     }
 
+    g_targetValidFn =
+        reinterpret_cast<BoolFn>(
+            GetProcAddress(proxy, "DGSkipLogosTargetValid")
+        );
     g_installedFn =
-        reinterpret_cast<InstalledFn>(
+        reinterpret_cast<BoolFn>(
             GetProcAddress(proxy, "DGSkipLogosInstalled")
         );
     g_enabledFn =
-        reinterpret_cast<EnabledFn>(
+        reinterpret_cast<BoolFn>(
             GetProcAddress(proxy, "DGSkipLogosEnabled")
         );
     g_setEnabledFn =
         reinterpret_cast<SetEnabledFn>(
             GetProcAddress(proxy, "DGSetSkipLogosEnabled")
         );
-    g_createFileCallsFn =
+    g_setupCallsFn =
         reinterpret_cast<CountFn>(
-            GetProcAddress(proxy, "DGSkipLogosCreateFileCalls")
+            GetProcAddress(proxy, "DGSkipLogosSetupCalls")
         );
-    g_mp4CallsFn =
+    g_skippedCallsFn =
         reinterpret_cast<CountFn>(
-            GetProcAddress(proxy, "DGSkipLogosMp4Calls")
-        );
-    g_blockedCallsFn =
-        reinterpret_cast<CountFn>(
-            GetProcAddress(proxy, "DGSkipLogosBlockedCalls")
+            GetProcAddress(proxy, "DGSkipLogosSkippedCalls")
         );
 
     return
+        g_targetValidFn &&
         g_installedFn &&
         g_enabledFn &&
         g_setEnabledFn &&
-        g_createFileCallsFn &&
-        g_mp4CallsFn &&
-        g_blockedCallsFn;
+        g_setupCallsFn &&
+        g_skippedCallsFn;
 }
 
 } // namespace
@@ -74,7 +73,7 @@ bool Initialize(LogFn logger) {
     g_logger = logger;
 
     if (!ResolveProxyExports()) {
-        LogText("Skip Logos FILE: proxy exports unavailable");
+        LogText("Skip Logos NATIVE: proxy exports unavailable");
         return false;
     }
 
@@ -82,7 +81,6 @@ bool Initialize(LogFn logger) {
         dg::runtime::Get().skipLogosEnabled.load(
             std::memory_order_relaxed
         );
-
     g_setEnabledFn(enabled ? TRUE : FALSE);
 
     const Telemetry t = GetTelemetry();
@@ -90,17 +88,17 @@ bool Initialize(LogFn logger) {
     char message[256]{};
     sprintf_s(
         message,
-        "Skip Logos FILE: proxy=%d installed=%d enabled=%d CreateFileW=%ld mp4=%ld blocked=%ld",
+        "Skip Logos NATIVE: proxy=%d target=%d installed=%d enabled=%d setupCalls=%ld skipped=%ld RVA=0x160BC50",
         t.proxyAvailable ? 1 : 0,
+        t.targetValid ? 1 : 0,
         t.installed ? 1 : 0,
         t.enabled ? 1 : 0,
-        t.createFileCalls,
-        t.mp4Calls,
-        t.blocked
+        t.setupCalls,
+        t.skippedCalls
     );
     LogText(message);
 
-    return t.proxyAvailable;
+    return t.proxyAvailable && t.targetValid && t.installed;
 }
 
 bool Apply(bool enabled) {
@@ -116,35 +114,28 @@ Telemetry GetTelemetry() {
     Telemetry t{};
 
     const bool available =
+        g_targetValidFn &&
         g_installedFn &&
         g_enabledFn &&
         g_setEnabledFn &&
-        g_createFileCallsFn &&
-        g_mp4CallsFn &&
-        g_blockedCallsFn;
+        g_setupCallsFn &&
+        g_skippedCallsFn;
 
     t.proxyAvailable = available;
-
     if (!available) {
         return t;
     }
 
-    t.installed =
-        g_installedFn() != FALSE;
-    t.enabled =
-        g_enabledFn() != FALSE;
-    t.createFileCalls =
-        g_createFileCallsFn();
-    t.mp4Calls =
-        g_mp4CallsFn();
-    t.blocked =
-        g_blockedCallsFn();
-
+    t.targetValid = g_targetValidFn() != FALSE;
+    t.installed = g_installedFn() != FALSE;
+    t.enabled = g_enabledFn() != FALSE;
+    t.setupCalls = g_setupCallsFn();
+    t.skippedCalls = g_skippedCallsFn();
     return t;
 }
 
 void Shutdown() {
-    // Proxy hook intentionally stays installed until process exit.
+    // Native proxy hook remains installed until process exit.
 }
 
 } // namespace dg::skip_logos
