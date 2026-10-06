@@ -60,7 +60,7 @@ bool Initialize(LogFn logger) {
     g_logger = logger;
 
     if (!ResolveProxyExports()) {
-        LogText("Skip Logos EARLY: proxy exports unavailable");
+        LogText("Skip Logos CUSTOM_SPLASH: proxy exports unavailable");
         return false;
     }
 
@@ -76,7 +76,7 @@ bool Initialize(LogFn logger) {
     char message[256]{};
     sprintf_s(
         message,
-        "Skip Logos EARLY: proxy=%d target=%d patched=%d enabled=%d RVA=0x160BC50",
+        "Skip Logos CUSTOM_SPLASH: proxy=%d target=%d patched=%d enabled=%d branchRVA=0x2535E0",
         t.proxyAvailable ? 1 : 0,
         t.targetValid ? 1 : 0,
         t.patched ? 1 : 0,
