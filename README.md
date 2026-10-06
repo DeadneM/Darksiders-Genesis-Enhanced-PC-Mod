@@ -226,3 +226,45 @@ Damage or the local-player pointer.
 
 This is intentionally simpler than the rejected V0.17 structural identity
 module and the intermediate V0.17B combined filter.
+
+
+## V0.18 Skip Logos - single-path test
+
+Scope is intentionally limited to Skip Logos.
+
+External verification confirms the two company startup movies are loose files:
+
+```text
+ProjectMayhem/Content/Movies/THQ_LogoBasic.mp4
+ProjectMayhem/Content/Movies/AS_LogoBasic.mp4
+```
+
+The rejected V0.15 paths stay rejected:
+
+```text
+late CreateFile/GetFileAttributes hooks
+PEB command-line -nostartupmovies injection
+literal nostartupmovies query patch
+```
+
+V0.18 uses one new primitive only:
+
+```text
+dxgi.dll DllMain, before game entry
+    -> patch the main EXE import table
+    -> CreateFileW
+    -> GetFileAttributesW
+    -> GetFileAttributesExW
+    -> return FILE_NOT_FOUND only for the two exact logo basenames
+```
+
+No game file is renamed, deleted or edited.
+
+No story/cutscene movie is targeted. In particular
+`CG_Intro_LowVi.mp4` is intentionally untouched.
+
+This test is forced ON at boot because the hook must exist before UE4 startup.
+Runtime configuration will only be added after the primitive is validated.
+
+The ASI log reports both the early hook status and how many matching file
+requests were blocked.
