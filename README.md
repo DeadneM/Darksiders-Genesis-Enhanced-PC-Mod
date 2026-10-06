@@ -2698,3 +2698,82 @@ Validated in V0.14F:
 Horse speed / sprint behavior is **not yet validated**. The horse path remains
 diagnostic-first and must not be promoted to canonical functionality until the
 runtime structure is identified and tested successfully.
+
+
+## V0.16A - Clean Shared-Hook Horse Test
+
+**Status: TEST CANDIDATE**
+
+V0.15A / B / C horse and Skip Logos experiments are not used as a runtime
+base for this build.
+
+V0.16A restarts from the V0.14F stability-validated branch and imports only the
+clean source split introduced later.
+
+The supplied V0.15C runtime log revealed that the already validated
+`UMayhemCharacterMovementComponent::GetMaxSpeed` hook sees several non-player
+movement components in normal gameplay. Those components showed `JumpZ=600`
+while the local player movement components showed `JumpZ=900`.
+
+That evidence makes the extra horse hooks, actor scans, Player+0xE70 path and
+vtable ancestry resolver unnecessary.
+
+### Runtime model
+
+The existing shared GetMaxSpeed hook now does exactly this:
+
+```text
+GetMaxSpeed(movement)
+  -> read CharacterOwner
+  -> determine whether owner is local player
+  -> HorseFeature observes non-local component
+  -> normal validated player path continues unchanged
+```
+
+HorseFeature installs **no hook**.
+
+For at most eight unique non-player movement components it records one compact
+fingerprint:
+
+```text
+native GetMaxSpeed
+MovementMode
+JumpZVelocity
+MaxWalkSpeed
+MaxAcceleration
+StaminaRecoveryPercentageRate
+StaminaTotalRecoveryPercentageRate
+StaminaSprintPercentageRate
+```
+
+A component is automatically accepted only when it matches the reference Horse
+PAK signature:
+
+```text
+MaxWalkSpeed              ~= 1300
+MaxAcceleration           ~= 600
+StaminaRecovery           ~= 15
+StaminaTotalRecovery      ~= 40
+StaminaSprintDrain        ~= 25
+```
+
+Only after that exact signature is proven does the feature write:
+
+```text
+MaxWalkSpeed
+MaxAcceleration
+StaminaSprintPercentageRate
+```
+
+No candidate rejection spam is emitted.
+
+Horse Sprint Speed remains pending its independent `RunSpeed` primitive.
+
+### Skip Logos
+
+Skip Logos is intentionally **not modified in V0.16A**. The previous file-hook,
+command-line and literal-string query approaches are rejected. A new Skip Logos
+attempt will not be shipped until a native target is proven from the retail
+executable or startup configuration.
+
+**Validation:** awaiting in-game test.
