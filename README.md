@@ -2862,3 +2862,70 @@ Duration applied. There is no actor scan and no fallback tree.
 Horse Sprint Speed remains pending its separate `RunSpeed` primitive.
 
 **Validation:** awaiting in-game test.
+
+
+## V0.15C - Vtable Horse Resolver + Native StartupMovies Query Patch
+
+**Status: TEST CANDIDATE**
+
+The V0.15B runtime log proved both previous primitives were inactive:
+
+```text
+HorseFeature: base GetMaxSpeed resolver match count=0
+Skip Logos early boot flag: MISSING
+```
+
+V0.15C removes both failed mechanisms instead of retaining fallbacks.
+
+### HorseFeature
+
+The live local-player movement component is already known through the validated
+player `GetMaxSpeed` hook. V0.15C uses that object as the only resolver anchor.
+
+The feature reads its real vtable and searches `.rdata` for the closest
+vtable relative that:
+
+- shares the large majority of movement virtual functions;
+- differs specifically at the `GetMaxSpeed` slot `+0x3D0`;
+- points that replacement slot back into executable `.text`.
+
+The top three ancestry scores and target RVAs are logged. A parent hook is armed
+only when the best candidate is strong and sufficiently separated from the
+second candidate. Ambiguous results remain fail-open.
+
+The parent hook then validates a horse using the reference PAK signature:
+
+```text
+MaxWalkSpeed              ~= 1300
+MaxAcceleration           ~= 600
+StaminaRecovery           ~= 15
+StaminaTotalRecovery      ~= 40
+StaminaSprintDrain        ~= 25
+```
+
+No actor scan is used.
+
+### Skip Logos
+
+The failed PEB command-line injection is removed.
+
+The DXGI proxy now searches the mapped executable for UE4's native
+`nostartupmovies` parameter string, its RIP-relative code reference, and the
+following boolean query call whose result is tested through `AL`.
+
+Only that exact 5-byte call site is replaced at runtime with:
+
+```asm
+mov al, 1
+nop
+nop
+nop
+```
+
+This is equivalent to the native command-line query returning true without
+editing game files, intercepting file I/O, or changing unrelated movie paths.
+
+The proxy exports a short diagnostic status string which the ASI records and
+shows in the overlay.
+
+**Validation:** awaiting in-game test.
