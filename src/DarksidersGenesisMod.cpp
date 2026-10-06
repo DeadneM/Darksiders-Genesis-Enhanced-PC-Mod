@@ -24,7 +24,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.15B-native-horse-early-startupmovies-test";
+constexpr const char* kBuild = "0.15C-vtable-horse-native-startupmovies-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -413,6 +413,25 @@ void FeatureLog(const char* message) {
     if (message && *message) {
         Log("%s", message);
     }
+}
+
+const wchar_t* ProxySkipLogosStatus() {
+    using StatusFn = const wchar_t* (WINAPI*)();
+
+    HMODULE proxy = GetModuleHandleW(L"dxgi.dll");
+    if (!proxy) {
+        return L"proxy not loaded";
+    }
+
+    auto fn = reinterpret_cast<StatusFn>(
+        GetProcAddress(proxy, "DGGetSkipLogosStatus")
+    );
+    if (!fn) {
+        return L"status export unavailable";
+    }
+
+    const wchar_t* status = fn();
+    return status ? status : L"status unavailable";
 }
 
 struct Config {
@@ -1948,6 +1967,11 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
     }
 
     g_localPlayerCharacter.store(characterOwner);
+
+    dg::horse::ObservePlayerMovement(
+        movementComponent,
+        g_playerGetMaxSpeedTarget
+    );
 
     ApplyPlayerMovementTunings(movementComponent);
 
@@ -3697,13 +3721,18 @@ void DrawOverlay() {
 
             ImGui::Indent();
             ImGui::TextDisabled(
-                "Base hook: %s | movement: %s | stamina: %s | resolver %u | checks %u / matches %u",
-                horseTelemetry.baseHookReady ? "READY" : "unavailable",
+                "Parent hook: %s | movement: %s | stamina: %s | ancestry %d/%d | checks %u / matches %u",
+                horseTelemetry.baseHookReady ? "READY" : "waiting",
                 horseTelemetry.movementValidated ? "VALIDATED" : "waiting",
                 horseTelemetry.staminaReady ? "READY" : "waiting",
-                horseTelemetry.resolverMatches,
+                horseTelemetry.bestVtableScore,
+                horseTelemetry.secondVtableScore,
                 horseTelemetry.candidateChecks,
                 horseTelemetry.candidateMatches
+            );
+            ImGui::TextDisabled(
+                "Parent GetMaxSpeed target: %p",
+                horseTelemetry.baseGetMaxSpeedTarget
             );
             ImGui::TextDisabled(
                 "MaxWalkSpeed %.1f -> %.1f | MaxAcceleration %.1f -> %.1f",
@@ -3773,23 +3802,24 @@ void DrawOverlay() {
                 ImGui::Unindent();
             }
 
-            const wchar_t* processCommandLine = GetCommandLineW();
-            const bool noStartupMoviesFlag =
-                processCommandLine &&
-                wcsstr(processCommandLine, L"-nostartupmovies") != nullptr;
+            const wchar_t* skipLogosStatus = ProxySkipLogosStatus();
+            const bool skipLogosPatched =
+                skipLogosStatus &&
+                wcsncmp(skipLogosStatus, L"PATCHED", 7) == 0;
 
-            bool skipLogosBootState = noStartupMoviesFlag;
+            bool skipLogosBootState = skipLogosPatched;
             ImGui::BeginDisabled();
             ImGui::Checkbox("Skip Logos", &skipLogosBootState);
             ImGui::EndDisabled();
             ImGui::SameLine(310.0f);
             ImGui::TextDisabled(
-                "%s | early UE4 -nostartupmovies boot flag | test forced ON",
-                noStartupMoviesFlag ? "ARMED" : "NOT PRESENT"
+                "%s | native UE4 nostartupmovies query patch",
+                skipLogosPatched ? "ARMED" : "NOT ARMED"
             );
             ImGui::Indent();
             ImGui::TextDisabled(
-                "V0.15B validates the native startup-movie flag first; runtime toggle returns after proof."
+                "Proxy status: %ls",
+                skipLogosStatus ? skipLogosStatus : L"unavailable"
             );
             ImGui::Unindent();
 
@@ -4157,17 +4187,11 @@ DWORD WINAPI MainThread(LPVOID) {
 
     g_config.Load();
 
-    if (!dg::horse::Initialize(&FeatureLog)) {
-        Log("Horse base GetMaxSpeed primitive unavailable; horse features remain fail-open.");
-    }
+    dg::horse::Initialize(&FeatureLog);
 
-    const wchar_t* processCommandLine = GetCommandLineW();
     Log(
-        "Skip Logos early boot flag: %s",
-        processCommandLine &&
-            wcsstr(processCommandLine, L"-nostartupmovies") != nullptr
-            ? "PRESENT"
-            : "MISSING"
+        "Skip Logos proxy patch status: %ls",
+        ProxySkipLogosStatus()
     );
 
     if (!InstallSkipIntroControl()) {
