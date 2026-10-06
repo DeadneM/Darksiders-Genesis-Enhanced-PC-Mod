@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <cwchar>
 #include <atomic>
+#include <cstring>
 
 #include <MinHook.h>
 
@@ -10,100 +11,21 @@ static INIT_ONCE g_dxgiOnce = INIT_ONCE_STATIC_INIT;
 static INIT_ONCE g_asiOnce = INIT_ONCE_STATIC_INIT;
 static INIT_ONCE g_skipLogosOnce = INIT_ONCE_STATIC_INIT;
 
-using CreateFileWFn = HANDLE (WINAPI*)(
-    LPCWSTR,
-    DWORD,
-    DWORD,
-    LPSECURITY_ATTRIBUTES,
-    DWORD,
-    DWORD,
-    HANDLE
-);
+constexpr DWORD kSupportedSizeOfImage = 0x03DDF000;
+constexpr uintptr_t kSetupLoadingScreenFromIniRva = 0x0160BC50;
 
-static CreateFileWFn g_originalCreateFileW = nullptr;
+using SetupLoadingScreenFromIniFn = void(*)(void* self);
+static SetupLoadingScreenFromIniFn g_originalSetupLoadingScreenFromIni = nullptr;
+
+static std::atomic_bool g_skipLogosTargetValid{false};
 static std::atomic_bool g_skipLogosInstalled{false};
 static std::atomic_bool g_skipLogosEnabled{true};
-static std::atomic_long g_createFileCalls{0};
-static std::atomic_long g_mp4Calls{0};
-static std::atomic_long g_blockedCalls{0};
-
-static const wchar_t* BaseName(const wchar_t* path) {
-    if (!path) {
-        return nullptr;
-    }
-
-    const wchar_t* base = path;
-    for (const wchar_t* p = path; *p; ++p) {
-        if (*p == L'\\' || *p == L'/') {
-            base = p + 1;
-        }
-    }
-
-    return base;
-}
-
-static bool EndsWithMp4(const wchar_t* path) {
-    const wchar_t* base = BaseName(path);
-    if (!base) {
-        return false;
-    }
-
-    const size_t length = wcslen(base);
-    return
-        length >= 4 &&
-        _wcsicmp(base + length - 4, L".mp4") == 0;
-}
-
-static bool IsTargetLogo(const wchar_t* path) {
-    const wchar_t* base = BaseName(path);
-    if (!base) {
-        return false;
-    }
-
-    return
-        _wcsicmp(base, L"THQ_LogoBasic.mp4") == 0 ||
-        _wcsicmp(base, L"AS_LogoBasic.mp4") == 0;
-}
-
-static HANDLE WINAPI HookCreateFileW(
-    LPCWSTR fileName,
-    DWORD desiredAccess,
-    DWORD shareMode,
-    LPSECURITY_ATTRIBUTES securityAttributes,
-    DWORD creationDisposition,
-    DWORD flagsAndAttributes,
-    HANDLE templateFile
-) {
-    g_createFileCalls.fetch_add(1, std::memory_order_relaxed);
-
-    if (EndsWithMp4(fileName)) {
-        g_mp4Calls.fetch_add(1, std::memory_order_relaxed);
-    }
-
-    if (g_skipLogosEnabled.load(std::memory_order_relaxed) &&
-        IsTargetLogo(fileName)) {
-        g_blockedCalls.fetch_add(1, std::memory_order_relaxed);
-        SetLastError(ERROR_FILE_NOT_FOUND);
-        return INVALID_HANDLE_VALUE;
-    }
-
-    return g_originalCreateFileW
-        ? g_originalCreateFileW(
-            fileName,
-            desiredAccess,
-            shareMode,
-            securityAttributes,
-            creationDisposition,
-            flagsAndAttributes,
-            templateFile
-        )
-        : INVALID_HANDLE_VALUE;
-}
+static std::atomic_long g_setupCalls{0};
+static std::atomic_long g_skippedCalls{0};
 
 static bool ReadSkipLogosEnabledFromIni() {
     wchar_t modulePath[MAX_PATH]{};
-    if (!g_self ||
-        !GetModuleFileNameW(g_self, modulePath, MAX_PATH)) {
+    if (!g_self || !GetModuleFileNameW(g_self, modulePath, MAX_PATH)) {
         return true;
     }
 
@@ -118,22 +40,72 @@ static bool ReadSkipLogosEnabledFromIni() {
     lstrcatW(iniPath, L"DarksidersGenesisMod.ini");
 
     const int revision = GetPrivateProfileIntW(
-        L"Meta",
-        L"ConfigRevision",
-        0,
-        iniPath
+        L"Meta", L"ConfigRevision", 0, iniPath
     );
 
-    if (revision < 1805) {
+    if (revision < 1806) {
         return true;
     }
 
     return GetPrivateProfileIntW(
-        L"Features",
-        L"SkipLogos",
-        1,
-        iniPath
+        L"Features", L"SkipLogos", 1, iniPath
     ) != 0;
+}
+
+static bool ValidateNativeTarget(BYTE*& outTarget) {
+    outTarget = nullptr;
+
+    HMODULE mainModule = GetModuleHandleW(nullptr);
+    if (!mainModule) {
+        return false;
+    }
+
+    BYTE* base = reinterpret_cast<BYTE*>(mainModule);
+    const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
+    if (dos->e_magic != IMAGE_DOS_SIGNATURE) {
+        return false;
+    }
+
+    const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS64*>(
+        base + dos->e_lfanew
+    );
+    if (nt->Signature != IMAGE_NT_SIGNATURE ||
+        nt->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC ||
+        nt->OptionalHeader.SizeOfImage != kSupportedSizeOfImage) {
+        return false;
+    }
+
+    static constexpr BYTE kExpectedPrefix[] = {
+        0x48,0x8B,0xC4,0x55,0x57,0x41,0x54,0x41,
+        0x56,0x41,0x57,0x48,0x8D,0x68,0xA1,0x48,
+        0x81,0xEC,0xB0,0x00,0x00,0x00,0x48,0xC7,
+        0x45,0xB7,0xFE,0xFF,0xFF,0xFF,0x48,0x89
+    };
+
+    BYTE* target = base + kSetupLoadingScreenFromIniRva;
+    if (std::memcmp(
+            target,
+            kExpectedPrefix,
+            sizeof(kExpectedPrefix)
+        ) != 0) {
+        return false;
+    }
+
+    outTarget = target;
+    return true;
+}
+
+static void HookSetupLoadingScreenFromIni(void* self) {
+    g_setupCalls.fetch_add(1, std::memory_order_relaxed);
+
+    if (g_skipLogosEnabled.load(std::memory_order_relaxed)) {
+        g_skippedCalls.fetch_add(1, std::memory_order_relaxed);
+        return;
+    }
+
+    if (g_originalSetupLoadingScreenFromIni) {
+        g_originalSetupLoadingScreenFromIni(self);
+    }
 }
 
 static BOOL CALLBACK InstallEarlySkipLogos(
@@ -146,40 +118,23 @@ static BOOL CALLBACK InstallEarlySkipLogos(
         std::memory_order_relaxed
     );
 
+    BYTE* target = nullptr;
+    if (!ValidateNativeTarget(target)) {
+        return TRUE;
+    }
+
+    g_skipLogosTargetValid.store(true, std::memory_order_release);
+
     const MH_STATUS init = MH_Initialize();
     if (init != MH_OK &&
         init != MH_ERROR_ALREADY_INITIALIZED) {
         return TRUE;
     }
 
-    HMODULE kernelBase = GetModuleHandleW(L"KernelBase.dll");
-    if (!kernelBase) {
-        kernelBase = LoadLibraryW(L"KernelBase.dll");
-    }
-
-    void* target = kernelBase
-        ? reinterpret_cast<void*>(
-            GetProcAddress(kernelBase, "CreateFileW")
-        )
-        : nullptr;
-
-    if (!target) {
-        HMODULE kernel32 = GetModuleHandleW(L"kernel32.dll");
-        target = kernel32
-            ? reinterpret_cast<void*>(
-                GetProcAddress(kernel32, "CreateFileW")
-            )
-            : nullptr;
-    }
-
-    if (!target) {
-        return TRUE;
-    }
-
     MH_STATUS status = MH_CreateHook(
         target,
-        reinterpret_cast<void*>(&HookCreateFileW),
-        reinterpret_cast<void**>(&g_originalCreateFileW)
+        reinterpret_cast<void*>(&HookSetupLoadingScreenFromIni),
+        reinterpret_cast<void**>(&g_originalSetupLoadingScreenFromIni)
     );
 
     if (status != MH_OK &&
@@ -193,11 +148,7 @@ static BOOL CALLBACK InstallEarlySkipLogos(
         return TRUE;
     }
 
-    g_skipLogosInstalled.store(
-        true,
-        std::memory_order_release
-    );
-
+    g_skipLogosInstalled.store(true, std::memory_order_release);
     return TRUE;
 }
 
@@ -224,22 +175,13 @@ static BOOL CALLBACK InitRealDxgi(PINIT_ONCE, PVOID, PVOID*) {
 }
 
 static HMODULE RealDxgi() {
-    InitOnceExecuteOnce(
-        &g_dxgiOnce,
-        InitRealDxgi,
-        nullptr,
-        nullptr
-    );
+    InitOnceExecuteOnce(&g_dxgiOnce, InitRealDxgi, nullptr, nullptr);
     return g_realDxgi;
 }
 
 static BOOL CALLBACK LoadAsiPlugins(PINIT_ONCE, PVOID, PVOID*) {
     wchar_t modulePath[MAX_PATH]{};
-    if (!g_self ||
-        !GetModuleFileNameW(
-            g_self,
-            modulePath,
-            MAX_PATH)) {
+    if (!g_self || !GetModuleFileNameW(g_self, modulePath, MAX_PATH)) {
         return TRUE;
     }
 
@@ -260,8 +202,7 @@ static BOOL CALLBACK LoadAsiPlugins(PINIT_ONCE, PVOID, PVOID*) {
     }
 
     do {
-        if ((fd.dwFileAttributes &
-             FILE_ATTRIBUTE_DIRECTORY) != 0) {
+        if ((fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
             continue;
         }
 
@@ -276,12 +217,7 @@ static BOOL CALLBACK LoadAsiPlugins(PINIT_ONCE, PVOID, PVOID*) {
 }
 
 static void EnsureAsisLoaded() {
-    InitOnceExecuteOnce(
-        &g_asiOnce,
-        LoadAsiPlugins,
-        nullptr,
-        nullptr
-    );
+    InitOnceExecuteOnce(&g_asiOnce, LoadAsiPlugins, nullptr, nullptr);
 }
 
 template <typename T>
@@ -290,134 +226,88 @@ static T Resolve(const char* name) {
     if (!real) {
         return nullptr;
     }
-    return reinterpret_cast<T>(
-        GetProcAddress(real, name)
-    );
+    return reinterpret_cast<T>(GetProcAddress(real, name));
+}
+
+extern "C" __declspec(dllexport)
+BOOL WINAPI DGSkipLogosTargetValid() {
+    return g_skipLogosTargetValid.load(std::memory_order_acquire) ? TRUE : FALSE;
 }
 
 extern "C" __declspec(dllexport)
 BOOL WINAPI DGSkipLogosInstalled() {
-    return g_skipLogosInstalled.load(
-        std::memory_order_acquire
-    ) ? TRUE : FALSE;
+    return g_skipLogosInstalled.load(std::memory_order_acquire) ? TRUE : FALSE;
 }
 
 extern "C" __declspec(dllexport)
 BOOL WINAPI DGSkipLogosEnabled() {
-    return g_skipLogosEnabled.load(
-        std::memory_order_relaxed
-    ) ? TRUE : FALSE;
+    return g_skipLogosEnabled.load(std::memory_order_relaxed) ? TRUE : FALSE;
 }
 
 extern "C" __declspec(dllexport)
 void WINAPI DGSetSkipLogosEnabled(BOOL enabled) {
-    g_skipLogosEnabled.store(
-        enabled != FALSE,
-        std::memory_order_relaxed
-    );
+    g_skipLogosEnabled.store(enabled != FALSE, std::memory_order_relaxed);
 }
 
 extern "C" __declspec(dllexport)
-LONG WINAPI DGSkipLogosCreateFileCalls() {
-    return g_createFileCalls.load(
-        std::memory_order_relaxed
-    );
+LONG WINAPI DGSkipLogosSetupCalls() {
+    return g_setupCalls.load(std::memory_order_relaxed);
 }
 
 extern "C" __declspec(dllexport)
-LONG WINAPI DGSkipLogosMp4Calls() {
-    return g_mp4Calls.load(
-        std::memory_order_relaxed
-    );
+LONG WINAPI DGSkipLogosSkippedCalls() {
+    return g_skippedCalls.load(std::memory_order_relaxed);
 }
 
 extern "C" __declspec(dllexport)
-LONG WINAPI DGSkipLogosBlockedCalls() {
-    return g_blockedCalls.load(
-        std::memory_order_relaxed
-    );
-}
-
-extern "C" __declspec(dllexport)
-HRESULT WINAPI CreateDXGIFactory(
-    REFIID riid,
-    void** ppFactory
-) {
+HRESULT WINAPI CreateDXGIFactory(REFIID riid, void** ppFactory) {
     EnsureEarlySkipLogos();
     EnsureAsisLoaded();
-
     using Fn = HRESULT(WINAPI*)(REFIID, void**);
     Fn fn = Resolve<Fn>("CreateDXGIFactory");
     return fn ? fn(riid, ppFactory) : E_FAIL;
 }
 
 extern "C" __declspec(dllexport)
-HRESULT WINAPI CreateDXGIFactory1(
-    REFIID riid,
-    void** ppFactory
-) {
+HRESULT WINAPI CreateDXGIFactory1(REFIID riid, void** ppFactory) {
     EnsureEarlySkipLogos();
     EnsureAsisLoaded();
-
     using Fn = HRESULT(WINAPI*)(REFIID, void**);
     Fn fn = Resolve<Fn>("CreateDXGIFactory1");
     return fn ? fn(riid, ppFactory) : E_FAIL;
 }
 
 extern "C" __declspec(dllexport)
-HRESULT WINAPI CreateDXGIFactory2(
-    UINT flags,
-    REFIID riid,
-    void** ppFactory
-) {
+HRESULT WINAPI CreateDXGIFactory2(UINT flags, REFIID riid, void** ppFactory) {
     EnsureEarlySkipLogos();
     EnsureAsisLoaded();
-
-    using Fn = HRESULT(
-        WINAPI*)(UINT, REFIID, void**);
+    using Fn = HRESULT(WINAPI*)(UINT, REFIID, void**);
     Fn fn = Resolve<Fn>("CreateDXGIFactory2");
-    return fn
-        ? fn(flags, riid, ppFactory)
-        : E_NOTIMPL;
+    return fn ? fn(flags, riid, ppFactory) : E_NOTIMPL;
 }
 
 extern "C" __declspec(dllexport)
-HRESULT WINAPI DXGIGetDebugInterface1(
-    UINT flags,
-    REFIID riid,
-    void** ppDebug
-) {
-    using Fn = HRESULT(
-        WINAPI*)(UINT, REFIID, void**);
+HRESULT WINAPI DXGIGetDebugInterface1(UINT flags, REFIID riid, void** ppDebug) {
+    using Fn = HRESULT(WINAPI*)(UINT, REFIID, void**);
     Fn fn = Resolve<Fn>("DXGIGetDebugInterface1");
-    return fn
-        ? fn(flags, riid, ppDebug)
-        : E_NOINTERFACE;
+    return fn ? fn(flags, riid, ppDebug) : E_NOINTERFACE;
 }
 
 extern "C" __declspec(dllexport)
 HRESULT WINAPI DXGIDeclareAdapterRemovalSupport() {
     using Fn = HRESULT(WINAPI*)();
-    Fn fn = Resolve<Fn>(
-        "DXGIDeclareAdapterRemovalSupport"
-    );
+    Fn fn = Resolve<Fn>("DXGIDeclareAdapterRemovalSupport");
     return fn ? fn() : E_NOTIMPL;
 }
 
 extern "C" __declspec(dllexport)
 HRESULT WINAPI DXGIDisableVBlankVirtualization() {
     using Fn = HRESULT(WINAPI*)();
-    Fn fn = Resolve<Fn>(
-        "DXGIDisableVBlankVirtualization"
-    );
+    Fn fn = Resolve<Fn>("DXGIDisableVBlankVirtualization");
     return fn ? fn() : E_NOTIMPL;
 }
 
-BOOL APIENTRY DllMain(
-    HMODULE module,
-    DWORD reason,
-    LPVOID
-) {
+BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
     if (reason == DLL_PROCESS_ATTACH) {
         g_self = module;
         DisableThreadLibraryCalls(module);
