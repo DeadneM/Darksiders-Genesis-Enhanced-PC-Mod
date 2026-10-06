@@ -9,15 +9,12 @@ namespace dg::skip_logos {
 namespace {
 
 using BoolFn = BOOL (WINAPI*)();
-using SetEnabledFn = void (WINAPI*)(BOOL);
-using CountFn = LONG (WINAPI*)();
+using SetEnabledFn = BOOL (WINAPI*)(BOOL);
 
 BoolFn g_targetValidFn = nullptr;
-BoolFn g_installedFn = nullptr;
+BoolFn g_patchedFn = nullptr;
 BoolFn g_enabledFn = nullptr;
 SetEnabledFn g_setEnabledFn = nullptr;
-CountFn g_setupCallsFn = nullptr;
-CountFn g_skippedCallsFn = nullptr;
 
 LogFn g_logger = nullptr;
 
@@ -37,9 +34,9 @@ bool ResolveProxyExports() {
         reinterpret_cast<BoolFn>(
             GetProcAddress(proxy, "DGSkipLogosTargetValid")
         );
-    g_installedFn =
+    g_patchedFn =
         reinterpret_cast<BoolFn>(
-            GetProcAddress(proxy, "DGSkipLogosInstalled")
+            GetProcAddress(proxy, "DGSkipLogosPatched")
         );
     g_enabledFn =
         reinterpret_cast<BoolFn>(
@@ -49,22 +46,12 @@ bool ResolveProxyExports() {
         reinterpret_cast<SetEnabledFn>(
             GetProcAddress(proxy, "DGSetSkipLogosEnabled")
         );
-    g_setupCallsFn =
-        reinterpret_cast<CountFn>(
-            GetProcAddress(proxy, "DGSkipLogosSetupCalls")
-        );
-    g_skippedCallsFn =
-        reinterpret_cast<CountFn>(
-            GetProcAddress(proxy, "DGSkipLogosSkippedCalls")
-        );
 
     return
         g_targetValidFn &&
-        g_installedFn &&
+        g_patchedFn &&
         g_enabledFn &&
-        g_setEnabledFn &&
-        g_setupCallsFn &&
-        g_skippedCallsFn;
+        g_setEnabledFn;
 }
 
 } // namespace
@@ -73,7 +60,7 @@ bool Initialize(LogFn logger) {
     g_logger = logger;
 
     if (!ResolveProxyExports()) {
-        LogText("Skip Logos NATIVE: proxy exports unavailable");
+        LogText("Skip Logos EARLY: proxy exports unavailable");
         return false;
     }
 
@@ -81,6 +68,7 @@ bool Initialize(LogFn logger) {
         dg::runtime::Get().skipLogosEnabled.load(
             std::memory_order_relaxed
         );
+
     g_setEnabledFn(enabled ? TRUE : FALSE);
 
     const Telemetry t = GetTelemetry();
@@ -88,17 +76,17 @@ bool Initialize(LogFn logger) {
     char message[256]{};
     sprintf_s(
         message,
-        "Skip Logos NATIVE: proxy=%d target=%d installed=%d enabled=%d setupCalls=%ld skipped=%ld RVA=0x160BC50",
+        "Skip Logos EARLY: proxy=%d target=%d patched=%d enabled=%d RVA=0x160BC50",
         t.proxyAvailable ? 1 : 0,
         t.targetValid ? 1 : 0,
-        t.installed ? 1 : 0,
-        t.enabled ? 1 : 0,
-        t.setupCalls,
-        t.skippedCalls
+        t.patched ? 1 : 0,
+        t.enabled ? 1 : 0
     );
     LogText(message);
 
-    return t.proxyAvailable && t.targetValid && t.installed;
+    return
+        t.proxyAvailable &&
+        t.targetValid;
 }
 
 bool Apply(bool enabled) {
@@ -106,8 +94,9 @@ bool Apply(bool enabled) {
         return false;
     }
 
-    g_setEnabledFn(enabled ? TRUE : FALSE);
-    return true;
+    return g_setEnabledFn(
+        enabled ? TRUE : FALSE
+    ) != FALSE;
 }
 
 Telemetry GetTelemetry() {
@@ -115,27 +104,27 @@ Telemetry GetTelemetry() {
 
     const bool available =
         g_targetValidFn &&
-        g_installedFn &&
+        g_patchedFn &&
         g_enabledFn &&
-        g_setEnabledFn &&
-        g_setupCallsFn &&
-        g_skippedCallsFn;
+        g_setEnabledFn;
 
     t.proxyAvailable = available;
     if (!available) {
         return t;
     }
 
-    t.targetValid = g_targetValidFn() != FALSE;
-    t.installed = g_installedFn() != FALSE;
-    t.enabled = g_enabledFn() != FALSE;
-    t.setupCalls = g_setupCallsFn();
-    t.skippedCalls = g_skippedCallsFn();
+    t.targetValid =
+        g_targetValidFn() != FALSE;
+    t.patched =
+        g_patchedFn() != FALSE;
+    t.enabled =
+        g_enabledFn() != FALSE;
+
     return t;
 }
 
 void Shutdown() {
-    // Native proxy hook remains installed until process exit.
+    // The one-byte process patch is restored only when the user disables it.
 }
 
 } // namespace dg::skip_logos
