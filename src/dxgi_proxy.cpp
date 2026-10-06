@@ -1,10 +1,75 @@
 #include <windows.h>
+#include <winternl.h>
+#include <intrin.h>
 #include <cwchar>
 
 static HMODULE g_self = nullptr;
 static HMODULE g_realDxgi = nullptr;
 static INIT_ONCE g_dxgiOnce = INIT_ONCE_STATIC_INIT;
 static INIT_ONCE g_asiOnce = INIT_ONCE_STATIC_INIT;
+static wchar_t g_earlyCommandLine[16384]{};
+
+static bool InjectNoStartupMoviesFlagEarly() {
+#if defined(_M_X64)
+    auto* peb = reinterpret_cast<PEB*>(__readgsqword(0x60));
+    if (!peb || !peb->ProcessParameters) {
+        return false;
+    }
+
+    auto& commandLine = peb->ProcessParameters->CommandLine;
+    if (!commandLine.Buffer || commandLine.Length == 0) {
+        return false;
+    }
+
+    const wchar_t* flag = L"-nostartupmovies";
+    const std::size_t currentChars =
+        static_cast<std::size_t>(commandLine.Length / sizeof(wchar_t));
+
+    if (currentChars + 2 >= _countof(g_earlyCommandLine)) {
+        return false;
+    }
+
+    wcsncpy_s(
+        g_earlyCommandLine,
+        _countof(g_earlyCommandLine),
+        commandLine.Buffer,
+        currentChars
+    );
+
+    if (wcsstr(g_earlyCommandLine, flag) == nullptr) {
+        const std::size_t flagChars = wcslen(flag);
+        const std::size_t required = currentChars + 1 + flagChars + 1;
+        if (required >= _countof(g_earlyCommandLine)) {
+            return false;
+        }
+
+        wcscat_s(
+            g_earlyCommandLine,
+            _countof(g_earlyCommandLine),
+            L" "
+        );
+        wcscat_s(
+            g_earlyCommandLine,
+            _countof(g_earlyCommandLine),
+            flag
+        );
+    }
+
+    const std::size_t finalChars = wcslen(g_earlyCommandLine);
+    if (finalChars * sizeof(wchar_t) > 0xFFFE) {
+        return false;
+    }
+
+    commandLine.Buffer = g_earlyCommandLine;
+    commandLine.Length =
+        static_cast<USHORT>(finalChars * sizeof(wchar_t));
+    commandLine.MaximumLength =
+        static_cast<USHORT>((finalChars + 1) * sizeof(wchar_t));
+    return true;
+#else
+    return false;
+#endif
+}
 
 static BOOL CALLBACK InitRealDxgi(PINIT_ONCE, PVOID, PVOID*) {
     wchar_t systemDir[MAX_PATH]{};
@@ -122,6 +187,12 @@ HRESULT WINAPI DXGIDisableVBlankVirtualization() {
 BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
     if (reason == DLL_PROCESS_ATTACH) {
         g_self = module;
+
+        // V0.15B proof path: inject UE's native startup-movie switch before
+        // the executable entry point / FEngineLoop::PreInit sees the command
+        // line. No hooks, no file interception, no game-file edits.
+        InjectNoStartupMoviesFlagEarly();
+
         DisableThreadLibraryCalls(module);
     }
     return TRUE;
