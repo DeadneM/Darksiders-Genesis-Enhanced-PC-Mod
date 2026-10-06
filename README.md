@@ -2698,3 +2698,101 @@ Validated in V0.14F:
 Horse speed / sprint behavior is **not yet validated**. The horse path remains
 diagnostic-first and must not be promoted to canonical functionality until the
 runtime structure is identified and tested successfully.
+
+
+## V0.15A - Clean Feature Modules: Horse + Skip Logos
+
+**Status: TEST CANDIDATE**
+
+V0.15A starts from the V0.14F stability-validated branch and changes the code
+layout deliberately before adding more runtime behavior.
+
+### Architecture cleanup
+
+The old experimental horse runtime has been removed from
+`DarksidersGenesisMod.cpp`.
+
+The new layout follows the same Fresh Core principle used by Q Protocol:
+
+```text
+DarksidersGenesisMod.cpp
+  -> shared validated hooks / config / overlay
+  -> HorseFeature.cpp
+  -> StartupMoviesFeature.cpp
+```
+
+The main ASI no longer contains the previous horse actor scanner, IsHorseActive
+hook attempts, movement-owner fallback tree, or secondary horse GetMaxSpeed
+hook.
+
+Horse now consumes only the already validated shared
+`UMayhemCharacterMovementComponent::GetMaxSpeed` primitive.
+
+### HorseFeature
+
+Horse detection no longer trusts `Player+0xE70` as the horse actor.
+
+`Player+0xE70 != nullptr` is used only as the mounted-state signal.
+
+While mounted, a non-local movement component is accepted only when its live
+movement properties match the reference Horse PAK signature:
+
+```text
+MaxWalkSpeed      approximately 1300
+MaxAcceleration  approximately 600
+```
+
+The validated movement component is captured once. Horse Speed then applies
+directly to:
+
+```text
+MaxWalkSpeed
+MaxAcceleration
+```
+
+The component's CharacterOwner becomes the horse actor candidate only after the
+movement signature passes. At that point the reflected stamina fields are
+validated independently. If valid, Horse Sprint Duration uses
+`StaminaSprintPercentageRate`.
+
+Unmounting restores captured native values.
+
+There is no actor scan, no per-frame candidate log storm, and no additional
+gameplay hook installed by HorseFeature.
+
+Horse Sprint Speed remains intentionally pending because it requires its own
+proven `RunSpeed` primitive.
+
+### Skip Logos
+
+Skip Logos is separate from Skip Intro Cinematic.
+
+The module targets only these known startup movie basenames:
+
+```text
+THQ_LogoBasic.mp4
+AS_LogoBasic.mp4
+```
+
+V0.15A installs exact Win32 file-access filters for those two files only:
+
+- `GetFileAttributesW`
+- `CreateFileW`
+
+When Skip Logos is enabled, those exact files are reported as missing to the
+startup movie path. Other movies, cutscenes, loading videos and ordinary file
+access are untouched.
+
+The overlay exposes separate Skip Intro and Skip Logos toggles plus blocked-file
+telemetry.
+
+### Retained V0.14F features
+
+- stability-safe horse baseline;
+- Jump Height up to 20x;
+- per-value Default buttons;
+- current-session-only log;
+- flat GitHub Actions artifact;
+- all previously validated non-horse hooks.
+
+**Validation:** awaiting in-game test.
