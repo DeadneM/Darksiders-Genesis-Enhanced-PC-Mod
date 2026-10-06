@@ -3,21 +3,17 @@
 #include <atomic>
 #include <cstring>
 
-
 static HMODULE g_self = nullptr;
 static HMODULE g_realDxgi = nullptr;
 static INIT_ONCE g_dxgiOnce = INIT_ONCE_STATIC_INIT;
 static INIT_ONCE g_asiOnce = INIT_ONCE_STATIC_INIT;
-static INIT_ONCE g_skipLogosOnce = INIT_ONCE_STATIC_INIT;
 
 constexpr DWORD kSupportedSizeOfImage = 0x03DDF000;
-constexpr uintptr_t kSetupLoadingScreenFromIniRva = 0x0160BC50;
+constexpr uintptr_t kCustomSplashBranchRva = 0x002535E0;
 
-static constexpr BYTE kExpectedPrefix[] = {
-    0x48,0x8B,0xC4,0x55,0x57,0x41,0x54,0x41,
-    0x56,0x41,0x57,0x48,0x8D,0x68,0xA1,0x48,
-    0x81,0xEC,0xB0,0x00,0x00,0x00,0x48,0xC7,
-    0x45,0xB7,0xFE,0xFF,0xFF,0xFF,0x48,0x89
+static constexpr BYTE kExpectedBytes[] = {
+    0x84,0xC0,0x74,0x0F,0x33,0xD2,
+    0x48,0x8B,0x0D,0x9D,0x6F,0x7B,0x03
 };
 
 static std::atomic_bool g_skipLogosTargetValid{false};
@@ -48,7 +44,7 @@ static bool ReadSkipLogosEnabledFromIni() {
         iniPath
     );
 
-    if (revision < 1807) {
+    if (revision < 1808) {
         return true;
     }
 
@@ -60,7 +56,7 @@ static bool ReadSkipLogosEnabledFromIni() {
     ) != 0;
 }
 
-static BYTE* ResolveValidatedTarget() {
+static BYTE* ResolveValidatedBranch() {
     HMODULE mainModule = GetModuleHandleW(nullptr);
     if (!mainModule) {
         return nullptr;
@@ -84,28 +80,27 @@ static BYTE* ResolveValidatedTarget() {
         return nullptr;
     }
 
-    BYTE* target =
-        base + kSetupLoadingScreenFromIniRva;
+    BYTE* branch = base + kCustomSplashBranchRva;
 
-    if (target[0] != kExpectedPrefix[0] &&
-        target[0] != 0xC3) {
-        return nullptr;
-    }
-
-    if (std::memcmp(
-            target + 1,
-            kExpectedPrefix + 1,
-            sizeof(kExpectedPrefix) - 1
+    // Validate around the conditional branch. The branch byte itself may
+    // already be our JMP patch.
+    if (branch[-2] != kExpectedBytes[0] ||
+        branch[-1] != kExpectedBytes[1] ||
+        (branch[0] != kExpectedBytes[2] && branch[0] != 0xEB) ||
+        std::memcmp(
+            branch + 1,
+            kExpectedBytes + 3,
+            sizeof(kExpectedBytes) - 3
         ) != 0) {
         return nullptr;
     }
 
-    return target;
+    return branch;
 }
 
 static bool ApplySkipLogosPatch(bool enabled) {
-    BYTE* target = ResolveValidatedTarget();
-    if (!target) {
+    BYTE* branch = ResolveValidatedBranch();
+    if (!branch) {
         g_skipLogosTargetValid.store(false, std::memory_order_release);
         g_skipLogosPatched.store(false, std::memory_order_release);
         return false;
@@ -113,29 +108,28 @@ static bool ApplySkipLogosPatch(bool enabled) {
 
     g_skipLogosTargetValid.store(true, std::memory_order_release);
 
-    const BYTE desired =
-        enabled ? BYTE{0xC3} : kExpectedPrefix[0];
+    const BYTE desired = enabled ? BYTE{0xEB} : BYTE{0x74};
 
-    if (target[0] != desired) {
+    if (branch[0] != desired) {
         DWORD oldProtect = 0;
         if (!VirtualProtect(
-                target,
+                branch,
                 1,
                 PAGE_EXECUTE_READWRITE,
                 &oldProtect)) {
             return false;
         }
 
-        target[0] = desired;
+        branch[0] = desired;
         FlushInstructionCache(
             GetCurrentProcess(),
-            target,
+            branch,
             1
         );
 
         DWORD ignored = 0;
         VirtualProtect(
-            target,
+            branch,
             1,
             oldProtect,
             &ignored
@@ -156,18 +150,25 @@ static BOOL CALLBACK InitRealDxgi(PINIT_ONCE, PVOID, PVOID*) {
     wchar_t path[MAX_PATH]{};
     lstrcpyW(path, systemDir);
     lstrcatW(path, L"\\dxgi.dll");
+
     g_realDxgi = LoadLibraryW(path);
     return g_realDxgi != nullptr;
 }
 
 static HMODULE RealDxgi() {
-    InitOnceExecuteOnce(&g_dxgiOnce, InitRealDxgi, nullptr, nullptr);
+    InitOnceExecuteOnce(
+        &g_dxgiOnce,
+        InitRealDxgi,
+        nullptr,
+        nullptr
+    );
     return g_realDxgi;
 }
 
 static BOOL CALLBACK LoadAsiPlugins(PINIT_ONCE, PVOID, PVOID*) {
     wchar_t modulePath[MAX_PATH]{};
-    if (!g_self || !GetModuleFileNameW(g_self, modulePath, MAX_PATH)) {
+    if (!g_self ||
+        !GetModuleFileNameW(g_self, modulePath, MAX_PATH)) {
         return TRUE;
     }
 
@@ -203,7 +204,12 @@ static BOOL CALLBACK LoadAsiPlugins(PINIT_ONCE, PVOID, PVOID*) {
 }
 
 static void EnsureAsisLoaded() {
-    InitOnceExecuteOnce(&g_asiOnce, LoadAsiPlugins, nullptr, nullptr);
+    InitOnceExecuteOnce(
+        &g_asiOnce,
+        LoadAsiPlugins,
+        nullptr,
+        nullptr
+    );
 }
 
 template <typename T>
@@ -212,7 +218,10 @@ static T Resolve(const char* name) {
     if (!real) {
         return nullptr;
     }
-    return reinterpret_cast<T>(GetProcAddress(real, name));
+
+    return reinterpret_cast<T>(
+        GetProcAddress(real, name)
+    );
 }
 
 extern "C" __declspec(dllexport)
@@ -293,11 +302,12 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
         g_self = module;
         DisableThreadLibraryCalls(module);
 
-        // dxgi.dll is a normal executable import, so this runs before the
-        // game's entry point and before SetupLoadingScreenFromIni.
+        // dxgi.dll is loaded before the game entry point. Patch only the
+        // FEngineLoop CustomSplashScreen branch.
         const bool enabled =
             ReadSkipLogosEnabledFromIni();
         ApplySkipLogosPatch(enabled);
     }
+
     return TRUE;
 }
