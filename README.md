@@ -197,3 +197,32 @@ Only after that proven movement signature succeeds is
 The V0.17 cleanup work for target validation, atomic runtime settings,
 ConfigStore, OverlayUi, debounced INI persistence, shutdown and dead-code
 removal is retained.
+
+
+## Working rule / fil rouge
+
+From this point forward the project follows a deliberately simple rule:
+
+1. Keep validated behavior unless a test proves it wrong.
+2. Do not add a second heuristic when an already validated path exists.
+3. A feature owns one clear primitive and one clear responsibility.
+4. Diagnostics must be bounded and must not become fallback trees.
+5. Rejected experiments are removed from runtime code and kept in Git/docs.
+6. Change one gameplay subject at a time.
+7. The cumulative README records every accepted direction change and rejection.
+
+### V0.17B final player rollback policy
+
+Player identity is restored exactly to the previously validated V0.14F rule:
+
+```text
+APawn::IsLocallyControlled(characterOwner)
+    -> g_localPlayerCharacter = characterOwner
+```
+
+JumpZ / DoubleJumpZ / GlideDuration validation remains useful, but only protects
+Jump/Glide property writes. It no longer gates Movement Speed, Action Recovery,
+Damage or the local-player pointer.
+
+This is intentionally simpler than the rejected V0.17 structural identity
+module and the intermediate V0.17B combined filter.
