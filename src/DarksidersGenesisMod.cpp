@@ -29,7 +29,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.18-skip-logos-early-iat-test";
+constexpr const char* kBuild = "0.18B-skip-logos-menu-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -71,6 +71,8 @@ std::atomic_bool g_recoveryHookReady{false};
 std::atomic_bool g_skipIntroReady{false};
 std::atomic_bool g_shuttingDown{false};
 dg::target::ValidationResult g_targetValidation{};
+std::atomic_bool g_skipLogosBootEnabled{true};
+std::atomic_long g_skipLogosBlocked{0};
 LONG** g_skipIntroDataSlot = nullptr;
 LONG* g_skipIntroData = nullptr;
 LONG g_skipIntroOriginalValue = 1;
@@ -223,6 +225,7 @@ void LogEarlySkipLogosStatus() {
 
     using StatusFn = const wchar_t* (WINAPI*)();
     using CountFn = LONG (WINAPI*)();
+    using EnabledFn = BOOL (WINAPI*)();
 
     auto statusFn = reinterpret_cast<StatusFn>(
         GetProcAddress(proxy, "DGGetSkipLogosStatus")
@@ -230,16 +233,26 @@ void LogEarlySkipLogosStatus() {
     auto countFn = reinterpret_cast<CountFn>(
         GetProcAddress(proxy, "DGGetSkipLogosBlockCount")
     );
+    auto enabledFn = reinterpret_cast<EnabledFn>(
+        GetProcAddress(proxy, "DGGetSkipLogosBootEnabled")
+    );
 
-    if (!statusFn || !countFn) {
+    if (!statusFn || !countFn || !enabledFn) {
         Log("Skip Logos: proxy diagnostics unavailable");
         return;
     }
 
+    const bool enabled = enabledFn() != FALSE;
+    const LONG blocked = countFn();
+
+    g_skipLogosBootEnabled.store(enabled);
+    g_skipLogosBlocked.store(blocked);
+
     Log(
-        "Skip Logos: %ls blocked=%ld targets=THQ_LogoBasic.mp4,AS_LogoBasic.mp4",
+        "Skip Logos: boot=%s %ls blocked=%ld targets=THQ_LogoBasic.mp4,AS_LogoBasic.mp4",
+        enabled ? "ON" : "OFF",
         statusFn(),
-        countFn()
+        blocked
     );
 }
 
@@ -1887,6 +1900,10 @@ dg::overlay::Context BuildOverlayContext() {
         g_finalOutgoingDamageHookReady.load();
     t.hotstreakHookReady = g_hotstreakHookReady.load();
     t.skipIntroReady = g_skipIntroReady.load();
+    t.skipLogosBootEnabled =
+        g_skipLogosBootEnabled.load();
+    t.skipLogosBlocked =
+        g_skipLogosBlocked.load();
 
     t.actionMoveQueries = g_actionMoveQueries.load();
     t.actionMoveLocalQueries =
