@@ -62,7 +62,6 @@ add_library(DarksidersGenesisMod SHARED
   src/DarksidersGenesisMod.cpp
   src/HorseFeature.cpp
   src/OverlayUi.cpp
-  src/PlayerIdentity.cpp
   src/RuntimeSettings.cpp
   src/TargetValidator.cpp
 )
