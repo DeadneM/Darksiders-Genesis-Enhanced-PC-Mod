@@ -9,7 +9,7 @@ The project is deliberately fail-open for normal runtime failures and
 ## Current development state
 
 - Stable/canonical `main`: **V0.13B**
-- Current cleanup/test branch: **V0.17 Core Cleanup**
+- Current cleanup/test branch: **V0.18I Early Startup Screen Bypass**
 - Target executable:
 
 ```text
@@ -62,7 +62,7 @@ The menu key and F1-F12 actions can be remapped from the overlay.
 | Horse Sprint Speed | Not implemented |
 | FOV | Not implemented |
 | Third Person camera | Not implemented |
-| Skip Logos | V0.18B test, independent boot option, ON by default |
+| Skip Logos | V0.18I test candidate, early startup-screen selector bypass, ON by default |
 
 Unimplemented controls are disabled in the V0.17 overlay/default configuration
 instead of pretending to be active.
@@ -649,3 +649,95 @@ Skip Intro remains fully independent on the validated native
 
 Config revision `1808` resets `SkipLogos` and `SkipIntroVideos` to ON once
 when upgrading from older test builds.
+
+
+## V0.18I - EarlyStartupMovie / CustomSplashScreen selector bypass
+
+The supplied runtime log was from **V0.18G**, not V0.18H:
+
+```text
+Darksiders Genesis Enhanced ASI 0.18G-dllmain-native-ret-test
+Skip Logos EARLY: proxy=1 target=1 patched=1 enabled=1 RVA=0x160BC50
+```
+
+That confirms the already documented V0.18G failure, but it does not constitute
+an in-game test of V0.18H.
+
+A fresh audit of the exact supported retail executable:
+
+```text
+DarksidersGenesis-Win64-Shipping.exe
+size       62,113,280 bytes
+SHA-256    9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54
+```
+
+shows the complete early startup-screen selector in
+`FEngineLoop::PreInitPostStartupScreen`.
+
+Relevant control flow:
+
+```text
+RVA 0x253546  call GetMoviePlayer
+...
+RVA 0x253551  call [vtable+0x30]
+RVA 0x253554  test al,al
+RVA 0x253556  je 0x2535A8
+
+TRUE branch:
+RVA 0x253558  "EarlyStartupMovie"
+...
+RVA 0x25359B  call [vtable+0x38]
+
+FALSE branch:
+RVA 0x2535A8  "PlayFirstPreLoadScreen"
+...
+RVA 0x2535EB  call FPreLoadScreenManager::PlayFirstPreLoadScreen
+
+common resume:
+RVA 0x2535FD
+```
+
+This proves why V0.18H was incomplete: its patch at `0x2535E0` affected only
+the `CustomSplashScreen` fallback. When an EarlyStartupMovie exists, execution
+takes the TRUE branch and never reaches the patched H branch.
+
+V0.18H is therefore **superseded by native analysis before validation**. It is
+not promoted and does not need another in-game test.
+
+V0.18I owns one primitive only:
+
+```text
+dxgi.dll DllMain
+    -> validate PE64 + SizeOfImage 0x03DDF000
+    -> validate exact startup-selector bytes
+    -> Skip Logos ON:
+       RVA 0x253546
+       E8 45 56 3B 01
+       ->
+       E9 B2 00 00 00
+
+       jump directly to RVA 0x2535FD
+       bypass both:
+         EarlyStartupMovie
+         CustomSplashScreen
+
+    -> Skip Logos OFF:
+       restore E8 45 56 3B 01
+```
+
+This does **not** patch `SetupLoadingScreenFromIni`, does not hook file I/O,
+does not hook Media Foundation, and does not modify `Game.ini`.
+
+Normal game cutscenes remain outside this selector. The separately validated
+Skip Intro feature remains exclusively controlled by:
+
+```text
+g.PlayIntroCinematicOnBoot
+```
+
+Config revision `1809` resets `SkipLogos` and `SkipIntroVideos` to ON once
+when upgrading from older test builds.
+
+V0.18I also removes two harmless duplicate `skipLogosEnabled` runtime
+publications and replaces the obsolete overlay text `Game.ini write failed`
+with the correct startup-patch diagnostic.
