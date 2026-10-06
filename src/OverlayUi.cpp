@@ -505,11 +505,11 @@ void Draw(Context& c) {
                     (config.skipLogosEnabled ? "ON" : "OFF") +
                     (applied
                         ? " (restart required)"
-                        : " (Game.ini write failed)");
+                        : " (startup patch failed)");
             }
             ImGui::SameLine(310.0f);
             ImGui::TextDisabled(
-                "CUSTOM SPLASH %s | target %s | restart for boot effect",
+                "EARLY SCREEN %s | target %s | restart for boot effect",
                 t.skipLogosPatched ? "PATCHED" : "NATIVE",
                 t.skipLogosTargetValid ? "VALID" : "INVALID"
             );
