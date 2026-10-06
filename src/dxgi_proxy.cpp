@@ -9,11 +9,16 @@ static INIT_ONCE g_dxgiOnce = INIT_ONCE_STATIC_INIT;
 static INIT_ONCE g_asiOnce = INIT_ONCE_STATIC_INIT;
 
 constexpr DWORD kSupportedSizeOfImage = 0x03DDF000;
-constexpr uintptr_t kCustomSplashBranchRva = 0x002535E0;
+constexpr uintptr_t kStartupScreenSelectorRva = 0x00253546;
 
-static constexpr BYTE kExpectedBytes[] = {
-    0x84,0xC0,0x74,0x0F,0x33,0xD2,
-    0x48,0x8B,0x0D,0x9D,0x6F,0x7B,0x03
+static constexpr BYTE kNativeSelectorBytes[] = {
+    0xE8,0x45,0x56,0x3B,0x01,
+    0x48,0x8B,0x10,0x48,0x8B,0xC8,0xFF,0x52,0x30,
+    0x84,0xC0,0x74,0x50
+};
+
+static constexpr BYTE kSkipSelectorBytes[] = {
+    0xE9,0xB2,0x00,0x00,0x00
 };
 
 static std::atomic_bool g_skipLogosTargetValid{false};
@@ -44,7 +49,7 @@ static bool ReadSkipLogosEnabledFromIni() {
         iniPath
     );
 
-    if (revision < 1808) {
+    if (revision < 1809) {
         return true;
     }
 
@@ -56,7 +61,7 @@ static bool ReadSkipLogosEnabledFromIni() {
     ) != 0;
 }
 
-static BYTE* ResolveValidatedBranch() {
+static BYTE* ResolveValidatedSelector() {
     HMODULE mainModule = GetModuleHandleW(nullptr);
     if (!mainModule) {
         return nullptr;
@@ -80,27 +85,40 @@ static BYTE* ResolveValidatedBranch() {
         return nullptr;
     }
 
-    BYTE* branch = base + kCustomSplashBranchRva;
+    BYTE* selector = base + kStartupScreenSelectorRva;
 
-    // Validate around the conditional branch. The branch byte itself may
-    // already be our JMP patch.
-    if (branch[-2] != kExpectedBytes[0] ||
-        branch[-1] != kExpectedBytes[1] ||
-        (branch[0] != kExpectedBytes[2] && branch[0] != 0xEB) ||
+    // This is the GetMoviePlayer() call immediately before the engine chooses
+    // between EarlyStartupMovie and CustomSplashScreen. Accept either the
+    // exact retail call or our five-byte JMP, while requiring the rest of the
+    // audited selector block to remain byte-for-byte identical.
+    const bool native =
         std::memcmp(
-            branch + 1,
-            kExpectedBytes + 3,
-            sizeof(kExpectedBytes) - 3
+            selector,
+            kNativeSelectorBytes,
+            sizeof(kSkipSelectorBytes)
+        ) == 0;
+    const bool patched =
+        std::memcmp(
+            selector,
+            kSkipSelectorBytes,
+            sizeof(kSkipSelectorBytes)
+        ) == 0;
+
+    if ((!native && !patched) ||
+        std::memcmp(
+            selector + sizeof(kSkipSelectorBytes),
+            kNativeSelectorBytes + sizeof(kSkipSelectorBytes),
+            sizeof(kNativeSelectorBytes) - sizeof(kSkipSelectorBytes)
         ) != 0) {
         return nullptr;
     }
 
-    return branch;
+    return selector;
 }
 
 static bool ApplySkipLogosPatch(bool enabled) {
-    BYTE* branch = ResolveValidatedBranch();
-    if (!branch) {
+    BYTE* selector = ResolveValidatedSelector();
+    if (!selector) {
         g_skipLogosTargetValid.store(false, std::memory_order_release);
         g_skipLogosPatched.store(false, std::memory_order_release);
         return false;
@@ -108,29 +126,37 @@ static bool ApplySkipLogosPatch(bool enabled) {
 
     g_skipLogosTargetValid.store(true, std::memory_order_release);
 
-    const BYTE desired = enabled ? BYTE{0xEB} : BYTE{0x74};
+    const BYTE* desired =
+        enabled ? kSkipSelectorBytes : kNativeSelectorBytes;
 
-    if (branch[0] != desired) {
+    if (std::memcmp(
+            selector,
+            desired,
+            sizeof(kSkipSelectorBytes)) != 0) {
         DWORD oldProtect = 0;
         if (!VirtualProtect(
-                branch,
-                1,
+                selector,
+                sizeof(kSkipSelectorBytes),
                 PAGE_EXECUTE_READWRITE,
                 &oldProtect)) {
             return false;
         }
 
-        branch[0] = desired;
+        std::memcpy(
+            selector,
+            desired,
+            sizeof(kSkipSelectorBytes)
+        );
         FlushInstructionCache(
             GetCurrentProcess(),
-            branch,
-            1
+            selector,
+            sizeof(kSkipSelectorBytes)
         );
 
         DWORD ignored = 0;
         VirtualProtect(
-            branch,
-            1,
+            selector,
+            sizeof(kSkipSelectorBytes),
             oldProtect,
             &ignored
         );
@@ -302,8 +328,9 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
         g_self = module;
         DisableThreadLibraryCalls(module);
 
-        // dxgi.dll is loaded before the game entry point. Patch only the
-        // FEngineLoop CustomSplashScreen branch.
+        // dxgi.dll is loaded before the game entry point. Skip only the
+        // FEngineLoop selector that chooses EarlyStartupMovie or the fallback
+        // CustomSplashScreen; normal cutscenes and Skip Intro remain separate.
         const bool enabled =
             ReadSkipLogosEnabledFromIni();
         ApplySkipLogosPatch(enabled);
