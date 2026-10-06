@@ -60,7 +60,7 @@ bool Initialize(LogFn logger) {
     g_logger = logger;
 
     if (!ResolveProxyExports()) {
-        LogText("Skip Logos EARLY_SCREEN: proxy exports unavailable");
+        LogText("Skip Logos STARTUPSCREENS_PLAYLIST: proxy exports unavailable");
         return false;
     }
 
@@ -77,7 +77,7 @@ bool Initialize(LogFn logger) {
     char message[256]{};
     sprintf_s(
         message,
-        "Skip Logos EARLY_SCREEN: proxy=%d target=%d patched=%d enabled=%d selectorRVA=0x253546 resumeRVA=0x2535FD",
+        "Skip Logos STARTUPSCREENS_PLAYLIST: proxy=%d target=%d patched=%d enabled=%d countLoadRVA=0x25FF31 forcedCount=0",
         t.proxyAvailable ? 1 : 0,
         t.targetValid ? 1 : 0,
         t.patched ? 1 : 0,
@@ -127,7 +127,7 @@ Telemetry GetTelemetry() {
 }
 
 void Shutdown() {
-    // The five-byte startup selector patch is restored when the user disables it.
+    // The StartupScreens StartupMovies count load is restored when disabled.
 }
 
 } // namespace dg::skip_logos
