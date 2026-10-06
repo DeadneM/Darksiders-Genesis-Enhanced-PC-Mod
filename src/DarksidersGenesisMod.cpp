@@ -1940,18 +1940,18 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
     dg::horse::SetSettings(horseSettings);
     dg::horse::Tick();
 
-    const bool isLocalPlayer =
-        IsLocallyControlledMayhemCharacter(characterOwner);
-
-    // Important: observe every component already reaching this validated
-    // shared Mayhem movement hook BEFORE filtering to the local player.
-    // No extra hook, no object scan, no mounted-state guess.
+    // Observe every component already reaching this validated shared Mayhem
+    // movement hook. Do this BEFORE APawn::IsLocallyControlled, because the
+    // player's horse can itself be locally controlled. HorseFeature identifies
+    // the mount only from the exact reference-PAK property signature.
     dg::horse::ObserveMovement(
         movementComponent,
         characterOwner,
-        nativeSpeed,
-        isLocalPlayer
+        nativeSpeed
     );
+
+    const bool isLocalPlayer =
+        IsLocallyControlledMayhemCharacter(characterOwner);
 
     if (!isLocalPlayer) {
         return nativeSpeed;
