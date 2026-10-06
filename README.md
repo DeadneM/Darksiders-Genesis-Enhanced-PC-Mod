@@ -2628,3 +2628,54 @@ Downloading the Actions artifact therefore produces one ZIP with the usable
 files at its root, not a ZIP containing another ZIP.
 
 **Validation:** awaiting in-game test.
+
+
+## V0.14F - Safe Horse Diagnostics
+
+**Status: TEST CANDIDATE**
+
+V0.14F is cumulative from V0.14E and keeps:
+
+- Jump Height up to 20x;
+- per-value `Default` buttons;
+- flat GitHub artifact packaging;
+- all previously validated non-horse hooks.
+
+### Root cause found in the V0.14E runtime log
+
+The V0.14E session reached the mounted-state heartbeat successfully, but then
+the broad mounted-time fallback treated every non-local movement owner entering
+the shared `GetMaxSpeed` hook as a possible horse.
+
+The resulting log contained roughly **301k horse rejection lines in one
+session**, alternating primarily between:
+
+```text
+reason=7  no unique horse movement member found
+reason=3  horse stamina fields outside sane range
+```
+
+No `Horse runtime: VALIDATED` or `MaxWalkSpeed` line appeared, so the horse
+speed write path was never reached. The failure was discovery/logging pressure,
+not a proven failure of the direct movement-property idea.
+
+### V0.14F safety changes
+
+1. Removes the broad non-local movement-owner horse fallback.
+2. Uses only the opaque object reached from `Player+0xE70` as the discovery
+   root.
+3. Throttles the expensive horse discovery scan to **one attempt per second**.
+4. Rate-limits horse rejection logging to **one line per second maximum**, even
+   when rejection reasons alternate.
+5. Keeps all horse writes disabled until the candidate passes the complete
+   structural validation chain.
+6. Adds bounded diagnostics at mount time:
+   - opaque candidate pointer;
+   - raw stamina triplet at +0x910/+0x914/+0x918;
+   - number of movement-like members;
+   - first four candidate member offsets.
+
+This candidate is intentionally diagnostic-first. Stability of the already
+validated player/combat/UI features has priority over forcing horse values.
+
+**Validation:** awaiting in-game test.
