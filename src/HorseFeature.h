@@ -14,24 +14,30 @@ struct Settings {
 };
 
 struct Telemetry {
+    bool resolverAttempted = false;
     bool baseHookReady = false;
     bool movementValidated = false;
     bool staminaReady = false;
     void* horseOwner = nullptr;
     void* horseMovement = nullptr;
+    void* baseGetMaxSpeedTarget = nullptr;
+    int bestVtableScore = 0;
+    int secondVtableScore = 0;
     float nativeMaxWalkSpeed = 0.0f;
     float appliedMaxWalkSpeed = 0.0f;
     float nativeMaxAcceleration = 0.0f;
     float appliedMaxAcceleration = 0.0f;
     float nativeSprintDrain = 0.0f;
     float appliedSprintDrain = 0.0f;
-    std::uint32_t resolverMatches = 0;
     std::uint32_t candidateChecks = 0;
     std::uint32_t candidateMatches = 0;
 };
 
-bool Initialize(LogFn logger);
+void Initialize(LogFn logger);
 void SetSettings(const Settings& settings);
+void ObservePlayerMovement(
+    void* movementComponent,
+    void* playerGetMaxSpeedTarget);
 void Tick();
 Telemetry GetTelemetry();
 void Shutdown();
