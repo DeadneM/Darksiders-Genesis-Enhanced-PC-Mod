@@ -2678,4 +2678,23 @@ not a proven failure of the direct movement-property idea.
 This candidate is intentionally diagnostic-first. Stability of the already
 validated player/combat/UI features has priority over forcing horse values.
 
-**Validation:** awaiting in-game test.
+**Validation:** **STABILITY VALIDATED IN GAME.**
+
+User feedback:
+
+```text
+Tout est redevenu normal.
+```
+
+Validated in V0.14F:
+
+- general game/mod stability restored;
+- no V0.14E-style horse log storm;
+- existing validated non-horse features remain usable;
+- Jump Height 20x UI/runtime ceiling retained;
+- per-value Default buttons retained;
+- flat artifact packaging retained.
+
+Horse speed / sprint behavior is **not yet validated**. The horse path remains
+diagnostic-first and must not be promoted to canonical functionality until the
+runtime structure is identified and tested successfully.
