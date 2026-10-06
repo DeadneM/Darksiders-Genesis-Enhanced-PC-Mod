@@ -49,7 +49,7 @@ The menu key and F1-F12 actions can be remapped from the overlay.
 | D3D11 / ImGui overlay | Stable |
 | Rebindable menu key | Stable |
 | Toggle HUD | Validated |
-| Movement Speed | Validated; V0.17 uses structural player identity |
+| Movement Speed | Validated; V0.17B restores the proven V0.14F local-pawn + Jump/Glide identity path |
 | Action Recovery | Validated V0.8B tail-only policy |
 | Jump Height | Validated |
 | Glide / Flight Duration | Validated |
@@ -96,9 +96,6 @@ RuntimeSettings.cpp
 
 TargetValidator.cpp
     exact executable size/SHA-256 gate
-
-PlayerIdentity.cpp
-    structural player validation, separate from APawn local-control state
 
 OverlayUi.cpp
     ImGui menu only, using an explicit context
@@ -174,3 +171,29 @@ Experimental branches are preserved as technical history.
 
 `main` is not advanced merely because a candidate compiles. Gameplay changes
 must be validated in game before promotion.
+
+
+## V0.17B player-identity rollback fix
+
+The first V0.17 cleanup introduced a new structural identity heuristic using
+MaxWalkSpeed / MaxAcceleration. Runtime testing proved that heuristic rejected
+the real player and therefore blocked Movement Speed, Jump, Glide and all
+features depending on the captured local-player pointer.
+
+V0.17B removes that unvalidated module completely and restores the path already
+proven in V0.14F:
+
+```text
+APawn::IsLocallyControlled
+  + valid JumpZ
+  + valid DoubleJumpZ
+  + valid GlideDuration
+  = local player movement component
+```
+
+Only after that proven movement signature succeeds is
+`g_localPlayerCharacter` updated.
+
+The V0.17 cleanup work for target validation, atomic runtime settings,
+ConfigStore, OverlayUi, debounced INI persistence, shutdown and dead-code
+removal is retained.
