@@ -9,6 +9,7 @@ struct Snapshot {
     bool movementSpeedEnabled = true;
     bool actionRecoveryEnabled = true;
     bool skipLogosEnabled = true;
+    bool skipLogosEnabled = true;
     bool skipIntroEnabled = true;
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
@@ -33,6 +34,7 @@ struct State {
     std::atomic_bool toggleHudEnabled{true};
     std::atomic_bool movementSpeedEnabled{true};
     std::atomic_bool actionRecoveryEnabled{true};
+    std::atomic_bool skipLogosEnabled{true};
     std::atomic_bool skipLogosEnabled{true};
     std::atomic_bool skipIntroEnabled{true};
     std::atomic_bool pistolDamageEnabled{true};
