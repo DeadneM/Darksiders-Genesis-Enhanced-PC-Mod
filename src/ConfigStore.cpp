@@ -250,7 +250,13 @@ int ParseKeyToken(const wchar_t* text, int fallback) {
 }
 
 Store::Store() {
-    ResetDefaults(false);
+    // Member initializers already carry the scalar defaults. Keep global
+    // construction side-effect free and initialize only the hotkey table here.
+    hotkeys.fill(Action::None);
+    hotkeys[0] = Action::ToggleHUD;
+    hotkeys[1] = Action::MovementSpeed;
+    hotkeys[2] = Action::ActionRecovery;
+    hotkeys[3] = Action::SkipIntroVideos;
 }
 
 void Store::SetPath(const std::wstring& path) {
