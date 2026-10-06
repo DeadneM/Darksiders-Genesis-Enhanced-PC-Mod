@@ -21,6 +21,8 @@ struct Telemetry {
     bool finalDamageHookReady = false;
     bool hotstreakHookReady = false;
     bool skipIntroReady = false;
+    bool skipLogosBootEnabled = true;
+    LONG skipLogosBlocked = 0;
 
     int actionMoveQueries = 0;
     int actionMoveLocalQueries = 0;
