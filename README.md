@@ -513,3 +513,52 @@ Skip Intro stays entirely separate on the already validated native
 
 Config revision `1806` resets `SkipLogos` and `SkipIntroVideos` to ON once
 when upgrading from an older test build.
+
+
+## V0.18G - earliest native MoviePlayer RET patch
+
+V0.18F proved that the audited MoviePlayer target was valid and the MinHook
+detour installed successfully, but runtime telemetry stayed:
+
+```text
+setupCalls=0
+skipped=0
+```
+
+Therefore the one startup call to `SetupLoadingScreenFromIni` occurs before the
+first DXGI factory call where V0.18F installed its hook.
+
+Executable audit confirms `dxgi.dll` is a normal import, not a delay import.
+Its `DllMain(DLL_PROCESS_ATTACH)` therefore executes before the game entry
+point.
+
+V0.18G removes MinHook from the DXGI proxy entirely and uses a one-byte
+fail-closed patch:
+
+```text
+DLL_PROCESS_ATTACH
+    -> validate PE64
+    -> SizeOfImage == 0x03DDF000
+    -> validate exact prologue at RVA 0x0160BC50
+    -> Skip Logos ON:
+       0x48 -> 0xC3
+       SetupLoadingScreenFromIni returns immediately
+    -> Skip Logos OFF:
+       restore native 0x48
+```
+
+No thread, no media hook, no file hook, no Game.ini override and no fallback
+tree are used.
+
+The ASI only exposes runtime control and telemetry:
+
+```text
+EARLY PATCHED/NATIVE
+target VALID/INVALID
+```
+
+Skip Intro remains entirely separate on the validated native
+`g.PlayIntroCinematicOnBoot` path.
+
+Config revision `1807` resets `SkipLogos` and `SkipIntroVideos` to ON once
+when upgrading from an older test build.
