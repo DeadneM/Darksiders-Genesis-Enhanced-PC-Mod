@@ -2560,3 +2560,71 @@ This keeps the current-session log useful instead of producing tens of
 thousands of duplicate lines.
 
 **Validation:** awaiting in-game test.
+
+
+## V0.14E - UI Defaults + Jump Height 20x + Flat Artifact
+
+**Status: TEST CANDIDATE**
+
+V0.14E is cumulative from V0.14D.
+
+### Jump Height
+
+The previous overlay/runtime ceiling of 5x is raised to:
+
+```text
+0.00x .. 20.00x
+```
+
+The runtime clamp is raised at the same time, so values above 5x are effective
+rather than UI-only.
+
+The default remains:
+
+```text
+JumpHeightMultiplier=1.250
+```
+
+### Per-value Default buttons
+
+Every currently tunable numeric control now exposes a `Default` button next
+to its slider/manual field.
+
+Defaults restored by those buttons are:
+
+```text
+Movement Speed         1.50x
+Action Recovery        0 ms
+Jump Height            1.25x
+Glide / Flight         10.00x
+Pistol Damage          2.00x
+Melee Damage           2.00x
+Hotstreak Charge       2.00x
+Horse Speed            1.25x
+Horse Sprint Speed     1.25x
+Horse Sprint Duration  2.00x
+FOV                    90 deg
+Third Person Distance  1.00x
+```
+
+Pressing `Default` updates the in-memory value and saves it to the INI.
+
+### Packaging fix
+
+V0.14D's GitHub Actions artifact contained a ZIP file inside the GitHub artifact
+ZIP.
+
+V0.14E removes the inner `Compress-Archive` package from the artifact path.
+The GitHub artifact now contains the four distributable files directly:
+
+```text
+dxgi.dll
+DarksidersGenesisMod.asi
+DarksidersGenesisMod.ini
+README.md
+```
+
+Downloading the Actions artifact therefore produces one ZIP with the usable
+files at its root, not a ZIP containing another ZIP.
+
+**Validation:** awaiting in-game test.
