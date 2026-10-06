@@ -11,6 +11,7 @@
 namespace dg::overlay {
 
 using ApplySkipIntroFn = bool(*)(bool);
+using ApplySkipLogosFn = bool(*)(bool);
 using AbilityStateNameFn = const char*(*)(unsigned char);
 using LogFn = void(*)(const char*, ...);
 
@@ -21,11 +22,10 @@ struct Telemetry {
     bool finalDamageHookReady = false;
     bool hotstreakHookReady = false;
     bool skipIntroReady = false;
-    bool skipLogosInstalled = false;
-    bool skipLogosResolverHooked = false;
-    LONG skipLogosResolverCreates = 0;
-    LONG skipLogosUrlCalls = 0;
-    LONG skipLogosBlocked = 0;
+    bool skipLogosInitialized = false;
+    bool skipLogosOverridePresent = false;
+    bool skipLogosLastApplyOk = false;
+    bool skipLogosRestartRequired = false;
 
     int actionMoveQueries = 0;
     int actionMoveLocalQueries = 0;
@@ -66,6 +66,7 @@ struct Context {
     Telemetry telemetry{};
 
     ApplySkipIntroFn applySkipIntro = nullptr;
+    ApplySkipLogosFn applySkipLogos = nullptr;
     AbilityStateNameFn abilityStateName = nullptr;
     LogFn log = nullptr;
 };
