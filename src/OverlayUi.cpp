@@ -509,11 +509,9 @@ void Draw(Context& c) {
             }
             ImGui::SameLine(310.0f);
             ImGui::TextDisabled(
-                "NATIVE %s | target %s | calls %ld | skipped %ld",
-                t.skipLogosInstalled ? "READY" : "OFF",
-                t.skipLogosTargetValid ? "VALID" : "INVALID",
-                t.skipLogosSetupCalls,
-                t.skipLogosSkippedCalls
+                "EARLY %s | target %s | restart for boot effect",
+                t.skipLogosPatched ? "PATCHED" : "NATIVE",
+                t.skipLogosTargetValid ? "VALID" : "INVALID"
             );
 
             if (ImGui::Checkbox(
