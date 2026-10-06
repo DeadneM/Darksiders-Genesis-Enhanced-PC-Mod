@@ -59,6 +59,8 @@ target_link_libraries(imgui_static PUBLIC d3d11 dxgi user32 gdi32 imm32 dwmapi)
 
 add_library(DarksidersGenesisMod SHARED
   src/DarksidersGenesisMod.cpp
+  src/HorseFeature.cpp
+  src/StartupMoviesFeature.cpp
 )
 target_compile_definitions(DarksidersGenesisMod PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
 target_include_directories(DarksidersGenesisMod PRIVATE ${minhook_SOURCE_DIR}/include)
