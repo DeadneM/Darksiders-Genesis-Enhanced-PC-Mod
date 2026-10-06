@@ -8,11 +8,11 @@ using LogFn = void(*)(const char*);
 
 struct Telemetry {
     bool proxyAvailable = false;
+    bool targetValid = false;
     bool installed = false;
     bool enabled = true;
-    LONG createFileCalls = 0;
-    LONG mp4Calls = 0;
-    LONG blocked = 0;
+    LONG setupCalls = 0;
+    LONG skippedCalls = 0;
 };
 
 bool Initialize(LogFn logger);
