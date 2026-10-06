@@ -6,6 +6,7 @@
 #include "HorseFeature.h"
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cstdarg>
 #include <cmath>
@@ -28,11 +29,29 @@ constexpr std::size_t kStaminaSprintDrainOffset = 0x918;
 
 constexpr float kReferenceMaxWalkSpeed = 1300.0f;
 constexpr float kReferenceMaxAcceleration = 600.0f;
+constexpr float kReferenceRecovery = 15.0f;
+constexpr float kReferenceTotalRecovery = 40.0f;
+constexpr float kReferenceSprintDrain = 25.0f;
+
 constexpr ULONGLONG kHorseLostTimeoutMs = 1500;
+constexpr std::size_t kGetMaxSpeedVtableOffset = 0x3D0;
+constexpr std::size_t kGetMaxSpeedVtableSlot =
+    kGetMaxSpeedVtableOffset / sizeof(void*);
+constexpr std::size_t kCompareSlotBegin = 72;
+constexpr std::size_t kCompareSlotEnd = 144;
+constexpr int kMinimumVtableScore = 44;
+constexpr int kMinimumScoreLead = 3;
 
 struct PeSection {
     unsigned char* begin = nullptr;
     std::size_t size = 0;
+};
+
+struct ParentCandidate {
+    void** vtable = nullptr;
+    void* target = nullptr;
+    int score = 0;
+    int textPointers = 0;
 };
 
 struct CapturedHorse {
@@ -51,11 +70,15 @@ GetMaxSpeedFn g_originalBaseGetMaxSpeed = nullptr;
 void* g_baseGetMaxSpeedTarget = nullptr;
 LogFn g_logger = nullptr;
 
+std::atomic_bool g_resolverAttempted{false};
 std::atomic_bool g_baseHookReady{false};
 std::atomic_bool g_validated{false};
 std::atomic_bool g_staminaReady{false};
 std::atomic<void*> g_owner{nullptr};
 std::atomic<void*> g_movement{nullptr};
+std::atomic<void*> g_baseTargetTelemetry{nullptr};
+std::atomic_int g_bestVtableScore{0};
+std::atomic_int g_secondVtableScore{0};
 
 std::atomic_bool g_speedEnabled{true};
 std::atomic<float> g_speedMultiplier{1.25f};
@@ -69,7 +92,6 @@ std::atomic<float> g_appliedMaxAcceleration{0.0f};
 std::atomic<float> g_nativeSprintDrain{0.0f};
 std::atomic<float> g_appliedSprintDrain{0.0f};
 
-std::atomic_uint32_t g_resolverMatches{0};
 std::atomic_uint32_t g_candidateChecks{0};
 std::atomic_uint32_t g_candidateMatches{0};
 std::atomic_ullong g_lastHorseSeenTick{0};
@@ -117,6 +139,11 @@ bool GetMainModuleSection(const char* name, PeSection& out) {
     }
 
     return false;
+}
+
+bool AddressInSection(const PeSection& section, const void* address) {
+    const auto* p = reinterpret_cast<const unsigned char*>(address);
+    return p >= section.begin && p < section.begin + section.size;
 }
 
 bool Readable(const void* address, std::size_t bytes) {
@@ -201,172 +228,195 @@ float Clamp(float value, float low, float high) {
     return std::clamp(value, low, high);
 }
 
-bool IsRcXDisp32ByteRead(
-    const unsigned char* p,
-    std::uint32_t displacement
+int CompareVtables(
+    void** playerVtable,
+    void** candidateVtable,
+    const PeSection& text,
+    int& outTextPointers
 ) {
-    if (!p) {
-        return false;
-    }
+    int score = 0;
+    int textPointers = 0;
 
-    // movzx r32, byte ptr [rcx+disp32]
-    return p[0] == 0x0F &&
-           p[1] == 0xB6 &&
-           (p[2] & 0xC7) == 0x81 &&
-           *reinterpret_cast<const std::uint32_t*>(p + 3) == displacement;
-}
+    for (std::size_t slot = kCompareSlotBegin;
+         slot <= kCompareSlotEnd;
+         ++slot) {
+        void* playerEntry = playerVtable[slot];
+        void* candidateEntry = candidateVtable[slot];
 
-bool IsRcXDisp32FloatRead(
-    const unsigned char* p,
-    std::uint32_t displacement
-) {
-    if (!p) {
-        return false;
-    }
+        if (AddressInSection(text, candidateEntry)) {
+            ++textPointers;
+        }
 
-    // movss xmm?, dword ptr [rcx+disp32]
-    return p[0] == 0xF3 &&
-           p[1] == 0x0F &&
-           p[2] == 0x10 &&
-           (p[3] & 0xC7) == 0x81 &&
-           *reinterpret_cast<const std::uint32_t*>(p + 4) == displacement;
-}
-
-unsigned char* FindFunctionStart(
-    unsigned char* textBegin,
-    unsigned char* anchor
-) {
-    if (!textBegin || !anchor || anchor <= textBegin) {
-        return nullptr;
-    }
-
-    const std::size_t maxBack =
-        std::min<std::size_t>(48, static_cast<std::size_t>(anchor - textBegin));
-
-    for (std::size_t back = 1; back <= maxBack; ++back) {
-        unsigned char* p = anchor - back;
-        if (*p != 0xCC) {
+        if (slot == kGetMaxSpeedVtableSlot) {
             continue;
         }
 
-        while (p < anchor && *p == 0xCC) {
-            ++p;
-        }
-
-        if (p < anchor) {
-            return p;
+        if (playerEntry == candidateEntry &&
+            AddressInSection(text, playerEntry)) {
+            ++score;
         }
     }
 
-    return nullptr;
+    outTextPointers = textPointers;
+    return score;
 }
 
-unsigned char* ResolveBaseGetMaxSpeed() {
+bool ResolveParentGetMaxSpeed(
+    void* movementComponent,
+    void* playerGetMaxSpeedTarget,
+    void** outTarget
+) {
+    if (!movementComponent || !playerGetMaxSpeedTarget || !outTarget) {
+        return false;
+    }
+
     PeSection text{};
-    if (!GetMainModuleSection(".text", text)) {
-        FeatureLog("HorseFeature: failed to enumerate .text");
-        return nullptr;
+    PeSection rdata{};
+    if (!GetMainModuleSection(".text", text) ||
+        !GetMainModuleSection(".rdata", rdata)) {
+        FeatureLog("HorseFeature: failed to enumerate .text/.rdata");
+        return false;
     }
 
-    unsigned char* matches[8]{};
-    std::uint32_t matchCount = 0;
-
-    for (std::size_t i = 0; i + 8 < text.size; ++i) {
-        unsigned char* anchor = text.begin + i;
-        if (!IsRcXDisp32ByteRead(
-                anchor,
-                static_cast<std::uint32_t>(kMovementModeOffset))) {
-            continue;
-        }
-
-        unsigned char* start = FindFunctionStart(text.begin, anchor);
-        if (!start) {
-            continue;
-        }
-
-        bool readsMaxWalkSpeed = false;
-        for (std::size_t j = 0; j + 8 < 0x120; ++j) {
-            unsigned char* p = start + j;
-            if (p < text.begin || p + 8 >= text.begin + text.size) {
-                break;
-            }
-
-            if (IsRcXDisp32FloatRead(
-                    p,
-                    static_cast<std::uint32_t>(kMaxWalkSpeedOffset))) {
-                readsMaxWalkSpeed = true;
-                break;
-            }
-        }
-
-        if (!readsMaxWalkSpeed) {
-            continue;
-        }
-
-        bool duplicate = false;
-        for (std::uint32_t m = 0; m < matchCount && m < 8; ++m) {
-            if (matches[m] == start) {
-                duplicate = true;
-                break;
-            }
-        }
-
-        if (duplicate) {
-            continue;
-        }
-
-        if (matchCount < 8) {
-            matches[matchCount] = start;
-        }
-        ++matchCount;
+    void** playerVtable = nullptr;
+    if (!ReadAt(movementComponent, 0, playerVtable) ||
+        !playerVtable ||
+        !Readable(
+            playerVtable + kCompareSlotBegin,
+            (kCompareSlotEnd - kCompareSlotBegin + 1) * sizeof(void*))) {
+        FeatureLog("HorseFeature: player movement vtable unreadable");
+        return false;
     }
 
-    g_resolverMatches.store(matchCount);
-
-    auto* module = reinterpret_cast<unsigned char*>(GetModuleHandleW(nullptr));
-    if (matchCount != 1) {
+    if (playerVtable[kGetMaxSpeedVtableSlot] != playerGetMaxSpeedTarget) {
         FeatureLog(
-            "HorseFeature: base GetMaxSpeed resolver match count=%u "
-            "rva0=0x%zX rva1=0x%zX rva2=0x%zX",
-            matchCount,
-            matches[0] ? static_cast<std::size_t>(matches[0] - module) : 0,
-            matches[1] ? static_cast<std::size_t>(matches[1] - module) : 0,
-            matches[2] ? static_cast<std::size_t>(matches[2] - module) : 0
+            "HorseFeature: player vtable slot mismatch slot=%p resolver=%p",
+            playerVtable[kGetMaxSpeedVtableSlot],
+            playerGetMaxSpeedTarget
         );
-        return nullptr;
+        return false;
     }
+
+    std::array<ParentCandidate, 3> top{};
+
+    const std::size_t requiredBytes =
+        (kCompareSlotEnd + 1) * sizeof(void*);
+
+    for (std::size_t offset = 0;
+         offset + requiredBytes <= rdata.size;
+         offset += sizeof(void*)) {
+        auto** candidate =
+            reinterpret_cast<void**>(rdata.begin + offset);
+
+        if (candidate == playerVtable) {
+            continue;
+        }
+
+        void* target = candidate[kGetMaxSpeedVtableSlot];
+        if (!target ||
+            target == playerGetMaxSpeedTarget ||
+            !AddressInSection(text, target)) {
+            continue;
+        }
+
+        int textPointers = 0;
+        const int score =
+            CompareVtables(playerVtable, candidate, text, textPointers);
+
+        if (textPointers < 45 || score < 20) {
+            continue;
+        }
+
+        ParentCandidate current{};
+        current.vtable = candidate;
+        current.target = target;
+        current.score = score;
+        current.textPointers = textPointers;
+
+        for (std::size_t i = 0; i < top.size(); ++i) {
+            if (current.score <= top[i].score) {
+                continue;
+            }
+
+            for (std::size_t j = top.size() - 1; j > i; --j) {
+                top[j] = top[j - 1];
+            }
+            top[i] = current;
+            break;
+        }
+    }
+
+    const int best = top[0].score;
+    const int second = top[1].score;
+    g_bestVtableScore.store(best);
+    g_secondVtableScore.store(second);
+
+    auto* module =
+        reinterpret_cast<unsigned char*>(GetModuleHandleW(nullptr));
 
     FeatureLog(
-        "HorseFeature: base UCharacterMovementComponent::GetMaxSpeed "
-        "candidate RVA=0x%zX",
-        static_cast<std::size_t>(matches[0] - module)
+        "HorseFeature: vtable ancestry top scores=%d/%d/%d "
+        "targets=[0x%zX,0x%zX,0x%zX]",
+        top[0].score,
+        top[1].score,
+        top[2].score,
+        top[0].target
+            ? static_cast<std::size_t>(
+                  reinterpret_cast<unsigned char*>(top[0].target) - module)
+            : 0,
+        top[1].target
+            ? static_cast<std::size_t>(
+                  reinterpret_cast<unsigned char*>(top[1].target) - module)
+            : 0,
+        top[2].target
+            ? static_cast<std::size_t>(
+                  reinterpret_cast<unsigned char*>(top[2].target) - module)
+            : 0
     );
-    return matches[0];
+
+    if (!top[0].target ||
+        best < kMinimumVtableScore ||
+        (second > 0 && best - second < kMinimumScoreLead)) {
+        FeatureLog(
+            "HorseFeature: vtable ancestry not unique enough; fail-open"
+        );
+        return false;
+    }
+
+    *outTarget = top[0].target;
+    return true;
 }
 
-bool ReadHorseStamina(void* owner, float& sprintDrain) {
-    float recovery = 0.0f;
-    float totalRecovery = 0.0f;
-
+bool ReadHorseStamina(
+    void* owner,
+    float& recovery,
+    float& totalRecovery,
+    float& sprintDrain
+) {
     if (!ReadFloat(owner, kStaminaRecoveryOffset, recovery) ||
         !ReadFloat(owner, kStaminaTotalRecoveryOffset, totalRecovery) ||
         !ReadFloat(owner, kStaminaSprintDrainOffset, sprintDrain)) {
         return false;
     }
 
-    return recovery >= 0.0f && recovery <= 100.0f &&
-           totalRecovery >= 0.0f && totalRecovery <= 100.0f &&
-           sprintDrain > 0.0f && sprintDrain <= 100.0f;
+    return
+        std::fabs(recovery - kReferenceRecovery) <= 12.0f &&
+        std::fabs(totalRecovery - kReferenceTotalRecovery) <= 20.0f &&
+        std::fabs(sprintDrain - kReferenceSprintDrain) <= 15.0f;
 }
 
 bool LooksLikeHorse(
     void* movement,
     void* owner,
+    float nativeGetMaxSpeed,
     float& maxWalkSpeed,
     float& maxAcceleration,
     float& sprintDrain
 ) {
-    if (!movement || !owner) {
+    if (!movement || !owner ||
+        !std::isfinite(nativeGetMaxSpeed) ||
+        nativeGetMaxSpeed < 900.0f ||
+        nativeGetMaxSpeed > 1700.0f) {
         return false;
     }
 
@@ -387,15 +437,22 @@ bool LooksLikeHorse(
         return false;
     }
 
-    const bool movementSignature =
-        std::fabs(maxWalkSpeed - kReferenceMaxWalkSpeed) <= 250.0f &&
-        std::fabs(maxAcceleration - kReferenceMaxAcceleration) <= 250.0f;
-
-    if (!movementSignature) {
+    if (std::fabs(maxWalkSpeed - kReferenceMaxWalkSpeed) > 120.0f ||
+        std::fabs(maxAcceleration - kReferenceMaxAcceleration) > 100.0f) {
         return false;
     }
 
-    return ReadHorseStamina(owner, sprintDrain);
+    float recovery = 0.0f;
+    float totalRecovery = 0.0f;
+    if (!ReadHorseStamina(
+            owner,
+            recovery,
+            totalRecovery,
+            sprintDrain)) {
+        return false;
+    }
+
+    return true;
 }
 
 void PublishCleared() {
@@ -490,7 +547,11 @@ void ApplyLocked() {
     }
 }
 
-bool TryCapture(void* movement, void* owner) {
+bool TryCapture(
+    void* movement,
+    void* owner,
+    float nativeGetMaxSpeed
+) {
     if (g_validated.load()) {
         return movement == g_movement.load();
     }
@@ -504,6 +565,7 @@ bool TryCapture(void* movement, void* owner) {
     if (!LooksLikeHorse(
             movement,
             owner,
+            nativeGetMaxSpeed,
             maxWalkSpeed,
             maxAcceleration,
             sprintDrain)) {
@@ -534,7 +596,7 @@ bool TryCapture(void* movement, void* owner) {
         g_lastHorseSeenTick.store(GetTickCount64());
 
         FeatureLog(
-            "HorseFeature: VALIDATED via base GetMaxSpeed movement=%p owner=%p "
+            "HorseFeature: VALIDATED movement=%p owner=%p "
             "MaxWalkSpeed=%.1f MaxAcceleration=%.1f sprintDrain=%.3f",
             movement,
             owner,
@@ -575,25 +637,18 @@ float HookBaseGetMaxSpeed(void* movement) {
         return native;
     }
 
-    TryCapture(movement, owner);
+    TryCapture(movement, owner, native);
     return native;
 }
 
-} // namespace
-
-bool Initialize(LogFn logger) {
-    g_logger = logger;
-
-    unsigned char* target = ResolveBaseGetMaxSpeed();
+bool InstallResolvedBaseHook(void* target) {
     if (!target) {
-        FeatureLog(
-            "HorseFeature: base hook unavailable; feature remains fail-open"
-        );
         return false;
     }
 
     const MH_STATUS initStatus = MH_Initialize();
-    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+    if (initStatus != MH_OK &&
+        initStatus != MH_ERROR_ALREADY_INITIALIZED) {
         FeatureLog(
             "HorseFeature: MinHook initialize failed status=%d",
             static_cast<int>(initStatus)
@@ -626,12 +681,26 @@ bool Initialize(LogFn logger) {
     }
 
     g_baseGetMaxSpeedTarget = target;
+    g_baseTargetTelemetry.store(target);
     g_baseHookReady.store(true);
+
+    auto* module =
+        reinterpret_cast<unsigned char*>(GetModuleHandleW(nullptr));
     FeatureLog(
-        "HorseFeature: base GetMaxSpeed hook READY "
-        "reference MaxWalkSpeed=1300 MaxAcceleration=600"
+        "HorseFeature: parent GetMaxSpeed hook READY RVA=0x%zX",
+        static_cast<std::size_t>(
+            reinterpret_cast<unsigned char*>(target) - module)
     );
     return true;
+}
+
+} // namespace
+
+void Initialize(LogFn logger) {
+    g_logger = logger;
+    FeatureLog(
+        "HorseFeature: waiting for validated player movement vtable anchor"
+    );
 }
 
 void SetSettings(const Settings& settings) {
@@ -639,6 +708,28 @@ void SetSettings(const Settings& settings) {
     g_speedMultiplier.store(settings.speedMultiplier);
     g_sprintDurationEnabled.store(settings.sprintDurationEnabled);
     g_sprintDurationMultiplier.store(settings.sprintDurationMultiplier);
+}
+
+void ObservePlayerMovement(
+    void* movementComponent,
+    void* playerGetMaxSpeedTarget
+) {
+    if (g_resolverAttempted.exchange(true)) {
+        return;
+    }
+
+    void* parentTarget = nullptr;
+    if (!ResolveParentGetMaxSpeed(
+            movementComponent,
+            playerGetMaxSpeedTarget,
+            &parentTarget)) {
+        FeatureLog(
+            "HorseFeature: parent GetMaxSpeed resolution failed; fail-open"
+        );
+        return;
+    }
+
+    InstallResolvedBaseHook(parentTarget);
 }
 
 void Tick() {
@@ -656,18 +747,21 @@ void Tick() {
 
 Telemetry GetTelemetry() {
     Telemetry t{};
+    t.resolverAttempted = g_resolverAttempted.load();
     t.baseHookReady = g_baseHookReady.load();
     t.movementValidated = g_validated.load();
     t.staminaReady = g_staminaReady.load();
     t.horseOwner = g_owner.load();
     t.horseMovement = g_movement.load();
+    t.baseGetMaxSpeedTarget = g_baseTargetTelemetry.load();
+    t.bestVtableScore = g_bestVtableScore.load();
+    t.secondVtableScore = g_secondVtableScore.load();
     t.nativeMaxWalkSpeed = g_nativeMaxWalkSpeed.load();
     t.appliedMaxWalkSpeed = g_appliedMaxWalkSpeed.load();
     t.nativeMaxAcceleration = g_nativeMaxAcceleration.load();
     t.appliedMaxAcceleration = g_appliedMaxAcceleration.load();
     t.nativeSprintDrain = g_nativeSprintDrain.load();
     t.appliedSprintDrain = g_appliedSprintDrain.load();
-    t.resolverMatches = g_resolverMatches.load();
     t.candidateChecks = g_candidateChecks.load();
     t.candidateMatches = g_candidateMatches.load();
     return t;
