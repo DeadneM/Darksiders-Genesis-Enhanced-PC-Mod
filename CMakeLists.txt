@@ -63,6 +63,7 @@ add_library(DarksidersGenesisMod SHARED
   src/HorseFeature.cpp
   src/OverlayUi.cpp
   src/RuntimeSettings.cpp
+  src/SkipLogosFeature.cpp
   src/TargetValidator.cpp
 )
 target_compile_definitions(DarksidersGenesisMod PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
@@ -86,7 +87,6 @@ set_target_properties(DarksidersGenesisMod PROPERTIES
 
 add_library(dxgi_proxy SHARED
   src/dxgi_proxy.cpp
-  src/EarlySkipLogos.cpp
 )
 target_compile_definitions(dxgi_proxy PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
 target_link_libraries(dxgi_proxy PRIVATE user32)
