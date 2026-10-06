@@ -492,6 +492,22 @@ void Draw(Context& c) {
             DrawSectionTitle("System");
 
             if (ImGui::Checkbox(
+                    "Skip Logos",
+                    &config.skipLogosEnabled)) {
+                config.Save();
+                *c.lastAction =
+                    std::string("Skip Logos ") +
+                    (config.skipLogosEnabled ? "ON" : "OFF") +
+                    " (restart required)";
+            }
+            ImGui::SameLine(310.0f);
+            ImGui::TextDisabled(
+                "Boot %s | blocked %ld | applies next launch",
+                t.skipLogosBootEnabled ? "ON" : "OFF",
+                t.skipLogosBlocked
+            );
+
+            if (ImGui::Checkbox(
                     "Skip Intro Videos",
                     &config.skipIntroEnabled)) {
                 config.Save();
