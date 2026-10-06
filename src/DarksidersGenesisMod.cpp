@@ -9,7 +9,6 @@
 #include "imgui_impl_win32.h"
 
 #include "HorseFeature.h"
-#include "StartupMoviesFeature.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -25,7 +24,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.15A-clean-horse-skiplogos-test";
+constexpr const char* kBuild = "0.15B-native-horse-early-startupmovies-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1942,30 +1941,13 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
     horseSettings.sprintDurationEnabled = g_config.horseSprintDurationEnabled;
     horseSettings.sprintDurationMultiplier = g_config.horseSprintDurationMultiplier;
     dg::horse::SetSettings(horseSettings);
-
-    void* localPlayer = g_localPlayerCharacter.load();
-    if (localPlayer) {
-        dg::horse::OnGetMaxSpeed(
-            movementComponent,
-            characterOwner,
-            localPlayer,
-            nativeSpeed
-        );
-    }
+    dg::horse::Tick();
 
     if (!IsLocallyControlledMayhemCharacter(characterOwner)) {
         return nativeSpeed;
     }
 
     g_localPlayerCharacter.store(characterOwner);
-
-    // Give the isolated HorseFeature the authoritative local-player pointer.
-    dg::horse::OnGetMaxSpeed(
-        movementComponent,
-        characterOwner,
-        characterOwner,
-        nativeSpeed
-    );
 
     ApplyPlayerMovementTunings(movementComponent);
 
@@ -3715,10 +3697,11 @@ void DrawOverlay() {
 
             ImGui::Indent();
             ImGui::TextDisabled(
-                "Mounted: %s | movement: %s | stamina: %s | checks %u / matches %u",
-                horseTelemetry.mounted ? "YES" : "NO",
+                "Base hook: %s | movement: %s | stamina: %s | resolver %u | checks %u / matches %u",
+                horseTelemetry.baseHookReady ? "READY" : "unavailable",
                 horseTelemetry.movementValidated ? "VALIDATED" : "waiting",
                 horseTelemetry.staminaReady ? "READY" : "waiting",
+                horseTelemetry.resolverMatches,
                 horseTelemetry.candidateChecks,
                 horseTelemetry.candidateMatches
             );
@@ -3790,26 +3773,23 @@ void DrawOverlay() {
                 ImGui::Unindent();
             }
 
-            if (ImGui::Checkbox("Skip Logos", &g_config.skipLogosEnabled)) {
-                g_config.Save();
-                dg::startup_movies::SetEnabled(g_config.skipLogosEnabled);
-                g_lastAction = std::string("Skip Logos ") +
-                    (g_config.skipLogosEnabled ? "ON" : "OFF");
-            }
+            const wchar_t* processCommandLine = GetCommandLineW();
+            const bool noStartupMoviesFlag =
+                processCommandLine &&
+                wcsstr(processCommandLine, L"-nostartupmovies") != nullptr;
+
+            bool skipLogosBootState = noStartupMoviesFlag;
+            ImGui::BeginDisabled();
+            ImGui::Checkbox("Skip Logos", &skipLogosBootState);
+            ImGui::EndDisabled();
             ImGui::SameLine(310.0f);
-            const dg::startup_movies::Telemetry logoTelemetry =
-                dg::startup_movies::GetTelemetry();
             ImGui::TextDisabled(
-                "%s | THQ + Airship startup movies only",
-                logoTelemetry.installed
-                    ? "Exact file hooks armed | restart tests boot logos"
-                    : "Startup movie hooks unavailable"
+                "%s | early UE4 -nostartupmovies boot flag | test forced ON",
+                noStartupMoviesFlag ? "ARMED" : "NOT PRESENT"
             );
             ImGui::Indent();
             ImGui::TextDisabled(
-                "Blocked file checks: %u | blocked opens: %u",
-                logoTelemetry.blockedAttributeChecks,
-                logoTelemetry.blockedOpens
+                "V0.15B validates the native startup-movie flag first; runtime toggle returns after proof."
             );
             ImGui::Unindent();
 
@@ -4177,13 +4157,18 @@ DWORD WINAPI MainThread(LPVOID) {
 
     g_config.Load();
 
-    dg::horse::Initialize(&FeatureLog);
-
-    if (!dg::startup_movies::Install(
-            g_config.skipLogosEnabled,
-            &FeatureLog)) {
-        Log("Skip Logos unavailable; continuing with remaining ASI features.");
+    if (!dg::horse::Initialize(&FeatureLog)) {
+        Log("Horse base GetMaxSpeed primitive unavailable; horse features remain fail-open.");
     }
+
+    const wchar_t* processCommandLine = GetCommandLineW();
+    Log(
+        "Skip Logos early boot flag: %s",
+        processCommandLine &&
+            wcsstr(processCommandLine, L"-nostartupmovies") != nullptr
+            ? "PRESENT"
+            : "MISSING"
+    );
 
     if (!InstallSkipIntroControl()) {
         Log("Skip Intro unavailable; continuing with remaining ASI features.");
