@@ -3,7 +3,6 @@
 #include <atomic>
 #include <cstring>
 
-#include <MinHook.h>
 
 static HMODULE g_self = nullptr;
 static HMODULE g_realDxgi = nullptr;
@@ -14,18 +13,21 @@ static INIT_ONCE g_skipLogosOnce = INIT_ONCE_STATIC_INIT;
 constexpr DWORD kSupportedSizeOfImage = 0x03DDF000;
 constexpr uintptr_t kSetupLoadingScreenFromIniRva = 0x0160BC50;
 
-using SetupLoadingScreenFromIniFn = void(*)(void* self);
-static SetupLoadingScreenFromIniFn g_originalSetupLoadingScreenFromIni = nullptr;
+static constexpr BYTE kExpectedPrefix[] = {
+    0x48,0x8B,0xC4,0x55,0x57,0x41,0x54,0x41,
+    0x56,0x41,0x57,0x48,0x8D,0x68,0xA1,0x48,
+    0x81,0xEC,0xB0,0x00,0x00,0x00,0x48,0xC7,
+    0x45,0xB7,0xFE,0xFF,0xFF,0xFF,0x48,0x89
+};
 
 static std::atomic_bool g_skipLogosTargetValid{false};
-static std::atomic_bool g_skipLogosInstalled{false};
 static std::atomic_bool g_skipLogosEnabled{true};
-static std::atomic_long g_setupCalls{0};
-static std::atomic_long g_skippedCalls{0};
+static std::atomic_bool g_skipLogosPatched{false};
 
 static bool ReadSkipLogosEnabledFromIni() {
     wchar_t modulePath[MAX_PATH]{};
-    if (!g_self || !GetModuleFileNameW(g_self, modulePath, MAX_PATH)) {
+    if (!g_self ||
+        !GetModuleFileNameW(g_self, modulePath, MAX_PATH)) {
         return true;
     }
 
@@ -40,125 +42,109 @@ static bool ReadSkipLogosEnabledFromIni() {
     lstrcatW(iniPath, L"DarksidersGenesisMod.ini");
 
     const int revision = GetPrivateProfileIntW(
-        L"Meta", L"ConfigRevision", 0, iniPath
+        L"Meta",
+        L"ConfigRevision",
+        0,
+        iniPath
     );
 
-    if (revision < 1806) {
+    if (revision < 1807) {
         return true;
     }
 
     return GetPrivateProfileIntW(
-        L"Features", L"SkipLogos", 1, iniPath
+        L"Features",
+        L"SkipLogos",
+        1,
+        iniPath
     ) != 0;
 }
 
-static bool ValidateNativeTarget(BYTE*& outTarget) {
-    outTarget = nullptr;
-
+static BYTE* ResolveValidatedTarget() {
     HMODULE mainModule = GetModuleHandleW(nullptr);
     if (!mainModule) {
-        return false;
+        return nullptr;
     }
 
     BYTE* base = reinterpret_cast<BYTE*>(mainModule);
-    const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
+    const auto* dos =
+        reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
     if (dos->e_magic != IMAGE_DOS_SIGNATURE) {
-        return false;
+        return nullptr;
     }
 
-    const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS64*>(
-        base + dos->e_lfanew
-    );
+    const auto* nt =
+        reinterpret_cast<const IMAGE_NT_HEADERS64*>(
+            base + dos->e_lfanew
+        );
+
     if (nt->Signature != IMAGE_NT_SIGNATURE ||
         nt->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC ||
         nt->OptionalHeader.SizeOfImage != kSupportedSizeOfImage) {
-        return false;
+        return nullptr;
     }
 
-    static constexpr BYTE kExpectedPrefix[] = {
-        0x48,0x8B,0xC4,0x55,0x57,0x41,0x54,0x41,
-        0x56,0x41,0x57,0x48,0x8D,0x68,0xA1,0x48,
-        0x81,0xEC,0xB0,0x00,0x00,0x00,0x48,0xC7,
-        0x45,0xB7,0xFE,0xFF,0xFF,0xFF,0x48,0x89
-    };
+    BYTE* target =
+        base + kSetupLoadingScreenFromIniRva;
 
-    BYTE* target = base + kSetupLoadingScreenFromIniRva;
+    if (target[0] != kExpectedPrefix[0] &&
+        target[0] != 0xC3) {
+        return nullptr;
+    }
+
     if (std::memcmp(
-            target,
-            kExpectedPrefix,
-            sizeof(kExpectedPrefix)
+            target + 1,
+            kExpectedPrefix + 1,
+            sizeof(kExpectedPrefix) - 1
         ) != 0) {
+        return nullptr;
+    }
+
+    return target;
+}
+
+static bool ApplySkipLogosPatch(bool enabled) {
+    BYTE* target = ResolveValidatedTarget();
+    if (!target) {
+        g_skipLogosTargetValid.store(false, std::memory_order_release);
+        g_skipLogosPatched.store(false, std::memory_order_release);
         return false;
-    }
-
-    outTarget = target;
-    return true;
-}
-
-static void HookSetupLoadingScreenFromIni(void* self) {
-    g_setupCalls.fetch_add(1, std::memory_order_relaxed);
-
-    if (g_skipLogosEnabled.load(std::memory_order_relaxed)) {
-        g_skippedCalls.fetch_add(1, std::memory_order_relaxed);
-        return;
-    }
-
-    if (g_originalSetupLoadingScreenFromIni) {
-        g_originalSetupLoadingScreenFromIni(self);
-    }
-}
-
-static BOOL CALLBACK InstallEarlySkipLogos(
-    PINIT_ONCE,
-    PVOID,
-    PVOID*
-) {
-    g_skipLogosEnabled.store(
-        ReadSkipLogosEnabledFromIni(),
-        std::memory_order_relaxed
-    );
-
-    BYTE* target = nullptr;
-    if (!ValidateNativeTarget(target)) {
-        return TRUE;
     }
 
     g_skipLogosTargetValid.store(true, std::memory_order_release);
 
-    const MH_STATUS init = MH_Initialize();
-    if (init != MH_OK &&
-        init != MH_ERROR_ALREADY_INITIALIZED) {
-        return TRUE;
+    const BYTE desired =
+        enabled ? BYTE{0xC3} : kExpectedPrefix[0];
+
+    if (target[0] != desired) {
+        DWORD oldProtect = 0;
+        if (!VirtualProtect(
+                target,
+                1,
+                PAGE_EXECUTE_READWRITE,
+                &oldProtect)) {
+            return false;
+        }
+
+        target[0] = desired;
+        FlushInstructionCache(
+            GetCurrentProcess(),
+            target,
+            1
+        );
+
+        DWORD ignored = 0;
+        VirtualProtect(
+            target,
+            1,
+            oldProtect,
+            &ignored
+        );
     }
 
-    MH_STATUS status = MH_CreateHook(
-        target,
-        reinterpret_cast<void*>(&HookSetupLoadingScreenFromIni),
-        reinterpret_cast<void**>(&g_originalSetupLoadingScreenFromIni)
-    );
-
-    if (status != MH_OK &&
-        status != MH_ERROR_ALREADY_CREATED) {
-        return TRUE;
-    }
-
-    status = MH_EnableHook(target);
-    if (status != MH_OK &&
-        status != MH_ERROR_ENABLED) {
-        return TRUE;
-    }
-
-    g_skipLogosInstalled.store(true, std::memory_order_release);
-    return TRUE;
-}
-
-static void EnsureEarlySkipLogos() {
-    InitOnceExecuteOnce(
-        &g_skipLogosOnce,
-        InstallEarlySkipLogos,
-        nullptr,
-        nullptr
-    );
+    g_skipLogosEnabled.store(enabled, std::memory_order_relaxed);
+    g_skipLogosPatched.store(enabled, std::memory_order_release);
+    return true;
 }
 
 static BOOL CALLBACK InitRealDxgi(PINIT_ONCE, PVOID, PVOID*) {
@@ -231,37 +217,34 @@ static T Resolve(const char* name) {
 
 extern "C" __declspec(dllexport)
 BOOL WINAPI DGSkipLogosTargetValid() {
-    return g_skipLogosTargetValid.load(std::memory_order_acquire) ? TRUE : FALSE;
+    return g_skipLogosTargetValid.load(
+        std::memory_order_acquire
+    ) ? TRUE : FALSE;
 }
 
 extern "C" __declspec(dllexport)
-BOOL WINAPI DGSkipLogosInstalled() {
-    return g_skipLogosInstalled.load(std::memory_order_acquire) ? TRUE : FALSE;
+BOOL WINAPI DGSkipLogosPatched() {
+    return g_skipLogosPatched.load(
+        std::memory_order_acquire
+    ) ? TRUE : FALSE;
 }
 
 extern "C" __declspec(dllexport)
 BOOL WINAPI DGSkipLogosEnabled() {
-    return g_skipLogosEnabled.load(std::memory_order_relaxed) ? TRUE : FALSE;
+    return g_skipLogosEnabled.load(
+        std::memory_order_relaxed
+    ) ? TRUE : FALSE;
 }
 
 extern "C" __declspec(dllexport)
-void WINAPI DGSetSkipLogosEnabled(BOOL enabled) {
-    g_skipLogosEnabled.store(enabled != FALSE, std::memory_order_relaxed);
-}
-
-extern "C" __declspec(dllexport)
-LONG WINAPI DGSkipLogosSetupCalls() {
-    return g_setupCalls.load(std::memory_order_relaxed);
-}
-
-extern "C" __declspec(dllexport)
-LONG WINAPI DGSkipLogosSkippedCalls() {
-    return g_skippedCalls.load(std::memory_order_relaxed);
+BOOL WINAPI DGSetSkipLogosEnabled(BOOL enabled) {
+    return ApplySkipLogosPatch(
+        enabled != FALSE
+    ) ? TRUE : FALSE;
 }
 
 extern "C" __declspec(dllexport)
 HRESULT WINAPI CreateDXGIFactory(REFIID riid, void** ppFactory) {
-    EnsureEarlySkipLogos();
     EnsureAsisLoaded();
     using Fn = HRESULT(WINAPI*)(REFIID, void**);
     Fn fn = Resolve<Fn>("CreateDXGIFactory");
@@ -270,7 +253,6 @@ HRESULT WINAPI CreateDXGIFactory(REFIID riid, void** ppFactory) {
 
 extern "C" __declspec(dllexport)
 HRESULT WINAPI CreateDXGIFactory1(REFIID riid, void** ppFactory) {
-    EnsureEarlySkipLogos();
     EnsureAsisLoaded();
     using Fn = HRESULT(WINAPI*)(REFIID, void**);
     Fn fn = Resolve<Fn>("CreateDXGIFactory1");
@@ -279,7 +261,6 @@ HRESULT WINAPI CreateDXGIFactory1(REFIID riid, void** ppFactory) {
 
 extern "C" __declspec(dllexport)
 HRESULT WINAPI CreateDXGIFactory2(UINT flags, REFIID riid, void** ppFactory) {
-    EnsureEarlySkipLogos();
     EnsureAsisLoaded();
     using Fn = HRESULT(WINAPI*)(UINT, REFIID, void**);
     Fn fn = Resolve<Fn>("CreateDXGIFactory2");
@@ -311,6 +292,12 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
     if (reason == DLL_PROCESS_ATTACH) {
         g_self = module;
         DisableThreadLibraryCalls(module);
+
+        // dxgi.dll is a normal executable import, so this runs before the
+        // game's entry point and before SetupLoadingScreenFromIni.
+        const bool enabled =
+            ReadSkipLogosEnabledFromIni();
+        ApplySkipLogosPatch(enabled);
     }
     return TRUE;
 }
