@@ -509,7 +509,7 @@ void Draw(Context& c) {
             }
             ImGui::SameLine(310.0f);
             ImGui::TextDisabled(
-                "EARLY %s | target %s | restart for boot effect",
+                "CUSTOM SPLASH %s | target %s | restart for boot effect",
                 t.skipLogosPatched ? "PATCHED" : "NATIVE",
                 t.skipLogosTargetValid ? "VALID" : "INVALID"
             );
