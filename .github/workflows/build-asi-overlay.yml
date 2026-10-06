@@ -53,7 +53,7 @@ jobs:
       - name: Upload test build
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_ASI_V0.15B_NATIVE_HORSE_EARLY_STARTUPMOVIES_TEST
+          name: DarksidersGenesis_ASI_V0.15C_VTABLE_HORSE_NATIVE_STARTUPMOVIES_TEST
           path: |
             dist/dxgi.dll
             dist/DarksidersGenesisMod.asi
