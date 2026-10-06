@@ -14,7 +14,7 @@ include(FetchContent)
 FetchContent_Declare(
   minhook
   GIT_REPOSITORY https://github.com/TsudaKageyu/minhook.git
-  GIT_TAG v1.3.4
+  GIT_TAG c3fcafdc10146beb5919319d0683e44e3c30d537
 )
 FetchContent_MakeAvailable(minhook)
 
@@ -38,7 +38,7 @@ endif()
 FetchContent_Declare(
   imgui
   GIT_REPOSITORY https://github.com/ocornut/imgui.git
-  GIT_TAG v1.91.8
+  GIT_TAG dbb5eeaadffb6a3ba6a60de1290312e5802dba5a
 )
 FetchContent_MakeAvailable(imgui)
 
