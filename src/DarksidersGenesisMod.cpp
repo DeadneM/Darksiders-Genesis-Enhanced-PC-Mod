@@ -30,7 +30,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.19D-skip-logos-validated";
+constexpr const char* kBuild = "0.20C-horse-getmaxspeed-return-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1191,6 +1191,20 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         characterOwner,
         nativeSpeed
     );
+
+    // V0.20C: if corrected reflection-based detection has proven this exact
+    // movement component is the horse, scale the virtual result here and
+    // return before local-pawn/player movement logic can interfere.
+    if (dg::horse::IsValidatedMovement(movementComponent) &&
+        runtime.horseSpeedEnabled.load(std::memory_order_relaxed) &&
+        nativeSpeed > 0.0f) {
+        const float horseMultiplier = ClampFloat(
+            runtime.horseSpeedMultiplier.load(std::memory_order_relaxed),
+            0.0f,
+            3.0f
+        );
+        return nativeSpeed * horseMultiplier;
+    }
 
     // Keep player identity exactly as the already validated V0.14F path:
     // locally controlled pawn -> local player.
