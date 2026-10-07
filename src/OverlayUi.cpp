@@ -396,8 +396,8 @@ void Draw(Context& c) {
                 1.25f,
                 "%.2fx",
                 horseTelemetry.validated
-                    ? "Direct player+0xE70 horse chain VALIDATED"
-                    : "Waiting for player+0xE70 -> horse direct chain"
+                    ? "Native War/Strife horse registry VALIDATED"
+                    : "Waiting for native horse spawn / owner-match"
             );
 
             DrawTunableFeature(
@@ -411,8 +411,8 @@ void Draw(Context& c) {
                 1.25f,
                 "%.2fx",
                 horseTelemetry.validated
-                    ? "Native IsSprinting +0x8D0 selects sprint multiplier"
-                    : "Waiting for direct horse detection"
+                    ? "Horse bSprinting +0x8D4"
+                    : "Waiting for registered horse movement"
             );
 
             DrawTunableFeature(
@@ -426,13 +426,13 @@ void Draw(Context& c) {
                 2.00f,
                 "%.2fx",
                 horseTelemetry.staminaReady
-                    ? "Direct horse StaminaSprintPercentageRate +0x918"
-                    : "Waiting for direct horse detection"
+                    ? "Horse StaminaSprintPercentageRate +0x920"
+                    : "Waiting for registered horse stamina"
             );
 
             ImGui::Indent();
             ImGui::TextDisabled(
-                "Horse: %s | direct chains %u | matches %u",
+                "Horse: %s | players registered %u | horses registered %u",
                 horseTelemetry.validated
                     ? "VALIDATED"
                     : "waiting",
