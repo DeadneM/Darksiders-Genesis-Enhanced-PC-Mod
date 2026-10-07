@@ -228,6 +228,21 @@ void RestoreLocked() {
     }
 
     WriteFloat(
+        g_horse.movement,
+        kMaxWalkSpeedOffset,
+        g_horse.maxWalkSpeed
+    );
+    WriteFloat(
+        g_horse.movement,
+        kMaxAccelerationOffset,
+        g_horse.maxAcceleration
+    );
+    WriteFloat(
+        g_horse.movement,
+        kBrakingFrictionFactorOffset,
+        g_horse.brakingFrictionFactor
+    );
+    WriteFloat(
         g_horse.horse,
         kStaminaSprintDrainOffset,
         g_horse.sprintDrain
@@ -274,6 +289,38 @@ void ApplyDurationLocked() {
             kStaminaSprintDrainOffset,
             targetDrain)) {
         g_appliedSprintDrain.store(targetDrain);
+    }
+}
+
+void ApplyMultiplierFieldsLocked() {
+    if (!g_horse.captured) {
+        return;
+    }
+
+    const float multiplier =
+        Clamp(g_speedMultiplier.load(), 0.0f, 3.0f);
+
+    const float targetWalk =
+        g_speedEnabled.load()
+            ? g_horse.maxWalkSpeed * multiplier
+            : g_horse.maxWalkSpeed;
+    const float targetAcceleration =
+        g_speedEnabled.load()
+            ? g_horse.maxAcceleration * multiplier
+            : g_horse.maxAcceleration;
+
+    if (WriteFloat(
+            g_horse.movement,
+            kMaxWalkSpeedOffset,
+            targetWalk)) {
+        g_appliedMaxWalkSpeed.store(targetWalk);
+    }
+
+    if (WriteFloat(
+            g_horse.movement,
+            kMaxAccelerationOffset,
+            targetAcceleration)) {
+        g_appliedMaxAcceleration.store(targetAcceleration);
     }
 }
 
@@ -478,6 +525,7 @@ bool CaptureDirectHorse(
     g_lastSeenTick.store(GetTickCount64());
 
     InstallHorseGetMaxSpeedHookLocked();
+    ApplyMultiplierFieldsLocked();
     ApplyDurationLocked();
 
     ReleaseSRWLockExclusive(&g_lock);
@@ -489,9 +537,9 @@ bool CaptureDirectHorse(
 void Initialize(LogFn logger) {
     g_logger = logger;
     FeatureLog(
-        "HorseFeature V0.22A: direct native chain armed "
-        "player+0xE70 -> horse, horse+0x158 -> movement, "
-        "horse+0x8D0 -> IsSprinting; no signature scan"
+        "HorseFeature V0.22C: direct native chain + multiplier fields armed "
+        "player+0xE70 -> horse, horse+0x158 -> movement; "
+        "walk/accel *= HorseSpeed; sprint selected by horse+0x8D0"
     );
 }
 
@@ -614,17 +662,11 @@ float AdjustSpeedResult(
     const bool sprinting = g_sprinting.load();
     float result = nativeGetMaxSpeed;
 
-    if (sprinting) {
-        if (g_sprintSpeedEnabled.load()) {
-            result *= Clamp(
-                g_sprintSpeedMultiplier.load(),
-                0.0f,
-                3.0f
-            );
-        }
-    } else if (g_speedEnabled.load()) {
+    // Normal speed uses direct MaxWalkSpeed / MaxAcceleration field
+    // multipliers. Sprint speed is independent and affects only native sprint.
+    if (sprinting && g_sprintSpeedEnabled.load()) {
         result *= Clamp(
-            g_speedMultiplier.load(),
+            g_sprintSpeedMultiplier.load(),
             0.0f,
             3.0f
         );
