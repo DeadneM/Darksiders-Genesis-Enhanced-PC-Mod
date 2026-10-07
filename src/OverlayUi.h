@@ -12,6 +12,7 @@ namespace dg::overlay {
 
 using ApplySkipIntroFn = bool(*)(bool);
 using ApplySkipLogosFn = bool(*)(bool);
+using ApplyGraphicsAdapterFn = bool(*)(int);
 using AbilityStateNameFn = const char*(*)(unsigned char);
 using LogFn = void(*)(const char*, ...);
 
@@ -67,6 +68,7 @@ struct Context {
 
     ApplySkipIntroFn applySkipIntro = nullptr;
     ApplySkipLogosFn applySkipLogos = nullptr;
+    ApplyGraphicsAdapterFn applyGraphicsAdapter = nullptr;
     AbilityStateNameFn abilityStateName = nullptr;
     LogFn log = nullptr;
 };
