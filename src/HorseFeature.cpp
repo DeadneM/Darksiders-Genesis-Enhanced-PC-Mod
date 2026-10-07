@@ -90,7 +90,7 @@ std::atomic<float> g_speedMultiplier{1.25f};
 std::atomic_bool g_sprintSpeedEnabled{true};
 std::atomic<float> g_sprintSpeedMultiplier{1.25f};
 std::atomic_bool g_sprintDurationEnabled{true};
-std::atomic<float> g_sprintDurationMultiplier{2.0f};
+std::atomic<float> g_sprintDurationMultiplier{5.0f};
 
 std::atomic_bool g_validated{false};
 std::atomic_bool g_staminaReady{false};
@@ -388,7 +388,7 @@ void ApplySlotLocked(HorseSlot& slot) {
     const float sprintMultiplier =
         Clamp(g_sprintSpeedMultiplier.load(), 0.0f, 3.0f);
     const float durationMultiplier =
-        Clamp(g_sprintDurationMultiplier.load(), 0.0f, 10.0f);
+        Clamp(g_sprintDurationMultiplier.load(), 0.0f, 20.0f);
 
     if (slot.movementReady) {
         const float targetWalk =
