@@ -52,7 +52,7 @@ jobs:
       - name: Upload test build
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_ASI_V0.19D_SKIP_LOGOS_VALIDATED
+          name: DarksidersGenesis_ASI_V0.20C_HORSE_GETMAXSPEED_RETURN_TEST
           path: |
             dist/dxgi.dll
             dist/DarksidersGenesisMod.asi
