@@ -1946,6 +1946,15 @@ dg::overlay::Context BuildOverlayContext() {
 
 HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) {
     ApplySkipIntroSetting(false);
+
+    // Direct horse detection must not depend on the horse sharing the player's
+    // GetMaxSpeed override. Poll the native player+0xE70 mount pointer every
+    // rendered frame using the stable player pointer captured on foot.
+    dg::horse::PollDirectHorse(
+        g_localPlayerCharacter.load(std::memory_order_relaxed)
+    );
+    dg::horse::Tick();
+
     ProcessInput();
     g_config.FlushIfDue(false);
 
