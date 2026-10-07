@@ -566,7 +566,7 @@ void Shutdown() {
 
 } // namespace dg::horse
 
-bool IsValidatedMovement(void* movementComponent) {
+bool dg::horse::IsValidatedMovement(void* movementComponent) {
     return
         movementComponent != nullptr &&
         g_validated.load() &&
