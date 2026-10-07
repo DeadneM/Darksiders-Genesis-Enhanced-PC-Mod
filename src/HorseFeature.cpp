@@ -11,7 +11,7 @@
 namespace dg::horse {
 namespace {
 
-constexpr std::size_t kPlayerHorseMountOffset = 0xE70;
+constexpr std::size_t kPlayerHorseMountOffset = 0xE78;
 constexpr std::size_t kHorseMovementOffset = 0x390;
 constexpr std::size_t kHorseIsSprintingOffset = 0x8D4;
 constexpr std::size_t kHorseSprintingMaxSpeedOffset = 0x760;
@@ -70,6 +70,7 @@ std::atomic<float> g_appliedSprintDrain{0.0f};
 std::atomic_uint32_t g_directChainsLogged{0};
 std::atomic_uint32_t g_directMatches{0};
 std::atomic_ullong g_lastSeenTick{0};
+std::atomic<void*> g_lastUnavailableHorse{nullptr};
 
 LogFn g_logger = nullptr;
 
@@ -358,7 +359,7 @@ void Initialize(LogFn logger) {
     g_logger = logger;
     FeatureLog(
         "HorseFeature V0.23B: reflected direct reference-PAK fields armed "
-        "player+0xE70 -> horse, horse+0x390 -> CharacterMovement, walk=1500 accel=700 brake=2.0, "
+        "player+0xE78 -> horse, horse+0x390 -> CharacterMovement, walk=1500 accel=700 brake=2.0, "
         "movement+0x190 owner, horse+0x760 SprintingMaxSpeed, "
         "horse+0x8D4 bSprinting, stamina recovery/total/drain=0x910/0x914/0x920"
     );
@@ -383,13 +384,17 @@ void PollDirectHorse(void* knownLocalPlayer) {
 
     void* horseMovement = nullptr;
     if (!ReadAt(horse, kHorseMovementOffset, horseMovement) || !horseMovement) {
+        if (g_lastUnavailableHorse.exchange(horse) == horse) {
+            return;
+        }
         FeatureLog(
-            "HorseFeature V0.23B: player+E70 horse=%p but horse+390 movement unavailable",
+            "HorseFeature V0.23B: player+E78 horse=%p but horse+390 movement unavailable",
             horse
         );
         return;
     }
 
+    g_lastUnavailableHorse.store(nullptr);
     CaptureDirectHorse(
         knownLocalPlayer,
         horse,
