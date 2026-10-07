@@ -422,11 +422,11 @@ void Draw(Context& c) {
                 &config.horseSprintDurationEnabled,
                 &config.horseSprintDurationMultiplier,
                 0.00f,
-                10.00f,
-                2.00f,
+                20.00f,
+                5.00f,
                 "%.2fx",
                 horseTelemetry.staminaReady
-                    ? "Native StaminaSprintPercentageRate +0x918"
+                    ? "0x = vanilla | native StaminaSprintPercentageRate +0x918"
                     : "Waiting for native horse stamina fields"
             );
 
