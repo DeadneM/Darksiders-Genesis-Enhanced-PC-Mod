@@ -1175,6 +1175,10 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         runtime.horseSpeedEnabled.load(std::memory_order_relaxed);
     horseSettings.speedMultiplier =
         runtime.horseSpeedMultiplier.load(std::memory_order_relaxed);
+    horseSettings.sprintSpeedEnabled =
+        runtime.horseSprintSpeedEnabled.load(std::memory_order_relaxed);
+    horseSettings.sprintSpeedMultiplier =
+        runtime.horseSprintSpeedMultiplier.load(std::memory_order_relaxed);
     horseSettings.sprintDurationEnabled =
         runtime.horseSprintDurationEnabled.load(std::memory_order_relaxed);
     horseSettings.sprintDurationMultiplier =
