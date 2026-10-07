@@ -52,7 +52,7 @@ jobs:
       - name: Upload test build
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_ASI_V0.22A_HORSE_DIRECT_NATIVE_CHAIN_TEST
+          name: DarksidersGenesis_ASI_V0.22B_HORSE_DIRECT_REFERENCE_PAK_TEST
           path: |
             dist/dxgi.dll
             dist/DarksidersGenesisMod.asi
