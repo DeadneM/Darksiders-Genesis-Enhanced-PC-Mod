@@ -896,3 +896,38 @@ the native sprint stamina drain rate rather than enlarging the stamina pool.
 V0.28 changes only the user-facing range/default for this validated feature:
 default `5.00x`, maximum `20.00x`. The native HorseCharacter detection path
 from V0.27 is retained unchanged.
+
+
+## V0.29 - Horse Speed / Sprint Speed native movement correction
+
+V0.29 keeps the validated V0.27 native `HorseCharacter` resolver and the
+validated V0.28 sprint-duration path, but fixes the remaining horse speed
+primitives.
+
+The retail UE4 reflection table proves the exact movement fields:
+
+```text
+UMayhemHorseCharacterMovementComponent / UCharacterMovementComponent
+
+MaxWalkSpeed            +0x1DC
+MaxWalkSpeedCrouched    +0x1E0
+MaxSwimSpeed            +0x1E4
+MaxFlySpeed             +0x1E8
+MaxCustomMovementSpeed  +0x1EC
+MaxAcceleration         +0x1F0
+MinAnalogWalkSpeed      +0x1F4
+BrakingFrictionFactor   +0x1F8
+BrakingFriction         +0x1FC
+
+UMayhemHorseCharacterMovementComponent
+SprintingMaxSpeed       +0x760
+```
+
+Previous horse candidates incorrectly wrote some of these neighboring fields.
+V0.29 also removes the invalid `movement+0x190 == horse` acceptance test:
+`HorseCharacter::GetNormalizedSpeed` already resolves the native movement
+component through its own virtual getter at vtable slot `+0x5F8`.
+
+Horse Speed now targets the real movement component's `MaxWalkSpeed` and
+`MaxAcceleration`; Horse Sprint Speed targets that same movement component's
+`SprintingMaxSpeed`.
