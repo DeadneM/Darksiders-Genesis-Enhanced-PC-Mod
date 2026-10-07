@@ -2,6 +2,8 @@
 
 #include "HorseFeature.h"
 
+#include <MinHook.h>
+
 #include <algorithm>
 #include <atomic>
 #include <cmath>
@@ -26,6 +28,7 @@ constexpr std::size_t kStaminaTotalRecoveryOffset = 0x914;
 constexpr std::size_t kStaminaSprintDrainOffset = 0x920;
 
 constexpr ULONGLONG kHorseLostTimeoutMs = 1500;
+constexpr std::size_t kGetMaxSpeedVtableOffset = 0x3D0;
 
 struct HorseState {
     void* player = nullptr;
@@ -71,6 +74,11 @@ std::atomic_uint32_t g_directChainsLogged{0};
 std::atomic_uint32_t g_directMatches{0};
 std::atomic_ullong g_lastSeenTick{0};
 
+using GetMaxSpeedFn = float(*)(void*);
+GetMaxSpeedFn g_originalHorseGetMaxSpeed = nullptr;
+void* g_horseGetMaxSpeedTarget = nullptr;
+bool g_ownsHorseHook = false;
+
 LogFn g_logger = nullptr;
 
 void FeatureLog(const char* fmt, ...) {
@@ -106,6 +114,21 @@ bool Writable(void* address, std::size_t bytes) {
     const DWORD protect = mbi.Protect & 0xFF;
     return protect == PAGE_READWRITE ||
            protect == PAGE_WRITECOPY ||
+           protect == PAGE_EXECUTE_READWRITE ||
+           protect == PAGE_EXECUTE_WRITECOPY;
+}
+
+bool ExecutableAddress(const void* address) {
+    if (!address) return false;
+    MEMORY_BASIC_INFORMATION mbi{};
+    if (!VirtualQuery(address, &mbi, sizeof(mbi))) return false;
+    if (mbi.State != MEM_COMMIT ||
+        (mbi.Protect & PAGE_GUARD) ||
+        (mbi.Protect & PAGE_NOACCESS)) return false;
+
+    const DWORD protect = mbi.Protect & 0xFF;
+    return protect == PAGE_EXECUTE ||
+           protect == PAGE_EXECUTE_READ ||
            protect == PAGE_EXECUTE_READWRITE ||
            protect == PAGE_EXECUTE_WRITECOPY;
 }
@@ -164,10 +187,6 @@ void RestoreLocked() {
         return;
     }
 
-    WriteFloat(g_horse.movement, kMaxWalkSpeedOffset, g_horse.maxWalkSpeed);
-    WriteFloat(g_horse.movement, kMaxAccelerationOffset, g_horse.maxAcceleration);
-    WriteFloat(g_horse.movement, kBrakingFrictionFactorOffset, g_horse.brakingFrictionFactor);
-    WriteFloat(g_horse.horse, kHorseSprintingMaxSpeedOffset, g_horse.sprintingMaxSpeed);
     WriteFloat(g_horse.horse, kStaminaSprintDrainOffset, g_horse.sprintDrain);
 }
 
@@ -176,7 +195,7 @@ void ClearHorse(const char* reason) {
     if (g_horse.captured) {
         RestoreLocked();
         if (reason) {
-            FeatureLog("HorseFeature V0.23A: released direct horse (%s)", reason);
+            FeatureLog("HorseFeature V0.23C: released direct horse (%s)", reason);
         }
     }
     g_horse = {};
@@ -187,25 +206,15 @@ void ClearHorse(const char* reason) {
 void ApplyFieldsLocked() {
     if (!g_horse.captured) return;
 
-    const float speedMultiplier =
-        Clamp(g_speedMultiplier.load(), 0.0f, 3.0f);
-    const float sprintMultiplier =
-        Clamp(g_sprintSpeedMultiplier.load(), 0.0f, 3.0f);
+    // V0.23C intentionally leaves all speed fields untouched. Only sprint
+    // duration remains a direct property write. Normal/sprint speed are
+    // applied exclusively to the native GetMaxSpeed return path.
+    g_appliedMaxWalkSpeed.store(g_horse.maxWalkSpeed);
+    g_appliedMaxAcceleration.store(g_horse.maxAcceleration);
+    g_appliedSprintingMaxSpeed.store(g_horse.sprintingMaxSpeed);
+
     const float durationMultiplier =
         Clamp(g_sprintDurationMultiplier.load(), 0.0f, 10.0f);
-
-    const float targetWalk =
-        g_speedEnabled.load()
-            ? g_horse.maxWalkSpeed * speedMultiplier
-            : g_horse.maxWalkSpeed;
-    const float targetAcceleration =
-        g_speedEnabled.load()
-            ? g_horse.maxAcceleration * speedMultiplier
-            : g_horse.maxAcceleration;
-    const float targetSprintMax =
-        g_sprintSpeedEnabled.load()
-            ? g_horse.sprintingMaxSpeed * sprintMultiplier
-            : g_horse.sprintingMaxSpeed;
 
     float targetDrain = g_horse.sprintDrain;
     if (g_sprintDurationEnabled.load()) {
@@ -215,18 +224,114 @@ void ApplyFieldsLocked() {
                 : g_horse.sprintDrain / durationMultiplier;
     }
 
-    if (WriteFloat(g_horse.movement, kMaxWalkSpeedOffset, targetWalk)) {
-        g_appliedMaxWalkSpeed.store(targetWalk);
-    }
-    if (WriteFloat(g_horse.movement, kMaxAccelerationOffset, targetAcceleration)) {
-        g_appliedMaxAcceleration.store(targetAcceleration);
-    }
-    if (WriteFloat(g_horse.horse, kHorseSprintingMaxSpeedOffset, targetSprintMax)) {
-        g_appliedSprintingMaxSpeed.store(targetSprintMax);
-    }
     if (WriteFloat(g_horse.horse, kStaminaSprintDrainOffset, targetDrain)) {
         g_appliedSprintDrain.store(targetDrain);
     }
+}
+
+float HookDedicatedHorseGetMaxSpeed(void* movementComponent) {
+    const float nativeSpeed =
+        g_originalHorseGetMaxSpeed
+            ? g_originalHorseGetMaxSpeed(movementComponent)
+            : 0.0f;
+
+    return AdjustSpeedResult(
+        movementComponent,
+        nativeSpeed
+    );
+}
+
+bool InstallDedicatedHorseHookLocked() {
+    if (!g_horse.captured || !g_horse.movement) return false;
+
+    if (!Readable(g_horse.movement, sizeof(void*))) return false;
+    void** vtable = *reinterpret_cast<void***>(g_horse.movement);
+    if (!vtable) return false;
+
+    const std::size_t slot =
+        kGetMaxSpeedVtableOffset / sizeof(void*);
+    if (!Readable(vtable + slot, sizeof(void*))) return false;
+
+    void* target = vtable[slot];
+    if (!ExecutableAddress(target)) {
+        FeatureLog(
+            "HorseFeature V0.23C: GetMaxSpeed target invalid movement=%p target=%p",
+            g_horse.movement,
+            target
+        );
+        return false;
+    }
+
+    if (target == g_horseGetMaxSpeedTarget) {
+        return true;
+    }
+
+    if (g_ownsHorseHook && g_horseGetMaxSpeedTarget) {
+        MH_DisableHook(g_horseGetMaxSpeedTarget);
+        MH_RemoveHook(g_horseGetMaxSpeedTarget);
+        g_ownsHorseHook = false;
+        g_horseGetMaxSpeedTarget = nullptr;
+        g_originalHorseGetMaxSpeed = nullptr;
+    }
+
+    const MH_STATUS initStatus = MH_Initialize();
+    if (initStatus != MH_OK &&
+        initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+        FeatureLog(
+            "HorseFeature V0.23C: MinHook init FAILED status=%d",
+            static_cast<int>(initStatus)
+        );
+        return false;
+    }
+
+    GetMaxSpeedFn original = nullptr;
+    const MH_STATUS createStatus = MH_CreateHook(
+        target,
+        reinterpret_cast<LPVOID>(&HookDedicatedHorseGetMaxSpeed),
+        reinterpret_cast<LPVOID*>(&original)
+    );
+
+    if (createStatus == MH_ERROR_ALREADY_CREATED) {
+        g_horseGetMaxSpeedTarget = target;
+        g_ownsHorseHook = false;
+        FeatureLog(
+            "HorseFeature V0.23C: GetMaxSpeed target=%p already hooked; shared hook path will adjust direct horse",
+            target
+        );
+        return true;
+    }
+
+    if (createStatus != MH_OK) {
+        FeatureLog(
+            "HorseFeature V0.23C: GetMaxSpeed create FAILED target=%p status=%d",
+            target,
+            static_cast<int>(createStatus)
+        );
+        return false;
+    }
+
+    const MH_STATUS enableStatus = MH_EnableHook(target);
+    if (enableStatus != MH_OK &&
+        enableStatus != MH_ERROR_ENABLED) {
+        MH_RemoveHook(target);
+        FeatureLog(
+            "HorseFeature V0.23C: GetMaxSpeed enable FAILED target=%p status=%d",
+            target,
+            static_cast<int>(enableStatus)
+        );
+        return false;
+    }
+
+    g_originalHorseGetMaxSpeed = original;
+    g_horseGetMaxSpeedTarget = target;
+    g_ownsHorseHook = true;
+
+    FeatureLog(
+        "HorseFeature V0.23C: dedicated horse GetMaxSpeed READY movement=%p target=%p slot=0x3D0",
+        g_horse.movement,
+        target
+    );
+    return true;
 }
 
 bool CaptureDirectHorse(
@@ -258,7 +363,7 @@ bool CaptureDirectHorse(
 
     if (!ok) {
         FeatureLog(
-            "HorseFeature V0.23A: DIRECT CAPTURE REJECTED "
+            "HorseFeature V0.23C: DIRECT CAPTURE REJECTED "
             "player=%p horse=%p movement=%p ownerBack=%p ownerMatch=%d",
             knownLocalPlayer,
             horse,
@@ -274,7 +379,7 @@ bool CaptureDirectHorse(
         sprintingMaxSpeed <= 0.0f ||
         sprintDrain < 0.0f) {
         FeatureLog(
-            "HorseFeature V0.23A: DIRECT VALUES REJECTED "
+            "HorseFeature V0.23C: DIRECT VALUES REJECTED "
             "walk=%.3f accel=%.3f sprintMax=%.3f drain=%.3f",
             maxWalkSpeed,
             maxAcceleration,
@@ -307,7 +412,7 @@ bool CaptureDirectHorse(
         g_directMatches.fetch_add(1);
 
         FeatureLog(
-            "HorseFeature V0.23A: DIRECT VALIDATED "
+            "HorseFeature V0.23C: DIRECT VALIDATED "
             "player=%p horse=%p movement=%p ownerMatch=1 "
             "walk=%.1f accel=%.1f brake=%.2f sprintMax=%.1f "
             "sprinting=%u stamina=[recovery %.1f total %.1f drain %.1f]",
@@ -337,6 +442,7 @@ bool CaptureDirectHorse(
     g_nativeSprintDrain.store(g_horse.sprintDrain);
     g_lastSeenTick.store(GetTickCount64());
 
+    InstallDedicatedHorseHookLocked();
     ApplyFieldsLocked();
 
     ReleaseSRWLockExclusive(&g_lock);
@@ -348,7 +454,7 @@ bool CaptureDirectHorse(
 void Initialize(LogFn logger) {
     g_logger = logger;
     FeatureLog(
-        "HorseFeature V0.23A: reflected direct fields armed "
+        "HorseFeature V0.23C: corrected direct horse + dedicated GetMaxSpeed armed "
         "player+0xE70 -> horse, horse+0x390 -> CharacterMovement, "
         "movement+0x190 owner, horse+0x760 SprintingMaxSpeed, "
         "horse+0x8D4 bSprinting, stamina recovery/total/drain=0x910/0x914/0x920"
@@ -375,7 +481,7 @@ void PollDirectHorse(void* knownLocalPlayer) {
     void* horseMovement = nullptr;
     if (!ReadAt(horse, kHorseMovementOffset, horseMovement) || !horseMovement) {
         FeatureLog(
-            "HorseFeature V0.23A: player+E70 horse=%p but horse+390 movement unavailable",
+            "HorseFeature V0.23C: player+E70 horse=%p but horse+390 movement unavailable",
             horse
         );
         return;
@@ -419,13 +525,39 @@ float AdjustSpeedResult(
     void* movementComponent,
     float nativeGetMaxSpeed
 ) {
-    if (movementComponent &&
-        g_validated.load() &&
-        movementComponent == g_movement.load()) {
-        g_nativeGetMaxSpeed.store(nativeGetMaxSpeed);
-        g_appliedGetMaxSpeed.store(nativeGetMaxSpeed);
+    if (!movementComponent ||
+        !g_validated.load() ||
+        movementComponent != g_movement.load() ||
+        nativeGetMaxSpeed <= 0.0f) {
+        return nativeGetMaxSpeed;
     }
-    return nativeGetMaxSpeed;
+
+    unsigned char sprinting = 0;
+    if (ReadAt(g_owner.load(), kHorseIsSprintingOffset, sprinting)) {
+        g_sprinting.store(sprinting != 0);
+    }
+
+    float result = nativeGetMaxSpeed;
+    if (g_sprinting.load()) {
+        if (g_sprintSpeedEnabled.load()) {
+            result *= Clamp(
+                g_sprintSpeedMultiplier.load(),
+                0.0f,
+                3.0f
+            );
+        }
+    } else if (g_speedEnabled.load()) {
+        result *= Clamp(
+            g_speedMultiplier.load(),
+            0.0f,
+            3.0f
+        );
+    }
+
+    g_nativeGetMaxSpeed.store(nativeGetMaxSpeed);
+    g_appliedGetMaxSpeed.store(result);
+    g_lastSeenTick.store(GetTickCount64());
+    return result;
 }
 
 void Tick() {
@@ -469,6 +601,13 @@ bool IsValidatedMovement(void* movementComponent) {
 }
 
 void Shutdown() {
+    if (g_ownsHorseHook && g_horseGetMaxSpeedTarget) {
+        MH_DisableHook(g_horseGetMaxSpeedTarget);
+        MH_RemoveHook(g_horseGetMaxSpeedTarget);
+        g_ownsHorseHook = false;
+        g_horseGetMaxSpeedTarget = nullptr;
+        g_originalHorseGetMaxSpeed = nullptr;
+    }
     ClearHorse("shutdown");
 }
 
