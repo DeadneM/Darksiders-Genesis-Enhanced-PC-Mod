@@ -176,7 +176,7 @@ void ClearHorse(const char* reason) {
     if (g_horse.captured) {
         RestoreLocked();
         if (reason) {
-            FeatureLog("HorseFeature V0.23A: released direct horse (%s)", reason);
+            FeatureLog("HorseFeature V0.23B: released direct horse (%s)", reason);
         }
     }
     g_horse = {};
@@ -196,12 +196,16 @@ void ApplyFieldsLocked() {
 
     const float targetWalk =
         g_speedEnabled.load()
-            ? g_horse.maxWalkSpeed * speedMultiplier
+            ? 1500.0f
             : g_horse.maxWalkSpeed;
     const float targetAcceleration =
         g_speedEnabled.load()
-            ? g_horse.maxAcceleration * speedMultiplier
+            ? 700.0f
             : g_horse.maxAcceleration;
+    const float targetBraking =
+        g_speedEnabled.load()
+            ? 2.0f
+            : g_horse.brakingFrictionFactor;
     const float targetSprintMax =
         g_sprintSpeedEnabled.load()
             ? g_horse.sprintingMaxSpeed * sprintMultiplier
@@ -221,6 +225,11 @@ void ApplyFieldsLocked() {
     if (WriteFloat(g_horse.movement, kMaxAccelerationOffset, targetAcceleration)) {
         g_appliedMaxAcceleration.store(targetAcceleration);
     }
+    WriteFloat(
+        g_horse.movement,
+        kBrakingFrictionFactorOffset,
+        targetBraking
+    );
     if (WriteFloat(g_horse.horse, kHorseSprintingMaxSpeedOffset, targetSprintMax)) {
         g_appliedSprintingMaxSpeed.store(targetSprintMax);
     }
@@ -258,7 +267,7 @@ bool CaptureDirectHorse(
 
     if (!ok) {
         FeatureLog(
-            "HorseFeature V0.23A: DIRECT CAPTURE REJECTED "
+            "HorseFeature V0.23B: DIRECT CAPTURE REJECTED "
             "player=%p horse=%p movement=%p ownerBack=%p ownerMatch=%d",
             knownLocalPlayer,
             horse,
@@ -274,7 +283,7 @@ bool CaptureDirectHorse(
         sprintingMaxSpeed <= 0.0f ||
         sprintDrain < 0.0f) {
         FeatureLog(
-            "HorseFeature V0.23A: DIRECT VALUES REJECTED "
+            "HorseFeature V0.23B: DIRECT VALUES REJECTED "
             "walk=%.3f accel=%.3f sprintMax=%.3f drain=%.3f",
             maxWalkSpeed,
             maxAcceleration,
@@ -307,7 +316,7 @@ bool CaptureDirectHorse(
         g_directMatches.fetch_add(1);
 
         FeatureLog(
-            "HorseFeature V0.23A: DIRECT VALIDATED "
+            "HorseFeature V0.23B: DIRECT VALIDATED "
             "player=%p horse=%p movement=%p ownerMatch=1 "
             "walk=%.1f accel=%.1f brake=%.2f sprintMax=%.1f "
             "sprinting=%u stamina=[recovery %.1f total %.1f drain %.1f]",
@@ -348,8 +357,8 @@ bool CaptureDirectHorse(
 void Initialize(LogFn logger) {
     g_logger = logger;
     FeatureLog(
-        "HorseFeature V0.23A: reflected direct fields armed "
-        "player+0xE70 -> horse, horse+0x390 -> CharacterMovement, "
+        "HorseFeature V0.23B: reflected direct reference-PAK fields armed "
+        "player+0xE70 -> horse, horse+0x390 -> CharacterMovement, walk=1500 accel=700 brake=2.0, "
         "movement+0x190 owner, horse+0x760 SprintingMaxSpeed, "
         "horse+0x8D4 bSprinting, stamina recovery/total/drain=0x910/0x914/0x920"
     );
@@ -375,7 +384,7 @@ void PollDirectHorse(void* knownLocalPlayer) {
     void* horseMovement = nullptr;
     if (!ReadAt(horse, kHorseMovementOffset, horseMovement) || !horseMovement) {
         FeatureLog(
-            "HorseFeature V0.23A: player+E70 horse=%p but horse+390 movement unavailable",
+            "HorseFeature V0.23B: player+E70 horse=%p but horse+390 movement unavailable",
             horse
         );
         return;
