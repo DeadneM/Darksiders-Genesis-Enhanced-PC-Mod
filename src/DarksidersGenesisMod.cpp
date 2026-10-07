@@ -30,7 +30,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.21A-horse-reflection-fields-test";
+constexpr const char* kBuild = "0.21C-horse-split-runtime-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1199,6 +1199,15 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
     // Once the exact horse signature has proven this movement component,
     // do not let APawn::IsLocallyControlled reclassify the mount as the player.
     if (dg::horse::IsValidatedMovement(movementComponent)) {
+        if (runtime.horseSpeedEnabled.load(std::memory_order_relaxed) &&
+            nativeSpeed > 0.0f) {
+            const float horseMultiplier = ClampFloat(
+                runtime.horseSpeedMultiplier.load(std::memory_order_relaxed),
+                0.0f,
+                3.0f
+            );
+            return nativeSpeed * horseMultiplier;
+        }
         return nativeSpeed;
     }
 
