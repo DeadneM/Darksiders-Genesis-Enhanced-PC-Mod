@@ -15,8 +15,9 @@ namespace {
 constexpr std::size_t kCharacterOwnerOffset = 0x190;
 constexpr std::size_t kJumpZOffset = 0x1A0;
 constexpr std::size_t kMovementModeOffset = 0x1B0;
-constexpr std::size_t kMaxWalkSpeedOffset = 0x1D4;
-constexpr std::size_t kMaxAccelerationOffset = 0x1E8;
+constexpr std::size_t kMaxWalkSpeedOffset = 0x1DC;
+constexpr std::size_t kMaxAccelerationOffset = 0x1F0;
+constexpr std::size_t kBrakingFrictionFactorOffset = 0x1F8;
 
 constexpr std::size_t kStaminaRecoveryOffset = 0x910;
 constexpr std::size_t kStaminaTotalRecoveryOffset = 0x914;
@@ -36,6 +37,7 @@ struct HorseState {
     void* movement = nullptr;
     float maxWalkSpeed = 0.0f;
     float maxAcceleration = 0.0f;
+    float brakingFrictionFactor = 0.0f;
     float sprintDrain = 0.0f;
     bool captured = false;
 };
@@ -214,6 +216,7 @@ void LogCandidateOnce(
     float jumpZ = 0.0f;
     float maxWalkSpeed = 0.0f;
     float maxAcceleration = 0.0f;
+    float brakingFrictionFactor = 0.0f;
     float recovery = 0.0f;
     float totalRecovery = 0.0f;
     float sprintDrain = 0.0f;
@@ -289,6 +292,7 @@ void RestoreLocked() {
     void* ownerBack = nullptr;
     float currentWalk = 0.0f;
     float currentAcceleration = 0.0f;
+    float currentBraking = 0.0f;
     float currentDrain = 0.0f;
 
     const bool stillSameHorse =
@@ -305,6 +309,10 @@ void RestoreLocked() {
             g_horse.movement,
             kMaxAccelerationOffset,
             currentAcceleration) &&
+        ReadFloat(
+            g_horse.movement,
+            kBrakingFrictionFactorOffset,
+            currentBraking) &&
         ReadFloat(
             g_horse.owner,
             kStaminaSprintDrainOffset,
@@ -326,6 +334,11 @@ void RestoreLocked() {
         g_horse.movement,
         kMaxAccelerationOffset,
         g_horse.maxAcceleration
+    );
+    WriteFloat(
+        g_horse.movement,
+        kBrakingFrictionFactorOffset,
+        g_horse.brakingFrictionFactor
     );
     WriteFloat(
         g_horse.owner,
@@ -385,6 +398,17 @@ void ApplyLocked() {
         g_appliedMaxAcceleration.store(targetAcceleration);
     }
 
+    const float targetBraking =
+        g_speedEnabled.load()
+            ? 2.0f
+            : g_horse.brakingFrictionFactor;
+
+    WriteFloat(
+        g_horse.movement,
+        kBrakingFrictionFactorOffset,
+        targetBraking
+    );
+
     const float durationMultiplier =
         Clamp(g_sprintDurationMultiplier.load(), 0.0f, 10.0f);
 
@@ -424,6 +448,10 @@ bool TryCaptureHorse(
             kMaxAccelerationOffset,
             maxAcceleration) ||
         !ReadFloat(
+            movement,
+            kBrakingFrictionFactorOffset,
+            brakingFrictionFactor) ||
+        !ReadFloat(
             owner,
             kStaminaRecoveryOffset,
             recovery) ||
@@ -443,7 +471,9 @@ bool TryCaptureHorse(
             maxAcceleration,
             recovery,
             totalRecovery,
-            sprintDrain)) {
+            sprintDrain) ||
+        brakingFrictionFactor < 0.05f ||
+        brakingFrictionFactor > 10.0f) {
         return false;
     }
 
@@ -454,6 +484,7 @@ bool TryCaptureHorse(
         g_horse.movement = movement;
         g_horse.maxWalkSpeed = maxWalkSpeed;
         g_horse.maxAcceleration = maxAcceleration;
+        g_horse.brakingFrictionFactor = brakingFrictionFactor;
         g_horse.sprintDrain = sprintDrain;
         g_horse.captured = true;
 
@@ -471,13 +502,14 @@ bool TryCaptureHorse(
 
         FeatureLog(
             "HorseFeature: VALIDATED shared-hook movement=%p owner=%p "
-            "nativeGetMaxSpeed=%.1f walk=%.1f accel=%.1f "
+            "nativeGetMaxSpeed=%.1f walk=%.1f accel=%.1f brake=%.2f "
             "stamina=[%.1f,%.1f,%.1f]",
             movement,
             owner,
             nativeGetMaxSpeed,
             maxWalkSpeed,
             maxAcceleration,
+            brakingFrictionFactor,
             recovery,
             totalRecovery,
             sprintDrain
@@ -499,8 +531,8 @@ bool TryCaptureHorse(
 void Initialize(LogFn logger) {
     g_logger = logger;
     FeatureLog(
-        "HorseFeature: shared validated GetMaxSpeed observer armed; "
-        "no extra hook / no actor scan"
+        "HorseFeature V0.20B: reference-PAK trio armed "
+        "walk=0x1DC accel=0x1F0 brake=0x1F8 -> brake target 2.0"
     );
 }
 
