@@ -931,3 +931,29 @@ component through its own virtual getter at vtable slot `+0x5F8`.
 Horse Speed now targets the real movement component's `MaxWalkSpeed` and
 `MaxAcceleration`; Horse Sprint Speed targets that same movement component's
 `SprintingMaxSpeed`.
+
+
+## V0.30 - Graphics Adapter Engine.ini control
+
+V0.30 adds a small system setting for selecting Unreal Engine's graphics
+adapter index.
+
+The overlay exposes values `0` through `4` with `0` as the default.
+The selected value is persisted in `DarksidersGenesisMod.ini` and written to:
+
+```text
+%LOCALAPPDATA%\THQ Nordic\Darksiders Genesis\Saved\Config\WindowsNoEditor\Engine.ini
+```
+
+The mod writes exactly:
+
+```ini
+[SystemSettings]
+r.GraphicsAdapter=N
+```
+
+If `[SystemSettings]` or `r.GraphicsAdapter` does not exist, it is created.
+If the key already exists, only its value is updated through the Win32 INI API.
+Other Engine.ini settings are preserved.
+
+A game restart is required for adapter selection to affect device creation.
