@@ -2,6 +2,8 @@
 
 #include "HorseFeature.h"
 
+#include <MinHook.h>
+
 #include <algorithm>
 #include <atomic>
 #include <cmath>
@@ -25,6 +27,7 @@ constexpr std::size_t kStaminaTotalRecoveryOffset = 0x910;
 constexpr std::size_t kStaminaSprintDrainOffset = 0x918;
 
 constexpr ULONGLONG kHorseLostTimeoutMs = 1500;
+constexpr std::size_t kGetMaxSpeedVtableOffset = 0x3D0;
 
 struct HorseState {
     void* player = nullptr;
@@ -66,6 +69,12 @@ std::atomic<float> g_appliedSprintDrain{0.0f};
 std::atomic_uint32_t g_directChainsLogged{0};
 std::atomic_uint32_t g_directMatches{0};
 std::atomic_ullong g_lastSeenTick{0};
+std::atomic_bool g_directChainSeenLogged{false};
+
+using GetMaxSpeedFn = float(*)(void*);
+GetMaxSpeedFn g_originalHorseGetMaxSpeed = nullptr;
+void* g_horseGetMaxSpeedTarget = nullptr;
+bool g_ownsHorseGetMaxSpeedHook = false;
 
 LogFn g_logger = nullptr;
 
@@ -121,6 +130,26 @@ bool Writable(void* address, std::size_t bytes) {
     const DWORD protect = mbi.Protect & 0xFF;
     return protect == PAGE_READWRITE ||
            protect == PAGE_WRITECOPY ||
+           protect == PAGE_EXECUTE_READWRITE ||
+           protect == PAGE_EXECUTE_WRITECOPY;
+}
+
+bool ExecutableAddress(const void* address) {
+    if (!address) {
+        return false;
+    }
+
+    MEMORY_BASIC_INFORMATION mbi{};
+    if (!VirtualQuery(address, &mbi, sizeof(mbi)) ||
+        mbi.State != MEM_COMMIT ||
+        (mbi.Protect & PAGE_GUARD) ||
+        (mbi.Protect & PAGE_NOACCESS)) {
+        return false;
+    }
+
+    const DWORD protect = mbi.Protect & 0xFF;
+    return protect == PAGE_EXECUTE ||
+           protect == PAGE_EXECUTE_READ ||
            protect == PAGE_EXECUTE_READWRITE ||
            protect == PAGE_EXECUTE_WRITECOPY;
 }
@@ -248,6 +277,125 @@ void ApplyDurationLocked() {
     }
 }
 
+float HookDedicatedHorseGetMaxSpeed(void* movementComponent) {
+    const float nativeSpeed =
+        g_originalHorseGetMaxSpeed
+            ? g_originalHorseGetMaxSpeed(movementComponent)
+            : 0.0f;
+
+    void* horse = g_owner.load(std::memory_order_relaxed);
+    unsigned char sprinting = 0;
+    if (horse &&
+        ReadAt(horse, kHorseIsSprintingOffset, sprinting)) {
+        g_sprinting.store(
+            sprinting != 0,
+            std::memory_order_relaxed
+        );
+    }
+
+    return AdjustSpeedResult(
+        movementComponent,
+        nativeSpeed
+    );
+}
+
+bool InstallHorseGetMaxSpeedHookLocked() {
+    if (!g_horse.captured || !g_horse.movement) {
+        return false;
+    }
+
+    if (!Readable(g_horse.movement, sizeof(void*))) {
+        return false;
+    }
+
+    void** vtable =
+        *reinterpret_cast<void***>(g_horse.movement);
+    if (!vtable ||
+        !Readable(
+            vtable + (kGetMaxSpeedVtableOffset / sizeof(void*)),
+            sizeof(void*))) {
+        return false;
+    }
+
+    void* target =
+        vtable[kGetMaxSpeedVtableOffset / sizeof(void*)];
+    if (!ExecutableAddress(target)) {
+        FeatureLog(
+            "HorseFeature V0.22A: horse GetMaxSpeed target invalid movement=%p target=%p",
+            g_horse.movement,
+            target
+        );
+        return false;
+    }
+
+    if (target == g_horseGetMaxSpeedTarget) {
+        return true;
+    }
+
+    if (g_ownsHorseGetMaxSpeedHook &&
+        g_horseGetMaxSpeedTarget) {
+        MH_DisableHook(g_horseGetMaxSpeedTarget);
+        MH_RemoveHook(g_horseGetMaxSpeedTarget);
+        g_ownsHorseGetMaxSpeedHook = false;
+        g_originalHorseGetMaxSpeed = nullptr;
+        g_horseGetMaxSpeedTarget = nullptr;
+    }
+
+    GetMaxSpeedFn original = nullptr;
+    const MH_STATUS createStatus = MH_CreateHook(
+        target,
+        reinterpret_cast<LPVOID>(
+            &HookDedicatedHorseGetMaxSpeed
+        ),
+        reinterpret_cast<LPVOID*>(&original)
+    );
+
+    if (createStatus == MH_ERROR_ALREADY_CREATED) {
+        // This means the horse shares the already installed Mayhem movement
+        // target. DarksidersGenesisMod's existing hook will call
+        // AdjustSpeedResult once the direct horse chain is validated.
+        g_horseGetMaxSpeedTarget = target;
+        g_ownsHorseGetMaxSpeedHook = false;
+        FeatureLog(
+            "HorseFeature V0.22A: horse GetMaxSpeed target=%p already hooked; using shared movement hook",
+            target
+        );
+        return true;
+    }
+
+    if (createStatus != MH_OK) {
+        FeatureLog(
+            "HorseFeature V0.22A: dedicated horse GetMaxSpeed create FAILED target=%p status=%d",
+            target,
+            static_cast<int>(createStatus)
+        );
+        return false;
+    }
+
+    const MH_STATUS enableStatus = MH_EnableHook(target);
+    if (enableStatus != MH_OK &&
+        enableStatus != MH_ERROR_ENABLED) {
+        MH_RemoveHook(target);
+        FeatureLog(
+            "HorseFeature V0.22A: dedicated horse GetMaxSpeed enable FAILED target=%p status=%d",
+            target,
+            static_cast<int>(enableStatus)
+        );
+        return false;
+    }
+
+    g_originalHorseGetMaxSpeed = original;
+    g_horseGetMaxSpeedTarget = target;
+    g_ownsHorseGetMaxSpeedHook = true;
+
+    FeatureLog(
+        "HorseFeature V0.22A: dedicated horse GetMaxSpeed READY movement=%p target=%p vtableSlot=0x3D0",
+        g_horse.movement,
+        target
+    );
+    return true;
+}
+
 bool CaptureDirectHorse(
     void* knownLocalPlayer,
     void* horse,
@@ -294,7 +442,6 @@ bool CaptureDirectHorse(
         g_horse.captured = true;
 
         g_directMatches.fetch_add(1);
-        g_directChainsLogged.fetch_add(1);
 
         FeatureLog(
             "HorseFeature V0.22A: DIRECT VALIDATED "
@@ -320,7 +467,9 @@ bool CaptureDirectHorse(
     g_player.store(knownLocalPlayer);
     g_owner.store(horse);
     g_movement.store(movement);
-    g_nativeGetMaxSpeed.store(nativeGetMaxSpeed);
+    if (nativeGetMaxSpeed > 0.0f) {
+        g_nativeGetMaxSpeed.store(nativeGetMaxSpeed);
+    }
     g_nativeMaxWalkSpeed.store(g_horse.maxWalkSpeed);
     g_appliedMaxWalkSpeed.store(g_horse.maxWalkSpeed);
     g_nativeMaxAcceleration.store(g_horse.maxAcceleration);
@@ -328,6 +477,7 @@ bool CaptureDirectHorse(
     g_nativeSprintDrain.store(g_horse.sprintDrain);
     g_lastSeenTick.store(GetTickCount64());
 
+    InstallHorseGetMaxSpeedHookLocked();
     ApplyDurationLocked();
 
     ReleaseSRWLockExclusive(&g_lock);
@@ -356,15 +506,8 @@ void SetSettings(const Settings& settings) {
     );
 }
 
-void ObserveMovement(
-    void* movementComponent,
-    void* characterOwner,
-    void* knownLocalPlayer,
-    float nativeGetMaxSpeed
-) {
-    if (!movementComponent ||
-        !characterOwner ||
-        !knownLocalPlayer) {
+void PollDirectHorse(void* knownLocalPlayer) {
+    if (!knownLocalPlayer) {
         return;
     }
 
@@ -386,17 +529,75 @@ void ObserveMovement(
         return;
     }
 
-    if (horse != characterOwner ||
-        horseMovement != movementComponent) {
+    void* movementOwner = nullptr;
+    const bool ownerOk =
+        ReadAt(
+            horseMovement,
+            kCharacterOwnerOffset,
+            movementOwner);
+
+    if (!g_directChainSeenLogged.exchange(true)) {
+        g_directChainsLogged.fetch_add(1);
+        FeatureLog(
+            "HorseFeature V0.22A: DIRECT CHAIN SEEN player=%p horse=%p horseMovement=%p movementOwner=%p ownerMatch=%d",
+            knownLocalPlayer,
+            horse,
+            horseMovement,
+            movementOwner,
+            ownerOk && movementOwner == horse ? 1 : 0
+        );
+    }
+
+    if (!ownerOk || movementOwner != horse) {
         return;
     }
 
     CaptureDirectHorse(
         knownLocalPlayer,
         horse,
-        movementComponent,
-        nativeGetMaxSpeed
+        horseMovement,
+        0.0f
     );
+}
+
+void ObserveMovement(
+    void* movementComponent,
+    void* characterOwner,
+    void* knownLocalPlayer,
+    float nativeGetMaxSpeed
+) {
+    if (!movementComponent ||
+        !characterOwner ||
+        !knownLocalPlayer) {
+        return;
+    }
+
+    PollDirectHorse(knownLocalPlayer);
+
+    if (!g_validated.load() ||
+        characterOwner != g_owner.load() ||
+        movementComponent != g_movement.load()) {
+        return;
+    }
+
+    void* horse = g_owner.load();
+    unsigned char sprinting = 0;
+    if (horse &&
+        ReadAt(horse, kHorseIsSprintingOffset, sprinting)) {
+        g_sprinting.store(
+            sprinting != 0,
+            std::memory_order_relaxed
+        );
+    }
+
+    if (nativeGetMaxSpeed > 0.0f) {
+        g_nativeGetMaxSpeed.store(
+            nativeGetMaxSpeed,
+            std::memory_order_relaxed
+        );
+    }
+
+    g_lastSeenTick.store(GetTickCount64());
 }
 
 float AdjustSpeedResult(
@@ -480,6 +681,15 @@ bool IsValidatedMovement(void* movementComponent) {
 }
 
 void Shutdown() {
+    if (g_ownsHorseGetMaxSpeedHook &&
+        g_horseGetMaxSpeedTarget) {
+        MH_DisableHook(g_horseGetMaxSpeedTarget);
+        MH_RemoveHook(g_horseGetMaxSpeedTarget);
+        g_ownsHorseGetMaxSpeedHook = false;
+        g_horseGetMaxSpeedTarget = nullptr;
+        g_originalHorseGetMaxSpeed = nullptr;
+    }
+
     ClearHorse("shutdown");
 }
 
