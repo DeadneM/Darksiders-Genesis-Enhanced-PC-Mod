@@ -400,7 +400,6 @@ void Draw(Context& c) {
                     : "Waiting for exact horse signature 1300/600 + stamina"
             );
 
-            ImGui::BeginDisabled();
             DrawTunableFeature(
                 config,
                 "Horse Sprint Speed",
@@ -411,9 +410,10 @@ void Draw(Context& c) {
                 3.00f,
                 1.25f,
                 "%.2fx",
-                "Pending dedicated RunSpeed primitive"
+                horseTelemetry.validated
+                    ? "Dedicated SprintingMaxSpeed +0x760"
+                    : "Waiting for validated horse owner"
             );
-            ImGui::EndDisabled();
 
             DrawTunableFeature(
                 config,
