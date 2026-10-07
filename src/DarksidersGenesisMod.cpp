@@ -1187,9 +1187,8 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
     dg::horse::Tick();
 
     // Observe every component already reaching this validated shared Mayhem
-    // movement hook. Do this BEFORE APawn::IsLocallyControlled, because the
-    // player's horse can itself be locally controlled. HorseFeature identifies
-    // the mount only from the exact reference-PAK property signature.
+    // movement hook. HorseFeature now resolves the mount directly through the
+    // reflected player m_pHorseMount field at +0xE78.
     void* knownLocalPlayer =
         g_localPlayerCharacter.load(std::memory_order_relaxed);
 
@@ -1220,9 +1219,27 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         return nativeSpeed;
     }
 
-    g_localPlayerCharacter.store(characterOwner);
+    // APawn::IsLocallyControlled is true for more than the actual player
+    // during mount transitions. Refresh the persistent player pointer only when
+    // this movement component also proves it is a real player movement object
+    // through the validated Jump/DoubleJump/Glide property set.
+    const bool playerMovementValidated =
+        ApplyPlayerMovementTunings(movementComponent);
 
-    ApplyPlayerMovementTunings(movementComponent);
+    if (playerMovementValidated) {
+        void* previousPlayer =
+            g_localPlayerCharacter.exchange(
+                characterOwner,
+                std::memory_order_relaxed
+            );
+        if (previousPlayer != characterOwner) {
+            Log(
+                "Player identity: stable player=%p movement=%p (validated player movement)",
+                characterOwner,
+                movementComponent
+            );
+        }
+    }
 
     if (!runtime.movementSpeedEnabled.load(std::memory_order_relaxed) || nativeSpeed <= 0.0f) {
         return nativeSpeed;
@@ -1948,8 +1965,8 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     ApplySkipIntroSetting(false);
 
     // Direct horse detection must not depend on the horse sharing the player's
-    // GetMaxSpeed override. Poll the native player+0xE70 mount pointer every
-    // rendered frame using the stable player pointer captured on foot.
+    // GetMaxSpeed override. Poll the reflected player+0xE78 m_pHorseMount
+    // pointer every rendered frame using the stable validated player pointer.
     dg::horse::PollDirectHorse(
         g_localPlayerCharacter.load(std::memory_order_relaxed)
     );
