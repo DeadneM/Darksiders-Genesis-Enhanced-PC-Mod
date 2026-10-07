@@ -58,7 +58,7 @@ The menu key and F1-F12 actions can be remapped from the overlay.
 | Pistol Damage | Functional heuristic: `BaseJuice > 0` |
 | Melee Damage | Experimental heuristic: zero-juice outgoing records |
 | Horse Speed | Test candidate, reference-PAK signature |
-| Horse Sprint Duration | Test candidate, stamina-drain control |
+| Horse Sprint Duration | **Validated V0.27** - native HorseCharacter stamina drain; 0x vanilla, 5x default, 20x max |
 | Horse Sprint Speed | Not implemented |
 | FOV | Not implemented |
 | Third Person camera | Not implemented |
@@ -856,3 +856,43 @@ Skip Logos
 Skip Intro Videos
     -> g.PlayIntroCinematicOnBoot
 ```
+
+
+## V0.27 / V0.28 - HorseCharacter detection and Sprint Duration validated
+
+V0.27 finally resolves the horse at the correct layer by hooking native
+`HorseCharacter` functions directly instead of inferring the mount from player
+identity, Blueprint accessors or generic movement components.
+
+Validated native capture paths include:
+
+```text
+HorseCharacter::GetNormalizedSpeed
+HorseCharacter::GetNormalizedSpeedInput
+HorseCharacter::TryStartSprinting
+HorseCharacter::SetSprintingTrue
+```
+
+In-game validation captured a real horse instance with the expected native
+stamina data:
+
+```text
+StaminaRecoveryPercentageRate      15
+StaminaTotalRecoveryPercentageRate 40
+StaminaRecoveryCooldown             2
+StaminaSprintPercentageRate        25
+CurrentStamina / MaxStamina        62 / 62
+```
+
+Horse Sprint Duration is therefore considered validated. The feature changes
+the native sprint stamina drain rate rather than enlarging the stamina pool.
+
+```text
+0x   = vanilla drain / vanilla duration
+5x   = default, approximately 5x sprint duration
+20x  = maximum
+```
+
+V0.28 changes only the user-facing range/default for this validated feature:
+default `5.00x`, maximum `20.00x`. The native HorseCharacter detection path
+from V0.27 is retained unchanged.
