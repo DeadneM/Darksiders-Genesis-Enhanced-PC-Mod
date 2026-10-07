@@ -395,9 +395,9 @@ void Draw(Context& c) {
                 3.00f,
                 1.25f,
                 "%.2fx",
-                horseTelemetry.validated
-                    ? "Native HorseCharacter instance captured"
-                    : "Waiting for native HorseCharacter function call"
+                horseTelemetry.horseMovement
+                    ? "HorseMovement: MaxWalkSpeed +0x1DC / MaxAcceleration +0x1F0"
+                    : "Horse captured; waiting for native movement resolver"
             );
 
             DrawTunableFeature(
@@ -410,9 +410,9 @@ void Draw(Context& c) {
                 3.00f,
                 1.25f,
                 "%.2fx",
-                horseTelemetry.validated
-                    ? "HorseCharacter SprintingMaxSpeed +0x760"
-                    : "Waiting for native HorseCharacter capture"
+                horseTelemetry.horseMovement
+                    ? "HorseMovement: SprintingMaxSpeed +0x760"
+                    : "Horse captured; waiting for native movement resolver"
             );
 
             DrawTunableFeature(
