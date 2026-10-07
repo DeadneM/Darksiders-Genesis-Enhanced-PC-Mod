@@ -2886,3 +2886,51 @@ shared GetMaxSpeed hook
 ```
 
 Horse identification is now independent from pawn control state.
+
+
+## V0.19 - Skip Logos root cause and validated fix
+
+The final root cause was not the generic UE4 startup-movie path. The retail
+executable contains a ProjectMayhem-specific plugin:
+
+```text
+ProjectMayhem/Plugins/StartupScreens/
+```
+
+with `SStartupScreens`, `StartupScreensModule`,
+`UStartupScreensSettings`, `StartupScreenDef` and `StartupMovies`.
+
+Three plugin-level candidates were tested in game:
+
+```text
+V0.19A  StartupModule RET @ 0x25FE40
+        Logos skipped
+        Intro also skipped with Skip Intro OFF
+        -> rejected, too broad
+
+V0.19B  force StartupMovies copied count to 0 @ 0x25FF31
+        Logos skipped
+        Intro also skipped with Skip Intro OFF
+        Warning message remains
+        -> rejected, too broad
+
+V0.19C  bypass MoviePlayer attachment block
+        0x260244 -> 0x260257
+        Logos skipped
+        Skip Intro OFF still shows warning + intro cinematic
+        Skip Intro ON remains independent
+        -> VALIDATED
+```
+
+A slightly longer black transition is visible with Skip Intro OFF, but was
+reported as minor/non-problematic.
+
+Final rule for Skip Logos:
+
+```text
+Do not disable StartupScreens globally.
+Do not empty its whole movie playlist.
+Bypass only SStartupScreens attachment to MoviePlayer.
+```
+
+V0.19D freezes this exact V0.19C behavior as the validated baseline.
