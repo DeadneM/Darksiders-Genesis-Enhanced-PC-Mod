@@ -30,7 +30,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.19D-skip-logos-validated";
+constexpr const char* kBuild = "0.21A-horse-reflection-fields-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1195,6 +1195,12 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         characterOwner,
         nativeSpeed
     );
+
+    // Once the exact horse signature has proven this movement component,
+    // do not let APawn::IsLocallyControlled reclassify the mount as the player.
+    if (dg::horse::IsValidatedMovement(movementComponent)) {
+        return nativeSpeed;
+    }
 
     // Keep player identity exactly as the already validated V0.14F path:
     // locally controlled pawn -> local player.
