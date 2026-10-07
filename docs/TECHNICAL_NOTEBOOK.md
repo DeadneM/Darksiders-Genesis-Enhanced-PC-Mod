@@ -2975,3 +2975,40 @@ minimum 0x   = vanilla
 default 5x
 maximum 20x
 ```
+
+
+## V0.29 - Correct horse movement ownership and field offsets
+
+The V0.27 log proves that native HorseCharacter capture is correct, but also
+shows `movementReady=0`. Re-audit of `HorseCharacter::GetNormalizedSpeed`
+and the UE4 reflection tables identifies two independent causes:
+
+1. The virtual call at HorseCharacter vtable `+0x5F8` already returns the
+   horse movement component. Rejecting that pointer with
+   `movement+0x190 == horse` was invalid.
+2. Earlier candidates used neighboring UCharacterMovementComponent offsets.
+
+Exact reflected movement layout:
+
+```text
+MaxWalkSpeed            0x1DC
+MaxWalkSpeedCrouched    0x1E0
+MaxSwimSpeed            0x1E4
+MaxFlySpeed             0x1E8
+MaxCustomMovementSpeed  0x1EC
+MaxAcceleration         0x1F0
+MinAnalogWalkSpeed      0x1F4
+BrakingFrictionFactor   0x1F8
+BrakingFriction         0x1FC
+```
+
+`SprintingMaxSpeed +0x760` belongs to
+`UMayhemHorseCharacterMovementComponent`, not to `AMayhemHorseCharacter`.
+Native disassembly corroborates this: movement code reads its owner horse's
+`bSprinting +0x8D0` and then reads `this+0x760` when sprinting.
+
+V0.29 therefore:
+- trusts the HorseCharacter native movement getter;
+- writes Horse Speed to movement `MaxWalkSpeed / MaxAcceleration`;
+- writes Horse Sprint Speed to movement `SprintingMaxSpeed`;
+- preserves V0.28 Sprint Duration on HorseCharacter stamina drain.
