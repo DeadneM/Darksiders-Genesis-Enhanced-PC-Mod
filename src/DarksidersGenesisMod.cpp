@@ -30,7 +30,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.25-horse-native-spawn-registry-test";
+constexpr const char* kBuild = "0.26-horse-multidetector-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1187,8 +1187,8 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
     dg::horse::Tick();
 
     // Observe every component already reaching this validated shared Mayhem
-    // movement hook. HorseFeature now resolves the mount directly through the
-    // reflected player m_pHorseMount field at +0xE78.
+    // movement hook. V0.26 classifies the movement OWNER directly and no longer
+    // treats the active player pointer as horse identity.
     void* knownLocalPlayer =
         g_localPlayerCharacter.load(std::memory_order_relaxed);
 
@@ -1227,11 +1227,8 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         ApplyPlayerMovementTunings(movementComponent);
 
     if (playerMovementValidated) {
-        // Keep the existing single active-player pointer for player-only
-        // features, but register every validated playable character with the
-        // horse subsystem. War and Strife each own their own m_pHorseMount.
-        dg::horse::ObservePlayerCharacter(characterOwner);
-
+        // Keep the existing single active-player pointer only for player-only
+        // features. Horse discovery is fully independent in V0.26.
         void* previousPlayer =
             g_localPlayerCharacter.exchange(
                 characterOwner,
@@ -1969,12 +1966,8 @@ dg::overlay::Context BuildOverlayContext() {
 HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) {
     ApplySkipIntroSetting(false);
 
-    // V0.25 no longer depends on this single pointer for horse discovery.
-    // The horse subsystem has a native spawn hook plus a War/Strife registry.
-    // Keep this only as a harmless fallback for the currently active character.
-    dg::horse::PollDirectHorse(
-        g_localPlayerCharacter.load(std::memory_order_relaxed)
-    );
+    // V0.26 horse discovery is independent from the active-player pointer.
+    // Blueprint horse accessors and movement-owner signatures feed HorseFeature.
     dg::horse::Tick();
 
     ProcessInput();
