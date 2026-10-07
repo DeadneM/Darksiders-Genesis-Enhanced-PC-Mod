@@ -18,8 +18,12 @@ struct Settings {
 struct Telemetry {
     bool validated = false;
     bool staminaReady = false;
+    bool sprinting = false;
+    void* playerOwner = nullptr;
     void* horseOwner = nullptr;
     void* horseMovement = nullptr;
+    float nativeGetMaxSpeed = 0.0f;
+    float appliedGetMaxSpeed = 0.0f;
     float nativeMaxWalkSpeed = 0.0f;
     float appliedMaxWalkSpeed = 0.0f;
     float nativeMaxAcceleration = 0.0f;
@@ -37,6 +41,10 @@ void SetSettings(const Settings& settings);
 void ObserveMovement(
     void* movementComponent,
     void* characterOwner,
+    void* knownLocalPlayer,
+    float nativeGetMaxSpeed);
+float AdjustSpeedResult(
+    void* movementComponent,
     float nativeGetMaxSpeed);
 void Tick();
 Telemetry GetTelemetry();
