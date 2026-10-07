@@ -31,7 +31,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.30-graphics-adapter-engine-ini-test";
+constexpr const char* kBuild = "0.31-horse-lifetime-safety-hotfix-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1187,9 +1187,9 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
     dg::horse::SetSettings(horseSettings);
     dg::horse::Tick();
 
-    // V0.27 horse discovery is done by native HorseCharacter hooks. This
-    // shared movement observer is retained only to associate a captured horse
-    // with the existing movement hook when both paths happen to meet.
+    // V0.31: the generic movement hook never writes cached horse pointers.
+    // It only asks HorseFeature whether this movement was very recently proven
+    // by a live native HorseCharacter callback so player tuning can skip it.
     void* knownLocalPlayer =
         g_localPlayerCharacter.load(std::memory_order_relaxed);
 
@@ -1969,8 +1969,9 @@ dg::overlay::Context BuildOverlayContext() {
 HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) {
     ApplySkipIntroSetting(false);
 
-    // V0.26 horse discovery is independent from the active-player pointer.
-    // Blueprint horse accessors and movement-owner signatures feed HorseFeature.
+    // V0.31 HorseFeature::Tick is intentionally a no-op. Horse writes are
+    // allowed only while a native HorseCharacter callback proves the UObject
+    // is alive; cached raw pointers are never written from Present().
     dg::horse::Tick();
 
     ProcessInput();
