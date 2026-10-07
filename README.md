@@ -957,3 +957,45 @@ If the key already exists, only its value is updated through the Win32 INI API.
 Other Engine.ini settings are preserved.
 
 A game restart is required for adapter selection to affect device creation.
+
+
+## V0.31 - Horse UObject lifetime safety hotfix
+
+V0.29 validated the native horse speed, sprint-speed and stamina primitives, but
+the first long level-load test exposed an important lifetime bug inherited by
+V0.30.
+
+The horse subsystem cached raw `HorseCharacter` and horse movement pointers and
+re-applied tunings every rendered frame. During seamless travel or level reload,
+UE4 can destroy those UObjects while the cached addresses remain readable and may
+later be recycled for unrelated allocations. Continuing to write horse offsets
+through such stale pointers can corrupt unrelated game state.
+
+The reported failure presented as:
+- a malformed/default-looking reticle after loading;
+- corrupted HUD/menu visual elements;
+- eventual `0xC0000005` write access violation inside the game's reference-
+  counted object destruction path.
+
+V0.31 changes the ownership rule:
+
+```text
+Native HorseCharacter callback active
+    -> horse pointer is considered live
+    -> resolve current horse movement
+    -> apply Horse Speed / Sprint Speed / Sprint Duration
+
+Outside a native HorseCharacter callback
+    -> no horse-memory writes
+```
+
+Additional safety:
+- `Tick()` performs no cached-pointer writes;
+- the generic movement hook performs no horse writes;
+- shutdown never restores values through cached raw UObject pointers;
+- the horse movement pointer is re-resolved on every native horse capture;
+- a changed movement pointer resets cached baselines as a new horse generation;
+- generic movement exclusion accepts a cached horse movement only for a short
+  window after a live native HorseCharacter callback.
+
+The validated V0.30 Graphics Adapter Engine.ini control is retained unchanged.
