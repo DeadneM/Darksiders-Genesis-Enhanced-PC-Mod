@@ -9,7 +9,7 @@ The project is deliberately fail-open for normal runtime failures and
 ## Current development state
 
 - Stable/canonical `main`: **V0.13B**
-- Current cleanup/test branch: **V0.18I Early Startup Screen Bypass**
+- Current cleanup/test branch: **V0.19D Skip Logos Validated**
 - Target executable:
 
 ```text
@@ -62,7 +62,7 @@ The menu key and F1-F12 actions can be remapped from the overlay.
 | Horse Sprint Speed | Not implemented |
 | FOV | Not implemented |
 | Third Person camera | Not implemented |
-| Skip Logos | V0.18I test candidate, early startup-screen selector bypass, ON by default |
+| Skip Logos | **Validated V0.19C/V0.19D** - proprietary `StartupScreens` MoviePlayer attachment bypass |
 
 Unimplemented controls are disabled in the V0.17 overlay/default configuration
 instead of pretending to be active.
@@ -741,3 +741,118 @@ when upgrading from older test builds.
 V0.18I also removes two harmless duplicate `skipLogosEnabled` runtime
 publications and replaces the obsolete overlay text `Game.ini write failed`
 with the correct startup-patch diagnostic.
+
+
+## V0.19A/B/C - proprietary StartupScreens audit and final Skip Logos fix
+
+A direct audit of the supported retail executable identified the game-specific
+startup screen plugin compiled into Darksiders Genesis:
+
+```text
+ProjectMayhem/Plugins/StartupScreens/Source/StartupScreens/Private/SStartupScreens.cpp
+ProjectMayhem/Plugins/StartupScreens/Source/StartupScreens/Private/StartupScreensModule.cpp
+```
+
+The plugin exposes its own startup-screen configuration and playback path,
+including:
+
+```text
+UStartupScreensSettings
+StartupScreenDef
+StartupMovies
+TimeToShow
+Image
+PromptText
+FadeTime
+bMoviesAreSkippable
+SStartupScreens
+```
+
+This explains why the previous generic UE4 MoviePlayer / StartupMovies
+experiments did not control the visible THQ Nordic / Airship Syndicate logos.
+
+Three independent plugin-level candidates were tested:
+
+### V0.19A - StartupScreens module kill
+
+```text
+FStartupScreensModule::StartupModule
+RVA 0x25FE40
+-> immediate RET
+```
+
+**In-game verdict: REJECTED AS TOO BROAD.**
+
+The logos disappear, but the intro cinematic is also skipped even with
+`Skip Intro Videos=OFF`.
+
+### V0.19B - empty StartupScreens movie playlist
+
+```text
+RVA 0x25FF31
+44 8B 76 08
+->
+45 33 F6 90
+```
+
+This forces the copied `StartupMovies` count to zero before
+`SStartupScreens` receives the playlist.
+
+**In-game verdict: REJECTED AS TOO BROAD.**
+
+The logos disappear, but the intro cinematic is still skipped when
+`Skip Intro Videos=OFF`. The warning screen remains visible, proving this path
+controls more than only the two company logo presentations.
+
+### V0.19C - bypass StartupScreens MoviePlayer attachment
+
+```text
+RVA 0x260244
+-> jump to RVA 0x260257
+```
+
+This keeps the proprietary `StartupScreens` module and object construction
+intact, but skips only the block that attaches `SStartupScreens` to the engine
+MoviePlayer.
+
+**In-game verdict: VALIDATED.**
+
+Observed behavior:
+
+```text
+Skip Logos ON
+  -> THQ Nordic / Airship Syndicate logos skipped
+
+Skip Intro Videos OFF
+  -> warning screen remains
+  -> intro cinematic still plays normally
+
+Skip Intro Videos ON
+  -> independent validated intro skip remains functional
+```
+
+A slightly longer black transition can occur when Skip Intro is OFF, but it is
+minor and does not affect correctness or stability.
+
+### V0.19D - cleanup / validated baseline
+
+V0.19D is the clean continuation of V0.19C. It changes no gameplay behavior and
+retains exactly the validated primitive:
+
+```text
+StartupScreens MoviePlayer attachment bypass
+RVA 0x260244 -> 0x260257
+```
+
+No generic StartupMovies patch, no Media Foundation hook, no file hook, no
+StartupModule kill, and no empty-playlist fallback remain in the active path.
+
+The two user-facing options are now cleanly independent:
+
+```text
+Skip Logos
+    -> proprietary StartupScreens attachment bypass
+
+Skip Intro Videos
+    -> g.PlayIntroCinematicOnBoot
+```
