@@ -305,7 +305,7 @@ void Store::ResetDefaults(bool persist) {
     glideDurationMultiplier = 10.00f;
     horseSpeedMultiplier = 1.25f;
     horseSprintSpeedMultiplier = 1.25f;
-    horseSprintDurationMultiplier = 2.00f;
+    horseSprintDurationMultiplier = 5.00f;
     fovDegrees = 90.0f;
     thirdPersonDistanceMultiplier = 1.00f;
     hotstreakChargeMultiplier = 2.00f;
@@ -402,7 +402,7 @@ bool Store::Load() {
     horseSprintSpeedMultiplier =
         ReadFloat(L"Values", L"HorseSprintSpeedMultiplier", 1.25f, path_);
     horseSprintDurationMultiplier =
-        ReadFloat(L"Values", L"HorseSprintDurationMultiplier", 2.0f, path_);
+        ReadFloat(L"Values", L"HorseSprintDurationMultiplier", 5.0f, path_);
     fovDegrees =
         ReadFloat(L"Values", L"FOVDegrees", 90.0f, path_);
     thirdPersonDistanceMultiplier =
