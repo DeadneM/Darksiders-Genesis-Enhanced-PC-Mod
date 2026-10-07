@@ -8,7 +8,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 1809;
+constexpr int kConfigRevision = 2101;
 
 bool ReadBool(
     const wchar_t* section,
@@ -290,7 +290,7 @@ void Store::ResetDefaults(bool persist) {
     jumpHeightEnabled = true;
     glideDurationEnabled = true;
     horseSpeedEnabled = true;
-    horseSprintSpeedEnabled = false;
+    horseSprintSpeedEnabled = true;
     horseSprintDurationEnabled = true;
     fovEnabled = false;
     hotstreakChargeEnabled = true;
@@ -373,7 +373,7 @@ bool Store::Load() {
     horseSpeedEnabled =
         ReadBool(L"Features", L"HorseSpeed", true, path_);
     horseSprintSpeedEnabled =
-        ReadBool(L"Features", L"HorseSprintSpeed", false, path_);
+        ReadBool(L"Features", L"HorseSprintSpeed", true, path_);
     horseSprintDurationEnabled =
         ReadBool(L"Features", L"HorseSprintDuration", true, path_);
     fovEnabled =
@@ -441,8 +441,9 @@ bool Store::Load() {
         // future user choices normally.
         skipLogosEnabled = true;
         skipIntroEnabled = true;
+        horseSprintSpeedEnabled = true;
         SaveNow();
-        Log("INI migrated V0.18I -> Skip Logos ON, Skip Intro ON");
+        Log("INI migrated V0.21 -> startup skips ON, Horse Sprint Speed ON");
         return true;
     }
 
@@ -464,6 +465,7 @@ void Store::PublishRuntime() const {
     runtime.jumpHeightEnabled = jumpHeightEnabled;
     runtime.glideDurationEnabled = glideDurationEnabled;
     runtime.horseSpeedEnabled = horseSpeedEnabled;
+    runtime.horseSprintSpeedEnabled = horseSprintSpeedEnabled;
     runtime.horseSprintDurationEnabled = horseSprintDurationEnabled;
     runtime.hotstreakChargeEnabled = hotstreakChargeEnabled;
 
@@ -474,6 +476,7 @@ void Store::PublishRuntime() const {
     runtime.jumpHeightMultiplier = jumpHeightMultiplier;
     runtime.glideDurationMultiplier = glideDurationMultiplier;
     runtime.horseSpeedMultiplier = horseSpeedMultiplier;
+    runtime.horseSprintSpeedMultiplier = horseSprintSpeedMultiplier;
     runtime.horseSprintDurationMultiplier = horseSprintDurationMultiplier;
     runtime.hotstreakChargeMultiplier = hotstreakChargeMultiplier;
 
@@ -500,7 +503,7 @@ bool Store::SaveNow() {
     WritePrivateProfileStringW(
         L"Meta",
         L"ConfigRevision",
-        L"1809",
+        L"2101",
         path_.c_str()
     );
 
