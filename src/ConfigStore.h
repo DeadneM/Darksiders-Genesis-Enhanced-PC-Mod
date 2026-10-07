@@ -77,7 +77,7 @@ public:
     float glideDurationMultiplier = 10.00f;
     float horseSpeedMultiplier = 1.25f;
     float horseSprintSpeedMultiplier = 1.25f;
-    float horseSprintDurationMultiplier = 2.00f;
+    float horseSprintDurationMultiplier = 5.00f;
     float fovDegrees = 90.0f;
     float thirdPersonDistanceMultiplier = 1.00f;
     float hotstreakChargeMultiplier = 2.00f;
