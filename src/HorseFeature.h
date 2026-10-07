@@ -38,6 +38,7 @@ struct Telemetry {
 
 void Initialize(LogFn logger);
 void SetSettings(const Settings& settings);
+void ObservePlayerCharacter(void* playerCharacter);
 void PollDirectHorse(void* knownLocalPlayer);
 void ObserveMovement(
     void* movementComponent,
