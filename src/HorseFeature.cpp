@@ -15,8 +15,8 @@ namespace {
 constexpr std::size_t kCharacterOwnerOffset = 0x190;
 constexpr std::size_t kJumpZOffset = 0x1A0;
 constexpr std::size_t kMovementModeOffset = 0x1B0;
-constexpr std::size_t kMaxWalkSpeedOffset = 0x1D4;
-constexpr std::size_t kMaxAccelerationOffset = 0x1E8;
+constexpr std::size_t kMaxWalkSpeedOffset = 0x1DC;
+constexpr std::size_t kMaxAccelerationOffset = 0x1F0;
 
 constexpr std::size_t kStaminaRecoveryOffset = 0x910;
 constexpr std::size_t kStaminaTotalRecoveryOffset = 0x914;
@@ -358,32 +358,11 @@ void ApplyLocked() {
         return;
     }
 
-    const float speedMultiplier =
-        Clamp(g_speedMultiplier.load(), 0.0f, 3.0f);
-
-    const float targetWalk =
-        g_speedEnabled.load()
-            ? g_horse.maxWalkSpeed * speedMultiplier
-            : g_horse.maxWalkSpeed;
-
-    const float targetAcceleration =
-        g_speedEnabled.load()
-            ? g_horse.maxAcceleration * speedMultiplier
-            : g_horse.maxAcceleration;
-
-    if (WriteFloat(
-            g_horse.movement,
-            kMaxWalkSpeedOffset,
-            targetWalk)) {
-        g_appliedMaxWalkSpeed.store(targetWalk);
-    }
-
-    if (WriteFloat(
-            g_horse.movement,
-            kMaxAccelerationOffset,
-            targetAcceleration)) {
-        g_appliedMaxAcceleration.store(targetAcceleration);
-    }
+    // V0.20C isolates the virtual speed-return path. Detection still uses
+    // the corrected reflected horse fields, but direct speed-property writes
+    // are intentionally disabled in this candidate.
+    g_appliedMaxWalkSpeed.store(g_horse.maxWalkSpeed);
+    g_appliedMaxAcceleration.store(g_horse.maxAcceleration);
 
     const float durationMultiplier =
         Clamp(g_sprintDurationMultiplier.load(), 0.0f, 10.0f);
@@ -499,8 +478,8 @@ bool TryCaptureHorse(
 void Initialize(LogFn logger) {
     g_logger = logger;
     FeatureLog(
-        "HorseFeature: shared validated GetMaxSpeed observer armed; "
-        "no extra hook / no actor scan"
+        "HorseFeature V0.20C: corrected detection offsets armed "
+        "walk=0x1DC accel=0x1F0; direct speed writes disabled"
     );
 }
 
@@ -586,3 +565,10 @@ void Shutdown() {
 }
 
 } // namespace dg::horse
+
+bool IsValidatedMovement(void* movementComponent) {
+    return
+        movementComponent != nullptr &&
+        g_validated.load() &&
+        movementComponent == g_movement.load();
+}
