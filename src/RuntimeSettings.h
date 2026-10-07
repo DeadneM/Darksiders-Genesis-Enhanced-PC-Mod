@@ -27,7 +27,7 @@ struct Snapshot {
     float glideDurationMultiplier = 10.00f;
     float horseSpeedMultiplier = 1.25f;
     float horseSprintSpeedMultiplier = 1.25f;
-    float horseSprintDurationMultiplier = 2.00f;
+    float horseSprintDurationMultiplier = 5.00f;
     float hotstreakChargeMultiplier = 2.00f;
 };
 
@@ -54,7 +54,7 @@ struct State {
     std::atomic<float> glideDurationMultiplier{10.00f};
     std::atomic<float> horseSpeedMultiplier{1.25f};
     std::atomic<float> horseSprintSpeedMultiplier{1.25f};
-    std::atomic<float> horseSprintDurationMultiplier{2.00f};
+    std::atomic<float> horseSprintDurationMultiplier{5.00f};
     std::atomic<float> hotstreakChargeMultiplier{2.00f};
 };
 
