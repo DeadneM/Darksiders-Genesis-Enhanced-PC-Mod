@@ -498,6 +498,45 @@ void Draw(Context& c) {
 
             DrawSectionTitle("System");
 
+            ImGui::Text("Graphics Adapter");
+            ImGui::SameLine(310.0f);
+            ImGui::TextDisabled(
+                "Engine.ini [SystemSettings] r.GraphicsAdapter | restart required"
+            );
+
+            ImGui::Indent();
+            ImGui::SetNextItemWidth(245.0f);
+            int selectedGraphicsAdapter =
+                config.graphicsAdapter;
+            const char* graphicsAdapters[] = {
+                "0", "1", "2", "3", "4"
+            };
+
+            if (ImGui::Combo(
+                    "Value##GraphicsAdapter",
+                    &selectedGraphicsAdapter,
+                    graphicsAdapters,
+                    IM_ARRAYSIZE(graphicsAdapters))) {
+                config.graphicsAdapter =
+                    selectedGraphicsAdapter;
+                config.Save();
+
+                const bool applied =
+                    c.applyGraphicsAdapter
+                        ? c.applyGraphicsAdapter(
+                            config.graphicsAdapter)
+                        : false;
+
+                *c.lastAction =
+                    std::string("Graphics Adapter ") +
+                    std::to_string(
+                        config.graphicsAdapter) +
+                    (applied
+                        ? " written to Engine.ini (restart required)"
+                        : " Engine.ini write failed");
+            }
+            ImGui::Unindent();
+
             if (ImGui::Checkbox(
                     "Skip Logos",
                     &config.skipLogosEnabled)) {
