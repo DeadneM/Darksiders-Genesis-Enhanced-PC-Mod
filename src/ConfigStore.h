@@ -62,7 +62,7 @@ public:
     bool jumpHeightEnabled = true;
     bool glideDurationEnabled = true;
     bool horseSpeedEnabled = true;
-    bool horseSprintSpeedEnabled = false;
+    bool horseSprintSpeedEnabled = true;
     bool horseSprintDurationEnabled = true;
     bool fovEnabled = false;
     bool hotstreakChargeEnabled = true;
