@@ -564,11 +564,11 @@ void Shutdown() {
     ClearHorse("shutdown");
 }
 
-} // namespace dg::horse
-
-bool dg::horse::IsValidatedMovement(void* movementComponent) {
+bool IsValidatedMovement(void* movementComponent) {
     return
         movementComponent != nullptr &&
         g_validated.load() &&
         movementComponent == g_movement.load();
 }
+
+} // namespace dg::horse
