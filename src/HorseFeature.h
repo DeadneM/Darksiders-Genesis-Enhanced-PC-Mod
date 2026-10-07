@@ -9,6 +9,8 @@ using LogFn = void(*)(const char*);
 struct Settings {
     bool speedEnabled = true;
     float speedMultiplier = 1.25f;
+    bool sprintSpeedEnabled = true;
+    float sprintSpeedMultiplier = 1.25f;
     bool sprintDurationEnabled = true;
     float sprintDurationMultiplier = 2.0f;
 };
@@ -22,6 +24,8 @@ struct Telemetry {
     float appliedMaxWalkSpeed = 0.0f;
     float nativeMaxAcceleration = 0.0f;
     float appliedMaxAcceleration = 0.0f;
+    float nativeSprintingMaxSpeed = 0.0f;
+    float appliedSprintingMaxSpeed = 0.0f;
     float nativeSprintDrain = 0.0f;
     float appliedSprintDrain = 0.0f;
     std::uint32_t uniqueCandidatesLogged = 0;
@@ -36,6 +40,7 @@ void ObserveMovement(
     float nativeGetMaxSpeed);
 void Tick();
 Telemetry GetTelemetry();
+bool IsValidatedMovement(void* movementComponent);
 void Shutdown();
 
 } // namespace dg::horse
