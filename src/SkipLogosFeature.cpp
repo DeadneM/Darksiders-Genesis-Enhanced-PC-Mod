@@ -60,7 +60,7 @@ bool Initialize(LogFn logger) {
     g_logger = logger;
 
     if (!ResolveProxyExports()) {
-        LogText("Skip Logos STARTUPSCREENS_ATTACH: proxy exports unavailable");
+        LogText("Skip Logos STARTUPSCREENS_ATTACH_VALIDATED: proxy exports unavailable");
         return false;
     }
 
@@ -77,7 +77,7 @@ bool Initialize(LogFn logger) {
     char message[256]{};
     sprintf_s(
         message,
-        "Skip Logos STARTUPSCREENS_ATTACH: proxy=%d target=%d patched=%d enabled=%d attachBlockRVA=0x260244 resumeRVA=0x260257",
+        "Skip Logos STARTUPSCREENS_ATTACH_VALIDATED: proxy=%d target=%d patched=%d enabled=%d attachBlockRVA=0x260244 resumeRVA=0x260257",
         t.proxyAvailable ? 1 : 0,
         t.targetValid ? 1 : 0,
         t.patched ? 1 : 0,
