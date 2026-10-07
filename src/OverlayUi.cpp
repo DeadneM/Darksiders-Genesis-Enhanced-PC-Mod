@@ -396,8 +396,8 @@ void Draw(Context& c) {
                 1.25f,
                 "%.2fx",
                 horseTelemetry.validated
-                    ? "Horse owner validated by multi-detector"
-                    : "Waiting for Blueprint accessor or movement signature"
+                    ? "Native HorseCharacter instance captured"
+                    : "Waiting for native HorseCharacter function call"
             );
 
             DrawTunableFeature(
@@ -411,8 +411,8 @@ void Draw(Context& c) {
                 1.25f,
                 "%.2fx",
                 horseTelemetry.validated
-                    ? "SprintingMaxSpeed +0x760 / bSprinting +0x8D4"
-                    : "Waiting for horse owner validation"
+                    ? "HorseCharacter SprintingMaxSpeed +0x760"
+                    : "Waiting for native HorseCharacter capture"
             );
 
             DrawTunableFeature(
@@ -426,13 +426,13 @@ void Draw(Context& c) {
                 2.00f,
                 "%.2fx",
                 horseTelemetry.staminaReady
-                    ? "StaminaSprintPercentageRate +0x920"
-                    : "Waiting for horse stamina signature"
+                    ? "Native StaminaSprintPercentageRate +0x918"
+                    : "Waiting for native horse stamina fields"
             );
 
             ImGui::Indent();
             ImGui::TextDisabled(
-                "Horse: %s | movement snapshots %u | horses found %u",
+                "Horse: %s | native horse calls %u | horses found %u",
                 horseTelemetry.validated
                     ? "VALIDATED"
                     : "waiting",
