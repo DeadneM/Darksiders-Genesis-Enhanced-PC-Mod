@@ -396,8 +396,8 @@ void Draw(Context& c) {
                 1.25f,
                 "%.2fx",
                 horseTelemetry.validated
-                    ? "Validated on existing shared GetMaxSpeed hook"
-                    : "Waiting for exact horse signature 1300/600 + stamina"
+                    ? "Direct player+0xE70 horse chain VALIDATED"
+                    : "Waiting for player+0xE70 -> horse direct chain"
             );
 
             DrawTunableFeature(
@@ -411,8 +411,8 @@ void Draw(Context& c) {
                 1.25f,
                 "%.2fx",
                 horseTelemetry.validated
-                    ? "Dedicated SprintingMaxSpeed +0x760"
-                    : "Waiting for validated horse owner"
+                    ? "Native IsSprinting +0x8D0 selects sprint multiplier"
+                    : "Waiting for direct horse detection"
             );
 
             DrawTunableFeature(
@@ -426,13 +426,13 @@ void Draw(Context& c) {
                 2.00f,
                 "%.2fx",
                 horseTelemetry.staminaReady
-                    ? "Validated StaminaSprintPercentageRate"
-                    : "Waiting for exact horse stamina signature"
+                    ? "Direct horse StaminaSprintPercentageRate +0x918"
+                    : "Waiting for direct horse detection"
             );
 
             ImGui::Indent();
             ImGui::TextDisabled(
-                "Horse: %s | candidate snapshots %u | matches %u",
+                "Horse: %s | direct chains %u | matches %u",
                 horseTelemetry.validated
                     ? "VALIDATED"
                     : "waiting",
@@ -447,9 +447,16 @@ void Draw(Context& c) {
                 horseTelemetry.appliedMaxAcceleration
             );
             ImGui::TextDisabled(
-                "Sprint drain %.3f -> %.3f | owner %p | movement %p",
+                "GetMaxSpeed %.1f -> %.1f | sprinting %s",
+                horseTelemetry.nativeGetMaxSpeed,
+                horseTelemetry.appliedGetMaxSpeed,
+                horseTelemetry.sprinting ? "YES" : "NO"
+            );
+            ImGui::TextDisabled(
+                "Sprint drain %.3f -> %.3f | player %p | horse %p | movement %p",
                 horseTelemetry.nativeSprintDrain,
                 horseTelemetry.appliedSprintDrain,
+                horseTelemetry.playerOwner,
                 horseTelemetry.horseOwner,
                 horseTelemetry.horseMovement
             );
