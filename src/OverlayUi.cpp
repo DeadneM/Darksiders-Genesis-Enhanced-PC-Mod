@@ -396,8 +396,8 @@ void Draw(Context& c) {
                 1.25f,
                 "%.2fx",
                 horseTelemetry.validated
-                    ? "Native War/Strife horse registry VALIDATED"
-                    : "Waiting for native horse spawn / owner-match"
+                    ? "Horse owner validated by multi-detector"
+                    : "Waiting for Blueprint accessor or movement signature"
             );
 
             DrawTunableFeature(
@@ -411,8 +411,8 @@ void Draw(Context& c) {
                 1.25f,
                 "%.2fx",
                 horseTelemetry.validated
-                    ? "Horse bSprinting +0x8D4"
-                    : "Waiting for registered horse movement"
+                    ? "SprintingMaxSpeed +0x760 / bSprinting +0x8D4"
+                    : "Waiting for horse owner validation"
             );
 
             DrawTunableFeature(
@@ -426,13 +426,13 @@ void Draw(Context& c) {
                 2.00f,
                 "%.2fx",
                 horseTelemetry.staminaReady
-                    ? "Horse StaminaSprintPercentageRate +0x920"
-                    : "Waiting for registered horse stamina"
+                    ? "StaminaSprintPercentageRate +0x920"
+                    : "Waiting for horse stamina signature"
             );
 
             ImGui::Indent();
             ImGui::TextDisabled(
-                "Horse: %s | players registered %u | horses registered %u",
+                "Horse: %s | movement snapshots %u | horses found %u",
                 horseTelemetry.validated
                     ? "VALIDATED"
                     : "waiting",
