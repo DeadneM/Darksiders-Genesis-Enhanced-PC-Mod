@@ -30,7 +30,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.26-horse-multidetector-test";
+constexpr const char* kBuild = "0.27-native-horse-class-hooks-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1186,9 +1186,9 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
     dg::horse::SetSettings(horseSettings);
     dg::horse::Tick();
 
-    // Observe every component already reaching this validated shared Mayhem
-    // movement hook. V0.26 classifies the movement OWNER directly and no longer
-    // treats the active player pointer as horse identity.
+    // V0.27 horse discovery is done by native HorseCharacter hooks. This
+    // shared movement observer is retained only to associate a captured horse
+    // with the existing movement hook when both paths happen to meet.
     void* knownLocalPlayer =
         g_localPlayerCharacter.load(std::memory_order_relaxed);
 
