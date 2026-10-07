@@ -2934,3 +2934,44 @@ Bypass only SStartupScreens attachment to MoviePlayer.
 ```
 
 V0.19D freezes this exact V0.19C behavior as the validated baseline.
+
+
+## V0.27-V0.28 - Native HorseCharacter resolver succeeds
+
+V0.27 abandons all indirect horse identification paths and hooks native
+`HorseCharacter` functions directly. This produced the first confirmed in-game
+horse pointer and exact native stamina values.
+
+Observed validated horse state:
+
+```text
+recovery     = 15
+totalRecovery= 40
+cooldown     = 2
+sprintRate   = 25
+stamina      = 62 / 62
+```
+
+Validated runtime fields used by Horse Sprint Duration:
+
+```text
+HorseCharacter +0x918 = StaminaSprintPercentageRate
+HorseCharacter +0x9C0 = CurrentStamina
+HorseCharacter +0x9C4 = MaxStamina
+```
+
+The duration feature preserves the stamina pool and scales effective duration by
+reducing `StaminaSprintPercentageRate`:
+
+```text
+multiplier <= 0 -> native sprintRate
+multiplier > 0  -> native sprintRate / multiplier
+```
+
+V0.28 user-facing policy:
+
+```text
+minimum 0x   = vanilla
+default 5x
+maximum 20x
+```
