@@ -15,8 +15,10 @@ namespace {
 constexpr std::size_t kCharacterOwnerOffset = 0x190;
 constexpr std::size_t kJumpZOffset = 0x1A0;
 constexpr std::size_t kMovementModeOffset = 0x1B0;
-constexpr std::size_t kMaxWalkSpeedOffset = 0x1D4;
-constexpr std::size_t kMaxAccelerationOffset = 0x1E8;
+constexpr std::size_t kMaxWalkSpeedOffset = 0x1E0;
+constexpr std::size_t kMaxAccelerationOffset = 0x1F4;
+constexpr std::size_t kBrakingFrictionFactorOffset = 0x1FC;
+constexpr std::size_t kSprintingMaxSpeedOffset = 0x760;
 
 constexpr std::size_t kStaminaRecoveryOffset = 0x910;
 constexpr std::size_t kStaminaTotalRecoveryOffset = 0x914;
@@ -29,13 +31,15 @@ constexpr float kHorseTotalRecovery = 40.0f;
 constexpr float kHorseSprintDrain = 25.0f;
 
 constexpr ULONGLONG kHorseLostTimeoutMs = 1500;
-constexpr std::size_t kMaxCandidateSnapshots = 8;
+constexpr std::size_t kMaxCandidateSnapshots = 12;
 
 struct HorseState {
     void* owner = nullptr;
     void* movement = nullptr;
     float maxWalkSpeed = 0.0f;
     float maxAcceleration = 0.0f;
+    float brakingFrictionFactor = 0.0f;
+    float sprintingMaxSpeed = 0.0f;
     float sprintDrain = 0.0f;
     bool captured = false;
 };
@@ -45,6 +49,8 @@ HorseState g_horse{};
 
 std::atomic_bool g_speedEnabled{true};
 std::atomic<float> g_speedMultiplier{1.25f};
+std::atomic_bool g_sprintSpeedEnabled{true};
+std::atomic<float> g_sprintSpeedMultiplier{1.25f};
 std::atomic_bool g_sprintDurationEnabled{true};
 std::atomic<float> g_sprintDurationMultiplier{2.0f};
 
@@ -56,6 +62,8 @@ std::atomic<float> g_nativeMaxWalkSpeed{0.0f};
 std::atomic<float> g_appliedMaxWalkSpeed{0.0f};
 std::atomic<float> g_nativeMaxAcceleration{0.0f};
 std::atomic<float> g_appliedMaxAcceleration{0.0f};
+std::atomic<float> g_nativeSprintingMaxSpeed{0.0f};
+std::atomic<float> g_appliedSprintingMaxSpeed{0.0f};
 std::atomic<float> g_nativeSprintDrain{0.0f};
 std::atomic<float> g_appliedSprintDrain{0.0f};
 std::atomic_uint32_t g_uniqueCandidatesLogged{0};
@@ -214,6 +222,8 @@ void LogCandidateOnce(
     float jumpZ = 0.0f;
     float maxWalkSpeed = 0.0f;
     float maxAcceleration = 0.0f;
+    float brakingFrictionFactor = 0.0f;
+    float sprintingMaxSpeed = 0.0f;
     float recovery = 0.0f;
     float totalRecovery = 0.0f;
     float sprintDrain = 0.0f;
@@ -225,6 +235,10 @@ void LogCandidateOnce(
         ReadFloat(movement, kMaxWalkSpeedOffset, maxWalkSpeed);
     const bool accelerationOk =
         ReadFloat(movement, kMaxAccelerationOffset, maxAcceleration);
+    const bool brakingOk =
+        ReadFloat(movement, kBrakingFrictionFactorOffset, brakingFrictionFactor);
+    const bool sprintSpeedOk =
+        ReadFloat(owner, kSprintingMaxSpeedOffset, sprintingMaxSpeed);
     const bool modeOk =
         ReadAt(movement, kMovementModeOffset, movementMode);
     const bool staminaOk =
@@ -232,23 +246,17 @@ void LogCandidateOnce(
         ReadFloat(owner, kStaminaTotalRecoveryOffset, totalRecovery) &&
         ReadFloat(owner, kStaminaSprintDrainOffset, sprintDrain);
 
-    // Do not spend the finite diagnostic budget on unrelated movement
-    // components. The broad range still comfortably contains the proven
-    // horse defaults 1300 / 600.
-    if (!walkOk ||
-        !accelerationOk ||
-        maxWalkSpeed < 800.0f ||
-        maxWalkSpeed > 1800.0f ||
-        maxAcceleration < 250.0f ||
-        maxAcceleration > 1600.0f ||
-        !MarkCandidateForSingleSnapshot(movement)) {
+    // V0.21 keeps diagnostics bounded but deliberately logs the first unique
+    // components without the old range gate. That makes failed horse
+    // identification actionable instead of silent.
+    if (!MarkCandidateForSingleSnapshot(movement)) {
         return;
     }
 
     FeatureLog(
         "HorseFeature: candidate movement=%p owner=%p native=%.1f "
-        "mode=%s%u jump=%s%.1f walk=%s%.1f accel=%s%.1f "
-        "stamina=%s[%.1f,%.1f,%.1f]",
+        "mode=%s%u jump=%s%.1f walk=%s%.1f accel=%s%.1f brake=%s%.2f "
+        "sprintMax=%s%.1f stamina=%s[%.1f,%.1f,%.1f]",
         movement,
         owner,
         nativeGetMaxSpeed,
@@ -260,6 +268,10 @@ void LogCandidateOnce(
         maxWalkSpeed,
         accelerationOk ? "" : "?",
         maxAcceleration,
+        brakingOk ? "" : "?",
+        brakingFrictionFactor,
+        sprintSpeedOk ? "" : "?",
+        sprintingMaxSpeed,
         staminaOk ? "" : "?",
         recovery,
         totalRecovery,
@@ -276,6 +288,8 @@ void PublishCleared() {
     g_appliedMaxWalkSpeed.store(0.0f);
     g_nativeMaxAcceleration.store(0.0f);
     g_appliedMaxAcceleration.store(0.0f);
+    g_nativeSprintingMaxSpeed.store(0.0f);
+    g_appliedSprintingMaxSpeed.store(0.0f);
     g_nativeSprintDrain.store(0.0f);
     g_appliedSprintDrain.store(0.0f);
     g_lastSeenTick.store(0);
@@ -289,6 +303,8 @@ void RestoreLocked() {
     void* ownerBack = nullptr;
     float currentWalk = 0.0f;
     float currentAcceleration = 0.0f;
+    float currentBraking = 0.0f;
+    float currentSprintMax = 0.0f;
     float currentDrain = 0.0f;
 
     const bool stillSameHorse =
@@ -305,6 +321,14 @@ void RestoreLocked() {
             g_horse.movement,
             kMaxAccelerationOffset,
             currentAcceleration) &&
+        ReadFloat(
+            g_horse.movement,
+            kBrakingFrictionFactorOffset,
+            currentBraking) &&
+        ReadFloat(
+            g_horse.owner,
+            kSprintingMaxSpeedOffset,
+            currentSprintMax) &&
         ReadFloat(
             g_horse.owner,
             kStaminaSprintDrainOffset,
@@ -326,6 +350,16 @@ void RestoreLocked() {
         g_horse.movement,
         kMaxAccelerationOffset,
         g_horse.maxAcceleration
+    );
+    WriteFloat(
+        g_horse.movement,
+        kBrakingFrictionFactorOffset,
+        g_horse.brakingFrictionFactor
+    );
+    WriteFloat(
+        g_horse.owner,
+        kSprintingMaxSpeedOffset,
+        g_horse.sprintingMaxSpeed
     );
     WriteFloat(
         g_horse.owner,
@@ -385,6 +419,20 @@ void ApplyLocked() {
         g_appliedMaxAcceleration.store(targetAcceleration);
     }
 
+    const float sprintSpeedMultiplier =
+        Clamp(g_sprintSpeedMultiplier.load(), 0.0f, 3.0f);
+    const float targetSprintMax =
+        g_sprintSpeedEnabled.load()
+            ? g_horse.sprintingMaxSpeed * sprintSpeedMultiplier
+            : g_horse.sprintingMaxSpeed;
+
+    if (WriteFloat(
+            g_horse.owner,
+            kSprintingMaxSpeedOffset,
+            targetSprintMax)) {
+        g_appliedSprintingMaxSpeed.store(targetSprintMax);
+    }
+
     const float durationMultiplier =
         Clamp(g_sprintDurationMultiplier.load(), 0.0f, 10.0f);
 
@@ -411,6 +459,8 @@ bool TryCaptureHorse(
 ) {
     float maxWalkSpeed = 0.0f;
     float maxAcceleration = 0.0f;
+    float brakingFrictionFactor = 0.0f;
+    float sprintingMaxSpeed = 0.0f;
     float recovery = 0.0f;
     float totalRecovery = 0.0f;
     float sprintDrain = 0.0f;
@@ -423,6 +473,14 @@ bool TryCaptureHorse(
             movement,
             kMaxAccelerationOffset,
             maxAcceleration) ||
+        !ReadFloat(
+            movement,
+            kBrakingFrictionFactorOffset,
+            brakingFrictionFactor) ||
+        !ReadFloat(
+            owner,
+            kSprintingMaxSpeedOffset,
+            sprintingMaxSpeed) ||
         !ReadFloat(
             owner,
             kStaminaRecoveryOffset,
@@ -441,9 +499,17 @@ bool TryCaptureHorse(
     if (!IsHorseSignature(
             maxWalkSpeed,
             maxAcceleration,
+            brakingFrictionFactor,
+            sprintingMaxSpeed,
             recovery,
             totalRecovery,
-            sprintDrain)) {
+            sprintDrain) ||
+        !std::isfinite(brakingFrictionFactor) ||
+        brakingFrictionFactor < 0.0f ||
+        brakingFrictionFactor > 20.0f ||
+        !std::isfinite(sprintingMaxSpeed) ||
+        sprintingMaxSpeed < 100.0f ||
+        sprintingMaxSpeed > 10000.0f) {
         return false;
     }
 
@@ -454,6 +520,8 @@ bool TryCaptureHorse(
         g_horse.movement = movement;
         g_horse.maxWalkSpeed = maxWalkSpeed;
         g_horse.maxAcceleration = maxAcceleration;
+        g_horse.brakingFrictionFactor = brakingFrictionFactor;
+        g_horse.sprintingMaxSpeed = sprintingMaxSpeed;
         g_horse.sprintDrain = sprintDrain;
         g_horse.captured = true;
 
@@ -465,14 +533,16 @@ bool TryCaptureHorse(
         g_appliedMaxWalkSpeed.store(maxWalkSpeed);
         g_nativeMaxAcceleration.store(maxAcceleration);
         g_appliedMaxAcceleration.store(maxAcceleration);
+        g_nativeSprintingMaxSpeed.store(sprintingMaxSpeed);
+        g_appliedSprintingMaxSpeed.store(sprintingMaxSpeed);
         g_nativeSprintDrain.store(sprintDrain);
         g_appliedSprintDrain.store(sprintDrain);
         g_candidateMatches.fetch_add(1);
 
         FeatureLog(
             "HorseFeature: VALIDATED shared-hook movement=%p owner=%p "
-            "nativeGetMaxSpeed=%.1f walk=%.1f accel=%.1f "
-            "stamina=[%.1f,%.1f,%.1f]",
+            "nativeGetMaxSpeed=%.1f walk=%.1f accel=%.1f brake=%.2f "
+            "sprintMax=%.1f stamina=[%.1f,%.1f,%.1f]",
             movement,
             owner,
             nativeGetMaxSpeed,
@@ -499,14 +569,16 @@ bool TryCaptureHorse(
 void Initialize(LogFn logger) {
     g_logger = logger;
     FeatureLog(
-        "HorseFeature: shared validated GetMaxSpeed observer armed; "
-        "no extra hook / no actor scan"
+        "HorseFeature V0.21A: exact UE4 reflection fields armed "
+        "walk=0x1E0 accel=0x1F4 brake=0x1FC sprintMax(owner)=0x760"
     );
 }
 
 void SetSettings(const Settings& settings) {
     g_speedEnabled.store(settings.speedEnabled);
     g_speedMultiplier.store(settings.speedMultiplier);
+    g_sprintSpeedEnabled.store(settings.sprintSpeedEnabled);
+    g_sprintSpeedMultiplier.store(settings.sprintSpeedMultiplier);
     g_sprintDurationEnabled.store(settings.sprintDurationEnabled);
     g_sprintDurationMultiplier.store(
         settings.sprintDurationMultiplier
@@ -573,12 +645,21 @@ Telemetry GetTelemetry() {
     t.nativeMaxAcceleration = g_nativeMaxAcceleration.load();
     t.appliedMaxAcceleration =
         g_appliedMaxAcceleration.load();
+    t.nativeSprintingMaxSpeed = g_nativeSprintingMaxSpeed.load();
+    t.appliedSprintingMaxSpeed = g_appliedSprintingMaxSpeed.load();
     t.nativeSprintDrain = g_nativeSprintDrain.load();
     t.appliedSprintDrain = g_appliedSprintDrain.load();
     t.uniqueCandidatesLogged =
         g_uniqueCandidatesLogged.load();
     t.candidateMatches = g_candidateMatches.load();
     return t;
+}
+
+bool IsValidatedMovement(void* movementComponent) {
+    return
+        movementComponent != nullptr &&
+        g_validated.load() &&
+        movementComponent == g_movement.load();
 }
 
 void Shutdown() {
