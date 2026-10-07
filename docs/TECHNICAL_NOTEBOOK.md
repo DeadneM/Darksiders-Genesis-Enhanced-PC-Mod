@@ -3012,3 +3012,35 @@ V0.29 therefore:
 - writes Horse Speed to movement `MaxWalkSpeed / MaxAcceleration`;
 - writes Horse Sprint Speed to movement `SprintingMaxSpeed`;
 - preserves V0.28 Sprint Duration on HorseCharacter stamina drain.
+
+
+## V0.31 - Crash audit: stale Horse UObject writes
+
+A user crash dump after a level load showed:
+
+```text
+Exception: 0xC0000005 write access violation
+Fault RVA: DarksidersGenesis-Win64-Shipping.exe +0xCC0FBC
+Faulting instruction: lock xadd dword ptr [rbx+8], eax
+Corrupt ref-count pointer base: rbx = 0x1E3000010
+Attempted write: 0x1E3000018
+```
+
+The fault occurs in the game's reference-counted destruction path, not inside
+the ASI module. Combined with pre-crash reticle/HUD corruption, this is consistent
+with earlier memory corruption.
+
+Source audit found the unsafe producer in HorseFeature: raw `horse` and
+`movement` pointers were retained indefinitely and dereferenced/written from
+`Tick()` every frame, including after seamless travel.
+
+V0.31 invariant:
+
+```text
+A raw HorseCharacter pointer may be dereferenced for tuning only while one of
+the hooked native HorseCharacter functions is currently executing with that
+pointer as its live this-object.
+```
+
+No asynchronous/per-frame restore or write through cached horse pointers is
+permitted. This rule should be preserved in future camera/mount work as well.
