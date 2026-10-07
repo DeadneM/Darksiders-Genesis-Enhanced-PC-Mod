@@ -39,7 +39,6 @@ constexpr std::array<unsigned char, 8> kSetSprintingTruePrologue{
 };
 
 // HorseCharacter fields proved by native code / property descriptors.
-constexpr std::size_t kSprintingMaxSpeedOffset = 0x760;
 constexpr std::size_t kSprintingOffset = 0x8D0;
 constexpr std::size_t kStaminaRecoveryOffset = 0x90C;
 constexpr std::size_t kStaminaTotalRecoveryOffset = 0x910;
@@ -54,11 +53,12 @@ constexpr std::size_t kRanOutOfStaminaOffset = 0x9CC;
 // movement component at vtable +0x3D0.
 constexpr std::size_t kHorseMovementGetterVtableOffset = 0x5F8;
 
-// UCharacterMovementComponent fields, already reflection-proved.
-constexpr std::size_t kCharacterOwnerOffset = 0x190;
-constexpr std::size_t kMaxWalkSpeedOffset = 0x1E0;
-constexpr std::size_t kMaxAccelerationOffset = 0x1F4;
-constexpr std::size_t kBrakingFrictionFactorOffset = 0x1FC;
+// UMayhemHorseCharacterMovementComponent / UCharacterMovementComponent fields.
+// These offsets are decoded directly from the retail UE4 property table.
+constexpr std::size_t kMaxWalkSpeedOffset = 0x1DC;
+constexpr std::size_t kMaxAccelerationOffset = 0x1F0;
+constexpr std::size_t kBrakingFrictionFactorOffset = 0x1F8;
+constexpr std::size_t kSprintingMaxSpeedOffset = 0x760;
 
 constexpr std::size_t kMaxHorseSlots = 4;
 
@@ -300,18 +300,13 @@ void* ResolveHorseMovement(void* horse) {
         return nullptr;
     }
 
+    // HorseCharacter::GetNormalizedSpeed itself calls this exact virtual slot
+    // and immediately treats the returned object as its movement component.
+    // Do not reject it using an unrelated CharacterOwner offset.
     auto fn = reinterpret_cast<HorseMovementGetterFn>(getter);
     void* movement = fn(horse);
-    if (!movement || !Readable(movement, sizeof(void*))) {
-        return nullptr;
-    }
 
-    void* ownerBack = nullptr;
-    if (!ReadAt(
-            movement,
-            kCharacterOwnerOffset,
-            ownerBack) ||
-        ownerBack != horse) {
+    if (!movement || !Readable(movement, sizeof(void*))) {
         return nullptr;
     }
 
@@ -361,9 +356,10 @@ void RestoreSlotLocked(HorseSlot& slot) {
         );
     }
 
-    if (slot.horseFieldsReady) {
+    if (slot.horseFieldsReady &&
+        slot.movementReady) {
         WriteFloat(
-            slot.horse,
+            slot.movement,
             kSprintingMaxSpeedOffset,
             slot.nativeSprintingMaxSpeed
         );
@@ -427,14 +423,15 @@ void ApplySlotLocked(HorseSlot& slot) {
         );
     }
 
-    if (slot.horseFieldsReady) {
+    if (slot.horseFieldsReady &&
+        slot.movementReady) {
         const float targetSprint =
             g_sprintSpeedEnabled.load()
                 ? slot.nativeSprintingMaxSpeed * sprintMultiplier
                 : slot.nativeSprintingMaxSpeed;
 
         if (WriteFloat(
-                slot.horse,
+                slot.movement,
                 kSprintingMaxSpeedOffset,
                 targetSprint)) {
             g_appliedSprintingMaxSpeed.store(targetSprint);
@@ -491,19 +488,6 @@ void CaptureHorseLocked(
         slot->captures == 0;
     ++slot->captures;
 
-    if (!slot->horseFieldsReady) {
-        float sprintMax = 0.0f;
-        if (ReadFloat(
-                horse,
-                kSprintingMaxSpeedOffset,
-                sprintMax) &&
-            sprintMax > 0.0f &&
-            sprintMax < 10000.0f) {
-            slot->nativeSprintingMaxSpeed = sprintMax;
-            slot->horseFieldsReady = true;
-        }
-    }
-
     if (!slot->staminaFieldsReady) {
         float recovery = 0.0f;
         float totalRecovery = 0.0f;
@@ -543,8 +527,10 @@ void CaptureHorseLocked(
             float walk = 0.0f;
             float acceleration = 0.0f;
             float braking = 0.0f;
+            float sprintMax = 0.0f;
 
-            if (ReadFloat(
+            const bool movementFieldsOk =
+                ReadFloat(
                     movement,
                     kMaxWalkSpeedOffset,
                     walk) &&
@@ -556,13 +542,36 @@ void CaptureHorseLocked(
                     movement,
                     kBrakingFrictionFactorOffset,
                     braking) &&
+                ReadFloat(
+                    movement,
+                    kSprintingMaxSpeedOffset,
+                    sprintMax);
+
+            if (movementFieldsOk &&
                 walk > 0.0f &&
-                acceleration > 0.0f) {
+                acceleration > 0.0f &&
+                sprintMax >= 0.0f &&
+                sprintMax < 10000.0f) {
                 slot->movement = movement;
                 slot->nativeMaxWalkSpeed = walk;
                 slot->nativeMaxAcceleration = acceleration;
                 slot->nativeBrakingFrictionFactor = braking;
+                slot->nativeSprintingMaxSpeed = sprintMax;
+                slot->horseFieldsReady = sprintMax > 0.0f;
                 slot->movementReady = true;
+
+                FeatureLog(
+                    "HorseFeature V0.29: HORSE MOVEMENT READY "
+                    "horse=%p movement=%p walk=%.1f accel=%.1f "
+                    "brake=%.2f sprintMax=%.1f sprintFieldReady=%d",
+                    horse,
+                    movement,
+                    walk,
+                    acceleration,
+                    braking,
+                    sprintMax,
+                    slot->horseFieldsReady ? 1 : 0
+                );
             }
         }
     }
@@ -622,7 +631,7 @@ void CaptureHorseLocked(
         );
 
         FeatureLog(
-            "HorseFeature V0.27: NATIVE HORSE CAPTURE source=%s "
+            "HorseFeature V0.29: NATIVE HORSE CAPTURE source=%s "
             "horse=%p movement=%p movementReady=%d "
             "walk=%.1f accel=%.1f brake=%.2f "
             "sprintMax=%.1f bSprinting=%u "
@@ -742,7 +751,7 @@ bool InstallNativeHook(
             prologue.data(),
             prologue.size()) != 0) {
         FeatureLog(
-            "HorseFeature V0.27: %s target validation FAILED RVA=0x%llX",
+            "HorseFeature V0.29: %s target validation FAILED RVA=0x%llX",
             name,
             static_cast<unsigned long long>(rva)
         );
@@ -753,7 +762,7 @@ bool InstallNativeHook(
     if (initStatus != MH_OK &&
         initStatus != MH_ERROR_ALREADY_INITIALIZED) {
         FeatureLog(
-            "HorseFeature V0.27: MinHook init FAILED for %s status=%d",
+            "HorseFeature V0.29: MinHook init FAILED for %s status=%d",
             name,
             static_cast<int>(initStatus)
         );
@@ -769,7 +778,7 @@ bool InstallNativeHook(
 
     if (createStatus != MH_OK) {
         FeatureLog(
-            "HorseFeature V0.27: %s hook create FAILED status=%d",
+            "HorseFeature V0.29: %s hook create FAILED status=%d",
             name,
             static_cast<int>(createStatus)
         );
@@ -783,7 +792,7 @@ bool InstallNativeHook(
         enableStatus != MH_ERROR_ENABLED) {
         MH_RemoveHook(target);
         FeatureLog(
-            "HorseFeature V0.27: %s hook enable FAILED status=%d",
+            "HorseFeature V0.29: %s hook enable FAILED status=%d",
             name,
             static_cast<int>(enableStatus)
         );
@@ -794,7 +803,7 @@ bool InstallNativeHook(
     targetOut = target;
 
     FeatureLog(
-        "HorseFeature V0.27: %s hook READY RVA=0x%llX",
+        "HorseFeature V0.29: %s hook READY RVA=0x%llX",
         name,
         static_cast<unsigned long long>(rva)
     );
@@ -818,8 +827,8 @@ void Initialize(LogFn logger) {
     g_logger = logger;
 
     FeatureLog(
-        "HorseFeature V0.27: native HorseCharacter hooks armed; "
-        "no player identity, no Blueprint accessors, no generic movement scan."
+        "HorseFeature V0.29: native HorseCharacter hooks + native horse movement resolver armed; "
+        "movement fields exact: walk=0x1DC accel=0x1F0 brakeFactor=0x1F8 sprintMax=0x760."
     );
 
     InstallNativeHook(
@@ -948,6 +957,7 @@ void Tick() {
                     float walk = 0.0f;
                     float acceleration = 0.0f;
                     float braking = 0.0f;
+                    float sprintMax = 0.0f;
 
                     if (ReadFloat(
                             movement,
@@ -961,21 +971,33 @@ void Tick() {
                             movement,
                             kBrakingFrictionFactorOffset,
                             braking) &&
+                        ReadFloat(
+                            movement,
+                            kSprintingMaxSpeedOffset,
+                            sprintMax) &&
                         walk > 0.0f &&
-                        acceleration > 0.0f) {
+                        acceleration > 0.0f &&
+                        sprintMax >= 0.0f &&
+                        sprintMax < 10000.0f) {
                         slot.movement = movement;
                         slot.nativeMaxWalkSpeed = walk;
                         slot.nativeMaxAcceleration = acceleration;
                         slot.nativeBrakingFrictionFactor = braking;
+                        slot.nativeSprintingMaxSpeed = sprintMax;
+                        slot.horseFieldsReady = sprintMax > 0.0f;
                         slot.movementReady = true;
 
                         FeatureLog(
-                            "HorseFeature V0.27: movement resolved later horse=%p movement=%p walk=%.1f accel=%.1f brake=%.2f",
+                            "HorseFeature V0.29: HORSE MOVEMENT READY (late) "
+                            "horse=%p movement=%p walk=%.1f accel=%.1f "
+                            "brake=%.2f sprintMax=%.1f sprintFieldReady=%d",
                             slot.horse,
                             movement,
                             walk,
                             acceleration,
-                            braking
+                            braking,
+                            sprintMax,
+                            slot.horseFieldsReady ? 1 : 0
                         );
                     }
                 }
@@ -1040,7 +1062,7 @@ void Shutdown() {
     ReleaseSRWLockExclusive(&g_lock);
 
     FeatureLog(
-        "HorseFeature V0.27: native horse hooks shutdown"
+        "HorseFeature V0.29: native horse hooks shutdown"
     );
 }
 
