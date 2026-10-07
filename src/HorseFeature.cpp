@@ -228,6 +228,8 @@ void LogCandidateOnce(
         ReadFloat(movement, kMaxWalkSpeedOffset, maxWalkSpeed);
     const bool accelerationOk =
         ReadFloat(movement, kMaxAccelerationOffset, maxAcceleration);
+    const bool brakingOk =
+        ReadFloat(movement, kBrakingFrictionFactorOffset, brakingFrictionFactor);
     const bool modeOk =
         ReadAt(movement, kMovementModeOffset, movementMode);
     const bool staminaOk =
@@ -250,7 +252,7 @@ void LogCandidateOnce(
 
     FeatureLog(
         "HorseFeature: candidate movement=%p owner=%p native=%.1f "
-        "mode=%s%u jump=%s%.1f walk=%s%.1f accel=%s%.1f "
+        "mode=%s%u jump=%s%.1f walk=%s%.1f accel=%s%.1f brake=%s%.2f "
         "stamina=%s[%.1f,%.1f,%.1f]",
         movement,
         owner,
@@ -263,6 +265,8 @@ void LogCandidateOnce(
         maxWalkSpeed,
         accelerationOk ? "" : "?",
         maxAcceleration,
+        brakingOk ? "" : "?",
+        brakingFrictionFactor,
         staminaOk ? "" : "?",
         recovery,
         totalRecovery,
@@ -435,6 +439,7 @@ bool TryCaptureHorse(
 ) {
     float maxWalkSpeed = 0.0f;
     float maxAcceleration = 0.0f;
+    float brakingFrictionFactor = 0.0f;
     float recovery = 0.0f;
     float totalRecovery = 0.0f;
     float sprintDrain = 0.0f;
