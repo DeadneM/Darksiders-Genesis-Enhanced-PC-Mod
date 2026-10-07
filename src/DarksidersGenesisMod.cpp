@@ -30,7 +30,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.24A-horse-e78-direct-fields-test";
+constexpr const char* kBuild = "0.25-horse-native-spawn-registry-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1227,6 +1227,11 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         ApplyPlayerMovementTunings(movementComponent);
 
     if (playerMovementValidated) {
+        // Keep the existing single active-player pointer for player-only
+        // features, but register every validated playable character with the
+        // horse subsystem. War and Strife each own their own m_pHorseMount.
+        dg::horse::ObservePlayerCharacter(characterOwner);
+
         void* previousPlayer =
             g_localPlayerCharacter.exchange(
                 characterOwner,
@@ -1234,7 +1239,7 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
             );
         if (previousPlayer != characterOwner) {
             Log(
-                "Player identity: stable player=%p movement=%p (validated player movement)",
+                "Player identity: active player=%p movement=%p (validated player movement)",
                 characterOwner,
                 movementComponent
             );
@@ -1964,9 +1969,9 @@ dg::overlay::Context BuildOverlayContext() {
 HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) {
     ApplySkipIntroSetting(false);
 
-    // Direct horse detection must not depend on the horse sharing the player's
-    // GetMaxSpeed override. Poll the reflected player+0xE78 m_pHorseMount
-    // pointer every rendered frame using the stable validated player pointer.
+    // V0.25 no longer depends on this single pointer for horse discovery.
+    // The horse subsystem has a native spawn hook plus a War/Strife registry.
+    // Keep this only as a harmless fallback for the currently active character.
     dg::horse::PollDirectHorse(
         g_localPlayerCharacter.load(std::memory_order_relaxed)
     );
