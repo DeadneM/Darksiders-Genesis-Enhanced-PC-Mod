@@ -50,6 +50,7 @@ class Store {
 public:
     bool overlayEnabled = true;
     int menuKey = 0x2D; // VK_INSERT
+    int graphicsAdapter = 0;
 
     bool toggleHudEnabled = true;
     bool movementSpeedEnabled = true;
