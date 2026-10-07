@@ -9,6 +9,7 @@
 #include "imgui_impl_win32.h"
 
 #include "ConfigStore.h"
+#include "EngineIniFeature.h"
 #include "HorseFeature.h"
 #include "OverlayUi.h"
 #include "RuntimeSettings.h"
@@ -30,7 +31,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.29-horse-speed-native-movement-test";
+constexpr const char* kBuild = "0.30-graphics-adapter-engine-ini-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1956,6 +1957,8 @@ dg::overlay::Context BuildOverlayContext() {
         &ApplySkipIntroSetting;
     context.applySkipLogos =
         &dg::skip_logos::Apply;
+    context.applyGraphicsAdapter =
+        &dg::engine_ini::ApplyGraphicsAdapter;
     context.abilityStateName =
         &AbilityStateName;
     context.log = &Log;
@@ -2258,6 +2261,14 @@ DWORD WINAPI MainThread(LPVOID) {
     g_config.SetPath(g_iniPath);
     g_config.SetLogger(&FeatureLog);
     g_config.Load();
+
+    dg::engine_ini::Initialize(&FeatureLog);
+    if (!dg::engine_ini::ApplyGraphicsAdapter(
+            g_config.graphicsAdapter)) {
+        Log(
+            "Engine.ini GraphicsAdapter: startup apply failed; remaining mod features continue normally."
+        );
+    }
 
     g_targetValidation = dg::target::ValidateCurrentExecutable();
     Log(
