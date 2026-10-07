@@ -36,6 +36,7 @@ void ObserveMovement(
     float nativeGetMaxSpeed);
 void Tick();
 Telemetry GetTelemetry();
+bool IsValidatedMovement(void* movementComponent);
 void Shutdown();
 
 } // namespace dg::horse
