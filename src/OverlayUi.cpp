@@ -396,7 +396,7 @@ void Draw(Context& c) {
                 1.25f,
                 "%.2fx",
                 horseTelemetry.validated
-                    ? "Direct player+0xE70 horse chain VALIDATED"
+                    ? "Direct chain + MaxWalkSpeed/Acceleration multipliers"
                     : "Waiting for player+0xE70 -> horse direct chain"
             );
 
