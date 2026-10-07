@@ -392,32 +392,10 @@ void ApplyLocked() {
         return;
     }
 
-    const float speedMultiplier =
-        Clamp(g_speedMultiplier.load(), 0.0f, 3.0f);
-
-    const float targetWalk =
-        g_speedEnabled.load()
-            ? g_horse.maxWalkSpeed * speedMultiplier
-            : g_horse.maxWalkSpeed;
-
-    const float targetAcceleration =
-        g_speedEnabled.load()
-            ? g_horse.maxAcceleration * speedMultiplier
-            : g_horse.maxAcceleration;
-
-    if (WriteFloat(
-            g_horse.movement,
-            kMaxWalkSpeedOffset,
-            targetWalk)) {
-        g_appliedMaxWalkSpeed.store(targetWalk);
-    }
-
-    if (WriteFloat(
-            g_horse.movement,
-            kMaxAccelerationOffset,
-            targetAcceleration)) {
-        g_appliedMaxAcceleration.store(targetAcceleration);
-    }
+    // V0.21C isolates the shared GetMaxSpeed return for normal horse
+    // speed. Direct MaxWalkSpeed / MaxAcceleration writes are disabled here.
+    g_appliedMaxWalkSpeed.store(g_horse.maxWalkSpeed);
+    g_appliedMaxAcceleration.store(g_horse.maxAcceleration);
 
     const float sprintSpeedMultiplier =
         Clamp(g_sprintSpeedMultiplier.load(), 0.0f, 3.0f);
@@ -567,8 +545,8 @@ bool TryCaptureHorse(
 void Initialize(LogFn logger) {
     g_logger = logger;
     FeatureLog(
-        "HorseFeature V0.21A: exact UE4 reflection fields armed "
-        "walk=0x1E0 accel=0x1F4 brake=0x1FC sprintMax(owner)=0x760"
+        "HorseFeature V0.21C: split runtime armed "
+        "normal=GetMaxSpeed return sprint=owner+0x760 duration=owner+0x918"
     );
 }
 
