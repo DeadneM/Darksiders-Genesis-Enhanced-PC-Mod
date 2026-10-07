@@ -1,0 +1,89 @@
+name: Publish Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: startsWith(github.event.head_commit.message, '[release v')
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Parse release tag
+        id: version
+        shell: pwsh
+        run: |
+          $message = @'
+          ${{ github.event.head_commit.message }}
+          '@
+          if ($message -notmatch '^\[release (v[0-9]+\.[0-9]+)\]') {
+            throw "Release marker not found in head commit message."
+          }
+          "tag=$($Matches[1])" >> $env:GITHUB_OUTPUT
+
+      - name: Configure
+        shell: pwsh
+        run: cmake -S . -B build -G "Visual Studio 18 2026" -A x64
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build build --config Release --parallel
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $tag = "${{ steps.version.outputs.tag }}"
+          $dist = Join-Path $PWD "release-dist"
+          New-Item -ItemType Directory -Path $dist -Force | Out-Null
+
+          Copy-Item "build/out/dxgi.dll" $dist
+          Copy-Item "build/out/DarksidersGenesisMod.asi" $dist
+          Copy-Item "config/DarksidersGenesisMod.ini" $dist
+          Copy-Item "README.md" $dist
+
+          $zip = Join-Path $PWD "Darksiders_Genesis_Enhanced_PC_Mod_$tag.zip"
+          if (Test-Path $zip) { Remove-Item $zip -Force }
+          Compress-Archive -Path "$dist\*" -DestinationPath $zip -CompressionLevel Optimal
+
+          Get-FileHash $zip -Algorithm SHA256
+          "zip=$zip" >> $env:GITHUB_OUTPUT
+        id: package
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ steps.version.outputs.tag }}"
+          $zip = "${{ steps.package.outputs.zip }}"
+
+          $notes = @"
+          ## Darksiders Genesis Enhanced PC Mod $tag
+
+          Validated cumulative build.
+
+          Highlights:
+          - Native HorseCharacter detection
+          - Horse Speed validated
+          - Horse Sprint Speed validated
+          - Horse Sprint Duration validated
+          - Sprint Duration: 0x vanilla, 5x default, 20x maximum
+          - Skip Logos validated
+          - Skip Intro Videos remains independent
+          - Existing validated movement, combat, HUD and overlay features retained
+
+          Target executable:
+          DarksidersGenesis-Win64-Shipping.exe
+          SHA-256: 9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54
+          "@
+
+          gh release create $tag $zip --target "${{ github.sha }}" --title "Darksiders Genesis Enhanced PC Mod $tag" --notes $notes
