@@ -30,7 +30,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.21A-horse-reflection-fields-test";
+constexpr const char* kBuild = "0.22A-horse-direct-native-chain-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1190,16 +1190,25 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
     // movement hook. Do this BEFORE APawn::IsLocallyControlled, because the
     // player's horse can itself be locally controlled. HorseFeature identifies
     // the mount only from the exact reference-PAK property signature.
+    void* knownLocalPlayer =
+        g_localPlayerCharacter.load(std::memory_order_relaxed);
+
     dg::horse::ObserveMovement(
         movementComponent,
         characterOwner,
+        knownLocalPlayer,
         nativeSpeed
     );
 
-    // Once the exact horse signature has proven this movement component,
-    // do not let APawn::IsLocallyControlled reclassify the mount as the player.
+    // V0.22A follows the game's direct mount chain instead of identifying
+    // the horse from movement-property signatures. Once the exact horse
+    // movement is proven, return its independently adjusted normal/sprint speed
+    // before APawn::IsLocallyControlled can reclassify the mount as the player.
     if (dg::horse::IsValidatedMovement(movementComponent)) {
-        return nativeSpeed;
+        return dg::horse::AdjustSpeedResult(
+            movementComponent,
+            nativeSpeed
+        );
     }
 
     // Keep player identity exactly as the already validated V0.14F path:
