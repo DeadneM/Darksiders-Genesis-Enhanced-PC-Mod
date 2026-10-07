@@ -15,6 +15,7 @@ struct Snapshot {
     bool jumpHeightEnabled = true;
     bool glideDurationEnabled = true;
     bool horseSpeedEnabled = true;
+    bool horseSprintSpeedEnabled = true;
     bool horseSprintDurationEnabled = true;
     bool hotstreakChargeEnabled = true;
 
@@ -25,6 +26,7 @@ struct Snapshot {
     float jumpHeightMultiplier = 1.25f;
     float glideDurationMultiplier = 10.00f;
     float horseSpeedMultiplier = 1.25f;
+    float horseSprintSpeedMultiplier = 1.25f;
     float horseSprintDurationMultiplier = 2.00f;
     float hotstreakChargeMultiplier = 2.00f;
 };
@@ -40,6 +42,7 @@ struct State {
     std::atomic_bool jumpHeightEnabled{true};
     std::atomic_bool glideDurationEnabled{true};
     std::atomic_bool horseSpeedEnabled{true};
+    std::atomic_bool horseSprintSpeedEnabled{true};
     std::atomic_bool horseSprintDurationEnabled{true};
     std::atomic_bool hotstreakChargeEnabled{true};
 
@@ -50,6 +53,7 @@ struct State {
     std::atomic<float> jumpHeightMultiplier{1.25f};
     std::atomic<float> glideDurationMultiplier{10.00f};
     std::atomic<float> horseSpeedMultiplier{1.25f};
+    std::atomic<float> horseSprintSpeedMultiplier{1.25f};
     std::atomic<float> horseSprintDurationMultiplier{2.00f};
     std::atomic<float> hotstreakChargeMultiplier{2.00f};
 };
