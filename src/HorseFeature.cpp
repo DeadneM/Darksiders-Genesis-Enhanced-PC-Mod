@@ -15,55 +15,75 @@
 namespace dg::horse {
 namespace {
 
-constexpr std::size_t kPlayerHorseMountOffset = 0xE78;
-constexpr std::size_t kHorseIsSprintingOffset = 0x8D4;
-constexpr std::size_t kHorseSprintingMaxSpeedOffset = 0x760;
+// Native HorseCharacter functions proved from the retail executable's own
+// reflection registration table and disassembly.
+constexpr std::uintptr_t kHorseGetNormalizedSpeedRva = 0x00670D00;
+constexpr std::uintptr_t kHorseGetNormalizedSpeedInputRva = 0x00670DD0;
+constexpr std::uintptr_t kHorseTryStartSprintingRva = 0x0068C120;
+constexpr std::uintptr_t kHorseSetSprintingTrueRva = 0x00791F80;
 
+constexpr std::array<unsigned char, 12> kGetNormalizedSpeedPrologue{
+    0x48, 0x89, 0x5C, 0x24, 0x08, 0x57,
+    0x48, 0x83, 0xEC, 0x50, 0x48, 0x8B
+};
+constexpr std::array<unsigned char, 12> kGetNormalizedSpeedInputPrologue{
+    0x48, 0x8B, 0xC4, 0x48, 0x89, 0x58,
+    0x10, 0x55, 0x48, 0x8D, 0x68, 0xA1
+};
+constexpr std::array<unsigned char, 12> kTryStartSprintingPrologue{
+    0x80, 0xB9, 0xCC, 0x09, 0x00, 0x00,
+    0x00, 0x75, 0x10, 0x0F, 0x57, 0xC0
+};
+constexpr std::array<unsigned char, 8> kSetSprintingTruePrologue{
+    0xC6, 0x81, 0xD0, 0x08, 0x00, 0x00, 0x01, 0xC3
+};
+
+// HorseCharacter fields proved by native code / property descriptors.
+constexpr std::size_t kSprintingMaxSpeedOffset = 0x760;
+constexpr std::size_t kSprintingOffset = 0x8D0;
+constexpr std::size_t kStaminaRecoveryOffset = 0x90C;
+constexpr std::size_t kStaminaTotalRecoveryOffset = 0x910;
+constexpr std::size_t kStaminaRecoveryCooldownOffset = 0x914;
+constexpr std::size_t kStaminaSprintRateOffset = 0x918;
+constexpr std::size_t kCurrentStaminaOffset = 0x9C0;
+constexpr std::size_t kMaxStaminaOffset = 0x9C4;
+constexpr std::size_t kRanOutOfStaminaOffset = 0x9CC;
+
+// The native HorseCharacter::GetNormalizedSpeed implementation calls the
+// horse's virtual getter at vtable +0x5F8 and then GetMaxSpeed on the returned
+// movement component at vtable +0x3D0.
+constexpr std::size_t kHorseMovementGetterVtableOffset = 0x5F8;
+
+// UCharacterMovementComponent fields, already reflection-proved.
 constexpr std::size_t kCharacterOwnerOffset = 0x190;
 constexpr std::size_t kMaxWalkSpeedOffset = 0x1E0;
 constexpr std::size_t kMaxAccelerationOffset = 0x1F4;
 constexpr std::size_t kBrakingFrictionFactorOffset = 0x1FC;
 
-constexpr std::size_t kStaminaRecoveryOffset = 0x910;
-constexpr std::size_t kStaminaTotalRecoveryOffset = 0x914;
-constexpr std::size_t kStaminaSprintDrainOffset = 0x920;
-
-constexpr std::uintptr_t kExecGetHorseMountRva = 0x7ACC00;
-constexpr std::uintptr_t kExecIsHorseActiveRva = 0x7AD6D0;
-
-constexpr std::array<unsigned char, 14> kExecWrapperPrefix{
-    0x48, 0x8B, 0x42, 0x20,
-    0x45, 0x33, 0xC9,
-    0x48, 0x85, 0xC0,
-    0x41, 0x0F, 0x95, 0xC1
-};
-
 constexpr std::size_t kMaxHorseSlots = 4;
-constexpr std::size_t kMaxMovementSnapshots = 32;
 
 struct HorseSlot {
-    void* player = nullptr;
     void* horse = nullptr;
     void* movement = nullptr;
 
-    bool movementValidated = false;
-    bool speedFieldsReady = false;
-    bool sprintFieldsReady = false;
-    bool staminaReady = false;
+    bool movementReady = false;
+    bool horseFieldsReady = false;
+    bool staminaFieldsReady = false;
 
-    float maxWalkSpeed = 0.0f;
-    float maxAcceleration = 0.0f;
-    float brakingFrictionFactor = 0.0f;
-    float sprintingMaxSpeed = 0.0f;
-    float sprintDrain = 0.0f;
+    float nativeMaxWalkSpeed = 0.0f;
+    float nativeMaxAcceleration = 0.0f;
+    float nativeBrakingFrictionFactor = 0.0f;
+    float nativeSprintingMaxSpeed = 0.0f;
+    float nativeStaminaSprintRate = 0.0f;
 
-    float nativeGetMaxSpeed = 0.0f;
-    float appliedGetMaxSpeed = 0.0f;
+    float currentStamina = 0.0f;
+    float maxStamina = 0.0f;
+
+    std::uint32_t captures = 0;
 };
 
 SRWLOCK g_lock = SRWLOCK_INIT;
 std::array<HorseSlot, kMaxHorseSlots> g_slots{};
-std::array<void*, kMaxMovementSnapshots> g_seenMovement{};
 
 std::atomic_bool g_speedEnabled{true};
 std::atomic<float> g_speedMultiplier{1.25f};
@@ -75,7 +95,6 @@ std::atomic<float> g_sprintDurationMultiplier{2.0f};
 std::atomic_bool g_validated{false};
 std::atomic_bool g_staminaReady{false};
 std::atomic_bool g_sprinting{false};
-std::atomic<void*> g_player{nullptr};
 std::atomic<void*> g_owner{nullptr};
 std::atomic<void*> g_movement{nullptr};
 
@@ -90,18 +109,22 @@ std::atomic<float> g_appliedSprintingMaxSpeed{0.0f};
 std::atomic<float> g_nativeSprintDrain{0.0f};
 std::atomic<float> g_appliedSprintDrain{0.0f};
 
-std::atomic_uint32_t g_snapshotCount{0};
-std::atomic_uint32_t g_horseCount{0};
-std::atomic_uint32_t g_getHorseMountCalls{0};
-std::atomic_uint32_t g_isHorseActiveCalls{0};
+std::atomic_uint32_t g_nativeHookCalls{0};
+std::atomic_uint32_t g_horsesFound{0};
 
-using ExecWrapperFn = void(*)(void*, void*, void*);
-ExecWrapperFn g_originalGetHorseMount = nullptr;
-ExecWrapperFn g_originalIsHorseActive = nullptr;
-void* g_getHorseMountTarget = nullptr;
-void* g_isHorseActiveTarget = nullptr;
-bool g_getHorseMountHookOwned = false;
-bool g_isHorseActiveHookOwned = false;
+using HorseFloatFn = float(*)(void*);
+using HorseVoidFn = void(*)(void*);
+using HorseMovementGetterFn = void*(*)(void*);
+
+HorseFloatFn g_originalGetNormalizedSpeed = nullptr;
+HorseFloatFn g_originalGetNormalizedSpeedInput = nullptr;
+HorseVoidFn g_originalTryStartSprinting = nullptr;
+HorseVoidFn g_originalSetSprintingTrue = nullptr;
+
+void* g_getNormalizedSpeedTarget = nullptr;
+void* g_getNormalizedSpeedInputTarget = nullptr;
+void* g_tryStartSprintingTarget = nullptr;
+void* g_setSprintingTrueTarget = nullptr;
 
 LogFn g_logger = nullptr;
 
@@ -206,8 +229,7 @@ bool WriteFloat(void* base, std::size_t offset, float value) {
         return false;
     }
 
-    auto* p =
-        reinterpret_cast<unsigned char*>(base) + offset;
+    auto* p = reinterpret_cast<unsigned char*>(base) + offset;
     if (!Writable(p, sizeof(float))) {
         return false;
     }
@@ -218,25 +240,6 @@ bool WriteFloat(void* base, std::size_t offset, float value) {
 
 float Clamp(float value, float low, float high) {
     return std::clamp(value, low, high);
-}
-
-bool Near(float value, float expected, float tolerance) {
-    return std::isfinite(value) &&
-           std::fabs(value - expected) <= tolerance;
-}
-
-bool LooksLikeUObject(void* object) {
-    if (!object || !Readable(object, sizeof(void*))) {
-        return false;
-    }
-
-    void* vtable = *reinterpret_cast<void**>(object);
-    if (!vtable || !Readable(vtable, sizeof(void*))) {
-        return false;
-    }
-
-    void* firstVirtual = *reinterpret_cast<void**>(vtable);
-    return ExecutableAddress(firstVirtual);
 }
 
 HorseSlot* FindHorseLocked(void* horse) {
@@ -250,7 +253,7 @@ HorseSlot* FindHorseLocked(void* horse) {
 
 HorseSlot* FindMovementLocked(void* movement) {
     for (auto& slot : g_slots) {
-        if (slot.movementValidated &&
+        if (slot.movementReady &&
             slot.movement == movement &&
             movement) {
             return &slot;
@@ -260,10 +263,6 @@ HorseSlot* FindMovementLocked(void* movement) {
 }
 
 HorseSlot* AllocateHorseLocked(void* horse) {
-    if (!horse) {
-        return nullptr;
-    }
-
     if (auto* existing = FindHorseLocked(horse)) {
         return existing;
     }
@@ -271,7 +270,7 @@ HorseSlot* AllocateHorseLocked(void* horse) {
     for (auto& slot : g_slots) {
         if (!slot.horse) {
             slot.horse = horse;
-            g_horseCount.fetch_add(1);
+            g_horsesFound.fetch_add(1);
             return &slot;
         }
     }
@@ -279,41 +278,64 @@ HorseSlot* AllocateHorseLocked(void* horse) {
     return nullptr;
 }
 
-bool MarkMovementSnapshotLocked(void* movement) {
-    if (!movement) {
-        return false;
+void* ResolveHorseMovement(void* horse) {
+    if (!horse || !Readable(horse, sizeof(void*))) {
+        return nullptr;
     }
 
-    for (void* seen : g_seenMovement) {
-        if (seen == movement) {
-            return false;
-        }
+    void** vtable = *reinterpret_cast<void***>(horse);
+    if (!vtable) {
+        return nullptr;
     }
 
-    for (auto& seen : g_seenMovement) {
-        if (!seen) {
-            seen = movement;
-            g_snapshotCount.fetch_add(1);
-            return true;
-        }
+    const std::size_t slot =
+        kHorseMovementGetterVtableOffset / sizeof(void*);
+
+    if (!Readable(vtable + slot, sizeof(void*))) {
+        return nullptr;
     }
 
-    return false;
+    void* getter = vtable[slot];
+    if (!ExecutableAddress(getter)) {
+        return nullptr;
+    }
+
+    auto fn = reinterpret_cast<HorseMovementGetterFn>(getter);
+    void* movement = fn(horse);
+    if (!movement || !Readable(movement, sizeof(void*))) {
+        return nullptr;
+    }
+
+    void* ownerBack = nullptr;
+    if (!ReadAt(
+            movement,
+            kCharacterOwnerOffset,
+            ownerBack) ||
+        ownerBack != horse) {
+        return nullptr;
+    }
+
+    return movement;
 }
 
 void PublishSlotLocked(const HorseSlot& slot) {
-    g_validated.store(slot.movementValidated);
-    g_staminaReady.store(slot.staminaReady);
-    g_player.store(slot.player);
+    g_validated.store(slot.horse != nullptr);
+    g_staminaReady.store(slot.staminaFieldsReady);
     g_owner.store(slot.horse);
     g_movement.store(slot.movement);
 
-    g_nativeGetMaxSpeed.store(slot.nativeGetMaxSpeed);
-    g_appliedGetMaxSpeed.store(slot.appliedGetMaxSpeed);
-    g_nativeMaxWalkSpeed.store(slot.maxWalkSpeed);
-    g_nativeMaxAcceleration.store(slot.maxAcceleration);
-    g_nativeSprintingMaxSpeed.store(slot.sprintingMaxSpeed);
-    g_nativeSprintDrain.store(slot.sprintDrain);
+    g_nativeMaxWalkSpeed.store(slot.nativeMaxWalkSpeed);
+    g_nativeMaxAcceleration.store(slot.nativeMaxAcceleration);
+    g_nativeSprintingMaxSpeed.store(slot.nativeSprintingMaxSpeed);
+    g_nativeSprintDrain.store(slot.nativeStaminaSprintRate);
+
+    unsigned char sprinting = 0;
+    if (ReadAt(
+            slot.horse,
+            kSprintingOffset,
+            sprinting)) {
+        g_sprinting.store(sprinting != 0);
+    }
 }
 
 void RestoreSlotLocked(HorseSlot& slot) {
@@ -321,45 +343,43 @@ void RestoreSlotLocked(HorseSlot& slot) {
         return;
     }
 
-    if (slot.movementValidated &&
-        slot.movement &&
-        slot.speedFieldsReady) {
+    if (slot.movementReady) {
         WriteFloat(
             slot.movement,
             kMaxWalkSpeedOffset,
-            slot.maxWalkSpeed
+            slot.nativeMaxWalkSpeed
         );
         WriteFloat(
             slot.movement,
             kMaxAccelerationOffset,
-            slot.maxAcceleration
+            slot.nativeMaxAcceleration
         );
         WriteFloat(
             slot.movement,
             kBrakingFrictionFactorOffset,
-            slot.brakingFrictionFactor
+            slot.nativeBrakingFrictionFactor
         );
     }
 
-    if (slot.sprintFieldsReady) {
+    if (slot.horseFieldsReady) {
         WriteFloat(
             slot.horse,
-            kHorseSprintingMaxSpeedOffset,
-            slot.sprintingMaxSpeed
+            kSprintingMaxSpeedOffset,
+            slot.nativeSprintingMaxSpeed
         );
     }
 
-    if (slot.staminaReady) {
+    if (slot.staminaFieldsReady) {
         WriteFloat(
             slot.horse,
-            kStaminaSprintDrainOffset,
-            slot.sprintDrain
+            kStaminaSprintRateOffset,
+            slot.nativeStaminaSprintRate
         );
     }
 }
 
 void ApplySlotLocked(HorseSlot& slot) {
-    if (!slot.horse || !slot.movementValidated) {
+    if (!slot.horse) {
         return;
     }
 
@@ -370,15 +390,21 @@ void ApplySlotLocked(HorseSlot& slot) {
     const float durationMultiplier =
         Clamp(g_sprintDurationMultiplier.load(), 0.0f, 10.0f);
 
-    if (slot.speedFieldsReady) {
+    if (slot.movementReady) {
         const float targetWalk =
             g_speedEnabled.load()
-                ? slot.maxWalkSpeed * speedMultiplier
-                : slot.maxWalkSpeed;
+                ? slot.nativeMaxWalkSpeed * speedMultiplier
+                : slot.nativeMaxWalkSpeed;
+
         const float targetAcceleration =
             g_speedEnabled.load()
-                ? slot.maxAcceleration * speedMultiplier
-                : slot.maxAcceleration;
+                ? slot.nativeMaxAcceleration * speedMultiplier
+                : slot.nativeMaxAcceleration;
+
+        const float targetBrake =
+            g_speedEnabled.load()
+                ? std::max(slot.nativeBrakingFrictionFactor, 2.0f)
+                : slot.nativeBrakingFrictionFactor;
 
         if (WriteFloat(
                 slot.movement,
@@ -393,472 +419,312 @@ void ApplySlotLocked(HorseSlot& slot) {
                 targetAcceleration)) {
             g_appliedMaxAcceleration.store(targetAcceleration);
         }
+
+        WriteFloat(
+            slot.movement,
+            kBrakingFrictionFactorOffset,
+            targetBrake
+        );
     }
 
-    if (slot.sprintFieldsReady) {
+    if (slot.horseFieldsReady) {
         const float targetSprint =
             g_sprintSpeedEnabled.load()
-                ? slot.sprintingMaxSpeed * sprintMultiplier
-                : slot.sprintingMaxSpeed;
+                ? slot.nativeSprintingMaxSpeed * sprintMultiplier
+                : slot.nativeSprintingMaxSpeed;
 
         if (WriteFloat(
                 slot.horse,
-                kHorseSprintingMaxSpeedOffset,
+                kSprintingMaxSpeedOffset,
                 targetSprint)) {
             g_appliedSprintingMaxSpeed.store(targetSprint);
         }
     }
 
-    if (slot.staminaReady) {
-        float targetDrain = slot.sprintDrain;
+    if (slot.staminaFieldsReady) {
+        float targetSprintRate =
+            slot.nativeStaminaSprintRate;
+
         if (g_sprintDurationEnabled.load()) {
-            targetDrain =
+            targetSprintRate =
                 durationMultiplier <= 0.0001f
-                    ? 100000.0f
-                    : slot.sprintDrain / durationMultiplier;
+                    ? slot.nativeStaminaSprintRate
+                    : slot.nativeStaminaSprintRate / durationMultiplier;
         }
 
         if (WriteFloat(
                 slot.horse,
-                kStaminaSprintDrainOffset,
-                targetDrain)) {
-            g_appliedSprintDrain.store(targetDrain);
+                kStaminaSprintRateOffset,
+                targetSprintRate)) {
+            g_appliedSprintDrain.store(targetSprintRate);
         }
     }
 
-    unsigned char sprinting = 0;
-    if (ReadAt(
-            slot.horse,
-            kHorseIsSprintingOffset,
-            sprinting)) {
-        g_sprinting.store(sprinting != 0);
-    }
+    ReadFloat(
+        slot.horse,
+        kCurrentStaminaOffset,
+        slot.currentStamina
+    );
+    ReadFloat(
+        slot.horse,
+        kMaxStaminaOffset,
+        slot.maxStamina
+    );
 
     PublishSlotLocked(slot);
 }
 
-bool CaptureMovementLocked(
-    HorseSlot& slot,
-    void* movement,
-    const char* source
-) {
-    if (!slot.horse || !movement) {
-        return false;
-    }
-
-    void* ownerBack = nullptr;
-    if (!ReadAt(
-            movement,
-            kCharacterOwnerOffset,
-            ownerBack) ||
-        ownerBack != slot.horse) {
-        return false;
-    }
-
-    const bool newMovement =
-        !slot.movementValidated ||
-        slot.movement != movement;
-
-    if (newMovement) {
-        if (slot.movementValidated &&
-            slot.movement &&
-            slot.movement != movement) {
-            RestoreSlotLocked(slot);
-        }
-
-        slot.movement = movement;
-        slot.movementValidated = true;
-
-        float walk = 0.0f;
-        float acceleration = 0.0f;
-        float braking = 0.0f;
-        slot.speedFieldsReady =
-            ReadFloat(movement, kMaxWalkSpeedOffset, walk) &&
-            ReadFloat(
-                movement,
-                kMaxAccelerationOffset,
-                acceleration) &&
-            ReadFloat(
-                movement,
-                kBrakingFrictionFactorOffset,
-                braking) &&
-            walk > 0.0f &&
-            acceleration > 0.0f;
-
-        if (slot.speedFieldsReady) {
-            slot.maxWalkSpeed = walk;
-            slot.maxAcceleration = acceleration;
-            slot.brakingFrictionFactor = braking;
-        }
-
-        float sprintMax = 0.0f;
-        slot.sprintFieldsReady =
-            ReadFloat(
-                slot.horse,
-                kHorseSprintingMaxSpeedOffset,
-                sprintMax) &&
-            sprintMax > 0.0f &&
-            sprintMax < 10000.0f;
-        if (slot.sprintFieldsReady) {
-            slot.sprintingMaxSpeed = sprintMax;
-        }
-
-        float recovery = 0.0f;
-        float totalRecovery = 0.0f;
-        float sprintDrain = 0.0f;
-        slot.staminaReady =
-            ReadFloat(
-                slot.horse,
-                kStaminaRecoveryOffset,
-                recovery) &&
-            ReadFloat(
-                slot.horse,
-                kStaminaTotalRecoveryOffset,
-                totalRecovery) &&
-            ReadFloat(
-                slot.horse,
-                kStaminaSprintDrainOffset,
-                sprintDrain) &&
-            sprintDrain >= 0.0f &&
-            sprintDrain < 1000.0f;
-
-        if (slot.staminaReady) {
-            slot.sprintDrain = sprintDrain;
-        }
-
-        FeatureLog(
-            "HorseFeature V0.26: HORSE DETECTED source=%s "
-            "player=%p horse=%p movement=%p ownerMatch=1 "
-            "walk=%.1f accel=%.1f brake=%.2f "
-            "sprintMax=%.1f stamina=[%.1f,%.1f,%.1f]",
-            source ? source : "unknown",
-            slot.player,
-            slot.horse,
-            movement,
-            slot.maxWalkSpeed,
-            slot.maxAcceleration,
-            slot.brakingFrictionFactor,
-            slot.sprintingMaxSpeed,
-            recovery,
-            totalRecovery,
-            slot.sprintDrain
-        );
-    }
-
-    ApplySlotLocked(slot);
-    return true;
-}
-
-HorseSlot* RegisterHorseLocked(
-    void* player,
+void CaptureHorseLocked(
     void* horse,
     const char* source
 ) {
-    if (!horse || !LooksLikeUObject(horse)) {
-        return nullptr;
+    if (!horse || !Readable(horse, sizeof(void*))) {
+        return;
     }
 
     HorseSlot* slot = AllocateHorseLocked(horse);
     if (!slot) {
-        FeatureLog(
-            "HorseFeature V0.26: horse registry FULL source=%s horse=%p",
-            source ? source : "unknown",
-            horse
-        );
-        return nullptr;
-    }
-
-    if (player && !slot->player) {
-        slot->player = player;
-    }
-
-    if (!slot->movementValidated) {
-        FeatureLog(
-            "HorseFeature V0.26: HORSE REGISTERED source=%s player=%p horse=%p",
-            source ? source : "unknown",
-            slot->player,
-            horse
-        );
-    }
-
-    return slot;
-}
-
-bool ReadHorseSignature(
-    void* movement,
-    void* owner,
-    float& walk,
-    float& acceleration,
-    float& braking,
-    float& sprintMax,
-    float& recovery,
-    float& totalRecovery,
-    float& sprintDrain,
-    unsigned char& sprinting
-) {
-    if (!movement ||
-        !owner ||
-        !LooksLikeUObject(owner)) {
-        return false;
-    }
-
-    if (!ReadFloat(movement, kMaxWalkSpeedOffset, walk) ||
-        !ReadFloat(
-            movement,
-            kMaxAccelerationOffset,
-            acceleration) ||
-        !ReadFloat(
-            movement,
-            kBrakingFrictionFactorOffset,
-            braking) ||
-        !ReadFloat(
-            owner,
-            kHorseSprintingMaxSpeedOffset,
-            sprintMax) ||
-        !ReadFloat(
-            owner,
-            kStaminaRecoveryOffset,
-            recovery) ||
-        !ReadFloat(
-            owner,
-            kStaminaTotalRecoveryOffset,
-            totalRecovery) ||
-        !ReadFloat(
-            owner,
-            kStaminaSprintDrainOffset,
-            sprintDrain) ||
-        !ReadAt(
-            owner,
-            kHorseIsSprintingOffset,
-            sprinting)) {
-        return false;
-    }
-
-    return true;
-}
-
-bool MatchesVanillaHorseSignature(
-    float walk,
-    float acceleration,
-    float braking,
-    float sprintMax,
-    float recovery,
-    float totalRecovery,
-    float sprintDrain
-) {
-    return
-        Near(walk, 1300.0f, 25.0f) &&
-        Near(acceleration, 600.0f, 25.0f) &&
-        braking >= 0.0f &&
-        braking <= 4.0f &&
-        sprintMax > 0.0f &&
-        sprintMax < 5000.0f &&
-        Near(recovery, 15.0f, 0.5f) &&
-        Near(totalRecovery, 40.0f, 0.5f) &&
-        Near(sprintDrain, 25.0f, 0.5f);
-}
-
-void ObserveMovementOwnerLocked(
-    void* movement,
-    void* owner,
-    float nativeGetMaxSpeed
-) {
-    if (!movement || !owner) {
         return;
     }
 
-    if (auto* known = FindHorseLocked(owner)) {
-        CaptureMovementLocked(
-            *known,
-            movement,
-            "registered horse owner-match"
-        );
-        known->nativeGetMaxSpeed = nativeGetMaxSpeed;
-        known->appliedGetMaxSpeed = nativeGetMaxSpeed;
-        PublishSlotLocked(*known);
-        return;
+    const bool firstCapture =
+        slot->captures == 0;
+    ++slot->captures;
+
+    if (!slot->horseFieldsReady) {
+        float sprintMax = 0.0f;
+        if (ReadFloat(
+                horse,
+                kSprintingMaxSpeedOffset,
+                sprintMax) &&
+            sprintMax > 0.0f &&
+            sprintMax < 10000.0f) {
+            slot->nativeSprintingMaxSpeed = sprintMax;
+            slot->horseFieldsReady = true;
+        }
     }
 
-    float walk = 0.0f;
-    float acceleration = 0.0f;
-    float braking = 0.0f;
-    float sprintMax = 0.0f;
-    float recovery = 0.0f;
-    float totalRecovery = 0.0f;
-    float sprintDrain = 0.0f;
+    if (!slot->staminaFieldsReady) {
+        float recovery = 0.0f;
+        float totalRecovery = 0.0f;
+        float cooldown = 0.0f;
+        float sprintRate = 0.0f;
+
+        const bool staminaOk =
+            ReadFloat(
+                horse,
+                kStaminaRecoveryOffset,
+                recovery) &&
+            ReadFloat(
+                horse,
+                kStaminaTotalRecoveryOffset,
+                totalRecovery) &&
+            ReadFloat(
+                horse,
+                kStaminaRecoveryCooldownOffset,
+                cooldown) &&
+            ReadFloat(
+                horse,
+                kStaminaSprintRateOffset,
+                sprintRate) &&
+            sprintRate >= 0.0f &&
+            sprintRate < 1000.0f;
+
+        if (staminaOk) {
+            slot->nativeStaminaSprintRate =
+                sprintRate;
+            slot->staminaFieldsReady = true;
+        }
+    }
+
+    if (!slot->movementReady) {
+        void* movement = ResolveHorseMovement(horse);
+        if (movement) {
+            float walk = 0.0f;
+            float acceleration = 0.0f;
+            float braking = 0.0f;
+
+            if (ReadFloat(
+                    movement,
+                    kMaxWalkSpeedOffset,
+                    walk) &&
+                ReadFloat(
+                    movement,
+                    kMaxAccelerationOffset,
+                    acceleration) &&
+                ReadFloat(
+                    movement,
+                    kBrakingFrictionFactorOffset,
+                    braking) &&
+                walk > 0.0f &&
+                acceleration > 0.0f) {
+                slot->movement = movement;
+                slot->nativeMaxWalkSpeed = walk;
+                slot->nativeMaxAcceleration = acceleration;
+                slot->nativeBrakingFrictionFactor = braking;
+                slot->movementReady = true;
+            }
+        }
+    }
+
+    float currentStamina = 0.0f;
+    float maxStamina = 0.0f;
     unsigned char sprinting = 0;
+    unsigned char ranOut = 0;
+    ReadFloat(
+        horse,
+        kCurrentStaminaOffset,
+        currentStamina
+    );
+    ReadFloat(
+        horse,
+        kMaxStaminaOffset,
+        maxStamina
+    );
+    ReadAt(
+        horse,
+        kSprintingOffset,
+        sprinting
+    );
+    ReadAt(
+        horse,
+        kRanOutOfStaminaOffset,
+        ranOut
+    );
 
-    const bool fieldsReadable =
-        ReadHorseSignature(
-            movement,
-            owner,
-            walk,
-            acceleration,
-            braking,
-            sprintMax,
+    slot->currentStamina = currentStamina;
+    slot->maxStamina = maxStamina;
+
+    if (firstCapture) {
+        float recovery = 0.0f;
+        float totalRecovery = 0.0f;
+        float cooldown = 0.0f;
+        float sprintRate = 0.0f;
+        ReadFloat(
+            horse,
+            kStaminaRecoveryOffset,
+            recovery
+        );
+        ReadFloat(
+            horse,
+            kStaminaTotalRecoveryOffset,
+            totalRecovery
+        );
+        ReadFloat(
+            horse,
+            kStaminaRecoveryCooldownOffset,
+            cooldown
+        );
+        ReadFloat(
+            horse,
+            kStaminaSprintRateOffset,
+            sprintRate
+        );
+
+        FeatureLog(
+            "HorseFeature V0.27: NATIVE HORSE CAPTURE source=%s "
+            "horse=%p movement=%p movementReady=%d "
+            "walk=%.1f accel=%.1f brake=%.2f "
+            "sprintMax=%.1f bSprinting=%u "
+            "staminaRate=[recovery %.1f total %.1f cooldown %.1f sprint %.1f] "
+            "staminaNow=%.1f/%.1f ranOut=%u",
+            source ? source : "unknown",
+            horse,
+            slot->movement,
+            slot->movementReady ? 1 : 0,
+            slot->nativeMaxWalkSpeed,
+            slot->nativeMaxAcceleration,
+            slot->nativeBrakingFrictionFactor,
+            slot->nativeSprintingMaxSpeed,
+            static_cast<unsigned>(sprinting),
             recovery,
             totalRecovery,
-            sprintDrain,
-            sprinting);
-
-    if (MarkMovementSnapshotLocked(movement)) {
-        void* movementVtable = nullptr;
-        void* ownerVtable = nullptr;
-        if (Readable(movement, sizeof(void*))) {
-            movementVtable =
-                *reinterpret_cast<void**>(movement);
-        }
-        if (Readable(owner, sizeof(void*))) {
-            ownerVtable =
-                *reinterpret_cast<void**>(owner);
-        }
-
-        if (fieldsReadable) {
-            FeatureLog(
-                "HorseFeature V0.26: MOVEMENT SNAPSHOT movement=%p mvVt=%p "
-                "owner=%p ownerVt=%p nativeSpeed=%.1f "
-                "walk=%.1f accel=%.1f brake=%.2f sprintMax=%.1f "
-                "sprinting=%u stamina=[%.1f,%.1f,%.1f]",
-                movement,
-                movementVtable,
-                owner,
-                ownerVtable,
-                nativeGetMaxSpeed,
-                walk,
-                acceleration,
-                braking,
-                sprintMax,
-                static_cast<unsigned>(sprinting),
-                recovery,
-                totalRecovery,
-                sprintDrain
-            );
-        } else {
-            FeatureLog(
-                "HorseFeature V0.26: MOVEMENT SNAPSHOT movement=%p mvVt=%p "
-                "owner=%p ownerVt=%p nativeSpeed=%.1f horseFields=UNREADABLE",
-                movement,
-                movementVtable,
-                owner,
-                ownerVtable,
-                nativeGetMaxSpeed
-            );
-        }
-    }
-
-    if (!fieldsReadable ||
-        !MatchesVanillaHorseSignature(
-            walk,
-            acceleration,
-            braking,
-            sprintMax,
-            recovery,
-            totalRecovery,
-            sprintDrain)) {
-        return;
-    }
-
-    HorseSlot* slot =
-        RegisterHorseLocked(
-            nullptr,
-            owner,
-            "movement signature 1300/600 + stamina 15/40/25"
+            cooldown,
+            sprintRate,
+            currentStamina,
+            maxStamina,
+            static_cast<unsigned>(ranOut)
         );
-    if (!slot) {
-        return;
     }
 
-    CaptureMovementLocked(
-        *slot,
-        movement,
-        "movement signature"
-    );
-    slot->nativeGetMaxSpeed = nativeGetMaxSpeed;
-    slot->appliedGetMaxSpeed = nativeGetMaxSpeed;
-    PublishSlotLocked(*slot);
+    ApplySlotLocked(*slot);
 }
 
-void HookExecGetHorseMount(
-    void* context,
-    void* stack,
-    void* result
+float HookHorseGetNormalizedSpeed(
+    void* horse
 ) {
-    if (g_originalGetHorseMount) {
-        g_originalGetHorseMount(
-            context,
-            stack,
-            result
-        );
-    }
-
-    g_getHorseMountCalls.fetch_add(1);
-
-    void* horse = nullptr;
-    if (result &&
-        Readable(result, sizeof(void*))) {
-        horse = *reinterpret_cast<void**>(result);
-    }
-
-    if (!horse) {
-        ReadAt(
-            context,
-            kPlayerHorseMountOffset,
-            horse
-        );
-    }
-
-    if (!horse) {
-        return;
-    }
+    g_nativeHookCalls.fetch_add(1);
 
     AcquireSRWLockExclusive(&g_lock);
-    RegisterHorseLocked(
-        context,
+    CaptureHorseLocked(
         horse,
-        "Blueprint GetHorseMount"
+        "HorseCharacter::GetNormalizedSpeed"
     );
     ReleaseSRWLockExclusive(&g_lock);
+
+    return g_originalGetNormalizedSpeed
+        ? g_originalGetNormalizedSpeed(horse)
+        : 0.0f;
 }
 
-void HookExecIsHorseActive(
-    void* context,
-    void* stack,
-    void* result
+float HookHorseGetNormalizedSpeedInput(
+    void* horse
 ) {
-    if (g_originalIsHorseActive) {
-        g_originalIsHorseActive(
-            context,
-            stack,
-            result
-        );
-    }
-
-    g_isHorseActiveCalls.fetch_add(1);
-
-    void* horse = nullptr;
-    if (!ReadAt(
-            context,
-            kPlayerHorseMountOffset,
-            horse) ||
-        !horse) {
-        return;
-    }
+    g_nativeHookCalls.fetch_add(1);
 
     AcquireSRWLockExclusive(&g_lock);
-    RegisterHorseLocked(
-        context,
+    CaptureHorseLocked(
         horse,
-        "Blueprint IsHorseActive"
+        "HorseCharacter::GetNormalizedSpeedInput"
     );
     ReleaseSRWLockExclusive(&g_lock);
+
+    return g_originalGetNormalizedSpeedInput
+        ? g_originalGetNormalizedSpeedInput(horse)
+        : 0.0f;
 }
 
-bool InstallExecHook(
+void HookHorseTryStartSprinting(
+    void* horse
+) {
+    g_nativeHookCalls.fetch_add(1);
+
+    AcquireSRWLockExclusive(&g_lock);
+    CaptureHorseLocked(
+        horse,
+        "HorseCharacter::TryStartSprinting"
+    );
+    ReleaseSRWLockExclusive(&g_lock);
+
+    if (g_originalTryStartSprinting) {
+        g_originalTryStartSprinting(horse);
+    }
+}
+
+void HookHorseSetSprintingTrue(
+    void* horse
+) {
+    g_nativeHookCalls.fetch_add(1);
+
+    AcquireSRWLockExclusive(&g_lock);
+    CaptureHorseLocked(
+        horse,
+        "HorseCharacter::SetSprintingTrue"
+    );
+    ReleaseSRWLockExclusive(&g_lock);
+
+    if (g_originalSetSprintingTrue) {
+        g_originalSetSprintingTrue(horse);
+    }
+}
+
+template <std::size_t N, typename Fn>
+bool InstallNativeHook(
     std::uintptr_t rva,
+    const std::array<unsigned char, N>& prologue,
     void* detour,
-    ExecWrapperFn& original,
+    Fn& original,
     void*& targetOut,
-    bool& ownedOut,
     const char* name
 ) {
     HMODULE module = GetModuleHandleW(nullptr);
@@ -870,15 +736,13 @@ bool InstallExecHook(
         reinterpret_cast<unsigned char*>(module) +
         rva;
 
-    if (!Readable(
-            target,
-            kExecWrapperPrefix.size()) ||
+    if (!Readable(target, prologue.size()) ||
         std::memcmp(
             target,
-            kExecWrapperPrefix.data(),
-            kExecWrapperPrefix.size()) != 0) {
+            prologue.data(),
+            prologue.size()) != 0) {
         FeatureLog(
-            "HorseFeature V0.26: %s target validation FAILED RVA=0x%llX",
+            "HorseFeature V0.27: %s target validation FAILED RVA=0x%llX",
             name,
             static_cast<unsigned long long>(rva)
         );
@@ -889,14 +753,14 @@ bool InstallExecHook(
     if (initStatus != MH_OK &&
         initStatus != MH_ERROR_ALREADY_INITIALIZED) {
         FeatureLog(
-            "HorseFeature V0.26: %s MinHook init FAILED status=%d",
+            "HorseFeature V0.27: MinHook init FAILED for %s status=%d",
             name,
             static_cast<int>(initStatus)
         );
         return false;
     }
 
-    ExecWrapperFn nativeOriginal = nullptr;
+    Fn nativeOriginal = nullptr;
     const MH_STATUS createStatus = MH_CreateHook(
         target,
         detour,
@@ -905,7 +769,7 @@ bool InstallExecHook(
 
     if (createStatus != MH_OK) {
         FeatureLog(
-            "HorseFeature V0.26: %s hook create FAILED status=%d",
+            "HorseFeature V0.27: %s hook create FAILED status=%d",
             name,
             static_cast<int>(createStatus)
         );
@@ -919,7 +783,7 @@ bool InstallExecHook(
         enableStatus != MH_ERROR_ENABLED) {
         MH_RemoveHook(target);
         FeatureLog(
-            "HorseFeature V0.26: %s hook enable FAILED status=%d",
+            "HorseFeature V0.27: %s hook enable FAILED status=%d",
             name,
             static_cast<int>(enableStatus)
         );
@@ -928,10 +792,9 @@ bool InstallExecHook(
 
     original = nativeOriginal;
     targetOut = target;
-    ownedOut = true;
 
     FeatureLog(
-        "HorseFeature V0.26: %s hook READY RVA=0x%llX",
+        "HorseFeature V0.27: %s hook READY RVA=0x%llX",
         name,
         static_cast<unsigned long long>(rva)
     );
@@ -939,27 +802,14 @@ bool InstallExecHook(
     return true;
 }
 
-void ClearAllLocked(const char* reason) {
-    for (auto& slot : g_slots) {
-        if (slot.horse) {
-            RestoreSlotLocked(slot);
-        }
-        slot = {};
+void RemoveHook(void*& target) {
+    if (!target) {
+        return;
     }
 
-    g_validated.store(false);
-    g_staminaReady.store(false);
-    g_sprinting.store(false);
-    g_player.store(nullptr);
-    g_owner.store(nullptr);
-    g_movement.store(nullptr);
-
-    if (reason) {
-        FeatureLog(
-            "HorseFeature V0.26: registry cleared (%s)",
-            reason
-        );
-    }
+    MH_DisableHook(target);
+    MH_RemoveHook(target);
+    target = nullptr;
 }
 
 } // namespace
@@ -968,29 +818,48 @@ void Initialize(LogFn logger) {
     g_logger = logger;
 
     FeatureLog(
-        "HorseFeature V0.26: multi-detector armed; "
-        "NO player registry. Channels: Blueprint GetHorseMount, "
-        "Blueprint IsHorseActive, movement-owner signature."
+        "HorseFeature V0.27: native HorseCharacter hooks armed; "
+        "no player identity, no Blueprint accessors, no generic movement scan."
     );
 
-    InstallExecHook(
-        kExecGetHorseMountRva,
+    InstallNativeHook(
+        kHorseGetNormalizedSpeedRva,
+        kGetNormalizedSpeedPrologue,
         reinterpret_cast<void*>(
-            &HookExecGetHorseMount),
-        g_originalGetHorseMount,
-        g_getHorseMountTarget,
-        g_getHorseMountHookOwned,
-        "GetHorseMount"
+            &HookHorseGetNormalizedSpeed),
+        g_originalGetNormalizedSpeed,
+        g_getNormalizedSpeedTarget,
+        "HorseCharacter::GetNormalizedSpeed"
     );
 
-    InstallExecHook(
-        kExecIsHorseActiveRva,
+    InstallNativeHook(
+        kHorseGetNormalizedSpeedInputRva,
+        kGetNormalizedSpeedInputPrologue,
         reinterpret_cast<void*>(
-            &HookExecIsHorseActive),
-        g_originalIsHorseActive,
-        g_isHorseActiveTarget,
-        g_isHorseActiveHookOwned,
-        "IsHorseActive"
+            &HookHorseGetNormalizedSpeedInput),
+        g_originalGetNormalizedSpeedInput,
+        g_getNormalizedSpeedInputTarget,
+        "HorseCharacter::GetNormalizedSpeedInput"
+    );
+
+    InstallNativeHook(
+        kHorseTryStartSprintingRva,
+        kTryStartSprintingPrologue,
+        reinterpret_cast<void*>(
+            &HookHorseTryStartSprinting),
+        g_originalTryStartSprinting,
+        g_tryStartSprintingTarget,
+        "HorseCharacter::TryStartSprinting"
+    );
+
+    InstallNativeHook(
+        kHorseSetSprintingTrueRva,
+        kSetSprintingTruePrologue,
+        reinterpret_cast<void*>(
+            &HookHorseSetSprintingTrue),
+        g_originalSetSprintingTrue,
+        g_setSprintingTrueTarget,
+        "HorseCharacter::SetSprintingTrue"
     );
 }
 
@@ -1010,11 +879,11 @@ void SetSettings(const Settings& settings) {
 }
 
 void ObservePlayerCharacter(void*) {
-    // V0.26 deliberately ignores player identity for horse discovery.
+    // V0.27 deliberately ignores player identity.
 }
 
 void PollDirectHorse(void*) {
-    // V0.26 deliberately ignores the active-player pointer.
+    // V0.27 deliberately ignores player identity.
 }
 
 void ObserveMovement(
@@ -1029,11 +898,17 @@ void ObserveMovement(
     }
 
     AcquireSRWLockExclusive(&g_lock);
-    ObserveMovementOwnerLocked(
-        movementComponent,
-        characterOwner,
-        nativeGetMaxSpeed
-    );
+
+    HorseSlot* slot =
+        FindMovementLocked(movementComponent);
+
+    if (slot &&
+        slot->horse == characterOwner) {
+        g_nativeGetMaxSpeed.store(nativeGetMaxSpeed);
+        g_appliedGetMaxSpeed.store(nativeGetMaxSpeed);
+        ApplySlotLocked(*slot);
+    }
+
     ReleaseSRWLockExclusive(&g_lock);
 }
 
@@ -1051,8 +926,8 @@ float AdjustSpeedResult(
         FindMovementLocked(movementComponent);
 
     if (slot) {
-        slot->nativeGetMaxSpeed = nativeGetMaxSpeed;
-        slot->appliedGetMaxSpeed = nativeGetMaxSpeed;
+        g_nativeGetMaxSpeed.store(nativeGetMaxSpeed);
+        g_appliedGetMaxSpeed.store(nativeGetMaxSpeed);
         ApplySlotLocked(*slot);
     }
 
@@ -1062,12 +937,54 @@ float AdjustSpeedResult(
 
 void Tick() {
     AcquireSRWLockExclusive(&g_lock);
+
     for (auto& slot : g_slots) {
-        if (slot.horse &&
-            slot.movementValidated) {
+        if (slot.horse) {
+            if (!slot.movementReady) {
+                void* movement =
+                    ResolveHorseMovement(slot.horse);
+
+                if (movement) {
+                    float walk = 0.0f;
+                    float acceleration = 0.0f;
+                    float braking = 0.0f;
+
+                    if (ReadFloat(
+                            movement,
+                            kMaxWalkSpeedOffset,
+                            walk) &&
+                        ReadFloat(
+                            movement,
+                            kMaxAccelerationOffset,
+                            acceleration) &&
+                        ReadFloat(
+                            movement,
+                            kBrakingFrictionFactorOffset,
+                            braking) &&
+                        walk > 0.0f &&
+                        acceleration > 0.0f) {
+                        slot.movement = movement;
+                        slot.nativeMaxWalkSpeed = walk;
+                        slot.nativeMaxAcceleration = acceleration;
+                        slot.nativeBrakingFrictionFactor = braking;
+                        slot.movementReady = true;
+
+                        FeatureLog(
+                            "HorseFeature V0.27: movement resolved later horse=%p movement=%p walk=%.1f accel=%.1f brake=%.2f",
+                            slot.horse,
+                            movement,
+                            walk,
+                            acceleration,
+                            braking
+                        );
+                    }
+                }
+            }
+
             ApplySlotLocked(slot);
         }
     }
+
     ReleaseSRWLockExclusive(&g_lock);
 }
 
@@ -1076,7 +993,7 @@ Telemetry GetTelemetry() {
     t.validated = g_validated.load();
     t.staminaReady = g_staminaReady.load();
     t.sprinting = g_sprinting.load();
-    t.playerOwner = g_player.load();
+    t.playerOwner = nullptr;
     t.horseOwner = g_owner.load();
     t.horseMovement = g_movement.load();
     t.nativeGetMaxSpeed = g_nativeGetMaxSpeed.load();
@@ -1092,8 +1009,8 @@ Telemetry GetTelemetry() {
         g_appliedSprintingMaxSpeed.load();
     t.nativeSprintDrain = g_nativeSprintDrain.load();
     t.appliedSprintDrain = g_appliedSprintDrain.load();
-    t.uniqueCandidatesLogged = g_snapshotCount.load();
-    t.candidateMatches = g_horseCount.load();
+    t.uniqueCandidatesLogged = g_nativeHookCalls.load();
+    t.candidateMatches = g_horsesFound.load();
     return t;
 }
 
@@ -1110,27 +1027,21 @@ bool IsValidatedMovement(void* movementComponent) {
 }
 
 void Shutdown() {
-    if (g_getHorseMountHookOwned &&
-        g_getHorseMountTarget) {
-        MH_DisableHook(g_getHorseMountTarget);
-        MH_RemoveHook(g_getHorseMountTarget);
-        g_getHorseMountHookOwned = false;
-        g_getHorseMountTarget = nullptr;
-        g_originalGetHorseMount = nullptr;
-    }
-
-    if (g_isHorseActiveHookOwned &&
-        g_isHorseActiveTarget) {
-        MH_DisableHook(g_isHorseActiveTarget);
-        MH_RemoveHook(g_isHorseActiveTarget);
-        g_isHorseActiveHookOwned = false;
-        g_isHorseActiveTarget = nullptr;
-        g_originalIsHorseActive = nullptr;
-    }
+    RemoveHook(g_getNormalizedSpeedTarget);
+    RemoveHook(g_getNormalizedSpeedInputTarget);
+    RemoveHook(g_tryStartSprintingTarget);
+    RemoveHook(g_setSprintingTrueTarget);
 
     AcquireSRWLockExclusive(&g_lock);
-    ClearAllLocked("shutdown");
+    for (auto& slot : g_slots) {
+        RestoreSlotLocked(slot);
+        slot = {};
+    }
     ReleaseSRWLockExclusive(&g_lock);
+
+    FeatureLog(
+        "HorseFeature V0.27: native horse hooks shutdown"
+    );
 }
 
 } // namespace dg::horse
