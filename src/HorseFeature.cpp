@@ -392,17 +392,16 @@ void ApplyLocked() {
         return;
     }
 
-    const float speedMultiplier =
-        Clamp(g_speedMultiplier.load(), 0.0f, 3.0f);
-
+    // V0.21B reproduces the three proven movement values from the working
+    // reference Horse PAK exactly instead of applying a generic multiplier.
     const float targetWalk =
         g_speedEnabled.load()
-            ? g_horse.maxWalkSpeed * speedMultiplier
+            ? 1500.0f
             : g_horse.maxWalkSpeed;
 
     const float targetAcceleration =
         g_speedEnabled.load()
-            ? g_horse.maxAcceleration * speedMultiplier
+            ? 700.0f
             : g_horse.maxAcceleration;
 
     if (WriteFloat(
@@ -418,6 +417,12 @@ void ApplyLocked() {
             targetAcceleration)) {
         g_appliedMaxAcceleration.store(targetAcceleration);
     }
+
+    WriteFloat(
+        g_horse.movement,
+        kBrakingFrictionFactorOffset,
+        g_speedEnabled.load() ? 2.0f : g_horse.brakingFrictionFactor
+    );
 
     const float sprintSpeedMultiplier =
         Clamp(g_sprintSpeedMultiplier.load(), 0.0f, 3.0f);
@@ -567,8 +572,8 @@ bool TryCaptureHorse(
 void Initialize(LogFn logger) {
     g_logger = logger;
     FeatureLog(
-        "HorseFeature V0.21A: exact UE4 reflection fields armed "
-        "walk=0x1E0 accel=0x1F4 brake=0x1FC sprintMax(owner)=0x760"
+        "HorseFeature V0.21B: exact reference-PAK movement trio armed "
+        "walk=1500 accel=700 brake=2.0 sprintMax(owner)=0x760"
     );
 }
 
