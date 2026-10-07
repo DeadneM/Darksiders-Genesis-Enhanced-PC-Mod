@@ -15,8 +15,8 @@ namespace {
 constexpr std::size_t kCharacterOwnerOffset = 0x190;
 constexpr std::size_t kJumpZOffset = 0x1A0;
 constexpr std::size_t kMovementModeOffset = 0x1B0;
-constexpr std::size_t kMaxWalkSpeedOffset = 0x1D4;
-constexpr std::size_t kMaxAccelerationOffset = 0x1E8;
+constexpr std::size_t kMaxWalkSpeedOffset = 0x1DC;
+constexpr std::size_t kMaxAccelerationOffset = 0x1F0;
 
 constexpr std::size_t kStaminaRecoveryOffset = 0x910;
 constexpr std::size_t kStaminaTotalRecoveryOffset = 0x914;
@@ -499,8 +499,8 @@ bool TryCaptureHorse(
 void Initialize(LogFn logger) {
     g_logger = logger;
     FeatureLog(
-        "HorseFeature: shared validated GetMaxSpeed observer armed; "
-        "no extra hook / no actor scan"
+        "HorseFeature V0.20A: corrected UE4 reflection offsets armed "
+        "walk=0x1DC accel=0x1F0; shared GetMaxSpeed observer only"
     );
 }
 
