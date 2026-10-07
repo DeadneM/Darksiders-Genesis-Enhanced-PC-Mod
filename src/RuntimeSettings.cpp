@@ -21,6 +21,7 @@ void Publish(const Snapshot& s) {
     g_state.jumpHeightEnabled.store(s.jumpHeightEnabled, std::memory_order_relaxed);
     g_state.glideDurationEnabled.store(s.glideDurationEnabled, std::memory_order_relaxed);
     g_state.horseSpeedEnabled.store(s.horseSpeedEnabled, std::memory_order_relaxed);
+    g_state.horseSprintSpeedEnabled.store(s.horseSprintSpeedEnabled, std::memory_order_relaxed);
     g_state.horseSprintDurationEnabled.store(s.horseSprintDurationEnabled, std::memory_order_relaxed);
     g_state.hotstreakChargeEnabled.store(s.hotstreakChargeEnabled, std::memory_order_relaxed);
 
@@ -31,6 +32,7 @@ void Publish(const Snapshot& s) {
     g_state.jumpHeightMultiplier.store(s.jumpHeightMultiplier, std::memory_order_relaxed);
     g_state.glideDurationMultiplier.store(s.glideDurationMultiplier, std::memory_order_relaxed);
     g_state.horseSpeedMultiplier.store(s.horseSpeedMultiplier, std::memory_order_relaxed);
+    g_state.horseSprintSpeedMultiplier.store(s.horseSprintSpeedMultiplier, std::memory_order_relaxed);
     g_state.horseSprintDurationMultiplier.store(s.horseSprintDurationMultiplier, std::memory_order_relaxed);
     g_state.hotstreakChargeMultiplier.store(s.hotstreakChargeMultiplier, std::memory_order_relaxed);
 }
