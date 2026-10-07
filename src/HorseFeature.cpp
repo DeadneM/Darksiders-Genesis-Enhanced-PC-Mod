@@ -499,8 +499,6 @@ bool TryCaptureHorse(
     if (!IsHorseSignature(
             maxWalkSpeed,
             maxAcceleration,
-            brakingFrictionFactor,
-            sprintingMaxSpeed,
             recovery,
             totalRecovery,
             sprintDrain) ||
