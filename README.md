@@ -12,6 +12,7 @@ The project is deliberately fail-open for normal runtime failures and
 - Safety hotfix **V0.31** and lazy overlay **V0.32** retained
 - Latest failed cursor experiment: **V0.33**
 - Latest user-validated source: **V0.34 manual reticle focus fix**
+- Current experimental build: **V0.35 read-only camera tracing** (not yet validated in game)
 - Target executable:
 
 ```text
@@ -23,6 +24,19 @@ SHA-256: 9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54
 V0.17 calculates the executable SHA-256 at runtime. If the executable does not
 match exactly, the overlay/log can still load but **gameplay hooks are not
 installed**.
+
+
+## Development and versioning policy
+
+Development now advances directly on `main`: one new numbered build per
+version (V0.35, V0.36, V0.37...), recorded by normal Git commits. Do not
+create a new `dev/v...` branch for every build. A published release is only
+created after in-game validation; the latest release V0.29 stays unchanged
+until a newer version is approved. Work-in-progress commits on `main` are
+not release candidates.
+
+Historic `dev/` branches are legacy experiments. Do not delete them until
+their divergent Git history is confirmed reachable from a durable reference.
 
 ## Installation
 
@@ -1104,3 +1118,28 @@ Alt-Tab may restore the normal state if focus behaves unexpectedly.
 
 **Safety:** V0.31 horse lifetime ownership rules remain untouched; V0.32 lazy
 ImGui creation remains. The V0.29 binary release is kept as a rollback option.
+
+
+## V0.35 - camera investigation restarted from V0.34
+
+Source: validated V0.34 commit 32f7827cc2968596a34dadc6466730d4280ff94b.
+None of the V0.35A/B/C or V0.36 camera changes are inherited.
+
+The camera is NOT modified by this test build. Two individually validated
+read-only native-method hooks record whether UCameraComponent::GetCameraView
+(RVA 0x16F9790) and USpringArmComponent::UpdateDesiredArmLocation
+(RVA 0x6F57B0) are exercised in actual gameplay. The hooks call the original
+implementation unchanged. They only sample a live FOV output / current arm
+distance and log the first 12 calls then one of every 5000. The correct
+retail EXE hash and instruction prologues must match before installation.
+No native UObject pointers survive callbacks; no camera setting or rotation
+is changed. Existing FOV is OFF/locked, and no fake zoom setting is added.
+
+Test on foot with War and Strife, then mounted if possible, while leaving
+the mod overlay closed. Press F5 only if the reticle needs repairing.
+Quit the game and provide the non-cumulative DarksidersGenesisMod.log.
+Look for CameraTrace V0.35 READY and callback call counts.
+Successful compilation does NOT prove that either native path controls
+the rendered gameplay view. No promotion to main or public release until
+an in-game test confirms behavior. Further zoom/FOV/angle work must use
+verified live gameplay callbacks.
