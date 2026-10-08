@@ -2108,6 +2108,11 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     const bool focusMessage = msg == WM_ACTIVATEAPP || msg == WM_ACTIVATE ||
         msg == WM_SETFOCUS || msg == WM_KILLFOCUS || msg == WM_MOUSEACTIVATE;
     if (focusMessage) {
+        // Feed the ImGui backend the focus transition too, but never consume
+        // it: otherwise its WantCaptureKeyboard state can become stale.
+        if (g_imguiReady.load()) {
+            ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
+        }
         if (msg == WM_ACTIVATEAPP || msg == WM_ACTIVATE ||
             msg == WM_SETFOCUS || msg == WM_KILLFOCUS)
             Log("Focus V0.38: msg=0x%04X wParam=%zu overlay=%d",
