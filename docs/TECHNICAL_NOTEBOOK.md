@@ -3122,3 +3122,46 @@ camera-distance source separately and leave cinematic camera behavior intact.
 
 V0.34 is the latest user-validated in-game gameplay/cursor fix. No new hooks
 in V0.35B. V0.31 HorseCharacter lifetime safety remains unchanged.
+
+
+## V0.35C - Exact retail camera native thunk disassembly
+
+User-uploaded binary: `DarksidersGenesis-Win64-Shipping.exe`,
+62,113,280 bytes, SHA-256
+`9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54`.
+
+Disassembly of the exact retail executable and pointer registration tables:
+
+```text
+.rdata RVA 0x2EA8010 -> "GetFOVAngle"
+.rdata RVA 0x2EA8018 -> UFunction thunk RVA 0x1DB6F10
+    mov rax,[rcx] ; call qword ptr [rax+690h]
+    movss [rbx],xmm0
+
+.rdata RVA 0x2E22670 -> "GetCameraView"
+.rdata RVA 0x2E22678 -> UFunction thunk RVA 0x1CE7D30
+    native virtual call qword ptr [vtable+508h]
+
+.rdata RVA 0x2E226B0 -> "SetFieldOfView"
+.rdata RVA 0x2E226B8 -> UFunction thunk RVA 0x1CE9980
+    native virtual call qword ptr [vtable+500h]
+
+.data RVA 0x37B31C8 reflects SpringArm.TargetArmLength +0x258
+.data RVA 0x36EC060 reflects CameraComponent.FieldOfView +0x25C
+```
+
+Notes:
+- A Mayhem native constructor references `CameraBoom` and `FollowCamera`
+  and sets the actual spring-arm +0x258 field to a plausible 500.0f.
+  Other constructors initialize similar spring arms to different distances.
+- The native UE4 wrapper path may not be used by ordinary frame rendering;
+  do not assume these thunks intercept the gameplay camera every frame.
+- V0.35C taps only the **script thunks** and logs native virtual target RVAs
+  if and when a live native script call actually occurs.
+- Three MinHook probes are exact-byte gated, live-only, read-only and bounded.
+  A script call executes original first, then a diagnostic read; native camera
+  memory is never modified.
+- Need log to prove the hooks were called and discover valid specific camera
+  targets before enabling live FOV or signed Zoom -/+.
+
+V0.34 stable remains independent; do not merge before an in-game test.
