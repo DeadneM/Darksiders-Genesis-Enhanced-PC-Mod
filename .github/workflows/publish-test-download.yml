@@ -1,0 +1,69 @@
+name: Publish Direct Test Download
+
+# Permanent ZIP fallback for clients that cannot open ChatGPT sandbox links
+# or GitHub Actions artifacts. Publish only an existing TEST build, no release.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/publish-test-download.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Download existing V0.38 test artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $temp = Join-Path $PWD ".download-staging"
+          New-Item -ItemType Directory -Path $temp -Force | Out-Null
+          gh run download 37848209595 --repo "${{ github.repository }}" --name "DarksidersGenesis_ASI_V0.38_YAW_RETICLE_FOCUS_TEST" --dir $temp
+          if ($LASTEXITCODE -ne 0) { throw "Cannot download verified V0.38 build" }
+          @("dxgi.dll", "DarksidersGenesisMod.asi", "DarksidersGenesisMod.ini", "README.md") | ForEach-Object {
+            if (-not (Test-Path (Join-Path $temp $_))) { throw "Missing: $_" }
+          }
+          New-Item -ItemType Directory -Path (Join-Path $PWD "downloads") -Force | Out-Null
+          $zipPath = Join-Path $PWD "downloads/DarksidersGenesis_V0.38_TEST.zip"
+          if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+          Compress-Archive -Path (Join-Path $temp "*") -DestinationPath $zipPath -CompressionLevel Optimal
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
+          try {
+            $names = @($archive.Entries | ForEach-Object { $_.FullName })
+            if ($names.Count -ne 4) { throw "ZIP must contain exactly 4 root-level files" }
+            foreach ($name in $names) {
+              if ($name.Contains("/")) { throw "Unexpected subfolder inside ZIP: $name" }
+            }
+            Write-Output "ZIP validated: $($names -join ', ')"
+          } finally {
+            $archive.Dispose()
+          }
+          Get-FileHash $zipPath -Algorithm SHA256
+
+      - name: Commit direct download (no release and no new branch)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "downloads/DarksidersGenesis_V0.38_TEST.zip"
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) { Write-Output "Download already current"; exit 0 }
+          git commit -m "downloads: add permanent V0.38 test ZIP"
+          if ($LASTEXITCODE -ne 0) { throw "Git commit failed" }
+          git push origin HEAD:main
+          if ($LASTEXITCODE -ne 0) { throw "Git push failed; check contents:write policy" }
