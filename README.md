@@ -999,3 +999,33 @@ Additional safety:
   window after a live native HorseCharacter callback.
 
 The validated V0.30 Graphics Adapter Engine.ini control is retained unchanged.
+
+
+## V0.32 - Reticle / Alt-Tab isolation
+
+V0.31 removes the horse stale-pointer write path, but a separate visual issue
+remains: immediately after loading a level the reticle can appear as a broken
+cross, while a simple Alt-Tab restores the correct reticle.
+
+The V0.31 session log proves the malformed reticle appears before the first
+fully validated horse capture, so this visual issue is treated separately from
+the horse lifetime crash.
+
+V0.32 isolates the D3D11 overlay path:
+
+- ImGui is no longer initialized on the first game Present;
+- no overlay RTV is created during normal gameplay;
+- the game window is not subclassed until the user opens the mod menu;
+- the complete overlay backend is created lazily on the first menu-key press;
+- game-window foreground transitions are logged;
+- every process-owned DXGI ResizeBuffers call is logged before and after.
+
+Test policy:
+
+1. Start the game and do not open the mod overlay.
+2. Load a save and inspect the reticle.
+3. If the broken cross is present, Alt-Tab once.
+4. Preserve the per-session log.
+
+This determines whether the fix comes from DXGI ResizeBuffers, focus activation,
+or merely avoiding early ImGui/RTV/WndProc initialization.
