@@ -12,7 +12,7 @@ The project is deliberately fail-open for normal runtime failures and
 - Safety hotfix **V0.31** and lazy overlay **V0.32** retained
 - Latest failed cursor experiment: **V0.33**
 - Latest user-validated gameplay base: **V0.34 manual reticle focus fix**
-- Current camera research branch: **V0.35A read-only FOV audit**
+- Current camera research branch: **V0.35B FOV audit + independent zoom controls**
 - Target executable:
 
 ```text
@@ -65,6 +65,7 @@ The menu key and F1-F12 actions can be remapped from the overlay.
 | Horse Sprint Speed | Validated V0.29 native SprintingMaxSpeed; lifetime-safe V0.31 |
 | Manual Reticle Focus Refresh | **Validated V0.34** - press F5 if the reticle becomes malformed after level load |
 | FOV | V0.35A native audit only; control intentionally disabled until hook validated |
+| Camera zoom - / + | V0.35B setting saved; **not yet active in game** pending native camera-distance hook |
 | Third Person camera | Not implemented |
 | Skip Logos | **Validated V0.19C/V0.19D** - proprietary `StartupScreens` MoviePlayer attachment bypass |
 
@@ -1143,3 +1144,28 @@ camera hook; movement states alone do not change its output.
 **Do not treat FOV as implemented in V0.35A.** A new hook requires a verified
 call path and a safe in-game test. V0.31 horse pointer lifetime rules,
 V0.32 lazy overlay and V0.34 validated F5 reticle repair are left unchanged.
+
+
+## V0.35B - Independent Camera Zoom (- / +) control
+
+The user requested an explicit zoom adjustment independent from FOV and
+camera angle. The Camera tab now has:
+
+- **Zoom -**: move the desired framing farther from the character by 10%;
+- **Zoom +**: move the desired framing closer to the character by 10%;
+- a signed slider from `-75%` to `+200%`, with a precise numeric input;
+- **Vanilla**: reset to `0%`;
+- persistent `[Values] CameraZoomPercent=0` in `DarksidersGenesisMod.ini`.
+
+These controls currently **only prepare and save the desired value**.
+They do not change camera distance yet, because no safe native camera-distance
+hook has been verified for this exact game executable. The overlay explicitly
+reports that no in-game effect exists; it does not pretend the zoom is live.
+The V0.35A read-only camera symbol audit remains in place. A future hook
+should use the saved value to scale native camera distance only while the
+camera object is live, preserving the V0.31 pointer-lifetime safety policy.
+
+Retain the already validated V0.34 F5 focus pulse and all previous core
+behavior. Test by adjusting zoom, pressing Save, restarting, and verifying
+that CameraZoomPercent persists; send the per-session log and original EXE
+for the next camera-address investigation.
