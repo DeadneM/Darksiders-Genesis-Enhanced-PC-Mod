@@ -18,6 +18,7 @@ struct Snapshot {
     bool horseSprintSpeedEnabled = true;
     bool horseSprintDurationEnabled = true;
     bool hotstreakChargeEnabled = true;
+    bool fovEnabled = false;
 
     float movementSpeedMultiplier = 1.50f;
     float actionRecoveryDelayMs = 0.0f;
@@ -29,6 +30,7 @@ struct Snapshot {
     float horseSprintSpeedMultiplier = 1.25f;
     float horseSprintDurationMultiplier = 5.00f;
     float hotstreakChargeMultiplier = 2.00f;
+    float fovDegrees = 90.0f;
     int cameraZoomPercent = 0;
 };
 
@@ -46,6 +48,7 @@ struct State {
     std::atomic_bool horseSprintSpeedEnabled{true};
     std::atomic_bool horseSprintDurationEnabled{true};
     std::atomic_bool hotstreakChargeEnabled{true};
+    std::atomic_bool fovEnabled{false};
 
     std::atomic<float> movementSpeedMultiplier{1.50f};
     std::atomic<float> actionRecoveryDelayMs{0.0f};
@@ -57,6 +60,7 @@ struct State {
     std::atomic<float> horseSprintSpeedMultiplier{1.25f};
     std::atomic<float> horseSprintDurationMultiplier{5.00f};
     std::atomic<float> hotstreakChargeMultiplier{2.00f};
+    std::atomic<float> fovDegrees{90.0f};
     std::atomic_int cameraZoomPercent{0};
 };
 
