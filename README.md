@@ -8,8 +8,10 @@ The project is deliberately fail-open for normal runtime failures and
 
 ## Current development state
 
-- Stable/canonical `main`: **V0.13B**
-- Current cleanup/test branch: **V0.19D Skip Logos Validated**
+- Last published stable release on `main`: **V0.29**
+- Safety hotfix **V0.31** and lazy overlay **V0.32** retained
+- Latest failed cursor experiment: **V0.33**
+- Current development candidate: **V0.34 Reticle Focus Test**
 - Target executable:
 
 ```text
@@ -57,9 +59,9 @@ The menu key and F1-F12 actions can be remapped from the overlay.
 | Hotstreak Charge | Validated |
 | Pistol Damage | Functional heuristic: `BaseJuice > 0` |
 | Melee Damage | Experimental heuristic: zero-juice outgoing records |
-| Horse Speed | Test candidate, reference-PAK signature |
+| Horse Speed | Validated V0.29 native movement offset correction; lifetime-safe V0.31 |
 | Horse Sprint Duration | **Validated V0.27** - native HorseCharacter stamina drain; 0x vanilla, 5x default, 20x max |
-| Horse Sprint Speed | Not implemented |
+| Horse Sprint Speed | Validated V0.29 native SprintingMaxSpeed; lifetime-safe V0.31 |
 | FOV | Not implemented |
 | Third Person camera | Not implemented |
 | Skip Logos | **Validated V0.19C/V0.19D** - proprietary `StartupScreens` MoviePlayer attachment bypass |
@@ -74,7 +76,8 @@ F1  Toggle HUD
 F2  Movement Speed
 F3  Action Recovery
 F4  Skip Intro Videos
-F5-F12  None
+F5  Reticle Focus Test (V0.34 test package)
+F6-F12  None
 ```
 
 ## V0.17 core architecture
@@ -1062,3 +1065,37 @@ V0.33 therefore:
 
 This is intended to reproduce the cursor-reset part of Alt-Tab without actually
 changing application focus.
+
+
+## V0.34 - Reticle focus-cycle isolation (experimental)
+
+V0.33 is **rejected as an effective reticle fix**. Its scheduled WM_SETCURSOR
+messages were successfully posted after a new player was found, but did not
+repair the cross-shaped reticle. The user's V0.33 log also shows that a genuine
+Alt-Tab involves a different OS cursor handle after focus comes back, and no
+DXGI ResizeBuffers call was observed. The trace contained an F4 action but no
+F1 Hide HUD toggle, so Hide HUD cursor suppression is not yet proven either way.
+
+V0.34 removes automatic WM_SETCURSOR refreshes that did nothing. It introduces
+one explicitly requested test action:
+
+- `F5 = ReticleFocusTest` in the *test package* INI;
+- the action is also selectable from the remappable Hotkeys tab;
+- the test does **not** Alt-Tab, steal foreground or move the mouse;
+- it posts one paired simulated deactivate/activate message sequence to the
+  game's window: `WM_ACTIVATEAPP`, `WM_ACTIVATE`, then `WM_SETFOCUS`
+  and `WM_SETCURSOR`;
+- logs each posting result and cursor handle, then captures cursor state
+  500 ms afterward;
+- no ongoing timer, native horse writes, or per-frame cursor replacement.
+
+**How to test:** With the malformed cross visible and the mod overlay CLOSED,
+press F5 once. Compare the reticle before/after. If nothing changes, perform one
+real Alt-Tab and confirm if it still repairs the cross. Do not claim the
+experimental focus pulse works until the user confirms it in-game.
+If using an old mod INI, set `F5=ReticleFocusTest` or remap a key to
+`Reticle Focus Test` in the overlay. The test can temporarily change the
+game's perceived input focus; a real Alt-Tab should restore normal state.
+
+**Safety:** V0.31 horse lifetime ownership rules remain untouched; V0.32 lazy
+ImGui creation remains. `main` and the V0.29 release remain unchanged.
