@@ -1,6 +1,7 @@
 #include "OverlayUi.h"
 
 #include "HorseFeature.h"
+#include "CameraNativeFeature.h"
 
 #include "imgui.h"
 
@@ -463,46 +464,48 @@ void Draw(Context& c) {
             ImGui::Unindent();
 
             DrawSectionTitle("Camera");
+            const auto cam = dg::camera_native::GetTelemetry();
             ImGui::TextDisabled(
-                "Not implemented in V0.17 core. Controls stay locked until a native camera hook is proven."
+                "Native camera FOV + SpringArm zoom | V0.36 experimental runtime hooks"
             );
-            ImGui::BeginDisabled();
-
             DrawTunableFeature(
                 config,
                 "FOV",
                 "FOV",
                 &config.fovEnabled,
                 &config.fovDegrees,
-                60.0f,
+                40.0f,
                 140.0f,
                 90.0f,
                 "%.0f deg",
-                "Pending camera hook"
+                cam.fovHookReady
+                    ? "Native GetCameraView hook READY"
+                    : "Native FOV hook unavailable"
+            );
+            ImGui::TextDisabled(
+                "FOV: %u calls | %.1f native -> %.1f applied | OFF = vanilla",
+                cam.fovCalls, cam.nativeFov, cam.appliedFov
             );
 
+            ImGui::BeginDisabled();
             DrawTunableFeature(
                 config,
                 "Third Person",
                 "ThirdPerson",
                 &config.thirdPersonEnabled,
                 &config.thirdPersonDistanceMultiplier,
-                0.00f,
-                3.00f,
-                1.00f,
-                "%.2fx",
-                "Pending camera hook | distance"
+                0.00f, 3.00f, 1.00f, "%.2fx",
+                "Pending third-person camera hook"
             );
-
             ImGui::EndDisabled();
 
-            // V0.35B: independent signed zoom control. This is a staged
-            // preference, not a fake gameplay patch: we must first validate
-            // the native camera-distance callback for the retail game.
+            // V0.36: independent zoom, applied inside the native live SpringArm callback.
             ImGui::Spacing();
             ImGui::Text("Camera Zoom (- / +)");
             ImGui::TextDisabled(
-                "Camera distance (separate from FOV). Native hook pending: no in-game effect yet."
+                cam.zoomHookReady
+                    ? "Camera distance: native SpringArm hook READY"
+                    : "Native SpringArm zoom hook unavailable."
             );
             ImGui::TextDisabled(
                 "- = farther | + = closer | 0 = vanilla"
@@ -541,9 +544,13 @@ void Draw(Context& c) {
                 if (config.cameraZoomPercent < -75) config.cameraZoomPercent = -75;
                 if (config.cameraZoomPercent > 200) config.cameraZoomPercent = 200;
                 config.Save();
-                *c.lastAction = "Zoom preference saved (native camera hook pending)";
+                *c.lastAction = "Camera zoom updated";
             }
             ImGui::Unindent();
+            ImGui::TextDisabled(
+                "Zoom: %u calls | distance %.1f -> %.1f",
+                cam.zoomCalls, cam.nativeDistance, cam.appliedDistance
+            );
 
             DrawSectionTitle("System");
 
