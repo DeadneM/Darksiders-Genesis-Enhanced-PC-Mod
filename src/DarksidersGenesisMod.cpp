@@ -133,6 +133,9 @@ using dg::config::KeyDisplayName;
 
 dg::config::Store g_config;
 
+void ScheduleCursorRefresh(const char* reason);
+void ProcessScheduledCursorRefresh();
+
 void InitializePaths() {
     wchar_t path[MAX_PATH]{};
     if (!GetModuleFileNameW(g_module, path, MAX_PATH)) {
