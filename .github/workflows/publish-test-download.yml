@@ -1,7 +1,7 @@
-name: Publish Direct Test Download
+name: Publish Direct Test Downloads
 
-# Permanent ZIP fallback for clients that cannot open ChatGPT sandbox links
-# or GitHub Actions artifacts. Publish only an existing TEST build, no release.
+# Persistent direct-download fallback: publishes exact successful build artifacts
+# as test binaries, without creating releases or branches.
 on:
   push:
     branches:
@@ -23,47 +23,55 @@ jobs:
         with:
           persist-credentials: true
 
-      - name: Download existing V0.38 test artifact
+      - name: Fetch and verify fallback and diagnostic ZIPs
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $temp = Join-Path $PWD ".download-staging"
-          New-Item -ItemType Directory -Path $temp -Force | Out-Null
-          gh run download 37848209595 --repo "${{ github.repository }}" --name "DarksidersGenesis_ASI_V0.38_YAW_RETICLE_FOCUS_TEST" --dir $temp
-          if ($LASTEXITCODE -ne 0) { throw "Cannot download verified V0.38 build" }
-          @("dxgi.dll", "DarksidersGenesisMod.asi", "DarksidersGenesisMod.ini", "README.md") | ForEach-Object {
-            if (-not (Test-Path (Join-Path $temp $_))) { throw "Missing: $_" }
-          }
-          New-Item -ItemType Directory -Path (Join-Path $PWD "downloads") -Force | Out-Null
-          $zipPath = Join-Path $PWD "downloads/DarksidersGenesis_V0.38_TEST.zip"
-          if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
-          Compress-Archive -Path (Join-Path $temp "*") -DestinationPath $zipPath -CompressionLevel Optimal
+          $builds = @(
+            @{ Version = "0.37"; Run = "37846344153"; Artifact = "DarksidersGenesis_ASI_V0.37_CAMERA_HEIGHT_HOTKEYS_TEST"; File = "DarksidersGenesis_V0.37_LAST_WORKING.zip" },
+            @{ Version = "0.39"; Run = "37849435697"; Artifact = "DarksidersGenesis_ASI_V0.39_STARTUP_DIAGNOSTIC_TEST"; File = "DarksidersGenesis_V0.39_DIAGNOSTIC.zip" }
+          )
+          $downloads = Join-Path $PWD "downloads"
+          New-Item -ItemType Directory -Path $downloads -Force | Out-Null
           Add-Type -AssemblyName System.IO.Compression.FileSystem
-          $archive = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
-          try {
-            $names = @($archive.Entries | ForEach-Object { $_.FullName })
-            if ($names.Count -ne 4) { throw "ZIP must contain exactly 4 root-level files" }
-            foreach ($name in $names) {
-              if ($name.Contains("/")) { throw "Unexpected subfolder inside ZIP: $name" }
+          foreach ($build in $builds) {
+            $temp = Join-Path $PWD (".download-staging/" + $build.Version)
+            New-Item -ItemType Directory -Path $temp -Force | Out-Null
+            gh run download $build.Run --repo "${{ github.repository }}" --name $build.Artifact --dir $temp
+            if ($LASTEXITCODE -ne 0) { throw "Download failed: $($build.Artifact)" }
+            $expected = @("dxgi.dll", "DarksidersGenesisMod.asi", "DarksidersGenesisMod.ini", "README.md")
+            foreach ($name in $expected) {
+              if (-not (Test-Path (Join-Path $temp $name))) { throw "Missing $name from $($build.Version)" }
             }
-            Write-Output "ZIP validated: $($names -join ', ')"
-          } finally {
-            $archive.Dispose()
+            $output = Join-Path $downloads $build.File
+            if (Test-Path $output) { Remove-Item $output -Force }
+            Compress-Archive -Path (Join-Path $temp "*") -DestinationPath $output -CompressionLevel Optimal
+            $archive = [System.IO.Compression.ZipFile]::OpenRead($output)
+            try {
+              $names = @($archive.Entries | ForEach-Object { $_.FullName })
+              if ($names.Count -ne 4) { throw "Wrong ZIP file count: $($build.Version)" }
+              foreach ($name in $names) {
+                if ($name.Contains("/")) { throw "Nested path in $($build.Version): $name" }
+              }
+              Write-Host "V$($build.Version) ROOT ZIP validated: $($names -join ', ')"
+            } finally {
+              $archive.Dispose()
+            }
+            Get-FileHash $output -Algorithm SHA256
           }
-          Get-FileHash $zipPath -Algorithm SHA256
 
-      - name: Commit direct download (no release and no new branch)
+      - name: Commit permanent direct downloads on main
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "downloads/DarksidersGenesis_V0.38_TEST.zip"
+          git add "downloads/DarksidersGenesis_V0.37_LAST_WORKING.zip" "downloads/DarksidersGenesis_V0.39_DIAGNOSTIC.zip"
           git diff --cached --quiet
-          if ($LASTEXITCODE -eq 0) { Write-Output "Download already current"; exit 0 }
-          git commit -m "downloads: add permanent V0.38 test ZIP"
+          if ($LASTEXITCODE -eq 0) { Write-Host "Downloads already current"; exit 0 }
+          git commit -m "downloads: publish V0.37 fallback and V0.39 diagnostic ZIPs"
           if ($LASTEXITCODE -ne 0) { throw "Git commit failed" }
           git push origin HEAD:main
-          if ($LASTEXITCODE -ne 0) { throw "Git push failed; check contents:write policy" }
+          if ($LASTEXITCODE -ne 0) { throw "Git push failed" }
