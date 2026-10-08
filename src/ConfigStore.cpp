@@ -500,6 +500,7 @@ void Store::PublishRuntime() const {
     runtime.horseSprintSpeedMultiplier = horseSprintSpeedMultiplier;
     runtime.horseSprintDurationMultiplier = horseSprintDurationMultiplier;
     runtime.hotstreakChargeMultiplier = hotstreakChargeMultiplier;
+    runtime.cameraZoomPercent = cameraZoomPercent;
 
     dg::runtime::Publish(runtime);
 }
