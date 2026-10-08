@@ -495,6 +495,7 @@ void Store::PublishRuntime() const {
     runtime.horseSprintSpeedEnabled = horseSprintSpeedEnabled;
     runtime.horseSprintDurationEnabled = horseSprintDurationEnabled;
     runtime.hotstreakChargeEnabled = hotstreakChargeEnabled;
+    runtime.fovEnabled = fovEnabled;
 
     runtime.movementSpeedMultiplier = movementSpeedMultiplier;
     runtime.actionRecoveryDelayMs = actionRecoveryDelayMs;
@@ -506,6 +507,7 @@ void Store::PublishRuntime() const {
     runtime.horseSprintSpeedMultiplier = horseSprintSpeedMultiplier;
     runtime.horseSprintDurationMultiplier = horseSprintDurationMultiplier;
     runtime.hotstreakChargeMultiplier = hotstreakChargeMultiplier;
+    runtime.fovDegrees = fovDegrees;
     runtime.cameraZoomPercent = cameraZoomPercent;
 
     dg::runtime::Publish(runtime);
