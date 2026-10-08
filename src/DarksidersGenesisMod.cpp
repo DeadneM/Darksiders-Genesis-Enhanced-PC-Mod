@@ -31,7 +31,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.33-cursor-refresh-hidehud-test";
+constexpr const char* kBuild = "0.34-native-focus-pulse-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -71,8 +71,9 @@ std::atomic_int g_lastForegroundState{-1};
 std::atomic_uint32_t g_focusTransitionCount{0};
 std::atomic_uint32_t g_resizeBuffersTraceCount{0};
 std::atomic<void*> g_gameWindowTrace{nullptr};
-std::atomic_ullong g_nextCursorRefreshTick{0};
-std::atomic_int g_cursorRefreshAttempts{0};
+// Experimental, opt-in focus invalidation for the reticle. No automatic use.
+std::atomic_int g_focusPulseStage{0};
+std::atomic_ullong g_focusPulseRestoreTick{0};
 std::atomic_uint32_t g_cursorVisibilityCalls{0};
 std::atomic_int g_capturedMenuKey{0};
 std::atomic_bool g_hudHidden{false};
@@ -133,8 +134,7 @@ using dg::config::KeyDisplayName;
 
 dg::config::Store g_config;
 
-void ScheduleCursorRefresh(const char* reason);
-void ProcessScheduledCursorRefresh();
+void ProcessReticleFocusPulse();
 
 void InitializePaths() {
     wchar_t path[MAX_PATH]{};
@@ -1254,9 +1254,8 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
                 characterOwner,
                 movementComponent
             );
-            ScheduleCursorRefresh(
-                "validated player instance changed"
-            );
+            // V0.33's automatic WM_SETCURSOR refresh was ineffective.
+            // V0.34 deliberately makes the next test opt-in (F5).
         }
     }
 
@@ -1636,92 +1635,58 @@ bool InstallCursorVisibilityHook() {
     return true;
 }
 
-void ScheduleCursorRefresh(const char* reason) {
-    const ULONGLONG now = GetTickCount64();
-    g_nextCursorRefreshTick.store(
-        now + 350,
-        std::memory_order_relaxed
-    );
-    g_cursorRefreshAttempts.store(
-        3,
-        std::memory_order_relaxed
-    );
-
-    Log(
-        "Cursor refresh: scheduled reason=%s attempts=3 firstDelay=350ms",
-        reason ? reason : "unknown"
-    );
-}
-
-void ProcessScheduledCursorRefresh() {
-    int attempts =
-        g_cursorRefreshAttempts.load(
-            std::memory_order_relaxed
-        );
-
-    if (attempts <= 0) {
-        return;
-    }
-
-    const ULONGLONG now = GetTickCount64();
-    const ULONGLONG due =
-        g_nextCursorRefreshTick.load(
-            std::memory_order_relaxed
-        );
-
-    if (now < due) {
-        return;
-    }
+// V0.34: a controlled experiment, not a permanent focus fix.
+// The two focus-message batches are intentionally separated in time to
+// reproduce the transitions missing from the V0.33 WM_SETCURSOR-only approach.
+// Do not call SetForegroundWindow, steal focus, or synthesize user input.
+void ProcessReticleFocusPulse() {
+    const int stage = g_focusPulseStage.load(std::memory_order_relaxed);
+    if (stage == 0) return;
 
     HWND hwnd = reinterpret_cast<HWND>(
-        g_gameWindowTrace.load(
-            std::memory_order_relaxed)
-    );
-
+        g_gameWindowTrace.load(std::memory_order_relaxed));
     if (!hwnd || !IsWindow(hwnd)) {
-        g_nextCursorRefreshTick.store(
-            now + 250,
-            std::memory_order_relaxed
-        );
+        g_focusPulseStage.store(0, std::memory_order_relaxed);
+        Log("Reticle focus test: cancelled, game HWND unavailable");
         return;
     }
 
-    if (GetForegroundWindow() != hwnd) {
-        g_nextCursorRefreshTick.store(
-            now + 250,
-            std::memory_order_relaxed
-        );
+    const ULONGLONG now = GetTickCount64();
+    if (stage == 1) {
+        if (GetForegroundWindow() != hwnd || g_overlayVisible.load()) {
+            g_focusPulseStage.store(0, std::memory_order_relaxed);
+            Log("Reticle focus test: cancelled, window is not foreground or overlay open");
+            return;
+        }
+        CURSORINFO ci{};
+        ci.cbSize = sizeof(ci);
+        const BOOL info = GetCursorInfo(&ci);
+        const BOOL app = PostMessageW(hwnd, WM_ACTIVATEAPP, FALSE, 0);
+        const BOOL wnd = PostMessageW(hwnd, WM_ACTIVATE, WA_INACTIVE, 0);
+        g_focusPulseRestoreTick.store(now + 150, std::memory_order_relaxed);
+        g_focusPulseStage.store(2, std::memory_order_relaxed);
+        Log("Reticle focus test: DEACTIVATE queued app=%d wnd=%d cursorInfo=%d cursor=%p showing=%d",
+            app ? 1 : 0, wnd ? 1 : 0, info ? 1 : 0,
+            ci.hCursor, (ci.flags & CURSOR_SHOWING) ? 1 : 0);
         return;
     }
 
-    CURSORINFO cursorInfo{};
-    cursorInfo.cbSize = sizeof(cursorInfo);
-    GetCursorInfo(&cursorInfo);
-
-    const BOOL posted = PostMessageW(
-        hwnd,
-        WM_SETCURSOR,
-        reinterpret_cast<WPARAM>(hwnd),
-        MAKELPARAM(HTCLIENT, WM_MOUSEMOVE)
-    );
-
-    attempts = g_cursorRefreshAttempts.fetch_sub(1) - 1;
-    g_nextCursorRefreshTick.store(
-        now + 650,
-        std::memory_order_relaxed
-    );
-
-    Log(
-        "Cursor refresh: WM_SETCURSOR posted=%d hwnd=%p remaining=%d "
-        "cursor=%p showing=%d pos=%ld,%ld",
-        posted ? 1 : 0,
-        hwnd,
-        attempts,
-        cursorInfo.hCursor,
-        (cursorInfo.flags & CURSOR_SHOWING) ? 1 : 0,
-        cursorInfo.ptScreenPos.x,
-        cursorInfo.ptScreenPos.y
-    );
+    if (stage == 2 && now >= g_focusPulseRestoreTick.load(std::memory_order_relaxed)) {
+        // Complete the paired activate even if a message failed, so the
+        // game cannot remain in the synthetic deactivation state.
+        const BOOL app = PostMessageW(hwnd, WM_ACTIVATEAPP, TRUE, 0);
+        const BOOL wnd = PostMessageW(hwnd, WM_ACTIVATE, WA_ACTIVE, 0);
+        const BOOL focus = PostMessageW(hwnd, WM_SETFOCUS, 0, 0);
+        const BOOL cursor = PostMessageW(hwnd, WM_SETCURSOR,
+            reinterpret_cast<WPARAM>(hwnd), MAKELPARAM(HTCLIENT, WM_MOUSEMOVE));
+        g_focusPulseStage.store(0, std::memory_order_relaxed);
+        CURSORINFO ci{};
+        ci.cbSize = sizeof(ci);
+        const BOOL info = GetCursorInfo(&ci);
+        Log("Reticle focus test: REACTIVATE queued app=%d wnd=%d focus=%d setCursor=%d cursorInfo=%d cursor=%p showing=%d",
+            app ? 1 : 0, wnd ? 1 : 0, focus ? 1 : 0, cursor ? 1 : 0,
+            info ? 1 : 0, ci.hCursor, (ci.flags & CURSOR_SHOWING) ? 1 : 0);
+    }
 }
 
 bool InstallHudHook() {
@@ -1809,13 +1774,20 @@ void TriggerAction(Action action, int functionKey) {
 
         const bool hidden = !g_hudHidden.load();
         g_hudHidden.store(hidden);
-        ScheduleCursorRefresh(
-            hidden
-                ? "Hide HUD enabled"
-                : "Hide HUD disabled"
-        );
+        // V0.33 WM_SETCURSOR repeats did not rebuild the reticle.
         g_lastAction = std::string("HUD ") + (hidden ? "hidden" : "visible");
         Log("F%d -> HUD %s", functionKey, hidden ? "HIDDEN" : "VISIBLE");
+        return;
+    }
+
+    if (action == Action::ReticleFocusTest) {
+        if (g_focusPulseStage.exchange(1, std::memory_order_relaxed) != 0) {
+            g_lastAction = "Reticle focus test already running";
+            Log("F%d -> Reticle focus test already running", functionKey);
+        } else {
+            g_lastAction = "Reticle focus test queued (experimental)";
+            Log("F%d -> Reticle focus test requested; one synthetic focus cycle", functionKey);
+        }
         return;
     }
 
@@ -2240,11 +2212,8 @@ void TraceGameWindowState(IDXGISwapChain* swapChain) {
             cursorInfo.ptScreenPos.y
         );
 
-        if (state == 1 && previous == 0) {
-            ScheduleCursorRefresh(
-                "window focus regained"
-            );
-        }
+        // Real Alt-Tab is already traced here; V0.34 does not spam
+        // ineffective WM_SETCURSOR messages on every focus regain.
     }
 }
 
@@ -2260,7 +2229,7 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     g_config.FlushIfDue(false);
 
     TraceGameWindowState(swapChain);
-    ProcessScheduledCursorRefresh();
+    ProcessReticleFocusPulse();
 
     // V0.32: do not initialize ImGui, create an RTV, or subclass the game
     // window during normal gameplay. The overlay backend is created lazily
