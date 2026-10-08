@@ -260,6 +260,7 @@ Store::Store() {
     hotkeys[2] = Action::ActionRecovery;
     hotkeys[3] = Action::SkipIntroVideos;
     hotkeys[4] = Action::ReticleFocusTest;
+    hotkeys[5] = Action::ToggleReticle;
 }
 
 void Store::SetPath(const std::wstring& path) {
@@ -295,6 +296,7 @@ void Store::ResetDefaults(bool persist) {
     horseSprintSpeedEnabled = true;
     horseSprintDurationEnabled = true;
     fovEnabled = false;
+    hideReticle = false;
     hotstreakChargeEnabled = true;
 
     movementSpeedMultiplier = 1.50f;
@@ -309,6 +311,8 @@ void Store::ResetDefaults(bool persist) {
     horseSprintSpeedMultiplier = 1.25f;
     horseSprintDurationMultiplier = 5.00f;
     fovDegrees = 90.0f;
+    cameraZoomPercent = 0.0f;
+    cameraPitchDegrees = 0.0f;
     thirdPersonDistanceMultiplier = 1.00f;
     hotstreakChargeMultiplier = 2.00f;
 
@@ -318,6 +322,7 @@ void Store::ResetDefaults(bool persist) {
     hotkeys[2] = Action::ActionRecovery;
     hotkeys[3] = Action::SkipIntroVideos;
     hotkeys[4] = Action::ReticleFocusTest;
+    hotkeys[5] = Action::ToggleReticle;
 
     PublishRuntime();
 
@@ -394,6 +399,8 @@ bool Store::Load() {
         ReadBool(L"Features", L"HorseSprintDuration", true, path_);
     fovEnabled =
         ReadBool(L"Features", L"FOV", false, path_);
+    hideReticle =
+        ReadBool(L"Features", L"HideReticle", false, path_);
     hotstreakChargeEnabled =
         ReadBool(L"Features", L"HotstreakCharge", true, path_);
 
@@ -421,6 +428,10 @@ bool Store::Load() {
         ReadFloat(L"Values", L"HorseSprintDurationMultiplier", 5.0f, path_);
     fovDegrees =
         ReadFloat(L"Values", L"FOVDegrees", 90.0f, path_);
+    cameraZoomPercent =
+        ReadFloat(L"Values", L"CameraZoomPercent", 0.0f, path_);
+    cameraPitchDegrees =
+        ReadFloat(L"Values", L"CameraPitchDegrees", 0.0f, path_);
     thirdPersonDistanceMultiplier =
         ReadFloat(L"Values", L"ThirdPersonDistanceMultiplier", 1.0f, path_);
     hotstreakChargeMultiplier =
@@ -472,6 +483,8 @@ bool Store::Load() {
 void Store::PublishRuntime() const {
     dg::runtime::Snapshot runtime{};
     runtime.toggleHudEnabled = toggleHudEnabled;
+    runtime.hideReticle = hideReticle;
+    runtime.fovEnabled = fovEnabled;
     runtime.movementSpeedEnabled = movementSpeedEnabled;
     runtime.actionRecoveryEnabled = actionRecoveryEnabled;
     runtime.skipLogosEnabled = skipLogosEnabled;
@@ -485,6 +498,9 @@ void Store::PublishRuntime() const {
     runtime.horseSprintDurationEnabled = horseSprintDurationEnabled;
     runtime.hotstreakChargeEnabled = hotstreakChargeEnabled;
 
+    runtime.fovDegrees = fovDegrees;
+    runtime.cameraZoomPercent = cameraZoomPercent;
+    runtime.cameraPitchDegrees = cameraPitchDegrees;
     runtime.movementSpeedMultiplier = movementSpeedMultiplier;
     runtime.actionRecoveryDelayMs = actionRecoveryDelayMs;
     runtime.pistolDamageMultiplier = pistolDamageMultiplier;
@@ -559,6 +575,7 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"HorseSprintSpeed", horseSprintSpeedEnabled, path_);
     WriteBool(L"Features", L"HorseSprintDuration", horseSprintDurationEnabled, path_);
     WriteBool(L"Features", L"FOV", fovEnabled, path_);
+    WriteBool(L"Features", L"HideReticle", hideReticle, path_);
     WriteBool(L"Features", L"HotstreakCharge", hotstreakChargeEnabled, path_);
 
     WriteFloat(L"Values", L"MovementSpeedMultiplier", movementSpeedMultiplier, path_);
@@ -573,6 +590,8 @@ bool Store::SaveNow() {
     WriteFloat(L"Values", L"HorseSprintSpeedMultiplier", horseSprintSpeedMultiplier, path_);
     WriteFloat(L"Values", L"HorseSprintDurationMultiplier", horseSprintDurationMultiplier, path_);
     WriteFloat(L"Values", L"FOVDegrees", fovDegrees, path_);
+    WriteFloat(L"Values", L"CameraZoomPercent", cameraZoomPercent, path_);
+    WriteFloat(L"Values", L"CameraPitchDegrees", cameraPitchDegrees, path_);
     WriteFloat(L"Values", L"ThirdPersonDistanceMultiplier", thirdPersonDistanceMultiplier, path_);
     WriteFloat(L"Values", L"HotstreakChargeMultiplier", hotstreakChargeMultiplier, path_);
 

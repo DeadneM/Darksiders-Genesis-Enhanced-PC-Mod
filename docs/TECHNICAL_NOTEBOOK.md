@@ -3094,3 +3094,39 @@ Successful compilation does NOT prove that either native path controls
 the rendered gameplay view. No promotion to main or public release until
 an in-game test confirms behavior. Further zoom/FOV/angle work must use
 verified live gameplay callbacks.
+
+
+## V0.36 - independent Hide Reticle and visible camera controls (test)
+
+This build continues directly on main, without creating a development branch.
+Hide Reticle (default OFF; Hotkey F6 by default) is separate from Toggle HUD
+(F1) and preserves F5's validated manual reticle focus repair. The existing
+native UAirshipUIManager::IsCursorVisible hook now obeys Hide Reticle too.
+A second, opt-in Windows SetCursor suppression path acts only when the game
+is the foreground window, Hide Reticle is ON, and the mod overlay is closed.
+This targets the malformed Windows cursor cross which may survive ui.HideHud.
+The OS cursor is restored on exit from that suppression state. The in-game
+behavior is NOT yet validated. The original reticle bug is not claimed fixed.
+
+Camera is now a dedicated enabled tab, with FOV override (40 to 140,
+default OFF/90), Zoom (+ closer / - farther, -75 to +200 percent, default 0),
+and Camera Pitch Offset (-35 to +35 degrees, default 0). All settings are
+persisted to the INI and published to atomics. Native, verified-method hooks
+modify only a live FMinimalViewInfo output (FOV and pitch) and temporarily
+scale the live SpringArm TargetArmLength in its own callback, restoring that
+UObject field immediately afterward. No camera UObject pointer is cached
+across frames. Hook readiness, callback counters and observed native/applied
+values are shown in Camera and logged once per session with sampling.
+
+Caveat: native GetCameraView and UpdateDesiredArmLocation are known code
+addresses but their use by the actual gameplay camera remains unproven.
+This is an EXPERIMENTAL candidate, not a claim that FOV/zoom/pitch work.
+If no calls are observed, the next step is to locate the actual camera path
+from the game's native call graph. Test normal gameplay, Strife, and mounted
+camera if possible, and supply DarksidersGenesisMod.log.
+
+Defaults remain vanilla for Hide Reticle, FOV, Zoom and Pitch. The config
+revision does not change, to avoid resetting existing player preferences.
+Older INI files read the new settings using safe defaults when missing.
+The validated horse lifetime ownership, lazy ImGui overlay, skip logos and
+F5 reticle recovery remain unchanged. Artifacts contain files at the ZIP root.

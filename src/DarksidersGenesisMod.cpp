@@ -32,7 +32,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.35-clean-camera-trace-test";
+constexpr const char* kBuild = "0.36-reticle-camera-controls-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -44,6 +44,7 @@ using PresentFn = HRESULT(__stdcall*)(IDXGISwapChain*, UINT, UINT);
 using ResizeBuffersFn = HRESULT(__stdcall*)(IDXGISwapChain*, UINT, UINT, UINT, DXGI_FORMAT, UINT);
 using HudHiddenGetterFn = bool(*)();
 using UiIsCursorVisibleFn = bool(*)(void*);
+using SetCursorFn = HCURSOR (WINAPI*)(HCURSOR);
 using CharacterGetMaxSpeedFn = float(*)(void*);
 using AbilityActionEnabledFn = bool(*)(void*, unsigned char);
 using AddJuiceFn = void(*)(void*, float);
@@ -53,6 +54,7 @@ PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
 HudHiddenGetterFn g_originalHudHiddenGetter = nullptr;
 UiIsCursorVisibleFn g_originalUiIsCursorVisible = nullptr;
+SetCursorFn g_originalSetCursor = nullptr;
 CharacterGetMaxSpeedFn g_originalCharacterGetMaxSpeed = nullptr;
 AbilityActionEnabledFn g_originalAbilityActionEnabled = nullptr;
 AddJuiceFn g_originalAddJuice = nullptr;
@@ -80,6 +82,9 @@ std::atomic_int g_capturedMenuKey{0};
 std::atomic_bool g_hudHidden{false};
 std::atomic_bool g_hudHookReady{false};
 std::atomic_bool g_cursorVisibilityHookReady{false};
+std::atomic_bool g_setCursorHookReady{false};
+std::atomic_bool g_cursorBlankApplied{false};
+std::atomic_uint32_t g_reticleCursorIntercepts{0};
 std::atomic_bool g_movementHookReady{false};
 std::atomic_bool g_recoveryHookReady{false};
 std::atomic_bool g_skipIntroReady{false};
@@ -1549,7 +1554,8 @@ bool HookUiIsCursorVisible(void* uiManager) {
             : false;
 
     const bool hiddenByMod =
-        g_hudHidden.load(std::memory_order_relaxed);
+        g_hudHidden.load(std::memory_order_relaxed) ||
+        dg::runtime::Get().hideReticle.load(std::memory_order_relaxed);
 
     const auto calls =
         g_cursorVisibilityCalls.fetch_add(1) + 1;
@@ -1631,9 +1637,76 @@ bool InstallCursorVisibilityHook() {
     g_cursorVisibilityHookReady.store(true);
     Log(
         "Cursor visibility hook: READY UAirshipUIManager::IsCursorVisible RVA=0x715800 "
-        "Hide HUD now forces cursor invisible"
+        "Hide HUD or Hide Reticle forces native UI cursor invisible"
     );
     return true;
+}
+
+
+// Hide Reticle is not Toggle HUD: the malformed cross can be an OS cursor.
+// Keep this Win32 fallback gated to our actual foreground game window and
+// disabled while the ImGui overlay is open. No mouse input is synthesized.
+bool ShouldBlankGameCursor() {
+    const HWND hwnd = reinterpret_cast<HWND>(
+        g_gameWindowTrace.load(std::memory_order_relaxed));
+    return hwnd && GetForegroundWindow() == hwnd &&
+        !g_overlayVisible.load(std::memory_order_relaxed) &&
+        dg::runtime::Get().hideReticle.load(std::memory_order_relaxed);
+}
+
+HCURSOR WINAPI HookSetCursor(HCURSOR requested) {
+    if (!g_originalSetCursor) return nullptr;
+    if (!ShouldBlankGameCursor()) return g_originalSetCursor(requested);
+    const unsigned calls = g_reticleCursorIntercepts.fetch_add(1) + 1;
+    if (calls <= 8 || calls % 500 == 0) {
+        Log("Reticle V0.36: SetCursor intercepted=%u requested=%p -> NULL",
+            calls, requested);
+    }
+    return g_originalSetCursor(nullptr);
+}
+
+bool InstallSetCursorHook() {
+    const MH_STATUS init = MH_Initialize();
+    if (init != MH_OK && init != MH_ERROR_ALREADY_INITIALIZED) return false;
+    const MH_STATUS create = MH_CreateHookApi(L"user32.dll", "SetCursor",
+        reinterpret_cast<LPVOID>(&HookSetCursor),
+        reinterpret_cast<LPVOID*>(&g_originalSetCursor));
+    if (create != MH_OK) {
+        Log("Reticle V0.36: SetCursor create failed=%d", int(create));
+        return false;
+    }
+    const MH_STATUS enable = MH_EnableHook(
+        reinterpret_cast<LPVOID>(&SetCursor));
+    // Some systems expose a forwarding thunk; enable by exact exported address.
+    if (enable != MH_OK && enable != MH_ERROR_ENABLED) {
+        Log("Reticle V0.36: SetCursor enable failed=%d", int(enable));
+        return false;
+    }
+    g_setCursorHookReady.store(true);
+    Log("Reticle V0.36: native UI + Win32 SetCursor suppression READY");
+    return true;
+}
+
+void RefreshReticleCursorState() {
+    const bool blank = ShouldBlankGameCursor();
+    if (g_cursorBlankApplied.exchange(blank) == blank) return;
+    if (blank) {
+        if (g_originalSetCursor) g_originalSetCursor(nullptr);
+        else SetCursor(nullptr);
+        Log("Reticle V0.36: OS cursor forced hidden (game foreground)");
+    } else {
+        const HWND hwnd = reinterpret_cast<HWND>(
+            g_gameWindowTrace.load(std::memory_order_relaxed));
+        if (hwnd && GetForegroundWindow() == hwnd) {
+            // Restore a usable cursor until the game issues its next SetCursor.
+            HCURSOR arrow = LoadCursorW(nullptr, IDC_ARROW);
+            if (g_originalSetCursor) g_originalSetCursor(arrow);
+            else SetCursor(arrow);
+            PostMessageW(hwnd, WM_SETCURSOR,
+                reinterpret_cast<WPARAM>(hwnd), MAKELPARAM(HTCLIENT, WM_MOUSEMOVE));
+        }
+        Log("Reticle V0.36: OS cursor suppression ended");
+    }
 }
 
 // V0.34: a controlled experiment, not a permanent focus fix.
@@ -1791,6 +1864,15 @@ void TriggerAction(Action action, int functionKey) {
         // V0.33 WM_SETCURSOR repeats did not rebuild the reticle.
         g_lastAction = std::string("HUD ") + (hidden ? "hidden" : "visible");
         Log("F%d -> HUD %s", functionKey, hidden ? "HIDDEN" : "VISIBLE");
+        return;
+    }
+
+    if (action == Action::ToggleReticle) {
+        g_config.hideReticle = !g_config.hideReticle;
+        g_config.Save();
+        g_lastAction = g_config.hideReticle ? "Reticle hidden" : "Reticle visible";
+        Log("F%d -> Hide Reticle %s", functionKey,
+            g_config.hideReticle ? "ON" : "OFF");
         return;
     }
 
@@ -2084,6 +2166,7 @@ dg::overlay::Context BuildOverlayContext() {
 
     auto& t = context.telemetry;
     t.hudHookReady = g_hudHookReady.load();
+    t.reticleCursorHookReady = g_setCursorHookReady.load();
     t.movementHookReady = g_movementHookReady.load();
     t.recoveryHookReady = g_recoveryHookReady.load();
     t.finalDamageHookReady =
@@ -2245,6 +2328,7 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     g_config.FlushIfDue(false);
 
     TraceGameWindowState(swapChain);
+    RefreshReticleCursorState();
     ProcessReticleFocusPulse();
 
     // V0.32: do not initialize ImGui, create an RTV, or subclass the game
@@ -2654,6 +2738,9 @@ DWORD WINAPI MainThread(LPVOID) {
     }
     if (!InstallHudHook()) {
         Log("Toggle HUD unavailable; renderer/input core remains active.");
+    }
+    if (!InstallSetCursorHook()) {
+        Log("Reticle V0.36: Win32 hook unavailable, native UI layer still supported.");
     }
     if (!InstallCursorVisibilityHook()) {
         Log(

@@ -14,6 +14,7 @@ enum class Action : int {
     SkipIntroVideos,
     ThirdPerson,
     ReticleFocusTest,
+    ToggleReticle,
     Count
 };
 
@@ -25,7 +26,8 @@ kActionLabels = {
     "Action Recovery",
     "Skip Intro Videos",
     "Third Person",
-    "Reticle Focus Test"
+    "Reticle Focus Test",
+    "Toggle Reticle"
 };
 
 inline constexpr std::array<const wchar_t*, static_cast<std::size_t>(Action::Count)>
@@ -36,7 +38,8 @@ kActionTokens = {
     L"ActionRecovery",
     L"SkipIntroVideos",
     L"ThirdPerson",
-    L"ReticleFocusTest"
+    L"ReticleFocusTest",
+    L"ToggleReticle"
 };
 
 const char* ActionLabel(Action action);
@@ -69,6 +72,7 @@ public:
     bool horseSprintSpeedEnabled = true;
     bool horseSprintDurationEnabled = true;
     bool fovEnabled = false;
+    bool hideReticle = false;
     bool hotstreakChargeEnabled = true;
 
     float movementSpeedMultiplier = 1.50f;
@@ -83,6 +87,8 @@ public:
     float horseSprintSpeedMultiplier = 1.25f;
     float horseSprintDurationMultiplier = 5.00f;
     float fovDegrees = 90.0f;
+    float cameraZoomPercent = 0.0f;
+    float cameraPitchDegrees = 0.0f;
     float thirdPersonDistanceMultiplier = 1.00f;
     float hotstreakChargeMultiplier = 2.00f;
 

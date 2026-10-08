@@ -6,6 +6,8 @@ namespace dg::runtime {
 
 struct Snapshot {
     bool toggleHudEnabled = true;
+    bool hideReticle = false;
+    bool fovEnabled = false;
     bool movementSpeedEnabled = true;
     bool actionRecoveryEnabled = true;
     bool skipLogosEnabled = true;
@@ -19,6 +21,9 @@ struct Snapshot {
     bool horseSprintDurationEnabled = true;
     bool hotstreakChargeEnabled = true;
 
+    float fovDegrees = 90.0f;
+    float cameraZoomPercent = 0.0f;
+    float cameraPitchDegrees = 0.0f;
     float movementSpeedMultiplier = 1.50f;
     float actionRecoveryDelayMs = 0.0f;
     float pistolDamageMultiplier = 2.00f;
@@ -33,6 +38,8 @@ struct Snapshot {
 
 struct State {
     std::atomic_bool toggleHudEnabled{true};
+    std::atomic_bool hideReticle{false};
+    std::atomic_bool fovEnabled{false};
     std::atomic_bool movementSpeedEnabled{true};
     std::atomic_bool actionRecoveryEnabled{true};
     std::atomic_bool skipLogosEnabled{true};
@@ -46,6 +53,9 @@ struct State {
     std::atomic_bool horseSprintDurationEnabled{true};
     std::atomic_bool hotstreakChargeEnabled{true};
 
+    std::atomic<float> fovDegrees{90.0f};
+    std::atomic<float> cameraZoomPercent{0.0f};
+    std::atomic<float> cameraPitchDegrees{0.0f};
     std::atomic<float> movementSpeedMultiplier{1.50f};
     std::atomic<float> actionRecoveryDelayMs{0.0f};
     std::atomic<float> pistolDamageMultiplier{2.00f};

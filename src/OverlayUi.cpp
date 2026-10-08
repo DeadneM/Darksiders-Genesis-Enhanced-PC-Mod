@@ -1,9 +1,11 @@
 #include "OverlayUi.h"
 
 #include "HorseFeature.h"
+#include "CameraTraceFeature.h"
 
 #include "imgui.h"
 
+#include <algorithm>
 #include <cstdio>
 
 namespace dg::overlay {
@@ -161,6 +163,17 @@ void Draw(Context& c) {
                     ? "Native ui.HideHud getter hooked"
                     : "Native hook unavailable"
             );
+
+            if (ImGui::Checkbox("Hide Reticle (independent of HUD)", &config.hideReticle)) {
+                config.Save();
+                *c.lastAction = config.hideReticle ? "Reticle hidden" : "Reticle restored";
+                if (c.log) c.log("Overlay -> Hide Reticle %s", config.hideReticle ? "ON" : "OFF");
+            }
+            ImGui::SameLine(310.0f);
+            ImGui::TextDisabled("%s", t.reticleCursorHookReady
+                ? "Native UI cursor + Win32 SetCursor hook (F6 default)"
+                : "Win32 cursor hook unavailable; native UI fallback");
+            ImGui::TextDisabled("Experimental: if the cross persists, press F5 to reset focus.");
 
             if (config.toggleHudEnabled) {
                 bool hudHidden = c.hudHidden->load();
@@ -462,40 +475,6 @@ void Draw(Context& c) {
             );
             ImGui::Unindent();
 
-            DrawSectionTitle("Camera");
-            ImGui::TextDisabled(
-                "Not implemented in V0.17 core. Controls stay locked until a native camera hook is proven."
-            );
-            ImGui::BeginDisabled();
-
-            DrawTunableFeature(
-                config,
-                "FOV",
-                "FOV",
-                &config.fovEnabled,
-                &config.fovDegrees,
-                60.0f,
-                140.0f,
-                90.0f,
-                "%.0f deg",
-                "Pending camera hook"
-            );
-
-            DrawTunableFeature(
-                config,
-                "Third Person",
-                "ThirdPerson",
-                &config.thirdPersonEnabled,
-                &config.thirdPersonDistanceMultiplier,
-                0.00f,
-                3.00f,
-                1.00f,
-                "%.2fx",
-                "Pending camera hook | distance"
-            );
-
-            ImGui::EndDisabled();
-
             DrawSectionTitle("System");
 
             ImGui::Text("Graphics Adapter");
@@ -594,6 +573,75 @@ void Draw(Context& c) {
                 "Runtime changes publish immediately; INI persistence is debounced."
             );
 
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("Camera")) {
+            ImGui::Spacing();
+            DrawSectionTitle("Camera controls (experimental)");
+            ImGui::TextWrapped(
+                "These controls use native camera hooks. They may not affect all "
+                "gameplay, mounted, or cinematic cameras. Defaults preserve vanilla."
+            );
+
+            const dg::camera_trace::Telemetry camera = dg::camera_trace::GetTelemetry();
+            ImGui::Text("GetCameraView: %s | calls: %u",
+                camera.viewReady ? "READY" : "UNAVAILABLE", camera.viewCalls);
+            ImGui::Text("SpringArm: %s | calls: %u",
+                camera.armReady ? "READY" : "UNAVAILABLE", camera.armCalls);
+            ImGui::TextDisabled("FOV observed %.1f -> %.1f | pitch %.1f -> %.1f",
+                camera.nativeFov,camera.appliedFov,
+                camera.nativePitch,camera.appliedPitch);
+            ImGui::TextDisabled("Arm length observed %.1f -> %.1f",
+                camera.nativeArmLength,camera.appliedArmLength);
+
+            DrawSectionTitle("Field of view");
+            DrawTunableFeature(config,"Enable FOV Override","FOV",
+                &config.fovEnabled,&config.fovDegrees,
+                40.0f,140.0f,90.0f,"%.0f deg",
+                camera.viewReady ? "Native view output" : "Hook not ready");
+            ImGui::TextDisabled("OFF restores the game's original FOV.");
+
+            DrawSectionTitle("Camera distance");
+            ImGui::TextWrapped("Zoom: positive = closer, negative = farther. 0%% = vanilla.");
+            bool zoomChanged = false;
+            if (ImGui::Button("Zoom -##Camera")) {
+                config.cameraZoomPercent -= 10.0f; zoomChanged = true;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Zoom +##Camera")) {
+                config.cameraZoomPercent += 10.0f; zoomChanged = true;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Vanilla##CameraZoom")) {
+                config.cameraZoomPercent = 0.0f; zoomChanged = true;
+            }
+            ImGui::SetNextItemWidth(340.0f);
+            zoomChanged |= ImGui::SliderFloat("Zoom##Camera",
+                &config.cameraZoomPercent,-75.0f,200.0f,"%+.0f%%");
+            ImGui::SetNextItemWidth(160.0f);
+            zoomChanged |= ImGui::InputFloat("Manual Zoom##Camera",
+                &config.cameraZoomPercent,0.0f,0.0f,"%.1f");
+            if (zoomChanged) {
+                config.cameraZoomPercent = std::clamp(config.cameraZoomPercent,-75.0f,200.0f);
+                config.Save();
+            }
+
+            DrawSectionTitle("Camera angle");
+            ImGui::TextWrapped("Pitch offset relative to the native view. 0 degrees = vanilla.");
+            bool pitchChanged = false;
+            ImGui::SetNextItemWidth(340.0f);
+            pitchChanged |= ImGui::SliderFloat("Pitch##Camera",
+                &config.cameraPitchDegrees,-35.0f,35.0f,"%+.1f deg");
+            ImGui::SameLine();
+            if (ImGui::Button("Vanilla##CameraPitch")) {
+                config.cameraPitchDegrees = 0.0f; pitchChanged = true;
+            }
+            if (pitchChanged) {
+                config.cameraPitchDegrees = std::clamp(config.cameraPitchDegrees,-35.0f,35.0f);
+                config.Save();
+            }
+            ImGui::TextDisabled("Native output correction only. Actual framing requires in-game verification.");
             ImGui::EndTabItem();
         }
 
@@ -744,7 +792,7 @@ void Draw(Context& c) {
 
             ImGui::Spacing();
             ImGui::TextDisabled(
-                "Test INI: F1 HUD | F2 Movement | F3 Recovery | F4 Skip Intro | F5 Reticle Focus | F6-F12 None"
+                "Test INI: F1 HUD | F2 Movement | F3 Recovery | F4 Skip Intro | F5 Reticle Focus | F6 Toggle Reticle | F7-F12 None"
             );
             ImGui::EndTabItem();
         }

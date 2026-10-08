@@ -12,6 +12,8 @@ State& Get() {
 
 void Publish(const Snapshot& s) {
     g_state.toggleHudEnabled.store(s.toggleHudEnabled, std::memory_order_relaxed);
+    g_state.hideReticle.store(s.hideReticle, std::memory_order_relaxed);
+    g_state.fovEnabled.store(s.fovEnabled, std::memory_order_relaxed);
     g_state.movementSpeedEnabled.store(s.movementSpeedEnabled, std::memory_order_relaxed);
     g_state.actionRecoveryEnabled.store(s.actionRecoveryEnabled, std::memory_order_relaxed);
     g_state.skipLogosEnabled.store(s.skipLogosEnabled, std::memory_order_relaxed);
@@ -25,6 +27,9 @@ void Publish(const Snapshot& s) {
     g_state.horseSprintDurationEnabled.store(s.horseSprintDurationEnabled, std::memory_order_relaxed);
     g_state.hotstreakChargeEnabled.store(s.hotstreakChargeEnabled, std::memory_order_relaxed);
 
+    g_state.fovDegrees.store(s.fovDegrees, std::memory_order_relaxed);
+    g_state.cameraZoomPercent.store(s.cameraZoomPercent, std::memory_order_relaxed);
+    g_state.cameraPitchDegrees.store(s.cameraPitchDegrees, std::memory_order_relaxed);
     g_state.movementSpeedMultiplier.store(s.movementSpeedMultiplier, std::memory_order_relaxed);
     g_state.actionRecoveryDelayMs.store(s.actionRecoveryDelayMs, std::memory_order_relaxed);
     g_state.pistolDamageMultiplier.store(s.pistolDamageMultiplier, std::memory_order_relaxed);
