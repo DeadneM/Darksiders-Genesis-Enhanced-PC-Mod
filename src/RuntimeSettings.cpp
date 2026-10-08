@@ -35,6 +35,8 @@ void Publish(const Snapshot& s) {
     g_state.horseSprintSpeedMultiplier.store(s.horseSprintSpeedMultiplier, std::memory_order_relaxed);
     g_state.horseSprintDurationMultiplier.store(s.horseSprintDurationMultiplier, std::memory_order_relaxed);
     g_state.hotstreakChargeMultiplier.store(s.hotstreakChargeMultiplier, std::memory_order_relaxed);
+    // Staged only. No camera hook in V0.35B.
+    g_state.cameraZoomPercent.store(s.cameraZoomPercent, std::memory_order_relaxed);
 }
 
 } // namespace dg::runtime
