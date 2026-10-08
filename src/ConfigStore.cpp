@@ -5,6 +5,7 @@
 
 #include <cwchar>
 #include <algorithm>
+#include <iterator>
 
 namespace dg::config {
 namespace {
@@ -546,7 +547,8 @@ bool Store::SaveNow() {
     swprintf_s(adapterText, L"%d", graphicsAdapter);
     WritePrivateProfileStringW(L"System", L"GraphicsAdapter",
         adapterText, path_.c_str());
-    if (!ApplyGraphicsAdapterToEngineIni(graphicsAdapter))
+    const bool engineIniUpdated = ApplyGraphicsAdapterToEngineIni(graphicsAdapter);
+    if (!engineIniUpdated)
         Log("Graphics Adapter: Engine.ini update failed (check game config directory)");
 
     WriteBool(L"Overlay", L"Enabled", overlayEnabled, path_);
@@ -601,8 +603,8 @@ bool Store::SaveNow() {
     }
 
     dirty_.store(false, std::memory_order_relaxed);
-    Log("INI saved");
-    return true;
+    Log(engineIniUpdated ? "INI saved" : "Mod INI saved; Engine.ini update failed");
+    return engineIniUpdated;
 }
 
 void Store::FlushIfDue(bool force) {
