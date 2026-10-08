@@ -3200,3 +3200,34 @@ V0.38:
 Validation: test yaw +/-30 degrees, NumPad4/6, custom bindings,
 Hide Reticle checkbox and apply button, F6 with overlay closed,
 Alt-Tab with overlay both open and closed and Hide Reticle both states.
+
+## V0.39 - Startup loader diagnostic (TEST)
+
+The user reported that the *direct-download* V0.38 did not show either
+the overlay or any hooks. V0.36 and V0.37 previously loaded and functioned
+on the same PC. The existing uploaded logs predate this V0.38 failure.
+Static inspection of the V0.37/V0.38 Windows build artifacts found both
+ZIPs valid with all four root-level files, same x64 PE architecture and
+matching imported DLL families. No confirmed root cause yet.
+
+V0.39 changes ONLY startup observability (not the camera or gameplay):
+- The DXGI proxy writes DarksidersGenesisLoader.log into the same folder
+  as dxgi.dll; this log is independent of DarksidersGenesisMod.asi.
+- The first loader log truncates the previous session. It lists the
+  proxy DLL path, ASI scan, each ASI LoadLibrary result and GetLastError,
+  and the real System32 dxgi.dll load result. No cached pointers, no
+  new hooks, and no changes to camera, reticle, horse or HUD behavior.
+- Core startup version string updated to V0.39 so an old/cached ASI is
+  immediately recognizable in DarksidersGenesisMod.log.
+- A missing loader log means the game did not invoke the proxy's
+  DXGI factory export, the proxy was not placed/loaded correctly, or
+  initialization happened earlier than logging. In that case, confirm
+  dxgi.dll is next to the actual DarksidersGenesis-Win64-Shipping.exe.
+- If loader log exists but ASI log does not, look for the precise
+  LoadLibrary result/error; also check game EXE hash and quarantine.
+- If both log files exist with version 0.39, check native hook readiness.
+- Treat V0.37 as verified fallback, not V0.38. No stable release.
+
+The other unresolved issues remain: unreliable malformed reticle/F5,
+potential Alt-Tab focus recovery, zoom-induced DOF blur, and in-game
+validation of horizontal yaw. V0.39 makes no claims to fix these.
