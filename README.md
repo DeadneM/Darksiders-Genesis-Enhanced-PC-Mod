@@ -1029,3 +1029,36 @@ Test policy:
 
 This determines whether the fix comes from DXGI ResizeBuffers, focus activation,
 or merely avoiding early ImGui/RTV/WndProc initialization.
+
+
+## V0.33 - Cursor-layer reticle fix
+
+The V0.32 focus trace isolates the broken-cross issue from both the horse system
+and the ImGui overlay:
+
+- the malformed cross can appear before ImGui is initialized;
+- Alt-Tab repairs it through a foreground transition;
+- no DXGI `ResizeBuffers` occurs during the fixing Alt-Tab;
+- the reticle/cross remains visible when `ui.HideHud` is forced, proving it is
+  handled by the cursor layer rather than the ordinary HUD layer.
+
+Retail executable audit identifies:
+
+```text
+UAirshipUIManager::IsCursorVisible
+RVA 0x715800
+```
+
+The native function ultimately reads the PlayerController mouse-cursor visible
+state.
+
+V0.33 therefore:
+- hooks `UAirshipUIManager::IsCursorVisible`;
+- forces cursor visibility false while mod Hide HUD is active;
+- schedules a cursor refresh when a newly validated player instance appears;
+- posts `WM_SETCURSOR` to the real game window several times after load;
+- logs the active `HCURSOR`, visibility and position around focus transitions
+  and forced refreshes.
+
+This is intended to reproduce the cursor-reset part of Alt-Tab without actually
+changing application focus.
