@@ -498,6 +498,19 @@ void Draw(Context& c) {
 
             DrawSectionTitle("System");
 
+            ImGui::Text("Graphics Adapter");
+            ImGui::SameLine(310.0f);
+            ImGui::SetNextItemWidth(125.0f);
+            if (ImGui::SliderInt("##GraphicsAdapter", &config.graphicsAdapter, 0, 4)) {
+                if (config.SaveNow()) {
+                    *c.lastAction = "Graphics Adapter setting saved (restart game)";
+                } else {
+                    *c.lastAction = "Graphics Adapter save failed";
+                }
+            }
+            ImGui::TextDisabled("r.GraphicsAdapter 0-4 | default 0 | restart game to apply");
+            ImGui::Spacing();
+
             if (ImGui::Checkbox(
                     "Skip Logos",
                     &config.skipLogosEnabled)) {
