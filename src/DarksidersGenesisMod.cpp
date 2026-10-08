@@ -31,7 +31,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.31-horse-lifetime-safety-hotfix-test";
+constexpr const char* kBuild = "0.32-lazy-overlay-focus-trace-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -65,6 +65,9 @@ WNDPROC g_originalWndProc = nullptr;
 std::atomic_bool g_imguiReady{false};
 std::atomic_bool g_overlayVisible{false};
 std::atomic_bool g_captureMenuKey{false};
+std::atomic_int g_lastForegroundState{-1};
+std::atomic_uint32_t g_focusTransitionCount{0};
+std::atomic_uint32_t g_resizeBuffersTraceCount{0};
 std::atomic_int g_capturedMenuKey{0};
 std::atomic_bool g_hudHidden{false};
 std::atomic_bool g_hudHookReady{false};
@@ -1966,6 +1969,65 @@ dg::overlay::Context BuildOverlayContext() {
     return context;
 }
 
+void TraceGameWindowState(IDXGISwapChain* swapChain) {
+    if (!swapChain) {
+        return;
+    }
+
+    DXGI_SWAP_CHAIN_DESC desc{};
+    if (FAILED(swapChain->GetDesc(&desc)) ||
+        !desc.OutputWindow) {
+        return;
+    }
+
+    DWORD pid = 0;
+    GetWindowThreadProcessId(desc.OutputWindow, &pid);
+    if (pid != GetCurrentProcessId()) {
+        return;
+    }
+
+    const bool foreground =
+        GetForegroundWindow() == desc.OutputWindow;
+    const int state = foreground ? 1 : 0;
+    const int previous =
+        g_lastForegroundState.exchange(state);
+
+    if (previous != state) {
+        RECT client{};
+        GetClientRect(desc.OutputWindow, &client);
+
+        const UINT clientWidth =
+            client.right > client.left
+                ? static_cast<UINT>(
+                    client.right - client.left)
+                : 0;
+        const UINT clientHeight =
+            client.bottom > client.top
+                ? static_cast<UINT>(
+                    client.bottom - client.top)
+                : 0;
+
+        const auto count =
+            g_focusTransitionCount.fetch_add(1) + 1;
+
+        Log(
+            "Window focus trace #%u: foreground=%d hwnd=%p iconic=%d "
+            "client=%ux%u swapDesc=%ux%u format=%u windowed=%d",
+            count,
+            state,
+            desc.OutputWindow,
+            IsIconic(desc.OutputWindow) ? 1 : 0,
+            clientWidth,
+            clientHeight,
+            desc.BufferDesc.Width,
+            desc.BufferDesc.Height,
+            static_cast<unsigned>(
+                desc.BufferDesc.Format),
+            desc.Windowed ? 1 : 0
+        );
+    }
+}
+
 HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) {
     ApplySkipIntroSetting(false);
 
@@ -1977,7 +2039,16 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     ProcessInput();
     g_config.FlushIfDue(false);
 
-    if (!g_imguiReady.load()) {
+    TraceGameWindowState(swapChain);
+
+    // V0.32: do not initialize ImGui, create an RTV, or subclass the game
+    // window during normal gameplay. The overlay backend is created lazily
+    // only when the user actually opens the menu for the first time.
+    if (!g_imguiReady.load() &&
+        g_overlayVisible.load()) {
+        Log(
+            "Overlay lazy-init requested on first menu open"
+        );
         InitializeImGui(swapChain);
     }
 
@@ -2017,6 +2088,45 @@ HRESULT __stdcall HookResizeBuffers(
     DXGI_FORMAT newFormat,
     UINT swapChainFlags
 ) {
+    DXGI_SWAP_CHAIN_DESC beforeDesc{};
+    HWND traceHwnd = nullptr;
+    bool processSwapChain = false;
+
+    if (swapChain &&
+        SUCCEEDED(swapChain->GetDesc(&beforeDesc)) &&
+        beforeDesc.OutputWindow) {
+        DWORD pid = 0;
+        GetWindowThreadProcessId(
+            beforeDesc.OutputWindow,
+            &pid
+        );
+        if (pid == GetCurrentProcessId()) {
+            processSwapChain = true;
+            traceHwnd = beforeDesc.OutputWindow;
+
+            const auto count =
+                g_resizeBuffersTraceCount.fetch_add(1) + 1;
+
+            Log(
+                "ResizeBuffers trace #%u: BEFORE hwnd=%p "
+                "requested=%ux%u count=%u format=%u flags=0x%X "
+                "oldDesc=%ux%u oldFormat=%u foreground=%d",
+                count,
+                traceHwnd,
+                width,
+                height,
+                bufferCount,
+                static_cast<unsigned>(newFormat),
+                swapChainFlags,
+                beforeDesc.BufferDesc.Width,
+                beforeDesc.BufferDesc.Height,
+                static_cast<unsigned>(
+                    beforeDesc.BufferDesc.Format),
+                GetForegroundWindow() == traceHwnd ? 1 : 0
+            );
+        }
+    }
+
     if (g_imguiReady.load() && swapChain == g_gameSwapChain) {
         ImGui_ImplDX11_InvalidateDeviceObjects();
         ReleaseRenderTarget();
@@ -2029,6 +2139,29 @@ HRESULT __stdcall HookResizeBuffers(
     if (SUCCEEDED(hr) && g_imguiReady.load() && swapChain == g_gameSwapChain) {
         CreateRenderTarget();
         ImGui_ImplDX11_CreateDeviceObjects();
+    }
+
+    if (processSwapChain) {
+        DXGI_SWAP_CHAIN_DESC afterDesc{};
+        if (SUCCEEDED(swapChain->GetDesc(&afterDesc))) {
+            Log(
+                "ResizeBuffers trace: AFTER hwnd=%p hr=0x%08lX "
+                "desc=%ux%u format=%u foreground=%d",
+                traceHwnd,
+                static_cast<unsigned long>(hr),
+                afterDesc.BufferDesc.Width,
+                afterDesc.BufferDesc.Height,
+                static_cast<unsigned>(
+                    afterDesc.BufferDesc.Format),
+                GetForegroundWindow() == traceHwnd ? 1 : 0
+            );
+        } else {
+            Log(
+                "ResizeBuffers trace: AFTER hwnd=%p hr=0x%08lX desc=UNAVAILABLE",
+                traceHwnd,
+                static_cast<unsigned long>(hr)
+            );
+        }
     }
 
     return hr;
