@@ -9,6 +9,7 @@
 #include "imgui_impl_win32.h"
 
 #include "ConfigStore.h"
+#include "CameraNativeFeature.h"
 #include "EngineIniFeature.h"
 #include "HorseFeature.h"
 #include "OverlayUi.h"
@@ -31,7 +32,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.34-native-focus-pulse-test";
+constexpr const char* kBuild = "0.36-native-fov-zoom-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -2642,6 +2643,8 @@ DWORD WINAPI MainThread(LPVOID) {
     }
 
     dg::horse::Initialize(&FeatureLog);
+    // Native camera hooks operate only inside live engine camera callbacks.
+    dg::camera_native::Install(&FeatureLog);
     Log(
         "Player identity: exact V0.14F APawn::IsLocallyControlled path restored; Jump/Glide validation is non-blocking"
     );
