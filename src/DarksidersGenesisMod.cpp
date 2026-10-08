@@ -1679,13 +1679,26 @@ void ProcessReticleFocusPulse() {
         const BOOL focus = PostMessageW(hwnd, WM_SETFOCUS, 0, 0);
         const BOOL cursor = PostMessageW(hwnd, WM_SETCURSOR,
             reinterpret_cast<WPARAM>(hwnd), MAKELPARAM(HTCLIENT, WM_MOUSEMOVE));
-        g_focusPulseStage.store(0, std::memory_order_relaxed);
+        g_focusPulseRestoreTick.store(now + 500, std::memory_order_relaxed);
+        g_focusPulseStage.store(3, std::memory_order_relaxed);
         CURSORINFO ci{};
         ci.cbSize = sizeof(ci);
         const BOOL info = GetCursorInfo(&ci);
         Log("Reticle focus test: REACTIVATE queued app=%d wnd=%d focus=%d setCursor=%d cursorInfo=%d cursor=%p showing=%d",
             app ? 1 : 0, wnd ? 1 : 0, focus ? 1 : 0, cursor ? 1 : 0,
             info ? 1 : 0, ci.hCursor, (ci.flags & CURSOR_SHOWING) ? 1 : 0);
+    }
+
+    if (stage == 3 && now >= g_focusPulseRestoreTick.load(std::memory_order_relaxed)) {
+        CURSORINFO ci{};
+        ci.cbSize = sizeof(ci);
+        const BOOL info = GetCursorInfo(&ci);
+        Log("Reticle focus test: AFTER 500ms cursorInfo=%d cursor=%p showing=%d pos=%ld,%ld foreground=%d",
+            info ? 1 : 0, ci.hCursor,
+            (ci.flags & CURSOR_SHOWING) ? 1 : 0,
+            ci.ptScreenPos.x, ci.ptScreenPos.y,
+            GetForegroundWindow() == hwnd ? 1 : 0);
+        g_focusPulseStage.store(0, std::memory_order_relaxed);
     }
 }
 
@@ -1781,7 +1794,9 @@ void TriggerAction(Action action, int functionKey) {
     }
 
     if (action == Action::ReticleFocusTest) {
-        if (g_focusPulseStage.exchange(1, std::memory_order_relaxed) != 0) {
+        int expected = 0;
+        if (!g_focusPulseStage.compare_exchange_strong(
+                expected, 1, std::memory_order_relaxed)) {
             g_lastAction = "Reticle focus test already running";
             Log("F%d -> Reticle focus test already running", functionKey);
         } else {
