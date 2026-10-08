@@ -59,6 +59,7 @@ target_link_libraries(imgui_static PUBLIC d3d11 dxgi user32 gdi32 imm32 dwmapi)
 
 add_library(DarksidersGenesisMod SHARED
   src/ConfigStore.cpp
+  src/CameraAuditFeature.cpp
   src/DarksidersGenesisMod.cpp
   src/EngineIniFeature.cpp
   src/HorseFeature.cpp
