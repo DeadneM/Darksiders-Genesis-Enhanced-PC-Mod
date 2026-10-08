@@ -37,7 +37,7 @@ void HookView(void* camera, float dt, void* outView) {
     if (std::isfinite(v) && v > 1.0f && v < 179.0f) fov = v;
   }
   char line[220]{};
-  sprintf_s(line, "CameraTrace V0.34R1: GetCameraView calls=%u camera=%p dt=%.5f FOV=%.2f READ_ONLY",
+  sprintf_s(line, "CameraTrace V0.35: GetCameraView calls=%u camera=%p dt=%.5f FOV=%.2f READ_ONLY",
             count, camera, dt, fov);
   Write(line);
 }
@@ -52,7 +52,7 @@ void HookArm(void* arm, bool trace, bool locLag, bool rotLag, float dt) {
   const uint32_t count = g_armCount.fetch_add(1, std::memory_order_relaxed) + 1;
   if (!Sample(count)) return;
   char line[240]{};
-  sprintf_s(line, "CameraTrace V0.34R1: UpdateDesiredArmLocation calls=%u arm=%p length=%.2f trace=%d lag=%d/%d dt=%.5f READ_ONLY",
+  sprintf_s(line, "CameraTrace V0.35: UpdateDesiredArmLocation calls=%u arm=%p length=%.2f trace=%d lag=%d/%d dt=%.5f READ_ONLY",
             count, arm, distance, trace ? 1 : 0, locLag ? 1 : 0, rotLag ? 1 : 0, dt);
   Write(line);
 }
@@ -61,24 +61,24 @@ bool InstallOne(uintptr_t base, uintptr_t rva, const unsigned char* signature,
   auto* target = reinterpret_cast<unsigned char*>(base + rva);
   if (std::memcmp(target, signature, length) != 0) {
     char s[160]{};
-    sprintf_s(s, "CameraTrace V0.34R1: %s signature mismatch; SKIPPED", label);
+    sprintf_s(s, "CameraTrace V0.35: %s signature mismatch; SKIPPED", label);
     Write(s); return false;
   }
   const MH_STATUS created = MH_CreateHook(target, detour, original);
   if (created != MH_OK) {
     char s[160]{};
-    sprintf_s(s, "CameraTrace V0.34R1: %s create failed=%d", label, int(created));
+    sprintf_s(s, "CameraTrace V0.35: %s create failed=%d", label, int(created));
     Write(s); return false;
   }
   const MH_STATUS enabled = MH_EnableHook(target);
   if (enabled != MH_OK && enabled != MH_ERROR_ENABLED) {
     MH_RemoveHook(target);
     char s[160]{};
-    sprintf_s(s, "CameraTrace V0.34R1: %s enable failed=%d", label, int(enabled));
+    sprintf_s(s, "CameraTrace V0.35: %s enable failed=%d", label, int(enabled));
     Write(s); return false;
   }
   char s[160]{};
-  sprintf_s(s, "CameraTrace V0.34R1: %s READY RVA=0x%zX READ_ONLY", label, size_t(rva));
+  sprintf_s(s, "CameraTrace V0.35: %s READY RVA=0x%zX READ_ONLY", label, size_t(rva));
   Write(s); return true;
 }
 }
@@ -89,7 +89,7 @@ void Install(LogFn log) {
   if (!base) return;
   const MH_STATUS status = MH_Initialize();
   if (status != MH_OK && status != MH_ERROR_ALREADY_INITIALIZED) {
-    Write("CameraTrace V0.34R1: MinHook unavailable; no camera hooks");
+    Write("CameraTrace V0.35: MinHook unavailable; no camera hooks");
     return;
   }
   const bool view = InstallOne(base, kViewRva, kViewBytes, sizeof(kViewBytes),
@@ -97,7 +97,7 @@ void Install(LogFn log) {
   const bool arm = InstallOne(base, kArmRva, kArmBytes, sizeof(kArmBytes),
        reinterpret_cast<void*>(&HookArm), reinterpret_cast<void**>(&g_arm), "SpringArm");
   char s[160]{};
-  sprintf_s(s, "CameraTrace V0.34R1: summary View=%d SpringArm=%d; no FOV/zoom/angle edits",
+  sprintf_s(s, "CameraTrace V0.35: summary View=%d SpringArm=%d; no FOV/zoom/angle edits",
             view ? 1 : 0, arm ? 1 : 0);
   Write(s);
 }

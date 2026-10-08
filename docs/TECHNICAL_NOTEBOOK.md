@@ -3071,7 +3071,7 @@ permitted. This rule should be preserved in future camera/mount work as well.
   V0.32 lazy overlay and V0.34 manually validated cursor focus pulse.
 
 
-## V0.34R1 - camera investigation restarted from V0.34
+## V0.35 - camera investigation restarted from V0.34
 
 Source: validated V0.34 commit 32f7827cc2968596a34dadc6466730d4280ff94b.
 None of the V0.35A/B/C or V0.36 camera changes are inherited.
@@ -3089,7 +3089,7 @@ is changed. Existing FOV is OFF/locked, and no fake zoom setting is added.
 Test on foot with War and Strife, then mounted if possible, while leaving
 the mod overlay closed. Press F5 only if the reticle needs repairing.
 Quit the game and provide the non-cumulative DarksidersGenesisMod.log.
-Look for CameraTrace V0.34R1 READY and callback call counts.
+Look for CameraTrace V0.35 READY and callback call counts.
 Successful compilation does NOT prove that either native path controls
 the rendered gameplay view. No promotion to main or public release until
 an in-game test confirms behavior. Further zoom/FOV/angle work must use
