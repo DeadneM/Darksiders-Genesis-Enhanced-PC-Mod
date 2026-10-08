@@ -3069,3 +3069,36 @@ permitted. This rule should be preserved in future camera/mount work as well.
   path for focus anomalies. No cursor refresh writes to HorseFeature memory.
 - `main` should contain V0.30 GraphicsAdapter, V0.31 horse lifetime safety,
   V0.32 lazy overlay and V0.34 manually validated cursor focus pulse.
+
+
+## V0.36 - Real native camera hook candidate, V0.35C rollback
+
+User rejected V0.35C: reticle cross reappeared, FOV locked, Zoom did
+nothing. The branch only contained diagnostics and a saved UI placeholder.
+Reject the V0.35C camera script-thunk hooks for the stable lineage.
+Build V0.36 directly from V0.34 + minimal settings/overlay only.
+
+Exact supported PE64 binary / PDATA / VTable confirmed:
+- `UCameraComponent::GetCameraView` native RVA `0x16F9790`,
+  class virtual slot `+0x508`, signature `void(this,float,OutView*)`.
+- `USpringArmComponent::UpdateDesiredArmLocation` native RVA
+  `0x6F57B0`, signature `void(this,bool,bool,bool,float)`.
+- `FMinimalViewInfo.FOV` output `+0x18` when called.
+- `UCameraComponent.FieldOfView` object field `+0x258`.
+- `UCameraComponent.OrthoWidth` object field `+0x25C`.
+- `USpringArmComponent.TargetArmLength` object field `+0x258`.
+The previous V0.35C note asserting that CameraComponent.FieldOfView
+was at +0x25C is WRONG; keep the correction in docs.
+
+Runtime implementation:
+1. after original GetCameraView, adjust only the output POV FOV
+   if checkbox enabled and values plausible; no UObject writing;
+2. in live SpringArm UpdateDesiredArmLocation, scale a plausible
+   arm length using factor `100/(100+CameraZoomPercent)`,
+   call original, restore immediately before leaving the callback;
+3. no cached raw pointers, no per-frame unprotected writes;
+4. display actual native hook readiness, calls and last source/target
+   FOV and arm length in the camera overlay.
+
+Latest VALIDATED base remains V0.34. V0.36 needs in-game testing for
+camera coverage, menu reticle, and cinematic transition stability.
