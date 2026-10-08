@@ -80,6 +80,7 @@ struct HorseSlot {
     float maxStamina = 0.0f;
 
     std::uint32_t captures = 0;
+    ULONGLONG lastNativeCaptureTick = 0;
 };
 
 SRWLOCK g_lock = SRWLOCK_INIT;
@@ -484,9 +485,35 @@ void CaptureHorseLocked(
         return;
     }
 
+    // Lifetime safety hotfix:
+    // We only dereference horse/movement pointers while a native HorseCharacter
+    // method is actively executing with this exact live 'this' pointer.
+    // Resolve the movement fresh on every native capture. If UE4 recycled the
+    // HorseCharacter address across a level transition, a changed movement
+    // pointer marks a new generation and all cached baselines are discarded.
+    void* liveMovement = ResolveHorseMovement(horse);
+
+    if (slot->captures > 0 &&
+        liveMovement &&
+        slot->movement &&
+        liveMovement != slot->movement) {
+        FeatureLog(
+            "HorseFeature V0.31: HORSE GENERATION CHANGED "
+            "horse=%p oldMovement=%p newMovement=%p -> reset baselines",
+            horse,
+            slot->movement,
+            liveMovement
+        );
+
+        const void* preservedHorse = slot->horse;
+        *slot = {};
+        slot->horse = const_cast<void*>(preservedHorse);
+    }
+
     const bool firstCapture =
         slot->captures == 0;
     ++slot->captures;
+    slot->lastNativeCaptureTick = GetTickCount64();
 
     if (!slot->staminaFieldsReady) {
         float recovery = 0.0f;
@@ -522,7 +549,7 @@ void CaptureHorseLocked(
     }
 
     if (!slot->movementReady) {
-        void* movement = ResolveHorseMovement(horse);
+        void* movement = liveMovement;
         if (movement) {
             float walk = 0.0f;
             float acceleration = 0.0f;
@@ -561,7 +588,7 @@ void CaptureHorseLocked(
                 slot->movementReady = true;
 
                 FeatureLog(
-                    "HorseFeature V0.29: HORSE MOVEMENT READY "
+                    "HorseFeature V0.31: HORSE MOVEMENT READY "
                     "horse=%p movement=%p walk=%.1f accel=%.1f "
                     "brake=%.2f sprintMax=%.1f sprintFieldReady=%d",
                     horse,
@@ -631,7 +658,7 @@ void CaptureHorseLocked(
         );
 
         FeatureLog(
-            "HorseFeature V0.29: NATIVE HORSE CAPTURE source=%s "
+            "HorseFeature V0.31: NATIVE HORSE CAPTURE source=%s "
             "horse=%p movement=%p movementReady=%d "
             "walk=%.1f accel=%.1f brake=%.2f "
             "sprintMax=%.1f bSprinting=%u "
@@ -751,7 +778,7 @@ bool InstallNativeHook(
             prologue.data(),
             prologue.size()) != 0) {
         FeatureLog(
-            "HorseFeature V0.29: %s target validation FAILED RVA=0x%llX",
+            "HorseFeature V0.31: %s target validation FAILED RVA=0x%llX",
             name,
             static_cast<unsigned long long>(rva)
         );
@@ -762,7 +789,7 @@ bool InstallNativeHook(
     if (initStatus != MH_OK &&
         initStatus != MH_ERROR_ALREADY_INITIALIZED) {
         FeatureLog(
-            "HorseFeature V0.29: MinHook init FAILED for %s status=%d",
+            "HorseFeature V0.31: MinHook init FAILED for %s status=%d",
             name,
             static_cast<int>(initStatus)
         );
@@ -778,7 +805,7 @@ bool InstallNativeHook(
 
     if (createStatus != MH_OK) {
         FeatureLog(
-            "HorseFeature V0.29: %s hook create FAILED status=%d",
+            "HorseFeature V0.31: %s hook create FAILED status=%d",
             name,
             static_cast<int>(createStatus)
         );
@@ -792,7 +819,7 @@ bool InstallNativeHook(
         enableStatus != MH_ERROR_ENABLED) {
         MH_RemoveHook(target);
         FeatureLog(
-            "HorseFeature V0.29: %s hook enable FAILED status=%d",
+            "HorseFeature V0.31: %s hook enable FAILED status=%d",
             name,
             static_cast<int>(enableStatus)
         );
@@ -803,7 +830,7 @@ bool InstallNativeHook(
     targetOut = target;
 
     FeatureLog(
-        "HorseFeature V0.29: %s hook READY RVA=0x%llX",
+        "HorseFeature V0.31: %s hook READY RVA=0x%llX",
         name,
         static_cast<unsigned long long>(rva)
     );
@@ -827,8 +854,8 @@ void Initialize(LogFn logger) {
     g_logger = logger;
 
     FeatureLog(
-        "HorseFeature V0.29: native HorseCharacter hooks + native horse movement resolver armed; "
-        "movement fields exact: walk=0x1DC accel=0x1F0 brakeFactor=0x1F8 sprintMax=0x760."
+        "HorseFeature V0.31: native HorseCharacter hooks + lifetime-safe horse movement resolver armed; "
+        "writes only during live native HorseCharacter callbacks; no per-frame cached-pointer writes."
     );
 
     InstallNativeHook(
@@ -896,118 +923,33 @@ void PollDirectHorse(void*) {
 }
 
 void ObserveMovement(
-    void* movementComponent,
-    void* characterOwner,
     void*,
-    float nativeGetMaxSpeed
+    void*,
+    void*,
+    float
 ) {
-    if (!movementComponent ||
-        !characterOwner) {
-        return;
-    }
-
-    AcquireSRWLockExclusive(&g_lock);
-
-    HorseSlot* slot =
-        FindMovementLocked(movementComponent);
-
-    if (slot &&
-        slot->horse == characterOwner) {
-        g_nativeGetMaxSpeed.store(nativeGetMaxSpeed);
-        g_appliedGetMaxSpeed.store(nativeGetMaxSpeed);
-        ApplySlotLocked(*slot);
-    }
-
-    ReleaseSRWLockExclusive(&g_lock);
+    // V0.31 lifetime safety:
+    // Never dereference or write a cached horse pointer from the generic
+    // movement hook. Only native HorseCharacter callbacks may apply tunings.
 }
 
 float AdjustSpeedResult(
-    void* movementComponent,
+    void*,
     float nativeGetMaxSpeed
 ) {
-    if (!movementComponent) {
-        return nativeGetMaxSpeed;
-    }
-
-    AcquireSRWLockExclusive(&g_lock);
-
-    HorseSlot* slot =
-        FindMovementLocked(movementComponent);
-
-    if (slot) {
-        g_nativeGetMaxSpeed.store(nativeGetMaxSpeed);
-        g_appliedGetMaxSpeed.store(nativeGetMaxSpeed);
-        ApplySlotLocked(*slot);
-    }
-
-    ReleaseSRWLockExclusive(&g_lock);
+    // Horse speed fields are already applied from live native HorseCharacter
+    // callbacks. Returning the engine result here avoids any stale-pointer
+    // write path from the shared movement hook.
+    g_nativeGetMaxSpeed.store(nativeGetMaxSpeed);
+    g_appliedGetMaxSpeed.store(nativeGetMaxSpeed);
     return nativeGetMaxSpeed;
 }
 
 void Tick() {
-    AcquireSRWLockExclusive(&g_lock);
-
-    for (auto& slot : g_slots) {
-        if (slot.horse) {
-            if (!slot.movementReady) {
-                void* movement =
-                    ResolveHorseMovement(slot.horse);
-
-                if (movement) {
-                    float walk = 0.0f;
-                    float acceleration = 0.0f;
-                    float braking = 0.0f;
-                    float sprintMax = 0.0f;
-
-                    if (ReadFloat(
-                            movement,
-                            kMaxWalkSpeedOffset,
-                            walk) &&
-                        ReadFloat(
-                            movement,
-                            kMaxAccelerationOffset,
-                            acceleration) &&
-                        ReadFloat(
-                            movement,
-                            kBrakingFrictionFactorOffset,
-                            braking) &&
-                        ReadFloat(
-                            movement,
-                            kSprintingMaxSpeedOffset,
-                            sprintMax) &&
-                        walk > 0.0f &&
-                        acceleration > 0.0f &&
-                        sprintMax >= 0.0f &&
-                        sprintMax < 10000.0f) {
-                        slot.movement = movement;
-                        slot.nativeMaxWalkSpeed = walk;
-                        slot.nativeMaxAcceleration = acceleration;
-                        slot.nativeBrakingFrictionFactor = braking;
-                        slot.nativeSprintingMaxSpeed = sprintMax;
-                        slot.horseFieldsReady = sprintMax > 0.0f;
-                        slot.movementReady = true;
-
-                        FeatureLog(
-                            "HorseFeature V0.29: HORSE MOVEMENT READY (late) "
-                            "horse=%p movement=%p walk=%.1f accel=%.1f "
-                            "brake=%.2f sprintMax=%.1f sprintFieldReady=%d",
-                            slot.horse,
-                            movement,
-                            walk,
-                            acceleration,
-                            braking,
-                            sprintMax,
-                            slot.horseFieldsReady ? 1 : 0
-                        );
-                    }
-                }
-            }
-
-            ApplySlotLocked(slot);
-        }
-    }
-
-    ReleaseSRWLockExclusive(&g_lock);
+    // V0.31 lifetime safety:
+    // Deliberately no per-frame writes. Horse UObject pointers are weak raw
+    // observations and can die during seamless travel / level reload. All
+    // tuning writes happen only from native HorseCharacter callbacks.
 }
 
 Telemetry GetTelemetry() {
@@ -1041,10 +983,21 @@ bool IsValidatedMovement(void* movementComponent) {
         return false;
     }
 
+    const ULONGLONG now = GetTickCount64();
+    bool found = false;
+
     AcquireSRWLockShared(&g_lock);
-    const bool found =
-        FindMovementLocked(movementComponent) != nullptr;
+    HorseSlot* slot =
+        FindMovementLocked(movementComponent);
+
+    if (slot &&
+        slot->lastNativeCaptureTick != 0 &&
+        now >= slot->lastNativeCaptureTick &&
+        now - slot->lastNativeCaptureTick <= 2000) {
+        found = true;
+    }
     ReleaseSRWLockShared(&g_lock);
+
     return found;
 }
 
@@ -1056,13 +1009,14 @@ void Shutdown() {
 
     AcquireSRWLockExclusive(&g_lock);
     for (auto& slot : g_slots) {
-        RestoreSlotLocked(slot);
+        // Do not restore through cached raw UObject pointers here. They may
+        // already have been destroyed by UE4 during world teardown.
         slot = {};
     }
     ReleaseSRWLockExclusive(&g_lock);
 
     FeatureLog(
-        "HorseFeature V0.29: native horse hooks shutdown"
+        "HorseFeature V0.31: native horse hooks shutdown; no stale-pointer restore"
     );
 }
 

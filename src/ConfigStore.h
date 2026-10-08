@@ -13,6 +13,7 @@ enum class Action : int {
     ActionRecovery,
     SkipIntroVideos,
     ThirdPerson,
+    ReticleFocusTest,
     Count
 };
 
@@ -23,7 +24,8 @@ kActionLabels = {
     "Movement Speed",
     "Action Recovery",
     "Skip Intro Videos",
-    "Third Person"
+    "Third Person",
+    "Reticle Focus Test"
 };
 
 inline constexpr std::array<const wchar_t*, static_cast<std::size_t>(Action::Count)>
@@ -33,7 +35,8 @@ kActionTokens = {
     L"MovementSpeed",
     L"ActionRecovery",
     L"SkipIntroVideos",
-    L"ThirdPerson"
+    L"ThirdPerson",
+    L"ReticleFocusTest"
 };
 
 const char* ActionLabel(Action action);
@@ -50,6 +53,7 @@ class Store {
 public:
     bool overlayEnabled = true;
     int menuKey = 0x2D; // VK_INSERT
+    int graphicsAdapter = 0;
 
     bool toggleHudEnabled = true;
     bool movementSpeedEnabled = true;

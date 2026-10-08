@@ -3012,3 +3012,60 @@ V0.29 therefore:
 - writes Horse Speed to movement `MaxWalkSpeed / MaxAcceleration`;
 - writes Horse Sprint Speed to movement `SprintingMaxSpeed`;
 - preserves V0.28 Sprint Duration on HorseCharacter stamina drain.
+
+
+## V0.31 - Crash audit: stale Horse UObject writes
+
+A user crash dump after a level load showed:
+
+```text
+Exception: 0xC0000005 write access violation
+Fault RVA: DarksidersGenesis-Win64-Shipping.exe +0xCC0FBC
+Faulting instruction: lock xadd dword ptr [rbx+8], eax
+Corrupt ref-count pointer base: rbx = 0x1E3000010
+Attempted write: 0x1E3000018
+```
+
+The fault occurs in the game's reference-counted destruction path, not inside
+the ASI module. Combined with pre-crash reticle/HUD corruption, this is consistent
+with earlier memory corruption.
+
+Source audit found the unsafe producer in HorseFeature: raw `horse` and
+`movement` pointers were retained indefinitely and dereferenced/written from
+`Tick()` every frame, including after seamless travel.
+
+V0.31 invariant:
+
+```text
+A raw HorseCharacter pointer may be dereferenced for tuning only while one of
+the hooked native HorseCharacter functions is currently executing with that
+pointer as its live this-object.
+```
+
+No asynchronous/per-frame restore or write through cached horse pointers is
+permitted. This rule should be preserved in future camera/mount work as well.
+
+
+## V0.32-V0.34 - Malformed reticle after load, focus-cycle solution
+
+- V0.31's live-only native HorseCharacter writes eliminated the known unsafe
+  cached-UObject write pattern. This rule is immutable for later builds.
+- V0.32 deferred ImGui/RTV/WndProc initialization until first overlay open.
+  The reticle issue reproduced without ImGui initialization, and a real
+  Alt-Tab repaired it without a D3D11 ResizeBuffers call.
+- V0.33 hooked `UAirshipUIManager::IsCursorVisible` and posted WM_SETCURSOR
+  three times following player detection. The user reported **no visual fix**;
+  the log confirms that the messages were posted, so that strategy is rejected.
+- V0.34, branched from V0.33, removes the ineffective automatic refresh loop
+  and adds the remappable `ReticleFocusTest` action (F5 in the included INI).
+  One press queues a synthetic WM_ACTIVATEAPP/WM_ACTIVATE deactivation, then
+  reactivation with WM_SETFOCUS and WM_SETCURSOR; cursor state is logged.
+- **User validation, 2026-10-08:** "parfait ca marche" after testing V0.34.
+  Accept the **manual F5 reticle correction** as working. This does NOT prove
+  automatic correction on level load and does NOT separately validate hiding
+  the cursor with F1 Hide HUD.
+- The Win32 message pulse is a workaround, not a new engine-level cursor or
+  reticle asset hook. Keep an explicit hotkey and preserve the safe rollback
+  path for focus anomalies. No cursor refresh writes to HorseFeature memory.
+- `main` should contain V0.30 GraphicsAdapter, V0.31 horse lifetime safety,
+  V0.32 lazy overlay and V0.34 manually validated cursor focus pulse.

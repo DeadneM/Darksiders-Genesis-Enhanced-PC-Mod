@@ -9,6 +9,7 @@
 #include "imgui_impl_win32.h"
 
 #include "ConfigStore.h"
+#include "EngineIniFeature.h"
 #include "HorseFeature.h"
 #include "OverlayUi.h"
 #include "RuntimeSettings.h"
@@ -30,7 +31,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.29-horse-speed-native-movement-test";
+constexpr const char* kBuild = "0.34-native-focus-pulse-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -41,6 +42,7 @@ std::wstring g_logPath;
 using PresentFn = HRESULT(__stdcall*)(IDXGISwapChain*, UINT, UINT);
 using ResizeBuffersFn = HRESULT(__stdcall*)(IDXGISwapChain*, UINT, UINT, UINT, DXGI_FORMAT, UINT);
 using HudHiddenGetterFn = bool(*)();
+using UiIsCursorVisibleFn = bool(*)(void*);
 using CharacterGetMaxSpeedFn = float(*)(void*);
 using AbilityActionEnabledFn = bool(*)(void*, unsigned char);
 using AddJuiceFn = void(*)(void*, float);
@@ -49,6 +51,7 @@ using FilterOutgoingDamageFn = void(*)(void*, void*);
 PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
 HudHiddenGetterFn g_originalHudHiddenGetter = nullptr;
+UiIsCursorVisibleFn g_originalUiIsCursorVisible = nullptr;
 CharacterGetMaxSpeedFn g_originalCharacterGetMaxSpeed = nullptr;
 AbilityActionEnabledFn g_originalAbilityActionEnabled = nullptr;
 AddJuiceFn g_originalAddJuice = nullptr;
@@ -64,9 +67,18 @@ WNDPROC g_originalWndProc = nullptr;
 std::atomic_bool g_imguiReady{false};
 std::atomic_bool g_overlayVisible{false};
 std::atomic_bool g_captureMenuKey{false};
+std::atomic_int g_lastForegroundState{-1};
+std::atomic_uint32_t g_focusTransitionCount{0};
+std::atomic_uint32_t g_resizeBuffersTraceCount{0};
+std::atomic<void*> g_gameWindowTrace{nullptr};
+// Experimental, opt-in focus invalidation for the reticle. No automatic use.
+std::atomic_int g_focusPulseStage{0};
+std::atomic_ullong g_focusPulseRestoreTick{0};
+std::atomic_uint32_t g_cursorVisibilityCalls{0};
 std::atomic_int g_capturedMenuKey{0};
 std::atomic_bool g_hudHidden{false};
 std::atomic_bool g_hudHookReady{false};
+std::atomic_bool g_cursorVisibilityHookReady{false};
 std::atomic_bool g_movementHookReady{false};
 std::atomic_bool g_recoveryHookReady{false};
 std::atomic_bool g_skipIntroReady{false};
@@ -121,6 +133,8 @@ using dg::config::ActionLabel;
 using dg::config::KeyDisplayName;
 
 dg::config::Store g_config;
+
+void ProcessReticleFocusPulse();
 
 void InitializePaths() {
     wchar_t path[MAX_PATH]{};
@@ -1186,9 +1200,9 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
     dg::horse::SetSettings(horseSettings);
     dg::horse::Tick();
 
-    // V0.27 horse discovery is done by native HorseCharacter hooks. This
-    // shared movement observer is retained only to associate a captured horse
-    // with the existing movement hook when both paths happen to meet.
+    // V0.31: the generic movement hook never writes cached horse pointers.
+    // It only asks HorseFeature whether this movement was very recently proven
+    // by a live native HorseCharacter callback so player tuning can skip it.
     void* knownLocalPlayer =
         g_localPlayerCharacter.load(std::memory_order_relaxed);
 
@@ -1240,6 +1254,8 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
                 characterOwner,
                 movementComponent
             );
+            // V0.33's automatic WM_SETCURSOR refresh was ineffective.
+            // V0.34 deliberately makes the next test opt-in (F5).
         }
     }
 
@@ -1525,6 +1541,167 @@ bool InstallActionRecoveryV08B() {
     return true;
 }
 
+bool HookUiIsCursorVisible(void* uiManager) {
+    const bool nativeVisible =
+        g_originalUiIsCursorVisible
+            ? g_originalUiIsCursorVisible(uiManager)
+            : false;
+
+    const bool hiddenByMod =
+        g_hudHidden.load(std::memory_order_relaxed);
+
+    const auto calls =
+        g_cursorVisibilityCalls.fetch_add(1) + 1;
+
+    if (calls <= 12 || (calls % 500) == 0) {
+        Log(
+            "Cursor visibility: call=%u manager=%p native=%d hideHud=%d result=%d",
+            calls,
+            uiManager,
+            nativeVisible ? 1 : 0,
+            hiddenByMod ? 1 : 0,
+            hiddenByMod ? 0 : (nativeVisible ? 1 : 0)
+        );
+    }
+
+    return hiddenByMod ? false : nativeVisible;
+}
+
+bool InstallCursorVisibilityHook() {
+    HMODULE module = GetModuleHandleW(nullptr);
+    if (!module) {
+        Log("Cursor visibility hook: main module unavailable");
+        return false;
+    }
+
+    BYTE* target =
+        reinterpret_cast<BYTE*>(module) + 0x715800;
+
+    static constexpr BYTE kPrefix[] = {
+        0x40, 0x53,
+        0x48, 0x83, 0xEC, 0x20,
+        0x48, 0x8D, 0x99, 0xA8, 0x00, 0x00, 0x00
+    };
+
+    if (memcmp(target, kPrefix, sizeof(kPrefix)) != 0) {
+        Log(
+            "Cursor visibility hook: target validation FAILED RVA=0x715800"
+        );
+        return false;
+    }
+
+    const MH_STATUS initStatus = MH_Initialize();
+    if (initStatus != MH_OK &&
+        initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+        Log(
+            "Cursor visibility hook: MinHook init FAILED status=%d",
+            static_cast<int>(initStatus)
+        );
+        return false;
+    }
+
+    MH_STATUS status = MH_CreateHook(
+        target,
+        reinterpret_cast<LPVOID>(
+            &HookUiIsCursorVisible),
+        reinterpret_cast<LPVOID*>(
+            &g_originalUiIsCursorVisible)
+    );
+
+    if (status != MH_OK &&
+        status != MH_ERROR_ALREADY_CREATED) {
+        Log(
+            "Cursor visibility hook: create FAILED status=%d",
+            static_cast<int>(status)
+        );
+        return false;
+    }
+
+    status = MH_EnableHook(target);
+    if (status != MH_OK &&
+        status != MH_ERROR_ENABLED) {
+        Log(
+            "Cursor visibility hook: enable FAILED status=%d",
+            static_cast<int>(status)
+        );
+        return false;
+    }
+
+    g_cursorVisibilityHookReady.store(true);
+    Log(
+        "Cursor visibility hook: READY UAirshipUIManager::IsCursorVisible RVA=0x715800 "
+        "Hide HUD now forces cursor invisible"
+    );
+    return true;
+}
+
+// V0.34: a controlled experiment, not a permanent focus fix.
+// The two focus-message batches are intentionally separated in time to
+// reproduce the transitions missing from the V0.33 WM_SETCURSOR-only approach.
+// Do not call SetForegroundWindow, steal focus, or synthesize user input.
+void ProcessReticleFocusPulse() {
+    const int stage = g_focusPulseStage.load(std::memory_order_relaxed);
+    if (stage == 0) return;
+
+    HWND hwnd = reinterpret_cast<HWND>(
+        g_gameWindowTrace.load(std::memory_order_relaxed));
+    if (!hwnd || !IsWindow(hwnd)) {
+        g_focusPulseStage.store(0, std::memory_order_relaxed);
+        Log("Reticle focus test: cancelled, game HWND unavailable");
+        return;
+    }
+
+    const ULONGLONG now = GetTickCount64();
+    if (stage == 1) {
+        if (GetForegroundWindow() != hwnd || g_overlayVisible.load()) {
+            g_focusPulseStage.store(0, std::memory_order_relaxed);
+            Log("Reticle focus test: cancelled, window is not foreground or overlay open");
+            return;
+        }
+        CURSORINFO ci{};
+        ci.cbSize = sizeof(ci);
+        const BOOL info = GetCursorInfo(&ci);
+        const BOOL app = PostMessageW(hwnd, WM_ACTIVATEAPP, FALSE, 0);
+        const BOOL wnd = PostMessageW(hwnd, WM_ACTIVATE, WA_INACTIVE, 0);
+        g_focusPulseRestoreTick.store(now + 150, std::memory_order_relaxed);
+        g_focusPulseStage.store(2, std::memory_order_relaxed);
+        Log("Reticle focus test: DEACTIVATE queued app=%d wnd=%d cursorInfo=%d cursor=%p showing=%d",
+            app ? 1 : 0, wnd ? 1 : 0, info ? 1 : 0,
+            ci.hCursor, (ci.flags & CURSOR_SHOWING) ? 1 : 0);
+        return;
+    }
+
+    if (stage == 2 && now >= g_focusPulseRestoreTick.load(std::memory_order_relaxed)) {
+        // Complete the paired activate even if a message failed, so the
+        // game cannot remain in the synthetic deactivation state.
+        const BOOL app = PostMessageW(hwnd, WM_ACTIVATEAPP, TRUE, 0);
+        const BOOL wnd = PostMessageW(hwnd, WM_ACTIVATE, WA_ACTIVE, 0);
+        const BOOL focus = PostMessageW(hwnd, WM_SETFOCUS, 0, 0);
+        const BOOL cursor = PostMessageW(hwnd, WM_SETCURSOR,
+            reinterpret_cast<WPARAM>(hwnd), MAKELPARAM(HTCLIENT, WM_MOUSEMOVE));
+        g_focusPulseRestoreTick.store(now + 500, std::memory_order_relaxed);
+        g_focusPulseStage.store(3, std::memory_order_relaxed);
+        CURSORINFO ci{};
+        ci.cbSize = sizeof(ci);
+        const BOOL info = GetCursorInfo(&ci);
+        Log("Reticle focus test: REACTIVATE queued app=%d wnd=%d focus=%d setCursor=%d cursorInfo=%d cursor=%p showing=%d",
+            app ? 1 : 0, wnd ? 1 : 0, focus ? 1 : 0, cursor ? 1 : 0,
+            info ? 1 : 0, ci.hCursor, (ci.flags & CURSOR_SHOWING) ? 1 : 0);
+    }
+
+    if (stage == 3 && now >= g_focusPulseRestoreTick.load(std::memory_order_relaxed)) {
+        CURSORINFO ci{};
+        ci.cbSize = sizeof(ci);
+        const BOOL info = GetCursorInfo(&ci);
+        Log("Reticle focus test: AFTER 500ms cursorInfo=%d cursor=%p showing=%d pos=%ld,%ld foreground=%d",
+            info ? 1 : 0, ci.hCursor,
+            (ci.flags & CURSOR_SHOWING) ? 1 : 0,
+            ci.ptScreenPos.x, ci.ptScreenPos.y,
+            GetForegroundWindow() == hwnd ? 1 : 0);
+        g_focusPulseStage.store(0, std::memory_order_relaxed);
+    }
+}
+
 bool InstallHudHook() {
     BYTE* getter = ResolveHudHiddenGetter();
     if (!getter) {
@@ -1610,8 +1787,22 @@ void TriggerAction(Action action, int functionKey) {
 
         const bool hidden = !g_hudHidden.load();
         g_hudHidden.store(hidden);
+        // V0.33 WM_SETCURSOR repeats did not rebuild the reticle.
         g_lastAction = std::string("HUD ") + (hidden ? "hidden" : "visible");
         Log("F%d -> HUD %s", functionKey, hidden ? "HIDDEN" : "VISIBLE");
+        return;
+    }
+
+    if (action == Action::ReticleFocusTest) {
+        int expected = 0;
+        if (!g_focusPulseStage.compare_exchange_strong(
+                expected, 1, std::memory_order_relaxed)) {
+            g_lastAction = "Reticle focus test already running";
+            Log("F%d -> Reticle focus test already running", functionKey);
+        } else {
+            g_lastAction = "Reticle focus test queued (experimental)";
+            Log("F%d -> Reticle focus test requested; one synthetic focus cycle", functionKey);
+        }
         return;
     }
 
@@ -1956,6 +2147,8 @@ dg::overlay::Context BuildOverlayContext() {
         &ApplySkipIntroSetting;
     context.applySkipLogos =
         &dg::skip_logos::Apply;
+    context.applyGraphicsAdapter =
+        &dg::engine_ini::ApplyGraphicsAdapter;
     context.abilityStateName =
         &AbilityStateName;
     context.log = &Log;
@@ -1963,17 +2156,104 @@ dg::overlay::Context BuildOverlayContext() {
     return context;
 }
 
+void TraceGameWindowState(IDXGISwapChain* swapChain) {
+    if (!swapChain) {
+        return;
+    }
+
+    DXGI_SWAP_CHAIN_DESC desc{};
+    if (FAILED(swapChain->GetDesc(&desc)) ||
+        !desc.OutputWindow) {
+        return;
+    }
+
+    DWORD pid = 0;
+    GetWindowThreadProcessId(desc.OutputWindow, &pid);
+    if (pid != GetCurrentProcessId()) {
+        return;
+    }
+
+    g_gameWindowTrace.store(
+        desc.OutputWindow,
+        std::memory_order_relaxed
+    );
+
+    const bool foreground =
+        GetForegroundWindow() == desc.OutputWindow;
+    const int state = foreground ? 1 : 0;
+    const int previous =
+        g_lastForegroundState.exchange(state);
+
+    if (previous != state) {
+        RECT client{};
+        GetClientRect(desc.OutputWindow, &client);
+
+        const UINT clientWidth =
+            client.right > client.left
+                ? static_cast<UINT>(
+                    client.right - client.left)
+                : 0;
+        const UINT clientHeight =
+            client.bottom > client.top
+                ? static_cast<UINT>(
+                    client.bottom - client.top)
+                : 0;
+
+        CURSORINFO cursorInfo{};
+        cursorInfo.cbSize = sizeof(cursorInfo);
+        GetCursorInfo(&cursorInfo);
+
+        const auto count =
+            g_focusTransitionCount.fetch_add(1) + 1;
+
+        Log(
+            "Window focus trace #%u: foreground=%d hwnd=%p iconic=%d "
+            "client=%ux%u swapDesc=%ux%u format=%u windowed=%d "
+            "cursor=%p showing=%d pos=%ld,%ld",
+            count,
+            state,
+            desc.OutputWindow,
+            IsIconic(desc.OutputWindow) ? 1 : 0,
+            clientWidth,
+            clientHeight,
+            desc.BufferDesc.Width,
+            desc.BufferDesc.Height,
+            static_cast<unsigned>(
+                desc.BufferDesc.Format),
+            desc.Windowed ? 1 : 0,
+            cursorInfo.hCursor,
+            (cursorInfo.flags & CURSOR_SHOWING) ? 1 : 0,
+            cursorInfo.ptScreenPos.x,
+            cursorInfo.ptScreenPos.y
+        );
+
+        // Real Alt-Tab is already traced here; V0.34 does not spam
+        // ineffective WM_SETCURSOR messages on every focus regain.
+    }
+}
+
 HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) {
     ApplySkipIntroSetting(false);
 
-    // V0.26 horse discovery is independent from the active-player pointer.
-    // Blueprint horse accessors and movement-owner signatures feed HorseFeature.
+    // V0.31 HorseFeature::Tick is intentionally a no-op. Horse writes are
+    // allowed only while a native HorseCharacter callback proves the UObject
+    // is alive; cached raw pointers are never written from Present().
     dg::horse::Tick();
 
     ProcessInput();
     g_config.FlushIfDue(false);
 
-    if (!g_imguiReady.load()) {
+    TraceGameWindowState(swapChain);
+    ProcessReticleFocusPulse();
+
+    // V0.32: do not initialize ImGui, create an RTV, or subclass the game
+    // window during normal gameplay. The overlay backend is created lazily
+    // only when the user actually opens the menu for the first time.
+    if (!g_imguiReady.load() &&
+        g_overlayVisible.load()) {
+        Log(
+            "Overlay lazy-init requested on first menu open"
+        );
         InitializeImGui(swapChain);
     }
 
@@ -2013,6 +2293,45 @@ HRESULT __stdcall HookResizeBuffers(
     DXGI_FORMAT newFormat,
     UINT swapChainFlags
 ) {
+    DXGI_SWAP_CHAIN_DESC beforeDesc{};
+    HWND traceHwnd = nullptr;
+    bool processSwapChain = false;
+
+    if (swapChain &&
+        SUCCEEDED(swapChain->GetDesc(&beforeDesc)) &&
+        beforeDesc.OutputWindow) {
+        DWORD pid = 0;
+        GetWindowThreadProcessId(
+            beforeDesc.OutputWindow,
+            &pid
+        );
+        if (pid == GetCurrentProcessId()) {
+            processSwapChain = true;
+            traceHwnd = beforeDesc.OutputWindow;
+
+            const auto count =
+                g_resizeBuffersTraceCount.fetch_add(1) + 1;
+
+            Log(
+                "ResizeBuffers trace #%u: BEFORE hwnd=%p "
+                "requested=%ux%u count=%u format=%u flags=0x%X "
+                "oldDesc=%ux%u oldFormat=%u foreground=%d",
+                count,
+                traceHwnd,
+                width,
+                height,
+                bufferCount,
+                static_cast<unsigned>(newFormat),
+                swapChainFlags,
+                beforeDesc.BufferDesc.Width,
+                beforeDesc.BufferDesc.Height,
+                static_cast<unsigned>(
+                    beforeDesc.BufferDesc.Format),
+                GetForegroundWindow() == traceHwnd ? 1 : 0
+            );
+        }
+    }
+
     if (g_imguiReady.load() && swapChain == g_gameSwapChain) {
         ImGui_ImplDX11_InvalidateDeviceObjects();
         ReleaseRenderTarget();
@@ -2025,6 +2344,29 @@ HRESULT __stdcall HookResizeBuffers(
     if (SUCCEEDED(hr) && g_imguiReady.load() && swapChain == g_gameSwapChain) {
         CreateRenderTarget();
         ImGui_ImplDX11_CreateDeviceObjects();
+    }
+
+    if (processSwapChain) {
+        DXGI_SWAP_CHAIN_DESC afterDesc{};
+        if (SUCCEEDED(swapChain->GetDesc(&afterDesc))) {
+            Log(
+                "ResizeBuffers trace: AFTER hwnd=%p hr=0x%08lX "
+                "desc=%ux%u format=%u foreground=%d",
+                traceHwnd,
+                static_cast<unsigned long>(hr),
+                afterDesc.BufferDesc.Width,
+                afterDesc.BufferDesc.Height,
+                static_cast<unsigned>(
+                    afterDesc.BufferDesc.Format),
+                GetForegroundWindow() == traceHwnd ? 1 : 0
+            );
+        } else {
+            Log(
+                "ResizeBuffers trace: AFTER hwnd=%p hr=0x%08lX desc=UNAVAILABLE",
+                traceHwnd,
+                static_cast<unsigned long>(hr)
+            );
+        }
     }
 
     return hr;
@@ -2259,6 +2601,14 @@ DWORD WINAPI MainThread(LPVOID) {
     g_config.SetLogger(&FeatureLog);
     g_config.Load();
 
+    dg::engine_ini::Initialize(&FeatureLog);
+    if (!dg::engine_ini::ApplyGraphicsAdapter(
+            g_config.graphicsAdapter)) {
+        Log(
+            "Engine.ini GraphicsAdapter: startup apply failed; remaining mod features continue normally."
+        );
+    }
+
     g_targetValidation = dg::target::ValidateCurrentExecutable();
     Log(
         "Target validation: exact=%d size=%llu sha256=%s reason=%s",
@@ -2301,6 +2651,11 @@ DWORD WINAPI MainThread(LPVOID) {
     }
     if (!InstallHudHook()) {
         Log("Toggle HUD unavailable; renderer/input core remains active.");
+    }
+    if (!InstallCursorVisibilityHook()) {
+        Log(
+            "Cursor visibility hook unavailable; Hide HUD will keep native cursor behavior."
+        );
     }
     if (!InstallMovementSpeedHook()) {
         Log("Movement Speed unavailable; other ASI features remain active.");

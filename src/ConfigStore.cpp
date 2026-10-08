@@ -259,6 +259,7 @@ Store::Store() {
     hotkeys[1] = Action::MovementSpeed;
     hotkeys[2] = Action::ActionRecovery;
     hotkeys[3] = Action::SkipIntroVideos;
+    hotkeys[4] = Action::ReticleFocusTest;
 }
 
 void Store::SetPath(const std::wstring& path) {
@@ -278,6 +279,7 @@ void Store::Log(const char* text) const {
 void Store::ResetDefaults(bool persist) {
     overlayEnabled = true;
     menuKey = VK_INSERT;
+    graphicsAdapter = 0;
 
     toggleHudEnabled = true;
     movementSpeedEnabled = true;
@@ -315,6 +317,7 @@ void Store::ResetDefaults(bool persist) {
     hotkeys[1] = Action::MovementSpeed;
     hotkeys[2] = Action::ActionRecovery;
     hotkeys[3] = Action::SkipIntroVideos;
+    hotkeys[4] = Action::ReticleFocusTest;
 
     PublishRuntime();
 
@@ -349,6 +352,19 @@ bool Store::Load() {
         path_.c_str()
     );
     menuKey = ParseKeyToken(menuKeyText, VK_INSERT);
+
+    graphicsAdapter = GetPrivateProfileIntW(
+        L"System",
+        L"GraphicsAdapter",
+        0,
+        path_.c_str()
+    );
+    if (graphicsAdapter < 0) {
+        graphicsAdapter = 0;
+    }
+    if (graphicsAdapter > 4) {
+        graphicsAdapter = 4;
+    }
 
     toggleHudEnabled =
         ReadBool(L"Features", L"ToggleHUD", true, path_);
@@ -513,6 +529,19 @@ bool Store::SaveNow() {
         L"Overlay",
         L"MenuKey",
         menuKeyToken.c_str(),
+        path_.c_str()
+    );
+
+    wchar_t graphicsAdapterText[8]{};
+    swprintf_s(
+        graphicsAdapterText,
+        L"%d",
+        graphicsAdapter
+    );
+    WritePrivateProfileStringW(
+        L"System",
+        L"GraphicsAdapter",
+        graphicsAdapterText,
         path_.c_str()
     );
 

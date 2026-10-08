@@ -8,8 +8,10 @@ The project is deliberately fail-open for normal runtime failures and
 
 ## Current development state
 
-- Stable/canonical `main`: **V0.13B**
-- Current cleanup/test branch: **V0.19D Skip Logos Validated**
+- Latest published binary release: **V0.29**
+- Safety hotfix **V0.31** and lazy overlay **V0.32** retained
+- Latest failed cursor experiment: **V0.33**
+- Latest user-validated source: **V0.34 manual reticle focus fix**
 - Target executable:
 
 ```text
@@ -57,9 +59,10 @@ The menu key and F1-F12 actions can be remapped from the overlay.
 | Hotstreak Charge | Validated |
 | Pistol Damage | Functional heuristic: `BaseJuice > 0` |
 | Melee Damage | Experimental heuristic: zero-juice outgoing records |
-| Horse Speed | Test candidate, reference-PAK signature |
+| Horse Speed | Validated V0.29 native movement offset correction; lifetime-safe V0.31 |
 | Horse Sprint Duration | **Validated V0.27** - native HorseCharacter stamina drain; 0x vanilla, 5x default, 20x max |
-| Horse Sprint Speed | Not implemented |
+| Horse Sprint Speed | Validated V0.29 native SprintingMaxSpeed; lifetime-safe V0.31 |
+| Manual Reticle Focus Refresh | **Validated V0.34** - press F5 if the reticle becomes malformed after level load |
 | FOV | Not implemented |
 | Third Person camera | Not implemented |
 | Skip Logos | **Validated V0.19C/V0.19D** - proprietary `StartupScreens` MoviePlayer attachment bypass |
@@ -74,7 +77,8 @@ F1  Toggle HUD
 F2  Movement Speed
 F3  Action Recovery
 F4  Skip Intro Videos
-F5-F12  None
+F5  Reticle Focus Test (V0.34 validated manual fix)
+F6-F12  None
 ```
 
 ## V0.17 core architecture
@@ -931,3 +935,172 @@ component through its own virtual getter at vtable slot `+0x5F8`.
 Horse Speed now targets the real movement component's `MaxWalkSpeed` and
 `MaxAcceleration`; Horse Sprint Speed targets that same movement component's
 `SprintingMaxSpeed`.
+
+
+## V0.30 - Graphics Adapter Engine.ini control
+
+V0.30 adds a small system setting for selecting Unreal Engine's graphics
+adapter index.
+
+The overlay exposes values `0` through `4` with `0` as the default.
+The selected value is persisted in `DarksidersGenesisMod.ini` and written to:
+
+```text
+%LOCALAPPDATA%\THQ Nordic\Darksiders Genesis\Saved\Config\WindowsNoEditor\Engine.ini
+```
+
+The mod writes exactly:
+
+```ini
+[SystemSettings]
+r.GraphicsAdapter=N
+```
+
+If `[SystemSettings]` or `r.GraphicsAdapter` does not exist, it is created.
+If the key already exists, only its value is updated through the Win32 INI API.
+Other Engine.ini settings are preserved.
+
+A game restart is required for adapter selection to affect device creation.
+
+
+## V0.31 - Horse UObject lifetime safety hotfix
+
+V0.29 validated the native horse speed, sprint-speed and stamina primitives, but
+the first long level-load test exposed an important lifetime bug inherited by
+V0.30.
+
+The horse subsystem cached raw `HorseCharacter` and horse movement pointers and
+re-applied tunings every rendered frame. During seamless travel or level reload,
+UE4 can destroy those UObjects while the cached addresses remain readable and may
+later be recycled for unrelated allocations. Continuing to write horse offsets
+through such stale pointers can corrupt unrelated game state.
+
+The reported failure presented as:
+- a malformed/default-looking reticle after loading;
+- corrupted HUD/menu visual elements;
+- eventual `0xC0000005` write access violation inside the game's reference-
+  counted object destruction path.
+
+V0.31 changes the ownership rule:
+
+```text
+Native HorseCharacter callback active
+    -> horse pointer is considered live
+    -> resolve current horse movement
+    -> apply Horse Speed / Sprint Speed / Sprint Duration
+
+Outside a native HorseCharacter callback
+    -> no horse-memory writes
+```
+
+Additional safety:
+- `Tick()` performs no cached-pointer writes;
+- the generic movement hook performs no horse writes;
+- shutdown never restores values through cached raw UObject pointers;
+- the horse movement pointer is re-resolved on every native horse capture;
+- a changed movement pointer resets cached baselines as a new horse generation;
+- generic movement exclusion accepts a cached horse movement only for a short
+  window after a live native HorseCharacter callback.
+
+The validated V0.30 Graphics Adapter Engine.ini control is retained unchanged.
+
+
+## V0.32 - Reticle / Alt-Tab isolation
+
+V0.31 removes the horse stale-pointer write path, but a separate visual issue
+remains: immediately after loading a level the reticle can appear as a broken
+cross, while a simple Alt-Tab restores the correct reticle.
+
+The V0.31 session log proves the malformed reticle appears before the first
+fully validated horse capture, so this visual issue is treated separately from
+the horse lifetime crash.
+
+V0.32 isolates the D3D11 overlay path:
+
+- ImGui is no longer initialized on the first game Present;
+- no overlay RTV is created during normal gameplay;
+- the game window is not subclassed until the user opens the mod menu;
+- the complete overlay backend is created lazily on the first menu-key press;
+- game-window foreground transitions are logged;
+- every process-owned DXGI ResizeBuffers call is logged before and after.
+
+Test policy:
+
+1. Start the game and do not open the mod overlay.
+2. Load a save and inspect the reticle.
+3. If the broken cross is present, Alt-Tab once.
+4. Preserve the per-session log.
+
+This determines whether the fix comes from DXGI ResizeBuffers, focus activation,
+or merely avoiding early ImGui/RTV/WndProc initialization.
+
+
+## V0.33 - Cursor-layer reticle fix
+
+The V0.32 focus trace isolates the broken-cross issue from both the horse system
+and the ImGui overlay:
+
+- the malformed cross can appear before ImGui is initialized;
+- Alt-Tab repairs it through a foreground transition;
+- no DXGI `ResizeBuffers` occurs during the fixing Alt-Tab;
+- the reticle/cross remains visible when `ui.HideHud` is forced, proving it is
+  handled by the cursor layer rather than the ordinary HUD layer.
+
+Retail executable audit identifies:
+
+```text
+UAirshipUIManager::IsCursorVisible
+RVA 0x715800
+```
+
+The native function ultimately reads the PlayerController mouse-cursor visible
+state.
+
+V0.33 therefore:
+- hooks `UAirshipUIManager::IsCursorVisible`;
+- forces cursor visibility false while mod Hide HUD is active;
+- schedules a cursor refresh when a newly validated player instance appears;
+- posts `WM_SETCURSOR` to the real game window several times after load;
+- logs the active `HCURSOR`, visibility and position around focus transitions
+  and forced refreshes.
+
+This is intended to reproduce the cursor-reset part of Alt-Tab without actually
+changing application focus.
+
+
+## V0.34 - Reticle focus-cycle workaround (validated manually in-game)
+
+V0.33 is **rejected as an effective reticle fix**. Its scheduled WM_SETCURSOR
+messages were successfully posted after a new player was found, but did not
+repair the cross-shaped reticle. The user's V0.33 log also shows that a genuine
+Alt-Tab involves a different OS cursor handle after focus comes back, and no
+DXGI ResizeBuffers call was observed. The trace contained an F4 action but no
+F1 Hide HUD toggle, so Hide HUD cursor suppression is not yet proven either way.
+
+V0.34 removes automatic WM_SETCURSOR refreshes that did nothing. It introduces
+one manually triggered reticle-repair action:
+
+- `F5 = ReticleFocusTest` in the included INI;
+- the action is also selectable from the remappable Hotkeys tab;
+- the test does **not** Alt-Tab, steal foreground or move the mouse;
+- it posts one paired simulated deactivate/activate message sequence to the
+  game's window: `WM_ACTIVATEAPP`, `WM_ACTIVATE`, then `WM_SETFOCUS`
+  and `WM_SETCURSOR`;
+- logs each posting result and cursor handle, then captures cursor state
+  500 ms afterward;
+- no ongoing timer, native horse writes, or per-frame cursor replacement.
+
+**In-game validation (2026-10-08):** The user confirms that V0.34's F5
+focus-cycle action fixes the malformed reticle after loading. The confirmed
+result is the **manual F5 workaround**, not an automatic fix on every load.
+The separate V0.33 Hide HUD cursor visibility behavior has not yet received a
+dedicated F1 test; do not describe it as validated.
+
+**Usage:** With the malformed cross visible and the mod overlay CLOSED,
+press F5 once. If using an older mod INI, set `F5=ReticleFocusTest` under
+`[Hotkeys]` or remap a key to `Reticle Focus Test` in the overlay.
+This action can temporarily change the game's perceived input focus; a real
+Alt-Tab may restore the normal state if focus behaves unexpectedly.
+
+**Safety:** V0.31 horse lifetime ownership rules remain untouched; V0.32 lazy
+ImGui creation remains. The V0.29 binary release is kept as a rollback option.
