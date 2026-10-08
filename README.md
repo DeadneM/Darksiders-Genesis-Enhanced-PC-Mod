@@ -8,8 +8,8 @@ The project is deliberately fail-open for normal runtime failures and
 
 ## Current development state
 
-- Stable/canonical `main`: **V0.13B**
-- Current cleanup/test branch: **V0.19D Skip Logos Validated**
+- Stable/canonical release: **V0.29** (horse speed / sprint speed)
+- Current experimental branch: **V0.30 Graphics Adapter** (not yet game-validated)
 - Target executable:
 
 ```text
@@ -60,6 +60,7 @@ The menu key and F1-F12 actions can be remapped from the overlay.
 | Horse Speed | Test candidate, reference-PAK signature |
 | Horse Sprint Duration | **Validated V0.27** - native HorseCharacter stamina drain; 0x vanilla, 5x default, 20x max |
 | Horse Sprint Speed | Not implemented |
+| Graphics Adapter (`r.GraphicsAdapter`) | V0.30 test candidate; 0-4, restart required |
 | FOV | Not implemented |
 | Third Person camera | Not implemented |
 | Skip Logos | **Validated V0.19C/V0.19D** - proprietary `StartupScreens` MoviePlayer attachment bypass |
@@ -931,3 +932,27 @@ component through its own virtual getter at vtable slot `+0x5F8`.
 Horse Speed now targets the real movement component's `MaxWalkSpeed` and
 `MaxAcceleration`; Horse Sprint Speed targets that same movement component's
 `SprintingMaxSpeed`.
+
+
+## V0.30 - Graphics Adapter (test candidate)
+
+New **System > Graphics Adapter** control selects `0` through `4`, default `0`.
+The option is stored as `[System] GraphicsAdapter` in
+`DarksidersGenesisMod.ini` and is applied to the game's user `Engine.ini`:
+
+```ini
+[SystemSettings]
+r.GraphicsAdapter=0
+```
+
+Resolved through `%LOCALAPPDATA%`, under
+`THQ Nordic/Darksiders Genesis/Saved/Config/WindowsNoEditor/Engine.ini`.
+An existing value is updated rather than appending another setting; other keys
+and sections are not intentionally changed. If the game's config directory does
+not exist or the write fails, the mod logs the error. The graphics adapter
+change requires a full game restart. Values are **indices, not GPU names**;
+the meaning of each index depends on the graphics API and installed adapters.
+
+**Compatibility note:** This candidate uses the Windows INI profile APIs, which
+may rewrite INI formatting/encoding. Back up custom Engine.ini files before
+testing. V0.29 remains the validated release; V0.30 is not promoted until tested.
