@@ -24,6 +24,7 @@ void Publish(const Snapshot& s) {
     g_state.horseSprintSpeedEnabled.store(s.horseSprintSpeedEnabled, std::memory_order_relaxed);
     g_state.horseSprintDurationEnabled.store(s.horseSprintDurationEnabled, std::memory_order_relaxed);
     g_state.hotstreakChargeEnabled.store(s.hotstreakChargeEnabled, std::memory_order_relaxed);
+    g_state.fovEnabled.store(s.fovEnabled, std::memory_order_relaxed);
 
     g_state.movementSpeedMultiplier.store(s.movementSpeedMultiplier, std::memory_order_relaxed);
     g_state.actionRecoveryDelayMs.store(s.actionRecoveryDelayMs, std::memory_order_relaxed);
@@ -35,6 +36,7 @@ void Publish(const Snapshot& s) {
     g_state.horseSprintSpeedMultiplier.store(s.horseSprintSpeedMultiplier, std::memory_order_relaxed);
     g_state.horseSprintDurationMultiplier.store(s.horseSprintDurationMultiplier, std::memory_order_relaxed);
     g_state.hotstreakChargeMultiplier.store(s.hotstreakChargeMultiplier, std::memory_order_relaxed);
+    g_state.fovDegrees.store(s.fovDegrees, std::memory_order_relaxed);
     // Staged only. No camera hook in V0.35B.
     g_state.cameraZoomPercent.store(s.cameraZoomPercent, std::memory_order_relaxed);
 }
