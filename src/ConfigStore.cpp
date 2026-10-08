@@ -309,6 +309,7 @@ void Store::ResetDefaults(bool persist) {
     horseSprintSpeedMultiplier = 1.25f;
     horseSprintDurationMultiplier = 5.00f;
     fovDegrees = 90.0f;
+    cameraZoomPercent = 0;
     thirdPersonDistanceMultiplier = 1.00f;
     hotstreakChargeMultiplier = 2.00f;
 
@@ -421,6 +422,16 @@ bool Store::Load() {
         ReadFloat(L"Values", L"HorseSprintDurationMultiplier", 5.0f, path_);
     fovDegrees =
         ReadFloat(L"Values", L"FOVDegrees", 90.0f, path_);
+    wchar_t zoomBuffer[32]{};
+    GetPrivateProfileStringW(
+        L"Values", L"CameraZoomPercent", L"0",
+        zoomBuffer, static_cast<DWORD>(32), path_.c_str());
+    wchar_t* zoomEnd = nullptr;
+    const long zoomParsed = wcstol(zoomBuffer, &zoomEnd, 10);
+    cameraZoomPercent = zoomEnd && zoomEnd != zoomBuffer
+        ? static_cast<int>(zoomParsed) : 0;
+    if (cameraZoomPercent < -75) cameraZoomPercent = -75;
+    if (cameraZoomPercent > 200) cameraZoomPercent = 200;
     thirdPersonDistanceMultiplier =
         ReadFloat(L"Values", L"ThirdPersonDistanceMultiplier", 1.0f, path_);
     hotstreakChargeMultiplier =
@@ -495,6 +506,7 @@ void Store::PublishRuntime() const {
     runtime.horseSprintSpeedMultiplier = horseSprintSpeedMultiplier;
     runtime.horseSprintDurationMultiplier = horseSprintDurationMultiplier;
     runtime.hotstreakChargeMultiplier = hotstreakChargeMultiplier;
+    runtime.cameraZoomPercent = cameraZoomPercent;
 
     dg::runtime::Publish(runtime);
 }
@@ -573,6 +585,9 @@ bool Store::SaveNow() {
     WriteFloat(L"Values", L"HorseSprintSpeedMultiplier", horseSprintSpeedMultiplier, path_);
     WriteFloat(L"Values", L"HorseSprintDurationMultiplier", horseSprintDurationMultiplier, path_);
     WriteFloat(L"Values", L"FOVDegrees", fovDegrees, path_);
+    wchar_t zoomText[16]{};
+    swprintf_s(zoomText, L"%d", cameraZoomPercent);
+    WritePrivateProfileStringW(L"Values", L"CameraZoomPercent", zoomText, path_.c_str());
     WriteFloat(L"Values", L"ThirdPersonDistanceMultiplier", thirdPersonDistanceMultiplier, path_);
     WriteFloat(L"Values", L"HotstreakChargeMultiplier", hotstreakChargeMultiplier, path_);
 
