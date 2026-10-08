@@ -744,7 +744,7 @@ void Draw(Context& c) {
 
             ImGui::Spacing();
             ImGui::TextDisabled(
-                "Default: F1 HUD | F2 Movement | F3 Recovery | F4 Skip Intro | F5-F12 None"
+                "Test INI: F1 HUD | F2 Movement | F3 Recovery | F4 Skip Intro | F5 Reticle Focus | F6-F12 None"
             );
             ImGui::EndTabItem();
         }
