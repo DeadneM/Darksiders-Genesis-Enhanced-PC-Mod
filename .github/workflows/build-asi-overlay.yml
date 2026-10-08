@@ -52,7 +52,7 @@ jobs:
       - name: Upload test build
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_ASI_V0.31_HORSE_LIFETIME_SAFETY_HOTFIX_TEST
+          name: DarksidersGenesis_ASI_V0.32_LAZY_OVERLAY_FOCUS_TRACE_TEST
           path: |
             dist/dxgi.dll
             dist/DarksidersGenesisMod.asi
