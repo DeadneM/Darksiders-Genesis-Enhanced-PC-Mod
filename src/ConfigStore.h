@@ -48,6 +48,7 @@ using LogFn = void(*)(const char*);
 
 class Store {
 public:
+    int graphicsAdapter = 0; // r.GraphicsAdapter, restart required
     bool overlayEnabled = true;
     int menuKey = 0x2D; // VK_INSERT
 
