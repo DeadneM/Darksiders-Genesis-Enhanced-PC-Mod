@@ -8,10 +8,10 @@ The project is deliberately fail-open for normal runtime failures and
 
 ## Current development state
 
-- Last published stable release on `main`: **V0.29**
+- Latest published binary release: **V0.29**
 - Safety hotfix **V0.31** and lazy overlay **V0.32** retained
 - Latest failed cursor experiment: **V0.33**
-- Current development candidate: **V0.34 Reticle Focus Test**
+- Latest user-validated source: **V0.34 manual reticle focus fix**
 - Target executable:
 
 ```text
@@ -62,6 +62,7 @@ The menu key and F1-F12 actions can be remapped from the overlay.
 | Horse Speed | Validated V0.29 native movement offset correction; lifetime-safe V0.31 |
 | Horse Sprint Duration | **Validated V0.27** - native HorseCharacter stamina drain; 0x vanilla, 5x default, 20x max |
 | Horse Sprint Speed | Validated V0.29 native SprintingMaxSpeed; lifetime-safe V0.31 |
+| Manual Reticle Focus Refresh | **Validated V0.34** - press F5 if the reticle becomes malformed after level load |
 | FOV | Not implemented |
 | Third Person camera | Not implemented |
 | Skip Logos | **Validated V0.19C/V0.19D** - proprietary `StartupScreens` MoviePlayer attachment bypass |
@@ -76,7 +77,7 @@ F1  Toggle HUD
 F2  Movement Speed
 F3  Action Recovery
 F4  Skip Intro Videos
-F5  Reticle Focus Test (V0.34 test package)
+F5  Reticle Focus Test (V0.34 validated manual fix)
 F6-F12  None
 ```
 
@@ -1067,7 +1068,7 @@ This is intended to reproduce the cursor-reset part of Alt-Tab without actually
 changing application focus.
 
 
-## V0.34 - Reticle focus-cycle isolation (experimental)
+## V0.34 - Reticle focus-cycle workaround (validated manually in-game)
 
 V0.33 is **rejected as an effective reticle fix**. Its scheduled WM_SETCURSOR
 messages were successfully posted after a new player was found, but did not
@@ -1077,9 +1078,9 @@ DXGI ResizeBuffers call was observed. The trace contained an F4 action but no
 F1 Hide HUD toggle, so Hide HUD cursor suppression is not yet proven either way.
 
 V0.34 removes automatic WM_SETCURSOR refreshes that did nothing. It introduces
-one explicitly requested test action:
+one manually triggered reticle-repair action:
 
-- `F5 = ReticleFocusTest` in the *test package* INI;
+- `F5 = ReticleFocusTest` in the included INI;
 - the action is also selectable from the remappable Hotkeys tab;
 - the test does **not** Alt-Tab, steal foreground or move the mouse;
 - it posts one paired simulated deactivate/activate message sequence to the
@@ -1089,13 +1090,17 @@ one explicitly requested test action:
   500 ms afterward;
 - no ongoing timer, native horse writes, or per-frame cursor replacement.
 
-**How to test:** With the malformed cross visible and the mod overlay CLOSED,
-press F5 once. Compare the reticle before/after. If nothing changes, perform one
-real Alt-Tab and confirm if it still repairs the cross. Do not claim the
-experimental focus pulse works until the user confirms it in-game.
-If using an old mod INI, set `F5=ReticleFocusTest` or remap a key to
-`Reticle Focus Test` in the overlay. The test can temporarily change the
-game's perceived input focus; a real Alt-Tab should restore normal state.
+**In-game validation (2026-10-08):** The user confirms that V0.34's F5
+focus-cycle action fixes the malformed reticle after loading. The confirmed
+result is the **manual F5 workaround**, not an automatic fix on every load.
+The separate V0.33 Hide HUD cursor visibility behavior has not yet received a
+dedicated F1 test; do not describe it as validated.
+
+**Usage:** With the malformed cross visible and the mod overlay CLOSED,
+press F5 once. If using an older mod INI, set `F5=ReticleFocusTest` under
+`[Hotkeys]` or remap a key to `Reticle Focus Test` in the overlay.
+This action can temporarily change the game's perceived input focus; a real
+Alt-Tab may restore the normal state if focus behaves unexpectedly.
 
 **Safety:** V0.31 horse lifetime ownership rules remain untouched; V0.32 lazy
-ImGui creation remains. `main` and the V0.29 release remain unchanged.
+ImGui creation remains. The V0.29 binary release is kept as a rollback option.
