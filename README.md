@@ -11,8 +11,8 @@ The project is deliberately fail-open for normal runtime failures and
 - Latest published binary release: **V0.29**
 - Safety hotfix **V0.31** and lazy overlay **V0.32** retained
 - Latest failed cursor experiment: **V0.33**
-- Latest user-validated source: **V0.34 manual reticle focus fix**
-- Current experimental build: **V0.35 read-only camera tracing** (not yet validated in game)
+- Earlier V0.34 F5 reticle focus workaround is **not reliable**; reticle bug remains open
+- Current experimental build: **V0.37 camera height + configurable arrow bindings**; FOV/zoom/pitch validated in V0.36
 - Target executable:
 
 ```text
@@ -76,7 +76,7 @@ The menu key and F1-F12 actions can be remapped from the overlay.
 | Horse Speed | Validated V0.29 native movement offset correction; lifetime-safe V0.31 |
 | Horse Sprint Duration | **Validated V0.27** - native HorseCharacter stamina drain; 0x vanilla, 5x default, 20x max |
 | Horse Sprint Speed | Validated V0.29 native SprintingMaxSpeed; lifetime-safe V0.31 |
-| Manual Reticle Focus Refresh | **Validated V0.34** - press F5 if the reticle becomes malformed after level load |
+| Manual Reticle Focus Refresh | **Unreliable/experimental** - F5 focus pulse may help, but does not fix persistent cross-shaped reticle |
 | FOV | Not implemented |
 | Third Person camera | Not implemented |
 | Skip Logos | **Validated V0.19C/V0.19D** - proprietary `StartupScreens` MoviePlayer attachment bypass |
@@ -1179,3 +1179,39 @@ revision does not change, to avoid resetting existing player preferences.
 Older INI files read the new settings using safe defaults when missing.
 The validated horse lifetime ownership, lazy ImGui overlay, skip logos and
 F5 reticle recovery remain unchanged. Artifacts contain files at the ZIP root.
+
+## V0.37 - Camera height + configurable arrow keys (TEST, 2026-10-08)
+
+Based directly on the working V0.36 main commit 634f89dc.
+**User in-game status:** FOV, Zoom and Camera Pitch are working.
+A camera-height setting is now provided: CameraHeightOffset from -1500 to
++1500 world units, default zero (vanilla). It changes only the transient
+FMinimalViewInfo.Location.Z output at +0x08 in the existing live camera
+callback. It does not cache or write camera UObjects.
+
+New camera keybinding actions are configured under [CameraHotkeys] and can
+be rebound in the Camera tab. Defaults:
+- Up: raise camera by 50 units; Down: lower camera by 50
+- Left: Zoom Out by 10 percent; Right: Zoom In by 10 percent
+- PitchDown, PitchUp: unbound; optional increments of 5 degrees
+
+Keys repeat when held (initial delay 290 ms, repeat every 90 ms), only
+while the game is foreground and mod overlay is closed. Duplicate bindings
+are unbound in other camera actions. Capturing Escape cancels; menu key and
+F1-F12 are reserved. Assigning None from the Camera UI is supported.
+Existing INIs without [CameraHotkeys] use those defaults. Camera values and
+hotkeys are saved via the normal debounce/persistence mechanism.
+
+**Known Zoom issue (deferred):** Zoom changes camera arm distance without
+updating UE4 depth-of-field focal distance or blur/postprocess parameters,
+so a zoomed image can become very blurry. Do NOT regress the working zoom
+just to compensate; native DOF correction is a separate future task.
+
+**Reticle status corrected:** earlier V0.34 F5 focus pulse was prematurely
+described as a validated repair. The user confirms the cross-shaped reticle
+still occurs in V0.36. Thus F5 and the V0.36 Hide Reticle mechanism are
+experimental, not a reliable bug fix; neither is promoted as solved.
+
+One build number per iteration; changes committed on main; legacy stable
+release v0.29 remains untouched. Per-launch non-cumulative log retained.
+Test V0.37 in gameplay before promoting features to release.

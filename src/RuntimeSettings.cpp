@@ -30,6 +30,7 @@ void Publish(const Snapshot& s) {
     g_state.fovDegrees.store(s.fovDegrees, std::memory_order_relaxed);
     g_state.cameraZoomPercent.store(s.cameraZoomPercent, std::memory_order_relaxed);
     g_state.cameraPitchDegrees.store(s.cameraPitchDegrees, std::memory_order_relaxed);
+    g_state.cameraHeightOffset.store(s.cameraHeightOffset, std::memory_order_relaxed);
     g_state.movementSpeedMultiplier.store(s.movementSpeedMultiplier, std::memory_order_relaxed);
     g_state.actionRecoveryDelayMs.store(s.actionRecoveryDelayMs, std::memory_order_relaxed);
     g_state.pistolDamageMultiplier.store(s.pistolDamageMultiplier, std::memory_order_relaxed);

@@ -24,6 +24,7 @@ struct Snapshot {
     float fovDegrees = 90.0f;
     float cameraZoomPercent = 0.0f;
     float cameraPitchDegrees = 0.0f;
+    float cameraHeightOffset = 0.0f;
     float movementSpeedMultiplier = 1.50f;
     float actionRecoveryDelayMs = 0.0f;
     float pistolDamageMultiplier = 2.00f;
@@ -56,6 +57,7 @@ struct State {
     std::atomic<float> fovDegrees{90.0f};
     std::atomic<float> cameraZoomPercent{0.0f};
     std::atomic<float> cameraPitchDegrees{0.0f};
+    std::atomic<float> cameraHeightOffset{0.0f};
     std::atomic<float> movementSpeedMultiplier{1.50f};
     std::atomic<float> actionRecoveryDelayMs{0.0f};
     std::atomic<float> pistolDamageMultiplier{2.00f};

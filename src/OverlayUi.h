@@ -62,6 +62,7 @@ struct Context {
 
     std::atomic_bool* overlayVisible = nullptr;
     std::atomic_bool* captureMenuKey = nullptr;
+    std::atomic_int* captureCameraKeyIndex = nullptr;
     std::atomic_bool* hudHidden = nullptr;
     std::string* lastAction = nullptr;
 

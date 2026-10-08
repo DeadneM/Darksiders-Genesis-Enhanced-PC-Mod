@@ -30,6 +30,7 @@ std::atomic<bool> g_viewReady{false}, g_armReady{false};
 std::atomic<uint32_t> g_viewCount{0}, g_armCount{0};
 std::atomic<float> g_nativeFov{0.0f}, g_appliedFov{0.0f};
 std::atomic<float> g_nativePitch{0.0f}, g_appliedPitch{0.0f};
+std::atomic<float> g_nativeHeight{0.0f}, g_appliedHeight{0.0f};
 std::atomic<float> g_nativeDistance{0.0f}, g_appliedDistance{0.0f};
 thread_local bool g_inArm = false;
 void Write(const char* s) { if (g_log && s) g_log(s); }
@@ -41,13 +42,16 @@ void HookView(void* camera, float dt, void* outView) {
     // Transient FMinimalViewInfo: FVector Location +0, FRotator Rotation +12,
     // FOV +24. Never write a camera UObject or retain its pointer.
     auto* p = static_cast<unsigned char*>(outView);
-    float nativeFov = 0, nativePitch = 0;
+    float nativeFov = 0, nativePitch = 0, nativeHeight = 0;
     std::memcpy(&nativeFov, p + 0x18, sizeof(float));
     std::memcpy(&nativePitch, p + 0x0C, sizeof(float));
+    std::memcpy(&nativeHeight, p + 0x08, sizeof(float));
     if (!std::isfinite(nativeFov) || nativeFov < 1 || nativeFov > 179) return;
     if (!std::isfinite(nativePitch) || std::fabs(nativePitch) > 360) return;
+    if (!std::isfinite(nativeHeight) || std::fabs(nativeHeight) > 10000000.0f) return;
 
     float appliedFov = nativeFov, appliedPitch = nativePitch;
+    float appliedHeight = nativeHeight;
     auto& settings = dg::runtime::Get();
     if (settings.fovEnabled.load(std::memory_order_relaxed)) {
         const float target = settings.fovDegrees.load(std::memory_order_relaxed);
@@ -61,6 +65,14 @@ void HookView(void* camera, float dt, void* outView) {
         appliedPitch = std::clamp(nativePitch + offset, -89.0f, 89.0f);
         std::memcpy(p + 0x0C, &appliedPitch, sizeof(float));
     }
+    const float heightOffset = settings.cameraHeightOffset.load(std::memory_order_relaxed);
+    if (std::isfinite(heightOffset) && heightOffset >= -1500.0f &&
+        heightOffset <= 1500.0f && heightOffset != 0.0f) {
+        appliedHeight = nativeHeight + heightOffset;
+        std::memcpy(p + 0x08, &appliedHeight, sizeof(float));
+    }
+    g_nativeHeight.store(nativeHeight, std::memory_order_relaxed);
+    g_appliedHeight.store(appliedHeight, std::memory_order_relaxed);
     g_nativeFov.store(nativeFov, std::memory_order_relaxed);
     g_appliedFov.store(appliedFov, std::memory_order_relaxed);
     g_nativePitch.store(nativePitch, std::memory_order_relaxed);
@@ -68,8 +80,8 @@ void HookView(void* camera, float dt, void* outView) {
     const uint32_t calls = g_viewCount.fetch_add(1, std::memory_order_relaxed) + 1;
     if (Sample(calls)) {
         char line[230]{};
-        sprintf_s(line,"Camera V0.36: native View calls=%u camera=%p FOV=%.2f->%.2f pitch=%.2f->%.2f",
-            calls,camera,nativeFov,appliedFov,nativePitch,appliedPitch);
+        sprintf_s(line,"Camera V0.37: native View calls=%u camera=%p FOV=%.2f->%.2f pitch=%.2f->%.2f height=%.1f->%.1f",
+            calls,camera,nativeFov,appliedFov,nativePitch,appliedPitch,nativeHeight,appliedHeight);
         Write(line);
     }
 }
@@ -106,7 +118,7 @@ void HookArm(void* arm, bool trace, bool locationLag, bool rotationLag, float dt
     const uint32_t calls = g_armCount.fetch_add(1, std::memory_order_relaxed) + 1;
     if (Sample(calls)) {
         char line[220]{};
-        sprintf_s(line,"Camera V0.36: native SpringArm calls=%u arm=%p length=%.1f->%.1f zoom=%+.1f%%",
+        sprintf_s(line,"Camera V0.37: native SpringArm calls=%u arm=%p length=%.1f->%.1f zoom=%+.1f%%",
                   calls,arm,native,applied,zoom);
         Write(line);
     }
@@ -117,14 +129,14 @@ bool InstallOne(uintptr_t base, uintptr_t rva, const unsigned char* signature,
     auto* target = reinterpret_cast<unsigned char*>(base + rva);
     if (std::memcmp(target, signature, length) != 0) {
         char line[160]{};
-        sprintf_s(line,"Camera V0.36: %s signature mismatch; SKIPPED",label);
+        sprintf_s(line,"Camera V0.37: %s signature mismatch; SKIPPED",label);
         Write(line);
         return false;
     }
     const MH_STATUS created = MH_CreateHook(target,detour,original);
     if (created != MH_OK) {
         char line[160]{};
-        sprintf_s(line,"Camera V0.36: %s CreateHook failed=%d",label,int(created));
+        sprintf_s(line,"Camera V0.37: %s CreateHook failed=%d",label,int(created));
         Write(line);
         return false;
     }
@@ -132,12 +144,12 @@ bool InstallOne(uintptr_t base, uintptr_t rva, const unsigned char* signature,
     if (enabled != MH_OK && enabled != MH_ERROR_ENABLED) {
         MH_RemoveHook(target);
         char line[160]{};
-        sprintf_s(line,"Camera V0.36: %s EnableHook failed=%d",label,int(enabled));
+        sprintf_s(line,"Camera V0.37: %s EnableHook failed=%d",label,int(enabled));
         Write(line);
         return false;
     }
     char line[160]{};
-    sprintf_s(line,"Camera V0.36: %s READY nativeRVA=0x%zX",label,size_t(rva));
+    sprintf_s(line,"Camera V0.37: %s READY nativeRVA=0x%zX",label,size_t(rva));
     Write(line);
     return true;
 }
@@ -148,7 +160,7 @@ void Install(LogFn log) {
     if (!base) return;
     const MH_STATUS status = MH_Initialize();
     if (status != MH_OK && status != MH_ERROR_ALREADY_INITIALIZED) {
-        Write("Camera V0.36: MinHook initialization failed; camera untouched");
+        Write("Camera V0.37: MinHook initialization failed; camera untouched");
         return;
     }
     const bool v = InstallOne(base,kViewRva,kViewBytes,sizeof(kViewBytes),
@@ -158,7 +170,7 @@ void Install(LogFn log) {
     g_viewReady.store(v);
     g_armReady.store(a);
     char line[140]{};
-    sprintf_s(line,"Camera V0.36: installed view=%d arm=%d (in-game test required)",v?1:0,a?1:0);
+    sprintf_s(line,"Camera V0.37: installed view=%d arm=%d (in-game test required)",v?1:0,a?1:0);
     Write(line);
 }
 Telemetry GetTelemetry() {
@@ -171,6 +183,8 @@ Telemetry GetTelemetry() {
     t.appliedFov = g_appliedFov.load();
     t.nativePitch = g_nativePitch.load();
     t.appliedPitch = g_appliedPitch.load();
+    t.nativeHeight = g_nativeHeight.load();
+    t.appliedHeight = g_appliedHeight.load();
     t.nativeArmLength = g_nativeDistance.load();
     t.appliedArmLength = g_appliedDistance.load();
     return t;

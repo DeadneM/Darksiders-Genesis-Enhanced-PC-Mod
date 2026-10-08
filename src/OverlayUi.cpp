@@ -101,6 +101,7 @@ void Draw(Context& c) {
         !c.targetValidation ||
         !c.overlayVisible ||
         !c.captureMenuKey ||
+        !c.captureCameraKeyIndex ||
         !c.hudHidden ||
         !c.lastAction) {
         return;
@@ -173,7 +174,7 @@ void Draw(Context& c) {
             ImGui::TextDisabled("%s", t.reticleCursorHookReady
                 ? "Native UI cursor + Win32 SetCursor hook (F6 default)"
                 : "Win32 cursor hook unavailable; native UI fallback");
-            ImGui::TextDisabled("Experimental: if the cross persists, press F5 to reset focus.");
+            ImGui::TextDisabled("F5 focus pulse is NOT a reliable fix; malformed cross remains under investigation.");
 
             if (config.toggleHudEnabled) {
                 bool hudHidden = c.hudHidden->load();
@@ -594,6 +595,8 @@ void Draw(Context& c) {
                 camera.nativePitch,camera.appliedPitch);
             ImGui::TextDisabled("Arm length observed %.1f -> %.1f",
                 camera.nativeArmLength,camera.appliedArmLength);
+            ImGui::TextDisabled("Camera height Z %.1f -> %.1f",
+                camera.nativeHeight,camera.appliedHeight);
 
             DrawSectionTitle("Field of view");
             DrawTunableFeature(config,"Enable FOV Override","FOV",
@@ -627,6 +630,25 @@ void Draw(Context& c) {
                 config.Save();
             }
 
+            DrawSectionTitle("Camera height");
+            ImGui::TextWrapped("Vertical camera offset in Unreal units. Zero = vanilla.");
+            bool heightChanged = false;
+            ImGui::SetNextItemWidth(340.0f);
+            heightChanged |= ImGui::SliderFloat("Height##Camera",
+                &config.cameraHeightOffset,-1500.0f,1500.0f,"%+.0f units");
+            ImGui::SameLine();
+            if (ImGui::Button("Vanilla##CameraHeight")) {
+                config.cameraHeightOffset=0.0f; heightChanged=true;
+            }
+            ImGui::SetNextItemWidth(160.0f);
+            heightChanged |= ImGui::InputFloat("Manual Height##Camera",
+                &config.cameraHeightOffset,0.0f,0.0f,"%.1f");
+            if (heightChanged) {
+                config.cameraHeightOffset =
+                    std::clamp(config.cameraHeightOffset,-1500.0f,1500.0f);
+                config.Save();
+            }
+
             DrawSectionTitle("Camera angle");
             ImGui::TextWrapped("Pitch offset relative to the native view. 0 degrees = vanilla.");
             bool pitchChanged = false;
@@ -641,7 +663,36 @@ void Draw(Context& c) {
                 config.cameraPitchDegrees = std::clamp(config.cameraPitchDegrees,-35.0f,35.0f);
                 config.Save();
             }
-            ImGui::TextDisabled("Native output correction only. Actual framing requires in-game verification.");
+            DrawSectionTitle("Camera keyboard bindings");
+            ImGui::TextWrapped(
+                "Default: Up/Down = camera height, Left/Right = zoom. "
+                "Tilt Up/Down are unbound. Press Rebind then the new key; Esc cancels. "
+                "Bindings work only with the overlay closed and the game focused."
+            );
+            for (size_t i = 0; i < config.cameraKeys.size(); ++i) {
+                ImGui::PushID(static_cast<int>(i) + 3000);
+                ImGui::Text("%s:", config::kCameraLabels[i]);
+                ImGui::SameLine(200.0f);
+                ImGui::Text("%s", config::KeyDisplayName(config.cameraKeys[i]).c_str());
+                ImGui::SameLine(340.0f);
+                const bool capture = c.captureCameraKeyIndex->load() ==
+                    static_cast<int>(i);
+                if (ImGui::Button(capture ? "Press key... (Esc cancels)" : "Rebind")) {
+                    c.captureMenuKey->store(false);
+                    c.captureCameraKeyIndex->store(static_cast<int>(i));
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Unbind")) {
+                    config.cameraKeys[i] = 0;
+                    c.captureCameraKeyIndex->store(-1);
+                    config.Save();
+                }
+                ImGui::PopID();
+            }
+            ImGui::TextDisabled("Hold keys to repeat. Steps: height 50, zoom 10%%, pitch 5 degrees.");
+            ImGui::TextWrapped("Known issue: Zoom changes camera distance but not depth-of-field "
+                "focal parameters, so the scene can become blurred. DOF correction is postponed.");
+            ImGui::TextDisabled("Native output changes. Actual framing requires in-game verification.");
             ImGui::EndTabItem();
         }
 
@@ -686,6 +737,7 @@ void Draw(Context& c) {
                     "Reload",
                     ImVec2(110.0f, 0.0f))) {
                 config.Load();
+                c.captureCameraKeyIndex->store(-1);
                 *c.lastAction =
                     "Configuration reloaded";
             }
@@ -696,6 +748,7 @@ void Draw(Context& c) {
                     "Reset Defaults",
                     ImVec2(140.0f, 0.0f))) {
                 config.ResetDefaults(true);
+                c.captureCameraKeyIndex->store(-1);
                 c.hudHidden->store(false);
                 *c.lastAction =
                     "Defaults restored";

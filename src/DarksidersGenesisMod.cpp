@@ -19,6 +19,7 @@
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cstdarg>
@@ -32,7 +33,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.36-reticle-camera-controls-test";
+constexpr const char* kBuild = "0.37-camera-height-hotkeys-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -79,6 +80,11 @@ std::atomic_int g_focusPulseStage{0};
 std::atomic_ullong g_focusPulseRestoreTick{0};
 std::atomic_uint32_t g_cursorVisibilityCalls{0};
 std::atomic_int g_capturedMenuKey{0};
+std::atomic_int g_captureCameraKeyIndex{-1};
+std::atomic_int g_capturedCameraBinding{0};
+std::array<bool, 6> g_cameraKeyHeld{};
+std::array<ULONGLONG, 6> g_cameraNextRepeat{};
+std::array<uint32_t, 6> g_cameraActionRepeatCount{};
 std::atomic_bool g_hudHidden{false};
 std::atomic_bool g_hudHookReady{false};
 std::atomic_bool g_cursorVisibilityHookReady{false};
@@ -1883,7 +1889,7 @@ void TriggerAction(Action action, int functionKey) {
             g_lastAction = "Reticle focus test already running";
             Log("F%d -> Reticle focus test already running", functionKey);
         } else {
-            g_lastAction = "Reticle focus test queued (experimental)";
+            g_lastAction = "Reticle focus test queued (NOT reliable)";
             Log("F%d -> Reticle focus test requested; one synthetic focus cycle", functionKey);
         }
         return;
@@ -1956,6 +1962,26 @@ void TriggerAction(Action action, int functionKey) {
 }
 
 void ProcessInput() {
+    const int capturedCamera = g_capturedCameraBinding.exchange(0);
+    if (capturedCamera) {
+        const int action = (capturedCamera >> 8) - 1;
+        const int vk = capturedCamera & 255;
+        if (action >= 0 && action < static_cast<int>(g_config.cameraKeys.size())) {
+            for (size_t i = 0; i < g_config.cameraKeys.size(); ++i)
+                if (i != static_cast<size_t>(action) && g_config.cameraKeys[i] == vk)
+                    g_config.cameraKeys[i] = 0; // one camera action per key
+            g_config.cameraKeys[static_cast<size_t>(action)] = vk;
+            g_cameraKeyHeld.fill(false);
+            g_cameraNextRepeat.fill(0);
+            g_config.Save();
+            g_lastAction = std::string("Camera ") +
+                dg::config::kCameraLabels[static_cast<size_t>(action)] +
+                " bound to " + KeyDisplayName(vk);
+            Log("Camera V0.37: rebound %s to %s",
+                dg::config::kCameraLabels[static_cast<size_t>(action)],
+                KeyDisplayName(vk).c_str());
+        }
+    }
     const int capturedMenuKey = g_capturedMenuKey.exchange(0);
     if (capturedMenuKey > 0 && capturedMenuKey < 256) {
         g_config.menuKey = capturedMenuKey;
@@ -1968,6 +1994,7 @@ void ProcessInput() {
     }
 
     if (!g_captureMenuKey.load() &&
+        g_captureCameraKeyIndex.load() < 0 &&
         g_config.menuKey > 0 &&
         g_config.menuKey < 256 &&
         KeyPressed(g_config.menuKey) &&
@@ -1984,6 +2011,67 @@ void ProcessInput() {
     for (int i = 0; i < 12; ++i) {
         if (KeyPressed(VK_F1 + i)) {
             TriggerAction(g_config.hotkeys[static_cast<size_t>(i)], i + 1);
+        }
+    }
+}
+
+
+void ProcessCameraInput() {
+    const HWND hwnd = reinterpret_cast<HWND>(
+        g_gameWindowTrace.load(std::memory_order_relaxed));
+    if (!hwnd || GetForegroundWindow() != hwnd ||
+        g_overlayVisible.load() || g_captureCameraKeyIndex.load() >= 0) {
+        g_cameraKeyHeld.fill(false);
+        g_cameraNextRepeat.fill(0);
+        return;
+    }
+    const ULONGLONG now = GetTickCount64();
+    for (size_t i = 0; i < g_config.cameraKeys.size(); ++i) {
+        const int vk = g_config.cameraKeys[i];
+        if (vk < 1 || vk > 255 || vk == g_config.menuKey ||
+            (vk >= VK_F1 && vk <= VK_F12)) continue;
+        const bool down = (GetAsyncKeyState(vk) & 0x8000) != 0;
+        if (!down) {
+            g_cameraKeyHeld[i] = false;
+            g_cameraNextRepeat[i] = 0;
+            continue;
+        }
+        const bool initial = !g_cameraKeyHeld[i];
+        if (!initial && now < g_cameraNextRepeat[i]) continue;
+        g_cameraKeyHeld[i] = true;
+        g_cameraNextRepeat[i] = now + (initial ? 290ull : 90ull);
+
+        bool changed = false;
+        float* value = nullptr;
+        float delta = 0.0f, min = 0.0f, max = 0.0f;
+        switch (static_cast<dg::config::CameraAction>(i)) {
+        case dg::config::CameraAction::HeightUp:
+            value=&g_config.cameraHeightOffset; delta=50.0f; min=-1500; max=1500; break;
+        case dg::config::CameraAction::HeightDown:
+            value=&g_config.cameraHeightOffset; delta=-50.0f; min=-1500; max=1500; break;
+        case dg::config::CameraAction::ZoomOut:
+            value=&g_config.cameraZoomPercent; delta=-10.0f; min=-75; max=200; break;
+        case dg::config::CameraAction::ZoomIn:
+            value=&g_config.cameraZoomPercent; delta=10.0f; min=-75; max=200; break;
+        case dg::config::CameraAction::PitchDown:
+            value=&g_config.cameraPitchDegrees; delta=-5.0f; min=-35; max=35; break;
+        case dg::config::CameraAction::PitchUp:
+            value=&g_config.cameraPitchDegrees; delta=5.0f; min=-35; max=35; break;
+        default: break;
+        }
+        if (value) {
+            const float previous=*value;
+            *value=std::clamp(previous+delta,min,max);
+            changed=*value != previous;
+        }
+        if (changed) {
+            g_config.Save(); // update camera atomics now, defer INI writes
+            g_lastAction=std::string("Camera ")+dg::config::kCameraLabels[i]+
+                " = "+std::to_string(*value);
+            const uint32_t count=++g_cameraActionRepeatCount[i];
+            if (initial || count % 10 == 0)
+                Log("Camera V0.37: key %s action=%s value=%.1f",
+                    KeyDisplayName(vk).c_str(), dg::config::kCameraLabels[i], *value);
         }
     }
 }
@@ -2010,6 +2098,23 @@ void ReleaseRenderTarget() {
 LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     if (g_imguiReady.load() && g_overlayVisible.load()) {
         ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
+        const int cameraCapture = g_captureCameraKeyIndex.load();
+        if (cameraCapture >= 0 && cameraCapture < 6 &&
+            (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN)) {
+            const int vk = static_cast<int>(wParam & 0xFF);
+            if (vk == VK_ESCAPE) {
+                g_captureCameraKeyIndex.store(-1);
+                g_lastAction = "Camera binding cancelled";
+                return TRUE;
+            }
+            if (vk != g_config.menuKey && vk != VK_ESCAPE &&
+                (vk < VK_F1 || vk > VK_F12) && vk > 0 && vk < 256) {
+                g_capturedCameraBinding.store(((cameraCapture + 1) << 8) | vk);
+                g_captureCameraKeyIndex.store(-1);
+                return TRUE;
+            }
+            return TRUE;
+        }
 
         if (g_captureMenuKey.load() && (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN)) {
             const int vk = static_cast<int>(wParam & 0xFF);
@@ -2161,6 +2266,7 @@ dg::overlay::Context BuildOverlayContext() {
 
     context.overlayVisible = &g_overlayVisible;
     context.captureMenuKey = &g_captureMenuKey;
+    context.captureCameraKeyIndex = &g_captureCameraKeyIndex;
     context.hudHidden = &g_hudHidden;
     context.lastAction = &g_lastAction;
 
@@ -2328,6 +2434,7 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     g_config.FlushIfDue(false);
 
     TraceGameWindowState(swapChain);
+    ProcessCameraInput();
     RefreshReticleCursorState();
     ProcessReticleFocusPulse();
 

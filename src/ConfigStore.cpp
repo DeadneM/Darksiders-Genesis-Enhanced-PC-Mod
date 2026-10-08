@@ -157,6 +157,11 @@ std::string KeyDisplayName(int vk) {
 
 std::wstring KeyTokenFromVK(int vk) {
     switch (vk) {
+    case 0: return L"None";
+    case VK_UP: return L"Up";
+    case VK_DOWN: return L"Down";
+    case VK_LEFT: return L"Left";
+    case VK_RIGHT: return L"Right";
     case VK_INSERT: return L"Insert";
     case VK_DELETE: return L"Delete";
     case VK_HOME: return L"Home";
@@ -203,6 +208,9 @@ int ParseKeyToken(const wchar_t* text, int fallback) {
     };
 
     constexpr NamedKey named[] = {
+        {L"None", 0},
+        {L"Up", VK_UP}, {L"Down", VK_DOWN},
+        {L"Left", VK_LEFT}, {L"Right", VK_RIGHT},
         {L"Insert", VK_INSERT},
         {L"Delete", VK_DELETE},
         {L"Home", VK_HOME},
@@ -261,6 +269,7 @@ Store::Store() {
     hotkeys[3] = Action::SkipIntroVideos;
     hotkeys[4] = Action::ReticleFocusTest;
     hotkeys[5] = Action::ToggleReticle;
+    cameraKeys = {{VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT, 0, 0}};
 }
 
 void Store::SetPath(const std::wstring& path) {
@@ -313,6 +322,7 @@ void Store::ResetDefaults(bool persist) {
     fovDegrees = 90.0f;
     cameraZoomPercent = 0.0f;
     cameraPitchDegrees = 0.0f;
+    cameraHeightOffset = 0.0f;
     thirdPersonDistanceMultiplier = 1.00f;
     hotstreakChargeMultiplier = 2.00f;
 
@@ -323,6 +333,7 @@ void Store::ResetDefaults(bool persist) {
     hotkeys[3] = Action::SkipIntroVideos;
     hotkeys[4] = Action::ReticleFocusTest;
     hotkeys[5] = Action::ToggleReticle;
+    cameraKeys = {{VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT, 0, 0}};
 
     PublishRuntime();
 
@@ -432,6 +443,8 @@ bool Store::Load() {
         ReadFloat(L"Values", L"CameraZoomPercent", 0.0f, path_);
     cameraPitchDegrees =
         ReadFloat(L"Values", L"CameraPitchDegrees", 0.0f, path_);
+    cameraHeightOffset =
+        ReadFloat(L"Values", L"CameraHeightOffset", 0.0f, path_);
     thirdPersonDistanceMultiplier =
         ReadFloat(L"Values", L"ThirdPersonDistanceMultiplier", 1.0f, path_);
     hotstreakChargeMultiplier =
@@ -453,6 +466,16 @@ bool Store::Load() {
 
         hotkeys[static_cast<std::size_t>(i)] =
             ParseAction(value);
+    }
+
+    for (size_t i = 0; i < cameraKeys.size(); ++i) {
+        wchar_t keyText[64]{};
+        const std::wstring fallback = KeyTokenFromVK(cameraKeys[i]);
+        GetPrivateProfileStringW(
+            L"CameraHotkeys", kCameraTokens[i], fallback.c_str(),
+            keyText, 64, path_.c_str());
+        const int parsed = ParseKeyToken(keyText, cameraKeys[i]);
+        cameraKeys[i] = (parsed >= 0 && parsed < 256) ? parsed : 0;
     }
 
     const int revision = GetPrivateProfileIntW(
@@ -501,6 +524,7 @@ void Store::PublishRuntime() const {
     runtime.fovDegrees = fovDegrees;
     runtime.cameraZoomPercent = cameraZoomPercent;
     runtime.cameraPitchDegrees = cameraPitchDegrees;
+    runtime.cameraHeightOffset = cameraHeightOffset;
     runtime.movementSpeedMultiplier = movementSpeedMultiplier;
     runtime.actionRecoveryDelayMs = actionRecoveryDelayMs;
     runtime.pistolDamageMultiplier = pistolDamageMultiplier;
@@ -592,6 +616,7 @@ bool Store::SaveNow() {
     WriteFloat(L"Values", L"FOVDegrees", fovDegrees, path_);
     WriteFloat(L"Values", L"CameraZoomPercent", cameraZoomPercent, path_);
     WriteFloat(L"Values", L"CameraPitchDegrees", cameraPitchDegrees, path_);
+    WriteFloat(L"Values", L"CameraHeightOffset", cameraHeightOffset, path_);
     WriteFloat(L"Values", L"ThirdPersonDistanceMultiplier", thirdPersonDistanceMultiplier, path_);
     WriteFloat(L"Values", L"HotstreakChargeMultiplier", hotstreakChargeMultiplier, path_);
 
@@ -604,6 +629,12 @@ bool Store::SaveNow() {
             ActionToken(hotkeys[static_cast<std::size_t>(i)]),
             path_.c_str()
         );
+    }
+
+    for (size_t i = 0; i < cameraKeys.size(); ++i) {
+        const std::wstring value = KeyTokenFromVK(cameraKeys[i]);
+        WritePrivateProfileStringW(
+            L"CameraHotkeys", kCameraTokens[i], value.c_str(), path_.c_str());
     }
 
     dirty_.store(false, std::memory_order_relaxed);

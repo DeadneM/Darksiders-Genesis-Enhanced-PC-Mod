@@ -11,6 +11,8 @@ struct Telemetry {
     float appliedFov = 0.0f;
     float nativePitch = 0.0f;
     float appliedPitch = 0.0f;
+    float nativeHeight = 0.0f;
+    float appliedHeight = 0.0f;
     float nativeArmLength = 0.0f;
     float appliedArmLength = 0.0f;
 };

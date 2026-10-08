@@ -5,6 +5,13 @@
 #include <string>
 
 namespace dg::config {
+enum class CameraAction : int { HeightUp = 0, HeightDown, ZoomOut, ZoomIn, PitchDown, PitchUp, Count };
+inline constexpr std::array<const char*, 6> kCameraLabels = {
+  "Raise Height", "Lower Height", "Zoom Out", "Zoom In", "Tilt Down", "Tilt Up"
+};
+inline constexpr std::array<const wchar_t*, 6> kCameraTokens = {
+  L"HeightUp", L"HeightDown", L"ZoomOut", L"ZoomIn", L"PitchDown", L"PitchUp"
+};
 
 enum class Action : int {
     None = 0,
@@ -89,10 +96,12 @@ public:
     float fovDegrees = 90.0f;
     float cameraZoomPercent = 0.0f;
     float cameraPitchDegrees = 0.0f;
+    float cameraHeightOffset = 0.0f;
     float thirdPersonDistanceMultiplier = 1.00f;
     float hotstreakChargeMultiplier = 2.00f;
 
     std::array<Action, 12> hotkeys{};
+    std::array<int, static_cast<size_t>(CameraAction::Count)> cameraKeys{{0x26,0x28,0x25,0x27,0,0}};
 
     Store();
 

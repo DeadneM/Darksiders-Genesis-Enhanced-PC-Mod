@@ -3130,3 +3130,39 @@ revision does not change, to avoid resetting existing player preferences.
 Older INI files read the new settings using safe defaults when missing.
 The validated horse lifetime ownership, lazy ImGui overlay, skip logos and
 F5 reticle recovery remain unchanged. Artifacts contain files at the ZIP root.
+
+## V0.37 - Camera height + configurable arrow keys (TEST, 2026-10-08)
+
+Based directly on the working V0.36 main commit 634f89dc.
+**User in-game status:** FOV, Zoom and Camera Pitch are working.
+A camera-height setting is now provided: CameraHeightOffset from -1500 to
++1500 world units, default zero (vanilla). It changes only the transient
+FMinimalViewInfo.Location.Z output at +0x08 in the existing live camera
+callback. It does not cache or write camera UObjects.
+
+New camera keybinding actions are configured under [CameraHotkeys] and can
+be rebound in the Camera tab. Defaults:
+- Up: raise camera by 50 units; Down: lower camera by 50
+- Left: Zoom Out by 10 percent; Right: Zoom In by 10 percent
+- PitchDown, PitchUp: unbound; optional increments of 5 degrees
+
+Keys repeat when held (initial delay 290 ms, repeat every 90 ms), only
+while the game is foreground and mod overlay is closed. Duplicate bindings
+are unbound in other camera actions. Capturing Escape cancels; menu key and
+F1-F12 are reserved. Assigning None from the Camera UI is supported.
+Existing INIs without [CameraHotkeys] use those defaults. Camera values and
+hotkeys are saved via the normal debounce/persistence mechanism.
+
+**Known Zoom issue (deferred):** Zoom changes camera arm distance without
+updating UE4 depth-of-field focal distance or blur/postprocess parameters,
+so a zoomed image can become very blurry. Do NOT regress the working zoom
+just to compensate; native DOF correction is a separate future task.
+
+**Reticle status corrected:** earlier V0.34 F5 focus pulse was prematurely
+described as a validated repair. The user confirms the cross-shaped reticle
+still occurs in V0.36. Thus F5 and the V0.36 Hide Reticle mechanism are
+experimental, not a reliable bug fix; neither is promoted as solved.
+
+One build number per iteration; changes committed on main; legacy stable
+release v0.29 remains untouched. Per-launch non-cumulative log retained.
+Test V0.37 in gameplay before promoting features to release.
