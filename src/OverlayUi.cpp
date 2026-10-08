@@ -496,6 +496,55 @@ void Draw(Context& c) {
 
             ImGui::EndDisabled();
 
+            // V0.35B: independent signed zoom control. This is a staged
+            // preference, not a fake gameplay patch: we must first validate
+            // the native camera-distance callback for the retail game.
+            ImGui::Spacing();
+            ImGui::Text("Camera Zoom (- / +)");
+            ImGui::TextDisabled(
+                "Camera distance (separate from FOV). Native hook pending: no in-game effect yet."
+            );
+            ImGui::TextDisabled(
+                "- = farther | + = closer | 0 = vanilla"
+            );
+
+            bool zoomChanged = false;
+            ImGui::Indent();
+            if (ImGui::Button("-##CameraZoomMinus", ImVec2(50.0f, 0.0f))) {
+                config.cameraZoomPercent -= 10;
+                zoomChanged = true;
+            }
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(245.0f);
+            if (ImGui::SliderInt(
+                    "##CameraZoomPercent", &config.cameraZoomPercent,
+                    -75, 200, "%+d%%")) {
+                zoomChanged = true;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("+##CameraZoomPlus", ImVec2(50.0f, 0.0f))) {
+                config.cameraZoomPercent += 10;
+                zoomChanged = true;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Vanilla##CameraZoomReset")) {
+                config.cameraZoomPercent = 0;
+                zoomChanged = true;
+            }
+
+            ImGui::SetNextItemWidth(140.0f);
+            if (ImGui::InputInt("Manual (%)##CameraZoomManual",
+                    &config.cameraZoomPercent, 0, 0)) {
+                zoomChanged = true;
+            }
+            if (zoomChanged) {
+                if (config.cameraZoomPercent < -75) config.cameraZoomPercent = -75;
+                if (config.cameraZoomPercent > 200) config.cameraZoomPercent = 200;
+                config.Save();
+                *c.lastAction = "Zoom preference saved (native camera hook pending)";
+            }
+            ImGui::Unindent();
+
             DrawSectionTitle("System");
 
             ImGui::Text("Graphics Adapter");
