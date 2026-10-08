@@ -422,8 +422,14 @@ bool Store::Load() {
         ReadFloat(L"Values", L"HorseSprintDurationMultiplier", 5.0f, path_);
     fovDegrees =
         ReadFloat(L"Values", L"FOVDegrees", 90.0f, path_);
-    cameraZoomPercent = GetPrivateProfileIntW(
-        L"Values", L"CameraZoomPercent", 0, path_.c_str());
+    wchar_t zoomBuffer[32]{};
+    GetPrivateProfileStringW(
+        L"Values", L"CameraZoomPercent", L"0",
+        zoomBuffer, static_cast<DWORD>(32), path_.c_str());
+    wchar_t* zoomEnd = nullptr;
+    const long zoomParsed = wcstol(zoomBuffer, &zoomEnd, 10);
+    cameraZoomPercent = zoomEnd && zoomEnd != zoomBuffer
+        ? static_cast<int>(zoomParsed) : 0;
     if (cameraZoomPercent < -75) cameraZoomPercent = -75;
     if (cameraZoomPercent > 200) cameraZoomPercent = 200;
     thirdPersonDistanceMultiplier =
