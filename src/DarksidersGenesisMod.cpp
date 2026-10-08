@@ -2108,6 +2108,19 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     const bool focusMessage = msg == WM_ACTIVATEAPP || msg == WM_ACTIVATE ||
         msg == WM_SETFOCUS || msg == WM_KILLFOCUS || msg == WM_MOUSEACTIVATE;
     if (focusMessage) {
+        // Restore a cursor IMMEDIATELY on Alt-Tab instead of depending on
+        // background Present calls, which some games stop issuing.
+        if ((msg == WM_ACTIVATEAPP && wParam == FALSE) ||
+            msg == WM_KILLFOCUS ||
+            (msg == WM_ACTIVATE && LOWORD(wParam) == WA_INACTIVE)) {
+            if (g_cursorBlankApplied.exchange(false)) {
+                HCURSOR arrow = LoadCursorW(nullptr, IDC_ARROW);
+                if (g_originalSetCursor) g_originalSetCursor(arrow);
+                else SetCursor(arrow);
+                ClipCursor(nullptr);
+                Log("Focus V0.38: synchronous reticle cursor restore on deactivation");
+            }
+        }
         // Feed the ImGui backend the focus transition too, but never consume
         // it: otherwise its WantCaptureKeyboard state can become stale.
         if (g_imguiReady.load()) {
