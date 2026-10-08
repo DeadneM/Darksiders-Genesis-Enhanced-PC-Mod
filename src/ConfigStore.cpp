@@ -259,6 +259,7 @@ Store::Store() {
     hotkeys[1] = Action::MovementSpeed;
     hotkeys[2] = Action::ActionRecovery;
     hotkeys[3] = Action::SkipIntroVideos;
+    hotkeys[4] = Action::ReticleFocusTest;
 }
 
 void Store::SetPath(const std::wstring& path) {
@@ -316,6 +317,7 @@ void Store::ResetDefaults(bool persist) {
     hotkeys[1] = Action::MovementSpeed;
     hotkeys[2] = Action::ActionRecovery;
     hotkeys[3] = Action::SkipIntroVideos;
+    hotkeys[4] = Action::ReticleFocusTest;
 
     PublishRuntime();
 
