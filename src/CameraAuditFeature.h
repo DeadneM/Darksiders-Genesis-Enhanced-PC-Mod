@@ -6,5 +6,7 @@ namespace dg::camera_audit {
 // addresses. Invoked only after the exact supported EXE SHA-256 is verified.
 using LogFn = void(*)(const char*);
 void Run(LogFn log);
+// Hook only exact script thunks verified in the retail EXE; read-only telemetry.
+void InstallNativeProbes(LogFn log);
 
 } // namespace dg::camera_audit
