@@ -3069,3 +3069,39 @@ permitted. This rule should be preserved in future camera/mount work as well.
   path for focus anomalies. No cursor refresh writes to HorseFeature memory.
 - `main` should contain V0.30 GraphicsAdapter, V0.31 horse lifetime safety,
   V0.32 lazy overlay and V0.34 manually validated cursor focus pulse.
+
+
+## V0.35A - FOV native-camera audit (diagnostic only)
+
+Starting point: user-validated V0.34 on `main`, commit
+`42c8ef6bbced14082fd780a143098e35be8bc18c`.
+
+Existing `FOVDegrees=90.000` and `FOV=0` are legacy placeholders; no
+game camera is currently hooked. Keep the FOV control disabled rather than
+publishing a nonfunctional slider.
+
+External verification:
+- PCGamingWiki documents an Unreal Engine console `FOV X` method (requires
+  unlocking console): https://www.pcgamingwiki.com/wiki/Darksiders_Genesis
+- Rose's 2019 runtime trainer distinguishes on-foot/horse FOV behavior and
+  cutscenes: https://community.pcgamingwiki.com/files/file/1714-darksiders-genesis-ultrawide-multimonitor-fov-mod/
+
+Do not assume `FOV` is equivalent to zoom, that all camera modes share
+one pointer, or that Unreal camera layout offsets match another UE4 game.
+
+V0.35A adds `CameraAuditFeature`: one-time read-only exact-executable PE
+`.rdata` string search and native `.text` RIP-relative code-xref collection.
+Each hit is reported in per-session `DarksidersGenesisMod.log`. No runtime
+camera writes, no new object-pointer caches or D3D11 projection interception.
+
+Follow-up after real game log:
+1. identify likely `FOV` / `PlayerCameraManager` / custom Mayhem
+   camera getter/update function addresses using collected RVAs;
+2. verify exact native bytes and calling convention against the supported EXE;
+3. hook one live camera callback, not arbitrary per-frame UObject pointers;
+4. expose FOV enabled + desired degrees only once runtime behavior is proven;
+5. keep script/cinematic transitions intact, then address separate character
+   zoom and camera angle features.
+
+V0.31 horse lifetime safety and V0.34 validated manual cursor pulse remain
+unchanged. V0.35A is not a stable FOV release.
