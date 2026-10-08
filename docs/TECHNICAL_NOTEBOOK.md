@@ -3105,3 +3105,20 @@ Follow-up after real game log:
 
 V0.31 horse lifetime safety and V0.34 validated manual cursor pulse remain
 unchanged. V0.35A is not a stable FOV release.
+
+
+## V0.35B - Independent Zoom -/+ parameter
+
+Added an independent `CameraZoomPercent` setting, default 0 (vanilla),
+range -75..+200, stored in the mod INI [Values]. The Camera overlay offers
+a - button (out/farther), + button (in/closer), signed slider, numeric input
+and Vanilla reset. The stored setting publishes to an atomic runtime value
+but no camera function reads it yet.
+
+**Not implemented in the game camera.** The V0.35A PE marker audit remains
+the research vehicle. Do not mistake a persisting UI value for a working
+native camera hook. Future work must identify a safe runtime FOV and
+camera-distance source separately and leave cinematic camera behavior intact.
+
+V0.34 is the latest user-validated in-game gameplay/cursor fix. No new hooks
+in V0.35B. V0.31 HorseCharacter lifetime safety remains unchanged.
