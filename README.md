@@ -12,6 +12,7 @@ The project is deliberately fail-open for normal runtime failures and
 - Safety hotfix **V0.31** and lazy overlay **V0.32** retained
 - Latest failed cursor experiment: **V0.33**
 - Latest user-validated source: **V0.34 manual reticle focus fix**
+- Current real camera hook candidate: **V0.36 FOV + SpringArm Zoom**
 - Target executable:
 
 ```text
@@ -63,7 +64,8 @@ The menu key and F1-F12 actions can be remapped from the overlay.
 | Horse Sprint Duration | **Validated V0.27** - native HorseCharacter stamina drain; 0x vanilla, 5x default, 20x max |
 | Horse Sprint Speed | Validated V0.29 native SprintingMaxSpeed; lifetime-safe V0.31 |
 | Manual Reticle Focus Refresh | **Validated V0.34** - press F5 if the reticle becomes malformed after level load |
-| FOV | Not implemented |
+| FOV | V0.36 native GetCameraView hook; in-game test required |
+| Camera Zoom (+/-) | V0.36 native SpringArm UpdateDesiredArmLocation; in-game test required |
 | Third Person camera | Not implemented |
 | Skip Logos | **Validated V0.19C/V0.19D** - proprietary `StartupScreens` MoviePlayer attachment bypass |
 
@@ -1104,3 +1106,58 @@ Alt-Tab may restore the normal state if focus behaves unexpectedly.
 
 **Safety:** V0.31 horse lifetime ownership rules remain untouched; V0.32 lazy
 ImGui creation remains. The V0.29 binary release is kept as a rollback option.
+
+
+## V0.36 - Native FOV and Camera Zoom (in-game test candidate)
+
+The previous V0.35A/B/C branches were **not working feature builds**.
+V0.35B only saved a Zoom preference, and its FOV control was locked;
+V0.35C added three Unreal script-thunk probes which were not necessary
+to render the game camera. The user reported a malformed cursor again,
+a locked FOV, and inert Zoom. Do not merge these experimental branches.
+
+V0.36 is deliberately **rebuilt from the user-validated V0.34**:
+- **Preserve V0.31 horse UObject lifetime safety** in all native code;
+- **Preserve V0.34 F5 manual reticle repair** and V0.32 lazy overlay;
+- no V0.35C reflected script-thunk hooks or full-EXE string scanner;
+- independently port the V0.35B signed Zoom -/+ UI and INI setting.
+
+Reverse engineering the supplied exact retail EXE reveals the **actual
+native** camera function pointers from class vtables, not script thunks:
+
+- `UCameraComponent::GetCameraView`: RVA `0x16F9790`,
+  64-bit class vtable slot `+0x508`, output `FMinimalViewInfo.FOV`
+  located at `OutView+0x18` (modified only on the live output structure);
+- `USpringArmComponent::UpdateDesiredArmLocation`: RVA `0x6F57B0`,
+  reads its live `TargetArmLength` at `SpringArm+0x258`.
+
+**Offset correction**: On `UCameraComponent`, `FieldOfView` is
+`+0x258` (not `+0x25C` as erroneously documented for V0.35C).
+`UCameraComponent+0x25C` is `OrthoWidth`. The `+0x258` offset on
+**USpringArmComponent** is instead `TargetArmLength`. The two types
+must not be conflated.
+
+The FOV checkbox is now unlocked, with 40..140 degree slider/manual
+input, 90 degree default and **OFF = vanilla** (default OFF).
+If enabled, the live native camera callback writes only the generated
+`FMinimalViewInfo.FOV` output after the original function executes.
+
+The independent **Camera Zoom** control has -/+ 10% buttons, a
+-75..+200% slider, manual input, reset to 0 (vanilla), and persistent
+`CameraZoomPercent` setting. The native SpringArm hook temporarily
+scales only the **live callback's** arm length, executes the original,
+and immediately restores the existing value. At 0%, no modification
+occurs. No UObject pointer is cached between callbacks.
+
+Both native hooks validate exact function bytes before MinHook installs.
+The target executable SHA256 is already enforced by the core. If the
+hook fails or the game doesn't use that specific native camera path,
+the overlay displays hook availability and per-session call counters.
+This **is an unvalidated in-game candidate**, not yet a working
+user-confirmed FOV or Zoom implementation.
+
+**Test:** Start game, activate FOV and change the angle; change Zoom
+from 0 to +50 then -50; compare actual framing. If the reticle becomes
+the malformed cross, press **F5** (the previously validated manual
+reticle repair). Send the session `DarksidersGenesisMod.log` afterward.
+Do not promote to `main` or a release until actual in-game verification.
