@@ -1,6 +1,9 @@
 #include "CameraAuditFeature.h"
 
 #include <windows.h>
+#include <MinHook.h>
+#include <atomic>
+#include <cmath>
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -175,6 +178,160 @@ void Run(LogFn log) {
         "read-only, no camera mutation, FOV UI intentionally locked",
         found.size(), xrefs);
     Emit(log, finalLine);
+}
+
+
+namespace {
+
+using NativeThunkFn = void(*)(void*, void*, void*);
+NativeThunkFn g_origGetFov = nullptr;
+NativeThunkFn g_origGetView = nullptr;
+NativeThunkFn g_origSetFov = nullptr;
+std::atomic_uint g_fovCalls{0};
+std::atomic_uint g_viewCalls{0};
+std::atomic_uint g_setCalls{0};
+LogFn g_probeLog = nullptr;
+uintptr_t g_moduleBase = 0;
+
+void LogNativeTarget(const char* label, void* instance, size_t vtableSlot) {
+    if (!instance || !g_probeLog) return;
+    // This method runs exclusively in the original Unreal native script
+    // thunk with its live UObject `this`; no pointers are retained.
+    void** const vtable = *reinterpret_cast<void***>(instance);
+    if (!vtable) return;
+    const uintptr_t target = reinterpret_cast<uintptr_t>(
+        vtable[vtableSlot / sizeof(void*)]);
+    char line[290]{};
+    if (target >= g_moduleBase && target < g_moduleBase + 0x3DDF000) {
+        sprintf_s(line,
+            "CameraAudit V0.35C: %s live UObject=%p vtable=%p "
+            "virtualSlot=0x%zX nativeTargetRVA=0x%zX",
+            label, instance, vtable, vtableSlot,
+            static_cast<size_t>(target - g_moduleBase));
+    } else {
+        sprintf_s(line,
+            "CameraAudit V0.35C: %s live UObject=%p vtable=%p "
+            "virtualSlot=0x%zX target not in supported EXE",
+            label, instance, vtable, vtableSlot);
+    }
+    Emit(g_probeLog, line);
+}
+
+void HookGetFov(void* object, void* frame, void* result) {
+    if (g_origGetFov) g_origGetFov(object, frame, result);
+    const unsigned count = g_fovCalls.fetch_add(1) + 1;
+    if (count > 8) return;
+    LogNativeTarget("PlayerCameraManager.GetFOVAngle", object, 0x690);
+    if (result) {
+        const float fov = *reinterpret_cast<const float*>(result);
+        char line[180]{};
+        sprintf_s(line, "CameraAudit V0.35C: GetFOVAngle call=%u "
+            "returnedFOV=%.3f plausible=%d", count, fov,
+            std::isfinite(fov) && fov > 0.0f && fov < 180.0f ? 1 : 0);
+        Emit(g_probeLog, line);
+    }
+}
+
+void HookGetView(void* object, void* frame, void* result) {
+    if (g_origGetView) g_origGetView(object, frame, result);
+    const unsigned count = g_viewCalls.fetch_add(1) + 1;
+    if (count > 8) return;
+    LogNativeTarget("CameraComponent.GetCameraView", object, 0x508);
+    char line[180]{};
+    sprintf_s(line, "CameraAudit V0.35C: GetCameraView call=%u "
+        "result=%p (output untouched)", count, result);
+    Emit(g_probeLog, line);
+}
+
+void HookSetFov(void* object, void* frame, void* result) {
+    if (g_origSetFov) g_origSetFov(object, frame, result);
+    const unsigned count = g_setCalls.fetch_add(1) + 1;
+    if (count > 8) return;
+    LogNativeTarget("CameraComponent.SetFieldOfView", object, 0x500);
+    if (object) {
+        const float fov = *reinterpret_cast<const float*>(
+            static_cast<const unsigned char*>(object) + 0x25C);
+        char line[190]{};
+        sprintf_s(line, "CameraAudit V0.35C: SetFieldOfView call=%u "
+            "reflectedField+0x25C=%.3f plausible=%d", count, fov,
+            std::isfinite(fov) && fov > 0.0f && fov < 180.0f ? 1 : 0);
+        Emit(g_probeLog, line);
+    }
+}
+
+bool ProbeOne(const char* name, uintptr_t rva,
+              const unsigned char* expected, size_t expectedLength,
+              void* hook, NativeThunkFn& original) {
+    const auto* target = reinterpret_cast<const unsigned char*>(g_moduleBase + rva);
+    if (std::memcmp(target, expected, expectedLength) != 0) {
+        char line[160]{};
+        sprintf_s(line, "CameraAudit V0.35C: %s exact bytes mismatch, skipped", name);
+        Emit(g_probeLog, line);
+        return false;
+    }
+    const MH_STATUS created = MH_CreateHook(
+        const_cast<unsigned char*>(target), hook,
+        reinterpret_cast<void**>(&original));
+    if (created != MH_OK) {
+        char line[170]{};
+        sprintf_s(line, "CameraAudit V0.35C: %s create hook failed=%d",
+            name, static_cast<int>(created));
+        Emit(g_probeLog, line);
+        return false;
+    }
+    const MH_STATUS enabled = MH_EnableHook(const_cast<unsigned char*>(target));
+    if (enabled != MH_OK && enabled != MH_ERROR_ENABLED) {
+        char line[170]{};
+        sprintf_s(line, "CameraAudit V0.35C: %s enable hook failed=%d",
+            name, static_cast<int>(enabled));
+        Emit(g_probeLog, line);
+        return false;
+    }
+    char line[185]{};
+    sprintf_s(line, "CameraAudit V0.35C: %s read-only native thunk READY RVA=0x%zX",
+        name, static_cast<size_t>(rva));
+    Emit(g_probeLog, line);
+    return true;
+}
+
+} // namespace
+
+void InstallNativeProbes(LogFn log) {
+    g_probeLog = log;
+    g_moduleBase = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    if (!g_moduleBase) return;
+
+    const MH_STATUS init = MH_Initialize();
+    if (init != MH_OK && init != MH_ERROR_ALREADY_INITIALIZED) {
+        Emit(log, "CameraAudit V0.35C: MinHook unavailable, no probes installed");
+        return;
+    }
+
+    // These RVAs and prefixes come from the exact, user-supplied retail PE64
+    // with SHA-256 9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54.
+    // They are reflected UE4 script thunks, NOT the native camera methods.
+    // A live thunk call exposes the actual virtual method address safely.
+    static constexpr unsigned char kGetter[] = {
+        0x40, 0x53, 0x48, 0x83, 0xEC, 0x20, 0x48, 0x8B, 0x42, 0x20
+    };
+    static constexpr unsigned char kView[] = {
+        0x48, 0x8B, 0xC4, 0x57, 0x48, 0x81, 0xEC, 0xC0, 0x05, 0x00, 0x00
+    };
+    static constexpr unsigned char kSetter[] = {
+        0x48, 0x89, 0x5C, 0x24, 0x10, 0x57, 0x48, 0x83, 0xEC, 0x20
+    };
+    ProbeOne("GetFOVAngle", 0x1DB6F10,
+        kGetter, sizeof(kGetter),
+        reinterpret_cast<void*>(&HookGetFov), g_origGetFov);
+    ProbeOne("GetCameraView", 0x1CE7D30,
+        kView, sizeof(kView),
+        reinterpret_cast<void*>(&HookGetView), g_origGetView);
+    ProbeOne("SetFieldOfView", 0x1CE9980,
+        kSetter, sizeof(kSetter),
+        reinterpret_cast<void*>(&HookSetFov), g_origSetFov);
+
+    Emit(log, "CameraAudit V0.35C: probes record only first 8 calls per thunk; "
+        "zero FOV/zoom writes, no UObject pointer caches");
 }
 
 } // namespace dg::camera_audit
