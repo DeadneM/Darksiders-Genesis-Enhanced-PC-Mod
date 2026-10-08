@@ -52,7 +52,7 @@ jobs:
       - name: Upload test build
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_ASI_V0.35A_CAMERA_FOV_NATIVE_AUDIT_TEST
+          name: DarksidersGenesis_ASI_V0.35B_CAMERA_ZOOM_CONTROLS_AUDIT_TEST
           path: |
             dist/dxgi.dll
             dist/DarksidersGenesisMod.asi
