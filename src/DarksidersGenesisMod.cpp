@@ -9,6 +9,7 @@
 #include "imgui_impl_win32.h"
 
 #include "ConfigStore.h"
+#include "CameraAuditFeature.h"
 #include "EngineIniFeature.h"
 #include "HorseFeature.h"
 #include "OverlayUi.h"
@@ -31,7 +32,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.34-native-focus-pulse-test";
+constexpr const char* kBuild = "0.35a-camera-fov-native-audit";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -2669,6 +2670,12 @@ DWORD WINAPI MainThread(LPVOID) {
     if (!InstallFinalOutgoingDamageHook()) {
         Log("Final Pistol/Melee Damage hook unavailable; other ASI features remain active.");
     }
+
+    // V0.35A: read-only scan of the verified executable's .rdata camera
+    // markers and .text RIP-relative references. No UE4 UObject reads/writes.
+    // We do not unlock the FOV slider until the genuine native camera path
+    // has been identified and tested.
+    dg::camera_audit::Run(&FeatureLog);
 
     Log(
         "Core initialization complete. Press %s after the first game frame.",
