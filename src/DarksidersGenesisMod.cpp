@@ -32,7 +32,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.35b-camera-zoom-controls-audit";
+constexpr const char* kBuild = "0.35c-live-native-camera-probes";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -2676,6 +2676,7 @@ DWORD WINAPI MainThread(LPVOID) {
     // We do not unlock the FOV slider until the genuine native camera path
     // has been identified and tested.
     dg::camera_audit::Run(&FeatureLog);
+    dg::camera_audit::InstallNativeProbes(&FeatureLog);
 
     Log(
         "Core initialization complete. Press %s after the first game frame.",
