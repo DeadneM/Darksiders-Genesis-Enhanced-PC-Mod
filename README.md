@@ -1104,3 +1104,28 @@ Alt-Tab may restore the normal state if focus behaves unexpectedly.
 
 **Safety:** V0.31 horse lifetime ownership rules remain untouched; V0.32 lazy
 ImGui creation remains. The V0.29 binary release is kept as a rollback option.
+
+
+## V0.34R1 - camera investigation restarted from V0.34
+
+Source: validated V0.34 commit 32f7827cc2968596a34dadc6466730d4280ff94b.
+None of the V0.35A/B/C or V0.36 camera changes are inherited.
+
+The camera is NOT modified by this test build. Two individually validated
+read-only native-method hooks record whether UCameraComponent::GetCameraView
+(RVA 0x16F9790) and USpringArmComponent::UpdateDesiredArmLocation
+(RVA 0x6F57B0) are exercised in actual gameplay. The hooks call the original
+implementation unchanged. They only sample a live FOV output / current arm
+distance and log the first 12 calls then one of every 5000. The correct
+retail EXE hash and instruction prologues must match before installation.
+No native UObject pointers survive callbacks; no camera setting or rotation
+is changed. Existing FOV is OFF/locked, and no fake zoom setting is added.
+
+Test on foot with War and Strife, then mounted if possible, while leaving
+the mod overlay closed. Press F5 only if the reticle needs repairing.
+Quit the game and provide the non-cumulative DarksidersGenesisMod.log.
+Look for CameraTrace V0.34R1 READY and callback call counts.
+Successful compilation does NOT prove that either native path controls
+the rendered gameplay view. No promotion to main or public release until
+an in-game test confirms behavior. Further zoom/FOV/angle work must use
+verified live gameplay callbacks.

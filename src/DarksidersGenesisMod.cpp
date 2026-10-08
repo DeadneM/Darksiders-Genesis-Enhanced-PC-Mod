@@ -8,6 +8,7 @@
 #include "imgui_impl_dx11.h"
 #include "imgui_impl_win32.h"
 
+#include "CameraTraceFeature.h"
 #include "ConfigStore.h"
 #include "EngineIniFeature.h"
 #include "HorseFeature.h"
@@ -31,7 +32,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.34-native-focus-pulse-test";
+constexpr const char* kBuild = "0.34R1-clean-camera-trace-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -2641,6 +2642,8 @@ DWORD WINAPI MainThread(LPVOID) {
         return 0;
     }
 
+    // New read-only camera probes from the V0.34 baseline.
+    dg::camera_trace::Install(&FeatureLog);
     dg::horse::Initialize(&FeatureLog);
     Log(
         "Player identity: exact V0.14F APawn::IsLocallyControlled path restored; Jump/Glide validation is non-blocking"

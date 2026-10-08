@@ -52,7 +52,7 @@ jobs:
       - name: Upload test build
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_ASI_V0.34_NATIVE_FOCUS_PULSE_TEST
+          name: DarksidersGenesis_ASI_V0.34R1_CLEAN_CAMERA_TRACE_TEST
           path: |
             dist/dxgi.dll
             dist/DarksidersGenesisMod.asi
