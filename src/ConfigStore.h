@@ -83,6 +83,9 @@ public:
     float horseSprintSpeedMultiplier = 1.25f;
     float horseSprintDurationMultiplier = 5.00f;
     float fovDegrees = 90.0f;
+    // Positive zoom = camera closer, negative = camera farther.
+    // 0 is vanilla. Awaiting verified camera hook (V0.35B).
+    int cameraZoomPercent = 0;
     float thirdPersonDistanceMultiplier = 1.00f;
     float hotstreakChargeMultiplier = 2.00f;
 
