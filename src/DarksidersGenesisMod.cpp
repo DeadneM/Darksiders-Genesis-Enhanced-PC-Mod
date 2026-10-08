@@ -31,7 +31,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.32-lazy-overlay-focus-trace-test";
+constexpr const char* kBuild = "0.33-cursor-refresh-hidehud-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -42,6 +42,7 @@ std::wstring g_logPath;
 using PresentFn = HRESULT(__stdcall*)(IDXGISwapChain*, UINT, UINT);
 using ResizeBuffersFn = HRESULT(__stdcall*)(IDXGISwapChain*, UINT, UINT, UINT, DXGI_FORMAT, UINT);
 using HudHiddenGetterFn = bool(*)();
+using UiIsCursorVisibleFn = bool(*)(void*);
 using CharacterGetMaxSpeedFn = float(*)(void*);
 using AbilityActionEnabledFn = bool(*)(void*, unsigned char);
 using AddJuiceFn = void(*)(void*, float);
@@ -50,6 +51,7 @@ using FilterOutgoingDamageFn = void(*)(void*, void*);
 PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
 HudHiddenGetterFn g_originalHudHiddenGetter = nullptr;
+UiIsCursorVisibleFn g_originalUiIsCursorVisible = nullptr;
 CharacterGetMaxSpeedFn g_originalCharacterGetMaxSpeed = nullptr;
 AbilityActionEnabledFn g_originalAbilityActionEnabled = nullptr;
 AddJuiceFn g_originalAddJuice = nullptr;
@@ -68,9 +70,14 @@ std::atomic_bool g_captureMenuKey{false};
 std::atomic_int g_lastForegroundState{-1};
 std::atomic_uint32_t g_focusTransitionCount{0};
 std::atomic_uint32_t g_resizeBuffersTraceCount{0};
+std::atomic<void*> g_gameWindowTrace{nullptr};
+std::atomic_ullong g_nextCursorRefreshTick{0};
+std::atomic_int g_cursorRefreshAttempts{0};
+std::atomic_uint32_t g_cursorVisibilityCalls{0};
 std::atomic_int g_capturedMenuKey{0};
 std::atomic_bool g_hudHidden{false};
 std::atomic_bool g_hudHookReady{false};
+std::atomic_bool g_cursorVisibilityHookReady{false};
 std::atomic_bool g_movementHookReady{false};
 std::atomic_bool g_recoveryHookReady{false};
 std::atomic_bool g_skipIntroReady{false};
@@ -1244,6 +1251,9 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
                 characterOwner,
                 movementComponent
             );
+            ScheduleCursorRefresh(
+                "validated player instance changed"
+            );
         }
     }
 
@@ -1529,6 +1539,188 @@ bool InstallActionRecoveryV08B() {
     return true;
 }
 
+bool HookUiIsCursorVisible(void* uiManager) {
+    const bool nativeVisible =
+        g_originalUiIsCursorVisible
+            ? g_originalUiIsCursorVisible(uiManager)
+            : false;
+
+    const bool hiddenByMod =
+        g_hudHidden.load(std::memory_order_relaxed);
+
+    const auto calls =
+        g_cursorVisibilityCalls.fetch_add(1) + 1;
+
+    if (calls <= 12 || (calls % 500) == 0) {
+        Log(
+            "Cursor visibility: call=%u manager=%p native=%d hideHud=%d result=%d",
+            calls,
+            uiManager,
+            nativeVisible ? 1 : 0,
+            hiddenByMod ? 1 : 0,
+            hiddenByMod ? 0 : (nativeVisible ? 1 : 0)
+        );
+    }
+
+    return hiddenByMod ? false : nativeVisible;
+}
+
+bool InstallCursorVisibilityHook() {
+    HMODULE module = GetModuleHandleW(nullptr);
+    if (!module) {
+        Log("Cursor visibility hook: main module unavailable");
+        return false;
+    }
+
+    BYTE* target =
+        reinterpret_cast<BYTE*>(module) + 0x715800;
+
+    static constexpr BYTE kPrefix[] = {
+        0x40, 0x53,
+        0x48, 0x83, 0xEC, 0x20,
+        0x48, 0x8D, 0x99, 0xA8, 0x00, 0x00, 0x00
+    };
+
+    if (memcmp(target, kPrefix, sizeof(kPrefix)) != 0) {
+        Log(
+            "Cursor visibility hook: target validation FAILED RVA=0x715800"
+        );
+        return false;
+    }
+
+    const MH_STATUS initStatus = MH_Initialize();
+    if (initStatus != MH_OK &&
+        initStatus != MH_ERROR_ALREADY_INITIALIZED) {
+        Log(
+            "Cursor visibility hook: MinHook init FAILED status=%d",
+            static_cast<int>(initStatus)
+        );
+        return false;
+    }
+
+    MH_STATUS status = MH_CreateHook(
+        target,
+        reinterpret_cast<LPVOID>(
+            &HookUiIsCursorVisible),
+        reinterpret_cast<LPVOID*>(
+            &g_originalUiIsCursorVisible)
+    );
+
+    if (status != MH_OK &&
+        status != MH_ERROR_ALREADY_CREATED) {
+        Log(
+            "Cursor visibility hook: create FAILED status=%d",
+            static_cast<int>(status)
+        );
+        return false;
+    }
+
+    status = MH_EnableHook(target);
+    if (status != MH_OK &&
+        status != MH_ERROR_ENABLED) {
+        Log(
+            "Cursor visibility hook: enable FAILED status=%d",
+            static_cast<int>(status)
+        );
+        return false;
+    }
+
+    g_cursorVisibilityHookReady.store(true);
+    Log(
+        "Cursor visibility hook: READY UAirshipUIManager::IsCursorVisible RVA=0x715800 "
+        "Hide HUD now forces cursor invisible"
+    );
+    return true;
+}
+
+void ScheduleCursorRefresh(const char* reason) {
+    const ULONGLONG now = GetTickCount64();
+    g_nextCursorRefreshTick.store(
+        now + 350,
+        std::memory_order_relaxed
+    );
+    g_cursorRefreshAttempts.store(
+        3,
+        std::memory_order_relaxed
+    );
+
+    Log(
+        "Cursor refresh: scheduled reason=%s attempts=3 firstDelay=350ms",
+        reason ? reason : "unknown"
+    );
+}
+
+void ProcessScheduledCursorRefresh() {
+    int attempts =
+        g_cursorRefreshAttempts.load(
+            std::memory_order_relaxed
+        );
+
+    if (attempts <= 0) {
+        return;
+    }
+
+    const ULONGLONG now = GetTickCount64();
+    const ULONGLONG due =
+        g_nextCursorRefreshTick.load(
+            std::memory_order_relaxed
+        );
+
+    if (now < due) {
+        return;
+    }
+
+    HWND hwnd = reinterpret_cast<HWND>(
+        g_gameWindowTrace.load(
+            std::memory_order_relaxed)
+    );
+
+    if (!hwnd || !IsWindow(hwnd)) {
+        g_nextCursorRefreshTick.store(
+            now + 250,
+            std::memory_order_relaxed
+        );
+        return;
+    }
+
+    if (GetForegroundWindow() != hwnd) {
+        g_nextCursorRefreshTick.store(
+            now + 250,
+            std::memory_order_relaxed
+        );
+        return;
+    }
+
+    CURSORINFO cursorInfo{};
+    cursorInfo.cbSize = sizeof(cursorInfo);
+    GetCursorInfo(&cursorInfo);
+
+    const BOOL posted = PostMessageW(
+        hwnd,
+        WM_SETCURSOR,
+        reinterpret_cast<WPARAM>(hwnd),
+        MAKELPARAM(HTCLIENT, WM_MOUSEMOVE)
+    );
+
+    attempts = g_cursorRefreshAttempts.fetch_sub(1) - 1;
+    g_nextCursorRefreshTick.store(
+        now + 650,
+        std::memory_order_relaxed
+    );
+
+    Log(
+        "Cursor refresh: WM_SETCURSOR posted=%d hwnd=%p remaining=%d "
+        "cursor=%p showing=%d pos=%ld,%ld",
+        posted ? 1 : 0,
+        hwnd,
+        attempts,
+        cursorInfo.hCursor,
+        (cursorInfo.flags & CURSOR_SHOWING) ? 1 : 0,
+        cursorInfo.ptScreenPos.x,
+        cursorInfo.ptScreenPos.y
+    );
+}
+
 bool InstallHudHook() {
     BYTE* getter = ResolveHudHiddenGetter();
     if (!getter) {
@@ -1614,6 +1806,11 @@ void TriggerAction(Action action, int functionKey) {
 
         const bool hidden = !g_hudHidden.load();
         g_hudHidden.store(hidden);
+        ScheduleCursorRefresh(
+            hidden
+                ? "Hide HUD enabled"
+                : "Hide HUD disabled"
+        );
         g_lastAction = std::string("HUD ") + (hidden ? "hidden" : "visible");
         Log("F%d -> HUD %s", functionKey, hidden ? "HIDDEN" : "VISIBLE");
         return;
@@ -1986,6 +2183,11 @@ void TraceGameWindowState(IDXGISwapChain* swapChain) {
         return;
     }
 
+    g_gameWindowTrace.store(
+        desc.OutputWindow,
+        std::memory_order_relaxed
+    );
+
     const bool foreground =
         GetForegroundWindow() == desc.OutputWindow;
     const int state = foreground ? 1 : 0;
@@ -2007,12 +2209,17 @@ void TraceGameWindowState(IDXGISwapChain* swapChain) {
                     client.bottom - client.top)
                 : 0;
 
+        CURSORINFO cursorInfo{};
+        cursorInfo.cbSize = sizeof(cursorInfo);
+        GetCursorInfo(&cursorInfo);
+
         const auto count =
             g_focusTransitionCount.fetch_add(1) + 1;
 
         Log(
             "Window focus trace #%u: foreground=%d hwnd=%p iconic=%d "
-            "client=%ux%u swapDesc=%ux%u format=%u windowed=%d",
+            "client=%ux%u swapDesc=%ux%u format=%u windowed=%d "
+            "cursor=%p showing=%d pos=%ld,%ld",
             count,
             state,
             desc.OutputWindow,
@@ -2023,8 +2230,18 @@ void TraceGameWindowState(IDXGISwapChain* swapChain) {
             desc.BufferDesc.Height,
             static_cast<unsigned>(
                 desc.BufferDesc.Format),
-            desc.Windowed ? 1 : 0
+            desc.Windowed ? 1 : 0,
+            cursorInfo.hCursor,
+            (cursorInfo.flags & CURSOR_SHOWING) ? 1 : 0,
+            cursorInfo.ptScreenPos.x,
+            cursorInfo.ptScreenPos.y
         );
+
+        if (state == 1 && previous == 0) {
+            ScheduleCursorRefresh(
+                "window focus regained"
+            );
+        }
     }
 }
 
@@ -2040,6 +2257,7 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     g_config.FlushIfDue(false);
 
     TraceGameWindowState(swapChain);
+    ProcessScheduledCursorRefresh();
 
     // V0.32: do not initialize ImGui, create an RTV, or subclass the game
     // window during normal gameplay. The overlay backend is created lazily
@@ -2446,6 +2664,11 @@ DWORD WINAPI MainThread(LPVOID) {
     }
     if (!InstallHudHook()) {
         Log("Toggle HUD unavailable; renderer/input core remains active.");
+    }
+    if (!InstallCursorVisibilityHook()) {
+        Log(
+            "Cursor visibility hook unavailable; Hide HUD will keep native cursor behavior."
+        );
     }
     if (!InstallMovementSpeedHook()) {
         Log("Movement Speed unavailable; other ASI features remain active.");
