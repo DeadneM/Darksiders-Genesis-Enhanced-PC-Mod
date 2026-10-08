@@ -29,6 +29,7 @@ struct Snapshot {
     float horseSprintSpeedMultiplier = 1.25f;
     float horseSprintDurationMultiplier = 5.00f;
     float hotstreakChargeMultiplier = 2.00f;
+    int cameraZoomPercent = 0;
 };
 
 struct State {
@@ -56,6 +57,7 @@ struct State {
     std::atomic<float> horseSprintSpeedMultiplier{1.25f};
     std::atomic<float> horseSprintDurationMultiplier{5.00f};
     std::atomic<float> hotstreakChargeMultiplier{2.00f};
+    std::atomic_int cameraZoomPercent{0};
 };
 
 State& Get();
