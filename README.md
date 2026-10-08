@@ -12,7 +12,7 @@ The project is deliberately fail-open for normal runtime failures and
 - Safety hotfix **V0.31** and lazy overlay **V0.32** retained
 - Latest failed cursor experiment: **V0.33**
 - Latest user-validated gameplay base: **V0.34 manual reticle focus fix**
-- Current camera research branch: **V0.35B FOV audit + independent zoom controls**
+- Current camera research branch: **V0.35C live native camera probes**
 - Target executable:
 
 ```text
@@ -1169,3 +1169,49 @@ Retain the already validated V0.34 F5 focus pulse and all previous core
 behavior. Test by adjusting zoom, pressing Save, restarting, and verifying
 that CameraZoomPercent persists; send the per-session log and original EXE
 for the next camera-address investigation.
+
+
+## V0.35C - Native camera method discovery using the verified EXE
+
+The user supplied the exact 62,113,280-byte retail executable. A static PE64
+analysis confirms SHA-256
+`9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54`
+and resolves the following Unreal native script thunks and virtual call slots:
+
+| Unreal function | Exact thunk RVA | Native virtual slot |
+| --- | ---: | ---: |
+| APlayerCameraManager::GetFOVAngle | `0x1DB6F10` | `+0x690` |
+| UCameraComponent::GetCameraView | `0x1CE7D30` | `+0x508` |
+| UCameraComponent::SetFieldOfView | `0x1CE9980` | `+0x500` |
+
+Static Unreal reflection metadata establishes:
+- `USpringArmComponent::TargetArmLength` is at `+0x258`;
+- `UCameraComponent::FieldOfView` is at `+0x25C`.
+
+These are **type-specific offsets**, not interchangeable raw memory positions.
+The engine's camera can use different structures during cutscenes, horseback
+travel or gameplay. The exact native target functions behind the slots must
+be identified on a **live** UObject before changing camera values.
+
+V0.35C therefore installs three **read-only** MinHook telemetry hooks on the
+validated UE4 script thunks. Each:
+
+1. forwards to the original engine function unchanged;
+2. on at most the first eight calls, captures the in-scope live object's
+   virtual method address as an RVA in `DarksidersGenesisMod.log`;
+3. for the FOV getter and setter, logs the current float without changing it.
+
+The original V0.35A PE string audit remains, but its output is supplemented
+with `CameraAudit V0.35C` lines. A missing thunk call means the game is not
+using that reflected blueprint path in the tested scene; it is not evidence
+that the camera method itself does not run.
+
+**No FOV writes, zoom-distance writes, global camera detours, cached UObject
+writes, or automatic camera transitions are implemented in this candidate.**
+The FOV slider remains locked. Zoom -/+ controls persist their preference,
+but do not yet move the camera. Preserve the V0.31 horse lifetime rule and
+the validated V0.34 F5 reticle pulse.
+
+Test a normal level, switch between War and Strife, mount the horse if available,
+then send the per-session log. Native RVAs from the log enable a narrow,
+runtime-gated hook in the next iteration.
