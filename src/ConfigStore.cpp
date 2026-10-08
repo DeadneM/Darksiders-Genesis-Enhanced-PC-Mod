@@ -4,6 +4,7 @@
 #include "RuntimeSettings.h"
 
 #include <cwchar>
+#include <algorithm>
 
 namespace dg::config {
 namespace {
@@ -72,6 +73,33 @@ void WriteFloat(
         buffer,
         path.c_str()
     );
+}
+
+// User config only. Windows profile API preserves unrelated INI keys/sections.
+bool ApplyGraphicsAdapterToEngineIni(int adapter) {
+    if (adapter < 0 || adapter > 4) return false;
+    wchar_t localAppData[32768]{};
+    const DWORD length = GetEnvironmentVariableW(
+        L"LOCALAPPDATA", localAppData, static_cast<DWORD>(std::size(localAppData)));
+    if (length == 0 || length >= std::size(localAppData)) return false;
+    const std::wstring engineIni = std::wstring(localAppData) +
+        L"\\THQ Nordic\\Darksiders Genesis\\Saved\\Config\\WindowsNoEditor\\Engine.ini";
+    const auto slash = engineIni.find_last_of(L'\\');
+    if (slash == std::wstring::npos) return false;
+    const std::wstring directory = engineIni.substr(0, slash);
+    const DWORD dirAttributes = GetFileAttributesW(directory.c_str());
+    if (dirAttributes == INVALID_FILE_ATTRIBUTES ||
+        !(dirAttributes & FILE_ATTRIBUTE_DIRECTORY)) return false;
+    wchar_t desired[4]{};
+    swprintf_s(desired, L"%d", adapter);
+    wchar_t current[64]{};
+    const DWORD existing = GetPrivateProfileStringW(
+        L"SystemSettings", L"r.GraphicsAdapter", L"",
+        current, static_cast<DWORD>(std::size(current)), engineIni.c_str());
+    if (existing && wcscmp(current, desired) == 0) return true;
+    return WritePrivateProfileStringW(
+        L"SystemSettings", L"r.GraphicsAdapter", desired,
+        engineIni.c_str()) != FALSE;
 }
 
 bool IsExtendedVirtualKey(int vk) {
@@ -276,6 +304,7 @@ void Store::Log(const char* text) const {
 }
 
 void Store::ResetDefaults(bool persist) {
+    graphicsAdapter = 0;
     overlayEnabled = true;
     menuKey = VK_INSERT;
 
@@ -335,6 +364,9 @@ bool Store::Load() {
         Log("INI not found -> wrote authoritative defaults");
         return true;
     }
+
+    graphicsAdapter = std::clamp(static_cast<int>(GetPrivateProfileIntW(
+        L"System", L"GraphicsAdapter", 0, path_.c_str())), 0, 4);
 
     overlayEnabled =
         ReadBool(L"Overlay", L"Enabled", true, path_);
@@ -449,6 +481,8 @@ bool Store::Load() {
 
     PublishRuntime();
     dirty_.store(false, std::memory_order_relaxed);
+    if (!ApplyGraphicsAdapterToEngineIni(graphicsAdapter))
+        Log("Graphics Adapter: Engine.ini update failed (check game config directory)");
     Log("INI loaded");
     return true;
 }
@@ -506,6 +540,14 @@ bool Store::SaveNow() {
         L"2101",
         path_.c_str()
     );
+
+    wchar_t adapterText[4]{};
+    graphicsAdapter = std::clamp(graphicsAdapter, 0, 4);
+    swprintf_s(adapterText, L"%d", graphicsAdapter);
+    WritePrivateProfileStringW(L"System", L"GraphicsAdapter",
+        adapterText, path_.c_str());
+    if (!ApplyGraphicsAdapterToEngineIni(graphicsAdapter))
+        Log("Graphics Adapter: Engine.ini update failed (check game config directory)");
 
     WriteBool(L"Overlay", L"Enabled", overlayEnabled, path_);
     const std::wstring menuKeyToken = KeyTokenFromVK(menuKey);
