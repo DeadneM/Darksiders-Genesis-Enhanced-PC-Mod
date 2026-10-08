@@ -3166,3 +3166,37 @@ experimental, not a reliable bug fix; neither is promoted as solved.
 One build number per iteration; changes committed on main; legacy stable
 release v0.29 remains untouched. Per-launch non-cumulative log retained.
 Test V0.37 in gameplay before promoting features to release.
+
+## V0.38 - horizontal camera yaw, reticle UI and Alt-Tab mitigation (TEST)
+
+Base: main V0.37 commit 1108b307a71886a17be6187fba0a4b8a690b04a8.
+User log V0.36: Window focus trace switches foreground 1 to 0 around
+23:17:10, with no observed return before logging stops; not proof
+the mod caused lost focus. V0.37 log: Hide Reticle ON checked in menu,
+but OS pointer suppression begins only on overlay close. F6 on/off
+and Win32 SetCursor interceptions are proven by log.
+
+V0.38:
+- Native FMinimalViewInfo::Rotation.Yaw (+0x10) adjusted in transient
+  GetCameraView output only; CameraYawDegrees -180..+180, default 0,
+  configured with a live slider, number entry, default button.
+- Bindable action YawLeft and YawRight, default NumPad 4 and NumPad 6
+  with Num Lock enabled, 5 degrees per step. Prior bindings preserved.
+- Hide Reticle menu explains gameplay-only behavior and includes
+  Apply Reticle Setting and Return to Game to close the overlay.
+  F6 remains the toggle; this does not repair the underlying malformed cross.
+- Focus mitigation: restore cursor even when losing foreground
+  (V0.37 erroneously only restored when foreground); release pointer
+  clip on that suppression exit, do not block WM_ACTIVATEAPP,
+  WM_ACTIVATE, WM_SETFOCUS, WM_KILLFOCUS, WM_MOUSEACTIVATE or Alt
+  system key messages, and log WndProc focus messages.
+  Only release cursor clipping from an active overlay while the game
+  has foreground. In-game Alt-Tab still requires validation.
+- No changes to validated FOV, Zoom, Pitch, Height or horse protections.
+  Zoom postprocess Depth of Field blur is a tracked future task.
+- No release until user in-game confirmation, sequential build
+  V0.38 on main, artifacts ZIP root, session-only logs.
+
+Validation: test yaw +/-30 degrees, NumPad4/6, custom bindings,
+Hide Reticle checkbox and apply button, F6 with overlay closed,
+Alt-Tab with overlay both open and closed and Hide Reticle both states.

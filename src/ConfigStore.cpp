@@ -269,7 +269,7 @@ Store::Store() {
     hotkeys[3] = Action::SkipIntroVideos;
     hotkeys[4] = Action::ReticleFocusTest;
     hotkeys[5] = Action::ToggleReticle;
-    cameraKeys = {{VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT, 0, 0}};
+    cameraKeys = {{VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT, 0, 0, VK_NUMPAD4, VK_NUMPAD6}};
 }
 
 void Store::SetPath(const std::wstring& path) {
@@ -322,6 +322,7 @@ void Store::ResetDefaults(bool persist) {
     fovDegrees = 90.0f;
     cameraZoomPercent = 0.0f;
     cameraPitchDegrees = 0.0f;
+    cameraYawDegrees = 0.0f;
     cameraHeightOffset = 0.0f;
     thirdPersonDistanceMultiplier = 1.00f;
     hotstreakChargeMultiplier = 2.00f;
@@ -333,7 +334,7 @@ void Store::ResetDefaults(bool persist) {
     hotkeys[3] = Action::SkipIntroVideos;
     hotkeys[4] = Action::ReticleFocusTest;
     hotkeys[5] = Action::ToggleReticle;
-    cameraKeys = {{VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT, 0, 0}};
+    cameraKeys = {{VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT, 0, 0, VK_NUMPAD4, VK_NUMPAD6}};
 
     PublishRuntime();
 
@@ -443,6 +444,8 @@ bool Store::Load() {
         ReadFloat(L"Values", L"CameraZoomPercent", 0.0f, path_);
     cameraPitchDegrees =
         ReadFloat(L"Values", L"CameraPitchDegrees", 0.0f, path_);
+    cameraYawDegrees =
+        ReadFloat(L"Values", L"CameraYawDegrees", 0.0f, path_);
     cameraHeightOffset =
         ReadFloat(L"Values", L"CameraHeightOffset", 0.0f, path_);
     thirdPersonDistanceMultiplier =
@@ -524,6 +527,7 @@ void Store::PublishRuntime() const {
     runtime.fovDegrees = fovDegrees;
     runtime.cameraZoomPercent = cameraZoomPercent;
     runtime.cameraPitchDegrees = cameraPitchDegrees;
+    runtime.cameraYawDegrees = cameraYawDegrees;
     runtime.cameraHeightOffset = cameraHeightOffset;
     runtime.movementSpeedMultiplier = movementSpeedMultiplier;
     runtime.actionRecoveryDelayMs = actionRecoveryDelayMs;
@@ -616,6 +620,7 @@ bool Store::SaveNow() {
     WriteFloat(L"Values", L"FOVDegrees", fovDegrees, path_);
     WriteFloat(L"Values", L"CameraZoomPercent", cameraZoomPercent, path_);
     WriteFloat(L"Values", L"CameraPitchDegrees", cameraPitchDegrees, path_);
+    WriteFloat(L"Values", L"CameraYawDegrees", cameraYawDegrees, path_);
     WriteFloat(L"Values", L"CameraHeightOffset", cameraHeightOffset, path_);
     WriteFloat(L"Values", L"ThirdPersonDistanceMultiplier", thirdPersonDistanceMultiplier, path_);
     WriteFloat(L"Values", L"HotstreakChargeMultiplier", hotstreakChargeMultiplier, path_);

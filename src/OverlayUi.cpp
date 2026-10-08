@@ -167,13 +167,28 @@ void Draw(Context& c) {
 
             if (ImGui::Checkbox("Hide Reticle (independent of HUD)", &config.hideReticle)) {
                 config.Save();
-                *c.lastAction = config.hideReticle ? "Reticle hidden" : "Reticle restored";
+                *c.lastAction = config.hideReticle
+                    ? "Hide Reticle ON (close overlay to apply)"
+                    : "Hide Reticle OFF (close overlay to restore)";
                 if (c.log) c.log("Overlay -> Hide Reticle %s", config.hideReticle ? "ON" : "OFF");
             }
             ImGui::SameLine(310.0f);
             ImGui::TextDisabled("%s", t.reticleCursorHookReady
                 ? "Native UI cursor + Win32 SetCursor hook (F6 default)"
                 : "Win32 cursor hook unavailable; native UI fallback");
+            ImGui::TextWrapped(
+                "Hide Reticle applies in gameplay. The pointer remains visible in "
+                "this menu so its controls remain clickable."
+            );
+            if (ImGui::Button("Apply Reticle Setting and Return to Game")) {
+                config.Save();
+                c.overlayVisible->store(false);
+                *c.lastAction = config.hideReticle
+                    ? "Hide Reticle ON (returned to gameplay)"
+                    : "Hide Reticle OFF (returned to gameplay)";
+                if (c.log) c.log("Reticle V0.38: apply=%d; overlay closed",
+                    config.hideReticle ? 1 : 0);
+            }
             ImGui::TextDisabled("F5 focus pulse is NOT a reliable fix; malformed cross remains under investigation.");
 
             if (config.toggleHudEnabled) {
@@ -593,6 +608,8 @@ void Draw(Context& c) {
             ImGui::TextDisabled("FOV observed %.1f -> %.1f | pitch %.1f -> %.1f",
                 camera.nativeFov,camera.appliedFov,
                 camera.nativePitch,camera.appliedPitch);
+            ImGui::TextDisabled("Yaw observed %.1f -> %.1f",
+                camera.nativeYaw, camera.appliedYaw);
             ImGui::TextDisabled("Arm length observed %.1f -> %.1f",
                 camera.nativeArmLength,camera.appliedArmLength);
             ImGui::TextDisabled("Camera height Z %.1f -> %.1f",
@@ -663,10 +680,31 @@ void Draw(Context& c) {
                 config.cameraPitchDegrees = std::clamp(config.cameraPitchDegrees,-35.0f,35.0f);
                 config.Save();
             }
+            DrawSectionTitle("Horizontal camera rotation (yaw)");
+            ImGui::TextWrapped("Turn the camera left/right. 0 degrees = vanilla.");
+            bool yawChanged = false;
+            ImGui::SetNextItemWidth(340.0f);
+            yawChanged |= ImGui::SliderFloat("Yaw##Camera",
+                &config.cameraYawDegrees,-180.0f,180.0f,"%+.1f deg");
+            ImGui::SameLine();
+            if (ImGui::Button("Vanilla##CameraYaw")) {
+                config.cameraYawDegrees = 0.0f;
+                yawChanged = true;
+            }
+            ImGui::SetNextItemWidth(160.0f);
+            yawChanged |= ImGui::InputFloat("Manual Yaw##Camera",
+                &config.cameraYawDegrees,0.0f,0.0f,"%.1f");
+            if (yawChanged) {
+                config.cameraYawDegrees =
+                    std::clamp(config.cameraYawDegrees,-180.0f,180.0f);
+                config.Save();
+            }
+
             DrawSectionTitle("Camera keyboard bindings");
             ImGui::TextWrapped(
                 "Default: Up/Down = camera height, Left/Right = zoom. "
-                "Tilt Up/Down are unbound. Press Rebind then the new key; Esc cancels. "
+                "Tilt actions are customizable; NumPad 4/6 rotate left/right (Num Lock ON). "
+                "Press Rebind then the new key; Esc cancels. "
                 "Bindings work only with the overlay closed and the game focused."
             );
             for (size_t i = 0; i < config.cameraKeys.size(); ++i) {
@@ -689,7 +727,7 @@ void Draw(Context& c) {
                 }
                 ImGui::PopID();
             }
-            ImGui::TextDisabled("Hold keys to repeat. Steps: height 50, zoom 10%%, pitch 5 degrees.");
+            ImGui::TextDisabled("Hold keys to repeat. Steps: height 50, zoom 10%%, pitch/yaw 5 degrees.");
             ImGui::TextWrapped("Known issue: Zoom changes camera distance but not depth-of-field "
                 "focal parameters, so the scene can become blurred. DOF correction is postponed.");
             ImGui::TextDisabled("Native output changes. Actual framing requires in-game verification.");

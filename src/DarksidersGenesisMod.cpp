@@ -33,7 +33,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.37-camera-height-hotkeys-test";
+constexpr const char* kBuild = "0.38-camera-yaw-focus-reticle-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -82,9 +82,9 @@ std::atomic_uint32_t g_cursorVisibilityCalls{0};
 std::atomic_int g_capturedMenuKey{0};
 std::atomic_int g_captureCameraKeyIndex{-1};
 std::atomic_int g_capturedCameraBinding{0};
-std::array<bool, 6> g_cameraKeyHeld{};
-std::array<ULONGLONG, 6> g_cameraNextRepeat{};
-std::array<uint32_t, 6> g_cameraActionRepeatCount{};
+std::array<bool, static_cast<size_t>(dg::config::CameraAction::Count)> g_cameraKeyHeld{};
+std::array<ULONGLONG, static_cast<size_t>(dg::config::CameraAction::Count)> g_cameraNextRepeat{};
+std::array<uint32_t, static_cast<size_t>(dg::config::CameraAction::Count)> g_cameraActionRepeatCount{};
 std::atomic_bool g_hudHidden{false};
 std::atomic_bool g_hudHookReady{false};
 std::atomic_bool g_cursorVisibilityHookReady{false};
@@ -1699,19 +1699,23 @@ void RefreshReticleCursorState() {
     if (blank) {
         if (g_originalSetCursor) g_originalSetCursor(nullptr);
         else SetCursor(nullptr);
-        Log("Reticle V0.36: OS cursor forced hidden (game foreground)");
+        Log("Reticle V0.38: OS cursor forced hidden (foreground gameplay)");
     } else {
         const HWND hwnd = reinterpret_cast<HWND>(
             g_gameWindowTrace.load(std::memory_order_relaxed));
-        if (hwnd && GetForegroundWindow() == hwnd) {
-            // Restore a usable cursor until the game issues its next SetCursor.
-            HCURSOR arrow = LoadCursorW(nullptr, IDC_ARROW);
-            if (g_originalSetCursor) g_originalSetCursor(arrow);
-            else SetCursor(arrow);
+        const bool foreground = hwnd && GetForegroundWindow() == hwnd;
+        // Alt-Tab hardening: old logic restored only when foreground=true,
+        // leaving the cursor NULL after switching away from the game.
+        const HCURSOR arrow = LoadCursorW(nullptr, IDC_ARROW);
+        if (g_originalSetCursor) g_originalSetCursor(arrow);
+        else SetCursor(arrow);
+        if (!foreground) {
+            ClipCursor(nullptr);
+        } else {
             PostMessageW(hwnd, WM_SETCURSOR,
                 reinterpret_cast<WPARAM>(hwnd), MAKELPARAM(HTCLIENT, WM_MOUSEMOVE));
         }
-        Log("Reticle V0.36: OS cursor suppression ended");
+        Log("Reticle V0.38: suppression ended foreground=%d", foreground ? 1 : 0);
     }
 }
 
@@ -1977,7 +1981,7 @@ void ProcessInput() {
             g_lastAction = std::string("Camera ") +
                 dg::config::kCameraLabels[static_cast<size_t>(action)] +
                 " bound to " + KeyDisplayName(vk);
-            Log("Camera V0.37: rebound %s to %s",
+            Log("Camera V0.38: rebound %s to %s",
                 dg::config::kCameraLabels[static_cast<size_t>(action)],
                 KeyDisplayName(vk).c_str());
         }
@@ -2057,6 +2061,10 @@ void ProcessCameraInput() {
             value=&g_config.cameraPitchDegrees; delta=-5.0f; min=-35; max=35; break;
         case dg::config::CameraAction::PitchUp:
             value=&g_config.cameraPitchDegrees; delta=5.0f; min=-35; max=35; break;
+        case dg::config::CameraAction::YawLeft:
+            value=&g_config.cameraYawDegrees; delta=-5.0f; min=-180; max=180; break;
+        case dg::config::CameraAction::YawRight:
+            value=&g_config.cameraYawDegrees; delta=5.0f; min=-180; max=180; break;
         default: break;
         }
         if (value) {
@@ -2070,7 +2078,7 @@ void ProcessCameraInput() {
                 " = "+std::to_string(*value);
             const uint32_t count=++g_cameraActionRepeatCount[i];
             if (initial || count % 10 == 0)
-                Log("Camera V0.37: key %s action=%s value=%.1f",
+                Log("Camera V0.38: key %s action=%s value=%.1f",
                     KeyDisplayName(vk).c_str(), dg::config::kCameraLabels[i], *value);
         }
     }
@@ -2096,10 +2104,23 @@ void ReleaseRenderTarget() {
 }
 
 LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    // Never intercept focus/activation messages needed for Alt-Tab.
+    const bool focusMessage = msg == WM_ACTIVATEAPP || msg == WM_ACTIVATE ||
+        msg == WM_SETFOCUS || msg == WM_KILLFOCUS || msg == WM_MOUSEACTIVATE;
+    if (focusMessage) {
+        if (msg == WM_ACTIVATEAPP || msg == WM_ACTIVATE ||
+            msg == WM_SETFOCUS || msg == WM_KILLFOCUS)
+            Log("Focus V0.38: msg=0x%04X wParam=%zu overlay=%d",
+                static_cast<unsigned>(msg), static_cast<size_t>(wParam),
+                g_overlayVisible.load() ? 1 : 0);
+        return g_originalWndProc
+            ? CallWindowProcW(g_originalWndProc, hwnd, msg, wParam, lParam)
+            : DefWindowProcW(hwnd, msg, wParam, lParam);
+    }
     if (g_imguiReady.load() && g_overlayVisible.load()) {
         ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
         const int cameraCapture = g_captureCameraKeyIndex.load();
-        if (cameraCapture >= 0 && cameraCapture < 6 &&
+        if (cameraCapture >= 0 && cameraCapture < static_cast<int>(g_config.cameraKeys.size()) &&
             (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN)) {
             const int vk = static_cast<int>(wParam & 0xFF);
             if (vk == VK_ESCAPE) {
@@ -2142,9 +2163,12 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             msg == WM_MOUSEWHEEL || msg == WM_MOUSEHWHEEL ||
             msg == WM_SETCURSOR;
 
+        const bool altSystemKey =
+            (msg == WM_SYSKEYDOWN || msg == WM_SYSKEYUP) &&
+            ((GetKeyState(VK_MENU) & 0x8000) != 0 || (lParam & (1LL << 29)) != 0);
         const bool keyboardMessage =
             msg == WM_KEYDOWN || msg == WM_KEYUP ||
-            msg == WM_SYSKEYDOWN || msg == WM_SYSKEYUP ||
+            ((msg == WM_SYSKEYDOWN || msg == WM_SYSKEYUP) && !altSystemKey) ||
             msg == WM_CHAR;
 
         if ((mouseMessage && io.WantCaptureMouse) ||
@@ -2452,7 +2476,7 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     if (g_imguiReady.load() && swapChain == g_gameSwapChain && g_overlayVisible.load()) {
         // UE4 can clip or hide the cursor during gameplay. Release clipping every
         // overlay frame and let ImGui draw its own pointer.
-        ClipCursor(nullptr);
+        if (GetForegroundWindow() == g_hwnd) ClipCursor(nullptr);
 
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
