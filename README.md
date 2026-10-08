@@ -11,7 +11,8 @@ The project is deliberately fail-open for normal runtime failures and
 - Latest published binary release: **V0.29**
 - Safety hotfix **V0.31** and lazy overlay **V0.32** retained
 - Latest failed cursor experiment: **V0.33**
-- Latest user-validated source: **V0.34 manual reticle focus fix**
+- Latest user-validated gameplay base: **V0.34 manual reticle focus fix**
+- Current camera research branch: **V0.35A read-only FOV audit**
 - Target executable:
 
 ```text
@@ -63,7 +64,7 @@ The menu key and F1-F12 actions can be remapped from the overlay.
 | Horse Sprint Duration | **Validated V0.27** - native HorseCharacter stamina drain; 0x vanilla, 5x default, 20x max |
 | Horse Sprint Speed | Validated V0.29 native SprintingMaxSpeed; lifetime-safe V0.31 |
 | Manual Reticle Focus Refresh | **Validated V0.34** - press F5 if the reticle becomes malformed after level load |
-| FOV | Not implemented |
+| FOV | V0.35A native audit only; control intentionally disabled until hook validated |
 | Third Person camera | Not implemented |
 | Skip Logos | **Validated V0.19C/V0.19D** - proprietary `StartupScreens` MoviePlayer attachment bypass |
 
@@ -1104,3 +1105,41 @@ Alt-Tab may restore the normal state if focus behaves unexpectedly.
 
 **Safety:** V0.31 horse lifetime ownership rules remain untouched; V0.32 lazy
 ImGui creation remains. The V0.29 binary release is kept as a rollback option.
+
+
+## V0.35A - Native FOV/camera code reference audit (diagnostic, not a FOV fix)
+
+The existing FOV slider remains locked. The current repository has no verified
+`PlayerCameraManager`, `CameraComponent`, or `FMinimalViewInfo` hook for
+the exact shipping executable.
+
+Independent public gameplay documentation reports that the console command
+`FOV X` can change the game's view when the Unreal console is unlocked:
+https://www.pcgamingwiki.com/wiki/Darksiders_Genesis#Field_of_view_(FOV)
+
+A separate community trainer (2019) demonstrates runtime FOV adjustment, with
+different on-foot/horse and cinematic camera paths:
+https://community.pcgamingwiki.com/files/file/1714-darksiders-genesis-ultrawide-multimonitor-fov-mod/
+
+**V0.35A uses a single read-only native primitive**:
+
+- perform the usual exact retail EXE SHA-256 validation;
+- enumerate the verified PE64 `.rdata` and `.text` sections;
+- locate bounded ASCII/UTF-16 FOV and camera class/property markers;
+- enumerate nearby native RIP-relative LEA/MOV code references to those
+  markers, emitting target RVAs in the session log;
+- do **not** capture or mutate any camera/horse/player UObject pointer;
+- do **not** write FOV or hook the D3D11 projection buffer;
+- do **not** introduce a global camera heuristic.
+
+The audit is run once during successful ASI initialization. The log resets
+on every launch and records lines prefixed `CameraAudit V0.35A`.
+
+**Test:** Launch V0.35A, load a normal on-foot save, mount a horse if possible,
+then exit the game and supply `DarksidersGenesisMod.log`. The binary marker
+scan runs at startup and is the first phase of identifying a unique native
+camera hook; movement states alone do not change its output.
+
+**Do not treat FOV as implemented in V0.35A.** A new hook requires a verified
+call path and a safe in-game test. V0.31 horse pointer lifetime rules,
+V0.32 lazy overlay and V0.34 validated F5 reticle repair are left unchanged.
