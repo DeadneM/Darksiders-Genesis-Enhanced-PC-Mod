@@ -232,7 +232,8 @@ void Draw(Context& c) {
                 "%.2fx",
                 t.movementHookReady
                     ? "Runtime hook active"
-                    : "Native hook unavailable"
+                    : "Native hook unavailable",
+                t.movementHookReady
             );
 
             if (ImGui::Checkbox(
