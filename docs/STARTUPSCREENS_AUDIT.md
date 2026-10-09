@@ -528,3 +528,55 @@ Do not tag a public release before user validates in-game:
 3. Cursor/cross after loading a save, F6 reticle/overlay input.
 4. No crash, no black screen that hangs indefinitely.
 If any issue, set \`SkipLogos=0\` and restart, or restore stable V0.45.
+
+## V0.53 - Freeze V0.52 Skip Logos + Skip Intro; compact UI
+
+The user's V0.52 runtime log (2026-10-09 16:53) confirms:
+- the early verified movie-list hook installed and matched
+  the exact TWO entries: THQ_LogoBasic and AS_LogoBasic;
+- two nonexistent names substituted with nonzero count=2;
+- independent native intro CVar applied with SkipIntroVideos=1;
+- player identity, reticle hooks, camera, horse hooks, damage
+  and movement initialized; normal shutdown.
+In-game USER FEEDBACK: reticle appears OK; Skip Intro and Skip Logos
+appear to work. The user explicitly asks to FREEZE their
+implementations. Therefore V0.53 does not change:
+src/dxgi_proxy.cpp, src/SkipLogosFeature.cpp, native Skip Intro
+implementation or native reticle handling. Preserve exactly V0.52.
+
+V0.53 normalizes SkipLogos=1 and SkipIntroVideos=1 across
+new install INI, C++ Store member defaults, Reset Defaults,
+fallback reads, and RuntimeSettings init. ConfigRevision=2103,
+with explicit migration for older config revisions:
+- Old pre-2102 bypass configurations retain historical safety OFF
+  migration (do not reenable the unsafe legacy bypass).
+- Existing revision 2102 settings retain user choices, including
+  deliberate SkipLogos=0 or SkipIntroVideos=0; updating to
+  revision 2103 only synchronizes saved metadata.
+- Fresh installs and the Reset Defaults button select both ON.
+
+Overlay: beside each numeric slider's Reset button, show ONE
+dimmed LIVE/WAIT indicator, with a hover-only tooltip carrying
+technical hook details. Keep rich Combat, Horse, Camera and Recovery
+diagnostics accessible through collapsed Debug tree nodes.
+System has concise READY/restart status. Native values are not
+fabricated and no runtime feature implementation changed.
+
+NEXT FEATURE (not implemented in V0.53): new separate
+SkipWarning option to remove exactly the two startup notices
+"play with controller" and "autosave warning". They are not
+part of StartupMovies (which has exactly the two logo names)
+and must NOT be removed by the name-substitution hook. The
+startup screen definition array (noted previously at
+UStartupScreensSettings +0x50, stride 0x40) is a separate
+candidate requiring correct native timing and ownership audit.
+Neither DisableStartupScreens nor bypass SetupLoadingScreen is
+acceptable since these previously disrupted intro/cursor.
+Do not expose a checkbox that promises functionality before
+the independent warning suppression is implemented.
+Once implemented, choose a user-controlled INI default
+separately from the two frozen video skips.
+
+Normal cumulative archive, four root-level files, new V0.53
+label, no "TEST" suffix. Unified per-session Mod.log; old
+Loader.log untouched. No public release/tag without user request.

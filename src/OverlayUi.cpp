@@ -21,16 +21,17 @@ void DrawTunableFeature(
     float maxValue,
     float defaultValue,
     const char* format,
-    const char* note
+    const char* note,
+    bool hookReady
 ) {
     if (ImGui::Checkbox(label, enabled)) {
         config.Save();
     }
 
-    ImGui::SameLine(310.0f);
-    ImGui::TextDisabled("%s", note);
-
     if (!*enabled) {
+        ImGui::SameLine(310.0f);
+        ImGui::TextDisabled("%s", hookReady ? "READY" : "WAIT");
+        if (ImGui::IsItemHovered() && note) ImGui::SetTooltip("%s", note);
         return;
     }
 
@@ -72,6 +73,10 @@ void DrawTunableFeature(
         *value = defaultValue;
         changed = true;
     }
+    // V0.53: one unobtrusive status beside the selected value.
+    ImGui::SameLine();
+    ImGui::TextDisabled("%s", hookReady ? "LIVE" : "WAIT");
+    if (ImGui::IsItemHovered() && note) ImGui::SetTooltip("%s", note);
 
     if (changed) {
         if (*value < minValue) {
@@ -162,7 +167,8 @@ void Draw(Context& c) {
                 "%s",
                 t.hudHookReady
                     ? "Native ui.HideHud getter hooked"
-                    : "Native hook unavailable"
+                    : "Native hook unavailable",
+                t.movementHookReady
             );
 
             if (ImGui::Checkbox("Hide Reticle (independent of HUD)", &config.hideReticle)) {
@@ -269,9 +275,9 @@ void Draw(Context& c) {
                     config.Save();
                 }
 
+                if (ImGui::TreeNode("Recovery diagnostics##V053")) {
                 ImGui::TextDisabled(
-                    "MOVE is never forced during STARTING/RUNNING. Only AWAITING_FINISH is shortened."
-                );
+                    "MOVE forced only in AWAITING_FINISH.");
                 ImGui::TextDisabled(
                     "Queries %d | Local %d | Blocked %d | Forced %d",
                     t.actionMoveQueries,
@@ -291,6 +297,8 @@ void Draw(Context& c) {
                         t.lastActionMoveElapsed
                     );
                 }
+                ImGui::TreePop();
+                }
                 ImGui::Unindent();
             }
 
@@ -306,7 +314,8 @@ void Draw(Context& c) {
                 "%.2fx",
                 t.movementHookReady
                     ? "Runtime property hook | JumpZ + DoubleJumpZ"
-                    : "Native movement hook unavailable"
+                    : "Native movement hook unavailable",
+                t.movementHookReady
             );
 
             DrawTunableFeature(
@@ -321,7 +330,8 @@ void Draw(Context& c) {
                 "%.2fx",
                 t.movementHookReady
                     ? "Runtime property hook | GlideDurationSeconds"
-                    : "Native movement hook unavailable"
+                    : "Native movement hook unavailable",
+                t.movementHookReady
             );
 
             DrawSectionTitle("Combat");
@@ -338,20 +348,9 @@ void Draw(Context& c) {
                 "%.2fx",
                 t.finalDamageHookReady
                     ? "Final outgoing-damage hook | BaseJuice > 0"
-                    : "Final outgoing-damage hook unavailable"
+                    : "Final outgoing-damage hook unavailable",
+                t.finalDamageHookReady
             );
-
-            if (t.finalDamageHookReady) {
-                ImGui::Indent();
-                ImGui::TextDisabled(
-                    "Pistol events: %d | Last final %.2f -> %.2f | BaseJuice %.2f",
-                    t.pistolDamageBoostCalls,
-                    t.lastNativePistolDamage,
-                    t.lastBoostedPistolDamage,
-                    t.lastPistolBaseJuice
-                );
-                ImGui::Unindent();
-            }
 
             DrawTunableFeature(
                 config,
@@ -365,24 +364,9 @@ void Draw(Context& c) {
                 "%.2fx",
                 t.finalDamageHookReady
                     ? "Final outgoing-damage hook | zero-juice diagnostic"
-                    : "Final outgoing-damage hook unavailable"
+                    : "Final outgoing-damage hook unavailable",
+                t.finalDamageHookReady
             );
-
-            if (t.finalDamageHookReady) {
-                ImGui::Indent();
-                ImGui::TextDisabled(
-                    "Melee-diag events: %d | Last final %.2f -> %.2f",
-                    t.meleeDamageBoostCalls,
-                    t.lastNativeBaseDamage,
-                    t.lastBoostedBaseDamage
-                );
-                ImGui::TextDisabled(
-                    "Last DamageRecord: ScaleType %u | Tags %d",
-                    t.lastOutgoingScaleType,
-                    t.lastOutgoingTagCount
-                );
-                ImGui::Unindent();
-            }
 
             DrawTunableFeature(
                 config,
@@ -396,18 +380,24 @@ void Draw(Context& c) {
                 "%.2fx",
                 t.hotstreakHookReady
                     ? "Runtime AddJuice hook | local positive gains"
-                    : "Native AddJuice hook unavailable"
+                    : "Native AddJuice hook unavailable",
+                t.hotstreakHookReady
             );
 
-            if (t.hotstreakHookReady) {
-                ImGui::Indent();
+            if (ImGui::TreeNode("Combat diagnostics##V053")) {
                 ImGui::TextDisabled(
-                    "Boost calls: %d | Last gain %.2f -> %.2f",
-                    t.hotstreakBoostCalls,
-                    t.lastNativeJuiceGain,
-                    t.lastBoostedJuiceGain
-                );
-                ImGui::Unindent();
+                    "Pistol: %d events | final %.2f -> %.2f | juice %.2f",
+                    t.pistolDamageBoostCalls, t.lastNativePistolDamage,
+                    t.lastBoostedPistolDamage, t.lastPistolBaseJuice);
+                ImGui::TextDisabled(
+                    "Melee: %d events | final %.2f -> %.2f | scale %u",
+                    t.meleeDamageBoostCalls, t.lastNativeBaseDamage,
+                    t.lastBoostedBaseDamage, t.lastOutgoingScaleType);
+                ImGui::TextDisabled(
+                    "Hotstreak: %d boosts | %.2f -> %.2f",
+                    t.hotstreakBoostCalls, t.lastNativeJuiceGain,
+                    t.lastBoostedJuiceGain);
+                ImGui::TreePop();
             }
 
             DrawSectionTitle("Horse");
@@ -427,7 +417,8 @@ void Draw(Context& c) {
                 "%.2fx",
                 horseTelemetry.horseMovement
                     ? "HorseMovement: MaxWalkSpeed +0x1DC / MaxAcceleration +0x1F0"
-                    : "Horse captured; waiting for native movement resolver"
+                    : "Horse captured; waiting for native movement resolver",
+                horseTelemetry.horseMovement != nullptr
             );
 
             DrawTunableFeature(
@@ -442,7 +433,8 @@ void Draw(Context& c) {
                 "%.2fx",
                 horseTelemetry.horseMovement
                     ? "HorseMovement: SprintingMaxSpeed +0x760"
-                    : "Horse captured; waiting for native movement resolver"
+                    : "Horse captured; waiting for native movement resolver",
+                horseTelemetry.horseMovement != nullptr
             );
 
             DrawTunableFeature(
@@ -457,9 +449,11 @@ void Draw(Context& c) {
                 "%.2fx",
                 horseTelemetry.staminaReady
                     ? "0x = vanilla | native StaminaSprintPercentageRate +0x918"
-                    : "Waiting for native horse stamina fields"
+                    : "Waiting for native horse stamina fields",
+                horseTelemetry.staminaReady
             );
 
+            if (ImGui::TreeNode("Horse diagnostics##V053")) {
             ImGui::Indent();
             ImGui::TextDisabled(
                 "Horse: %s | native horse calls %u | horses found %u",
@@ -491,6 +485,8 @@ void Draw(Context& c) {
                 horseTelemetry.horseMovement
             );
             ImGui::Unindent();
+            ImGui::TreePop();
+            }
 
             DrawSectionTitle("System");
 
@@ -551,16 +547,11 @@ void Draw(Context& c) {
             }
             ImGui::SameLine(310.0f);
             ImGui::TextDisabled(
-                "PREFIX FILTER %s | target %s | restart for boot effect",
-                t.skipLogosPatched ? "PATCHED" : "NATIVE",
-                t.skipLogosTargetValid ? "VALID" : "INVALID"
+                "%s | restart required",
+                t.skipLogosPatched && t.skipLogosTargetValid ? "READY" : "WAIT"
             );
-            ImGui::TextWrapped(
-                "V0.46 experimental: skip only an exact THQ + Airship two-logo "
-                "playlist prefix, preserving native MoviePlayer attachment. "
-                "Unknown movie names fail open; restart needed to apply. "
-                "Turn OFF if anything behaves unexpectedly."
-            );
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip(
+                "Only two exact logo names are substituted; MoviePlayer remains native.");
 
             if (ImGui::Checkbox(
                     "Skip Intro Videos",
@@ -575,21 +566,12 @@ void Draw(Context& c) {
             }
             ImGui::SameLine(310.0f);
             ImGui::TextDisabled(
-                "%s",
-                t.skipIntroReady
-                    ? "Native g.PlayIntroCinematicOnBoot control | restart applies boot state"
-                    : "Native CVar control unavailable"
+                "%s | restart required",
+                t.skipIntroReady ? "READY" : "WAIT"
             );
 
-            if (t.skipIntroReady && t.skipIntroData) {
-                ImGui::Indent();
-                ImGui::TextDisabled(
-                    "Native CVar now: %ld | vanilla captured: %ld",
-                    *t.skipIntroData,
-                    t.skipIntroOriginalValue
-                );
-                ImGui::Unindent();
-            }
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Native g.PlayIntroCinematicOnBoot; independent of Skip Logos");
 
             ImGui::Spacing();
             ImGui::TextDisabled(
@@ -601,13 +583,17 @@ void Draw(Context& c) {
 
         if (ImGui::BeginTabItem("Camera")) {
             ImGui::Spacing();
-            DrawSectionTitle("Camera controls (experimental)");
+            DrawSectionTitle("Camera controls");
             ImGui::TextWrapped(
                 "These controls use native camera hooks. They may not affect all "
                 "gameplay, mounted, or cinematic cameras. Defaults preserve vanilla."
             );
 
             const dg::camera_trace::Telemetry camera = dg::camera_trace::GetTelemetry();
+            ImGui::TextDisabled("Camera: %s | SpringArm: %s",
+                camera.viewReady ? "READY" : "WAIT",
+                camera.armReady ? "READY" : "WAIT");
+            if (ImGui::TreeNode("Camera diagnostics##V053")) {
             ImGui::Text("GetCameraView: %s | calls: %u",
                 camera.viewReady ? "READY" : "UNAVAILABLE", camera.viewCalls);
             ImGui::Text("SpringArm: %s | calls: %u",
@@ -621,12 +607,15 @@ void Draw(Context& c) {
                 camera.nativeArmLength,camera.appliedArmLength);
             ImGui::TextDisabled("Camera height Z %.1f -> %.1f",
                 camera.nativeHeight,camera.appliedHeight);
+                ImGui::TreePop();
+            }
 
             DrawSectionTitle("Field of view");
             DrawTunableFeature(config,"Enable FOV Override","FOV",
                 &config.fovEnabled,&config.fovDegrees,
                 40.0f,140.0f,90.0f,"%.0f deg",
-                camera.viewReady ? "Native view output" : "Hook not ready");
+                camera.viewReady ? "Native view output" : "Hook not ready",
+                camera.viewReady);
             ImGui::TextDisabled("OFF restores the game's original FOV.");
 
             DrawSectionTitle("Camera distance");

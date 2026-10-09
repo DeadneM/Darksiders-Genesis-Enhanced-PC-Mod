@@ -9,7 +9,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2102;
+constexpr int kConfigRevision = 2103;
 
 bool ReadBool(
     const wchar_t* section,
@@ -295,7 +295,7 @@ void Store::ResetDefaults(bool persist) {
     toggleHudEnabled = true;
     movementSpeedEnabled = true;
     actionRecoveryEnabled = true;
-    skipLogosEnabled = false;
+    skipLogosEnabled = true;
     skipIntroEnabled = true;
     thirdPersonEnabled = false;
     pistolDamageEnabled = true;
@@ -391,7 +391,7 @@ bool Store::Load() {
     actionRecoveryEnabled =
         ReadBool(L"Features", L"ActionRecovery", true, path_);
     skipLogosEnabled =
-        ReadBool(L"Features", L"SkipLogos", false, path_);
+        ReadBool(L"Features", L"SkipLogos", true, path_);
     skipIntroEnabled =
         ReadBool(L"Features", L"SkipIntroVideos", true, path_);
     thirdPersonEnabled =
@@ -498,12 +498,20 @@ bool Store::Load() {
         Log("INI migrated legacy features; unsafe Skip Logos bypass remains OFF");
         return true;
     }
-    if (revision < kConfigRevision) {
-        // V0.43: migrate older INIs which defaulted SkipLogos=1.
-        // Preserve every other saved setting.
+    if (revision < 2102) {
+        // Historical unsafe-bypass migration: never auto-enable the old
+        // implementation on legacy settings that predate the safe system.
         skipLogosEnabled = false;
         SaveNow();
         Log("INI migration V0.43: reset legacy StartupScreens bypass OFF; other options preserved");
+        return true;
+    }
+    if (revision < kConfigRevision) {
+        // V0.53: change DEFAULTS for new installs and Reset Defaults only.
+        // Existing user choices (including SkipLogos=0) are respected.
+        PublishRuntime();
+        SaveNow();
+        Log("INI V0.53: preserve existing startup choices; defaults are now ON");
         return true;
     }
 
@@ -570,7 +578,7 @@ bool Store::SaveNow() {
     WritePrivateProfileStringW(
         L"Meta",
         L"ConfigRevision",
-        L"2102",
+        L"2103",
         path_.c_str()
     );
 
