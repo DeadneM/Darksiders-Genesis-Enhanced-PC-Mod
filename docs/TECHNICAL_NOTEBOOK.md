@@ -3590,3 +3590,19 @@ New per-session canonical filename: `DarksidersGenesisMod.log`.
 - IMPORTANT: user's uploaded logs at 15:03 were still from V0.45,
   so they do not validate V0.46's experimental Skip Logos.
 - Keep public release unchanged pending user tests of V0.47.
+
+## V0.48 - Preserve old Loader.log files (requested correction)
+
+V0.47 introduced a single log but unnecessarily deleted the existing
+`DarksidersGenesisLoader.log` on process attach. **V0.48 removes that
+DeleteFileW operation and its related stale-file path entirely.**
+From now on the mod does not CREATE, WRITE, RESET or DELETE
+`DarksidersGenesisLoader.log`. An existing old loader log is preserved
+byte-for-byte on disk. It is historical data, not an active logfile.
+
+All early proxy and ASI events still go to the single per-session
+`DarksidersGenesisMod.log`; the proxy truncates only that file once
+per game launch and the ASI appends without discarding early events.
+Compact filtering, settings, hooks and the V0.46 experimental selective
+Skip Logos implementation remain unchanged. Build uses the existing
+root-level four-file ZIP layout; no public tagged release until tested.

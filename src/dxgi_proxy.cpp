@@ -24,14 +24,9 @@ static void LogLoader(const wchar_t* message) {
     if (!slash) return;
     *(slash + 1) = L'\0';
     if (wcslen(path) + 28 >= MAX_PATH) return;
+    // V0.48: preserve any old Loader.log file as-is. Never create it,
+    // open it, truncate it, or delete it. Only the unified Mod.log is used.
     const bool first = !g_loaderLogInitialized.exchange(true);
-    if (first) {
-        // Remove the obsolete two-log artifact from older installations.
-        wchar_t stale[MAX_PATH]{};
-        lstrcpyW(stale, path);
-        lstrcatW(stale, L"DarksidersGenesisLoader.log");
-        DeleteFileW(stale);
-    }
     wcscat_s(path, L"DarksidersGenesisMod.log");
 
     // Suppress routine loader internals; retain errors and Skip Logos state.
