@@ -86,13 +86,24 @@ References (public API, not reverse-engineered local evidence):
 
 ## Next binary analysis, before implementing a new patch
 
-The game's original executable is **not available among currently
-accessible conversation and Project/Library file attachments**; the
-repository contains only the patch/mod sources, not the proprietary
-game executable. Do not claim to have directly disassembled more
-code than the stored instruction bytes.
+**Update after the EXE upload (V0.44):** The user supplied the
+matching executable. Its 62,113,280-byte length and complete SHA-256
+were verified, and the function at RVA 0x25FE40 through 0x260257 was
+directly disassembled. Original StartupMovies loading and the 19-byte
+MoviePlayer call sequence were corroborated. Runtime names are still
+unknown until the native MoviePaths diagnostic runs in game.
 
-When a matching legitimately owned EXE is provided:
+Direct disassembly establishes these instructions:
+- `0x25FE90`: call `0x2603F0` to retrieve startup settings;
+- `0x25FE98`: `[settings-provider + 0xF8]` is the settings UObject;
+- `0x25FF31`: read movie count from `[rsi + 0x8]` after
+  `rsi += 0x38` and copy movies into `[rbp - 0x68]`;
+- `0x260244`: `call 0x1608B90`;
+- `0x260253`: `call [r9 + 0x20]` with attributes at
+  `[rbp - 0x78]`;
+- `0x260257`: native continuation.
+
+**For the next runtime probe and logo-only implementation:**
 1. Verify original 62,113,280-byte size and exact SHA-256 above.
 2. Disassemble `0x25FE40..0x260300`, recording the ownership and
    lifetime of `SStartupScreens`, `UStartupScreensSettings`, its
