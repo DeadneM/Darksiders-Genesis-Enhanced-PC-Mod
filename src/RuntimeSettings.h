@@ -7,8 +7,6 @@ namespace dg::runtime {
 struct Snapshot {
     bool toggleHudEnabled = true;
     bool hideReticle = false;
-    bool autoReticleRefreshOnLoad = true;
-    int crossCursorTestMode = 0;
     bool fovEnabled = false;
     bool movementSpeedEnabled = true;
     bool actionRecoveryEnabled = true;
@@ -43,8 +41,6 @@ struct Snapshot {
 struct State {
     std::atomic_bool toggleHudEnabled{true};
     std::atomic_bool hideReticle{false};
-    std::atomic_bool autoReticleRefreshOnLoad{true};
-    std::atomic_int crossCursorTestMode{0};
     std::atomic_bool fovEnabled{false};
     std::atomic_bool movementSpeedEnabled{true};
     std::atomic_bool actionRecoveryEnabled{true};

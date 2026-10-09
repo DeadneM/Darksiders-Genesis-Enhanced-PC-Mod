@@ -165,13 +165,6 @@ void Draw(Context& c) {
                     : "Native hook unavailable"
             );
 
-            if (ImGui::Checkbox("Auto-repair cross after save load (experimental)", &config.autoReticleRefreshOnLoad)) {
-                config.Save();
-                if (c.log) c.log("Reticle V0.41: auto focus cycle %s",
-                    config.autoReticleRefreshOnLoad ? "ON" : "OFF");
-            }
-            ImGui::TextDisabled("Replays the existing F5 focus cycle once after the game loads a save.");
-            ImGui::TextDisabled("Turn this OFF if focus is disturbed. Manual F5 remains available.");
             if (ImGui::Checkbox("Hide Reticle (independent of HUD)", &config.hideReticle)) {
                 config.Save();
                 *c.lastAction = config.hideReticle
@@ -187,37 +180,17 @@ void Draw(Context& c) {
                 "Hide Reticle applies in gameplay. The pointer remains visible in "
                 "this menu so its controls remain clickable."
             );
-            if (ImGui::Button("Apply Cursor Settings and Return to Game")) {
+            if (ImGui::Button("Apply Hide Reticle and Return to Game")) {
                 config.Save();
                 c.overlayVisible->store(false);
                 *c.lastAction = config.hideReticle
                     ? "Hide Reticle ON (returned to gameplay)"
                     : "Hide Reticle OFF (returned to gameplay)";
-                if (c.log) c.log("Reticle V0.40: apply=%d mode=%d overlay closed",
-                    config.hideReticle ? 1 : 0,config.crossCursorTestMode);
+                if (c.log) c.log("Reticle V0.42: Hide Reticle apply=%d overlay closed",
+                    config.hideReticle ? 1 : 0);
             }
-            DrawSectionTitle("Malformed cross after loading saves (source test)");
-            ImGui::TextWrapped(
-                "This is a diagnostic experiment: does the cross originate "
-                "from Windows or from the native Unreal UI? "
-                "Turn Hide Reticle OFF first, then test each mode separately."
-            );
-            const char* cursorModes[] = {
-                "0 - Off: original cursor rendering",
-                "1 - Hide only Windows cursor (keep native UI)",
-                "2 - Hide only native UI cursor (keep Windows)"
-            };
-            ImGui::SetNextItemWidth(440.0f);
-            if (ImGui::Combo("Cross Cursor Source Test",
-                &config.crossCursorTestMode,cursorModes,IM_ARRAYSIZE(cursorModes))) {
-                config.Save();
-                if (c.log) c.log("Reticle V0.40: source test mode=%d",
-                    config.crossCursorTestMode);
-            }
-            if (config.hideReticle)
-                ImGui::TextDisabled("Hide Reticle ON overrides both tests. Set it OFF.");
-            ImGui::TextDisabled("After each mode, click Apply Cursor Settings and Return to Game.");
-            ImGui::TextDisabled("V0.41 auto recovery is a test; manual F5 and Alt-Tab repair the cross.");
+            ImGui::TextDisabled("Reticle investigation: inspect passive cursor log before and after a real Alt-Tab.");
+            ImGui::TextDisabled("F5 remains a manual rescue shortcut only; no automatic focus replay.");
 
             if (config.toggleHudEnabled) {
                 bool hudHidden = c.hudHidden->load();
@@ -911,7 +884,7 @@ void Draw(Context& c) {
 
             ImGui::Spacing();
             ImGui::TextDisabled(
-                "Test INI: F1 HUD | F2 Movement | F3 Recovery | F4 Skip Intro | F5 Reticle Focus | F6 Toggle Reticle | F7-F12 None"
+                "Test INI: F1 HUD | F2 Movement | F3 Recovery | F4 Skip Intro | F5 manual cursor test | F6 Hide Reticle | F7-F12 None"
             );
             ImGui::EndTabItem();
         }

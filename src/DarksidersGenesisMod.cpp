@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <intrin.h>
 #include <d3d11.h>
 #include <dxgi.h>
 
@@ -33,7 +34,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.41-auto-reticle-focus-after-save-load-test";
+constexpr const char* kBuild = "0.42-cursor-provenance-cleanup-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -75,14 +76,9 @@ std::atomic_int g_lastForegroundState{-1};
 std::atomic_uint32_t g_focusTransitionCount{0};
 std::atomic_uint32_t g_resizeBuffersTraceCount{0};
 std::atomic<void*> g_gameWindowTrace{nullptr};
-// Experimental, opt-in focus invalidation for the reticle. No automatic use.
+// Manual F5-only fallback retained for comparison; no auto focus simulation.
 std::atomic_int g_focusPulseStage{0};
 std::atomic_ullong g_focusPulseRestoreTick{0};
-// V0.41: one-shot replay of the known user-effective F5 cycle after load.
-std::atomic_ullong g_autoReticleDueTick{0};
-std::atomic_ullong g_autoReticleLastPulseTick{0};
-std::atomic_uint32_t g_autoReticleArms{0};
-std::atomic_uint32_t g_autoReticlePulses{0};
 std::atomic_uint32_t g_cursorVisibilityCalls{0};
 std::atomic_int g_capturedMenuKey{0};
 std::atomic_int g_captureCameraKeyIndex{-1};
@@ -99,6 +95,11 @@ std::atomic_uint32_t g_reticleCursorIntercepts{0};
 std::atomic<HCURSOR> g_lastRequestedGameCursor{nullptr};
 std::atomic_uint32_t g_cursorProbeChanges{0};
 std::atomic_int g_lastNativeCursorVisible{-1};
+std::atomic<HCURSOR> g_lastObservedDesktopCursor{nullptr};
+std::atomic_uint32_t g_lastObservedDesktopFlags{0xFFFFFFFFu};
+std::atomic_uint32_t g_cursorSnapshotCount{0};
+std::atomic_ullong g_cursorNextSnapshotTick{0};
+std::atomic_bool g_lastCursorSnapshotForeground{false};
 std::atomic_bool g_movementHookReady{false};
 std::atomic_bool g_recoveryHookReady{false};
 std::atomic_bool g_skipIntroReady{false};
@@ -155,7 +156,7 @@ using dg::config::KeyDisplayName;
 dg::config::Store g_config;
 
 void ProcessReticleFocusPulse();
-void ProcessAutoReticleRecovery();
+void TraceDesktopCursorState(const char* reason, bool force);
 
 void InitializePaths() {
     wchar_t path[MAX_PATH]{};
@@ -1569,27 +1570,16 @@ bool HookUiIsCursorVisible(void* uiManager) {
             : false;
 
     const auto& runtime = dg::runtime::Get();
-    const int mode = runtime.crossCursorTestMode.load(std::memory_order_relaxed);
     const bool hiddenByMod =
         g_hudHidden.load(std::memory_order_relaxed) ||
-        runtime.hideReticle.load(std::memory_order_relaxed) ||
-        mode == 2;
+        runtime.hideReticle.load(std::memory_order_relaxed);
     const int nativeState = nativeVisible ? 1 : 0;
     const int lastNative = g_lastNativeCursorVisible.exchange(nativeState);
-    if (lastNative != nativeState) {
-        Log("Reticle V0.40: native UI cursor changed %d -> %d testMode=%d",
-            lastNative,nativeState,mode);
-        if (lastNative == 0 && nativeState == 1 &&
-            runtime.autoReticleRefreshOnLoad.load(std::memory_order_relaxed)) {
-            const ULONGLONG now = GetTickCount64();
-            const ULONGLONG lastPulse = g_autoReticleLastPulseTick.load(std::memory_order_relaxed);
-            if (lastPulse == 0 || now - lastPulse > 20000ull) {
-                g_autoReticleDueTick.store(now + 2500ull, std::memory_order_relaxed);
-                const unsigned n = ++g_autoReticleArms;
-                Log("Reticle V0.41: native cursor 0->1; auto focus cycle armed #%u delay=2500ms",n);
-            }
-        }
-    }
+    if (lastNative != nativeState)
+        Log("CursorProbe V0.42: native UI visibility %d -> %d manager=%p hideReticle=%d hudHidden=%d",
+            lastNative, nativeState, uiManager,
+            runtime.hideReticle.load(std::memory_order_relaxed) ? 1 : 0,
+            g_hudHidden.load(std::memory_order_relaxed) ? 1 : 0);
 
     const auto calls =
         g_cursorVisibilityCalls.fetch_add(1) + 1;
@@ -1684,8 +1674,7 @@ bool ShouldBlankGameCursor() {
     const HWND hwnd = reinterpret_cast<HWND>(
         g_gameWindowTrace.load(std::memory_order_relaxed));
     const auto& runtime = dg::runtime::Get();
-    const bool hideWindows = runtime.hideReticle.load(std::memory_order_relaxed) ||
-        runtime.crossCursorTestMode.load(std::memory_order_relaxed) == 1;
+    const bool hideWindows = runtime.hideReticle.load(std::memory_order_relaxed);
     return hwnd && GetForegroundWindow() == hwnd &&
         !g_overlayVisible.load(std::memory_order_relaxed) && hideWindows;
 }
@@ -1699,16 +1688,24 @@ HCURSOR WINAPI HookSetCursor(HCURSOR requested) {
         const HCURSOR previous = g_lastRequestedGameCursor.exchange(requested);
         if (previous != requested) {
             const uint32_t n = g_cursorProbeChanges.fetch_add(1) + 1;
-            if (n <= 24 || n % 200 == 0)
-                Log("Reticle V0.40: OS SetCursor change=%u before=%p requested=%p mode=%d",
-                    n,previous,requested,
-                    dg::runtime::Get().crossCursorTestMode.load(std::memory_order_relaxed));
+            if (n <= 40) {
+                // Read-only callsite evidence: relative RVA distinguishes a
+                // game's cursor-request origin from a system/User32 origin.
+                void* caller = _ReturnAddress();
+                const uintptr_t base = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+                const uintptr_t addr = reinterpret_cast<uintptr_t>(caller);
+                const uintptr_t rva = addr >= base && addr - base < 0x03DDF000u
+                    ? addr - base : 0;
+                Log("CursorProbe V0.42: SetCursor change=%u thread=%lu before=%p requested=%p caller=%p gameCallerRVA=0x%llX",
+                    n,static_cast<unsigned long>(GetCurrentThreadId()),previous,
+                    requested,caller,static_cast<unsigned long long>(rva));
+            }
         }
     }
     if (!ShouldBlankGameCursor()) return g_originalSetCursor(requested);
     const unsigned calls = g_reticleCursorIntercepts.fetch_add(1) + 1;
     if (calls <= 8 || calls % 500 == 0) {
-        Log("Reticle V0.40: SetCursor intercepted=%u requested=%p -> NULL",
+        Log("Reticle V0.42: SetCursor intercepted=%u requested=%p -> NULL",
             calls, requested);
     }
     return g_originalSetCursor(nullptr);
@@ -1742,8 +1739,7 @@ void RefreshReticleCursorState() {
     if (blank) {
         if (g_originalSetCursor) g_originalSetCursor(nullptr);
         else SetCursor(nullptr);
-        Log("Reticle V0.40: OS cursor forced hidden mode=%d",
-            dg::runtime::Get().crossCursorTestMode.load(std::memory_order_relaxed));
+        Log("Reticle V0.42: OS cursor hidden by existing Hide Reticle");
     } else {
         const HWND hwnd = reinterpret_cast<HWND>(
             g_gameWindowTrace.load(std::memory_order_relaxed));
@@ -1759,41 +1755,8 @@ void RefreshReticleCursorState() {
             PostMessageW(hwnd, WM_SETCURSOR,
                 reinterpret_cast<WPARAM>(hwnd), MAKELPARAM(HTCLIENT, WM_MOUSEMOVE));
         }
-        Log("Reticle V0.40: suppression ended foreground=%d", foreground ? 1 : 0);
+        Log("Reticle V0.42: suppression ended foreground=%d", foreground ? 1 : 0);
     }
-}
-
-// V0.41: dispatch only from Present and only during real focused gameplay.
-// The same state machine used by the user-confirmed manual F5 is reused.
-void ProcessAutoReticleRecovery() {
-    const ULONGLONG due = g_autoReticleDueTick.load(std::memory_order_relaxed);
-    if (!due) return;
-    auto& runtime = dg::runtime::Get();
-    if (!runtime.autoReticleRefreshOnLoad.load(std::memory_order_relaxed) ||
-        runtime.hideReticle.load(std::memory_order_relaxed)) {
-        g_autoReticleDueTick.store(0, std::memory_order_relaxed);
-        return;
-    }
-    const ULONGLONG now = GetTickCount64();
-    if (now < due) return;
-    if (now - due > 30000ull) {
-        g_autoReticleDueTick.store(0, std::memory_order_relaxed);
-        Log("Reticle V0.41: auto focus refresh expired (gameplay not ready)");
-        return;
-    }
-    const HWND hwnd = reinterpret_cast<HWND>(
-        g_gameWindowTrace.load(std::memory_order_relaxed));
-    if (!hwnd || !IsWindow(hwnd) || IsIconic(hwnd) ||
-        GetForegroundWindow() != hwnd ||
-        g_overlayVisible.load(std::memory_order_relaxed) ||
-        !g_localPlayerCharacter.load(std::memory_order_relaxed)) return;
-    int stage = 0;
-    if (!g_focusPulseStage.compare_exchange_strong(stage, 1, std::memory_order_relaxed))
-        return;
-    g_autoReticleDueTick.store(0, std::memory_order_relaxed);
-    g_autoReticleLastPulseTick.store(now, std::memory_order_relaxed);
-    const unsigned n = ++g_autoReticlePulses;
-    Log("Reticle V0.41: AUTO F5-style focus repair queued #%u",n);
 }
 
 // V0.34: a controlled experiment, not a permanent focus fix.
@@ -1860,6 +1823,7 @@ void ProcessReticleFocusPulse() {
             ci.ptScreenPos.x, ci.ptScreenPos.y,
             GetForegroundWindow() == hwnd ? 1 : 0);
         g_focusPulseStage.store(0, std::memory_order_relaxed);
+        TraceDesktopCursorState("after manual F5", true);
     }
 }
 
@@ -1964,7 +1928,7 @@ void TriggerAction(Action action, int functionKey) {
     }
 
     if (action == Action::ReticleFocusTest) {
-        g_autoReticleDueTick.store(0, std::memory_order_relaxed);
+        TraceDesktopCursorState("before manual F5", true);
         int expected = 0;
         if (!g_focusPulseStage.compare_exchange_strong(
                 expected, 1, std::memory_order_relaxed)) {
@@ -2466,6 +2430,55 @@ dg::overlay::Context BuildOverlayContext() {
     return context;
 }
 
+
+void TraceDesktopCursorState(const char* reason, bool force) {
+    const ULONGLONG now = GetTickCount64();
+    const ULONGLONG due = g_cursorNextSnapshotTick.load(std::memory_order_relaxed);
+    if (!force && now < due) return;
+    g_cursorNextSnapshotTick.store(now + 350ull, std::memory_order_relaxed);
+
+    const HWND hwnd = reinterpret_cast<HWND>(
+        g_gameWindowTrace.load(std::memory_order_relaxed));
+    if (!hwnd || !IsWindow(hwnd)) return;
+    const bool foreground = GetForegroundWindow() == hwnd;
+    CURSORINFO ci{};
+    ci.cbSize = sizeof(ci);
+    const BOOL ok = GetCursorInfo(&ci);
+    if (!ok) return;
+    const HCURSOR previous = g_lastObservedDesktopCursor.exchange(ci.hCursor);
+    const DWORD oldFlags = g_lastObservedDesktopFlags.exchange(ci.flags);
+    const bool oldForeground = g_lastCursorSnapshotForeground.exchange(foreground);
+    if (!force && previous == ci.hCursor && oldFlags == ci.flags &&
+        oldForeground == foreground) return;
+    const unsigned count = g_cursorSnapshotCount.fetch_add(1) + 1;
+    if (count > 70) return;
+
+    // GetIconInfo allocates GDI bitmaps. Release BOTH on every successful call.
+    ICONINFO icon{};
+    const BOOL hasIcon = ci.hCursor && GetIconInfo(ci.hCursor, &icon);
+    BITMAP mask{};
+    BITMAP color{};
+    if (hasIcon && icon.hbmMask) GetObjectW(icon.hbmMask, sizeof(mask), &mask);
+    if (hasIcon && icon.hbmColor) GetObjectW(icon.hbmColor, sizeof(color), &color);
+    if (hasIcon && icon.hbmMask) DeleteObject(icon.hbmMask);
+    if (hasIcon && icon.hbmColor) DeleteObject(icon.hbmColor);
+
+    RECT clip{};
+    const BOOL clipped = GetClipCursor(&clip);
+    Log("CursorProbe V0.42: snapshot #%u reason=%s gameForeground=%d overlay=%d hideReticle=%d desktopCursor=%p flags=0x%lX mouse=%ld,%ld "
+        "iconInfo=%d hotspot=%lu,%lu mask=%ldx%ld color=%ldx%ld clipValid=%d clip=%ld,%ld,%ld,%ld lastRequest=%p nativeVisible=%d",
+        count,reason,foreground ? 1 : 0,g_overlayVisible.load() ? 1 : 0,
+        dg::runtime::Get().hideReticle.load(std::memory_order_relaxed) ? 1 : 0,
+        ci.hCursor,static_cast<unsigned long>(ci.flags),
+        ci.ptScreenPos.x,ci.ptScreenPos.y,hasIcon ? 1 : 0,
+        hasIcon ? static_cast<unsigned long>(icon.xHotspot) : 0ul,
+        hasIcon ? static_cast<unsigned long>(icon.yHotspot) : 0ul,
+        mask.bmWidth,mask.bmHeight,color.bmWidth,color.bmHeight,
+        clipped ? 1 : 0,clip.left,clip.top,clip.right,clip.bottom,
+        g_lastRequestedGameCursor.load(std::memory_order_relaxed),
+        g_lastNativeCursorVisible.load(std::memory_order_relaxed));
+}
+
 void TraceGameWindowState(IDXGISwapChain* swapChain) {
     if (!swapChain) {
         return;
@@ -2537,9 +2550,7 @@ void TraceGameWindowState(IDXGISwapChain* swapChain) {
             cursorInfo.ptScreenPos.y
         );
 
-        // A real Alt-Tab repairs the user's cross already, so it wins.
-        if (!foreground && g_autoReticleDueTick.exchange(0, std::memory_order_relaxed))
-            Log("Reticle V0.41: pending auto focus refresh cancelled on real Alt-Tab");
+        // Focus events are evidence only. No synthetic recovery is queued.
     }
 }
 
@@ -2555,9 +2566,9 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     g_config.FlushIfDue(false);
 
     TraceGameWindowState(swapChain);
+    TraceDesktopCursorState("Present cursor state", false);
     ProcessCameraInput();
     RefreshReticleCursorState();
-    ProcessAutoReticleRecovery();
     ProcessReticleFocusPulse();
 
     // V0.32: do not initialize ImGui, create an RTV, or subclass the game
@@ -2857,7 +2868,6 @@ void ShutdownMod() {
     }
 
     Log("Shutdown: begin");
-    g_autoReticleDueTick.store(0, std::memory_order_relaxed);
     g_config.FlushIfDue(true);
     dg::skip_logos::Shutdown();
     dg::horse::Shutdown();

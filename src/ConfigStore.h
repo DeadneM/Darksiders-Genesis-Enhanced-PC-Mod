@@ -82,8 +82,6 @@ public:
     bool horseSprintDurationEnabled = true;
     bool fovEnabled = false;
     bool hideReticle = false;
-    bool autoReticleRefreshOnLoad = true;
-    int crossCursorTestMode = 0; // 0 native, 1 OS-only blank, 2 UI-only blank
     bool hotstreakChargeEnabled = true;
 
     float movementSpeedMultiplier = 1.50f;
