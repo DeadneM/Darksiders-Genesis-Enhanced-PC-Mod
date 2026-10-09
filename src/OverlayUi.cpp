@@ -665,7 +665,7 @@ void Draw(Context& c) {
             }
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
-                ImGui::TextDisabled("Controller TPS combat (experimental)");
+                ImGui::TextDisabled("Controller TPS combat (V0.59 experimental world yaw)");
                 if (ImGui::Checkbox("TPS aim while firing / throwing (RT or RB)",
                         &config.tpsControllerCombatAim)) config.Save();
                 if (ImGui::Checkbox("TPS camera-relative left stick / strafing",
@@ -681,7 +681,8 @@ void Draw(Context& c) {
                     }
                 }
                 ImGui::TextDisabled("LB ability wheel stays vanilla; off outside Third Person.");
-                ImGui::TextDisabled("Controller #1 only; Strife ranged & thrown items to test.");
+                ImGui::TextDisabled("Controller #1 only; yaw rate capped 180 deg/s.");
+                ImGui::TextDisabled("Native player yaw sampled for log diagnostics; no direct actor writes.");
                 ImGui::Unindent();
             }
             ImGui::TextDisabled("Third Person suppresses native mouse/right-stick aiming (V0.57 test).");

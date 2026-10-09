@@ -35,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.58-tps-controller-combat-test";
+constexpr const char* kBuild = "0.59-tps-absolute-yaw-and-actor-probe";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -77,6 +77,15 @@ std::atomic_uint32_t g_nativePadAimSuppressed{0};
 std::atomic_uint32_t g_tpsCombatAimSamples{0};
 std::atomic_uint32_t g_tpsStrafeSamples{0};
 std::atomic_uint32_t g_tpsCombatFireSamples{0};
+// V0.59: actor-heading telemetry sampled ONLY from a live validated player
+// movement callback. Never dereference a cached UObject in Present/XInput.
+std::atomic<float> g_tpsActorWorldYaw{0.0f};
+std::atomic_ullong g_tpsActorYawTick{0};
+std::atomic_uint32_t g_tpsActorYawSamples{0};
+std::atomic_ullong g_tpsLastAimTick{0};
+std::atomic<float> g_tpsDesiredYawDegrees{0.0f};
+std::atomic<float> g_tpsCommandYawDegrees{0.0f};
+std::atomic_bool g_tpsAimCommandReady{false};
 std::atomic_int g_orbitMouseDx{0},g_orbitMouseDy{0};
 std::atomic_ullong g_lastOrbitRawTick{0};
 ULONGLONG g_orbitLastPresentTick=0;
@@ -1291,6 +1300,36 @@ bool ApplyPlayerMovementTunings(void* movementComponent) {
     return true;
 }
 
+
+void CaptureLiveTPSActorYaw(void* actor) {
+    if (!actor || !g_targetValidation.exact ||
+        !dg::runtime::Get().thirdPersonEnabled.load(std::memory_order_relaxed))
+        return;
+    // Confirmed in the supplied exact build: native GetNormalizedAimRotation
+    // getter RVAs 0x638240/0x570260 read Actor.RootComponent at +0x158,
+    // and compare cached root-component FRotator at +0x1F0..0x1F8
+    // with live actor rotation at +0x900..0x904.
+    // This is observation only, not a rotation or actor write.
+    auto* bytes=static_cast<unsigned char*>(actor);
+    MEMORY_BASIC_INFORMATION mbi{};
+    if (!VirtualQuery(bytes+0x158,&mbi,sizeof(mbi)) || mbi.State!=MEM_COMMIT ||
+        (mbi.Protect & (PAGE_NOACCESS|PAGE_GUARD))) return;
+    void* root=nullptr;
+    std::memcpy(&root,bytes+0x158,sizeof(root));
+    if (!root) return;
+    auto* yawPtr=static_cast<unsigned char*>(root)+0x1F4;
+    if (!VirtualQuery(yawPtr,&mbi,sizeof(mbi)) || mbi.State!=MEM_COMMIT ||
+        (mbi.Protect & (PAGE_NOACCESS|PAGE_GUARD))) return;
+    float yaw=0.0f;
+    std::memcpy(&yaw,yawPtr,sizeof(yaw));
+    if (!std::isfinite(yaw) || std::fabs(yaw)>36000.0f) return;
+    g_tpsActorWorldYaw.store(std::remainder(yaw,360.0f));
+    g_tpsActorYawTick.store(GetTickCount64());
+    const unsigned count=g_tpsActorYawSamples.fetch_add(1)+1;
+    if (count==1 || count==120 || count==10000)
+        Log("TPS V0.59: live actor facing sample=%u actor=%p worldYaw=%.2f",count,actor,yaw);
+}
+
 float HookCharacterGetMaxSpeed(void* movementComponent) {
     const float nativeSpeed = g_originalCharacterGetMaxSpeed
         ? g_originalCharacterGetMaxSpeed(movementComponent)
@@ -1365,6 +1404,7 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         ApplyPlayerMovementTunings(movementComponent);
 
     if (playerMovementValidated) {
+        CaptureLiveTPSActorYaw(characterOwner);
         // Keep the existing single active-player pointer only for player-only
         // features. Horse discovery is fully independent in V0.26.
         void* previousPlayer =
@@ -2291,20 +2331,29 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     const bool fire=pad.bRightTrigger>=XINPUT_GAMEPAD_TRIGGER_THRESHOLD ||
         (pad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER)!=0;
     const float calibration=rt.tpsAimYawOffsetDegrees.load(std::memory_order_relaxed);
-    // Native and transient game camera share a world-space yaw convention.
-    // Relative rotation is what the original top-down input mapper expects.
+    const float trim=std::isfinite(calibration)
+        ? std::clamp(calibration,-180.0f,180.0f):0.0f;
+    // In the supplied exact EXE, native aim and the native camera yaw are
+    // separate systems. V0.58 used (appliedYaw-nativeYaw) as a world target,
+    // causing target drift whenever the game's native camera rotated.
+    // Instead use the absolute world yaw of OUR final TPS camera.
+    const float targetYaw=std::remainder(view.appliedYaw+trim,360.0f);
     constexpr float toRadians=0.01745329251994329577f;
-    const float relative=std::remainder(view.appliedYaw-view.nativeYaw+
-        (std::isfinite(calibration)?std::clamp(calibration,-180.0f,180.0f):0.0f),360.0f);
-    const float delta=relative*toRadians;
+    const float cameraDelta=std::remainder(
+        view.appliedYaw-view.nativeYaw,360.0f);
+    const float delta=cameraDelta*toRadians;
     const float co=std::cos(delta),si=std::sin(delta);
     const auto convertStick=[](float v)->SHORT {
         return static_cast<SHORT>(std::clamp(std::lround(v),-32767l,32767l));
     };
+    const ULONGLONG now=GetTickCount64();
+    const ULONGLONG actorTime=g_tpsActorYawTick.load();
+    const bool liveActor=actorTime && now>=actorTime && now-actorTime<200ull;
+    const float actorYaw=g_tpsActorWorldYaw.load();
 
     if (cameraKnown && strafe) {
-        // Treat left stick as camera-relative TPS forward/strafe axes.
-        // Preserve analog magnitude; no synthetic buttons/keys.
+        // TPS camera-relative movement. Relative yaw is right for mapping
+        // player movement inputs; it is NOT correct as an absolute aim target.
         const float leftX=static_cast<float>(pad.sThumbLX);
         const float leftY=static_cast<float>(pad.sThumbLY);
         if (leftX*leftX+leftY*leftY>7000.0f*7000.0f) {
@@ -2312,27 +2361,45 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
             pad.sThumbLY=convertStick(leftY*co-leftX*si);
             const unsigned n=g_tpsStrafeSamples.fetch_add(1)+1;
             if (n==1 || n==10000)
-                Log("TPS V0.58: strafe sample=%u yawDelta=%.1f leftRaw=(%.0f,%.0f) remap=(%d,%d)",
-                    n,relative,leftX,leftY,pad.sThumbLX,pad.sThumbLY);
+                Log("TPS V0.59: strafe sample=%u delta=%.1f leftRaw=(%.0f,%.0f) mapped=(%d,%d)",
+                    n,cameraDelta,leftX,leftY,pad.sThumbLX,pad.sThumbLY);
         }
     }
     if (cameraKnown && aim && fire) {
-        // RT = primary fire / throw held grenade; RB = secondary fire.
-        // Screen-space Up aims along world camera-forward; rotate into the
-        // engine's unmodified input yaw, while OUR right stick remains free
-        // to orbit. Magnitude is full for stable gamepad directional aim.
-        pad.sThumbRX=convertStick(32767.0f*si);
-        pad.sThumbRY=convertStick(32767.0f*co);
+        // A short 180 deg/s command-rate cap prevents the game from receiving
+        // full instantaneous ~180-degree snapping instructions. It does not
+        // write player rotation or override the game's shooting/throw code.
+        const ULONGLONG previous=g_tpsLastAimTick.exchange(now);
+        const float dt=(previous && now>previous && now-previous<=150ull)
+            ? std::clamp(static_cast<float>(now-previous)*0.001f,0.001f,0.05f)
+            : 0.016f;
+        float heading=g_tpsCommandYawDegrees.load();
+        if (!g_tpsAimCommandReady.exchange(true))
+            heading=liveActor ? actorYaw : targetYaw;
+        const float maxStep=180.0f*dt;
+        const float gap=std::remainder(targetYaw-heading,360.0f);
+        heading=std::remainder(heading+std::clamp(gap,-maxStep,maxStep),360.0f);
+        g_tpsCommandYawDegrees.store(heading);
+        g_tpsDesiredYawDegrees.store(targetYaw);
+        // World-space aim vector: no subtraction of moving native view yaw.
+        // 0.72 avoids the V0.58 full-scale synthetic input.
+        const float headingRad=heading*toRadians;
+        pad.sThumbRX=convertStick(23592.0f*std::sin(headingRad));
+        pad.sThumbRY=convertStick(23592.0f*std::cos(headingRad));
         const unsigned n=g_tpsCombatAimSamples.fetch_add(1)+1;
-        if (n==1 || n==120 || n==10000)
-            Log("TPS V0.58: combat aim sample=%u RT=%u RB=%u deltaYaw=%.1f aim=(%d,%d)",
+        if (n==1 || n==120 || n==10000) {
+            const float actorGap=liveActor?std::remainder(targetYaw-actorYaw,360.0f):999.0f;
+            Log("TPS V0.59: combat sample=%u RT=%u RB=%u cameraYaw=%.1f nativeYaw=%.1f targetYaw=%.1f commandYaw=%.1f actorYaw=%.1f actorGap=%.1f actorFresh=%d right=(%d,%d)",
                 n,static_cast<unsigned>(pad.bRightTrigger),
                 (pad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER)?1u:0u,
-                relative,pad.sThumbRX,pad.sThumbRY);
-        if (g_tpsCombatFireSamples.fetch_add(1)==0)
-            Log("TPS V0.58: first fire/throw input received by native XInput gate");
+                view.appliedYaw,view.nativeYaw,targetYaw,heading,actorYaw,actorGap,liveActor?1:0,
+                pad.sThumbRX,pad.sThumbRY);
+        }
+        g_tpsCombatFireSamples.fetch_add(1);
     } else {
-        // Retain validated V0.57 native aim isolation when not attacking.
+        g_tpsAimCommandReady.store(false);
+        g_tpsLastAimTick.store(0);
+        // Preserve the V0.57 native aim isolation when not attacking.
         if (pad.sThumbRX || pad.sThumbRY) {
             pad.sThumbRX=0;
             pad.sThumbRY=0;
@@ -3242,9 +3309,9 @@ void ShutdownMod() {
     RestoreCameraDof();
     Log("Aim V0.57 totals: mouseMessagesBlocked=%u rightStickReadsFiltered=%u",
         g_nativeMouseAimSuppressed.load(),g_nativePadAimSuppressed.load());
-    Log("TPS V0.58 totals: combatAim=%u strafeRemap=%u nativeFireOrThrowPolls=%u",
+    Log("TPS V0.59 totals: combatAim=%u strafeRemap=%u nativeFireOrThrowPolls=%u liveActorYaw=%u",
         g_tpsCombatAimSamples.load(),g_tpsStrafeSamples.load(),
-        g_tpsCombatFireSamples.load());
+        g_tpsCombatFireSamples.load(),g_tpsActorYawSamples.load());
 
     if (g_skipIntroData) {
         *g_skipIntroData = g_skipIntroOriginalValue;
