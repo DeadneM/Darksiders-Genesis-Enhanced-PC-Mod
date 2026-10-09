@@ -34,7 +34,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.53-defaults-ui-freeze";
+constexpr const char* kBuild = "0.54-skip-warning-third-person";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -77,8 +77,6 @@ std::atomic_uint32_t g_focusTransitionCount{0};
 std::atomic_uint32_t g_resizeBuffersTraceCount{0};
 std::atomic<void*> g_gameWindowTrace{nullptr};
 // Manual F5-only fallback retained for comparison; no auto focus simulation.
-std::atomic_int g_focusPulseStage{0};
-std::atomic_ullong g_focusPulseRestoreTick{0};
 std::atomic_uint32_t g_cursorVisibilityCalls{0};
 std::atomic_int g_capturedMenuKey{0};
 std::atomic_int g_captureCameraKeyIndex{-1};
@@ -155,7 +153,6 @@ using dg::config::KeyDisplayName;
 
 dg::config::Store g_config;
 
-void ProcessReticleFocusPulse();
 void TraceDesktopCursorState(const char* reason, bool force);
 
 void InitializePaths() {
@@ -1790,74 +1787,6 @@ void RefreshReticleCursorState() {
     }
 }
 
-// V0.34: a controlled experiment, not a permanent focus fix.
-// The two focus-message batches are intentionally separated in time to
-// reproduce the transitions missing from the V0.33 WM_SETCURSOR-only approach.
-// Do not call SetForegroundWindow, steal focus, or synthesize user input.
-void ProcessReticleFocusPulse() {
-    const int stage = g_focusPulseStage.load(std::memory_order_relaxed);
-    if (stage == 0) return;
-
-    HWND hwnd = reinterpret_cast<HWND>(
-        g_gameWindowTrace.load(std::memory_order_relaxed));
-    if (!hwnd || !IsWindow(hwnd)) {
-        g_focusPulseStage.store(0, std::memory_order_relaxed);
-        Log("Reticle focus test: cancelled, game HWND unavailable");
-        return;
-    }
-
-    const ULONGLONG now = GetTickCount64();
-    if (stage == 1) {
-        if (GetForegroundWindow() != hwnd || g_overlayVisible.load()) {
-            g_focusPulseStage.store(0, std::memory_order_relaxed);
-            Log("Reticle focus test: cancelled, window is not foreground or overlay open");
-            return;
-        }
-        CURSORINFO ci{};
-        ci.cbSize = sizeof(ci);
-        const BOOL info = GetCursorInfo(&ci);
-        const BOOL app = PostMessageW(hwnd, WM_ACTIVATEAPP, FALSE, 0);
-        const BOOL wnd = PostMessageW(hwnd, WM_ACTIVATE, WA_INACTIVE, 0);
-        g_focusPulseRestoreTick.store(now + 150, std::memory_order_relaxed);
-        g_focusPulseStage.store(2, std::memory_order_relaxed);
-        Log("Reticle focus test: DEACTIVATE queued app=%d wnd=%d cursorInfo=%d cursor=%p showing=%d",
-            app ? 1 : 0, wnd ? 1 : 0, info ? 1 : 0,
-            ci.hCursor, (ci.flags & CURSOR_SHOWING) ? 1 : 0);
-        return;
-    }
-
-    if (stage == 2 && now >= g_focusPulseRestoreTick.load(std::memory_order_relaxed)) {
-        // Complete the paired activate even if a message failed, so the
-        // game cannot remain in the synthetic deactivation state.
-        const BOOL app = PostMessageW(hwnd, WM_ACTIVATEAPP, TRUE, 0);
-        const BOOL wnd = PostMessageW(hwnd, WM_ACTIVATE, WA_ACTIVE, 0);
-        const BOOL focus = PostMessageW(hwnd, WM_SETFOCUS, 0, 0);
-        const BOOL cursor = PostMessageW(hwnd, WM_SETCURSOR,
-            reinterpret_cast<WPARAM>(hwnd), MAKELPARAM(HTCLIENT, WM_MOUSEMOVE));
-        g_focusPulseRestoreTick.store(now + 500, std::memory_order_relaxed);
-        g_focusPulseStage.store(3, std::memory_order_relaxed);
-        CURSORINFO ci{};
-        ci.cbSize = sizeof(ci);
-        const BOOL info = GetCursorInfo(&ci);
-        Log("Reticle focus test: REACTIVATE queued app=%d wnd=%d focus=%d setCursor=%d cursorInfo=%d cursor=%p showing=%d",
-            app ? 1 : 0, wnd ? 1 : 0, focus ? 1 : 0, cursor ? 1 : 0,
-            info ? 1 : 0, ci.hCursor, (ci.flags & CURSOR_SHOWING) ? 1 : 0);
-    }
-
-    if (stage == 3 && now >= g_focusPulseRestoreTick.load(std::memory_order_relaxed)) {
-        CURSORINFO ci{};
-        ci.cbSize = sizeof(ci);
-        const BOOL info = GetCursorInfo(&ci);
-        Log("Reticle focus test: AFTER 500ms cursorInfo=%d cursor=%p showing=%d pos=%ld,%ld foreground=%d",
-            info ? 1 : 0, ci.hCursor,
-            (ci.flags & CURSOR_SHOWING) ? 1 : 0,
-            ci.ptScreenPos.x, ci.ptScreenPos.y,
-            GetForegroundWindow() == hwnd ? 1 : 0);
-        g_focusPulseStage.store(0, std::memory_order_relaxed);
-        TraceDesktopCursorState("after manual F5", true);
-    }
-}
-
 bool InstallHudHook() {
     BYTE* getter = ResolveHudHiddenGetter();
     if (!getter) {
@@ -1896,7 +1825,7 @@ bool InstallHudHook() {
 bool IsFeatureEnabled(Action action) {
     switch (action) {
     case Action::ToggleHUD:
-        return g_config.toggleHudEnabled;
+        return true;
     case Action::MovementSpeed:
         return g_config.movementSpeedEnabled;
     case Action::ActionRecovery:
@@ -1929,12 +1858,6 @@ void TriggerAction(Action action, int functionKey) {
     const char* label = ActionLabel(action);
 
     if (action == Action::ToggleHUD) {
-        if (!g_config.toggleHudEnabled) {
-            g_lastAction = "Toggle HUD disabled in config";
-            Log("F%d -> Toggle HUD ignored (feature disabled)", functionKey);
-            return;
-        }
-
         if (!g_hudHookReady.load()) {
             g_lastAction = "Toggle HUD [hook unavailable]";
             Log("F%d -> Toggle HUD ignored (native hook unavailable)", functionKey);
@@ -1955,20 +1878,6 @@ void TriggerAction(Action action, int functionKey) {
         g_lastAction = g_config.hideReticle ? "Reticle hidden" : "Reticle visible";
         Log("F%d -> Hide Reticle %s", functionKey,
             g_config.hideReticle ? "ON" : "OFF");
-        return;
-    }
-
-    if (action == Action::ReticleFocusTest) {
-        TraceDesktopCursorState("before manual F5", true);
-        int expected = 0;
-        if (!g_focusPulseStage.compare_exchange_strong(
-                expected, 1, std::memory_order_relaxed)) {
-            g_lastAction = "Reticle focus test already running";
-            Log("F%d -> Reticle focus test already running", functionKey);
-        } else {
-            g_lastAction = "Reticle focus test queued (NOT reliable)";
-            Log("F%d -> Reticle focus test requested; one synthetic focus cycle", functionKey);
-        }
         return;
     }
 
@@ -2011,6 +1920,14 @@ void TriggerAction(Action action, int functionKey) {
         return;
     }
 
+    if (action == Action::ThirdPerson) {
+        g_config.thirdPersonEnabled = !g_config.thirdPersonEnabled;
+        g_config.Save();
+        g_lastAction = g_config.thirdPersonEnabled ? "Third Person ON" : "Third Person OFF";
+        Log("F%d -> Third Person %s", functionKey,
+            g_config.thirdPersonEnabled ? "ON" : "OFF");
+        return;
+    }
     if (action == Action::SkipIntroVideos) {
         g_config.skipIntroEnabled = !g_config.skipIntroEnabled;
         g_config.Save();
@@ -2600,7 +2517,6 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     TraceDesktopCursorState("Present cursor state", false);
     ProcessCameraInput();
     RefreshReticleCursorState();
-    ProcessReticleFocusPulse();
 
     // V0.32: do not initialize ImGui, create an RTV, or subclass the game
     // window during normal gameplay. The overlay backend is created lazily

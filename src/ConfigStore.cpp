@@ -9,7 +9,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2103;
+constexpr int kConfigRevision = 2104;
 
 bool ReadBool(
     const wchar_t* section,
@@ -267,8 +267,7 @@ Store::Store() {
     hotkeys[0] = Action::ToggleHUD;
     hotkeys[1] = Action::MovementSpeed;
     hotkeys[2] = Action::ActionRecovery;
-    hotkeys[3] = Action::SkipIntroVideos;
-    hotkeys[4] = Action::ReticleFocusTest;
+    hotkeys[3] = Action::ToggleReticle;
     hotkeys[5] = Action::ToggleReticle;
     cameraKeys = {{VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT, 0, 0, VK_NUMPAD4, VK_NUMPAD6}};
 }
@@ -297,6 +296,7 @@ void Store::ResetDefaults(bool persist) {
     actionRecoveryEnabled = true;
     skipLogosEnabled = true;
     skipIntroEnabled = true;
+    skipWarningEnabled = true;
     thirdPersonEnabled = false;
     pistolDamageEnabled = true;
     meleeDamageEnabled = true;
@@ -332,8 +332,7 @@ void Store::ResetDefaults(bool persist) {
     hotkeys[0] = Action::ToggleHUD;
     hotkeys[1] = Action::MovementSpeed;
     hotkeys[2] = Action::ActionRecovery;
-    hotkeys[3] = Action::SkipIntroVideos;
-    hotkeys[4] = Action::ReticleFocusTest;
+    hotkeys[3] = Action::ToggleReticle;
     hotkeys[5] = Action::ToggleReticle;
     cameraKeys = {{VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT, 0, 0, VK_NUMPAD4, VK_NUMPAD6}};
 
@@ -384,8 +383,7 @@ bool Store::Load() {
         graphicsAdapter = 4;
     }
 
-    toggleHudEnabled =
-        ReadBool(L"Features", L"ToggleHUD", true, path_);
+    toggleHudEnabled = true; // V0.54: hidden/visible is the only HUD state
     movementSpeedEnabled =
         ReadBool(L"Features", L"MovementSpeed", true, path_);
     actionRecoveryEnabled =
@@ -394,6 +392,8 @@ bool Store::Load() {
         ReadBool(L"Features", L"SkipLogos", true, path_);
     skipIntroEnabled =
         ReadBool(L"Features", L"SkipIntroVideos", true, path_);
+    skipWarningEnabled =
+        ReadBool(L"Features", L"SkipWarning", true, path_);
     thirdPersonEnabled =
         ReadBool(L"Features", L"ThirdPerson", false, path_);
     pistolDamageEnabled =
@@ -530,6 +530,9 @@ void Store::PublishRuntime() const {
     runtime.actionRecoveryEnabled = actionRecoveryEnabled;
     runtime.skipLogosEnabled = skipLogosEnabled;
     runtime.skipIntroEnabled = skipIntroEnabled;
+    runtime.skipWarningEnabled = skipWarningEnabled;
+    runtime.thirdPersonEnabled = thirdPersonEnabled;
+    runtime.thirdPersonDistanceMultiplier = thirdPersonDistanceMultiplier;
     runtime.pistolDamageEnabled = pistolDamageEnabled;
     runtime.meleeDamageEnabled = meleeDamageEnabled;
     runtime.jumpHeightEnabled = jumpHeightEnabled;
@@ -578,7 +581,7 @@ bool Store::SaveNow() {
     WritePrivateProfileStringW(
         L"Meta",
         L"ConfigRevision",
-        L"2103",
+        L"2104",
         path_.c_str()
     );
 
@@ -604,11 +607,12 @@ bool Store::SaveNow() {
         path_.c_str()
     );
 
-    WriteBool(L"Features", L"ToggleHUD", toggleHudEnabled, path_);
+    WritePrivateProfileStringW(L"Features", L"ToggleHUD", nullptr, path_.c_str());
     WriteBool(L"Features", L"MovementSpeed", movementSpeedEnabled, path_);
     WriteBool(L"Features", L"ActionRecovery", actionRecoveryEnabled, path_);
     WriteBool(L"Features", L"SkipLogos", skipLogosEnabled, path_);
     WriteBool(L"Features", L"SkipIntroVideos", skipIntroEnabled, path_);
+    WriteBool(L"Features", L"SkipWarning", skipWarningEnabled, path_);
     WriteBool(L"Features", L"ThirdPerson", thirdPersonEnabled, path_);
     WriteBool(L"Features", L"PistolDamage", pistolDamageEnabled, path_);
     WriteBool(L"Features", L"MeleeDamage", meleeDamageEnabled, path_);

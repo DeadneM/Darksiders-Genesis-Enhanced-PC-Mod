@@ -18,6 +18,8 @@ void Publish(const Snapshot& s) {
     g_state.actionRecoveryEnabled.store(s.actionRecoveryEnabled, std::memory_order_relaxed);
     g_state.skipLogosEnabled.store(s.skipLogosEnabled, std::memory_order_relaxed);
     g_state.skipIntroEnabled.store(s.skipIntroEnabled, std::memory_order_relaxed);
+    g_state.skipWarningEnabled.store(s.skipWarningEnabled, std::memory_order_relaxed);
+    g_state.thirdPersonEnabled.store(s.thirdPersonEnabled, std::memory_order_relaxed);
     g_state.pistolDamageEnabled.store(s.pistolDamageEnabled, std::memory_order_relaxed);
     g_state.meleeDamageEnabled.store(s.meleeDamageEnabled, std::memory_order_relaxed);
     g_state.jumpHeightEnabled.store(s.jumpHeightEnabled, std::memory_order_relaxed);
@@ -32,6 +34,7 @@ void Publish(const Snapshot& s) {
     g_state.cameraPitchDegrees.store(s.cameraPitchDegrees, std::memory_order_relaxed);
     g_state.cameraYawDegrees.store(s.cameraYawDegrees, std::memory_order_relaxed);
     g_state.cameraHeightOffset.store(s.cameraHeightOffset, std::memory_order_relaxed);
+    g_state.thirdPersonDistanceMultiplier.store(s.thirdPersonDistanceMultiplier, std::memory_order_relaxed);
     g_state.movementSpeedMultiplier.store(s.movementSpeedMultiplier, std::memory_order_relaxed);
     g_state.actionRecoveryDelayMs.store(s.actionRecoveryDelayMs, std::memory_order_relaxed);
     g_state.pistolDamageMultiplier.store(s.pistolDamageMultiplier, std::memory_order_relaxed);

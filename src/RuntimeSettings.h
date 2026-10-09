@@ -12,6 +12,8 @@ struct Snapshot {
     bool actionRecoveryEnabled = true;
     bool skipLogosEnabled = true;
     bool skipIntroEnabled = true;
+    bool skipWarningEnabled = true;
+    bool thirdPersonEnabled = false;
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
     bool jumpHeightEnabled = true;
@@ -26,6 +28,7 @@ struct Snapshot {
     float cameraPitchDegrees = 0.0f;
     float cameraYawDegrees = 0.0f;
     float cameraHeightOffset = 0.0f;
+    float thirdPersonDistanceMultiplier = 1.00f;
     float movementSpeedMultiplier = 1.50f;
     float actionRecoveryDelayMs = 0.0f;
     float pistolDamageMultiplier = 2.00f;
@@ -46,6 +49,8 @@ struct State {
     std::atomic_bool actionRecoveryEnabled{true};
     std::atomic_bool skipLogosEnabled{true};
     std::atomic_bool skipIntroEnabled{true};
+    std::atomic_bool skipWarningEnabled{true};
+    std::atomic_bool thirdPersonEnabled{false};
     std::atomic_bool pistolDamageEnabled{true};
     std::atomic_bool meleeDamageEnabled{true};
     std::atomic_bool jumpHeightEnabled{true};
@@ -60,6 +65,7 @@ struct State {
     std::atomic<float> cameraPitchDegrees{0.0f};
     std::atomic<float> cameraYawDegrees{0.0f};
     std::atomic<float> cameraHeightOffset{0.0f};
+    std::atomic<float> thirdPersonDistanceMultiplier{1.00f};
     std::atomic<float> movementSpeedMultiplier{1.50f};
     std::atomic<float> actionRecoveryDelayMs{0.0f};
     std::atomic<float> pistolDamageMultiplier{2.00f};

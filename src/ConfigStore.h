@@ -22,7 +22,6 @@ enum class Action : int {
     ActionRecovery,
     SkipIntroVideos,
     ThirdPerson,
-    ReticleFocusTest,
     ToggleReticle,
     Count
 };
@@ -35,7 +34,6 @@ kActionLabels = {
     "Action Recovery",
     "Skip Intro Videos",
     "Third Person",
-    "Reticle Focus Test",
     "Toggle Reticle"
 };
 
@@ -47,7 +45,6 @@ kActionTokens = {
     L"ActionRecovery",
     L"SkipIntroVideos",
     L"ThirdPerson",
-    L"ReticleFocusTest",
     L"ToggleReticle"
 };
 
@@ -72,6 +69,7 @@ public:
     bool actionRecoveryEnabled = true;
     bool skipLogosEnabled = true;
     bool skipIntroEnabled = true;
+    bool skipWarningEnabled = true;
     bool thirdPersonEnabled = false;
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
