@@ -3833,3 +3833,38 @@ Loader.log untouched. No public release/tag without user request.
 
 ## V0.54 Third Person, HUD and hotkey cleanup
 Uses user-provided F1 HUD / F2 Movement / F3 Recovery / F4 Reticle and camera controls, all defaults copied to the new INI. Removed Reticle Focus Test action and all synthetic focus pulses. HUD Hidden is the only display toggle, with F1 still supported. Third Person is now an opt-in native camera view transform (OFF by default), using original springarm distance to estimate pivot and apply transient shoulder-height view. May require in-game tuning. Skip Warning will use an independent guarded StartupScreenDef filter, not the movie list. No changes to validated Hide Reticle or Skip Intro logic.
+
+## V0.54 Skip Warning independent attempt and Third Person
+
+User log for V0.53 confirms logos are matched/substituted, the
+native intro CVar is set, camera hooks, HUD, reticle, movement and
+horse hooks enabled; user INI supplies F1 ToggleHUD, F4 ToggleReticle,
+F5-F12 None and camera keys with Home/End + PageUp/PageDown.
+
+The V0.54 Skip Warning checkbox controls a SEPARATE guarded filter
+for the startup-screen definition array (settings +0x50; each 0x40
+bytes in original disassembly, unrelated to StartupMovies at +0x38).
+The known working early 7-byte startup hook passes the original
+movie TArray field pointer through volatile r8 as the third argument
+to the existing C++ name filter. Before the native MoviePlayer
+Setup call, if native definition count is EXACTLY 2 and pointers,
+capacity, regions and write permissions are valid, set only
+StartupScreenDef.Num=0. Existing actual THQ+AS name replacement and
+movie count=2 stay the same. No external files touched. On unexpected
+count/layout, warnings remain and a fail-open line is logged.
+This is a gameplay *attempt*, not yet validation that controller and
+autosave notices are actually controlled by these definitions. An
+existing INI can set SkipWarning=0 for the next boot.
+
+Third Person: optional, OFF in the user's provided INI. Native view
+and arm hooks already existed; new transient camera output computes
+a pivot from original view/pitch/yaw and spring-arm length, then
+repositions the view with a shallow -12-degree pitch and a 0.25x-3x
+distance multiplier. This may not exactly follow character facing,
+and needs real camera test. Switch OFF to restore native framing.
+
+Removed ReticleFocusTest, its synthetic focus pulse, and stale F5
+description. HUD Hidden is the only overlay HUD toggle; F1 action
+remains. No change to validated reticle suppression/Skip Intro hooks.
+User defaults copied into INI. New normal V0.54 build/archive ZIP
+has all four files at root; no public tagged release yet.

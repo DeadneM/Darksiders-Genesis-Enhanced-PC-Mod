@@ -15,6 +15,9 @@ BoolFn g_targetValidFn = nullptr;
 BoolFn g_patchedFn = nullptr;
 BoolFn g_enabledFn = nullptr;
 SetEnabledFn g_setEnabledFn = nullptr;
+BoolFn g_warningAttemptedFn = nullptr;
+BoolFn g_warningAppliedFn = nullptr;
+SetEnabledFn g_setWarningFn = nullptr;
 
 LogFn g_logger = nullptr;
 
@@ -47,6 +50,12 @@ bool ResolveProxyExports() {
             GetProcAddress(proxy, "DGSetSkipLogosEnabled")
         );
 
+    g_warningAttemptedFn =
+        reinterpret_cast<BoolFn>(GetProcAddress(proxy, "DGSkipWarningAttempted"));
+    g_warningAppliedFn =
+        reinterpret_cast<BoolFn>(GetProcAddress(proxy, "DGSkipWarningApplied"));
+    g_setWarningFn =
+        reinterpret_cast<SetEnabledFn>(GetProcAddress(proxy, "DGSetSkipWarningEnabled"));
     return
         g_targetValidFn &&
         g_patchedFn &&
@@ -105,6 +114,12 @@ bool Apply(bool enabled) {
     ) != FALSE;
 }
 
+bool ApplyWarning(bool enabled) {
+    if (!g_setWarningFn && !ResolveProxyExports()) return false;
+    return g_setWarningFn &&
+        g_setWarningFn(enabled ? TRUE : FALSE) != FALSE;
+}
+
 Telemetry GetTelemetry() {
     Telemetry t{};
 
@@ -125,6 +140,8 @@ Telemetry GetTelemetry() {
         g_patchedFn() != FALSE;
     t.enabled =
         g_enabledFn() != FALSE;
+    if (g_warningAttemptedFn) t.warningAttempted = g_warningAttemptedFn() != FALSE;
+    if (g_warningAppliedFn) t.warningApplied = g_warningAppliedFn() != FALSE;
 
     return t;
 }

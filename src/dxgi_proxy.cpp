@@ -90,6 +90,9 @@ static std::atomic_bool g_skipLogosTargetValid{false};
 static std::atomic_bool g_skipLogosEnabled{false};
 static std::atomic_bool g_skipLogosPatched{false};
 static std::atomic_bool g_skipLogosHookReady{false};
+static std::atomic_bool g_skipWarningEnabled{false};
+static std::atomic_bool g_warningAttempted{false};
+static std::atomic_bool g_warningApplied{false};
 static std::atomic_uint32_t g_startupFilterCalls{0};
 
 struct FStringView {
@@ -175,10 +178,54 @@ static const FStringView kSubstituteMovies[2] = {
 // V0.19C caused cross-shaped cursor). With more than two entries,
 // keep the existing validated skip-prefix logic (count decremented
 // by two by the assembly island).
-static const FStringView* __cdecl FilterStartupMovieNames(const FStringView* movies, int32_t count) {
+// StartupScreenDef TArray is at UStartupScreensSettings +0x50,
+// independent of StartupMovies (+0x38); direct EXE disassembly shows
+// stride 0x40. Strict native count=2 attempt, guarded by opt-in.
+static void TrySkipWarnings(void* startupMoviesField) {
+    if (!g_skipWarningEnabled.load(std::memory_order_relaxed) ||
+        g_warningAttempted.exchange(true, std::memory_order_relaxed))
+        return;
+    auto* field=static_cast<BYTE*>(startupMoviesField);
+    if (!IsReadableSpan(field,0x28)) {
+        LogLoader(L"Skip Warning V0.54: FAIL OPEN, settings not readable");
+        return;
+    }
+    auto* defs=field+0x18;
+    const BYTE* entries=nullptr;
+    int32_t count=0,capacity=0;
+    std::memcpy(&entries,defs,sizeof(entries));
+    std::memcpy(&count,defs+8,sizeof(count));
+    std::memcpy(&capacity,defs+12,sizeof(capacity));
+    wchar_t message[230]{};
+    swprintf_s(message,L"Skip Warning V0.54: StartupScreenDef count=%d capacity=%d readable=%d",
+        count,capacity,IsReadableSpan(entries,0x80)?1:0);
+    LogLoader(message);
+    if (count!=2 || capacity<2 || capacity>32 ||
+        !IsReadableSpan(entries,0x80)) {
+        LogLoader(L"Skip Warning V0.54: native layout not the expected two screens; unchanged");
+        return;
+    }
+    MEMORY_BASIC_INFORMATION mbi{};
+    void* num=defs+8;
+    if (!VirtualQuery(num,&mbi,sizeof(mbi)) ||
+        mbi.State!=MEM_COMMIT ||
+        !(mbi.Protect & (PAGE_READWRITE|PAGE_WRITECOPY|
+                         PAGE_EXECUTE_READWRITE|PAGE_EXECUTE_WRITECOPY))) {
+        LogLoader(L"Skip Warning V0.54: count read only; unchanged");
+        return;
+    }
+    // This is the dedicated startup-screen definition array, NOT the
+    // movie array and NOT SetupLoadingScreen / Slate focus lifecycle.
+    InterlockedExchange(reinterpret_cast<volatile LONG*>(num),0);
+    g_warningApplied.store(true,std::memory_order_release);
+    LogLoader(L"Skip Warning V0.54: two startup screen definitions suppressed; movies untouched");
+}
+
+static const FStringView* __cdecl FilterStartupMovieNames(const FStringView* movies, int32_t count, void* startupMoviesField) {
     const unsigned calls = ++g_startupFilterCalls;
-    if (calls > 2 || !g_skipLogosEnabled.load(std::memory_order_relaxed))
-        return nullptr;
+    if (calls > 2) return nullptr;
+    TrySkipWarnings(startupMoviesField);
+    if (!g_skipLogosEnabled.load(std::memory_order_relaxed)) return nullptr;
     wchar_t line[220]{};
     swprintf_s(line, L"Skip Logos V0.52: StartupMovies count=%d validPtr=%d",
         count, IsReadableSpan(movies, sizeof(FStringView)) ? 1 : 0);
@@ -225,6 +272,17 @@ static bool HasSupportedNativeCode() {
                        kOriginalCopyLoad, sizeof(kOriginalCopyLoad)) == 0;
 }
 
+static bool ReadWarningEnabledFromIni() {
+    wchar_t path[MAX_PATH]{};
+    if (!g_self || !GetModuleFileNameW(g_self,path,MAX_PATH)) return false;
+    wchar_t* slash=wcsrchr(path,L'\\');
+    if (!slash) return false;
+    *(slash+1)=L'\0';
+    wcscat_s(path,L"DarksidersGenesisMod.ini");
+    const UINT rev=GetPrivateProfileIntW(L"Meta",L"ConfigRevision",0,path);
+    if (rev<2103u) return false;
+    return GetPrivateProfileIntW(L"Features",L"SkipWarning",1,path)!=0;
+}
 static bool ReadSkipLogosEnabledFromIni() {
     wchar_t modulePath[MAX_PATH]{};
     if (!g_self || !GetModuleFileNameW(g_self, modulePath, MAX_PATH)) return false;
@@ -301,6 +359,7 @@ static bool InstallSelectiveLogoHook() {
         p += sizeof(address);
     };
 
+    bytes({0x49,0x89,0xF0}); // r8 points to native StartupMovies TArray in settings
     bytes({0x44,0x8B,0x76,0x08,0x48,0x8B,0x36}); // replay 7 original bytes
     bytes({0x9C,0x50,0x51,0x52,0x41,0x50,0x41,0x51,0x41,0x52,0x41,0x53});
     bytes({0x48,0x83,0xEC,0x20});             // Win64 shadow space; RSP 16-aligned
@@ -488,6 +547,20 @@ BOOL WINAPI DGUnifiedLogActive() {
 }
 
 extern "C" __declspec(dllexport)
+BOOL WINAPI DGSkipWarningAttempted() {
+    return g_warningAttempted.load() ? TRUE : FALSE;
+}
+extern "C" __declspec(dllexport)
+BOOL WINAPI DGSkipWarningApplied() {
+    return g_warningApplied.load() ? TRUE : FALSE;
+}
+extern "C" __declspec(dllexport)
+BOOL WINAPI DGSetSkipWarningEnabled(BOOL enabled) {
+    g_skipWarningEnabled.store(enabled!=FALSE);
+    return g_skipLogosHookReady.load() ? TRUE : FALSE;
+}
+
+extern "C" __declspec(dllexport)
 BOOL WINAPI DGSkipLogosTargetValid() {
     return g_skipLogosTargetValid.load(
         std::memory_order_acquire
@@ -570,10 +643,12 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
         // If playlist count=2, report two movie names WITHOUT removing them.
         // Unlike old V0.19C, native MoviePlayer attachment is untouched.
         const bool enabled = ReadSkipLogosEnabledFromIni();
+        const bool warnings=ReadWarningEnabledFromIni();
         g_skipLogosEnabled.store(enabled,std::memory_order_relaxed);
+        g_skipWarningEnabled.store(warnings,std::memory_order_relaxed);
         const bool valid = HasSupportedNativeCode();
         g_skipLogosTargetValid.store(valid,std::memory_order_release);
-        if (enabled && valid && !InstallSelectiveLogoHook())
+        if ((enabled || warnings) && valid && !InstallSelectiveLogoHook())
             LogLoader(L"Skip Logos V0.51: diagnostic hook install failed; native startup unchanged");
         if (!enabled)
             LogLoader(L"Skip Logos V0.51: OFF; original startup preserved");

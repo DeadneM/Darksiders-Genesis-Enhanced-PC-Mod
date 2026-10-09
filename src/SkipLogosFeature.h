@@ -11,10 +11,13 @@ struct Telemetry {
     bool targetValid = false;
     bool patched = false;
     bool enabled = false;
+    bool warningAttempted = false;
+    bool warningApplied = false;
 };
 
 bool Initialize(LogFn logger);
 bool Apply(bool enabled);
+bool ApplyWarning(bool enabled);
 Telemetry GetTelemetry();
 void Shutdown();
 
