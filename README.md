@@ -1922,3 +1922,11 @@ description. HUD Hidden is the only overlay HUD toggle; F1 action
 remains. No change to validated reticle suppression/Skip Intro hooks.
 User defaults copied into INI. New normal V0.54 build/archive ZIP
 has all four files at root; no public tagged release yet.
+
+## V0.55 (9 October 2026): Third Person distance controls, DOF, hotkeys, Skip Warning
+
+- Third Person Distance now has a manual numeric input, a 1.00x Default button, 0.25x–3.00x limits, and finite-value validation. F5 toggles Third Person by default; INI ConfigRevision 2105 migrates a V0.54 F5=None to this new default without changing other user bindings.
+- Every working binary feature toggle is selectable in the F1–F12 Hotkeys list, including HUD, Reticle, Movement, Recovery, Skip Intro, Skip Logos, Skip Warning, Third Person, FOV, Pistol/Melee Damage, Jump, Glide, Horse Speed/Sprint Speed/Sprint Duration, Hotstreak, eight camera directions, and Camera Reset.
+- Depth of Field: while Third Person or manual Zoom displaces the camera, the mod temporarily sets the verified native UE4 console variable r.DepthOfFieldQuality to 0, restoring its captured native value when both modes are off (and at normal shutdown). This avoids incorrect blur but disables DOF while modified; it is not a physical focal-distance recalculation. The CVar registration signature and storage were confirmed against the supplied exact game EXE. No Engine.ini write.
+- Skip Warning V0.54 did not work because its array adjustment ran after the native screen-definition loop. V0.55 moves the intercept to a distinct exact-byte-validated native sequence at RVA 0x25FEBF, replaying the original instructions and skipping that loop only if exactly two 0x40-byte screen definitions exist. Neither source array nor MoviePlayer is modified. Outcome needs in-game validation. Disable via SkipWarning=0 and restart to isolate.
+- Skip Logos name substitution, Skip Intro CVar, reticle, horse and gameplay internals remain unchanged. ZIP at root contains dxgi.dll, DarksidersGenesisMod.asi, DarksidersGenesisMod.ini, README.md. Only DarksidersGenesisMod.log is active per run; no touching the old Loader.log. No public release until validated.
