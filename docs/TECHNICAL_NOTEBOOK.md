@@ -3686,3 +3686,46 @@ not a completed logo fix. Do not create a public release until
 the user confirms in-game behavior. If the file is still absent,
 diagnose ASI/proxy load/permissions/AV rather than patching
 MoviePlayer at random. Four ZIP entries remain at root.
+
+## V0.51 - Undo speculative V0.50 rollback; keep proven log improvements
+
+The user clarified that their earlier report "no log" was a
+wrong-file-location mistake. Their subsequently supplied V0.49
+single-session log from 2026-10-09 15:39:20 to 15:39:57
+proves **both proxy and ASI loaded correctly**:
+- 0.49-two-movie-names-diagnostic startup marker.
+- StartupMovies count=2.
+- entry[0] 'THQ_LogoBasic'.
+- entry[1] 'AS_LogoBasic'.
+- TWO_LOGOS_CONFIRMED; no removal because earlier count-zero
+  patch inadvertently removed the intro cinematic too.
+- Healthy gameplay runtime, camera input, player capture and
+  normal mod shutdown.
+
+Therefore the *suspected* missing-log failure behind V0.50
+is NOT an observed failure of V0.49. Revert ONLY V0.50's
+forced disable/removal of the startup movie diagnostic
+and restore the exact V0.49 native probe/hook implementation.
+Do NOT modify the way it filters, shifts or handles a two-item
+playlist. At count=2 it is an observer only, NOT a working
+Skip Logos fix, and must be described that way.
+
+Keep these useful improvements from V0.50:
+- successful CreateFileW required before setting
+  g_loaderLogInitialized.
+- ASI checks unified Mod.log file existence before trusting
+  proxy readiness.
+- One compact per-session DarksidersGenesisMod.log.
+- NEVER create, overwrite, or delete old
+  DarksidersGenesisLoader.log files.
+- No change to existing gameplay, camera, horse, HUD or reticle.
+
+V0.51 is an exact experimental V0.49 startup diagnostic plus
+hardened logging, built with SkipLogos=1 in the fresh test INI.
+Existing user's INI remains honored; when off, early hook
+is not installed. No public release until test validation.
+
+Next development target: safely skip exactly the two confirmed
+logo entries WITHOUT zeroing the entire StartupMovies list
+or bypassing native MoviePlayer initialization. Avoid
+guessing that list count 3+ or modifying the intro toggle.
