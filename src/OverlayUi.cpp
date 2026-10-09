@@ -665,9 +665,16 @@ void Draw(Context& c) {
             }
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
-                ImGui::TextDisabled("Controller TPS combat (V0.60 stick-safety test)");
+                ImGui::TextDisabled("Controller TPS combat (V0.61 native strafe / aim camera test)");
                 if (ImGui::Checkbox("TPS aim while firing / throwing (RT or RB)",
                         &config.tpsControllerCombatAim)) config.Save();
+                if (ImGui::Checkbox("Native strafe while shooting (keep facing camera)",
+                        &config.tpsLockCombatFacing)) config.Save();
+                if (ImGui::Checkbox("Disable vanilla camera aim side-drift",
+                        &config.tpsLockCombatCameraPivot)) config.Save();
+                if (ImGui::Checkbox("Hide vanilla ground aiming effect (experimental)",
+                        &config.tpsHideGroundAimFx)) config.Save();
+                ImGui::TextDisabled("Effect toggle targets ground effects only, not proven for gun beam.");
                 if (ImGui::Checkbox("EXPERIMENTAL left-stick rotation (OFF recommended)",
                         &config.tpsControllerStrafe)) config.Save();
                 ImGui::TextDisabled("OFF: original left stick unchanged; test strafe while holding RT.");

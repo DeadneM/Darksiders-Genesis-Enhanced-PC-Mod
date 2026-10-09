@@ -35,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.60-tps-vanilla-left-stick-camera-paced-aim";
+constexpr const char* kBuild = "0.61-native-tps-strafe-camera-pivot-ground-fx";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -52,6 +52,7 @@ using CharacterGetMaxSpeedFn = float(*)(void*);
 using AbilityActionEnabledFn = bool(*)(void*, unsigned char);
 using AddJuiceFn = void(*)(void*, float);
 using FilterOutgoingDamageFn = void(*)(void*, void*);
+using GroundAimEffectFn = void(*)(void*,bool);
 
 PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
@@ -62,6 +63,7 @@ CharacterGetMaxSpeedFn g_originalCharacterGetMaxSpeed = nullptr;
 AbilityActionEnabledFn g_originalAbilityActionEnabled = nullptr;
 AddJuiceFn g_originalAddJuice = nullptr;
 FilterOutgoingDamageFn g_originalFilterOutgoingDamage = nullptr;
+GroundAimEffectFn g_groundAimEffectOriginal=nullptr;
 
 ID3D11Device* g_device = nullptr;
 ID3D11DeviceContext* g_context = nullptr;
@@ -88,6 +90,13 @@ std::atomic_ullong g_tpsLastAimTick{0};
 std::atomic<float> g_tpsDesiredYawDegrees{0.0f};
 std::atomic<float> g_tpsCommandYawDegrees{0.0f};
 std::atomic_bool g_tpsAimCommandReady{false};
+std::atomic_bool g_tpsFireHeld{false};
+std::atomic_ullong g_tpsFireLastTick{0};
+std::atomic_uint32_t g_tpsPlayerGeneration{0};
+std::atomic_uint32_t g_tpsNativeFacingOff{0},g_tpsNativeFacingRestored{0},g_tpsGroundAimFxHidden{0};
+SRWLOCK g_tpsFacingLock=SRWLOCK_INIT;
+void* g_tpsFacingCurrentComponent=nullptr;
+bool g_tpsFacingOwned=false;
 std::atomic_int g_orbitMouseDx{0},g_orbitMouseDy{0};
 std::atomic_ullong g_lastOrbitRawTick{0};
 ULONGLONG g_orbitLastPresentTick=0;
@@ -1325,6 +1334,21 @@ void CaptureLiveTPSActorYaw(void* actor) {
     float yaw=0.0f;
     std::memcpy(&yaw,yawPtr,sizeof(yaw));
     if (!std::isfinite(yaw) || std::fabs(yaw)>36000.0f) return;
+    // RootComponent.ComponentToWorld.Translation at +0x1D0 (UE4 layout).
+    // Live-callback read only: no UObject cached for future dereferences.
+    float px=0,py=0,pz=0;
+    std::memcpy(&px,static_cast<unsigned char*>(root)+0x1D0,4);
+    std::memcpy(&py,static_cast<unsigned char*>(root)+0x1D4,4);
+    std::memcpy(&pz,static_cast<unsigned char*>(root)+0x1D8,4);
+    if(std::isfinite(px)&&std::isfinite(py)&&std::isfinite(pz)&&
+        std::fabs(px)<1e7f&&std::fabs(py)<1e7f&&std::fabs(pz)<1e7f) {
+        auto& settings=dg::runtime::Get();
+        settings.tpsActorWorldX.store(px);
+        settings.tpsActorWorldY.store(py);
+        settings.tpsActorWorldZ.store(pz);
+        settings.tpsActorLocationTick.store(GetTickCount64());
+        settings.tpsActorGeneration.store(g_tpsPlayerGeneration.load());
+    }
     g_tpsActorWorldYaw.store(std::remainder(yaw,360.0f));
     g_tpsActorYawTick.store(GetTickCount64());
     const unsigned count=g_tpsActorYawSamples.fetch_add(1)+1;
@@ -1332,6 +1356,61 @@ void CaptureLiveTPSActorYaw(void* actor) {
         Log("TPS V0.59: live actor facing sample=%u actor=%p worldYaw=%.2f",count,actor,yaw);
 }
 
+// bOrientRotationToMovement native reflected field validated in EXACT EXE:
+// static bit setter at RVA 0x1CF0300: OR BYTE PTR [RCX+0x240], 0x10.
+// Write ONLY within an active local player's live GetMaxSpeed callback.
+void UpdateTPSFacingNative(void* component) {
+    if(!component)return;
+    auto* field=static_cast<unsigned char*>(component)+0x240;
+    auto& rt=dg::runtime::Get();
+    const ULONGLONG now=GetTickCount64(),fireTick=g_tpsFireLastTick.load();
+    const bool attack=g_tpsFireHeld.load()&&fireTick&&now>=fireTick&&now-fireTick<150;
+    const bool enable=g_targetValidation.exact&&rt.thirdPersonEnabled.load()&&
+        rt.tpsLockCombatFacing.load()&&attack&&!g_overlayVisible.load()&&
+        GetForegroundWindow()==g_gameWindowTrace.load();
+    AcquireSRWLockExclusive(&g_tpsFacingLock);
+    if(g_tpsFacingCurrentComponent!=component){
+        g_tpsFacingCurrentComponent=component;g_tpsFacingOwned=false;
+    }
+    if(enable&&!g_tpsFacingOwned&&(*field&0x10u)) {
+        *field=static_cast<unsigned char>(*field&~0x10u);
+        g_tpsFacingOwned=true;
+        const unsigned n=++g_tpsNativeFacingOff;
+        if(n<=3||n==1000)Log("TPS V0.61: native strafe-facing LOCK n=%u component=%p",n,component);
+    } else if(!enable&&g_tpsFacingOwned){
+        if(!(*field&0x10u))*field=static_cast<unsigned char>(*field|0x10u);
+        g_tpsFacingOwned=false;
+        const unsigned n=++g_tpsNativeFacingRestored;
+        if(n<=3||n==1000)Log("TPS V0.61: native strafe-facing RESTORE n=%u component=%p",n,component);
+    }
+    ReleaseSRWLockExclusive(&g_tpsFacingLock);
+}
+// Native HideGroundTargetingEffect(bool hide), RVA 0x6DDAD0, only ground
+// targeting FX. This does not necessarily hide Strife's generic gun aim beam.
+void HookGroundAimEffect(void* ability,bool hide) {
+    if(!g_groundAimEffectOriginal)return;
+    const bool forced=g_targetValidation.exact&&
+        dg::runtime::Get().thirdPersonEnabled.load()&&
+        dg::runtime::Get().tpsHideGroundAimFx.load();
+    if(forced&&!hide) {
+        const unsigned n=++g_tpsGroundAimFxHidden;
+        if(n==1||n==1000)Log("TPS V0.61: ground aim FX forced HIDE n=%u",n);
+    }
+    g_groundAimEffectOriginal(ability,forced?true:hide);
+}
+void InstallGroundAimEffectHook() {
+    if(!g_targetValidation.exact)return;
+    auto* target=reinterpret_cast<unsigned char*>(GetModuleHandleW(nullptr))+0x6DDAD0;
+    constexpr unsigned char signature[]={0x48,0x89,0x5C,0x24,0x08,0x57,0x48,0x83,0xEC,0x20};
+    if(std::memcmp(target,signature,sizeof(signature))) {
+        Log("TPS V0.61: native ground FX signature mismatch, hook OFF");return;
+    }
+    const auto created=MH_CreateHook(target,reinterpret_cast<void*>(&HookGroundAimEffect),
+        reinterpret_cast<void**>(&g_groundAimEffectOriginal));
+    if(created!=MH_OK){Log("TPS V0.61: native ground FX hook create=%d",int(created));return;}
+    const auto enabled=MH_EnableHook(target);
+    Log("TPS V0.61: native ground FX hook %s",enabled==MH_OK||enabled==MH_ERROR_ENABLED?"READY":"FAILED");
+}
 float HookCharacterGetMaxSpeed(void* movementComponent) {
     const float nativeSpeed = g_originalCharacterGetMaxSpeed
         ? g_originalCharacterGetMaxSpeed(movementComponent)
@@ -1406,6 +1485,7 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         ApplyPlayerMovementTunings(movementComponent);
 
     if (playerMovementValidated) {
+        UpdateTPSFacingNative(movementComponent);
         CaptureLiveTPSActorYaw(characterOwner);
         // Keep the existing single active-player pointer only for player-only
         // features. Horse discovery is fully independent in V0.26.
@@ -1415,6 +1495,7 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
                 std::memory_order_relaxed
             );
         if (previousPlayer != characterOwner) {
+            g_tpsPlayerGeneration.fetch_add(1);
             Log(
                 "Player identity: active player=%p movement=%p (validated player movement)",
                 characterOwner,
@@ -2332,6 +2413,9 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     const bool aim=rt.tpsControllerCombatAim.load(std::memory_order_relaxed);
     const bool fire=pad.bRightTrigger>=XINPUT_GAMEPAD_TRIGGER_THRESHOLD ||
         (pad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER)!=0;
+    g_tpsFireHeld.store(fire);
+    if(fire)g_tpsFireLastTick.store(GetTickCount64());
+    rt.tpsAimActive.store(fire);
     const float calibration=rt.tpsAimYawOffsetDegrees.load(std::memory_order_relaxed);
     const float trim=std::isfinite(calibration)
         ? std::clamp(calibration,-180.0f,180.0f):0.0f;
@@ -3334,6 +3418,8 @@ void ShutdownMod() {
     RestoreCameraDof();
     Log("Aim V0.57 totals: mouseMessagesBlocked=%u rightStickReadsFiltered=%u",
         g_nativeMouseAimSuppressed.load(),g_nativePadAimSuppressed.load());
+    Log("TPS V0.61 totals: nativeStrafeLocked=%u restored=%u groundFXHidden=%u",
+        g_tpsNativeFacingOff.load(),g_tpsNativeFacingRestored.load(),g_tpsGroundAimFxHidden.load());
     Log("TPS V0.60 totals: combatAim=%u experimentalStrafeRemap=%u nativeFireOrThrowPolls=%u liveActorYaw=%u leftStickPassthrough=%u movingFire=%u",
         g_tpsCombatAimSamples.load(),g_tpsStrafeSamples.load(),
         g_tpsCombatFireSamples.load(),g_tpsActorYawSamples.load(),
@@ -3457,6 +3543,7 @@ DWORD WINAPI MainThread(LPVOID) {
     if (!InstallMovementSpeedHook()) {
         Log("Movement Speed unavailable; other ASI features remain active.");
     }
+    InstallGroundAimEffectHook();
     if (!InstallActionRecoveryV08B()) {
         Log("Action Recovery V0.8 unavailable; other ASI features remain active.");
     }

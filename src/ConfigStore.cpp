@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2108;
+constexpr int kConfigRevision = 2109;
 
 bool ReadBool(
     const wchar_t* section,
@@ -301,6 +301,9 @@ void Store::ResetDefaults(bool persist) {
     thirdPersonEnabled = false;
     cameraOrbitInputEnabled = false;
     tpsControllerCombatAim = true;
+    tpsLockCombatFacing=true;
+    tpsLockCombatCameraPivot=true;
+    tpsHideGroundAimFx=false;
     tpsControllerStrafe = false;
     pistolDamageEnabled = true;
     meleeDamageEnabled = true;
@@ -406,6 +409,9 @@ bool Store::Load() {
         ReadBool(L"Features", L"ThirdPerson", false, path_);
     cameraOrbitInputEnabled = ReadBool(L"Features", L"CameraMouseGamepad", false, path_);
     tpsControllerCombatAim = ReadBool(L"Features", L"TPSControllerCombatAim", true, path_);
+    tpsLockCombatFacing = ReadBool(L"Features",L"TPSLockCombatFacing",true,path_);
+    tpsLockCombatCameraPivot = ReadBool(L"Features",L"TPSLockCombatCameraPivot",true,path_);
+    tpsHideGroundAimFx = ReadBool(L"Features",L"TPSHideGroundAimFx",false,path_);
     tpsControllerStrafe = ReadBool(L"Features", L"TPSControllerStrafe", false, path_);
     pistolDamageEnabled =
         ReadBool(L"Features", L"PistolDamage", true, path_);
@@ -542,10 +548,10 @@ bool Store::Load() {
         // V0.59's automatic relative-stick remap produced incorrect movement
         // (e.g. stick UP became rightward movement). Revoke only that default
         // when migrating; keep every other user INI value/hotkey unchanged.
-        if (revision <= 2107) tpsControllerStrafe=false;
+        if (revision <= 2108) tpsControllerStrafe=false;
         PublishRuntime();
         SaveNow();
-        Log("INI migrated to V0.60: unsafe TPS left-stick remap disabled; other settings preserved");
+        Log("INI migrated to V0.61: native strafe and aim camera pivot; experimental left stick reset");
         return true;
     }
 
@@ -568,6 +574,9 @@ void Store::PublishRuntime() const {
     runtime.thirdPersonEnabled = thirdPersonEnabled;
     runtime.cameraOrbitInputEnabled = cameraOrbitInputEnabled;
     runtime.tpsControllerCombatAim = tpsControllerCombatAim;
+    runtime.tpsLockCombatFacing = tpsLockCombatFacing;
+    runtime.tpsLockCombatCameraPivot = tpsLockCombatCameraPivot;
+    runtime.tpsHideGroundAimFx = tpsHideGroundAimFx;
     runtime.tpsControllerStrafe = tpsControllerStrafe;
     runtime.thirdPersonDistanceMultiplier = thirdPersonDistanceMultiplier;
     runtime.thirdPersonPitchDegrees = thirdPersonPitchDegrees;
@@ -658,6 +667,9 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"ThirdPerson", thirdPersonEnabled, path_);
     WriteBool(L"Features", L"CameraMouseGamepad", cameraOrbitInputEnabled, path_);
     WriteBool(L"Features", L"TPSControllerCombatAim", tpsControllerCombatAim, path_);
+    WriteBool(L"Features",L"TPSLockCombatFacing",tpsLockCombatFacing,path_);
+    WriteBool(L"Features",L"TPSLockCombatCameraPivot",tpsLockCombatCameraPivot,path_);
+    WriteBool(L"Features",L"TPSHideGroundAimFx",tpsHideGroundAimFx,path_);
     WriteBool(L"Features", L"TPSControllerStrafe", tpsControllerStrafe, path_);
     WriteBool(L"Features", L"PistolDamage", pistolDamageEnabled, path_);
     WriteBool(L"Features", L"MeleeDamage", meleeDamageEnabled, path_);

@@ -22,6 +22,9 @@ void Publish(const Snapshot& s) {
     g_state.thirdPersonEnabled.store(s.thirdPersonEnabled, std::memory_order_relaxed);
     g_state.cameraOrbitInputEnabled.store(s.cameraOrbitInputEnabled, std::memory_order_relaxed);
     g_state.tpsControllerCombatAim.store(s.tpsControllerCombatAim, std::memory_order_relaxed);
+    g_state.tpsLockCombatFacing.store(s.tpsLockCombatFacing);
+    g_state.tpsLockCombatCameraPivot.store(s.tpsLockCombatCameraPivot);
+    g_state.tpsHideGroundAimFx.store(s.tpsHideGroundAimFx);
     g_state.tpsControllerStrafe.store(s.tpsControllerStrafe, std::memory_order_relaxed);
     g_state.pistolDamageEnabled.store(s.pistolDamageEnabled, std::memory_order_relaxed);
     g_state.meleeDamageEnabled.store(s.meleeDamageEnabled, std::memory_order_relaxed);

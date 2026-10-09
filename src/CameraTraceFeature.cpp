@@ -34,6 +34,10 @@ std::atomic<float> g_nativeYaw{0.0f}, g_appliedYaw{0.0f};
 std::atomic<float> g_nativeHeight{0.0f}, g_appliedHeight{0.0f};
 std::atomic<float> g_nativeDistance{0.0f}, g_appliedDistance{0.0f};
 thread_local bool g_inArm = false;
+std::atomic<float> g_idlePivotDX{0.0f},g_idlePivotDY{0.0f};
+std::atomic_ullong g_idlePivotTick{0};
+std::atomic_uint32_t g_idlePivotGeneration{UINT32_MAX};
+std::atomic<uint32_t> g_pivotCompensations{0};
 void Write(const char* s) { if (g_log && s) g_log(s); }
 bool Sample(uint32_t n) { return n <= 12 || (n % 5000) == 0; }
 
@@ -108,8 +112,44 @@ void HookView(void* camera, float dt, void* outView) {
             const float tpPitch=std::clamp(tpBasePitch+(std::isfinite(op)?op:0.0f),-75.0f,65.0f);
             const float dp=tpPitch*rad,dy=appliedYaw*rad;
             const float distance=std::clamp(dist*mult,120.0f,12000.0f);
-            const float pivotX=x+std::cos(np)*std::cos(ny)*dist;
-            const float pivotY=y+std::cos(np)*std::sin(ny)*dist;
+            float pivotX=x+std::cos(np)*std::cos(ny)*dist;
+            float pivotY=y+std::cos(np)*std::sin(ny)*dist;
+            // The native top-down targeting camera shifts its spring-arm
+            // pivot toward the aim direction. In TPS this becomes a
+            // distracting lateral drift. Keep the last idle camera
+            // relative-to-actor XY offset while shooting.
+            const bool keepPivot=settings.tpsLockCombatCameraPivot.load();
+            const ULONGLONG now=GetTickCount64(),actorTick=settings.tpsActorLocationTick.load();
+            const bool actorFresh=actorTick && now>=actorTick && now-actorTick<250;
+            const uint32_t generation=settings.tpsActorGeneration.load();
+            if(g_idlePivotGeneration.load()!=generation) {
+                g_idlePivotGeneration.store(generation);
+                g_idlePivotTick.store(0);
+            }
+            if(actorFresh&&keepPivot) {
+                const float ax=settings.tpsActorWorldX.load(),ay=settings.tpsActorWorldY.load();
+                const bool aiming=settings.tpsAimActive.load();
+                if(!aiming){
+                    const float ox=pivotX-ax,oy=pivotY-ay;
+                    if(std::isfinite(ox)&&std::isfinite(oy)&&std::fabs(ox)<8000&&std::fabs(oy)<8000) {
+                        g_idlePivotDX.store(ox);g_idlePivotDY.store(oy);
+                        g_idlePivotTick.store(now);
+                    }
+                } else if(g_idlePivotTick.load() && now>=g_idlePivotTick.load() &&
+                         now-g_idlePivotTick.load()<12000) {
+                    const float bx=ax+g_idlePivotDX.load(),by=ay+g_idlePivotDY.load();
+                    if(std::isfinite(bx)&&std::isfinite(by)) {
+                        pivotX=bx;pivotY=by;
+                        const uint32_t n=++g_pivotCompensations;
+                        if(n==1 || n==5000) {
+                            char diag[220]{};
+                            sprintf_s(diag,"TPS V0.61: native aim camera drift locked n=%u actor=(%.0f,%.0f) baseline=(%.0f,%.0f)",
+                                n,ax,ay,g_idlePivotDX.load(),g_idlePivotDY.load());
+                            Write(diag);
+                        }
+                    }
+                }
+            }
             const float pivotZ=nativeHeight+std::sin(np)*dist;
             const float newX=pivotX-std::cos(dp)*std::cos(dy)*distance;
             const float newY=pivotY-std::cos(dp)*std::sin(dy)*distance;
