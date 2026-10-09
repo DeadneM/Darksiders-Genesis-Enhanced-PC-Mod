@@ -551,9 +551,14 @@ void Draw(Context& c) {
             }
             ImGui::SameLine(310.0f);
             ImGui::TextDisabled(
-                "EARLY SCREEN %s | target %s | restart for boot effect",
+                "LEGACY BYPASS %s | target %s | restart for boot effect",
                 t.skipLogosPatched ? "PATCHED" : "NATIVE",
                 t.skipLogosTargetValid ? "VALID" : "INVALID"
+            );
+            ImGui::TextWrapped(
+                "Legacy Skip Logos bypasses the native StartupScreens->MoviePlayer "
+                "attachment. It may cause the cross-shaped cursor after loading. "
+                "OFF is now the safe default; ON is for controlled A/B tests."
             );
 
             if (ImGui::Checkbox(

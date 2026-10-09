@@ -57,7 +57,7 @@ static constexpr BYTE kNativeAttachBlock[] = {
 static constexpr BYTE kSkipAttachBlock[] = { 0xE9,0x0E,0x00,0x00,0x00 };
 
 static std::atomic_bool g_skipLogosTargetValid{false};
-static std::atomic_bool g_skipLogosEnabled{true};
+static std::atomic_bool g_skipLogosEnabled{false};
 static std::atomic_bool g_skipLogosPatched{false};
 
 static bool ReadSkipLogosEnabledFromIni() {
@@ -69,7 +69,18 @@ static bool ReadSkipLogosEnabledFromIni() {
     wchar_t iniPath[MAX_PATH]{};
     lstrcpyW(iniPath, modulePath);
     lstrcatW(iniPath, L"DarksidersGenesisMod.ini");
-    return GetPrivateProfileIntW(L"Features", L"SkipLogos", 1, iniPath) != 0;
+    // DXGI DllMain executes before ASI can migrate earlier settings.
+    // Fail closed on pre-V0.43 INIs: never apply legacy attachment bypass.
+    const UINT revision = GetPrivateProfileIntW(L"Meta",L"ConfigRevision",0,iniPath);
+    if (revision < 2102u) {
+        LogLoader(L"V0.43: legacy INI found; StartupScreens bypass BLOCKED before startup");
+        return false;
+    }
+    const bool enabled = GetPrivateProfileIntW(L"Features",L"SkipLogos",0,iniPath) != 0;
+    LogLoader(enabled
+        ? L"V0.43 WARNING: old SStartupScreens attach bypass explicitly ON (cursor bug suspected)"
+        : L"V0.43 SAFE: native MoviePlayer startup attachment preserved");
+    return enabled;
 }
 
 static BYTE* ResolveValidatedAttachBlock() {
@@ -300,8 +311,8 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
         g_self = module;
         DisableThreadLibraryCalls(module);
 
-        // V0.19C: let ProjectMayhem build SStartupScreens, then bypass the
-        // block that attaches it to the engine MoviePlayer.
+        // V0.43: retain the native startup attachment unless the user
+        // explicitly opts into the unsafe V0.19C diagnostic bypass.
         const bool enabled =
             ReadSkipLogosEnabledFromIni();
         ApplySkipLogosPatch(enabled);

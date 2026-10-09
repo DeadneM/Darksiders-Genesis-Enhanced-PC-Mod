@@ -70,7 +70,7 @@ public:
     bool toggleHudEnabled = true;
     bool movementSpeedEnabled = true;
     bool actionRecoveryEnabled = true;
-    bool skipLogosEnabled = true;
+    bool skipLogosEnabled = false;
     bool skipIntroEnabled = true;
     bool thirdPersonEnabled = false;
     bool pistolDamageEnabled = true;

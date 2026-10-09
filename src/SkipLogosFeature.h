@@ -10,7 +10,7 @@ struct Telemetry {
     bool proxyAvailable = false;
     bool targetValid = false;
     bool patched = false;
-    bool enabled = true;
+    bool enabled = false;
 };
 
 bool Initialize(LogFn logger);

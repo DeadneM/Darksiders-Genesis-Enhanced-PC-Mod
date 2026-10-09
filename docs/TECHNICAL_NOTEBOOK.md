@@ -3354,3 +3354,37 @@ Ideally also compare whether the cross appears with all mod binaries
 temporarily absent, to distinguish a native game bug from mod interaction.
 Do not attribute the root cause before comparing code RVA/state transitions.
 No public release until validated. ZIP files at root.
+
+## V0.43 - Skip Logos attachment bypass implicated in malformed cursor (TEST)
+
+User discovered cross appears after save load when Skip Logos is enabled.
+The earlier V0.19C patch at RVA 0x260244 jumps to 0x260257, avoiding
+SStartupScreens attachment to MoviePlayer. This bypass was initially
+validated for faster boot and independent Skip Intro cinematic behavior,
+not for the lifecycle of Slate input/focus/cursor in later levels.
+It is a STRONG causal lead, not yet proof of which cleanup call is missing.
+
+This build DOES NOT introduce another cursor workaround or speculate a
+replacement low-level patch. It preserves the V0.42 removal of automatic
+F5 and abandoned cursor mode 1/2 experiments, and passive cursor traces.
+It preserves working Hide Reticle ON/OFF and F6, camera, HUD, horse, etc.
+
+Safe-by-default, controlled A/B:
+- Fresh INI SkipLogos=0; SkipIntroVideos remains independent and ON.
+- Bump config revision 2101 -> 2102. Migrates existing INI with ONLY
+  SkipLogos forced OFF; other settings preserved.
+- CRITICAL: earliest proxy checks config revision BEFORE the ASI loads;
+  old revisions cannot enable the attachment bypass on that first boot.
+- Explicit SkipLogos=1 after migration can still activate old V0.19C
+  for A/B if needed, with warning in GUI and loader/ASI log.
+- SkipLogos=0 leaves vanilla MoviePlayer attachment intact.
+- Changing either option affects startup on NEXT game launch only.
+- No new public release until tested.
+
+Controlled test: SkipLogos OFF, restart game, load same save, check
+cross without F5 or Alt-Tab. If cross absent, association confirmed;
+optional second run SkipLogos ON verifies regression with otherwise
+identical setup. Next engineering step is disassemble StartupScreens'
+attach, playback completion and destruction paths to implement a
+true native lifecycle-preserving logo skip without touching game assets.
+Do not claim a permanent working Skip Logos replacement yet.

@@ -84,6 +84,9 @@ bool Initialize(LogFn logger) {
         t.enabled ? 1 : 0
     );
     LogText(message);
+    LogText(enabled
+        ? "Skip Logos V0.43: LEGACY attachment bypass ENABLED; startup/cursor regression suspected"
+        : "Skip Logos V0.43: native StartupScreens attachment retained (SAFE)");
 
     return
         applied &&
