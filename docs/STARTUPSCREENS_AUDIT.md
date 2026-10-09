@@ -303,3 +303,56 @@ materially establish their values. When a source-of-truth descriptor
 is recovered, design a name-filtered, lifecycle-preserving route
 and subject any proposed x64 hook to a complete ABI/unwind/lifetime
 review before game testing.
+
+## V0.46 - Experimental exact-name first-two StartupMovies filter (TEST)
+
+Goal: bring back Skip Logos without touching the native MoviePlayer setup
+and without altering game assets. Continue directly from V0.45 stable
+safe startup. V0.44's crashing 19-byte MoviePlayer wrapper remains gone.
+
+SOURCE: The user-supplied retail executable was verified against
+62,113,280 bytes and SHA256
+9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54.
+RVA 0x25FF31 contains exactly:
+44 8B 76 08 (mov r14d,[rsi+8], array count)
+48 8B 36    (mov rsi,[rsi], array descriptor pointer).
+The game's unmodified 19 bytes at RVA 0x260244 are independently
+validated and NEVER changed by this version.
+
+V0.46 uses an early 7-byte exact-signature redirect at RVA 0x25FF31.
+A nearby executable island replays those original two instructions,
+saves flags and all volatile GP registers, allocates the Win64 32-byte
+shadow space and calls a bounded validator. The validator reads at most
+3 names with VirtualQuery guards and logs them to the Loader log.
+Only if first two FString descriptors name THQ_LogoBasic and AS_LogoBasic
+in either order, count is 3..64 and all relevant buffers are readable
+does the island increase RSI by 32 (skip two 16-byte descriptors) and
+decrease R14D by 2. This preserves the third and subsequent entries.
+In all other circumstances the ORIGINAL full playlist is passed on.
+The island restores original registers/flags and uses a RIP-indirect
+absolute jump back at RVA 0x25FF38, not clobbering RAX.
+
+The following native code deep-copies the resulting descriptors and
+calls the ORIGINAL SetupLoadingScreen vtable method. Unlike the
+V0.19C failed attachment bypass, this retains the MoviePlayer/Slate
+startup path and original cleanup ownership. It is nonetheless an
+experimental early executable detour; crash-free behavior is NOT
+proven. On crash use V0.45 or SkipLogos=0 (fresh startup required).
+
+Fresh TEST ZIP includes SkipLogos=1 to exercise the new mechanism.
+Existing INIs are preserved and V0.45 users must explicitly change
+SkipLogos=0 to 1 to test it. Missing/old INIs do not automatically
+enable it. The old V0.19C attachment bypass is removed entirely from
+the proxy; it cannot be invoked by this build. Skip Intro remains
+controlled by g.PlayIntroCinematicOnBoot and unaffected by code changes.
+
+If the named logo files are NOT the first two native entries, the
+validator logs FAIL OPEN and the logos still show. This is intentional
+rather than guessing. Future builds may expand to name-matching in
+arbitrary positions after observing real runtime ordering.
+
+TEST GATE: startup with new proxy, log messages in
+DarksidersGenesisLoader.log, logos skipped or not, warning display,
+intro with SkipIntroVideos OFF, in-game cursor after save load,
+Alt-Tab and overlay; do not publish a public tagged release before
+user validates. Files at ZIP root. No new auto F5/focus simulations.

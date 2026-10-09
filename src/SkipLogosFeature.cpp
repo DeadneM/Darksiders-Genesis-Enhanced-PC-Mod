@@ -77,7 +77,7 @@ bool Initialize(LogFn logger) {
     char message[256]{};
     sprintf_s(
         message,
-        "Skip Logos STARTUPSCREENS_ATTACH_VALIDATED: proxy=%d target=%d patched=%d enabled=%d attachBlockRVA=0x260244 resumeRVA=0x260257",
+        "Skip Logos V0.46 EXACT_PREFIX: proxy=%d target=%d patched=%d enabled=%d copyRVA=0x25FF31 attachUNCHANGED=0x260244",
         t.proxyAvailable ? 1 : 0,
         t.targetValid ? 1 : 0,
         t.patched ? 1 : 0,
@@ -85,8 +85,8 @@ bool Initialize(LogFn logger) {
     );
     LogText(message);
     LogText(enabled
-        ? "Skip Logos V0.43: LEGACY attachment bypass ENABLED; startup/cursor regression suspected"
-        : "Skip Logos V0.43: native StartupScreens attachment retained (SAFE)");
+        ? "Skip Logos V0.46: selective native playlist prefix filter requested (boot-time effect)"
+        : "Skip Logos V0.46: native startup retained (feature OFF)");
 
     return
         applied &&

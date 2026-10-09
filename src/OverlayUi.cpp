@@ -551,14 +551,15 @@ void Draw(Context& c) {
             }
             ImGui::SameLine(310.0f);
             ImGui::TextDisabled(
-                "LEGACY BYPASS %s | target %s | restart for boot effect",
+                "PREFIX FILTER %s | target %s | restart for boot effect",
                 t.skipLogosPatched ? "PATCHED" : "NATIVE",
                 t.skipLogosTargetValid ? "VALID" : "INVALID"
             );
             ImGui::TextWrapped(
-                "Legacy Skip Logos bypasses the native StartupScreens->MoviePlayer "
-                "attachment. It may cause the cross-shaped cursor after loading. "
-                "OFF is now the safe default; ON is for controlled A/B tests."
+                "V0.46 experimental: skip only an exact THQ + Airship two-logo "
+                "playlist prefix, preserving native MoviePlayer attachment. "
+                "Unknown movie names fail open; restart needed to apply. "
+                "Turn OFF if anything behaves unexpectedly."
             );
 
             if (ImGui::Checkbox(
