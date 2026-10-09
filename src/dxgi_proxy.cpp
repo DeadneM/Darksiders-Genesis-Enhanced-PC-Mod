@@ -93,6 +93,11 @@ static std::atomic_bool g_skipLogosHookReady{false};
 static std::atomic_bool g_skipWarningEnabled{false};
 static std::atomic_bool g_warningAttempted{false};
 static std::atomic_bool g_warningApplied{false};
+static std::atomic_bool g_warningHookReady{false};
+// Executed only on the startup thread. Never changed by overlay toggles.
+static volatile BYTE g_warningBootGate = 0;
+static volatile BYTE g_warningNativeSeen = 0;
+static volatile BYTE g_warningNativeSkipped = 0;
 static std::atomic_uint32_t g_startupFilterCalls{0};
 
 struct FStringView {
@@ -178,53 +183,20 @@ static const FStringView kSubstituteMovies[2] = {
 // V0.19C caused cross-shaped cursor). With more than two entries,
 // keep the existing validated skip-prefix logic (count decremented
 // by two by the assembly island).
-// StartupScreenDef TArray is at UStartupScreensSettings +0x50,
-// independent of StartupMovies (+0x38); direct EXE disassembly shows
-// stride 0x40. Strict native count=2 attempt, guarded by opt-in.
-static void TrySkipWarnings(void* startupMoviesField) {
-    if (!g_skipWarningEnabled.load(std::memory_order_relaxed) ||
-        g_warningAttempted.exchange(true, std::memory_order_relaxed))
-        return;
-    auto* field=static_cast<BYTE*>(startupMoviesField);
-    if (!IsReadableSpan(field,0x28)) {
-        LogLoader(L"Skip Warning V0.54: FAIL OPEN, settings not readable");
-        return;
-    }
-    auto* defs=field+0x18;
-    const BYTE* entries=nullptr;
-    int32_t count=0,capacity=0;
-    std::memcpy(&entries,defs,sizeof(entries));
-    std::memcpy(&count,defs+8,sizeof(count));
-    std::memcpy(&capacity,defs+12,sizeof(capacity));
-    wchar_t message[230]{};
-    swprintf_s(message,L"Skip Warning V0.54: StartupScreenDef count=%d capacity=%d readable=%d",
-        count,capacity,IsReadableSpan(entries,0x80)?1:0);
-    LogLoader(message);
-    if (count!=2 || capacity<2 || capacity>32 ||
-        !IsReadableSpan(entries,0x80)) {
-        LogLoader(L"Skip Warning V0.54: native layout not the expected two screens; unchanged");
-        return;
-    }
-    MEMORY_BASIC_INFORMATION mbi{};
-    void* num=defs+8;
-    if (!VirtualQuery(num,&mbi,sizeof(mbi)) ||
-        mbi.State!=MEM_COMMIT ||
-        !(mbi.Protect & (PAGE_READWRITE|PAGE_WRITECOPY|
-                         PAGE_EXECUTE_READWRITE|PAGE_EXECUTE_WRITECOPY))) {
-        LogLoader(L"Skip Warning V0.54: count read only; unchanged");
-        return;
-    }
-    // This is the dedicated startup-screen definition array, NOT the
-    // movie array and NOT SetupLoadingScreen / Slate focus lifecycle.
-    InterlockedExchange(reinterpret_cast<volatile LONG*>(num),0);
-    g_warningApplied.store(true,std::memory_order_release);
-    LogLoader(L"Skip Warning V0.54: two startup screen definitions suppressed; movies untouched");
-}
-
-static const FStringView* __cdecl FilterStartupMovieNames(const FStringView* movies, int32_t count, void* startupMoviesField) {
+static const FStringView* __cdecl FilterStartupMovieNames(const FStringView* movies, int32_t count) {
     const unsigned calls = ++g_startupFilterCalls;
     if (calls > 2) return nullptr;
-    TrySkipWarnings(startupMoviesField);
+    if (calls == 1 && g_skipWarningEnabled.load(std::memory_order_relaxed)) {
+        const bool observed = g_warningNativeSeen != 0;
+        const bool matched = g_warningNativeSkipped != 0;
+        g_warningAttempted.store(observed,std::memory_order_release);
+        g_warningApplied.store(matched,std::memory_order_release);
+        LogLoader(matched
+            ? L"Skip Warning V0.55: native StartupScreenDef loop skipped (count=2)"
+            : observed
+                ? L"Skip Warning V0.55: startup definitions count is not 2; original screens preserved"
+                : L"Skip Warning V0.55: early loop hook not reached");
+    }
     if (!g_skipLogosEnabled.load(std::memory_order_relaxed)) return nullptr;
     wchar_t line[220]{};
     swprintf_s(line, L"Skip Logos V0.52: StartupMovies count=%d validPtr=%d",
@@ -359,7 +331,6 @@ static bool InstallSelectiveLogoHook() {
         p += sizeof(address);
     };
 
-    bytes({0x49,0x89,0xF0}); // r8 points to native StartupMovies TArray in settings
     bytes({0x44,0x8B,0x76,0x08,0x48,0x8B,0x36}); // replay 7 original bytes
     bytes({0x9C,0x50,0x51,0x52,0x41,0x50,0x41,0x51,0x41,0x52,0x41,0x53});
     bytes({0x48,0x83,0xEC,0x20});             // Win64 shadow space; RSP 16-aligned
@@ -417,6 +388,83 @@ static bool InstallSelectiveLogoHook() {
     g_skipLogosHookReady.store(true,std::memory_order_release);
     g_skipLogosPatched.store(true,std::memory_order_release);
     LogLoader(L"Skip Logos V0.52: targeted 7-byte playlist hook installed; MoviePlayer attachment unchanged");
+    return true;
+}
+
+// V0.55: The V0.54 data patch ran at 0x25FF31 *after* the game's
+// StartupScreenDef iteration at 0x25FEB7. That was too late.
+// Instead divert only the seven bytes at 0x25FEBF
+// 48 C1 E7 06 (shl rdi,6) + 48 03 FB (add rdi,rbx).
+// A nearby no-call island replays those instructions and, only if
+// the array contains exactly TWO 0x40-byte definitions, makes the
+// native end pointer equal the start. Thus the warning iteration at
+// 0x25FED0 is bypassed while StartupMovies/MoviePlayer remain untouched.
+// Native array data, counts, UE objects and game assets are NEVER edited.
+static bool InstallSkipWarningLoopHook() {
+    if (!HasSupportedNativeCode()) return false;
+    constexpr uintptr_t warningRva=0x0025FEBF;
+    constexpr BYTE original[7]={0x48,0xC1,0xE7,0x06,0x48,0x03,0xFB};
+    auto* target=reinterpret_cast<BYTE*>(GetModuleHandleW(nullptr))+warningRva;
+    if (std::memcmp(target,original,sizeof(original))!=0) {
+        LogLoader(L"Skip Warning V0.55: early loop signature mismatch; left native");
+        return false;
+    }
+    BYTE* island=AllocateNearby(target);
+    if (!island) return false;
+    BYTE* out=island;
+    auto bytes=[&](std::initializer_list<BYTE> v) {
+        for (BYTE b:v) *out++=b;
+    };
+    auto pointer=[&](uintptr_t value) {
+        std::memcpy(out,&value,sizeof(value));out+=sizeof(value);
+    };
+    bytes({0x48,0xC1,0xE7,0x06,0x48,0x03,0xFB}); // replay 7 exact bytes
+    bytes({0x50}); // push rax: preserve volatile original value
+    bytes({0x48,0xB8}); pointer(reinterpret_cast<uintptr_t>(&g_warningNativeSeen));
+    bytes({0xC6,0x00,0x01}); // mov byte ptr [rax],1: trace actual invocation
+    bytes({0x48,0xB8}); pointer(reinterpret_cast<uintptr_t>(&g_warningBootGate));
+    bytes({0x80,0x38,0x00,0x74,0x00}); // cmp byte ptr [rax],0; je exit
+    BYTE* jeOffset=out-1;
+    bytes({0x48,0x8D,0x83,0x80,0x00,0x00,0x00}); // lea rax,[rbx+0x80]
+    bytes({0x48,0x39,0xC7,0x75,0x00}); // cmp rdi,rax; jne exit
+    BYTE* jneOffset=out-1;
+    bytes({0x48,0x89,0xDF}); // mov rdi,rbx: bypass precisely two definitions
+    bytes({0x48,0xB8}); pointer(reinterpret_cast<uintptr_t>(&g_warningNativeSkipped));
+    bytes({0xC6,0x00,0x01}); // mark exact-match skip
+    if (out-(jeOffset+1)>127 || out-(jneOffset+1)>127) {
+        VirtualFree(island,0,MEM_RELEASE);return false;
+    }
+    *jeOffset=static_cast<BYTE>(out-(jeOffset+1));
+    *jneOffset=static_cast<BYTE>(out-(jneOffset+1));
+    bytes({0x58}); // pop rax, native RDI only changed if exactly 2
+    bytes({0xFF,0x25,0x00,0x00,0x00,0x00}); // absolute RIP jump
+    pointer(reinterpret_cast<uintptr_t>(target+sizeof(original)));
+    const size_t size=static_cast<size_t>(out-island);
+    if (size>256) {VirtualFree(island,0,MEM_RELEASE);return false;}
+    DWORD oldIsland=0;
+    if (!VirtualProtect(island,4096,PAGE_EXECUTE_READ,&oldIsland)) {
+        VirtualFree(island,0,MEM_RELEASE);return false;
+    }
+    FlushInstructionCache(GetCurrentProcess(),island,size);
+    const int64_t displacement=
+        static_cast<int64_t>(reinterpret_cast<uintptr_t>(island))-
+        static_cast<int64_t>(reinterpret_cast<uintptr_t>(target)+5);
+    if (displacement<INT32_MIN || displacement>INT32_MAX) {
+        VirtualFree(island,0,MEM_RELEASE);return false;
+    }
+    BYTE redirect[7]={0xE9,0,0,0,0,0x90,0x90};
+    const int32_t rel=static_cast<int32_t>(displacement);
+    std::memcpy(redirect+1,&rel,sizeof(rel));
+    DWORD old=0;
+    if (!VirtualProtect(target,7,PAGE_EXECUTE_READWRITE,&old)) {
+        VirtualFree(island,0,MEM_RELEASE);return false;
+    }
+    std::memcpy(target,redirect,7);
+    FlushInstructionCache(GetCurrentProcess(),target,7);
+    DWORD ignored=0;
+    VirtualProtect(target,7,old,&ignored);
+    g_warningHookReady.store(true,std::memory_order_release);
+    LogLoader(L"Skip Warning V0.55: native pre-loop branch installed at RVA 0x25FEBF");
     return true;
 }
 
@@ -556,8 +604,10 @@ BOOL WINAPI DGSkipWarningApplied() {
 }
 extern "C" __declspec(dllexport)
 BOOL WINAPI DGSetSkipWarningEnabled(BOOL enabled) {
+    // The boot-gate deliberately does not change during gameplay.
+    // Changes are saved in the INI and require a restart.
     g_skipWarningEnabled.store(enabled!=FALSE);
-    return g_skipLogosHookReady.load() ? TRUE : FALSE;
+    return g_warningHookReady.load() ? TRUE : FALSE;
 }
 
 extern "C" __declspec(dllexport)
@@ -646,10 +696,13 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
         const bool warnings=ReadWarningEnabledFromIni();
         g_skipLogosEnabled.store(enabled,std::memory_order_relaxed);
         g_skipWarningEnabled.store(warnings,std::memory_order_relaxed);
+        g_warningBootGate=warnings?1:0;
         const bool valid = HasSupportedNativeCode();
         g_skipLogosTargetValid.store(valid,std::memory_order_release);
-        if ((enabled || warnings) && valid && !InstallSelectiveLogoHook())
-            LogLoader(L"Skip Logos V0.51: diagnostic hook install failed; native startup unchanged");
+        if (warnings && valid && !InstallSkipWarningLoopHook())
+            LogLoader(L"Skip Warning V0.55: early loop hook failed, native warnings preserved");
+        if (enabled && valid && !InstallSelectiveLogoHook())
+            LogLoader(L"Skip Logos V0.55: logo hook failed, native logo movies preserved");
         if (!enabled)
             LogLoader(L"Skip Logos V0.51: OFF; original startup preserved");
     }
