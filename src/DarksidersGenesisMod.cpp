@@ -35,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.56-third-person-orbit-warning-audit";
+constexpr const char* kBuild = "0.57-third-person-native-aim-isolation";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -71,6 +71,9 @@ HWND g_hwnd = nullptr;
 WNDPROC g_originalWndProc = nullptr;
 
 std::atomic_bool g_imguiReady{false};
+// Third Person V0.57: mouse and controller aim isolation.
+std::atomic_uint32_t g_nativeMouseAimSuppressed{0};
+std::atomic_uint32_t g_nativePadAimSuppressed{0};
 std::atomic_int g_orbitMouseDx{0},g_orbitMouseDy{0};
 std::atomic_ullong g_lastOrbitRawTick{0};
 ULONGLONG g_orbitLastPresentTick=0;
@@ -2238,6 +2241,97 @@ void ReleaseRenderTarget() {
     }
 }
 
+
+bool ShouldSuppressNativeAim() {
+    // Fail open outside the exact supported game, on Alt-Tab and in the menu.
+    const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load(std::memory_order_relaxed));
+    return g_targetValidation.exact && !g_shuttingDown.load(std::memory_order_relaxed) &&
+        dg::runtime::Get().thirdPersonEnabled.load(std::memory_order_relaxed) &&
+        hwnd && hwnd==GetForegroundWindow() && !IsIconic(hwnd) &&
+        !g_overlayVisible.load(std::memory_order_relaxed);
+}
+
+// Filtering happens only in the native controller API: our own camera
+// polls the MinHook original trampoline to preserve unmodified stick data.
+using NativeXInputGetStateFn=DWORD(WINAPI*)(DWORD, XINPUT_STATE*);
+NativeXInputGetStateFn g_nativeXInputOriginal[5]{};
+bool g_nativeXInputInstalled[5]{};
+const wchar_t* const kNativeXInputLibraries[]={
+    L"xinput1_4.dll",L"xinput1_3.dll",L"xinput9_1_0.dll",L"xinputuap.dll",L"xinput1_4.dll"
+};
+DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
+    const auto original=g_nativeXInputOriginal[slot];
+    if (!original) return ERROR_DEVICE_NOT_CONNECTED;
+    const DWORD status=original(user,state);
+    if (status==ERROR_SUCCESS && state && ShouldSuppressNativeAim()) {
+        if (state->Gamepad.sThumbRX!=0 || state->Gamepad.sThumbRY!=0) {
+            state->Gamepad.sThumbRX=0;
+            state->Gamepad.sThumbRY=0;
+            const unsigned n=g_nativePadAimSuppressed.fetch_add(1)+1;
+            if (n==1 || n==10000)
+                Log("Aim V0.57: filtered native XInput right stick count=%u",n);
+        }
+    }
+    return status;
+}
+DWORD WINAPI HookNativeXInput14(DWORD user,XINPUT_STATE* state) {return FilterNativeXInput(0,user,state);}
+DWORD WINAPI HookNativeXInput13(DWORD user,XINPUT_STATE* state) {return FilterNativeXInput(1,user,state);}
+DWORD WINAPI HookNativeXInput910(DWORD user,XINPUT_STATE* state) {return FilterNativeXInput(2,user,state);}
+DWORD WINAPI HookNativeXInputUap(DWORD user,XINPUT_STATE* state) {return FilterNativeXInput(3,user,state);}
+DWORD WINAPI HookNativeXInput14Ex(DWORD user,XINPUT_STATE* state) {return FilterNativeXInput(4,user,state);}
+void EnsureNativeXInputAimHooks() {
+    static ULONGLONG lastScan=0;
+    const ULONGLONG now=GetTickCount64();
+    if (lastScan && now-lastScan<2500ull) return;
+    lastScan=now;
+    void* const hooks[5]={
+        reinterpret_cast<void*>(&HookNativeXInput14),
+        reinterpret_cast<void*>(&HookNativeXInput13),
+        reinterpret_cast<void*>(&HookNativeXInput910),
+        reinterpret_cast<void*>(&HookNativeXInputUap),
+        reinterpret_cast<void*>(&HookNativeXInput14Ex)
+    };
+    for (int i=0;i<5;++i) {
+        if (g_nativeXInputInstalled[i]) continue;
+        const HMODULE mod=GetModuleHandleW(kNativeXInputLibraries[i]);
+        if (!mod) continue;
+        FARPROC api=i==4
+            ? GetProcAddress(mod,MAKEINTRESOURCEA(100)) // GetStateEx
+            : GetProcAddress(mod,"XInputGetState");
+        if (!api) continue;
+        const MH_STATUS created=MH_CreateHook(
+            reinterpret_cast<void*>(api),hooks[i],
+            reinterpret_cast<void**>(&g_nativeXInputOriginal[i]));
+        if (created!=MH_OK) continue;
+        const MH_STATUS enabled=MH_EnableHook(reinterpret_cast<void*>(api));
+        if (enabled!=MH_OK && enabled!=MH_ERROR_ENABLED) {
+            MH_RemoveHook(reinterpret_cast<void*>(api));
+            g_nativeXInputOriginal[i]=nullptr;
+            continue;
+        }
+        g_nativeXInputInstalled[i]=true;
+        Log("Aim V0.57: native XInput input gate READY library=%d export=%s",
+            i,i==4?"GetStateEx":"GetState");
+    }
+}
+// Always prefer the original unfiltered API for our camera.
+// Controllers may not use XInput (Steam Input, HID); those paths need native tracing.
+DWORD GetCameraXInputState(DWORD user,XINPUT_STATE* state) {
+    if (!state) return ERROR_BAD_ARGUMENTS;
+    for (int i=0;i<4;++i) {
+        if (g_nativeXInputOriginal[i] &&
+            g_nativeXInputOriginal[i](user,state)==ERROR_SUCCESS) return ERROR_SUCCESS;
+    }
+    HMODULE mod=GetModuleHandleW(L"xinput1_4.dll");
+    if (!mod) mod=LoadLibraryW(L"xinput1_4.dll");
+    if (!mod) mod=GetModuleHandleW(L"xinput1_3.dll");
+    if (!mod) mod=GetModuleHandleW(L"xinput9_1_0.dll");
+    if (!mod) return ERROR_DEVICE_NOT_CONNECTED;
+    const auto api=reinterpret_cast<NativeXInputGetStateFn>(
+        GetProcAddress(mod,"XInputGetState"));
+    return api?api(user,state):ERROR_DEVICE_NOT_CONNECTED;
+}
+
 LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     // Read mouse deltas without consuming native game input.
     static bool primed=false;
@@ -2245,17 +2339,21 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     const bool active=g_config.thirdPersonEnabled && g_config.cameraOrbitInputEnabled &&
         !g_overlayVisible.load() && GetForegroundWindow()==hwnd;
     if (!active) primed=false;
-    if (active && msg==WM_INPUT) {
+    const bool suppressAim=ShouldSuppressNativeAim();
+    bool receivedRawMouse=false;
+    if (msg==WM_INPUT && (active || suppressAim)) {
         RAWINPUT raw{};
         UINT size=sizeof(raw);
         if (GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam),RID_INPUT,&raw,&size,
-            sizeof(RAWINPUTHEADER))==size && raw.header.dwType==RIM_TYPEMOUSE &&
-            !(raw.data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE)) {
-            const LONG dx=raw.data.mouse.lLastX,dy=raw.data.mouse.lLastY;
-            if (std::abs(dx)<=250 && std::abs(dy)<=250) {
-                g_orbitMouseDx.fetch_add(static_cast<int>(dx));
-                g_orbitMouseDy.fetch_add(static_cast<int>(dy));
-                g_lastOrbitRawTick.store(GetTickCount64());
+            sizeof(RAWINPUTHEADER))==size && raw.header.dwType==RIM_TYPEMOUSE) {
+            receivedRawMouse=true;
+            if (active && !(raw.data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE)) {
+                const LONG dx=raw.data.mouse.lLastX,dy=raw.data.mouse.lLastY;
+                if (std::abs(dx)<=250 && std::abs(dy)<=250) {
+                    g_orbitMouseDx.fetch_add(static_cast<int>(dx));
+                    g_orbitMouseDy.fetch_add(static_cast<int>(dy));
+                    g_lastOrbitRawTick.store(GetTickCount64());
+                }
             }
         }
     }
@@ -2270,6 +2368,14 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             }
         }
         oldX=x;oldY=y;primed=active;
+    }
+    // Suppress ONLY mouse movement reaching native UE input while Third Person.
+    // Preserve buttons, wheel, movement keys, focus events and system Alt-Tab.
+    if (suppressAim && (msg==WM_MOUSEMOVE || (msg==WM_INPUT && receivedRawMouse))) {
+        const unsigned n=g_nativeMouseAimSuppressed.fetch_add(1)+1;
+        if (n==1 || n==10000)
+            Log("Aim V0.57: suppressed native mouse movement message=%u count=%u",msg,n);
+        return msg==WM_INPUT ? DefWindowProcW(hwnd,msg,wParam,lParam) : 0;
     }
     // Never intercept focus/activation messages needed for Alt-Tab.
     const bool focusMessage = msg == WM_ACTIVATEAPP || msg == WM_ACTIVATE ||
@@ -2685,8 +2791,7 @@ void TraceGameWindowState(IDXGISwapChain* swapChain) {
 
 
 void EnsureOrbitWndProc(IDXGISwapChain* chain) {
-    if (g_originalWndProc || !g_config.thirdPersonEnabled ||
-        !g_config.cameraOrbitInputEnabled || !chain) return;
+    if (g_originalWndProc || !g_config.thirdPersonEnabled || !chain) return;
     DXGI_SWAP_CHAIN_DESC desc{};
     if (FAILED(chain->GetDesc(&desc)) || !desc.OutputWindow) return;
     DWORD pid=0;
@@ -2698,9 +2803,10 @@ void EnsureOrbitWndProc(IDXGISwapChain* chain) {
             reinterpret_cast<LONG_PTR>(OverlayWndProc)));
     if (previous) {
         g_originalWndProc=previous;
-        Log("Camera V0.56: opt-in mouse observer installed without ImGui initialization");
+        g_hwnd=desc.OutputWindow;
+        Log("Aim V0.57: native mouse input gate installed without ImGui initialization");
     } else if (GetLastError()!=0) {
-        Log("Camera V0.56: mouse observer failed error=%lu",GetLastError());
+        Log("Aim V0.57: native mouse input gate failed error=%lu",GetLastError());
     }
 }
 void UpdateOrbitInput() {
@@ -2719,17 +2825,10 @@ void UpdateOrbitInput() {
         return;
     }
     float ax=0.0f,ay=0.0f;
-    using GetStateFn=DWORD(WINAPI*)(DWORD,XINPUT_STATE*);
-    static GetStateFn getState=[]() -> GetStateFn {
-        HMODULE mod=GetModuleHandleW(L"xinput1_4.dll");
-        if (!mod) mod=LoadLibraryW(L"xinput1_4.dll");
-        if (!mod) mod=LoadLibraryW(L"xinput9_1_0.dll");
-        return mod?reinterpret_cast<GetStateFn>(GetProcAddress(mod,"XInputGetState")):nullptr;
-    }();
-    if (getState) {
+    {
         for (DWORD i=0;i<XUSER_MAX_COUNT;++i) {
             XINPUT_STATE state{};
-            if (getState(i,&state)!=ERROR_SUCCESS) continue;
+            if (GetCameraXInputState(i,&state)!=ERROR_SUCCESS) continue;
             const float x=static_cast<float>(state.Gamepad.sThumbRX)/32767.0f;
             const float y=static_cast<float>(state.Gamepad.sThumbRY)/32767.0f;
             const float len=std::sqrt(x*x+y*y);
@@ -2766,6 +2865,7 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     TraceDesktopCursorState("Present cursor state", false);
     ProcessCameraInput();
     EnsureOrbitWndProc(swapChain);
+    EnsureNativeXInputAimHooks();
     UpdateOrbitInput();
     RefreshReticleCursorState();
 
@@ -3070,6 +3170,8 @@ void ShutdownMod() {
     dg::skip_logos::Shutdown();
     dg::horse::Shutdown();
     RestoreCameraDof();
+    Log("Aim V0.57 totals: mouseMessagesBlocked=%u rightStickReadsFiltered=%u",
+        g_nativeMouseAimSuppressed.load(),g_nativePadAimSuppressed.load());
 
     if (g_skipIntroData) {
         *g_skipIntroData = g_skipIntroOriginalValue;

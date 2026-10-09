@@ -663,6 +663,8 @@ void Draw(Context& c) {
                 }
                 ImGui::Unindent();
             }
+            ImGui::TextDisabled("Third Person suppresses native mouse/right-stick aiming (V0.57 test).");
+            ImGui::TextDisabled("Normal aiming returns immediately when Third Person is OFF.");
             DrawSectionTitle("Field of view");
             DrawTunableFeature(config,"Enable FOV Override","FOV",
                 &config.fovEnabled,&config.fovDegrees,
