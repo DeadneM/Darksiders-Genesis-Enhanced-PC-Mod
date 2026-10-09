@@ -72,7 +72,7 @@ static void LogLoader(const wchar_t* message) {
     CloseHandle(file);
 }
 
-// V0.49: inspect 2-entry playlist safely; only filter if a third movie survives.
+// V0.52: replace exact two logo names with two dummy paths, without zeroing the list.
 // Never bypass SStartupScreens / MoviePlayer / Slate initialization.
 constexpr DWORD kSupportedSizeOfImage = 0x03DDF000;
 constexpr uintptr_t kMoviePlayerAttachBlockRva = 0x00260244;
@@ -156,47 +156,56 @@ static void LogMovieName(const FStringView& e, unsigned index) {
 // Called on the original game's startup thread AFTER settings are constructed,
 // not from DllMain. Result only controls which FString descriptors are copied;
 // the original loading-screen setup and all cleanup still execute normally.
-static bool __cdecl ShouldFilterLogoPrefix(const FStringView* movies, int32_t count) {
+// These names are intentionally NONEXISTENT movie paths. The UE4 FString
+// descriptors remain nonempty and MoviePlayer::SetupLoadingScreen is
+// always executed. The game-owned source array is NEVER modified.
+// This tests whether the two startup logos can be suppressed while
+// retaining the native startup/loading lifecycle and independent intro.
+static constexpr wchar_t kSkippedTHQ[] = L"DG_Skipped_THQ_Logo";
+static constexpr wchar_t kSkippedAS[]  = L"DG_Skipped_AS_Logo";
+static const FStringView kSubstituteMovies[2] = {
+    {kSkippedTHQ, static_cast<int32_t>(_countof(kSkippedTHQ)), static_cast<int32_t>(_countof(kSkippedTHQ))},
+    {kSkippedAS, static_cast<int32_t>(_countof(kSkippedAS)), static_cast<int32_t>(_countof(kSkippedAS))}
+};
+
+// Return an array pointer to use for deep-copying into UE's
+// FLoadingScreenAttributes. NULL means leave all original arguments.
+// If count==2, replace with two dummy descriptor values instead of
+// count-zero (old V0.19B suppressed intro) or bypassing Setup (old
+// V0.19C caused cross-shaped cursor). With more than two entries,
+// keep the existing validated skip-prefix logic (count decremented
+// by two by the assembly island).
+static const FStringView* __cdecl FilterStartupMovieNames(const FStringView* movies, int32_t count) {
     const unsigned calls = ++g_startupFilterCalls;
     if (calls > 2 || !g_skipLogosEnabled.load(std::memory_order_relaxed))
-        return false;
+        return nullptr;
     wchar_t line[220]{};
-    swprintf_s(line, L"Skip Logos V0.49: native StartupMovies count=%d validPtr=%d",
+    swprintf_s(line, L"Skip Logos V0.52: StartupMovies count=%d validPtr=%d",
         count, IsReadableSpan(movies, sizeof(FStringView)) ? 1 : 0);
     LogLoader(line);
     if (count < 2 || count > 64 ||
         !IsReadableSpan(movies, static_cast<size_t>(count) * sizeof(FStringView))) {
-        LogLoader(L"Skip Logos V0.49: FAIL OPEN, playlist unreadable or count outside [2,64]");
-        return false;
+        LogLoader(L"Skip Logos V0.52: FAIL OPEN, movie array/count invalid");
+        return nullptr;
     }
     FStringView first{}, second{};
     std::memcpy(&first, movies, sizeof(first));
-    std::memcpy(&second, movies + 1, sizeof(second));
+    std::memcpy(&second, movies+1, sizeof(second));
     LogMovieName(first, 0);
     LogMovieName(second, 1);
-    if (count > 2) {
-        FStringView third{};
-        std::memcpy(&third, movies + 2, sizeof(third));
-        LogMovieName(third, 2);
+    const bool match =
+        (IsMovieName(first, L"THQ_LogoBasic") && IsMovieName(second, L"AS_LogoBasic")) ||
+        (IsMovieName(first, L"AS_LogoBasic") && IsMovieName(second, L"THQ_LogoBasic"));
+    if (!match) {
+        LogLoader(L"Skip Logos V0.52: FAIL OPEN, two entries are not exactly THQ and AS logos");
+        return nullptr;
     }
-    const bool thqFirst = IsMovieName(first, L"THQ_LogoBasic");
-    const bool thqSecond = IsMovieName(second, L"THQ_LogoBasic");
-    const bool asFirst = IsMovieName(first, L"AS_LogoBasic");
-    const bool asSecond = IsMovieName(second, L"AS_LogoBasic");
-    if (!((thqFirst && asSecond) || (asFirst && thqSecond))) {
-        LogLoader(L"Skip Logos V0.49: FAIL OPEN, prefix is not the exact THQ/AS pair");
-        return false;
-    }
-    // CRITICAL: in the user's retail game playlist is exactly TWO entries.
-    // Earlier count-zero tests disabled the intro too. Do NOT repeat
-    // this known regression, even when the prefix is the exact pair.
-    // Still record the exact names for a later lifecycle-safe approach.
     if (count == 2) {
-        LogLoader(L"Skip Logos V0.49: TWO_LOGOS_CONFIRMED; no removal: a zero-movie list previously removed intro. Native MoviePlayer remains unchanged.");
-        return false;
+        LogLoader(L"Skip Logos V0.52: TWO LOGOS MATCH; substitute two nonexistent movie names, preserving nonempty playlist and native MoviePlayer");
+        return kSubstituteMovies;
     }
-    LogLoader(L"Skip Logos V0.49: MATCH, omitting only first 2 logo names; remaining movies preserved");
-    return true;
+    LogLoader(L"Skip Logos V0.52: LOGO PREFIX MATCH; exclude first two, keep remaining movie entries");
+    return movies + 2;
 }
 
 static bool HasSupportedNativeCode() {
@@ -298,12 +307,19 @@ static bool InstallSelectiveLogoHook() {
     bytes({0x48,0x89,0xF1});                  // rcx = rsi (movie descriptors)
     bytes({0x44,0x89,0xF2});                  // edx = r14d (count)
     bytes({0x48,0xB8});
-    absolutePointer(reinterpret_cast<uintptr_t>(&ShouldFilterLogoPrefix));
+    absolutePointer(reinterpret_cast<uintptr_t>(&FilterStartupMovieNames));
     bytes({0xFF,0xD0});                       // call helper
     bytes({0x48,0x83,0xC4,0x20});             // shadow space released
-    bytes({0x84,0xC0,0x74,0x08});             // if (!match) do not shift
-    bytes({0x48,0x83,0xC6,0x20});             // rsi += 2 FString descriptors
-    bytes({0x41,0x83,0xEE,0x02});             // r14d -= 2
+    // RAX = NULL (no change), kSubstituteMovies (two entries), or
+    // original array + 2 (three or more entries).
+    // The 13-byte conditional sequence is position-independent:
+    //   test rax,rax    ; jz +13 ; mov rsi,rax ; cmp r14d,2
+    //   je +4 ; sub r14d,2.
+    // It preserves original MoviePlayer setup even with two logos.
+    bytes({0x48,0x85,0xC0,0x74,0x0D});       // NULL -> retain original RSI/R14
+    bytes({0x48,0x89,0xC6});                  // RSI = returned descriptor pointer
+    bytes({0x41,0x83,0xFE,0x02,0x74,0x04}); // count==2 -> retain count
+    bytes({0x41,0x83,0xEE,0x02});             // otherwise remove logo prefix
     bytes({0x41,0x5B,0x41,0x5A,0x41,0x59,0x41,0x58,
            0x5A,0x59,0x58,0x9D});             // restore non-volatile context
     bytes({0xFF,0x25,0x00,0x00,0x00,0x00});  // jmp qword ptr [rip]
@@ -341,7 +357,7 @@ static bool InstallSelectiveLogoHook() {
     VirtualProtect(target,sizeof(branch),oldProtect,&ignored);
     g_skipLogosHookReady.store(true,std::memory_order_release);
     g_skipLogosPatched.store(true,std::memory_order_release);
-    LogLoader(L"Skip Logos V0.46: exact 7-byte startup copy hook installed; native MoviePlayer untouched");
+    LogLoader(L"Skip Logos V0.52: targeted 7-byte playlist hook installed; MoviePlayer attachment unchanged");
     return true;
 }
 
@@ -387,7 +403,7 @@ static HMODULE RealDxgi() {
 }
 
 static BOOL CALLBACK LoadAsiPlugins(PINIT_ONCE, PVOID, PVOID*) {
-    LogLoader(L"V0.50: proxy startup; unified log ready; no native Skip Logos hook");
+    LogLoader(L"V0.52: DXGI proxy and unified Mod.log active");
     wchar_t modulePath[MAX_PATH]{};
     if (!g_self ||
         !GetModuleFileNameW(g_self, modulePath, MAX_PATH)) {

@@ -77,7 +77,7 @@ bool Initialize(LogFn logger) {
     char message[256]{};
     sprintf_s(
         message,
-        "Skip Logos V0.46 EXACT_PREFIX: proxy=%d target=%d patched=%d enabled=%d copyRVA=0x25FF31 attachUNCHANGED=0x260244",
+        "Skip Logos V0.52 NAME_SUBSTITUTION: proxy=%d target=%d patched=%d enabled=%d copyRVA=0x25FF31 attachUNCHANGED=0x260244",
         t.proxyAvailable ? 1 : 0,
         t.targetValid ? 1 : 0,
         t.patched ? 1 : 0,
@@ -85,8 +85,8 @@ bool Initialize(LogFn logger) {
     );
     LogText(message);
     LogText(enabled
-        ? "Skip Logos V0.46: selective native playlist prefix filter requested (boot-time effect)"
-        : "Skip Logos V0.46: native startup retained (feature OFF)");
+        ? "Skip Logos V0.52: exact THQ + AS movie names substituted; startup effect on next launch"
+        : "Skip Logos V0.52: native startup retained (feature OFF)");
 
     return
         applied &&

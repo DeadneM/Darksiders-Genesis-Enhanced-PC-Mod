@@ -1783,3 +1783,52 @@ Next development target: safely skip exactly the two confirmed
 logo entries WITHOUT zeroing the entire StartupMovies list
 or bypassing native MoviePlayer initialization. Avoid
 guessing that list count 3+ or modifying the intro toggle.
+
+## V0.52 - Two native startup logos suppressed by substitution (needs game validation)
+
+User's Oct 9 15:50 V0.51 log confirms exact original UE playlist:
+count=2, \`THQ_LogoBasic\` and \`AS_LogoBasic\` (in that order).
+The previous experiment did not remove either entry.
+V0.52 moves from read-only observation to actively omitting the two
+logo videos with an explicitly constrained method:
+- Leave the native \`UStartupScreensSettings\` and game-owned
+  \`StartupMovies\` source array wholly unmodified.
+- At exactly the same signature-validated RVA 0x25FF31 early
+  copy point proven to run correctly by V0.49 and V0.51, return
+  a static two-element FString descriptor array with names
+  \`DG_Skipped_THQ_Logo\` and \`DG_Skipped_AS_Logo\`,
+  pointing at immutable, process-lifetime UTF-16 strings with
+  correct capacity and null-terminated sizes.
+- The native \`StartupMovies\` count is left at **2**. The
+  original engine-owned deep-copy loop copies these descriptors
+  and the original \`GetMoviePlayer()->SetupLoadingScreen\` call
+  runs untouched, unlike rejected count-zero V0.19B and
+  MoviePlayer-attach bypass V0.19C.
+- A mismatch of game fingerprint, instruction bytes, array
+  pointer/count or exact logo names yields NO modification.
+- For a future unexpected count >2 with the two logos at the
+  start, return \`movies+2\` with new count \`count-2\`, keeping
+  all other video entries.
+- The original x64 island now uses a pointer-returning helper
+  and emits \`test rax,rax; je +13; mov rsi,rax;
+  cmp r14d,2; je +4; sub r14d,2\`. Old GP register/flag saves,
+  shadow space and native continuation are unchanged.
+- No V0.44 movie attach hook, synthetic F5, cursor rebind,
+  MP4 file modifications, or alternate overlay behavior.
+- A nonexistent movie path may cause black frames or a
+  media-backend fallback; only the user's in-game test can
+  establish timing/intro/focus behavior. It is not described
+  as already validated.
+
+V0.52 has a **normal version name** and \`downloads/DarksidersGenesis_V0.52.zip\`;
+no "experimental" or "TEST" suffix per user request.
+The zip retains exactly four files at root, cumulative features,
+unified noncumulative \`DarksidersGenesisMod.log\`, and NEVER touches
+\`DarksidersGenesisLoader.log\`. New INI keeps \`SkipLogos=1\`.
+Do not tag a public release before user validates in-game:
+1. Logos actually absent after fresh boot.
+2. Warning screen / loading transition, and intro when
+   \`SkipIntroVideos=0\`, remain functional.
+3. Cursor/cross after loading a save, F6 reticle/overlay input.
+4. No crash, no black screen that hangs indefinitely.
+If any issue, set \`SkipLogos=0\` and restart, or restore stable V0.45.
