@@ -356,3 +356,41 @@ DarksidersGenesisLoader.log, logos skipped or not, warning display,
 intro with SkipIntroVideos OFF, in-game cursor after save load,
 Alt-Tab and overlay; do not publish a public tagged release before
 user validates. Files at ZIP root. No new auto F5/focus simulations.
+
+## V0.49: user log proves runtime StartupMovies count=2, not 3
+
+V0.47 runtime session on Oct 9 at 15:13 (NOT a V0.48 binary)
+shows that the early RVA 0x25FF31 hook executed as intended without a
+crash. Log from the existing unified Mod.log:
+- "Skip Logos V0.46: exact-name prefix filter requested"
+- "exact 7-byte startup copy hook installed"
+- ASI reports 0.47-unified-compact-log.
+- At native call: "StartupMovies count=2 validPtr=1"
+- V0.46 incorrectly logs "FAIL OPEN, unexpected movie count or array",
+  because count < 3 is hard-rejected BEFORE logging names.
+- Session shuts down normally.
+
+Critical constraint: V0.19B already tried copying a zero-count
+StartupMovies array. That experiment removed the independently
+controlled intro as well as logos. A naive V0.49 count>=2 change
+would repeat that regression, so it is specifically NOT done.
+
+V0.49 extends the existing non-mutating native diagnostic to
+allow count=2 for *name reading* while still refusing to empty
+the movie array. It prints the two FString entries and whether
+they EXACTLY identify THQ_LogoBasic and AS_LogoBasic. If there
+are only two entries, even an exact match returns false so the
+original native video array and MoviePlayer path remain intact.
+The original >2 filter behavior is unchanged. Result is a
+focused investigation build, NOT a complete Skip Logos fix.
+It preserves V0.48 single Mod.log with compact output, never
+creates/deletes/touches any old Loader.log, and contains the
+same cumulative gameplay features. When names are confirmed,
+research a logo-skip mechanism that keeps the native
+MoviePlayer and intro lifecycle (not count-zero, skipping
+attachment, or early-function RET patch).
+
+Public release remains unchanged. User should install both
+dxgi.dll and ASI from the V0.49 test archive (four files at ZIP
+root), launch with SkipLogos=1, then provide only
+DarksidersGenesisMod.log.

@@ -66,7 +66,7 @@ static void LogLoader(const wchar_t* message) {
     CloseHandle(file);
 }
 
-// V0.46: Filter only an exact logo prefix in UStartupScreensSettings::StartupMovies.
+// V0.49: inspect 2-entry playlist safely; only filter if a third movie survives.
 // Never bypass SStartupScreens / MoviePlayer / Slate initialization.
 constexpr DWORD kSupportedSizeOfImage = 0x03DDF000;
 constexpr uintptr_t kMoviePlayerAttachBlockRva = 0x00260244;
@@ -106,8 +106,9 @@ static bool IsReadableSpan(const void* p, size_t size) {
     return start < mbi.RegionSize && size <= mbi.RegionSize - start;
 }
 
-// Never make assumptions about playlist length or order without checking names.
-// In particular, count==2 must NOT become zero: old V0.19B also skipped intro.
+// Never make assumptions about playlist length/order without checking names.
+// count==2 is allowed for DIAGNOSTIC NAME READS only, not for removal.
+// Old V0.19B proved forcing a zero-length movie playlist also skipped intro.
 static bool IsMovieName(const FStringView& entry, const wchar_t* expected) {
     if (!entry.data || entry.size < 2 || entry.size > 180 ||
         entry.capacity < entry.size || entry.capacity > 512 ||
@@ -131,7 +132,7 @@ static void LogMovieName(const FStringView& e, unsigned index) {
     if (!e.data || e.size < 1 || e.size > 180 ||
         e.capacity < e.size || e.capacity > 512 ||
         !IsReadableSpan(e.data, static_cast<size_t>(e.size) * sizeof(wchar_t))) {
-        swprintf_s(line, L"Skip Logos V0.46: entry[%u] invalid size=%d cap=%d",
+        swprintf_s(line, L"Skip Logos V0.49: entry[%u] invalid size=%d cap=%d",
             index, e.size, e.capacity);
         LogLoader(line);
         return;
@@ -142,7 +143,7 @@ static void LogMovieName(const FStringView& e, unsigned index) {
     std::memcpy(name, e.data, static_cast<size_t>(n) * sizeof(wchar_t));
     name[n] = 0;
     for (int i=0; i<n; ++i) if (name[i] < 32) name[i] = L'_';
-    swprintf_s(line, L"Skip Logos V0.46: entry[%u] '%s'",index,name);
+    swprintf_s(line, L"Skip Logos V0.49: entry[%u] '%s'",index,name);
     LogLoader(line);
 }
 
@@ -154,12 +155,12 @@ static bool __cdecl ShouldFilterLogoPrefix(const FStringView* movies, int32_t co
     if (calls > 2 || !g_skipLogosEnabled.load(std::memory_order_relaxed))
         return false;
     wchar_t line[220]{};
-    swprintf_s(line, L"Skip Logos V0.46: native StartupMovies count=%d validPtr=%d",
+    swprintf_s(line, L"Skip Logos V0.49: native StartupMovies count=%d validPtr=%d",
         count, IsReadableSpan(movies, sizeof(FStringView)) ? 1 : 0);
     LogLoader(line);
-    if (count < 3 || count > 64 ||
+    if (count < 2 || count > 64 ||
         !IsReadableSpan(movies, static_cast<size_t>(count) * sizeof(FStringView))) {
-        LogLoader(L"Skip Logos V0.46: FAIL OPEN, unexpected movie count or array");
+        LogLoader(L"Skip Logos V0.49: FAIL OPEN, playlist unreadable or count outside [2,64]");
         return false;
     }
     FStringView first{}, second{};
@@ -167,19 +168,28 @@ static bool __cdecl ShouldFilterLogoPrefix(const FStringView* movies, int32_t co
     std::memcpy(&second, movies + 1, sizeof(second));
     LogMovieName(first, 0);
     LogMovieName(second, 1);
-    // Observe third movie name for diagnosing playlist order, without altering it.
-    FStringView third{};
-    std::memcpy(&third, movies + 2, sizeof(third));
-    LogMovieName(third, 2);
+    if (count > 2) {
+        FStringView third{};
+        std::memcpy(&third, movies + 2, sizeof(third));
+        LogMovieName(third, 2);
+    }
     const bool thqFirst = IsMovieName(first, L"THQ_LogoBasic");
     const bool thqSecond = IsMovieName(second, L"THQ_LogoBasic");
     const bool asFirst = IsMovieName(first, L"AS_LogoBasic");
     const bool asSecond = IsMovieName(second, L"AS_LogoBasic");
     if (!((thqFirst && asSecond) || (asFirst && thqSecond))) {
-        LogLoader(L"Skip Logos V0.46: FAIL OPEN, prefix is not exact THQ/AS pair");
+        LogLoader(L"Skip Logos V0.49: FAIL OPEN, prefix is not the exact THQ/AS pair");
         return false;
     }
-    LogLoader(L"Skip Logos V0.46: MATCH, omitting only first 2 logo names; other movie(s) retained");
+    // CRITICAL: in the user's retail game playlist is exactly TWO entries.
+    // Earlier count-zero tests disabled the intro too. Do NOT repeat
+    // this known regression, even when the prefix is the exact pair.
+    // Still record the exact names for a later lifecycle-safe approach.
+    if (count == 2) {
+        LogLoader(L"Skip Logos V0.49: TWO_LOGOS_CONFIRMED; no removal: a zero-movie list previously removed intro. Native MoviePlayer remains unchanged.");
+        return false;
+    }
+    LogLoader(L"Skip Logos V0.49: MATCH, omitting only first 2 logo names; remaining movies preserved");
     return true;
 }
 
