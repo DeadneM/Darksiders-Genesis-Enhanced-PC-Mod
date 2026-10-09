@@ -3231,3 +3231,22 @@ V0.39 changes ONLY startup observability (not the camera or gameplay):
 The other unresolved issues remain: unreliable malformed reticle/F5,
 potential Alt-Tab focus recovery, zoom-induced DOF blur, and in-game
 validation of horizontal yaw. V0.39 makes no claims to fix these.
+
+## 2026-10-09 correction: V0.38 startup failure was antivirus quarantine
+
+The user confirmed that V0.38 **does load and work**. The preceding
+"no overlay / no hooks" report was caused by Windows Defender flagging
+and quarantining the mod, **not** by a confirmed loader or code defect.
+This correction supersedes the original startup-failure hypothesis
+documented in the V0.39 diagnostic entry above. Keep that historical
+entry for traceability, but do not treat it as a current failure.
+
+V0.38 is reinstated as a functioning test build. This does NOT by itself
+validate every V0.38 feature (yaw camera rotation, Alt-Tab recovery, or
+persistent reticle fix); these retain their separate test statuses.
+V0.39 remains an optional loader diagnostic, not a mandatory patch.
+
+Installation guidance: check Microsoft Defender Protection History if
+the ASI or DLL disappears. Verify the downloaded file comes from the
+project's GitHub repository before deciding how to handle a warning;
+do not advise disabling antivirus globally or bulk-excluding folders.
