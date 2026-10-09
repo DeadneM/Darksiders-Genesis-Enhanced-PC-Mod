@@ -5,11 +5,12 @@
 
 #include <cwchar>
 #include <algorithm>
+#include <cmath>
 
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2105;
+constexpr int kConfigRevision = 2106;
 
 bool ReadBool(
     const wchar_t* section,
@@ -298,6 +299,7 @@ void Store::ResetDefaults(bool persist) {
     skipIntroEnabled = true;
     skipWarningEnabled = true;
     thirdPersonEnabled = false;
+    cameraOrbitInputEnabled = false;
     pistolDamageEnabled = true;
     meleeDamageEnabled = true;
     jumpHeightEnabled = true;
@@ -326,6 +328,10 @@ void Store::ResetDefaults(bool persist) {
     cameraYawDegrees = 0.0f;
     cameraHeightOffset = 0.0f;
     thirdPersonDistanceMultiplier = 1.00f;
+    thirdPersonPitchDegrees = -12.0f;
+    thirdPersonHeightOffset = 60.0f;
+    cameraMouseSensitivity = 0.12f;
+    cameraStickSpeed = 135.0f;
     hotstreakChargeMultiplier = 2.00f;
 
     hotkeys.fill(Action::None);
@@ -396,6 +402,7 @@ bool Store::Load() {
         ReadBool(L"Features", L"SkipWarning", true, path_);
     thirdPersonEnabled =
         ReadBool(L"Features", L"ThirdPerson", false, path_);
+    cameraOrbitInputEnabled = ReadBool(L"Features", L"CameraMouseGamepad", false, path_);
     pistolDamageEnabled =
         ReadBool(L"Features", L"PistolDamage", true, path_);
     meleeDamageEnabled =
@@ -451,6 +458,20 @@ bool Store::Load() {
         ReadFloat(L"Values", L"CameraHeightOffset", 0.0f, path_);
     thirdPersonDistanceMultiplier =
         ReadFloat(L"Values", L"ThirdPersonDistanceMultiplier", 1.0f, path_);
+    thirdPersonPitchDegrees = ReadFloat(L"Values", L"ThirdPersonPitchDegrees", -12.0f, path_);
+    thirdPersonHeightOffset = ReadFloat(L"Values", L"ThirdPersonHeightOffset", 60.0f, path_);
+    cameraMouseSensitivity = ReadFloat(L"Values", L"CameraMouseSensitivity", 0.12f, path_);
+    cameraStickSpeed = ReadFloat(L"Values", L"CameraStickSpeed", 135.0f, path_);
+    if (!std::isfinite(thirdPersonDistanceMultiplier)) thirdPersonDistanceMultiplier=1.0f;
+    if (!std::isfinite(thirdPersonPitchDegrees)) thirdPersonPitchDegrees=-12.0f;
+    if (!std::isfinite(thirdPersonHeightOffset)) thirdPersonHeightOffset=60.0f;
+    if (!std::isfinite(cameraMouseSensitivity)) cameraMouseSensitivity=0.12f;
+    if (!std::isfinite(cameraStickSpeed)) cameraStickSpeed=135.0f;
+    thirdPersonDistanceMultiplier=std::clamp(thirdPersonDistanceMultiplier,0.25f,3.0f);
+    thirdPersonPitchDegrees=std::clamp(thirdPersonPitchDegrees,-75.0f,65.0f);
+    thirdPersonHeightOffset=std::clamp(thirdPersonHeightOffset,-500.0f,500.0f);
+    cameraMouseSensitivity=std::clamp(cameraMouseSensitivity,0.01f,0.75f);
+    cameraStickSpeed=std::clamp(cameraStickSpeed,30.0f,360.0f);
     hotstreakChargeMultiplier =
         ReadFloat(L"Values", L"HotstreakChargeMultiplier", 2.0f, path_);
 
@@ -513,7 +534,7 @@ bool Store::Load() {
             hotkeys[4] = Action::ThirdPerson;
         PublishRuntime();
         SaveNow();
-        Log("INI migrated to V0.55 hotkeys; other user values preserved");
+        Log("INI migrated to V0.56 Third Person controls; existing hotkeys preserved");
         return true;
     }
 
@@ -534,7 +555,12 @@ void Store::PublishRuntime() const {
     runtime.skipIntroEnabled = skipIntroEnabled;
     runtime.skipWarningEnabled = skipWarningEnabled;
     runtime.thirdPersonEnabled = thirdPersonEnabled;
+    runtime.cameraOrbitInputEnabled = cameraOrbitInputEnabled;
     runtime.thirdPersonDistanceMultiplier = thirdPersonDistanceMultiplier;
+    runtime.thirdPersonPitchDegrees = thirdPersonPitchDegrees;
+    runtime.thirdPersonHeightOffset = thirdPersonHeightOffset;
+    runtime.cameraMouseSensitivity = cameraMouseSensitivity;
+    runtime.cameraStickSpeed = cameraStickSpeed;
     runtime.pistolDamageEnabled = pistolDamageEnabled;
     runtime.meleeDamageEnabled = meleeDamageEnabled;
     runtime.jumpHeightEnabled = jumpHeightEnabled;
@@ -583,7 +609,7 @@ bool Store::SaveNow() {
     WritePrivateProfileStringW(
         L"Meta",
         L"ConfigRevision",
-        L"2105",
+        L"2106",
         path_.c_str()
     );
 
@@ -616,6 +642,7 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"SkipIntroVideos", skipIntroEnabled, path_);
     WriteBool(L"Features", L"SkipWarning", skipWarningEnabled, path_);
     WriteBool(L"Features", L"ThirdPerson", thirdPersonEnabled, path_);
+    WriteBool(L"Features", L"CameraMouseGamepad", cameraOrbitInputEnabled, path_);
     WriteBool(L"Features", L"PistolDamage", pistolDamageEnabled, path_);
     WriteBool(L"Features", L"MeleeDamage", meleeDamageEnabled, path_);
     WriteBool(L"Features", L"JumpHeight", jumpHeightEnabled, path_);
@@ -648,6 +675,10 @@ bool Store::SaveNow() {
     WriteFloat(L"Values", L"CameraYawDegrees", cameraYawDegrees, path_);
     WriteFloat(L"Values", L"CameraHeightOffset", cameraHeightOffset, path_);
     WriteFloat(L"Values", L"ThirdPersonDistanceMultiplier", thirdPersonDistanceMultiplier, path_);
+    WriteFloat(L"Values", L"ThirdPersonPitchDegrees", thirdPersonPitchDegrees, path_);
+    WriteFloat(L"Values", L"ThirdPersonHeightOffset", thirdPersonHeightOffset, path_);
+    WriteFloat(L"Values", L"CameraMouseSensitivity", cameraMouseSensitivity, path_);
+    WriteFloat(L"Values", L"CameraStickSpeed", cameraStickSpeed, path_);
     WriteFloat(L"Values", L"HotstreakChargeMultiplier", hotstreakChargeMultiplier, path_);
 
     for (int i = 0; i < 12; ++i) {

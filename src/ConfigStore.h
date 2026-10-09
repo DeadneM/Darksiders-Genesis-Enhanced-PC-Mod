@@ -131,6 +131,7 @@ public:
     bool skipIntroEnabled = true;
     bool skipWarningEnabled = true;
     bool thirdPersonEnabled = false;
+    bool cameraOrbitInputEnabled = false;
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
     bool jumpHeightEnabled = true;
@@ -159,6 +160,10 @@ public:
     float cameraYawDegrees = 0.0f;
     float cameraHeightOffset = 0.0f;
     float thirdPersonDistanceMultiplier = 1.00f;
+    float thirdPersonPitchDegrees = -12.0f;
+    float thirdPersonHeightOffset = 60.0f;
+    float cameraMouseSensitivity = 0.12f;
+    float cameraStickSpeed = 135.0f;
     float hotstreakChargeMultiplier = 2.00f;
 
     std::array<Action, 12> hotkeys{};

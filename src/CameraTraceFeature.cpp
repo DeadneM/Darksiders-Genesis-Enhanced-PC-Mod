@@ -69,11 +69,15 @@ void HookView(void* camera, float dt, void* outView) {
         std::memcpy(p + 0x0C, &appliedPitch, sizeof(float));
     }
     const float yawOffset = settings.cameraYawDegrees.load(std::memory_order_relaxed);
+    const bool thirdPerson=settings.thirdPersonEnabled.load(std::memory_order_relaxed);
+    const bool orbitActive=thirdPerson && settings.cameraOrbitInputEnabled.load(std::memory_order_relaxed);
+    const float orbitYaw=orbitActive?settings.cameraOrbitYawDegrees.load(std::memory_order_relaxed):0.0f;
+    const float totalYaw=yawOffset+(std::isfinite(orbitYaw)?orbitYaw:0.0f);
     if (std::isfinite(yawOffset) && yawOffset >= -180.0f && yawOffset <= 180.0f &&
-        yawOffset != 0.0f) {
+        std::isfinite(totalYaw) && totalYaw != 0.0f) {
         // Transient FMinimalViewInfo::Rotation.Yaw (+0x10).
         // Never modify the camera UObject or retain pointers across frames.
-        appliedYaw = std::remainder(nativeYaw + yawOffset, 360.0f);
+        appliedYaw = std::remainder(nativeYaw + totalYaw, 360.0f);
         std::memcpy(p + 0x10, &appliedYaw, sizeof(float));
     }
     g_nativeYaw.store(nativeYaw, std::memory_order_relaxed);
@@ -86,7 +90,7 @@ void HookView(void* camera, float dt, void* outView) {
     }
     // Third Person V0.54: modify only transient FMinimalViewInfo,
     // never the UObject's persistent transform. Enabled only by user.
-    if (settings.thirdPersonEnabled.load(std::memory_order_relaxed)) {
+    if (thirdPerson) {
         const float dist=g_nativeDistance.load(std::memory_order_relaxed);
         const float mult=settings.thirdPersonDistanceMultiplier.load(std::memory_order_relaxed);
         float x=0.0f,y=0.0f;
@@ -96,17 +100,23 @@ void HookView(void* camera, float dt, void* outView) {
             nativePitch>=-89.0f&&nativePitch<=-15.0f) {
             constexpr float rad=0.01745329251994329577f;
             const float np=nativePitch*rad,ny=nativeYaw*rad;
-            const float dp=-12.0f*rad,dy=appliedYaw*rad;
+            const float tpBasePitch=settings.thirdPersonPitchDegrees.load(std::memory_order_relaxed);
+            const float tpHeight=settings.thirdPersonHeightOffset.load(std::memory_order_relaxed);
+            const float op=orbitActive?settings.cameraOrbitPitchDegrees.load(std::memory_order_relaxed):0.0f;
+            if (!std::isfinite(tpBasePitch)||!std::isfinite(tpHeight)||
+                tpBasePitch < -75.0f || tpBasePitch > 65.0f || std::fabs(tpHeight)>500.0f) return;
+            const float tpPitch=std::clamp(tpBasePitch+(std::isfinite(op)?op:0.0f),-75.0f,65.0f);
+            const float dp=tpPitch*rad,dy=appliedYaw*rad;
             const float distance=std::clamp(dist*mult,120.0f,12000.0f);
             const float pivotX=x+std::cos(np)*std::cos(ny)*dist;
             const float pivotY=y+std::cos(np)*std::sin(ny)*dist;
             const float pivotZ=nativeHeight+std::sin(np)*dist;
             const float newX=pivotX-std::cos(dp)*std::cos(dy)*distance;
             const float newY=pivotY-std::cos(dp)*std::sin(dy)*distance;
-            const float newZ=pivotZ-std::sin(dp)*distance+60.0f;
+            const float newZ=pivotZ-std::sin(dp)*distance+tpHeight+heightOffset;
             if (std::isfinite(newX)&&std::isfinite(newY)&&std::isfinite(newZ)&&
                 std::fabs(newX)<1e7f&&std::fabs(newY)<1e7f&&std::fabs(newZ)<1e7f) {
-                const float pitch=-12.0f;
+                const float pitch=tpPitch;
                 std::memcpy(p,&newX,sizeof(float));
                 std::memcpy(p+4,&newY,sizeof(float));
                 std::memcpy(p+8,&newZ,sizeof(float));

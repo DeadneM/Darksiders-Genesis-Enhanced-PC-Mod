@@ -626,6 +626,41 @@ void Draw(Context& c) {
                         config.thirdPersonDistanceMultiplier,0.25f,3.0f);
                     config.Save();
                 }
+
+                bool poseChanged=false;
+                ImGui::TextDisabled("Third Person pose (previously fixed)");
+                ImGui::SetNextItemWidth(245.0f);
+                poseChanged |= ImGui::SliderFloat("View pitch##TP",&config.thirdPersonPitchDegrees,-75.0f,65.0f,"%.1f deg");
+                ImGui::SameLine();
+                if (ImGui::Button("Default##TPPitch")) {config.thirdPersonPitchDegrees=-12.0f;poseChanged=true;}
+                ImGui::SetNextItemWidth(145.0f);
+                poseChanged |= ImGui::InputFloat("Manual pitch##TP",&config.thirdPersonPitchDegrees,0,0,"%.1f");
+                ImGui::SetNextItemWidth(245.0f);
+                poseChanged |= ImGui::SliderFloat("Vertical offset##TP",&config.thirdPersonHeightOffset,-500.0f,500.0f,"%+.0f units");
+                ImGui::SameLine();
+                if (ImGui::Button("Default##TPHeight")) {config.thirdPersonHeightOffset=60.0f;poseChanged=true;}
+                ImGui::SetNextItemWidth(145.0f);
+                poseChanged |= ImGui::InputFloat("Manual height##TP",&config.thirdPersonHeightOffset,0,0,"%.1f");
+                if (poseChanged) {
+                    if (!std::isfinite(config.thirdPersonPitchDegrees)) config.thirdPersonPitchDegrees=-12.0f;
+                    if (!std::isfinite(config.thirdPersonHeightOffset)) config.thirdPersonHeightOffset=60.0f;
+                    config.thirdPersonPitchDegrees=std::clamp(config.thirdPersonPitchDegrees,-75.0f,65.0f);
+                    config.thirdPersonHeightOffset=std::clamp(config.thirdPersonHeightOffset,-500.0f,500.0f);
+                    config.Save();
+                }
+                ImGui::Spacing();
+                if (ImGui::Checkbox("Control camera with mouse / controller right stick", &config.cameraOrbitInputEnabled))
+                    config.Save();
+                ImGui::TextDisabled("Only while Third Person ON, game focused and overlay CLOSED.");
+                if (config.cameraOrbitInputEnabled) {
+                    bool changed=false;
+                    ImGui::SetNextItemWidth(245.0f);
+                    changed |= ImGui::SliderFloat("Mouse sensitivity##TP",&config.cameraMouseSensitivity,0.01f,0.75f,"%.2f deg/px");
+                    ImGui::SetNextItemWidth(245.0f);
+                    changed |= ImGui::SliderFloat("Stick speed##TP",&config.cameraStickSpeed,30.0f,360.0f,"%.0f deg/s");
+                    if (changed) config.Save();
+                    ImGui::TextDisabled("Gamepad right stick has a native dead zone.");
+                }
                 ImGui::Unindent();
             }
             DrawSectionTitle("Field of view");

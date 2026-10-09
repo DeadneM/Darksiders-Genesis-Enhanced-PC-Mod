@@ -14,6 +14,7 @@ struct Snapshot {
     bool skipIntroEnabled = true;
     bool skipWarningEnabled = true;
     bool thirdPersonEnabled = false;
+    bool cameraOrbitInputEnabled = false;
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
     bool jumpHeightEnabled = true;
@@ -29,6 +30,10 @@ struct Snapshot {
     float cameraYawDegrees = 0.0f;
     float cameraHeightOffset = 0.0f;
     float thirdPersonDistanceMultiplier = 1.00f;
+    float thirdPersonPitchDegrees = -12.0f;
+    float thirdPersonHeightOffset = 60.0f;
+    float cameraMouseSensitivity = 0.12f;
+    float cameraStickSpeed = 135.0f;
     float movementSpeedMultiplier = 1.50f;
     float actionRecoveryDelayMs = 0.0f;
     float pistolDamageMultiplier = 2.00f;
@@ -51,6 +56,7 @@ struct State {
     std::atomic_bool skipIntroEnabled{true};
     std::atomic_bool skipWarningEnabled{true};
     std::atomic_bool thirdPersonEnabled{false};
+    std::atomic_bool cameraOrbitInputEnabled{false};
     std::atomic_bool pistolDamageEnabled{true};
     std::atomic_bool meleeDamageEnabled{true};
     std::atomic_bool jumpHeightEnabled{true};
@@ -66,6 +72,12 @@ struct State {
     std::atomic<float> cameraYawDegrees{0.0f};
     std::atomic<float> cameraHeightOffset{0.0f};
     std::atomic<float> thirdPersonDistanceMultiplier{1.00f};
+    std::atomic<float> thirdPersonPitchDegrees{-12.0f};
+    std::atomic<float> thirdPersonHeightOffset{60.0f};
+    std::atomic<float> cameraMouseSensitivity{0.12f};
+    std::atomic<float> cameraStickSpeed{135.0f};
+    std::atomic<float> cameraOrbitYawDegrees{0.0f};
+    std::atomic<float> cameraOrbitPitchDegrees{0.0f};
     std::atomic<float> movementSpeedMultiplier{1.50f};
     std::atomic<float> actionRecoveryDelayMs{0.0f};
     std::atomic<float> pistolDamageMultiplier{2.00f};

@@ -98,6 +98,7 @@ static std::atomic_bool g_warningHookReady{false};
 static volatile BYTE g_warningBootGate = 0;
 static volatile BYTE g_warningNativeSeen = 0;
 static volatile BYTE g_warningNativeSkipped = 0;
+static volatile uintptr_t g_warningNativeSpan = 0;
 static std::atomic_uint32_t g_startupFilterCalls{0};
 
 struct FStringView {
@@ -191,11 +192,11 @@ static const FStringView* __cdecl FilterStartupMovieNames(const FStringView* mov
         const bool matched = g_warningNativeSkipped != 0;
         g_warningAttempted.store(observed,std::memory_order_release);
         g_warningApplied.store(matched,std::memory_order_release);
-        LogLoader(matched
-            ? L"Skip Warning V0.55: native StartupScreenDef loop skipped (count=2)"
-            : observed
-                ? L"Skip Warning V0.55: startup definitions count is not 2; original screens preserved"
-                : L"Skip Warning V0.55: early loop hook not reached");
+        wchar_t info[260]{};
+        const size_t span=static_cast<size_t>(g_warningNativeSpan);
+        swprintf_s(info,L"Skip Warning V0.56: native definition span=0x%Ix (count if stride 0x40: %Iu), seen=%d skipped=%d",
+            span,span%64==0?span/64:0,observed?1:0,matched?1:0);
+        LogLoader(info);
     }
     if (!g_skipLogosEnabled.load(std::memory_order_relaxed)) return nullptr;
     wchar_t line[220]{};
@@ -396,9 +397,9 @@ static bool InstallSelectiveLogoHook() {
 // Instead divert only the seven bytes at 0x25FEBF
 // 48 C1 E7 06 (shl rdi,6) + 48 03 FB (add rdi,rbx).
 // A nearby no-call island replays those instructions and, only if
-// the array contains exactly TWO 0x40-byte definitions, makes the
-// native end pointer equal the start. Thus the warning iteration at
-// 0x25FED0 is bypassed while StartupMovies/MoviePlayer remain untouched.
+// the array contains ONE or TWO 0x40-byte definitions, makes the
+// native end pointer equal the start, and preserves original CPU flags.
+// The StartupMovies/MoviePlayer initialization remains untouched.
 // Native array data, counts, UE objects and game assets are NEVER edited.
 static bool InstallSkipWarningLoopHook() {
     if (!HasSupportedNativeCode()) return false;
@@ -418,26 +419,35 @@ static bool InstallSkipWarningLoopHook() {
     auto pointer=[&](uintptr_t value) {
         std::memcpy(out,&value,sizeof(value));out+=sizeof(value);
     };
-    bytes({0x48,0xC1,0xE7,0x06,0x48,0x03,0xFB}); // replay 7 exact bytes
-    bytes({0x50}); // push rax: preserve volatile original value
+
+    bytes({0x48,0xC1,0xE7,0x06,0x48,0x03,0xFB}); // replay original
+    bytes({0x9C,0x50,0x52}); // preserve original RFLAGS, RAX, RDX
     bytes({0x48,0xB8}); pointer(reinterpret_cast<uintptr_t>(&g_warningNativeSeen));
-    bytes({0xC6,0x00,0x01}); // mov byte ptr [rax],1: trace actual invocation
+    bytes({0xC6,0x00,0x01});
+    bytes({0x48,0x89,0xFA,0x48,0x29,0xDA}); // rdx = rdi-rbx
+    bytes({0x48,0xB8}); pointer(reinterpret_cast<uintptr_t>(&g_warningNativeSpan));
+    bytes({0x48,0x89,0x10}); // record span, native data unmodified
     bytes({0x48,0xB8}); pointer(reinterpret_cast<uintptr_t>(&g_warningBootGate));
-    bytes({0x80,0x38,0x00,0x74,0x00}); // cmp byte ptr [rax],0; je exit
-    BYTE* jeOffset=out-1;
-    bytes({0x48,0x8D,0x83,0x80,0x00,0x00,0x00}); // lea rax,[rbx+0x80]
-    bytes({0x48,0x39,0xC7,0x75,0x00}); // cmp rdi,rax; jne exit
-    BYTE* jneOffset=out-1;
-    bytes({0x48,0x89,0xDF}); // mov rdi,rbx: bypass precisely two definitions
+    bytes({0x80,0x38,0x00,0x74,0x00}); // disabled? exit
+    BYTE* disabled=out-1;
+    bytes({0x48,0x8D,0x43,0x40}); // rbx+0x40: one definition
+    bytes({0x48,0x39,0xC7,0x74,0x00}); // equal? skip
+    BYTE* one=out-1;
+    bytes({0x48,0x8D,0x83,0x80,0x00,0x00,0x00}); // two definitions
+    bytes({0x48,0x39,0xC7,0x75,0x00}); // else exit untouched
+    BYTE* mismatch=out-1;
+    BYTE* skip=out;
+    bytes({0x48,0x89,0xDF}); // end=start: guarded loop bypass
     bytes({0x48,0xB8}); pointer(reinterpret_cast<uintptr_t>(&g_warningNativeSkipped));
-    bytes({0xC6,0x00,0x01}); // mark exact-match skip
-    if (out-(jeOffset+1)>127 || out-(jneOffset+1)>127) {
-        VirtualFree(island,0,MEM_RELEASE);return false;
-    }
-    *jeOffset=static_cast<BYTE>(out-(jeOffset+1));
-    *jneOffset=static_cast<BYTE>(out-(jneOffset+1));
-    bytes({0x58}); // pop rax, native RDI only changed if exactly 2
-    bytes({0xFF,0x25,0x00,0x00,0x00,0x00}); // absolute RIP jump
+    bytes({0xC6,0x00,0x01});
+    BYTE* exit=out;
+    if (exit-(disabled+1)>127 || skip-(one+1)>127 ||
+        exit-(mismatch+1)>127) { VirtualFree(island,0,MEM_RELEASE);return false; }
+    *disabled=static_cast<BYTE>(exit-(disabled+1));
+    *one=static_cast<BYTE>(skip-(one+1));
+    *mismatch=static_cast<BYTE>(exit-(mismatch+1));
+    bytes({0x5A,0x58,0x9D}); // restore RDX, RAX and original RFLAGS
+    bytes({0xFF,0x25,0x00,0x00,0x00,0x00});
     pointer(reinterpret_cast<uintptr_t>(target+sizeof(original)));
     const size_t size=static_cast<size_t>(out-island);
     if (size>256) {VirtualFree(island,0,MEM_RELEASE);return false;}
@@ -464,7 +474,7 @@ static bool InstallSkipWarningLoopHook() {
     DWORD ignored=0;
     VirtualProtect(target,7,old,&ignored);
     g_warningHookReady.store(true,std::memory_order_release);
-    LogLoader(L"Skip Warning V0.55: native pre-loop branch installed at RVA 0x25FEBF");
+    LogLoader(L"Skip Warning V0.56: span-probed 1/2-definition gate installed RVA 0x25FEBF");
     return true;
 }
 
@@ -700,7 +710,7 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
         const bool valid = HasSupportedNativeCode();
         g_skipLogosTargetValid.store(valid,std::memory_order_release);
         if (warnings && valid && !InstallSkipWarningLoopHook())
-            LogLoader(L"Skip Warning V0.55: early loop hook failed, native warnings preserved");
+            LogLoader(L"Skip Warning V0.56: early loop hook failed, native warnings preserved");
         if (enabled && valid && !InstallSelectiveLogoHook())
             LogLoader(L"Skip Logos V0.55: logo hook failed, native logo movies preserved");
         if (!enabled)

@@ -619,3 +619,7 @@ has all four files at root; no public tagged release yet.
 ## V0.55: Skip Warning early native-loop attempt
 
 Original StartupScreens loop is at RVA 0x25FEB7..0x25FEEA and references the StartupScreenDef array in UStartupScreensSettings at offset +0x50, with 0x40-byte elements. V0.54 tried to mutate the array Num in a callback at RVA 0x25FF31, already too late. V0.55 removes that write entirely, adding an independent guarded hook at RVA 0x25FEBF (exact native bytes 48 C1 E7 06 48 03 FB). Its trampoline replays both instructions and only sets loop end equal to start when exactly two entries are present and SkipWarning=1 at boot. The original MoviePlayer/Slate setup and validated exact-name startup movie substitution are not changed. No source array mutation, no asset edits. This is not validated to suppress the two warning pages until the user's in-game test; on mismatch or disabled state, native warning screens are preserved.
+
+## V0.56 native warning span audit
+
+V0.55 log proves hook executed but count !=2. V0.56 records raw span RDI-RBX, preserves RFLAGS, RAX and RDX after the original instructions, skips only one or two exact 0x40-byte definitions, otherwise leaves native flow unchanged. The two notices (controller suggestion and autosave warning) may be elsewhere; monitor log and in-game result before calling Skip Warning fixed.

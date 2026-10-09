@@ -2,6 +2,7 @@
 #include <intrin.h>
 #include <d3d11.h>
 #include <dxgi.h>
+#include <Xinput.h>
 
 #include <MinHook.h>
 
@@ -34,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.55-camera-warning-hotkeys";
+constexpr const char* kBuild = "0.56-third-person-orbit-warning-audit";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -70,6 +71,9 @@ HWND g_hwnd = nullptr;
 WNDPROC g_originalWndProc = nullptr;
 
 std::atomic_bool g_imguiReady{false};
+std::atomic_int g_orbitMouseDx{0},g_orbitMouseDy{0};
+std::atomic_ullong g_lastOrbitRawTick{0};
+ULONGLONG g_orbitLastPresentTick=0;
 std::atomic_bool g_overlayVisible{false};
 std::atomic_bool g_captureMenuKey{false};
 std::atomic_int g_lastForegroundState{-1};
@@ -2076,6 +2080,10 @@ void TriggerAction(Action action, int functionKey) {
         g_config.cameraPitchDegrees=0;
         g_config.cameraYawDegrees=0;
         g_config.thirdPersonDistanceMultiplier=1.0f;
+        g_config.thirdPersonPitchDegrees=-12.0f;
+        g_config.thirdPersonHeightOffset=60.0f;
+        dg::runtime::Get().cameraOrbitYawDegrees.store(0.0f);
+        dg::runtime::Get().cameraOrbitPitchDegrees.store(0.0f);
         g_config.Save();
         g_lastAction="Camera values reset to vanilla";
         Log("F%d -> Camera Reset",functionKey);
@@ -2231,6 +2239,38 @@ void ReleaseRenderTarget() {
 }
 
 LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    // Read mouse deltas without consuming native game input.
+    static bool primed=false;
+    static int oldX=0,oldY=0;
+    const bool active=g_config.thirdPersonEnabled && g_config.cameraOrbitInputEnabled &&
+        !g_overlayVisible.load() && GetForegroundWindow()==hwnd;
+    if (!active) primed=false;
+    if (active && msg==WM_INPUT) {
+        RAWINPUT raw{};
+        UINT size=sizeof(raw);
+        if (GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam),RID_INPUT,&raw,&size,
+            sizeof(RAWINPUTHEADER))==size && raw.header.dwType==RIM_TYPEMOUSE &&
+            !(raw.data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE)) {
+            const LONG dx=raw.data.mouse.lLastX,dy=raw.data.mouse.lLastY;
+            if (std::abs(dx)<=250 && std::abs(dy)<=250) {
+                g_orbitMouseDx.fetch_add(static_cast<int>(dx));
+                g_orbitMouseDy.fetch_add(static_cast<int>(dy));
+                g_lastOrbitRawTick.store(GetTickCount64());
+            }
+        }
+    }
+    if (msg==WM_MOUSEMOVE) {
+        const int x=static_cast<short>(LOWORD(lParam));
+        const int y=static_cast<short>(HIWORD(lParam));
+        if (active && primed && GetTickCount64()-g_lastOrbitRawTick.load()>1500ull) {
+            const int dx=x-oldX,dy=y-oldY;
+            if (std::abs(dx)<=180 && std::abs(dy)<=180) {
+                g_orbitMouseDx.fetch_add(dx);
+                g_orbitMouseDy.fetch_add(dy);
+            }
+        }
+        oldX=x;oldY=y;primed=active;
+    }
     // Never intercept focus/activation messages needed for Alt-Tab.
     const bool focusMessage = msg == WM_ACTIVATEAPP || msg == WM_ACTIVATE ||
         msg == WM_SETFOCUS || msg == WM_KILLFOCUS || msg == WM_MOUSEACTIVATE;
@@ -2403,12 +2443,13 @@ bool InitializeImGui(IDXGISwapChain* swapChain) {
         return false;
     }
 
-    SetLastError(0);
-    g_originalWndProc = reinterpret_cast<WNDPROC>(
-        SetWindowLongPtrW(g_hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(OverlayWndProc))
-    );
-
-    if (!g_originalWndProc && GetLastError() != 0) {
+    if (!g_originalWndProc) {
+        SetLastError(0);
+        g_originalWndProc = reinterpret_cast<WNDPROC>(
+            SetWindowLongPtrW(g_hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(OverlayWndProc))
+        );
+    }
+    if (!g_originalWndProc) {
         Log("WndProc hook FAILED error=%lu", GetLastError());
         ImGui_ImplDX11_Shutdown();
         ImGui_ImplWin32_Shutdown();
@@ -2642,6 +2683,73 @@ void TraceGameWindowState(IDXGISwapChain* swapChain) {
     }
 }
 
+
+void EnsureOrbitWndProc(IDXGISwapChain* chain) {
+    if (g_originalWndProc || !g_config.thirdPersonEnabled ||
+        !g_config.cameraOrbitInputEnabled || !chain) return;
+    DXGI_SWAP_CHAIN_DESC desc{};
+    if (FAILED(chain->GetDesc(&desc)) || !desc.OutputWindow) return;
+    DWORD pid=0;
+    GetWindowThreadProcessId(desc.OutputWindow,&pid);
+    if (pid!=GetCurrentProcessId()) return;
+    SetLastError(0);
+    auto previous=reinterpret_cast<WNDPROC>(
+        SetWindowLongPtrW(desc.OutputWindow,GWLP_WNDPROC,
+            reinterpret_cast<LONG_PTR>(OverlayWndProc)));
+    if (previous) {
+        g_originalWndProc=previous;
+        Log("Camera V0.56: opt-in mouse observer installed without ImGui initialization");
+    } else if (GetLastError()!=0) {
+        Log("Camera V0.56: mouse observer failed error=%lu",GetLastError());
+    }
+}
+void UpdateOrbitInput() {
+    auto& rt=dg::runtime::Get();
+    const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+    const bool active=g_config.thirdPersonEnabled && g_config.cameraOrbitInputEnabled &&
+        hwnd && hwnd==GetForegroundWindow() && !IsIconic(hwnd) && !g_overlayVisible.load();
+    const ULONGLONG now=GetTickCount64();
+    const float dt=g_orbitLastPresentTick && now-g_orbitLastPresentTick<=100ull
+        ? static_cast<float>(now-g_orbitLastPresentTick)*0.001f:0.0f;
+    g_orbitLastPresentTick=now;
+    const int dx=g_orbitMouseDx.exchange(0),dy=g_orbitMouseDy.exchange(0);
+    if (!active) {
+        rt.cameraOrbitYawDegrees.store(0.0f);
+        rt.cameraOrbitPitchDegrees.store(0.0f);
+        return;
+    }
+    float ax=0.0f,ay=0.0f;
+    using GetStateFn=DWORD(WINAPI*)(DWORD,XINPUT_STATE*);
+    static GetStateFn getState=[]() -> GetStateFn {
+        HMODULE mod=GetModuleHandleW(L"xinput1_4.dll");
+        if (!mod) mod=LoadLibraryW(L"xinput1_4.dll");
+        if (!mod) mod=LoadLibraryW(L"xinput9_1_0.dll");
+        return mod?reinterpret_cast<GetStateFn>(GetProcAddress(mod,"XInputGetState")):nullptr;
+    }();
+    if (getState) {
+        for (DWORD i=0;i<XUSER_MAX_COUNT;++i) {
+            XINPUT_STATE state{};
+            if (getState(i,&state)!=ERROR_SUCCESS) continue;
+            const float x=static_cast<float>(state.Gamepad.sThumbRX)/32767.0f;
+            const float y=static_cast<float>(state.Gamepad.sThumbRY)/32767.0f;
+            const float len=std::sqrt(x*x+y*y);
+            const float dead=static_cast<float>(XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)/32767.0f;
+            if (len>dead) {
+                const float m=std::min(1.0f,(len-dead)/(1.0f-dead));
+                ax=x/len*m;ay=y/len*m;break;
+            }
+        }
+    }
+    const float mouse=g_config.cameraMouseSensitivity,stick=g_config.cameraStickSpeed;
+    if (!std::isfinite(mouse)||!std::isfinite(stick)) return;
+    const float dyaw=static_cast<float>(dx)*mouse+ax*stick*dt;
+    const float dpitch=-static_cast<float>(dy)*mouse+ay*stick*dt;
+    if (dyaw!=0.0f || dpitch!=0.0f) {
+        rt.cameraOrbitYawDegrees.store(std::remainder(rt.cameraOrbitYawDegrees.load()+dyaw,360.0f));
+        rt.cameraOrbitPitchDegrees.store(std::clamp(rt.cameraOrbitPitchDegrees.load()+dpitch,-60.0f,60.0f));
+    }
+}
+
 HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) {
     ApplySkipIntroSetting(false);
     UpdateCameraDof();
@@ -2657,6 +2765,8 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     TraceGameWindowState(swapChain);
     TraceDesktopCursorState("Present cursor state", false);
     ProcessCameraInput();
+    EnsureOrbitWndProc(swapChain);
+    UpdateOrbitInput();
     RefreshReticleCursorState();
 
     // V0.32: do not initialize ImGui, create an RTV, or subclass the game
