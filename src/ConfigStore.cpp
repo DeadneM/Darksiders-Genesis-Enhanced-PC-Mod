@@ -307,6 +307,7 @@ void Store::ResetDefaults(bool persist) {
     horseSprintDurationEnabled = true;
     fovEnabled = false;
     hideReticle = false;
+    autoReticleRefreshOnLoad = true;
     crossCursorTestMode = 0;
     hotstreakChargeEnabled = true;
 
@@ -415,6 +416,7 @@ bool Store::Load() {
         ReadBool(L"Features", L"FOV", false, path_);
     hideReticle =
         ReadBool(L"Features", L"HideReticle", false, path_);
+    autoReticleRefreshOnLoad = ReadBool(L"Features", L"AutoReticleRefreshOnLoad", true, path_);
     crossCursorTestMode = std::clamp(
         static_cast<int>(GetPrivateProfileIntW(L"Features", L"CrossCursorTestMode", 0, path_.c_str())),0,2);
     hotstreakChargeEnabled =
@@ -514,6 +516,7 @@ void Store::PublishRuntime() const {
     dg::runtime::Snapshot runtime{};
     runtime.toggleHudEnabled = toggleHudEnabled;
     runtime.hideReticle = hideReticle;
+    runtime.autoReticleRefreshOnLoad = autoReticleRefreshOnLoad;
     runtime.crossCursorTestMode = crossCursorTestMode;
     runtime.fovEnabled = fovEnabled;
     runtime.movementSpeedEnabled = movementSpeedEnabled;
@@ -609,6 +612,7 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"HorseSprintDuration", horseSprintDurationEnabled, path_);
     WriteBool(L"Features", L"FOV", fovEnabled, path_);
     WriteBool(L"Features", L"HideReticle", hideReticle, path_);
+    WriteBool(L"Features", L"AutoReticleRefreshOnLoad", autoReticleRefreshOnLoad, path_);
     {
         wchar_t mode[8]{};
         swprintf_s(mode,L"%d",std::clamp(crossCursorTestMode,0,2));

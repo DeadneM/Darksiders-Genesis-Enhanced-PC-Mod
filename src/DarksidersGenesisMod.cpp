@@ -33,7 +33,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.40-reticle-cursor-source-test";
+constexpr const char* kBuild = "0.41-auto-reticle-focus-after-save-load-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -78,6 +78,11 @@ std::atomic<void*> g_gameWindowTrace{nullptr};
 // Experimental, opt-in focus invalidation for the reticle. No automatic use.
 std::atomic_int g_focusPulseStage{0};
 std::atomic_ullong g_focusPulseRestoreTick{0};
+// V0.41: one-shot replay of the known user-effective F5 cycle after load.
+std::atomic_ullong g_autoReticleDueTick{0};
+std::atomic_ullong g_autoReticleLastPulseTick{0};
+std::atomic_uint32_t g_autoReticleArms{0};
+std::atomic_uint32_t g_autoReticlePulses{0};
 std::atomic_uint32_t g_cursorVisibilityCalls{0};
 std::atomic_int g_capturedMenuKey{0};
 std::atomic_int g_captureCameraKeyIndex{-1};
@@ -150,6 +155,7 @@ using dg::config::KeyDisplayName;
 dg::config::Store g_config;
 
 void ProcessReticleFocusPulse();
+void ProcessAutoReticleRecovery();
 
 void InitializePaths() {
     wchar_t path[MAX_PATH]{};
@@ -1570,9 +1576,20 @@ bool HookUiIsCursorVisible(void* uiManager) {
         mode == 2;
     const int nativeState = nativeVisible ? 1 : 0;
     const int lastNative = g_lastNativeCursorVisible.exchange(nativeState);
-    if (lastNative != nativeState)
+    if (lastNative != nativeState) {
         Log("Reticle V0.40: native UI cursor changed %d -> %d testMode=%d",
             lastNative,nativeState,mode);
+        if (lastNative == 0 && nativeState == 1 &&
+            runtime.autoReticleRefreshOnLoad.load(std::memory_order_relaxed)) {
+            const ULONGLONG now = GetTickCount64();
+            const ULONGLONG lastPulse = g_autoReticleLastPulseTick.load(std::memory_order_relaxed);
+            if (lastPulse == 0 || now - lastPulse > 20000ull) {
+                g_autoReticleDueTick.store(now + 2500ull, std::memory_order_relaxed);
+                const unsigned n = ++g_autoReticleArms;
+                Log("Reticle V0.41: native cursor 0->1; auto focus cycle armed #%u delay=2500ms",n);
+            }
+        }
+    }
 
     const auto calls =
         g_cursorVisibilityCalls.fetch_add(1) + 1;
@@ -1746,6 +1763,39 @@ void RefreshReticleCursorState() {
     }
 }
 
+// V0.41: dispatch only from Present and only during real focused gameplay.
+// The same state machine used by the user-confirmed manual F5 is reused.
+void ProcessAutoReticleRecovery() {
+    const ULONGLONG due = g_autoReticleDueTick.load(std::memory_order_relaxed);
+    if (!due) return;
+    auto& runtime = dg::runtime::Get();
+    if (!runtime.autoReticleRefreshOnLoad.load(std::memory_order_relaxed) ||
+        runtime.hideReticle.load(std::memory_order_relaxed)) {
+        g_autoReticleDueTick.store(0, std::memory_order_relaxed);
+        return;
+    }
+    const ULONGLONG now = GetTickCount64();
+    if (now < due) return;
+    if (now - due > 30000ull) {
+        g_autoReticleDueTick.store(0, std::memory_order_relaxed);
+        Log("Reticle V0.41: auto focus refresh expired (gameplay not ready)");
+        return;
+    }
+    const HWND hwnd = reinterpret_cast<HWND>(
+        g_gameWindowTrace.load(std::memory_order_relaxed));
+    if (!hwnd || !IsWindow(hwnd) || IsIconic(hwnd) ||
+        GetForegroundWindow() != hwnd ||
+        g_overlayVisible.load(std::memory_order_relaxed) ||
+        !g_localPlayerCharacter.load(std::memory_order_relaxed)) return;
+    int stage = 0;
+    if (!g_focusPulseStage.compare_exchange_strong(stage, 1, std::memory_order_relaxed))
+        return;
+    g_autoReticleDueTick.store(0, std::memory_order_relaxed);
+    g_autoReticleLastPulseTick.store(now, std::memory_order_relaxed);
+    const unsigned n = ++g_autoReticlePulses;
+    Log("Reticle V0.41: AUTO F5-style focus repair queued #%u",n);
+}
+
 // V0.34: a controlled experiment, not a permanent focus fix.
 // The two focus-message batches are intentionally separated in time to
 // reproduce the transitions missing from the V0.33 WM_SETCURSOR-only approach.
@@ -1914,6 +1964,7 @@ void TriggerAction(Action action, int functionKey) {
     }
 
     if (action == Action::ReticleFocusTest) {
+        g_autoReticleDueTick.store(0, std::memory_order_relaxed);
         int expected = 0;
         if (!g_focusPulseStage.compare_exchange_strong(
                 expected, 1, std::memory_order_relaxed)) {
@@ -2486,8 +2537,9 @@ void TraceGameWindowState(IDXGISwapChain* swapChain) {
             cursorInfo.ptScreenPos.y
         );
 
-        // Real Alt-Tab is already traced here; V0.34 does not spam
-        // ineffective WM_SETCURSOR messages on every focus regain.
+        // A real Alt-Tab repairs the user's cross already, so it wins.
+        if (!foreground && g_autoReticleDueTick.exchange(0, std::memory_order_relaxed))
+            Log("Reticle V0.41: pending auto focus refresh cancelled on real Alt-Tab");
     }
 }
 
@@ -2505,6 +2557,7 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     TraceGameWindowState(swapChain);
     ProcessCameraInput();
     RefreshReticleCursorState();
+    ProcessAutoReticleRecovery();
     ProcessReticleFocusPulse();
 
     // V0.32: do not initialize ImGui, create an RTV, or subclass the game
@@ -2804,7 +2857,7 @@ void ShutdownMod() {
     }
 
     Log("Shutdown: begin");
-
+    g_autoReticleDueTick.store(0, std::memory_order_relaxed);
     g_config.FlushIfDue(true);
     dg::skip_logos::Shutdown();
     dg::horse::Shutdown();

@@ -3284,3 +3284,28 @@ V0.39 loader diagnostics retained. Build V0.40 from main, no dev
 branches or automatic public release; permanent download ZIP on GitHub
 since temporary artifact links have failed for this user. Log is
 noncumulative per launch.
+
+## V0.41 - Auto F5 reticle correction after save loading (test)
+
+Actual V0.40 log: the test mode stayed CrossCursorTestMode=0, so the two
+separate source-filter modes 1/2 were not exercised; do not consider
+those experiments disproven. The game's normal load shows native UI
+cursor visibility 0->1 after scene load. User's V0.38 test establishes
+that pressing F5 or actual Alt-Tab fixes the cross; Hide Reticle ON/OFF
+also works and must remain independent.
+
+New [Features] AutoReticleRefreshOnLoad=1 defaults ON, with a gameplay
+overlay checkbox. On a native UI cursor 0->1 load transition, arm a
+2500ms delayed, one-shot replay of the existing F5 activate/deactivate
+state machine. Run only on game Present with a validated local player,
+foreground nonminimized window and closed overlay. No synthetic mouse,
+SetForegroundWindow, UObject writes, cached game pointers or new hooks.
+Only one automatic cycle per 20s, cancel pending on manual F5 or real
+Alt-Tab, expire after 30s if gameplay is not ready. Log all arms,
+dispatches and cancellations. Disable via INI if focus changes undesirably.
+
+This is a candidate automatic workaround, not a validated fix until
+user tests in game. V0.40 is preserved for rollback; gameplay settings,
+cursor source diagnostic tests, camera yaw, zoom, height, horse, HUD,
+F1/F6 and skip intro remain unchanged. The build ZIP keeps four files at
+root, noncumulative logs, no public release before user validation.

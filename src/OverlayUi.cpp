@@ -165,6 +165,13 @@ void Draw(Context& c) {
                     : "Native hook unavailable"
             );
 
+            if (ImGui::Checkbox("Auto-repair cross after save load (experimental)", &config.autoReticleRefreshOnLoad)) {
+                config.Save();
+                if (c.log) c.log("Reticle V0.41: auto focus cycle %s",
+                    config.autoReticleRefreshOnLoad ? "ON" : "OFF");
+            }
+            ImGui::TextDisabled("Replays the existing F5 focus cycle once after the game loads a save.");
+            ImGui::TextDisabled("Turn this OFF if focus is disturbed. Manual F5 remains available.");
             if (ImGui::Checkbox("Hide Reticle (independent of HUD)", &config.hideReticle)) {
                 config.Save();
                 *c.lastAction = config.hideReticle
@@ -210,7 +217,7 @@ void Draw(Context& c) {
             if (config.hideReticle)
                 ImGui::TextDisabled("Hide Reticle ON overrides both tests. Set it OFF.");
             ImGui::TextDisabled("After each mode, click Apply Cursor Settings and Return to Game.");
-            ImGui::TextDisabled("F5 focus pulse is NOT a reliable fix; malformed cross remains under investigation.");
+            ImGui::TextDisabled("V0.41 auto recovery is a test; manual F5 and Alt-Tab repair the cross.");
 
             if (config.toggleHudEnabled) {
                 bool hudHidden = c.hudHidden->load();
