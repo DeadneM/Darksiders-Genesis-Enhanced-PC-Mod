@@ -665,9 +665,13 @@ void Draw(Context& c) {
             }
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
-                ImGui::TextDisabled("Controller TPS combat (V0.61 native strafe / aim camera test)");
+                ImGui::TextDisabled("Controller TPS combat (V0.62 always face test)");
                 if (ImGui::Checkbox("TPS aim while firing / throwing (RT or RB)",
                         &config.tpsControllerCombatAim)) config.Save();
+                if (ImGui::Checkbox("Always face TPS camera (TEST)",
+                        &config.tpsAlwaysFaceCamera)) config.Save();
+                ImGui::TextDisabled("Face camera direction when idle, walking and firing.");
+                ImGui::TextDisabled("Requires right-stick camera control; controller 1 only.");
                 if (ImGui::Checkbox("Native strafe while shooting (keep facing camera)",
                         &config.tpsLockCombatFacing)) config.Save();
                 if (ImGui::Checkbox("Disable vanilla camera aim side-drift",
@@ -691,7 +695,7 @@ void Draw(Context& c) {
                 }
                 ImGui::TextDisabled("LB ability wheel stays vanilla; off outside Third Person.");
                 ImGui::TextDisabled("Controller #1 only; aim pace matches camera stick speed.");
-                ImGui::TextDisabled("Native player yaw sampled for log diagnostics; no direct actor writes.");
+                ImGui::TextDisabled("No actor rotation writes. Native aim steering remains experimental.");
                 ImGui::Unindent();
             }
             ImGui::TextDisabled("Third Person suppresses native mouse/right-stick aiming (V0.57 test).");

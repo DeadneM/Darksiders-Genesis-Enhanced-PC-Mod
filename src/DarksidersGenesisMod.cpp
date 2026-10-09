@@ -35,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.61-native-tps-strafe-camera-pivot-ground-fx";
+constexpr const char* kBuild = "0.62-always-face-camera-controller-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -90,6 +90,11 @@ std::atomic_ullong g_tpsLastAimTick{0};
 std::atomic<float> g_tpsDesiredYawDegrees{0.0f};
 std::atomic<float> g_tpsCommandYawDegrees{0.0f};
 std::atomic_bool g_tpsAimCommandReady{false};
+// V0.62: experimental full-time TPS controller heading test.
+// Keep only scalar input timestamp; never retain actor pointers in XInput.
+std::atomic_ullong g_tpsAlwaysFaceLastTick{0};
+std::atomic_uint32_t g_tpsAlwaysFaceCommands{0};
+std::atomic_uint32_t g_tpsFacingReasserted{0};
 std::atomic_bool g_tpsFireHeld{false};
 std::atomic_ullong g_tpsFireLastTick{0};
 std::atomic_uint32_t g_tpsPlayerGeneration{0};
@@ -1365,18 +1370,29 @@ void UpdateTPSFacingNative(void* component) {
     auto& rt=dg::runtime::Get();
     const ULONGLONG now=GetTickCount64(),fireTick=g_tpsFireLastTick.load();
     const bool attack=g_tpsFireHeld.load()&&fireTick&&now>=fireTick&&now-fireTick<150;
+    const ULONGLONG alwaysTick=g_tpsAlwaysFaceLastTick.load(std::memory_order_relaxed);
+    const bool always=rt.tpsAlwaysFaceCamera.load(std::memory_order_relaxed)&&
+        alwaysTick&&now>=alwaysTick&&now-alwaysTick<220ull;
+    // All-time mode locks only when the XInput aiming hook has very recently
+    // verified a local player and issued a camera-facing command.
+    // Otherwise preserve V0.61 behavior while RT or RB is held.
     const bool enable=g_targetValidation.exact&&rt.thirdPersonEnabled.load()&&
-        rt.tpsLockCombatFacing.load()&&attack&&!g_overlayVisible.load()&&
-        GetForegroundWindow()==g_gameWindowTrace.load();
+        (always||(rt.tpsLockCombatFacing.load()&&attack))&&
+        !g_overlayVisible.load()&&GetForegroundWindow()==g_gameWindowTrace.load();
     AcquireSRWLockExclusive(&g_tpsFacingLock);
     if(g_tpsFacingCurrentComponent!=component){
         g_tpsFacingCurrentComponent=component;g_tpsFacingOwned=false;
     }
-    if(enable&&!g_tpsFacingOwned&&(*field&0x10u)) {
+    if(enable&&(*field&0x10u)) {
         *field=static_cast<unsigned char>(*field&~0x10u);
-        g_tpsFacingOwned=true;
-        const unsigned n=++g_tpsNativeFacingOff;
-        if(n<=3||n==1000)Log("TPS V0.61: native strafe-facing LOCK n=%u component=%p",n,component);
+        if(!g_tpsFacingOwned) {
+            g_tpsFacingOwned=true;
+            const unsigned n=++g_tpsNativeFacingOff;
+            if(n<=3||n==1000)Log("TPS V0.62: native facing LOCK n=%u continuous=%d component=%p",n,always?1:0,component);
+        } else {
+            const unsigned n=++g_tpsFacingReasserted;
+            if(n==1||n==1000)Log("TPS V0.62: native facing bit reasserted OFF n=%u",n);
+        }
     } else if(!enable&&g_tpsFacingOwned){
         if(!(*field&0x10u))*field=static_cast<unsigned char>(*field|0x10u);
         g_tpsFacingOwned=false;
@@ -2436,6 +2452,11 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     const ULONGLONG actorTime=g_tpsActorYawTick.load();
     const bool liveActor=actorTime && now>=actorTime && now-actorTime<200ull;
     const float actorYaw=g_tpsActorWorldYaw.load();
+    const bool alwaysFace=rt.tpsAlwaysFaceCamera.load(std::memory_order_relaxed)&&
+        cameraKnown&&liveActor&&rt.cameraOrbitInputEnabled.load(std::memory_order_relaxed);
+    // The whole-time mode must never issue synthetic input with a stale
+    // player, menu, mounted pawn or inactive camera orbit.
+    if(alwaysFace)g_tpsAlwaysFaceLastTick.store(now,std::memory_order_relaxed);
 
     // IMPORTANT V0.60: Never rotate the left stick unless the user manually
     // enables the unsupported transform AND is actively holding RT/RB.
@@ -2464,8 +2485,8 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
                 view.appliedYaw,actorYaw,liveActor?1:0);
         }
     }
-    if (cameraKnown && aim && fire) {
-        if (pad.sThumbLX || pad.sThumbLY)
+    if (cameraKnown && ((aim && fire) || alwaysFace)) {
+        if (fire && (pad.sThumbLX || pad.sThumbLY))
             g_tpsMovingFireSamples.fetch_add(1);
         // A camera-paced command-rate cap prevents the game from receiving
         // full instantaneous ~180-degree snapping instructions. It does not
@@ -2504,7 +2525,16 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
                 view.appliedYaw,view.nativeYaw,targetYaw,heading,actorYaw,actorGap,liveActor?1:0,
                 pad.sThumbRX,pad.sThumbRY);
         }
-        g_tpsCombatFireSamples.fetch_add(1);
+        if(fire)g_tpsCombatFireSamples.fetch_add(1);
+        if(alwaysFace) {
+            const unsigned n=g_tpsAlwaysFaceCommands.fetch_add(1)+1;
+            if(n==1||n==120||n==2000||n==10000) {
+                Log("TPS V0.62: always face sample=%u fire=%d cameraYaw=%.1f actorYaw=%.1f actorError=%.1f commandedYaw=%.1f left=(%d,%d)",
+                    n,fire?1:0,targetYaw,actorYaw,
+                    std::remainder(targetYaw-actorYaw,360.0f),
+                    heading,pad.sThumbLX,pad.sThumbLY);
+            }
+        }
     } else {
         g_tpsAimCommandReady.store(false);
         g_tpsLastAimTick.store(0);
@@ -3418,6 +3448,8 @@ void ShutdownMod() {
     RestoreCameraDof();
     Log("Aim V0.57 totals: mouseMessagesBlocked=%u rightStickReadsFiltered=%u",
         g_nativeMouseAimSuppressed.load(),g_nativePadAimSuppressed.load());
+    Log("TPS V0.62 totals: alwaysFaceCommands=%u facingReasserted=%u",
+        g_tpsAlwaysFaceCommands.load(),g_tpsFacingReasserted.load());
     Log("TPS V0.61 totals: nativeStrafeLocked=%u restored=%u groundFXHidden=%u",
         g_tpsNativeFacingOff.load(),g_tpsNativeFacingRestored.load(),g_tpsGroundAimFxHidden.load());
     Log("TPS V0.60 totals: combatAim=%u experimentalStrafeRemap=%u nativeFireOrThrowPolls=%u liveActorYaw=%u leftStickPassthrough=%u movingFire=%u",

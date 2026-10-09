@@ -134,6 +134,7 @@ public:
     bool cameraOrbitInputEnabled = false;
     bool tpsControllerCombatAim = true;
     bool tpsLockCombatFacing = true;
+    bool tpsAlwaysFaceCamera = true;
     bool tpsLockCombatCameraPivot = true;
     bool tpsHideGroundAimFx = false;
     bool tpsControllerStrafe = false;

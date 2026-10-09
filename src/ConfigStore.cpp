@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2109;
+constexpr int kConfigRevision = 2110;
 
 bool ReadBool(
     const wchar_t* section,
@@ -302,6 +302,7 @@ void Store::ResetDefaults(bool persist) {
     cameraOrbitInputEnabled = false;
     tpsControllerCombatAim = true;
     tpsLockCombatFacing=true;
+    tpsAlwaysFaceCamera=true;
     tpsLockCombatCameraPivot=true;
     tpsHideGroundAimFx=false;
     tpsControllerStrafe = false;
@@ -410,6 +411,7 @@ bool Store::Load() {
     cameraOrbitInputEnabled = ReadBool(L"Features", L"CameraMouseGamepad", false, path_);
     tpsControllerCombatAim = ReadBool(L"Features", L"TPSControllerCombatAim", true, path_);
     tpsLockCombatFacing = ReadBool(L"Features",L"TPSLockCombatFacing",true,path_);
+    tpsAlwaysFaceCamera = ReadBool(L"Features",L"TPSAlwaysFaceCamera",true,path_);
     tpsLockCombatCameraPivot = ReadBool(L"Features",L"TPSLockCombatCameraPivot",true,path_);
     tpsHideGroundAimFx = ReadBool(L"Features",L"TPSHideGroundAimFx",false,path_);
     tpsControllerStrafe = ReadBool(L"Features", L"TPSControllerStrafe", false, path_);
@@ -551,7 +553,7 @@ bool Store::Load() {
         if (revision <= 2108) tpsControllerStrafe=false;
         PublishRuntime();
         SaveNow();
-        Log("INI migrated to V0.61: native strafe and aim camera pivot; experimental left stick reset");
+        Log("INI migrated to V0.62: opt-in TPS all-time facing test enabled; other settings preserved");
         return true;
     }
 
@@ -575,6 +577,7 @@ void Store::PublishRuntime() const {
     runtime.cameraOrbitInputEnabled = cameraOrbitInputEnabled;
     runtime.tpsControllerCombatAim = tpsControllerCombatAim;
     runtime.tpsLockCombatFacing = tpsLockCombatFacing;
+    runtime.tpsAlwaysFaceCamera = tpsAlwaysFaceCamera;
     runtime.tpsLockCombatCameraPivot = tpsLockCombatCameraPivot;
     runtime.tpsHideGroundAimFx = tpsHideGroundAimFx;
     runtime.tpsControllerStrafe = tpsControllerStrafe;
@@ -668,6 +671,7 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"CameraMouseGamepad", cameraOrbitInputEnabled, path_);
     WriteBool(L"Features", L"TPSControllerCombatAim", tpsControllerCombatAim, path_);
     WriteBool(L"Features",L"TPSLockCombatFacing",tpsLockCombatFacing,path_);
+    WriteBool(L"Features",L"TPSAlwaysFaceCamera",tpsAlwaysFaceCamera,path_);
     WriteBool(L"Features",L"TPSLockCombatCameraPivot",tpsLockCombatCameraPivot,path_);
     WriteBool(L"Features",L"TPSHideGroundAimFx",tpsHideGroundAimFx,path_);
     WriteBool(L"Features", L"TPSControllerStrafe", tpsControllerStrafe, path_);
