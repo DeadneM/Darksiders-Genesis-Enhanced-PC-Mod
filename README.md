@@ -1527,3 +1527,28 @@ actual movie/config resources offline (for example the game's
 without bypassing `MoviePlayer::SetupLoadingScreen`; any runtime hook
 requires separate safety audit. No public stable release from this
 test until user validates V0.45 startup.
+
+## V0.45 runtime validation from user logs (2026-10-09)
+
+The user supplied both Loader and ASI logs for the V0.45 test session
+(start 13:51:40, clean shutdown at 13:52:42):
+- DXGI proxy logs "V0.43 SAFE: native MoviePlayer startup attachment preserved",
+  and loads the ASI successfully.
+- ASI logs "0.45-no-trampoline-safe-startup" with supported exact EXE
+  SHA-256 and Skip Logos patched=0 enabled=0.
+- D3D11, Camera, Horse, Reticle, HUD, Movement, Recovery and Damage
+  hooks report ready; player detected; in-game combat and native
+  cursor transitions are recorded.
+- Ends with "Shutdown: complete", no crash recorded in these logs.
+- The user did not explicitly describe the visual appearance of the
+  reticle in this V0.45 session: do not claim visual revalidation
+  from native-cursor visibility alone.
+- In contrast, V0.44 opt-in early trampoline showed StartupMovieProbe
+  ACTIVE and caused a startup crash. The implementation is removed
+  in V0.45: never resurrect it.
+
+Next engineering step: target the logos selectively while preserving
+SStartupScreens and the native MoviePlayer attachment/lifecycle.
+No automatic F5, synthetic focus, disabled startup module, globally
+emptied startup movies or unsafe mid-function trampoline.
+Public stable release remains unchanged.
