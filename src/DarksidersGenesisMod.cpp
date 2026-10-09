@@ -2322,6 +2322,8 @@ dg::overlay::Context BuildOverlayContext() {
         skipLogosTelemetry.patched;
     t.skipLogosEnabled =
         skipLogosTelemetry.enabled;
+    t.skipWarningAttempted = skipLogosTelemetry.warningAttempted;
+    t.skipWarningApplied = skipLogosTelemetry.warningApplied;
 
     t.actionMoveQueries = g_actionMoveQueries.load();
     t.actionMoveLocalQueries =
@@ -2367,6 +2369,7 @@ dg::overlay::Context BuildOverlayContext() {
 
     context.applySkipIntro =
         &ApplySkipIntroSetting;
+    context.applySkipWarning = &dg::skip_logos::ApplyWarning;
     context.applySkipLogos =
         &dg::skip_logos::Apply;
     context.applyGraphicsAdapter =

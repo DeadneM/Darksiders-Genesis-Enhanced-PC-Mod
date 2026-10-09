@@ -157,19 +157,14 @@ void Draw(Context& c) {
 
             DrawSectionTitle("Player");
 
-            if (ImGui::Checkbox(
-                    "Toggle HUD",
-                    &config.toggleHudEnabled)) {
-                config.Save();
+            bool hudHidden=c.hudHidden->load();
+            if (ImGui::Checkbox("HUD Hidden", &hudHidden)) {
+                c.hudHidden->store(hudHidden);
+                *c.lastAction=hudHidden?"HUD hidden":"HUD visible";
+                if (c.log) c.log("Overlay -> HUD %s",hudHidden?"HIDDEN":"VISIBLE");
             }
             ImGui::SameLine(310.0f);
-            ImGui::TextDisabled(
-                "%s",
-                t.hudHookReady
-                    ? "Native ui.HideHud getter hooked"
-                    : "Native hook unavailable",
-                t.movementHookReady
-            );
+            ImGui::TextDisabled("%s | F1",t.hudHookReady?"READY":"WAIT");
 
             if (ImGui::Checkbox("Hide Reticle (independent of HUD)", &config.hideReticle)) {
                 config.Save();
@@ -195,31 +190,6 @@ void Draw(Context& c) {
                 if (c.log) c.log("Reticle V0.42: Hide Reticle apply=%d overlay closed",
                     config.hideReticle ? 1 : 0);
             }
-            ImGui::TextDisabled("Reticle investigation: inspect passive cursor log before and after a real Alt-Tab.");
-            ImGui::TextDisabled("F5 remains a manual rescue shortcut only; no automatic focus replay.");
-
-            if (config.toggleHudEnabled) {
-                bool hudHidden = c.hudHidden->load();
-                ImGui::Indent();
-                if (ImGui::Checkbox(
-                        "HUD Hidden##RuntimeHUD",
-                        &hudHidden)) {
-                    c.hudHidden->store(hudHidden);
-                    *c.lastAction =
-                        std::string("HUD ") +
-                        (hudHidden ? "hidden" : "visible");
-                    if (c.log) {
-                        c.log(
-                            "Overlay -> HUD %s",
-                            hudHidden ? "HIDDEN" : "VISIBLE"
-                        );
-                    }
-                }
-                ImGui::SameLine();
-                ImGui::TextDisabled("F1 default");
-                ImGui::Unindent();
-            }
-
             DrawTunableFeature(
                 config,
                 "Movement Speed",
@@ -574,6 +544,22 @@ void Draw(Context& c) {
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Native g.PlayIntroCinematicOnBoot; independent of Skip Logos");
 
+            if (ImGui::Checkbox("Skip Warning", &config.skipWarningEnabled)) {
+                config.Save();
+                const bool accepted=c.applySkipWarning ?
+                    c.applySkipWarning(config.skipWarningEnabled) : false;
+                *c.lastAction=std::string("Skip Warning ")+
+                    (config.skipWarningEnabled?"ON":"OFF")+
+                    (accepted?" (restart required)":" (proxy unavailable)");
+            }
+            ImGui::SameLine(310.0f);
+            ImGui::TextDisabled("%s | restart required",
+                t.skipWarningAttempted ?
+                    (t.skipWarningApplied?"APPLIED":"NO MATCH") :
+                    (t.skipLogosTargetValid?"READY":"WAIT"));
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip(
+                "Independent controller/autosave startup screen filter");
+
             ImGui::Spacing();
             ImGui::TextDisabled(
                 "Runtime changes publish immediately; INI persistence is debounced."
@@ -611,6 +597,21 @@ void Draw(Context& c) {
                 ImGui::TreePop();
             }
 
+            DrawSectionTitle("Third Person camera");
+            if (ImGui::Checkbox("Third Person", &config.thirdPersonEnabled)) {
+                config.Save();
+                *c.lastAction=config.thirdPersonEnabled?"Third Person ON":"Third Person OFF";
+            }
+            ImGui::SameLine(310.0f);
+            ImGui::TextDisabled("%s",camera.viewReady && camera.armReady?"READY":"WAIT");
+            if (config.thirdPersonEnabled) {
+                ImGui::Indent();
+                ImGui::SetNextItemWidth(245.0f);
+                if (ImGui::SliderFloat("Distance##ThirdPerson",
+                        &config.thirdPersonDistanceMultiplier,0.25f,3.0f,"%.2fx"))
+                    config.Save();
+                ImGui::Unindent();
+            }
             DrawSectionTitle("Field of view");
             DrawTunableFeature(config,"Enable FOV Override","FOV",
                 &config.fovEnabled,&config.fovDegrees,
@@ -880,7 +881,7 @@ void Draw(Context& c) {
 
             ImGui::Spacing();
             ImGui::TextDisabled(
-                "Test INI: F1 HUD | F2 Movement | F3 Recovery | F4 Skip Intro | F5 manual cursor test | F6 Hide Reticle | F7-F12 None"
+                "Default: F1 HUD | F2 Speed | F3 Recovery | F4 Reticle | F5-F12 None"
             );
             ImGui::EndTabItem();
         }

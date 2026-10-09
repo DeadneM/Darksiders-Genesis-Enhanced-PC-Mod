@@ -1884,3 +1884,6 @@ separately from the two frozen video skips.
 Normal cumulative archive, four root-level files, new V0.53
 label, no "TEST" suffix. Unified per-session Mod.log; old
 Loader.log untouched. No public release/tag without user request.
+
+## V0.54 Third Person, HUD and hotkey cleanup
+Uses user-provided F1 HUD / F2 Movement / F3 Recovery / F4 Reticle and camera controls, all defaults copied to the new INI. Removed Reticle Focus Test action and all synthetic focus pulses. HUD Hidden is the only display toggle, with F1 still supported. Third Person is now an opt-in native camera view transform (OFF by default), using original springarm distance to estimate pivot and apply transient shoulder-height view. May require in-game tuning. Skip Warning will use an independent guarded StartupScreenDef filter, not the movie list. No changes to validated Hide Reticle or Skip Intro logic.

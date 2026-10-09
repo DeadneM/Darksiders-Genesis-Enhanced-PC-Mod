@@ -84,6 +84,37 @@ void HookView(void* camera, float dt, void* outView) {
         appliedHeight = nativeHeight + heightOffset;
         std::memcpy(p + 0x08, &appliedHeight, sizeof(float));
     }
+    // Third Person V0.54: modify only transient FMinimalViewInfo,
+    // never the UObject's persistent transform. Enabled only by user.
+    if (settings.thirdPersonEnabled.load(std::memory_order_relaxed)) {
+        const float dist=g_nativeDistance.load(std::memory_order_relaxed);
+        const float mult=settings.thirdPersonDistanceMultiplier.load(std::memory_order_relaxed);
+        float x=0.0f,y=0.0f;
+        std::memcpy(&x,p,sizeof(float)); std::memcpy(&y,p+4,sizeof(float));
+        if (std::isfinite(x)&&std::isfinite(y)&&dist>=100.0f&&dist<=10000.0f&&
+            std::isfinite(mult)&&mult>=0.25f&&mult<=3.0f&&
+            nativePitch>=-89.0f&&nativePitch<=-15.0f) {
+            constexpr float rad=0.01745329251994329577f;
+            const float np=nativePitch*rad,ny=nativeYaw*rad;
+            const float dp=-12.0f*rad,dy=appliedYaw*rad;
+            const float distance=std::clamp(dist*mult,120.0f,12000.0f);
+            const float pivotX=x+std::cos(np)*std::cos(ny)*dist;
+            const float pivotY=y+std::cos(np)*std::sin(ny)*dist;
+            const float pivotZ=nativeHeight+std::sin(np)*dist;
+            const float newX=pivotX-std::cos(dp)*std::cos(dy)*distance;
+            const float newY=pivotY-std::cos(dp)*std::sin(dy)*distance;
+            const float newZ=pivotZ-std::sin(dp)*distance+60.0f;
+            if (std::isfinite(newX)&&std::isfinite(newY)&&std::isfinite(newZ)&&
+                std::fabs(newX)<1e7f&&std::fabs(newY)<1e7f&&std::fabs(newZ)<1e7f) {
+                const float pitch=-12.0f;
+                std::memcpy(p,&newX,sizeof(float));
+                std::memcpy(p+4,&newY,sizeof(float));
+                std::memcpy(p+8,&newZ,sizeof(float));
+                std::memcpy(p+12,&pitch,sizeof(float));
+                appliedPitch=pitch; appliedHeight=newZ;
+            }
+        }
+    }
     g_nativeHeight.store(nativeHeight, std::memory_order_relaxed);
     g_appliedHeight.store(appliedHeight, std::memory_order_relaxed);
     g_nativeFov.store(nativeFov, std::memory_order_relaxed);
