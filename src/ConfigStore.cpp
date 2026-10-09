@@ -416,7 +416,7 @@ bool Store::Load() {
     hideReticle =
         ReadBool(L"Features", L"HideReticle", false, path_);
     crossCursorTestMode = std::clamp(
-        GetPrivateProfileIntW(L"Features", L"CrossCursorTestMode", 0, path_.c_str()),0,2);
+        static_cast<int>(GetPrivateProfileIntW(L"Features", L"CrossCursorTestMode", 0, path_.c_str())),0,2);
     hotstreakChargeEnabled =
         ReadBool(L"Features", L"HotstreakCharge", true, path_);
 
