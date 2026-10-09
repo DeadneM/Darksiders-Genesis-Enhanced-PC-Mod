@@ -34,7 +34,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.49-two-movie-names-diagnostic";
+constexpr const char* kBuild = "0.50-safe-logging-recovery";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -188,7 +188,11 @@ void ResetLogFile() {
     const HMODULE proxy = GetModuleHandleW(L"dxgi.dll");
     const auto active = proxy ? reinterpret_cast<UnifiedLogActiveFn>(
         GetProcAddress(proxy, "DGUnifiedLogActive")) : nullptr;
-    if (active && active() != FALSE) return;
+    // If proxy initialization reported success but disk I/O failed,
+    // allow the ASI to create its own fresh per-session log.
+    if (active && active() != FALSE &&
+        GetFileAttributesW(g_logPath.c_str()) != INVALID_FILE_ATTRIBUTES)
+        return;
 
     // Fallback when no compatible loader exists: reset once per ASI run.
     HANDLE file = CreateFileW(

@@ -1698,3 +1698,45 @@ Public release remains unchanged. User should install both
 dxgi.dll and ASI from the V0.49 test archive (four files at ZIP
 root), launch with SkipLogos=1, then provide only
 DarksidersGenesisMod.log.
+
+## V0.50: safe startup and single-log recovery following V0.49 silent run
+
+The user's report after the V0.49 diagnostic is: "il ny a plus de log."
+No new runtime log or crash dump was supplied. This alone does NOT
+establish whether the proxy was loaded, the ASI was quarantined,
+the wrong binary was copied, log-file permissions failed, or the
+experimental RVA 0x25FF31 startup hook failed before logging.
+Do not claim a specific root cause.
+
+The V0.49 source had a journaling reliability bug: g_loaderLogInitialized
+was set TRUE before checking whether CreateFileW succeeded. The ASI
+then trusted that boolean when deciding whether to truncate a prior
+log. V0.50 changes the flag only AFTER successful CreateFileW and
+adds an ASI check that the canonical logfile exists. This avoids
+silent log-init success on failed file I/O.
+
+More importantly, the V0.46-V0.49 early handwritten assembly
+trampoline is REMOVED entirely from src/dxgi_proxy.cpp. DllMain
+does NOTHING except record its HMODULE and call
+DisableThreadLibraryCalls. No GetPrivateProfileIntW, no early
+VirtualProtect, no early trampoline, no manual executable patch.
+All early proxy diagnostics are written outside DllMain on first
+DXGI factory/ASI loading, to a single
+DarksidersGenesisMod.log (at the dxgi.dll/ASI install directory).
+
+Skip Logos is TEMPORARILY UNAVAILABLE in V0.50; calls to the proxy's
+DGSetSkipLogosEnabled return false for enabled=1, log a clear
+warning, and leave the engine's MoviePlayer/startup screens native.
+An existing user INI with SkipLogos=1 will not re-enable the hook.
+The fresh packaged INI has SkipLogos=0. V0.49's observed count=2
+remains in docs as evidence; the *last actual working video-skipping
+fix is not established*.
+
+All other ASI hooks, camera, horses, HUD, reticle and skip intro
+remain unchanged. One compact Mod.log per launch (proxy truncates,
+ASI appends); an existing DarksidersGenesisLoader.log is NEVER
+created/opened/deleted/modified. This is a crash/log recovery TEST,
+not a completed logo fix. Do not create a public release until
+the user confirms in-game behavior. If the file is still absent,
+diagnose ASI/proxy load/permissions/AV rather than patching
+MoviePlayer at random. Four ZIP entries remain at root.
