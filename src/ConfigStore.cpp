@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2106;
+constexpr int kConfigRevision = 2107;
 
 bool ReadBool(
     const wchar_t* section,
@@ -300,6 +300,8 @@ void Store::ResetDefaults(bool persist) {
     skipWarningEnabled = true;
     thirdPersonEnabled = false;
     cameraOrbitInputEnabled = false;
+    tpsControllerCombatAim = true;
+    tpsControllerStrafe = true;
     pistolDamageEnabled = true;
     meleeDamageEnabled = true;
     jumpHeightEnabled = true;
@@ -403,6 +405,8 @@ bool Store::Load() {
     thirdPersonEnabled =
         ReadBool(L"Features", L"ThirdPerson", false, path_);
     cameraOrbitInputEnabled = ReadBool(L"Features", L"CameraMouseGamepad", false, path_);
+    tpsControllerCombatAim = ReadBool(L"Features", L"TPSControllerCombatAim", true, path_);
+    tpsControllerStrafe = ReadBool(L"Features", L"TPSControllerStrafe", true, path_);
     pistolDamageEnabled =
         ReadBool(L"Features", L"PistolDamage", true, path_);
     meleeDamageEnabled =
@@ -472,6 +476,9 @@ bool Store::Load() {
     thirdPersonHeightOffset=std::clamp(thirdPersonHeightOffset,-500.0f,500.0f);
     cameraMouseSensitivity=std::clamp(cameraMouseSensitivity,0.01f,0.75f);
     cameraStickSpeed=std::clamp(cameraStickSpeed,30.0f,360.0f);
+    tpsAimYawOffsetDegrees=ReadFloat(L"Values",L"TPSAimYawOffsetDegrees",0.0f,path_);
+    if (!std::isfinite(tpsAimYawOffsetDegrees)) tpsAimYawOffsetDegrees=0.0f;
+    tpsAimYawOffsetDegrees=std::clamp(tpsAimYawOffsetDegrees,-180.0f,180.0f);
     hotstreakChargeMultiplier =
         ReadFloat(L"Values", L"HotstreakChargeMultiplier", 2.0f, path_);
 
@@ -534,7 +541,7 @@ bool Store::Load() {
             hotkeys[4] = Action::ThirdPerson;
         PublishRuntime();
         SaveNow();
-        Log("INI migrated to V0.56 Third Person controls; existing hotkeys preserved");
+        Log("INI migrated to V0.58 TPS controller controls; existing hotkeys preserved");
         return true;
     }
 
@@ -556,11 +563,14 @@ void Store::PublishRuntime() const {
     runtime.skipWarningEnabled = skipWarningEnabled;
     runtime.thirdPersonEnabled = thirdPersonEnabled;
     runtime.cameraOrbitInputEnabled = cameraOrbitInputEnabled;
+    runtime.tpsControllerCombatAim = tpsControllerCombatAim;
+    runtime.tpsControllerStrafe = tpsControllerStrafe;
     runtime.thirdPersonDistanceMultiplier = thirdPersonDistanceMultiplier;
     runtime.thirdPersonPitchDegrees = thirdPersonPitchDegrees;
     runtime.thirdPersonHeightOffset = thirdPersonHeightOffset;
     runtime.cameraMouseSensitivity = cameraMouseSensitivity;
     runtime.cameraStickSpeed = cameraStickSpeed;
+    runtime.tpsAimYawOffsetDegrees = tpsAimYawOffsetDegrees;
     runtime.pistolDamageEnabled = pistolDamageEnabled;
     runtime.meleeDamageEnabled = meleeDamageEnabled;
     runtime.jumpHeightEnabled = jumpHeightEnabled;
@@ -643,6 +653,8 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"SkipWarning", skipWarningEnabled, path_);
     WriteBool(L"Features", L"ThirdPerson", thirdPersonEnabled, path_);
     WriteBool(L"Features", L"CameraMouseGamepad", cameraOrbitInputEnabled, path_);
+    WriteBool(L"Features", L"TPSControllerCombatAim", tpsControllerCombatAim, path_);
+    WriteBool(L"Features", L"TPSControllerStrafe", tpsControllerStrafe, path_);
     WriteBool(L"Features", L"PistolDamage", pistolDamageEnabled, path_);
     WriteBool(L"Features", L"MeleeDamage", meleeDamageEnabled, path_);
     WriteBool(L"Features", L"JumpHeight", jumpHeightEnabled, path_);
@@ -679,6 +691,7 @@ bool Store::SaveNow() {
     WriteFloat(L"Values", L"ThirdPersonHeightOffset", thirdPersonHeightOffset, path_);
     WriteFloat(L"Values", L"CameraMouseSensitivity", cameraMouseSensitivity, path_);
     WriteFloat(L"Values", L"CameraStickSpeed", cameraStickSpeed, path_);
+    WriteFloat(L"Values", L"TPSAimYawOffsetDegrees", tpsAimYawOffsetDegrees, path_);
     WriteFloat(L"Values", L"HotstreakChargeMultiplier", hotstreakChargeMultiplier, path_);
 
     for (int i = 0; i < 12; ++i) {

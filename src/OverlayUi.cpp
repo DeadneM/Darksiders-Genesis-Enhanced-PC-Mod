@@ -663,6 +663,27 @@ void Draw(Context& c) {
                 }
                 ImGui::Unindent();
             }
+            if (config.thirdPersonEnabled) {
+                ImGui::Indent();
+                ImGui::TextDisabled("Controller TPS combat (experimental)");
+                if (ImGui::Checkbox("TPS aim while firing / throwing (RT or RB)",
+                        &config.tpsControllerCombatAim)) config.Save();
+                if (ImGui::Checkbox("TPS camera-relative left stick / strafing",
+                        &config.tpsControllerStrafe)) config.Save();
+                if (config.tpsControllerCombatAim || config.tpsControllerStrafe) {
+                    ImGui::SetNextItemWidth(245.0f);
+                    if (ImGui::SliderFloat("Native aim calibration##TPS",
+                            &config.tpsAimYawOffsetDegrees,-180.0f,180.0f,"%.0f deg"))
+                        config.Save();
+                    ImGui::SameLine();
+                    if (ImGui::Button("Default##TPSYaw")) {
+                        config.tpsAimYawOffsetDegrees=0.0f;config.Save();
+                    }
+                }
+                ImGui::TextDisabled("LB ability wheel stays vanilla; off outside Third Person.");
+                ImGui::TextDisabled("Controller #1 only; Strife ranged & thrown items to test.");
+                ImGui::Unindent();
+            }
             ImGui::TextDisabled("Third Person suppresses native mouse/right-stick aiming (V0.57 test).");
             ImGui::TextDisabled("Normal aiming returns immediately when Third Person is OFF.");
             DrawSectionTitle("Field of view");

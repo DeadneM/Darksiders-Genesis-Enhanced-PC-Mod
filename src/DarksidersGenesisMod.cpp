@@ -35,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.57-third-person-native-aim-isolation";
+constexpr const char* kBuild = "0.58-tps-controller-combat-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -74,6 +74,9 @@ std::atomic_bool g_imguiReady{false};
 // Third Person V0.57: mouse and controller aim isolation.
 std::atomic_uint32_t g_nativeMouseAimSuppressed{0};
 std::atomic_uint32_t g_nativePadAimSuppressed{0};
+std::atomic_uint32_t g_tpsCombatAimSamples{0};
+std::atomic_uint32_t g_tpsStrafeSamples{0};
+std::atomic_uint32_t g_tpsCombatFireSamples{0};
 std::atomic_int g_orbitMouseDx{0},g_orbitMouseDy{0};
 std::atomic_ullong g_lastOrbitRawTick{0};
 ULONGLONG g_orbitLastPresentTick=0;
@@ -2259,14 +2262,80 @@ bool g_nativeXInputInstalled[5]{};
 const wchar_t* const kNativeXInputLibraries[]={
     L"xinput1_4.dll",L"xinput1_3.dll",L"xinput9_1_0.dll",L"xinputuap.dll",L"xinput1_4.dll"
 };
+// V0.58: use the supported game API to steer its OWN native ranged aiming.
+// Unlike changing arbitrary UObject transforms, this preserves game authority,
+// animation, combat logic and movement-component lifetime safety.
+// All heading changes are only active while RT/RB is held; the grenade/held
+// item throw shares RT. LB radial / capability menus always receive vanilla.
 DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     const auto original=g_nativeXInputOriginal[slot];
     if (!original) return ERROR_DEVICE_NOT_CONNECTED;
     const DWORD status=original(user,state);
-    if (status==ERROR_SUCCESS && state && ShouldSuppressNativeAim()) {
-        if (state->Gamepad.sThumbRX!=0 || state->Gamepad.sThumbRY!=0) {
-            state->Gamepad.sThumbRX=0;
-            state->Gamepad.sThumbRY=0;
+    if (status!=ERROR_SUCCESS || !state || !ShouldSuppressNativeAim())
+        return status;
+
+    auto& pad=state->Gamepad;
+    if (pad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER)
+        return status; // native selection wheel must remain usable
+
+    // Never remap a second controller / co-op partner.
+    if (user!=0)
+        return status;
+
+    auto& rt=dg::runtime::Get();
+    const auto view=dg::camera_trace::GetTelemetry();
+    const bool cameraKnown=view.viewCalls>0 && view.nativeFov>1.0f &&
+        std::isfinite(view.nativeYaw) && std::isfinite(view.appliedYaw);
+    const bool strafe=rt.tpsControllerStrafe.load(std::memory_order_relaxed);
+    const bool aim=rt.tpsControllerCombatAim.load(std::memory_order_relaxed);
+    const bool fire=pad.bRightTrigger>=XINPUT_GAMEPAD_TRIGGER_THRESHOLD ||
+        (pad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER)!=0;
+    const float calibration=rt.tpsAimYawOffsetDegrees.load(std::memory_order_relaxed);
+    // Native and transient game camera share a world-space yaw convention.
+    // Relative rotation is what the original top-down input mapper expects.
+    constexpr float toRadians=0.01745329251994329577f;
+    const float relative=std::remainder(view.appliedYaw-view.nativeYaw+
+        (std::isfinite(calibration)?std::clamp(calibration,-180.0f,180.0f):0.0f),360.0f);
+    const float delta=relative*toRadians;
+    const float co=std::cos(delta),si=std::sin(delta);
+    const auto convertStick=[](float v)->SHORT {
+        return static_cast<SHORT>(std::clamp(std::lround(v),-32767l,32767l));
+    };
+
+    if (cameraKnown && strafe) {
+        // Treat left stick as camera-relative TPS forward/strafe axes.
+        // Preserve analog magnitude; no synthetic buttons/keys.
+        const float leftX=static_cast<float>(pad.sThumbLX);
+        const float leftY=static_cast<float>(pad.sThumbLY);
+        if (leftX*leftX+leftY*leftY>7000.0f*7000.0f) {
+            pad.sThumbLX=convertStick(leftX*co+leftY*si);
+            pad.sThumbLY=convertStick(leftY*co-leftX*si);
+            const unsigned n=g_tpsStrafeSamples.fetch_add(1)+1;
+            if (n==1 || n==10000)
+                Log("TPS V0.58: strafe sample=%u yawDelta=%.1f leftRaw=(%.0f,%.0f) remap=(%d,%d)",
+                    n,relative,leftX,leftY,pad.sThumbLX,pad.sThumbLY);
+        }
+    }
+    if (cameraKnown && aim && fire) {
+        // RT = primary fire / throw held grenade; RB = secondary fire.
+        // Screen-space Up aims along world camera-forward; rotate into the
+        // engine's unmodified input yaw, while OUR right stick remains free
+        // to orbit. Magnitude is full for stable gamepad directional aim.
+        pad.sThumbRX=convertStick(32767.0f*si);
+        pad.sThumbRY=convertStick(32767.0f*co);
+        const unsigned n=g_tpsCombatAimSamples.fetch_add(1)+1;
+        if (n==1 || n==120 || n==10000)
+            Log("TPS V0.58: combat aim sample=%u RT=%u RB=%u deltaYaw=%.1f aim=(%d,%d)",
+                n,static_cast<unsigned>(pad.bRightTrigger),
+                (pad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER)?1u:0u,
+                relative,pad.sThumbRX,pad.sThumbRY);
+        if (g_tpsCombatFireSamples.fetch_add(1)==0)
+            Log("TPS V0.58: first fire/throw input received by native XInput gate");
+    } else {
+        // Retain validated V0.57 native aim isolation when not attacking.
+        if (pad.sThumbRX || pad.sThumbRY) {
+            pad.sThumbRX=0;
+            pad.sThumbRY=0;
             const unsigned n=g_nativePadAimSuppressed.fetch_add(1)+1;
             if (n==1 || n==10000)
                 Log("Aim V0.57: filtered native XInput right stick count=%u",n);
@@ -2829,6 +2898,7 @@ void UpdateOrbitInput() {
         for (DWORD i=0;i<XUSER_MAX_COUNT;++i) {
             XINPUT_STATE state{};
             if (GetCameraXInputState(i,&state)!=ERROR_SUCCESS) continue;
+            if (state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) continue;
             const float x=static_cast<float>(state.Gamepad.sThumbRX)/32767.0f;
             const float y=static_cast<float>(state.Gamepad.sThumbRY)/32767.0f;
             const float len=std::sqrt(x*x+y*y);
@@ -3172,6 +3242,9 @@ void ShutdownMod() {
     RestoreCameraDof();
     Log("Aim V0.57 totals: mouseMessagesBlocked=%u rightStickReadsFiltered=%u",
         g_nativeMouseAimSuppressed.load(),g_nativePadAimSuppressed.load());
+    Log("TPS V0.58 totals: combatAim=%u strafeRemap=%u nativeFireOrThrowPolls=%u",
+        g_tpsCombatAimSamples.load(),g_tpsStrafeSamples.load(),
+        g_tpsCombatFireSamples.load());
 
     if (g_skipIntroData) {
         *g_skipIntroData = g_skipIntroOriginalValue;
