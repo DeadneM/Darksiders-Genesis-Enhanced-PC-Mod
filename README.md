@@ -1552,3 +1552,15 @@ SStartupScreens and the native MoviePlayer attachment/lifecycle.
 No automatic F5, synthetic focus, disabled startup module, globally
 emptied startup movies or unsafe mid-function trampoline.
 Public stable release remains unchanged.
+
+### Native StartupScreens continuation, verified logo identities
+
+The exact game EXE and public PC-specific guides support further
+analysis recorded in [docs/STARTUPSCREENS_AUDIT.md](docs/STARTUPSCREENS_AUDIT.md):
+logo files are `THQ_LogoBasic.mp4` and `AS_LogoBasic.mp4`;
+`CG_Intro_LowVi.mp4` is separate. Unlike a config-file rename,
+the desired mod must remain ASI-only. The file stems are absent from
+the matching EXE; only reflected settings/array fields are present.
+The actual runtime movie list is unknown without inspecting the
+game's cooked config/resources. V0.45 is unchanged and safe with
+`SkipLogos=0`. No speculative patch is permitted.

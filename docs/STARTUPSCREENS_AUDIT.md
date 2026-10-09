@@ -226,3 +226,80 @@ SStartupScreens and the native MoviePlayer attachment/lifecycle.
 No automatic F5, synthetic focus, disabled startup module, globally
 emptied startup movies or unsafe mid-function trampoline.
 Public stable release remains unchanged.
+
+## Follow-up: logo file identity and exact native StartupScreens arrays (2026-10-09)
+
+External PC-specific guides consistently identify the two startup logo
+movies as loose files in `ProjectMayhem/Content/Movies/`:
+- `THQ_LogoBasic.mp4` (THQ Nordic)
+- `AS_LogoBasic.mp4` (Airship Syndicate)
+A separate third file `CG_Intro_LowVi.mp4` is the boot intro, and must
+never be indiscriminately skipped with the logos because Skip Intro Videos
+is an independent validated option.
+
+Public references (guides, not first-party files):
+- https://www.magicgameworld.com/darksiders-genesis-how-to-skip-intro-videos/
+- https://www.thenerdmag.com/how-to-skip-darksiders-genesis-intro-videos-pc/
+
+The user-supplied exact retail EXE does NOT contain the literal file stems
+`THQ_LogoBasic`, `AS_LogoBasic`, `CG_Intro_LowVi` in either narrow UTF-8
+or wide UTF-16LE forms (verified offline). The EXE DOES contain UE4
+reflection strings `/Script/StartupScreens`, `StartupMovies`,
+`TimeToShow`, `StartupScreenDef`. Thus the runtime playlist is loaded
+from game data or defaults not recoverable by a simple literal-string
+patch of the EXE. Source/path information alone does not confirm the
+actual runtime playlist order or whether the warning has an entry.
+
+Additional directly disassembled native code, exact verified binary:
+- `0x25FEB7`: `rsi+0x50` is another array with stride 0x40,
+  `rsi+0x58` its count, each iterated and conditionally adjusted.
+  This represents `StartupScreenDef`-like entries; exact field
+  semantics are not all confirmed.
+- `0x25FF19`: reads flag byte `[rsi+0x48]` and copies it into
+  loading-screen attributes at `[rbp-0x53]`.
+- `0x25FF24`: advances `rsi += 0x38` to the native
+  `StartupMovies` TArray.
+- `0x25FF31`: copies the source array count from `[rsi+8]` to
+  `[rbp-0x60]`, and follows source FString pointers.
+- `0x25FF47..0x25FFA9`: constructs a *deep copy* of each FString
+  entry (16 bytes per item) into an allocated TArray at
+  `[rbp-0x68]`. This copy must be properly owned and freed.
+- `0x260244..0x260257`: native getter then virtual
+  `MoviePlayer` method receives an attributes pointer at
+  `[rbp-0x78]`. The old V0.19C jump removed the entire call.
+
+Why these details matter: a safe Skip Logos implementation should
+filter by **exact movie name**, not array position or total length,
+while keeping *both* loading-screen widget/attributes construction
+and the original SetupLoadingScreen call. A direct count-zero patch
+(V0.19B) was previously tested and also removed the independently
+controlled intro, so NEVER repeat that experiment.
+
+Past experiments reviewed:
+- V0.18D: Game.ini -StartupMovies override wrote a setting but failed
+  to suppress company logos. This targeted **MoviePlayerSettings**,
+  not necessarily `UStartupScreensSettings`.
+- V0.18E: process-wide CreateFileW filter for the two mp4 names
+  installed, but received zero matching video-open calls.
+- V0.18F/G: bypassing generic engine SetupLoadingScreenFromIni had
+  no effect on the logos.
+- V0.19A/B: startup module kill / empty copied movie array removed
+  intro too. V0.19C: bypass MoviePlayer attachment skipped logos but
+  produced the user-confirmed cross cursor bug.
+- V0.44: custom handwritten early 19-byte trampoline crashed before
+  recording playlist names. Entire probe was removed in safe V0.45.
+
+ENGINEERING RULE: Do not modify or rename installed game mp4 assets
+in the patch, do not publish a new unvalidated early trampoline or
+trigger F5 / Alt-Tab automatically. V0.45 with SkipLogos=0 remains
+the safe baseline.
+
+Remaining specific evidence: read the **game's StartupScreens
+configuration / cooked plugin defaults**, if available under
+`ProjectMayhem/Config/DefaultGame.ini`, other packaged configs, or
+cooked content. Verify the *actual* array entries and any warning
+widget descriptor in the same game build. The EXE alone does not
+materially establish their values. When a source-of-truth descriptor
+is recovered, design a name-filtered, lifecycle-preserving route
+and subject any proposed x64 hook to a complete ABI/unwind/lifetime
+review before game testing.
