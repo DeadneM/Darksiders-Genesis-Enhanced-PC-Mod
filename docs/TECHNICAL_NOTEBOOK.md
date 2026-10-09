@@ -3388,3 +3388,11 @@ identical setup. Next engineering step is disassemble StartupScreens'
 attach, playback completion and destruction paths to implement a
 true native lifecycle-preserving logo skip without touching game assets.
 Do not claim a permanent working Skip Logos replacement yet.
+
+## StartupScreens audit after V0.43 confirmation
+
+`README.md` links a detailed engineering audit at
+`docs/STARTUPSCREENS_AUDIT.md` documenting the existing native call
+sequence, the rejected v0.19A/B/C methods, relevant Unreal MoviePlayer
+APIs, the cross-cursor A/B result, and the exact remaining static
+reverse-engineering tasks. No hook or runtime patch changes.

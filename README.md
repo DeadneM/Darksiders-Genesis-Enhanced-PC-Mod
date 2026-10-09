@@ -1437,3 +1437,16 @@ identical setup. Next engineering step is disassemble StartupScreens'
 attach, playback completion and destruction paths to implement a
 true native lifecycle-preserving logo skip without touching game assets.
 Do not claim a permanent working Skip Logos replacement yet.
+
+### StartupScreens root-cause audit (after V0.43)
+
+The full audit and exact known 19-byte setup sequence are in
+[docs/STARTUPSCREENS_AUDIT.md](docs/STARTUPSCREENS_AUDIT.md).
+The failed logo bypass at `0x260244` skips both a call to
+`0x1608B90` (probable GetMoviePlayer) and the virtual method call at
+`[vtable+0x20]` (probable loading-screen setup) with `[rbp-0x78]`.
+Those identities must be checked with the exact retail executable.
+**User verified SkipLogos OFF removes the cross-shaped cursor.**
+Retain V0.43 safe default; avoid workarounds. The game EXE is not
+present among files currently accessible, so no replacement binary
+patch is being claimed or published.
