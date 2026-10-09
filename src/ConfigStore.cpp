@@ -4,6 +4,7 @@
 #include "RuntimeSettings.h"
 
 #include <cwchar>
+#include <algorithm>
 
 namespace dg::config {
 namespace {
@@ -306,6 +307,7 @@ void Store::ResetDefaults(bool persist) {
     horseSprintDurationEnabled = true;
     fovEnabled = false;
     hideReticle = false;
+    crossCursorTestMode = 0;
     hotstreakChargeEnabled = true;
 
     movementSpeedMultiplier = 1.50f;
@@ -413,6 +415,8 @@ bool Store::Load() {
         ReadBool(L"Features", L"FOV", false, path_);
     hideReticle =
         ReadBool(L"Features", L"HideReticle", false, path_);
+    crossCursorTestMode = std::clamp(
+        GetPrivateProfileIntW(L"Features", L"CrossCursorTestMode", 0, path_),0,2);
     hotstreakChargeEnabled =
         ReadBool(L"Features", L"HotstreakCharge", true, path_);
 
@@ -510,6 +514,7 @@ void Store::PublishRuntime() const {
     dg::runtime::Snapshot runtime{};
     runtime.toggleHudEnabled = toggleHudEnabled;
     runtime.hideReticle = hideReticle;
+    runtime.crossCursorTestMode = crossCursorTestMode;
     runtime.fovEnabled = fovEnabled;
     runtime.movementSpeedEnabled = movementSpeedEnabled;
     runtime.actionRecoveryEnabled = actionRecoveryEnabled;
@@ -604,6 +609,11 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"HorseSprintDuration", horseSprintDurationEnabled, path_);
     WriteBool(L"Features", L"FOV", fovEnabled, path_);
     WriteBool(L"Features", L"HideReticle", hideReticle, path_);
+    {
+        wchar_t mode[8]{};
+        swprintf_s(mode,L"%d",std::clamp(crossCursorTestMode,0,2));
+        WritePrivateProfileStringW(L"Features",L"CrossCursorTestMode",mode,path_.c_str());
+    }
     WriteBool(L"Features", L"HotstreakCharge", hotstreakChargeEnabled, path_);
 
     WriteFloat(L"Values", L"MovementSpeedMultiplier", movementSpeedMultiplier, path_);

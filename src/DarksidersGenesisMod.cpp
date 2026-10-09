@@ -33,7 +33,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.39-startup-loader-diagnostics-test";
+constexpr const char* kBuild = "0.40-reticle-cursor-source-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -91,6 +91,9 @@ std::atomic_bool g_cursorVisibilityHookReady{false};
 std::atomic_bool g_setCursorHookReady{false};
 std::atomic_bool g_cursorBlankApplied{false};
 std::atomic_uint32_t g_reticleCursorIntercepts{0};
+std::atomic<HCURSOR> g_lastRequestedGameCursor{nullptr};
+std::atomic_uint32_t g_cursorProbeChanges{0};
+std::atomic_int g_lastNativeCursorVisible{-1};
 std::atomic_bool g_movementHookReady{false};
 std::atomic_bool g_recoveryHookReady{false};
 std::atomic_bool g_skipIntroReady{false};
@@ -1559,9 +1562,17 @@ bool HookUiIsCursorVisible(void* uiManager) {
             ? g_originalUiIsCursorVisible(uiManager)
             : false;
 
+    const auto& runtime = dg::runtime::Get();
+    const int mode = runtime.crossCursorTestMode.load(std::memory_order_relaxed);
     const bool hiddenByMod =
         g_hudHidden.load(std::memory_order_relaxed) ||
-        dg::runtime::Get().hideReticle.load(std::memory_order_relaxed);
+        runtime.hideReticle.load(std::memory_order_relaxed) ||
+        mode == 2;
+    const int nativeState = nativeVisible ? 1 : 0;
+    const int lastNative = g_lastNativeCursorVisible.exchange(nativeState);
+    if (lastNative != nativeState)
+        Log("Reticle V0.40: native UI cursor changed %d -> %d testMode=%d",
+            lastNative,nativeState,mode);
 
     const auto calls =
         g_cursorVisibilityCalls.fetch_add(1) + 1;
@@ -1655,17 +1666,32 @@ bool InstallCursorVisibilityHook() {
 bool ShouldBlankGameCursor() {
     const HWND hwnd = reinterpret_cast<HWND>(
         g_gameWindowTrace.load(std::memory_order_relaxed));
+    const auto& runtime = dg::runtime::Get();
+    const bool hideWindows = runtime.hideReticle.load(std::memory_order_relaxed) ||
+        runtime.crossCursorTestMode.load(std::memory_order_relaxed) == 1;
     return hwnd && GetForegroundWindow() == hwnd &&
-        !g_overlayVisible.load(std::memory_order_relaxed) &&
-        dg::runtime::Get().hideReticle.load(std::memory_order_relaxed);
+        !g_overlayVisible.load(std::memory_order_relaxed) && hideWindows;
 }
 
 HCURSOR WINAPI HookSetCursor(HCURSOR requested) {
     if (!g_originalSetCursor) return nullptr;
+    const HWND hwnd = reinterpret_cast<HWND>(
+        g_gameWindowTrace.load(std::memory_order_relaxed));
+    if (hwnd && GetForegroundWindow() == hwnd &&
+        !g_overlayVisible.load(std::memory_order_relaxed)) {
+        const HCURSOR previous = g_lastRequestedGameCursor.exchange(requested);
+        if (previous != requested) {
+            const uint32_t n = g_cursorProbeChanges.fetch_add(1) + 1;
+            if (n <= 24 || n % 200 == 0)
+                Log("Reticle V0.40: OS SetCursor change=%u before=%p requested=%p mode=%d",
+                    n,previous,requested,
+                    dg::runtime::Get().crossCursorTestMode.load(std::memory_order_relaxed));
+        }
+    }
     if (!ShouldBlankGameCursor()) return g_originalSetCursor(requested);
     const unsigned calls = g_reticleCursorIntercepts.fetch_add(1) + 1;
     if (calls <= 8 || calls % 500 == 0) {
-        Log("Reticle V0.36: SetCursor intercepted=%u requested=%p -> NULL",
+        Log("Reticle V0.40: SetCursor intercepted=%u requested=%p -> NULL",
             calls, requested);
     }
     return g_originalSetCursor(nullptr);
@@ -1699,7 +1725,8 @@ void RefreshReticleCursorState() {
     if (blank) {
         if (g_originalSetCursor) g_originalSetCursor(nullptr);
         else SetCursor(nullptr);
-        Log("Reticle V0.38: OS cursor forced hidden (foreground gameplay)");
+        Log("Reticle V0.40: OS cursor forced hidden mode=%d",
+            dg::runtime::Get().crossCursorTestMode.load(std::memory_order_relaxed));
     } else {
         const HWND hwnd = reinterpret_cast<HWND>(
             g_gameWindowTrace.load(std::memory_order_relaxed));
@@ -1715,7 +1742,7 @@ void RefreshReticleCursorState() {
             PostMessageW(hwnd, WM_SETCURSOR,
                 reinterpret_cast<WPARAM>(hwnd), MAKELPARAM(HTCLIENT, WM_MOUSEMOVE));
         }
-        Log("Reticle V0.38: suppression ended foreground=%d", foreground ? 1 : 0);
+        Log("Reticle V0.40: suppression ended foreground=%d", foreground ? 1 : 0);
     }
 }
 

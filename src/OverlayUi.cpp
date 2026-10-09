@@ -180,15 +180,36 @@ void Draw(Context& c) {
                 "Hide Reticle applies in gameplay. The pointer remains visible in "
                 "this menu so its controls remain clickable."
             );
-            if (ImGui::Button("Apply Reticle Setting and Return to Game")) {
+            if (ImGui::Button("Apply Cursor Settings and Return to Game")) {
                 config.Save();
                 c.overlayVisible->store(false);
                 *c.lastAction = config.hideReticle
                     ? "Hide Reticle ON (returned to gameplay)"
                     : "Hide Reticle OFF (returned to gameplay)";
-                if (c.log) c.log("Reticle V0.38: apply=%d; overlay closed",
-                    config.hideReticle ? 1 : 0);
+                if (c.log) c.log("Reticle V0.40: apply=%d mode=%d overlay closed",
+                    config.hideReticle ? 1 : 0,config.crossCursorTestMode);
             }
+            DrawSectionTitle("Malformed cross after loading saves (source test)");
+            ImGui::TextWrapped(
+                "This is a diagnostic experiment: does the cross originate "
+                "from Windows or from the native Unreal UI? "
+                "Turn Hide Reticle OFF first, then test each mode separately."
+            );
+            const char* cursorModes[] = {
+                "0 - Off: original cursor rendering",
+                "1 - Hide only Windows cursor (keep native UI)",
+                "2 - Hide only native UI cursor (keep Windows)"
+            };
+            ImGui::SetNextItemWidth(440.0f);
+            if (ImGui::Combo("Cross Cursor Source Test",
+                &config.crossCursorTestMode,cursorModes,IM_ARRAYSIZE(cursorModes))) {
+                config.Save();
+                if (c.log) c.log("Reticle V0.40: source test mode=%d",
+                    config.crossCursorTestMode);
+            }
+            if (config.hideReticle)
+                ImGui::TextDisabled("Hide Reticle ON overrides both tests. Set it OFF.");
+            ImGui::TextDisabled("After each mode, click Apply Cursor Settings and Return to Game.");
             ImGui::TextDisabled("F5 focus pulse is NOT a reliable fix; malformed cross remains under investigation.");
 
             if (config.toggleHudEnabled) {

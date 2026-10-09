@@ -3250,3 +3250,37 @@ Installation guidance: check Microsoft Defender Protection History if
 the ASI or DLL disappears. Verify the downloaded file comes from the
 project's GitHub repository before deciding how to handle a warning;
 do not advise disabling antivirus globally or bulk-excluding folders.
+
+## V0.40 - Diagnose cross-shaped reticle source after save load (TEST)
+
+V0.38 user test confirms Hide Reticle ON/OFF fixed, while cursor still
+looks like a cross immediately after loading a save. Log shows native
+UAirshipUIManager::IsCursorVisible changing 0->1 after loading.
+F5 synthetic focus pulse is unreliable and not a permanent fix.
+
+V0.40 provides a reversible test mode separate from validated HideReticle:
+[Features] CrossCursorTestMode=0 (default) = unmodified behavior.
+1 = suppress only the Win32 SetCursor output while leaving native Unreal
+cursor visibility untouched.
+2 = suppress only the native Unreal cursor while leaving Win32 cursor
+output untouched. Existing Hide Reticle independently hides both layers.
+The ImGui overlay keeps its clickable mouse pointer. The user's menu
+can apply changes and return to gameplay. Settings survive restart.
+No additional game hooks and no cached UObject writes.
+
+The SetCursor hook now logs changed requested OS cursor handles with a
+bounded budget even if HideReticle is OFF. Native UI cursor visibility
+transitions are also logged on state changes. This evidence distinguishes
+the source of the cross from the legitimate reticle.
+
+TEST: after loading the same save and reproducing cross, keep Hide Reticle
+OFF. Try cross mode 1, then mode 2, returning to game each time. Tell
+whether the cross disappears and whether normal reticle remains visible.
+Restore 0 for default. This build is a diagnostic/possible mitigation,
+not an already validated automatic reticle repair.
+
+V0.38 functionality and camera, horse, focus, F6 kept unchanged;
+V0.39 loader diagnostics retained. Build V0.40 from main, no dev
+branches or automatic public release; permanent download ZIP on GitHub
+since temporary artifact links have failed for this user. Log is
+noncumulative per launch.
