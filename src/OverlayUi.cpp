@@ -6,6 +6,7 @@
 #include "imgui.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 
 namespace dg::overlay {
@@ -607,9 +608,24 @@ void Draw(Context& c) {
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
                 ImGui::SetNextItemWidth(245.0f);
-                if (ImGui::SliderFloat("Distance##ThirdPerson",
-                        &config.thirdPersonDistanceMultiplier,0.25f,3.0f,"%.2fx"))
+                bool distanceChanged=ImGui::SliderFloat("Distance##ThirdPerson",
+                        &config.thirdPersonDistanceMultiplier,0.25f,3.0f,"%.2fx");
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(115.0f);
+                distanceChanged |= ImGui::InputFloat("Manual##ThirdPersonDistance",
+                    &config.thirdPersonDistanceMultiplier,0.0f,0.0f,"%.3fx");
+                ImGui::SameLine();
+                if (ImGui::Button("Default##ThirdPersonDistance")) {
+                    config.thirdPersonDistanceMultiplier=1.0f;
+                    distanceChanged=true;
+                }
+                if (distanceChanged) {
+                    if (!std::isfinite(config.thirdPersonDistanceMultiplier))
+                        config.thirdPersonDistanceMultiplier=1.0f;
+                    config.thirdPersonDistanceMultiplier=std::clamp(
+                        config.thirdPersonDistanceMultiplier,0.25f,3.0f);
                     config.Save();
+                }
                 ImGui::Unindent();
             }
             DrawSectionTitle("Field of view");
@@ -881,7 +897,7 @@ void Draw(Context& c) {
 
             ImGui::Spacing();
             ImGui::TextDisabled(
-                "Default: F1 HUD | F2 Speed | F3 Recovery | F4 Reticle | F5-F12 None"
+                "Defaults: F1 HUD | F2 Speed | F3 Recovery | F4 Reticle | F5 Third Person | F6-F12 None"
             );
             ImGui::EndTabItem();
         }

@@ -1945,6 +1945,79 @@ void TriggerAction(Action action, int functionKey) {
         return;
     }
 
+
+    // V0.55: every implemented switch is now assignable in F1-F12.
+    // Startup-only features persist to INI and take effect on next boot.
+    bool* toggle = nullptr;
+    switch (action) {
+    case Action::FOV: toggle=&g_config.fovEnabled; break;
+    case Action::PistolDamage: toggle=&g_config.pistolDamageEnabled; break;
+    case Action::MeleeDamage: toggle=&g_config.meleeDamageEnabled; break;
+    case Action::JumpHeight: toggle=&g_config.jumpHeightEnabled; break;
+    case Action::GlideDuration: toggle=&g_config.glideDurationEnabled; break;
+    case Action::HorseSpeed: toggle=&g_config.horseSpeedEnabled; break;
+    case Action::HorseSprintSpeed: toggle=&g_config.horseSprintSpeedEnabled; break;
+    case Action::HorseSprintDuration: toggle=&g_config.horseSprintDurationEnabled; break;
+    case Action::HotstreakCharge: toggle=&g_config.hotstreakChargeEnabled; break;
+    case Action::SkipLogos: toggle=&g_config.skipLogosEnabled; break;
+    case Action::SkipWarning: toggle=&g_config.skipWarningEnabled; break;
+    default: break;
+    }
+    if (toggle) {
+        *toggle = !*toggle;
+        g_config.Save();
+        bool accepted=true;
+        if (action == Action::SkipLogos) accepted=dg::skip_logos::Apply(*toggle);
+        if (action == Action::SkipWarning) accepted=dg::skip_logos::ApplyWarning(*toggle);
+        const bool startup=action==Action::SkipLogos || action==Action::SkipWarning;
+        g_lastAction=std::string(label)+(*toggle?" ON":" OFF")+
+            (startup?" (restart required)":"");
+        Log("F%d -> %s %s accepted=%d%s",functionKey,label,
+            *toggle?"ON":"OFF",accepted?1:0,startup?" restart required":"");
+        return;
+    }
+
+    // All eight existing camera operations can also be mapped to F-keys.
+    float* cameraValue=nullptr;
+    float cameraStep=0.0f, cameraMinimum=0.0f, cameraMaximum=0.0f;
+    switch (action) {
+    case Action::CameraHeightUp:
+        cameraValue=&g_config.cameraHeightOffset; cameraStep=50; cameraMinimum=-1500; cameraMaximum=1500; break;
+    case Action::CameraHeightDown:
+        cameraValue=&g_config.cameraHeightOffset; cameraStep=-50; cameraMinimum=-1500; cameraMaximum=1500; break;
+    case Action::CameraZoomOut:
+        cameraValue=&g_config.cameraZoomPercent; cameraStep=-10; cameraMinimum=-75; cameraMaximum=200; break;
+    case Action::CameraZoomIn:
+        cameraValue=&g_config.cameraZoomPercent; cameraStep=10; cameraMinimum=-75; cameraMaximum=200; break;
+    case Action::CameraPitchDown:
+        cameraValue=&g_config.cameraPitchDegrees; cameraStep=-5; cameraMinimum=-35; cameraMaximum=35; break;
+    case Action::CameraPitchUp:
+        cameraValue=&g_config.cameraPitchDegrees; cameraStep=5; cameraMinimum=-35; cameraMaximum=35; break;
+    case Action::CameraYawLeft:
+        cameraValue=&g_config.cameraYawDegrees; cameraStep=-5; cameraMinimum=-180; cameraMaximum=180; break;
+    case Action::CameraYawRight:
+        cameraValue=&g_config.cameraYawDegrees; cameraStep=5; cameraMinimum=-180; cameraMaximum=180; break;
+    default: break;
+    }
+    if (cameraValue) {
+        *cameraValue=std::clamp(*cameraValue+cameraStep,cameraMinimum,cameraMaximum);
+        g_config.Save();
+        g_lastAction=std::string(label)+" = "+std::to_string(*cameraValue);
+        Log("F%d -> %s value=%.2f",functionKey,label,*cameraValue);
+        return;
+    }
+    if (action == Action::CameraReset) {
+        g_config.cameraHeightOffset=0;
+        g_config.cameraZoomPercent=0;
+        g_config.cameraPitchDegrees=0;
+        g_config.cameraYawDegrees=0;
+        g_config.thirdPersonDistanceMultiplier=1.0f;
+        g_config.Save();
+        g_lastAction="Camera values reset to vanilla";
+        Log("F%d -> Camera Reset",functionKey);
+        return;
+    }
+
     if (!IsFeatureEnabled(action)) {
         g_lastAction = std::string(label) + " disabled in config";
         Log("F%d -> %s ignored (feature disabled)", functionKey, label);

@@ -9,7 +9,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2104;
+constexpr int kConfigRevision = 2105;
 
 bool ReadBool(
     const wchar_t* section,
@@ -268,8 +268,8 @@ Store::Store() {
     hotkeys[1] = Action::MovementSpeed;
     hotkeys[2] = Action::ActionRecovery;
     hotkeys[3] = Action::ToggleReticle;
-    hotkeys[5] = Action::ToggleReticle;
-    cameraKeys = {{VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT, 0, 0, VK_NUMPAD4, VK_NUMPAD6}};
+    hotkeys[4] = Action::ThirdPerson;
+    cameraKeys = {{VK_UP, VK_DOWN, VK_PRIOR, VK_NEXT, VK_HOME, VK_END, VK_LEFT, VK_RIGHT}};
 }
 
 void Store::SetPath(const std::wstring& path) {
@@ -333,8 +333,8 @@ void Store::ResetDefaults(bool persist) {
     hotkeys[1] = Action::MovementSpeed;
     hotkeys[2] = Action::ActionRecovery;
     hotkeys[3] = Action::ToggleReticle;
-    hotkeys[5] = Action::ToggleReticle;
-    cameraKeys = {{VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT, 0, 0, VK_NUMPAD4, VK_NUMPAD6}};
+    hotkeys[4] = Action::ThirdPerson;
+    cameraKeys = {{VK_UP, VK_DOWN, VK_PRIOR, VK_NEXT, VK_HOME, VK_END, VK_LEFT, VK_RIGHT}};
 
     PublishRuntime();
 
@@ -507,11 +507,13 @@ bool Store::Load() {
         return true;
     }
     if (revision < kConfigRevision) {
-        // V0.53: change DEFAULTS for new installs and Reset Defaults only.
-        // Existing user choices (including SkipLogos=0) are respected.
+        // V0.55: F5 becomes Third Person when the previous default was None.
+        // Explicit non-None assignments elsewhere remain untouched.
+        if (revision == 2104 && hotkeys[4] == Action::None)
+            hotkeys[4] = Action::ThirdPerson;
         PublishRuntime();
         SaveNow();
-        Log("INI V0.53: preserve existing startup choices; defaults are now ON");
+        Log("INI migrated to V0.55 hotkeys; other user values preserved");
         return true;
     }
 
@@ -581,7 +583,7 @@ bool Store::SaveNow() {
     WritePrivateProfileStringW(
         L"Meta",
         L"ConfigRevision",
-        L"2104",
+        L"2105",
         path_.c_str()
     );
 
