@@ -3948,3 +3948,24 @@ Exact supplied game EXE reflective disassembly: `bOrientRotationToMovement` UCha
 [Features] `TPSHideGroundAimFx=0` optional EXPERIMENTAL native effect hook at RVA `0x6DDAD0` (`HideGroundTargetingEffect(bool)` verified bytes). Forces hide=true ONLY when this function is called during ThirdPerson. May hide ground grenade/item aim effect. **NOT PROVEN to affect Strife gun laser or generic vanilla aiming FX.** No indiscriminate FX disabling. Hook doesn't retain effect actor pointer; native effects may only restore when native visibility call happens. Existing F4 reticle remains independent. UI exposes separately all three options and preserves cumulative features.
 
 INI revision 2109 migrates previously enabled experimental left-stick reorientation back OFF to prevent double transforms. Skip Warning known to fail on three 0x40 definitions (span 0xC0), no change. V0.61 TEST pending user feedback with native-facing/restore, pivot compensation and ground aim hook log lines; no official Release.
+
+
+## V0.61 follow-up (2026-10-09): runtime evidence from user log
+
+User attached `DarksidersGenesisMod(20261009-203809).log` and gameplay video `ProjectMayhem   2026-10-09 22-37-10.mp4`. The log was read fully. Video visual inspection could not be completed this turn because container/Python tools returned ClientError repeatedly; do **not** claim to have visually validated its contents.
+
+Session 22:35:09–22:37:50:
+- V0.61 ASI loaded under exact validated executable (size 62,113,280, SHA-256 `9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54`).
+- Native ground aim FX hook READY; native strafe lock triggered 25 times and restored 25 times; no observed leaked flags in logged callbacks, but this is not proof of correct strafing animations or actor tracking.
+- `TPS V0.61 totals: nativeStrafeLocked=25 restored=25 groundFXHidden=0` (could mean checkbox OFF or no matching native display callback; the log does **not** distinguish them).
+- `combatAim=3061 experimentalStrafeRemap=0 ... liveActorYaw=24067 leftStickPassthrough=2766 movingFire=1670`. Experimental leftstick remapping remained OFF as intended.
+- At 22:36:17.631: cameraYaw=-46.2°, actorYaw=-135°, actorGap=+88.8°, commandYaw=-132.8°; at 22:36:21.640: cameraYaw=-66.4°, actorYaw=-134.9°, gap=+68.5°, commandYaw=-66.4°. These demonstrate that native facing bit toggle is **not sufficient to guarantee Strife faces away from camera**. Desired command yaw may match camera yaw while actor yaw diverges; a native aim/control rotation integration is still needed.
+- NO `TPS V0.61: native aim camera drift locked` line in log. Possibilities include runtime camera-pivot checkbox disabled, stale/unusable actor location, missing idle baseline when attack starts, or hook branch not reached. The log does not identify which. Instrument checkbox state and camera pivot gating conditions before making another speculative camera transform.
+- Skip Warning still no effect: native warning span=0xC0/3 definitions, seen=1 skipped=0. Out of scope of present TPS test.
+
+Next evidence-driven build priorities:
+1. Add one-shot config snapshot and non-spam camera pivot gate telemetry (actor position validity/freshness, aiming state, baseline existence and pivot change) to determine why stabilization is not observed. Do not silently claim "fixed".
+2. Add calls-seen and forced-hidden counters for the native `HideGroundTargetingEffect` function separately; inspect whether generic Strife aiming FX uses a different UFUNCTION instead of claiming this hook affects it.
+3. Find the native authority controlling actor yaw/aim target and movement facing in the exact executable. Existing `bOrientRotationToMovement` bit test is proven to execute but **not** proven to implement strafe. Focus on actor yaw vs camera yaw and control/aim updates; avoid synthetic full-scale stick.
+4. Re-examine the supplied gameplay video when local media tool access is available. In its absence, do not infer observed visual effects.
+5. Preserve all validated mod subsystems (V0.55 DOF, V0.57 aim isolation, horse, HUD, reticle) and treat V0.61 as experimental. No V0.62 created or tested in this evidence-only update.
