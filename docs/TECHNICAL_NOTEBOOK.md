@@ -3434,3 +3434,42 @@ features remain unchanged. If the probe causes a crash, disable
 StartupMovieProbe=0 and restore V0.43; do not ship as stable release.
 No synthetic F5, focus or Win32 cursor manipulation is introduced.
 Log is per-run (loader also resets per-run).
+
+## V0.45 - ABORT unsafe StartupMovieProbe trampoline; restore safe baseline
+
+**User-reported crash** with V0.44. Supplied loader log shows that
+`StartupMovieProbe V0.44: ... trampoline ACTIVE` was written, while no
+`StartupMovieProbe ... item` or `call=` entry appeared. ASI log reaches
+early core init but ends before normal shutdown. This strongly implicates
+the new mid-function trampoline; no crash dump or exception address
+was supplied, so precise failing instruction is **not proven**.
+
+Root engineering mistake: V0.44 diagnostic was described as read-only
+because it did not modify `FLoadingScreenAttributes`, but it patched
+**19 bytes of executable instructions** and redirected execution to
+a manually built x64 thunk. That is intrusive and unsafe without
+unwind registration, thorough calling-convention tests and execution
+validation. Do not reintroduce it as an "observation-only" technique.
+
+**V0.45 removes the entire V0.44 trampoline and observer** from the
+DXGI proxy and restores exactly the proven V0.43 proxy source.
+New INI omits `[Diagnostics] StartupMovieProbe`. If an old INI still
+contains `StartupMovieProbe=1`, the V0.45 proxy deliberately ignores
+that retired key, so an old INI cannot reactivate the probe. Keep
+`SkipLogos=0` as the safe startup default. The historic bypass at
+`0x260244` remains *explicitly opt-in* and not fixed; turning it ON
+can reintroduce the cross-shaped cursor as previously confirmed.
+`SkipIntroVideos` remains independent.
+
+This is **safety rollback, not a repaired Skip Logos**. Reticle/F6,
+camera, HUD, horses and all other gameplay code are left unchanged.
+No automatic F5, synthetic focus or cursor masking reintroduced.
+The live exe remains unmodified by the probe with SkipLogos OFF.
+
+Next investigation route: inspect `StartupScreens` defaults and the
+actual movie/config resources offline (for example the game's
+`DefaultGame.ini`, `StartupScreens` settings, or the original game
+`.pak` assets). Prefer content-/descriptor-level, logo-only changes
+without bypassing `MoviePlayer::SetupLoadingScreen`; any runtime hook
+requires separate safety audit. No public stable release from this
+test until user validates V0.45 startup.
