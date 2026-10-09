@@ -106,6 +106,11 @@ dg::target::ValidationResult g_targetValidation{};
 LONG** g_skipIntroDataSlot = nullptr;
 LONG* g_skipIntroData = nullptr;
 LONG g_skipIntroOriginalValue = 1;
+LONG** g_dofSlot = nullptr;
+LONG* g_dofData = nullptr;
+LONG g_dofOriginal = 2;
+bool g_dofCaptured = false;
+bool g_dofDisabled = false;
 std::atomic_bool g_hotstreakHookReady{false};
 std::atomic_int g_hotstreakBoostCalls{0};
 std::atomic<float> g_lastNativeJuiceGain{0.0f};
@@ -540,6 +545,65 @@ bool ApplySkipIntroSetting(bool logChange) {
 
     g_skipIntroReady.store(true);
     return true;
+}
+
+// V0.55: compensate for camera-distance blur without touching Engine.ini.
+// The registered native r.DepthOfFieldQuality is restored when both
+// Third Person and manual Zoom are off.
+bool WritableDofData(const LONG* p) {
+    if (!p) return false;
+    MEMORY_BASIC_INFORMATION mbi{};
+    if (!VirtualQuery(p,&mbi,sizeof(mbi)) || mbi.State!=MEM_COMMIT ||
+        (mbi.Protect&(PAGE_GUARD|PAGE_NOACCESS))) return false;
+    const DWORD prot=mbi.Protect&0xFF;
+    return (prot==PAGE_READWRITE||prot==PAGE_WRITECOPY||
+        prot==PAGE_EXECUTE_READWRITE||prot==PAGE_EXECUTE_WRITECOPY) &&
+        reinterpret_cast<uintptr_t>(p)+sizeof(LONG) <=
+        reinterpret_cast<uintptr_t>(mbi.BaseAddress)+mbi.RegionSize;
+}
+void InitializeCameraDof() {
+    if (!g_targetValidation.exact) return;
+    const BYTE* base=reinterpret_cast<const BYTE*>(GetModuleHandleW(nullptr));
+    if (!base) return;
+    const BYTE nameSig[7]={0x48,0x8D,0x15,0x2C,0x25,0x6F,0x02};
+    const BYTE slotSig[7]={0x48,0x89,0x05,0xDC,0xB8,0x6F,0x03};
+    if (std::memcmp(base+0x12259D,nameSig,7)!=0 ||
+        std::memcmp(base+0x1225C5,slotSig,7)!=0) {
+        Log("Camera DOF V0.55: unsupported CVar registration, original DOF retained");
+        return;
+    }
+    g_dofSlot=reinterpret_cast<LONG**>(const_cast<BYTE*>(base)+0x381DEA8);
+    Log("Camera DOF V0.55: r.DepthOfFieldQuality registration validated");
+}
+void UpdateCameraDof() {
+    if (!g_dofSlot || !WritableDofData(*g_dofSlot)) return;
+    LONG* data=*g_dofSlot;
+    if (data!=g_dofData) {
+        g_dofData=data; g_dofCaptured=false; g_dofDisabled=false;
+    }
+    const LONG current=*data;
+    if (!g_dofCaptured) {
+        if (current<0 || current>4) return;
+        g_dofOriginal=current;g_dofCaptured=true;
+        Log("Camera DOF V0.55: vanilla native quality=%ld",current);
+    }
+    const auto& camera=dg::runtime::Get();
+    const float zoom=camera.cameraZoomPercent.load(std::memory_order_relaxed);
+    const bool displaced=camera.thirdPersonEnabled.load(std::memory_order_relaxed)||
+        (std::isfinite(zoom)&&std::fabs(zoom)>0.0001f);
+    const LONG desired=displaced ? 0 : g_dofOriginal;
+    if (current!=desired) {
+        InterlockedExchange(reinterpret_cast<volatile LONG*>(data),desired);
+        Log("Camera DOF V0.55: quality %ld -> %ld %s",current,desired,
+            displaced?"camera-distance blur suppressed":"original restored");
+    }
+    g_dofDisabled=displaced;
+}
+void RestoreCameraDof() {
+    if (g_dofDisabled && g_dofCaptured && WritableDofData(g_dofData) &&
+        *g_dofData==0)
+        InterlockedExchange(reinterpret_cast<volatile LONG*>(g_dofData),g_dofOriginal);
+    g_dofDisabled=false;
 }
 
 bool InstallSkipIntroControl() {
@@ -2580,6 +2644,7 @@ void TraceGameWindowState(IDXGISwapChain* swapChain) {
 
 HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) {
     ApplySkipIntroSetting(false);
+    UpdateCameraDof();
 
     // V0.31 HorseFeature::Tick is intentionally a no-op. Horse writes are
     // allowed only while a native HorseCharacter callback proves the UObject
@@ -2894,6 +2959,7 @@ void ShutdownMod() {
     g_config.FlushIfDue(true);
     dg::skip_logos::Shutdown();
     dg::horse::Shutdown();
+    RestoreCameraDof();
 
     if (g_skipIntroData) {
         *g_skipIntroData = g_skipIntroOriginalValue;
@@ -2988,7 +3054,8 @@ DWORD WINAPI MainThread(LPVOID) {
         return 0;
     }
 
-    // New read-only camera probes from the V0.34 baseline.
+    // Native camera hook and scoped DOF compensation.
+    InitializeCameraDof();
     dg::camera_trace::Install(&FeatureLog);
     dg::horse::Initialize(&FeatureLog);
     Log(

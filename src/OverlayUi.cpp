@@ -742,8 +742,9 @@ void Draw(Context& c) {
                 ImGui::PopID();
             }
             ImGui::TextDisabled("Hold keys to repeat. Steps: height 50, zoom 10%%, pitch/yaw 5 degrees.");
-            ImGui::TextWrapped("Known issue: Zoom changes camera distance but not depth-of-field "
-                "focal parameters, so the scene can become blurred. DOF correction is postponed.");
+            ImGui::TextDisabled("Camera-distance adjustments temporarily disable DOF blur.");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("The native r.DepthOfFieldQuality is restored when Zoom and Third Person are off.");
             ImGui::TextDisabled("Native output changes. Actual framing requires in-game verification.");
             ImGui::EndTabItem();
         }
