@@ -133,7 +133,7 @@ public:
     bool thirdPersonEnabled = false;
     bool cameraOrbitInputEnabled = false;
     bool tpsControllerCombatAim = true;
-    bool tpsControllerStrafe = true;
+    bool tpsControllerStrafe = false;
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
     bool jumpHeightEnabled = true;

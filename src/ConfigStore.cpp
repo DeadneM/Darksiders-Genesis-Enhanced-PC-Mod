@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2107;
+constexpr int kConfigRevision = 2108;
 
 bool ReadBool(
     const wchar_t* section,
@@ -301,7 +301,7 @@ void Store::ResetDefaults(bool persist) {
     thirdPersonEnabled = false;
     cameraOrbitInputEnabled = false;
     tpsControllerCombatAim = true;
-    tpsControllerStrafe = true;
+    tpsControllerStrafe = false;
     pistolDamageEnabled = true;
     meleeDamageEnabled = true;
     jumpHeightEnabled = true;
@@ -406,7 +406,7 @@ bool Store::Load() {
         ReadBool(L"Features", L"ThirdPerson", false, path_);
     cameraOrbitInputEnabled = ReadBool(L"Features", L"CameraMouseGamepad", false, path_);
     tpsControllerCombatAim = ReadBool(L"Features", L"TPSControllerCombatAim", true, path_);
-    tpsControllerStrafe = ReadBool(L"Features", L"TPSControllerStrafe", true, path_);
+    tpsControllerStrafe = ReadBool(L"Features", L"TPSControllerStrafe", false, path_);
     pistolDamageEnabled =
         ReadBool(L"Features", L"PistolDamage", true, path_);
     meleeDamageEnabled =
@@ -539,9 +539,13 @@ bool Store::Load() {
         // Explicit non-None assignments elsewhere remain untouched.
         if (revision == 2104 && hotkeys[4] == Action::None)
             hotkeys[4] = Action::ThirdPerson;
+        // V0.59's automatic relative-stick remap produced incorrect movement
+        // (e.g. stick UP became rightward movement). Revoke only that default
+        // when migrating; keep every other user INI value/hotkey unchanged.
+        if (revision <= 2107) tpsControllerStrafe=false;
         PublishRuntime();
         SaveNow();
-        Log("INI migrated to V0.58 TPS controller controls; existing hotkeys preserved");
+        Log("INI migrated to V0.60: unsafe TPS left-stick remap disabled; other settings preserved");
         return true;
     }
 

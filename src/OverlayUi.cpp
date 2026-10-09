@@ -665,11 +665,13 @@ void Draw(Context& c) {
             }
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
-                ImGui::TextDisabled("Controller TPS combat (V0.59 experimental world yaw)");
+                ImGui::TextDisabled("Controller TPS combat (V0.60 stick-safety test)");
                 if (ImGui::Checkbox("TPS aim while firing / throwing (RT or RB)",
                         &config.tpsControllerCombatAim)) config.Save();
-                if (ImGui::Checkbox("TPS camera-relative left stick / strafing",
+                if (ImGui::Checkbox("EXPERIMENTAL left-stick rotation (OFF recommended)",
                         &config.tpsControllerStrafe)) config.Save();
+                ImGui::TextDisabled("OFF: original left stick unchanged; test strafe while holding RT.");
+                ImGui::TextDisabled("ON: old rotation used ONLY while RT/RB is held.");
                 if (config.tpsControllerCombatAim || config.tpsControllerStrafe) {
                     ImGui::SetNextItemWidth(245.0f);
                     if (ImGui::SliderFloat("Native aim calibration##TPS",
@@ -681,7 +683,7 @@ void Draw(Context& c) {
                     }
                 }
                 ImGui::TextDisabled("LB ability wheel stays vanilla; off outside Third Person.");
-                ImGui::TextDisabled("Controller #1 only; yaw rate capped 180 deg/s.");
+                ImGui::TextDisabled("Controller #1 only; aim pace matches camera stick speed.");
                 ImGui::TextDisabled("Native player yaw sampled for log diagnostics; no direct actor writes.");
                 ImGui::Unindent();
             }

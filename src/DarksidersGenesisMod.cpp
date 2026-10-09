@@ -35,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.59-tps-absolute-yaw-and-actor-probe";
+constexpr const char* kBuild = "0.60-tps-vanilla-left-stick-camera-paced-aim";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -82,6 +82,8 @@ std::atomic_uint32_t g_tpsCombatFireSamples{0};
 std::atomic<float> g_tpsActorWorldYaw{0.0f};
 std::atomic_ullong g_tpsActorYawTick{0};
 std::atomic_uint32_t g_tpsActorYawSamples{0};
+std::atomic_uint32_t g_tpsLeftPassthroughSamples{0};
+std::atomic_uint32_t g_tpsMovingFireSamples{0};
 std::atomic_ullong g_tpsLastAimTick{0};
 std::atomic<float> g_tpsDesiredYawDegrees{0.0f};
 std::atomic<float> g_tpsCommandYawDegrees{0.0f};
@@ -2351,9 +2353,13 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     const bool liveActor=actorTime && now>=actorTime && now-actorTime<200ull;
     const float actorYaw=g_tpsActorWorldYaw.load();
 
-    if (cameraKnown && strafe) {
-        // TPS camera-relative movement. Relative yaw is right for mapping
-        // player movement inputs; it is NOT correct as an absolute aim target.
+    // IMPORTANT V0.60: Never rotate the left stick unless the user manually
+    // enables the unsupported transform AND is actively holding RT/RB.
+    // Native combat already derives player movement in its own orientation.
+    // V0.58/0.59 re-rotated these values, so pushing UP could move RIGHT.
+    if (cameraKnown && strafe && fire) {
+        // Opt-in ONLY (off by default, including migration from V0.59).
+        // Keep V0.59 transform for A/B diagnostic comparison during combat.
         const float leftX=static_cast<float>(pad.sThumbLX);
         const float leftY=static_cast<float>(pad.sThumbLY);
         if (leftX*leftX+leftY*leftY>7000.0f*7000.0f) {
@@ -2364,9 +2370,20 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
                 Log("TPS V0.59: strafe sample=%u delta=%.1f leftRaw=(%.0f,%.0f) mapped=(%d,%d)",
                     n,cameraDelta,leftX,leftY,pad.sThumbLX,pad.sThumbLY);
         }
+    } else if (cameraKnown && (pad.sThumbLX || pad.sThumbLY)) {
+        // Pass through EXACT original left-stick bytes. We log the native
+        // mapping for controlled observations, without creating a new one.
+        const unsigned n=g_tpsLeftPassthroughSamples.fetch_add(1)+1;
+        if (n==1 || n==120 || n==10000) {
+            Log("TPS V0.60: left stick passthrough sample=%u fire=%d native=(%d,%d) cameraYaw=%.1f actorYaw=%.1f actorFresh=%d",
+                n,fire?1:0,pad.sThumbLX,pad.sThumbLY,
+                view.appliedYaw,actorYaw,liveActor?1:0);
+        }
     }
     if (cameraKnown && aim && fire) {
-        // A short 180 deg/s command-rate cap prevents the game from receiving
+        if (pad.sThumbLX || pad.sThumbLY)
+            g_tpsMovingFireSamples.fetch_add(1);
+        // A camera-paced command-rate cap prevents the game from receiving
         // full instantaneous ~180-degree snapping instructions. It does not
         // write player rotation or override the game's shooting/throw code.
         const ULONGLONG previous=g_tpsLastAimTick.exchange(now);
@@ -2376,16 +2393,24 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
         float heading=g_tpsCommandYawDegrees.load();
         if (!g_tpsAimCommandReady.exchange(true))
             heading=liveActor ? actorYaw : targetYaw;
-        const float maxStep=180.0f*dt;
+        // Match the configured camera stick speed (default 135 deg/s)
+        // instead of V0.59's faster fixed 180 deg/s command. When the
+        // camera is moving under stick control, player aim cannot be
+        // instructed to rotate faster by our rate limiter.
+        const float stickSpeed=rt.cameraStickSpeed.load(std::memory_order_relaxed);
+        const float maxRate=std::isfinite(stickSpeed)
+            ? std::clamp(stickSpeed,30.0f,180.0f) : 135.0f;
+        const float maxStep=maxRate*dt;
         const float gap=std::remainder(targetYaw-heading,360.0f);
         heading=std::remainder(heading+std::clamp(gap,-maxStep,maxStep),360.0f);
         g_tpsCommandYawDegrees.store(heading);
         g_tpsDesiredYawDegrees.store(targetYaw);
         // World-space aim vector: no subtraction of moving native view yaw.
-        // 0.72 avoids the V0.58 full-scale synthetic input.
+        // Stick magnitude ~0.55 avoids the V0.58 full-scale synthetic input
+        // while preserving an XInput value far above its native deadzone.
         const float headingRad=heading*toRadians;
-        pad.sThumbRX=convertStick(23592.0f*std::sin(headingRad));
-        pad.sThumbRY=convertStick(23592.0f*std::cos(headingRad));
+        pad.sThumbRX=convertStick(18022.0f*std::sin(headingRad));
+        pad.sThumbRY=convertStick(18022.0f*std::cos(headingRad));
         const unsigned n=g_tpsCombatAimSamples.fetch_add(1)+1;
         if (n==1 || n==120 || n==10000) {
             const float actorGap=liveActor?std::remainder(targetYaw-actorYaw,360.0f):999.0f;
@@ -3309,9 +3334,10 @@ void ShutdownMod() {
     RestoreCameraDof();
     Log("Aim V0.57 totals: mouseMessagesBlocked=%u rightStickReadsFiltered=%u",
         g_nativeMouseAimSuppressed.load(),g_nativePadAimSuppressed.load());
-    Log("TPS V0.59 totals: combatAim=%u strafeRemap=%u nativeFireOrThrowPolls=%u liveActorYaw=%u",
+    Log("TPS V0.60 totals: combatAim=%u experimentalStrafeRemap=%u nativeFireOrThrowPolls=%u liveActorYaw=%u leftStickPassthrough=%u movingFire=%u",
         g_tpsCombatAimSamples.load(),g_tpsStrafeSamples.load(),
-        g_tpsCombatFireSamples.load(),g_tpsActorYawSamples.load());
+        g_tpsCombatFireSamples.load(),g_tpsActorYawSamples.load(),
+        g_tpsLeftPassthroughSamples.load(),g_tpsMovingFireSamples.load());
 
     if (g_skipIntroData) {
         *g_skipIntroData = g_skipIntroOriginalValue;

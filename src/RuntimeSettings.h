@@ -16,7 +16,7 @@ struct Snapshot {
     bool thirdPersonEnabled = false;
     bool cameraOrbitInputEnabled = false;
     bool tpsControllerCombatAim = true;
-    bool tpsControllerStrafe = true;
+    bool tpsControllerStrafe = false;
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
     bool jumpHeightEnabled = true;
@@ -61,7 +61,7 @@ struct State {
     std::atomic_bool thirdPersonEnabled{false};
     std::atomic_bool cameraOrbitInputEnabled{false};
     std::atomic_bool tpsControllerCombatAim{true};
-    std::atomic_bool tpsControllerStrafe{true};
+    std::atomic_bool tpsControllerStrafe{false};
     std::atomic_bool pistolDamageEnabled{true};
     std::atomic_bool meleeDamageEnabled{true};
     std::atomic_bool jumpHeightEnabled{true};
