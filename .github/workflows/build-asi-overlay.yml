@@ -15,6 +15,7 @@ on:
       - "src/**"
       - "config/**"
       - "CMakeLists.txt"
+      - "README.md"
       - ".github/workflows/build-asi-overlay.yml"
   workflow_dispatch:
 
