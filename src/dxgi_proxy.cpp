@@ -14,9 +14,8 @@ static INIT_ONCE g_dxgiOnce = INIT_ONCE_STATIC_INIT;
 static INIT_ONCE g_asiOnce = INIT_ONCE_STATIC_INIT;
 static std::atomic_bool g_loaderLogInitialized{false};
 
-// V0.45: stable V0.43 startup proxy restored. No MoviePaths trampoline.
-// V0.39 loader-first log: intentionally independent of the ASI.
-// If DarksidersGenesisMod.log does not begin with 0.39, inspect this file.
+// V0.47: single non-cumulative DarksidersGenesisMod.log shared by DXGI and ASI.
+// Keep early loader diagnostics even if the ASI cannot start.
 static void LogLoader(const wchar_t* message) {
     if (!g_self || !message) return;
     wchar_t path[MAX_PATH]{};
@@ -25,9 +24,32 @@ static void LogLoader(const wchar_t* message) {
     if (!slash) return;
     *(slash + 1) = L'\0';
     if (wcslen(path) + 28 >= MAX_PATH) return;
-    wcscat_s(path, L"DarksidersGenesisLoader.log");
-
     const bool first = !g_loaderLogInitialized.exchange(true);
+    if (first) {
+        // Remove the obsolete two-log artifact from older installations.
+        wchar_t stale[MAX_PATH]{};
+        lstrcpyW(stale, path);
+        lstrcatW(stale, L"DarksidersGenesisLoader.log");
+        DeleteFileW(stale);
+    }
+    wcscat_s(path, L"DarksidersGenesisMod.log");
+
+    // Suppress routine loader internals; retain errors and Skip Logos state.
+    if (wcsstr(message, L"factory export reached") ||
+        wcsstr(message, L"ASI scan complete") ||
+        wcsstr(message, L"Proxy DLL loaded:") ||
+        wcsstr(message, L"Real dxgi.dll:")) {
+        // Still CREATE_ALWAYS the log at the beginning of the session,
+        // so old runs never linger if the ASI fails before initialization.
+        if (first) {
+            HANDLE empty = CreateFileW(path, GENERIC_WRITE,
+                FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,
+                CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+            if (empty != INVALID_HANDLE_VALUE) CloseHandle(empty);
+        }
+        return;
+    }
+
     HANDLE file = CreateFileW(path, GENERIC_WRITE,
         FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,
         first ? CREATE_ALWAYS : OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -37,7 +59,7 @@ static void LogLoader(const wchar_t* message) {
     SYSTEMTIME st{};
     GetLocalTime(&st);
     wchar_t line[1200]{};
-    swprintf_s(line, L"[%02u:%02u:%02u] %s\r\n",
+    swprintf_s(line, L"[%02u:%02u:%02u] [Loader] %s\r\n",
         st.wHour, st.wMinute, st.wSecond, message);
     char utf8[3600]{};
     const int bytes = WideCharToMultiByte(CP_UTF8, 0, line, -1,
@@ -430,6 +452,12 @@ static T Resolve(const char* name) {
     return reinterpret_cast<T>(
         GetProcAddress(real, name)
     );
+}
+
+// ASI uses this to preserve the already-created per-session loader lines.
+extern "C" __declspec(dllexport)
+BOOL WINAPI DGUnifiedLogActive() {
+    return g_loaderLogInitialized.load(std::memory_order_acquire) ? TRUE : FALSE;
 }
 
 extern "C" __declspec(dllexport)

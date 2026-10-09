@@ -54,7 +54,7 @@ jobs:
       - name: Upload test build
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_ASI_V0.46_PREFIX_LOGO_FILTER_TEST
+          name: DarksidersGenesis_ASI_V0.47_UNIFIED_LOG_TEST
           path: |
             dist/dxgi.dll
             dist/DarksidersGenesisMod.asi
@@ -67,7 +67,7 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           New-Item -ItemType Directory -Path "downloads" -Force | Out-Null
-          $path = "downloads/DarksidersGenesis_V0.46_PREFIX_LOGOS_TEST.zip"
+          $path = "downloads/DarksidersGenesis_V0.47_UNIFIED_LOG_TEST.zip"
           if (Test-Path $path) { Remove-Item $path -Force }
           Compress-Archive -Path "dist/*" -DestinationPath $path -CompressionLevel Optimal
           Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -83,7 +83,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add $path
-          git commit -m "downloads: publish V0.46 selective prefix logo filter test ZIP"
+          git commit -m "downloads: publish V0.47 unified compact log test ZIP"
           if ($LASTEXITCODE -ne 0) { throw "Commit failed" }
           git push origin HEAD:main
           if ($LASTEXITCODE -ne 0) { throw "Push failed" }

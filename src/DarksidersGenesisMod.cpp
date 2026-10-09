@@ -34,7 +34,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.46-exact-prefix-logo-filter-test";
+constexpr const char* kBuild = "0.47-unified-compact-log";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -182,8 +182,15 @@ void ResetLogFile() {
         return;
     }
 
-    // Logs are intentionally per-session. Truncate the previous run before
-    // writing the first line so diagnostics never become cumulative.
+    // V0.47: the proxy created/truncated this SAME log at process attach.
+    // Keep its early Skip Logos failures, including when ASI loads later.
+    using UnifiedLogActiveFn = BOOL (WINAPI*)();
+    const HMODULE proxy = GetModuleHandleW(L"dxgi.dll");
+    const auto active = proxy ? reinterpret_cast<UnifiedLogActiveFn>(
+        GetProcAddress(proxy, "DGUnifiedLogActive")) : nullptr;
+    if (active && active() != FALSE) return;
+
+    // Fallback when no compatible loader exists: reset once per ASI run.
     HANDLE file = CreateFileW(
         g_logPath.c_str(),
         GENERIC_WRITE,
@@ -209,6 +216,26 @@ void Log(const char* format, ...) {
     va_start(args, format);
     vsnprintf_s(message, sizeof(message), _TRUNCATE, format, args);
     va_end(args);
+
+    // V0.47: compact diagnostics, WITHOUT changing any hook or gameplay
+    // behavior. Keep initialization, errors, settings, actions, and first
+    // observed damage/juice sample, suppress repetitive trace spam.
+    if (std::strncmp(message, "CursorProbe V0.42:", 18) == 0 ||
+        std::strncmp(message, "Cursor visibility: call=", 24) == 0 ||
+        std::strncmp(message, "Window focus trace #", 20) == 0 ||
+        std::strncmp(message, "Focus V0.38: msg=", 17) == 0 ||
+        std::strncmp(message, "ResizeBuffers trace:", 20) == 0 ||
+        std::strncmp(message, "Runtime tuning: movement capture rejected", 41) == 0 ||
+        std::strncmp(message, "HorseFeature V0.31: NATIVE HORSE CAPTURE", 39) == 0 ||
+        std::strncmp(message, "Camera V0.38: native SpringArm calls=", 36) == 0 ||
+        std::strncmp(message, "Camera V0.38: native View calls=", 31) == 0)
+        return;
+    static std::atomic_uint32_t damageExamples{0};
+    static std::atomic_uint32_t juiceExamples{0};
+    if (std::strncmp(message, "Final damage hook: PISTOL final", 31) == 0 &&
+        damageExamples.fetch_add(1, std::memory_order_relaxed) >= 1) return;
+    if (std::strncmp(message, "Hotstreak hook: AddJuice local gain", 35) == 0 &&
+        juiceExamples.fetch_add(1, std::memory_order_relaxed) >= 1) return;
 
     SYSTEMTIME st{};
     GetLocalTime(&st);

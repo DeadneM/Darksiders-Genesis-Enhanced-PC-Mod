@@ -3563,3 +3563,30 @@ DarksidersGenesisLoader.log, logos skipped or not, warning display,
 intro with SkipIntroVideos OFF, in-game cursor after save load,
 Alt-Tab and overlay; do not publish a public tagged release before
 user validates. Files at ZIP root. No new auto F5/focus simulations.
+
+## V0.47 - Unified compact log, with ALL gameplay features unchanged (TEST)
+
+User requested **one** log containing essentials, instead of two logs.
+This revision modifies only diagnostic output and its filenames.
+New per-session canonical filename: `DarksidersGenesisMod.log`.
+
+- DXGI proxy creates/truncates the canonical logfile on the first
+  loader event. It logs only early Skip Logos decisions, relevant
+  prefix-filter matches/mismatches, ASI load result and errors.
+- The proxy deletes the obsolete `DarksidersGenesisLoader.log` if
+  present, to avoid confusing next-run stale results.
+- Proxy exports `DGUnifiedLogActive` so the ASI can append to the
+  existing log rather than erasing early events in `ResetLogFile`.
+  If the proxy is unavailable, ASI retains its independent log reset.
+- ASI suppresses old, high-volume cursor snapshots, repeated focus,
+  camera trace frames, rejected movement-candidate dumps and raw
+  repeated HorseCharacter capture traces. It keeps hooks' READY/FAILED,
+  exact supported game fingerprint, player capture, setting changes,
+  overlay actions, single first combat samples and clean shutdown.
+- These filters affect **messages only**. The camera/horse/reticle
+  hooks and event semantics are untouched. No new focus workaround.
+- New version label V0.47; INI remains unchanged. Current V0.46
+  experimental logo-prefix filter is preserved verbatim, not reworked.
+- IMPORTANT: user's uploaded logs at 15:03 were still from V0.45,
+  so they do not validate V0.46's experimental Skip Logos.
+- Keep public release unchanged pending user tests of V0.47.
