@@ -113,3 +113,41 @@ When a matching legitimately owned EXE is provided:
 
 **Release gate:** no code replacement, release, or new ZIP is justified
 until callgraph / struct offsets are confirmed, then tested in-game.
+
+## V0.44 - Probe MoviePaths with the real retail EXE (TEST)
+
+USER PROVIDED the exact 62,113,280-byte retail binary, whose SHA-256
+matches 9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54.
+Disassembly of RVA 0x25FE40..0x260257 confirms:
+- settings UObject array at +0x38 contains `StartupMovies`;
+- each entry in that TArray is a 16-byte UE FString;
+- the compiled startup code copies it into `FLoadingScreenAttributes`
+  at [rbp-0x68], count [rbp-0x60], and passes attributes at
+  [rbp-0x78] to a virtual MoviePlayer method;
+- the getter call at 0x260244 resolves to 0x1608B90 and virtual
+  call at 0x260253 uses [vtable+0x20]. With the original 19 bytes
+  present, the native call sequence remains intact.
+
+V0.44 has a **strictly opt-in, one-shot diagnostic probe**, not a new
+logo skip. Fresh test INI [Diagnostics] StartupMovieProbe=1. Remove
+or set 0 to return to fully unmodified native startup (V0.43 behavior).
+It uses an exact-byte-verified 19-byte trampoline at RVA 0x260244,
+and replays all original calls byte-for-byte before 0x260257. The
+pre-call C++ observer reads MoviePaths TArray entries without writing
+to them, bounding all lengths and page accesses with VirtualQuery.
+It logs names, count, and minimum loading-screen time in
+DarksidersGenesisLoader.log. Diagnostic is disabled when legacy
+SkipLogos=1 because that legacy code is already proven to cause the
+cursor regression. An in-game attempt to enable SkipLogos while probe
+is installed fails closed until a restart with probe disabled.
+
+***Do not call this a Skip Logos fix.*** No logo suppression occurs.
+The purpose is to identify the exact runtime playlist names, allowing
+a later targeted plan that preserves native MoviePlayer attachment.
+The default distribution enables the probe for a one-time test, but
+the proxy defaults it OFF for older INIs that lack the key. Hide
+Reticle ON/OFF, F6, camera, horses, HUD, intro skip, and all other
+features remain unchanged. If the probe causes a crash, disable
+StartupMovieProbe=0 and restore V0.43; do not ship as stable release.
+No synthetic F5, focus or Win32 cursor manipulation is introduced.
+Log is per-run (loader also resets per-run).
