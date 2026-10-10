@@ -609,21 +609,21 @@ void Draw(Context& c) {
                 ImGui::Indent();
                 ImGui::SetNextItemWidth(245.0f);
                 bool distanceChanged=ImGui::SliderFloat("Distance##ThirdPerson",
-                        &config.thirdPersonDistanceMultiplier,0.25f,3.0f,"%.2fx");
+                        &config.thirdPersonDistanceMultiplier,0.0f,3.0f,"%.2fx");
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(115.0f);
                 distanceChanged |= ImGui::InputFloat("Manual##ThirdPersonDistance",
                     &config.thirdPersonDistanceMultiplier,0.0f,0.0f,"%.3fx");
                 ImGui::SameLine();
                 if (ImGui::Button("Default##ThirdPersonDistance")) {
-                    config.thirdPersonDistanceMultiplier=1.0f;
+                    config.thirdPersonDistanceMultiplier=0.50f;
                     distanceChanged=true;
                 }
                 if (distanceChanged) {
                     if (!std::isfinite(config.thirdPersonDistanceMultiplier))
-                        config.thirdPersonDistanceMultiplier=1.0f;
+                        config.thirdPersonDistanceMultiplier=0.50f;
                     config.thirdPersonDistanceMultiplier=std::clamp(
-                        config.thirdPersonDistanceMultiplier,0.25f,3.0f);
+                        config.thirdPersonDistanceMultiplier,0.0f,3.0f);
                     config.Save();
                 }
 
@@ -638,12 +638,12 @@ void Draw(Context& c) {
                 ImGui::SetNextItemWidth(245.0f);
                 poseChanged |= ImGui::SliderFloat("Vertical offset##TP",&config.thirdPersonHeightOffset,-500.0f,500.0f,"%+.0f units");
                 ImGui::SameLine();
-                if (ImGui::Button("Default##TPHeight")) {config.thirdPersonHeightOffset=60.0f;poseChanged=true;}
+                if (ImGui::Button("Default##TPHeight")) {config.thirdPersonHeightOffset=180.0f;poseChanged=true;}
                 ImGui::SetNextItemWidth(145.0f);
                 poseChanged |= ImGui::InputFloat("Manual height##TP",&config.thirdPersonHeightOffset,0,0,"%.1f");
                 if (poseChanged) {
                     if (!std::isfinite(config.thirdPersonPitchDegrees)) config.thirdPersonPitchDegrees=-12.0f;
-                    if (!std::isfinite(config.thirdPersonHeightOffset)) config.thirdPersonHeightOffset=60.0f;
+                    if (!std::isfinite(config.thirdPersonHeightOffset)) config.thirdPersonHeightOffset=180.0f;
                     config.thirdPersonPitchDegrees=std::clamp(config.thirdPersonPitchDegrees,-75.0f,65.0f);
                     config.thirdPersonHeightOffset=std::clamp(config.thirdPersonHeightOffset,-500.0f,500.0f);
                     config.Save();
@@ -665,25 +665,25 @@ void Draw(Context& c) {
             }
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
-                ImGui::TextDisabled("Controller TPS combat (V0.62 always face test)");
+                ImGui::TextDisabled("Controller TPS combat (V0.63 natural facing cone test)");
                 if (ImGui::Checkbox("TPS aim while firing / throwing (RT or RB)",
                         &config.tpsControllerCombatAim)) config.Save();
-                if (ImGui::Checkbox("Always face TPS camera (TEST)",
-                        &config.tpsAlwaysFaceCamera)) config.Save();
-                ImGui::TextDisabled("Face camera direction when idle, walking and firing.");
-                ImGui::TextDisabled("Requires right-stick camera control; controller 1 only.");
+                if(ImGui::Checkbox("Limit move-facing to TPS camera cone (TEST)",&config.tpsCameraFacingGuard))
+                    config.Save();
+                if(config.tpsCameraFacingGuard) {
+                    ImGui::SetNextItemWidth(245.0f);
+                    if(ImGui::SliderFloat("Facing tolerance##TPS",
+                            &config.tpsFacingToleranceDegrees,20.0f,180.0f,"%.0f deg"))
+                        config.Save();
+                }
+                ImGui::TextDisabled("Within cone: prevent native turn-to-move; beyond: vanilla.");
+                ImGui::TextDisabled("No forced idle aim; does NOT rotate actor to camera.");
                 if (ImGui::Checkbox("Native strafe while shooting (keep facing camera)",
                         &config.tpsLockCombatFacing)) config.Save();
                 if (ImGui::Checkbox("Disable vanilla camera aim side-drift",
                         &config.tpsLockCombatCameraPivot)) config.Save();
-                if (ImGui::Checkbox("Hide vanilla ground aiming effect (experimental)",
-                        &config.tpsHideGroundAimFx)) config.Save();
-                ImGui::TextDisabled("Effect toggle targets ground effects only, not proven for gun beam.");
-                if (ImGui::Checkbox("EXPERIMENTAL left-stick rotation (OFF recommended)",
-                        &config.tpsControllerStrafe)) config.Save();
-                ImGui::TextDisabled("OFF: original left stick unchanged; test strafe while holding RT.");
-                ImGui::TextDisabled("ON: old rotation used ONLY while RT/RB is held.");
-                if (config.tpsControllerCombatAim || config.tpsControllerStrafe) {
+                ImGui::TextDisabled("Unresolved ground aiming visual: failed test control removed.");
+                if (config.tpsControllerCombatAim) {
                     ImGui::SetNextItemWidth(245.0f);
                     if (ImGui::SliderFloat("Native aim calibration##TPS",
                             &config.tpsAimYawOffsetDegrees,-180.0f,180.0f,"%.0f deg"))
@@ -695,7 +695,7 @@ void Draw(Context& c) {
                 }
                 ImGui::TextDisabled("LB ability wheel stays vanilla; off outside Third Person.");
                 ImGui::TextDisabled("Controller #1 only; aim pace matches camera stick speed.");
-                ImGui::TextDisabled("No actor rotation writes. Native aim steering remains experimental.");
+                ImGui::TextDisabled("No forced idle aim or direct actor-rotation writes.");
                 ImGui::Unindent();
             }
             ImGui::TextDisabled("Third Person suppresses native mouse/right-stick aiming (V0.57 test).");

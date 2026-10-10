@@ -35,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.62-always-face-camera-controller-test";
+constexpr const char* kBuild = "0.63-native-cone-no-idle-aim";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -52,7 +52,6 @@ using CharacterGetMaxSpeedFn = float(*)(void*);
 using AbilityActionEnabledFn = bool(*)(void*, unsigned char);
 using AddJuiceFn = void(*)(void*, float);
 using FilterOutgoingDamageFn = void(*)(void*, void*);
-using GroundAimEffectFn = void(*)(void*,bool);
 
 PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
@@ -63,7 +62,6 @@ CharacterGetMaxSpeedFn g_originalCharacterGetMaxSpeed = nullptr;
 AbilityActionEnabledFn g_originalAbilityActionEnabled = nullptr;
 AddJuiceFn g_originalAddJuice = nullptr;
 FilterOutgoingDamageFn g_originalFilterOutgoingDamage = nullptr;
-GroundAimEffectFn g_groundAimEffectOriginal=nullptr;
 
 ID3D11Device* g_device = nullptr;
 ID3D11DeviceContext* g_context = nullptr;
@@ -77,7 +75,6 @@ std::atomic_bool g_imguiReady{false};
 std::atomic_uint32_t g_nativeMouseAimSuppressed{0};
 std::atomic_uint32_t g_nativePadAimSuppressed{0};
 std::atomic_uint32_t g_tpsCombatAimSamples{0};
-std::atomic_uint32_t g_tpsStrafeSamples{0};
 std::atomic_uint32_t g_tpsCombatFireSamples{0};
 // V0.59: actor-heading telemetry sampled ONLY from a live validated player
 // movement callback. Never dereference a cached UObject in Present/XInput.
@@ -90,15 +87,13 @@ std::atomic_ullong g_tpsLastAimTick{0};
 std::atomic<float> g_tpsDesiredYawDegrees{0.0f};
 std::atomic<float> g_tpsCommandYawDegrees{0.0f};
 std::atomic_bool g_tpsAimCommandReady{false};
-// V0.62: experimental full-time TPS controller heading test.
-// Keep only scalar input timestamp; never retain actor pointers in XInput.
-std::atomic_ullong g_tpsAlwaysFaceLastTick{0};
-std::atomic_uint32_t g_tpsAlwaysFaceCommands{0};
+// V0.63: native cone lock, no forced aim while not attacking.
 std::atomic_uint32_t g_tpsFacingReasserted{0};
+std::atomic_uint32_t g_tpsConeInside{0},g_tpsConeOutside{0};
 std::atomic_bool g_tpsFireHeld{false};
 std::atomic_ullong g_tpsFireLastTick{0};
 std::atomic_uint32_t g_tpsPlayerGeneration{0};
-std::atomic_uint32_t g_tpsNativeFacingOff{0},g_tpsNativeFacingRestored{0},g_tpsGroundAimFxHidden{0};
+std::atomic_uint32_t g_tpsNativeFacingOff{0},g_tpsNativeFacingRestored{0};
 SRWLOCK g_tpsFacingLock=SRWLOCK_INIT;
 void* g_tpsFacingCurrentComponent=nullptr;
 bool g_tpsFacingOwned=false;
@@ -1370,14 +1365,23 @@ void UpdateTPSFacingNative(void* component) {
     auto& rt=dg::runtime::Get();
     const ULONGLONG now=GetTickCount64(),fireTick=g_tpsFireLastTick.load();
     const bool attack=g_tpsFireHeld.load()&&fireTick&&now>=fireTick&&now-fireTick<150;
-    const ULONGLONG alwaysTick=g_tpsAlwaysFaceLastTick.load(std::memory_order_relaxed);
-    const bool always=rt.tpsAlwaysFaceCamera.load(std::memory_order_relaxed)&&
-        alwaysTick&&now>=alwaysTick&&now-alwaysTick<220ull;
-    // All-time mode locks only when the XInput aiming hook has very recently
-    // verified a local player and issued a camera-facing command.
-    // Otherwise preserve V0.61 behavior while RT or RB is held.
+    // No idle XInput aim injection. Gate only movement-oriented turning.
+    const auto camera=dg::camera_trace::GetTelemetry();
+    const ULONGLONG sampleTick=g_tpsActorYawTick.load();
+    const bool fresh=sampleTick&&now>=sampleTick&&now-sampleTick<200&&
+        camera.viewReady&&camera.viewCalls>0&&std::isfinite(camera.appliedYaw);
+    const float tolerance=std::clamp(rt.tpsFacingToleranceDegrees.load(),20.0f,180.0f);
+    const float yawGap=fresh?std::remainder(camera.appliedYaw-g_tpsActorWorldYaw.load(),360.0f):999.0f;
+    const bool cone=rt.tpsCameraFacingGuard.load()&&rt.cameraOrbitInputEnabled.load()&&fresh;
+    const bool inside=cone&&std::fabs(yawGap)<=tolerance;
+    if(cone) {
+        const unsigned n=inside?++g_tpsConeInside:++g_tpsConeOutside;
+        if(n==1||n==10000)
+            Log("TPS V0.63: facing cone %s n=%u error=%.1f tolerance=%.1f",
+                inside?"IN":"OUT",n,yawGap,tolerance);
+    }
     const bool enable=g_targetValidation.exact&&rt.thirdPersonEnabled.load()&&
-        (always||(rt.tpsLockCombatFacing.load()&&attack))&&
+        (inside||(rt.tpsLockCombatFacing.load()&&attack))&&
         !g_overlayVisible.load()&&GetForegroundWindow()==g_gameWindowTrace.load();
     AcquireSRWLockExclusive(&g_tpsFacingLock);
     if(g_tpsFacingCurrentComponent!=component){
@@ -1388,7 +1392,7 @@ void UpdateTPSFacingNative(void* component) {
         if(!g_tpsFacingOwned) {
             g_tpsFacingOwned=true;
             const unsigned n=++g_tpsNativeFacingOff;
-            if(n<=3||n==1000)Log("TPS V0.62: native facing LOCK n=%u continuous=%d component=%p",n,always?1:0,component);
+            if(n<=3||n==1000)Log("TPS V0.63: native facing LOCK n=%u inside=%d component=%p",n,inside?1:0,component);
         } else {
             const unsigned n=++g_tpsFacingReasserted;
             if(n==1||n==1000)Log("TPS V0.62: native facing bit reasserted OFF n=%u",n);
@@ -1400,32 +1404,6 @@ void UpdateTPSFacingNative(void* component) {
         if(n<=3||n==1000)Log("TPS V0.61: native strafe-facing RESTORE n=%u component=%p",n,component);
     }
     ReleaseSRWLockExclusive(&g_tpsFacingLock);
-}
-// Native HideGroundTargetingEffect(bool hide), RVA 0x6DDAD0, only ground
-// targeting FX. This does not necessarily hide Strife's generic gun aim beam.
-void HookGroundAimEffect(void* ability,bool hide) {
-    if(!g_groundAimEffectOriginal)return;
-    const bool forced=g_targetValidation.exact&&
-        dg::runtime::Get().thirdPersonEnabled.load()&&
-        dg::runtime::Get().tpsHideGroundAimFx.load();
-    if(forced&&!hide) {
-        const unsigned n=++g_tpsGroundAimFxHidden;
-        if(n==1||n==1000)Log("TPS V0.61: ground aim FX forced HIDE n=%u",n);
-    }
-    g_groundAimEffectOriginal(ability,forced?true:hide);
-}
-void InstallGroundAimEffectHook() {
-    if(!g_targetValidation.exact)return;
-    auto* target=reinterpret_cast<unsigned char*>(GetModuleHandleW(nullptr))+0x6DDAD0;
-    constexpr unsigned char signature[]={0x48,0x89,0x5C,0x24,0x08,0x57,0x48,0x83,0xEC,0x20};
-    if(std::memcmp(target,signature,sizeof(signature))) {
-        Log("TPS V0.61: native ground FX signature mismatch, hook OFF");return;
-    }
-    const auto created=MH_CreateHook(target,reinterpret_cast<void*>(&HookGroundAimEffect),
-        reinterpret_cast<void**>(&g_groundAimEffectOriginal));
-    if(created!=MH_OK){Log("TPS V0.61: native ground FX hook create=%d",int(created));return;}
-    const auto enabled=MH_EnableHook(target);
-    Log("TPS V0.61: native ground FX hook %s",enabled==MH_OK||enabled==MH_ERROR_ENABLED?"READY":"FAILED");
 }
 float HookCharacterGetMaxSpeed(void* movementComponent) {
     const float nativeSpeed = g_originalCharacterGetMaxSpeed
@@ -1501,8 +1479,8 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         ApplyPlayerMovementTunings(movementComponent);
 
     if (playerMovementValidated) {
-        UpdateTPSFacingNative(movementComponent);
         CaptureLiveTPSActorYaw(characterOwner);
+        UpdateTPSFacingNative(movementComponent);
         // Keep the existing single active-player pointer only for player-only
         // features. Horse discovery is fully independent in V0.26.
         void* previousPlayer =
@@ -2224,9 +2202,9 @@ void TriggerAction(Action action, int functionKey) {
         g_config.cameraZoomPercent=0;
         g_config.cameraPitchDegrees=0;
         g_config.cameraYawDegrees=0;
-        g_config.thirdPersonDistanceMultiplier=1.0f;
+        g_config.thirdPersonDistanceMultiplier=0.50f;
         g_config.thirdPersonPitchDegrees=-12.0f;
-        g_config.thirdPersonHeightOffset=60.0f;
+        g_config.thirdPersonHeightOffset=180.0f;
         dg::runtime::Get().cameraOrbitYawDegrees.store(0.0f);
         dg::runtime::Get().cameraOrbitPitchDegrees.store(0.0f);
         g_config.Save();
@@ -2425,7 +2403,6 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     const auto view=dg::camera_trace::GetTelemetry();
     const bool cameraKnown=view.viewCalls>0 && view.nativeFov>1.0f &&
         std::isfinite(view.nativeYaw) && std::isfinite(view.appliedYaw);
-    const bool strafe=rt.tpsControllerStrafe.load(std::memory_order_relaxed);
     const bool aim=rt.tpsControllerCombatAim.load(std::memory_order_relaxed);
     const bool fire=pad.bRightTrigger>=XINPUT_GAMEPAD_TRIGGER_THRESHOLD ||
         (pad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER)!=0;
@@ -2441,10 +2418,6 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     // Instead use the absolute world yaw of OUR final TPS camera.
     const float targetYaw=std::remainder(view.appliedYaw+trim,360.0f);
     constexpr float toRadians=0.01745329251994329577f;
-    const float cameraDelta=std::remainder(
-        view.appliedYaw-view.nativeYaw,360.0f);
-    const float delta=cameraDelta*toRadians;
-    const float co=std::cos(delta),si=std::sin(delta);
     const auto convertStick=[](float v)->SHORT {
         return static_cast<SHORT>(std::clamp(std::lround(v),-32767l,32767l));
     };
@@ -2452,30 +2425,8 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     const ULONGLONG actorTime=g_tpsActorYawTick.load();
     const bool liveActor=actorTime && now>=actorTime && now-actorTime<200ull;
     const float actorYaw=g_tpsActorWorldYaw.load();
-    const bool alwaysFace=rt.tpsAlwaysFaceCamera.load(std::memory_order_relaxed)&&
-        cameraKnown&&liveActor&&rt.cameraOrbitInputEnabled.load(std::memory_order_relaxed);
-    // The whole-time mode must never issue synthetic input with a stale
-    // player, menu, mounted pawn or inactive camera orbit.
-    if(alwaysFace)g_tpsAlwaysFaceLastTick.store(now,std::memory_order_relaxed);
-
-    // IMPORTANT V0.60: Never rotate the left stick unless the user manually
-    // enables the unsupported transform AND is actively holding RT/RB.
-    // Native combat already derives player movement in its own orientation.
-    // V0.58/0.59 re-rotated these values, so pushing UP could move RIGHT.
-    if (cameraKnown && strafe && fire) {
-        // Opt-in ONLY (off by default, including migration from V0.59).
-        // Keep V0.59 transform for A/B diagnostic comparison during combat.
-        const float leftX=static_cast<float>(pad.sThumbLX);
-        const float leftY=static_cast<float>(pad.sThumbLY);
-        if (leftX*leftX+leftY*leftY>7000.0f*7000.0f) {
-            pad.sThumbLX=convertStick(leftX*co+leftY*si);
-            pad.sThumbLY=convertStick(leftY*co-leftX*si);
-            const unsigned n=g_tpsStrafeSamples.fetch_add(1)+1;
-            if (n==1 || n==10000)
-                Log("TPS V0.59: strafe sample=%u delta=%.1f leftRaw=(%.0f,%.0f) mapped=(%d,%d)",
-                    n,cameraDelta,leftX,leftY,pad.sThumbLX,pad.sThumbLY);
-        }
-    } else if (cameraKnown && (pad.sThumbLX || pad.sThumbLY)) {
+    // Left analog stick bytes are always native and never rotated.
+    if (cameraKnown && (pad.sThumbLX || pad.sThumbLY)) {
         // Pass through EXACT original left-stick bytes. We log the native
         // mapping for controlled observations, without creating a new one.
         const unsigned n=g_tpsLeftPassthroughSamples.fetch_add(1)+1;
@@ -2485,7 +2436,7 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
                 view.appliedYaw,actorYaw,liveActor?1:0);
         }
     }
-    if (cameraKnown && ((aim && fire) || alwaysFace)) {
+    if (cameraKnown && aim && fire) {
         if (fire && (pad.sThumbLX || pad.sThumbLY))
             g_tpsMovingFireSamples.fetch_add(1);
         // A camera-paced command-rate cap prevents the game from receiving
@@ -2526,15 +2477,6 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
                 pad.sThumbRX,pad.sThumbRY);
         }
         if(fire)g_tpsCombatFireSamples.fetch_add(1);
-        if(alwaysFace) {
-            const unsigned n=g_tpsAlwaysFaceCommands.fetch_add(1)+1;
-            if(n==1||n==120||n==2000||n==10000) {
-                Log("TPS V0.62: always face sample=%u fire=%d cameraYaw=%.1f actorYaw=%.1f actorError=%.1f commandedYaw=%.1f left=(%d,%d)",
-                    n,fire?1:0,targetYaw,actorYaw,
-                    std::remainder(targetYaw-actorYaw,360.0f),
-                    heading,pad.sThumbLX,pad.sThumbLY);
-            }
-        }
     } else {
         g_tpsAimCommandReady.store(false);
         g_tpsLastAimTick.store(0);
@@ -3448,13 +3390,11 @@ void ShutdownMod() {
     RestoreCameraDof();
     Log("Aim V0.57 totals: mouseMessagesBlocked=%u rightStickReadsFiltered=%u",
         g_nativeMouseAimSuppressed.load(),g_nativePadAimSuppressed.load());
-    Log("TPS V0.62 totals: alwaysFaceCommands=%u facingReasserted=%u",
-        g_tpsAlwaysFaceCommands.load(),g_tpsFacingReasserted.load());
-    Log("TPS V0.61 totals: nativeStrafeLocked=%u restored=%u groundFXHidden=%u",
-        g_tpsNativeFacingOff.load(),g_tpsNativeFacingRestored.load(),g_tpsGroundAimFxHidden.load());
-    Log("TPS V0.60 totals: combatAim=%u experimentalStrafeRemap=%u nativeFireOrThrowPolls=%u liveActorYaw=%u leftStickPassthrough=%u movingFire=%u",
-        g_tpsCombatAimSamples.load(),g_tpsStrafeSamples.load(),
-        g_tpsCombatFireSamples.load(),g_tpsActorYawSamples.load(),
+    Log("TPS V0.63 totals: coneInside=%u coneOutside=%u reasserted=%u nativeLocks=%u restores=%u",
+        g_tpsConeInside.load(),g_tpsConeOutside.load(),g_tpsFacingReasserted.load(),
+        g_tpsNativeFacingOff.load(),g_tpsNativeFacingRestored.load());
+    Log("TPS V0.63 totals: combatAim=%u fire=%u actorYaw=%u leftNative=%u movingFire=%u",
+        g_tpsCombatAimSamples.load(),g_tpsCombatFireSamples.load(),g_tpsActorYawSamples.load(),
         g_tpsLeftPassthroughSamples.load(),g_tpsMovingFireSamples.load());
 
     if (g_skipIntroData) {
@@ -3575,7 +3515,6 @@ DWORD WINAPI MainThread(LPVOID) {
     if (!InstallMovementSpeedHook()) {
         Log("Movement Speed unavailable; other ASI features remain active.");
     }
-    InstallGroundAimEffectHook();
     if (!InstallActionRecoveryV08B()) {
         Log("Action Recovery V0.8 unavailable; other ASI features remain active.");
     }

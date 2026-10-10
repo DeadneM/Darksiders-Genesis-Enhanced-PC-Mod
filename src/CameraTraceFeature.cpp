@@ -100,7 +100,7 @@ void HookView(void* camera, float dt, void* outView) {
         float x=0.0f,y=0.0f;
         std::memcpy(&x,p,sizeof(float)); std::memcpy(&y,p+4,sizeof(float));
         if (std::isfinite(x)&&std::isfinite(y)&&dist>=100.0f&&dist<=10000.0f&&
-            std::isfinite(mult)&&mult>=0.25f&&mult<=3.0f&&
+            std::isfinite(mult)&&mult>=0.0f&&mult<=3.0f&&
             nativePitch>=-89.0f&&nativePitch<=-15.0f) {
             constexpr float rad=0.01745329251994329577f;
             const float np=nativePitch*rad,ny=nativeYaw*rad;
@@ -111,7 +111,7 @@ void HookView(void* camera, float dt, void* outView) {
                 tpBasePitch < -75.0f || tpBasePitch > 65.0f || std::fabs(tpHeight)>500.0f) return;
             const float tpPitch=std::clamp(tpBasePitch+(std::isfinite(op)?op:0.0f),-75.0f,65.0f);
             const float dp=tpPitch*rad,dy=appliedYaw*rad;
-            const float distance=std::clamp(dist*mult,120.0f,12000.0f);
+            const float distance=std::clamp(dist*mult,0.0f,12000.0f);
             float pivotX=x+std::cos(np)*std::cos(ny)*dist;
             float pivotY=y+std::cos(np)*std::sin(ny)*dist;
             // The native top-down targeting camera shifts its spring-arm

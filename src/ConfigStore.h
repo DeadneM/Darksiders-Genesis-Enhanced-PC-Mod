@@ -134,10 +134,8 @@ public:
     bool cameraOrbitInputEnabled = false;
     bool tpsControllerCombatAim = true;
     bool tpsLockCombatFacing = true;
-    bool tpsAlwaysFaceCamera = true;
+    bool tpsCameraFacingGuard = true;
     bool tpsLockCombatCameraPivot = true;
-    bool tpsHideGroundAimFx = false;
-    bool tpsControllerStrafe = false;
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
     bool jumpHeightEnabled = true;
@@ -165,12 +163,13 @@ public:
     float cameraPitchDegrees = 0.0f;
     float cameraYawDegrees = 0.0f;
     float cameraHeightOffset = 0.0f;
-    float thirdPersonDistanceMultiplier = 1.00f;
+    float thirdPersonDistanceMultiplier = 0.50f;
     float thirdPersonPitchDegrees = -12.0f;
-    float thirdPersonHeightOffset = 60.0f;
+    float thirdPersonHeightOffset = 180.0f;
     float cameraMouseSensitivity = 0.12f;
     float cameraStickSpeed = 135.0f;
     float tpsAimYawOffsetDegrees = 0.0f;
+    float tpsFacingToleranceDegrees = 90.0f;
     float hotstreakChargeMultiplier = 2.00f;
 
     std::array<Action, 12> hotkeys{};

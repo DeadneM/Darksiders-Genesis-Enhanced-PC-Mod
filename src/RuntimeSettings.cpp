@@ -23,10 +23,8 @@ void Publish(const Snapshot& s) {
     g_state.cameraOrbitInputEnabled.store(s.cameraOrbitInputEnabled, std::memory_order_relaxed);
     g_state.tpsControllerCombatAim.store(s.tpsControllerCombatAim, std::memory_order_relaxed);
     g_state.tpsLockCombatFacing.store(s.tpsLockCombatFacing);
-    g_state.tpsAlwaysFaceCamera.store(s.tpsAlwaysFaceCamera);
+    g_state.tpsCameraFacingGuard.store(s.tpsCameraFacingGuard);
     g_state.tpsLockCombatCameraPivot.store(s.tpsLockCombatCameraPivot);
-    g_state.tpsHideGroundAimFx.store(s.tpsHideGroundAimFx);
-    g_state.tpsControllerStrafe.store(s.tpsControllerStrafe, std::memory_order_relaxed);
     g_state.pistolDamageEnabled.store(s.pistolDamageEnabled, std::memory_order_relaxed);
     g_state.meleeDamageEnabled.store(s.meleeDamageEnabled, std::memory_order_relaxed);
     g_state.jumpHeightEnabled.store(s.jumpHeightEnabled, std::memory_order_relaxed);
@@ -47,6 +45,7 @@ void Publish(const Snapshot& s) {
     g_state.cameraMouseSensitivity.store(s.cameraMouseSensitivity, std::memory_order_relaxed);
     g_state.cameraStickSpeed.store(s.cameraStickSpeed, std::memory_order_relaxed);
     g_state.tpsAimYawOffsetDegrees.store(s.tpsAimYawOffsetDegrees, std::memory_order_relaxed);
+    g_state.tpsFacingToleranceDegrees.store(s.tpsFacingToleranceDegrees);
     g_state.movementSpeedMultiplier.store(s.movementSpeedMultiplier, std::memory_order_relaxed);
     g_state.actionRecoveryDelayMs.store(s.actionRecoveryDelayMs, std::memory_order_relaxed);
     g_state.pistolDamageMultiplier.store(s.pistolDamageMultiplier, std::memory_order_relaxed);
