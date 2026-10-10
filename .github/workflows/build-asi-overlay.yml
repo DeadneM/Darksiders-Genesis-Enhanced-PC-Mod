@@ -99,9 +99,13 @@ jobs:
           $repo = $env:GITHUB_REPOSITORY
           $tag = 'test-build'
           $asset = 'DarksidersGenesis_LATEST_TEST.zip'
-          $source = 'downloads/DarksidersGenesis_V0.64.zip'
-          if (!(Test-Path $source)) { throw "Test ZIP missing: $source" }
-          Copy-Item $source $asset -Force
+          # Always package the CURRENT build, not a hardcoded V0.xx archive.
+          # That ensures future V0.65, V0.66... cannot accidentally
+          # republish stale V0.64 binaries.
+          if (Test-Path $asset) { Remove-Item $asset -Force }
+          Compress-Archive -Path 'dist/*' -DestinationPath $asset -CompressionLevel Optimal
+          if (!(Test-Path $asset)) { throw "Current test ZIP missing: $asset" }
+          Get-FileHash $asset -Algorithm SHA256
           $notes = "AUTOMATIC EXPERIMENTAL BUILD. NOT VALIDATED IN-GAME. Source commit: $env:GITHUB_SHA. Official release remains separate."
           gh release view $tag --repo $repo --json tagName *> $null
           if ($LASTEXITCODE -ne 0) {
