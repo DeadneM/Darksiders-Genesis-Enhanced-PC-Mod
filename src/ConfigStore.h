@@ -140,6 +140,7 @@ public:
     bool cameraOrbitInputEnabled = true;
     bool tpsControllerCombatAim = true;
     bool tpsLockCombatFacing = true;
+    bool tpsStrafeLock = true;
     bool tpsCameraFacingGuard = false;
     bool tpsLockCombatCameraPivot = false;
     bool pistolDamageEnabled = true;

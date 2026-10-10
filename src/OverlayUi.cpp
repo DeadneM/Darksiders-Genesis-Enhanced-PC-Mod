@@ -701,7 +701,11 @@ void Draw(Context& c) {
             }
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
-                ImGui::TextDisabled("TPS control: camera orbit + fixed reticle (V0.65)");
+                ImGui::TextDisabled("TPS controller strafe / camera lock (V0.66)");
+                if(ImGui::Checkbox("Keep player facing while strafing (TEST)",&config.tpsStrafeLock))
+                    config.Save();
+                ImGui::TextDisabled("Prevents turn-to-movement while in TPS, with NO forced CTRL aim.");
+                ImGui::TextDisabled("Controller LEFT stick remains native; turn native facing lock off on F5.");
                 if (ImGui::Checkbox("TPS aim while firing / throwing (RT or RB)",
                         &config.tpsControllerCombatAim)) config.Save();
                 if(ImGui::Checkbox("Disable vanilla right-stick character rotation",

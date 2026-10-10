@@ -23,6 +23,7 @@ struct Snapshot {
     bool cameraOrbitInputEnabled = true;
     bool tpsControllerCombatAim = true;
     bool tpsLockCombatFacing = true;
+    bool tpsStrafeLock = true;
     bool tpsCameraFacingGuard = false;
     bool tpsLockCombatCameraPivot = false;
     bool pistolDamageEnabled = true;
@@ -82,6 +83,7 @@ struct State {
     std::atomic_bool cameraOrbitInputEnabled{true};
     std::atomic_bool tpsControllerCombatAim{true};
     std::atomic_bool tpsLockCombatFacing{true};
+    std::atomic_bool tpsStrafeLock{true};
     std::atomic_bool tpsCameraFacingGuard{false};
     std::atomic_bool tpsLockCombatCameraPivot{false};
     std::atomic_bool tpsAimActive{false};

@@ -41,6 +41,7 @@ std::atomic<uint32_t> g_pivotCompensations{0};
 // V0.64: independent TPS FOV, player attachment and zone camera lockdown.
 std::atomic<uint32_t> g_tpsAttachedFrames{0},g_zoneCameraIgnored{0},g_tpsAttachSkipped{0};
 std::atomic<uint32_t> g_tpsFovOverrides{0};
+std::atomic<uint32_t> g_tpsNormalCameraRescued{0},g_tpsCameraRejected{0};
 std::atomic_uint32_t g_zoneActorGeneration{UINT32_MAX};
 std::atomic<float> g_zoneReferenceYaw{0.0f},g_zoneReferenceArm{0.0f};
 std::atomic_bool g_zoneReferenceActive{false};
@@ -55,8 +56,11 @@ bool Sample(uint32_t n) { return n <= 12 || (n % 5000) == 0; }
 void HookView(void* camera, float dt, void* outView) {
     if (g_view) g_view(camera, dt, outView);
     auto& settings=dg::runtime::Get();
-    // Scene and UI cameras are never modified without a live-player match.
-    settings.tpsViewGameplay.store(false,std::memory_order_release);
+    // V0.66: do not cancel a valid gameplay frame if GetCameraView
+    // is called again for a spectator / UI camera in the same frame.
+    // The Present crosshair check already requires a fresh successful tick.
+    if(!settings.thirdPersonEnabled.load(std::memory_order_relaxed))
+        settings.tpsViewGameplay.store(false,std::memory_order_release);
     if (!outView) return;
     auto* p=static_cast<unsigned char*>(outView);
     float x=0,y=0,z=0,nativePitch=0,nativeYaw=0,nativeFov=0;
@@ -79,10 +83,29 @@ void HookView(void* camera, float dt, void* outView) {
     // Conservative gameplay/cutscene heuristic. Fail OPEN for unusual
     // cinematic views. We do not patch persistent camera volumes or sequences.
     const float nativeDx=x-ax,nativeDy=y-ay,nativeDz=z-az;
-    const bool nearPawn=actorValid&&
-        nativeDx*nativeDx+nativeDy*nativeDy<6500.0f*6500.0f&&
-        std::fabs(nativeDz)<7500.0f;
-    const bool gameplayCamera=nearPawn&&nativePitch>=-89.0f&&nativePitch<=-15.0f;
+    const float planar=std::hypot(nativeDx,nativeDy);
+    const bool nearPawn=actorValid&&planar<6500.0f&&std::fabs(nativeDz)<7500.0f;
+    // V0.65 mistakenly required the top-down native camera within 6500
+    // world units of the actor. The supplied user's gameplay log shows
+    // near=0 despite an exact validated local player and native pitch -45.
+    // Permit ordinary native gameplay camera signature while local player
+    // readings are FRESH. Reject unrelated angles/FOV and invalid pawns.
+    // This is still heuristic; cinematics with identical signatures need
+    // a dedicated native cutscene-state detector in a future patch.
+    const bool normalGameplayView=nativePitch>=-55.0f&&nativePitch<=-35.0f&&
+        nativeFov>=60.0f&&nativeFov<=85.0f;
+    const bool normalAngles=nativePitch>=-89.0f&&nativePitch<=-15.0f;
+    const bool gameplayCamera=actorValid&&normalAngles&&
+        (nearPawn||normalGameplayView);
+    if(thirdPerson&&!nearPawn&&actorValid&&normalGameplayView){
+        const unsigned n=++g_tpsNormalCameraRescued;
+        if(n<=3||n==1000){
+            char line[330]{};
+            sprintf_s(line,"TPS V0.66: rescued topdown camera n=%u native=(%.0f,%.0f,%.0f) actor=(%.0f,%.0f,%.0f) deltaXY=%.1f deltaZ=%.1f fov=%.1f pitch=%.1f",
+                n,x,y,z,ax,ay,az,planar,nativeDz,nativeFov,nativePitch);
+            Write(line);
+        }
+    }
     if(!thirdPerson)ResetZoneReference();
     const uint32_t generation=settings.tpsActorGeneration.load();
     if(g_zoneActorGeneration.load()!=generation){
@@ -93,10 +116,12 @@ void HookView(void* camera, float dt, void* outView) {
     // Heuristic may miss an in-place cinematic with a top-down-like pose.
     if(thirdPerson&&!gameplayCamera){
         const unsigned n=++g_tpsAttachSkipped;
-        if(n==1||n==3000){
-            char line[180]{};
-            sprintf_s(line,"TPS V0.65: native camera returned to game (cinematic/invalid player) n=%u near=%d pitch=%.1f",
-                      n,nearPawn?1:0,nativePitch);
+        ++g_tpsCameraRejected;
+        if(n<=3||n==3000){
+            char line[390]{};
+            sprintf_s(line,"TPS V0.66: camera REJECT n=%u actorValid=%d fresh=%d near=%d native=(%.0f,%.0f,%.0f) actor=(%.0f,%.0f,%.0f) gapXY=%.1f gapZ=%.1f pitch=%.1f fov=%.1f",
+                n,actorValid?1:0,live?1:0,nearPawn?1:0,
+                x,y,z,ax,ay,az,planar,nativeDz,nativePitch,nativeFov);
             Write(line);
         }
         return;
@@ -112,7 +137,7 @@ void HookView(void* camera, float dt, void* outView) {
                 const unsigned n=++g_tpsFovOverrides;
                 if(n==1||n==10000){
                     char line[128]{};
-                    sprintf_s(line,"TPS V0.65: FOV override n=%u native=%.1f target=%.1f",n,nativeFov,target);
+                    sprintf_s(line,"TPS V0.66: FOV override n=%u native=%.1f target=%.1f",n,nativeFov,target);
                     Write(line);
                 }
             }
@@ -138,20 +163,24 @@ void HookView(void* camera, float dt, void* outView) {
         const bool attached=settings.tpsFollowPlayer.load();
         const bool lockZone=attached&&settings.tpsLockZoneCamera.load();
         const float nativeArm=g_nativeDistance.load();
-        if(lockZone&&!g_zoneReferenceActive.load()&&std::isfinite(nativeArm)&&
-           nativeArm>=100&&nativeArm<=10000){
+        // Native SpringArm may not be sampled on the frame where the player
+        // enters TPS. A missing value must not disable the entire TPS camera.
+        // The locked camera uses a one-time fallback, not repeated zone data.
+        const bool validNativeArm=std::isfinite(nativeArm)&&nativeArm>=100&&nativeArm<=10000;
+        const float usableArm=validNativeArm?nativeArm:900.0f;
+        if(lockZone&&!g_zoneReferenceActive.load()){
             // Align camera axis with the character on TPS activation.
             // Orbit afterwards is independent of the character's own yaw.
             g_zoneReferenceYaw.store(std::remainder(actorYaw,360.0f));
-            g_zoneReferenceArm.store(nativeArm);
+            g_zoneReferenceArm.store(usableArm);
             g_zoneReferenceActive.store(true);
             char line[170]{};
-            sprintf_s(line,"TPS V0.65: camera locked to actor axis gen=%u actorYaw=%.1f distance=%.1f",
-                      generation,actorYaw,nativeArm);
+            sprintf_s(line,"TPS V0.66: camera locked to actor axis gen=%u actorYaw=%.1f distance=%.1f",
+                      generation,actorYaw,usableArm);
             Write(line);
         }
         const float arm=lockZone&&g_zoneReferenceActive.load()
-             ?g_zoneReferenceArm.load():nativeArm;
+             ?g_zoneReferenceArm.load():usableArm;
         const float baseYaw=lockZone&&g_zoneReferenceActive.load()
              ?g_zoneReferenceYaw.load():nativeYaw;
         const bool orbit=settings.cameraOrbitInputEnabled.load();
@@ -191,7 +220,7 @@ void HookView(void* camera, float dt, void* outView) {
                     const unsigned n=++g_tpsAttachedFrames;
                     if(n==1||n==5000){
                         char line[230]{};
-                        sprintf_s(line,"TPS V0.65: foot camera attached n=%u root=(%.0f,%.0f,%.0f) footZ=%.0f camera=(%.0f,%.0f,%.0f) yaw=%.1f",
+                        sprintf_s(line,"TPS V0.66: foot camera attached n=%u root=(%.0f,%.0f,%.0f) footZ=%.0f camera=(%.0f,%.0f,%.0f) yaw=%.1f",
                             n,ax,ay,az,pivotZ,outX,outY,outZ,appliedYaw);
                         Write(line);
                     }
@@ -200,7 +229,7 @@ void HookView(void* camera, float dt, void* outView) {
                         const unsigned n=++g_zoneCameraIgnored;
                         if(n==1||n==10000){
                             char line[170]{};
-                            sprintf_s(line,"TPS V0.65: native camera zone yaw ignored n=%u native=%.1f locked=%.1f",
+                            sprintf_s(line,"TPS V0.66: native camera zone yaw ignored n=%u native=%.1f locked=%.1f",
                                 n,nativeYaw,baseYaw);
                             Write(line);
                         }
@@ -218,7 +247,7 @@ void HookView(void* camera, float dt, void* outView) {
     const unsigned n=++g_viewCount;
     if(Sample(n)){
         char line[220]{};
-        sprintf_s(line,"Camera V0.65: view n=%u nativeFOV=%.1f outputFOV=%.1f nativeYaw=%.1f outputYaw=%.1f tp=%d",
+        sprintf_s(line,"Camera V0.66: view n=%u nativeFOV=%.1f outputFOV=%.1f nativeYaw=%.1f outputYaw=%.1f tp=%d",
             n,nativeFov,appliedFov,nativeYaw,appliedYaw,thirdPerson?1:0);
         Write(line);
     }

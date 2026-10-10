@@ -35,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.65-foot-centered-locked-tps-camera";
+constexpr const char* kBuild = "0.66-tps-camera-unblock-strafe-lock";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -94,6 +94,7 @@ std::atomic_bool g_tpsFireHeld{false};
 std::atomic_ullong g_tpsFireLastTick{0};
 std::atomic_uint32_t g_tpsPlayerGeneration{0};
 std::atomic_uint32_t g_tpsNativeFacingOff{0},g_tpsNativeFacingRestored{0};
+std::atomic_uint32_t g_tpsStrafeSamples{0};
 SRWLOCK g_tpsFacingLock=SRWLOCK_INIT;
 void* g_tpsFacingCurrentComponent=nullptr;
 bool g_tpsFacingOwned=false;
@@ -1381,9 +1382,21 @@ void UpdateTPSFacingNative(void* component) {
             Log("TPS V0.63: facing cone %s n=%u error=%.1f tolerance=%.1f",
                 inside?"IN":"OUT",n,yawGap,tolerance);
     }
+    // V0.66: native controller strafe. No simulated aim outside actual
+    // RT/RB; only prevent bOrientRotationToMovement from turning the pawn.
+    const unsigned char movementMode=*(static_cast<unsigned char*>(component)+0x1B0);
+    const bool walk=movementMode==1u||movementMode==2u;
+    const bool strafe=rt.tpsStrafeLock.load(std::memory_order_relaxed)&&walk;
     const bool enable=g_targetValidation.exact&&rt.thirdPersonEnabled.load()&&
-        (inside||(rt.tpsLockCombatFacing.load()&&attack))&&
+        (strafe||inside||(rt.tpsLockCombatFacing.load()&&attack))&&
         !g_overlayVisible.load()&&GetForegroundWindow()==g_gameWindowTrace.load();
+    if(strafe&&enable){
+        const unsigned n=++g_tpsStrafeSamples;
+        if(n==1||n==120||n==10000)
+            Log("TPS V0.66: player strafe LOCK tick=%u mode=%u actorYaw=%.1f cameraYaw=%.1f nativeBit=%u",
+                n,static_cast<unsigned>(movementMode),g_tpsActorWorldYaw.load(),
+                camera.appliedYaw,(*field&0x10u)?1u:0u);
+    }
     AcquireSRWLockExclusive(&g_tpsFacingLock);
     if(g_tpsFacingCurrentComponent!=component){
         g_tpsFacingCurrentComponent=component;g_tpsFacingOwned=false;
@@ -1393,7 +1406,7 @@ void UpdateTPSFacingNative(void* component) {
         if(!g_tpsFacingOwned) {
             g_tpsFacingOwned=true;
             const unsigned n=++g_tpsNativeFacingOff;
-            if(n<=3||n==1000)Log("TPS V0.63: native facing LOCK n=%u inside=%d component=%p",n,inside?1:0,component);
+            if(n<=3||n==1000)Log("TPS V0.66: native facing LOCK n=%u walkingStrafe=%d inside=%d component=%p",n,strafe?1:0,inside?1:0,component);
         } else {
             const unsigned n=++g_tpsFacingReasserted;
             if(n==1||n==1000)Log("TPS V0.62: native facing bit reasserted OFF n=%u",n);
@@ -3428,6 +3441,7 @@ void ShutdownMod() {
     RestoreCameraDof();
     Log("Aim V0.57 totals: mouseMessagesBlocked=%u rightStickReadsFiltered=%u",
         g_nativeMouseAimSuppressed.load(),g_nativePadAimSuppressed.load());
+    Log("TPS V0.66 totals: strafeLockTicks=%u",g_tpsStrafeSamples.load());
     Log("TPS V0.63 totals: coneInside=%u coneOutside=%u reasserted=%u nativeLocks=%u restores=%u",
         g_tpsConeInside.load(),g_tpsConeOutside.load(),g_tpsFacingReasserted.load(),
         g_tpsNativeFacingOff.load(),g_tpsNativeFacingRestored.load());

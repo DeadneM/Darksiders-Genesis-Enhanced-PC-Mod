@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2113;
+constexpr int kConfigRevision = 2114;
 
 bool ReadBool(
     const wchar_t* section,
@@ -308,6 +308,7 @@ void Store::ResetDefaults(bool persist) {
     cameraOrbitInputEnabled = true;
     tpsControllerCombatAim = true;
     tpsLockCombatFacing=true;
+    tpsStrafeLock=true;
     tpsCameraFacingGuard=false;
     tpsLockCombatCameraPivot=false;
     pistolDamageEnabled = true;
@@ -424,6 +425,7 @@ bool Store::Load() {
     cameraOrbitInputEnabled = ReadBool(L"Features", L"CameraMouseGamepad", true, path_);
     tpsControllerCombatAim = ReadBool(L"Features", L"TPSControllerCombatAim", true, path_);
     tpsLockCombatFacing = ReadBool(L"Features",L"TPSLockCombatFacing",true,path_);
+    tpsStrafeLock=ReadBool(L"Features",L"TPSStrafeLock",true,path_);
     tpsCameraFacingGuard = ReadBool(L"Features",L"TPSCameraFacingGuard",false,path_);
     tpsLockCombatCameraPivot = ReadBool(L"Features",L"TPSLockCombatCameraPivot",false,path_);
     pistolDamageEnabled =
@@ -585,7 +587,7 @@ bool Store::Load() {
         }
         PublishRuntime();
         SaveNow();
-        Log("INI migrated V0.65: foot-centered TPS; native cone/pivot OFF; orbit ON");
+        Log("INI migrated V0.66: TPS strafe movement lock ON; camera eligibility diagnostics");
         return true;
     }
 
@@ -615,6 +617,7 @@ void Store::PublishRuntime() const {
     runtime.cameraOrbitInputEnabled = cameraOrbitInputEnabled;
     runtime.tpsControllerCombatAim = tpsControllerCombatAim;
     runtime.tpsLockCombatFacing = tpsLockCombatFacing;
+    runtime.tpsStrafeLock = tpsStrafeLock;
     runtime.tpsCameraFacingGuard = tpsCameraFacingGuard;
     runtime.tpsLockCombatCameraPivot = tpsLockCombatCameraPivot;
     runtime.thirdPersonDistanceMultiplier = thirdPersonDistanceMultiplier;
@@ -719,6 +722,7 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"CameraMouseGamepad", cameraOrbitInputEnabled, path_);
     WriteBool(L"Features", L"TPSControllerCombatAim", tpsControllerCombatAim, path_);
     WriteBool(L"Features",L"TPSLockCombatFacing",tpsLockCombatFacing,path_);
+    WriteBool(L"Features",L"TPSStrafeLock",tpsStrafeLock,path_);
     WriteBool(L"Features",L"TPSCameraFacingGuard",tpsCameraFacingGuard,path_);
     WritePrivateProfileStringW(L"Features",L"TPSAlwaysFaceCamera",nullptr,path_.c_str());
     WritePrivateProfileStringW(L"Features",L"TPSControllerStrafe",nullptr,path_.c_str());
