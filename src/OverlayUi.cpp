@@ -610,8 +610,6 @@ void Draw(Context& c) {
                 DrawSectionTitle("TPS camera attachment");
                 if(ImGui::Checkbox("Attach TPS camera to player",&config.tpsFollowPlayer))
                     config.Save();
-                if(ImGui::Checkbox("Ignore zone camera changes (TPS)",&config.tpsLockZoneCamera))
-                    config.Save();
                 ImGui::TextDisabled("TPS pivot follows player feet on the character axis.");
                 ImGui::SetNextItemWidth(245.0f);
                 if(ImGui::SliderFloat("Foot origin correction##TPS",&config.tpsFootAnchorOffset,
@@ -621,10 +619,7 @@ void Draw(Context& c) {
                     config.tpsFootAnchorOffset=88.0f;config.Save();
                 }
                 ImGui::TextDisabled("Approximate root-to-foot height; adjust for the character model.");
-                if(ImGui::Checkbox("Fixed screen-center reticle (TPS)",&config.tpsFixedCenterReticle))
-                    config.Save();
-                ImGui::TextDisabled("Visual overlay only: game's world-target mouse aim is still separate.");
-                ImGui::TextDisabled("Zone lock uses initial character yaw and native arm length.");
+                ImGui::TextDisabled("No TPS reticle is rendered: mouse target world projection is native.");
                 ImGui::TextDisabled("Non-gameplay/cinematic views should stay native (heuristic).");
                 ImGui::TextDisabled("Attached views: %u | zone overrides ignored: %u",
                     camera.tpsAttachedFrames,camera.nativeZoneOverridesIgnored);
@@ -701,48 +696,33 @@ void Draw(Context& c) {
             }
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
-                ImGui::TextDisabled("TPS controller strafe / camera lock (V0.66)");
-                if(ImGui::Checkbox("Keep player facing while strafing (TEST)",&config.tpsStrafeLock))
-                    config.Save();
-                ImGui::TextDisabled("Prevents turn-to-movement while in TPS, with NO forced CTRL aim.");
-                ImGui::TextDisabled("Controller LEFT stick remains native; turn native facing lock off on F5.");
-                if (ImGui::Checkbox("TPS aim while firing / throwing (RT or RB)",
-                        &config.tpsControllerCombatAim)) config.Save();
-                if(ImGui::Checkbox("Disable vanilla right-stick character rotation",
+                DrawSectionTitle("TPS camera controls");
+                if (ImGui::Checkbox("Block vanilla right-stick player rotation (even while firing)",
                         &config.tpsSuppressNativeRightStick)) config.Save();
-                if(ImGui::Checkbox("Suppress vanilla mouse aim movement (TPS)",
+                if (ImGui::Checkbox("Isolate native flat mouse aiming movement",
                         &config.tpsSuppressVanillaMouseAim)) config.Save();
-                ImGui::TextDisabled("Mouse screen reticle is still top-down; mouse shooting requires separate fix.");
-                ImGui::TextDisabled("Right stick controls TPS camera via raw original XInput when enabled.");
-                if(config.tpsControllerCombatAim) {
-                    ImGui::SetNextItemWidth(245.0f);
-                    if(ImGui::SliderFloat("Combat aim turn rate##TPS",
-                            &config.tpsCombatAimTurnRate,30.0f,360.0f,"%.0f deg/s"))
-                        config.Save();
+                ImGui::TextDisabled("Mouse aim target still uses a flat game-world plane.");
+                ImGui::TextDisabled("No fake fixed crosshair, simulated aim or forced strafe.");
+                constexpr int kButtons[] = {0x0040,0x0080,0x0100,0x0200,0x1000,0x0001,0x0002,0x0004,0x0008};
+                constexpr const char* kButtonLabels[] = {
+                    "Left Stick Click (L3)","Right Stick Click (R3)","LB",
+                    "RB","A","D-Pad Up","D-Pad Down","D-Pad Left","D-Pad Right"
+                };
+                int selected=0;
+                for(int i=0;i<9;++i) {
+                    if(config.tpsRecenterButtonMask==kButtons[i]){selected=i;break;}
                 }
-                ImGui::TextDisabled("Legacy facing cone disabled by default (INI only).");
-                ImGui::TextDisabled("No simulated aiming outside attacks.");
-                if (ImGui::Checkbox("Native strafe while shooting (keep facing camera)",
-                        &config.tpsLockCombatFacing)) config.Save();
-                ImGui::TextDisabled("Native aim-pivot compensation disabled: foot camera supersedes it.");
-                ImGui::TextDisabled("Unresolved ground aiming visual: failed test control removed.");
-                if (config.tpsControllerCombatAim) {
-                    ImGui::SetNextItemWidth(245.0f);
-                    if (ImGui::SliderFloat("Native aim calibration##TPS",
-                            &config.tpsAimYawOffsetDegrees,-180.0f,180.0f,"%.0f deg"))
-                        config.Save();
-                    ImGui::SameLine();
-                    if (ImGui::Button("Default##TPSYaw")) {
-                        config.tpsAimYawOffsetDegrees=0.0f;config.Save();
-                    }
+                ImGui::SetNextItemWidth(245.0f);
+                if(ImGui::Combo("Recenter behind player##TPS",&selected,kButtonLabels,9)) {
+                    config.tpsRecenterButtonMask=kButtons[selected];
+                    config.Save();
                 }
-                ImGui::TextDisabled("LB ability wheel stays vanilla; off outside Third Person.");
-                ImGui::TextDisabled("Controller #1 only; combat rotation speed is independent.");
-                ImGui::TextDisabled("No forced idle aim or direct actor-rotation writes.");
+                ImGui::TextDisabled("Recenter = current player yaw; leaves TPS distance unchanged.");
+                ImGui::TextDisabled("The selected button remains game-native if it has another use.");
                 ImGui::Unindent();
             }
-            ImGui::TextDisabled("TPS mouse/right-stick aim isolation can be toggled independently above.");
-            ImGui::TextDisabled("Normal aiming returns immediately when Third Person is OFF.");
+            ImGui::TextDisabled("TPS shooting from camera view: native targeting hook pending.");
+            ImGui::TextDisabled("Normal camera/aim returns immediately when Third Person is OFF.");
             DrawSectionTitle("Field of view");
             DrawTunableFeature(config,"Enable FOV Override","FOV",
                 &config.fovEnabled,&config.fovDegrees,
@@ -752,7 +732,7 @@ void Draw(Context& c) {
             ImGui::TextDisabled("Global FOV applies outside TPS, or when TPS FOV is OFF.");
 
             DrawSectionTitle("Camera distance");
-            ImGui::TextWrapped("Native SpringArm Zoom: mainly vanilla/fallback TPS. Attached TPS with zone lock uses a fixed base distance.");
+            ImGui::TextWrapped("SpringArm Zoom is mainly for vanilla. TPS keeps its own camera distance.");
             bool zoomChanged = false;
             if (ImGui::Button("Zoom -##Camera")) {
                 config.cameraZoomPercent -= 10.0f; zoomChanged = true;

@@ -24,4 +24,5 @@ struct Telemetry {
 };
 void Install(LogFn log);
 Telemetry GetTelemetry();
+bool RecenterOnPlayer();
 }

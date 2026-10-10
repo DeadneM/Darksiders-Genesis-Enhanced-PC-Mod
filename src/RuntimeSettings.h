@@ -16,16 +16,9 @@ struct Snapshot {
     bool thirdPersonEnabled = false;
     bool thirdPersonFovEnabled = true;
     bool tpsFollowPlayer = true;
-    bool tpsFixedCenterReticle = true;
-    bool tpsLockZoneCamera = true;
     bool tpsSuppressNativeRightStick = true;
     bool tpsSuppressVanillaMouseAim = true;
     bool cameraOrbitInputEnabled = true;
-    bool tpsControllerCombatAim = true;
-    bool tpsLockCombatFacing = true;
-    bool tpsStrafeLock = true;
-    bool tpsCameraFacingGuard = false;
-    bool tpsLockCombatCameraPivot = false;
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
     bool jumpHeightEnabled = true;
@@ -37,7 +30,6 @@ struct Snapshot {
 
     float fovDegrees = 90.0f;
     float thirdPersonFovDegrees = 90.0f;
-    float tpsCombatAimTurnRate = 180.0f;
     float cameraZoomPercent = 0.0f;
     float cameraPitchDegrees = 0.0f;
     float cameraYawDegrees = 0.0f;
@@ -48,8 +40,6 @@ struct Snapshot {
     float tpsFootAnchorOffset = 88.0f; // estimated capsule center-to-foot, configurable
     float cameraMouseSensitivity = 0.12f;
     float cameraStickSpeed = 135.0f;
-    float tpsAimYawOffsetDegrees = 0.0f;
-    float tpsFacingToleranceDegrees = 90.0f;
     float movementSpeedMultiplier = 1.50f;
     float actionRecoveryDelayMs = 0.0f;
     float pistolDamageMultiplier = 2.00f;
@@ -74,18 +64,11 @@ struct State {
     std::atomic_bool thirdPersonEnabled{false};
     std::atomic_bool thirdPersonFovEnabled{true};
     std::atomic_bool tpsFollowPlayer{true};
-    std::atomic_bool tpsFixedCenterReticle{true};
     std::atomic_bool tpsViewGameplay{false};
     std::atomic_ullong tpsGameplayViewTick{0};
-    std::atomic_bool tpsLockZoneCamera{true};
     std::atomic_bool tpsSuppressNativeRightStick{true};
     std::atomic_bool tpsSuppressVanillaMouseAim{true};
     std::atomic_bool cameraOrbitInputEnabled{true};
-    std::atomic_bool tpsControllerCombatAim{true};
-    std::atomic_bool tpsLockCombatFacing{true};
-    std::atomic_bool tpsStrafeLock{true};
-    std::atomic_bool tpsCameraFacingGuard{false};
-    std::atomic_bool tpsLockCombatCameraPivot{false};
     std::atomic_bool tpsAimActive{false};
     std::atomic<float> tpsActorWorldX{0.0f};
     std::atomic<float> tpsActorWorldY{0.0f};
@@ -104,7 +87,6 @@ struct State {
 
     std::atomic<float> fovDegrees{90.0f};
     std::atomic<float> thirdPersonFovDegrees{90.0f};
-    std::atomic<float> tpsCombatAimTurnRate{180.0f};
     std::atomic<float> cameraZoomPercent{0.0f};
     std::atomic<float> cameraPitchDegrees{0.0f};
     std::atomic<float> cameraYawDegrees{0.0f};
@@ -115,8 +97,6 @@ struct State {
     std::atomic<float> tpsFootAnchorOffset{88.0f};
     std::atomic<float> cameraMouseSensitivity{0.12f};
     std::atomic<float> cameraStickSpeed{135.0f};
-    std::atomic<float> tpsAimYawOffsetDegrees{0.0f};
-    std::atomic<float> tpsFacingToleranceDegrees{90.0f};
     std::atomic<float> cameraOrbitYawDegrees{0.0f};
     std::atomic<float> cameraOrbitPitchDegrees{0.0f};
     std::atomic<float> movementSpeedMultiplier{1.50f};

@@ -22,16 +22,9 @@ void Publish(const Snapshot& s) {
     g_state.thirdPersonEnabled.store(s.thirdPersonEnabled, std::memory_order_relaxed);
     g_state.thirdPersonFovEnabled.store(s.thirdPersonFovEnabled);
     g_state.tpsFollowPlayer.store(s.tpsFollowPlayer);
-    g_state.tpsFixedCenterReticle.store(s.tpsFixedCenterReticle);
-    g_state.tpsLockZoneCamera.store(s.tpsLockZoneCamera);
     g_state.tpsSuppressNativeRightStick.store(s.tpsSuppressNativeRightStick);
     g_state.tpsSuppressVanillaMouseAim.store(s.tpsSuppressVanillaMouseAim);
     g_state.cameraOrbitInputEnabled.store(s.cameraOrbitInputEnabled, std::memory_order_relaxed);
-    g_state.tpsControllerCombatAim.store(s.tpsControllerCombatAim, std::memory_order_relaxed);
-    g_state.tpsLockCombatFacing.store(s.tpsLockCombatFacing);
-    g_state.tpsStrafeLock.store(s.tpsStrafeLock);
-    g_state.tpsCameraFacingGuard.store(s.tpsCameraFacingGuard);
-    g_state.tpsLockCombatCameraPivot.store(s.tpsLockCombatCameraPivot);
     g_state.pistolDamageEnabled.store(s.pistolDamageEnabled, std::memory_order_relaxed);
     g_state.meleeDamageEnabled.store(s.meleeDamageEnabled, std::memory_order_relaxed);
     g_state.jumpHeightEnabled.store(s.jumpHeightEnabled, std::memory_order_relaxed);
@@ -43,7 +36,6 @@ void Publish(const Snapshot& s) {
 
     g_state.fovDegrees.store(s.fovDegrees, std::memory_order_relaxed);
     g_state.thirdPersonFovDegrees.store(s.thirdPersonFovDegrees);
-    g_state.tpsCombatAimTurnRate.store(s.tpsCombatAimTurnRate);
     g_state.cameraZoomPercent.store(s.cameraZoomPercent, std::memory_order_relaxed);
     g_state.cameraPitchDegrees.store(s.cameraPitchDegrees, std::memory_order_relaxed);
     g_state.cameraYawDegrees.store(s.cameraYawDegrees, std::memory_order_relaxed);
@@ -54,8 +46,6 @@ void Publish(const Snapshot& s) {
     g_state.tpsFootAnchorOffset.store(s.tpsFootAnchorOffset);
     g_state.cameraMouseSensitivity.store(s.cameraMouseSensitivity, std::memory_order_relaxed);
     g_state.cameraStickSpeed.store(s.cameraStickSpeed, std::memory_order_relaxed);
-    g_state.tpsAimYawOffsetDegrees.store(s.tpsAimYawOffsetDegrees, std::memory_order_relaxed);
-    g_state.tpsFacingToleranceDegrees.store(s.tpsFacingToleranceDegrees);
     g_state.movementSpeedMultiplier.store(s.movementSpeedMultiplier, std::memory_order_relaxed);
     g_state.actionRecoveryDelayMs.store(s.actionRecoveryDelayMs, std::memory_order_relaxed);
     g_state.pistolDamageMultiplier.store(s.pistolDamageMultiplier, std::memory_order_relaxed);

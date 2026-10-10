@@ -35,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.67-correct-native-root-world-translation";
+constexpr const char* kBuild = "0.68-tps-input-cleanup-recenter";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1373,61 +1373,21 @@ void CaptureLiveTPSActorYaw(void* actor) {
 // bOrientRotationToMovement native reflected field validated in EXACT EXE:
 // static bit setter at RVA 0x1CF0300: OR BYTE PTR [RCX+0x240], 0x10.
 // Write ONLY within an active local player's live GetMaxSpeed callback.
+// Legacy V0.61-0.66 movement-facing experiment retired. If this ASI ever
+// owned the native flag earlier in the same session, restore it in a LIVE
+// validated movement callback. Never force turn-to-move OFF in new builds.
 void UpdateTPSFacingNative(void* component) {
     if(!component)return;
     auto* field=static_cast<unsigned char*>(component)+0x240;
-    auto& rt=dg::runtime::Get();
-    const ULONGLONG now=GetTickCount64(),fireTick=g_tpsFireLastTick.load();
-    const bool attack=g_tpsFireHeld.load()&&fireTick&&now>=fireTick&&now-fireTick<150;
-    // No idle XInput aim injection. Gate only movement-oriented turning.
-    const auto camera=dg::camera_trace::GetTelemetry();
-    const ULONGLONG sampleTick=g_tpsActorYawTick.load();
-    const bool fresh=sampleTick&&now>=sampleTick&&now-sampleTick<200&&
-        camera.viewReady&&camera.viewCalls>0&&std::isfinite(camera.appliedYaw);
-    const float tolerance=std::clamp(rt.tpsFacingToleranceDegrees.load(),20.0f,180.0f);
-    const float yawGap=fresh?std::remainder(camera.appliedYaw-g_tpsActorWorldYaw.load(),360.0f):999.0f;
-    const bool cone=rt.tpsCameraFacingGuard.load()&&rt.cameraOrbitInputEnabled.load()&&fresh;
-    const bool inside=cone&&std::fabs(yawGap)<=tolerance;
-    if(cone) {
-        const unsigned n=inside?++g_tpsConeInside:++g_tpsConeOutside;
-        if(n==1||n==10000)
-            Log("TPS V0.63: facing cone %s n=%u error=%.1f tolerance=%.1f",
-                inside?"IN":"OUT",n,yawGap,tolerance);
-    }
-    // V0.66: native controller strafe. No simulated aim outside actual
-    // RT/RB; only prevent bOrientRotationToMovement from turning the pawn.
-    const unsigned char movementMode=*(static_cast<unsigned char*>(component)+0x1B0);
-    const bool walk=movementMode==1u||movementMode==2u;
-    const bool strafe=rt.tpsStrafeLock.load(std::memory_order_relaxed)&&walk;
-    const bool enable=g_targetValidation.exact&&rt.thirdPersonEnabled.load()&&
-        (strafe||inside||(rt.tpsLockCombatFacing.load()&&attack))&&
-        !g_overlayVisible.load()&&GetForegroundWindow()==g_gameWindowTrace.load();
-    if(strafe&&enable){
-        const unsigned n=++g_tpsStrafeSamples;
-        if(n==1||n==120||n==10000)
-            Log("TPS V0.66: player strafe LOCK tick=%u mode=%u actorYaw=%.1f cameraYaw=%.1f nativeBit=%u",
-                n,static_cast<unsigned>(movementMode),g_tpsActorWorldYaw.load(),
-                camera.appliedYaw,(*field&0x10u)?1u:0u);
-    }
     AcquireSRWLockExclusive(&g_tpsFacingLock);
     if(g_tpsFacingCurrentComponent!=component){
-        g_tpsFacingCurrentComponent=component;g_tpsFacingOwned=false;
+        g_tpsFacingCurrentComponent=component;
+        g_tpsFacingOwned=false;
     }
-    if(enable&&(*field&0x10u)) {
-        *field=static_cast<unsigned char>(*field&~0x10u);
-        if(!g_tpsFacingOwned) {
-            g_tpsFacingOwned=true;
-            const unsigned n=++g_tpsNativeFacingOff;
-            if(n<=3||n==1000)Log("TPS V0.66: native facing LOCK n=%u walkingStrafe=%d inside=%d component=%p",n,strafe?1:0,inside?1:0,component);
-        } else {
-            const unsigned n=++g_tpsFacingReasserted;
-            if(n==1||n==1000)Log("TPS V0.62: native facing bit reasserted OFF n=%u",n);
-        }
-    } else if(!enable&&g_tpsFacingOwned){
+    if(g_tpsFacingOwned){
         if(!(*field&0x10u))*field=static_cast<unsigned char>(*field|0x10u);
         g_tpsFacingOwned=false;
-        const unsigned n=++g_tpsNativeFacingRestored;
-        if(n<=3||n==1000)Log("TPS V0.61: native strafe-facing RESTORE n=%u component=%p",n,component);
+        ++g_tpsNativeFacingRestored;
     }
     ReleaseSRWLockExclusive(&g_tpsFacingLock);
 }
@@ -1815,10 +1775,12 @@ bool HookUiIsCursorVisible(void* uiManager) {
             : false;
 
     const auto& runtime = dg::runtime::Get();
+    const ULONGLONG tick=runtime.tpsGameplayViewTick.load();
+    const ULONGLONG now=GetTickCount64();
     const bool tpsLockedReticle =
-        runtime.thirdPersonEnabled.load(std::memory_order_relaxed) &&
-        runtime.tpsFixedCenterReticle.load(std::memory_order_relaxed) &&
-        runtime.tpsViewGameplay.load(std::memory_order_relaxed);
+        runtime.thirdPersonEnabled.load() &&
+        runtime.tpsViewGameplay.load() &&
+        tick&&now>=tick&&now-tick<250ull;
     const bool hiddenByMod =
         g_hudHidden.load(std::memory_order_relaxed) ||
         runtime.hideReticle.load(std::memory_order_relaxed) ||
@@ -1924,10 +1886,11 @@ bool ShouldBlankGameCursor() {
     const HWND hwnd = reinterpret_cast<HWND>(
         g_gameWindowTrace.load(std::memory_order_relaxed));
     const auto& runtime = dg::runtime::Get();
-    const bool hideWindows = runtime.hideReticle.load(std::memory_order_relaxed) ||
-        (runtime.thirdPersonEnabled.load(std::memory_order_relaxed) &&
-         runtime.tpsFixedCenterReticle.load(std::memory_order_relaxed) &&
-         runtime.tpsViewGameplay.load(std::memory_order_relaxed));
+    const ULONGLONG tick=runtime.tpsGameplayViewTick.load();
+    const ULONGLONG now=GetTickCount64();
+    const bool hideWindows = runtime.hideReticle.load() ||
+        (runtime.thirdPersonEnabled.load() && runtime.tpsViewGameplay.load() &&
+         tick&&now>=tick&&now-tick<250ull);
     return hwnd && GetForegroundWindow() == hwnd &&
         !g_overlayVisible.load(std::memory_order_relaxed) && hideWindows;
 }
@@ -2421,108 +2384,36 @@ const wchar_t* const kNativeXInputLibraries[]={
 // item throw shares RT. LB radial / capability menus always receive vanilla.
 DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     const auto original=g_nativeXInputOriginal[slot];
-    if (!original) return ERROR_DEVICE_NOT_CONNECTED;
+    if(!original)return ERROR_DEVICE_NOT_CONNECTED;
     const DWORD status=original(user,state);
-    if (status!=ERROR_SUCCESS || !state || !ShouldSuppressNativeAim())
-        return status;
-
+    if(status!=ERROR_SUCCESS||!state||!ShouldSuppressNativeAim()||user!=0)
+        return status; // Preserve vanilla menu, focus and co-op input.
     auto& pad=state->Gamepad;
-    if (pad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER)
-        return status; // native selection wheel must remain usable
-
-    // Never remap a second controller / co-op partner.
-    if (user!=0)
-        return status;
+    if(pad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER)
+        return status; // Ability wheel stays completely vanilla.
 
     auto& rt=dg::runtime::Get();
-    const auto view=dg::camera_trace::GetTelemetry();
-    const bool cameraKnown=view.viewCalls>0 && view.nativeFov>1.0f &&
-        std::isfinite(view.nativeYaw) && std::isfinite(view.appliedYaw);
-    const bool aim=rt.tpsControllerCombatAim.load(std::memory_order_relaxed);
     const bool fire=pad.bRightTrigger>=XINPUT_GAMEPAD_TRIGGER_THRESHOLD ||
         (pad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER)!=0;
     g_tpsFireHeld.store(fire);
-    if(fire)g_tpsFireLastTick.store(GetTickCount64());
+    if(fire) g_tpsFireLastTick.store(GetTickCount64());
     rt.tpsAimActive.store(fire);
-    const float calibration=rt.tpsAimYawOffsetDegrees.load(std::memory_order_relaxed);
-    const float trim=std::isfinite(calibration)
-        ? std::clamp(calibration,-180.0f,180.0f):0.0f;
-    // In the supplied exact EXE, native aim and the native camera yaw are
-    // separate systems. V0.58 used (appliedYaw-nativeYaw) as a world target,
-    // causing target drift whenever the game's native camera rotated.
-    // Instead use the absolute world yaw of OUR final TPS camera.
-    const float targetYaw=std::remainder(view.appliedYaw+trim,360.0f);
-    constexpr float toRadians=0.01745329251994329577f;
-    const auto convertStick=[](float v)->SHORT {
-        return static_cast<SHORT>(std::clamp(std::lround(v),-32767l,32767l));
-    };
-    const ULONGLONG now=GetTickCount64();
-    const ULONGLONG actorTime=g_tpsActorYawTick.load();
-    const bool liveActor=actorTime && now>=actorTime && now-actorTime<200ull;
-    const float actorYaw=g_tpsActorWorldYaw.load();
-    // Left analog stick bytes are always native and never rotated.
-    if (cameraKnown && (pad.sThumbLX || pad.sThumbLY)) {
-        // Pass through EXACT original left-stick bytes. We log the native
-        // mapping for controlled observations, without creating a new one.
-        const unsigned n=g_tpsLeftPassthroughSamples.fetch_add(1)+1;
-        if (n==1 || n==120 || n==10000) {
-            Log("TPS V0.60: left stick passthrough sample=%u fire=%d native=(%d,%d) cameraYaw=%.1f actorYaw=%.1f actorFresh=%d",
-                n,fire?1:0,pad.sThumbLX,pad.sThumbLY,
-                view.appliedYaw,actorYaw,liveActor?1:0);
-        }
+
+    // V0.68: NEVER inject artificial XInput aim during RT/RB.
+    // The same right-stick suppression applies while running, idle AND
+    // firing. Our own camera separately reads the UNFILTERED trampoline.
+    // This is input isolation, NOT yet a shot-direction fix.
+    if(rt.tpsSuppressNativeRightStick.load() &&
+       (pad.sThumbRX!=0 || pad.sThumbRY!=0)){
+        pad.sThumbRX=0;pad.sThumbRY=0;
+        const unsigned n=++g_nativePadAimSuppressed;
+        if(n==1||n==10000)
+            Log("TPS V0.68: native right-stick yaw suppressed=%u firing=%d",
+                n,fire?1:0);
     }
-    if (cameraKnown && aim && fire) {
-        if (fire && (pad.sThumbLX || pad.sThumbLY))
-            g_tpsMovingFireSamples.fetch_add(1);
-        // A camera-paced command-rate cap prevents the game from receiving
-        // full instantaneous ~180-degree snapping instructions. It does not
-        // write player rotation or override the game's shooting/throw code.
-        const ULONGLONG previous=g_tpsLastAimTick.exchange(now);
-        const float dt=(previous && now>previous && now-previous<=150ull)
-            ? std::clamp(static_cast<float>(now-previous)*0.001f,0.001f,0.05f)
-            : 0.016f;
-        float heading=g_tpsCommandYawDegrees.load();
-        if (!g_tpsAimCommandReady.exchange(true))
-            heading=liveActor ? actorYaw : targetYaw;
-        // TPS combat aim turn-rate is independent of camera orbit speed.
-        const float stickSpeed=rt.tpsCombatAimTurnRate.load(std::memory_order_relaxed);
-        const float maxRate=std::isfinite(stickSpeed)
-            ? std::clamp(stickSpeed,30.0f,360.0f) : 180.0f;
-        const float maxStep=maxRate*dt;
-        const float gap=std::remainder(targetYaw-heading,360.0f);
-        heading=std::remainder(heading+std::clamp(gap,-maxStep,maxStep),360.0f);
-        g_tpsCommandYawDegrees.store(heading);
-        g_tpsDesiredYawDegrees.store(targetYaw);
-        // World-space aim vector: no subtraction of moving native view yaw.
-        // Stick magnitude ~0.55 avoids the V0.58 full-scale synthetic input
-        // while preserving an XInput value far above its native deadzone.
-        const float headingRad=heading*toRadians;
-        pad.sThumbRX=convertStick(18022.0f*std::sin(headingRad));
-        pad.sThumbRY=convertStick(18022.0f*std::cos(headingRad));
-        const unsigned n=g_tpsCombatAimSamples.fetch_add(1)+1;
-        if (n==1 || n==120 || n==10000) {
-            const float actorGap=liveActor?std::remainder(targetYaw-actorYaw,360.0f):999.0f;
-            Log("TPS V0.59: combat sample=%u RT=%u RB=%u cameraYaw=%.1f nativeYaw=%.1f targetYaw=%.1f commandYaw=%.1f actorYaw=%.1f actorGap=%.1f actorFresh=%d right=(%d,%d)",
-                n,static_cast<unsigned>(pad.bRightTrigger),
-                (pad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER)?1u:0u,
-                view.appliedYaw,view.nativeYaw,targetYaw,heading,actorYaw,actorGap,liveActor?1:0,
-                pad.sThumbRX,pad.sThumbRY);
-        }
-        if(fire)g_tpsCombatFireSamples.fetch_add(1);
-    } else {
-        g_tpsAimCommandReady.store(false);
-        g_tpsLastAimTick.store(0);
-        // Separate toggle for blocking native character yaw. Our camera
-        // still reads original right-stick data via original XInput.
-        if (rt.tpsSuppressNativeRightStick.load(std::memory_order_relaxed) &&
-            (pad.sThumbRX || pad.sThumbRY)) {
-            pad.sThumbRX=0;
-            pad.sThumbRY=0;
-            const unsigned n=g_nativePadAimSuppressed.fetch_add(1)+1;
-            if (n==1 || n==10000)
-                Log("Aim V0.57: filtered native XInput right stick count=%u",n);
-        }
-    }
+
+    // Exposed as rebindable button: the gameplay action remains unchanged,
+    // and the edge-triggered camera recenter uses RAW XInput in Present.
     return status;
 }
 DWORD WINAPI HookNativeXInput14(DWORD user,XINPUT_STATE* state) {return FilterNativeXInput(0,user,state);}
@@ -3062,6 +2953,7 @@ void EnsureOrbitWndProc(IDXGISwapChain* chain) {
     }
 }
 void UpdateOrbitInput() {
+    static WORD lastButtons=0;
     auto& rt=dg::runtime::Get();
     const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
     const bool active=g_config.thirdPersonEnabled && g_config.cameraOrbitInputEnabled &&
@@ -3072,10 +2964,28 @@ void UpdateOrbitInput() {
     g_orbitLastPresentTick=now;
     const int dx=g_orbitMouseDx.exchange(0),dy=g_orbitMouseDy.exchange(0);
     if (!active) {
-        rt.cameraOrbitYawDegrees.store(0.0f);
-        rt.cameraOrbitPitchDegrees.store(0.0f);
+        lastButtons=0;
+        if(!g_config.thirdPersonEnabled) {
+            rt.cameraOrbitYawDegrees.store(0.0f);
+            rt.cameraOrbitPitchDegrees.store(0.0f);
+        }
         return;
     }
+    // Configurable recenter input, default L3 (XINPUT_GAMEPAD_LEFT_THUMB).
+    // Edge detection on the ORIGINAL XInput state, not the filtered
+    // game-facing state. Recenter yaw toward live player facing.
+    XINPUT_STATE primary{};
+    WORD buttonBits=0;
+    if(GetCameraXInputState(0,&primary)==ERROR_SUCCESS) {
+        buttonBits=primary.Gamepad.wButtons;
+        const WORD mask=static_cast<WORD>(g_config.tpsRecenterButtonMask);
+        if(mask && (buttonBits&mask) && !(lastButtons&mask)) {
+            const bool success=dg::camera_trace::RecenterOnPlayer();
+            Log("TPS V0.68: recenter button=0x%04X successful=%d",
+                unsigned(mask),success?1:0);
+        }
+    }
+    lastButtons=buttonBits;
     float ax=0.0f,ay=0.0f;
     {
         for (DWORD i=0;i<XUSER_MAX_COUNT;++i) {
@@ -3122,59 +3032,20 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     UpdateOrbitInput();
     RefreshReticleCursorState();
 
-    // V0.32: do not initialize ImGui, create an RTV, or subclass the game
-    // window during normal gameplay. The overlay backend is created lazily
-    // only when the user actually opens the menu for the first time.
-    const auto& tpSettings=dg::runtime::Get();
-    const HWND currentGameWindow=reinterpret_cast<HWND>(g_gameWindowTrace.load());
-    const ULONGLONG frameNow=GetTickCount64();
-    const ULONGLONG viewTick=tpSettings.tpsGameplayViewTick.load();
-    const bool tpsFixedCrosshair=tpSettings.thirdPersonEnabled.load() &&
-        tpSettings.tpsFixedCenterReticle.load() &&
-        tpSettings.tpsViewGameplay.load() && viewTick &&
-        frameNow>=viewTick && frameNow-viewTick<250ull &&
-        !tpSettings.hideReticle.load() && !g_hudHidden.load() &&
-        currentGameWindow && GetForegroundWindow()==currentGameWindow &&
-        !g_overlayVisible.load();
-    if (!g_imguiReady.load() &&
-        (g_overlayVisible.load() || tpsFixedCrosshair)) {
-        Log(
-            "Overlay lazy-init requested on first menu open"
-        );
+    // V0.68: restore original V0.32 lazy overlay policy. No rendered TPS
+    // crosshair and no needless ImGui frame during ordinary gameplay.
+    if (!g_imguiReady.load() && g_overlayVisible.load()){
+        Log("Overlay lazy-init requested on first menu open");
         InitializeImGui(swapChain);
     }
-
-    if(g_imguiReady.load() && swapChain==g_gameSwapChain &&
-       (g_overlayVisible.load() || tpsFixedCrosshair)){
-        const bool open=g_overlayVisible.load();
-        if(open && GetForegroundWindow()==g_hwnd) ClipCursor(nullptr);
+    if(g_imguiReady.load()&&swapChain==g_gameSwapChain&&g_overlayVisible.load()){
+        if(GetForegroundWindow()==g_hwnd)ClipCursor(nullptr);
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
-        ImGui::GetIO().MouseDrawCursor=open;
-        if(open){
-            auto overlayContext=BuildOverlayContext();
-            dg::overlay::Draw(overlayContext);
-        } else if(tpsFixedCrosshair){
-            // Fixed *visual* screen-center crosshair. Native weapon traces
-            // are NOT modified and the OS pointer is never warped.
-            const ImVec2 display=ImGui::GetIO().DisplaySize;
-            const ImVec2 mid(display.x*0.5f,display.y*0.5f);
-            if(display.x>100.0f&&display.y>100.0f){
-                auto* draw=ImGui::GetForegroundDrawList();
-                const ImU32 shadow=IM_COL32(0,0,0,185);
-                const ImU32 foreground=IM_COL32(245,245,245,235);
-                constexpr float gap=4.0f,length=8.0f;
-                draw->AddLine(ImVec2(mid.x-length-gap,mid.y),ImVec2(mid.x-gap,mid.y),shadow,3.0f);
-                draw->AddLine(ImVec2(mid.x+gap,mid.y),ImVec2(mid.x+gap+length,mid.y),shadow,3.0f);
-                draw->AddLine(ImVec2(mid.x,mid.y-length-gap),ImVec2(mid.x,mid.y-gap),shadow,3.0f);
-                draw->AddLine(ImVec2(mid.x,mid.y+gap),ImVec2(mid.x,mid.y+gap+length),shadow,3.0f);
-                draw->AddLine(ImVec2(mid.x-length-gap,mid.y),ImVec2(mid.x-gap,mid.y),foreground,1.5f);
-                draw->AddLine(ImVec2(mid.x+gap,mid.y),ImVec2(mid.x+gap+length,mid.y),foreground,1.5f);
-                draw->AddLine(ImVec2(mid.x,mid.y-length-gap),ImVec2(mid.x,mid.y-gap),foreground,1.5f);
-                draw->AddLine(ImVec2(mid.x,mid.y+gap),ImVec2(mid.x,mid.y+gap+length),foreground,1.5f);
-            }
-        }
+        ImGui::GetIO().MouseDrawCursor=true;
+        auto context=BuildOverlayContext();
+        dg::overlay::Draw(context);
         ImGui::Render();
         if(g_rtv){
             g_context->OMSetRenderTargets(1,&g_rtv,nullptr);

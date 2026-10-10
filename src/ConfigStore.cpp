@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2114;
+constexpr int kConfigRevision = 2115;
 
 bool ReadBool(
     const wchar_t* section,
@@ -301,16 +301,10 @@ void Store::ResetDefaults(bool persist) {
     thirdPersonEnabled = false;
     thirdPersonFovEnabled = true;
     tpsFollowPlayer = true;
-    tpsFixedCenterReticle = true;
-    tpsLockZoneCamera = true;
     tpsSuppressNativeRightStick = true;
     tpsSuppressVanillaMouseAim = true;
     cameraOrbitInputEnabled = true;
-    tpsControllerCombatAim = true;
-    tpsLockCombatFacing=true;
-    tpsStrafeLock=true;
-    tpsCameraFacingGuard=false;
-    tpsLockCombatCameraPivot=false;
+    tpsRecenterButtonMask = 0x0040;
     pistolDamageEnabled = true;
     meleeDamageEnabled = true;
     jumpHeightEnabled = true;
@@ -335,7 +329,6 @@ void Store::ResetDefaults(bool persist) {
     horseSprintDurationMultiplier = 5.00f;
     fovDegrees = 90.0f;
     thirdPersonFovDegrees = 90.0f;
-    tpsCombatAimTurnRate = 180.0f;
     cameraZoomPercent = 0.0f;
     cameraPitchDegrees = 0.0f;
     cameraYawDegrees = 0.0f;
@@ -418,16 +411,15 @@ bool Store::Load() {
         ReadBool(L"Features", L"ThirdPerson", false, path_);
     thirdPersonFovEnabled=ReadBool(L"Features",L"TPSFOV",true,path_);
     tpsFollowPlayer=ReadBool(L"Features",L"TPSFollowPlayer",true,path_);
-    tpsFixedCenterReticle=ReadBool(L"Features",L"TPSFixedCenterReticle",true,path_);
-    tpsLockZoneCamera=ReadBool(L"Features",L"TPSLockZoneCamera",true,path_);
     tpsSuppressNativeRightStick=ReadBool(L"Features",L"TPSSuppressNativeRightStick",true,path_);
     tpsSuppressVanillaMouseAim=ReadBool(L"Features",L"TPSSuppressVanillaMouseAim",true,path_);
     cameraOrbitInputEnabled = ReadBool(L"Features", L"CameraMouseGamepad", true, path_);
-    tpsControllerCombatAim = ReadBool(L"Features", L"TPSControllerCombatAim", true, path_);
-    tpsLockCombatFacing = ReadBool(L"Features",L"TPSLockCombatFacing",true,path_);
-    tpsStrafeLock=ReadBool(L"Features",L"TPSStrafeLock",true,path_);
-    tpsCameraFacingGuard = ReadBool(L"Features",L"TPSCameraFacingGuard",false,path_);
-    tpsLockCombatCameraPivot = ReadBool(L"Features",L"TPSLockCombatCameraPivot",false,path_);
+    tpsRecenterButtonMask=GetPrivateProfileIntW(L"Controls",L"TPSRecenterButtonMask",0x0040,path_.c_str());
+    if(tpsRecenterButtonMask!=0x0040 && tpsRecenterButtonMask!=0x0080 &&
+       tpsRecenterButtonMask!=0x0100 && tpsRecenterButtonMask!=0x0200 &&
+       tpsRecenterButtonMask!=0x1000 && tpsRecenterButtonMask!=0x0001 &&
+       tpsRecenterButtonMask!=0x0002 && tpsRecenterButtonMask!=0x0004 &&
+       tpsRecenterButtonMask!=0x0008) tpsRecenterButtonMask=0x0040;
     pistolDamageEnabled =
         ReadBool(L"Features", L"PistolDamage", true, path_);
     meleeDamageEnabled =
@@ -476,9 +468,6 @@ bool Store::Load() {
     thirdPersonFovDegrees=ReadFloat(L"Values",L"TPSFOVDegrees",90.0f,path_);
     if(!std::isfinite(thirdPersonFovDegrees))thirdPersonFovDegrees=90.0f;
     thirdPersonFovDegrees=std::clamp(thirdPersonFovDegrees,40.0f,140.0f);
-    tpsCombatAimTurnRate=ReadFloat(L"Values",L"TPSCombatAimTurnRate",180.0f,path_);
-    if(!std::isfinite(tpsCombatAimTurnRate))tpsCombatAimTurnRate=180.0f;
-    tpsCombatAimTurnRate=std::clamp(tpsCombatAimTurnRate,30.0f,360.0f);
     cameraZoomPercent =
         ReadFloat(L"Values", L"CameraZoomPercent", 0.0f, path_);
     cameraPitchDegrees =
@@ -506,12 +495,6 @@ bool Store::Load() {
     thirdPersonHeightOffset=std::clamp(thirdPersonHeightOffset,-500.0f,500.0f);
     cameraMouseSensitivity=std::clamp(cameraMouseSensitivity,0.01f,0.75f);
     cameraStickSpeed=std::clamp(cameraStickSpeed,30.0f,360.0f);
-    tpsAimYawOffsetDegrees=ReadFloat(L"Values",L"TPSAimYawOffsetDegrees",0.0f,path_);
-    if (!std::isfinite(tpsAimYawOffsetDegrees)) tpsAimYawOffsetDegrees=0.0f;
-    tpsAimYawOffsetDegrees=std::clamp(tpsAimYawOffsetDegrees,-180.0f,180.0f);
-    tpsFacingToleranceDegrees=ReadFloat(L"Values",L"TPSFacingToleranceDegrees",90.0f,path_);
-    if(!std::isfinite(tpsFacingToleranceDegrees)) tpsFacingToleranceDegrees=90.0f;
-    tpsFacingToleranceDegrees=std::clamp(tpsFacingToleranceDegrees,20.0f,180.0f);
     hotstreakChargeMultiplier =
         ReadFloat(L"Values", L"HotstreakChargeMultiplier", 2.0f, path_);
 
@@ -581,13 +564,11 @@ bool Store::Load() {
                 thirdPersonHeightOffset=180.0f;
         }
         if(revision<=2112){
-            tpsCameraFacingGuard=false;
-            tpsLockCombatCameraPivot=false;
             cameraOrbitInputEnabled=true;
         }
         PublishRuntime();
         SaveNow();
-        Log("INI migrated V0.66: TPS strafe movement lock ON; camera eligibility diagnostics");
+        Log("INI migrated V0.68: retired TPS camera experiments and synthetic aim; L3 recenter");
         return true;
     }
 
@@ -610,24 +591,15 @@ void Store::PublishRuntime() const {
     runtime.thirdPersonEnabled = thirdPersonEnabled;
     runtime.thirdPersonFovEnabled = thirdPersonFovEnabled;
     runtime.tpsFollowPlayer = tpsFollowPlayer;
-    runtime.tpsFixedCenterReticle = tpsFixedCenterReticle;
-    runtime.tpsLockZoneCamera = tpsLockZoneCamera;
     runtime.tpsSuppressNativeRightStick = tpsSuppressNativeRightStick;
     runtime.tpsSuppressVanillaMouseAim = tpsSuppressVanillaMouseAim;
     runtime.cameraOrbitInputEnabled = cameraOrbitInputEnabled;
-    runtime.tpsControllerCombatAim = tpsControllerCombatAim;
-    runtime.tpsLockCombatFacing = tpsLockCombatFacing;
-    runtime.tpsStrafeLock = tpsStrafeLock;
-    runtime.tpsCameraFacingGuard = tpsCameraFacingGuard;
-    runtime.tpsLockCombatCameraPivot = tpsLockCombatCameraPivot;
     runtime.thirdPersonDistanceMultiplier = thirdPersonDistanceMultiplier;
     runtime.thirdPersonPitchDegrees = thirdPersonPitchDegrees;
     runtime.thirdPersonHeightOffset = thirdPersonHeightOffset;
     runtime.tpsFootAnchorOffset = tpsFootAnchorOffset;
     runtime.cameraMouseSensitivity = cameraMouseSensitivity;
     runtime.cameraStickSpeed = cameraStickSpeed;
-    runtime.tpsAimYawOffsetDegrees = tpsAimYawOffsetDegrees;
-    runtime.tpsFacingToleranceDegrees = tpsFacingToleranceDegrees;
     runtime.pistolDamageEnabled = pistolDamageEnabled;
     runtime.meleeDamageEnabled = meleeDamageEnabled;
     runtime.jumpHeightEnabled = jumpHeightEnabled;
@@ -639,7 +611,6 @@ void Store::PublishRuntime() const {
 
     runtime.fovDegrees = fovDegrees;
     runtime.thirdPersonFovDegrees = thirdPersonFovDegrees;
-    runtime.tpsCombatAimTurnRate = tpsCombatAimTurnRate;
     runtime.cameraZoomPercent = cameraZoomPercent;
     runtime.cameraPitchDegrees = cameraPitchDegrees;
     runtime.cameraYawDegrees = cameraYawDegrees;
@@ -715,19 +686,21 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"ThirdPerson", thirdPersonEnabled, path_);
     WriteBool(L"Features",L"TPSFOV",thirdPersonFovEnabled,path_);
     WriteBool(L"Features",L"TPSFollowPlayer",tpsFollowPlayer,path_);
-    WriteBool(L"Features",L"TPSFixedCenterReticle",tpsFixedCenterReticle,path_);
-    WriteBool(L"Features",L"TPSLockZoneCamera",tpsLockZoneCamera,path_);
+    // Remove obsolete TPS switches from existing user INIs once migrated.
+    for(const wchar_t* key : { L"TPSFixedCenterReticle",L"TPSLockZoneCamera",
+        L"TPSControllerCombatAim",L"TPSLockCombatFacing",L"TPSStrafeLock",
+        L"TPSCameraFacingGuard",L"TPSLockCombatCameraPivot" }) {
+        WritePrivateProfileStringW(L"Features",key,nullptr,path_.c_str());
+    }
     WriteBool(L"Features",L"TPSSuppressNativeRightStick",tpsSuppressNativeRightStick,path_);
     WriteBool(L"Features",L"TPSSuppressVanillaMouseAim",tpsSuppressVanillaMouseAim,path_);
     WriteBool(L"Features", L"CameraMouseGamepad", cameraOrbitInputEnabled, path_);
-    WriteBool(L"Features", L"TPSControllerCombatAim", tpsControllerCombatAim, path_);
-    WriteBool(L"Features",L"TPSLockCombatFacing",tpsLockCombatFacing,path_);
-    WriteBool(L"Features",L"TPSStrafeLock",tpsStrafeLock,path_);
-    WriteBool(L"Features",L"TPSCameraFacingGuard",tpsCameraFacingGuard,path_);
+    wchar_t buttonBuffer[16]{};
+    swprintf_s(buttonBuffer,L"%d",tpsRecenterButtonMask);
+    WritePrivateProfileStringW(L"Controls",L"TPSRecenterButtonMask",buttonBuffer,path_.c_str());
     WritePrivateProfileStringW(L"Features",L"TPSAlwaysFaceCamera",nullptr,path_.c_str());
     WritePrivateProfileStringW(L"Features",L"TPSControllerStrafe",nullptr,path_.c_str());
     WritePrivateProfileStringW(L"Features",L"TPSHideGroundAimFx",nullptr,path_.c_str());
-    WriteBool(L"Features",L"TPSLockCombatCameraPivot",tpsLockCombatCameraPivot,path_);
     WriteBool(L"Features", L"PistolDamage", pistolDamageEnabled, path_);
     WriteBool(L"Features", L"MeleeDamage", meleeDamageEnabled, path_);
     WriteBool(L"Features", L"JumpHeight", jumpHeightEnabled, path_);
@@ -756,7 +729,9 @@ bool Store::SaveNow() {
     WriteFloat(L"Values", L"HorseSprintDurationMultiplier", horseSprintDurationMultiplier, path_);
     WriteFloat(L"Values", L"FOVDegrees", fovDegrees, path_);
     WriteFloat(L"Values",L"TPSFOVDegrees",thirdPersonFovDegrees,path_);
-    WriteFloat(L"Values",L"TPSCombatAimTurnRate",tpsCombatAimTurnRate,path_);
+    for(const wchar_t* key : { L"TPSCombatAimTurnRate",L"TPSAimYawOffsetDegrees",
+        L"TPSFacingToleranceDegrees" })
+        WritePrivateProfileStringW(L"Values",key,nullptr,path_.c_str());
     WriteFloat(L"Values", L"CameraZoomPercent", cameraZoomPercent, path_);
     WriteFloat(L"Values", L"CameraPitchDegrees", cameraPitchDegrees, path_);
     WriteFloat(L"Values", L"CameraYawDegrees", cameraYawDegrees, path_);
@@ -767,8 +742,6 @@ bool Store::SaveNow() {
     WriteFloat(L"Values",L"TPSFootAnchorOffset",tpsFootAnchorOffset,path_);
     WriteFloat(L"Values", L"CameraMouseSensitivity", cameraMouseSensitivity, path_);
     WriteFloat(L"Values", L"CameraStickSpeed", cameraStickSpeed, path_);
-    WriteFloat(L"Values", L"TPSAimYawOffsetDegrees", tpsAimYawOffsetDegrees, path_);
-    WriteFloat(L"Values", L"TPSFacingToleranceDegrees", tpsFacingToleranceDegrees, path_);
     WriteFloat(L"Values", L"HotstreakChargeMultiplier", hotstreakChargeMultiplier, path_);
 
     for (int i = 0; i < 12; ++i) {

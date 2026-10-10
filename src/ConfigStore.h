@@ -133,16 +133,10 @@ public:
     bool thirdPersonEnabled = false;
     bool thirdPersonFovEnabled = true;
     bool tpsFollowPlayer = true;
-    bool tpsFixedCenterReticle = true;
-    bool tpsLockZoneCamera = true;
     bool tpsSuppressNativeRightStick = true;
     bool tpsSuppressVanillaMouseAim = true;
     bool cameraOrbitInputEnabled = true;
-    bool tpsControllerCombatAim = true;
-    bool tpsLockCombatFacing = true;
-    bool tpsStrafeLock = true;
-    bool tpsCameraFacingGuard = false;
-    bool tpsLockCombatCameraPivot = false;
+    int tpsRecenterButtonMask = 0x0040; // XINPUT_GAMEPAD_LEFT_THUMB
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
     bool jumpHeightEnabled = true;
@@ -167,7 +161,6 @@ public:
     float horseSprintDurationMultiplier = 5.00f;
     float fovDegrees = 90.0f;
     float thirdPersonFovDegrees = 90.0f;
-    float tpsCombatAimTurnRate = 180.0f;
     float cameraZoomPercent = 0.0f;
     float cameraPitchDegrees = 0.0f;
     float cameraYawDegrees = 0.0f;
@@ -178,8 +171,6 @@ public:
     float tpsFootAnchorOffset = 88.0f; // estimated capsule center-to-foot, configurable
     float cameraMouseSensitivity = 0.12f;
     float cameraStickSpeed = 135.0f;
-    float tpsAimYawOffsetDegrees = 0.0f;
-    float tpsFacingToleranceDegrees = 90.0f;
     float hotstreakChargeMultiplier = 2.00f;
 
     std::array<Action, 12> hotkeys{};
