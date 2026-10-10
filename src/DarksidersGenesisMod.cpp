@@ -35,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.66-tps-camera-unblock-strafe-lock";
+constexpr const char* kBuild = "0.67-correct-native-root-world-translation";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1335,12 +1335,22 @@ void CaptureLiveTPSActorYaw(void* actor) {
     float yaw=0.0f;
     std::memcpy(&yaw,yawPtr,sizeof(yaw));
     if (!std::isfinite(yaw) || std::fabs(yaw)>36000.0f) return;
-    // RootComponent.ComponentToWorld.Translation at +0x1D0 (UE4 layout).
-    // Live-callback read only: no UObject cached for future dereferences.
+    // V0.67: NATIVE EXE CONFIRMED (SHA-256 exact) at RVA 0x66976C:
+    //   movups xmm1, XMMWORD PTR [rax+0x1A0]
+    // after loading Actor.RootComponent [r12+0x158] at RVA 0x669728.
+    // Native then extracts x/y/z from xmm1 by scalar + shufps.
+    // +0x1D0, used in V0.64-0.66, was WRONG and yielded (0,0,0),
+    // teleporting the mod's synthetic camera to the map origin.
+    // Read only in validated live-player GetMaxSpeed callback.
+    auto* worldPosition=static_cast<unsigned char*>(root)+0x1A0;
+    MEMORY_BASIC_INFORMATION positionMemory{};
+    if(!VirtualQuery(worldPosition,&positionMemory,sizeof(positionMemory)) ||
+       positionMemory.State!=MEM_COMMIT ||
+       (positionMemory.Protect&(PAGE_NOACCESS|PAGE_GUARD))) return;
     float px=0,py=0,pz=0;
-    std::memcpy(&px,static_cast<unsigned char*>(root)+0x1D0,4);
-    std::memcpy(&py,static_cast<unsigned char*>(root)+0x1D4,4);
-    std::memcpy(&pz,static_cast<unsigned char*>(root)+0x1D8,4);
+    std::memcpy(&px,worldPosition+0x00,4);
+    std::memcpy(&py,worldPosition+0x04,4);
+    std::memcpy(&pz,worldPosition+0x08,4);
     if(std::isfinite(px)&&std::isfinite(py)&&std::isfinite(pz)&&
         std::fabs(px)<1e7f&&std::fabs(py)<1e7f&&std::fabs(pz)<1e7f) {
         auto& settings=dg::runtime::Get();
@@ -1354,8 +1364,10 @@ void CaptureLiveTPSActorYaw(void* actor) {
     g_tpsActorWorldYaw.store(std::remainder(yaw,360.0f));
     g_tpsActorYawTick.store(GetTickCount64());
     const unsigned count=g_tpsActorYawSamples.fetch_add(1)+1;
-    if (count==1 || count==120 || count==10000)
-        Log("TPS V0.59: live actor facing sample=%u actor=%p worldYaw=%.2f",count,actor,yaw);
+    if (count==1 || count==120 || count==1000 || count==10000)
+        Log("TPS V0.67: live actor transform sample=%u actor=%p root=%p "
+            "worldYaw=%.2f worldLocation=(%.1f,%.1f,%.1f) nativeOffset=0x1A0",
+            count,actor,root,yaw,px,py,pz);
 }
 
 // bOrientRotationToMovement native reflected field validated in EXACT EXE:
