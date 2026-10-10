@@ -24,6 +24,8 @@ void Publish(const Snapshot& s) {
     g_state.tpsFollowPlayer.store(s.tpsFollowPlayer);
     g_state.tpsSuppressNativeRightStick.store(s.tpsSuppressNativeRightStick);
     g_state.cameraOrbitInputEnabled.store(s.cameraOrbitInputEnabled, std::memory_order_relaxed);
+    g_state.cameraMouseOrbitEnabled.store(s.cameraMouseOrbitEnabled);
+    g_state.cameraControllerOrbitEnabled.store(s.cameraControllerOrbitEnabled);
     g_state.pistolDamageEnabled.store(s.pistolDamageEnabled, std::memory_order_relaxed);
     g_state.meleeDamageEnabled.store(s.meleeDamageEnabled, std::memory_order_relaxed);
     g_state.jumpHeightEnabled.store(s.jumpHeightEnabled, std::memory_order_relaxed);

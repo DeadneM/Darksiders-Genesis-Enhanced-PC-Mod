@@ -134,7 +134,9 @@ public:
     bool thirdPersonFovEnabled = true;
     bool tpsFollowPlayer = true;
     bool tpsSuppressNativeRightStick = true;
-    bool cameraOrbitInputEnabled = true;
+    bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
+    bool cameraMouseOrbitEnabled = true;
+    bool cameraControllerOrbitEnabled = true;
     int tpsRecenterButtonMask = 0x0040; // XINPUT_GAMEPAD_LEFT_THUMB
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;

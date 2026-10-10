@@ -680,18 +680,26 @@ void Draw(Context& c) {
                     config.Save();
                 }
                 ImGui::Spacing();
-                if (ImGui::Checkbox("Control camera with mouse / controller right stick", &config.cameraOrbitInputEnabled))
+                if(ImGui::Checkbox("Control camera with mouse##TPS",&config.cameraMouseOrbitEnabled)){
+                    config.cameraOrbitInputEnabled=config.cameraMouseOrbitEnabled||config.cameraControllerOrbitEnabled;
                     config.Save();
-                ImGui::TextDisabled("Only while Third Person ON, game focused and overlay CLOSED.");
-                if (config.cameraOrbitInputEnabled) {
-                    bool changed=false;
-                    ImGui::SetNextItemWidth(245.0f);
-                    changed |= ImGui::SliderFloat("Mouse sensitivity##TP",&config.cameraMouseSensitivity,0.01f,0.75f,"%.2f deg/px");
-                    ImGui::SetNextItemWidth(245.0f);
-                    changed |= ImGui::SliderFloat("Stick speed##TP",&config.cameraStickSpeed,30.0f,360.0f,"%.0f deg/s");
-                    if (changed) config.Save();
-                    ImGui::TextDisabled("Gamepad right stick has a native dead zone.");
                 }
+                if(config.cameraMouseOrbitEnabled){
+                    ImGui::SetNextItemWidth(245.0f);
+                    if(ImGui::SliderFloat("Mouse sensitivity##TP",&config.cameraMouseSensitivity,0.01f,0.75f,"%.2f deg/px"))
+                        config.Save();
+                }
+                if(ImGui::Checkbox("Control camera with controller right stick##TPS",&config.cameraControllerOrbitEnabled)){
+                    config.cameraOrbitInputEnabled=config.cameraMouseOrbitEnabled||config.cameraControllerOrbitEnabled;
+                    config.Save();
+                }
+                if(config.cameraControllerOrbitEnabled){
+                    ImGui::SetNextItemWidth(245.0f);
+                    if(ImGui::SliderFloat("Stick speed##TP",&config.cameraStickSpeed,30.0f,360.0f,"%.0f deg/s"))
+                        config.Save();
+                }
+                ImGui::TextDisabled("Only Third Person, focused game, closed overlay.");
+                ImGui::TextDisabled("Right stick filter below is separate from orbit enable.");
                 ImGui::Unindent();
             }
             if (config.thirdPersonEnabled) {

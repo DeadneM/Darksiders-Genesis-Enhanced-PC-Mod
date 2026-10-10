@@ -35,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.69-tps-shoot-stick-gate-native-mouse";
+constexpr const char* kBuild = "0.70-split-orbit-horse-cam-right-stick-trace";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -2483,7 +2483,7 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     // Read mouse deltas without consuming native game input.
     static bool primed=false;
     static int oldX=0,oldY=0;
-    const bool active=g_config.thirdPersonEnabled && g_config.cameraOrbitInputEnabled &&
+    const bool active=g_config.thirdPersonEnabled && g_config.cameraMouseOrbitEnabled &&
         !g_overlayVisible.load() && GetForegroundWindow()==hwnd;
     if (!active) primed=false;
     // V0.69: do not consume native WM_INPUT/WM_MOUSEMOVE.
@@ -2953,7 +2953,8 @@ void UpdateOrbitInput() {
     static WORD lastButtons=0;
     auto& rt=dg::runtime::Get();
     const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
-    const bool active=g_config.thirdPersonEnabled && g_config.cameraOrbitInputEnabled &&
+    const bool active=g_config.thirdPersonEnabled &&
+        (g_config.cameraMouseOrbitEnabled||g_config.cameraControllerOrbitEnabled) &&
         hwnd && hwnd==GetForegroundWindow() && !IsIconic(hwnd) && !g_overlayVisible.load();
     const ULONGLONG now=GetTickCount64();
     const float dt=g_orbitLastPresentTick && now-g_orbitLastPresentTick<=100ull
@@ -2982,10 +2983,41 @@ void UpdateOrbitInput() {
         suspendControllerOrbitOnFire=!rt.tpsSuppressNativeRightStick.load() &&
             (primary.Gamepad.bRightTrigger>=XINPUT_GAMEPAD_TRIGGER_THRESHOLD ||
              (buttonBits&XINPUT_GAMEPAD_RIGHT_SHOULDER)!=0);
+        // Read-only probe: does the local pawn yaw change when ONLY the
+        // right analog is moving, despite our native XInput suppression?
+        // A positive result proves an additional game/input path must be
+        // investigated, not that a second orientation write is safe.
+        static ULONGLONG lastProbe=0;
+        static float probeYaw=0.0f;
+        const auto& pad=primary.Gamepad;
+        const bool rightMoving=
+            std::abs(int(pad.sThumbRX))>XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE ||
+            std::abs(int(pad.sThumbRY))>XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE;
+        const bool leftIdle=
+            std::abs(int(pad.sThumbLX))<XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE &&
+            std::abs(int(pad.sThumbLY))<XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE;
+        const ULONGLONG actorTick=g_tpsActorYawTick.load();
+        if(rt.tpsSuppressNativeRightStick.load()&&rightMoving&&leftIdle&&
+           actorTick&&now>=actorTick&&now-actorTick<300ull) {
+            const float yaw=g_tpsActorWorldYaw.load();
+            if(lastProbe&&now>=lastProbe&&now-lastProbe>=650ull){
+                const float gap=std::fabs(std::remainder(yaw-probeYaw,360.0f));
+                static unsigned events=0;
+                if(gap>8.0f&&++events<=12)
+                    Log("TPS V0.70: yaw changed with RIGHT STICK ONLY while XInput gate ON delta=%.1f fire=%d (alternate input/game rotation)",
+                        gap,(pad.bRightTrigger>=XINPUT_GAMEPAD_TRIGGER_THRESHOLD||
+                           (buttonBits&XINPUT_GAMEPAD_RIGHT_SHOULDER))?1:0);
+                lastProbe=now;probeYaw=yaw;
+            }else if(!lastProbe||now<lastProbe){
+                lastProbe=now;probeYaw=yaw;
+            }
+        }else{
+            lastProbe=0;
+        }
         const WORD mask=static_cast<WORD>(g_config.tpsRecenterButtonMask);
         if(mask && (buttonBits&mask) && !(lastButtons&mask)) {
             const bool success=dg::camera_trace::RecenterOnPlayer();
-            Log("TPS V0.68: recenter button=0x%04X successful=%d",
+            Log("TPS V0.70: recenter button=0x%04X successful=%d",
                 unsigned(mask),success?1:0);
         }
     }
@@ -2999,7 +3031,7 @@ void UpdateOrbitInput() {
     float ax=0.0f,ay=0.0f;
     {
         for (DWORD i=0;i<XUSER_MAX_COUNT;++i) {
-            if(suspendControllerOrbitOnFire) break;
+            if(!g_config.cameraControllerOrbitEnabled||suspendControllerOrbitOnFire) break;
             XINPUT_STATE state{};
             if (GetCameraXInputState(i,&state)!=ERROR_SUCCESS) continue;
             if (state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) continue;
@@ -3015,8 +3047,8 @@ void UpdateOrbitInput() {
     }
     const float mouse=g_config.cameraMouseSensitivity,stick=g_config.cameraStickSpeed;
     if (!std::isfinite(mouse)||!std::isfinite(stick)) return;
-    const float dyaw=static_cast<float>(dx)*mouse+ax*stick*dt;
-    const float dpitch=-static_cast<float>(dy)*mouse+ay*stick*dt;
+    const float dyaw=(g_config.cameraMouseOrbitEnabled?static_cast<float>(dx)*mouse:0.0f)+ax*stick*dt;
+    const float dpitch=(g_config.cameraMouseOrbitEnabled?-static_cast<float>(dy)*mouse:0.0f)+ay*stick*dt;
     if (dyaw!=0.0f || dpitch!=0.0f) {
         rt.cameraOrbitYawDegrees.store(std::remainder(rt.cameraOrbitYawDegrees.load()+dyaw,360.0f));
         rt.cameraOrbitPitchDegrees.store(std::clamp(rt.cameraOrbitPitchDegrees.load()+dpitch,-60.0f,60.0f));

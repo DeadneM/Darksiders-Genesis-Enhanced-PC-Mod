@@ -74,12 +74,38 @@ void HookView(void* camera, float dt, void* outView) {
     const ULONGLONG now=GetTickCount64();
     const ULONGLONG actorTick=settings.tpsActorLocationTick.load(std::memory_order_acquire);
     const bool live=actorTick&&now>=actorTick&&now-actorTick<300ull;
-    const float ax=settings.tpsActorWorldX.load(),ay=settings.tpsActorWorldY.load(),
-                az=settings.tpsActorWorldZ.load();
-    const float actorYaw=settings.tpsActorYawDegrees.load();
-    const bool actorValid=live&&std::isfinite(ax)&&std::isfinite(ay)&&
+    float ax=settings.tpsActorWorldX.load(),ay=settings.tpsActorWorldY.load(),
+          az=settings.tpsActorWorldZ.load();
+    float actorYaw=settings.tpsActorYawDegrees.load();
+    bool actorValid=live&&std::isfinite(ax)&&std::isfinite(ay)&&
         std::isfinite(az)&&std::isfinite(actorYaw)&&
         std::fabs(ax)<1e7f&&std::fabs(ay)<1e7f&&std::fabs(az)<1e7f;
+    // V0.70: on horseback GetMaxSpeed of the on-foot player no longer
+    // runs. Use ONLY freshly sampled HorseCharacter poses, read during
+    // native horse callbacks; never dereference cached horse pointers.
+    bool usingHorse=false;
+    if(thirdPerson&&!actorValid){
+        const ULONGLONG horseTick=settings.tpsHorsePoseTick.load(std::memory_order_acquire);
+        const float hx=settings.tpsHorseWorldX.load(),hy=settings.tpsHorseWorldY.load(),
+                    hz=settings.tpsHorseWorldZ.load();
+        const float hyaw=settings.tpsHorseYawDegrees.load();
+        if(horseTick&&now>=horseTick&&now-horseTick<750ull&&
+           std::isfinite(hx)&&std::isfinite(hy)&&std::isfinite(hz)&&
+           std::isfinite(hyaw)&&std::fabs(hx)<1.0e7f&&
+           std::fabs(hy)<1.0e7f&&std::fabs(hz)<1.0e7f){
+            ax=hx;ay=hy;az=hz;actorYaw=hyaw;
+            actorValid=true;usingHorse=true;
+        }
+    }
+    static std::atomic_bool lastHorse{false};
+    if(thirdPerson&&actorValid){
+        if(lastHorse.exchange(usingHorse)!=usingHorse){
+            char message[180]{};
+            sprintf_s(message,"TPS V0.70: camera pose source = %s at (%.0f,%.0f,%.0f)",
+                      usingHorse?"HORSE":"FOOT",ax,ay,az);
+            Write(message);
+        }
+    }
     // Conservative gameplay/cutscene heuristic. Fail OPEN for unusual
     // cinematic views. We do not patch persistent camera volumes or sequences.
     const float nativeDx=x-ax,nativeDy=y-ay,nativeDz=z-az;
@@ -335,8 +361,11 @@ bool RecenterOnPlayer() {
        !rt.tpsFollowPlayer.load()||!g_zoneReferenceActive.load()) return false;
     const ULONGLONG tick=rt.tpsActorLocationTick.load();
     const ULONGLONG now=GetTickCount64();
-    if(!tick||now<tick||now-tick>350) return false;
-    const float actorYaw=rt.tpsActorYawDegrees.load();
+    const bool onFoot=tick&&now>=tick&&now-tick<=350ull;
+    const ULONGLONG horseTick=rt.tpsHorsePoseTick.load();
+    const bool onHorse=!onFoot&&horseTick&&now>=horseTick&&now-horseTick<=750ull;
+    if(!onFoot&&!onHorse)return false;
+    const float actorYaw=onHorse?rt.tpsHorseYawDegrees.load():rt.tpsActorYawDegrees.load();
     const float base=g_zoneReferenceYaw.load();
     const float manual=rt.cameraYawDegrees.load();
     if(!std::isfinite(actorYaw)||!std::isfinite(base)||!std::isfinite(manual)) return false;
@@ -344,7 +373,7 @@ bool RecenterOnPlayer() {
     rt.cameraOrbitYawDegrees.store(delta);
     rt.cameraOrbitPitchDegrees.store(0.0f);
     char message[170]{};
-    sprintf_s(message,"TPS V0.68: recenter actorYaw=%.1f initialYaw=%.1f orbitYaw=%.1f",
+    sprintf_s(message,"TPS V0.70: recenter actorYaw=%.1f initialYaw=%.1f orbitYaw=%.1f",
         actorYaw,base,delta);
     Write(message);
     return true;

@@ -1,6 +1,7 @@
 #include <windows.h>
 
 #include "HorseFeature.h"
+#include "RuntimeSettings.h"
 
 #include <MinHook.h>
 
@@ -472,6 +473,46 @@ void ApplySlotLocked(HorseSlot& slot) {
     PublishSlotLocked(slot);
 }
 
+// V0.70 camera-only sample, never writes into horse/game objects.
+// Proven ACharacter layout shared by HorseCharacter in this exact retail
+// build, checked against native camera distance before camera adoption.
+void PublishHorseCameraPoseFromLiveCallback(void* horse) {
+    auto& rt=dg::runtime::Get();
+    if(!rt.thirdPersonEnabled.load())return;
+    void* root=nullptr;
+    if(!ReadAt(horse,0x158,root)||!root)return;
+    float x=0,y=0,z=0,yaw=0;
+    if(!ReadFloat(root,0x1A0,x)||!ReadFloat(root,0x1A4,y)||
+       !ReadFloat(root,0x1A8,z)||!ReadFloat(root,0x1F4,yaw)||
+       std::fabs(x)>1.0e7f||std::fabs(y)>1.0e7f||
+       std::fabs(z)>1.0e7f||std::fabs(yaw)>36000.0f)return;
+    const ULONGLONG now=GetTickCount64();
+    const ULONGLONG playerTick=rt.tpsActorLocationTick.load();
+    const bool footRecent=playerTick&&now>=playerTick&&now-playerTick<15000ull;
+    const float dx=x-rt.tpsActorWorldX.load();
+    const float dy=y-rt.tpsActorWorldY.load();
+    const float dz=z-rt.tpsActorWorldZ.load();
+    const bool nearLastPlayer=footRecent&&std::hypot(dx,dy)<2800.0f&&
+        std::fabs(dz)<1100.0f;
+    const bool sameLiveHorse=
+        rt.tpsHorseOwnerIdentity.load()==reinterpret_cast<std::uintptr_t>(horse)&&
+        now>=rt.tpsHorsePoseTick.load()&&now-rt.tpsHorsePoseTick.load()<2000ull;
+    if(!nearLastPlayer&&!sameLiveHorse)return;
+    // Atomic pose is read on the camera thread using the tick as a release
+    // marker. Pointer identity is never dereferenced outside this callback.
+    rt.tpsHorseWorldX.store(x);
+    rt.tpsHorseWorldY.store(y);
+    rt.tpsHorseWorldZ.store(z);
+    rt.tpsHorseYawDegrees.store(std::remainder(yaw,360.0f));
+    rt.tpsHorseOwnerIdentity.store(reinterpret_cast<std::uintptr_t>(horse));
+    rt.tpsHorsePoseTick.store(now,std::memory_order_release);
+    static std::atomic_uint32_t count{0};
+    const unsigned n=count.fetch_add(1)+1;
+    if(n==1||n==1000||n==10000)
+        FeatureLog("TPS V0.70: LIVE horse camera pose=%u horse=%p xyz=(%.0f,%.0f,%.0f) yaw=%.1f closeFoot=%d",
+            n,horse,x,y,z,yaw,nearLastPlayer?1:0);
+}
+
 void CaptureHorseLocked(
     void* horse,
     const char* source
@@ -480,6 +521,7 @@ void CaptureHorseLocked(
         return;
     }
 
+    PublishHorseCameraPoseFromLiveCallback(horse);
     HorseSlot* slot = AllocateHorseLocked(horse);
     if (!slot) {
         return;

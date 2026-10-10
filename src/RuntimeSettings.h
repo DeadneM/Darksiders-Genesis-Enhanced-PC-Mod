@@ -17,7 +17,9 @@ struct Snapshot {
     bool thirdPersonFovEnabled = true;
     bool tpsFollowPlayer = true;
     bool tpsSuppressNativeRightStick = true;
-    bool cameraOrbitInputEnabled = true;
+    bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
+    bool cameraMouseOrbitEnabled = true;
+    bool cameraControllerOrbitEnabled = true;
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
     bool jumpHeightEnabled = true;
@@ -67,6 +69,8 @@ struct State {
     std::atomic_ullong tpsGameplayViewTick{0};
     std::atomic_bool tpsSuppressNativeRightStick{true};
     std::atomic_bool cameraOrbitInputEnabled{true};
+    std::atomic_bool cameraMouseOrbitEnabled{true};
+    std::atomic_bool cameraControllerOrbitEnabled{true};
     std::atomic_bool tpsAimActive{false};
     std::atomic<float> tpsActorWorldX{0.0f};
     std::atomic<float> tpsActorWorldY{0.0f};
@@ -74,6 +78,15 @@ struct State {
     std::atomic<float> tpsActorYawDegrees{0.0f};
     std::atomic_ullong tpsActorLocationTick{0};
     std::atomic_uint32_t tpsActorGeneration{0};
+    // Pose sampled from a LIVE HorseCharacter native callback only; never
+    // dereference a cached horse pointer in camera/Present threads.
+    std::atomic<float> tpsHorseWorldX{0.0f};
+    std::atomic<float> tpsHorseWorldY{0.0f};
+    std::atomic<float> tpsHorseWorldZ{0.0f};
+    std::atomic<float> tpsHorseYawDegrees{0.0f};
+    std::atomic_ullong tpsHorsePoseTick{0};
+    std::atomic_uintptr_t tpsHorseOwnerIdentity{0};
+
     std::atomic_bool pistolDamageEnabled{true};
     std::atomic_bool meleeDamageEnabled{true};
     std::atomic_bool jumpHeightEnabled{true};

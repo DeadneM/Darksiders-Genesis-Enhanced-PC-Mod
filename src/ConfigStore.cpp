@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2116;
+constexpr int kConfigRevision = 2117;
 
 bool ReadBool(
     const wchar_t* section,
@@ -303,6 +303,8 @@ void Store::ResetDefaults(bool persist) {
     tpsFollowPlayer = true;
     tpsSuppressNativeRightStick = true;
     cameraOrbitInputEnabled = true;
+    cameraMouseOrbitEnabled = true;
+    cameraControllerOrbitEnabled = true;
     tpsRecenterButtonMask = 0x0040;
     pistolDamageEnabled = true;
     meleeDamageEnabled = true;
@@ -411,7 +413,10 @@ bool Store::Load() {
     thirdPersonFovEnabled=ReadBool(L"Features",L"TPSFOV",true,path_);
     tpsFollowPlayer=ReadBool(L"Features",L"TPSFollowPlayer",true,path_);
     tpsSuppressNativeRightStick=ReadBool(L"Features",L"TPSSuppressNativeRightStick",true,path_);
-    cameraOrbitInputEnabled = ReadBool(L"Features", L"CameraMouseGamepad", true, path_);
+    const bool oldCombinedOrbit=ReadBool(L"Features",L"CameraMouseGamepad",true,path_);
+    cameraMouseOrbitEnabled=ReadBool(L"Features",L"CameraMouseOrbit",oldCombinedOrbit,path_);
+    cameraControllerOrbitEnabled=ReadBool(L"Features",L"CameraControllerOrbit",oldCombinedOrbit,path_);
+    cameraOrbitInputEnabled=cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
     tpsRecenterButtonMask=GetPrivateProfileIntW(L"Controls",L"TPSRecenterButtonMask",0x0040,path_.c_str());
     if(tpsRecenterButtonMask!=0x0040 && tpsRecenterButtonMask!=0x0080 &&
        tpsRecenterButtonMask!=0x0100 && tpsRecenterButtonMask!=0x0200 &&
@@ -561,12 +566,14 @@ bool Store::Load() {
             if(std::fabs(thirdPersonHeightOffset-60.0f)<0.0001f)
                 thirdPersonHeightOffset=180.0f;
         }
-        if(revision<=2112){
-            cameraOrbitInputEnabled=true;
+        if(revision<=2112 && !cameraMouseOrbitEnabled&&!cameraControllerOrbitEnabled){
+            cameraMouseOrbitEnabled=true;
+            cameraControllerOrbitEnabled=true;
         }
+        cameraOrbitInputEnabled=cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
         PublishRuntime();
         SaveNow();
-        Log("INI migrated V0.69: disable unsupported flat mouse isolation, restore native mouse input");
+        Log("INI migrated V0.70: split TPS mouse and controller orbit toggles");
         return true;
     }
 
@@ -590,7 +597,9 @@ void Store::PublishRuntime() const {
     runtime.thirdPersonFovEnabled = thirdPersonFovEnabled;
     runtime.tpsFollowPlayer = tpsFollowPlayer;
     runtime.tpsSuppressNativeRightStick = tpsSuppressNativeRightStick;
-    runtime.cameraOrbitInputEnabled = cameraOrbitInputEnabled;
+    runtime.cameraOrbitInputEnabled = cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
+    runtime.cameraMouseOrbitEnabled = cameraMouseOrbitEnabled;
+    runtime.cameraControllerOrbitEnabled = cameraControllerOrbitEnabled;
     runtime.thirdPersonDistanceMultiplier = thirdPersonDistanceMultiplier;
     runtime.thirdPersonPitchDegrees = thirdPersonPitchDegrees;
     runtime.thirdPersonHeightOffset = thirdPersonHeightOffset;
@@ -693,7 +702,10 @@ bool Store::SaveNow() {
     // V0.69: remove the broken setting from old INIs. Blocking mouse
     // messages freezes the game's world-plane aim target.
     WritePrivateProfileStringW(L"Features",L"TPSSuppressVanillaMouseAim",nullptr,path_.c_str());
-    WriteBool(L"Features", L"CameraMouseGamepad", cameraOrbitInputEnabled, path_);
+    // V0.70: persist independent orbit controls, remove old combined key.
+    WritePrivateProfileStringW(L"Features",L"CameraMouseGamepad",nullptr,path_.c_str());
+    WriteBool(L"Features",L"CameraMouseOrbit",cameraMouseOrbitEnabled,path_);
+    WriteBool(L"Features",L"CameraControllerOrbit",cameraControllerOrbitEnabled,path_);
     wchar_t buttonBuffer[16]{};
     swprintf_s(buttonBuffer,L"%d",tpsRecenterButtonMask);
     WritePrivateProfileStringW(L"Controls",L"TPSRecenterButtonMask",buttonBuffer,path_.c_str());
