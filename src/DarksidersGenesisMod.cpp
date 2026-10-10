@@ -35,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.64-player-attached-camera-tps-fov";
+constexpr const char* kBuild = "0.65-foot-centered-locked-tps-camera";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1349,6 +1349,7 @@ void CaptureLiveTPSActorYaw(void* actor) {
         settings.tpsActorLocationTick.store(GetTickCount64());
         settings.tpsActorGeneration.store(g_tpsPlayerGeneration.load());
     }
+    dg::runtime::Get().tpsActorYawDegrees.store(std::remainder(yaw,360.0f));
     g_tpsActorWorldYaw.store(std::remainder(yaw,360.0f));
     g_tpsActorYawTick.store(GetTickCount64());
     const unsigned count=g_tpsActorYawSamples.fetch_add(1)+1;
@@ -1789,9 +1790,14 @@ bool HookUiIsCursorVisible(void* uiManager) {
             : false;
 
     const auto& runtime = dg::runtime::Get();
+    const bool tpsLockedReticle =
+        runtime.thirdPersonEnabled.load(std::memory_order_relaxed) &&
+        runtime.tpsFixedCenterReticle.load(std::memory_order_relaxed) &&
+        runtime.tpsViewGameplay.load(std::memory_order_relaxed);
     const bool hiddenByMod =
         g_hudHidden.load(std::memory_order_relaxed) ||
-        runtime.hideReticle.load(std::memory_order_relaxed);
+        runtime.hideReticle.load(std::memory_order_relaxed) ||
+        tpsLockedReticle;
     const int nativeState = nativeVisible ? 1 : 0;
     const int lastNative = g_lastNativeCursorVisible.exchange(nativeState);
     if (lastNative != nativeState)
@@ -1893,7 +1899,10 @@ bool ShouldBlankGameCursor() {
     const HWND hwnd = reinterpret_cast<HWND>(
         g_gameWindowTrace.load(std::memory_order_relaxed));
     const auto& runtime = dg::runtime::Get();
-    const bool hideWindows = runtime.hideReticle.load(std::memory_order_relaxed);
+    const bool hideWindows = runtime.hideReticle.load(std::memory_order_relaxed) ||
+        (runtime.thirdPersonEnabled.load(std::memory_order_relaxed) &&
+         runtime.tpsFixedCenterReticle.load(std::memory_order_relaxed) &&
+         runtime.tpsViewGameplay.load(std::memory_order_relaxed));
     return hwnd && GetForegroundWindow() == hwnd &&
         !g_overlayVisible.load(std::memory_order_relaxed) && hideWindows;
 }
@@ -2205,6 +2214,7 @@ void TriggerAction(Action action, int functionKey) {
         g_config.thirdPersonDistanceMultiplier=0.50f;
         g_config.thirdPersonPitchDegrees=-12.0f;
         g_config.thirdPersonHeightOffset=180.0f;
+        g_config.tpsFootAnchorOffset=88.0f;
         dg::runtime::Get().cameraOrbitYawDegrees.store(0.0f);
         dg::runtime::Get().cameraOrbitPitchDegrees.store(0.0f);
         g_config.Save();
@@ -3090,35 +3100,63 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     // V0.32: do not initialize ImGui, create an RTV, or subclass the game
     // window during normal gameplay. The overlay backend is created lazily
     // only when the user actually opens the menu for the first time.
+    const auto& tpSettings=dg::runtime::Get();
+    const HWND currentGameWindow=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+    const ULONGLONG frameNow=GetTickCount64();
+    const ULONGLONG viewTick=tpSettings.tpsGameplayViewTick.load();
+    const bool tpsFixedCrosshair=tpSettings.thirdPersonEnabled.load() &&
+        tpSettings.tpsFixedCenterReticle.load() &&
+        tpSettings.tpsViewGameplay.load() && viewTick &&
+        frameNow>=viewTick && frameNow-viewTick<250ull &&
+        !tpSettings.hideReticle.load() && !g_hudHidden.load() &&
+        currentGameWindow && GetForegroundWindow()==currentGameWindow &&
+        !g_overlayVisible.load();
     if (!g_imguiReady.load() &&
-        g_overlayVisible.load()) {
+        (g_overlayVisible.load() || tpsFixedCrosshair)) {
         Log(
             "Overlay lazy-init requested on first menu open"
         );
         InitializeImGui(swapChain);
     }
 
-    if (g_imguiReady.load() && swapChain == g_gameSwapChain && g_overlayVisible.load()) {
-        // UE4 can clip or hide the cursor during gameplay. Release clipping every
-        // overlay frame and let ImGui draw its own pointer.
-        if (GetForegroundWindow() == g_hwnd) ClipCursor(nullptr);
-
+    if(g_imguiReady.load() && swapChain==g_gameSwapChain &&
+       (g_overlayVisible.load() || tpsFixedCrosshair)){
+        const bool open=g_overlayVisible.load();
+        if(open && GetForegroundWindow()==g_hwnd) ClipCursor(nullptr);
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
-
-        ImGui::GetIO().MouseDrawCursor = true;
-        auto overlayContext = BuildOverlayContext();
-        dg::overlay::Draw(overlayContext);
-
+        ImGui::GetIO().MouseDrawCursor=open;
+        if(open){
+            auto overlayContext=BuildOverlayContext();
+            dg::overlay::Draw(overlayContext);
+        } else if(tpsFixedCrosshair){
+            // Fixed *visual* screen-center crosshair. Native weapon traces
+            // are NOT modified and the OS pointer is never warped.
+            const ImVec2 display=ImGui::GetIO().DisplaySize;
+            const ImVec2 mid(display.x*0.5f,display.y*0.5f);
+            if(display.x>100.0f&&display.y>100.0f){
+                auto* draw=ImGui::GetForegroundDrawList();
+                const ImU32 shadow=IM_COL32(0,0,0,185);
+                const ImU32 foreground=IM_COL32(245,245,245,235);
+                constexpr float gap=4.0f,length=8.0f;
+                draw->AddLine(ImVec2(mid.x-length-gap,mid.y),ImVec2(mid.x-gap,mid.y),shadow,3.0f);
+                draw->AddLine(ImVec2(mid.x+gap,mid.y),ImVec2(mid.x+gap+length,mid.y),shadow,3.0f);
+                draw->AddLine(ImVec2(mid.x,mid.y-length-gap),ImVec2(mid.x,mid.y-gap),shadow,3.0f);
+                draw->AddLine(ImVec2(mid.x,mid.y+gap),ImVec2(mid.x,mid.y+gap+length),shadow,3.0f);
+                draw->AddLine(ImVec2(mid.x-length-gap,mid.y),ImVec2(mid.x-gap,mid.y),foreground,1.5f);
+                draw->AddLine(ImVec2(mid.x+gap,mid.y),ImVec2(mid.x+gap+length,mid.y),foreground,1.5f);
+                draw->AddLine(ImVec2(mid.x,mid.y-length-gap),ImVec2(mid.x,mid.y-gap),foreground,1.5f);
+                draw->AddLine(ImVec2(mid.x,mid.y+gap),ImVec2(mid.x,mid.y+gap+length),foreground,1.5f);
+            }
+        }
         ImGui::Render();
-
-        if (g_rtv) {
-            g_context->OMSetRenderTargets(1, &g_rtv, nullptr);
+        if(g_rtv){
+            g_context->OMSetRenderTargets(1,&g_rtv,nullptr);
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
         }
-    } else if (g_imguiReady.load()) {
-        ImGui::GetIO().MouseDrawCursor = false;
+    }else if(g_imguiReady.load()){
+        ImGui::GetIO().MouseDrawCursor=false;
     }
 
     return g_originalPresent

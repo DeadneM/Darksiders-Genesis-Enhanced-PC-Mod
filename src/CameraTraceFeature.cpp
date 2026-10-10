@@ -54,231 +54,172 @@ bool Sample(uint32_t n) { return n <= 12 || (n % 5000) == 0; }
 
 void HookView(void* camera, float dt, void* outView) {
     if (g_view) g_view(camera, dt, outView);
+    auto& settings=dg::runtime::Get();
+    // Scene and UI cameras are never modified without a live-player match.
+    settings.tpsViewGameplay.store(false,std::memory_order_release);
     if (!outView) return;
-    // Transient FMinimalViewInfo: FVector Location +0, FRotator Rotation +12,
-    // FOV +24. Never write a camera UObject or retain its pointer.
-    auto* p = static_cast<unsigned char*>(outView);
-    float nativeFov = 0, nativePitch = 0, nativeHeight = 0, nativeYaw = 0;
-    std::memcpy(&nativeFov, p + 0x18, sizeof(float));
-    std::memcpy(&nativePitch, p + 0x0C, sizeof(float));
-    std::memcpy(&nativeYaw, p + 0x10, sizeof(float));
-    std::memcpy(&nativeHeight, p + 0x08, sizeof(float));
-    if (!std::isfinite(nativeFov) || nativeFov < 1 || nativeFov > 179) return;
-    if (!std::isfinite(nativePitch) || std::fabs(nativePitch) > 360) return;
-    if (!std::isfinite(nativeHeight) || std::fabs(nativeHeight) > 10000000.0f) return;
-    if (!std::isfinite(nativeYaw) || std::fabs(nativeYaw) > 100000.0f) return;
-
-    float appliedFov = nativeFov, appliedPitch = nativePitch;
-    float appliedHeight = nativeHeight, appliedYaw = nativeYaw;
-    auto& settings = dg::runtime::Get();
+    auto* p=static_cast<unsigned char*>(outView);
+    float x=0,y=0,z=0,nativePitch=0,nativeYaw=0,nativeFov=0;
+    std::memcpy(&x,p,4); std::memcpy(&y,p+4,4); std::memcpy(&z,p+8,4);
+    std::memcpy(&nativePitch,p+12,4);std::memcpy(&nativeYaw,p+16,4);
+    std::memcpy(&nativeFov,p+24,4);
+    if(!std::isfinite(x)||!std::isfinite(y)||!std::isfinite(z)||
+       !std::isfinite(nativePitch)||!std::isfinite(nativeYaw)||
+       !std::isfinite(nativeFov)||nativeFov<1||nativeFov>179)return;
     const bool thirdPerson=settings.thirdPersonEnabled.load(std::memory_order_relaxed);
-    // TPS FOV has priority only if BOTH TPS and TPSFOV are enabled. Otherwise
-    // the existing global override (if any) stays independent.
-    const bool ownFov=thirdPerson&&settings.thirdPersonFovEnabled.load(std::memory_order_relaxed);
-    const bool globalFov=settings.fovEnabled.load(std::memory_order_relaxed);
-    if (ownFov || globalFov) {
-        const float target=ownFov ? settings.thirdPersonFovDegrees.load(std::memory_order_relaxed)
-                                  : settings.fovDegrees.load(std::memory_order_relaxed);
-        if(std::isfinite(target)&&target>=40.0f&&target<=140.0f) {
-            appliedFov=target;
-            std::memcpy(p+0x18,&appliedFov,sizeof(float));
-            if(ownFov) {
-                const uint32_t n=++g_tpsFovOverrides;
-                if(n==1||n==10000) {
-                    char info[155]{};
-                    sprintf_s(info,"TPS V0.64: independent FOV n=%u native=%.1f forced=%.1f",n,nativeFov,target);
-                    Write(info);
-                }
-            }
-        }
-    }
-    const float offset = settings.cameraPitchDegrees.load(std::memory_order_relaxed);
-    if (std::isfinite(offset) && offset >= -35.0f && offset <= 35.0f && offset != 0.0f) {
-        appliedPitch = std::clamp(nativePitch + offset, -89.0f, 89.0f);
-        std::memcpy(p + 0x0C, &appliedPitch, sizeof(float));
-    }
-    const float yawOffset = settings.cameraYawDegrees.load(std::memory_order_relaxed);
-    const bool orbitActive=thirdPerson && settings.cameraOrbitInputEnabled.load(std::memory_order_relaxed);
-    const bool follow=settings.tpsFollowPlayer.load(std::memory_order_relaxed)&&thirdPerson;
-    const bool lockZone=follow && settings.tpsLockZoneCamera.load(std::memory_order_relaxed);
     const ULONGLONG now=GetTickCount64();
     const ULONGLONG actorTick=settings.tpsActorLocationTick.load(std::memory_order_acquire);
-    const bool actorFresh=actorTick&&now>=actorTick&&now-actorTick<250;
-    const float ax=settings.tpsActorWorldX.load(std::memory_order_relaxed);
-    const float ay=settings.tpsActorWorldY.load(std::memory_order_relaxed);
-    const float az=settings.tpsActorWorldZ.load(std::memory_order_relaxed);
-    const bool validActor=actorFresh&&std::isfinite(ax)&&std::isfinite(ay)&&
-        std::isfinite(az)&&std::fabs(ax)<1e7f&&std::fabs(ay)<1e7f&&std::fabs(az)<1e7f;
-    const float nativeArm=g_nativeDistance.load(std::memory_order_relaxed);
+    const bool live=actorTick&&now>=actorTick&&now-actorTick<300ull;
+    const float ax=settings.tpsActorWorldX.load(),ay=settings.tpsActorWorldY.load(),
+                az=settings.tpsActorWorldZ.load();
+    const float actorYaw=settings.tpsActorYawDegrees.load();
+    const bool actorValid=live&&std::isfinite(ax)&&std::isfinite(ay)&&
+        std::isfinite(az)&&std::isfinite(actorYaw)&&
+        std::fabs(ax)<1e7f&&std::fabs(ay)<1e7f&&std::fabs(az)<1e7f;
+    // Conservative gameplay/cutscene heuristic. Fail OPEN for unusual
+    // cinematic views. We do not patch persistent camera volumes or sequences.
+    const float nativeDx=x-ax,nativeDy=y-ay,nativeDz=z-az;
+    const bool nearPawn=actorValid&&
+        nativeDx*nativeDx+nativeDy*nativeDy<6500.0f*6500.0f&&
+        std::fabs(nativeDz)<7500.0f;
+    const bool gameplayCamera=nearPawn&&nativePitch>=-89.0f&&nativePitch<=-15.0f;
     if(!thirdPerson)ResetZoneReference();
-    const uint32_t generation=settings.tpsActorGeneration.load(std::memory_order_relaxed);
-    if(g_zoneActorGeneration.load()!=generation) {
+    const uint32_t generation=settings.tpsActorGeneration.load();
+    if(g_zoneActorGeneration.load()!=generation){
         g_zoneActorGeneration.store(generation);
         ResetZoneReference();
     }
-    // Freeze yaw and arm baseline per player during third-person. Native
-    // camera volumes may still update their UObject; we only override
-    // the transient view, not persistent game camera state.
-    float viewX=0.0f,viewY=0.0f;
-    std::memcpy(&viewX,p,sizeof(float));
-    std::memcpy(&viewY,p+4,sizeof(float));
-    const bool initialGameplayView=std::isfinite(viewX)&&std::isfinite(viewY)&&
-        std::fabs(viewX-ax)<15000.0f&&std::fabs(viewY-ay)<15000.0f&&
-        std::fabs(nativeHeight-az)<7000.0f&&
-        nativePitch>=-89.0f&&nativePitch<=-15.0f;
-    if(lockZone&&validActor&&initialGameplayView&&!g_zoneReferenceActive.load()&&
-        std::isfinite(nativeArm)&&nativeArm>=100.0f&&nativeArm<=10000.0f) {
-        g_zoneReferenceYaw.store(nativeYaw);
-        g_zoneReferenceArm.store(nativeArm);
-        g_zoneReferenceActive.store(true);
-        char line[170]{};
-        sprintf_s(line,"TPS V0.64: zone camera baseline gen=%u yaw=%.1f arm=%.1f",
-            generation,nativeYaw,nativeArm);
-        Write(line);
-    }
-    const bool stableZone=lockZone&&validActor&&g_zoneReferenceActive.load();
-    const float cameraBaseYaw=stableZone?g_zoneReferenceYaw.load():nativeYaw;
-    const float armLength=stableZone?g_zoneReferenceArm.load():nativeArm;
-    const float orbitYaw=orbitActive?settings.cameraOrbitYawDegrees.load(std::memory_order_relaxed):0.0f;
-    const float totalYaw=yawOffset+(std::isfinite(orbitYaw)?orbitYaw:0.0f);
-    if (std::isfinite(yawOffset) && yawOffset >= -180.0f && yawOffset <= 180.0f &&
-        std::isfinite(totalYaw) && totalYaw != 0.0f) {
-        // Transient FMinimalViewInfo::Rotation.Yaw (+0x10).
-        // Never modify the camera UObject or retain pointers across frames.
-        appliedYaw = std::remainder(cameraBaseYaw + totalYaw, 360.0f);
-        std::memcpy(p + 0x10, &appliedYaw, sizeof(float));
-    }
-    if(stableZone&&totalYaw==0.0f) {
-        appliedYaw=cameraBaseYaw;
-        std::memcpy(p+0x10,&appliedYaw,sizeof(float));
-    }
-    g_nativeYaw.store(nativeYaw, std::memory_order_relaxed);
-    g_appliedYaw.store(appliedYaw, std::memory_order_relaxed);
-    const float heightOffset = settings.cameraHeightOffset.load(std::memory_order_relaxed);
-    if (std::isfinite(heightOffset) && heightOffset >= -1500.0f &&
-        heightOffset <= 1500.0f && heightOffset != 0.0f) {
-        appliedHeight = nativeHeight + heightOffset;
-        std::memcpy(p + 0x08, &appliedHeight, sizeof(float));
-    }
-    // Third Person V0.54: modify only transient FMinimalViewInfo,
-    // never the UObject's persistent transform. Enabled only by user.
-    if (thirdPerson) {
-        const float dist=armLength;
-        const float mult=settings.thirdPersonDistanceMultiplier.load(std::memory_order_relaxed);
-        float x=0.0f,y=0.0f;
-        std::memcpy(&x,p,sizeof(float)); std::memcpy(&y,p+4,sizeof(float));
-        // Only attach in live gameplay. A remote cinematic/spectator camera
-        // whose native view is far from the player remains untouched.
-        const bool cameraNearActor=validActor&&std::isfinite(x)&&std::isfinite(y)&&
-            std::fabs(x-ax)<15000.0f&&std::fabs(y-ay)<15000.0f&&
-            std::fabs(nativeHeight-az)<7000.0f;
-        const bool attached=follow&&cameraNearActor;
-        if (std::isfinite(x)&&std::isfinite(y)&&dist>=100.0f&&dist<=10000.0f&&
-            std::isfinite(mult)&&mult>=0.0f&&mult<=3.0f&&
-            (attached||(nativePitch>=-89.0f&&nativePitch<=-15.0f))) {
-            constexpr float rad=0.01745329251994329577f;
-            const float np=nativePitch*rad,ny=nativeYaw*rad;
-            const float tpBasePitch=settings.thirdPersonPitchDegrees.load(std::memory_order_relaxed);
-            const float tpHeight=settings.thirdPersonHeightOffset.load(std::memory_order_relaxed);
-            const float op=orbitActive?settings.cameraOrbitPitchDegrees.load(std::memory_order_relaxed):0.0f;
-            if (!std::isfinite(tpBasePitch)||!std::isfinite(tpHeight)||
-                tpBasePitch < -75.0f || tpBasePitch > 65.0f || std::fabs(tpHeight)>500.0f) return;
-            const float tpPitch=std::clamp(tpBasePitch+(std::isfinite(op)?op:0.0f),-75.0f,65.0f);
-            const float dp=tpPitch*rad,dy=appliedYaw*rad;
-            const float distance=std::clamp(dist*mult,0.0f,12000.0f);
-            float pivotX=attached?ax:x+std::cos(np)*std::cos(ny)*dist;
-            float pivotY=attached?ay:y+std::cos(np)*std::sin(ny)*dist;
-            // The native top-down targeting camera shifts its spring-arm
-            // pivot toward the aim direction. In TPS this becomes a
-            // distracting lateral drift. Keep the last idle camera
-            // relative-to-actor XY offset while shooting.
-            const bool keepPivot=settings.tpsLockCombatCameraPivot.load();
-            const ULONGLONG now=GetTickCount64(),actorTick=settings.tpsActorLocationTick.load();
-            const bool actorFresh=actorTick && now>=actorTick && now-actorTick<250;
-            const uint32_t generation=settings.tpsActorGeneration.load();
-            if(g_idlePivotGeneration.load()!=generation) {
-                g_idlePivotGeneration.store(generation);
-                g_idlePivotTick.store(0);
-            }
-            if(!attached && actorFresh&&keepPivot) {
-                const float ax=settings.tpsActorWorldX.load(),ay=settings.tpsActorWorldY.load();
-                const bool aiming=settings.tpsAimActive.load();
-                if(!aiming){
-                    const float ox=pivotX-ax,oy=pivotY-ay;
-                    if(std::isfinite(ox)&&std::isfinite(oy)&&std::fabs(ox)<8000&&std::fabs(oy)<8000) {
-                        g_idlePivotDX.store(ox);g_idlePivotDY.store(oy);
-                        g_idlePivotTick.store(now);
-                    }
-                } else if(g_idlePivotTick.load() && now>=g_idlePivotTick.load() &&
-                         now-g_idlePivotTick.load()<12000) {
-                    const float bx=ax+g_idlePivotDX.load(),by=ay+g_idlePivotDY.load();
-                    if(std::isfinite(bx)&&std::isfinite(by)) {
-                        pivotX=bx;pivotY=by;
-                        const uint32_t n=++g_pivotCompensations;
-                        if(n==1 || n==5000) {
-                            char diag[220]{};
-                            sprintf_s(diag,"TPS V0.61: native aim camera drift locked n=%u actor=(%.0f,%.0f) baseline=(%.0f,%.0f)",
-                                n,ax,ay,g_idlePivotDX.load(),g_idlePivotDY.load());
-                            Write(diag);
-                        }
-                    }
-                }
-            }
-            // Attached mode follows the VALIDATED live player root (XYZ)
-            // instead of the top-down/native springarm pivot.
-            const float pivotZ=attached?az:nativeHeight+std::sin(np)*dist;
-            const float newX=pivotX-std::cos(dp)*std::cos(dy)*distance;
-            const float newY=pivotY-std::cos(dp)*std::sin(dy)*distance;
-            const float newZ=pivotZ-std::sin(dp)*distance+tpHeight+heightOffset;
-            if (std::isfinite(newX)&&std::isfinite(newY)&&std::isfinite(newZ)&&
-                std::fabs(newX)<1e7f&&std::fabs(newY)<1e7f&&std::fabs(newZ)<1e7f) {
-                const float pitch=tpPitch;
-                std::memcpy(p,&newX,sizeof(float));
-                std::memcpy(p+4,&newY,sizeof(float));
-                std::memcpy(p+8,&newZ,sizeof(float));
-                std::memcpy(p+12,&pitch,sizeof(float));
-                appliedPitch=pitch; appliedHeight=newZ;
-                if(attached){
-                    const uint32_t n=++g_tpsAttachedFrames;
-                    if(n==1||n==10000){
-                        char note[235]{};
-                        sprintf_s(note,"TPS V0.64: player attached view=%u actor=(%.0f,%.0f,%.0f) pitch=%.1f yaw=%.1f distance=%.1f zoneLock=%d",
-                            n,ax,ay,az,tpPitch,appliedYaw,distance,stableZone?1:0);
-                        Write(note);
-                    }
-                    if(stableZone&&(std::fabs(std::remainder(nativeYaw-cameraBaseYaw,360.0f))>5.0f||
-                        std::fabs(nativeArm-armLength)>40.0f)){
-                        const unsigned n=++g_zoneCameraIgnored;
-                        if(n==1||n==2000){
-                            char note[220]{};
-                            sprintf_s(note,"TPS V0.64: native zone camera override ignored=%u yaw %.1f->%.1f arm %.1f->%.1f",
-                                n,nativeYaw,cameraBaseYaw,nativeArm,armLength);
-                            Write(note);
-                        }
-                    }
-                }
-            }
-        }
-    }
-    if(follow&&!validActor) {
+    // Never override cinematics, menu cameras, remote cutaway cameras.
+    // Heuristic may miss an in-place cinematic with a top-down-like pose.
+    if(thirdPerson&&!gameplayCamera){
         const unsigned n=++g_tpsAttachSkipped;
-        if(n==1||n==5000) {
-            char note[150]{};
-            sprintf_s(note,"TPS V0.64: player camera attach deferred (no fresh local player) n=%u",n);
-            Write(note);
+        if(n==1||n==3000){
+            char line[180]{};
+            sprintf_s(line,"TPS V0.65: native camera returned to game (cinematic/invalid player) n=%u near=%d pitch=%.1f",
+                      n,nearPawn?1:0,nativePitch);
+            Write(line);
+        }
+        return;
+    }
+    float appliedFov=nativeFov,appliedPitch=nativePitch,appliedYaw=nativeYaw,appliedHeight=z;
+    const bool tpsFov=thirdPerson&&settings.thirdPersonFovEnabled.load();
+    if(tpsFov||settings.fovEnabled.load()){
+        const float target=tpsFov?settings.thirdPersonFovDegrees.load():settings.fovDegrees.load();
+        if(std::isfinite(target)&&target>=40&&target<=140){
+            appliedFov=target;
+            std::memcpy(p+24,&appliedFov,4);
+            if(tpsFov){
+                const unsigned n=++g_tpsFovOverrides;
+                if(n==1||n==10000){
+                    char line[128]{};
+                    sprintf_s(line,"TPS V0.65: FOV override n=%u native=%.1f target=%.1f",n,nativeFov,target);
+                    Write(line);
+                }
+            }
         }
     }
-    g_nativeHeight.store(nativeHeight, std::memory_order_relaxed);
-    g_appliedHeight.store(appliedHeight, std::memory_order_relaxed);
-    g_nativeFov.store(nativeFov, std::memory_order_relaxed);
-    g_appliedFov.store(appliedFov, std::memory_order_relaxed);
-    g_nativePitch.store(nativePitch, std::memory_order_relaxed);
-    g_appliedPitch.store(appliedPitch, std::memory_order_relaxed);
-    const uint32_t calls = g_viewCount.fetch_add(1, std::memory_order_relaxed) + 1;
-    if (Sample(calls)) {
-        char line[230]{};
-        sprintf_s(line,"Camera V0.38: native View calls=%u camera=%p FOV=%.2f->%.2f pitch=%.2f->%.2f yaw=%.2f->%.2f height=%.1f->%.1f",
-            calls,camera,nativeFov,appliedFov,nativePitch,appliedPitch,nativeYaw,appliedYaw,nativeHeight,appliedHeight);
+    const float pitchOffset=settings.cameraPitchDegrees.load();
+    const float yawOffset=settings.cameraYawDegrees.load();
+    const float heightOffset=settings.cameraHeightOffset.load();
+    if(!thirdPerson){
+        if(std::isfinite(pitchOffset)&&pitchOffset>=-35&&pitchOffset<=35&&pitchOffset!=0){
+            appliedPitch=std::clamp(nativePitch+pitchOffset,-89.0f,89.0f);
+            std::memcpy(p+12,&appliedPitch,4);
+        }
+        if(std::isfinite(yawOffset)&&yawOffset>=-180&&yawOffset<=180&&yawOffset!=0){
+            appliedYaw=std::remainder(nativeYaw+yawOffset,360.0f);
+            std::memcpy(p+16,&appliedYaw,4);
+        }
+        if(std::isfinite(heightOffset)&&heightOffset>=-1500&&heightOffset<=1500&&heightOffset!=0){
+            appliedHeight=z+heightOffset;
+            std::memcpy(p+8,&appliedHeight,4);
+        }
+    }else{
+        const bool attached=settings.tpsFollowPlayer.load();
+        const bool lockZone=attached&&settings.tpsLockZoneCamera.load();
+        const float nativeArm=g_nativeDistance.load();
+        if(lockZone&&!g_zoneReferenceActive.load()&&std::isfinite(nativeArm)&&
+           nativeArm>=100&&nativeArm<=10000){
+            // Align camera axis with the character on TPS activation.
+            // Orbit afterwards is independent of the character's own yaw.
+            g_zoneReferenceYaw.store(std::remainder(actorYaw,360.0f));
+            g_zoneReferenceArm.store(nativeArm);
+            g_zoneReferenceActive.store(true);
+            char line[170]{};
+            sprintf_s(line,"TPS V0.65: camera locked to actor axis gen=%u actorYaw=%.1f distance=%.1f",
+                      generation,actorYaw,nativeArm);
+            Write(line);
+        }
+        const float arm=lockZone&&g_zoneReferenceActive.load()
+             ?g_zoneReferenceArm.load():nativeArm;
+        const float baseYaw=lockZone&&g_zoneReferenceActive.load()
+             ?g_zoneReferenceYaw.load():nativeYaw;
+        const bool orbit=settings.cameraOrbitInputEnabled.load();
+        const float oy=orbit?settings.cameraOrbitYawDegrees.load():0.0f;
+        const float op=orbit?settings.cameraOrbitPitchDegrees.load():0.0f;
+        const float basePitch=settings.thirdPersonPitchDegrees.load();
+        const float mult=settings.thirdPersonDistanceMultiplier.load();
+        const float tpHeight=settings.thirdPersonHeightOffset.load();
+        const float foot=settings.tpsFootAnchorOffset.load();
+        if(std::isfinite(arm)&&arm>=100&&arm<=10000&&
+           std::isfinite(basePitch)&&std::isfinite(mult)&&std::isfinite(tpHeight)&&
+           std::isfinite(oy)&&std::isfinite(op)&&std::isfinite(foot)&&
+           std::isfinite(yawOffset)&&std::isfinite(heightOffset)&&
+           mult>=0&&mult<=3&&foot>=0&&foot<=200&&std::fabs(tpHeight)<=500){
+            constexpr float radians=0.01745329251994329577f;
+            appliedPitch=std::clamp(basePitch+op,-75.0f,65.0f);
+            appliedYaw=std::remainder(baseYaw+yawOffset+oy,360.0f);
+            const float distance=std::clamp(arm*mult,0.0f,12000.0f);
+            // Foot-level player origin. RootComponent may be at capsule
+            // center, so configurable vertical correction is approximate
+            // until capsule geometry has been natively verified.
+            const float pivotX=attached?ax:x+std::cos(nativePitch*radians)*
+                std::cos(nativeYaw*radians)*arm;
+            const float pivotY=attached?ay:y+std::cos(nativePitch*radians)*
+                std::sin(nativeYaw*radians)*arm;
+            const float pivotZ=attached?(az-foot):z+std::sin(nativePitch*radians)*arm;
+            const float pitchRad=appliedPitch*radians,yawRad=appliedYaw*radians;
+            const float outX=pivotX-std::cos(pitchRad)*std::cos(yawRad)*distance;
+            const float outY=pivotY-std::cos(pitchRad)*std::sin(yawRad)*distance;
+            const float outZ=pivotZ-std::sin(pitchRad)*distance+tpHeight+heightOffset;
+            if(std::isfinite(outX)&&std::isfinite(outY)&&std::isfinite(outZ)&&
+               std::fabs(outX)<1e7f&&std::fabs(outY)<1e7f&&std::fabs(outZ)<1e7f){
+                std::memcpy(p,&outX,4);std::memcpy(p+4,&outY,4);std::memcpy(p+8,&outZ,4);
+                std::memcpy(p+12,&appliedPitch,4);std::memcpy(p+16,&appliedYaw,4);
+                appliedHeight=outZ;
+                if(attached){
+                    const unsigned n=++g_tpsAttachedFrames;
+                    if(n==1||n==5000){
+                        char line[230]{};
+                        sprintf_s(line,"TPS V0.65: foot camera attached n=%u root=(%.0f,%.0f,%.0f) footZ=%.0f camera=(%.0f,%.0f,%.0f) yaw=%.1f",
+                            n,ax,ay,az,pivotZ,outX,outY,outZ,appliedYaw);
+                        Write(line);
+                    }
+                    if(lockZone&&g_zoneReferenceActive.load()&&
+                        std::fabs(std::remainder(nativeYaw-baseYaw,360.0f))>5){
+                        const unsigned n=++g_zoneCameraIgnored;
+                        if(n==1||n==10000){
+                            char line[170]{};
+                            sprintf_s(line,"TPS V0.65: native camera zone yaw ignored n=%u native=%.1f locked=%.1f",
+                                n,nativeYaw,baseYaw);
+                            Write(line);
+                        }
+                    }
+                }
+                settings.tpsGameplayViewTick.store(now,std::memory_order_release);
+                settings.tpsViewGameplay.store(true,std::memory_order_release);
+            }
+        }
+    }
+    g_nativeFov.store(nativeFov);g_appliedFov.store(appliedFov);
+    g_nativePitch.store(nativePitch);g_appliedPitch.store(appliedPitch);
+    g_nativeYaw.store(nativeYaw);g_appliedYaw.store(appliedYaw);
+    g_nativeHeight.store(z);g_appliedHeight.store(appliedHeight);
+    const unsigned n=++g_viewCount;
+    if(Sample(n)){
+        char line[220]{};
+        sprintf_s(line,"Camera V0.65: view n=%u nativeFOV=%.1f outputFOV=%.1f nativeYaw=%.1f outputYaw=%.1f tp=%d",
+            n,nativeFov,appliedFov,nativeYaw,appliedYaw,thirdPerson?1:0);
         Write(line);
     }
 }

@@ -22,6 +22,7 @@ void Publish(const Snapshot& s) {
     g_state.thirdPersonEnabled.store(s.thirdPersonEnabled, std::memory_order_relaxed);
     g_state.thirdPersonFovEnabled.store(s.thirdPersonFovEnabled);
     g_state.tpsFollowPlayer.store(s.tpsFollowPlayer);
+    g_state.tpsFixedCenterReticle.store(s.tpsFixedCenterReticle);
     g_state.tpsLockZoneCamera.store(s.tpsLockZoneCamera);
     g_state.tpsSuppressNativeRightStick.store(s.tpsSuppressNativeRightStick);
     g_state.tpsSuppressVanillaMouseAim.store(s.tpsSuppressVanillaMouseAim);
@@ -49,6 +50,7 @@ void Publish(const Snapshot& s) {
     g_state.thirdPersonDistanceMultiplier.store(s.thirdPersonDistanceMultiplier, std::memory_order_relaxed);
     g_state.thirdPersonPitchDegrees.store(s.thirdPersonPitchDegrees, std::memory_order_relaxed);
     g_state.thirdPersonHeightOffset.store(s.thirdPersonHeightOffset, std::memory_order_relaxed);
+    g_state.tpsFootAnchorOffset.store(s.tpsFootAnchorOffset);
     g_state.cameraMouseSensitivity.store(s.cameraMouseSensitivity, std::memory_order_relaxed);
     g_state.cameraStickSpeed.store(s.cameraStickSpeed, std::memory_order_relaxed);
     g_state.tpsAimYawOffsetDegrees.store(s.tpsAimYawOffsetDegrees, std::memory_order_relaxed);

@@ -612,8 +612,20 @@ void Draw(Context& c) {
                     config.Save();
                 if(ImGui::Checkbox("Ignore zone camera changes (TPS)",&config.tpsLockZoneCamera))
                     config.Save();
-                ImGui::TextDisabled("Camera follows validated player XYZ, not the vanilla aim pivot.");
-                ImGui::TextDisabled("Zone lock freezes the base yaw and arm length in TPS.");
+                ImGui::TextDisabled("TPS pivot follows player feet on the character axis.");
+                ImGui::SetNextItemWidth(245.0f);
+                if(ImGui::SliderFloat("Foot origin correction##TPS",&config.tpsFootAnchorOffset,
+                        0.0f,200.0f,"%.0f units")) config.Save();
+                ImGui::SameLine();
+                if(ImGui::Button("Default##TPSFoot")) {
+                    config.tpsFootAnchorOffset=88.0f;config.Save();
+                }
+                ImGui::TextDisabled("Approximate root-to-foot height; adjust for the character model.");
+                if(ImGui::Checkbox("Fixed screen-center reticle (TPS)",&config.tpsFixedCenterReticle))
+                    config.Save();
+                ImGui::TextDisabled("Visual overlay only: game's world-target mouse aim is still separate.");
+                ImGui::TextDisabled("Zone lock uses initial character yaw and native arm length.");
+                ImGui::TextDisabled("Non-gameplay/cinematic views should stay native (heuristic).");
                 ImGui::TextDisabled("Attached views: %u | zone overrides ignored: %u",
                     camera.tpsAttachedFrames,camera.nativeZoneOverridesIgnored);
                 ImGui::TextDisabled("Attach deferred: %u (loading/non-player cameras)",
@@ -689,7 +701,7 @@ void Draw(Context& c) {
             }
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
-                ImGui::TextDisabled("Controller TPS combat (V0.64 separate input options)");
+                ImGui::TextDisabled("TPS control: camera orbit + fixed reticle (V0.65)");
                 if (ImGui::Checkbox("TPS aim while firing / throwing (RT or RB)",
                         &config.tpsControllerCombatAim)) config.Save();
                 if(ImGui::Checkbox("Disable vanilla right-stick character rotation",
@@ -704,20 +716,11 @@ void Draw(Context& c) {
                             &config.tpsCombatAimTurnRate,30.0f,360.0f,"%.0f deg/s"))
                         config.Save();
                 }
-                if(ImGui::Checkbox("Limit move-facing to TPS camera cone (TEST)",&config.tpsCameraFacingGuard))
-                    config.Save();
-                if(config.tpsCameraFacingGuard) {
-                    ImGui::SetNextItemWidth(245.0f);
-                    if(ImGui::SliderFloat("Facing tolerance##TPS",
-                            &config.tpsFacingToleranceDegrees,20.0f,180.0f,"%.0f deg"))
-                        config.Save();
-                }
-                ImGui::TextDisabled("Within cone: prevent native turn-to-move; beyond: vanilla.");
-                ImGui::TextDisabled("No forced idle aim; does NOT rotate actor to camera.");
+                ImGui::TextDisabled("Legacy facing cone disabled by default (INI only).");
+                ImGui::TextDisabled("No simulated aiming outside attacks.");
                 if (ImGui::Checkbox("Native strafe while shooting (keep facing camera)",
                         &config.tpsLockCombatFacing)) config.Save();
-                if (ImGui::Checkbox("Disable vanilla camera aim side-drift",
-                        &config.tpsLockCombatCameraPivot)) config.Save();
+                ImGui::TextDisabled("Native aim-pivot compensation disabled: foot camera supersedes it.");
                 ImGui::TextDisabled("Unresolved ground aiming visual: failed test control removed.");
                 if (config.tpsControllerCombatAim) {
                     ImGui::SetNextItemWidth(245.0f);

@@ -133,14 +133,15 @@ public:
     bool thirdPersonEnabled = false;
     bool thirdPersonFovEnabled = true;
     bool tpsFollowPlayer = true;
+    bool tpsFixedCenterReticle = true;
     bool tpsLockZoneCamera = true;
     bool tpsSuppressNativeRightStick = true;
     bool tpsSuppressVanillaMouseAim = true;
-    bool cameraOrbitInputEnabled = false;
+    bool cameraOrbitInputEnabled = true;
     bool tpsControllerCombatAim = true;
     bool tpsLockCombatFacing = true;
-    bool tpsCameraFacingGuard = true;
-    bool tpsLockCombatCameraPivot = true;
+    bool tpsCameraFacingGuard = false;
+    bool tpsLockCombatCameraPivot = false;
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
     bool jumpHeightEnabled = true;
@@ -173,6 +174,7 @@ public:
     float thirdPersonDistanceMultiplier = 0.50f;
     float thirdPersonPitchDegrees = -12.0f;
     float thirdPersonHeightOffset = 180.0f;
+    float tpsFootAnchorOffset = 88.0f; // estimated capsule center-to-foot, configurable
     float cameraMouseSensitivity = 0.12f;
     float cameraStickSpeed = 135.0f;
     float tpsAimYawOffsetDegrees = 0.0f;

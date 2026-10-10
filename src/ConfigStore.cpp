@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2112;
+constexpr int kConfigRevision = 2113;
 
 bool ReadBool(
     const wchar_t* section,
@@ -301,14 +301,15 @@ void Store::ResetDefaults(bool persist) {
     thirdPersonEnabled = false;
     thirdPersonFovEnabled = true;
     tpsFollowPlayer = true;
+    tpsFixedCenterReticle = true;
     tpsLockZoneCamera = true;
     tpsSuppressNativeRightStick = true;
     tpsSuppressVanillaMouseAim = true;
-    cameraOrbitInputEnabled = false;
+    cameraOrbitInputEnabled = true;
     tpsControllerCombatAim = true;
     tpsLockCombatFacing=true;
-    tpsCameraFacingGuard=true;
-    tpsLockCombatCameraPivot=true;
+    tpsCameraFacingGuard=false;
+    tpsLockCombatCameraPivot=false;
     pistolDamageEnabled = true;
     meleeDamageEnabled = true;
     jumpHeightEnabled = true;
@@ -341,6 +342,7 @@ void Store::ResetDefaults(bool persist) {
     thirdPersonDistanceMultiplier = 0.50f;
     thirdPersonPitchDegrees = -12.0f;
     thirdPersonHeightOffset = 180.0f;
+    tpsFootAnchorOffset = 88.0f;
     cameraMouseSensitivity = 0.12f;
     cameraStickSpeed = 135.0f;
     hotstreakChargeMultiplier = 2.00f;
@@ -415,14 +417,15 @@ bool Store::Load() {
         ReadBool(L"Features", L"ThirdPerson", false, path_);
     thirdPersonFovEnabled=ReadBool(L"Features",L"TPSFOV",true,path_);
     tpsFollowPlayer=ReadBool(L"Features",L"TPSFollowPlayer",true,path_);
+    tpsFixedCenterReticle=ReadBool(L"Features",L"TPSFixedCenterReticle",true,path_);
     tpsLockZoneCamera=ReadBool(L"Features",L"TPSLockZoneCamera",true,path_);
     tpsSuppressNativeRightStick=ReadBool(L"Features",L"TPSSuppressNativeRightStick",true,path_);
     tpsSuppressVanillaMouseAim=ReadBool(L"Features",L"TPSSuppressVanillaMouseAim",true,path_);
-    cameraOrbitInputEnabled = ReadBool(L"Features", L"CameraMouseGamepad", false, path_);
+    cameraOrbitInputEnabled = ReadBool(L"Features", L"CameraMouseGamepad", true, path_);
     tpsControllerCombatAim = ReadBool(L"Features", L"TPSControllerCombatAim", true, path_);
     tpsLockCombatFacing = ReadBool(L"Features",L"TPSLockCombatFacing",true,path_);
-    tpsCameraFacingGuard = ReadBool(L"Features",L"TPSCameraFacingGuard",true,path_);
-    tpsLockCombatCameraPivot = ReadBool(L"Features",L"TPSLockCombatCameraPivot",true,path_);
+    tpsCameraFacingGuard = ReadBool(L"Features",L"TPSCameraFacingGuard",false,path_);
+    tpsLockCombatCameraPivot = ReadBool(L"Features",L"TPSLockCombatCameraPivot",false,path_);
     pistolDamageEnabled =
         ReadBool(L"Features", L"PistolDamage", true, path_);
     meleeDamageEnabled =
@@ -486,6 +489,9 @@ bool Store::Load() {
         ReadFloat(L"Values", L"ThirdPersonDistanceMultiplier", 0.50f, path_);
     thirdPersonPitchDegrees = ReadFloat(L"Values", L"ThirdPersonPitchDegrees", -12.0f, path_);
     thirdPersonHeightOffset = ReadFloat(L"Values", L"ThirdPersonHeightOffset", 180.0f, path_);
+    tpsFootAnchorOffset=ReadFloat(L"Values",L"TPSFootAnchorOffset",88.0f,path_);
+    if(!std::isfinite(tpsFootAnchorOffset))tpsFootAnchorOffset=88.0f;
+    tpsFootAnchorOffset=std::clamp(tpsFootAnchorOffset,0.0f,200.0f);
     cameraMouseSensitivity = ReadFloat(L"Values", L"CameraMouseSensitivity", 0.12f, path_);
     cameraStickSpeed = ReadFloat(L"Values", L"CameraStickSpeed", 135.0f, path_);
     if (!std::isfinite(thirdPersonDistanceMultiplier)) thirdPersonDistanceMultiplier=0.50f;
@@ -572,9 +578,14 @@ bool Store::Load() {
             if(std::fabs(thirdPersonHeightOffset-60.0f)<0.0001f)
                 thirdPersonHeightOffset=180.0f;
         }
+        if(revision<=2112){
+            tpsCameraFacingGuard=false;
+            tpsLockCombatCameraPivot=false;
+            cameraOrbitInputEnabled=true;
+        }
         PublishRuntime();
         SaveNow();
-        Log("INI migrated V0.63: forced aim/remap removed; pose defaults updated");
+        Log("INI migrated V0.65: foot-centered TPS; native cone/pivot OFF; orbit ON");
         return true;
     }
 
@@ -597,6 +608,7 @@ void Store::PublishRuntime() const {
     runtime.thirdPersonEnabled = thirdPersonEnabled;
     runtime.thirdPersonFovEnabled = thirdPersonFovEnabled;
     runtime.tpsFollowPlayer = tpsFollowPlayer;
+    runtime.tpsFixedCenterReticle = tpsFixedCenterReticle;
     runtime.tpsLockZoneCamera = tpsLockZoneCamera;
     runtime.tpsSuppressNativeRightStick = tpsSuppressNativeRightStick;
     runtime.tpsSuppressVanillaMouseAim = tpsSuppressVanillaMouseAim;
@@ -608,6 +620,7 @@ void Store::PublishRuntime() const {
     runtime.thirdPersonDistanceMultiplier = thirdPersonDistanceMultiplier;
     runtime.thirdPersonPitchDegrees = thirdPersonPitchDegrees;
     runtime.thirdPersonHeightOffset = thirdPersonHeightOffset;
+    runtime.tpsFootAnchorOffset = tpsFootAnchorOffset;
     runtime.cameraMouseSensitivity = cameraMouseSensitivity;
     runtime.cameraStickSpeed = cameraStickSpeed;
     runtime.tpsAimYawOffsetDegrees = tpsAimYawOffsetDegrees;
@@ -699,6 +712,7 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"ThirdPerson", thirdPersonEnabled, path_);
     WriteBool(L"Features",L"TPSFOV",thirdPersonFovEnabled,path_);
     WriteBool(L"Features",L"TPSFollowPlayer",tpsFollowPlayer,path_);
+    WriteBool(L"Features",L"TPSFixedCenterReticle",tpsFixedCenterReticle,path_);
     WriteBool(L"Features",L"TPSLockZoneCamera",tpsLockZoneCamera,path_);
     WriteBool(L"Features",L"TPSSuppressNativeRightStick",tpsSuppressNativeRightStick,path_);
     WriteBool(L"Features",L"TPSSuppressVanillaMouseAim",tpsSuppressVanillaMouseAim,path_);
@@ -746,6 +760,7 @@ bool Store::SaveNow() {
     WriteFloat(L"Values", L"ThirdPersonDistanceMultiplier", thirdPersonDistanceMultiplier, path_);
     WriteFloat(L"Values", L"ThirdPersonPitchDegrees", thirdPersonPitchDegrees, path_);
     WriteFloat(L"Values", L"ThirdPersonHeightOffset", thirdPersonHeightOffset, path_);
+    WriteFloat(L"Values",L"TPSFootAnchorOffset",tpsFootAnchorOffset,path_);
     WriteFloat(L"Values", L"CameraMouseSensitivity", cameraMouseSensitivity, path_);
     WriteFloat(L"Values", L"CameraStickSpeed", cameraStickSpeed, path_);
     WriteFloat(L"Values", L"TPSAimYawOffsetDegrees", tpsAimYawOffsetDegrees, path_);
