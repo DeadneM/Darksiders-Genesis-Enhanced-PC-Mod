@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2118;
+constexpr int kConfigRevision = 2119;
 
 bool ReadBool(
     const wchar_t* section,
@@ -575,9 +575,13 @@ bool Store::Load() {
             cameraControllerOrbitEnabled=true;
         }
         cameraOrbitInputEnabled=cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
+        // V0.71 orientation-bit method demonstrably fails true strafing.
+        // On this migration reset both experimental values safely.
+        tpsMouseKeyboardStrafe=false;
+        tpsControllerStrafe=false;
         PublishRuntime();
         SaveNow();
-        Log("INI migrated V0.71: independent experimental TPS keyboard / controller strafe");
+        Log("INI migrated V0.72: disable ineffective V0.71 strafe and restore V0.70 movement");
         return true;
     }
 

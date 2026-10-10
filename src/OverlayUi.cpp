@@ -710,13 +710,14 @@ void Draw(Context& c) {
                 ImGui::TextDisabled("TPS mouse uses native flat-plane targeting (3D aim not yet fixed).");
                 ImGui::TextDisabled("No fixed crosshair or simulated aim.");
                 ImGui::Separator();
-                ImGui::TextDisabled("Experimental strafing: keep facing while moving sideways.");
-                if(ImGui::Checkbox("Strafe with mouse / keyboard (WASD)##TPS",
-                        &config.tpsMouseKeyboardStrafe)) config.Save();
-                if(ImGui::Checkbox("Strafe with controller (left stick)##TPS",
-                        &config.tpsControllerStrafe)) config.Save();
-                ImGui::TextDisabled("Only disables native turn-to-movement while walking.");
-                ImGui::TextDisabled("No forced aim; both options default OFF.");
+                ImGui::TextDisabled("Strafing V0.71 suspended: native facing flag did not work.");
+                ImGui::BeginDisabled();
+                bool disabledStrafe=false;
+                ImGui::Checkbox("Strafe with mouse / keyboard (WASD)##TPS",&disabledStrafe);
+                ImGui::Checkbox("Strafe with controller (left stick)##TPS",&disabledStrafe);
+                ImGui::EndDisabled();
+                ImGui::TextDisabled("Both options are disabled pending a verified actor yaw hook.");
+                ImGui::TextDisabled("V0.70 normal movement behavior restored.");
                 constexpr int kButtons[] = {0x0040,0x0080,0x0100,0x0200,0x1000,0x0001,0x0002,0x0004,0x0008};
                 constexpr const char* kButtonLabels[] = {
                     "Left Stick Click (L3)","Right Stick Click (R3)","LB",
