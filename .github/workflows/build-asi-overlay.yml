@@ -86,8 +86,20 @@ jobs:
           git add $path
           git commit -m "downloads: publish V0.68 ZIP"
           if ($LASTEXITCODE -ne 0) { throw "Commit failed" }
-          git push origin HEAD:main
-          if ($LASTEXITCODE -ne 0) { throw "Push failed" }
+          # Other docs/README changes can arrive during an Actions build.
+          # Preserve them: refresh and rebase this single binary ZIP commit,
+          # then retry a non-force push. Never replace concurrent work.
+          $published = $false
+          for ($attempt=1; $attempt -le 5; $attempt++) {
+            git fetch origin main
+            if ($LASTEXITCODE -ne 0) { throw "Fetch failed" }
+            git rebase origin/main
+            if ($LASTEXITCODE -ne 0) { throw "Rebase conflict: manual review needed" }
+            git push origin HEAD:main
+            if ($LASTEXITCODE -eq 0) { $published = $true; break }
+            Start-Sleep -Seconds 2
+          }
+          if (-not $published) { throw "ZIP publication failed after safe retries" }
 
       - name: Publish stable latest TEST prerelease
         shell: pwsh
