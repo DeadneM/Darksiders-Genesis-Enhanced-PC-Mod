@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2115;
+constexpr int kConfigRevision = 2116;
 
 bool ReadBool(
     const wchar_t* section,
@@ -302,7 +302,6 @@ void Store::ResetDefaults(bool persist) {
     thirdPersonFovEnabled = true;
     tpsFollowPlayer = true;
     tpsSuppressNativeRightStick = true;
-    tpsSuppressVanillaMouseAim = true;
     cameraOrbitInputEnabled = true;
     tpsRecenterButtonMask = 0x0040;
     pistolDamageEnabled = true;
@@ -412,7 +411,6 @@ bool Store::Load() {
     thirdPersonFovEnabled=ReadBool(L"Features",L"TPSFOV",true,path_);
     tpsFollowPlayer=ReadBool(L"Features",L"TPSFollowPlayer",true,path_);
     tpsSuppressNativeRightStick=ReadBool(L"Features",L"TPSSuppressNativeRightStick",true,path_);
-    tpsSuppressVanillaMouseAim=ReadBool(L"Features",L"TPSSuppressVanillaMouseAim",true,path_);
     cameraOrbitInputEnabled = ReadBool(L"Features", L"CameraMouseGamepad", true, path_);
     tpsRecenterButtonMask=GetPrivateProfileIntW(L"Controls",L"TPSRecenterButtonMask",0x0040,path_.c_str());
     if(tpsRecenterButtonMask!=0x0040 && tpsRecenterButtonMask!=0x0080 &&
@@ -568,7 +566,7 @@ bool Store::Load() {
         }
         PublishRuntime();
         SaveNow();
-        Log("INI migrated V0.68: retired TPS camera experiments and synthetic aim; L3 recenter");
+        Log("INI migrated V0.69: disable unsupported flat mouse isolation, restore native mouse input");
         return true;
     }
 
@@ -592,7 +590,6 @@ void Store::PublishRuntime() const {
     runtime.thirdPersonFovEnabled = thirdPersonFovEnabled;
     runtime.tpsFollowPlayer = tpsFollowPlayer;
     runtime.tpsSuppressNativeRightStick = tpsSuppressNativeRightStick;
-    runtime.tpsSuppressVanillaMouseAim = tpsSuppressVanillaMouseAim;
     runtime.cameraOrbitInputEnabled = cameraOrbitInputEnabled;
     runtime.thirdPersonDistanceMultiplier = thirdPersonDistanceMultiplier;
     runtime.thirdPersonPitchDegrees = thirdPersonPitchDegrees;
@@ -693,7 +690,9 @@ bool Store::SaveNow() {
         WritePrivateProfileStringW(L"Features",key,nullptr,path_.c_str());
     }
     WriteBool(L"Features",L"TPSSuppressNativeRightStick",tpsSuppressNativeRightStick,path_);
-    WriteBool(L"Features",L"TPSSuppressVanillaMouseAim",tpsSuppressVanillaMouseAim,path_);
+    // V0.69: remove the broken setting from old INIs. Blocking mouse
+    // messages freezes the game's world-plane aim target.
+    WritePrivateProfileStringW(L"Features",L"TPSSuppressVanillaMouseAim",nullptr,path_.c_str());
     WriteBool(L"Features", L"CameraMouseGamepad", cameraOrbitInputEnabled, path_);
     wchar_t buttonBuffer[16]{};
     swprintf_s(buttonBuffer,L"%d",tpsRecenterButtonMask);

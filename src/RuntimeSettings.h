@@ -17,7 +17,6 @@ struct Snapshot {
     bool thirdPersonFovEnabled = true;
     bool tpsFollowPlayer = true;
     bool tpsSuppressNativeRightStick = true;
-    bool tpsSuppressVanillaMouseAim = true;
     bool cameraOrbitInputEnabled = true;
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
@@ -67,7 +66,6 @@ struct State {
     std::atomic_bool tpsViewGameplay{false};
     std::atomic_ullong tpsGameplayViewTick{0};
     std::atomic_bool tpsSuppressNativeRightStick{true};
-    std::atomic_bool tpsSuppressVanillaMouseAim{true};
     std::atomic_bool cameraOrbitInputEnabled{true};
     std::atomic_bool tpsAimActive{false};
     std::atomic<float> tpsActorWorldX{0.0f};

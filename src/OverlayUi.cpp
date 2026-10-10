@@ -699,9 +699,7 @@ void Draw(Context& c) {
                 DrawSectionTitle("TPS camera controls");
                 if (ImGui::Checkbox("Block vanilla right-stick player rotation (even while firing)",
                         &config.tpsSuppressNativeRightStick)) config.Save();
-                if (ImGui::Checkbox("Isolate native flat mouse aiming movement",
-                        &config.tpsSuppressVanillaMouseAim)) config.Save();
-                ImGui::TextDisabled("Mouse aim target still uses a flat game-world plane.");
+                ImGui::TextDisabled("TPS mouse uses native flat-plane targeting (3D aim not yet fixed).");
                 ImGui::TextDisabled("No fake fixed crosshair, simulated aim or forced strafe.");
                 constexpr int kButtons[] = {0x0040,0x0080,0x0100,0x0200,0x1000,0x0001,0x0002,0x0004,0x0008};
                 constexpr const char* kButtonLabels[] = {

@@ -35,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.68-tps-input-cleanup-recenter";
+constexpr const char* kBuild = "0.69-tps-shoot-stick-gate-native-mouse";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -72,8 +72,8 @@ WNDPROC g_originalWndProc = nullptr;
 
 std::atomic_bool g_imguiReady{false};
 // Third Person V0.57: mouse and controller aim isolation.
-std::atomic_uint32_t g_nativeMouseAimSuppressed{0};
 std::atomic_uint32_t g_nativePadAimSuppressed{0};
+std::atomic_uint32_t g_nativePadAimSuppressedDuringFire{0};
 std::atomic_uint32_t g_tpsCombatAimSamples{0};
 std::atomic_uint32_t g_tpsCombatFireSamples{0};
 // V0.59: actor-heading telemetry sampled ONLY from a live validated player
@@ -2407,8 +2407,13 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
        (pad.sThumbRX!=0 || pad.sThumbRY!=0)){
         pad.sThumbRX=0;pad.sThumbRY=0;
         const unsigned n=++g_nativePadAimSuppressed;
+        if(fire){
+            const unsigned count=++g_nativePadAimSuppressedDuringFire;
+            if(count==1||count==10000)
+                Log("TPS V0.69: native right-stick filtered DURING FIRE=%u slot=%d",count,slot);
+        }
         if(n==1||n==10000)
-            Log("TPS V0.68: native right-stick yaw suppressed=%u firing=%d",
+            Log("TPS V0.69: native right-stick filtered=%u firing=%d",
                 n,fire?1:0);
     }
 
@@ -2481,16 +2486,16 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     const bool active=g_config.thirdPersonEnabled && g_config.cameraOrbitInputEnabled &&
         !g_overlayVisible.load() && GetForegroundWindow()==hwnd;
     if (!active) primed=false;
-    const bool suppressAim=ShouldSuppressNativeAim()&&
-        dg::runtime::Get().tpsSuppressVanillaMouseAim.load(std::memory_order_relaxed);
-    bool receivedRawMouse=false;
-    if (msg==WM_INPUT && (active || suppressAim)) {
+    // V0.69: do not consume native WM_INPUT/WM_MOUSEMOVE.
+    // The broken flat-mouse isolation froze the game's target coordinates
+    // while moving only the mod camera, causing shots at stale points.
+    // We observe deltas for camera orbit, then pass events to the game.
+    if (msg==WM_INPUT && active) {
         RAWINPUT raw{};
         UINT size=sizeof(raw);
         if (GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam),RID_INPUT,&raw,&size,
             sizeof(RAWINPUTHEADER))==size && raw.header.dwType==RIM_TYPEMOUSE) {
-            receivedRawMouse=true;
-            if (active && !(raw.data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE)) {
+            if (!(raw.data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE)) {
                 const LONG dx=raw.data.mouse.lLastX,dy=raw.data.mouse.lLastY;
                 if (std::abs(dx)<=250 && std::abs(dy)<=250) {
                     g_orbitMouseDx.fetch_add(static_cast<int>(dx));
@@ -2511,14 +2516,6 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             }
         }
         oldX=x;oldY=y;primed=active;
-    }
-    // Configurable suppression of mouse movement reaching vanilla UE input.
-    // Preserve buttons, wheel, movement keys, focus events and system Alt-Tab.
-    if (suppressAim && (msg==WM_MOUSEMOVE || (msg==WM_INPUT && receivedRawMouse))) {
-        const unsigned n=g_nativeMouseAimSuppressed.fetch_add(1)+1;
-        if (n==1 || n==10000)
-            Log("Aim V0.57: suppressed native mouse movement message=%u count=%u",msg,n);
-        return msg==WM_INPUT ? DefWindowProcW(hwnd,msg,wParam,lParam) : 0;
     }
     // Never intercept focus/activation messages needed for Alt-Tab.
     const bool focusMessage = msg == WM_ACTIVATEAPP || msg == WM_ACTIVATE ||
@@ -2976,8 +2973,15 @@ void UpdateOrbitInput() {
     // game-facing state. Recenter yaw toward live player facing.
     XINPUT_STATE primary{};
     WORD buttonBits=0;
+    bool suspendControllerOrbitOnFire=false;
     if(GetCameraXInputState(0,&primary)==ERROR_SUCCESS) {
         buttonBits=primary.Gamepad.wButtons;
+        // If native right-stick player aim is allowed, do not also orbit
+        // our independent TPS camera from that same stick during RT/RB.
+        // When block is ON, orbit remains active and native XInput is filtered.
+        suspendControllerOrbitOnFire=!rt.tpsSuppressNativeRightStick.load() &&
+            (primary.Gamepad.bRightTrigger>=XINPUT_GAMEPAD_TRIGGER_THRESHOLD ||
+             (buttonBits&XINPUT_GAMEPAD_RIGHT_SHOULDER)!=0);
         const WORD mask=static_cast<WORD>(g_config.tpsRecenterButtonMask);
         if(mask && (buttonBits&mask) && !(lastButtons&mask)) {
             const bool success=dg::camera_trace::RecenterOnPlayer();
@@ -2986,9 +2990,16 @@ void UpdateOrbitInput() {
         }
     }
     lastButtons=buttonBits;
+    static bool priorSuspend=false;
+    if(suspendControllerOrbitOnFire!=priorSuspend) {
+        priorSuspend=suspendControllerOrbitOnFire;
+        Log("TPS V0.69: controller camera orbit %s while native aim enabled",
+            suspendControllerOrbitOnFire?"SUSPENDED (RT/RB)":"RESUMED");
+    }
     float ax=0.0f,ay=0.0f;
     {
         for (DWORD i=0;i<XUSER_MAX_COUNT;++i) {
+            if(suspendControllerOrbitOnFire) break;
             XINPUT_STATE state{};
             if (GetCameraXInputState(i,&state)!=ERROR_SUCCESS) continue;
             if (state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) continue;
@@ -3322,8 +3333,8 @@ void ShutdownMod() {
     dg::skip_logos::Shutdown();
     dg::horse::Shutdown();
     RestoreCameraDof();
-    Log("Aim V0.57 totals: mouseMessagesBlocked=%u rightStickReadsFiltered=%u",
-        g_nativeMouseAimSuppressed.load(),g_nativePadAimSuppressed.load());
+    Log("TPS V0.69 totals: mouseInputNative=PASSTHROUGH rightStickReadsFiltered=%u whileFiring=%u",
+        g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
     Log("TPS V0.66 totals: strafeLockTicks=%u",g_tpsStrafeSamples.load());
     Log("TPS V0.63 totals: coneInside=%u coneOutside=%u reasserted=%u nativeLocks=%u restores=%u",
         g_tpsConeInside.load(),g_tpsConeOutside.load(),g_tpsFacingReasserted.load(),
