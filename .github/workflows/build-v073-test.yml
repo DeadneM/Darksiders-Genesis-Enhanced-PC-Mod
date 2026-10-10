@@ -1,0 +1,99 @@
+name: Build V0.73 Native TPS Strafe Experimental ZIP
+
+on:
+  push:
+    branches:
+      - dev/v0.73-native-strafe-rotation-authority
+    paths:
+      - "src/**"
+      - "config/**"
+      - "README.md"
+      - "CMakeLists.txt"
+      - ".github/workflows/build-v073-test.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: native-strafe-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout experimental source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Configure Windows x64
+        shell: pwsh
+        run: |
+          cmake -S . -B build -G "Visual Studio 18 2026" -A x64
+          if ($LASTEXITCODE -ne 0) { throw "Configure failed" }
+
+      - name: Compile Release
+        shell: pwsh
+        run: |
+          cmake --build build --config Release --parallel
+          if ($LASTEXITCODE -ne 0) { throw "Compile failed" }
+
+      - name: Verify and package ZIP
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          Copy-Item build/out/dxgi.dll dist/
+          Copy-Item build/out/DarksidersGenesisMod.asi dist/
+          Copy-Item config/DarksidersGenesisMod.ini dist/
+          Copy-Item README.md dist/
+          $file = "downloads/DarksidersGenesis_V0.73_NATIVE_STRAFE_TEST.zip"
+          New-Item -ItemType Directory -Path downloads -Force | Out-Null
+          if (Test-Path $file) { Remove-Item $file }
+          Compress-Archive -Path "dist/*" -DestinationPath $file -CompressionLevel Optimal
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $file))
+          try {
+            $names = @($zip.Entries | ForEach-Object { $_.FullName })
+            $expected = @("dxgi.dll","DarksidersGenesisMod.asi","DarksidersGenesisMod.ini","README.md")
+            foreach ($name in $expected) {
+              if ($names -notcontains $name) { throw "Missing root file: $name" }
+            }
+            if ($names.Count -ne 4) { throw "Expected 4 root ZIP files, got $($names.Count)" }
+            if ($names | Where-Object { $_.Contains("/") -or $_.Contains("\") }) {
+              throw "Nested ZIP entries are forbidden"
+            }
+          } finally { $zip.Dispose() }
+          Get-FileHash $file -Algorithm SHA256
+
+      - name: Upload Windows x64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DarksidersGenesis_V0.73_NATIVE_STRAFE_TEST
+          path: downloads/DarksidersGenesis_V0.73_NATIVE_STRAFE_TEST.zip
+          if-no-files-found: error
+
+      - name: Commit permanent experimental ZIP to this branch only
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add downloads/DarksidersGenesis_V0.73_NATIVE_STRAFE_TEST.zip
+          git commit -m "downloads: archive V0.73 native strafe experimental ZIP on dev branch"
+          if ($LASTEXITCODE -ne 0) { throw "Commit failed" }
+          $branch = "dev/v0.73-native-strafe-rotation-authority"
+          $ok = $false
+          for ($i=0; $i -lt 5; $i++) {
+            git fetch origin $branch
+            if ($LASTEXITCODE -ne 0) { throw "Fetch failed" }
+            git rebase "origin/$branch"
+            if ($LASTEXITCODE -ne 0) { throw "Rebase failed" }
+            git push origin "HEAD:$branch"
+            if ($LASTEXITCODE -eq 0) { $ok = $true; break }
+            Start-Sleep -Seconds 2
+          }
+          if (-not $ok) { throw "Permanent branch ZIP publication failed" }
+          Write-Host "PERMANENT DEV DOWNLOAD: https://raw.githubusercontent.com/${{ github.repository }}/$branch/downloads/DarksidersGenesis_V0.73_NATIVE_STRAFE_TEST.zip"
