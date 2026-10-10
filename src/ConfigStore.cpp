@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2111;
+constexpr int kConfigRevision = 2112;
 
 bool ReadBool(
     const wchar_t* section,
@@ -299,6 +299,11 @@ void Store::ResetDefaults(bool persist) {
     skipIntroEnabled = true;
     skipWarningEnabled = true;
     thirdPersonEnabled = false;
+    thirdPersonFovEnabled = true;
+    tpsFollowPlayer = true;
+    tpsLockZoneCamera = true;
+    tpsSuppressNativeRightStick = true;
+    tpsSuppressVanillaMouseAim = true;
     cameraOrbitInputEnabled = false;
     tpsControllerCombatAim = true;
     tpsLockCombatFacing=true;
@@ -327,6 +332,8 @@ void Store::ResetDefaults(bool persist) {
     horseSprintSpeedMultiplier = 1.25f;
     horseSprintDurationMultiplier = 5.00f;
     fovDegrees = 90.0f;
+    thirdPersonFovDegrees = 90.0f;
+    tpsCombatAimTurnRate = 180.0f;
     cameraZoomPercent = 0.0f;
     cameraPitchDegrees = 0.0f;
     cameraYawDegrees = 0.0f;
@@ -406,6 +413,11 @@ bool Store::Load() {
         ReadBool(L"Features", L"SkipWarning", true, path_);
     thirdPersonEnabled =
         ReadBool(L"Features", L"ThirdPerson", false, path_);
+    thirdPersonFovEnabled=ReadBool(L"Features",L"TPSFOV",true,path_);
+    tpsFollowPlayer=ReadBool(L"Features",L"TPSFollowPlayer",true,path_);
+    tpsLockZoneCamera=ReadBool(L"Features",L"TPSLockZoneCamera",true,path_);
+    tpsSuppressNativeRightStick=ReadBool(L"Features",L"TPSSuppressNativeRightStick",true,path_);
+    tpsSuppressVanillaMouseAim=ReadBool(L"Features",L"TPSSuppressVanillaMouseAim",true,path_);
     cameraOrbitInputEnabled = ReadBool(L"Features", L"CameraMouseGamepad", false, path_);
     tpsControllerCombatAim = ReadBool(L"Features", L"TPSControllerCombatAim", true, path_);
     tpsLockCombatFacing = ReadBool(L"Features",L"TPSLockCombatFacing",true,path_);
@@ -456,6 +468,12 @@ bool Store::Load() {
         ReadFloat(L"Values", L"HorseSprintDurationMultiplier", 5.0f, path_);
     fovDegrees =
         ReadFloat(L"Values", L"FOVDegrees", 90.0f, path_);
+    thirdPersonFovDegrees=ReadFloat(L"Values",L"TPSFOVDegrees",90.0f,path_);
+    if(!std::isfinite(thirdPersonFovDegrees))thirdPersonFovDegrees=90.0f;
+    thirdPersonFovDegrees=std::clamp(thirdPersonFovDegrees,40.0f,140.0f);
+    tpsCombatAimTurnRate=ReadFloat(L"Values",L"TPSCombatAimTurnRate",180.0f,path_);
+    if(!std::isfinite(tpsCombatAimTurnRate))tpsCombatAimTurnRate=180.0f;
+    tpsCombatAimTurnRate=std::clamp(tpsCombatAimTurnRate,30.0f,360.0f);
     cameraZoomPercent =
         ReadFloat(L"Values", L"CameraZoomPercent", 0.0f, path_);
     cameraPitchDegrees =
@@ -577,6 +595,11 @@ void Store::PublishRuntime() const {
     runtime.skipIntroEnabled = skipIntroEnabled;
     runtime.skipWarningEnabled = skipWarningEnabled;
     runtime.thirdPersonEnabled = thirdPersonEnabled;
+    runtime.thirdPersonFovEnabled = thirdPersonFovEnabled;
+    runtime.tpsFollowPlayer = tpsFollowPlayer;
+    runtime.tpsLockZoneCamera = tpsLockZoneCamera;
+    runtime.tpsSuppressNativeRightStick = tpsSuppressNativeRightStick;
+    runtime.tpsSuppressVanillaMouseAim = tpsSuppressVanillaMouseAim;
     runtime.cameraOrbitInputEnabled = cameraOrbitInputEnabled;
     runtime.tpsControllerCombatAim = tpsControllerCombatAim;
     runtime.tpsLockCombatFacing = tpsLockCombatFacing;
@@ -599,6 +622,8 @@ void Store::PublishRuntime() const {
     runtime.hotstreakChargeEnabled = hotstreakChargeEnabled;
 
     runtime.fovDegrees = fovDegrees;
+    runtime.thirdPersonFovDegrees = thirdPersonFovDegrees;
+    runtime.tpsCombatAimTurnRate = tpsCombatAimTurnRate;
     runtime.cameraZoomPercent = cameraZoomPercent;
     runtime.cameraPitchDegrees = cameraPitchDegrees;
     runtime.cameraYawDegrees = cameraYawDegrees;
@@ -634,10 +659,12 @@ bool Store::SaveNow() {
 
     PublishRuntime();
 
+    wchar_t revisionText[16]{};
+    swprintf_s(revisionText,L"%d",kConfigRevision);
     WritePrivateProfileStringW(
         L"Meta",
         L"ConfigRevision",
-        L"2106",
+        revisionText,
         path_.c_str()
     );
 
@@ -670,6 +697,11 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"SkipIntroVideos", skipIntroEnabled, path_);
     WriteBool(L"Features", L"SkipWarning", skipWarningEnabled, path_);
     WriteBool(L"Features", L"ThirdPerson", thirdPersonEnabled, path_);
+    WriteBool(L"Features",L"TPSFOV",thirdPersonFovEnabled,path_);
+    WriteBool(L"Features",L"TPSFollowPlayer",tpsFollowPlayer,path_);
+    WriteBool(L"Features",L"TPSLockZoneCamera",tpsLockZoneCamera,path_);
+    WriteBool(L"Features",L"TPSSuppressNativeRightStick",tpsSuppressNativeRightStick,path_);
+    WriteBool(L"Features",L"TPSSuppressVanillaMouseAim",tpsSuppressVanillaMouseAim,path_);
     WriteBool(L"Features", L"CameraMouseGamepad", cameraOrbitInputEnabled, path_);
     WriteBool(L"Features", L"TPSControllerCombatAim", tpsControllerCombatAim, path_);
     WriteBool(L"Features",L"TPSLockCombatFacing",tpsLockCombatFacing,path_);
@@ -705,6 +737,8 @@ bool Store::SaveNow() {
     WriteFloat(L"Values", L"HorseSprintSpeedMultiplier", horseSprintSpeedMultiplier, path_);
     WriteFloat(L"Values", L"HorseSprintDurationMultiplier", horseSprintDurationMultiplier, path_);
     WriteFloat(L"Values", L"FOVDegrees", fovDegrees, path_);
+    WriteFloat(L"Values",L"TPSFOVDegrees",thirdPersonFovDegrees,path_);
+    WriteFloat(L"Values",L"TPSCombatAimTurnRate",tpsCombatAimTurnRate,path_);
     WriteFloat(L"Values", L"CameraZoomPercent", cameraZoomPercent, path_);
     WriteFloat(L"Values", L"CameraPitchDegrees", cameraPitchDegrees, path_);
     WriteFloat(L"Values", L"CameraYawDegrees", cameraYawDegrees, path_);

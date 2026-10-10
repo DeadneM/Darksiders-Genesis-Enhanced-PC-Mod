@@ -131,6 +131,11 @@ public:
     bool skipIntroEnabled = true;
     bool skipWarningEnabled = true;
     bool thirdPersonEnabled = false;
+    bool thirdPersonFovEnabled = true;
+    bool tpsFollowPlayer = true;
+    bool tpsLockZoneCamera = true;
+    bool tpsSuppressNativeRightStick = true;
+    bool tpsSuppressVanillaMouseAim = true;
     bool cameraOrbitInputEnabled = false;
     bool tpsControllerCombatAim = true;
     bool tpsLockCombatFacing = true;
@@ -159,6 +164,8 @@ public:
     float horseSprintSpeedMultiplier = 1.25f;
     float horseSprintDurationMultiplier = 5.00f;
     float fovDegrees = 90.0f;
+    float thirdPersonFovDegrees = 90.0f;
+    float tpsCombatAimTurnRate = 180.0f;
     float cameraZoomPercent = 0.0f;
     float cameraPitchDegrees = 0.0f;
     float cameraYawDegrees = 0.0f;

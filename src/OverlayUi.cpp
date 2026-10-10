@@ -607,6 +607,30 @@ void Draw(Context& c) {
             ImGui::TextDisabled("%s",camera.viewReady && camera.armReady?"READY":"WAIT");
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
+                DrawSectionTitle("TPS camera attachment");
+                if(ImGui::Checkbox("Attach TPS camera to player",&config.tpsFollowPlayer))
+                    config.Save();
+                if(ImGui::Checkbox("Ignore zone camera changes (TPS)",&config.tpsLockZoneCamera))
+                    config.Save();
+                ImGui::TextDisabled("Camera follows validated player XYZ, not the vanilla aim pivot.");
+                ImGui::TextDisabled("Zone lock freezes the base yaw and arm length in TPS.");
+                ImGui::TextDisabled("Attached views: %u | zone overrides ignored: %u",
+                    camera.tpsAttachedFrames,camera.nativeZoneOverridesIgnored);
+                ImGui::TextDisabled("Attach deferred: %u (loading/non-player cameras)",
+                    camera.tpsAttachDeferred);
+                DrawSectionTitle("TPS-only FOV");
+                if(ImGui::Checkbox("Enable TPS FOV override",&config.thirdPersonFovEnabled))
+                    config.Save();
+                if(config.thirdPersonFovEnabled) {
+                    ImGui::SetNextItemWidth(245.0f);
+                    if(ImGui::SliderFloat("FOV##TPS",&config.thirdPersonFovDegrees,40.0f,140.0f,"%.0f deg"))
+                        config.Save();
+                    ImGui::SameLine();
+                    if(ImGui::Button("Default##TPSFOV")) {
+                        config.thirdPersonFovDegrees=90.0f;config.Save();
+                    }
+                }
+                ImGui::TextDisabled("Only applies when both Third Person and TPS FOV are ON.");
                 ImGui::SetNextItemWidth(245.0f);
                 bool distanceChanged=ImGui::SliderFloat("Distance##ThirdPerson",
                         &config.thirdPersonDistanceMultiplier,0.0f,3.0f,"%.2fx");
@@ -665,9 +689,21 @@ void Draw(Context& c) {
             }
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
-                ImGui::TextDisabled("Controller TPS combat (V0.63 natural facing cone test)");
+                ImGui::TextDisabled("Controller TPS combat (V0.64 separate input options)");
                 if (ImGui::Checkbox("TPS aim while firing / throwing (RT or RB)",
                         &config.tpsControllerCombatAim)) config.Save();
+                if(ImGui::Checkbox("Disable vanilla right-stick character rotation",
+                        &config.tpsSuppressNativeRightStick)) config.Save();
+                if(ImGui::Checkbox("Suppress vanilla mouse aim movement (TPS)",
+                        &config.tpsSuppressVanillaMouseAim)) config.Save();
+                ImGui::TextDisabled("Mouse screen reticle is still top-down; mouse shooting requires separate fix.");
+                ImGui::TextDisabled("Right stick controls TPS camera via raw original XInput when enabled.");
+                if(config.tpsControllerCombatAim) {
+                    ImGui::SetNextItemWidth(245.0f);
+                    if(ImGui::SliderFloat("Combat aim turn rate##TPS",
+                            &config.tpsCombatAimTurnRate,30.0f,360.0f,"%.0f deg/s"))
+                        config.Save();
+                }
                 if(ImGui::Checkbox("Limit move-facing to TPS camera cone (TEST)",&config.tpsCameraFacingGuard))
                     config.Save();
                 if(config.tpsCameraFacingGuard) {
@@ -694,11 +730,11 @@ void Draw(Context& c) {
                     }
                 }
                 ImGui::TextDisabled("LB ability wheel stays vanilla; off outside Third Person.");
-                ImGui::TextDisabled("Controller #1 only; aim pace matches camera stick speed.");
+                ImGui::TextDisabled("Controller #1 only; combat rotation speed is independent.");
                 ImGui::TextDisabled("No forced idle aim or direct actor-rotation writes.");
                 ImGui::Unindent();
             }
-            ImGui::TextDisabled("Third Person suppresses native mouse/right-stick aiming (V0.57 test).");
+            ImGui::TextDisabled("TPS mouse/right-stick aim isolation can be toggled independently above.");
             ImGui::TextDisabled("Normal aiming returns immediately when Third Person is OFF.");
             DrawSectionTitle("Field of view");
             DrawTunableFeature(config,"Enable FOV Override","FOV",
@@ -706,10 +742,10 @@ void Draw(Context& c) {
                 40.0f,140.0f,90.0f,"%.0f deg",
                 camera.viewReady ? "Native view output" : "Hook not ready",
                 camera.viewReady);
-            ImGui::TextDisabled("OFF restores the game's original FOV.");
+            ImGui::TextDisabled("Global FOV applies outside TPS, or when TPS FOV is OFF.");
 
             DrawSectionTitle("Camera distance");
-            ImGui::TextWrapped("Zoom: positive = closer, negative = farther. 0%% = vanilla.");
+            ImGui::TextWrapped("Native SpringArm Zoom: mainly vanilla/fallback TPS. Attached TPS with zone lock uses a fixed base distance.");
             bool zoomChanged = false;
             if (ImGui::Button("Zoom -##Camera")) {
                 config.cameraZoomPercent -= 10.0f; zoomChanged = true;
@@ -734,7 +770,7 @@ void Draw(Context& c) {
             }
 
             DrawSectionTitle("Camera height");
-            ImGui::TextWrapped("Vertical camera offset in Unreal units. Zero = vanilla.");
+            ImGui::TextWrapped("Extra global height. In attached TPS it is ADDED to Vertical offset##TP.");
             bool heightChanged = false;
             ImGui::SetNextItemWidth(340.0f);
             heightChanged |= ImGui::SliderFloat("Height##Camera",
@@ -753,7 +789,7 @@ void Draw(Context& c) {
             }
 
             DrawSectionTitle("Camera angle");
-            ImGui::TextWrapped("Pitch offset relative to the native view. 0 degrees = vanilla.");
+            ImGui::TextWrapped("Native-view pitch offset: mainly vanilla. TPS uses View pitch##TP, overriding this setting.");
             bool pitchChanged = false;
             ImGui::SetNextItemWidth(340.0f);
             pitchChanged |= ImGui::SliderFloat("Pitch##Camera",

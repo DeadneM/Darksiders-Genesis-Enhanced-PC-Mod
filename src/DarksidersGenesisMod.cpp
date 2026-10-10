@@ -35,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.63-native-cone-no-idle-aim";
+constexpr const char* kBuild = "0.64-player-attached-camera-tps-fov";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -2449,13 +2449,10 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
         float heading=g_tpsCommandYawDegrees.load();
         if (!g_tpsAimCommandReady.exchange(true))
             heading=liveActor ? actorYaw : targetYaw;
-        // Match the configured camera stick speed (default 135 deg/s)
-        // instead of V0.59's faster fixed 180 deg/s command. When the
-        // camera is moving under stick control, player aim cannot be
-        // instructed to rotate faster by our rate limiter.
-        const float stickSpeed=rt.cameraStickSpeed.load(std::memory_order_relaxed);
+        // TPS combat aim turn-rate is independent of camera orbit speed.
+        const float stickSpeed=rt.tpsCombatAimTurnRate.load(std::memory_order_relaxed);
         const float maxRate=std::isfinite(stickSpeed)
-            ? std::clamp(stickSpeed,30.0f,180.0f) : 135.0f;
+            ? std::clamp(stickSpeed,30.0f,360.0f) : 180.0f;
         const float maxStep=maxRate*dt;
         const float gap=std::remainder(targetYaw-heading,360.0f);
         heading=std::remainder(heading+std::clamp(gap,-maxStep,maxStep),360.0f);
@@ -2480,8 +2477,10 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     } else {
         g_tpsAimCommandReady.store(false);
         g_tpsLastAimTick.store(0);
-        // Preserve the V0.57 native aim isolation when not attacking.
-        if (pad.sThumbRX || pad.sThumbRY) {
+        // Separate toggle for blocking native character yaw. Our camera
+        // still reads original right-stick data via original XInput.
+        if (rt.tpsSuppressNativeRightStick.load(std::memory_order_relaxed) &&
+            (pad.sThumbRX || pad.sThumbRY)) {
             pad.sThumbRX=0;
             pad.sThumbRY=0;
             const unsigned n=g_nativePadAimSuppressed.fetch_add(1)+1;
@@ -2556,7 +2555,8 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     const bool active=g_config.thirdPersonEnabled && g_config.cameraOrbitInputEnabled &&
         !g_overlayVisible.load() && GetForegroundWindow()==hwnd;
     if (!active) primed=false;
-    const bool suppressAim=ShouldSuppressNativeAim();
+    const bool suppressAim=ShouldSuppressNativeAim()&&
+        dg::runtime::Get().tpsSuppressVanillaMouseAim.load(std::memory_order_relaxed);
     bool receivedRawMouse=false;
     if (msg==WM_INPUT && (active || suppressAim)) {
         RAWINPUT raw{};
@@ -2586,7 +2586,7 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         }
         oldX=x;oldY=y;primed=active;
     }
-    // Suppress ONLY mouse movement reaching native UE input while Third Person.
+    // Configurable suppression of mouse movement reaching vanilla UE input.
     // Preserve buttons, wheel, movement keys, focus events and system Alt-Tab.
     if (suppressAim && (msg==WM_MOUSEMOVE || (msg==WM_INPUT && receivedRawMouse))) {
         const unsigned n=g_nativeMouseAimSuppressed.fetch_add(1)+1;

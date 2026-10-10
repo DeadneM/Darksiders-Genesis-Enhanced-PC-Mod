@@ -14,6 +14,11 @@ struct Snapshot {
     bool skipIntroEnabled = true;
     bool skipWarningEnabled = true;
     bool thirdPersonEnabled = false;
+    bool thirdPersonFovEnabled = true;
+    bool tpsFollowPlayer = true;
+    bool tpsLockZoneCamera = true;
+    bool tpsSuppressNativeRightStick = true;
+    bool tpsSuppressVanillaMouseAim = true;
     bool cameraOrbitInputEnabled = false;
     bool tpsControllerCombatAim = true;
     bool tpsLockCombatFacing = true;
@@ -29,6 +34,8 @@ struct Snapshot {
     bool hotstreakChargeEnabled = true;
 
     float fovDegrees = 90.0f;
+    float thirdPersonFovDegrees = 90.0f;
+    float tpsCombatAimTurnRate = 180.0f;
     float cameraZoomPercent = 0.0f;
     float cameraPitchDegrees = 0.0f;
     float cameraYawDegrees = 0.0f;
@@ -62,6 +69,11 @@ struct State {
     std::atomic_bool skipIntroEnabled{true};
     std::atomic_bool skipWarningEnabled{true};
     std::atomic_bool thirdPersonEnabled{false};
+    std::atomic_bool thirdPersonFovEnabled{true};
+    std::atomic_bool tpsFollowPlayer{true};
+    std::atomic_bool tpsLockZoneCamera{true};
+    std::atomic_bool tpsSuppressNativeRightStick{true};
+    std::atomic_bool tpsSuppressVanillaMouseAim{true};
     std::atomic_bool cameraOrbitInputEnabled{false};
     std::atomic_bool tpsControllerCombatAim{true};
     std::atomic_bool tpsLockCombatFacing{true};
@@ -83,13 +95,15 @@ struct State {
     std::atomic_bool hotstreakChargeEnabled{true};
 
     std::atomic<float> fovDegrees{90.0f};
+    std::atomic<float> thirdPersonFovDegrees{90.0f};
+    std::atomic<float> tpsCombatAimTurnRate{180.0f};
     std::atomic<float> cameraZoomPercent{0.0f};
     std::atomic<float> cameraPitchDegrees{0.0f};
     std::atomic<float> cameraYawDegrees{0.0f};
     std::atomic<float> cameraHeightOffset{0.0f};
-    std::atomic<float> thirdPersonDistanceMultiplier{1.00f};
+    std::atomic<float> thirdPersonDistanceMultiplier{0.50f};
     std::atomic<float> thirdPersonPitchDegrees{-12.0f};
-    std::atomic<float> thirdPersonHeightOffset{60.0f};
+    std::atomic<float> thirdPersonHeightOffset{180.0f};
     std::atomic<float> cameraMouseSensitivity{0.12f};
     std::atomic<float> cameraStickSpeed{135.0f};
     std::atomic<float> tpsAimYawOffsetDegrees{0.0f};

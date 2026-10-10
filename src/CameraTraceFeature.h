@@ -7,6 +7,10 @@ struct Telemetry {
     bool armReady = false;
     uint32_t viewCalls = 0;
     uint32_t armCalls = 0;
+    uint32_t tpsAttachedFrames = 0;
+    uint32_t nativeZoneOverridesIgnored = 0;
+    uint32_t tpsAttachDeferred = 0;
+    uint32_t tpsFovSamples = 0;
     float nativeFov = 0.0f;
     float appliedFov = 0.0f;
     float nativePitch = 0.0f;

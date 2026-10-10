@@ -20,6 +20,11 @@ void Publish(const Snapshot& s) {
     g_state.skipIntroEnabled.store(s.skipIntroEnabled, std::memory_order_relaxed);
     g_state.skipWarningEnabled.store(s.skipWarningEnabled, std::memory_order_relaxed);
     g_state.thirdPersonEnabled.store(s.thirdPersonEnabled, std::memory_order_relaxed);
+    g_state.thirdPersonFovEnabled.store(s.thirdPersonFovEnabled);
+    g_state.tpsFollowPlayer.store(s.tpsFollowPlayer);
+    g_state.tpsLockZoneCamera.store(s.tpsLockZoneCamera);
+    g_state.tpsSuppressNativeRightStick.store(s.tpsSuppressNativeRightStick);
+    g_state.tpsSuppressVanillaMouseAim.store(s.tpsSuppressVanillaMouseAim);
     g_state.cameraOrbitInputEnabled.store(s.cameraOrbitInputEnabled, std::memory_order_relaxed);
     g_state.tpsControllerCombatAim.store(s.tpsControllerCombatAim, std::memory_order_relaxed);
     g_state.tpsLockCombatFacing.store(s.tpsLockCombatFacing);
@@ -35,6 +40,8 @@ void Publish(const Snapshot& s) {
     g_state.hotstreakChargeEnabled.store(s.hotstreakChargeEnabled, std::memory_order_relaxed);
 
     g_state.fovDegrees.store(s.fovDegrees, std::memory_order_relaxed);
+    g_state.thirdPersonFovDegrees.store(s.thirdPersonFovDegrees);
+    g_state.tpsCombatAimTurnRate.store(s.tpsCombatAimTurnRate);
     g_state.cameraZoomPercent.store(s.cameraZoomPercent, std::memory_order_relaxed);
     g_state.cameraPitchDegrees.store(s.cameraPitchDegrees, std::memory_order_relaxed);
     g_state.cameraYawDegrees.store(s.cameraYawDegrees, std::memory_order_relaxed);
