@@ -2529,7 +2529,11 @@ void UpdateTPSStrafeInputSources() {
     bool keyboard=false,pad=false;
     if(active){
         if(rt.tpsMouseKeyboardStrafe.load()) {
-            for(int key : { 'W','A','S','D',VK_UP,VK_DOWN,VK_LEFT,VK_RIGHT }){
+            constexpr int keyboardMovementKeys[]{
+                int('W'),int('A'),int('S'),int('D'),
+                VK_UP,VK_DOWN,VK_LEFT,VK_RIGHT
+            };
+            for(int key : keyboardMovementKeys){
                 if((GetAsyncKeyState(key)&0x8000)!=0){keyboard=true;break;}
             }
         }
