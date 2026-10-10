@@ -708,7 +708,15 @@ void Draw(Context& c) {
                 if (ImGui::Checkbox("Block vanilla right-stick player rotation (even while firing)",
                         &config.tpsSuppressNativeRightStick)) config.Save();
                 ImGui::TextDisabled("TPS mouse uses native flat-plane targeting (3D aim not yet fixed).");
-                ImGui::TextDisabled("No fake fixed crosshair, simulated aim or forced strafe.");
+                ImGui::TextDisabled("No fixed crosshair or simulated aim.");
+                ImGui::Separator();
+                ImGui::TextDisabled("Experimental strafing: keep facing while moving sideways.");
+                if(ImGui::Checkbox("Strafe with mouse / keyboard (WASD)##TPS",
+                        &config.tpsMouseKeyboardStrafe)) config.Save();
+                if(ImGui::Checkbox("Strafe with controller (left stick)##TPS",
+                        &config.tpsControllerStrafe)) config.Save();
+                ImGui::TextDisabled("Only disables native turn-to-movement while walking.");
+                ImGui::TextDisabled("No forced aim; both options default OFF.");
                 constexpr int kButtons[] = {0x0040,0x0080,0x0100,0x0200,0x1000,0x0001,0x0002,0x0004,0x0008};
                 constexpr const char* kButtonLabels[] = {
                     "Left Stick Click (L3)","Right Stick Click (R3)","LB",

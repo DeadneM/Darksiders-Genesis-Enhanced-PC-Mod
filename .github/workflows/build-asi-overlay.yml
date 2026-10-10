@@ -55,7 +55,7 @@ jobs:
       - name: Upload test build
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_ASI_V0.70
+          name: DarksidersGenesis_ASI_V0.71
           path: |
             dist/dxgi.dll
             dist/DarksidersGenesisMod.asi
@@ -68,7 +68,7 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           New-Item -ItemType Directory -Path "downloads" -Force | Out-Null
-          $path = "downloads/DarksidersGenesis_V0.70.zip"
+          $path = "downloads/DarksidersGenesis_V0.71.zip"
           if (Test-Path $path) { Remove-Item $path -Force }
           Compress-Archive -Path "dist/*" -DestinationPath $path -CompressionLevel Optimal
           Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -84,7 +84,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add $path
-          git commit -m "downloads: publish V0.70 ZIP"
+          git commit -m "downloads: publish V0.71 ZIP"
           if ($LASTEXITCODE -ne 0) { throw "Commit failed" }
           # Other docs/README changes can arrive during an Actions build.
           # Preserve them: refresh and rebase this single binary ZIP commit,

@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2117;
+constexpr int kConfigRevision = 2118;
 
 bool ReadBool(
     const wchar_t* section,
@@ -305,6 +305,8 @@ void Store::ResetDefaults(bool persist) {
     cameraOrbitInputEnabled = true;
     cameraMouseOrbitEnabled = true;
     cameraControllerOrbitEnabled = true;
+    tpsMouseKeyboardStrafe = false;
+    tpsControllerStrafe = false;
     tpsRecenterButtonMask = 0x0040;
     pistolDamageEnabled = true;
     meleeDamageEnabled = true;
@@ -417,6 +419,8 @@ bool Store::Load() {
     cameraMouseOrbitEnabled=ReadBool(L"Features",L"CameraMouseOrbit",oldCombinedOrbit,path_);
     cameraControllerOrbitEnabled=ReadBool(L"Features",L"CameraControllerOrbit",oldCombinedOrbit,path_);
     cameraOrbitInputEnabled=cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
+    tpsMouseKeyboardStrafe=ReadBool(L"Features",L"TPSMouseKeyboardStrafe",false,path_);
+    tpsControllerStrafe=ReadBool(L"Features",L"TPSControllerStrafe",false,path_);
     tpsRecenterButtonMask=GetPrivateProfileIntW(L"Controls",L"TPSRecenterButtonMask",0x0040,path_.c_str());
     if(tpsRecenterButtonMask!=0x0040 && tpsRecenterButtonMask!=0x0080 &&
        tpsRecenterButtonMask!=0x0100 && tpsRecenterButtonMask!=0x0200 &&
@@ -573,7 +577,7 @@ bool Store::Load() {
         cameraOrbitInputEnabled=cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
         PublishRuntime();
         SaveNow();
-        Log("INI migrated V0.70: split TPS mouse and controller orbit toggles");
+        Log("INI migrated V0.71: independent experimental TPS keyboard / controller strafe");
         return true;
     }
 
@@ -600,6 +604,8 @@ void Store::PublishRuntime() const {
     runtime.cameraOrbitInputEnabled = cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
     runtime.cameraMouseOrbitEnabled = cameraMouseOrbitEnabled;
     runtime.cameraControllerOrbitEnabled = cameraControllerOrbitEnabled;
+    runtime.tpsMouseKeyboardStrafe = tpsMouseKeyboardStrafe;
+    runtime.tpsControllerStrafe = tpsControllerStrafe;
     runtime.thirdPersonDistanceMultiplier = thirdPersonDistanceMultiplier;
     runtime.thirdPersonPitchDegrees = thirdPersonPitchDegrees;
     runtime.thirdPersonHeightOffset = thirdPersonHeightOffset;
@@ -706,11 +712,13 @@ bool Store::SaveNow() {
     WritePrivateProfileStringW(L"Features",L"CameraMouseGamepad",nullptr,path_.c_str());
     WriteBool(L"Features",L"CameraMouseOrbit",cameraMouseOrbitEnabled,path_);
     WriteBool(L"Features",L"CameraControllerOrbit",cameraControllerOrbitEnabled,path_);
+    WriteBool(L"Features",L"TPSMouseKeyboardStrafe",tpsMouseKeyboardStrafe,path_);
+    WriteBool(L"Features",L"TPSControllerStrafe",tpsControllerStrafe,path_);
     wchar_t buttonBuffer[16]{};
     swprintf_s(buttonBuffer,L"%d",tpsRecenterButtonMask);
     WritePrivateProfileStringW(L"Controls",L"TPSRecenterButtonMask",buttonBuffer,path_.c_str());
     WritePrivateProfileStringW(L"Features",L"TPSAlwaysFaceCamera",nullptr,path_.c_str());
-    WritePrivateProfileStringW(L"Features",L"TPSControllerStrafe",nullptr,path_.c_str());
+
     WritePrivateProfileStringW(L"Features",L"TPSHideGroundAimFx",nullptr,path_.c_str());
     WriteBool(L"Features", L"PistolDamage", pistolDamageEnabled, path_);
     WriteBool(L"Features", L"MeleeDamage", meleeDamageEnabled, path_);

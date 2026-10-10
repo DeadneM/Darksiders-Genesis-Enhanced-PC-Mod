@@ -137,6 +137,9 @@ public:
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
     bool cameraMouseOrbitEnabled = true;
     bool cameraControllerOrbitEnabled = true;
+    // V0.71: independently gated experimental native strafe
+    bool tpsMouseKeyboardStrafe = false;
+    bool tpsControllerStrafe = false;
     int tpsRecenterButtonMask = 0x0040; // XINPUT_GAMEPAD_LEFT_THUMB
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;

@@ -20,6 +20,9 @@ struct Snapshot {
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
     bool cameraMouseOrbitEnabled = true;
     bool cameraControllerOrbitEnabled = true;
+    // V0.71: independently gated experimental native strafe
+    bool tpsMouseKeyboardStrafe = false;
+    bool tpsControllerStrafe = false;
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
     bool jumpHeightEnabled = true;
@@ -71,6 +74,8 @@ struct State {
     std::atomic_bool cameraOrbitInputEnabled{true};
     std::atomic_bool cameraMouseOrbitEnabled{true};
     std::atomic_bool cameraControllerOrbitEnabled{true};
+    std::atomic_bool tpsMouseKeyboardStrafe{false};
+    std::atomic_bool tpsControllerStrafe{false};
     std::atomic_bool tpsAimActive{false};
     std::atomic<float> tpsActorWorldX{0.0f};
     std::atomic<float> tpsActorWorldY{0.0f};

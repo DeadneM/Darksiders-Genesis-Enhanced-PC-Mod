@@ -35,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.70-split-orbit-horse-cam-right-stick-trace";
+constexpr const char* kBuild = "0.71-device-specific-tps-strafe-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -95,6 +95,9 @@ std::atomic_ullong g_tpsFireLastTick{0};
 std::atomic_uint32_t g_tpsPlayerGeneration{0};
 std::atomic_uint32_t g_tpsNativeFacingOff{0},g_tpsNativeFacingRestored{0};
 std::atomic_uint32_t g_tpsStrafeSamples{0};
+std::atomic_bool g_tpsKeyboardMoveActive{false},g_tpsControllerMoveActive{false};
+std::atomic_ullong g_tpsInputSourceTick{0};
+std::atomic_uint32_t g_tpsStrafeMouseLocks{0},g_tpsStrafePadLocks{0};
 SRWLOCK g_tpsFacingLock=SRWLOCK_INIT;
 void* g_tpsFacingCurrentComponent=nullptr;
 bool g_tpsFacingOwned=false;
@@ -1378,16 +1381,52 @@ void CaptureLiveTPSActorYaw(void* actor) {
 // validated movement callback. Never force turn-to-move OFF in new builds.
 void UpdateTPSFacingNative(void* component) {
     if(!component)return;
-    auto* field=static_cast<unsigned char*>(component)+0x240;
+    auto& rt=dg::runtime::Get();
+    auto* bytes=static_cast<unsigned char*>(component);
+    // Exact EXE: UCharacterMovementComponent bOrientRotationToMovement
+    // byte +0x240 bit 0x10; only within validated live player callback.
+    auto* field=bytes+0x240;
+    const unsigned char movementMode=*(bytes+0x1B0);
+    const bool walking=movementMode==1u||movementMode==2u;
+    const ULONGLONG now=GetTickCount64();
+    const ULONGLONG sample=g_tpsInputSourceTick.load(std::memory_order_acquire);
+    const bool fresh=sample&&now>=sample&&now-sample<160ull;
+    const bool keyboard=fresh&&g_tpsKeyboardMoveActive.load()&&
+        rt.tpsMouseKeyboardStrafe.load();
+    const bool pad=fresh&&g_tpsControllerMoveActive.load()&&
+        rt.tpsControllerStrafe.load();
+    const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+    const bool enabled=g_targetValidation.exact&&rt.thirdPersonEnabled.load()&&
+        !g_overlayVisible.load()&&!g_shuttingDown.load()&&
+        hwnd&&GetForegroundWindow()==hwnd&&walking&&(keyboard||pad);
     AcquireSRWLockExclusive(&g_tpsFacingLock);
     if(g_tpsFacingCurrentComponent!=component){
-        g_tpsFacingCurrentComponent=component;
-        g_tpsFacingOwned=false;
+        // Never dereference a stale cached movement component.
+        g_tpsFacingCurrentComponent=component;g_tpsFacingOwned=false;
     }
-    if(g_tpsFacingOwned){
-        if(!(*field&0x10u))*field=static_cast<unsigned char>(*field|0x10u);
+    if(enabled){
+        if((*field&0x10u)!=0){
+            *field=static_cast<unsigned char>(*field&~0x10u);
+            if(!g_tpsFacingOwned){
+                g_tpsFacingOwned=true;
+                const unsigned n=++g_tpsNativeFacingOff;
+                if(keyboard)++g_tpsStrafeMouseLocks;
+                if(pad)++g_tpsStrafePadLocks;
+                if(n<=3||n==100||n==1000)
+                    Log("TPS V0.71: strafe native lock n=%u keyboard=%d pad=%d mode=%u component=%p",
+                        n,keyboard?1:0,pad?1:0,unsigned(movementMode),component);
+            }else{
+                ++g_tpsFacingReasserted;
+            }
+        }
+        if(g_tpsFacingOwned)++g_tpsStrafeSamples;
+    }else if(g_tpsFacingOwned){
+        // Restore only a flag originally set by the native game.
+        if((*field&0x10u)==0)*field=static_cast<unsigned char>(*field|0x10u);
         g_tpsFacingOwned=false;
-        ++g_tpsNativeFacingRestored;
+        const unsigned n=++g_tpsNativeFacingRestored;
+        if(n<=3||n==100||n==1000)
+            Log("TPS V0.71: strafe native RESTORE n=%u mode=%u",n,unsigned(movementMode));
     }
     ReleaseSRWLockExclusive(&g_tpsFacingLock);
 }
@@ -2479,6 +2518,38 @@ DWORD GetCameraXInputState(DWORD user,XINPUT_STATE* state) {
     return api?api(user,state):ERROR_DEVICE_NOT_CONNECTED;
 }
 
+// Independent keyboard and controller left-stick signals. Read-only
+// sampling in Present, consumed only within live player GetMaxSpeed callback.
+void UpdateTPSStrafeInputSources() {
+    auto& rt=dg::runtime::Get();
+    const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+    const bool active=g_targetValidation.exact&&rt.thirdPersonEnabled.load()&&
+        hwnd&&hwnd==GetForegroundWindow()&&!IsIconic(hwnd)&&
+        !g_overlayVisible.load()&&!g_shuttingDown.load();
+    bool keyboard=false,pad=false;
+    if(active){
+        if(rt.tpsMouseKeyboardStrafe.load()) {
+            for(int key : { 'W','A','S','D',VK_UP,VK_DOWN,VK_LEFT,VK_RIGHT }){
+                if((GetAsyncKeyState(key)&0x8000)!=0){keyboard=true;break;}
+            }
+        }
+        if(rt.tpsControllerStrafe.load()){
+            XINPUT_STATE state{};
+            if(GetCameraXInputState(0,&state)==ERROR_SUCCESS){
+                const auto& p=state.Gamepad;
+                const float lx=static_cast<float>(p.sThumbLX);
+                const float ly=static_cast<float>(p.sThumbLY);
+                const float dead=static_cast<float>(XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
+                pad=std::hypot(lx,ly)>dead&&
+                    (p.wButtons&XINPUT_GAMEPAD_LEFT_SHOULDER)==0;
+            }
+        }
+    }
+    g_tpsKeyboardMoveActive.store(keyboard);
+    g_tpsControllerMoveActive.store(pad);
+    g_tpsInputSourceTick.store(GetTickCount64(),std::memory_order_release);
+}
+
 LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     // Read mouse deltas without consuming native game input.
     static bool primed=false;
@@ -3072,6 +3143,7 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     ProcessCameraInput();
     EnsureOrbitWndProc(swapChain);
     EnsureNativeXInputAimHooks();
+    UpdateTPSStrafeInputSources();
     UpdateOrbitInput();
     RefreshReticleCursorState();
 
@@ -3367,7 +3439,9 @@ void ShutdownMod() {
     RestoreCameraDof();
     Log("TPS V0.69 totals: mouseInputNative=PASSTHROUGH rightStickReadsFiltered=%u whileFiring=%u",
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
-    Log("TPS V0.66 totals: strafeLockTicks=%u",g_tpsStrafeSamples.load());
+    Log("TPS V0.71 totals: strafeLockTicks=%u keyboardLocks=%u padLocks=%u nativeRestores=%u",
+        g_tpsStrafeSamples.load(),g_tpsStrafeMouseLocks.load(),
+        g_tpsStrafePadLocks.load(),g_tpsNativeFacingRestored.load());
     Log("TPS V0.63 totals: coneInside=%u coneOutside=%u reasserted=%u nativeLocks=%u restores=%u",
         g_tpsConeInside.load(),g_tpsConeOutside.load(),g_tpsFacingReasserted.load(),
         g_tpsNativeFacingOff.load(),g_tpsNativeFacingRestored.load());
