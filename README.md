@@ -6,6 +6,17 @@ DXGI proxy and ASI plugin.
 The project is deliberately fail-open for normal runtime failures and
 **fail-closed for unsupported game executables**.
 
+## Downloads (stable links)
+
+**Latest experimental test ZIP:** [DarksidersGenesis_LATEST_TEST.zip](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/releases/download/test-build/DarksidersGenesis_LATEST_TEST.zip)
+
+**Versioned V0.64 backup:** [DarksidersGenesis_V0.64.zip](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/main/downloads/DarksidersGenesis_V0.64.zip)
+
+**Official validated release:** [GitHub Releases](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/releases) (currently V0.29).
+
+The experimental `test-build` prerelease is updated automatically only after a successful Windows build.
+Never distribute signed GitHub Actions artifact redirect links, since they expire.
+See [DOWNLOAD_STANDARD.md](docs/DOWNLOAD_STANDARD.md) for our reusable policy across mod repositories.
 ## Current development state
 
 - Latest published binary release: **V0.29**
