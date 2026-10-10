@@ -52,3 +52,10 @@ Engine references:
 ## Execution blocker
 
 The current source repository provides code, INI and historical logs, but NOT the target Windows executable bytes for a safe proof of concrete game-native rotation hook and vtable/RVA. Public UE4 source alone is not enough to justify making a machine-code patch for this exact game. Therefore **no V0.73 build or main promotion can be honestly claimed from this document**.
+
+
+## Candidate implementation after receiving the EXE and V0.72 log
+
+The exact original EXE was uploaded in the chat and confirmed SHA256 `9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54`. The V0.72 log reports 4,848 filtered right-stick reads (1,975 under fire), 0 synthetic mouse messages blocked. Direct machine-code audit identifies native movement rotation callsite `RVA 0x5B96BF` -> FRotator interpolation `0x8A1700`; interpolated result writes to movement `+0x22C`. Tested static signatures: `48 83 EC 78 0F 29 7C 24 50 0F 28 FB` at `0x8A1700`.
+
+Code on this branch now installs a callsite-guarded interpolation hook, targets ONLY the current local-player validated movement component (recent GetMaxSpeed callback) and fresh TPS camera, preserves native left analog and interpolator. Overlay enables controller option opt-in; keyboard option stays suspended. This is an **experimental hypothesis** and requires an actual Windows build and a user in-game strafe test. It does not assert that this callsite wins over later custom character/animation rotation.
