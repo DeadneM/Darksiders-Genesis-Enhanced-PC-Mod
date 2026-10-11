@@ -35,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.86-mounted-aim-modes-controller-bindings-test";
+constexpr const char* kBuild = "0.87-mounted-aim-idle-ctrl-horse-region-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1436,6 +1436,10 @@ std::atomic_uint32_t g_tpsNativeLookInputBlocks{0},g_tpsMouseFacingApplied{0};
 std::atomic_uint32_t g_tpsNativeLookInputMouseAim{0},g_tpsNativeLookInputPadAim{0};
 std::atomic_uint32_t g_tpsPadStrafeApplied{0},g_tpsNativeLookRotationBlocks{0};
 std::atomic_uint32_t g_tpsNativeLookSignatureFailures{0};
+// V0.87 scoped mounted-aim diagnostics: prove that actual game-native
+// look callbacks receive mounted input, and compare physical Ctrl aiming.
+std::atomic_uint32_t g_mountCameraLookApplied{0},g_mountNativeIdleLookBlocked{0};
+std::atomic_uint32_t g_mountHorseActorLookCalls{0},g_mountCtrlAimSamples{0};
 
 // Actual mounted TPS camera source is written by HookView, with a short
 // expiry so stale HorseCharacter callbacks cannot make foot aim mounted.
@@ -1459,12 +1463,22 @@ bool IsLiveTPSLookActor(void* actor) {
         g_overlayVisible.load())
         return false;
     const auto* player=g_localPlayerCharacter.load(std::memory_order_acquire);
-    if(actor!=player || !player)return false;
+    // A riding player's look getters can be invoked on the horse pawn,
+    // not only the last on-foot pawn. Exact pointer identity plus a FRESH
+    // camera-mounted source is required; never dereference this pointer.
+    const auto& rt=dg::runtime::Get();
+    const ULONGLONG now=GetTickCount64();
+    const ULONGLONG horseTick=rt.tpsHorsePoseTick.load(std::memory_order_acquire);
+    const bool liveHorse=IsMountedTPSNow()&&horseTick&&now>=horseTick&&
+        now-horseTick<350ull;
+    const bool isHorse=liveHorse&&reinterpret_cast<std::uintptr_t>(actor)==
+        rt.tpsHorseOwnerIdentity.load(std::memory_order_acquire);
+    if(actor!=player&&!isHorse)return false;
+    if(isHorse)++g_mountHorseActorLookCalls;
     const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
     if(!hwnd || GetForegroundWindow()!=hwnd || IsIconic(hwnd))return false;
     const ULONGLONG tick=dg::runtime::Get().tpsActorLocationTick.load(std::memory_order_acquire);
-    const ULONGLONG now=GetTickCount64();
-    return (tick&&now>=tick&&now-tick<250ull)||IsMountedTPSNow();
+    return (tick&&now>=tick&&now-tick<250ull)||isHorse||IsMountedTPSNow();
 }
 bool IsPadFiringNow() {
     const ULONGLONG now=GetTickCount64();
@@ -1499,9 +1513,17 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     const bool mouseFiring=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
     const bool mounted=IsMountedTPSNow();
     const bool fire=mouseFiring||IsPadFiringNow();
-    // Mounted mode overrides on-foot strafe/rotate settings entirely.
-    // Mode 1: native look is passed through for vanilla horse aiming.
-    if(mounted && rt.tpsMountedAimMode.load()==1 && fire)return result;
+    // V0.87: native horse aiming only while FIRE is held. Outside firing
+    // the stick belongs solely to the TPS orbit, like Camera Forward.
+    const bool vanillaMount=mounted&&rt.tpsMountedAimMode.load()==1;
+    if(vanillaMount&&fire)return result;
+    if(vanillaMount&&!fire&&IsRightStickActiveNow()){
+        result->pitch=0.0f;result->yaw=0.0f;result->roll=0.0f;
+        const unsigned n=++g_mountNativeIdleLookBlocked;
+        if(n==1||n==100||n==1000)
+            Log("TPS V0.87: mounted VANILLA_AIM idle native look suppressed n=%u",n);
+        return result;
+    }
     const bool padStrafeFiring=IsPadFiringNow()&&
         (mounted || rt.tpsControllerStrafeWhileFiring.load());
     if((mouseFiring||padStrafeFiring)&&IsTPSLookViewFresh()){
@@ -1519,13 +1541,20 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
             const unsigned n=mouseFiring
                 ? ++g_tpsNativeLookInputMouseAim
                 : ++g_tpsNativeLookInputPadAim;
+            if(mounted&&rt.tpsMountedAimMode.load()==0){
+                const unsigned hit=++g_mountCameraLookApplied;
+                if(hit==1||hit==100||hit==1000)
+                    Log("TPS V0.87 CAMERA_FORWARD: game-native look vector set from camera n=%u yaw=%.1f actor=%s ctrlHeld=%d",
+                        hit,yaw,reinterpret_cast<std::uintptr_t>(actor)==
+                        rt.tpsHorseOwnerIdentity.load()?"HORSE":"PLAYER",
+                        (GetAsyncKeyState(VK_CONTROL)&0x8000)?1:0);
+            }
             if(n==1||n==120||n==10000)
                 Log("TPS V0.75: game-native LOOK VECTOR -> camera during fire n=%u source=%s yaw=%.1f calls=%u",
                     n,mouseFiring?"mouse":"pad-strafe",yaw,calls);
             return result;
         }
     }
-    if(mounted&&rt.tpsMountedAimMode.load()==1)return result;
     if(!(mounted||rt.tpsSuppressNativeRightStick.load())||!IsRightStickActiveNow())
         return result;
     // Existing XInput block remains enabled. This is a SECOND, precise
@@ -1550,7 +1579,8 @@ NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
     const bool mounted=IsMountedTPSNow();
     const bool playerStrafe=padFire&&(mounted||
         rt.tpsControllerStrafeWhileFiring.load());
-    if(mounted&&rt.tpsMountedAimMode.load()==1)return result;
+    const bool firing=mouseFire||padFire;
+    if(mounted&&rt.tpsMountedAimMode.load()==1&&firing)return result;
     const bool nativeBlock=(mounted||rt.tpsSuppressNativeRightStick.load())&&
         IsRightStickActiveNow();
     const float actorYaw=g_tpsActorWorldYaw.load(std::memory_order_acquire);
@@ -2768,8 +2798,12 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     // This is input isolation, NOT yet a shot-direction fix.
     const bool mounted=IsMountedTPSNow();
     const bool nativeMountedAim=mounted && rt.tpsMountedAimMode.load()==1;
-    const bool blockLook=(mounted && !nativeMountedAim) ||
-        (!mounted && rt.tpsSuppressNativeRightStick.load());
+    // Release RIGHT-STICK native aiming ONLY on a mounted firing frame,
+    // otherwise camera-only right stick in BOTH mounted modes.
+    const bool firingAny=fire||(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
+    const bool blockLook=mounted
+        ? !(nativeMountedAim&&firingAny)
+        : rt.tpsSuppressNativeRightStick.load();
     if(blockLook && (pad.sThumbRX!=0 || pad.sThumbRY!=0)){
         pad.sThumbRX=0;pad.sThumbRY=0;
         const unsigned n=++g_nativePadAimSuppressed;
@@ -3354,12 +3388,24 @@ void UpdateOrbitInput() {
     // validated user-facing controls. Never inject an artificial summon;
     // simply correlate each real attempt with the existing server hook.
     const bool hPressed=focused&&(GetAsyncKeyState('H')&0x8000)!=0;
+    // V0.87: correlate real user intent with precise region permission
+    // getters inside HorseFeature; no fake keyboard/mouse events.
+    static bool wasCtrl=false;
+    const bool ctrlPressed=focused&&(GetAsyncKeyState(VK_CONTROL)&0x8000)!=0;
+    if(ctrlPressed&&!wasCtrl){
+        const unsigned n=++g_mountCtrlAimSamples;
+        if(n<=12)Log("TPS V0.87 CTRL AIM PROBE: pressed n=%u mounted=%d mode=%d nativeLookCalls=%u",
+            n,IsMountedTPSNow()?1:0,rt.tpsMountedAimMode.load(),
+            g_tpsLookInputCalls.load());
+    }
+    wasCtrl=ctrlPressed;
     const bool shoulderChord=padAvailable &&
         (physicalBits&(XINPUT_GAMEPAD_LEFT_SHOULDER|XINPUT_GAMEPAD_RIGHT_SHOULDER))==
             (XINPUT_GAMEPAD_LEFT_SHOULDER|XINPUT_GAMEPAD_RIGHT_SHOULDER);
     static bool wasHorseH=false,wasHorseChord=false;
     static unsigned horseInputAttempts=0;
     if((hPressed&&!wasHorseH)||(shoulderChord&&!wasHorseChord)){
+        rt.horseSummonIntentTick.store(now,std::memory_order_release);
         const unsigned n=++horseInputAttempts;
         if(n<=24){
             const auto horseProbe=dg::horse::GetTelemetry();
@@ -3493,7 +3539,7 @@ void UpdateOrbitInput() {
         const bool rightActive=
             std::abs(int(primary.Gamepad.sThumbRX))>XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE||
             std::abs(int(primary.Gamepad.sThumbRY))>XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE;
-        if(rt.tpsSuppressNativeRightStick.load()&&rightActive)
+        if((rt.tpsSuppressNativeRightStick.load()||IsMountedTPSNow())&&rightActive)
             g_tpsPadRightStickTick.store(now,std::memory_order_release);
         // Read-only probe: does the local pawn yaw change when ONLY the
         // right analog is moving, despite our native XInput suppression?
@@ -3896,6 +3942,9 @@ void ShutdownMod() {
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
     Log("TPS V0.72 totals: controllerMappedMouseMessagesBlocked=%u rightStickFiltered=%u",
         g_tpsControllerMouseBlocks.load(),g_nativePadAimSuppressed.load());
+    Log("TPS V0.87 mounted controls totals: cameraForwardLook=%u vanillaIdleLookBlocked=%u horseActorLookCalls=%u ctrlPressed=%u",
+        g_mountCameraLookApplied.load(),g_mountNativeIdleLookBlocked.load(),
+        g_mountHorseActorLookCalls.load(),g_mountCtrlAimSamples.load());
     Log("TPS V0.84 grenade totals: physicalDown=%u physicalUp=%u nativeReleasePulses=%u (game pickup/stow must be verified visually)",
         g_tpsGrenadeDownCount.load(),g_tpsGrenadeUpCount.load(),
         g_tpsGrenadeReleasePulseDelivered.load());
