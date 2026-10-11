@@ -605,6 +605,16 @@ bool Store::Load() {
         return true;
     }
     if (revision < kConfigRevision) {
+        // V0.95 requested shared Z/Z instead of the previous V/V pair.
+        // Migrate ONLY that unchanged pair, respecting every other
+        // independent user-selected keyboard binding.
+        if(revision<2129 &&
+           tpsKeyboardKeys[static_cast<size_t>(TpsKeyboardAction::Toggle)]=='V' &&
+           tpsKeyboardKeys[static_cast<size_t>(TpsKeyboardAction::Recenter)]=='V'){
+            tpsKeyboardKeys[static_cast<size_t>(TpsKeyboardAction::Toggle)]='Z';
+            tpsKeyboardKeys[static_cast<size_t>(TpsKeyboardAction::Recenter)]='Z';
+            Log("V0.95 migrated prior shared V/V default to Z/Z");
+        }
         // V0.88 requested default ON. For older INIs the old explicit
         // 0 was the previous experimental default: migrate once to ON;
         // user can switch OFF after migration and it will remain OFF.
