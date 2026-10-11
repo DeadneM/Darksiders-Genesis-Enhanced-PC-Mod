@@ -2354,3 +2354,18 @@ Detailed technical notes: [V0.92 rebinds + input](docs/V0_92_REBINDABLE_TPS_HORS
 **Keyboard/controller side by side:** Camera > TPS controls groups keyboard rebinding and controller button selection in four rows by action: TPS long toggle, recenter, temporary native camera and grenade equip/stow. Shared press-duration settings are adjacent to their actions. Horse binding lives only under Gameplay. No defaults of old user mappings are overwritten.
 
 The V0.92 cumulative ZIP is preserved in the `archive` branch. Technical detail and caveats in [V0.93 notebook](docs/V0_93_UNIFIED_TPS_AIM_CONTROLS.md).
+
+
+## V0.94 (2026-10-11) | Native radial wheels and simpler TPS input (EXPERIMENTAL)
+
+**User INI is now the source of all defaults:** TPS ON, distance 0.150, pitch 0, height 100, TPS FOV 110, native camera mouse/stick, camera sensitivity 0.120 and stick speed 180, and all supplied combat, horse, hotkey and intro preferences. `ConfigRevision=2128` preserves existing per-user values while retiring obsolete input toggles. The reference `config/DarksidersGenesisMod.ini` reflects the provided file except for deliberately removed obsolete fields.
+
+**Radial menu priority in TPS:** when LB or a native keyboard equipment/ammunition/ability wheel command (E, G, Tab, Left Alt) is held, the game receives its original right-stick position and the **native player look vector/rotation**; our TPS camera stays active, while independent stick camera orbit yields to radial selection. The wheel also overrides any shared R3/E temporary-vanilla camera shortcut to prevent an unexpected switch back to native view. This is the new test focus, not yet user validated.
+
+**Simplified TPS aim:** previously separate `Block vanilla right stick`, `Strafe while firing` and obsolete `Rotate on foot while firing` settings have been retired as checkboxes, runtime flags and INI fields. Their genuinely required native input isolation and firing look-vector correction are automatic TPS mechanics, except while using native wheels or native Vanilla Aim during firing. They never provided an independent real strafing movement mechanism. The single TPS aim selector still controls both foot and mounted combat: **Camera Forward** emulates right-stick UP while firing with independent free camera; **Vanilla Aim** pauses independent camera while firing and passes native aim through. Left-stick movement remains owned by the game.
+
+**Native keyboard grenade:** the mod's duplicate keyboard grenade shortcut and artificial E release pulse are removed; the game already owns E Use Gear. User-validated native gamepad R3 hold/release pulse is retained. Existing shared E `TemporaryView` binding from the provided INI stays recorded, but cannot take the camera away while native gear wheel E is active. Choose a different key to request temporary vanilla view independently.
+
+**Horse keyboard banned-zone fix:** the old extra H press after 1800ms is gone. A real H event now marks native Horse Everywhere scope before delivery to the game WndProc, while a two-button XInput chord marks that scope before the native game polls LB+RB. Both use the same previously user-validated scoped horse-region bypass; no extra mount command or scripted horse spawn is introduced. **Still needs gameplay test** to establish first-key success.
+
+The shader aim suppression and native HorseFeature code remain unchanged. All work is on experimental `debug`; stable `main` untouched; V0.93 is backed up on `archive`. Full technical notes: [V0.94 radial/Input audit](docs/V0_94_NATIVE_RADIAL_TPS_CLEAN_INPUT.md).
