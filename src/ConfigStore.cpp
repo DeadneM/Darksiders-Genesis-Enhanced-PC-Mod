@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2126;
+constexpr int kConfigRevision = 2127;
 // Actual XInput digital buttons plus LT/RT represented as virtual binding IDs.
 constexpr bool ValidPadBind(int m) {
     switch(m){case 0:case 0x0001:case 0x0002:case 0x0004:case 0x0008:
@@ -332,7 +332,7 @@ void Store::ResetDefaults(bool persist) {
     meleeDamageEnabled = true;
     jumpHeightEnabled = true;
     glideDurationEnabled = true;
-    horseEverywhereEnabled = false;
+    horseEverywhereEnabled = true;
     horseSpeedEnabled = true;
     horseSprintSpeedEnabled = true;
     horseSprintDurationEnabled = true;
@@ -469,7 +469,7 @@ bool Store::Load() {
         ReadBool(L"Features", L"JumpHeight", true, path_);
     glideDurationEnabled =
         ReadBool(L"Features", L"GlideDuration", true, path_);
-    horseEverywhereEnabled = ReadBool(L"Features", L"HorseEverywhere", false, path_);
+    horseEverywhereEnabled = ReadBool(L"Features", L"HorseEverywhere", true, path_);
     horseSpeedEnabled =
         ReadBool(L"Features", L"HorseSpeed", true, path_);
     horseSprintSpeedEnabled =
@@ -593,6 +593,10 @@ bool Store::Load() {
         return true;
     }
     if (revision < kConfigRevision) {
+        // V0.88 requested default ON. For older INIs the old explicit
+        // 0 was the previous experimental default: migrate once to ON;
+        // user can switch OFF after migration and it will remain OFF.
+        if(revision<2127)horseEverywhereEnabled=true;
         // V0.86 migration: preserve the user's previously disabled actions
         // as OFF bindings, and respect all existing active bindings.
         if(revision<2126){
