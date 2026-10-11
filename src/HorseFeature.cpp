@@ -971,7 +971,7 @@ bool IsLiveLocalPlayerForHorseRegion(void* actor){
         return false;
     const auto at=g_lastLocalPlayerTick.load(std::memory_order_acquire);
     const auto now=GetTickCount64();
-    return at&&now>=at&&now-at<=5000ull;
+    return at&&now>=at&&now-at<=15000ull; // same live-owner age bound as the validated summon scope
 }
 bool HookHorseRegion(void* actor){
     const bool original=g_originalHorseRegion?g_originalHorseRegion(actor):false;
