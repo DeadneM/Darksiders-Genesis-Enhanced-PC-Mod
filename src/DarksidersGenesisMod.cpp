@@ -3188,10 +3188,11 @@ void UpdateOrbitInput() {
         const bool padFiringForOrbit=
             (primary.Gamepad.bRightTrigger>=XINPUT_GAMEPAD_TRIGGER_THRESHOLD ||
              (buttonBits&XINPUT_GAMEPAD_RIGHT_SHOULDER)!=0);
-        const bool keepOrbitDuringFire=
-            rt.tpsControllerRotateWhileFiring.load() && padFiringForOrbit;
-        suspendControllerOrbitOnFire=!keepOrbitDuringFire &&
-            !rt.tpsSuppressNativeRightStick.load() && padFiringForOrbit;
+        // V0.75: explicit *camera* rotate-while-firing option. Unlike
+        // vanilla right-stick PLAYER blocking, this controls ONLY the
+        // independent TPS camera orbit. The two switches must not overlap.
+        suspendControllerOrbitOnFire=padFiringForOrbit &&
+            !rt.tpsControllerRotateWhileFiring.load();
         // Diagnostic/limited guard for controller software mapping the right
         // stick into Windows mouse movement IN ADDITION TO native XInput.
         // Never globally suppress real mouse input, and time out promptly.
