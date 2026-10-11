@@ -88,6 +88,7 @@ struct State {
     std::atomic_int tpsMountedAimMode{0};
     std::atomic_bool tpsMountedViewActive{false};
     std::atomic_ullong tpsMountedViewTick{0};
+    std::atomic_ullong tpsLastHorseSummonInputTick{0}; // V0.88 audit only
     std::atomic_bool tpsAimActive{false};
     std::atomic<float> tpsActorWorldX{0.0f};
     std::atomic<float> tpsActorWorldY{0.0f};
