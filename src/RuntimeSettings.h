@@ -16,13 +16,10 @@ struct Snapshot {
     bool thirdPersonEnabled = false;
     bool thirdPersonFovEnabled = true;
     bool tpsFollowPlayer = true;
-    bool tpsSuppressNativeRightStick = true;
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
     bool cameraMouseOrbitEnabled = true;
     bool cameraControllerOrbitEnabled = true;
     // V0.75: native TPS mouse firing automatically uses camera heading.
-    bool tpsControllerStrafeWhileFiring = false;
-    bool tpsControllerRotateWhileFiring = false;
     bool tpsHideGroundAimFx = true;
     int aimIndicatorHideMode = 2;
     bool tpsHorseStableAimCamera = true;
@@ -75,13 +72,11 @@ struct State {
     std::atomic_bool tpsFollowPlayer{true};
     std::atomic_bool tpsViewGameplay{false};
     std::atomic_ullong tpsGameplayViewTick{0};
-    std::atomic_bool tpsSuppressNativeRightStick{true};
     std::atomic_bool cameraOrbitInputEnabled{true};
     std::atomic_bool cameraMouseOrbitEnabled{true};
     std::atomic_bool cameraControllerOrbitEnabled{true};
-    std::atomic_bool tpsControllerStrafeWhileFiring{false};
-    std::atomic_bool tpsControllerRotateWhileFiring{false};
     std::atomic_bool tpsTemporarilySuspended{false};
+    std::atomic_bool tpsAbilityWheelHeld{false}; // LB radial: keep TPS camera, native right-stick selection
     std::atomic_bool tpsHideGroundAimFx{true};
     std::atomic_int aimIndicatorHideMode{2};
     std::atomic_bool tpsHorseStableAimCamera{true};
