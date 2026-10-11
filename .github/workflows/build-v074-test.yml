@@ -3,13 +3,13 @@ name: Build V0.74 Firing-Only TPS Options Experimental ZIP
 on:
   push:
     branches:
-      - dev/v0.74-native-strafe-rotation-authority
+      - dev/v0.74-firing-tps-options
     paths:
       - "src/**"
       - "config/**"
       - "README.md"
       - "CMakeLists.txt"
-      - ".github/workflows/build-v073-test.yml"
+      - ".github/workflows/build-v074-test.yml"
   workflow_dispatch:
 
 permissions:
@@ -84,7 +84,7 @@ jobs:
           git add downloads/DarksidersGenesis_V0.74_FIRING_OPTIONS_TEST.zip
           git commit -m "downloads: archive V0.74 firing-only TPS experimental ZIP on dev branch"
           if ($LASTEXITCODE -ne 0) { throw "Commit failed" }
-          $branch = "dev/v0.74-native-strafe-rotation-authority"
+          $branch = "dev/v0.74-firing-tps-options"
           $ok = $false
           for ($i=0; $i -lt 5; $i++) {
             git fetch origin $branch
