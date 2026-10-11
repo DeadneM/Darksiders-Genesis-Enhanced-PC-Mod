@@ -6,6 +6,16 @@
 
 namespace dg::config {
 enum class CameraAction : int { HeightUp = 0, HeightDown, ZoomOut, ZoomIn, PitchDown, PitchUp, YawLeft, YawRight, Count };
+// New V0.92 TPS keyboard actions have the same semantics as the existing
+// controller actions. OFF (0) is intentional for legacy compatibility.
+enum class TpsKeyboardAction : int { Horse = 0, Toggle, Recenter, Suspend, Grenade, Count };
+inline constexpr std::array<const char*, 5> kTpsKeyboardLabels = {
+    "Summon / dismount horse", "Long press TPS ON/OFF",
+    "Recenter TPS camera", "Hold temporary vanilla view", "Hold grenade / release stow"
+};
+inline constexpr std::array<const wchar_t*, 5> kTpsKeyboardTokens = {
+    L"Horse", L"ToggleTPS", L"RecenterTPS", L"TemporaryView", L"Grenade"
+};
 inline constexpr std::array<const char*, 8> kCameraLabels = {
   "Raise Height", "Lower Height", "Zoom Out", "Zoom In", "Tilt Down", "Tilt Up",
   "Rotate Left", "Rotate Right"
@@ -154,6 +164,8 @@ public:
     int tpsToggleHoldButtonMask = 0x0040; // L3, long press TPS toggle
     int tpsToggleHoldMs = 500;
     int tpsRecenterButtonMask = 0x0040; // XINPUT_GAMEPAD_LEFT_THUMB
+    int horsePadButtonA = 0x0100; // LB + RB are TWO independent simultaneous buttons
+    int horsePadButtonB = 0x0200;
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
     bool jumpHeightEnabled = true;
@@ -193,6 +205,7 @@ public:
 
     std::array<Action, 12> hotkeys{};
     std::array<int, static_cast<size_t>(CameraAction::Count)> cameraKeys{{0x26,0x28,0x25,0x27,0,0,0x64,0x66}};
+    std::array<int, static_cast<size_t>(TpsKeyboardAction::Count)> tpsKeyboardKeys{{'H',0,0,0,0}};
 
     Store();
 
