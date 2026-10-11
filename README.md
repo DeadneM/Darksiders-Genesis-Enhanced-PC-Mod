@@ -2204,3 +2204,13 @@ A simple in-game test is mandatory to determine if native look callbacks are act
 
 **Known issue:** sporadic second-character throwable weapon flash needs a separate native event trace to identify cause, not a blind manipulation of inventory/animations. Ground-targeting FX hook may not hide all aiming visuals. Stable V0.75 ZIP and release unaffected. V0.76 ZIP contains four files at archive root.
 
+
+## V0.77 (11 October 2026) | validated V0.76 preserved
+
+The user validated all V0.76 controls, with one remaining visual issue: the native `HideGroundTargetingEffect` checkbox does not hide the on-screen aiming effect. V0.77 preserves the V0.75/V0.76 movement, right-stick block, firing look, grenade, long L3, mounted camera, HUD and other validated systems.
+
+- `[Controls] TPSSuspendDelayMs=300` is a new configurable **0–3000ms** start delay for the physical R3 temporary vanilla-view hold. Short R3 presses under threshold do NOT swap the camera; holding beyond the delay temporarily shows vanilla, releasing immediately returns to TPS. It is independent of L3 long-press.
+- **New-install and Reset Defaults values** now mirror the user's Oct 11 V0.76 INI: TPS on, controller firing Strafe/Rotate both on, TPS FOV 110, distance .20, pitch -12°, TPS vertical offset +120, foot 0, global yaw 0, global height 0, mouse sensitivity .12, controller speed 180, L3 toggle hold 500ms. Other features stay as previously validated and **existing per-user settings are never overwritten by migration**.
+- **Aim effect diagnostic:** legacy native hide-ground-targeting hook is actually installed, but V0.76 had `groundAimHidden=0`. V0.77 counts *all* native calls, already-hidden calls, forced hides separately to verify whether the specific native ability participates. Fix obsolete INI SaveNow line that incorrectly removed `TPSHideGroundAimFx` after saving. Not yet a proven removal of Strife's normal aiming visual; do NOT modify validated camera, aim or combat hooks on an unverified hypothesis.
+
+See [V0.77 scoped changelog and native aiming-FX audit](docs/V0_77_HOLD_DELAY_AND_AIM_FX_AUDIT.md) and [V0.76 protected baseline](docs/V0_76_CHANGELOG_AND_FREEZE.md). V0.77 test ZIP has four files at ZIP root; no promotion to the official stable release pending user tests.
