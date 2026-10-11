@@ -157,7 +157,7 @@ void Draw(Context& c) {
         if (ImGui::BeginTabItem("Gameplay")) {
             ImGui::Spacing();
 
-            DrawSectionTitle("Player");
+            DrawSectionTitle("HUD and aiming effects");
             ImGui::TextDisabled("Statuses reflect real game hooks and observed events, not just ON/OFF switches.");
 
             bool hudHidden=c.hudHidden->load();
@@ -193,6 +193,19 @@ void Draw(Context& c) {
                 if (c.log) c.log("Reticle V0.42: Hide Reticle apply=%d overlay closed",
                     config.hideReticle ? 1 : 0);
             }
+            ImGui::Text("Blue aiming line and semicircle");
+            constexpr const char* kAimModes[]={
+                "Hide Everywhere", "Default Only", "TPS Only"
+            };
+            ImGui::SetNextItemWidth(260.0f);
+            if(ImGui::Combo("Visibility mode##AimIndicator",
+                    &config.aimIndicatorHideMode,kAimModes,3))config.Save();
+            ImGui::TextDisabled("TPS Only is the default. Default Only means normal/non-TPS camera.");
+            ImGui::TextWrapped("Visual shader still unidentified: the chosen mode is saved, "
+                "but disappearance of the blue line and semicircle is NOT confirmed.");
+            ImGui::TextDisabled("Old ground-FX hook calls observed: %u (0 = not the correct effect)",
+                t.aimNativeFxCalls);
+            DrawSectionTitle("Player");
             DrawTunableFeature(
                 config,
                 "Movement Speed",
@@ -736,9 +749,7 @@ void Draw(Context& c) {
                         &config.tpsLongPressToggleEnabled)) config.Save();
                 if (ImGui::Checkbox("Hold R3 to equip grenade, release to stow##TPS",
                         &config.tpsGrenadeHoldEnabled)) config.Save();
-                if (ImGui::Checkbox("Hide ground targeting effect in TPS (test)##TPS",
-                        &config.tpsHideGroundAimFx)) config.Save();
-                ImGui::TextDisabled("3D blue line and semicircle are NOT hidden yet. Research only.");
+                ImGui::TextDisabled("Blue line/arc visibility mode is now in Gameplay > HUD and aiming effects.");
                 if (ImGui::Checkbox("Stabilize mounted TPS camera while firing##TPS",
                         &config.tpsHorseStableAimCamera)) config.Save();
                 ImGui::TextDisabled("R3 defaults to vanilla-view hold and grenade hold simultaneously.");
@@ -778,7 +789,9 @@ void Draw(Context& c) {
                 if(config.tpsSuspendButtonMask==config.tpsToggleHoldButtonMask)
                     ImGui::TextDisabled("Warning: both hold actions use the same button.");
                 ImGui::TextDisabled("Short L3 = recenter; long L3 = toggle TPS.");
-                ImGui::TextDisabled("R3 grenade hold: equip while held, stow on release.");
+                ImGui::TextDisabled("R3 grenade: hold to equip; release sends a second native toggle.");
+                ImGui::TextDisabled("R3 diagnostics: presses %u | releases %u | stow pulses forwarded %u",
+                    t.grenadePhysicalDown,t.grenadePhysicalUp,t.grenadeNativeReleasePulses);
                 ImGui::TextDisabled("Recenter = current player yaw; leaves TPS distance unchanged.");
                 ImGui::TextDisabled("The selected button remains game-native if it has another use.");
                 ImGui::Unindent();
