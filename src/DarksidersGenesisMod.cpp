@@ -35,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.88-horse-zones-camera-forward-raycast-audit-test";
+constexpr const char* kBuild = "0.89-scoped-horse-native-regions-forward-observation-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1449,6 +1449,9 @@ std::atomic_uint32_t g_tpsMountedForwardLookSamples{0};
 std::atomic<float> g_tpsMountedForwardLastNativeYaw{0.0f};
 std::atomic<float> g_tpsMountedForwardLastCameraYaw{0.0f};
 std::atomic_uint32_t g_tpsMountedForwardLargeYawGap{0};
+// Passive observation only: avoid touching validated mounted Vanilla Aim,
+// but test whether actual mounted pawn invokes native look getter at all.
+std::atomic_uint32_t g_tpsHorseNativeLookGetterObservations{0};
 // Visual-only audit of 2 OTHER suspected native targeting UI classes.
 // No event is suppressed: the unvalidated V0.82 blocking experiment
 // is NOT merged into this cumulative gameplay branch.
@@ -1515,6 +1518,17 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     if(!original)return out;
     auto* result=original(actor,out);
     const unsigned calls=++g_tpsLookInputCalls;
+    const auto& lookRt=dg::runtime::Get();
+    const ULONGLONG horseLookTick=lookRt.tpsHorsePoseTick.load(std::memory_order_acquire);
+    const ULONGLONG horseLookNow=GetTickCount64();
+    if(actor && IsMountedTPSNow()&&horseLookTick&&horseLookNow>=horseLookTick&&
+       horseLookNow-horseLookTick<350ull &&
+       reinterpret_cast<std::uintptr_t>(actor)==
+           lookRt.tpsHorseOwnerIdentity.load(std::memory_order_acquire)){
+        const unsigned n=++g_tpsHorseNativeLookGetterObservations;
+        if(n==1||n==100||n==1000)
+            Log("TPS V0.89 CAMERA FORWARD: native GetPlayerLookInput dispatched on HORSE actor n=%u (original result retained)",n);
+    }
     if(!result||!IsLiveTPSLookActor(actor) ||
        !std::isfinite(result->pitch)||!std::isfinite(result->yaw)||
        !std::isfinite(result->roll))
@@ -1870,6 +1884,7 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
                 characterOwner,
                 std::memory_order_relaxed
             );
+        dg::horse::ObservePlayerCharacter(characterOwner);
         if (previousPlayer != characterOwner) {
             g_tpsPlayerGeneration.fetch_add(1);
             Log(
@@ -3494,6 +3509,7 @@ void UpdateOrbitInput() {
         unsigned count=0,serverBefore=0,nativeCallsBefore=0;
         unsigned generationBefore=0;
         bool cameraWasHorse=false;
+        bool nearServerAtPress=false;
     };
     static SummonAttemptProbe summonProbe{};
     const auto mountNow=dg::horse::GetTelemetry();
@@ -3507,23 +3523,33 @@ void UpdateOrbitInput() {
        now-summonProbe.started>=1800ull){
         const unsigned serverDelta=mountNow.summonServerCalls-
             summonProbe.serverBefore;
+        // Unreal may call SERVER_SpawnHorseMount in the same frame just
+        // BEFORE our Present/XInput rising-edge logger. Treat a native
+        // request <250ms before the input snapshot as correlated, not
+        // "not sent". Does not imply success, horse callback is separate.
+        const bool serverCorrelated=serverDelta>0||
+            summonProbe.nearServerAtPress;
         const unsigned nativeDelta=mountNow.uniqueCandidatesLogged-
             summonProbe.nativeCallsBefore;
         const unsigned generations=mountNow.horseGeneration-
             summonProbe.generationBefore;
         if(summonProbe.count<=28)
-            Log("Horse Everywhere V0.88 AREA RESULT #%u serverDelta=%u nativeCallbackDelta=%u horseIdentityChanges=%u cameraHorseBefore=%d cameraHorseAfter=%d freshHorsePose=%d noServerRequest=%d (could be blocked summon OR dismount)",
-                summonProbe.count,serverDelta,nativeDelta,generations,
-                summonProbe.cameraWasHorse?1:0,trulyMounted?1:0,
-                freshHorsePose?1:0,serverDelta==0?1:0);
+            Log("Horse Everywhere V0.89 AREA RESULT #%u serverDeltaAfterInput=%u serverJustBeforeInput=%d correlatedServer=%d nativeCallbackDelta=%u horseIdentityChanges=%u cameraHorseBefore=%d cameraHorseAfter=%d noServerRequest=%d (possible restriction OR dismount)",
+                summonProbe.count,serverDelta,
+                summonProbe.nearServerAtPress?1:0,serverCorrelated?1:0,
+                nativeDelta,generations,summonProbe.cameraWasHorse?1:0,
+                trulyMounted?1:0,serverCorrelated?0:1);
         summonProbe.pending=false;
     }
     if((hPressed&&!wasHorseH)||(shoulderChord&&!wasHorseChord)){
         rt.tpsLastHorseSummonInputTick.store(now,std::memory_order_release);
+        rt.horseSummonIntentTick.store(now,std::memory_order_release);
+        const ULONGLONG serverAt=mountNow.lastServerSpawnTick;
+        const bool serverRecent=serverAt&&now>=serverAt&&now-serverAt<250ull;
         const unsigned n=++horseInputAttempts;
         summonProbe={true,now,n,mountNow.summonServerCalls,
             mountNow.uniqueCandidatesLogged,mountNow.horseGeneration,
-            trulyMounted};
+            trulyMounted,serverRecent};
         if(n<=28)
             Log("Horse Everywhere V0.88 AREA INPUT #%u key=%s enabled=%d cameraHorse=%d nativeCallbackFresh=%d horsePoseFresh=%d serverBefore=%u nativeCalls=%u horseGeneration=%u world=(%.0f,%.0f,%.0f)",
                 n,hPressed&&!wasHorseH?"H":"LB+RB",
@@ -4068,6 +4094,8 @@ void ShutdownMod() {
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
     Log("TPS V0.72 totals: controllerMappedMouseMessagesBlocked=%u rightStickFiltered=%u",
         g_tpsControllerMouseBlocks.load(),g_nativePadAimSuppressed.load());
+    Log("TPS V0.89 CAMERA FORWARD: horseActorGetPlayerLookInputCalls=%u (passive, no shot raycast hook)",
+        g_tpsHorseNativeLookGetterObservations.load());
     Log("TPS V0.88 FORWARD RAYCAST AUDIT totals: lookSamples=%u gapOver35deg=%u lastNativeYaw=%.1f lastCameraYaw=%.1f projectileHook=NO",
         g_tpsMountedForwardLookSamples.load(),g_tpsMountedForwardLargeYawGap.load(),
         g_tpsMountedForwardLastNativeYaw.load(),g_tpsMountedForwardLastCameraYaw.load());
