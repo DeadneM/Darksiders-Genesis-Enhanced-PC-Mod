@@ -2229,3 +2229,10 @@ See [V0.77 scoped changelog and native aiming-FX audit](docs/V0_77_HOLD_DELAY_AN
 **Gameplay code is frozen at V0.78.** This test adds only a passive native-effect probe for `ShowBeamEffect` / `HideBeamEffect`, the next promising exact-EXE candidates for the requested turquoise world-space **straight aim line and semicircular arc** shown in the user's video. The probe NEVER changes the original output, target selection, firing, aiming, UI, or any controller/camera settings. If the logged counters remain zero, it is a failed candidate and the search continues safely. The original `HideGroundTargetingEffect` hook received zero calls in V0.77.
 
 See [V0.79 exact-offset disassembly and protected-scope changelog](docs/V0_79_NATIVE_AIM_BEAM_PASSIVE_PROBE.md). **The visual effect is not yet hidden in this version**. `ThirdPerson=0` remains the packaged default; every other setting and gameplay path is exactly V0.78.
+
+
+## V0.81 (2026-10-11) | Strife aim line / arc: V0.80 REJECTED
+
+Latest user test V0.80: **show=5, hide=18, forcedVisualHides=5, yet the cyan aiming line and semicircle are still visible**. Those native beam functions were a wrong candidate. V0.81 is forked from **V0.79 passive probe**, explicitly dropping the V0.80 experimental beam visibility override. NO executable code changes are made in this V0.81 research branch. V0.78 remains the last protected gameplay checkpoint.
+
+Next step is exact cooked asset identification from the **file list only** of `ProjectMayhem/Content/Paks/ProjectMayhem-WindowsNoEditor.pak` (roughly 8.8 GiB; the entire PAK should not be uploaded just to identify names). Inspect likely Strife aim/targeting UI materials, particles and meshes, then patch only their TPS-visible state. See [V0.81 negative result and asset-target audit](docs/V0_81_AIM_INDICATOR_ASSET_AUDIT.md).
