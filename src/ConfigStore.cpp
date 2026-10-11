@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2119;
+constexpr int kConfigRevision = 2120;
 
 bool ReadBool(
     const wchar_t* section,
@@ -305,8 +305,10 @@ void Store::ResetDefaults(bool persist) {
     cameraOrbitInputEnabled = true;
     cameraMouseOrbitEnabled = true;
     cameraControllerOrbitEnabled = true;
-    tpsMouseKeyboardStrafe = false;
-    tpsControllerStrafe = false;
+    tpsMouseStrafeWhileFiring = false;
+    tpsMouseRotateWhileFiring = false;
+    tpsControllerStrafeWhileFiring = false;
+    tpsControllerRotateWhileFiring = false;
     tpsRecenterButtonMask = 0x0040;
     pistolDamageEnabled = true;
     meleeDamageEnabled = true;
@@ -419,8 +421,10 @@ bool Store::Load() {
     cameraMouseOrbitEnabled=ReadBool(L"Features",L"CameraMouseOrbit",oldCombinedOrbit,path_);
     cameraControllerOrbitEnabled=ReadBool(L"Features",L"CameraControllerOrbit",oldCombinedOrbit,path_);
     cameraOrbitInputEnabled=cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
-    tpsMouseKeyboardStrafe=ReadBool(L"Features",L"TPSMouseKeyboardStrafe",false,path_);
-    tpsControllerStrafe=ReadBool(L"Features",L"TPSControllerStrafe",false,path_);
+    tpsMouseStrafeWhileFiring=ReadBool(L"Features",L"TPSMouseStrafeWhileFiring",false,path_);
+    tpsMouseRotateWhileFiring=ReadBool(L"Features",L"TPSMouseRotateWhileFiring",false,path_);
+    tpsControllerStrafeWhileFiring=ReadBool(L"Features",L"TPSControllerStrafeWhileFiring",false,path_);
+    tpsControllerRotateWhileFiring=ReadBool(L"Features",L"TPSControllerRotateWhileFiring",false,path_);
     tpsRecenterButtonMask=GetPrivateProfileIntW(L"Controls",L"TPSRecenterButtonMask",0x0040,path_.c_str());
     if(tpsRecenterButtonMask!=0x0040 && tpsRecenterButtonMask!=0x0080 &&
        tpsRecenterButtonMask!=0x0100 && tpsRecenterButtonMask!=0x0200 &&
@@ -575,13 +579,11 @@ bool Store::Load() {
             cameraControllerOrbitEnabled=true;
         }
         cameraOrbitInputEnabled=cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
-        // V0.71 orientation-bit method demonstrably fails true strafing.
-        // On this migration reset both experimental values safely.
-        tpsMouseKeyboardStrafe=false;
-        tpsControllerStrafe=false;
+        // V0.74: obsolete always-on strafe switches are retired.
+        // New firing-only settings remain opt-in and default to OFF.
         PublishRuntime();
         SaveNow();
-        Log("INI migrated V0.72: disable ineffective V0.71 strafe and restore V0.70 movement");
+        Log("INI migrated V0.74: replace obsolete TPS strafe options with firing-only controls");
         return true;
     }
 
@@ -608,8 +610,10 @@ void Store::PublishRuntime() const {
     runtime.cameraOrbitInputEnabled = cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
     runtime.cameraMouseOrbitEnabled = cameraMouseOrbitEnabled;
     runtime.cameraControllerOrbitEnabled = cameraControllerOrbitEnabled;
-    runtime.tpsMouseKeyboardStrafe = tpsMouseKeyboardStrafe;
-    runtime.tpsControllerStrafe = tpsControllerStrafe;
+    runtime.tpsMouseStrafeWhileFiring = tpsMouseStrafeWhileFiring;
+    runtime.tpsMouseRotateWhileFiring = tpsMouseRotateWhileFiring;
+    runtime.tpsControllerStrafeWhileFiring = tpsControllerStrafeWhileFiring;
+    runtime.tpsControllerRotateWhileFiring = tpsControllerRotateWhileFiring;
     runtime.thirdPersonDistanceMultiplier = thirdPersonDistanceMultiplier;
     runtime.thirdPersonPitchDegrees = thirdPersonPitchDegrees;
     runtime.thirdPersonHeightOffset = thirdPersonHeightOffset;
@@ -716,8 +720,13 @@ bool Store::SaveNow() {
     WritePrivateProfileStringW(L"Features",L"CameraMouseGamepad",nullptr,path_.c_str());
     WriteBool(L"Features",L"CameraMouseOrbit",cameraMouseOrbitEnabled,path_);
     WriteBool(L"Features",L"CameraControllerOrbit",cameraControllerOrbitEnabled,path_);
-    WriteBool(L"Features",L"TPSMouseKeyboardStrafe",tpsMouseKeyboardStrafe,path_);
-    WriteBool(L"Features",L"TPSControllerStrafe",tpsControllerStrafe,path_);
+    // Remove the V0.71/0.73 ineffective switches, no mapping of old values.
+    WritePrivateProfileStringW(L"Features",L"TPSMouseKeyboardStrafe",nullptr,path_.c_str());
+    WritePrivateProfileStringW(L"Features",L"TPSControllerStrafe",nullptr,path_.c_str());
+    WriteBool(L"Features",L"TPSMouseStrafeWhileFiring",tpsMouseStrafeWhileFiring,path_);
+    WriteBool(L"Features",L"TPSMouseRotateWhileFiring",tpsMouseRotateWhileFiring,path_);
+    WriteBool(L"Features",L"TPSControllerStrafeWhileFiring",tpsControllerStrafeWhileFiring,path_);
+    WriteBool(L"Features",L"TPSControllerRotateWhileFiring",tpsControllerRotateWhileFiring,path_);
     wchar_t buttonBuffer[16]{};
     swprintf_s(buttonBuffer,L"%d",tpsRecenterButtonMask);
     WritePrivateProfileStringW(L"Controls",L"TPSRecenterButtonMask",buttonBuffer,path_.c_str());
