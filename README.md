@@ -2291,3 +2291,15 @@ The validated R3 grenade hold/release, customizable bindings, horse speed/stamin
 New log tags `Horse Everywhere V0.88 AREA INPUT`, `AREA RESULT`, `MOUNT EXIT` and `TPS V0.88 FORWARD RAYCAST AUDIT`. Previous target UI and native ground-FX probes both saw zero events; blue line and arc remain unresolved. Keyboard/mouse TPS 360-degree rotation glitch is recorded and intentionally deferred.
 
 [Complete V0.88 investigation and strict regression freeze](docs/V0_88_HORSE_ZONES_FORWARD_RAYCAST_AUDIT.md). Main branch unchanged.
+
+## V0.89 (2026-10-11) | Scoped native horse-region gate experiment (TEST ONLY)
+
+A separate experimental V0.87 build (not the public V0.88 lineage) revealed verified native `IsInHorseRegion` and `IsInHorseDesummonRegion` methods, with **49,923 / 30,177** observed calls on the user's supported executable. That session had Horse Everywhere OFF and therefore **no override**. User's following genuine V0.88 log showed the server spawn callback can occur BEFORE input logging by ~7 ms; earlier `serverDelta=0` on that successful mount was misleading. A later `HORSE -> FOOT` event with no mount key for 7.9s suggests (does not prove) a *forced-despawn banned region*.
+
+V0.89 keeps **Horse Everywhere default ON** and adds signature-checked native region getter return tests. The original region getters ALWAYS execute first; **only** when the last locally validated player pressed physical **H or LB+RB within 1,600 ms** will the mod return allowed=true or desummonRegion=false. Outside this user-initiated summon window the game receives unchanged results. **This is not yet tested to lift either region restriction**, and it does NOT persistently prevent a horse from disappearing in a horse-banned volume. Set OFF in overlay to restore native behavior immediately.
+
+New telemetry `Horse Everywhere V0.89 REGION/DESUMMON` plus `serverJustBeforeInput` avoids the chronological false-negative and separates region checks, native spawn calls and actual horse identity changes.
+
+**Mounted Vanilla Aim is fully frozen and unchanged**, as are the user-validated R3 grenade timing and all controller/camera/horse stats. Camera Forward remains unresolved and now **only adds a passive log** of whether native `GetPlayerLookInput` sees the live horse actor. The native projectile raycast is not hooked. Blue line/arc and keyboard/mouse 360-degree yaw problem remain deferred.
+
+[Technical V0.89 details](docs/V0_89_SCOPED_HORSE_REGION_TEST.md). Branch `main` is untouched; this is an experimental build, not an official stable release.
