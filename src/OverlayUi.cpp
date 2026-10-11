@@ -1,4 +1,5 @@
 #include "OverlayUi.h"
+#include "ShaderAimFeature.h"
 
 #include "HorseFeature.h"
 #include "CameraTraceFeature.h"
@@ -201,8 +202,12 @@ void Draw(Context& c) {
             if(ImGui::Combo("Visibility mode##AimIndicator",
                     &config.aimIndicatorHideMode,kAimModes,3))config.Save();
             ImGui::TextDisabled("TPS Only is the default. Default Only means normal/non-TPS camera.");
-            ImGui::TextWrapped("Visual shader still unidentified: the chosen mode is saved, "
-                "but disappearance of the blue line and semicircle is NOT confirmed.");
+            const auto aimShaders = dg::aim_shader::GetTelemetry();
+            ImGui::TextWrapped("V0.90: two captured pixel shaders are suppressed by the selected mode. "
+                "Exact visual coverage is experimental; other effects using these shaders may also disappear.");
+            ImGui::TextDisabled("D3D11 shader hooks %s | matching shaders %u | suppressed draws %u",
+                aimShaders.hooksReady ? "READY" : "UNAVAILABLE",
+                aimShaders.matchedShaders, aimShaders.blockedDraws);
             ImGui::TextDisabled("Ground FX calls: %u | Target UI events: %u | Position UI events: %u",
                 t.aimNativeFxCalls,t.aimUiTargetingEvents,t.aimUiPositionEvents);
             ImGui::TextDisabled("Target UI probe is passive: no visual or gameplay event is blocked.");
@@ -390,8 +395,9 @@ void Draw(Context& c) {
                 horse::GetTelemetry();
             if(ImGui::Checkbox("Horse Everywhere (experimental native gate, default ON)",
                     &config.horseEverywhereEnabled)) config.Save();
-            ImGui::TextDisabled("V0.89 TEST: overrides local horse-region answers for 1.6s after H / LB+RB.");
-            ImGui::TextDisabled("Banned volumes may still DESPAWN a horse; no persistent region override.");
+            ImGui::TextDisabled("V0.90: permits local summon for 1.6s after H / LB+RB, then");
+            ImGui::TextDisabled("keeps region permission while this player is LIVE mounted in TPS.");
+            ImGui::TextDisabled("Outside confirmed TPS riding, native banned-zone checks return unchanged.");
             ImGui::TextDisabled("%s | server requests observed: %u (while selected: %u)",
                 horseTelemetry.summonProbeReady ? "Summon server probe ready; override still EXPERIMENTAL" :
                     "Summon server probe unavailable; override still EXPERIMENTAL",
