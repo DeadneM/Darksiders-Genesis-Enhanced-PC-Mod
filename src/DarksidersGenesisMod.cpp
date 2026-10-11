@@ -2866,8 +2866,7 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     static bool primed=false;
     static int oldX=0,oldY=0;
     const bool active=g_config.thirdPersonEnabled &&
-        (g_config.cameraMouseOrbitEnabled ||
-         (IsMountedTPSNow()&&dg::runtime::Get().tpsMountedAimMode.load()==0)) &&
+        (g_config.cameraMouseOrbitEnabled || IsMountedTPSNow()) &&
         !g_overlayVisible.load() && GetForegroundWindow()==hwnd;
     if (!active) primed=false;
     // V0.69: do not consume native WM_INPUT/WM_MOUSEMOVE.
@@ -3428,7 +3427,9 @@ void UpdateOrbitInput() {
             temporaryVanilla?"ON":"OFF",n,unsigned(suspendMask),delayMs,
             static_cast<unsigned long long>(holdInput&&suspendStarted?now-suspendStarted:0ull));
     }
-    const bool forcedMountOrbit=IsMountedTPSNow()&&rt.tpsMountedAimMode.load()==0;
+    // Mounted TPS modes own their camera independently of ON-FOOT orbit flags.
+    // Mode 1 pauses only during fire; it resumes afterwards.
+    const bool forcedMountOrbit=IsMountedTPSNow();
     const bool active=g_config.thirdPersonEnabled && !temporaryVanilla &&
         (g_config.cameraMouseOrbitEnabled||g_config.cameraControllerOrbitEnabled||
          forcedMountOrbit) && focused;
@@ -3466,9 +3467,11 @@ void UpdateOrbitInput() {
         // and leaves the native right stick to aim (see FilterNativeXInput).
         const bool mounted=IsMountedTPSNow();
         const bool nativeMountAim=mounted&&rt.tpsMountedAimMode.load()==1;
-        suspendControllerOrbitOnFire=padFiringForOrbit &&
-            (nativeMountAim || (!mounted &&
-                !rt.tpsControllerRotateWhileFiring.load()));
+        const bool mouseFiringForOrbit=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
+        suspendControllerOrbitOnFire=
+            (nativeMountAim && (padFiringForOrbit||mouseFiringForOrbit)) ||
+            (!mounted && padFiringForOrbit &&
+             !rt.tpsControllerRotateWhileFiring.load());
         // Diagnostic/limited guard for controller software mapping the right
         // stick into Windows mouse movement IN ADDITION TO native XInput.
         // Never globally suppress real mouse input, and time out promptly.
