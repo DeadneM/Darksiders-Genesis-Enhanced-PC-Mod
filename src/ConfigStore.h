@@ -130,7 +130,7 @@ public:
     bool skipLogosEnabled = true;
     bool skipIntroEnabled = true;
     bool skipWarningEnabled = true;
-    bool thirdPersonEnabled = false;
+    bool thirdPersonEnabled = true;
     bool thirdPersonFovEnabled = true;
     bool tpsFollowPlayer = true;
     bool tpsSuppressNativeRightStick = true;
@@ -147,8 +147,9 @@ public:
     bool tpsHideGroundAimFx = true;
     bool tpsHorseStableAimCamera = true;
     int tpsSuspendButtonMask = 0x0080; // R3, temporary vanilla view
+    int tpsSuspendDelayMs = 300; // delay before R3 hold enables vanilla view, 0..3000
     int tpsToggleHoldButtonMask = 0x0040; // L3, long press TPS toggle
-    int tpsToggleHoldMs = 650;
+    int tpsToggleHoldMs = 500;
     int tpsRecenterButtonMask = 0x0040; // XINPUT_GAMEPAD_LEFT_THUMB
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
@@ -176,11 +177,11 @@ public:
     float thirdPersonFovDegrees = 110.0f;
     float cameraZoomPercent = 0.0f;
     float cameraPitchDegrees = 0.0f;
-    float cameraYawDegrees = 5.0f;
-    float cameraHeightOffset = -300.0f;
+    float cameraYawDegrees = 0.0f;
+    float cameraHeightOffset = 0.0f;
     float thirdPersonDistanceMultiplier = 0.20f;
     float thirdPersonPitchDegrees = -12.0f;
-    float thirdPersonHeightOffset = 300.0f;
+    float thirdPersonHeightOffset = 120.0f;
     float tpsFootAnchorOffset = 0.0f; // adjustable +/-500 units
     float cameraMouseSensitivity = 0.12f;
     float cameraStickSpeed = 180.0f;
