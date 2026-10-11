@@ -24,6 +24,7 @@ struct Snapshot {
     bool tpsControllerStrafeWhileFiring = false;
     bool tpsControllerRotateWhileFiring = false;
     bool tpsHideGroundAimFx = true;
+    int aimIndicatorHideMode = 2;
     bool tpsHorseStableAimCamera = true;
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
@@ -81,6 +82,7 @@ struct State {
     std::atomic_bool tpsControllerRotateWhileFiring{false};
     std::atomic_bool tpsTemporarilySuspended{false};
     std::atomic_bool tpsHideGroundAimFx{true};
+    std::atomic_int aimIndicatorHideMode{2};
     std::atomic_bool tpsHorseStableAimCamera{true};
     std::atomic_bool tpsAimActive{false};
     std::atomic<float> tpsActorWorldX{0.0f};
