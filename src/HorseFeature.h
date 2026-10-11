@@ -20,6 +20,9 @@ struct Telemetry {
     bool staminaReady = false;
     bool sprinting = false;
     bool summonProbeReady = false;
+    bool horseCallbackFresh = false; // recent native callback, not historical seen
+    std::uint64_t lastHorseNativeTick = 0;
+    std::uint32_t horseGeneration = 0;
     std::uint32_t summonServerCalls = 0;
     std::uint32_t summonServerCallsWhileRequested = 0;
     void* playerOwner = nullptr;
