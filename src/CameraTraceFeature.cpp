@@ -59,7 +59,8 @@ void HookView(void* camera, float dt, void* outView) {
     // V0.66: do not cancel a valid gameplay frame if GetCameraView
     // is called again for a spectator / UI camera in the same frame.
     // The Present crosshair check already requires a fresh successful tick.
-    if(!settings.thirdPersonEnabled.load(std::memory_order_relaxed))
+    if(!settings.thirdPersonEnabled.load(std::memory_order_relaxed) ||
+       settings.tpsTemporarilySuspended.load(std::memory_order_relaxed))
         settings.tpsViewGameplay.store(false,std::memory_order_release);
     if (!outView) return;
     auto* p=static_cast<unsigned char*>(outView);
@@ -70,7 +71,8 @@ void HookView(void* camera, float dt, void* outView) {
     if(!std::isfinite(x)||!std::isfinite(y)||!std::isfinite(z)||
        !std::isfinite(nativePitch)||!std::isfinite(nativeYaw)||
        !std::isfinite(nativeFov)||nativeFov<1||nativeFov>179)return;
-    const bool thirdPerson=settings.thirdPersonEnabled.load(std::memory_order_relaxed);
+    const bool thirdPerson=settings.thirdPersonEnabled.load(std::memory_order_relaxed) &&
+        !settings.tpsTemporarilySuspended.load(std::memory_order_relaxed);
     const ULONGLONG now=GetTickCount64();
     const ULONGLONG actorTick=settings.tpsActorLocationTick.load(std::memory_order_acquire);
     const bool live=actorTick&&now>=actorTick&&now-actorTick<300ull;
@@ -83,7 +85,18 @@ void HookView(void* camera, float dt, void* outView) {
     // V0.70: on horseback GetMaxSpeed of the on-foot player no longer
     // runs. Use ONLY freshly sampled HorseCharacter poses, read during
     // native horse callbacks; never dereference cached horse pointers.
+    // V0.76: when the existing native horse pose has ALREADY been used,
+    // retain that validated source during shots instead of briefly switching
+    // to an on-foot pose updated on a mount animation frame. No cached
+    // UObject is dereferenced and unmounted camera behavior is untouched.
+    static std::atomic_bool mountedAimPoseLatched{false};
+    const bool activeHorseAim=settings.tpsHorseStableAimCamera.load() &&
+        settings.tpsAimActive.load(std::memory_order_acquire);
+    if(!activeHorse)mountedAimPoseLatched.store(false);
     bool usingHorse=false;
+    const bool holdHorsePose=thirdPerson && activeHorse &&
+        mountedAimPoseLatched.load(std::memory_order_relaxed);
+    if(holdHorsePose)actorValid=false;
     if(thirdPerson&&!actorValid){
         const ULONGLONG horseTick=settings.tpsHorsePoseTick.load(std::memory_order_acquire);
         const float hx=settings.tpsHorseWorldX.load(),hy=settings.tpsHorseWorldY.load(),
@@ -95,6 +108,7 @@ void HookView(void* camera, float dt, void* outView) {
            std::fabs(hy)<1.0e7f&&std::fabs(hz)<1.0e7f){
             ax=hx;ay=hy;az=hz;actorYaw=hyaw;
             actorValid=true;usingHorse=true;
+            if(activeHorse)mountedAimPoseLatched.store(true);
         }
     }
     static std::atomic_bool lastHorse{false};
@@ -207,7 +221,7 @@ void HookView(void* camera, float dt, void* outView) {
            std::isfinite(basePitch)&&std::isfinite(mult)&&std::isfinite(tpHeight)&&
            std::isfinite(oy)&&std::isfinite(op)&&std::isfinite(foot)&&
            std::isfinite(yawOffset)&&std::isfinite(heightOffset)&&
-           mult>=0&&mult<=3&&foot>=0&&foot<=200&&std::fabs(tpHeight)<=500){
+           mult>=0&&mult<=3&&foot>=-500&&foot<=500&&std::fabs(tpHeight)<=1000){
             constexpr float radians=0.01745329251994329577f;
             appliedPitch=std::clamp(basePitch+op,-75.0f,65.0f);
             appliedYaw=std::remainder(baseYaw+yawOffset+oy,360.0f);
