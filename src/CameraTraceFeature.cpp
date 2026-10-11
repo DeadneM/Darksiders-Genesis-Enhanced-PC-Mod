@@ -131,7 +131,9 @@ void HookView(void* camera, float dt, void* outView) {
     // matching pitch/FOV signature.
     const bool normalAngles=nativePitch>=-89.0f&&nativePitch<=-15.0f;
     const bool gameplayCamera=actorValid&&normalAngles&&nearPawn;
-    if(!thirdPerson)ResetZoneReference();
+    // Temporary R3 vanilla view must not discard the previously chosen TPS orbit basis.
+    // Only F5 / true TPS OFF resets the reference.
+    if(!settings.thirdPersonEnabled.load(std::memory_order_relaxed))ResetZoneReference();
     const uint32_t generation=settings.tpsActorGeneration.load();
     if(g_zoneActorGeneration.load()!=generation){
         g_zoneActorGeneration.store(generation);
