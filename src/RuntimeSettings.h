@@ -77,6 +77,7 @@ struct State {
     std::atomic_bool cameraControllerOrbitEnabled{true};
     std::atomic_bool tpsTemporarilySuspended{false};
     std::atomic_bool tpsAbilityWheelHeld{false}; // LB radial: keep TPS camera, native right-stick selection
+    std::atomic_ullong tpsAbilityWheelTick{0}; // recent physical LB / native keyboard wheel input
     std::atomic_bool tpsHideGroundAimFx{true};
     std::atomic_int aimIndicatorHideMode{2};
     std::atomic_bool tpsHorseStableAimCamera{true};
