@@ -2945,8 +2945,8 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     // This is input isolation, NOT yet a shot-direction fix.
     const bool mounted=IsMountedTPSNow();
     const bool vanillaAim=rt.tpsMountedAimMode.load()==1;
-    const bool blockLook=(mounted || rt.tpsSuppressNativeRightStick.load()) &&
-        (!vanillaAim || !fire);
+    const bool blockLook=(mounted || rt.tpsSuppressNativeRightStick.load() ||
+        vanillaAim) && (!vanillaAim || !fire);
     if(blockLook && (pad.sThumbRX!=0 || pad.sThumbRY!=0)){
         pad.sThumbRX=0;pad.sThumbRY=0;
         const unsigned n=++g_nativePadAimSuppressed;
@@ -3867,7 +3867,8 @@ void UpdateOrbitInput() {
         const bool rightActive=
             std::abs(int(primary.Gamepad.sThumbRX))>XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE||
             std::abs(int(primary.Gamepad.sThumbRY))>XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE;
-        if((rt.tpsSuppressNativeRightStick.load()||IsMountedTPSNow())&&rightActive)
+        if((rt.tpsSuppressNativeRightStick.load()||IsMountedTPSNow()||
+            rt.tpsMountedAimMode.load()==1)&&rightActive)
             g_tpsPadRightStickTick.store(now,std::memory_order_release);
         // Read-only probe: does the local pawn yaw change when ONLY the
         // right analog is moving, despite our native XInput suppression?
