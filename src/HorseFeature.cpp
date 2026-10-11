@@ -136,6 +136,15 @@ std::atomic_uint32_t g_horsesFound{0};
 std::atomic_bool g_summonServerProbeReady{false};
 std::atomic_uint32_t g_summonServerCalls{0}, g_summonServerCallsRequested{0};
 std::atomic_ullong g_lastServerSpawnTick{0};
+std::atomic<void*> g_lastServerSpawnLocalOwner{nullptr};
+// V0.91 camera-independent lifetime evidence, recorded only in live native
+// callbacks. All pointers below are IDENTITIES ONLY, never dereferenced.
+std::atomic<void*> g_horseLeaseOwner{nullptr};
+std::atomic<void*> g_horseLeaseHorse{nullptr};
+std::atomic_ullong g_horseLeaseStarted{0};
+std::atomic_ullong g_observedNewHorseTick{0};
+std::atomic_uint32_t g_horseLeaseArms{0};
+std::atomic_uint32_t g_nativeCameraRegionHolds{0},g_nativeCameraDesummonHolds{0};
 std::atomic_uint32_t g_regionQueries{0},g_regionOverrides{0};
 std::atomic_uint32_t g_desummonQueries{0},g_desummonOverrides{0};
 std::atomic_uint32_t g_mountedRegionHolds{0},g_mountedDesummonHolds{0};
@@ -560,10 +569,36 @@ void CaptureHorseLocked(
     const auto tick=GetTickCount64();
     g_lastLiveHorseCallbackTick.store(tick,std::memory_order_release);
     if(g_lastObservedLiveHorse.exchange(horse,std::memory_order_acq_rel)!=horse){
+        g_observedNewHorseTick.store(tick,std::memory_order_release);
         const auto generation=++g_observedHorseGenerations;
         if(generation<=24)
             FeatureLog("Horse Everywhere V0.88 LIVE MOUNT: horse identity changed generation=%u live=%p (callback verified; NOT proof of current rider)",
                 generation,horse);
+    }
+    // V0.91: correlate a newly appearing HorseCharacter with a REAL
+    // H/LB+RB summon and an already observed native local server spawn.
+    // The callback itself proves this horse is currently alive. No cached
+    // UObject access or camera dependency. Never arm on another co-op pawn.
+    const auto& leaseRt=dg::runtime::Get();
+    const ULONGLONG input=leaseRt.horseSummonIntentTick.load(std::memory_order_acquire);
+    const ULONGLONG server=g_lastServerSpawnTick.load(std::memory_order_acquire);
+    const ULONGLONG appeared=g_observedNewHorseTick.load(std::memory_order_acquire);
+    void* player=g_lastLocalPlayerIdentity.load(std::memory_order_acquire);
+    const ULONGLONG lastPlayer=g_lastLocalPlayerTick.load(std::memory_order_acquire);
+    if(leaseRt.horseEverywhereEnabled.load(std::memory_order_relaxed)&&
+       player&&g_lastServerSpawnLocalOwner.load(std::memory_order_acquire)==player&&
+       input&&server&&appeared&&lastPlayer&&
+       tick>=input&&tick-input<=1400ull&&
+       tick>=server&&tick-server<=1500ull&&
+       tick>=appeared&&tick-appeared<=1400ull&&
+       tick>=lastPlayer&&tick-lastPlayer<15000ull&&
+       g_horseLeaseHorse.load(std::memory_order_acquire)!=horse){
+        g_horseLeaseOwner.store(player,std::memory_order_relaxed);
+        g_horseLeaseStarted.store(tick,std::memory_order_relaxed);
+        g_horseLeaseHorse.store(horse,std::memory_order_release);
+        const unsigned n=++g_horseLeaseArms;
+        if(n<=10)
+            FeatureLog("Horse Everywhere V0.91: new local horse from physical summon + server; camera-independent ride scope armed #%u",n);
     }
     PublishHorseCameraPoseFromLiveCallback(horse);
     HorseSlot* slot = AllocateHorseLocked(horse);
@@ -843,6 +878,9 @@ void HookHorseSetSprintingTrue(
 // Probe of actual server-side spawn request. Same arguments are forwarded;
 // disabled/forbidden mount checks remain entirely owned by the game.
 void HookHorseServerSpawnImpl(void* actor,void* a,void* b,unsigned char flag){
+    g_lastServerSpawnLocalOwner.store(
+        actor&&actor==g_lastLocalPlayerIdentity.load(std::memory_order_acquire)
+            ? actor : nullptr,std::memory_order_release);
     g_lastServerSpawnTick.store(GetTickCount64(),std::memory_order_release);
     const unsigned n=++g_summonServerCalls;
     const bool requested=dg::runtime::Get().horseEverywhereEnabled.load(std::memory_order_relaxed);
@@ -895,14 +933,40 @@ bool IsLiveLocalMountedRide(void* actor){
         now>=nativeHorse&&now-nativeHorse<=1000ull&&
         selected&&selected==observed;
 }
+// Independent of TPS: retain native horse region permission after summon
+// while the local player and the SAME newly spawned horse are still alive.
+// Returning to validated on-foot movement after mount formation invalidates
+// this path, as does any actor identity change or stale horse callback.
+bool IsCameraIndependentLocalRide(void* actor){
+    if(!actor||!dg::runtime::Get().horseEverywhereEnabled.load(std::memory_order_relaxed))
+        return false;
+    void* owner=g_horseLeaseOwner.load(std::memory_order_acquire);
+    if(!owner||actor!=owner||
+       owner!=g_lastLocalPlayerIdentity.load(std::memory_order_acquire))
+        return false;
+    void* horse=g_horseLeaseHorse.load(std::memory_order_acquire);
+    if(!horse||horse!=g_lastObservedLiveHorse.load(std::memory_order_acquire))
+        return false;
+    const ULONGLONG now=GetTickCount64();
+    const ULONGLONG born=g_horseLeaseStarted.load(std::memory_order_acquire);
+    const ULONGLONG alive=g_lastLiveHorseCallbackTick.load(std::memory_order_acquire);
+    if(!born||!alive||now<born||now<alive||now-alive>350ull)return false;
+    // Validated player GetMaxSpeed normally stops while riding. Once it
+    // resumes a full second after spawning, presume dismount and fail open.
+    const ULONGLONG onFoot=g_lastLocalPlayerTick.load(std::memory_order_acquire);
+    if(now-born>1200ull&&onFoot>born+850ull)return false;
+    return true;
+}
 bool HookHorseRegion(void* actor){
     const bool original=g_originalHorseRegion?g_originalHorseRegion(actor):false;
     const unsigned calls=++g_regionQueries;
     const bool summoned=IsLocalSummonIntent(actor);
     const bool ridden=IsLiveLocalMountedRide(actor);
-    const bool scope=summoned||ridden;
+    const bool nativeRide=IsCameraIndependentLocalRide(actor);
+    const bool scope=summoned||ridden||nativeRide;
     if(scope&&!original){
         if(ridden&&!summoned)++g_mountedRegionHolds;
+        if(nativeRide&&!ridden&&!summoned)++g_nativeCameraRegionHolds;
         const unsigned n=++g_regionOverrides;
         if(n<=24)FeatureLog("Horse Everywhere V0.89 REGION: allow FALSE->TRUE override #%u at call=%u (local player + active real summon key only)",
             n,calls);
@@ -916,9 +980,11 @@ bool HookHorseDesummon(void* actor){
     const unsigned calls=++g_desummonQueries;
     const bool summoned=IsLocalSummonIntent(actor);
     const bool ridden=IsLiveLocalMountedRide(actor);
-    const bool scope=summoned||ridden;
+    const bool nativeRide=IsCameraIndependentLocalRide(actor);
+    const bool scope=summoned||ridden||nativeRide;
     if(scope&&original){
         if(ridden&&!summoned)++g_mountedDesummonHolds;
+        if(nativeRide&&!ridden&&!summoned)++g_nativeCameraDesummonHolds;
         const unsigned n=++g_desummonOverrides;
         if(n<=24)FeatureLog("Horse Everywhere V0.89 DESUMMON: TRUE->FALSE override #%u at call=%u (only while summoning; not persistent in ban volume)",
             n,calls);
@@ -1218,9 +1284,10 @@ void Shutdown() {
     RemoveHook(g_serverSpawnImplTarget);
     RemoveHook(g_horseRegionHookTarget);
     RemoveHook(g_horseDesummonHookTarget);
-    FeatureLog("Horse Everywhere V0.90 region totals: allowedChecks=%u scopedOverrides=%u mountedHolds=%u desummonChecks=%u scopedOverrides=%u mountedHolds=%u",
-        g_regionQueries.load(),g_regionOverrides.load(),g_mountedRegionHolds.load(),
-        g_desummonQueries.load(),g_desummonOverrides.load(),g_mountedDesummonHolds.load());
+    FeatureLog("Horse Everywhere V0.91 region totals: allowedChecks=%u overrides=%u tpsHolds=%u nativeCameraHolds=%u desummonChecks=%u overrides=%u tpsHolds=%u nativeCameraHolds=%u leases=%u",
+        g_regionQueries.load(),g_regionOverrides.load(),g_mountedRegionHolds.load(),g_nativeCameraRegionHolds.load(),
+        g_desummonQueries.load(),g_desummonOverrides.load(),g_mountedDesummonHolds.load(),g_nativeCameraDesummonHolds.load(),
+        g_horseLeaseArms.load());
     FeatureLog("Horse Everywhere V0.83 probe totals: serverSpawn=%u duringRequested=%u (server args unchanged)",
         g_summonServerCalls.load(),g_summonServerCallsRequested.load());
 
