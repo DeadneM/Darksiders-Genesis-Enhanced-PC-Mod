@@ -107,6 +107,14 @@ std::atomic_uint32_t g_tpsGroundAimFxEntered{0};
 std::atomic_uint32_t g_tpsGroundAimFxAlreadyHidden{0};
 using GroundAimEffectFn=void(*)(void*,bool);
 GroundAimEffectFn g_groundAimEffectOriginal=nullptr;
+// V0.79 AIM VISUAL PROBE ONLY. Exact UE native-exec wrappers for
+// ShowBeamEffect / HideBeamEffect, discovered in the original supported EXE.
+// The callbacks are strictly PASSIVE and ALWAYS invoke the native originals.
+using AimBeamExecFn=void(*)(void*,void*,void*);
+AimBeamExecFn g_originalAimShowBeamExec=nullptr;
+AimBeamExecFn g_originalAimHideBeamExec=nullptr;
+std::atomic_uint32_t g_tpsAimShowBeamCalls{0},g_tpsAimHideBeamCalls{0};
+std::atomic_uint32_t g_tpsAimShowBeamInTPS{0},g_tpsAimHideBeamInTPS{0};
 SRWLOCK g_grenadeHoldLock=SRWLOCK_INIT;
 struct GrenadeHoldState {
     bool physicalDown=false;
@@ -1645,6 +1653,77 @@ void InstallGroundAimEffectHook() {
        return;
     }
     Log("TPS V0.76: native HideGroundTargetingEffect READY RVA=0x6DDAD0");
+}
+
+// V0.79 aim-effect research only. UMayhem player's reflected
+// ShowBeamEffect (RVA 0x7D17B0) dispatches to vtable slot +0x920;
+// HideBeamEffect (RVA 0x7D0040) forwards to native RVA 0x6AD240.
+// Both wrappers have the UE4 Exec(UObject*, FFrame&, void*) convention.
+// We DO NOT skip, force-hide, modify ability state, or change projectile aim.
+void HookAimShowBeamExec(void* owner,void* frame,void* result) {
+    const unsigned n=++g_tpsAimShowBeamCalls;
+    const bool tps=dg::runtime::Get().thirdPersonEnabled.load() &&
+        !dg::runtime::Get().tpsTemporarilySuspended.load();
+    if(tps)++g_tpsAimShowBeamInTPS;
+    if(n==1||n==120||n==1000||n==10000)
+        Log("TPS V0.79 AIM FX PROBE: ShowBeamEffect n=%u tps=%d owner=%p (pass-through)",
+            n,tps?1:0,owner);
+    if(g_originalAimShowBeamExec)g_originalAimShowBeamExec(owner,frame,result);
+}
+void HookAimHideBeamExec(void* owner,void* frame,void* result) {
+    const unsigned n=++g_tpsAimHideBeamCalls;
+    const bool tps=dg::runtime::Get().thirdPersonEnabled.load() &&
+        !dg::runtime::Get().tpsTemporarilySuspended.load();
+    if(tps)++g_tpsAimHideBeamInTPS;
+    if(n==1||n==120||n==1000||n==10000)
+        Log("TPS V0.79 AIM FX PROBE: HideBeamEffect n=%u tps=%d owner=%p (pass-through)",
+            n,tps?1:0,owner);
+    if(g_originalAimHideBeamExec)g_originalAimHideBeamExec(owner,frame,result);
+}
+void InstallAimBeamExecProbe() {
+    if(!g_targetValidation.exact)return;
+    auto* base=reinterpret_cast<unsigned char*>(GetModuleHandleW(nullptr));
+    auto* show=base+0x7D17B0;
+    auto* hide=base+0x7D0040;
+    constexpr unsigned char showSig[]={
+        0x48,0x8B,0x42,0x20,0x45,0x33,0xC0,0x48,0x85,0xC0,0x41,0x0F,0x95,0xC0
+    };
+    constexpr unsigned char hideSig[]={
+        0x48,0x8B,0x42,0x20,0x45,0x33,0xC0,0x48,0x85,0xC0,0x41,0x0F,0x95,0xC0
+    };
+    if(std::memcmp(show,showSig,sizeof(showSig))!=0||
+       std::memcmp(hide,hideSig,sizeof(hideSig))!=0) {
+        Log("TPS V0.79 AIM FX PROBE: native beam wrapper signatures mismatch; nothing installed");
+        return;
+    }
+    const MH_STATUS init=MH_Initialize();
+    if(init!=MH_OK&&init!=MH_ERROR_ALREADY_INITIALIZED)return;
+    const MH_STATUS a=MH_CreateHook(show,reinterpret_cast<void*>(&HookAimShowBeamExec),
+        reinterpret_cast<void**>(&g_originalAimShowBeamExec));
+    if(a!=MH_OK){
+        Log("TPS V0.79 AIM FX PROBE: show hook unavailable status=%d",int(a));
+        return;
+    }
+    const MH_STATUS b=MH_CreateHook(hide,reinterpret_cast<void*>(&HookAimHideBeamExec),
+        reinterpret_cast<void**>(&g_originalAimHideBeamExec));
+    if(b!=MH_OK){
+        MH_RemoveHook(show);
+        g_originalAimShowBeamExec=nullptr;
+        Log("TPS V0.79 AIM FX PROBE: hide hook unavailable status=%d",int(b));
+        return;
+    }
+    const MH_STATUS onShow=MH_EnableHook(show);
+    const MH_STATUS onHide=MH_EnableHook(hide);
+    if((onShow!=MH_OK&&onShow!=MH_ERROR_ENABLED) ||
+       (onHide!=MH_OK&&onHide!=MH_ERROR_ENABLED)){
+        MH_DisableHook(show);MH_DisableHook(hide);
+        MH_RemoveHook(show);MH_RemoveHook(hide);
+        g_originalAimShowBeamExec=nullptr;
+        g_originalAimHideBeamExec=nullptr;
+        Log("TPS V0.79 AIM FX PROBE: enable failed; gameplay remains vanilla");
+        return;
+    }
+    Log("TPS V0.79 AIM FX PROBE: native ShowBeamEffect RVA=0x7D17B0 and HideBeamEffect RVA=0x7D0040 active, PASS-THROUGH ONLY");
 }
 
 float HookCharacterGetMaxSpeed(void* movementComponent) {
@@ -3775,6 +3854,9 @@ void ShutdownMod() {
         g_tpsGrenadeDownCount.load(),g_tpsGrenadeUpCount.load(),
         g_tpsGroundAimFxEntered.load(),g_tpsGroundAimFxAlreadyHidden.load(),
         g_tpsGroundAimFxHidden.load());
+    Log("TPS V0.79 AIM FX PROBE totals: show=%u showInTPS=%u hide=%u hideInTPS=%u (all calls passed through unchanged)",
+        g_tpsAimShowBeamCalls.load(),g_tpsAimShowBeamInTPS.load(),
+        g_tpsAimHideBeamCalls.load(),g_tpsAimHideBeamInTPS.load());
     Log("TPS V0.75 totals: nativeLookInput=%u nativeLookRotation=%u suppressedLook=%u heldYaw=%u mouseFace=%u padStrafe=%u mouseLookAim=%u padLookAim=%u signaturesFailed=%u",
         g_tpsLookInputCalls.load(),g_tpsLookRotationCalls.load(),
         g_tpsNativeLookInputBlocks.load(),g_tpsNativeLookRotationBlocks.load(),
@@ -3907,6 +3989,8 @@ DWORD WINAPI MainThread(LPVOID) {
         Log("Movement Speed unavailable; other ASI features remain active.");
     }
     InstallGroundAimEffectHook();
+    // Visual-aim probe only; preserves all V0.78 gameplay callbacks.
+    InstallAimBeamExecProbe();
     if (!InstallNativeTPSRotationHook()) {
         Log("TPS V0.75 native look hooks unavailable; vanilla look path untouched.");
     }
