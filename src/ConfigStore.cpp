@@ -298,7 +298,7 @@ void Store::ResetDefaults(bool persist) {
     skipLogosEnabled = true;
     skipIntroEnabled = true;
     skipWarningEnabled = true;
-    thirdPersonEnabled = true;
+    thirdPersonEnabled = false;
     thirdPersonFovEnabled = true;
     tpsFollowPlayer = true;
     tpsSuppressNativeRightStick = true;
@@ -420,7 +420,7 @@ bool Store::Load() {
     skipWarningEnabled =
         ReadBool(L"Features", L"SkipWarning", true, path_);
     thirdPersonEnabled =
-        ReadBool(L"Features", L"ThirdPerson", true, path_);
+        ReadBool(L"Features", L"ThirdPerson", false, path_);
     thirdPersonFovEnabled=ReadBool(L"Features",L"TPSFOV",true,path_);
     tpsFollowPlayer=ReadBool(L"Features",L"TPSFollowPlayer",true,path_);
     tpsSuppressNativeRightStick=ReadBool(L"Features",L"TPSSuppressNativeRightStick",true,path_);
