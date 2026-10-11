@@ -2896,10 +2896,24 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     const bool bindActive=g_targetValidation.exact && bindWindow &&
         GetForegroundWindow()==bindWindow && !IsIconic(bindWindow) &&
         !g_overlayVisible.load() && !g_shuttingDown.load();
-    if(bindActive && g_config.horsePadButtonA && g_config.horsePadButtonB &&
-       g_config.horsePadButtonA!=g_config.horsePadButtonB &&
-       GamepadBindingDown(g_config.horsePadButtonA,pad) &&
-       GamepadBindingDown(g_config.horsePadButtonB,pad)){
+    const bool validChord=bindActive && g_config.horsePadButtonA &&
+        g_config.horsePadButtonB &&
+        g_config.horsePadButtonA!=g_config.horsePadButtonB &&
+        GamepadBindingDown(g_config.horsePadButtonA,pad) &&
+        GamepadBindingDown(g_config.horsePadButtonB,pad);
+    // The XInput hook executes before the game consumes the native chord:
+    // arm region permission HERE instead of after Present (which can miss
+    // the first native HorseRegion getter call in banned zones).
+    static std::atomic_bool previousChord{false};
+    const bool chordEdge=validChord&&!previousChord.exchange(validChord);
+    if(chordEdge && g_config.horseEverywhereEnabled){
+        const auto now=GetTickCount64();
+        auto& horseRt=dg::runtime::Get();
+        horseRt.horseSummonIntentTick.store(now,std::memory_order_release);
+        horseRt.tpsLastHorseSummonInputTick.store(now,std::memory_order_release);
+        Log("Horse Everywhere V0.94: native XInput chord pre-armed at GetState, no extra summon command");
+    }
+    if(validChord){
         const bool alreadyNative=(pad.wButtons&
             (XINPUT_GAMEPAD_LEFT_SHOULDER|XINPUT_GAMEPAD_RIGHT_SHOULDER))==
             (XINPUT_GAMEPAD_LEFT_SHOULDER|XINPUT_GAMEPAD_RIGHT_SHOULDER);
@@ -2921,8 +2935,13 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
         ApplyHoldGrenadeVirtualR3(pad,grenadeMask);
     if(!ShouldSuppressNativeAim())
         return status; // Preserve vanilla aim while temporary view is held.
-    if(pad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER)
-        return status; // Ability wheel stays completely vanilla.
+    if(pad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER){
+        // Right stick must select native equipment/ammo/ability wheel items;
+        // this bypasses BOTH forward-analog emulation and native TPS look filter.
+        dg::runtime::Get().tpsAbilityWheelHeld.store(true,std::memory_order_release);
+        dg::runtime::Get().tpsAbilityWheelTick.store(GetTickCount64(),std::memory_order_release);
+        return status;
+    }
 
     auto& rt=dg::runtime::Get();
     const bool fire=pad.bRightTrigger>=XINPUT_GAMEPAD_TRIGGER_THRESHOLD ||
@@ -3115,6 +3134,22 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         return g_originalWndProc
             ? CallWindowProcW(g_originalWndProc, hwnd, msg, wParam, lParam)
             : DefWindowProcW(hwnd, msg, wParam, lParam);
+    }
+    // Keyboard summon H must authorize its native region checks BEFORE
+    // dispatch to the game's WndProc. Present-based polling is a frame late
+    // for the first keypress in banned zones. No synthetic second H needed.
+    if(msg==WM_KEYDOWN && (wParam&0xFF)=='H' &&
+       (lParam&(1LL<<30))==0 &&
+       g_targetValidation.exact && g_config.horseEverywhereEnabled &&
+       !g_overlayVisible.load() && GetForegroundWindow()==hwnd &&
+       !IsIconic(hwnd) && !g_shuttingDown.load()){
+        const auto now=GetTickCount64();
+        auto& horseRt=dg::runtime::Get();
+        horseRt.horseSummonIntentTick.store(now,std::memory_order_release);
+        horseRt.tpsLastHorseSummonInputTick.store(now,std::memory_order_release);
+        static unsigned earlyH=0;
+        if(++earlyH<=8)
+            Log("Horse Everywhere V0.94: native WM_KEYDOWN H pre-armed before original WndProc #%u",earlyH);
     }
     if (g_imguiReady.load() && g_overlayVisible.load()) {
         ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
@@ -3561,6 +3596,17 @@ void UpdateOrbitInput() {
     const bool padAvailable=focused &&
         GetCameraXInputState(0,&physical)==ERROR_SUCCESS;
     const WORD physicalBits=padAvailable?physical.Gamepad.wButtons:0;
+    // The three native wheels use LB/right stick on controller; native E,
+    // G, Tab or Left Alt on keyboard. Never change camera view while wheel
+    // inputs are present; let all native look getters process right stick.
+    const bool wheelOpen=focused && (
+        (padAvailable&&(physicalBits&XINPUT_GAMEPAD_LEFT_SHOULDER)!=0) ||
+        (GetAsyncKeyState('E')&0x8000)!=0 ||
+        (GetAsyncKeyState('G')&0x8000)!=0 ||
+        (GetAsyncKeyState(VK_TAB)&0x8000)!=0 ||
+        (GetAsyncKeyState(VK_LMENU)&0x8000)!=0);
+    rt.tpsAbilityWheelHeld.store(wheelOpen,std::memory_order_release);
+    if(wheelOpen)rt.tpsAbilityWheelTick.store(now,std::memory_order_release);
     const bool physicalFire=padAvailable&&
         (physical.Gamepad.bRightTrigger>=XINPUT_GAMEPAD_TRIGGER_THRESHOLD||
          (physicalBits&XINPUT_GAMEPAD_RIGHT_SHOULDER)!=0);
@@ -3582,16 +3628,9 @@ void UpdateOrbitInput() {
         g_horseSyntheticHDown.store(customHorseDown);
         if(customHorseDown)++g_keyboardHorseInjected;
     }
-    // V0.93: at most ONE guarded recovery H tap after a physical summon
-    // that hit a banned region but only cleared the game's stale mount state.
-    // Explicit native dismount and successful server requests never qualify.
-    static ULONGLONG horseRecoveryPressed=0;
-    if(horseRecoveryPressed && (!focused ||
-       now<horseRecoveryPressed || now-horseRecoveryPressed>=110ull)){
-        EmitKeyboardVirtualKey('H',false);
-        horseRecoveryPressed=0;
-    }
-    const bool hPressed=focused && !horseRecoveryPressed &&
+    // V0.94: no speculative 1.8-second extra H press. Native Windows and
+    // XInput events now pre-arm the banned-region gate BEFORE game dispatch.
+    const bool hPressed=focused &&
         (((GetAsyncKeyState('H')&0x8000)!=0) ||
          KeyboardHeld(dg::config::TpsKeyboardAction::Horse));
     const bool shoulderChord=padAvailable &&
@@ -3633,24 +3672,6 @@ void UpdateOrbitInput() {
             summonProbe.nativeCallsBefore;
         const unsigned generations=mountNow.horseGeneration-
             summonProbe.generationBefore;
-        // No server call and no horse appeared: if the original restricted
-        // region getter was overridden, the first press likely cleared an
-        // inactive horse-toggle state rather than summoning. Retry exactly
-        // once after the hardware key/chord is released, and never while
-        // a real live horse or native dismount is observed.
-        const bool wasBanned=mountNow.regionOverrides>summonProbe.regionOverridesBefore;
-        if(g_config.horseEverywhereEnabled&&wasBanned&&
-           !summonProbe.cameraWasHorse&&!summonProbe.horseWasLive&&
-           !serverCorrelated&&nativeDelta==0&&!mountNow.horseCallbackFresh&&
-           !hPressed&&!shoulderChord&&!horseRecoveryPressed&&
-           !g_horseSyntheticHDown.load()&&focused){
-            rt.horseSummonIntentTick.store(now,std::memory_order_release);
-            rt.tpsLastHorseSummonInputTick.store(now,std::memory_order_release);
-            if(EmitKeyboardVirtualKey('H',true)){
-                horseRecoveryPressed=now;
-                Log("Horse Everywhere V0.93: single guarded native H recovery tap after stale banned-area toggle (no native spawn or live horse)");
-            }
-        }
         if(summonProbe.count<=28)
             Log("Horse Everywhere V0.89 AREA RESULT #%u serverDeltaAfterInput=%u serverJustBeforeInput=%d correlatedServer=%d nativeCallbackDelta=%u horseIdentityChanges=%u cameraHorseBefore=%d cameraHorseAfter=%d noServerRequest=%d (possible restriction OR dismount)",
                 summonProbe.count,serverDelta,
@@ -3751,7 +3772,10 @@ void UpdateOrbitInput() {
     static ULONGLONG suspendStarted=0;
     static int previousSuspendMask=0;
     const int suspendMask=g_config.tpsSuspendButtonMask;
-    const bool holdInput=focused && g_config.thirdPersonEnabled &&
+    // Wheel controls have priority over temporary vanilla view even when
+    // the same physical R3 / native E key was configured for both actions.
+    const bool holdInput=focused && !wheelOpen &&
+        g_config.thirdPersonEnabled &&
         ((padAvailable && suspendMask &&
           GamepadBindingDown(suspendMask,physical.Gamepad)) ||
          KeyboardHeld(dg::config::TpsKeyboardAction::Suspend));
