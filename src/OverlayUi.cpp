@@ -227,7 +227,7 @@ void Draw(Context& c) {
                 ImGui::TextDisabled("Movement checks: %d | player checks: %d | native blocks: %d",
                     t.actionMoveQueries,t.actionMoveLocalQueries,t.actionMoveNativeBlocked);
                 ImGui::TreePop();
-            );
+            }
 
             if (config.actionRecoveryEnabled) {
                 ImGui::Indent();
