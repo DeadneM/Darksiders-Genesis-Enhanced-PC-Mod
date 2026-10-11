@@ -2265,3 +2265,17 @@ TPS controller hotkey UI has **one button selector per action**, each with **OFF
 The user identified native horse summon controls as keyboard **H** or gamepad **LB+RB**. V0.86 passively logs these user inputs against native `SERVER_SpawnHorseMount` call counts. **Horse Everywhere still does NOT bypass forbidden-area restrictions.** The log should clarify whether the request is stopped upstream.
 
 [Technical V0.86 notes](docs/V0_86_MOUNTED_AIM_AND_GAMEPAD_BINDINGS.md). GitHub main remains untouched; V0.84 validated grenade baseline preserved.
+
+## V0.87 (2026-10-11) | Mounted aim correction, native horse region test, blue arc audit
+
+**User-validated:** mounted `Vanilla Aim` camera lock plus native aiming while shooting works in V0.86; validated V0.84 grenade hold/stow remains frozen. V0.86 defect: without firing, the right stick could still turn native aim at the same time as the TPS camera. V0.87 suppresses native mounted stick aim **only outside firing**; during firing Vanilla Aim preserves game-native aim and suspended camera orbit.
+
+`Camera Forward` now accepts the real, freshly recognized horse-pawn identity in native look callbacks as well as the last foot pawn, to test camera-forward shooting while mounted. Logs `TPS V0.87 CAMERA_FORWARD` and physical **Ctrl** events to compare the game's own Ctrl aiming mechanism. Whether actual mounted bullets follow the view is not yet game-validated; no artificial keypress or raw projectile modification is claimed.
+
+**Horse Everywhere trial:** supported EXE metadata identified two previously untested native methods `IsInHorseRegion` and `IsInHorseDesummonRegion` (native RVAs `0x675E40` / `0x675D20`). When the user explicitly turns Horse Everywhere ON and presses actual **H or LB+RB**, an experimental signature-checked short-lived local-player-only override tests whether these region permission checks block summoning. It does NOT invoke server spawn or remove all possible scripted restrictions. New per-check/override counters appear in the Horse tab. Feature defaults OFF.
+
+**Blue aim line / semicircle:** the prior native ground FX hook had zero calls, and global Hide HUD does not remove them. Newly audited alternative rendered-aim suspects in the shipping EXE: `m_trajectoryBeamEffects`, `AimTrajectoryBeamEffectProperties`, `TargetingIndicatorClass`, `bShowCurrentTarget`, `OnShowTargetingUIDelegate`. These remain **unverified graphical owners**. No unsafe blanket suppression of targeting UI/ability classes or broad shader removal was introduced.
+
+**Deferred known issue:** keyboard/mouse TPS camera may lock at some angles instead of permitting continuous 360° rotation. Deliberately NOT modified in this build pending stable controls.
+
+Complete technical notes: [V0.87 audit](docs/V0_87_MOUNTED_AIM_CTRL_HORSE_REGION_BLUE_ARC.md). Branch is experimental and leaves `main` unchanged.
