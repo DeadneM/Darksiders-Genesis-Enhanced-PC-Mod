@@ -2303,3 +2303,12 @@ New telemetry `Horse Everywhere V0.89 REGION/DESUMMON` plus `serverJustBeforeInp
 **Mounted Vanilla Aim is fully frozen and unchanged**, as are the user-validated R3 grenade timing and all controller/camera/horse stats. Camera Forward remains unresolved and now **only adds a passive log** of whether native `GetPlayerLookInput` sees the live horse actor. The native projectile raycast is not hooked. Blue line/arc and keyboard/mouse 360-degree yaw problem remain deferred.
 
 [Technical V0.89 details](docs/V0_89_SCOPED_HORSE_REGION_TEST.md). Branch `main` is untouched; this is an experimental build, not an official stable release.
+
+ 
+## V0.90 (2026-10-11) | Strife shader aiming indicators + mounted Horse Everywhere retention (EXPERIMENTAL)
+ 
+**Two user-identified pixel shaders** are now intercepted directly by the ASI through early D3D11 hooks (ShaderToggler bytecode CRC32s `1212955419` and `2294978555`). The existing **Blue aiming line and semicircle** mode selector controls when their matching draw calls are hidden: Hide Everywhere, Default Only or TPS Only (default). No separate ReShade/dxgi.dll is required. The effect is *not yet visually validated*, and other visuals sharing the same shaders could also disappear. Overlay shows matched shaders and suppressed draw count. Native shooting/reticle/HUD targeting remain unchanged.
+ 
+**Horse Everywhere** retains the V0.89 summon-key permission for 1.6 seconds, then *also* maintains the local player's region permission while the live mounted TPS camera, native HorseCharacter callback and matching horse identity remain fresh. It drops back to vanilla instantly when those are not confirmed, on foot or when Horse Everywhere is OFF. This targets the reported zone-ban horse disappearance after approximately 1.6–1.9 seconds; other mission-script horse despawns may still occur. It does not spawn a horse forcibly or touch stale UObject pointers. For safety, live mounted retention currently applies only with TPS active.
+ 
+**Frozen unchanged:** mounted Vanilla Aim (user validated), R3 grenade hold/stow, existing controller bindings, strafe and aiming controls, on-foot TPS, horse speed/sprint/stamina, camera FOV/offsets, HUD/reticle, intro, overlay and INI. Camera Forward true mounted projectile raycast remains an independent open issue. See [V0.90 scoped technical notes](docs/V0_90_SHADER_AIM_HORSE_RETENTION.md). Development remains on `debug`; `main` stable and `archive` historical.
