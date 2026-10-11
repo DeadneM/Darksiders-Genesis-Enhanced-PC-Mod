@@ -1482,6 +1482,13 @@ bool IsMountedTPSNow() {
         rt.tpsMountedViewActive.load(std::memory_order_acquire) &&
         tick&&now>=tick&&now-tick<300ull;
 }
+bool IsTPSRadialInputActive() {
+    const auto& rt=dg::runtime::Get();
+    if(!rt.tpsAbilityWheelHeld.load(std::memory_order_acquire))return false;
+    const auto tick=rt.tpsAbilityWheelTick.load(std::memory_order_acquire);
+    const auto now=GetTickCount64();
+    return tick&&now>=tick&&now-tick<=180ull;
+}
 bool MountedVanillaAimWhileFiring() {
     const auto& rt=dg::runtime::Get();
     return rt.thirdPersonEnabled.load(std::memory_order_relaxed) &&
@@ -1542,6 +1549,9 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
        !std::isfinite(result->pitch)||!std::isfinite(result->yaw)||
        !std::isfinite(result->roll))
         return result;
+    // Do not suppress/look-rotate the game's own radial selection vector.
+    // LB / native keyboard equipment, ammo and ability wheels take priority.
+    if(IsTPSRadialInputActive())return result;
     auto& rt=dg::runtime::Get();
     const bool mouseFiring=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
     const bool mounted=IsMountedTPSNow();
@@ -1561,8 +1571,9 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
         }
         return result;
     }
-    const bool padStrafeFiring=IsPadFiringNow()&&
-        (mounted || rt.tpsControllerStrafeWhileFiring.load());
+    // TPS aim/movement are independent: the camera-vector look path is a
+    // fixed internal rule while firing, not an optional "strafe" switch.
+    const bool padStrafeFiring=IsPadFiringNow();
     if((mouseFiring||padStrafeFiring)&&IsTPSLookViewFresh()){
         // GetPlayerLookInput returns the native character's world-space
         // X/Y look VECTOR (RVA 0x671A40 reads actor+0xD24/0xD28).
@@ -1596,7 +1607,7 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
             return result;
         }
     }
-    if(!(mounted||rt.tpsSuppressNativeRightStick.load())||!IsRightStickActiveNow())
+    if(!IsRightStickActiveNow())
         return result;
     // Existing XInput block remains enabled. This is a SECOND, precise
     // in-game look-vector gate for direct controller/HID paths. Our TPS
@@ -1614,18 +1625,17 @@ NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
     const unsigned calls=++g_tpsLookRotationCalls;
     if(!result||!IsLiveTPSLookActor(actor)||!IsTPSLookViewFresh())
         return result;
+    if(IsTPSRadialInputActive())return result;
     auto& rt=dg::runtime::Get();
     const bool mouseFire=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
     const bool padFire=IsPadFiringNow();
     const bool mounted=IsMountedTPSNow();
-    const bool playerStrafe=padFire&&(mounted||
-        rt.tpsControllerStrafeWhileFiring.load());
+    const bool playerStrafe=padFire; // identical native look semantics on foot/horse
     // During mounted Vanilla Aim fire, native look rotation is untouched.
     // While idle, suppress right-stick-origin horseman aim.
     if(rt.tpsMountedAimMode.load()==1 &&
        (mouseFire||padFire))return result;
-    const bool nativeBlock=(mounted||rt.tpsSuppressNativeRightStick.load())&&
-        IsRightStickActiveNow();
+    const bool nativeBlock=IsRightStickActiveNow();
     const float actorYaw=g_tpsActorWorldYaw.load(std::memory_order_acquire);
     const float cameraYaw=dg::camera_trace::GetTelemetry().appliedYaw;
     if(!std::isfinite(actorYaw)||!std::isfinite(cameraYaw)||
@@ -2934,14 +2944,16 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
             mountedForForward?1:0);
         return status;
     }
+    // V0.94: normal native right-stick isolation is a TPS invariant, not
+    // a separate user option. Camera Forward injection above or Vanilla Aim
+    // while firing are the only intentional exceptions.
     // V0.68: NEVER inject artificial XInput aim during RT/RB.
     // The same right-stick suppression applies while running, idle AND
     // firing. Our own camera separately reads the UNFILTERED trampoline.
     // This is input isolation, NOT yet a shot-direction fix.
     const bool mounted=IsMountedTPSNow();
     const bool vanillaAim=rt.tpsMountedAimMode.load()==1;
-    const bool blockLook=(mounted || rt.tpsSuppressNativeRightStick.load() ||
-        vanillaAim) && (!vanillaAim || !fire);
+    const bool blockLook=!vanillaAim || !fire;
     if(blockLook && (pad.sThumbRX!=0 || pad.sThumbRY!=0)){
         pad.sThumbRX=0;pad.sThumbRY=0;
         const unsigned n=++g_nativePadAimSuppressed;
@@ -3022,7 +3034,7 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     // WM_INPUT suppression broke mouse aiming, so RAWINPUT always passes.
     // Skip guard when a real RAW mouse input was observed very recently.
     if(msg==WM_MOUSEMOVE && ShouldSuppressNativeAim() &&
-       dg::runtime::Get().tpsSuppressNativeRightStick.load()){
+       !IsTPSRadialInputActive()){
         const ULONGLONG now=GetTickCount64();
         const ULONGLONG stick=g_tpsPadRightStickTick.load(std::memory_order_acquire);
         const ULONGLONG raw=g_tpsRawMouseTick.load(std::memory_order_acquire);
@@ -3824,8 +3836,7 @@ void UpdateOrbitInput() {
         const bool rightActive=
             std::abs(int(primary.Gamepad.sThumbRX))>XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE||
             std::abs(int(primary.Gamepad.sThumbRY))>XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE;
-        if((rt.tpsSuppressNativeRightStick.load()||IsMountedTPSNow()||
-            rt.tpsMountedAimMode.load()==1)&&rightActive)
+        if(rightActive && !IsTPSRadialInputActive())
             g_tpsPadRightStickTick.store(now,std::memory_order_release);
         // Read-only probe: does the local pawn yaw change when ONLY the
         // right analog is moving, despite our native XInput suppression?
@@ -3841,7 +3852,7 @@ void UpdateOrbitInput() {
             std::abs(int(pad.sThumbLX))<XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE &&
             std::abs(int(pad.sThumbLY))<XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE;
         const ULONGLONG actorTick=g_tpsActorYawTick.load();
-        if(rt.tpsSuppressNativeRightStick.load()&&rightMoving&&leftIdle&&
+        if(!IsTPSRadialInputActive()&&rightMoving&&leftIdle&&
            actorTick&&now>=actorTick&&now-actorTick<300ull) {
             const float yaw=g_tpsActorWorldYaw.load();
             if(lastProbe&&now>=lastProbe&&now-lastProbe>=650ull){
