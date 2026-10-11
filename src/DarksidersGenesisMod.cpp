@@ -35,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.72-regression-rollback-stick-mouse-input-diagnostic";
+constexpr const char* kBuild = "0.89-scoped-horse-native-regions-forward-observation-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -98,6 +98,27 @@ std::atomic_uint32_t g_tpsStrafeSamples{0};
 // V0.72: track potential Steam Input -> synthetic Windows mouse mapping.
 std::atomic_ullong g_tpsPadRightStickTick{0},g_tpsRawMouseTick{0};
 std::atomic_uint32_t g_tpsControllerMouseBlocks{0};
+// V0.76: physical R3 and the virtual native grenade key are distinct.
+// Do not modify the validated V0.75 native firing/aim callback logic.
+std::atomic_uint32_t g_tpsHoldSuspendCount{0},g_tpsHoldToggleCount{0};
+std::atomic_uint32_t g_tpsGrenadeDownCount{0},g_tpsGrenadeUpCount{0};
+std::atomic_uint32_t g_tpsGrenadeReleasePulseDelivered{0};
+std::atomic_uint32_t g_tpsGroundAimFxHidden{0};
+std::atomic_uint32_t g_tpsGroundAimFxEntered{0};
+std::atomic_uint32_t g_tpsGroundAimFxAlreadyHidden{0};
+using GroundAimEffectFn=void(*)(void*,bool);
+GroundAimEffectFn g_groundAimEffectOriginal=nullptr;
+SRWLOCK g_grenadeHoldLock=SRWLOCK_INIT;
+struct GrenadeHoldState {
+    bool physicalDown=false;
+    ULONGLONG startPulse=0;
+    ULONGLONG finishPulse=0;
+    ULONGLONG releaseStart=0;
+    ULONGLONG releaseFinish=0;
+    bool releasePulseDelivered=false;
+    int selectedMask=0x0080;
+};
+GrenadeHoldState g_grenadeHoldState{};
 SRWLOCK g_tpsFacingLock=SRWLOCK_INIT;
 void* g_tpsFacingCurrentComponent=nullptr;
 bool g_tpsFacingOwned=false;
@@ -623,7 +644,11 @@ void UpdateCameraDof() {
     }
     const auto& camera=dg::runtime::Get();
     const float zoom=camera.cameraZoomPercent.load(std::memory_order_relaxed);
-    const bool displaced=camera.thirdPersonEnabled.load(std::memory_order_relaxed)||
+    // R3 temporary vanilla camera also restores the native DOF state;
+    // persistent camera zoom, if enabled, remains an independent reason
+    // for disabling depth-of-field blur.
+    const bool displaced=(camera.thirdPersonEnabled.load(std::memory_order_relaxed) &&
+        !camera.tpsTemporarilySuspended.load(std::memory_order_relaxed)) ||
         (std::isfinite(zoom)&&std::fabs(zoom)>0.0001f);
     const LONG desired=displaced ? 0 : g_dofOriginal;
     if (current!=desired) {
@@ -1394,6 +1419,388 @@ void UpdateTPSFacingNative(void* component) {
     }
     ReleaseSRWLockExclusive(&g_tpsFacingLock);
 }
+// V0.75: use the game's verified UMayhemCharacter native look functions,
+// rather than an interpolation callback that did not execute in V0.74.
+// RVA 0x671A40 = GetPlayerLookInput, referenced by game movement, aiming,
+// and shooting logic; RVA 0x671B00 = GetPlayerLookRotation. Both are
+// non-virtual native methods (not Unreal script thunks). Signatures and
+// calling convention derived from the exact supported shipping executable.
+// The hooks alter RETURN values only in these live game callbacks, never
+// player/root/MovementComponent memory or left-stick input.
+struct NativeTPSRotator { float pitch, yaw, roll; };
+using NativeLookFn=NativeTPSRotator* (*)(void*,NativeTPSRotator*);
+NativeLookFn g_originalGetPlayerLookInput=nullptr;
+NativeLookFn g_originalGetPlayerLookRotation=nullptr;
+std::atomic_uint32_t g_tpsLookInputCalls{0},g_tpsLookRotationCalls{0};
+std::atomic_uint32_t g_tpsNativeLookInputBlocks{0},g_tpsMouseFacingApplied{0};
+std::atomic_uint32_t g_tpsNativeLookInputMouseAim{0},g_tpsNativeLookInputPadAim{0};
+std::atomic_uint32_t g_tpsPadStrafeApplied{0},g_tpsNativeLookRotationBlocks{0};
+std::atomic_uint32_t g_tpsNativeLookSignatureFailures{0};
+// V0.87: mounted idle native look suppression and low-risk CTRL action
+// bridge for user-described native keyboard aiming. Scope is exclusively
+// active mounted TPS; no changes to grenade / native horse stats.
+std::atomic_uint32_t g_tpsMountedIdleNativeLookBlocks{0};
+std::atomic_uint32_t g_tpsMountedCtrlDown{0},g_tpsMountedCtrlUp{0};
+// V0.88: native look GETTER is NOT the projectile-raycast source. The
+// Ctrl WM_KEYDOWN experiment in V0.87 posted 8 paired events but user
+// still observed fixed shot direction. Keep measured yaw diagnostics to
+// guide a future exact projectile/raycast hook, no unsafe broad writes.
+std::atomic_uint32_t g_tpsMountedForwardLookSamples{0};
+std::atomic<float> g_tpsMountedForwardLastNativeYaw{0.0f};
+std::atomic<float> g_tpsMountedForwardLastCameraYaw{0.0f};
+std::atomic_uint32_t g_tpsMountedForwardLargeYawGap{0};
+// Passive observation only: avoid touching validated mounted Vanilla Aim,
+// but test whether actual mounted pawn invokes native look getter at all.
+std::atomic_uint32_t g_tpsHorseNativeLookGetterObservations{0};
+// Visual-only audit of 2 OTHER suspected native targeting UI classes.
+// No event is suppressed: the unvalidated V0.82 blocking experiment
+// is NOT merged into this cumulative gameplay branch.
+using AimUiEventDispatchFn=void(*)(void*,void*,void*,void*);
+AimUiEventDispatchFn g_originalAimUiEventDispatch=nullptr;
+void* const* g_aimUiClassSlot=nullptr;
+void* const* g_aimUiPositionClassSlot=nullptr;
+std::atomic_uint32_t g_aimUiEvents{0},g_aimUiPositionEvents{0};
+std::atomic_uint32_t g_aimUiEventsInTPS{0},g_aimUiEventsWhileFire{0};
+
+std::atomic_bool g_tpsMountedCtrlBridgeDown{false};
+
+// Actual mounted TPS camera source is written by HookView, with a short
+// expiry so stale HorseCharacter callbacks cannot make foot aim mounted.
+bool IsMountedTPSNow() {
+    auto& rt=dg::runtime::Get();
+    const ULONGLONG now=GetTickCount64();
+    const ULONGLONG tick=rt.tpsMountedViewTick.load(std::memory_order_acquire);
+    return rt.thirdPersonEnabled.load(std::memory_order_relaxed) &&
+        !rt.tpsTemporarilySuspended.load(std::memory_order_relaxed) &&
+        rt.tpsMountedViewActive.load(std::memory_order_acquire) &&
+        tick&&now>=tick&&now-tick<300ull;
+}
+bool MountedVanillaAimWhileFiring() {
+    return IsMountedTPSNow() &&
+        dg::runtime::Get().tpsMountedAimMode.load(std::memory_order_relaxed)==1;
+}
+bool IsLiveTPSLookActor(void* actor) {
+    if(!actor || !g_targetValidation.exact || g_shuttingDown.load() ||
+        !dg::runtime::Get().thirdPersonEnabled.load() ||
+        dg::runtime::Get().tpsTemporarilySuspended.load() ||
+        g_overlayVisible.load())
+        return false;
+    const auto* player=g_localPlayerCharacter.load(std::memory_order_acquire);
+    if(actor!=player || !player)return false;
+    const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+    if(!hwnd || GetForegroundWindow()!=hwnd || IsIconic(hwnd))return false;
+    const ULONGLONG tick=dg::runtime::Get().tpsActorLocationTick.load(std::memory_order_acquire);
+    const ULONGLONG now=GetTickCount64();
+    return (tick&&now>=tick&&now-tick<250ull)||IsMountedTPSNow();
+}
+bool IsPadFiringNow() {
+    const ULONGLONG now=GetTickCount64();
+    const ULONGLONG tick=g_tpsFireLastTick.load(std::memory_order_acquire);
+    return g_tpsFireHeld.load(std::memory_order_acquire)&&tick&&now>=tick&&now-tick<180ull;
+}
+bool IsRightStickActiveNow() {
+    const ULONGLONG now=GetTickCount64();
+    const ULONGLONG stick=g_tpsPadRightStickTick.load(std::memory_order_acquire);
+    const ULONGLONG realMouse=g_tpsRawMouseTick.load(std::memory_order_acquire);
+    // Real mouse takes precedence over a concurrent controller.
+    return stick && now>=stick && now-stick<150ull &&
+        (!realMouse || now<realMouse || now-realMouse>120ull);
+}
+bool IsTPSLookViewFresh() {
+    const auto& rt=dg::runtime::Get();
+    const ULONGLONG now=GetTickCount64();
+    const ULONGLONG view=rt.tpsGameplayViewTick.load(std::memory_order_acquire);
+    return rt.tpsViewGameplay.load(std::memory_order_acquire) &&
+        view&&now>=view&&now-view<250ull;
+}
+NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
+    auto original=g_originalGetPlayerLookInput;
+    if(!original)return out;
+    auto* result=original(actor,out);
+    const unsigned calls=++g_tpsLookInputCalls;
+    const auto& lookRt=dg::runtime::Get();
+    const ULONGLONG horseLookTick=lookRt.tpsHorsePoseTick.load(std::memory_order_acquire);
+    const ULONGLONG horseLookNow=GetTickCount64();
+    if(actor && IsMountedTPSNow()&&horseLookTick&&horseLookNow>=horseLookTick&&
+       horseLookNow-horseLookTick<350ull &&
+       reinterpret_cast<std::uintptr_t>(actor)==
+           lookRt.tpsHorseOwnerIdentity.load(std::memory_order_acquire)){
+        const unsigned n=++g_tpsHorseNativeLookGetterObservations;
+        if(n==1||n==100||n==1000)
+            Log("TPS V0.89 CAMERA FORWARD: native GetPlayerLookInput dispatched on HORSE actor n=%u (original result retained)",n);
+    }
+    if(!result||!IsLiveTPSLookActor(actor) ||
+       !std::isfinite(result->pitch)||!std::isfinite(result->yaw)||
+       !std::isfinite(result->roll))
+        return result;
+    auto& rt=dg::runtime::Get();
+    const bool mouseFiring=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
+    const bool mounted=IsMountedTPSNow();
+    const bool fire=mouseFiring||IsPadFiringNow();
+    // Mounted mode overrides on-foot strafe/rotate settings entirely.
+    // Mode 1: native look is passed through for vanilla horse aiming.
+    // V0.87: Vanilla Aim means NATIVE look ONLY WHILE FIRING.
+    // Off-fire the right stick is camera-only, never simultaneously
+    // turning the horseman's aim. This is independent of on-foot toggles.
+    if(mounted && rt.tpsMountedAimMode.load()==1){
+        if(fire)return result;
+        if(IsRightStickActiveNow()){
+            result->pitch=0.0f;result->yaw=0.0f;result->roll=0.0f;
+            const unsigned n=++g_tpsMountedIdleNativeLookBlocks;
+            if(n==1||n==200)
+                Log("TPS V0.87 MOUNT: idle right-stick native look suppressed n=%u",n);
+        }
+        return result;
+    }
+    const bool padStrafeFiring=IsPadFiringNow()&&
+        (mounted || rt.tpsControllerStrafeWhileFiring.load());
+    if((mouseFiring||padStrafeFiring)&&IsTPSLookViewFresh()){
+        // GetPlayerLookInput returns the native character's world-space
+        // X/Y look VECTOR (RVA 0x671A40 reads actor+0xD24/0xD28).
+        // Feed world-facing vector corresponding to the mod TPS view only
+        // WHILE firing. Unlike rejected XInput axis remapping this leaves
+        // native left-stick player movement COMPLETELY untouched.
+        const float yaw=dg::camera_trace::GetTelemetry().appliedYaw;
+        if(std::isfinite(yaw)&&std::fabs(yaw)<36000.0f){
+            if(mounted && rt.tpsMountedAimMode.load()==0){
+                const float nativeYaw=std::atan2(result->yaw,result->pitch)*
+                    57.29577951308232f;
+                const float gap=std::fabs(std::remainder(nativeYaw-yaw,360.0f));
+                const unsigned sample=++g_tpsMountedForwardLookSamples;
+                g_tpsMountedForwardLastNativeYaw.store(nativeYaw);
+                g_tpsMountedForwardLastCameraYaw.store(yaw);
+                if(gap>35.0f)++g_tpsMountedForwardLargeYawGap;
+                if(sample==1||sample==100||sample==1000||sample==10000)
+                    Log("TPS V0.88 FORWARD RAYCAST AUDIT: nativeLookYaw=%.1f TPSCameraYaw=%.1f gap=%.1f getterCalls=%u; projectile raycast NOT hooked",
+                        nativeYaw,yaw,gap,sample);
+            }
+            const float rad=yaw*0.01745329251994329577f;
+            result->pitch=std::cos(rad);
+            result->yaw=std::sin(rad);
+            result->roll=0.0f;
+            const unsigned n=mouseFiring
+                ? ++g_tpsNativeLookInputMouseAim
+                : ++g_tpsNativeLookInputPadAim;
+            if(n==1||n==120||n==10000)
+                Log("TPS V0.75: game-native LOOK VECTOR -> camera during fire n=%u source=%s yaw=%.1f calls=%u",
+                    n,mouseFiring?"mouse":"pad-strafe",yaw,calls);
+            return result;
+        }
+    }
+    if(!(mounted||rt.tpsSuppressNativeRightStick.load())||!IsRightStickActiveNow())
+        return result;
+    // Existing XInput block remains enabled. This is a SECOND, precise
+    // in-game look-vector gate for direct controller/HID paths. Our TPS
+    // camera keeps raw original XInput and can orbit freely while firing.
+    result->pitch=0.0f;result->yaw=0.0f;result->roll=0.0f;
+    const unsigned blocked=++g_tpsNativeLookInputBlocks;
+    if(blocked==1||blocked==120||blocked==10000)
+        Log("TPS V0.75: native gamepad look input neutralized n=%u calls=%u",blocked,calls);
+    return result;
+}
+NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
+    auto original=g_originalGetPlayerLookRotation;
+    if(!original)return out;
+    auto* result=original(actor,out);
+    const unsigned calls=++g_tpsLookRotationCalls;
+    if(!result||!IsLiveTPSLookActor(actor)||!IsTPSLookViewFresh())
+        return result;
+    auto& rt=dg::runtime::Get();
+    const bool mouseFire=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
+    const bool padFire=IsPadFiringNow();
+    const bool mounted=IsMountedTPSNow();
+    const bool playerStrafe=padFire&&(mounted||
+        rt.tpsControllerStrafeWhileFiring.load());
+    // During mounted Vanilla Aim fire, native look rotation is untouched.
+    // While idle, suppress right-stick-origin horseman aim.
+    if(mounted && rt.tpsMountedAimMode.load()==1 &&
+       (mouseFire||padFire))return result;
+    const bool nativeBlock=(mounted||rt.tpsSuppressNativeRightStick.load())&&
+        IsRightStickActiveNow();
+    const float actorYaw=g_tpsActorWorldYaw.load(std::memory_order_acquire);
+    const float cameraYaw=dg::camera_trace::GetTelemetry().appliedYaw;
+    if(!std::isfinite(actorYaw)||!std::isfinite(cameraYaw)||
+       std::fabs(cameraYaw)>36000.0f)return result;
+    // User request: no mouse checkboxes. Mouse shooting automatically
+    // rotates Strife's NATIVE desired look toward camera forward.
+    // Pad Strafe: aim toward the rendered camera heading, retain vanilla
+    // player movement vector. Rotate while firing is CAMERA ONLY.
+    if(mouseFire || playerStrafe){
+        result->pitch=0.0f;
+        result->yaw=std::remainder(cameraYaw,360.0f);
+        result->roll=0.0f;
+        const unsigned n=mouseFire?++g_tpsMouseFacingApplied:++g_tpsPadStrafeApplied;
+        if(n==1||n==120||n==10000)
+            Log("TPS V0.75: native look rotation -> camera n=%u source=%s yaw=%.1f",
+                n,mouseFire?"mouse-fire":"pad-strafe-fire",result->yaw);
+    } else if(nativeBlock) {
+        // Right stick must not rotate the PLAYER through the native look
+        // getter, even when engine input arrives by another XInput/HID path.
+        // Camera movement remains independent and can continue during fire.
+        result->pitch=0.0f;
+        result->yaw=std::remainder(actorYaw,360.0f);
+        result->roll=0.0f;
+        const unsigned n=++g_tpsNativeLookRotationBlocks;
+        if(n==1||n==120||n==10000)
+            Log("TPS V0.75: native player look rotation held n=%u yaw=%.1f",n,result->yaw);
+    }
+    if(calls==1||calls==10000)
+        Log("TPS V0.75: GetPlayerLookRotation calls=%u",calls);
+    return result;
+}
+bool InstallNativeTPSRotationHook() {
+    if(!g_targetValidation.exact)return false;
+    const uintptr_t base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    constexpr unsigned char lookInputSignature[]={
+        0x48,0x8B,0xC4,0x53,0x48,0x83,0xEC,0x40
+    };
+    constexpr unsigned char lookRotationSignature[]={
+        0x48,0x89,0x5C,0x24,0x08,0x57,0x48,0x83,0xEC,0x60
+    };
+    auto* input=reinterpret_cast<unsigned char*>(base+0x671A40);
+    auto* rotation=reinterpret_cast<unsigned char*>(base+0x671B00);
+    if(std::memcmp(input,lookInputSignature,sizeof(lookInputSignature))||
+       std::memcmp(rotation,lookRotationSignature,sizeof(lookRotationSignature))){
+        ++g_tpsNativeLookSignatureFailures;
+        Log("TPS V0.75: native look signature mismatch: both new hooks DISABLED");
+        return false;
+    }
+    const MH_STATUS init=MH_Initialize();
+    if(init!=MH_OK&&init!=MH_ERROR_ALREADY_INITIALIZED)return false;
+    const MH_STATUS a=MH_CreateHook(input,reinterpret_cast<void*>(&HookPlayerLookInput),
+        reinterpret_cast<void**>(&g_originalGetPlayerLookInput));
+    if(a!=MH_OK){Log("TPS V0.75: GetPlayerLookInput CreateHook failed=%d",int(a));return false;}
+    const MH_STATUS b=MH_CreateHook(rotation,reinterpret_cast<void*>(&HookPlayerLookRotation),
+        reinterpret_cast<void**>(&g_originalGetPlayerLookRotation));
+    if(b!=MH_OK){
+        MH_RemoveHook(input);
+        g_originalGetPlayerLookInput=nullptr;
+        Log("TPS V0.75: GetPlayerLookRotation CreateHook failed=%d",int(b));
+        return false;
+    }
+    const MH_STATUS enabledA=MH_EnableHook(input);
+    const MH_STATUS enabledB=MH_EnableHook(rotation);
+    if(enabledA!=MH_OK&&enabledA!=MH_ERROR_ENABLED ||
+       enabledB!=MH_OK&&enabledB!=MH_ERROR_ENABLED){
+        MH_DisableHook(input);MH_DisableHook(rotation);
+        MH_RemoveHook(input);MH_RemoveHook(rotation);
+        g_originalGetPlayerLookInput=nullptr;
+        g_originalGetPlayerLookRotation=nullptr;
+        Log("TPS V0.75: native look hook enabling FAILED; game left vanilla");
+        return false;
+    }
+    Log("TPS V0.75: native game look input READY RVA=0x671A40 and look rotation READY RVA=0x671B00");
+    return true;
+}
+
+// Scoped copy of the exact V0.61 native ground-targeting FX detour.
+// This does NOT assert the Strife laser is removed: there may be other FX.
+void HookGroundAimEffect(void* ability,bool hide) {
+    if(!g_groundAimEffectOriginal)return;
+    auto& rt=dg::runtime::Get();
+    // V0.84: three user-selectable scopes. Still a diagnostic ONLY for
+    // Strife's cyan line/semicircle until their actual render effect is found.
+    const bool tps=rt.thirdPersonEnabled.load(std::memory_order_relaxed) &&
+        !rt.tpsTemporarilySuspended.load(std::memory_order_relaxed);
+    const int scope=rt.aimIndicatorHideMode.load(std::memory_order_relaxed);
+    const bool selected=(scope==0)||(scope==1&&!tps)||(scope==2&&tps);
+    const bool forced=g_targetValidation.exact && selected &&
+        !g_overlayVisible.load(std::memory_order_relaxed);
+    // V0.77: separate "native hook was called" from "we forced hide."
+    // The V0.76 log reported 0 hides even during combat, which cannot
+    // distinguish a never-called ability from an already-hidden FX.
+    // This probe is passive outside the prior V0.76 conditional override.
+    const unsigned calls=++g_tpsGroundAimFxEntered;
+    if(hide)++g_tpsGroundAimFxAlreadyHidden;
+    if(calls==1||calls==250||calls==2000)
+        Log("TPS V0.77 FX AUDIT: HideGroundTargetingEffect called n=%u requestedHide=%d forceEnabled=%d tps=%d",
+            calls,hide?1:0,selected?1:0,
+            tps?1:0);
+    if(forced&&!hide){
+        const unsigned n=++g_tpsGroundAimFxHidden;
+        if(n==1||n==1000)
+            Log("TPS V0.77 FX AUDIT: ground FX hide override n=%u",n);
+    }
+    g_groundAimEffectOriginal(ability,forced?true:hide);
+}
+void InstallGroundAimEffectHook() {
+    if(!g_targetValidation.exact)return;
+    auto* target=reinterpret_cast<unsigned char*>(GetModuleHandleW(nullptr))+0x6DDAD0;
+    constexpr unsigned char signature[]={0x48,0x89,0x5C,0x24,0x08,0x57,0x48,0x83,0xEC,0x20};
+    if(std::memcmp(target,signature,sizeof(signature))!=0){
+        Log("TPS V0.76: native ground FX signature mismatch, untouched");return;
+    }
+    const MH_STATUS created=MH_CreateHook(target,reinterpret_cast<void*>(&HookGroundAimEffect),
+       reinterpret_cast<void**>(&g_groundAimEffectOriginal));
+    if(created!=MH_OK){Log("TPS V0.76: ground FX hook create failed=%d",int(created));return;}
+    const MH_STATUS enabled=MH_EnableHook(target);
+    if(enabled!=MH_OK&&enabled!=MH_ERROR_ENABLED){
+       MH_RemoveHook(target);g_groundAimEffectOriginal=nullptr;
+       Log("TPS V0.76: ground FX hook enable failed=%d",int(enabled));
+       return;
+    }
+    Log("TPS V0.76: native HideGroundTargetingEffect READY RVA=0x6DDAD0");
+}
+
+// V0.87 passive audit: do the native targeting UI components receive
+// Unreal events when Strife's blue world-space line/arc are visible?
+// All events ALWAYS execute the original game callback, no visual or
+// gameplay changes. If counters stay zero the visuals bypass this route.
+void HookAimUiEventDispatch(void* object,void* function,void* parameters,void* outParameters){
+    if(object && function && g_aimUiClassSlot && g_aimUiPositionClassSlot){
+        const void* actual=*reinterpret_cast<void* const*>(
+            static_cast<const unsigned char*>(object)+0x10);
+        if(actual){
+            const bool targeting=actual==*g_aimUiClassSlot;
+            const bool positioning=actual==*g_aimUiPositionClassSlot;
+            if(targeting||positioning){
+                const unsigned n=targeting?++g_aimUiEvents:++g_aimUiPositionEvents;
+                auto& rt=dg::runtime::Get();
+                const bool tps=rt.thirdPersonEnabled.load(std::memory_order_relaxed);
+                const bool fire=rt.tpsAimActive.load(std::memory_order_relaxed) ||
+                    ((GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0);
+                if(tps && targeting)++g_aimUiEventsInTPS;
+                if(fire && targeting)++g_aimUiEventsWhileFire;
+                if(n==1||n==100||n==1000)
+                    Log("TPS V0.87 AIM UI PROBE: class=%s events=%u tps=%d firing=%d (PASS THROUGH)",
+                        targeting?"UMayhemTargetingUIComponent":
+                        "UMayhemTargetUiPositionComponent",n,tps?1:0,fire?1:0);
+            }
+        }
+    }
+    if(g_originalAimUiEventDispatch)
+        g_originalAimUiEventDispatch(object,function,parameters,outParameters);
+}
+void InstallAimUiEventProbe(){
+    if(!g_targetValidation.exact)return;
+    auto* base=reinterpret_cast<unsigned char*>(GetModuleHandleW(nullptr));
+    auto* entry=base+0xAC0630; // exact retail native UObject::ProcessEvent
+    constexpr unsigned char sig[]={
+        0x40,0x55,0x56,0x57,0x41,0x54,0x41,0x55,0x41,0x56,0x41,0x57,
+        0x48,0x81,0xEC,0xF0,0x00,0x00,0x00
+    };
+    if(std::memcmp(entry,sig,sizeof(sig))!=0){
+        Log("TPS V0.87 AIM UI PROBE: ProcessEvent signature mismatch, disabled");
+        return;
+    }
+    g_aimUiClassSlot=reinterpret_cast<void* const*>(base+0x3812DD0);
+    g_aimUiPositionClassSlot=reinterpret_cast<void* const*>(base+0x3812DE0);
+    const auto made=MH_CreateHook(entry,
+        reinterpret_cast<void*>(&HookAimUiEventDispatch),
+        reinterpret_cast<void**>(&g_originalAimUiEventDispatch));
+    if(made!=MH_OK){
+        Log("TPS V0.87 AIM UI PROBE: hook unavailable status=%d",int(made));
+        return;
+    }
+    const auto enabled=MH_EnableHook(entry);
+    if(enabled!=MH_OK&&enabled!=MH_ERROR_ENABLED){
+        MH_RemoveHook(entry);g_originalAimUiEventDispatch=nullptr;
+        Log("TPS V0.87 AIM UI PROBE: enable failed=%d",int(enabled));
+        return;
+    }
+    Log("TPS V0.87 AIM UI PROBE: READY, pass-through classes UMayhemTargetingUIComponent and UMayhemTargetUiPositionComponent");
+}
+
 float HookCharacterGetMaxSpeed(void* movementComponent) {
     const float nativeSpeed = g_originalCharacterGetMaxSpeed
         ? g_originalCharacterGetMaxSpeed(movementComponent)
@@ -1477,6 +1884,7 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
                 characterOwner,
                 std::memory_order_relaxed
             );
+        dg::horse::ObservePlayerCharacter(characterOwner);
         if (previousPlayer != characterOwner) {
             g_tpsPlayerGeneration.fetch_add(1);
             Log(
@@ -1892,7 +2300,8 @@ bool ShouldBlankGameCursor() {
     const ULONGLONG tick=runtime.tpsGameplayViewTick.load();
     const ULONGLONG now=GetTickCount64();
     const bool hideWindows = runtime.hideReticle.load() ||
-        (runtime.thirdPersonEnabled.load() && runtime.tpsViewGameplay.load() &&
+        (runtime.thirdPersonEnabled.load() &&
+         !runtime.tpsTemporarilySuspended.load() && runtime.tpsViewGameplay.load() &&
          tick&&now>=tick&&now-tick<250ull);
     return hwnd && GetForegroundWindow() == hwnd &&
         !g_overlayVisible.load(std::memory_order_relaxed) && hideWindows;
@@ -2368,6 +2777,7 @@ bool ShouldSuppressNativeAim() {
     const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load(std::memory_order_relaxed));
     return g_targetValidation.exact && !g_shuttingDown.load(std::memory_order_relaxed) &&
         dg::runtime::Get().thirdPersonEnabled.load(std::memory_order_relaxed) &&
+        !dg::runtime::Get().tpsTemporarilySuspended.load(std::memory_order_relaxed) &&
         hwnd && hwnd==GetForegroundWindow() && !IsIconic(hwnd) &&
         !g_overlayVisible.load(std::memory_order_relaxed);
 }
@@ -2385,13 +2795,87 @@ const wchar_t* const kNativeXInputLibraries[]={
 // animation, combat logic and movement-component lifetime safety.
 // All heading changes are only active while RT/RB is held; the grenade/held
 // item throw shares RT. LB radial / capability menus always receive vanilla.
+// V0.84 grenade hold repair. Previously the game-facing R3 DOWN lasted
+// only 65 ms even while physical R3 remained held. A game poll could miss
+// the tap, or see an artificial UP while the player was still holding R3.
+// Keep the PHYSICAL R3 held normally for the full press. After its release,
+// produce one distinct, sufficiently long native-toggle DOWN pulse separated
+// by a definite UP interval. All other controller bits stay exactly native.
+// This code never changes TPS camera hold timing or native firing.
+// Standard XInput buttons plus LT/RT virtual binding IDs. GUIDE button
+// is not accessible through the standard XINPUT_GAMEPAD structure.
+bool GamepadBindingDown(int mask,const XINPUT_GAMEPAD& pad) {
+    if(mask==0)return false;
+    if(mask==0x10000)return pad.bLeftTrigger>=XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
+    if(mask==0x20000)return pad.bRightTrigger>=XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
+    return (pad.wButtons&static_cast<WORD>(mask))!=0;
+}
+void ApplyHoldGrenadeVirtualR3(XINPUT_GAMEPAD& pad,int mask) {
+    const ULONGLONG now=GetTickCount64();
+    const bool physical=GamepadBindingDown(mask,pad);
+    // Remap selected physical button to native R3. The game receives the
+    // same validated V0.84 continuous hold + UP gap + second stow press.
+    if(mask!=XINPUT_GAMEPAD_RIGHT_THUMB)
+        pad.wButtons&=static_cast<WORD>(~XINPUT_GAMEPAD_RIGHT_THUMB);
+    if(mask==0x10000)pad.bLeftTrigger=0;
+    else if(mask==0x20000)pad.bRightTrigger=0;
+    else pad.wButtons&=static_cast<WORD>(~static_cast<WORD>(mask));
+    AcquireSRWLockExclusive(&g_grenadeHoldLock);
+    auto& st=g_grenadeHoldState;
+    if(st.selectedMask!=mask){
+        st=GrenadeHoldState{};
+        st.selectedMask=mask;
+        Log("TPS V0.86 GRENADE binding now 0x%X",mask);
+    }
+    if(physical!=st.physicalDown){
+        st.physicalDown=physical;
+        if(physical){
+            st.startPulse=now;
+            st.releaseStart=st.releaseFinish=0;
+            st.releasePulseDelivered=false;
+            const unsigned n=++g_tpsGrenadeDownCount;
+            if(n<=8)Log("TPS V0.84 GRENADE: physical DOWN n=%u; forward continuous hold",n);
+        }else{
+            st.releaseStart=now+100;
+            st.releaseFinish=st.releaseStart+200;
+            st.releasePulseDelivered=false;
+            const unsigned n=++g_tpsGrenadeUpCount;
+            if(n<=8)Log("TPS V0.84 GRENADE: physical UP n=%u; stow pulse queued after gap",n);
+        }
+    }
+    const bool releasePulse=!physical&&st.releaseStart&&
+        now>=st.releaseStart&&now<st.releaseFinish;
+    if(physical||releasePulse)pad.wButtons|=XINPUT_GAMEPAD_RIGHT_THUMB;
+    else pad.wButtons&=static_cast<WORD>(~XINPUT_GAMEPAD_RIGHT_THUMB);
+    if(releasePulse&&!st.releasePulseDelivered){
+        st.releasePulseDelivered=true;
+        const unsigned n=++g_tpsGrenadeReleasePulseDelivered;
+        if(n<=8)Log("TPS V0.84 GRENADE: second R3 pulse sent to native XInput n=%u",n);
+    }
+    ReleaseSRWLockExclusive(&g_grenadeHoldLock);
+}
+
 DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     const auto original=g_nativeXInputOriginal[slot];
     if(!original)return ERROR_DEVICE_NOT_CONNECTED;
     const DWORD status=original(user,state);
-    if(status!=ERROR_SUCCESS||!state||!ShouldSuppressNativeAim()||user!=0)
-        return status; // Preserve vanilla menu, focus and co-op input.
+    if(status!=ERROR_SUCCESS||!state||user!=0)return status;
     auto& pad=state->Gamepad;
+    // This is intentionally BEFORE the temporary R3 vanilla-view gate.
+    // R3 itself is a grenade key: its physical hold is handled separately
+    // by UpdateOrbitInput, while the game receives two native toggle edges.
+    const HWND localHwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+    const bool localGameplay=g_config.thirdPersonEnabled &&
+        localHwnd && GetForegroundWindow()==localHwnd &&
+        !g_overlayVisible.load() && !IsIconic(localHwnd) &&
+        !g_shuttingDown.load();
+    const int grenadeMask=g_config.tpsGrenadeButtonMask;
+    if(localGameplay && grenadeMask!=0 &&
+       (!(pad.wButtons&XINPUT_GAMEPAD_LEFT_SHOULDER) ||
+         grenadeMask==XINPUT_GAMEPAD_LEFT_SHOULDER))
+        ApplyHoldGrenadeVirtualR3(pad,grenadeMask);
+    if(!ShouldSuppressNativeAim())
+        return status; // Preserve vanilla aim while temporary view is held.
     if(pad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER)
         return status; // Ability wheel stays completely vanilla.
 
@@ -2406,8 +2890,11 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     // The same right-stick suppression applies while running, idle AND
     // firing. Our own camera separately reads the UNFILTERED trampoline.
     // This is input isolation, NOT yet a shot-direction fix.
-    if(rt.tpsSuppressNativeRightStick.load() &&
-       (pad.sThumbRX!=0 || pad.sThumbRY!=0)){
+    const bool mounted=IsMountedTPSNow();
+    const bool nativeMountedAim=mounted && rt.tpsMountedAimMode.load()==1;
+    const bool blockLook=(mounted && (!nativeMountedAim||!fire)) ||
+        (!mounted && rt.tpsSuppressNativeRightStick.load());
+    if(blockLook && (pad.sThumbRX!=0 || pad.sThumbRY!=0)){
         pad.sThumbRX=0;pad.sThumbRY=0;
         const unsigned n=++g_nativePadAimSuppressed;
         if(fire){
@@ -2502,7 +2989,8 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     // Read mouse deltas without consuming native game input.
     static bool primed=false;
     static int oldX=0,oldY=0;
-    const bool active=g_config.thirdPersonEnabled && g_config.cameraMouseOrbitEnabled &&
+    const bool active=g_config.thirdPersonEnabled &&
+        (g_config.cameraMouseOrbitEnabled || IsMountedTPSNow()) &&
         !g_overlayVisible.load() && GetForegroundWindow()==hwnd;
     if (!active) primed=false;
     // V0.69: do not consume native WM_INPUT/WM_MOUSEMOVE.
@@ -2800,6 +3288,20 @@ dg::overlay::Context BuildOverlayContext() {
     t.lastOutgoingTagCount =
         g_lastOutgoingTagCount.load();
 
+    t.aimNativeFxCalls = g_tpsGroundAimFxEntered.load();
+    t.forwardLookSamples = g_tpsMountedForwardLookSamples.load();
+    t.forwardYawGapCount = g_tpsMountedForwardLargeYawGap.load();
+    t.forwardNativeYaw = g_tpsMountedForwardLastNativeYaw.load();
+    t.forwardCameraYaw = g_tpsMountedForwardLastCameraYaw.load();
+    t.aimUiTargetingEvents = g_aimUiEvents.load();
+    t.aimUiPositionEvents = g_aimUiPositionEvents.load();
+    t.mountedIdleLookBlocks = g_tpsMountedIdleNativeLookBlocks.load();
+    t.mountedCtrlDown = g_tpsMountedCtrlDown.load();
+    t.mountedCtrlUp = g_tpsMountedCtrlUp.load();
+    t.mountedCtrlActive = g_tpsMountedCtrlBridgeDown.load();
+    t.grenadePhysicalDown = g_tpsGrenadeDownCount.load();
+    t.grenadePhysicalUp = g_tpsGrenadeUpCount.load();
+    t.grenadeNativeReleasePulses = g_tpsGrenadeReleasePulseDelivered.load();
     t.hotstreakBoostCalls =
         g_hotstreakBoostCalls.load();
     t.lastNativeJuiceGain =
@@ -2969,14 +3471,159 @@ void EnsureOrbitWndProc(IDXGISwapChain* chain) {
         Log("Aim V0.57: native mouse input gate failed error=%lu",GetLastError());
     }
 }
+// V0.88: retired ineffective Ctrl WM_KEYDOWN bridge. Posting keyboard
+// messages did not change native raycast/shots according to user V0.87.
+void UpdateMountedCtrlAimBridge(HWND, bool, bool) {
+    // Preserve V0.87 telemetry fields for INI/overlay compatibility;
+    // NEVER inject synthetic keyboard input.
+}
 void UpdateOrbitInput() {
     static WORD lastButtons=0;
     auto& rt=dg::runtime::Get();
     const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
-    const bool active=g_config.thirdPersonEnabled &&
-        (g_config.cameraMouseOrbitEnabled||g_config.cameraControllerOrbitEnabled) &&
-        hwnd && hwnd==GetForegroundWindow() && !IsIconic(hwnd) && !g_overlayVisible.load();
     const ULONGLONG now=GetTickCount64();
+    const bool focused=hwnd && hwnd==GetForegroundWindow() &&
+        !IsIconic(hwnd) && !g_overlayVisible.load();
+    // Always sample unmodified physical buttons, including when TPS is OFF,
+    // so a LONG L3 press can enable TPS without a keyboard/F5 toggle.
+    XINPUT_STATE physical{};
+    const bool padAvailable=focused &&
+        GetCameraXInputState(0,&physical)==ERROR_SUCCESS;
+    const WORD physicalBits=padAvailable?physical.Gamepad.wButtons:0;
+    const bool physicalFire=padAvailable&&
+        (physical.Gamepad.bRightTrigger>=XINPUT_GAMEPAD_TRIGGER_THRESHOLD||
+         (physicalBits&XINPUT_GAMEPAD_RIGHT_SHOULDER)!=0);
+    UpdateMountedCtrlAimBridge(hwnd,focused,physicalFire);
+    // V0.86: native horse summon INPUT evidence only. H and LB+RB are
+    // validated user-facing controls. Never inject an artificial summon;
+    // simply correlate each real attempt with the existing server hook.
+    const bool hPressed=focused&&(GetAsyncKeyState('H')&0x8000)!=0;
+    const bool shoulderChord=padAvailable &&
+        (physicalBits&(XINPUT_GAMEPAD_LEFT_SHOULDER|XINPUT_GAMEPAD_RIGHT_SHOULDER))==
+            (XINPUT_GAMEPAD_LEFT_SHOULDER|XINPUT_GAMEPAD_RIGHT_SHOULDER);
+    static bool wasHorseH=false,wasHorseChord=false;
+    static unsigned horseInputAttempts=0;
+    struct SummonAttemptProbe {
+        bool pending=false;
+        ULONGLONG started=0;
+        unsigned count=0,serverBefore=0,nativeCallsBefore=0;
+        unsigned generationBefore=0;
+        bool cameraWasHorse=false;
+        bool nearServerAtPress=false;
+    };
+    static SummonAttemptProbe summonProbe{};
+    const auto mountNow=dg::horse::GetTelemetry();
+    const ULONGLONG horsePoseTick=rt.tpsHorsePoseTick.load(std::memory_order_acquire);
+    const bool freshHorsePose=horsePoseTick&&now>=horsePoseTick&&
+        now-horsePoseTick<750ull;
+    const ULONGLONG mountedTick=rt.tpsMountedViewTick.load(std::memory_order_acquire);
+    const bool trulyMounted=rt.tpsMountedViewActive.load(std::memory_order_acquire)&&
+        mountedTick&&now>=mountedTick&&now-mountedTick<350ull;
+    if(summonProbe.pending&&now>=summonProbe.started&&
+       now-summonProbe.started>=1800ull){
+        const unsigned serverDelta=mountNow.summonServerCalls-
+            summonProbe.serverBefore;
+        // Unreal may call SERVER_SpawnHorseMount in the same frame just
+        // BEFORE our Present/XInput rising-edge logger. Treat a native
+        // request <250ms before the input snapshot as correlated, not
+        // "not sent". Does not imply success, horse callback is separate.
+        const bool serverCorrelated=serverDelta>0||
+            summonProbe.nearServerAtPress;
+        const unsigned nativeDelta=mountNow.uniqueCandidatesLogged-
+            summonProbe.nativeCallsBefore;
+        const unsigned generations=mountNow.horseGeneration-
+            summonProbe.generationBefore;
+        if(summonProbe.count<=28)
+            Log("Horse Everywhere V0.89 AREA RESULT #%u serverDeltaAfterInput=%u serverJustBeforeInput=%d correlatedServer=%d nativeCallbackDelta=%u horseIdentityChanges=%u cameraHorseBefore=%d cameraHorseAfter=%d noServerRequest=%d (possible restriction OR dismount)",
+                summonProbe.count,serverDelta,
+                summonProbe.nearServerAtPress?1:0,serverCorrelated?1:0,
+                nativeDelta,generations,summonProbe.cameraWasHorse?1:0,
+                trulyMounted?1:0,serverCorrelated?0:1);
+        summonProbe.pending=false;
+    }
+    if((hPressed&&!wasHorseH)||(shoulderChord&&!wasHorseChord)){
+        rt.tpsLastHorseSummonInputTick.store(now,std::memory_order_release);
+        rt.horseSummonIntentTick.store(now,std::memory_order_release);
+        const ULONGLONG serverAt=mountNow.lastServerSpawnTick;
+        const bool serverRecent=serverAt&&now>=serverAt&&now-serverAt<250ull;
+        const unsigned n=++horseInputAttempts;
+        summonProbe={true,now,n,mountNow.summonServerCalls,
+            mountNow.uniqueCandidatesLogged,mountNow.horseGeneration,
+            trulyMounted,serverRecent};
+        if(n<=28)
+            Log("Horse Everywhere V0.88 AREA INPUT #%u key=%s enabled=%d cameraHorse=%d nativeCallbackFresh=%d horsePoseFresh=%d serverBefore=%u nativeCalls=%u horseGeneration=%u world=(%.0f,%.0f,%.0f)",
+                n,hPressed&&!wasHorseH?"H":"LB+RB",
+                g_config.horseEverywhereEnabled?1:0,trulyMounted?1:0,
+                mountNow.horseCallbackFresh?1:0,freshHorsePose?1:0,
+                mountNow.summonServerCalls,mountNow.uniqueCandidatesLogged,
+                mountNow.horseGeneration,
+                rt.tpsActorWorldX.load(),rt.tpsActorWorldY.load(),
+                rt.tpsActorWorldZ.load());
+    }
+    wasHorseH=hPressed;wasHorseChord=shoulderChord;
+    const int toggleMask=g_config.tpsToggleHoldButtonMask;
+    static bool toggleHeld=false,toggleConsumed=false;
+    static ULONGLONG toggleStarted=0;
+    const bool toggling=toggleMask && padAvailable &&
+        GamepadBindingDown(toggleMask,physical.Gamepad);
+    if(toggling && !toggleHeld){
+        toggleHeld=true;toggleConsumed=false;toggleStarted=now;
+    }
+    if(toggling && toggleHeld && !toggleConsumed &&
+       now>=toggleStarted &&
+       now-toggleStarted>=static_cast<ULONGLONG>(g_config.tpsToggleHoldMs)){
+        toggleConsumed=true;
+        g_config.thirdPersonEnabled=!g_config.thirdPersonEnabled;
+        g_config.Save();
+        const unsigned count=++g_tpsHoldToggleCount;
+        Log("TPS V0.76: long-press toggle n=%u mask=0x%04X TPS=%d durationMs=%llu",
+            count,unsigned(toggleMask),g_config.thirdPersonEnabled?1:0,
+            static_cast<unsigned long long>(now-toggleStarted));
+    }
+    if(!toggling && toggleHeld){
+        // Preserve short-L3 recenter, but do it on RELEASE so a long
+        // press does not first recenter the camera unexpectedly.
+        if(!toggleConsumed && g_config.thirdPersonEnabled &&
+           g_config.tpsRecenterButtonMask==toggleMask){
+            const bool ok=dg::camera_trace::RecenterOnPlayer();
+            Log("TPS V0.76: short-press recenter mask=0x%04X success=%d",
+                unsigned(toggleMask),ok?1:0);
+        }
+        toggleHeld=false;toggleConsumed=false;toggleStarted=0;
+    }
+    // V0.77: delay START of temporary vanilla view without delaying release.
+    // This prevents a quick R3 grenade tap from making the camera flash.
+    // Time only valid uninterrupted physical DOWN in a focused gameplay frame.
+    // If the user rebinds the button mid-game, the timer restarts cleanly.
+    static ULONGLONG suspendStarted=0;
+    static int previousSuspendMask=0;
+    const int suspendMask=g_config.tpsSuspendButtonMask;
+    const bool holdInput=focused && g_config.thirdPersonEnabled &&
+        padAvailable && suspendMask &&
+        GamepadBindingDown(suspendMask,physical.Gamepad);
+    if(!holdInput || previousSuspendMask!=suspendMask)
+        suspendStarted=0;
+    if(holdInput && !suspendStarted)
+        suspendStarted=now;
+    previousSuspendMask=suspendMask;
+    const int delayMs=std::clamp(g_config.tpsSuspendDelayMs,0,3000);
+    const bool temporaryVanilla=holdInput && suspendStarted &&
+        now>=suspendStarted &&
+        now-suspendStarted>=static_cast<ULONGLONG>(delayMs);
+    const bool before=rt.tpsTemporarilySuspended.exchange(
+        temporaryVanilla,std::memory_order_acq_rel);
+    if(before!=temporaryVanilla){
+        const unsigned n=++g_tpsHoldSuspendCount;
+        Log("TPS V0.77: temporary vanilla-view %s n=%u button=0x%04X delay=%d ms held=%llu ms",
+            temporaryVanilla?"ON":"OFF",n,unsigned(suspendMask),delayMs,
+            static_cast<unsigned long long>(holdInput&&suspendStarted?now-suspendStarted:0ull));
+    }
+    // Mounted TPS modes own their camera independently of ON-FOOT orbit flags.
+    // Mode 1 pauses only during fire; it resumes afterwards.
+    const bool forcedMountOrbit=IsMountedTPSNow();
+    const bool active=g_config.thirdPersonEnabled && !temporaryVanilla &&
+        (g_config.cameraMouseOrbitEnabled||g_config.cameraControllerOrbitEnabled||
+         forcedMountOrbit) && focused;
     const float dt=g_orbitLastPresentTick && now-g_orbitLastPresentTick<=100ull
         ? static_cast<float>(now-g_orbitLastPresentTick)*0.001f:0.0f;
     g_orbitLastPresentTick=now;
@@ -3000,16 +3647,44 @@ void UpdateOrbitInput() {
         // If native right-stick player aim is allowed, do not also orbit
         // our independent TPS camera from that same stick during RT/RB.
         // When block is ON, orbit remains active and native XInput is filtered.
-        suspendControllerOrbitOnFire=!rt.tpsSuppressNativeRightStick.load() &&
+        const bool padFiringForOrbit=
             (primary.Gamepad.bRightTrigger>=XINPUT_GAMEPAD_TRIGGER_THRESHOLD ||
              (buttonBits&XINPUT_GAMEPAD_RIGHT_SHOULDER)!=0);
+        // V0.75: explicit *camera* rotate-while-firing option. Unlike
+        // vanilla right-stick PLAYER blocking, this controls ONLY the
+        // independent TPS camera orbit. The two switches must not overlap.
+        // Mounted shooting overrides all on-foot rotate/strafe switches.
+        // Mode 0 keeps camera orbit live; mode 1 freezes independent orbit
+        // and leaves the native right stick to aim (see FilterNativeXInput).
+        const bool mounted=IsMountedTPSNow();
+        const bool nativeMountAim=mounted&&rt.tpsMountedAimMode.load()==1;
+        const bool mouseFiringForOrbit=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
+        suspendControllerOrbitOnFire=
+            (nativeMountAim && (padFiringForOrbit||mouseFiringForOrbit)) ||
+            (!mounted && padFiringForOrbit &&
+             !rt.tpsControllerRotateWhileFiring.load());
+        // Bounded diagnostics: proves that mounted aiming mode is actually
+        // selected while firing (rather than only saved in the INI).
+        const int activeMountedMode=(mounted &&
+            (padFiringForOrbit||mouseFiringForOrbit))
+            ? rt.tpsMountedAimMode.load() : -1;
+        static int previousMountedMode=-2;
+        static unsigned mountedModeTransitions=0;
+        if(activeMountedMode!=previousMountedMode) {
+            previousMountedMode=activeMountedMode;
+            const unsigned n=++mountedModeTransitions;
+            if(n<=24)Log("TPS V0.86 MOUNTED AIM mode=%s n=%u (padFire=%d mouseFire=%d)",
+                activeMountedMode==0?"CAMERA_FORWARD":
+                activeMountedMode==1?"VANILLA_AIM":"INACTIVE",
+                n,padFiringForOrbit?1:0,mouseFiringForOrbit?1:0);
+        }
         // Diagnostic/limited guard for controller software mapping the right
         // stick into Windows mouse movement IN ADDITION TO native XInput.
         // Never globally suppress real mouse input, and time out promptly.
         const bool rightActive=
             std::abs(int(primary.Gamepad.sThumbRX))>XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE||
             std::abs(int(primary.Gamepad.sThumbRY))>XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE;
-        if(rt.tpsSuppressNativeRightStick.load()&&rightActive)
+        if((rt.tpsSuppressNativeRightStick.load()||IsMountedTPSNow())&&rightActive)
             g_tpsPadRightStickTick.store(now,std::memory_order_release);
         // Read-only probe: does the local pawn yaw change when ONLY the
         // right analog is moving, despite our native XInput suppression?
@@ -3042,12 +3717,22 @@ void UpdateOrbitInput() {
         }else{
             lastProbe=0;
         }
-        const WORD mask=static_cast<WORD>(g_config.tpsRecenterButtonMask);
-        if(mask && (buttonBits&mask) && !(lastButtons&mask)) {
+        const int mask=g_config.tpsRecenterButtonMask;
+        // When short-recenter and long-TPS toggle share L3, the latter
+        // handles release. All other recenter bindings remain edge-triggered.
+        static bool previousRecenterPressed=false;
+        static int previousRecenterBinding=-1;
+        const bool pressed=GamepadBindingDown(mask,primary.Gamepad);
+        if(previousRecenterBinding!=mask)previousRecenterPressed=false;
+        if(mask && !(g_config.tpsToggleHoldButtonMask!=0 &&
+            mask==g_config.tpsToggleHoldButtonMask) &&
+            pressed && !previousRecenterPressed) {
             const bool success=dg::camera_trace::RecenterOnPlayer();
-            Log("TPS V0.70: recenter button=0x%04X successful=%d",
+            Log("TPS V0.70: recenter button=0x%X successful=%d",
                 unsigned(mask),success?1:0);
         }
+        previousRecenterPressed=pressed;
+        previousRecenterBinding=mask;
     }
     lastButtons=buttonBits;
     static bool priorSuspend=false;
@@ -3059,7 +3744,8 @@ void UpdateOrbitInput() {
     float ax=0.0f,ay=0.0f;
     {
         for (DWORD i=0;i<XUSER_MAX_COUNT;++i) {
-            if(!g_config.cameraControllerOrbitEnabled||suspendControllerOrbitOnFire) break;
+            if((!g_config.cameraControllerOrbitEnabled&&!forcedMountOrbit)||
+               suspendControllerOrbitOnFire)break;
             XINPUT_STATE state{};
             if (GetCameraXInputState(i,&state)!=ERROR_SUCCESS) continue;
             if (state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) continue;
@@ -3075,8 +3761,12 @@ void UpdateOrbitInput() {
     }
     const float mouse=g_config.cameraMouseSensitivity,stick=g_config.cameraStickSpeed;
     if (!std::isfinite(mouse)||!std::isfinite(stick)) return;
-    const float dyaw=(g_config.cameraMouseOrbitEnabled?static_cast<float>(dx)*mouse:0.0f)+ax*stick*dt;
-    const float dpitch=(g_config.cameraMouseOrbitEnabled?-static_cast<float>(dy)*mouse:0.0f)+ay*stick*dt;
+    const bool freezeMountedMouse=MountedVanillaAimWhileFiring() &&
+        ((GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0||IsPadFiringNow());
+    const float dyaw=(!freezeMountedMouse&&(g_config.cameraMouseOrbitEnabled||forcedMountOrbit)?
+        static_cast<float>(dx)*mouse:0.0f)+ax*stick*dt;
+    const float dpitch=(!freezeMountedMouse&&(g_config.cameraMouseOrbitEnabled||forcedMountOrbit)?
+        -static_cast<float>(dy)*mouse:0.0f)+ay*stick*dt;
     if (dyaw!=0.0f || dpitch!=0.0f) {
         rt.cameraOrbitYawDegrees.store(std::remainder(rt.cameraOrbitYawDegrees.load()+dyaw,360.0f));
         rt.cameraOrbitPitchDegrees.store(std::clamp(rt.cameraOrbitPitchDegrees.load()+dpitch,-60.0f,60.0f));
@@ -3389,6 +4079,13 @@ void ShutdownMod() {
     }
 
     Log("Shutdown: begin");
+    // Release any window-local Ctrl aim key we injected, even if the
+    // user closes the game mid-fire. Do not release physical Ctrl.
+    if(g_tpsMountedCtrlBridgeDown.exchange(false)){
+        const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+        if(hwnd&&IsWindow(hwnd) && !(GetAsyncKeyState(VK_CONTROL)&0x8000))
+            PostMessageW(hwnd,WM_KEYUP,VK_CONTROL,static_cast<LPARAM>(0xC01D0001u));
+    }
     g_config.FlushIfDue(true);
     dg::skip_logos::Shutdown();
     dg::horse::Shutdown();
@@ -3397,6 +4094,31 @@ void ShutdownMod() {
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
     Log("TPS V0.72 totals: controllerMappedMouseMessagesBlocked=%u rightStickFiltered=%u",
         g_tpsControllerMouseBlocks.load(),g_nativePadAimSuppressed.load());
+    Log("TPS V0.89 CAMERA FORWARD: horseActorGetPlayerLookInputCalls=%u (passive, no shot raycast hook)",
+        g_tpsHorseNativeLookGetterObservations.load());
+    Log("TPS V0.88 FORWARD RAYCAST AUDIT totals: lookSamples=%u gapOver35deg=%u lastNativeYaw=%.1f lastCameraYaw=%.1f projectileHook=NO",
+        g_tpsMountedForwardLookSamples.load(),g_tpsMountedForwardLargeYawGap.load(),
+        g_tpsMountedForwardLastNativeYaw.load(),g_tpsMountedForwardLastCameraYaw.load());
+    Log("TPS V0.87 AIM UI PROBE totals: targeting=%u targetingTPS=%u targetingFiring=%u positioning=%u (all events passed through)",
+        g_aimUiEvents.load(),g_aimUiEventsInTPS.load(),
+        g_aimUiEventsWhileFire.load(),g_aimUiPositionEvents.load());
+    Log("TPS V0.87 mounted aim totals: idleNativeLookBlocks=%u ctrlBridgeDown=%u ctrlBridgeReleased=%u ctrlBridgeActive=%d",
+        g_tpsMountedIdleNativeLookBlocks.load(),g_tpsMountedCtrlDown.load(),
+        g_tpsMountedCtrlUp.load(),g_tpsMountedCtrlBridgeDown.load()?1:0);
+    Log("TPS V0.84 grenade totals: physicalDown=%u physicalUp=%u nativeReleasePulses=%u (game pickup/stow must be verified visually)",
+        g_tpsGrenadeDownCount.load(),g_tpsGrenadeUpCount.load(),
+        g_tpsGrenadeReleasePulseDelivered.load());
+    Log("TPS V0.77 totals: holdSuspend=%u longToggle=%u grenadeDown=%u grenadeUp=%u groundFxCalls=%u alreadyHidden=%u forcedHidden=%u",
+        g_tpsHoldSuspendCount.load(),g_tpsHoldToggleCount.load(),
+        g_tpsGrenadeDownCount.load(),g_tpsGrenadeUpCount.load(),
+        g_tpsGroundAimFxEntered.load(),g_tpsGroundAimFxAlreadyHidden.load(),
+        g_tpsGroundAimFxHidden.load());
+    Log("TPS V0.75 totals: nativeLookInput=%u nativeLookRotation=%u suppressedLook=%u heldYaw=%u mouseFace=%u padStrafe=%u mouseLookAim=%u padLookAim=%u signaturesFailed=%u",
+        g_tpsLookInputCalls.load(),g_tpsLookRotationCalls.load(),
+        g_tpsNativeLookInputBlocks.load(),g_tpsNativeLookRotationBlocks.load(),
+        g_tpsMouseFacingApplied.load(),g_tpsPadStrafeApplied.load(),
+        g_tpsNativeLookInputMouseAim.load(),g_tpsNativeLookInputPadAim.load(),
+        g_tpsNativeLookSignatureFailures.load());
     Log("TPS V0.63 totals: coneInside=%u coneOutside=%u reasserted=%u nativeLocks=%u restores=%u",
         g_tpsConeInside.load(),g_tpsConeOutside.load(),g_tpsFacingReasserted.load(),
         g_tpsNativeFacingOff.load(),g_tpsNativeFacingRestored.load());
@@ -3521,6 +4243,12 @@ DWORD WINAPI MainThread(LPVOID) {
     }
     if (!InstallMovementSpeedHook()) {
         Log("Movement Speed unavailable; other ASI features remain active.");
+    }
+    InstallGroundAimEffectHook();
+    // Alternative visual route probe to the 0-call ground effect; no blocking.
+    InstallAimUiEventProbe();
+    if (!InstallNativeTPSRotationHook()) {
+        Log("TPS V0.75 native look hooks unavailable; vanilla look path untouched.");
     }
     if (!InstallActionRecoveryV08B()) {
         Log("Action Recovery V0.8 unavailable; other ASI features remain active.");

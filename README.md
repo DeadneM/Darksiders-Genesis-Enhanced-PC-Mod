@@ -2149,3 +2149,157 @@ User feedback on V0.71: "grosse regression strafe ne marche pas pour la manette 
 **Targeted experimental alternate input test:** preserve V0.69 genuine native mouse passthrough. While TPS + foreground + overlay CLOSED + `TPSSuppressNativeRightStick=1` and RAW controller right stick moved within 130 ms, block *only* WM_MOUSEMOVE game window messages when no actual RAW physical mouse input has been seen in the previous 130 ms. This may catch Steam Input virtual mouse mapping in addition to filtered XInput. **Never** block WM_INPUT from the real mouse, never block global mouse messages, never change XInput left stick/triggers/buttons or native ability wheel. Log the exact count `TPS V0.72: controller-associated WM_MOUSEMOVE blocked` and totals. If residual yaw remains with count zero or nonzero, prioritize auditing native Unreal rotation authority rather than changing sensitivity or unrelated camera offsets. Physical mouse movement concurrent with controller right stick may still be briefly suppressed, so treat as opt-in-equivalent experimental behavior gated by existing right-stick-block checkbox, not stable release.
 
 V0.72 is a TEST only, no in-game verification, and does not promise verified strafing or full native right-stick rotation disable. ZIP at root includes loader, ASI, INI, README, versioned download and rolling TEST release; official validated release unchanged.
+
+## V0.73 (10 October 2026) TEST: native character movement rotation path (NOT VALIDATED)
+
+User supplied exact retail executable `DarksidersGenesis-Win64-Shipping(2).exe` (62,113,280 bytes, SHA-256 `9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54`) and the V0.72 log `DarksidersGenesisMod(20261010-210017).log`. V0.72 filtered 4,848 original controller right-stick samples (1,975 during fire), but **no** controller-associated `WM_MOUSEMOVE` messages, disproving the specific mouse-suppression route in that run. The older rotation-flag-only V0.71 is rejected; do NOT reintroduce it or rotate XInput left stick (rejected V0.59).
+
+**New native disassembly**: the game's movement-rotation block at `RVA 0x5B96BF` calls UE4's FRotator interpolator at `RVA 0x8A1700`, passing native current desired rotation at `MovementComponent+0x22C` and a transient target rotator. The native result is written back into the movement component at `RVA 0x5B96C4..0x5B96D3`. The preceding block chooses game-native look vs movement input (`RVA 0x671A40` / `0x671C10`). This is a DIFFERENT authority from the rejected `bOrientRotationToMovement` bit.
+
+V0.73 hooks only the validated shared interpolation primitive, and changes target yaw **only when invoked from this exact game movement callsite**, the current rotation pointer corresponds to the same fresh validated local-player movement component, TPS gameplay view is fresh, window focused, overlay closed, and `TPSControllerStrafe=1` was enabled explicitly in the overlay. Target yaw = the current actual **rendered TPS camera yaw**, while native interp, movement speed, left/right analog bytes, native button inputs and every unrelated call remain original. No permanent native movement flag or fake Ctrl/aim state. Optional Controller Strafe stays OFF by default. Keyboard strafe remains disabled until independently analyzed. If the engine applies another later yaw authority, this scoped interception will not be enough; do not claim full strafe until tested in-game.
+
+**Required test**: TPS ON F5, enable `Controller strafe: face TPS camera while moving (TEST)` in Insert overlay; with right stick held rotating the camera, walk LEFT/RIGHT/BACK with the left stick, stop and repeat during RT/RB. Confirm forward/back movement remains correct, animations/dodge/ability wheel/sprint intact, camera orbit and horse normal, then disable option and TPS OFF to verify exact vanilla behavior. Log should show `TPS V0.73: native physics desired yaw override` and final `nativePhysicsCalls/yawOverrides`. A counter confirms interception ONLY, not functional validation. Official stable Release unchanged. Four root-level ZIP files, experimental branch archival build, log overwritten each boot.
+
+
+## V0.74 (11 October 2026): four independent while-firing TPS controls (EXPERIMENTAL)
+
+User rejected the two V0.73 TPS strafe controls. Supplied V0.73 log confirms exact EXE and successful native hook installation but **only 7 matching physics callbacks and 0 yaw overrides**, so no claim that player strafe worked.
+
+Replace retired `TPSMouseKeyboardStrafe` and `TPSControllerStrafe` with four disabled-by-default `[Features]` keys: `TPSMouseStrafeWhileFiring`, `TPSMouseRotateWhileFiring`, `TPSControllerStrafeWhileFiring`, `TPSControllerRotateWhileFiring`. Old keys are removed from INIs during save; config revision 2120, independent checkboxes under **Camera / TPS camera controls**, labeled Mouse/keyboard and Controller/camera stick.
+
+- **Strafe while firing:** test holding the native character facing recorded when the corresponding source starts firing, without rotating movement inputs. Left-stick/WASD remain vanilla.
+- **Rotate player while firing:** test setting native desired physics yaw to the current actual TPS camera yaw while the corresponding source is firing. When both enabled for one source, Rotate takes precedence; controller wins if both sources are firing simultaneously.
+- Mouse shooting: primary mouse button held. Controller shooting: RT or RB as observed in the original game's live XInput reads, with a 180ms freshness check. Only local validated on-foot movement component, exact supported EXE, focus, menu closed, fresh rendered TPS view, native interpolator callsite `0x5B96BF`; no flags, direct actor writes, fake aim key, or analog axis transformation.
+- The UE native physics rotation candidate remains unvalidated: **the V0.73 log showed only 7 relevant calls**. V0.74 adds first-ten call-path diagnostics `TPS V0.74: physics trace` and explicit firing/movement/fresh-camera/overrides totals to tell whether the source really participates during combat. A zero override is a failed hypothesis, NOT a fixed feature.
+
+Everything outside this four-control path and its INI/UI/log plumbing is intentionally untouched. This is a separate branch TEST ZIP, four files at ZIP root, no automatic official release promotion. Test TPS shooting with mouse and controller separately, lateral and backward movement while firing, camera orbit and co-op safety; compare screenshot and log.
+
+## V0.75 (11 October 2026) TEST: native player look-input path, right-stick rotation block and firing camera facing
+
+User feedback on V0.74: Block vanilla right stick player rotation regressed, strafe while shooting failed. Uploaded log **proves native physics interpolator had zero invocations during entire session** (`physics=0, yawOverrides=0`), although the original XInput read filter was active `rightStickReadsFiltered=5791, whileFiring=1013` and player's yaw changed 99.7 degrees under right stick only. This means the earlier `RInterp` hook is not a workable control surface for this session. Do not treat a successful installation as a functional fix.
+
+**New exact EXE disassembly:** `UMayhemCharacter::GetPlayerLookInput` native method at **RVA 0x671A40** reads game character +0xD24/+0xD28 2D world look vector, converts to native vector output. `GetPlayerLookRotation` at **RVA 0x671B00** calls the look-input getter, converts into a rotation and falls back to root native rotation if look input zero. Both are real C++ native methods; verified separate concrete 8/10-byte entry signatures from the exact known 62,113,280-byte executable, SHA256 `9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54`. Hooks are only active for freshest locally controlled on-foot player identity, valid gameplay TPS, game focus and closed menu, and all tests are opt-in except requested mouse firing and existing native right-stick block toggle.
+
+**Controls:** remove V0.74's `TPSMouseStrafeWhileFiring` and `TPSMouseRotateWhileFiring` UI, config and runtime fields. Mouse/keyboard automatically sets the game's **look return vector** to the currently rendered TPS world-camera heading `(cos yaw, sin yaw, 0)` *while left mouse button is held*; native look-rotation return follows the camera as well. This does not transform WASD.
+
+Keep the existing **Block vanilla right-stick player rotation** option, ON by default. In addition to existing live XInput right-axis filtering, the new native look-input hook zeroes the game's look-vector return when a live unfiltered right-stick movement was detected and physical RAWINPUT mouse has not recently been observed; look-rotation getter holds most recent validated actor yaw in the same condition. This is a **hypothesis about a secondary controller/engine path**, not a validated elimination of every yaw writer.
+
+Controller gets only two independent opt-in settings: **Strafe while firing (player movement)** (`TPSControllerStrafeWhileFiring`) and **Rotate while firing (camera movement)** (`TPSControllerRotateWhileFiring`). Strafe mode drives *native look direction only* to TPS camera world forward during RT/RB, leaves left stick player movement untouched. Rotate mode independently enables the mod's raw-XInput TPS camera orbit during RT/RB; when that option is OFF, right-stick TPS camera orbit is suspended during firing, whether or not the vanilla right-stick PLAYER block is enabled. The player block and camera-orbit option are separate switches. Both remain OFF by default. Game-native behavior outside TPS, during mount, when window unfocused and when overlay open is preserved.
+
+A simple in-game test is mandatory to determine if native look callbacks are actually used: log `TPS V0.75: native game look input READY`, `native gamepad look input neutralized`, `game-native LOOK VECTOR -> camera during fire` and final `nativeLookInput/nativeLookRotation/suppressedLook/mouseLookAim/padLookAim` counts. Check controller idle/right-stick rotation, camera orbit during RT/RB, true sideways/backward movement while firing, and mouse firing facing direction. If counts are zero, do not claim a fix; revisit game controller rotation authority. No other features modified. Build archive has exactly 4 files at ZIP root, experimental branch, no automatic official release promotion.
+
+
+## V0.76 (11 October 2026) Experimental controller hold controls and camera defaults
+
+**V0.75 code is frozen as a user-accepted baseline**: see [V0.76 freeze/changelog](docs/V0_76_CHANGELOG_AND_FREEZE.md). This update only adds control integration and camera options around the validated V0.75 look hooks. Tested Windows x64 build required; **no feature is declared user-validated until an in-game test**.
+
+**New optional controller functions enabled by default** (TPS context, local controller #0):
+- Hold **R3** for a temporary vanilla camera view, resume TPS on release, without changing the persistent F5 TPS state. Rebind in overlay (`TPSSuspendButtonMask`).
+- Long press **L3** (650ms) to toggle TPS ON/OFF, independently rebindable (`TPSToggleHoldButtonMask`, `TPSToggleHoldMs`); short L3 still recenters if using the same recenter binding.
+- Hold **R3 grenade**: translate physical press and release into two distinct native R3 key pulses to equip during hold and stow on release. This is a pulse-based *experimental* recreation of game's toggle, not a direct equipment state patch; test R3 and character switching carefully.
+- Hide native **ground-targeting aim FX** in TPS, signature checked old RVA `0x6DDAD0`, not guaranteed to hide every gun aim effect.
+- Stabilize native **horse pose camera** source during shooting once the mounted camera source has been positively sampled, to reduce aiming-related camera jumps; not a complete horse-specific firing fix.
+
+**Camera defaults based on user-provided V0.75 INI:** TPS FOV 110, distance 0.200, pitch -12°, vertical offset +300, foot origin 0, global yaw +5°, global height -300, controller stick speed 180°/s, mouse sensitivity 0.12. Existing user INI camera values are preserved. New installs retain Third Person OFF until F5/L3 because activating TPS automatically was not requested. Camera vertical offset now -1000..+1000, foot origin correction -500..+500. User provided the same -1000 value for both vertical bounds; treating the upper one as +1000 prevents a non-adjustable slider. `Rotate on foot while firing` is labeled to reflect the user's observed forward shooting; the actual V0.75 native look-hook behavior has not been changed.
+
+**Known issue:** sporadic second-character throwable weapon flash needs a separate native event trace to identify cause, not a blind manipulation of inventory/animations. Ground-targeting FX hook may not hide all aiming visuals. Stable V0.75 ZIP and release unaffected. V0.76 ZIP contains four files at archive root.
+
+
+## V0.77 (11 October 2026) | validated V0.76 preserved
+
+The user validated all V0.76 controls, with one remaining visual issue: the native `HideGroundTargetingEffect` checkbox does not hide the on-screen aiming effect. V0.77 preserves the V0.75/V0.76 movement, right-stick block, firing look, grenade, long L3, mounted camera, HUD and other validated systems.
+
+- `[Controls] TPSSuspendDelayMs=300` is a new configurable **0–3000ms** start delay for the physical R3 temporary vanilla-view hold. Short R3 presses under threshold do NOT swap the camera; holding beyond the delay temporarily shows vanilla, releasing immediately returns to TPS. It is independent of L3 long-press.
+- **New-install and Reset Defaults values** now mirror the user's Oct 11 V0.76 INI: TPS on, controller firing Strafe/Rotate both on, TPS FOV 110, distance .20, pitch -12°, TPS vertical offset +120, foot 0, global yaw 0, global height 0, mouse sensitivity .12, controller speed 180, L3 toggle hold 500ms. Other features stay as previously validated and **existing per-user settings are never overwritten by migration**.
+- **Aim effect diagnostic:** legacy native hide-ground-targeting hook is actually installed, but V0.76 had `groundAimHidden=0`. V0.77 counts *all* native calls, already-hidden calls, forced hides separately to verify whether the specific native ability participates. Fix obsolete INI SaveNow line that incorrectly removed `TPSHideGroundAimFx` after saving. Not yet a proven removal of Strife's normal aiming visual; do NOT modify validated camera, aim or combat hooks on an unverified hypothesis.
+
+See [V0.77 scoped changelog and native aiming-FX audit](docs/V0_77_HOLD_DELAY_AND_AIM_FX_AUDIT.md) and [V0.76 protected baseline](docs/V0_76_CHANGELOG_AND_FREEZE.md). V0.77 test ZIP has four files at ZIP root; no promotion to the official stable release pending user tests.
+
+
+## V0.78 (2026-10-11) | TPS OFF default + confirmed Strife aiming effect target
+
+**User clarification (video):** the unwanted turquoise aiming visual comprises **both** (1) the straight laser-like world-space line originating near Strife's dual pistols and (2) the cyan semicircular arc near the character. These are **not** the cursor, the HUD reticle or the grenade ground-targeting effect. The V0.77 shutdown log confirms `groundFxCalls=0`, so the previously installed native `HideGroundTargetingEffect` hook is not used for the requested blue visuals. Actual asset/effect producer remains unresolved. No undocumented risky render/combat detours have been added; the old UI checkbox must not be represented as a proven fix for these visuals.
+
+**Requested default:** `ThirdPerson=0` in the new-install INI; matching config Reset Defaults / read fallback OFF. An existing user's persisted `ThirdPerson=1` is left alone. Enable TPS with F5 or long L3. All V0.77 values and validated behavior are retained. [Detailed video and executable audit](docs/V0_78_STRIFE_AIM_LINE_ARC_AUDIT.md).
+
+**Status:** safe packaging/default correction, aiming line + arc visual hide still under investigation. Tested ZIP is a standalone development build and not promoted to stable without user acceptance.
+
+
+## V0.83 (2026-10-11) | Clear overlay and live status, horse summoning research
+
+User evidence: **Hide HUD does not remove Strife's cyan aiming line and semicircle**. They are outside the global HUD-hide operation. Do not modify Hide HUD just to target them.
+
+The mod overlay now explains each gameplay control plainly. Real observed events are shown for movement recovery, outgoing combat and Hotstreak gains, horse callbacks, plus camera frames/attachments; low-level offsets, pointers and EXE hashes move under optional Advanced sections. Status labels distinguish "hook ready" from activity seen during actual gameplay.
+
+**Horse Everywhere (experimental research)** is available as an ON/OFF choice and as `[Features] HorseEverywhere=0` (default OFF). Native server-spawn-request diagnostics are signature-guarded and pass-through. **The restriction bypass is NOT functional yet**, and the overlay states so: exact no-summon-zone condition hasn't been identified; forcing an unverified spawn path would risk game breakage. Try a summon in an allowed area and a restricted area and send the log; compare `Horse Everywhere V0.83 probe totals`. The user-validated horse speed and sprint code is unchanged.
+
+This branch descends from protected **V0.78**, not the failed V0.80 beam-hide or unvalidated V0.82 UI gating tests. All existing TPS, controller, horse stamina, combat, startup, cursor and HUD code preserved. See [V0.83 technical notes](docs/V0_83_HORSE_EVERYWHERE_RESEARCH_AND_UI.md).
+
+## V0.84 (2026-10-11) | HUD blue aim-indicator modes and R3 grenade hold repair
+
+- New **Gameplay > HUD and aiming effects** selector: `Hide Everywhere` (0), `Default Only` (1), `TPS Only` (2, **default**), stored as `[Features] AimIndicatorHideMode=2`. The old experimental checkbox is removed from Camera; all other camera controls stay unchanged. **The actual turquoise world-space line and semicircle are not yet confirmed hidden**: the currently available exact native FX hook had zero calls in users' Strife logs, and a correct shader/component is still needed. The UI reports real observed FX-hook calls rather than falsely implying a successful visual fix.
+- **R3 grenade long hold fix candidate**: native game-facing R3 now stays pressed for the entire physical hold (previous test sent only a 65ms pulse). A separate 200ms stow-toggle press follows a 100ms release gap. All other controller bits, camera rotation, L3 and firing callbacks are unchanged. New `TPS V0.84 GRENADE` logs report physical transitions and forwarded stow pulses; equip/stow still requires user gameplay testing.
+- **Horse Everywhere status unchanged: NOT YET FUNCTIONAL.** The previous log confirms `serverSpawn=0`; the previously added native server probe cannot bypass a zone check upstream of it. Horse options default OFF for Everywhere and previous horse movement/stamina hooks stay intact. We need to locate the real game/Blueprint summon permission before enabling a working bypass.
+- Based on V0.83 with prior user-validated gameplay kept; main untouched. See [V0.84 technical audit and test](docs/V0_84_AIM_MODES_R3_GRENADE_HORSE_AUDIT.md).
+
+## V0.85 (2026-10-11) | Mounted TPS camera stabilization while firing (TEST)
+
+The user confirmed **V0.84 R3 grenade equip/stow is fixed and WORKING**, so the entire grenade/XInput, L3/R3, native firing and combat code is frozen unchanged. User reports *Stabilize mounted TPS camera while firing* previously produced no apparent difference.
+
+Code audit confirmed that the old switch was a narrow foot-pose/horse-pose priority latch, **not an actual camera smoothing feature**. When horse pose was already naturally selected, toggling it made no visual difference. It could also invalidate an otherwise usable foot camera frame when the horse sample was stale. The user's log repeatedly shows `camera pose source = HORSE/FOOT` and live mount callbacks, but had no stabilization-specific counters.
+
+V0.85 makes the checkbox observable and useful during actual mounted shooting: when the game reports active fire and a real fresh horse pose is selected, it applies **150ms vertical-only camera pivot smoothing**, retains fresh horse pose against transient foot samples, and preserves the foot pose when the horse sample is stale. All XY tracking, camera orbit, weapon aim, controller state, mount movement and damage remain native/unchanged. The checkbox OFF path is unsmoothed. Its overlay now reports real requested/selected/smoothed frame counts and last vertical correction. **User gameplay validation is still required.**
+
+[Technical scope and test procedure](docs/V0_85_MOUNTED_CAMERA_FIRING_STABILIZATION_AUDIT.md). Build on V0.84; do not promote the old V0.82 targeting UI suppression nor claim the blue aim line/arc is fixed.
+
+## V0.86 (2026-10-11) | Two mounted TPS shooting modes, compact full gamepad binding
+
+Mounted TPS aim has two exclusive modes that override on-foot rotation/strafe/camera-orbit switches:
+- `TPSMountedAimMode=0` (default): **Camera Forward**. You can control the TPS camera while mounted and firing; the game's native look getters receive camera-facing aim. Camera orbit remains active even if on-foot orbit switches are off.
+- `TPSMountedAimMode=1`: **Vanilla Aim**. While firing on a recognized horse, TPS camera orbit pauses and the native game handles right-stick/look input. Camera control returns when you stop shooting. This is an experimental game-native aim path, still requires actual gameplay verification.
+
+The V0.85 mount height smoothing is removed (it was not the requested mounted camera behavior). The native mount/source pose remains guarded by validated callback freshness.
+
+TPS controller hotkey UI has **one button selector per action**, each with **OFF**: hold/release grenade (now rebindable), temporary vanilla view, long press to toggle TPS and recenter. Supports every standard XInput gameplay button plus LT/RT. Defaults R3/R3/L3/L3 kept and V0.84 validated grenade hold/stow timing unchanged. Renumbered `ConfigRevision=2126` and existing custom configurations migrate, disabled legacy shortcuts become OFF. Choosing a trigger or a button already used by the game may override its native function; **the Xbox Guide button is not available via standard XInput**.
+
+The user identified native horse summon controls as keyboard **H** or gamepad **LB+RB**. V0.86 passively logs these user inputs against native `SERVER_SpawnHorseMount` call counts. **Horse Everywhere still does NOT bypass forbidden-area restrictions.** The log should clarify whether the request is stopped upstream.
+
+[Technical V0.86 notes](docs/V0_86_MOUNTED_AIM_AND_GAMEPAD_BINDINGS.md). GitHub main remains untouched; V0.84 validated grenade baseline preserved.
+
+## V0.87 (2026-10-11) | Mounted TPS aiming consistency / native Ctrl experiment
+
+**Vanilla Aim:** the validated firing behavior is unchanged: while mounted and shooting the game keeps native aim and the TPS camera orbit is paused. When **not firing**, the right stick now remains camera-only, not simultaneously rotating the game aim. Exact game test is required.
+
+**Camera Forward:** while mounted and firing, the mod now experiments with initiating the game's native **Ctrl aim action** by posting a matched Ctrl down/up keyboard event to the **game window only**, scoped to mounted TPS fire. No system-wide SendInput or persistent keyboard state changes. The existing native look-vector-to-camera system remains. **Experimental:** game engine might ignore posted keys, so judge the shot direction in gameplay; diagnostics `TPS V0.87 CTRL AIM` prove only message submission.
+
+**Unresolved intentionally:** keyboard/mouse TPS camera can sometimes lock against angles and refuse a full 360-degree turn. This is recorded but left completely untouched until mounted/controller functionality is coherent.
+
+**Blue line + arc:** a new **pass-through only** Unreal targeting UI-component event probe checks `UMayhemTargetingUIComponent` and `UMayhemTargetUiPositionComponent`, with event counters in the HUD overlay and shutdown log. It blocks nothing. The blue line and semicircle are **not yet proven hidden**; the previous ground-FX hook is confirmed 0 calls.
+
+**Horse Everywhere:** native H / LB+RB summon input now logs before and 1800 ms after, together with server spawn delta and **live horse callbacks captured using the existing validated HorseFeature**. This is diagnostic only, not a bypass of restricted areas.
+
+The validated R3 grenade hold/release, customizable bindings, horse speed/stamina, visual HUD, TPS orbit-angle code and all unrelated feature hooks are preserved. Do not promote to stable release until gameplay testing. Technical details: [V0.87 audit](docs/V0_87_MOUNTED_CTRL_AIM_VISUAL_HORSE_AUDIT.md).
+
+## V0.88 (2026-10-11) | Horse Everywhere ON by default and separate area-ban diagnostics
+
+**Frozen / validated:** Mounted TPS **Vanilla Aim** now works to the user's satisfaction. **Do not touch** the native aim/camera behavior, R3 grenade hold/stow or gamepad bindings.
+
+**Camera Forward still experimental and NOT FIXED.** V0.87 posted eight Ctrl key down/up pairs but the player reports bullets continue along a cached/fixed original character direction. V0.88 removes these ineffective synthetic key messages, preserves existing camera controls and logs the native look-vector yaw compared with TPS camera yaw during mounted shots. This is not a projectile trajectory measurement. Independent mod *Klassik 3rd person cam* (Nexus mod #2, author aaaaabbbbccc) claims working **camera-facing bullet raycasts**; this is a focused lead for auditing the actual projectile trace in the exact supported EXE, not an imported or validated patch.
+
+**Horse Everywhere defaults ON** in new packaged INI, reset defaults, fallback and the first migration to ConfigRevision 2127. `[Features] HorseEverywhere=1`. An explicit OFF saved afterwards remains OFF. **No forbidden-zone bypass exists yet:** current ON state only authorizes research/telemetry. Two different restriction mechanisms are now tracked separately: (1) inputs which cannot summon, and (2) *banned mounted volumes* that remove an already summoned horse. Uses existing native HorseCharacter callback timestamps/identity, live mounted-camera recognition, real H/LB+RB input timing, server spawn deltas, and HORSE -> FOOT transitions to build falsifiable logs without writes or forced spawns.
+
+New log tags `Horse Everywhere V0.88 AREA INPUT`, `AREA RESULT`, `MOUNT EXIT` and `TPS V0.88 FORWARD RAYCAST AUDIT`. Previous target UI and native ground-FX probes both saw zero events; blue line and arc remain unresolved. Keyboard/mouse TPS 360-degree rotation glitch is recorded and intentionally deferred.
+
+[Complete V0.88 investigation and strict regression freeze](docs/V0_88_HORSE_ZONES_FORWARD_RAYCAST_AUDIT.md). Main branch unchanged.
+
+## V0.89 (2026-10-11) | Scoped native horse-region gate experiment (TEST ONLY)
+
+A separate experimental V0.87 build (not the public V0.88 lineage) revealed verified native `IsInHorseRegion` and `IsInHorseDesummonRegion` methods, with **49,923 / 30,177** observed calls on the user's supported executable. That session had Horse Everywhere OFF and therefore **no override**. User's following genuine V0.88 log showed the server spawn callback can occur BEFORE input logging by ~7 ms; earlier `serverDelta=0` on that successful mount was misleading. A later `HORSE -> FOOT` event with no mount key for 7.9s suggests (does not prove) a *forced-despawn banned region*.
+
+V0.89 keeps **Horse Everywhere default ON** and adds signature-checked native region getter return tests. The original region getters ALWAYS execute first; **only** when the last locally validated player pressed physical **H or LB+RB within 1,600 ms** will the mod return allowed=true or desummonRegion=false. Outside this user-initiated summon window the game receives unchanged results. **This is not yet tested to lift either region restriction**, and it does NOT persistently prevent a horse from disappearing in a horse-banned volume. Set OFF in overlay to restore native behavior immediately.
+
+New telemetry `Horse Everywhere V0.89 REGION/DESUMMON` plus `serverJustBeforeInput` avoids the chronological false-negative and separates region checks, native spawn calls and actual horse identity changes.
+
+**Mounted Vanilla Aim is fully frozen and unchanged**, as are the user-validated R3 grenade timing and all controller/camera/horse stats. Camera Forward remains unresolved and now **only adds a passive log** of whether native `GetPlayerLookInput` sees the live horse actor. The native projectile raycast is not hooked. Blue line/arc and keyboard/mouse 360-degree yaw problem remain deferred.
+
+[Technical V0.89 details](docs/V0_89_SCOPED_HORSE_REGION_TEST.md). Branch `main` is untouched; this is an experimental build, not an official stable release.

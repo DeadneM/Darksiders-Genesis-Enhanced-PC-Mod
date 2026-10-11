@@ -10,7 +10,15 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2119;
+constexpr int kConfigRevision = 2127;
+// Actual XInput digital buttons plus LT/RT represented as virtual binding IDs.
+constexpr bool ValidPadBind(int m) {
+    switch(m){case 0:case 0x0001:case 0x0002:case 0x0004:case 0x0008:
+        case 0x0010:case 0x0020:case 0x0040:case 0x0080:
+        case 0x0100:case 0x0200:case 0x1000:case 0x2000:
+        case 0x4000:case 0x8000:case 0x10000:case 0x20000:return true;
+        default:return false;}
+}
 
 bool ReadBool(
     const wchar_t* section,
@@ -305,13 +313,26 @@ void Store::ResetDefaults(bool persist) {
     cameraOrbitInputEnabled = true;
     cameraMouseOrbitEnabled = true;
     cameraControllerOrbitEnabled = true;
-    tpsMouseKeyboardStrafe = false;
-    tpsControllerStrafe = false;
+    tpsControllerStrafeWhileFiring = false;
+    tpsControllerRotateWhileFiring = false;
+    tpsHoldSuspendEnabled = true;
+    tpsLongPressToggleEnabled = true;
+    tpsGrenadeHoldEnabled = true;
+    tpsHideGroundAimFx = true;
+    aimIndicatorHideMode = 2; // TPS Only (default)
+    tpsHorseStableAimCamera = true;
+    tpsMountedAimMode = 0;
+    tpsGrenadeButtonMask = 0x0080;
+    tpsSuspendButtonMask = 0x0080;
+    tpsSuspendDelayMs = 300;
+    tpsToggleHoldButtonMask = 0x0040;
+    tpsToggleHoldMs = 500;
     tpsRecenterButtonMask = 0x0040;
     pistolDamageEnabled = true;
     meleeDamageEnabled = true;
     jumpHeightEnabled = true;
     glideDurationEnabled = true;
+    horseEverywhereEnabled = true;
     horseSpeedEnabled = true;
     horseSprintSpeedEnabled = true;
     horseSprintDurationEnabled = true;
@@ -331,17 +352,17 @@ void Store::ResetDefaults(bool persist) {
     horseSprintSpeedMultiplier = 1.25f;
     horseSprintDurationMultiplier = 5.00f;
     fovDegrees = 90.0f;
-    thirdPersonFovDegrees = 90.0f;
+    thirdPersonFovDegrees = 110.0f;
     cameraZoomPercent = 0.0f;
     cameraPitchDegrees = 0.0f;
     cameraYawDegrees = 0.0f;
     cameraHeightOffset = 0.0f;
-    thirdPersonDistanceMultiplier = 0.50f;
+    thirdPersonDistanceMultiplier = 0.20f;
     thirdPersonPitchDegrees = -12.0f;
-    thirdPersonHeightOffset = 180.0f;
-    tpsFootAnchorOffset = 88.0f;
+    thirdPersonHeightOffset = 120.0f;
+    tpsFootAnchorOffset = 0.0f;
     cameraMouseSensitivity = 0.12f;
-    cameraStickSpeed = 135.0f;
+    cameraStickSpeed = 180.0f;
     hotstreakChargeMultiplier = 2.00f;
 
     hotkeys.fill(Action::None);
@@ -419,14 +440,27 @@ bool Store::Load() {
     cameraMouseOrbitEnabled=ReadBool(L"Features",L"CameraMouseOrbit",oldCombinedOrbit,path_);
     cameraControllerOrbitEnabled=ReadBool(L"Features",L"CameraControllerOrbit",oldCombinedOrbit,path_);
     cameraOrbitInputEnabled=cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
-    tpsMouseKeyboardStrafe=ReadBool(L"Features",L"TPSMouseKeyboardStrafe",false,path_);
-    tpsControllerStrafe=ReadBool(L"Features",L"TPSControllerStrafe",false,path_);
+    tpsControllerStrafeWhileFiring=ReadBool(L"Features",L"TPSControllerStrafeWhileFiring",false,path_);
+    tpsControllerRotateWhileFiring=ReadBool(L"Features",L"TPSControllerRotateWhileFiring",false,path_);
+    tpsHoldSuspendEnabled=ReadBool(L"Features",L"TPSHoldSuspend",true,path_);
+    tpsLongPressToggleEnabled=ReadBool(L"Features",L"TPSHoldToggle",true,path_);
+    tpsGrenadeHoldEnabled=ReadBool(L"Features",L"TPSGrenadeHold",true,path_);
+    tpsHideGroundAimFx=ReadBool(L"Features",L"TPSHideGroundAimFx",true,path_);
+    aimIndicatorHideMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(L"Features",L"AimIndicatorHideMode",2,path_.c_str())),0,2);
+    tpsHorseStableAimCamera=ReadBool(L"Features",L"TPSHorseStableAimCamera",true,path_);
+    tpsMountedAimMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(L"Features",L"TPSMountedAimMode",0,path_.c_str())),0,1);
+    tpsGrenadeButtonMask=static_cast<int>(GetPrivateProfileIntW(L"Controls",L"TPSGrenadeButtonMask",0x0080,path_.c_str()));
+    if(!ValidPadBind(tpsGrenadeButtonMask))tpsGrenadeButtonMask=0x0080;
+    tpsSuspendButtonMask=GetPrivateProfileIntW(L"Controls",L"TPSSuspendButtonMask",0x0080,path_.c_str());
+    tpsSuspendDelayMs=GetPrivateProfileIntW(L"Controls",L"TPSSuspendDelayMs",300,path_.c_str());
+    tpsSuspendDelayMs=std::clamp(tpsSuspendDelayMs,0,3000);
+    tpsToggleHoldButtonMask=GetPrivateProfileIntW(L"Controls",L"TPSToggleHoldButtonMask",0x0040,path_.c_str());
+    tpsToggleHoldMs=GetPrivateProfileIntW(L"Controls",L"TPSToggleHoldMs",500,path_.c_str());
+    tpsToggleHoldMs=std::clamp(tpsToggleHoldMs,250,2000);
+    if(!ValidPadBind(tpsSuspendButtonMask))tpsSuspendButtonMask=0x0080;
+    if(!ValidPadBind(tpsToggleHoldButtonMask))tpsToggleHoldButtonMask=0x0040;
     tpsRecenterButtonMask=GetPrivateProfileIntW(L"Controls",L"TPSRecenterButtonMask",0x0040,path_.c_str());
-    if(tpsRecenterButtonMask!=0x0040 && tpsRecenterButtonMask!=0x0080 &&
-       tpsRecenterButtonMask!=0x0100 && tpsRecenterButtonMask!=0x0200 &&
-       tpsRecenterButtonMask!=0x1000 && tpsRecenterButtonMask!=0x0001 &&
-       tpsRecenterButtonMask!=0x0002 && tpsRecenterButtonMask!=0x0004 &&
-       tpsRecenterButtonMask!=0x0008) tpsRecenterButtonMask=0x0040;
+    if(!ValidPadBind(tpsRecenterButtonMask))tpsRecenterButtonMask=0x0040;
     pistolDamageEnabled =
         ReadBool(L"Features", L"PistolDamage", true, path_);
     meleeDamageEnabled =
@@ -435,6 +469,7 @@ bool Store::Load() {
         ReadBool(L"Features", L"JumpHeight", true, path_);
     glideDurationEnabled =
         ReadBool(L"Features", L"GlideDuration", true, path_);
+    horseEverywhereEnabled = ReadBool(L"Features", L"HorseEverywhere", true, path_);
     horseSpeedEnabled =
         ReadBool(L"Features", L"HorseSpeed", true, path_);
     horseSprintSpeedEnabled =
@@ -472,7 +507,7 @@ bool Store::Load() {
         ReadFloat(L"Values", L"HorseSprintDurationMultiplier", 5.0f, path_);
     fovDegrees =
         ReadFloat(L"Values", L"FOVDegrees", 90.0f, path_);
-    thirdPersonFovDegrees=ReadFloat(L"Values",L"TPSFOVDegrees",90.0f,path_);
+    thirdPersonFovDegrees=ReadFloat(L"Values",L"TPSFOVDegrees",110.0f,path_);
     if(!std::isfinite(thirdPersonFovDegrees))thirdPersonFovDegrees=90.0f;
     thirdPersonFovDegrees=std::clamp(thirdPersonFovDegrees,40.0f,140.0f);
     cameraZoomPercent =
@@ -484,22 +519,22 @@ bool Store::Load() {
     cameraHeightOffset =
         ReadFloat(L"Values", L"CameraHeightOffset", 0.0f, path_);
     thirdPersonDistanceMultiplier =
-        ReadFloat(L"Values", L"ThirdPersonDistanceMultiplier", 0.50f, path_);
+        ReadFloat(L"Values", L"ThirdPersonDistanceMultiplier", 0.20f, path_);
     thirdPersonPitchDegrees = ReadFloat(L"Values", L"ThirdPersonPitchDegrees", -12.0f, path_);
-    thirdPersonHeightOffset = ReadFloat(L"Values", L"ThirdPersonHeightOffset", 180.0f, path_);
-    tpsFootAnchorOffset=ReadFloat(L"Values",L"TPSFootAnchorOffset",88.0f,path_);
-    if(!std::isfinite(tpsFootAnchorOffset))tpsFootAnchorOffset=88.0f;
-    tpsFootAnchorOffset=std::clamp(tpsFootAnchorOffset,0.0f,200.0f);
+    thirdPersonHeightOffset = ReadFloat(L"Values", L"ThirdPersonHeightOffset", 120.0f, path_);
+    tpsFootAnchorOffset=ReadFloat(L"Values",L"TPSFootAnchorOffset",0.0f,path_);
+    if(!std::isfinite(tpsFootAnchorOffset))tpsFootAnchorOffset=0.0f;
+    tpsFootAnchorOffset=std::clamp(tpsFootAnchorOffset,-500.0f,500.0f);
     cameraMouseSensitivity = ReadFloat(L"Values", L"CameraMouseSensitivity", 0.12f, path_);
-    cameraStickSpeed = ReadFloat(L"Values", L"CameraStickSpeed", 135.0f, path_);
+    cameraStickSpeed = ReadFloat(L"Values", L"CameraStickSpeed", 180.0f, path_);
     if (!std::isfinite(thirdPersonDistanceMultiplier)) thirdPersonDistanceMultiplier=0.50f;
     if (!std::isfinite(thirdPersonPitchDegrees)) thirdPersonPitchDegrees=-12.0f;
-    if (!std::isfinite(thirdPersonHeightOffset)) thirdPersonHeightOffset=180.0f;
+    if (!std::isfinite(thirdPersonHeightOffset)) thirdPersonHeightOffset=120.0f;
     if (!std::isfinite(cameraMouseSensitivity)) cameraMouseSensitivity=0.12f;
     if (!std::isfinite(cameraStickSpeed)) cameraStickSpeed=135.0f;
     thirdPersonDistanceMultiplier=std::clamp(thirdPersonDistanceMultiplier,0.0f,3.0f);
     thirdPersonPitchDegrees=std::clamp(thirdPersonPitchDegrees,-75.0f,65.0f);
-    thirdPersonHeightOffset=std::clamp(thirdPersonHeightOffset,-500.0f,500.0f);
+    thirdPersonHeightOffset=std::clamp(thirdPersonHeightOffset,-1000.0f,1000.0f);
     cameraMouseSensitivity=std::clamp(cameraMouseSensitivity,0.01f,0.75f);
     cameraStickSpeed=std::clamp(cameraStickSpeed,30.0f,360.0f);
     hotstreakChargeMultiplier =
@@ -558,6 +593,17 @@ bool Store::Load() {
         return true;
     }
     if (revision < kConfigRevision) {
+        // V0.88 requested default ON. For older INIs the old explicit
+        // 0 was the previous experimental default: migrate once to ON;
+        // user can switch OFF after migration and it will remain OFF.
+        if(revision<2127)horseEverywhereEnabled=true;
+        // V0.86 migration: preserve the user's previously disabled actions
+        // as OFF bindings, and respect all existing active bindings.
+        if(revision<2126){
+            if(!tpsHoldSuspendEnabled)tpsSuspendButtonMask=0;
+            if(!tpsLongPressToggleEnabled)tpsToggleHoldButtonMask=0;
+            if(!tpsGrenadeHoldEnabled)tpsGrenadeButtonMask=0;
+        }
         // V0.55: F5 becomes Third Person when the previous default was None.
         // Explicit non-None assignments elsewhere remain untouched.
         if (revision == 2104 && hotkeys[4] == Action::None)
@@ -575,13 +621,11 @@ bool Store::Load() {
             cameraControllerOrbitEnabled=true;
         }
         cameraOrbitInputEnabled=cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
-        // V0.71 orientation-bit method demonstrably fails true strafing.
-        // On this migration reset both experimental values safely.
-        tpsMouseKeyboardStrafe=false;
-        tpsControllerStrafe=false;
+        // V0.74: obsolete always-on strafe switches are retired.
+        // New firing-only settings remain opt-in and default to OFF.
         PublishRuntime();
         SaveNow();
-        Log("INI migrated V0.72: disable ineffective V0.71 strafe and restore V0.70 movement");
+        Log("INI migrated V0.76: new hold controls ON; V0.75 gameplay settings retained");
         return true;
     }
 
@@ -608,8 +652,12 @@ void Store::PublishRuntime() const {
     runtime.cameraOrbitInputEnabled = cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
     runtime.cameraMouseOrbitEnabled = cameraMouseOrbitEnabled;
     runtime.cameraControllerOrbitEnabled = cameraControllerOrbitEnabled;
-    runtime.tpsMouseKeyboardStrafe = tpsMouseKeyboardStrafe;
-    runtime.tpsControllerStrafe = tpsControllerStrafe;
+    runtime.tpsControllerStrafeWhileFiring = tpsControllerStrafeWhileFiring;
+    runtime.tpsControllerRotateWhileFiring = tpsControllerRotateWhileFiring;
+    runtime.tpsHideGroundAimFx = tpsHideGroundAimFx;
+    runtime.aimIndicatorHideMode = aimIndicatorHideMode;
+    runtime.tpsHorseStableAimCamera = tpsHorseStableAimCamera;
+    runtime.tpsMountedAimMode = tpsMountedAimMode;
     runtime.thirdPersonDistanceMultiplier = thirdPersonDistanceMultiplier;
     runtime.thirdPersonPitchDegrees = thirdPersonPitchDegrees;
     runtime.thirdPersonHeightOffset = thirdPersonHeightOffset;
@@ -620,6 +668,7 @@ void Store::PublishRuntime() const {
     runtime.meleeDamageEnabled = meleeDamageEnabled;
     runtime.jumpHeightEnabled = jumpHeightEnabled;
     runtime.glideDurationEnabled = glideDurationEnabled;
+    runtime.horseEverywhereEnabled = horseEverywhereEnabled;
     runtime.horseSpeedEnabled = horseSpeedEnabled;
     runtime.horseSprintSpeedEnabled = horseSprintSpeedEnabled;
     runtime.horseSprintDurationEnabled = horseSprintDurationEnabled;
@@ -716,18 +765,44 @@ bool Store::SaveNow() {
     WritePrivateProfileStringW(L"Features",L"CameraMouseGamepad",nullptr,path_.c_str());
     WriteBool(L"Features",L"CameraMouseOrbit",cameraMouseOrbitEnabled,path_);
     WriteBool(L"Features",L"CameraControllerOrbit",cameraControllerOrbitEnabled,path_);
-    WriteBool(L"Features",L"TPSMouseKeyboardStrafe",tpsMouseKeyboardStrafe,path_);
-    WriteBool(L"Features",L"TPSControllerStrafe",tpsControllerStrafe,path_);
+    // Remove the V0.71/0.73 ineffective switches, no mapping of old values.
+    WritePrivateProfileStringW(L"Features",L"TPSMouseKeyboardStrafe",nullptr,path_.c_str());
+    WritePrivateProfileStringW(L"Features",L"TPSControllerStrafe",nullptr,path_.c_str());
+    WritePrivateProfileStringW(L"Features",L"TPSMouseStrafeWhileFiring",nullptr,path_.c_str());
+    WritePrivateProfileStringW(L"Features",L"TPSMouseRotateWhileFiring",nullptr,path_.c_str());
+    WriteBool(L"Features",L"TPSControllerStrafeWhileFiring",tpsControllerStrafeWhileFiring,path_);
+    WriteBool(L"Features",L"TPSControllerRotateWhileFiring",tpsControllerRotateWhileFiring,path_);
+    WriteBool(L"Features",L"TPSHoldSuspend",tpsSuspendButtonMask!=0,path_);
+    WriteBool(L"Features",L"TPSHoldToggle",tpsToggleHoldButtonMask!=0,path_);
+    WriteBool(L"Features",L"TPSGrenadeHold",tpsGrenadeButtonMask!=0,path_);
+    WriteBool(L"Features",L"TPSHideGroundAimFx",tpsHideGroundAimFx,path_);
+    wchar_t aimModeBuffer[12]{};
+    swprintf_s(aimModeBuffer,L"%d",std::clamp(aimIndicatorHideMode,0,2));
+    WritePrivateProfileStringW(L"Features",L"AimIndicatorHideMode",aimModeBuffer,path_.c_str());
+    WriteBool(L"Features",L"TPSHorseStableAimCamera",tpsHorseStableAimCamera,path_);
+    wchar_t mountModeText[12]{};
+    swprintf_s(mountModeText,L"%d",std::clamp(tpsMountedAimMode,0,1));
+    WritePrivateProfileStringW(L"Features",L"TPSMountedAimMode",mountModeText,path_.c_str());
     wchar_t buttonBuffer[16]{};
+    swprintf_s(buttonBuffer,L"%d",tpsGrenadeButtonMask);
+    WritePrivateProfileStringW(L"Controls",L"TPSGrenadeButtonMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsRecenterButtonMask);
     WritePrivateProfileStringW(L"Controls",L"TPSRecenterButtonMask",buttonBuffer,path_.c_str());
+    swprintf_s(buttonBuffer,L"%d",tpsSuspendButtonMask);
+    WritePrivateProfileStringW(L"Controls",L"TPSSuspendButtonMask",buttonBuffer,path_.c_str());
+    swprintf_s(buttonBuffer,L"%d",std::clamp(tpsSuspendDelayMs,0,3000));
+    WritePrivateProfileStringW(L"Controls",L"TPSSuspendDelayMs",buttonBuffer,path_.c_str());
+    swprintf_s(buttonBuffer,L"%d",tpsToggleHoldButtonMask);
+    WritePrivateProfileStringW(L"Controls",L"TPSToggleHoldButtonMask",buttonBuffer,path_.c_str());
+    swprintf_s(buttonBuffer,L"%d",tpsToggleHoldMs);
+    WritePrivateProfileStringW(L"Controls",L"TPSToggleHoldMs",buttonBuffer,path_.c_str());
     WritePrivateProfileStringW(L"Features",L"TPSAlwaysFaceCamera",nullptr,path_.c_str());
 
-    WritePrivateProfileStringW(L"Features",L"TPSHideGroundAimFx",nullptr,path_.c_str());
     WriteBool(L"Features", L"PistolDamage", pistolDamageEnabled, path_);
     WriteBool(L"Features", L"MeleeDamage", meleeDamageEnabled, path_);
     WriteBool(L"Features", L"JumpHeight", jumpHeightEnabled, path_);
     WriteBool(L"Features", L"GlideDuration", glideDurationEnabled, path_);
+    WriteBool(L"Features", L"HorseEverywhere", horseEverywhereEnabled, path_);
     WriteBool(L"Features", L"HorseSpeed", horseSpeedEnabled, path_);
     WriteBool(L"Features", L"HorseSprintSpeed", horseSprintSpeedEnabled, path_);
     WriteBool(L"Features", L"HorseSprintDuration", horseSprintDurationEnabled, path_);
