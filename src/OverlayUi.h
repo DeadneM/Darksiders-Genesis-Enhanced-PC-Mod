@@ -25,6 +25,12 @@ struct Telemetry {
     bool finalDamageHookReady = false;
     bool hotstreakHookReady = false;
     unsigned aimNativeFxCalls = 0;
+    unsigned aimUiTargetingEvents = 0;
+    unsigned aimUiPositionEvents = 0;
+    unsigned mountedIdleLookBlocks = 0;
+    unsigned mountedCtrlDown = 0;
+    unsigned mountedCtrlUp = 0;
+    bool mountedCtrlActive = false;
     unsigned grenadePhysicalDown = 0;
     unsigned grenadePhysicalUp = 0;
     unsigned grenadeNativeReleasePulses = 0;
