@@ -2323,3 +2323,16 @@ New telemetry `Horse Everywhere V0.89 REGION/DESUMMON` plus `serverJustBeforeInp
 **Mounted Camera Forward:** remains an outstanding issue and is not claimed fixed. In the latest V0.90 log, its activation is recorded, but the projectile trace hook is absent and the mounted-native look getter audit never receives a sample. The proper correction requires verified native projectile/raycast direction, not shader draw call tracing or another controller-axis injection. Native mounted **Vanilla Aim stays untouched**.
 
 Previous cumulative versions are preserved at `archive/downloads/` (V0.89 and shader-validated V0.90). Future experimental builds are on `debug` only; `main` remains stable. See [V0.91 technical note](docs/V0_91_NATIVE_CAMERA_HORSE_RETENTION.md).
+
+
+## V0.92 (2026-10-11) | Rebindable keyboard TPS, paired horse pad buttons, mounted Camera Forward input test
+
+**Protected user-validated cumulative V0.91 features**: Horse Everywhere works in banned zones in normal camera AND TPS; user-validated V0.90 GPU shader removal cleanly hides two aiming indicators. No code changes to HorseFeature, ShaderAimFeature or mounted **Vanilla Aim**.
+
+**Rebindable horse summon/dismount**: the two controller buttons are individually selectable in the Horse overlay and must be **held simultaneously**. The defaults remain LB+RB. Select a separate keyboard summon key (default H), and use it with or without TPS. The game still owns spawning/dismounting; the mod translates the remapped inputs back to its existing native controls.
+
+**TPS keyboard shortcuts**: In Camera > TPS/Horse keyboard bindings, customize Horse (H), long-press TPS toggle (OFF), short recenter (OFF), hold temporary native view (OFF) and hold/release grenade/gear (OFF). OFF defaults prevent overriding existing controls. They use the same action and timing settings as their controller equivalents. Keyboard grenade with a gamepad uses the same original native R3 pulse; without a controller the mod tries native E Use Gear, which is not yet verified equivalent to R3 in every situation. Keybinds persist in `[TPSKeyboardHotkeys]` and `[Controls]` in the INI, including `HorsePadButtonA=256` and `HorsePadButtonB=512`.
+
+**Camera Forward (EXPERIMENTAL, not yet user-validated)**: only when firing mounted in TPS Camera Forward mode, the game's native right-stick input is emulated straight UP while the physical right stick continues to move the independent TPS camera. This is a simpler native gamepad aiming attempt, not an actual mounted projectile raycast correction. Vanilla Aim and foot aiming remain unchanged. Switch to validated Vanilla Aim if Camera Forward still shoots off-axis.
+
+Detailed technical notes: [V0.92 rebinds + input](docs/V0_92_REBINDABLE_TPS_HORSE_FORWARD_INPUT.md). Stable `main` untouched; V0.91 backup stored in `archive/downloads`; test builds on `debug`.
