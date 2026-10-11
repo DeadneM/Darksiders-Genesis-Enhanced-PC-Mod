@@ -2187,3 +2187,20 @@ Keep the existing **Block vanilla right-stick player rotation** option, ON by de
 Controller gets only two independent opt-in settings: **Strafe while firing (player movement)** (`TPSControllerStrafeWhileFiring`) and **Rotate while firing (camera movement)** (`TPSControllerRotateWhileFiring`). Strafe mode drives *native look direction only* to TPS camera world forward during RT/RB, leaves left stick player movement untouched. Rotate mode independently enables the mod's raw-XInput TPS camera orbit during RT/RB; when that option is OFF, right-stick TPS camera orbit is suspended during firing, whether or not the vanilla right-stick PLAYER block is enabled. The player block and camera-orbit option are separate switches. Both remain OFF by default. Game-native behavior outside TPS, during mount, when window unfocused and when overlay open is preserved.
 
 A simple in-game test is mandatory to determine if native look callbacks are actually used: log `TPS V0.75: native game look input READY`, `native gamepad look input neutralized`, `game-native LOOK VECTOR -> camera during fire` and final `nativeLookInput/nativeLookRotation/suppressedLook/mouseLookAim/padLookAim` counts. Check controller idle/right-stick rotation, camera orbit during RT/RB, true sideways/backward movement while firing, and mouse firing facing direction. If counts are zero, do not claim a fix; revisit game controller rotation authority. No other features modified. Build archive has exactly 4 files at ZIP root, experimental branch, no automatic official release promotion.
+
+
+## V0.76 (11 October 2026) Experimental controller hold controls and camera defaults
+
+**V0.75 code is frozen as a user-accepted baseline**: see [V0.76 freeze/changelog](docs/V0_76_CHANGELOG_AND_FREEZE.md). This update only adds control integration and camera options around the validated V0.75 look hooks. Tested Windows x64 build required; **no feature is declared user-validated until an in-game test**.
+
+**New optional controller functions enabled by default** (TPS context, local controller #0):
+- Hold **R3** for a temporary vanilla camera view, resume TPS on release, without changing the persistent F5 TPS state. Rebind in overlay (`TPSSuspendButtonMask`).
+- Long press **L3** (650ms) to toggle TPS ON/OFF, independently rebindable (`TPSToggleHoldButtonMask`, `TPSToggleHoldMs`); short L3 still recenters if using the same recenter binding.
+- Hold **R3 grenade**: translate physical press and release into two distinct native R3 key pulses to equip during hold and stow on release. This is a pulse-based *experimental* recreation of game's toggle, not a direct equipment state patch; test R3 and character switching carefully.
+- Hide native **ground-targeting aim FX** in TPS, signature checked old RVA `0x6DDAD0`, not guaranteed to hide every gun aim effect.
+- Stabilize native **horse pose camera** source during shooting once the mounted camera source has been positively sampled, to reduce aiming-related camera jumps; not a complete horse-specific firing fix.
+
+**Camera defaults based on user-provided V0.75 INI:** TPS FOV 110, distance 0.200, pitch -12°, vertical offset +300, foot origin 0, global yaw +5°, global height -300, controller stick speed 180°/s, mouse sensitivity 0.12. Existing user INI camera values are preserved. New installs retain Third Person OFF until F5/L3 because activating TPS automatically was not requested. Camera vertical offset now -1000..+1000, foot origin correction -500..+500. User provided the same -1000 value for both vertical bounds; treating the upper one as +1000 prevents a non-adjustable slider. `Rotate on foot while firing` is labeled to reflect the user's observed forward shooting; the actual V0.75 native look-hook behavior has not been changed.
+
+**Known issue:** sporadic second-character throwable weapon flash needs a separate native event trace to identify cause, not a blind manipulation of inventory/animations. Ground-targeting FX hook may not hide all aiming visuals. Stable V0.75 ZIP and release unaffected. V0.76 ZIP contains four files at archive root.
+
