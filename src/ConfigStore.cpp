@@ -328,6 +328,9 @@ void Store::ResetDefaults(bool persist) {
     tpsToggleHoldButtonMask = 0x0040;
     tpsToggleHoldMs = 500;
     tpsRecenterButtonMask = 0x0040;
+    horsePadButtonA = 0x0100; // LB
+    horsePadButtonB = 0x0200; // RB
+    tpsKeyboardKeys = {{'H',0,0,0,0}};
     pistolDamageEnabled = true;
     meleeDamageEnabled = true;
     jumpHeightEnabled = true;
@@ -461,6 +464,11 @@ bool Store::Load() {
     if(!ValidPadBind(tpsToggleHoldButtonMask))tpsToggleHoldButtonMask=0x0040;
     tpsRecenterButtonMask=GetPrivateProfileIntW(L"Controls",L"TPSRecenterButtonMask",0x0040,path_.c_str());
     if(!ValidPadBind(tpsRecenterButtonMask))tpsRecenterButtonMask=0x0040;
+    horsePadButtonA=GetPrivateProfileIntW(L"Controls",L"HorsePadButtonA",0x0100,path_.c_str());
+    horsePadButtonB=GetPrivateProfileIntW(L"Controls",L"HorsePadButtonB",0x0200,path_.c_str());
+    if(!ValidPadBind(horsePadButtonA) || !horsePadButtonA)horsePadButtonA=0x0100;
+    if(!ValidPadBind(horsePadButtonB) || !horsePadButtonB)horsePadButtonB=0x0200;
+    if(horsePadButtonA==horsePadButtonB)horsePadButtonB=horsePadButtonA==0x0200?0x0100:0x0200;
     pistolDamageEnabled =
         ReadBool(L"Features", L"PistolDamage", true, path_);
     meleeDamageEnabled =
@@ -568,6 +576,14 @@ bool Store::Load() {
         cameraKeys[i] = (parsed >= 0 && parsed < 256) ? parsed : 0;
     }
 
+    for(size_t i=0;i<tpsKeyboardKeys.size();++i){
+        wchar_t value[64]{};
+        const std::wstring fallback=KeyTokenFromVK(tpsKeyboardKeys[i]);
+        GetPrivateProfileStringW(L"TPSKeyboardHotkeys",kTpsKeyboardTokens[i],
+            fallback.c_str(),value,64,path_.c_str());
+        const int vk=ParseKeyToken(value,tpsKeyboardKeys[i]);
+        tpsKeyboardKeys[i]=(vk>=0&&vk<256)?vk:0;
+    }
     const int revision = GetPrivateProfileIntW(
         L"Meta",
         L"ConfigRevision",
@@ -788,6 +804,10 @@ bool Store::SaveNow() {
     WritePrivateProfileStringW(L"Controls",L"TPSGrenadeButtonMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsRecenterButtonMask);
     WritePrivateProfileStringW(L"Controls",L"TPSRecenterButtonMask",buttonBuffer,path_.c_str());
+    swprintf_s(buttonBuffer,L"%d",horsePadButtonA);
+    WritePrivateProfileStringW(L"Controls",L"HorsePadButtonA",buttonBuffer,path_.c_str());
+    swprintf_s(buttonBuffer,L"%d",horsePadButtonB);
+    WritePrivateProfileStringW(L"Controls",L"HorsePadButtonB",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsSuspendButtonMask);
     WritePrivateProfileStringW(L"Controls",L"TPSSuspendButtonMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",std::clamp(tpsSuspendDelayMs,0,3000));
@@ -853,6 +873,11 @@ bool Store::SaveNow() {
         );
     }
 
+    for(size_t i=0;i<tpsKeyboardKeys.size();++i){
+        const std::wstring token=KeyTokenFromVK(tpsKeyboardKeys[i]);
+        WritePrivateProfileStringW(L"TPSKeyboardHotkeys",kTpsKeyboardTokens[i],
+            token.c_str(),path_.c_str());
+    }
     for (size_t i = 0; i < cameraKeys.size(); ++i) {
         const std::wstring value = KeyTokenFromVK(cameraKeys[i]);
         WritePrivateProfileStringW(
