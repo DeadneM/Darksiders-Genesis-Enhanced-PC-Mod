@@ -3274,6 +3274,10 @@ dg::overlay::Context BuildOverlayContext() {
         g_lastOutgoingTagCount.load();
 
     t.aimNativeFxCalls = g_tpsGroundAimFxEntered.load();
+    t.forwardLookSamples = g_tpsMountedForwardLookSamples.load();
+    t.forwardYawGapCount = g_tpsMountedForwardLargeYawGap.load();
+    t.forwardNativeYaw = g_tpsMountedForwardLastNativeYaw.load();
+    t.forwardCameraYaw = g_tpsMountedForwardLastCameraYaw.load();
     t.aimUiTargetingEvents = g_aimUiEvents.load();
     t.aimUiPositionEvents = g_aimUiPositionEvents.load();
     t.mountedIdleLookBlocks = g_tpsMountedIdleNativeLookBlocks.load();
