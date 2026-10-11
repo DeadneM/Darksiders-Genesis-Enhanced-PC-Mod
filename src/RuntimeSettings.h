@@ -26,6 +26,7 @@ struct Snapshot {
     bool tpsHideGroundAimFx = true;
     int aimIndicatorHideMode = 2;
     bool tpsHorseStableAimCamera = true;
+    int tpsMountedAimMode = 0; // camera free/aim follows view, native mode=1
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
     bool jumpHeightEnabled = true;
@@ -84,6 +85,9 @@ struct State {
     std::atomic_bool tpsHideGroundAimFx{true};
     std::atomic_int aimIndicatorHideMode{2};
     std::atomic_bool tpsHorseStableAimCamera{true};
+    std::atomic_int tpsMountedAimMode{0};
+    std::atomic_bool tpsMountedViewActive{false};
+    std::atomic_ullong tpsMountedViewTick{0};
     std::atomic_bool tpsAimActive{false};
     std::atomic<float> tpsActorWorldX{0.0f};
     std::atomic<float> tpsActorWorldY{0.0f};
