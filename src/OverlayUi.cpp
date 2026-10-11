@@ -390,12 +390,16 @@ void Draw(Context& c) {
             if(ImGui::Checkbox("Horse Everywhere (experimental research)",
                     &config.horseEverywhereEnabled)) config.Save();
             ImGui::TextDisabled("Experimental: tests the native horse-area checks on H / LB+RB only.");
-            ImGui::TextDisabled("%s | server requests observed: %u (while selected: %u)",
-                horseTelemetry.summonProbeReady ? "Detection ready; bypass NOT implemented" :
-                    "Detection unavailable; bypass NOT implemented",
+            ImGui::TextDisabled("%s | server requests: %u (while ON: %u)",
+                horseTelemetry.summonProbeReady ? "Native detection ready" :
+                    "Native detection unavailable",
                 horseTelemetry.summonServerCalls,
                 horseTelemetry.summonServerCallsWhileRequested);
-            ImGui::TextDisabled("Turning this ON does not yet remove zone restrictions. No forced spawning.");
+            ImGui::TextDisabled("Allowed-region checks %u / overrides %u",
+                horseTelemetry.regionChecks,horseTelemetry.regionOverrides);
+            ImGui::TextDisabled("Dismount-region checks %u / overrides %u",
+                horseTelemetry.desummonChecks,horseTelemetry.desummonOverrides);
+            ImGui::TextDisabled("Not yet validated: override only while summoning, never forces a horse spawn.");
 
             DrawTunableFeature(
                 config,
@@ -752,9 +756,12 @@ void Draw(Context& c) {
                     &config.tpsMountedAimMode,kMountedModes,2))config.Save();
                 ImGui::TextWrapped(config.tpsMountedAimMode==0
                     ? "Default: move TPS camera freely while shooting on horseback; shots use camera direction."
-                    : "While firing on horseback, TPS orbit stops and native aim takes over. Orbit resumes on release.");
+                    : "Outside firing: camera only. While firing: TPS orbit freezes and native aim takes over. "
+                      "Releasing fire returns control to the TPS camera.");
                 ImGui::TextDisabled("Mounted camera frames while firing: %u",
                     camera.mountedFireHorseSelected);
+                ImGui::TextDisabled("Camera Forward: native camera-heading aim is experimental, compare with Ctrl.");
+                ImGui::TextDisabled("Known issue: mouse TPS rotation may stop before a full 360 degrees (deferred).");
                 ImGui::Separator();
                 ImGui::Text("Controller bindings");
                 ImGui::TextDisabled("One button per action. OFF disables the mod hotkey.");
