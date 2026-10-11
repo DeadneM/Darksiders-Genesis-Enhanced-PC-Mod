@@ -251,7 +251,10 @@ void HookView(void* camera, float dt, void* outView) {
              ?g_zoneReferenceArm.load():usableArm;
         const float baseYaw=lockZone&&g_zoneReferenceActive.load()
              ?g_zoneReferenceYaw.load():nativeYaw;
-        const bool orbit=settings.cameraOrbitInputEnabled.load();
+        // Mounted Camera Forward works even if on-foot mouse/stick orbit
+        // options are disabled; mounted aim mode owns this policy.
+        const bool orbit=settings.cameraOrbitInputEnabled.load() ||
+            (usingHorse&&settings.tpsMountedAimMode.load()==0);
         const float oy=orbit?settings.cameraOrbitYawDegrees.load():0.0f;
         const float op=orbit?settings.cameraOrbitPitchDegrees.load():0.0f;
         const float basePitch=settings.thirdPersonPitchDegrees.load();
