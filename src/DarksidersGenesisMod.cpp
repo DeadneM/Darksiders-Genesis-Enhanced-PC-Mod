@@ -3256,10 +3256,59 @@ void UpdateOrbitInput() {
     static WORD lastButtons=0;
     auto& rt=dg::runtime::Get();
     const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
-    const bool active=g_config.thirdPersonEnabled &&
-        (g_config.cameraMouseOrbitEnabled||g_config.cameraControllerOrbitEnabled) &&
-        hwnd && hwnd==GetForegroundWindow() && !IsIconic(hwnd) && !g_overlayVisible.load();
     const ULONGLONG now=GetTickCount64();
+    const bool focused=hwnd && hwnd==GetForegroundWindow() &&
+        !IsIconic(hwnd) && !g_overlayVisible.load();
+    // Always sample unmodified physical buttons, including when TPS is OFF,
+    // so a LONG L3 press can enable TPS without a keyboard/F5 toggle.
+    XINPUT_STATE physical{};
+    const bool padAvailable=focused &&
+        GetCameraXInputState(0,&physical)==ERROR_SUCCESS;
+    const WORD physicalBits=padAvailable?physical.Gamepad.wButtons:0;
+    const WORD toggleMask=static_cast<WORD>(g_config.tpsToggleHoldButtonMask);
+    static bool toggleHeld=false,toggleConsumed=false;
+    static ULONGLONG toggleStarted=0;
+    const bool toggling=g_config.tpsLongPressToggleEnabled &&
+        toggleMask && padAvailable && (physicalBits&toggleMask);
+    if(toggling && !toggleHeld){
+        toggleHeld=true;toggleConsumed=false;toggleStarted=now;
+    }
+    if(toggling && toggleHeld && !toggleConsumed &&
+       now>=toggleStarted &&
+       now-toggleStarted>=static_cast<ULONGLONG>(g_config.tpsToggleHoldMs)){
+        toggleConsumed=true;
+        g_config.thirdPersonEnabled=!g_config.thirdPersonEnabled;
+        g_config.Save();
+        const unsigned count=++g_tpsHoldToggleCount;
+        Log("TPS V0.76: long-press toggle n=%u mask=0x%04X TPS=%d durationMs=%llu",
+            count,unsigned(toggleMask),g_config.thirdPersonEnabled?1:0,
+            static_cast<unsigned long long>(now-toggleStarted));
+    }
+    if(!toggling && toggleHeld){
+        // Preserve short-L3 recenter, but do it on RELEASE so a long
+        // press does not first recenter the camera unexpectedly.
+        if(!toggleConsumed && g_config.thirdPersonEnabled &&
+           g_config.tpsRecenterButtonMask==int(toggleMask)){
+            const bool ok=dg::camera_trace::RecenterOnPlayer();
+            Log("TPS V0.76: short-press recenter mask=0x%04X success=%d",
+                unsigned(toggleMask),ok?1:0);
+        }
+        toggleHeld=false;toggleConsumed=false;toggleStarted=0;
+    }
+    const WORD suspendMask=static_cast<WORD>(g_config.tpsSuspendButtonMask);
+    const bool temporaryVanilla=focused && g_config.thirdPersonEnabled &&
+        g_config.tpsHoldSuspendEnabled && padAvailable && suspendMask &&
+        ((physicalBits&suspendMask)!=0);
+    const bool before=rt.tpsTemporarilySuspended.exchange(
+        temporaryVanilla,std::memory_order_acq_rel);
+    if(before!=temporaryVanilla){
+        const unsigned n=++g_tpsHoldSuspendCount;
+        Log("TPS V0.76: temporary vanilla-view %s n=%u button=0x%04X (TPS selection preserved)",
+            temporaryVanilla?"ON":"OFF",n,unsigned(suspendMask));
+    }
+    const bool active=g_config.thirdPersonEnabled && !temporaryVanilla &&
+        (g_config.cameraMouseOrbitEnabled||g_config.cameraControllerOrbitEnabled) &&
+        focused;
     const float dt=g_orbitLastPresentTick && now-g_orbitLastPresentTick<=100ull
         ? static_cast<float>(now-g_orbitLastPresentTick)*0.001f:0.0f;
     g_orbitLastPresentTick=now;
@@ -3331,7 +3380,11 @@ void UpdateOrbitInput() {
             lastProbe=0;
         }
         const WORD mask=static_cast<WORD>(g_config.tpsRecenterButtonMask);
-        if(mask && (buttonBits&mask) && !(lastButtons&mask)) {
+        // When short-recenter and long-TPS toggle share L3, the latter
+        // handles release. All other recenter bindings remain edge-triggered.
+        if(mask && !(g_config.tpsLongPressToggleEnabled &&
+            mask==static_cast<WORD>(g_config.tpsToggleHoldButtonMask)) &&
+            (buttonBits&mask) && !(lastButtons&mask)) {
             const bool success=dg::camera_trace::RecenterOnPlayer();
             Log("TPS V0.70: recenter button=0x%04X successful=%d",
                 unsigned(mask),success?1:0);
