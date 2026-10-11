@@ -105,7 +105,8 @@ void HookView(void* camera, float dt, void* outView) {
     // V0.86: the mode of mounted shooting is ALWAYS enforced when in TPS.
     // The retired vertical-stabilization checkbox is NOT an aim mode gate.
     const bool activeHorseAim=thirdPerson &&
-        settings.tpsAimActive.load(std::memory_order_acquire);
+        (settings.tpsAimActive.load(std::memory_order_acquire) ||
+         (GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0);
     g_mountedFireCurrentlyActive.store(false,std::memory_order_relaxed);
     if(activeHorseAim){
         ++g_mountedFireRequested;
@@ -254,7 +255,7 @@ void HookView(void* camera, float dt, void* outView) {
         // Mounted Camera Forward works even if on-foot mouse/stick orbit
         // options are disabled; mounted aim mode owns this policy.
         const bool orbit=settings.cameraOrbitInputEnabled.load() ||
-            (usingHorse&&settings.tpsMountedAimMode.load()==0);
+            usingHorse;
         const float oy=orbit?settings.cameraOrbitYawDegrees.load():0.0f;
         const float op=orbit?settings.cameraOrbitPitchDegrees.load():0.0f;
         const float basePitch=settings.thirdPersonPitchDegrees.load();
