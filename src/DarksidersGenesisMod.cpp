@@ -98,6 +98,12 @@ std::atomic_uint32_t g_tpsNativeFacingOff{0},g_tpsNativeFacingRestored{0};
 std::atomic_uint32_t g_tpsStrafeSamples{0};
 // V0.72: track potential Steam Input -> synthetic Windows mouse mapping.
 std::atomic_ullong g_tpsPadRightStickTick{0},g_tpsRawMouseTick{0};
+// V0.95 experimental mouse targeting: game-native cursor keeps the center
+// screen aim while raw physical mouse deltas still orbit the independent TPS
+// camera. A warp-origin WM_MOUSEMOVE is never interpreted as camera motion.
+std::atomic_ullong g_tpsMouseTargetWarpTick{0};
+std::atomic_int g_tpsMouseTargetWarpX{0},g_tpsMouseTargetWarpY{0};
+std::atomic_uint32_t g_tpsMouseTargetWarpCount{0};
 std::atomic_uint32_t g_tpsControllerMouseBlocks{0};
 // V0.92 experimental: a virtual forward-facing right stick is passed ONLY to
 // the game's XInput while shooting mounted in CAMERA_FORWARD mode; the camera
@@ -3103,7 +3109,14 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     if (msg==WM_MOUSEMOVE) {
         const int x=static_cast<short>(LOWORD(lParam));
         const int y=static_cast<short>(HIWORD(lParam));
-        if (active && primed && GetTickCount64()-g_lastOrbitRawTick.load()>1500ull) {
+        const auto warpedAt=g_tpsMouseTargetWarpTick.load(std::memory_order_acquire);
+        const auto current=GetTickCount64();
+        const bool modWarp=warpedAt && current>=warpedAt &&
+            current-warpedAt<180ull &&
+            x==g_tpsMouseTargetWarpX.load(std::memory_order_relaxed) &&
+            y==g_tpsMouseTargetWarpY.load(std::memory_order_relaxed);
+        if (active && primed && !modWarp &&
+            current-g_lastOrbitRawTick.load()>1500ull) {
             const int dx=x-oldX,dy=y-oldY;
             if (std::abs(dx)<=180 && std::abs(dy)<=180) {
                 g_orbitMouseDx.fetch_add(dx);
@@ -3961,6 +3974,43 @@ void UpdateOrbitInput() {
     }
 }
 
+// Input-level TPS mouse aim experiment: native cursor stays at screen center
+// only while physically firing in Camera Forward mode. The game's mouse
+// input continues normally, and its own targeting/raycast remains in charge.
+// Do not warp while selecting radial menus, while riding, in cutscenes,
+// outside focused gameplay or in the user-validated Vanilla Aim mode.
+void UpdateTPSNativeMouseCenterTarget(){
+    auto& rt=dg::runtime::Get();
+    if(!g_config.tpsMouseCenterAimEnabled || !ShouldSuppressNativeAim() ||
+       rt.tpsMountedAimMode.load(std::memory_order_relaxed)!=0 ||
+       IsMountedTPSNow() || IsTPSRadialInputActive() ||
+       !IsTPSLookViewFresh() ||
+       (GetAsyncKeyState(VK_LBUTTON)&0x8000)==0)
+        return;
+    const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load(std::memory_order_acquire));
+    if(!hwnd || GetForegroundWindow()!=hwnd || IsIconic(hwnd))return;
+    RECT rect{};
+    if(!GetClientRect(hwnd,&rect) || rect.right-rect.left<320 ||
+       rect.bottom-rect.top<200)return;
+    POINT center{(rect.left+rect.right)/2,(rect.top+rect.bottom)/2};
+    const int clientX=center.x,clientY=center.y;
+    if(!ClientToScreen(hwnd,&center))return;
+    POINT cursor{};
+    if(!GetCursorPos(&cursor))return;
+    if(std::abs(cursor.x-center.x)<=2&&std::abs(cursor.y-center.y)<=2)return;
+    const ULONGLONG now=GetTickCount64();
+    static ULONGLONG lastWarp=0;
+    if(lastWarp&&now>=lastWarp&&now-lastWarp<30ull)return;
+    lastWarp=now;
+    g_tpsMouseTargetWarpX.store(clientX,std::memory_order_relaxed);
+    g_tpsMouseTargetWarpY.store(clientY,std::memory_order_relaxed);
+    g_tpsMouseTargetWarpTick.store(now,std::memory_order_release);
+    if(SetCursorPos(center.x,center.y)){
+        const unsigned n=++g_tpsMouseTargetWarpCount;
+        if(n<=3)Log("TPS V0.95 mouse: native target recentered while firing #%u; raw mouse orbit remains unfiltered",n);
+    }else g_tpsMouseTargetWarpTick.store(0,std::memory_order_release);
+}
+
 HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) {
     ApplySkipIntroSetting(false);
     UpdateCameraDof();
@@ -3979,6 +4029,7 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     EnsureOrbitWndProc(swapChain);
     EnsureNativeXInputAimHooks();
     UpdateOrbitInput();
+    UpdateTPSNativeMouseCenterTarget();
     RefreshReticleCursorState();
 
     // V0.68: restore original V0.32 lazy overlay policy. No rendered TPS
@@ -4287,6 +4338,7 @@ void ShutdownMod() {
     RestoreCameraDof();
     Log("TPS V0.69 totals: mouseInputNative=PASSTHROUGH rightStickReadsFiltered=%u whileFiring=%u",
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
+    Log("TPS V0.95 mouse native-center attempts=%u",g_tpsMouseTargetWarpCount.load());
     Log("TPS V0.92 input totals: mountedForwardAnalog=%u mappedHorseChord=%u keyboardHorse=%u",
         g_tpsForwardAnalogInjected.load(),g_horsePadChordRemapped.load(),
         g_keyboardHorseInjected.load());
