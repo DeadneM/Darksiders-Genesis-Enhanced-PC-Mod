@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2127;
+constexpr int kConfigRevision = 2128;
 // Actual XInput digital buttons plus LT/RT represented as virtual binding IDs.
 constexpr bool ValidPadBind(int m) {
     switch(m){case 0:case 0x0001:case 0x0002:case 0x0004:case 0x0008:
@@ -306,15 +306,12 @@ void Store::ResetDefaults(bool persist) {
     skipLogosEnabled = true;
     skipIntroEnabled = true;
     skipWarningEnabled = true;
-    thirdPersonEnabled = false;
+    thirdPersonEnabled = true;
     thirdPersonFovEnabled = true;
     tpsFollowPlayer = true;
-    tpsSuppressNativeRightStick = true;
     cameraOrbitInputEnabled = true;
     cameraMouseOrbitEnabled = true;
     cameraControllerOrbitEnabled = true;
-    tpsControllerStrafeWhileFiring = false;
-    tpsControllerRotateWhileFiring = false;
     tpsHoldSuspendEnabled = true;
     tpsLongPressToggleEnabled = true;
     tpsGrenadeHoldEnabled = true;
@@ -330,7 +327,7 @@ void Store::ResetDefaults(bool persist) {
     tpsRecenterButtonMask = 0x0040;
     horsePadButtonA = 0x0100; // LB
     horsePadButtonB = 0x0200; // RB
-    tpsKeyboardKeys = {{'H',0,0,0,0}};
+    tpsKeyboardKeys = {{'H','V','V','E'}};
     pistolDamageEnabled = true;
     meleeDamageEnabled = true;
     jumpHeightEnabled = true;
@@ -360,9 +357,9 @@ void Store::ResetDefaults(bool persist) {
     cameraPitchDegrees = 0.0f;
     cameraYawDegrees = 0.0f;
     cameraHeightOffset = 0.0f;
-    thirdPersonDistanceMultiplier = 0.20f;
-    thirdPersonPitchDegrees = -12.0f;
-    thirdPersonHeightOffset = 120.0f;
+    thirdPersonDistanceMultiplier = 0.15f;
+    thirdPersonPitchDegrees = 0.0f;
+    thirdPersonHeightOffset = 100.0f;
     tpsFootAnchorOffset = 0.0f;
     cameraMouseSensitivity = 0.12f;
     cameraStickSpeed = 180.0f;
@@ -435,16 +432,13 @@ bool Store::Load() {
     skipWarningEnabled =
         ReadBool(L"Features", L"SkipWarning", true, path_);
     thirdPersonEnabled =
-        ReadBool(L"Features", L"ThirdPerson", false, path_);
+        ReadBool(L"Features", L"ThirdPerson", true, path_);
     thirdPersonFovEnabled=ReadBool(L"Features",L"TPSFOV",true,path_);
     tpsFollowPlayer=ReadBool(L"Features",L"TPSFollowPlayer",true,path_);
-    tpsSuppressNativeRightStick=ReadBool(L"Features",L"TPSSuppressNativeRightStick",true,path_);
     const bool oldCombinedOrbit=ReadBool(L"Features",L"CameraMouseGamepad",true,path_);
     cameraMouseOrbitEnabled=ReadBool(L"Features",L"CameraMouseOrbit",oldCombinedOrbit,path_);
     cameraControllerOrbitEnabled=ReadBool(L"Features",L"CameraControllerOrbit",oldCombinedOrbit,path_);
     cameraOrbitInputEnabled=cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
-    tpsControllerStrafeWhileFiring=ReadBool(L"Features",L"TPSControllerStrafeWhileFiring",false,path_);
-    tpsControllerRotateWhileFiring=ReadBool(L"Features",L"TPSControllerRotateWhileFiring",false,path_);
     tpsHoldSuspendEnabled=ReadBool(L"Features",L"TPSHoldSuspend",true,path_);
     tpsLongPressToggleEnabled=ReadBool(L"Features",L"TPSHoldToggle",true,path_);
     tpsGrenadeHoldEnabled=ReadBool(L"Features",L"TPSGrenadeHold",true,path_);
@@ -527,9 +521,9 @@ bool Store::Load() {
     cameraHeightOffset =
         ReadFloat(L"Values", L"CameraHeightOffset", 0.0f, path_);
     thirdPersonDistanceMultiplier =
-        ReadFloat(L"Values", L"ThirdPersonDistanceMultiplier", 0.20f, path_);
-    thirdPersonPitchDegrees = ReadFloat(L"Values", L"ThirdPersonPitchDegrees", -12.0f, path_);
-    thirdPersonHeightOffset = ReadFloat(L"Values", L"ThirdPersonHeightOffset", 120.0f, path_);
+        ReadFloat(L"Values", L"ThirdPersonDistanceMultiplier", 0.15f, path_);
+    thirdPersonPitchDegrees = ReadFloat(L"Values", L"ThirdPersonPitchDegrees", 0.0f, path_);
+    thirdPersonHeightOffset = ReadFloat(L"Values", L"ThirdPersonHeightOffset", 100.0f, path_);
     tpsFootAnchorOffset=ReadFloat(L"Values",L"TPSFootAnchorOffset",0.0f,path_);
     if(!std::isfinite(tpsFootAnchorOffset))tpsFootAnchorOffset=0.0f;
     tpsFootAnchorOffset=std::clamp(tpsFootAnchorOffset,-500.0f,500.0f);
@@ -664,12 +658,9 @@ void Store::PublishRuntime() const {
     runtime.thirdPersonEnabled = thirdPersonEnabled;
     runtime.thirdPersonFovEnabled = thirdPersonFovEnabled;
     runtime.tpsFollowPlayer = tpsFollowPlayer;
-    runtime.tpsSuppressNativeRightStick = tpsSuppressNativeRightStick;
     runtime.cameraOrbitInputEnabled = cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
     runtime.cameraMouseOrbitEnabled = cameraMouseOrbitEnabled;
     runtime.cameraControllerOrbitEnabled = cameraControllerOrbitEnabled;
-    runtime.tpsControllerStrafeWhileFiring = tpsControllerStrafeWhileFiring;
-    runtime.tpsControllerRotateWhileFiring = tpsControllerRotateWhileFiring;
     runtime.tpsHideGroundAimFx = tpsHideGroundAimFx;
     runtime.aimIndicatorHideMode = aimIndicatorHideMode;
     runtime.tpsHorseStableAimCamera = tpsHorseStableAimCamera;
@@ -786,8 +777,11 @@ bool Store::SaveNow() {
     WritePrivateProfileStringW(L"Features",L"TPSControllerStrafe",nullptr,path_.c_str());
     WritePrivateProfileStringW(L"Features",L"TPSMouseStrafeWhileFiring",nullptr,path_.c_str());
     WritePrivateProfileStringW(L"Features",L"TPSMouseRotateWhileFiring",nullptr,path_.c_str());
-    WriteBool(L"Features",L"TPSControllerStrafeWhileFiring",tpsControllerStrafeWhileFiring,path_);
-    WriteBool(L"Features",L"TPSControllerRotateWhileFiring",tpsControllerRotateWhileFiring,path_);
+    // V0.94: these were mutually confusing user toggles. TPS handles both
+    // natively according to selected aiming mode and radial menu state.
+    WritePrivateProfileStringW(L"Features",L"TPSSuppressNativeRightStick",nullptr,path_.c_str());
+    WritePrivateProfileStringW(L"Features",L"TPSControllerStrafeWhileFiring",nullptr,path_.c_str());
+    WritePrivateProfileStringW(L"Features",L"TPSControllerRotateWhileFiring",nullptr,path_.c_str());
     WriteBool(L"Features",L"TPSHoldSuspend",tpsSuspendButtonMask!=0,path_);
     WriteBool(L"Features",L"TPSHoldToggle",tpsToggleHoldButtonMask!=0,path_);
     WriteBool(L"Features",L"TPSGrenadeHold",tpsGrenadeButtonMask!=0,path_);
@@ -873,6 +867,8 @@ bool Store::SaveNow() {
         );
     }
 
+    // Native E already selects gear; the keyboard grenade duplicate is retired.
+    WritePrivateProfileStringW(L"TPSKeyboardHotkeys",L"Grenade",nullptr,path_.c_str());
     for(size_t i=0;i<tpsKeyboardKeys.size();++i){
         const std::wstring token=KeyTokenFromVK(tpsKeyboardKeys[i]);
         WritePrivateProfileStringW(L"TPSKeyboardHotkeys",kTpsKeyboardTokens[i],
