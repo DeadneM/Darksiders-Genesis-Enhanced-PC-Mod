@@ -1111,6 +1111,10 @@ Telemetry GetTelemetry() {
     t.summonProbeReady = g_summonServerProbeReady.load();
     t.summonServerCalls = g_summonServerCalls.load();
     t.summonServerCallsWhileRequested = g_summonServerCallsRequested.load();
+    t.regionChecks=g_allowedRegionChecks.load();
+    t.regionOverrides=g_allowedRegionOverrides.load();
+    t.desummonChecks=g_desummonRegionChecks.load();
+    t.desummonOverrides=g_desummonRegionOverrides.load();
     t.playerOwner = nullptr;
     t.horseOwner = g_owner.load();
     t.horseMovement = g_movement.load();
