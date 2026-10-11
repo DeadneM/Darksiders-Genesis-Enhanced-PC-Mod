@@ -327,7 +327,7 @@ void Store::ResetDefaults(bool persist) {
     tpsRecenterButtonMask = 0x0040;
     horsePadButtonA = 0x0100; // LB
     horsePadButtonB = 0x0200; // RB
-    tpsKeyboardKeys = {{'H','V','V','E'}};
+    tpsKeyboardKeys = {{'H','Z','Z','E'}};
     pistolDamageEnabled = true;
     meleeDamageEnabled = true;
     jumpHeightEnabled = true;
