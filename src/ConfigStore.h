@@ -8,13 +8,13 @@ namespace dg::config {
 enum class CameraAction : int { HeightUp = 0, HeightDown, ZoomOut, ZoomIn, PitchDown, PitchUp, YawLeft, YawRight, Count };
 // New V0.92 TPS keyboard actions have the same semantics as the existing
 // controller actions. OFF (0) is intentional for legacy compatibility.
-enum class TpsKeyboardAction : int { Horse = 0, Toggle, Recenter, Suspend, Grenade, Count };
-inline constexpr std::array<const char*, 5> kTpsKeyboardLabels = {
+enum class TpsKeyboardAction : int { Horse = 0, Toggle, Recenter, Suspend, Count };
+inline constexpr std::array<const char*, 4> kTpsKeyboardLabels = {
     "Summon / dismount horse", "Long press TPS ON/OFF",
-    "Recenter TPS camera", "Hold temporary vanilla view", "Hold grenade / release stow"
+    "Recenter TPS camera", "Hold temporary vanilla view"
 };
-inline constexpr std::array<const wchar_t*, 5> kTpsKeyboardTokens = {
-    L"Horse", L"ToggleTPS", L"RecenterTPS", L"TemporaryView", L"Grenade"
+inline constexpr std::array<const wchar_t*, 4> kTpsKeyboardTokens = {
+    L"Horse", L"ToggleTPS", L"RecenterTPS", L"TemporaryView"
 };
 inline constexpr std::array<const char*, 8> kCameraLabels = {
   "Raise Height", "Lower Height", "Zoom Out", "Zoom In", "Tilt Down", "Tilt Up",
@@ -143,14 +143,11 @@ public:
     bool thirdPersonEnabled = false;
     bool thirdPersonFovEnabled = true;
     bool tpsFollowPlayer = true;
-    bool tpsSuppressNativeRightStick = true;
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
     bool cameraMouseOrbitEnabled = true;
     bool cameraControllerOrbitEnabled = true;
     // V0.75: mouse TPS firing always faces the camera; controller has
     // independent movement-facing and camera orbit options.
-    bool tpsControllerStrafeWhileFiring = false;
-    bool tpsControllerRotateWhileFiring = false;
     bool tpsHoldSuspendEnabled = true;
     bool tpsLongPressToggleEnabled = true;
     bool tpsGrenadeHoldEnabled = true;
@@ -205,7 +202,7 @@ public:
 
     std::array<Action, 12> hotkeys{};
     std::array<int, static_cast<size_t>(CameraAction::Count)> cameraKeys{{0x26,0x28,0x25,0x27,0,0,0x64,0x66}};
-    std::array<int, static_cast<size_t>(TpsKeyboardAction::Count)> tpsKeyboardKeys{{'H',0,0,0,0}};
+    std::array<int, static_cast<size_t>(TpsKeyboardAction::Count)> tpsKeyboardKeys{{'H','V','V','E'}};
 
     Store();
 
