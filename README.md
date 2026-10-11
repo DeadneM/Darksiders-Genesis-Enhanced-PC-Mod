@@ -2336,3 +2336,21 @@ Previous cumulative versions are preserved at `archive/downloads/` (V0.89 and sh
 **Camera Forward (EXPERIMENTAL, not yet user-validated)**: only when firing mounted in TPS Camera Forward mode, the game's native right-stick input is emulated straight UP while the physical right stick continues to move the independent TPS camera. This is a simpler native gamepad aiming attempt, not an actual mounted projectile raycast correction. Vanilla Aim and foot aiming remain unchanged. Switch to validated Vanilla Aim if Camera Forward still shoots off-axis.
 
 Detailed technical notes: [V0.92 rebinds + input](docs/V0_92_REBINDABLE_TPS_HORSE_FORWARD_INPUT.md). Stable `main` untouched; V0.91 backup stored in `archive/downloads`; test builds on `debug`.
+
+
+## V0.93 (2026-10-11) | TPS controls cleanup, unified Camera Forward / Vanilla Aim and single-tap horse recovery (TEST)
+
+**Protected validated baseline:** V0.91 Horse Everywhere banned-zone permissions (both normal camera and TPS), V0.90 exact two-shader aim indicator removal, mounted Vanilla Aim, horse movement/sprint/stamina, all earlier controller R3 grenade hold/release, HUD, FOV, graphics adapter, skip intros and overlays. No changes to `HorseFeature.cpp` or `ShaderAimFeature.cpp`. `main` remains untouched.
+
+**Horse Gameplay page:** a compact one-line description, native server/region/desummon metrics under a small collapsed information/debug tree. Keyboard Horse summon/dismount (default H) now sits beside two individually selectable simultaneously held controller buttons (default LB + RB) on the same page. Existing keyboard and gamepad bindings persist.
+
+**Banned area first-key ghost toggle (experimental):** if a REAL physical horse summon in a gated region made no server request and no live horse appears after 1.8 seconds, and was not a mounted player's voluntary dismount, issue at most ONE short native H recovery tap. This may avoid the old need to press twice; not guaranteed until tested. It never enters an endless respawn loop.
+
+**TPS aim modes on foot and horseback:**
+- `Camera Forward`: the independent TPS camera continues to read raw mouse/stick orbit, and the game receives virtual right-stick straight UP when RT/RB fires. The mounted effect is promising per user test; **on-foot extension is new and experimental**. The analog experiment does not create a virtual XInput device for mouse-only players.
+- `Vanilla Aim`: at idle free TPS camera; during firing, independent orbit pauses and the native gamepad and look getters handle aiming. Mounted implementation is user-validated, on-foot use is now experimental.
+- Keep existing strafe-while-firing movement behavior and all INI settings. The redundant on-foot camera rotate checkbox is hidden from the UI; one TPS aiming selector replaces the separate confusing choices.
+
+**Keyboard/controller side by side:** Camera > TPS controls groups keyboard rebinding and controller button selection in four rows by action: TPS long toggle, recenter, temporary native camera and grenade equip/stow. Shared press-duration settings are adjacent to their actions. Horse binding lives only under Gameplay. No defaults of old user mappings are overwritten.
+
+The V0.92 cumulative ZIP is preserved in the `archive` branch. Technical detail and caveats in [V0.93 notebook](docs/V0_93_UNIFIED_TPS_AIM_CONTROLS.md).
