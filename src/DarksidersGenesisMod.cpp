@@ -1436,6 +1436,21 @@ std::atomic_uint32_t g_tpsNativeLookInputMouseAim{0},g_tpsNativeLookInputPadAim{
 std::atomic_uint32_t g_tpsPadStrafeApplied{0},g_tpsNativeLookRotationBlocks{0};
 std::atomic_uint32_t g_tpsNativeLookSignatureFailures{0};
 
+// Actual mounted TPS camera source is written by HookView, with a short
+// expiry so stale HorseCharacter callbacks cannot make foot aim mounted.
+bool IsMountedTPSNow() {
+    auto& rt=dg::runtime::Get();
+    const ULONGLONG now=GetTickCount64();
+    const ULONGLONG tick=rt.tpsMountedViewTick.load(std::memory_order_acquire);
+    return rt.thirdPersonEnabled.load(std::memory_order_relaxed) &&
+        !rt.tpsTemporarilySuspended.load(std::memory_order_relaxed) &&
+        rt.tpsMountedViewActive.load(std::memory_order_acquire) &&
+        tick&&now>=tick&&now-tick<300ull;
+}
+bool MountedVanillaAimWhileFiring() {
+    return IsMountedTPSNow() &&
+        dg::runtime::Get().tpsMountedAimMode.load(std::memory_order_relaxed)==1;
+}
 bool IsLiveTPSLookActor(void* actor) {
     if(!actor || !g_targetValidation.exact || g_shuttingDown.load() ||
         !dg::runtime::Get().thirdPersonEnabled.load() ||
@@ -1448,7 +1463,7 @@ bool IsLiveTPSLookActor(void* actor) {
     if(!hwnd || GetForegroundWindow()!=hwnd || IsIconic(hwnd))return false;
     const ULONGLONG tick=dg::runtime::Get().tpsActorLocationTick.load(std::memory_order_acquire);
     const ULONGLONG now=GetTickCount64();
-    return tick&&now>=tick&&now-tick<250ull;
+    return (tick&&now>=tick&&now-tick<250ull)||IsMountedTPSNow();
 }
 bool IsPadFiringNow() {
     const ULONGLONG now=GetTickCount64();
@@ -1481,8 +1496,13 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
         return result;
     auto& rt=dg::runtime::Get();
     const bool mouseFiring=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
+    const bool mounted=IsMountedTPSNow();
+    const bool fire=mouseFiring||IsPadFiringNow();
+    // Mounted mode overrides on-foot strafe/rotate settings entirely.
+    // Mode 1: native look is passed through for vanilla horse aiming.
+    if(mounted && rt.tpsMountedAimMode.load()==1 && fire)return result;
     const bool padStrafeFiring=IsPadFiringNow()&&
-        rt.tpsControllerStrafeWhileFiring.load();
+        (mounted || rt.tpsControllerStrafeWhileFiring.load());
     if((mouseFiring||padStrafeFiring)&&IsTPSLookViewFresh()){
         // GetPlayerLookInput returns the native character's world-space
         // X/Y look VECTOR (RVA 0x671A40 reads actor+0xD24/0xD28).
@@ -1504,7 +1524,8 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
             return result;
         }
     }
-    if(!rt.tpsSuppressNativeRightStick.load()||!IsRightStickActiveNow())
+    if(mounted&&rt.tpsMountedAimMode.load()==1)return result;
+    if(!(mounted||rt.tpsSuppressNativeRightStick.load())||!IsRightStickActiveNow())
         return result;
     // Existing XInput block remains enabled. This is a SECOND, precise
     // in-game look-vector gate for direct controller/HID paths. Our TPS
@@ -1525,8 +1546,11 @@ NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
     auto& rt=dg::runtime::Get();
     const bool mouseFire=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
     const bool padFire=IsPadFiringNow();
-    const bool playerStrafe=padFire&&rt.tpsControllerStrafeWhileFiring.load();
-    const bool nativeBlock=rt.tpsSuppressNativeRightStick.load()&&
+    const bool mounted=IsMountedTPSNow();
+    const bool playerStrafe=padFire&&(mounted||
+        rt.tpsControllerStrafeWhileFiring.load());
+    if(mounted&&rt.tpsMountedAimMode.load()==1)return result;
+    const bool nativeBlock=(mounted||rt.tpsSuppressNativeRightStick.load())&&
         IsRightStickActiveNow();
     const float actorYaw=g_tpsActorWorldYaw.load(std::memory_order_acquire);
     const float cameraYaw=dg::camera_trace::GetTelemetry().appliedYaw;
@@ -2723,8 +2747,11 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     // The same right-stick suppression applies while running, idle AND
     // firing. Our own camera separately reads the UNFILTERED trampoline.
     // This is input isolation, NOT yet a shot-direction fix.
-    if(rt.tpsSuppressNativeRightStick.load() &&
-       (pad.sThumbRX!=0 || pad.sThumbRY!=0)){
+    const bool mounted=IsMountedTPSNow();
+    const bool nativeMountedAim=mounted && rt.tpsMountedAimMode.load()==1;
+    const bool blockLook=(mounted && !nativeMountedAim) ||
+        (!mounted && rt.tpsSuppressNativeRightStick.load());
+    if(blockLook && (pad.sThumbRX!=0 || pad.sThumbRY!=0)){
         pad.sThumbRX=0;pad.sThumbRY=0;
         const unsigned n=++g_nativePadAimSuppressed;
         if(fire){
@@ -3392,8 +3419,14 @@ void UpdateOrbitInput() {
         // V0.75: explicit *camera* rotate-while-firing option. Unlike
         // vanilla right-stick PLAYER blocking, this controls ONLY the
         // independent TPS camera orbit. The two switches must not overlap.
+        // Mounted shooting overrides all on-foot rotate/strafe switches.
+        // Mode 0 keeps camera orbit live; mode 1 freezes independent orbit
+        // and leaves the native right stick to aim (see FilterNativeXInput).
+        const bool mounted=IsMountedTPSNow();
+        const bool nativeMountAim=mounted&&rt.tpsMountedAimMode.load()==1;
         suspendControllerOrbitOnFire=padFiringForOrbit &&
-            !rt.tpsControllerRotateWhileFiring.load();
+            (nativeMountAim || (!mounted &&
+                !rt.tpsControllerRotateWhileFiring.load()));
         // Diagnostic/limited guard for controller software mapping the right
         // stick into Windows mouse movement IN ADDITION TO native XInput.
         // Never globally suppress real mouse input, and time out promptly.
@@ -3470,8 +3503,12 @@ void UpdateOrbitInput() {
     }
     const float mouse=g_config.cameraMouseSensitivity,stick=g_config.cameraStickSpeed;
     if (!std::isfinite(mouse)||!std::isfinite(stick)) return;
-    const float dyaw=(g_config.cameraMouseOrbitEnabled?static_cast<float>(dx)*mouse:0.0f)+ax*stick*dt;
-    const float dpitch=(g_config.cameraMouseOrbitEnabled?-static_cast<float>(dy)*mouse:0.0f)+ay*stick*dt;
+    const bool freezeMountedMouse=MountedVanillaAimWhileFiring() &&
+        ((GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0||IsPadFiringNow());
+    const float dyaw=(!freezeMountedMouse&&g_config.cameraMouseOrbitEnabled?
+        static_cast<float>(dx)*mouse:0.0f)+ax*stick*dt;
+    const float dpitch=(!freezeMountedMouse&&g_config.cameraMouseOrbitEnabled?
+        -static_cast<float>(dy)*mouse:0.0f)+ay*stick*dt;
     if (dyaw!=0.0f || dpitch!=0.0f) {
         rt.cameraOrbitYawDegrees.store(std::remainder(rt.cameraOrbitYawDegrees.load()+dyaw,360.0f));
         rt.cameraOrbitPitchDegrees.store(std::clamp(rt.cameraOrbitPitchDegrees.load()+dpitch,-60.0f,60.0f));
