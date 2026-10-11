@@ -3254,6 +3254,12 @@ dg::overlay::Context BuildOverlayContext() {
         g_lastOutgoingTagCount.load();
 
     t.aimNativeFxCalls = g_tpsGroundAimFxEntered.load();
+    t.aimUiTargetingEvents = g_aimUiEvents.load();
+    t.aimUiPositionEvents = g_aimUiPositionEvents.load();
+    t.mountedIdleLookBlocks = g_tpsMountedIdleNativeLookBlocks.load();
+    t.mountedCtrlDown = g_tpsMountedCtrlDown.load();
+    t.mountedCtrlUp = g_tpsMountedCtrlUp.load();
+    t.mountedCtrlActive = g_tpsMountedCtrlBridgeDown.load();
     t.grenadePhysicalDown = g_tpsGrenadeDownCount.load();
     t.grenadePhysicalUp = g_tpsGrenadeUpCount.load();
     t.grenadeNativeReleasePulses = g_tpsGrenadeReleasePulseDelivered.load();
