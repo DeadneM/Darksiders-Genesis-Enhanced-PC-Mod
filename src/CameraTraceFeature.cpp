@@ -188,7 +188,29 @@ void HookView(void* camera, float dt, void* outView) {
     // Never override far-away/cinematic native views based only on a
     // matching pitch/FOV signature.
     const bool normalAngles=nativePitch>=-89.0f&&nativePitch<=-15.0f;
-    const bool gameplayCamera=actorValid&&normalAngles&&nearPawn;
+    // V0.95: gameplay radial UIs can momentarily make the original
+    // camera fail the conservative camera-angle/proximity heuristic.
+    // Recover only if this SAME local player had a recently attached
+    // TPS view, the native camera is still near that player, AND the
+    // native wheel input is physically held. Never enter from a menu
+    // or remote cinematic without a recent live TPS view.
+    const auto lastTPS=settings.tpsGameplayViewTick.load(std::memory_order_acquire);
+    const auto wheelTick=settings.tpsAbilityWheelTick.load(std::memory_order_acquire);
+    const bool nativeWheel=settings.tpsAbilityWheelHeld.load(std::memory_order_acquire) &&
+        wheelTick && now>=wheelTick && now-wheelTick<250ull;
+    const bool recentTPS=lastTPS && now>=lastTPS && now-lastTPS<650ull;
+    const bool radialGameplay=nativeWheel && recentTPS && actorValid &&
+        planar<11000.0f && std::fabs(nativeDz)<9000.0f;
+    const bool gameplayCamera=(actorValid&&normalAngles&&nearPawn)||radialGameplay;
+    if(radialGameplay && !(normalAngles&&nearPawn)){
+        static unsigned recovered=0;
+        if(++recovered<=8||recovered==1000){
+            char msg[200]{};
+            sprintf_s(msg,"TPS V0.95 RADIAL: preserved TPS camera despite changed native view #%u pitch=%.1f gapXY=%.0f gapZ=%.0f",
+                recovered,nativePitch,planar,nativeDz);
+            Write(msg);
+        }
+    }
     // Temporary R3 vanilla view must not discard the previously chosen TPS orbit basis.
     // Only F5 / true TPS OFF resets the reference.
     if(!settings.thirdPersonEnabled.load(std::memory_order_relaxed))ResetZoneReference();
