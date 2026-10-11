@@ -35,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.76-controller-hold-camera-grenade-test";
+constexpr const char* kBuild = "0.77-r3-hold-delay-aim-effect-diagnostics-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -3299,16 +3299,32 @@ void UpdateOrbitInput() {
         }
         toggleHeld=false;toggleConsumed=false;toggleStarted=0;
     }
+    // V0.77: delay START of temporary vanilla view without delaying release.
+    // This prevents a quick R3 grenade tap from making the camera flash.
+    // Time only valid uninterrupted physical DOWN in a focused gameplay frame.
+    // If the user rebinds the button mid-game, the timer restarts cleanly.
+    static ULONGLONG suspendStarted=0;
+    static WORD previousSuspendMask=0;
     const WORD suspendMask=static_cast<WORD>(g_config.tpsSuspendButtonMask);
-    const bool temporaryVanilla=focused && g_config.thirdPersonEnabled &&
+    const bool holdInput=focused && g_config.thirdPersonEnabled &&
         g_config.tpsHoldSuspendEnabled && padAvailable && suspendMask &&
         ((physicalBits&suspendMask)!=0);
+    if(!holdInput || previousSuspendMask!=suspendMask)
+        suspendStarted=0;
+    if(holdInput && !suspendStarted)
+        suspendStarted=now;
+    previousSuspendMask=suspendMask;
+    const int delayMs=std::clamp(g_config.tpsSuspendDelayMs,0,3000);
+    const bool temporaryVanilla=holdInput && suspendStarted &&
+        now>=suspendStarted &&
+        now-suspendStarted>=static_cast<ULONGLONG>(delayMs);
     const bool before=rt.tpsTemporarilySuspended.exchange(
         temporaryVanilla,std::memory_order_acq_rel);
     if(before!=temporaryVanilla){
         const unsigned n=++g_tpsHoldSuspendCount;
-        Log("TPS V0.76: temporary vanilla-view %s n=%u button=0x%04X (TPS selection preserved)",
-            temporaryVanilla?"ON":"OFF",n,unsigned(suspendMask));
+        Log("TPS V0.77: temporary vanilla-view %s n=%u button=0x%04X delay=%d ms held=%llu ms",
+            temporaryVanilla?"ON":"OFF",n,unsigned(suspendMask),delayMs,
+            static_cast<unsigned long long>(holdInput&&suspendStarted?now-suspendStarted:0ull));
     }
     const bool active=g_config.thirdPersonEnabled && !temporaryVanilla &&
         (g_config.cameraMouseOrbitEnabled||g_config.cameraControllerOrbitEnabled) &&
