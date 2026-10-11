@@ -388,16 +388,20 @@ void Draw(Context& c) {
 
             const horse::Telemetry horseTelemetry =
                 horse::GetTelemetry();
-            if(ImGui::Checkbox("Horse Everywhere (research, default ON)",
+            if(ImGui::Checkbox("Horse Everywhere (experimental native gate, default ON)",
                     &config.horseEverywhereEnabled)) config.Save();
-            ImGui::TextDisabled("Default ON for research. Zone restrictions are NOT bypassed yet.");
-            ImGui::TextDisabled("Investigating separately: summon denied vs horse removed in banned area.");
+            ImGui::TextDisabled("V0.89 TEST: overrides local horse-region answers for 1.6s after H / LB+RB.");
+            ImGui::TextDisabled("Banned volumes may still DESPAWN a horse; no persistent region override.");
             ImGui::TextDisabled("%s | server requests observed: %u (while selected: %u)",
-                horseTelemetry.summonProbeReady ? "Detection ready; bypass NOT implemented" :
-                    "Detection unavailable; bypass NOT implemented",
+                horseTelemetry.summonProbeReady ? "Summon server probe ready; override still EXPERIMENTAL" :
+                    "Summon server probe unavailable; override still EXPERIMENTAL",
                 horseTelemetry.summonServerCalls,
                 horseTelemetry.summonServerCallsWhileRequested);
-            ImGui::TextDisabled("Turning this ON does not yet remove zone restrictions. No forced spawning.");
+            ImGui::TextDisabled("Allowed-region checks %u / local overrides %u",
+                horseTelemetry.regionQueries,horseTelemetry.regionOverrides);
+            ImGui::TextDisabled("Desummon-region checks %u / local overrides %u",
+                horseTelemetry.desummonQueries,horseTelemetry.desummonOverrides);
+            ImGui::TextDisabled("Experimental: no forced spawning. Set OFF immediately if a mission/area behaves incorrectly.");
 
             DrawTunableFeature(
                 config,
