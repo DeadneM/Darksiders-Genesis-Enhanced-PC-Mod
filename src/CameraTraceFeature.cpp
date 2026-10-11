@@ -98,7 +98,7 @@ void HookView(void* camera, float dt, void* outView) {
     if(activeHorseAim && lastHorse.load())mountedAimPoseLatched.store(true);
     if(!activeHorseAim)mountedAimPoseLatched.store(false);
     bool usingHorse=false;
-    const bool holdHorsePose=thirdPerson && activeHorse &&
+    const bool holdHorsePose=thirdPerson && activeHorseAim &&
         mountedAimPoseLatched.load(std::memory_order_relaxed);
     if(holdHorsePose)actorValid=false;
     if(thirdPerson&&!actorValid){
@@ -112,7 +112,7 @@ void HookView(void* camera, float dt, void* outView) {
            std::fabs(hy)<1.0e7f&&std::fabs(hz)<1.0e7f){
             ax=hx;ay=hy;az=hz;actorYaw=hyaw;
             actorValid=true;usingHorse=true;
-            if(activeHorse)mountedAimPoseLatched.store(true);
+            if(activeHorseAim)mountedAimPoseLatched.store(true);
         }
     }
     if(thirdPerson&&actorValid){
