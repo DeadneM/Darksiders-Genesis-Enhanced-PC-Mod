@@ -436,7 +436,7 @@ bool Store::Load() {
     tpsLongPressToggleEnabled=ReadBool(L"Features",L"TPSHoldToggle",true,path_);
     tpsGrenadeHoldEnabled=ReadBool(L"Features",L"TPSGrenadeHold",true,path_);
     tpsHideGroundAimFx=ReadBool(L"Features",L"TPSHideGroundAimFx",true,path_);
-    aimIndicatorHideMode=std::clamp(GetPrivateProfileIntW(L"Features",L"AimIndicatorHideMode",2,path_.c_str()),0,2);
+    aimIndicatorHideMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(L"Features",L"AimIndicatorHideMode",2,path_.c_str())),0,2);
     tpsHorseStableAimCamera=ReadBool(L"Features",L"TPSHorseStableAimCamera",true,path_);
     tpsSuspendButtonMask=GetPrivateProfileIntW(L"Controls",L"TPSSuspendButtonMask",0x0080,path_.c_str());
     tpsSuspendDelayMs=GetPrivateProfileIntW(L"Controls",L"TPSSuspendDelayMs",300,path_.c_str());
