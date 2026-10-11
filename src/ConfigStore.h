@@ -146,6 +146,7 @@ public:
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
     bool cameraMouseOrbitEnabled = true;
     bool cameraControllerOrbitEnabled = true;
+    bool tpsMouseCenterAimEnabled = true; // V0.95 reversible mouse targeting test
     // V0.75: mouse TPS firing always faces the camera; controller has
     // independent movement-facing and camera orbit options.
     bool tpsHoldSuspendEnabled = true;
