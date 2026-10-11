@@ -389,7 +389,7 @@ void Draw(Context& c) {
                 horse::GetTelemetry();
             if(ImGui::Checkbox("Horse Everywhere (experimental research)",
                     &config.horseEverywhereEnabled)) config.Save();
-            ImGui::TextDisabled("Goal: remove no-mount zones. Currently tracks summon requests only.");
+            ImGui::TextDisabled("Experimental: tests the native horse-area checks on H / LB+RB only.");
             ImGui::TextDisabled("%s | server requests observed: %u (while selected: %u)",
                 horseTelemetry.summonProbeReady ? "Detection ready; bypass NOT implemented" :
                     "Detection unavailable; bypass NOT implemented",
