@@ -90,9 +90,13 @@ void HookView(void* camera, float dt, void* outView) {
     // to an on-foot pose updated on a mount animation frame. No cached
     // UObject is dereferenced and unmounted camera behavior is untouched.
     static std::atomic_bool mountedAimPoseLatched{false};
+    static std::atomic_bool lastHorse{false};
     const bool activeHorseAim=settings.tpsHorseStableAimCamera.load() &&
         settings.tpsAimActive.load(std::memory_order_acquire);
-    if(!activeHorse)mountedAimPoseLatched.store(false);
+    // The horse pose was already recognized in the previous gameplay frame
+    // before pressing fire, so arm the latch immediately on first RT/RB frame.
+    if(activeHorseAim && lastHorse.load())mountedAimPoseLatched.store(true);
+    if(!activeHorseAim)mountedAimPoseLatched.store(false);
     bool usingHorse=false;
     const bool holdHorsePose=thirdPerson && activeHorse &&
         mountedAimPoseLatched.load(std::memory_order_relaxed);
@@ -111,7 +115,6 @@ void HookView(void* camera, float dt, void* outView) {
             if(activeHorse)mountedAimPoseLatched.store(true);
         }
     }
-    static std::atomic_bool lastHorse{false};
     if(thirdPerson&&actorValid){
         if(lastHorse.exchange(usingHorse)!=usingHorse){
             char message[180]{};
