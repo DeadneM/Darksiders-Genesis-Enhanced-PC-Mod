@@ -16,6 +16,7 @@
 #include "HorseFeature.h"
 #include "OverlayUi.h"
 #include "RuntimeSettings.h"
+#include "ShaderAimFeature.h"
 #include "SkipLogosFeature.h"
 #include "TargetValidator.h"
 
@@ -35,7 +36,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.89-scoped-horse-native-regions-forward-observation-test";
+constexpr const char* kBuild = "0.90-aim-shaders-mounted-horse-region-retention-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -4052,6 +4053,10 @@ bool DiscoverAndHookD3D11() {
         return false;
     }
 
+    // Early D3D11 probe device exists before game shader creation. Aim-only
+    // GPU interception is isolated and fail-open; gameplay hooks untouched.
+    dg::aim_shader::Install(probeDevice, probeContext, &Log);
+
     status = MH_EnableHook(MH_ALL_HOOKS);
     if (status != MH_OK) {
         Log("MinHook enable FAILED status=%d", static_cast<int>(status));
@@ -4089,6 +4094,7 @@ void ShutdownMod() {
     g_config.FlushIfDue(true);
     dg::skip_logos::Shutdown();
     dg::horse::Shutdown();
+    dg::aim_shader::Shutdown();
     RestoreCameraDof();
     Log("TPS V0.69 totals: mouseInputNative=PASSTHROUGH rightStickReadsFiltered=%u whileFiring=%u",
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
