@@ -102,6 +102,7 @@ std::atomic_uint32_t g_tpsControllerMouseBlocks{0};
 // Do not modify the validated V0.75 native firing/aim callback logic.
 std::atomic_uint32_t g_tpsHoldSuspendCount{0},g_tpsHoldToggleCount{0};
 std::atomic_uint32_t g_tpsGrenadeDownCount{0},g_tpsGrenadeUpCount{0};
+std::atomic_uint32_t g_tpsGrenadeReleasePulseDelivered{0};
 std::atomic_uint32_t g_tpsGroundAimFxHidden{0};
 std::atomic_uint32_t g_tpsGroundAimFxEntered{0};
 std::atomic_uint32_t g_tpsGroundAimFxAlreadyHidden{0};
@@ -114,6 +115,7 @@ struct GrenadeHoldState {
     ULONGLONG finishPulse=0;
     ULONGLONG releaseStart=0;
     ULONGLONG releaseFinish=0;
+    bool releasePulseDelivered=false;
 };
 GrenadeHoldState g_grenadeHoldState{};
 SRWLOCK g_tpsFacingLock=SRWLOCK_INIT;
@@ -1607,10 +1609,14 @@ bool InstallNativeTPSRotationHook() {
 void HookGroundAimEffect(void* ability,bool hide) {
     if(!g_groundAimEffectOriginal)return;
     auto& rt=dg::runtime::Get();
-    const bool forced=g_targetValidation.exact &&
-        rt.thirdPersonEnabled.load() &&
-        !rt.tpsTemporarilySuspended.load() &&
-        rt.tpsHideGroundAimFx.load() && !g_overlayVisible.load();
+    // V0.84: three user-selectable scopes. Still a diagnostic ONLY for
+    // Strife's cyan line/semicircle until their actual render effect is found.
+    const bool tps=rt.thirdPersonEnabled.load(std::memory_order_relaxed) &&
+        !rt.tpsTemporarilySuspended.load(std::memory_order_relaxed);
+    const int scope=rt.aimIndicatorHideMode.load(std::memory_order_relaxed);
+    const bool selected=(scope==0)||(scope==1&&!tps)||(scope==2&&tps);
+    const bool forced=g_targetValidation.exact && selected &&
+        !g_overlayVisible.load(std::memory_order_relaxed);
     // V0.77: separate "native hook was called" from "we forced hide."
     // The V0.76 log reported 0 hides even during combat, which cannot
     // distinguish a never-called ability from an already-hidden FX.
@@ -1619,8 +1625,8 @@ void HookGroundAimEffect(void* ability,bool hide) {
     if(hide)++g_tpsGroundAimFxAlreadyHidden;
     if(calls==1||calls==250||calls==2000)
         Log("TPS V0.77 FX AUDIT: HideGroundTargetingEffect called n=%u requestedHide=%d forceEnabled=%d tps=%d",
-            calls,hide?1:0,rt.tpsHideGroundAimFx.load()?1:0,
-            rt.thirdPersonEnabled.load()?1:0);
+            calls,hide?1:0,selected?1:0,
+            tps?1:0);
     if(forced&&!hide){
         const unsigned n=++g_tpsGroundAimFxHidden;
         if(n==1||n==1000)
@@ -2640,11 +2646,13 @@ const wchar_t* const kNativeXInputLibraries[]={
 // animation, combat logic and movement-component lifetime safety.
 // All heading changes are only active while RT/RB is held; the grenade/held
 // item throw shares RT. LB radial / capability menus always receive vanilla.
-// V0.76: present the game's native R3 toggle as a press on physical DOWN,
-// and another press on physical RELEASE. A synthetic gap is essential:
-// otherwise the game sees one uninterrupted button press and won't stow.
-// Scope to local controller #0, TPS requested, focused gameplay only.
-// Native aim, LB radial and all other controls remain original.
+// V0.84 grenade hold repair. Previously the game-facing R3 DOWN lasted
+// only 65 ms even while physical R3 remained held. A game poll could miss
+// the tap, or see an artificial UP while the player was still holding R3.
+// Keep the PHYSICAL R3 held normally for the full press. After its release,
+// produce one distinct, sufficiently long native-toggle DOWN pulse separated
+// by a definite UP interval. All other controller bits stay exactly native.
+// This code never changes TPS camera hold timing or native firing.
 void ApplyHoldGrenadeVirtualR3(WORD& buttons) {
     const ULONGLONG now=GetTickCount64();
     const bool physical=(buttons&XINPUT_GAMEPAD_RIGHT_THUMB)!=0;
@@ -2654,21 +2662,31 @@ void ApplyHoldGrenadeVirtualR3(WORD& buttons) {
         st.physicalDown=physical;
         if(physical){
             st.startPulse=now;
-            st.finishPulse=now+65;
             st.releaseStart=st.releaseFinish=0;
-            ++g_tpsGrenadeDownCount;
+            st.releasePulseDelivered=false;
+            const unsigned n=++g_tpsGrenadeDownCount;
+            if(n<=8)Log("TPS V0.84 GRENADE: physical R3 DOWN n=%u; forward continuous hold",n);
         } else {
-            st.releaseStart=std::max(now,st.finishPulse+65);
-            st.releaseFinish=st.releaseStart+80;
-            ++g_tpsGrenadeUpCount;
+            // A clear UP edge, then a new second DOWN edge to stow.
+            // 100ms release gap and 200ms pulse cover low-frequency polls.
+            st.releaseStart=now+100;
+            st.releaseFinish=st.releaseStart+200;
+            st.releasePulseDelivered=false;
+            const unsigned n=++g_tpsGrenadeUpCount;
+            if(n<=8)Log("TPS V0.84 GRENADE: physical R3 UP n=%u; second native press queued after gap",n);
         }
     }
-    const bool pulseDown=physical && now>=st.startPulse &&
-        now<st.finishPulse;
-    const bool pulseRelease=!physical && st.releaseStart &&
+    const bool releasePulse=!physical && st.releaseStart &&
         now>=st.releaseStart && now<st.releaseFinish;
-    if(pulseDown||pulseRelease)buttons|=XINPUT_GAMEPAD_RIGHT_THUMB;
-    else buttons &= static_cast<WORD>(~XINPUT_GAMEPAD_RIGHT_THUMB);
+    if(physical || releasePulse)
+        buttons|=XINPUT_GAMEPAD_RIGHT_THUMB;
+    else
+        buttons &= static_cast<WORD>(~XINPUT_GAMEPAD_RIGHT_THUMB);
+    if(releasePulse&&!st.releasePulseDelivered){
+        st.releasePulseDelivered=true;
+        const unsigned n=++g_tpsGrenadeReleasePulseDelivered;
+        if(n<=8)Log("TPS V0.84 GRENADE: second R3 pulse sent to native XInput n=%u",n);
+    }
     ReleaseSRWLockExclusive(&g_grenadeHoldLock);
 }
 
@@ -3099,6 +3117,10 @@ dg::overlay::Context BuildOverlayContext() {
     t.lastOutgoingTagCount =
         g_lastOutgoingTagCount.load();
 
+    t.aimNativeFxCalls = g_tpsGroundAimFxEntered.load();
+    t.grenadePhysicalDown = g_tpsGrenadeDownCount.load();
+    t.grenadePhysicalUp = g_tpsGrenadeUpCount.load();
+    t.grenadeNativeReleasePulses = g_tpsGrenadeReleasePulseDelivered.load();
     t.hotstreakBoostCalls =
         g_hotstreakBoostCalls.load();
     t.lastNativeJuiceGain =
@@ -3770,6 +3792,9 @@ void ShutdownMod() {
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
     Log("TPS V0.72 totals: controllerMappedMouseMessagesBlocked=%u rightStickFiltered=%u",
         g_tpsControllerMouseBlocks.load(),g_nativePadAimSuppressed.load());
+    Log("TPS V0.84 grenade totals: physicalDown=%u physicalUp=%u nativeReleasePulses=%u (game pickup/stow must be verified visually)",
+        g_tpsGrenadeDownCount.load(),g_tpsGrenadeUpCount.load(),
+        g_tpsGrenadeReleasePulseDelivered.load());
     Log("TPS V0.77 totals: holdSuspend=%u longToggle=%u grenadeDown=%u grenadeUp=%u groundFxCalls=%u alreadyHidden=%u forcedHidden=%u",
         g_tpsHoldSuspendCount.load(),g_tpsHoldToggleCount.load(),
         g_tpsGrenadeDownCount.load(),g_tpsGrenadeUpCount.load(),
