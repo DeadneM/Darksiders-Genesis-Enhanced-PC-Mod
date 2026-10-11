@@ -773,22 +773,16 @@ void Draw(Context& c) {
                         config.Save();
                 }
                 ImGui::TextDisabled("Only Third Person, focused game, closed overlay.");
-                ImGui::TextDisabled("Right stick filter below is separate from orbit enable.");
+                ImGui::TextDisabled("Native right-stick isolation is automatic in TPS.");
                 ImGui::Unindent();
             }
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
                 DrawSectionTitle("TPS controls and aiming");
-                if (ImGui::Checkbox("Block vanilla right-stick player rotation (even while firing)",
-                        &config.tpsSuppressNativeRightStick)) config.Save();
                 ImGui::TextDisabled("TPS mouse uses native flat-plane targeting (3D aim not yet fixed).");
-                ImGui::TextDisabled("No fixed crosshair or simulated aim.");
+                ImGui::TextDisabled("Camera Forward emulates native controller forward aim only while firing.");
                 ImGui::Separator();
-                ImGui::TextDisabled("Firing follows the TPS camera direction while keeping native projectile physics.");
-                ImGui::TextDisabled("Controller / camera right stick");
-                if (ImGui::Checkbox("Strafe while firing (player movement)##PadTPS",
-                        &config.tpsControllerStrafeWhileFiring)) config.Save();
-                ImGui::TextDisabled("Strafe controls native player movement; aim mode below controls the camera.");
+                ImGui::TextDisabled("Native movement and camera isolation are automatic in TPS.");
                 ImGui::Separator();
                 ImGui::TextDisabled("Unified TPS aiming (on foot + mounted)");
                 constexpr const char* kMountedModes[]={
@@ -871,8 +865,8 @@ void Draw(Context& c) {
                 if(ImGui::SliderInt("Temporary view delay##HoldTPS",
                     &config.tpsSuspendDelayMs,0,3000,"%d ms"))config.Save();
                 ImGui::Spacing();
-                BindTPSKeyboard("Grenade hold / release stow",dg::config::TpsKeyboardAction::Grenade);
-                BindGamepadMask("Controller grenade##TPS",config.tpsGrenadeButtonMask);
+                BindGamepadMask("Controller grenade (native R3)##TPS",config.tpsGrenadeButtonMask);
+                ImGui::TextDisabled("Keyboard Use Gear = native E (no duplicate mod shortcut).");
                 ImGui::TextDisabled("Default R3 grenade/temporary view, L3 short recenter/long TPS toggle.");
                 ImGui::TextDisabled("Grenade stow pulses: %u | DOWN %u / UP %u",
                     t.grenadeNativeReleasePulses,t.grenadePhysicalDown,t.grenadePhysicalUp);
