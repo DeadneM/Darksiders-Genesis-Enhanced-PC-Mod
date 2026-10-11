@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2124;
+constexpr int kConfigRevision = 2125;
 
 bool ReadBool(
     const wchar_t* section,
@@ -311,6 +311,7 @@ void Store::ResetDefaults(bool persist) {
     tpsLongPressToggleEnabled = true;
     tpsGrenadeHoldEnabled = true;
     tpsHideGroundAimFx = true;
+    aimIndicatorHideMode = 2; // TPS Only (default)
     tpsHorseStableAimCamera = true;
     tpsSuspendButtonMask = 0x0080;
     tpsSuspendDelayMs = 300;
@@ -435,6 +436,7 @@ bool Store::Load() {
     tpsLongPressToggleEnabled=ReadBool(L"Features",L"TPSHoldToggle",true,path_);
     tpsGrenadeHoldEnabled=ReadBool(L"Features",L"TPSGrenadeHold",true,path_);
     tpsHideGroundAimFx=ReadBool(L"Features",L"TPSHideGroundAimFx",true,path_);
+    aimIndicatorHideMode=std::clamp(GetPrivateProfileIntW(L"Features",L"AimIndicatorHideMode",2,path_.c_str()),0,2);
     tpsHorseStableAimCamera=ReadBool(L"Features",L"TPSHorseStableAimCamera",true,path_);
     tpsSuspendButtonMask=GetPrivateProfileIntW(L"Controls",L"TPSSuspendButtonMask",0x0080,path_.c_str());
     tpsSuspendDelayMs=GetPrivateProfileIntW(L"Controls",L"TPSSuspendDelayMs",300,path_.c_str());
@@ -633,6 +635,7 @@ void Store::PublishRuntime() const {
     runtime.tpsControllerStrafeWhileFiring = tpsControllerStrafeWhileFiring;
     runtime.tpsControllerRotateWhileFiring = tpsControllerRotateWhileFiring;
     runtime.tpsHideGroundAimFx = tpsHideGroundAimFx;
+    runtime.aimIndicatorHideMode = aimIndicatorHideMode;
     runtime.tpsHorseStableAimCamera = tpsHorseStableAimCamera;
     runtime.thirdPersonDistanceMultiplier = thirdPersonDistanceMultiplier;
     runtime.thirdPersonPitchDegrees = thirdPersonPitchDegrees;
@@ -752,6 +755,9 @@ bool Store::SaveNow() {
     WriteBool(L"Features",L"TPSHoldToggle",tpsLongPressToggleEnabled,path_);
     WriteBool(L"Features",L"TPSGrenadeHold",tpsGrenadeHoldEnabled,path_);
     WriteBool(L"Features",L"TPSHideGroundAimFx",tpsHideGroundAimFx,path_);
+    wchar_t aimModeBuffer[12]{};
+    swprintf_s(aimModeBuffer,L"%d",std::clamp(aimIndicatorHideMode,0,2));
+    WritePrivateProfileStringW(L"Features",L"AimIndicatorHideMode",aimModeBuffer,path_.c_str());
     WriteBool(L"Features",L"TPSHorseStableAimCamera",tpsHorseStableAimCamera,path_);
     wchar_t buttonBuffer[16]{};
     swprintf_s(buttonBuffer,L"%d",tpsRecenterButtonMask);
