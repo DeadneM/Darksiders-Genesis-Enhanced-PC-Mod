@@ -19,6 +19,7 @@ struct Snapshot {
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
     bool cameraMouseOrbitEnabled = true;
     bool cameraControllerOrbitEnabled = true;
+    bool tpsMouseCenterAimEnabled = true;
     // V0.75: native TPS mouse firing automatically uses camera heading.
     bool tpsHideGroundAimFx = true;
     int aimIndicatorHideMode = 2;
@@ -75,6 +76,7 @@ struct State {
     std::atomic_bool cameraOrbitInputEnabled{true};
     std::atomic_bool cameraMouseOrbitEnabled{true};
     std::atomic_bool cameraControllerOrbitEnabled{true};
+    std::atomic_bool tpsMouseCenterAimEnabled{true};
     std::atomic_bool tpsTemporarilySuspended{false};
     std::atomic_bool tpsAbilityWheelHeld{false}; // LB radial: keep TPS camera, native right-stick selection
     std::atomic_ullong tpsAbilityWheelTick{0}; // recent physical LB / native keyboard wheel input
