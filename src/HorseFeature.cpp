@@ -957,19 +957,36 @@ bool IsCameraIndependentLocalRide(void* actor){
     if(now-born>1200ull&&onFoot>born+850ull)return false;
     return true;
 }
+// V0.95: permit entering the game's OWN native mount state while the
+// locally controlled PLAYER is live on foot, not only AFTER the keypress.
+// A banned-area UMG/Blueprint caller can query region permissions before
+// receiving H or the controller chord; delaying permission until H makes
+// the first press only clear the lock and forces a second press.
+// This never spawns a horse or modifies a quest/scripted desummon function.
+bool IsLiveLocalPlayerForHorseRegion(void* actor){
+    if(!actor)return false;
+    const auto& rt=dg::runtime::Get();
+    if(!rt.horseEverywhereEnabled.load(std::memory_order_relaxed))return false;
+    if(actor!=g_lastLocalPlayerIdentity.load(std::memory_order_acquire))
+        return false;
+    const auto at=g_lastLocalPlayerTick.load(std::memory_order_acquire);
+    const auto now=GetTickCount64();
+    return at&&now>=at&&now-at<=5000ull;
+}
 bool HookHorseRegion(void* actor){
     const bool original=g_originalHorseRegion?g_originalHorseRegion(actor):false;
     const unsigned calls=++g_regionQueries;
     const bool summoned=IsLocalSummonIntent(actor);
     const bool ridden=IsLiveLocalMountedRide(actor);
     const bool nativeRide=IsCameraIndependentLocalRide(actor);
-    const bool scope=summoned||ridden||nativeRide;
+    const bool pregranted=IsLiveLocalPlayerForHorseRegion(actor);
+    const bool scope=summoned||ridden||nativeRide||pregranted;
     if(scope&&!original){
         if(ridden&&!summoned)++g_mountedRegionHolds;
         if(nativeRide&&!ridden&&!summoned)++g_nativeCameraRegionHolds;
         const unsigned n=++g_regionOverrides;
-        if(n<=3)FeatureLog("Horse Everywhere V0.91 REGION: native=false => allowed #%u call=%u input=%d tps=%d nativeRide=%d",
-            n,calls,summoned?1:0,ridden?1:0,nativeRide?1:0);
+        if(n<=5)FeatureLog("Horse Everywhere V0.95 REGION: native=false => allowed #%u call=%u input=%d tps=%d nativeRide=%d localPregrant=%d",
+            n,calls,summoned?1:0,ridden?1:0,nativeRide?1:0,pregranted?1:0);
         return true;
     }
     if(calls<=5)FeatureLog("Horse Everywhere V0.89 REGION: query #%u native=%d scope=%d",calls,original?1:0,scope?1:0);
