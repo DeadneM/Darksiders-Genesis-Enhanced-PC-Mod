@@ -779,8 +779,10 @@ void Draw(Context& c) {
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
                 DrawSectionTitle("TPS controls and aiming");
-                ImGui::TextDisabled("TPS mouse uses native flat-plane targeting (3D aim not yet fixed).");
-                ImGui::TextDisabled("Camera Forward emulates native controller forward aim only while firing.");
+                if(ImGui::Checkbox("Mouse TPS: center native aiming target while firing (test)",
+                    &config.tpsMouseCenterAimEnabled))config.Save();
+                ImGui::TextDisabled("Only Camera Forward on foot. Physical RAW mouse still controls the camera.");
+                ImGui::TextDisabled("Turn OFF if cursor warp affects targeting or gameplay.");
                 ImGui::Separator();
                 ImGui::TextDisabled("Native movement and camera isolation are automatic in TPS.");
                 ImGui::Separator();
@@ -862,7 +864,7 @@ void Draw(Context& c) {
                 BindTPSKeyboard("Temporary vanilla view",dg::config::TpsKeyboardAction::Suspend);
                 BindGamepadMask("Controller temporary view##TPS",config.tpsSuspendButtonMask);
                 if(config.tpsKeyboardKeys[static_cast<size_t>(dg::config::TpsKeyboardAction::Suspend)]=='E')
-                    ImGui::TextDisabled("E is native Use Gear: while its wheel is active, TPS camera takes priority.");
+                    ImGui::TextDisabled("E deliberately does BOTH: native gear + temporary view after hold delay.");
                 ImGui::SetNextItemWidth(245.0f);
                 if(ImGui::SliderInt("Temporary view delay##HoldTPS",
                     &config.tpsSuspendDelayMs,0,3000,"%d ms"))config.Save();
