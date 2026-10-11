@@ -1,0 +1,96 @@
+# Historical branch heads archive index
+
+This `archive` branch **preserves source history**, not just a list of deleted names. Historical development refs are incorporated as extra parents of explicit `ours`-tree archive commits. To restore a branch, run `git branch <name> <sha>` from an archived SHA below. The `main` branch is the unchanged protected stable baseline; `debug` holds v0.89 plus the v0.90 shader research, no new binary build.
+
+Captured 2026-10-11, before legacy branch cleanup. Source refs listed here must remain reachable from `archive` before any deletion. Never overwrite a stable release based only on an experimental commit.
+
+| Historical branch | Exact original head SHA |
+|---|---|
+| `dev/v0.6-dodge-recovery` | `2a9d22edfd0160c2d340bc3ff96939fe907d5742` |
+| `dev/v0.7-common-recovery` | `6561ac069f010bce7cb53858be9be13742f4a0a5` |
+| `dev/v0.8-action-flags` | `624bef3ff6999618fbe80998688244de2d75f31c` |
+| `dev/v0.8b-safe-tail-ui` | `809b2395ab64ff356414f630c183e724a3317201` |
+| `dev/v0.9-movement-hooks` | `e8eb725df09fd1a05a78ee867b04171c5c578521` |
+| `dev/v0.9b-crash-fix` | `8ee160311e10168943a1d0195872222a835792f1` |
+| `dev/v0.10-combat-hooks` | `34ea60d15b08a98b5dff20ebeb1673ab399c40c4` |
+| `dev/v0.11-pistol-damage` | `5cd4ebae6092e959be58ce558f1737833f8d1bbb` |
+| `dev/v0.11b-manual-values` | `fcec3b9f0a23bee73e2bf9a09e317723144be55a` |
+| `dev/v0.12-melee-damage` | `46a49be82f56c526a24e92d2d67d702bb507a11a` |
+| `dev/v0.13-final-outgoing-damage` | `50d477a4ca23c71182ce0e5f175dcde31652383b` |
+| `dev/v0.14-safe-horse` | `4f7bcdaa1e23773a6260884e547b814d9dfc1897` |
+| `dev/v0.14b-horse-detection-fix` | `04529d19b537f8d1837e3a17256f9b43fbf2876d` |
+| `dev/v0.14c-direct-horse-movement` | `df700f4c507e1aa0548e4d89f5d51cd11da81961` |
+| `dev/v0.14d-horse-heartbeat-fix` | `4432e85ef22f1ba6942b6939b280c234019fe4a3` |
+| `dev/v0.14e-ui-defaults-jump20` | `551ea933bab7139d0577a11e32f06ecaa034c633` |
+| `dev/v0.14f-safe-horse-diagnostics` | `3bb6381f9b12f45f3a077856377d4739bccc21a0` |
+| `dev/v0.15a-clean-features-horse-logos` | `48faaac5e43f871e7eff8007b58b931d51a18afa` |
+| `dev/v0.15b-native-horse-early-startupmovies` | `06584265bc862263603031392fbd1f42e109b7d8` |
+| `dev/v0.15c-vtable-horse-native-startupmovies` | `15b7885022a93a94c3fa4aa2387d3f94c925c3c4` |
+| `dev/v0.16a-clean-horse-shared-hook` | `d40872fbcb05539a6160e72e50525e8ea36b18e7` |
+| `dev/v0.17-core-cleanup` | `068ddc1e7a4ad5f12e8abd323bc58268eab8c3cc` |
+| `dev/v0.17b-player-identity-rollback-fix` | `e7784142507335fa12da98c149426eef6c0bb6be` |
+| `dev/v0.18-skip-logos-early-iat` | `bb2c357750cfe53ab5ca662f9131701c9aabe521` |
+| `dev/v0.18b-skip-logos-menu` | `eabca1a889dc519a130842300429ec5ff382a9b4` |
+| `dev/v0.18c-skip-logos-mediafoundation` | `aecd697f9d12e49402911998190b3b723b0ddd05` |
+| `dev/v0.18d-skip-logos-ue4-config` | `b2694a884e49a124b951ef9396af2a9294f3dc2f` |
+| `dev/v0.18e-early-global-file-block` | `a2d85065bdb38528175829774032dfaebc75cf8e` |
+| `dev/v0.18f-native-setup-loading-screen` | `ca0e282d14d70444b1e36d9c90dd5718701b42bb` |
+| `dev/v0.18g-dllmain-native-ret` | `4311fef3b1dda95c4cbbed1e2e9ee6ed04d72188` |
+| `dev/v0.18h-custom-splash-bypass` | `34044f63f5c6e20256be4b36d822240afbde1bda` |
+| `dev/v0.18i-early-startup-screen-bypass` | `37d32245b8c2ee822595270802aebb28009bcce0` |
+| `dev/v0.19a-startupscreens-module-kill` | `83580fd7b753da80603e0fc87f948ed5a7386b1f` |
+| `dev/v0.19b-startupscreens-empty-playlist` | `3e4e69420d25f12c5e9618bb9255884de1e35b5a` |
+| `dev/v0.19c-startupscreens-no-movieplayer-attach` | `1cb30b7989c9d6ae5df170f8cab155f868c27316` |
+| `dev/v0.19d-skip-logos-validated` | `f9eaa6f0d5e47c0e3d08a7038667366ace88c9eb` |
+| `dev/v0.20a-horse-correct-offsets` | `7ce5d27b966a35b405d4963d55f32d1347bfe0be` |
+| `dev/v0.20b-horse-reference-pak` | `02c37a9585dc2de6de59122ac03a75db191f7f80` |
+| `dev/v0.20c-horse-getmaxspeed-return` | `b3620a990b278dba75181c58a62d1ba1a7c8dec7` |
+| `dev/v0.21a-horse-reflection-fields` | `3e0cd02ea6f1ab5be254e255ca363953c88e6709` |
+| `dev/v0.21b-horse-reference-pak-exact` | `50af33211bd0784ea881fc790c1db5982ec61cff` |
+| `dev/v0.21c-horse-split-runtime` | `af037fb15c02dee970d53e816ff8add2fd7799d4` |
+| `dev/v0.22a-horse-direct-native-chain` | `719666f3b8b6188f367bf2a03523464c5af4b7f3` |
+| `dev/v0.22b-horse-direct-reference-pak` | `2552fc42d7d2eb3341a4a03a43897fbf98699be2` |
+| `dev/v0.22c-horse-direct-multiplier-fields` | `eda6a86a7fac91424489f8cac4cf73537e774c82` |
+| `dev/v0.23a-horse-direct-fields` | `62ff1edb81296e3dfa6aec540166196b69d30de5` |
+| `dev/v0.23b-horse-reference-pak-correct-layout` | `ef4082b178864f82403e32305f8bb7ba444485f0` |
+| `dev/v0.23c-horse-dedicated-getmaxspeed` | `9638417a4321c449bb33d7a169d77c61d3da9b80` |
+| `dev/v0.24a-horse-e78-direct-fields` | `83932f2045540a673701a02187408fc554baaec3` |
+| `dev/v0.24b-horse-e78-reference-pak` | `ac8111d3abaf4ca04165885abdb6bc26a78a3b9f` |
+| `dev/v0.24c-horse-e78-dedicated-getmaxspeed` | `102b1e8e837b1e365854dac56a123d5fc21aaf1f` |
+| `dev/v0.25-horse-native-spawn-registry` | `ee2b79f4023492a89c676ef189ba5f6e91f418b1` |
+| `dev/v0.26-horse-multidetector` | `246dddffc6e746aa6d300007d5fc748fabe1ca93` |
+| `dev/v0.27-native-horse-class-hooks` | `caa9edb0320df26f6a7ce313e6c621db713abf40` |
+| `dev/v0.28-horse-sprint-duration-20x` | `30bdce278fd1ecb710c119e1cb531cadb45d69c5` |
+| `dev/v0.29-horse-speed-native-movement` | `f721f7847f992bc82c337602b843b145f531fd2d` |
+| `dev/v0.30-graphics-adapter` | `4dd3442a35c0f54412b438a0b57f7442d61a538a` |
+| `dev/v0.30-graphics-adapter-engine-ini` | `2488791ff636a07bf8746a515a949c96a05af98e` |
+| `dev/v0.31-horse-lifetime-safety-hotfix` | `3d6f540f77472fa63da55e30491938b87e44dbd4` |
+| `dev/v0.32-lazy-overlay-focus-trace` | `fce31fa97363ddf3e50acbe0d19799c6222a7576` |
+| `dev/v0.33-cursor-refresh-hidehud` | `fc590d3bc099e3488bf61f338dde98520b1d4cc1` |
+| `dev/v0.34-native-focus-pulse-test` | `32f7827cc2968596a34dadc6466730d4280ff94b` |
+| `dev/v0.34r1-clean-camera-trace` | `fc89a4d6b197d8a3b2871382be64b7d64a64ccd0` |
+| `dev/v0.35-clean-camera-trace` | `21e0b3fcf155231c8fa39708843fbae6548aaa8f` |
+| `dev/v0.35a-camera-fov-native-audit` | `74d0325c0b76e5398ecabaaf447048a9d6fb746a` |
+| `dev/v0.35b-camera-zoom-controls` | `ec6971a4d3a5e3ecdb9f931b06d90a62ed31b428` |
+| `dev/v0.35c-live-camera-native-probes` | `06ce12a2ebd7bb75623a1523f1aac0166478ab28` |
+| `dev/v0.36-native-fov-zoom-fix` | `fa8f29b1539c25ada90705110c09507f98921c04` |
+| `dev/v0.73-native-strafe-rotation-authority` | `d8af16b25cf1ea37cd73b9f11ec08da786d88c69` |
+| `dev/v0.74-firing-tps-options` | `2033dd6497ec821d32d0ce1f17336c6ade87edb8` |
+| `dev/v0.75-firing-look-input-fix` | `d0f62e9ad599b23a227e0df1d37f2308ca76bb8e` |
+| `dev/v0.76-tps-controller-hold-controls` | `27e8ef26ca8fdb44045b80e80bbed93d579fb404` |
+| `dev/v0.77-r3-delay-aim-fx-audit` | `d25b573dba5162e5f9f0ee4f77a059959d4f2ed6` |
+| `dev/v0.78-tps-off-aim-line-arc-audit` | `05f7b5db37824b209f7ca1e2448bd697e1a69e77` |
+| `dev/v0.79-aim-beam-only-probe` | `b4514b422b83dbe00f25558ff0bc80b9d4be16ba` |
+| `dev/v0.80-aim-beam-visibility-only-test` | `7da9a7470d8b8edb8913c7df14b6ef5df7f8d717` |
+| `dev/v0.81-aim-indicator-asset-audit` | `bf4d68c337013c427c2470724efd627e693526e0` |
+| `dev/v0.82-targeting-ui-components-test` | `8a3d6d673d6786815632c7c08a4c7638a5978738` |
+| `dev/v0.83-horse-summon-research-clean-ui` | `e8d54f389d25101c4793ec3a389556110d6e6525` |
+| `dev/v0.84-aim-hide-modes-grenade-repair-horse-audit` | `5497f3753fc4b011e5511ec474a06dd30baf0b32` |
+| `dev/v0.85-mounted-firing-camera-stabilization` | `fd82100e49ddd0dcf03d06c1dcfdb03d64a9af59` |
+| `dev/v0.86-mounted-aim-modes-gamepad-bindings` | `bb2f8733be131a607f5bc2d93a86090dc481e68b` |
+| `dev/v0.87-mounted-aim-idle-gate-ctrl-horse-fx-probes` | `e2ab6904293dc8cc4fe1a7819c7529f8fe64a54f` |
+| `dev/v0.87-mounted-ctrl-aim-and-visual-horse-audit` | `2946221ec56794b57d5868f9eae57c4f8603a60c` |
+| `dev/v0.88-horse-zones-forward-raycast-audit` | `298dc7b7a45acad35083f3cdb9a07b9db40a3bcf` |
+| `dev/v0.89-native-horse-region-scoped-test` | `17283a2a03bc30317dcd0bf84150ec0eede0fc76` |
+| `dev/v0.90-strife-aim-shader-research` | `0d37b5409956646fc3e4132c297a4a819e2a5983` |
+| `main` | `2bc3122c1ae07b7333798462f85c1d9fd3a739f7` |
