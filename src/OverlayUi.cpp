@@ -203,8 +203,9 @@ void Draw(Context& c) {
             ImGui::TextDisabled("TPS Only is the default. Default Only means normal/non-TPS camera.");
             ImGui::TextWrapped("Visual shader still unidentified: the chosen mode is saved, "
                 "but disappearance of the blue line and semicircle is NOT confirmed.");
-            ImGui::TextDisabled("Old ground-FX hook calls observed: %u (0 = not the correct effect)",
-                t.aimNativeFxCalls);
+            ImGui::TextDisabled("Ground FX calls: %u | Target UI events: %u | Position UI events: %u",
+                t.aimNativeFxCalls,t.aimUiTargetingEvents,t.aimUiPositionEvents);
+            ImGui::TextDisabled("Target UI probe is passive: no visual or gameplay event is blocked.");
             DrawSectionTitle("Player");
             DrawTunableFeature(
                 config,
@@ -751,8 +752,12 @@ void Draw(Context& c) {
                 if(ImGui::Combo("Aim while mounted##MountedMode",
                     &config.tpsMountedAimMode,kMountedModes,2))config.Save();
                 ImGui::TextWrapped(config.tpsMountedAimMode==0
-                    ? "Default: move TPS camera freely while shooting on horseback; shots use camera direction."
-                    : "While firing on horseback, TPS orbit stops and native aim takes over. Orbit resumes on release.");
+                    ? "Free TPS camera on horseback; while firing, experiment with the native Ctrl aiming action."
+                    : "Not firing: camera only. Firing: TPS orbit freezes and vanilla aiming takes over; release restores camera.");
+                ImGui::TextDisabled("Ctrl aim bridge: %s | presses %u | releases %u",
+                    t.mountedCtrlActive?"ACTIVE":"INACTIVE",t.mountedCtrlDown,t.mountedCtrlUp);
+                ImGui::TextDisabled("Mounted idle native look blocked: %u",
+                    t.mountedIdleLookBlocks);
                 ImGui::TextDisabled("Mounted camera frames while firing: %u",
                     camera.mountedFireHorseSelected);
                 ImGui::Separator();
