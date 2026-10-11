@@ -116,6 +116,7 @@ struct GrenadeHoldState {
     ULONGLONG releaseStart=0;
     ULONGLONG releaseFinish=0;
     bool releasePulseDelivered=false;
+    int selectedMask=0x0080;
 };
 GrenadeHoldState g_grenadeHoldState{};
 SRWLOCK g_tpsFacingLock=SRWLOCK_INIT;
@@ -2677,11 +2678,31 @@ const wchar_t* const kNativeXInputLibraries[]={
 // produce one distinct, sufficiently long native-toggle DOWN pulse separated
 // by a definite UP interval. All other controller bits stay exactly native.
 // This code never changes TPS camera hold timing or native firing.
-void ApplyHoldGrenadeVirtualR3(WORD& buttons) {
+// Standard XInput buttons plus LT/RT virtual binding IDs. GUIDE button
+// is not accessible through the standard XINPUT_GAMEPAD structure.
+bool GamepadBindingDown(int mask,const XINPUT_GAMEPAD& pad) {
+    if(mask==0)return false;
+    if(mask==0x10000)return pad.bLeftTrigger>=XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
+    if(mask==0x20000)return pad.bRightTrigger>=XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
+    return (pad.wButtons&static_cast<WORD>(mask))!=0;
+}
+void ApplyHoldGrenadeVirtualR3(XINPUT_GAMEPAD& pad,int mask) {
     const ULONGLONG now=GetTickCount64();
-    const bool physical=(buttons&XINPUT_GAMEPAD_RIGHT_THUMB)!=0;
+    const bool physical=GamepadBindingDown(mask,pad);
+    // Remap selected physical button to native R3. The game receives the
+    // same validated V0.84 continuous hold + UP gap + second stow press.
+    if(mask!=XINPUT_GAMEPAD_RIGHT_THUMB)
+        pad.wButtons&=static_cast<WORD>(~XINPUT_GAMEPAD_RIGHT_THUMB);
+    if(mask==0x10000)pad.bLeftTrigger=0;
+    else if(mask==0x20000)pad.bRightTrigger=0;
+    else pad.wButtons&=static_cast<WORD>(~static_cast<WORD>(mask));
     AcquireSRWLockExclusive(&g_grenadeHoldLock);
     auto& st=g_grenadeHoldState;
+    if(st.selectedMask!=mask){
+        st=GrenadeHoldState{};
+        st.selectedMask=mask;
+        Log("TPS V0.86 GRENADE binding now 0x%X",mask);
+    }
     if(physical!=st.physicalDown){
         st.physicalDown=physical;
         if(physical){
@@ -2689,23 +2710,19 @@ void ApplyHoldGrenadeVirtualR3(WORD& buttons) {
             st.releaseStart=st.releaseFinish=0;
             st.releasePulseDelivered=false;
             const unsigned n=++g_tpsGrenadeDownCount;
-            if(n<=8)Log("TPS V0.84 GRENADE: physical R3 DOWN n=%u; forward continuous hold",n);
-        } else {
-            // A clear UP edge, then a new second DOWN edge to stow.
-            // 100ms release gap and 200ms pulse cover low-frequency polls.
+            if(n<=8)Log("TPS V0.84 GRENADE: physical DOWN n=%u; forward continuous hold",n);
+        }else{
             st.releaseStart=now+100;
             st.releaseFinish=st.releaseStart+200;
             st.releasePulseDelivered=false;
             const unsigned n=++g_tpsGrenadeUpCount;
-            if(n<=8)Log("TPS V0.84 GRENADE: physical R3 UP n=%u; second native press queued after gap",n);
+            if(n<=8)Log("TPS V0.84 GRENADE: physical UP n=%u; stow pulse queued after gap",n);
         }
     }
-    const bool releasePulse=!physical && st.releaseStart &&
-        now>=st.releaseStart && now<st.releaseFinish;
-    if(physical || releasePulse)
-        buttons|=XINPUT_GAMEPAD_RIGHT_THUMB;
-    else
-        buttons &= static_cast<WORD>(~XINPUT_GAMEPAD_RIGHT_THUMB);
+    const bool releasePulse=!physical&&st.releaseStart&&
+        now>=st.releaseStart&&now<st.releaseFinish;
+    if(physical||releasePulse)pad.wButtons|=XINPUT_GAMEPAD_RIGHT_THUMB;
+    else pad.wButtons&=static_cast<WORD>(~XINPUT_GAMEPAD_RIGHT_THUMB);
     if(releasePulse&&!st.releasePulseDelivered){
         st.releasePulseDelivered=true;
         const unsigned n=++g_tpsGrenadeReleasePulseDelivered;
@@ -2728,9 +2745,11 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
         localHwnd && GetForegroundWindow()==localHwnd &&
         !g_overlayVisible.load() && !IsIconic(localHwnd) &&
         !g_shuttingDown.load();
-    if(localGameplay && g_config.tpsGrenadeHoldEnabled &&
-       !(pad.wButtons&XINPUT_GAMEPAD_LEFT_SHOULDER))
-        ApplyHoldGrenadeVirtualR3(pad.wButtons);
+    const int grenadeMask=g_config.tpsGrenadeButtonMask;
+    if(localGameplay && grenadeMask!=0 &&
+       (!(pad.wButtons&XINPUT_GAMEPAD_LEFT_SHOULDER) ||
+         grenadeMask==XINPUT_GAMEPAD_LEFT_SHOULDER))
+        ApplyHoldGrenadeVirtualR3(pad,grenadeMask);
     if(!ShouldSuppressNativeAim())
         return status; // Preserve vanilla aim while temporary view is held.
     if(pad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER)
@@ -3330,11 +3349,11 @@ void UpdateOrbitInput() {
     const bool padAvailable=focused &&
         GetCameraXInputState(0,&physical)==ERROR_SUCCESS;
     const WORD physicalBits=padAvailable?physical.Gamepad.wButtons:0;
-    const WORD toggleMask=static_cast<WORD>(g_config.tpsToggleHoldButtonMask);
+    const int toggleMask=g_config.tpsToggleHoldButtonMask;
     static bool toggleHeld=false,toggleConsumed=false;
     static ULONGLONG toggleStarted=0;
     const bool toggling=g_config.tpsLongPressToggleEnabled &&
-        toggleMask && padAvailable && (physicalBits&toggleMask);
+        toggleMask && padAvailable && GamepadBindingDown(toggleMask,physical.Gamepad);
     if(toggling && !toggleHeld){
         toggleHeld=true;toggleConsumed=false;toggleStarted=now;
     }
@@ -3353,7 +3372,7 @@ void UpdateOrbitInput() {
         // Preserve short-L3 recenter, but do it on RELEASE so a long
         // press does not first recenter the camera unexpectedly.
         if(!toggleConsumed && g_config.thirdPersonEnabled &&
-           g_config.tpsRecenterButtonMask==int(toggleMask)){
+           g_config.tpsRecenterButtonMask==toggleMask){
             const bool ok=dg::camera_trace::RecenterOnPlayer();
             Log("TPS V0.76: short-press recenter mask=0x%04X success=%d",
                 unsigned(toggleMask),ok?1:0);
@@ -3365,11 +3384,11 @@ void UpdateOrbitInput() {
     // Time only valid uninterrupted physical DOWN in a focused gameplay frame.
     // If the user rebinds the button mid-game, the timer restarts cleanly.
     static ULONGLONG suspendStarted=0;
-    static WORD previousSuspendMask=0;
-    const WORD suspendMask=static_cast<WORD>(g_config.tpsSuspendButtonMask);
+    static int previousSuspendMask=0;
+    const int suspendMask=g_config.tpsSuspendButtonMask;
     const bool holdInput=focused && g_config.thirdPersonEnabled &&
         g_config.tpsHoldSuspendEnabled && padAvailable && suspendMask &&
-        ((physicalBits&suspendMask)!=0);
+        GamepadBindingDown(suspendMask,physical.Gamepad);
     if(!holdInput || previousSuspendMask!=suspendMask)
         suspendStarted=0;
     if(holdInput && !suspendStarted)
@@ -3466,16 +3485,22 @@ void UpdateOrbitInput() {
         }else{
             lastProbe=0;
         }
-        const WORD mask=static_cast<WORD>(g_config.tpsRecenterButtonMask);
+        const int mask=g_config.tpsRecenterButtonMask;
         // When short-recenter and long-TPS toggle share L3, the latter
         // handles release. All other recenter bindings remain edge-triggered.
+        static bool previousRecenterPressed=false;
+        static int previousRecenterBinding=-1;
+        const bool pressed=GamepadBindingDown(mask,primary.Gamepad);
+        if(previousRecenterBinding!=mask)previousRecenterPressed=false;
         if(mask && !(g_config.tpsLongPressToggleEnabled &&
-            mask==static_cast<WORD>(g_config.tpsToggleHoldButtonMask)) &&
-            (buttonBits&mask) && !(lastButtons&mask)) {
+            mask==g_config.tpsToggleHoldButtonMask) &&
+            pressed && !previousRecenterPressed) {
             const bool success=dg::camera_trace::RecenterOnPlayer();
-            Log("TPS V0.70: recenter button=0x%04X successful=%d",
+            Log("TPS V0.70: recenter button=0x%X successful=%d",
                 unsigned(mask),success?1:0);
         }
+        previousRecenterPressed=pressed;
+        previousRecenterBinding=mask;
     }
     lastButtons=buttonBits;
     static bool priorSuspend=false;
