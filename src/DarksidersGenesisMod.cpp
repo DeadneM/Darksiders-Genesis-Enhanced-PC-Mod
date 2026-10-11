@@ -115,6 +115,15 @@ AimBeamExecFn g_originalAimShowBeamExec=nullptr;
 AimBeamExecFn g_originalAimHideBeamExec=nullptr;
 std::atomic_uint32_t g_tpsAimShowBeamCalls{0},g_tpsAimHideBeamCalls{0};
 std::atomic_uint32_t g_tpsAimShowBeamInTPS{0},g_tpsAimHideBeamInTPS{0};
+// V0.82: experimental presentation-only UE event gating for exactly TWO
+// named targeting UI classes. All camera, input and aiming hooks are frozen.
+// Do not cache or mutate UObject instance pointers.
+using TargetUiProcessEventFn=void(*)(void*,void*,void*);
+TargetUiProcessEventFn g_originalTargetUiProcessEvent=nullptr;
+void* const* g_targetingUiClassSlot=nullptr;
+void* const* g_targetUiPositionClassSlot=nullptr;
+std::atomic_uint32_t g_targetUiSeen{0},g_targetUiSuppressed{0};
+std::atomic_uint32_t g_targetUiPositionSeen{0},g_targetUiPositionSuppressed{0};
 SRWLOCK g_grenadeHoldLock=SRWLOCK_INIT;
 struct GrenadeHoldState {
     bool physicalDown=false;
@@ -1724,6 +1733,89 @@ void InstallAimBeamExecProbe() {
         return;
     }
     Log("TPS V0.79 AIM FX PROBE: native ShowBeamEffect RVA=0x7D17B0 and HideBeamEffect RVA=0x7D0040 active, PASS-THROUGH ONLY");
+}
+
+// V0.82 - Class-targeted native UE4 ProcessEvent test. The exact EXE
+// exposes UMayhemTargetingUIComponent and UMayhemTargetUiPositionComponent
+// cached UClass pointers in its native reflected class registration slots.
+// This test suppresses only UE script event dispatch for those classes
+// while TPS is active and the existing experimental aim FX checkbox is ON.
+// Object construction, native methods, projectile aim and target calculation
+// are NEVER hooked or changed. Returning to vanilla resumes events.
+bool IsExactUiClassOrChild(void* actual,void* expected) {
+    if(!actual||!expected)return false;
+    if(actual==expected)return true;
+    auto* a=reinterpret_cast<const unsigned char*>(actual);
+    auto* b=reinterpret_cast<const unsigned char*>(expected);
+    const int actualDepth=*reinterpret_cast<const int*>(a+0x38);
+    const int expectedDepth=*reinterpret_cast<const int*>(b+0x38);
+    if(expectedDepth<0||actualDepth<expectedDepth||actualDepth>=256)return false;
+    auto* chain=*reinterpret_cast<void* const* const*>(a+0x30);
+    return chain && chain[expectedDepth]==static_cast<const void*>(b+0x30);
+}
+void HookTargetUiProcessEvent(void* instance,void* function,void* params) {
+    if(instance && function && g_targetValidation.exact &&
+       g_targetingUiClassSlot && g_targetUiPositionClassSlot){
+        void* const actual=*reinterpret_cast<void* const*>(
+            reinterpret_cast<const unsigned char*>(instance)+0x10);
+        void* const a=*g_targetingUiClassSlot;
+        void* const b=*g_targetUiPositionClassSlot;
+        const bool isAimUi=IsExactUiClassOrChild(actual,a);
+        const bool isPositionUi=!isAimUi&&IsExactUiClassOrChild(actual,b);
+        if(isAimUi||isPositionUi){
+            const unsigned count=isAimUi?++g_targetUiSeen:++g_targetUiPositionSeen;
+            auto& rt=dg::runtime::Get();
+            const bool suppress=rt.thirdPersonEnabled.load(std::memory_order_relaxed) &&
+                !rt.tpsTemporarilySuspended.load(std::memory_order_relaxed) &&
+                rt.tpsHideGroundAimFx.load(std::memory_order_relaxed) &&
+                !g_shuttingDown.load(std::memory_order_relaxed);
+            if(count==1||count==100||count==1000){
+                Log("TPS V0.82 UI CLASS TEST: %s event n=%u tps=%d suppress=%d",
+                    isAimUi?"UMayhemTargetingUIComponent":"UMayhemTargetUiPositionComponent",
+                    count,rt.thirdPersonEnabled.load()?1:0,suppress?1:0);
+            }
+            if(suppress){
+                if(isAimUi)++g_targetUiSuppressed;
+                else ++g_targetUiPositionSuppressed;
+                // Only these 2 UI classes' Unreal event dispatch is gated.
+                // Native class lifecycle / Tick / shooting is never blocked.
+                return;
+            }
+        }
+    }
+    if(g_originalTargetUiProcessEvent)
+        g_originalTargetUiProcessEvent(instance,function,params);
+}
+void InstallTargetUiComponentHideTest() {
+    if(!g_targetValidation.exact)return;
+    auto* base=reinterpret_cast<unsigned char*>(GetModuleHandleW(nullptr));
+    auto* target=base+0xAC0630;
+    // UE UObject::ProcessEvent exact prologue; no wildcard or fuzzy scan.
+    constexpr unsigned char sig[]={
+        0x40,0x55,0x56,0x57,0x41,0x54,0x41,0x55,0x41,0x56,0x41,0x57,
+        0x48,0x81,0xEC,0xF0,0x00,0x00,0x00
+    };
+    if(std::memcmp(target,sig,sizeof(sig))!=0){
+        Log("TPS V0.82 UI CLASS TEST: ProcessEvent signature mismatch, untouched");
+        return;
+    }
+    // UE generated static UClass caches for the two exact names:
+    // UMayhemTargetingUIComponent RVA 0x3812DD0
+    // UMayhemTargetUiPositionComponent RVA 0x3812DE0
+    g_targetingUiClassSlot=reinterpret_cast<void* const*>(base+0x3812DD0);
+    g_targetUiPositionClassSlot=reinterpret_cast<void* const*>(base+0x3812DE0);
+    const MH_STATUS created=MH_CreateHook(target,
+        reinterpret_cast<void*>(&HookTargetUiProcessEvent),
+        reinterpret_cast<void**>(&g_originalTargetUiProcessEvent));
+    if(created!=MH_OK){
+        Log("TPS V0.82 UI CLASS TEST: hook create failed=%d",int(created));return;
+    }
+    const MH_STATUS enabled=MH_EnableHook(target);
+    if(enabled!=MH_OK&&enabled!=MH_ERROR_ENABLED){
+        MH_RemoveHook(target);g_originalTargetUiProcessEvent=nullptr;
+        Log("TPS V0.82 UI CLASS TEST: hook enable failed=%d",int(enabled));return;
+    }
+    Log("TPS V0.82 UI CLASS TEST: native ProcessEvent READY RVA=0xAC0630 class slots=0x3812DD0/0x3812DE0; exact named UI classes only, toggle=TPSHideGroundAimFx");
 }
 
 float HookCharacterGetMaxSpeed(void* movementComponent) {
@@ -3857,6 +3949,9 @@ void ShutdownMod() {
     Log("TPS V0.79 AIM FX PROBE totals: show=%u showInTPS=%u hide=%u hideInTPS=%u (all calls passed through unchanged)",
         g_tpsAimShowBeamCalls.load(),g_tpsAimShowBeamInTPS.load(),
         g_tpsAimHideBeamCalls.load(),g_tpsAimHideBeamInTPS.load());
+    Log("TPS V0.82 UI CLASS TEST totals: TargetingUI seen=%u suppressed=%u; TargetUiPosition seen=%u suppressed=%u",
+        g_targetUiSeen.load(),g_targetUiSuppressed.load(),
+        g_targetUiPositionSeen.load(),g_targetUiPositionSuppressed.load());
     Log("TPS V0.75 totals: nativeLookInput=%u nativeLookRotation=%u suppressedLook=%u heldYaw=%u mouseFace=%u padStrafe=%u mouseLookAim=%u padLookAim=%u signaturesFailed=%u",
         g_tpsLookInputCalls.load(),g_tpsLookRotationCalls.load(),
         g_tpsNativeLookInputBlocks.load(),g_tpsNativeLookRotationBlocks.load(),
@@ -3991,6 +4086,8 @@ DWORD WINAPI MainThread(LPVOID) {
     InstallGroundAimEffectHook();
     // Visual-aim probe only; preserves all V0.78 gameplay callbacks.
     InstallAimBeamExecProbe();
+    // V0.82 experimental: exact named targeting UI component events ONLY.
+    InstallTargetUiComponentHideTest();
     if (!InstallNativeTPSRotationHook()) {
         Log("TPS V0.75 native look hooks unavailable; vanilla look path untouched.");
     }
