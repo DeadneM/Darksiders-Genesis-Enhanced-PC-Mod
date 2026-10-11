@@ -36,7 +36,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.92-rebindable-horse-tps-keyboard-forward-analog-test";
+constexpr const char* kBuild = "0.93-unified-tps-aim-compact-horse-rebind-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1483,8 +1483,10 @@ bool IsMountedTPSNow() {
         tick&&now>=tick&&now-tick<300ull;
 }
 bool MountedVanillaAimWhileFiring() {
-    return IsMountedTPSNow() &&
-        dg::runtime::Get().tpsMountedAimMode.load(std::memory_order_relaxed)==1;
+    const auto& rt=dg::runtime::Get();
+    return rt.thirdPersonEnabled.load(std::memory_order_relaxed) &&
+        !rt.tpsTemporarilySuspended.load(std::memory_order_relaxed) &&
+        rt.tpsMountedAimMode.load(std::memory_order_relaxed)==1;
 }
 bool IsLiveTPSLookActor(void* actor) {
     if(!actor || !g_targetValidation.exact || g_shuttingDown.load() ||
@@ -1549,7 +1551,7 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     // V0.87: Vanilla Aim means NATIVE look ONLY WHILE FIRING.
     // Off-fire the right stick is camera-only, never simultaneously
     // turning the horseman's aim. This is independent of on-foot toggles.
-    if(mounted && rt.tpsMountedAimMode.load()==1){
+    if(rt.tpsMountedAimMode.load()==1){
         if(fire)return result;
         if(IsRightStickActiveNow()){
             result->pitch=0.0f;result->yaw=0.0f;result->roll=0.0f;
@@ -1620,7 +1622,7 @@ NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
         rt.tpsControllerStrafeWhileFiring.load());
     // During mounted Vanilla Aim fire, native look rotation is untouched.
     // While idle, suppress right-stick-origin horseman aim.
-    if(mounted && rt.tpsMountedAimMode.load()==1 &&
+    if(rt.tpsMountedAimMode.load()==1 &&
        (mouseFire||padFire))return result;
     const bool nativeBlock=(mounted||rt.tpsSuppressNativeRightStick.load())&&
         IsRightStickActiveNow();
@@ -2929,11 +2931,12 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     // touches the physical right stick, which the camera reads unfiltered.
     // Mode 1 (user-validated VANILLA AIM) is excluded, as is on-foot fire.
     const bool mountedForForward=IsMountedTPSNow();
-    if(mountedForForward && rt.tpsMountedAimMode.load()==0 && fire){
+    if(rt.tpsMountedAimMode.load()==0 && fire){
         pad.sThumbRX=0;
         pad.sThumbRY=32767;
         const unsigned n=++g_tpsForwardAnalogInjected;
-        if(n==1) Log("TPS V0.92 CAMERA_FORWARD: native XInput right-stick up while mounted firing; raw camera input untouched");
+        if(n==1) Log("TPS V0.93 CAMERA_FORWARD: virtual stick straight ahead during TPS fire (mounted=%d); independent camera uses raw stick",
+            mountedForForward?1:0);
         return status;
     }
     // V0.68: NEVER inject artificial XInput aim during RT/RB.
@@ -2941,9 +2944,9 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     // firing. Our own camera separately reads the UNFILTERED trampoline.
     // This is input isolation, NOT yet a shot-direction fix.
     const bool mounted=IsMountedTPSNow();
-    const bool nativeMountedAim=mounted && rt.tpsMountedAimMode.load()==1;
-    const bool blockLook=(mounted && (!nativeMountedAim||!fire)) ||
-        (!mounted && rt.tpsSuppressNativeRightStick.load());
+    const bool vanillaAim=rt.tpsMountedAimMode.load()==1;
+    const bool blockLook=(mounted || rt.tpsSuppressNativeRightStick.load()) &&
+        (!vanillaAim || !fire);
     if(blockLook && (pad.sThumbRX!=0 || pad.sThumbRY!=0)){
         pad.sThumbRX=0;pad.sThumbRY=0;
         const unsigned n=++g_nativePadAimSuppressed;
@@ -3809,12 +3812,10 @@ void UpdateOrbitInput() {
         // Mode 0 keeps camera orbit live; mode 1 freezes independent orbit
         // and leaves the native right stick to aim (see FilterNativeXInput).
         const bool mounted=IsMountedTPSNow();
-        const bool nativeMountAim=mounted&&rt.tpsMountedAimMode.load()==1;
+        const bool nativeMountAim=rt.tpsMountedAimMode.load()==1;
         const bool mouseFiringForOrbit=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
         suspendControllerOrbitOnFire=
-            (nativeMountAim && (padFiringForOrbit||mouseFiringForOrbit)) ||
-            (!mounted && padFiringForOrbit &&
-             !rt.tpsControllerRotateWhileFiring.load());
+            nativeMountAim && (padFiringForOrbit||mouseFiringForOrbit);
         // Bounded diagnostics: proves that mounted aiming mode is actually
         // selected while firing (rather than only saved in the INI).
         const int activeMountedMode=(mounted &&
