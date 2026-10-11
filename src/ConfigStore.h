@@ -158,7 +158,7 @@ public:
     bool meleeDamageEnabled = true;
     bool jumpHeightEnabled = true;
     bool glideDurationEnabled = true;
-    bool horseEverywhereEnabled = false;
+    bool horseEverywhereEnabled = true;
     bool horseSpeedEnabled = true;
     bool horseSprintSpeedEnabled = true;
     bool horseSprintDurationEnabled = true;
