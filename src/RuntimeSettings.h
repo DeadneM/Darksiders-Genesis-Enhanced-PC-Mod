@@ -13,7 +13,7 @@ struct Snapshot {
     bool skipLogosEnabled = true;
     bool skipIntroEnabled = true;
     bool skipWarningEnabled = true;
-    bool thirdPersonEnabled = false;
+    bool thirdPersonEnabled = true;
     bool thirdPersonFovEnabled = true;
     bool tpsFollowPlayer = true;
     bool tpsSuppressNativeRightStick = true;
@@ -38,11 +38,11 @@ struct Snapshot {
     float thirdPersonFovDegrees = 110.0f;
     float cameraZoomPercent = 0.0f;
     float cameraPitchDegrees = 0.0f;
-    float cameraYawDegrees = 5.0f;
-    float cameraHeightOffset = -300.0f;
+    float cameraYawDegrees = 0.0f;
+    float cameraHeightOffset = 0.0f;
     float thirdPersonDistanceMultiplier = 0.20f;
     float thirdPersonPitchDegrees = -12.0f;
-    float thirdPersonHeightOffset = 300.0f;
+    float thirdPersonHeightOffset = 120.0f;
     float tpsFootAnchorOffset = 0.0f; // estimated capsule center-to-foot, configurable
     float cameraMouseSensitivity = 0.12f;
     float cameraStickSpeed = 180.0f;
@@ -110,11 +110,11 @@ struct State {
     std::atomic<float> thirdPersonFovDegrees{110.0f};
     std::atomic<float> cameraZoomPercent{0.0f};
     std::atomic<float> cameraPitchDegrees{0.0f};
-    std::atomic<float> cameraYawDegrees{5.0f};
-    std::atomic<float> cameraHeightOffset{-300.0f};
+    std::atomic<float> cameraYawDegrees{0.0f};
+    std::atomic<float> cameraHeightOffset{0.0f};
     std::atomic<float> thirdPersonDistanceMultiplier{0.20f};
     std::atomic<float> thirdPersonPitchDegrees{-12.0f};
-    std::atomic<float> thirdPersonHeightOffset{300.0f};
+    std::atomic<float> thirdPersonHeightOffset{120.0f};
     std::atomic<float> tpsFootAnchorOffset{0.0f};
     std::atomic<float> cameraMouseSensitivity{0.12f};
     std::atomic<float> cameraStickSpeed{180.0f};
