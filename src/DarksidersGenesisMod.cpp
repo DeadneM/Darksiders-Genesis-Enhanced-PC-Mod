@@ -99,6 +99,12 @@ std::atomic_uint32_t g_tpsStrafeSamples{0};
 // V0.72: track potential Steam Input -> synthetic Windows mouse mapping.
 std::atomic_ullong g_tpsPadRightStickTick{0},g_tpsRawMouseTick{0};
 std::atomic_uint32_t g_tpsControllerMouseBlocks{0};
+// V0.92 experimental: a virtual forward-facing right stick is passed ONLY to
+// the game's XInput while shooting mounted in CAMERA_FORWARD mode; the camera
+// continues reading unmodified physical stick data through its own trampoline.
+std::atomic_uint32_t g_tpsForwardAnalogInjected{0};
+std::atomic_uint32_t g_horsePadChordRemapped{0};
+std::atomic_uint32_t g_keyboardHorseInjected{0};
 // V0.76: physical R3 and the virtual native grenade key are distinct.
 // Do not modify the validated V0.75 native firing/aim callback logic.
 std::atomic_uint32_t g_tpsHoldSuspendCount{0},g_tpsHoldToggleCount{0};
@@ -2639,7 +2645,14 @@ void ProcessInput() {
     if (capturedCamera) {
         const int action = (capturedCamera >> 8) - 1;
         const int vk = capturedCamera & 255;
-        if (action >= 0 && action < static_cast<int>(g_config.cameraKeys.size())) {
+        if (action >= static_cast<int>(g_config.cameraKeys.size()) &&
+            action < static_cast<int>(g_config.cameraKeys.size()+g_config.tpsKeyboardKeys.size())) {
+            const size_t index=static_cast<size_t>(action)-g_config.cameraKeys.size();
+            g_config.tpsKeyboardKeys[index]=vk;
+            g_config.Save();
+            Log("TPS V0.92: keyboard shortcut %s -> %s",
+                dg::config::kTpsKeyboardLabels[index],KeyDisplayName(vk).c_str());
+        } else if (action >= 0 && action < static_cast<int>(g_config.cameraKeys.size())) {
             for (size_t i = 0; i < g_config.cameraKeys.size(); ++i)
                 if (i != static_cast<size_t>(action) && g_config.cameraKeys[i] == vk)
                     g_config.cameraKeys[i] = 0; // one camera action per key
@@ -2813,14 +2826,19 @@ bool GamepadBindingDown(int mask,const XINPUT_GAMEPAD& pad) {
 }
 void ApplyHoldGrenadeVirtualR3(XINPUT_GAMEPAD& pad,int mask) {
     const ULONGLONG now=GetTickCount64();
-    const bool physical=GamepadBindingDown(mask,pad);
+    const int keyboardVK=g_config.tpsKeyboardKeys[static_cast<size_t>(dg::config::TpsKeyboardAction::Grenade)];
+    const HWND game=reinterpret_cast<HWND>(g_gameWindowTrace.load(std::memory_order_relaxed));
+    const bool keyboard=keyboardVK>0 && keyboardVK<256 && game &&
+        GetForegroundWindow()==game && !g_overlayVisible.load() &&
+        !IsIconic(game) && (GetAsyncKeyState(keyboardVK)&0x8000)!=0;
+    const bool physical=(mask && GamepadBindingDown(mask,pad)) || keyboard;
     // Remap selected physical button to native R3. The game receives the
     // same validated V0.84 continuous hold + UP gap + second stow press.
     if(mask!=XINPUT_GAMEPAD_RIGHT_THUMB)
         pad.wButtons&=static_cast<WORD>(~XINPUT_GAMEPAD_RIGHT_THUMB);
     if(mask==0x10000)pad.bLeftTrigger=0;
     else if(mask==0x20000)pad.bRightTrigger=0;
-    else pad.wButtons&=static_cast<WORD>(~static_cast<WORD>(mask));
+    else if(mask)pad.wButtons&=static_cast<WORD>(~static_cast<WORD>(mask));
     AcquireSRWLockExclusive(&g_grenadeHoldLock);
     auto& st=g_grenadeHoldState;
     if(st.selectedMask!=mask){
@@ -2862,6 +2880,23 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     const DWORD status=original(user,state);
     if(status!=ERROR_SUCCESS||!state||user!=0)return status;
     auto& pad=state->Gamepad;
+    // V0.92: user-selected pair must be pressed SIMULTANEOUSLY, never OR.
+    // Map its held state to the game's original LB+RB summon/dismount chord.
+    // This is active with or without TPS, leaving unrelated inputs native.
+    const HWND bindWindow=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+    const bool bindActive=g_targetValidation.exact && bindWindow &&
+        GetForegroundWindow()==bindWindow && !IsIconic(bindWindow) &&
+        !g_overlayVisible.load() && !g_shuttingDown.load();
+    if(bindActive && g_config.horsePadButtonA && g_config.horsePadButtonB &&
+       g_config.horsePadButtonA!=g_config.horsePadButtonB &&
+       GamepadBindingDown(g_config.horsePadButtonA,pad) &&
+       GamepadBindingDown(g_config.horsePadButtonB,pad)){
+        const bool alreadyNative=(pad.wButtons&
+            (XINPUT_GAMEPAD_LEFT_SHOULDER|XINPUT_GAMEPAD_RIGHT_SHOULDER))==
+            (XINPUT_GAMEPAD_LEFT_SHOULDER|XINPUT_GAMEPAD_RIGHT_SHOULDER);
+        pad.wButtons|=XINPUT_GAMEPAD_LEFT_SHOULDER|XINPUT_GAMEPAD_RIGHT_SHOULDER;
+        if(!alreadyNative)++g_horsePadChordRemapped;
+    }
     // This is intentionally BEFORE the temporary R3 vanilla-view gate.
     // R3 itself is a grenade key: its physical hold is handled separately
     // by UpdateOrbitInput, while the game receives two native toggle edges.
@@ -2871,7 +2906,9 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
         !g_overlayVisible.load() && !IsIconic(localHwnd) &&
         !g_shuttingDown.load();
     const int grenadeMask=g_config.tpsGrenadeButtonMask;
-    if(localGameplay && grenadeMask!=0 &&
+    const int grenadeKey=g_config.tpsKeyboardKeys[static_cast<size_t>(
+        dg::config::TpsKeyboardAction::Grenade)];
+    if(localGameplay && (grenadeMask!=0 || grenadeKey!=0) &&
        (!(pad.wButtons&XINPUT_GAMEPAD_LEFT_SHOULDER) ||
          grenadeMask==XINPUT_GAMEPAD_LEFT_SHOULDER))
         ApplyHoldGrenadeVirtualR3(pad,grenadeMask);
@@ -2887,6 +2924,18 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     if(fire) g_tpsFireLastTick.store(GetTickCount64());
     rt.tpsAimActive.store(fire);
 
+    // V0.92: opt-in experimental CAMERA_FORWARD: let native horse weapon
+    // receive a virtual "stick forwards" while RT/RB is held. This never
+    // touches the physical right stick, which the camera reads unfiltered.
+    // Mode 1 (user-validated VANILLA AIM) is excluded, as is on-foot fire.
+    const bool mountedForForward=IsMountedTPSNow();
+    if(mountedForForward && rt.tpsMountedAimMode.load()==0 && fire){
+        pad.sThumbRX=0;
+        pad.sThumbRY=32767;
+        const unsigned n=++g_tpsForwardAnalogInjected;
+        if(n==1) Log("TPS V0.92 CAMERA_FORWARD: native XInput right-stick up while mounted firing; raw camera input untouched");
+        return status;
+    }
     // V0.68: NEVER inject artificial XInput aim during RT/RB.
     // The same right-stick suppression applies while running, idle AND
     // firing. Our own camera separately reads the UNFILTERED trampoline.
@@ -3060,12 +3109,13 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     if (g_imguiReady.load() && g_overlayVisible.load()) {
         ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
         const int cameraCapture = g_captureCameraKeyIndex.load();
-        if (cameraCapture >= 0 && cameraCapture < static_cast<int>(g_config.cameraKeys.size()) &&
+        if (cameraCapture >= 0 &&
+            cameraCapture < static_cast<int>(g_config.cameraKeys.size()+g_config.tpsKeyboardKeys.size()) &&
             (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN)) {
             const int vk = static_cast<int>(wParam & 0xFF);
             if (vk == VK_ESCAPE) {
                 g_captureCameraKeyIndex.store(-1);
-                g_lastAction = "Camera binding cancelled";
+                g_lastAction = "Keyboard binding cancelled";
                 return TRUE;
             }
             if (vk != g_config.menuKey && vk != VK_ESCAPE &&
@@ -4099,6 +4149,9 @@ void ShutdownMod() {
     RestoreCameraDof();
     Log("TPS V0.69 totals: mouseInputNative=PASSTHROUGH rightStickReadsFiltered=%u whileFiring=%u",
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
+    Log("TPS V0.92 input totals: mountedForwardAnalog=%u mappedHorseChord=%u keyboardHorse=%u",
+        g_tpsForwardAnalogInjected.load(),g_horsePadChordRemapped.load(),
+        g_keyboardHorseInjected.load());
     Log("TPS V0.72 totals: controllerMappedMouseMessagesBlocked=%u rightStickFiltered=%u",
         g_tpsControllerMouseBlocks.load(),g_nativePadAimSuppressed.load());
     Log("TPS V0.89 CAMERA FORWARD: horseActorGetPlayerLookInputCalls=%u (passive, no shot raycast hook)",
