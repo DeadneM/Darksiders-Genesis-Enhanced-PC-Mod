@@ -118,6 +118,12 @@ std::atomic<float> g_nativeSprintDrain{0.0f};
 std::atomic<float> g_appliedSprintDrain{0.0f};
 
 std::atomic_uint32_t g_nativeHookCalls{0};
+// V0.88: these are observation timestamps/identities, never persistent
+// UObject ownership. Previous "validated" meant EVER observed and could
+// stay true long after an area had forcibly dismounted the player.
+std::atomic_ullong g_lastLiveHorseCallbackTick{0};
+std::atomic<void*> g_lastObservedLiveHorse{nullptr};
+std::atomic_uint32_t g_observedHorseGenerations{0};
 std::atomic_uint32_t g_horsesFound{0};
 std::atomic_bool g_summonServerProbeReady{false};
 std::atomic_uint32_t g_summonServerCalls{0}, g_summonServerCallsRequested{0};
@@ -532,6 +538,14 @@ void CaptureHorseLocked(
         return;
     }
 
+    const auto tick=GetTickCount64();
+    g_lastLiveHorseCallbackTick.store(tick,std::memory_order_release);
+    if(g_lastObservedLiveHorse.exchange(horse,std::memory_order_acq_rel)!=horse){
+        const auto generation=++g_observedHorseGenerations;
+        if(generation<=24)
+            FeatureLog("Horse Everywhere V0.88 LIVE MOUNT: horse identity changed generation=%u live=%p (callback verified; NOT proof of current rider)",
+                generation,horse);
+    }
     PublishHorseCameraPoseFromLiveCallback(horse);
     HorseSlot* slot = AllocateHorseLocked(horse);
     if (!slot) {
@@ -1049,6 +1063,11 @@ Telemetry GetTelemetry() {
     t.appliedSprintDrain = g_appliedSprintDrain.load();
     t.uniqueCandidatesLogged = g_nativeHookCalls.load();
     t.candidateMatches = g_horsesFound.load();
+    t.lastHorseNativeTick = g_lastLiveHorseCallbackTick.load(std::memory_order_acquire);
+    t.horseGeneration = g_observedHorseGenerations.load(std::memory_order_relaxed);
+    const auto now=GetTickCount64();
+    t.horseCallbackFresh = t.lastHorseNativeTick && now>=t.lastHorseNativeTick &&
+        now-t.lastHorseNativeTick<1100ull;
     return t;
 }
 
