@@ -2265,3 +2265,17 @@ TPS controller hotkey UI has **one button selector per action**, each with **OFF
 The user identified native horse summon controls as keyboard **H** or gamepad **LB+RB**. V0.86 passively logs these user inputs against native `SERVER_SpawnHorseMount` call counts. **Horse Everywhere still does NOT bypass forbidden-area restrictions.** The log should clarify whether the request is stopped upstream.
 
 [Technical V0.86 notes](docs/V0_86_MOUNTED_AIM_AND_GAMEPAD_BINDINGS.md). GitHub main remains untouched; V0.84 validated grenade baseline preserved.
+
+## V0.87 (2026-10-11) | Mounted TPS aiming consistency / native Ctrl experiment
+
+**Vanilla Aim:** the validated firing behavior is unchanged: while mounted and shooting the game keeps native aim and the TPS camera orbit is paused. When **not firing**, the right stick now remains camera-only, not simultaneously rotating the game aim. Exact game test is required.
+
+**Camera Forward:** while mounted and firing, the mod now experiments with initiating the game's native **Ctrl aim action** by posting a matched Ctrl down/up keyboard event to the **game window only**, scoped to mounted TPS fire. No system-wide SendInput or persistent keyboard state changes. The existing native look-vector-to-camera system remains. **Experimental:** game engine might ignore posted keys, so judge the shot direction in gameplay; diagnostics `TPS V0.87 CTRL AIM` prove only message submission.
+
+**Unresolved intentionally:** keyboard/mouse TPS camera can sometimes lock against angles and refuse a full 360-degree turn. This is recorded but left completely untouched until mounted/controller functionality is coherent.
+
+**Blue line + arc:** a new **pass-through only** Unreal targeting UI-component event probe checks `UMayhemTargetingUIComponent` and `UMayhemTargetUiPositionComponent`, with event counters in the HUD overlay and shutdown log. It blocks nothing. The blue line and semicircle are **not yet proven hidden**; the previous ground-FX hook is confirmed 0 calls.
+
+**Horse Everywhere:** native H / LB+RB summon input now logs before and 1800 ms after, together with server spawn delta and **live horse callbacks captured using the existing validated HorseFeature**. This is diagnostic only, not a bypass of restricted areas.
+
+The validated R3 grenade hold/release, customizable bindings, horse speed/stamina, visual HUD, TPS orbit-angle code and all unrelated feature hooks are preserved. Do not promote to stable release until gameplay testing. Technical details: [V0.87 audit](docs/V0_87_MOUNTED_CTRL_AIM_VISUAL_HORSE_AUDIT.md).
