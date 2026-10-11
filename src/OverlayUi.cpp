@@ -742,71 +742,72 @@ void Draw(Context& c) {
                         &config.tpsControllerRotateWhileFiring)) config.Save();
                 ImGui::TextDisabled("Strafe changes movement while shooting; Rotate makes shots camera-forward.");
                 ImGui::Separator();
-                ImGui::TextDisabled("Hold and camera controls");
-                if (ImGui::Checkbox("Hold button: temporarily use vanilla camera##TPS",
-                        &config.tpsHoldSuspendEnabled)) config.Save();
-                if (ImGui::Checkbox("Long-press button: toggle TPS##TPS",
-                        &config.tpsLongPressToggleEnabled)) config.Save();
-                if (ImGui::Checkbox("Hold R3 to equip grenade, release to stow##TPS",
-                        &config.tpsGrenadeHoldEnabled)) config.Save();
-                ImGui::TextDisabled("Blue line/arc visibility mode is now in Gameplay > HUD and aiming effects.");
-                if (ImGui::Checkbox("Stabilize mounted TPS camera while firing##TPS",
-                        &config.tpsHorseStableAimCamera)) config.Save();
-                ImGui::TextDisabled("Reduces vertical horse-camera bob during fire, without altering aim or movement.");
-                ImGui::TextDisabled("Mounted aim: %s | firing frames %u | horse frames %u",
-                    config.tpsHorseStableAimCamera
-                        ? (camera.mountedFireCurrentlyActive ? "ACTIVE" : "waiting for fire on horse")
-                        : "OFF",
-                    camera.mountedFireRequested,camera.mountedFireHorseSelected);
-                ImGui::TextDisabled("Height smoothing frames: %u | latest correction: %+.1f units",
-                    camera.mountedFireVerticalSmoothed,camera.mountedFireLastVerticalCorrection);
-                if(ImGui::TreeNode("Advanced mounted camera diagnostics")){
-                    ImGui::TextDisabled("Foot pose replaced: %u | no live horse pose: %u",
-                        camera.mountedFireOverrodeFoot,camera.mountedFireHorseUnavailable);
-                    ImGui::TreePop();
-                }
-                ImGui::TextDisabled("R3 defaults to vanilla-view hold and grenade hold simultaneously.");
-                constexpr int kButtons[] = {0x0040,0x0080,0x0100,0x0200,0x1000,0x0001,0x0002,0x0004,0x0008};
-                constexpr const char* kButtonLabels[] = {
-                    "Left Stick Click (L3)","Right Stick Click (R3)","LB",
-                    "RB","A","D-Pad Up","D-Pad Down","D-Pad Left","D-Pad Right"
+                ImGui::TextDisabled("Mounted TPS firing mode (overrides on-foot options)");
+                constexpr const char* kMountedModes[]={
+                    "Camera Forward (free camera, shots follow view)",
+                    "Vanilla Aim (camera locked while firing)"
                 };
-                int selected=0;
-                for(int i=0;i<9;++i) {
-                    if(config.tpsRecenterButtonMask==kButtons[i]){selected=i;break;}
-                }
-                ImGui::SetNextItemWidth(245.0f);
-                if(ImGui::Combo("Recenter behind player##TPS",&selected,kButtonLabels,9)) {
-                    config.tpsRecenterButtonMask=kButtons[selected];
-                    config.Save();
-                }
-                auto BindGamepadMask=[&](const char* title,int& mask){
+                ImGui::SetNextItemWidth(510.0f);
+                if(ImGui::Combo("Aim while mounted##MountedMode",
+                    &config.tpsMountedAimMode,kMountedModes,2))config.Save();
+                ImGui::TextWrapped(config.tpsMountedAimMode==0
+                    ? "Default: move TPS camera freely while shooting on horseback; shots use camera direction."
+                    : "While firing on horseback, TPS orbit stops and native aim takes over. Orbit resumes on release.");
+                ImGui::TextDisabled("Mounted camera frames while firing: %u",
+                    camera.mountedFireHorseSelected);
+                ImGui::Separator();
+                ImGui::Text("Controller bindings");
+                ImGui::TextDisabled("One button per action. OFF disables the mod hotkey.");
+                constexpr int kButtons[]={
+                    0,0x0040,0x0080,0x0100,0x0200,0x10000,0x20000,
+                    0x1000,0x2000,0x4000,0x8000,0x0001,0x0002,
+                    0x0004,0x0008,0x0010,0x0020
+                };
+                constexpr const char* kButtonLabels[]={
+                    "OFF","L3 (Left Stick Click)","R3 (Right Stick Click)",
+                    "LB / L1","RB / R1","LT / L2","RT / R2",
+                    "A / Cross","B / Circle","X / Square","Y / Triangle",
+                    "D-Pad Up","D-Pad Down","D-Pad Left","D-Pad Right",
+                    "Start / Menu","Back / View"
+                };
+                constexpr int kButtonCount=sizeof(kButtons)/sizeof(kButtons[0]);
+                auto BindGamepadMask=[&](const char* title,int& mask) {
                     int index=0;
-                    for(int i=0;i<9;++i)if(mask==kButtons[i]){index=i;break;}
-                    ImGui::SetNextItemWidth(245.0f);
-                    if(ImGui::Combo(title,&index,kButtonLabels,9)){
+                    for(int i=0;i<kButtonCount;++i)
+                        if(mask==kButtons[i]){index=i;break;}
+                    ImGui::SetNextItemWidth(285.0f);
+                    if(ImGui::Combo(title,&index,kButtonLabels,kButtonCount)){
                         mask=kButtons[index];config.Save();
                     }
                 };
-                BindGamepadMask("Hold to temporarily use vanilla view##HoldTPS",
-                                config.tpsSuspendButtonMask);
-                ImGui::SetNextItemWidth(245.0f);
-                if(ImGui::SliderInt("Vanilla view hold start delay##HoldTPS",
-                    &config.tpsSuspendDelayMs,0,3000,"%d ms")) config.Save();
-                ImGui::TextDisabled("Default 300 ms: a short press will not switch camera.");
-                BindGamepadMask("Long press to toggle TPS##ToggleTPS",
-                                config.tpsToggleHoldButtonMask);
-                ImGui::SetNextItemWidth(245.0f);
-                if(ImGui::SliderInt("Long press duration##ToggleTPS",
-                    &config.tpsToggleHoldMs,250,2000,"%d ms")) config.Save();
-                if(config.tpsSuspendButtonMask==config.tpsToggleHoldButtonMask)
-                    ImGui::TextDisabled("Warning: both hold actions use the same button.");
-                ImGui::TextDisabled("Short L3 = recenter; long L3 = toggle TPS.");
-                ImGui::TextDisabled("R3 grenade: hold to equip; release sends a second native toggle.");
-                ImGui::TextDisabled("R3 diagnostics: presses %u | releases %u | stow pulses forwarded %u",
-                    t.grenadePhysicalDown,t.grenadePhysicalUp,t.grenadeNativeReleasePulses);
-                ImGui::TextDisabled("Recenter = current player yaw; leaves TPS distance unchanged.");
-                ImGui::TextDisabled("The selected button remains game-native if it has another use.");
+                BindGamepadMask("Grenade: hold equip / release stow##TPS",config.tpsGrenadeButtonMask);
+                BindGamepadMask("Hold for temporary vanilla camera##TPS",config.tpsSuspendButtonMask);
+                if(config.tpsSuspendButtonMask!=0){
+                    ImGui::SetNextItemWidth(245.0f);
+                    if(ImGui::SliderInt("Temporary view delay##HoldTPS",
+                        &config.tpsSuspendDelayMs,0,3000,"%d ms"))config.Save();
+                }
+                BindGamepadMask("Long press: TPS ON/OFF##TPS",config.tpsToggleHoldButtonMask);
+                if(config.tpsToggleHoldButtonMask!=0){
+                    ImGui::SetNextItemWidth(245.0f);
+                    if(ImGui::SliderInt("Long press delay##ToggleTPS",
+                        &config.tpsToggleHoldMs,250,2000,"%d ms"))config.Save();
+                }
+                BindGamepadMask("Recenter TPS behind player##TPS",config.tpsRecenterButtonMask);
+                ImGui::TextDisabled("Default R3 grenade/temporary view, L3 short recenter/long TPS toggle.");
+                ImGui::TextDisabled("Grenade stow pulses: %u | DOWN %u / UP %u",
+                    t.grenadeNativeReleasePulses,t.grenadePhysicalDown,t.grenadePhysicalUp);
+                if(config.tpsGrenadeButtonMask!=0 &&
+                   (config.tpsGrenadeButtonMask==config.tpsToggleHoldButtonMask ||
+                    config.tpsGrenadeButtonMask==config.tpsSuspendButtonMask ||
+                    config.tpsGrenadeButtonMask==config.tpsRecenterButtonMask))
+                    ImGui::TextDisabled("Shared binding: one button triggers multiple actions.");
+                if(config.tpsToggleHoldButtonMask!=0 &&
+                   config.tpsToggleHoldButtonMask==config.tpsSuspendButtonMask)
+                    ImGui::TextDisabled("Long TPS and temporary view share one button.");
+                ImGui::TextWrapped("Native game actions remain unless deliberately remapped "
+                    "for grenade. LT/RT and other game buttons can conflict with "
+                    "their original actions. OFF disables the mod shortcut only.");
                 ImGui::Unindent();
             }
             ImGui::TextDisabled("Normal aiming and camera return when TPS is OFF.");
