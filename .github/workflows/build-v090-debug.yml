@@ -1,0 +1,82 @@
+name: V0.90 shader aim + mounted horse retention (EXPERIMENTAL)
+on:
+  push:
+    branches: [debug]
+    paths:
+      - "src/**"
+      - "config/**"
+      - "CMakeLists.txt"
+      - "README.md"
+      - ".github/workflows/build-v090-debug.yml"
+permissions:
+  contents: write
+concurrency:
+  group: v090-debug-build
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Configure Windows x64
+        shell: pwsh
+        run: |
+          cmake -S . -B build -G "Visual Studio 18 2026" -A x64
+          if ($LASTEXITCODE -ne 0) { throw "Configure failed" }
+      - name: Build Release
+        shell: pwsh
+        run: |
+          cmake --build build --config Release --parallel
+          if ($LASTEXITCODE -ne 0) { throw "Compile failed" }
+      - name: Package verified four root files
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          Copy-Item build/out/dxgi.dll dist/
+          Copy-Item build/out/DarksidersGenesisMod.asi dist/
+          Copy-Item config/DarksidersGenesisMod.ini dist/
+          Copy-Item README.md dist/
+          New-Item -ItemType Directory -Path downloads -Force | Out-Null
+          $zipPath = 'downloads/DarksidersGenesis_V0.90_SHADER_AIM_HORSE_RETENTION_TEST.zip'
+          if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+          Compress-Archive -Path 'dist/*' -DestinationPath $zipPath -CompressionLevel Optimal
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $zipPath))
+          try {
+            $names = @($zip.Entries | ForEach-Object { $_.FullName })
+            $expected = @('dxgi.dll','DarksidersGenesisMod.asi','DarksidersGenesisMod.ini','README.md')
+            foreach ($name in $expected) { if ($names -notcontains $name) { throw "Missing root entry $name" } }
+            if ($names.Count -ne 4) { throw "ZIP root requires 4 files; got $($names.Count)" }
+            if ($names | Where-Object { $_.Contains('/') -or $_.Contains('\') }) { throw 'Nested path in ZIP' }
+          } finally { $zip.Dispose() }
+          Get-FileHash $zipPath -Algorithm SHA256
+      - name: Upload verified Windows x64 ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: DarksidersGenesis_V0.90_SHADER_AIM_HORSE_RETENTION_TEST
+          path: downloads/DarksidersGenesis_V0.90_SHADER_AIM_HORSE_RETENTION_TEST.zip
+          if-no-files-found: error
+      - name: Preserve numbered experimental ZIP in debug
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add downloads/DarksidersGenesis_V0.90_SHADER_AIM_HORSE_RETENTION_TEST.zip
+          git commit -m "downloads: preserve compiled V0.90 experimental ZIP (unvalidated)"
+          if ($LASTEXITCODE -ne 0) { throw 'Archive commit failed' }
+          $published = $false
+          for ($i=0; $i -lt 5; $i++) {
+            git fetch origin debug
+            if ($LASTEXITCODE -ne 0) { throw 'Fetch failed' }
+            git rebase origin/debug
+            if ($LASTEXITCODE -ne 0) { throw 'Rebase failed' }
+            git push origin HEAD:debug
+            if ($LASTEXITCODE -eq 0) { $published = $true; break }
+            Start-Sleep -Seconds 2
+          }
+          if (-not $published) { throw 'Permanent experimental ZIP push failed' }
+          Write-Host 'V0.90 ZIP https://raw.githubusercontent.com/'"$env:GITHUB_REPOSITORY"'/debug/downloads/DarksidersGenesis_V0.90_SHADER_AIM_HORSE_RETENTION_TEST.zip'
