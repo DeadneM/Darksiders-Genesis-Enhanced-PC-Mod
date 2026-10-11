@@ -2279,3 +2279,15 @@ The user identified native horse summon controls as keyboard **H** or gamepad **
 **Horse Everywhere:** native H / LB+RB summon input now logs before and 1800 ms after, together with server spawn delta and **live horse callbacks captured using the existing validated HorseFeature**. This is diagnostic only, not a bypass of restricted areas.
 
 The validated R3 grenade hold/release, customizable bindings, horse speed/stamina, visual HUD, TPS orbit-angle code and all unrelated feature hooks are preserved. Do not promote to stable release until gameplay testing. Technical details: [V0.87 audit](docs/V0_87_MOUNTED_CTRL_AIM_VISUAL_HORSE_AUDIT.md).
+
+## V0.88 (2026-10-11) | Horse Everywhere ON by default and separate area-ban diagnostics
+
+**Frozen / validated:** Mounted TPS **Vanilla Aim** now works to the user's satisfaction. **Do not touch** the native aim/camera behavior, R3 grenade hold/stow or gamepad bindings.
+
+**Camera Forward still experimental and NOT FIXED.** V0.87 posted eight Ctrl key down/up pairs but the player reports bullets continue along a cached/fixed original character direction. V0.88 removes these ineffective synthetic key messages, preserves existing camera controls and logs the native look-vector yaw compared with TPS camera yaw during mounted shots. This is not a projectile trajectory measurement. Independent mod *Klassik 3rd person cam* (Nexus mod #2, author aaaaabbbbccc) claims working **camera-facing bullet raycasts**; this is a focused lead for auditing the actual projectile trace in the exact supported EXE, not an imported or validated patch.
+
+**Horse Everywhere defaults ON** in new packaged INI, reset defaults, fallback and the first migration to ConfigRevision 2127. `[Features] HorseEverywhere=1`. An explicit OFF saved afterwards remains OFF. **No forbidden-zone bypass exists yet:** current ON state only authorizes research/telemetry. Two different restriction mechanisms are now tracked separately: (1) inputs which cannot summon, and (2) *banned mounted volumes* that remove an already summoned horse. Uses existing native HorseCharacter callback timestamps/identity, live mounted-camera recognition, real H/LB+RB input timing, server spawn deltas, and HORSE -> FOOT transitions to build falsifiable logs without writes or forced spawns.
+
+New log tags `Horse Everywhere V0.88 AREA INPUT`, `AREA RESULT`, `MOUNT EXIT` and `TPS V0.88 FORWARD RAYCAST AUDIT`. Previous target UI and native ground-FX probes both saw zero events; blue line and arc remain unresolved. Keyboard/mouse TPS 360-degree rotation glitch is recorded and intentionally deferred.
+
+[Complete V0.88 investigation and strict regression freeze](docs/V0_88_HORSE_ZONES_FORWARD_RAYCAST_AUDIT.md). Main branch unchanged.
