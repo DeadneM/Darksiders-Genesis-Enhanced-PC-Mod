@@ -710,16 +710,19 @@ void Draw(Context& c) {
                 ImGui::TextDisabled("TPS mouse uses native flat-plane targeting (3D aim not yet fixed).");
                 ImGui::TextDisabled("No fixed crosshair or simulated aim.");
                 ImGui::Separator();
-                ImGui::TextDisabled("V0.73: native physics desired facing direction (EXPERIMENTAL).");
-                ImGui::BeginDisabled();
-                bool disabledKeyboardStrafe=false;
-                ImGui::Checkbox("Strafe with mouse / keyboard (WASD)##TPS",&disabledKeyboardStrafe);
-                ImGui::EndDisabled();
-                if (ImGui::Checkbox("Controller strafe: face TPS camera while moving (TEST)##TPS",
-                        &config.tpsControllerStrafe)) config.Save();
-                ImGui::TextDisabled("Uses native rotation interpolation, NOT legacy flag or fake aim.");
-                ImGui::TextDisabled("Default OFF. Test side/back walk, dodge and firing before accepting.");
-                ImGui::TextDisabled("Keyboard native strafe remains suspended; TPS OFF stays vanilla.");
+                ImGui::TextDisabled("V0.74: firing-only player facing (EXPERIMENTAL).");
+                ImGui::TextDisabled("Mouse / keyboard");
+                if (ImGui::Checkbox("Strafe while firing##MouseTPS",
+                        &config.tpsMouseStrafeWhileFiring)) config.Save();
+                if (ImGui::Checkbox("Rotate player while firing##MouseTPS",
+                        &config.tpsMouseRotateWhileFiring)) config.Save();
+                ImGui::TextDisabled("Controller / camera stick");
+                if (ImGui::Checkbox("Strafe while firing##PadTPS",
+                        &config.tpsControllerStrafeWhileFiring)) config.Save();
+                if (ImGui::Checkbox("Rotate player while firing##PadTPS",
+                        &config.tpsControllerRotateWhileFiring)) config.Save();
+                ImGui::TextDisabled("Strafe keeps initial shooting heading; Rotate follows TPS camera.");
+                ImGui::TextDisabled("Both enabled: Rotate takes precedence. Default OFF; TPS only.");
                 constexpr int kButtons[] = {0x0040,0x0080,0x0100,0x0200,0x1000,0x0001,0x0002,0x0004,0x0008};
                 constexpr const char* kButtonLabels[] = {
                     "Left Stick Click (L3)","Right Stick Click (R3)","LB",
