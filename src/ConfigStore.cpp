@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2123;
+constexpr int kConfigRevision = 2124;
 
 bool ReadBool(
     const wchar_t* section,
@@ -321,6 +321,7 @@ void Store::ResetDefaults(bool persist) {
     meleeDamageEnabled = true;
     jumpHeightEnabled = true;
     glideDurationEnabled = true;
+    horseEverywhereEnabled = false;
     horseSpeedEnabled = true;
     horseSprintSpeedEnabled = true;
     horseSprintDurationEnabled = true;
@@ -457,6 +458,7 @@ bool Store::Load() {
         ReadBool(L"Features", L"JumpHeight", true, path_);
     glideDurationEnabled =
         ReadBool(L"Features", L"GlideDuration", true, path_);
+    horseEverywhereEnabled = ReadBool(L"Features", L"HorseEverywhere", false, path_);
     horseSpeedEnabled =
         ReadBool(L"Features", L"HorseSpeed", true, path_);
     horseSprintSpeedEnabled =
@@ -642,6 +644,7 @@ void Store::PublishRuntime() const {
     runtime.meleeDamageEnabled = meleeDamageEnabled;
     runtime.jumpHeightEnabled = jumpHeightEnabled;
     runtime.glideDurationEnabled = glideDurationEnabled;
+    runtime.horseEverywhereEnabled = horseEverywhereEnabled;
     runtime.horseSpeedEnabled = horseSpeedEnabled;
     runtime.horseSprintSpeedEnabled = horseSprintSpeedEnabled;
     runtime.horseSprintDurationEnabled = horseSprintDurationEnabled;
@@ -767,6 +770,7 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"MeleeDamage", meleeDamageEnabled, path_);
     WriteBool(L"Features", L"JumpHeight", jumpHeightEnabled, path_);
     WriteBool(L"Features", L"GlideDuration", glideDurationEnabled, path_);
+    WriteBool(L"Features", L"HorseEverywhere", horseEverywhereEnabled, path_);
     WriteBool(L"Features", L"HorseSpeed", horseSpeedEnabled, path_);
     WriteBool(L"Features", L"HorseSprintSpeed", horseSprintSpeedEnabled, path_);
     WriteBool(L"Features", L"HorseSprintDuration", horseSprintDurationEnabled, path_);
