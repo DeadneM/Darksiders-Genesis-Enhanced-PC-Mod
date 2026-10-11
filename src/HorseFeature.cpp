@@ -22,6 +22,12 @@ constexpr std::uintptr_t kHorseGetNormalizedSpeedRva = 0x00670D00;
 constexpr std::uintptr_t kHorseGetNormalizedSpeedInputRva = 0x00670DD0;
 constexpr std::uintptr_t kHorseTryStartSprintingRva = 0x0068C120;
 constexpr std::uintptr_t kHorseSetSprintingTrueRva = 0x00791F80;
+// V0.83: native spawn request diagnostics ONLY; never force mount spawn.
+constexpr std::uintptr_t kHorseServerSpawnImplRva = 0x00682860;
+constexpr std::array<unsigned char, 20> kHorseServerSpawnImplPrologue{
+    0x48,0x8B,0xC4,0x55,0x57,0x41,0x54,0x41,0x55,0x41,
+    0x56,0x48,0x8B,0xEC,0x48,0x81,0xEC,0x80,0x00,0x00
+};
 
 constexpr std::array<unsigned char, 12> kGetNormalizedSpeedPrologue{
     0x48, 0x89, 0x5C, 0x24, 0x08, 0x57,
@@ -113,6 +119,8 @@ std::atomic<float> g_appliedSprintDrain{0.0f};
 
 std::atomic_uint32_t g_nativeHookCalls{0};
 std::atomic_uint32_t g_horsesFound{0};
+std::atomic_bool g_summonServerProbeReady{false};
+std::atomic_uint32_t g_summonServerCalls{0}, g_summonServerCallsRequested{0};
 
 using HorseFloatFn = float(*)(void*);
 using HorseVoidFn = void(*)(void*);
@@ -122,11 +130,14 @@ HorseFloatFn g_originalGetNormalizedSpeed = nullptr;
 HorseFloatFn g_originalGetNormalizedSpeedInput = nullptr;
 HorseVoidFn g_originalTryStartSprinting = nullptr;
 HorseVoidFn g_originalSetSprintingTrue = nullptr;
+using HorseServerSpawnImplFn=void(*)(void*,void*,void*,unsigned char);
+HorseServerSpawnImplFn g_originalServerSpawnImpl=nullptr;
 
 void* g_getNormalizedSpeedTarget = nullptr;
 void* g_getNormalizedSpeedInputTarget = nullptr;
 void* g_tryStartSprintingTarget = nullptr;
 void* g_setSprintingTrueTarget = nullptr;
+void* g_serverSpawnImplTarget = nullptr;
 
 LogFn g_logger = nullptr;
 
@@ -796,6 +807,17 @@ void HookHorseSetSprintingTrue(
     }
 }
 
+// Probe of actual server-side spawn request. Same arguments are forwarded;
+// disabled/forbidden mount checks remain entirely owned by the game.
+void HookHorseServerSpawnImpl(void* actor,void* a,void* b,unsigned char flag){
+    const unsigned n=++g_summonServerCalls;
+    const bool requested=dg::runtime::Get().horseEverywhereEnabled.load(std::memory_order_relaxed);
+    if(requested)++g_summonServerCallsRequested;
+    if(n==1||n==10||n==100)
+        FeatureLog("Horse Everywhere V0.83 diagnostic: SERVER_SpawnHorseMount request n=%u optIn=%d (native unchanged)",n,requested?1:0);
+    if(g_originalServerSpawnImpl)g_originalServerSpawnImpl(actor,a,b,flag);
+}
+
 template <std::size_t N, typename Fn>
 bool InstallNativeHook(
     std::uintptr_t rva,
@@ -930,6 +952,13 @@ void Initialize(LogFn logger) {
         "HorseCharacter::TryStartSprinting"
     );
 
+    // New isolated diagnostic: inspect whether a summon reaches the native server.
+    g_summonServerProbeReady.store(InstallNativeHook(
+        kHorseServerSpawnImplRva,kHorseServerSpawnImplPrologue,
+        reinterpret_cast<void*>(&HookHorseServerSpawnImpl),
+        g_originalServerSpawnImpl,g_serverSpawnImplTarget,
+        "PlayerCharacter::SERVER_SpawnHorseMount_Implementation (OBSERVE ONLY)"));
+
     InstallNativeHook(
         kHorseSetSprintingTrueRva,
         kSetSprintingTruePrologue,
@@ -999,6 +1028,9 @@ Telemetry GetTelemetry() {
     t.validated = g_validated.load();
     t.staminaReady = g_staminaReady.load();
     t.sprinting = g_sprinting.load();
+    t.summonProbeReady = g_summonServerProbeReady.load();
+    t.summonServerCalls = g_summonServerCalls.load();
+    t.summonServerCallsWhileRequested = g_summonServerCallsRequested.load();
     t.playerOwner = nullptr;
     t.horseOwner = g_owner.load();
     t.horseMovement = g_movement.load();
@@ -1048,6 +1080,9 @@ void Shutdown() {
     RemoveHook(g_getNormalizedSpeedInputTarget);
     RemoveHook(g_tryStartSprintingTarget);
     RemoveHook(g_setSprintingTrueTarget);
+    RemoveHook(g_serverSpawnImplTarget);
+    FeatureLog("Horse Everywhere V0.83 probe totals: serverSpawn=%u duringRequested=%u (no bypass attempted)",
+        g_summonServerCalls.load(),g_summonServerCallsRequested.load());
 
     AcquireSRWLockExclusive(&g_lock);
     for (auto& slot : g_slots) {
