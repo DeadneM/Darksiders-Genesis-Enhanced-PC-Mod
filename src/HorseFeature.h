@@ -19,6 +19,9 @@ struct Telemetry {
     bool validated = false;
     bool staminaReady = false;
     bool sprinting = false;
+    bool summonProbeReady = false;
+    std::uint32_t summonServerCalls = 0;
+    std::uint32_t summonServerCallsWhileRequested = 0;
     void* playerOwner = nullptr;
     void* horseOwner = nullptr;
     void* horseMovement = nullptr;
