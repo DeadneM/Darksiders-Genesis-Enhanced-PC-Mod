@@ -3519,6 +3519,7 @@ void UpdateOrbitInput() {
         summonProbe.pending=false;
     }
     if((hPressed&&!wasHorseH)||(shoulderChord&&!wasHorseChord)){
+        rt.tpsLastHorseSummonInputTick.store(now,std::memory_order_release);
         const unsigned n=++horseInputAttempts;
         summonProbe={true,now,n,mountNow.summonServerCalls,
             mountNow.uniqueCandidatesLogged,mountNow.horseGeneration,
