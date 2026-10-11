@@ -35,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.77-r3-hold-delay-aim-effect-diagnostics-test";
+constexpr const char* kBuild = "0.86-mounted-aim-modes-controller-bindings-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -3472,6 +3472,21 @@ void UpdateOrbitInput() {
             (nativeMountAim && (padFiringForOrbit||mouseFiringForOrbit)) ||
             (!mounted && padFiringForOrbit &&
              !rt.tpsControllerRotateWhileFiring.load());
+        // Bounded diagnostics: proves that mounted aiming mode is actually
+        // selected while firing (rather than only saved in the INI).
+        const int activeMountedMode=(mounted &&
+            (padFiringForOrbit||mouseFiringForOrbit))
+            ? rt.tpsMountedAimMode.load() : -1;
+        static int previousMountedMode=-2;
+        static unsigned mountedModeTransitions=0;
+        if(activeMountedMode!=previousMountedMode) {
+            previousMountedMode=activeMountedMode;
+            const unsigned n=++mountedModeTransitions;
+            if(n<=24)Log("TPS V0.86 MOUNTED AIM mode=%s n=%u (padFire=%d mouseFire=%d)",
+                activeMountedMode==0?"CAMERA_FORWARD":
+                activeMountedMode==1?"VANILLA_AIM":"INACTIVE",
+                n,padFiringForOrbit?1:0,mouseFiringForOrbit?1:0);
+        }
         // Diagnostic/limited guard for controller software mapping the right
         // stick into Windows mouse movement IN ADDITION TO native XInput.
         // Never globally suppress real mouse input, and time out promptly.
