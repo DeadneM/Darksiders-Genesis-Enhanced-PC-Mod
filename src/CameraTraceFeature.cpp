@@ -165,10 +165,15 @@ void HookView(void* camera, float dt, void* outView) {
             if(previousHorse){
                 const ULONGLONG horseAge=horseTick&&now>=horseTick?
                     now-horseTick:0ull;
-                char zoneMsg[310]{};
-                sprintf_s(zoneMsg,"Horse Everywhere V0.88 MOUNT EXIT: live HORSE->FOOT player=(%.0f,%.0f,%.0f) lastHorsePoseAgeMs=%llu currentHorsePoseFresh=%d configured=%d (normal dismount OR force-despawn volume; OBSERVE ONLY)",
+                const auto inputTick=settings.tpsLastHorseSummonInputTick.load(
+                    std::memory_order_acquire);
+                const ULONGLONG inputAge=inputTick&&now>=inputTick?
+                    now-inputTick:999999ull;
+                char zoneMsg[365]{};
+                sprintf_s(zoneMsg,"Horse Everywhere V0.88 MOUNT EXIT: HORSE->FOOT player=(%.0f,%.0f,%.0f) lastHorsePoseAgeMs=%llu latestMountKeyAgeMs=%llu noRecentMountKey=%d configured=%d (possible forced-removal volume if no recent key; not proof)",
                     ax,ay,az,static_cast<unsigned long long>(horseAge),
-                    freshHorse?1:0,settings.horseEverywhereEnabled.load()?1:0);
+                    static_cast<unsigned long long>(inputAge),
+                    inputAge>2500ull?1:0,settings.horseEverywhereEnabled.load()?1:0);
                 Write(zoneMsg);
             }
         }
