@@ -141,6 +141,14 @@ public:
     // independent movement-facing and camera orbit options.
     bool tpsControllerStrafeWhileFiring = false;
     bool tpsControllerRotateWhileFiring = false;
+    bool tpsHoldSuspendEnabled = true;
+    bool tpsLongPressToggleEnabled = true;
+    bool tpsGrenadeHoldEnabled = true;
+    bool tpsHideGroundAimFx = true;
+    bool tpsHorseStableAimCamera = true;
+    int tpsSuspendButtonMask = 0x0080; // R3, temporary vanilla view
+    int tpsToggleHoldButtonMask = 0x0040; // L3, long press TPS toggle
+    int tpsToggleHoldMs = 650;
     int tpsRecenterButtonMask = 0x0040; // XINPUT_GAMEPAD_LEFT_THUMB
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
@@ -165,17 +173,17 @@ public:
     float horseSprintSpeedMultiplier = 1.25f;
     float horseSprintDurationMultiplier = 5.00f;
     float fovDegrees = 90.0f;
-    float thirdPersonFovDegrees = 90.0f;
+    float thirdPersonFovDegrees = 110.0f;
     float cameraZoomPercent = 0.0f;
     float cameraPitchDegrees = 0.0f;
-    float cameraYawDegrees = 0.0f;
-    float cameraHeightOffset = 0.0f;
-    float thirdPersonDistanceMultiplier = 0.50f;
+    float cameraYawDegrees = 5.0f;
+    float cameraHeightOffset = -300.0f;
+    float thirdPersonDistanceMultiplier = 0.20f;
     float thirdPersonPitchDegrees = -12.0f;
-    float thirdPersonHeightOffset = 180.0f;
-    float tpsFootAnchorOffset = 88.0f; // estimated capsule center-to-foot, configurable
+    float thirdPersonHeightOffset = 300.0f;
+    float tpsFootAnchorOffset = 0.0f; // adjustable +/-500 units
     float cameraMouseSensitivity = 0.12f;
-    float cameraStickSpeed = 135.0f;
+    float cameraStickSpeed = 180.0f;
     float hotstreakChargeMultiplier = 2.00f;
 
     std::array<Action, 12> hotkeys{};
