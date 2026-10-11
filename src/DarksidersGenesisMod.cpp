@@ -3528,6 +3528,17 @@ void UpdateMountedCtrlAimBridge(HWND, bool, bool) {
     // Preserve V0.87 telemetry fields for INI/overlay compatibility;
     // NEVER inject synthetic keyboard input.
 }
+// Native H / E input routing is never installed unless a shortcut is set.
+bool EmitKeyboardVirtualKey(WORD vk,bool down){
+    INPUT event{};
+    event.type=INPUT_KEYBOARD;
+    event.ki.wVk=vk;
+    event.ki.dwFlags=down?0:KEYEVENTF_KEYUP;
+    event.ki.dwExtraInfo=0x44475392;
+    return SendInput(1,&event,sizeof(event))==1;
+}
+std::atomic_bool g_horseSyntheticHDown{false};
+std::atomic_bool g_gearSyntheticEDown{false};
 void UpdateOrbitInput() {
     static WORD lastButtons=0;
     auto& rt=dg::runtime::Get();
@@ -3548,10 +3559,28 @@ void UpdateOrbitInput() {
     // V0.86: native horse summon INPUT evidence only. H and LB+RB are
     // validated user-facing controls. Never inject an artificial summon;
     // simply correlate each real attempt with the existing server hook.
-    const bool hPressed=focused&&(GetAsyncKeyState('H')&0x8000)!=0;
+    const auto KeyboardHeld=[&](dg::config::TpsKeyboardAction action)->bool{
+        const int vk=g_config.tpsKeyboardKeys[static_cast<size_t>(action)];
+        return focused && vk>0 && vk<256 && (GetAsyncKeyState(vk)&0x8000)!=0;
+    };
+    // Real local input still goes through game's own original H/LB+RB.
+    const int selectedHorseVK=g_config.tpsKeyboardKeys[static_cast<size_t>(
+        dg::config::TpsKeyboardAction::Horse)];
+    const bool customHorseDown=selectedHorseVK!='H' &&
+        KeyboardHeld(dg::config::TpsKeyboardAction::Horse);
+    if(customHorseDown!=g_horseSyntheticHDown.load() &&
+       EmitKeyboardVirtualKey('H',customHorseDown)){
+        g_horseSyntheticHDown.store(customHorseDown);
+        if(customHorseDown)++g_keyboardHorseInjected;
+    }
+    const bool hPressed=focused &&
+        (((GetAsyncKeyState('H')&0x8000)!=0) ||
+         KeyboardHeld(dg::config::TpsKeyboardAction::Horse));
     const bool shoulderChord=padAvailable &&
-        (physicalBits&(XINPUT_GAMEPAD_LEFT_SHOULDER|XINPUT_GAMEPAD_RIGHT_SHOULDER))==
-            (XINPUT_GAMEPAD_LEFT_SHOULDER|XINPUT_GAMEPAD_RIGHT_SHOULDER);
+        g_config.horsePadButtonA && g_config.horsePadButtonB &&
+        g_config.horsePadButtonA!=g_config.horsePadButtonB &&
+        GamepadBindingDown(g_config.horsePadButtonA,physical.Gamepad) &&
+        GamepadBindingDown(g_config.horsePadButtonB,physical.Gamepad);
     static bool wasHorseH=false,wasHorseChord=false;
     static unsigned horseInputAttempts=0;
     struct SummonAttemptProbe {
@@ -3603,7 +3632,7 @@ void UpdateOrbitInput() {
             trulyMounted,serverRecent};
         if(n<=28)
             Log("Horse Everywhere V0.88 AREA INPUT #%u key=%s enabled=%d cameraHorse=%d nativeCallbackFresh=%d horsePoseFresh=%d serverBefore=%u nativeCalls=%u horseGeneration=%u world=(%.0f,%.0f,%.0f)",
-                n,hPressed&&!wasHorseH?"H":"LB+RB",
+                n,hPressed&&!wasHorseH?"keyboard":"controller-chord",
                 g_config.horseEverywhereEnabled?1:0,trulyMounted?1:0,
                 mountNow.horseCallbackFresh?1:0,freshHorsePose?1:0,
                 mountNow.summonServerCalls,mountNow.uniqueCandidatesLogged,
