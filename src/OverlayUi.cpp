@@ -203,8 +203,8 @@ void Draw(Context& c) {
                     &config.aimIndicatorHideMode,kAimModes,3))config.Save();
             ImGui::TextDisabled("TPS Only is the default. Default Only means normal/non-TPS camera.");
             const auto aimShaders = dg::aim_shader::GetTelemetry();
-            ImGui::TextWrapped("V0.90: two captured pixel shaders are suppressed by the selected mode. "
-                "Exact visual coverage is experimental; other effects using these shaders may also disappear.");
+            ImGui::TextWrapped("V0.91: two user-validated shader IDs suppress the blue aim line and arc. "
+                "The same GPU draw gating and selected visibility mode are preserved from V0.90.");
             ImGui::TextDisabled("D3D11 shader hooks %s | matching shaders %u | suppressed draws %u",
                 aimShaders.hooksReady ? "READY" : "UNAVAILABLE",
                 aimShaders.matchedShaders, aimShaders.blockedDraws);
@@ -395,9 +395,10 @@ void Draw(Context& c) {
                 horse::GetTelemetry();
             if(ImGui::Checkbox("Horse Everywhere (experimental native gate, default ON)",
                     &config.horseEverywhereEnabled)) config.Save();
-            ImGui::TextDisabled("V0.90: permits local summon for 1.6s after H / LB+RB, then");
-            ImGui::TextDisabled("keeps region permission while this player is LIVE mounted in TPS.");
-            ImGui::TextDisabled("Outside confirmed TPS riding, native banned-zone checks return unchanged.");
+            ImGui::TextDisabled("V0.91: summon permission for 1.6s after H / LB+RB,");
+            ImGui::TextDisabled("then keep native horse region permission while riding in");
+            ImGui::TextDisabled("TPS OR default camera, based on live local horse callbacks.");
+            ImGui::TextDisabled("Other mission/script forced dismounts may still apply.");
             ImGui::TextDisabled("%s | server requests observed: %u (while selected: %u)",
                 horseTelemetry.summonProbeReady ? "Summon server probe ready; override still EXPERIMENTAL" :
                     "Summon server probe unavailable; override still EXPERIMENTAL",
