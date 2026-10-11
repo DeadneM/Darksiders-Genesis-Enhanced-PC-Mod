@@ -764,7 +764,6 @@ bool Store::SaveNow() {
         L"TPSCameraFacingGuard",L"TPSLockCombatCameraPivot" }) {
         WritePrivateProfileStringW(L"Features",key,nullptr,path_.c_str());
     }
-    WriteBool(L"Features",L"TPSSuppressNativeRightStick",tpsSuppressNativeRightStick,path_);
     // V0.69: remove the broken setting from old INIs. Blocking mouse
     // messages freezes the game's world-plane aim target.
     WritePrivateProfileStringW(L"Features",L"TPSSuppressVanillaMouseAim",nullptr,path_.c_str());
