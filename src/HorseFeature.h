@@ -25,6 +25,9 @@ struct Telemetry {
     std::uint32_t horseGeneration = 0;
     std::uint32_t summonServerCalls = 0;
     std::uint32_t summonServerCallsWhileRequested = 0;
+    std::uint64_t lastServerSpawnTick = 0;
+    std::uint32_t regionQueries = 0, regionOverrides = 0;
+    std::uint32_t desummonQueries = 0, desummonOverrides = 0;
     void* playerOwner = nullptr;
     void* horseOwner = nullptr;
     void* horseMovement = nullptr;
