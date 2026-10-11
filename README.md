@@ -2251,3 +2251,17 @@ Code audit confirmed that the old switch was a narrow foot-pose/horse-pose prior
 V0.85 makes the checkbox observable and useful during actual mounted shooting: when the game reports active fire and a real fresh horse pose is selected, it applies **150ms vertical-only camera pivot smoothing**, retains fresh horse pose against transient foot samples, and preserves the foot pose when the horse sample is stale. All XY tracking, camera orbit, weapon aim, controller state, mount movement and damage remain native/unchanged. The checkbox OFF path is unsmoothed. Its overlay now reports real requested/selected/smoothed frame counts and last vertical correction. **User gameplay validation is still required.**
 
 [Technical scope and test procedure](docs/V0_85_MOUNTED_CAMERA_FIRING_STABILIZATION_AUDIT.md). Build on V0.84; do not promote the old V0.82 targeting UI suppression nor claim the blue aim line/arc is fixed.
+
+## V0.86 (2026-10-11) | Two mounted TPS shooting modes, compact full gamepad binding
+
+Mounted TPS aim has two exclusive modes that override on-foot rotation/strafe/camera-orbit switches:
+- `TPSMountedAimMode=0` (default): **Camera Forward**. You can control the TPS camera while mounted and firing; the game's native look getters receive camera-facing aim. Camera orbit remains active even if on-foot orbit switches are off.
+- `TPSMountedAimMode=1`: **Vanilla Aim**. While firing on a recognized horse, TPS camera orbit pauses and the native game handles right-stick/look input. Camera control returns when you stop shooting. This is an experimental game-native aim path, still requires actual gameplay verification.
+
+The V0.85 mount height smoothing is removed (it was not the requested mounted camera behavior). The native mount/source pose remains guarded by validated callback freshness.
+
+TPS controller hotkey UI has **one button selector per action**, each with **OFF**: hold/release grenade (now rebindable), temporary vanilla view, long press to toggle TPS and recenter. Supports every standard XInput gameplay button plus LT/RT. Defaults R3/R3/L3/L3 kept and V0.84 validated grenade hold/stow timing unchanged. Renumbered `ConfigRevision=2126` and existing custom configurations migrate, disabled legacy shortcuts become OFF. Choosing a trigger or a button already used by the game may override its native function; **the Xbox Guide button is not available via standard XInput**.
+
+The user identified native horse summon controls as keyboard **H** or gamepad **LB+RB**. V0.86 passively logs these user inputs against native `SERVER_SpawnHorseMount` call counts. **Horse Everywhere still does NOT bypass forbidden-area restrictions.** The log should clarify whether the request is stopped upstream.
+
+[Technical V0.86 notes](docs/V0_86_MOUNTED_AIM_AND_GAMEPAD_BINDINGS.md). GitHub main remains untouched; V0.84 validated grenade baseline preserved.
