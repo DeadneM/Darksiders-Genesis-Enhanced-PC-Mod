@@ -613,10 +613,10 @@ void Draw(Context& c) {
                 ImGui::TextDisabled("TPS pivot follows player feet on the character axis.");
                 ImGui::SetNextItemWidth(245.0f);
                 if(ImGui::SliderFloat("Foot origin correction##TPS",&config.tpsFootAnchorOffset,
-                        0.0f,200.0f,"%.0f units")) config.Save();
+                        -500.0f,500.0f,"%+.0f units")) config.Save();
                 ImGui::SameLine();
                 if(ImGui::Button("Default##TPSFoot")) {
-                    config.tpsFootAnchorOffset=88.0f;config.Save();
+                    config.tpsFootAnchorOffset=0.0f;config.Save();
                 }
                 ImGui::TextDisabled("Approximate root-to-foot height; adjust for the character model.");
                 ImGui::TextDisabled("No TPS reticle is rendered: mouse target world projection is native.");
@@ -634,7 +634,7 @@ void Draw(Context& c) {
                         config.Save();
                     ImGui::SameLine();
                     if(ImGui::Button("Default##TPSFOV")) {
-                        config.thirdPersonFovDegrees=90.0f;config.Save();
+                        config.thirdPersonFovDegrees=110.0f;config.Save();
                     }
                 }
                 ImGui::TextDisabled("Only applies when both Third Person and TPS FOV are ON.");
@@ -647,12 +647,12 @@ void Draw(Context& c) {
                     &config.thirdPersonDistanceMultiplier,0.0f,0.0f,"%.3fx");
                 ImGui::SameLine();
                 if (ImGui::Button("Default##ThirdPersonDistance")) {
-                    config.thirdPersonDistanceMultiplier=0.50f;
+                    config.thirdPersonDistanceMultiplier=0.20f;
                     distanceChanged=true;
                 }
                 if (distanceChanged) {
                     if (!std::isfinite(config.thirdPersonDistanceMultiplier))
-                        config.thirdPersonDistanceMultiplier=0.50f;
+                        config.thirdPersonDistanceMultiplier=0.20f;
                     config.thirdPersonDistanceMultiplier=std::clamp(
                         config.thirdPersonDistanceMultiplier,0.0f,3.0f);
                     config.Save();
@@ -667,16 +667,16 @@ void Draw(Context& c) {
                 ImGui::SetNextItemWidth(145.0f);
                 poseChanged |= ImGui::InputFloat("Manual pitch##TP",&config.thirdPersonPitchDegrees,0,0,"%.1f");
                 ImGui::SetNextItemWidth(245.0f);
-                poseChanged |= ImGui::SliderFloat("Vertical offset##TP",&config.thirdPersonHeightOffset,-500.0f,500.0f,"%+.0f units");
+                poseChanged |= ImGui::SliderFloat("Vertical offset##TP",&config.thirdPersonHeightOffset,-1000.0f,1000.0f,"%+.0f units");
                 ImGui::SameLine();
-                if (ImGui::Button("Default##TPHeight")) {config.thirdPersonHeightOffset=180.0f;poseChanged=true;}
+                if (ImGui::Button("Default##TPHeight")) {config.thirdPersonHeightOffset=300.0f;poseChanged=true;}
                 ImGui::SetNextItemWidth(145.0f);
                 poseChanged |= ImGui::InputFloat("Manual height##TP",&config.thirdPersonHeightOffset,0,0,"%.1f");
                 if (poseChanged) {
                     if (!std::isfinite(config.thirdPersonPitchDegrees)) config.thirdPersonPitchDegrees=-12.0f;
-                    if (!std::isfinite(config.thirdPersonHeightOffset)) config.thirdPersonHeightOffset=180.0f;
+                    if (!std::isfinite(config.thirdPersonHeightOffset)) config.thirdPersonHeightOffset=300.0f;
                     config.thirdPersonPitchDegrees=std::clamp(config.thirdPersonPitchDegrees,-75.0f,65.0f);
-                    config.thirdPersonHeightOffset=std::clamp(config.thirdPersonHeightOffset,-500.0f,500.0f);
+                    config.thirdPersonHeightOffset=std::clamp(config.thirdPersonHeightOffset,-1000.0f,1000.0f);
                     config.Save();
                 }
                 ImGui::Spacing();
@@ -715,10 +715,22 @@ void Draw(Context& c) {
                 ImGui::TextDisabled("Controller / camera right stick");
                 if (ImGui::Checkbox("Strafe while firing (player movement)##PadTPS",
                         &config.tpsControllerStrafeWhileFiring)) config.Save();
-                if (ImGui::Checkbox("Rotate while firing (camera movement)##PadTPS",
+                if (ImGui::Checkbox("Rotate on foot while firing (camera-forward shooting)##PadTPS",
                         &config.tpsControllerRotateWhileFiring)) config.Save();
-                ImGui::TextDisabled("Block vanilla right stick is independent of camera orbit.");
-                ImGui::TextDisabled("Controller options default OFF; TPS OFF returns vanilla.");
+                ImGui::TextDisabled("V0.75 native look hooks preserved, no retuning.");
+                ImGui::Separator();
+                ImGui::TextDisabled("V0.76 controller conveniences (experimental)");
+                if (ImGui::Checkbox("Hold button: temporarily use vanilla camera##TPS",
+                        &config.tpsHoldSuspendEnabled)) config.Save();
+                if (ImGui::Checkbox("Long-press button: toggle TPS##TPS",
+                        &config.tpsLongPressToggleEnabled)) config.Save();
+                if (ImGui::Checkbox("Hold R3 to equip grenade, release to stow##TPS",
+                        &config.tpsGrenadeHoldEnabled)) config.Save();
+                if (ImGui::Checkbox("Hide ground targeting effect in TPS##TPS",
+                        &config.tpsHideGroundAimFx)) config.Save();
+                if (ImGui::Checkbox("Stabilize mounted TPS camera while firing##TPS",
+                        &config.tpsHorseStableAimCamera)) config.Save();
+                ImGui::TextDisabled("R3 defaults to vanilla-view hold and grenade hold simultaneously.");
                 constexpr int kButtons[] = {0x0040,0x0080,0x0100,0x0200,0x1000,0x0001,0x0002,0x0004,0x0008};
                 constexpr const char* kButtonLabels[] = {
                     "Left Stick Click (L3)","Right Stick Click (R3)","LB",
@@ -733,6 +745,25 @@ void Draw(Context& c) {
                     config.tpsRecenterButtonMask=kButtons[selected];
                     config.Save();
                 }
+                auto BindGamepadMask=[&](const char* title,int& mask){
+                    int index=0;
+                    for(int i=0;i<9;++i)if(mask==kButtons[i]){index=i;break;}
+                    ImGui::SetNextItemWidth(245.0f);
+                    if(ImGui::Combo(title,&index,kButtonLabels,9)){
+                        mask=kButtons[index];config.Save();
+                    }
+                };
+                BindGamepadMask("Hold to temporarily use vanilla view##HoldTPS",
+                                config.tpsSuspendButtonMask);
+                BindGamepadMask("Long press to toggle TPS##ToggleTPS",
+                                config.tpsToggleHoldButtonMask);
+                ImGui::SetNextItemWidth(245.0f);
+                if(ImGui::SliderInt("Long press duration##ToggleTPS",
+                    &config.tpsToggleHoldMs,250,2000,"%d ms")) config.Save();
+                if(config.tpsSuspendButtonMask==config.tpsToggleHoldButtonMask)
+                    ImGui::TextDisabled("Warning: both hold actions use the same button.");
+                ImGui::TextDisabled("Short L3 = recenter; long L3 = toggle TPS.");
+                ImGui::TextDisabled("Grenade R3 hold emulates native toggle (TEST).");
                 ImGui::TextDisabled("Recenter = current player yaw; leaves TPS distance unchanged.");
                 ImGui::TextDisabled("The selected button remains game-native if it has another use.");
                 ImGui::Unindent();
@@ -780,7 +811,7 @@ void Draw(Context& c) {
                 &config.cameraHeightOffset,-1500.0f,1500.0f,"%+.0f units");
             ImGui::SameLine();
             if (ImGui::Button("Vanilla##CameraHeight")) {
-                config.cameraHeightOffset=0.0f; heightChanged=true;
+                config.cameraHeightOffset=-300.0f; heightChanged=true;
             }
             ImGui::SetNextItemWidth(160.0f);
             heightChanged |= ImGui::InputFloat("Manual Height##Camera",
@@ -813,7 +844,7 @@ void Draw(Context& c) {
                 &config.cameraYawDegrees,-180.0f,180.0f,"%+.1f deg");
             ImGui::SameLine();
             if (ImGui::Button("Vanilla##CameraYaw")) {
-                config.cameraYawDegrees = 0.0f;
+                config.cameraYawDegrees = 5.0f;
                 yawChanged = true;
             }
             ImGui::SetNextItemWidth(160.0f);
