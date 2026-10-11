@@ -639,7 +639,11 @@ void UpdateCameraDof() {
     }
     const auto& camera=dg::runtime::Get();
     const float zoom=camera.cameraZoomPercent.load(std::memory_order_relaxed);
-    const bool displaced=camera.thirdPersonEnabled.load(std::memory_order_relaxed)||
+    // R3 temporary vanilla camera also restores the native DOF state;
+    // persistent camera zoom, if enabled, remains an independent reason
+    // for disabling depth-of-field blur.
+    const bool displaced=(camera.thirdPersonEnabled.load(std::memory_order_relaxed) &&
+        !camera.tpsTemporarilySuspended.load(std::memory_order_relaxed)) ||
         (std::isfinite(zoom)&&std::fabs(zoom)>0.0001f);
     const LONG desired=displaced ? 0 : g_dofOriginal;
     if (current!=desired) {
