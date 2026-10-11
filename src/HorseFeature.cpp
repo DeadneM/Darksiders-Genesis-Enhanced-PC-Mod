@@ -138,6 +138,7 @@ std::atomic_uint32_t g_summonServerCalls{0}, g_summonServerCallsRequested{0};
 std::atomic_ullong g_lastServerSpawnTick{0};
 std::atomic_uint32_t g_regionQueries{0},g_regionOverrides{0};
 std::atomic_uint32_t g_desummonQueries{0},g_desummonOverrides{0};
+std::atomic_uint32_t g_mountedRegionHolds{0},g_mountedDesummonHolds{0};
 std::atomic<void*> g_lastLocalPlayerIdentity{nullptr};
 std::atomic_ullong g_lastLocalPlayerTick{0};
 
@@ -868,11 +869,40 @@ bool IsLocalSummonIntent(void* actor){
         now>=localTick&&now-localTick<15000ull&&
         actor==g_lastLocalPlayerIdentity.load(std::memory_order_acquire);
 }
+// V0.90: extend the already working 1.6-second summon permission ONLY
+// while this exact locally controlled player's LIVE TPS mounted camera and
+// native HorseCharacter callbacks confirm the same current horse. Nothing is
+// written to game UObjects and there is no respawn loop. Stale/foot/mismatch
+// immediately falls back to native answers; Horse Everywhere OFF bypasses both.
+bool IsLiveLocalMountedRide(void* actor){
+    if(!actor || actor!=g_lastLocalPlayerIdentity.load(std::memory_order_acquire))
+        return false;
+    const auto& rt=dg::runtime::Get();
+    if(!rt.horseEverywhereEnabled.load(std::memory_order_relaxed) ||
+       !rt.thirdPersonEnabled.load(std::memory_order_relaxed) ||
+       rt.tpsTemporarilySuspended.load(std::memory_order_relaxed) ||
+       !rt.tpsMountedViewActive.load(std::memory_order_acquire))
+        return false;
+    const ULONGLONG now=GetTickCount64();
+    const ULONGLONG view=rt.tpsMountedViewTick.load(std::memory_order_acquire);
+    const ULONGLONG horsePose=rt.tpsHorsePoseTick.load(std::memory_order_acquire);
+    const ULONGLONG nativeHorse=g_lastLiveHorseCallbackTick.load(std::memory_order_acquire);
+    const auto selected=rt.tpsHorseOwnerIdentity.load(std::memory_order_acquire);
+    const auto observed=reinterpret_cast<std::uintptr_t>(
+        g_lastObservedLiveHorse.load(std::memory_order_acquire));
+    return view&&horsePose&&nativeHorse&&now>=view&&now-view<=550ull&&
+        now>=horsePose&&now-horsePose<=800ull&&
+        now>=nativeHorse&&now-nativeHorse<=1000ull&&
+        selected&&selected==observed;
+}
 bool HookHorseRegion(void* actor){
     const bool original=g_originalHorseRegion?g_originalHorseRegion(actor):false;
     const unsigned calls=++g_regionQueries;
-    const bool scope=IsLocalSummonIntent(actor);
+    const bool summoned=IsLocalSummonIntent(actor);
+    const bool ridden=IsLiveLocalMountedRide(actor);
+    const bool scope=summoned||ridden;
     if(scope&&!original){
+        if(ridden&&!summoned)++g_mountedRegionHolds;
         const unsigned n=++g_regionOverrides;
         if(n<=24)FeatureLog("Horse Everywhere V0.89 REGION: allow FALSE->TRUE override #%u at call=%u (local player + active real summon key only)",
             n,calls);
@@ -884,8 +914,11 @@ bool HookHorseRegion(void* actor){
 bool HookHorseDesummon(void* actor){
     const bool original=g_originalHorseDesummon?g_originalHorseDesummon(actor):false;
     const unsigned calls=++g_desummonQueries;
-    const bool scope=IsLocalSummonIntent(actor);
+    const bool summoned=IsLocalSummonIntent(actor);
+    const bool ridden=IsLiveLocalMountedRide(actor);
+    const bool scope=summoned||ridden;
     if(scope&&original){
+        if(ridden&&!summoned)++g_mountedDesummonHolds;
         const unsigned n=++g_desummonOverrides;
         if(n<=24)FeatureLog("Horse Everywhere V0.89 DESUMMON: TRUE->FALSE override #%u at call=%u (only while summoning; not persistent in ban volume)",
             n,calls);
@@ -1185,9 +1218,9 @@ void Shutdown() {
     RemoveHook(g_serverSpawnImplTarget);
     RemoveHook(g_horseRegionHookTarget);
     RemoveHook(g_horseDesummonHookTarget);
-    FeatureLog("Horse Everywhere V0.89 native region totals: allowedChecks=%u scopedOverrides=%u desummonChecks=%u scopedOverrides=%u",
-        g_regionQueries.load(),g_regionOverrides.load(),
-        g_desummonQueries.load(),g_desummonOverrides.load());
+    FeatureLog("Horse Everywhere V0.90 region totals: allowedChecks=%u scopedOverrides=%u mountedHolds=%u desummonChecks=%u scopedOverrides=%u mountedHolds=%u",
+        g_regionQueries.load(),g_regionOverrides.load(),g_mountedRegionHolds.load(),
+        g_desummonQueries.load(),g_desummonOverrides.load(),g_mountedDesummonHolds.load());
     FeatureLog("Horse Everywhere V0.83 probe totals: serverSpawn=%u duringRequested=%u (server args unchanged)",
         g_summonServerCalls.load(),g_summonServerCallsRequested.load());
 
