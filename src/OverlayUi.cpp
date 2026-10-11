@@ -390,7 +390,8 @@ void Draw(Context& c) {
                 horse::GetTelemetry();
             if(ImGui::Checkbox("Horse Everywhere (research, default ON)",
                     &config.horseEverywhereEnabled)) config.Save();
-            ImGui::TextDisabled("Goal: remove no-mount zones. Currently tracks summon requests only.");
+            ImGui::TextDisabled("Default ON for research. Zone restrictions are NOT bypassed yet.");
+            ImGui::TextDisabled("Investigating separately: summon denied vs horse removed in banned area.");
             ImGui::TextDisabled("%s | server requests observed: %u (while selected: %u)",
                 horseTelemetry.summonProbeReady ? "Detection ready; bypass NOT implemented" :
                     "Detection unavailable; bypass NOT implemented",
@@ -745,17 +746,19 @@ void Draw(Context& c) {
                 ImGui::Separator();
                 ImGui::TextDisabled("Mounted TPS firing mode (overrides on-foot options)");
                 constexpr const char* kMountedModes[]={
-                    "Camera Forward (free camera, shots follow view)",
+                    "Camera Forward (experimental raycast audit)",
                     "Vanilla Aim (camera locked while firing)"
                 };
                 ImGui::SetNextItemWidth(510.0f);
                 if(ImGui::Combo("Aim while mounted##MountedMode",
                     &config.tpsMountedAimMode,kMountedModes,2))config.Save();
                 ImGui::TextWrapped(config.tpsMountedAimMode==0
-                    ? "Free TPS camera on horseback; while firing, experiment with the native Ctrl aiming action."
-                    : "Not firing: camera only. Firing: TPS orbit freezes and vanilla aiming takes over; release restores camera.");
-                ImGui::TextDisabled("Ctrl aim bridge: %s | presses %u | releases %u",
-                    t.mountedCtrlActive?"ACTIVE":"INACTIVE",t.mountedCtrlDown,t.mountedCtrlUp);
+                    ? "Experimental: native look follows the TPS camera, but the projectiles can keep their old direction. Searching the projectile raycast; failed Ctrl injection has been retired."
+                    : "VALIDATED: camera only at idle; camera orbit freezes during firing and vanilla aim takes over.");
+                ImGui::TextDisabled("Forward diagnostic: native look samples %u | yaw gap >35deg %u",
+                    t.forwardLookSamples,t.forwardYawGapCount);
+                ImGui::TextDisabled("Last input yaw %.1f deg / camera yaw %.1f deg (NOT projectile direction)",
+                    t.forwardNativeYaw,t.forwardCameraYaw);
                 ImGui::TextDisabled("Mounted idle native look blocked: %u",
                     t.mountedIdleLookBlocks);
                 ImGui::TextDisabled("Mounted camera frames while firing: %u",
