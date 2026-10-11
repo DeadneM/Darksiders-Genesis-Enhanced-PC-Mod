@@ -113,6 +113,13 @@ GroundAimEffectFn g_groundAimEffectOriginal=nullptr;
 using AimBeamExecFn=void(*)(void*,void*,void*);
 AimBeamExecFn g_originalAimShowBeamExec=nullptr;
 AimBeamExecFn g_originalAimHideBeamExec=nullptr;
+// Native UMayhem aim-beam hide: player ability this+0x6B0 -> FX component.
+// Called only from the existing reflected ShowBeamEffect interception, on
+// the SAME live owner after the original function completed.
+using NativeAimBeamHideFn=void(*)(void*);
+NativeAimBeamHideFn g_nativeAimBeamVisualHide=nullptr;
+std::atomic_uint32_t g_tpsAimForcedBeamHides{0};
+std::atomic_uint32_t g_tpsAimForcedBeamSkipped{0};
 std::atomic_uint32_t g_tpsAimShowBeamCalls{0},g_tpsAimHideBeamCalls{0};
 std::atomic_uint32_t g_tpsAimShowBeamInTPS{0},g_tpsAimHideBeamInTPS{0};
 SRWLOCK g_grenadeHoldLock=SRWLOCK_INIT;
@@ -1669,6 +1676,26 @@ void HookAimShowBeamExec(void* owner,void* frame,void* result) {
         Log("TPS V0.79 AIM FX PROBE: ShowBeamEffect n=%u tps=%d owner=%p (pass-through)",
             n,tps?1:0,owner);
     if(g_originalAimShowBeamExec)g_originalAimShowBeamExec(owner,frame,result);
+    // V0.80: the UE reflection callback has parsed its own FFrame exactly
+    // as vanilla. Afterwards, hide ONLY its native visual component via
+    // the game's own safe-null HideBeamEffect implementation. We never
+    // skip ShowBeamEffect, modify aim vectors, impact trajectories or fire.
+    // The already-existing "Hide ground targeting effect in TPS" switch
+    // is reused as the experimental visual-only ON/OFF gate.
+    auto& rt=dg::runtime::Get();
+    const bool hideRequested=tps && g_targetValidation.exact &&
+        !g_shuttingDown.load(std::memory_order_relaxed) &&
+        rt.tpsHideGroundAimFx.load(std::memory_order_relaxed) &&
+        g_nativeAimBeamVisualHide && owner;
+    if(hideRequested){
+        g_nativeAimBeamVisualHide(owner);
+        const unsigned suppressed=++g_tpsAimForcedBeamHides;
+        if(suppressed==1||suppressed==10||suppressed==100||suppressed==1000)
+            Log("TPS V0.80 AIM FX: native beam VISUAL hide after show n=%u owner=%p (aim/firing unchanged)",
+                suppressed,owner);
+    }else if(tps){
+        ++g_tpsAimForcedBeamSkipped;
+    }
 }
 void HookAimHideBeamExec(void* owner,void* frame,void* result) {
     const unsigned n=++g_tpsAimHideBeamCalls;
@@ -1685,14 +1712,19 @@ void InstallAimBeamExecProbe() {
     auto* base=reinterpret_cast<unsigned char*>(GetModuleHandleW(nullptr));
     auto* show=base+0x7D17B0;
     auto* hide=base+0x7D0040;
+    auto* nativeHide=base+0x6AD240;
     constexpr unsigned char showSig[]={
         0x48,0x8B,0x42,0x20,0x45,0x33,0xC0,0x48,0x85,0xC0,0x41,0x0F,0x95,0xC0
     };
     constexpr unsigned char hideSig[]={
         0x48,0x8B,0x42,0x20,0x45,0x33,0xC0,0x48,0x85,0xC0,0x41,0x0F,0x95,0xC0
     };
+    constexpr unsigned char nativeHideSig[]={
+        0x48,0x8B,0x89,0xB0,0x06,0x00,0x00,0x48,0x85,0xC9
+    };
     if(std::memcmp(show,showSig,sizeof(showSig))!=0||
-       std::memcmp(hide,hideSig,sizeof(hideSig))!=0) {
+       std::memcmp(hide,hideSig,sizeof(hideSig))!=0||
+       std::memcmp(nativeHide,nativeHideSig,sizeof(nativeHideSig))!=0) {
         Log("TPS V0.79 AIM FX PROBE: native beam wrapper signatures mismatch; nothing installed");
         return;
     }
@@ -1723,7 +1755,9 @@ void InstallAimBeamExecProbe() {
         Log("TPS V0.79 AIM FX PROBE: enable failed; gameplay remains vanilla");
         return;
     }
-    Log("TPS V0.79 AIM FX PROBE: native ShowBeamEffect RVA=0x7D17B0 and HideBeamEffect RVA=0x7D0040 active, PASS-THROUGH ONLY");
+    g_nativeAimBeamVisualHide=reinterpret_cast<NativeAimBeamHideFn>(nativeHide);
+    Log("TPS V0.80 AIM FX: ShowBeamEffect RVA=0x7D17B0, HideBeamEffect RVA=0x7D0040, native visual hide RVA=0x6AD240 READY. Firing callbacks pass through; TPS visual test enabled by HideGroundAimFx.");
+
 }
 
 float HookCharacterGetMaxSpeed(void* movementComponent) {
@@ -3854,9 +3888,10 @@ void ShutdownMod() {
         g_tpsGrenadeDownCount.load(),g_tpsGrenadeUpCount.load(),
         g_tpsGroundAimFxEntered.load(),g_tpsGroundAimFxAlreadyHidden.load(),
         g_tpsGroundAimFxHidden.load());
-    Log("TPS V0.79 AIM FX PROBE totals: show=%u showInTPS=%u hide=%u hideInTPS=%u (all calls passed through unchanged)",
+    Log("TPS V0.80 AIM FX totals: show=%u showInTPS=%u hide=%u hideInTPS=%u forcedVisualHides=%u skippedInTPS=%u",
         g_tpsAimShowBeamCalls.load(),g_tpsAimShowBeamInTPS.load(),
-        g_tpsAimHideBeamCalls.load(),g_tpsAimHideBeamInTPS.load());
+        g_tpsAimHideBeamCalls.load(),g_tpsAimHideBeamInTPS.load(),
+        g_tpsAimForcedBeamHides.load(),g_tpsAimForcedBeamSkipped.load());
     Log("TPS V0.75 totals: nativeLookInput=%u nativeLookRotation=%u suppressedLook=%u heldYaw=%u mouseFace=%u padStrafe=%u mouseLookAim=%u padLookAim=%u signaturesFailed=%u",
         g_tpsLookInputCalls.load(),g_tpsLookRotationCalls.load(),
         g_tpsNativeLookInputBlocks.load(),g_tpsNativeLookRotationBlocks.load(),
