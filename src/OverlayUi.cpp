@@ -752,6 +752,19 @@ void Draw(Context& c) {
                 ImGui::TextDisabled("Blue line/arc visibility mode is now in Gameplay > HUD and aiming effects.");
                 if (ImGui::Checkbox("Stabilize mounted TPS camera while firing##TPS",
                         &config.tpsHorseStableAimCamera)) config.Save();
+                ImGui::TextDisabled("Reduces vertical horse-camera bob during fire, without altering aim or movement.");
+                ImGui::TextDisabled("Mounted aim: %s | firing frames %u | horse frames %u",
+                    config.tpsHorseStableAimCamera
+                        ? (camera.mountedFireCurrentlyActive ? "ACTIVE" : "waiting for fire on horse")
+                        : "OFF",
+                    camera.mountedFireRequested,camera.mountedFireHorseSelected);
+                ImGui::TextDisabled("Height smoothing frames: %u | latest correction: %+.1f units",
+                    camera.mountedFireVerticalSmoothed,camera.mountedFireLastVerticalCorrection);
+                if(ImGui::TreeNode("Advanced mounted camera diagnostics")){
+                    ImGui::TextDisabled("Foot pose replaced: %u | no live horse pose: %u",
+                        camera.mountedFireOverrodeFoot,camera.mountedFireHorseUnavailable);
+                    ImGui::TreePop();
+                }
                 ImGui::TextDisabled("R3 defaults to vanilla-view hold and grenade hold simultaneously.");
                 constexpr int kButtons[] = {0x0040,0x0080,0x0100,0x0200,0x1000,0x0001,0x0002,0x0004,0x0008};
                 constexpr const char* kButtonLabels[] = {
