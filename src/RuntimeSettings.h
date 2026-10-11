@@ -13,7 +13,7 @@ struct Snapshot {
     bool skipLogosEnabled = true;
     bool skipIntroEnabled = true;
     bool skipWarningEnabled = true;
-    bool thirdPersonEnabled = true;
+    bool thirdPersonEnabled = false;
     bool thirdPersonFovEnabled = true;
     bool tpsFollowPlayer = true;
     bool tpsSuppressNativeRightStick = true;
