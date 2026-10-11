@@ -1791,6 +1791,9 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
                 characterOwner,
                 std::memory_order_relaxed
             );
+        // Identity-only publication for narrow native horse-region queries.
+        // Does not dereference or modify a cached horse/player UObject.
+        dg::horse::ObservePlayerCharacter(characterOwner);
         if (previousPlayer != characterOwner) {
             g_tpsPlayerGeneration.fetch_add(1);
             Log(
