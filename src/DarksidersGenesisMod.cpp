@@ -118,7 +118,7 @@ std::atomic_uint32_t g_tpsAimShowBeamInTPS{0},g_tpsAimHideBeamInTPS{0};
 // V0.82: experimental presentation-only UE event gating for exactly TWO
 // named targeting UI classes. All camera, input and aiming hooks are frozen.
 // Do not cache or mutate UObject instance pointers.
-using TargetUiProcessEventFn=void(*)(void*,void*,void*);
+using TargetUiProcessEventFn=void(*)(void*,void*,void*,void*);
 TargetUiProcessEventFn g_originalTargetUiProcessEvent=nullptr;
 void* const* g_targetingUiClassSlot=nullptr;
 void* const* g_targetUiPositionClassSlot=nullptr;
@@ -1753,7 +1753,7 @@ bool IsExactUiClassOrChild(void* actual,void* expected) {
     auto* chain=*reinterpret_cast<void* const* const*>(a+0x30);
     return chain && chain[expectedDepth]==static_cast<const void*>(b+0x30);
 }
-void HookTargetUiProcessEvent(void* instance,void* function,void* params) {
+void HookTargetUiProcessEvent(void* instance,void* function,void* params,void* outParams) {
     if(instance && function && g_targetValidation.exact &&
        g_targetingUiClassSlot && g_targetUiPositionClassSlot){
         void* const actual=*reinterpret_cast<void* const*>(
@@ -1784,7 +1784,7 @@ void HookTargetUiProcessEvent(void* instance,void* function,void* params) {
         }
     }
     if(g_originalTargetUiProcessEvent)
-        g_originalTargetUiProcessEvent(instance,function,params);
+        g_originalTargetUiProcessEvent(instance,function,params,outParams);
 }
 void InstallTargetUiComponentHideTest() {
     if(!g_targetValidation.exact)return;
