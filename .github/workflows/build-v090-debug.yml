@@ -1,4 +1,4 @@
-name: V0.94 native wheels and streamlined TPS input (EXPERIMENTAL)
+name: V0.95 shared E + native radial and TPS mouse/horse TEST
 on:
   push:
     branches: [debug]
@@ -40,7 +40,7 @@ jobs:
           Copy-Item config/DarksidersGenesisMod.ini dist/
           Copy-Item README.md dist/
           New-Item -ItemType Directory -Path downloads -Force | Out-Null
-          $zipPath = 'downloads/DarksidersGenesis_V0.94_NATIVE_WHEELS_TPS_INPUT_SIMPLIFIED_TEST.zip'
+          $zipPath = 'downloads/DarksidersGenesis_V0.95_SHARED_E_RADIAL_MOUSE_HORSE_TEST.zip'
           if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
           Compress-Archive -Path 'dist/*' -DestinationPath $zipPath -CompressionLevel Optimal
           Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -56,8 +56,8 @@ jobs:
       - name: Upload verified Windows x64 ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_V0.94_NATIVE_WHEELS_TPS_INPUT_SIMPLIFIED_TEST
-          path: downloads/DarksidersGenesis_V0.94_NATIVE_WHEELS_TPS_INPUT_SIMPLIFIED_TEST.zip
+          name: DarksidersGenesis_V0.95_SHARED_E_RADIAL_MOUSE_HORSE_TEST
+          path: downloads/DarksidersGenesis_V0.95_SHARED_E_RADIAL_MOUSE_HORSE_TEST.zip
           if-no-files-found: error
       - name: Preserve numbered experimental ZIP in debug
         shell: pwsh
@@ -65,8 +65,8 @@ jobs:
           $ErrorActionPreference = 'Stop'
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add downloads/DarksidersGenesis_V0.94_NATIVE_WHEELS_TPS_INPUT_SIMPLIFIED_TEST.zip
-          git commit -m "downloads: preserve compiled V0.94 cumulative experimental ZIP (unvalidated)"
+          git add downloads/DarksidersGenesis_V0.95_SHARED_E_RADIAL_MOUSE_HORSE_TEST.zip
+          git commit -m "downloads: preserve compiled V0.95 cumulative experimental ZIP (unvalidated)"
           if ($LASTEXITCODE -ne 0) { throw 'Archive commit failed' }
           $published = $false
           for ($i=0; $i -lt 5; $i++) {
@@ -79,4 +79,4 @@ jobs:
             Start-Sleep -Seconds 2
           }
           if (-not $published) { throw 'Permanent experimental ZIP push failed' }
-          Write-Host 'V0.94 ZIP https://raw.githubusercontent.com/'"$env:GITHUB_REPOSITORY"'/debug/downloads/DarksidersGenesis_V0.94_NATIVE_WHEELS_TPS_INPUT_SIMPLIFIED_TEST.zip'
+          Write-Host 'V0.95 ZIP https://raw.githubusercontent.com/'"$env:GITHUB_REPOSITORY"'/debug/downloads/DarksidersGenesis_V0.95_SHARED_E_RADIAL_MOUSE_HORSE_TEST.zip'
