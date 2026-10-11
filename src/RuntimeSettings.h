@@ -23,6 +23,8 @@ struct Snapshot {
     // V0.75: native TPS mouse firing automatically uses camera heading.
     bool tpsControllerStrafeWhileFiring = false;
     bool tpsControllerRotateWhileFiring = false;
+    bool tpsHideGroundAimFx = true;
+    bool tpsHorseStableAimCamera = true;
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
     bool jumpHeightEnabled = true;
@@ -33,17 +35,17 @@ struct Snapshot {
     bool hotstreakChargeEnabled = true;
 
     float fovDegrees = 90.0f;
-    float thirdPersonFovDegrees = 90.0f;
+    float thirdPersonFovDegrees = 110.0f;
     float cameraZoomPercent = 0.0f;
     float cameraPitchDegrees = 0.0f;
-    float cameraYawDegrees = 0.0f;
-    float cameraHeightOffset = 0.0f;
-    float thirdPersonDistanceMultiplier = 0.50f;
+    float cameraYawDegrees = 5.0f;
+    float cameraHeightOffset = -300.0f;
+    float thirdPersonDistanceMultiplier = 0.20f;
     float thirdPersonPitchDegrees = -12.0f;
-    float thirdPersonHeightOffset = 180.0f;
-    float tpsFootAnchorOffset = 88.0f; // estimated capsule center-to-foot, configurable
+    float thirdPersonHeightOffset = 300.0f;
+    float tpsFootAnchorOffset = 0.0f; // estimated capsule center-to-foot, configurable
     float cameraMouseSensitivity = 0.12f;
-    float cameraStickSpeed = 135.0f;
+    float cameraStickSpeed = 180.0f;
     float movementSpeedMultiplier = 1.50f;
     float actionRecoveryDelayMs = 0.0f;
     float pistolDamageMultiplier = 2.00f;
@@ -76,6 +78,9 @@ struct State {
     std::atomic_bool cameraControllerOrbitEnabled{true};
     std::atomic_bool tpsControllerStrafeWhileFiring{false};
     std::atomic_bool tpsControllerRotateWhileFiring{false};
+    std::atomic_bool tpsTemporarilySuspended{false};
+    std::atomic_bool tpsHideGroundAimFx{true};
+    std::atomic_bool tpsHorseStableAimCamera{true};
     std::atomic_bool tpsAimActive{false};
     std::atomic<float> tpsActorWorldX{0.0f};
     std::atomic<float> tpsActorWorldY{0.0f};
@@ -102,17 +107,17 @@ struct State {
     std::atomic_bool hotstreakChargeEnabled{true};
 
     std::atomic<float> fovDegrees{90.0f};
-    std::atomic<float> thirdPersonFovDegrees{90.0f};
+    std::atomic<float> thirdPersonFovDegrees{110.0f};
     std::atomic<float> cameraZoomPercent{0.0f};
     std::atomic<float> cameraPitchDegrees{0.0f};
-    std::atomic<float> cameraYawDegrees{0.0f};
-    std::atomic<float> cameraHeightOffset{0.0f};
-    std::atomic<float> thirdPersonDistanceMultiplier{0.50f};
+    std::atomic<float> cameraYawDegrees{5.0f};
+    std::atomic<float> cameraHeightOffset{-300.0f};
+    std::atomic<float> thirdPersonDistanceMultiplier{0.20f};
     std::atomic<float> thirdPersonPitchDegrees{-12.0f};
-    std::atomic<float> thirdPersonHeightOffset{180.0f};
-    std::atomic<float> tpsFootAnchorOffset{88.0f};
+    std::atomic<float> thirdPersonHeightOffset{300.0f};
+    std::atomic<float> tpsFootAnchorOffset{0.0f};
     std::atomic<float> cameraMouseSensitivity{0.12f};
-    std::atomic<float> cameraStickSpeed{135.0f};
+    std::atomic<float> cameraStickSpeed{180.0f};
     std::atomic<float> cameraOrbitYawDegrees{0.0f};
     std::atomic<float> cameraOrbitPitchDegrees{0.0f};
     std::atomic<float> movementSpeedMultiplier{1.50f};
