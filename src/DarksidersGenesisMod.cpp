@@ -1408,6 +1408,7 @@ NativeLookFn g_originalGetPlayerLookInput=nullptr;
 NativeLookFn g_originalGetPlayerLookRotation=nullptr;
 std::atomic_uint32_t g_tpsLookInputCalls{0},g_tpsLookRotationCalls{0};
 std::atomic_uint32_t g_tpsNativeLookInputBlocks{0},g_tpsMouseFacingApplied{0};
+std::atomic_uint32_t g_tpsNativeLookInputMouseAim{0},g_tpsNativeLookInputPadAim{0};
 std::atomic_uint32_t g_tpsPadStrafeApplied{0},g_tpsNativeLookRotationBlocks{0};
 std::atomic_uint32_t g_tpsNativeLookSignatureFailures{0};
 
@@ -1449,19 +1450,44 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     if(!original)return out;
     auto* result=original(actor,out);
     const unsigned calls=++g_tpsLookInputCalls;
-    if(!result||!IsLiveTPSLookActor(actor) || !IsRightStickActiveNow() ||
-       !dg::runtime::Get().tpsSuppressNativeRightStick.load())
+    if(!result||!IsLiveTPSLookActor(actor) ||
+       !std::isfinite(result->pitch)||!std::isfinite(result->yaw)||
+       !std::isfinite(result->roll))
         return result;
-    // Important: ZERO only the native look INPUT. The mod camera reads raw
-    // original XInput as before. No changes to GetPlayerMoveInput / WASD /
-    // left analog. Blocks a game-internal right-stick -> native look path
-    // that XInput filtering alone cannot guarantee.
-    if(!std::isfinite(result->pitch)||!std::isfinite(result->yaw)||
-       !std::isfinite(result->roll))return result;
+    auto& rt=dg::runtime::Get();
+    const bool mouseFiring=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
+    const bool padStrafeFiring=IsPadFiringNow()&&
+        rt.tpsControllerStrafeWhileFiring.load();
+    if((mouseFiring||padStrafeFiring)&&IsTPSLookViewFresh()){
+        // GetPlayerLookInput returns the native character's world-space
+        // X/Y look VECTOR (RVA 0x671A40 reads actor+0xD24/0xD28).
+        // Feed world-facing vector corresponding to the mod TPS view only
+        // WHILE firing. Unlike rejected XInput axis remapping this leaves
+        // native left-stick player movement COMPLETELY untouched.
+        const float yaw=dg::camera_trace::GetTelemetry().appliedYaw;
+        if(std::isfinite(yaw)&&std::fabs(yaw)<36000.0f){
+            const float rad=yaw*0.01745329251994329577f;
+            result->pitch=std::cos(rad);
+            result->yaw=std::sin(rad);
+            result->roll=0.0f;
+            const unsigned n=mouseFiring
+                ? ++g_tpsNativeLookInputMouseAim
+                : ++g_tpsNativeLookInputPadAim;
+            if(n==1||n==120||n==10000)
+                Log("TPS V0.75: game-native LOOK VECTOR -> camera during fire n=%u source=%s yaw=%.1f calls=%u",
+                    n,mouseFiring?"mouse":"pad-strafe",yaw,calls);
+            return result;
+        }
+    }
+    if(!rt.tpsSuppressNativeRightStick.load()||!IsRightStickActiveNow())
+        return result;
+    // Existing XInput block remains enabled. This is a SECOND, precise
+    // in-game look-vector gate for direct controller/HID paths. Our TPS
+    // camera keeps raw original XInput and can orbit freely while firing.
     result->pitch=0.0f;result->yaw=0.0f;result->roll=0.0f;
     const unsigned blocked=++g_tpsNativeLookInputBlocks;
     if(blocked==1||blocked==120||blocked==10000)
-        Log("TPS V0.75: native gamepad look input neutralized n=%u calls=%u (right stick, camera raw preserved)",blocked,calls);
+        Log("TPS V0.75: native gamepad look input neutralized n=%u calls=%u",blocked,calls);
     return result;
 }
 NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
@@ -3560,10 +3586,11 @@ void ShutdownMod() {
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
     Log("TPS V0.72 totals: controllerMappedMouseMessagesBlocked=%u rightStickFiltered=%u",
         g_tpsControllerMouseBlocks.load(),g_nativePadAimSuppressed.load());
-    Log("TPS V0.75 totals: nativeLookInput=%u nativeLookRotation=%u suppressedLook=%u heldYaw=%u mouseFace=%u padStrafe=%u signaturesFailed=%u",
+    Log("TPS V0.75 totals: nativeLookInput=%u nativeLookRotation=%u suppressedLook=%u heldYaw=%u mouseFace=%u padStrafe=%u mouseLookAim=%u padLookAim=%u signaturesFailed=%u",
         g_tpsLookInputCalls.load(),g_tpsLookRotationCalls.load(),
         g_tpsNativeLookInputBlocks.load(),g_tpsNativeLookRotationBlocks.load(),
         g_tpsMouseFacingApplied.load(),g_tpsPadStrafeApplied.load(),
+        g_tpsNativeLookInputMouseAim.load(),g_tpsNativeLookInputPadAim.load(),
         g_tpsNativeLookSignatureFailures.load());
     Log("TPS V0.63 totals: coneInside=%u coneOutside=%u reasserted=%u nativeLocks=%u restores=%u",
         g_tpsConeInside.load(),g_tpsConeOutside.load(),g_tpsFacingReasserted.load(),
