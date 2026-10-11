@@ -24,6 +24,10 @@ struct Telemetry {
     bool recoveryHookReady = false;
     bool finalDamageHookReady = false;
     bool hotstreakHookReady = false;
+    unsigned aimNativeFxCalls = 0;
+    unsigned grenadePhysicalDown = 0;
+    unsigned grenadePhysicalUp = 0;
+    unsigned grenadeNativeReleasePulses = 0;
     bool skipIntroReady = false;
     bool skipLogosProxyAvailable = false;
     bool skipLogosTargetValid = false;
