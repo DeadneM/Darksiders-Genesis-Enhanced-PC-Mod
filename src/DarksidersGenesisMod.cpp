@@ -3484,15 +3484,40 @@ void UpdateOrbitInput() {
             (XINPUT_GAMEPAD_LEFT_SHOULDER|XINPUT_GAMEPAD_RIGHT_SHOULDER);
     static bool wasHorseH=false,wasHorseChord=false;
     static unsigned horseInputAttempts=0;
+    struct SummonAttemptProbe {
+        bool pending=false;
+        ULONGLONG started=0;
+        unsigned count=0,serverBefore=0,horseBefore=0;
+        bool hadMount=false;
+    };
+    static SummonAttemptProbe summonProbe{};
+    const auto mountNow=dg::horse::GetTelemetry();
+    // Native horse recognition uses HorseCharacter movement callbacks,
+    // not guessed memory addresses. Correlate summon input with both
+    // server request and newly detected horse, after the game's own delay.
+    if(summonProbe.pending && now>=summonProbe.started &&
+       now-summonProbe.started>=1800ull) {
+        const unsigned serverDelta=mountNow.summonServerCalls-
+            summonProbe.serverBefore;
+        const unsigned horseDelta=mountNow.candidateMatches>=summonProbe.horseBefore
+            ? mountNow.candidateMatches-summonProbe.horseBefore:0;
+        if(summonProbe.count<=24)
+            Log("Horse Everywhere V0.87 summon RESULT #%u serverDelta=%u horseCallbacksDelta=%u mountedNow=%d mountedAtPress=%d areaGateUpstream=%d",
+                summonProbe.count,serverDelta,horseDelta,
+                mountNow.validated?1:0,summonProbe.hadMount?1:0,
+                serverDelta==0?1:0);
+        summonProbe.pending=false;
+    }
     if((hPressed&&!wasHorseH)||(shoulderChord&&!wasHorseChord)){
         const unsigned n=++horseInputAttempts;
-        if(n<=24){
-            const auto horseProbe=dg::horse::GetTelemetry();
-            Log("Horse Everywhere V0.86 summon INPUT #%u key=%s research=%d serverSpawnObserved=%u (passive only)",
+        summonProbe={true,now,n,mountNow.summonServerCalls,
+                     mountNow.candidateMatches,mountNow.validated};
+        if(n<=24)
+            Log("Horse Everywhere V0.87 summon INPUT #%u key=%s research=%d serverBefore=%u liveHorse=%d nativeCallbacks=%u (passive only)",
                 n,hPressed&&!wasHorseH?"H":"LB+RB",
                 g_config.horseEverywhereEnabled?1:0,
-                horseProbe.summonServerCalls);
-        }
+                mountNow.summonServerCalls,mountNow.validated?1:0,
+                mountNow.candidateMatches);
     }
     wasHorseH=hPressed;wasHorseChord=shoulderChord;
     const int toggleMask=g_config.tpsToggleHoldButtonMask;
