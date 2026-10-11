@@ -35,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.75-native-look-input-block-strafe-camera-test";
+constexpr const char* kBuild = "0.76-controller-hold-camera-grenade-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -98,6 +98,22 @@ std::atomic_uint32_t g_tpsStrafeSamples{0};
 // V0.72: track potential Steam Input -> synthetic Windows mouse mapping.
 std::atomic_ullong g_tpsPadRightStickTick{0},g_tpsRawMouseTick{0};
 std::atomic_uint32_t g_tpsControllerMouseBlocks{0};
+// V0.76: physical R3 and the virtual native grenade key are distinct.
+// Do not modify the validated V0.75 native firing/aim callback logic.
+std::atomic_uint32_t g_tpsHoldSuspendCount{0},g_tpsHoldToggleCount{0};
+std::atomic_uint32_t g_tpsGrenadeDownCount{0},g_tpsGrenadeUpCount{0};
+std::atomic_uint32_t g_tpsGroundAimFxHidden{0};
+using GroundAimEffectFn=void(*)(void*,bool);
+GroundAimEffectFn g_groundAimEffectOriginal=nullptr;
+SRWLOCK g_grenadeHoldLock=SRWLOCK_INIT;
+struct GrenadeHoldState {
+    bool physicalDown=false;
+    ULONGLONG startPulse=0;
+    ULONGLONG finishPulse=0;
+    ULONGLONG releaseStart=0;
+    ULONGLONG releaseFinish=0;
+};
+GrenadeHoldState g_grenadeHoldState{};
 SRWLOCK g_tpsFacingLock=SRWLOCK_INIT;
 void* g_tpsFacingCurrentComponent=nullptr;
 bool g_tpsFacingOwned=false;
@@ -1415,6 +1431,7 @@ std::atomic_uint32_t g_tpsNativeLookSignatureFailures{0};
 bool IsLiveTPSLookActor(void* actor) {
     if(!actor || !g_targetValidation.exact || g_shuttingDown.load() ||
         !dg::runtime::Get().thirdPersonEnabled.load() ||
+        dg::runtime::Get().tpsTemporarilySuspended.load() ||
         g_overlayVisible.load())
         return false;
     const auto* player=g_localPlayerCharacter.load(std::memory_order_acquire);
@@ -1577,6 +1594,41 @@ bool InstallNativeTPSRotationHook() {
     }
     Log("TPS V0.75: native game look input READY RVA=0x671A40 and look rotation READY RVA=0x671B00");
     return true;
+}
+
+// Scoped copy of the exact V0.61 native ground-targeting FX detour.
+// This does NOT assert the Strife laser is removed: there may be other FX.
+void HookGroundAimEffect(void* ability,bool hide) {
+    if(!g_groundAimEffectOriginal)return;
+    auto& rt=dg::runtime::Get();
+    const bool forced=g_targetValidation.exact &&
+        rt.thirdPersonEnabled.load() &&
+        !rt.tpsTemporarilySuspended.load() &&
+        rt.tpsHideGroundAimFx.load() && !g_overlayVisible.load();
+    if(forced&&!hide){
+        const unsigned n=++g_tpsGroundAimFxHidden;
+        if(n==1||n==1000)
+            Log("TPS V0.76: ground targeting effect suppressed n=%u",n);
+    }
+    g_groundAimEffectOriginal(ability,forced?true:hide);
+}
+void InstallGroundAimEffectHook() {
+    if(!g_targetValidation.exact)return;
+    auto* target=reinterpret_cast<unsigned char*>(GetModuleHandleW(nullptr))+0x6DDAD0;
+    constexpr unsigned char signature[]={0x48,0x89,0x5C,0x24,0x08,0x57,0x48,0x83,0xEC,0x20};
+    if(std::memcmp(target,signature,sizeof(signature))!=0){
+        Log("TPS V0.76: native ground FX signature mismatch, untouched");return;
+    }
+    const MH_STATUS created=MH_CreateHook(target,reinterpret_cast<void*>(&HookGroundAimEffect),
+       reinterpret_cast<void**>(&g_groundAimEffectOriginal));
+    if(created!=MH_OK){Log("TPS V0.76: ground FX hook create failed=%d",int(created));return;}
+    const MH_STATUS enabled=MH_EnableHook(target);
+    if(enabled!=MH_OK&&enabled!=MH_ERROR_ENABLED){
+       MH_RemoveHook(target);g_groundAimEffectOriginal=nullptr;
+       Log("TPS V0.76: ground FX hook enable failed=%d",int(enabled));
+       return;
+    }
+    Log("TPS V0.76: native HideGroundTargetingEffect READY RVA=0x6DDAD0");
 }
 
 float HookCharacterGetMaxSpeed(void* movementComponent) {
@@ -2077,7 +2129,8 @@ bool ShouldBlankGameCursor() {
     const ULONGLONG tick=runtime.tpsGameplayViewTick.load();
     const ULONGLONG now=GetTickCount64();
     const bool hideWindows = runtime.hideReticle.load() ||
-        (runtime.thirdPersonEnabled.load() && runtime.tpsViewGameplay.load() &&
+        (runtime.thirdPersonEnabled.load() &&
+         !runtime.tpsTemporarilySuspended.load() && runtime.tpsViewGameplay.load() &&
          tick&&now>=tick&&now-tick<250ull);
     return hwnd && GetForegroundWindow() == hwnd &&
         !g_overlayVisible.load(std::memory_order_relaxed) && hideWindows;
@@ -2553,6 +2606,7 @@ bool ShouldSuppressNativeAim() {
     const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load(std::memory_order_relaxed));
     return g_targetValidation.exact && !g_shuttingDown.load(std::memory_order_relaxed) &&
         dg::runtime::Get().thirdPersonEnabled.load(std::memory_order_relaxed) &&
+        !dg::runtime::Get().tpsTemporarilySuspended.load(std::memory_order_relaxed) &&
         hwnd && hwnd==GetForegroundWindow() && !IsIconic(hwnd) &&
         !g_overlayVisible.load(std::memory_order_relaxed);
 }
@@ -2570,13 +2624,57 @@ const wchar_t* const kNativeXInputLibraries[]={
 // animation, combat logic and movement-component lifetime safety.
 // All heading changes are only active while RT/RB is held; the grenade/held
 // item throw shares RT. LB radial / capability menus always receive vanilla.
+// V0.76: present the game's native R3 toggle as a press on physical DOWN,
+// and another press on physical RELEASE. A synthetic gap is essential:
+// otherwise the game sees one uninterrupted button press and won't stow.
+// Scope to local controller #0, TPS requested, focused gameplay only.
+// Native aim, LB radial and all other controls remain original.
+void ApplyHoldGrenadeVirtualR3(WORD& buttons) {
+    const ULONGLONG now=GetTickCount64();
+    const bool physical=(buttons&XINPUT_GAMEPAD_RIGHT_THUMB)!=0;
+    AcquireSRWLockExclusive(&g_grenadeHoldLock);
+    auto& st=g_grenadeHoldState;
+    if(physical!=st.physicalDown){
+        st.physicalDown=physical;
+        if(physical){
+            st.startPulse=now;
+            st.finishPulse=now+65;
+            st.releaseStart=st.releaseFinish=0;
+            ++g_tpsGrenadeDownCount;
+        } else {
+            st.releaseStart=std::max(now,st.finishPulse+65);
+            st.releaseFinish=st.releaseStart+80;
+            ++g_tpsGrenadeUpCount;
+        }
+    }
+    const bool pulseDown=physical && now>=st.startPulse &&
+        now<st.finishPulse;
+    const bool pulseRelease=!physical && st.releaseStart &&
+        now>=st.releaseStart && now<st.releaseFinish;
+    if(pulseDown||pulseRelease)buttons|=XINPUT_GAMEPAD_RIGHT_THUMB;
+    else buttons &= static_cast<WORD>(~XINPUT_GAMEPAD_RIGHT_THUMB);
+    ReleaseSRWLockExclusive(&g_grenadeHoldLock);
+}
+
 DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     const auto original=g_nativeXInputOriginal[slot];
     if(!original)return ERROR_DEVICE_NOT_CONNECTED;
     const DWORD status=original(user,state);
-    if(status!=ERROR_SUCCESS||!state||!ShouldSuppressNativeAim()||user!=0)
-        return status; // Preserve vanilla menu, focus and co-op input.
+    if(status!=ERROR_SUCCESS||!state||user!=0)return status;
     auto& pad=state->Gamepad;
+    // This is intentionally BEFORE the temporary R3 vanilla-view gate.
+    // R3 itself is a grenade key: its physical hold is handled separately
+    // by UpdateOrbitInput, while the game receives two native toggle edges.
+    const HWND localHwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+    const bool localGameplay=g_config.thirdPersonEnabled &&
+        localHwnd && GetForegroundWindow()==localHwnd &&
+        !g_overlayVisible.load() && !IsIconic(localHwnd) &&
+        !g_shuttingDown.load();
+    if(localGameplay && g_config.tpsGrenadeHoldEnabled &&
+       !(pad.wButtons&XINPUT_GAMEPAD_LEFT_SHOULDER))
+        ApplyHoldGrenadeVirtualR3(pad.wButtons);
+    if(!ShouldSuppressNativeAim())
+        return status; // Preserve vanilla aim while temporary view is held.
     if(pad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER)
         return status; // Ability wheel stays completely vanilla.
 
@@ -3587,6 +3685,10 @@ void ShutdownMod() {
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
     Log("TPS V0.72 totals: controllerMappedMouseMessagesBlocked=%u rightStickFiltered=%u",
         g_tpsControllerMouseBlocks.load(),g_nativePadAimSuppressed.load());
+    Log("TPS V0.76 totals: holdSuspend=%u longToggle=%u grenadeDown=%u grenadeUp=%u groundAimHidden=%u",
+        g_tpsHoldSuspendCount.load(),g_tpsHoldToggleCount.load(),
+        g_tpsGrenadeDownCount.load(),g_tpsGrenadeUpCount.load(),
+        g_tpsGroundAimFxHidden.load());
     Log("TPS V0.75 totals: nativeLookInput=%u nativeLookRotation=%u suppressedLook=%u heldYaw=%u mouseFace=%u padStrafe=%u mouseLookAim=%u padLookAim=%u signaturesFailed=%u",
         g_tpsLookInputCalls.load(),g_tpsLookRotationCalls.load(),
         g_tpsNativeLookInputBlocks.load(),g_tpsNativeLookRotationBlocks.load(),
@@ -3718,6 +3820,7 @@ DWORD WINAPI MainThread(LPVOID) {
     if (!InstallMovementSpeedHook()) {
         Log("Movement Speed unavailable; other ASI features remain active.");
     }
+    InstallGroundAimEffectHook();
     if (!InstallNativeTPSRotationHook()) {
         Log("TPS V0.75 native look hooks unavailable; vanilla look path untouched.");
     }
