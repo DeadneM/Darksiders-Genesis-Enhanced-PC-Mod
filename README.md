@@ -2214,3 +2214,12 @@ The user validated all V0.76 controls, with one remaining visual issue: the nati
 - **Aim effect diagnostic:** legacy native hide-ground-targeting hook is actually installed, but V0.76 had `groundAimHidden=0`. V0.77 counts *all* native calls, already-hidden calls, forced hides separately to verify whether the specific native ability participates. Fix obsolete INI SaveNow line that incorrectly removed `TPSHideGroundAimFx` after saving. Not yet a proven removal of Strife's normal aiming visual; do NOT modify validated camera, aim or combat hooks on an unverified hypothesis.
 
 See [V0.77 scoped changelog and native aiming-FX audit](docs/V0_77_HOLD_DELAY_AND_AIM_FX_AUDIT.md) and [V0.76 protected baseline](docs/V0_76_CHANGELOG_AND_FREEZE.md). V0.77 test ZIP has four files at ZIP root; no promotion to the official stable release pending user tests.
+
+
+## V0.78 (2026-10-11) | TPS OFF default + confirmed Strife aiming effect target
+
+**User clarification (video):** the unwanted turquoise aiming visual comprises **both** (1) the straight laser-like world-space line originating near Strife's dual pistols and (2) the cyan semicircular arc near the character. These are **not** the cursor, the HUD reticle or the grenade ground-targeting effect. The V0.77 shutdown log confirms `groundFxCalls=0`, so the previously installed native `HideGroundTargetingEffect` hook is not used for the requested blue visuals. Actual asset/effect producer remains unresolved. No undocumented risky render/combat detours have been added; the old UI checkbox must not be represented as a proven fix for these visuals.
+
+**Requested default:** `ThirdPerson=0` in the new-install INI; matching config Reset Defaults / read fallback OFF. An existing user's persisted `ThirdPerson=1` is left alone. Enable TPS with F5 or long L3. All V0.77 values and validated behavior are retained. [Detailed video and executable audit](docs/V0_78_STRIFE_AIM_LINE_ARC_AUDIT.md).
+
+**Status:** safe packaging/default correction, aiming line + arc visual hide still under investigation. Tested ZIP is a standalone development build and not promoted to stable without user acceptance.
