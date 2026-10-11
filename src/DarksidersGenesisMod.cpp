@@ -35,7 +35,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.87-mounted-vanilla-idle-ctrl-forward-audit-test";
+constexpr const char* kBuild = "0.88-horse-zones-camera-forward-raycast-audit-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1441,6 +1441,14 @@ std::atomic_uint32_t g_tpsNativeLookSignatureFailures{0};
 // active mounted TPS; no changes to grenade / native horse stats.
 std::atomic_uint32_t g_tpsMountedIdleNativeLookBlocks{0};
 std::atomic_uint32_t g_tpsMountedCtrlDown{0},g_tpsMountedCtrlUp{0};
+// V0.88: native look GETTER is NOT the projectile-raycast source. The
+// Ctrl WM_KEYDOWN experiment in V0.87 posted 8 paired events but user
+// still observed fixed shot direction. Keep measured yaw diagnostics to
+// guide a future exact projectile/raycast hook, no unsafe broad writes.
+std::atomic_uint32_t g_tpsMountedForwardLookSamples{0};
+std::atomic<float> g_tpsMountedForwardLastNativeYaw{0.0f};
+std::atomic<float> g_tpsMountedForwardLastCameraYaw{0.0f};
+std::atomic_uint32_t g_tpsMountedForwardLargeYawGap{0};
 // Visual-only audit of 2 OTHER suspected native targeting UI classes.
 // No event is suppressed: the unvalidated V0.82 blocking experiment
 // is NOT merged into this cumulative gameplay branch.
@@ -1540,6 +1548,18 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
         // native left-stick player movement COMPLETELY untouched.
         const float yaw=dg::camera_trace::GetTelemetry().appliedYaw;
         if(std::isfinite(yaw)&&std::fabs(yaw)<36000.0f){
+            if(mounted && rt.tpsMountedAimMode.load()==0){
+                const float nativeYaw=std::atan2(result->yaw,result->pitch)*
+                    57.29577951308232f;
+                const float gap=std::fabs(std::remainder(nativeYaw-yaw,360.0f));
+                const unsigned sample=++g_tpsMountedForwardLookSamples;
+                g_tpsMountedForwardLastNativeYaw.store(nativeYaw);
+                g_tpsMountedForwardLastCameraYaw.store(yaw);
+                if(gap>35.0f)++g_tpsMountedForwardLargeYawGap;
+                if(sample==1||sample==100||sample==1000||sample==10000)
+                    Log("TPS V0.88 FORWARD RAYCAST AUDIT: nativeLookYaw=%.1f TPSCameraYaw=%.1f gap=%.1f getterCalls=%u; projectile raycast NOT hooked",
+                        nativeYaw,yaw,gap,sample);
+            }
             const float rad=yaw*0.01745329251994329577f;
             result->pitch=std::cos(rad);
             result->yaw=std::sin(rad);
@@ -3432,37 +3452,11 @@ void EnsureOrbitWndProc(IDXGISwapChain* chain) {
         Log("Aim V0.57: native mouse input gate failed error=%lu",GetLastError());
     }
 }
-// V0.87: Translate the user's native Ctrl-to-aim mechanic into a
-// reversible, window-local keyboard event pair during mounted
-// CAMERA_FORWARD shooting. No global SendInput, keyboard hooks, CVar,
-// game-object field writes, or synthetic controller buttons.
-void UpdateMountedCtrlAimBridge(HWND hwnd,bool focused,bool physicalPadFire){
-    auto& rt=dg::runtime::Get();
-    const bool mouseFire=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
-    const bool physicalCtrl=(GetAsyncKeyState(VK_CONTROL)&0x8000)!=0;
-    const bool requested=focused && hwnd && IsWindow(hwnd) &&
-        IsMountedTPSNow() && rt.tpsMountedAimMode.load()==0 &&
-        (mouseFire||physicalPadFire) && !physicalCtrl;
-    const bool injected=g_tpsMountedCtrlBridgeDown.load();
-    constexpr LPARAM keyDown=0x001D0001; // Ctrl scan code 0x1D
-    constexpr LPARAM keyUp=static_cast<LPARAM>(0xC01D0001u);
-    if(requested && !injected){
-        if(PostMessageW(hwnd,WM_KEYDOWN,VK_CONTROL,keyDown)){
-            g_tpsMountedCtrlBridgeDown.store(true);
-            const unsigned n=++g_tpsMountedCtrlDown;
-            if(n<=16)Log("TPS V0.87 CTRL AIM: synthetic window-local Ctrl DOWN n=%u (mounted camera forward)",n);
-        }
-    }else if(!requested && injected){
-        // If the user is physically holding Ctrl, their genuine key-up
-        // restores the state; do not release a real key on their behalf.
-        if(physicalCtrl || (hwnd&&IsWindow(hwnd)&&
-            PostMessageW(hwnd,WM_KEYUP,VK_CONTROL,keyUp))){
-            g_tpsMountedCtrlBridgeDown.store(false);
-            const unsigned n=++g_tpsMountedCtrlUp;
-            if(n<=16)Log("TPS V0.87 CTRL AIM: synthetic Ctrl release n=%u physicalCtrl=%d",
-                n,physicalCtrl?1:0);
-        }
-    }
+// V0.88: retired ineffective Ctrl WM_KEYDOWN bridge. Posting keyboard
+// messages did not change native raycast/shots according to user V0.87.
+void UpdateMountedCtrlAimBridge(HWND, bool, bool) {
+    // Preserve V0.87 telemetry fields for INI/overlay compatibility;
+    // NEVER inject synthetic keyboard input.
 }
 void UpdateOrbitInput() {
     static WORD lastButtons=0;
@@ -3493,37 +3487,47 @@ void UpdateOrbitInput() {
     struct SummonAttemptProbe {
         bool pending=false;
         ULONGLONG started=0;
-        unsigned count=0,serverBefore=0,horseBefore=0;
-        bool hadMount=false;
+        unsigned count=0,serverBefore=0,nativeCallsBefore=0;
+        unsigned generationBefore=0;
+        bool cameraWasHorse=false;
     };
     static SummonAttemptProbe summonProbe{};
     const auto mountNow=dg::horse::GetTelemetry();
-    // Native horse recognition uses HorseCharacter movement callbacks,
-    // not guessed memory addresses. Correlate summon input with both
-    // server request and newly detected horse, after the game's own delay.
-    if(summonProbe.pending && now>=summonProbe.started &&
-       now-summonProbe.started>=1800ull) {
+    const ULONGLONG horsePoseTick=rt.tpsHorsePoseTick.load(std::memory_order_acquire);
+    const bool freshHorsePose=horsePoseTick&&now>=horsePoseTick&&
+        now-horsePoseTick<750ull;
+    const ULONGLONG mountedTick=rt.tpsMountedViewTick.load(std::memory_order_acquire);
+    const bool trulyMounted=rt.tpsMountedViewActive.load(std::memory_order_acquire)&&
+        mountedTick&&now>=mountedTick&&now-mountedTick<350ull;
+    if(summonProbe.pending&&now>=summonProbe.started&&
+       now-summonProbe.started>=1800ull){
         const unsigned serverDelta=mountNow.summonServerCalls-
             summonProbe.serverBefore;
-        const unsigned horseDelta=mountNow.candidateMatches>=summonProbe.horseBefore
-            ? mountNow.candidateMatches-summonProbe.horseBefore:0;
-        if(summonProbe.count<=24)
-            Log("Horse Everywhere V0.87 summon RESULT #%u serverDelta=%u horseCallbacksDelta=%u mountedNow=%d mountedAtPress=%d areaGateUpstream=%d",
-                summonProbe.count,serverDelta,horseDelta,
-                mountNow.validated?1:0,summonProbe.hadMount?1:0,
-                serverDelta==0?1:0);
+        const unsigned nativeDelta=mountNow.uniqueCandidatesLogged-
+            summonProbe.nativeCallsBefore;
+        const unsigned generations=mountNow.horseGeneration-
+            summonProbe.generationBefore;
+        if(summonProbe.count<=28)
+            Log("Horse Everywhere V0.88 AREA RESULT #%u serverDelta=%u nativeCallbackDelta=%u horseIdentityChanges=%u cameraHorseBefore=%d cameraHorseAfter=%d freshHorsePose=%d noServerRequest=%d (could be blocked summon OR dismount)",
+                summonProbe.count,serverDelta,nativeDelta,generations,
+                summonProbe.cameraWasHorse?1:0,trulyMounted?1:0,
+                freshHorsePose?1:0,serverDelta==0?1:0);
         summonProbe.pending=false;
     }
     if((hPressed&&!wasHorseH)||(shoulderChord&&!wasHorseChord)){
         const unsigned n=++horseInputAttempts;
         summonProbe={true,now,n,mountNow.summonServerCalls,
-                     mountNow.candidateMatches,mountNow.validated};
-        if(n<=24)
-            Log("Horse Everywhere V0.87 summon INPUT #%u key=%s research=%d serverBefore=%u liveHorse=%d nativeCallbacks=%u (passive only)",
+            mountNow.uniqueCandidatesLogged,mountNow.horseGeneration,
+            trulyMounted};
+        if(n<=28)
+            Log("Horse Everywhere V0.88 AREA INPUT #%u key=%s enabled=%d cameraHorse=%d nativeCallbackFresh=%d horsePoseFresh=%d serverBefore=%u nativeCalls=%u horseGeneration=%u world=(%.0f,%.0f,%.0f)",
                 n,hPressed&&!wasHorseH?"H":"LB+RB",
-                g_config.horseEverywhereEnabled?1:0,
-                mountNow.summonServerCalls,mountNow.validated?1:0,
-                mountNow.candidateMatches);
+                g_config.horseEverywhereEnabled?1:0,trulyMounted?1:0,
+                mountNow.horseCallbackFresh?1:0,freshHorsePose?1:0,
+                mountNow.summonServerCalls,mountNow.uniqueCandidatesLogged,
+                mountNow.horseGeneration,
+                rt.tpsActorWorldX.load(),rt.tpsActorWorldY.load(),
+                rt.tpsActorWorldZ.load());
     }
     wasHorseH=hPressed;wasHorseChord=shoulderChord;
     const int toggleMask=g_config.tpsToggleHoldButtonMask;
@@ -4059,6 +4063,9 @@ void ShutdownMod() {
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
     Log("TPS V0.72 totals: controllerMappedMouseMessagesBlocked=%u rightStickFiltered=%u",
         g_tpsControllerMouseBlocks.load(),g_nativePadAimSuppressed.load());
+    Log("TPS V0.88 FORWARD RAYCAST AUDIT totals: lookSamples=%u gapOver35deg=%u lastNativeYaw=%.1f lastCameraYaw=%.1f projectileHook=NO",
+        g_tpsMountedForwardLookSamples.load(),g_tpsMountedForwardLargeYawGap.load(),
+        g_tpsMountedForwardLastNativeYaw.load(),g_tpsMountedForwardLastCameraYaw.load());
     Log("TPS V0.87 AIM UI PROBE totals: targeting=%u targetingTPS=%u targetingFiring=%u positioning=%u (all events passed through)",
         g_aimUiEvents.load(),g_aimUiEventsInTPS.load(),
         g_aimUiEventsWhileFire.load(),g_aimUiPositionEvents.load());
