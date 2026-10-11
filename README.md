@@ -2223,3 +2223,14 @@ See [V0.77 scoped changelog and native aiming-FX audit](docs/V0_77_HOLD_DELAY_AN
 **Requested default:** `ThirdPerson=0` in the new-install INI; matching config Reset Defaults / read fallback OFF. An existing user's persisted `ThirdPerson=1` is left alone. Enable TPS with F5 or long L3. All V0.77 values and validated behavior are retained. [Detailed video and executable audit](docs/V0_78_STRIFE_AIM_LINE_ARC_AUDIT.md).
 
 **Status:** safe packaging/default correction, aiming line + arc visual hide still under investigation. Tested ZIP is a standalone development build and not promoted to stable without user acceptance.
+
+
+## V0.83 (2026-10-11) | Clear overlay and live status, horse summoning research
+
+User evidence: **Hide HUD does not remove Strife's cyan aiming line and semicircle**. They are outside the global HUD-hide operation. Do not modify Hide HUD just to target them.
+
+The mod overlay now explains each gameplay control plainly. Real observed events are shown for movement recovery, outgoing combat and Hotstreak gains, horse callbacks, plus camera frames/attachments; low-level offsets, pointers and EXE hashes move under optional Advanced sections. Status labels distinguish "hook ready" from activity seen during actual gameplay.
+
+**Horse Everywhere (experimental research)** is available as an ON/OFF choice and as `[Features] HorseEverywhere=0` (default OFF). Native server-spawn-request diagnostics are signature-guarded and pass-through. **The restriction bypass is NOT functional yet**, and the overlay states so: exact no-summon-zone condition hasn't been identified; forcing an unverified spawn path would risk game breakage. Try a summon in an allowed area and a restricted area and send the log; compare `Horse Everywhere V0.83 probe totals`. The user-validated horse speed and sprint code is unchanged.
+
+This branch descends from protected **V0.78**, not the failed V0.80 beam-hide or unvalidated V0.82 UI gating tests. All existing TPS, controller, horse stamina, combat, startup, cursor and HUD code preserved. See [V0.83 technical notes](docs/V0_83_HORSE_EVERYWHERE_RESEARCH_AND_UI.md).
