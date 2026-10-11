@@ -388,7 +388,7 @@ void Draw(Context& c) {
 
             const horse::Telemetry horseTelemetry =
                 horse::GetTelemetry();
-            if(ImGui::Checkbox("Horse Everywhere (experimental research)",
+            if(ImGui::Checkbox("Horse Everywhere (research, default ON)",
                     &config.horseEverywhereEnabled)) config.Save();
             ImGui::TextDisabled("Goal: remove no-mount zones. Currently tracks summon requests only.");
             ImGui::TextDisabled("%s | server requests observed: %u (while selected: %u)",
