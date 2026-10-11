@@ -968,8 +968,8 @@ bool HookHorseRegion(void* actor){
         if(ridden&&!summoned)++g_mountedRegionHolds;
         if(nativeRide&&!ridden&&!summoned)++g_nativeCameraRegionHolds;
         const unsigned n=++g_regionOverrides;
-        if(n<=24)FeatureLog("Horse Everywhere V0.89 REGION: allow FALSE->TRUE override #%u at call=%u (local player + active real summon key only)",
-            n,calls);
+        if(n<=3)FeatureLog("Horse Everywhere V0.91 REGION: native=false => allowed #%u call=%u input=%d tps=%d nativeRide=%d",
+            n,calls,summoned?1:0,ridden?1:0,nativeRide?1:0);
         return true;
     }
     if(calls<=5)FeatureLog("Horse Everywhere V0.89 REGION: query #%u native=%d scope=%d",calls,original?1:0,scope?1:0);
@@ -986,8 +986,8 @@ bool HookHorseDesummon(void* actor){
         if(ridden&&!summoned)++g_mountedDesummonHolds;
         if(nativeRide&&!ridden&&!summoned)++g_nativeCameraDesummonHolds;
         const unsigned n=++g_desummonOverrides;
-        if(n<=24)FeatureLog("Horse Everywhere V0.89 DESUMMON: TRUE->FALSE override #%u at call=%u (only while summoning; not persistent in ban volume)",
-            n,calls);
+        if(n<=3)FeatureLog("Horse Everywhere V0.91 DESUMMON: native=true => false #%u call=%u input=%d tps=%d nativeRide=%d",
+            n,calls,summoned?1:0,ridden?1:0,nativeRide?1:0);
         return false;
     }
     if(calls<=5)FeatureLog("Horse Everywhere V0.89 DESUMMON: query #%u native=%d scope=%d",calls,original?1:0,scope?1:0);
