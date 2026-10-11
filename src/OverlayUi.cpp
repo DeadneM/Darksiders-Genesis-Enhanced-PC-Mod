@@ -788,14 +788,12 @@ void Draw(Context& c) {
                 ImGui::TextDisabled("Controller / camera right stick");
                 if (ImGui::Checkbox("Strafe while firing (player movement)##PadTPS",
                         &config.tpsControllerStrafeWhileFiring)) config.Save();
-                if (ImGui::Checkbox("Rotate on foot while firing (camera-forward shooting)##PadTPS",
-                        &config.tpsControllerRotateWhileFiring)) config.Save();
-                ImGui::TextDisabled("Strafe changes movement while shooting; Rotate makes shots camera-forward.");
+                ImGui::TextDisabled("Strafe controls native player movement; aim mode below controls the camera.");
                 ImGui::Separator();
                 ImGui::TextDisabled("Unified TPS aiming (on foot + mounted)");
                 constexpr const char* kMountedModes[]={
-                    "Camera Forward (experimental forward-stick aiming)",
-                    "Vanilla Aim (camera locked while firing)"
+                    "Camera Forward (free camera while firing)",
+                    "Vanilla Aim (pause camera while firing)"
                 };
                 ImGui::SetNextItemWidth(510.0f);
                 if(ImGui::Combo("TPS aiming mode##MountedMode",
@@ -803,14 +801,15 @@ void Draw(Context& c) {
                 ImGui::TextWrapped(config.tpsMountedAimMode==0
                     ? "Camera Forward: native aim receives a forward stick while firing; camera stays free (foot mode EXPERIMENTAL)."
                     : "Vanilla Aim: camera free at idle, paused during firing while game native aiming takes over.");
-                ImGui::TextDisabled("Forward diagnostic: native look samples %u | yaw gap >35deg %u",
-                    t.forwardLookSamples,t.forwardYawGapCount);
-                ImGui::TextDisabled("Last input yaw %.1f deg / camera yaw %.1f deg (NOT projectile direction)",
-                    t.forwardNativeYaw,t.forwardCameraYaw);
-                ImGui::TextDisabled("Mounted idle native look blocked: %u",
-                    t.mountedIdleLookBlocks);
-                ImGui::TextDisabled("Mounted camera frames while firing: %u",
-                    camera.mountedFireHorseSelected);
+                if(ImGui::TreeNode("TPS aim technical information")){
+                    ImGui::TextDisabled("Forward native look samples %u | yaw difference >35 deg %u",
+                        t.forwardLookSamples,t.forwardYawGapCount);
+                    ImGui::TextDisabled("Native yaw %.1f / TPS yaw %.1f",
+                        t.forwardNativeYaw,t.forwardCameraYaw);
+                    ImGui::TextDisabled("Native idle look blocked %u | mounted fire camera frames %u",
+                        t.mountedIdleLookBlocks,camera.mountedFireHorseSelected);
+                    ImGui::TreePop();
+                }
                 ImGui::Separator();
                 ImGui::Text("Keyboard + controller: same actions, side by side");
                 ImGui::TextDisabled("OFF disables only that shortcut; existing native game buttons are unchanged.");
