@@ -669,12 +669,12 @@ void Draw(Context& c) {
                 ImGui::SetNextItemWidth(245.0f);
                 poseChanged |= ImGui::SliderFloat("Vertical offset##TP",&config.thirdPersonHeightOffset,-1000.0f,1000.0f,"%+.0f units");
                 ImGui::SameLine();
-                if (ImGui::Button("Default##TPHeight")) {config.thirdPersonHeightOffset=300.0f;poseChanged=true;}
+                if (ImGui::Button("Default##TPHeight")) {config.thirdPersonHeightOffset=120.0f;poseChanged=true;}
                 ImGui::SetNextItemWidth(145.0f);
                 poseChanged |= ImGui::InputFloat("Manual height##TP",&config.thirdPersonHeightOffset,0,0,"%.1f");
                 if (poseChanged) {
                     if (!std::isfinite(config.thirdPersonPitchDegrees)) config.thirdPersonPitchDegrees=-12.0f;
-                    if (!std::isfinite(config.thirdPersonHeightOffset)) config.thirdPersonHeightOffset=300.0f;
+                    if (!std::isfinite(config.thirdPersonHeightOffset)) config.thirdPersonHeightOffset=120.0f;
                     config.thirdPersonPitchDegrees=std::clamp(config.thirdPersonPitchDegrees,-75.0f,65.0f);
                     config.thirdPersonHeightOffset=std::clamp(config.thirdPersonHeightOffset,-1000.0f,1000.0f);
                     config.Save();
@@ -755,6 +755,10 @@ void Draw(Context& c) {
                 };
                 BindGamepadMask("Hold to temporarily use vanilla view##HoldTPS",
                                 config.tpsSuspendButtonMask);
+                ImGui::SetNextItemWidth(245.0f);
+                if(ImGui::SliderInt("Vanilla view hold start delay##HoldTPS",
+                    &config.tpsSuspendDelayMs,0,3000,"%d ms")) config.Save();
+                ImGui::TextDisabled("Default 300 ms: a short press will not switch camera.");
                 BindGamepadMask("Long press to toggle TPS##ToggleTPS",
                                 config.tpsToggleHoldButtonMask);
                 ImGui::SetNextItemWidth(245.0f);
@@ -811,7 +815,7 @@ void Draw(Context& c) {
                 &config.cameraHeightOffset,-1500.0f,1500.0f,"%+.0f units");
             ImGui::SameLine();
             if (ImGui::Button("Vanilla##CameraHeight")) {
-                config.cameraHeightOffset=-300.0f; heightChanged=true;
+                config.cameraHeightOffset=0.0f; heightChanged=true;
             }
             ImGui::SetNextItemWidth(160.0f);
             heightChanged |= ImGui::InputFloat("Manual Height##Camera",
@@ -844,7 +848,7 @@ void Draw(Context& c) {
                 &config.cameraYawDegrees,-180.0f,180.0f,"%+.1f deg");
             ImGui::SameLine();
             if (ImGui::Button("Vanilla##CameraYaw")) {
-                config.cameraYawDegrees = 5.0f;
+                config.cameraYawDegrees = 0.0f;
                 yawChanged = true;
             }
             ImGui::SetNextItemWidth(160.0f);
