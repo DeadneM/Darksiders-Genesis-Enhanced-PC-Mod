@@ -158,6 +158,19 @@ void HookView(void* camera, float dt, void* outView) {
             sprintf_s(message,"TPS V0.70: camera pose source = %s at (%.0f,%.0f,%.0f)",
                       usingHorse?"HORSE":"FOOT",ax,ay,az);
             Write(message);
+            // V0.88: Observe a previously LIVE mounted TPS camera source
+            // falling back to FOOT. It may be voluntary dismount, forced
+            // no-mount volume, teleport or cinematic: never assume which.
+            const auto previousHorse=!usingHorse;
+            if(previousHorse){
+                const ULONGLONG horseAge=horseTick&&now>=horseTick?
+                    now-horseTick:0ull;
+                char zoneMsg[310]{};
+                sprintf_s(zoneMsg,"Horse Everywhere V0.88 MOUNT EXIT: live HORSE->FOOT player=(%.0f,%.0f,%.0f) lastHorsePoseAgeMs=%llu currentHorsePoseFresh=%d configured=%d (normal dismount OR force-despawn volume; OBSERVE ONLY)",
+                    ax,ay,az,static_cast<unsigned long long>(horseAge),
+                    freshHorse?1:0,settings.horseEverywhereEnabled.load()?1:0);
+                Write(zoneMsg);
+            }
         }
     }
     // Conservative gameplay/cutscene heuristic. Fail OPEN for unusual
