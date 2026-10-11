@@ -137,9 +137,8 @@ public:
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
     bool cameraMouseOrbitEnabled = true;
     bool cameraControllerOrbitEnabled = true;
-    // V0.74: independent controls active only while firing (opt-in).
-    bool tpsMouseStrafeWhileFiring = false;
-    bool tpsMouseRotateWhileFiring = false;
+    // V0.75: mouse TPS firing always faces the camera; controller has
+    // independent movement-facing and camera orbit options.
     bool tpsControllerStrafeWhileFiring = false;
     bool tpsControllerRotateWhileFiring = false;
     int tpsRecenterButtonMask = 0x0040; // XINPUT_GAMEPAD_LEFT_THUMB
