@@ -3349,6 +3349,26 @@ void UpdateOrbitInput() {
     const bool padAvailable=focused &&
         GetCameraXInputState(0,&physical)==ERROR_SUCCESS;
     const WORD physicalBits=padAvailable?physical.Gamepad.wButtons:0;
+    // V0.86: native horse summon INPUT evidence only. H and LB+RB are
+    // validated user-facing controls. Never inject an artificial summon;
+    // simply correlate each real attempt with the existing server hook.
+    const bool hPressed=focused&&(GetAsyncKeyState('H')&0x8000)!=0;
+    const bool shoulderChord=padAvailable &&
+        (physicalBits&(XINPUT_GAMEPAD_LEFT_SHOULDER|XINPUT_GAMEPAD_RIGHT_SHOULDER))==
+            (XINPUT_GAMEPAD_LEFT_SHOULDER|XINPUT_GAMEPAD_RIGHT_SHOULDER);
+    static bool wasHorseH=false,wasHorseChord=false;
+    static unsigned horseInputAttempts=0;
+    if((hPressed&&!wasHorseH)||(shoulderChord&&!wasHorseChord)){
+        const unsigned n=++horseInputAttempts;
+        if(n<=24){
+            const auto horseProbe=dg::horse::GetTelemetry();
+            Log("Horse Everywhere V0.86 summon INPUT #%u key=%s research=%d serverSpawnObserved=%u (passive only)",
+                n,hPressed&&!wasHorseH?"H":"LB+RB",
+                g_config.horseEverywhereEnabled?1:0,
+                horseProbe.summonServerCalls);
+        }
+    }
+    wasHorseH=hPressed;wasHorseChord=shoulderChord;
     const int toggleMask=g_config.tpsToggleHoldButtonMask;
     static bool toggleHeld=false,toggleConsumed=false;
     static ULONGLONG toggleStarted=0;
