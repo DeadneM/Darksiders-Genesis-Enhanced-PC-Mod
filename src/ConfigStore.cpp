@@ -10,7 +10,15 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2125;
+constexpr int kConfigRevision = 2126;
+// Actual XInput digital buttons plus LT/RT represented as virtual binding IDs.
+constexpr bool ValidPadBind(int m) {
+    switch(m){case 0:case 0x0001:case 0x0002:case 0x0004:case 0x0008:
+        case 0x0010:case 0x0020:case 0x0040:case 0x0080:
+        case 0x0100:case 0x0200:case 0x1000:case 0x2000:
+        case 0x4000:case 0x8000:case 0x10000:case 0x20000:return true;
+        default:return false;}
+}
 
 bool ReadBool(
     const wchar_t* section,
@@ -313,6 +321,8 @@ void Store::ResetDefaults(bool persist) {
     tpsHideGroundAimFx = true;
     aimIndicatorHideMode = 2; // TPS Only (default)
     tpsHorseStableAimCamera = true;
+    tpsMountedAimMode = 0;
+    tpsGrenadeButtonMask = 0x0080;
     tpsSuspendButtonMask = 0x0080;
     tpsSuspendDelayMs = 300;
     tpsToggleHoldButtonMask = 0x0040;
@@ -438,20 +448,19 @@ bool Store::Load() {
     tpsHideGroundAimFx=ReadBool(L"Features",L"TPSHideGroundAimFx",true,path_);
     aimIndicatorHideMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(L"Features",L"AimIndicatorHideMode",2,path_.c_str())),0,2);
     tpsHorseStableAimCamera=ReadBool(L"Features",L"TPSHorseStableAimCamera",true,path_);
+    tpsMountedAimMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(L"Features",L"TPSMountedAimMode",0,path_.c_str())),0,1);
+    tpsGrenadeButtonMask=static_cast<int>(GetPrivateProfileIntW(L"Controls",L"TPSGrenadeButtonMask",0x0080,path_.c_str()));
+    if(!ValidPadBind(tpsGrenadeButtonMask))tpsGrenadeButtonMask=0x0080;
     tpsSuspendButtonMask=GetPrivateProfileIntW(L"Controls",L"TPSSuspendButtonMask",0x0080,path_.c_str());
     tpsSuspendDelayMs=GetPrivateProfileIntW(L"Controls",L"TPSSuspendDelayMs",300,path_.c_str());
     tpsSuspendDelayMs=std::clamp(tpsSuspendDelayMs,0,3000);
     tpsToggleHoldButtonMask=GetPrivateProfileIntW(L"Controls",L"TPSToggleHoldButtonMask",0x0040,path_.c_str());
     tpsToggleHoldMs=GetPrivateProfileIntW(L"Controls",L"TPSToggleHoldMs",500,path_.c_str());
     tpsToggleHoldMs=std::clamp(tpsToggleHoldMs,250,2000);
-    if(tpsSuspendButtonMask==0)tpsSuspendButtonMask=0x0080;
-    if(tpsToggleHoldButtonMask==0)tpsToggleHoldButtonMask=0x0040;
+    if(!ValidPadBind(tpsSuspendButtonMask))tpsSuspendButtonMask=0x0080;
+    if(!ValidPadBind(tpsToggleHoldButtonMask))tpsToggleHoldButtonMask=0x0040;
     tpsRecenterButtonMask=GetPrivateProfileIntW(L"Controls",L"TPSRecenterButtonMask",0x0040,path_.c_str());
-    if(tpsRecenterButtonMask!=0x0040 && tpsRecenterButtonMask!=0x0080 &&
-       tpsRecenterButtonMask!=0x0100 && tpsRecenterButtonMask!=0x0200 &&
-       tpsRecenterButtonMask!=0x1000 && tpsRecenterButtonMask!=0x0001 &&
-       tpsRecenterButtonMask!=0x0002 && tpsRecenterButtonMask!=0x0004 &&
-       tpsRecenterButtonMask!=0x0008) tpsRecenterButtonMask=0x0040;
+    if(!ValidPadBind(tpsRecenterButtonMask))tpsRecenterButtonMask=0x0040;
     pistolDamageEnabled =
         ReadBool(L"Features", L"PistolDamage", true, path_);
     meleeDamageEnabled =
@@ -584,6 +593,13 @@ bool Store::Load() {
         return true;
     }
     if (revision < kConfigRevision) {
+        // V0.86 migration: preserve the user's previously disabled actions
+        // as OFF bindings, and respect all existing active bindings.
+        if(revision<2126){
+            if(!tpsHoldSuspendEnabled)tpsSuspendButtonMask=0;
+            if(!tpsLongPressToggleEnabled)tpsToggleHoldButtonMask=0;
+            if(!tpsGrenadeHoldEnabled)tpsGrenadeButtonMask=0;
+        }
         // V0.55: F5 becomes Third Person when the previous default was None.
         // Explicit non-None assignments elsewhere remain untouched.
         if (revision == 2104 && hotkeys[4] == Action::None)
@@ -637,6 +653,7 @@ void Store::PublishRuntime() const {
     runtime.tpsHideGroundAimFx = tpsHideGroundAimFx;
     runtime.aimIndicatorHideMode = aimIndicatorHideMode;
     runtime.tpsHorseStableAimCamera = tpsHorseStableAimCamera;
+    runtime.tpsMountedAimMode = tpsMountedAimMode;
     runtime.thirdPersonDistanceMultiplier = thirdPersonDistanceMultiplier;
     runtime.thirdPersonPitchDegrees = thirdPersonPitchDegrees;
     runtime.thirdPersonHeightOffset = thirdPersonHeightOffset;
@@ -751,15 +768,20 @@ bool Store::SaveNow() {
     WritePrivateProfileStringW(L"Features",L"TPSMouseRotateWhileFiring",nullptr,path_.c_str());
     WriteBool(L"Features",L"TPSControllerStrafeWhileFiring",tpsControllerStrafeWhileFiring,path_);
     WriteBool(L"Features",L"TPSControllerRotateWhileFiring",tpsControllerRotateWhileFiring,path_);
-    WriteBool(L"Features",L"TPSHoldSuspend",tpsHoldSuspendEnabled,path_);
-    WriteBool(L"Features",L"TPSHoldToggle",tpsLongPressToggleEnabled,path_);
-    WriteBool(L"Features",L"TPSGrenadeHold",tpsGrenadeHoldEnabled,path_);
+    WriteBool(L"Features",L"TPSHoldSuspend",tpsSuspendButtonMask!=0,path_);
+    WriteBool(L"Features",L"TPSHoldToggle",tpsToggleHoldButtonMask!=0,path_);
+    WriteBool(L"Features",L"TPSGrenadeHold",tpsGrenadeButtonMask!=0,path_);
     WriteBool(L"Features",L"TPSHideGroundAimFx",tpsHideGroundAimFx,path_);
     wchar_t aimModeBuffer[12]{};
     swprintf_s(aimModeBuffer,L"%d",std::clamp(aimIndicatorHideMode,0,2));
     WritePrivateProfileStringW(L"Features",L"AimIndicatorHideMode",aimModeBuffer,path_.c_str());
     WriteBool(L"Features",L"TPSHorseStableAimCamera",tpsHorseStableAimCamera,path_);
+    wchar_t mountModeText[12]{};
+    swprintf_s(mountModeText,L"%d",std::clamp(tpsMountedAimMode,0,1));
+    WritePrivateProfileStringW(L"Features",L"TPSMountedAimMode",mountModeText,path_.c_str());
     wchar_t buttonBuffer[16]{};
+    swprintf_s(buttonBuffer,L"%d",tpsGrenadeButtonMask);
+    WritePrivateProfileStringW(L"Controls",L"TPSGrenadeButtonMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsRecenterButtonMask);
     WritePrivateProfileStringW(L"Controls",L"TPSRecenterButtonMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsSuspendButtonMask);
