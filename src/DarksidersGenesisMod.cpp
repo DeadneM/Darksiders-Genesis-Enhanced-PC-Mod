@@ -3641,6 +3641,77 @@ void UpdateOrbitInput() {
                 rt.tpsActorWorldZ.load());
     }
     wasHorseH=hPressed;wasHorseChord=shoulderChord;
+    // Keyboard equivalents of controller L3 long/short and R3 temporary
+    // view. Controller behavior below is retained byte-for-byte.
+    const int kbToggleVK=g_config.tpsKeyboardKeys[static_cast<size_t>(
+        dg::config::TpsKeyboardAction::Toggle)];
+    const int kbRecenterVK=g_config.tpsKeyboardKeys[static_cast<size_t>(
+        dg::config::TpsKeyboardAction::Recenter)];
+    const bool kbToggle=KeyboardHeld(dg::config::TpsKeyboardAction::Toggle);
+    static bool kbTogglePrev=false,kbConsumed=false,kbRecenterPrev=false;
+    static ULONGLONG kbToggleStart=0;
+    if(kbToggle&&!kbTogglePrev){kbToggleStart=now;kbConsumed=false;}
+    if(kbToggle&&!kbConsumed&&kbToggleStart&&now>=kbToggleStart&&
+       now-kbToggleStart>=static_cast<ULONGLONG>(g_config.tpsToggleHoldMs)){
+        kbConsumed=true;
+        g_config.thirdPersonEnabled=!g_config.thirdPersonEnabled;
+        g_config.Save();
+        ++g_tpsHoldToggleCount;
+        Log("TPS V0.92: keyboard long-press toggled TPS %s",
+            g_config.thirdPersonEnabled?"ON":"OFF");
+    }
+    if(!kbToggle&&kbTogglePrev){
+        if(!kbConsumed&&kbRecenterVK&&kbRecenterVK==kbToggleVK&&
+           g_config.thirdPersonEnabled)
+            dg::camera_trace::RecenterOnPlayer();
+        kbToggleStart=0;kbConsumed=false;
+    }
+    kbTogglePrev=kbToggle;
+    const bool kbRecenter=KeyboardHeld(dg::config::TpsKeyboardAction::Recenter);
+    if(kbRecenterVK&&kbRecenterVK!=kbToggleVK&&kbRecenter&&
+       !kbRecenterPrev&&g_config.thirdPersonEnabled)
+        dg::camera_trace::RecenterOnPlayer();
+    kbRecenterPrev=kbRecenter;
+
+    // Keyboard grenade: with a physical controller the unchanged native
+    // R3 hold/release path handles the selected key through XInput. Without
+    // a controller, use the game's native keyboard E (Use Gear) equivalent
+    // and repeat the validated 100ms UP / 200ms DOWN release pulse.
+    const int kbGrenadeVK=g_config.tpsKeyboardKeys[static_cast<size_t>(
+        dg::config::TpsKeyboardAction::Grenade)];
+    const bool kbGrenade=KeyboardHeld(dg::config::TpsKeyboardAction::Grenade)&&
+        g_config.thirdPersonEnabled;
+    static bool kbGrenadePrev=false,kbGearStowDown=false;
+    static ULONGLONG kbGearStowStart=0,kbGearStowEnd=0;
+    if(!focused || !g_config.thirdPersonEnabled || padAvailable || !kbGrenadeVK){
+        if(g_gearSyntheticEDown.exchange(false))
+            EmitKeyboardVirtualKey('E',false);
+        kbGearStowStart=kbGearStowEnd=0;kbGearStowDown=false;
+        kbGrenadePrev=false;
+    }else{
+        if(kbGrenade&&!kbGrenadePrev){
+            kbGearStowStart=kbGearStowEnd=0;kbGearStowDown=false;
+            if(kbGrenadeVK!='E'&&EmitKeyboardVirtualKey('E',true))
+                g_gearSyntheticEDown.store(true);
+        }
+        if(!kbGrenade&&kbGrenadePrev){
+            if(g_gearSyntheticEDown.exchange(false))
+                EmitKeyboardVirtualKey('E',false);
+            kbGearStowStart=now+100ull;
+            kbGearStowEnd=kbGearStowStart+200ull;
+        }
+        if(kbGearStowStart&&now>=kbGearStowStart&&
+           now<kbGearStowEnd&&!kbGearStowDown){
+            kbGearStowDown=EmitKeyboardVirtualKey('E',true);
+            if(kbGearStowDown)g_gearSyntheticEDown.store(true);
+        }
+        if(kbGearStowEnd&&now>=kbGearStowEnd){
+            if(g_gearSyntheticEDown.exchange(false))
+                EmitKeyboardVirtualKey('E',false);
+            kbGearStowStart=kbGearStowEnd=0;kbGearStowDown=false;
+        }
+        kbGrenadePrev=kbGrenade;
+    }
     const int toggleMask=g_config.tpsToggleHoldButtonMask;
     static bool toggleHeld=false,toggleConsumed=false;
     static ULONGLONG toggleStarted=0;
@@ -3679,8 +3750,9 @@ void UpdateOrbitInput() {
     static int previousSuspendMask=0;
     const int suspendMask=g_config.tpsSuspendButtonMask;
     const bool holdInput=focused && g_config.thirdPersonEnabled &&
-        padAvailable && suspendMask &&
-        GamepadBindingDown(suspendMask,physical.Gamepad);
+        ((padAvailable && suspendMask &&
+          GamepadBindingDown(suspendMask,physical.Gamepad)) ||
+         KeyboardHeld(dg::config::TpsKeyboardAction::Suspend));
     if(!holdInput || previousSuspendMask!=suspendMask)
         suspendStarted=0;
     if(holdInput && !suspendStarted)
@@ -4166,6 +4238,8 @@ void ShutdownMod() {
     Log("Shutdown: begin");
     // Release any window-local Ctrl aim key we injected, even if the
     // user closes the game mid-fire. Do not release physical Ctrl.
+    if(g_horseSyntheticHDown.exchange(false))EmitKeyboardVirtualKey('H',false);
+    if(g_gearSyntheticEDown.exchange(false))EmitKeyboardVirtualKey('E',false);
     if(g_tpsMountedCtrlBridgeDown.exchange(false)){
         const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
         if(hwnd&&IsWindow(hwnd) && !(GetAsyncKeyState(VK_CONTROL)&0x8000))
