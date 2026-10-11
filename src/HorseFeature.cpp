@@ -23,6 +23,14 @@ constexpr std::uintptr_t kHorseGetNormalizedSpeedInputRva = 0x00670DD0;
 constexpr std::uintptr_t kHorseTryStartSprintingRva = 0x0068C120;
 constexpr std::uintptr_t kHorseSetSprintingTrueRva = 0x00791F80;
 // V0.83: native spawn request diagnostics ONLY; never force mount spawn.
+// V0.89: verified from exact retail EXE reflected
+// AMayhemPlayerCharacter native horse region functions. Both were
+// proven invoked 49,923/30,177 times in the isolated V0.87 branch log.
+constexpr std::uintptr_t kHorseRegionRva=0x00675E40;
+constexpr std::uintptr_t kHorseDesummonRva=0x00675D20;
+constexpr std::array<unsigned char,12> kHorseRegionSignature{
+    0x40,0x57,0x48,0x83,0xEC,0x40,0x48,0xC7,0x44,0x24,0x20,0xFE
+};
 constexpr std::uintptr_t kHorseServerSpawnImplRva = 0x00682860;
 constexpr std::array<unsigned char, 20> kHorseServerSpawnImplPrologue{
     0x48,0x8B,0xC4,0x55,0x57,0x41,0x54,0x41,0x55,0x41,
@@ -127,6 +135,11 @@ std::atomic_uint32_t g_observedHorseGenerations{0};
 std::atomic_uint32_t g_horsesFound{0};
 std::atomic_bool g_summonServerProbeReady{false};
 std::atomic_uint32_t g_summonServerCalls{0}, g_summonServerCallsRequested{0};
+std::atomic_ullong g_lastServerSpawnTick{0};
+std::atomic_uint32_t g_regionQueries{0},g_regionOverrides{0};
+std::atomic_uint32_t g_desummonQueries{0},g_desummonOverrides{0};
+std::atomic<void*> g_lastLocalPlayerIdentity{nullptr};
+std::atomic_ullong g_lastLocalPlayerTick{0};
 
 using HorseFloatFn = float(*)(void*);
 using HorseVoidFn = void(*)(void*);
@@ -138,12 +151,17 @@ HorseVoidFn g_originalTryStartSprinting = nullptr;
 HorseVoidFn g_originalSetSprintingTrue = nullptr;
 using HorseServerSpawnImplFn=void(*)(void*,void*,void*,unsigned char);
 HorseServerSpawnImplFn g_originalServerSpawnImpl=nullptr;
+using HorseRegionFn=bool(*)(void*);
+HorseRegionFn g_originalHorseRegion=nullptr;
+HorseRegionFn g_originalHorseDesummon=nullptr;
 
 void* g_getNormalizedSpeedTarget = nullptr;
 void* g_getNormalizedSpeedInputTarget = nullptr;
 void* g_tryStartSprintingTarget = nullptr;
 void* g_setSprintingTrueTarget = nullptr;
 void* g_serverSpawnImplTarget = nullptr;
+void* g_horseRegionHookTarget=nullptr;
+void* g_horseDesummonHookTarget=nullptr;
 
 LogFn g_logger = nullptr;
 
@@ -824,12 +842,57 @@ void HookHorseSetSprintingTrue(
 // Probe of actual server-side spawn request. Same arguments are forwarded;
 // disabled/forbidden mount checks remain entirely owned by the game.
 void HookHorseServerSpawnImpl(void* actor,void* a,void* b,unsigned char flag){
+    g_lastServerSpawnTick.store(GetTickCount64(),std::memory_order_release);
     const unsigned n=++g_summonServerCalls;
     const bool requested=dg::runtime::Get().horseEverywhereEnabled.load(std::memory_order_relaxed);
     if(requested)++g_summonServerCallsRequested;
     if(n==1||n==10||n==100)
         FeatureLog("Horse Everywhere V0.83 diagnostic: SERVER_SpawnHorseMount request n=%u optIn=%d (native unchanged)",n,requested?1:0);
     if(g_originalServerSpawnImpl)g_originalServerSpawnImpl(actor,a,b,flag);
+}
+
+// V0.89 carefully scoped experimental native answer patch: ONLY a fresh
+// real physical H or LB+RB press and exact known local player identity.
+// The original native region getter ALWAYS executes first. Outside this
+// 1,600-ms window both native answers remain byte-for-byte identical.
+// Never create horse actors, touch UObject memory, or retain horses across
+// mission/script-based forced desummon volumes.
+bool IsLocalSummonIntent(void* actor){
+    if(!actor)return false;
+    auto& rt=dg::runtime::Get();
+    if(!rt.horseEverywhereEnabled.load(std::memory_order_relaxed))return false;
+    const ULONGLONG now=GetTickCount64();
+    const ULONGLONG pressed=rt.horseSummonIntentTick.load(std::memory_order_acquire);
+    const ULONGLONG localTick=g_lastLocalPlayerTick.load(std::memory_order_acquire);
+    return pressed&&localTick&&now>=pressed&&now-pressed<=1600ull&&
+        now>=localTick&&now-localTick<15000ull&&
+        actor==g_lastLocalPlayerIdentity.load(std::memory_order_acquire);
+}
+bool HookHorseRegion(void* actor){
+    const bool original=g_originalHorseRegion?g_originalHorseRegion(actor):false;
+    const unsigned calls=++g_regionQueries;
+    const bool scope=IsLocalSummonIntent(actor);
+    if(scope&&!original){
+        const unsigned n=++g_regionOverrides;
+        if(n<=24)FeatureLog("Horse Everywhere V0.89 REGION: allow FALSE->TRUE override #%u at call=%u (local player + active real summon key only)",
+            n,calls);
+        return true;
+    }
+    if(calls<=5)FeatureLog("Horse Everywhere V0.89 REGION: query #%u native=%d scope=%d",calls,original?1:0,scope?1:0);
+    return original;
+}
+bool HookHorseDesummon(void* actor){
+    const bool original=g_originalHorseDesummon?g_originalHorseDesummon(actor):false;
+    const unsigned calls=++g_desummonQueries;
+    const bool scope=IsLocalSummonIntent(actor);
+    if(scope&&original){
+        const unsigned n=++g_desummonOverrides;
+        if(n<=24)FeatureLog("Horse Everywhere V0.89 DESUMMON: TRUE->FALSE override #%u at call=%u (only while summoning; not persistent in ban volume)",
+            n,calls);
+        return false;
+    }
+    if(calls<=5)FeatureLog("Horse Everywhere V0.89 DESUMMON: query #%u native=%d scope=%d",calls,original?1:0,scope?1:0);
+    return original;
 }
 
 template <std::size_t N, typename Fn>
@@ -966,7 +1029,17 @@ void Initialize(LogFn logger) {
         "HorseCharacter::TryStartSprinting"
     );
 
-    // New isolated diagnostic: inspect whether a summon reaches the native server.
+    // V0.89: exact previously discovered native horse region gates.
+    // Scoped to 1600ms after physical summon key; log native values.
+    InstallNativeHook(kHorseRegionRva,kHorseRegionSignature,
+        reinterpret_cast<void*>(&HookHorseRegion),
+        g_originalHorseRegion,g_horseRegionHookTarget,
+        "PlayerCharacter::IsInHorseRegion (V0.89 scoped test)");
+    InstallNativeHook(kHorseDesummonRva,kHorseRegionSignature,
+        reinterpret_cast<void*>(&HookHorseDesummon),
+        g_originalHorseDesummon,g_horseDesummonHookTarget,
+        "PlayerCharacter::IsInHorseDesummonRegion (V0.89 scoped test)");
+    // Existing native server callback is always invoked unchanged.
     g_summonServerProbeReady.store(InstallNativeHook(
         kHorseServerSpawnImplRva,kHorseServerSpawnImplPrologue,
         reinterpret_cast<void*>(&HookHorseServerSpawnImpl),
@@ -999,8 +1072,13 @@ void SetSettings(const Settings& settings) {
     );
 }
 
-void ObservePlayerCharacter(void*) {
-    // V0.27 deliberately ignores player identity.
+void ObservePlayerCharacter(void* player) {
+    // Identity only from already-validated player movement hook.
+    // Never dereference this cached pointer or modify it.
+    if(player){
+        g_lastLocalPlayerIdentity.store(player,std::memory_order_release);
+        g_lastLocalPlayerTick.store(GetTickCount64(),std::memory_order_release);
+    }
 }
 
 void PollDirectHorse(void*) {
@@ -1045,6 +1123,11 @@ Telemetry GetTelemetry() {
     t.summonProbeReady = g_summonServerProbeReady.load();
     t.summonServerCalls = g_summonServerCalls.load();
     t.summonServerCallsWhileRequested = g_summonServerCallsRequested.load();
+    t.lastServerSpawnTick = g_lastServerSpawnTick.load();
+    t.regionQueries=g_regionQueries.load();
+    t.regionOverrides=g_regionOverrides.load();
+    t.desummonQueries=g_desummonQueries.load();
+    t.desummonOverrides=g_desummonOverrides.load();
     t.playerOwner = nullptr;
     t.horseOwner = g_owner.load();
     t.horseMovement = g_movement.load();
@@ -1100,7 +1183,12 @@ void Shutdown() {
     RemoveHook(g_tryStartSprintingTarget);
     RemoveHook(g_setSprintingTrueTarget);
     RemoveHook(g_serverSpawnImplTarget);
-    FeatureLog("Horse Everywhere V0.83 probe totals: serverSpawn=%u duringRequested=%u (no bypass attempted)",
+    RemoveHook(g_horseRegionHookTarget);
+    RemoveHook(g_horseDesummonHookTarget);
+    FeatureLog("Horse Everywhere V0.89 native region totals: allowedChecks=%u scopedOverrides=%u desummonChecks=%u scopedOverrides=%u",
+        g_regionQueries.load(),g_regionOverrides.load(),
+        g_desummonQueries.load(),g_desummonOverrides.load());
+    FeatureLog("Horse Everywhere V0.83 probe totals: serverSpawn=%u duringRequested=%u (server args unchanged)",
         g_summonServerCalls.load(),g_summonServerCallsRequested.load());
 
     AcquireSRWLockExclusive(&g_lock);
