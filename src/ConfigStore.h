@@ -202,7 +202,7 @@ public:
 
     std::array<Action, 12> hotkeys{};
     std::array<int, static_cast<size_t>(CameraAction::Count)> cameraKeys{{0x26,0x28,0x25,0x27,0,0,0x64,0x66}};
-    std::array<int, static_cast<size_t>(TpsKeyboardAction::Count)> tpsKeyboardKeys{{'H','V','V','E'}};
+    std::array<int, static_cast<size_t>(TpsKeyboardAction::Count)> tpsKeyboardKeys{{'H','Z','Z','E'}};
 
     Store();
 
