@@ -25,6 +25,7 @@ void Publish(const Snapshot& s) {
     g_state.cameraOrbitInputEnabled.store(s.cameraOrbitInputEnabled, std::memory_order_relaxed);
     g_state.cameraMouseOrbitEnabled.store(s.cameraMouseOrbitEnabled);
     g_state.cameraControllerOrbitEnabled.store(s.cameraControllerOrbitEnabled);
+    g_state.tpsMouseCenterAimEnabled.store(s.tpsMouseCenterAimEnabled);
     g_state.tpsHideGroundAimFx.store(s.tpsHideGroundAimFx);
     g_state.aimIndicatorHideMode.store(s.aimIndicatorHideMode, std::memory_order_relaxed);
     g_state.tpsHorseStableAimCamera.store(s.tpsHorseStableAimCamera);
