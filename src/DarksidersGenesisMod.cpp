@@ -36,7 +36,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.94-native-radial-tps-aim-clean-input-test";
+constexpr const char* kBuild = "0.95-shared-gear-view-native-wheels-mouse-horse-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -2928,6 +2928,15 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
         localHwnd && GetForegroundWindow()==localHwnd &&
         !g_overlayVisible.load() && !IsIconic(localHwnd) &&
         !g_shuttingDown.load();
+    // V0.95: keep the original entire XInput state for native ability,
+    // ammunition and equipment selection while LB is down. In V0.94 the
+    // validated R3 pulse ran before the wheel early return.
+    if(localGameplay && (pad.wButtons&XINPUT_GAMEPAD_LEFT_SHOULDER)){
+        auto& wheelRt=dg::runtime::Get();
+        wheelRt.tpsAbilityWheelHeld.store(true,std::memory_order_release);
+        wheelRt.tpsAbilityWheelTick.store(GetTickCount64(),std::memory_order_release);
+        return status;
+    }
     const int grenadeMask=g_config.tpsGrenadeButtonMask;
     if(localGameplay && grenadeMask!=0 &&
        (!(pad.wButtons&XINPUT_GAMEPAD_LEFT_SHOULDER) ||
@@ -2936,10 +2945,9 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     if(!ShouldSuppressNativeAim())
         return status; // Preserve vanilla aim while temporary view is held.
     if(pad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER){
-        // Right stick must select native equipment/ammo/ability wheel items;
-        // this bypasses BOTH forward-analog emulation and native TPS look filter.
-        dg::runtime::Get().tpsAbilityWheelHeld.store(true,std::memory_order_release);
-        dg::runtime::Get().tpsAbilityWheelTick.store(GetTickCount64(),std::memory_order_release);
+        auto& wheelRt=dg::runtime::Get();
+        wheelRt.tpsAbilityWheelHeld.store(true,std::memory_order_release);
+        wheelRt.tpsAbilityWheelTick.store(GetTickCount64(),std::memory_order_release);
         return status;
     }
 
@@ -3772,13 +3780,17 @@ void UpdateOrbitInput() {
     static ULONGLONG suspendStarted=0;
     static int previousSuspendMask=0;
     const int suspendMask=g_config.tpsSuspendButtonMask;
-    // Wheel controls have priority over temporary vanilla view even when
-    // the same physical R3 / native E key was configured for both actions.
-    const bool holdInput=focused && !wheelOpen &&
-        g_config.thirdPersonEnabled &&
-        ((padAvailable && suspendMask &&
-          GamepadBindingDown(suspendMask,physical.Gamepad)) ||
-         KeyboardHeld(dg::config::TpsKeyboardAction::Suspend));
+    // V0.95: keyboard native equipment E and the mod's temporary-view
+    // shortcut MUST be allowed on the SAME physical key, by design.
+    // R3 also retains its already validated grenade/temporary-view sharing.
+    // A different held LB radial wheel cannot accidentally trigger R3
+    // temporary view: the user's explicit keyboard suspend key still can.
+    const bool keyboardSuspend=KeyboardHeld(dg::config::TpsKeyboardAction::Suspend);
+    const bool controllerSuspend=padAvailable && suspendMask &&
+        GamepadBindingDown(suspendMask,physical.Gamepad) &&
+        (physicalBits&XINPUT_GAMEPAD_LEFT_SHOULDER)==0;
+    const bool holdInput=focused && g_config.thirdPersonEnabled &&
+        (controllerSuspend||keyboardSuspend);
     if(!holdInput || previousSuspendMask!=suspendMask)
         suspendStarted=0;
     if(holdInput && !suspendStarted)
