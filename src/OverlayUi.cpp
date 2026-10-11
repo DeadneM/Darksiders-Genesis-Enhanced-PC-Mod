@@ -395,8 +395,28 @@ void Draw(Context& c) {
                 horse::GetTelemetry();
             if(ImGui::Checkbox("Horse Everywhere (validated in TPS and default camera)",
                     &config.horseEverywhereEnabled)) config.Save();
-            ImGui::TextDisabled("V0.92: user-confirmed native region bypass; remains ON until disabled.");
-            ImGui::TextDisabled("Two controller buttons must be HELD TOGETHER for summon/dismount.");
+            ImGui::TextDisabled("Summon and ride in banned zones. Verified with normal and TPS cameras.");
+            ImGui::TextDisabled("Keyboard and both pad buttons trigger the same native horse action.");
+            ImGui::TextDisabled("The two controller buttons must be pressed simultaneously.");
+            ImGui::PushID("horse_kbd");
+            const size_t horseIndex=static_cast<size_t>(config::TpsKeyboardAction::Horse);
+            const int horseBindingIndex=static_cast<int>(config.cameraKeys.size()+horseIndex);
+            ImGui::Text("Keyboard:");
+            ImGui::SameLine(225.0f);
+            ImGui::Text("%s",config::KeyDisplayName(config.tpsKeyboardKeys[horseIndex]).c_str());
+            ImGui::SameLine(335.0f);
+            const bool horseCapture=c.captureCameraKeyIndex->load()==horseBindingIndex;
+            if(ImGui::Button(horseCapture?"Press key...":"Rebind")){
+                c.captureMenuKey->store(false);
+                c.captureCameraKeyIndex->store(horseBindingIndex);
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("Unbind")){
+                config.tpsKeyboardKeys[horseIndex]=0;
+                c.captureCameraKeyIndex->store(-1);
+                config.Save();
+            }
+            ImGui::PopID();
             constexpr int horsePadValues[]={0x0100,0x0200,0x0040,0x0080,
                 0x1000,0x2000,0x4000,0x8000,0x0001,0x0002,0x0004,0x0008,
                 0x0010,0x0020,0x10000,0x20000};
@@ -412,25 +432,20 @@ void Draw(Context& c) {
                     mask=horsePadValues[index];config.Save();
                 }
             };
-            HorsePadCombo("Summon horse button 1##Horse",config.horsePadButtonA);
-            HorsePadCombo("Summon horse button 2##Horse",config.horsePadButtonB);
+            HorsePadCombo("Controller button 1##Horse",config.horsePadButtonA);
+            HorsePadCombo("Controller button 2##Horse",config.horsePadButtonB);
             if(config.horsePadButtonA==config.horsePadButtonB)
-                ImGui::TextDisabled("Select TWO DIFFERENT buttons for the chord.");
-            ImGui::TextDisabled("Default LB + RB. Keyboard horse key is in Camera > TPS keyboard bindings.");
-            ImGui::TextDisabled("V0.91: summon permission for 1.6s after H / LB+RB,");
-            ImGui::TextDisabled("then keep native horse region permission while riding in");
-            ImGui::TextDisabled("TPS OR default camera, based on live local horse callbacks.");
-            ImGui::TextDisabled("Other mission/script forced dismounts may still apply.");
-            ImGui::TextDisabled("%s | server requests observed: %u (while selected: %u)",
-                horseTelemetry.summonProbeReady ? "Summon server probe ready; override still EXPERIMENTAL" :
-                    "Summon server probe unavailable; override still EXPERIMENTAL",
-                horseTelemetry.summonServerCalls,
-                horseTelemetry.summonServerCallsWhileRequested);
-            ImGui::TextDisabled("Allowed-region checks %u / local overrides %u",
-                horseTelemetry.regionQueries,horseTelemetry.regionOverrides);
-            ImGui::TextDisabled("Desummon-region checks %u / local overrides %u",
-                horseTelemetry.desummonQueries,horseTelemetry.desummonOverrides);
-            ImGui::TextDisabled("Experimental: no forced spawning. Set OFF immediately if a mission/area behaves incorrectly.");
+                ImGui::TextDisabled("Choose two DIFFERENT buttons.");
+            if(ImGui::TreeNode("Horse Everywhere information / debug")){
+                ImGui::TextDisabled("Native spawn requests %u | while enabled %u",
+                    horseTelemetry.summonServerCalls,horseTelemetry.summonServerCallsWhileRequested);
+                ImGui::TextDisabled("Region permission %u/%u",
+                    horseTelemetry.regionOverrides,horseTelemetry.regionQueries);
+                ImGui::TextDisabled("Desummon prevented %u/%u",
+                    horseTelemetry.desummonOverrides,horseTelemetry.desummonQueries);
+                ImGui::TextDisabled("Separate mission-script desummons may still apply.");
+                ImGui::TreePop();
+            }
 
             DrawTunableFeature(
                 config,
@@ -763,7 +778,7 @@ void Draw(Context& c) {
             }
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
-                DrawSectionTitle("TPS camera controls");
+                DrawSectionTitle("TPS controls and aiming");
                 if (ImGui::Checkbox("Block vanilla right-stick player rotation (even while firing)",
                         &config.tpsSuppressNativeRightStick)) config.Save();
                 ImGui::TextDisabled("TPS mouse uses native flat-plane targeting (3D aim not yet fixed).");
@@ -777,17 +792,17 @@ void Draw(Context& c) {
                         &config.tpsControllerRotateWhileFiring)) config.Save();
                 ImGui::TextDisabled("Strafe changes movement while shooting; Rotate makes shots camera-forward.");
                 ImGui::Separator();
-                ImGui::TextDisabled("Mounted TPS firing mode (overrides on-foot options)");
+                ImGui::TextDisabled("Unified TPS aiming (on foot + mounted)");
                 constexpr const char* kMountedModes[]={
                     "Camera Forward (experimental forward-stick aiming)",
                     "Vanilla Aim (camera locked while firing)"
                 };
                 ImGui::SetNextItemWidth(510.0f);
-                if(ImGui::Combo("Aim while mounted##MountedMode",
+                if(ImGui::Combo("TPS aiming mode##MountedMode",
                     &config.tpsMountedAimMode,kMountedModes,2))config.Save();
                 ImGui::TextWrapped(config.tpsMountedAimMode==0
-                    ? "V0.92 experimental: when firing from the horse, the game receives virtual right-stick UP while the camera retains REAL right-stick control. No edits to Vanilla Aim."
-                    : "VALIDATED: camera only at idle; camera orbit freezes during firing and vanilla aim takes over.");
+                    ? "Camera Forward: native aim receives a forward stick while firing; camera stays free (foot mode EXPERIMENTAL)."
+                    : "Vanilla Aim: camera free at idle, paused during firing while game native aiming takes over.");
                 ImGui::TextDisabled("Forward diagnostic: native look samples %u | yaw gap >35deg %u",
                     t.forwardLookSamples,t.forwardYawGapCount);
                 ImGui::TextDisabled("Last input yaw %.1f deg / camera yaw %.1f deg (NOT projectile direction)",
@@ -797,8 +812,8 @@ void Draw(Context& c) {
                 ImGui::TextDisabled("Mounted camera frames while firing: %u",
                     camera.mountedFireHorseSelected);
                 ImGui::Separator();
-                ImGui::Text("Controller bindings");
-                ImGui::TextDisabled("One button per action. OFF disables the mod hotkey.");
+                ImGui::Text("Keyboard + controller: same actions, side by side");
+                ImGui::TextDisabled("OFF disables only that shortcut; existing native game buttons are unchanged.");
                 constexpr int kButtons[]={
                     0,0x0040,0x0080,0x0100,0x0200,0x10000,0x20000,
                     0x1000,0x2000,0x4000,0x8000,0x0001,0x0002,
@@ -821,20 +836,44 @@ void Draw(Context& c) {
                         mask=kButtons[index];config.Save();
                     }
                 };
-                BindGamepadMask("Grenade: hold equip / release stow##TPS",config.tpsGrenadeButtonMask);
-                BindGamepadMask("Hold for temporary vanilla camera##TPS",config.tpsSuspendButtonMask);
-                if(config.tpsSuspendButtonMask!=0){
-                    ImGui::SetNextItemWidth(245.0f);
-                    if(ImGui::SliderInt("Temporary view delay##HoldTPS",
-                        &config.tpsSuspendDelayMs,0,3000,"%d ms"))config.Save();
-                }
-                BindGamepadMask("Long press: TPS ON/OFF##TPS",config.tpsToggleHoldButtonMask);
-                if(config.tpsToggleHoldButtonMask!=0){
-                    ImGui::SetNextItemWidth(245.0f);
-                    if(ImGui::SliderInt("Long press delay##ToggleTPS",
-                        &config.tpsToggleHoldMs,250,2000,"%d ms"))config.Save();
-                }
-                BindGamepadMask("Recenter TPS behind player##TPS",config.tpsRecenterButtonMask);
+                auto BindTPSKeyboard=[&](const char* label,dg::config::TpsKeyboardAction action){
+                    const size_t i=static_cast<size_t>(action);
+                    const int bindingIndex=static_cast<int>(config.cameraKeys.size()+i);
+                    ImGui::PushID(6100+bindingIndex);
+                    ImGui::Text("%s",label);
+                    ImGui::SameLine(305.0f);
+                    ImGui::Text("%s",config::KeyDisplayName(config.tpsKeyboardKeys[i]).c_str());
+                    ImGui::SameLine();
+                    const bool capture=c.captureCameraKeyIndex->load()==bindingIndex;
+                    if(ImGui::SmallButton(capture?"Press key...":"Rebind")){
+                        c.captureMenuKey->store(false);
+                        c.captureCameraKeyIndex->store(bindingIndex);
+                    }
+                    ImGui::SameLine();
+                    if(ImGui::SmallButton("Unbind")){
+                        config.tpsKeyboardKeys[i]=0;
+                        c.captureCameraKeyIndex->store(-1);
+                        config.Save();
+                    }
+                    ImGui::PopID();
+                };
+                BindTPSKeyboard("TPS ON/OFF (long hold)",dg::config::TpsKeyboardAction::Toggle);
+                BindGamepadMask("Controller long hold##TPS",config.tpsToggleHoldButtonMask);
+                ImGui::SetNextItemWidth(245.0f);
+                if(ImGui::SliderInt("Long press delay##ToggleTPS",
+                    &config.tpsToggleHoldMs,250,2000,"%d ms"))config.Save();
+                ImGui::Spacing();
+                BindTPSKeyboard("Recenter camera",dg::config::TpsKeyboardAction::Recenter);
+                BindGamepadMask("Controller recenter##TPS",config.tpsRecenterButtonMask);
+                ImGui::Spacing();
+                BindTPSKeyboard("Temporary vanilla view",dg::config::TpsKeyboardAction::Suspend);
+                BindGamepadMask("Controller temporary view##TPS",config.tpsSuspendButtonMask);
+                ImGui::SetNextItemWidth(245.0f);
+                if(ImGui::SliderInt("Temporary view delay##HoldTPS",
+                    &config.tpsSuspendDelayMs,0,3000,"%d ms"))config.Save();
+                ImGui::Spacing();
+                BindTPSKeyboard("Grenade hold / release stow",dg::config::TpsKeyboardAction::Grenade);
+                BindGamepadMask("Controller grenade##TPS",config.tpsGrenadeButtonMask);
                 ImGui::TextDisabled("Default R3 grenade/temporary view, L3 short recenter/long TPS toggle.");
                 ImGui::TextDisabled("Grenade stow pulses: %u | DOWN %u / UP %u",
                     t.grenadeNativeReleasePulses,t.grenadePhysicalDown,t.grenadePhysicalUp);
@@ -938,34 +977,6 @@ void Draw(Context& c) {
                 config.Save();
             }
 
-            DrawSectionTitle("TPS / Horse keyboard bindings");
-            ImGui::TextWrapped("Each shortcut is independently rebindable. "
-                "OFF disables the shortcut. Long TPS uses the same delay as L3; "
-                "a shared short-recenter key behaves exactly like the L3 short/long press.");
-            ImGui::TextDisabled("Horse default H; other TPS keyboard shortcuts start OFF to preserve existing controls.");
-            for(size_t i=0;i<config.tpsKeyboardKeys.size();++i){
-                ImGui::PushID(static_cast<int>(i)+6100);
-                ImGui::Text("%s:",config::kTpsKeyboardLabels[i]);
-                ImGui::SameLine(340.0f);
-                ImGui::Text("%s",config::KeyDisplayName(config.tpsKeyboardKeys[i]).c_str());
-                ImGui::SameLine();
-                const int bindingIndex=static_cast<int>(config.cameraKeys.size()+i);
-                const bool capturing=c.captureCameraKeyIndex->load()==bindingIndex;
-                if(ImGui::Button(capturing?"Press key... (Esc cancels)":"Rebind")){
-                    c.captureMenuKey->store(false);
-                    c.captureCameraKeyIndex->store(bindingIndex);
-                }
-                ImGui::SameLine();
-                if(ImGui::Button("Unbind")){
-                    config.tpsKeyboardKeys[i]=0;
-                    c.captureCameraKeyIndex->store(-1);
-                    config.Save();
-                }
-                ImGui::PopID();
-            }
-            ImGui::TextDisabled("Horse remap adds a native H input; original game H remains usable.");
-            ImGui::TextDisabled("Grenade key uses native R3 when a controller is attached;");
-            ImGui::TextDisabled("with keyboard only, the game's E Use Gear key is emulated (experimental).");
             DrawSectionTitle("Camera keyboard bindings");
             ImGui::TextWrapped(
                 "Default: Up/Down = camera height, Left/Right = zoom. "
