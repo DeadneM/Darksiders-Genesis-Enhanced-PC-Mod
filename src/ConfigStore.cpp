@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2128;
+constexpr int kConfigRevision = 2129;
 // Actual XInput digital buttons plus LT/RT represented as virtual binding IDs.
 constexpr bool ValidPadBind(int m) {
     switch(m){case 0:case 0x0001:case 0x0002:case 0x0004:case 0x0008:
@@ -312,6 +312,7 @@ void Store::ResetDefaults(bool persist) {
     cameraOrbitInputEnabled = true;
     cameraMouseOrbitEnabled = true;
     cameraControllerOrbitEnabled = true;
+    tpsMouseCenterAimEnabled = true;
     tpsHoldSuspendEnabled = true;
     tpsLongPressToggleEnabled = true;
     tpsGrenadeHoldEnabled = true;
@@ -438,6 +439,7 @@ bool Store::Load() {
     const bool oldCombinedOrbit=ReadBool(L"Features",L"CameraMouseGamepad",true,path_);
     cameraMouseOrbitEnabled=ReadBool(L"Features",L"CameraMouseOrbit",oldCombinedOrbit,path_);
     cameraControllerOrbitEnabled=ReadBool(L"Features",L"CameraControllerOrbit",oldCombinedOrbit,path_);
+    tpsMouseCenterAimEnabled=ReadBool(L"Features",L"TPSMouseCenterAim",true,path_);
     cameraOrbitInputEnabled=cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
     tpsHoldSuspendEnabled=ReadBool(L"Features",L"TPSHoldSuspend",true,path_);
     tpsLongPressToggleEnabled=ReadBool(L"Features",L"TPSHoldToggle",true,path_);
@@ -661,6 +663,7 @@ void Store::PublishRuntime() const {
     runtime.cameraOrbitInputEnabled = cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
     runtime.cameraMouseOrbitEnabled = cameraMouseOrbitEnabled;
     runtime.cameraControllerOrbitEnabled = cameraControllerOrbitEnabled;
+    runtime.tpsMouseCenterAimEnabled = tpsMouseCenterAimEnabled;
     runtime.tpsHideGroundAimFx = tpsHideGroundAimFx;
     runtime.aimIndicatorHideMode = aimIndicatorHideMode;
     runtime.tpsHorseStableAimCamera = tpsHorseStableAimCamera;
@@ -771,6 +774,7 @@ bool Store::SaveNow() {
     WritePrivateProfileStringW(L"Features",L"CameraMouseGamepad",nullptr,path_.c_str());
     WriteBool(L"Features",L"CameraMouseOrbit",cameraMouseOrbitEnabled,path_);
     WriteBool(L"Features",L"CameraControllerOrbit",cameraControllerOrbitEnabled,path_);
+    WriteBool(L"Features",L"TPSMouseCenterAim",tpsMouseCenterAimEnabled,path_);
     // Remove the V0.71/0.73 ineffective switches, no mapping of old values.
     WritePrivateProfileStringW(L"Features",L"TPSMouseKeyboardStrafe",nullptr,path_.c_str());
     WritePrivateProfileStringW(L"Features",L"TPSControllerStrafe",nullptr,path_.c_str());
