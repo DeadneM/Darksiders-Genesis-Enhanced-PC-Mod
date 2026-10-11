@@ -20,9 +20,7 @@ struct Snapshot {
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
     bool cameraMouseOrbitEnabled = true;
     bool cameraControllerOrbitEnabled = true;
-    // V0.74: independent firing-only mouse and controller controls.
-    bool tpsMouseStrafeWhileFiring = false;
-    bool tpsMouseRotateWhileFiring = false;
+    // V0.75: native TPS mouse firing automatically uses camera heading.
     bool tpsControllerStrafeWhileFiring = false;
     bool tpsControllerRotateWhileFiring = false;
     bool pistolDamageEnabled = true;
@@ -76,8 +74,6 @@ struct State {
     std::atomic_bool cameraOrbitInputEnabled{true};
     std::atomic_bool cameraMouseOrbitEnabled{true};
     std::atomic_bool cameraControllerOrbitEnabled{true};
-    std::atomic_bool tpsMouseStrafeWhileFiring{false};
-    std::atomic_bool tpsMouseRotateWhileFiring{false};
     std::atomic_bool tpsControllerStrafeWhileFiring{false};
     std::atomic_bool tpsControllerRotateWhileFiring{false};
     std::atomic_bool tpsAimActive{false};
