@@ -69,8 +69,10 @@ void HookView(void* camera, float dt, void* outView) {
     // is called again for a spectator / UI camera in the same frame.
     // The Present crosshair check already requires a fresh successful tick.
     if(!settings.thirdPersonEnabled.load(std::memory_order_relaxed) ||
-       settings.tpsTemporarilySuspended.load(std::memory_order_relaxed))
+       settings.tpsTemporarilySuspended.load(std::memory_order_relaxed)){
         settings.tpsViewGameplay.store(false,std::memory_order_release);
+        settings.tpsMountedViewActive.store(false,std::memory_order_release);
+    }
     if (!outView) return;
     auto* p=static_cast<unsigned char*>(outView);
     float x=0,y=0,z=0,nativePitch=0,nativeYaw=0,nativeFov=0;
@@ -100,8 +102,9 @@ void HookView(void* camera, float dt, void* outView) {
     // UObject is dereferenced and unmounted camera behavior is untouched.
     static std::atomic_bool mountedAimPoseLatched{false};
     static std::atomic_bool lastHorse{false};
+    // V0.86: the mode of mounted shooting is ALWAYS enforced when in TPS.
+    // The retired vertical-stabilization checkbox is NOT an aim mode gate.
     const bool activeHorseAim=thirdPerson &&
-        settings.tpsHorseStableAimCamera.load(std::memory_order_relaxed) &&
         settings.tpsAimActive.load(std::memory_order_acquire);
     g_mountedFireCurrentlyActive.store(false,std::memory_order_relaxed);
     if(activeHorseAim){
@@ -272,54 +275,9 @@ void HookView(void* camera, float dt, void* outView) {
             const float pivotY=attached?ay:y+std::cos(nativePitch*radians)*
                 std::sin(nativeYaw*radians)*arm;
             const float rawPivotZ=attached?(az-foot):z+std::sin(nativePitch*radians)*arm;
-            float pivotZ=rawPivotZ;
-            // V0.85: previously the checkbox only changed which pose
-            // was selected, and often had no observable effect at all.
-            // On a KNOWN horse during actual RT/RB firing, low-pass ONLY
-            // the vertical camera pivot to reject repeated mount bobbing.
-            // XY, heading, orbit, shots and vanilla views stay untouched.
-            // Per-thread state avoids shared UObject pointers and locks.
-            struct MountedZFilter {
-                bool valid=false;
-                float z=0.0f;
-                ULONGLONG lastTick=0;
-                std::uintptr_t horseIdentity=0;
-            };
-            static thread_local MountedZFilter mountZ{};
-            const bool smoothMounted=attached&&usingHorse&&activeHorseAim;
-            if(smoothMounted){
-                const std::uintptr_t owner=settings.tpsHorseOwnerIdentity.load(
-                    std::memory_order_relaxed);
-                const ULONGLONG elapsed=mountZ.valid&&now>=mountZ.lastTick
-                    ? now-mountZ.lastTick:0ull;
-                // Reset at mount changes, teleports, pauses, and long gaps.
-                if(!mountZ.valid||!owner||owner!=mountZ.horseIdentity||
-                    elapsed>300ull||std::fabs(rawPivotZ-mountZ.z)>300.0f){
-                    mountZ.z=rawPivotZ;
-                    mountZ.valid=true;
-                }else if(elapsed>0){
-                    // 150 ms response: smoother while firing but without
-                    // delaying horizontal tracking or adding camera yaw lag.
-                    const float dt=static_cast<float>(elapsed)*0.001f;
-                    const float alpha=std::clamp(dt/(0.15f+dt),0.0f,1.0f);
-                    mountZ.z+=(rawPivotZ-mountZ.z)*alpha;
-                }
-                mountZ.lastTick=now;
-                mountZ.horseIdentity=owner;
-                pivotZ=mountZ.z;
-                const float correction=pivotZ-rawPivotZ;
-                g_mountedFireLastVerticalCorrection.store(correction,std::memory_order_relaxed);
-                const unsigned n=++g_mountedFireVerticalSmoothed;
-                if(n==1||n==300||n==2000){
-                    char line[230]{};
-                    sprintf_s(line,"TPS V0.85 MOUNTED AIM: height stabilization n=%u rawZ=%.1f stableZ=%.1f correction=%+.1f (fire+horse active)",
-                        n,rawPivotZ,pivotZ,correction);
-                    Write(line);
-                }
-            }else{
-                mountZ.valid=false;
-                g_mountedFireLastVerticalCorrection.store(0.0f,std::memory_order_relaxed);
-            }
+            // V0.86: no vertical smoothing. Firing modes control actual
+            // native aim + orbit, NOT mount bobbing or camera height.
+            const float pivotZ=rawPivotZ;
             const float pitchRad=appliedPitch*radians,yawRad=appliedYaw*radians;
             const float outX=pivotX-std::cos(pitchRad)*std::cos(yawRad)*distance;
             const float outY=pivotY-std::cos(pitchRad)*std::sin(yawRad)*distance;
@@ -348,7 +306,11 @@ void HookView(void* camera, float dt, void* outView) {
                         }
                     }
                 }
-                if(attached&&usingHorse&&activeHorseAim){
+                // Publish actual live camera source, not the mere existence
+                // of a horse sample. Consumers also impose a 300ms timeout.
+                settings.tpsMountedViewActive.store(usingHorse,std::memory_order_release);
+                settings.tpsMountedViewTick.store(now,std::memory_order_release);
+                if(usingHorse&&activeHorseAim){
                     ++g_mountedFireHorseSelected;
                     g_mountedFireCurrentlyActive.store(true,std::memory_order_relaxed);
                 }
