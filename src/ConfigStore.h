@@ -144,7 +144,8 @@ public:
     bool tpsHoldSuspendEnabled = true;
     bool tpsLongPressToggleEnabled = true;
     bool tpsGrenadeHoldEnabled = true;
-    bool tpsHideGroundAimFx = true;
+    bool tpsHideGroundAimFx = true; // legacy diagnostic toggle, no longer in UI
+    int aimIndicatorHideMode = 2; // 0 Everywhere, 1 Default Only, 2 TPS Only
     bool tpsHorseStableAimCamera = true;
     int tpsSuspendButtonMask = 0x0080; // R3, temporary vanilla view
     int tpsSuspendDelayMs = 300; // delay before R3 hold enables vanilla view, 0..3000
