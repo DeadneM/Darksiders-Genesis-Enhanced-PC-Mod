@@ -4044,6 +4044,13 @@ void ShutdownMod() {
     }
 
     Log("Shutdown: begin");
+    // Release any window-local Ctrl aim key we injected, even if the
+    // user closes the game mid-fire. Do not release physical Ctrl.
+    if(g_tpsMountedCtrlBridgeDown.exchange(false)){
+        const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+        if(hwnd&&IsWindow(hwnd) && !(GetAsyncKeyState(VK_CONTROL)&0x8000))
+            PostMessageW(hwnd,WM_KEYUP,VK_CONTROL,static_cast<LPARAM>(0xC01D0001u));
+    }
     g_config.FlushIfDue(true);
     dg::skip_logos::Shutdown();
     dg::horse::Shutdown();
