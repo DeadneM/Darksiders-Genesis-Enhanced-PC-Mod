@@ -65,6 +65,7 @@ add_library(DarksidersGenesisMod SHARED
   src/HorseFeature.cpp
   src/OverlayUi.cpp
   src/RuntimeSettings.cpp
+  src/ShaderAimFeature.cpp
   src/SkipLogosFeature.cpp
   src/TargetValidator.cpp
 )
