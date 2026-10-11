@@ -146,7 +146,9 @@ public:
     bool tpsGrenadeHoldEnabled = true;
     bool tpsHideGroundAimFx = true; // legacy diagnostic toggle, no longer in UI
     int aimIndicatorHideMode = 2; // 0 Everywhere, 1 Default Only, 2 TPS Only
-    bool tpsHorseStableAimCamera = true;
+    bool tpsHorseStableAimCamera = true; // legacy setting migrated to mounted aim mode
+    int tpsMountedAimMode = 0; // 0 camera-forward free, 1 native aim camera locked
+    int tpsGrenadeButtonMask = 0x0080; // R3 (0 = OFF)
     int tpsSuspendButtonMask = 0x0080; // R3, temporary vanilla view
     int tpsSuspendDelayMs = 300; // delay before R3 hold enables vanilla view, 0..3000
     int tpsToggleHoldButtonMask = 0x0040; // L3, long press TPS toggle
