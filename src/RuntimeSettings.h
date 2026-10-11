@@ -109,6 +109,7 @@ struct State {
     std::atomic_bool jumpHeightEnabled{true};
     std::atomic_bool glideDurationEnabled{true};
     std::atomic_bool horseEverywhereEnabled{false};
+    std::atomic_ullong horseSummonIntentTick{0};
     std::atomic_bool horseSpeedEnabled{true};
     std::atomic_bool horseSprintSpeedEnabled{true};
     std::atomic_bool horseSprintDurationEnabled{true};
