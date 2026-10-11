@@ -2241,3 +2241,13 @@ This branch descends from protected **V0.78**, not the failed V0.80 beam-hide or
 - **R3 grenade long hold fix candidate**: native game-facing R3 now stays pressed for the entire physical hold (previous test sent only a 65ms pulse). A separate 200ms stow-toggle press follows a 100ms release gap. All other controller bits, camera rotation, L3 and firing callbacks are unchanged. New `TPS V0.84 GRENADE` logs report physical transitions and forwarded stow pulses; equip/stow still requires user gameplay testing.
 - **Horse Everywhere status unchanged: NOT YET FUNCTIONAL.** The previous log confirms `serverSpawn=0`; the previously added native server probe cannot bypass a zone check upstream of it. Horse options default OFF for Everywhere and previous horse movement/stamina hooks stay intact. We need to locate the real game/Blueprint summon permission before enabling a working bypass.
 - Based on V0.83 with prior user-validated gameplay kept; main untouched. See [V0.84 technical audit and test](docs/V0_84_AIM_MODES_R3_GRENADE_HORSE_AUDIT.md).
+
+## V0.85 (2026-10-11) | Mounted TPS camera stabilization while firing (TEST)
+
+The user confirmed **V0.84 R3 grenade equip/stow is fixed and WORKING**, so the entire grenade/XInput, L3/R3, native firing and combat code is frozen unchanged. User reports *Stabilize mounted TPS camera while firing* previously produced no apparent difference.
+
+Code audit confirmed that the old switch was a narrow foot-pose/horse-pose priority latch, **not an actual camera smoothing feature**. When horse pose was already naturally selected, toggling it made no visual difference. It could also invalidate an otherwise usable foot camera frame when the horse sample was stale. The user's log repeatedly shows `camera pose source = HORSE/FOOT` and live mount callbacks, but had no stabilization-specific counters.
+
+V0.85 makes the checkbox observable and useful during actual mounted shooting: when the game reports active fire and a real fresh horse pose is selected, it applies **150ms vertical-only camera pivot smoothing**, retains fresh horse pose against transient foot samples, and preserves the foot pose when the horse sample is stale. All XY tracking, camera orbit, weapon aim, controller state, mount movement and damage remain native/unchanged. The checkbox OFF path is unsmoothed. Its overlay now reports real requested/selected/smoothed frame counts and last vertical correction. **User gameplay validation is still required.**
+
+[Technical scope and test procedure](docs/V0_85_MOUNTED_CAMERA_FIRING_STABILIZATION_AUDIT.md). Build on V0.84; do not promote the old V0.82 targeting UI suppression nor claim the blue aim line/arc is fixed.
