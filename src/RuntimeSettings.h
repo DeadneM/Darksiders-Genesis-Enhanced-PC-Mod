@@ -29,6 +29,7 @@ struct Snapshot {
     bool meleeDamageEnabled = true;
     bool jumpHeightEnabled = true;
     bool glideDurationEnabled = true;
+    bool horseEverywhereEnabled = false; // opt-in summon-gate research; no unsupported bypass
     bool horseSpeedEnabled = true;
     bool horseSprintSpeedEnabled = true;
     bool horseSprintDurationEnabled = true;
@@ -101,6 +102,7 @@ struct State {
     std::atomic_bool meleeDamageEnabled{true};
     std::atomic_bool jumpHeightEnabled{true};
     std::atomic_bool glideDurationEnabled{true};
+    std::atomic_bool horseEverywhereEnabled{false};
     std::atomic_bool horseSpeedEnabled{true};
     std::atomic_bool horseSprintSpeedEnabled{true};
     std::atomic_bool horseSprintDurationEnabled{true};
