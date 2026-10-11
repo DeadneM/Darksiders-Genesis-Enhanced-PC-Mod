@@ -2223,3 +2223,9 @@ See [V0.77 scoped changelog and native aiming-FX audit](docs/V0_77_HOLD_DELAY_AN
 **Requested default:** `ThirdPerson=0` in the new-install INI; matching config Reset Defaults / read fallback OFF. An existing user's persisted `ThirdPerson=1` is left alone. Enable TPS with F5 or long L3. All V0.77 values and validated behavior are retained. [Detailed video and executable audit](docs/V0_78_STRIFE_AIM_LINE_ARC_AUDIT.md).
 
 **Status:** safe packaging/default correction, aiming line + arc visual hide still under investigation. Tested ZIP is a standalone development build and not promoted to stable without user acceptance.
+
+## V0.79 (11 October 2026) | Visual aiming-beam diagnostics ONLY
+
+**Gameplay code is frozen at V0.78.** This test adds only a passive native-effect probe for `ShowBeamEffect` / `HideBeamEffect`, the next promising exact-EXE candidates for the requested turquoise world-space **straight aim line and semicircular arc** shown in the user's video. The probe NEVER changes the original output, target selection, firing, aiming, UI, or any controller/camera settings. If the logged counters remain zero, it is a failed candidate and the search continues safely. The original `HideGroundTargetingEffect` hook received zero calls in V0.77.
+
+See [V0.79 exact-offset disassembly and protected-scope changelog](docs/V0_79_NATIVE_AIM_BEAM_PASSIVE_PROBE.md). **The visual effect is not yet hidden in this version**. `ThirdPerson=0` remains the packaged default; every other setting and gameplay path is exactly V0.78.
