@@ -42,6 +42,15 @@ std::atomic<uint32_t> g_pivotCompensations{0};
 std::atomic<uint32_t> g_tpsAttachedFrames{0},g_zoneCameraIgnored{0},g_tpsAttachSkipped{0};
 std::atomic<uint32_t> g_tpsFovOverrides{0};
 std::atomic<uint32_t> g_tpsCameraRejected{0};
+// V0.85: mounted-only firing camera stabilization telemetry. This is
+// camera-output-only, never game actor / controller / weapon manipulation.
+std::atomic_uint32_t g_mountedFireRequested{0};
+std::atomic_uint32_t g_mountedFireHorseSelected{0};
+std::atomic_uint32_t g_mountedFireOverrodeFoot{0};
+std::atomic_uint32_t g_mountedFireHorseUnavailable{0};
+std::atomic_uint32_t g_mountedFireVerticalSmoothed{0};
+std::atomic<float> g_mountedFireLastVerticalCorrection{0.0f};
+std::atomic_bool g_mountedFireCurrentlyActive{false};
 std::atomic_uint32_t g_zoneActorGeneration{UINT32_MAX};
 std::atomic<float> g_zoneReferenceYaw{0.0f},g_zoneReferenceArm{0.0f};
 std::atomic_bool g_zoneReferenceActive{false};
@@ -91,29 +100,55 @@ void HookView(void* camera, float dt, void* outView) {
     // UObject is dereferenced and unmounted camera behavior is untouched.
     static std::atomic_bool mountedAimPoseLatched{false};
     static std::atomic_bool lastHorse{false};
-    const bool activeHorseAim=settings.tpsHorseStableAimCamera.load() &&
+    const bool activeHorseAim=thirdPerson &&
+        settings.tpsHorseStableAimCamera.load(std::memory_order_relaxed) &&
         settings.tpsAimActive.load(std::memory_order_acquire);
-    // The horse pose was already recognized in the previous gameplay frame
-    // before pressing fire, so arm the latch immediately on first RT/RB frame.
-    if(activeHorseAim && lastHorse.load())mountedAimPoseLatched.store(true);
-    if(!activeHorseAim)mountedAimPoseLatched.store(false);
+    g_mountedFireCurrentlyActive.store(false,std::memory_order_relaxed);
+    if(activeHorseAim){
+        ++g_mountedFireRequested;
+        // The previous camera frame must have really used a fresh horse
+        // pose before allowing the extra override of a transient foot pose.
+        if(lastHorse.load(std::memory_order_relaxed))
+            mountedAimPoseLatched.store(true,std::memory_order_relaxed);
+    }else{
+        mountedAimPoseLatched.store(false,std::memory_order_relaxed);
+    }
     bool usingHorse=false;
-    const bool holdHorsePose=thirdPerson && activeHorseAim &&
+    const bool holdHorsePose=activeHorseAim &&
         mountedAimPoseLatched.load(std::memory_order_relaxed);
-    if(holdHorsePose)actorValid=false;
-    if(thirdPerson&&!actorValid){
-        const ULONGLONG horseTick=settings.tpsHorsePoseTick.load(std::memory_order_acquire);
-        const float hx=settings.tpsHorseWorldX.load(),hy=settings.tpsHorseWorldY.load(),
-                    hz=settings.tpsHorseWorldZ.load();
-        const float hyaw=settings.tpsHorseYawDegrees.load();
-        if(horseTick&&now>=horseTick&&now-horseTick<750ull&&
-           std::isfinite(hx)&&std::isfinite(hy)&&std::isfinite(hz)&&
-           std::isfinite(hyaw)&&std::fabs(hx)<1.0e7f&&
-           std::fabs(hy)<1.0e7f&&std::fabs(hz)<1.0e7f){
-            ax=hx;ay=hy;az=hz;actorYaw=hyaw;
-            actorValid=true;usingHorse=true;
-            if(activeHorseAim)mountedAimPoseLatched.store(true);
+    const bool footValidBeforeHorse=actorValid;
+    const ULONGLONG horseTick=settings.tpsHorsePoseTick.load(std::memory_order_acquire);
+    const float hx=settings.tpsHorseWorldX.load(),hy=settings.tpsHorseWorldY.load(),
+                hz=settings.tpsHorseWorldZ.load();
+    const float hyaw=settings.tpsHorseYawDegrees.load();
+    const bool freshHorse=thirdPerson&&horseTick&&now>=horseTick&&
+        now-horseTick<750ull&&std::isfinite(hx)&&std::isfinite(hy)&&
+        std::isfinite(hz)&&std::isfinite(hyaw)&&
+        std::fabs(hx)<1.0e7f&&std::fabs(hy)<1.0e7f&&
+        std::fabs(hz)<1.0e7f;
+    // V0.85: never invalidate a good on-foot pose merely because the
+    // previous horse was active. In particular, a stale horse pose must
+    // NOT cause camera rejection or a frozen view after dismounting.
+    if(freshHorse&&(!actorValid||holdHorsePose)){
+        ax=hx;ay=hy;az=hz;actorYaw=hyaw;
+        actorValid=true;usingHorse=true;
+        if(activeHorseAim){
+            mountedAimPoseLatched.store(true,std::memory_order_relaxed);
+            ++g_mountedFireHorseSelected;
+            g_mountedFireCurrentlyActive.store(true,std::memory_order_relaxed);
+            if(footValidBeforeHorse){
+                const unsigned n=++g_mountedFireOverrodeFoot;
+                if(n==1||n==100||n==1000){
+                    char line[210]{};
+                    sprintf_s(line,"TPS V0.85 MOUNTED AIM: ignored transient FOOT pose while firing n=%u horse=(%.0f,%.0f,%.0f)",
+                        n,hx,hy,hz);
+                    Write(line);
+                }
+            }
         }
+    }else if(activeHorseAim){
+        ++g_mountedFireHorseUnavailable;
+        // No proof of a live horse: keep original foot camera unchanged.
     }
     if(thirdPerson&&actorValid){
         if(lastHorse.exchange(usingHorse)!=usingHorse){
@@ -238,7 +273,55 @@ void HookView(void* camera, float dt, void* outView) {
                 std::cos(nativeYaw*radians)*arm;
             const float pivotY=attached?ay:y+std::cos(nativePitch*radians)*
                 std::sin(nativeYaw*radians)*arm;
-            const float pivotZ=attached?(az-foot):z+std::sin(nativePitch*radians)*arm;
+            const float rawPivotZ=attached?(az-foot):z+std::sin(nativePitch*radians)*arm;
+            float pivotZ=rawPivotZ;
+            // V0.85: previously the checkbox only changed which pose
+            // was selected, and often had no observable effect at all.
+            // On a KNOWN horse during actual RT/RB firing, low-pass ONLY
+            // the vertical camera pivot to reject repeated mount bobbing.
+            // XY, heading, orbit, shots and vanilla views stay untouched.
+            // Per-thread state avoids shared UObject pointers and locks.
+            struct MountedZFilter {
+                bool valid=false;
+                float z=0.0f;
+                ULONGLONG lastTick=0;
+                std::uintptr_t horseIdentity=0;
+            };
+            static thread_local MountedZFilter mountZ{};
+            const bool smoothMounted=attached&&usingHorse&&activeHorseAim;
+            if(smoothMounted){
+                const std::uintptr_t owner=settings.tpsHorseOwnerIdentity.load(
+                    std::memory_order_relaxed);
+                const ULONGLONG elapsed=mountZ.valid&&now>=mountZ.lastTick
+                    ? now-mountZ.lastTick:0ull;
+                // Reset at mount changes, teleports, pauses, and long gaps.
+                if(!mountZ.valid||!owner||owner!=mountZ.horseIdentity||
+                    elapsed>300ull||std::fabs(rawPivotZ-mountZ.z)>300.0f){
+                    mountZ.z=rawPivotZ;
+                    mountZ.valid=true;
+                }else if(elapsed>0){
+                    // 150 ms response: smoother while firing but without
+                    // delaying horizontal tracking or adding camera yaw lag.
+                    const float dt=static_cast<float>(elapsed)*0.001f;
+                    const float alpha=std::clamp(dt/(0.15f+dt),0.0f,1.0f);
+                    mountZ.z+=(rawPivotZ-mountZ.z)*alpha;
+                }
+                mountZ.lastTick=now;
+                mountZ.horseIdentity=owner;
+                pivotZ=mountZ.z;
+                const float correction=pivotZ-rawPivotZ;
+                g_mountedFireLastVerticalCorrection.store(correction,std::memory_order_relaxed);
+                const unsigned n=++g_mountedFireVerticalSmoothed;
+                if(n==1||n==300||n==2000){
+                    char line[230]{};
+                    sprintf_s(line,"TPS V0.85 MOUNTED AIM: height stabilization n=%u rawZ=%.1f stableZ=%.1f correction=%+.1f (fire+horse active)",
+                        n,rawPivotZ,pivotZ,correction);
+                    Write(line);
+                }
+            }else{
+                mountZ.valid=false;
+                g_mountedFireLastVerticalCorrection.store(0.0f,std::memory_order_relaxed);
+            }
             const float pitchRad=appliedPitch*radians,yawRad=appliedYaw*radians;
             const float outX=pivotX-std::cos(pitchRad)*std::cos(yawRad)*distance;
             const float outY=pivotY-std::cos(pitchRad)*std::sin(yawRad)*distance;
@@ -407,6 +490,13 @@ Telemetry GetTelemetry() {
     t.nativeZoneOverridesIgnored = g_zoneCameraIgnored.load();
     t.tpsAttachDeferred = g_tpsAttachSkipped.load();
     t.tpsFovSamples = g_tpsFovOverrides.load();
+    t.mountedFireRequested = g_mountedFireRequested.load();
+    t.mountedFireHorseSelected = g_mountedFireHorseSelected.load();
+    t.mountedFireOverrodeFoot = g_mountedFireOverrodeFoot.load();
+    t.mountedFireHorseUnavailable = g_mountedFireHorseUnavailable.load();
+    t.mountedFireVerticalSmoothed = g_mountedFireVerticalSmoothed.load();
+    t.mountedFireLastVerticalCorrection = g_mountedFireLastVerticalCorrection.load();
+    t.mountedFireCurrentlyActive = g_mountedFireCurrentlyActive.load();
     t.nativeFov = g_nativeFov.load();
     t.appliedFov = g_appliedFov.load();
     t.nativePitch = g_nativePitch.load();
