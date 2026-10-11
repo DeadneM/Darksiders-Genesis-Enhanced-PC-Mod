@@ -861,6 +861,8 @@ void Draw(Context& c) {
                 ImGui::Spacing();
                 BindTPSKeyboard("Temporary vanilla view",dg::config::TpsKeyboardAction::Suspend);
                 BindGamepadMask("Controller temporary view##TPS",config.tpsSuspendButtonMask);
+                if(config.tpsKeyboardKeys[static_cast<size_t>(dg::config::TpsKeyboardAction::Suspend)]=='E')
+                    ImGui::TextDisabled("E is native Use Gear: while its wheel is active, TPS camera takes priority.");
                 ImGui::SetNextItemWidth(245.0f);
                 if(ImGui::SliderInt("Temporary view delay##HoldTPS",
                     &config.tpsSuspendDelayMs,0,3000,"%d ms"))config.Save();
