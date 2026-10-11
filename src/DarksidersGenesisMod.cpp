@@ -103,6 +103,8 @@ std::atomic_uint32_t g_tpsControllerMouseBlocks{0};
 std::atomic_uint32_t g_tpsHoldSuspendCount{0},g_tpsHoldToggleCount{0};
 std::atomic_uint32_t g_tpsGrenadeDownCount{0},g_tpsGrenadeUpCount{0};
 std::atomic_uint32_t g_tpsGroundAimFxHidden{0};
+std::atomic_uint32_t g_tpsGroundAimFxEntered{0};
+std::atomic_uint32_t g_tpsGroundAimFxAlreadyHidden{0};
 using GroundAimEffectFn=void(*)(void*,bool);
 GroundAimEffectFn g_groundAimEffectOriginal=nullptr;
 SRWLOCK g_grenadeHoldLock=SRWLOCK_INIT;
@@ -1609,10 +1611,20 @@ void HookGroundAimEffect(void* ability,bool hide) {
         rt.thirdPersonEnabled.load() &&
         !rt.tpsTemporarilySuspended.load() &&
         rt.tpsHideGroundAimFx.load() && !g_overlayVisible.load();
+    // V0.77: separate "native hook was called" from "we forced hide."
+    // The V0.76 log reported 0 hides even during combat, which cannot
+    // distinguish a never-called ability from an already-hidden FX.
+    // This probe is passive outside the prior V0.76 conditional override.
+    const unsigned calls=++g_tpsGroundAimFxEntered;
+    if(hide)++g_tpsGroundAimFxAlreadyHidden;
+    if(calls==1||calls==250||calls==2000)
+        Log("TPS V0.77 FX AUDIT: HideGroundTargetingEffect called n=%u requestedHide=%d forceEnabled=%d tps=%d",
+            calls,hide?1:0,rt.tpsHideGroundAimFx.load()?1:0,
+            rt.thirdPersonEnabled.load()?1:0);
     if(forced&&!hide){
         const unsigned n=++g_tpsGroundAimFxHidden;
         if(n==1||n==1000)
-            Log("TPS V0.76: ground targeting effect suppressed n=%u",n);
+            Log("TPS V0.77 FX AUDIT: ground FX hide override n=%u",n);
     }
     g_groundAimEffectOriginal(ability,forced?true:hide);
 }
@@ -3758,9 +3770,10 @@ void ShutdownMod() {
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
     Log("TPS V0.72 totals: controllerMappedMouseMessagesBlocked=%u rightStickFiltered=%u",
         g_tpsControllerMouseBlocks.load(),g_nativePadAimSuppressed.load());
-    Log("TPS V0.76 totals: holdSuspend=%u longToggle=%u grenadeDown=%u grenadeUp=%u groundAimHidden=%u",
+    Log("TPS V0.77 totals: holdSuspend=%u longToggle=%u grenadeDown=%u grenadeUp=%u groundFxCalls=%u alreadyHidden=%u forcedHidden=%u",
         g_tpsHoldSuspendCount.load(),g_tpsHoldToggleCount.load(),
         g_tpsGrenadeDownCount.load(),g_tpsGrenadeUpCount.load(),
+        g_tpsGroundAimFxEntered.load(),g_tpsGroundAimFxAlreadyHidden.load(),
         g_tpsGroundAimFxHidden.load());
     Log("TPS V0.75 totals: nativeLookInput=%u nativeLookRotation=%u suppressedLook=%u heldYaw=%u mouseFace=%u padStrafe=%u mouseLookAim=%u padLookAim=%u signaturesFailed=%u",
         g_tpsLookInputCalls.load(),g_tpsLookRotationCalls.load(),
