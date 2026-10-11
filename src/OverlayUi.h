@@ -25,6 +25,10 @@ struct Telemetry {
     bool finalDamageHookReady = false;
     bool hotstreakHookReady = false;
     unsigned aimNativeFxCalls = 0;
+    unsigned forwardLookSamples = 0;
+    unsigned forwardYawGapCount = 0;
+    float forwardNativeYaw = 0.0f;
+    float forwardCameraYaw = 0.0f;
     unsigned aimUiTargetingEvents = 0;
     unsigned aimUiPositionEvents = 0;
     unsigned mountedIdleLookBlocks = 0;
