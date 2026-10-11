@@ -1441,6 +1441,16 @@ std::atomic_uint32_t g_tpsNativeLookSignatureFailures{0};
 // active mounted TPS; no changes to grenade / native horse stats.
 std::atomic_uint32_t g_tpsMountedIdleNativeLookBlocks{0};
 std::atomic_uint32_t g_tpsMountedCtrlDown{0},g_tpsMountedCtrlUp{0};
+// Visual-only audit of 2 OTHER suspected native targeting UI classes.
+// No event is suppressed: the unvalidated V0.82 blocking experiment
+// is NOT merged into this cumulative gameplay branch.
+using AimUiEventDispatchFn=void(*)(void*,void*,void*,void*);
+AimUiEventDispatchFn g_originalAimUiEventDispatch=nullptr;
+void* const* g_aimUiClassSlot=nullptr;
+void* const* g_aimUiPositionClassSlot=nullptr;
+std::atomic_uint32_t g_aimUiEvents{0},g_aimUiPositionEvents{0};
+std::atomic_uint32_t g_aimUiEventsInTPS{0},g_aimUiEventsWhileFire{0};
+
 std::atomic_bool g_tpsMountedCtrlBridgeDown{false};
 
 // Actual mounted TPS camera source is written by HookView, with a short
@@ -1696,6 +1706,65 @@ void InstallGroundAimEffectHook() {
        return;
     }
     Log("TPS V0.76: native HideGroundTargetingEffect READY RVA=0x6DDAD0");
+}
+
+// V0.87 passive audit: do the native targeting UI components receive
+// Unreal events when Strife's blue world-space line/arc are visible?
+// All events ALWAYS execute the original game callback, no visual or
+// gameplay changes. If counters stay zero the visuals bypass this route.
+void HookAimUiEventDispatch(void* object,void* function,void* parameters,void* outParameters){
+    if(object && function && g_aimUiClassSlot && g_aimUiPositionClassSlot){
+        const void* actual=*reinterpret_cast<void* const*>(
+            static_cast<const unsigned char*>(object)+0x10);
+        if(actual){
+            const bool targeting=actual==*g_aimUiClassSlot;
+            const bool positioning=actual==*g_aimUiPositionClassSlot;
+            if(targeting||positioning){
+                const unsigned n=targeting?++g_aimUiEvents:++g_aimUiPositionEvents;
+                auto& rt=dg::runtime::Get();
+                const bool tps=rt.thirdPersonEnabled.load(std::memory_order_relaxed);
+                const bool fire=rt.tpsAimActive.load(std::memory_order_relaxed) ||
+                    ((GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0);
+                if(tps && targeting)++g_aimUiEventsInTPS;
+                if(fire && targeting)++g_aimUiEventsWhileFire;
+                if(n==1||n==100||n==1000)
+                    Log("TPS V0.87 AIM UI PROBE: class=%s events=%u tps=%d firing=%d (PASS THROUGH)",
+                        targeting?"UMayhemTargetingUIComponent":
+                        "UMayhemTargetUiPositionComponent",n,tps?1:0,fire?1:0);
+            }
+        }
+    }
+    if(g_originalAimUiEventDispatch)
+        g_originalAimUiEventDispatch(object,function,parameters,outParameters);
+}
+void InstallAimUiEventProbe(){
+    if(!g_targetValidation.exact)return;
+    auto* base=reinterpret_cast<unsigned char*>(GetModuleHandleW(nullptr));
+    auto* entry=base+0xAC0630; // exact retail native UObject::ProcessEvent
+    constexpr unsigned char sig[]={
+        0x40,0x55,0x56,0x57,0x41,0x54,0x41,0x55,0x41,0x56,0x41,0x57,
+        0x48,0x81,0xEC,0xF0,0x00,0x00,0x00
+    };
+    if(std::memcmp(entry,sig,sizeof(sig))!=0){
+        Log("TPS V0.87 AIM UI PROBE: ProcessEvent signature mismatch, disabled");
+        return;
+    }
+    g_aimUiClassSlot=reinterpret_cast<void* const*>(base+0x3812DD0);
+    g_aimUiPositionClassSlot=reinterpret_cast<void* const*>(base+0x3812DE0);
+    const auto made=MH_CreateHook(entry,
+        reinterpret_cast<void*>(&HookAimUiEventDispatch),
+        reinterpret_cast<void**>(&g_originalAimUiEventDispatch));
+    if(made!=MH_OK){
+        Log("TPS V0.87 AIM UI PROBE: hook unavailable status=%d",int(made));
+        return;
+    }
+    const auto enabled=MH_EnableHook(entry);
+    if(enabled!=MH_OK&&enabled!=MH_ERROR_ENABLED){
+        MH_RemoveHook(entry);g_originalAimUiEventDispatch=nullptr;
+        Log("TPS V0.87 AIM UI PROBE: enable failed=%d",int(enabled));
+        return;
+    }
+    Log("TPS V0.87 AIM UI PROBE: READY, pass-through classes UMayhemTargetingUIComponent and UMayhemTargetUiPositionComponent");
 }
 
 float HookCharacterGetMaxSpeed(void* movementComponent) {
@@ -3952,6 +4021,9 @@ void ShutdownMod() {
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
     Log("TPS V0.72 totals: controllerMappedMouseMessagesBlocked=%u rightStickFiltered=%u",
         g_tpsControllerMouseBlocks.load(),g_nativePadAimSuppressed.load());
+    Log("TPS V0.87 AIM UI PROBE totals: targeting=%u targetingTPS=%u targetingFiring=%u positioning=%u (all events passed through)",
+        g_aimUiEvents.load(),g_aimUiEventsInTPS.load(),
+        g_aimUiEventsWhileFire.load(),g_aimUiPositionEvents.load());
     Log("TPS V0.87 mounted aim totals: idleNativeLookBlocks=%u ctrlBridgeDown=%u ctrlBridgeReleased=%u ctrlBridgeActive=%d",
         g_tpsMountedIdleNativeLookBlocks.load(),g_tpsMountedCtrlDown.load(),
         g_tpsMountedCtrlUp.load(),g_tpsMountedCtrlBridgeDown.load()?1:0);
@@ -4095,6 +4167,8 @@ DWORD WINAPI MainThread(LPVOID) {
         Log("Movement Speed unavailable; other ASI features remain active.");
     }
     InstallGroundAimEffectHook();
+    // Alternative visual route probe to the 0-call ground effect; no blocking.
+    InstallAimUiEventProbe();
     if (!InstallNativeTPSRotationHook()) {
         Log("TPS V0.75 native look hooks unavailable; vanilla look path untouched.");
     }
