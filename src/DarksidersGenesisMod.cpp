@@ -2865,7 +2865,9 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     // Read mouse deltas without consuming native game input.
     static bool primed=false;
     static int oldX=0,oldY=0;
-    const bool active=g_config.thirdPersonEnabled && g_config.cameraMouseOrbitEnabled &&
+    const bool active=g_config.thirdPersonEnabled &&
+        (g_config.cameraMouseOrbitEnabled ||
+         (IsMountedTPSNow()&&dg::runtime::Get().tpsMountedAimMode.load()==0)) &&
         !g_overlayVisible.load() && GetForegroundWindow()==hwnd;
     if (!active) primed=false;
     // V0.69: do not consume native WM_INPUT/WM_MOUSEMOVE.
@@ -3372,8 +3374,8 @@ void UpdateOrbitInput() {
     const int toggleMask=g_config.tpsToggleHoldButtonMask;
     static bool toggleHeld=false,toggleConsumed=false;
     static ULONGLONG toggleStarted=0;
-    const bool toggling=g_config.tpsLongPressToggleEnabled &&
-        toggleMask && padAvailable && GamepadBindingDown(toggleMask,physical.Gamepad);
+    const bool toggling=toggleMask && padAvailable &&
+        GamepadBindingDown(toggleMask,physical.Gamepad);
     if(toggling && !toggleHeld){
         toggleHeld=true;toggleConsumed=false;toggleStarted=now;
     }
@@ -3407,7 +3409,7 @@ void UpdateOrbitInput() {
     static int previousSuspendMask=0;
     const int suspendMask=g_config.tpsSuspendButtonMask;
     const bool holdInput=focused && g_config.thirdPersonEnabled &&
-        g_config.tpsHoldSuspendEnabled && padAvailable && suspendMask &&
+        padAvailable && suspendMask &&
         GamepadBindingDown(suspendMask,physical.Gamepad);
     if(!holdInput || previousSuspendMask!=suspendMask)
         suspendStarted=0;
@@ -3426,9 +3428,10 @@ void UpdateOrbitInput() {
             temporaryVanilla?"ON":"OFF",n,unsigned(suspendMask),delayMs,
             static_cast<unsigned long long>(holdInput&&suspendStarted?now-suspendStarted:0ull));
     }
+    const bool forcedMountOrbit=IsMountedTPSNow()&&rt.tpsMountedAimMode.load()==0;
     const bool active=g_config.thirdPersonEnabled && !temporaryVanilla &&
-        (g_config.cameraMouseOrbitEnabled||g_config.cameraControllerOrbitEnabled) &&
-        focused;
+        (g_config.cameraMouseOrbitEnabled||g_config.cameraControllerOrbitEnabled||
+         forcedMountOrbit) && focused;
     const float dt=g_orbitLastPresentTick && now-g_orbitLastPresentTick<=100ull
         ? static_cast<float>(now-g_orbitLastPresentTick)*0.001f:0.0f;
     g_orbitLastPresentTick=now;
@@ -3512,7 +3515,7 @@ void UpdateOrbitInput() {
         static int previousRecenterBinding=-1;
         const bool pressed=GamepadBindingDown(mask,primary.Gamepad);
         if(previousRecenterBinding!=mask)previousRecenterPressed=false;
-        if(mask && !(g_config.tpsLongPressToggleEnabled &&
+        if(mask && !(g_config.tpsToggleHoldButtonMask!=0 &&
             mask==g_config.tpsToggleHoldButtonMask) &&
             pressed && !previousRecenterPressed) {
             const bool success=dg::camera_trace::RecenterOnPlayer();
@@ -3532,7 +3535,8 @@ void UpdateOrbitInput() {
     float ax=0.0f,ay=0.0f;
     {
         for (DWORD i=0;i<XUSER_MAX_COUNT;++i) {
-            if(!g_config.cameraControllerOrbitEnabled||suspendControllerOrbitOnFire) break;
+            if((!g_config.cameraControllerOrbitEnabled&&!forcedMountOrbit)||
+               suspendControllerOrbitOnFire)break;
             XINPUT_STATE state{};
             if (GetCameraXInputState(i,&state)!=ERROR_SUCCESS) continue;
             if (state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) continue;
@@ -3550,9 +3554,9 @@ void UpdateOrbitInput() {
     if (!std::isfinite(mouse)||!std::isfinite(stick)) return;
     const bool freezeMountedMouse=MountedVanillaAimWhileFiring() &&
         ((GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0||IsPadFiringNow());
-    const float dyaw=(!freezeMountedMouse&&g_config.cameraMouseOrbitEnabled?
+    const float dyaw=(!freezeMountedMouse&&(g_config.cameraMouseOrbitEnabled||forcedMountOrbit)?
         static_cast<float>(dx)*mouse:0.0f)+ax*stick*dt;
-    const float dpitch=(!freezeMountedMouse&&g_config.cameraMouseOrbitEnabled?
+    const float dpitch=(!freezeMountedMouse&&(g_config.cameraMouseOrbitEnabled||forcedMountOrbit)?
         -static_cast<float>(dy)*mouse:0.0f)+ay*stick*dt;
     if (dyaw!=0.0f || dpitch!=0.0f) {
         rt.cameraOrbitYawDegrees.store(std::remainder(rt.cameraOrbitYawDegrees.load()+dyaw,360.0f));
