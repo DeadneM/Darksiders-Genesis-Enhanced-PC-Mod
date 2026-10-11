@@ -34,6 +34,7 @@ void Publish(const Snapshot& s) {
     g_state.meleeDamageEnabled.store(s.meleeDamageEnabled, std::memory_order_relaxed);
     g_state.jumpHeightEnabled.store(s.jumpHeightEnabled, std::memory_order_relaxed);
     g_state.glideDurationEnabled.store(s.glideDurationEnabled, std::memory_order_relaxed);
+    g_state.horseEverywhereEnabled.store(s.horseEverywhereEnabled, std::memory_order_relaxed);
     g_state.horseSpeedEnabled.store(s.horseSpeedEnabled, std::memory_order_relaxed);
     g_state.horseSprintSpeedEnabled.store(s.horseSprintSpeedEnabled, std::memory_order_relaxed);
     g_state.horseSprintDurationEnabled.store(s.horseSprintDurationEnabled, std::memory_order_relaxed);
