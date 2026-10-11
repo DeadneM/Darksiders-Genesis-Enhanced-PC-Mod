@@ -140,7 +140,7 @@ public:
     bool skipLogosEnabled = true;
     bool skipIntroEnabled = true;
     bool skipWarningEnabled = true;
-    bool thirdPersonEnabled = false;
+    bool thirdPersonEnabled = true;
     bool thirdPersonFovEnabled = true;
     bool tpsFollowPlayer = true;
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
@@ -192,9 +192,9 @@ public:
     float cameraPitchDegrees = 0.0f;
     float cameraYawDegrees = 0.0f;
     float cameraHeightOffset = 0.0f;
-    float thirdPersonDistanceMultiplier = 0.20f;
-    float thirdPersonPitchDegrees = -12.0f;
-    float thirdPersonHeightOffset = 120.0f;
+    float thirdPersonDistanceMultiplier = 0.15f;
+    float thirdPersonPitchDegrees = 0.0f;
+    float thirdPersonHeightOffset = 100.0f;
     float tpsFootAnchorOffset = 0.0f; // adjustable +/-500 units
     float cameraMouseSensitivity = 0.12f;
     float cameraStickSpeed = 180.0f;
