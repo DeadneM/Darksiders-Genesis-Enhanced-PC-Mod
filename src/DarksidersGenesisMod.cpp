@@ -3576,7 +3576,16 @@ void UpdateOrbitInput() {
         g_horseSyntheticHDown.store(customHorseDown);
         if(customHorseDown)++g_keyboardHorseInjected;
     }
-    const bool hPressed=focused &&
+    // V0.93: at most ONE guarded recovery H tap after a physical summon
+    // that hit a banned region but only cleared the game's stale mount state.
+    // Explicit native dismount and successful server requests never qualify.
+    static ULONGLONG horseRecoveryPressed=0;
+    if(horseRecoveryPressed && (!focused ||
+       now<horseRecoveryPressed || now-horseRecoveryPressed>=110ull)){
+        EmitKeyboardVirtualKey('H',false);
+        horseRecoveryPressed=0;
+    }
+    const bool hPressed=focused && !horseRecoveryPressed &&
         (((GetAsyncKeyState('H')&0x8000)!=0) ||
          KeyboardHeld(dg::config::TpsKeyboardAction::Horse));
     const bool shoulderChord=padAvailable &&
@@ -3593,6 +3602,8 @@ void UpdateOrbitInput() {
         unsigned generationBefore=0;
         bool cameraWasHorse=false;
         bool nearServerAtPress=false;
+        bool horseWasLive=false;
+        unsigned regionOverridesBefore=0;
     };
     static SummonAttemptProbe summonProbe{};
     const auto mountNow=dg::horse::GetTelemetry();
@@ -3616,6 +3627,24 @@ void UpdateOrbitInput() {
             summonProbe.nativeCallsBefore;
         const unsigned generations=mountNow.horseGeneration-
             summonProbe.generationBefore;
+        // No server call and no horse appeared: if the original restricted
+        // region getter was overridden, the first press likely cleared an
+        // inactive horse-toggle state rather than summoning. Retry exactly
+        // once after the hardware key/chord is released, and never while
+        // a real live horse or native dismount is observed.
+        const bool wasBanned=mountNow.regionOverrides>summonProbe.regionOverridesBefore;
+        if(g_config.horseEverywhereEnabled&&wasBanned&&
+           !summonProbe.cameraWasHorse&&!summonProbe.horseWasLive&&
+           !serverCorrelated&&nativeDelta==0&&!mountNow.horseCallbackFresh&&
+           !hPressed&&!shoulderChord&&!horseRecoveryPressed&&
+           !g_horseSyntheticHDown.load()&&focused){
+            rt.horseSummonIntentTick.store(now,std::memory_order_release);
+            rt.tpsLastHorseSummonInputTick.store(now,std::memory_order_release);
+            if(EmitKeyboardVirtualKey('H',true)){
+                horseRecoveryPressed=now;
+                Log("Horse Everywhere V0.93: single guarded native H recovery tap after stale banned-area toggle (no native spawn or live horse)");
+            }
+        }
         if(summonProbe.count<=28)
             Log("Horse Everywhere V0.89 AREA RESULT #%u serverDeltaAfterInput=%u serverJustBeforeInput=%d correlatedServer=%d nativeCallbackDelta=%u horseIdentityChanges=%u cameraHorseBefore=%d cameraHorseAfter=%d noServerRequest=%d (possible restriction OR dismount)",
                 summonProbe.count,serverDelta,
@@ -3632,7 +3661,8 @@ void UpdateOrbitInput() {
         const unsigned n=++horseInputAttempts;
         summonProbe={true,now,n,mountNow.summonServerCalls,
             mountNow.uniqueCandidatesLogged,mountNow.horseGeneration,
-            trulyMounted,serverRecent};
+            trulyMounted,serverRecent,mountNow.horseCallbackFresh,
+            mountNow.regionOverrides};
         if(n<=28)
             Log("Horse Everywhere V0.88 AREA INPUT #%u key=%s enabled=%d cameraHorse=%d nativeCallbackFresh=%d horsePoseFresh=%d serverBefore=%u nativeCalls=%u horseGeneration=%u world=(%.0f,%.0f,%.0f)",
                 n,hPressed&&!wasHorseH?"keyboard":"controller-chord",
