@@ -134,8 +134,6 @@ void HookView(void* camera, float dt, void* outView) {
         actorValid=true;usingHorse=true;
         if(activeHorseAim){
             mountedAimPoseLatched.store(true,std::memory_order_relaxed);
-            ++g_mountedFireHorseSelected;
-            g_mountedFireCurrentlyActive.store(true,std::memory_order_relaxed);
             if(footValidBeforeHorse){
                 const unsigned n=++g_mountedFireOverrodeFoot;
                 if(n==1||n==100||n==1000){
@@ -349,6 +347,10 @@ void HookView(void* camera, float dt, void* outView) {
                             Write(line);
                         }
                     }
+                }
+                if(attached&&usingHorse&&activeHorseAim){
+                    ++g_mountedFireHorseSelected;
+                    g_mountedFireCurrentlyActive.store(true,std::memory_order_relaxed);
                 }
                 settings.tpsGameplayViewTick.store(now,std::memory_order_release);
                 settings.tpsViewGameplay.store(true,std::memory_order_release);
