@@ -4055,7 +4055,8 @@ bool DiscoverAndHookD3D11() {
 
     // Early D3D11 probe device exists before game shader creation. Aim-only
     // GPU interception is isolated and fail-open; gameplay hooks untouched.
-    dg::aim_shader::Install(probeDevice, probeContext, &Log);
+    if (g_targetValidation.exact)
+        dg::aim_shader::Install(probeDevice, probeContext, &Log);
 
     status = MH_EnableHook(MH_ALL_HOOKS);
     if (status != MH_OK) {
