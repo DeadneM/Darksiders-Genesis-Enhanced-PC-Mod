@@ -2369,3 +2369,20 @@ The V0.92 cumulative ZIP is preserved in the `archive` branch. Technical detail 
 **Horse keyboard banned-zone fix:** the old extra H press after 1800ms is gone. A real H event now marks native Horse Everywhere scope before delivery to the game WndProc, while a two-button XInput chord marks that scope before the native game polls LB+RB. Both use the same previously user-validated scoped horse-region bypass; no extra mount command or scripted horse spawn is introduced. **Still needs gameplay test** to establish first-key success.
 
 The shader aim suppression and native HorseFeature code remain unchanged. All work is on experimental `debug`; stable `main` untouched; V0.93 is backed up on `archive`. Full technical notes: [V0.94 radial/Input audit](docs/V0_94_NATIVE_RADIAL_TPS_CLEAN_INPUT.md).
+
+
+## V0.95 (2026-10-11) | Shared keyboard E, native gamepad wheels, TPS mouse aiming and horse first-press reliability (TEST)
+
+**Restored shared native E + temporary view:** `TemporaryView=E` is deliberately dual-purpose. Holding E invokes the game's normal equipment/gear UI AND, once the configured hold delay has elapsed, enables temporary vanilla view. V0.94 incorrectly blocked this behavior merely because E opened a native wheel; that suppression is removed. The R3 controller shortcut can likewise retain its existing grenade / temporary-view sharing. An unrelated LB radial menu remains protected from accidentally triggering temporary view.
+
+**Right-stick selection in wheels:** the original physical LB XInput snapshot now bypasses all TPS R3 and aiming modifications **before** those modifiers run, retaining native right-stick item selection. The native look getters already pass wheel vectors through; CameraTrace also keeps a previously accepted TPS view while an actual radial wheel is open if the native wheel camera momentarily changes angle, with fresh actor and proximity safety guards. This requires user in-game validation for equipment, ammo and abilities.
+
+**TPS mouse attempt:** experimental `TPSMouseCenterAim=1` (new checkbox in Camera > TPS, reversible) centers the native game mouse target only during physical left-click firing on foot in Camera Forward. Real RAW mouse deltas continue to orbit the independent camera; synthesized center WM_MOUSEMOVE is excluded from mod orbit. Does not touch the validated gamepad path, horse-mounted aiming, Vanilla Aim, or underlying weapon raycast. Disable the option if it introduces cursor drift or worsens targeting; it is not yet validated.
+
+**Horse Everywhere first press:** game-native IsInHorseRegion is now eligible to return allowed for a verified, recently observed local on-foot character even BEFORE the horse input arrives. This addresses earlier region checks that could make the first H/LB+RB press a no-op. The actual V0.91 riding/desummon handling, HorseCharacter lifetime-safe hooks, speeds and stamina remain as before. This pre-grant is experimental; no forced actor spawn or extra synthetic tap.
+
+**Selective horse summon/lock HUD icon:** requested but **NOT yet implemented**; there is no verified individual UMG widget, texture or pixel-shader ID for this on-screen prompt. We will not obscure the global HUD or hide a guessed shader at the cost of user-validated visuals. A separate visual isolation capture is required for safe masking.
+
+**Requested shortcut defaults:** `ToggleTPS=Z` and `RecenterTPS=Z` for both short and long hold. A previous unmodified V/V pair migrates automatically to Z/Z on ConfigRevision 2129; other personalized shortcuts stay intact. Native E and original controller pad bindings preserved. The full V0.94 cumulative ZIP was saved in the `archive` branch before these changes; `main` remains unchanged.
+
+[Full V0.95 engineering notebook](docs/V0_95_WHEELS_SHARED_E_MOUSE_HORSE.md). V0.95 is an experimental `debug` build pending visual/user verification.
