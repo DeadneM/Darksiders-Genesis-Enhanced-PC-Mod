@@ -2229,3 +2229,11 @@ See [V0.77 scoped changelog and native aiming-FX audit](docs/V0_77_HOLD_DELAY_AN
 **Gameplay code is frozen at V0.78.** This test adds only a passive native-effect probe for `ShowBeamEffect` / `HideBeamEffect`, the next promising exact-EXE candidates for the requested turquoise world-space **straight aim line and semicircular arc** shown in the user's video. The probe NEVER changes the original output, target selection, firing, aiming, UI, or any controller/camera settings. If the logged counters remain zero, it is a failed candidate and the search continues safely. The original `HideGroundTargetingEffect` hook received zero calls in V0.77.
 
 See [V0.79 exact-offset disassembly and protected-scope changelog](docs/V0_79_NATIVE_AIM_BEAM_PASSIVE_PROBE.md). **The visual effect is not yet hidden in this version**. `ThirdPerson=0` remains the packaged default; every other setting and gameplay path is exactly V0.78.
+
+## V0.80 (11 October 2026) | Blue aiming-beam VISUAL-only hide TEST
+
+The user-provided V0.79 log **confirms** that the native effect wrappers are used in TPS: ShowBeamEffect 9 calls / 6 TPS, HideBeamEffect 25 calls / 18 TPS. The old HideGroundTargetingEffect had zero calls.
+
+V0.80 adds an **experimental TPS-only visual suppression** to the already isolated aiming-effect interception, and changes NO validated camera, controller, grenade, mount, strafe, combat, HUD or reticle code. On a signature-verified exact executable, the original ShowBeamEffect is ALWAYS called, then the game's own `HideBeamEffect` **native visual implementation** closes the same effect component on the same owner while TPS is active and `TPSHideGroundAimFx=1`. Disabling the existing checkbox stops this suppression; vanilla mode remains unchanged. New `forcedVisualHides` counter reports how often this test was actually attempted.
+
+**Visual result still needs testing:** neither the straight turquoise line nor the semicircular arc is claimed hidden before the user confirms it. One might be a separate effect. The stable V0.78 remains a full rollback. See [V0.80 exact-scope technical note](docs/V0_80_NATIVE_BEAM_VISUAL_HIDE_TEST.md).
