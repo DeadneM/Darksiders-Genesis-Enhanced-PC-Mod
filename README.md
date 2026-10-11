@@ -2236,3 +2236,16 @@ See [V0.79 exact-offset disassembly and protected-scope changelog](docs/V0_79_NA
 Latest user test V0.80: **show=5, hide=18, forcedVisualHides=5, yet the cyan aiming line and semicircle are still visible**. Those native beam functions were a wrong candidate. V0.81 is forked from **V0.79 passive probe**, explicitly dropping the V0.80 experimental beam visibility override. NO executable code changes are made in this V0.81 research branch. V0.78 remains the last protected gameplay checkpoint.
 
 Next step is exact cooked asset identification from the **file list only** of `ProjectMayhem/Content/Paks/ProjectMayhem-WindowsNoEditor.pak` (roughly 8.8 GiB; the entire PAK should not be uploaded just to identify names). Inspect likely Strife aim/targeting UI materials, particles and meshes, then patch only their TPS-visible state. See [V0.81 negative result and asset-target audit](docs/V0_81_AIM_INDICATOR_ASSET_AUDIT.md).
+
+
+## V0.82 (11 October 2026) | BOTH targeting UI classes hide test
+
+An **experimental TPS-only** native UE UI-event interception is available for both:
+- `UMayhemTargetingUIComponent`
+- `UMayhemTargetUiPositionComponent`
+
+The exact supported executable registers the corresponding native UClass pointers at RVAs `0x3812DD0` / `0x3812DE0`. The new hook filters `UObject::ProcessEvent` only for the two exact classes or their derived classes; it does **not** disable native class initialization, player aim/firing logic, camera movement, HUD, input or other gameplay. All unmatched instances execute the original UE code. The existing `TPSHideGroundAimFx` option controls the experimental interception; returning to vanilla camera restores normal event dispatch. Packaged `ThirdPerson=0` remains unchanged.
+
+**This is not a validated visual fix**: both line and semicircle may be rendered directly by engine-native functions that bypass the intercepted UE script events. Compare the visual result on Strife and share the `TPS V0.82 UI CLASS TEST totals` log. Roll back to V0.78 immediately if gameplay or UI becomes unstable.
+
+[Technical V0.82 test plan and exact class/native metadata](docs/V0_82_TARGET_UI_CLASSES_HIDE_TEST.md). No validated feature other than this aim-effect experiment is changed.
