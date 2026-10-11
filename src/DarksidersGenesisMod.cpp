@@ -2828,12 +2828,9 @@ bool GamepadBindingDown(int mask,const XINPUT_GAMEPAD& pad) {
 }
 void ApplyHoldGrenadeVirtualR3(XINPUT_GAMEPAD& pad,int mask) {
     const ULONGLONG now=GetTickCount64();
-    const int keyboardVK=g_config.tpsKeyboardKeys[static_cast<size_t>(dg::config::TpsKeyboardAction::Grenade)];
-    const HWND game=reinterpret_cast<HWND>(g_gameWindowTrace.load(std::memory_order_relaxed));
-    const bool keyboard=keyboardVK>0 && keyboardVK<256 && game &&
-        GetForegroundWindow()==game && !g_overlayVisible.load() &&
-        !IsIconic(game) && (GetAsyncKeyState(keyboardVK)&0x8000)!=0;
-    const bool physical=(mask && GamepadBindingDown(mask,pad)) || keyboard;
+    // V0.94: the native keyboard E Use Gear already works; only physical
+    // controller rebinding comes through this validated R3 pulse path.
+    const bool physical=mask && GamepadBindingDown(mask,pad);
     // Remap selected physical button to native R3. The game receives the
     // same validated V0.84 continuous hold + UP gap + second stow press.
     if(mask!=XINPUT_GAMEPAD_RIGHT_THUMB)
@@ -2908,9 +2905,7 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
         !g_overlayVisible.load() && !IsIconic(localHwnd) &&
         !g_shuttingDown.load();
     const int grenadeMask=g_config.tpsGrenadeButtonMask;
-    const int grenadeKey=g_config.tpsKeyboardKeys[static_cast<size_t>(
-        dg::config::TpsKeyboardAction::Grenade)];
-    if(localGameplay && (grenadeMask!=0 || grenadeKey!=0) &&
+    if(localGameplay && grenadeMask!=0 &&
        (!(pad.wButtons&XINPUT_GAMEPAD_LEFT_SHOULDER) ||
          grenadeMask==XINPUT_GAMEPAD_LEFT_SHOULDER))
         ApplyHoldGrenadeVirtualR3(pad,grenadeMask);
@@ -3541,7 +3536,6 @@ bool EmitKeyboardVirtualKey(WORD vk,bool down){
     return SendInput(1,&event,sizeof(event))==1;
 }
 std::atomic_bool g_horseSyntheticHDown{false};
-std::atomic_bool g_gearSyntheticEDown{false};
 void UpdateOrbitInput() {
     static WORD lastButtons=0;
     auto& rt=dg::runtime::Get();
@@ -3706,45 +3700,8 @@ void UpdateOrbitInput() {
         dg::camera_trace::RecenterOnPlayer();
     kbRecenterPrev=kbRecenter;
 
-    // Keyboard grenade: with a physical controller the unchanged native
-    // R3 hold/release path handles the selected key through XInput. Without
-    // a controller, use the game's native keyboard E (Use Gear) equivalent
-    // and repeat the validated 100ms UP / 200ms DOWN release pulse.
-    const int kbGrenadeVK=g_config.tpsKeyboardKeys[static_cast<size_t>(
-        dg::config::TpsKeyboardAction::Grenade)];
-    const bool kbGrenade=KeyboardHeld(dg::config::TpsKeyboardAction::Grenade)&&
-        g_config.thirdPersonEnabled;
-    static bool kbGrenadePrev=false,kbGearStowDown=false;
-    static ULONGLONG kbGearStowStart=0,kbGearStowEnd=0;
-    if(!focused || !g_config.thirdPersonEnabled || padAvailable || !kbGrenadeVK){
-        if(g_gearSyntheticEDown.exchange(false))
-            EmitKeyboardVirtualKey('E',false);
-        kbGearStowStart=kbGearStowEnd=0;kbGearStowDown=false;
-        kbGrenadePrev=false;
-    }else{
-        if(kbGrenade&&!kbGrenadePrev){
-            kbGearStowStart=kbGearStowEnd=0;kbGearStowDown=false;
-            if(kbGrenadeVK!='E'&&EmitKeyboardVirtualKey('E',true))
-                g_gearSyntheticEDown.store(true);
-        }
-        if(!kbGrenade&&kbGrenadePrev){
-            if(g_gearSyntheticEDown.exchange(false))
-                EmitKeyboardVirtualKey('E',false);
-            kbGearStowStart=now+100ull;
-            kbGearStowEnd=kbGearStowStart+200ull;
-        }
-        if(kbGearStowStart&&now>=kbGearStowStart&&
-           now<kbGearStowEnd&&!kbGearStowDown){
-            kbGearStowDown=EmitKeyboardVirtualKey('E',true);
-            if(kbGearStowDown)g_gearSyntheticEDown.store(true);
-        }
-        if(kbGearStowEnd&&now>=kbGearStowEnd){
-            if(g_gearSyntheticEDown.exchange(false))
-                EmitKeyboardVirtualKey('E',false);
-            kbGearStowStart=kbGearStowEnd=0;kbGearStowDown=false;
-        }
-        kbGrenadePrev=kbGrenade;
-    }
+    // V0.94: native E handles keyboard gear and radial-wheel selection.
+    // The synthetic keyboard grenade / E release-pulse has been retired.
     const int toggleMask=g_config.tpsToggleHoldButtonMask;
     static bool toggleHeld=false,toggleConsumed=false;
     static ULONGLONG toggleStarted=0;
@@ -4271,7 +4228,6 @@ void ShutdownMod() {
     // Release any window-local Ctrl aim key we injected, even if the
     // user closes the game mid-fire. Do not release physical Ctrl.
     if(g_horseSyntheticHDown.exchange(false))EmitKeyboardVirtualKey('H',false);
-    if(g_gearSyntheticEDown.exchange(false))EmitKeyboardVirtualKey('E',false);
     if(g_tpsMountedCtrlBridgeDown.exchange(false)){
         const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
         if(hwnd&&IsWindow(hwnd) && !(GetAsyncKeyState(VK_CONTROL)&0x8000))
