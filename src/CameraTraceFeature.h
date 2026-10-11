@@ -11,6 +11,13 @@ struct Telemetry {
     uint32_t nativeZoneOverridesIgnored = 0;
     uint32_t tpsAttachDeferred = 0;
     uint32_t tpsFovSamples = 0;
+    uint32_t mountedFireRequested = 0;
+    uint32_t mountedFireHorseSelected = 0;
+    uint32_t mountedFireOverrodeFoot = 0;
+    uint32_t mountedFireHorseUnavailable = 0;
+    uint32_t mountedFireVerticalSmoothed = 0;
+    float mountedFireLastVerticalCorrection = 0.0f;
+    bool mountedFireCurrentlyActive = false;
     float nativeFov = 0.0f;
     float appliedFov = 0.0f;
     float nativePitch = 0.0f;
