@@ -13,7 +13,7 @@ struct Snapshot {
     bool skipLogosEnabled = true;
     bool skipIntroEnabled = true;
     bool skipWarningEnabled = true;
-    bool thirdPersonEnabled = true;
+    bool thirdPersonEnabled = false;
     bool thirdPersonFovEnabled = true;
     bool tpsFollowPlayer = true;
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
@@ -29,7 +29,9 @@ struct Snapshot {
     bool meleeDamageEnabled = true;
     bool jumpHeightEnabled = true;
     bool glideDurationEnabled = true;
-    bool horseEverywhereEnabled = true; // default ON for research; not a validated bypass
+    bool horseEverywhereEnabled = true;
+    bool horseAllowRestrictedSummon = true;
+    bool horsePreventForcedDesummon = true;
     bool horseSpeedEnabled = true;
     bool horseSprintSpeedEnabled = true;
     bool horseSprintDurationEnabled = true;
@@ -40,10 +42,10 @@ struct Snapshot {
     float cameraZoomPercent = 0.0f;
     float cameraPitchDegrees = 0.0f;
     float cameraYawDegrees = 0.0f;
-    float cameraHeightOffset = 0.0f;
+    float cameraHeightOffset = 50.0f;
     float thirdPersonDistanceMultiplier = 0.15f;
-    float thirdPersonPitchDegrees = 0.0f;
-    float thirdPersonHeightOffset = 100.0f;
+    float thirdPersonPitchDegrees = -12.0f;
+    float thirdPersonHeightOffset = 0.0f;
     float tpsFootAnchorOffset = 0.0f; // estimated capsule center-to-foot, configurable
     float cameraMouseSensitivity = 0.12f;
     float cameraStickSpeed = 180.0f;
@@ -68,7 +70,7 @@ struct State {
     std::atomic_bool skipLogosEnabled{true};
     std::atomic_bool skipIntroEnabled{true};
     std::atomic_bool skipWarningEnabled{true};
-    std::atomic_bool thirdPersonEnabled{true};
+    std::atomic_bool thirdPersonEnabled{false};
     std::atomic_bool thirdPersonFovEnabled{true};
     std::atomic_bool tpsFollowPlayer{true};
     std::atomic_bool tpsViewGameplay{false};
@@ -108,6 +110,8 @@ struct State {
     std::atomic_bool jumpHeightEnabled{true};
     std::atomic_bool glideDurationEnabled{true};
     std::atomic_bool horseEverywhereEnabled{true};
+    std::atomic_bool horseAllowRestrictedSummon{true};
+    std::atomic_bool horsePreventForcedDesummon{true};
     std::atomic_ullong horseSummonIntentTick{0};
     std::atomic_bool horseSpeedEnabled{true};
     std::atomic_bool horseSprintSpeedEnabled{true};
@@ -119,10 +123,10 @@ struct State {
     std::atomic<float> cameraZoomPercent{0.0f};
     std::atomic<float> cameraPitchDegrees{0.0f};
     std::atomic<float> cameraYawDegrees{0.0f};
-    std::atomic<float> cameraHeightOffset{0.0f};
+    std::atomic<float> cameraHeightOffset{50.0f};
     std::atomic<float> thirdPersonDistanceMultiplier{0.15f};
-    std::atomic<float> thirdPersonPitchDegrees{0.0f};
-    std::atomic<float> thirdPersonHeightOffset{100.0f};
+    std::atomic<float> thirdPersonPitchDegrees{-12.0f};
+    std::atomic<float> thirdPersonHeightOffset{0.0f};
     std::atomic<float> tpsFootAnchorOffset{0.0f};
     std::atomic<float> cameraMouseSensitivity{0.12f};
     std::atomic<float> cameraStickSpeed{180.0f};
