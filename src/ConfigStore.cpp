@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2132;
+constexpr int kConfigRevision = 2133;
 // Actual XInput digital buttons plus LT/RT represented as virtual binding IDs.
 constexpr bool ValidPadBind(int m) {
     switch(m){case 0:case 0x0001:case 0x0002:case 0x0004:case 0x0008:
@@ -313,6 +313,7 @@ void Store::ResetDefaults(bool persist) {
     cameraMouseOrbitEnabled = true;
     cameraControllerOrbitEnabled = true;
     tpsMouseCenterAimEnabled = true;
+    tpsMouseForwardFire = true;
     tpsCutsceneAutoSuspend = true;
     tpsHoldSuspendEnabled = true;
     tpsLongPressToggleEnabled = true;
@@ -442,6 +443,7 @@ bool Store::Load() {
     cameraMouseOrbitEnabled=ReadBool(L"Features",L"CameraMouseOrbit",oldCombinedOrbit,path_);
     cameraControllerOrbitEnabled=ReadBool(L"Features",L"CameraControllerOrbit",oldCombinedOrbit,path_);
     tpsMouseCenterAimEnabled=ReadBool(L"Features",L"TPSMouseCenterAim",true,path_);
+    tpsMouseForwardFire=ReadBool(L"Features",L"TPSMouseForwardFire",true,path_);
     tpsCutsceneAutoSuspend=ReadBool(L"Features",L"TPSAutoCutscene",true,path_);
     cameraOrbitInputEnabled=cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
     tpsHoldSuspendEnabled=ReadBool(L"Features",L"TPSHoldSuspend",true,path_);
@@ -680,6 +682,7 @@ void Store::PublishRuntime() const {
     runtime.cameraMouseOrbitEnabled = cameraMouseOrbitEnabled;
     runtime.cameraControllerOrbitEnabled = cameraControllerOrbitEnabled;
     runtime.tpsMouseCenterAimEnabled = tpsMouseCenterAimEnabled;
+    runtime.tpsMouseForwardFire = tpsMouseForwardFire;
     runtime.tpsCutsceneAutoSuspend = tpsCutsceneAutoSuspend;
     runtime.tpsHideGroundAimFx = tpsHideGroundAimFx;
     runtime.aimIndicatorHideMode = aimIndicatorHideMode;
@@ -793,6 +796,7 @@ bool Store::SaveNow() {
     WriteBool(L"Features",L"CameraMouseOrbit",cameraMouseOrbitEnabled,path_);
     WriteBool(L"Features",L"CameraControllerOrbit",cameraControllerOrbitEnabled,path_);
     WriteBool(L"Features",L"TPSMouseCenterAim",tpsMouseCenterAimEnabled,path_);
+    WriteBool(L"Features",L"TPSMouseForwardFire",tpsMouseForwardFire,path_);
     WriteBool(L"Features",L"TPSAutoCutscene",tpsCutsceneAutoSuspend,path_);
     // Remove the V0.71/0.73 ineffective switches, no mapping of old values.
     WritePrivateProfileStringW(L"Features",L"TPSMouseKeyboardStrafe",nullptr,path_.c_str());
