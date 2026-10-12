@@ -13,6 +13,7 @@
 #include "CameraTraceFeature.h"
 #include "ConfigStore.h"
 #include "EngineIniFeature.h"
+#include "GaugeChargeFeature.h"
 #include "HorseFeature.h"
 #include "OverlayUi.h"
 #include "RuntimeSettings.h"
@@ -36,7 +37,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.02-controller-only-gauges-research-skip-warning-3-test";
+constexpr const char* kBuild = "1.03-camera-input-cleanup-native-gauge-hooks-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1558,6 +1559,7 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     const bool fire=padFiring;
     // V1.02: physical mouse-only firing always follows unmodified game look.
     if(mouseFiring&&!padFiring)return result;
+    if(rt.tpsCameraStickMode.load()==0)return result;
     // Mode 1: native look is passed through for vanilla horse aiming.
     // V0.87: Vanilla Aim means NATIVE look ONLY WHILE FIRING.
     // Off-fire the right stick is camera-only, never simultaneously
@@ -1634,8 +1636,9 @@ NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
     const bool playerStrafe=padFire; // identical native look semantics on foot/horse
     // During mounted Vanilla Aim fire, native look rotation is untouched.
     // While idle, suppress right-stick-origin horseman aim.
+    if(rt.tpsCameraStickMode.load()==0)return result;
     if(rt.tpsMountedAimMode.load()==1 && padFire)return result;
-    const bool nativeBlock=IsRightStickActiveNow();
+    const bool nativeBlock=rt.tpsCameraStickMode.load()!=0&&IsRightStickActiveNow();
     const float actorYaw=g_tpsActorWorldYaw.load(std::memory_order_acquire);
     const float cameraYaw=dg::camera_trace::GetTelemetry().appliedYaw;
     if(!std::isfinite(actorYaw)||!std::isfinite(cameraYaw)||
@@ -2617,26 +2620,23 @@ void TriggerAction(Action action, int functionKey) {
     default: break;
     }
     if (cameraValue) {
+        if(g_config.thirdPersonEnabled)return; // Vanilla camera actions disabled in TPS
         *cameraValue=std::clamp(*cameraValue+cameraStep,cameraMinimum,cameraMaximum);
         g_config.Save();
         g_lastAction=std::string(label)+" = "+std::to_string(*cameraValue);
         Log("F%d -> %s value=%.2f",functionKey,label,*cameraValue);
         return;
     }
-    if (action == Action::CameraReset) {
-        g_config.cameraHeightOffset=0;
-        g_config.cameraZoomPercent=0;
-        g_config.cameraPitchDegrees=0;
-        g_config.cameraYawDegrees=0;
-        g_config.thirdPersonDistanceMultiplier=0.50f;
-        g_config.thirdPersonPitchDegrees=-12.0f;
-        g_config.thirdPersonHeightOffset=180.0f;
-        g_config.tpsFootAnchorOffset=88.0f;
-        dg::runtime::Get().cameraOrbitYawDegrees.store(0.0f);
-        dg::runtime::Get().cameraOrbitPitchDegrees.store(0.0f);
-        g_config.Save();
-        g_lastAction="Camera values reset to vanilla";
-        Log("F%d -> Camera Reset",functionKey);
+    if(action==Action::CameraReset){
+        g_config.ResetVanillaCameraValues();
+        g_lastAction="Camera values restored";
+        Log("F%d -> Camera Values Default",functionKey);
+        return;
+    }
+    if(action==Action::TpsCameraReset){
+        g_config.ResetTpsCameraValues();
+        g_lastAction="TPS camera values restored";
+        Log("F%d -> TPS Camera Values Default",functionKey);
         return;
     }
 
@@ -2717,6 +2717,11 @@ void ProcessCameraInput() {
         g_gameWindowTrace.load(std::memory_order_relaxed));
     if (!hwnd || GetForegroundWindow() != hwnd ||
         g_overlayVisible.load() || g_captureCameraKeyIndex.load() >= 0) {
+        g_cameraKeyHeld.fill(false);
+        g_cameraNextRepeat.fill(0);
+        return;
+    }
+    if(g_config.thirdPersonEnabled){
         g_cameraKeyHeld.fill(false);
         g_cameraNextRepeat.fill(0);
         return;
@@ -2942,25 +2947,13 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
         wheelRt.tpsAbilityWheelTick.store(GetTickCount64(),std::memory_order_release);
         return status;
     }
-    // Physical R3 opens some native equipment wheels. Preserve right-stick
-    // selection while leaving its validated grenade/stow timing unchanged.
-    const bool nativeR3Held=(pad.wButtons&XINPUT_GAMEPAD_RIGHT_THUMB)!=0;
+    // R3 is equipment USE; never treat it as opening a radial wheel.
+    // The original V0.84 continuous physical hold/stow pulse stays unchanged.
     const int grenadeMask=g_config.tpsGrenadeButtonMask;
-    if(localGameplay && grenadeMask!=0 &&
+    if(localGameplay&&grenadeMask!=0 &&
        (!(pad.wButtons&XINPUT_GAMEPAD_LEFT_SHOULDER) ||
-         grenadeMask==XINPUT_GAMEPAD_LEFT_SHOULDER))
+        grenadeMask==XINPUT_GAMEPAD_LEFT_SHOULDER))
         ApplyHoldGrenadeVirtualR3(pad,grenadeMask);
-    if(localGameplay&&nativeR3Held){
-        auto& wheelRt=dg::runtime::Get();
-        wheelRt.tpsAbilityWheelHeld.store(true,std::memory_order_release);
-        wheelRt.tpsAbilityWheelTick.store(GetTickCount64(),std::memory_order_release);
-        static std::atomic_uint32_t nativeR3WheelPasses{0};
-        const unsigned n=++nativeR3WheelPasses;
-        if(n==1||n==250||n==2000)
-            Log("TPS V0.97 WHEEL: R3 physical + native right-stick passed n=%u rx=%d ry=%d",
-                n,static_cast<int>(pad.sThumbRX),static_cast<int>(pad.sThumbRY));
-        return status;
-    }
     if(!ShouldSuppressNativeAim())
         return status; // Preserve vanilla aim while temporary view is held.
     if(GamepadBindingDown(g_config.tpsWheelPadMask,pad)){
@@ -2971,6 +2964,8 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     }
 
     auto& rt=dg::runtime::Get();
+    if(rt.tpsCameraStickMode.load(std::memory_order_relaxed)==0)
+        return status; // OFF: no native stick filter or synthetic gamepad aiming.
     const bool fire=TPSFireDown(pad);
     g_tpsFireHeld.store(fire);
     if(fire) g_tpsFireLastTick.store(GetTickCount64());
@@ -3533,7 +3528,7 @@ void EnsureOrbitWndProc(IDXGISwapChain* chain) {
     if (previous) {
         g_originalWndProc=previous;
         g_hwnd=desc.OutputWindow;
-        Log("Aim V0.57: native mouse input gate installed without ImGui initialization");
+        Log("V1.03: game WndProc passthrough + ImGui/reticle input ready");
     } else if (GetLastError()!=0) {
         Log("Aim V0.57: native mouse input gate failed error=%lu",GetLastError());
     }
@@ -3567,20 +3562,15 @@ void UpdateOrbitInput() {
     const bool padAvailable=focused &&
         GetCameraXInputState(0,&physical)==ERROR_SUCCESS;
     const WORD physicalBits=padAvailable?physical.Gamepad.wButtons:0;
-    // The three native wheels use LB/right stick on controller; native E,
-    // G, Tab or Left Alt on keyboard. Never change camera view while wheel
-    // inputs are present; let all native look getters process right stick.
+    // Only LB / G / Tab open radial wheels; R3/E USE equipment.
     const auto wheelKey=[&](dg::config::TpsKeyboardAction action)->bool{
         const int vk=g_config.tpsKeyboardKeys[static_cast<size_t>(action)];
         return vk>0&&vk<256&&(GetAsyncKeyState(vk)&0x8000)!=0;
     };
     const bool wheelOpen=focused && (
-        (padAvailable&&(GamepadBindingDown(g_config.tpsWheelPadMask,physical.Gamepad) ||
-            (physicalBits&XINPUT_GAMEPAD_RIGHT_THUMB)!=0)) ||
-        wheelKey(dg::config::TpsKeyboardAction::WheelE) ||
+        (padAvailable&&GamepadBindingDown(g_config.tpsWheelPadMask,physical.Gamepad)) ||
         wheelKey(dg::config::TpsKeyboardAction::WheelG) ||
-        wheelKey(dg::config::TpsKeyboardAction::WheelTab) ||
-        wheelKey(dg::config::TpsKeyboardAction::WheelAlt));
+        wheelKey(dg::config::TpsKeyboardAction::WheelTab));
     rt.tpsAbilityWheelHeld.store(wheelOpen,std::memory_order_release);
     if(wheelOpen)rt.tpsAbilityWheelTick.store(now,std::memory_order_release);
     const bool physicalFire=padAvailable&&TPSFireDown(physical.Gamepad);
@@ -3897,14 +3887,14 @@ void UpdateOrbitInput() {
                suspendControllerOrbitOnFire)break;
             XINPUT_STATE state{};
             if (GetCameraXInputState(i,&state)!=ERROR_SUCCESS) continue;
-            // Native right stick selects wheel entries when LB or R3 is
-            // held. Avoid orbiting the TPS camera simultaneously.
-            if (state.Gamepad.wButtons &
-                (XINPUT_GAMEPAD_LEFT_SHOULDER|XINPUT_GAMEPAD_RIGHT_THUMB))continue;
-            const float x=static_cast<float>(state.Gamepad.sThumbRX)/32767.0f;
-            const float y=static_cast<float>(state.Gamepad.sThumbRY)/32767.0f;
+            // LB owns native wheel selection. R3 is the equipment USE button.
+            if(GamepadBindingDown(g_config.tpsWheelPadMask,state.Gamepad))continue;
+            const bool left=g_config.tpsCameraStickMode==1;
+            const float x=static_cast<float>(left?state.Gamepad.sThumbLX:state.Gamepad.sThumbRX)/32767.0f;
+            const float y=static_cast<float>(left?state.Gamepad.sThumbLY:state.Gamepad.sThumbRY)/32767.0f;
             const float len=std::sqrt(x*x+y*y);
-            const float dead=static_cast<float>(XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)/32767.0f;
+            const float dead=static_cast<float>(left?XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE:
+                XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)/32767.0f;
             if (len>dead) {
                 const float m=std::min(1.0f,(len-dead)/(1.0f-dead));
                 ax=x/len*m;ay=y/len*m;break;
@@ -4248,13 +4238,14 @@ void ShutdownMod() {
     dg::skip_logos::Shutdown();
     dg::horse::Shutdown();
     dg::aim_shader::Shutdown();
+    dg::gauges::Shutdown();
     RestoreCameraDof();
     Log("TPS V0.69 totals: mouseInputNative=PASSTHROUGH rightStickReadsFiltered=%u whileFiring=%u",
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
     Log("TPS V0.92 input totals: mountedForwardAnalog=%u mappedHorseChord=%u keyboardHorse=%u",
         g_tpsForwardAnalogInjected.load(),g_horsePadChordRemapped.load(),
         g_keyboardHorseInjected.load());
-    Log("TPS V1.02 controller-only: rightStickFiltered=%u no TPS mouse hooks installed",
+    Log("TPS V1.03 controller-only: rightStickFiltered=%u no TPS mouse orbit/virtual pad",
         g_nativePadAimSuppressed.load());
     Log("TPS V0.89 CAMERA FORWARD: horseActorGetPlayerLookInputCalls=%u (passive, no shot raycast hook)",
         g_tpsHorseNativeLookGetterObservations.load());
@@ -4417,6 +4408,7 @@ DWORD WINAPI MainThread(LPVOID) {
     if (!InstallHotstreakChargeHook()) {
         Log("Hotstreak Charge unavailable; other ASI features remain active.");
     }
+    dg::gauges::Initialize(&FeatureLog,&g_localPlayerCharacter,g_targetValidation.exact);
     if (!InstallFinalOutgoingDamageHook()) {
         Log("Final Pistol/Melee Damage hook unavailable; other ASI features remain active.");
     }

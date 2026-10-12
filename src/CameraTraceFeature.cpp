@@ -252,7 +252,7 @@ void HookView(void* camera, float dt, void* outView) {
     }
     float appliedFov=nativeFov,appliedPitch=nativePitch,appliedYaw=nativeYaw,appliedHeight=z;
     const bool tpsFov=thirdPerson&&settings.thirdPersonFovEnabled.load();
-    if(tpsFov||settings.fovEnabled.load()){
+    if(tpsFov||(!thirdPerson&&settings.fovEnabled.load())){
         const float target=tpsFov?settings.thirdPersonFovDegrees.load():settings.fovDegrees.load();
         if(std::isfinite(target)&&target>=40&&target<=140){
             appliedFov=target;
@@ -284,7 +284,7 @@ void HookView(void* camera, float dt, void* outView) {
             std::memcpy(p+8,&appliedHeight,4);
         }
     }else{
-        const bool attached=settings.tpsFollowPlayer.load();
+        constexpr bool attached=true; // permanently follow validated live TPS player.
         // Single standalone TPS camera. No obsolete "ignore zone" toggle:
         // its player-yaw reference is naturally stable once acquired.
         const bool lockZone=attached;
@@ -322,11 +322,11 @@ void HookView(void* camera, float dt, void* outView) {
         if(std::isfinite(arm)&&arm>=100&&arm<=10000&&
            std::isfinite(basePitch)&&std::isfinite(mult)&&std::isfinite(tpHeight)&&
            std::isfinite(oy)&&std::isfinite(op)&&std::isfinite(foot)&&
-           std::isfinite(yawOffset)&&std::isfinite(heightOffset)&&
+           true&& // vanilla camera yaw/height are not TPS parameters
            mult>=0&&mult<=3&&foot>=-500&&foot<=500&&std::fabs(tpHeight)<=1000){
             constexpr float radians=0.01745329251994329577f;
             appliedPitch=std::clamp(basePitch+op,-75.0f,65.0f);
-            appliedYaw=std::remainder(baseYaw+yawOffset+oy,360.0f);
+            appliedYaw=std::remainder(baseYaw+oy,360.0f);
             const float distance=std::clamp(arm*mult,0.0f,12000.0f);
             // Foot-level player origin. RootComponent may be at capsule
             // center, so configurable vertical correction is approximate
@@ -342,7 +342,7 @@ void HookView(void* camera, float dt, void* outView) {
             const float pitchRad=appliedPitch*radians,yawRad=appliedYaw*radians;
             const float outX=pivotX-std::cos(pitchRad)*std::cos(yawRad)*distance;
             const float outY=pivotY-std::cos(pitchRad)*std::sin(yawRad)*distance;
-            const float outZ=pivotZ-std::sin(pitchRad)*distance+tpHeight+heightOffset;
+            const float outZ=pivotZ-std::sin(pitchRad)*distance+tpHeight;
             if(std::isfinite(outX)&&std::isfinite(outY)&&std::isfinite(outZ)&&
                std::fabs(outX)<1e7f&&std::fabs(outY)<1e7f&&std::fabs(outZ)<1e7f){
                 std::memcpy(p,&outX,4);std::memcpy(p+4,&outY,4);std::memcpy(p+8,&outZ,4);
@@ -403,7 +403,9 @@ void HookArm(void* arm, bool trace, bool locationLag, bool rotationLag, float dt
     auto* distance = static_cast<unsigned char*>(arm) + 0x258;
     float native = 0;
     std::memcpy(&native, distance, sizeof(float));
-    const float zoom = dg::runtime::Get().cameraZoomPercent.load(std::memory_order_relaxed);
+    const auto& camRt=dg::runtime::Get();
+    const float zoom = camRt.thirdPersonEnabled.load(std::memory_order_relaxed)
+        ? 0.0f : camRt.cameraZoomPercent.load(std::memory_order_relaxed);
     const bool valid = std::isfinite(native) && native >= 25 && native <= 25000 &&
                        std::isfinite(zoom) && zoom >= -75 && zoom <= 200;
     float applied = native;
@@ -484,8 +486,7 @@ void Install(LogFn log) {
 // game inputs, native scene camera objects, or the stored TPS distance.
 bool RecenterOnPlayer() {
     auto& rt=dg::runtime::Get();
-    if(!rt.thirdPersonEnabled.load()||!rt.cameraOrbitInputEnabled.load()||
-       !rt.tpsFollowPlayer.load()||!g_zoneReferenceActive.load()) return false;
+    if(!rt.thirdPersonEnabled.load()||!g_zoneReferenceActive.load()) return false;
     const ULONGLONG tick=rt.tpsActorLocationTick.load();
     const ULONGLONG now=GetTickCount64();
     const bool onFoot=tick&&now>=tick&&now-tick<=350ull;
@@ -494,7 +495,7 @@ bool RecenterOnPlayer() {
     if(!onFoot&&!onHorse)return false;
     const float actorYaw=onHorse?rt.tpsHorseYawDegrees.load():rt.tpsActorYawDegrees.load();
     const float base=g_zoneReferenceYaw.load();
-    const float manual=rt.cameraYawDegrees.load();
+    const float manual=0.0f; // vanilla yaw separated from TPS recenter.
     if(!std::isfinite(actorYaw)||!std::isfinite(base)||!std::isfinite(manual)) return false;
     const float delta=std::remainder(actorYaw-base-manual,360.0f);
     rt.cameraOrbitYawDegrees.store(delta);
