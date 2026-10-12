@@ -460,6 +460,12 @@ void Draw(Context& c) {
                 c.captureCameraKeyIndex->store(-1);
                 config.Save();
             }
+            ImGui::SameLine();
+            if(ImGui::SmallButton("Default##HorseKey")){
+                config.tpsKeyboardKeys[horseIndex]=config::kDefaultTpsKeyboardKeys[horseIndex];
+                c.captureCameraKeyIndex->store(-1);
+                config.Save();
+            }
             ImGui::PopID();
             constexpr int horsePadValues[]={0x0100,0x0200,0x0040,0x0080,
                 0x1000,0x2000,0x4000,0x8000,0x0001,0x0002,0x0004,0x0008,
@@ -477,7 +483,11 @@ void Draw(Context& c) {
                 }
             };
             HorsePadCombo("Controller button 1##Horse",config.horsePadButtonA);
+            ImGui::SameLine();
+            if(ImGui::SmallButton("Default##HorsePadA")){config.horsePadButtonA=256;config.Save();}
             HorsePadCombo("Controller button 2##Horse",config.horsePadButtonB);
+            ImGui::SameLine();
+            if(ImGui::SmallButton("Default##HorsePadB")){config.horsePadButtonB=512;config.Save();}
             if(config.horsePadButtonA==config.horsePadButtonB)
                 ImGui::TextDisabled("Choose two DIFFERENT buttons.");
             if(ImGui::TreeNode("Horse Everywhere information / debug")){
@@ -859,7 +869,7 @@ void Draw(Context& c) {
                     "Start / Menu","Back / View"
                 };
                 constexpr int kButtonCount=sizeof(kButtons)/sizeof(kButtons[0]);
-                auto BindGamepadMask=[&](const char* title,int& mask) {
+                auto BindGamepadMask=[&](const char* title,int& mask,int defaultMask) {
                     int index=0;
                     for(int i=0;i<kButtonCount;++i)
                         if(mask==kButtons[i]){index=i;break;}
@@ -867,6 +877,10 @@ void Draw(Context& c) {
                     if(ImGui::Combo(title,&index,kButtonLabels,kButtonCount)){
                         mask=kButtons[index];config.Save();
                     }
+                    ImGui::SameLine();
+                    ImGui::PushID(title);
+                    if(ImGui::SmallButton("Default")){mask=defaultMask;config.Save();}
+                    ImGui::PopID();
                 };
                 auto BindTPSKeyboard=[&](const char* label,dg::config::TpsKeyboardAction action){
                     const size_t i=static_cast<size_t>(action);
@@ -887,41 +901,45 @@ void Draw(Context& c) {
                         c.captureCameraKeyIndex->store(-1);
                         config.Save();
                     }
+                    ImGui::SameLine();
+                    if(ImGui::SmallButton("Default")){
+                        config.tpsKeyboardKeys[i]=config::kDefaultTpsKeyboardKeys[i];
+                        c.captureCameraKeyIndex->store(-1);
+                        config.Save();
+                    }
                     ImGui::PopID();
                 };
                 BindTPSKeyboard("TPS ON/OFF (long hold)",dg::config::TpsKeyboardAction::Toggle);
-                BindGamepadMask("Controller long hold##TPS",config.tpsToggleHoldButtonMask);
+                BindGamepadMask("Controller long hold##TPS",config.tpsToggleHoldButtonMask,64);
                 ImGui::SetNextItemWidth(245.0f);
                 if(ImGui::SliderInt("Long press delay##ToggleTPS",
                     &config.tpsToggleHoldMs,250,2000,"%d ms"))config.Save();
                 ImGui::Spacing();
                 BindTPSKeyboard("Recenter camera",dg::config::TpsKeyboardAction::Recenter);
-                BindGamepadMask("Controller recenter##TPS",config.tpsRecenterButtonMask);
+                BindGamepadMask("Controller recenter##TPS",config.tpsRecenterButtonMask,64);
                 ImGui::Spacing();
                 BindTPSKeyboard("Temporary vanilla view",dg::config::TpsKeyboardAction::Suspend);
-                BindGamepadMask("Controller temporary view##TPS",config.tpsSuspendButtonMask);
+                BindGamepadMask("Controller temporary view##TPS",config.tpsSuspendButtonMask,128);
                 if(config.tpsKeyboardKeys[static_cast<size_t>(dg::config::TpsKeyboardAction::Suspend)]=='E')
                     ImGui::TextDisabled("E deliberately does BOTH: native gear + temporary view after hold delay.");
                 ImGui::SetNextItemWidth(245.0f);
                 if(ImGui::SliderInt("Temporary view delay##HoldTPS",
                     &config.tpsSuspendDelayMs,0,3000,"%d ms"))config.Save();
                 ImGui::Spacing();
-                BindGamepadMask("Use selected equipment (R3)##TPS",config.tpsGrenadeButtonMask);
+                BindGamepadMask("Use selected equipment (R3)##TPS",config.tpsGrenadeButtonMask,128);
                 ImGui::TextWrapped("R3 USES selected equipment; it does NOT open the equipment wheel. "
                     "The native hold and stow/release pulse are preserved.");
                 ImGui::Separator();
                 ImGui::TextDisabled("Native GAME bindings: manually match in-game controls");
-                BindGamepadMask("Detect primary fire (default RT)##TPS",config.tpsFirePrimaryMask);
+                BindGamepadMask("Detect primary fire (default RT)##TPS",config.tpsFirePrimaryMask,131072);
                 ImGui::TextWrapped("Match the in-game SHOOT button. This detects firing but does not rebind the game.");
-                BindGamepadMask("Detect alternate fire (default RB)##TPS",config.tpsFireSecondaryMask);
+                BindGamepadMask("Detect alternate fire (default RB)##TPS",config.tpsFireSecondaryMask,512);
                 ImGui::TextWrapped("Optional second SHOOT input; OFF disables this detector.");
-                BindGamepadMask("Detect wheel opening (default LB)##TPS",config.tpsWheelPadMask);
+                BindGamepadMask("Detect wheel opening (default LB)##TPS",config.tpsWheelPadMask,256);
                 ImGui::TextWrapped("This held button lets the game's native right stick select wheel items, "
                     "instead of being intercepted by TPS camera control.");
-                BindTPSKeyboard("Wheel detector key 1",dg::config::TpsKeyboardAction::WheelE);
-                BindTPSKeyboard("Wheel detector key 2",dg::config::TpsKeyboardAction::WheelG);
-                BindTPSKeyboard("Wheel detector key 3",dg::config::TpsKeyboardAction::WheelTab);
-                BindTPSKeyboard("Wheel detector key 4",dg::config::TpsKeyboardAction::WheelAlt);
+                BindTPSKeyboard("Equipment wheel detector (G)",dg::config::TpsKeyboardAction::WheelG);
+                BindTPSKeyboard("Ammunition / abilities wheel detector (Tab)",dg::config::TpsKeyboardAction::WheelTab);
                 ImGui::TextWrapped("Wheel detector keys never emit fake game input. "
                     "Change them here too when rebinding the game's wheel controls.");
                 ImGui::TextDisabled("Keyboard Use Gear follows the game's own native mapping.");
@@ -1057,6 +1075,12 @@ void Draw(Context& c) {
                     c.captureCameraKeyIndex->store(-1);
                     config.Save();
                 }
+                ImGui::SameLine();
+                if(ImGui::SmallButton("Default")){
+                    config.cameraKeys[i]=config::kDefaultCameraKeys[i];
+                    c.captureCameraKeyIndex->store(-1);
+                    config.Save();
+                }
                 ImGui::PopID();
             }
             ImGui::TextDisabled("Hold keys to repeat. Steps: height 50, zoom 10%%, pitch/yaw 5 degrees.");
@@ -1093,6 +1117,8 @@ void Draw(Context& c) {
                 }
             }
 
+            ImGui::SameLine();
+            if(ImGui::Button("Default##MenuKey")){config.menuKey=VK_INSERT;config.Save();}
             ImGui::Spacing();
 
             if (ImGui::Button(
@@ -1210,6 +1236,13 @@ void Draw(Context& c) {
 
                         ImGui::EndCombo();
                     }
+                    ImGui::SameLine();
+                    ImGui::PushID(i+8600);
+                    if(ImGui::SmallButton("Default")){
+                        config.hotkeys[static_cast<size_t>(i)]=config::kDefaultHotkeys[static_cast<size_t>(i)];
+                        config.Save();
+                    }
+                    ImGui::PopID();
                 }
 
                 ImGui::EndTable();
