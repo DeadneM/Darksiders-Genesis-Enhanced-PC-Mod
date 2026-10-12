@@ -8,13 +8,16 @@ namespace dg::config {
 enum class CameraAction : int { HeightUp = 0, HeightDown, ZoomOut, ZoomIn, PitchDown, PitchUp, YawLeft, YawRight, Count };
 // New V0.92 TPS keyboard actions have the same semantics as the existing
 // controller actions. OFF (0) is intentional for legacy compatibility.
-enum class TpsKeyboardAction : int { Horse = 0, Toggle, Recenter, Suspend, Count };
-inline constexpr std::array<const char*, 4> kTpsKeyboardLabels = {
+enum class TpsKeyboardAction : int { Horse = 0, Toggle, Recenter, Suspend, WheelE, WheelG, WheelTab, WheelAlt, Count };
+inline constexpr std::array<const char*, 8> kTpsKeyboardLabels = {
     "Summon / dismount horse", "Long press TPS ON/OFF",
-    "Recenter TPS camera", "Hold temporary vanilla view"
+    "Recenter TPS camera", "Hold temporary vanilla view",
+    "Radial wheel detector 1", "Radial wheel detector 2",
+    "Radial wheel detector 3", "Radial wheel detector 4"
 };
-inline constexpr std::array<const wchar_t*, 4> kTpsKeyboardTokens = {
-    L"Horse", L"ToggleTPS", L"RecenterTPS", L"TemporaryView"
+inline constexpr std::array<const wchar_t*, 8> kTpsKeyboardTokens = {
+    L"Horse", L"ToggleTPS", L"RecenterTPS", L"TemporaryView",
+    L"RadialE", L"RadialG", L"RadialTab", L"RadialAlt"
 };
 inline constexpr std::array<const char*, 8> kCameraLabels = {
   "Raise Height", "Lower Height", "Zoom Out", "Zoom In", "Tilt Down", "Tilt Up",
@@ -147,7 +150,7 @@ public:
     bool cameraMouseOrbitEnabled = true;
     bool cameraControllerOrbitEnabled = true;
     bool tpsMouseCenterAimEnabled = true; // V0.98 on-foot mouse orbit baseline
-    bool tpsMouseForwardFire = true; // V1.00 experimental isolated mouse-only forward-look simulation
+    int tpsMouseStickMode = 2; // OFF=0, LEFT=1, RIGHT=2
     // V0.75: mouse TPS firing always faces the camera; controller has
     // independent movement-facing and camera orbit options.
     bool tpsCutsceneAutoSuspend = true;
@@ -158,7 +161,10 @@ public:
     int aimIndicatorHideMode = 2; // 0 Everywhere, 1 Default Only, 2 TPS Only
     bool tpsHorseStableAimCamera = true; // legacy setting migrated to mounted aim mode
     int tpsMountedAimMode = 0; // 0 camera-forward free, 1 native aim camera locked
-    int tpsGrenadeButtonMask = 0x0080; // R3 (0 = OFF)
+    int tpsGrenadeButtonMask = 0x0080; // R3 USE gear (0=OFF)
+    int tpsFirePrimaryMask = 0x20000;
+    int tpsFireSecondaryMask = 0x0200;
+    int tpsWheelPadMask = 0x0100;
     int tpsSuspendButtonMask = 0x0080; // R3, temporary vanilla view
     int tpsSuspendDelayMs = 300; // delay before R3 hold enables vanilla view, 0..3000
     int tpsToggleHoldButtonMask = 0x0040; // L3, long press TPS toggle
@@ -206,7 +212,7 @@ public:
 
     std::array<Action, 12> hotkeys{};
     std::array<int, static_cast<size_t>(CameraAction::Count)> cameraKeys{{0x26,0x28,0x25,0x27,0,0,0x64,0x66}};
-    std::array<int, static_cast<size_t>(TpsKeyboardAction::Count)> tpsKeyboardKeys{{'H','Z','Z','E'}};
+    std::array<int, static_cast<size_t>(TpsKeyboardAction::Count)> tpsKeyboardKeys{{'H','Z','Z','E','E','G',0x09,0xA4}};
 
     Store();
 
