@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2133;
+constexpr int kConfigRevision = 2134;
 // Actual XInput digital buttons plus LT/RT represented as virtual binding IDs.
 constexpr bool ValidPadBind(int m) {
     switch(m){case 0:case 0x0001:case 0x0002:case 0x0004:case 0x0008:
@@ -313,7 +313,7 @@ void Store::ResetDefaults(bool persist) {
     cameraMouseOrbitEnabled = true;
     cameraControllerOrbitEnabled = true;
     tpsMouseCenterAimEnabled = true;
-    tpsMouseForwardFire = true;
+    tpsMouseStickMode = 2;
     tpsCutsceneAutoSuspend = true;
     tpsHoldSuspendEnabled = true;
     tpsLongPressToggleEnabled = true;
@@ -323,6 +323,9 @@ void Store::ResetDefaults(bool persist) {
     tpsHorseStableAimCamera = true;
     tpsMountedAimMode = 0;
     tpsGrenadeButtonMask = 0x0080;
+    tpsFirePrimaryMask=0x20000;
+    tpsFireSecondaryMask=0x0200;
+    tpsWheelPadMask=0x0100;
     tpsSuspendButtonMask = 0x0080;
     tpsSuspendDelayMs = 300;
     tpsToggleHoldButtonMask = 0x0040;
@@ -330,7 +333,7 @@ void Store::ResetDefaults(bool persist) {
     tpsRecenterButtonMask = 0x0040;
     horsePadButtonA = 0x0100; // LB
     horsePadButtonB = 0x0200; // RB
-    tpsKeyboardKeys = {{'H','Z','Z','E'}};
+    tpsKeyboardKeys = {{'H','Z','Z','E','E','G',0x09,0xA4}};
     pistolDamageEnabled = true;
     meleeDamageEnabled = true;
     jumpHeightEnabled = true;
@@ -443,7 +446,7 @@ bool Store::Load() {
     cameraMouseOrbitEnabled=ReadBool(L"Features",L"CameraMouseOrbit",oldCombinedOrbit,path_);
     cameraControllerOrbitEnabled=ReadBool(L"Features",L"CameraControllerOrbit",oldCombinedOrbit,path_);
     tpsMouseCenterAimEnabled=ReadBool(L"Features",L"TPSMouseCenterAim",true,path_);
-    tpsMouseForwardFire=ReadBool(L"Features",L"TPSMouseForwardFire",true,path_);
+    tpsMouseStickMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(L"Features",L"TPSMouseStickMode",2,path_.c_str())),0,2);
     tpsCutsceneAutoSuspend=ReadBool(L"Features",L"TPSAutoCutscene",true,path_);
     cameraOrbitInputEnabled=cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
     tpsHoldSuspendEnabled=ReadBool(L"Features",L"TPSHoldSuspend",true,path_);
@@ -455,6 +458,12 @@ bool Store::Load() {
     tpsMountedAimMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(L"Features",L"TPSMountedAimMode",0,path_.c_str())),0,1);
     tpsGrenadeButtonMask=static_cast<int>(GetPrivateProfileIntW(L"Controls",L"TPSGrenadeButtonMask",0x0080,path_.c_str()));
     if(!ValidPadBind(tpsGrenadeButtonMask))tpsGrenadeButtonMask=0x0080;
+    tpsFirePrimaryMask=GetPrivateProfileIntW(L"Controls",L"TPSFirePrimaryMask",0x20000,path_.c_str());
+    tpsFireSecondaryMask=GetPrivateProfileIntW(L"Controls",L"TPSFireSecondaryMask",0x0200,path_.c_str());
+    tpsWheelPadMask=GetPrivateProfileIntW(L"Controls",L"TPSWheelPadMask",0x0100,path_.c_str());
+    if(!ValidPadBind(tpsFirePrimaryMask))tpsFirePrimaryMask=0x20000;
+    if(!ValidPadBind(tpsFireSecondaryMask))tpsFireSecondaryMask=0x0200;
+    if(!ValidPadBind(tpsWheelPadMask))tpsWheelPadMask=0x0100;
     tpsSuspendButtonMask=GetPrivateProfileIntW(L"Controls",L"TPSSuspendButtonMask",0x0080,path_.c_str());
     tpsSuspendDelayMs=GetPrivateProfileIntW(L"Controls",L"TPSSuspendDelayMs",300,path_.c_str());
     tpsSuspendDelayMs=std::clamp(tpsSuspendDelayMs,0,3000);
@@ -682,7 +691,7 @@ void Store::PublishRuntime() const {
     runtime.cameraMouseOrbitEnabled = cameraMouseOrbitEnabled;
     runtime.cameraControllerOrbitEnabled = cameraControllerOrbitEnabled;
     runtime.tpsMouseCenterAimEnabled = tpsMouseCenterAimEnabled;
-    runtime.tpsMouseForwardFire = tpsMouseForwardFire;
+    runtime.tpsMouseStickMode = tpsMouseStickMode;
     runtime.tpsCutsceneAutoSuspend = tpsCutsceneAutoSuspend;
     runtime.tpsHideGroundAimFx = tpsHideGroundAimFx;
     runtime.aimIndicatorHideMode = aimIndicatorHideMode;
@@ -796,7 +805,9 @@ bool Store::SaveNow() {
     WriteBool(L"Features",L"CameraMouseOrbit",cameraMouseOrbitEnabled,path_);
     WriteBool(L"Features",L"CameraControllerOrbit",cameraControllerOrbitEnabled,path_);
     WriteBool(L"Features",L"TPSMouseCenterAim",tpsMouseCenterAimEnabled,path_);
-    WriteBool(L"Features",L"TPSMouseForwardFire",tpsMouseForwardFire,path_);
+    WritePrivateProfileStringW(L"Features",L"TPSMouseForwardFire",nullptr,path_.c_str());
+    wchar_t stickMode[8]{}; swprintf_s(stickMode,L"%d",std::clamp(tpsMouseStickMode,0,2));
+    WritePrivateProfileStringW(L"Features",L"TPSMouseStickMode",stickMode,path_.c_str());
     WriteBool(L"Features",L"TPSAutoCutscene",tpsCutsceneAutoSuspend,path_);
     // Remove the V0.71/0.73 ineffective switches, no mapping of old values.
     WritePrivateProfileStringW(L"Features",L"TPSMouseKeyboardStrafe",nullptr,path_.c_str());
@@ -822,6 +833,12 @@ bool Store::SaveNow() {
     wchar_t buttonBuffer[16]{};
     swprintf_s(buttonBuffer,L"%d",tpsGrenadeButtonMask);
     WritePrivateProfileStringW(L"Controls",L"TPSGrenadeButtonMask",buttonBuffer,path_.c_str());
+    swprintf_s(buttonBuffer,L"%d",tpsFirePrimaryMask);
+    WritePrivateProfileStringW(L"Controls",L"TPSFirePrimaryMask",buttonBuffer,path_.c_str());
+    swprintf_s(buttonBuffer,L"%d",tpsFireSecondaryMask);
+    WritePrivateProfileStringW(L"Controls",L"TPSFireSecondaryMask",buttonBuffer,path_.c_str());
+    swprintf_s(buttonBuffer,L"%d",tpsWheelPadMask);
+    WritePrivateProfileStringW(L"Controls",L"TPSWheelPadMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsRecenterButtonMask);
     WritePrivateProfileStringW(L"Controls",L"TPSRecenterButtonMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",horsePadButtonA);
