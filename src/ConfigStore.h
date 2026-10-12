@@ -193,9 +193,9 @@ public:
     bool hideReticle = false;
     bool hotstreakChargeEnabled = true;
     // V1.02 research controls. Fail-closed until three native charge owners are verified.
-    bool wrathChargeEnabled = false;
-    bool ultimateChargeEnabled = false;
-    bool synergyChargeEnabled = false;
+    bool wrathChargeEnabled = true;
+    bool ultimateChargeEnabled = true;
+    bool synergyChargeEnabled = true;
 
     float movementSpeedMultiplier = 1.50f;
     float actionRecoveryDelayMs = 0.0f;
@@ -213,7 +213,7 @@ public:
     float cameraZoomPercent = 0.0f;
     float cameraPitchDegrees = 0.0f;
     float cameraYawDegrees = 0.0f;
-    float cameraHeightOffset = 50.0f;
+    float cameraHeightOffset = 0.0f;
     float thirdPersonDistanceMultiplier = 0.15f;
     float thirdPersonPitchDegrees = -12.0f;
     float thirdPersonHeightOffset = 0.0f;

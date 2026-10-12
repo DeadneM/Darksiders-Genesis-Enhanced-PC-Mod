@@ -35,16 +35,16 @@ struct Snapshot {
     bool horseSprintSpeedEnabled = true;
     bool horseSprintDurationEnabled = true;
     bool hotstreakChargeEnabled = true;
-    bool wrathChargeEnabled = false;
-    bool ultimateChargeEnabled = false;
-    bool synergyChargeEnabled = false;
+    bool wrathChargeEnabled = true;
+    bool ultimateChargeEnabled = true;
+    bool synergyChargeEnabled = true;
 
     float fovDegrees = 90.0f;
     float thirdPersonFovDegrees = 110.0f;
     float cameraZoomPercent = 0.0f;
     float cameraPitchDegrees = 0.0f;
     float cameraYawDegrees = 0.0f;
-    float cameraHeightOffset = 50.0f;
+    float cameraHeightOffset = 0.0f;
     float thirdPersonDistanceMultiplier = 0.15f;
     float thirdPersonPitchDegrees = -12.0f;
     float thirdPersonHeightOffset = 0.0f;
@@ -121,16 +121,16 @@ struct State {
     std::atomic_bool horseSprintSpeedEnabled{true};
     std::atomic_bool horseSprintDurationEnabled{true};
     std::atomic_bool hotstreakChargeEnabled{true};
-    std::atomic_bool wrathChargeEnabled{false};
-    std::atomic_bool ultimateChargeEnabled{false};
-    std::atomic_bool synergyChargeEnabled{false};
+    std::atomic_bool wrathChargeEnabled{true};
+    std::atomic_bool ultimateChargeEnabled{true};
+    std::atomic_bool synergyChargeEnabled{true};
 
     std::atomic<float> fovDegrees{90.0f};
     std::atomic<float> thirdPersonFovDegrees{110.0f};
     std::atomic<float> cameraZoomPercent{0.0f};
     std::atomic<float> cameraPitchDegrees{0.0f};
     std::atomic<float> cameraYawDegrees{0.0f};
-    std::atomic<float> cameraHeightOffset{50.0f};
+    std::atomic<float> cameraHeightOffset{0.0f};
     std::atomic<float> thirdPersonDistanceMultiplier{0.15f};
     std::atomic<float> thirdPersonPitchDegrees{-12.0f};
     std::atomic<float> thirdPersonHeightOffset{0.0f};

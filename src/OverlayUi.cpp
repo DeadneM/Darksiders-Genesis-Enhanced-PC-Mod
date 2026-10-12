@@ -379,7 +379,7 @@ void Draw(Context& c) {
                     charge.wrathReady?"READY":"UNAVAILABLE",
                     charge.chaosReady?"READY":"UNAVAILABLE",
                     charge.synergyReady?"READY":"UNAVAILABLE");
-                ImGui::TextWrapped("Experimental: only positive native local-player gains are multiplied. Verify visually.");
+                ImGui::TextWrapped("ON by default: these native resource hooks are experimental. Verify in combat.");
                 auto GaugeRow=[&](const char* label,const char* id,bool& enabled,float& value){
                     if(ImGui::Checkbox(label,&enabled))config.Save();
                     ImGui::PushID(id);
@@ -986,7 +986,7 @@ void Draw(Context& c) {
             }
 
             DrawSectionTitle("Camera height");
-            ImGui::TextWrapped("Extra global height. In attached TPS it is ADDED to Vertical offset##TP.");
+            ImGui::TextWrapped("Vanilla camera height offset, default zero. TPS height is independent.");
             bool heightChanged = false;
             ImGui::SetNextItemWidth(340.0f);
             heightChanged |= ImGui::SliderFloat("Height##Camera",
@@ -1005,7 +1005,7 @@ void Draw(Context& c) {
             }
 
             DrawSectionTitle("Camera angle");
-            ImGui::TextWrapped("Native-view pitch offset: mainly vanilla. TPS uses View pitch##TP, overriding this setting.");
+            ImGui::TextWrapped("Vanilla camera pitch offset. TPS uses its own view pitch.");
             bool pitchChanged = false;
             ImGui::SetNextItemWidth(340.0f);
             pitchChanged |= ImGui::SliderFloat("Pitch##Camera",

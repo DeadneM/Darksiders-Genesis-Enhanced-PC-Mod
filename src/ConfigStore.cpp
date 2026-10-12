@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2137;
+constexpr int kConfigRevision = 2138;
 // Actual XInput digital buttons plus LT/RT represented as virtual binding IDs.
 constexpr bool ValidPadBind(int m) {
     switch(m){case 0:case 0x0001:case 0x0002:case 0x0004:case 0x0008:
@@ -339,9 +339,9 @@ void Store::ResetDefaults(bool persist) {
     fovEnabled = false;
     hideReticle = false;
     hotstreakChargeEnabled = true;
-    wrathChargeEnabled = false;
-    ultimateChargeEnabled = false;
-    synergyChargeEnabled = false;
+    wrathChargeEnabled = true;
+    ultimateChargeEnabled = true;
+    synergyChargeEnabled = true;
 
     movementSpeedMultiplier = 1.50f;
     actionRecoveryDelayMs = 0.0f;
@@ -359,7 +359,7 @@ void Store::ResetDefaults(bool persist) {
     cameraZoomPercent = 0.0f;
     cameraPitchDegrees = 0.0f;
     cameraYawDegrees = 0.0f;
-    cameraHeightOffset = 50.0f;
+    cameraHeightOffset = 0.0f;
     thirdPersonDistanceMultiplier = 0.15f;
     thirdPersonPitchDegrees = -12.0f;
     thirdPersonHeightOffset = 0.0f;
@@ -385,10 +385,12 @@ void Store::ResetVanillaCameraValues() {
     cameraZoomPercent=0.0f;
     cameraPitchDegrees=0.0f;
     cameraYawDegrees=0.0f;
-    cameraHeightOffset=50.0f;
+    cameraHeightOffset=0.0f;
     Save();
+    Log("V1.05 Camera Values Default: FOV=90 zoom=0 pitch=0 yaw=0 height=0");
 }
 void Store::ResetTpsCameraValues() {
+    thirdPersonFovEnabled=true;
     thirdPersonFovDegrees=110.0f;
     thirdPersonDistanceMultiplier=0.15f;
     thirdPersonPitchDegrees=-12.0f;
@@ -398,6 +400,7 @@ void Store::ResetTpsCameraValues() {
     dg::runtime::Get().cameraOrbitYawDegrees.store(0.0f);
     dg::runtime::Get().cameraOrbitPitchDegrees.store(0.0f);
     Save();
+    Log("V1.05 TPS Camera Values Default: TPS FOV override ON, FOV 110, distance .15, pitch -12, height 0, foot 0, speed 180");
 }
 bool Store::Load() {
     if (path_.empty()) {
@@ -515,9 +518,9 @@ bool Store::Load() {
     hotstreakChargeEnabled =
         ReadBool(L"Features", L"HotstreakCharge", true, path_);
     // Research presets only; no native resource writes until ownership is proven.
-    wrathChargeEnabled=ReadBool(L"Features",L"WrathCharge",false,path_);
-    ultimateChargeEnabled=ReadBool(L"Features",L"UltimateFormCharge",false,path_);
-    synergyChargeEnabled=ReadBool(L"Features",L"SynergyCharge",false,path_);
+    wrathChargeEnabled=ReadBool(L"Features",L"WrathCharge",true,path_);
+    ultimateChargeEnabled=ReadBool(L"Features",L"UltimateFormCharge",true,path_);
+    synergyChargeEnabled=ReadBool(L"Features",L"SynergyCharge",true,path_);
 
     movementSpeedMultiplier =
         ReadFloat(L"Values", L"MovementSpeedMultiplier", 1.50f, path_);
@@ -553,7 +556,7 @@ bool Store::Load() {
     cameraYawDegrees =
         ReadFloat(L"Values", L"CameraYawDegrees", 0.0f, path_);
     cameraHeightOffset =
-        ReadFloat(L"Values", L"CameraHeightOffset", 50.0f, path_);
+        ReadFloat(L"Values", L"CameraHeightOffset", 0.0f, path_);
     thirdPersonDistanceMultiplier =
         ReadFloat(L"Values", L"ThirdPersonDistanceMultiplier", 0.15f, path_);
     thirdPersonPitchDegrees = ReadFloat(L"Values", L"ThirdPersonPitchDegrees", -12.0f, path_);
@@ -637,6 +640,13 @@ bool Store::Load() {
         return true;
     }
     if (revision < kConfigRevision) {
+        // V1.04 shipped all three OFF. Migrate only that unmodified preset once.
+        // Independent user-customized gauge selections are preserved.
+        if(revision<2138 && !wrathChargeEnabled &&
+           !ultimateChargeEnabled && !synergyChargeEnabled){
+            wrathChargeEnabled=true;ultimateChargeEnabled=true;synergyChargeEnabled=true;
+            Log("V1.05 three-gauge preset migrated all OFF -> all ON");
+        }
         // Only repair the exact old CameraReset tuple, preserve other choices.
         if(revision<2137 &&
            std::fabs(thirdPersonDistanceMultiplier-0.50f)<0.0001f &&
