@@ -1,5 +1,14 @@
 # CURRENT_STATE | Darksiders Genesis Enhanced PC Mod
 
+## Latest result: V1.04 safety rollback + mounted forward hotfix (2026-10-12)
+
+**Branch debug**, stable main unchanged. Source changes: quarantine startup Skip Warning hook after user-reported crosshair regression; retire toggle, default and legacy persistence OFF. Keep Skip Logos and Skip Intro. V1.03 user session loaded the correct binaries but had NO loader skip warning installation log; do not call causal chain confirmed.
+
+Source V1.03 `tpsCameraStickMode==OFF` short-circuited `FilterNativeXInput` BEFORE firing/forward-stick injection. V1.04 decouples and restores validated V0.92 controller-forward injection even with camera joystick OFF, while OFF stops native TPS camera orbit on foot or horse. Report separate HORSE/FOOT analog injections in log: a nonzero horse injection proves the intended path ran, NOT bullet raycast correctness. Restore V0.98 50-unit TPS-height baseline as TPS-private constant, independent of vanilla height. Log exact loaded INI + FPS/TPS camera config/reticle/mounted aim values to explain saved settings; repair only exact obsolete CameraReset triple, never wipe other preferences.
+
+User log: `Gauge V1.03` hooks all READY, observed Wrath=0 Chaos=0 Synergy=4, boosted all zero. Horse native lease=1, camera source genuinely horse, shader count 2. Skip Warning still unresolved, native cutscene identification still heuristic. User must test actual horse bullet direction and crosshair after new build. See [V1.04 hotfix technical record](V1_04_SKIPWARNING_TPS_HORSE_FORWARD_HOTFIX.md) and older current project state below.
+
+
 ## 2026-10-12 latest authoritative development result: V1.03 compiled experiment
 
 **Working branch `debug` only, `main` unchanged.** V1.03 source compiled and 4-root-file ZIP published successfully via [GitHub Actions run 38311864934](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38311864934). [V1.03 ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.03_CAMERA_INPUT_NATIVE_GAUGES_TEST.zip). [Detailed disassembly provenance, settings and test matrix](V1_03_NATIVE_GAUGES_CAMERA_INPUT_TEST_PLAN.md). All **gameplay changes unvalidated until user test**.

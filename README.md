@@ -6,29 +6,24 @@ DXGI proxy and ASI plugin.
 The project is deliberately fail-open for normal runtime failures and
 **fail-closed for unsupported game executables**.
 
-## Current project state: V1.03 native-gauge TEST (2026-10-12)
+## Current project state: V1.04 crosshair-safety + mounted-forward HOTFIX
 
-**Working branch:** `debug`. The stable `main` branch has NOT been changed. Previous V1.02/V0.98 ZIPs are preserved.
+**Working branch:** `debug` only; `main` unchanged, V1.03 and V0.98 rollback ZIPs preserved.
 
-**Latest successfully compiled Windows x64 experimental build: V1.03.** Four files at ZIP root: `dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md`. GitHub Actions completed successfully: [V1.03 build](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38311864934).
+**Latest V1.04 cumulative Windows x64 test:** [V1.04 ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.04_WARNINGSAFE_MOUNTED_FORWARD_TEST.zip) (use only after CI build succeeds). Exactly four root entries: `dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md`.
 
-**[Download V1.03 experimental ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.03_CAMERA_INPUT_NATIVE_GAUGES_TEST.zip)**
+### Why V1.04 exists
+User's exact V1.03 log from 2026-10-12 23:48–23:52 showed the **same crosshair regression historically associated with Skip Warning**, camera values unexpectedly different on the first session, and *mounted Camera Forward* no longer visually shooting ahead. It loaded the exact V1.03 ASI and valid game EXE; the log notably contained **NO** `Skip Warning ... hook installed` line, so this particular session does not prove that hook ran. It DID show `Hide Reticle` active early, manually set OFF later, `TPS=ON` immediately despite shipped default OFF (persistent INI loaded), and mounted fire `CAMERA_FORWARD` but no mounted raycast getter calls.
 
-### V1.03 changes
+**Changes versus V1.03:**
+- **Skip Warning quarantine:** disable risky early native warning hook **at source and at DXGI startup**, including when existing user INI contains `SkipWarning=1`. Change shipped INI default to OFF, force existing configurations to OFF, remove misleading user toggle and show explicit disabled note. MoviePlayer, Skip Logos and Skip Intro remain intact. Visual legal warning skip is NOT yet available; crosshair regression must be retested after removing patch.
+- **Horse TPS Camera Forward:** the new V1.03 `TPSCameraStickMode=OFF` returned before the older validated V0.92 forward-gamepad injection. In V1.04 the native forward-stick injection runs independently of camera joystick selection while aiming with RT/RB. Joystick OFF disables camera orbit on BOTH foot and mount, without disabling firing. Add separate `HORSE` and `FOOT` forward injection counters, including bounded first mounted sample; no guessed projectile/raycast patch. **A successful injection does NOT prove projectile direction; user must test.**
+- **Camera visual defaults:** V1.03 accidentally removed the historical V0.98 +50 height component when decoupling normal camera and TPS. Reinstate +50 as a **TPS-only internal baseline**, not linked to editable normal-camera height. TPS values remain FOV 110, distance x0.15, pitch -12, vertical offset 0, foot origin 0, joystick Right.
+- **INI migration:** ConfigRevision 2137. Preserve user-customized values, bindings and existing TPS enable state. Only upgrade the **exact** obsolete camera reset tuple `distance 0.50 / height 180 / foot 88` to current defaults. New startup log prints effective loaded INI path and numeric camera values, TPS joystick mode, aim mode, Hide Reticle and Skip Warning; this explains which saved profile is in effect. Reset buttons remain separately available.
+- All three signature-guarded native Wrath/Chaos/Synergy gain hooks from V1.03 stay unchanged, OFF by default. In the uploaded V1.03 log their READY state was proven, but shutdown counters `Wrath=0 Chaos=0 Synergy=4` and boosted=0 all, so **no charge effect was confirmed**. Test individually later; no false claim of gameplay success.
+- Native R3 equipment hold/stow, LB/G/Tab wheels, Horse Everywhere region and sprint native code, shaders and HUD/reticle input are not modified in V1.04.
 
-- **Wrath / Ultimate Form (Chaos) / Synergy charge multipliers:** three separate native gain hooks identified by disassembling the exact matching `DarksidersGenesis-Win64-Shipping.exe` (`AddWrath RVA 0x660570`, `AddChaos RVA 0x62E060`, `SetCurrentSynergy RVA 0x583040`). Exact byte/signature checks; only positive local resource gains multiplied. Synergy setter receives absolute values, so only positive *delta* is boosted. **Experimental and disabled by default; actual gameplay result must be tested.** These are separate from the previously working Hotstreak `AddJuice` multiplier.
-- Each charge slider is visible in Combat with an enable checkbox, **manual numeric entry**, **Default ×2** and bounded range ×1–25. Native hook READY and event counters are displayed. A READY hook alone does not prove the in-game gauge fills faster.
-- **Two independent camera resets:** `Camera Values Default` and `TPS Camera Values Default`, each exposed as a button and as an assignable F1–F12 action. Restores accurate native and TPS camera defaults without changing unrelated settings. Vanilla camera parameters no longer add yaw/height/zoom or alternate FOV into TPS, and their UI/keyboard controls are disabled while TPS is enabled.
-- **TPS camera:** always attached to the verified player. Foot Origin Correction is with other TPS camera values. Controller joystick choice **OFF / Left Stick / Right Stick**; Right Stick is default. Left shares movement and is experimental.
-- **Rebindable controls:** individually restore default key/button for menu, F1–F12 actions, camera shortcuts, TPS shortcuts, horse chord and camera/aim/wheel detectors. Default TPS keyboard Z/Z pairing preserved.
-- **Native equipment input:** physical R3 USES and can hold/range-release equipment, preserving the validated V0.84/V0.98 continuous hold, UP interval and second stow pulse. **R3 is not a wheel opener.** Keyboard E USES equipment; G opens Equipment Wheel, Tab opens Ammunition/Abilities wheel, controller LB opens native wheel. Retired incorrect E/Alt/R3 radial detectors.
-- The TPS mouse-to-stick layer removed in V1.02 remains removed. Native physical mouse input, overlay mouse and reticle/Alt-Tab handling remain separate.
-
-**Unresolved:** `Skip Warning` V1.02 reports an executed native 3-entry bypass but the screen still needs a visual fix; **not claimed fixed in V1.03**. Native cinematic-state identification and Default View on actual cutscenes remain experimental. No new D-Pad directional wheel emulation was added without evidence it was necessary. Physical R3, mounted horse movement/retention, shader aim suppression and native look paths still require in-game non-regression tests.
-
-Technical notes: [V1.03 binary research and test matrix](docs/V1_03_NATIVE_GAUGES_CAMERA_INPUT_TEST_PLAN.md), [V1.03 full audit](docs/V1_03_FULL_SOURCE_AUDIT_AND_UI_SPEC.md), [CURRENT_STATE](docs/CURRENT_STATE.md).
-
-The entries below this section are the historical development record; superseded release claims must be read using this V1.03 update.
+**Source audit & history:** [V1.04 hotfix note](docs/V1_04_SKIPWARNING_TPS_HORSE_FORWARD_HOTFIX.md), [V1.03 gauge hook provenance](docs/V1_03_NATIVE_GAUGES_CAMERA_INPUT_TEST_PLAN.md), [CURRENT_STATE](docs/CURRENT_STATE.md). Historical docs follow below.
 
 ## Downloads (stable links)
 
