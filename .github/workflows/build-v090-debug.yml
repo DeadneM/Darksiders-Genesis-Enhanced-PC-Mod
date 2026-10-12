@@ -1,4 +1,4 @@
-name: V1.02 controller-only TPS, gauge presets and guarded warning skip TEST
+name: V1.03 native gauge hooks, camera and controller cleanup TEST
 on:
   push:
     branches: [debug]
@@ -40,7 +40,7 @@ jobs:
           Copy-Item config/DarksidersGenesisMod.ini dist/
           Copy-Item README.md dist/
           New-Item -ItemType Directory -Path downloads -Force | Out-Null
-          $zipPath = 'downloads/DarksidersGenesis_V1.02_CONTROLLER_ONLY_GAUGES_SKIPWARN_TEST.zip'
+          $zipPath = 'downloads/DarksidersGenesis_V1.03_CAMERA_INPUT_NATIVE_GAUGES_TEST.zip'
           if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
           Compress-Archive -Path 'dist/*' -DestinationPath $zipPath -CompressionLevel Optimal
           Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -56,8 +56,8 @@ jobs:
       - name: Upload verified Windows x64 ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_V1.02_CONTROLLER_ONLY_GAUGES_SKIPWARN_TEST
-          path: downloads/DarksidersGenesis_V1.02_CONTROLLER_ONLY_GAUGES_SKIPWARN_TEST.zip
+          name: DarksidersGenesis_V1.03_CAMERA_INPUT_NATIVE_GAUGES_TEST
+          path: downloads/DarksidersGenesis_V1.03_CAMERA_INPUT_NATIVE_GAUGES_TEST.zip
           if-no-files-found: error
       - name: Preserve numbered experimental ZIP in debug
         shell: pwsh
@@ -65,8 +65,8 @@ jobs:
           $ErrorActionPreference = 'Stop'
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add downloads/DarksidersGenesis_V1.02_CONTROLLER_ONLY_GAUGES_SKIPWARN_TEST.zip
-          git commit -m "downloads: preserve compiled V1.01 cumulative experimental ZIP (unvalidated)"
+          git add downloads/DarksidersGenesis_V1.03_CAMERA_INPUT_NATIVE_GAUGES_TEST.zip
+          git commit -m "downloads: preserve compiled V1.03 cumulative experimental ZIP (unvalidated)"
           if ($LASTEXITCODE -ne 0) { throw 'Archive commit failed' }
           $published = $false
           for ($i=0; $i -lt 5; $i++) {
@@ -79,4 +79,4 @@ jobs:
             Start-Sleep -Seconds 2
           }
           if (-not $published) { throw 'Permanent experimental ZIP push failed' }
-          Write-Host 'V1.02 ZIP https://raw.githubusercontent.com/'"$env:GITHUB_REPOSITORY"'/debug/downloads/DarksidersGenesis_V1.02_CONTROLLER_ONLY_GAUGES_SKIPWARN_TEST.zip'
+          Write-Host 'V1.03 ZIP https://raw.githubusercontent.com/'"$env:GITHUB_REPOSITORY"'/debug/downloads/DarksidersGenesis_V1.03_CAMERA_INPUT_NATIVE_GAUGES_TEST.zip'
