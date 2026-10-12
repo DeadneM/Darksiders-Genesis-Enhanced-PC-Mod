@@ -788,13 +788,20 @@ void Draw(Context& c) {
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
                 DrawSectionTitle("TPS controls and aiming");
-                if(ImGui::Checkbox("Mouse TPS: V0.98 camera orbit",
+                constexpr const char* kVirtualStickChoices[]={
+                    "OFF (legacy V0.98 mouse orbit)",
+                    "LEFT stick (mouse = movement, experimental)",
+                    "RIGHT stick (mouse = camera / aim, experimental)"
+                };
+                ImGui::SetNextItemWidth(480.0f);
+                if(ImGui::Combo("Mouse emulated joystick##TPS",
+                    &config.tpsMouseStickMode,kVirtualStickChoices,3))config.Save();
+                ImGui::TextWrapped("TPS only: mouse-relative movement becomes virtual XInput stick, "
+                    "including while firing. Native mouse shot vector remains untouched. "
+                    "OFF restores V0.98 mouse orbit.");
+                if(ImGui::Checkbox("Mouse input enabled##TPS",
                     &config.tpsMouseCenterAimEnabled))config.Save();
-                ImGui::TextDisabled("Mouse camera without firing: restored V0.98.");
-                if(ImGui::Checkbox("Mouse fire: simulate forward look (test)",
-                    &config.tpsMouseForwardFire))config.Save();
-                ImGui::TextDisabled("LMB on foot only: steer native look vector along TPS camera yaw.");
-                ImGui::TextDisabled("No simulated XInput and no controller changes; OFF = vanilla mouse aim.");
+                ImGui::TextDisabled("Virtual and legacy TPS mouse require this option.");
                 if(ImGui::Checkbox("Auto suspend TPS during detected cutscenes (test)",
                     &config.tpsCutsceneAutoSuspend))config.Save();
                 ImGui::TextDisabled("ON: native view + no TPS input during detected cinematics.");
@@ -885,8 +892,25 @@ void Draw(Context& c) {
                 if(ImGui::SliderInt("Temporary view delay##HoldTPS",
                     &config.tpsSuspendDelayMs,0,3000,"%d ms"))config.Save();
                 ImGui::Spacing();
-                BindGamepadMask("Controller grenade (native R3)##TPS",config.tpsGrenadeButtonMask);
-                ImGui::TextDisabled("Keyboard Use Gear = native E (no duplicate mod shortcut).");
+                BindGamepadMask("Use selected equipment (R3)##TPS",config.tpsGrenadeButtonMask);
+                ImGui::TextWrapped("R3 USES selected equipment; it does NOT open the equipment wheel. "
+                    "The native hold and stow/release pulse are preserved.");
+                ImGui::Separator();
+                ImGui::TextDisabled("Native GAME bindings: manually match in-game controls");
+                BindGamepadMask("Detect primary fire (default RT)##TPS",config.tpsFirePrimaryMask);
+                ImGui::TextWrapped("Match the in-game SHOOT button. This detects firing but does not rebind the game.");
+                BindGamepadMask("Detect alternate fire (default RB)##TPS",config.tpsFireSecondaryMask);
+                ImGui::TextWrapped("Optional second SHOOT input; OFF disables this detector.");
+                BindGamepadMask("Detect wheel opening (default LB)##TPS",config.tpsWheelPadMask);
+                ImGui::TextWrapped("This held button lets the game's native right stick select wheel items, "
+                    "instead of being intercepted by TPS camera control.");
+                BindTPSKeyboard("Wheel detector key 1",dg::config::TpsKeyboardAction::WheelE);
+                BindTPSKeyboard("Wheel detector key 2",dg::config::TpsKeyboardAction::WheelG);
+                BindTPSKeyboard("Wheel detector key 3",dg::config::TpsKeyboardAction::WheelTab);
+                BindTPSKeyboard("Wheel detector key 4",dg::config::TpsKeyboardAction::WheelAlt);
+                ImGui::TextWrapped("Wheel detector keys never emit fake game input. "
+                    "Change them here too when rebinding the game's wheel controls.");
+                ImGui::TextDisabled("Keyboard Use Gear follows the game's own native mapping.");
                 ImGui::TextDisabled("Default R3 grenade/temporary view, L3 short recenter/long TPS toggle.");
                 ImGui::TextDisabled("Grenade stow pulses: %u | DOWN %u / UP %u",
                     t.grenadeNativeReleasePulses,t.grenadePhysicalDown,t.grenadePhysicalUp);
