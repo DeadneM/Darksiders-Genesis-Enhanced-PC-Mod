@@ -547,7 +547,7 @@ bool Store::Load() {
     fovDegrees =
         ReadFloat(L"Values", L"FOVDegrees", 90.0f, path_);
     thirdPersonFovDegrees=ReadFloat(L"Values",L"TPSFOVDegrees",110.0f,path_);
-    if(!std::isfinite(thirdPersonFovDegrees))thirdPersonFovDegrees=90.0f;
+    if(!std::isfinite(thirdPersonFovDegrees))thirdPersonFovDegrees=110.0f; // Match TPS canonical default.
     thirdPersonFovDegrees=std::clamp(thirdPersonFovDegrees,40.0f,140.0f);
     cameraZoomPercent =
         ReadFloat(L"Values", L"CameraZoomPercent", 0.0f, path_);
