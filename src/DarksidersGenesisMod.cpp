@@ -2944,11 +2944,25 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
         wheelRt.tpsAbilityWheelTick.store(GetTickCount64(),std::memory_order_release);
         return status;
     }
+    // Physical R3 opens some native equipment wheels. Preserve right-stick
+    // selection while leaving its validated grenade/stow timing unchanged.
+    const bool nativeR3Held=(pad.wButtons&XINPUT_GAMEPAD_RIGHT_THUMB)!=0;
     const int grenadeMask=g_config.tpsGrenadeButtonMask;
     if(localGameplay && grenadeMask!=0 &&
        (!(pad.wButtons&XINPUT_GAMEPAD_LEFT_SHOULDER) ||
          grenadeMask==XINPUT_GAMEPAD_LEFT_SHOULDER))
         ApplyHoldGrenadeVirtualR3(pad,grenadeMask);
+    if(localGameplay&&nativeR3Held){
+        auto& wheelRt=dg::runtime::Get();
+        wheelRt.tpsAbilityWheelHeld.store(true,std::memory_order_release);
+        wheelRt.tpsAbilityWheelTick.store(GetTickCount64(),std::memory_order_release);
+        static std::atomic_uint32_t nativeR3WheelPasses{0};
+        const unsigned n=++nativeR3WheelPasses;
+        if(n==1||n==250||n==2000)
+            Log("TPS V0.97 WHEEL: R3 physical + native right-stick passed n=%u rx=%d ry=%d",
+                n,static_cast<int>(pad.sThumbRX),static_cast<int>(pad.sThumbRY));
+        return status;
+    }
     if(!ShouldSuppressNativeAim())
         return status; // Preserve vanilla aim while temporary view is held.
     if(pad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER){
@@ -3617,7 +3631,8 @@ void UpdateOrbitInput() {
     // G, Tab or Left Alt on keyboard. Never change camera view while wheel
     // inputs are present; let all native look getters process right stick.
     const bool wheelOpen=focused && (
-        (padAvailable&&(physicalBits&XINPUT_GAMEPAD_LEFT_SHOULDER)!=0) ||
+        (padAvailable&&(physicalBits&
+            (XINPUT_GAMEPAD_LEFT_SHOULDER|XINPUT_GAMEPAD_RIGHT_THUMB))!=0) ||
         (GetAsyncKeyState('E')&0x8000)!=0 ||
         (GetAsyncKeyState('G')&0x8000)!=0 ||
         (GetAsyncKeyState(VK_TAB)&0x8000)!=0 ||
@@ -3946,7 +3961,10 @@ void UpdateOrbitInput() {
                suspendControllerOrbitOnFire)break;
             XINPUT_STATE state{};
             if (GetCameraXInputState(i,&state)!=ERROR_SUCCESS) continue;
-            if (state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) continue;
+            // Native right stick selects wheel entries when LB or R3 is
+            // held. Avoid orbiting the TPS camera simultaneously.
+            if (state.Gamepad.wButtons &
+                (XINPUT_GAMEPAD_LEFT_SHOULDER|XINPUT_GAMEPAD_RIGHT_THUMB))continue;
             const float x=static_cast<float>(state.Gamepad.sThumbRX)/32767.0f;
             const float y=static_cast<float>(state.Gamepad.sThumbRY)/32767.0f;
             const float len=std::sqrt(x*x+y*y);
