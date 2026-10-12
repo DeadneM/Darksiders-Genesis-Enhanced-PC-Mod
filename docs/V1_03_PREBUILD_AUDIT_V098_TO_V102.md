@@ -1,0 +1,38 @@
+# V1.03 PRE-BUILD AUDIT | Actual V0.98 versus compiled V1.02
+**2026-10-12. Audit only, NO V1.03 build and NO source changes yet.**
+**Baseline:** user-tested V0.98 source at commit `d6fd6c453760530d30b62aa595dd1854c7dcd706` (ConfigRevision 2132).
+**Compared:** `debug` V1.02 sources (ConfigRevision 2135, `kBuild = 1.02-controller-only-gauges-research-skip-warning-3-test`) and Windows CI successful V1.02 run 38301250776.
+GitHub compare: 59 commits, code paths changed in `DarksidersGenesisMod.cpp`, `CameraTraceFeature.cpp`, `OverlayUi.cpp`, `ConfigStore.cpp/.h`, `RuntimeSettings.cpp/.h`, `dxgi_proxy.cpp`. `main` unchanged.
+
+## 1. User sees removed V1.01-only mouse controls in V1.02
+**Confirmed source contradiction:** the exact UI labels `Mouse input enabled##TPS` and `Mouse emulated joystick##TPS` were removed in V1.02. Source currently instead displays `Controller-only TPS experiment: native mouse input is untouched.` User still sees both old choices. **Likely cause:** game still loads V1.01/another old ASI, or mod files installed in an unexpected game directory. This is a high-confidence version mismatch hypothesis, not proven without new actual startup log. Verify very first ASI log: `Darksiders Genesis Enhanced ASI 1.02-controller-only-gauges-research-skip-warning-3-test starting`, plus loader's `ASI LoadLibrary` full path. **Do not interpret successful CI as proof of game-loaded version.** Loader reads boot INI adjacent to `dxgi.dll`, ASI reads its INI adjacent to `DarksidersGenesisMod.asi`; test that both files and INI are in the SAME game Win64 directory. Avoid blindly overwriting user-customized INI until verified.
+
+## 2. Remaining TPS mouse paths and why clean V1.02 isolation is incomplete
+V0.98: RAW `WM_INPUT` & `WM_MOUSEMOVE` fallback accumulated TPS mouse orbit; `cameraMouseOrbitEnabled`, `tpsMouseCenterAimEnabled`, mouse sensitivity, and native LMB look/camera continuity.
+V1.02 did REMOVE WndProc RAW/fallback, orbit accumulation, virtual XInput mouse axes/virtual pad, and visible mouse TPS controls. However `DarksidersGenesisMod.cpp` STILL calls `GetAsyncKeyState(VK_LBUTTON)` in native GetPlayerLookInput/GetPlayerLookRotation and targeting-UI observer; these are TPS-specific mouse input detections. `EnsureOrbitWndProc` still installs a WndProc and misleadingly logs `Aim V0.57: native mouse input gate installed`, although current gameplay mouse events fall through; the WndProc is still necessary for overlay keyboard capture/horse early H, focus/cursor. Do not remove the overlay's normal ImGui mouse input, Hide Reticle cursor support or Alt-Tab restoring. **New goal:** ZERO mouse-driven TPS camera/aim/fire branches; native game mouse must be passthrough; preserve only unrelated overlay/cursor interaction. Rename/re-scope the misleading WndProc log.
+
+## 3. Exact keyboard wheel semantics correction (confirmed by user)
+`E`: use selected equipment, same conceptual action as native `R3`; NOT wheel.
+`G`: equipment radial wheel.
+`Tab`: ammunition/abilities radial wheel.
+Delete `WheelE` and `WheelAlt` from enum `TpsKeyboardAction`, key tokens, defaults, config persistence, old INI key migration and `UpdateOrbitInput` wheel detection. Name two retained controls `Equipment wheel (G)` and `Ammunition / abilities wheel (Tab)`. Current V1.02 code treats E, G, Tab, LAlt and physical R3 as `tpsAbilityWheelHeld`: this incorrectly labels E/R3 as an open wheel and can inhibit the normal controller aim path. Keep the native **R3 use / hold + release stow pulse** already validated; do not confuse this with wheel detection. Keep physical LB gating for controller radial selection.
+
+## 4. Three gauges not visibly/functionally added
+V1.02 code contains Wrath/Ultimate/Synergy only in a collapsed `ImGui::TreeNode("Wrath / Ultimate Form / Synergy (research only)")` inside Gameplay -> Combat. All three defaults OFF and are disconnected from native gameplay; no charge hook exists; existing `Hotstreak AddJuice` must not be treated as these gauges. Next candidate: show THREE individually visible, clearly named rows, each 1x-25x, but label nonfunctional until individually signature-verified native player gain callbacks are found; do not pretend a UI slider modifies gameplay. Locate each resource's true game-side native owner before enabling.
+
+## 5. Skip Warning not working
+V1.01 loader log proved span=0xC0 (three 0x40 entries), seen=1/skipped=0. V1.02 updated native signature-guarded `dxgi_proxy.cpp::InstallSkipWarningLoopHook` at RVA `0x25FEBF` to accept 0x40,0x80,0xC0. But `skipped` proves only that end pointer was set to start in ONE loop, not that the warning panel is drawn by this exact loop or that setup/frame dispatch was bypassed. User confirms warnings still visibly render. **Next** inspect actual V1.02 boot log for `Skip Warning V1.02: native definition span... seen=... skipped=...`; distinguish old ASI/loader, early INI not read, hook mismatch, successful skip of irrelevant loop vs actual screen. Instrument descriptor identity/dispatch READ ONLY before any new gameplay-bypassing patch; never skip whole StartupModule/MoviePlayer (historical cursor/intro regressions).
+
+## 6. Native camera during cutscene still fails
+V0.98 and V1.02 both rely on the V0.97 camera-shape heuristic in `CameraTraceFeature.cpp::HookView`: stale player pose / distance / native pitch outside [-89,-15] is marked not gameplay after 500ms. `tpsCutsceneSuspended` is immediately CLEARED when a cinematic camera remains close to player and has plausible gameplay pitch; therefore short/near/in-place cutscenes may retain TPS. Stale actor samples may instead create false positives, as observed in older game logs. Need engine-authoritative player cinematic/camera-owner state, not another shorter/longer timeout. Candidate design: observe native player/camera ownership state and cutscene enter/leave transitions without writes; only after verified reliable signatures gate TPS output and gamepad filtering. Preserve cinematic camera native FOV/pose/rotation and restore TPS correctly after finish.
+
+## 7. Exact INI defaults comparison and migration concern
+Comparing V0.98 shipped INI to V1.02 shipped INI:
+- Retired `CameraMouseOrbit=1`, `TPSMouseCenterAim=1`, `CameraMouseSensitivity=0.120`.
+- New **not functional** `WrathCharge=0`, `UltimateFormCharge=0`, `SynergyCharge=0` and their 2.000 values.
+- New and currently WRONG keyboard wheel defaults `RadialE=E`, `RadialG=G`, `RadialTab=Tab`, `RadialAlt=LAlt`.
+- Added controller detectors `TPSFirePrimaryMask=131072 (RT)`, `TPSFireSecondaryMask=512 (RB)`, `TPSWheelPadMask=256 (LB)`.
+- Everything else in the shipped INI remained value-identical except `ConfigRevision` (2132 -> 2135). **This does not prove that user's actual saved INI is correct**: ConfigStore::Load reads existing INI and migrates versions, then SaveNow rewrites. A mismatched/old ASI can display out-of-date defaults. Preserve explicit user customization and compare shipped INI against actual ResetDefaults / missing-key fallbacks / saved migration. Do not reset user profile wholesale. Disable/rename only retired wheel keys, preserve G/Tab user assignments.
+
+## Build gate before V1.03
+No build until audit is acknowledged. Implement wheel semantics + INI migration, actual complete TPS-only mouse isolation, explicit three-gauge display, version/loader visibility, precise warning diagnosis and cinematic authoritative observation, then source diff and initial default audit. Only after audit/review compile Windows x64 and verify exactly four files in ZIP root, log V1.03 actual load, keep previous ZIPs and `main` unchanged. No speculative gameplay gauge hooks.
