@@ -1,4 +1,5 @@
 #include "OverlayUi.h"
+#include "GaugeChargeFeature.h"
 #include "ShaderAimFeature.h"
 
 #include "HorseFeature.h"
@@ -371,33 +372,38 @@ void Draw(Context& c) {
                 t.hotstreakHookReady
             );
 
-            if (ImGui::TreeNode("Wrath / Ultimate Form / Synergy (research only)")) {
-                ImGui::TextWrapped("INACTIVE: these three independent presets are saved but do "
-                    "NOT change gameplay yet. Native gain functions must be identified and "
-                    "validated for each resource. Hotstreak is a separate mechanism.");
-                if (ImGui::Checkbox("Wrath charge (pending hook)", &config.wrathChargeEnabled))
-                    config.Save();
-                ImGui::SameLine();
-                ImGui::SetNextItemWidth(180.0f);
-                if (ImGui::SliderFloat("##wrathResearchMultiplier",
-                    &config.wrathChargeMultiplier,1.0f,25.0f,"%.2fx"))
-                    config.Save();
-                if (ImGui::Checkbox("Ultimate Form charge (pending hook)", &config.ultimateChargeEnabled))
-                    config.Save();
-                ImGui::SameLine();
-                ImGui::SetNextItemWidth(180.0f);
-                if (ImGui::SliderFloat("##ultimateResearchMultiplier",
-                    &config.ultimateChargeMultiplier,1.0f,25.0f,"%.2fx"))
-                    config.Save();
-                if (ImGui::Checkbox("Synergy charge (pending hook)", &config.synergyChargeEnabled))
-                    config.Save();
-                ImGui::SameLine();
-                ImGui::SetNextItemWidth(180.0f);
-                if (ImGui::SliderFloat("##synergyResearchMultiplier",
-                    &config.synergyChargeMultiplier,1.0f,25.0f,"%.2fx"))
-                    config.Save();
-                ImGui::TextDisabled("Native hooks: Wrath NOT FOUND | Ultimate NOT FOUND | Synergy NOT FOUND");
-                ImGui::TreePop();
+            { // V1.03: three always-visible independent native gain controls.
+                DrawSectionTitle("Wrath / Ultimate Form / Synergy");
+                const auto charge=dg::gauges::GetTelemetry();
+                ImGui::TextDisabled("Native hooks: Wrath %s | Ultimate/Chaos %s | Synergy %s",
+                    charge.wrathReady?"READY":"UNAVAILABLE",
+                    charge.chaosReady?"READY":"UNAVAILABLE",
+                    charge.synergyReady?"READY":"UNAVAILABLE");
+                ImGui::TextWrapped("Experimental: only positive native local-player gains are multiplied. Verify visually.");
+                auto GaugeRow=[&](const char* label,const char* id,bool& enabled,float& value){
+                    if(ImGui::Checkbox(label,&enabled))config.Save();
+                    ImGui::PushID(id);
+                    bool changed=false;
+                    ImGui::SetNextItemWidth(220.0f);
+                    changed|=ImGui::SliderFloat("##Slider",&value,1.0f,25.0f,"%.2fx");
+                    ImGui::SameLine();
+                    ImGui::SetNextItemWidth(115.0f);
+                    changed|=ImGui::InputFloat("##Manual",&value,0.0f,0.0f,"%.3f");
+                    ImGui::SameLine();
+                    if(ImGui::Button("Default")){value=2.0f;changed=true;}
+                    if(changed){
+                        if(!std::isfinite(value))value=2.0f;
+                        value=std::clamp(value,1.0f,25.0f);
+                        config.Save();
+                    }
+                    ImGui::PopID();
+                };
+                GaugeRow("Wrath charge","wrath",config.wrathChargeEnabled,config.wrathChargeMultiplier);
+                GaugeRow("Ultimate Form / Chaos charge","chaos",config.ultimateChargeEnabled,config.ultimateChargeMultiplier);
+                GaugeRow("Synergy charge","synergy",config.synergyChargeEnabled,config.synergyChargeMultiplier);
+                ImGui::TextDisabled("Calls W/C/S: %u/%u/%u | multiplied %u/%u/%u",
+                    charge.wrathObserved,charge.chaosObserved,charge.synergyObserved,
+                    charge.wrathBoostCalls,charge.chaosBoostCalls,charge.synergyBoostCalls);
             }
 
             ImGui::TextDisabled("Observed in-game: pistol %d | melee-like %d | Hotstreak %d",
@@ -720,17 +726,9 @@ void Draw(Context& c) {
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
                 DrawSectionTitle("TPS camera attachment");
-                if(ImGui::Checkbox("Attach TPS camera to player",&config.tpsFollowPlayer))
-                    config.Save();
+                ImGui::TextDisabled("TPS follows the live local player permanently.");
                 ImGui::TextDisabled("TPS pivot follows player feet on the character axis.");
-                ImGui::SetNextItemWidth(245.0f);
-                if(ImGui::SliderFloat("Foot origin correction##TPS",&config.tpsFootAnchorOffset,
-                        -500.0f,500.0f,"%+.0f units")) config.Save();
-                ImGui::SameLine();
-                if(ImGui::Button("Default##TPSFoot")) {
-                    config.tpsFootAnchorOffset=0.0f;config.Save();
-                }
-                ImGui::TextDisabled("Approximate root-to-foot height; adjust for the character model.");
+                ImGui::TextDisabled("Foot Origin appears with other TPS camera values below.");
                 if(ImGui::TreeNode("Advanced attachment counters")){
                     ImGui::TextDisabled("Attached: %u | zone overrides: %u | deferred: %u",
                         camera.tpsAttachedFrames,camera.nativeZoneOverridesIgnored,
@@ -792,17 +790,26 @@ void Draw(Context& c) {
                     config.Save();
                 }
                 ImGui::Spacing();
-                if(ImGui::Checkbox("Control camera with controller right stick##TPS",&config.cameraControllerOrbitEnabled)){
+                constexpr const char* stickOptions[]={"OFF","Left Stick","Right Stick"};
+                ImGui::SetNextItemWidth(285.0f);
+                if(ImGui::Combo("TPS camera joystick",&config.tpsCameraStickMode,stickOptions,3)){
+                    config.cameraControllerOrbitEnabled=config.tpsCameraStickMode!=0;
                     config.cameraOrbitInputEnabled=config.cameraControllerOrbitEnabled;
                     config.Save();
                 }
-                if(config.cameraControllerOrbitEnabled){
+                if(config.tpsCameraStickMode!=0){
                     ImGui::SetNextItemWidth(245.0f);
                     if(ImGui::SliderFloat("Stick speed##TP",&config.cameraStickSpeed,30.0f,360.0f,"%.0f deg/s"))
                         config.Save();
                 }
                 ImGui::TextDisabled("Only Third Person, focused game, closed overlay.");
-                ImGui::TextDisabled("Native right-stick isolation is automatic in TPS.");
+                ImGui::TextDisabled("Right Stick default. OFF is native aim; Left shares movement.");
+                ImGui::SetNextItemWidth(245.0f);
+                if(ImGui::SliderFloat("Foot origin correction##TPS",&config.tpsFootAnchorOffset,
+                   -500.0f,500.0f,"%+.0f units"))config.Save();
+                ImGui::SameLine();
+                if(ImGui::Button("Default##TPSFoot")){config.tpsFootAnchorOffset=0.0f;config.Save();}
+                if(ImGui::Button("TPS Camera Values Default"))config.ResetTpsCameraValues();
                 ImGui::Unindent();
             }
             if (config.thirdPersonEnabled) {
@@ -935,6 +942,10 @@ void Draw(Context& c) {
                 ImGui::Unindent();
             }
             ImGui::TextDisabled("Normal aiming and camera return when TPS is OFF.");
+            if(config.thirdPersonEnabled)
+                ImGui::TextDisabled("Vanilla camera settings are disabled during TPS; saved values stay intact.");
+            ImGui::BeginDisabled(config.thirdPersonEnabled);
+            if(ImGui::Button("Camera Values Default"))config.ResetVanillaCameraValues();
             DrawSectionTitle("Field of view");
             DrawTunableFeature(config,"Enable FOV Override","FOV",
                 &config.fovEnabled,&config.fovDegrees,
@@ -1023,8 +1034,8 @@ void Draw(Context& c) {
 
             DrawSectionTitle("Camera keyboard bindings");
             ImGui::TextWrapped(
-                "Default: Up/Down = camera height, Left/Right = zoom. "
-                "Tilt actions are customizable; NumPad 4/6 rotate left/right (Num Lock ON). "
+                "Default: Up/Down = height, PageUp/PageDown = zoom. "
+                "Home/End = tilt; Left/Right = yaw. "
                 "Press Rebind then the new key; Esc cancels. "
                 "Bindings work only with the overlay closed and the game focused."
             );
@@ -1053,6 +1064,7 @@ void Draw(Context& c) {
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("The native r.DepthOfFieldQuality is restored when Zoom and Third Person are off.");
             ImGui::TextDisabled("Native output changes. Actual framing requires in-game verification.");
+            ImGui::EndDisabled();
             ImGui::EndTabItem();
         }
 
