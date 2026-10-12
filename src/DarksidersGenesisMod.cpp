@@ -36,7 +36,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.96-horse-dual-restrictions-mouse-native-angles-test";
+constexpr const char* kBuild = "0.97-horse-zones-raw-mouse-cutscene-radial-audit-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -98,11 +98,6 @@ std::atomic_uint32_t g_tpsNativeFacingOff{0},g_tpsNativeFacingRestored{0};
 std::atomic_uint32_t g_tpsStrafeSamples{0};
 // V0.72: track potential Steam Input -> synthetic Windows mouse mapping.
 std::atomic_ullong g_tpsPadRightStickTick{0},g_tpsRawMouseTick{0};
-// V0.95 experimental mouse targeting: game-native cursor keeps the center
-// screen aim while raw physical mouse deltas still orbit the independent TPS
-// camera. A warp-origin WM_MOUSEMOVE is never interpreted as camera motion.
-std::atomic_ullong g_tpsMouseTargetWarpTick{0};
-std::atomic_int g_tpsMouseTargetWarpX{0},g_tpsMouseTargetWarpY{0};
 std::atomic_uint32_t g_tpsMouseTargetWarpCount{0};
 std::atomic_uint32_t g_tpsControllerMouseBlocks{0};
 // V0.92 experimental: a virtual forward-facing right stick is passed ONLY to
@@ -1563,27 +1558,9 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     const bool mounted=IsMountedTPSNow();
     const bool padFiring=IsPadFiringNow();
     const bool fire=mouseFiring||padFiring;
-    // V0.96 mouse isolation experiment: the old V0.75 look vector
-    // override forced the rendered camera's 2D yaw into the game's native
-    // mouse-target vector WHILE SetCursorPos also moved its target every
-    // frame. They disagree on where the game's actual cursor ray points.
-    // Keep ORIGINAL native mouse look only for on-foot Camera Forward when
-    // the requested mouse aim test is ON. Controller and mounted hooks
-    // remain untouched. OFF reverts to old V0.95 look-vector handling.
-    if(mouseFiring&&!padFiring&&!mounted&&
-       rt.tpsMountedAimMode.load(std::memory_order_relaxed)==0&&
-       rt.tpsMouseCenterAimEnabled.load(std::memory_order_relaxed)){
-        static std::atomic_uint32_t samples{0};
-        const unsigned n=++samples;
-        if(n==1||n==100||n==1000){
-            const float nativeYaw=std::atan2(result->yaw,result->pitch)*57.29577951308232f;
-            const float cameraYaw=dg::camera_trace::GetTelemetry().appliedYaw;
-            Log("TPS V0.96 MOUSE: original native look retained n=%u nativeYaw=%.1f cameraYaw=%.1f; legacy yaw override bypassed",
-                n,nativeYaw,cameraYaw);
-        }
-        return result;
-    }
-    // Mounted mode overrides on-foot strafe/rotate settings entirely.
+    // V0.97: on-foot mouse targeting stays game-native in every aim mode;
+    // the player look vector is NEVER overwritten for physical mouse fire.
+    if(mouseFiring&&!padFiring&&!mounted)return result;
     // Mode 1: native look is passed through for vanilla horse aiming.
     // V0.87: Vanilla Aim means NATIVE look ONLY WHILE FIRING.
     // Off-fire the right stick is camera-only, never simultaneously
@@ -1657,13 +1634,8 @@ NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
     const bool mouseFire=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
     const bool padFire=IsPadFiringNow();
     const bool mounted=IsMountedTPSNow();
-    // V0.96: in the new mouse aim path, DO NOT inject another TPS yaw into
-    // native GetPlayerLookRotation. Native mouse target owns this value.
-    // This applies only on foot, Camera Forward, physical mouse firing.
-    if(mouseFire&&!padFire&&!mounted &&
-       rt.tpsMountedAimMode.load(std::memory_order_relaxed)==0 &&
-       rt.tpsMouseCenterAimEnabled.load(std::memory_order_relaxed))
-        return result;
+    // V0.97: do not inject camera yaw into a mouse-driven on-foot shot.
+    if(mouseFire&&!padFire&&!mounted)return result;
     const bool playerStrafe=padFire; // identical native look semantics on foot/horse
     // During mounted Vanilla Aim fire, native look rotation is untouched.
     // While idle, suppress right-stick-origin horseman aim.
@@ -2838,6 +2810,7 @@ bool ShouldSuppressNativeAim() {
     return g_targetValidation.exact && !g_shuttingDown.load(std::memory_order_relaxed) &&
         dg::runtime::Get().thirdPersonEnabled.load(std::memory_order_relaxed) &&
         !dg::runtime::Get().tpsTemporarilySuspended.load(std::memory_order_relaxed) &&
+        !dg::runtime::Get().tpsCutsceneSuspended.load(std::memory_order_relaxed) &&
         hwnd && hwnd==GetForegroundWindow() && !IsIconic(hwnd) &&
         !g_overlayVisible.load(std::memory_order_relaxed);
 }
@@ -3112,6 +3085,7 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     static int oldX=0,oldY=0;
     const bool active=g_config.thirdPersonEnabled &&
         (g_config.cameraMouseOrbitEnabled || IsMountedTPSNow()) &&
+        !dg::runtime::Get().tpsCutsceneSuspended.load() &&
         !g_overlayVisible.load() && GetForegroundWindow()==hwnd;
     if (!active) primed=false;
     // V0.69: do not consume native WM_INPUT/WM_MOUSEMOVE.
@@ -3137,14 +3111,8 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     if (msg==WM_MOUSEMOVE) {
         const int x=static_cast<short>(LOWORD(lParam));
         const int y=static_cast<short>(HIWORD(lParam));
-        const auto warpedAt=g_tpsMouseTargetWarpTick.load(std::memory_order_acquire);
-        const auto current=GetTickCount64();
-        const bool modWarp=warpedAt && current>=warpedAt &&
-            current-warpedAt<180ull &&
-            x==g_tpsMouseTargetWarpX.load(std::memory_order_relaxed) &&
-            y==g_tpsMouseTargetWarpY.load(std::memory_order_relaxed);
-        if (active && primed && !modWarp &&
-            current-g_lastOrbitRawTick.load()>1500ull) {
+        // WM_MOUSEMOVE fallback only if recent RAW mouse is unavailable.
+        if(active && primed && GetTickCount64()-g_lastOrbitRawTick.load()>1500ull) {
             const int dx=x-oldX,dy=y-oldY;
             if (std::abs(dx)<=180 && std::abs(dy)<=180) {
                 g_orbitMouseDx.fetch_add(dx);
@@ -3853,6 +3821,7 @@ void UpdateOrbitInput() {
     // Mode 1 pauses only during fire; it resumes afterwards.
     const bool forcedMountOrbit=IsMountedTPSNow();
     const bool active=g_config.thirdPersonEnabled && !temporaryVanilla &&
+        !rt.tpsCutsceneSuspended.load(std::memory_order_relaxed) &&
         (g_config.cameraMouseOrbitEnabled||g_config.cameraControllerOrbitEnabled||
          forcedMountOrbit) && focused;
     const float dt=g_orbitLastPresentTick && now-g_orbitLastPresentTick<=100ull
@@ -3990,11 +3959,16 @@ void UpdateOrbitInput() {
     }
     const float mouse=g_config.cameraMouseSensitivity,stick=g_config.cameraStickSpeed;
     if (!std::isfinite(mouse)||!std::isfinite(stick)) return;
+    // Keep existing Vanilla Aim gamepad and mounted lock, but NEVER
+    // freeze the independent on-foot RAW mouse orbit when shooting.
     const bool freezeMountedMouse=MountedVanillaAimWhileFiring() &&
-        ((GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0||IsPadFiringNow());
-    const float dyaw=(!freezeMountedMouse&&(g_config.cameraMouseOrbitEnabled||forcedMountOrbit)?
+        (IsPadFiringNow() ||
+         (IsMountedTPSNow()&&(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0));
+    const bool rawMouseOrbit=g_config.tpsMouseCenterAimEnabled &&
+        (g_config.cameraMouseOrbitEnabled||forcedMountOrbit);
+    const float dyaw=(!freezeMountedMouse&&rawMouseOrbit?
         static_cast<float>(dx)*mouse:0.0f)+ax*stick*dt;
-    const float dpitch=(!freezeMountedMouse&&(g_config.cameraMouseOrbitEnabled||forcedMountOrbit)?
+    const float dpitch=(!freezeMountedMouse&&rawMouseOrbit?
         -static_cast<float>(dy)*mouse:0.0f)+ay*stick*dt;
     if (dyaw!=0.0f || dpitch!=0.0f) {
         rt.cameraOrbitYawDegrees.store(std::remainder(rt.cameraOrbitYawDegrees.load()+dyaw,360.0f));
@@ -4002,47 +3976,8 @@ void UpdateOrbitInput() {
     }
 }
 
-// Input-level TPS mouse aim experiment: native cursor stays at screen center
-// only while physically firing in Camera Forward mode. The game's mouse
-// input continues normally, and its own targeting/raycast remains in charge.
-// Do not warp while selecting radial menus, while riding, in cutscenes,
-// outside focused gameplay or in the user-validated Vanilla Aim mode.
-void UpdateTPSNativeMouseCenterTarget(){
-    // V0.96: one native target reset per NEW firing press. V0.95 warped
-    // repeatedly (58 SetCursorPos attempts in the supplied log) during
-    // continuous fire and fought both the native mouse ray and camera input.
-    static bool previousMouseFire=false;
-    const bool mouseHeld=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
-    const bool rising=mouseHeld&&!previousMouseFire;
-    previousMouseFire=mouseHeld;
-    if(!rising)return;
-    auto& rt=dg::runtime::Get();
-    if(!g_config.tpsMouseCenterAimEnabled || !ShouldSuppressNativeAim() ||
-       rt.tpsMountedAimMode.load(std::memory_order_relaxed)!=0 ||
-       IsMountedTPSNow() || IsTPSRadialInputActive() ||
-       !IsTPSLookViewFresh() ||
-       (GetAsyncKeyState(VK_LBUTTON)&0x8000)==0)
-        return;
-    const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load(std::memory_order_acquire));
-    if(!hwnd || GetForegroundWindow()!=hwnd || IsIconic(hwnd))return;
-    RECT rect{};
-    if(!GetClientRect(hwnd,&rect) || rect.right-rect.left<320 ||
-       rect.bottom-rect.top<200)return;
-    POINT center{(rect.left+rect.right)/2,(rect.top+rect.bottom)/2};
-    const int clientX=center.x,clientY=center.y;
-    if(!ClientToScreen(hwnd,&center))return;
-    POINT cursor{};
-    if(!GetCursorPos(&cursor))return;
-    if(std::abs(cursor.x-center.x)<=2&&std::abs(cursor.y-center.y)<=2)return;
-    const ULONGLONG now=GetTickCount64();
-    g_tpsMouseTargetWarpX.store(clientX,std::memory_order_relaxed);
-    g_tpsMouseTargetWarpY.store(clientY,std::memory_order_relaxed);
-    g_tpsMouseTargetWarpTick.store(now,std::memory_order_release);
-    if(SetCursorPos(center.x,center.y)){
-        const unsigned n=++g_tpsMouseTargetWarpCount;
-        if(n<=8)Log("TPS V0.96 mouse: single native target reset at FIRE DOWN #%u; native look angles no longer overwritten; RAW orbit untouched",n);
-    }else g_tpsMouseTargetWarpTick.store(0,std::memory_order_release);
-}
+// V0.97: no SetCursorPos gameplay warps. The native mouse targeting
+// and projectile path remain untouched; only RAW input orbits TPS.
 
 HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) {
     ApplySkipIntroSetting(false);
@@ -4062,7 +3997,6 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     EnsureOrbitWndProc(swapChain);
     EnsureNativeXInputAimHooks();
     UpdateOrbitInput();
-    UpdateTPSNativeMouseCenterTarget();
     RefreshReticleCursorState();
 
     // V0.68: restore original V0.32 lazy overlay policy. No rendered TPS
@@ -4371,7 +4305,7 @@ void ShutdownMod() {
     RestoreCameraDof();
     Log("TPS V0.69 totals: mouseInputNative=PASSTHROUGH rightStickReadsFiltered=%u whileFiring=%u",
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
-    Log("TPS V0.95 mouse native-center attempts=%u",g_tpsMouseTargetWarpCount.load());
+    Log("TPS V0.97 mouse: RAW-only orbit; zero synthetic cursor warps");
     Log("TPS V0.92 input totals: mountedForwardAnalog=%u mappedHorseChord=%u keyboardHorse=%u",
         g_tpsForwardAnalogInjected.load(),g_horsePadChordRemapped.load(),
         g_keyboardHorseInjected.load());
