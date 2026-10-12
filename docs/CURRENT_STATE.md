@@ -1,5 +1,14 @@
 # CURRENT_STATE | Darksiders Genesis Enhanced PC Mod
 
+## 2026-10-13 V1.05 candidate: native gauge owner probes + true vanilla camera reset + startup record observation
+
+**Branch debug only. Main unchanged.** From V1.04 uploaded log: Wrath=0 Chaos=0 Synergy=35 native calls and all boosts=0, despite hook READY; no evidence of working charge multipliers. V1.05 sets all three ON by default x2, migrates only old all-OFF shipped preset, logs local owner, positive Synergy delta and max, and corrects Synergy's native void return type. Never multiply unknown actors.
+
+Vanilla Camera Height should be native default 0, but code/INI/Reset set 50. V1.05 reconciles ALL, migrates exactly old default 50 once to 0, restores TPS FOV override in TPS Camera Values Default. Per-camera settings remain independent; TPS +50 private framing retained. User-customized other values untouched.
+
+Startup warning research: exact EXE function RVA 0x2603F0 produces startup settings with 3 entries at +0x50/0x58, stride 0x40. Loop RVA 0x25FED0 tests record+0x39 and calls RVA 0xAC8760. Old SkipWarning bypass of entire loop potentially skipped UI initialization. V1.05 only passively logs flags from existing movie hook after the loop; no warning skip, no record writes. Which 2 entries draw warning messages is not yet proven. See [V1.05 audit](V1_05_GAUGE_CAMERA_STARTUP_WARNING_AUDIT.md). Retain V1.04 mounted 946 forward-stick injections, horse/shader/R3 gameplay freeze.
+
+
 ## Latest result: V1.04 safety rollback + mounted forward hotfix (2026-10-12)
 
 **Branch debug**, stable main unchanged. Source changes: quarantine startup Skip Warning hook after user-reported crosshair regression; retire toggle, default and legacy persistence OFF. Keep Skip Logos and Skip Intro. V1.03 user session loaded the correct binaries but had NO loader skip warning installation log; do not call causal chain confirmed.

@@ -6,24 +6,18 @@ DXGI proxy and ASI plugin.
 The project is deliberately fail-open for normal runtime failures and
 **fail-closed for unsupported game executables**.
 
-## Current project state: V1.04 crosshair-safety + mounted-forward HOTFIX
+## Current project state: V1.05 gauge, camera and startup-screen TEST
 
-**Working branch:** `debug` only; `main` unchanged, V1.03 and V0.98 rollback ZIPs preserved.
+Branch `debug` only, `main` preserved. All previous ZIPs remain available.
 
-**Latest V1.04 cumulative Windows x64 test:** [V1.04 ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.04_WARNINGSAFE_MOUNTED_FORWARD_TEST.zip) (use only after CI build succeeds). Exactly four root entries: `dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md`.
+**[V1.05 experimental Windows x64 ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.05_GAUGES_CAMERA_WARNING_OBSERVER_TEST.zip)**. Only valid after Windows GitHub Actions compilation and publication succeeds; four files at ZIP root.
 
-### Why V1.04 exists
-User's exact V1.03 log from 2026-10-12 23:48–23:52 showed the **same crosshair regression historically associated with Skip Warning**, camera values unexpectedly different on the first session, and *mounted Camera Forward* no longer visually shooting ahead. It loaded the exact V1.03 ASI and valid game EXE; the log notably contained **NO** `Skip Warning ... hook installed` line, so this particular session does not prove that hook ran. It DID show `Hide Reticle` active early, manually set OFF later, `TPS=ON` immediately despite shipped default OFF (persistent INI loaded), and mounted fire `CAMERA_FORWARD` but no mounted raycast getter calls.
+- Wrath, Ultimate Form/Chaos, Synergy are **enabled by default**, individually set to **x2**. If an older INI has the shipped all-OFF preset, it migrates to all-ON once. Existing individually customized toggles persist. Native detours remain **unvalidated in gameplay**: user's V1.04 log showed Wrath=0, Chaos=0, Synergy=35 and boosted=0, despite all three hooks READY. V1.05 observes native local-owner matching and positive requested/current/max values; corrects the Synergy setter signature to `void` after disassembly. No unverified global resource writes.
+- Vanilla camera Height now defaults to **0**, including INI, runtime/constructor, load fallback, reset button and one-time migration when previous saved value was the unchanged old default 50. Other saved camera values are preserved. `Camera Values Default` sets vanilla FOV90, zoom0, pitch0, yaw0, height0. `TPS Camera Values Default` restores FOV override ON, FOV110, distance0.15, pitch-12, vertical0, foot0, stick speed180; it does not change TPS enabled or unrelated binds. TPS private +50 framing baseline remains separate from normal height.
+- Native startup `StartupScreensSettings` records (count previously 3, stride 0x40) loop at **RVA 0x25FED0**, checking field `+0x39` and conditionally calling **RVA 0xAC8760**. The V1.02 warning skip bypassed the WHOLE record loop, potentially omitting essential UI initialization and causing cross-shaped cursor. V1.05 leaves warning skip **disabled** and logs record flags **without modifying anything** after the native loop, using existing StartupMovies hook. The actual two visible warning screens and their display call have not been proven or skipped.
+- Preserve V1.04 accepted mounted-forward input, mounted horse, original R3 equipment hold+stow, wheel LB/G/Tab, Strife shader hide, reticle/HUD, intro/logo skip, engine options. No changes to horse shader or damage hooks.
 
-**Changes versus V1.03:**
-- **Skip Warning quarantine:** disable risky early native warning hook **at source and at DXGI startup**, including when existing user INI contains `SkipWarning=1`. Change shipped INI default to OFF, force existing configurations to OFF, remove misleading user toggle and show explicit disabled note. MoviePlayer, Skip Logos and Skip Intro remain intact. Visual legal warning skip is NOT yet available; crosshair regression must be retested after removing patch.
-- **Horse TPS Camera Forward:** the new V1.03 `TPSCameraStickMode=OFF` returned before the older validated V0.92 forward-gamepad injection. In V1.04 the native forward-stick injection runs independently of camera joystick selection while aiming with RT/RB. Joystick OFF disables camera orbit on BOTH foot and mount, without disabling firing. Add separate `HORSE` and `FOOT` forward injection counters, including bounded first mounted sample; no guessed projectile/raycast patch. **A successful injection does NOT prove projectile direction; user must test.**
-- **Camera visual defaults:** V1.03 accidentally removed the historical V0.98 +50 height component when decoupling normal camera and TPS. Reinstate +50 as a **TPS-only internal baseline**, not linked to editable normal-camera height. TPS values remain FOV 110, distance x0.15, pitch -12, vertical offset 0, foot origin 0, joystick Right.
-- **INI migration:** ConfigRevision 2137. Preserve user-customized values, bindings and existing TPS enable state. Only upgrade the **exact** obsolete camera reset tuple `distance 0.50 / height 180 / foot 88` to current defaults. New startup log prints effective loaded INI path and numeric camera values, TPS joystick mode, aim mode, Hide Reticle and Skip Warning; this explains which saved profile is in effect. Reset buttons remain separately available.
-- All three signature-guarded native Wrath/Chaos/Synergy gain hooks from V1.03 stay unchanged, OFF by default. In the uploaded V1.03 log their READY state was proven, but shutdown counters `Wrath=0 Chaos=0 Synergy=4` and boosted=0 all, so **no charge effect was confirmed**. Test individually later; no false claim of gameplay success.
-- Native R3 equipment hold/stow, LB/G/Tab wheels, Horse Everywhere region and sprint native code, shaders and HUD/reticle input are not modified in V1.04.
-
-**Source audit & history:** [V1.04 hotfix note](docs/V1_04_SKIPWARNING_TPS_HORSE_FORWARD_HOTFIX.md), [V1.03 gauge hook provenance](docs/V1_03_NATIVE_GAUGES_CAMERA_INPUT_TEST_PLAN.md), [CURRENT_STATE](docs/CURRENT_STATE.md). Historical docs follow below.
+[Technical audit and next-step tests](docs/V1_05_GAUGE_CAMERA_STARTUP_WARNING_AUDIT.md) · [Live current state](docs/CURRENT_STATE.md).
 
 ## Downloads (stable links)
 

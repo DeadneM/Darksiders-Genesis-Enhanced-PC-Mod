@@ -640,6 +640,12 @@ bool Store::Load() {
         return true;
     }
     if (revision < kConfigRevision) {
+        // Previous shipped Vanilla Camera Height=50; native/default is 0.
+        // Upgrade ONLY the identical old default, preserve other custom values.
+        if(revision<2138 && std::fabs(cameraHeightOffset-50.0f)<0.001f){
+            cameraHeightOffset=0.0f;
+            Log("V1.05 migrated old Camera Height 50 to vanilla default 0");
+        }
         // V1.04 shipped all three OFF. Migrate only that unmodified preset once.
         // Independent user-customized gauge selections are preserved.
         if(revision<2138 && !wrathChargeEnabled &&

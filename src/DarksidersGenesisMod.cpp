@@ -37,7 +37,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.04-safe-warning-rollback-mounted-forward-repair-test";
+constexpr const char* kBuild = "1.05-gauges-owner-camera-warning-observer-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -4342,6 +4342,10 @@ DWORD WINAPI MainThread(LPVOID) {
         g_config.thirdPersonHeightOffset,g_config.tpsFootAnchorOffset,
         g_config.tpsCameraStickMode,g_config.tpsMountedAimMode,g_config.cameraHeightOffset,
         g_config.hideReticle?1:0,g_config.skipWarningEnabled?1:0);
+    Log("V1.05 GAUGES loaded Wrath=%d x%.2f Ultimate=%d x%.2f Synergy=%d x%.2f",
+        g_config.wrathChargeEnabled?1:0,g_config.wrathChargeMultiplier,
+        g_config.ultimateChargeEnabled?1:0,g_config.ultimateChargeMultiplier,
+        g_config.synergyChargeEnabled?1:0,g_config.synergyChargeMultiplier);
 
     dg::engine_ini::Initialize(&FeatureLog);
     if (!dg::engine_ini::ApplyGraphicsAdapter(
