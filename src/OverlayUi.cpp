@@ -787,10 +787,10 @@ void Draw(Context& c) {
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
                 DrawSectionTitle("TPS controls and aiming");
-                if(ImGui::Checkbox("Mouse TPS: center native aiming target while firing (test)",
+                if(ImGui::Checkbox("Mouse TPS: native mouse aiming during fire (test)",
                     &config.tpsMouseCenterAimEnabled))config.Save();
-                ImGui::TextDisabled("Only Camera Forward on foot. Physical RAW mouse still controls the camera.");
-                ImGui::TextDisabled("Turn OFF if cursor warp affects targeting or gameplay.");
+                ImGui::TextDisabled("Camera Forward on foot: native mouse look + ONE target recenter on fire DOWN.");
+                ImGui::TextDisabled("OFF restores earlier TPS-yaw look injection for A/B testing.");
                 ImGui::Separator();
                 ImGui::TextDisabled("Native movement and camera isolation are automatic in TPS.");
                 ImGui::Separator();
