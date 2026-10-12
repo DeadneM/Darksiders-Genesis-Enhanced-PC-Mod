@@ -12,17 +12,28 @@ The project is deliberately fail-open for normal runtime failures and
 
 As of **2026-10-12**, experimental development is on `debug` only; previous
 binaries are on `archive` and protected `main` is **not** the working branch.
-Latest compiled experiment: **V1.00** (not yet user-validated), available at
-[the numbered Windows x64 cumulative ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.00_V098_CAMERA_MOUSE_FORWARD_FIRE_TEST.zip).
+User **rejected V1.00** because the TPS mouse is broken.
+Current source experiment on `debug`: **V1.01 virtual mouse stick**,
+not yet user-validated. The numbered Windows x64 cumulative ZIP will be
+available only after GitHub Actions successfully compiles and packages it:
+[DarksidersGenesis_V1.01_TPS_VIRTUAL_MOUSE_BINDINGS_TEST.zip](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.01_TPS_VIRTUAL_MOUSE_BINDINGS_TEST.zip).
 
 **Validated and frozen:** Horse Everywhere (Restricted only as the fresh default),
 R3 native **USE equipment** (not wheel-open), keyboard E/Z/Z, previously
 working V0.98 equipment wheel and the two verified shader signatures.
-**Experimental:** V1.00 restores exact V0.98 camera and only modifies native
-mouse look vector on physical LMB fire; the accessory wheel and mouse-fire
-simulation require fresh user testing. New Wrath/Ultimate/Synergy gauges and
-Skip Warnings are pending native audit, NOT active features. Physical controller
-XInput paths remain unchanged.
+**Experimental:** V1.01 removes the rejected V1.00 on-foot LMB native
+look-vector rewrite and adds virtual XInput mouse-stick mode OFF (V0.98
+rollback) / LEFT (movement) / RIGHT (TPS camera/aim, default). Primary /
+secondary fire and radial-wheel detector bindings can now match customized
+native in-game controls; they do NOT change the game's own bindings.
+R3 remains native USE selected equipment, not a wheel opener.
+Existing horse, gamepad hold/release, Strife shaders and HUD code are frozen.
+Automatic cinematic suspension remains an unvalidated heuristic.
+Skip Warning still does not skip the three-entry warning list observed in
+the V1.00 log (RVA 0x25FEBF); identifying the descriptors is pending.
+Wrath / Ultimate Form / Synergy charge multipliers are pending native
+owner identification, NOT implemented. See
+[V1.01 technical note](docs/V1_01_TPS_VIRTUAL_MOUSE_AND_INPUT_DETECTORS.md).
 
 The older README entries below are retained as a technical history; historical
 mentions of working on `main` or old versions as "current" are superseded by
