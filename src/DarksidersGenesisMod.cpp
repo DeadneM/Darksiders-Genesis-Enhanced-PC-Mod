@@ -97,9 +97,8 @@ std::atomic_uint32_t g_tpsPlayerGeneration{0};
 std::atomic_uint32_t g_tpsNativeFacingOff{0},g_tpsNativeFacingRestored{0};
 std::atomic_uint32_t g_tpsStrafeSamples{0};
 // V0.72: track potential Steam Input -> synthetic Windows mouse mapping.
-std::atomic_ullong g_tpsPadRightStickTick{0},g_tpsRawMouseTick{0};
+std::atomic_ullong g_tpsPadRightStickTick{0};
 // V0.99: V0.95 cursor-warp counter removed; all mouse warps were removed in V0.97.
-std::atomic_uint32_t g_tpsControllerMouseBlocks{0};
 // V0.92 experimental: a virtual forward-facing right stick is passed ONLY to
 // the game's XInput while shooting mounted in CAMERA_FORWARD mode; the camera
 // continues reading unmodified physical stick data through its own trampoline.
@@ -130,16 +129,8 @@ GrenadeHoldState g_grenadeHoldState{};
 SRWLOCK g_tpsFacingLock=SRWLOCK_INIT;
 void* g_tpsFacingCurrentComponent=nullptr;
 bool g_tpsFacingOwned=false;
-std::atomic_int g_orbitMouseDx{0},g_orbitMouseDy{0};
-std::atomic_ullong g_lastOrbitRawTick{0};
 // V0.99 observational-only mouse audit. No synthetic cursor events or
 // native shot/aim edits. Bound every live log, preserve controller paths.
-std::atomic_uint32_t g_tpsMouseRawPackets{0},g_tpsMouseRawMotion{0};
-std::atomic_uint32_t g_tpsMouseRawWhileFire{0},g_tpsMouseFallbackMotion{0};
-std::atomic_uint32_t g_tpsMouseOrbitFireFrames{0},g_tpsMouseNativeFireLook{0};
-std::atomic_int g_tpsVirtualMouseX{0},g_tpsVirtualMouseY{0};
-std::atomic_ullong g_tpsVirtualMouseTick{0};
-std::atomic_uint32_t g_tpsVirtualMouseInjected{0},g_tpsVirtualMouseEmulatedPad{0};
 ULONGLONG g_orbitLastPresentTick=0;
 std::atomic_bool g_overlayVisible{false};
 std::atomic_bool g_captureMenuKey{false};
@@ -1527,10 +1518,8 @@ bool IsPadFiringNow() {
 bool IsRightStickActiveNow() {
     const ULONGLONG now=GetTickCount64();
     const ULONGLONG stick=g_tpsPadRightStickTick.load(std::memory_order_acquire);
-    const ULONGLONG realMouse=g_tpsRawMouseTick.load(std::memory_order_acquire);
-    // Real mouse takes precedence over a concurrent controller.
-    return stick && now>=stick && now-stick<150ull &&
-        (!realMouse || now<realMouse || now-realMouse>120ull);
+    // Controller-only detector: no mouse-source arbitration in TPS.
+    return stick && now>=stick && now-stick<150ull;
 }
 bool IsTPSLookViewFresh() {
     const auto& rt=dg::runtime::Get();
@@ -1566,10 +1555,9 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     const bool mouseFiring=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
     const bool mounted=IsMountedTPSNow();
     const bool padFiring=IsPadFiringNow();
-    const bool fire=mouseFiring||padFiring;
-    // V1.01: restore unmodified V0.98 physical mouse firing look.
-    // The only new mouse-to-controller behaviour is virtual XInput stick.
-    if(mouseFiring&&!padFiring&&!mounted)return result;
+    const bool fire=padFiring;
+    // V1.02: physical mouse-only firing always follows unmodified game look.
+    if(mouseFiring&&!padFiring)return result;
     // Mode 1: native look is passed through for vanilla horse aiming.
     // V0.87: Vanilla Aim means NATIVE look ONLY WHILE FIRING.
     // Off-fire the right stick is camera-only, never simultaneously
@@ -1587,7 +1575,7 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     // TPS aim/movement are independent: the camera-vector look path is a
     // fixed internal rule while firing, not an optional "strafe" switch.
     const bool padStrafeFiring=IsPadFiringNow();
-    if((mouseFiring||padStrafeFiring)&&IsTPSLookViewFresh()){
+    if(padStrafeFiring&&IsTPSLookViewFresh()){
         // GetPlayerLookInput returns the native character's world-space
         // X/Y look VECTOR (RVA 0x671A40 reads actor+0xD24/0xD28).
         // Feed world-facing vector corresponding to the mod TPS view only
@@ -1611,12 +1599,10 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
             result->pitch=std::cos(rad);
             result->yaw=std::sin(rad);
             result->roll=0.0f;
-            const unsigned n=mouseFiring
-                ? ++g_tpsNativeLookInputMouseAim
-                : ++g_tpsNativeLookInputPadAim;
+            const unsigned n=++g_tpsNativeLookInputPadAim;
             if(n==1||n==120||n==10000)
-                Log("TPS V0.75: game-native LOOK VECTOR -> camera during fire n=%u source=%s yaw=%.1f calls=%u",
-                    n,mouseFiring?"mouse":"pad-strafe",yaw,calls);
+                Log("TPS V1.02: controller LOOK VECTOR -> camera during fire n=%u yaw=%.1f calls=%u",
+                    n,yaw,calls);
             return result;
         }
     }
@@ -1643,30 +1629,27 @@ NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
     const bool mouseFire=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
     const bool padFire=IsPadFiringNow();
     const bool mounted=IsMountedTPSNow();
-    // V0.97: do not inject camera yaw into a mouse-driven on-foot shot.
-    if(mouseFire&&!padFire&&!mounted)return result;
+    // V1.02: do not modify mouse-only aim, on foot OR mounted.
+    if(mouseFire&&!padFire)return result;
     const bool playerStrafe=padFire; // identical native look semantics on foot/horse
     // During mounted Vanilla Aim fire, native look rotation is untouched.
     // While idle, suppress right-stick-origin horseman aim.
-    if(rt.tpsMountedAimMode.load()==1 &&
-       (mouseFire||padFire))return result;
+    if(rt.tpsMountedAimMode.load()==1 && padFire)return result;
     const bool nativeBlock=IsRightStickActiveNow();
     const float actorYaw=g_tpsActorWorldYaw.load(std::memory_order_acquire);
     const float cameraYaw=dg::camera_trace::GetTelemetry().appliedYaw;
     if(!std::isfinite(actorYaw)||!std::isfinite(cameraYaw)||
        std::fabs(cameraYaw)>36000.0f)return result;
-    // User request: no mouse checkboxes. Mouse shooting automatically
-    // rotates Strife's NATIVE desired look toward camera forward.
-    // Pad Strafe: aim toward the rendered camera heading, retain vanilla
+    // Pad strafe: aim toward the rendered camera heading, retain vanilla
     // player movement vector. Rotate while firing is CAMERA ONLY.
-    if(mouseFire || playerStrafe){
+    if(playerStrafe){
         result->pitch=0.0f;
         result->yaw=std::remainder(cameraYaw,360.0f);
         result->roll=0.0f;
-        const unsigned n=mouseFire?++g_tpsMouseFacingApplied:++g_tpsPadStrafeApplied;
+        const unsigned n=++g_tpsPadStrafeApplied;
         if(n==1||n==120||n==10000)
-            Log("TPS V0.75: native look rotation -> camera n=%u source=%s yaw=%.1f",
-                n,mouseFire?"mouse-fire":"pad-strafe-fire",result->yaw);
+            Log("TPS V1.02: controller look rotation -> camera n=%u yaw=%.1f",
+                n,result->yaw);
     } else if(nativeBlock) {
         // Right stick must not rotate the PLAYER through the native look
         // getter, even when engine input arrives by another XInput/HID path.
@@ -2856,33 +2839,6 @@ bool TPSFireDown(const XINPUT_GAMEPAD& pad) {
     return GamepadBindingDown(g_config.tpsFirePrimaryMask,pad) ||
         GamepadBindingDown(g_config.tpsFireSecondaryMask,pad);
 }
-bool TPSMouseVirtualReady() {
-    const auto& rt=dg::runtime::Get();
-    const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
-    return rt.tpsMouseStickMode.load()!=0 &&
-        rt.thirdPersonEnabled.load() && g_config.cameraMouseOrbitEnabled &&
-        !rt.tpsCutsceneSuspended.load() && !rt.tpsTemporarilySuspended.load() &&
-        !IsTPSRadialInputActive() && IsTPSLookViewFresh() && hwnd &&
-        GetForegroundWindow()==hwnd && !IsIconic(hwnd) &&
-        !g_overlayVisible.load() && !g_shuttingDown.load();
-}
-bool TPSMouseVirtualMotion() {
-    const ULONGLONG now=GetTickCount64(),tick=g_tpsVirtualMouseTick.load();
-    return TPSMouseVirtualReady() && tick && now>=tick && now-tick<120 &&
-        (g_tpsVirtualMouseX.load()||g_tpsVirtualMouseY.load());
-}
-void TPSApplyMouseVirtualStick(XINPUT_GAMEPAD& pad) {
-    if(!TPSMouseVirtualMotion())return;
-    const int mode=dg::runtime::Get().tpsMouseStickMode.load();
-    const SHORT x=static_cast<SHORT>(g_tpsVirtualMouseX.load());
-    const SHORT y=static_cast<SHORT>(g_tpsVirtualMouseY.load());
-    if(mode==1){pad.sThumbLX=x;pad.sThumbLY=y;}
-    else if(mode==2){pad.sThumbRX=x;pad.sThumbRY=y;}
-    const unsigned n=++g_tpsVirtualMouseInjected;
-    if(n==1||n==1000)
-        Log("TPS V1.01 virtual %s stick n=%u x=%d y=%d",mode==1?"LEFT":"RIGHT",n,x,y);
-}
-
 void ApplyHoldGrenadeVirtualR3(XINPUT_GAMEPAD& pad,int mask) {
     const ULONGLONG now=GetTickCount64();
     // V0.94: the native keyboard E Use Gear already works; only physical
@@ -2934,15 +2890,9 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     const auto original=g_nativeXInputOriginal[slot];
     if(!original)return ERROR_DEVICE_NOT_CONNECTED;
     const DWORD realStatus=original(user,state);
-    const bool virtualPad=user==0 && state && realStatus==ERROR_DEVICE_NOT_CONNECTED &&
-        TPSMouseVirtualReady();
-    if((realStatus!=ERROR_SUCCESS&&!virtualPad)||!state||user!=0)return realStatus;
-    if(virtualPad){
-        std::memset(state,0,sizeof(*state));
-        const unsigned n=++g_tpsVirtualMouseEmulatedPad;
-        if(n==1)Log("TPS V1.01 virtual XInput controller 0 active (native controller disconnected)");
-    }
-    const DWORD status=ERROR_SUCCESS;
+    // V1.02 controller isolation: never synthesize a pad from mouse input.
+    if(realStatus!=ERROR_SUCCESS||!state||user!=0)return realStatus;
+    const DWORD status=realStatus;
     auto& pad=state->Gamepad;
     // V0.92: user-selected pair must be pressed SIMULTANEOUSLY, never OR.
     // Map its held state to the game's original LB+RB summon/dismount chord.
@@ -3031,7 +2981,7 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     // touches the physical right stick, which the camera reads unfiltered.
     // Mode 1 (user-validated VANILLA AIM) is excluded, as is on-foot fire.
     const bool mountedForForward=IsMountedTPSNow();
-    if(rt.tpsMountedAimMode.load()==0 && fire && !TPSMouseVirtualMotion()){
+    if(rt.tpsMountedAimMode.load()==0 && fire){
         pad.sThumbRX=0;
         pad.sThumbRY=32767;
         const unsigned n=++g_tpsForwardAnalogInjected;
@@ -3062,9 +3012,6 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
                 n,fire?1:0);
     }
 
-    // Physical buttons remain unchanged; synthetic analogue only after
-    // native right-stick isolation, never while a radial is held.
-    TPSApplyMouseVirtualStick(pad);
     return status;
 }
 DWORD WINAPI HookNativeXInput14(DWORD user,XINPUT_STATE* state) {return FilterNativeXInput(0,user,state);}
@@ -3126,78 +3073,8 @@ DWORD GetCameraXInputState(DWORD user,XINPUT_STATE* state) {
 }
 
 LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    // V0.72 controller-only synthetic WM_MOUSEMOVE guard. Previous blanket
-    // WM_INPUT suppression broke mouse aiming, so RAWINPUT always passes.
-    // Skip guard when a real RAW mouse input was observed very recently.
-    if(msg==WM_MOUSEMOVE && ShouldSuppressNativeAim() &&
-       !IsTPSRadialInputActive()){
-        const ULONGLONG now=GetTickCount64();
-        const ULONGLONG stick=g_tpsPadRightStickTick.load(std::memory_order_acquire);
-        const ULONGLONG raw=g_tpsRawMouseTick.load(std::memory_order_acquire);
-        if(stick&&now>=stick&&now-stick<130ull&&
-           (!raw||now<raw||now-raw>130ull)){
-            const unsigned n=++g_tpsControllerMouseBlocks;
-            if(n<=3||n==1000||n==10000)
-                Log("TPS V0.72: controller-associated WM_MOUSEMOVE blocked=%u (possible Steam Input mouse emulation)",n);
-            return 0;
-        }
-    }
-    // Read mouse deltas without consuming native game input.
-    static bool primed=false;
-    static int oldX=0,oldY=0;
-    const bool active=g_config.thirdPersonEnabled &&
-        (g_config.cameraMouseOrbitEnabled || IsMountedTPSNow()) &&
-        !dg::runtime::Get().tpsCutsceneSuspended.load() &&
-        !g_overlayVisible.load() && GetForegroundWindow()==hwnd;
-    if (!active) primed=false;
-    // V0.69: do not consume native WM_INPUT/WM_MOUSEMOVE.
-    // The broken flat-mouse isolation froze the game's target coordinates
-    // while moving only the mod camera, causing shots at stale points.
-    // We observe deltas for camera orbit, then pass events to the game.
-    if (msg==WM_INPUT && (active || ShouldSuppressNativeAim())) {
-        RAWINPUT raw{};
-        UINT size=sizeof(raw);
-        if (GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam),RID_INPUT,&raw,&size,
-            sizeof(RAWINPUTHEADER))==size && raw.header.dwType==RIM_TYPEMOUSE) {
-            g_tpsRawMouseTick.store(GetTickCount64(),std::memory_order_release);
-            if(active)++g_tpsMouseRawPackets;
-            if (!(raw.data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE)) {
-                const LONG dx=raw.data.mouse.lLastX,dy=raw.data.mouse.lLastY;
-                if (std::abs(dx)<=250 && std::abs(dy)<=250) {
-                    g_orbitMouseDx.fetch_add(static_cast<int>(dx));
-                    g_orbitMouseDy.fetch_add(static_cast<int>(dy));
-                    g_lastOrbitRawTick.store(GetTickCount64());
-                    if(active&&(dx||dy)){
-                        const unsigned n=++g_tpsMouseRawMotion;
-                        const bool shooting=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
-                        if(shooting)++g_tpsMouseRawWhileFire;
-                        if(n==1||n==200||(shooting&&g_tpsMouseRawWhileFire.load()==1))
-                            Log("TPS V0.99 RAW INPUT: native WM_INPUT PASSTHROUGH sample=%u dx=%ld dy=%ld LMB=%d",
-                                n,dx,dy,shooting?1:0);
-                    }
-                }
-            }
-        }
-    }
-    if (msg==WM_MOUSEMOVE) {
-        const int x=static_cast<short>(LOWORD(lParam));
-        const int y=static_cast<short>(HIWORD(lParam));
-        // WM_MOUSEMOVE fallback only if recent RAW mouse is unavailable.
-        if(active && primed && GetTickCount64()-g_lastOrbitRawTick.load()>1500ull) {
-            const int dx=x-oldX,dy=y-oldY;
-            if (std::abs(dx)<=180 && std::abs(dy)<=180) {
-                g_orbitMouseDx.fetch_add(dx);
-                g_orbitMouseDy.fetch_add(dy);
-                if(dx||dy){
-                    const unsigned n=++g_tpsMouseFallbackMotion;
-                    if(n==1||n==50)
-                        Log("TPS V0.99 FALLBACK INPUT: no recent RAW input, WM_MOUSEMOVE delta=(%d,%d) LMB=%d sample=%u",
-                            dx,dy,(GetAsyncKeyState(VK_LBUTTON)&0x8000)?1:0,n);
-                }
-            }
-        }
-        oldX=x;oldY=y;primed=active;
-    }
+    // V1.02 controller-only TPS: all native mouse messages pass through.
+    // No RAWINPUT reads, WM_MOUSEMOVE filter, mouse-wheel camera or fallback.
     // Never intercept focus/activation messages needed for Alt-Tab.
     const bool focusMessage = msg == WM_ACTIVATEAPP || msg == WM_ACTIVATE ||
         msg == WM_SETFOCUS || msg == WM_KILLFOCUS || msg == WM_MOUSEACTIVATE;
@@ -3902,28 +3779,12 @@ void UpdateOrbitInput() {
     const bool forcedMountOrbit=IsMountedTPSNow();
     const bool active=g_config.thirdPersonEnabled && !temporaryVanilla &&
         !rt.tpsCutsceneSuspended.load(std::memory_order_relaxed) &&
-        (g_config.cameraMouseOrbitEnabled||g_config.cameraControllerOrbitEnabled||
-         forcedMountOrbit) && focused;
+        (g_config.cameraControllerOrbitEnabled || forcedMountOrbit) && focused;
     const float dt=g_orbitLastPresentTick && now-g_orbitLastPresentTick<=100ull
         ? static_cast<float>(now-g_orbitLastPresentTick)*0.001f:0.0f;
     g_orbitLastPresentTick=now;
-    const int dx=g_orbitMouseDx.exchange(0),dy=g_orbitMouseDy.exchange(0);
-    if(active&&(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0){
-        const unsigned n=++g_tpsMouseOrbitFireFrames;
-        if(n==1||n==150||n==750){
-            const auto lastRaw=g_lastOrbitRawTick.load(std::memory_order_acquire);
-            const auto cam=dg::camera_trace::GetTelemetry();
-            Log("TPS V0.99 FIRE ORBIT: frame=%u accumulated=(%d,%d) rawAgeMs=%llu appliedYaw=%.1f nativeYaw=%.1f gameplayView=%d",
-                n,dx,dy,
-                static_cast<unsigned long long>(lastRaw&&now>=lastRaw?now-lastRaw:999999ull),
-                cam.appliedYaw,cam.nativeYaw,
-                rt.tpsViewGameplay.load()?1:0);
-        }
-    }
     if (!active) {
         lastButtons=0;
-        g_tpsVirtualMouseX.store(0);g_tpsVirtualMouseY.store(0);
-        g_tpsVirtualMouseTick.store(0);
         if(!g_config.thirdPersonEnabled) {
             rt.cameraOrbitYawDegrees.store(0.0f);
             rt.cameraOrbitPitchDegrees.store(0.0f);
@@ -3950,23 +3811,21 @@ void UpdateOrbitInput() {
         // and leaves the native right stick to aim (see FilterNativeXInput).
         const bool mounted=IsMountedTPSNow();
         const bool nativeMountAim=rt.tpsMountedAimMode.load()==1;
-        const bool mouseFiringForOrbit=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
-        suspendControllerOrbitOnFire=
-            nativeMountAim && (padFiringForOrbit||mouseFiringForOrbit);
+        suspendControllerOrbitOnFire=nativeMountAim && padFiringForOrbit;
         // Bounded diagnostics: proves that mounted aiming mode is actually
         // selected while firing (rather than only saved in the INI).
         const int activeMountedMode=(mounted &&
-            (padFiringForOrbit||mouseFiringForOrbit))
+            padFiringForOrbit)
             ? rt.tpsMountedAimMode.load() : -1;
         static int previousMountedMode=-2;
         static unsigned mountedModeTransitions=0;
         if(activeMountedMode!=previousMountedMode) {
             previousMountedMode=activeMountedMode;
             const unsigned n=++mountedModeTransitions;
-            if(n<=24)Log("TPS V0.86 MOUNTED AIM mode=%s n=%u (padFire=%d mouseFire=%d)",
+            if(n<=24)Log("TPS V1.02 MOUNTED AIM mode=%s n=%u padFire=%d",
                 activeMountedMode==0?"CAMERA_FORWARD":
                 activeMountedMode==1?"VANILLA_AIM":"INACTIVE",
-                n,padFiringForOrbit?1:0,mouseFiringForOrbit?1:0);
+                n,padFiringForOrbit?1:0);
         }
         // Diagnostic/limited guard for controller software mapping the right
         // stick into Windows mouse movement IN ADDITION TO native XInput.
@@ -4052,39 +3911,19 @@ void UpdateOrbitInput() {
             }
         }
     }
-    const float mouse=g_config.cameraMouseSensitivity,stick=g_config.cameraStickSpeed;
-    if (!std::isfinite(mouse)||!std::isfinite(stick)) return;
-    // Keep existing Vanilla Aim gamepad and mounted lock, but NEVER
-    // freeze the independent on-foot RAW mouse orbit when shooting.
-    const bool freezeMountedMouse=MountedVanillaAimWhileFiring() &&
-        (IsPadFiringNow() ||
-         (IsMountedTPSNow()&&(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0));
-    const bool rawMouseOrbit=g_config.tpsMouseCenterAimEnabled &&
-        (g_config.cameraMouseOrbitEnabled||forcedMountOrbit);
-    // Single mouse source: virtual XInput and independent TPS camera share
-    // the SAME per-frame relative sample; never double-rotate via RAW orbit.
-    const int mode=rt.tpsMouseStickMode.load();
-    const bool emulating=mode!=0 && rawMouseOrbit && !freezeMountedMouse &&
-        !IsTPSRadialInputActive() && TPSMouseVirtualReady() && dt>0.00001f;
-    const float vx=emulating?std::clamp(float(dx)*mouse/(stick*dt),-1.0f,1.0f):0.0f;
-    const float vy=emulating?std::clamp(-float(dy)*mouse/(stick*dt),-1.0f,1.0f):0.0f;
-    const int sx=int(vx*32767.0f),sy=int(vy*32767.0f);
-    g_tpsVirtualMouseX.store(sx);g_tpsVirtualMouseY.store(sy);
-    if(sx||sy)g_tpsVirtualMouseTick.store(now);
-    const float dyaw=(!emulating&&!freezeMountedMouse&&rawMouseOrbit?
-        float(dx)*mouse:0.0f)+ax*stick*dt+
-        (emulating&&mode==2?vx*stick*dt:0.0f);
-    const float dpitch=(!emulating&&!freezeMountedMouse&&rawMouseOrbit?
-        -float(dy)*mouse:0.0f)+ay*stick*dt+
-        (emulating&&mode==2?vy*stick*dt:0.0f);
+    // V1.02: TPS camera rotation is exclusively from original physical
+    // controller right stick; native mouse targeting stays entirely vanilla.
+    const float stick=g_config.cameraStickSpeed;
+    if (!std::isfinite(stick)) return;
+    const float dyaw=ax*stick*dt;
+    const float dpitch=ay*stick*dt;
     if (dyaw!=0.0f || dpitch!=0.0f) {
         rt.cameraOrbitYawDegrees.store(std::remainder(rt.cameraOrbitYawDegrees.load()+dyaw,360.0f));
         rt.cameraOrbitPitchDegrees.store(std::clamp(rt.cameraOrbitPitchDegrees.load()+dpitch,-60.0f,60.0f));
     }
 }
 
-// V0.97: no SetCursorPos gameplay warps. The native mouse targeting
-// and projectile path remain untouched; only RAW input orbits TPS.
+// V1.02: no TPS mouse orbit, XInput synthesis or native mouse interception.
 
 HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) {
     ApplySkipIntroSetting(false);
@@ -4412,16 +4251,11 @@ void ShutdownMod() {
     RestoreCameraDof();
     Log("TPS V0.69 totals: mouseInputNative=PASSTHROUGH rightStickReadsFiltered=%u whileFiring=%u",
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
-    Log("TPS V1.01 virtual mouse: RAW=%u motion=%u duringFire=%u WMfallback=%u orbitFrames=%u injected=%u virtualPadReads=%u",
-        g_tpsMouseRawPackets.load(),g_tpsMouseRawMotion.load(),
-        g_tpsMouseRawWhileFire.load(),g_tpsMouseFallbackMotion.load(),
-        g_tpsMouseOrbitFireFrames.load(),g_tpsVirtualMouseInjected.load(),
-        g_tpsVirtualMouseEmulatedPad.load());
     Log("TPS V0.92 input totals: mountedForwardAnalog=%u mappedHorseChord=%u keyboardHorse=%u",
         g_tpsForwardAnalogInjected.load(),g_horsePadChordRemapped.load(),
         g_keyboardHorseInjected.load());
-    Log("TPS V0.72 totals: controllerMappedMouseMessagesBlocked=%u rightStickFiltered=%u",
-        g_tpsControllerMouseBlocks.load(),g_nativePadAimSuppressed.load());
+    Log("TPS V1.02 controller-only: rightStickFiltered=%u no TPS mouse hooks installed",
+        g_nativePadAimSuppressed.load());
     Log("TPS V0.89 CAMERA FORWARD: horseActorGetPlayerLookInputCalls=%u (passive, no shot raycast hook)",
         g_tpsHorseNativeLookGetterObservations.load());
     Log("TPS V0.88 FORWARD RAYCAST AUDIT totals: lookSamples=%u gapOver35deg=%u lastNativeYaw=%.1f lastCameraYaw=%.1f projectileHook=NO",
