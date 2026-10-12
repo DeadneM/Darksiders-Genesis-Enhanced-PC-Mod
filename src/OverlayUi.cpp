@@ -371,6 +371,35 @@ void Draw(Context& c) {
                 t.hotstreakHookReady
             );
 
+            if (ImGui::TreeNode("Wrath / Ultimate Form / Synergy (research only)")) {
+                ImGui::TextWrapped("INACTIVE: these three independent presets are saved but do "
+                    "NOT change gameplay yet. Native gain functions must be identified and "
+                    "validated for each resource. Hotstreak is a separate mechanism.");
+                if (ImGui::Checkbox("Wrath charge (pending hook)", &config.wrathChargeEnabled))
+                    config.Save();
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(180.0f);
+                if (ImGui::SliderFloat("##wrathResearchMultiplier",
+                    &config.wrathChargeMultiplier,1.0f,25.0f,"%.2fx"))
+                    config.Save();
+                if (ImGui::Checkbox("Ultimate Form charge (pending hook)", &config.ultimateChargeEnabled))
+                    config.Save();
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(180.0f);
+                if (ImGui::SliderFloat("##ultimateResearchMultiplier",
+                    &config.ultimateChargeMultiplier,1.0f,25.0f,"%.2fx"))
+                    config.Save();
+                if (ImGui::Checkbox("Synergy charge (pending hook)", &config.synergyChargeEnabled))
+                    config.Save();
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(180.0f);
+                if (ImGui::SliderFloat("##synergyResearchMultiplier",
+                    &config.synergyChargeMultiplier,1.0f,25.0f,"%.2fx"))
+                    config.Save();
+                ImGui::TextDisabled("Native hooks: Wrath NOT FOUND | Ultimate NOT FOUND | Synergy NOT FOUND");
+                ImGui::TreePop();
+            }
+
             ImGui::TextDisabled("Observed in-game: pistol %d | melee-like %d | Hotstreak %d",
                 t.pistolDamageBoostCalls,t.meleeDamageBoostCalls,t.hotstreakBoostCalls);
             if (ImGui::TreeNode("Advanced combat diagnostics")) {
@@ -763,17 +792,8 @@ void Draw(Context& c) {
                     config.Save();
                 }
                 ImGui::Spacing();
-                if(ImGui::Checkbox("Control camera with mouse##TPS",&config.cameraMouseOrbitEnabled)){
-                    config.cameraOrbitInputEnabled=config.cameraMouseOrbitEnabled||config.cameraControllerOrbitEnabled;
-                    config.Save();
-                }
-                if(config.cameraMouseOrbitEnabled){
-                    ImGui::SetNextItemWidth(245.0f);
-                    if(ImGui::SliderFloat("Mouse sensitivity##TP",&config.cameraMouseSensitivity,0.01f,0.75f,"%.2f deg/px"))
-                        config.Save();
-                }
                 if(ImGui::Checkbox("Control camera with controller right stick##TPS",&config.cameraControllerOrbitEnabled)){
-                    config.cameraOrbitInputEnabled=config.cameraMouseOrbitEnabled||config.cameraControllerOrbitEnabled;
+                    config.cameraOrbitInputEnabled=config.cameraControllerOrbitEnabled;
                     config.Save();
                 }
                 if(config.cameraControllerOrbitEnabled){
@@ -788,20 +808,7 @@ void Draw(Context& c) {
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
                 DrawSectionTitle("TPS controls and aiming");
-                constexpr const char* kVirtualStickChoices[]={
-                    "OFF (legacy V0.98 mouse orbit)",
-                    "LEFT stick (mouse = movement, experimental)",
-                    "RIGHT stick (mouse = camera / aim, experimental)"
-                };
-                ImGui::SetNextItemWidth(480.0f);
-                if(ImGui::Combo("Mouse emulated joystick##TPS",
-                    &config.tpsMouseStickMode,kVirtualStickChoices,3))config.Save();
-                ImGui::TextWrapped("TPS only: mouse-relative movement becomes virtual XInput stick, "
-                    "including while firing. Native mouse shot vector remains untouched. "
-                    "OFF restores V0.98 mouse orbit.");
-                if(ImGui::Checkbox("Mouse input enabled##TPS",
-                    &config.tpsMouseCenterAimEnabled))config.Save();
-                ImGui::TextDisabled("Virtual and legacy TPS mouse require this option.");
+                ImGui::TextDisabled("Controller-only TPS experiment: native mouse input is untouched.");
                 if(ImGui::Checkbox("Auto suspend TPS during detected cutscenes (test)",
                     &config.tpsCutsceneAutoSuspend))config.Save();
                 ImGui::TextDisabled("ON: native view + no TPS input during detected cinematics.");
