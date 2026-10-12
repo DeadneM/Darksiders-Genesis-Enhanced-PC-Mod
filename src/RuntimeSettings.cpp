@@ -26,6 +26,9 @@ void Publish(const Snapshot& s) {
     g_state.cameraMouseOrbitEnabled.store(s.cameraMouseOrbitEnabled);
     g_state.cameraControllerOrbitEnabled.store(s.cameraControllerOrbitEnabled);
     g_state.tpsMouseCenterAimEnabled.store(s.tpsMouseCenterAimEnabled);
+    g_state.tpsCutsceneAutoSuspend.store(s.tpsCutsceneAutoSuspend);
+    if(!s.tpsCutsceneAutoSuspend||!s.thirdPersonEnabled)
+        g_state.tpsCutsceneSuspended.store(false);
     g_state.tpsHideGroundAimFx.store(s.tpsHideGroundAimFx);
     g_state.aimIndicatorHideMode.store(s.aimIndicatorHideMode, std::memory_order_relaxed);
     g_state.tpsHorseStableAimCamera.store(s.tpsHorseStableAimCamera);
@@ -35,8 +38,7 @@ void Publish(const Snapshot& s) {
     g_state.jumpHeightEnabled.store(s.jumpHeightEnabled, std::memory_order_relaxed);
     g_state.glideDurationEnabled.store(s.glideDurationEnabled, std::memory_order_relaxed);
     g_state.horseEverywhereEnabled.store(s.horseEverywhereEnabled, std::memory_order_relaxed);
-    g_state.horseAllowRestrictedSummon.store(s.horseAllowRestrictedSummon,std::memory_order_relaxed);
-    g_state.horsePreventForcedDesummon.store(s.horsePreventForcedDesummon,std::memory_order_relaxed);
+    g_state.horseAreaMode.store(s.horseAreaMode,std::memory_order_relaxed);
     g_state.horseSpeedEnabled.store(s.horseSpeedEnabled, std::memory_order_relaxed);
     g_state.horseSprintSpeedEnabled.store(s.horseSprintSpeedEnabled, std::memory_order_relaxed);
     g_state.horseSprintDurationEnabled.store(s.horseSprintDurationEnabled, std::memory_order_relaxed);
