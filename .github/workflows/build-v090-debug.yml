@@ -1,4 +1,4 @@
-name: V0.96 independent horse regions and native mouse aim TEST
+name: V0.97 horse zones, raw mouse, cinematic camera and wheels TEST
 on:
   push:
     branches: [debug]
@@ -40,7 +40,7 @@ jobs:
           Copy-Item config/DarksidersGenesisMod.ini dist/
           Copy-Item README.md dist/
           New-Item -ItemType Directory -Path downloads -Force | Out-Null
-          $zipPath = 'downloads/DarksidersGenesis_V0.96_HORSE_TWO_REGIONS_MOUSE_NATIVE_AIM_TEST.zip'
+          $zipPath = 'downloads/DarksidersGenesis_V0.97_HORSE_AREAS_RAW_MOUSE_CUTSCENE_WHEELS_TEST.zip'
           if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
           Compress-Archive -Path 'dist/*' -DestinationPath $zipPath -CompressionLevel Optimal
           Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -56,8 +56,8 @@ jobs:
       - name: Upload verified Windows x64 ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_V0.96_HORSE_TWO_REGIONS_MOUSE_NATIVE_AIM_TEST
-          path: downloads/DarksidersGenesis_V0.96_HORSE_TWO_REGIONS_MOUSE_NATIVE_AIM_TEST.zip
+          name: DarksidersGenesis_V0.97_HORSE_AREAS_RAW_MOUSE_CUTSCENE_WHEELS_TEST
+          path: downloads/DarksidersGenesis_V0.97_HORSE_AREAS_RAW_MOUSE_CUTSCENE_WHEELS_TEST.zip
           if-no-files-found: error
       - name: Preserve numbered experimental ZIP in debug
         shell: pwsh
@@ -65,8 +65,8 @@ jobs:
           $ErrorActionPreference = 'Stop'
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add downloads/DarksidersGenesis_V0.96_HORSE_TWO_REGIONS_MOUSE_NATIVE_AIM_TEST.zip
-          git commit -m "downloads: preserve compiled V0.96 cumulative experimental ZIP (unvalidated)"
+          git add downloads/DarksidersGenesis_V0.97_HORSE_AREAS_RAW_MOUSE_CUTSCENE_WHEELS_TEST.zip
+          git commit -m "downloads: preserve compiled V0.97 cumulative experimental ZIP (unvalidated)"
           if ($LASTEXITCODE -ne 0) { throw 'Archive commit failed' }
           $published = $false
           for ($i=0; $i -lt 5; $i++) {
@@ -79,4 +79,4 @@ jobs:
             Start-Sleep -Seconds 2
           }
           if (-not $published) { throw 'Permanent experimental ZIP push failed' }
-          Write-Host 'V0.96 ZIP https://raw.githubusercontent.com/'"$env:GITHUB_REPOSITORY"'/debug/downloads/DarksidersGenesis_V0.96_HORSE_TWO_REGIONS_MOUSE_NATIVE_AIM_TEST.zip'
+          Write-Host 'V0.97 ZIP https://raw.githubusercontent.com/'"$env:GITHUB_REPOSITORY"'/debug/downloads/DarksidersGenesis_V0.97_HORSE_AREAS_RAW_MOUSE_CUTSCENE_WHEELS_TEST.zip'
