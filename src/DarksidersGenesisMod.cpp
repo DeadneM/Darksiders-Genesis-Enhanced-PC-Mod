@@ -36,7 +36,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "0.98-restricted-horse-default-equipment-wheel-validated-cleanup";
+constexpr const char* kBuild = "0.99-tps-mouse-raw-audit-cinematic-shape-gating-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -98,7 +98,7 @@ std::atomic_uint32_t g_tpsNativeFacingOff{0},g_tpsNativeFacingRestored{0};
 std::atomic_uint32_t g_tpsStrafeSamples{0};
 // V0.72: track potential Steam Input -> synthetic Windows mouse mapping.
 std::atomic_ullong g_tpsPadRightStickTick{0},g_tpsRawMouseTick{0};
-std::atomic_uint32_t g_tpsMouseTargetWarpCount{0};
+// V0.99: V0.95 cursor-warp counter removed; all mouse warps were removed in V0.97.
 std::atomic_uint32_t g_tpsControllerMouseBlocks{0};
 // V0.92 experimental: a virtual forward-facing right stick is passed ONLY to
 // the game's XInput while shooting mounted in CAMERA_FORWARD mode; the camera
@@ -132,6 +132,11 @@ void* g_tpsFacingCurrentComponent=nullptr;
 bool g_tpsFacingOwned=false;
 std::atomic_int g_orbitMouseDx{0},g_orbitMouseDy{0};
 std::atomic_ullong g_lastOrbitRawTick{0};
+// V0.99 observational-only mouse audit. No synthetic cursor events or
+// native shot/aim edits. Bound every live log, preserve controller paths.
+std::atomic_uint32_t g_tpsMouseRawPackets{0},g_tpsMouseRawMotion{0};
+std::atomic_uint32_t g_tpsMouseRawWhileFire{0},g_tpsMouseFallbackMotion{0};
+std::atomic_uint32_t g_tpsMouseOrbitFireFrames{0},g_tpsMouseNativeFireLook{0};
 ULONGLONG g_orbitLastPresentTick=0;
 std::atomic_bool g_overlayVisible{false};
 std::atomic_bool g_captureMenuKey{false};
@@ -1561,7 +1566,19 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     const bool fire=mouseFiring||padFiring;
     // V0.97: on-foot mouse targeting stays game-native in every aim mode;
     // the player look vector is NEVER overwritten for physical mouse fire.
-    if(mouseFiring&&!padFiring&&!mounted)return result;
+    if(mouseFiring&&!padFiring&&!mounted){
+        const unsigned n=++g_tpsMouseNativeFireLook;
+        if(n==1||n==100||n==1000){
+            const float nx=result->pitch,ny=result->yaw;
+            const float nativeYaw=std::atan2(ny,nx)*57.29577951308232f;
+            const auto cam=dg::camera_trace::GetTelemetry();
+            Log("TPS V0.99 MOUSE AIM AUDIT: untouched native look #%u vec=(%.3f,%.3f) yaw=%.1f TPSYaw=%.1f gap=%.1f cameraFresh=%d",
+                n,nx,ny,nativeYaw,cam.appliedYaw,
+                std::fabs(std::remainder(nativeYaw-cam.appliedYaw,360.0f)),
+                IsTPSLookViewFresh()?1:0);
+        }
+        return result;
+    }
     // Mode 1: native look is passed through for vanilla horse aiming.
     // V0.87: Vanilla Aim means NATIVE look ONLY WHILE FIRING.
     // Off-fire the right stick is camera-only, never simultaneously
@@ -3113,12 +3130,21 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         if (GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam),RID_INPUT,&raw,&size,
             sizeof(RAWINPUTHEADER))==size && raw.header.dwType==RIM_TYPEMOUSE) {
             g_tpsRawMouseTick.store(GetTickCount64(),std::memory_order_release);
+            if(active)++g_tpsMouseRawPackets;
             if (!(raw.data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE)) {
                 const LONG dx=raw.data.mouse.lLastX,dy=raw.data.mouse.lLastY;
                 if (std::abs(dx)<=250 && std::abs(dy)<=250) {
                     g_orbitMouseDx.fetch_add(static_cast<int>(dx));
                     g_orbitMouseDy.fetch_add(static_cast<int>(dy));
                     g_lastOrbitRawTick.store(GetTickCount64());
+                    if(active&&(dx||dy)){
+                        const unsigned n=++g_tpsMouseRawMotion;
+                        const bool shooting=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
+                        if(shooting)++g_tpsMouseRawWhileFire;
+                        if(n==1||n==200||(shooting&&g_tpsMouseRawWhileFire.load()==1))
+                            Log("TPS V0.99 RAW INPUT: native WM_INPUT PASSTHROUGH sample=%u dx=%ld dy=%ld LMB=%d",
+                                n,dx,dy,shooting?1:0);
+                    }
                 }
             }
         }
@@ -3132,6 +3158,12 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             if (std::abs(dx)<=180 && std::abs(dy)<=180) {
                 g_orbitMouseDx.fetch_add(dx);
                 g_orbitMouseDy.fetch_add(dy);
+                if(dx||dy){
+                    const unsigned n=++g_tpsMouseFallbackMotion;
+                    if(n==1||n==50)
+                        Log("TPS V0.99 FALLBACK INPUT: no recent RAW input, WM_MOUSEMOVE delta=(%d,%d) LMB=%d sample=%u",
+                            dx,dy,(GetAsyncKeyState(VK_LBUTTON)&0x8000)?1:0,n);
+                }
             }
         }
         oldX=x;oldY=y;primed=active;
@@ -3844,6 +3876,18 @@ void UpdateOrbitInput() {
         ? static_cast<float>(now-g_orbitLastPresentTick)*0.001f:0.0f;
     g_orbitLastPresentTick=now;
     const int dx=g_orbitMouseDx.exchange(0),dy=g_orbitMouseDy.exchange(0);
+    if(active&&(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0){
+        const unsigned n=++g_tpsMouseOrbitFireFrames;
+        if(n==1||n==150||n==750){
+            const auto lastRaw=g_lastOrbitRawTick.load(std::memory_order_acquire);
+            const auto cam=dg::camera_trace::GetTelemetry();
+            Log("TPS V0.99 FIRE ORBIT: frame=%u accumulated=(%d,%d) rawAgeMs=%llu appliedYaw=%.1f nativeYaw=%.1f gameplayView=%d",
+                n,dx,dy,
+                static_cast<unsigned long long>(lastRaw&&now>=lastRaw?now-lastRaw:999999ull),
+                cam.appliedYaw,cam.nativeYaw,
+                rt.tpsViewGameplay.load()?1:0);
+        }
+    }
     if (!active) {
         lastButtons=0;
         if(!g_config.thirdPersonEnabled) {
@@ -4324,7 +4368,10 @@ void ShutdownMod() {
     RestoreCameraDof();
     Log("TPS V0.69 totals: mouseInputNative=PASSTHROUGH rightStickReadsFiltered=%u whileFiring=%u",
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
-    Log("TPS V0.97 mouse: RAW-only orbit; zero synthetic cursor warps");
+    Log("TPS V0.99 mouse: native input PASSTHROUGH rawPackets=%u rawMotion=%u rawWhileFire=%u wmFallbackMotion=%u firingOrbitFrames=%u nativeLookFire=%u syntheticWarps=0",
+        g_tpsMouseRawPackets.load(),g_tpsMouseRawMotion.load(),
+        g_tpsMouseRawWhileFire.load(),g_tpsMouseFallbackMotion.load(),
+        g_tpsMouseOrbitFireFrames.load(),g_tpsMouseNativeFireLook.load());
     Log("TPS V0.92 input totals: mountedForwardAnalog=%u mappedHorseChord=%u keyboardHorse=%u",
         g_tpsForwardAnalogInjected.load(),g_horsePadChordRemapped.load(),
         g_keyboardHorseInjected.load());
