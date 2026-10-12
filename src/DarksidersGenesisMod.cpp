@@ -1500,6 +1500,7 @@ bool IsLiveTPSLookActor(void* actor) {
     if(!actor || !g_targetValidation.exact || g_shuttingDown.load() ||
         !dg::runtime::Get().thirdPersonEnabled.load() ||
         dg::runtime::Get().tpsTemporarilySuspended.load() ||
+        dg::runtime::Get().tpsCutsceneSuspended.load() ||
         g_overlayVisible.load())
         return false;
     const auto* player=g_localPlayerCharacter.load(std::memory_order_acquire);
