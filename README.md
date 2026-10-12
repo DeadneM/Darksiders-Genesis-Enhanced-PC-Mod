@@ -6,18 +6,22 @@ DXGI proxy and ASI plugin.
 The project is deliberately fail-open for normal runtime failures and
 **fail-closed for unsupported game executables**.
 
-## Current project state: V1.05 gauge, camera and startup-screen TEST
+## Current project state: V1.06 Synergy ABI/ownership native test
 
-Branch `debug` only, `main` preserved. All previous ZIPs remain available.
+**Branch `debug` only. `main` unchanged.** Earlier releases V1.03, V1.04, V1.05 all preserved, and V1.05 already built and Git pushed.
 
-**[V1.05 experimental Windows x64 ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.05_GAUGES_CAMERA_WARNING_OBSERVER_TEST.zip)**. Only valid after Windows GitHub Actions compilation and publication succeeds; four files at ZIP root.
+**[V1.06 cumulative ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.06_SYNERGY_OWNER_NATIVE_ABI_TEST.zip)** (valid after successful GitHub Actions publishing), Windows x64 with `dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md` at ZIP root.
 
-- Wrath, Ultimate Form/Chaos, Synergy are **enabled by default**, individually set to **x2**. If an older INI has the shipped all-OFF preset, it migrates to all-ON once. Existing individually customized toggles persist. Native detours remain **unvalidated in gameplay**: user's V1.04 log showed Wrath=0, Chaos=0, Synergy=35 and boosted=0, despite all three hooks READY. V1.05 observes native local-owner matching and positive requested/current/max values; corrects the Synergy setter signature to `void` after disassembly. No unverified global resource writes.
-- Vanilla camera Height now defaults to **0**, including INI, runtime/constructor, load fallback, reset button and one-time migration when previous saved value was the unchanged old default 50. Other saved camera values are preserved. `Camera Values Default` sets vanilla FOV90, zoom0, pitch0, yaw0, height0. `TPS Camera Values Default` restores FOV override ON, FOV110, distance0.15, pitch-12, vertical0, foot0, stick speed180; it does not change TPS enabled or unrelated binds. TPS private +50 framing baseline remains separate from normal height.
-- Native startup `StartupScreensSettings` records (count previously 3, stride 0x40) loop at **RVA 0x25FED0**, checking field `+0x39` and conditionally calling **RVA 0xAC8760**. The V1.02 warning skip bypassed the WHOLE record loop, potentially omitting essential UI initialization and causing cross-shaped cursor. V1.05 leaves warning skip **disabled** and logs record flags **without modifying anything** after the native loop, using existing StartupMovies hook. The actual two visible warning screens and their display call have not been proven or skipped.
-- Preserve V1.04 accepted mounted-forward input, mounted horse, original R3 equipment hold+stow, wheel LB/G/Tab, Strife shader hide, reticle/HUD, intro/logo skip, engine options. No changes to horse shader or damage hooks.
+### V1.05 user log / disassembly-driven corrections
+- Three toggles loaded **ON x2**, camera vanilla Height **0**, both Camera Values Default actions executed successfully, horse Camera Forward analog injected **1,352 mounted** and **42 on foot** (native bullets still must be judged in-game). All non-reported features are protected.
+- Wrath: 0 native events; Ultimate Form/Chaos: 0 native events. **Do not claim they work.** Their current AddWrath/AddChaos hooks may be incomplete paths, pending native gain-path identification.
+- Synergy setter **75 events** including 37 positive gains (normally +1.350, max 500) but **0 boosts**. Hook object `0x...D060` differs from live local player `0x...99A0` so direct pointer equality always rejected.
+- Critically, V1.05 changed the Synergy native hook return to **void**, but exact EXE shows `SetCurrentSynergy` **returns float in XMM0** and its UE Blueprint wrapper `0x7C52C2` writes the return value after calling native RVA `0x583040`. V1.06 restores the correct `float (*)(void*,float)` detour and forwards the original native return. Prior void change was a real ABI regression not caught by Windows compilation.
+- V1.06 only boosts positive delta when a **verified local owner relation** exists: exact `this==local`, UE4 UObject OuterPrivate ancestry (+0x20), or an exact matching pointer **contained within the current local character's first 0x800 bytes**. It never blindly boosts all Synergy objects, which could impact multiplayer actors. Scope resolution and bounded calls logged. If no ownership link is found, Synergy remains unmodified, and log identifies the blocker.
+- Startup screen probe validated **three records**, flags `[0x39] = 1,1,0`; two active flags correspond in count to the two visible messages, but do **not** prove their actual rendering. The old whole-loop warning skip stays OFF to protect original startup initialization and crosshair. Need locate final Slate/widget display before a safe visual-only skip is possible.
+- Horse, right stick, R3 grenade/equipment use and stow, LB/G/Tab native wheels, TPS values, shaders, HUD, damage and intro/logo logic are untouched.
 
-[Technical audit and next-step tests](docs/V1_05_GAUGE_CAMERA_STARTUP_WARNING_AUDIT.md) · [Live current state](docs/CURRENT_STATE.md).
+See [V1.06 technical audit](docs/V1_06_SYNERGY_ABI_OWNER_AND_STARTUP_RESULTS.md) and [CURRENT_STATE](docs/CURRENT_STATE.md).
 
 ## Downloads (stable links)
 

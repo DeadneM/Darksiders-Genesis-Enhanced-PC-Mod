@@ -1,5 +1,12 @@
 # CURRENT_STATE | Darksiders Genesis Enhanced PC Mod
 
+## Latest development: V1.06 native Synergy return type and local-owner resolution
+
+Uploaded V1.05 log 2026-10-13 00:41:49-00:48:19 verifies three gauges ON x2, vanilla Camera Height 0, both reset buttons executed, Horse forward injected 1352 HORSE/42 FOOT, correct startup original native lifecycle. Synergy 75 native SetCurrentSynergy calls, 37 positive gains of approx 1.35, MAX=500 but 0 boosts: **owner this != g_localPlayerCharacter** for all; Wrath/Chaos Add hooks never called in this test. 3 startup warning definitions native flags 1,1,0, matching 2 active candidates, not yet identified screen names.
+
+Exact binary disassembly proves SetCurrentSynergy RVA 0x583040 returns float in XMM0 and Blueprint wrapper RVA 0x7C52C2 consumes returned float after direct call at 0x7C52B3. V1.05 incorrectly switched return to void; V1.06 immediately restores float ABI and forwards return. V1.06 local Synergy owner resolution via exact UE4 OuterPrivate chain or exact pointer in live local actor fields; no unproven all-object multiplication. Log whether a verified relation was found and boost count; if relation 0 further research needed. Preserve validated V1.05 vanilla Camera Height 0 / reset buttons and V1.04 horse aiming / R3 / shaders. Skip warning patch still quarantined; do not bypass original three-definition loop. See [V1.06 native research](V1_06_SYNERGY_ABI_OWNER_AND_STARTUP_RESULTS.md).
+
+
 ## 2026-10-13 V1.05 candidate: native gauge owner probes + true vanilla camera reset + startup record observation
 
 **Branch debug only. Main unchanged.** From V1.04 uploaded log: Wrath=0 Chaos=0 Synergy=35 native calls and all boosts=0, despite hook READY; no evidence of working charge multipliers. V1.05 sets all three ON by default x2, migrates only old all-OFF shipped preset, logs local owner, positive Synergy delta and max, and corrects Synergy's native void return type. Never multiply unknown actors.
