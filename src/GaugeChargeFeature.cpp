@@ -30,6 +30,7 @@ std::atomic_bool wrathReady{false},chaosReady{false},synergyReady{false};
 std::atomic_uint32_t wrathEvents{0},chaosEvents{0},synergyEvents{0};
 std::atomic_uint32_t wrathBoosts{0},chaosBoosts{0},synergyBoosts{0};
 std::atomic_uint32_t wrathLocal{0},chaosLocal{0},synergyLocal{0},synergyPositive{0},synergyRejected{0};
+void Log(const char* text){if(logger)logger(text);}
 void Probe(const char* gauge,unsigned n,void* owner,float amount,float current,float limit,bool match){
     if(!logger||(n>12 && n!=25 && n!=100 && n%2000!=0))return;
     char line[250]{};
@@ -37,7 +38,6 @@ void Probe(const char* gauge,unsigned n,void* owner,float amount,float current,f
         gauge,n,owner,localPlayer?localPlayer->load():nullptr,match?1:0,amount,current,limit);
     Log(line);
 }
-void Log(const char* text){if(logger)logger(text);}
 void Event(const char* name,unsigned count,float native,float modified){
     if(!logger||(count>12&&count%250!=0))return;
     char msg[240]{};
