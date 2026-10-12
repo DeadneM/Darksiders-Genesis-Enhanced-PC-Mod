@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2130;
+constexpr int kConfigRevision = 2131;
 // Actual XInput digital buttons plus LT/RT represented as virtual binding IDs.
 constexpr bool ValidPadBind(int m) {
     switch(m){case 0:case 0x0001:case 0x0002:case 0x0004:case 0x0008:
@@ -313,6 +313,7 @@ void Store::ResetDefaults(bool persist) {
     cameraMouseOrbitEnabled = true;
     cameraControllerOrbitEnabled = true;
     tpsMouseCenterAimEnabled = true;
+    tpsCutsceneAutoSuspend = true;
     tpsHoldSuspendEnabled = true;
     tpsLongPressToggleEnabled = true;
     tpsGrenadeHoldEnabled = true;
@@ -334,8 +335,7 @@ void Store::ResetDefaults(bool persist) {
     jumpHeightEnabled = true;
     glideDurationEnabled = true;
     horseEverywhereEnabled = true;
-    horseAllowRestrictedSummon = true;
-    horsePreventForcedDesummon = true;
+    horseAreaMode = 1;
     horseSpeedEnabled = true;
     horseSprintSpeedEnabled = true;
     horseSprintDurationEnabled = true;
@@ -442,6 +442,7 @@ bool Store::Load() {
     cameraMouseOrbitEnabled=ReadBool(L"Features",L"CameraMouseOrbit",oldCombinedOrbit,path_);
     cameraControllerOrbitEnabled=ReadBool(L"Features",L"CameraControllerOrbit",oldCombinedOrbit,path_);
     tpsMouseCenterAimEnabled=ReadBool(L"Features",L"TPSMouseCenterAim",true,path_);
+    tpsCutsceneAutoSuspend=ReadBool(L"Features",L"TPSAutoCutscene",true,path_);
     cameraOrbitInputEnabled=cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
     tpsHoldSuspendEnabled=ReadBool(L"Features",L"TPSHoldSuspend",true,path_);
     tpsLongPressToggleEnabled=ReadBool(L"Features",L"TPSHoldToggle",true,path_);
@@ -476,8 +477,9 @@ bool Store::Load() {
     glideDurationEnabled =
         ReadBool(L"Features", L"GlideDuration", true, path_);
     horseEverywhereEnabled = ReadBool(L"Features", L"HorseEverywhere", true, path_);
-    horseAllowRestrictedSummon = ReadBool(L"Features",L"HorseAllowRestrictedSummon",true,path_);
-    horsePreventForcedDesummon = ReadBool(L"Features",L"HorsePreventForcedDesummon",true,path_);
+    horseAreaMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(
+        L"Features",L"HorseAreaMode",horseEverywhereEnabled?1:0,path_.c_str())),0,3);
+    horseEverywhereEnabled=horseAreaMode!=0;
     horseSpeedEnabled =
         ReadBool(L"Features", L"HorseSpeed", true, path_);
     horseSprintSpeedEnabled =
@@ -678,6 +680,7 @@ void Store::PublishRuntime() const {
     runtime.cameraMouseOrbitEnabled = cameraMouseOrbitEnabled;
     runtime.cameraControllerOrbitEnabled = cameraControllerOrbitEnabled;
     runtime.tpsMouseCenterAimEnabled = tpsMouseCenterAimEnabled;
+    runtime.tpsCutsceneAutoSuspend = tpsCutsceneAutoSuspend;
     runtime.tpsHideGroundAimFx = tpsHideGroundAimFx;
     runtime.aimIndicatorHideMode = aimIndicatorHideMode;
     runtime.tpsHorseStableAimCamera = tpsHorseStableAimCamera;
@@ -693,8 +696,7 @@ void Store::PublishRuntime() const {
     runtime.jumpHeightEnabled = jumpHeightEnabled;
     runtime.glideDurationEnabled = glideDurationEnabled;
     runtime.horseEverywhereEnabled = horseEverywhereEnabled;
-    runtime.horseAllowRestrictedSummon = horseAllowRestrictedSummon;
-    runtime.horsePreventForcedDesummon = horsePreventForcedDesummon;
+    runtime.horseAreaMode = horseAreaMode;
     runtime.horseSpeedEnabled = horseSpeedEnabled;
     runtime.horseSprintSpeedEnabled = horseSprintSpeedEnabled;
     runtime.horseSprintDurationEnabled = horseSprintDurationEnabled;
@@ -791,6 +793,7 @@ bool Store::SaveNow() {
     WriteBool(L"Features",L"CameraMouseOrbit",cameraMouseOrbitEnabled,path_);
     WriteBool(L"Features",L"CameraControllerOrbit",cameraControllerOrbitEnabled,path_);
     WriteBool(L"Features",L"TPSMouseCenterAim",tpsMouseCenterAimEnabled,path_);
+    WriteBool(L"Features",L"TPSAutoCutscene",tpsCutsceneAutoSuspend,path_);
     // Remove the V0.71/0.73 ineffective switches, no mapping of old values.
     WritePrivateProfileStringW(L"Features",L"TPSMouseKeyboardStrafe",nullptr,path_.c_str());
     WritePrivateProfileStringW(L"Features",L"TPSControllerStrafe",nullptr,path_.c_str());
@@ -836,8 +839,10 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"JumpHeight", jumpHeightEnabled, path_);
     WriteBool(L"Features", L"GlideDuration", glideDurationEnabled, path_);
     WriteBool(L"Features", L"HorseEverywhere", horseEverywhereEnabled, path_);
-    WriteBool(L"Features",L"HorseAllowRestrictedSummon",horseAllowRestrictedSummon,path_);
-    WriteBool(L"Features",L"HorsePreventForcedDesummon",horsePreventForcedDesummon,path_);
+    WritePrivateProfileStringW(L"Features",L"HorseAllowRestrictedSummon",nullptr,path_.c_str());
+    WritePrivateProfileStringW(L"Features",L"HorsePreventForcedDesummon",nullptr,path_.c_str());
+    wchar_t horseMode[8]{}; swprintf_s(horseMode,L"%d",std::clamp(horseAreaMode,0,3));
+    WritePrivateProfileStringW(L"Features",L"HorseAreaMode",horseMode,path_.c_str());
     WriteBool(L"Features", L"HorseSpeed", horseSpeedEnabled, path_);
     WriteBool(L"Features", L"HorseSprintSpeed", horseSprintSpeedEnabled, path_);
     WriteBool(L"Features", L"HorseSprintDuration", horseSprintDurationEnabled, path_);
