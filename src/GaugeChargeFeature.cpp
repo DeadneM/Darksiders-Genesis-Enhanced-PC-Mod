@@ -34,13 +34,13 @@ std::atomic_bool wrathReady{false},chaosReady{false},synergyReady{false};
 std::atomic_uint32_t wrathEvents{0},chaosEvents{0},synergyEvents{0};
 std::atomic_uint32_t wrathBoosts{0},chaosBoosts{0},synergyBoosts{0};
 std::atomic_uint32_t wrathLocal{0},chaosLocal{0},synergyLocal{0},synergyPositive{0},synergyRejected{0};
-std::atomic_uint32_t synergyActorReferences{0},synergyOuterReferences{0},synergyNoVerifiedOwner{0};
+std::atomic_uint32_t synergyNativeOwnerMatches{0},synergyOuterReferences{0},synergyNoVerifiedOwner{0};
 void Log(const char* text);
 std::atomic<void*> synergyLastActor{nullptr},synergyLastHolder{nullptr};
 std::atomic_int synergyLastRelation{0};
-// Native UObjects only: the actual Synergy container is NOT the Character
-// pointer (validated V1.05 log). Derive ownership through an exact pointer
-// identity; never infer ownership from a shared gauge or a single active actor.
+// Native UObjects only: the Synergy container is NOT the character.
+// V1.06: verify exact native holder->character relation at +0x5C0 before boost.
+// Never infer local ownership from the presence of a single active gauge.
 bool Readable(const void* ptr,size_t bytes){
     if(!ptr||!bytes)return false;
     MEMORY_BASIC_INFORMATION region{};
@@ -72,10 +72,17 @@ int SynergyLocalRelation(void* holder,void* actor){
        synergyLastHolder.load(std::memory_order_acquire)==holder)
         return synergyLastRelation.load(std::memory_order_acquire);
     int relation=0;
+    // VERIFIED IN EXACT EXE: RVA 0x56BE70 is a native inline getter
+    //   mov rax, [rcx+0x5C0] ; ret.
+    // At RVA 0x67E944..0x67E95B the engine obtains the same Synergy
+    // owner (rdi) and then calls 0x56BE70(rdi) to obtain its character;
+    // RVA 0x67EA9F and 0x67EAD7 subsequently pass rdi to the native
+    // SetCurrentSynergy gain path. Exact owner+0x5C0 is the safe scope.
+    if(PointerFieldEquals(holder,0x5C0,actor))relation=4;
     // UE4 UObject::OuterPrivate = +0x20. Traverse only live, readable
     // UObject headers; never retain/dereference them outside native callback.
     void* outer=holder;
-    for(int depth=0;depth<5 && outer;depth++){
+    for(int depth=0;!relation&&depth<5 && outer;depth++){
         void* next=nullptr;
         if(!Readable(reinterpret_cast<const unsigned char*>(outer)+0x20,sizeof(next)))break;
         std::memcpy(&next,reinterpret_cast<const unsigned char*>(outer)+0x20,sizeof(next));
@@ -83,23 +90,8 @@ int SynergyLocalRelation(void* holder,void* actor){
         if(next==outer||!Readable(next,0x28))break;
         outer=next;
     }
-    // Native player characters can own the synergy state as a referenced
-    // subobject or PlayerState. Match the *exact* pointer in the live local
-    // player's first 0x800 bytes. Never accept holder->actor alone, because
-    // a remote enemy may reference the local actor as a target.
-    if(!relation){
-        for(size_t off=0x28;off<0x800;off+=sizeof(void*)){
-            if(PointerFieldEquals(actor,off,holder)){
-                relation=3;
-                char line[180]{};
-                sprintf_s(line,"Gauge V1.06 SYNERGY: verified character+0x%zX references holder; local owner linked",off);
-                Log(line);
-                break;
-            }
-        }
-    }
     char line[220]{};
-    sprintf_s(line,"Gauge V1.06 SYNERGY relation: holder=%p localActor=%p kind=%d (1=same 2=Outer 3=player-field; 0=no proof)",
+    sprintf_s(line,"Gauge V1.06 SYNERGY relation: holder=%p localActor=%p kind=%d (4=native holder+0x5C0 owner 2=Outer 1=same 0=unverified)",
         holder,actor,relation);
     Log(line);
     synergyLastRelation.store(relation,std::memory_order_release);
@@ -177,7 +169,7 @@ float HookSynergy(void* player,float requested){
     const bool match=relation>0;
     if(match)++synergyLocal;
     if(relation==2)++synergyOuterReferences;
-    if(relation==3)++synergyActorReferences;
+    if(relation==4)++synergyNativeOwnerMatches;
     if(!match)++synergyNoVerifiedOwner;
     float previous=0.0f,maximum=0.0f;
     if(player){
@@ -252,9 +244,9 @@ void Shutdown(){
         wrathEvents.load(),chaosEvents.load(),synergyEvents.load(),
         wrathBoosts.load(),chaosBoosts.load(),synergyBoosts.load());
     Log(msg);
-    sprintf_s(msg,"Gauge V1.06 owner totals: WrathLocal=%u ChaosOwnerLocal=%u SynergyLocal=%u (actorField=%u outer=%u noVerifiedOwner=%u) positive=%u rejected=%u",
+    sprintf_s(msg,"Gauge V1.06 owner totals: WrathLocal=%u ChaosOwnerLocal=%u SynergyLocal=%u (nativeGetCharacter=%u outer=%u noVerifiedOwner=%u) positive=%u rejected=%u",
         wrathLocal.load(),chaosLocal.load(),synergyLocal.load(),
-        synergyActorReferences.load(),synergyOuterReferences.load(),synergyNoVerifiedOwner.load(),
+        synergyNativeOwnerMatches.load(),synergyOuterReferences.load(),synergyNoVerifiedOwner.load(),
         synergyPositive.load(),synergyRejected.load());
     Log(msg);
 }
