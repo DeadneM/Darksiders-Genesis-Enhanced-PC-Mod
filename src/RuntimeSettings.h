@@ -20,7 +20,7 @@ struct Snapshot {
     bool cameraMouseOrbitEnabled = true;
     bool cameraControllerOrbitEnabled = true;
     bool tpsMouseCenterAimEnabled = true;
-    bool tpsMouseForwardFire = true;
+    int tpsMouseStickMode = 2;
     bool tpsCutsceneAutoSuspend = true;
     // V0.75: native TPS mouse firing automatically uses camera heading.
     bool tpsHideGroundAimFx = true;
@@ -80,7 +80,7 @@ struct State {
     std::atomic_bool cameraMouseOrbitEnabled{true};
     std::atomic_bool cameraControllerOrbitEnabled{true};
     std::atomic_bool tpsMouseCenterAimEnabled{true};
-    std::atomic_bool tpsMouseForwardFire{true};
+    std::atomic_int tpsMouseStickMode{2};
     std::atomic_bool tpsCutsceneAutoSuspend{true};
     std::atomic_bool tpsCutsceneSuspended{false};
     std::atomic_bool tpsTemporarilySuspended{false};
