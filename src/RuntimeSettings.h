@@ -20,6 +20,7 @@ struct Snapshot {
     bool cameraMouseOrbitEnabled = true;
     bool cameraControllerOrbitEnabled = true;
     bool tpsMouseCenterAimEnabled = true;
+    bool tpsMouseForwardFire = true;
     bool tpsCutsceneAutoSuspend = true;
     // V0.75: native TPS mouse firing automatically uses camera heading.
     bool tpsHideGroundAimFx = true;
@@ -79,11 +80,12 @@ struct State {
     std::atomic_bool cameraMouseOrbitEnabled{true};
     std::atomic_bool cameraControllerOrbitEnabled{true};
     std::atomic_bool tpsMouseCenterAimEnabled{true};
+    std::atomic_bool tpsMouseForwardFire{true};
     std::atomic_bool tpsCutsceneAutoSuspend{true};
     std::atomic_bool tpsCutsceneSuspended{false};
     std::atomic_bool tpsTemporarilySuspended{false};
-    std::atomic_bool tpsAbilityWheelHeld{false}; // LB/R3 radial: pass native selection input, not a camera override
-    std::atomic_ullong tpsAbilityWheelTick{0}; // fresh LB/R3/native keyboard wheel input for look pass-through
+    std::atomic_bool tpsAbilityWheelHeld{false}; // LB/keyboard wheels; R3 is USE equipment, not wheel opener
+    std::atomic_ullong tpsAbilityWheelTick{0}; // LB/native keyboard selection, R3 passthrough retained for use
     std::atomic_bool tpsHideGroundAimFx{true};
     std::atomic_int aimIndicatorHideMode{2};
     std::atomic_bool tpsHorseStableAimCamera{true};
