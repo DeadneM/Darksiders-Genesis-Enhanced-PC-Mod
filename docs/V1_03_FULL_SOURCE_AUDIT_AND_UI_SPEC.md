@@ -20,3 +20,20 @@ Read-only audit of debug V1.02 against user-tested V0.98, covering all project s
 Compare V0.98 and candidate in exact R3 hold/stow, LB + G/Tab wheels, controller move/aim/RT/RB/horse, no mouse TPS axes, camera/TPS isolation, default resets from button and selected F keys, every independent keybind Default, three visible editable gauges, no regressions in shaders/HUD/Alt-Tab/startup. Check actual in-game ASI and loader build strings, not ZIP link. Ship exactly four root files and never modify main.
 
 This audit does NOT include live gameplay or independent binary disassembly. No V1.03 binary built.
+
+
+## ADDENDUM: user-provided real V1.02 runtime log (October 12; 22:39–23:04)
+
+Source supplied by user: `DarksidersGenesisMod(20261012-210443).log` (316 lines). THIS log, unlike the earlier 20:34 file, confirms a real matching V1.02 loader+ASI:
+- Boot loader: `Skip Warning V1.02: guarded 1/2/3-entry native gate installed RVA 0x25FEBF`; ASI `1.02-controller-only-gauges-research-skip-warning-3-test`; supported EXE exact SHA match; no reported crash and normal shutdown.
+- Critical warning diagnostic: `Skip Warning V1.02: native definition span=0xc0 (count if stride 0x40: 3), seen=1 skipped=1`. The native bypass condition DID fire. User reports warning still visually displayed, so `skipped=1` is NOT equivalent to warning screen removed. Pursue actual UI/movie rendering or a second warning data path; preserve MoviePlayer lifecycle.
+- Controller-only log shutdown `TPS V1.02 controller-only: rightStickFiltered=7401 no TPS mouse hooks installed`. The obsolete `Aim V0.57: native mouse input gate installed` line still appears at 22:39:51 despite the removal of TPS mouse hooks. This confirms the misleading legacy logger should be renamed or removed while preserving normal overlay WndProc.
+- R3 validation: `TPS V0.84 GRENADE: physical DOWN`, `physical UP`, `second R3 pulse sent to native XInput` show **8 down + 8 up + 8 second pulses**, with 4 observed hold-to-native-view suspensions and releases, across a mixture of short and long R3 presses. Native equipment visual correctness still user-only, not measurable from hook counters. The erroneous `TPS V0.97 WHEEL: R3 physical` appears at 22:43:46 and 22:43:50 even though R3 means USE gear, confirming radial-classification cleanup should be narrowly scoped.
+- TPS cutscene heuristic event at 22:46:38 shows `actorValid=0 fresh=0` despite valid-looking native pitch -45.0 and camera distance; detector asserts prolonged non-gameplay camera at 22:46:39, then resumes at 22:46:44 on a NEW active player capture. This specifically establishes a stale/transitioning actor source can masquerade as a cinematic. Use actor generation / authoritative camera ownership evidence instead of tuning arbitrary 500-ms thresholds.
+- Horse Everywhere region: 292 `overrides` out of 87,041 allowed-check invocations; means hook changed predicate answers on this run, not evidence of successful user summon in forbidden zone. `serverSpawn=0` and `leases=0`. No reason to rewrite the frozen HorseFeature.
+- Aim shaders: `matchedPS=2`, `blockedDraws=5448`, indicating the validated two exact shaders remained active.
+- Controller forward synthetic stick injection `mountedForwardAnalog=983`; first injection log reports `mounted=0`. This is the EXISTING controller Camera Forward feature, NOT a mouse-generated joystick; assess controller off/left/right selector compatibility with it.
+- Final-damage diagnostic inconsistency: `ZERO_JUICE_MELEE_DIAG` log reports `BaseJuice=387000041472.000` while applying 13.671->27.342. This appears to be a possibly misinterpreted telemetry field/classification, not proof of gameplay defect. Validate native damage record layout before making any unrelated changes.
+- The log does not establish whether three research-only gauge sliders are visually open because that UI block is collapsed; it also cannot validate actual native charge gains, as no hooks are implemented.
+
+**Result:** prioritize the user's source-based V1.03 cleanup spec. Correct prior audit wording: V1.02 WAS subsequently loaded and tested. Still NO new V1.03 binary and `main` untouched.
