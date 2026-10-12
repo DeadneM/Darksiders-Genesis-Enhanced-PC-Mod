@@ -146,13 +146,8 @@ public:
     bool thirdPersonEnabled = false;
     bool thirdPersonFovEnabled = true;
     bool tpsFollowPlayer = true;
-    bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
-    bool cameraMouseOrbitEnabled = true;
+    bool cameraOrbitInputEnabled = true; // derived: controller-only TPS camera
     bool cameraControllerOrbitEnabled = true;
-    bool tpsMouseCenterAimEnabled = true; // V0.98 on-foot mouse orbit baseline
-    int tpsMouseStickMode = 2; // OFF=0, LEFT=1, RIGHT=2
-    // V0.75: mouse TPS firing always faces the camera; controller has
-    // independent movement-facing and camera orbit options.
     bool tpsCutsceneAutoSuspend = true;
     bool tpsHoldSuspendEnabled = true;
     bool tpsLongPressToggleEnabled = true;
@@ -184,6 +179,10 @@ public:
     bool fovEnabled = false;
     bool hideReticle = false;
     bool hotstreakChargeEnabled = true;
+    // V1.02 research controls. Fail-closed until three native charge owners are verified.
+    bool wrathChargeEnabled = false;
+    bool ultimateChargeEnabled = false;
+    bool synergyChargeEnabled = false;
 
     float movementSpeedMultiplier = 1.50f;
     float actionRecoveryDelayMs = 0.0f;
@@ -206,9 +205,11 @@ public:
     float thirdPersonPitchDegrees = -12.0f;
     float thirdPersonHeightOffset = 0.0f;
     float tpsFootAnchorOffset = 0.0f; // adjustable +/-500 units
-    float cameraMouseSensitivity = 0.12f;
     float cameraStickSpeed = 180.0f;
     float hotstreakChargeMultiplier = 2.00f;
+    float wrathChargeMultiplier = 2.00f;
+    float ultimateChargeMultiplier = 2.00f;
+    float synergyChargeMultiplier = 2.00f;
 
     std::array<Action, 12> hotkeys{};
     std::array<int, static_cast<size_t>(CameraAction::Count)> cameraKeys{{0x26,0x28,0x25,0x27,0,0,0x64,0x66}};
