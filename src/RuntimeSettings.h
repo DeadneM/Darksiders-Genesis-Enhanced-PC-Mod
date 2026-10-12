@@ -17,10 +17,7 @@ struct Snapshot {
     bool thirdPersonFovEnabled = true;
     bool tpsFollowPlayer = true;
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
-    bool cameraMouseOrbitEnabled = true;
     bool cameraControllerOrbitEnabled = true;
-    bool tpsMouseCenterAimEnabled = true;
-    int tpsMouseStickMode = 2;
     bool tpsCutsceneAutoSuspend = true;
     // V0.75: native TPS mouse firing automatically uses camera heading.
     bool tpsHideGroundAimFx = true;
@@ -37,6 +34,9 @@ struct Snapshot {
     bool horseSprintSpeedEnabled = true;
     bool horseSprintDurationEnabled = true;
     bool hotstreakChargeEnabled = true;
+    bool wrathChargeEnabled = false;
+    bool ultimateChargeEnabled = false;
+    bool synergyChargeEnabled = false;
 
     float fovDegrees = 90.0f;
     float thirdPersonFovDegrees = 110.0f;
@@ -48,7 +48,6 @@ struct Snapshot {
     float thirdPersonPitchDegrees = -12.0f;
     float thirdPersonHeightOffset = 0.0f;
     float tpsFootAnchorOffset = 0.0f; // estimated capsule center-to-foot, configurable
-    float cameraMouseSensitivity = 0.12f;
     float cameraStickSpeed = 180.0f;
     float movementSpeedMultiplier = 1.50f;
     float actionRecoveryDelayMs = 0.0f;
@@ -60,6 +59,9 @@ struct Snapshot {
     float horseSprintSpeedMultiplier = 1.25f;
     float horseSprintDurationMultiplier = 5.00f;
     float hotstreakChargeMultiplier = 2.00f;
+    float wrathChargeMultiplier = 2.00f;
+    float ultimateChargeMultiplier = 2.00f;
+    float synergyChargeMultiplier = 2.00f;
 };
 
 struct State {
@@ -77,10 +79,7 @@ struct State {
     std::atomic_bool tpsViewGameplay{false};
     std::atomic_ullong tpsGameplayViewTick{0};
     std::atomic_bool cameraOrbitInputEnabled{true};
-    std::atomic_bool cameraMouseOrbitEnabled{true};
     std::atomic_bool cameraControllerOrbitEnabled{true};
-    std::atomic_bool tpsMouseCenterAimEnabled{true};
-    std::atomic_int tpsMouseStickMode{2};
     std::atomic_bool tpsCutsceneAutoSuspend{true};
     std::atomic_bool tpsCutsceneSuspended{false};
     std::atomic_bool tpsTemporarilySuspended{false};
@@ -120,6 +119,9 @@ struct State {
     std::atomic_bool horseSprintSpeedEnabled{true};
     std::atomic_bool horseSprintDurationEnabled{true};
     std::atomic_bool hotstreakChargeEnabled{true};
+    std::atomic_bool wrathChargeEnabled{false};
+    std::atomic_bool ultimateChargeEnabled{false};
+    std::atomic_bool synergyChargeEnabled{false};
 
     std::atomic<float> fovDegrees{90.0f};
     std::atomic<float> thirdPersonFovDegrees{110.0f};
@@ -131,7 +133,6 @@ struct State {
     std::atomic<float> thirdPersonPitchDegrees{-12.0f};
     std::atomic<float> thirdPersonHeightOffset{0.0f};
     std::atomic<float> tpsFootAnchorOffset{0.0f};
-    std::atomic<float> cameraMouseSensitivity{0.12f};
     std::atomic<float> cameraStickSpeed{180.0f};
     std::atomic<float> cameraOrbitYawDegrees{0.0f};
     std::atomic<float> cameraOrbitPitchDegrees{0.0f};
@@ -145,6 +146,9 @@ struct State {
     std::atomic<float> horseSprintSpeedMultiplier{1.25f};
     std::atomic<float> horseSprintDurationMultiplier{5.00f};
     std::atomic<float> hotstreakChargeMultiplier{2.00f};
+    std::atomic<float> wrathChargeMultiplier{2.00f};
+    std::atomic<float> ultimateChargeMultiplier{2.00f};
+    std::atomic<float> synergyChargeMultiplier{2.00f};
 };
 
 State& Get();
