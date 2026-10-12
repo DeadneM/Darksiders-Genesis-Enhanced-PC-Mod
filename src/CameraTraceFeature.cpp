@@ -213,6 +213,39 @@ void HookView(void* camera, float dt, void* outView) {
         recentTPS && actorValid && nearPawn;
     const bool gameplayCamera=(actorValid&&normalAngles&&nearPawn) ||
         radialGameplay || mouseAimContinuity;
+    // V0.97 automatic cutscene suspension: the engine's own untouched
+    // camera view is the source of truth, not a fabricated cutscene flag.
+    // Require a PREVIOUS valid TPS view, continuous rejection >= 500 ms,
+    // and only treat native camera changes in a currently running TPS game
+    // as cinematic candidates. A valid player camera clears the suspension
+    // immediately; turning the option OFF keeps the old V0.96 heuristic.
+    static ULONGLONG cinematicCandidateStart=0;
+    static unsigned cinematicTransitions=0;
+    const bool autoCutscene=settings.tpsCutsceneAutoSuspend.load(std::memory_order_relaxed);
+    if(!thirdPerson||!autoCutscene){
+        cinematicCandidateStart=0;
+        settings.tpsCutsceneSuspended.store(false,std::memory_order_release);
+    }else if(gameplayCamera){
+        cinematicCandidateStart=0;
+        if(settings.tpsCutsceneSuspended.exchange(false,std::memory_order_acq_relaxed)){
+            if(++cinematicTransitions<=20)
+                Write("TPS V0.97 CINEMATIC: native cutscene ended; live TPS view restored");
+        }
+    }else{
+        // Camera change alone is not enough when the local actor is
+        // temporarily absent at load time. Only suspend from live TPS.
+        const bool observedTPS=lastTPS&&now>=lastTPS&&now-lastTPS<3500ull;
+        if(observedTPS){
+            if(!cinematicCandidateStart)cinematicCandidateStart=now;
+            if(now>=cinematicCandidateStart&&now-cinematicCandidateStart>=500ull &&
+               !settings.tpsCutsceneSuspended.exchange(true,std::memory_order_acq_rel)){
+                if(++cinematicTransitions<=20)
+                    Write("TPS V0.97 CINEMATIC: prolonged non-gameplay camera; native view and input restored");
+            }
+        }else if(!settings.tpsCutsceneSuspended.load(std::memory_order_acquire)){
+            cinematicCandidateStart=0;
+        }
+    }
     if(mouseAimContinuity&&!normalAngles){
         static unsigned mouseRecovered=0;
         if(++mouseRecovered<=8||mouseRecovered==1000){
