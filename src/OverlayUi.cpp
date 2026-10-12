@@ -402,9 +402,9 @@ void Draw(Context& c) {
                 config.horseEverywhereEnabled=config.horseAreaMode!=0;
                 config.Save();
             }
-            ImGui::TextDisabled("In all area keeps V0.95 native summon + dismount gates.");
+            ImGui::TextDisabled("Default: Restricted only. In all area also enables native dismount protection.");
             ImGui::TextDisabled("Restricted = no native desummon flag; banned = native desummon flag.");
-            ImGui::TextDisabled("Zone names are test classifications, NOT verified padlock/icon mapping.");
+            ImGui::TextDisabled("Horse summon icon visibility is controlled in the game options.");
             ImGui::TextDisabled("Keyboard and both pad buttons trigger the same native horse action.");
             ImGui::TextDisabled("The two controller buttons must be pressed simultaneously.");
             ImGui::PushID("horse_kbd");
