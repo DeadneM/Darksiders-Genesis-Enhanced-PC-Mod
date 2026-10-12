@@ -201,7 +201,26 @@ void HookView(void* camera, float dt, void* outView) {
     const bool recentTPS=lastTPS && now>=lastTPS && now-lastTPS<650ull;
     const bool radialGameplay=nativeWheel && recentTPS && actorValid &&
         planar<11000.0f && std::fabs(nativeDz)<9000.0f;
-    const bool gameplayCamera=(actorValid&&normalAngles&&nearPawn)||radialGameplay;
+    // V0.96: old -15 degree native-pitch validity gate also rejected
+    // legitimate local mouse firing frames after the game adjusted its
+    // native aim camera. Keep the existing conservative gate everywhere
+    // else, and retain an existing live TPS camera ONLY during on-foot
+    // Camera Forward LMB firing, with the same nearby actor.
+    const bool mouseAimContinuity=thirdPerson && !usingHorse &&
+        settings.tpsMountedAimMode.load(std::memory_order_relaxed)==0 &&
+        settings.tpsMouseCenterAimEnabled.load(std::memory_order_relaxed) &&
+        (GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0 &&
+        recentTPS && actorValid && nearPawn;
+    const bool gameplayCamera=(actorValid&&normalAngles&&nearPawn) ||
+        radialGameplay || mouseAimContinuity;
+    if(mouseAimContinuity&&!normalAngles){
+        static unsigned mouseRecovered=0;
+        if(++mouseRecovered<=8||mouseRecovered==1000){
+            char msg[190]{};
+            sprintf_s(msg,"TPS V0.96 MOUSE CAMERA: kept live TPS during native firing pitch=%.1f n=%u",nativePitch,mouseRecovered);
+            Write(msg);
+        }
+    }
     if(radialGameplay && !(normalAngles&&nearPawn)){
         static unsigned recovered=0;
         if(++recovered<=8||recovered==1000){
