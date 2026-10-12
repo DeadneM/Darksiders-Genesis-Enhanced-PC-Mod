@@ -170,7 +170,7 @@ public:
     bool jumpHeightEnabled = true;
     bool glideDurationEnabled = true;
     bool horseEverywhereEnabled = true;
-    int horseAreaMode = 1; // 0 Off, 1 all, 2 restricted-only, 3 banned-only
+    int horseAreaMode = 2; // 0 Off, 1 all, 2 restricted-only (default), 3 banned-only
     bool horseSpeedEnabled = true;
     bool horseSprintSpeedEnabled = true;
     bool horseSprintDurationEnabled = true;
