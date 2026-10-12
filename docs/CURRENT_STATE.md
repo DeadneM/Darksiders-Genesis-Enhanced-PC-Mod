@@ -10,6 +10,19 @@
 **V0.97 user-validated horse+equipment-wheel reference ZIP archived:** https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/archive/downloads/DarksidersGenesis_V0.97_HORSE_AREAS_RAW_MOUSE_CUTSCENE_WHEELS_TEST.zip  
 **Exact target executable:** `DarksidersGenesis-Win64-Shipping.exe`, 62,113,280 bytes, SHA-256 `9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54`. Do not assume updated/different game executable works.
 
+## 2026-10-12 later update: user V0.98 rollback baseline / V1.00 candidate source
+
+**After the prior V0.99 mouse/wheel report, the user provided an actual V0.98 log** (`DarksidersGenesisMod(20261012-174455).log`), which explicitly starts `0.98-restricted-horse-default-equipment-wheel-validated-cleanup`. They clarify: V0.98 mouse TPS camera **works while NOT shooting** and V0.98 equipment wheel **works**. Treat these as the baseline; V0.99 is an experimental *rejected* candidate. This later update supersedes the previous "rebuild all mouse paths" request: first preserve V0.98 off-fire behavior and test isolated forward-look simulation under physical LMB only.
+
+**Important native input semantics correction:** R3 physically **USES the selected equipment** and does **NOT open the equipment radial wheel**. The existing source logs say `TPS V0.97 WHEEL: R3 physical` but that name is misleading. Do not change verified R3 use or gamepad XInput path as part of wheel investigation. Accessory wheel and equipment wheel must be separately tested with their actual opener.
+
+**V1.00 under construction on `debug`:** exact V0.98 `src/CameraTraceFeature.cpp` file restored (blob SHA `7fb75854a579a3abaa4b94235d9e862cacf20635`); this also restores known V0.98 cinematic false positive behavior and should be documented. New reversible `TPSMouseForwardFire=1` modifies ONLY the original native local on-foot mouse look-vector returned by `GetPlayerLookInput` while physical LMB is held, no gamepad fire, fresh gameplay camera, no active wheel, using `{cos(TPSYaw),sin(TPSYaw)}`. OFF=unaltered V0.98 physical mouse look. This **mimics forward stick for aiming, but does not inject actual XInput** and does not change projectile raycast or physical gamepad. New INI ConfigRevision 2133. Do not consider validated until gameplay.
+- New requested Gameplay features: *Courroux/Wrath*, *Ultimate Form*, *Synergie/Synergy* charge multipliers. **NOT implemented**; existing Hotstreak `AddJuice` hook cannot safely stand in for these three different gauges without proving native ownership. Audit local-player charge getters and add independent toggles/sliders only when native addresses validated.
+- Remaining **Skip Warnings**: current loader hook at RVA `0x25FEBF` sees three definition records (native span `0xC0`, stride `0x40`, `seen=1 skipped=0`) but skips only 1/2 records. Identify which startup definition actually draws legal warnings BEFORE extending gate to three, or use targeted safe native dispatch bypass. Preserve logos and intro.
+- Last V0.98 log includes rapid player-identity switching and repeated camera-zone reference resets, a separate potential root cause of camera jumps. Log size >10,000 lines, not normal; avoid noisy follow-up instrumentation.
+- Detailed engineering audit: `docs/V1_00_MOUSE_FORWARD_AND_GAMEPLAY_ROADMAP.md`.
+- After a **successful CI build**, update this line to reference the verified actual V1.00 ZIP and keep older V0.99/V0.98 archived.
+
 ## The hard rules: NEVER regress these
 
 1. User explicitly tested **Horse Everywhere working perfectly** in V0.97. Four-way overlay: Off / In all area / Restricted only / Banned zone only. **Requested fresh-install default is Restricted only, `HorseAreaMode=2`**, implemented V0.98 in shipped INI, `ConfigStore` fallbacks and `RuntimeSettings` initializers. Existing user's explicitly saved value MUST be preserved. Horse native getter/lease logic unchanged unless separately and explicitly requested.
