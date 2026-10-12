@@ -184,9 +184,43 @@ static const FStringView kSubstituteMovies[2] = {
 // V0.19C caused cross-shaped cursor). With more than two entries,
 // keep the existing validated skip-prefix logic (count decremented
 // by two by the assembly island).
+// V1.05: read-only diagnostic, after the native 3-record warning-definition
+// loop at RVA 0x25FED0, before the existing StartupMovies copy hook returns.
+// Never modifies warning bytes or skips their original initialization.
+static void ProbeStartupDefinitions(){
+    if(!g_skipLogosTargetValid.load(std::memory_order_acquire))return;
+    const uintptr_t base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    if(!base)return;
+    const auto getter=reinterpret_cast<void*(__fastcall*)()>(base+0x2603F0);
+    void* owner=getter();
+    if(!IsReadableSpan(owner,0x100)){
+        LogLoader(L"StartupScreens V1.05: settings owner unreadable, no change");return;
+    }
+    void* settings=nullptr;
+    std::memcpy(&settings,static_cast<const BYTE*>(owner)+0xF8,sizeof(settings));
+    if(!IsReadableSpan(settings,0x60)){
+        LogLoader(L"StartupScreens V1.05: settings unavailable, no change");return;
+    }
+    void* arr=nullptr;int32_t n=0;
+    std::memcpy(&arr,static_cast<const BYTE*>(settings)+0x50,sizeof(arr));
+    std::memcpy(&n,static_cast<const BYTE*>(settings)+0x58,sizeof(n));
+    if(n<0||n>16||(n&&!IsReadableSpan(arr,static_cast<size_t>(n)*0x40))){
+        LogLoader(L"StartupScreens V1.05: record span invalid, no change");return;
+    }
+    wchar_t line[230]{};
+    swprintf_s(line,L"StartupScreens V1.05: records=%d stride=0x40 loop=0x25FED0 per-entry-call=0xAC8760; no stage skipped",n);
+    LogLoader(line);
+    for(int32_t i=0;i<n;++i){
+        const auto* entry=static_cast<const BYTE*>(arr)+static_cast<size_t>(i)*0x40;
+        swprintf_s(line,L"StartupScreens V1.05: record[%d] byte[0x38]=%u byte[0x39]=%u (PASS-THROUGH)",i,
+            unsigned(entry[0x38]),unsigned(entry[0x39]));
+        LogLoader(line);
+    }
+}
 static const FStringView* __cdecl FilterStartupMovieNames(const FStringView* movies, int32_t count) {
     const unsigned calls = ++g_startupFilterCalls;
     if (calls > 2) return nullptr;
+    if(calls==1)ProbeStartupDefinitions();
     if (calls == 1 && g_skipWarningEnabled.load(std::memory_order_relaxed)) {
         const bool observed = g_warningNativeSeen != 0;
         const bool matched = g_warningNativeSkipped != 0;
@@ -713,7 +747,7 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
         g_skipLogosEnabled.store(enabled,std::memory_order_relaxed);
         g_skipWarningEnabled.store(false,std::memory_order_relaxed);
         g_warningBootGate=0;
-        LogLoader(L"Skip Warning V1.04: native patch quarantined to protect cursor/crosshair");
+        LogLoader(L"Skip Warning V1.05: native loop untouched, passive screen-definition probe only");
         const bool valid = HasSupportedNativeCode();
         g_skipLogosTargetValid.store(valid,std::memory_order_release);
         if (enabled && valid && !InstallSelectiveLogoHook())
