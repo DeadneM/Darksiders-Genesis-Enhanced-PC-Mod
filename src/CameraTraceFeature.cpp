@@ -227,7 +227,7 @@ void HookView(void* camera, float dt, void* outView) {
         settings.tpsCutsceneSuspended.store(false,std::memory_order_release);
     }else if(gameplayCamera){
         cinematicCandidateStart=0;
-        if(settings.tpsCutsceneSuspended.exchange(false,std::memory_order_acq_relaxed)){
+        if(settings.tpsCutsceneSuspended.exchange(false,std::memory_order_acq_rel)){
             if(++cinematicTransitions<=20)
                 Write("TPS V0.97 CINEMATIC: native cutscene ended; live TPS view restored");
         }
