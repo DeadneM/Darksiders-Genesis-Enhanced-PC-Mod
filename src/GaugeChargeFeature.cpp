@@ -20,7 +20,7 @@ namespace {
 // Fail closed on any signature mismatch and on an unrecognized local owner.
 using WrathFn=void(*)(void*,float);
 using ChaosFn=float(*)(void*,float);
-using SynergyFn=float(*)(void*,float);
+using SynergyFn=void(*)(void*,float); // RVA 0x583040 has void native return
 WrathFn originalWrath=nullptr;
 ChaosFn originalChaos=nullptr;
 SynergyFn originalSynergy=nullptr;
@@ -29,6 +29,14 @@ std::atomic<void*>* localPlayer=nullptr;
 std::atomic_bool wrathReady{false},chaosReady{false},synergyReady{false};
 std::atomic_uint32_t wrathEvents{0},chaosEvents{0},synergyEvents{0};
 std::atomic_uint32_t wrathBoosts{0},chaosBoosts{0},synergyBoosts{0};
+std::atomic_uint32_t wrathLocal{0},chaosLocal{0},synergyLocal{0},synergyPositive{0},synergyRejected{0};
+void Probe(const char* gauge,unsigned n,void* owner,float amount,float current,float limit,bool match){
+    if(!logger||(n>12 && n!=25 && n!=100 && n%2000!=0))return;
+    char line[250]{};
+    sprintf_s(line,"Gauge V1.05 AUDIT %s n=%u owner=%p local=%p match=%d amount=%.3f current=%.3f max=%.3f",
+        gauge,n,owner,localPlayer?localPlayer->load():nullptr,match?1:0,amount,current,limit);
+    Log(line);
+}
 void Log(const char* text){if(logger)logger(text);}
 void Event(const char* name,unsigned count,float native,float modified){
     if(!logger||(count>12&&count%250!=0))return;
@@ -54,10 +62,13 @@ float Boost(float value,bool enabled,float factor){
 }
 void HookWrath(void* character,float amount){
     if(!originalWrath)return;
-    ++wrathEvents;
+    const unsigned n=++wrathEvents;
     float effective=amount;
     auto& rt=dg::runtime::Get();
-    if(Local(character)){
+    const bool match=Local(character);
+    if(match)++wrathLocal;
+    Probe("WRATH AddWrath",n,character,amount,0.0f,0.0f,match);
+    if(match){
         effective=Boost(amount,rt.wrathChargeEnabled.load(),rt.wrathChargeMultiplier.load());
         if(effective>amount)Event("Wrath",++wrathBoosts,amount,effective);
     }
@@ -65,34 +76,45 @@ void HookWrath(void* character,float amount){
 }
 float HookChaos(void* chaosComponent,float amount){
     if(!originalChaos)return 0.0f;
-    ++chaosEvents;
+    const unsigned n=++chaosEvents;
     float effective=amount;
     auto& rt=dg::runtime::Get();
-    if(LocalOwner(chaosComponent)){
+    void* owner=nullptr;
+    if(chaosComponent)std::memcpy(&owner,static_cast<unsigned char*>(chaosComponent)+0xE8,sizeof(owner));
+    const bool match=Local(owner);
+    if(match)++chaosLocal;
+    Probe("CHAOS AddChaos",n,owner,amount,0.0f,0.0f,match);
+    if(match){
         effective=Boost(amount,rt.ultimateChargeEnabled.load(),rt.ultimateChargeMultiplier.load());
         if(effective>amount)Event("Chaos/Ultimate",++chaosBoosts,amount,effective);
     }
     return originalChaos(chaosComponent,effective);
 }
-float HookSynergy(void* player,float requested){
-    if(!originalSynergy)return 0.0f;
-    ++synergyEvents;
+void HookSynergy(void* player,float requested){
+    if(!originalSynergy)return;
+    const unsigned n=++synergyEvents;
     float effective=requested;
     auto& rt=dg::runtime::Get();
-    if(Local(player)&&rt.synergyChargeEnabled.load()&&
-       std::isfinite(requested)&&requested>=0.0f&&requested<100000.0f){
-        float previous=0.0f,maximum=0.0f;
-        // Only within verified native SetCurrentSynergy callback. No stale UObject.
+    const bool match=Local(player);
+    if(match)++synergyLocal;
+    float previous=0.0f,maximum=0.0f;
+    if(player){
         std::memcpy(&previous,static_cast<const unsigned char*>(player)+0x5A4,sizeof(previous));
         std::memcpy(&maximum,static_cast<const unsigned char*>(player)+0x498,sizeof(maximum));
+    }
+    if(std::isfinite(previous)&&std::isfinite(requested)&&requested>previous)
+        ++synergyPositive;
+    Probe("SYNERGY SetCurrentSynergy",n,player,requested,previous,maximum,match);
+    if(match&&rt.synergyChargeEnabled.load()&&
+       std::isfinite(requested)&&requested>=0.0f&&requested<100000.0f){
         if(std::isfinite(previous)&&previous>=0.0f&&previous<requested&&
            std::isfinite(maximum)&&maximum>=previous&&maximum>0.0f&&maximum<100000.0f){
             const float gain=Boost(requested-previous,true,rt.synergyChargeMultiplier.load());
             effective=std::clamp(previous+gain,previous,maximum);
             if(effective>requested)Event("Synergy",++synergyBoosts,requested-previous,effective-previous);
-        }
+        }else ++synergyRejected;
     }
-    return originalSynergy(player,effective);
+    originalSynergy(player,effective);
 }
 bool InstallNative(uintptr_t base,uintptr_t rva,const unsigned char* sig,size_t count,
                    void* hook,void** original,std::atomic_bool& ready,const char* name){
@@ -146,6 +168,9 @@ void Shutdown(){
         "Gauge V1.03 totals observed Wrath=%u Chaos=%u Synergy=%u boosted Wrath=%u Chaos=%u Synergy=%u",
         wrathEvents.load(),chaosEvents.load(),synergyEvents.load(),
         wrathBoosts.load(),chaosBoosts.load(),synergyBoosts.load());
+    Log(msg);
+    sprintf_s(msg,"Gauge V1.05 owner totals: WrathLocal=%u ChaosOwnerLocal=%u SynergyLocal=%u SynergyPositive=%u SynergyRejected=%u",
+        wrathLocal.load(),chaosLocal.load(),synergyLocal.load(),synergyPositive.load(),synergyRejected.load());
     Log(msg);
 }
 }
