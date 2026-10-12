@@ -25,15 +25,20 @@ namespace {
 using WrathFn=void(*)(void*,float);
 using ChaosFn=float(*)(void*,float);
 using SynergyFn=float(*)(void*,float); // XMM0 return consumed by Blueprint wrapper 0x7C52C2
+// RVA 0x65A1A0: (manager, synergy owner, factorA, factorB, factorC).
+// Native computes current + A*B*C and tail-jumps to SetCurrentSynergy.
+using SynergyGainFn=float(*)(void*,void*,float,float,float);
 WrathFn originalWrath=nullptr;
 ChaosFn originalChaos=nullptr;
 SynergyFn originalSynergy=nullptr;
+SynergyGainFn originalSynergyGain=nullptr;
 LogFn logger=nullptr;
 std::atomic<void*>* localPlayer=nullptr;
-std::atomic_bool wrathReady{false},chaosReady{false},synergyReady{false};
+std::atomic_bool wrathReady{false},chaosReady{false},synergyReady{false},synergyGainReady{false};
 std::atomic_uint32_t wrathEvents{0},chaosEvents{0},synergyEvents{0};
 std::atomic_uint32_t wrathBoosts{0},chaosBoosts{0},synergyBoosts{0};
 std::atomic_uint32_t wrathLocal{0},chaosLocal{0},synergyLocal{0},synergyPositive{0},synergyRejected{0};
+std::atomic_uint32_t synergyGainEvents{0},synergyGainLocal{0};
 std::atomic_uint32_t synergyNativeOwnerMatches{0},synergyOuterReferences{0},synergyNoVerifiedOwner{0};
 void Log(const char* text);
 std::atomic<void*> synergyLastActor{nullptr},synergyLastHolder{nullptr};
@@ -159,11 +164,40 @@ float HookChaos(void* chaosComponent,float amount){
     }
     return originalChaos(chaosComponent,effective);
 }
+// V1.06 native additive path. The game uses a real helper at RVA 0x65A1A0:
+//   GetCurrentSynergy(owner) + A*B*C -> SetCurrentSynergy(owner,absolute).
+// Modify only one positive factor while preserving the native setter's role.
+float HookSynergyGain(void* manager,void* owner,float a,float b,float c){
+    if(!originalSynergyGain)return 0.0f;
+    const unsigned n=++synergyGainEvents;
+    void* actor=localPlayer?localPlayer->load(std::memory_order_acquire):nullptr;
+    const int relation=SynergyLocalRelation(owner,actor);
+    if(relation>0)++synergyGainLocal;
+    const float nativeGain=(a*b)*c;
+    float effectiveC=c;
+    auto& rt=dg::runtime::Get();
+    if(relation>0&&rt.synergyChargeEnabled.load(std::memory_order_relaxed)&&
+       std::isfinite(nativeGain)&&nativeGain>0.0f&&nativeGain<100000.0f){
+        const float mult=rt.synergyChargeMultiplier.load(std::memory_order_relaxed);
+        if(std::isfinite(mult)&&mult>1.0f&&mult<=25.0f&&
+           std::isfinite(c)&&std::isfinite(c*mult)&&std::fabs(c*mult)<100000.0f){
+            effectiveC=c*mult;
+            Event("Synergy Native Add",++synergyBoosts,nativeGain,(a*b)*effectiveC);
+        }
+    }
+    if(logger&&(n<=8||n==25||n==100)){
+        char msg[250]{};
+        sprintf_s(msg,"Gauge V1.06 ADD_SYNERGY n=%u localRelation=%d factors=(%.3f,%.3f,%.3f) native=%.3f applied=%.3f",
+            n,relation,a,b,c,nativeGain,(a*b)*effectiveC);
+        Log(msg);
+    }
+    return originalSynergyGain(manager,owner,a,b,effectiveC);
+}
+// Absolute setter never changes native requested values, including spends,
+// scripted resets, replication and duplicate absolute updates.
 float HookSynergy(void* player,float requested){
     if(!originalSynergy)return 0.0f;
     const unsigned n=++synergyEvents;
-    float effective=requested;
-    auto& rt=dg::runtime::Get();
     const void* local=localPlayer?localPlayer->load(std::memory_order_acquire):nullptr;
     const int relation=SynergyLocalRelation(player,const_cast<void*>(local));
     const bool match=relation>0;
@@ -179,17 +213,7 @@ float HookSynergy(void* player,float requested){
     if(std::isfinite(previous)&&std::isfinite(requested)&&requested>previous)
         ++synergyPositive;
     Probe("SYNERGY SetCurrentSynergy",n,player,requested,previous,maximum,match);
-    if(match&&rt.synergyChargeEnabled.load()&&
-       std::isfinite(requested)&&requested>=0.0f&&requested<100000.0f){
-        if(std::isfinite(previous)&&previous>=0.0f&&previous<requested&&
-           std::isfinite(maximum)&&maximum>=previous&&maximum>0.0f&&maximum<100000.0f){
-            const float gain=Boost(requested-previous,true,rt.synergyChargeMultiplier.load());
-            effective=std::clamp(previous+gain,previous,maximum);
-            if(effective>requested)Event("Synergy",++synergyBoosts,requested-previous,effective-previous);
-        }else ++synergyRejected;
-    }
-    // Caller uses returned XMM0. Forward float return unmodified.
-    return originalSynergy(player,effective);
+    return originalSynergy(player,requested);
 }
 bool InstallNative(uintptr_t base,uintptr_t rva,const unsigned char* sig,size_t count,
                    void* hook,void** original,std::atomic_bool& ready,const char* name){
@@ -232,9 +256,12 @@ void Initialize(LogFn callback,std::atomic<void*>* local,bool exactExecutable){
                   reinterpret_cast<void**>(&originalChaos),chaosReady,"AddChaos");
     InstallNative(base,0x583040,synergySig,sizeof(synergySig),reinterpret_cast<void*>(&HookSynergy),
                   reinterpret_cast<void**>(&originalSynergy),synergyReady,"SetCurrentSynergy");
+    constexpr unsigned char gainSig[]={0x40,0x53,0x48,0x83,0xEC,0x40,0x0F,0x29,0x74,0x24,0x30};
+    InstallNative(base,0x65A1A0,gainSig,sizeof(gainSig),reinterpret_cast<void*>(&HookSynergyGain),
+                  reinterpret_cast<void**>(&originalSynergyGain),synergyGainReady,"AddSynergyNative");
 }
 Telemetry GetTelemetry(){
-    return {wrathReady.load(),chaosReady.load(),synergyReady.load(),
+    return {wrathReady.load(),chaosReady.load(),synergyReady.load()&&synergyGainReady.load(),
         wrathBoosts.load(),chaosBoosts.load(),synergyBoosts.load(),
         wrathEvents.load(),chaosEvents.load(),synergyEvents.load()};
 }
@@ -248,6 +275,9 @@ void Shutdown(){
         wrathLocal.load(),chaosLocal.load(),synergyLocal.load(),
         synergyNativeOwnerMatches.load(),synergyOuterReferences.load(),synergyNoVerifiedOwner.load(),
         synergyPositive.load(),synergyRejected.load());
+    Log(msg);
+    sprintf_s(msg,"Gauge V1.06 additive totals: ready=%u observed=%u verifiedLocal=%u boosted=%u (setter passthrough)",
+        synergyGainReady.load()?1u:0u,synergyGainEvents.load(),synergyGainLocal.load(),synergyBoosts.load());
     Log(msg);
 }
 }
