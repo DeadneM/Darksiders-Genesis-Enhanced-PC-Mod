@@ -104,9 +104,9 @@ void HookView(void* camera, float dt, void* outView) {
     static std::atomic_bool lastHorse{false};
     // V0.86: the mode of mounted shooting is ALWAYS enforced when in TPS.
     // The retired vertical-stabilization checkbox is NOT an aim mode gate.
+    // V1.02: mounted TPS firing is controlled by native gamepad only.
     const bool activeHorseAim=thirdPerson &&
-        (settings.tpsAimActive.load(std::memory_order_acquire) ||
-         (GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0);
+        settings.tpsAimActive.load(std::memory_order_acquire);
     g_mountedFireCurrentlyActive.store(false,std::memory_order_relaxed);
     if(activeHorseAim){
         ++g_mountedFireRequested;
@@ -194,18 +194,8 @@ void HookView(void* camera, float dt, void* outView) {
     // controller hooks; let the game's actual radial camera render.
     const auto lastTPS=settings.tpsGameplayViewTick.load(std::memory_order_acquire);
     const bool recentTPS=lastTPS && now>=lastTPS && now-lastTPS<650ull;
-    // V0.96: old -15 degree native-pitch validity gate also rejected
-    // legitimate local mouse firing frames after the game adjusted its
-    // native aim camera. Keep the existing conservative gate everywhere
-    // else, and retain an existing live TPS camera ONLY during on-foot
-    // Camera Forward LMB firing, with the same nearby actor.
-    const bool mouseAimContinuity=thirdPerson && !usingHorse &&
-        settings.tpsMountedAimMode.load(std::memory_order_relaxed)==0 &&
-        settings.tpsMouseCenterAimEnabled.load(std::memory_order_relaxed) &&
-        (GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0 &&
-        recentTPS && actorValid && nearPawn;
-    const bool gameplayCamera=(actorValid&&normalAngles&&nearPawn) ||
-        mouseAimContinuity;
+    // V1.02: no mouse-specific camera continuity bypass.
+    const bool gameplayCamera=actorValid&&normalAngles&&nearPawn;
     // V0.97 automatic cutscene suspension: the engine's own untouched
     // camera view is the source of truth, not a fabricated cutscene flag.
     // Require a PREVIOUS valid TPS view, continuous rejection >= 500 ms,
