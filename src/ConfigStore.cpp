@@ -535,11 +535,11 @@ bool Store::Load() {
     tpsFootAnchorOffset=std::clamp(tpsFootAnchorOffset,-500.0f,500.0f);
     cameraMouseSensitivity = ReadFloat(L"Values", L"CameraMouseSensitivity", 0.12f, path_);
     cameraStickSpeed = ReadFloat(L"Values", L"CameraStickSpeed", 180.0f, path_);
-    if (!std::isfinite(thirdPersonDistanceMultiplier)) thirdPersonDistanceMultiplier=0.50f;
+    if (!std::isfinite(thirdPersonDistanceMultiplier)) thirdPersonDistanceMultiplier=0.15f;
     if (!std::isfinite(thirdPersonPitchDegrees)) thirdPersonPitchDegrees=-12.0f;
     if (!std::isfinite(thirdPersonHeightOffset)) thirdPersonHeightOffset=0.0f;
     if (!std::isfinite(cameraMouseSensitivity)) cameraMouseSensitivity=0.12f;
-    if (!std::isfinite(cameraStickSpeed)) cameraStickSpeed=135.0f;
+    if (!std::isfinite(cameraStickSpeed)) cameraStickSpeed=180.0f;
     thirdPersonDistanceMultiplier=std::clamp(thirdPersonDistanceMultiplier,0.0f,3.0f);
     thirdPersonPitchDegrees=std::clamp(thirdPersonPitchDegrees,-75.0f,65.0f);
     thirdPersonHeightOffset=std::clamp(thirdPersonHeightOffset,-1000.0f,1000.0f);
