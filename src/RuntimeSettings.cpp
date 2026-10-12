@@ -26,7 +26,7 @@ void Publish(const Snapshot& s) {
     g_state.cameraMouseOrbitEnabled.store(s.cameraMouseOrbitEnabled);
     g_state.cameraControllerOrbitEnabled.store(s.cameraControllerOrbitEnabled);
     g_state.tpsMouseCenterAimEnabled.store(s.tpsMouseCenterAimEnabled);
-    g_state.tpsMouseForwardFire.store(s.tpsMouseForwardFire);
+    g_state.tpsMouseStickMode.store(s.tpsMouseStickMode);
     g_state.tpsCutsceneAutoSuspend.store(s.tpsCutsceneAutoSuspend);
     if(!s.tpsCutsceneAutoSuspend||!s.thirdPersonEnabled)
         g_state.tpsCutsceneSuspended.store(false);
