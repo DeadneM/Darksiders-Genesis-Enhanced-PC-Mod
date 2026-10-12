@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2131;
+constexpr int kConfigRevision = 2132;
 // Actual XInput digital buttons plus LT/RT represented as virtual binding IDs.
 constexpr bool ValidPadBind(int m) {
     switch(m){case 0:case 0x0001:case 0x0002:case 0x0004:case 0x0008:
@@ -335,7 +335,7 @@ void Store::ResetDefaults(bool persist) {
     jumpHeightEnabled = true;
     glideDurationEnabled = true;
     horseEverywhereEnabled = true;
-    horseAreaMode = 1;
+    horseAreaMode = 2;
     horseSpeedEnabled = true;
     horseSprintSpeedEnabled = true;
     horseSprintDurationEnabled = true;
@@ -478,7 +478,7 @@ bool Store::Load() {
         ReadBool(L"Features", L"GlideDuration", true, path_);
     horseEverywhereEnabled = ReadBool(L"Features", L"HorseEverywhere", true, path_);
     horseAreaMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(
-        L"Features",L"HorseAreaMode",horseEverywhereEnabled?1:0,path_.c_str())),0,3);
+        L"Features",L"HorseAreaMode",horseEverywhereEnabled?2:0,path_.c_str())),0,3);
     horseEverywhereEnabled=horseAreaMode!=0;
     horseSpeedEnabled =
         ReadBool(L"Features", L"HorseSpeed", true, path_);
