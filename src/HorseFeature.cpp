@@ -980,11 +980,22 @@ bool HookHorseRegion(void* actor){
     const bool ridden=IsLiveLocalMountedRide(actor);
     const bool nativeRide=IsCameraIndependentLocalRide(actor);
     const bool pregranted=IsLiveLocalPlayerForHorseRegion(actor);
-    // V0.96: independent restricted-summon override, while leaving the
-    // V0.95 validated scope exactly unchanged when both options are ON.
+    // V0.97 mode: 0=off, 1=all (EXACT validated V0.95 behavior),
+    // 2=restricted only, 3=banned zone only. The engine provides TWO
+    // independent predicates, not two documented named zone enums.
+    // Experimental classification: a blocked native desummon predicate
+    // means "banned"; no desummon predicate means "restricted".
+    // Always use the ORIGINAL native function, never our own detour,
+    // and only classify verified local actors. A derived native lookup
+    // is read-only; fail open when no valid native getter is present.
+    const int mode=dg::runtime::Get().horseAreaMode.load(std::memory_order_relaxed);
     const bool scope=summoned||ridden||nativeRide||pregranted;
-    const bool enabled=dg::runtime::Get().horseAllowRestrictedSummon.load(std::memory_order_relaxed);
-    if(enabled&&scope&&!original){
+    const bool selective=mode==2||mode==3;
+    const bool banned=selective && scope && g_originalHorseDesummon &&
+        g_originalHorseDesummon(actor);
+    const bool zoneAllowed=mode==1 || (mode==2 && !banned &&
+        g_originalHorseDesummon!=nullptr) || (mode==3 && banned);
+    if(scope&&zoneAllowed&&!original){
         if(ridden&&!summoned)++g_mountedRegionHolds;
         if(nativeRide&&!ridden&&!summoned)++g_nativeCameraRegionHolds;
         const unsigned n=++g_regionOverrides;
@@ -1001,12 +1012,11 @@ bool HookHorseDesummon(void* actor){
     const bool summoned=IsLocalSummonIntent(actor);
     const bool ridden=IsLiveLocalMountedRide(actor);
     const bool nativeRide=IsCameraIndependentLocalRide(actor);
-    // V0.96: independent forced-desummon override. Native game result
-    // remains untouched if this specific sub-option is disabled.
+    // Native desummon permission is changed only in All/Banned modes.
+    // Restricted-only deliberately leaves the original desummon answer.
     const bool scope=summoned||ridden||nativeRide;
-    const bool enabled=dg::runtime::Get().horseEverywhereEnabled.load(std::memory_order_relaxed) &&
-        dg::runtime::Get().horsePreventForcedDesummon.load(std::memory_order_relaxed);
-    if(enabled&&scope&&original){
+    const int mode=dg::runtime::Get().horseAreaMode.load(std::memory_order_relaxed);
+    if((mode==1||mode==3)&&scope&&original){
         if(ridden&&!summoned)++g_mountedDesummonHolds;
         if(nativeRide&&!ridden&&!summoned)++g_nativeCameraDesummonHolds;
         const unsigned n=++g_desummonOverrides;
