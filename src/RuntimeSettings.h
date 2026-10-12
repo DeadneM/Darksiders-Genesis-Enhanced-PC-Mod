@@ -82,8 +82,8 @@ struct State {
     std::atomic_bool tpsCutsceneAutoSuspend{true};
     std::atomic_bool tpsCutsceneSuspended{false};
     std::atomic_bool tpsTemporarilySuspended{false};
-    std::atomic_bool tpsAbilityWheelHeld{false}; // LB radial: keep TPS camera, native right-stick selection
-    std::atomic_ullong tpsAbilityWheelTick{0}; // recent physical LB / native keyboard wheel input
+    std::atomic_bool tpsAbilityWheelHeld{false}; // LB/R3 radial: pass native selection input, not a camera override
+    std::atomic_ullong tpsAbilityWheelTick{0}; // fresh LB/R3/native keyboard wheel input for look pass-through
     std::atomic_bool tpsHideGroundAimFx{true};
     std::atomic_int aimIndicatorHideMode{2};
     std::atomic_bool tpsHorseStableAimCamera{true};
