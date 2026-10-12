@@ -65,15 +65,25 @@ jobs:
           $ErrorActionPreference = 'Stop'
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add downloads/DarksidersGenesis_V1.04_WARNINGSAFE_MOUNTED_FORWARD_TEST.zip
-          git commit -m "downloads: preserve compiled V1.04 cumulative experimental ZIP (unvalidated)"
-          if ($LASTEXITCODE -ne 0) { throw 'Archive commit failed' }
+          # Always update from the current branch head BEFORE staging the ZIP.
+          # A preceding canceled job may have published the same binary path.
+          # Never git rebase a binary archive (add/add creates an unresolvable conflict).
           $published = $false
           for ($i=0; $i -lt 5; $i++) {
             git fetch origin debug
             if ($LASTEXITCODE -ne 0) { throw 'Fetch failed' }
-            git rebase origin/debug
-            if ($LASTEXITCODE -ne 0) { throw 'Rebase failed' }
+            git reset --mixed origin/debug
+            if ($LASTEXITCODE -ne 0) { throw 'Reset to latest origin/debug failed' }
+            git add -- downloads/DarksidersGenesis_V1.04_WARNINGSAFE_MOUNTED_FORWARD_TEST.zip
+            if ($LASTEXITCODE -ne 0) { throw 'Archive add failed' }
+            git diff --cached --quiet
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host 'Identical archive already published'
+              $published = $true
+              break
+            }
+            git commit -m "downloads: preserve verified compiled V1.04 cumulative ZIP"
+            if ($LASTEXITCODE -ne 0) { throw 'Archive commit failed' }
             git push origin HEAD:debug
             if ($LASTEXITCODE -eq 0) { $published = $true; break }
             Start-Sleep -Seconds 2
