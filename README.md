@@ -10,30 +10,42 @@ The project is deliberately fail-open for normal runtime failures and
 
 **[CURRENT_STATE.md: authoritative live development handoff](docs/CURRENT_STATE.md)**
 
-As of **2026-10-12**, experimental development is on `debug` only; previous
-binaries are on `archive` and protected `main` is **not** the working branch.
-User **rejected V1.00** because the TPS mouse is broken.
-Current source experiment on `debug`: **V1.01 virtual mouse stick**,
-not yet user-validated. The numbered Windows x64 cumulative ZIP will be
-available only after GitHub Actions successfully compiles and packages it:
-[DarksidersGenesis_V1.01_TPS_VIRTUAL_MOUSE_BINDINGS_TEST.zip](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.01_TPS_VIRTUAL_MOUSE_BINDINGS_TEST.zip).
+As of **2026-10-12**, work is on `debug` only. `main` is unchanged,
+and prior experimental ZIPs are retained in `debug` / `archive`.
 
-**Validated and frozen:** Horse Everywhere (Restricted only as the fresh default),
-R3 native **USE equipment** (not wheel-open), keyboard E/Z/Z, previously
-working V0.98 equipment wheel and the two verified shader signatures.
-**Experimental:** V1.01 removes the rejected V1.00 on-foot LMB native
-look-vector rewrite and adds virtual XInput mouse-stick mode OFF (V0.98
-rollback) / LEFT (movement) / RIGHT (TPS camera/aim, default). Primary /
-secondary fire and radial-wheel detector bindings can now match customized
-native in-game controls; they do NOT change the game's own bindings.
-R3 remains native USE selected equipment, not a wheel opener.
-Existing horse, gamepad hold/release, Strife shaders and HUD code are frozen.
-Automatic cinematic suspension remains an unvalidated heuristic.
-Skip Warning still does not skip the three-entry warning list observed in
-the V1.00 log (RVA 0x25FEBF); identifying the descriptors is pending.
-Wrath / Ultimate Form / Synergy charge multipliers are pending native
-owner identification, NOT implemented. See
-[V1.01 technical note](docs/V1_01_TPS_VIRTUAL_MOUSE_AND_INPUT_DETECTORS.md).
+**Current candidate: V1.02 controller-only TPS + Skip Warning correction + three-gauge research.**
+The V1.01 user log confirmed the experimental mouse layer was injecting
+right-stick values and intercepting relative mouse movement. **V1.02 removes
+the entire TPS mouse layer** (RAW, WM_MOUSEMOVE fallback, on-foot mouse orbit,
+virtual XInput emulation and mouse-driven look/camera rewrites). TPS camera
+rotation now uses **the actual controller right stick only**. Physical mouse
+gameplay input is left to the original game. This is a deliberate isolation
+test; TPS mouse camera rotation will no longer work in this candidate.
+
+**Frozen behaviors:** Horse Everywhere (new-install default Restricted only),
+physical R3 **uses equipment**, native radial-wheel selection,
+E/Z/Z keyboard shortcuts, Strife shader suppression, HUD, existing gameplay
+features and native gamepad camera/aim paths.
+
+**Skip Warning:** the guarded native loader island now accepts the observed
+**three** startup definition entries (0xC0 bytes), alongside one and two.
+If the size or EXE signature differs, it leaves native code behavior unchanged.
+Actual warning bypass still requires game startup validation; Skip Logos
+and Skip Intro continue as independent options.
+
+**Three independent research presets:** Wrath / Ultimate Form / Synergy
+each have a persisted OFF-by-default checkbox and x1-x25 multiplier in
+the Combat UI/INI. **These sliders are currently NOT CONNECTED to gameplay.**
+Until their distinct verified native resource gain hooks are identified,
+they must not be described as functioning gauge multipliers. The existing
+Hotstreak gain multiplier is a different function.
+
+**Build candidate ZIP after verified GitHub Actions:**
+[DarksidersGenesis_V1.02_CONTROLLER_ONLY_GAUGES_SKIPWARN_TEST.zip](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.02_CONTROLLER_ONLY_GAUGES_SKIPWARN_TEST.zip)
+
+See [V1.02 technical note](docs/V1_02_CONTROLLER_ONLY_GAUGES_SKIP_WARNING.md)
+and [live project state](docs/CURRENT_STATE.md). V1.01 remains available as
+a rollback. The automatic cutscene-state heuristic remains unvalidated.
 
 The older README entries below are retained as a technical history; historical
 mentions of working on `main` or old versions as "current" are superseded by
