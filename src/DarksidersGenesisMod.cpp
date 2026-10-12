@@ -3771,10 +3771,11 @@ void UpdateOrbitInput() {
     }
     // Mounted TPS modes own their camera independently of ON-FOOT orbit flags.
     // Mode 1 pauses only during fire; it resumes afterwards.
-    const bool forcedMountOrbit=IsMountedTPSNow();
+    // Joystick OFF means no camera orbit on foot or on horse.
+    // Native Camera Forward firing remains independent in FilterNativeXInput.
     const bool active=g_config.thirdPersonEnabled && !temporaryVanilla &&
         !rt.tpsCutsceneSuspended.load(std::memory_order_relaxed) &&
-        (g_config.cameraControllerOrbitEnabled || forcedMountOrbit) && focused;
+        g_config.cameraControllerOrbitEnabled && focused;
     const float dt=g_orbitLastPresentTick && now-g_orbitLastPresentTick<=100ull
         ? static_cast<float>(now-g_orbitLastPresentTick)*0.001f:0.0f;
     g_orbitLastPresentTick=now;
@@ -3888,7 +3889,7 @@ void UpdateOrbitInput() {
     float ax=0.0f,ay=0.0f;
     {
         for (DWORD i=0;i<XUSER_MAX_COUNT;++i) {
-            if((!g_config.cameraControllerOrbitEnabled&&!forcedMountOrbit)||
+            if(!g_config.cameraControllerOrbitEnabled||
                suspendControllerOrbitOnFire)break;
             XINPUT_STATE state{};
             if (GetCameraXInputState(i,&state)!=ERROR_SUCCESS) continue;
