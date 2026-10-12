@@ -18,6 +18,7 @@ struct Snapshot {
     bool tpsFollowPlayer = true;
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
     bool cameraControllerOrbitEnabled = true;
+    int tpsCameraStickMode = 2;
     bool tpsCutsceneAutoSuspend = true;
     // V0.75: native TPS mouse firing automatically uses camera heading.
     bool tpsHideGroundAimFx = true;
@@ -80,6 +81,7 @@ struct State {
     std::atomic_ullong tpsGameplayViewTick{0};
     std::atomic_bool cameraOrbitInputEnabled{true};
     std::atomic_bool cameraControllerOrbitEnabled{true};
+    std::atomic_int tpsCameraStickMode{2};
     std::atomic_bool tpsCutsceneAutoSuspend{true};
     std::atomic_bool tpsCutsceneSuspended{false};
     std::atomic_bool tpsTemporarilySuspended{false};

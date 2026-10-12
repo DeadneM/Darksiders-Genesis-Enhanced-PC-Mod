@@ -24,6 +24,7 @@ void Publish(const Snapshot& s) {
     g_state.tpsFollowPlayer.store(s.tpsFollowPlayer);
     g_state.cameraOrbitInputEnabled.store(s.cameraOrbitInputEnabled, std::memory_order_relaxed);
     g_state.cameraControllerOrbitEnabled.store(s.cameraControllerOrbitEnabled);
+    g_state.tpsCameraStickMode.store(s.tpsCameraStickMode);
     g_state.tpsCutsceneAutoSuspend.store(s.tpsCutsceneAutoSuspend);
     if(!s.tpsCutsceneAutoSuspend||!s.thirdPersonEnabled)
         g_state.tpsCutsceneSuspended.store(false);

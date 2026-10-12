@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2135;
+constexpr int kConfigRevision = 2136;
 // Actual XInput digital buttons plus LT/RT represented as virtual binding IDs.
 constexpr bool ValidPadBind(int m) {
     switch(m){case 0:case 0x0001:case 0x0002:case 0x0004:case 0x0008:
@@ -53,7 +53,7 @@ float ReadFloat(
 
     wchar_t* end = nullptr;
     const float value = wcstof(buffer, &end);
-    return (end && end != buffer) ? value : fallback;
+    return (end && end != buffer && std::isfinite(value)) ? value : fallback;
 }
 
 void WriteBool(
@@ -272,13 +272,8 @@ int ParseKeyToken(const wchar_t* text, int fallback) {
 Store::Store() {
     // Member initializers already carry the scalar defaults. Keep global
     // construction side-effect free and initialize only the hotkey table here.
-    hotkeys.fill(Action::None);
-    hotkeys[0] = Action::ToggleHUD;
-    hotkeys[1] = Action::MovementSpeed;
-    hotkeys[2] = Action::ActionRecovery;
-    hotkeys[3] = Action::ToggleReticle;
-    hotkeys[4] = Action::ThirdPerson;
-    cameraKeys = {{VK_UP, VK_DOWN, VK_PRIOR, VK_NEXT, VK_HOME, VK_END, VK_LEFT, VK_RIGHT}};
+    hotkeys = kDefaultHotkeys;
+    cameraKeys = kDefaultCameraKeys;
 }
 
 void Store::SetPath(const std::wstring& path) {
@@ -311,6 +306,7 @@ void Store::ResetDefaults(bool persist) {
     tpsFollowPlayer = true;
     cameraOrbitInputEnabled = true;
     cameraControllerOrbitEnabled = true;
+    tpsCameraStickMode = 2;
     tpsCutsceneAutoSuspend = true;
     tpsHoldSuspendEnabled = true;
     tpsLongPressToggleEnabled = true;
@@ -330,7 +326,7 @@ void Store::ResetDefaults(bool persist) {
     tpsRecenterButtonMask = 0x0040;
     horsePadButtonA = 0x0100; // LB
     horsePadButtonB = 0x0200; // RB
-    tpsKeyboardKeys = {{'H','Z','Z','E','E','G',0x09,0xA4}};
+    tpsKeyboardKeys = kDefaultTpsKeyboardKeys;
     pistolDamageEnabled = true;
     meleeDamageEnabled = true;
     jumpHeightEnabled = true;
@@ -374,13 +370,8 @@ void Store::ResetDefaults(bool persist) {
     ultimateChargeMultiplier = 2.00f;
     synergyChargeMultiplier = 2.00f;
 
-    hotkeys.fill(Action::None);
-    hotkeys[0] = Action::ToggleHUD;
-    hotkeys[1] = Action::MovementSpeed;
-    hotkeys[2] = Action::ActionRecovery;
-    hotkeys[3] = Action::ToggleReticle;
-    hotkeys[4] = Action::ThirdPerson;
-    cameraKeys = {{VK_UP, VK_DOWN, VK_PRIOR, VK_NEXT, VK_HOME, VK_END, VK_LEFT, VK_RIGHT}};
+    hotkeys = kDefaultHotkeys;
+    cameraKeys = kDefaultCameraKeys;
 
     PublishRuntime();
 
@@ -389,6 +380,25 @@ void Store::ResetDefaults(bool persist) {
     }
 }
 
+void Store::ResetVanillaCameraValues() {
+    fovDegrees=90.0f;
+    cameraZoomPercent=0.0f;
+    cameraPitchDegrees=0.0f;
+    cameraYawDegrees=0.0f;
+    cameraHeightOffset=50.0f;
+    Save();
+}
+void Store::ResetTpsCameraValues() {
+    thirdPersonFovDegrees=110.0f;
+    thirdPersonDistanceMultiplier=0.15f;
+    thirdPersonPitchDegrees=-12.0f;
+    thirdPersonHeightOffset=0.0f;
+    tpsFootAnchorOffset=0.0f;
+    cameraStickSpeed=180.0f;
+    dg::runtime::Get().cameraOrbitYawDegrees.store(0.0f);
+    dg::runtime::Get().cameraOrbitPitchDegrees.store(0.0f);
+    Save();
+}
 bool Store::Load() {
     if (path_.empty()) {
         return false;
@@ -443,8 +453,11 @@ bool Store::Load() {
     thirdPersonEnabled =
         ReadBool(L"Features", L"ThirdPerson", false, path_);
     thirdPersonFovEnabled=ReadBool(L"Features",L"TPSFOV",true,path_);
-    tpsFollowPlayer=ReadBool(L"Features",L"TPSFollowPlayer",true,path_);
-    cameraControllerOrbitEnabled=ReadBool(L"Features",L"CameraControllerOrbit",true,path_);
+    tpsFollowPlayer=true; // permanent verified player attachment
+    const bool oldOrbit=ReadBool(L"Features",L"CameraControllerOrbit",true,path_);
+    tpsCameraStickMode=std::clamp(GetPrivateProfileIntW(L"Features",L"TPSCameraStickMode",
+        oldOrbit?2:0,path_.c_str()),0,2);
+    cameraControllerOrbitEnabled=tpsCameraStickMode!=0;
     tpsCutsceneAutoSuspend=ReadBool(L"Features",L"TPSAutoCutscene",true,path_);
     cameraOrbitInputEnabled=cameraControllerOrbitEnabled;
     tpsHoldSuspendEnabled=ReadBool(L"Features",L"TPSHoldSuspend",true,path_);
@@ -690,6 +703,7 @@ void Store::PublishRuntime() const {
     runtime.tpsFollowPlayer = tpsFollowPlayer;
     runtime.cameraOrbitInputEnabled = cameraControllerOrbitEnabled;
     runtime.cameraControllerOrbitEnabled = cameraControllerOrbitEnabled;
+    runtime.tpsCameraStickMode = tpsCameraStickMode;
     runtime.tpsCutsceneAutoSuspend = tpsCutsceneAutoSuspend;
     runtime.tpsHideGroundAimFx = tpsHideGroundAimFx;
     runtime.aimIndicatorHideMode = aimIndicatorHideMode;
@@ -793,7 +807,7 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"SkipWarning", skipWarningEnabled, path_);
     WriteBool(L"Features", L"ThirdPerson", thirdPersonEnabled, path_);
     WriteBool(L"Features",L"TPSFOV",thirdPersonFovEnabled,path_);
-    WriteBool(L"Features",L"TPSFollowPlayer",tpsFollowPlayer,path_);
+    WritePrivateProfileStringW(L"Features",L"TPSFollowPlayer",nullptr,path_.c_str());
     // Remove obsolete TPS switches from existing user INIs once migrated.
     for(const wchar_t* key : { L"TPSFixedCenterReticle",L"TPSLockZoneCamera",
         L"TPSControllerCombatAim",L"TPSLockCombatFacing",L"TPSStrafeLock",
@@ -810,7 +824,10 @@ bool Store::SaveNow() {
     WritePrivateProfileStringW(L"Features",L"TPSMouseCenterAim",nullptr,path_.c_str());
     WritePrivateProfileStringW(L"Features",L"TPSMouseForwardFire",nullptr,path_.c_str());
     WritePrivateProfileStringW(L"Features",L"TPSMouseStickMode",nullptr,path_.c_str());
-    WriteBool(L"Features",L"CameraControllerOrbit",cameraControllerOrbitEnabled,path_);
+    WriteBool(L"Features",L"CameraControllerOrbit",tpsCameraStickMode!=0,path_);
+    wchar_t stickBuffer[8]{};
+    swprintf_s(stickBuffer,L"%d",tpsCameraStickMode);
+    WritePrivateProfileStringW(L"Features",L"TPSCameraStickMode",stickBuffer,path_.c_str());
     WriteBool(L"Features",L"TPSAutoCutscene",tpsCutsceneAutoSuspend,path_);
     // Remove the V0.71/0.73 ineffective switches, no mapping of old values.
     WritePrivateProfileStringW(L"Features",L"TPSMouseKeyboardStrafe",nullptr,path_.c_str());
@@ -925,6 +942,8 @@ bool Store::SaveNow() {
 
     // Native E already selects gear; the keyboard grenade duplicate is retired.
     WritePrivateProfileStringW(L"TPSKeyboardHotkeys",L"Grenade",nullptr,path_.c_str());
+    WritePrivateProfileStringW(L"TPSKeyboardHotkeys",L"RadialE",nullptr,path_.c_str());
+    WritePrivateProfileStringW(L"TPSKeyboardHotkeys",L"RadialAlt",nullptr,path_.c_str());
     for(size_t i=0;i<tpsKeyboardKeys.size();++i){
         const std::wstring token=KeyTokenFromVK(tpsKeyboardKeys[i]);
         WritePrivateProfileStringW(L"TPSKeyboardHotkeys",kTpsKeyboardTokens[i],

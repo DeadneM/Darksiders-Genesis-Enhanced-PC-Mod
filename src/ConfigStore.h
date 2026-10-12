@@ -8,16 +8,14 @@ namespace dg::config {
 enum class CameraAction : int { HeightUp = 0, HeightDown, ZoomOut, ZoomIn, PitchDown, PitchUp, YawLeft, YawRight, Count };
 // New V0.92 TPS keyboard actions have the same semantics as the existing
 // controller actions. OFF (0) is intentional for legacy compatibility.
-enum class TpsKeyboardAction : int { Horse = 0, Toggle, Recenter, Suspend, WheelE, WheelG, WheelTab, WheelAlt, Count };
-inline constexpr std::array<const char*, 8> kTpsKeyboardLabels = {
-    "Summon / dismount horse", "Long press TPS ON/OFF",
-    "Recenter TPS camera", "Hold temporary vanilla view",
-    "Radial wheel detector 1", "Radial wheel detector 2",
-    "Radial wheel detector 3", "Radial wheel detector 4"
+enum class TpsKeyboardAction : int { Horse = 0, Toggle, Recenter, Suspend, WheelG, WheelTab, Count };
+inline constexpr std::array<const char*, 6> kTpsKeyboardLabels = {
+    "Summon / dismount horse","Long press TPS ON/OFF",
+    "Recenter TPS camera","Hold temporary vanilla view",
+    "Equipment wheel (G)","Ammunition / abilities wheel (Tab)"
 };
-inline constexpr std::array<const wchar_t*, 8> kTpsKeyboardTokens = {
-    L"Horse", L"ToggleTPS", L"RecenterTPS", L"TemporaryView",
-    L"RadialE", L"RadialG", L"RadialTab", L"RadialAlt"
+inline constexpr std::array<const wchar_t*, 6> kTpsKeyboardTokens = {
+    L"Horse",L"ToggleTPS",L"RecenterTPS",L"TemporaryView",L"RadialG",L"RadialTab"
 };
 inline constexpr std::array<const char*, 8> kCameraLabels = {
   "Raise Height", "Lower Height", "Zoom Out", "Zoom In", "Tilt Down", "Tilt Up",
@@ -56,6 +54,7 @@ enum class Action : int {
     CameraYawLeft,
     CameraYawRight,
     CameraReset,
+    TpsCameraReset,
     Count
 };
 
@@ -87,7 +86,8 @@ kActionLabels = {
     "Camera Pitch Up",
     "Camera Rotate Left",
     "Camera Rotate Right",
-    "Camera Reset"
+    "Camera Values Default",
+    "TPS Camera Values Default"
 };
 
 inline constexpr std::array<const wchar_t*, static_cast<std::size_t>(Action::Count)>
@@ -118,9 +118,21 @@ kActionTokens = {
     L"CameraPitchUp",
     L"CameraYawLeft",
     L"CameraYawRight",
-    L"CameraReset"
+    L"CameraReset",
+    L"TpsCameraReset"
 };
 
+inline constexpr std::array<int, 8> kDefaultCameraKeys{{
+    0x26,0x28,0x21,0x22,0x24,0x23,0x25,0x27
+}};
+inline constexpr std::array<int, 6> kDefaultTpsKeyboardKeys{{
+    'H','Z','Z','E','G',0x09
+}};
+inline constexpr std::array<Action, 12> kDefaultHotkeys{{
+    Action::ToggleHUD,Action::MovementSpeed,Action::ActionRecovery,
+    Action::ToggleReticle,Action::ThirdPerson,Action::None,
+    Action::None,Action::None,Action::None,Action::None,Action::None,Action::None
+}};
 const char* ActionLabel(Action action);
 const wchar_t* ActionToken(Action action);
 Action ParseAction(const wchar_t* text);
@@ -148,6 +160,7 @@ public:
     bool tpsFollowPlayer = true;
     bool cameraOrbitInputEnabled = true; // derived: controller-only TPS camera
     bool cameraControllerOrbitEnabled = true;
+    int tpsCameraStickMode = 2; // 0 OFF, 1 left, 2 right
     bool tpsCutsceneAutoSuspend = true;
     bool tpsHoldSuspendEnabled = true;
     bool tpsLongPressToggleEnabled = true;
@@ -212,8 +225,8 @@ public:
     float synergyChargeMultiplier = 2.00f;
 
     std::array<Action, 12> hotkeys{};
-    std::array<int, static_cast<size_t>(CameraAction::Count)> cameraKeys{{0x26,0x28,0x25,0x27,0,0,0x64,0x66}};
-    std::array<int, static_cast<size_t>(TpsKeyboardAction::Count)> tpsKeyboardKeys{{'H','Z','Z','E','E','G',0x09,0xA4}};
+    std::array<int, static_cast<size_t>(CameraAction::Count)> cameraKeys{kDefaultCameraKeys};
+    std::array<int, static_cast<size_t>(TpsKeyboardAction::Count)> tpsKeyboardKeys{kDefaultTpsKeyboardKeys};
 
     Store();
 
@@ -221,6 +234,8 @@ public:
     void SetLogger(LogFn logger);
 
     void ResetDefaults(bool persist);
+    void ResetVanillaCameraValues();
+    void ResetTpsCameraValues();
     bool Load();
 
     // Publish immediately to runtime atomics and mark disk state dirty.
