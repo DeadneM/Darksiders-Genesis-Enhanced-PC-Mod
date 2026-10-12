@@ -1,5 +1,5 @@
 # V1.02 | Controller-only TPS, independent gauge research and native warning skip
-**Date:** 2026-10-12. **Branch:** `debug` only. `main` untouched. **Status:** Windows x64 CI and in-game results required. **Base:** compiled V1.01, preserve user-validated V0.97/V0.98 controller/horse/gear behavior.
+**Date:** 2026-10-12. **Branch:** `debug` only. `main` untouched. **Status:** Windows x64 CI SUCCESS (run 38301250776), permanent ZIP published and 4 root entries verified by workflow; in-game user validation required. **Base:** compiled V1.01, preserve user-validated V0.97/V0.98 controller/horse/gear behavior.
 
 ## Why this isolation build
 User's V1.01 log `DarksidersGenesisMod(20261012-195105).log` contains `virtual RIGHT stick`, `RAW INPUT` and `FIRE ORBIT`. Shutdown counters: RAW=59605, motion=59587, duringFire=5851, WMfallback=55, orbitFrames=1294, injected=4396, virtualPadReads=0. The latter proves full virtual-pad creation was not seen, but axis writes still executed. This build removes these source paths entirely, not merely turns a switch OFF.
@@ -29,4 +29,4 @@ User's V1.01 log `DarksidersGenesisMod(20261012-195105).log` contains `virtual R
 4. Three research preset entries can save/load x1-x25, **no gauge effect expected**.
 5. Camera cutscene false positives separately tracked; left unchanged intentionally for isolation.
 
-**ZIP:** `debug/downloads/DarksidersGenesis_V1.02_CONTROLLER_ONLY_GAUGES_SKIPWARN_TEST.zip` (publish only after CI success). Four files directly at root. User testing still required.
+**ZIP:** `debug/downloads/DarksidersGenesis_V1.02_CONTROLLER_ONLY_GAUGES_SKIPWARN_TEST.zip` (verified published; size 631269 bytes). Four files directly at root. CI https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38301250776. User testing still required.
