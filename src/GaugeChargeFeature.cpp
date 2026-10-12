@@ -35,6 +35,7 @@ std::atomic_uint32_t wrathEvents{0},chaosEvents{0},synergyEvents{0};
 std::atomic_uint32_t wrathBoosts{0},chaosBoosts{0},synergyBoosts{0};
 std::atomic_uint32_t wrathLocal{0},chaosLocal{0},synergyLocal{0},synergyPositive{0},synergyRejected{0};
 std::atomic_uint32_t synergyActorReferences{0},synergyOuterReferences{0},synergyNoVerifiedOwner{0};
+void Log(const char* text);
 std::atomic<void*> synergyLastActor{nullptr},synergyLastHolder{nullptr};
 std::atomic_int synergyLastRelation{0};
 // Native UObjects only: the actual Synergy container is NOT the Character
