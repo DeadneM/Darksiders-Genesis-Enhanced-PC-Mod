@@ -206,14 +206,20 @@ void HookView(void* camera, float dt, void* outView) {
         recentTPS && actorValid && nearPawn;
     const bool gameplayCamera=(actorValid&&normalAngles&&nearPawn) ||
         mouseAimContinuity;
-    // V0.97 automatic cutscene suspension: the engine's own untouched
-    // camera view is the source of truth, not a fabricated cutscene flag.
-    // Require a PREVIOUS valid TPS view, continuous rejection >= 500 ms,
-    // and only treat native camera changes in a currently running TPS game
-    // as cinematic candidates. A valid player camera clears the suspension
-    // immediately; turning the option OFF keeps the old V0.96 heuristic.
+    // V0.99 camera-shape audit: a missing/stale local actor does NOT by
+    // itself prove a cutscene. V0.97 logs showed actorValid=0 and a normal
+    // -45-degree gameplay view producing false "cinematic" transitions.
+    // Only sustained DIFFERENT native camera shape (pitch outside the
+    // gameplay range, or a confirmed live player far from the view) can
+    // arm automatic suspension. Native radial wheels are not cutscenes.
+    // This adds no UObject dereferences and never modifies camera sources.
     static ULONGLONG cinematicCandidateStart=0;
     static unsigned cinematicTransitions=0;
+    static unsigned ignoredStaleActor=0;
+    const auto radialTick=settings.tpsAbilityWheelTick.load(std::memory_order_acquire);
+    const bool nativeWheelActive=settings.tpsAbilityWheelHeld.load(std::memory_order_acquire)&&
+        radialTick&&now>=radialTick&&now-radialTick<250ull;
+    const bool cinematicShape=!normalAngles||(actorValid&&!nearPawn);
     const bool autoCutscene=settings.tpsCutsceneAutoSuspend.load(std::memory_order_relaxed);
     if(!thirdPerson||!autoCutscene){
         cinematicCandidateStart=0;
@@ -221,19 +227,31 @@ void HookView(void* camera, float dt, void* outView) {
     }else if(gameplayCamera){
         cinematicCandidateStart=0;
         if(settings.tpsCutsceneSuspended.exchange(false,std::memory_order_acq_rel)){
-            if(++cinematicTransitions<=20)
-                Write("TPS V0.97 CINEMATIC: native cutscene ended; live TPS view restored");
+            if(++cinematicTransitions<=24)
+                Write("TPS V0.99 CINEMATIC: confirmed live gameplay view; previous native-view suspension ended");
+        }
+    }else if(nativeWheelActive||!cinematicShape){
+        // Missing player location at a normal native pitch is a transient
+        // actor-sampling failure or loading event, not positive evidence
+        // of a cutscene. The camera still passes through unchanged.
+        cinematicCandidateStart=0;
+        if(!nativeWheelActive&&!actorValid&&++ignoredStaleActor<=5){
+            char msg[190]{};
+            sprintf_s(msg,"TPS V0.99 CAMERA AUDIT: stale actor, native view not cinematic (pitch=%.1f gapXY=%.0f)",nativePitch,planar);
+            Write(msg);
         }
     }else{
-        // Camera change alone is not enough when the local actor is
-        // temporarily absent at load time. Only suspend from live TPS.
         const bool observedTPS=lastTPS&&now>=lastTPS&&now-lastTPS<3500ull;
         if(observedTPS){
             if(!cinematicCandidateStart)cinematicCandidateStart=now;
             if(now>=cinematicCandidateStart&&now-cinematicCandidateStart>=500ull &&
                !settings.tpsCutsceneSuspended.exchange(true,std::memory_order_acq_rel)){
-                if(++cinematicTransitions<=20)
-                    Write("TPS V0.97 CINEMATIC: prolonged non-gameplay camera; native view and input restored");
+                if(++cinematicTransitions<=24){
+                    char msg[210]{};
+                    sprintf_s(msg,"TPS V0.99 CINEMATIC: sustained native camera shift; input suspended pitch=%.1f actorValid=%d near=%d gapXY=%.0f",
+                        nativePitch,actorValid?1:0,nearPawn?1:0,planar);
+                    Write(msg);
+                }
             }
         }else if(!settings.tpsCutsceneSuspended.load(std::memory_order_acquire)){
             cinematicCandidateStart=0;
