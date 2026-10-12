@@ -188,19 +188,12 @@ void HookView(void* camera, float dt, void* outView) {
     // Never override far-away/cinematic native views based only on a
     // matching pitch/FOV signature.
     const bool normalAngles=nativePitch>=-89.0f&&nativePitch<=-15.0f;
-    // V0.95: gameplay radial UIs can momentarily make the original
-    // camera fail the conservative camera-angle/proximity heuristic.
-    // Recover only if this SAME local player had a recently attached
-    // TPS view, the native camera is still near that player, AND the
-    // native wheel input is physically held. Never enter from a menu
-    // or remote cinematic without a recent live TPS view.
+    // V0.98: the old speculative camera-wheel continuity override was
+    // unvalidated and did not prevent the native aerial view on wheels.
+    // Keep all validated native LB/R3 right-stick input handling in the
+    // controller hooks; let the game's actual radial camera render.
     const auto lastTPS=settings.tpsGameplayViewTick.load(std::memory_order_acquire);
-    const auto wheelTick=settings.tpsAbilityWheelTick.load(std::memory_order_acquire);
-    const bool nativeWheel=settings.tpsAbilityWheelHeld.load(std::memory_order_acquire) &&
-        wheelTick && now>=wheelTick && now-wheelTick<250ull;
     const bool recentTPS=lastTPS && now>=lastTPS && now-lastTPS<650ull;
-    const bool radialGameplay=nativeWheel && recentTPS && actorValid &&
-        planar<11000.0f && std::fabs(nativeDz)<9000.0f;
     // V0.96: old -15 degree native-pitch validity gate also rejected
     // legitimate local mouse firing frames after the game adjusted its
     // native aim camera. Keep the existing conservative gate everywhere
@@ -212,7 +205,7 @@ void HookView(void* camera, float dt, void* outView) {
         (GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0 &&
         recentTPS && actorValid && nearPawn;
     const bool gameplayCamera=(actorValid&&normalAngles&&nearPawn) ||
-        radialGameplay || mouseAimContinuity;
+        mouseAimContinuity;
     // V0.97 automatic cutscene suspension: the engine's own untouched
     // camera view is the source of truth, not a fabricated cutscene flag.
     // Require a PREVIOUS valid TPS view, continuous rejection >= 500 ms,
@@ -251,15 +244,6 @@ void HookView(void* camera, float dt, void* outView) {
         if(++mouseRecovered<=8||mouseRecovered==1000){
             char msg[190]{};
             sprintf_s(msg,"TPS V0.96 MOUSE CAMERA: kept live TPS during native firing pitch=%.1f n=%u",nativePitch,mouseRecovered);
-            Write(msg);
-        }
-    }
-    if(radialGameplay && !(normalAngles&&nearPawn)){
-        static unsigned recovered=0;
-        if(++recovered<=8||recovered==1000){
-            char msg[200]{};
-            sprintf_s(msg,"TPS V0.95 RADIAL: preserved TPS camera despite changed native view #%u pitch=%.1f gapXY=%.0f gapZ=%.0f",
-                recovered,nativePitch,planar,nativeDz);
             Write(msg);
         }
     }
