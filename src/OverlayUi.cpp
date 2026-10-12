@@ -395,7 +395,15 @@ void Draw(Context& c) {
                 horse::GetTelemetry();
             if(ImGui::Checkbox("Horse Everywhere (validated in TPS and default camera)",
                     &config.horseEverywhereEnabled)) config.Save();
-            ImGui::TextDisabled("Summon and ride in banned zones. Verified with normal and TPS cameras.");
+            ImGui::TextDisabled("Two native area checks, now independently configurable.");
+            ImGui::Indent();
+            if(ImGui::Checkbox("Allow summon in restricted region##HorseRegion",
+                    &config.horseAllowRestrictedSummon))config.Save();
+            if(ImGui::Checkbox("Prevent forced dismount in blocked region##HorseDesummon",
+                    &config.horsePreventForcedDesummon))config.Save();
+            ImGui::Unindent();
+            ImGui::TextDisabled("Both ON = verified V0.95 behavior. Horse Everywhere OFF disables both.");
+            ImGui::TextDisabled("Padlock / no-icon visual mapping is not yet proven.");
             ImGui::TextDisabled("Keyboard and both pad buttons trigger the same native horse action.");
             ImGui::TextDisabled("The two controller buttons must be pressed simultaneously.");
             ImGui::PushID("horse_kbd");
