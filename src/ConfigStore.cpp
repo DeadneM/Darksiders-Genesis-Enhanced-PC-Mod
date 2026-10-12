@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2129;
+constexpr int kConfigRevision = 2130;
 // Actual XInput digital buttons plus LT/RT represented as virtual binding IDs.
 constexpr bool ValidPadBind(int m) {
     switch(m){case 0:case 0x0001:case 0x0002:case 0x0004:case 0x0008:
@@ -306,7 +306,7 @@ void Store::ResetDefaults(bool persist) {
     skipLogosEnabled = true;
     skipIntroEnabled = true;
     skipWarningEnabled = true;
-    thirdPersonEnabled = true;
+    thirdPersonEnabled = false;
     thirdPersonFovEnabled = true;
     tpsFollowPlayer = true;
     cameraOrbitInputEnabled = true;
@@ -334,6 +334,8 @@ void Store::ResetDefaults(bool persist) {
     jumpHeightEnabled = true;
     glideDurationEnabled = true;
     horseEverywhereEnabled = true;
+    horseAllowRestrictedSummon = true;
+    horsePreventForcedDesummon = true;
     horseSpeedEnabled = true;
     horseSprintSpeedEnabled = true;
     horseSprintDurationEnabled = true;
@@ -357,10 +359,10 @@ void Store::ResetDefaults(bool persist) {
     cameraZoomPercent = 0.0f;
     cameraPitchDegrees = 0.0f;
     cameraYawDegrees = 0.0f;
-    cameraHeightOffset = 0.0f;
+    cameraHeightOffset = 50.0f;
     thirdPersonDistanceMultiplier = 0.15f;
-    thirdPersonPitchDegrees = 0.0f;
-    thirdPersonHeightOffset = 100.0f;
+    thirdPersonPitchDegrees = -12.0f;
+    thirdPersonHeightOffset = 0.0f;
     tpsFootAnchorOffset = 0.0f;
     cameraMouseSensitivity = 0.12f;
     cameraStickSpeed = 180.0f;
@@ -433,7 +435,7 @@ bool Store::Load() {
     skipWarningEnabled =
         ReadBool(L"Features", L"SkipWarning", true, path_);
     thirdPersonEnabled =
-        ReadBool(L"Features", L"ThirdPerson", true, path_);
+        ReadBool(L"Features", L"ThirdPerson", false, path_);
     thirdPersonFovEnabled=ReadBool(L"Features",L"TPSFOV",true,path_);
     tpsFollowPlayer=ReadBool(L"Features",L"TPSFollowPlayer",true,path_);
     const bool oldCombinedOrbit=ReadBool(L"Features",L"CameraMouseGamepad",true,path_);
@@ -474,6 +476,8 @@ bool Store::Load() {
     glideDurationEnabled =
         ReadBool(L"Features", L"GlideDuration", true, path_);
     horseEverywhereEnabled = ReadBool(L"Features", L"HorseEverywhere", true, path_);
+    horseAllowRestrictedSummon = ReadBool(L"Features",L"HorseAllowRestrictedSummon",true,path_);
+    horsePreventForcedDesummon = ReadBool(L"Features",L"HorsePreventForcedDesummon",true,path_);
     horseSpeedEnabled =
         ReadBool(L"Features", L"HorseSpeed", true, path_);
     horseSprintSpeedEnabled =
@@ -521,11 +525,11 @@ bool Store::Load() {
     cameraYawDegrees =
         ReadFloat(L"Values", L"CameraYawDegrees", 0.0f, path_);
     cameraHeightOffset =
-        ReadFloat(L"Values", L"CameraHeightOffset", 0.0f, path_);
+        ReadFloat(L"Values", L"CameraHeightOffset", 50.0f, path_);
     thirdPersonDistanceMultiplier =
         ReadFloat(L"Values", L"ThirdPersonDistanceMultiplier", 0.15f, path_);
-    thirdPersonPitchDegrees = ReadFloat(L"Values", L"ThirdPersonPitchDegrees", 0.0f, path_);
-    thirdPersonHeightOffset = ReadFloat(L"Values", L"ThirdPersonHeightOffset", 100.0f, path_);
+    thirdPersonPitchDegrees = ReadFloat(L"Values", L"ThirdPersonPitchDegrees", -12.0f, path_);
+    thirdPersonHeightOffset = ReadFloat(L"Values", L"ThirdPersonHeightOffset", 0.0f, path_);
     tpsFootAnchorOffset=ReadFloat(L"Values",L"TPSFootAnchorOffset",0.0f,path_);
     if(!std::isfinite(tpsFootAnchorOffset))tpsFootAnchorOffset=0.0f;
     tpsFootAnchorOffset=std::clamp(tpsFootAnchorOffset,-500.0f,500.0f);
@@ -533,7 +537,7 @@ bool Store::Load() {
     cameraStickSpeed = ReadFloat(L"Values", L"CameraStickSpeed", 180.0f, path_);
     if (!std::isfinite(thirdPersonDistanceMultiplier)) thirdPersonDistanceMultiplier=0.50f;
     if (!std::isfinite(thirdPersonPitchDegrees)) thirdPersonPitchDegrees=-12.0f;
-    if (!std::isfinite(thirdPersonHeightOffset)) thirdPersonHeightOffset=120.0f;
+    if (!std::isfinite(thirdPersonHeightOffset)) thirdPersonHeightOffset=0.0f;
     if (!std::isfinite(cameraMouseSensitivity)) cameraMouseSensitivity=0.12f;
     if (!std::isfinite(cameraStickSpeed)) cameraStickSpeed=135.0f;
     thirdPersonDistanceMultiplier=std::clamp(thirdPersonDistanceMultiplier,0.0f,3.0f);
@@ -689,6 +693,8 @@ void Store::PublishRuntime() const {
     runtime.jumpHeightEnabled = jumpHeightEnabled;
     runtime.glideDurationEnabled = glideDurationEnabled;
     runtime.horseEverywhereEnabled = horseEverywhereEnabled;
+    runtime.horseAllowRestrictedSummon = horseAllowRestrictedSummon;
+    runtime.horsePreventForcedDesummon = horsePreventForcedDesummon;
     runtime.horseSpeedEnabled = horseSpeedEnabled;
     runtime.horseSprintSpeedEnabled = horseSprintSpeedEnabled;
     runtime.horseSprintDurationEnabled = horseSprintDurationEnabled;
@@ -830,6 +836,8 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"JumpHeight", jumpHeightEnabled, path_);
     WriteBool(L"Features", L"GlideDuration", glideDurationEnabled, path_);
     WriteBool(L"Features", L"HorseEverywhere", horseEverywhereEnabled, path_);
+    WriteBool(L"Features",L"HorseAllowRestrictedSummon",horseAllowRestrictedSummon,path_);
+    WriteBool(L"Features",L"HorsePreventForcedDesummon",horsePreventForcedDesummon,path_);
     WriteBool(L"Features", L"HorseSpeed", horseSpeedEnabled, path_);
     WriteBool(L"Features", L"HorseSprintSpeed", horseSprintSpeedEnabled, path_);
     WriteBool(L"Features", L"HorseSprintDuration", horseSprintDurationEnabled, path_);
