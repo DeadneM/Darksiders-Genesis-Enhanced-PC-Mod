@@ -146,7 +146,8 @@ public:
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
     bool cameraMouseOrbitEnabled = true;
     bool cameraControllerOrbitEnabled = true;
-    bool tpsMouseCenterAimEnabled = true; // V0.97 native RAW-only TPS mouse camera, no warp
+    bool tpsMouseCenterAimEnabled = true; // V0.98 on-foot mouse orbit baseline
+    bool tpsMouseForwardFire = true; // V1.00 experimental isolated mouse-only forward-look simulation
     // V0.75: mouse TPS firing always faces the camera; controller has
     // independent movement-facing and camera orbit options.
     bool tpsCutsceneAutoSuspend = true;
