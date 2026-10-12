@@ -146,9 +146,10 @@ public:
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
     bool cameraMouseOrbitEnabled = true;
     bool cameraControllerOrbitEnabled = true;
-    bool tpsMouseCenterAimEnabled = true; // V0.95 reversible mouse targeting test
+    bool tpsMouseCenterAimEnabled = true; // V0.97 native RAW-only TPS mouse camera, no warp
     // V0.75: mouse TPS firing always faces the camera; controller has
     // independent movement-facing and camera orbit options.
+    bool tpsCutsceneAutoSuspend = true;
     bool tpsHoldSuspendEnabled = true;
     bool tpsLongPressToggleEnabled = true;
     bool tpsGrenadeHoldEnabled = true;
@@ -169,8 +170,7 @@ public:
     bool jumpHeightEnabled = true;
     bool glideDurationEnabled = true;
     bool horseEverywhereEnabled = true;
-    bool horseAllowRestrictedSummon = true;
-    bool horsePreventForcedDesummon = true;
+    int horseAreaMode = 1; // 0 Off, 1 all, 2 restricted-only, 3 banned-only
     bool horseSpeedEnabled = true;
     bool horseSprintSpeedEnabled = true;
     bool horseSprintDurationEnabled = true;
