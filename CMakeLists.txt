@@ -62,6 +62,7 @@ add_library(DarksidersGenesisMod SHARED
   src/ConfigStore.cpp
   src/DarksidersGenesisMod.cpp
   src/EngineIniFeature.cpp
+  src/GaugeChargeFeature.cpp
   src/HorseFeature.cpp
   src/OverlayUi.cpp
   src/RuntimeSettings.cpp
