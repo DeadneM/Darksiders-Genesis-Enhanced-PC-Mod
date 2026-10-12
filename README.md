@@ -6,6 +6,26 @@ DXGI proxy and ASI plugin.
 The project is deliberately fail-open for normal runtime failures and
 **fail-closed for unsupported game executables**.
 
+## Current project state (read this before working on source)
+
+**[CURRENT_STATE.md: authoritative live development handoff](docs/CURRENT_STATE.md)**
+
+As of **2026-10-12**, experimental development is on `debug` only; previous
+binaries are on `archive` and protected `main` is **not** the working branch.
+Latest compiled experiment: **V0.99**, available at
+[the numbered Windows x64 cumulative ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V0.99_TPS_MOUSE_CINEMATIC_NATIVE_AUDIT_TEST.zip).
+
+**Validated and frozen:** Horse Everywhere (Restricted only as the fresh default),
+R3 native equipment wheel selection, shared E, Z/Z and the two verified shader
+signatures. **Outstanding:** the V0.99 TPS mouse camera is broken and must be
+redesigned independently from the controller; the accessory wheel is reported
+broken while the equipment wheel was validated in V0.97. Do not infer the same
+native opener or modify verified controller behavior without proof.
+
+The older README entries below are retained as a technical history; historical
+mentions of working on `main` or old versions as "current" are superseded by
+[CURRENT_STATE.md](docs/CURRENT_STATE.md).
+
 ## Downloads (stable links)
 
 **Latest experimental test ZIP:** [DarksidersGenesis_LATEST_TEST.zip](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/releases/download/test-build/DarksidersGenesis_LATEST_TEST.zip)
@@ -17,7 +37,7 @@ The project is deliberately fail-open for normal runtime failures and
 The experimental `test-build` prerelease is updated automatically only after a successful Windows build.
 Never distribute signed GitHub Actions artifact redirect links, since they expire.
 See [DOWNLOAD_STANDARD.md](docs/DOWNLOAD_STANDARD.md) for our reusable policy across mod repositories.
-## Current development state
+## Historical development snapshot (early versions, superseded)
 
 - Latest published binary release: **V0.29**
 - Safety hotfix **V0.31** and lazy overlay **V0.32** retained
@@ -37,7 +57,7 @@ match exactly, the overlay/log can still load but **gameplay hooks are not
 installed**.
 
 
-## Development and versioning policy
+## Historical development and versioning policy (superseded)
 
 Development now advances directly on `main`: one new numbered build per
 version (V0.35, V0.36, V0.37...), recorded by normal Git commits. Do not
