@@ -788,10 +788,13 @@ void Draw(Context& c) {
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
                 DrawSectionTitle("TPS controls and aiming");
-                if(ImGui::Checkbox("Mouse TPS: rebuilt raw input camera (test)",
+                if(ImGui::Checkbox("Mouse TPS: V0.98 camera orbit",
                     &config.tpsMouseCenterAimEnabled))config.Save();
-                ImGui::TextDisabled("Mouse native targeting untouched; RAW mouse moves TPS camera.");
-                ImGui::TextDisabled("No OS cursor warp or mouse yaw injection.");
+                ImGui::TextDisabled("Mouse camera without firing: restored V0.98.");
+                if(ImGui::Checkbox("Mouse fire: simulate forward look (test)",
+                    &config.tpsMouseForwardFire))config.Save();
+                ImGui::TextDisabled("LMB on foot only: steer native look vector along TPS camera yaw.");
+                ImGui::TextDisabled("No simulated XInput and no controller changes; OFF = vanilla mouse aim.");
                 if(ImGui::Checkbox("Auto suspend TPS during detected cutscenes (test)",
                     &config.tpsCutsceneAutoSuspend))config.Save();
                 ImGui::TextDisabled("ON: native view + no TPS input during detected cinematics.");
