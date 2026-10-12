@@ -980,8 +980,11 @@ bool HookHorseRegion(void* actor){
     const bool ridden=IsLiveLocalMountedRide(actor);
     const bool nativeRide=IsCameraIndependentLocalRide(actor);
     const bool pregranted=IsLiveLocalPlayerForHorseRegion(actor);
+    // V0.96: independent restricted-summon override, while leaving the
+    // V0.95 validated scope exactly unchanged when both options are ON.
     const bool scope=summoned||ridden||nativeRide||pregranted;
-    if(scope&&!original){
+    const bool enabled=dg::runtime::Get().horseAllowRestrictedSummon.load(std::memory_order_relaxed);
+    if(enabled&&scope&&!original){
         if(ridden&&!summoned)++g_mountedRegionHolds;
         if(nativeRide&&!ridden&&!summoned)++g_nativeCameraRegionHolds;
         const unsigned n=++g_regionOverrides;
@@ -998,8 +1001,12 @@ bool HookHorseDesummon(void* actor){
     const bool summoned=IsLocalSummonIntent(actor);
     const bool ridden=IsLiveLocalMountedRide(actor);
     const bool nativeRide=IsCameraIndependentLocalRide(actor);
+    // V0.96: independent forced-desummon override. Native game result
+    // remains untouched if this specific sub-option is disabled.
     const bool scope=summoned||ridden||nativeRide;
-    if(scope&&original){
+    const bool enabled=dg::runtime::Get().horseEverywhereEnabled.load(std::memory_order_relaxed) &&
+        dg::runtime::Get().horsePreventForcedDesummon.load(std::memory_order_relaxed);
+    if(enabled&&scope&&original){
         if(ridden&&!summoned)++g_mountedDesummonHolds;
         if(nativeRide&&!ridden&&!summoned)++g_nativeCameraDesummonHolds;
         const unsigned n=++g_desummonOverrides;
