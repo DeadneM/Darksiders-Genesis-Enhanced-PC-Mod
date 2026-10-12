@@ -193,7 +193,6 @@ void HookView(void* camera, float dt, void* outView) {
     // Keep all validated native LB/R3 right-stick input handling in the
     // controller hooks; let the game's actual radial camera render.
     const auto lastTPS=settings.tpsGameplayViewTick.load(std::memory_order_acquire);
-    const bool recentTPS=lastTPS && now>=lastTPS && now-lastTPS<650ull;
     // V1.02: no mouse-specific camera continuity bypass.
     const bool gameplayCamera=actorValid&&normalAngles&&nearPawn;
     // V0.97 automatic cutscene suspension: the engine's own untouched
@@ -227,14 +226,6 @@ void HookView(void* camera, float dt, void* outView) {
             }
         }else if(!settings.tpsCutsceneSuspended.load(std::memory_order_acquire)){
             cinematicCandidateStart=0;
-        }
-    }
-    if(mouseAimContinuity&&!normalAngles){
-        static unsigned mouseRecovered=0;
-        if(++mouseRecovered<=8||mouseRecovered==1000){
-            char msg[190]{};
-            sprintf_s(msg,"TPS V0.96 MOUSE CAMERA: kept live TPS during native firing pitch=%.1f n=%u",nativePitch,mouseRecovered);
-            Write(msg);
         }
     }
     // Temporary R3 vanilla view must not discard the previously chosen TPS orbit basis.
