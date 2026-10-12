@@ -36,7 +36,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.01-tps-virtual-mouse-stick-rebindable-game-detectors-test";
+constexpr const char* kBuild = "1.02-controller-only-gauges-research-skip-warning-3-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1439,8 +1439,8 @@ using NativeLookFn=NativeTPSRotator* (*)(void*,NativeTPSRotator*);
 NativeLookFn g_originalGetPlayerLookInput=nullptr;
 NativeLookFn g_originalGetPlayerLookRotation=nullptr;
 std::atomic_uint32_t g_tpsLookInputCalls{0},g_tpsLookRotationCalls{0};
-std::atomic_uint32_t g_tpsNativeLookInputBlocks{0},g_tpsMouseFacingApplied{0};
-std::atomic_uint32_t g_tpsNativeLookInputMouseAim{0},g_tpsNativeLookInputPadAim{0};
+std::atomic_uint32_t g_tpsNativeLookInputBlocks{0};
+std::atomic_uint32_t g_tpsNativeLookInputPadAim{0};
 std::atomic_uint32_t g_tpsPadStrafeApplied{0},g_tpsNativeLookRotationBlocks{0};
 std::atomic_uint32_t g_tpsNativeLookSignatureFailures{0};
 // V0.87: mounted idle native look suppression and low-risk CTRL action
@@ -4275,11 +4275,10 @@ void ShutdownMod() {
         g_tpsGrenadeDownCount.load(),g_tpsGrenadeUpCount.load(),
         g_tpsGroundAimFxEntered.load(),g_tpsGroundAimFxAlreadyHidden.load(),
         g_tpsGroundAimFxHidden.load());
-    Log("TPS V0.75 totals: nativeLookInput=%u nativeLookRotation=%u suppressedLook=%u heldYaw=%u mouseFace=%u padStrafe=%u mouseLookAim=%u padLookAim=%u signaturesFailed=%u",
+    Log("TPS V1.02 controller aim totals: nativeLookInput=%u nativeLookRotation=%u suppressedLook=%u heldYaw=%u padStrafe=%u padLookAim=%u signaturesFailed=%u",
         g_tpsLookInputCalls.load(),g_tpsLookRotationCalls.load(),
         g_tpsNativeLookInputBlocks.load(),g_tpsNativeLookRotationBlocks.load(),
-        g_tpsMouseFacingApplied.load(),g_tpsPadStrafeApplied.load(),
-        g_tpsNativeLookInputMouseAim.load(),g_tpsNativeLookInputPadAim.load(),
+        g_tpsPadStrafeApplied.load(),g_tpsNativeLookInputPadAim.load(),
         g_tpsNativeLookSignatureFailures.load());
     Log("TPS V0.63 totals: coneInside=%u coneOutside=%u reasserted=%u nativeLocks=%u restores=%u",
         g_tpsConeInside.load(),g_tpsConeOutside.load(),g_tpsFacingReasserted.load(),
