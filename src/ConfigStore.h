@@ -140,7 +140,7 @@ public:
     bool skipLogosEnabled = true;
     bool skipIntroEnabled = true;
     bool skipWarningEnabled = true;
-    bool thirdPersonEnabled = true;
+    bool thirdPersonEnabled = false;
     bool thirdPersonFovEnabled = true;
     bool tpsFollowPlayer = true;
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
@@ -169,6 +169,8 @@ public:
     bool jumpHeightEnabled = true;
     bool glideDurationEnabled = true;
     bool horseEverywhereEnabled = true;
+    bool horseAllowRestrictedSummon = true;
+    bool horsePreventForcedDesummon = true;
     bool horseSpeedEnabled = true;
     bool horseSprintSpeedEnabled = true;
     bool horseSprintDurationEnabled = true;
@@ -192,10 +194,10 @@ public:
     float cameraZoomPercent = 0.0f;
     float cameraPitchDegrees = 0.0f;
     float cameraYawDegrees = 0.0f;
-    float cameraHeightOffset = 0.0f;
+    float cameraHeightOffset = 50.0f;
     float thirdPersonDistanceMultiplier = 0.15f;
-    float thirdPersonPitchDegrees = 0.0f;
-    float thirdPersonHeightOffset = 100.0f;
+    float thirdPersonPitchDegrees = -12.0f;
+    float thirdPersonHeightOffset = 0.0f;
     float tpsFootAnchorOffset = 0.0f; // adjustable +/-500 units
     float cameraMouseSensitivity = 0.12f;
     float cameraStickSpeed = 180.0f;
