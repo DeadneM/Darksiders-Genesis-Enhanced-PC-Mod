@@ -455,8 +455,8 @@ bool Store::Load() {
     thirdPersonFovEnabled=ReadBool(L"Features",L"TPSFOV",true,path_);
     tpsFollowPlayer=true; // permanent verified player attachment
     const bool oldOrbit=ReadBool(L"Features",L"CameraControllerOrbit",true,path_);
-    tpsCameraStickMode=std::clamp(GetPrivateProfileIntW(L"Features",L"TPSCameraStickMode",
-        oldOrbit?2:0,path_.c_str()),0,2);
+    tpsCameraStickMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(
+        L"Features",L"TPSCameraStickMode",oldOrbit?2:0,path_.c_str())),0,2);
     cameraControllerOrbitEnabled=tpsCameraStickMode!=0;
     tpsCutsceneAutoSuspend=ReadBool(L"Features",L"TPSAutoCutscene",true,path_);
     cameraOrbitInputEnabled=cameraControllerOrbitEnabled;

@@ -1202,7 +1202,7 @@ void Draw(Context& c) {
                         current = 0;
                     }
 
-                    ImGui::SetNextItemWidth(-1.0f);
+                    ImGui::SetNextItemWidth(390.0f);
 
                     if (ImGui::BeginCombo(
                             comboId,

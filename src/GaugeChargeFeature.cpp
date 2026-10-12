@@ -86,7 +86,7 @@ float HookSynergy(void* player,float requested){
         std::memcpy(&previous,static_cast<const unsigned char*>(player)+0x5A4,sizeof(previous));
         std::memcpy(&maximum,static_cast<const unsigned char*>(player)+0x498,sizeof(maximum));
         if(std::isfinite(previous)&&previous>=0.0f&&previous<requested&&
-           std::isfinite(maximum)&&maximum>0.0f&&maximum<100000.0f){
+           std::isfinite(maximum)&&maximum>=previous&&maximum>0.0f&&maximum<100000.0f){
             const float gain=Boost(requested-previous,true,rt.synergyChargeMultiplier.load());
             effective=std::clamp(previous+gain,previous,maximum);
             if(effective>requested)Event("Synergy",++synergyBoosts,requested-previous,effective-previous);
