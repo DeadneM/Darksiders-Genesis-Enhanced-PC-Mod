@@ -12,6 +12,8 @@ The project is deliberately fail-open for normal runtime failures and
 
 **[V1.06 cumulative ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.06_SYNERGY_OWNER_NATIVE_ABI_TEST.zip)** (valid after successful GitHub Actions publishing), Windows x64 with `dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md` at ZIP root.
 
+**V1.06 final Synergy gain hook:** exact-game `RVA 0x65A1A0` computes current Synergy + three multiplied gain factors and tail-calls the absolute setter. The mod now multiplies **only positive native additive gains** for the verified holder `+0x5C0` local character. `SetCurrentSynergy` is strictly passthrough, preserving spending, resets and absolute updates. Separate `AddSynergyNative` signature-guarded hook, bounded logs and owner-match/boost counters. Gameplay effect must still be user-validated.
+
 ### V1.05 user log / disassembly-driven corrections
 - Three toggles loaded **ON x2**, camera vanilla Height **0**, both Camera Values Default actions executed successfully, horse Camera Forward analog injected **1,352 mounted** and **42 on foot** (native bullets still must be judged in-game). All non-reported features are protected.
 - Wrath: 0 native events; Ultimate Form/Chaos: 0 native events. **Do not claim they work.** Their current AddWrath/AddChaos hooks may be incomplete paths, pending native gain-path identification.

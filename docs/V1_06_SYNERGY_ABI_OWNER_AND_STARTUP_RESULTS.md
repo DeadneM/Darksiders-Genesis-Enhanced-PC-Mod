@@ -31,6 +31,12 @@ Read-only, bounded checks performed only while in live native Synergy hook:
 3. **Verified native Synergy owner's character getter**: RVA `0x56BE70` executes `mov rax,[rcx+0x5C0]; ret`. In the real resource-gain caller at `RVA 0x67E944–0x67E95B`, the engine obtains holder in `rdi` and calls `0x56BE70(rdi)` to obtain player actor in `rsi`. The same holder is passed to native Synergy gain calls at `0x67EA9F` and `0x67EAD7`. Therefore `holder+0x5C0 == g_localPlayerCharacter` is an authoritative ownership test, without object memory scanning.
 Match is cached for identical native owner/player pair; invalidated if either address changes. Logs relation `kind=4` for verified native owner, `kind=2` for UE Outer, `kind=1` for direct equality, `kind=0` for unverified. Positive gains multiplied only for verified relations. Broad actor-field scanning was eliminated. Remote/co-op holder remains unchanged. Native float return forwarded unchanged.
 
+## Exact additive gain location (supersedes absolute setter boosting)
+
+Using the same supported game EXE: `RVA 0x65A1A0` starts with bytes `40 53 48 83 EC 40 0F 29 74 24 30` and has the Windows x64 calling signature `float (void* manager,void* owner,float factorA,float factorB,float factorC)`. It calls current Synergy getter RVA `0x56D430`, multiplies XMM2 by XMM3 and the fifth float from stack, adds to current, then jumps to setter RVA `0x583040`. The native game calls this helper at `0x67EA9F` and `0x67EAD7`. A direct native check of owner+0x5C0 proves local character association.
+
+V1.06 now installs another exact-signature native hook **AddSynergyNative** at RVA `0x65A1A0`, multiplying only factorC when finite positive native gain and proven local owner. The existing SetCurrentSynergy hook becomes a **strict passthrough observer**, preserving absolute resets/spends/replication and float return ABI. Prior idea of scaling positive delta at absolute setter was unsafe because the game can reapply stale or reduced values. New log `Gauge V1.06 ADD_SYNERGY`, `Gauge V1.06 additive totals`; no claim of proven gauge fill before an in-game test.
+
 ## Skip Warning
 Existing V1.05 passive startup records confirms native code and +0x39 flags. Old skipping the entire definition loop may delete required text/UI setup, linked to cursor crosshair bug. V1.06 does not alter original loop or screen processing. Next step trace actual Slate/widget painting or display delay once screen identities validated; selective render-hide only if no lifecycle mutation.
 

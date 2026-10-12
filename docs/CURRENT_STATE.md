@@ -1,5 +1,9 @@
 # CURRENT_STATE | Darksiders Genesis Enhanced PC Mod
 
+## V1.06 final Synergy additive hook (2026-10-13)
+
+Exact native gain helper RVA `0x65A1A0` computes `GetCurrentSynergy(holder) + factorA*factorB*factorC` then tailcalls `SetCurrentSynergy`. Two direct gameplay callsites at RVAs `0x67EA9F` and `0x67EAD7` use this helper. V1.06 hooks its additive factor C only for positive local gains validated by the native holder+0x5C0 character getter (0x56BE70); setter is now always pass-through so legitimate spends/resets are preserved. `float` return restored for native setter ABI. New `Gauge V1.06 ADD_SYNERGY` and `additive totals` log lines separate requested/current from actual gains. V1.05 no-boost issue may be resolved for this source path, pending user gameplay validation. Other gauges remain research.
+
 ## Latest development: V1.06 native Synergy return type and local-owner resolution
 
 Uploaded V1.05 log 2026-10-13 00:41:49-00:48:19 verifies three gauges ON x2, vanilla Camera Height 0, both reset buttons executed, Horse forward injected 1352 HORSE/42 FOOT, correct startup original native lifecycle. Synergy 75 native SetCurrentSynergy calls, 37 positive gains of approx 1.35, MAX=500 but 0 boosts: **owner this != g_localPlayerCharacter** for all; Wrath/Chaos Add hooks never called in this test. 3 startup warning definitions native flags 1,1,0, matching 2 active candidates, not yet identified screen names.
