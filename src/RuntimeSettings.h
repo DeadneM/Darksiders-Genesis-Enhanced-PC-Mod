@@ -20,6 +20,7 @@ struct Snapshot {
     bool cameraMouseOrbitEnabled = true;
     bool cameraControllerOrbitEnabled = true;
     bool tpsMouseCenterAimEnabled = true;
+    bool tpsCutsceneAutoSuspend = true;
     // V0.75: native TPS mouse firing automatically uses camera heading.
     bool tpsHideGroundAimFx = true;
     int aimIndicatorHideMode = 2;
@@ -30,8 +31,7 @@ struct Snapshot {
     bool jumpHeightEnabled = true;
     bool glideDurationEnabled = true;
     bool horseEverywhereEnabled = true;
-    bool horseAllowRestrictedSummon = true;
-    bool horsePreventForcedDesummon = true;
+    int horseAreaMode = 1; // region+desummon based classification
     bool horseSpeedEnabled = true;
     bool horseSprintSpeedEnabled = true;
     bool horseSprintDurationEnabled = true;
@@ -79,6 +79,8 @@ struct State {
     std::atomic_bool cameraMouseOrbitEnabled{true};
     std::atomic_bool cameraControllerOrbitEnabled{true};
     std::atomic_bool tpsMouseCenterAimEnabled{true};
+    std::atomic_bool tpsCutsceneAutoSuspend{true};
+    std::atomic_bool tpsCutsceneSuspended{false};
     std::atomic_bool tpsTemporarilySuspended{false};
     std::atomic_bool tpsAbilityWheelHeld{false}; // LB radial: keep TPS camera, native right-stick selection
     std::atomic_ullong tpsAbilityWheelTick{0}; // recent physical LB / native keyboard wheel input
@@ -110,8 +112,7 @@ struct State {
     std::atomic_bool jumpHeightEnabled{true};
     std::atomic_bool glideDurationEnabled{true};
     std::atomic_bool horseEverywhereEnabled{true};
-    std::atomic_bool horseAllowRestrictedSummon{true};
-    std::atomic_bool horsePreventForcedDesummon{true};
+    std::atomic_int horseAreaMode{1};
     std::atomic_ullong horseSummonIntentTick{0};
     std::atomic_bool horseSpeedEnabled{true};
     std::atomic_bool horseSprintSpeedEnabled{true};
