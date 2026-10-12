@@ -12,15 +12,17 @@ The project is deliberately fail-open for normal runtime failures and
 
 As of **2026-10-12**, experimental development is on `debug` only; previous
 binaries are on `archive` and protected `main` is **not** the working branch.
-Latest compiled experiment: **V0.99**, available at
-[the numbered Windows x64 cumulative ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V0.99_TPS_MOUSE_CINEMATIC_NATIVE_AUDIT_TEST.zip).
+Latest compiled experiment: **V1.00** (not yet user-validated), available at
+[the numbered Windows x64 cumulative ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.00_V098_CAMERA_MOUSE_FORWARD_FIRE_TEST.zip).
 
 **Validated and frozen:** Horse Everywhere (Restricted only as the fresh default),
-R3 native equipment wheel selection, shared E, Z/Z and the two verified shader
-signatures. **Outstanding:** the V0.99 TPS mouse camera is broken and must be
-redesigned independently from the controller; the accessory wheel is reported
-broken while the equipment wheel was validated in V0.97. Do not infer the same
-native opener or modify verified controller behavior without proof.
+R3 native **USE equipment** (not wheel-open), keyboard E/Z/Z, previously
+working V0.98 equipment wheel and the two verified shader signatures.
+**Experimental:** V1.00 restores exact V0.98 camera and only modifies native
+mouse look vector on physical LMB fire; the accessory wheel and mouse-fire
+simulation require fresh user testing. New Wrath/Ultimate/Synergy gauges and
+Skip Warnings are pending native audit, NOT active features. Physical controller
+XInput paths remain unchanged.
 
 The older README entries below are retained as a technical history; historical
 mentions of working on `main` or old versions as "current" are superseded by
