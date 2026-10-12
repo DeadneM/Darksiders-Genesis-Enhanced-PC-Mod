@@ -1,4 +1,6 @@
 # CURRENT_STATE | Darksiders Genesis Enhanced PC Mod
+**2026-10-12 latest user V1.00 report:** TPS mouse totally broken, **V1.00 rejected**. V1.01 experimental source on `debug` replaces physical LMB native look rewrite with virtual XInput mouse-stick choices 0/OFF (V0.98), 1/LEFT, 2/RIGHT (default). Adds configurable fire/wheel detector bindings with descriptions; R3 remains native USE selected equipment, never opens a wheel. User remaps in-game must be mirrored in detector UI manually. Skipping warnings NOT resolved (native list 3 records / span 0xC0, gated hook skips only 1/2). TPS during cinematics is still a heuristic with repeated stale-actor false-positive transitions, not proven reliable. Three independent Courroux/Ultimate Form/Synergie charge gain hooks remain pending native discovery. `main` unchanged. [V1.01 technical note](V1_01_TPS_VIRTUAL_MOUSE_AND_INPUT_DETECTORS.md). CI success and user tests required before considering V1.01 built/validated.
+
 > **Canonical handoff file for future ChatGPT conversations. Read this FIRST**, then `README.md`, the latest `docs/V0_*.md`, the latest user log and the actual source code. Update this file **after each meaningful build or user test**, never replace validated results with guesses.
 
 **Updated:** 2026-10-12, after user test of V0.99 and report of mouse/radial regression.  
