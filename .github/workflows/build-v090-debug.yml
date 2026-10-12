@@ -1,4 +1,4 @@
-name: V1.00 V0.98 camera baseline + mouse forward fire TEST
+name: V1.01 virtual TPS mouse stick and configurable detectors TEST
 on:
   push:
     branches: [debug]
@@ -40,7 +40,7 @@ jobs:
           Copy-Item config/DarksidersGenesisMod.ini dist/
           Copy-Item README.md dist/
           New-Item -ItemType Directory -Path downloads -Force | Out-Null
-          $zipPath = 'downloads/DarksidersGenesis_V1.00_V098_CAMERA_MOUSE_FORWARD_FIRE_TEST.zip'
+          $zipPath = 'downloads/DarksidersGenesis_V1.01_TPS_VIRTUAL_MOUSE_BINDINGS_TEST.zip'
           if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
           Compress-Archive -Path 'dist/*' -DestinationPath $zipPath -CompressionLevel Optimal
           Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -56,8 +56,8 @@ jobs:
       - name: Upload verified Windows x64 ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_V1.00_V098_CAMERA_MOUSE_FORWARD_FIRE_TEST
-          path: downloads/DarksidersGenesis_V1.00_V098_CAMERA_MOUSE_FORWARD_FIRE_TEST.zip
+          name: DarksidersGenesis_V1.01_TPS_VIRTUAL_MOUSE_BINDINGS_TEST
+          path: downloads/DarksidersGenesis_V1.01_TPS_VIRTUAL_MOUSE_BINDINGS_TEST.zip
           if-no-files-found: error
       - name: Preserve numbered experimental ZIP in debug
         shell: pwsh
@@ -65,8 +65,8 @@ jobs:
           $ErrorActionPreference = 'Stop'
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add downloads/DarksidersGenesis_V1.00_V098_CAMERA_MOUSE_FORWARD_FIRE_TEST.zip
-          git commit -m "downloads: preserve compiled V1.00 cumulative experimental ZIP (unvalidated)"
+          git add downloads/DarksidersGenesis_V1.01_TPS_VIRTUAL_MOUSE_BINDINGS_TEST.zip
+          git commit -m "downloads: preserve compiled V1.01 cumulative experimental ZIP (unvalidated)"
           if ($LASTEXITCODE -ne 0) { throw 'Archive commit failed' }
           $published = $false
           for ($i=0; $i -lt 5; $i++) {
@@ -79,4 +79,4 @@ jobs:
             Start-Sleep -Seconds 2
           }
           if (-not $published) { throw 'Permanent experimental ZIP push failed' }
-          Write-Host 'V1.00 ZIP https://raw.githubusercontent.com/'"$env:GITHUB_REPOSITORY"'/debug/downloads/DarksidersGenesis_V1.00_V098_CAMERA_MOUSE_FORWARD_FIRE_TEST.zip'
+          Write-Host 'V1.01 ZIP https://raw.githubusercontent.com/'"$env:GITHUB_REPOSITORY"'/debug/downloads/DarksidersGenesis_V1.01_TPS_VIRTUAL_MOUSE_BINDINGS_TEST.zip'
