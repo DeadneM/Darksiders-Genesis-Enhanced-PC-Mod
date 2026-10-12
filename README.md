@@ -6,50 +6,29 @@ DXGI proxy and ASI plugin.
 The project is deliberately fail-open for normal runtime failures and
 **fail-closed for unsupported game executables**.
 
-## Current project state (read this before working on source)
+## Current project state: V1.03 native-gauge TEST (2026-10-12)
 
-**[CURRENT_STATE.md: authoritative live development handoff](docs/CURRENT_STATE.md)**
+**Working branch:** `debug`. The stable `main` branch has NOT been changed. Previous V1.02/V0.98 ZIPs are preserved.
 
-As of **2026-10-12**, work is on `debug` only. `main` is unchanged,
-and prior experimental ZIPs are retained in `debug` / `archive`.
+**Latest successfully compiled Windows x64 experimental build: V1.03.** Four files at ZIP root: `dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md`. GitHub Actions completed successfully: [V1.03 build](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38311864934).
 
-**Current candidate: V1.02 controller-only TPS + Skip Warning correction + three-gauge research.**
-The V1.01 user log confirmed the experimental mouse layer was injecting
-right-stick values and intercepting relative mouse movement. **V1.02 removes
-the entire TPS mouse layer** (RAW, WM_MOUSEMOVE fallback, on-foot mouse orbit,
-virtual XInput emulation and mouse-driven look/camera rewrites). TPS camera
-rotation now uses **the actual controller right stick only**. Physical mouse
-gameplay input is left to the original game. This is a deliberate isolation
-test; TPS mouse camera rotation will no longer work in this candidate.
+**[Download V1.03 experimental ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.03_CAMERA_INPUT_NATIVE_GAUGES_TEST.zip)**
 
-**Frozen behaviors:** Horse Everywhere (new-install default Restricted only),
-physical R3 **uses equipment**, native radial-wheel selection,
-E/Z/Z keyboard shortcuts, Strife shader suppression, HUD, existing gameplay
-features and native gamepad camera/aim paths.
+### V1.03 changes
 
-**Skip Warning:** the guarded native loader island now accepts the observed
-**three** startup definition entries (0xC0 bytes), alongside one and two.
-If the size or EXE signature differs, it leaves native code behavior unchanged.
-Actual warning bypass still requires game startup validation; Skip Logos
-and Skip Intro continue as independent options.
+- **Wrath / Ultimate Form (Chaos) / Synergy charge multipliers:** three separate native gain hooks identified by disassembling the exact matching `DarksidersGenesis-Win64-Shipping.exe` (`AddWrath RVA 0x660570`, `AddChaos RVA 0x62E060`, `SetCurrentSynergy RVA 0x583040`). Exact byte/signature checks; only positive local resource gains multiplied. Synergy setter receives absolute values, so only positive *delta* is boosted. **Experimental and disabled by default; actual gameplay result must be tested.** These are separate from the previously working Hotstreak `AddJuice` multiplier.
+- Each charge slider is visible in Combat with an enable checkbox, **manual numeric entry**, **Default ×2** and bounded range ×1–25. Native hook READY and event counters are displayed. A READY hook alone does not prove the in-game gauge fills faster.
+- **Two independent camera resets:** `Camera Values Default` and `TPS Camera Values Default`, each exposed as a button and as an assignable F1–F12 action. Restores accurate native and TPS camera defaults without changing unrelated settings. Vanilla camera parameters no longer add yaw/height/zoom or alternate FOV into TPS, and their UI/keyboard controls are disabled while TPS is enabled.
+- **TPS camera:** always attached to the verified player. Foot Origin Correction is with other TPS camera values. Controller joystick choice **OFF / Left Stick / Right Stick**; Right Stick is default. Left shares movement and is experimental.
+- **Rebindable controls:** individually restore default key/button for menu, F1–F12 actions, camera shortcuts, TPS shortcuts, horse chord and camera/aim/wheel detectors. Default TPS keyboard Z/Z pairing preserved.
+- **Native equipment input:** physical R3 USES and can hold/range-release equipment, preserving the validated V0.84/V0.98 continuous hold, UP interval and second stow pulse. **R3 is not a wheel opener.** Keyboard E USES equipment; G opens Equipment Wheel, Tab opens Ammunition/Abilities wheel, controller LB opens native wheel. Retired incorrect E/Alt/R3 radial detectors.
+- The TPS mouse-to-stick layer removed in V1.02 remains removed. Native physical mouse input, overlay mouse and reticle/Alt-Tab handling remain separate.
 
-**Three independent research presets:** Wrath / Ultimate Form / Synergy
-each have a persisted OFF-by-default checkbox and x1-x25 multiplier in
-the Combat UI/INI. **These sliders are currently NOT CONNECTED to gameplay.**
-Until their distinct verified native resource gain hooks are identified,
-they must not be described as functioning gauge multipliers. The existing
-Hotstreak gain multiplier is a different function.
+**Unresolved:** `Skip Warning` V1.02 reports an executed native 3-entry bypass but the screen still needs a visual fix; **not claimed fixed in V1.03**. Native cinematic-state identification and Default View on actual cutscenes remain experimental. No new D-Pad directional wheel emulation was added without evidence it was necessary. Physical R3, mounted horse movement/retention, shader aim suppression and native look paths still require in-game non-regression tests.
 
-**Build candidate ZIP after verified GitHub Actions:**
-[DarksidersGenesis_V1.02_CONTROLLER_ONLY_GAUGES_SKIPWARN_TEST.zip](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.02_CONTROLLER_ONLY_GAUGES_SKIPWARN_TEST.zip)
+Technical notes: [V1.03 binary research and test matrix](docs/V1_03_NATIVE_GAUGES_CAMERA_INPUT_TEST_PLAN.md), [V1.03 full audit](docs/V1_03_FULL_SOURCE_AUDIT_AND_UI_SPEC.md), [CURRENT_STATE](docs/CURRENT_STATE.md).
 
-See [V1.02 technical note](docs/V1_02_CONTROLLER_ONLY_GAUGES_SKIP_WARNING.md)
-and [live project state](docs/CURRENT_STATE.md). V1.01 remains available as
-a rollback. The automatic cutscene-state heuristic remains unvalidated.
-
-The older README entries below are retained as a technical history; historical
-mentions of working on `main` or old versions as "current" are superseded by
-[CURRENT_STATE.md](docs/CURRENT_STATE.md).
+The entries below this section are the historical development record; superseded release claims must be read using this V1.03 update.
 
 ## Downloads (stable links)
 
