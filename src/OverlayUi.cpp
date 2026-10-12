@@ -393,17 +393,18 @@ void Draw(Context& c) {
 
             const horse::Telemetry horseTelemetry =
                 horse::GetTelemetry();
-            if(ImGui::Checkbox("Horse Everywhere (validated in TPS and default camera)",
-                    &config.horseEverywhereEnabled)) config.Save();
-            ImGui::TextDisabled("Two native area checks, now independently configurable.");
-            ImGui::Indent();
-            if(ImGui::Checkbox("Allow summon in restricted region##HorseRegion",
-                    &config.horseAllowRestrictedSummon))config.Save();
-            if(ImGui::Checkbox("Prevent forced dismount in blocked region##HorseDesummon",
-                    &config.horsePreventForcedDesummon))config.Save();
-            ImGui::Unindent();
-            ImGui::TextDisabled("Both ON = verified V0.95 behavior. Horse Everywhere OFF disables both.");
-            ImGui::TextDisabled("Padlock / no-icon visual mapping is not yet proven.");
+            constexpr const char* horseAreas[]={
+                "Off", "In all area", "Restricted only", "Banned zone only"
+            };
+            ImGui::SetNextItemWidth(285.0f);
+            if(ImGui::Combo("Horse Everywhere##HorseAreaMode",
+                    &config.horseAreaMode,horseAreas,4)){
+                config.horseEverywhereEnabled=config.horseAreaMode!=0;
+                config.Save();
+            }
+            ImGui::TextDisabled("In all area keeps V0.95 native summon + dismount gates.");
+            ImGui::TextDisabled("Restricted = no native desummon flag; banned = native desummon flag.");
+            ImGui::TextDisabled("Zone names are test classifications, NOT verified padlock/icon mapping.");
             ImGui::TextDisabled("Keyboard and both pad buttons trigger the same native horse action.");
             ImGui::TextDisabled("The two controller buttons must be pressed simultaneously.");
             ImGui::PushID("horse_kbd");
@@ -729,12 +730,12 @@ void Draw(Context& c) {
                     &config.thirdPersonDistanceMultiplier,0.0f,0.0f,"%.3fx");
                 ImGui::SameLine();
                 if (ImGui::Button("Default##ThirdPersonDistance")) {
-                    config.thirdPersonDistanceMultiplier=0.20f;
+                    config.thirdPersonDistanceMultiplier=0.15f;
                     distanceChanged=true;
                 }
                 if (distanceChanged) {
                     if (!std::isfinite(config.thirdPersonDistanceMultiplier))
-                        config.thirdPersonDistanceMultiplier=0.20f;
+                        config.thirdPersonDistanceMultiplier=0.15f;
                     config.thirdPersonDistanceMultiplier=std::clamp(
                         config.thirdPersonDistanceMultiplier,0.0f,3.0f);
                     config.Save();
@@ -751,12 +752,12 @@ void Draw(Context& c) {
                 ImGui::SetNextItemWidth(245.0f);
                 poseChanged |= ImGui::SliderFloat("Vertical offset##TP",&config.thirdPersonHeightOffset,-1000.0f,1000.0f,"%+.0f units");
                 ImGui::SameLine();
-                if (ImGui::Button("Default##TPHeight")) {config.thirdPersonHeightOffset=120.0f;poseChanged=true;}
+                if (ImGui::Button("Default##TPHeight")) {config.thirdPersonHeightOffset=0.0f;poseChanged=true;}
                 ImGui::SetNextItemWidth(145.0f);
                 poseChanged |= ImGui::InputFloat("Manual height##TP",&config.thirdPersonHeightOffset,0,0,"%.1f");
                 if (poseChanged) {
                     if (!std::isfinite(config.thirdPersonPitchDegrees)) config.thirdPersonPitchDegrees=-12.0f;
-                    if (!std::isfinite(config.thirdPersonHeightOffset)) config.thirdPersonHeightOffset=120.0f;
+                    if (!std::isfinite(config.thirdPersonHeightOffset)) config.thirdPersonHeightOffset=0.0f;
                     config.thirdPersonPitchDegrees=std::clamp(config.thirdPersonPitchDegrees,-75.0f,65.0f);
                     config.thirdPersonHeightOffset=std::clamp(config.thirdPersonHeightOffset,-1000.0f,1000.0f);
                     config.Save();
@@ -787,10 +788,14 @@ void Draw(Context& c) {
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
                 DrawSectionTitle("TPS controls and aiming");
-                if(ImGui::Checkbox("Mouse TPS: native mouse aiming during fire (test)",
+                if(ImGui::Checkbox("Mouse TPS: rebuilt raw input camera (test)",
                     &config.tpsMouseCenterAimEnabled))config.Save();
-                ImGui::TextDisabled("Camera Forward on foot: native mouse look + ONE target recenter on fire DOWN.");
-                ImGui::TextDisabled("OFF restores earlier TPS-yaw look injection for A/B testing.");
+                ImGui::TextDisabled("Mouse native targeting untouched; RAW mouse moves TPS camera.");
+                ImGui::TextDisabled("No OS cursor warp or mouse yaw injection.");
+                if(ImGui::Checkbox("Auto suspend TPS during detected cutscenes (test)",
+                    &config.tpsCutsceneAutoSuspend))config.Save();
+                ImGui::TextDisabled("ON: native view + no TPS input during detected cinematics.");
+                ImGui::TextDisabled("OFF: existing camera heuristic only.");
                 ImGui::Separator();
                 ImGui::TextDisabled("Native movement and camera isolation are automatic in TPS.");
                 ImGui::Separator();
