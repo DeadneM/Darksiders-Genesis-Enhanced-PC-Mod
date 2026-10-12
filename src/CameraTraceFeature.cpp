@@ -342,7 +342,10 @@ void HookView(void* camera, float dt, void* outView) {
             const float pitchRad=appliedPitch*radians,yawRad=appliedYaw*radians;
             const float outX=pivotX-std::cos(pitchRad)*std::cos(yawRad)*distance;
             const float outY=pivotY-std::cos(pitchRad)*std::sin(yawRad)*distance;
-            const float outZ=pivotZ-std::sin(pitchRad)*distance+tpHeight;
+            // Preserve V0.98 vertical framing with a TPS-private baseline;
+            // this does NOT read or alter the normal camera's height option.
+            constexpr float kTpsBaseHeight=50.0f;
+            const float outZ=pivotZ-std::sin(pitchRad)*distance+tpHeight+kTpsBaseHeight;
             if(std::isfinite(outX)&&std::isfinite(outY)&&std::isfinite(outZ)&&
                std::fabs(outX)<1e7f&&std::fabs(outY)<1e7f&&std::fabs(outZ)<1e7f){
                 std::memcpy(p,&outX,4);std::memcpy(p+4,&outY,4);std::memcpy(p+8,&outZ,4);

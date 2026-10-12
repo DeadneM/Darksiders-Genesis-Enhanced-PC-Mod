@@ -672,24 +672,12 @@ void Draw(Context& c) {
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Native g.PlayIntroCinematicOnBoot; independent of Skip Logos");
 
-            if (ImGui::Checkbox("Skip Warning", &config.skipWarningEnabled)) {
-                config.Save();
-                const bool accepted=c.applySkipWarning ?
-                    c.applySkipWarning(config.skipWarningEnabled) : false;
-                *c.lastAction=std::string("Skip Warning ")+
-                    (config.skipWarningEnabled?"ON":"OFF")+
-                    (accepted?" (restart required)":" (proxy unavailable)");
-            }
-            ImGui::SameLine(310.0f);
-            ImGui::TextDisabled("%s | restart required",
-                t.skipWarningAttempted ?
-                    (t.skipWarningApplied?"Applied at boot":"No matching screen") :
-                    (t.skipLogosTargetValid?"Available":"Unavailable"));
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip(
-                "Independent controller/autosave startup screen filter");
+            ImGui::TextDisabled("Skip Warning: TEMPORARILY DISABLED for reticle/crosshair safety.");
+            ImGui::TextDisabled("Native warning patch is never installed in V1.04.");
+            ImGui::TextDisabled("Skip Logos and Skip Intro are unaffected.");
 
             ImGui::Spacing();
-            ImGui::TextDisabled("Skip Logos / Intro / Warning take effect after a game restart.");
+            ImGui::TextDisabled("Skip Logos / Intro take effect after a game restart.");
 
             ImGui::EndTabItem();
         }

@@ -37,7 +37,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.03-camera-input-cleanup-native-gauge-hooks-test";
+constexpr const char* kBuild = "1.04-safe-warning-rollback-mounted-forward-repair-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -104,6 +104,8 @@ std::atomic_ullong g_tpsPadRightStickTick{0};
 // the game's XInput while shooting mounted in CAMERA_FORWARD mode; the camera
 // continues reading unmodified physical stick data through its own trampoline.
 std::atomic_uint32_t g_tpsForwardAnalogInjected{0};
+std::atomic_uint32_t g_tpsMountedForwardAnalogInjected{0};
+std::atomic_uint32_t g_tpsFootForwardAnalogInjected{0};
 std::atomic_uint32_t g_horsePadChordRemapped{0};
 std::atomic_uint32_t g_keyboardHorseInjected{0};
 // V0.76: physical R3 and the virtual native grenade key are distinct.
@@ -1559,7 +1561,7 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     const bool fire=padFiring;
     // V1.02: physical mouse-only firing always follows unmodified game look.
     if(mouseFiring&&!padFiring)return result;
-    if(rt.tpsCameraStickMode.load()==0)return result;
+    // Joystick OFF disables orbit, never the independent forward-fire path.
     // Mode 1: native look is passed through for vanilla horse aiming.
     // V0.87: Vanilla Aim means NATIVE look ONLY WHILE FIRING.
     // Off-fire the right stick is camera-only, never simultaneously
@@ -1608,7 +1610,7 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
             return result;
         }
     }
-    if(!IsRightStickActiveNow())
+    if(rt.tpsCameraStickMode.load()==0||!IsRightStickActiveNow())
         return result;
     // Existing XInput block remains enabled. This is a SECOND, precise
     // in-game look-vector gate for direct controller/HID paths. Our TPS
@@ -1636,7 +1638,6 @@ NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
     const bool playerStrafe=padFire; // identical native look semantics on foot/horse
     // During mounted Vanilla Aim fire, native look rotation is untouched.
     // While idle, suppress right-stick-origin horseman aim.
-    if(rt.tpsCameraStickMode.load()==0)return result;
     if(rt.tpsMountedAimMode.load()==1 && padFire)return result;
     const bool nativeBlock=rt.tpsCameraStickMode.load()!=0&&IsRightStickActiveNow();
     const float actorYaw=g_tpsActorWorldYaw.load(std::memory_order_acquire);
@@ -2964,8 +2965,7 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     }
 
     auto& rt=dg::runtime::Get();
-    if(rt.tpsCameraStickMode.load(std::memory_order_relaxed)==0)
-        return status; // OFF: no native stick filter or synthetic gamepad aiming.
+    // V1.04: camera joystick OFF must not abort gameplay aiming/forward injection.
     const bool fire=TPSFireDown(pad);
     g_tpsFireHeld.store(fire);
     if(fire) g_tpsFireLastTick.store(GetTickCount64());
@@ -2980,10 +2980,15 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
         pad.sThumbRX=0;
         pad.sThumbRY=32767;
         const unsigned n=++g_tpsForwardAnalogInjected;
-        if(n==1) Log("TPS V0.93 CAMERA_FORWARD: virtual stick straight ahead during TPS fire (mounted=%d); independent camera uses raw stick",
-            mountedForForward?1:0);
+        const unsigned scoped=mountedForForward?
+            ++g_tpsMountedForwardAnalogInjected:++g_tpsFootForwardAnalogInjected;
+        if(scoped==1||scoped==250||scoped==1000)
+            Log("TPS V1.04 FORWARD: native right-stick UP injected scope=%s n=%u total=%u stickMode=%d",
+                mountedForForward?"HORSE":"FOOT",scoped,n,rt.tpsCameraStickMode.load());
         return status;
     }
+    if(rt.tpsCameraStickMode.load(std::memory_order_relaxed)==0)
+        return status; // OFF permits idle native look, but retains forward fire.
     // V0.94: normal native right-stick isolation is a TPS invariant, not
     // a separate user option. Camera Forward injection above or Vanilla Aim
     // while firing are the only intentional exceptions.
@@ -4242,9 +4247,9 @@ void ShutdownMod() {
     RestoreCameraDof();
     Log("TPS V0.69 totals: mouseInputNative=PASSTHROUGH rightStickReadsFiltered=%u whileFiring=%u",
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
-    Log("TPS V0.92 input totals: mountedForwardAnalog=%u mappedHorseChord=%u keyboardHorse=%u",
-        g_tpsForwardAnalogInjected.load(),g_horsePadChordRemapped.load(),
-        g_keyboardHorseInjected.load());
+    Log("TPS V1.04 forward totals: all=%u horse=%u foot=%u mappedHorseChord=%u keyboardHorse=%u",
+        g_tpsForwardAnalogInjected.load(),g_tpsMountedForwardAnalogInjected.load(),
+        g_tpsFootForwardAnalogInjected.load(),g_horsePadChordRemapped.load(),g_keyboardHorseInjected.load());
     Log("TPS V1.03 controller-only: rightStickFiltered=%u no TPS mouse orbit/virtual pad",
         g_nativePadAimSuppressed.load());
     Log("TPS V0.89 CAMERA FORWARD: horseActorGetPlayerLookInputCalls=%u (passive, no shot raycast hook)",
@@ -4330,6 +4335,12 @@ DWORD WINAPI MainThread(LPVOID) {
     g_config.SetPath(g_iniPath);
     g_config.SetLogger(&FeatureLog);
     g_config.Load();
+    Log("V1.04 CONFIG loaded %ls: TPS=%d FOV=%.1f dist=%.3f pitch=%.2f height=%.1f foot=%.1f stickMode=%d mountedAim=%d normalHeight=%.1f HideReticle=%d SkipWarning=%d",
+        g_iniPath.c_str(),g_config.thirdPersonEnabled?1:0,g_config.thirdPersonFovDegrees,
+        g_config.thirdPersonDistanceMultiplier,g_config.thirdPersonPitchDegrees,
+        g_config.thirdPersonHeightOffset,g_config.tpsFootAnchorOffset,
+        g_config.tpsCameraStickMode,g_config.tpsMountedAimMode,g_config.cameraHeightOffset,
+        g_config.hideReticle?1:0,g_config.skipWarningEnabled?1:0);
 
     dg::engine_ini::Initialize(&FeatureLog);
     if (!dg::engine_ini::ApplyGraphicsAdapter(

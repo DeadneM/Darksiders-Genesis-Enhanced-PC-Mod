@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2136;
+constexpr int kConfigRevision = 2137;
 // Actual XInput digital buttons plus LT/RT represented as virtual binding IDs.
 constexpr bool ValidPadBind(int m) {
     switch(m){case 0:case 0x0001:case 0x0002:case 0x0004:case 0x0008:
@@ -300,7 +300,7 @@ void Store::ResetDefaults(bool persist) {
     actionRecoveryEnabled = true;
     skipLogosEnabled = true;
     skipIntroEnabled = true;
-    skipWarningEnabled = true;
+    skipWarningEnabled = false;
     thirdPersonEnabled = false;
     thirdPersonFovEnabled = true;
     tpsFollowPlayer = true;
@@ -448,8 +448,8 @@ bool Store::Load() {
         ReadBool(L"Features", L"SkipLogos", true, path_);
     skipIntroEnabled =
         ReadBool(L"Features", L"SkipIntroVideos", true, path_);
-    skipWarningEnabled =
-        ReadBool(L"Features", L"SkipWarning", true, path_);
+    // Reticle/crosshair safety rollback: native warning patch quarantined.
+    skipWarningEnabled = false;
     thirdPersonEnabled =
         ReadBool(L"Features", L"ThirdPerson", false, path_);
     thirdPersonFovEnabled=ReadBool(L"Features",L"TPSFOV",true,path_);
@@ -637,6 +637,16 @@ bool Store::Load() {
         return true;
     }
     if (revision < kConfigRevision) {
+        // Only repair the exact old CameraReset tuple, preserve other choices.
+        if(revision<2137 &&
+           std::fabs(thirdPersonDistanceMultiplier-0.50f)<0.0001f &&
+           std::fabs(thirdPersonHeightOffset-180.0f)<0.001f &&
+           std::fabs(tpsFootAnchorOffset-88.0f)<0.001f){
+            thirdPersonDistanceMultiplier=0.15f;
+            thirdPersonHeightOffset=0.0f;
+            tpsFootAnchorOffset=0.0f;
+            Log("V1.04 repaired obsolete CameraReset triple, preserved all other values");
+        }
         // V0.95 requested shared Z/Z instead of the previous V/V pair.
         // Migrate ONLY that unchanged pair, respecting every other
         // independent user-selected keyboard binding.
@@ -804,7 +814,7 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"ActionRecovery", actionRecoveryEnabled, path_);
     WriteBool(L"Features", L"SkipLogos", skipLogosEnabled, path_);
     WriteBool(L"Features", L"SkipIntroVideos", skipIntroEnabled, path_);
-    WriteBool(L"Features", L"SkipWarning", skipWarningEnabled, path_);
+    WriteBool(L"Features", L"SkipWarning", false, path_);
     WriteBool(L"Features", L"ThirdPerson", thirdPersonEnabled, path_);
     WriteBool(L"Features",L"TPSFOV",thirdPersonFovEnabled,path_);
     WritePrivateProfileStringW(L"Features",L"TPSFollowPlayer",nullptr,path_.c_str());

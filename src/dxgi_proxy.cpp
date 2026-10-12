@@ -620,8 +620,9 @@ extern "C" __declspec(dllexport)
 BOOL WINAPI DGSetSkipWarningEnabled(BOOL enabled) {
     // The boot-gate deliberately does not change during gameplay.
     // Changes are saved in the INI and require a restart.
-    g_skipWarningEnabled.store(enabled!=FALSE);
-    return g_warningHookReady.load() ? TRUE : FALSE;
+    (void)enabled;
+    g_skipWarningEnabled.store(false,std::memory_order_relaxed);
+    return FALSE; // V1.04 quarantined legacy warning patch.
 }
 
 extern "C" __declspec(dllexport)
@@ -707,14 +708,14 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
         // If playlist count=2, report two movie names WITHOUT removing them.
         // Unlike old V0.19C, native MoviePlayer attachment is untouched.
         const bool enabled = ReadSkipLogosEnabledFromIni();
-        const bool warnings=ReadWarningEnabledFromIni();
+        // V1.04: old warning patch is disabled even if legacy INI requested it.
+        // Reticle/crosshair regression prevention. MoviePlayer remains intact.
         g_skipLogosEnabled.store(enabled,std::memory_order_relaxed);
-        g_skipWarningEnabled.store(warnings,std::memory_order_relaxed);
-        g_warningBootGate=warnings?1:0;
+        g_skipWarningEnabled.store(false,std::memory_order_relaxed);
+        g_warningBootGate=0;
+        LogLoader(L"Skip Warning V1.04: native patch quarantined to protect cursor/crosshair");
         const bool valid = HasSupportedNativeCode();
         g_skipLogosTargetValid.store(valid,std::memory_order_release);
-        if (warnings && valid && !InstallSkipWarningLoopHook())
-            LogLoader(L"Skip Warning V1.02: early loop hook failed, native warnings preserved");
         if (enabled && valid && !InstallSelectiveLogoHook())
             LogLoader(L"Skip Logos V0.55: logo hook failed, native logo movies preserved");
         if (!enabled)
