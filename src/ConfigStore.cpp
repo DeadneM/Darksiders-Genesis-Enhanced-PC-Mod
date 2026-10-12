@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2134;
+constexpr int kConfigRevision = 2135;
 // Actual XInput digital buttons plus LT/RT represented as virtual binding IDs.
 constexpr bool ValidPadBind(int m) {
     switch(m){case 0:case 0x0001:case 0x0002:case 0x0004:case 0x0008:
@@ -310,10 +310,7 @@ void Store::ResetDefaults(bool persist) {
     thirdPersonFovEnabled = true;
     tpsFollowPlayer = true;
     cameraOrbitInputEnabled = true;
-    cameraMouseOrbitEnabled = true;
     cameraControllerOrbitEnabled = true;
-    tpsMouseCenterAimEnabled = true;
-    tpsMouseStickMode = 2;
     tpsCutsceneAutoSuspend = true;
     tpsHoldSuspendEnabled = true;
     tpsLongPressToggleEnabled = true;
@@ -346,6 +343,9 @@ void Store::ResetDefaults(bool persist) {
     fovEnabled = false;
     hideReticle = false;
     hotstreakChargeEnabled = true;
+    wrathChargeEnabled = false;
+    ultimateChargeEnabled = false;
+    synergyChargeEnabled = false;
 
     movementSpeedMultiplier = 1.50f;
     actionRecoveryDelayMs = 0.0f;
@@ -368,9 +368,11 @@ void Store::ResetDefaults(bool persist) {
     thirdPersonPitchDegrees = -12.0f;
     thirdPersonHeightOffset = 0.0f;
     tpsFootAnchorOffset = 0.0f;
-    cameraMouseSensitivity = 0.12f;
     cameraStickSpeed = 180.0f;
     hotstreakChargeMultiplier = 2.00f;
+    wrathChargeMultiplier = 2.00f;
+    ultimateChargeMultiplier = 2.00f;
+    synergyChargeMultiplier = 2.00f;
 
     hotkeys.fill(Action::None);
     hotkeys[0] = Action::ToggleHUD;
@@ -442,13 +444,9 @@ bool Store::Load() {
         ReadBool(L"Features", L"ThirdPerson", false, path_);
     thirdPersonFovEnabled=ReadBool(L"Features",L"TPSFOV",true,path_);
     tpsFollowPlayer=ReadBool(L"Features",L"TPSFollowPlayer",true,path_);
-    const bool oldCombinedOrbit=ReadBool(L"Features",L"CameraMouseGamepad",true,path_);
-    cameraMouseOrbitEnabled=ReadBool(L"Features",L"CameraMouseOrbit",oldCombinedOrbit,path_);
-    cameraControllerOrbitEnabled=ReadBool(L"Features",L"CameraControllerOrbit",oldCombinedOrbit,path_);
-    tpsMouseCenterAimEnabled=ReadBool(L"Features",L"TPSMouseCenterAim",true,path_);
-    tpsMouseStickMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(L"Features",L"TPSMouseStickMode",2,path_.c_str())),0,2);
+    cameraControllerOrbitEnabled=ReadBool(L"Features",L"CameraControllerOrbit",true,path_);
     tpsCutsceneAutoSuspend=ReadBool(L"Features",L"TPSAutoCutscene",true,path_);
-    cameraOrbitInputEnabled=cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
+    cameraOrbitInputEnabled=cameraControllerOrbitEnabled;
     tpsHoldSuspendEnabled=ReadBool(L"Features",L"TPSHoldSuspend",true,path_);
     tpsLongPressToggleEnabled=ReadBool(L"Features",L"TPSHoldToggle",true,path_);
     tpsGrenadeHoldEnabled=ReadBool(L"Features",L"TPSGrenadeHold",true,path_);
@@ -503,6 +501,10 @@ bool Store::Load() {
         ReadBool(L"Features", L"HideReticle", false, path_);
     hotstreakChargeEnabled =
         ReadBool(L"Features", L"HotstreakCharge", true, path_);
+    // Research presets only; no native resource writes until ownership is proven.
+    wrathChargeEnabled=ReadBool(L"Features",L"WrathCharge",false,path_);
+    ultimateChargeEnabled=ReadBool(L"Features",L"UltimateFormCharge",false,path_);
+    synergyChargeEnabled=ReadBool(L"Features",L"SynergyCharge",false,path_);
 
     movementSpeedMultiplier =
         ReadFloat(L"Values", L"MovementSpeedMultiplier", 1.50f, path_);
@@ -546,20 +548,20 @@ bool Store::Load() {
     tpsFootAnchorOffset=ReadFloat(L"Values",L"TPSFootAnchorOffset",0.0f,path_);
     if(!std::isfinite(tpsFootAnchorOffset))tpsFootAnchorOffset=0.0f;
     tpsFootAnchorOffset=std::clamp(tpsFootAnchorOffset,-500.0f,500.0f);
-    cameraMouseSensitivity = ReadFloat(L"Values", L"CameraMouseSensitivity", 0.12f, path_);
     cameraStickSpeed = ReadFloat(L"Values", L"CameraStickSpeed", 180.0f, path_);
     if (!std::isfinite(thirdPersonDistanceMultiplier)) thirdPersonDistanceMultiplier=0.15f;
     if (!std::isfinite(thirdPersonPitchDegrees)) thirdPersonPitchDegrees=-12.0f;
     if (!std::isfinite(thirdPersonHeightOffset)) thirdPersonHeightOffset=0.0f;
-    if (!std::isfinite(cameraMouseSensitivity)) cameraMouseSensitivity=0.12f;
     if (!std::isfinite(cameraStickSpeed)) cameraStickSpeed=180.0f;
     thirdPersonDistanceMultiplier=std::clamp(thirdPersonDistanceMultiplier,0.0f,3.0f);
     thirdPersonPitchDegrees=std::clamp(thirdPersonPitchDegrees,-75.0f,65.0f);
     thirdPersonHeightOffset=std::clamp(thirdPersonHeightOffset,-1000.0f,1000.0f);
-    cameraMouseSensitivity=std::clamp(cameraMouseSensitivity,0.01f,0.75f);
     cameraStickSpeed=std::clamp(cameraStickSpeed,30.0f,360.0f);
     hotstreakChargeMultiplier =
         ReadFloat(L"Values", L"HotstreakChargeMultiplier", 2.0f, path_);
+    wrathChargeMultiplier=std::clamp(ReadFloat(L"Values",L"WrathChargeMultiplier",2.0f,path_),1.0f,25.0f);
+    ultimateChargeMultiplier=std::clamp(ReadFloat(L"Values",L"UltimateFormChargeMultiplier",2.0f,path_),1.0f,25.0f);
+    synergyChargeMultiplier=std::clamp(ReadFloat(L"Values",L"SynergyChargeMultiplier",2.0f,path_),1.0f,25.0f);
 
     for (int i = 0; i < 12; ++i) {
         wchar_t key[8]{};
@@ -655,11 +657,10 @@ bool Store::Load() {
             if(std::fabs(thirdPersonHeightOffset-60.0f)<0.0001f)
                 thirdPersonHeightOffset=180.0f;
         }
-        if(revision<=2112 && !cameraMouseOrbitEnabled&&!cameraControllerOrbitEnabled){
-            cameraMouseOrbitEnabled=true;
+        if(revision<=2112 && !cameraControllerOrbitEnabled){
             cameraControllerOrbitEnabled=true;
         }
-        cameraOrbitInputEnabled=cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
+        cameraOrbitInputEnabled=cameraControllerOrbitEnabled;
         // V0.74: obsolete always-on strafe switches are retired.
         // New firing-only settings remain opt-in and default to OFF.
         PublishRuntime();
@@ -687,11 +688,8 @@ void Store::PublishRuntime() const {
     runtime.thirdPersonEnabled = thirdPersonEnabled;
     runtime.thirdPersonFovEnabled = thirdPersonFovEnabled;
     runtime.tpsFollowPlayer = tpsFollowPlayer;
-    runtime.cameraOrbitInputEnabled = cameraMouseOrbitEnabled||cameraControllerOrbitEnabled;
-    runtime.cameraMouseOrbitEnabled = cameraMouseOrbitEnabled;
+    runtime.cameraOrbitInputEnabled = cameraControllerOrbitEnabled;
     runtime.cameraControllerOrbitEnabled = cameraControllerOrbitEnabled;
-    runtime.tpsMouseCenterAimEnabled = tpsMouseCenterAimEnabled;
-    runtime.tpsMouseStickMode = tpsMouseStickMode;
     runtime.tpsCutsceneAutoSuspend = tpsCutsceneAutoSuspend;
     runtime.tpsHideGroundAimFx = tpsHideGroundAimFx;
     runtime.aimIndicatorHideMode = aimIndicatorHideMode;
@@ -701,7 +699,6 @@ void Store::PublishRuntime() const {
     runtime.thirdPersonPitchDegrees = thirdPersonPitchDegrees;
     runtime.thirdPersonHeightOffset = thirdPersonHeightOffset;
     runtime.tpsFootAnchorOffset = tpsFootAnchorOffset;
-    runtime.cameraMouseSensitivity = cameraMouseSensitivity;
     runtime.cameraStickSpeed = cameraStickSpeed;
     runtime.pistolDamageEnabled = pistolDamageEnabled;
     runtime.meleeDamageEnabled = meleeDamageEnabled;
@@ -713,6 +710,9 @@ void Store::PublishRuntime() const {
     runtime.horseSprintSpeedEnabled = horseSprintSpeedEnabled;
     runtime.horseSprintDurationEnabled = horseSprintDurationEnabled;
     runtime.hotstreakChargeEnabled = hotstreakChargeEnabled;
+    runtime.wrathChargeEnabled = wrathChargeEnabled;
+    runtime.ultimateChargeEnabled = ultimateChargeEnabled;
+    runtime.synergyChargeEnabled = synergyChargeEnabled;
 
     runtime.fovDegrees = fovDegrees;
     runtime.thirdPersonFovDegrees = thirdPersonFovDegrees;
@@ -730,6 +730,9 @@ void Store::PublishRuntime() const {
     runtime.horseSprintSpeedMultiplier = horseSprintSpeedMultiplier;
     runtime.horseSprintDurationMultiplier = horseSprintDurationMultiplier;
     runtime.hotstreakChargeMultiplier = hotstreakChargeMultiplier;
+    runtime.wrathChargeMultiplier = wrathChargeMultiplier;
+    runtime.ultimateChargeMultiplier = ultimateChargeMultiplier;
+    runtime.synergyChargeMultiplier = synergyChargeMultiplier;
 
     dg::runtime::Publish(runtime);
 }
@@ -802,12 +805,12 @@ bool Store::SaveNow() {
     WritePrivateProfileStringW(L"Features",L"TPSSuppressVanillaMouseAim",nullptr,path_.c_str());
     // V0.70: persist independent orbit controls, remove old combined key.
     WritePrivateProfileStringW(L"Features",L"CameraMouseGamepad",nullptr,path_.c_str());
-    WriteBool(L"Features",L"CameraMouseOrbit",cameraMouseOrbitEnabled,path_);
-    WriteBool(L"Features",L"CameraControllerOrbit",cameraControllerOrbitEnabled,path_);
-    WriteBool(L"Features",L"TPSMouseCenterAim",tpsMouseCenterAimEnabled,path_);
+    // Remove stale mouse-specific INI configuration entirely.
+    WritePrivateProfileStringW(L"Features",L"CameraMouseOrbit",nullptr,path_.c_str());
+    WritePrivateProfileStringW(L"Features",L"TPSMouseCenterAim",nullptr,path_.c_str());
     WritePrivateProfileStringW(L"Features",L"TPSMouseForwardFire",nullptr,path_.c_str());
-    wchar_t stickMode[8]{}; swprintf_s(stickMode,L"%d",std::clamp(tpsMouseStickMode,0,2));
-    WritePrivateProfileStringW(L"Features",L"TPSMouseStickMode",stickMode,path_.c_str());
+    WritePrivateProfileStringW(L"Features",L"TPSMouseStickMode",nullptr,path_.c_str());
+    WriteBool(L"Features",L"CameraControllerOrbit",cameraControllerOrbitEnabled,path_);
     WriteBool(L"Features",L"TPSAutoCutscene",tpsCutsceneAutoSuspend,path_);
     // Remove the V0.71/0.73 ineffective switches, no mapping of old values.
     WritePrivateProfileStringW(L"Features",L"TPSMouseKeyboardStrafe",nullptr,path_.c_str());
@@ -874,6 +877,9 @@ bool Store::SaveNow() {
     WritePrivateProfileStringW(L"Features", L"CrossCursorTestMode", nullptr, path_.c_str());
     WritePrivateProfileStringW(L"Features", L"AutoReticleRefreshOnLoad", nullptr, path_.c_str());
     WriteBool(L"Features", L"HotstreakCharge", hotstreakChargeEnabled, path_);
+    WriteBool(L"Features",L"WrathCharge",wrathChargeEnabled,path_);
+    WriteBool(L"Features",L"UltimateFormCharge",ultimateChargeEnabled,path_);
+    WriteBool(L"Features",L"SynergyCharge",synergyChargeEnabled,path_);
 
     WriteFloat(L"Values", L"MovementSpeedMultiplier", movementSpeedMultiplier, path_);
     WriteFloat(L"Values", L"ActionRecoveryDelayMs", actionRecoveryDelayMs, path_);
@@ -899,9 +905,12 @@ bool Store::SaveNow() {
     WriteFloat(L"Values", L"ThirdPersonPitchDegrees", thirdPersonPitchDegrees, path_);
     WriteFloat(L"Values", L"ThirdPersonHeightOffset", thirdPersonHeightOffset, path_);
     WriteFloat(L"Values",L"TPSFootAnchorOffset",tpsFootAnchorOffset,path_);
-    WriteFloat(L"Values", L"CameraMouseSensitivity", cameraMouseSensitivity, path_);
     WriteFloat(L"Values", L"CameraStickSpeed", cameraStickSpeed, path_);
     WriteFloat(L"Values", L"HotstreakChargeMultiplier", hotstreakChargeMultiplier, path_);
+    WritePrivateProfileStringW(L"Values",L"CameraMouseSensitivity",nullptr,path_.c_str());
+    WriteFloat(L"Values",L"WrathChargeMultiplier",wrathChargeMultiplier,path_);
+    WriteFloat(L"Values",L"UltimateFormChargeMultiplier",ultimateChargeMultiplier,path_);
+    WriteFloat(L"Values",L"SynergyChargeMultiplier",synergyChargeMultiplier,path_);
 
     for (int i = 0; i < 12; ++i) {
         wchar_t key[8]{};
