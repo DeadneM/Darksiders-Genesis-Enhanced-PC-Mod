@@ -23,10 +23,7 @@ void Publish(const Snapshot& s) {
     g_state.thirdPersonFovEnabled.store(s.thirdPersonFovEnabled);
     g_state.tpsFollowPlayer.store(s.tpsFollowPlayer);
     g_state.cameraOrbitInputEnabled.store(s.cameraOrbitInputEnabled, std::memory_order_relaxed);
-    g_state.cameraMouseOrbitEnabled.store(s.cameraMouseOrbitEnabled);
     g_state.cameraControllerOrbitEnabled.store(s.cameraControllerOrbitEnabled);
-    g_state.tpsMouseCenterAimEnabled.store(s.tpsMouseCenterAimEnabled);
-    g_state.tpsMouseStickMode.store(s.tpsMouseStickMode);
     g_state.tpsCutsceneAutoSuspend.store(s.tpsCutsceneAutoSuspend);
     if(!s.tpsCutsceneAutoSuspend||!s.thirdPersonEnabled)
         g_state.tpsCutsceneSuspended.store(false);
@@ -44,6 +41,9 @@ void Publish(const Snapshot& s) {
     g_state.horseSprintSpeedEnabled.store(s.horseSprintSpeedEnabled, std::memory_order_relaxed);
     g_state.horseSprintDurationEnabled.store(s.horseSprintDurationEnabled, std::memory_order_relaxed);
     g_state.hotstreakChargeEnabled.store(s.hotstreakChargeEnabled, std::memory_order_relaxed);
+    g_state.wrathChargeEnabled.store(s.wrathChargeEnabled, std::memory_order_relaxed);
+    g_state.ultimateChargeEnabled.store(s.ultimateChargeEnabled, std::memory_order_relaxed);
+    g_state.synergyChargeEnabled.store(s.synergyChargeEnabled, std::memory_order_relaxed);
 
     g_state.fovDegrees.store(s.fovDegrees, std::memory_order_relaxed);
     g_state.thirdPersonFovDegrees.store(s.thirdPersonFovDegrees);
@@ -55,7 +55,6 @@ void Publish(const Snapshot& s) {
     g_state.thirdPersonPitchDegrees.store(s.thirdPersonPitchDegrees, std::memory_order_relaxed);
     g_state.thirdPersonHeightOffset.store(s.thirdPersonHeightOffset, std::memory_order_relaxed);
     g_state.tpsFootAnchorOffset.store(s.tpsFootAnchorOffset);
-    g_state.cameraMouseSensitivity.store(s.cameraMouseSensitivity, std::memory_order_relaxed);
     g_state.cameraStickSpeed.store(s.cameraStickSpeed, std::memory_order_relaxed);
     g_state.movementSpeedMultiplier.store(s.movementSpeedMultiplier, std::memory_order_relaxed);
     g_state.actionRecoveryDelayMs.store(s.actionRecoveryDelayMs, std::memory_order_relaxed);
@@ -67,6 +66,9 @@ void Publish(const Snapshot& s) {
     g_state.horseSprintSpeedMultiplier.store(s.horseSprintSpeedMultiplier, std::memory_order_relaxed);
     g_state.horseSprintDurationMultiplier.store(s.horseSprintDurationMultiplier, std::memory_order_relaxed);
     g_state.hotstreakChargeMultiplier.store(s.hotstreakChargeMultiplier, std::memory_order_relaxed);
+    g_state.wrathChargeMultiplier.store(s.wrathChargeMultiplier, std::memory_order_relaxed);
+    g_state.ultimateChargeMultiplier.store(s.ultimateChargeMultiplier, std::memory_order_relaxed);
+    g_state.synergyChargeMultiplier.store(s.synergyChargeMultiplier, std::memory_order_relaxed);
 }
 
 } // namespace dg::runtime
