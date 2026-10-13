@@ -339,7 +339,6 @@ void Store::ResetDefaults(bool persist) {
     horseSprintSpeedEnabled = true;
     horseSprintDurationEnabled = true;
     fovEnabled = false;
-    hideReticle = false;
     hotstreakChargeEnabled = true;
     wrathChargeEnabled = true;
     ultimateChargeEnabled = true;
@@ -576,8 +575,6 @@ bool Store::Load() {
         ReadBool(L"Features", L"HorseSprintDuration", true, path_);
     fovEnabled =
         ReadBool(L"Features", L"FOV", false, path_);
-    hideReticle =
-        ReadBool(L"Features", L"HideReticle", false, path_);
     hotstreakChargeEnabled =
         ReadBool(L"Features", L"HotstreakCharge", true, path_);
     // Research presets only; no native resource writes until ownership is proven.
@@ -782,7 +779,6 @@ bool Store::Load() {
 void Store::PublishRuntime() const {
     dg::runtime::Snapshot runtime{};
     runtime.toggleHudEnabled = toggleHudEnabled;
-    runtime.hideReticle = hideReticle;
     runtime.fovEnabled = fovEnabled;
     runtime.movementSpeedEnabled = movementSpeedEnabled;
     runtime.actionRecoveryEnabled = actionRecoveryEnabled;
@@ -984,7 +980,8 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"HorseSprintSpeed", horseSprintSpeedEnabled, path_);
     WriteBool(L"Features", L"HorseSprintDuration", horseSprintDurationEnabled, path_);
     WriteBool(L"Features", L"FOV", fovEnabled, path_);
-    WriteBool(L"Features", L"HideReticle", hideReticle, path_);
+    // V1.22: retire obsolete option on explicit save only.
+    WritePrivateProfileStringW(L"Features", L"HideReticle", nullptr, path_.c_str());
     // Obsolete TPS pointer toggle: now internal, menu-only policy.
     // Remove deprecated key only when user saves settings.
     WritePrivateProfileStringW(L"Features",L"ShowTPSMousePointer",nullptr,path_.c_str());

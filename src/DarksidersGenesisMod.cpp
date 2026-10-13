@@ -38,7 +38,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.21-camera-reticle-menu-only-test";
+constexpr const char* kBuild = "1.22-no-reticle-hide-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -59,8 +59,6 @@ void ReportStartupPhase(unsigned phase,unsigned value=0){
 using PresentFn = HRESULT(__stdcall*)(IDXGISwapChain*, UINT, UINT);
 using ResizeBuffersFn = HRESULT(__stdcall*)(IDXGISwapChain*, UINT, UINT, UINT, DXGI_FORMAT, UINT);
 using HudHiddenGetterFn = bool(*)();
-using UiIsCursorVisibleFn = bool(*)(void*);
-using SetCursorFn = HCURSOR (WINAPI*)(HCURSOR);
 using CharacterGetMaxSpeedFn = float(*)(void*);
 using AbilityActionEnabledFn = bool(*)(void*, unsigned char);
 using AddJuiceFn = void(*)(void*, float);
@@ -69,8 +67,6 @@ using FilterOutgoingDamageFn = void(*)(void*, void*);
 PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
 HudHiddenGetterFn g_originalHudHiddenGetter = nullptr;
-UiIsCursorVisibleFn g_originalUiIsCursorVisible = nullptr;
-SetCursorFn g_originalSetCursor = nullptr;
 CharacterGetMaxSpeedFn g_originalCharacterGetMaxSpeed = nullptr;
 AbilityActionEnabledFn g_originalAbilityActionEnabled = nullptr;
 AddJuiceFn g_originalAddJuice = nullptr;
@@ -169,7 +165,6 @@ std::atomic_uint32_t g_focusTransitionCount{0};
 std::atomic_uint32_t g_resizeBuffersTraceCount{0};
 std::atomic<void*> g_gameWindowTrace{nullptr};
 // Manual F5-only fallback retained for comparison; no auto focus simulation.
-std::atomic_uint32_t g_cursorVisibilityCalls{0};
 std::atomic_int g_capturedMenuKey{0};
 std::atomic_int g_captureCameraKeyIndex{-1};
 std::atomic_int g_capturedCameraBinding{0};
@@ -178,9 +173,6 @@ std::array<ULONGLONG, static_cast<size_t>(dg::config::CameraAction::Count)> g_ca
 std::array<uint32_t, static_cast<size_t>(dg::config::CameraAction::Count)> g_cameraActionRepeatCount{};
 std::atomic_bool g_hudHidden{false};
 std::atomic_bool g_hudHookReady{false};
-std::atomic_bool g_cursorVisibilityHookReady{false};
-std::atomic_bool g_setCursorHookReady{false};
-std::atomic_bool g_cursorBlankApplied{false};
 // V1.18 NEW baseline-only mouse study. Read-only WndProc messages. We never
 // consume input, set a cursor, warp position, write camera values or simulate a pad.
 std::atomic_uint32_t g_v118MouseMove{0},g_v118RawInputMessages{0},
@@ -201,15 +193,6 @@ std::atomic_uint32_t g_v120WrathNearDamage{0},g_v120WrathWhileFiring{0},
     g_v120WrathWhileIdle{0},g_v120WrathSpendEvents{0};
 std::atomic_ullong g_v120LastLocalDamage{0};
 std::atomic<float> g_v120WrathTotalGained{0.0f},g_v120WrathTotalSpent{0.0f};
-std::atomic_uint32_t g_reticleCursorIntercepts{0};
-std::atomic<HCURSOR> g_lastRequestedGameCursor{nullptr};
-std::atomic_uint32_t g_cursorProbeChanges{0};
-std::atomic_int g_lastNativeCursorVisible{-1};
-std::atomic<HCURSOR> g_lastObservedDesktopCursor{nullptr};
-std::atomic_uint32_t g_lastObservedDesktopFlags{0xFFFFFFFFu};
-std::atomic_uint32_t g_cursorSnapshotCount{0};
-std::atomic_ullong g_cursorNextSnapshotTick{0};
-std::atomic_bool g_lastCursorSnapshotForeground{false};
 std::atomic_bool g_movementHookReady{false};
 std::atomic_bool g_recoveryHookReady{false};
 std::atomic_bool g_skipIntroReady{false};
@@ -270,7 +253,6 @@ using dg::config::KeyDisplayName;
 
 dg::config::Store g_config;
 
-void TraceDesktopCursorState(const char* reason, bool force);
 
 void InitializePaths() {
     wchar_t path[MAX_PATH]{};
@@ -338,9 +320,7 @@ void Log(const char* format, ...) {
     // V0.47: compact diagnostics, WITHOUT changing any hook or gameplay
     // behavior. Keep initialization, errors, settings, actions, and first
     // observed damage/juice sample, suppress repetitive trace spam.
-    if (std::strncmp(message, "CursorProbe V0.42:", 18) == 0 ||
-        std::strncmp(message, "Cursor visibility: call=", 24) == 0 ||
-        std::strncmp(message, "Window focus trace #", 20) == 0 ||
+    if (std::strncmp(message, "Window focus trace #", 20) == 0 ||
         std::strncmp(message, "Focus V0.38: msg=", 17) == 0 ||
         std::strncmp(message, "ResizeBuffers trace:", 20) == 0 ||
         std::strncmp(message, "Runtime tuning: movement capture rejected", 41) == 0 ||
@@ -2333,225 +2313,6 @@ bool InstallActionRecoveryV08B() {
     return true;
 }
 
-// V1.21 unified menu-only cursor policy during TPS.
-// No user option, cursor icon replacement, mouse warping or input injection.
-bool HideNativeCursorDuringTPSGameplay() {
-    const auto& rt=dg::runtime::Get();
-    const HWND hwnd=reinterpret_cast<HWND>(
-        g_gameWindowTrace.load(std::memory_order_relaxed));
-    if(!hwnd || GetForegroundWindow()!=hwnd ||
-       g_overlayVisible.load(std::memory_order_relaxed) ||
-       rt.tpsAbilityWheelHeld.load(std::memory_order_relaxed) ||
-       rt.tpsCutsceneSuspended.load(std::memory_order_relaxed) ||
-       rt.tpsTemporarilySuspended.load(std::memory_order_relaxed) ||
-       !rt.thirdPersonEnabled.load(std::memory_order_relaxed) ||
-       !rt.tpsViewGameplay.load(std::memory_order_relaxed))
-        return false;
-    const ULONGLONG last=rt.tpsGameplayViewTick.load(std::memory_order_relaxed);
-    const ULONGLONG now=GetTickCount64();
-    return last && now>=last && now-last<250ull;
-}
-bool HookUiIsCursorVisible(void* uiManager) {
-    const bool nativeVisible =
-        g_originalUiIsCursorVisible
-            ? g_originalUiIsCursorVisible(uiManager)
-            : false;
-
-    const auto& runtime = dg::runtime::Get();
-    const bool menus= g_overlayVisible.load(std::memory_order_relaxed) ||
-        runtime.tpsAbilityWheelHeld.load(std::memory_order_relaxed);
-    const bool hiddenByMod=!menus && (
-        g_hudHidden.load(std::memory_order_relaxed) ||
-        runtime.hideReticle.load(std::memory_order_relaxed) ||
-        HideNativeCursorDuringTPSGameplay());
-    const int nativeState = nativeVisible ? 1 : 0;
-    const int lastNative = g_lastNativeCursorVisible.exchange(nativeState);
-    if (lastNative != nativeState)
-        Log("CursorProbe V0.42: native UI visibility %d -> %d manager=%p hideReticle=%d hudHidden=%d",
-            lastNative, nativeState, uiManager,
-            runtime.hideReticle.load(std::memory_order_relaxed) ? 1 : 0,
-            g_hudHidden.load(std::memory_order_relaxed) ? 1 : 0);
-
-    const auto calls =
-        g_cursorVisibilityCalls.fetch_add(1) + 1;
-
-    if (calls <= 12 || (calls % 500) == 0) {
-        Log(
-            "Cursor visibility: call=%u manager=%p native=%d hideHud=%d result=%d",
-            calls,
-            uiManager,
-            nativeVisible ? 1 : 0,
-            hiddenByMod ? 1 : 0,
-            hiddenByMod ? 0 : (nativeVisible ? 1 : 0)
-        );
-    }
-
-    return hiddenByMod ? false : nativeVisible;
-}
-
-bool InstallCursorVisibilityHook() {
-    HMODULE module = GetModuleHandleW(nullptr);
-    if (!module) {
-        Log("Cursor visibility hook: main module unavailable");
-        return false;
-    }
-
-    BYTE* target =
-        reinterpret_cast<BYTE*>(module) + 0x715800;
-
-    static constexpr BYTE kPrefix[] = {
-        0x40, 0x53,
-        0x48, 0x83, 0xEC, 0x20,
-        0x48, 0x8D, 0x99, 0xA8, 0x00, 0x00, 0x00
-    };
-
-    if (memcmp(target, kPrefix, sizeof(kPrefix)) != 0) {
-        Log(
-            "Cursor visibility hook: target validation FAILED RVA=0x715800"
-        );
-        return false;
-    }
-
-    const MH_STATUS initStatus = MH_Initialize();
-    if (initStatus != MH_OK &&
-        initStatus != MH_ERROR_ALREADY_INITIALIZED) {
-        Log(
-            "Cursor visibility hook: MinHook init FAILED status=%d",
-            static_cast<int>(initStatus)
-        );
-        return false;
-    }
-
-    MH_STATUS status = MH_CreateHook(
-        target,
-        reinterpret_cast<LPVOID>(
-            &HookUiIsCursorVisible),
-        reinterpret_cast<LPVOID*>(
-            &g_originalUiIsCursorVisible)
-    );
-
-    if (status != MH_OK &&
-        status != MH_ERROR_ALREADY_CREATED) {
-        Log(
-            "Cursor visibility hook: create FAILED status=%d",
-            static_cast<int>(status)
-        );
-        return false;
-    }
-
-    status = MH_EnableHook(target);
-    if (status != MH_OK &&
-        status != MH_ERROR_ENABLED) {
-        Log(
-            "Cursor visibility hook: enable FAILED status=%d",
-            static_cast<int>(status)
-        );
-        return false;
-    }
-
-    g_cursorVisibilityHookReady.store(true);
-    Log(
-        "Cursor visibility hook: READY UAirshipUIManager::IsCursorVisible RVA=0x715800 "
-        "Hide HUD or Hide Reticle forces native UI cursor invisible"
-    );
-    return true;
-}
-
-
-// The native UI and OS cursor follow the same automatic TPS policy.
-// Foreground gameplay only; never blank the mod menu or equipment wheels.
-bool ShouldBlankGameCursor() {
-    const HWND hwnd = reinterpret_cast<HWND>(
-        g_gameWindowTrace.load(std::memory_order_relaxed));
-    const auto& runtime = dg::runtime::Get();
-    const bool hideWindows=runtime.hideReticle.load(std::memory_order_relaxed) ||
-        HideNativeCursorDuringTPSGameplay();
-    return hwnd && GetForegroundWindow()==hwnd &&
-        !g_overlayVisible.load(std::memory_order_relaxed) &&
-        !runtime.tpsAbilityWheelHeld.load(std::memory_order_relaxed) &&
-        hideWindows;
-}
-
-HCURSOR WINAPI HookSetCursor(HCURSOR requested) {
-    if (!g_originalSetCursor) return nullptr;
-    const HWND hwnd = reinterpret_cast<HWND>(
-        g_gameWindowTrace.load(std::memory_order_relaxed));
-    if (hwnd && GetForegroundWindow() == hwnd &&
-        !g_overlayVisible.load(std::memory_order_relaxed)) {
-        const HCURSOR previous = g_lastRequestedGameCursor.exchange(requested);
-        if (previous != requested) {
-            const uint32_t n = g_cursorProbeChanges.fetch_add(1) + 1;
-            if (n <= 40) {
-                // Read-only callsite evidence: relative RVA distinguishes a
-                // game's cursor-request origin from a system/User32 origin.
-                void* caller = _ReturnAddress();
-                const uintptr_t base = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
-                const uintptr_t addr = reinterpret_cast<uintptr_t>(caller);
-                const uintptr_t rva = addr >= base && addr - base < 0x03DDF000u
-                    ? addr - base : 0;
-                Log("CursorProbe V0.42: SetCursor change=%u thread=%lu before=%p requested=%p caller=%p gameCallerRVA=0x%llX",
-                    n,static_cast<unsigned long>(GetCurrentThreadId()),previous,
-                    requested,caller,static_cast<unsigned long long>(rva));
-            }
-        }
-    }
-    if (!ShouldBlankGameCursor()) return g_originalSetCursor(requested);
-    const unsigned calls = g_reticleCursorIntercepts.fetch_add(1) + 1;
-    if (calls <= 2 || calls % 10000 == 0) {
-        Log("Reticle V0.42: SetCursor intercepted=%u requested=%p -> NULL",
-            calls, requested);
-    }
-    return g_originalSetCursor(nullptr);
-}
-
-bool InstallSetCursorHook() {
-    const MH_STATUS init = MH_Initialize();
-    if (init != MH_OK && init != MH_ERROR_ALREADY_INITIALIZED) return false;
-    const MH_STATUS create = MH_CreateHookApi(L"user32.dll", "SetCursor",
-        reinterpret_cast<LPVOID>(&HookSetCursor),
-        reinterpret_cast<LPVOID*>(&g_originalSetCursor));
-    if (create != MH_OK) {
-        Log("Reticle V0.36: SetCursor create failed=%d", int(create));
-        return false;
-    }
-    const MH_STATUS enable = MH_EnableHook(
-        reinterpret_cast<LPVOID>(&SetCursor));
-    // Some systems expose a forwarding thunk; enable by exact exported address.
-    if (enable != MH_OK && enable != MH_ERROR_ENABLED) {
-        Log("Reticle V0.36: SetCursor enable failed=%d", int(enable));
-        return false;
-    }
-    g_setCursorHookReady.store(true);
-    Log("Reticle V0.36: native UI + Win32 SetCursor suppression READY");
-    return true;
-}
-
-void RefreshReticleCursorState() {
-    const bool blank = ShouldBlankGameCursor();
-    if (g_cursorBlankApplied.exchange(blank) == blank) return;
-    if (blank) {
-        if (g_originalSetCursor) g_originalSetCursor(nullptr);
-        else SetCursor(nullptr);
-        Log("Reticle V1.21: cursor hidden (General Hide Reticle / automatic TPS gameplay)");
-    } else {
-        const HWND hwnd = reinterpret_cast<HWND>(
-            g_gameWindowTrace.load(std::memory_order_relaxed));
-        const bool foreground = hwnd && GetForegroundWindow() == hwnd;
-        // Alt-Tab hardening: old logic restored only when foreground=true,
-        // leaving the cursor NULL after switching away from the game.
-        const HCURSOR arrow = LoadCursorW(nullptr, IDC_ARROW);
-        if (g_originalSetCursor) g_originalSetCursor(arrow);
-        else SetCursor(arrow);
-        if (!foreground) {
-            ClipCursor(nullptr);
-        } else {
-            PostMessageW(hwnd, WM_SETCURSOR,
-                reinterpret_cast<WPARAM>(hwnd), MAKELPARAM(HTCLIENT, WM_MOUSEMOVE));
-        }
-        Log("Reticle V0.42: suppression ended foreground=%d", foreground ? 1 : 0);
-    }
-}
-
 bool InstallHudHook() {
     BYTE* getter = ResolveHudHiddenGetter();
     if (!getter) {
@@ -2631,18 +2392,8 @@ void TriggerAction(Action action, int functionKey) {
 
         const bool hidden = !g_hudHidden.load();
         g_hudHidden.store(hidden);
-        // V0.33 WM_SETCURSOR repeats did not rebuild the reticle.
         g_lastAction = std::string("HUD ") + (hidden ? "hidden" : "visible");
         Log("F%d -> HUD %s", functionKey, hidden ? "HIDDEN" : "VISIBLE");
-        return;
-    }
-
-    if (action == Action::ToggleReticle) {
-        g_config.hideReticle = !g_config.hideReticle;
-        g_config.Save();
-        g_lastAction = g_config.hideReticle ? "Reticle hidden" : "Reticle visible";
-        Log("F%d -> Hide Reticle %s", functionKey,
-            g_config.hideReticle ? "ON" : "OFF");
         return;
     }
 
@@ -3253,19 +3004,6 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     const bool focusMessage = msg == WM_ACTIVATEAPP || msg == WM_ACTIVATE ||
         msg == WM_SETFOCUS || msg == WM_KILLFOCUS || msg == WM_MOUSEACTIVATE;
     if (focusMessage) {
-        // Restore a cursor IMMEDIATELY on Alt-Tab instead of depending on
-        // background Present calls, which some games stop issuing.
-        if ((msg == WM_ACTIVATEAPP && wParam == FALSE) ||
-            msg == WM_KILLFOCUS ||
-            (msg == WM_ACTIVATE && LOWORD(wParam) == WA_INACTIVE)) {
-            if (g_cursorBlankApplied.exchange(false)) {
-                HCURSOR arrow = LoadCursorW(nullptr, IDC_ARROW);
-                if (g_originalSetCursor) g_originalSetCursor(arrow);
-                else SetCursor(arrow);
-                ClipCursor(nullptr);
-                Log("Focus V0.38: synchronous reticle cursor restore on deactivation");
-            }
-        }
         // Feed the ImGui backend the focus transition too, but never consume
         // it: otherwise its WantCaptureKeyboard state can become stale.
         if (g_imguiReady.load()) {
@@ -3575,7 +3313,6 @@ dg::overlay::Context BuildOverlayContext() {
 
     auto& t = context.telemetry;
     t.hudHookReady = g_hudHookReady.load();
-    t.reticleCursorHookReady = g_setCursorHookReady.load();
     t.movementHookReady = g_movementHookReady.load();
     t.recoveryHookReady = g_recoveryHookReady.load();
     t.finalDamageHookReady =
@@ -3666,54 +3403,6 @@ dg::overlay::Context BuildOverlayContext() {
     return context;
 }
 
-
-void TraceDesktopCursorState(const char* reason, bool force) {
-    const ULONGLONG now = GetTickCount64();
-    const ULONGLONG due = g_cursorNextSnapshotTick.load(std::memory_order_relaxed);
-    if (!force && now < due) return;
-    g_cursorNextSnapshotTick.store(now + 350ull, std::memory_order_relaxed);
-
-    const HWND hwnd = reinterpret_cast<HWND>(
-        g_gameWindowTrace.load(std::memory_order_relaxed));
-    if (!hwnd || !IsWindow(hwnd)) return;
-    const bool foreground = GetForegroundWindow() == hwnd;
-    CURSORINFO ci{};
-    ci.cbSize = sizeof(ci);
-    const BOOL ok = GetCursorInfo(&ci);
-    if (!ok) return;
-    const HCURSOR previous = g_lastObservedDesktopCursor.exchange(ci.hCursor);
-    const DWORD oldFlags = g_lastObservedDesktopFlags.exchange(ci.flags);
-    const bool oldForeground = g_lastCursorSnapshotForeground.exchange(foreground);
-    if (!force && previous == ci.hCursor && oldFlags == ci.flags &&
-        oldForeground == foreground) return;
-    const unsigned count = g_cursorSnapshotCount.fetch_add(1) + 1;
-    if (count > 70) return;
-
-    // GetIconInfo allocates GDI bitmaps. Release BOTH on every successful call.
-    ICONINFO icon{};
-    const BOOL hasIcon = ci.hCursor && GetIconInfo(ci.hCursor, &icon);
-    BITMAP mask{};
-    BITMAP color{};
-    if (hasIcon && icon.hbmMask) GetObjectW(icon.hbmMask, sizeof(mask), &mask);
-    if (hasIcon && icon.hbmColor) GetObjectW(icon.hbmColor, sizeof(color), &color);
-    if (hasIcon && icon.hbmMask) DeleteObject(icon.hbmMask);
-    if (hasIcon && icon.hbmColor) DeleteObject(icon.hbmColor);
-
-    RECT clip{};
-    const BOOL clipped = GetClipCursor(&clip);
-    Log("CursorProbe V0.42: snapshot #%u reason=%s gameForeground=%d overlay=%d hideReticle=%d desktopCursor=%p flags=0x%lX mouse=%ld,%ld "
-        "iconInfo=%d hotspot=%lu,%lu mask=%ldx%ld color=%ldx%ld clipValid=%d clip=%ld,%ld,%ld,%ld lastRequest=%p nativeVisible=%d",
-        count,reason,foreground ? 1 : 0,g_overlayVisible.load() ? 1 : 0,
-        dg::runtime::Get().hideReticle.load(std::memory_order_relaxed) ? 1 : 0,
-        ci.hCursor,static_cast<unsigned long>(ci.flags),
-        ci.ptScreenPos.x,ci.ptScreenPos.y,hasIcon ? 1 : 0,
-        hasIcon ? static_cast<unsigned long>(icon.xHotspot) : 0ul,
-        hasIcon ? static_cast<unsigned long>(icon.yHotspot) : 0ul,
-        mask.bmWidth,mask.bmHeight,color.bmWidth,color.bmHeight,
-        clipped ? 1 : 0,clip.left,clip.top,clip.right,clip.bottom,
-        g_lastRequestedGameCursor.load(std::memory_order_relaxed),
-        g_lastNativeCursorVisible.load(std::memory_order_relaxed));
-}
 
 void TraceGameWindowState(IDXGISwapChain* swapChain) {
     if (!swapChain) {
@@ -4274,13 +3963,11 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     g_config.FlushIfDue(false);
 
     TraceGameWindowState(swapChain);
-    TraceDesktopCursorState("Present cursor state", false);
     ProcessCameraInput();
     EnsureOrbitWndProc(swapChain);
     if(g_originalWndProc && g_hwnd)EnsureRelativeMouse(g_hwnd);
     EnsureNativeXInputAimHooks();
     UpdateOrbitInput();
-    RefreshReticleCursorState();
 
     // V0.68: restore original V0.32 lazy overlay policy. No rendered TPS
     // crosshair and no needless ImGui frame during ordinary gameplay.
@@ -4711,13 +4398,13 @@ DWORD WINAPI MainThread(LPVOID) {
     g_config.SetPath(g_iniPath);
     g_config.SetLogger(&FeatureLog);
     g_config.Load();
-    Log("V1.21 CONFIG loaded %ls: TPS=%d menuOnlyReticle=1 FOV=%.1f dist=%.3f pitch=%.2f height=%.1f foot=%.1f stickMode=%d mountedAim=%d normalHeight=%.1f HideReticle=%d SkipWarningRuntime=%d",
+    Log("V1.22 CONFIG loaded %ls: TPS=%d cursorHooks=REMOVED FOV=%.1f dist=%.3f pitch=%.2f height=%.1f foot=%.1f stickMode=%d mountedAim=%d normalHeight=%.1f SkipWarningRuntime=%d",
         g_iniPath.c_str(),g_config.thirdPersonEnabled?1:0,
         g_config.thirdPersonFovDegrees,
         g_config.thirdPersonDistanceMultiplier,g_config.thirdPersonPitchDegrees,
         g_config.thirdPersonHeightOffset,g_config.tpsFootAnchorOffset,
         g_config.tpsCameraStickMode,g_config.tpsMountedAimMode,g_config.cameraHeightOffset,
-        g_config.hideReticle?1:0,g_config.skipWarningEnabled?1:0);
+        g_config.skipWarningEnabled?1:0);
     Log("V1.05 GAUGES loaded Wrath=%d x%.2f Ultimate=%d x%.2f Synergy=%d x%.2f",
         g_config.wrathChargeEnabled?1:0,g_config.wrathChargeMultiplier,
         g_config.ultimateChargeEnabled?1:0,g_config.ultimateChargeMultiplier,
@@ -4778,14 +4465,6 @@ DWORD WINAPI MainThread(LPVOID) {
     }
     if (!InstallHudHook()) {
         Log("Toggle HUD unavailable; renderer/input core remains active.");
-    }
-    if (!InstallSetCursorHook()) {
-        Log("Reticle V0.36: Win32 hook unavailable, native UI layer still supported.");
-    }
-    if (!InstallCursorVisibilityHook()) {
-        Log(
-            "Cursor visibility hook unavailable; Hide HUD will keep native cursor behavior."
-        );
     }
     if (!InstallMovementSpeedHook()) {
         Log("Movement Speed unavailable; other ASI features remain active.");

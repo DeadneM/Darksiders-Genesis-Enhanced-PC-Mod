@@ -33,7 +33,6 @@ enum class Action : int {
     ActionRecovery,
     SkipIntroVideos,
     ThirdPerson,
-    ToggleReticle,
     SkipLogos,
     SkipWarning,
     FOV,
@@ -66,7 +65,6 @@ kActionLabels = {
     "Action Recovery",
     "Skip Intro Videos",
     "Third Person",
-    "Toggle Reticle",
     "Skip Logos",
     "Skip Warning",
     "FOV Override",
@@ -98,7 +96,6 @@ kActionTokens = {
     L"ActionRecovery",
     L"SkipIntroVideos",
     L"ThirdPerson",
-    L"ToggleReticle",
     L"SkipLogos",
     L"SkipWarning",
     L"FOV",
@@ -130,7 +127,7 @@ inline constexpr std::array<int, 6> kDefaultTpsKeyboardKeys{{
 }};
 inline constexpr std::array<Action, 12> kDefaultHotkeys{{
     Action::ToggleHUD,Action::MovementSpeed,Action::ActionRecovery,
-    Action::ToggleReticle,Action::ThirdPerson,Action::None,
+    Action::None,Action::ThirdPerson,Action::None,
     Action::None,Action::None,Action::None,Action::None,Action::None,Action::None
 }};
 const char* ActionLabel(Action action);
@@ -192,7 +189,6 @@ public:
     bool horseSprintSpeedEnabled = true;
     bool horseSprintDurationEnabled = true;
     bool fovEnabled = false;
-    bool hideReticle = false;
     bool hotstreakChargeEnabled = true;
     // V1.02 research controls. Fail-closed until three native charge owners are verified.
     bool wrathChargeEnabled = true;

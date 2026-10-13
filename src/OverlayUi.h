@@ -19,7 +19,6 @@ using LogFn = void(*)(const char*, ...);
 
 struct Telemetry {
     bool hudHookReady = false;
-    bool reticleCursorHookReady = false;
     bool movementHookReady = false;
     bool recoveryHookReady = false;
     bool finalDamageHookReady = false;
