@@ -1,3 +1,9 @@
+## V1.14 experimental - TPS cursor option and reset in Info only
+
+[**V1.14 cumulative Windows x64 TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.14_TPS_POINTER_INFO_RESET_TEST.zip) · `debug` only, gameplay validation pending.
+
+Requested after V1.13: `Show Mouse Pointer in TPS` is OFF by default. ON lets the original game mouse cursor appear during TPS gameplay; `Hide Reticle` still overrides it. Consolidated the two duplicate factory reset actions into exactly one `Reset INI to Factory Defaults` under the last **About / Info** tab, with its existing confirmation and dated .bak backup; per-setting camera/keyboard Defaults remain untouched. See [V1.14 technical note](docs/V1_14_TPS_POINTER_INFO_RESET.md). Standalone updater remains separate pending true ASI integration.
+
 ## Standalone Windows Updater V1.0 | main / beta debug
 
 [**Download DarksidersGenesisUpdater V1.0 (Windows x64)**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesisUpdater_V1.0_Windows.zip)

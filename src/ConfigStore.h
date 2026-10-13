@@ -192,6 +192,7 @@ public:
     bool horseSprintDurationEnabled = true;
     bool fovEnabled = false;
     bool hideReticle = false;
+    bool showTpsMousePointer = false; // opt-in: allow native mouse cursor while TPS camera is active
     bool hotstreakChargeEnabled = true;
     // V1.02 research controls. Fail-closed until three native charge owners are verified.
     bool wrathChargeEnabled = true;

@@ -1,3 +1,8 @@
+# Current active test: V1.14 cursor/reset UI (2026-10-13)
+
+V1.13 user log audited (supported EXE, TPS=1, Synergy 122/60; Wrath/Chaos Add=0). V1.14 on debug adds `ShowTPSMousePointer=0` opt-in control and consolidates the two duplicate INI full reset buttons into the final About tab, preserving confirmation and backup. UI V1.12 user-validated; V1.14 needs gameplay testing. Four-root-file ZIP, main/archive untouched. Read [V1.14 details](V1_14_TPS_POINTER_INFO_RESET.md).
+
+---
 # Standalone Updater V1.0 verified CI (2026-10-13)
 
 Windows x64 program built and published on debug, without changes to main/archive or four-root-file mod packages. Checkbox Beta OFF=main (V0.72 currently), ON=debug (V1.13); one-time manual permission when unknown mod already installed, prevent automatic downgrade; preserve existing INI, backup binaries, rollback. Verified workflow run 38423882113; real gameplay installation test still pending. See [UPDATER_V1_0.md](UPDATER_V1_0.md).

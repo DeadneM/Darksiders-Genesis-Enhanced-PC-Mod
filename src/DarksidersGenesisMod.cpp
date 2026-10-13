@@ -37,7 +37,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.13-safe-ini-factory-reset-test";
+constexpr const char* kBuild = "1.14-tps-pointer-info-reset-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -2301,6 +2301,7 @@ bool HookUiIsCursorVisible(void* uiManager) {
     const ULONGLONG now=GetTickCount64();
     const bool tpsLockedReticle =
         runtime.thirdPersonEnabled.load() &&
+        !runtime.showTpsMousePointer.load(std::memory_order_relaxed) &&
         runtime.tpsViewGameplay.load() &&
         tick&&now>=tick&&now-tick<250ull;
     const bool hiddenByMod =
@@ -2412,6 +2413,7 @@ bool ShouldBlankGameCursor() {
     const ULONGLONG now=GetTickCount64();
     const bool hideWindows = runtime.hideReticle.load() ||
         (runtime.thirdPersonEnabled.load() &&
+         !runtime.showTpsMousePointer.load(std::memory_order_relaxed) &&
          !runtime.tpsTemporarilySuspended.load() && runtime.tpsViewGameplay.load() &&
          tick&&now>=tick&&now-tick<250ull);
     return hwnd && GetForegroundWindow() == hwnd &&
@@ -2478,7 +2480,7 @@ void RefreshReticleCursorState() {
     if (blank) {
         if (g_originalSetCursor) g_originalSetCursor(nullptr);
         else SetCursor(nullptr);
-        Log("Reticle V0.42: OS cursor hidden by existing Hide Reticle");
+        Log("Reticle V1.14: OS cursor hidden by Hide Reticle or default TPS policy");
     } else {
         const HWND hwnd = reinterpret_cast<HWND>(
             g_gameWindowTrace.load(std::memory_order_relaxed));

@@ -188,6 +188,16 @@ void Draw(Context& c) {
                 "Hides the aiming pointer in gameplay without hiding the HUD. "
                 "The pointer stays visible here for menu interaction."
             );
+            if (ImGui::Checkbox("Show Mouse Pointer in TPS", &config.showTpsMousePointer)) {
+                config.Save();
+                *c.lastAction = config.showTpsMousePointer
+                    ? "TPS pointer allowed (unless Hide Reticle is ON)"
+                    : "TPS pointer hidden by default";
+            }
+            ImGui::TextDisabled(
+                "OFF by default. ON lets the native mouse pointer appear in TPS gameplay.");
+            ImGui::TextDisabled(
+                "Hide Reticle still takes priority. Menus, wheels and Alt-Tab are unchanged.");
             if (ImGui::Button("Apply Hide Reticle and Return to Game")) {
                 config.Save();
                 c.overlayVisible->store(false);
@@ -562,14 +572,6 @@ void Draw(Context& c) {
             ImGui::TextDisabled("Skip Warnings: research only (save + controller warning screens).");
             ImGui::TextDisabled("Warning startup is preserved for reticle and UI safety.");
 
-            ImGui::Spacing();
-            DrawSectionTitle("Configuration");
-            ImGui::TextWrapped("Restore all mod settings and key bindings to factory defaults.");
-            if (ImGui::Button("Reset INI to Factory Defaults")) {
-                ImGui::OpenPopup("Reset INI to Factory Defaults?");
-            }
-            ImGui::TextDisabled("Dated backup beside original INI; restart the game afterward.");
-            ImGui::TextDisabled("Game saves and Engine.ini remain untouched.");
             ImGui::Spacing();
             ImGui::TextDisabled("Skip Logos / Intro take effect after a game restart.");
             ImGui::Unindent(12.0f);
@@ -964,13 +966,8 @@ void Draw(Context& c) {
                     "Configuration reloaded";
             }
 
-            ImGui::SameLine();
-
-            if (ImGui::Button(
-                    "Reset INI...",
-                    ImVec2(140.0f, 0.0f))) {
-                ImGui::OpenPopup("Reset INI to Factory Defaults?");
-            }
+            ImGui::TextDisabled(
+                "Save writes the current INI; Reload reads it without resetting defaults.");
 
             DrawSectionTitle("F1-F12");
 
@@ -1103,13 +1100,23 @@ void Draw(Context& c) {
             ImGui::TextWrapped(
                 "Unknown executables are fail-closed: overlay/log remain available but gameplay hooks are not installed."
             );
+            DrawSectionTitle("Configuration");
+            ImGui::TextWrapped(
+                "Factory reset affects ALL mod settings and bindings. Other Default buttons only restore their own value.");
+            if (ImGui::Button("Reset INI to Factory Defaults")) {
+                ImGui::OpenPopup("Reset INI to Factory Defaults?");
+            }
+            ImGui::TextDisabled(
+                "Confirmation required. A dated .bak keeps your previous INI.");
+            ImGui::TextDisabled(
+                "Game saves and Engine.ini remain untouched. Restart after reset.");
             ImGui::EndTabItem();
         }
 
         ImGui::EndTabBar();
     }
 
-    // Single confirmation shared by both reset entry points.
+    // Single confirmation, opened only from the last About / Info tab.
     if (ImGui::BeginPopupModal("Reset INI to Factory Defaults?", nullptr,
             ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::TextWrapped("Reset ALL mod options and keyboard/gamepad bindings?");

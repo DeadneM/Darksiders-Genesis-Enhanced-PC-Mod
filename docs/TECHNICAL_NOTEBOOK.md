@@ -1,3 +1,7 @@
+## V1.14 TPS cursor opt-in, Info reset consolidation (2026-10-13)
+
+Only new cursor behavior is the `ShowTPSMousePointer=0` config toggle. Both native and Win32 TPS automatic cursor hiding check the inverse toggle; Hide Reticle retains priority. The menu offers a checkbox under HUD/aiming effects, OFF by default. V1.13 reset duplicates were identical entry points to one method; consolidated into About and kept per-control Defaults. User V1.13 log: Synergy 122/60 positive boosts, Wrath/Chaos hooks zero, candidate 4 rises/2 falls; 610 TPS foot forward injections, no horse or charged-shot test. Unexpected BaseJuice diagnostic and ScaleType integer warrant separate investigation. See [V1.14 note](V1_14_TPS_POINTER_INFO_RESET.md).
+
 # Darksiders Genesis Enhanced PC Mod - Technical Notebook
 
 This file preserves the complete historical README / development notebook that
