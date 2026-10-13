@@ -6,6 +6,18 @@ DXGI proxy and ASI plugin.
 The project is deliberately fail-open for normal runtime failures and
 **fail-closed for unsupported game executables**.
 
+## Current project state: V1.10 native charged ability, startup phase timeline
+
+[**V1.10 Windows x64 cumulative TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.10_NATIVE_LBY_STARTUP_TIMELINE_TEST.zip) · source branch `debug` only; `main` frozen; older ZIPs preserved. Windows CI verifies four files at ZIP root.
+
+**LB+Y rollback, user requested:** V1.09 demonstrated that the triggered charged ability does not follow the same input direction path as RT/RB; user observed it follows character direction or movement. V1.10 retires the experimental LB+Y stick-neutralization, special native look/rotation correction and custom Y translation. It leaves physical LB+Y to the game's own ability logic, preserves original LB-wheel behavior, and **does not touch validated RT/RB camera-forward stick injection**. R3 uses equipment, horses and Synergy unchanged. The old `TPSChargedFirePadMask` INI key is ignored for compatibility and not exposed in TPS overlay.
+
+**Skip Warnings investigation, read-only:** The native `StartupScreens` array has three 0x40-byte records, with active flags 1/1/0 in the user's last logs. This array is processed by native code *before* the startup movie playlist descriptors are copied. The logo playlist has two known movies, `THQ_LogoBasic` and `AS_LogoBasic`, which the existing validated feature substitutes with non-existent names without skipping native MoviePlayer setup. Separately, Skip Intro sets `g.PlayIntroCinematicOnBoot=0` before game reaches its boot movie decision. **Preparing warning records is not proof the warning pages have been drawn.**
+
+V1.10 adds actual startup event timing from DXGI proxy attach across ASI initialization, intro CVar installation, startup record observation and logo copy, up to first D3D11 Present. Search `Startup V1.10 TIMELINE` in the per-session log. Every stage has relative milliseconds, OS thread ID and an observed event name. The warning **skip itself remains disabled** until the rendering stage can be distinguished from essential initialization. [Full timeline research](docs/V1_10_STARTUP_TIMELINE_NATIVE_LBY.md) · [Current State](docs/CURRENT_STATE.md).
+
+**Test requested:** cold launch, note visual screen order after logos and before intro/title, send full `DarksidersGenesisMod.log`; verify LB+Y native ability, normal RT/RB, native LB wheel and reticle. Wrath and Ultimate multiplier paths still unvalidated; Synergy proven. Mouse TPS postponed.
+
 ## Current project state: V1.09 simultaneous diagnostics (LB+Y, Wrath, Chaos, Warnings)
 
 [**V1.09 cumulative TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.09_MULTI_PATH_NATIVE_AUDIT_TEST.zip) · branch `debug` only, `main` frozen, previous ZIPs preserved. Windows GitHub Actions builds four files at ZIP root.
