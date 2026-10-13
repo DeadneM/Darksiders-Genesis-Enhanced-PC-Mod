@@ -37,7 +37,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.06-native-synergy-character-owner-abi-test";
+constexpr const char* kBuild = "1.07-charged-shot-lb-y-forward-gauge-ranges-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -94,6 +94,10 @@ std::atomic_uint32_t g_tpsFacingReasserted{0};
 std::atomic_uint32_t g_tpsConeInside{0},g_tpsConeOutside{0};
 std::atomic_bool g_tpsFireHeld{false};
 std::atomic_ullong g_tpsFireLastTick{0};
+std::atomic_bool g_tpsChargeChordHeld{false};
+std::atomic_ullong g_tpsChargeChordTick{0};
+std::atomic_uint32_t g_tpsChargeForwardInjected{0};
+std::atomic_uint32_t g_tpsChargeChordSamples{0};
 std::atomic_uint32_t g_tpsPlayerGeneration{0};
 std::atomic_uint32_t g_tpsNativeFacingOff{0},g_tpsNativeFacingRestored{0};
 std::atomic_uint32_t g_tpsStrafeSamples{0};
@@ -884,7 +888,7 @@ void HookAddJuice(void* hotStreakComponent, float amount) {
         if (localPlayer && owner == localPlayer) {
             float multiplier = dg::runtime::Get().hotstreakChargeMultiplier.load(std::memory_order_relaxed);
             if (multiplier < 0.0f) multiplier = 0.0f;
-            if (multiplier > 25.0f) multiplier = 25.0f;
+            if (multiplier > 100.0f) multiplier = 100.0f;
 
             effectiveAmount = amount * multiplier;
             if (effectiveAmount > 100000.0f) {
@@ -1486,10 +1490,13 @@ bool IsMountedTPSNow() {
         tick&&now>=tick&&now-tick<300ull;
 }
 bool IsTPSRadialInputActive() {
+    const auto now=GetTickCount64();
+    const auto chargedTick=g_tpsChargeChordTick.load(std::memory_order_acquire);
+    if(g_tpsChargeChordHeld.load(std::memory_order_acquire)&&chargedTick&&
+       now>=chargedTick&&now-chargedTick<=180ull)return false;
     const auto& rt=dg::runtime::Get();
     if(!rt.tpsAbilityWheelHeld.load(std::memory_order_acquire))return false;
     const auto tick=rt.tpsAbilityWheelTick.load(std::memory_order_acquire);
-    const auto now=GetTickCount64();
     return tick&&now>=tick&&now-tick<=180ull;
 }
 bool MountedVanillaAimWhileFiring() {
@@ -2841,9 +2848,16 @@ bool GamepadBindingDown(int mask,const XINPUT_GAMEPAD& pad) {
     if(mask==0x20000)return pad.bRightTrigger>=XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
     return (pad.wButtons&static_cast<WORD>(mask))!=0;
 }
+bool TPSChargeChordDown(const XINPUT_GAMEPAD& pad){
+    const int wheel=g_config.tpsWheelPadMask;
+    const int shot=g_config.tpsChargedFirePadMask;
+    return wheel && shot && wheel!=shot && GamepadBindingDown(wheel,pad) &&
+        (GamepadBindingDown(shot,pad) || (pad.wButtons&XINPUT_GAMEPAD_Y)!=0);
+}
 bool TPSFireDown(const XINPUT_GAMEPAD& pad) {
     return GamepadBindingDown(g_config.tpsFirePrimaryMask,pad) ||
-        GamepadBindingDown(g_config.tpsFireSecondaryMask,pad);
+        GamepadBindingDown(g_config.tpsFireSecondaryMask,pad) ||
+        TPSChargeChordDown(pad);
 }
 void ApplyHoldGrenadeVirtualR3(XINPUT_GAMEPAD& pad,int mask) {
     const ULONGLONG now=GetTickCount64();
@@ -2939,14 +2953,32 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
         localHwnd && GetForegroundWindow()==localHwnd &&
         !g_overlayVisible.load() && !IsIconic(localHwnd) &&
         !g_shuttingDown.load();
-    // V0.95: keep the original entire XInput state for native ability,
-    // ammunition and equipment selection while LB is down. In V0.94 the
-    // validated R3 pulse ran before the wheel early return.
-    if(localGameplay && GamepadBindingDown(g_config.tpsWheelPadMask,pad)){
+    // V1.07: LB still opens the original native wheel. LB+Y (or charged
+    // rebind) specifically bypasses the wheel-only return for camera aim.
+    const bool wheelDown=localGameplay&&GamepadBindingDown(g_config.tpsWheelPadMask,pad);
+    const bool chargedChord=localGameplay&&!validChord&&TPSChargeChordDown(pad);
+    const auto chordNow=GetTickCount64();
+    g_tpsChargeChordHeld.store(chargedChord,std::memory_order_release);
+    if(chargedChord){
+        g_tpsChargeChordTick.store(chordNow,std::memory_order_release);
+        const unsigned n=++g_tpsChargeChordSamples;
+        if(n==1||n==100||n==1000)
+            Log("TPS V1.07 CHARGED LB+Y: wheelMask=0x%X chargedMask=0x%X n=%u",
+                g_config.tpsWheelPadMask,g_config.tpsChargedFirePadMask,n);
+        // Rebind the physical charged key to native Y only in this chord.
+        const int mask=g_config.tpsChargedFirePadMask;
+        if(mask!=XINPUT_GAMEPAD_Y&&GamepadBindingDown(mask,pad)){
+            if(mask==0x10000)pad.bLeftTrigger=0;
+            else if(mask==0x20000)pad.bRightTrigger=0;
+            else pad.wButtons&=static_cast<WORD>(~static_cast<WORD>(mask));
+            pad.wButtons|=XINPUT_GAMEPAD_Y;
+        }
+    }
+    if(wheelDown){
         auto& wheelRt=dg::runtime::Get();
         wheelRt.tpsAbilityWheelHeld.store(true,std::memory_order_release);
-        wheelRt.tpsAbilityWheelTick.store(GetTickCount64(),std::memory_order_release);
-        return status;
+        wheelRt.tpsAbilityWheelTick.store(chordNow,std::memory_order_release);
+        if(!chargedChord)return status;
     }
     // R3 is equipment USE; never treat it as opening a radial wheel.
     // The original V0.84 continuous physical hold/stow pulse stays unchanged.
@@ -2957,7 +2989,7 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
         ApplyHoldGrenadeVirtualR3(pad,grenadeMask);
     if(!ShouldSuppressNativeAim())
         return status; // Preserve vanilla aim while temporary view is held.
-    if(GamepadBindingDown(g_config.tpsWheelPadMask,pad)){
+    if(GamepadBindingDown(g_config.tpsWheelPadMask,pad)&&!chargedChord){
         auto& wheelRt=dg::runtime::Get();
         wheelRt.tpsAbilityWheelHeld.store(true,std::memory_order_release);
         wheelRt.tpsAbilityWheelTick.store(GetTickCount64(),std::memory_order_release);
@@ -2976,9 +3008,16 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     // touches the physical right stick, which the camera reads unfiltered.
     // Mode 1 (user-validated VANILLA AIM) is excluded, as is on-foot fire.
     const bool mountedForForward=IsMountedTPSNow();
-    if(rt.tpsMountedAimMode.load()==0 && fire){
+    if((rt.tpsMountedAimMode.load()==0&&fire)||chargedChord){
         pad.sThumbRX=0;
         pad.sThumbRY=32767;
+        if(chargedChord){
+            const unsigned c=++g_tpsChargeForwardInjected;
+            if(c==1||c==120||c==1000)
+                Log("TPS V1.07 CHARGED FORWARD: right stick UP scope=%s n=%u nativeY=%d wheelKept=1",
+                    mountedForForward?"HORSE":"FOOT",c,
+                    (pad.wButtons&XINPUT_GAMEPAD_Y)?1:0);
+        }
         const unsigned n=++g_tpsForwardAnalogInjected;
         const unsigned scoped=mountedForForward?
             ++g_tpsMountedForwardAnalogInjected:++g_tpsFootForwardAnalogInjected;
@@ -3576,6 +3615,10 @@ void UpdateOrbitInput() {
         (padAvailable&&GamepadBindingDown(g_config.tpsWheelPadMask,physical.Gamepad)) ||
         wheelKey(dg::config::TpsKeyboardAction::WheelG) ||
         wheelKey(dg::config::TpsKeyboardAction::WheelTab));
+    const bool chargedPhysical=padAvailable&&g_config.thirdPersonEnabled&&
+        TPSChargeChordDown(physical.Gamepad);
+    g_tpsChargeChordHeld.store(focused&&chargedPhysical,std::memory_order_release);
+    if(focused&&chargedPhysical)g_tpsChargeChordTick.store(now,std::memory_order_release);
     rt.tpsAbilityWheelHeld.store(wheelOpen,std::memory_order_release);
     if(wheelOpen)rt.tpsAbilityWheelTick.store(now,std::memory_order_release);
     const bool physicalFire=padAvailable&&TPSFireDown(physical.Gamepad);
@@ -4248,6 +4291,9 @@ void ShutdownMod() {
     RestoreCameraDof();
     Log("TPS V0.69 totals: mouseInputNative=PASSTHROUGH rightStickReadsFiltered=%u whileFiring=%u",
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
+    Log("TPS V1.07 charged totals: chord=%u forward=%u chargedMask=0x%X wheelMask=0x%X",
+        g_tpsChargeChordSamples.load(),g_tpsChargeForwardInjected.load(),
+        g_config.tpsChargedFirePadMask,g_config.tpsWheelPadMask);
     Log("TPS V1.04 forward totals: all=%u horse=%u foot=%u mappedHorseChord=%u keyboardHorse=%u",
         g_tpsForwardAnalogInjected.load(),g_tpsMountedForwardAnalogInjected.load(),
         g_tpsFootForwardAnalogInjected.load(),g_horsePadChordRemapped.load(),g_keyboardHorseInjected.load());

@@ -173,6 +173,7 @@ public:
     int tpsFirePrimaryMask = 0x20000;
     int tpsFireSecondaryMask = 0x0200;
     int tpsWheelPadMask = 0x0100;
+    int tpsChargedFirePadMask = 0x8000; // Y/Triangle for LB+Y charged shot
     int tpsSuspendButtonMask = 0x0080; // R3, temporary vanilla view
     int tpsSuspendDelayMs = 300; // delay before R3 hold enables vanilla view, 0..3000
     int tpsToggleHoldButtonMask = 0x0040; // L3, long press TPS toggle

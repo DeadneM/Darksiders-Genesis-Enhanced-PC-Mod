@@ -365,7 +365,7 @@ void Draw(Context& c) {
                 &config.hotstreakChargeEnabled,
                 &config.hotstreakChargeMultiplier,
                 0.00f,
-                25.00f,
+                100.00f,
                 2.00f,
                 "%.2fx",
                 "Multiplies earned Hotstreak charge.",
@@ -385,7 +385,7 @@ void Draw(Context& c) {
                     ImGui::PushID(id);
                     bool changed=false;
                     ImGui::SetNextItemWidth(220.0f);
-                    changed|=ImGui::SliderFloat("##Slider",&value,1.0f,25.0f,"%.2fx");
+                    changed|=ImGui::SliderFloat("##Slider",&value,0.0f,100.0f,"%.2fx");
                     ImGui::SameLine();
                     ImGui::SetNextItemWidth(115.0f);
                     changed|=ImGui::InputFloat("##Manual",&value,0.0f,0.0f,"%.3f");
@@ -393,7 +393,7 @@ void Draw(Context& c) {
                     if(ImGui::Button("Default")){value=2.0f;changed=true;}
                     if(changed){
                         if(!std::isfinite(value))value=2.0f;
-                        value=std::clamp(value,1.0f,25.0f);
+                        value=std::clamp(value,0.0f,100.0f);
                         config.Save();
                     }
                     ImGui::PopID();
@@ -926,6 +926,12 @@ void Draw(Context& c) {
                 BindGamepadMask("Detect wheel opening (default LB)##TPS",config.tpsWheelPadMask,256);
                 ImGui::TextWrapped("This held button lets the game's native right stick select wheel items, "
                     "instead of being intercepted by TPS camera control.");
+                BindGamepadMask("Charged shot (default Y)##TPS",config.tpsChargedFirePadMask,32768);
+                ImGui::TextWrapped("TPS: wheel button (LB) + charged shot uses native CAMERA FORWARD. "
+                    "The wheel button stays native. A custom charged button remaps to native Y "
+                    "only during the chord.");
+                if(config.tpsChargedFirePadMask!=0 && config.tpsChargedFirePadMask==config.tpsWheelPadMask)
+                    ImGui::TextDisabled("Binding conflict: wheel and charged button must differ.");
                 BindTPSKeyboard("Equipment wheel detector (G)",dg::config::TpsKeyboardAction::WheelG);
                 BindTPSKeyboard("Ammunition / abilities wheel detector (Tab)",dg::config::TpsKeyboardAction::WheelTab);
                 ImGui::TextWrapped("Wheel detector keys never emit fake game input. "

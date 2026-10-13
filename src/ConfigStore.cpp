@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2138;
+constexpr int kConfigRevision = 2139;
 // Actual XInput digital buttons plus LT/RT represented as virtual binding IDs.
 constexpr bool ValidPadBind(int m) {
     switch(m){case 0:case 0x0001:case 0x0002:case 0x0004:case 0x0008:
@@ -319,6 +319,7 @@ void Store::ResetDefaults(bool persist) {
     tpsFirePrimaryMask=0x20000;
     tpsFireSecondaryMask=0x0200;
     tpsWheelPadMask=0x0100;
+    tpsChargedFirePadMask=0x8000;
     tpsSuspendButtonMask = 0x0080;
     tpsSuspendDelayMs = 300;
     tpsToggleHoldButtonMask = 0x0040;
@@ -475,9 +476,11 @@ bool Store::Load() {
     tpsFirePrimaryMask=GetPrivateProfileIntW(L"Controls",L"TPSFirePrimaryMask",0x20000,path_.c_str());
     tpsFireSecondaryMask=GetPrivateProfileIntW(L"Controls",L"TPSFireSecondaryMask",0x0200,path_.c_str());
     tpsWheelPadMask=GetPrivateProfileIntW(L"Controls",L"TPSWheelPadMask",0x0100,path_.c_str());
+    tpsChargedFirePadMask=GetPrivateProfileIntW(L"Controls",L"TPSChargedFirePadMask",0x8000,path_.c_str());
     if(!ValidPadBind(tpsFirePrimaryMask))tpsFirePrimaryMask=0x20000;
     if(!ValidPadBind(tpsFireSecondaryMask))tpsFireSecondaryMask=0x0200;
     if(!ValidPadBind(tpsWheelPadMask))tpsWheelPadMask=0x0100;
+    if(!ValidPadBind(tpsChargedFirePadMask))tpsChargedFirePadMask=0x8000;
     tpsSuspendButtonMask=GetPrivateProfileIntW(L"Controls",L"TPSSuspendButtonMask",0x0080,path_.c_str());
     tpsSuspendDelayMs=GetPrivateProfileIntW(L"Controls",L"TPSSuspendDelayMs",300,path_.c_str());
     tpsSuspendDelayMs=std::clamp(tpsSuspendDelayMs,0,3000);
@@ -575,9 +578,11 @@ bool Store::Load() {
     cameraStickSpeed=std::clamp(cameraStickSpeed,30.0f,360.0f);
     hotstreakChargeMultiplier =
         ReadFloat(L"Values", L"HotstreakChargeMultiplier", 2.0f, path_);
-    wrathChargeMultiplier=std::clamp(ReadFloat(L"Values",L"WrathChargeMultiplier",2.0f,path_),1.0f,25.0f);
-    ultimateChargeMultiplier=std::clamp(ReadFloat(L"Values",L"UltimateFormChargeMultiplier",2.0f,path_),1.0f,25.0f);
-    synergyChargeMultiplier=std::clamp(ReadFloat(L"Values",L"SynergyChargeMultiplier",2.0f,path_),1.0f,25.0f);
+    if(!std::isfinite(hotstreakChargeMultiplier))hotstreakChargeMultiplier=2.0f;
+    hotstreakChargeMultiplier=std::clamp(hotstreakChargeMultiplier,0.0f,100.0f);
+    wrathChargeMultiplier=std::clamp(ReadFloat(L"Values",L"WrathChargeMultiplier",2.0f,path_),0.0f,100.0f);
+    ultimateChargeMultiplier=std::clamp(ReadFloat(L"Values",L"UltimateFormChargeMultiplier",2.0f,path_),0.0f,100.0f);
+    synergyChargeMultiplier=std::clamp(ReadFloat(L"Values",L"SynergyChargeMultiplier",2.0f,path_),0.0f,100.0f);
 
     for (int i = 0; i < 12; ++i) {
         wchar_t key[8]{};
@@ -885,6 +890,8 @@ bool Store::SaveNow() {
     WritePrivateProfileStringW(L"Controls",L"TPSFireSecondaryMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsWheelPadMask);
     WritePrivateProfileStringW(L"Controls",L"TPSWheelPadMask",buttonBuffer,path_.c_str());
+    swprintf_s(buttonBuffer,L"%d",tpsChargedFirePadMask);
+    WritePrivateProfileStringW(L"Controls",L"TPSChargedFirePadMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsRecenterButtonMask);
     WritePrivateProfileStringW(L"Controls",L"TPSRecenterButtonMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",horsePadButtonA);

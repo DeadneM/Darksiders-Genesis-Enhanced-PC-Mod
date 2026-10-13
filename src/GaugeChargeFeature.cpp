@@ -130,9 +130,9 @@ bool LocalOwner(void* component){
 }
 float Boost(float value,bool enabled,float factor){
     if(!enabled||!std::isfinite(value)||value<=0.0f||value>=100000.0f||
-       !std::isfinite(factor)||factor<1.0f||factor>25.0f)
+       !std::isfinite(factor)||factor<0.0f||factor>100.0f)
         return value;
-    return std::clamp(value*factor,value,100000.0f);
+    return std::clamp(value*factor,0.0f,100000.0f);
 }
 void HookWrath(void* character,float amount){
     if(!originalWrath)return;
@@ -144,7 +144,7 @@ void HookWrath(void* character,float amount){
     Probe("WRATH AddWrath",n,character,amount,0.0f,0.0f,match);
     if(match){
         effective=Boost(amount,rt.wrathChargeEnabled.load(),rt.wrathChargeMultiplier.load());
-        if(effective>amount)Event("Wrath",++wrathBoosts,amount,effective);
+        if(effective!=amount)Event("Wrath",++wrathBoosts,amount,effective);
     }
     originalWrath(character,effective);
 }
@@ -160,7 +160,7 @@ float HookChaos(void* chaosComponent,float amount){
     Probe("CHAOS AddChaos",n,owner,amount,0.0f,0.0f,match);
     if(match){
         effective=Boost(amount,rt.ultimateChargeEnabled.load(),rt.ultimateChargeMultiplier.load());
-        if(effective>amount)Event("Chaos/Ultimate",++chaosBoosts,amount,effective);
+        if(effective!=amount)Event("Chaos/Ultimate",++chaosBoosts,amount,effective);
     }
     return originalChaos(chaosComponent,effective);
 }
@@ -179,7 +179,7 @@ float HookSynergyGain(void* manager,void* owner,float a,float b,float c){
     if(relation>0&&rt.synergyChargeEnabled.load(std::memory_order_relaxed)&&
        std::isfinite(nativeGain)&&nativeGain>0.0f&&nativeGain<100000.0f){
         const float mult=rt.synergyChargeMultiplier.load(std::memory_order_relaxed);
-        if(std::isfinite(mult)&&mult>1.0f&&mult<=25.0f&&
+        if(std::isfinite(mult)&&mult>=0.0f&&mult<=100.0f&&mult!=1.0f&&
            std::isfinite(c)&&std::isfinite(c*mult)&&std::fabs(c*mult)<100000.0f){
             effectiveC=c*mult;
             Event("Synergy Native Add",++synergyBoosts,nativeGain,(a*b)*effectiveC);
