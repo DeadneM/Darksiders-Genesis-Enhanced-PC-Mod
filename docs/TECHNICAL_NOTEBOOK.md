@@ -1,3 +1,7 @@
+## V1.20 raw relative mouse and cutscene/gauge study (2026-10-13)
+
+V1.19 TPS mouse stops at physical screen edge because WM_MOUSEMOVE coordinates stop; V1.20 conditionally registers mouse RawInput on existing game HWND if no game mouse registration, preserving legacy/RawInput native dispatch and LMB Camera Forward, no cursor warp. Logs true raw mouse vs HID and movement at edge. Existing native camera cutscene heuristic unchanged; bounded ENTER/EXIT and rejection metadata for later review. Wrath candidate increments, decreases and recent native local-damage correlation are read-only; no new gain hooks or data mutations. Synergy user-validated, current defaults and in-game updater retained. [V1.20 test](V1_20_RELATIVE_MOUSE_CUTSCENE_GAUGES.md).
+
 ## V1.19 mouse TPS unified Camera Forward, user defaults ONLY (2026-10-13)
 
 No formerly rejected V1.17 cursor hack. Default ThirdPerson=1, ShowTPSMousePointer=1 in Store, runtime and INI, with TPS-only runtime pointer guard. Mouse control needs no UI option: native mouse RAWINPUT or WM_MOUSEMOVE fallback (not swallowed; no synthetic input) feeds existing cameraOrbit yaw/pitch, and LMB native look gets pad-equivalent TPS Camera Forward vector/rotation. Real shooting path remains to test. Skip Warnings control visually restored but disabled as unsafe, with native setup preserved. User's last 1.18 log includes no gauge positive events and mouse 413/10 calls. Cross bug MUST be retested with ShowTPSMousePointer=1, not hidden. [V1.19 note](V1_19_TPS_MOUSE_FORWARD.md).

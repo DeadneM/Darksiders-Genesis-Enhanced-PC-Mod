@@ -1,3 +1,11 @@
+## V1.20 Experimental - Infinite TPS mouse via relative Raw Input; native cutscene/gauge audit
+
+[**V1.20 cumulative Windows x64 TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.20_RELATIVE_MOUSE_CUTSCENE_GAUGES_TEST.zip) · debug branch · game test pending.
+
+User confirms V1.19 mouse TPS is promising but physically stops turning at screen border. V1.20 acquires raw relative mouse movement when the game has not registered it, **preserving any native RawInput registration and all native input messages**, with no cursor warp, no controller emulation, and no extra mouse fire mode. The existing V1.19 unified Camera Forward LMB/controller aiming is kept. Current ThirdPerson=1 and ShowTPSMousePointer=1 defaults and all user INIs are unchanged.
+
+Also adds **read-only cutscene** camera rejection/suspend/resume reason logs and **read-only Wrath gain/spend correlation** with native local-player damage and held fire. Synergy native positive gain multiplier unchanged; Ultimate/Wrath charge multiplication is not yet verified. This does not skip or change cutscenes. [V1.20 technical notebook and test plan](docs/V1_20_RELATIVE_MOUSE_CUTSCENE_GAUGES.md). All numbered old archives retained, updater inside ASI unchanged.
+
 ## V1.19 test: TPS mouse Camera Forward + user-requested defaults
 
 [**V1.19 cumulative Windows x64 TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.19_TPS_MOUSE_FORWARD_TEST.zip) · `debug` only, user game test pending.

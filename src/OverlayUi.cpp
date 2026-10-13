@@ -1105,7 +1105,7 @@ void Draw(Context& c) {
             ImGui::Spacing();
 
             const auto update = dg::update::GetStatus();
-            ImGui::Text("Running mod: V1.19 (ASI updater)");
+            ImGui::Text("Running mod: V1.20 (ASI updater)");
             const bool checked = update.hasLatest && update.checkedBeta == config.updaterBeta;
             if (checked) {
                 ImGui::Text("Latest %s build: %s",

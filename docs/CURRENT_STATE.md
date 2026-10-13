@@ -1,3 +1,8 @@
+# V1.20 relative mouse + cutscene/gauge read-only research
+
+V1.19 test user says TPS mouse very promising, but WM_MOUSEMOVE stops at screen edge. V1.20 attempts missing-only registration of raw relative HID mouse (preserve game registration and input, no SetCursorPos), retains WM_MOUSEMOVE fallback and one Camera Forward firing path. Added cutscene ENTER/EXIT categorization and read-only Wrath increases near native damage/fire; game cinematic native behavior unchanged; Synergy working native positive gain multiplier unchanged. Requires Windows CI and in-game edge test; defaults ThirdPerson=1 and ShowTPSMousePointer=1 unchanged. Previous V1.19 ZIP preserved. [V1.20 full note](V1_20_RELATIVE_MOUSE_CUTSCENE_GAUGES.md). Next V1.21.
+
+---
 # V1.19 TPS mouse Camera Forward + user defaults (2026-10-13)
 
 Starting from V1.18 (V1.15 canonical runtime), user asks ThirdPerson=1, ShowTPSMousePointer=1 ASI and shipped INI, TPS-only pointer setting shown only when TPS active, no extra mouse controls/toggles, mouse LMB shooting follows same Camera Forward aim as pad. WndProc mouse delta path added using RAW mouse + WM_MOUSEMOVE fallback, merged with existing camera orbit in Present, mouse-fire native look joins camera-forward pad branch (not another mode), no cursor warp/old rejected hooks. Skip Warnings entry restored visually but disabled/unavailable, warning startup remains unmodified. User V1.18 log: 413 mousemove, 10 raw messages, 0 native gain hooks, Wrath only 20->18. DXGI diff from V1.15 passive only; cross reticle source not proven, test pointer ON with both skip toggles ON. Two defaults only changed per explicit request. CI + game testing pending. [Note](V1_19_TPS_MOUSE_FORWARD.md).
