@@ -7,7 +7,6 @@ namespace dg::runtime {
 struct Snapshot {
     bool toggleHudEnabled = true;
     bool hideReticle = false;
-    bool showTpsMousePointer = true;
     bool fovEnabled = false;
     bool movementSpeedEnabled = true;
     bool actionRecoveryEnabled = true;
@@ -69,7 +68,6 @@ struct Snapshot {
 struct State {
     std::atomic_bool toggleHudEnabled{true};
     std::atomic_bool hideReticle{false};
-    std::atomic_bool showTpsMousePointer{false}; // only published when TPS enabled
     std::atomic_bool fovEnabled{false};
     std::atomic_bool movementSpeedEnabled{true};
     std::atomic_bool actionRecoveryEnabled{true};

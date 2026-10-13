@@ -38,7 +38,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.20-relative-tps-mouse-cutscene-gauges-test";
+constexpr const char* kBuild = "1.21-camera-reticle-menu-only-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -2333,6 +2333,24 @@ bool InstallActionRecoveryV08B() {
     return true;
 }
 
+// V1.21 unified menu-only cursor policy during TPS.
+// No user option, cursor icon replacement, mouse warping or input injection.
+bool HideNativeCursorDuringTPSGameplay() {
+    const auto& rt=dg::runtime::Get();
+    const HWND hwnd=reinterpret_cast<HWND>(
+        g_gameWindowTrace.load(std::memory_order_relaxed));
+    if(!hwnd || GetForegroundWindow()!=hwnd ||
+       g_overlayVisible.load(std::memory_order_relaxed) ||
+       rt.tpsAbilityWheelHeld.load(std::memory_order_relaxed) ||
+       rt.tpsCutsceneSuspended.load(std::memory_order_relaxed) ||
+       rt.tpsTemporarilySuspended.load(std::memory_order_relaxed) ||
+       !rt.thirdPersonEnabled.load(std::memory_order_relaxed) ||
+       !rt.tpsViewGameplay.load(std::memory_order_relaxed))
+        return false;
+    const ULONGLONG last=rt.tpsGameplayViewTick.load(std::memory_order_relaxed);
+    const ULONGLONG now=GetTickCount64();
+    return last && now>=last && now-last<250ull;
+}
 bool HookUiIsCursorVisible(void* uiManager) {
     const bool nativeVisible =
         g_originalUiIsCursorVisible
@@ -2340,17 +2358,12 @@ bool HookUiIsCursorVisible(void* uiManager) {
             : false;
 
     const auto& runtime = dg::runtime::Get();
-    const ULONGLONG tick=runtime.tpsGameplayViewTick.load();
-    const ULONGLONG now=GetTickCount64();
-    const bool tpsLockedReticle =
-        runtime.thirdPersonEnabled.load() &&
-        !runtime.showTpsMousePointer.load(std::memory_order_relaxed) &&
-        runtime.tpsViewGameplay.load() &&
-        tick&&now>=tick&&now-tick<250ull;
-    const bool hiddenByMod =
+    const bool menus= g_overlayVisible.load(std::memory_order_relaxed) ||
+        runtime.tpsAbilityWheelHeld.load(std::memory_order_relaxed);
+    const bool hiddenByMod=!menus && (
         g_hudHidden.load(std::memory_order_relaxed) ||
         runtime.hideReticle.load(std::memory_order_relaxed) ||
-        tpsLockedReticle;
+        HideNativeCursorDuringTPSGameplay());
     const int nativeState = nativeVisible ? 1 : 0;
     const int lastNative = g_lastNativeCursorVisible.exchange(nativeState);
     if (lastNative != nativeState)
@@ -2445,22 +2458,18 @@ bool InstallCursorVisibilityHook() {
 }
 
 
-// Hide Reticle is not Toggle HUD: the malformed cross can be an OS cursor.
-// Keep this Win32 fallback gated to our actual foreground game window and
-// disabled while the ImGui overlay is open. No mouse input is synthesized.
+// The native UI and OS cursor follow the same automatic TPS policy.
+// Foreground gameplay only; never blank the mod menu or equipment wheels.
 bool ShouldBlankGameCursor() {
     const HWND hwnd = reinterpret_cast<HWND>(
         g_gameWindowTrace.load(std::memory_order_relaxed));
     const auto& runtime = dg::runtime::Get();
-    const ULONGLONG tick=runtime.tpsGameplayViewTick.load();
-    const ULONGLONG now=GetTickCount64();
-    const bool hideWindows = runtime.hideReticle.load() ||
-        (runtime.thirdPersonEnabled.load() &&
-         !runtime.showTpsMousePointer.load(std::memory_order_relaxed) &&
-         !runtime.tpsTemporarilySuspended.load() && runtime.tpsViewGameplay.load() &&
-         tick&&now>=tick&&now-tick<250ull);
-    return hwnd && GetForegroundWindow() == hwnd &&
-        !g_overlayVisible.load(std::memory_order_relaxed) && hideWindows;
+    const bool hideWindows=runtime.hideReticle.load(std::memory_order_relaxed) ||
+        HideNativeCursorDuringTPSGameplay();
+    return hwnd && GetForegroundWindow()==hwnd &&
+        !g_overlayVisible.load(std::memory_order_relaxed) &&
+        !runtime.tpsAbilityWheelHeld.load(std::memory_order_relaxed) &&
+        hideWindows;
 }
 
 HCURSOR WINAPI HookSetCursor(HCURSOR requested) {
@@ -2523,7 +2532,7 @@ void RefreshReticleCursorState() {
     if (blank) {
         if (g_originalSetCursor) g_originalSetCursor(nullptr);
         else SetCursor(nullptr);
-        Log("Reticle V1.14: OS cursor hidden by Hide Reticle or default TPS policy");
+        Log("Reticle V1.21: cursor hidden (General Hide Reticle / automatic TPS gameplay)");
     } else {
         const HWND hwnd = reinterpret_cast<HWND>(
             g_gameWindowTrace.load(std::memory_order_relaxed));
@@ -4702,9 +4711,9 @@ DWORD WINAPI MainThread(LPVOID) {
     g_config.SetPath(g_iniPath);
     g_config.SetLogger(&FeatureLog);
     g_config.Load();
-    Log("V1.19 CONFIG loaded %ls: TPS=%d ShowTPSMousePointer=%d FOV=%.1f dist=%.3f pitch=%.2f height=%.1f foot=%.1f stickMode=%d mountedAim=%d normalHeight=%.1f HideReticle=%d SkipWarningRuntime=%d",
+    Log("V1.21 CONFIG loaded %ls: TPS=%d menuOnlyReticle=1 FOV=%.1f dist=%.3f pitch=%.2f height=%.1f foot=%.1f stickMode=%d mountedAim=%d normalHeight=%.1f HideReticle=%d SkipWarningRuntime=%d",
         g_iniPath.c_str(),g_config.thirdPersonEnabled?1:0,
-        g_config.showTpsMousePointer?1:0,g_config.thirdPersonFovDegrees,
+        g_config.thirdPersonFovDegrees,
         g_config.thirdPersonDistanceMultiplier,g_config.thirdPersonPitchDegrees,
         g_config.thirdPersonHeightOffset,g_config.tpsFootAnchorOffset,
         g_config.tpsCameraStickMode,g_config.tpsMountedAimMode,g_config.cameraHeightOffset,

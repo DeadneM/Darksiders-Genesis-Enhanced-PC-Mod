@@ -193,7 +193,6 @@ public:
     bool horseSprintDurationEnabled = true;
     bool fovEnabled = false;
     bool hideReticle = false;
-    bool showTpsMousePointer = true; // used ONLY when thirdPersonEnabled; default ON
     bool hotstreakChargeEnabled = true;
     // V1.02 research controls. Fail-closed until three native charge owners are verified.
     bool wrathChargeEnabled = true;

@@ -1,3 +1,7 @@
+## V1.21 single reticle control + automatic menu-only TPS policy
+
+Remove conflicting controls after user's V1.20 session (global Hide Reticle ON/OFF + TPS pointer OFF/ON); preserve manual F4 Hide Reticle in Camera > General instead of Gameplay/HUD. Code-managed TPS pointer suppression only during active game view, not overlay or radial menu. Deprecated ShowTPSMousePointer removed from Store and runtime and new INI; explicit save deletes stale key. No unrelated default changes, camera/mouse code unchanged. See [V1.21 details](V1_21_RETICLE_MENU_ONLY.md).
+
 ## V1.20 raw relative mouse and cutscene/gauge study (2026-10-13)
 
 V1.19 TPS mouse stops at physical screen edge because WM_MOUSEMOVE coordinates stop; V1.20 conditionally registers mouse RawInput on existing game HWND if no game mouse registration, preserving legacy/RawInput native dispatch and LMB Camera Forward, no cursor warp. Logs true raw mouse vs HID and movement at edge. Existing native camera cutscene heuristic unchanged; bounded ENTER/EXIT and rejection metadata for later review. Wrath candidate increments, decreases and recent native local-damage correlation are read-only; no new gain hooks or data mutations. Synergy user-validated, current defaults and in-game updater retained. [V1.20 test](V1_20_RELATIVE_MOUSE_CUTSCENE_GAUGES.md).

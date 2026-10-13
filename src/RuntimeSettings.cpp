@@ -13,7 +13,6 @@ State& Get() {
 void Publish(const Snapshot& s) {
     g_state.toggleHudEnabled.store(s.toggleHudEnabled, std::memory_order_relaxed);
     g_state.hideReticle.store(s.hideReticle, std::memory_order_relaxed);
-    g_state.showTpsMousePointer.store(s.showTpsMousePointer, std::memory_order_relaxed);
     g_state.fovEnabled.store(s.fovEnabled, std::memory_order_relaxed);
     g_state.movementSpeedEnabled.store(s.movementSpeedEnabled, std::memory_order_relaxed);
     g_state.actionRecoveryEnabled.store(s.actionRecoveryEnabled, std::memory_order_relaxed);

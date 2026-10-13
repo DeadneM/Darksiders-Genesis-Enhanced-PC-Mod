@@ -17,8 +17,8 @@ namespace dg::update {
 namespace {
 namespace fs=std::filesystem;
 constexpr char kRepo[]="DeadneM/Darksiders-Genesis-Enhanced-PC-Mod";
-constexpr char kBuiltArchive[]="DarksidersGenesis_V1.20_RELATIVE_MOUSE_CUTSCENE_GAUGES_TEST.zip";
-constexpr int kMajor=1,kMinor=20;
+constexpr char kBuiltArchive[]="DarksidersGenesis_V1.21_RETICLE_MENU_ONLY_TEST.zip";
+constexpr int kMajor=1,kMinor=21;
 constexpr int kResourceId=101;
 constexpr size_t kMaxResponse=4*1024*1024;
 struct Package {

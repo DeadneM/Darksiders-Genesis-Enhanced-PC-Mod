@@ -175,29 +175,6 @@ void Draw(Context& c) {
             ImGui::TextDisabled("%s | F1",t.hudHookReady?"Hook ready":"Unavailable");
             ImGui::TextDisabled("Hides normal on-screen HUD. The blue 3D aim line/arc are separate.");
 
-            if (ImGui::Checkbox("Hide Reticle (independent of HUD)", &config.hideReticle)) {
-                config.Save();
-                *c.lastAction = config.hideReticle
-                    ? "Hide Reticle ON (close overlay to apply)"
-                    : "Hide Reticle OFF (close overlay to restore)";
-                if (c.log) c.log("Overlay -> Hide Reticle %s", config.hideReticle ? "ON" : "OFF");
-            }
-            ImGui::SameLine(310.0f);
-            ImGui::TextDisabled("%s", t.reticleCursorHookReady
-                ? "Cursor hide hook ready" : "Cursor hide hook unavailable");
-            ImGui::TextWrapped(
-                "Hides the aiming pointer in gameplay without hiding the HUD. "
-                "The pointer stays visible here for menu interaction."
-            );
-            if (ImGui::Button("Apply Hide Reticle and Return to Game")) {
-                config.Save();
-                c.overlayVisible->store(false);
-                *c.lastAction = config.hideReticle
-                    ? "Hide Reticle ON (returned to gameplay)"
-                    : "Hide Reticle OFF (returned to gameplay)";
-                if (c.log) c.log("Reticle V0.42: Hide Reticle apply=%d overlay closed",
-                    config.hideReticle ? 1 : 0);
-            }
             ImGui::Text("Blue aiming line and semicircle");
             constexpr const char* kAimModes[]={
                 "Hide Everywhere", "Default Only", "TPS Only"
@@ -591,6 +568,35 @@ void Draw(Context& c) {
                 camera.viewReady && camera.armReady ? "Ready" : "Unavailable",
                 camera.viewCalls);
 
+            if(ImGui::CollapsingHeader("General camera and reticle",ImGuiTreeNodeFlags_DefaultOpen)){
+                ImGui::Indent(12.0f);
+                DrawSectionTitle("General | Reticle");
+                if(ImGui::Checkbox("Hide Reticle (independent of HUD)",&config.hideReticle)){
+                    config.Save();
+                    *c.lastAction=config.hideReticle
+                        ? "Hide Reticle ON (close menu to apply)"
+                        : "Hide Reticle OFF (close menu to restore)";
+                    if(c.log)c.log("Overlay -> Hide Reticle %s",
+                        config.hideReticle?"ON":"OFF");
+                }
+                ImGui::SameLine(310.0f);
+                ImGui::TextDisabled("%s | F4",
+                    t.reticleCursorHookReady?"Cursor hide hook ready":"Cursor hide hook unavailable");
+                ImGui::TextWrapped(
+                    "Global reticle setting for normal gameplay. During TPS, "
+                    "the reticle is hidden in gameplay and visible in menus automatically.");
+                if(ImGui::Button("Apply Hide Reticle and Return to Game")){
+                    config.Save();
+                    c.overlayVisible->store(false);
+                    *c.lastAction=config.hideReticle
+                        ? "Hide Reticle ON (returned to gameplay)"
+                        : "Hide Reticle OFF (returned to gameplay)";
+                    if(c.log)c.log("Reticle V1.21: Hide Reticle apply=%d overlay closed",
+                        config.hideReticle?1:0);
+                }
+                ImGui::Unindent(12.0f);
+            }
+
             if(ImGui::CollapsingHeader("Third Person camera",ImGuiTreeNodeFlags_DefaultOpen)){
             ImGui::Indent(12.0f);
             DrawSectionTitle("Third Person camera");
@@ -606,18 +612,12 @@ void Draw(Context& c) {
             ImGui::Spacing();
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
-                DrawSectionTitle("TPS mouse and pointer");
-                if (ImGui::Checkbox("Show Mouse Pointer in TPS", &config.showTpsMousePointer)) {
-                    config.Save();
-                    *c.lastAction=config.showTpsMousePointer
-                        ? "TPS mouse pointer visible (TPS only)"
-                        : "TPS mouse pointer hidden (TPS only)";
-                    if(c.log)c.log("TPS V1.19 pointer preference %d; TPS active=1",
-                        config.showTpsMousePointer?1:0);
-                }
-                ImGui::TextDisabled("Visible only when Third Person is ON. Default: ON.");
-                ImGui::TextWrapped("Mouse rotates TPS camera automatically; firing uses Camera Forward. "
-                    "No second mouse firing mode or activation checkbox.");
+                DrawSectionTitle("TPS mouse and reticle");
+                ImGui::TextDisabled("Show Reticle in Menus Only While TPS: Automatic");
+                ImGui::TextWrapped(
+                    "The pointer is hidden in live TPS gameplay and allowed in "
+                    "the mod menu and equipment wheels. No duplicate reticle option.");
+                ImGui::TextDisabled("Mouse camera and Camera Forward firing stay automatic.");
                 ImGui::Spacing();
                 DrawSectionTitle("TPS camera attachment");
                 ImGui::TextDisabled("TPS follows the live local player permanently.");
@@ -1105,7 +1105,7 @@ void Draw(Context& c) {
             ImGui::Spacing();
 
             const auto update = dg::update::GetStatus();
-            ImGui::Text("Running mod: V1.20 (ASI updater)");
+            ImGui::Text("Running mod: V1.21 (ASI updater)");
             const bool checked = update.hasLatest && update.checkedBeta == config.updaterBeta;
             if (checked) {
                 ImGui::Text("Latest %s build: %s",

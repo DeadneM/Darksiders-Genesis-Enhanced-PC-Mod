@@ -1,3 +1,8 @@
+# V1.21 unified reticle menu-only in TPS and global Camera Hide Reticle (2026-10-13)
+
+V1.20 log: toggling Gameplay Hide Reticle and separate inverse Show Mouse Pointer in TPS disrupted behavior; native OS suppression toggles evident. RawInput relative success 12237 messages/2541 at borders. V1.21 moves Hide Reticle manual control + Apply from Gameplay to Camera > General, removes redundant ShowTPSMousePointer UI/INI/runtime variable, and hardcodes TPS gameplay cursor suppression with menu/wheel exceptions. Does not alter user-requested ThirdPerson=1 or other defaults. V1.20 mouse/cutscenes/gauges/dxgi preserved. CI/gameplay pending; [note](V1_21_RETICLE_MENU_ONLY.md). Next V1.22.
+
+---
 # V1.20 relative mouse + cutscene/gauge read-only research
 
 V1.19 test user says TPS mouse very promising, but WM_MOUSEMOVE stops at screen edge. V1.20 attempts missing-only registration of raw relative HID mouse (preserve game registration and input, no SetCursorPos), retains WM_MOUSEMOVE fallback and one Camera Forward firing path. Added cutscene ENTER/EXIT categorization and read-only Wrath increases near native damage/fire; game cinematic native behavior unchanged; Synergy working native positive gain multiplier unchanged. Requires Windows CI and in-game edge test; defaults ThirdPerson=1 and ShowTPSMousePointer=1 unchanged. Previous V1.19 ZIP preserved. [V1.20 full note](V1_20_RELATIVE_MOUSE_CUTSCENE_GAUGES.md). Next V1.21.

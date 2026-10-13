@@ -340,7 +340,6 @@ void Store::ResetDefaults(bool persist) {
     horseSprintDurationEnabled = true;
     fovEnabled = false;
     hideReticle = false;
-    showTpsMousePointer = true;
     hotstreakChargeEnabled = true;
     wrathChargeEnabled = true;
     ultimateChargeEnabled = true;
@@ -579,8 +578,6 @@ bool Store::Load() {
         ReadBool(L"Features", L"FOV", false, path_);
     hideReticle =
         ReadBool(L"Features", L"HideReticle", false, path_);
-    showTpsMousePointer =
-        ReadBool(L"Features", L"ShowTPSMousePointer", true, path_);
     hotstreakChargeEnabled =
         ReadBool(L"Features", L"HotstreakCharge", true, path_);
     // Research presets only; no native resource writes until ownership is proven.
@@ -786,9 +783,6 @@ void Store::PublishRuntime() const {
     dg::runtime::Snapshot runtime{};
     runtime.toggleHudEnabled = toggleHudEnabled;
     runtime.hideReticle = hideReticle;
-    // Never publish/load the TPS pointer feature into runtime when TPS is OFF.
-    // Keep the saved preference intact to reactivate on a later TPS toggle.
-    runtime.showTpsMousePointer = thirdPersonEnabled && showTpsMousePointer;
     runtime.fovEnabled = fovEnabled;
     runtime.movementSpeedEnabled = movementSpeedEnabled;
     runtime.actionRecoveryEnabled = actionRecoveryEnabled;
@@ -991,7 +985,9 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"HorseSprintDuration", horseSprintDurationEnabled, path_);
     WriteBool(L"Features", L"FOV", fovEnabled, path_);
     WriteBool(L"Features", L"HideReticle", hideReticle, path_);
-    WriteBool(L"Features", L"ShowTPSMousePointer", showTpsMousePointer, path_);
+    // Obsolete TPS pointer toggle: now internal, menu-only policy.
+    // Remove deprecated key only when user saves settings.
+    WritePrivateProfileStringW(L"Features",L"ShowTPSMousePointer",nullptr,path_.c_str());
     // Remove retired V0.40/V0.41 experiment keys on next save.
     // No automatic focus changes or cursor-source overrides remain.
     WritePrivateProfileStringW(L"Features", L"CrossCursorTestMode", nullptr, path_.c_str());

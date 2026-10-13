@@ -1,3 +1,9 @@
+## V1.21 - Unified Camera Reticle menu-only TPS policy (test)
+
+[**V1.21 cumulative Windows x64 TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.21_RETICLE_MENU_ONLY_TEST.zip) · debug branch, user runtime test pending.
+
+After V1.20 RawInput mouse was user-reported working until toggling two conflicting cursor visibility options, **Hide Reticle** has been moved from Gameplay to **Camera > General**, keeping its single F4 hotkey and default OFF. The former **Show Mouse Pointer in TPS** option is removed, replaced with automatic **Show Reticle in Menus Only While TPS** code: hide cursor in live TPS gameplay; allow native cursor in mod menu/equipment wheels and inactive/non-TPS views. Deprecated ShowTPSMousePointer key is ignored and cleared upon explicit INI save. No other default changes; TPS still defaults ON. V1.20 relative mouse, Camera Forward firing, cutscene/gauge diagnostics, native Skip Logos and updater retained. See [technical note and tests](docs/V1_21_RETICLE_MENU_ONLY.md).
+
 ## V1.20 Experimental - Infinite TPS mouse via relative Raw Input; native cutscene/gauge audit
 
 [**V1.20 cumulative Windows x64 TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.20_RELATIVE_MOUSE_CUTSCENE_GAUGES_TEST.zip) · debug branch · game test pending.
