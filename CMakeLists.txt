@@ -65,6 +65,10 @@ if(NOT EXISTS "${DG_CSC}")
   message(FATAL_ERROR "Embedded updater requires the Windows .NET Framework x64 C# compiler")
 endif()
 set(DG_HELPER_EXE "${CMAKE_CURRENT_BINARY_DIR}/DarksidersGenesisUpdaterCLI.exe")
+# Native paths avoid C# compiler treating forward slashes as argument switches.
+file(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/updater/Program.cs" DG_CSHARP_PROGRAM)
+file(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/updater/UpdaterForm.cs" DG_CSHARP_FORM)
+file(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/updater/UpdateEngine.cs" DG_CSHARP_ENGINE)
 add_custom_command(
   OUTPUT "${DG_HELPER_EXE}"
   COMMAND "${DG_CSC}" /nologo /target:winexe /platform:x64 /optimize+
@@ -72,9 +76,9 @@ add_custom_command(
     /r:System.dll /r:System.Core.dll /r:System.Drawing.dll
     /r:System.Windows.Forms.dll /r:System.IO.Compression.dll
     /r:System.IO.Compression.FileSystem.dll /r:System.Web.Extensions.dll
-    "${CMAKE_CURRENT_SOURCE_DIR}/updater/Program.cs"
-    "${CMAKE_CURRENT_SOURCE_DIR}/updater/UpdaterForm.cs"
-    "${CMAKE_CURRENT_SOURCE_DIR}/updater/UpdateEngine.cs"
+    "${DG_CSHARP_PROGRAM}"
+    "${DG_CSHARP_FORM}"
+    "${DG_CSHARP_ENGINE}"
   DEPENDS updater/Program.cs updater/UpdaterForm.cs updater/UpdateEngine.cs
   COMMENT "Building post-exit updater to embed in the ASI"
   VERBATIM
