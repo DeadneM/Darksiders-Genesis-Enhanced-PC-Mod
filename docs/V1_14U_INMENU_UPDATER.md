@@ -23,3 +23,8 @@ Source line: V1.14 TPS-pointer option (OFF) and About-only factory reset unchang
 ## CI verification
 
 Windows x64 GitHub Actions [run 38430137501](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38430137501) completed successfully including C# embedded helper compiler, RC resource, C++ compilation and exactly four ZIP-root file validation. Published V1.14U ZIP: `downloads/DarksidersGenesis_V1.14_Z_ASI_UPDATER_TEST.zip`, 745505 bytes. No user gameplay confirmation yet. Rebuilding after README changes may update ZIP hash/size but keeps the numbered original V1.14 untouched.
+
+
+## User validation on 2026-10-13
+
+**Accepted by user: "updater valider".** V1.15 log confirms the updated ASI build loaded normally. Core in-menu updater is now a user-validated feature; keep it in all cumulative future builds. This feedback does not explicitly test restore previous, switching channels, or installer failure recovery, so retain the safety/regression checklist for those. No new version/build necessary to document the acceptance.
