@@ -1,5 +1,14 @@
 # CURRENT_STATE | Darksiders Genesis Enhanced PC Mod
 
+## 2026-10-13 V1.10 native LB+Y, observed startup phase timeline
+
+User explicitly accepts retiring modded charged LB+Y camera-forward correction. V1.09 user test shows charged ability trajectory appears based on movement/character facing rather than TPS camera. V1.09 LOOK PHASE normal R1/R2 pre-edit native angle 114.7 matches TPS camera 114.7 gap 0; LB+Y pre-edit native look 0,0 while camera yaw -77.7. Thus V1.10 restores game-original LB+Y, no synthetic game-facing right-stick, no Y rebinding, no charged-only GetPlayerLookInput/Rotation override and no LB+Y treated as ordinary fire. LB native wheel active even with Y held; R3 USE, RT/RB synthetic stick UP and other working features preserved. Retired TPSChargedFirePadMask key ignored by code (existing INIs unchanged) and option hidden from overlay. Passive pad chord diagnostic remains.
+
+Skip Warning remains disabled. Timeline instrumented *read-only* with shared DXGI proxy epoch, observed per-stage timestamps/threads from early DLL attach, ASI LoadLibrary, ASI init, EXE validation, intro boot CVar captured and applied, native StartupScreens 3-record array after preparation and active flags, logo descriptor copy and substitution, mod-ready and first D3D11 Present. The stage "2 active native warning definition records" does **not** prove two actual rendered warnings. The native startup loop is preserved to avoid the old cross-reticle regression. Current known movie descriptors THQ_LogoBasic and AS_LogoBasic and native Skip Intro CVar 1->0. User requests explanation of events between logos and intro; a cold-launch V1.10 per-session log is needed to verify actual times and compare visuals. See docs/V1_10_STARTUP_TIMELINE_NATIVE_LBY.md.
+
+V1.09 gauge research: candidate Wrath location read 3128 times with rises=14, falls=9, native AddWrath=0, AddChaos=0; Synergy 128 boosts. Future: confirm resource ownership/gain paths, safe warning display-only suppression, TPS mouse last. Branch debug only; main unchanged. CI builds four root files and preserves numbered archives.
+
+
 ## 2026-10-13 V1.09 multi-diagnostic follow-up
 
 User test with V1.08: native LB+Y behavior appears correct only when Wrath empty; actual charged ability after resource available fires off-camera. Thus synthetic XInput right stick UP for RT/RB differs from LB+Y (native LOOK vector only, XInput stick neutral to protect wheel). Last user V1.08 log: charged chord 1333, native look override 6108, native rotation override 0, RT/RB forward XInput 373 (foot only), Synergy setter 179 with 57 boosts, AddWrath 0, AddChaos 0. Hypothesis: charged ability captures direction elsewhere/earlier, not proven. User requests multiple simultaneous investigations per build; Wrath, Ultimate/Chaos, Skip Warnings, defer mouse TPS.
