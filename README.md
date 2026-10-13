@@ -6,6 +6,20 @@ DXGI proxy and ASI plugin.
 The project is deliberately fail-open for normal runtime failures and
 **fail-closed for unsupported game executables**.
 
+## V1.11 experimental | More readable overlay, grouped features, less log noise
+
+[**V1.11 Windows x64 cumulative TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.11_OVERLAY_GROUPS_DEBUG_LITE_TEST.zip) · branch `debug` · four root files · previous builds archived · `main` unchanged.
+
+The in-game overlay now uses collapsible **HUD, movement, combat/resources, horse, and system** families, with separate TPS/original camera groups. Hotstreak, **Wrath**, **Ultimate/Chaos**, and **Synergy** recharge controls share exactly the same checkbox, x0..100 multiplier, manual field, default button and spacing. Wrath/Ultimate are explicitly marked experimental, Synergy validated. Keybinds for TPS, horse and original-camera inputs use readable **Action | Current key | Change | Clear | Default** tables. F1-F12 remain on the Hotkeys tab. Short help/status text remains while bulky advanced debug panels have been removed.
+
+The log now preserves actionable warnings, startup timeline and rare resource changes while limiting repetitive combat, reticle, gauge and input tracing. No gameplay aim/R3/horse/synergy changes, no TPS mouse work. No new attempt to skip the native warning loop.
+
+**Boot order visually confirmed by user:** two logos, black-background **save data** warning, black-background **controller** warning, intro cinematic. The native startup definition array includes 3 entries with active flags 1/1/0, consistent with the two visible warnings. Which native callback *draws* these screens is not identified yet. Existing Skip Logos substitutes names; existing Skip Intro sets native `g.PlayIntroCinematicOnBoot=0`; **Skip Warnings remains OFF** until safe presentation-only suppression is found.
+
+**Wrath research:** a candidate live field at player+0xEA0 -> component+0x3A0 has observed positive and negative changes; native `AddWrath` and `AddChaos` hooks still receive **zero** runtime callbacks. Do not confuse an installed hook with a working charge multiplier. Synergy additive gains are validated.
+
+[**V1.11 technical notes and testing**](docs/V1_11_OVERLAY_USABILITY_LOG_CLEANUP.md) · [Current project state](docs/CURRENT_STATE.md).
+
 ## Current project state: V1.10 native charged ability, startup phase timeline
 
 [**V1.10 Windows x64 cumulative TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.10_NATIVE_LBY_STARTUP_TIMELINE_TEST.zip) · source branch `debug` only; `main` frozen; older ZIPs preserved. Windows CI verifies four files at ZIP root.
