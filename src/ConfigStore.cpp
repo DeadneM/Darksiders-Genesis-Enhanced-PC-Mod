@@ -381,6 +381,64 @@ void Store::ResetDefaults(bool persist) {
     }
 }
 
+bool Store::ResetIniFileToDefaults() {
+    if (path_.empty()) {
+        Log("INI factory reset refused: missing path");
+        return false;
+    }
+    const DWORD attributes = GetFileAttributesW(path_.c_str());
+    const bool hadIni = attributes != INVALID_FILE_ATTRIBUTES;
+    std::wstring backupPath;
+    if (hadIni) {
+        if ((attributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
+            Log("INI factory reset refused: path is a directory");
+            return false;
+        }
+        SYSTEMTIME now{};
+        GetLocalTime(&now);
+        wchar_t stamp[80]{};
+        swprintf_s(stamp, L".backup-%04u%02u%02u-%02u%02u%02u-%03u",
+            static_cast<unsigned>(now.wYear), static_cast<unsigned>(now.wMonth),
+            static_cast<unsigned>(now.wDay), static_cast<unsigned>(now.wHour),
+            static_cast<unsigned>(now.wMinute), static_cast<unsigned>(now.wSecond),
+            static_cast<unsigned>(now.wMilliseconds));
+        const std::wstring stem = path_ + stamp;
+        backupPath = stem + L".bak";
+        for (int n = 1; n < 100 &&
+             GetFileAttributesW(backupPath.c_str()) != INVALID_FILE_ATTRIBUTES; ++n)
+            backupPath = stem + L"-" + std::to_wstring(n) + L".bak";
+        if (GetFileAttributesW(backupPath.c_str()) != INVALID_FILE_ATTRIBUTES ||
+            !MoveFileW(path_.c_str(), backupPath.c_str())) {
+            Log("INI factory reset refused: cannot preserve old INI");
+            return false;
+        }
+    }
+
+    ResetDefaults(false);
+    const bool saved = SaveNow();
+    const bool verified = saved &&
+        GetFileAttributesW(path_.c_str()) != INVALID_FILE_ATTRIBUTES &&
+        GetPrivateProfileIntW(L"Meta", L"ConfigRevision", -1, path_.c_str()) == kConfigRevision &&
+        GetPrivateProfileIntW(L"Features", L"SynergyCharge", -1, path_.c_str()) == 1;
+    if (!verified) {
+        if (hadIni) {
+            DeleteFileW(path_.c_str());
+            if (MoveFileW(backupPath.c_str(), path_.c_str())) {
+                Load();
+                Log("INI factory reset failed: previous INI restored");
+            } else {
+                Log("INI factory reset failed: previous INI retained in dated backup");
+            }
+        } else {
+            Log("INI factory reset failed: default file could not be written");
+        }
+        return false;
+    }
+    Log(hadIni ? "INI factory reset: defaults saved, dated original backup preserved beside INI"
+               : "INI factory reset: new default INI created");
+    return true;
+}
+
 void Store::ResetVanillaCameraValues() {
     fovDegrees=90.0f;
     cameraZoomPercent=0.0f;

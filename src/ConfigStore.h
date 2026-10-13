@@ -235,6 +235,8 @@ public:
     void SetLogger(LogFn logger);
 
     void ResetDefaults(bool persist);
+    // Preserve previous INI in timestamped backup, then generate new clean defaults.
+    bool ResetIniFileToDefaults();
     void ResetVanillaCameraValues();
     void ResetTpsCameraValues();
     bool Load();

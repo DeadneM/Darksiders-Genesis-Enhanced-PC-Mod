@@ -563,6 +563,14 @@ void Draw(Context& c) {
             ImGui::TextDisabled("Warning startup is preserved for reticle and UI safety.");
 
             ImGui::Spacing();
+            DrawSectionTitle("Configuration");
+            ImGui::TextWrapped("Restore all mod settings and key bindings to factory defaults.");
+            if (ImGui::Button("Reset INI to Factory Defaults")) {
+                ImGui::OpenPopup("Reset INI to Factory Defaults?");
+            }
+            ImGui::TextDisabled("Dated backup beside original INI; restart the game afterward.");
+            ImGui::TextDisabled("Game saves and Engine.ini remain untouched.");
+            ImGui::Spacing();
             ImGui::TextDisabled("Skip Logos / Intro take effect after a game restart.");
             ImGui::Unindent(12.0f);
             }
@@ -959,13 +967,9 @@ void Draw(Context& c) {
             ImGui::SameLine();
 
             if (ImGui::Button(
-                    "Reset Defaults",
+                    "Reset INI...",
                     ImVec2(140.0f, 0.0f))) {
-                config.ResetDefaults(true);
-                c.captureCameraKeyIndex->store(-1);
-                c.hudHidden->store(false);
-                *c.lastAction =
-                    "Defaults restored";
+                ImGui::OpenPopup("Reset INI to Factory Defaults?");
             }
 
             DrawSectionTitle("F1-F12");
@@ -1103,6 +1107,29 @@ void Draw(Context& c) {
         }
 
         ImGui::EndTabBar();
+    }
+
+    // Single confirmation shared by both reset entry points.
+    if (ImGui::BeginPopupModal("Reset INI to Factory Defaults?", nullptr,
+            ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::TextWrapped("Reset ALL mod options and keyboard/gamepad bindings?");
+        ImGui::TextWrapped("Your old INI will be preserved as a dated .bak beside the new file.");
+        ImGui::TextDisabled("No game saves or Engine.ini changes. Restart recommended.");
+        ImGui::Spacing();
+        if (ImGui::Button("Confirm Reset", ImVec2(150.0f, 0.0f))) {
+            if (config.ResetIniFileToDefaults()) {
+                c.captureCameraKeyIndex->store(-1);
+                c.captureMenuKey->store(false);
+                c.hudHidden->store(false);
+                *c.lastAction = "Factory INI restored; restart game to apply all settings";
+            } else {
+                *c.lastAction = "INI reset failed; existing configuration or backup preserved";
+            }
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(110.0f, 0.0f))) ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
     }
 
     ImGui::Separator();

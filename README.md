@@ -1,3 +1,9 @@
+## V1.13 experimental - Reset INI safely
+
+[**V1.13 cumulative Windows x64 TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.13_SAFE_INI_FACTORY_RESET_TEST.zip) · debug only.
+
+V1.12 menu usability validated. New **Gameplay > System and startup > Configuration > Reset INI to Factory Defaults** action, also available under Hotkeys. Confirmation required. Original mod INI is retained beside the file as a dated `.bak`; a fresh default INI removes obsolete keys and resets all mod settings/keybindings. Game saves and `Engine.ini` untouched. Restart recommended. Native gameplay functions unchanged. [Technical note and test checklist](docs/V1_13_SAFE_INI_FACTORY_RESET.md). Roll back using preserved V1.12 ZIP.
+
 # Darksiders Genesis Enhanced PC Mod
 
 Modern runtime enhancements for **Darksiders Genesis (PC)** using a local x64
