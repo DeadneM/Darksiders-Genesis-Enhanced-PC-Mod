@@ -205,14 +205,8 @@ void Draw(Context& c) {
                     &config.aimIndicatorHideMode,kAimModes,3))config.Save();
             ImGui::TextDisabled("TPS Only is the default. Default Only means normal/non-TPS camera.");
             const auto aimShaders = dg::aim_shader::GetTelemetry();
-            ImGui::TextWrapped("V0.91: two user-validated shader IDs suppress the blue aim line and arc. "
-                "The same GPU draw gating and selected visibility mode are preserved from V0.90.");
-            ImGui::TextDisabled("D3D11 shader hooks %s | matching shaders %u | suppressed draws %u",
-                aimShaders.hooksReady ? "READY" : "UNAVAILABLE",
-                aimShaders.matchedShaders, aimShaders.blockedDraws);
-            ImGui::TextDisabled("Ground FX calls: %u | Target UI events: %u | Position UI events: %u",
-                t.aimNativeFxCalls,t.aimUiTargetingEvents,t.aimUiPositionEvents);
-            ImGui::TextDisabled("Target UI probe is passive: no visual or gameplay event is blocked.");
+            ImGui::TextDisabled("Aim-effect filter: %s | suppressed draws: %u",
+                aimShaders.hooksReady ? "Ready" : "Unavailable",aimShaders.blockedDraws);
             ImGui::Unindent(12.0f);
             }
             if(ImGui::CollapsingHeader("Player movement",ImGuiTreeNodeFlags_DefaultOpen)){
@@ -246,13 +240,8 @@ void Draw(Context& c) {
                 t.recoveryHookReady
                     ? "Hook ready" : "Hook unavailable"
             );
-            ImGui::TextDisabled("Reduces the delay before moving after actions. Unlocks observed: %d",
+            ImGui::TextDisabled("Shortens recovery before movement. Applied: %d",
                 t.actionMoveForced);
-            if (ImGui::TreeNode("More recovery details")) {
-                ImGui::TextDisabled("Movement checks: %d | player checks: %d | native blocks: %d",
-                    t.actionMoveQueries,t.actionMoveLocalQueries,t.actionMoveNativeBlocked);
-                ImGui::TreePop();
-            }
 
             if (config.actionRecoveryEnabled) {
                 ImGui::Indent();
@@ -278,30 +267,7 @@ void Draw(Context& c) {
                     config.Save();
                 }
 
-                if (ImGui::TreeNode("Recovery diagnostics##V053")) {
-                ImGui::TextDisabled(
-                    "MOVE forced only in AWAITING_FINISH.");
-                ImGui::TextDisabled(
-                    "Queries %d | Local %d | Blocked %d | Forced %d",
-                    t.actionMoveQueries,
-                    t.actionMoveLocalQueries,
-                    t.actionMoveNativeBlocked,
-                    t.actionMoveForced
-                );
 
-                if (t.lastActionMoveState >= 0 &&
-                    c.abilityStateName) {
-                    ImGui::TextDisabled(
-                        "Last ability: %s (%d) | elapsed %.3f s",
-                        c.abilityStateName(
-                            static_cast<unsigned char>(
-                                t.lastActionMoveState)),
-                        t.lastActionMoveState,
-                        t.lastActionMoveElapsed
-                    );
-                }
-                ImGui::TreePop();
-                }
                 ImGui::Unindent();
             }
 
@@ -394,21 +360,6 @@ void Draw(Context& c) {
                 charge.wrathObserved,charge.chaosObserved,charge.synergyBoostCalls);
             ImGui::TextDisabled("Observed in-game: pistol %d | melee-like %d | Hotstreak %d",
                 t.pistolDamageBoostCalls,t.meleeDamageBoostCalls,t.hotstreakBoostCalls);
-            if (ImGui::TreeNode("Advanced combat diagnostics")) {
-                ImGui::TextDisabled(
-                    "Pistol: %d events | final %.2f -> %.2f | juice %.2f",
-                    t.pistolDamageBoostCalls, t.lastNativePistolDamage,
-                    t.lastBoostedPistolDamage, t.lastPistolBaseJuice);
-                ImGui::TextDisabled(
-                    "Melee: %d events | final %.2f -> %.2f | scale %u",
-                    t.meleeDamageBoostCalls, t.lastNativeBaseDamage,
-                    t.lastBoostedBaseDamage, t.lastOutgoingScaleType);
-                ImGui::TextDisabled(
-                    "Hotstreak: %d boosts | %.2f -> %.2f",
-                    t.hotstreakBoostCalls, t.lastNativeJuiceGain,
-                    t.lastBoostedJuiceGain);
-                ImGui::TreePop();
-            }
 
             ImGui::Unindent(12.0f);
             }
@@ -465,16 +416,6 @@ void Draw(Context& c) {
             if(ImGui::SmallButton("Default##HorsePadB")){config.horsePadButtonB=512;config.Save();}
             if(config.horsePadButtonA==config.horsePadButtonB)
                 ImGui::TextDisabled("Choose two DIFFERENT buttons.");
-            if(ImGui::TreeNode("Horse Everywhere information / debug")){
-                ImGui::TextDisabled("Native spawn requests %u | while enabled %u",
-                    horseTelemetry.summonServerCalls,horseTelemetry.summonServerCallsWhileRequested);
-                ImGui::TextDisabled("Region permission %u/%u",
-                    horseTelemetry.regionOverrides,horseTelemetry.regionQueries);
-                ImGui::TextDisabled("Desummon prevented %u/%u",
-                    horseTelemetry.desummonOverrides,horseTelemetry.desummonQueries);
-                ImGui::TextDisabled("Separate mission-script desummons may still apply.");
-                ImGui::TreePop();
-            }
 
             DrawTunableFeature(
                 config,
@@ -524,43 +465,9 @@ void Draw(Context& c) {
                 horseTelemetry.staminaReady
             );
 
-            ImGui::TextDisabled("Horse seen: %s | native activity: %u | horses detected: %u",
-                horseTelemetry.validated?"YES":"NOT YET",
-                horseTelemetry.uniqueCandidatesLogged,horseTelemetry.candidateMatches);
-            if (ImGui::TreeNode("Advanced horse diagnostics")) {
-            ImGui::Indent();
-            ImGui::TextDisabled(
-                "Native horse state: %s | calls %u | discovered %u",
-                horseTelemetry.validated
-                    ? "VALIDATED"
-                    : "waiting",
-                horseTelemetry.uniqueCandidatesLogged,
-                horseTelemetry.candidateMatches
-            );
-            ImGui::TextDisabled(
-                "MaxWalkSpeed %.1f -> %.1f | MaxAcceleration %.1f -> %.1f",
-                horseTelemetry.nativeMaxWalkSpeed,
-                horseTelemetry.appliedMaxWalkSpeed,
-                horseTelemetry.nativeMaxAcceleration,
-                horseTelemetry.appliedMaxAcceleration
-            );
-            ImGui::TextDisabled(
-                "GetMaxSpeed %.1f -> %.1f | sprinting %s",
-                horseTelemetry.nativeGetMaxSpeed,
-                horseTelemetry.appliedGetMaxSpeed,
-                horseTelemetry.sprinting ? "YES" : "NO"
-            );
-            ImGui::TextDisabled(
-                "Sprint drain %.3f -> %.3f | player %p | horse %p | movement %p",
-                horseTelemetry.nativeSprintDrain,
-                horseTelemetry.appliedSprintDrain,
-                horseTelemetry.playerOwner,
-                horseTelemetry.horseOwner,
-                horseTelemetry.horseMovement
-            );
-            ImGui::Unindent();
-            ImGui::TreePop();
-            }
+            ImGui::TextDisabled("Horse state: %s | detection events: %u",
+                horseTelemetry.validated?"Ready":"Waiting for mount",
+                horseTelemetry.uniqueCandidatesLogged);
 
             ImGui::Unindent(12.0f);
             }
@@ -651,9 +558,8 @@ void Draw(Context& c) {
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Native g.PlayIntroCinematicOnBoot; independent of Skip Logos");
 
-            ImGui::TextDisabled("Skip Warning: TEMPORARILY DISABLED for reticle/crosshair safety.");
-            ImGui::TextDisabled("Native warning patch is never installed in V1.04.");
-            ImGui::TextDisabled("Skip Logos and Skip Intro are unaffected.");
+            ImGui::TextDisabled("Skip Warnings: research only (save + controller warning screens).");
+            ImGui::TextDisabled("Warning startup is preserved for reticle and UI safety.");
 
             ImGui::Spacing();
             ImGui::TextDisabled("Skip Logos / Intro take effect after a game restart.");
@@ -666,31 +572,12 @@ void Draw(Context& c) {
         if (ImGui::BeginTabItem("Camera")) {
             ImGui::Spacing();
             DrawSectionTitle("Camera controls");
-            ImGui::TextWrapped(
-                "These controls use native camera hooks. They may not affect all "
-                "gameplay, mounted, or cinematic cameras. Defaults preserve vanilla."
-            );
+            ImGui::TextWrapped("TPS and the original game camera have independent saved settings.");
 
             const dg::camera_trace::Telemetry camera = dg::camera_trace::GetTelemetry();
-            ImGui::TextDisabled("Camera: %s | native camera frames observed: %u",
-                camera.viewReady && camera.armReady ? "Hook ready" : "Hook unavailable",
+            ImGui::TextDisabled("Camera hooks: %s | frames observed: %u",
+                camera.viewReady && camera.armReady ? "Ready" : "Unavailable",
                 camera.viewCalls);
-            if (ImGui::TreeNode("Advanced camera diagnostics")) {
-            ImGui::Text("GetCameraView: %s | calls: %u",
-                camera.viewReady ? "READY" : "UNAVAILABLE", camera.viewCalls);
-            ImGui::Text("SpringArm: %s | calls: %u",
-                camera.armReady ? "READY" : "UNAVAILABLE", camera.armCalls);
-            ImGui::TextDisabled("FOV observed %.1f -> %.1f | pitch %.1f -> %.1f",
-                camera.nativeFov,camera.appliedFov,
-                camera.nativePitch,camera.appliedPitch);
-            ImGui::TextDisabled("Yaw observed %.1f -> %.1f",
-                camera.nativeYaw, camera.appliedYaw);
-            ImGui::TextDisabled("Arm length observed %.1f -> %.1f",
-                camera.nativeArmLength,camera.appliedArmLength);
-            ImGui::TextDisabled("Camera height Z %.1f -> %.1f",
-                camera.nativeHeight,camera.appliedHeight);
-                ImGui::TreePop();
-            }
 
             if(ImGui::CollapsingHeader("Third Person camera",ImGuiTreeNodeFlags_DefaultOpen)){
             ImGui::Indent(12.0f);
@@ -710,12 +597,7 @@ void Draw(Context& c) {
                 ImGui::TextDisabled("TPS follows the live local player permanently.");
                 ImGui::TextDisabled("TPS pivot follows player feet on the character axis.");
                 ImGui::TextDisabled("Foot Origin appears with other TPS camera values below.");
-                if(ImGui::TreeNode("Advanced attachment counters")){
-                    ImGui::TextDisabled("Attached: %u | zone overrides: %u | deferred: %u",
-                        camera.tpsAttachedFrames,camera.nativeZoneOverridesIgnored,
-                        camera.tpsAttachDeferred);
-                    ImGui::TreePop();
-                }
+
                 DrawSectionTitle("TPS-only FOV");
                 if(ImGui::Checkbox("Enable TPS FOV override",&config.thirdPersonFovEnabled))
                     config.Save();
@@ -815,15 +697,7 @@ void Draw(Context& c) {
                 ImGui::TextWrapped(config.tpsMountedAimMode==0
                     ? "Camera Forward: native aim receives a forward stick while firing; camera stays free (foot mode EXPERIMENTAL)."
                     : "Vanilla Aim: camera free at idle, paused during firing while game native aiming takes over.");
-                if(ImGui::TreeNode("TPS aim technical information")){
-                    ImGui::TextDisabled("Forward native look samples %u | yaw difference >35 deg %u",
-                        t.forwardLookSamples,t.forwardYawGapCount);
-                    ImGui::TextDisabled("Native yaw %.1f / TPS yaw %.1f",
-                        t.forwardNativeYaw,t.forwardCameraYaw);
-                    ImGui::TextDisabled("Native idle look blocked %u | mounted fire camera frames %u",
-                        t.mountedIdleLookBlocks,camera.mountedFireHorseSelected);
-                    ImGui::TreePop();
-                }
+
                 ImGui::Separator();
                 ImGui::Text("Keyboard and controller shortcuts");
                 ImGui::TextDisabled("OFF disables only that shortcut; existing native game buttons are unchanged.");
