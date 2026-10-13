@@ -6,21 +6,15 @@ DXGI proxy and ASI plugin.
 The project is deliberately fail-open for normal runtime failures and
 **fail-closed for unsupported game executables**.
 
-## Current project state: V1.07 LB+Y charged shot and charge multiplier ranges
+## Current project state: V1.08 LB+Y charged-shot wheel correction
 
-Branch **debug** remains the only development target; **main** remains unchanged. V1.06 is preserved.
+**debug only; main unchanged.** [V1.08 cumulative Windows x64 TEST ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.08_CHARGED_LOOK_NO_WHEEL_TEST.zip) (four root files, after Windows CI success).
 
-**V1.07 cumulative ZIP**: https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.07_CHARGED_LBY_GAUGE100_TEST.zip (valid after successful GitHub Actions build and Git push).
+**V1.07 rejected for TPS LB+Y:** user reports it now opens weapons wheel, instead of the native charged shot aiming correctly. Root issue: virtual right-stick UP while LB is held selects a radial wheel. V1.08 passes the game's LB + Y buttons unmodified; it neutralizes the game-facing right-stick axes to prevent wheel selection, while driving the game's **native look-input/rotation vector toward the TPS camera** during this specific charged chord, including mounted Vanilla Aim. Plain LB still opens/selects the wheel untouched, RT/RB still uses the previous synthetic UP right stick as before. Charged physical Y remains rebindable (TPSChargedFirePadMask), wheel LB rebind independently shared (TPSWheelPadMask). R3 remains selected-gear USE. Actual charged projectile direction still requires user testing; no projectile raycast has been patched.
 
-- Hotstreak Charge now accepts 0 to 100x, same original default 2x. Its actual native AddJuice hook clamp is also 100x.
-- Wrath, Ultimate Form / Chaos and Synergy charge accept 0 to 100x (default 2x), consistently through slider, manual input, loading and native callbacks. 0x blocks positive earned gains at the hooked path, 1x is normal, 100x is the upper limit. **Wrath and Ultimate are not yet verified**: no AddWrath/AddChaos events in last gameplay log.
-- **Synergy remains the validated V1.06 additive native implementation.** User confirmed visual behavior. Latest log: 443 SetCurrentSynergy and AddSynergyNative callbacks, 94 amplified gains, 443/443 matched native local owner; example 1.5 -> 37.5 at user-selected 25x. SetCurrentSynergy remains pass-through.
-- **TPS charged attack LB + Y**: V1.06 immediately returned when LB opened the native equipment wheel, bypassing the existing game-facing CAMERA_FORWARD aim. V1.07 recognizes holding BOTH wheel + charged-shot inputs and permits game-facing right-stick forward injection (RX=0, RY=32767) while retaining original LB/Y game buttons. Plain LB wheel retains its original V0.98 look/selection behavior.
-- The charged-shot button is independently configurable, default gamepad Y/Triangle (TPSChargedFirePadMask=32768). The existing wheel bind TPSWheelPadMask (default LB=256) is shared and unchanged. For non-Y charged bindings, the physical button is remapped to native Y only during this chord. This changes the game's gamepad input only, NOT keyboard shortcuts, not the unfiltered TPS camera orbit. Keep wheel and shot button different.
-- Separate diagnostic entries: TPS V1.07 CHARGED LB+Y, CHARGED FORWARD and charged totals. Camera-forward can be used on foot and horse; aiming/raycast behavior requires visual test.
-- All validated R3 USE equipment/release, horse, Synergy, mouse pass-through, shader suppression, old wheel, camera values, skip intro/logos stay untouched. Skip Warning original startup lifecycle remains unchanged.
+**Unchanged from V1.07:** Hotstreak and Wrath/Ultimate/Synergy 0..100× sliders, default 2×; validated Synergy native additive hook (443 local events, 94 boosted on latest user log), all horse/camera/HUD/R3 and native skip intro/logo features. Wrath/Ultimate gain callbacks remain unobserved; Skip Warning remains safely pass-through.
 
-See [V1.07 development notes](docs/V1_07_GAUGES100_TPS_LB_Y_CHARGED_AIM.md) and [CURRENT_STATE](docs/CURRENT_STATE.md).
+[Technical audit V1.08](docs/V1_08_LBY_CHARGED_NATIVE_LOOK_WHEEL_SAFE.md) · [Current State](docs/CURRENT_STATE.md).
 
 ## Downloads (stable links)
 

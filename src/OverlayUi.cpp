@@ -927,9 +927,9 @@ void Draw(Context& c) {
                 ImGui::TextWrapped("This held button lets the game's native right stick select wheel items, "
                     "instead of being intercepted by TPS camera control.");
                 BindGamepadMask("Charged shot (default Y)##TPS",config.tpsChargedFirePadMask,32768);
-                ImGui::TextWrapped("TPS: wheel button (LB) + charged shot uses native CAMERA FORWARD. "
-                    "The wheel button stays native. A custom charged button remaps to native Y "
-                    "only during the chord.");
+                ImGui::TextWrapped("TPS: LB+Y keeps the game's charged shot without navigating the weapons wheel. "
+                    "A camera-forward native LOOK VECTOR replaces the conflicting virtual right-stick-UP "
+                    "while LB is held. Charged button remains rebindable.");
                 if(config.tpsChargedFirePadMask!=0 && config.tpsChargedFirePadMask==config.tpsWheelPadMask)
                     ImGui::TextDisabled("Binding conflict: wheel and charged button must differ.");
                 BindTPSKeyboard("Equipment wheel detector (G)",dg::config::TpsKeyboardAction::WheelG);

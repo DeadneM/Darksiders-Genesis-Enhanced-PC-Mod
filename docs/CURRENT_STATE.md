@@ -1,5 +1,10 @@
 # CURRENT_STATE | Darksiders Genesis Enhanced PC Mod
 
+## 2026-10-13 V1.08 wheel-safe native charged-shot aim
+
+User rejects V1.07: LB+Y now opens weapons wheel. Root cause V1.07 injected RX=0 RY=32767 in game-facing XInput while LB held, which navigates/selects weapons radial. V1.08 preserves native LB+Y button bits; makes game-facing right stick 0,0 for charged chord while steering game's native GetPlayerLookInput/Rotation toward TPS camera heading, even in mounted Vanilla Aim. Ordinary LB wheel returns original XInput and still selects using stick. RT/RB forward-stick simulation unchanged. Preserve config for independent charged Y and wheel LB, R3 selected gear USE, horse combo, additive Synergy, all four ×0-×100 charge ranges and inactive Skip Warning. Validation required in actual gameplay: charged shot trajectory, wheel not opening, and successful rebind. Diagnostic logs V1.08 CHARGED NATIVE LOOK / ROTATION / XINPUT / charged totals.
+
+
 ## 2026-10-13: V1.07 TPS LB+Y charged attack aim bridge + 0-100 charge factors
 
 Latest V1.06 user log: Synergy native owner verified for all 443 calls, 94 boosted positive gains, native additive gain path and ABI validated, user confirms it works. User changed factor to 25x (log 1.5 -> 37.5); preserve user settings. Wrath/Ultimate AddWrath/AddChaos 0 native calls, still not demonstrated. Hotstreak max raised to 100x; Wrath, Ultimate, Synergy min0 max100, all default 2x and ON. Zero factor suppresses positive earned points at hooked functions.

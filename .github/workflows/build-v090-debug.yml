@@ -1,4 +1,4 @@
-name: V1.07 TPS charged LB+Y and 0-100 charge TEST
+name: V1.08 LB+Y native charged forward look and no-wheel regression TEST
 on:
   push:
     branches: [debug]
@@ -40,7 +40,7 @@ jobs:
           Copy-Item config/DarksidersGenesisMod.ini dist/
           Copy-Item README.md dist/
           New-Item -ItemType Directory -Path downloads -Force | Out-Null
-          $zipPath = 'downloads/DarksidersGenesis_V1.07_CHARGED_LBY_GAUGE100_TEST.zip'
+          $zipPath = 'downloads/DarksidersGenesis_V1.08_CHARGED_LOOK_NO_WHEEL_TEST.zip'
           if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
           Compress-Archive -Path 'dist/*' -DestinationPath $zipPath -CompressionLevel Optimal
           Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -56,8 +56,8 @@ jobs:
       - name: Upload verified Windows x64 ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_V1.07_CHARGED_LBY_GAUGE100_TEST
-          path: downloads/DarksidersGenesis_V1.07_CHARGED_LBY_GAUGE100_TEST.zip
+          name: DarksidersGenesis_V1.08_CHARGED_LOOK_NO_WHEEL_TEST
+          path: downloads/DarksidersGenesis_V1.08_CHARGED_LOOK_NO_WHEEL_TEST.zip
           if-no-files-found: error
       - name: Preserve numbered experimental ZIP in debug
         shell: pwsh
@@ -74,7 +74,7 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw 'Fetch failed' }
             git reset --mixed origin/debug
             if ($LASTEXITCODE -ne 0) { throw 'Reset to latest origin/debug failed' }
-            git add -- downloads/DarksidersGenesis_V1.07_CHARGED_LBY_GAUGE100_TEST.zip
+            git add -- downloads/DarksidersGenesis_V1.08_CHARGED_LOOK_NO_WHEEL_TEST.zip
             if ($LASTEXITCODE -ne 0) { throw 'Archive add failed' }
             git diff --cached --quiet
             if ($LASTEXITCODE -eq 0) {
@@ -89,4 +89,4 @@ jobs:
             Start-Sleep -Seconds 2
           }
           if (-not $published) { throw 'Permanent experimental ZIP push failed' }
-          Write-Host 'V1.07 ZIP https://raw.githubusercontent.com/'"$env:GITHUB_REPOSITORY"'/debug/downloads/DarksidersGenesis_V1.07_CHARGED_LBY_GAUGE100_TEST.zip'
+          Write-Host 'V1.08 ZIP https://raw.githubusercontent.com/'"$env:GITHUB_REPOSITORY"'/debug/downloads/DarksidersGenesis_V1.08_CHARGED_LOOK_NO_WHEEL_TEST.zip'
