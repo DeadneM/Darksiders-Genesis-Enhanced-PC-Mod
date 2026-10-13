@@ -1,6 +1,7 @@
 #include "OverlayUi.h"
 #include "GaugeChargeFeature.h"
 #include "ShaderAimFeature.h"
+#include "UpdateFeature.h"
 
 #include "HorseFeature.h"
 #include "CameraTraceFeature.h"
@@ -1069,6 +1070,97 @@ void Draw(Context& c) {
             ImGui::TextDisabled(
                 "Defaults: F1 HUD | F2 Speed | F3 Recovery | F4 Reticle | F5 Third Person | F6-F12 None"
             );
+            ImGui::EndTabItem();
+        }
+
+
+        if (ImGui::BeginTabItem("Updates")) {
+            ImGui::Spacing();
+            DrawSectionTitle("In-game mod updates");
+            ImGui::TextWrapped("Check GitHub and queue a verified update. "
+                "Loaded DLLs are replaced only AFTER the game closes.");
+
+            if (ImGui::Checkbox("Beta updates (debug)", &config.updaterBeta)) {
+                config.Save();
+                dg::update::Invalidate();
+                *c.lastAction = config.updaterBeta ?
+                    "Updates channel: debug (beta)" : "Updates channel: main (stable)";
+            }
+            ImGui::TextDisabled("OFF: main (stable)  |  ON: debug (experimental)");
+            ImGui::TextDisabled("Current channel: %s", config.updaterBeta ? "debug" : "main");
+            ImGui::Spacing();
+
+            const auto update = dg::update::GetStatus();
+            ImGui::Text("Running mod: V1.14 (ASI updater)");
+            const bool checked = update.hasLatest && update.checkedBeta == config.updaterBeta;
+            if (checked) {
+                ImGui::Text("Latest %s build: %s",
+                    config.updaterBeta ? "debug" : "main", update.latest.c_str());
+            } else {
+                ImGui::TextDisabled("Latest build: not checked");
+            }
+            ImGui::TextWrapped("Status: %s", update.message.c_str());
+            if (update.busy) ImGui::TextDisabled("Background operation in progress...");
+            ImGui::Spacing();
+
+            ImGui::BeginDisabled(update.busy);
+            if (ImGui::Button("Check for Updates", ImVec2(195.0f, 0.0f))) {
+                dg::update::Check(config.updaterBeta);
+            }
+            ImGui::EndDisabled();
+            ImGui::Spacing();
+
+            const bool canInstall = !update.busy && checked && !update.sameBuild;
+            ImGui::BeginDisabled(!canInstall);
+            if (ImGui::Button("Install on Game Exit", ImVec2(195.0f, 0.0f))) {
+                ImGui::OpenPopup("Confirm Mod Update");
+            }
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+            ImGui::BeginDisabled(update.busy);
+            if (ImGui::Button("Restore Previous", ImVec2(155.0f, 0.0f))) {
+                ImGui::OpenPopup("Confirm Mod Rollback");
+            }
+            ImGui::EndDisabled();
+            ImGui::Spacing();
+
+            ImGui::TextWrapped("Your custom DarksidersGenesisMod.ini will be kept, "
+                "and previous mod files backed up before replacement.");
+            ImGui::TextDisabled("Switching channels never silently installs or downgrades.");
+
+            if (ImGui::BeginPopupModal("Confirm Mod Update", nullptr,
+                    ImGuiWindowFlags_AlwaysAutoResize)) {
+                ImGui::TextWrapped("Install %s from %s on next game exit?",
+                    update.latest.c_str(), config.updaterBeta ? "debug / beta" : "main / stable");
+                if (!update.newer)
+                    ImGui::TextWrapped("WARNING: this version is not newer than V1.14. "
+                        "You may be downgrading the mod.");
+                ImGui::TextWrapped("The game files will change only AFTER Darksiders Genesis closes. "
+                    "Your existing INI is preserved.");
+                ImGui::Spacing();
+                if (ImGui::Button("Confirm Update", ImVec2(160.0f, 0.0f))) {
+                    dg::update::InstallAfterExit(config.updaterBeta);
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel##ModUpdate", ImVec2(110.0f, 0.0f)))
+                    ImGui::CloseCurrentPopup();
+                ImGui::EndPopup();
+            }
+            if (ImGui::BeginPopupModal("Confirm Mod Rollback", nullptr,
+                    ImGuiWindowFlags_AlwaysAutoResize)) {
+                ImGui::TextWrapped("Restore the latest backed-up mod binaries after game exit?");
+                ImGui::TextDisabled("The existing mod INI will not be replaced.");
+                ImGui::Spacing();
+                if (ImGui::Button("Confirm Restore", ImVec2(160.0f, 0.0f))) {
+                    dg::update::RestoreAfterExit();
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel##ModRollback", ImVec2(110.0f, 0.0f)))
+                    ImGui::CloseCurrentPopup();
+                ImGui::EndPopup();
+            }
             ImGui::EndTabItem();
         }
 

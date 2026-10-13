@@ -57,6 +57,33 @@ target_include_directories(imgui_static PUBLIC
 target_compile_definitions(imgui_static PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 target_link_libraries(imgui_static PUBLIC d3d11 dxgi user32 gdi32 imm32 dwmapi)
 
+
+# Windows x64 post-exit helper embedded as RT_RCDATA (no extra ZIP root file).
+enable_language(RC)
+set(DG_CSC "$ENV{WINDIR}/Microsoft.NET/Framework64/v4.0.30319/csc.exe")
+if(NOT EXISTS "${DG_CSC}")
+  message(FATAL_ERROR "Embedded updater requires the Windows .NET Framework x64 C# compiler")
+endif()
+set(DG_HELPER_EXE "${CMAKE_CURRENT_BINARY_DIR}/DarksidersGenesisUpdaterCLI.exe")
+add_custom_command(
+  OUTPUT "${DG_HELPER_EXE}"
+  COMMAND "${DG_CSC}" /nologo /target:winexe /platform:x64 /optimize+
+    "/out:${DG_HELPER_EXE}"
+    /r:System.dll /r:System.Core.dll /r:System.Drawing.dll
+    /r:System.Windows.Forms.dll /r:System.IO.Compression.dll
+    /r:System.IO.Compression.FileSystem.dll /r:System.Web.Extensions.dll
+    "${CMAKE_CURRENT_SOURCE_DIR}/updater/Program.cs"
+    "${CMAKE_CURRENT_SOURCE_DIR}/updater/UpdaterForm.cs"
+    "${CMAKE_CURRENT_SOURCE_DIR}/updater/UpdateEngine.cs"
+  DEPENDS updater/Program.cs updater/UpdaterForm.cs updater/UpdateEngine.cs
+  COMMENT "Building post-exit updater to embed in the ASI"
+  VERBATIM
+)
+add_custom_target(dg_embedded_updater DEPENDS "${DG_HELPER_EXE}")
+set(DG_UPDATER_RC "${CMAKE_CURRENT_BINARY_DIR}/DgUpdaterHelper.rc")
+file(WRITE "${DG_UPDATER_RC}" "101 RCDATA \"DarksidersGenesisUpdaterCLI.exe\"\n")
+set_source_files_properties("${DG_UPDATER_RC}" PROPERTIES OBJECT_DEPENDS "${DG_HELPER_EXE}")
+
 add_library(DarksidersGenesisMod SHARED
   src/CameraTraceFeature.cpp
   src/ConfigStore.cpp
@@ -69,7 +96,10 @@ add_library(DarksidersGenesisMod SHARED
   src/ShaderAimFeature.cpp
   src/SkipLogosFeature.cpp
   src/TargetValidator.cpp
+  src/UpdateFeature.cpp
+  "${DG_UPDATER_RC}"
 )
+add_dependencies(DarksidersGenesisMod dg_embedded_updater)
 target_compile_definitions(DarksidersGenesisMod PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
 target_include_directories(DarksidersGenesisMod PRIVATE ${minhook_SOURCE_DIR}/include)
 target_link_libraries(DarksidersGenesisMod PRIVATE
@@ -82,6 +112,7 @@ target_link_libraries(DarksidersGenesisMod PRIVATE
   imm32
   dwmapi
   bcrypt
+  winhttp
 )
 set_target_properties(DarksidersGenesisMod PROPERTIES
   PREFIX ""
