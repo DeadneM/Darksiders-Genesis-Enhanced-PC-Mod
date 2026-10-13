@@ -1,3 +1,9 @@
+## V1.22 2026-10-13 - retire reticle hiding, preserve relative TPS mouse
+
+User reports V1.21 cross cursor and broken mouse rotation after Hide Reticle. Native `SetCursor(NULL)` and `UAirshipUIManager::IsCursorVisible` detours existed even with manual HideReticle OFF due TPS-auto policy. **Both hook implementations and installations are now deleted**, along with cursor blank/restoration/probe, menu, config and F4 action (defaults F4=None). Native game cursor remains untouched by ASI except normal ImGui overlay pointer. Retire old INI keys on explicit save only. Gameplay independent options and all other defaults unmodified.
+
+V1.22 Windows x64 Actions run 38461117435 SUCCESS; 4-root ZIP on debug; V1.21 original archive SHA preserved. Cutscene native-view heuristic 3 enters / 2 exits / 376 invalid-actor samples, identity unproven. Wrath/Ultimate Add callbacks remain absent; Synergy V1.20 59/59 gain boosts confirmed. Skip Warnings prepared flags 1,1,0 but `drawVerified=0`, risky bypass remains disabled. [V1.22 full audit](V1_22_REMOVE_RETICLE_FEATURE.md).
+
 ## V1.21 single reticle control + automatic menu-only TPS policy
 
 Remove conflicting controls after user's V1.20 session (global Hide Reticle ON/OFF + TPS pointer OFF/ON); preserve manual F4 Hide Reticle in Camera > General instead of Gameplay/HUD. Code-managed TPS pointer suppression only during active game view, not overlay or radial menu. Deprecated ShowTPSMousePointer removed from Store and runtime and new INI; explicit save deletes stale key. No unrelated default changes, camera/mouse code unchanged. See [V1.21 details](V1_21_RETICLE_MENU_ONLY.md).
