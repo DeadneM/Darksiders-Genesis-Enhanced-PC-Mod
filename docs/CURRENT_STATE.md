@@ -250,3 +250,4 @@ SHA256: DBE658AC84009ADA84D6A42701AD96F3706A0A6CA5522D732D210E244756548B.
 main 2bc3122c1ae07b7333798462f85c1d9fd3a739f7 and archive 10e0f220b85022bc9269e0cb9390a811a3b1cf89 unchanged after build.
 README bundled with build describes pre-CI status; this verified delivery entry supersedes that pending-build status.
 No fresh runtime tests; Wrath/Ultimate multipliers and Skip Warnings remain unresolved as documented.
+V1.16 Windows CI verified: run 38443350904 SUCCESS. Permanent debug ZIP `DarksidersGenesis_V1.16_TPS_DEFAULTS_STARTUP_AUDIT_TEST.zip`, 749077 bytes, exactly four root entries. New source/member/fallback defaults verified both 1. Existing personal INI values still preserved. Next V1.17; no suffixes.
