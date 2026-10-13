@@ -15,3 +15,7 @@ This is cumulative V1.14U with embedded updater unchanged; new ZIP name Darkside
 2. About > Reset INI to Factory Defaults opens modal immediately. Cancel closes it, does not change INI, and shows CANCELLED. Confirm creates a dated backup, fresh defaults, and shows SUCCESS (or FAILED with log explanation); restart verifies defaults. There must be exactly one full-reset button; per-setting Default buttons unchanged.
 3. Verify Overlay > Last action and per-session Mod.log trace report click, confirmation, outcome. Check Alt-Tab, TPS pointer visibility, Hide Reticle priority, in-game Updates tab and four root archive files.
 4. Validate GitHub Actions x64 build and user gameplay. Keep main/archive untouched and prior V1.14 ZIPs available.
+
+## Verified compilation and published archive
+
+Windows GitHub Actions [run 38434291793](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38434291793) completed **SUCCESS**. Verified: Windows x64 Release compilation, exactly four ZIP root entries, artifact upload, and permanent debug publication. [V1.14U TPS RESET FEEDBACK TEST](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.14_ZZ_TPS_RESET_FEEDBACK_TEST.zip), 747066 bytes, Git blob SHA-1 `2c8998c237edc1f11aea0c23acde97f63bde2f94`. `main` and `archive` untouched. This confirms the binary build, not the in-game popup/INI reset behavior, which awaits user verification.

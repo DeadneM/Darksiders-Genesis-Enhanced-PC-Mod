@@ -1,6 +1,6 @@
 # Current test: V1.14U TPS cursor UI and About reset confirmation fix
 
-Fix based on uploaded 2026-10-13 V1.14U log: no factory-reset event logged; ImGui popup opened in About tab but modal attempted outside EndTabBar (ID scope mismatch). Moved popup into About; added visible success/error/cancel feedback + action log. Show Mouse Pointer in TPS moved to Camera > Third Person, OFF by default. Existing integrated updater remains. New cumulative debug ZIP DarksidersGenesis_V1.14_ZZ_TPS_RESET_FEEDBACK_TEST.zip; build/game test pending. See [note](V1_14U_RESET_MODAL_TPS_UI.md).
+Fix based on uploaded 2026-10-13 V1.14U log: no factory-reset event logged; ImGui popup opened in About tab but modal attempted outside EndTabBar (ID scope mismatch). Moved popup into About; added visible success/error/cancel feedback + action log. Show Mouse Pointer in TPS moved to Camera > Third Person, OFF by default. Existing integrated updater remains. New cumulative debug ZIP DarksidersGenesis_V1.14_ZZ_TPS_RESET_FEEDBACK_TEST.zip; Windows CI run 38434291793 success; 747066-byte cumulative ZIP published on debug. In-game popup/INI reset test still pending. See [note](V1_14U_RESET_MODAL_TPS_UI.md).
 
 ---
 # Current test: V1.14U integrated ASI updater (2026-10-13)
