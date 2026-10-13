@@ -30,3 +30,12 @@ Date: 2026-10-13. Branch: debug. Previous numbered V1.15 archive retained. No wr
 
 ## V1.16 scope / QA
 Only changes new defaults + user-facing text + versioning/docs. No native hook changes; skip-warning remains disabled. Verify CI Windows x64, exactly four root ZIP files `dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md`. Test fresh install/After reset defaults TPS=1/pointer=1 and with existing INI explicit zero both remain zero. Test logo/warnings/intro, reticle UI, ALT-TAB, native wheel, controller/mouse without regressions, updater main/debug choices and four-file install after game exits.
+
+## Additional early aggressive 0.18 series comparison
+
+The GitHub history also contains **earlier experiments not confined to V0.19**:
+- **V0.18G** (commit `4c9ddffb9`): direct `RET` patch (`0xC3`) at `RVA 0x160BC50`, the native `SetupLoadingScreenFromIni` routine. This is the broadest directly identified loader bypass and **a plausible candidate** for unintentionally suppressing warning presentation, but the repository source alone cannot establish which of the user's old test binaries hid both actual warning pages. Removing this whole setup routine is unsafe as a general warning fix.
+- **V0.18H** (commit `6e0967df4`): converts a conditional branch at `FEngineLoop CustomSplashScreen` around RVA `0x2535E0` from JZ `0x74` to JMP `0xEB`. Scope is the splash branch, not two individually identified warning messages.
+- **V0.18I** (commit `e0d251e9a`): jumps over an early startup-screen selector at `RVA 0x253546` choosing `EarlyStartupMovie` / `CustomSplashScreen`. Again this is a **pipeline/selector bypass**, not a verified per-warning draw skip.
+
+The user's observation that **some aggressive Skip Logos experiment also removed warnings** is plausible with the broad SetupLoadingScreenFromIni / early-selector changes, but the exact old build cannot be identified solely from these source diffs. The specifically documented V0.19C user test **did not** independently establish both warnings were skipped; its confirmed failure was the cursor lifecycle. Preserve this distinction when comparing. To fix the warnings safely, work after native initialization with an exact per-warning presentation predicate/identity and keep all setup/callbacks running.
