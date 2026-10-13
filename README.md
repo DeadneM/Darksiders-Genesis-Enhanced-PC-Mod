@@ -1,3 +1,12 @@
+## Standalone Windows Updater V1.0 | main / beta debug
+
+[**Download DarksidersGenesisUpdater V1.0 (Windows x64)**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesisUpdater_V1.0_Windows.zip)
+
+The updater is a **separate two-file ZIP**, not included in the mandatory four-root-file mod archives. Extract and run `DarksidersGenesisUpdater.exe`. Select the game executable directory once; the updater remembers it.
+**Beta unchecked = main** (currently up to V0.72); **Beta checked = debug** (currently V1.13). The program checks GitHub when launched and can automatically install newer builds when the game is closed. An already present manually installed mod is NOT automatically overwritten on the first run; use Install Latest once. Never automatically downgrade from a newer debug build to older main. A manual downgrade requires confirmation.
+Before installation the tool verifies the GitHub archive checksum, exact four ZIP entries, supported game EXE and x64 modules. Previous binaries go to dated backups under `%LOCALAPPDATA%` with Restore Previous button. An existing personal `DarksidersGenesisMod.ini` is **never overwritten**, and game saves/`Engine.ini` remain untouched. The updater must be open to check/download/install; it is not a background service or log-sync utility.
+[Updater technical design, test plan and caveats](docs/UPDATER_V1_0.md). Windows CI compiled and packaged the updater; **gameplay installation test remains pending**.
+
 ## V1.13 experimental - Reset INI safely
 
 [**V1.13 cumulative Windows x64 TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.13_SAFE_INI_FACTORY_RESET_TEST.zip) · debug only.

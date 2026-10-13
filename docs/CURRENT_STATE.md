@@ -1,3 +1,8 @@
+# Standalone Updater V1.0 verified CI (2026-10-13)
+
+Windows x64 program built and published on debug, without changes to main/archive or four-root-file mod packages. Checkbox Beta OFF=main (V0.72 currently), ON=debug (V1.13); one-time manual permission when unknown mod already installed, prevent automatic downgrade; preserve existing INI, backup binaries, rollback. Verified workflow run 38423882113; real gameplay installation test still pending. See [UPDATER_V1_0.md](UPDATER_V1_0.md).
+
+---
 # Current state - V1.13 safe factory INI reset (2026-10-13)
 
 V1.12 grouped overlay validated by user. V1.13 experiment adds confirmed Reset INI action with unique timestamped .bak of previous file and fresh defaults; no change to gameplay hooks. Docs: [V1.13](V1_13_SAFE_INI_FACTORY_RESET.md). CI Windows x64 success (run 38421589950); ZIP 641322 bytes published on debug; in-game reset behavior validation pending. Main/archive untouched.
