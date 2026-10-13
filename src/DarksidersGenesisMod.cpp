@@ -4577,6 +4577,11 @@ void ShutdownMod() {
     dg::horse::Shutdown();
     dg::aim_shader::Shutdown();
     dg::gauges::Shutdown();
+    const auto scene=dg::camera_trace::GetTelemetry();
+    Log("TPS V1.20 CINEMATICS (read-only) enters=%u exits=%u candidates=%u missingActorSamples=%u farCameraSamples=%u nativeCutsceneBehaviorUnchanged=1",
+        scene.cinematicEntered,scene.cinematicExited,
+        scene.cinematicCandidateBegins,scene.cinematicMissingActorSamples,
+        scene.cinematicFarViewSamples);
     RestoreCameraDof();
     Log("TPS V0.69 totals: mouseInputNative=PASSTHROUGH rightStickReadsFiltered=%u whileFiring=%u",
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
