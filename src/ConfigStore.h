@@ -148,6 +148,7 @@ public:
     bool overlayEnabled = true;
     int menuKey = 0x2D; // VK_INSERT
     int graphicsAdapter = 0;
+    bool updaterBeta = false; // OFF=main stable, ON=debug beta
 
     bool toggleHudEnabled = true;
     bool movementSpeedEnabled = true;

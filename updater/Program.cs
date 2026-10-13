@@ -7,13 +7,33 @@ namespace DarksidersGenesisUpdater {
     internal static class Program {
         [STAThread]
         private static int Main(string[] args) {
-            if (args.Length > 0 && string.Equals(args[0], "--install-on-exit", StringComparison.Ordinal)) {
+            if (args.Length > 0 && string.Equals(args[0], "--install-on-exit", StringComparison.Ordinal))
                 return RunQuietInstall(args);
-            }
+            if (args.Length > 0 && string.Equals(args[0], "--restore-on-exit", StringComparison.Ordinal))
+                return RunQuietRestore(args);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new UpdaterForm());
             return 0;
+        }
+
+        private static int RunQuietRestore(string[] args) {
+            if (args.Length != 2) return 2;
+            string folder=args[1];
+            string result=""; int code=1;
+            try {
+                if (!Directory.Exists(folder)) throw new DirectoryNotFoundException(folder);
+                while(UpdateEngine.Running()) Thread.Sleep(2000);
+                Thread.Sleep(1800);
+                result=UpdateEngine.Rollback(folder);
+                code=0;
+            } catch (Exception ex) { result="Rollback FAILED: "+ex.Message; }
+            try {
+                string state=UpdateEngine.StateFolder(folder);
+                Directory.CreateDirectory(state);
+                File.WriteAllText(Path.Combine(state,"last-result.txt"),result);
+            } catch {}
+            return code;
         }
 
         // Called by the in-game ASI updater tab. Never writes game files until

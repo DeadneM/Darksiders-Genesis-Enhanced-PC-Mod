@@ -294,6 +294,7 @@ void Store::ResetDefaults(bool persist) {
     overlayEnabled = true;
     menuKey = VK_INSERT;
     graphicsAdapter = 0;
+    updaterBeta = false;
 
     toggleHudEnabled = true;
     movementSpeedEnabled = true;
@@ -489,6 +490,7 @@ bool Store::Load() {
     );
     menuKey = ParseKeyToken(menuKeyText, VK_INSERT);
 
+    updaterBeta = ReadBool(L"Updater", L"Beta", false, path_);
     graphicsAdapter = GetPrivateProfileIntW(
         L"System",
         L"GraphicsAdapter",
@@ -871,6 +873,7 @@ bool Store::SaveNow() {
     );
 
     WriteBool(L"Overlay", L"Enabled", overlayEnabled, path_);
+    WriteBool(L"Updater", L"Beta", updaterBeta, path_);
     const std::wstring menuKeyToken = KeyTokenFromVK(menuKey);
     WritePrivateProfileStringW(
         L"Overlay",

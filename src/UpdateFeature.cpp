@@ -206,6 +206,7 @@ void DoCheck(bool beta){
             (p.minor<10?"0":"")+std::to_string(p.minor);
         g_status.newer=p.major>kMajor || (p.major==kMajor && p.minor>kMinor);
         const bool same=(p.major==kMajor && p.minor==kMinor && p.name==kBuiltArchive);
+        g_status.sameBuild=same;
         g_status.message=same ? "This ASI matches the newest "+std::string(beta?"beta":"stable")+" build." :
             g_status.newer ? "Newer build found. Choose Install after Exit." :
             "Selected version differs from this ASI. Downgrade requires confirmation.";
@@ -213,28 +214,40 @@ void DoCheck(bool beta){
         g_busy.store(false);
     }catch(const std::exception& e){Error(std::string("Update check failed: ")+e.what());}
 }
+void StartHelperCommand(const std::wstring& arguments){
+    const fs::path helper=ExtractHelper();
+    const std::wstring text=L"\""+helper.wstring()+L"\" "+arguments;
+    std::vector<wchar_t> cmd(text.begin(),text.end());
+    cmd.push_back(L'\0');
+    STARTUPINFOW si{}; si.cb=sizeof(si);
+    PROCESS_INFORMATION pi{};
+    if(!CreateProcessW(helper.c_str(),cmd.data(),nullptr,nullptr,FALSE,
+         CREATE_NO_WINDOW|DETACHED_PROCESS,nullptr,nullptr,&si,&pi))
+        throw std::runtime_error("Cannot launch post-exit helper");
+    CloseHandle(pi.hThread); CloseHandle(pi.hProcess);
+}
 void DoInstall(Package p){
     try{
-        const fs::path dir=GameDir();
-        const fs::path helper=ExtractHelper();
+        const fs::path folder=GameDir();
         const std::wstring channel=p.beta?L"debug":L"main";
-        const std::wstring args=L"\""+helper.wstring()+L"\" --install-on-exit \""+
-            dir.wstring()+L"\" "+channel+L" \""+Widen(p.name)+L"\" "+Widen(p.sha);
-        std::vector<wchar_t> command(args.begin(),args.end());
-        command.push_back(L'\0');
-        STARTUPINFOW startup{};
-        startup.cb=sizeof(startup);
-        PROCESS_INFORMATION process{};
-        if(!CreateProcessW(helper.c_str(),command.data(),nullptr,nullptr,FALSE,
-               CREATE_NO_WINDOW|DETACHED_PROCESS,nullptr,nullptr,&startup,&process))
-            throw std::runtime_error("Could not start post-exit helper");
-        CloseHandle(process.hThread);
-        CloseHandle(process.hProcess);
+        const std::wstring args=L"--install-on-exit \""+folder.wstring()+L"\" "+
+            channel+L" \""+Widen(p.name)+L"\" "+Widen(p.sha);
+        StartHelperCommand(args);
         std::lock_guard<std::mutex> guard(g_lock);
         g_status.busy=false;
-        g_status.message="Update queued. Exit the game to finish installation; INI preserved.";
+        g_status.message="Update queued. Close the game; personal INI preserved.";
         g_busy.store(false);
     }catch(const std::exception& e){Error(std::string("Install staging failed: ")+e.what());}
+}
+void DoRestore(){
+    try{
+        const fs::path folder=GameDir();
+        StartHelperCommand(L"--restore-on-exit \""+folder.wstring()+L"\"");
+        std::lock_guard<std::mutex> guard(g_lock);
+        g_status.busy=false;
+        g_status.message="Rollback queued. Close game to restore previous mod files.";
+        g_busy.store(false);
+    }catch(const std::exception& e){Error(std::string("Rollback staging failed: ")+e.what());}
 }
 } // anonymous namespace
 
@@ -264,7 +277,7 @@ void InstallAfterExit(bool beta){
     Package selected{};
     {
         std::lock_guard<std::mutex> guard(g_lock);
-        if(!g_status.hasLatest || g_status.checkedBeta!=beta){
+        if(!g_status.hasLatest || g_status.sameBuild || g_status.checkedBeta!=beta){
             g_busy.store(false);return;
         }
         selected=g_package;
@@ -272,6 +285,16 @@ void InstallAfterExit(bool beta){
         g_status.message="Preparing verified embedded post-exit updater...";
     }
     try{PinThisModule();std::thread([selected](){DoInstall(selected);}).detach();}
+    catch(const std::exception& e){Error(e.what());}
+}
+void RestoreAfterExit(){
+    if(g_busy.exchange(true))return;
+    {
+        std::lock_guard<std::mutex> guard(g_lock);
+        g_status.busy=true;
+        g_status.message="Preparing safe post-exit rollback...";
+    }
+    try{PinThisModule();std::thread([](){DoRestore();}).detach();}
     catch(const std::exception& e){Error(e.what());}
 }
 } // namespace dg::update

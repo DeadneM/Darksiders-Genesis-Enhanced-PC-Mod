@@ -7,6 +7,7 @@ struct Status {
     bool hasLatest = false;
     bool checkedBeta = false;
     bool newer = false;
+    bool sameBuild = false;
     int major = 0;
     int minor = 0;
     std::string latest;
@@ -15,5 +16,6 @@ struct Status {
 Status GetStatus();
 void Check(bool beta);
 void InstallAfterExit(bool beta);
+void RestoreAfterExit();
 void Invalidate();
 }
