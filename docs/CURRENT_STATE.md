@@ -1,5 +1,12 @@
 # CURRENT_STATE | Darksiders Genesis Enhanced PC Mod
 
+## 2026-10-13 V1.09 multi-diagnostic follow-up
+
+User test with V1.08: native LB+Y behavior appears correct only when Wrath empty; actual charged ability after resource available fires off-camera. Thus synthetic XInput right stick UP for RT/RB differs from LB+Y (native LOOK vector only, XInput stick neutral to protect wheel). Last user V1.08 log: charged chord 1333, native look override 6108, native rotation override 0, RT/RB forward XInput 373 (foot only), Synergy setter 179 with 57 boosts, AddWrath 0, AddChaos 0. Hypothesis: charged ability captures direction elsewhere/earlier, not proven. User requests multiple simultaneous investigations per build; Wrath, Ultimate/Chaos, Skip Warnings, defer mouse TPS.
+
+V1.09 adds only read-only forensic telemetry: exact native GetPlayerLookInput callsite RVA / input-onset timing and pre-edit world look comparison for normal vs charged, original pad edge samples and forward policy; guarded native Wrath resource candidate reads in validated local native callback; one-time exact-binary near CALL site enumeration for two untriggered gauge entry points and Synergy comparator; raw bounded fingerprint of StartupScreens record fields. **No new combat behavior changes**, no UI startup bypass, no Synergy changes, no TPS mouse edits, and no proof until user tests. Track in docs/V1_09_MULTIPATH_AUDIT.md. Preserve debug/zip; main unchanged.
+
+
 ## 2026-10-13 V1.08 wheel-safe native charged-shot aim
 
 User rejects V1.07: LB+Y now opens weapons wheel. Root cause V1.07 injected RX=0 RY=32767 in game-facing XInput while LB held, which navigates/selects weapons radial. V1.08 preserves native LB+Y button bits; makes game-facing right stick 0,0 for charged chord while steering game's native GetPlayerLookInput/Rotation toward TPS camera heading, even in mounted Vanilla Aim. Ordinary LB wheel returns original XInput and still selects using stick. RT/RB forward-stick simulation unchanged. Preserve config for independent charged Y and wheel LB, R3 selected gear USE, horse combo, additive Synergy, all four ×0-×100 charge ranges and inactive Skip Warning. Validation required in actual gameplay: charged shot trajectory, wheel not opening, and successful rebind. Diagnostic logs V1.08 CHARGED NATIVE LOOK / ROTATION / XINPUT / charged totals.

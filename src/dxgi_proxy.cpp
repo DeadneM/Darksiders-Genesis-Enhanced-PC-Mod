@@ -215,6 +215,21 @@ static void ProbeStartupDefinitions(){
         swprintf_s(line,L"StartupScreens V1.05: record[%d] byte[0x38]=%u byte[0x39]=%u (PASS-THROUGH)",i,
             unsigned(entry[0x38]),unsigned(entry[0x39]));
         LogLoader(line);
+        // Display-only warning removal requires identifying records first.
+        // V1.09 fingerprints the records' raw native fields without
+        // interpreting arbitrary UObject/FText pointers or changing data.
+        uint64_t field0=0,field8=0,field20=0,field28=0;
+        std::memcpy(&field0,entry,sizeof(field0));
+        std::memcpy(&field8,entry+8,sizeof(field8));
+        std::memcpy(&field20,entry+0x20,sizeof(field20));
+        std::memcpy(&field28,entry+0x28,sizeof(field28));
+        swprintf_s(line,L"StartupScreens V1.09 READONLY record[%d]: words0=%016llX/%016llX payload20=%016llX/%016llX active=%u; no UI stage skipped",
+            i,static_cast<unsigned long long>(field0),
+            static_cast<unsigned long long>(field8),
+            static_cast<unsigned long long>(field20),
+            static_cast<unsigned long long>(field28),
+            unsigned(entry[0x39]));
+        LogLoader(line);
     }
 }
 static const FStringView* __cdecl FilterStartupMovieNames(const FStringView* movies, int32_t count) {

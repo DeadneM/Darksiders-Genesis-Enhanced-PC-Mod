@@ -6,6 +6,22 @@ DXGI proxy and ASI plugin.
 The project is deliberately fail-open for normal runtime failures and
 **fail-closed for unsupported game executables**.
 
+## Current project state: V1.09 simultaneous diagnostics (LB+Y, Wrath, Chaos, Warnings)
+
+[**V1.09 cumulative TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.09_MULTI_PATH_NATIVE_AUDIT_TEST.zip) · branch `debug` only, `main` frozen, previous ZIPs preserved. Windows GitHub Actions builds four files at ZIP root.
+
+User V1.08 in-game: LB+Y with **empty Wrath** appears to face correctly; with enough Wrath to actually execute a charged ability the projectile fires randomly. Compare to RT/RB, which actually receive **game-facing right-stick UP** whereas LB+Y V1.08 leaves right-stick neutral to avoid opening radial wheel and instead modifies `GetPlayerLookInput`. User log V1.08: 1333 LB+Y chord observations, 6108 native charge look edits, **0 native look rotation calls**, 373 ordinary right-stick UP injections, 0 Wrath/Chaos Add* calls, 57 Synergy boosts. Actual charged projectile source remains unknown.
+
+**V1.09 = read-only multi-path audit, no speculative aiming fix:**
+- Logs original controller input mode edges for ordinary RT/RB versus LB+Y versus wheel, raw right stick, native flags and timestamps; logs *native GetPlayerLookInput direct callsite RVA*, native direction before hook, camera yaw gap and time since input for both shooting modes. The runtime still applies the established V1.08 input behavior, unchanged.
+- Samples an audited candidate native Wrath float (`validated local actor+0xEA0 -> component+0x3A0`) ONLY inside live player native look callback and with VirtualQuery checking, at most ~12/s. Tracks positive/negative jumps correlated to charged shot. This is a candidate: verify gameplay correlation before treating as confirmed resource.
+- One-time signature-preserving **static direct-call reference scan** in exact game executable for native `AddWrath`, `AddChaos` and known `AddSynergyNative`. These are potential callsites, **not evidence those functions execute**.
+- At original loader startup passively log bounded raw field words for all three existing StartupScreens records (active 1,1,0), to identify warning presentation later. **Skip Warnings remains disabled**: never bypass native UI initialization or risk cross-shaped cursor.
+
+**Awaited gameplay tests:** press LB+Y once with Wrath empty and once with Wrath available, shoot ordinary RT/RB for comparison, gain/spend Wrath/Ultimate, check warning screens unchanged. Send one V1.09 log; useful tags `TPS V1.09 PAD EDGE`, `TPS V1.09 LOOK PHASE`, `TPS V1.09 WRATH READ-ONLY`, `Gauge V1.09 STATIC`, `StartupScreens V1.09 READONLY` and `TPS V1.09 PHASE totals`. Mouse TPS intentionally deferred.
+
+[Technical design / test notes](docs/V1_09_MULTIPATH_AUDIT.md) · [Current state](docs/CURRENT_STATE.md).
+
 ## Current project state: V1.08 LB+Y charged-shot wheel correction
 
 **debug only; main unchanged.** [V1.08 cumulative Windows x64 TEST ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.08_CHARGED_LOOK_NO_WHEEL_TEST.zip) (four root files, after Windows CI success).

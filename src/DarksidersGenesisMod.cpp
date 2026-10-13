@@ -37,7 +37,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.08-charged-shot-native-look-wheel-safe-test";
+constexpr const char* kBuild = "1.09-charged-path-gauges-startup-audit-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -99,6 +99,16 @@ std::atomic_ullong g_tpsChargeChordTick{0};
 std::atomic_uint32_t g_tpsChargeForwardInjected{0};
 std::atomic_uint32_t g_tpsChargeLookVectorApplied{0},g_tpsChargeLookRotationApplied{0};
 std::atomic_uint32_t g_tpsChargeChordSamples{0};
+// V1.09 read-only phase audit: no new native behavior, just source ordering.
+std::atomic_int g_tpsDiagPadMode{0};
+std::atomic_uint32_t g_tpsDiagPadTransitions{0};
+std::atomic_ullong g_tpsDiagChargeStart{0},g_tpsDiagNormalStart{0};
+std::atomic_uint32_t g_tpsDiagChargedLook{0},g_tpsDiagNormalLook{0},g_tpsDiagOtherLook{0};
+std::atomic_ullong g_tpsDiagWrathTick{0};
+std::atomic_uint32_t g_tpsDiagWrathReads{0},g_tpsDiagWrathPositive{0},g_tpsDiagWrathNegative{0};
+std::atomic<float> g_tpsDiagWrathPrevious{0.0f};
+std::atomic<void*> g_tpsDiagWrathActor{nullptr};
+
 std::atomic_uint32_t g_tpsPlayerGeneration{0};
 std::atomic_uint32_t g_tpsNativeFacingOff{0},g_tpsNativeFacingRestored{0};
 std::atomic_uint32_t g_tpsStrafeSamples{0};
@@ -1539,6 +1549,55 @@ bool IsTPSLookViewFresh() {
     return rt.tpsViewGameplay.load(std::memory_order_acquire) &&
         view&&now>=view&&now-view<250ull;
 }
+// Candidate Wrath native location from exact-EXE AddWrath disassembly:
+ // character+0xEA0 -> resource component, component+0x3A0 -> float.
+ // This is an observation ONLY within the validated local player's live
+ // native look callback; no writes, cached UObject dereferences or hooks.
+bool TPSDiagReadable(const void* p,size_t bytes){
+    if(!p || !bytes)return false;
+    MEMORY_BASIC_INFORMATION mbi{};
+    if(!VirtualQuery(p,&mbi,sizeof(mbi))||mbi.State!=MEM_COMMIT||
+       (mbi.Protect&(PAGE_NOACCESS|PAGE_GUARD)))return false;
+    const DWORD prot=mbi.Protect&0xFF;
+    if(prot!=PAGE_READONLY&&prot!=PAGE_READWRITE&&
+       prot!=PAGE_WRITECOPY&&prot!=PAGE_EXECUTE_READ&&
+       prot!=PAGE_EXECUTE_READWRITE&&prot!=PAGE_EXECUTE_WRITECOPY)
+       return false;
+    const uintptr_t at=reinterpret_cast<uintptr_t>(p);
+    const uintptr_t start=reinterpret_cast<uintptr_t>(mbi.BaseAddress);
+    return at>=start&&bytes<=mbi.RegionSize&&
+        at-start<=mbi.RegionSize-bytes;
+}
+void TPSDiagWrathSnapshot(void* actor, ULONGLONG now){
+    const auto prior=g_tpsDiagWrathTick.load(std::memory_order_relaxed);
+    if(prior&&now>=prior&&now-prior<85)return;
+    if(!g_tpsDiagWrathTick.compare_exchange_strong(
+        const_cast<ULONGLONG&>(prior),now,std::memory_order_relaxed))
+        return;
+    // V1.09: guarded read of native Wrath candidate field. Never writes.
+    const auto* field=reinterpret_cast<const BYTE*>(actor)+0xEA0;
+    if(!TPSDiagReadable(field,sizeof(void*)))return;
+    void* component=nullptr;std::memcpy(&component,field,sizeof(component));
+    if(!component)return;
+    const auto* value=reinterpret_cast<const BYTE*>(component)+0x3A0;
+    if(!TPSDiagReadable(value,sizeof(float)))return;
+    float cur=0.0f;std::memcpy(&cur,value,sizeof(cur));
+    if(!std::isfinite(cur)||std::fabs(cur)>100000.0f)return;
+    const unsigned n=++g_tpsDiagWrathReads;
+    const auto oldActor=g_tpsDiagWrathActor.exchange(actor);
+    const float previous=g_tpsDiagWrathPrevious.exchange(cur);
+    const bool same=oldActor==actor;
+    const float delta=same?cur-previous:0.0f;
+    if(same&&delta>0.05f)++g_tpsDiagWrathPositive;
+    if(same&&delta< -0.05f)++g_tpsDiagWrathNegative;
+    const ULONGLONG charge=g_tpsDiagChargeStart.load(std::memory_order_acquire);
+    const ULONGLONG age=charge&&now>=charge?now-charge:0;
+    if(n<=6||(same&&std::fabs(delta)>0.05f&&(n<=28||n%200==0))){
+        Log("TPS V1.09 WRATH READ-ONLY candidate n=%u player=%p current=%.3f delta=%.3f chargeAgeMs=%llu chordHeld=%d",
+            n,actor,cur,delta,static_cast<unsigned long long>(age),
+            g_tpsChargeChordHeld.load()?1:0);
+    }
+}
 NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     auto original=g_originalGetPlayerLookInput;
     if(!original)return out;
@@ -1559,6 +1618,32 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
        !std::isfinite(result->pitch)||!std::isfinite(result->yaw)||
        !std::isfinite(result->roll))
         return result;
+    // Diagnostic BEFORE native-vector modification: sample the actual
+    // live-player look caller and resource state for ordinary and charged
+    // input. This is not a projectile hook and never alters any result.
+    const ULONGLONG diagNow=GetTickCount64();
+    const bool diagCharged=g_tpsChargeChordHeld.load(std::memory_order_acquire);
+    const bool diagNormal=IsPadFiringNow()&&!diagCharged;
+    const unsigned diagCount=diagCharged?++g_tpsDiagChargedLook:
+        diagNormal?++g_tpsDiagNormalLook:++g_tpsDiagOtherLook;
+    const uintptr_t imageBase=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    const uintptr_t caller=reinterpret_cast<uintptr_t>(_ReturnAddress());
+    const uintptr_t callerRva=caller>=imageBase&&caller-imageBase<0x03DDF000?
+        caller-imageBase:0;
+    const ULONGLONG onset=(diagCharged?g_tpsDiagChargeStart:
+        g_tpsDiagNormalStart).load(std::memory_order_acquire);
+    const ULONGLONG since=onset&&diagNow>=onset?diagNow-onset:0;
+    const float nativeX=result->pitch,nativeY=result->yaw;
+    const float nativeAngle=std::atan2(nativeY,nativeX)*57.29577951308232f;
+    const float cameraAngle=dg::camera_trace::GetTelemetry().appliedYaw;
+    if((diagCharged||diagNormal)&&(diagCount<=5||diagCount==50||diagCount==500)){
+        Log("TPS V1.09 LOOK PHASE mode=%s n=%u callerRVA=0x%zX sinceInputMs=%llu native=(%.3f,%.3f) nativeYaw=%.1f cameraYaw=%.1f gap=%.1f",
+            diagCharged?"CHARGE":"R1R2",diagCount,size_t(callerRva),
+            static_cast<unsigned long long>(since),nativeX,nativeY,
+            nativeAngle,cameraAngle,
+            std::fabs(std::remainder(nativeAngle-cameraAngle,360.0f)));
+    }
+    TPSDiagWrathSnapshot(actor,diagNow);
     // Do not suppress/look-rotate the game's own radial selection vector.
     // LB / native keyboard equipment, ammo and ability wheels take priority.
     if(IsTPSRadialInputActive())return result;
@@ -2971,6 +3056,24 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     const bool wheelDown=localGameplay&&GamepadBindingDown(g_config.tpsWheelPadMask,pad);
     const bool chargedChord=localGameplay&&!validChord&&TPSChargeChordDown(pad);
     const auto chordNow=GetTickCount64();
+    // V1.09: record the actual ORIGINAL pad state before any aim filter,
+    // including R1/R2 compared to LB+Y and plain LB. Input unmodified.
+    const bool normalShot=localGameplay&&!chargedChord&&(
+        GamepadBindingDown(g_config.tpsFirePrimaryMask,pad)||
+        GamepadBindingDown(g_config.tpsFireSecondaryMask,pad));
+    const int mode=chargedChord?3:normalShot?2:wheelDown?4:0;
+    const int priorMode=g_tpsDiagPadMode.exchange(mode);
+    if(mode!=priorMode){
+        if(mode==3)g_tpsDiagChargeStart.store(chordNow,std::memory_order_release);
+        if(mode==2)g_tpsDiagNormalStart.store(chordNow,std::memory_order_release);
+        const unsigned t=++g_tpsDiagPadTransitions;
+        if(t<=32||t==100||t==500)
+            Log("TPS V1.09 PAD EDGE n=%u from=%d to=%d bits=0x%04X RT=%u LT=%u rawRX=%d rawRY=%d forwardRule=%s",
+                t,priorMode,mode,unsigned(pad.wButtons),
+                unsigned(pad.bRightTrigger),unsigned(pad.bLeftTrigger),
+                int(pad.sThumbRX),int(pad.sThumbRY),
+                mode==3?"NATIVE_LOOK_ONLY":mode==2?"STICK_UP":"NONE");
+    }
     g_tpsChargeChordHeld.store(chargedChord,std::memory_order_release);
     if(chargedChord){
         g_tpsChargeChordTick.store(chordNow,std::memory_order_release);
@@ -4310,6 +4413,11 @@ void ShutdownMod() {
         g_tpsChargeChordSamples.load(),g_tpsChargeForwardInjected.load(),
         g_tpsChargeLookVectorApplied.load(),g_tpsChargeLookRotationApplied.load(),
         g_config.tpsChargedFirePadMask,g_config.tpsWheelPadMask);
+    Log("TPS V1.09 PHASE totals: transitions=%u lookCharge=%u lookR1R2=%u lookOther=%u wrathCandidateReads=%u rises=%u falls=%u nativeRotation=%u",
+        g_tpsDiagPadTransitions.load(),g_tpsDiagChargedLook.load(),
+        g_tpsDiagNormalLook.load(),g_tpsDiagOtherLook.load(),
+        g_tpsDiagWrathReads.load(),g_tpsDiagWrathPositive.load(),
+        g_tpsDiagWrathNegative.load(),g_tpsChargeLookRotationApplied.load());
     Log("TPS V1.04 forward totals: all=%u horse=%u foot=%u mappedHorseChord=%u keyboardHorse=%u",
         g_tpsForwardAnalogInjected.load(),g_tpsMountedForwardAnalogInjected.load(),
         g_tpsFootForwardAnalogInjected.load(),g_horsePadChordRemapped.load(),g_keyboardHorseInjected.load());

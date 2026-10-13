@@ -238,6 +238,48 @@ bool InstallNative(uintptr_t base,uintptr_t rva,const unsigned char* sig,size_t 
     Log(msg);return true;
 }
 }
+// One-time native binary audit. These are direct near CALL references to
+// the known genuine gain entry points, not evidence of their execution.
+// Discovering zero/one callers helps distinguish native gain vs script paths.
+void AuditNativeGainCallers(uintptr_t base){
+    const auto* dos=reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
+    if(!base||dos->e_magic!=IMAGE_DOS_SIGNATURE||
+       dos->e_lfanew<0||dos->e_lfanew>0x1000)return;
+    const auto* nt=reinterpret_cast<const IMAGE_NT_HEADERS64*>(base+dos->e_lfanew);
+    if(nt->Signature!=IMAGE_NT_SIGNATURE||nt->FileHeader.NumberOfSections>96||
+       nt->OptionalHeader.Magic!=IMAGE_NT_OPTIONAL_HDR64_MAGIC)return;
+    constexpr uintptr_t targets[]={0x660570,0x62E060,0x65A1A0};
+    constexpr const char* labels[]={"WRATH AddWrath","ULTIMATE AddChaos","SYNERGY AddNative"};
+    unsigned counts[3]{};
+    char line[240]{};
+    const auto* section=IMAGE_FIRST_SECTION(nt);
+    for(unsigned s=0;s<nt->FileHeader.NumberOfSections;++s){
+        const auto& h=section[s];
+        if(!(h.Characteristics&IMAGE_SCN_MEM_EXECUTE)||
+           h.Misc.VirtualSize<5||h.Misc.VirtualSize>0x02000000||
+           h.VirtualAddress>=nt->OptionalHeader.SizeOfImage||
+           h.Misc.VirtualSize>nt->OptionalHeader.SizeOfImage-h.VirtualAddress)continue;
+        const BYTE* code=reinterpret_cast<const BYTE*>(base+h.VirtualAddress);
+        for(size_t i=0;i+5<=h.Misc.VirtualSize;++i){
+            if(code[i]!=0xE8)continue;
+            int32_t rel=0;std::memcpy(&rel,code+i+1,sizeof(rel));
+            const int64_t target=static_cast<int64_t>(h.VirtualAddress)+
+                static_cast<int64_t>(i)+5+rel;
+            for(int j=0;j<3;++j){
+                if(target!=static_cast<int64_t>(targets[j]))continue;
+                const unsigned n=++counts[j];
+                if(n<=8){
+                    sprintf_s(line,"Gauge V1.09 STATIC caller %s #%u callRVA=0x%zX (read-only code search)",
+                        labels[j],n,size_t(h.VirtualAddress+i));
+                    Log(line);
+                }
+            }
+        }
+    }
+    sprintf_s(line,"Gauge V1.09 STATIC totals: WrathDirectCalls=%u ChaosDirectCalls=%u SynergyDirectCalls=%u; indirect/script calls not counted",
+        counts[0],counts[1],counts[2]);
+    Log(line);
+}
 void Initialize(LogFn callback,std::atomic<void*>* local,bool exactExecutable){
     logger=callback;localPlayer=local;
     if(!exactExecutable){Log("Gauge V1.03: unsupported EXE, all hooks OFF");return;}
@@ -247,6 +289,7 @@ void Initialize(LogFn callback,std::atomic<void*>* local,bool exactExecutable){
     }
     const auto base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     if(!base)return;
+    AuditNativeGainCallers(base); // research only, zero native modifications
     constexpr unsigned char wrathSig[]={0x80,0xB9,0x18,0x01,0x00,0x00,0x03};
     constexpr unsigned char chaosSig[]={0x40,0x53,0x48,0x83,0xEC,0x30};
     constexpr unsigned char synergySig[]={0x40,0x53,0x48,0x83,0xEC,0x30,0xF3,0x0F,0x10,0x81};
