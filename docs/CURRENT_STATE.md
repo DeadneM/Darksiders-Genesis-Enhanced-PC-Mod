@@ -1,6 +1,6 @@
 # Current state - V1.13 safe factory INI reset (2026-10-13)
 
-V1.12 grouped overlay validated by user. V1.13 experiment adds confirmed Reset INI action with unique timestamped .bak of previous file and fresh defaults; no change to gameplay hooks. Docs: [V1.13](V1_13_SAFE_INI_FACTORY_RESET.md). CI and in-game validation pending. Main/archive untouched.
+V1.12 grouped overlay validated by user. V1.13 experiment adds confirmed Reset INI action with unique timestamped .bak of previous file and fresh defaults; no change to gameplay hooks. Docs: [V1.13](V1_13_SAFE_INI_FACTORY_RESET.md). CI Windows x64 success (run 38421589950); ZIP 641322 bytes published on debug; in-game reset behavior validation pending. Main/archive untouched.
 
 Latest V1.12 user log: supported EXE, Synergy 169 observed / 37 boosted; Wrath/Chaos Add hooks 0; Wrath candidate 6 rises / 1 fall; TPS forward injections foot 339 / horse 96. Other investigations remain on TODO.
 
