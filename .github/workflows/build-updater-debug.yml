@@ -25,7 +25,7 @@ jobs:
           New-Item -ItemType Directory -Path updater/bin -Force | Out-Null
           $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
           if (-not (Test-Path $csc)) { throw 'Windows framework C# compiler missing' }
-          & $csc /nologo /target:winexe /platform:x64 /optimize+ /out:updater/bin/DarksidersGenesisUpdater.exe /r:System.dll /r:System.Core.dll /r:System.Drawing.dll /r:System.Windows.Forms.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll /r:System.Web.Extensions.dll updater/Program.cs updater/UpdateEngine.cs updater/UpdaterForm.cs
+          & $csc /nologo /target:winexe /platform:x64 /optimize+ /out:updater/bin/DarksidersGenesisUpdater.exe /r:System.dll /r:System.Core.dll /r:System.Drawing.dll /r:System.Windows.Forms.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll /r:System.Web.Extensions.dll .\updater\Program.cs .\updater\UpdateEngine.cs .\updater\UpdaterForm.cs
           if ($LASTEXITCODE -ne 0) { throw "Compile failed: $LASTEXITCODE" }
           $bytes = [IO.File]::ReadAllBytes((Resolve-Path updater/bin/DarksidersGenesisUpdater.exe))
           if ($bytes[0] -ne 77 -or $bytes[1] -ne 90) { throw 'Invalid PE executable' }
