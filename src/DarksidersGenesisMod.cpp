@@ -45,6 +45,16 @@ HMODULE g_module = nullptr;
 std::wstring g_iniPath;
 std::wstring g_logPath;
 
+// Optional V1.10 startup-only bridge to the local DXGI proxy.
+// No game startup interception, asset rewrite, or call to MoviePlayer.
+void ReportStartupPhase(unsigned phase,unsigned value=0){
+    using TraceFn=void(WINAPI*)(unsigned,unsigned);
+    HMODULE proxy=GetModuleHandleW(L"dxgi.dll");
+    if(!proxy)return;
+    auto trace=reinterpret_cast<TraceFn>(GetProcAddress(proxy,"DGReportStartupPhase"));
+    if(trace)trace(phase,value);
+}
+
 using PresentFn = HRESULT(__stdcall*)(IDXGISwapChain*, UINT, UINT);
 using ResizeBuffersFn = HRESULT(__stdcall*)(IDXGISwapChain*, UINT, UINT, UINT, DXGI_FORMAT, UINT);
 using HudHiddenGetterFn = bool(*)();
@@ -707,6 +717,7 @@ bool InstallSkipIntroControl() {
                 *g_skipIntroData,
                 g_config.skipIntroEnabled ? "SKIP" : "VANILLA"
             );
+            ReportStartupPhase(2,static_cast<unsigned>(*g_skipIntroData));
             return true;
         }
         Sleep(1);
@@ -4047,6 +4058,8 @@ void UpdateOrbitInput() {
 // V1.02: no TPS mouse orbit, XInput synthesis or native mouse interception.
 
 HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) {
+    static std::atomic_bool once{false};
+    if(!once.exchange(true))ReportStartupPhase(4,flags);
     ApplySkipIntroSetting(false);
     UpdateCameraDof();
 
@@ -4463,6 +4476,7 @@ DWORD WINAPI MainThread(LPVOID) {
     Log("============================================================");
     Log("Darksiders Genesis Enhanced ASI %s starting", kBuild);
     Log("Architecture: DXGI proxy -> ASI -> D3D11 Present/ResizeBuffers -> Dear ImGui");
+    ReportStartupPhase(1,0);
 
     std::atexit(&ShutdownMod);
 
@@ -4498,6 +4512,8 @@ DWORD WINAPI MainThread(LPVOID) {
             : g_targetValidation.sha256.c_str(),
         g_targetValidation.reason.c_str()
     );
+
+    ReportStartupPhase(5,g_targetValidation.exact?1u:0u);
 
     // Skip Logos bypasses the FEngineLoop selector that would play either the
     // EarlyStartupMovie path or its CustomSplashScreen fallback. The proxy
@@ -4566,6 +4582,7 @@ DWORD WINAPI MainThread(LPVOID) {
         "Core initialization complete. Press %s after the first game frame.",
         KeyDisplayName(g_config.menuKey).c_str()
     );
+    ReportStartupPhase(3,0);
     return 0;
 }
 
