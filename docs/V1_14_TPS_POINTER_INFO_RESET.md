@@ -21,3 +21,8 @@ Date 2026-10-13. Base `debug` eadf1b914802ec2fb18180a5d9919d73c29e0d94; previous
 
 ## CI and acceptance
 Build x64 and verify four ZIP files at root: dxgi.dll, DarksidersGenesisMod.asi, DarksidersGenesisMod.ini, README.md. Preserve previous numbered ZIPs. In-game tests: TPS enabled, Show Mouse Pointer OFF = invisible by default; ON = original game cursor can appear; Hide Reticle ON overrides ON; toggle overlay/ALT-TAB/cutscenes; normal camera unchanged; only one factory reset under About; Cancel leaves INI, confirm preserves old as .bak; game saves unchanged. Experimental until user test.
+
+## Verified binary delivery
+- [GitHub Actions run 38427995840](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38427995840): Windows x64 configure, Release compile, four-root-entry ZIP validation, artifact upload and permanent debug publication successful.
+- [Cumulative V1.14 TEST ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.14_TPS_POINTER_INFO_RESET_TEST.zip), 642393 bytes. Previous V1.13 ZIP still present. Main/archive branch heads unchanged.
+- Windows build validated; gameplay cursor visibility, menu duplication removal, Alt-Tab and reset behavior still require user's test.

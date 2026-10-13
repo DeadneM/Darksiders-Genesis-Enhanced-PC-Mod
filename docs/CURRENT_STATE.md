@@ -1,6 +1,6 @@
 # Current active test: V1.14 cursor/reset UI (2026-10-13)
 
-V1.13 user log audited (supported EXE, TPS=1, Synergy 122/60; Wrath/Chaos Add=0). V1.14 on debug adds `ShowTPSMousePointer=0` opt-in control and consolidates the two duplicate INI full reset buttons into the final About tab, preserving confirmation and backup. UI V1.12 user-validated; V1.14 needs gameplay testing. Four-root-file ZIP, main/archive untouched. Read [V1.14 details](V1_14_TPS_POINTER_INFO_RESET.md).
+V1.13 user log audited (supported EXE, TPS=1, Synergy 122/60; Wrath/Chaos Add=0). V1.14 on debug adds `ShowTPSMousePointer=0` opt-in control and consolidates the two duplicate INI full reset buttons into the final About tab, preserving confirmation and backup. UI V1.12 user-validated; Windows x64 CI run 38427995840 succeeded; verified four-file ZIP published at downloads/DarksidersGenesis_V1.14_TPS_POINTER_INFO_RESET_TEST.zip; V1.14 still needs gameplay testing. Four-root-file ZIP, main/archive untouched. Read [V1.14 details](V1_14_TPS_POINTER_INFO_RESET.md).
 
 ---
 # Standalone Updater V1.0 verified CI (2026-10-13)
