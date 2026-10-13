@@ -72,6 +72,8 @@ static void LogLoader(const wchar_t* message) {
     CloseHandle(file);
 }
 
+static std::atomic<ULONGLONG> g_startupBootTick{0};
+static std::atomic_uint32_t g_startupTimelineEvents{0};
 // Read-only boot chronology recorded across the native DXGI/ASI boundary.
 // 'observed' means an instrumented call or memory value; NEVER assume a
 // native startup record corresponds to an actually displayed warning frame.
@@ -115,8 +117,7 @@ static volatile BYTE g_warningNativeSeen = 0;
 static volatile BYTE g_warningNativeSkipped = 0;
 static volatile uintptr_t g_warningNativeSpan = 0;
 static std::atomic_uint32_t g_startupFilterCalls{0};
-static std::atomic<ULONGLONG> g_startupBootTick{0};
-static std::atomic_uint32_t g_startupTimelineEvents{0};
+
 
 struct FStringView {
     const wchar_t* data;
