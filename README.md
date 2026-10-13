@@ -1,3 +1,11 @@
+## V1.18: hard rollback to validated V1.15 TPS + separate read-only audits
+
+[**Download V1.18 cumulative debug TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.18_CLEAN_V115_RESEARCH_TEST.zip) · Windows x64, in-game validation pending.
+
+**V1.16 and V1.17 are REJECTED** following user's in-game TPS regression report. V1.18 is rebuilt directly from V1.15 code for TPS, cursor, gamepad, startup and config defaults. The **rejected V1.17 stock cross cursor replacement is not included**. All preceding historical ZIPs are preserved; embedded ASI updater remains user-validated. V1.15 defaults are restored: `ThirdPerson=0` and `ShowTPSMousePointer=0`. The updater preserves existing user INI, so explicit values from prior version are not overwritten; update them in Camera or reset defaults in About if needed.
+
+**Three isolated research threads** in V1.18 (all observation only): safe WndProc mouse event counters (camera injection=0); extra positive/stable Wrath candidate timing from live-player native callback, with Synergy multiplier unchanged; native startup warning record flag summaries without any skipped initialization. **Skip Logos remains the V1.15 implementation** to allow ON/OFF testing of the cross-reticle bug. Do not assume warning records prove two screens are displayed. Next V1.19 will depend on user validation, not on copying previously rejected input patches. [Technical note and test protocol](docs/V1_18_CLEAN_RECOVERY_RESEARCH.md).
+
 ## V1.17 experimental - TPS native Windows cross cursor repair
 
 [**Download V1.17 cumulative TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.17_CROSS_CURSOR_REPAIR_TEST.zip) · debug only, in-game validation pending.

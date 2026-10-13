@@ -236,6 +236,13 @@ static void ProbeStartupDefinitions(){
             unsigned(entry[0x38]),unsigned(entry[0x39]));
         LogLoader(line);
         if(entry[0x39])++activeCount;
+        // V1.18: identify only state, not warning text or presentation.
+        // Never mutate StartupScreenDef or bypass the 0xAC8760 setup call.
+        if(n<=3){
+            swprintf_s(line,L"Startup V1.18 WARN_RECORD_READONLY i=%d of=%d modeByte=%u enabledByte=%u candidateActive=%d drawVerified=0",
+                i,n,unsigned(entry[0x38]),unsigned(entry[0x39]),entry[0x39]?1:0);
+            LogLoader(line);
+        }
         // Two user-confirmed warning pages are drawn later: save notice,
         // controller notice. Record preparation is NOT presentation.
     }

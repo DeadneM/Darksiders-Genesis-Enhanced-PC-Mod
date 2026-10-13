@@ -1,3 +1,7 @@
+## V1.18 canonical V1.15 rollback after V1.17 TPS regression (2026-10-13)
+
+No recycled rejected mouse/cursor patches: V1.15 source restored for TPS/reticle, config, runtime, DXGI, overlay, updater. User rejects V1.16 and V1.17. V1.18 includes only passive mouse message class counts, Wrath candidate classification correlated with charged input and prepared-warning-record flags. No camera movement, no additional Synergy multiplier changes, no startup loop short-circuits. Existing user INI is preserved and may require manual rollback of TPS/pointer values. Skip Logos remains selectable as in V1.15; controlled cold boot OFF/ON requested. [Full recovery and tests](V1_18_CLEAN_RECOVERY_RESEARCH.md).
+
 ## V1.17 targeted stock OS cross cursor repair (2026-10-13)
 
 Despite preserved MoviePlayer attach and safe V0.52 exact two-logo substitution, user V1.16 reports cross cursor regression. V1.16 first launches TPS=1 and ShowTPSMousePointer=1 as defaults, so previously hidden native OS cursor could be exposed. New V1.17 stock IDC_CROSS -> IDC_ARROW substitution is gated to focused live TPS gameplay, no overlay/HideReticle/wheel/cutscene, and bounded diagnostics mark actual source. Not a global crosshair/UI override and not proof this caused bug. No startup changes. Details [V1.17](V1_17_CROSS_CURSOR_REPAIR.md).

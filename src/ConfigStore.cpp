@@ -302,7 +302,7 @@ void Store::ResetDefaults(bool persist) {
     skipLogosEnabled = true;
     skipIntroEnabled = true;
     skipWarningEnabled = false;
-    thirdPersonEnabled = true;
+    thirdPersonEnabled = false;
     thirdPersonFovEnabled = true;
     tpsFollowPlayer = true;
     cameraOrbitInputEnabled = true;
@@ -340,7 +340,7 @@ void Store::ResetDefaults(bool persist) {
     horseSprintDurationEnabled = true;
     fovEnabled = false;
     hideReticle = false;
-    showTpsMousePointer = true;
+    showTpsMousePointer = false;
     hotstreakChargeEnabled = true;
     wrathChargeEnabled = true;
     ultimateChargeEnabled = true;
@@ -516,7 +516,7 @@ bool Store::Load() {
     // Reticle/crosshair safety rollback: native warning patch quarantined.
     skipWarningEnabled = false;
     thirdPersonEnabled =
-        ReadBool(L"Features", L"ThirdPerson", true, path_);
+        ReadBool(L"Features", L"ThirdPerson", false, path_);
     thirdPersonFovEnabled=ReadBool(L"Features",L"TPSFOV",true,path_);
     tpsFollowPlayer=true; // permanent verified player attachment
     const bool oldOrbit=ReadBool(L"Features",L"CameraControllerOrbit",true,path_);
@@ -580,7 +580,7 @@ bool Store::Load() {
     hideReticle =
         ReadBool(L"Features", L"HideReticle", false, path_);
     showTpsMousePointer =
-        ReadBool(L"Features", L"ShowTPSMousePointer", true, path_);
+        ReadBool(L"Features", L"ShowTPSMousePointer", false, path_);
     hotstreakChargeEnabled =
         ReadBool(L"Features", L"HotstreakCharge", true, path_);
     // Research presets only; no native resource writes until ownership is proven.

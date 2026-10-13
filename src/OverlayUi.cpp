@@ -601,12 +601,12 @@ void Draw(Context& c) {
                 config.Save();
                 *c.lastAction = config.showTpsMousePointer
                     ? "TPS pointer allowed (Hide Reticle still takes priority)"
-                    : "TPS pointer hidden (custom setting)";
+                    : "TPS pointer hidden by default";
                 if (c.log) c.log("TPS pointer option: ShowTPSMousePointer=%d (HideReticle=%d)",
                     config.showTpsMousePointer ? 1 : 0, config.hideReticle ? 1 : 0);
             }
-            ImGui::TextDisabled("ON by default: let the native mouse pointer appear in TPS gameplay.");
-            ImGui::TextDisabled("OFF: hide it while in TPS. Hide Reticle still takes priority.");
+            ImGui::TextDisabled("OFF by default (V1.15 rollback). Mouse camera movement is NOT injected.");
+            ImGui::TextDisabled("ON: native pointer visible. V1.18 logs mouse messages without changing gameplay.");
             ImGui::Spacing();
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
@@ -1096,7 +1096,7 @@ void Draw(Context& c) {
             ImGui::Spacing();
 
             const auto update = dg::update::GetStatus();
-            ImGui::Text("Running mod: V1.17 (ASI updater)");
+            ImGui::Text("Running mod: V1.18 (ASI updater)");
             const bool checked = update.hasLatest && update.checkedBeta == config.updaterBeta;
             if (checked) {
                 ImGui::Text("Latest %s build: %s",

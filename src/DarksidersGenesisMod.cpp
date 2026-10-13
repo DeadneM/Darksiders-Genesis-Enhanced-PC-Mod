@@ -37,7 +37,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.17-tps-cross-cursor-targeted-repair-test";
+constexpr const char* kBuild = "1.18-clean-v115-mouse-gauge-warning-audit-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -180,10 +180,12 @@ std::atomic_bool g_hudHookReady{false};
 std::atomic_bool g_cursorVisibilityHookReady{false};
 std::atomic_bool g_setCursorHookReady{false};
 std::atomic_bool g_cursorBlankApplied{false};
+// V1.18 NEW baseline-only mouse study. Read-only WndProc messages. We never
+// consume input, set a cursor, warp position, write camera values or simulate a pad.
+std::atomic_uint32_t g_v118MouseMove{0},g_v118RawInputMessages{0},
+    g_v118MouseLmb{0},g_v118MouseRmb{0},g_v118MouseWheel{0};
+std::atomic_uint32_t g_v118WrathStable{0},g_v118WrathGainNearCharge{0};
 std::atomic_uint32_t g_reticleCursorIntercepts{0};
-std::atomic_uint32_t g_tpsCrossCursorSanitized{0};
-std::atomic_uint32_t g_tpsCrossCursorObserved{0};
-std::atomic_ullong g_tpsCrossCursorNextCheck{0};
 std::atomic<HCURSOR> g_lastRequestedGameCursor{nullptr};
 std::atomic_uint32_t g_cursorProbeChanges{0};
 std::atomic_int g_lastNativeCursorVisible{-1};
@@ -1603,8 +1605,10 @@ void TPSDiagWrathSnapshot(void* actor, ULONGLONG now){
     const float delta=same?cur-previous:0.0f;
     if(same&&delta>0.05f)++g_tpsDiagWrathPositive;
     if(same&&delta< -0.05f)++g_tpsDiagWrathNegative;
+    if(same&&std::fabs(delta)<=0.05f)++g_v118WrathStable;
     const ULONGLONG charge=g_tpsDiagChargeStart.load(std::memory_order_acquire);
     const ULONGLONG age=charge&&now>=charge?now-charge:0;
+    if(same&&delta>0.05f && charge && age<1500ull)++g_v118WrathGainNearCharge;
     const unsigned diagnostic=(same&&std::fabs(delta)>0.05f)?
         ++g_tpsDiagWrathLoggedChanges:0u;
     if(n==1||(diagnostic>0&&diagnostic<=16)){
@@ -2405,29 +2409,6 @@ bool InstallCursorVisibilityHook() {
 }
 
 
-// The cursor introduced by ShowTPSMousePointer=1 may be the *native Windows
-// crosshair icon* after a save load. Keep the user's requested visible pointer,
-// but replace ONLY the standard IDC_CROSS shape with an arrow in an active,
-// focused TPS gameplay frame. Do not touch other cursors, gameplay input,
-// loading screens, movie setup, wheel menus, cutscenes or the overlay.
-bool ShouldSanitizeTpsCrossCursor() {
-    const HWND hwnd = reinterpret_cast<HWND>(
-        g_gameWindowTrace.load(std::memory_order_relaxed));
-    const auto& runtime = dg::runtime::Get();
-    const ULONGLONG tick=runtime.tpsGameplayViewTick.load(std::memory_order_relaxed);
-    const ULONGLONG now=GetTickCount64();
-    return hwnd && IsWindow(hwnd) && GetForegroundWindow()==hwnd &&
-        !g_overlayVisible.load(std::memory_order_relaxed) &&
-        !g_hudHidden.load(std::memory_order_relaxed) &&
-        runtime.thirdPersonEnabled.load(std::memory_order_relaxed) &&
-        runtime.showTpsMousePointer.load(std::memory_order_relaxed) &&
-        !runtime.hideReticle.load(std::memory_order_relaxed) &&
-        !runtime.tpsTemporarilySuspended.load(std::memory_order_relaxed) &&
-        !runtime.tpsCutsceneSuspended.load(std::memory_order_relaxed) &&
-        !runtime.tpsAbilityWheelHeld.load(std::memory_order_relaxed) &&
-        runtime.tpsViewGameplay.load(std::memory_order_relaxed) &&
-        tick && now>=tick && now-tick<250ull;
-}
 // Hide Reticle is not Toggle HUD: the malformed cross can be an OS cursor.
 // Keep this Win32 fallback gated to our actual foreground game window and
 // disabled while the ImGui overlay is open. No mouse input is synthesized.
@@ -2469,13 +2450,6 @@ HCURSOR WINAPI HookSetCursor(HCURSOR requested) {
             }
         }
     }
-    if (ShouldSanitizeTpsCrossCursor() &&
-        requested == LoadCursorW(nullptr, IDC_CROSS)) {
-        const unsigned n=++g_tpsCrossCursorSanitized;
-        if(n<=12 || n%1000==0)
-            Log("TPS V1.17 CROSS_CURSOR: native IDC_CROSS requested -> IDC_ARROW (n=%u), TPS pointer stays enabled",n);
-        return g_originalSetCursor(LoadCursorW(nullptr, IDC_ARROW));
-    }
     if (!ShouldBlankGameCursor()) return g_originalSetCursor(requested);
     const unsigned calls = g_reticleCursorIntercepts.fetch_add(1) + 1;
     if (calls <= 2 || calls % 10000 == 0) {
@@ -2509,32 +2483,6 @@ bool InstallSetCursorHook() {
 
 void RefreshReticleCursorState() {
     const bool blank = ShouldBlankGameCursor();
-    // An IDC_CROSS handle may have been installed *before* the TPS view
-    // activated, so SetCursor detours alone would miss it. Probe at most 3x/s
-    // and ask the real game-window thread to refresh its cursor, not the D3D11
-    // render thread. WM_SETCURSOR stays native except for the exact cross.
-    if(!blank && ShouldSanitizeTpsCrossCursor()) {
-        const ULONGLONG now=GetTickCount64();
-        const ULONGLONG due=g_tpsCrossCursorNextCheck.load(std::memory_order_relaxed);
-        if(now>=due) {
-            g_tpsCrossCursorNextCheck.store(now+350ull,std::memory_order_relaxed);
-            CURSORINFO info{};
-            info.cbSize=sizeof(info);
-            if(GetCursorInfo(&info) && (info.flags & CURSOR_SHOWING)) {
-                const unsigned n=++g_tpsCrossCursorObserved;
-                if(n<=10 || n%1000==0)
-                    Log("TPS V1.17 CURSOR_PROBE n=%u handle=%p cross=%d arrow=%d foreground=1",
-                        n,info.hCursor,info.hCursor==LoadCursorW(nullptr,IDC_CROSS)?1:0,
-                        info.hCursor==LoadCursorW(nullptr,IDC_ARROW)?1:0);
-                if(info.hCursor==LoadCursorW(nullptr,IDC_CROSS)) {
-                    const HWND hwnd=reinterpret_cast<HWND>(
-                        g_gameWindowTrace.load(std::memory_order_relaxed));
-                    if(hwnd)PostMessageW(hwnd,WM_SETCURSOR,reinterpret_cast<WPARAM>(hwnd),
-                        MAKELPARAM(HTCLIENT,WM_MOUSEMOVE));
-                }
-            }
-        }
-    }
     if (g_cursorBlankApplied.exchange(blank) == blank) return;
     if (blank) {
         if (g_originalSetCursor) g_originalSetCursor(nullptr);
@@ -3287,17 +3235,36 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             ? CallWindowProcW(g_originalWndProc, hwnd, msg, wParam, lParam)
             : DefWindowProcW(hwnd, msg, wParam, lParam);
     }
-    if(msg==WM_SETCURSOR && LOWORD(lParam)==HTCLIENT &&
-       ShouldSanitizeTpsCrossCursor()) {
-        CURSORINFO info{};
-        info.cbSize=sizeof(info);
-        if(GetCursorInfo(&info) && info.hCursor==LoadCursorW(nullptr,IDC_CROSS)) {
-            const unsigned n=++g_tpsCrossCursorSanitized;
-            if(n<=12 || n%1000==0)
-                Log("TPS V1.17 CROSS_CURSOR: stale IDC_CROSS restored to arrow by window-thread WM_SETCURSOR n=%u",n);
-            if(g_originalSetCursor)g_originalSetCursor(LoadCursorW(nullptr,IDC_ARROW));
-            else SetCursor(LoadCursorW(nullptr,IDC_ARROW));
-            return TRUE;
+    // V1.18: fresh source-only TPS mouse audit. We do not read WM_INPUT
+    // payloads, suppress any message, alter camera input or reuse V0.98 orbit.
+    // WM_INPUT may include NON-MOUSE devices and is counted as such.
+    if((msg==WM_MOUSEMOVE || msg==WM_INPUT || msg==WM_LBUTTONDOWN ||
+        msg==WM_RBUTTONDOWN || msg==WM_MOUSEWHEEL) &&
+       !g_overlayVisible.load(std::memory_order_relaxed) &&
+       GetForegroundWindow()==hwnd && !IsIconic(hwnd)){
+        const auto& rt=dg::runtime::Get();
+        const ULONGLONG now=GetTickCount64();
+        const ULONGLONG view=rt.tpsGameplayViewTick.load(std::memory_order_acquire);
+        const bool liveTps=rt.thirdPersonEnabled.load(std::memory_order_relaxed) &&
+            rt.tpsViewGameplay.load(std::memory_order_relaxed) &&
+            !rt.tpsCutsceneSuspended.load(std::memory_order_relaxed) &&
+            !rt.tpsTemporarilySuspended.load(std::memory_order_relaxed) &&
+            !rt.tpsAbilityWheelHeld.load(std::memory_order_relaxed) &&
+            view && now>=view && now-view<250ull;
+        if(liveTps){
+            unsigned n=0;
+            const char* kind=nullptr;
+            switch(msg){
+            case WM_MOUSEMOVE: n=++g_v118MouseMove;kind="WM_MOUSEMOVE";break;
+            case WM_INPUT: n=++g_v118RawInputMessages;kind="WM_INPUT_UNDECODED";break;
+            case WM_LBUTTONDOWN: n=++g_v118MouseLmb;kind="LMB_DOWN";break;
+            case WM_RBUTTONDOWN: n=++g_v118MouseRmb;kind="RMB_DOWN";break;
+            case WM_MOUSEWHEEL: n=++g_v118MouseWheel;kind="WHEEL";break;
+            default:break;
+            }
+            if(kind && (n<=4 || (n%5000)==0))
+                Log("TPS V1.18 MOUSE_READONLY kind=%s count=%u tps=1 wheelHeld=0 overlay=0 (native input unchanged)",
+                    kind,n);
         }
     }
     // Keyboard summon H must authorize its native region checks BEFORE
@@ -4461,6 +4428,13 @@ void ShutdownMod() {
         g_tpsFootForwardAnalogInjected.load(),g_horsePadChordRemapped.load(),g_keyboardHorseInjected.load());
     Log("TPS V1.03 controller-only: rightStickFiltered=%u no TPS mouse orbit/virtual pad",
         g_nativePadAimSuppressed.load());
+    Log("TPS V1.18 MOUSE_READONLY totals: WM_MOUSEMOVE=%u WM_INPUT_UNDECODED=%u LMB=%u RMB=%u WHEEL=%u injectedCamera=0 cursorWrites=0",
+        g_v118MouseMove.load(),g_v118RawInputMessages.load(),
+        g_v118MouseLmb.load(),g_v118MouseRmb.load(),g_v118MouseWheel.load());
+    Log("Gauge V1.18 WRATH_READONLY: readings=%u up=%u down=%u stable=%u risesNearChargeInput=%u nativeWrathHookStillRequiresVerification",
+        g_tpsDiagWrathReads.load(),g_tpsDiagWrathPositive.load(),
+        g_tpsDiagWrathNegative.load(),g_v118WrathStable.load(),
+        g_v118WrathGainNearCharge.load());
     Log("TPS V0.89 CAMERA FORWARD: horseActorGetPlayerLookInputCalls=%u (passive, no shot raycast hook)",
         g_tpsHorseNativeLookGetterObservations.load());
     Log("TPS V0.88 FORWARD RAYCAST AUDIT totals: lookSamples=%u gapOver35deg=%u lastNativeYaw=%.1f lastCameraYaw=%.1f projectileHook=NO",
@@ -4545,12 +4519,12 @@ DWORD WINAPI MainThread(LPVOID) {
     g_config.SetPath(g_iniPath);
     g_config.SetLogger(&FeatureLog);
     g_config.Load();
-    Log("V1.17 CONFIG loaded %ls: TPS=%d FOV=%.1f dist=%.3f pitch=%.2f height=%.1f foot=%.1f stickMode=%d mountedAim=%d normalHeight=%.1f HideReticle=%d ShowTPSMousePointer=%d SkipWarning=%d",
+    Log("V1.04 CONFIG loaded %ls: TPS=%d FOV=%.1f dist=%.3f pitch=%.2f height=%.1f foot=%.1f stickMode=%d mountedAim=%d normalHeight=%.1f HideReticle=%d SkipWarning=%d",
         g_iniPath.c_str(),g_config.thirdPersonEnabled?1:0,g_config.thirdPersonFovDegrees,
         g_config.thirdPersonDistanceMultiplier,g_config.thirdPersonPitchDegrees,
         g_config.thirdPersonHeightOffset,g_config.tpsFootAnchorOffset,
         g_config.tpsCameraStickMode,g_config.tpsMountedAimMode,g_config.cameraHeightOffset,
-        g_config.hideReticle?1:0,g_config.showTpsMousePointer?1:0,g_config.skipWarningEnabled?1:0);
+        g_config.hideReticle?1:0,g_config.skipWarningEnabled?1:0);
     Log("V1.05 GAUGES loaded Wrath=%d x%.2f Ultimate=%d x%.2f Synergy=%d x%.2f",
         g_config.wrathChargeEnabled?1:0,g_config.wrathChargeMultiplier,
         g_config.ultimateChargeEnabled?1:0,g_config.ultimateChargeMultiplier,
