@@ -116,6 +116,7 @@ std::atomic_ullong g_tpsDiagChargeStart{0},g_tpsDiagNormalStart{0};
 std::atomic_uint32_t g_tpsDiagChargedLook{0},g_tpsDiagNormalLook{0},g_tpsDiagOtherLook{0};
 std::atomic_ullong g_tpsDiagWrathTick{0};
 std::atomic_uint32_t g_tpsDiagWrathReads{0},g_tpsDiagWrathPositive{0},g_tpsDiagWrathNegative{0};
+std::atomic_uint32_t g_tpsDiagWrathLoggedChanges{0};
 std::atomic<float> g_tpsDiagWrathPrevious{0.0f};
 std::atomic<void*> g_tpsDiagWrathActor{nullptr};
 
@@ -1121,7 +1122,7 @@ void HookFinalOutgoingDamage(void* playerCharacter, void* damageRecord) {
         count = g_meleeDamageBoostCalls.fetch_add(1) + 1;
     }
 
-    if (count <= 60 || (count % 100) == 0) {
+    if (count <= 3 || (count % 1000) == 0) {
         Log(
             "Final damage hook: %s final %.3f -> %.3f BaseJuice=%.3f ScaleType=%u Tags=%d mult=%.2fx count=%d",
             kind,
@@ -1601,10 +1602,11 @@ void TPSDiagWrathSnapshot(void* actor, ULONGLONG now){
     if(same&&delta< -0.05f)++g_tpsDiagWrathNegative;
     const ULONGLONG charge=g_tpsDiagChargeStart.load(std::memory_order_acquire);
     const ULONGLONG age=charge&&now>=charge?now-charge:0;
-    if(n<=6||(same&&std::fabs(delta)>0.05f&&(n<=28||n%200==0))){
-        Log("TPS V1.09 WRATH READ-ONLY candidate n=%u player=%p current=%.3f delta=%.3f chargeAgeMs=%llu chordHeld=%d",
-            n,actor,cur,delta,static_cast<unsigned long long>(age),
-            g_tpsChargeChordHeld.load()?1:0);
+    const unsigned diagnostic=(same&&std::fabs(delta)>0.05f)?
+        ++g_tpsDiagWrathLoggedChanges:0u;
+    if(n==1||(diagnostic>0&&diagnostic<=16)){
+        Log("Gauge V1.11 WRATH CANDIDATE n=%u value=%.2f delta=%.2f chargeAgeMs=%llu",
+            n,cur,delta,static_cast<unsigned long long>(age));
     }
 }
 NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
@@ -1635,23 +1637,9 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     const bool diagNormal=IsPadFiringNow()&&!diagCharged;
     const unsigned diagCount=diagCharged?++g_tpsDiagChargedLook:
         diagNormal?++g_tpsDiagNormalLook:++g_tpsDiagOtherLook;
-    const uintptr_t imageBase=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
-    const uintptr_t caller=reinterpret_cast<uintptr_t>(_ReturnAddress());
-    const uintptr_t callerRva=caller>=imageBase&&caller-imageBase<0x03DDF000?
-        caller-imageBase:0;
-    const ULONGLONG onset=(diagCharged?g_tpsDiagChargeStart:
-        g_tpsDiagNormalStart).load(std::memory_order_acquire);
-    const ULONGLONG since=onset&&diagNow>=onset?diagNow-onset:0;
-    const float nativeX=result->pitch,nativeY=result->yaw;
-    const float nativeAngle=std::atan2(nativeY,nativeX)*57.29577951308232f;
-    const float cameraAngle=dg::camera_trace::GetTelemetry().appliedYaw;
-    if((diagCharged||diagNormal)&&(diagCount<=5||diagCount==50||diagCount==500)){
-        Log("TPS V1.09 LOOK PHASE mode=%s n=%u callerRVA=0x%zX sinceInputMs=%llu native=(%.3f,%.3f) nativeYaw=%.1f cameraYaw=%.1f gap=%.1f",
-            diagCharged?"CHARGE":"R1R2",diagCount,size_t(callerRva),
-            static_cast<unsigned long long>(since),nativeX,nativeY,
-            nativeAngle,cameraAngle,
-            std::fabs(std::remainder(nativeAngle-cameraAngle,360.0f)));
-    }
+    // V1.11: retain aggregate look-path counters, remove per-frame caller/Yaw
+    // diagnostic. Wrath candidate deltas still supply actionable telemetry.
+    (void)diagCount;
     TPSDiagWrathSnapshot(actor,diagNow);
     // Do not suppress/look-rotate the game's own radial selection vector.
     // LB / native keyboard equipment, ammo and ability wheels take priority.
@@ -2455,7 +2443,7 @@ HCURSOR WINAPI HookSetCursor(HCURSOR requested) {
     }
     if (!ShouldBlankGameCursor()) return g_originalSetCursor(requested);
     const unsigned calls = g_reticleCursorIntercepts.fetch_add(1) + 1;
-    if (calls <= 8 || calls % 500 == 0) {
+    if (calls <= 2 || calls % 10000 == 0) {
         Log("Reticle V0.42: SetCursor intercepted=%u requested=%p -> NULL",
             calls, requested);
     }
@@ -3062,7 +3050,7 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
         if(mode==3)g_tpsDiagChargeStart.store(chordNow,std::memory_order_release);
         if(mode==2)g_tpsDiagNormalStart.store(chordNow,std::memory_order_release);
         const unsigned t=++g_tpsDiagPadTransitions;
-        if(t<=32||t==100||t==500)
+        if(t<=4)
             Log("TPS V1.09 PAD EDGE n=%u from=%d to=%d bits=0x%04X RT=%u LT=%u rawRX=%d rawRY=%d forwardRule=%s",
                 t,priorMode,mode,unsigned(pad.wButtons),
                 unsigned(pad.bRightTrigger),unsigned(pad.bLeftTrigger),
@@ -3073,8 +3061,8 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     if(chargedChord){
         g_tpsChargeChordTick.store(chordNow,std::memory_order_release);
         const unsigned n=++g_tpsChargeChordSamples;
-        if(n==1||n==100||n==1000)
-            Log("TPS V1.10 LB+Y unmodified n=%u nativeButtons=0x%04X",n,unsigned(pad.wButtons));
+        if(n==1)
+            Log("TPS V1.11 LB+Y passes through native input (0 special writes)");
     }
     if(wheelDown){
         auto& wheelRt=dg::runtime::Get();
