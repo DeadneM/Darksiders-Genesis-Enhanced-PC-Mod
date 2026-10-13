@@ -1,3 +1,11 @@
+# V1.22 verified Windows build: complete Hide Reticle removal (2026-10-13)
+
+**User rejected V1.21 reticle hiding; V1.22 removes all SetCursor/UI cursor visibility hooks, TPS auto hide policy, manual HideReticle/F4 feature and field.** F4=None, HideReticle INI key ignored/removed on explicit Save. All other defaults intact, V1.20 relative mouse and V1.19 Camera Forward unchanged, native game owns cursor. Windows Actions run 38461117435 SUCCESS, V1.22 ZIP 750900 bytes / SHA1 07acd04899dc160d8fbb03a452ce9d362804b9d9, 4 root files on debug. Original V1.21 ZIP restored. Main/archive untouched. In-game validation pending.
+
+Latest V1.21 log: 3 raw mouse packets and 687 fallbacks vs V1.20 12237/1940, V1.21 TPS cursor suppression confirmed despite HideReticle=0. Jauges: latest session zero Add callbacks, Wrath -20 only; preceding V1.20 59/59 Synergy gains boosted, Wrath candidate +20/-70 but AddWrath and AddChaos zero. Skip Warnings two candidate native records enabled, warning draw unverified, feature disabled. Camera cutscene **heuristic** 3 enters/2 exits, 376 invalid-actor samples, does not prove actual cinematic identity. [Complete V1.22 audit](V1_22_REMOVE_RETICLE_FEATURE.md). Next V1.23.
+
+---
+
 # V1.21 unified reticle menu-only in TPS and global Camera Hide Reticle (2026-10-13)
 
 V1.20 log: toggling Gameplay Hide Reticle and separate inverse Show Mouse Pointer in TPS disrupted behavior; native OS suppression toggles evident. RawInput relative success 12237 messages/2541 at borders. V1.21 moves Hide Reticle manual control + Apply from Gameplay to Camera > General, removes redundant ShowTPSMousePointer UI/INI/runtime variable, and hardcodes TPS gameplay cursor suppression with menu/wheel exceptions. Does not alter user-requested ThirdPerson=1 or other defaults. V1.20 mouse/cutscenes/gauges/dxgi preserved. CI/gameplay pending; [note](V1_21_RETICLE_MENU_ONLY.md). Next V1.22.
