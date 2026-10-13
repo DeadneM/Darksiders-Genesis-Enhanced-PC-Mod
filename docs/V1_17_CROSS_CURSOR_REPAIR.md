@@ -17,3 +17,7 @@ The cross-shaped cursor bug appeared after the new defaults changed to ThirdPers
 
 ## Acceptance
 User tests cold startup/load with ThirdPerson=1, ShowTPSMousePointer=1 and HideReticle=0, watch whether cross disappears and **arrow remains visible**. Compare pointer OFF in Camera > Third Person (should hide pointer), reticle F4, overlay Insert, wheel LB/G/Tab, cutscene, Alt-Tab; inspect TPS V1.17 CURSOR_PROBE and CROSS_CURSOR logs. If CROSS_CURSOR remains zero and cross remains visible, investigate nonstock or engine-drawn cursor with a read-only identification approach. Do not apply aggressive MoviePlayer bypass. CI x64 compile/package/publish required before sharing ZIP.
+
+
+## Windows CI result and permanent archive
+Build [38445796468](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38445796468) completed SUCCESS, including embedded updater compilation, Windows x64 ASI/DXGI Release, four-root-entry ZIP verification, artifact upload and permanent publication. [V1.17 ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.17_CROSS_CURSOR_REPAIR_TEST.zip): 749955 bytes; Git blob SHA1 `48cdaeb7971437e00f0d236a1f1061afaf1c3ca9`. User game test pending; original V1.16 remains available. Main/archive unchanged.
