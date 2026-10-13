@@ -62,6 +62,10 @@ void ResetZoneReference() {
 void Write(const char* s) { if (g_log && s) g_log(s); }
 bool Sample(uint32_t n) { return n <= 12 || (n % 5000) == 0; }
 
+// Classification only. Do not alter or force the game's cinematic camera.
+std::atomic_uint32_t g_cinematicEntered{0},g_cinematicExited{0},
+    g_cinematicCandidateBegins{0},g_cinematicMissingActorSamples{0},
+    g_cinematicFarViewSamples{0};
 void HookView(void* camera, float dt, void* outView) {
     if (g_view) g_view(camera, dt, outView);
     auto& settings=dg::runtime::Get();
@@ -203,6 +207,10 @@ void HookView(void* camera, float dt, void* outView) {
     // immediately; turning the option OFF keeps the old V0.96 heuristic.
     static ULONGLONG cinematicCandidateStart=0;
     static unsigned cinematicTransitions=0;
+    if(thirdPerson&&!gameplayCamera){
+        if(!actorValid)++g_cinematicMissingActorSamples;
+        else if(!nearPawn)++g_cinematicFarViewSamples;
+    }
     const bool autoCutscene=settings.tpsCutsceneAutoSuspend.load(std::memory_order_relaxed);
     if(!thirdPerson||!autoCutscene){
         cinematicCandidateStart=0;
@@ -210,19 +218,33 @@ void HookView(void* camera, float dt, void* outView) {
     }else if(gameplayCamera){
         cinematicCandidateStart=0;
         if(settings.tpsCutsceneSuspended.exchange(false,std::memory_order_acq_rel)){
-            if(++cinematicTransitions<=20)
-                Write("TPS V0.97 CINEMATIC: native cutscene ended; live TPS view restored");
+            ++g_cinematicExited;
+            if(++cinematicTransitions<=20){
+                char line[240]{};
+                sprintf_s(line,"TPS V1.20 CINEMATIC_EXIT #%u actorValid=%d closeToPawn=%d nativePitch=%.1f nativeFov=%.1f",
+                    cinematicTransitions,actorValid?1:0,nearPawn?1:0,nativePitch,nativeFov);
+                Write(line);
+            }
         }
     }else{
         // Camera change alone is not enough when the local actor is
         // temporarily absent at load time. Only suspend from live TPS.
         const bool observedTPS=lastTPS&&now>=lastTPS&&now-lastTPS<3500ull;
         if(observedTPS){
-            if(!cinematicCandidateStart)cinematicCandidateStart=now;
+            if(!cinematicCandidateStart){
+                cinematicCandidateStart=now;
+                ++g_cinematicCandidateBegins;
+            }
             if(now>=cinematicCandidateStart&&now-cinematicCandidateStart>=500ull &&
                !settings.tpsCutsceneSuspended.exchange(true,std::memory_order_acq_rel)){
-                if(++cinematicTransitions<=20)
-                    Write("TPS V0.97 CINEMATIC: prolonged non-gameplay camera; native view and input restored");
+                ++g_cinematicEntered;
+                if(++cinematicTransitions<=20){
+                    char line[256]{};
+                    sprintf_s(line,"TPS V1.20 CINEMATIC_ENTER #%u actorValid=%d closeToPawn=%d nativePitch=%.1f gapXY=%.0f durationMs=%llu",
+                        cinematicTransitions,actorValid?1:0,nearPawn?1:0,
+                        nativePitch,planar,static_cast<unsigned long long>(now-cinematicCandidateStart));
+                    Write(line);
+                }
             }
         }else if(!settings.tpsCutsceneSuspended.load(std::memory_order_acquire)){
             cinematicCandidateStart=0;
@@ -518,6 +540,11 @@ Telemetry GetTelemetry() {
     t.nativeZoneOverridesIgnored = g_zoneCameraIgnored.load();
     t.tpsAttachDeferred = g_tpsAttachSkipped.load();
     t.tpsFovSamples = g_tpsFovOverrides.load();
+    t.cinematicEntered=g_cinematicEntered.load();
+    t.cinematicExited=g_cinematicExited.load();
+    t.cinematicCandidateBegins=g_cinematicCandidateBegins.load();
+    t.cinematicMissingActorSamples=g_cinematicMissingActorSamples.load();
+    t.cinematicFarViewSamples=g_cinematicFarViewSamples.load();
     t.mountedFireRequested = g_mountedFireRequested.load();
     t.mountedFireHorseSelected = g_mountedFireHorseSelected.load();
     t.mountedFireOverrodeFoot = g_mountedFireOverrodeFoot.load();
