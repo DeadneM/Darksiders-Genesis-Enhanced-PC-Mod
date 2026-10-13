@@ -28,3 +28,7 @@
 4. Skip Warnings entry visible, disabled and clearly labeled research-only; warnings still show.
 5. Logs MOUSE_CAMERA and MOUSE_FORWARD; assess Synergy/Wrath/Ultimate only if pickups or combat actually occurred.
 6. Four root files in ZIP; debug only; main/archive untouched; next version V1.20 without letters.
+
+## Verified CI and published build
+
+Windows x64 GitHub Actions [run 38450736446](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38450736446) completed **SUCCESS**. CMake Release compilation, embedded updater build, verified exact four-file root archive, artifact upload and permanent debug branch publication passed. [V1.19 cumulative TEST ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.19_TPS_MOUSE_FORWARD_TEST.zip) size **751816 bytes**, git blob SHA1 `aec089cd183a14d13244e5d2b91d67fbccbd091d`. Main and archive heads remain unchanged. This verifies compilation and packaging, **not** gameplay aim accuracy or the crosshair absence. Do not mark this version gameplay validated until a real on-foot/horse, mouse+controller, SkipLogos ON/OFF test.
