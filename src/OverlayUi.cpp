@@ -23,7 +23,7 @@ void DrawTunableFeature(config::Store& config, const char* label,
     const char* featureStatus=nullptr) {
     ImGui::PushID(id);
     if(ImGui::Checkbox(label,enabled))config.Save();
-    ImGui::SameLine(520.0f);
+    // Status gets its own line so long labels never overlap in narrow windows.
     ImGui::TextDisabled("%s",featureStatus?featureStatus:
         hookReady?"Ready":"Unavailable");
     if(note) {
@@ -33,10 +33,11 @@ void DrawTunableFeature(config::Store& config, const char* label,
     }
     if(*enabled){
         ImGui::Indent(22.0f);
-        ImGui::SetNextItemWidth(280.0f);
+        const bool compact = ImGui::GetContentRegionAvail().x < 560.0f;
+        ImGui::SetNextItemWidth(compact ? std::max(80.0f, ImGui::GetContentRegionAvail().x - 90.0f) : 280.0f);
         bool changed=ImGui::SliderFloat("Multiplier##Slider",value,
             minValue,maxValue,format);
-        ImGui::SameLine();
+        if (!compact) ImGui::SameLine();
         ImGui::SetNextItemWidth(100.0f);
         changed|=ImGui::InputFloat("##Manual",value,0.0f,0.0f,"%.2f");
         if(ImGui::IsItemHovered())ImGui::SetTooltip("Enter an exact multiplier.");
@@ -335,7 +336,7 @@ void Draw(Context& c) {
 
             DrawSectionTitle("Resource recharge");
             const auto charge=dg::gauges::GetTelemetry();
-            ImGui::TextDisabled("x0 stops positive gains; x1 is vanilla. All values save to the INI.");
+            ImGui::TextDisabled("For working gain paths: x0 stops gains, x1 is vanilla. Settings save to INI.");
             DrawTunableFeature(config,"Hotstreak charge","HotstreakCharge",
                 &config.hotstreakChargeEnabled,&config.hotstreakChargeMultiplier,
                 0.0f,100.0f,2.0f,"%.2fx",
@@ -344,13 +345,13 @@ void Draw(Context& c) {
             DrawTunableFeature(config,"Wrath (Courroux) charge","WrathCharge",
                 &config.wrathChargeEnabled,&config.wrathChargeMultiplier,
                 0.0f,100.0f,2.0f,"%.2fx",
-                "Experimental: native Wrath value found; gain function not confirmed yet.",
-                charge.wrathReady,"Experimental");
+                "Candidate value observed; recharge multiplier has no confirmed gameplay effect.",
+                charge.wrathReady,charge.wrathReady?"Unverified gain path":"Hook unavailable");
             DrawTunableFeature(config,"Ultimate Form / Chaos charge","UltimateCharge",
                 &config.ultimateChargeEnabled,&config.ultimateChargeMultiplier,
                 0.0f,100.0f,2.0f,"%.2fx",
-                "Experimental: Chaos gain path still unidentified in gameplay.",
-                charge.chaosReady,"Experimental");
+                "Recharge multiplier has no confirmed gameplay effect; native gain path unresolved.",
+                charge.chaosReady,charge.chaosReady?"Unverified gain path":"Hook unavailable");
             DrawTunableFeature(config,"Synergy charge","SynergyCharge",
                 &config.synergyChargeEnabled,&config.synergyChargeMultiplier,
                 0.0f,100.0f,2.0f,"%.2fx",

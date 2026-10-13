@@ -6,6 +6,15 @@ DXGI proxy and ASI plugin.
 The project is deliberately fail-open for normal runtime failures and
 **fail-closed for unsupported game executables**.
 
+## V1.12 experimental - resource status and responsive controls
+
+[**V1.12 cumulative Windows x64 TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.12_RESOURCE_STATUS_RESPONSIVE_UI_TEST.zip)
+
+Authoritative current summary; older sections below are historical. Based on cumulative V1.11 debug 0a13e93, retaining validated functions. Status: EXPERIMENTAL pending Windows CI and user gameplay validation. Main and archive untouched; existing archives preserved.
+Common tuners wrap into two rows in smaller windows and no longer place status at a fixed pixel offset. Wrath/Ultimate clearly display unverified gain paths; Synergy retains its previously validated native additive path. Native hooks, INI defaults, keyboard mappings, horse, RT/RB, native LB+Y, R3, HUD and cameras are unchanged.
+Wrath +0xEA0 -> +0x3A0 remains a candidate; AddWrath/AddChaos had zero observed callbacks. Skip Warnings remains OFF: safe presentation-only suppression has not been identified. Native startup initialization is preserved.
+[Audit, acceptance tests and cumulative TODO](docs/V1_12_RESOURCE_STATUS_RESPONSIVE_UI.md). Rollback: preserved V1.11 ZIP. Exactly four root files; compilation does not establish gameplay success.
+
 ## V1.11 experimental | More readable overlay, grouped features, less log noise
 
 [**V1.11 Windows x64 cumulative TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.11_OVERLAY_GROUPS_DEBUG_LITE_TEST.zip) · branch `debug` · four root files · previous builds archived · `main` unchanged.
