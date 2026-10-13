@@ -20,3 +20,10 @@ CI builds Windows x64 on `debug`, permanent archive `downloads/DarksidersGenesis
 
 ## CI result confirmed
 Windows x64 GitHub Actions run [38436642492](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38436642492) **SUCCESS**: compiled Release, validated exactly four ZIP root entries, uploaded artifact and published permanent debug archive. [V1.15 ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.15_RESOURCE_GAINS_AUDIT_TEST.zip), 748509 bytes, Git blob SHA1 `0be3185fbaad8629b52cd62e9e1f1f61866afc1d`. `main`/`archive` unchanged; gameplay verification pending.
+
+
+## User's V1.15 audit log - 2026-10-13 19:40–19:47
+
+Observed totals: Synergy SetCurrentSynergy=81 (local=81), positive=28, boosted=28. Native additive helper observed=81, verified local=81, boosted=28. Classification: positive=28; zero=53; negative=0; invalid=0; positiveNotBoosted=0. Setter: gainFromAdd=28, gainDirectSet=0, unchanged=53, decreased=0, invalid=0. Samples: A=1.85899997, B=3, C=1 yields native=5.57699966, multiplied to 11.1539993; and 0.449999988*3*1=1.3499999 doubled to 2.69999981. Zero-gain calls had factor B=0. This fully accounts for 81 calls in the trace, with no skipped positive Synergy additive gain detected. Still no proof that every gem and enemy reward uses this function outside the tested actions. Wrath/Chaos native Add counters remain 0; Wrath candidate rises=4 falls=3. No gain path modifications justified yet.
+
+The user separately validated the integrated ASI updater after using this build. Do not treat that as proof of rollback or failure recovery scenarios.
