@@ -1,3 +1,13 @@
+## V1.14U - IN-GAME ASI Updates menu (Windows x64 TEST)
+
+[**Download cumulative V1.14U ZIP with integrated updater**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.14_Z_ASI_UPDATER_TEST.zip) · `debug` only · **Windows build verified, gameplay test pending**.
+
+Press Insert in the game, open the **Updates** tab (before the last About/Info tab). `Beta updates` unchecked chooses **main** stable (currently V0.72), checked chooses **debug** experimental (current V1.14U). Click `Check for Updates`; choose `Install on Game Exit` and confirm to stage a mod update. `Restore Previous` queues rollback with confirmation. There are **no automatic downgrades**, and the menu warns when the selected channel offers an older build.
+
+The post-exit helper is **embedded inside DarksidersGenesisMod.asi**, so the normal ZIP retains exactly FOUR root files. The helper waits for the game to close, verifies the exact ZIP checksum, game executable and Windows x64 binaries, backs up previous files under `%LOCALAPPDATA%\DarksidersGenesisEnhancedUpdater` and preserves a personalized mod INI. It never replaces loaded game DLLs. The original [V1.14 pointer/reset test ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.14_TPS_POINTER_INFO_RESET_TEST.zip) remains available. The new ASI updates do not automatically read or upload logs.
+
+[Technical implementation and test checklist](docs/V1_14U_INMENU_UPDATER.md) · [Windows Actions CI](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38430137501).
+
 ## V1.14 experimental - TPS cursor option and reset in Info only
 
 [**V1.14 cumulative Windows x64 TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.14_TPS_POINTER_INFO_RESET_TEST.zip) · `debug` only, gameplay validation pending.

@@ -1,3 +1,8 @@
+# Current test: V1.14U integrated ASI updater (2026-10-13)
+
+V1.14U adds Updates tab to ASI. Beta OFF=main stable (currently V0.72), ON=debug beta. GitHub check asynchronous, user-confirmed install on game exit and rollback. Post-exit WinForms .NET helper compiled and embedded as RCDATA into ASI; retains normal four file ZIP. Previous V1.14 pointer/Info-reset features unchanged. Build run [38430137501](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38430137501) SUCCESS, ZIP [V1.14U](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.14_Z_ASI_UPDATER_TEST.zip) 745505 bytes. Real game install/restore not yet tested; treat as experimental. Technical note: [V1_14U](V1_14U_INMENU_UPDATER.md).
+
+---
 # Current active test: V1.14 cursor/reset UI (2026-10-13)
 
 V1.13 user log audited (supported EXE, TPS=1, Synergy 122/60; Wrath/Chaos Add=0). V1.14 on debug adds `ShowTPSMousePointer=0` opt-in control and consolidates the two duplicate INI full reset buttons into the final About tab, preserving confirmation and backup. UI V1.12 user-validated; Windows x64 CI run 38427995840 succeeded; verified four-file ZIP published at downloads/DarksidersGenesis_V1.14_TPS_POINTER_INFO_RESET_TEST.zip; V1.14 still needs gameplay testing. Four-root-file ZIP, main/archive untouched. Read [V1.14 details](V1_14_TPS_POINTER_INFO_RESET.md).

@@ -1,3 +1,7 @@
+## V1.14U ASI updater integrated (2026-10-13)
+
+Experimental updates interface inside ASI: Beta=0 main / Beta=1 debug, Check for Updates on background WinHTTP, Install on Game Exit and Restore Previous with dialogs. Post-exit helper compiled with x64 csc, embedded as RCDATA resource 101. After user confirms, helper extracted to LOCALAPPDATA and launched detached to wait for process exit; checks supported EXE and GitHub package blob, verifies four root ZIP files, preserves personal INI, backs up and restores binaries. No fifth root ZIP file. Windows Actions [38430137501](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38430137501) passed; archive `DarksidersGenesis_V1.14_Z_ASI_UPDATER_TEST.zip` 745505 bytes published. In-game behavior not yet validated. [Full note](V1_14U_INMENU_UPDATER.md).
+
 ## V1.14 TPS cursor opt-in, Info reset consolidation (2026-10-13)
 
 Only new cursor behavior is the `ShowTPSMousePointer=0` config toggle. Both native and Win32 TPS automatic cursor hiding check the inverse toggle; Hide Reticle retains priority. The menu offers a checkbox under HUD/aiming effects, OFF by default. V1.13 reset duplicates were identical entry points to one method; consolidated into About and kept per-control Defaults. User V1.13 log: Synergy 122/60 positive boosts, Wrath/Chaos hooks zero, candidate 4 rises/2 falls; 610 TPS foot forward injections, no horse or charged-shot test. Unexpected BaseJuice diagnostic and ScaleType integer warrant separate investigation. See [V1.14 note](V1_14_TPS_POINTER_INFO_RESET.md).

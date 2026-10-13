@@ -19,3 +19,7 @@ Source line: V1.14 TPS-pointer option (OFF) and About-only factory reset unchang
 * Versioned cumulative test ZIP: `downloads/DarksidersGenesis_V1.14_Z_ASI_UPDATER_TEST.zip` on `debug`, exactly four root files (dxgi.dll, DarksidersGenesisMod.asi, DarksidersGenesisMod.ini, README.md). Suffix Z lets the existing numeric/lexical updater pick the new V1.14 build over the original V1.14 test package.
 * Windows CI must compile Release x64 with C# embedded helper and resource, verify the ZIP root, upload and publish it. Gameplay validation remains necessary.
 * Test: Beta OFF main (currently latest V0.72, explicitly older), Beta ON debug (V1.14U); Check non-blocking, correct no-update status; install newer future build, quit game and relaunch, verify preserve INI, backup, restore; ensure no unrelated gameplay, HUD, controller, pointer/Alt-Tab or About/Info reset regression.
+
+## CI verification
+
+Windows x64 GitHub Actions [run 38430137501](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38430137501) completed successfully including C# embedded helper compiler, RC resource, C++ compilation and exactly four ZIP-root file validation. Published V1.14U ZIP: `downloads/DarksidersGenesis_V1.14_Z_ASI_UPDATER_TEST.zip`, 745505 bytes. No user gameplay confirmation yet. Rebuilding after README changes may update ZIP hash/size but keeps the numbered original V1.14 untouched.
