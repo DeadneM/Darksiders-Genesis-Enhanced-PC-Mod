@@ -1,5 +1,12 @@
 # CURRENT_STATE | Darksiders Genesis Enhanced PC Mod
 
+## 2026-10-13: V1.07 TPS LB+Y charged attack aim bridge + 0-100 charge factors
+
+Latest V1.06 user log: Synergy native owner verified for all 443 calls, 94 boosted positive gains, native additive gain path and ABI validated, user confirms it works. User changed factor to 25x (log 1.5 -> 37.5); preserve user settings. Wrath/Ultimate AddWrath/AddChaos 0 native calls, still not demonstrated. Hotstreak max raised to 100x; Wrath, Ultimate, Synergy min0 max100, all default 2x and ON. Zero factor suppresses positive earned points at hooked functions.
+
+TPS charged LB+Y issue: V1.06 early return game-facing XInput whenever radial LB held, which skipped CAMERA_FORWARD XInput RX=0/RY=32767 for charged Y. V1.07 only bypasses wheel early-return when BOTH configurable wheel and charged button held, and treats chord as firing for native TPS camera-view look hooks. Ordinary wheel remains native (original V0.98), native R3 remains selected gear use/stow. Charged button default Y=0x8000, new persist/rebind TPSChargedFirePadMask; wheel binding retains TPSWheelPadMask LB=0x0100. When charged bind custom and held with wheel, translate to native Y in GAME-FACING XInput; camera original XInput unchanged. Keep separate timeout and counters, no synthetic mouse/keyboard. Native shot alignment remains in-game verification pending, and no projectile/raycast hooks have been added. Skip Warning remains quarantined. See V1_07_GAUGES100_TPS_LB_Y_CHARGED_AIM.md.
+
+
 ## V1.06 final Synergy additive hook (2026-10-13)
 
 Exact native gain helper RVA `0x65A1A0` computes `GetCurrentSynergy(holder) + factorA*factorB*factorC` then tailcalls `SetCurrentSynergy`. Two direct gameplay callsites at RVAs `0x67EA9F` and `0x67EAD7` use this helper. V1.06 hooks its additive factor C only for positive local gains validated by the native holder+0x5C0 character getter (0x56BE70); setter is now always pass-through so legitimate spends/resets are preserved. `float` return restored for native setter ABI. New `Gauge V1.06 ADD_SYNERGY` and `additive totals` log lines separate requested/current from actual gains. V1.05 no-boost issue may be resolved for this source path, pending user gameplay validation. Other gauges remain research.

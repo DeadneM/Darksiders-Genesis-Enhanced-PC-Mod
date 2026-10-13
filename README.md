@@ -6,24 +6,21 @@ DXGI proxy and ASI plugin.
 The project is deliberately fail-open for normal runtime failures and
 **fail-closed for unsupported game executables**.
 
-## Current project state: V1.06 Synergy ABI/ownership native test
+## Current project state: V1.07 LB+Y charged shot and charge multiplier ranges
 
-**Branch `debug` only. `main` unchanged.** Earlier releases V1.03, V1.04, V1.05 all preserved, and V1.05 already built and Git pushed.
+Branch **debug** remains the only development target; **main** remains unchanged. V1.06 is preserved.
 
-**[V1.06 cumulative ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.06_SYNERGY_OWNER_NATIVE_ABI_TEST.zip)** (valid after successful GitHub Actions publishing), Windows x64 with `dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md` at ZIP root.
+**V1.07 cumulative ZIP**: https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.07_CHARGED_LBY_GAUGE100_TEST.zip (valid after successful GitHub Actions build and Git push).
 
-**V1.06 final Synergy gain hook:** exact-game `RVA 0x65A1A0` computes current Synergy + three multiplied gain factors and tail-calls the absolute setter. The mod now multiplies **only positive native additive gains** for the verified holder `+0x5C0` local character. `SetCurrentSynergy` is strictly passthrough, preserving spending, resets and absolute updates. Separate `AddSynergyNative` signature-guarded hook, bounded logs and owner-match/boost counters. Gameplay effect must still be user-validated.
+- Hotstreak Charge now accepts 0 to 100x, same original default 2x. Its actual native AddJuice hook clamp is also 100x.
+- Wrath, Ultimate Form / Chaos and Synergy charge accept 0 to 100x (default 2x), consistently through slider, manual input, loading and native callbacks. 0x blocks positive earned gains at the hooked path, 1x is normal, 100x is the upper limit. **Wrath and Ultimate are not yet verified**: no AddWrath/AddChaos events in last gameplay log.
+- **Synergy remains the validated V1.06 additive native implementation.** User confirmed visual behavior. Latest log: 443 SetCurrentSynergy and AddSynergyNative callbacks, 94 amplified gains, 443/443 matched native local owner; example 1.5 -> 37.5 at user-selected 25x. SetCurrentSynergy remains pass-through.
+- **TPS charged attack LB + Y**: V1.06 immediately returned when LB opened the native equipment wheel, bypassing the existing game-facing CAMERA_FORWARD aim. V1.07 recognizes holding BOTH wheel + charged-shot inputs and permits game-facing right-stick forward injection (RX=0, RY=32767) while retaining original LB/Y game buttons. Plain LB wheel retains its original V0.98 look/selection behavior.
+- The charged-shot button is independently configurable, default gamepad Y/Triangle (TPSChargedFirePadMask=32768). The existing wheel bind TPSWheelPadMask (default LB=256) is shared and unchanged. For non-Y charged bindings, the physical button is remapped to native Y only during this chord. This changes the game's gamepad input only, NOT keyboard shortcuts, not the unfiltered TPS camera orbit. Keep wheel and shot button different.
+- Separate diagnostic entries: TPS V1.07 CHARGED LB+Y, CHARGED FORWARD and charged totals. Camera-forward can be used on foot and horse; aiming/raycast behavior requires visual test.
+- All validated R3 USE equipment/release, horse, Synergy, mouse pass-through, shader suppression, old wheel, camera values, skip intro/logos stay untouched. Skip Warning original startup lifecycle remains unchanged.
 
-### V1.05 user log / disassembly-driven corrections
-- Three toggles loaded **ON x2**, camera vanilla Height **0**, both Camera Values Default actions executed successfully, horse Camera Forward analog injected **1,352 mounted** and **42 on foot** (native bullets still must be judged in-game). All non-reported features are protected.
-- Wrath: 0 native events; Ultimate Form/Chaos: 0 native events. **Do not claim they work.** Their current AddWrath/AddChaos hooks may be incomplete paths, pending native gain-path identification.
-- Synergy setter **75 events** including 37 positive gains (normally +1.350, max 500) but **0 boosts**. Hook object `0x...D060` differs from live local player `0x...99A0` so direct pointer equality always rejected.
-- Critically, V1.05 changed the Synergy native hook return to **void**, but exact EXE shows `SetCurrentSynergy` **returns float in XMM0** and its UE Blueprint wrapper `0x7C52C2` writes the return value after calling native RVA `0x583040`. V1.06 restores the correct `float (*)(void*,float)` detour and forwards the original native return. Prior void change was a real ABI regression not caught by Windows compilation.
-- V1.06 only boosts positive delta when a **verified local owner relation** exists: exact `this==local`, UE4 UObject OuterPrivate ancestry (+0x20), or an the game's **exact native Synergy getter at RVA 0x56BE70**, returning the associated character from owner`+0x5C0`. It never blindly boosts all Synergy objects, which could impact multiplayer actors. This relation is grounded in call sites RVA 0x67E944 and RVA 0x67EA9F/0x67EAD7; no broad memory scan. Scope resolution and bounded calls logged. If no ownership link is found, Synergy remains unmodified, and log identifies the blocker.
-- Startup screen probe validated **three records**, flags `[0x39] = 1,1,0`; two active flags correspond in count to the two visible messages, but do **not** prove their actual rendering. The old whole-loop warning skip stays OFF to protect original startup initialization and crosshair. Need locate final Slate/widget display before a safe visual-only skip is possible.
-- Horse, right stick, R3 grenade/equipment use and stow, LB/G/Tab native wheels, TPS values, shaders, HUD, damage and intro/logo logic are untouched.
-
-See [V1.06 technical audit](docs/V1_06_SYNERGY_ABI_OWNER_AND_STARTUP_RESULTS.md) and [CURRENT_STATE](docs/CURRENT_STATE.md).
+See [V1.07 development notes](docs/V1_07_GAUGES100_TPS_LB_Y_CHARGED_AIM.md) and [CURRENT_STATE](docs/CURRENT_STATE.md).
 
 ## Downloads (stable links)
 
