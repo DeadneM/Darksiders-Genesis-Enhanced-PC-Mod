@@ -14,95 +14,93 @@
 namespace dg::overlay {
 namespace {
 
-void DrawTunableFeature(
-    config::Store& config,
-    const char* label,
-    const char* id,
-    bool* enabled,
-    float* value,
-    float minValue,
-    float maxValue,
-    float defaultValue,
-    const char* format,
-    const char* note,
-    bool hookReady
-) {
-    if (ImGui::Checkbox(label, enabled)) {
-        config.Save();
+// Consistent setting rows: identical control placement for combat, gauges,
+// movement and mounts. Notes stay visible, native status stays unobtrusive.
+void DrawTunableFeature(config::Store& config, const char* label,
+    const char* id, bool* enabled, float* value,
+    float minValue, float maxValue, float defaultValue,
+    const char* format, const char* note, bool hookReady,
+    const char* featureStatus=nullptr) {
+    ImGui::PushID(id);
+    if(ImGui::Checkbox(label,enabled))config.Save();
+    ImGui::SameLine(520.0f);
+    ImGui::TextDisabled("%s",featureStatus?featureStatus:
+        hookReady?"Ready":"Unavailable");
+    if(note) {
+        ImGui::Indent(22.0f);
+        ImGui::TextWrapped("%s",note);
+        ImGui::Unindent(22.0f);
     }
-
-    if (!*enabled) {
-        ImGui::SameLine(310.0f);
-        ImGui::TextDisabled("%s", hookReady ? "Hook ready" : "Hook unavailable");
-        if (note) { ImGui::Indent(); ImGui::TextDisabled("%s",note); ImGui::Unindent(); }
-        return;
-    }
-
-    ImGui::Indent();
-    ImGui::SetNextItemWidth(245.0f);
-
-    std::string sliderLabel =
-        std::string("Value##Slider_") + id;
-
-    bool changed = ImGui::SliderFloat(
-        sliderLabel.c_str(),
-        value,
-        minValue,
-        maxValue,
-        format
-    );
-
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(110.0f);
-
-    std::string inputLabel =
-        std::string("Manual##Input_") + id;
-
-    if (ImGui::InputFloat(
-            inputLabel.c_str(),
-            value,
-            0.0f,
-            0.0f,
-            "%.3f")) {
-        changed = true;
-    }
-
-    ImGui::SameLine();
-
-    std::string defaultLabel =
-        std::string("Default##Reset_") + id;
-
-    if (ImGui::Button(defaultLabel.c_str())) {
-        *value = defaultValue;
-        changed = true;
-    }
-    // V0.53: one unobtrusive status beside the selected value.
-    ImGui::SameLine();
-    ImGui::TextDisabled("%s", hookReady ? "Hook ready" : "Hook unavailable");
-    if (ImGui::IsItemHovered() && note) ImGui::SetTooltip("%s", note);
-
-    if (changed) {
-        if (*value < minValue) {
-            *value = minValue;
+    if(*enabled){
+        ImGui::Indent(22.0f);
+        ImGui::SetNextItemWidth(280.0f);
+        bool changed=ImGui::SliderFloat("Multiplier##Slider",value,
+            minValue,maxValue,format);
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(100.0f);
+        changed|=ImGui::InputFloat("##Manual",value,0.0f,0.0f,"%.2f");
+        if(ImGui::IsItemHovered())ImGui::SetTooltip("Enter an exact multiplier.");
+        ImGui::SameLine();
+        if(ImGui::Button("Default")){*value=defaultValue;changed=true;}
+        if(changed){
+            if(!std::isfinite(*value))*value=defaultValue;
+            *value=std::clamp(*value,minValue,maxValue);
+            config.Save();
         }
-        if (*value > maxValue) {
-            *value = maxValue;
-        }
-        config.Save();
+        ImGui::Unindent(22.0f);
     }
-
-    if (note) ImGui::TextDisabled("%s", note);
-    ImGui::Unindent();
+    ImGui::Spacing();
+    ImGui::PopID();
 }
 
 void DrawSectionTitle(const char* title) {
     ImGui::Spacing();
     ImGui::Separator();
-    ImGui::Text("%s", title);
-    ImGui::Separator();
+    ImGui::Spacing();
+    ImGui::TextUnformatted(title);
     ImGui::Spacing();
 }
 
+// Action, current physical key, and controls occupy distinct table columns.
+// No fixed SameLine pixel offsets: long key/action names remain readable.
+bool BeginKeyboardTable(const char* id){
+    if(!ImGui::BeginTable(id,5,
+        ImGuiTableFlags_RowBg|ImGuiTableFlags_BordersInnerH|
+        ImGuiTableFlags_SizingStretchProp))return false;
+    ImGui::TableSetupColumn("Action",ImGuiTableColumnFlags_WidthStretch,3.3f);
+    ImGui::TableSetupColumn("Current key",ImGuiTableColumnFlags_WidthStretch,1.4f);
+    ImGui::TableSetupColumn("Change",ImGuiTableColumnFlags_WidthFixed,95.0f);
+    ImGui::TableSetupColumn("Clear",ImGuiTableColumnFlags_WidthFixed,72.0f);
+    ImGui::TableSetupColumn("Reset",ImGuiTableColumnFlags_WidthFixed,76.0f);
+    ImGui::TableHeadersRow();
+    return true;
+}
+void DrawKeyboardRow(Context& c,config::Store& config,const char* label,
+    int& value,int original,int bindingIndex){
+    ImGui::PushID(bindingIndex);
+    ImGui::TableNextRow();
+    ImGui::TableSetColumnIndex(0);
+    ImGui::TextWrapped("%s",label);
+    ImGui::TableSetColumnIndex(1);
+    const std::string name=config::KeyDisplayName(value);
+    if(value)ImGui::Text("%s",name.c_str());
+    else ImGui::TextDisabled("UNBOUND");
+    ImGui::TableSetColumnIndex(2);
+    const bool capturing=c.captureCameraKeyIndex->load()==bindingIndex;
+    if(ImGui::Button(capturing?"Press key...":"Change",ImVec2(-1.0f,0.0f))){
+        c.captureMenuKey->store(false);
+        c.captureCameraKeyIndex->store(bindingIndex);
+    }
+    ImGui::TableSetColumnIndex(3);
+    if(ImGui::Button("Clear",ImVec2(-1.0f,0.0f))){
+        value=0;c.captureCameraKeyIndex->store(-1);config.Save();
+    }
+    ImGui::TableSetColumnIndex(4);
+    if(ImGui::Button("Default",ImVec2(-1.0f,0.0f))){
+        value=original;c.captureCameraKeyIndex->store(-1);config.Save();
+    }
+    ImGui::PopID();
+}
 } // namespace
 
 void Draw(Context& c) {
@@ -120,7 +118,7 @@ void Draw(Context& c) {
     const Telemetry& t = c.telemetry;
 
     ImGui::SetNextWindowSize(
-        ImVec2(840.0f, 720.0f),
+        ImVec2(990.0f, 760.0f),
         ImGuiCond_FirstUseEver
     );
     ImGui::SetNextWindowPos(
@@ -140,6 +138,7 @@ void Draw(Context& c) {
         return;
     }
 
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,ImVec2(9.0f,8.0f));
     ImGui::Text(
         "ASI Overlay  v%s",
         c.build ? c.build : "unknown"
@@ -358,54 +357,31 @@ void Draw(Context& c) {
                 t.finalDamageHookReady
             );
 
-            DrawTunableFeature(
-                config,
-                "Hotstreak Charge",
-                "HotstreakCharge",
-                &config.hotstreakChargeEnabled,
-                &config.hotstreakChargeMultiplier,
-                0.00f,
-                100.00f,
-                2.00f,
-                "%.2fx",
-                "Multiplies earned Hotstreak charge.",
-                t.hotstreakHookReady
-            );
-
-            { // V1.03: three always-visible independent native gain controls.
-                DrawSectionTitle("Wrath / Ultimate Form / Synergy");
-                const auto charge=dg::gauges::GetTelemetry();
-                ImGui::TextDisabled("Native hooks: Wrath %s | Ultimate/Chaos %s | Synergy %s",
-                    charge.wrathReady?"READY":"UNAVAILABLE",
-                    charge.chaosReady?"READY":"UNAVAILABLE",
-                    charge.synergyReady?"READY":"UNAVAILABLE");
-                ImGui::TextWrapped("ON by default: these native resource hooks are experimental. Verify in combat.");
-                auto GaugeRow=[&](const char* label,const char* id,bool& enabled,float& value){
-                    if(ImGui::Checkbox(label,&enabled))config.Save();
-                    ImGui::PushID(id);
-                    bool changed=false;
-                    ImGui::SetNextItemWidth(220.0f);
-                    changed|=ImGui::SliderFloat("##Slider",&value,0.0f,100.0f,"%.2fx");
-                    ImGui::SameLine();
-                    ImGui::SetNextItemWidth(115.0f);
-                    changed|=ImGui::InputFloat("##Manual",&value,0.0f,0.0f,"%.3f");
-                    ImGui::SameLine();
-                    if(ImGui::Button("Default")){value=2.0f;changed=true;}
-                    if(changed){
-                        if(!std::isfinite(value))value=2.0f;
-                        value=std::clamp(value,0.0f,100.0f);
-                        config.Save();
-                    }
-                    ImGui::PopID();
-                };
-                GaugeRow("Wrath charge","wrath",config.wrathChargeEnabled,config.wrathChargeMultiplier);
-                GaugeRow("Ultimate Form / Chaos charge","chaos",config.ultimateChargeEnabled,config.ultimateChargeMultiplier);
-                GaugeRow("Synergy charge","synergy",config.synergyChargeEnabled,config.synergyChargeMultiplier);
-                ImGui::TextDisabled("Calls W/C/S: %u/%u/%u | multiplied %u/%u/%u",
-                    charge.wrathObserved,charge.chaosObserved,charge.synergyObserved,
-                    charge.wrathBoostCalls,charge.chaosBoostCalls,charge.synergyBoostCalls);
-            }
-
+            DrawSectionTitle("Resource recharge");
+            const auto charge=dg::gauges::GetTelemetry();
+            ImGui::TextDisabled("x0 stops positive gains; x1 is vanilla. All values save to the INI.");
+            DrawTunableFeature(config,"Hotstreak charge","HotstreakCharge",
+                &config.hotstreakChargeEnabled,&config.hotstreakChargeMultiplier,
+                0.0f,100.0f,2.0f,"%.2fx",
+                "Multiplier for earned Hotstreak charge.",
+                t.hotstreakHookReady);
+            DrawTunableFeature(config,"Wrath (Courroux) charge","WrathCharge",
+                &config.wrathChargeEnabled,&config.wrathChargeMultiplier,
+                0.0f,100.0f,2.0f,"%.2fx",
+                "Experimental: native Wrath value found; gain function not confirmed yet.",
+                charge.wrathReady,"Experimental");
+            DrawTunableFeature(config,"Ultimate Form / Chaos charge","UltimateCharge",
+                &config.ultimateChargeEnabled,&config.ultimateChargeMultiplier,
+                0.0f,100.0f,2.0f,"%.2fx",
+                "Experimental: Chaos gain path still unidentified in gameplay.",
+                charge.chaosReady,"Experimental");
+            DrawTunableFeature(config,"Synergy charge","SynergyCharge",
+                &config.synergyChargeEnabled,&config.synergyChargeMultiplier,
+                0.0f,100.0f,2.0f,"%.2fx",
+                "Multiplies verified local Synergy gains through the native additive path.",
+                charge.synergyReady,charge.synergyReady?"Validated":"Unavailable");
+            ImGui::TextDisabled("Light debug: Wrath %u / Ultimate %u calls; Synergy %u boosts",
+                charge.wrathObserved,charge.chaosObserved,charge.synergyBoostCalls);
             ImGui::TextDisabled("Observed in-game: pistol %d | melee-like %d | Hotstreak %d",
                 t.pistolDamageBoostCalls,t.meleeDamageBoostCalls,t.hotstreakBoostCalls);
             if (ImGui::TreeNode("Advanced combat diagnostics")) {
@@ -1285,6 +1261,7 @@ void Draw(Context& c) {
         c.lastAction->c_str()
     );
 
+    ImGui::PopStyleVar();
     ImGui::End();
 
     if (!open) {
