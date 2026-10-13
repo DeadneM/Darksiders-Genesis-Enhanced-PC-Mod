@@ -1,3 +1,9 @@
+## V1.17 experimental - TPS native Windows cross cursor repair
+
+[**Download V1.17 cumulative TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.17_CROSS_CURSOR_REPAIR_TEST.zip) · debug only, in-game validation pending.
+
+V1.16 user testing reported the **cross-shaped cursor bug again** with ThirdPerson=1 and ShowTPSMousePointer=1 as requested defaults. V1.17 keeps both defaults ON and addresses only the **Windows stock IDC_CROSS** cursor in verified active TPS gameplay, replacing its visible shape with an arrow while allowing the pointer to remain on. Overlay, wheels, cutscenes, Alt-Tab, Hide Reticle and all gameplay logic remain isolated. V1.17 logs bounded `TPS V1.17 CURSOR_PROBE` and `CROSS_CURSOR` messages; if a custom or in-engine crosshair is responsible, the targeted OS replacement alone may not cure it, and user log will help determine that. Safe logo initialization preserved and Skip Warning still disabled. See [V1.17 technical notes](docs/V1_17_CROSS_CURSOR_REPAIR.md).
+
 ## V1.16 experimental: TPS ON + visible native pointer by default, safe StartupScreens audit
 
 [**Download V1.16 cumulative Windows x64 TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.16_TPS_DEFAULTS_STARTUP_AUDIT_TEST.zip) · debug only · in-game validation pending.

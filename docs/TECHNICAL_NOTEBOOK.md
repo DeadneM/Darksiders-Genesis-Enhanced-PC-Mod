@@ -1,3 +1,7 @@
+## V1.17 targeted stock OS cross cursor repair (2026-10-13)
+
+Despite preserved MoviePlayer attach and safe V0.52 exact two-logo substitution, user V1.16 reports cross cursor regression. V1.16 first launches TPS=1 and ShowTPSMousePointer=1 as defaults, so previously hidden native OS cursor could be exposed. New V1.17 stock IDC_CROSS -> IDC_ARROW substitution is gated to focused live TPS gameplay, no overlay/HideReticle/wheel/cutscene, and bounded diagnostics mark actual source. Not a global crosshair/UI override and not proof this caused bug. No startup changes. Details [V1.17](V1_17_CROSS_CURSOR_REPAIR.md).
+
 ## V1.16 (2026-10-13): defaults and rejected startup patch comparison
 
 New factory/shipped/fallback TPS=1 and ShowTPSMousePointer=1; UI label now says ON by default. Existing user saved INIs preserved by updater. See [V1.16 comparison](V1_16_TPS_DEFAULTS_STARTUP_COMPARISON.md) for 0.19A startup-module shortcut (also bypassed intro), V0.19B zero movies (also bypassed intro), V0.19C 19-byte MoviePlayer attachment skip (cross cursor regression), V0.44 unsafe observer crash, and current V0.52 targeted logo path preservation. Skip Warning quarantined: 3x0x40 definitions read-only, no justified evidence that bypassing initialization loop suppresses two actual warning frames. New mouse camera orbit remains optional experimental future build: previous V0.98 RAW-based camera worked while not shooting, but mouse fire was unreliable. No startup or input hook modified in V1.16.

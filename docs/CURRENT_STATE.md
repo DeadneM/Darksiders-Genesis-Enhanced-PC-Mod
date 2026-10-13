@@ -1,3 +1,8 @@
+# V1.17 targeted OS cross cursor repair (2026-10-13)
+
+User V1.16 log and feedback: cross cursor bug present after ThirdPerson=1 and ShowTPSMousePointer=1 default changes, exact V1.16 and supported EXE loaded. Safe two-logo substitution and MoviePlayer attachment preserved; **do not blame historical aggressive bypass without evidence**. Tentative cause: native Windows cursor now exposed in TPS. V1.17 keeps both new defaults ON and replaces only system IDC_CROSS with arrow under active focused TPS gameplay, while allowing other cursors/game UI unchanged. Adds bounded V1.17 CURSOR_PROBE/CROSS_CURSOR and config pointer field to discriminate OS cross vs custom drawn cross. In-game validation pending. Preserve updater validated, V1.15 resource audit, reset About, horse/gamepad. [V1.17 notes](V1_17_CROSS_CURSOR_REPAIR.md). Incremental numeric version; next V1.18.
+
+---
 # V1.16 default TPS=1 + mouse pointer=1; startup safety audit (2026-10-13)
 
 New defaults in ASI member/runtime Snapshot/State, `Store::ResetDefaults()`, missing-key fallbacks and packaged INI: `ThirdPerson=1`, `ShowTPSMousePointer=1`. Existing user INI values never overwritten by updater or defaults. Current startup MoviePlayer attachment unchanged; historical V0.19C bypass was proven to cause cursor regression, so skip warning kept quarantined. New planned TPS mouse camera is independent opt-in, OFF by default, to be implemented only with safe previous V0.98 RAW/WM_MOUSEMOVE baseline and explicit gameplay testing in next V1.17+. Windows x64 CI and in-game confirmation pending. [V1.16 full comparison](V1_16_TPS_DEFAULTS_STARTUP_COMPARISON.md). Continue strict V1.16 -> V1.17 numeric versioning.
