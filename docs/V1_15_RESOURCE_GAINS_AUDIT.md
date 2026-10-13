@@ -17,3 +17,6 @@ The code modifies native additive input `C` in `(A*B)*C` rather than writing an 
 With Synergy x2 ON, isolate **one enemy kill without grabbing a gem** versus **one collected gem without fighting** and note rough timestamps. Then use some Wrath/Ultimate-giving gems and actions. Report the log at exit. Compare `ADD_CLASS` triples, `SET_CLASS` direct gains, and `WRATH CANDIDATE` deltas. This identifies which events are positive and whether pickup/kill paths differ, without modifying gameplay based on guesses.
 
 CI builds Windows x64 on `debug`, permanent archive `downloads/DarksidersGenesis_V1.15_RESOURCE_GAINS_AUDIT_TEST.zip` with 4 root files. Keep prior builds for rollback; `main`/`archive` untouched. Gameplay tests still pending.
+
+## CI result confirmed
+Windows x64 GitHub Actions run [38436642492](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38436642492) **SUCCESS**: compiled Release, validated exactly four ZIP root entries, uploaded artifact and published permanent debug archive. [V1.15 ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.15_RESOURCE_GAINS_AUDIT_TEST.zip), 748509 bytes, Git blob SHA1 `0be3185fbaad8629b52cd62e9e1f1f61866afc1d`. `main`/`archive` unchanged; gameplay verification pending.
