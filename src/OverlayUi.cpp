@@ -357,9 +357,12 @@ void Draw(Context& c) {
                 &config.synergyChargeEnabled,&config.synergyChargeMultiplier,
                 0.0f,100.0f,2.0f,"%.2fx",
                 "Multiplies verified local Synergy gains through the native additive path.",
-                charge.synergyReady,charge.synergyReady?"Validated":"Unavailable");
-            ImGui::TextDisabled("Light debug: Wrath %u / Ultimate %u calls; Synergy %u boosts",
-                charge.wrathObserved,charge.chaosObserved,charge.synergyBoostCalls);
+                charge.synergyReady,charge.synergyReady?"Additive gains verified":"Unavailable");
+            ImGui::TextDisabled("Synergy: %u gains boosted / %u setter calls (not all calls are gains)",
+                charge.synergyBoostCalls,charge.synergyObserved);
+            ImGui::TextDisabled("Wrath: %u calls | Ultimate: %u calls (gain paths unverified)",
+                charge.wrathObserved,charge.chaosObserved);
+            ImGui::TextDisabled("V1.15 gain-value categories are recorded in the per-session log.");
             ImGui::TextDisabled("Observed in-game: pistol %d | melee-like %d | Hotstreak %d",
                 t.pistolDamageBoostCalls,t.meleeDamageBoostCalls,t.hotstreakBoostCalls);
 
