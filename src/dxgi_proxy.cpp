@@ -236,21 +236,8 @@ static void ProbeStartupDefinitions(){
             unsigned(entry[0x38]),unsigned(entry[0x39]));
         LogLoader(line);
         if(entry[0x39])++activeCount;
-        // Display-only warning removal requires identifying records first.
-        // V1.09 fingerprints the records' raw native fields without
-        // interpreting arbitrary UObject/FText pointers or changing data.
-        uint64_t field0=0,field8=0,field20=0,field28=0;
-        std::memcpy(&field0,entry,sizeof(field0));
-        std::memcpy(&field8,entry+8,sizeof(field8));
-        std::memcpy(&field20,entry+0x20,sizeof(field20));
-        std::memcpy(&field28,entry+0x28,sizeof(field28));
-        swprintf_s(line,L"StartupScreens V1.09 READONLY record[%d]: words0=%016llX/%016llX payload20=%016llX/%016llX active=%u; no UI stage skipped",
-            i,static_cast<unsigned long long>(field0),
-            static_cast<unsigned long long>(field8),
-            static_cast<unsigned long long>(field20),
-            static_cast<unsigned long long>(field28),
-            unsigned(entry[0x39]));
-        LogLoader(line);
+        // Two user-confirmed warning pages are drawn later: save notice,
+        // controller notice. Record preparation is NOT presentation.
     }
     StartupTimeline(L"STARTUP_RECORDS_ENABLED_NOT_PROOF_OF_DRAW",activeCount);
 }
