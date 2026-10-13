@@ -37,7 +37,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.09-charged-path-gauges-startup-audit-test";
+constexpr const char* kBuild = "1.10-native-LBY-startup-timeline-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1502,9 +1502,7 @@ bool IsMountedTPSNow() {
 }
 bool IsTPSRadialInputActive() {
     const auto now=GetTickCount64();
-    const auto chargedTick=g_tpsChargeChordTick.load(std::memory_order_acquire);
-    if(g_tpsChargeChordHeld.load(std::memory_order_acquire)&&chargedTick&&
-       now>=chargedTick&&now-chargedTick<=180ull)return false;
+    // V1.10: no charged-key exception to LB's native radial selection.
     const auto& rt=dg::runtime::Get();
     if(!rt.tpsAbilityWheelHeld.load(std::memory_order_acquire))return false;
     const auto tick=rt.tpsAbilityWheelTick.load(std::memory_order_acquire);
@@ -1659,9 +1657,8 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     // V0.87: Vanilla Aim means NATIVE look ONLY WHILE FIRING.
     // Off-fire the right stick is camera-only, never simultaneously
     // turning the horseman's aim. This is independent of on-foot toggles.
-    const bool chargedFire=g_tpsChargeChordHeld.load(std::memory_order_acquire);
     if(rt.tpsMountedAimMode.load()==1){
-        if(fire&&!chargedFire)return result;
+        if(fire)return result;
         if(IsRightStickActiveNow()){
             result->pitch=0.0f;result->yaw=0.0f;result->roll=0.0f;
             const unsigned n=++g_tpsMountedIdleNativeLookBlocks;
@@ -1697,11 +1694,6 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
             result->pitch=std::cos(rad);
             result->yaw=std::sin(rad);
             result->roll=0.0f;
-            if(chargedFire){
-                const unsigned c=++g_tpsChargeLookVectorApplied;
-                if(c==1||c==120||c==1000)
-                    Log("TPS V1.08 CHARGED NATIVE LOOK: forward vector to camera yaw=%.1f n=%u LB+Y preserved",yaw,c);
-            }
             const unsigned n=++g_tpsNativeLookInputPadAim;
             if(n==1||n==120||n==10000)
                 Log("TPS V1.02: controller LOOK VECTOR -> camera during fire n=%u yaw=%.1f calls=%u",
@@ -1737,8 +1729,7 @@ NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
     const bool playerStrafe=padFire; // identical native look semantics on foot/horse
     // During mounted Vanilla Aim fire, native look rotation is untouched.
     // While idle, suppress right-stick-origin horseman aim.
-    if(rt.tpsMountedAimMode.load()==1 && padFire &&
-       !g_tpsChargeChordHeld.load(std::memory_order_acquire))return result;
+    if(rt.tpsMountedAimMode.load()==1 && padFire)return result;
     const bool nativeBlock=rt.tpsCameraStickMode.load()!=0&&IsRightStickActiveNow();
     const float actorYaw=g_tpsActorWorldYaw.load(std::memory_order_acquire);
     const float cameraYaw=dg::camera_trace::GetTelemetry().appliedYaw;
@@ -1750,11 +1741,6 @@ NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
         result->pitch=0.0f;
         result->yaw=std::remainder(cameraYaw,360.0f);
         result->roll=0.0f;
-        if(g_tpsChargeChordHeld.load(std::memory_order_acquire)){
-            const unsigned c=++g_tpsChargeLookRotationApplied;
-            if(c==1||c==120||c==1000)
-                Log("TPS V1.08 CHARGED ROTATION: native camera aim yaw=%.1f n=%u",cameraYaw,c);
-        }
         const unsigned n=++g_tpsPadStrafeApplied;
         if(n==1||n==120||n==10000)
             Log("TPS V1.02: controller look rotation -> camera n=%u yaw=%.1f",
@@ -2946,16 +2932,14 @@ bool GamepadBindingDown(int mask,const XINPUT_GAMEPAD& pad) {
     if(mask==0x20000)return pad.bRightTrigger>=XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
     return (pad.wButtons&static_cast<WORD>(mask))!=0;
 }
+// Native LB+Y remains fully game owned. The chord detector is telemetry only.
 bool TPSChargeChordDown(const XINPUT_GAMEPAD& pad){
-    const int wheel=g_config.tpsWheelPadMask;
-    const int shot=g_config.tpsChargedFirePadMask;
-    return wheel && shot && wheel!=shot && GamepadBindingDown(wheel,pad) &&
-        (GamepadBindingDown(shot,pad) || (pad.wButtons&XINPUT_GAMEPAD_Y)!=0);
+    return (pad.wButtons&XINPUT_GAMEPAD_LEFT_SHOULDER)!=0 &&
+        (pad.wButtons&XINPUT_GAMEPAD_Y)!=0;
 }
 bool TPSFireDown(const XINPUT_GAMEPAD& pad) {
     return GamepadBindingDown(g_config.tpsFirePrimaryMask,pad) ||
-        GamepadBindingDown(g_config.tpsFireSecondaryMask,pad) ||
-        TPSChargeChordDown(pad);
+        GamepadBindingDown(g_config.tpsFireSecondaryMask,pad);
 }
 void ApplyHoldGrenadeVirtualR3(XINPUT_GAMEPAD& pad,int mask) {
     const ULONGLONG now=GetTickCount64();
@@ -3072,25 +3056,16 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
                 t,priorMode,mode,unsigned(pad.wButtons),
                 unsigned(pad.bRightTrigger),unsigned(pad.bLeftTrigger),
                 int(pad.sThumbRX),int(pad.sThumbRY),
-                mode==3?"NATIVE_LOOK_ONLY":mode==2?"STICK_UP":"NONE");
+                mode==3?"NATIVE_PASSTHROUGH":mode==2?"STICK_UP":"NONE");
     }
     g_tpsChargeChordHeld.store(chargedChord,std::memory_order_release);
     if(chargedChord){
         g_tpsChargeChordTick.store(chordNow,std::memory_order_release);
         const unsigned n=++g_tpsChargeChordSamples;
         if(n==1||n==100||n==1000)
-            Log("TPS V1.08 CHARGED LB+Y: wheelMask=0x%X chargedMask=0x%X n=%u",
-                g_config.tpsWheelPadMask,g_config.tpsChargedFirePadMask,n);
-        // Rebind the physical charged key to native Y only in this chord.
-        const int mask=g_config.tpsChargedFirePadMask;
-        if(mask!=XINPUT_GAMEPAD_Y&&GamepadBindingDown(mask,pad)){
-            if(mask==0x10000)pad.bLeftTrigger=0;
-            else if(mask==0x20000)pad.bRightTrigger=0;
-            else pad.wButtons&=static_cast<WORD>(~static_cast<WORD>(mask));
-            pad.wButtons|=XINPUT_GAMEPAD_Y;
-        }
+            Log("TPS V1.10 LB+Y unmodified n=%u nativeButtons=0x%04X",n,unsigned(pad.wButtons));
     }
-    if(wheelDown&&!chargedChord){
+    if(wheelDown){
         auto& wheelRt=dg::runtime::Get();
         wheelRt.tpsAbilityWheelHeld.store(true,std::memory_order_release);
         wheelRt.tpsAbilityWheelTick.store(chordNow,std::memory_order_release);
@@ -3105,7 +3080,7 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
         ApplyHoldGrenadeVirtualR3(pad,grenadeMask);
     if(!ShouldSuppressNativeAim())
         return status; // Preserve vanilla aim while temporary view is held.
-    if(GamepadBindingDown(g_config.tpsWheelPadMask,pad)&&!chargedChord){
+    if(GamepadBindingDown(g_config.tpsWheelPadMask,pad)){
         auto& wheelRt=dg::runtime::Get();
         wheelRt.tpsAbilityWheelHeld.store(true,std::memory_order_release);
         wheelRt.tpsAbilityWheelTick.store(GetTickCount64(),std::memory_order_release);
@@ -3119,20 +3094,9 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     if(fire) g_tpsFireLastTick.store(GetTickCount64());
     rt.tpsAimActive.store(fire);
 
-    // V1.08: XInput RY=32767 while LB is down navigates the wheel!
-    // Keep LB+Y native and neutralize wheel axes; the equivalent forward
-    // camera aim is applied only in native GetPlayerLookInput/Rotation.
-    // Existing RT/RB stick-UP injection is kept unchanged.
+    // V1.10: ONLY R1/R2 may receive synthetic stick-UP aim.
+    // LB+Y exits unmodified by native LB-wheel passthrough above.
     const bool mountedForForward=IsMountedTPSNow();
-    if(chargedChord){
-        pad.sThumbRX=0;
-        pad.sThumbRY=0;
-        const unsigned c=++g_tpsChargeForwardInjected;
-        if(c==1||c==120||c==1000)
-            Log("TPS V1.08 CHARGED XINPUT: LB+Y native, wheel axes neutral; forward in native look n=%u scope=%s",
-                c,mountedForForward?"HORSE":"FOOT");
-        return status;
-    }
     if(rt.tpsMountedAimMode.load()==0&&fire){
         pad.sThumbRX=0;
         pad.sThumbRY=32767;
@@ -3732,7 +3696,7 @@ void UpdateOrbitInput() {
     const bool chargedPhysical=padAvailable&&g_config.thirdPersonEnabled&&
         TPSChargeChordDown(physical.Gamepad);
     const bool wheelOpen=focused && (
-        (padAvailable&&!chargedPhysical&&GamepadBindingDown(g_config.tpsWheelPadMask,physical.Gamepad)) ||
+        (padAvailable&&GamepadBindingDown(g_config.tpsWheelPadMask,physical.Gamepad)) ||
         wheelKey(dg::config::TpsKeyboardAction::WheelG) ||
         wheelKey(dg::config::TpsKeyboardAction::WheelTab));
     g_tpsChargeChordHeld.store(focused&&chargedPhysical,std::memory_order_release);
@@ -4409,10 +4373,9 @@ void ShutdownMod() {
     RestoreCameraDof();
     Log("TPS V0.69 totals: mouseInputNative=PASSTHROUGH rightStickReadsFiltered=%u whileFiring=%u",
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
-    Log("TPS V1.08 charged totals: chord=%u wheelStickNeutral=%u nativeForwardLook=%u nativeRotation=%u chargedMask=0x%X wheelMask=0x%X",
+    Log("TPS V1.10 native LB+Y totals: seen=%u chargeStickWrites=%u chargeLookWrites=%u (expected 0/0) wheelMask=0x%X",
         g_tpsChargeChordSamples.load(),g_tpsChargeForwardInjected.load(),
-        g_tpsChargeLookVectorApplied.load(),g_tpsChargeLookRotationApplied.load(),
-        g_config.tpsChargedFirePadMask,g_config.tpsWheelPadMask);
+        g_tpsChargeLookVectorApplied.load(),g_config.tpsWheelPadMask);
     Log("TPS V1.09 PHASE totals: transitions=%u lookCharge=%u lookR1R2=%u lookOther=%u wrathCandidateReads=%u rises=%u falls=%u nativeRotation=%u",
         g_tpsDiagPadTransitions.load(),g_tpsDiagChargedLook.load(),
         g_tpsDiagNormalLook.load(),g_tpsDiagOtherLook.load(),
