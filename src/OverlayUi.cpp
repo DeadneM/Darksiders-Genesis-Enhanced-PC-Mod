@@ -563,8 +563,15 @@ void Draw(Context& c) {
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Native g.PlayIntroCinematicOnBoot; independent of Skip Logos");
 
-            ImGui::TextDisabled("Skip Warnings: research only (save + controller warning screens).");
-            ImGui::TextDisabled("Warning startup is preserved for reticle and UI safety.");
+            bool skipWarningsNotReady = false;
+            ImGui::BeginDisabled(true);
+            ImGui::Checkbox("Skip Warnings", &skipWarningsNotReady);
+            ImGui::EndDisabled();
+            ImGui::SameLine(310.0f);
+            ImGui::TextDisabled("Not working yet | native warning initialization protected");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("The old startup-loop bypass broke the reticle. A safe screen-display hook is not verified.");
+            ImGui::TextDisabled("Save and controller warnings are not currently skipped.");
 
             ImGui::Spacing();
             ImGui::TextDisabled("Skip Logos / Intro take effect after a game restart.");
@@ -597,19 +604,21 @@ void Draw(Context& c) {
                 camera.tpsAttachedFrames);
             ImGui::TextDisabled("Moves the camera behind the player. F5 or long L3 toggles it.");
             ImGui::Spacing();
-            if (ImGui::Checkbox("Show Mouse Pointer in TPS", &config.showTpsMousePointer)) {
-                config.Save();
-                *c.lastAction = config.showTpsMousePointer
-                    ? "TPS pointer allowed (Hide Reticle still takes priority)"
-                    : "TPS pointer hidden by default";
-                if (c.log) c.log("TPS pointer option: ShowTPSMousePointer=%d (HideReticle=%d)",
-                    config.showTpsMousePointer ? 1 : 0, config.hideReticle ? 1 : 0);
-            }
-            ImGui::TextDisabled("OFF by default (V1.15 rollback). Mouse camera movement is NOT injected.");
-            ImGui::TextDisabled("ON: native pointer visible. V1.18 logs mouse messages without changing gameplay.");
-            ImGui::Spacing();
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
+                DrawSectionTitle("TPS mouse and pointer");
+                if (ImGui::Checkbox("Show Mouse Pointer in TPS", &config.showTpsMousePointer)) {
+                    config.Save();
+                    *c.lastAction=config.showTpsMousePointer
+                        ? "TPS mouse pointer visible (TPS only)"
+                        : "TPS mouse pointer hidden (TPS only)";
+                    if(c.log)c.log("TPS V1.19 pointer preference %d; TPS active=1",
+                        config.showTpsMousePointer?1:0);
+                }
+                ImGui::TextDisabled("Visible only when Third Person is ON. Default: ON.");
+                ImGui::TextWrapped("Mouse rotates TPS camera automatically; firing uses Camera Forward. "
+                    "No second mouse firing mode or activation checkbox.");
+                ImGui::Spacing();
                 DrawSectionTitle("TPS camera attachment");
                 ImGui::TextDisabled("TPS follows the live local player permanently.");
                 ImGui::TextDisabled("TPS pivot follows player feet on the character axis.");
@@ -1096,7 +1105,7 @@ void Draw(Context& c) {
             ImGui::Spacing();
 
             const auto update = dg::update::GetStatus();
-            ImGui::Text("Running mod: V1.18 (ASI updater)");
+            ImGui::Text("Running mod: V1.19 (ASI updater)");
             const bool checked = update.hasLatest && update.checkedBeta == config.updaterBeta;
             if (checked) {
                 ImGui::Text("Latest %s build: %s",

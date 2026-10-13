@@ -1,3 +1,11 @@
+## V1.19 test: TPS mouse Camera Forward + user-requested defaults
+
+[**V1.19 cumulative Windows x64 TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.19_TPS_MOUSE_FORWARD_TEST.zip) · `debug` only, user game test pending.
+
+Rebuilt on **V1.18's canonical V1.15 code**, NOT rejected V1.16/1.17 hooks. Exactly **two defaults** changed at user's request: `ThirdPerson=1` and `ShowTPSMousePointer=1`, with the mouse pointer control *inside* active Third Person, and runtime pointer path disabled when TPS is OFF. Updater still preserves existing personal INIs.
+
+**New native TPS mouse input** (no activation checkbox, no warping, no synthetic XInput): mouse relative motion rotates the same TPS camera as original controller orbit; firing by LMB uses the same camera-forward native look vector/rotation hooks used by controller, not a competing aim mode. Movement and actual projectile/raycast behavior await user game test. **Skip Warnings** appears in Startup UI but is explicitly disabled/unavailable; no unsafe initialization skips were reintroduced. All other settings and defaults unchanged. [Detailed audit and tests](docs/V1_19_TPS_MOUSE_FORWARD.md).
+
 ## V1.18: hard rollback to validated V1.15 TPS + separate read-only audits
 
 [**Download V1.18 cumulative debug TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.18_CLEAN_V115_RESEARCH_TEST.zip) · Windows x64, in-game validation pending.

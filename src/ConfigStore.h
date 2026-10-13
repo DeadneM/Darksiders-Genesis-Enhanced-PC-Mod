@@ -156,7 +156,7 @@ public:
     bool skipLogosEnabled = true;
     bool skipIntroEnabled = true;
     bool skipWarningEnabled = true;
-    bool thirdPersonEnabled = false;
+    bool thirdPersonEnabled = true;
     bool thirdPersonFovEnabled = true;
     bool tpsFollowPlayer = true;
     bool cameraOrbitInputEnabled = true; // derived: controller-only TPS camera
@@ -193,7 +193,7 @@ public:
     bool horseSprintDurationEnabled = true;
     bool fovEnabled = false;
     bool hideReticle = false;
-    bool showTpsMousePointer = false; // opt-in: allow native mouse cursor while TPS camera is active
+    bool showTpsMousePointer = true; // used ONLY when thirdPersonEnabled; default ON
     bool hotstreakChargeEnabled = true;
     // V1.02 research controls. Fail-closed until three native charge owners are verified.
     bool wrathChargeEnabled = true;

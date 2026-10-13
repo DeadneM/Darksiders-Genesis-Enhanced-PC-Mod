@@ -1,3 +1,7 @@
+## V1.19 mouse TPS unified Camera Forward, user defaults ONLY (2026-10-13)
+
+No formerly rejected V1.17 cursor hack. Default ThirdPerson=1, ShowTPSMousePointer=1 in Store, runtime and INI, with TPS-only runtime pointer guard. Mouse control needs no UI option: native mouse RAWINPUT or WM_MOUSEMOVE fallback (not swallowed; no synthetic input) feeds existing cameraOrbit yaw/pitch, and LMB native look gets pad-equivalent TPS Camera Forward vector/rotation. Real shooting path remains to test. Skip Warnings control visually restored but disabled as unsafe, with native setup preserved. User's last 1.18 log includes no gauge positive events and mouse 413/10 calls. Cross bug MUST be retested with ShowTPSMousePointer=1, not hidden. [V1.19 note](V1_19_TPS_MOUSE_FORWARD.md).
+
 ## V1.18 canonical V1.15 rollback after V1.17 TPS regression (2026-10-13)
 
 No recycled rejected mouse/cursor patches: V1.15 source restored for TPS/reticle, config, runtime, DXGI, overlay, updater. User rejects V1.16 and V1.17. V1.18 includes only passive mouse message class counts, Wrath candidate classification correlated with charged input and prepared-warning-record flags. No camera movement, no additional Synergy multiplier changes, no startup loop short-circuits. Existing user INI is preserved and may require manual rollback of TPS/pointer values. Skip Logos remains selectable as in V1.15; controlled cold boot OFF/ON requested. [Full recovery and tests](V1_18_CLEAN_RECOVERY_RESEARCH.md).

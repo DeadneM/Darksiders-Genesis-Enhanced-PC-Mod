@@ -302,7 +302,7 @@ void Store::ResetDefaults(bool persist) {
     skipLogosEnabled = true;
     skipIntroEnabled = true;
     skipWarningEnabled = false;
-    thirdPersonEnabled = false;
+    thirdPersonEnabled = true;
     thirdPersonFovEnabled = true;
     tpsFollowPlayer = true;
     cameraOrbitInputEnabled = true;
@@ -340,7 +340,7 @@ void Store::ResetDefaults(bool persist) {
     horseSprintDurationEnabled = true;
     fovEnabled = false;
     hideReticle = false;
-    showTpsMousePointer = false;
+    showTpsMousePointer = true;
     hotstreakChargeEnabled = true;
     wrathChargeEnabled = true;
     ultimateChargeEnabled = true;
@@ -516,7 +516,7 @@ bool Store::Load() {
     // Reticle/crosshair safety rollback: native warning patch quarantined.
     skipWarningEnabled = false;
     thirdPersonEnabled =
-        ReadBool(L"Features", L"ThirdPerson", false, path_);
+        ReadBool(L"Features", L"ThirdPerson", true, path_);
     thirdPersonFovEnabled=ReadBool(L"Features",L"TPSFOV",true,path_);
     tpsFollowPlayer=true; // permanent verified player attachment
     const bool oldOrbit=ReadBool(L"Features",L"CameraControllerOrbit",true,path_);
@@ -580,7 +580,7 @@ bool Store::Load() {
     hideReticle =
         ReadBool(L"Features", L"HideReticle", false, path_);
     showTpsMousePointer =
-        ReadBool(L"Features", L"ShowTPSMousePointer", false, path_);
+        ReadBool(L"Features", L"ShowTPSMousePointer", true, path_);
     hotstreakChargeEnabled =
         ReadBool(L"Features", L"HotstreakCharge", true, path_);
     // Research presets only; no native resource writes until ownership is proven.
@@ -786,7 +786,9 @@ void Store::PublishRuntime() const {
     dg::runtime::Snapshot runtime{};
     runtime.toggleHudEnabled = toggleHudEnabled;
     runtime.hideReticle = hideReticle;
-    runtime.showTpsMousePointer = showTpsMousePointer;
+    // Never publish/load the TPS pointer feature into runtime when TPS is OFF.
+    // Keep the saved preference intact to reactivate on a later TPS toggle.
+    runtime.showTpsMousePointer = thirdPersonEnabled && showTpsMousePointer;
     runtime.fovEnabled = fovEnabled;
     runtime.movementSpeedEnabled = movementSpeedEnabled;
     runtime.actionRecoveryEnabled = actionRecoveryEnabled;
@@ -796,7 +798,9 @@ void Store::PublishRuntime() const {
     runtime.thirdPersonEnabled = thirdPersonEnabled;
     runtime.thirdPersonFovEnabled = thirdPersonFovEnabled;
     runtime.tpsFollowPlayer = tpsFollowPlayer;
-    runtime.cameraOrbitInputEnabled = cameraControllerOrbitEnabled;
+    // Mouse TPS orbit shares the existing orbit result; it does not need
+    // a controller stick enabled. In native view no TPS orbit is applied.
+    runtime.cameraOrbitInputEnabled = thirdPersonEnabled;
     runtime.cameraControllerOrbitEnabled = cameraControllerOrbitEnabled;
     runtime.tpsCameraStickMode = tpsCameraStickMode;
     runtime.tpsCutsceneAutoSuspend = tpsCutsceneAutoSuspend;

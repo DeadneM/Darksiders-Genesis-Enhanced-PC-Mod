@@ -7,14 +7,14 @@ namespace dg::runtime {
 struct Snapshot {
     bool toggleHudEnabled = true;
     bool hideReticle = false;
-    bool showTpsMousePointer = false;
+    bool showTpsMousePointer = true;
     bool fovEnabled = false;
     bool movementSpeedEnabled = true;
     bool actionRecoveryEnabled = true;
     bool skipLogosEnabled = true;
     bool skipIntroEnabled = true;
     bool skipWarningEnabled = true;
-    bool thirdPersonEnabled = false;
+    bool thirdPersonEnabled = true;
     bool thirdPersonFovEnabled = true;
     bool tpsFollowPlayer = true;
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
@@ -69,14 +69,14 @@ struct Snapshot {
 struct State {
     std::atomic_bool toggleHudEnabled{true};
     std::atomic_bool hideReticle{false};
-    std::atomic_bool showTpsMousePointer{false};
+    std::atomic_bool showTpsMousePointer{false}; // only published when TPS enabled
     std::atomic_bool fovEnabled{false};
     std::atomic_bool movementSpeedEnabled{true};
     std::atomic_bool actionRecoveryEnabled{true};
     std::atomic_bool skipLogosEnabled{true};
     std::atomic_bool skipIntroEnabled{true};
     std::atomic_bool skipWarningEnabled{true};
-    std::atomic_bool thirdPersonEnabled{false};
+    std::atomic_bool thirdPersonEnabled{true};
     std::atomic_bool thirdPersonFovEnabled{true};
     std::atomic_bool tpsFollowPlayer{true};
     std::atomic_bool tpsViewGameplay{false};
