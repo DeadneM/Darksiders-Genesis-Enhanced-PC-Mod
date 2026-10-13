@@ -11,6 +11,11 @@ struct Telemetry {
     uint32_t nativeZoneOverridesIgnored = 0;
     uint32_t tpsAttachDeferred = 0;
     uint32_t tpsFovSamples = 0;
+    uint32_t cinematicEntered = 0;
+    uint32_t cinematicExited = 0;
+    uint32_t cinematicCandidateBegins = 0;
+    uint32_t cinematicMissingActorSamples = 0;
+    uint32_t cinematicFarViewSamples = 0;
     uint32_t mountedFireRequested = 0;
     uint32_t mountedFireHorseSelected = 0;
     uint32_t mountedFireOverrodeFoot = 0;
