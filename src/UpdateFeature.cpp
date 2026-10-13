@@ -17,8 +17,8 @@ namespace dg::update {
 namespace {
 namespace fs=std::filesystem;
 constexpr char kRepo[]="DeadneM/Darksiders-Genesis-Enhanced-PC-Mod";
-constexpr char kBuiltArchive[]="DarksidersGenesis_V1.15_RESOURCE_GAINS_AUDIT_TEST.zip";
-constexpr int kMajor=1,kMinor=15;
+constexpr char kBuiltArchive[]="DarksidersGenesis_V1.16_TPS_DEFAULTS_STARTUP_AUDIT_TEST.zip";
+constexpr int kMajor=1,kMinor=16;
 constexpr int kResourceId=101;
 constexpr size_t kMaxResponse=4*1024*1024;
 struct Package {

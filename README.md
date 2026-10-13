@@ -1,3 +1,11 @@
+## V1.16 experimental: TPS ON + visible native pointer by default, safe StartupScreens audit
+
+[**Download V1.16 cumulative Windows x64 TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.16_TPS_DEFAULTS_STARTUP_AUDIT_TEST.zip) · debug only · in-game validation pending.
+
+New defaults **`ThirdPerson=1` and `ShowTPSMousePointer=1`** in the bundled INI, ASI runtime initial state, full factory reset, and missing-key INI fallbacks. This permits the game's native pointer during TPS; it does **not** rotate the camera with the mouse. The updater deliberately preserves an existing personal INI, so explicitly saved zero values stay zero until changed in the menu or manually; About > Factory Reset applies both new defaults but resets other settings too. 
+
+Comparative audit of old aggressive Skip Logos V0.19A/B/C versus current V0.52 safe targeted logo path confirms bypassing MoviePlayer setup caused cross-shaped cursor regression; no unsafe warning bypass is restored. True two-warning draw path still TODO. Mouse camera orbit from V0.98 is proposed as a separately switchable, OFF-by-default later experiment rather than mixed into the pointer default. **Next version will be V1.17, no letter suffix.** [Full comparison and test checklist](docs/V1_16_TPS_DEFAULTS_STARTUP_COMPARISON.md).
+
 ## V1.15 experimental: resource gain audit (no gameplay changes)
 
 [**V1.15 cumulative Windows TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.15_RESOURCE_GAINS_AUDIT_TEST.zip) · `debug` · game validation pending.

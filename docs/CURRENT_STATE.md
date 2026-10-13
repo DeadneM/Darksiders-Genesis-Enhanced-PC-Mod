@@ -1,3 +1,8 @@
+# V1.16 default TPS=1 + mouse pointer=1; startup safety audit (2026-10-13)
+
+New defaults in ASI member/runtime Snapshot/State, `Store::ResetDefaults()`, missing-key fallbacks and packaged INI: `ThirdPerson=1`, `ShowTPSMousePointer=1`. Existing user INI values never overwritten by updater or defaults. Current startup MoviePlayer attachment unchanged; historical V0.19C bypass was proven to cause cursor regression, so skip warning kept quarantined. New planned TPS mouse camera is independent opt-in, OFF by default, to be implemented only with safe previous V0.98 RAW/WM_MOUSEMOVE baseline and explicit gameplay testing in next V1.17+. Windows x64 CI and in-game confirmation pending. [V1.16 full comparison](V1_16_TPS_DEFAULTS_STARTUP_COMPARISON.md). Continue strict V1.16 -> V1.17 numeric versioning.
+
+---
 # User validation - Integrated ASI updater (2026-10-13)
 
 **Updater integrated in the ASI: user VALIDATED.** The user's V1.15 session starts with `Darksiders Genesis Enhanced ASI 1.15-resource-gains-audit-test starting` and uses the normal four-file mod setup. The user explicitly confirmed "updater valider"; treat core in-menu updating as accepted. The uploaded log does not separately prove every edge case (restore previous, switching main/debug, failed downloads), so those remain safety/regression test items, not newly confirmed actions.
