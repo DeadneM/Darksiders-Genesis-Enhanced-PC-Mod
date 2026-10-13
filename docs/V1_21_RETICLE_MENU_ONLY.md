@@ -17,3 +17,7 @@ V1.20 (21:22-21:28 local): ASI x64 loaded, safe Skip Logos setup, relative mouse
 2. Check Camera > General **Hide Reticle** ON/OFF, F4 mapping, Apply and Return. Confirm exactly one manual general reticle control; Gameplay has none and TPS has only informational auto policy.
 3. TPS OFF/ON, menu, wheel, cutscene, horse, alt-tab, controller and LMB Camera Forward. Any missing native menu pointer is a regression, provide log and precise menu.
 4. No new setting needed; old ShowTPSMousePointer INI key ignored and removed on next explicit save. Upgrade preserves all other saved settings. Four root files, x64 CI and main/archive untouched. Next version V1.22.
+
+## Verified Windows x64 build & published debug archive
+
+GitHub Actions [run 38456453682](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38456453682) passed Release compilation, ZIP four-root-file validation, upload and debug archive preservation. [V1.21 TEST ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.21_RETICLE_MENU_ONLY_TEST.zip) size 754165 bytes, Git blob SHA-1 `84cbe9353497ec1f695548b6a7dce09e6d27879d`. This proves Windows compilation/package, **not** that all native pause menus and wheels actually restore the cursor in-game. User validation of reticle transitions is still required.
