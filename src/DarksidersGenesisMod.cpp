@@ -1569,10 +1569,10 @@ bool TPSDiagReadable(const void* p,size_t bytes){
         at-start<=mbi.RegionSize-bytes;
 }
 void TPSDiagWrathSnapshot(void* actor, ULONGLONG now){
-    const auto prior=g_tpsDiagWrathTick.load(std::memory_order_relaxed);
+    ULONGLONG prior=g_tpsDiagWrathTick.load(std::memory_order_relaxed);
     if(prior&&now>=prior&&now-prior<85)return;
     if(!g_tpsDiagWrathTick.compare_exchange_strong(
-        const_cast<ULONGLONG&>(prior),now,std::memory_order_relaxed))
+        prior,now,std::memory_order_relaxed))
         return;
     // V1.09: guarded read of native Wrath candidate field. Never writes.
     const auto* field=reinterpret_cast<const BYTE*>(actor)+0xEA0;
