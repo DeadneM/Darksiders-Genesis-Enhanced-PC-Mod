@@ -33,11 +33,12 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 #include <cwchar>
 #include <cmath>
 #include <string>
+#include <vector>
 #include <cstdlib>
 
 namespace {
 
-constexpr const char* kBuild = "1.19-tps-mouse-forward-defaults-test";
+constexpr const char* kBuild = "1.20-relative-tps-mouse-cutscene-gauges-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -192,6 +193,14 @@ std::atomic_uint32_t g_v119RawMouse{0},g_v119MouseMoveFallback{0},
     g_v119MouseCameraFrames{0},g_v119MouseForwardLook{0},
     g_v119MouseForwardRotation{0};
 std::atomic_uint32_t g_v118WrathStable{0},g_v118WrathGainNearCharge{0};
+// V1.20: preserve existing game registrations and legacy mouse messages.
+std::atomic_bool g_v120RawRegistrationChecked{false},g_v120RawAddedByMod{false};
+std::atomic_uint32_t g_v120ExistingRawMouse{0},g_v120RawRegistrationErrors{0},
+    g_v120RawMousePackets{0},g_v120RawNonMousePackets{0},g_v120RawAtEdge{0};
+std::atomic_uint32_t g_v120WrathNearDamage{0},g_v120WrathWhileFiring{0},
+    g_v120WrathWhileIdle{0},g_v120WrathSpendEvents{0};
+std::atomic_ullong g_v120LastLocalDamage{0};
+std::atomic<float> g_v120WrathTotalGained{0.0f},g_v120WrathTotalSpent{0.0f};
 std::atomic_uint32_t g_reticleCursorIntercepts{0};
 std::atomic<HCURSOR> g_lastRequestedGameCursor{nullptr};
 std::atomic_uint32_t g_cursorProbeChanges{0};
@@ -1067,6 +1076,9 @@ void HookFinalOutgoingDamage(void* playerCharacter, void* damageRecord) {
     if (!localPlayer || localPlayer != playerCharacter) {
         return;
     }
+    // This records the native outgoing damage callback only, not a pickup
+    // or a verified Wrath source. Compare timestamp with gauge samples.
+    g_v120LastLocalDamage.store(GetTickCount64(),std::memory_order_relaxed);
 
     BYTE* record = reinterpret_cast<BYTE*>(damageRecord);
     float* damagePtr = reinterpret_cast<float*>(record + 0x08);
@@ -1610,8 +1622,20 @@ void TPSDiagWrathSnapshot(void* actor, ULONGLONG now){
     const float previous=g_tpsDiagWrathPrevious.exchange(cur);
     const bool same=oldActor==actor;
     const float delta=same?cur-previous:0.0f;
-    if(same&&delta>0.05f)++g_tpsDiagWrathPositive;
-    if(same&&delta< -0.05f)++g_tpsDiagWrathNegative;
+    if(same&&delta>0.05f){
+        ++g_tpsDiagWrathPositive;
+        g_v120WrathTotalGained.fetch_add(delta,std::memory_order_relaxed);
+        if(IsPadFiringNow() || (GetAsyncKeyState(VK_LBUTTON)&0x8000))
+            ++g_v120WrathWhileFiring;
+        else ++g_v120WrathWhileIdle;
+        const ULONGLONG damage=g_v120LastLocalDamage.load(std::memory_order_relaxed);
+        if(damage && now>=damage && now-damage<1200ull)++g_v120WrathNearDamage;
+    }
+    if(same&&delta< -0.05f){
+        ++g_tpsDiagWrathNegative;
+        ++g_v120WrathSpendEvents;
+        g_v120WrathTotalSpent.fetch_add(-delta,std::memory_order_relaxed);
+    }
     if(same&&std::fabs(delta)<=0.05f)++g_v118WrathStable;
     const ULONGLONG charge=g_tpsDiagChargeStart.load(std::memory_order_acquire);
     const ULONGLONG age=charge&&now>=charge?now-charge:0;
@@ -1619,8 +1643,11 @@ void TPSDiagWrathSnapshot(void* actor, ULONGLONG now){
     const unsigned diagnostic=(same&&std::fabs(delta)>0.05f)?
         ++g_tpsDiagWrathLoggedChanges:0u;
     if(n==1||(diagnostic>0&&diagnostic<=16)){
-        Log("Gauge V1.11 WRATH CANDIDATE n=%u value=%.2f delta=%.2f chargeAgeMs=%llu",
-            n,cur,delta,static_cast<unsigned long long>(age));
+        const ULONGLONG damage=g_v120LastLocalDamage.load(std::memory_order_relaxed);
+        Log("Gauge V1.20 WRATH_CANDIDATE n=%u value=%.2f delta=%.2f chargeAgeMs=%llu recentDamageAgeMs=%llu firing=%d (unverified source)",
+            n,cur,delta,static_cast<unsigned long long>(age),
+            static_cast<unsigned long long>(damage&&now>=damage?now-damage:0ull),
+            (IsPadFiringNow()||(GetAsyncKeyState(VK_LBUTTON)&0x8000))?1:0);
     }
 }
 NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
@@ -3305,13 +3332,21 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                 UINT bytes=sizeof(raw);
                 const UINT copied=GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam),
                     RID_INPUT,&raw,&bytes,sizeof(RAWINPUTHEADER));
-                if(copied!=UINT(-1) && copied>=sizeof(RAWINPUTHEADER) &&
-                   raw.header.dwType==RIM_TYPEMOUSE &&
-                   (raw.data.mouse.usFlags&MOUSE_MOVE_ABSOLUTE)==0) {
-                    dx=static_cast<int>(raw.data.mouse.lLastX);
-                    dy=static_cast<int>(raw.data.mouse.lLastY);
-                    g_v119LastRawMouseTick.store(now,std::memory_order_relaxed);
-                    ++g_v119RawMouse;
+                if(copied!=UINT(-1) && copied>=sizeof(RAWINPUTHEADER)) {
+                    if(raw.header.dwType==RIM_TYPEMOUSE &&
+                       (raw.data.mouse.usFlags&MOUSE_MOVE_ABSOLUTE)==0) {
+                        dx=static_cast<int>(raw.data.mouse.lLastX);
+                        dy=static_cast<int>(raw.data.mouse.lLastY);
+                        g_v119LastRawMouseTick.store(now,std::memory_order_relaxed);
+                        ++g_v119RawMouse;
+                        ++g_v120RawMousePackets;
+                        RECT area{};
+                        POINT point{};
+                        if(GetClientRect(hwnd,&area)&&GetCursorPos(&point)&&ScreenToClient(hwnd,&point)&&
+                           (point.x<=area.left+3||point.x>=area.right-4||
+                            point.y<=area.top+3||point.y>=area.bottom-4))
+                            ++g_v120RawAtEdge;
+                    }else if(raw.header.dwType!=RIM_TYPEMOUSE)++g_v120RawNonMousePackets;
                 }
             }else {
                 const POINT next{
@@ -3747,6 +3782,56 @@ void TraceGameWindowState(IDXGISwapChain* swapChain) {
 }
 
 
+// V1.20: register *missing* relative raw mouse only; never override a
+// registration installed by the game, suppress WM_MOUSEMOVE or warp cursor.
+void EnsureRelativeMouse(HWND hwnd) {
+    if(!hwnd || !IsWindow(hwnd) || !g_targetValidation.exact ||
+       !dg::runtime::Get().thirdPersonEnabled.load(std::memory_order_relaxed) ||
+       g_v120RawRegistrationChecked.exchange(true,std::memory_order_acq_rel))
+        return;
+    UINT count=0;
+    if(GetRegisteredRawInputDevices(nullptr,&count,sizeof(RAWINPUTDEVICE))==UINT(-1)){
+        ++g_v120RawRegistrationErrors;
+        Log("TPS V1.20 RAW_REGISTER query failed error=%lu; fallback retained",GetLastError());
+        return;
+    }
+    if(count>64){
+        ++g_v120RawRegistrationErrors;
+        Log("TPS V1.20 RAW_REGISTER %u registrations; leave native input intact",count);
+        return;
+    }
+    if(count) {
+        std::vector<RAWINPUTDEVICE> registered(count);
+        UINT n=count;
+        const UINT got=GetRegisteredRawInputDevices(registered.data(),&n,sizeof(RAWINPUTDEVICE));
+        if(got==UINT(-1)){
+            ++g_v120RawRegistrationErrors;
+            Log("TPS V1.20 RAW_REGISTER enumerate failed error=%lu",GetLastError());
+            return;
+        }
+        for(UINT i=0;i<got;++i) {
+            const auto& d=registered[i];
+            if(d.usUsagePage==1 && d.usUsage==2){
+                ++g_v120ExistingRawMouse;
+                Log("TPS V1.20 RAW_REGISTER existing native mouse preserved target=%p flags=0x%X",
+                    d.hwndTarget,unsigned(d.dwFlags));
+                return;
+            }
+        }
+    }
+    RAWINPUTDEVICE mouse{};
+    mouse.usUsagePage=1;
+    mouse.usUsage=2;
+    mouse.dwFlags=0; // foreground legacy input is untouched.
+    mouse.hwndTarget=hwnd;
+    if(RegisterRawInputDevices(&mouse,1,sizeof(mouse))){
+        g_v120RawAddedByMod.store(true,std::memory_order_relaxed);
+        Log("TPS V1.20 RAW_REGISTER relative mouse enabled for game hwnd=%p; no cursor movement",hwnd);
+    }else{
+        ++g_v120RawRegistrationErrors;
+        Log("TPS V1.20 RAW_REGISTER failed error=%lu; legacy fallback intact",GetLastError());
+    }
+}
 void EnsureOrbitWndProc(IDXGISwapChain* chain) {
     if (g_originalWndProc || !g_config.thirdPersonEnabled || !chain) return;
     DXGI_SWAP_CHAIN_DESC desc{};
@@ -4183,6 +4268,7 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     TraceDesktopCursorState("Present cursor state", false);
     ProcessCameraInput();
     EnsureOrbitWndProc(swapChain);
+    if(g_originalWndProc && g_hwnd)EnsureRelativeMouse(g_hwnd);
     EnsureNativeXInputAimHooks();
     UpdateOrbitInput();
     RefreshReticleCursorState();
@@ -4514,6 +4600,15 @@ void ShutdownMod() {
         g_v119RawMouse.load(),g_v119MouseMoveFallback.load(),
         g_v119MouseCameraFrames.load(),g_v119MouseForwardLook.load(),
         g_v119MouseForwardRotation.load());
+    Log("TPS V1.20 RELATIVE_INPUT totals: registeredByMod=%d nativePreserved=%u registrationErrors=%u rawMouse=%u rawOther=%u rawAtScreenEdge=%u fallbackMoves=%u cursorWarp=0",
+        g_v120RawAddedByMod.load()?1:0,g_v120ExistingRawMouse.load(),
+        g_v120RawRegistrationErrors.load(),g_v120RawMousePackets.load(),
+        g_v120RawNonMousePackets.load(),g_v120RawAtEdge.load(),
+        g_v119MouseMoveFallback.load());
+    Log("Gauge V1.20 WRATH_CORRELATION (read-only): nearDamage=%u duringFire=%u whileIdle=%u spentEvents=%u totalGained=%.2f totalSpent=%.2f actualNativeAddWrathNotVerified",
+        g_v120WrathNearDamage.load(),g_v120WrathWhileFiring.load(),
+        g_v120WrathWhileIdle.load(),g_v120WrathSpendEvents.load(),
+        g_v120WrathTotalGained.load(),g_v120WrathTotalSpent.load());
     Log("Gauge V1.18 WRATH_READONLY: readings=%u up=%u down=%u stable=%u risesNearChargeInput=%u nativeWrathHookStillRequiresVerification",
         g_tpsDiagWrathReads.load(),g_tpsDiagWrathPositive.load(),
         g_tpsDiagWrathNegative.load(),g_v118WrathStable.load(),
