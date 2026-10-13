@@ -1,3 +1,13 @@
+## V1.14U UI-fix: TPS option grouping + About factory reset modal (2026-10-13)
+
+User reports Show Mouse Pointer in TPS is currently in Gameplay/HUD, but belongs in Camera/Third Person. Relocated checkbox and explanation to Camera > Third Person camera after the enable toggle. Key `[Features] ShowTPSMousePointer=0` remains OFF by default; TPS suppression and Hide Reticle priority unchanged.
+
+**Confirmed code fault**: `ImGui::OpenPopup("Reset INI to Factory Defaults?")` occurred inside `BeginTabItem("About")` but `BeginPopupModal(...)` was outside `EndTabBar()`, so ImGui ID stacks differed and modal never appeared. The uploaded V1.14U log (18:39:38–18:50:41) contains four `INI saved` events but NO `INI factory reset` nor Reset action despite user click, consistent with the modal never being reached. The fix puts BeginPopupModal within the same About tab before EndTabItem, with a persistent SUCCESS/FAILED/CANCELLED message immediately below button plus LAST ACTION; explicit log entries for button/confirm/result/cancel. Existing full factory reset method and dated .bak backup logic preserved.
+
+Other log highlights (not changed): Synergy 317 observed/113 boosted; Wrath/Chaos Add 0; TPS forward foot 2337/horse 0. LB+Y native 32, writes 0. Mod x64 hooks successfully loaded. User still needs to validate in game.
+
+This is cumulative V1.14U with embedded updater unchanged; new ZIP name DarksidersGenesis_V1.14_ZZ_TPS_RESET_FEEDBACK_TEST.zip sorts after earlier V1.14 Z archive so updater identifies it as latest branch ZIP, without overwriting earlier test builds.
+
 ## V1.14U ASI updater integrated (2026-10-13)
 
 Experimental updates interface inside ASI: Beta=0 main / Beta=1 debug, Check for Updates on background WinHTTP, Install on Game Exit and Restore Previous with dialogs. Post-exit helper compiled with x64 csc, embedded as RCDATA resource 101. After user confirms, helper extracted to LOCALAPPDATA and launched detached to wait for process exit; checks supported EXE and GitHub package blob, verifies four root ZIP files, preserves personal INI, backs up and restores binaries. No fifth root ZIP file. Windows Actions [38430137501](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38430137501) passed; archive `DarksidersGenesis_V1.14_Z_ASI_UPDATER_TEST.zip` 745505 bytes published. In-game behavior not yet validated. [Full note](V1_14U_INMENU_UPDATER.md).

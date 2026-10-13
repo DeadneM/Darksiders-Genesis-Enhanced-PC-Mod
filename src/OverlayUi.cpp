@@ -189,16 +189,6 @@ void Draw(Context& c) {
                 "Hides the aiming pointer in gameplay without hiding the HUD. "
                 "The pointer stays visible here for menu interaction."
             );
-            if (ImGui::Checkbox("Show Mouse Pointer in TPS", &config.showTpsMousePointer)) {
-                config.Save();
-                *c.lastAction = config.showTpsMousePointer
-                    ? "TPS pointer allowed (unless Hide Reticle is ON)"
-                    : "TPS pointer hidden by default";
-            }
-            ImGui::TextDisabled(
-                "OFF by default. ON lets the native mouse pointer appear in TPS gameplay.");
-            ImGui::TextDisabled(
-                "Hide Reticle still takes priority. Menus, wheels and Alt-Tab are unchanged.");
             if (ImGui::Button("Apply Hide Reticle and Return to Game")) {
                 config.Save();
                 c.overlayVisible->store(false);
@@ -603,6 +593,18 @@ void Draw(Context& c) {
                 camera.viewReady && camera.armReady?"Hook ready":"Hook unavailable",
                 camera.tpsAttachedFrames);
             ImGui::TextDisabled("Moves the camera behind the player. F5 or long L3 toggles it.");
+            ImGui::Spacing();
+            if (ImGui::Checkbox("Show Mouse Pointer in TPS", &config.showTpsMousePointer)) {
+                config.Save();
+                *c.lastAction = config.showTpsMousePointer
+                    ? "TPS pointer allowed (Hide Reticle still takes priority)"
+                    : "TPS pointer hidden by default";
+                if (c.log) c.log("TPS pointer option: ShowTPSMousePointer=%d (HideReticle=%d)",
+                    config.showTpsMousePointer ? 1 : 0, config.hideReticle ? 1 : 0);
+            }
+            ImGui::TextDisabled("OFF by default: hide the native mouse pointer in TPS gameplay.");
+            ImGui::TextDisabled("ON: let the game show it. Hide Reticle remains independent.");
+            ImGui::Spacing();
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
                 DrawSectionTitle("TPS camera attachment");
@@ -1195,40 +1197,66 @@ void Draw(Context& c) {
             DrawSectionTitle("Configuration");
             ImGui::TextWrapped(
                 "Factory reset affects ALL mod settings and bindings. Other Default buttons only restore their own value.");
+
+            // OpenPopup and BeginPopupModal MUST share the same ImGui ID stack.
+            // Previously the popup was looked up after EndTabBar(): clicking
+            // Reset INI in About did nothing because popup IDs did not match.
+            static std::string factoryResetFeedback;
+            static bool factoryResetSuccess = false;
             if (ImGui::Button("Reset INI to Factory Defaults")) {
+                if (c.log) c.log("Overlay INI Factory Reset: button clicked; awaiting confirmation");
                 ImGui::OpenPopup("Reset INI to Factory Defaults?");
             }
-            ImGui::TextDisabled(
-                "Confirmation required. A dated .bak keeps your previous INI.");
-            ImGui::TextDisabled(
-                "Game saves and Engine.ini remain untouched. Restart after reset.");
+            ImGui::TextDisabled("Confirmation required. Previous INI is kept as a dated .bak.");
+            ImGui::TextDisabled("Game saves and Engine.ini untouched. Restart after success.");
+
+            if (ImGui::BeginPopupModal("Reset INI to Factory Defaults?", nullptr,
+                    ImGuiWindowFlags_AlwaysAutoResize)) {
+                ImGui::TextWrapped("Reset ALL mod settings and keyboard/gamepad bindings?");
+                ImGui::TextWrapped("Your current INI is preserved in a dated .bak beside the new INI.");
+                ImGui::TextDisabled("Game saves and Engine.ini are NOT changed.");
+                ImGui::Spacing();
+                if (ImGui::Button("Confirm Reset", ImVec2(160.0f, 0.0f))) {
+                    if (c.log) c.log("Overlay INI Factory Reset: confirmation received");
+                    const bool ok = config.ResetIniFileToDefaults();
+                    factoryResetSuccess = ok;
+                    if (ok) {
+                        c.captureCameraKeyIndex->store(-1);
+                        c.captureMenuKey->store(false);
+                        c.hudHidden->store(false);
+                        factoryResetFeedback =
+                            "SUCCESS: Factory defaults restored. Previous INI saved as dated .bak. Restart the game.";
+                        *c.lastAction = factoryResetFeedback;
+                    } else {
+                        factoryResetFeedback =
+                            "FAILED: INI was not reset. See DarksidersGenesisMod.log for details; original/backup preserved.";
+                        *c.lastAction = factoryResetFeedback;
+                    }
+                    if (c.log) c.log("Overlay INI Factory Reset: result=%s",
+                        ok ? "SUCCESS (dated backup and default INI)" : "FAILURE (inspect INI backup)");
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel", ImVec2(110.0f, 0.0f))) {
+                    factoryResetFeedback = "CANCELLED: The INI was not changed.";
+                    factoryResetSuccess = false;
+                    *c.lastAction = factoryResetFeedback;
+                    if (c.log) c.log("Overlay INI Factory Reset: cancelled; no INI modification");
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
+            }
+            if (!factoryResetFeedback.empty()) {
+                ImGui::Spacing();
+                ImGui::TextColored(factoryResetSuccess
+                        ? ImVec4(0.45f, 0.95f, 0.55f, 1.0f)
+                        : ImVec4(1.0f, 0.72f, 0.35f, 1.0f),
+                    "%s", factoryResetFeedback.c_str());
+            }
             ImGui::EndTabItem();
         }
 
         ImGui::EndTabBar();
-    }
-
-    // Single confirmation, opened only from the last About / Info tab.
-    if (ImGui::BeginPopupModal("Reset INI to Factory Defaults?", nullptr,
-            ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::TextWrapped("Reset ALL mod options and keyboard/gamepad bindings?");
-        ImGui::TextWrapped("Your old INI will be preserved as a dated .bak beside the new file.");
-        ImGui::TextDisabled("No game saves or Engine.ini changes. Restart recommended.");
-        ImGui::Spacing();
-        if (ImGui::Button("Confirm Reset", ImVec2(150.0f, 0.0f))) {
-            if (config.ResetIniFileToDefaults()) {
-                c.captureCameraKeyIndex->store(-1);
-                c.captureMenuKey->store(false);
-                c.hudHidden->store(false);
-                *c.lastAction = "Factory INI restored; restart game to apply all settings";
-            } else {
-                *c.lastAction = "INI reset failed; existing configuration or backup preserved";
-            }
-            ImGui::CloseCurrentPopup();
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Cancel", ImVec2(110.0f, 0.0f))) ImGui::CloseCurrentPopup();
-        ImGui::EndPopup();
     }
 
     ImGui::Separator();

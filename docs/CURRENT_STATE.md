@@ -1,3 +1,8 @@
+# Current test: V1.14U TPS cursor UI and About reset confirmation fix
+
+Fix based on uploaded 2026-10-13 V1.14U log: no factory-reset event logged; ImGui popup opened in About tab but modal attempted outside EndTabBar (ID scope mismatch). Moved popup into About; added visible success/error/cancel feedback + action log. Show Mouse Pointer in TPS moved to Camera > Third Person, OFF by default. Existing integrated updater remains. New cumulative debug ZIP DarksidersGenesis_V1.14_ZZ_TPS_RESET_FEEDBACK_TEST.zip; build/game test pending. See [note](V1_14U_RESET_MODAL_TPS_UI.md).
+
+---
 # Current test: V1.14U integrated ASI updater (2026-10-13)
 
 V1.14U adds Updates tab to ASI. Beta OFF=main stable (currently V0.72), ON=debug beta. GitHub check asynchronous, user-confirmed install on game exit and rollback. Post-exit WinForms .NET helper compiled and embedded as RCDATA into ASI; retains normal four file ZIP. Previous V1.14 pointer/Info-reset features unchanged. Build run [38430137501](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38430137501) SUCCESS, ZIP [V1.14U](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.14_Z_ASI_UPDATER_TEST.zip) 745505 bytes. Real game install/restore not yet tested; treat as experimental. Technical note: [V1_14U](V1_14U_INMENU_UPDATER.md).

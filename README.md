@@ -1,3 +1,9 @@
+## V1.14U UI-fix - TPS mouse option in Camera, working factory reset feedback
+
+[**V1.14U cumulative TEST ZIP (TPS UI + reset confirmation fix)**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.14_ZZ_TPS_RESET_FEEDBACK_TEST.zip) · debug only.
+
+Moves **Show Mouse Pointer in TPS** from Gameplay/HUD to **Camera > Third Person camera**, retaining OFF by default and Hide Reticle priority. Fixes the **About / Info > Reset INI to Factory Defaults** confirmation modal (previously blocked by an ImGui popup ID-stack mismatch), adds persistent SUCCESS/FAILED/CANCELLED feedback and detailed log events, and keeps existing dated INI backup and game saves safety. In-game Updates tab and embedded after-exit installer remain intact. [Technical log and test checklist](docs/V1_14U_RESET_MODAL_TPS_UI.md).
+
 ## V1.14U - IN-GAME ASI Updates menu (Windows x64 TEST)
 
 [**Download cumulative V1.14U ZIP with integrated updater**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.14_Z_ASI_UPDATER_TEST.zip) · `debug` only · **Windows build verified, gameplay test pending**.
