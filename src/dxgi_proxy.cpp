@@ -72,6 +72,21 @@ static void LogLoader(const wchar_t* message) {
     CloseHandle(file);
 }
 
+// Read-only boot chronology recorded across the native DXGI/ASI boundary.
+// 'observed' means an instrumented call or memory value; NEVER assume a
+// native startup record corresponds to an actually displayed warning frame.
+static void StartupTimeline(const wchar_t* stage,unsigned detail=0){
+    if(!stage)return;
+    const ULONGLONG now=GetTickCount64();
+    const ULONGLONG start=g_startupBootTick.load(std::memory_order_acquire);
+    const ULONGLONG delta=start&&now>=start?now-start:0;
+    wchar_t line[420]{};
+    swprintf_s(line,L"Startup V1.10 TIMELINE #%u +%llums tid=%lu observed=%s detail=%u",
+        ++g_startupTimelineEvents,static_cast<unsigned long long>(delta),
+        GetCurrentThreadId(),stage,detail);
+    LogLoader(line);
+}
+
 // V0.52: replace exact two logo names with two dummy paths, without zeroing the list.
 // Never bypass SStartupScreens / MoviePlayer / Slate initialization.
 constexpr DWORD kSupportedSizeOfImage = 0x03DDF000;
@@ -100,6 +115,8 @@ static volatile BYTE g_warningNativeSeen = 0;
 static volatile BYTE g_warningNativeSkipped = 0;
 static volatile uintptr_t g_warningNativeSpan = 0;
 static std::atomic_uint32_t g_startupFilterCalls{0};
+static std::atomic<ULONGLONG> g_startupBootTick{0};
+static std::atomic_uint32_t g_startupTimelineEvents{0};
 
 struct FStringView {
     const wchar_t* data;
@@ -210,11 +227,14 @@ static void ProbeStartupDefinitions(){
     wchar_t line[230]{};
     swprintf_s(line,L"StartupScreens V1.05: records=%d stride=0x40 loop=0x25FED0 per-entry-call=0xAC8760; no stage skipped",n);
     LogLoader(line);
+    StartupTimeline(L"STARTUP_RECORD_ARRAY_POST_NATIVE_LOOP",unsigned(n));
+    unsigned activeCount=0;
     for(int32_t i=0;i<n;++i){
         const auto* entry=static_cast<const BYTE*>(arr)+static_cast<size_t>(i)*0x40;
         swprintf_s(line,L"StartupScreens V1.05: record[%d] byte[0x38]=%u byte[0x39]=%u (PASS-THROUGH)",i,
             unsigned(entry[0x38]),unsigned(entry[0x39]));
         LogLoader(line);
+        if(entry[0x39])++activeCount;
         // Display-only warning removal requires identifying records first.
         // V1.09 fingerprints the records' raw native fields without
         // interpreting arbitrary UObject/FText pointers or changing data.
@@ -231,10 +251,12 @@ static void ProbeStartupDefinitions(){
             unsigned(entry[0x39]));
         LogLoader(line);
     }
+    StartupTimeline(L"STARTUP_RECORDS_ENABLED_NOT_PROOF_OF_DRAW",activeCount);
 }
 static const FStringView* __cdecl FilterStartupMovieNames(const FStringView* movies, int32_t count) {
     const unsigned calls = ++g_startupFilterCalls;
     if (calls > 2) return nullptr;
+    StartupTimeline(L"MOVIE_DESCRIPTORS_NATIVE_COPY_ENTER",unsigned(count));
     if(calls==1)ProbeStartupDefinitions();
     if (calls == 1 && g_skipWarningEnabled.load(std::memory_order_relaxed)) {
         const bool observed = g_warningNativeSeen != 0;
@@ -271,9 +293,11 @@ static const FStringView* __cdecl FilterStartupMovieNames(const FStringView* mov
     }
     if (count == 2) {
         LogLoader(L"Skip Logos V0.52: TWO LOGOS MATCH; substitute two nonexistent movie names, preserving nonempty playlist and native MoviePlayer");
+        StartupTimeline(L"TWO_LOGO_NAMES_SUBSTITUTED_PLAYER_INIT_UNCHANGED",2);
         return kSubstituteMovies;
     }
     LogLoader(L"Skip Logos V0.52: LOGO PREFIX MATCH; exclude first two, keep remaining movie entries");
+    StartupTimeline(L"TWO_LOGO_NAMES_REMOVED_OTHER_MOVIES_PRESERVED",unsigned(count-2));
     return movies + 2;
 }
 
@@ -614,7 +638,9 @@ static BOOL CALLBACK LoadAsiPlugins(PINIT_ONCE, PVOID, PVOID*) {
         lstrcpyW(asiPath, modulePath);
         lstrcatW(asiPath, fd.cFileName);
         SetLastError(ERROR_SUCCESS);
+        StartupTimeline(L"ASI_LOADLIBRARY_BEGIN");
         HMODULE asiModule = LoadLibraryW(asiPath);
+        StartupTimeline(L"ASI_LOADLIBRARY_RETURN",asiModule?1u:0u);
         const DWORD loadError = asiModule ? ERROR_SUCCESS : GetLastError();
         wchar_t detail[600]{};
         swprintf_s(detail, L"ASI LoadLibrary: %s result=%p error=%lu",
@@ -649,6 +675,19 @@ static T Resolve(const char* name) {
     return reinterpret_cast<T>(
         GetProcAddress(real, name)
     );
+}
+
+// Optional one-way, read-only ASI->DXGI milestone reporting.
+extern "C" __declspec(dllexport)
+void WINAPI DGReportStartupPhase(unsigned phase,unsigned value){
+    switch(phase){
+    case 1:StartupTimeline(L"ASI_MAIN_WORKER_STARTED",value);break;
+    case 2:StartupTimeline(L"INTRO_BOOT_CVAR_READY_VALUE",value);break;
+    case 3:StartupTimeline(L"ASI_GAMEPLAY_HOOKS_READY",value);break;
+    case 4:StartupTimeline(L"FIRST_GAME_D3D11_PRESENT",value);break;
+    case 5:StartupTimeline(L"GAME_EXE_VALIDATED",value);break;
+    default:break;
+    }
 }
 
 // ASI uses this to preserve the already-created per-session loader lines.
@@ -751,6 +790,8 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
     if (reason == DLL_PROCESS_ATTACH) {
         g_self = module;
         DisableThreadLibraryCalls(module);
+        g_startupBootTick.store(GetTickCount64(),std::memory_order_release);
+        StartupTimeline(L"DXGI_PROXY_PROCESS_ATTACH");
 
         // V0.51 restores the exact in-game-validated V0.49 diagnostic:
         // installed before the game's StartupScreens module runs.
