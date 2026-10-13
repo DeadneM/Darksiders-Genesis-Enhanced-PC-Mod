@@ -189,3 +189,17 @@ User-supplied log: `DarksidersGenesisMod(20261012-172631).log` (this chat's uplo
 - `src/ShaderAimFeature.cpp`: verified exact two-shader aim suppression, do not modify.
 - `docs/V0_97_HORSE_AREA_RAW_MOUSE_CINEMATICS_RADIAL.md`, `docs/V0_98_RESTRICTED_HORSE_WHEEL_CLEANUP.md`, `docs/V0_99_TPS_MOUSE_CINEMATIC_NATIVE_AUDIT.md`: supporting detailed technical history.
 - `README.md` has historical notes from very old versions that may contradict current details in its early sections. **This file and the newest dated README changelog sections take precedence for current development status; don't mistake older archival prose for latest instructions.**
+
+## Verified delivery - 2026-10-13
+CONSTRUIT / CONTROLE / EXPERIMENTAL; no user gameplay validation.
+Source commit db97a0a3ea9a45821103b67266afd79662c1aa14.
+Windows CI run 38417365147: success (configure, Release build, package, upload, numbered ZIP publication).
+https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38417365147
+ZIP publication commit be47d5a3f7f71f35f730784cb5bf6644231b44ce on debug.
+Downloaded permanent raw URL successfully; root entries checked:
+DarksidersGenesisMod.asi 893952 bytes; dxgi.dll 153600 bytes; DarksidersGenesisMod.ini 2484 bytes; README.md 200430 bytes.
+Both binaries checked for MZ/PE headers and AMD64 machine 0x8664.
+SHA256: DBE658AC84009ADA84D6A42701AD96F3706A0A6CA5522D732D210E244756548B.
+main 2bc3122c1ae07b7333798462f85c1d9fd3a739f7 and archive 10e0f220b85022bc9269e0cb9390a811a3b1cf89 unchanged after build.
+README bundled with build describes pre-CI status; this verified delivery entry supersedes that pending-build status.
+No fresh runtime tests; Wrath/Ultimate multipliers and Skip Warnings remain unresolved as documented.
