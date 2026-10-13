@@ -39,6 +39,16 @@ std::atomic_uint32_t wrathEvents{0},chaosEvents{0},synergyEvents{0};
 std::atomic_uint32_t wrathBoosts{0},chaosBoosts{0},synergyBoosts{0};
 std::atomic_uint32_t wrathLocal{0},chaosLocal{0},synergyLocal{0},synergyPositive{0},synergyRejected{0};
 std::atomic_uint32_t synergyGainEvents{0},synergyGainLocal{0};
+// Audit only: these counters do NOT affect native resource values.
+std::atomic_uint32_t synergyAddPositive{0},synergyAddZero{0},
+    synergyAddNegative{0},synergyAddInvalid{0},synergyPositiveSkipped{0};
+std::atomic_uint32_t synergySetterIncreaseFromAdd{0},synergySetterIncreaseDirect{0},
+    synergySetterUnchanged{0},synergySetterDecrease{0},synergySetterInvalid{0};
+thread_local unsigned synergyAddDepth=0;
+struct ScopedSynergyAdd {
+    ScopedSynergyAdd(){++synergyAddDepth;}
+    ~ScopedSynergyAdd(){--synergyAddDepth;}
+};
 std::atomic_uint32_t synergyNativeOwnerMatches{0},synergyOuterReferences{0},synergyNoVerifiedOwner{0};
 void Log(const char* text);
 std::atomic<void*> synergyLastActor{nullptr},synergyLastHolder{nullptr};
@@ -174,6 +184,21 @@ float HookSynergyGain(void* manager,void* owner,float a,float b,float c){
     const int relation=SynergyLocalRelation(owner,actor);
     if(relation>0)++synergyGainLocal;
     const float nativeGain=(a*b)*c;
+    const bool validGain=std::isfinite(nativeGain);
+    const bool positiveGain=validGain && nativeGain>0.0f;
+    const bool negativeGain=validGain && nativeGain<0.0f;
+    const unsigned categoryCount = !validGain ? ++synergyAddInvalid
+        : positiveGain ? ++synergyAddPositive
+        : negativeGain ? ++synergyAddNegative : ++synergyAddZero;
+    if(logger && (categoryCount <= (positiveGain ? 12u : 5u)
+        || (categoryCount % 1000u)==0u)){
+        char probe[256]{};
+        sprintf_s(probe,
+            "Gauge V1.15 ADD_CLASS n=%u class=%s categoryN=%u owner=%d factors=(%.9g,%.9g,%.9g) gain=%.9g",
+            n, !validGain ? "INVALID" : positiveGain ? "POSITIVE" : negativeGain ? "NEGATIVE" : "ZERO",
+            categoryCount,relation>0?1:0,a,b,c,nativeGain);
+        Log(probe);
+    }
     float effectiveC=c;
     auto& rt=dg::runtime::Get();
     if(relation>0&&rt.synergyChargeEnabled.load(std::memory_order_relaxed)&&
@@ -185,12 +210,17 @@ float HookSynergyGain(void* manager,void* owner,float a,float b,float c){
             Event("Synergy Native Add",++synergyBoosts,nativeGain,(a*b)*effectiveC);
         }
     }
+    if(positiveGain && effectiveC==c) ++synergyPositiveSkipped;
     if(logger&&(n<=2||n%1000==0)){
         char msg[250]{};
         sprintf_s(msg,"Gauge V1.06 ADD_SYNERGY n=%u localRelation=%d factors=(%.3f,%.3f,%.3f) native=%.3f applied=%.3f",
             n,relation,a,b,c,nativeGain,(a*b)*effectiveC);
         Log(msg);
     }
+    // The game's additive wrapper calls the absolute setter. Tag this stack
+    // only while it executes to distinguish gem/combat gain paths from
+    // possible direct SetCurrentSynergy writes. No gameplay change.
+    ScopedSynergyAdd scope;
     return originalSynergyGain(manager,owner,a,b,effectiveC);
 }
 // Absolute setter never changes native requested values, including spends,
@@ -210,8 +240,32 @@ float HookSynergy(void* player,float requested){
         std::memcpy(&previous,static_cast<const unsigned char*>(player)+0x5A4,sizeof(previous));
         std::memcpy(&maximum,static_cast<const unsigned char*>(player)+0x498,sizeof(maximum));
     }
-    if(std::isfinite(previous)&&std::isfinite(requested)&&requested>previous)
-        ++synergyPositive;
+    if(std::isfinite(previous)&&std::isfinite(requested)){
+        const float delta=requested-previous;
+        const bool fromAdd=synergyAddDepth>0;
+        unsigned category=0;
+        const char* label=nullptr;
+        if(delta>0.0f){
+            ++synergyPositive;
+            category=fromAdd?++synergySetterIncreaseFromAdd:++synergySetterIncreaseDirect;
+            label=fromAdd?"GAIN_FROM_ADD":"GAIN_DIRECT_SET";
+        }else if(delta<0.0f){
+            category=++synergySetterDecrease;
+            label="SPEND_OR_DECREASE";
+        }else{
+            category=++synergySetterUnchanged;
+            label="UNCHANGED";
+        }
+        if(logger && (category <= (delta>0?12u:4u) || category%1000u==0u)){
+            char sample[256]{};
+            sprintf_s(sample,
+                "Gauge V1.15 SET_CLASS n=%u class=%s classN=%u local=%u before=%.9g after=%.9g delta=%.9g cap=%.9g",
+                n,label,category,match?1u:0u,previous,requested,delta,maximum);
+            Log(sample);
+        }
+    }else{
+        ++synergySetterInvalid;
+    }
     Probe("SYNERGY SetCurrentSynergy",n,player,requested,previous,maximum,match);
     return originalSynergy(player,requested);
 }
@@ -278,6 +332,16 @@ void Shutdown(){
     Log(msg);
     sprintf_s(msg,"Gauge V1.06 additive totals: ready=%u observed=%u verifiedLocal=%u boosted=%u (setter passthrough)",
         synergyGainReady.load()?1u:0u,synergyGainEvents.load(),synergyGainLocal.load(),synergyBoosts.load());
+    Log(msg);
+    sprintf_s(msg,
+        "Gauge V1.15 additive classification: positive=%u zero=%u negative=%u invalid=%u positiveNotBoosted=%u",
+        synergyAddPositive.load(),synergyAddZero.load(),synergyAddNegative.load(),
+        synergyAddInvalid.load(),synergyPositiveSkipped.load());
+    Log(msg);
+    sprintf_s(msg,
+        "Gauge V1.15 setter classification: gainFromAdd=%u gainDirectSet=%u unchanged=%u decreased=%u invalid=%u",
+        synergySetterIncreaseFromAdd.load(),synergySetterIncreaseDirect.load(),
+        synergySetterUnchanged.load(),synergySetterDecrease.load(),synergySetterInvalid.load());
     Log(msg);
 }
 }
