@@ -280,3 +280,5 @@ V1.16 Windows CI verified: run 38443350904 SUCCESS. Permanent debug ZIP `Darksid
 Windows x64 V1.17 build run 38445796468 SUCCESS; four-file ZIP published on debug `downloads/DarksidersGenesis_V1.17_CROSS_CURSOR_REPAIR_TEST.zip`, 749955 bytes; waiting for user test of cross icon sanitization. Next requested version V1.18.
 
 V1.20 Windows x64 run 38453228730 SUCCESS; cumulative 4-root-file ZIP `downloads/DarksidersGenesis_V1.20_RELATIVE_MOUSE_CUTSCENE_GAUGES_TEST.zip` (753746 bytes) published on debug. Core camera relative mouse still experimental pending in-game movement at edge; cutscene & Wrath telemetry read-only.
+
+V1.21 Windows x64 CI [run 38456453682](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38456453682) passed four-file root ZIP check and permanent debug publication: `downloads/DarksidersGenesis_V1.21_RETICLE_MENU_ONLY_TEST.zip` (754165 bytes). In-game menu and reticle interaction verification pending.
