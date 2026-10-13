@@ -1,3 +1,13 @@
+# User validation - Integrated ASI updater (2026-10-13)
+
+**Updater integrated in the ASI: user VALIDATED.** The user's V1.15 session starts with `Darksiders Genesis Enhanced ASI 1.15-resource-gains-audit-test starting` and uses the normal four-file mod setup. The user explicitly confirmed "updater valider"; treat core in-menu updating as accepted. The uploaded log does not separately prove every edge case (restore previous, switching main/debug, failed downloads), so those remain safety/regression test items, not newly confirmed actions.
+
+**V1.15 gauge audit, session 19:40:15–19:47:10:** local Synergy additive observed=81, boosted=28; `positive=28 zero=53 negative=0 invalid=0 positiveNotBoosted=0`, and setter `gainFromAdd=28 gainDirectSet=0 unchanged=53 decreased=0 invalid=0`. In this session all positive additive gains were boosted x2; no direct setter gain was seen. Wrath/Chaos Add hooks still observed 0; candidate Wrath changed with 4 rises and 3 falls. This supports pursuing their true positive gain sources without changing the working Synergy path. TPS cursor was toggled to ON during the session; this alone is not visual confirmation. The About factory reset was not exercised in the log.
+
+**Version rule unchanged:** next build is V1.16, then V1.17; never A/B/C/D or same-number variants. No build needed for validation bookkeeping, debug branch only.
+
+---
+
 # V1.15 Resource Gains Audit (2026-10-13)
 
 Audit only. User V1.14U log proved Synergy local observed 317, positive 113, boosted 113; therefore all native positive events captured were boosted. User notes sources include gems and enemy kills. We already multiply effective native A*B*C gain rather than bar/setter or gem object, but cannot yet prove all reward sources use that path. V1.15 introduces bounded `ADD_CLASS` and `SET_CLASS` classification to distinguish zero/negative/nonfinite and direct setter vs additive gains without changing gameplay. Wrath/Ultimate hooks zero, need native acquisition paths. Version naming is strict incremental V1.15, V1.16, etc., no suffixes. Windows x64 CI run 38436642492 SUCCESS, four-root-file V1.15 ZIP published on debug (748509 bytes). User gameplay verification pending; main/archive intact. [Technical note](V1_15_RESOURCE_GAINS_AUDIT.md).
