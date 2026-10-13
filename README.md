@@ -1,3 +1,9 @@
+## V1.22 - Reticle hiding removed from ASI (Windows x64 TEST)
+
+[Download cumulative V1.22 ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.22_NO_RETICLE_HIDE_TEST.zip) · `debug` only · in-game validation pending.
+
+V1.22 **completely removes** native Win32 `SetCursor` and game UI `IsCursorVisible` reticle hiding hooks, TPS automatic cursor suppression, manual **Hide Reticle** menu/INI/runtime setting and its **F4** action (F4 now **None**). Retired keys in personal INIs are ignored, and cleaned only on explicit save. Other user defaults and features are unchanged: V1.20 relative mouse, TPS Camera Forward, F1 Hide HUD, blue aiming effects, gauges, native cutscene handoff, safe Skip Logos, embedded updater. Windows x64 CI verified four root files. **[V1.22 technical audit: warnings, Wrath/Ultimate, cutscenes and latest log](docs/V1_22_REMOVE_RETICLE_FEATURE.md)**.
+
 ## V1.21 - Unified Camera Reticle menu-only TPS policy (test)
 
 [**V1.21 cumulative Windows x64 TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.21_RETICLE_MENU_ONLY_TEST.zip) · debug branch, user runtime test pending.
