@@ -158,6 +158,8 @@ void Draw(Context& c) {
         if (ImGui::BeginTabItem("Gameplay")) {
             ImGui::Spacing();
 
+            if(ImGui::CollapsingHeader("HUD / aiming effects",ImGuiTreeNodeFlags_DefaultOpen)){
+            ImGui::Indent(12.0f);
             DrawSectionTitle("HUD and aiming effects");
             ImGui::TextDisabled("Statuses reflect real game hooks and observed events, not just ON/OFF switches.");
 
@@ -211,6 +213,10 @@ void Draw(Context& c) {
             ImGui::TextDisabled("Ground FX calls: %u | Target UI events: %u | Position UI events: %u",
                 t.aimNativeFxCalls,t.aimUiTargetingEvents,t.aimUiPositionEvents);
             ImGui::TextDisabled("Target UI probe is passive: no visual or gameplay event is blocked.");
+            ImGui::Unindent(12.0f);
+            }
+            if(ImGui::CollapsingHeader("Player movement",ImGuiTreeNodeFlags_DefaultOpen)){
+            ImGui::Indent(12.0f);
             DrawSectionTitle("Player");
             DrawTunableFeature(
                 config,
@@ -327,7 +333,11 @@ void Draw(Context& c) {
                 t.movementHookReady
             );
 
-            DrawSectionTitle("Combat");
+            ImGui::Unindent(12.0f);
+            }
+            if(ImGui::CollapsingHeader("Combat and resource gauges",ImGuiTreeNodeFlags_DefaultOpen)){
+            ImGui::Indent(12.0f);
+            DrawSectionTitle("Combat damage");
 
             DrawTunableFeature(
                 config,
@@ -400,6 +410,10 @@ void Draw(Context& c) {
                 ImGui::TreePop();
             }
 
+            ImGui::Unindent(12.0f);
+            }
+            if(ImGui::CollapsingHeader("Horse and riding")){
+            ImGui::Indent(12.0f);
             DrawSectionTitle("Horse");
 
             const horse::Telemetry horseTelemetry =
@@ -418,31 +432,16 @@ void Draw(Context& c) {
             ImGui::TextDisabled("Horse summon icon visibility is controlled in the game options.");
             ImGui::TextDisabled("Keyboard and both pad buttons trigger the same native horse action.");
             ImGui::TextDisabled("The two controller buttons must be pressed simultaneously.");
-            ImGui::PushID("horse_kbd");
-            const size_t horseIndex=static_cast<size_t>(config::TpsKeyboardAction::Horse);
-            const int horseBindingIndex=static_cast<int>(config.cameraKeys.size()+horseIndex);
-            ImGui::Text("Keyboard:");
-            ImGui::SameLine(225.0f);
-            ImGui::Text("%s",config::KeyDisplayName(config.tpsKeyboardKeys[horseIndex]).c_str());
-            ImGui::SameLine(335.0f);
-            const bool horseCapture=c.captureCameraKeyIndex->load()==horseBindingIndex;
-            if(ImGui::Button(horseCapture?"Press key...":"Rebind")){
-                c.captureMenuKey->store(false);
-                c.captureCameraKeyIndex->store(horseBindingIndex);
+            if(BeginKeyboardTable("HorseKeyboardBindings")){
+                const size_t index=static_cast<size_t>(config::TpsKeyboardAction::Horse);
+                DrawKeyboardRow(c,config,"Summon / dismount horse",
+                    config.tpsKeyboardKeys[index],
+                    config::kDefaultTpsKeyboardKeys[index],
+                    static_cast<int>(config.cameraKeys.size()+index));
+                ImGui::EndTable();
             }
-            ImGui::SameLine();
-            if(ImGui::Button("Unbind")){
-                config.tpsKeyboardKeys[horseIndex]=0;
-                c.captureCameraKeyIndex->store(-1);
-                config.Save();
-            }
-            ImGui::SameLine();
-            if(ImGui::SmallButton("Default##HorseKey")){
-                config.tpsKeyboardKeys[horseIndex]=config::kDefaultTpsKeyboardKeys[horseIndex];
-                c.captureCameraKeyIndex->store(-1);
-                config.Save();
-            }
-            ImGui::PopID();
+            ImGui::TextDisabled("Keyboard: press Change, then a key. Esc cancels.");
+            ImGui::Spacing();
             constexpr int horsePadValues[]={0x0100,0x0200,0x0040,0x0080,
                 0x1000,0x2000,0x4000,0x8000,0x0001,0x0002,0x0004,0x0008,
                 0x0010,0x0020,0x10000,0x20000};
@@ -563,6 +562,10 @@ void Draw(Context& c) {
             ImGui::TreePop();
             }
 
+            ImGui::Unindent(12.0f);
+            }
+            if(ImGui::CollapsingHeader("System and startup")){
+            ImGui::Indent(12.0f);
             DrawSectionTitle("System");
 
             ImGui::Text("Graphics Adapter");
@@ -654,6 +657,8 @@ void Draw(Context& c) {
 
             ImGui::Spacing();
             ImGui::TextDisabled("Skip Logos / Intro take effect after a game restart.");
+            ImGui::Unindent(12.0f);
+            }
 
             ImGui::EndTabItem();
         }
@@ -687,6 +692,8 @@ void Draw(Context& c) {
                 ImGui::TreePop();
             }
 
+            if(ImGui::CollapsingHeader("Third Person camera",ImGuiTreeNodeFlags_DefaultOpen)){
+            ImGui::Indent(12.0f);
             DrawSectionTitle("Third Person camera");
             if (ImGui::Checkbox("Third Person", &config.thirdPersonEnabled)) {
                 config.Save();
@@ -818,7 +825,7 @@ void Draw(Context& c) {
                     ImGui::TreePop();
                 }
                 ImGui::Separator();
-                ImGui::Text("Keyboard + controller: same actions, side by side");
+                ImGui::Text("Keyboard and controller shortcuts");
                 ImGui::TextDisabled("OFF disables only that shortcut; existing native game buttons are unchanged.");
                 constexpr int kButtons[]={
                     0,0x0040,0x0080,0x0100,0x0200,0x10000,0x20000,
@@ -846,43 +853,25 @@ void Draw(Context& c) {
                     if(ImGui::SmallButton("Default")){mask=defaultMask;config.Save();}
                     ImGui::PopID();
                 };
-                auto BindTPSKeyboard=[&](const char* label,dg::config::TpsKeyboardAction action){
-                    const size_t i=static_cast<size_t>(action);
-                    const int bindingIndex=static_cast<int>(config.cameraKeys.size()+i);
-                    ImGui::PushID(6100+bindingIndex);
-                    ImGui::Text("%s",label);
-                    ImGui::SameLine(305.0f);
-                    ImGui::Text("%s",config::KeyDisplayName(config.tpsKeyboardKeys[i]).c_str());
-                    ImGui::SameLine();
-                    const bool capture=c.captureCameraKeyIndex->load()==bindingIndex;
-                    if(ImGui::SmallButton(capture?"Press key...":"Rebind")){
-                        c.captureMenuKey->store(false);
-                        c.captureCameraKeyIndex->store(bindingIndex);
+                DrawSectionTitle("Keyboard shortcuts");
+                ImGui::TextDisabled("Change then press a key; Esc cancels. Unbound disables the mod shortcut.");
+                if(BeginKeyboardTable("TpsKeyboardBindings")){
+                    for(size_t i=1;i<static_cast<size_t>(config::TpsKeyboardAction::Count);++i){
+                        DrawKeyboardRow(c,config,config::kTpsKeyboardLabels[i],
+                            config.tpsKeyboardKeys[i],config::kDefaultTpsKeyboardKeys[i],
+                            static_cast<int>(config.cameraKeys.size()+i));
                     }
-                    ImGui::SameLine();
-                    if(ImGui::SmallButton("Unbind")){
-                        config.tpsKeyboardKeys[i]=0;
-                        c.captureCameraKeyIndex->store(-1);
-                        config.Save();
-                    }
-                    ImGui::SameLine();
-                    if(ImGui::SmallButton("Default")){
-                        config.tpsKeyboardKeys[i]=config::kDefaultTpsKeyboardKeys[i];
-                        c.captureCameraKeyIndex->store(-1);
-                        config.Save();
-                    }
-                    ImGui::PopID();
-                };
-                BindTPSKeyboard("TPS ON/OFF (long hold)",dg::config::TpsKeyboardAction::Toggle);
+                    ImGui::EndTable();
+                }
+                DrawSectionTitle("Controller bindings");
+                ImGui::TextDisabled("Native in-game controls take priority. These bindings are mod detectors.");
                 BindGamepadMask("Controller long hold##TPS",config.tpsToggleHoldButtonMask,64);
                 ImGui::SetNextItemWidth(245.0f);
                 if(ImGui::SliderInt("Long press delay##ToggleTPS",
                     &config.tpsToggleHoldMs,250,2000,"%d ms"))config.Save();
                 ImGui::Spacing();
-                BindTPSKeyboard("Recenter camera",dg::config::TpsKeyboardAction::Recenter);
                 BindGamepadMask("Controller recenter##TPS",config.tpsRecenterButtonMask,64);
                 ImGui::Spacing();
-                BindTPSKeyboard("Temporary vanilla view",dg::config::TpsKeyboardAction::Suspend);
                 BindGamepadMask("Controller temporary view##TPS",config.tpsSuspendButtonMask,128);
                 if(config.tpsKeyboardKeys[static_cast<size_t>(dg::config::TpsKeyboardAction::Suspend)]=='E')
                     ImGui::TextDisabled("E deliberately does BOTH: native gear + temporary view after hold delay.");
@@ -904,8 +893,6 @@ void Draw(Context& c) {
                     "instead of being intercepted by TPS camera control.");
                 ImGui::TextDisabled("LB+Y: original native ability behavior, no modded aiming or key translation.");
                 ImGui::TextDisabled("Old TPSChargedFirePadMask INI is retained but ignored.");
-                BindTPSKeyboard("Equipment wheel detector (G)",dg::config::TpsKeyboardAction::WheelG);
-                BindTPSKeyboard("Ammunition / abilities wheel detector (Tab)",dg::config::TpsKeyboardAction::WheelTab);
                 ImGui::TextWrapped("Wheel detector keys never emit fake game input. "
                     "Change them here too when rebinding the game's wheel controls.");
                 ImGui::TextDisabled("Keyboard Use Gear follows the game's own native mapping.");
@@ -925,6 +912,10 @@ void Draw(Context& c) {
                     "their original actions. OFF disables the mod shortcut only.");
                 ImGui::Unindent();
             }
+            ImGui::Unindent(12.0f);
+            }
+            if(ImGui::CollapsingHeader("Original game camera")){
+            ImGui::Indent(12.0f);
             ImGui::TextDisabled("Normal aiming and camera return when TPS is OFF.");
             if(config.thirdPersonEnabled)
                 ImGui::TextDisabled("Vanilla camera settings are disabled during TPS; saved values stay intact.");
@@ -1023,31 +1014,13 @@ void Draw(Context& c) {
                 "Press Rebind then the new key; Esc cancels. "
                 "Bindings work only with the overlay closed and the game focused."
             );
-            for (size_t i = 0; i < config.cameraKeys.size(); ++i) {
-                ImGui::PushID(static_cast<int>(i) + 3000);
-                ImGui::Text("%s:", config::kCameraLabels[i]);
-                ImGui::SameLine(200.0f);
-                ImGui::Text("%s", config::KeyDisplayName(config.cameraKeys[i]).c_str());
-                ImGui::SameLine(340.0f);
-                const bool capture = c.captureCameraKeyIndex->load() ==
-                    static_cast<int>(i);
-                if (ImGui::Button(capture ? "Press key... (Esc cancels)" : "Rebind")) {
-                    c.captureMenuKey->store(false);
-                    c.captureCameraKeyIndex->store(static_cast<int>(i));
+            if(BeginKeyboardTable("VanillaCameraKeyboardBindings")){
+                for(size_t i=0;i<config.cameraKeys.size();++i){
+                    DrawKeyboardRow(c,config,config::kCameraLabels[i],
+                        config.cameraKeys[i],config::kDefaultCameraKeys[i],
+                        static_cast<int>(i));
                 }
-                ImGui::SameLine();
-                if (ImGui::Button("Unbind")) {
-                    config.cameraKeys[i] = 0;
-                    c.captureCameraKeyIndex->store(-1);
-                    config.Save();
-                }
-                ImGui::SameLine();
-                if(ImGui::SmallButton("Default")){
-                    config.cameraKeys[i]=config::kDefaultCameraKeys[i];
-                    c.captureCameraKeyIndex->store(-1);
-                    config.Save();
-                }
-                ImGui::PopID();
+                ImGui::EndTable();
             }
             ImGui::TextDisabled("Hold keys to repeat. Steps: height 50, zoom 10%%, pitch/yaw 5 degrees.");
             ImGui::TextDisabled("Camera-distance adjustments temporarily disable DOF blur.");
@@ -1055,6 +1028,8 @@ void Draw(Context& c) {
                 ImGui::SetTooltip("The native r.DepthOfFieldQuality is restored when Zoom and Third Person are off.");
             ImGui::TextDisabled("Native output changes. Actual framing requires in-game verification.");
             ImGui::EndDisabled();
+            ImGui::Unindent(12.0f);
+            }
             ImGui::EndTabItem();
         }
 
