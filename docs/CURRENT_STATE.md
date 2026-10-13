@@ -1,3 +1,8 @@
+# V1.15 Resource Gains Audit (2026-10-13)
+
+Audit only. User V1.14U log proved Synergy local observed 317, positive 113, boosted 113; therefore all native positive events captured were boosted. User notes sources include gems and enemy kills. We already multiply effective native A*B*C gain rather than bar/setter or gem object, but cannot yet prove all reward sources use that path. V1.15 introduces bounded `ADD_CLASS` and `SET_CLASS` classification to distinguish zero/negative/nonfinite and direct setter vs additive gains without changing gameplay. Wrath/Ultimate hooks zero, need native acquisition paths. Version naming is strict incremental V1.15, V1.16, etc., no suffixes. Windows build pending; main/archive intact. [Technical note](V1_15_RESOURCE_GAINS_AUDIT.md).
+
+---
 # Current test: V1.14U TPS cursor UI and About reset confirmation fix
 
 Fix based on uploaded 2026-10-13 V1.14U log: no factory-reset event logged; ImGui popup opened in About tab but modal attempted outside EndTabBar (ID scope mismatch). Moved popup into About; added visible success/error/cancel feedback + action log. Show Mouse Pointer in TPS moved to Camera > Third Person, OFF by default. Existing integrated updater remains. New cumulative debug ZIP DarksidersGenesis_V1.14_ZZ_TPS_RESET_FEEDBACK_TEST.zip; Windows CI run 38434291793 success; 747066-byte cumulative ZIP published on debug. In-game popup/INI reset test still pending. See [note](V1_14U_RESET_MODAL_TPS_UI.md).

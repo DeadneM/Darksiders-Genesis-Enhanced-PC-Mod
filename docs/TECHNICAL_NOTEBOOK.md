@@ -1,3 +1,7 @@
+## V1.15 bounded resource gain audit (2026-10-13)
+
+The V1.14U logfile shows `SynergyLocal=317 positive=113` and additive `observed=317 local=317 boosted=113`. This is consistent: 113 positive calls were multiplied, 204 did not produce positive native additive gain. First two additive calls had zero factor B; no lost gains proven. Current detour multiplies factor C in native A*B*C, i.e., amount received, not object or absolute gauge; remains unchanged. To determine collectible gem vs enemy kill path, add read-only positive/zero/negative/invalid factor sampling and marker for additive-origin vs direct `SetCurrentSynergy`. Wrath/Chaos hook calls stay zero and need further tracing. Strict build numbering V1.15 onward: V1.16, V1.17, no letters / repeated numbering. [Details](V1_15_RESOURCE_GAINS_AUDIT.md).
+
 ## V1.14U UI-fix: TPS option grouping + About factory reset modal (2026-10-13)
 
 User reports Show Mouse Pointer in TPS is currently in Gameplay/HUD, but belongs in Camera/Third Person. Relocated checkbox and explanation to Camera > Third Person camera after the enable toggle. Key `[Features] ShowTPSMousePointer=0` remains OFF by default; TPS suppression and Hide Reticle priority unchanged.

@@ -1,3 +1,9 @@
+## V1.15 experimental: resource gain audit (no gameplay changes)
+
+[**V1.15 cumulative Windows TEST ZIP**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.15_RESOURCE_GAINS_AUDIT_TEST.zip) · `debug` · game validation pending.
+
+V1.14 log: Synergy **317 total native calls, 317 local, 113 positive, 113 amplified**. The nonpositive 204 calls are not proof of missed pickups. Synergy already multiplies a *native received gain* `A*B*C`, not an object or the bar's absolute value. The V1.15 read-only audit reports separate positive/zero/negative additive amounts, source factor variation, direct setter gains vs helper gains, and whether any actual positive gain was not boosted. It does not change multipliers or gameplay. Wrath/Ultimate true gain paths still require confirmation. **Every future build receives the next numeric version: V1.16, V1.17...**, no A/B/C/D/U. See [V1.15 technical note](docs/V1_15_RESOURCE_GAINS_AUDIT.md). V1.14 builds preserved.
+
 ## V1.14U UI-fix - TPS mouse option in Camera, working factory reset feedback
 
 [**V1.14U cumulative TEST ZIP (TPS UI + reset confirmation fix)**](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.14_ZZ_TPS_RESET_FEEDBACK_TEST.zip) · debug only.
