@@ -1,0 +1,79 @@
+name: Build standalone updater on debug
+on:
+  push:
+    branches: [debug]
+    paths:
+      - "updater/**"
+      - ".github/workflows/build-updater-debug.yml"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: dg-updater-debug
+  cancel-in-progress: true
+jobs:
+  updater:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Compile updater Windows x64
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Path updater/bin -Force | Out-Null
+          $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+          if (-not (Test-Path $csc)) { throw 'Windows framework C# compiler missing' }
+          & $csc /nologo /target:winexe /platform:x64 /optimize+ /out:updater/bin/DarksidersGenesisUpdater.exe /r:System.dll /r:System.Core.dll /r:System.Drawing.dll /r:System.Windows.Forms.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll /r:System.Web.Extensions.dll updater/Program.cs updater/UpdateEngine.cs updater/UpdaterForm.cs
+          if ($LASTEXITCODE -ne 0) { throw "Compile failed: $LASTEXITCODE" }
+          $bytes = [IO.File]::ReadAllBytes((Resolve-Path updater/bin/DarksidersGenesisUpdater.exe))
+          if ($bytes[0] -ne 77 -or $bytes[1] -ne 90) { throw 'Invalid PE executable' }
+          $pe = [BitConverter]::ToInt32($bytes, 0x3C)
+          if ([BitConverter]::ToUInt16($bytes, $pe+4) -ne 0x8664) { throw 'Not AMD64' }
+      - name: Package verified updater ZIP
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Path updater/dist,downloads -Force | Out-Null
+          Copy-Item updater/bin/DarksidersGenesisUpdater.exe updater/dist/
+          Copy-Item updater/README.md updater/dist/README.md
+          $zipFile = 'downloads/DarksidersGenesisUpdater_V1.0_Windows.zip'
+          if (Test-Path $zipFile) { Remove-Item $zipFile -Force }
+          Compress-Archive -Path 'updater/dist/*' -DestinationPath $zipFile -CompressionLevel Optimal
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [IO.Compression.ZipFile]::OpenRead((Resolve-Path $zipFile))
+          try {
+            $items = @($zip.Entries | ForEach-Object { $_.FullName })
+            if ($items.Count -ne 2 -or $items -notcontains 'DarksidersGenesisUpdater.exe' -or $items -notcontains 'README.md') { throw 'Invalid updater ZIP entries' }
+            if ($items | Where-Object { $_.Contains('/') -or $_.Contains('\') }) { throw 'Nested ZIP path' }
+          } finally { $zip.Dispose() }
+          Get-FileHash $zipFile -Algorithm SHA256
+      - name: Upload updater test ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: DarksidersGenesisUpdater_V1.0_Windows
+          path: downloads/DarksidersGenesisUpdater_V1.0_Windows.zip
+          if-no-files-found: error
+      - name: Preserve numbered updater ZIP in debug
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for ($i = 0; $i -lt 5; $i++) {
+            git fetch origin debug
+            if ($LASTEXITCODE -ne 0) { throw 'Fetch failed' }
+            git reset --mixed origin/debug
+            if ($LASTEXITCODE -ne 0) { throw 'Reset failed' }
+            git add -- downloads/DarksidersGenesisUpdater_V1.0_Windows.zip
+            if ($LASTEXITCODE -ne 0) { throw 'Add failed' }
+            git diff --cached --quiet
+            if ($LASTEXITCODE -eq 0) { Write-Host 'Updater ZIP already published'; exit 0 }
+            git commit -m "downloads: preserve compiled standalone updater V1.0"
+            if ($LASTEXITCODE -ne 0) { throw 'Commit failed' }
+            git push origin HEAD:debug
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            Start-Sleep -Seconds 2
+          }
+          throw 'Updater ZIP push failed'
