@@ -14,7 +14,7 @@ namespace DarksidersGenesisUpdater {
         private Button checkButton, installButton, restoreButton, browseButton;
         private Timer closeTimer;
         private Package latest;
-        private bool busy, queued;
+        private bool busy, queued, loadingPreferences;
         private readonly string settingsFile=Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "DarksidersGenesisEnhancedUpdater","preferences.txt");
@@ -26,7 +26,9 @@ namespace DarksidersGenesisUpdater {
             Size=new Size(850,555);
             Font=new Font("Segoe UI",9.5f);
             BuildForm();
+            loadingPreferences=true;
             ReadPreferences();
+            loadingPreferences=false;
             closeTimer=new Timer();
             closeTimer.Interval=2000;
             closeTimer.Tick+=delegate {
@@ -65,7 +67,7 @@ namespace DarksidersGenesisUpdater {
             pathRow.Controls.Add(new Label {Dock=DockStyle.Fill,
                 Text="Folder containing DarksidersGenesis-Win64-Shipping.exe"},0,0);
             location=new TextBox {Dock=DockStyle.Fill};
-            location.TextChanged+=delegate {latest=null;RefreshInstalled();SavePreferences();};
+            location.TextChanged+=delegate {latest=null;RefreshInstalled();if(!loadingPreferences)SavePreferences();};
             browseButton=new Button {Text="Browse...",Dock=DockStyle.Fill};
             browseButton.Click+=delegate {
                 using(var d=new FolderBrowserDialog()){
@@ -83,12 +85,13 @@ namespace DarksidersGenesisUpdater {
             autoInstall=new CheckBox {Text="Automatically install newer versions after checking",
                 AutoSize=true,Checked=true,Margin=new Padding(0,7,0,0)};
             beta.CheckedChanged+=delegate {
+                if(loadingPreferences)return;
                 SavePreferences();latest=null;
                 available.Text="Remote version: not checked";
                 AddLog(beta.Checked?"Channel: debug (beta)":"Channel: main (stable)");
                 if(!busy)CheckLatest(false);
             };
-            autoInstall.CheckedChanged+=delegate {SavePreferences();};
+            autoInstall.CheckedChanged+=delegate {if(!loadingPreferences)SavePreferences();};
             channels.Controls.Add(beta);
             channels.Controls.Add(autoInstall);
             table.Controls.Add(channels,0,2);
