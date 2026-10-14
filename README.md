@@ -1,3 +1,7 @@
+## V1.30 CI verified / permanent debug ZIP (2026-10-14)
+
+GitHub Actions [run 38587210828](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38587210828) completed **SUCCESS**: Windows x64 CMake configure, Release compilation, exactly-four-root-files ZIP validation, Actions upload, preservation and commit in `debug/downloads/`. [Permanent V1.30 TEST ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.30_RETICLE_WORLD_RAY_CINEMA_TEST.zip), size **768,166 bytes**, Git blob SHA-1 `b35917cf069a3cf823da254964b1e00d5c3cccec`. Older V1.29 (765,354), V1.28 (763,306) retained. Main head remains `2bc3122c1ae07b7333798462f85c1d9fd3a739f7`, archive head `10e0f220b85022bc9269e0cb9390a811a3b1cf89`. Compile and ZIP validation do **not** constitute in-game success; reticle WORLD_RAY is a read-only mathematical probe, **NOT** a native projectile hit or bullet redirection.
+
 ## V1.30 - Real TPS camera screen-reticle WORLD-RAY trace (read-only) + tighter cinematic distance (TEST)
 
 [Download V1.30 cumulative TEST ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.30_RETICLE_WORLD_RAY_CINEMA_TEST.zip) · `debug` only, compilation and gameplay validation pending.
