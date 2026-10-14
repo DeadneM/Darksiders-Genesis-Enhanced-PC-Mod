@@ -751,8 +751,11 @@ bool MarkCurrentCinematicForDebug(){
     ReleaseSRWLockShared(&g_cinematicDebugLock);
     if(!hasSample)return false;
     // Explicit user annotation, not automatic cinematic identity.
-    const uint64_t age=GetTickCount64()>=observation.tickMs
-        ?GetTickCount64()-observation.tickMs:0ull;
+    const uint64_t now=GetTickCount64();
+    const uint64_t age=now>=observation.tickMs?now-observation.tickMs:0ull;
+    // Show when the user actually clicked, not the timestamp of the
+    // possibly stale native view. Keep the source age in durationMs.
+    observation.tickMs=now;
     RecordCinematicEvent(CinematicDebugPhase::ManualMark,
         g_cinematicActiveCandidateId.load(std::memory_order_acquire),
         age,observation);
