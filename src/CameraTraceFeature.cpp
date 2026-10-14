@@ -602,6 +602,12 @@ Telemetry GetTelemetry() {
     t.mountedFireOverrodeFoot = g_mountedFireOverrodeFoot.load();
     t.mountedFireHorseUnavailable = g_mountedFireHorseUnavailable.load();
     t.mountedFireVerticalSmoothed = g_mountedFireVerticalSmoothed.load();
+    t.mountedMouseViewFrames = g_v127MountedMouseViewFrames.load();
+    t.mountedMouseHorsePoseHeld = g_v127MountedMouseHorsePoseHeld.load();
+    t.facingFootSamples = g_v127FacingFootSamples.load();
+    t.facingFootOffAxis = g_v127FacingFootOffAxis.load();
+    t.facingHorseSamples = g_v127FacingHorseSamples.load();
+    t.facingHorseOffAxis = g_v127FacingHorseOffAxis.load();
     t.mountedFireLastVerticalCorrection = g_mountedFireLastVerticalCorrection.load();
     t.mountedFireCurrentlyActive = g_mountedFireCurrentlyActive.load();
     t.nativeFov = g_nativeFov.load();
