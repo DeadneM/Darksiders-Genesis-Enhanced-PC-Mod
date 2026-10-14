@@ -23,3 +23,8 @@ Date: 2026-10-14. Branch **debug** ONLY. Cumulative baseline V1.24, confirmed by
 - Confirm 2 warnings still visible (not skipped); `WARNING_IDENTITY_CANDIDATE` is research. Trigger real dialogue/cinematic and check `CAMERA_TRANSITION` log and R3 hold fallback. Do not mark automatic detection native/complete without proof.
 - Windows CI Release must verify ZIP exactly 4 ROOT files: dxgi.dll, DarksidersGenesisMod.asi, DarksidersGenesisMod.ini, README.md. Existing personal INIs and old V1.23/V1.24 ZIPs preserved. Do not touch main or archive.
 
+
+## V1.25 CI and permanent ZIP publication verified (2026-10-14)
+
+GitHub Actions [run 38542601698](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38542601698): **SUCCESS**, including Windows x64 CMake configuration, Release compilation, exact-four-root-files archive inspection, upload and permanent `debug` push. [Permanent V1.25 TEST ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.25_RELATIVE_RAW_RECOVERY_TEST.zip): **756,018 bytes**, Git blob SHA-1 `16dc0637d7ac86c130d8d2d7055af02b79bed801`. V1.24 size 753,948 bytes and V1.23 size 752,055 bytes remain untouched. No modifications to `main` (2bc3122c1ae07b7333798462f85c1d9fd3a739f7) or `archive` (10e0f220b85022bc9269e0cb9390a811a3b1cf89). CI success verifies build and packaging only, **not** real in-game relative-input continuity or a working warning skip. Validation remains pending.
+
