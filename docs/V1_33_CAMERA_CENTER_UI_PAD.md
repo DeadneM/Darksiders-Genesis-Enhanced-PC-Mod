@@ -1,6 +1,37 @@
 # V1.33 - camera-center mouse aim and native UI stick passthrough
 
-2026-10-14. Branch debug only. **SOURCE PREPARED / STATIC CONTRACTS CHECKED / NOT BUILT / NOT INSTALLED / GAMEPLAY UNVALIDATED.**
+2026-10-14. Branch debug only. **CONSTRUIT / CONTROLE / INSTALLE / EXPERIMENTAL. Gameplay unvalidated.**
+
+## Verified delivery and local installation
+
+Source 52ee7b4eb1073650e573d8896a968db6ebf35dcf. Windows x64 GitHub Actions
+[38633252781](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38633252781)
+SUCCESS: configure, Release compilation, exact four root ZIP entries, upload and
+numbered archive publication. Archive commit 5e60284821ca85e8d2397b2955947f5a5fe4b794.
+[Permanent V1.33 ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.33_CAMERA_CENTER_UI_PAD_TEST.zip),
+774986 bytes, SHA256 EFF76B7514FFB69F957ABB7FE9688C5122F29C7F2EC917E4ED32B157940D040E.
+Independent extraction confirmed exactly ASI 1143808 bytes, dxgi.dll 154624, INI
+2677, README 240120. Both binaries checked MZ/PE AMD64, embedded ASI build identity
+1.33-camera-center-mouse-ui-pad-passthrough-test verified. The direct raw URL was
+downloaded and matched the same ZIP hash.
+
+Installed locally after an elevated check confirmed no game process running.
+ASI, loader and README copied with destination SHA256 equality checks. Existing
+personal INI was NOT replaced: SHA256 before/after
+AB2F95CD2AE49AD1706E1E9A420FEEDB1E416D25FCA157E83897554EF2C3E095.
+Previous four installed files and hash manifest backed up at
+`../audit-v131/install-backup-before-v133-20261014-223512/`.
+The packaged README reflects its pre-CI source snapshot; this verified-delivery
+record supersedes those pending status lines. The installed README is updated
+with these verified post-CI notes; native binaries still match the ZIP exactly.
+No launch or gameplay validation performed by the agent.
+
+Automatic review became available again on the user's new compile/install
+request. Source publication and installation passed the normal approval route;
+no alternative publication path was used to bypass the earlier review failure.
+main 2bc3122c1ae07b7333798462f85c1d9fd3a739f7 and archive
+10e0f220b85022bc9269e0cb9390a811a3b1cf89 remain unchanged. Older V1.31/V1.32 ZIP
+blob identities were rechecked unchanged after V1.33 publication.
 
 Base: V1.32 source cf613bb, published package d842a55; local delivery notes 6a69776 were not pushed because the automatic approval reviewer could not complete review after a usage-limit error. Do not bypass that review using another publication route.
 
@@ -51,6 +82,6 @@ One coherent build goal: restore native equipment-wheel selection under retained
 
 Success: controller right stick selects items in equipment wheel; ammo/ability selection still works; all retain TPS composition; tested scene hands off/returns; temporary-native shortcut still works. Mouse LMB/RMB hits at the camera center at different yaw/pitch, foot/horse, near walls and no-hit sky, independent of physical cursor position. Controller-only RT/RB/R3/horse regressions must remain absent.
 
-Build/publish target prepared in workflow: DarksidersGenesis_V1.33_CAMERA_CENTER_UI_PAD_TEST.zip, exact four root files. This path is a future output, NOT an existing download. No V1.33 release/archive/binary is announced. Publication and Windows CI require restoration of the automatic approval review service/quota. The prior rejected action was a push of delivery documentation; this was a review availability failure, not a safety determination. Do not publish via a connector as a workaround.
+The initial source-only stage was blocked by an automatic review quota failure on the previous documentation push. This is historical: the verified delivery above supersedes it. The normal approval route later succeeded, and the V1.33 four-root-file ZIP now exists at the verified link above.
 
-Rollback is the existing V1.32 package, preserving personal INI. V1.32 remains the last verified Windows binary. New V1.33 source must not be installed as if compiled. After review is available: verify remote debug/main/archive, fast-forward safely, publish debug, verify CI and four-root AMD64 ZIP, back up and install with game closed and personal INI intact, then run the acceptance cases above. Native Wrath/Ultimate gain and Skip Warnings remain unrelated unresolved work.
+Rollback is the preserved V1.32 package or local backup, retaining personal INI. V1.33 is now the latest verified/installed Windows experiment. Next: user tests equipment-wheel selection and camera-center mouse aim on foot/horse, with V1.32 validated camera/scene behavior preserved. Native Wrath/Ultimate gain and Skip Warnings remain unrelated unresolved work.

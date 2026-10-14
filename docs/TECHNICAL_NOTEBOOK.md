@@ -1,4 +1,8 @@
-## V1.33 source change after V1.32 user test
+## V1.33 verified Windows delivery and installation, 2026-10-14
+
+CI38633252781 SUCCESS; source52ee7b4, numbered archive5e60284. Independent four-root-file ZIP/PE AMD64/build identity/direct URL verification; ZIP774986 bytes SHA256 EFF76B7514FFB69F957ABB7FE9688C5122F29C7F2EC917E4ED32B157940D040E. Normal authorized installation succeeded with game closed, binary destination hashes matched; INI AB2F95CD2AE49AD1706E1E9A420FEEDB1E416D25FCA157E83897554EF2C3E095 unchanged; old installation backup ../audit-v131/install-backup-before-v133-20261014-223512/. Installed README updated post-CI. Earlier review quota failure resolved through same approval route. main/archive and old archives unchanged. CONSTRUIT / CONTROLE / INSTALLE / EXPERIMENTAL; test equipment-wheel selection and center-camera mouse shots foot/horse before claiming gameplay validation. [Full delivery evidence](V1_33_CAMERA_CENTER_UI_PAD.md).
+
+## V1.33 source change after V1.32 user test (historical pre-CI stage)
 
 User validates retained TPS in three wheels and detection of the tested scene; equipment wheel selection regresses. Latest actual log proves native mouse target path FOOT1657/HORSE779, hit2349/miss87, native cinema19:42:33.669-19:42:39.653. V1.33 keeps the successful camera/lifecycle module identical. Adds tpsUiViewHeld to native aim suppression and live-look-actor gates: native UI receives original stick and look results; no direct XInput filter body changes. Mouse ray now uses camera center yaw/pitch, no cursor/aspect/FOV steering. [Full evidence, contracts and acceptance](V1_33_CAMERA_CENTER_UI_PAD.md).
 

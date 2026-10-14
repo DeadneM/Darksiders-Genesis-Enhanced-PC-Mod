@@ -1,4 +1,12 @@
-## Authoritative V1.32 user test / V1.33 source pending build
+## Current verified delivery: V1.33 built and installed, 2026-10-14
+
+**CONSTRUIT / CONTROLE / INSTALLE / EXPERIMENTAL.** Windows CI [38633252781](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38633252781) SUCCESS for source 52ee7b4, archive debug commit 5e60284. [Permanent four-root-file V1.33 ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.33_CAMERA_CENTER_UI_PAD_TEST.zip) 774986 bytes, SHA256 EFF76B7514FFB69F957ABB7FE9688C5122F29C7F2EC917E4ED32B157940D040E. PE AMD64 and embedded ASI1.33 identity independently verified; direct raw download hash matched.
+
+Installed in the game's Win64 directory after normal authorized closed-game check, with ASI/loader destination hashes matching the ZIP and personal INI before/after unchanged (AB2F95CD2AE49AD1706E1E9A420FEEDB1E416D25FCA157E83897554EF2C3E095). Full prior V1.32 installation backed up locally at ../audit-v131/install-backup-before-v133-20261014-223512/. Installed README refreshed with verified post-CI delivery status. main/archive unchanged; prior ZIPs unchanged. Earlier automatic review quota blocker is resolved via the normal approval route, without bypass.
+
+Next required test: right-stick equipment selection, then both mouse buttons aiming through CAMERA CENTER at foot/horse; check native collisions, preserved TPS in all wheels, tested cinematic and temporary native shortcut, controller RT/RB/R3. No gameplay success claimed yet. Preserve user-validated V1.32 camera/native-scene behavior; V1.33 adds only UI aim-pass gates and camera-center mouse ray. [Details and rollback](V1_33_CAMERA_CENTER_UI_PAD.md).
+
+## Authoritative V1.32 user test / V1.33 source pending build (historical, superseded above)
 
 User's V1.32 test confirms TPS kept in all three wheels and the tested cinematic recognized. Equipment wheel right-stick selection is broken; mouse/horse aim seems better; user now requests shooting toward camera center. Native log 19:40-19:43 proves V1.32 loaded: native target FOOT1657/HORSE779, 2349 hits/87 no-hit points; native cinematic enabled19:42:33.669, disabled19:42:39.653. Impacts not measured. Prior automated installation had stopped; do not claim it installed this session. V1.32 is now confirmed loaded by the actual user test.
 
