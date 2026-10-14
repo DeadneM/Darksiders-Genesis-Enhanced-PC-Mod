@@ -38,7 +38,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.22-no-reticle-hide-test";
+constexpr const char* kBuild = "1.23-tps-edge-relative-recapture-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -189,6 +189,11 @@ std::atomic_uint32_t g_v118WrathStable{0},g_v118WrathGainNearCharge{0};
 std::atomic_bool g_v120RawRegistrationChecked{false},g_v120RawAddedByMod{false};
 std::atomic_uint32_t g_v120ExistingRawMouse{0},g_v120RawRegistrationErrors{0},
     g_v120RawMousePackets{0},g_v120RawNonMousePackets{0},g_v120RawAtEdge{0};
+// Only limited repositioning at window edge, not a reticle visibility hook.
+std::atomic_ullong g_v123LastPhysicalMouseTick{0},g_v123LastRecenterTick{0};
+std::atomic_int g_v123RecenterClientX{0},g_v123RecenterClientY{0};
+std::atomic_uint32_t g_v123EdgeRecenters{0},g_v123SyntheticMovesIgnored{0},
+    g_v123RecenterFailures{0};
 std::atomic_uint32_t g_v120WrathNearDamage{0},g_v120WrathWhileFiring{0},
     g_v120WrathWhileIdle{0},g_v120WrathSpendEvents{0};
 std::atomic_ullong g_v120LastLocalDamage{0};
@@ -3099,8 +3104,20 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                 const POINT next{
                     static_cast<LONG>(static_cast<short>(LOWORD(lParam))),
                     static_cast<LONG>(static_cast<short>(HIWORD(lParam)))};
-                if(lastPointValid &&
-                   now-g_v119LastRawMouseTick.load(std::memory_order_relaxed)>300ull) {
+                const ULONGLONG warpAt=g_v123LastRecenterTick.load(
+                    std::memory_order_acquire);
+                const bool artificialMove=warpAt && now>=warpAt &&
+                    now-warpAt<250ull &&
+                    std::abs(next.x-g_v123RecenterClientX.load(
+                        std::memory_order_relaxed))<=3 &&
+                    std::abs(next.y-g_v123RecenterClientY.load(
+                        std::memory_order_relaxed))<=3;
+                if(artificialMove) {
+                    // A SetCursorPos message must never rotate the camera.
+                    ++g_v123SyntheticMovesIgnored;
+                }else if(lastPointValid &&
+                         now-g_v119LastRawMouseTick.load(
+                             std::memory_order_relaxed)>300ull) {
                     dx=static_cast<int>(next.x-lastPoint.x);
                     dy=static_cast<int>(next.y-lastPoint.y);
                     if(dx||dy)++g_v119MouseMoveFallback;
@@ -3111,6 +3128,8 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             // Bounded deltas reject teleports, very old positions and invalid
             // raw packets. The original WndProc still gets EVERY message.
             if(std::abs(dx)<=160 && std::abs(dy)<=160) {
+                if(dx||dy)g_v123LastPhysicalMouseTick.store(
+                    now,std::memory_order_release);
                 if(dx)g_v119MouseDeltaX.fetch_add(dx,std::memory_order_relaxed);
                 if(dy)g_v119MouseDeltaY.fetch_add(dy,std::memory_order_relaxed);
             }
@@ -3802,6 +3821,49 @@ void UpdateOrbitInput() {
         }
         return;
     }
+    // V1.23: keep unbounded TPS yaw when the OS mouse pointer runs into
+    // the client border. Never reinstall any hide-reticle/SetCursor hook.
+    // Warp only at an edge after real mouse input, no more than every 350ms.
+    // This block runs only in active focused TPS, not overlay/wheels/cutscene.
+    const ULONGLONG physicalAt=g_v123LastPhysicalMouseTick.load(
+        std::memory_order_acquire);
+    const ULONGLONG recenteredAt=g_v123LastRecenterTick.load(
+        std::memory_order_acquire);
+    const ULONGLONG gameplayAt=rt.tpsGameplayViewTick.load(
+        std::memory_order_acquire);
+    if(physicalAt && now>=physicalAt && now-physicalAt<180ull &&
+       (!recenteredAt || (now>=recenteredAt &&
+                          now-recenteredAt>=350ull)) &&
+       rt.tpsViewGameplay.load(std::memory_order_relaxed) &&
+       !rt.tpsAbilityWheelHeld.load(std::memory_order_relaxed) &&
+       gameplayAt && now>=gameplayAt && now-gameplayAt<250ull) {
+        RECT client{};
+        POINT pointer{};
+        if(GetClientRect(hwnd,&client) && GetCursorPos(&pointer) &&
+           ScreenToClient(hwnd,&pointer) &&
+           client.right-client.left>=200 && client.bottom-client.top>=160 &&
+           (pointer.x<=client.left+10 || pointer.x>=client.right-11 ||
+            pointer.y<=client.top+10 || pointer.y>=client.bottom-11)) {
+            POINT center{(client.left+client.right)/2,
+                         (client.top+client.bottom)/2};
+            POINT target=center;
+            if(ClientToScreen(hwnd,&target)) {
+                g_v123RecenterClientX.store(center.x,std::memory_order_relaxed);
+                g_v123RecenterClientY.store(center.y,std::memory_order_relaxed);
+                g_v123LastRecenterTick.store(now,std::memory_order_release);
+                if(SetCursorPos(target.x,target.y)) {
+                    const unsigned n=++g_v123EdgeRecenters;
+                    if(n<=6 || (n%250u)==0u)
+                        Log("TPS V1.23 EDGE_RECAPTURE #%u cursor=(%ld,%ld) center=(%ld,%ld) physicalAgeMs=%llu rawPackets=%u",
+                            n,pointer.x,pointer.y,center.x,center.y,
+                            static_cast<unsigned long long>(now-physicalAt),
+                            g_v120RawMousePackets.load());
+                }else{
+                    ++g_v123RecenterFailures;
+                }
+            }
+        }
+    }
     // Configurable recenter input, default L3 (XINPUT_GAMEPAD_LEFT_THUMB).
     // Edge detection on the ORIGINAL XInput state, not the filtered
     // game-facing state. Recenter yaw toward live player facing.
@@ -4301,7 +4363,10 @@ void ShutdownMod() {
         g_v119RawMouse.load(),g_v119MouseMoveFallback.load(),
         g_v119MouseCameraFrames.load(),g_v119MouseForwardLook.load(),
         g_v119MouseForwardRotation.load());
-    Log("TPS V1.20 RELATIVE_INPUT totals: registeredByMod=%d nativePreserved=%u registrationErrors=%u rawMouse=%u rawOther=%u rawAtScreenEdge=%u fallbackMoves=%u cursorWarp=0",
+    Log("TPS V1.23 EDGE_RECAPTURE totals: edgeRecenters=%u syntheticMovesIgnored=%u recenterFailures=%u cursorHooks=REMOVED",
+        g_v123EdgeRecenters.load(),g_v123SyntheticMovesIgnored.load(),
+        g_v123RecenterFailures.load());
+    Log("TPS V1.20 RELATIVE_INPUT totals: registeredByMod=%d nativePreserved=%u registrationErrors=%u rawMouse=%u rawOther=%u rawAtScreenEdge=%u fallbackMoves=%u edgeOnlyRecenter=1",
         g_v120RawAddedByMod.load()?1:0,g_v120ExistingRawMouse.load(),
         g_v120RawRegistrationErrors.load(),g_v120RawMousePackets.load(),
         g_v120RawNonMousePackets.load(),g_v120RawAtEdge.load(),

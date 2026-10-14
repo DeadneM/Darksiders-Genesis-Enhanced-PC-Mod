@@ -1,3 +1,9 @@
+## V1.23 - TPS mouse edge recapture (Windows x64 TEST)
+
+[Download cumulative V1.23 ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.23_TPS_EDGE_RECAPTURE_TEST.zip) · `debug` only · game validation pending.
+
+User confirms V1.22 works except TPS mouse orbit still stops at the window edge. Last log: 687 relative RawInput packets, including 77 at the border, with 1,354 WM_MOUSEMOVE fallbacks. V1.23 experimentally re-centers **only the OS pointer at the window edge during active TPS**, after physical motion, with a cooldown and filtered synthetic WM_MOUSEMOVE. There is still NO Hide Reticle, native cursor visibility hook or F4 reticle shortcut. Relative camera, Camera Forward, horse, controller, gauges, startup, cutscene handling, menu and INI defaults are unchanged. [Technical note and test](docs/V1_23_TPS_EDGE_RECAPTURE.md). V1.22 remains available for rollback.
+
 ## V1.22 - Reticle hiding removed from ASI (Windows x64 TEST)
 
 [Download cumulative V1.22 ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.22_NO_RETICLE_HIDE_TEST.zip) · `debug` only · in-game validation pending.
