@@ -1,3 +1,9 @@
+
+## Windows x64 CI and published archive verified (2026-10-14)
+
+GitHub Actions [run 38534464159](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38534464159): **SUCCESS** for configure, Release build, four-root-file packaging, artifact upload and permanent `debug` ZIP publication. [V1.23 permanent ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.23_TPS_EDGE_RECAPTURE_TEST.zip): 752055 bytes, Git blob SHA-1 `567ad7f7854f515ae4f3e091dd87e4a5c65dc013`. The older V1.22 remains exactly 750900 bytes and Git blob SHA-1 `07acd04899dc160d8fbb03a452ce9d362804b9d9`. Windows compilation does not establish gameplay success. `main` and `archive` branch tips unchanged. User test still pending.
+
+---
 ## V1.23 - TPS mouse edge recapture (Windows x64 TEST)
 
 [Download cumulative V1.23 ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.23_TPS_EDGE_RECAPTURE_TEST.zip) · `debug` only · game validation pending.
