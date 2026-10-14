@@ -92,7 +92,11 @@ struct State {
     std::atomic_bool tpsMountedViewActive{false};
     std::atomic_ullong tpsMountedViewTick{0};
     std::atomic_ullong tpsLastHorseSummonInputTick{0}; // V0.88 audit only
-    std::atomic_bool tpsAimActive{false};
+    std::atomic_bool tpsAimActive{false}; // native gamepad shooting
+    // V1.27: physical mouse shot is a separate source. Published from
+    // focused TPS Present only, never synthesize controller/weapon input.
+    std::atomic_bool tpsMouseFireHeld{false};
+    std::atomic_ullong tpsMouseFireTick{0};
     std::atomic<float> tpsActorWorldX{0.0f};
     std::atomic<float> tpsActorWorldY{0.0f};
     std::atomic<float> tpsActorWorldZ{0.0f};
