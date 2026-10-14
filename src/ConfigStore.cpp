@@ -10,7 +10,7 @@
 namespace dg::config {
 namespace {
 
-constexpr int kConfigRevision = 2139;
+constexpr int kConfigRevision = 2140;
 // Actual XInput digital buttons plus LT/RT represented as virtual binding IDs.
 constexpr bool ValidPadBind(int m) {
     switch(m){case 0:case 0x0001:case 0x0002:case 0x0004:case 0x0008:
@@ -319,6 +319,8 @@ void Store::ResetDefaults(bool persist) {
     tpsGrenadeButtonMask = 0x0080;
     tpsFirePrimaryMask=0x20000;
     tpsFireSecondaryMask=0x0200;
+    tpsMousePrimaryButton=VK_LBUTTON;
+    tpsMouseSecondaryButton=VK_RBUTTON;
     tpsWheelPadMask=0x0100;
     tpsChargedFirePadMask=0x8000;
     tpsSuspendButtonMask = 0x0080;
@@ -534,6 +536,13 @@ bool Store::Load() {
     if(!ValidPadBind(tpsGrenadeButtonMask))tpsGrenadeButtonMask=0x0080;
     tpsFirePrimaryMask=GetPrivateProfileIntW(L"Controls",L"TPSFirePrimaryMask",0x20000,path_.c_str());
     tpsFireSecondaryMask=GetPrivateProfileIntW(L"Controls",L"TPSFireSecondaryMask",0x0200,path_.c_str());
+    const auto validMouse=[](int k){return k==0||k==VK_LBUTTON||k==VK_RBUTTON||k==VK_MBUTTON||k==VK_XBUTTON1||k==VK_XBUTTON2;};
+    tpsMousePrimaryButton=GetPrivateProfileIntW(L"Controls",L"TPSMousePrimaryButton",VK_LBUTTON,path_.c_str());
+    tpsMouseSecondaryButton=GetPrivateProfileIntW(L"Controls",L"TPSMouseSecondaryButton",VK_RBUTTON,path_.c_str());
+    if(!validMouse(tpsMousePrimaryButton))tpsMousePrimaryButton=VK_LBUTTON;
+    if(!validMouse(tpsMouseSecondaryButton))tpsMouseSecondaryButton=VK_RBUTTON;
+    if(tpsMousePrimaryButton && tpsMousePrimaryButton==tpsMouseSecondaryButton)
+        tpsMouseSecondaryButton=tpsMousePrimaryButton==VK_RBUTTON?VK_LBUTTON:VK_RBUTTON;
     tpsWheelPadMask=GetPrivateProfileIntW(L"Controls",L"TPSWheelPadMask",0x0100,path_.c_str());
     tpsChargedFirePadMask=GetPrivateProfileIntW(L"Controls",L"TPSChargedFirePadMask",0x8000,path_.c_str());
     if(!ValidPadBind(tpsFirePrimaryMask))tpsFirePrimaryMask=0x20000;
@@ -947,6 +956,10 @@ bool Store::SaveNow() {
     WritePrivateProfileStringW(L"Controls",L"TPSFirePrimaryMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsFireSecondaryMask);
     WritePrivateProfileStringW(L"Controls",L"TPSFireSecondaryMask",buttonBuffer,path_.c_str());
+    swprintf_s(buttonBuffer,L"%d",tpsMousePrimaryButton);
+    WritePrivateProfileStringW(L"Controls",L"TPSMousePrimaryButton",buttonBuffer,path_.c_str());
+    swprintf_s(buttonBuffer,L"%d",tpsMouseSecondaryButton);
+    WritePrivateProfileStringW(L"Controls",L"TPSMouseSecondaryButton",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsWheelPadMask);
     WritePrivateProfileStringW(L"Controls",L"TPSWheelPadMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsChargedFirePadMask);
