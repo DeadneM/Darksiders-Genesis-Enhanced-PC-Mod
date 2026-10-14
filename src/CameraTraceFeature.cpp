@@ -162,10 +162,12 @@ void HookView(void* camera, float dt, void* outView) {
     const ULONGLONG now=GetTickCount64();
     const uint32_t liveGeneration=settings.tpsActorGeneration.load();
     const bool nativeCinema=dg::native_tps::CinematicActive();
+    dg::native_tps::SampleNativeStickSwap();
     const bool nativePause=dg::native_tps::IsWorldPaused(camera);
     const auto wheelTick=settings.tpsAbilityWheelTick.load();
-    const bool nativeWheel=settings.tpsAbilityWheelHeld.load()&&wheelTick&&
+    const bool wheelInput=settings.tpsAbilityWheelHeld.load()&&wheelTick&&
         now>=wheelTick&&now-wheelTick<250ull;
+    const bool nativeRadialObserved=dg::native_tps::RadialActive();
     const bool cinematicOwns=thirdPerson&&nativeCinema&&
         settings.tpsCutsceneAutoSuspend.load();
     static thread_local bool previousNativeCinema=false;
@@ -180,15 +182,15 @@ void HookView(void* camera, float dt, void* outView) {
         settings.tpsMountedViewActive.store(false,std::memory_order_release);
         return; // original native view already produced by g_view
     }
-    const bool uiHold=thirdPerson&&(nativePause||nativeWheel)&&
+    const bool uiHold=thirdPerson&&nativePause&&
         g_heldView.valid&&g_heldView.generation==liveGeneration&&
         g_heldView.camera==reinterpret_cast<uintptr_t>(camera);
     const bool priorHold=settings.tpsUiViewHeld.exchange(uiHold,std::memory_order_acq_rel);
     if(priorHold!=uiHold){
         char line[180]{};
-        sprintf_s(line,"TPS V1.32 CAMERA_OWNER=%s worldPaused=%d wheelHeld=%d temporaryNative=%d",
+        sprintf_s(line,"TPS V1.34 CAMERA_OWNER=%s worldPaused=%d nativeRadial=%d temporaryNative=%d",
             uiHold?"TPS_UI_HOLD":"GAMEPLAY_OR_EXPLICIT_NATIVE",nativePause?1:0,
-            nativeWheel?1:0,settings.tpsTemporarilySuspended.load()?1:0);
+            nativeRadialObserved?1:0,settings.tpsTemporarilySuspended.load()?1:0);
         Write(line);
     }
     if(uiHold){
@@ -376,7 +378,17 @@ void HookView(void* camera, float dt, void* outView) {
     // controller hooks; let the game's actual radial camera render.
     const auto lastTPS=settings.tpsGameplayViewTick.load(std::memory_order_acquire);
     // V1.02: no mouse-specific camera continuity bypass.
-    const bool gameplayCamera=actorValid&&normalAngles&&nearPawn;
+    const bool sameTpsCamera=g_heldView.valid&&
+        g_heldView.generation==liveGeneration&&
+        g_heldView.camera==reinterpret_cast<uintptr_t>(camera);
+    if(thirdPerson&&wheelInput&&sameTpsCamera&&!actorValid){
+        std::memcpy(p,g_heldView.values,sizeof(g_heldView.values));
+        settings.tpsViewGameplay.store(false,std::memory_order_release);
+        settings.tpsMountedViewActive.store(false,std::memory_order_release);
+        return; // stopped pose callbacks only; no live follow/orbit is frozen
+    }
+    const bool gameplayCamera=actorValid&&((normalAngles&&nearPawn)||
+        (wheelInput&&sameTpsCamera));
     // V1.31: actor visibility is NOT a reliable pause/cutscene signal.
     // Compare the actual native camera against the LAST VERIFIED normal
     // native view. A static camera with no player is likely pause/menu,

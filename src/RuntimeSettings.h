@@ -83,7 +83,7 @@ struct State {
     std::atomic_bool tpsCutsceneAutoSuspend{true};
     std::atomic_bool tpsCutsceneSuspended{false};
     std::atomic_bool tpsTemporarilySuspended{false};
-    std::atomic_bool tpsUiViewHeld{false}; // native pause/radial camera hold; no XInput remapping
+    std::atomic_bool tpsUiViewHeld{false}; // native world-pause camera hold; live wheel camera follows normally
     std::atomic_bool tpsAbilityWheelHeld{false}; // LB/keyboard wheels; R3 is USE equipment, not wheel opener
     std::atomic_ullong tpsAbilityWheelTick{0}; // LB/native keyboard selection, R3 passthrough retained for use
     std::atomic_bool tpsHideGroundAimFx{true};

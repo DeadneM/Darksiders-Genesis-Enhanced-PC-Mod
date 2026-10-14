@@ -743,7 +743,7 @@ void Draw(Context& c) {
                     config.Save();
                 }
                 ImGui::Spacing();
-                constexpr const char* stickOptions[]={"OFF","Left Stick","Right Stick"};
+                constexpr const char* stickOptions[]={"OFF (native sticks)","Camera Left / Move Right","Camera Right / Move Left"};
                 ImGui::SetNextItemWidth(285.0f);
                 if(ImGui::Combo("TPS camera joystick",&config.tpsCameraStickMode,stickOptions,3)){
                     config.cameraControllerOrbitEnabled=config.tpsCameraStickMode!=0;
@@ -756,7 +756,8 @@ void Draw(Context& c) {
                         config.Save();
                 }
                 ImGui::TextDisabled("Only Third Person, focused game, closed overlay.");
-                ImGui::TextDisabled("Right Stick default. OFF is native aim; Left shares movement.");
+                ImGui::TextDisabled("TPS swaps complete roles: camera Left = movement Right.");
+                ImGui::TextDisabled("Native in-game stick swap is accounted for by Camera Forward.");
                 ImGui::SetNextItemWidth(245.0f);
                 if(ImGui::SliderFloat("Foot origin correction##TPS",&config.tpsFootAnchorOffset,
                    -500.0f,500.0f,"%+.0f units"))config.Save();
