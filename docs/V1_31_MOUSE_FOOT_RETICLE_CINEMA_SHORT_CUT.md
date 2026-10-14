@@ -1,0 +1,34 @@
+# V1.31 - Mouse-only foot aim from reticle azimuth, unchanged gamepad and mounted mouse, pause vs short cinematic discrimination
+
+2026-10-14, `debug` branch only. EXPERIMENTAL cumulative from V1.30. User uploaded `DarksidersGenesisMod(20261014-154019).log` for V1.30 and explicitly reported: a `REJECTED` was actually a good cinematic and an `ENTER` was the pause menu; on horse mouse firing aimed near reticle and free camera worked, BUT above the upper screen line projectiles still flew backwards; asks to align on-foot mouse behavior and leave **ALL GAMEPAD behavior untouched**.
+
+## Verified V1.30 log
+- Cinematic #1 (17:35:57): actor disappears and native camera jumps **~65,961** 3D units while loading another area. `CANDIDATE` to `REJECTED` in 47ms because actor valid again before the 500ms debounce. The user identifies this as a cinematic; that claim is visual user feedback, not something provable from the heuristic alone.
+- Cinematic #2 (17:36:28): actor goes missing while native view remains near the normal gameplay native camera, `gap3D=1994`, normal baseline `1901`, pitch -45°, FOV70; `ENTER` after 500ms, `EXIT` after **20,437ms**; user identifies this as **pause menu**, not a cinematic. Log alone proves long actor absence, NOT authoritative paused world state. Candidate #3 (17:37:48) is also actor missing with normal native gap ~1992; source not identified and the process exits during the event.
+- **ZERO** V1.30 native gameplay distance-triggered candidates; all candidates were `NO_ACTOR`. Threshold sampled 2,261–2,353 depending actor distance baseline and chosen TPS 320.
+- Mouse 24,482 relative events, 49 fallback, one physical edge recenter, RawInput registration 4 successes but final owner 0 (game disappears registration again late). Not modifying this validated input path; robust rearm from V1.26 retained.
+- V1.30 projected reticle ray is available for 16 actual mouse shots, **11 at foot / 5 mounted** (all LMB in this particular session), with `camForwardDot` positive even for upper screen positions. But **real bullets are not hooked** (`bulletsUnchanged=1`); their direction and collisions are NOT measured by V1.30. 
+- Mouse-mounted pose frames 2034 selected, native mouse mounted GetPlayerLookInput zero, native LookRotation zero. The actual horse bullet trajectory is NOT controlled by our current player look-vector hook.
+
+## V1.31 narrow functional test
+- Retain V1.30 math for projecting the native on-screen **physical mouse cursor** through the rendered TPS camera (true current yaw, pitch, horizontal FOV, aspect). New `ComputeMouseReticleWorldYaw` only queries OS cursor, game HWND/client size, latest camera telemetry (<250ms); never writes cursor, XInput, game window, projectile or collision state.
+- In native **local foot actor `HookPlayerLookInput`**, for **MOUSE ONLY** (physical left/right fire active and **NO genuine gamepad fire**), feed the WORLD RAY **2D azimuth** as the game's native look X/Y vector, rather than always feeding merely camera CENTER yaw as V1.19 did. This gives input toward the lateral reticle, not just camera forward. If no valid projection available, leave native look result untouched (fail open). Log `FOOT_MOUSE_RETICLE_LOOK` and count at shutdown.
+- In native **local horse `HookPlayerLookInput`**, mouse only returns original game result without any camera-forward override, matching the already good native mounted mouse aiming. It is rarely/never invoked with horse, per real logs. `g_v131MouseHorseNativePass` proves whether such calls actually occur.
+- In `HookPlayerLookRotation`, same mouse-only separation; if called at foot, set yaw toward ray; mounted pass-through. Last test recorded zero calls, so may be no effect.
+- The original `FilterNativeXInput` and all pad fire/strafe/analog/radial/R3/horse chord logic are **UNMODIFIED**; when controller genuinely fires (including simultaneous mouse+pad), old Camera Forward vector and rotation branch remain identical. No synthetic gamepad from mouse.
+- **This is NOT full cursor-matched projectile accuracy, especially vertical upper-screen horse shots.** It only feeds foot player native look yaw, not the real weapon raycast/hit/vertical physics. Upper-screen mounted backwards projectile bug needs exact native trace/target acquisition patch on the 62,113,280-byte supported game EXE, still unavailable.
+
+## V1.31 cinematic heuristic refinement
+- Cache last actually accepted *native gameplay camera world XYZ, pitch and FOV* (not mod TPS camera). If actor disappears but the native view stays within selected TPS distance + 40 units and pose unchanged, classify as `STATIC_NO_ACTOR` (pause/menu **POSSIBLE**, not proven), do not start a candidate or set the cinematic-suspended flag. Original render passthrough on invalid actor continues unchanged.
+- If native camera ACTUALLY moves beyond the configured threshold, or changes pitch/FOV significantly, allow an actor-missing candidate with `NO_ACTOR_MOVING_CAMERA`. Classic actor-valid camera distance/angle candidates still work as before; existing 500ms ENTER debounce unchanged.
+- When a candidate involves very large native jump (max(1500, 3×TPS selection)) but returns to normal before 500ms, record `SHORT_CUT` instead of `REJECTED`. It is strong evidence of a real brief camera cut, NOT proof of a named cinematic or sequencer. The game's actual native camera still renders during that brief cut: behavior is already passthrough whenever gameplayCamera=false, not delayed until ENTER.
+- `CINEMATIC_DEBUG` now writes world native view shift and reason; ImGui Camera history explains SHORT_CUT vs STATIC_NO_ACTOR; manual USER_MARK retained. NO risky static engine pause flag access, fake sequence ID, native cutscene suppression or camera timing replacement.
+
+## Recommended tests
+1. Mouse shots on FOOT LMB/RMB, aim at stationary target on upper, middle and lower screen, then repeat on HORSE. Check specifically upper screen backwards. `FOOT_MOUSE_RETICLE_LOOK` must have nonzero hits while firing at foot; `MOUSE_AIM_UNIFY totals` at shutdown confirms paths. Do NOT call all bullets fixed if only yaw improves.
+2. Gamepad ONLY repeated RT/RB moving/strafe/horse/R3/ability wheel; unchanged after patch. Verify from visual input, as log doesn't track actual projectile impacts.
+3. 3 cinematic scenes with pause menu opened during live level: SHORT_CUT for previously 47ms far jump, NO active candidate for static pause missing-actor. If pause moves native camera enough, it can still trigger; next step identify *actual engine pause/Sequencer states* safely.
+4. RawInput 360° camera/Alt-Tab and menu recovery remains preserved. Send full log and note clip/time which shot goes backward.
+
+## Release policy
+Test ZIP exactly 4 root files, older numbered archives preserved, `main`/`archive` frozen. No claim of gameplay validation until user confirms.
