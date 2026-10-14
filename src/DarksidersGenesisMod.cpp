@@ -38,7 +38,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.25-relative-raw-recovery-cutscene-audit-test";
+constexpr const char* kBuild = "1.26-relative-mouse-persistent-recovery-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -205,6 +205,10 @@ std::atomic_uint32_t g_v125RawChecks{0},g_v125RawMissing{0},
     g_v125RawWarpAvoided{0};
 std::atomic_int g_v125RawOwnerState{-1}; // 0 missing, 1 our hwnd, 2 native other hwnd
 std::atomic_ullong g_v125LastPollTick{0};
+// V1.26: remove the whole-session retry ceiling (V1.25 reached it in 5m).
+// Instead throttle missing-registration rearm attempts and observe recovery.
+std::atomic_ullong g_v126LastRearmAttemptTick{0};
+std::atomic_uint32_t g_v126RearmThrottled{0},g_v126RecoveredAfterEight{0};
 std::atomic_uint32_t g_v125LastProbeRawCount{0},g_v125LastProbeMoveCount{0};
 std::atomic_uint32_t g_v120WrathNearDamage{0},g_v120WrathWhileFiring{0},
     g_v120WrathWhileIdle{0},g_v120WrathSpendEvents{0};
@@ -3649,7 +3653,19 @@ void EnsureRelativeMouse(HWND hwnd) {
     // Initial registration is safe before first gameplay frame. Later only
     // repair in active focused TPS; game menus/cutscenes retain native behavior.
     if(!first && (!foreground || !gameplay))return;
-    if(g_v125RawRearmAttempts.load(std::memory_order_relaxed)>=8u)return;
+    // V1.26: repeated native unregistration in the user log (8/8
+    // successful and the session then ended with mouse owner=0).
+    // A per-session cap strands long play sessions. Use a 2-second
+    // minimum gap instead. Never override an existing native owner.
+    constexpr ULONGLONG kMinRearmIntervalMs=2000ull;
+    const ULONGLONG prevAttempt=g_v126LastRearmAttemptTick.load(
+        std::memory_order_acquire);
+    if(!first && prevAttempt && now>=prevAttempt &&
+       now-prevAttempt<kMinRearmIntervalMs){
+        ++g_v126RearmThrottled;
+        return;
+    }
+    g_v126LastRearmAttemptTick.store(now,std::memory_order_release);
     const unsigned attempt=++g_v125RawRearmAttempts;
     RAWINPUTDEVICE mouse{};
     mouse.usUsagePage=1;
@@ -3659,13 +3675,17 @@ void EnsureRelativeMouse(HWND hwnd) {
     if(RegisterRawInputDevices(&mouse,1,sizeof(mouse))){
         g_v120RawAddedByMod.store(true,std::memory_order_relaxed);
         ++g_v125RawRearmSuccess;
+        if(attempt>8u)++g_v126RecoveredAfterEight;
         g_v125RawOwnerState.store(1,std::memory_order_release);
-        Log("TPS V1.25 RAW_REARM success attempt=%u stage=%s hwnd=%p",
-            attempt,first?"STARTUP":"GAMEPLAY",hwnd);
+        if(attempt<=9u || attempt%25u==0u)
+            Log("TPS V1.26 RAW_REARM success attempt=%u stage=%s hwnd=%p afterV125Ceiling=%d minIntervalMs=%llu",
+                attempt,first?"STARTUP":"GAMEPLAY",hwnd,attempt>8u?1:0,
+                static_cast<unsigned long long>(kMinRearmIntervalMs));
     }else{
         ++g_v120RawRegistrationErrors;
-        Log("TPS V1.25 RAW_REARM fail attempt=%u error=%lu",
-            attempt,GetLastError());
+        if(attempt<=9u || attempt%25u==0u)
+            Log("TPS V1.26 RAW_REARM fail attempt=%u error=%lu",
+                attempt,GetLastError());
     }
 }
 void EnsureOrbitWndProc(IDXGISwapChain* chain) {
@@ -4488,11 +4508,12 @@ void ShutdownMod() {
         g_v119RawMouse.load(),g_v119MouseMoveFallback.load(),
         g_v119MouseCameraFrames.load(),g_v119MouseForwardLook.load(),
         g_v119MouseForwardRotation.load());
-    Log("TPS V1.25 RAW_RECOVERY totals: checks=%u missing=%u rearmAttempts=%u rearmSuccess=%u foreignRegistrationProtected=%u stallsWithRegistration=%u warpsAvoided=%u lastOwnerState=%d",
+    Log("TPS V1.26 RAW_RECOVERY totals: checks=%u missing=%u rearmAttempts=%u rearmSuccess=%u foreignRegistrationProtected=%u stallsWithRegistration=%u warpsAvoided=%u throttled=%u recoveredAfterOldCap=%u lastOwnerState=%d",
         g_v125RawChecks.load(),g_v125RawMissing.load(),
         g_v125RawRearmAttempts.load(),g_v125RawRearmSuccess.load(),
         g_v125RawForeignOwners.load(),g_v125RawStreamStalls.load(),
-        g_v125RawWarpAvoided.load(),g_v125RawOwnerState.load());
+        g_v125RawWarpAvoided.load(),g_v126RearmThrottled.load(),
+        g_v126RecoveredAfterEight.load(),g_v125RawOwnerState.load());
     Log("TPS V1.24 MOUSE_FIRE totals primaryRouted=%u secondaryRouted=%u nativeSuppressed=%u secondaryForwardLook=%u primaryVK=%d secondaryVK=%d",
         g_v124PrimaryRouted.load(),g_v124SecondaryRouted.load(),
         g_v124NativeButtonSuppressed.load(),g_v124SecondaryForwardLook.load(),
