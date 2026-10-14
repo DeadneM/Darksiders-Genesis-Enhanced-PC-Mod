@@ -110,18 +110,20 @@ void RecordCinematicEvent(CinematicDebugPhase phase,uint32_t candidate,
     if(observation.serial<=120u || (observation.serial%100u)==0u){
         char line[360]{};
         const char* phaseName=CinematicDebugPhaseLabel(phase);
-        const char* reason=!observation.actorValid?"NO_ACTOR":
+        const char* reason=observation.noActorStatic?"NO_ACTOR_STATIC_MENU_POSSIBLE":
+            !observation.actorValid?"NO_ACTOR_MOVING_CAMERA":
             observation.distanceExceeded?"DISTANCE_OVER_TPS":
             !observation.nearPawn?"FAR_OR_HEIGHT":
             !observation.normalAngles?"PITCH_OUTSIDE_GAMEPLAY":"NORMAL_GAMEPLAY_SHAPE";
-        sprintf_s(line,"TPS V1.29 CINEMATIC_DEBUG event=%u candidate=%u phase=%s reason=%s durationMs=%llu actorValid=%d near=%d angles=%d auto=%d gap3D=%.0f baseline=%.0f tpsDistance=%.0f threshold=%.0f nativePitch=%.1f nativeYaw=%.1f nativeFov=%.1f",
+        sprintf_s(line,"TPS V1.31 CINEMATIC_DEBUG event=%u candidate=%u phase=%s reason=%s durationMs=%llu actorValid=%d near=%d angles=%d auto=%d gap3D=%.0f baseline=%.0f tpsDistance=%.0f threshold=%.0f nativePitch=%.1f nativeYaw=%.1f nativeFov=%.1f nativeViewShift=%.0f",
             observation.serial,candidate,phaseName,reason,
             static_cast<unsigned long long>(duration),
             observation.actorValid?1:0,observation.nearPawn?1:0,
             observation.normalAngles?1:0,observation.autoSuspend?1:0,
             observation.gap3D,observation.distanceBaseline,
             observation.selectedTpsDistance,observation.candidateDistanceThreshold,
-            observation.nativePitch,observation.nativeYaw,observation.nativeFov);
+            observation.nativePitch,observation.nativeYaw,observation.nativeFov,
+            observation.nativeViewShift);
         Write(line);
     }
 }
@@ -325,6 +327,34 @@ void HookView(void* camera, float dt, void* outView) {
     const auto lastTPS=settings.tpsGameplayViewTick.load(std::memory_order_acquire);
     // V1.02: no mouse-specific camera continuity bypass.
     const bool gameplayCamera=actorValid&&normalAngles&&nearPawn;
+    // V1.31: actor visibility is NOT a reliable pause/cutscene signal.
+    // Compare the actual native camera against the LAST VERIFIED normal
+    // native view. A static camera with no player is likely pause/menu,
+    // while a large native jump is a short cutscene/level camera change.
+    // Do not guess the engine's paused flag or change the game's pause.
+    static bool hasLastGameplayNativeView=false;
+    static float lastGameplayCamX=0.0f,lastGameplayCamY=0.0f,
+        lastGameplayCamZ=0.0f,lastGameplayCamPitch=0.0f,
+        lastGameplayCamFov=0.0f;
+    const float nativeViewShift=hasLastGameplayNativeView?
+        std::hypot(std::hypot(x-lastGameplayCamX,y-lastGameplayCamY),
+                    z-lastGameplayCamZ):0.0f;
+    const bool nativeViewPoseChanged=hasLastGameplayNativeView&&(
+        std::fabs(nativePitch-lastGameplayCamPitch)>12.0f ||
+        std::fabs(nativeFov-lastGameplayCamFov)>8.0f);
+    const bool missingActorChangedView=!actorValid&&
+        hasLastGameplayNativeView&&
+        (nativeViewShift>selectedTpsDistance+40.0f||nativeViewPoseChanged);
+    const bool staticMissingActor=!actorValid&&hasLastGameplayNativeView&&
+        !missingActorChangedView;
+    if(gameplayCamera){
+        lastGameplayCamX=x;
+        lastGameplayCamY=y;
+        lastGameplayCamZ=z;
+        lastGameplayCamPitch=nativePitch;
+        lastGameplayCamFov=nativeFov;
+        hasLastGameplayNativeView=true;
+    }
     // Current native view is captured for the UI's manual "missed scene"
     // marker, including if the automatic heuristic thinks it is gameplay.
     CinematicDebugEvent viewSample{};
@@ -341,6 +371,8 @@ void HookView(void* camera, float dt, void* outView) {
     viewSample.selectedTpsDistance=selectedTpsDistance;
     viewSample.candidateDistanceThreshold=candidateDistanceThreshold;
     viewSample.distanceExceeded=distanceExceeded;
+    viewSample.noActorStatic=staticMissingActor;
+    viewSample.nativeViewShift=nativeViewShift;
     viewSample.nativePitch=nativePitch;
     viewSample.nativeYaw=nativeYaw;
     viewSample.nativeFov=nativeFov;
@@ -353,7 +385,9 @@ void HookView(void* camera, float dt, void* outView) {
     // immediately; turning the option OFF keeps the old V0.96 heuristic.
     static ULONGLONG cinematicCandidateStart=0;
     static uint32_t cinematicCandidateId=0;
+    static bool cinematicCandidateLargeJump=false;
     static unsigned cinematicTransitions=0;
+    static unsigned staticMenuLikeSamples=0;
     if(thirdPerson&&!gameplayCamera){
         if(!actorValid)++g_cinematicMissingActorSamples;
         else if(!nearPawn)++g_cinematicFarViewSamples;
@@ -366,18 +400,23 @@ void HookView(void* camera, float dt, void* outView) {
         }
         cinematicCandidateStart=0;
         cinematicCandidateId=0;
+        cinematicCandidateLargeJump=false;
         g_cinematicActiveCandidateId.store(0,std::memory_order_release);
         settings.tpsCutsceneSuspended.store(false,std::memory_order_release);
     }else if(gameplayCamera){
         if(cinematicCandidateStart){
+            const bool wasSuspended=settings.tpsCutsceneSuspended.load(
+                std::memory_order_relaxed);
             RecordCinematicEvent(
-                settings.tpsCutsceneSuspended.load(std::memory_order_relaxed)
-                    ?CinematicDebugPhase::Returned:CinematicDebugPhase::Rejected,
+                wasSuspended?CinematicDebugPhase::Returned:
+                    cinematicCandidateLargeJump?CinematicDebugPhase::BriefCut:
+                    CinematicDebugPhase::Rejected,
                 cinematicCandidateId,
                 now>=cinematicCandidateStart?now-cinematicCandidateStart:0ull,viewSample);
         }
         cinematicCandidateStart=0;
         cinematicCandidateId=0;
+        cinematicCandidateLargeJump=false;
         g_cinematicActiveCandidateId.store(0,std::memory_order_release);
         if(settings.tpsCutsceneSuspended.exchange(false,std::memory_order_acq_rel)){
             ++g_cinematicExited;
@@ -388,23 +427,39 @@ void HookView(void* camera, float dt, void* outView) {
                 Write(line);
             }
         }
+    }else if(staticMissingActor){
+        // A paused menu may stop publishing the local actor for MANY seconds
+        // while the native camera itself remains entirely unchanged. Do
+        // NOT call this an active cinematic solely due to actor absence.
+        if(!settings.tpsCutsceneSuspended.load(std::memory_order_acquire)){
+            cinematicCandidateStart=0;
+            cinematicCandidateId=0;
+            cinematicCandidateLargeJump=false;
+            g_cinematicActiveCandidateId.store(0,std::memory_order_release);
+        }
+        const unsigned n=++staticMenuLikeSamples;
+        if(n<=3 || n==500 || n==3000)
+            Write("TPS V1.31 STATIC_NO_ACTOR camera stays near native gameplay pose; no cinematic candidate (menu/pause possible, unverified)");
     }else{
-        // Camera change alone is not enough when the local actor is
-        // temporarily absent at load time. Only suspend from live TPS.
+        // Only reject truly changed native camera views. Loss of actor
+        // by itself must not be considered proof of a cinematic.
         const bool observedTPS=lastTPS&&now>=lastTPS&&now-lastTPS<3500ull;
         if(observedTPS){
             if(!cinematicCandidateStart){
                 cinematicCandidateStart=now;
                 const unsigned candidate=++g_cinematicCandidateBegins;
                 cinematicCandidateId=candidate;
+                cinematicCandidateLargeJump=nativeViewShift>
+                    std::max(1500.0f,selectedTpsDistance*3.0f);
                 g_cinematicActiveCandidateId.store(candidate,std::memory_order_release);
                 RecordCinematicEvent(CinematicDebugPhase::Candidate,candidate,0,viewSample);
                 if(candidate<=24){
                     char line[330]{};
-                    sprintf_s(line,"TPS V1.29 CAMERA_TRANSITION candidate=%u actorValid=%d normalAngles=%d nearPawn=%d reason=%s gap3D=%.0f vanillaBaseline=%.0f selectedTPSDistance=%.0f candidateThreshold=%.0f nativePitch=%.1f nativeFov=%.1f",
+                    sprintf_s(line,"TPS V1.31 CAMERA_TRANSITION candidate=%u actorValid=%d normalAngles=%d nearPawn=%d reason=%s nativeShift=%.0f largeJump=%d gap3D=%.0f vanillaBaseline=%.0f selectedTPSDistance=%.0f candidateThreshold=%.0f nativePitch=%.1f nativeFov=%.1f",
                         candidate,actorValid?1:0,normalAngles?1:0,
                         nearPawn?1:0,distanceExceeded?"TPS_DISTANCE":
-                            !actorValid?"ACTOR_MISSING":"NATIVE_CAMERA_SHAPE",
+                            !actorValid?"ACTOR_MISSING_CAMERA_MOVED":"NATIVE_CAMERA_SHAPE",
+                        nativeViewShift,cinematicCandidateLargeJump?1:0,
                         gap3D,distanceBaseline3D,selectedTpsDistance,
                         candidateDistanceThreshold,nativePitch,nativeFov);
                     Write(line);
@@ -430,6 +485,7 @@ void HookView(void* camera, float dt, void* outView) {
             }
             cinematicCandidateStart=0;
             cinematicCandidateId=0;
+            cinematicCandidateLargeJump=false;
             g_cinematicActiveCandidateId.store(0,std::memory_order_release);
         }
     }
@@ -797,6 +853,7 @@ const char* CinematicDebugPhaseLabel(CinematicDebugPhase phase){
         case CinematicDebugPhase::Detected:return "ENTER";
         case CinematicDebugPhase::Returned:return "EXIT";
         case CinematicDebugPhase::Rejected:return "REJECTED";
+        case CinematicDebugPhase::BriefCut:return "SHORT_CUT";
         case CinematicDebugPhase::ManualMark:return "USER_MARK";
         case CinematicDebugPhase::Disabled:return "RESET";
     }
