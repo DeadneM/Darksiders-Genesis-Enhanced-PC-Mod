@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdint>
+#include <intrin.h>
 
 namespace dg::gauges {
 namespace {
@@ -144,9 +145,22 @@ float Boost(float value,bool enabled,float factor){
         return value;
     return std::clamp(value*factor,0.0f,100000.0f);
 }
+// Inspect native callers only; no change to resource reward arithmetic.
+uintptr_t CallerRva(void* address){
+    const uintptr_t base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    const uintptr_t caller=reinterpret_cast<uintptr_t>(address);
+    return base && caller>=base && caller-base<0x4000000ull?caller-base:0;
+}
 void HookWrath(void* character,float amount){
     if(!originalWrath)return;
     const unsigned n=++wrathEvents;
+    if(logger && (n<=8||n%1000==0)){
+        char msg[220]{};
+        sprintf_s(msg,"Gauge V1.25 WRATH_NATIVE_CALLER n=%u RVA=0x%llX local=%d amount=%.4f",
+            n,static_cast<unsigned long long>(CallerRva(_ReturnAddress())),
+            Local(character)?1:0,amount);
+        Log(msg);
+    }
     float effective=amount;
     auto& rt=dg::runtime::Get();
     const bool match=Local(character);
@@ -161,6 +175,12 @@ void HookWrath(void* character,float amount){
 float HookChaos(void* chaosComponent,float amount){
     if(!originalChaos)return 0.0f;
     const unsigned n=++chaosEvents;
+    if(logger && (n<=8||n%1000==0)){
+        char msg[210]{};
+        sprintf_s(msg,"Gauge V1.25 CHAOS_NATIVE_CALLER n=%u RVA=0x%llX amount=%.4f",
+            n,static_cast<unsigned long long>(CallerRva(_ReturnAddress())),amount);
+        Log(msg);
+    }
     float effective=amount;
     auto& rt=dg::runtime::Get();
     void* owner=nullptr;
@@ -178,6 +198,7 @@ float HookChaos(void* chaosComponent,float amount){
 //   GetCurrentSynergy(owner) + A*B*C -> SetCurrentSynergy(owner,absolute).
 // Modify only one positive factor while preserving the native setter's role.
 float HookSynergyGain(void* manager,void* owner,float a,float b,float c){
+    const uintptr_t caller=CallerRva(_ReturnAddress());
     if(!originalSynergyGain)return 0.0f;
     const unsigned n=++synergyGainEvents;
     void* actor=localPlayer?localPlayer->load(std::memory_order_acquire):nullptr;
@@ -187,6 +208,12 @@ float HookSynergyGain(void* manager,void* owner,float a,float b,float c){
     const bool validGain=std::isfinite(nativeGain);
     const bool positiveGain=validGain && nativeGain>0.0f;
     const bool negativeGain=validGain && nativeGain<0.0f;
+    if(logger && relation>0 && positiveGain && (n<=35||n%500==0)){
+        char msg[230]{};
+        sprintf_s(msg,"Gauge V1.25 SYNERGY_GAIN_CALLER n=%u RVA=0x%llX nativeGain=%.4f factors=(%.3f,%.3f,%.3f)",
+            n,static_cast<unsigned long long>(caller),nativeGain,a,b,c);
+        Log(msg);
+    }
     if(relation>0 && positiveGain)
         dg::runtime::Get().lastNativeSynergyPositiveTick.store(
             GetTickCount64(),std::memory_order_release);
