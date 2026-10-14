@@ -38,7 +38,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.28-cutscene-detection-history-debug-test";
+constexpr const char* kBuild = "1.29-tps-distance-cutscene-cursor-aim-audit-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -3115,6 +3115,32 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             !rt.tpsAbilityWheelHeld.load(std::memory_order_relaxed) &&
             view && now>=view && now-view<250ull;
         if(liveTps){
+            // V1.29: correlate the REAL physical reticle position with
+            // erroneous native isometric shots, especially below horizon.
+            // This is READ ONLY and does not change WM messages, targets,
+            // WndProc behavior, camera deltas, game raycast or reticle.
+            if(msg==WM_LBUTTONDOWN||msg==WM_RBUTTONDOWN){
+                static std::atomic_uint32_t shotSamples{0};
+                const unsigned shot=++shotSamples;
+                if(shot<=24u){
+                    POINT cursor{};
+                    RECT rect{};
+                    if(GetCursorPos(&cursor)&&ScreenToClient(hwnd,&cursor)&&
+                       GetClientRect(hwnd,&rect)){
+                        const float w=static_cast<float>(rect.right-rect.left);
+                        const float h=static_cast<float>(rect.bottom-rect.top);
+                        if(w>0.0f&&h>0.0f){
+                            const auto cam=dg::camera_trace::GetTelemetry();
+                            const float nx=2.0f*static_cast<float>(cursor.x)/w-1.0f;
+                            const float ny=2.0f*static_cast<float>(cursor.y)/h-1.0f;
+                            Log("TPS V1.29 CURSOR_AIM_AUDIT shot=%u button=%s relativeCursor=(%.3f,%.3f) belowHorizon=%d mounted=%d camYaw=%.1f camPitch=%.1f camFOV=%.1f gameRaycastUnmodified=1",
+                                shot,msg==WM_LBUTTONDOWN?"LMB":"RMB",nx,ny,ny>0.0f?1:0,
+                                IsMountedTPSNow()?1:0,cam.appliedYaw,
+                                cam.appliedPitch,cam.appliedFov);
+                        }
+                    }
+                }
+            }
             unsigned n=0;
             const char* kind=nullptr;
             switch(msg){
@@ -4558,6 +4584,7 @@ void ShutdownMod() {
         scene.facingFootSamples,scene.facingFootOffAxis,
         scene.facingHorseSamples,scene.facingHorseOffAxis,
         scene.mountedMouseViewFrames,scene.mountedMouseHorsePoseHeld);
+    Log("TPS V1.29 AIM_STATE: screen-cursor samples logged at mouse down; native projectile trace NOT detoured, camera-forward firing still unverified");
     Log("TPS V1.20 CINEMATICS (read-only) enters=%u exits=%u candidates=%u missingActorSamples=%u farCameraSamples=%u nativeCutsceneBehaviorUnchanged=1",
         scene.cinematicEntered,scene.cinematicExited,
         scene.cinematicCandidateBegins,scene.cinematicMissingActorSamples,
