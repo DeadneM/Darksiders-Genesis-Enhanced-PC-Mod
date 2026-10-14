@@ -247,6 +247,15 @@ static void ProbeStartupDefinitions(){
                 unsigned(entry[0x26]),unsigned(entry[0x27]),
                 unsigned(entry[0x38]),unsigned(entry[0x39]));
             LogLoader(sample);
+            // Candidate identity fields, only a read-only copy of bytes.
+            // FName-like shape NOT verified; DO NOT suppress loading UI.
+            uint32_t candidateA=0,candidateB=0,candidateC=0;
+            std::memcpy(&candidateA,entry+0x20,sizeof(candidateA));
+            std::memcpy(&candidateB,entry+0x24,sizeof(candidateB));
+            std::memcpy(&candidateC,entry+0x28,sizeof(candidateC));
+            swprintf_s(sample,L"Startup V1.25 WARNING_IDENTITY_CANDIDATE record=%d id32=0x%08X number32=%u next32=0x%08X active=%u preparedOnly=1",
+                i,candidateA,candidateB,candidateC,unsigned(entry[0x39]));
+            LogLoader(sample);
         }
         // V1.18: identify only state, not warning text or presentation.
         // Never mutate StartupScreenDef or bypass the 0xAC8760 setup call.
