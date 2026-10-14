@@ -38,7 +38,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.29-tps-distance-cutscene-cursor-aim-audit-test";
+constexpr const char* kBuild = "1.30-reticle-camera-ray-cutscene-threshold-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -3133,10 +3133,54 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                             const auto cam=dg::camera_trace::GetTelemetry();
                             const float nx=2.0f*static_cast<float>(cursor.x)/w-1.0f;
                             const float ny=2.0f*static_cast<float>(cursor.y)/h-1.0f;
-                            Log("TPS V1.29 CURSOR_AIM_AUDIT shot=%u button=%s relativeCursor=(%.3f,%.3f) belowHorizon=%d mounted=%d camYaw=%.1f camPitch=%.1f camFOV=%.1f gameRaycastUnmodified=1",
+                            Log("TPS V1.29 CURSOR_AIM_AUDIT shot=%u button=%s relativeCursor=(%.3f,%.3f) belowHorizon= %d mounted=%d camYaw=%.1f camPitch=%.1f camFOV=%.1f gameRaycastUnmodified=1",
                                 shot,msg==WM_LBUTTONDOWN?"LMB":"RMB",nx,ny,ny>0.0f?1:0,
                                 IsMountedTPSNow()?1:0,cam.appliedYaw,
                                 cam.appliedPitch,cam.appliedFov);
+                            // The cursor screen-plane fraction is NOT an
+                            // actual physical horizon classification.
+                            // V1.30 first step toward true aim: derive a
+                            // normalized WORLD ray through that viewport
+                            // pixel using the emitted TPS camera pose.
+                            // This is pure math; no collision trace and
+                            // absolutely NO changes to weapon projectiles.
+                            constexpr float rad=0.01745329251994329577f;
+                            const bool recentCam=cam.appliedWorldTickMs &&
+                                now>=cam.appliedWorldTickMs &&
+                                now-cam.appliedWorldTickMs<250ull;
+                            const float aspect=w/h;
+                            if(recentCam&&std::isfinite(cam.appliedFov)&&
+                               cam.appliedFov>=40.0f&&cam.appliedFov<=140.0f&&
+                               std::isfinite(cam.appliedYaw)&&
+                               std::isfinite(cam.appliedPitch)&&
+                               std::isfinite(aspect)&&aspect>0.1f){
+                                const float az=cam.appliedYaw*rad;
+                                const float el=cam.appliedPitch*rad;
+                                const float cy=std::cos(az),sy=std::sin(az);
+                                const float cp=std::cos(el),sp=std::sin(el);
+                                const float hTan=std::tan(cam.appliedFov*rad*0.5f);
+                                const float vTan=hTan/aspect;
+                                // Unreal forward/right/up basis.
+                                const float dx=cp*cy+nx*hTan*(-sy)+
+                                    ny*vTan*(sp*cy);
+                                const float dy=cp*sy+nx*hTan*cy+
+                                    ny*vTan*(sp*sy);
+                                const float dz=sp-ny*vTan*cp;
+                                const float norm=std::sqrt(dx*dx+dy*dy+dz*dz);
+                                if(std::isfinite(norm)&&norm>0.001f){
+                                    const float ux=dx/norm,uy=dy/norm,uz=dz/norm;
+                                    const float rayYaw=std::atan2(uy,ux)/rad;
+                                    const float rayPitch=std::asin(std::clamp(uz,-1.0f,1.0f))/rad;
+                                    const float forwardDot=ux*cp*cy+uy*cp*sy+uz*sp;
+                                    Log("TPS V1.30 RETICLE_WORLD_RAY shot=%u button=%s mounted=%d cursor=(%.3f,%.3f) aspect=%.3f worldCam=(%.1f,%.1f,%.1f) direction=(%.4f,%.4f,%.4f) azimuth=%.1f elevation=%.1f yawOffset=%.1f camForwardDot=%.4f hasNativeHit=0 bulletsUnchanged=1",
+                                        shot,msg==WM_LBUTTONDOWN?"LMB":"RMB",
+                                        IsMountedTPSNow()?1:0,nx,ny,aspect,
+                                        cam.appliedWorldX,cam.appliedWorldY,cam.appliedWorldZ,
+                                        ux,uy,uz,rayYaw,rayPitch,
+                                        std::remainder(rayYaw-cam.appliedYaw,360.0f),
+                                        forwardDot);
+                                }
+                            }
                         }
                     }
                 }
@@ -4584,7 +4628,7 @@ void ShutdownMod() {
         scene.facingFootSamples,scene.facingFootOffAxis,
         scene.facingHorseSamples,scene.facingHorseOffAxis,
         scene.mountedMouseViewFrames,scene.mountedMouseHorsePoseHeld);
-    Log("TPS V1.29 AIM_STATE: screen-cursor samples logged at mouse down; native projectile trace NOT detoured, camera-forward firing still unverified");
+    Log("TPS V1.30 AIM_STATE: TPS world-camera ray through cursor logged on first 24 mouse clicks; no native collision/projectile function found or altered; no weapon aiming fix yet");
     Log("TPS V1.20 CINEMATICS (read-only) enters=%u exits=%u candidates=%u missingActorSamples=%u farCameraSamples=%u nativeCutsceneBehaviorUnchanged=1",
         scene.cinematicEntered,scene.cinematicExited,
         scene.cinematicCandidateBegins,scene.cinematicMissingActorSamples,
