@@ -26,3 +26,8 @@ Need the supported 62,113,280-byte `DarksidersGenesis-Win64-Shipping.exe` (exact
 - In TPS at foot and mounted, shoot with mouse cursor in upper/lower screen and different x positions; send full log so `RETICLE_WORLD_RAY` can be compared with native facing. Always distinguish **debug camera ray** versus actual projectile trajectory; no promise of fixed accuracy.
 - Keep current 360° smooth relative camera with 0 physical warp, wheel/gamepad/pad shooting, alternate button routing and hotkeys.
 - CI Windows x64 release, 4 exact files in ZIP root, previous versioned archives preserved, `main` and `archive` frozen.
+
+## V1.30 CI verified / permanent debug ZIP (2026-10-14)
+
+GitHub Actions [run 38587210828](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38587210828) completed **SUCCESS**: Windows x64 CMake configure, Release compilation, exactly-four-root-files ZIP validation, Actions upload, preservation and commit in `debug/downloads/`. [Permanent V1.30 TEST ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.30_RETICLE_WORLD_RAY_CINEMA_TEST.zip), size **768,166 bytes**, Git blob SHA-1 `b35917cf069a3cf823da254964b1e00d5c3cccec`. Older V1.29 (765,354), V1.28 (763,306) retained. Main head remains `2bc3122c1ae07b7333798462f85c1d9fd3a739f7`, archive head `10e0f220b85022bc9269e0cb9390a811a3b1cf89`. Compile and ZIP validation do **not** constitute in-game success; reticle WORLD_RAY is a read-only mathematical probe, **NOT** a native projectile hit or bullet redirection.
+
