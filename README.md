@@ -1,3 +1,9 @@
+## V1.32 native mouse target / camera ownership TEST (2026-10-14)
+
+User V1.31 test rejects mounted aiming and missed cinematic handoff; pause/wheels also returned overhead with the cinematic option OFF. V1.32 replaces mouse yaw edits with one camera-reticle 3D target path through the game's native collision helper, with a point ahead on no hit. Controller input remains unchanged. Camera policy uses native cinematic lifecycle and native world pause/known radial state, retaining TPS composition during UI and preserving the configured temporary-native shortcut. If that shortcut shares a wheel key, its explicit native view still takes precedence. [Full exact-binary audit, limits, preservation and test plan](docs/V1_32_NATIVE_TARGET_CAMERA_OWNERSHIP.md).
+
+**EXPERIMENTAL, build verification pending.** This is a new native targeting experiment, not yet proof of working projectile accuracy, mounted coverage or every cinematic. No new settings or INI reset. Preserve all old ZIPs; debug only, main/archive frozen.
+
 ## 2026-10-14: V1.31 user failure report and exact native audit
 
 The user reports mouse targeting still fails on foot/horse and the tested cinematic does not return to native view; pause still returns overhead. **V1.31 aiming and cinematic classification are not validated.** Exact supported installed EXE is now available and hash-verified. Native analysis found a mouse deprojection -> horizontal plane intersection -> 2D direction path (`0x5719A0`), plus a collision-target helper (`0x571E50`) and two device-dispatched caller blocks. Negative ray-plane intersection is a concrete backward-aim mechanism to verify against actual shots, not a proven complete fix. Camera native passthrough from stale actor poses and shared E/R3 temporary view is independent of cinematic ENTER events; this session has zero ENTER. [Full native evidence, log audit and implementation gates](docs/V1_31_NATIVE_TARGETING_LIFECYCLE_AUDIT.md).

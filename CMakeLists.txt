@@ -89,6 +89,7 @@ file(WRITE "${DG_UPDATER_RC}" "101 RCDATA \"DarksidersGenesisUpdaterCLI.exe\"\n"
 set_source_files_properties("${DG_UPDATER_RC}" PROPERTIES OBJECT_DEPENDS "${DG_HELPER_EXE}")
 
 add_library(DarksidersGenesisMod SHARED
+  src/NativeTpsFeature.cpp
   src/CameraTraceFeature.cpp
   src/ConfigStore.cpp
   src/DarksidersGenesisMod.cpp

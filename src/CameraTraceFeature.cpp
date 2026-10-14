@@ -1,5 +1,6 @@
 #include "CameraTraceFeature.h"
 #include "RuntimeSettings.h"
+#include "NativeTpsFeature.h"
 #include <windows.h>
 #include <MinHook.h>
 #include <algorithm>
@@ -36,6 +37,15 @@ std::atomic<float> g_nativeDistance{0.0f}, g_appliedDistance{0.0f};
 // V1.30: only the emitted TPS view; read-only projection telemetry.
 std::atomic<float> g_tpsEmittedX{0.0f},g_tpsEmittedY{0.0f},g_tpsEmittedZ{0.0f};
 std::atomic_ullong g_tpsEmittedTickMs{0};
+// Values only: never retain a UObject for later dereferencing. The identity
+// must match the current live callback and player generation before reuse.
+struct HeldTpsView {
+    uintptr_t camera=0;
+    uint32_t generation=UINT32_MAX;
+    float values[7]{};
+    bool valid=false;
+};
+thread_local HeldTpsView g_heldView;
 thread_local bool g_inArm = false;
 std::atomic<float> g_idlePivotDX{0.0f},g_idlePivotDY{0.0f};
 std::atomic_ullong g_idlePivotTick{0};
@@ -150,6 +160,45 @@ void HookView(void* camera, float dt, void* outView) {
     const bool thirdPerson=settings.thirdPersonEnabled.load(std::memory_order_relaxed) &&
         !settings.tpsTemporarilySuspended.load(std::memory_order_relaxed);
     const ULONGLONG now=GetTickCount64();
+    const uint32_t liveGeneration=settings.tpsActorGeneration.load();
+    const bool nativeCinema=dg::native_tps::CinematicActive();
+    const bool nativePause=dg::native_tps::IsWorldPaused(camera);
+    const auto wheelTick=settings.tpsAbilityWheelTick.load();
+    const bool nativeWheel=settings.tpsAbilityWheelHeld.load()&&wheelTick&&
+        now>=wheelTick&&now-wheelTick<250ull;
+    const bool cinematicOwns=thirdPerson&&nativeCinema&&
+        settings.tpsCutsceneAutoSuspend.load();
+    static thread_local bool previousNativeCinema=false;
+    if(cinematicOwns!=previousNativeCinema){
+        previousNativeCinema=cinematicOwns;
+        settings.tpsCutsceneSuspended.store(cinematicOwns,std::memory_order_release);
+        Write(cinematicOwns?"TPS V1.32 CAMERA_OWNER=NATIVE_CINEMATIC":"TPS V1.32 CAMERA_OWNER=RETURN_FROM_NATIVE_CINEMATIC");
+    }
+    if(cinematicOwns){
+        settings.tpsUiViewHeld.store(false,std::memory_order_release);
+        settings.tpsViewGameplay.store(false,std::memory_order_release);
+        settings.tpsMountedViewActive.store(false,std::memory_order_release);
+        return; // original native view already produced by g_view
+    }
+    const bool uiHold=thirdPerson&&(nativePause||nativeWheel)&&
+        g_heldView.valid&&g_heldView.generation==liveGeneration&&
+        g_heldView.camera==reinterpret_cast<uintptr_t>(camera);
+    const bool priorHold=settings.tpsUiViewHeld.exchange(uiHold,std::memory_order_acq_rel);
+    if(priorHold!=uiHold){
+        char line[180]{};
+        sprintf_s(line,"TPS V1.32 CAMERA_OWNER=%s worldPaused=%d wheelHeld=%d temporaryNative=%d",
+            uiHold?"TPS_UI_HOLD":"GAMEPLAY_OR_EXPLICIT_NATIVE",nativePause?1:0,
+            nativeWheel?1:0,settings.tpsTemporarilySuspended.load()?1:0);
+        Write(line);
+    }
+    if(uiHold){
+        // Keep the last rendered TPS composition, including during stopped
+        // actor callbacks. No fake actor timestamps, UI aim or synthetic input.
+        std::memcpy(p,g_heldView.values,sizeof(g_heldView.values));
+        settings.tpsViewGameplay.store(false,std::memory_order_release);
+        settings.tpsMountedViewActive.store(false,std::memory_order_release);
+        return;
+    }
     const ULONGLONG actorTick=settings.tpsActorLocationTick.load(std::memory_order_acquire);
     const bool live=actorTick&&now>=actorTick&&now-actorTick<300ull;
     float ax=settings.tpsActorWorldX.load(),ay=settings.tpsActorWorldY.load(),
@@ -302,7 +351,8 @@ void HookView(void* camera, float dt, void* outView) {
     const float extraAllowed=selectedTpsDistance+40.0f;
     const float candidateDistanceThreshold=distanceBaseline3D>0.0f
         ?distanceBaseline3D+extraAllowed:6500.0f;
-    const bool distanceExceeded=thirdPerson&&autoSuspend&&actorValid&&
+    const bool distanceExceeded=thirdPerson&&autoSuspend&&
+        !dg::native_tps::TargetReady()&&actorValid&&
         distanceBaseline3D>0.0f && oldNearPawn &&
         gap3D>candidateDistanceThreshold;
     const bool nearPawn=oldNearPawn&&!distanceExceeded;
@@ -392,7 +442,9 @@ void HookView(void* camera, float dt, void* outView) {
         if(!actorValid)++g_cinematicMissingActorSamples;
         else if(!nearPawn)++g_cinematicFarViewSamples;
     }
-    const bool autoCutscene=autoSuspend;
+    // Native lifecycle supersedes the geometric 500ms classifier. Retain
+    // the old fallback only if the guarded native module could not install.
+    const bool autoCutscene=autoSuspend&&!dg::native_tps::TargetReady();
     if(!thirdPerson||!autoCutscene){
         if(cinematicCandidateStart){
             RecordCinematicEvent(CinematicDebugPhase::Disabled,cinematicCandidateId,
@@ -676,6 +728,13 @@ void HookView(void* camera, float dt, void* outView) {
                 settings.tpsViewGameplay.store(true,std::memory_order_release);
             }
         }
+    }
+    if(thirdPerson&&settings.tpsViewGameplay.load()&&
+       settings.tpsGameplayViewTick.load()==now){
+        g_heldView.camera=reinterpret_cast<uintptr_t>(camera);
+        g_heldView.generation=liveGeneration;
+        std::memcpy(g_heldView.values,p,sizeof(g_heldView.values));
+        g_heldView.valid=true;
     }
     g_nativeFov.store(nativeFov);g_appliedFov.store(appliedFov);
     g_nativePitch.store(nativePitch);g_appliedPitch.store(appliedPitch);

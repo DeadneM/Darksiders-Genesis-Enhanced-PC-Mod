@@ -15,6 +15,7 @@
 #include "EngineIniFeature.h"
 #include "GaugeChargeFeature.h"
 #include "HorseFeature.h"
+#include "NativeTpsFeature.h"
 #include "OverlayUi.h"
 #include "RuntimeSettings.h"
 #include "ShaderAimFeature.h"
@@ -38,7 +39,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.31-mouse-reticle-unify-cinema-classifier-test";
+constexpr const char* kBuild = "1.32-native-mouse-target-camera-ownership-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1590,15 +1591,9 @@ bool MousePhysicalHeld(int vk){return vk && (GetAsyncKeyState(vk)&0x8000)!=0;}
 bool MousePrimaryFireHeld(){return MousePhysicalHeld(g_config.tpsMousePrimaryButton);}
 bool MouseSecondaryFireHeld(){return MousePhysicalHeld(g_config.tpsMouseSecondaryButton);}
 bool MouseAnyFireHeld(){return MousePrimaryFireHeld()||MouseSecondaryFireHeld();}
-// V1.31: the physical screen reticle projected from the ACTUAL camera
-// (V1.30 math). Read-only Win32/telemetry query; no cursor repositioning.
-// Only consumers of this calculated mouse azimuth may alter the native
-// local-player look vector. GAMEPAD never enters this code.
-std::atomic_uint32_t g_v131MouseFootReticleLook{0},
-    g_v131MouseHorseNativePass{0},g_v131MouseAimProjectionUnavailable{0},
-    g_v131MouseRotationReticle{0};
-bool ComputeMouseReticleWorldYaw(float& outYaw,float& outElevation,
-                                float& outNormalizedX,float& outNormalizedY){
+// V1.32: physical reticle -> emitted TPS camera ray. No cursor, actor yaw,
+// rotation getter or gamepad writes. Only native mouse target consumers use it.
+bool ComputeNativeMouseRay(dg::native_tps::MouseRay& ray){
     const HWND hwnd=reinterpret_cast<HWND>(
         g_gameWindowTrace.load(std::memory_order_acquire));
     if(!hwnd||GetForegroundWindow()!=hwnd||IsIconic(hwnd)||
@@ -1618,8 +1613,8 @@ bool ComputeMouseReticleWorldYaw(float& outYaw,float& outElevation,
     const float h=float(client.bottom-client.top);
     if(w<32.0f||h<32.0f)return false;
     const float aspect=w/h;
-    outNormalizedX=std::clamp(2.0f*float(mouse.x)/w-1.0f,-1.0f,1.0f);
-    outNormalizedY=std::clamp(2.0f*float(mouse.y)/h-1.0f,-1.0f,1.0f);
+    const float outNormalizedX=std::clamp(2.0f*float(mouse.x)/w-1.0f,-1.0f,1.0f);
+    const float outNormalizedY=std::clamp(2.0f*float(mouse.y)/h-1.0f,-1.0f,1.0f);
     constexpr float rad=0.01745329251994329577f;
     const float az=t.appliedYaw*rad,el=t.appliedPitch*rad;
     const float cy=std::cos(az),sy=std::sin(az),
@@ -1634,9 +1629,11 @@ bool ComputeMouseReticleWorldYaw(float& outYaw,float& outElevation,
     const float flat=std::hypot(dx,dy);
     if(!std::isfinite(flat)||flat<0.01f||
        !std::isfinite(dz))return false;
-    outYaw=std::atan2(dy,dx)/rad;
-    outElevation=std::atan2(dz,flat)/rad;
-    return std::isfinite(outYaw)&&std::isfinite(outElevation);
+    const float length=std::hypot(flat,dz);
+    if(!std::isfinite(length)||length<0.01f)return false;
+    ray.origin={t.appliedWorldX,t.appliedWorldY,t.appliedWorldZ};
+    ray.direction={dx/length,dy/length,dz/length};
+    return true;
 }
 bool IsPadFiringNow() {
     const ULONGLONG now=GetTickCount64();
@@ -1655,6 +1652,25 @@ bool IsTPSLookViewFresh() {
     const ULONGLONG view=rt.tpsGameplayViewTick.load(std::memory_order_acquire);
     return rt.tpsViewGameplay.load(std::memory_order_acquire) &&
         view&&now>=view&&now-view<250ull;
+}
+bool ProvideNativeMouseRay(void* actor,dg::native_tps::MouseRay& ray){
+    const auto& rt=dg::runtime::Get();
+    if(!actor||!g_targetValidation.exact||g_shuttingDown.load()||
+       !rt.thirdPersonEnabled.load()||rt.tpsTemporarilySuspended.load()||
+       rt.tpsCutsceneSuspended.load()||rt.tpsUiViewHeld.load()||
+       g_overlayVisible.load()||IsTPSRadialInputActive()||
+       !MouseAnyFireHeld()||IsPadFiringNow()||IsRightStickActiveNow()||
+       !IsTPSLookViewFresh())return false;
+    const bool mounted=IsMountedTPSNow();
+    const ULONGLONG now=GetTickCount64();
+    const ULONGLONG horseTick=rt.tpsHorsePoseTick.load(std::memory_order_acquire);
+    const bool local=actor==g_localPlayerCharacter.load(std::memory_order_acquire);
+    const bool horse=mounted&&horseTick&&now>=horseTick&&now-horseTick<250ull&&
+        reinterpret_cast<uintptr_t>(actor)==rt.tpsHorseOwnerIdentity.load();
+    if(!local&&!horse)return false;
+    if(!ComputeNativeMouseRay(ray))return false;
+    ray.mounted=mounted;
+    return true;
 }
 // Candidate Wrath native location from exact-EXE AddWrath disassembly:
  // character+0xEA0 -> resource component, component+0x3A0 -> float.
@@ -1787,34 +1803,9 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     const bool mounted=IsMountedTPSNow();
     const bool padFiring=IsPadFiringNow();
     const bool fire=padFiring||mouseFiring;
-    // V1.31: mouse-exclusive aim and controller aim are SEPARATE.
-    // Foot mouse gets the AZIMUTH of the V1.30 camera-to-reticle ray,
-    // while horse mouse retains its empirically better native targeting.
-    // This does not override real projectiles or fix vertical hit traces.
-    // If a real pad is firing simultaneously its established controller
-    // Camera Forward path takes precedence, untouched.
-    if(mouseFiring&&!padFiring){
-        if(mounted){
-            ++g_v131MouseHorseNativePass;
-            return result;
-        }
-        if(IsTPSLookViewFresh()){
-            float aimYaw=0.0f,aimElev=0.0f,nx=0.0f,ny=0.0f;
-            if(ComputeMouseReticleWorldYaw(aimYaw,aimElev,nx,ny)){
-                constexpr float rad=0.01745329251994329577f;
-                result->pitch=std::cos(aimYaw*rad);
-                result->yaw=std::sin(aimYaw*rad);
-                result->roll=0.0f;
-                const unsigned sample=++g_v131MouseFootReticleLook;
-                if(sample<=8||sample==100||sample==1000)
-                    Log("TPS V1.31 FOOT_MOUSE_RETICLE_LOOK n=%u screen=(%.2f,%.2f) yaw=%.1f pitch=%.1f nativeGetterOnly=1 padUntouched=1",
-                        sample,nx,ny,aimYaw,aimElev);
-                return result;
-            }
-        }
-        ++g_v131MouseAimProjectionUnavailable;
-        return result; // fail open to game's native mouse aim
-    }
+    // V1.32: mouse acquisition belongs to native 3D targeting.
+    // This getter is not projectile authority. Preserve all pad branches.
+    if(mouseFiring&&!padFiring)return result;
     // V1.19: mouse LMB and controller use the SAME Camera Forward
     // heading. No alternative mouse mode, no pad emulation.
     // This changes ONLY the verified local player native TPS look getter.
@@ -1904,17 +1895,7 @@ NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
     const bool mounted=IsMountedTPSNow();
     // V1.19: native mouse firing and controller share TPS Camera Forward.
     const bool playerStrafe=padFire||mouseFire; // controller path preserved
-    if(mouseFire&&!padFire){
-        if(mounted)return result; // same untouched horse native mouse aim
-        float yaw=0.0f,elevation=0.0f,nx=0.0f,ny=0.0f;
-        if(ComputeMouseReticleWorldYaw(yaw,elevation,nx,ny)){
-            result->pitch=0.0f;
-            result->yaw=std::remainder(yaw,360.0f);
-            result->roll=0.0f;
-            ++g_v131MouseRotationReticle;
-        }
-        return result; // mouse only; do not reuse the gamepad branch
-    }
+    if(mouseFire&&!padFire)return result; // V1.32: native target, no yaw patch
     // During mounted Vanilla Aim fire, native look rotation is untouched.
     // While idle, suppress right-stick-origin horseman aim.
     if(rt.tpsMountedAimMode.load()==1 && padFire && !mouseFire)return result;
@@ -4155,6 +4136,7 @@ void UpdateOrbitInput() {
     // Joystick OFF means no camera orbit on foot or on horse.
     // Native Camera Forward firing remains independent in FilterNativeXInput.
     const bool active=g_config.thirdPersonEnabled && !temporaryVanilla &&
+        !rt.tpsUiViewHeld.load(std::memory_order_relaxed) &&
         !rt.tpsCutsceneSuspended.load(std::memory_order_relaxed) &&
         focused;
     // V1.27: annotate real mouse fire separately from native gamepad fire.
@@ -4681,6 +4663,7 @@ void ShutdownMod() {
     }
 
     Log("Shutdown: begin");
+    dg::native_tps::Report();
     // Release any window-local Ctrl aim key we injected, even if the
     // user closes the game mid-fire. Do not release physical Ctrl.
     if(g_horseSyntheticHDown.exchange(false))EmitKeyboardVirtualKey('H',false);
@@ -4715,11 +4698,7 @@ void ShutdownMod() {
         scene.facingFootSamples,scene.facingFootOffAxis,
         scene.facingHorseSamples,scene.facingHorseOffAxis,
         scene.mountedMouseViewFrames,scene.mountedMouseHorsePoseHeld);
-    Log("TPS V1.31 MOUSE_AIM_UNIFY totals: footGetterReticle=%u horseNativePass=%u projectionUnavailable=%u footRotationReticle=%u padControlPathChanged=0 nativeProjectileHook=NO",
-        g_v131MouseFootReticleLook.load(),g_v131MouseHorseNativePass.load(),
-        g_v131MouseAimProjectionUnavailable.load(),
-        g_v131MouseRotationReticle.load());
-    Log("TPS V1.30 AIM_STATE: TPS world-camera ray through cursor logged on first 24 mouse clicks; no native collision/projectile function found or altered; no verified full weapon reticle aiming fix");
+    Log("TPS V1.32 AIM_STATE: native mouse target acquisition replaces V1.31 yaw edits; native collision reused; physical pad path retained; actual projectile impacts require in-game validation");
     Log("TPS V1.20 CINEMATICS (read-only) enters=%u exits=%u candidates=%u missingActorSamples=%u farCameraSamples=%u nativeCutsceneBehaviorUnchanged=1",
         scene.cinematicEntered,scene.cinematicExited,
         scene.cinematicCandidateBegins,scene.cinematicMissingActorSamples,
@@ -4919,6 +4898,7 @@ DWORD WINAPI MainThread(LPVOID) {
     // Native camera hook and scoped DOF compensation.
     InitializeCameraDof();
     dg::camera_trace::Install(&FeatureLog);
+    dg::native_tps::Install(&ProvideNativeMouseRay,&FeatureLog);
     dg::horse::Initialize(&FeatureLog);
     Log(
         "Player identity: exact V0.14F APawn::IsLocallyControlled path restored; Jump/Glide validation is non-blocking"

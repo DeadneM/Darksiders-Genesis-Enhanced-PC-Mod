@@ -771,8 +771,9 @@ void Draw(Context& c) {
                 ImGui::TextDisabled("TPS mouse fires are rebindable without changing controller bindings.");
                 if(ImGui::Checkbox("Auto suspend TPS during detected cutscenes (test)",
                     &config.tpsCutsceneAutoSuspend))config.Save();
-                ImGui::TextDisabled("ON: native view + no TPS input during detected cinematics.");
-                ImGui::TextDisabled("OFF: existing camera heuristic only.");
+                ImGui::TextDisabled("ON: yield to the game's cinematic mode (experimental).");
+                ImGui::TextDisabled("Pause/wheels keep TPS; temporary-view shortcut has priority.");
+                ImGui::TextDisabled("Mouse aiming uses native 3D targets; gameplay test required.");
                 ImGui::Separator();
                 ImGui::TextDisabled("Native movement and camera isolation are automatic in TPS.");
                 ImGui::Separator();
