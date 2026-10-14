@@ -72,6 +72,54 @@ bool Sample(uint32_t n) { return n <= 12 || (n % 5000) == 0; }
 std::atomic_uint32_t g_cinematicEntered{0},g_cinematicExited{0},
     g_cinematicCandidateBegins{0},g_cinematicMissingActorSamples{0},
     g_cinematicFarViewSamples{0};
+
+// V1.28 temporary scene-detection HISTORY. A ring of 24 *events* rather
+// than repeated per-frame reports; stack copies only and a tiny SRW lock.
+// Names of actual game sequences are unknown, so none are fabricated.
+SRWLOCK g_cinematicDebugLock=SRWLOCK_INIT;
+std::array<CinematicDebugEvent,kCinematicDebugHistory> g_cinematicEvents{};
+CinematicDebugEvent g_cinematicLastView{};
+uint32_t g_cinematicNext=0,g_cinematicCount=0,g_cinematicSerial=0;
+bool g_cinematicHasLastView=false;
+std::atomic_uint32_t g_cinematicActiveCandidateId{0};
+std::atomic_ullong g_cinematicLastViewSampleTick{0};
+void StoreLastCinematicNativeView(const CinematicDebugEvent& observation){
+    const uint64_t previous=g_cinematicLastViewSampleTick.load(std::memory_order_relaxed);
+    if(previous && observation.tickMs>=previous && observation.tickMs-previous<180ull)return;
+    g_cinematicLastViewSampleTick.store(observation.tickMs,std::memory_order_relaxed);
+    AcquireSRWLockExclusive(&g_cinematicDebugLock);
+    g_cinematicLastView=observation;
+    g_cinematicHasLastView=true;
+    ReleaseSRWLockExclusive(&g_cinematicDebugLock);
+}
+void RecordCinematicEvent(CinematicDebugPhase phase,uint32_t candidate,
+                          uint64_t duration,CinematicDebugEvent observation){
+    observation.phase=phase;
+    observation.candidateId=candidate;
+    observation.durationMs=duration;
+    AcquireSRWLockExclusive(&g_cinematicDebugLock);
+    observation.serial=++g_cinematicSerial;
+    g_cinematicEvents[g_cinematicNext]=observation;
+    g_cinematicNext=(g_cinematicNext+1)%kCinematicDebugHistory;
+    if(g_cinematicCount<kCinematicDebugHistory)++g_cinematicCount;
+    ReleaseSRWLockExclusive(&g_cinematicDebugLock);
+    // Emit bounded event-level diagnostics; no per-frame logs.
+    if(observation.serial<=120u || (observation.serial%100u)==0u){
+        char line[360]{};
+        const char* phaseName=CinematicDebugPhaseLabel(phase);
+        const char* reason=!observation.actorValid?"NO_ACTOR":
+            !observation.nearPawn?"FAR_OR_HEIGHT":
+            !observation.normalAngles?"PITCH_OUTSIDE_GAMEPLAY":"NORMAL_GAMEPLAY_SHAPE";
+        sprintf_s(line,"TPS V1.28 CINEMATIC_DEBUG event=%u candidate=%u phase=%s reason=%s durationMs=%llu actorValid=%d near=%d angles=%d gameplayShape=%d auto=%d gapXY=%.0f gapZ=%.0f nativePitch=%.1f nativeYaw=%.1f nativeFov=%.1f",
+            observation.serial,candidate,phaseName,reason,
+            static_cast<unsigned long long>(duration),
+            observation.actorValid?1:0,observation.nearPawn?1:0,
+            observation.normalAngles?1:0,observation.gameplayCamera?1:0,
+            observation.autoSuspend?1:0,observation.gapXY,observation.gapZ,
+            observation.nativePitch,observation.nativeYaw,observation.nativeFov);
+        Write(line);
+    }
+}
 void HookView(void* camera, float dt, void* outView) {
     if (g_view) g_view(camera, dt, outView);
     auto& settings=dg::runtime::Get();
@@ -213,6 +261,21 @@ void HookView(void* camera, float dt, void* outView) {
     const auto lastTPS=settings.tpsGameplayViewTick.load(std::memory_order_acquire);
     // V1.02: no mouse-specific camera continuity bypass.
     const bool gameplayCamera=actorValid&&normalAngles&&nearPawn;
+    // Current native view is captured for the UI's manual "missed scene"
+    // marker, including if the automatic heuristic thinks it is gameplay.
+    CinematicDebugEvent viewSample{};
+    viewSample.tickMs=now;
+    viewSample.actorValid=actorValid;
+    viewSample.nearPawn=nearPawn;
+    viewSample.normalAngles=normalAngles;
+    viewSample.gameplayCamera=gameplayCamera;
+    viewSample.autoSuspend=settings.tpsCutsceneAutoSuspend.load(std::memory_order_relaxed);
+    viewSample.gapXY=planar;
+    viewSample.gapZ=nativeDz;
+    viewSample.nativePitch=nativePitch;
+    viewSample.nativeYaw=nativeYaw;
+    viewSample.nativeFov=nativeFov;
+    StoreLastCinematicNativeView(viewSample);
     // V0.97 automatic cutscene suspension: the engine's own untouched
     // camera view is the source of truth, not a fabricated cutscene flag.
     // Require a PREVIOUS valid TPS view, continuous rejection >= 500 ms,
@@ -220,6 +283,7 @@ void HookView(void* camera, float dt, void* outView) {
     // as cinematic candidates. A valid player camera clears the suspension
     // immediately; turning the option OFF keeps the old V0.96 heuristic.
     static ULONGLONG cinematicCandidateStart=0;
+    static uint32_t cinematicCandidateId=0;
     static unsigned cinematicTransitions=0;
     if(thirdPerson&&!gameplayCamera){
         if(!actorValid)++g_cinematicMissingActorSamples;
@@ -227,10 +291,25 @@ void HookView(void* camera, float dt, void* outView) {
     }
     const bool autoCutscene=settings.tpsCutsceneAutoSuspend.load(std::memory_order_relaxed);
     if(!thirdPerson||!autoCutscene){
+        if(cinematicCandidateStart){
+            RecordCinematicEvent(CinematicDebugPhase::Disabled,cinematicCandidateId,
+                now>=cinematicCandidateStart?now-cinematicCandidateStart:0ull,viewSample);
+        }
         cinematicCandidateStart=0;
+        cinematicCandidateId=0;
+        g_cinematicActiveCandidateId.store(0,std::memory_order_release);
         settings.tpsCutsceneSuspended.store(false,std::memory_order_release);
     }else if(gameplayCamera){
+        if(cinematicCandidateStart){
+            RecordCinematicEvent(
+                settings.tpsCutsceneSuspended.load(std::memory_order_relaxed)
+                    ?CinematicDebugPhase::Returned:CinematicDebugPhase::Rejected,
+                cinematicCandidateId,
+                now>=cinematicCandidateStart?now-cinematicCandidateStart:0ull,viewSample);
+        }
         cinematicCandidateStart=0;
+        cinematicCandidateId=0;
+        g_cinematicActiveCandidateId.store(0,std::memory_order_release);
         if(settings.tpsCutsceneSuspended.exchange(false,std::memory_order_acq_rel)){
             ++g_cinematicExited;
             if(++cinematicTransitions<=20){
@@ -248,6 +327,9 @@ void HookView(void* camera, float dt, void* outView) {
             if(!cinematicCandidateStart){
                 cinematicCandidateStart=now;
                 const unsigned candidate=++g_cinematicCandidateBegins;
+                cinematicCandidateId=candidate;
+                g_cinematicActiveCandidateId.store(candidate,std::memory_order_release);
+                RecordCinematicEvent(CinematicDebugPhase::Candidate,candidate,0,viewSample);
                 if(candidate<=24){
                     char line[330]{};
                     sprintf_s(line,"TPS V1.25 CAMERA_TRANSITION candidate=%u actorValid=%d normalAngles=%d nearPawn=%d gapXY=%.0f nativePitch=%.1f nativeFov=%.1f nativeZ=%.0f actorZ=%.0f autoCutscene=%d (no SequencePlayer proof)",
@@ -260,6 +342,8 @@ void HookView(void* camera, float dt, void* outView) {
             if(now>=cinematicCandidateStart&&now-cinematicCandidateStart>=500ull &&
                !settings.tpsCutsceneSuspended.exchange(true,std::memory_order_acq_rel)){
                 ++g_cinematicEntered;
+                RecordCinematicEvent(CinematicDebugPhase::Detected,cinematicCandidateId,
+                    now-cinematicCandidateStart,viewSample);
                 if(++cinematicTransitions<=20){
                     char line[256]{};
                     sprintf_s(line,"TPS V1.25 CINEMATIC_ENTER #%u actorValid=%d nearPawn=%d normalAngles=%d nativePitch=%.1f nativeFov=%.1f gapXY=%.0f durationMs=%llu (heuristic)",
@@ -269,7 +353,13 @@ void HookView(void* camera, float dt, void* outView) {
                 }
             }
         }else if(!settings.tpsCutsceneSuspended.load(std::memory_order_acquire)){
+            if(cinematicCandidateStart){
+                RecordCinematicEvent(CinematicDebugPhase::Rejected,cinematicCandidateId,
+                    now>=cinematicCandidateStart?now-cinematicCandidateStart:0ull,viewSample);
+            }
             cinematicCandidateStart=0;
+            cinematicCandidateId=0;
+            g_cinematicActiveCandidateId.store(0,std::memory_order_release);
         }
     }
     // Temporary R3 vanilla view must not discard the previously chosen TPS orbit basis.
@@ -622,4 +712,51 @@ Telemetry GetTelemetry() {
     t.appliedArmLength = g_appliedDistance.load();
     return t;
 }
+const char* CinematicDebugPhaseLabel(CinematicDebugPhase phase){
+    switch(phase){
+        case CinematicDebugPhase::Candidate:return "CANDIDATE";
+        case CinematicDebugPhase::Detected:return "ENTER";
+        case CinematicDebugPhase::Returned:return "EXIT";
+        case CinematicDebugPhase::Rejected:return "REJECTED";
+        case CinematicDebugPhase::ManualMark:return "USER_MARK";
+        case CinematicDebugPhase::Disabled:return "RESET";
+    }
+    return "UNKNOWN";
+}
+CinematicDebugSnapshot GetCinematicDebugSnapshot(){
+    CinematicDebugSnapshot result{};
+    AcquireSRWLockShared(&g_cinematicDebugLock);
+    result.count=g_cinematicCount;
+    for(uint32_t i=0;i<result.count;++i){
+        const uint32_t index=(g_cinematicNext+kCinematicDebugHistory-
+                              result.count+i)%kCinematicDebugHistory;
+        result.events[i]=g_cinematicEvents[index];
+    }
+    result.hasLastNativeSample=g_cinematicHasLastView;
+    result.lastNativeSample=g_cinematicLastView;
+    result.lastNativeSampleTickMs=g_cinematicLastView.tickMs;
+    ReleaseSRWLockShared(&g_cinematicDebugLock);
+    result.activeCandidateId=g_cinematicActiveCandidateId.load(
+        std::memory_order_acquire);
+    result.currentlySuspended=dg::runtime::Get().tpsCutsceneSuspended.load(
+        std::memory_order_acquire);
+    return result;
+}
+bool MarkCurrentCinematicForDebug(){
+    CinematicDebugEvent observation{};
+    bool hasSample=false;
+    AcquireSRWLockShared(&g_cinematicDebugLock);
+    observation=g_cinematicLastView;
+    hasSample=g_cinematicHasLastView;
+    ReleaseSRWLockShared(&g_cinematicDebugLock);
+    if(!hasSample)return false;
+    // Explicit user annotation, not automatic cinematic identity.
+    const uint64_t age=GetTickCount64()>=observation.tickMs
+        ?GetTickCount64()-observation.tickMs:0ull;
+    RecordCinematicEvent(CinematicDebugPhase::ManualMark,
+        g_cinematicActiveCandidateId.load(std::memory_order_acquire),
+        age,observation);
+    return true;
+}
+
 }
