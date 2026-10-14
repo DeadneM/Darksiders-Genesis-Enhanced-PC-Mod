@@ -38,7 +38,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.24-tps-mouse-fire-gauge-warning-test";
+constexpr const char* kBuild = "1.25-relative-raw-recovery-cutscene-audit-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -197,6 +197,15 @@ std::atomic_uint32_t g_v123EdgeRecenters{0},g_v123SyntheticMovesIgnored{0},
 // Native mouse button routing counts; original XInput path stays untouched.
 std::atomic_uint32_t g_v124PrimaryRouted{0},g_v124SecondaryRouted{0},
     g_v124NativeButtonSuppressed{0},g_v124SecondaryForwardLook{0};
+// V1.25: monitor actual process-wide RawInput ownership, never overwrite a
+// native registration; re-arm only when there is no mouse registration.
+std::atomic_uint32_t g_v125RawChecks{0},g_v125RawMissing{0},
+    g_v125RawRearmAttempts{0},g_v125RawRearmSuccess{0},
+    g_v125RawForeignOwners{0},g_v125RawStreamStalls{0},
+    g_v125RawWarpAvoided{0};
+std::atomic_int g_v125RawOwnerState{-1}; // 0 missing, 1 our hwnd, 2 native other hwnd
+std::atomic_ullong g_v125LastPollTick{0};
+std::atomic_uint32_t g_v125LastProbeRawCount{0},g_v125LastProbeMoveCount{0};
 std::atomic_uint32_t g_v120WrathNearDamage{0},g_v120WrathWhileFiring{0},
     g_v120WrathWhileIdle{0},g_v120WrathSpendEvents{0};
 std::atomic_ullong g_v120LastLocalDamage{0};
@@ -3558,52 +3567,105 @@ void TraceGameWindowState(IDXGISwapChain* swapChain) {
 
 // V1.20: register *missing* relative raw mouse only; never override a
 // registration installed by the game, suppress WM_MOUSEMOVE or warp cursor.
+// V1.25: GetRegisteredRawInputDevices(nullptr) normally returns -1 with
+// ERROR_INSUFFICIENT_BUFFER and count>0. Treat that as enumeration, NOT failure.
+// Win32 only allows one mouse target per PROCESS, so never steal an existing
+// native registration pointing elsewhere. We only re-arm an ABSENT registration.
 void EnsureRelativeMouse(HWND hwnd) {
     if(!hwnd || !IsWindow(hwnd) || !g_targetValidation.exact ||
-       !dg::runtime::Get().thirdPersonEnabled.load(std::memory_order_relaxed) ||
-       g_v120RawRegistrationChecked.exchange(true,std::memory_order_acq_rel))
+       !dg::runtime::Get().thirdPersonEnabled.load(std::memory_order_relaxed))
         return;
+    const ULONGLONG now=GetTickCount64();
+    const bool first=!g_v120RawRegistrationChecked.exchange(true,std::memory_order_acq_rel);
+    const ULONGLONG last=g_v125LastPollTick.load(std::memory_order_acquire);
+    if(!first && last && now>=last && now-last<1300ull)return;
+    g_v125LastPollTick.store(now,std::memory_order_release);
+    ++g_v125RawChecks;
     UINT count=0;
-    if(GetRegisteredRawInputDevices(nullptr,&count,sizeof(RAWINPUTDEVICE))==UINT(-1)){
+    SetLastError(0);
+    const UINT query=GetRegisteredRawInputDevices(nullptr,&count,sizeof(RAWINPUTDEVICE));
+    const DWORD queryError=GetLastError();
+    if(query==UINT(-1) && queryError!=ERROR_INSUFFICIENT_BUFFER){
         ++g_v120RawRegistrationErrors;
-        Log("TPS V1.20 RAW_REGISTER query failed error=%lu; fallback retained",GetLastError());
+        Log("TPS V1.25 RAW_OWNER query error=%lu count=%u (fail-open)",queryError,count);
         return;
     }
     if(count>64){
         ++g_v120RawRegistrationErrors;
-        Log("TPS V1.20 RAW_REGISTER %u registrations; leave native input intact",count);
+        Log("TPS V1.25 RAW_OWNER count=%u too large; no registration changed",count);
         return;
     }
-    if(count) {
-        std::vector<RAWINPUTDEVICE> registered(count);
-        UINT n=count;
-        const UINT got=GetRegisteredRawInputDevices(registered.data(),&n,sizeof(RAWINPUTDEVICE));
+    bool mousePresent=false;
+    HWND rawTarget=nullptr;
+    DWORD rawFlags=0;
+    if(count){
+        std::vector<RAWINPUTDEVICE> devices(count);
+        UINT capacity=count;
+        const UINT got=GetRegisteredRawInputDevices(devices.data(),&capacity,sizeof(RAWINPUTDEVICE));
         if(got==UINT(-1)){
             ++g_v120RawRegistrationErrors;
-            Log("TPS V1.20 RAW_REGISTER enumerate failed error=%lu",GetLastError());
+            Log("TPS V1.25 RAW_OWNER enumerate error=%lu (fail-open)",GetLastError());
             return;
         }
-        for(UINT i=0;i<got;++i) {
-            const auto& d=registered[i];
-            if(d.usUsagePage==1 && d.usUsage==2){
-                ++g_v120ExistingRawMouse;
-                Log("TPS V1.20 RAW_REGISTER existing native mouse preserved target=%p flags=0x%X",
-                    d.hwndTarget,unsigned(d.dwFlags));
-                return;
+        for(UINT i=0;i<got;++i){
+            if(devices[i].usUsagePage==1 && devices[i].usUsage==2){
+                mousePresent=true;
+                rawTarget=devices[i].hwndTarget;
+                rawFlags=devices[i].dwFlags;
+                break;
             }
         }
     }
+    const int owner=mousePresent?(rawTarget==hwnd?1:2):0;
+    const int previous=g_v125RawOwnerState.exchange(owner);
+    if(previous!=owner){
+        Log("TPS V1.25 RAW_OWNER transition %d -> %d target=%p flags=0x%lX hwnd=%p count=%u",
+            previous,owner,rawTarget,rawFlags,hwnd,count);
+    }
+    if(owner==2){
+        const unsigned n=++g_v125RawForeignOwners;
+        if(n<=3)
+            Log("TPS V1.25 RAW_OWNER native mouse target preserved; no registration override n=%u",n);
+        return;
+    }
+    const bool foreground=GetForegroundWindow()==hwnd && !IsIconic(hwnd) &&
+        !g_overlayVisible.load(std::memory_order_relaxed);
+    auto& rt=dg::runtime::Get();
+    const bool gameplay=rt.tpsViewGameplay.load(std::memory_order_acquire) &&
+        !rt.tpsCutsceneSuspended.load(std::memory_order_relaxed) &&
+        !rt.tpsTemporarilySuspended.load(std::memory_order_relaxed);
+    const unsigned rawCount=g_v120RawMousePackets.load(std::memory_order_relaxed);
+    const unsigned moveCount=g_v118MouseMove.load(std::memory_order_relaxed);
+    const unsigned oldRaw=g_v125LastProbeRawCount.exchange(rawCount);
+    const unsigned oldMove=g_v125LastProbeMoveCount.exchange(moveCount);
+    if(owner==1 && foreground && gameplay && moveCount>oldMove+20 && rawCount==oldRaw){
+        const unsigned n=++g_v125RawStreamStalls;
+        if(n<=8 || n%60==0)
+            Log("TPS V1.25 RAW_STALL n=%u regTarget=%p flags=0x%lX WM_MOUSEMOVE_delta=%u WM_INPUT_delta=0 (registration still present; no unsafe override)",
+                n,rawTarget,rawFlags,moveCount-oldMove);
+    }
+    if(owner!=0)return;
+    ++g_v125RawMissing;
+    // Initial registration is safe before first gameplay frame. Later only
+    // repair in active focused TPS; game menus/cutscenes retain native behavior.
+    if(!first && (!foreground || !gameplay))return;
+    if(g_v125RawRearmAttempts.load(std::memory_order_relaxed)>=8u)return;
+    const unsigned attempt=++g_v125RawRearmAttempts;
     RAWINPUTDEVICE mouse{};
     mouse.usUsagePage=1;
     mouse.usUsage=2;
-    mouse.dwFlags=0; // foreground legacy input is untouched.
+    mouse.dwFlags=0; // preserve legacy WM_MOUSEMOVE and physical firing.
     mouse.hwndTarget=hwnd;
     if(RegisterRawInputDevices(&mouse,1,sizeof(mouse))){
         g_v120RawAddedByMod.store(true,std::memory_order_relaxed);
-        Log("TPS V1.20 RAW_REGISTER relative mouse enabled for game hwnd=%p; no cursor movement",hwnd);
+        ++g_v125RawRearmSuccess;
+        g_v125RawOwnerState.store(1,std::memory_order_release);
+        Log("TPS V1.25 RAW_REARM success attempt=%u stage=%s hwnd=%p",
+            attempt,first?"STARTUP":"GAMEPLAY",hwnd);
     }else{
         ++g_v120RawRegistrationErrors;
-        Log("TPS V1.20 RAW_REGISTER failed error=%lu; legacy fallback intact",GetLastError());
+        Log("TPS V1.25 RAW_REARM fail attempt=%u error=%lu",
+            attempt,GetLastError());
     }
 }
 void EnsureOrbitWndProc(IDXGISwapChain* chain) {
@@ -3878,6 +3940,12 @@ void UpdateOrbitInput() {
         }
         return;
     }
+    // V1.25: prefer true RawInput relative deltas WITHOUT cursor warping.
+    // The old V1.23 fallback remains only if RawInput has been silent,
+    // so broken registrations cannot strand the camera at the edge.
+    const ULONGLONG freshRaw=g_v119LastRawMouseTick.load(std::memory_order_acquire);
+    const bool relativeStreamHealthy=freshRaw && now>=freshRaw && now-freshRaw<500ull;
+    if(relativeStreamHealthy)++g_v125RawWarpAvoided;
     // V1.23: keep unbounded TPS yaw when the OS mouse pointer runs into
     // the client border. Never reinstall any hide-reticle/SetCursor hook.
     // Warp only at an edge after real mouse input, no more than every 350ms.
@@ -3888,7 +3956,7 @@ void UpdateOrbitInput() {
         std::memory_order_acquire);
     const ULONGLONG gameplayAt=rt.tpsGameplayViewTick.load(
         std::memory_order_acquire);
-    if(physicalAt && now>=physicalAt && now-physicalAt<180ull &&
+    if(!relativeStreamHealthy && physicalAt && now>=physicalAt && now-physicalAt<180ull &&
        (!recenteredAt || (now>=recenteredAt &&
                           now-recenteredAt>=350ull)) &&
        rt.tpsViewGameplay.load(std::memory_order_relaxed) &&
@@ -4416,10 +4484,15 @@ void ShutdownMod() {
     Log("TPS V1.18 MOUSE_READONLY totals: WM_MOUSEMOVE=%u WM_INPUT_UNDECODED=%u LMB=%u RMB=%u WHEEL=%u",
         g_v118MouseMove.load(),g_v118RawInputMessages.load(),
         g_v118MouseLmb.load(),g_v118MouseRmb.load(),g_v118MouseWheel.load());
-    Log("TPS V1.19 MOUSE_FORWARD totals: rawMouse=%u moveFallback=%u cameraFrames=%u nativeLookForward=%u nativeRotationForward=%u cursorWarp=0 syntheticPad=0",
+    Log("TPS V1.19 MOUSE_FORWARD totals: rawMouse=%u moveFallback=%u cameraFrames=%u nativeLookForward=%u nativeRotationForward=%u fallbackEdgeRecenter=V1.23 syntheticPad=0",
         g_v119RawMouse.load(),g_v119MouseMoveFallback.load(),
         g_v119MouseCameraFrames.load(),g_v119MouseForwardLook.load(),
         g_v119MouseForwardRotation.load());
+    Log("TPS V1.25 RAW_RECOVERY totals: checks=%u missing=%u rearmAttempts=%u rearmSuccess=%u foreignRegistrationProtected=%u stallsWithRegistration=%u warpsAvoided=%u lastOwnerState=%d",
+        g_v125RawChecks.load(),g_v125RawMissing.load(),
+        g_v125RawRearmAttempts.load(),g_v125RawRearmSuccess.load(),
+        g_v125RawForeignOwners.load(),g_v125RawStreamStalls.load(),
+        g_v125RawWarpAvoided.load(),g_v125RawOwnerState.load());
     Log("TPS V1.24 MOUSE_FIRE totals primaryRouted=%u secondaryRouted=%u nativeSuppressed=%u secondaryForwardLook=%u primaryVK=%d secondaryVK=%d",
         g_v124PrimaryRouted.load(),g_v124SecondaryRouted.load(),
         g_v124NativeButtonSuppressed.load(),g_v124SecondaryForwardLook.load(),
