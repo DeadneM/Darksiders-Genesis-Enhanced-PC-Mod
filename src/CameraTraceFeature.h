@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <array>
+#include <cstddef>
 namespace dg::camera_trace {
 using LogFn = void (*)(const char*);
 struct Telemetry {
@@ -64,7 +65,7 @@ struct CinematicDebugEvent {
     float nativeYaw = 0.0f;
     float nativeFov = 0.0f;
 };
-constexpr size_t kCinematicDebugHistory = 24;
+constexpr std::size_t kCinematicDebugHistory = 24;
 struct CinematicDebugSnapshot {
     std::array<CinematicDebugEvent,kCinematicDebugHistory> events{};
     uint32_t count = 0;
