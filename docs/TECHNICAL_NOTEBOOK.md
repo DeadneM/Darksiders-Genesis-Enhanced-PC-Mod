@@ -1,3 +1,7 @@
+## V1.28 Windows build and publication verified (2026-10-14)
+
+GitHub Actions [run 38557275092](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38557275092) **SUCCESS**: Windows x64 configure, Release compile, exactly four root-file ZIP validation, CI artifact upload, permanent archive commit and push to `debug`. [V1.28 cumulative TEST ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.28_CINEMATIC_HISTORY_DEBUG_TEST.zip): **763,306 bytes**, Git blob SHA-1 `76008c8329e1ef0448815995df4a1b8146216d2b`. V1.27 (759,159 bytes) and V1.26 (756,898 bytes) preserved. `main` SHA `2bc3122c1ae07b7333798462f85c1d9fd3a739f7`, `archive` SHA `10e0f220b85022bc9269e0cb9390a811a3b1cf89` unchanged. In-game detection/history usability is **not yet tested**. Event history still provides only camera heuristics, not game asset names.
+
 ## V1.28 - TEMPORARY cutscene detection list and missed-scene marker (DEBUG TEST)
 
 [Download cumulative V1.28 TEST ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.28_CINEMATIC_HISTORY_DEBUG_TEST.zip) | `debug` branch, Windows/gameplay verification pending.
