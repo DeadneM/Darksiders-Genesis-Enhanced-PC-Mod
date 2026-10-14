@@ -51,6 +51,12 @@ std::atomic_uint32_t g_mountedFireHorseUnavailable{0};
 std::atomic_uint32_t g_mountedFireVerticalSmoothed{0};
 std::atomic<float> g_mountedFireLastVerticalCorrection{0.0f};
 std::atomic_bool g_mountedFireCurrentlyActive{false};
+// V1.27: separate actual mouse and native-pad mounted view observations.
+std::atomic_uint32_t g_v127MountedMouseViewFrames{0};
+std::atomic_uint32_t g_v127MountedMouseHorsePoseHeld{0};
+std::atomic_uint32_t g_v127FacingFootSamples{0},g_v127FacingFootOffAxis{0},
+    g_v127FacingHorseSamples{0},g_v127FacingHorseOffAxis{0};
+std::atomic_ullong g_v127LastFacingLogTick{0};
 std::atomic_uint32_t g_zoneActorGeneration{UINT32_MAX};
 std::atomic<float> g_zoneReferenceYaw{0.0f},g_zoneReferenceArm{0.0f};
 std::atomic_bool g_zoneReferenceActive{false};
@@ -108,9 +114,17 @@ void HookView(void* camera, float dt, void* outView) {
     static std::atomic_bool lastHorse{false};
     // V0.86: the mode of mounted shooting is ALWAYS enforced when in TPS.
     // The retired vertical-stabilization checkbox is NOT an aim mode gate.
-    // V1.02: mounted TPS firing is controlled by native gamepad only.
+    // V1.27: mouse shots also hold a VERIFIED recent horse camera pose,
+    // just as controller fire has since V0.85. The physical mouse state is
+    // published separately; this does not alter native projectile raycasts.
+    const ULONGLONG mouseAt=settings.tpsMouseFireTick.load(std::memory_order_acquire);
+    const bool mouseMountedFire=thirdPerson &&
+        settings.tpsMouseFireHeld.load(std::memory_order_acquire) &&
+        mouseAt && now>=mouseAt && now-mouseAt<180ull &&
+        settings.tpsMountedViewActive.load(std::memory_order_acquire);
     const bool activeHorseAim=thirdPerson &&
-        settings.tpsAimActive.load(std::memory_order_acquire);
+        (settings.tpsAimActive.load(std::memory_order_acquire)||mouseMountedFire);
+    if(mouseMountedFire)++g_v127MountedMouseViewFrames;
     g_mountedFireCurrentlyActive.store(false,std::memory_order_relaxed);
     if(activeHorseAim){
         ++g_mountedFireRequested;
@@ -405,7 +419,37 @@ void HookView(void* camera, float dt, void* outView) {
                 settings.tpsMountedViewTick.store(now,std::memory_order_release);
                 if(usingHorse&&activeHorseAim){
                     ++g_mountedFireHorseSelected;
+                    if(mouseMountedFire)++g_v127MountedMouseHorsePoseHeld;
                     g_mountedFireCurrentlyActive.store(true,std::memory_order_relaxed);
+                }
+                // Read-only facing-angle classification for native player or
+                // live horse pose. The horse yaw is NOT the rider's mesh yaw.
+                // Never force a world transform, movement flag or control yaw.
+                const float facingGap=std::fabs(std::remainder(
+                    appliedYaw-actorYaw,360.0f));
+                if(std::isfinite(facingGap)){
+                    if(usingHorse){
+                        ++g_v127FacingHorseSamples;
+                        if(facingGap>75.0f)++g_v127FacingHorseOffAxis;
+                    }else{
+                        ++g_v127FacingFootSamples;
+                        if(facingGap>75.0f)++g_v127FacingFootOffAxis;
+                    }
+                    ULONGLONG previousFacing=g_v127LastFacingLogTick.load();
+                    if((!previousFacing || (now>=previousFacing&&
+                        now-previousFacing>=4500ull))&&
+                       g_v127LastFacingLogTick.compare_exchange_strong(
+                           previousFacing,now)){
+                        char line[330]{};
+                        sprintf_s(line,"TPS V1.27 FACING_AUDIT source=%s yawNative=%.1f cameraYaw=%.1f gapDeg=%.1f mouseFire=%d padFire=%d horsePoseAgeMs=%llu (READ ONLY, not mesh animation)",
+                            usingHorse?"HORSE_POSE":"FOOT_ACTOR",
+                            actorYaw,appliedYaw,facingGap,
+                            mouseMountedFire?1:0,
+                            settings.tpsAimActive.load()?1:0,
+                            static_cast<unsigned long long>(
+                                horseTick&&now>=horseTick?now-horseTick:0ull));
+                        Write(line);
+                    }
                 }
                 settings.tpsGameplayViewTick.store(now,std::memory_order_release);
                 settings.tpsViewGameplay.store(true,std::memory_order_release);
