@@ -1,3 +1,7 @@
+## V1.32 Windows delivery verified, 2026-10-14
+
+CI run 38608331116 SUCCESS, source cf613bb, numbered archive debug commit d842a55. ZIP 775037 bytes, exactly ASI/INI/dxgi.dll/README at root, PE AMD64 verified; direct raw download matched SHA256 C0EE1089862D61D37BC355724BA3DB2872346F520828BDFE4F56B709D2EA7124. CONSTRUIT / CONTROLE / EXPERIMENTAL, no in-game success claim. Local old installation and personal INI backed up; first install stopped before copies because game process was still running. Await closure and destination hashes. [Full delivery and native audit](V1_32_NATIVE_TARGET_CAMERA_OWNERSHIP.md). main/archive unchanged.
+
 ## V1.32 2026-10-14: one native mouse target path and explicit camera ownership
 
 After user rejection of V1.31 mounted aim/cinematics, implement NativeTpsFeature: exact guarded game mouse helpers 0x5719A0/0x571E50, scoped deprojection only at 0x571EB8 return and matching controller, strict local physical mouse provider, original native collision and positive-range no-hit target. 2D consumers derive direction from the same 3D target; old mouse getter-yaw edits retired. Further disassembly proves BOTH helpers obtain mouse pixels: 0x1ACAA70 wraps GetMousePosition; previous device-discriminator hypothesis retracted. Native muzzle/projectile consumer and mounted coverage require actual runtime validation.

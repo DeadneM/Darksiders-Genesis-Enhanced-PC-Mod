@@ -1,3 +1,7 @@
+## V1.32 verified delivery, local installation pending game closure
+
+Windows CI [38608331116](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38608331116) SUCCESS for source cf613bb, archive commit d842a55. [Permanent V1.32 cumulative ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.32_NATIVE_TARGET_CAMERA_OWNERSHIP_TEST.zip) 775037 bytes, exactly four root files, both binaries PE AMD64. SHA256 C0EE1089862D61D37BC355724BA3DB2872346F520828BDFE4F56B709D2EA7124, independently matched via direct raw download. **CONSTRUIT / CONTROLE / EXPERIMENTAL, not user validated.** V1.31/personal INI backup made locally. Installation guard detected a running game and stopped before any copy; await closed-game installation and destination hashes before claiming installed. main/archive unchanged, all old ZIPs retained. Source and shipped INI preserve personal settings; installed TPSAutoCutscene was ON when checked.
+
 ## V1.32 current experiment - native target / camera ownership, 2026-10-14
 
 Base debug c41292c (cumulative V1.31); V1.31 NOT validated. New user test reports mounted shots behind in every position, missed real scene, pause and both wheels overhead even with cinema option OFF. User chooses TPS everywhere except cinematics and the existing temporary-native shortcut. Keep shortcut behavior including shared-key priority.

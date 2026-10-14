@@ -58,3 +58,21 @@ Rollback: back up personal INI and reinstall preserved V1.31 ASI/loader, or the 
 - Wrath/Ultimate gain hooks and Skip Warnings remain unresolved, outside this experiment; validated additive Synergy unchanged.
 
 Delivery target: cumulative Windows x64 ZIP, exactly dxgi.dll, DarksidersGenesisMod.asi, DarksidersGenesisMod.ini and README.md at root. GitHub Actions and artifact/remote heads must be checked before claiming delivery.
+
+## Verified Windows delivery
+
+Source cf613bb714c53c9677ca19496a01ccd88e59aa62. GitHub Actions run
+[38608331116](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38608331116)
+SUCCESS: configure x64, Release compile, exact-four-root ZIP, upload and debug
+archive publication. Archive publication commit d842a55f1bbaa296f737f9c633591fc3024644c9.
+[Permanent V1.32 ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.32_NATIVE_TARGET_CAMERA_OWNERSHIP_TEST.zip)
+775037 bytes, SHA256 C0EE1089862D61D37BC355724BA3DB2872346F520828BDFE4F56B709D2EA7124.
+Both binaries independently checked MZ/PE AMD64 0x8664. Direct raw URL downloaded
+and matched the same hash. Root entries: ASI 1144320, dxgi.dll 154624, INI 2677,
+README 238614 bytes. CONSTRUIT / CONTROLE / EXPERIMENTAL; no gameplay validation.
+
+Local V1.31 backup and personal INI backup created before installation. The first
+installation attempt stopped at its running-game guard, before replacing any file.
+Do not describe V1.32 as installed until a later closed-game copy and destination
+hash verification succeed. main remains 2bc3122c1ae07b7333798462f85c1d9fd3a739f7;
+archive remains 10e0f220b85022bc9269e0cb9390a811a3b1cf89. All prior ZIPs retained.

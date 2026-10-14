@@ -1,3 +1,7 @@
+## V1.32 Windows x64 build verified (2026-10-14)
+
+[Download V1.32 cumulative TEST ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.32_NATIVE_TARGET_CAMERA_OWNERSHIP_TEST.zip) | [Successful Windows CI 38608331116](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38608331116). Exactly four root files, both binaries AMD64, 775037 bytes; SHA256 C0EE1089862D61D37BC355724BA3DB2872346F520828BDFE4F56B709D2EA7124. **CONSTRUIT / CONTROLE / EXPERIMENTAL, in-game validation pending.** This verified-delivery entry supersedes the pre-CI pending status below. Native target/cinematic coverage still requires testing; keep older archives available.
+
 ## V1.32 native mouse target / camera ownership TEST (2026-10-14)
 
 User V1.31 test rejects mounted aiming and missed cinematic handoff; pause/wheels also returned overhead with the cinematic option OFF. V1.32 replaces mouse yaw edits with one camera-reticle 3D target path through the game's native collision helper, with a point ahead on no hit. Controller input remains unchanged. Camera policy uses native cinematic lifecycle and native world pause/known radial state, retaining TPS composition during UI and preserving the configured temporary-native shortcut. If that shortcut shares a wheel key, its explicit native view still takes precedence. [Full exact-binary audit, limits, preservation and test plan](docs/V1_32_NATIVE_TARGET_CAMERA_OWNERSHIP.md).
