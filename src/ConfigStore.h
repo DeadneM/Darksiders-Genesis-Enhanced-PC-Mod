@@ -170,6 +170,9 @@ public:
     int tpsGrenadeButtonMask = 0x0080; // R3 USE gear (0=OFF)
     int tpsFirePrimaryMask = 0x20000;
     int tpsFireSecondaryMask = 0x0200;
+    // TPS-only physical mouse bindings (Win32 virtual-key codes).
+    int tpsMousePrimaryButton = 0x01;
+    int tpsMouseSecondaryButton = 0x02;
     int tpsWheelPadMask = 0x0100;
     int tpsChargedFirePadMask = 0x8000; // Y/Triangle for LB+Y charged shot
     int tpsSuspendButtonMask = 0x0080; // R3, temporary vanilla view
