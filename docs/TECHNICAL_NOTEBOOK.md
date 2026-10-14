@@ -1,3 +1,7 @@
+## V1.24 code and log audit 2026-10-14
+
+User V1.23 feedback confirms smooth unlimited mouse orbit via 37 edge recaptures, zero errors. Synergy 27 positive gains / 27 boosted, Wrath +9 read-only candidate (4+1+4), AddWrath=0 and AddChaos=0, cinematic heuristic enters 2/exits 1 (identity still unverified). V1.24 scopes primary/secondary Win32 mouse button mapping to focused live TPS and adds both to the local player native Camera Forward look vector/rotation hook; leaves validated pad/XInput/radial/R3 unchanged. Main and archive remain frozen. New INI revision 2140 stores MousePrimaryButton VK1 and MouseSecondaryButton VK2 by default, with overlay selection. Source research adds positive local Synergy timestamp read-only for Wrath correlation and logs early StartupScreens 8-byte raw payload samples; no resource writes or startup bypass. **This is experimental until CI and in-game firing test.** Full note: docs/V1_24_TPS_FIRE_GAUGES_WARNINGS.md.
+
 
 ## Windows x64 CI and published archive verified (2026-10-14)
 
