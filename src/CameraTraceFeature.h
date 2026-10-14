@@ -52,7 +52,7 @@ struct Telemetry {
 // V1.28 TEMPORARY CUTSCENE DEBUG: events represent a camera-heuristic
 // classification. They are NOT game cutscene asset/sequence names.
 enum class CinematicDebugPhase : uint8_t {
-    Candidate, Detected, Returned, Rejected, ManualMark, Disabled
+    Candidate, Detected, Returned, Rejected, BriefCut, ManualMark, Disabled
 };
 struct CinematicDebugEvent {
     CinematicDebugPhase phase = CinematicDebugPhase::Candidate;
@@ -66,6 +66,8 @@ struct CinematicDebugEvent {
     bool gameplayCamera = false;
     bool autoSuspend = false;
     bool distanceExceeded = false;
+    bool noActorStatic = false;
+    float nativeViewShift = 0.0f;
     float gapXY = 0.0f;
     float gapZ = 0.0f;
     float gap3D = 0.0f;
