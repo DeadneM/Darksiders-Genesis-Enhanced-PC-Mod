@@ -618,7 +618,8 @@ void Draw(Context& c) {
                     for(uint32_t index=history.count;index>0;--index){
                         const auto& event=history.events[index-1];
                         const ULONGLONG age=now>=event.tickMs?now-event.tickMs:0ull;
-                        const char* reason=!event.actorValid?"NO_ACTOR":
+                        const char* reason=event.noActorStatic?"STATIC_NO_ACTOR":
+                            !event.actorValid?"MOVING_NO_ACTOR":
                             event.distanceExceeded?"TPS_DISTANCE":
                             !event.nearPawn?"FAR_OR_HEIGHT":
                             !event.normalAngles?"PITCH":"GAMEPLAY_SHAPE";
@@ -643,8 +644,9 @@ void Draw(Context& c) {
                             reason,event.gap3D,event.candidateDistanceThreshold,
                             event.nativePitch,event.nativeFov);
                         if(ImGui::IsItemHovered())
-                            ImGui::SetTooltip("Normal native gap %.0f + TPS camera distance %.0f (+ small jitter margin); native yaw %.1f",
-                                event.distanceBaseline,event.selectedTpsDistance,event.nativeYaw);
+                            ImGui::SetTooltip("Native view shift %.0f; normal baseline gap %.0f + TPS %.0f + 40. Camera-only diagnostic, not real cinematic title. Native yaw %.1f",
+                                event.nativeViewShift,event.distanceBaseline,
+                                event.selectedTpsDistance,event.nativeYaw);
                     }
                     ImGui::EndTable();
                 }
@@ -653,9 +655,12 @@ void Draw(Context& c) {
                 ImGui::TextWrapped("V1.29 TPS_DISTANCE = native camera has moved beyond "
                     "its calibrated normal position by your TPS camera distance. "
                     "Native camera baseline is NOT the visible TPS camera distance.");
-                ImGui::TextWrapped("USER_MARK = your manual observation only. "
-                    "REJECTED = camera returned before 500 ms. "
-                    "A missed in-place cinematic may have no automatic events.");
+                ImGui::TextWrapped("SHORT_CUT = large native-camera jump below 500 ms, "
+                    "not proof of a named cutscene. STATIC_NO_ACTOR means "
+                    "player disappeared but camera did not move: pause/menu possible. "
+                    "REJECTED = brief unconfirmed camera change.");
+                ImGui::TextWrapped("USER_MARK = user observation only. "
+                    "In-place cinematic with a static native camera may still be missed.");
                 ImGui::Unindent(12.0f);
             }
 
