@@ -21,6 +21,13 @@ struct Telemetry {
     uint32_t mountedFireOverrodeFoot = 0;
     uint32_t mountedFireHorseUnavailable = 0;
     uint32_t mountedFireVerticalSmoothed = 0;
+    // V1.27: camera read-only diagnostics, not native shot trajectory proof.
+    uint32_t mountedMouseViewFrames = 0;
+    uint32_t mountedMouseHorsePoseHeld = 0;
+    uint32_t facingFootSamples = 0;
+    uint32_t facingFootOffAxis = 0;
+    uint32_t facingHorseSamples = 0;
+    uint32_t facingHorseOffAxis = 0;
     float mountedFireLastVerticalCorrection = 0.0f;
     bool mountedFireCurrentlyActive = false;
     float nativeFov = 0.0f;
