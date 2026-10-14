@@ -40,6 +40,12 @@ struct Telemetry {
     float appliedYaw = 0.0f;
     float nativeHeight = 0.0f;
     float appliedHeight = 0.0f;
+    // V1.30: actual OUTGOING third-person camera view, world-space.
+    // Telemetry only; never alters native projectile/aim state.
+    float appliedWorldX = 0.0f;
+    float appliedWorldY = 0.0f;
+    float appliedWorldZ = 0.0f;
+    uint64_t appliedWorldTickMs = 0;
     float nativeArmLength = 0.0f;
     float appliedArmLength = 0.0f;
 };
