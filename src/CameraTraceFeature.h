@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <array>
 namespace dg::camera_trace {
 using LogFn = void (*)(const char*);
 struct Telemetry {
@@ -41,6 +42,41 @@ struct Telemetry {
     float nativeArmLength = 0.0f;
     float appliedArmLength = 0.0f;
 };
+// V1.28 TEMPORARY CUTSCENE DEBUG: events represent a camera-heuristic
+// classification. They are NOT game cutscene asset/sequence names.
+enum class CinematicDebugPhase : uint8_t {
+    Candidate, Detected, Returned, Rejected, ManualMark, Disabled
+};
+struct CinematicDebugEvent {
+    CinematicDebugPhase phase = CinematicDebugPhase::Candidate;
+    uint32_t serial = 0;
+    uint32_t candidateId = 0;
+    uint64_t tickMs = 0;
+    uint64_t durationMs = 0;
+    bool actorValid = false;
+    bool nearPawn = false;
+    bool normalAngles = false;
+    bool gameplayCamera = false;
+    bool autoSuspend = false;
+    float gapXY = 0.0f;
+    float gapZ = 0.0f;
+    float nativePitch = 0.0f;
+    float nativeYaw = 0.0f;
+    float nativeFov = 0.0f;
+};
+constexpr size_t kCinematicDebugHistory = 24;
+struct CinematicDebugSnapshot {
+    std::array<CinematicDebugEvent,kCinematicDebugHistory> events{};
+    uint32_t count = 0;
+    uint32_t activeCandidateId = 0;
+    bool currentlySuspended = false;
+    bool hasLastNativeSample = false;
+    uint64_t lastNativeSampleTickMs = 0;
+    CinematicDebugEvent lastNativeSample{};
+};
+CinematicDebugSnapshot GetCinematicDebugSnapshot();
+bool MarkCurrentCinematicForDebug(); // user annotation only, no camera writes
+const char* CinematicDebugPhaseLabel(CinematicDebugPhase phase);
 void Install(LogFn log);
 Telemetry GetTelemetry();
 bool RecenterOnPlayer();
