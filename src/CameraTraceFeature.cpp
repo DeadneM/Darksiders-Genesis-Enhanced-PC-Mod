@@ -233,16 +233,24 @@ void HookView(void* camera, float dt, void* outView) {
         if(observedTPS){
             if(!cinematicCandidateStart){
                 cinematicCandidateStart=now;
-                ++g_cinematicCandidateBegins;
+                const unsigned candidate=++g_cinematicCandidateBegins;
+                if(candidate<=24){
+                    char line[330]{};
+                    sprintf_s(line,"TPS V1.25 CAMERA_TRANSITION candidate=%u actorValid=%d normalAngles=%d nearPawn=%d gapXY=%.0f nativePitch=%.1f nativeFov=%.1f nativeZ=%.0f actorZ=%.0f autoCutscene=%d (no SequencePlayer proof)",
+                        candidate,actorValid?1:0,normalAngles?1:0,
+                        nearPawn?1:0,planar,nativePitch,nativeFov,z,az,
+                        autoCutscene?1:0);
+                    Write(line);
+                }
             }
             if(now>=cinematicCandidateStart&&now-cinematicCandidateStart>=500ull &&
                !settings.tpsCutsceneSuspended.exchange(true,std::memory_order_acq_rel)){
                 ++g_cinematicEntered;
                 if(++cinematicTransitions<=20){
                     char line[256]{};
-                    sprintf_s(line,"TPS V1.20 CINEMATIC_ENTER #%u actorValid=%d closeToPawn=%d nativePitch=%.1f gapXY=%.0f durationMs=%llu",
-                        cinematicTransitions,actorValid?1:0,nearPawn?1:0,
-                        nativePitch,planar,static_cast<unsigned long long>(now-cinematicCandidateStart));
+                    sprintf_s(line,"TPS V1.25 CINEMATIC_ENTER #%u actorValid=%d nearPawn=%d normalAngles=%d nativePitch=%.1f nativeFov=%.1f gapXY=%.0f durationMs=%llu (heuristic)",
+                        cinematicTransitions,actorValid?1:0,nearPawn?1:0,normalAngles?1:0,
+                        nativePitch,nativeFov,planar,static_cast<unsigned long long>(now-cinematicCandidateStart));
                     Write(line);
                 }
             }
