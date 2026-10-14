@@ -1,3 +1,7 @@
+## V1.26 Windows CI and cumulative ZIP verified on 2026-10-14
+
+GitHub Actions [run 38544279229](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38544279229) completed **SUCCESS**: Visual Studio Windows x64 configuration and Release compilation, ZIP verified exactly four root files `dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md`, artifact uploaded, archive committed to `debug`. [Permanent V1.26 TEST ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.26_PERSISTENT_RAWINPUT_TEST.zip): **756,898 bytes**, Git blob SHA-1 `29445b6fc0b57001fdae481a2772174a6be534d1`. V1.25 and V1.24 remain present. Frozen `main` remains `2bc3122c1ae07b7333798462f85c1d9fd3a739f7`, `archive` remains `10e0f220b85022bc9269e0cb9390a811a3b1cf89`. This verifies compilation and packaging, **not** user-observed no-warp FPS-style gameplay. The root cause of the engine removing RawInput registration is not yet identified.
+
 ## V1.26 - Persistent RawInput registration recovery (TEST)
 
 [Download cumulative V1.26 TEST ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.26_PERSISTENT_RAWINPUT_TEST.zip) | `debug` only, gameplay validation pending.
