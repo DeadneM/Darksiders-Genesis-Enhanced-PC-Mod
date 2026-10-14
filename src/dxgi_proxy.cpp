@@ -236,6 +236,18 @@ static void ProbeStartupDefinitions(){
             unsigned(entry[0x38]),unsigned(entry[0x39]));
         LogLoader(line);
         if(entry[0x39])++activeCount;
+        // V1.24: read-only native record payload; never interpret as FText.
+        // This can include ASLR pointer bytes and is not a screen draw.
+        if(n==3){
+            wchar_t sample[220]{};
+            swprintf_s(sample,L"Startup V1.24 WARNING_RECORD_BYTES i=%d raw20=%02X%02X%02X%02X%02X%02X%02X%02X type=%u active=%u drawVerified=0",
+                i,unsigned(entry[0x20]),unsigned(entry[0x21]),
+                unsigned(entry[0x22]),unsigned(entry[0x23]),
+                unsigned(entry[0x24]),unsigned(entry[0x25]),
+                unsigned(entry[0x26]),unsigned(entry[0x27]),
+                unsigned(entry[0x38]),unsigned(entry[0x39]));
+            LogLoader(sample);
+        }
         // V1.18: identify only state, not warning text or presentation.
         // Never mutate StartupScreenDef or bypass the 0xAC8760 setup call.
         if(n<=3){
