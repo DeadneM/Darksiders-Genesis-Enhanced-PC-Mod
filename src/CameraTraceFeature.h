@@ -59,8 +59,13 @@ struct CinematicDebugEvent {
     bool normalAngles = false;
     bool gameplayCamera = false;
     bool autoSuspend = false;
+    bool distanceExceeded = false;
     float gapXY = 0.0f;
     float gapZ = 0.0f;
+    float gap3D = 0.0f;
+    float distanceBaseline = 0.0f;
+    float selectedTpsDistance = 0.0f;
+    float candidateDistanceThreshold = 0.0f;
     float nativePitch = 0.0f;
     float nativeYaw = 0.0f;
     float nativeFov = 0.0f;
