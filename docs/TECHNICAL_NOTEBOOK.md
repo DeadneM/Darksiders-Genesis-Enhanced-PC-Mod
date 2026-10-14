@@ -1,3 +1,7 @@
+## V1.31 verified Windows x64 CI and preserved test ZIP, 2026-10-14
+
+[Build run 38592694757](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38592694757) completed SUCCESS: CMake Windows x64 configure, Release compile, four exact root ZIP files (`dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md`), artifact uploaded and numbered archive committed to `debug`. [Permanent V1.31 TEST ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.31_MOUSE_RETICLE_CINEMA_CLASSIFIER_TEST.zip) size **770,718 bytes**, Git blob SHA-1 `c209a723075ad7407bb58981658f96cdc0b88db0`. V1.30 (768,166 bytes) / V1.29 (765,354 bytes) retained. Frozen `main` remains `2bc3122c1ae07b7333798462f85c1d9fd3a739f7` and `archive` remains `10e0f220b85022bc9269e0cb9390a811a3b1cf89`. No in-game claims: camera heuristic, foot look yaw and gun trajectory **require user validation**; vertical mounted bullet raycast not patched. Controller/XInput behavior has no source changes in this build.
+
 ## V1.31 - Mouse-only on-foot reticle heading + CINEMATIC SHORT_CUT / pause-like camera separation (TEST)
 
 [Download V1.31 cumulative TEST ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.31_MOUSE_RETICLE_CINEMA_CLASSIFIER_TEST.zip) | `debug` only, gameplay validation pending.
