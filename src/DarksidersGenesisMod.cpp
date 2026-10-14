@@ -4538,6 +4538,10 @@ void ShutdownMod() {
     dg::aim_shader::Shutdown();
     dg::gauges::Shutdown();
     const auto scene=dg::camera_trace::GetTelemetry();
+    Log("TPS V1.27 FACING_CAMERA totals: footSamples=%u footGapOver75=%u horsePoseSamples=%u horsePoseGapOver75=%u mountedMouseViewFrames=%u mouseHorsePoseHeld=%u (native yaw only; no projectile redirection)",
+        scene.facingFootSamples,scene.facingFootOffAxis,
+        scene.facingHorseSamples,scene.facingHorseOffAxis,
+        scene.mountedMouseViewFrames,scene.mountedMouseHorsePoseHeld);
     Log("TPS V1.20 CINEMATICS (read-only) enters=%u exits=%u candidates=%u missingActorSamples=%u farCameraSamples=%u nativeCutsceneBehaviorUnchanged=1",
         scene.cinematicEntered,scene.cinematicExited,
         scene.cinematicCandidateBegins,scene.cinematicMissingActorSamples,
