@@ -38,7 +38,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.23-tps-edge-relative-recapture-test";
+constexpr const char* kBuild = "1.24-tps-mouse-fire-gauge-warning-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -194,6 +194,9 @@ std::atomic_ullong g_v123LastPhysicalMouseTick{0},g_v123LastRecenterTick{0};
 std::atomic_int g_v123RecenterClientX{0},g_v123RecenterClientY{0};
 std::atomic_uint32_t g_v123EdgeRecenters{0},g_v123SyntheticMovesIgnored{0},
     g_v123RecenterFailures{0};
+// Native mouse button routing counts; original XInput path stays untouched.
+std::atomic_uint32_t g_v124PrimaryRouted{0},g_v124SecondaryRouted{0},
+    g_v124NativeButtonSuppressed{0},g_v124SecondaryForwardLook{0};
 std::atomic_uint32_t g_v120WrathNearDamage{0},g_v120WrathWhileFiring{0},
     g_v120WrathWhileIdle{0},g_v120WrathSpendEvents{0};
 std::atomic_ullong g_v120LastLocalDamage{0};
@@ -1550,6 +1553,10 @@ bool IsLiveTPSLookActor(void* actor) {
     const ULONGLONG now=GetTickCount64();
     return (tick&&now>=tick&&now-tick<250ull)||IsMountedTPSNow();
 }
+bool MousePhysicalHeld(int vk){return vk && (GetAsyncKeyState(vk)&0x8000)!=0;}
+bool MousePrimaryFireHeld(){return MousePhysicalHeld(g_config.tpsMousePrimaryButton);}
+bool MouseSecondaryFireHeld(){return MousePhysicalHeld(g_config.tpsMouseSecondaryButton);}
+bool MouseAnyFireHeld(){return MousePrimaryFireHeld()||MouseSecondaryFireHeld();}
 bool IsPadFiringNow() {
     const ULONGLONG now=GetTickCount64();
     const ULONGLONG tick=g_tpsFireLastTick.load(std::memory_order_acquire);
@@ -1610,7 +1617,7 @@ void TPSDiagWrathSnapshot(void* actor, ULONGLONG now){
     if(same&&delta>0.05f){
         ++g_tpsDiagWrathPositive;
         g_v120WrathTotalGained.fetch_add(delta,std::memory_order_relaxed);
-        if(IsPadFiringNow() || (GetAsyncKeyState(VK_LBUTTON)&0x8000))
+        if(IsPadFiringNow() || MouseAnyFireHeld())
             ++g_v120WrathWhileFiring;
         else ++g_v120WrathWhileIdle;
         const ULONGLONG damage=g_v120LastLocalDamage.load(std::memory_order_relaxed);
@@ -1629,10 +1636,13 @@ void TPSDiagWrathSnapshot(void* actor, ULONGLONG now){
         ++g_tpsDiagWrathLoggedChanges:0u;
     if(n==1||(diagnostic>0&&diagnostic<=16)){
         const ULONGLONG damage=g_v120LastLocalDamage.load(std::memory_order_relaxed);
-        Log("Gauge V1.20 WRATH_CANDIDATE n=%u value=%.2f delta=%.2f chargeAgeMs=%llu recentDamageAgeMs=%llu firing=%d (unverified source)",
+        const ULONGLONG lastSynergy=dg::runtime::Get().lastNativeSynergyPositiveTick.load(
+            std::memory_order_acquire);
+        Log("Gauge V1.24 WRATH_CANDIDATE n=%u value=%.2f delta=%.2f chargeAgeMs=%llu recentDamageAgeMs=%llu lastSynergyMs=%llu firing=%d (read-only)",
             n,cur,delta,static_cast<unsigned long long>(age),
             static_cast<unsigned long long>(damage&&now>=damage?now-damage:0ull),
-            (IsPadFiringNow()||(GetAsyncKeyState(VK_LBUTTON)&0x8000))?1:0);
+            static_cast<unsigned long long>(lastSynergy&&now>=lastSynergy?now-lastSynergy:0ull),
+            (IsPadFiringNow()||MouseAnyFireHeld())?1:0);
     }
 }
 NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
@@ -1671,7 +1681,7 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     // LB / native keyboard equipment, ammo and ability wheels take priority.
     if(IsTPSRadialInputActive())return result;
     auto& rt=dg::runtime::Get();
-    const bool mouseFiring=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
+    const bool mouseFiring=MouseAnyFireHeld();
     const bool mounted=IsMountedTPSNow();
     const bool padFiring=IsPadFiringNow();
     const bool fire=padFiring||mouseFiring;
@@ -1722,6 +1732,7 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
             result->roll=0.0f;
             const unsigned n=++g_tpsNativeLookInputPadAim;
             if(mouseFiring && !padFiring)++g_v119MouseForwardLook;
+            if(MouseSecondaryFireHeld() && !padFiring)++g_v124SecondaryForwardLook;
             if(n==1||n==120||n==10000)
                 Log("TPS V1.02: controller LOOK VECTOR -> camera during fire n=%u yaw=%.1f calls=%u",
                     n,yaw,calls);
@@ -1748,7 +1759,7 @@ NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
         return result;
     if(IsTPSRadialInputActive())return result;
     auto& rt=dg::runtime::Get();
-    const bool mouseFire=(GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0;
+    const bool mouseFire=MouseAnyFireHeld();
     const bool padFire=IsPadFiringNow();
     const bool mounted=IsMountedTPSNow();
     // V1.19: native mouse firing and controller share TPS Camera Forward.
@@ -1897,7 +1908,7 @@ void HookAimUiEventDispatch(void* object,void* function,void* parameters,void* o
                 auto& rt=dg::runtime::Get();
                 const bool tps=rt.thirdPersonEnabled.load(std::memory_order_relaxed);
                 const bool fire=rt.tpsAimActive.load(std::memory_order_relaxed) ||
-                    ((GetAsyncKeyState(VK_LBUTTON)&0x8000)!=0);
+                    (MouseAnyFireHeld());
                 if(tps && targeting)++g_aimUiEventsInTPS;
                 if(fire && targeting)++g_aimUiEventsWhileFire;
                 if(n==1||n==100||n==1000)
@@ -3213,6 +3224,52 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         }
     }
 
+    // TPS-only Win32 fire translation before Unreal native WndProc:
+    // no synthetic pad input, no cursor visibility hook, no game menu changes.
+    if(ShouldSuppressNativeAim() && IsTPSLookViewFresh() &&
+       !IsTPSRadialInputActive()){
+        int physical=0;
+        bool release=false, doubleClick=false;
+        switch(msg){
+        case WM_LBUTTONDOWN: physical=VK_LBUTTON;break;
+        case WM_LBUTTONUP: physical=VK_LBUTTON;release=true;break;
+        case WM_LBUTTONDBLCLK: physical=VK_LBUTTON;doubleClick=true;break;
+        case WM_RBUTTONDOWN: physical=VK_RBUTTON;break;
+        case WM_RBUTTONUP: physical=VK_RBUTTON;release=true;break;
+        case WM_RBUTTONDBLCLK: physical=VK_RBUTTON;doubleClick=true;break;
+        case WM_MBUTTONDOWN: physical=VK_MBUTTON;break;
+        case WM_MBUTTONUP: physical=VK_MBUTTON;release=true;break;
+        case WM_MBUTTONDBLCLK: physical=VK_MBUTTON;doubleClick=true;break;
+        case WM_XBUTTONDOWN: physical=HIWORD(wParam)==XBUTTON1?VK_XBUTTON1:VK_XBUTTON2;break;
+        case WM_XBUTTONUP: physical=HIWORD(wParam)==XBUTTON1?VK_XBUTTON1:VK_XBUTTON2;release=true;break;
+        case WM_XBUTTONDBLCLK: physical=HIWORD(wParam)==XBUTTON1?VK_XBUTTON1:VK_XBUTTON2;doubleClick=true;break;
+        default:break;
+        }
+        if(physical){
+            const int target=physical==g_config.tpsMousePrimaryButton
+                ?VK_LBUTTON:physical==g_config.tpsMouseSecondaryButton
+                ?VK_RBUTTON:0;
+            // Unassigned physical L/R clicks cannot activate native shots.
+            // Unassigned middle/X retain their original non-fire behavior.
+            if(!target && (physical==VK_LBUTTON||physical==VK_RBUTTON)){
+                ++g_v124NativeButtonSuppressed;
+                return 0;
+            }
+            if(target && target!=physical){
+                const UINT routed=target==VK_LBUTTON
+                    ?(release?WM_LBUTTONUP:doubleClick?WM_LBUTTONDBLCLK:WM_LBUTTONDOWN)
+                    :(release?WM_RBUTTONUP:doubleClick?WM_RBUTTONDBLCLK:WM_RBUTTONDOWN);
+                WORD modifiers=static_cast<WORD>(LOWORD(wParam)&
+                    ~(MK_LBUTTON|MK_RBUTTON|MK_MBUTTON|MK_XBUTTON1|MK_XBUTTON2));
+                if(MousePrimaryFireHeld()&&!release)modifiers|=MK_LBUTTON;
+                if(MouseSecondaryFireHeld()&&!release)modifiers|=MK_RBUTTON;
+                msg=routed;
+                wParam=MAKEWPARAM(modifiers,0);
+                if(target==VK_LBUTTON)++g_v124PrimaryRouted;
+                else ++g_v124SecondaryRouted;
+            }
+        }
+    }
     return g_originalWndProc
         ? CallWindowProcW(g_originalWndProc, hwnd, msg, wParam, lParam)
         : DefWindowProcW(hwnd, msg, wParam, lParam);
@@ -3999,7 +4056,7 @@ void UpdateOrbitInput() {
         const unsigned n=++g_v119MouseCameraFrames;
         if(n<=5 || n%5000==0)
             Log("TPS V1.19 MOUSE_CAMERA frame=%u delta=(%d,%d) orbitYaw=%.2f orbitPitch=%.2f firing=%d",
-                n,mx,my,dyaw,dpitch,(GetAsyncKeyState(VK_LBUTTON)&0x8000)?1:0);
+                n,mx,my,dyaw,dpitch,MouseAnyFireHeld()?1:0);
     }
     if (dyaw!=0.0f || dpitch!=0.0f) {
         rt.cameraOrbitYawDegrees.store(std::remainder(rt.cameraOrbitYawDegrees.load()+dyaw,360.0f));
@@ -4363,6 +4420,10 @@ void ShutdownMod() {
         g_v119RawMouse.load(),g_v119MouseMoveFallback.load(),
         g_v119MouseCameraFrames.load(),g_v119MouseForwardLook.load(),
         g_v119MouseForwardRotation.load());
+    Log("TPS V1.24 MOUSE_FIRE totals primaryRouted=%u secondaryRouted=%u nativeSuppressed=%u secondaryForwardLook=%u primaryVK=%d secondaryVK=%d",
+        g_v124PrimaryRouted.load(),g_v124SecondaryRouted.load(),
+        g_v124NativeButtonSuppressed.load(),g_v124SecondaryForwardLook.load(),
+        g_config.tpsMousePrimaryButton,g_config.tpsMouseSecondaryButton);
     Log("TPS V1.23 EDGE_RECAPTURE totals: edgeRecenters=%u syntheticMovesIgnored=%u recenterFailures=%u cursorHooks=REMOVED",
         g_v123EdgeRecenters.load(),g_v123SyntheticMovesIgnored.load(),
         g_v123RecenterFailures.load());
