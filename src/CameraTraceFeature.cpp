@@ -33,6 +33,9 @@ std::atomic<float> g_nativePitch{0.0f}, g_appliedPitch{0.0f};
 std::atomic<float> g_nativeYaw{0.0f}, g_appliedYaw{0.0f};
 std::atomic<float> g_nativeHeight{0.0f}, g_appliedHeight{0.0f};
 std::atomic<float> g_nativeDistance{0.0f}, g_appliedDistance{0.0f};
+// V1.30: only the emitted TPS view; read-only projection telemetry.
+std::atomic<float> g_tpsEmittedX{0.0f},g_tpsEmittedY{0.0f},g_tpsEmittedZ{0.0f};
+std::atomic_ullong g_tpsEmittedTickMs{0};
 thread_local bool g_inArm = false;
 std::atomic<float> g_idlePivotDX{0.0f},g_idlePivotDY{0.0f};
 std::atomic_ullong g_idlePivotTick{0};
@@ -290,7 +293,11 @@ void HookView(void* camera, float dt, void* outView) {
         distanceBaseline3D=gap3D;
         distanceBaselineSamples=1;
     }
-    const float extraAllowed=std::max(selectedTpsDistance,300.0f)+100.0f;
+    // V1.30: user's selected TPS distance is the primary separation
+    // threshold beyond the calibrated NORMAL native isometric camera gap.
+    // A small 40-unit hysteresis is enough to reject idle springarm jitter;
+    // no unrelated 300-unit minimum +100 padding from V1.29.
+    const float extraAllowed=selectedTpsDistance+40.0f;
     const float candidateDistanceThreshold=distanceBaseline3D>0.0f
         ?distanceBaseline3D+extraAllowed:6500.0f;
     const bool distanceExceeded=thirdPerson&&autoSuspend&&actorValid&&
@@ -548,6 +555,10 @@ void HookView(void* camera, float dt, void* outView) {
                 std::memcpy(p,&outX,4);std::memcpy(p+4,&outY,4);std::memcpy(p+8,&outZ,4);
                 std::memcpy(p+12,&appliedPitch,4);std::memcpy(p+16,&appliedYaw,4);
                 appliedHeight=outZ;
+                g_tpsEmittedX.store(outX,std::memory_order_relaxed);
+                g_tpsEmittedY.store(outY,std::memory_order_relaxed);
+                g_tpsEmittedZ.store(outZ,std::memory_order_relaxed);
+                g_tpsEmittedTickMs.store(now,std::memory_order_release);
                 if(attached){
                     const unsigned n=++g_tpsAttachedFrames;
                     if(n==1||n==5000){
@@ -772,6 +783,10 @@ Telemetry GetTelemetry() {
     t.appliedYaw = g_appliedYaw.load();
     t.nativeHeight = g_nativeHeight.load();
     t.appliedHeight = g_appliedHeight.load();
+    t.appliedWorldX=g_tpsEmittedX.load(std::memory_order_relaxed);
+    t.appliedWorldY=g_tpsEmittedY.load(std::memory_order_relaxed);
+    t.appliedWorldZ=g_tpsEmittedZ.load(std::memory_order_relaxed);
+    t.appliedWorldTickMs=g_tpsEmittedTickMs.load(std::memory_order_acquire);
     t.nativeArmLength = g_nativeDistance.load();
     t.appliedArmLength = g_appliedDistance.load();
     return t;
