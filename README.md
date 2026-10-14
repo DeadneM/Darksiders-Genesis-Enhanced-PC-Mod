@@ -1,3 +1,7 @@
+## V1.29 Windows CI and permanent ZIP verified (2026-10-14)
+
+GitHub Actions [run 38558950360](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38558950360) **SUCCESS**: Windows x64 configure + Release compilation, exact 4 root-file cumulative ZIP (`dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md`) verified, artifact uploaded, numbered archive preserved in `debug/downloads`. [V1.29 TEST ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.29_TPS_DISTANCE_CURSOR_AIM_AUDIT_TEST.zip): **765,354 bytes**, Git blob SHA-1 `512761f52f91661f0fab1eb2e13a2755e982fcc2`. V1.28 (763,306) and V1.27 (759,159) remain. Frozen `main`: `2bc3122c1ae07b7333798462f85c1d9fd3a739f7`. Frozen `archive`: `10e0f220b85022bc9269e0cb9390a811a3b1cf89`. User validation pending. **The screen reticle trajectory is NOT YET repaired**: the actual native projectile raycast source is not identified, even though cursor-click telemetry has been added and the new cutscene threshold is compiled.
+
 ## V1.29 - Cutscene candidates follow TPS distance; native reticle shot tracing audit (TEST)
 
 [Download cumulative V1.29 TEST ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.29_TPS_DISTANCE_CURSOR_AIM_AUDIT_TEST.zip) | branch `debug`, in-game verification pending.
