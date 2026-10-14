@@ -598,10 +598,10 @@ void Draw(Context& c) {
                     const auto age=now>=history.lastNativeSampleTickMs
                         ?now-history.lastNativeSampleTickMs:0ull;
                     ImGui::TextDisabled("Last native view %llu ms ago: pitch %.1f, "
-                        "yaw %.1f, FOV %.1f, gapXY %.0f, actorValid %d, looksGameplay %d",
+                        "FOV %.1f, gap3D %.0f, threshold %.0f, TPS selection %.0f",
                         static_cast<unsigned long long>(age),
-                        frame.nativePitch,frame.nativeYaw,frame.nativeFov,
-                        frame.gapXY,frame.actorValid?1:0,frame.gameplayCamera?1:0);
+                        frame.nativePitch,frame.nativeFov,frame.gap3D,
+                        frame.candidateDistanceThreshold,frame.selectedTpsDistance);
                 }
                 ImGui::Spacing();
                 if(ImGui::BeginTable("CutsceneDetectionHistory",5,
@@ -619,6 +619,7 @@ void Draw(Context& c) {
                         const auto& event=history.events[index-1];
                         const ULONGLONG age=now>=event.tickMs?now-event.tickMs:0ull;
                         const char* reason=!event.actorValid?"NO_ACTOR":
+                            event.distanceExceeded?"TPS_DISTANCE":
                             !event.nearPawn?"FAR_OR_HEIGHT":
                             !event.normalAngles?"PITCH":"GAMEPLAY_SHAPE";
                         ImGui::TableNextRow();
@@ -638,14 +639,20 @@ void Draw(Context& c) {
                             ImGui::TextDisabled("duration %llu ms",
                                 static_cast<unsigned long long>(event.durationMs));
                         ImGui::TableSetColumnIndex(4);
-                        ImGui::Text("%s | pitch %.1f yaw %.1f FOV %.1f gap %.0f",
-                            reason,event.nativePitch,event.nativeYaw,
-                            event.nativeFov,event.gapXY);
+                        ImGui::Text("%s | 3D %.0f / %.0f | pitch %.1f FOV %.1f",
+                            reason,event.gap3D,event.candidateDistanceThreshold,
+                            event.nativePitch,event.nativeFov);
+                        if(ImGui::IsItemHovered())
+                            ImGui::SetTooltip("Normal native gap %.0f + TPS camera distance %.0f (+ small jitter margin); native yaw %.1f",
+                                event.distanceBaseline,event.selectedTpsDistance,event.nativeYaw);
                     }
                     ImGui::EndTable();
                 }
                 if(history.count==0)
                     ImGui::TextDisabled("No events yet. Trigger a camera transition in TPS.");
+                ImGui::TextWrapped("V1.29 TPS_DISTANCE = native camera has moved beyond "
+                    "its calibrated normal position by your TPS camera distance. "
+                    "Native camera baseline is NOT the visible TPS camera distance.");
                 ImGui::TextWrapped("USER_MARK = your manual observation only. "
                     "REJECTED = camera returned before 500 ms. "
                     "A missed in-place cinematic may have no automatic events.");
