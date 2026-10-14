@@ -1,3 +1,9 @@
+## V1.33 source prepared - camera-center mouse / UI stick selection
+
+V1.32 user test validates retained TPS in all three wheels and native handoff for the tested cinematic; equipment-wheel right-stick selection regresses. V1.33 adds native UI ownership to both input-suppression gates and aims mouse attacks through the camera center, retaining V1.32 collision/horse/camera behavior and existing controller gameplay. [Full evidence, bounded repair, checks and next test](docs/V1_33_CAMERA_CENTER_UI_PAD.md).
+
+**NOT BUILT / NOT INSTALLED.** Source checks passed; publication and Windows CI are pending restoration of the automatic approval reviewer after a usage-limit review failure. No V1.33 download exists yet. V1.32 below remains the last verified Windows package.
+
 ## V1.32 Windows x64 build verified (2026-10-14)
 
 [Download V1.32 cumulative TEST ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.32_NATIVE_TARGET_CAMERA_OWNERSHIP_TEST.zip) | [Successful Windows CI 38608331116](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38608331116). Exactly four root files, both binaries AMD64, 775037 bytes; SHA256 C0EE1089862D61D37BC355724BA3DB2872346F520828BDFE4F56B709D2EA7124. **CONSTRUIT / CONTROLE / EXPERIMENTAL, in-game validation pending.** This verified-delivery entry supersedes the pre-CI pending status below. Native target/cinematic coverage still requires testing; keep older archives available.

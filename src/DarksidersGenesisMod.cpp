@@ -39,7 +39,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.32-native-mouse-target-camera-ownership-test";
+constexpr const char* kBuild = "1.33-camera-center-mouse-ui-pad-passthrough-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1577,6 +1577,7 @@ bool IsLiveTPSLookActor(void* actor) {
         !dg::runtime::Get().thirdPersonEnabled.load() ||
         dg::runtime::Get().tpsTemporarilySuspended.load() ||
         dg::runtime::Get().tpsCutsceneSuspended.load() ||
+        dg::runtime::Get().tpsUiViewHeld.load() ||
         g_overlayVisible.load())
         return false;
     const auto* player=g_localPlayerCharacter.load(std::memory_order_acquire);
@@ -1591,8 +1592,8 @@ bool MousePhysicalHeld(int vk){return vk && (GetAsyncKeyState(vk)&0x8000)!=0;}
 bool MousePrimaryFireHeld(){return MousePhysicalHeld(g_config.tpsMousePrimaryButton);}
 bool MouseSecondaryFireHeld(){return MousePhysicalHeld(g_config.tpsMouseSecondaryButton);}
 bool MouseAnyFireHeld(){return MousePrimaryFireHeld()||MouseSecondaryFireHeld();}
-// V1.32: physical reticle -> emitted TPS camera ray. No cursor, actor yaw,
-// rotation getter or gamepad writes. Only native mouse target consumers use it.
+// V1.33: camera-center forward ray, independent of physical cursor pixels.
+// Keep V1.32 native collision/local-owner scopes; never simulate XInput.
 bool ComputeNativeMouseRay(dg::native_tps::MouseRay& ray){
     const HWND hwnd=reinterpret_cast<HWND>(
         g_gameWindowTrace.load(std::memory_order_acquire));
@@ -1602,30 +1603,14 @@ bool ComputeNativeMouseRay(dg::native_tps::MouseRay& ray){
     const ULONGLONG now=GetTickCount64();
     if(!t.appliedWorldTickMs||now<t.appliedWorldTickMs||
        now-t.appliedWorldTickMs>250ull||
-       !std::isfinite(t.appliedYaw)||!std::isfinite(t.appliedPitch)||
-       !std::isfinite(t.appliedFov)||t.appliedFov<40.0f||
-       t.appliedFov>140.0f)return false;
-    POINT mouse{};
-    RECT client{};
-    if(!GetCursorPos(&mouse)||!ScreenToClient(hwnd,&mouse)||
-       !GetClientRect(hwnd,&client))return false;
-    const float w=float(client.right-client.left);
-    const float h=float(client.bottom-client.top);
-    if(w<32.0f||h<32.0f)return false;
-    const float aspect=w/h;
-    const float outNormalizedX=std::clamp(2.0f*float(mouse.x)/w-1.0f,-1.0f,1.0f);
-    const float outNormalizedY=std::clamp(2.0f*float(mouse.y)/h-1.0f,-1.0f,1.0f);
+       !std::isfinite(t.appliedYaw)||!std::isfinite(t.appliedPitch))return false;
     constexpr float rad=0.01745329251994329577f;
     const float az=t.appliedYaw*rad,el=t.appliedPitch*rad;
     const float cy=std::cos(az),sy=std::sin(az),
         cp=std::cos(el),sp=std::sin(el);
-    const float hTan=std::tan(t.appliedFov*rad*0.5f);
-    const float vTan=hTan/aspect;
-    const float dx=cp*cy+outNormalizedX*hTan*(-sy)+
-        outNormalizedY*vTan*(sp*cy);
-    const float dy=cp*sy+outNormalizedX*hTan*cy+
-        outNormalizedY*vTan*(sp*sy);
-    const float dz=sp-outNormalizedY*vTan*cp;
+    const float dx=cp*cy;
+    const float dy=cp*sy;
+    const float dz=sp;
     const float flat=std::hypot(dx,dy);
     if(!std::isfinite(flat)||flat<0.01f||
        !std::isfinite(dz))return false;
@@ -2852,6 +2837,7 @@ bool ShouldSuppressNativeAim() {
         dg::runtime::Get().thirdPersonEnabled.load(std::memory_order_relaxed) &&
         !dg::runtime::Get().tpsTemporarilySuspended.load(std::memory_order_relaxed) &&
         !dg::runtime::Get().tpsCutsceneSuspended.load(std::memory_order_relaxed) &&
+        !dg::runtime::Get().tpsUiViewHeld.load(std::memory_order_relaxed) &&
         hwnd && hwnd==GetForegroundWindow() && !IsIconic(hwnd) &&
         !g_overlayVisible.load(std::memory_order_relaxed);
 }
@@ -4899,6 +4885,7 @@ DWORD WINAPI MainThread(LPVOID) {
     InitializeCameraDof();
     dg::camera_trace::Install(&FeatureLog);
     dg::native_tps::Install(&ProvideNativeMouseRay,&FeatureLog);
+    Log("TPS V1.33 mouse aim=CAMERA_CENTER: actual TPS yaw/pitch, native collision; UI look/XInput suppression disabled during native UI ownership; gameplay EXPERIMENTAL");
     dg::horse::Initialize(&FeatureLog);
     Log(
         "Player identity: exact V0.14F APawn::IsLocallyControlled path restored; Jump/Glide validation is non-blocking"

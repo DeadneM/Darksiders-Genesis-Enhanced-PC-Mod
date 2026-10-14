@@ -1,3 +1,9 @@
+## V1.33 source change after V1.32 user test
+
+User validates retained TPS in three wheels and detection of the tested scene; equipment wheel selection regresses. Latest actual log proves native mouse target path FOOT1657/HORSE779, hit2349/miss87, native cinema19:42:33.669-19:42:39.653. V1.33 keeps the successful camera/lifecycle module identical. Adds tpsUiViewHeld to native aim suppression and live-look-actor gates: native UI receives original stick and look results; no direct XInput filter body changes. Mouse ray now uses camera center yaw/pitch, no cursor/aspect/FOV steering. [Full evidence, contracts and acceptance](V1_33_CAMERA_CENTER_UI_PAD.md).
+
+256 flag combinations and 25 camera angles checked against source expressions; no local C++ compiler found. NOT BUILT / NOT INSTALLED / no gameplay fix claim. Workflow names future V1.33 four-file ZIP; no such artifact exists. Publication pending automatic review availability after prior push review failed due usage limit; cannot bypass that gate. V1.32 is last verified binary; preserve all archives and personal INI. Actual V1.32 installation is proven by user's new log, not by the earlier stopped installer.
+
 ## V1.32 Windows delivery verified, 2026-10-14
 
 CI run 38608331116 SUCCESS, source cf613bb, numbered archive debug commit d842a55. ZIP 775037 bytes, exactly ASI/INI/dxgi.dll/README at root, PE AMD64 verified; direct raw download matched SHA256 C0EE1089862D61D37BC355724BA3DB2872346F520828BDFE4F56B709D2EA7124. CONSTRUIT / CONTROLE / EXPERIMENTAL, no in-game success claim. Local old installation and personal INI backed up; first install stopped before copies because game process was still running. Await closure and destination hashes. [Full delivery and native audit](V1_32_NATIVE_TARGET_CAMERA_OWNERSHIP.md). main/archive unchanged.
