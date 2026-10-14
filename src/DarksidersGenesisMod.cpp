@@ -38,7 +38,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.27-mounted-mouse-pose-facing-audit-test";
+constexpr const char* kBuild = "1.28-cutscene-detection-history-debug-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -4538,6 +4538,22 @@ void ShutdownMod() {
     dg::aim_shader::Shutdown();
     dg::gauges::Shutdown();
     const auto scene=dg::camera_trace::GetTelemetry();
+    // Print the UI's temporary cutscene history at shutdown as well, so
+    // the user can send a log without screen captures of the debug menu.
+    const auto cutsceneHistory=dg::camera_trace::GetCinematicDebugSnapshot();
+    Log("TPS V1.28 CINEMATIC_LIST historyCount=%u activeCandidate=%u suspended=%d (HEURISTIC ONLY)",
+        cutsceneHistory.count,cutsceneHistory.activeCandidateId,
+        cutsceneHistory.currentlySuspended?1:0);
+    for(uint32_t eventIndex=0;eventIndex<cutsceneHistory.count;++eventIndex){
+        const auto& event=cutsceneHistory.events[eventIndex];
+        Log("TPS V1.28 CINEMATIC_LIST item=%u id=%u event=%s sceneCandidate=%u durationMs=%llu actorValid=%d near=%d angles=%d gameplayShape=%d pitch=%.1f yaw=%.1f fov=%.1f xy=%.0f",
+            eventIndex+1,event.serial,
+            dg::camera_trace::CinematicDebugPhaseLabel(event.phase),
+            event.candidateId,static_cast<unsigned long long>(event.durationMs),
+            event.actorValid?1:0,event.nearPawn?1:0,
+            event.normalAngles?1:0,event.gameplayCamera?1:0,
+            event.nativePitch,event.nativeYaw,event.nativeFov,event.gapXY);
+    }
     Log("TPS V1.27 FACING_CAMERA totals: footSamples=%u footGapOver75=%u horsePoseSamples=%u horsePoseGapOver75=%u mountedMouseViewFrames=%u mouseHorsePoseHeld=%u (native yaw only; no projectile redirection)",
         scene.facingFootSamples,scene.facingFootOffAxis,
         scene.facingHorseSamples,scene.facingHorseOffAxis,
