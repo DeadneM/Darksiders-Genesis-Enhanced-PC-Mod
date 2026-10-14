@@ -27,3 +27,8 @@ Test left click primary fire and right click secondary fire **both toward camera
 
 ### Delivery
 Windows x64 CI must compile, verify a ZIP containing exactly the four root-level files `dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md`, and push the numbered archive on debug. Preserve V1.23 and older ZIPs. Never touch `main` or `archive`.
+
+## V1.24 Windows x64 build and publication verified (2026-10-14)
+
+GitHub Actions [run 38537645671](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38537645671) completed **SUCCESS**: configure, Release compile, four-root-file ZIP verification, artifact upload, and permanent `debug` archive publication. [Download V1.24 cumulative TEST ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.24_TPS_MOUSE_FIRE_AUDIT_TEST.zip): **753,948 bytes**, Git blob SHA-1 `4048d7eaa1d23ef35b4560ed737065ebfc96c937`. Archived V1.23 ZIP remains present: 752,055 bytes, SHA-1 `567ad7f7854f515ae4f3e091dd87e4a5c65dc013`. The workflow checked exactly `dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, and `README.md` at ZIP root. `main` and `archive` branch heads are unchanged. **Windows compilation is not in-game verification**: native secondary shot direction and alternate button remapping remain EXPERIMENTAL awaiting the user's test.
+
