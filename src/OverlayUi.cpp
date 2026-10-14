@@ -672,7 +672,7 @@ void Draw(Context& c) {
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
                 DrawSectionTitle("TPS controls and aiming");
-                ImGui::TextDisabled("Controller-only TPS experiment: native mouse input is untouched.");
+                ImGui::TextDisabled("TPS mouse fires are rebindable without changing controller bindings.");
                 if(ImGui::Checkbox("Auto suspend TPS during detected cutscenes (test)",
                     &config.tpsCutsceneAutoSuspend))config.Save();
                 ImGui::TextDisabled("ON: native view + no TPS input during detected cinematics.");
@@ -731,6 +731,36 @@ void Draw(Context& c) {
                     }
                     ImGui::EndTable();
                 }
+                DrawSectionTitle("TPS mouse fire bindings");
+                ImGui::TextWrapped("TPS only: route physical mouse buttons to native primary or secondary fire.");
+                const int mouseCodes[]={0,VK_LBUTTON,VK_RBUTTON,VK_MBUTTON,VK_XBUTTON1,VK_XBUTTON2};
+                const char* mouseLabels[]={"Unbound","Left click","Right click","Middle click","Mouse X1","Mouse X2"};
+                auto MouseFireBind=[&](const char* label,int& binding,int& other,int original){
+                    int index=0;
+                    for(int i=0;i<6;++i)if(mouseCodes[i]==binding){index=i;break;}
+                    ImGui::SetNextItemWidth(285.0f);
+                    if(ImGui::Combo(label,&index,mouseLabels,6)){
+                        const int selected=mouseCodes[index];
+                        if(selected && selected==other)other=binding;
+                        binding=selected;
+                        config.Save();
+                    }
+                    ImGui::SameLine();
+                    ImGui::PushID(label);
+                    if(ImGui::SmallButton("Default")){
+                        binding=original;
+                        if(other==binding)other=original==VK_LBUTTON?VK_RBUTTON:VK_LBUTTON;
+                        config.Save();
+                    }
+                    ImGui::PopID();
+                };
+                MouseFireBind("Primary fire##MouseTPS",config.tpsMousePrimaryButton,
+                    config.tpsMouseSecondaryButton,VK_LBUTTON);
+                MouseFireBind("Secondary fire##MouseTPS",config.tpsMouseSecondaryButton,
+                    config.tpsMousePrimaryButton,VK_RBUTTON);
+                ImGui::TextDisabled("Defaults: Left=primary, Right=secondary; both use TPS Camera Forward.");
+                ImGui::TextDisabled("Choosing a button already assigned to the other fire swaps them.");
+                ImGui::Spacing();
                 DrawSectionTitle("Controller bindings");
                 ImGui::TextDisabled("Native in-game controls take priority. These bindings are mod detectors.");
                 BindGamepadMask("Controller long hold##TPS",config.tpsToggleHoldButtonMask,64);
