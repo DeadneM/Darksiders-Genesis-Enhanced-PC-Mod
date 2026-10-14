@@ -108,14 +108,16 @@ void RecordCinematicEvent(CinematicDebugPhase phase,uint32_t candidate,
         char line[360]{};
         const char* phaseName=CinematicDebugPhaseLabel(phase);
         const char* reason=!observation.actorValid?"NO_ACTOR":
+            observation.distanceExceeded?"DISTANCE_OVER_TPS":
             !observation.nearPawn?"FAR_OR_HEIGHT":
             !observation.normalAngles?"PITCH_OUTSIDE_GAMEPLAY":"NORMAL_GAMEPLAY_SHAPE";
-        sprintf_s(line,"TPS V1.28 CINEMATIC_DEBUG event=%u candidate=%u phase=%s reason=%s durationMs=%llu actorValid=%d near=%d angles=%d gameplayShape=%d auto=%d gapXY=%.0f gapZ=%.0f nativePitch=%.1f nativeYaw=%.1f nativeFov=%.1f",
+        sprintf_s(line,"TPS V1.29 CINEMATIC_DEBUG event=%u candidate=%u phase=%s reason=%s durationMs=%llu actorValid=%d near=%d angles=%d auto=%d gap3D=%.0f baseline=%.0f tpsDistance=%.0f threshold=%.0f nativePitch=%.1f nativeYaw=%.1f nativeFov=%.1f",
             observation.serial,candidate,phaseName,reason,
             static_cast<unsigned long long>(duration),
             observation.actorValid?1:0,observation.nearPawn?1:0,
-            observation.normalAngles?1:0,observation.gameplayCamera?1:0,
-            observation.autoSuspend?1:0,observation.gapXY,observation.gapZ,
+            observation.normalAngles?1:0,observation.autoSuspend?1:0,
+            observation.gap3D,observation.distanceBaseline,
+            observation.selectedTpsDistance,observation.candidateDistanceThreshold,
             observation.nativePitch,observation.nativeYaw,observation.nativeFov);
         Write(line);
     }
@@ -248,12 +250,67 @@ void HookView(void* camera, float dt, void* outView) {
     // cinematic views. We do not patch persistent camera volumes or sequences.
     const float nativeDx=x-ax,nativeDy=y-ay,nativeDz=z-az;
     const float planar=std::hypot(nativeDx,nativeDy);
-    const bool nearPawn=actorValid&&planar<6500.0f&&std::fabs(nativeDz)<7500.0f;
+    const float gap3D=std::hypot(planar,nativeDz);
+    const bool normalAngles=nativePitch>=-89.0f&&nativePitch<=-15.0f;
+    const bool oldNearPawn=actorValid&&planar<6500.0f&&std::fabs(nativeDz)<7500.0f;
+    // V1.29: distinguish native isometric camera offset from the user
+    // selected TPS camera distance. Vanilla view is still ~2130 UE units
+    // away when the TPS multiplier is 0.15 (~320 units). Comparing native
+    // gap directly to 320 would misclassify *every* normal gameplay frame!
+    // Instead classify a camera moving FURTHER THAN normal vanilla gap
+    // BY the chosen TPS camera distance, plus a small anti-jitter guard.
+    // Keep the previously validated hard 6500/7500 rejection as a failsafe.
+    const bool autoSuspend=settings.tpsCutsceneAutoSuspend.load(std::memory_order_relaxed);
+    const uint32_t currentGeneration=settings.tpsActorGeneration.load(std::memory_order_acquire);
+    const float candidateNativeArm=g_nativeDistance.load(std::memory_order_relaxed);
+    const bool nativeArmValid=std::isfinite(candidateNativeArm) &&
+        candidateNativeArm>=100.0f && candidateNativeArm<=10000.0f;
+    const float multiplier=settings.thirdPersonDistanceMultiplier.load(std::memory_order_relaxed);
+    const float selectedTpsDistance=std::isfinite(multiplier)&&multiplier>=0&&multiplier<=3
+        ?std::clamp((nativeArmValid?candidateNativeArm:900.0f)*multiplier,0.0f,12000.0f)
+        :0.0f;
+    static uint32_t distanceBaselineGeneration=UINT32_MAX;
+    static bool distanceBaselineHorse=false;
+    static float distanceBaseline3D=0.0f;
+    static unsigned distanceBaselineSamples=0;
+    if(distanceBaselineGeneration!=currentGeneration ||
+       distanceBaselineHorse!=usingHorse){
+        distanceBaselineGeneration=currentGeneration;
+        distanceBaselineHorse=usingHorse;
+        distanceBaseline3D=0.0f;
+        distanceBaselineSamples=0;
+    }
+    if(thirdPerson&&actorValid&&normalAngles&&oldNearPawn &&
+       std::isfinite(gap3D)&&gap3D>=100.0f && gap3D<6500.0f &&
+       distanceBaseline3D==0.0f){
+        // First trusted native snapshot: start with an observed offset,
+        // never with an invented TPS-camera distance. A scene that starts
+        // on this very frame may still need authoritative native sequence
+        // detection later.
+        distanceBaseline3D=gap3D;
+        distanceBaselineSamples=1;
+    }
+    const float extraAllowed=std::max(selectedTpsDistance,300.0f)+100.0f;
+    const float candidateDistanceThreshold=distanceBaseline3D>0.0f
+        ?distanceBaseline3D+extraAllowed:6500.0f;
+    const bool distanceExceeded=thirdPerson&&autoSuspend&&actorValid&&
+        distanceBaseline3D>0.0f && oldNearPawn &&
+        gap3D>candidateDistanceThreshold;
+    const bool nearPawn=oldNearPawn&&!distanceExceeded;
+    if(thirdPerson&&autoSuspend&&actorValid&&normalAngles&&oldNearPawn&&
+       !distanceExceeded&&!settings.tpsCutsceneSuspended.load(
+           std::memory_order_acquire) && distanceBaseline3D>0.0f){
+        // Extremely slow learning only on accepted gameplay-shaped views;
+        // ensures camera-spring wobble does not continually move the limit.
+        distanceBaseline3D=std::clamp(
+            0.9975f*distanceBaseline3D+0.0025f*gap3D,
+            100.0f,6500.0f);
+        ++distanceBaselineSamples;
+    }
     // V0.67: strict proximity again. The previous 32,477-unit 'gap'
     // came exclusively from READING THE WRONG root translation offset.
     // Never override far-away/cinematic native views based only on a
     // matching pitch/FOV signature.
-    const bool normalAngles=nativePitch>=-89.0f&&nativePitch<=-15.0f;
     // V0.98: the old speculative camera-wheel continuity override was
     // unvalidated and did not prevent the native aerial view on wheels.
     // Keep all validated native LB/R3 right-stick input handling in the
@@ -272,6 +329,11 @@ void HookView(void* camera, float dt, void* outView) {
     viewSample.autoSuspend=settings.tpsCutsceneAutoSuspend.load(std::memory_order_relaxed);
     viewSample.gapXY=planar;
     viewSample.gapZ=nativeDz;
+    viewSample.gap3D=gap3D;
+    viewSample.distanceBaseline=distanceBaseline3D;
+    viewSample.selectedTpsDistance=selectedTpsDistance;
+    viewSample.candidateDistanceThreshold=candidateDistanceThreshold;
+    viewSample.distanceExceeded=distanceExceeded;
     viewSample.nativePitch=nativePitch;
     viewSample.nativeYaw=nativeYaw;
     viewSample.nativeFov=nativeFov;
@@ -289,7 +351,7 @@ void HookView(void* camera, float dt, void* outView) {
         if(!actorValid)++g_cinematicMissingActorSamples;
         else if(!nearPawn)++g_cinematicFarViewSamples;
     }
-    const bool autoCutscene=settings.tpsCutsceneAutoSuspend.load(std::memory_order_relaxed);
+    const bool autoCutscene=autoSuspend;
     if(!thirdPerson||!autoCutscene){
         if(cinematicCandidateStart){
             RecordCinematicEvent(CinematicDebugPhase::Disabled,cinematicCandidateId,
@@ -332,10 +394,12 @@ void HookView(void* camera, float dt, void* outView) {
                 RecordCinematicEvent(CinematicDebugPhase::Candidate,candidate,0,viewSample);
                 if(candidate<=24){
                     char line[330]{};
-                    sprintf_s(line,"TPS V1.25 CAMERA_TRANSITION candidate=%u actorValid=%d normalAngles=%d nearPawn=%d gapXY=%.0f nativePitch=%.1f nativeFov=%.1f nativeZ=%.0f actorZ=%.0f autoCutscene=%d (no SequencePlayer proof)",
+                    sprintf_s(line,"TPS V1.29 CAMERA_TRANSITION candidate=%u actorValid=%d normalAngles=%d nearPawn=%d reason=%s gap3D=%.0f vanillaBaseline=%.0f selectedTPSDistance=%.0f candidateThreshold=%.0f nativePitch=%.1f nativeFov=%.1f",
                         candidate,actorValid?1:0,normalAngles?1:0,
-                        nearPawn?1:0,planar,nativePitch,nativeFov,z,az,
-                        autoCutscene?1:0);
+                        nearPawn?1:0,distanceExceeded?"TPS_DISTANCE":
+                            !actorValid?"ACTOR_MISSING":"NATIVE_CAMERA_SHAPE",
+                        gap3D,distanceBaseline3D,selectedTpsDistance,
+                        candidateDistanceThreshold,nativePitch,nativeFov);
                     Write(line);
                 }
             }
