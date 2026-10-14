@@ -1,3 +1,9 @@
+## V1.24 - TPS mouse fire bindings + alternate Camera Forward + safe audits (TEST)
+
+[Download cumulative V1.24 ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.24_TPS_MOUSE_FIRE_AUDIT_TEST.zip) · `debug` only · gameplay validation pending.
+
+Following user confirmation that V1.23 now rotates the TPS camera continuously, V1.24 adds **two TPS-only mouse fire selectors** under Camera > Third Person: Left/Right/Middle/X1/X2/Unbound, default Left primary and Right secondary. Selected clicks translate to native left/right firing events during TPS; the two mouse fire buttons use the same existing **Camera Forward** native look fix (the RMB alternate was not covered before). No controller/fire, R3/wheel, edge recapture, cursor hide, mount, Synergy or updater changes. Wrath log events are read-only correlated to verified Synergy gain timestamps; warning record fingerprints are recorded without skipping/altering native initialization. **Skip Warnings remains disabled; true Wrath/Ultimate multiplier paths are still unverified.** [V1.24 audit and tests](docs/V1_24_TPS_FIRE_GAUGES_WARNINGS.md). V1.23 ZIP preserved.
+
 ## V1.23 - TPS mouse edge recapture (Windows x64 TEST)
 
 [Download cumulative V1.23 ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.23_TPS_EDGE_RECAPTURE_TEST.zip) · `debug` only · game validation pending.
