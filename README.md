@@ -1,3 +1,7 @@
+## V1.27 Windows build / package verified (2026-10-14)
+
+GitHub Actions [run 38555201166](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38555201166) **SUCCESS**: Windows x64 configure/Release build, archive exactly four root files (`dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md`), upload and permanent git push to debug. [V1.27 cumulative TEST ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.27_MOUNTED_MOUSE_FACING_AUDIT_TEST.zip), **759,159 bytes**, Git blob SHA-1 `8db9a8aca29c9d101f9a03c4bcf2adced5840d67`. Older V1.25/V1.26 ZIPs retained. `main` remains `2bc3122c1ae07b7333798462f85c1d9fd3a739f7`; `archive` remains `10e0f220b85022bc9269e0cb9390a811a3b1cf89`. User gaming validation remains pending. **Mounted bullet raycast and idle body orientation are not fixed by this build**; only the mounted mouse-fire camera-pose continuity is improved and diagnostic evidence added.
+
 ## V1.27 mounted mouse aiming pose and player-facing native audit (TEST)
 
 [Download V1.27 cumulative TEST ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.27_MOUNTED_MOUSE_FACING_AUDIT_TEST.zip) | branch `debug`, gameplay test pending.
