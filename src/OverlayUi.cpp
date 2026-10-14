@@ -568,6 +568,90 @@ void Draw(Context& c) {
                 camera.viewReady && camera.armReady ? "Ready" : "Unavailable",
                 camera.viewCalls);
 
+            // Temporary V1.28 debugger. These are *heuristic camera*
+            // events, never asset / LevelSequence names or proof of dialogue.
+            if(ImGui::CollapsingHeader("Cutscenes: detection history (DEBUG)")){
+                const auto history=dg::camera_trace::GetCinematicDebugSnapshot();
+                ImGui::Indent(12.0f);
+                ImGui::TextWrapped("Shows up to 24 recent camera-transition events. "
+                    "An ENTER means the mod switched to native view; "
+                    "it does NOT identify a cinematic asset.");
+                ImGui::Text("Detected: %u | Returned: %u | Candidates: %u",
+                    camera.cinematicEntered,camera.cinematicExited,
+                    camera.cinematicCandidateBegins);
+                ImGui::Text("Currently: %s | Candidate #%u",
+                    history.currentlySuspended?"Native view (TPS suspended)":
+                    history.activeCandidateId?"Candidate / waiting":"TPS / normal",
+                    history.activeCandidateId);
+                if(ImGui::Button("Mark cinematic playing NOW (manual debug)")){
+                    const bool recorded=dg::camera_trace::MarkCurrentCinematicForDebug();
+                    if(c.log)c.log(recorded
+                        ?"TPS V1.28 DEBUG UI: scene manually marked by player"
+                        :"TPS V1.28 DEBUG UI: no native camera sample yet");
+                }
+                if(ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Use during a cinematic that the mod did NOT detect. "
+                        "Captures the most recent native camera view; does not change the game.");
+                if(history.hasLastNativeSample){
+                    const auto& frame=history.lastNativeSample;
+                    const ULONGLONG now=GetTickCount64();
+                    const auto age=now>=history.lastNativeSampleTickMs
+                        ?now-history.lastNativeSampleTickMs:0ull;
+                    ImGui::TextDisabled("Last native view %llu ms ago: pitch %.1f, "
+                        "yaw %.1f, FOV %.1f, gapXY %.0f, actorValid %d, looksGameplay %d",
+                        static_cast<unsigned long long>(age),
+                        frame.nativePitch,frame.nativeYaw,frame.nativeFov,
+                        frame.gapXY,frame.actorValid?1:0,frame.gameplayCamera?1:0);
+                }
+                ImGui::Spacing();
+                if(ImGui::BeginTable("CutsceneDetectionHistory",5,
+                    ImGuiTableFlags_RowBg|ImGuiTableFlags_BordersInnerH|
+                    ImGuiTableFlags_SizingStretchProp|
+                    ImGuiTableFlags_ScrollY,ImVec2(0.0f,235.0f))){
+                    ImGui::TableSetupColumn("#",ImGuiTableColumnFlags_WidthFixed,48.0f);
+                    ImGui::TableSetupColumn("Event",ImGuiTableColumnFlags_WidthFixed,88.0f);
+                    ImGui::TableSetupColumn("Scene",ImGuiTableColumnFlags_WidthFixed,62.0f);
+                    ImGui::TableSetupColumn("Timing",ImGuiTableColumnFlags_WidthStretch,1.0f);
+                    ImGui::TableSetupColumn("Why / native camera",ImGuiTableColumnFlags_WidthStretch,3.0f);
+                    ImGui::TableHeadersRow();
+                    const ULONGLONG now=GetTickCount64();
+                    for(uint32_t index=history.count;index>0;--index){
+                        const auto& event=history.events[index-1];
+                        const ULONGLONG age=now>=event.tickMs?now-event.tickMs:0ull;
+                        const char* reason=!event.actorValid?"NO_ACTOR":
+                            !event.nearPawn?"FAR_OR_HEIGHT":
+                            !event.normalAngles?"PITCH":"GAMEPLAY_SHAPE";
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::Text("%u",event.serial);
+                        ImGui::TableSetColumnIndex(1);
+                        ImGui::TextUnformatted(
+                            dg::camera_trace::CinematicDebugPhaseLabel(event.phase));
+                        ImGui::TableSetColumnIndex(2);
+                        ImGui::Text("%u",event.candidateId);
+                        ImGui::TableSetColumnIndex(3);
+                        ImGui::Text("%.1fs ago",static_cast<double>(age)/1000.0);
+                        if(event.phase==dg::camera_trace::CinematicDebugPhase::ManualMark)
+                            ImGui::TextDisabled("frame age %llu ms",
+                                static_cast<unsigned long long>(event.durationMs));
+                        else if(event.durationMs)
+                            ImGui::TextDisabled("duration %llu ms",
+                                static_cast<unsigned long long>(event.durationMs));
+                        ImGui::TableSetColumnIndex(4);
+                        ImGui::Text("%s | pitch %.1f yaw %.1f FOV %.1f gap %.0f",
+                            reason,event.nativePitch,event.nativeYaw,
+                            event.nativeFov,event.gapXY);
+                    }
+                    ImGui::EndTable();
+                }
+                if(history.count==0)
+                    ImGui::TextDisabled("No events yet. Trigger a camera transition in TPS.");
+                ImGui::TextWrapped("USER_MARK = your manual observation only. "
+                    "REJECTED = camera returned before 500 ms. "
+                    "A missed in-place cinematic may have no automatic events.");
+                ImGui::Unindent(12.0f);
+            }
+
             if(ImGui::CollapsingHeader("Third Person camera",ImGuiTreeNodeFlags_DefaultOpen)){
             ImGui::Indent(12.0f);
             DrawSectionTitle("Third Person camera");
