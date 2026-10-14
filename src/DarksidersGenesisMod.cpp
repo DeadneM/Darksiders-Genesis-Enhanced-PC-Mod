@@ -38,7 +38,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.26-relative-mouse-persistent-recovery-test";
+constexpr const char* kBuild = "1.27-mounted-mouse-pose-facing-audit-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -197,6 +197,10 @@ std::atomic_uint32_t g_v123EdgeRecenters{0},g_v123SyntheticMovesIgnored{0},
 // Native mouse button routing counts; original XInput path stays untouched.
 std::atomic_uint32_t g_v124PrimaryRouted{0},g_v124SecondaryRouted{0},
     g_v124NativeButtonSuppressed{0},g_v124SecondaryForwardLook{0};
+// V1.27 passive getter callsite audit (not projectile detour).
+std::atomic_uint32_t g_v127MountedMousePlayerGetter{0},
+    g_v127MountedMouseHorseGetter{0},g_v127MountedMouseRotationGetter{0};
+std::atomic_uint32_t g_v127NativeFacingFlagOn{0},g_v127NativeFacingFlagOff{0};
 // V1.25: monitor actual process-wide RawInput ownership, never overwrite a
 // native registration; re-arm only when there is no mouse registration.
 std::atomic_uint32_t g_v125RawChecks{0},g_v125RawMissing{0},
@@ -1469,6 +1473,22 @@ void CaptureLiveTPSActorYaw(void* actor) {
 void UpdateTPSFacingNative(void* component) {
     if(!component)return;
     auto* field=static_cast<unsigned char*>(component)+0x240;
+    // V1.27 read-only observation inside the proven live-local
+    // movement callback, NOT a return to the rejected flag-only experiment.
+    const bool rotatesTowardMovement=(*field & 0x10u)!=0;
+    if(rotatesTowardMovement)++g_v127NativeFacingFlagOn;
+    else ++g_v127NativeFacingFlagOff;
+    static ULONGLONG lastFacingSample=0;
+    const ULONGLONG nowFacing=GetTickCount64();
+    if(!lastFacingSample || (nowFacing>=lastFacingSample&&
+        nowFacing-lastFacingSample>9000ull)){
+        lastFacingSample=nowFacing;
+        const float nativeYaw=g_tpsActorWorldYaw.load(std::memory_order_relaxed);
+        const float cameraYaw=dg::camera_trace::GetTelemetry().appliedYaw;
+        Log("TPS V1.27 FACING_NATIVE bitOrientToMovement=%d rootYaw=%.1f cameraYaw=%.1f gapDeg=%.1f movement=%p (OBSERVE ONLY)",
+            rotatesTowardMovement?1:0,nativeYaw,cameraYaw,
+            std::fabs(std::remainder(cameraYaw-nativeYaw,360.0f)),component);
+    }
     AcquireSRWLockExclusive(&g_tpsFacingLock);
     if(g_tpsFacingCurrentComponent!=component){
         g_tpsFacingCurrentComponent=component;
@@ -1666,6 +1686,27 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     const auto& lookRt=dg::runtime::Get();
     const ULONGLONG horseLookTick=lookRt.tpsHorsePoseTick.load(std::memory_order_acquire);
     const ULONGLONG horseLookNow=GetTickCount64();
+    // V1.27: originating native *getter* caller is not the projectile
+    // function. Log it only during true mounted mouse shots and first samples.
+    if(actor && IsMountedTPSNow() && MouseAnyFireHeld() &&
+       IsTPSLookViewFresh()){
+        const bool local=actor==g_localPlayerCharacter.load(
+            std::memory_order_acquire);
+        const bool horse=horseLookTick && horseLookNow>=horseLookTick &&
+            horseLookNow-horseLookTick<350ull &&
+            reinterpret_cast<uintptr_t>(actor)==
+                lookRt.tpsHorseOwnerIdentity.load(std::memory_order_acquire);
+        const unsigned sample=local?++g_v127MountedMousePlayerGetter:
+            horse?++g_v127MountedMouseHorseGetter:0u;
+        if(sample && (sample<=6u||sample==100u)){
+            const uintptr_t base=reinterpret_cast<uintptr_t>(
+                GetModuleHandleW(nullptr));
+            const uintptr_t caller=reinterpret_cast<uintptr_t>(_ReturnAddress());
+            Log("TPS V1.27 MOUNTED_MOUSE_LOOK_GETTER kind=%s n=%u callerRVA=0x%llX (not bullet raycast)",
+                horse?"HORSE":"PLAYER",sample,
+                static_cast<unsigned long long>(caller>=base?caller-base:0ull));
+        }
+    }
     if(actor && IsMountedTPSNow()&&horseLookTick&&horseLookNow>=horseLookTick&&
        horseLookNow-horseLookTick<350ull &&
        reinterpret_cast<std::uintptr_t>(actor)==
@@ -1768,6 +1809,16 @@ NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
     if(!original)return out;
     auto* result=original(actor,out);
     const unsigned calls=++g_tpsLookRotationCalls;
+    if(IsMountedTPSNow() && MouseAnyFireHeld() &&
+       IsLiveTPSLookActor(actor) && IsTPSLookViewFresh()){
+        const unsigned sample=++g_v127MountedMouseRotationGetter;
+        if(sample<=6u || sample==100u){
+            const uintptr_t base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+            const uintptr_t caller=reinterpret_cast<uintptr_t>(_ReturnAddress());
+            Log("TPS V1.27 MOUNTED_MOUSE_LOOK_ROTATION n=%u callerRVA=0x%llX (not projectile source)",
+                sample,static_cast<unsigned long long>(caller>=base?caller-base:0ull));
+        }
+    }
     if(!result||!IsLiveTPSLookActor(actor)||!IsTPSLookViewFresh())
         return result;
     if(IsTPSRadialInputActive())return result;
@@ -3949,6 +4000,12 @@ void UpdateOrbitInput() {
     const bool active=g_config.thirdPersonEnabled && !temporaryVanilla &&
         !rt.tpsCutsceneSuspended.load(std::memory_order_relaxed) &&
         focused;
+    // V1.27: annotate real mouse fire separately from native gamepad fire.
+    // No mouse movement, WndProc routing, aim vector or XInput writes here.
+    const bool mouseHeld=active && !g_overlayVisible.load() &&
+        !IsTPSRadialInputActive() && MouseAnyFireHeld();
+    rt.tpsMouseFireHeld.store(mouseHeld,std::memory_order_release);
+    if(mouseHeld)rt.tpsMouseFireTick.store(now,std::memory_order_release);
     const float dt=g_orbitLastPresentTick && now-g_orbitLastPresentTick<=100ull
         ? static_cast<float>(now-g_orbitLastPresentTick)*0.001f:0.0f;
     g_orbitLastPresentTick=now;
@@ -4508,6 +4565,11 @@ void ShutdownMod() {
         g_v119RawMouse.load(),g_v119MouseMoveFallback.load(),
         g_v119MouseCameraFrames.load(),g_v119MouseForwardLook.load(),
         g_v119MouseForwardRotation.load());
+    Log("TPS V1.27 MOUNTED_GETTER_AUDIT playerInput=%u horseInput=%u playerRotation=%u orientMoveOnSamples=%u orientMoveOffSamples=%u projectileHook=NO",
+        g_v127MountedMousePlayerGetter.load(),
+        g_v127MountedMouseHorseGetter.load(),
+        g_v127MountedMouseRotationGetter.load(),
+        g_v127NativeFacingFlagOn.load(),g_v127NativeFacingFlagOff.load());
     Log("TPS V1.26 RAW_RECOVERY totals: checks=%u missing=%u rearmAttempts=%u rearmSuccess=%u foreignRegistrationProtected=%u stallsWithRegistration=%u warpsAvoided=%u throttled=%u recoveredAfterOldCap=%u lastOwnerState=%d",
         g_v125RawChecks.load(),g_v125RawMissing.load(),
         g_v125RawRearmAttempts.load(),g_v125RawRearmSuccess.load(),
