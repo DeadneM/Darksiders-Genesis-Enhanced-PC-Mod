@@ -187,6 +187,9 @@ float HookSynergyGain(void* manager,void* owner,float a,float b,float c){
     const bool validGain=std::isfinite(nativeGain);
     const bool positiveGain=validGain && nativeGain>0.0f;
     const bool negativeGain=validGain && nativeGain<0.0f;
+    if(relation>0 && positiveGain)
+        dg::runtime::Get().lastNativeSynergyPositiveTick.store(
+            GetTickCount64(),std::memory_order_release);
     const unsigned categoryCount = !validGain ? ++synergyAddInvalid
         : positiveGain ? ++synergyAddPositive
         : negativeGain ? ++synergyAddNegative : ++synergyAddZero;
