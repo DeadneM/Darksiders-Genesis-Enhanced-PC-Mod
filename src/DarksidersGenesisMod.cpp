@@ -3133,7 +3133,7 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                             const auto cam=dg::camera_trace::GetTelemetry();
                             const float nx=2.0f*static_cast<float>(cursor.x)/w-1.0f;
                             const float ny=2.0f*static_cast<float>(cursor.y)/h-1.0f;
-                            Log("TPS V1.29 CURSOR_AIM_AUDIT shot=%u button=%s relativeCursor=(%.3f,%.3f) belowHorizon= %d mounted=%d camYaw=%.1f camPitch=%.1f camFOV=%.1f gameRaycastUnmodified=1",
+                            Log("TPS V1.29 CURSOR_AIM_AUDIT shot=%u button=%s relativeCursor=(%.3f,%.3f) belowMidline=%d mounted=%d camYaw=%.1f camPitch=%.1f camFOV=%.1f gameRaycastUnmodified=1",
                                 shot,msg==WM_LBUTTONDOWN?"LMB":"RMB",nx,ny,ny>0.0f?1:0,
                                 IsMountedTPSNow()?1:0,cam.appliedYaw,
                                 cam.appliedPitch,cam.appliedFov);
