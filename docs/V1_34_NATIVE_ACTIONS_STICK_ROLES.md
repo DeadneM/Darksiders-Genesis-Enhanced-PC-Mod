@@ -34,3 +34,15 @@ Prepared source: EXPERIMENTAL. Windows x64 compile, actual C++ stick-role matrix
 4. Confirm RawInput/Alt-Tab, summon/dismount, R3 use/stow, charged shot, native UI axes and Synergy. Inspect `NATIVE_STICK_SWAP`, `NATIVE_RADIAL` and buttonHeld=0 target logs. If radial observer reports false positives or no events, keep it diagnostic and investigate the real native action; never promote on name/visibility alone.
 
 Delivery evidence will be appended after the actual build and installation.
+
+## Verified delivery and installation
+
+Windows CI [38639339105](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38639339105) completed SUCCESS for source d362076f357306db1d45d727ae21622236bf5f6d. Release binaries, CTest TpsStickRoles (1/1 passed, 0.03s), exact four-root ZIP validation, upload and numbered debug publication all succeeded. Archive commit 77bb0b43e99032dc36a331a3f516bd2ae1f6305e.
+
+ZIP 777132 bytes; SHA256 8D91A23547D30EA335A8E0FD69B27A9CA1E8189183A136438A12179483B8A561. Independent ZIP/PE AMD64/build-string checks passed; direct raw download matches the repository archive and CI hash. Root files: ASI1146368, dxgi154624, INI2677, README242021 bytes. ASI SHA256 934DC62BC91AE9CA75DA3400E761E7677B203D0C94D695A58DE658D70686D2BB; dxgi SHA256 251D5B94E1C20F1AA79274D248923DF610F43D75B981AE854ACDF3400EB9D08D.
+
+Normal authorized installation succeeded after elevated process checks confirmed the game closed. Backup ../audit-v131/install-backup-before-v134-20261014-232427/ contains all four prior files, old log and hash manifest. ASI/loader destination hashes match the verified ZIP. Personal INI preserved unchanged, SHA256 AB2F95CD2AE49AD1706E1E9A420FEEDB1E416D25FCA157E83897554EF2C3E095. Installed README refreshed with post-build delivery notes (archive remains immutable). Package/install verification manifests are kept locally, not game binaries or EXE uploaded as audit evidence.
+
+The user's actual V1.33 log (22:43-23:01 session) shows repeated TPS_UI_HOLD with worldPaused=0/wheelHeld=1, native scene ON22:59:06.596/OFF22:59:13.005 and 3317 scoped mouse rays (2590FOOT/727HORSE), 3266 native hits/51 misses. Confirms the unconditional input-driven pose hold existed and the native target path runs; does NOT establish projectile impacts or V1.34 gameplay success.
+
+main remains 2bc3122c1ae07b7333798462f85c1d9fd3a739f7; archive 10e0f220b85022bc9269e0cb9390a811a3b1cf89. Downloads tree diff from base adds only V1.34; previous archives retained. CONSTRUIT / CONTROLE / INSTALLE / EXPERIMENTAL. User validation and remaining native-action/rebind migration still outstanding as specified above.
