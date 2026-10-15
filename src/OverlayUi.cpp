@@ -1,5 +1,6 @@
 #include "OverlayUi.h"
 #include "GaugeChargeFeature.h"
+#include "ResourceGainFeature.h"
 #include "ManualGaugeFeature.h"
 #include "ShaderAimFeature.h"
 #include "UpdateFeature.h"
@@ -315,6 +316,7 @@ void Draw(Context& c) {
 
             DrawSectionTitle("Resource recharge");
             const auto charge=dg::gauges::GetTelemetry();
+            const auto rewards=dg::resource_gain::GetTelemetry();
             const auto manual=dg::manual_gauges::GetTelemetry();
             ImGui::TextUnformatted("Set gauges for testing");
             static float gaugePercent=100.0f;
@@ -362,13 +364,15 @@ void Draw(Context& c) {
             DrawTunableFeature(config,"Wrath (Courroux) charge","WrathCharge",
                 &config.wrathChargeEnabled,&config.wrathChargeMultiplier,
                 0.0f,100.0f,2.0f,"%.2fx",
-                "Candidate value observed; recharge multiplier has no confirmed gameplay effect.",
-                charge.wrathReady,charge.wrathReady?"Unverified gain path":"Hook unavailable");
+                "Experimental multiplier for native Wrath pickup gains. Spends and manual refill stay unchanged.",
+                rewards.ready[0],rewards.ready[0]?"TEST | gameplay confirmation required":"Gain path unavailable");
             DrawTunableFeature(config,"Ultimate Form / Chaos charge","UltimateCharge",
                 &config.ultimateChargeEnabled,&config.ultimateChargeMultiplier,
                 0.0f,100.0f,2.0f,"%.2fx",
-                "Recharge multiplier has no confirmed gameplay effect; native gain path unresolved.",
-                charge.chaosReady,charge.chaosReady?"Unverified gain path":"Hook unavailable");
+                "Experimental multiplier for native Ultimate combat rewards. Transformation drain and manual refill stay unchanged.",
+                rewards.ready[1],rewards.ready[1]?"TEST | gameplay confirmation required":"Gain path unavailable");
+            ImGui::TextDisabled("Native gain events: Wrath %u (%u modified) | Ultimate %u (%u modified)",
+                rewards.positive[0],rewards.boosted[0],rewards.positive[1],rewards.boosted[1]);
             DrawTunableFeature(config,"Synergy charge","SynergyCharge",
                 &config.synergyChargeEnabled,&config.synergyChargeMultiplier,
                 0.0f,100.0f,2.0f,"%.2fx",
@@ -802,6 +806,36 @@ void Draw(Context& c) {
                    -500.0f,500.0f,"%+.0f units"))config.Save();
                 ImGui::SameLine();
                 if(ImGui::Button("Default##TPSFoot")){config.tpsFootAnchorOffset=0.0f;config.Save();}
+                ImGui::Spacing();
+                DrawSectionTitle("Ultimate form TPS camera");
+                ImGui::TextWrapped("Separate distance and vertical offset while transformed. Normal-form settings stay independent.");
+                ImGui::SetNextItemWidth(245.0f);
+                bool ultimateChanged=ImGui::SliderFloat("Distance (Ultimate form)##TPSUltimate",
+                    &config.tpsUltimateDistanceMultiplier,0.0f,3.0f,"%.2fx");
+                ImGui::SetNextItemWidth(145.0f);
+                ultimateChanged|=ImGui::InputFloat("Manual distance##TPSUltimate",
+                    &config.tpsUltimateDistanceMultiplier,0,0,"%.3fx");
+                ImGui::SameLine();
+                if(ImGui::Button("Default##TPSUltimateDistance")){
+                    config.tpsUltimateDistanceMultiplier=0.15f;ultimateChanged=true;
+                }
+                ImGui::SetNextItemWidth(245.0f);
+                ultimateChanged|=ImGui::SliderFloat("Vertical offset (Ultimate form)##TPSUltimate",
+                    &config.tpsUltimateHeightOffset,-1000.0f,1000.0f,"%+.0f units");
+                ImGui::SetNextItemWidth(145.0f);
+                ultimateChanged|=ImGui::InputFloat("Manual height##TPSUltimate",
+                    &config.tpsUltimateHeightOffset,0,0,"%.1f");
+                ImGui::SameLine();
+                if(ImGui::Button("Default##TPSUltimateHeight")){
+                    config.tpsUltimateHeightOffset=0.0f;ultimateChanged=true;
+                }
+                if(ultimateChanged){
+                    if(!std::isfinite(config.tpsUltimateDistanceMultiplier))config.tpsUltimateDistanceMultiplier=0.15f;
+                    if(!std::isfinite(config.tpsUltimateHeightOffset))config.tpsUltimateHeightOffset=0.0f;
+                    config.tpsUltimateDistanceMultiplier=std::clamp(config.tpsUltimateDistanceMultiplier,0.0f,3.0f);
+                    config.tpsUltimateHeightOffset=std::clamp(config.tpsUltimateHeightOffset,-1000.0f,1000.0f);
+                    config.Save();
+                }
                 if(ImGui::Button("TPS Camera Values Default"))config.ResetTpsCameraValues();
                 ImGui::Unindent();
             }

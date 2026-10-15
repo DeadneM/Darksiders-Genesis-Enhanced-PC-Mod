@@ -15,6 +15,7 @@
 #include "ConfigStore.h"
 #include "EngineIniFeature.h"
 #include "GaugeChargeFeature.h"
+#include "ResourceGainFeature.h"
 #include "ManualGaugeFeature.h"
 #include "HorseFeature.h"
 #include "NativeTpsFeature.h"
@@ -42,7 +43,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.36-gauge-hotkeys-form-pose-test";
+constexpr const char* kBuild = "1.37-ultimate-camera-aim-gauge-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1581,7 +1582,7 @@ bool IsLiveTPSLookActor(void* actor) {
         dg::runtime::Get().tpsTemporarilySuspended.load() ||
         dg::runtime::Get().tpsCutsceneSuspended.load() ||
         dg::runtime::Get().tpsUiViewHeld.load() ||
-        dg::chaos_pose::ActiveNow() ||
+        (dg::chaos_pose::ActiveNow()&&!dg::chaos_pose::RangedOwner(actor)) ||
         g_overlayVisible.load())
         return false;
     const auto* player=g_localPlayerCharacter.load(std::memory_order_acquire);
@@ -1590,7 +1591,7 @@ bool IsLiveTPSLookActor(void* actor) {
     if(!hwnd || GetForegroundWindow()!=hwnd || IsIconic(hwnd))return false;
     const ULONGLONG tick=dg::runtime::Get().tpsActorLocationTick.load(std::memory_order_acquire);
     const ULONGLONG now=GetTickCount64();
-    return (tick&&now>=tick&&now-tick<250ull)||IsMountedTPSNow();
+    return (tick&&now>=tick&&now-tick<250ull)||IsMountedTPSNow()||dg::chaos_pose::RangedOwner(actor);
 }
 bool MousePhysicalHeld(int vk){return vk && (GetAsyncKeyState(vk)&0x8000)!=0;}
 bool MousePrimaryFireHeld(){return MousePhysicalHeld(g_config.tpsMousePrimaryButton);}
@@ -1647,7 +1648,8 @@ bool ProvideNativeMouseRay(void* actor,dg::native_tps::MouseRay& ray){
     if(!actor||!g_targetValidation.exact||g_shuttingDown.load()||
        !rt.thirdPersonEnabled.load()||rt.tpsTemporarilySuspended.load()||
        rt.tpsCutsceneSuspended.load()||rt.tpsUiViewHeld.load()||
-       dg::chaos_pose::ActiveNow()||g_overlayVisible.load()||IsTPSRadialInputActive()||
+       (dg::chaos_pose::ActiveNow()&&!dg::chaos_pose::RangedActor(actor))||
+       g_overlayVisible.load()||IsTPSRadialInputActive()||
        IsPadFiringNow()||IsCameraStickActiveNow()||
        !IsTPSLookViewFresh())return false;
     const bool mounted=IsMountedTPSNow();
@@ -1656,9 +1658,10 @@ bool ProvideNativeMouseRay(void* actor,dg::native_tps::MouseRay& ray){
     const bool local=actor==g_localPlayerCharacter.load(std::memory_order_acquire);
     const bool horse=mounted&&horseTick&&now>=horseTick&&now-horseTick<250ull&&
         reinterpret_cast<uintptr_t>(actor)==rt.tpsHorseOwnerIdentity.load();
-    if(!local&&!horse)return false;
+    if(!local&&!horse&&!dg::chaos_pose::RangedActor(actor))return false;
     if(!ComputeNativeMouseRay(ray))return false;
     ray.mounted=mounted;
+    ray.ultimate=dg::chaos_pose::RangedActor(actor);
     ray.fireHeld=MouseAnyFireHeld(); // telemetry only, not the action gate
     return true;
 }
@@ -2158,6 +2161,8 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
                 std::memory_order_relaxed
             );
         dg::horse::ObservePlayerCharacter(characterOwner);
+        dg::resource_gain::OnLivePlayer(characterOwner,
+            runtime.tpsActorGeneration.load(std::memory_order_acquire));
         dg::manual_gauges::OnLivePlayer(characterOwner,
             runtime.tpsActorGeneration.load(std::memory_order_acquire));
         if (previousPlayer != characterOwner) {
@@ -2863,7 +2868,7 @@ bool ShouldSuppressNativeAim() {
         !dg::runtime::Get().tpsCutsceneSuspended.load(std::memory_order_relaxed) &&
         !dg::runtime::Get().tpsUiViewHeld.load(std::memory_order_relaxed) &&
         !IsTPSRadialInputActive() &&
-        IsTPSLookViewFresh() && !dg::chaos_pose::ActiveNow() &&
+        IsTPSLookViewFresh() && (!dg::chaos_pose::ActiveNow()||dg::chaos_pose::RangedActive()) &&
         hwnd && hwnd==GetForegroundWindow() && !IsIconic(hwnd) &&
         !g_overlayVisible.load(std::memory_order_relaxed);
 }
@@ -2960,10 +2965,32 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     if(realStatus!=ERROR_SUCCESS||!state||user!=0)return realStatus;
     const DWORD status=realStatus;
     if(dg::chaos_pose::ActiveNow()){
-        // The form has its own native movement/attack path. No normal-player
-        // right-stick injection, role remap, R3 pulse or horse chord rewrite.
         g_tpsFireHeld.store(false,std::memory_order_release);
-        dg::runtime::Get().tpsAimActive.store(false,std::memory_order_release);
+        auto& rt=dg::runtime::Get();
+        rt.tpsAimActive.store(false,std::memory_order_release);
+        // Only Strife, proved by fresh native form -> PlayerState -> owner
+        // and reciprocal owner.GetChaosForm. War/unrecognized forms stay native.
+        // Keep wheel/charge selection and all physical buttons/triggers intact.
+        if(!dg::chaos_pose::RangedActive()||!ShouldSuppressNativeAim()||
+           !dg::native_tps::NativeStickSwapKnown())return realStatus;
+        auto& formPad=state->Gamepad;
+        if(GamepadBindingDown(g_config.tpsWheelPadMask,formPad)||
+           TPSChargeChordDown(formPad))return realStatus;
+        const int cameraMode=rt.tpsCameraStickMode.load();
+        const bool swap=dg::native_tps::NativeStickSwap();
+        if(cameraMode!=0)dg::tps_input::MapGameplayRoles(formPad,cameraMode==1,swap);
+        const bool fire=TPSFireDown(formPad);
+        g_tpsFireHeld.store(fire,std::memory_order_release);
+        if(fire)g_tpsFireLastTick.store(GetTickCount64(),std::memory_order_release);
+        rt.tpsAimActive.store(fire,std::memory_order_release);
+        if(rt.tpsMountedAimMode.load()==0&&fire){
+            dg::tps_input::SetNativeLook(formPad,swap,0,32767);
+            static std::atomic_uint32_t shots{0};
+            const auto n=++shots;
+            if(n==1||n==250)Log("TPS V1.37 ULTIMATE_AIM Strife native camera-forward pad samples=%u",n);
+        }else if(cameraMode!=0&&(rt.tpsMountedAimMode.load()==0||!fire)){
+            dg::tps_input::SetNativeLook(formPad,swap,0,0);
+        }
         return realStatus;
     }
     auto& pad=state->Gamepad;
@@ -4693,6 +4720,7 @@ void ShutdownMod() {
     dg::aim_shader::Shutdown();
     dg::chaos_pose::Shutdown();
     dg::manual_gauges::Shutdown();
+    dg::resource_gain::Shutdown();
     dg::gauges::Shutdown();
     const auto scene=dg::camera_trace::GetTelemetry();
     // Print the UI's temporary cutscene history at shutdown as well, so
@@ -4865,6 +4893,8 @@ DWORD WINAPI MainThread(LPVOID) {
         g_config.thirdPersonHeightOffset,g_config.tpsFootAnchorOffset,
         g_config.tpsCameraStickMode,g_config.tpsMountedAimMode,g_config.cameraHeightOffset,
         g_config.skipWarningEnabled?1:0);
+    Log("TPS V1.37 ULTIMATE_CAMERA loaded distance=%.3f verticalOffset=%.1f (separate from normal form)",
+        g_config.tpsUltimateDistanceMultiplier,g_config.tpsUltimateHeightOffset);
     Log("V1.05 GAUGES loaded Wrath=%d x%.2f Ultimate=%d x%.2f Synergy=%d x%.2f",
         g_config.wrathChargeEnabled?1:0,g_config.wrathChargeMultiplier,
         g_config.ultimateChargeEnabled?1:0,g_config.ultimateChargeMultiplier,
@@ -4946,6 +4976,7 @@ DWORD WINAPI MainThread(LPVOID) {
     }
     dg::manual_gauges::Initialize(&FeatureLog,&g_localPlayerCharacter,g_targetValidation.exact);
     dg::gauges::Initialize(&FeatureLog,&g_localPlayerCharacter,g_targetValidation.exact);
+    dg::resource_gain::Initialize(&FeatureLog,&g_localPlayerCharacter,g_targetValidation.exact);
     if (!InstallFinalOutgoingDamageHook()) {
         Log("Final Pistol/Melee Damage hook unavailable; other ASI features remain active.");
     }

@@ -18,6 +18,14 @@ if(BUILD_TESTING)
   target_compile_definitions(GaugeHotkeyTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
   target_link_libraries(GaugeHotkeyTests PRIVATE user32)
   add_test(NAME GaugeHotkeys COMMAND GaugeHotkeyTests)
+  add_executable(UltimateCameraConfigTests tests/UltimateCameraConfigTests.cpp src/ConfigStore.cpp src/RuntimeSettings.cpp)
+  target_include_directories(UltimateCameraConfigTests PRIVATE src)
+  target_compile_definitions(UltimateCameraConfigTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  target_link_libraries(UltimateCameraConfigTests PRIVATE user32)
+  add_test(NAME UltimateCameraConfig COMMAND UltimateCameraConfigTests)
+  add_executable(ResourceGainTests tests/ResourceGainTests.cpp)
+  target_include_directories(ResourceGainTests PRIVATE src)
+  add_test(NAME ResourceGains COMMAND ResourceGainTests)
 
 endif()
 
@@ -108,6 +116,7 @@ add_library(DarksidersGenesisMod SHARED
   src/NativeTpsFeature.cpp
   src/CameraTraceFeature.cpp
   src/ChaosPoseFeature.cpp
+  src/ResourceGainFeature.cpp
   src/ConfigStore.cpp
   src/DarksidersGenesisMod.cpp
   src/EngineIniFeature.cpp

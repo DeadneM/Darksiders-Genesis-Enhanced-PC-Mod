@@ -15,6 +15,8 @@ uintptr_t g_base=0;
 LogFn g_log=nullptr;
 std::atomic_bool g_ready{false},g_active{false};
 std::atomic_ullong g_tick{0};
+std::atomic_bool g_ranged{false};
+std::atomic_uintptr_t g_formIdentity{0},g_ownerIdentity{0};
 std::atomic_uint32_t g_samples{0},g_valid{0},g_changes{0};
 bool Readable(const void* p,size_t bytes){
     MEMORY_BASIC_INFORMATION r{};
@@ -63,7 +65,10 @@ void Initialize(LogFn logger,bool exactExecutable){
         {0x1886900,{0x48,0x89,0x5C,0x24,0x08,0x57,0x48,0x83,0xEC,0x30,0x8B,0xFA,0x41,0xB8,0x01,0x00}},
         {0x76C2E0,{0x4C,0x8B,0xDC,0x48,0x83,0xEC,0x78,0x48,0x8B,0x05,0x92,0xE9,0x09,0x03,0x48,0x85}},
         {0x7A6350,{0x48,0x83,0xEC,0x28,0x48,0x8B,0x05,0x1D,0x9B,0x06,0x03,0x48,0x85,0xC0,0x75,0x1A}},
-        {0x7ACC15,{0x48,0x8B,0x81,0x78,0x0E,0x00,0x00,0x49,0x89,0x00,0xC3,0x48,0x8B,0x42,0x20,0x45}}
+        {0x7ACC15,{0x48,0x8B,0x81,0x78,0x0E,0x00,0x00,0x49,0x89,0x00,0xC3,0x48,0x8B,0x42,0x20,0x45}},
+        {0x7ACC35,{0x0F,0xB6,0x81,0x18,0x0C,0x00,0x00,0x41,0x88,0x00,0xC3,0x48,0x89,0x5C,0x24,0x08}},
+        {0x7BFDA0,{0x48,0x83,0xEC,0x28,0x48,0x8B,0x05,0x2D,0x18,0x05,0x03,0x48,0x85,0xC0,0x75,0x1A}},
+        {0x56BE70,{0x48,0x8B,0x81,0xC0,0x05,0x00,0x00,0xC3,0xCC,0xCC,0xCC,0xCC,0xCC,0xCC,0xCC,0xCC}}
     };
     for(const auto& guard:guards)
         if(std::memcmp(reinterpret_cast<void*>(g_base+guard.rva),guard.bytes,16)){
@@ -94,6 +99,17 @@ bool Sample(void* camera,Pose& pose){
             }
         }
     }
+    // Exact APawn.PlayerState -> native holder.GetCharacter -> normal player.
+    // Require the reciprocal native GetChaosForm relation, never a guessed
+    // previous pawn. CharacterType=1 is Strife (native Strife_Chaos mapping).
+    void* state=nullptr;void* owner=nullptr;void* reciprocal=nullptr;
+    unsigned char type=0;
+    const bool verifiedOwner=form&&Read(form,0x330,state)&&Instance(state,0x38115D8)&&
+        Read(state,0x5C0,owner)&&Instance(owner,0x380FE78)&&
+        Read(owner,0xE78,reciprocal)&&reciprocal==form&&Read(owner,0xC18,type);
+    g_formIdentity.store(reinterpret_cast<uintptr_t>(form),std::memory_order_relaxed);
+    g_ownerIdentity.store(verifiedOwner?reinterpret_cast<uintptr_t>(owner):0,std::memory_order_relaxed);
+    g_ranged.store(verifiedOwner&&type==1,std::memory_order_release);
     Pose candidate{};
     void* root=nullptr;
     bool valid=form&&Read(form,0x158,root)&&root&&
@@ -109,9 +125,11 @@ bool Sample(void* camera,Pose& pose){
     g_tick.store(now,std::memory_order_release);
     if(g_log&&(changed||g_samples.load()==1)){
         ++g_changes;
-        char line[300]{};
-        sprintf_s(line,"TPS V1.36 ULTIMATE_POSE active=%d source=%s pawn=%p form=%p poseValid=%d world=(%.1f,%.1f,%.1f) tid=%lu nativeControls=PASSTHROUGH",
-            form?1:0,source,pawn,form,valid?1:0,candidate.x,candidate.y,candidate.z,GetCurrentThreadId());
+        char line[410]{};
+        sprintf_s(line,"TPS V1.37 ULTIMATE_POSE active=%d source=%s pawn=%p form=%p poseValid=%d world=(%.1f,%.1f,%.1f) tid=%lu ownerVerified=%d owner=%p characterType=%u aiming=%s",
+            form?1:0,source,pawn,form,valid?1:0,candidate.x,candidate.y,candidate.z,GetCurrentThreadId(),
+            verifiedOwner?1:0,verifiedOwner?owner:nullptr,unsigned(type),
+            verifiedOwner&&type==1?"STRIFE_CAMERA_FORWARD":"NATIVE");
         g_log(line);
     }
     return valid;
@@ -119,6 +137,15 @@ bool Sample(void* camera,Pose& pose){
 bool ActiveNow(){
     const auto tick=g_tick.load(std::memory_order_acquire),now=GetTickCount64();
     return g_active.load(std::memory_order_acquire)&&tick&&now>=tick&&now-tick<250ull;
+}
+bool RangedActive(){return ActiveNow()&&g_ranged.load(std::memory_order_acquire);}
+bool RangedActor(void* actor){
+    const auto identity=reinterpret_cast<uintptr_t>(actor);
+    return identity&&RangedActive()&&(identity==g_formIdentity.load(std::memory_order_acquire)||
+        identity==g_ownerIdentity.load(std::memory_order_acquire));
+}
+bool RangedOwner(void* actor){
+    return actor&&RangedActive()&&reinterpret_cast<uintptr_t>(actor)==g_ownerIdentity.load(std::memory_order_acquire);
 }
 void Shutdown(){
     g_ready.store(false,std::memory_order_release);g_active.store(false,std::memory_order_release);

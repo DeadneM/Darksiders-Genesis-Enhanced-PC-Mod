@@ -205,6 +205,38 @@ static const FStringView kSubstituteMovies[2] = {
 // V1.05: read-only diagnostic, after the native 3-record warning-definition
 // loop at RVA 0x25FED0, before the existing StartupMovies copy hook returns.
 // Never modifies warning bytes or skips their original initialization.
+// V1.37: 0x25FEDC calls FSoftObjectPath::TryLoad (0xAC8760),
+// not a drawing function. Its native body calls ToString then StaticLoadObject.
+// Resolve actual warning asset paths AFTER original preparation. No loading,
+// Slate/widget mutation, screen dismissal or startup-loop bypass here.
+static void LogStartupAssetPath(const BYTE* entry,int record){
+    const uintptr_t base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    constexpr BYTE toStringSig[]={0x48,0x89,0x4C,0x24,0x08,0x55,0x56,0x57,0x41,0x54,0x41,0x55,0x41,0x56,0x41,0x57};
+    constexpr BYTE freeSig[]={0x48,0x85,0xC9,0x74,0x2E,0x53,0x48,0x83,0xEC,0x20,0x48,0x8B,0xD9,0x48,0x8B,0x0D};
+    if(!base||!IsReadableSpan(entry,0x40)||
+       std::memcmp(reinterpret_cast<void*>(base+0xAC84F0),toStringSig,sizeof(toStringSig))||
+       std::memcmp(reinterpret_cast<void*>(base+0x8312C0),freeSig,sizeof(freeSig)))return;
+    using ToString=FStringView*(*)(const void*,FStringView*);
+    using Free=void(*)(const void*);
+    FStringView path{};
+    const auto* result=reinterpret_cast<ToString>(base+0xAC84F0)(entry+0x20,&path);
+    wchar_t name[261]{};
+    const bool valid=result==&path&&path.size>0&&path.size<=261&&path.capacity>=path.size&&
+        IsReadableSpan(path.data,static_cast<size_t>(path.size)*sizeof(wchar_t));
+    if(valid){
+        int count=path.size;
+        if(count&&path.data[count-1]==0)--count;
+        if(count>260)count=260;
+        std::memcpy(name,path.data,static_cast<size_t>(count)*sizeof(wchar_t));
+        for(int i=0;i<count;++i)if(name[i]<32)name[i]=L'_';
+    }
+    // Exact native caller 0xAC87DE..0xAC87E8 frees this same FString buffer.
+    if(path.data)reinterpret_cast<Free>(base+0x8312C0)(path.data);
+    wchar_t line[440]{};
+    swprintf_s(line,L"Startup V1.37 ASSET_PATH record=%d type=%u active=%u decoded=%d path='%s' loadStage=PREPARE presentationUnmodified=1",
+        record,unsigned(entry[0x38]),unsigned(entry[0x39]),valid?1:0,valid?name:L"unresolved");
+    LogLoader(line);
+}
 static void ProbeStartupDefinitions(){
     if(!g_skipLogosTargetValid.load(std::memory_order_acquire))return;
     const uintptr_t base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
@@ -264,6 +296,7 @@ static void ProbeStartupDefinitions(){
                 i,n,unsigned(entry[0x38]),unsigned(entry[0x39]),entry[0x39]?1:0);
             LogLoader(line);
         }
+        if(n==3)LogStartupAssetPath(entry,i);
         // Two user-confirmed warning pages are drawn later: save notice,
         // controller notice. Record preparation is NOT presentation.
     }

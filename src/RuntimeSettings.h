@@ -47,6 +47,8 @@ struct Snapshot {
     float thirdPersonDistanceMultiplier = 0.15f;
     float thirdPersonPitchDegrees = -12.0f;
     float thirdPersonHeightOffset = 0.0f;
+    float tpsUltimateDistanceMultiplier = 0.15f;
+    float tpsUltimateHeightOffset = 0.0f;
     float tpsFootAnchorOffset = 0.0f; // estimated capsule center-to-foot, configurable
     float cameraStickSpeed = 180.0f;
     float movementSpeedMultiplier = 1.50f;
@@ -139,6 +141,8 @@ struct State {
     std::atomic<float> thirdPersonDistanceMultiplier{0.15f};
     std::atomic<float> thirdPersonPitchDegrees{-12.0f};
     std::atomic<float> thirdPersonHeightOffset{0.0f};
+    std::atomic<float> tpsUltimateDistanceMultiplier{0.15f};
+    std::atomic<float> tpsUltimateHeightOffset{0.0f};
     std::atomic<float> tpsFootAnchorOffset{0.0f};
     std::atomic<float> cameraStickSpeed{180.0f};
     std::atomic<float> cameraOrbitYawDegrees{0.0f};

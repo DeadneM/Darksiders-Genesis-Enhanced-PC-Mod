@@ -54,6 +54,8 @@ void Publish(const Snapshot& s) {
     g_state.thirdPersonDistanceMultiplier.store(s.thirdPersonDistanceMultiplier, std::memory_order_relaxed);
     g_state.thirdPersonPitchDegrees.store(s.thirdPersonPitchDegrees, std::memory_order_relaxed);
     g_state.thirdPersonHeightOffset.store(s.thirdPersonHeightOffset, std::memory_order_relaxed);
+    g_state.tpsUltimateDistanceMultiplier.store(s.tpsUltimateDistanceMultiplier);
+    g_state.tpsUltimateHeightOffset.store(s.tpsUltimateHeightOffset);
     g_state.tpsFootAnchorOffset.store(s.tpsFootAnchorOffset);
     g_state.cameraStickSpeed.store(s.cameraStickSpeed, std::memory_order_relaxed);
     g_state.movementSpeedMultiplier.store(s.movementSpeedMultiplier, std::memory_order_relaxed);

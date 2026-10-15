@@ -31,6 +31,7 @@ LogFn g_log=nullptr;
 uintptr_t g_base=0;
 std::atomic_bool g_ready{false},g_cinematic{false};
 std::atomic_uint32_t g_foot{0},g_horse{0},g_hits{0},g_misses{0},g_rays{0};
+std::atomic_uint32_t g_ultimate{0};
 std::atomic_uint32_t g_native2{0},g_native3{0},g_rejected{0};
 using SettingsFn=void*(*)();
 using VisibleFn=bool(*)(void*);
@@ -92,14 +93,14 @@ bool HookDeproject(void* controller,const Vec2* pixel,Vec3* origin,Vec3* directi
     return g_deproject(controller,pixel,origin,direction);
 }
 void Observe(const MouseRay& r,const Vec3& target,bool hit,const char* path){
-    const unsigned n=r.mounted?++g_horse:++g_foot;
+    const unsigned n=r.ultimate?++g_ultimate:r.mounted?++g_horse:++g_foot;
     if(hit)++g_hits;else ++g_misses;
     // Separate budgets: mounted observations cannot be exhausted on foot.
     const unsigned idle=r.fireHeld?0:++g_idleMouseTargets;
     if(g_log&&(n<=12||n==100||n==1000||(idle&&idle<=8))){
         char line[440]{};
         sprintf_s(line,"TPS V1.34 NATIVE_MOUSE_TARGET source=%s path=%s n=%u buttonHeld=%d nativeHit=%d camera=(%.1f,%.1f,%.1f) ray=(%.4f,%.4f,%.4f) target=(%.1f,%.1f,%.1f) muzzleConsumer=NATIVE projectileImpactUnmeasured=1",
-            r.mounted?"HORSE":"FOOT",path,n,r.fireHeld?1:0,hit?1:0,
+            r.ultimate?"STRIFE_ULTIMATE":r.mounted?"HORSE":"FOOT",path,n,r.fireHeld?1:0,hit?1:0,
             r.origin.x,r.origin.y,r.origin.z,r.direction.x,r.direction.y,
             r.direction.z,target.x,target.y,target.z);
         g_log(line);
@@ -303,6 +304,8 @@ void Report(){
     sprintf_s(line,"TPS V1.32 native targeting totals: ready=%d helper2=%u helper3=%u scopedRays=%u foot=%u horse=%u nativeHits=%u noHitForward=%u nativePass=%u actualProjectileImpacts=UNMEASURED",
         TargetReady()?1:0,g_native2.load(),g_native3.load(),g_rays.load(),
         g_foot.load(),g_horse.load(),g_hits.load(),g_misses.load(),g_rejected.load());
+    g_log(line);
+    sprintf_s(line,"TPS V1.37 native Strife Ultimate mouse targets=%u actualProjectileImpacts=UNMEASURED",g_ultimate.load());
     g_log(line);
     sprintf_s(line,"TPS V1.34 native action totals: radialEvents=%u nativeSwapKnown=%d nativeSwap=%d mouseTargetsWithoutHeldButton=%u wheelsCoverage=UNVALIDATED",
         g_radialEvents.load(),NativeStickSwapKnown()?1:0,NativeStickSwap()?1:0,g_idleMouseTargets.load());

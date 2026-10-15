@@ -366,6 +366,8 @@ void Store::ResetDefaults(bool persist) {
     thirdPersonDistanceMultiplier = 0.15f;
     thirdPersonPitchDegrees = -12.0f;
     thirdPersonHeightOffset = 0.0f;
+    tpsUltimateDistanceMultiplier = 0.15f;
+    tpsUltimateHeightOffset = 0.0f;
     tpsFootAnchorOffset = 0.0f;
     cameraStickSpeed = 180.0f;
     hotstreakChargeMultiplier = 2.00f;
@@ -456,6 +458,8 @@ void Store::ResetTpsCameraValues() {
     thirdPersonDistanceMultiplier=0.15f;
     thirdPersonPitchDegrees=-12.0f;
     thirdPersonHeightOffset=0.0f;
+    tpsUltimateDistanceMultiplier=0.15f;
+    tpsUltimateHeightOffset=0.0f;
     tpsFootAnchorOffset=0.0f;
     cameraStickSpeed=180.0f;
     dg::runtime::Get().cameraOrbitYawDegrees.store(0.0f);
@@ -641,6 +645,11 @@ bool Store::Load() {
     thirdPersonDistanceMultiplier=std::clamp(thirdPersonDistanceMultiplier,0.0f,3.0f);
     thirdPersonPitchDegrees=std::clamp(thirdPersonPitchDegrees,-75.0f,65.0f);
     thirdPersonHeightOffset=std::clamp(thirdPersonHeightOffset,-1000.0f,1000.0f);
+    // Missing new keys inherit the player's current camera, preserving old INIs.
+    tpsUltimateDistanceMultiplier=std::clamp(ReadFloat(L"Values",L"TPSUltimateDistanceMultiplier",
+        thirdPersonDistanceMultiplier,path_),0.0f,3.0f);
+    tpsUltimateHeightOffset=std::clamp(ReadFloat(L"Values",L"TPSUltimateHeightOffset",
+        thirdPersonHeightOffset,path_),-1000.0f,1000.0f);
     cameraStickSpeed=std::clamp(cameraStickSpeed,30.0f,360.0f);
     hotstreakChargeMultiplier =
         ReadFloat(L"Values", L"HotstreakChargeMultiplier", 2.0f, path_);
@@ -810,6 +819,8 @@ void Store::PublishRuntime() const {
     runtime.thirdPersonDistanceMultiplier = thirdPersonDistanceMultiplier;
     runtime.thirdPersonPitchDegrees = thirdPersonPitchDegrees;
     runtime.thirdPersonHeightOffset = thirdPersonHeightOffset;
+    runtime.tpsUltimateDistanceMultiplier = tpsUltimateDistanceMultiplier;
+    runtime.tpsUltimateHeightOffset = tpsUltimateHeightOffset;
     runtime.tpsFootAnchorOffset = tpsFootAnchorOffset;
     runtime.cameraStickSpeed = cameraStickSpeed;
     runtime.pistolDamageEnabled = pistolDamageEnabled;
@@ -1030,6 +1041,8 @@ bool Store::SaveNow() {
     WriteFloat(L"Values", L"ThirdPersonDistanceMultiplier", thirdPersonDistanceMultiplier, path_);
     WriteFloat(L"Values", L"ThirdPersonPitchDegrees", thirdPersonPitchDegrees, path_);
     WriteFloat(L"Values", L"ThirdPersonHeightOffset", thirdPersonHeightOffset, path_);
+    WriteFloat(L"Values",L"TPSUltimateDistanceMultiplier",tpsUltimateDistanceMultiplier,path_);
+    WriteFloat(L"Values",L"TPSUltimateHeightOffset",tpsUltimateHeightOffset,path_);
     WriteFloat(L"Values",L"TPSFootAnchorOffset",tpsFootAnchorOffset,path_);
     WriteFloat(L"Values", L"CameraStickSpeed", cameraStickSpeed, path_);
     WriteFloat(L"Values", L"HotstreakChargeMultiplier", hotstreakChargeMultiplier, path_);

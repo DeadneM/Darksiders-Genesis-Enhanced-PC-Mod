@@ -242,6 +242,8 @@ public:
     float thirdPersonDistanceMultiplier = 0.15f;
     float thirdPersonPitchDegrees = -12.0f;
     float thirdPersonHeightOffset = 0.0f;
+    float tpsUltimateDistanceMultiplier = 0.15f;
+    float tpsUltimateHeightOffset = 0.0f;
     float tpsFootAnchorOffset = 0.0f; // adjustable +/-500 units
     float cameraStickSpeed = 180.0f;
     float hotstreakChargeMultiplier = 2.00f;
