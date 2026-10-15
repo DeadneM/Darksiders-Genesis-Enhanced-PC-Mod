@@ -52,3 +52,20 @@ Manual gauges, F-key IDs/default assignments, Synergy, mouse relative recovery, 
 2. Strife: transform, test primary/secondary and movement with pad and mouse, both stick layouts and wheels. Log ownerVerified/characterType, ULTIMATE_AIM and STRIFE_ULTIMATE target events; then normal foot/horse/cutscene/pause/temporary native/Alt-Tab regression check. Missing owner bridge -> native fallback, not a forced guessed actor.
 3. Natural gauges: below cap, x1 then x2, pick one blue/Wrath resource and defeat/damage a target separately. Compare NATIVE_REWARD logs and visible gain. Test x0 optional, spend still native, F1/manual100% still exactly100%. Do not use manual fill as evidence of natural boost.
 4. Startup: normal cold boot, collect new ASSET_PATH records and confirm reticle/menus intact. Warnings are still displayed by design. Next correction must target their proven presentation lifecycle, not the asset-load loop.
+
+## Verified build, package and installation receipt
+
+Source9ae0f59fe4067f1385fb98000121d41b380ddac2, CI38758958418 SUCCESS, five CTest suites passed. Initial CI38758383075 failed only because a test lambda used the Windows macro name near; repaired in9ae0f59 with no game-code change, then rebuilt/retested. The failed run produced no published ZIP or installation. Full successful CI log retained locally; remaining compiler warnings are pre-existing unused locals/functions/shadowing. Build/test/package success is not in-game proof.
+
+Publication44074e32ab2d47aa7a0206bab3d6b8ec1ab5fd41. Exact four-root package, AMD64 PE, embedded1.37 identity and direct/repository/CI SHA256 checks passed. ZIP793735 bytes SHA256 59FA3FB722D608789E79EE700B205A30826A5929C6AE0BFB67AAFEF7CD051857.
+
+- DarksidersGenesisMod.asi: 1169408 bytes, SHA256 2E7266728D87E9FF912486134328792EC173F9A5F029AF42F37647F8B3A941E6
+- DarksidersGenesisMod.ini: 2745 bytes, SHA256 4EEBD257A3E39EE343D891398D9F26C944FF9A6550A15A9322BA12E0290CBD54
+- dxgi.dll: 156672 bytes, SHA256 6A7EBE1E3FC50EB345BB1F7C7BEB76A7E6AC792CE47D41C4668AD43C039885D2
+- README.md: 251682 bytes, SHA256 5BED03EF07C025B7B5A1BD82FDFADAC2AA4172DB613F662F7FC6C33917E3050B
+
+Closed-game install with prior four files/log/hash backup ../audit-v131/install-backup-before-v137-20261015-171955/. ASI/loader destination hashes match package; personal INI unchanged D4CCBFD4D2C2BCA1058E66716B870C104F7787A6492A23A69EA7EEF299D56738; existing F1 FillAll binding and all user settings retained. New Ultimate keys are inherited at runtime until user saves; installer never overwrote personal INI. README refreshed after final delivery receipt; immutable numbered ZIP preserved. No game launch by agent, EXE/pak modifications or asset replacement.
+
+Protected refs main2bc3122c1ae07b7333798462f85c1d9fd3a739f7 / archive10e0f220b85022bc9269e0cb9390a811a3b1cf89 unchanged. Downloads diff relative to6e1e5fe adds V1.37 only, no old archive mutation. Static15 feature signatures, setter entries, four reward call targets, Strife type1 mapping and native warning name/free signatures match local retail EXE. Normal XInput body, RawInput block and native raycast math unchanged; manual/Synergy/horse/stick-role modules unchanged.
+
+Final status CONSTRUIT / CONTROLE / INSTALLE / EXPERIMENTAL. Next: compare Ultimate vs normal framing, Strife form fire/movement with mouse/pad, x1/x2 natural pickup/combat rewards, and collect named startup assets at cold boot. The Skip Warning function remains unresolved and disabled; new diagnostic naming must not be presented as a working skip. No natural gain or Ultimate firing behavior has been promoted to user VALIDATED on CI evidence.
