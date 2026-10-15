@@ -1,3 +1,7 @@
+## V1.38 follow-up - Wrath OFF / Void hub (2026-10-15)
+
+User reports free abilities at zero with Unlimited Wrath OFF, then confirms **Strife in the Void hub**. That hub normally permits free Wrath ability use independently of the mod. Log confirms OFF20:06:13, manual0% with matching readback20:07:01, gauge stays0 until explicit all-ON20:27:39; shutdown has **zero Wrath hold overrides** and one later authorized top-up. **Void behavior explained; no gameplay fix or mission validation claimed.** Current V1.38 binaries/configuration retained; no new build. Next: test the same Wrath ability in an actual mission with Unlimited OFF, then ON/OFF. [Evidence, limits and next test](V1_38_WRATH_OFF_CHECK.md).
+
 ## V1.38 built, checked and installed - Unlimited / Ultimate recenter / Skip Warning TEST (2026-10-15)
 
 **CONSTRUIT / CONTROLE / INSTALLE / EXPERIMENTAL.** Base V1.37 debug985b0ff; all three natural gauge gain multipliers now **VALIDATED by user**, in addition to prior manual refills and ordinary TPS. Source 729f747770b9e3790775fe580c94357a92f446ae (initial feature commit cb9f130, final warning-counter diagnostic adjustment); [Windows x64 CI38780065798](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38780065798) SUCCESS, all **7/7 CTest** suites passed: stick roles, manual request policy, persisted gauge hotkeys/Unlimited/SkipWarning settings, Ultimate camera INI/runtime, natural reward policy, Unlimited identity/cap policy and exact named warning-page selection. Archive publication f57e9eeaa453b699c8e96a536efd5f2cd4ba59c9.
