@@ -348,6 +348,7 @@ void Store::ResetDefaults(bool persist) {
     unlimitedWrathEnabled = false;
     unlimitedUltimateEnabled = false;
     unlimitedSynergyEnabled = false;
+    reduceAmmoEnabled = false;unlimitedAmmoEnabled = false;ammoConsumptionDivisor = 2.0f;
 
     movementSpeedMultiplier = 1.50f;
     actionRecoveryDelayMs = 0.0f;
@@ -525,6 +526,9 @@ bool Store::Load() {
     unlimitedWrathEnabled=ReadBool(L"Features",L"UnlimitedWrath",false,path_);
     unlimitedUltimateEnabled=ReadBool(L"Features",L"UnlimitedUltimate",false,path_);
     unlimitedSynergyEnabled=ReadBool(L"Features",L"UnlimitedSynergy",false,path_);
+    reduceAmmoEnabled=ReadBool(L"Features",L"ReduceAmmoConsumption",false,path_);
+    unlimitedAmmoEnabled=ReadBool(L"Features",L"UnlimitedAmmo",false,path_);
+    ammoConsumptionDivisor=std::clamp(ReadFloat(L"Values",L"AmmoConsumptionDivisor",2.0f,path_),0.0f,10.0f);
     thirdPersonEnabled =
         ReadBool(L"Features", L"ThirdPerson", true, path_);
     thirdPersonFovEnabled=ReadBool(L"Features",L"TPSFOV",true,path_);
@@ -845,6 +849,9 @@ void Store::PublishRuntime() const {
     runtime.unlimitedWrathEnabled = unlimitedWrathEnabled;
     runtime.unlimitedUltimateEnabled = unlimitedUltimateEnabled;
     runtime.unlimitedSynergyEnabled = unlimitedSynergyEnabled;
+    runtime.reduceAmmoEnabled = reduceAmmoEnabled;
+    runtime.unlimitedAmmoEnabled = unlimitedAmmoEnabled;
+    runtime.ammoConsumptionDivisor = ammoConsumptionDivisor;
 
     runtime.fovDegrees = fovDegrees;
     runtime.thirdPersonFovDegrees = thirdPersonFovDegrees;
@@ -927,6 +934,9 @@ bool Store::SaveNow() {
     WriteBool(L"Features",L"UnlimitedWrath",unlimitedWrathEnabled,path_);
     WriteBool(L"Features",L"UnlimitedUltimate",unlimitedUltimateEnabled,path_);
     WriteBool(L"Features",L"UnlimitedSynergy",unlimitedSynergyEnabled,path_);
+    WriteBool(L"Features",L"ReduceAmmoConsumption",reduceAmmoEnabled,path_);
+    WriteBool(L"Features",L"UnlimitedAmmo",unlimitedAmmoEnabled,path_);
+    WriteFloat(L"Values",L"AmmoConsumptionDivisor",ammoConsumptionDivisor,path_);
     WriteBool(L"Features", L"ThirdPerson", thirdPersonEnabled, path_);
     WriteBool(L"Features",L"TPSFOV",thirdPersonFovEnabled,path_);
     WritePrivateProfileStringW(L"Features",L"TPSFollowPlayer",nullptr,path_.c_str());

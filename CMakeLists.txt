@@ -32,6 +32,17 @@ if(BUILD_TESTING)
   add_executable(WarningPresentationTests tests/WarningPresentationTests.cpp)
   target_include_directories(WarningPresentationTests PRIVATE src)
   add_test(NAME WarningPresentation COMMAND WarningPresentationTests)
+  add_executable(AmmoConsumptionTests tests/AmmoConsumptionTests.cpp)
+  target_include_directories(AmmoConsumptionTests PRIVATE src)
+  add_test(NAME AmmoConsumption COMMAND AmmoConsumptionTests)
+  add_executable(AmmoConfigTests tests/AmmoConfigTests.cpp src/ConfigStore.cpp src/RuntimeSettings.cpp)
+  target_include_directories(AmmoConfigTests PRIVATE src)
+  target_compile_definitions(AmmoConfigTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  target_link_libraries(AmmoConfigTests PRIVATE user32)
+  add_test(NAME AmmoConfig COMMAND AmmoConfigTests)
+  add_executable(ActionRecoveryTests tests/ActionRecoveryTests.cpp)
+  target_include_directories(ActionRecoveryTests PRIVATE src)
+  add_test(NAME ActionRecovery COMMAND ActionRecoveryTests)
 
 endif()
 
@@ -128,6 +139,8 @@ add_library(DarksidersGenesisMod SHARED
   src/EngineIniFeature.cpp
   src/GaugeChargeFeature.cpp
   src/ManualGaugeFeature.cpp
+  src/AmmoConsumptionFeature.cpp
+  src/ActionRecoveryFeature.cpp
   src/HorseFeature.cpp
   src/OverlayUi.cpp
   src/RuntimeSettings.cpp

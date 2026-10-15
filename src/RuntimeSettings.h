@@ -40,6 +40,9 @@ struct Snapshot {
     bool unlimitedWrathEnabled = false;
     bool unlimitedUltimateEnabled = false;
     bool unlimitedSynergyEnabled = false;
+    bool reduceAmmoEnabled = false;
+    bool unlimitedAmmoEnabled = false;
+    float ammoConsumptionDivisor = 2.0f;
 
     float fovDegrees = 90.0f;
     float thirdPersonFovDegrees = 110.0f;
@@ -135,6 +138,9 @@ struct State {
     std::atomic_bool unlimitedWrathEnabled{false};
     std::atomic_bool unlimitedUltimateEnabled{false};
     std::atomic_bool unlimitedSynergyEnabled{false};
+    std::atomic_bool reduceAmmoEnabled{false};
+    std::atomic_bool unlimitedAmmoEnabled{false};
+    std::atomic<float> ammoConsumptionDivisor{2.0f};
     // V1.24 read-only time of a verified positive local Synergy additive gain.
     std::atomic_ullong lastNativeSynergyPositiveTick{0};
 

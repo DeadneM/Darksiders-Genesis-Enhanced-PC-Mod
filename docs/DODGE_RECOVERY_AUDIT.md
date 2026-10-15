@@ -1,3 +1,7 @@
+## V1.39 reprise (2026-10-15)
+
+User confirms old Action Recovery has no effect after dash/chest. V1.38 read-only samples: component MoveInterruptDelay=0, direct state2->5 transitions; no observed state4 tail. V0.8A sliding regression stays rejected. V1.39 removes that hook and tests native montage blend-tail completion through normal Stop(false)/EndAbility cleanup. This is an implemented experiment, not gameplay validation. See [new native evidence, limits and test](V1_39_AMMO_ACTION_RECOVERY.md); the historical records below are preserved.
+
 # Dodge Recovery Audit
 
 Target executable:

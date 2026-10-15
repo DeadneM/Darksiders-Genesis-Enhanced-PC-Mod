@@ -1,0 +1,345 @@
+{
+  "build": "V1.38",
+  "readOnly": true,
+  "session": "2026-10-15 21:17:43-21:17:55 Europe/Paris",
+  "limitations": [
+    "Twelve-second sample; not a complete recording of the user test",
+    "User reported dash/chest examples; samples do not independently label each animation",
+    "helper D8/194/virtual slots from the raw exploratory capture were invalid beyond the actual 0x38-byte UMayhemMontagePlayer; discarded here",
+    "No game memory was written; no game functions were invoked"
+  ],
+  "rows": [
+    {
+      "time": "21:17:43",
+      "age": 0.0,
+      "moveDelay": 0.0,
+      "moveElapsed": 3.2412497997283936,
+      "active": [
+        {
+          "vtableRva": "0x26cbbd8",
+          "state": 3,
+          "elapsed": 0.057,
+          "types": [],
+          "helperVtableRva": "0x277bb20"
+        },
+        {
+          "vtableRva": "0x27df948",
+          "state": 3,
+          "elapsed": 0.017,
+          "types": [],
+          "helperVtableRva": "0x277c470"
+        },
+        {
+          "vtableRva": "0x27c6770",
+          "state": 2,
+          "elapsed": 1.186,
+          "types": [
+            "MONTAGE"
+          ],
+          "helperVtableRva": "0x27bc3b0"
+        }
+      ]
+    },
+    {
+      "time": "21:17:43",
+      "age": 0.047,
+      "moveDelay": 0.0,
+      "moveElapsed": 3.2597761154174805,
+      "active": [
+        {
+          "vtableRva": "0x26cbbd8",
+          "state": 3,
+          "elapsed": 0.057,
+          "types": [],
+          "helperVtableRva": "0x277bb20"
+        },
+        {
+          "vtableRva": "0x27df948",
+          "state": 3,
+          "elapsed": 0.017,
+          "types": [],
+          "helperVtableRva": "0x277c470"
+        },
+        {
+          "vtableRva": "0x27c6770",
+          "state": 5,
+          "elapsed": 1.204,
+          "types": [
+            "MONTAGE"
+          ],
+          "helperVtableRva": "0x27bc3b0"
+        }
+      ]
+    },
+    {
+      "time": "21:17:43",
+      "age": 0.062,
+      "moveDelay": 0.0,
+      "moveElapsed": 3.293085813522339,
+      "active": [
+        {
+          "vtableRva": "0x26cbbd8",
+          "state": 3,
+          "elapsed": 0.057,
+          "types": [],
+          "helperVtableRva": "0x277bb20"
+        },
+        {
+          "vtableRva": "0x27df948",
+          "state": 5,
+          "elapsed": 0.033,
+          "types": [],
+          "helperVtableRva": "0x277c470"
+        }
+      ]
+    },
+    {
+      "time": "21:17:43",
+      "age": 0.109,
+      "moveDelay": 0.0,
+      "moveElapsed": 3.3359878063201904,
+      "active": [
+        {
+          "vtableRva": "0x26c99b8",
+          "state": 2,
+          "elapsed": 0.017,
+          "types": [
+            "MONTAGE"
+          ],
+          "helperVtableRva": "0x27bc3b0"
+        }
+      ]
+    },
+    {
+      "time": "21:17:44",
+      "age": 0.516,
+      "moveDelay": 0.0,
+      "moveElapsed": 3.740300416946411,
+      "active": [
+        {
+          "vtableRva": "0x26c99b8",
+          "state": 2,
+          "elapsed": 0.421,
+          "types": [
+            "MONTAGE"
+          ],
+          "helperVtableRva": "0x27bc3b0"
+        }
+      ]
+    },
+    {
+      "time": "21:17:44",
+      "age": 0.531,
+      "moveDelay": 0.0,
+      "moveElapsed": 3.756969451904297,
+      "active": []
+    },
+    {
+      "time": "21:17:51",
+      "age": 7.922,
+      "moveDelay": 0.0,
+      "moveElapsed": 11.151589393615723,
+      "active": [
+        {
+          "vtableRva": "0x27f1ad0",
+          "state": 2,
+          "elapsed": 0.033,
+          "types": [],
+          "helperVtableRva": "0x27f1dc8"
+        }
+      ]
+    },
+    {
+      "time": "21:17:52",
+      "age": 8.328,
+      "moveDelay": 0.0,
+      "moveElapsed": 0.050017502158880234,
+      "active": [
+        {
+          "vtableRva": "0x27f1ad0",
+          "state": 2,
+          "elapsed": 0.44,
+          "types": [],
+          "helperVtableRva": "0x27f1dc8"
+        }
+      ]
+    },
+    {
+      "time": "21:17:52",
+      "age": 8.734,
+      "moveDelay": 0.0,
+      "moveElapsed": 0.4458710551261902,
+      "active": [
+        {
+          "vtableRva": "0x27f1ad0",
+          "state": 2,
+          "elapsed": 0.836,
+          "types": [],
+          "helperVtableRva": "0x27f1dc8"
+        }
+      ]
+    },
+    {
+      "time": "21:17:52",
+      "age": 9.141,
+      "moveDelay": 0.0,
+      "moveElapsed": 0.8714933395385742,
+      "active": [
+        {
+          "vtableRva": "0x27f1ad0",
+          "state": 2,
+          "elapsed": 1.262,
+          "types": [],
+          "helperVtableRva": "0x27f1dc8"
+        }
+      ]
+    },
+    {
+      "time": "21:17:53",
+      "age": 9.547,
+      "moveDelay": 0.0,
+      "moveElapsed": 0.016655299812555313,
+      "active": [
+        {
+          "vtableRva": "0x27f1ad0",
+          "state": 2,
+          "elapsed": 1.657,
+          "types": [],
+          "helperVtableRva": "0x27f1dc8"
+        }
+      ]
+    },
+    {
+      "time": "21:17:53",
+      "age": 9.766,
+      "moveDelay": 0.0,
+      "moveElapsed": 0.23255258798599243,
+      "active": [
+        {
+          "vtableRva": "0x27f1ad0",
+          "state": 3,
+          "elapsed": 1.856,
+          "types": [],
+          "helperVtableRva": "0x27f1dc8"
+        },
+        {
+          "vtableRva": "0x26c99b8",
+          "state": 2,
+          "elapsed": 0.017,
+          "types": [
+            "MONTAGE"
+          ],
+          "helperVtableRva": "0x27bc3b0"
+        }
+      ]
+    },
+    {
+      "time": "21:17:54",
+      "age": 10.172,
+      "moveDelay": 0.0,
+      "moveElapsed": 0.0,
+      "active": [
+        {
+          "vtableRva": "0x27f1ad0",
+          "state": 3,
+          "elapsed": 1.856,
+          "types": [],
+          "helperVtableRva": "0x27f1dc8"
+        },
+        {
+          "vtableRva": "0x26c99b8",
+          "state": 2,
+          "elapsed": 0.424,
+          "types": [
+            "MONTAGE"
+          ],
+          "helperVtableRva": "0x27bc3b0"
+        }
+      ]
+    },
+    {
+      "time": "21:17:54",
+      "age": 10.594,
+      "moveDelay": 0.0,
+      "moveElapsed": 0.0,
+      "active": [
+        {
+          "vtableRva": "0x27f1ad0",
+          "state": 3,
+          "elapsed": 1.856,
+          "types": [],
+          "helperVtableRva": "0x27f1dc8"
+        },
+        {
+          "vtableRva": "0x26c99b8",
+          "state": 2,
+          "elapsed": 0.836,
+          "types": [
+            "MONTAGE"
+          ],
+          "helperVtableRva": "0x27bc3b0"
+        }
+      ]
+    },
+    {
+      "time": "21:17:54",
+      "age": 10.687,
+      "moveDelay": 0.0,
+      "moveElapsed": 0.08458320051431656,
+      "active": [
+        {
+          "vtableRva": "0x27f1ad0",
+          "state": 2,
+          "elapsed": 1.873,
+          "types": [],
+          "helperVtableRva": "0x27f1dc8"
+        }
+      ]
+    },
+    {
+      "time": "21:17:54",
+      "age": 11.094,
+      "moveDelay": 0.0,
+      "moveElapsed": 0.08841599524021149,
+      "active": [
+        {
+          "vtableRva": "0x27f1ad0",
+          "state": 2,
+          "elapsed": 2.268,
+          "types": [],
+          "helperVtableRva": "0x27f1dc8"
+        }
+      ]
+    },
+    {
+      "time": "21:17:55",
+      "age": 11.5,
+      "moveDelay": 0.0,
+      "moveElapsed": 0.3389618992805481,
+      "active": [
+        {
+          "vtableRva": "0x27f1ad0",
+          "state": 2,
+          "elapsed": 2.674,
+          "types": [],
+          "helperVtableRva": "0x27f1dc8"
+        }
+      ]
+    },
+    {
+      "time": "21:17:55",
+      "age": 11.906,
+      "moveDelay": 0.0,
+      "moveElapsed": 0.0,
+      "active": [
+        {
+          "vtableRva": "0x27f1ad0",
+          "state": 2,
+          "elapsed": 3.068,
+          "types": [],
+          "helperVtableRva": "0x27f1dc8"
+        }
+      ]
+    }
+  ]
+}

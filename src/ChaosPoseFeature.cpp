@@ -1,6 +1,7 @@
 #include "ChaosPoseFeature.h"
 #include "NativeTpsFeature.h"
 #include "ManualGaugeFeature.h"
+#include "AmmoConsumptionFeature.h"
 #include "RuntimeSettings.h"
 #include <windows.h>
 #include <atomic>
@@ -126,6 +127,7 @@ bool Sample(void* camera,Pose& pose){
     g_poseTick.store(valid?GetTickCount64():0,std::memory_order_release);
     if(verifiedOwner)dg::manual_gauges::OnLivePlayer(owner,
         dg::runtime::Get().tpsActorGeneration.load(std::memory_order_acquire));
+    if(verifiedOwner)dg::ammo::OnLivePlayer(owner,dg::runtime::Get().tpsActorGeneration.load());
     const auto now=GetTickCount64();
     const bool changed=g_active.exchange(form!=nullptr,std::memory_order_acq_rel)!=(form!=nullptr);
     g_tick.store(now,std::memory_order_release);

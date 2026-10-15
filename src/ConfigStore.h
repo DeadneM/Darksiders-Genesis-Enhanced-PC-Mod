@@ -62,6 +62,8 @@ enum class Action : int {
     UnlimitedUltimate,
     UnlimitedSynergy,
     UnlimitedAllGauges,
+    ReduceAmmo,
+    UnlimitedAmmo,
     Count
 };
 
@@ -101,7 +103,9 @@ kActionLabels = {
     "Toggle Unlimited Wrath",
     "Toggle Unlimited Ultimate",
     "Toggle Unlimited Synergy",
-    "Toggle Unlimited all gauges"
+    "Toggle Unlimited all gauges",
+    "Toggle reduced ammo consumption",
+    "Toggle Unlimited ammo"
 };
 
 inline constexpr std::array<const wchar_t*, static_cast<std::size_t>(Action::Count)>
@@ -140,7 +144,9 @@ kActionTokens = {
     L"UnlimitedWrath",
     L"UnlimitedUltimate",
     L"UnlimitedSynergy",
-    L"UnlimitedAllGauges"
+    L"UnlimitedAllGauges",
+    L"ReduceAmmo",
+    L"UnlimitedAmmo"
 };
 
 // Instant actions share the validated one-shot manual refill queue.
@@ -245,6 +251,9 @@ public:
     bool unlimitedWrathEnabled = false;
     bool unlimitedUltimateEnabled = false;
     bool unlimitedSynergyEnabled = false;
+    bool reduceAmmoEnabled = false;
+    bool unlimitedAmmoEnabled = false;
+    float ammoConsumptionDivisor = 2.0f;
 
     float movementSpeedMultiplier = 1.50f;
     float actionRecoveryDelayMs = 0.0f;

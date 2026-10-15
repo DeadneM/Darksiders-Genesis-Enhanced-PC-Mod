@@ -17,6 +17,8 @@
 #include "GaugeChargeFeature.h"
 #include "ResourceGainFeature.h"
 #include "ManualGaugeFeature.h"
+#include "AmmoConsumptionFeature.h"
+#include "ActionRecoveryFeature.h"
 #include "HorseFeature.h"
 #include "NativeTpsFeature.h"
 #include "TpsStickRoles.h"
@@ -44,7 +46,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.38-unlimited-recenter-warning-presentation-test";
+constexpr const char* kBuild = "1.39-ammo-consumption-action-recovery-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -66,7 +68,6 @@ using PresentFn = HRESULT(__stdcall*)(IDXGISwapChain*, UINT, UINT);
 using ResizeBuffersFn = HRESULT(__stdcall*)(IDXGISwapChain*, UINT, UINT, UINT, DXGI_FORMAT, UINT);
 using HudHiddenGetterFn = bool(*)();
 using CharacterGetMaxSpeedFn = float(*)(void*);
-using AbilityActionEnabledFn = bool(*)(void*, unsigned char);
 using AddJuiceFn = void(*)(void*, float);
 using FilterOutgoingDamageFn = void(*)(void*, void*);
 
@@ -74,7 +75,6 @@ PresentFn g_originalPresent = nullptr;
 ResizeBuffersFn g_originalResizeBuffers = nullptr;
 HudHiddenGetterFn g_originalHudHiddenGetter = nullptr;
 CharacterGetMaxSpeedFn g_originalCharacterGetMaxSpeed = nullptr;
-AbilityActionEnabledFn g_originalAbilityActionEnabled = nullptr;
 AddJuiceFn g_originalAddJuice = nullptr;
 FilterOutgoingDamageFn g_originalFilterOutgoingDamage = nullptr;
 
@@ -252,15 +252,6 @@ std::atomic_bool g_finalOutgoingDamageHookReady{false};
 std::atomic_uint g_lastOutgoingScaleType{0};
 std::atomic_int g_lastOutgoingTagCount{0};
 std::atomic<void*> g_localPlayerCharacter{nullptr};
-std::atomic_int g_actionMoveQueries{0};
-std::atomic_int g_actionMoveLocalQueries{0};
-std::atomic_int g_actionMoveNativeBlocked{0};
-std::atomic_int g_actionMoveForced{0};
-std::atomic<void*> g_lastActionMoveAbility{nullptr};
-std::atomic_int g_lastActionMoveState{-1};
-std::atomic<float> g_lastActionMoveElapsed{0.0f};
-std::atomic<void*> g_recoveryTailAbility{nullptr};
-std::atomic<float> g_recoveryTailStartElapsed{0.0f};
 
 std::atomic_int g_movementCaptureRejectLogBudget{12};
 
@@ -2166,6 +2157,7 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
             runtime.tpsActorGeneration.load(std::memory_order_acquire));
         dg::manual_gauges::OnLivePlayer(characterOwner,
             runtime.tpsActorGeneration.load(std::memory_order_acquire));
+        dg::ammo::OnLivePlayer(characterOwner,runtime.tpsActorGeneration.load());
         if (previousPlayer != characterOwner) {
             g_tpsPlayerGeneration.fetch_add(1);
             Log(
@@ -2244,222 +2236,6 @@ const char* AbilityStateName(unsigned char state) {
     }
 }
 
-BYTE* ResolveAbilityActionEnabledNative() {
-    PeSectionView text{};
-    PeSectionView rdata{};
-    if (!GetMainModuleSection(".text", text) ||
-        !GetMainModuleSection(".rdata", rdata)) {
-        Log("Action Recovery V0.8: failed to enumerate PE sections");
-        return nullptr;
-    }
-
-    BYTE* name = FindAsciiString(rdata, "IsActionEnabled");
-    if (!name) {
-        Log("Action Recovery V0.8: IsActionEnabled string not found");
-        return nullptr;
-    }
-
-    static constexpr BYTE kNativePrefix[] = {
-        0x44, 0x0F, 0xB6, 0xC2,
-        0x41, 0x0F, 0xB6, 0xC0,
-        0x49, 0xC1, 0xE8, 0x06,
-        0x24, 0x3F,
-        0x0F, 0xB6, 0xD0,
-        0x4A, 0x8B, 0x84, 0xC1, 0x80, 0x00, 0x00, 0x00
-    };
-
-    const uintptr_t nameVA = reinterpret_cast<uintptr_t>(name);
-    BYTE* native = nullptr;
-    size_t nativeCount = 0;
-
-    for (size_t i = 0; i + 16 <= rdata.size; i += sizeof(uintptr_t)) {
-        BYTE* entry = rdata.begin + i;
-        if (*reinterpret_cast<const uintptr_t*>(entry) != nameVA) {
-            continue;
-        }
-
-        BYTE* wrapper = reinterpret_cast<BYTE*>(
-            *reinterpret_cast<const uintptr_t*>(entry + sizeof(uintptr_t))
-        );
-        if (!AddressInSection(text, wrapper)) {
-            continue;
-        }
-
-        for (size_t j = 0; j + 5 <= 0x100; ++j) {
-            BYTE* p = wrapper + j;
-            if (!AddressInSection(text, p) || p[0] != 0xE8) {
-                continue;
-            }
-
-            const int32_t rel = *reinterpret_cast<const int32_t*>(p + 1);
-            BYTE* target = p + 5 + rel;
-            if (!AddressInSection(text, target)) {
-                continue;
-            }
-
-            if (memcmp(target, kNativePrefix, sizeof(kNativePrefix)) == 0) {
-                if (!native || native != target) {
-                    native = target;
-                    ++nativeCount;
-                }
-            }
-        }
-    }
-
-    if (!native || nativeCount != 1) {
-        Log("Action Recovery V0.8: native IsActionEnabled match count=%zu", nativeCount);
-        return nullptr;
-    }
-
-    HMODULE module = GetModuleHandleW(nullptr);
-    BYTE* base = reinterpret_cast<BYTE*>(module);
-    Log(
-        "Action Recovery V0.8: IsActionEnabled resolved RVA=0x%zX actionBitset=ability+0x80 instigator=+0x48 state=+0xD8 elapsed=+0xDC",
-        static_cast<size_t>(native - base)
-    );
-
-    return native;
-}
-
-bool HookAbilityActionEnabled(void* ability, unsigned char action) {
-    const bool nativeEnabled = g_originalAbilityActionEnabled
-        ? g_originalAbilityActionEnabled(ability, action)
-        : false;
-
-    // ECharacterActions::MOVE was independently observed in the native player
-    // action gate as enum value 0x1D.
-    constexpr unsigned char kMoveAction = 0x1D;
-
-    if (!ability || action != kMoveAction) {
-        return nativeEnabled;
-    }
-
-    g_actionMoveQueries.fetch_add(1);
-
-    BYTE* object = reinterpret_cast<BYTE*>(ability);
-    void* instigator = *reinterpret_cast<void**>(object + 0x48);
-    void* localPlayer = g_localPlayerCharacter.load();
-
-    if (!instigator || !localPlayer || instigator != localPlayer) {
-        return nativeEnabled;
-    }
-
-    g_actionMoveLocalQueries.fetch_add(1);
-
-    const unsigned char state = *(object + 0xD8);
-    const float elapsed = *reinterpret_cast<float*>(object + 0xDC);
-    g_lastActionMoveElapsed.store(elapsed);
-
-    if (!nativeEnabled) {
-        g_actionMoveNativeBlocked.fetch_add(1);
-    }
-
-    void* previousAbility = g_lastActionMoveAbility.load();
-    const int previousState = g_lastActionMoveState.load();
-    if (previousAbility != ability || previousState != static_cast<int>(state)) {
-        g_lastActionMoveAbility.store(ability);
-        g_lastActionMoveState.store(static_cast<int>(state));
-        Log(
-            "Action Recovery V0.8B: MOVE query ability=%p state=%s(%u) elapsed=%.3f native=%d",
-            ability,
-            AbilityStateName(state),
-            static_cast<unsigned>(state),
-            elapsed,
-            nativeEnabled ? 1 : 0
-        );
-    }
-
-    if (!dg::runtime::Get().actionRecoveryEnabled.load(std::memory_order_relaxed) || nativeEnabled) {
-        if (nativeEnabled || state != 4) {
-            g_recoveryTailAbility.store(nullptr);
-            g_recoveryTailStartElapsed.store(0.0f);
-        }
-        return nativeEnabled;
-    }
-
-    // V0.8A proved that AllowedActions/MOVE can affect the lock, but forcing
-    // MOVE during RUNNING lets interactions (e.g. chest opening) slide without
-    // their animation. V0.8B therefore preserves STARTING/RUNNING entirely and
-    // only trims the common AWAITING_FINISH tail.
-    if (state != 4) {
-        g_recoveryTailAbility.store(nullptr);
-        g_recoveryTailStartElapsed.store(0.0f);
-        return nativeEnabled;
-    }
-
-    if (g_recoveryTailAbility.load() != ability) {
-        g_recoveryTailAbility.store(ability);
-        g_recoveryTailStartElapsed.store(elapsed);
-        Log(
-            "Action Recovery V0.8B: tail START ability=%p elapsed=%.3f",
-            ability,
-            elapsed
-        );
-    }
-
-    float delayMs = dg::runtime::Get().actionRecoveryDelayMs.load(std::memory_order_relaxed);
-    if (delayMs < 0.0f) delayMs = 0.0f;
-    if (delayMs > 500.0f) delayMs = 500.0f;
-
-    float tailElapsed = elapsed - g_recoveryTailStartElapsed.load();
-    if (tailElapsed < 0.0f || tailElapsed > 10.0f) {
-        g_recoveryTailStartElapsed.store(elapsed);
-        tailElapsed = 0.0f;
-    }
-
-    if (tailElapsed * 1000.0f < delayMs) {
-        return nativeEnabled;
-    }
-
-    const int forced = g_actionMoveForced.fetch_add(1) + 1;
-    if (forced <= 30 || (forced % 100) == 0) {
-        Log(
-            "Action Recovery V0.8B: FORCE MOVE TAIL ability=%p tail=%.3f sec delay=%.0f ms forcedCount=%d",
-            ability,
-            tailElapsed,
-            delayMs,
-            forced
-        );
-    }
-
-    return true;
-}
-
-bool InstallActionRecoveryV08B() {
-    BYTE* target = ResolveAbilityActionEnabledNative();
-    if (!target) {
-        Log("Action Recovery V0.8: resolver failed; feature remains fail-open");
-        return false;
-    }
-
-    const MH_STATUS initStatus = MH_Initialize();
-    if (initStatus != MH_OK && initStatus != MH_ERROR_ALREADY_INITIALIZED) {
-        Log("Action Recovery V0.8: MinHook initialize FAILED status=%d", static_cast<int>(initStatus));
-        return false;
-    }
-
-    MH_STATUS status = MH_CreateHook(
-        target,
-        reinterpret_cast<LPVOID>(&HookAbilityActionEnabled),
-        reinterpret_cast<LPVOID*>(&g_originalAbilityActionEnabled)
-    );
-
-    if (status != MH_OK && status != MH_ERROR_ALREADY_CREATED) {
-        Log("Action Recovery V0.8: create FAILED status=%d", static_cast<int>(status));
-        return false;
-    }
-
-    status = MH_EnableHook(target);
-    if (status != MH_OK && status != MH_ERROR_ENABLED) {
-        Log("Action Recovery V0.8: enable FAILED status=%d", static_cast<int>(status));
-        return false;
-    }
-
-    g_recoveryHookReady.store(true);
-    Log("Action Recovery V0.8B: READY policy=force local MOVE only in AWAITING_FINISH");
-    return true;
-}
-
 bool InstallHudHook() {
     BYTE* getter = ResolveHudHiddenGetter();
     if (!getter) {
@@ -2530,6 +2306,13 @@ void TriggerAction(Action action, int functionKey) {
 
     const char* label = ActionLabel(action);
 
+    if(action==Action::ReduceAmmo||action==Action::UnlimitedAmmo){
+        bool& enabled=action==Action::ReduceAmmo?g_config.reduceAmmoEnabled:g_config.unlimitedAmmoEnabled;
+        enabled=!enabled;g_config.Save();
+        g_lastAction=std::string(label)+(enabled?" ON":" OFF");
+        Log("Ammo V1.39 HOTKEY F%d action=%s enabled=%d divisor=%.3f",functionKey,label,enabled?1:0,g_config.ammoConsumptionDivisor);
+        return;
+    }
     if(const unsigned mask=dg::config::UnlimitedMask(action)){
         const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
           if(!hwnd||GetForegroundWindow()!=hwnd||IsIconic(hwnd)||g_overlayVisible.load()||g_shuttingDown.load())return;
@@ -2602,7 +2385,7 @@ void TriggerAction(Action action, int functionKey) {
         g_lastAction = std::string("Action Recovery ") +
             (g_config.actionRecoveryEnabled ? "ON" : "OFF");
         Log(
-            "F%d -> Action Recovery %s policy=AWAITING_FINISH tail only",
+            "F%d -> Action Recovery %s policy=natural montage blend-out, native completion",
             functionKey,
             g_config.actionRecoveryEnabled ? "ON" : "OFF"
         );
@@ -3673,16 +3456,11 @@ dg::overlay::Context BuildOverlayContext() {
     t.skipWarningAttempted=warnings.observed>0;
     t.skipWarningApplied=warnings.advanced>0;
 
-    t.actionMoveQueries = g_actionMoveQueries.load();
-    t.actionMoveLocalQueries =
-        g_actionMoveLocalQueries.load();
-    t.actionMoveNativeBlocked =
-        g_actionMoveNativeBlocked.load();
-    t.actionMoveForced = g_actionMoveForced.load();
-    t.lastActionMoveState =
-        g_lastActionMoveState.load();
-    t.lastActionMoveElapsed =
-        g_lastActionMoveElapsed.load();
+    const auto recovery=dg::recovery::GetTelemetry();
+    t.actionMoveQueries = static_cast<int>(recovery.ticks);
+    t.actionMoveLocalQueries = static_cast<int>(recovery.local);
+    t.actionMoveNativeBlocked = static_cast<int>(recovery.tails);
+    t.actionMoveForced = static_cast<int>(recovery.completed);
 
     t.pistolDamageBoostCalls =
         g_pistolDamageBoostCalls.load();
@@ -4739,6 +4517,8 @@ void ShutdownMod() {
     dg::aim_shader::Shutdown();
     dg::chaos_pose::Shutdown();
     dg::manual_gauges::Shutdown();
+    dg::ammo::Shutdown();
+    dg::recovery::Shutdown();
     dg::resource_gain::Shutdown();
     dg::gauges::Shutdown();
     const auto scene=dg::camera_trace::GetTelemetry();
@@ -4990,15 +4770,15 @@ DWORD WINAPI MainThread(LPVOID) {
     if (!InstallNativeTPSRotationHook()) {
         Log("TPS V0.75 native look hooks unavailable; vanilla look path untouched.");
     }
-    if (!InstallActionRecoveryV08B()) {
-        Log("Action Recovery V0.8 unavailable; other ASI features remain active.");
-    }
+    g_recoveryHookReady.store(dg::recovery::Initialize(&FeatureLog,&g_localPlayerCharacter,g_targetValidation.exact));
+    if (!g_recoveryHookReady.load())Log("Action Recovery V1.39 unavailable; native animation lifecycle retained.");
     if (!InstallHotstreakChargeHook()) {
         Log("Hotstreak Charge unavailable; other ASI features remain active.");
     }
     dg::manual_gauges::Initialize(&FeatureLog,&g_localPlayerCharacter,g_targetValidation.exact);
     dg::gauges::Initialize(&FeatureLog,&g_localPlayerCharacter,g_targetValidation.exact);
     dg::resource_gain::Initialize(&FeatureLog,&g_localPlayerCharacter,g_targetValidation.exact);
+    dg::ammo::Initialize(&FeatureLog,&g_localPlayerCharacter,g_targetValidation.exact);
     if (!InstallFinalOutgoingDamageHook()) {
         Log("Final Pistol/Melee Damage hook unavailable; other ASI features remain active.");
     }

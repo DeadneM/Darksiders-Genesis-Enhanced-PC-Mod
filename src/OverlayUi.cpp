@@ -2,6 +2,7 @@
 #include "GaugeChargeFeature.h"
 #include "ResourceGainFeature.h"
 #include "ManualGaugeFeature.h"
+#include "AmmoConsumptionFeature.h"
 #include "ShaderAimFeature.h"
 #include "UpdateFeature.h"
 
@@ -221,8 +222,9 @@ void Draw(Context& c) {
                 t.recoveryHookReady
                     ? "Hook ready" : "Hook unavailable"
             );
-            ImGui::TextDisabled("Shortens recovery before movement. Applied: %d",
+            ImGui::TextDisabled("Shortens the final animation transition. Applied: %d",
                 t.actionMoveForced);
+            ImGui::TextWrapped("Experimental: shortens the wait before you can move or attack again. Test dash and chest opening, including loot and movement. OFF uses normal recovery.");
 
             if (config.actionRecoveryEnabled) {
                 ImGui::Indent();
@@ -230,7 +232,7 @@ void Draw(Context& c) {
 
                 bool recoveryChanged =
                     ImGui::SliderFloat(
-                        "Recovery Delay##ActionRecovery",
+                        "Recovery delay (animation end)##ActionRecovery",
                         &config.actionRecoveryDelayMs,
                         0.0f,
                         500.0f,
@@ -353,6 +355,18 @@ void Draw(Context& c) {
             if(!manual.readyMask)
                 ImGui::TextWrapped("Available during normal local-host gameplay with a supported player.");
             ImGui::TextWrapped("One click changes the selected level once; it does not keep gauges full or unlock the Ultimate form.");
+            ImGui::Separator();
+            ImGui::TextUnformatted("Ammunition (test)");
+            if(ImGui::Checkbox("Reduce ammo consumption",&config.reduceAmmoEnabled))config.Save();
+            if(config.reduceAmmoEnabled){
+                ImGui::SetNextItemWidth(280.0f);
+                if(ImGui::SliderFloat("Consumption divisor##Ammo",&config.ammoConsumptionDivisor,0.0f,10.0f,"%.2f"))config.Save();
+                ImGui::SameLine();
+                if(ImGui::Button("Default##AmmoDivisor")){config.ammoConsumptionDivisor=2.0f;config.Save();}
+            }
+            if(ImGui::Checkbox("Unlimited ammo",&config.unlimitedAmmoEnabled))config.Save();
+            ImGui::TextWrapped("0 or 1: normal consumption. 2: half. 10: one tenth. Unlimited takes priority. Both toggles can be assigned in Hotkeys -> F1-F12.");
+            if(!dg::ammo::GetTelemetry().ready)ImGui::TextDisabled("Ammo control unavailable for this executable.");
             ImGui::Separator();
             ImGui::TextUnformatted("Unlimited gauges (test)");
             if(ImGui::Checkbox("Unlimited Wrath (Courroux)",&config.unlimitedWrathEnabled))config.Save();

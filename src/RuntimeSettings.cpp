@@ -47,6 +47,9 @@ void Publish(const Snapshot& s) {
     g_state.unlimitedWrathEnabled.store(s.unlimitedWrathEnabled);
     g_state.unlimitedUltimateEnabled.store(s.unlimitedUltimateEnabled);
     g_state.unlimitedSynergyEnabled.store(s.unlimitedSynergyEnabled);
+    g_state.reduceAmmoEnabled.store(s.reduceAmmoEnabled);
+    g_state.unlimitedAmmoEnabled.store(s.unlimitedAmmoEnabled);
+    g_state.ammoConsumptionDivisor.store(s.ammoConsumptionDivisor);
 
     g_state.fovDegrees.store(s.fovDegrees, std::memory_order_relaxed);
     g_state.thirdPersonFovDegrees.store(s.thirdPersonFovDegrees);
