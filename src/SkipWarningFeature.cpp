@@ -123,13 +123,14 @@ bool HookAdvance(void* widget,double currentTime,float delta){
     if(!cache.valid||frame.count!=cache.count)return result;
     const int first=frame.current;
     unsigned advanced=0,calls=0;
-    for(;calls<unsigned(cache.count*4+4)&&CanAdvanceWarning(frame.current,frame.target,frame.count,cache.mask);++calls){
+    for(;calls<unsigned(cache.count*4+4)&&CanAdvanceWarning(frame.current,frame.target,frame.count,cache.mask);){
         const int index=frame.current>=0?frame.current:frame.target;
         float duration=0;
         if(!Read(frame.durations,size_t(index)*4,duration)||duration!=cache.durations[index])break;
         const Frame before=frame;
         // Consume only this verified page's timer/fades through the original
         // function. No state writes, synthetic input or loading-loop bypass.
+        ++calls;
         result=g_original(widget,currentTime,std::max(1.0f,duration+frame.fade+1.0f));
         if(!result){if(before.current>=0)++advanced;break;} // native cleanup can release children
         if(!Sample(widget,frame)||frame.count!=cache.count)break;
