@@ -1,3 +1,7 @@
+## V1.40 user feedback (2026-10-15)
+
+User reports V1.39 Action Recovery still seems ineffective. Actual log: ready1, ticks12132, localMontages8927, blendTails0, normalFinished0. No recovery operation ran in the supplied test. V1.40 promotes user defaults and records this unresolved outcome; no new native intervention or functional success is claimed. See [bounded evidence and next work](V1_40_USER_DEFAULTS.md). Historical experiments below are preserved.
+
 ## V1.39 reprise (2026-10-15)
 
 User confirms old Action Recovery has no effect after dash/chest. V1.38 read-only samples: component MoveInterruptDelay=0, direct state2->5 transitions; no observed state4 tail. V0.8A sliding regression stays rejected. V1.39 removes that hook and tests native montage blend-tail completion through normal Stop(false)/EndAbility cleanup. This is an implemented experiment, not gameplay validation. See [new native evidence, limits and test](V1_39_AMMO_ACTION_RECOVERY.md); the historical records below are preserved.

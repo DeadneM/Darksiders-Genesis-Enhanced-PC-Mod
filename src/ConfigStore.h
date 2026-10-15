@@ -1,5 +1,6 @@
 #pragma once
 
+#include "DefaultSettings.h"
 #include <array>
 #include <atomic>
 #include <string>
@@ -177,9 +178,10 @@ inline constexpr std::array<int, 6> kDefaultTpsKeyboardKeys{{
     'H','Z','Z','E','G',0x09
 }};
 inline constexpr std::array<Action, 12> kDefaultHotkeys{{
-    Action::ToggleHUD,Action::MovementSpeed,Action::ActionRecovery,
-    Action::None,Action::ThirdPerson,Action::None,
-    Action::None,Action::None,Action::None,Action::None,Action::None,Action::None
+    Action::RefillAllGauges,Action::RefillUltimate,Action::RefillSynergy,
+    Action::RefillWrath,Action::UnlimitedAllGauges,Action::UnlimitedUltimate,
+    Action::UnlimitedSynergy,Action::UnlimitedWrath,Action::UnlimitedAmmo,
+    Action::None,Action::None,Action::ToggleHUD
 }};
 const char* ActionLabel(Action action);
 const wchar_t* ActionToken(Action action);
@@ -194,9 +196,9 @@ using LogFn = void(*)(const char*);
 class Store {
 public:
     bool overlayEnabled = true;
-    int menuKey = 0x2D; // VK_INSERT
+    int menuKey = defaults::MenuKey;
     int graphicsAdapter = 0;
-    bool updaterBeta = false; // OFF=main stable, ON=debug beta
+    bool updaterBeta = defaults::UpdaterBeta; // OFF=main stable, ON=debug beta
 
     bool toggleHudEnabled = true;
     bool movementSpeedEnabled = true;
@@ -251,7 +253,7 @@ public:
     bool unlimitedWrathEnabled = false;
     bool unlimitedUltimateEnabled = false;
     bool unlimitedSynergyEnabled = false;
-    bool reduceAmmoEnabled = false;
+    bool reduceAmmoEnabled = defaults::ReduceAmmo;
     bool unlimitedAmmoEnabled = false;
     float ammoConsumptionDivisor = 2.0f;
 
@@ -275,14 +277,14 @@ public:
     float thirdPersonDistanceMultiplier = 0.15f;
     float thirdPersonPitchDegrees = -12.0f;
     float thirdPersonHeightOffset = 0.0f;
-    float tpsUltimateDistanceMultiplier = 0.15f;
-    float tpsUltimateHeightOffset = 0.0f;
+    float tpsUltimateDistanceMultiplier = defaults::UltimateDistance;
+    float tpsUltimateHeightOffset = defaults::UltimateHeight;
     float tpsFootAnchorOffset = 0.0f; // adjustable +/-500 units
     float cameraStickSpeed = 180.0f;
     float hotstreakChargeMultiplier = 2.00f;
-    float wrathChargeMultiplier = 2.00f;
-    float ultimateChargeMultiplier = 2.00f;
-    float synergyChargeMultiplier = 2.00f;
+    float wrathChargeMultiplier = defaults::WrathGain;
+    float ultimateChargeMultiplier = defaults::UltimateGain;
+    float synergyChargeMultiplier = defaults::SynergyGain;
 
     std::array<Action, 12> hotkeys{};
     std::array<int, static_cast<size_t>(CameraAction::Count)> cameraKeys{kDefaultCameraKeys};

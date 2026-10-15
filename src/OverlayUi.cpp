@@ -220,11 +220,11 @@ void Draw(Context& c) {
             ImGui::TextDisabled(
                 "%s",
                 t.recoveryHookReady
-                    ? "Hook ready" : "Hook unavailable"
+                    ? "No effect in last test" : "Hook unavailable"
             );
             ImGui::TextDisabled("Shortens the final animation transition. Applied: %d",
                 t.actionMoveForced);
-            ImGui::TextWrapped("Experimental: shortens the wait before you can move or attack again. Test dash and chest opening, including loot and movement. OFF uses normal recovery.");
+            ImGui::TextWrapped("Unresolved: the last test applied no recovery changes. This setting and its delay are preserved for further investigation.");
 
             if (config.actionRecoveryEnabled) {
                 ImGui::Indent();
@@ -356,7 +356,7 @@ void Draw(Context& c) {
                 ImGui::TextWrapped("Available during normal local-host gameplay with a supported player.");
             ImGui::TextWrapped("One click changes the selected level once; it does not keep gauges full or unlock the Ultimate form.");
             ImGui::Separator();
-            ImGui::TextUnformatted("Ammunition (test)");
+            ImGui::TextUnformatted("Ammunition");
             if(ImGui::Checkbox("Reduce ammo consumption",&config.reduceAmmoEnabled))config.Save();
             if(config.reduceAmmoEnabled){
                 ImGui::SetNextItemWidth(280.0f);
@@ -384,19 +384,19 @@ void Draw(Context& c) {
                 t.hotstreakHookReady);
             DrawTunableFeature(config,"Wrath (Courroux) charge","WrathCharge",
                 &config.wrathChargeEnabled,&config.wrathChargeMultiplier,
-                0.0f,100.0f,2.0f,"%.2fx",
+                0.0f,100.0f,defaults::WrathGain,"%.2fx",
                 "Multiplier for native Wrath pickup gains; validated in game.",
                 rewards.ready[0],rewards.ready[0]?"Gains validated by user":"Gain path unavailable");
             DrawTunableFeature(config,"Ultimate Form / Chaos charge","UltimateCharge",
                 &config.ultimateChargeEnabled,&config.ultimateChargeMultiplier,
-                0.0f,100.0f,2.0f,"%.2fx",
+                0.0f,100.0f,defaults::UltimateGain,"%.2fx",
                 "Multiplier for native Ultimate combat rewards; validated in game.",
                 rewards.ready[1],rewards.ready[1]?"Gains validated by user":"Gain path unavailable");
             ImGui::TextDisabled("Native gain events: Wrath %u (%u modified) | Ultimate %u (%u modified)",
                 rewards.positive[0],rewards.boosted[0],rewards.positive[1],rewards.boosted[1]);
             DrawTunableFeature(config,"Synergy charge","SynergyCharge",
                 &config.synergyChargeEnabled,&config.synergyChargeMultiplier,
-                0.0f,100.0f,2.0f,"%.2fx",
+                0.0f,100.0f,defaults::SynergyGain,"%.2fx",
                 "Multiplies verified local Synergy gains through the native additive path.",
                 charge.synergyReady,charge.synergyReady?"Additive gains verified":"Unavailable");
             ImGui::TextDisabled("Synergy: %u gains boosted / %u setter calls (not all calls are gains)",
@@ -840,7 +840,7 @@ void Draw(Context& c) {
                     &config.tpsUltimateDistanceMultiplier,0,0,"%.3fx");
                 ImGui::SameLine();
                 if(ImGui::Button("Default##TPSUltimateDistance")){
-                    config.tpsUltimateDistanceMultiplier=0.15f;ultimateChanged=true;
+                    config.tpsUltimateDistanceMultiplier=defaults::UltimateDistance;ultimateChanged=true;
                 }
                 ImGui::SetNextItemWidth(245.0f);
                 ultimateChanged|=ImGui::SliderFloat("Vertical offset (Ultimate form)##TPSUltimate",
@@ -850,11 +850,11 @@ void Draw(Context& c) {
                     &config.tpsUltimateHeightOffset,0,0,"%.1f");
                 ImGui::SameLine();
                 if(ImGui::Button("Default##TPSUltimateHeight")){
-                    config.tpsUltimateHeightOffset=0.0f;ultimateChanged=true;
+                    config.tpsUltimateHeightOffset=defaults::UltimateHeight;ultimateChanged=true;
                 }
                 if(ultimateChanged){
-                    if(!std::isfinite(config.tpsUltimateDistanceMultiplier))config.tpsUltimateDistanceMultiplier=0.15f;
-                    if(!std::isfinite(config.tpsUltimateHeightOffset))config.tpsUltimateHeightOffset=0.0f;
+                    if(!std::isfinite(config.tpsUltimateDistanceMultiplier))config.tpsUltimateDistanceMultiplier=defaults::UltimateDistance;
+                    if(!std::isfinite(config.tpsUltimateHeightOffset))config.tpsUltimateHeightOffset=defaults::UltimateHeight;
                     config.tpsUltimateDistanceMultiplier=std::clamp(config.tpsUltimateDistanceMultiplier,0.0f,3.0f);
                     config.tpsUltimateHeightOffset=std::clamp(config.tpsUltimateHeightOffset,-1000.0f,1000.0f);
                     config.Save();
@@ -1151,7 +1151,7 @@ void Draw(Context& c) {
             }
 
             ImGui::SameLine();
-            if(ImGui::Button("Default##MenuKey")){config.menuKey=VK_INSERT;config.Save();}
+            if(ImGui::Button("Default##MenuKey")){config.menuKey=defaults::MenuKey;config.Save();}
             ImGui::Spacing();
 
             if (ImGui::Button(
@@ -1275,7 +1275,7 @@ void Draw(Context& c) {
 
             ImGui::Spacing();
             ImGui::TextDisabled(
-                "Defaults: F1 HUD | F2 Speed | F3 Recovery | F4 None | F5 Third Person | F6-F12 None"
+                "Defaults: F1 all gauges | F2 Ultimate | F3 Synergy | F4 Wrath | F5-F9 Unlimited | F12 HUD"
             );
             ImGui::EndTabItem();
         }

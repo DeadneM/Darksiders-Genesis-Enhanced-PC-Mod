@@ -1,3 +1,7 @@
+## V1.40 source prepared - user defaults; ammo validated; recovery unresolved (2026-10-15)
+
+Base V1.39 debug474bbfa. User **VALIDATES ammo**, reports Action Recovery still ineffective, and explicitly chooses the current installed INI as the new ASI/INI defaults. Saved profile is promoted: menuVK_C0, debug update channel, ammo reductionON/divisor2, gains4/4/4, Ultimate camera0.30/+80 and current F1-F12 bindings. Store/runtime/reset/Default buttons are synchronized; explicit existing INI overrides and legacy camera-key inheritance are preserved. Ammo/camera/input/gauge/native recovery implementations are unchanged. V1.39 recovery log has12132 ticks/8927 local observations but **zero applied tails/finishes**; UI now labels it unresolved. **Source prepared / EXPERIMENTAL; build/package/install not yet claimed.** [Profile, evidence, acceptance and TODO](V1_40_USER_DEFAULTS.md).
+
 ## V1.39 built, checked and installed - ammo / native animation recovery TEST (2026-10-15)
 
 **CONSTRUIT / CONTROLE / INSTALLE / EXPERIMENTAL.** Base V1.38 debug e39153e, with Unlimited Wrath and Skip Warning now explicitly **VALIDATED by user**, preserving earlier gauge/TPS validations. Source 1a1684a82d861cc5cc3f066879ff7dcf4d787791; [Windows x64 CI38802359996](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38802359996) **SUCCESS, 10/10 CTest suites passed**, including real ammo INI/hotkey save/reload, fractional cost/Unlimited policy and recovery delay resets. Numbered ZIP publication ee59029851ae9549556418f089d6d75b2339ed75.

@@ -43,6 +43,11 @@ if(BUILD_TESTING)
   add_executable(ActionRecoveryTests tests/ActionRecoveryTests.cpp)
   target_include_directories(ActionRecoveryTests PRIVATE src)
   add_test(NAME ActionRecovery COMMAND ActionRecoveryTests)
+  add_executable(UserDefaultsConfigTests tests/UserDefaultsConfigTests.cpp src/ConfigStore.cpp src/RuntimeSettings.cpp)
+  target_include_directories(UserDefaultsConfigTests PRIVATE src)
+  target_compile_definitions(UserDefaultsConfigTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  target_link_libraries(UserDefaultsConfigTests PRIVATE user32)
+  add_test(NAME UserDefaultsConfig COMMAND UserDefaultsConfigTests "${CMAKE_CURRENT_SOURCE_DIR}/config/DarksidersGenesisMod.ini")
 
 endif()
 

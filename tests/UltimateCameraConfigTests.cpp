@@ -25,7 +25,7 @@ int main(){
     WritePrivateProfileStringW(L"Values",L"TPSUltimateHeightOffset",L"-2000",path);
     check(read.Load()&&almostEqual(read.tpsUltimateDistanceMultiplier,3)&&almostEqual(read.tpsUltimateHeightOffset,-1000),"native camera limits respected");
     read.ResetTpsCameraValues();
-    check(almostEqual(read.tpsUltimateDistanceMultiplier,0.15f)&&almostEqual(read.tpsUltimateHeightOffset,0),"TPS reset includes Ultimate values");
+    check(almostEqual(read.tpsUltimateDistanceMultiplier,0.30f)&&almostEqual(read.tpsUltimateHeightOffset,80),"TPS reset includes Ultimate values");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,path);DeleteFileW(path);
     std::printf("Ultimate camera config: %u failures\n",failed);return failed?1:0;
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "DefaultSettings.h"
 #include <atomic>
 
 namespace dg::runtime {
@@ -40,7 +41,7 @@ struct Snapshot {
     bool unlimitedWrathEnabled = false;
     bool unlimitedUltimateEnabled = false;
     bool unlimitedSynergyEnabled = false;
-    bool reduceAmmoEnabled = false;
+    bool reduceAmmoEnabled = defaults::ReduceAmmo;
     bool unlimitedAmmoEnabled = false;
     float ammoConsumptionDivisor = 2.0f;
 
@@ -53,8 +54,8 @@ struct Snapshot {
     float thirdPersonDistanceMultiplier = 0.15f;
     float thirdPersonPitchDegrees = -12.0f;
     float thirdPersonHeightOffset = 0.0f;
-    float tpsUltimateDistanceMultiplier = 0.15f;
-    float tpsUltimateHeightOffset = 0.0f;
+    float tpsUltimateDistanceMultiplier = defaults::UltimateDistance;
+    float tpsUltimateHeightOffset = defaults::UltimateHeight;
     float tpsFootAnchorOffset = 0.0f; // estimated capsule center-to-foot, configurable
     float cameraStickSpeed = 180.0f;
     float movementSpeedMultiplier = 1.50f;
@@ -67,9 +68,9 @@ struct Snapshot {
     float horseSprintSpeedMultiplier = 1.25f;
     float horseSprintDurationMultiplier = 5.00f;
     float hotstreakChargeMultiplier = 2.00f;
-    float wrathChargeMultiplier = 2.00f;
-    float ultimateChargeMultiplier = 2.00f;
-    float synergyChargeMultiplier = 2.00f;
+    float wrathChargeMultiplier = defaults::WrathGain;
+    float ultimateChargeMultiplier = defaults::UltimateGain;
+    float synergyChargeMultiplier = defaults::SynergyGain;
 };
 
 struct State {
@@ -138,7 +139,7 @@ struct State {
     std::atomic_bool unlimitedWrathEnabled{false};
     std::atomic_bool unlimitedUltimateEnabled{false};
     std::atomic_bool unlimitedSynergyEnabled{false};
-    std::atomic_bool reduceAmmoEnabled{false};
+    std::atomic_bool reduceAmmoEnabled{defaults::ReduceAmmo};
     std::atomic_bool unlimitedAmmoEnabled{false};
     std::atomic<float> ammoConsumptionDivisor{2.0f};
     // V1.24 read-only time of a verified positive local Synergy additive gain.
@@ -153,8 +154,8 @@ struct State {
     std::atomic<float> thirdPersonDistanceMultiplier{0.15f};
     std::atomic<float> thirdPersonPitchDegrees{-12.0f};
     std::atomic<float> thirdPersonHeightOffset{0.0f};
-    std::atomic<float> tpsUltimateDistanceMultiplier{0.15f};
-    std::atomic<float> tpsUltimateHeightOffset{0.0f};
+    std::atomic<float> tpsUltimateDistanceMultiplier{defaults::UltimateDistance};
+    std::atomic<float> tpsUltimateHeightOffset{defaults::UltimateHeight};
     std::atomic<float> tpsFootAnchorOffset{0.0f};
     std::atomic<float> cameraStickSpeed{180.0f};
     std::atomic<float> cameraOrbitYawDegrees{0.0f};
@@ -169,9 +170,9 @@ struct State {
     std::atomic<float> horseSprintSpeedMultiplier{1.25f};
     std::atomic<float> horseSprintDurationMultiplier{5.00f};
     std::atomic<float> hotstreakChargeMultiplier{2.00f};
-    std::atomic<float> wrathChargeMultiplier{2.00f};
-    std::atomic<float> ultimateChargeMultiplier{2.00f};
-    std::atomic<float> synergyChargeMultiplier{2.00f};
+    std::atomic<float> wrathChargeMultiplier{defaults::WrathGain};
+    std::atomic<float> ultimateChargeMultiplier{defaults::UltimateGain};
+    std::atomic<float> synergyChargeMultiplier{defaults::SynergyGain};
 };
 
 State& Get();

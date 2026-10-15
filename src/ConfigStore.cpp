@@ -292,9 +292,9 @@ void Store::Log(const char* text) const {
 
 void Store::ResetDefaults(bool persist) {
     overlayEnabled = true;
-    menuKey = VK_INSERT;
+    menuKey = defaults::MenuKey;
     graphicsAdapter = 0;
-    updaterBeta = false;
+    updaterBeta = defaults::UpdaterBeta;
 
     toggleHudEnabled = true;
     movementSpeedEnabled = true;
@@ -348,7 +348,7 @@ void Store::ResetDefaults(bool persist) {
     unlimitedWrathEnabled = false;
     unlimitedUltimateEnabled = false;
     unlimitedSynergyEnabled = false;
-    reduceAmmoEnabled = false;unlimitedAmmoEnabled = false;ammoConsumptionDivisor = 2.0f;
+    reduceAmmoEnabled = defaults::ReduceAmmo;unlimitedAmmoEnabled = false;ammoConsumptionDivisor = 2.0f;
 
     movementSpeedMultiplier = 1.50f;
     actionRecoveryDelayMs = 0.0f;
@@ -370,14 +370,14 @@ void Store::ResetDefaults(bool persist) {
     thirdPersonDistanceMultiplier = 0.15f;
     thirdPersonPitchDegrees = -12.0f;
     thirdPersonHeightOffset = 0.0f;
-    tpsUltimateDistanceMultiplier = 0.15f;
-    tpsUltimateHeightOffset = 0.0f;
+    tpsUltimateDistanceMultiplier = defaults::UltimateDistance;
+    tpsUltimateHeightOffset = defaults::UltimateHeight;
     tpsFootAnchorOffset = 0.0f;
     cameraStickSpeed = 180.0f;
     hotstreakChargeMultiplier = 2.00f;
-    wrathChargeMultiplier = 2.00f;
-    ultimateChargeMultiplier = 2.00f;
-    synergyChargeMultiplier = 2.00f;
+    wrathChargeMultiplier = defaults::WrathGain;
+    ultimateChargeMultiplier = defaults::UltimateGain;
+    synergyChargeMultiplier = defaults::SynergyGain;
 
     hotkeys = kDefaultHotkeys;
     cameraKeys = kDefaultCameraKeys;
@@ -462,14 +462,14 @@ void Store::ResetTpsCameraValues() {
     thirdPersonDistanceMultiplier=0.15f;
     thirdPersonPitchDegrees=-12.0f;
     thirdPersonHeightOffset=0.0f;
-    tpsUltimateDistanceMultiplier=0.15f;
-    tpsUltimateHeightOffset=0.0f;
+    tpsUltimateDistanceMultiplier=defaults::UltimateDistance;
+    tpsUltimateHeightOffset=defaults::UltimateHeight;
     tpsFootAnchorOffset=0.0f;
     cameraStickSpeed=180.0f;
     dg::runtime::Get().cameraOrbitYawDegrees.store(0.0f);
     dg::runtime::Get().cameraOrbitPitchDegrees.store(0.0f);
     Save();
-    Log("V1.05 TPS Camera Values Default: TPS FOV override ON, FOV 110, distance .15, pitch -12, height 0, foot 0, speed 180");
+    Log("V1.40 TPS Camera Values Default: TPS FOV 110, distance .15, pitch -12, height 0; Ultimate distance .30, height 80; foot 0, speed 180");
 }
 bool Store::Load() {
     if (path_.empty()) {
@@ -491,14 +491,14 @@ bool Store::Load() {
     GetPrivateProfileStringW(
         L"Overlay",
         L"MenuKey",
-        L"Insert",
+        L"VK_C0",
         menuKeyText,
         64,
         path_.c_str()
     );
-    menuKey = ParseKeyToken(menuKeyText, VK_INSERT);
+    menuKey = ParseKeyToken(menuKeyText, defaults::MenuKey);
 
-    updaterBeta = ReadBool(L"Updater", L"Beta", false, path_);
+    updaterBeta = ReadBool(L"Updater", L"Beta", defaults::UpdaterBeta, path_);
     graphicsAdapter = GetPrivateProfileIntW(
         L"System",
         L"GraphicsAdapter",
@@ -526,7 +526,7 @@ bool Store::Load() {
     unlimitedWrathEnabled=ReadBool(L"Features",L"UnlimitedWrath",false,path_);
     unlimitedUltimateEnabled=ReadBool(L"Features",L"UnlimitedUltimate",false,path_);
     unlimitedSynergyEnabled=ReadBool(L"Features",L"UnlimitedSynergy",false,path_);
-    reduceAmmoEnabled=ReadBool(L"Features",L"ReduceAmmoConsumption",false,path_);
+    reduceAmmoEnabled=ReadBool(L"Features",L"ReduceAmmoConsumption",defaults::ReduceAmmo,path_);
     unlimitedAmmoEnabled=ReadBool(L"Features",L"UnlimitedAmmo",false,path_);
     ammoConsumptionDivisor=std::clamp(ReadFloat(L"Values",L"AmmoConsumptionDivisor",2.0f,path_),0.0f,10.0f);
     thirdPersonEnabled =
@@ -665,9 +665,9 @@ bool Store::Load() {
         ReadFloat(L"Values", L"HotstreakChargeMultiplier", 2.0f, path_);
     if(!std::isfinite(hotstreakChargeMultiplier))hotstreakChargeMultiplier=2.0f;
     hotstreakChargeMultiplier=std::clamp(hotstreakChargeMultiplier,0.0f,100.0f);
-    wrathChargeMultiplier=std::clamp(ReadFloat(L"Values",L"WrathChargeMultiplier",2.0f,path_),0.0f,100.0f);
-    ultimateChargeMultiplier=std::clamp(ReadFloat(L"Values",L"UltimateFormChargeMultiplier",2.0f,path_),0.0f,100.0f);
-    synergyChargeMultiplier=std::clamp(ReadFloat(L"Values",L"SynergyChargeMultiplier",2.0f,path_),0.0f,100.0f);
+    wrathChargeMultiplier=std::clamp(ReadFloat(L"Values",L"WrathChargeMultiplier",defaults::WrathGain,path_),0.0f,100.0f);
+    ultimateChargeMultiplier=std::clamp(ReadFloat(L"Values",L"UltimateFormChargeMultiplier",defaults::UltimateGain,path_),0.0f,100.0f);
+    synergyChargeMultiplier=std::clamp(ReadFloat(L"Values",L"SynergyChargeMultiplier",defaults::SynergyGain,path_),0.0f,100.0f);
 
     for (int i = 0; i < 12; ++i) {
         wchar_t key[8]{};
