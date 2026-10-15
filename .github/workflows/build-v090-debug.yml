@@ -1,4 +1,4 @@
-name: V1.35 manual native gauge refill TEST
+name: V1.36 gauge hotkeys and native Ultimate pose TEST
 on:
   push:
     branches: [debug]
@@ -31,7 +31,7 @@ jobs:
         run: |
           cmake --build build --config Release --parallel
           if ($LASTEXITCODE -ne 0) { throw "Compile failed" }
-      - name: Check preserved TPS stick roles and manual gauge request policy
+      - name: Check TPS sticks, gauge request policy and persisted hotkey actions
         shell: pwsh
         run: |
           ctest --test-dir build -C Release --output-on-failure
@@ -46,7 +46,7 @@ jobs:
           Copy-Item config/DarksidersGenesisMod.ini dist/
           Copy-Item README.md dist/
           New-Item -ItemType Directory -Path downloads -Force | Out-Null
-          $zipPath = 'downloads/DarksidersGenesis_V1.35_MANUAL_GAUGE_REFILL_TEST.zip'
+          $zipPath = 'downloads/DarksidersGenesis_V1.36_GAUGE_HOTKEYS_ULTIMATE_POSE_TEST.zip'
           if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
           Compress-Archive -Path 'dist/*' -DestinationPath $zipPath -CompressionLevel Optimal
           Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -62,8 +62,8 @@ jobs:
       - name: Upload verified Windows x64 ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_V1.35_MANUAL_GAUGE_REFILL_TEST
-          path: downloads/DarksidersGenesis_V1.35_MANUAL_GAUGE_REFILL_TEST.zip
+          name: DarksidersGenesis_V1.36_GAUGE_HOTKEYS_ULTIMATE_POSE_TEST
+          path: downloads/DarksidersGenesis_V1.36_GAUGE_HOTKEYS_ULTIMATE_POSE_TEST.zip
           if-no-files-found: error
       - name: Preserve numbered experimental ZIP in debug
         shell: pwsh
@@ -80,7 +80,7 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw 'Fetch failed' }
             git reset --mixed origin/debug
             if ($LASTEXITCODE -ne 0) { throw 'Reset to latest origin/debug failed' }
-            git add -- downloads/DarksidersGenesis_V1.35_MANUAL_GAUGE_REFILL_TEST.zip
+            git add -- downloads/DarksidersGenesis_V1.36_GAUGE_HOTKEYS_ULTIMATE_POSE_TEST.zip
             if ($LASTEXITCODE -ne 0) { throw 'Archive add failed' }
             git diff --cached --quiet
             if ($LASTEXITCODE -eq 0) {
@@ -88,11 +88,11 @@ jobs:
               $published = $true
               break
             }
-            git commit -m "downloads: preserve verified compiled V1.35 cumulative ZIP"
+            git commit -m "downloads: preserve verified compiled V1.36 cumulative ZIP"
             if ($LASTEXITCODE -ne 0) { throw 'Archive commit failed' }
             git push origin HEAD:debug
             if ($LASTEXITCODE -eq 0) { $published = $true; break }
             Start-Sleep -Seconds 2
           }
           if (-not $published) { throw 'Permanent experimental ZIP push failed' }
-          Write-Host 'V1.35 ZIP https://raw.githubusercontent.com/'"$env:GITHUB_REPOSITORY"'/debug/downloads/DarksidersGenesis_V1.35_MANUAL_GAUGE_REFILL_TEST.zip'
+          Write-Host 'V1.36 ZIP https://raw.githubusercontent.com/'"$env:GITHUB_REPOSITORY"'/debug/downloads/DarksidersGenesis_V1.36_GAUGE_HOTKEYS_ULTIMATE_POSE_TEST.zip'

@@ -1,6 +1,7 @@
 #include "CameraTraceFeature.h"
 #include "RuntimeSettings.h"
 #include "NativeTpsFeature.h"
+#include "ChaosPoseFeature.h"
 #include <windows.h>
 #include <MinHook.h>
 #include <algorithm>
@@ -276,6 +277,14 @@ void HookView(void* camera, float dt, void* outView) {
         ++g_mountedFireHorseUnavailable;
         // No proof of a live horse: keep original foot camera unchanged.
     }
+    dg::chaos_pose::Pose chaosPose{};
+    const bool usingChaos=thirdPerson&&dg::chaos_pose::Sample(camera,chaosPose);
+    if(usingChaos){
+        // Fresh native form pose for THIS camera callback. Keep the normal
+        // player's identity/generation and all horse sampling unchanged.
+        ax=chaosPose.x;ay=chaosPose.y;az=chaosPose.z;actorYaw=chaosPose.yaw;
+        actorValid=true;usingHorse=false;
+    }
     if(thirdPerson&&actorValid){
         if(lastHorse.exchange(usingHorse)!=usingHorse){
             char message[180]{};
@@ -388,7 +397,7 @@ void HookView(void* camera, float dt, void* outView) {
         return; // stopped pose callbacks only; no live follow/orbit is frozen
     }
     const bool gameplayCamera=actorValid&&((normalAngles&&nearPawn)||
-        (wheelInput&&sameTpsCamera));
+        (wheelInput&&sameTpsCamera)||usingChaos);
     // V1.31: actor visibility is NOT a reliable pause/cutscene signal.
     // Compare the actual native camera against the LAST VERIFIED normal
     // native view. A static camera with no player is likely pause/menu,
@@ -727,7 +736,7 @@ void HookView(void* camera, float dt, void* outView) {
                            previousFacing,now)){
                         char line[330]{};
                         sprintf_s(line,"TPS V1.27 FACING_AUDIT source=%s yawNative=%.1f cameraYaw=%.1f gapDeg=%.1f mouseFire=%d padFire=%d horsePoseAgeMs=%llu (READ ONLY, not mesh animation)",
-                            usingHorse?"HORSE_POSE":"FOOT_ACTOR",
+                            usingChaos?"ULTIMATE_FORM":usingHorse?"HORSE_POSE":"FOOT_ACTOR",
                             actorYaw,appliedYaw,facingGap,
                             mouseMountedFire?1:0,
                             settings.tpsAimActive.load()?1:0,

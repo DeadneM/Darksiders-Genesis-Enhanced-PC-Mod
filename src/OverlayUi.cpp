@@ -1120,6 +1120,7 @@ void Draw(Context& c) {
                 "Save writes the current INI; Reload reads it without resetting defaults.");
 
             DrawSectionTitle("F1-F12");
+            ImGui::TextWrapped("Fill Wrath, Ultimate, Synergy or all three gauges: one press sets 100%. Existing assignments stay unchanged.");
 
             ImGui::TextWrapped(
                 "Each physical F-key slot can be reassigned to any implemented mod action or None."

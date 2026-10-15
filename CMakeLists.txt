@@ -13,6 +13,12 @@ if(BUILD_TESTING)
   add_executable(GaugeRequestTests tests/GaugeRequestTests.cpp)
   target_include_directories(GaugeRequestTests PRIVATE src)
   add_test(NAME GaugeRequests COMMAND GaugeRequestTests)
+  add_executable(GaugeHotkeyTests tests/GaugeHotkeyTests.cpp src/ConfigStore.cpp src/RuntimeSettings.cpp)
+  target_include_directories(GaugeHotkeyTests PRIVATE src)
+  target_compile_definitions(GaugeHotkeyTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  target_link_libraries(GaugeHotkeyTests PRIVATE user32)
+  add_test(NAME GaugeHotkeys COMMAND GaugeHotkeyTests)
+
 endif()
 
 if(MSVC)
@@ -101,6 +107,7 @@ set_source_files_properties("${DG_UPDATER_RC}" PROPERTIES OBJECT_DEPENDS "${DG_H
 add_library(DarksidersGenesisMod SHARED
   src/NativeTpsFeature.cpp
   src/CameraTraceFeature.cpp
+  src/ChaosPoseFeature.cpp
   src/ConfigStore.cpp
   src/DarksidersGenesisMod.cpp
   src/EngineIniFeature.cpp

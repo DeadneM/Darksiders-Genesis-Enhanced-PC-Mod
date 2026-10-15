@@ -1,3 +1,7 @@
+## V1.36 source prepared - four gauge hotkeys and Ultimate pose TEST (2026-10-15)
+
+**V1.35 manual fillers now VALIDATED by user for all three gauges.** Base debug56fbedb / accepted ordinary V1.34 TPS; Ultimate camera/control regression remains. Four100% refill actions added to Hotkeys -> F1-F12, independently and all together, with no changed assignments or INI defaults. Same validated native request path. New log: seven requests/applied readbacks,2125 missing actor samples, ZERO native cinematic-mode events; Ultimate timing was not marked. Native audit identifies the distinct form and adds a strictly typed local-pawn/owned-form pose, with native form input passthrough and no new hooks. **Ultimate follow/controls remain EXPERIMENTAL; source prepared, Windows build/install pending.** Existing normal XInput body, RawInput, horse, wheels, natural Synergy and manual refill engine retained. [Evidence, limits, rollback and acceptance](V1_36_GAUGE_HOTKEYS_ULTIMATE_POSE.md).
+
 ## V1.35 built, checked and installed - manual gauge levels (2026-10-15)
 
 **CONSTRUIT / CONTROLE / INSTALLE / EXPERIMENTAL, gameplay confirmation pending.** Base V1.34 debug b94de95 (ordinary play accepted, known Ultimate camera/control regression). Source 25f2d94e1ab62a56e9f18f62333bb353f7582498; [Windows x64 CI38717620159](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38717620159) SUCCESS, both C++ tests TpsStickRoles and GaugeRequests passed (2/2). Publication commit 93adad6cbb44182a02ac0474ba874f8baa2ce3ec.

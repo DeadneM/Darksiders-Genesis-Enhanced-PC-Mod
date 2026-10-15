@@ -11,6 +11,7 @@
 #include "imgui_impl_win32.h"
 
 #include "CameraTraceFeature.h"
+#include "ChaosPoseFeature.h"
 #include "ConfigStore.h"
 #include "EngineIniFeature.h"
 #include "GaugeChargeFeature.h"
@@ -41,7 +42,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.35-manual-gauge-refill-test";
+constexpr const char* kBuild = "1.36-gauge-hotkeys-form-pose-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -1580,6 +1581,7 @@ bool IsLiveTPSLookActor(void* actor) {
         dg::runtime::Get().tpsTemporarilySuspended.load() ||
         dg::runtime::Get().tpsCutsceneSuspended.load() ||
         dg::runtime::Get().tpsUiViewHeld.load() ||
+        dg::chaos_pose::ActiveNow() ||
         g_overlayVisible.load())
         return false;
     const auto* player=g_localPlayerCharacter.load(std::memory_order_acquire);
@@ -1645,7 +1647,7 @@ bool ProvideNativeMouseRay(void* actor,dg::native_tps::MouseRay& ray){
     if(!actor||!g_targetValidation.exact||g_shuttingDown.load()||
        !rt.thirdPersonEnabled.load()||rt.tpsTemporarilySuspended.load()||
        rt.tpsCutsceneSuspended.load()||rt.tpsUiViewHeld.load()||
-       g_overlayVisible.load()||IsTPSRadialInputActive()||
+       dg::chaos_pose::ActiveNow()||g_overlayVisible.load()||IsTPSRadialInputActive()||
        IsPadFiringNow()||IsCameraStickActiveNow()||
        !IsTPSLookViewFresh())return false;
     const bool mounted=IsMountedTPSNow();
@@ -2522,6 +2524,17 @@ void TriggerAction(Action action, int functionKey) {
 
     const char* label = ActionLabel(action);
 
+    if(const unsigned refill=dg::config::GaugeRefillMask(action)){
+        const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+        const bool allowed=hwnd&&GetForegroundWindow()==hwnd&&!IsIconic(hwnd)&&
+            !g_overlayVisible.load()&&!g_shuttingDown.load();
+        const bool queued=allowed&&dg::manual_gauges::RequestSet(refill,100.0f);
+        g_lastAction=std::string(label)+(queued?" requested":" unavailable here");
+        Log("Gauge V1.36 HOTKEY F%d action=%s mask=%u percent=100 queued=%d focusedGameplay=%d",
+            functionKey,label,refill,queued?1:0,allowed?1:0);
+        return;
+    }
+
     if (action == Action::ToggleHUD) {
         if (!g_hudHookReady.load()) {
             g_lastAction = "Toggle HUD [hook unavailable]";
@@ -2736,6 +2749,11 @@ void ProcessInput() {
     }
 
     if (g_overlayVisible.load()) {
+        // Discard refill edges while editing the menu, including held keys
+        // across its close. Existing non-refill F-key behavior is preserved.
+        for(int i=0;i<12;++i)
+            if(dg::config::GaugeRefillMask(g_config.hotkeys[static_cast<size_t>(i)]))
+                KeyPressed(VK_F1+i);
         return;
     }
 
@@ -2845,6 +2863,7 @@ bool ShouldSuppressNativeAim() {
         !dg::runtime::Get().tpsCutsceneSuspended.load(std::memory_order_relaxed) &&
         !dg::runtime::Get().tpsUiViewHeld.load(std::memory_order_relaxed) &&
         !IsTPSRadialInputActive() &&
+        IsTPSLookViewFresh() && !dg::chaos_pose::ActiveNow() &&
         hwnd && hwnd==GetForegroundWindow() && !IsIconic(hwnd) &&
         !g_overlayVisible.load(std::memory_order_relaxed);
 }
@@ -2940,6 +2959,13 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     // V1.02 controller isolation: never synthesize a pad from mouse input.
     if(realStatus!=ERROR_SUCCESS||!state||user!=0)return realStatus;
     const DWORD status=realStatus;
+    if(dg::chaos_pose::ActiveNow()){
+        // The form has its own native movement/attack path. No normal-player
+        // right-stick injection, role remap, R3 pulse or horse chord rewrite.
+        g_tpsFireHeld.store(false,std::memory_order_release);
+        dg::runtime::Get().tpsAimActive.store(false,std::memory_order_release);
+        return realStatus;
+    }
     auto& pad=state->Gamepad;
     // V0.92: user-selected pair must be pressed SIMULTANEOUSLY, never OR.
     // Map its held state to the game's original LB+RB summon/dismount chord.
@@ -4665,6 +4691,7 @@ void ShutdownMod() {
     dg::skip_logos::Shutdown();
     dg::horse::Shutdown();
     dg::aim_shader::Shutdown();
+    dg::chaos_pose::Shutdown();
     dg::manual_gauges::Shutdown();
     dg::gauges::Shutdown();
     const auto scene=dg::camera_trace::GetTelemetry();
@@ -4889,6 +4916,7 @@ DWORD WINAPI MainThread(LPVOID) {
     InitializeCameraDof();
     dg::camera_trace::Install(&FeatureLog);
     dg::native_tps::Install(&ProvideNativeMouseRay,&FeatureLog);
+    dg::chaos_pose::Initialize(&FeatureLog,g_targetValidation.exact);
     Log("TPS V1.33 mouse aim=CAMERA_CENTER: actual TPS yaw/pitch, native collision; UI look/XInput suppression disabled during native UI ownership; gameplay EXPERIMENTAL");
     dg::horse::Initialize(&FeatureLog);
     Log(

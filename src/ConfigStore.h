@@ -54,6 +54,10 @@ enum class Action : int {
     CameraYawRight,
     CameraReset,
     TpsCameraReset,
+    RefillWrath,
+    RefillUltimate,
+    RefillSynergy,
+    RefillAllGauges,
     Count
 };
 
@@ -85,7 +89,11 @@ kActionLabels = {
     "Camera Rotate Left",
     "Camera Rotate Right",
     "Camera Values Default",
-    "TPS Camera Values Default"
+    "TPS Camera Values Default",
+    "Fill Wrath (100%)",
+    "Fill Ultimate (100%)",
+    "Fill Synergy (100%)",
+    "Fill all three gauges (100%)"
 };
 
 inline constexpr std::array<const wchar_t*, static_cast<std::size_t>(Action::Count)>
@@ -116,8 +124,24 @@ kActionTokens = {
     L"CameraYawLeft",
     L"CameraYawRight",
     L"CameraReset",
-    L"TpsCameraReset"
+    L"TpsCameraReset",
+    L"RefillWrath",
+    L"RefillUltimate",
+    L"RefillSynergy",
+    L"RefillAllGauges"
 };
+
+// Instant actions share the validated one-shot manual refill queue.
+// Values match the manual gauge mask, without including native game code here.
+constexpr unsigned GaugeRefillMask(Action action){
+    switch(action){
+    case Action::RefillWrath:return 1;
+    case Action::RefillUltimate:return 2;
+    case Action::RefillSynergy:return 4;
+    case Action::RefillAllGauges:return 7;
+    default:return 0;
+    }
+}
 
 inline constexpr std::array<int, 8> kDefaultCameraKeys{{
     0x26,0x28,0x21,0x22,0x24,0x23,0x25,0x27
