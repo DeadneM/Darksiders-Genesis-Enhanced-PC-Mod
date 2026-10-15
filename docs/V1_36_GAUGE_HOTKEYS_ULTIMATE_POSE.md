@@ -43,3 +43,20 @@ Rollback: close game and restore the backed-up pre-V1.36 ASI/dxgi/README, keepin
 2. Fill Ultimate in normal gameplay, activate normally2-3 times. Check camera follows the transformed actor, attacks/movement, then return to normal TPS. Save log; match ULTIMATE_POSE entry/exit with any failure. Test both characters separately.
 3. Recheck ordinary foot/horse aiming, all three wheels/sticks, both native/mod stick layouts, pause, real scene, temporary native shortcut and Alt-Tab. Native form controls and framing are explicitly not user-validated yet.
 4. If evidence does not confirm correct local form ownership, stop this fallback and return to V1.35; do not infer ownership from missing actors. Natural Wrath/Ultimate gain multiplier investigation stays separate from validated manual refill.
+
+## Verified delivery and installation
+
+Source44b6d12d1507e74926c54fe414ba93e46aec46eb, Windows CI38727065139 / job116395439271 SUCCESS. CTest TpsStickRoles0.01s, GaugeRequests0.01s, GaugeHotkeys0.04s, 3/3 passed. Configure/build, exact-root package, upload and permanent numbered debug publication succeeded. Archive commit4d4ecd62c1b2c5c95fbab2f1cd5d61ff4f8bcf00. Legacy warnings concern unchanged unused locals/functions and a pre-existing shadowed local; no new form-module diagnostic. This is build/static/test evidence, not native gameplay validation.
+
+ZIP 788051 bytes, SHA256 9538DC2BA73A1A649FA5653F51A63A2882C8B2ACC4B8C2BCBB4B5C56BBE55944. Direct raw download, repository ZIP and CI-reported SHA256 match. Four exact root entries independently checked, binaries AMD64 and ASI1.36 identity present:
+
+- DarksidersGenesisMod.asi: 1161216 bytes; SHA256 D8C08C7525339FE1D94D139455ED7F7632B74F6FC943CB807A30089FB4EBEB7A
+- DarksidersGenesisMod.ini: 2677 bytes; SHA256 22B4A6D034316DDD6F632FBAF15BA9C5B01B486FA429AA4D7A236483279E66BD
+- dxgi.dll: 154624 bytes; SHA256 5975257FC9D2E4104C96C498AC459352ED89B03390B41C04C594F3C47C671D2B
+- README.md: 248142 bytes; SHA256 A313EBF7041CE84E0FF8A6725A5D7249FFDCEE5FD46D75A1012A8BF769384124
+
+Installed with game closed. Backup ../audit-v131/install-backup-before-v136-20261015-132719/ contains prior V1.35 four files, log and backup hashes. Installed ASI/loader match package. Personal INI preserved exactly 82AF15917398293EFA674C28EF064E15F85FF4D646B60ECBD11763AC3AD69D68, all previous settings/bindings retained. README refreshed with receipt; immutable archive untouched. Local hash manifests, CI log and old user log retained.
+
+Only V1.36 ZIP added relative to base56fbedb; no older archive changed. main2bc3122c1ae07b7333798462f85c1d9fd3a739f7 / archive10e0f220b85022bc9269e0cb9390a811a3b1cf89 remain protected. Source checks confirm protected modules and RawInput block unchanged, normal XInput body identical outside typed active form, five exact retail signatures/class slots/owned-form field/native pawn getter checked.
+
+Final status CONSTRUIT / CONTROLE / INSTALLE / EXPERIMENTAL for new behavior. User has validated underlying V1.35 manual refill for ALL gauges. Four hotkey activations and Ultimate TPS/native-control follow remain USER TEST REQUIRED. Next work follows actual entry/exit logs; do not call a filled meter a repaired natural multiplier, or missing actor samples a proven cinematic event.
