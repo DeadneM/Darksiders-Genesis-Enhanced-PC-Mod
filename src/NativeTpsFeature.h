@@ -14,5 +14,6 @@ void ObserveUiEvent(void* liveObject);
 bool NativeStickSwap();
 bool NativeStickSwapKnown();
 bool RadialActive();
+bool OnGameThread();
 void Report();
 }

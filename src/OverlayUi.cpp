@@ -1,5 +1,6 @@
 #include "OverlayUi.h"
 #include "GaugeChargeFeature.h"
+#include "ManualGaugeFeature.h"
 #include "ShaderAimFeature.h"
 #include "UpdateFeature.h"
 
@@ -314,6 +315,44 @@ void Draw(Context& c) {
 
             DrawSectionTitle("Resource recharge");
             const auto charge=dg::gauges::GetTelemetry();
+            const auto manual=dg::manual_gauges::GetTelemetry();
+            ImGui::TextUnformatted("Set gauges for testing");
+            static float gaugePercent=100.0f;
+            ImGui::SetNextItemWidth(230.0f);
+            ImGui::SliderFloat("Target level##ManualGauges",&gaugePercent,0.0f,100.0f,"%.0f %%");
+            const unsigned masks[3]={dg::manual_gauges::Wrath,
+                dg::manual_gauges::Ultimate,dg::manual_gauges::Synergy};
+            const char* names[3]={"Set Wrath","Set Ultimate","Set Synergy"};
+            for(unsigned i=0;i<3;++i){
+                ImGui::BeginDisabled(manual.pending||!(manual.readyMask&masks[i]));
+                if(ImGui::Button(names[i]))dg::manual_gauges::RequestSet(masks[i],gaugePercent);
+                ImGui::EndDisabled();
+                if(manual.values[i].available){
+                    ImGui::SameLine();
+                    ImGui::TextDisabled("%.1f / %.1f",manual.values[i].current,manual.values[i].maximum);
+                }
+            }
+            ImGui::BeginDisabled(manual.pending||manual.readyMask!=dg::manual_gauges::All);
+            if(ImGui::Button("Set all three gauges"))
+                dg::manual_gauges::RequestSet(dg::manual_gauges::All,gaugePercent);
+            ImGui::EndDisabled();
+            if(manual.pending){
+                ImGui::TextWrapped("Waiting for gameplay to apply the request.");
+                if(ImGui::Button("Cancel gauge request"))dg::manual_gauges::CancelRequest();
+            }else if(manual.result==dg::manual_gauges::Result::Applied){
+                ImGui::TextWrapped("Gauge values applied. Check the gauges and Ultimate activation in game.");
+            }else if(manual.result==dg::manual_gauges::Result::Partial||
+                     manual.result==dg::manual_gauges::Result::Rejected){
+                ImGui::TextWrapped("Some gauges could not be set here. See the log and retry in normal gameplay.");
+            }else if(manual.result==dg::manual_gauges::Result::Expired||
+                     manual.result==dg::manual_gauges::Result::Cancelled){
+                ImGui::TextWrapped("Request cancelled or expired. Return to gameplay and try again.");
+            }
+            if(!manual.readyMask)
+                ImGui::TextWrapped("Available during normal local-host gameplay with a supported player.");
+            ImGui::TextWrapped("One click changes the selected level once; it does not keep gauges full or unlock the Ultimate form.");
+            ImGui::Separator();
+
             ImGui::TextDisabled("For working gain paths: x0 stops gains, x1 is vanilla. Settings save to INI.");
             DrawTunableFeature(config,"Hotstreak charge","HotstreakCharge",
                 &config.hotstreakChargeEnabled,&config.hotstreakChargeMultiplier,

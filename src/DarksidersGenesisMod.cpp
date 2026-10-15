@@ -14,6 +14,7 @@
 #include "ConfigStore.h"
 #include "EngineIniFeature.h"
 #include "GaugeChargeFeature.h"
+#include "ManualGaugeFeature.h"
 #include "HorseFeature.h"
 #include "NativeTpsFeature.h"
 #include "TpsStickRoles.h"
@@ -40,7 +41,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.34-native-actions-stick-roles-test";
+constexpr const char* kBuild = "1.35-manual-gauge-refill-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -2155,6 +2156,8 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
                 std::memory_order_relaxed
             );
         dg::horse::ObservePlayerCharacter(characterOwner);
+        dg::manual_gauges::OnLivePlayer(characterOwner,
+            runtime.tpsActorGeneration.load(std::memory_order_acquire));
         if (previousPlayer != characterOwner) {
             g_tpsPlayerGeneration.fetch_add(1);
             Log(
@@ -4662,6 +4665,7 @@ void ShutdownMod() {
     dg::skip_logos::Shutdown();
     dg::horse::Shutdown();
     dg::aim_shader::Shutdown();
+    dg::manual_gauges::Shutdown();
     dg::gauges::Shutdown();
     const auto scene=dg::camera_trace::GetTelemetry();
     // Print the UI's temporary cutscene history at shutdown as well, so
@@ -4912,6 +4916,7 @@ DWORD WINAPI MainThread(LPVOID) {
     if (!InstallHotstreakChargeHook()) {
         Log("Hotstreak Charge unavailable; other ASI features remain active.");
     }
+    dg::manual_gauges::Initialize(&FeatureLog,&g_localPlayerCharacter,g_targetValidation.exact);
     dg::gauges::Initialize(&FeatureLog,&g_localPlayerCharacter,g_targetValidation.exact);
     if (!InstallFinalOutgoingDamageHook()) {
         Log("Final Pistol/Melee Damage hook unavailable; other ASI features remain active.");

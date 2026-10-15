@@ -250,6 +250,10 @@ void SampleNativeStickSwap(){
 }
 bool NativeStickSwap(){return g_swap.load(std::memory_order_acquire);}
 bool NativeStickSwapKnown(){return g_swapKnown.load(std::memory_order_acquire);}
+bool OnGameThread(){
+    const DWORD thread=g_gameThread.load(std::memory_order_acquire);
+    return thread&&thread==GetCurrentThreadId();
+}
 void ObserveUiEvent(void* object){
     if(!g_ready.load(std::memory_order_acquire)||!g_visible||!object||
        GetCurrentThreadId()!=g_gameThread.load())return;

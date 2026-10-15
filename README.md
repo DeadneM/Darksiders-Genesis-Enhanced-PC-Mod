@@ -1,3 +1,7 @@
+## V1.35 source prepared - manual gauge levels for Ultimate testing (2026-10-15)
+
+Base V1.34 debug b94de95: ordinary play accepted by user, **Ultimate overhead-camera/control regression newly reported**. Priority is explicit manual refill before camera repair. V1.35 adds queued one-shot 0-100% native level controls for Wrath, Ultimate/Chaos and Synergy, typed live-local ownership, native caps, readback logs, actor/generation cancellation and expiry. DebugRefill commands were proved shipping no-ops; actual native bounded setters are used. No camera/input/horse/natural Synergy/config changes; no auto refill, unlock or activation. Natural Wrath/Ultimate gain multipliers remain unverified. **EXPERIMENTAL, source prepared; Windows build/install pending.** [Evidence, limits and test](docs/V1_35_MANUAL_GAUGE_REFILL.md).
+
 ## V1.34 verified Windows build and local installation - EXPERIMENTAL
 
 **CONSTRUIT / CONTROLE / INSTALLE / EXPERIMENTAL, not user validated.** Base V1.33 debug 2291e80; source d362076f357306db1d45d727ae21622236bf5f6d. Windows x64 [CI38639339105](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38639339105) SUCCESS, including actual C++ stick-role matrix (native swap ON/OFF, physical camera Left/Right, movement retained during aim injection/filtering, buttons/triggers retained). Archive publication commit 77bb0b43e99032dc36a331a3f516bd2ae1f6305e.

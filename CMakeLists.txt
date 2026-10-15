@@ -10,6 +10,9 @@ if(BUILD_TESTING)
   add_executable(TpsStickRolesTests tests/TpsStickRolesTests.cpp)
   target_include_directories(TpsStickRolesTests PRIVATE src)
   add_test(NAME TpsStickRoles COMMAND TpsStickRolesTests)
+  add_executable(GaugeRequestTests tests/GaugeRequestTests.cpp)
+  target_include_directories(GaugeRequestTests PRIVATE src)
+  add_test(NAME GaugeRequests COMMAND GaugeRequestTests)
 endif()
 
 if(MSVC)
@@ -102,6 +105,7 @@ add_library(DarksidersGenesisMod SHARED
   src/DarksidersGenesisMod.cpp
   src/EngineIniFeature.cpp
   src/GaugeChargeFeature.cpp
+  src/ManualGaugeFeature.cpp
   src/HorseFeature.cpp
   src/OverlayUi.cpp
   src/RuntimeSettings.cpp

@@ -1,0 +1,26 @@
+#pragma once
+#include "GaugeRequestPolicy.h"
+#include <atomic>
+#include <cstdint>
+
+namespace dg::manual_gauges {
+using LogFn=void(*)(const char*);
+enum class Result { Idle, Queued, Applied, Partial, Rejected, Cancelled, Expired };
+struct GaugeValue { float current=0,maximum=0; bool available=false; };
+struct Telemetry {
+    GaugeValue values[3]{};
+    unsigned readyMask=0,lastAppliedMask=0;
+    bool supported=false,pending=false,formActive=false;
+    Result result=Result::Idle;
+    uintptr_t actor=0;
+    uint32_t generation=0,requests=0,applied=0;
+    uint64_t observedAt=0;
+};
+void Initialize(LogFn logger,std::atomic<void*>* localPlayer,bool exactExecutable);
+// Live validated player callback on the camera's sampled game thread only.
+void OnLivePlayer(void* player,uint32_t generation);
+bool RequestSet(unsigned mask,float percent);
+void CancelRequest();
+Telemetry GetTelemetry();
+void Shutdown();
+}
