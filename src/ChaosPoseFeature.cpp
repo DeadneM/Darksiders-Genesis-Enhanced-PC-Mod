@@ -1,5 +1,7 @@
 #include "ChaosPoseFeature.h"
 #include "NativeTpsFeature.h"
+#include "ManualGaugeFeature.h"
+#include "RuntimeSettings.h"
 #include <windows.h>
 #include <atomic>
 #include <cmath>
@@ -14,7 +16,8 @@ PawnFn g_pawn=nullptr;
 uintptr_t g_base=0;
 LogFn g_log=nullptr;
 std::atomic_bool g_ready{false},g_active{false};
-std::atomic_ullong g_tick{0};
+std::atomic_ullong g_tick{0},g_poseTick{0};
+std::atomic<float> g_poseYaw{0};
 std::atomic_bool g_ranged{false};
 std::atomic_uintptr_t g_formIdentity{0},g_ownerIdentity{0};
 std::atomic_uint32_t g_samples{0},g_valid{0},g_changes{0};
@@ -119,7 +122,10 @@ bool Sample(void* camera,Pose& pose){
         std::isfinite(candidate.yaw)&&std::fabs(candidate.x)<1e7f&&
         std::fabs(candidate.y)<1e7f&&std::fabs(candidate.z)<1e7f&&
         std::fabs(candidate.yaw)<36000.0f;
-    if(valid){pose=candidate;++g_valid;}
+    if(valid){pose=candidate;++g_valid;g_poseYaw.store(candidate.yaw,std::memory_order_relaxed);}
+    g_poseTick.store(valid?GetTickCount64():0,std::memory_order_release);
+    if(verifiedOwner)dg::manual_gauges::OnLivePlayer(owner,
+        dg::runtime::Get().tpsActorGeneration.load(std::memory_order_acquire));
     const auto now=GetTickCount64();
     const bool changed=g_active.exchange(form!=nullptr,std::memory_order_acq_rel)!=(form!=nullptr);
     g_tick.store(now,std::memory_order_release);
@@ -137,6 +143,11 @@ bool Sample(void* camera,Pose& pose){
 bool ActiveNow(){
     const auto tick=g_tick.load(std::memory_order_acquire),now=GetTickCount64();
     return g_active.load(std::memory_order_acquire)&&tick&&now>=tick&&now-tick<250ull;
+}
+bool GetLiveYaw(float& yaw){
+    const auto tick=g_poseTick.load(std::memory_order_acquire),now=GetTickCount64();
+    if(!ActiveNow()||!tick||now<tick||now-tick>=250)return false;
+    yaw=g_poseYaw.load(std::memory_order_relaxed);return std::isfinite(yaw);
 }
 bool RangedActive(){return ActiveNow()&&g_ranged.load(std::memory_order_acquire);}
 bool RangedActor(void* actor){

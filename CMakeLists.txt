@@ -26,6 +26,12 @@ if(BUILD_TESTING)
   add_executable(ResourceGainTests tests/ResourceGainTests.cpp)
   target_include_directories(ResourceGainTests PRIVATE src)
   add_test(NAME ResourceGains COMMAND ResourceGainTests)
+  add_executable(GaugeUnlimitedTests tests/GaugeUnlimitedTests.cpp)
+  target_include_directories(GaugeUnlimitedTests PRIVATE src)
+  add_test(NAME GaugeUnlimited COMMAND GaugeUnlimitedTests)
+  add_executable(WarningPresentationTests tests/WarningPresentationTests.cpp)
+  target_include_directories(WarningPresentationTests PRIVATE src)
+  add_test(NAME WarningPresentation COMMAND WarningPresentationTests)
 
 endif()
 
@@ -127,6 +133,7 @@ add_library(DarksidersGenesisMod SHARED
   src/RuntimeSettings.cpp
   src/ShaderAimFeature.cpp
   src/SkipLogosFeature.cpp
+  src/SkipWarningFeature.cpp
   src/TargetValidator.cpp
   src/UpdateFeature.cpp
   "${DG_UPDATER_RC}"

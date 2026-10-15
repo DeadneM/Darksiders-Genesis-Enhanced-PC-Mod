@@ -42,6 +42,7 @@ struct Telemetry {
     bool skipLogosTargetValid = false;
     bool skipLogosPatched = false;
     bool skipLogosEnabled = true;
+    bool skipWarningReady = false;
     bool skipWarningAttempted = false;
     bool skipWarningApplied = false;
 

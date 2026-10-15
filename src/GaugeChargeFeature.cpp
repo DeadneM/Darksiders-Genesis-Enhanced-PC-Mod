@@ -1,4 +1,5 @@
 #include "GaugeChargeFeature.h"
+#include "ManualGaugeFeature.h"
 #include "RuntimeSettings.h"
 #include <MinHook.h>
 #include <windows.h>
@@ -253,8 +254,8 @@ float HookSynergyGain(void* manager,void* owner,float a,float b,float c){
     ScopedSynergyAdd scope;
     return originalSynergyGain(manager,owner,a,b,effectiveC);
 }
-// Absolute setter never changes native requested values, including spends,
-// scripted resets, replication and duplicate absolute updates.
+// Natural gain classification is unchanged. Only the explicit Unlimited option
+// can hold this verified local player's absolute value at its native maximum.
 float HookSynergy(void* player,float requested){
     if(!originalSynergy)return 0.0f;
     const unsigned n=++synergyEvents;
@@ -297,7 +298,8 @@ float HookSynergy(void* player,float requested){
         ++synergySetterInvalid;
     }
     Probe("SYNERGY SetCurrentSynergy",n,player,requested,previous,maximum,match);
-    return originalSynergy(player,requested);
+    return originalSynergy(player,dg::manual_gauges::UnlimitedRequest(
+        dg::manual_gauges::Synergy,player,requested));
 }
 bool InstallNative(uintptr_t base,uintptr_t rva,const unsigned char* sig,size_t count,
                    void* hook,void** original,std::atomic_bool& ready,const char* name){

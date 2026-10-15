@@ -301,7 +301,7 @@ void Store::ResetDefaults(bool persist) {
     actionRecoveryEnabled = true;
     skipLogosEnabled = true;
     skipIntroEnabled = true;
-    skipWarningEnabled = false;
+    skipWarningEnabled = true;
     thirdPersonEnabled = true;
     thirdPersonFovEnabled = true;
     tpsFollowPlayer = true;
@@ -345,6 +345,9 @@ void Store::ResetDefaults(bool persist) {
     wrathChargeEnabled = true;
     ultimateChargeEnabled = true;
     synergyChargeEnabled = true;
+    unlimitedWrathEnabled = false;
+    unlimitedUltimateEnabled = false;
+    unlimitedSynergyEnabled = false;
 
     movementSpeedMultiplier = 1.50f;
     actionRecoveryDelayMs = 0.0f;
@@ -517,8 +520,11 @@ bool Store::Load() {
         ReadBool(L"Features", L"SkipLogos", true, path_);
     skipIntroEnabled =
         ReadBool(L"Features", L"SkipIntroVideos", true, path_);
-    // Reticle/crosshair safety rollback: native warning patch quarantined.
-    skipWarningEnabled = false;
+    // V1.38 presentation-only experiment; legacy asset-loop bypass stays OFF.
+    skipWarningEnabled = ReadBool(L"Features",L"SkipWarning",true,path_);
+    unlimitedWrathEnabled=ReadBool(L"Features",L"UnlimitedWrath",false,path_);
+    unlimitedUltimateEnabled=ReadBool(L"Features",L"UnlimitedUltimate",false,path_);
+    unlimitedSynergyEnabled=ReadBool(L"Features",L"UnlimitedSynergy",false,path_);
     thirdPersonEnabled =
         ReadBool(L"Features", L"ThirdPerson", true, path_);
     thirdPersonFovEnabled=ReadBool(L"Features",L"TPSFOV",true,path_);
@@ -836,6 +842,9 @@ void Store::PublishRuntime() const {
     runtime.wrathChargeEnabled = wrathChargeEnabled;
     runtime.ultimateChargeEnabled = ultimateChargeEnabled;
     runtime.synergyChargeEnabled = synergyChargeEnabled;
+    runtime.unlimitedWrathEnabled = unlimitedWrathEnabled;
+    runtime.unlimitedUltimateEnabled = unlimitedUltimateEnabled;
+    runtime.unlimitedSynergyEnabled = unlimitedSynergyEnabled;
 
     runtime.fovDegrees = fovDegrees;
     runtime.thirdPersonFovDegrees = thirdPersonFovDegrees;
@@ -914,7 +923,10 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"ActionRecovery", actionRecoveryEnabled, path_);
     WriteBool(L"Features", L"SkipLogos", skipLogosEnabled, path_);
     WriteBool(L"Features", L"SkipIntroVideos", skipIntroEnabled, path_);
-    WriteBool(L"Features", L"SkipWarning", false, path_);
+    WriteBool(L"Features", L"SkipWarning", skipWarningEnabled, path_);
+    WriteBool(L"Features",L"UnlimitedWrath",unlimitedWrathEnabled,path_);
+    WriteBool(L"Features",L"UnlimitedUltimate",unlimitedUltimateEnabled,path_);
+    WriteBool(L"Features",L"UnlimitedSynergy",unlimitedSynergyEnabled,path_);
     WriteBool(L"Features", L"ThirdPerson", thirdPersonEnabled, path_);
     WriteBool(L"Features",L"TPSFOV",thirdPersonFovEnabled,path_);
     WritePrivateProfileStringW(L"Features",L"TPSFollowPlayer",nullptr,path_.c_str());

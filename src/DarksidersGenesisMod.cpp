@@ -24,6 +24,7 @@
 #include "RuntimeSettings.h"
 #include "ShaderAimFeature.h"
 #include "SkipLogosFeature.h"
+#include "SkipWarningFeature.h"
 #include "TargetValidator.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -43,7 +44,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.37-ultimate-camera-aim-gauge-test";
+constexpr const char* kBuild = "1.38-unlimited-recenter-warning-presentation-test";
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -2529,6 +2530,21 @@ void TriggerAction(Action action, int functionKey) {
 
     const char* label = ActionLabel(action);
 
+    if(const unsigned mask=dg::config::UnlimitedMask(action)){
+        const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+          if(!hwnd||GetForegroundWindow()!=hwnd||IsIconic(hwnd)||g_overlayVisible.load()||g_shuttingDown.load())return;
+        const bool enable=mask==7?!(g_config.unlimitedWrathEnabled&&
+            g_config.unlimitedUltimateEnabled&&g_config.unlimitedSynergyEnabled):
+            mask==1?!g_config.unlimitedWrathEnabled:
+            mask==2?!g_config.unlimitedUltimateEnabled:!g_config.unlimitedSynergyEnabled;
+        if(mask&1)g_config.unlimitedWrathEnabled=enable;
+        if(mask&2)g_config.unlimitedUltimateEnabled=enable;
+        if(mask&4)g_config.unlimitedSynergyEnabled=enable;
+        g_config.Save();
+        g_lastAction=std::string(label)+(enable?" ON":" OFF");
+        Log("Gauge V1.38 HOTKEY F%d unlimitedMask=%u enabled=%d",functionKey,mask,enable?1:0);
+        return;
+    }
     if(const unsigned refill=dg::config::GaugeRefillMask(action)){
         const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
         const bool allowed=hwnd&&GetForegroundWindow()==hwnd&&!IsIconic(hwnd)&&
@@ -2641,7 +2657,7 @@ void TriggerAction(Action action, int functionKey) {
         g_config.Save();
         bool accepted=true;
         if (action == Action::SkipLogos) accepted=dg::skip_logos::Apply(*toggle);
-        if (action == Action::SkipWarning) accepted=dg::skip_logos::ApplyWarning(*toggle);
+        if (action == Action::SkipWarning) accepted=dg::skip_warning::Apply(*toggle);
         const bool startup=action==Action::SkipLogos || action==Action::SkipWarning;
         g_lastAction=std::string(label)+(*toggle?" ON":" OFF")+
             (startup?" (restart required)":"");
@@ -3652,8 +3668,10 @@ dg::overlay::Context BuildOverlayContext() {
         skipLogosTelemetry.patched;
     t.skipLogosEnabled =
         skipLogosTelemetry.enabled;
-    t.skipWarningAttempted = skipLogosTelemetry.warningAttempted;
-    t.skipWarningApplied = skipLogosTelemetry.warningApplied;
+    const auto warnings=dg::skip_warning::GetTelemetry();
+    t.skipWarningReady=warnings.ready;
+    t.skipWarningAttempted=warnings.observed>0;
+    t.skipWarningApplied=warnings.advanced>0;
 
     t.actionMoveQueries = g_actionMoveQueries.load();
     t.actionMoveLocalQueries =
@@ -3713,7 +3731,7 @@ dg::overlay::Context BuildOverlayContext() {
 
     context.applySkipIntro =
         &ApplySkipIntroSetting;
-    context.applySkipWarning = &dg::skip_logos::ApplyWarning;
+    context.applySkipWarning = &dg::skip_warning::Apply;
     context.applySkipLogos =
         &dg::skip_logos::Apply;
     context.applyGraphicsAdapter =
@@ -4716,6 +4734,7 @@ void ShutdownMod() {
     }
     g_config.FlushIfDue(true);
     dg::skip_logos::Shutdown();
+    dg::skip_warning::Shutdown();
     dg::horse::Shutdown();
     dg::aim_shader::Shutdown();
     dg::chaos_pose::Shutdown();
@@ -4920,6 +4939,9 @@ DWORD WINAPI MainThread(LPVOID) {
     );
 
     ReportStartupPhase(5,g_targetValidation.exact?1u:0u);
+    // Install early on this worker after exact executable validation, so the
+    // original startup constructor/loaders remain wholly native.
+    dg::skip_warning::Initialize(&FeatureLog,g_targetValidation.exact);
 
     // Skip Logos bypasses the FEngineLoop selector that would play either the
     // EarlyStartupMovie path or its CustomSplashScreen fallback. The proxy

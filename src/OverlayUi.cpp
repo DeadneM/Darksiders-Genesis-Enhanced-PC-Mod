@@ -354,6 +354,13 @@ void Draw(Context& c) {
                 ImGui::TextWrapped("Available during normal local-host gameplay with a supported player.");
             ImGui::TextWrapped("One click changes the selected level once; it does not keep gauges full or unlock the Ultimate form.");
             ImGui::Separator();
+            ImGui::TextUnformatted("Unlimited gauges (test)");
+            if(ImGui::Checkbox("Unlimited Wrath (Courroux)",&config.unlimitedWrathEnabled))config.Save();
+            if(ImGui::Checkbox("Unlimited Ultimate form",&config.unlimitedUltimateEnabled))config.Save();
+            if(ImGui::Checkbox("Unlimited Synergy",&config.unlimitedSynergyEnabled))config.Save();
+            ImGui::TextWrapped("Keep each selected gauge full during gameplay. Unlimited Ultimate also holds its gauge while transformed. Toggle each or all three in Hotkeys -> F1-F12.");
+            ImGui::TextDisabled("Unlimited takes priority over the target level above.");
+            ImGui::Separator();
 
             ImGui::TextDisabled("For working gain paths: x0 stops gains, x1 is vanilla. Settings save to INI.");
             DrawTunableFeature(config,"Hotstreak charge","HotstreakCharge",
@@ -364,13 +371,13 @@ void Draw(Context& c) {
             DrawTunableFeature(config,"Wrath (Courroux) charge","WrathCharge",
                 &config.wrathChargeEnabled,&config.wrathChargeMultiplier,
                 0.0f,100.0f,2.0f,"%.2fx",
-                "Experimental multiplier for native Wrath pickup gains. Spends and manual refill stay unchanged.",
-                rewards.ready[0],rewards.ready[0]?"TEST | gameplay confirmation required":"Gain path unavailable");
+                "Multiplier for native Wrath pickup gains; validated in game.",
+                rewards.ready[0],rewards.ready[0]?"Gains validated by user":"Gain path unavailable");
             DrawTunableFeature(config,"Ultimate Form / Chaos charge","UltimateCharge",
                 &config.ultimateChargeEnabled,&config.ultimateChargeMultiplier,
                 0.0f,100.0f,2.0f,"%.2fx",
-                "Experimental multiplier for native Ultimate combat rewards. Transformation drain and manual refill stay unchanged.",
-                rewards.ready[1],rewards.ready[1]?"TEST | gameplay confirmation required":"Gain path unavailable");
+                "Multiplier for native Ultimate combat rewards; validated in game.",
+                rewards.ready[1],rewards.ready[1]?"Gains validated by user":"Gain path unavailable");
             ImGui::TextDisabled("Native gain events: Wrath %u (%u modified) | Ultimate %u (%u modified)",
                 rewards.positive[0],rewards.boosted[0],rewards.positive[1],rewards.boosted[1]);
             DrawTunableFeature(config,"Synergy charge","SynergyCharge",
@@ -380,8 +387,7 @@ void Draw(Context& c) {
                 charge.synergyReady,charge.synergyReady?"Additive gains verified":"Unavailable");
             ImGui::TextDisabled("Synergy: %u gains boosted / %u setter calls (not all calls are gains)",
                 charge.synergyBoostCalls,charge.synergyObserved);
-            ImGui::TextDisabled("Wrath: %u calls | Ultimate: %u calls (gain paths unverified)",
-                charge.wrathObserved,charge.chaosObserved);
+            ImGui::TextDisabled("Natural gains and Unlimited are independent settings.");
             ImGui::TextDisabled("V1.15 gain-value categories are recorded in the per-session log.");
             ImGui::TextDisabled("Observed in-game: pistol %d | melee-like %d | Hotstreak %d",
                 t.pistolDamageBoostCalls,t.meleeDamageBoostCalls,t.hotstreakBoostCalls);
@@ -583,18 +589,21 @@ void Draw(Context& c) {
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Native g.PlayIntroCinematicOnBoot; independent of Skip Logos");
 
-            bool skipWarningsNotReady = false;
-            ImGui::BeginDisabled(true);
-            ImGui::Checkbox("Skip Warnings", &skipWarningsNotReady);
-            ImGui::EndDisabled();
+            if(ImGui::Checkbox("Skip Warnings (test)",&config.skipWarningEnabled)){
+                config.Save();
+                const bool ready=c.applySkipWarning&&c.applySkipWarning(config.skipWarningEnabled);
+                *c.lastAction=std::string("Skip Warnings ")+(config.skipWarningEnabled?"ON":"OFF")+
+                    (ready?" | next startup":" | unavailable");
+            }
             ImGui::SameLine(310.0f);
-            ImGui::TextDisabled("Not working yet | native warning initialization protected");
+            ImGui::TextDisabled("%s | restart required",t.skipWarningReady?"Experimental":"Unavailable");
             if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("The old startup-loop bypass broke the reticle. A safe screen-display hook is not verified.");
-            ImGui::TextDisabled("Save and controller warnings are not currently skipped.");
+                ImGui::SetTooltip("Advance the save and controller notices automatically. Please test startup, reticle and menus.");
+            ImGui::TextDisabled("Save / controller pages advanced: %s | needs gameplay testing",
+                t.skipWarningApplied?"observed":"not observed");
 
             ImGui::Spacing();
-            ImGui::TextDisabled("Skip Logos / Intro take effect after a game restart.");
+            ImGui::TextDisabled("Startup options take effect after a game restart.");
             ImGui::Unindent(12.0f);
             }
 

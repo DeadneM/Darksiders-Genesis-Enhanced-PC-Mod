@@ -8,6 +8,7 @@ void Initialize(LogFn logger,bool exactExecutable);
 // Synchronous game-thread lookup using the live native camera as world context.
 bool Sample(void* liveCamera,Pose& pose);
 bool ActiveNow();
+bool GetLiveYaw(float& yaw);
 // Identities are compared only; never dereference a cached UObject.
 bool RangedActive();
 bool RangedActor(void* liveActor);

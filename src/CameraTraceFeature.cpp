@@ -278,7 +278,8 @@ void HookView(void* camera, float dt, void* outView) {
         // No proof of a live horse: keep original foot camera unchanged.
     }
     dg::chaos_pose::Pose chaosPose{};
-    const bool usingChaos=thirdPerson&&dg::chaos_pose::Sample(camera,chaosPose);
+    const bool chaosValid=dg::chaos_pose::Sample(camera,chaosPose);
+    const bool usingChaos=thirdPerson&&chaosValid;
     if(usingChaos){
         // Fresh native form pose for THIS camera callback. Keep the normal
         // player's identity/generation and all horse sampling unchanged.
@@ -872,8 +873,10 @@ bool RecenterOnPlayer() {
     const bool onFoot=tick&&now>=tick&&now-tick<=350ull;
     const ULONGLONG horseTick=rt.tpsHorsePoseTick.load();
     const bool onHorse=!onFoot&&horseTick&&now>=horseTick&&now-horseTick<=750ull;
-    if(!onFoot&&!onHorse)return false;
-    const float actorYaw=onHorse?rt.tpsHorseYawDegrees.load():rt.tpsActorYawDegrees.load();
+    float formYaw=0;
+    const bool onUltimate=dg::chaos_pose::GetLiveYaw(formYaw);
+    if(!onFoot&&!onHorse&&!onUltimate)return false;
+    const float actorYaw=onUltimate?formYaw:onHorse?rt.tpsHorseYawDegrees.load():rt.tpsActorYawDegrees.load();
     const float base=g_zoneReferenceYaw.load();
     const float manual=0.0f; // vanilla yaw separated from TPS recenter.
     if(!std::isfinite(actorYaw)||!std::isfinite(base)||!std::isfinite(manual)) return false;
@@ -881,8 +884,8 @@ bool RecenterOnPlayer() {
     rt.cameraOrbitYawDegrees.store(delta);
     rt.cameraOrbitPitchDegrees.store(0.0f);
     char message[170]{};
-    sprintf_s(message,"TPS V0.70: recenter actorYaw=%.1f initialYaw=%.1f orbitYaw=%.1f",
-        actorYaw,base,delta);
+    sprintf_s(message,"TPS V1.38 recenter source=%s actorYaw=%.1f initialYaw=%.1f orbitYaw=%.1f",
+        onUltimate?"ULTIMATE":onHorse?"HORSE":"FOOT",actorYaw,base,delta);
     Write(message);
     return true;
 }

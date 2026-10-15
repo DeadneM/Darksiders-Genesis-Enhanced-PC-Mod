@@ -2,6 +2,7 @@
 #include "ResourceGainPolicy.h"
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
+#include "ManualGaugeFeature.h"
 #include <windows.h>
 #include <MinHook.h>
 #include <intrin.h>
@@ -79,6 +80,8 @@ float Set(unsigned gauge,void* resource,float requested,uintptr_t caller){
     const bool positive=eligible&&std::isfinite(before)&&std::isfinite(requested)&&requested>before;
     const unsigned n=positive?++g_positive[gauge]:0;
     if(effective!=requested&&std::isfinite(effective))++g_boosted[gauge];
+    effective=dg::manual_gauges::UnlimitedRequest(gauge==0?dg::manual_gauges::Wrath:
+        dg::manual_gauges::Ultimate,resource,effective);
     const float result=g_original[gauge](resource,effective); // retain float XMM0 ABI, clamp and RPC
     if(g_log&&positive&&(n<=12||n%250==0)){
         char line[360]{};

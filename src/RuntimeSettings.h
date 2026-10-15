@@ -37,6 +37,9 @@ struct Snapshot {
     bool wrathChargeEnabled = true;
     bool ultimateChargeEnabled = true;
     bool synergyChargeEnabled = true;
+    bool unlimitedWrathEnabled = false;
+    bool unlimitedUltimateEnabled = false;
+    bool unlimitedSynergyEnabled = false;
 
     float fovDegrees = 90.0f;
     float thirdPersonFovDegrees = 110.0f;
@@ -129,6 +132,9 @@ struct State {
     std::atomic_bool wrathChargeEnabled{true};
     std::atomic_bool ultimateChargeEnabled{true};
     std::atomic_bool synergyChargeEnabled{true};
+    std::atomic_bool unlimitedWrathEnabled{false};
+    std::atomic_bool unlimitedUltimateEnabled{false};
+    std::atomic_bool unlimitedSynergyEnabled{false};
     // V1.24 read-only time of a verified positive local Synergy additive gain.
     std::atomic_ullong lastNativeSynergyPositiveTick{0};
 

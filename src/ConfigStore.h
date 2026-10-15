@@ -58,6 +58,10 @@ enum class Action : int {
     RefillUltimate,
     RefillSynergy,
     RefillAllGauges,
+    UnlimitedWrath,
+    UnlimitedUltimate,
+    UnlimitedSynergy,
+    UnlimitedAllGauges,
     Count
 };
 
@@ -93,7 +97,11 @@ kActionLabels = {
     "Fill Wrath (100%)",
     "Fill Ultimate (100%)",
     "Fill Synergy (100%)",
-    "Fill all three gauges (100%)"
+    "Fill all three gauges (100%)",
+    "Toggle Unlimited Wrath",
+    "Toggle Unlimited Ultimate",
+    "Toggle Unlimited Synergy",
+    "Toggle Unlimited all gauges"
 };
 
 inline constexpr std::array<const wchar_t*, static_cast<std::size_t>(Action::Count)>
@@ -128,7 +136,11 @@ kActionTokens = {
     L"RefillWrath",
     L"RefillUltimate",
     L"RefillSynergy",
-    L"RefillAllGauges"
+    L"RefillAllGauges",
+    L"UnlimitedWrath",
+    L"UnlimitedUltimate",
+    L"UnlimitedSynergy",
+    L"UnlimitedAllGauges"
 };
 
 // Instant actions share the validated one-shot manual refill queue.
@@ -143,6 +155,15 @@ constexpr unsigned GaugeRefillMask(Action action){
     }
 }
 
+constexpr unsigned UnlimitedMask(Action action){
+    switch(action){
+    case Action::UnlimitedWrath:return 1;
+    case Action::UnlimitedUltimate:return 2;
+    case Action::UnlimitedSynergy:return 4;
+    case Action::UnlimitedAllGauges:return 7;
+    default:return 0;
+    }
+}
 inline constexpr std::array<int, 8> kDefaultCameraKeys{{
     0x26,0x28,0x21,0x22,0x24,0x23,0x25,0x27
 }};
@@ -221,6 +242,9 @@ public:
     bool wrathChargeEnabled = true;
     bool ultimateChargeEnabled = true;
     bool synergyChargeEnabled = true;
+    bool unlimitedWrathEnabled = false;
+    bool unlimitedUltimateEnabled = false;
+    bool unlimitedSynergyEnabled = false;
 
     float movementSpeedMultiplier = 1.50f;
     float actionRecoveryDelayMs = 0.0f;

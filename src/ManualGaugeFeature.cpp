@@ -1,5 +1,7 @@
 #include "ManualGaugeFeature.h"
 #include "NativeTpsFeature.h"
+#include "GaugeUnlimitedPolicy.h"
+#include "RuntimeSettings.h"
 #include <windows.h>
 #include <algorithm>
 #include <cmath>
@@ -17,6 +19,15 @@ std::atomic_bool g_enabled{false};
 SRWLOCK g_lock=SRWLOCK_INIT;
 Telemetry g_state{};
 Request g_request{};
+UnlimitedContext g_unlimited{};
+std::atomic_uint32_t g_holds[3]{},g_topups[3]{};
+
+bool UnlimitedEnabled(unsigned gauge){
+    const auto& rt=dg::runtime::Get();
+    return gauge==Wrath?rt.unlimitedWrathEnabled.load():
+        gauge==Ultimate?rt.unlimitedUltimateEnabled.load():
+        gauge==Synergy?rt.unlimitedSynergyEnabled.load():false;
+}
 
 bool Readable(const void* ptr,size_t size){
     if(!ptr||!size)return false;
@@ -176,6 +187,14 @@ void OnLivePlayer(void* actor,uint32_t generation){
     const Telemetry previous=g_state;
     ReleaseSRWLockExclusive(&g_lock);
     Sample sample=SamplePlayer(actor,generation,now);
+    // Publish only identities from this synchronous, typed local-player sample.
+    // The setter hooks independently recheck the live incoming holder and cap.
+    UnlimitedContext unlimited{};
+    unlimited.actor=sample.view.actor;unlimited.generation=generation;
+    unlimited.observedAt=now;unlimited.readyMask=sample.view.readyMask;
+    for(unsigned i=0;i<3;++i)
+        unlimited.holders[i]=reinterpret_cast<uintptr_t>(sample.objects[i]);
+    AcquireSRWLockExclusive(&g_lock);g_unlimited=unlimited;ReleaseSRWLockExclusive(&g_lock);
     if(changed||sample.view.readyMask!=previous.readyMask||sample.view.formActive!=previous.formActive)
         LogSample(sample);
     unsigned applied=0;
@@ -190,6 +209,7 @@ void OnLivePlayer(void* actor,uint32_t generation){
             const auto before=sample.view.values[i];
             bool ok=(sample.view.readyMask&bit)&&setters[i]&&sample.objects[i]&&
                 TargetValue(before.maximum,request.percent,target);
+            if(ok&&UnlimitedEnabled(bit))target=before.maximum;
             if(ok){
                 setters[i](sample.objects[i],target);
                 ok=Read(sample.objects[i],offsets[i],after)&&std::isfinite(after)&&
@@ -205,6 +225,28 @@ void OnLivePlayer(void* actor,uint32_t generation){
             }
         }
     }
+    if(!dg::native_tps::CinematicActive()&&!dg::native_tps::IsWorldPaused(actor)){
+        const Setter setters[3]={g_wrath,g_chaos,g_synergy};
+        const size_t offsets[3]={0x3A0,0x3A8,0x5A4};
+        for(unsigned i=0;i<3;++i){
+            const unsigned bit=1u<<i;
+            const auto before=sample.view.values[i];
+            if(!UnlimitedEnabled(bit)||!(sample.view.readyMask&bit)||!setters[i]||
+               !sample.objects[i]||before.current>=before.maximum)continue;
+            setters[i](sample.objects[i],before.maximum);
+            float after=0;
+            const bool ok=Read(sample.objects[i],offsets[i],after)&&std::isfinite(after)&&
+                std::fabs(after-before.maximum)<=std::max(0.01f,before.maximum*0.0001f);
+            if(ok)sample.view.values[i].current=after;
+            const unsigned n=++g_topups[i];
+            if(g_log&&(n<=4||n%1000==0)){
+                char line[260]{};
+                sprintf_s(line,"Gauge V1.38 UNLIMITED_TOPUP gauge=%u n=%u before=%.4f after=%.4f max=%.4f readbackMatches=%d actor=%p generation=%u naturalGain=0",
+                    bit,n,before.current,after,before.maximum,ok?1:0,actor,generation);
+                g_log(line);
+            }
+        }
+    }
     AcquireSRWLockExclusive(&g_lock);
     sample.view.requests=g_state.requests;
     sample.view.applied=g_state.applied+(applied?1u:0u);
@@ -214,6 +256,33 @@ void OnLivePlayer(void* actor,uint32_t generation){
     sample.view.lastAppliedMask=consume?applied:g_state.lastAppliedMask;
     g_state=sample.view;
     ReleaseSRWLockExclusive(&g_lock);
+}
+float UnlimitedRequest(unsigned gauge,void* liveHolder,float requested){
+    if(!UnlimitedEnabled(gauge)||!g_enabled.load(std::memory_order_acquire)||
+       !g_local||!liveHolder||!dg::native_tps::OnGameThread()||
+       dg::native_tps::CinematicActive())return requested;
+    UnlimitedContext context{};
+    AcquireSRWLockShared(&g_lock);context=g_unlimited;ReleaseSRWLockShared(&g_lock);
+    const auto local=reinterpret_cast<uintptr_t>(g_local->load(std::memory_order_acquire));
+    if(!UnlimitedContextMatches(context,gauge,reinterpret_cast<uintptr_t>(liveHolder),
+        local,dg::runtime::Get().tpsActorGeneration.load(),GetTickCount64())||
+       !IsInstance(liveHolder,gauge==Synergy?0x38115D8:0x3810268)||
+       !Authority(liveHolder))return requested;
+    float maximum=0,bonus=0;
+    if(!Read(liveHolder,gauge==Wrath?0x3A4:gauge==Ultimate?0x3AC:0x498,maximum)||
+       (gauge==Wrath&&!Read(liveHolder,0x44C,bonus)))return requested;
+    const float effective=UnlimitedValue(true,requested,maximum+bonus);
+    if(std::isfinite(effective)&&effective!=requested){
+        const unsigned i=gauge==Wrath?0:gauge==Ultimate?1:2;
+        const unsigned n=++g_holds[i];
+        if(g_log&&(n<=6||n%1000==0)){
+            char line[240]{};
+            sprintf_s(line,"Gauge V1.38 UNLIMITED_HOLD gauge=%u n=%u requested=%.4f effective=%.4f nativeMax=%.4f holder=%p generation=%u naturalGain=0",
+                gauge,n,requested,effective,maximum+bonus,liveHolder,context.generation);
+            g_log(line);
+        }
+    }
+    return effective;
 }
 bool RequestSet(unsigned mask,float percent){
     if(!(mask&All)||(mask&~All)||!std::isfinite(percent)||percent<0||percent>100)return false;
@@ -252,6 +321,10 @@ void Shutdown(){
     if(g_log){
         char line[160]{};
         sprintf_s(line,"Gauge V1.35 MANUAL_SET totals requests=%u appliedReadback=%u gameplayValidation=USER_REQUIRED",t.requests,t.applied);
+        g_log(line);
+        sprintf_s(line,"Gauge V1.38 UNLIMITED totals holds=%u/%u/%u topups=%u/%u/%u gameplayValidation=USER_REQUIRED",
+            g_holds[0].load(),g_holds[1].load(),g_holds[2].load(),
+            g_topups[0].load(),g_topups[1].load(),g_topups[2].load());
         g_log(line);
     }
 }
