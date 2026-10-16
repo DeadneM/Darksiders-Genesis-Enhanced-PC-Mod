@@ -22,44 +22,64 @@
 namespace dg::overlay {
 namespace {
 
-// Consistent setting rows: identical control placement for combat, gauges,
-// movement and mounts. Notes stay visible, native status stays unobtrusive.
-void DrawTunableFeature(config::Store& config, const char* label,
-    const char* id, bool* enabled, float* value,
-    float minValue, float maxValue, float defaultValue,
-    const char* format, const char* note, bool hookReady,
-    const char* featureStatus=nullptr) {
+// One value layout for gameplay and every camera mode. Widths are derived
+// from the actual available space; narrow windows wrap instead of clipping.
+bool DrawNumberRow(const char* label,const char* id,float* value,
+    float minimum,float maximum,float original,const char* format,const char* inputFormat="%.2f"){
+    ImGui::PushID(id);
+    ImGui::TextWrapped("%s",label);
+    const float available=std::max(1.0f,ImGui::GetContentRegionAvail().x);
+    const float gap=ImGui::GetStyle().ItemSpacing.x;
+    const float resetWidth=ImGui::CalcTextSize("Default").x+2*ImGui::GetStyle().FramePadding.x;
+    const float manualWidth=std::min(100.0f,available);
+    const bool oneLine=available>=160.0f+manualWidth+resetWidth+2*gap;
+    ImGui::SetNextItemWidth(oneLine?available-manualWidth-resetWidth-2*gap:available);
+    bool changed=ImGui::SliderFloat("##Slider",value,minimum,maximum,format);
+    if(oneLine)ImGui::SameLine();
+    ImGui::SetNextItemWidth(manualWidth);
+    changed|=ImGui::InputFloat("##Manual",value,0.0f,0.0f,inputFormat);
+    if(ImGui::IsItemHovered())ImGui::SetTooltip("Enter an exact value.");
+    if(oneLine||available>=manualWidth+resetWidth+gap)ImGui::SameLine();
+    if(ImGui::Button("Default")){*value=original;changed=true;}
+    if(changed){
+        if(!std::isfinite(*value))*value=original;
+        *value=std::clamp(*value,minimum,maximum);
+    }
+    ImGui::PopID();return changed;
+}
+bool DrawDelayRow(const char* label,const char* id,int* value,int minimum,int maximum,int original){
+    float edited=static_cast<float>(*value);
+    if(!DrawNumberRow(label,id,&edited,float(minimum),float(maximum),float(original),"%.0f ms","%.0f"))return false;
+    *value=static_cast<int>(std::lround(edited));return true;
+}
+void DrawFeatureDescription(const char* note,bool ready,const char* status=nullptr){
+    ImGui::Indent(22.0f);
+    ImGui::PushStyleColor(ImGuiCol_Text,ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+    ImGui::TextWrapped("%s",status?status:ready?"Ready":"Unavailable");
+    ImGui::PopStyleColor();
+    if(note)ImGui::TextWrapped("%s",note);
+    ImGui::Unindent(22.0f);
+}
+void DrawToggleFeature(config::Store& config,const char* label,const char* id,bool* enabled,
+    const char* note,bool ready=true,const char* status=nullptr){
     ImGui::PushID(id);
     if(ImGui::Checkbox(label,enabled))config.Save();
-    // Status gets its own line so long labels never overlap in narrow windows.
-    ImGui::TextDisabled("%s",featureStatus?featureStatus:
-        hookReady?"Ready":"Unavailable");
-    if(note) {
-        ImGui::Indent(22.0f);
-        ImGui::TextWrapped("%s",note);
-        ImGui::Unindent(22.0f);
-    }
+    DrawFeatureDescription(note,ready,status);
+    ImGui::Spacing();ImGui::PopID();
+}
+void DrawTunableFeature(config::Store& config,const char* label,const char* id,
+    bool* enabled,float* value,float minimum,float maximum,float original,
+    const char* format,const char* note,bool ready,const char* status=nullptr,
+    const char* valueLabel="Multiplier"){
+    ImGui::PushID(id);
+    if(ImGui::Checkbox(label,enabled))config.Save();
+    DrawFeatureDescription(note,ready,status);
     if(*enabled){
         ImGui::Indent(22.0f);
-        const bool compact = ImGui::GetContentRegionAvail().x < 560.0f;
-        ImGui::SetNextItemWidth(compact ? std::max(80.0f, ImGui::GetContentRegionAvail().x - 90.0f) : 280.0f);
-        bool changed=ImGui::SliderFloat("Multiplier##Slider",value,
-            minValue,maxValue,format);
-        if (!compact) ImGui::SameLine();
-        ImGui::SetNextItemWidth(100.0f);
-        changed|=ImGui::InputFloat("##Manual",value,0.0f,0.0f,"%.2f");
-        if(ImGui::IsItemHovered())ImGui::SetTooltip("Enter an exact multiplier.");
-        ImGui::SameLine();
-        if(ImGui::Button("Default")){*value=defaultValue;changed=true;}
-        if(changed){
-            if(!std::isfinite(*value))*value=defaultValue;
-            *value=std::clamp(*value,minValue,maxValue);
-            config.Save();
-        }
+        if(DrawNumberRow(valueLabel,"Value",value,minimum,maximum,original,format))config.Save();
         ImGui::Unindent(22.0f);
     }
-    ImGui::Spacing();
-    ImGui::PopID();
+    ImGui::Spacing();ImGui::PopID();
 }
 
 void DrawSectionTitle(const char* title) {
@@ -178,7 +198,6 @@ void Draw(Context& c) {
                 *c.lastAction=hudHidden?"HUD hidden":"HUD visible";
                 if (c.log) c.log("Overlay -> HUD %s",hudHidden?"HIDDEN":"VISIBLE");
             }
-            ImGui::SameLine(310.0f);
             ImGui::TextDisabled("%s | F1",t.hudHookReady?"Hook ready":"Unavailable");
             ImGui::TextDisabled("Hides normal on-screen HUD. The blue 3D aim line/arc are separate.");
 
@@ -242,9 +261,8 @@ void Draw(Context& c) {
                 "Changes how long the character can glide.",
                 t.movementHookReady
             );
-            if(ImGui::Checkbox("Unlimited glide",&config.unlimitedGlideEnabled))config.Save();
-            ImGui::TextWrapped("Holds the duration budget while gliding. Release and landing stay native. Assign a toggle in Hotkeys.");
-            if(!dg::glide::Ready())ImGui::TextDisabled("Unlimited glide unavailable for this executable.");
+            DrawToggleFeature(config,"Unlimited glide","UnlimitedGlide",&config.unlimitedGlideEnabled,
+                "Holds the duration budget while gliding. Release and landing stay native. Assign a toggle in Hotkeys.",dg::glide::Ready());
 
             ImGui::Unindent(12.0f);
             }
@@ -288,9 +306,8 @@ void Draw(Context& c) {
             ImGui::EndDisabled();
             if(health.available)ImGui::TextDisabled("P1 health: %.0f / %.0f",health.current,health.maximum);
             if(health2.available)ImGui::TextDisabled("P2 health: %.0f / %.0f",health2.current,health2.maximum);
-            if(ImGui::Checkbox("Unlimited health",&config.unlimitedHealthEnabled))config.Save();
-            ImGui::TextWrapped("Keeps living players at their native maximum health. Fill and Unlimited are assignable in Hotkeys. Does not revive a defeated character.");
-            if(!health.supported)ImGui::TextDisabled("Health controls unavailable for this executable.");
+            DrawToggleFeature(config,"Unlimited health","UnlimitedHealth",&config.unlimitedHealthEnabled,
+                "Keeps living players at their native maximum health. Fill and Unlimited are assignable in Hotkeys. Does not revive a defeated character.",health.supported);
             ImGui::Separator();
             const auto charge=dg::gauges::GetTelemetry();
             const auto rewards=dg::resource_gain::GetTelemetry();
@@ -298,8 +315,7 @@ void Draw(Context& c) {
             const bool gaugePending=manual.pending||manual2.pending;
             ImGui::TextUnformatted("Set gauges for testing");
             static float gaugePercent=100.0f;
-            ImGui::SetNextItemWidth(230.0f);
-            ImGui::SliderFloat("Target level##ManualGauges",&gaugePercent,0.0f,100.0f,"%.0f %%");
+            DrawNumberRow("Target level","ManualGauges",&gaugePercent,0.0f,100.0f,100.0f,"%.0f %%");
             const unsigned masks[3]={dg::manual_gauges::Wrath,
                 dg::manual_gauges::Ultimate,dg::manual_gauges::Synergy};
             const char* names[3]={"Set Wrath","Set Ultimate","Set Synergy"};
@@ -356,32 +372,26 @@ void Draw(Context& c) {
                 &config.potionRechargeEnabled,&config.potionRechargeMultiplier,
                 1.0f,100.0f,2.0f,"%.2fx",
                 "Recharges health potions faster from excess healing at full health. x1 is normal. Keeps the native reserve limit and healing amount.",potions.supported);
-            if(ImGui::Checkbox("Unlimited potions",&config.unlimitedPotionsEnabled))config.Save();
-            ImGui::TextWrapped("Unlimited keeps the health-potion reserve full. Healing, cooldown and use conditions remain native. All three potion commands can be assigned in Hotkeys -> F1-F12; existing assignments stay unchanged.");
-            if(!potions.supported)ImGui::TextDisabled("Potion controls unavailable for this executable.");
+            DrawToggleFeature(config,"Unlimited potions","UnlimitedPotions",&config.unlimitedPotionsEnabled,
+                "Keeps the health-potion reserve full. Healing, cooldown and use conditions stay native. Assign the refill, recharge and Unlimited actions in Hotkeys.",potions.supported);
             ImGui::Separator();
             ImGui::TextUnformatted("Ammunition");
-            if(ImGui::Checkbox("Reduce ammo consumption",&config.reduceAmmoEnabled))config.Save();
-            if(config.reduceAmmoEnabled){
-                ImGui::SetNextItemWidth(280.0f);
-                if(ImGui::SliderFloat("Consumption divisor##Ammo",&config.ammoConsumptionDivisor,0.0f,10.0f,"%.2f"))config.Save();
-                ImGui::SetNextItemWidth(120.0f);
-                if(ImGui::InputFloat("Manual value##AmmoDivisor",&config.ammoConsumptionDivisor,0,0,"%.2f")){
-                    config.ammoConsumptionDivisor=std::isfinite(config.ammoConsumptionDivisor)?
-                        std::clamp(config.ammoConsumptionDivisor,0.0f,10.0f):2.0f;config.Save();
-                }
-                ImGui::SameLine();
-                if(ImGui::Button("Default##AmmoDivisor")){config.ammoConsumptionDivisor=2.0f;config.Save();}
-            }
-            if(ImGui::Checkbox("Unlimited ammo",&config.unlimitedAmmoEnabled))config.Save();
-            ImGui::TextWrapped("0 or 1: normal consumption. 2: half. 10: one tenth. Unlimited takes priority. Both toggles can be assigned in Hotkeys -> F1-F12.");
-            if(!dg::ammo::GetTelemetry().ready)ImGui::TextDisabled("Ammo control unavailable for this executable.");
+            const bool ammoReady=dg::ammo::GetTelemetry().ready;
+            DrawTunableFeature(config,"Reduce ammo consumption","ReduceAmmo",&config.reduceAmmoEnabled,
+                &config.ammoConsumptionDivisor,0.0f,10.0f,2.0f,"%.2f",
+                "0 or 1: normal consumption. 2: half. 10: one tenth. Unlimited takes priority. Assign a toggle in Hotkeys.",
+                ammoReady,nullptr,"Consumption divisor");
+            DrawToggleFeature(config,"Unlimited ammo","UnlimitedAmmo",&config.unlimitedAmmoEnabled,
+                "Keeps special ammunition available. Takes priority over reduced consumption. Assign a toggle in Hotkeys.",ammoReady);
             ImGui::Separator();
             ImGui::TextUnformatted("Unlimited gauges (test)");
-            if(ImGui::Checkbox("Unlimited Wrath (Courroux)",&config.unlimitedWrathEnabled))config.Save();
-            if(ImGui::Checkbox("Unlimited Ultimate form",&config.unlimitedUltimateEnabled))config.Save();
-            if(ImGui::Checkbox("Unlimited Synergy",&config.unlimitedSynergyEnabled))config.Save();
-            ImGui::TextWrapped("Keep each selected gauge full during gameplay. Unlimited Ultimate also holds its gauge while transformed. Toggle each or all three in Hotkeys -> F1-F12.");
+            const bool gaugesReady=manual.supported||manual2.supported;
+            DrawToggleFeature(config,"Unlimited Wrath (Courroux)","UnlimitedWrath",&config.unlimitedWrathEnabled,
+                "Keeps Wrath full. Assign this gauge or all three together in Hotkeys.",gaugesReady);
+            DrawToggleFeature(config,"Unlimited Ultimate form","UnlimitedUltimate",&config.unlimitedUltimateEnabled,
+                "Keeps the Ultimate gauge full, including while transformed. Assign this gauge or all three together in Hotkeys.",gaugesReady);
+            DrawToggleFeature(config,"Unlimited Synergy","UnlimitedSynergy",&config.unlimitedSynergyEnabled,
+                "Keeps Synergy full. Assign this gauge or all three together in Hotkeys.",gaugesReady);
             ImGui::TextDisabled("Unlimited takes priority over the target level above.");
             ImGui::Separator();
 
@@ -522,8 +532,9 @@ void Draw(Context& c) {
             ImGui::TextDisabled("Horse state: %s | detection events: %u",
                 horseTelemetry.validated?"Ready":"Waiting for mount",
                 horseTelemetry.uniqueCandidatesLogged);
-            if(ImGui::Checkbox("Unlimited horse sprint duration",&config.unlimitedHorseSprintEnabled))config.Save();
-            ImGui::TextWrapped("Stops sprint stamina drain for both local riders. Native recovery and sprint-start conditions stay active. Assign a toggle in Hotkeys.");
+            DrawToggleFeature(config,"Unlimited horse sprint duration","UnlimitedHorseSprint",&config.unlimitedHorseSprintEnabled,
+                "Stops sprint stamina drain for both local riders. Native recovery and sprint-start conditions stay active. Assign a toggle in Hotkeys.",
+                horseTelemetry.staminaReady,horseTelemetry.staminaReady?"Ready":"Waiting for horse stamina");
 
             ImGui::Unindent(12.0f);
             }
@@ -532,7 +543,6 @@ void Draw(Context& c) {
             DrawSectionTitle("System");
 
             ImGui::Text("Graphics Adapter");
-            ImGui::SameLine(310.0f);
             ImGui::TextDisabled(
                 "Select which GPU the game uses. Requires a restart to take effect."
             );
@@ -586,7 +596,6 @@ void Draw(Context& c) {
                         ? " (restart required)"
                         : " (startup patch failed)");
             }
-            ImGui::SameLine(310.0f);
             ImGui::TextDisabled(
                 "%s | restart required",
                 t.skipLogosPatched && t.skipLogosTargetValid ? "Boot patch ready" : "Unavailable"
@@ -605,7 +614,6 @@ void Draw(Context& c) {
                     std::string("Skip Intro ") +
                     (config.skipIntroEnabled ? "ON" : "OFF");
             }
-            ImGui::SameLine(310.0f);
             ImGui::TextDisabled(
                 "%s | restart required",
                 t.skipIntroReady ? "Boot setting ready" : "Unavailable"
@@ -620,7 +628,6 @@ void Draw(Context& c) {
                 *c.lastAction=std::string("Skip Warnings ")+(config.skipWarningEnabled?"ON":"OFF")+
                     (ready?" | next startup":" | unavailable");
             }
-            ImGui::SameLine(310.0f);
             ImGui::TextDisabled("%s | restart required",t.skipWarningReady?"Experimental":"Unavailable");
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Advance the save and controller notices automatically. Please test startup, reticle and menus.");
@@ -748,11 +755,10 @@ void Draw(Context& c) {
                 config.Save();
                 *c.lastAction=config.thirdPersonEnabled?"Third Person ON":"Third Person OFF";
             }
-            ImGui::SameLine(310.0f);
             ImGui::TextDisabled("%s | TPS camera attachments observed: %u",
                 camera.viewReady && camera.armReady?"Hook ready":"Hook unavailable",
                 camera.tpsAttachedFrames);
-            ImGui::TextDisabled("Moves the camera behind the player. F5 or long L3 toggles it.");
+            ImGui::TextWrapped("Moves the camera behind each local player. Use the configured Hotkey or long controller press to toggle TPS.");
             ImGui::Spacing();
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
@@ -766,77 +772,16 @@ void Draw(Context& c) {
                 ImGui::TextDisabled("Foot Origin appears with other TPS camera values below.");
 
                 DrawSectionTitle("TPS-only FOV");
-                if(ImGui::Checkbox("Enable TPS FOV override",&config.thirdPersonFovEnabled))
-                    config.Save();
-                if(config.thirdPersonFovEnabled) {
-                    ImGui::SetNextItemWidth(245.0f);
-                    if(ImGui::SliderFloat("FOV solo##TPS",&config.thirdPersonFovDegrees,40.0f,140.0f,"%.0f deg"))
-                        config.Save();
-                    ImGui::SameLine();
-                    if(ImGui::Button("Default##TPSFOV")) {
-                        config.thirdPersonFovDegrees=110.0f;config.Save();
-                    }
-                    ImGui::SetNextItemWidth(245.0f);
-                    bool coopFovChanged=ImGui::SliderFloat("FOV coop##TPS",
-                        &config.thirdPersonCoopFovDegrees,40.0f,140.0f,"%.0f deg");
-                    ImGui::SameLine();
-                    ImGui::SetNextItemWidth(115.0f);
-                    coopFovChanged |= ImGui::InputFloat("Manual##TPSCoopFOV",
-                        &config.thirdPersonCoopFovDegrees,0.0f,0.0f,"%.1f");
-                    ImGui::SameLine();
-                    if(ImGui::Button("Default##TPSCoopFOV")) {
-                        config.thirdPersonCoopFovDegrees=110.0f;coopFovChanged=true;
-                    }
-                    if(coopFovChanged) {
-                        if(!std::isfinite(config.thirdPersonCoopFovDegrees))
-                            config.thirdPersonCoopFovDegrees=config.thirdPersonFovDegrees;
-                        config.thirdPersonCoopFovDegrees=std::clamp(config.thirdPersonCoopFovDegrees,40.0f,140.0f);
-                        config.Save();
-                    }
-                    ImGui::TextDisabled("Coop FOV applies to both split-screen views; solo keeps its own FOV.");
+                DrawToggleFeature(config,"Enable TPS FOV override","TPSFov",&config.thirdPersonFovEnabled,
+                    "Solo and local co-op have separate values. Coop FOV applies to both split-screen views.",camera.viewReady);
+                if(config.thirdPersonFovEnabled){
+                    if(DrawNumberRow("FOV solo","TPSFovSolo",&config.thirdPersonFovDegrees,40,140,110,"%.0f deg","%.1f"))config.Save();
+                    if(DrawNumberRow("FOV coop","TPSFovCoop",&config.thirdPersonCoopFovDegrees,40,140,110,"%.0f deg","%.1f"))config.Save();
                 }
-                ImGui::TextDisabled("Only applies when both Third Person and TPS FOV are ON.");
-                ImGui::SetNextItemWidth(245.0f);
-                bool distanceChanged=ImGui::SliderFloat("Distance##ThirdPerson",
-                        &config.thirdPersonDistanceMultiplier,0.0f,3.0f,"%.2fx");
-                ImGui::SameLine();
-                ImGui::SetNextItemWidth(115.0f);
-                distanceChanged |= ImGui::InputFloat("Manual##ThirdPersonDistance",
-                    &config.thirdPersonDistanceMultiplier,0.0f,0.0f,"%.3fx");
-                ImGui::SameLine();
-                if (ImGui::Button("Default##ThirdPersonDistance")) {
-                    config.thirdPersonDistanceMultiplier=0.15f;
-                    distanceChanged=true;
-                }
-                if (distanceChanged) {
-                    if (!std::isfinite(config.thirdPersonDistanceMultiplier))
-                        config.thirdPersonDistanceMultiplier=0.15f;
-                    config.thirdPersonDistanceMultiplier=std::clamp(
-                        config.thirdPersonDistanceMultiplier,0.0f,3.0f);
-                    config.Save();
-                }
-
-                bool poseChanged=false;
-                ImGui::TextDisabled("Third Person pose (previously fixed)");
-                ImGui::SetNextItemWidth(245.0f);
-                poseChanged |= ImGui::SliderFloat("View pitch##TP",&config.thirdPersonPitchDegrees,-75.0f,65.0f,"%.1f deg");
-                ImGui::SameLine();
-                if (ImGui::Button("Default##TPPitch")) {config.thirdPersonPitchDegrees=-12.0f;poseChanged=true;}
-                ImGui::SetNextItemWidth(145.0f);
-                poseChanged |= ImGui::InputFloat("Manual pitch##TP",&config.thirdPersonPitchDegrees,0,0,"%.1f");
-                ImGui::SetNextItemWidth(245.0f);
-                poseChanged |= ImGui::SliderFloat("Vertical offset##TP",&config.thirdPersonHeightOffset,-1000.0f,1000.0f,"%+.0f units");
-                ImGui::SameLine();
-                if (ImGui::Button("Default##TPHeight")) {config.thirdPersonHeightOffset=0.0f;poseChanged=true;}
-                ImGui::SetNextItemWidth(145.0f);
-                poseChanged |= ImGui::InputFloat("Manual height##TP",&config.thirdPersonHeightOffset,0,0,"%.1f");
-                if (poseChanged) {
-                    if (!std::isfinite(config.thirdPersonPitchDegrees)) config.thirdPersonPitchDegrees=-12.0f;
-                    if (!std::isfinite(config.thirdPersonHeightOffset)) config.thirdPersonHeightOffset=0.0f;
-                    config.thirdPersonPitchDegrees=std::clamp(config.thirdPersonPitchDegrees,-75.0f,65.0f);
-                    config.thirdPersonHeightOffset=std::clamp(config.thirdPersonHeightOffset,-1000.0f,1000.0f);
-                    config.Save();
-                }
+                DrawSectionTitle("Normal-form TPS camera");
+                if(DrawNumberRow("Distance","TPSDistance",&config.thirdPersonDistanceMultiplier,0,3,0.15f,"%.2fx","%.3f"))config.Save();
+                if(DrawNumberRow("View pitch","TPSPitch",&config.thirdPersonPitchDegrees,-75,65,-12,"%.1f deg","%.1f"))config.Save();
+                if(DrawNumberRow("Vertical offset","TPSHeight",&config.thirdPersonHeightOffset,-1000,1000,0,"%+.0f units","%.1f"))config.Save();
                 ImGui::Spacing();
                 constexpr const char* stickOptions[]={"OFF (native sticks)","Camera Left / Move Right","Camera Right / Move Left"};
                 ImGui::SetNextItemWidth(285.0f);
@@ -846,77 +791,24 @@ void Draw(Context& c) {
                     config.Save();
                 }
                 if(config.tpsCameraStickMode!=0){
-                    ImGui::SetNextItemWidth(245.0f);
-                    if(ImGui::SliderFloat("Stick speed##TP",&config.cameraStickSpeed,30.0f,360.0f,"%.0f deg/s"))
-                        config.Save();
+                    if(DrawNumberRow("Stick speed","TPSStickSpeed",&config.cameraStickSpeed,30,360,180,"%.0f deg/s","%.1f"))config.Save();
                 }
                 ImGui::TextDisabled("Only Third Person, focused game, closed overlay.");
                 ImGui::TextDisabled("TPS swaps complete roles: camera Left = movement Right.");
                 ImGui::TextDisabled("Native in-game stick swap is accounted for by Camera Forward.");
-                ImGui::SetNextItemWidth(245.0f);
-                if(ImGui::SliderFloat("Foot origin correction##TPS",&config.tpsFootAnchorOffset,
-                   -500.0f,500.0f,"%+.0f units"))config.Save();
-                ImGui::SameLine();
-                if(ImGui::Button("Default##TPSFoot")){config.tpsFootAnchorOffset=0.0f;config.Save();}
-                ImGui::Spacing();
+                if(DrawNumberRow("Foot origin correction","TPSFoot",&config.tpsFootAnchorOffset,-500,500,0,"%+.0f units","%.1f"))config.Save();
                 DrawSectionTitle("Ultimate form TPS camera");
                 ImGui::TextWrapped("Separate distance and vertical offset while transformed. Normal-form settings stay independent.");
-                ImGui::SetNextItemWidth(245.0f);
-                bool ultimateChanged=ImGui::SliderFloat("Distance (Ultimate form)##TPSUltimate",
-                    &config.tpsUltimateDistanceMultiplier,0.0f,3.0f,"%.2fx");
-                ImGui::SetNextItemWidth(145.0f);
-                ultimateChanged|=ImGui::InputFloat("Manual distance##TPSUltimate",
-                    &config.tpsUltimateDistanceMultiplier,0,0,"%.3fx");
-                ImGui::SameLine();
-                if(ImGui::Button("Default##TPSUltimateDistance")){
-                    config.tpsUltimateDistanceMultiplier=defaults::UltimateDistance;ultimateChanged=true;
-                }
-                ImGui::SetNextItemWidth(245.0f);
-                ultimateChanged|=ImGui::SliderFloat("Vertical offset (Ultimate form)##TPSUltimate",
-                    &config.tpsUltimateHeightOffset,-1000.0f,1000.0f,"%+.0f units");
-                ImGui::SetNextItemWidth(145.0f);
-                ultimateChanged|=ImGui::InputFloat("Manual height##TPSUltimate",
-                    &config.tpsUltimateHeightOffset,0,0,"%.1f");
-                ImGui::SameLine();
-                if(ImGui::Button("Default##TPSUltimateHeight")){
-                    config.tpsUltimateHeightOffset=defaults::UltimateHeight;ultimateChanged=true;
-                }
-                if(ultimateChanged){
-                    if(!std::isfinite(config.tpsUltimateDistanceMultiplier))config.tpsUltimateDistanceMultiplier=defaults::UltimateDistance;
-                    if(!std::isfinite(config.tpsUltimateHeightOffset))config.tpsUltimateHeightOffset=defaults::UltimateHeight;
-                    config.tpsUltimateDistanceMultiplier=std::clamp(config.tpsUltimateDistanceMultiplier,0.0f,3.0f);
-                    config.tpsUltimateHeightOffset=std::clamp(config.tpsUltimateHeightOffset,-1000.0f,1000.0f);
-                    config.Save();
-                }
+                if(DrawNumberRow("Distance (Ultimate form)","TPSUltimateDistance",&config.tpsUltimateDistanceMultiplier,0,3,
+                    defaults::UltimateDistance,"%.2fx","%.3f"))config.Save();
+                if(DrawNumberRow("Vertical offset (Ultimate form)","TPSUltimateHeight",&config.tpsUltimateHeightOffset,-1000,1000,
+                    defaults::UltimateHeight,"%+.0f units","%.1f"))config.Save();
                 DrawSectionTitle("Horseback TPS camera");
                 ImGui::TextWrapped("Separate distance and vertical offset while riding. Foot and Ultimate settings stay independent.");
-                ImGui::SetNextItemWidth(245.0f);
-                bool horseChanged=ImGui::SliderFloat("Distance (Horseback)##TPSHorse",
-                    &config.tpsHorseDistanceMultiplier,0.0f,3.0f,"%.2fx");
-                ImGui::SetNextItemWidth(145.0f);
-                horseChanged|=ImGui::InputFloat("Manual distance##TPSHorse",
-                    &config.tpsHorseDistanceMultiplier,0,0,"%.3fx");
-                ImGui::SameLine();
-                if(ImGui::Button("Default##TPSHorseDistance")){
-                    config.tpsHorseDistanceMultiplier=defaults::HorseDistance;horseChanged=true;
-                }
-                ImGui::SetNextItemWidth(245.0f);
-                horseChanged|=ImGui::SliderFloat("Vertical offset (Horseback)##TPSHorse",
-                    &config.tpsHorseHeightOffset,-1000.0f,1000.0f,"%+.0f units");
-                ImGui::SetNextItemWidth(145.0f);
-                horseChanged|=ImGui::InputFloat("Manual height##TPSHorse",
-                    &config.tpsHorseHeightOffset,0,0,"%.1f");
-                ImGui::SameLine();
-                if(ImGui::Button("Default##TPSHorseHeight")){
-                    config.tpsHorseHeightOffset=defaults::HorseHeight;horseChanged=true;
-                }
-                if(horseChanged){
-                    if(!std::isfinite(config.tpsHorseDistanceMultiplier))config.tpsHorseDistanceMultiplier=defaults::HorseDistance;
-                    if(!std::isfinite(config.tpsHorseHeightOffset))config.tpsHorseHeightOffset=defaults::HorseHeight;
-                    config.tpsHorseDistanceMultiplier=std::clamp(config.tpsHorseDistanceMultiplier,0.0f,3.0f);
-                    config.tpsHorseHeightOffset=std::clamp(config.tpsHorseHeightOffset,-1000.0f,1000.0f);
-                    config.Save();
-                }
+                if(DrawNumberRow("Distance (Horseback)","TPSHorseDistance",&config.tpsHorseDistanceMultiplier,0,3,
+                    defaults::HorseDistance,"%.2fx","%.3f"))config.Save();
+                if(DrawNumberRow("Vertical offset (Horseback)","TPSHorseHeight",&config.tpsHorseHeightOffset,-1000,1000,
+                    defaults::HorseHeight,"%+.0f units","%.1f"))config.Save();
                 if(ImGui::Button("TPS Camera Values Default"))config.ResetTpsCameraValues();
                 ImGui::Unindent();
             }
@@ -924,9 +816,8 @@ void Draw(Context& c) {
                 ImGui::Indent();
                 DrawSectionTitle("TPS controls and aiming");
                 ImGui::TextDisabled("TPS mouse fires are rebindable without changing controller bindings.");
-                if(ImGui::Checkbox("Auto suspend TPS during detected cutscenes (test)",
-                    &config.tpsCutsceneAutoSuspend))config.Save();
-                ImGui::TextDisabled("ON: yield to the game's cinematic mode (experimental).");
+                DrawToggleFeature(config,"Auto suspend TPS during detected cutscenes (test)","TPSCutscene",
+                    &config.tpsCutsceneAutoSuspend,"Yield to a native cinematic camera, then return to TPS. Experimental.",camera.viewReady);
                 ImGui::TextDisabled("Pause/wheels keep TPS; temporary-view shortcut has priority.");
                 ImGui::TextDisabled("Mouse aiming uses native 3D targets; gameplay test required.");
                 ImGui::Separator();
@@ -1016,22 +907,18 @@ void Draw(Context& c) {
                 DrawSectionTitle("Controller bindings");
                 ImGui::TextDisabled("Native in-game controls take priority. These bindings are mod detectors.");
                 BindGamepadMask("Controller long hold##TPS",config.tpsToggleHoldButtonMask,64);
-                ImGui::SetNextItemWidth(245.0f);
-                if(ImGui::SliderInt("Long press delay##ToggleTPS",
-                    &config.tpsToggleHoldMs,250,2000,"%d ms"))config.Save();
+                if(DrawDelayRow("Long press delay","ToggleTPSDelay",&config.tpsToggleHoldMs,250,2000,500))config.Save();
                 ImGui::Spacing();
                 BindGamepadMask("Controller recenter##TPS",config.tpsRecenterButtonMask,64);
                 ImGui::Spacing();
                 BindGamepadMask("Controller temporary view##TPS",config.tpsSuspendButtonMask,128);
                 if(config.tpsKeyboardKeys[static_cast<size_t>(dg::config::TpsKeyboardAction::Suspend)]=='E')
                     ImGui::TextDisabled("E deliberately does BOTH: native gear + temporary view after hold delay.");
-                ImGui::SetNextItemWidth(245.0f);
-                if(ImGui::SliderInt("Temporary view delay##HoldTPS",
-                    &config.tpsSuspendDelayMs,0,3000,"%d ms"))config.Save();
+                if(DrawDelayRow("Temporary view delay","HoldTPSDelay",&config.tpsSuspendDelayMs,0,3000,300))config.Save();
                 ImGui::Spacing();
-                BindGamepadMask("Use selected equipment (R3)##TPS",config.tpsGrenadeButtonMask,128);
-                ImGui::TextWrapped("R3 USES selected equipment; it does NOT open the equipment wheel. "
-                    "The native hold and stow/release pulse are preserved.");
+                BindGamepadMask("Use selected equipment##TPS",config.tpsGrenadeButtonMask,128);
+                ImGui::TextWrapped("Uses selected equipment for either local player. This action is separate from wheel selection. "
+                    "Hold to equip; release uses the existing native stow pulse.");
                 ImGui::Separator();
                 ImGui::TextDisabled("Native GAME bindings: manually match in-game controls");
                 BindGamepadMask("Detect primary fire (default RT)##TPS",config.tpsFirePrimaryMask,131072);
@@ -1046,8 +933,8 @@ void Draw(Context& c) {
                 ImGui::TextWrapped("Wheel detector keys never emit fake game input. "
                     "Change them here too when rebinding the game's wheel controls.");
                 ImGui::TextDisabled("Keyboard Use Gear follows the game's own native mapping.");
-                ImGui::TextDisabled("Default R3 grenade/temporary view, L3 short recenter/long TPS toggle.");
-                ImGui::TextDisabled("Grenade stow pulses: %u | DOWN %u / UP %u",
+                ImGui::TextWrapped("Controller bindings apply to P1 and P2. Each player has independent equipment hold/stow, temporary view and recenter. A long press toggles the shared TPS option.");
+                ImGui::TextDisabled("P1 equipment stow pulses: %u | DOWN %u / UP %u",
                     t.grenadeNativeReleasePulses,t.grenadePhysicalDown,t.grenadePhysicalUp);
                 if(config.tpsGrenadeButtonMask!=0 &&
                    (config.tpsGrenadeButtonMask==config.tpsToggleHoldButtonMask ||
@@ -1076,86 +963,26 @@ void Draw(Context& c) {
                 &config.fovEnabled,&config.fovDegrees,
                 40.0f,140.0f,90.0f,"%.0f deg",
                 camera.viewReady ? "Native view output" : "Hook not ready",
-                camera.viewReady);
+                camera.viewReady,nullptr,"Degrees");
             ImGui::TextDisabled("Global FOV applies outside TPS, or when TPS FOV is OFF.");
 
             DrawSectionTitle("Camera distance");
             ImGui::TextWrapped("SpringArm Zoom is mainly for vanilla. TPS keeps its own camera distance.");
-            bool zoomChanged = false;
-            if (ImGui::Button("Zoom -##Camera")) {
-                config.cameraZoomPercent -= 10.0f; zoomChanged = true;
-            }
+            bool zoomChanged=false;
+            if(ImGui::Button("Zoom -##Camera")){config.cameraZoomPercent-=10;zoomChanged=true;}
             ImGui::SameLine();
-            if (ImGui::Button("Zoom +##Camera")) {
-                config.cameraZoomPercent += 10.0f; zoomChanged = true;
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Vanilla##CameraZoom")) {
-                config.cameraZoomPercent = 0.0f; zoomChanged = true;
-            }
-            ImGui::SetNextItemWidth(340.0f);
-            zoomChanged |= ImGui::SliderFloat("Zoom##Camera",
-                &config.cameraZoomPercent,-75.0f,200.0f,"%+.0f%%");
-            ImGui::SetNextItemWidth(160.0f);
-            zoomChanged |= ImGui::InputFloat("Manual Zoom##Camera",
-                &config.cameraZoomPercent,0.0f,0.0f,"%.1f");
-            if (zoomChanged) {
-                config.cameraZoomPercent = std::clamp(config.cameraZoomPercent,-75.0f,200.0f);
-                config.Save();
-            }
-
+            if(ImGui::Button("Zoom +##Camera")){config.cameraZoomPercent+=10;zoomChanged=true;}
+            zoomChanged|=DrawNumberRow("Zoom","VanillaZoom",&config.cameraZoomPercent,-75,200,0,"%+.0f%%","%.1f");
+            if(zoomChanged){config.cameraZoomPercent=std::clamp(config.cameraZoomPercent,-75.0f,200.0f);config.Save();}
             DrawSectionTitle("Camera height");
             ImGui::TextWrapped("Vanilla camera height offset, default zero. TPS height is independent.");
-            bool heightChanged = false;
-            ImGui::SetNextItemWidth(340.0f);
-            heightChanged |= ImGui::SliderFloat("Height##Camera",
-                &config.cameraHeightOffset,-1500.0f,1500.0f,"%+.0f units");
-            ImGui::SameLine();
-            if (ImGui::Button("Vanilla##CameraHeight")) {
-                config.cameraHeightOffset=0.0f; heightChanged=true;
-            }
-            ImGui::SetNextItemWidth(160.0f);
-            heightChanged |= ImGui::InputFloat("Manual Height##Camera",
-                &config.cameraHeightOffset,0.0f,0.0f,"%.1f");
-            if (heightChanged) {
-                config.cameraHeightOffset =
-                    std::clamp(config.cameraHeightOffset,-1500.0f,1500.0f);
-                config.Save();
-            }
-
+            if(DrawNumberRow("Height","VanillaHeight",&config.cameraHeightOffset,-1500,1500,0,"%+.0f units","%.1f"))config.Save();
             DrawSectionTitle("Camera angle");
             ImGui::TextWrapped("Vanilla camera pitch offset. TPS uses its own view pitch.");
-            bool pitchChanged = false;
-            ImGui::SetNextItemWidth(340.0f);
-            pitchChanged |= ImGui::SliderFloat("Pitch##Camera",
-                &config.cameraPitchDegrees,-35.0f,35.0f,"%+.1f deg");
-            ImGui::SameLine();
-            if (ImGui::Button("Vanilla##CameraPitch")) {
-                config.cameraPitchDegrees = 0.0f; pitchChanged = true;
-            }
-            if (pitchChanged) {
-                config.cameraPitchDegrees = std::clamp(config.cameraPitchDegrees,-35.0f,35.0f);
-                config.Save();
-            }
+            if(DrawNumberRow("Pitch","VanillaPitch",&config.cameraPitchDegrees,-35,35,0,"%+.1f deg","%.1f"))config.Save();
             DrawSectionTitle("Horizontal camera rotation (yaw)");
-            ImGui::TextWrapped("Turn the camera left/right. 0 degrees = vanilla.");
-            bool yawChanged = false;
-            ImGui::SetNextItemWidth(340.0f);
-            yawChanged |= ImGui::SliderFloat("Yaw##Camera",
-                &config.cameraYawDegrees,-180.0f,180.0f,"%+.1f deg");
-            ImGui::SameLine();
-            if (ImGui::Button("Vanilla##CameraYaw")) {
-                config.cameraYawDegrees = 0.0f;
-                yawChanged = true;
-            }
-            ImGui::SetNextItemWidth(160.0f);
-            yawChanged |= ImGui::InputFloat("Manual Yaw##Camera",
-                &config.cameraYawDegrees,0.0f,0.0f,"%.1f");
-            if (yawChanged) {
-                config.cameraYawDegrees =
-                    std::clamp(config.cameraYawDegrees,-180.0f,180.0f);
-                config.Save();
-            }
+            ImGui::TextWrapped("Turn the camera left/right. Zero degrees is the native view.");
+            if(DrawNumberRow("Yaw","VanillaYaw",&config.cameraYawDegrees,-180,180,0,"%+.1f deg","%.1f"))config.Save();
 
             DrawSectionTitle("Camera keyboard bindings");
             ImGui::TextWrapped(

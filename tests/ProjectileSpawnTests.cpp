@@ -37,7 +37,7 @@ void Run(){
     Check(out.yaw==23,"unproved caller stays native");
     context.index=1;dg::projectile_aim::Rotation(weapon,&out,&in,0x7CFA3B);
     Check(out.yaw==117&&dg::projectile_aim::g_adjusted[1]==1,"P2 gets its own provider context");
-    character[0xC18]=0;dg::projectile_aim::Rotation(weapon,&out,&in,0x7CFA3B);
+    character[0xC18]=2;dg::projectile_aim::Rotation(weapon,&out,&in,0x7CFA3B);
     Check(out.yaw==23,"War is excluded");character[0xC18]=1;
     paused=true;dg::projectile_aim::Rotation(weapon,&out,&in,0x7CFA3B);
     Check(out.yaw==23,"pause cannot correct projectiles");paused=false;

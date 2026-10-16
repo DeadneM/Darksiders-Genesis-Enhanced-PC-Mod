@@ -62,8 +62,26 @@ void Run(){
     pad.wButtons=0x20;Input(&pad);View(view);Check(Close(view[4],g_pose.yaw),"P2 recenter follows its own actor");
     g_owner.character=reinterpret_cast<uintptr_t>(g_respawn);g_owner.pawn=g_owner.character;g_pose={8000,9000,200,-70};
     View(view);Check(Close(view[4],-70)&&view[0]>7000&&Close(rt.cameraOrbitYawDegrees.load(),177),"P2 respawn resets only its own held view/orbit");
-    g_character[0xC18]=0;g_owner.character=reinterpret_cast<uintptr_t>(g_character);g_owner.pawn=g_owner.character;g_pose.yaw=130;
+    g_character[0xC18]=2;g_owner.character=reinterpret_cast<uintptr_t>(g_character);g_owner.pawn=g_owner.character;g_pose.yaw=130;
     View(view);Check(Close(view[4],-70),"switching Strife/War retains world camera angle for the same local player");
+    // Recenter sharing a long-press binding follows the same release policy as P1.
+    pad={};pad.wButtons=0x20;
+    Check(!dg::coop_camera::UpdateInput(&pad,true,0.016f,0x20,0x40,0,0x20,500),"short P2 press does not toggle the shared setting");
+    View(view);Check(Close(view[4],-70),"P2 does not recenter before knowing whether a shared press is long");
+    pad={};dg::coop_camera::UpdateInput(&pad,true,0.016f,0x20,0x40,0,0x20,500);View(view);
+    Check(Close(view[4],130),"P2 short release recenters its own view");
+    // Equipment uses the shared policy even while its same button owns temporary native view.
+    rt.tpsGrenadeButtonMask=0x4000;pad={};pad.wButtons=0x4000;
+    dg::coop_camera::UpdateInput(&pad,true,0.016f,0x20,0x4000,0);View(view);
+    Check(Close(view[4],10),"P2 temporary view remains private while equipment is physically held");
+    Check(dg::coop_camera::FilterPad(1,pad)&&(pad.wButtons&0x80)&&!(pad.wButtons&0x4000),"P2 forwards configured equipment hold before the temporary-view gate");
+    pad={};pad.wButtons=0x4000;
+    Check(dg::coop_camera::FilterPad(1,pad,false)&&pad.wButtons==0x4000,"overlay or focus loss cannot emit equipment pulses");
+    pad={};Input(&pad);View(view);
+    rt.horsePadButtonA=0x1000;rt.horsePadButtonB=0x4000;rt.horseEverywhereEnabled=true;
+    pad={};pad.wButtons=0x1000|0x4000;Input(&pad);View(view);
+    Check(dg::coop_camera::FilterPad(1,pad)&&(pad.wButtons&0x300)==0x300&&rt.horseSummonIntentTick.load(),"P2 uses the configured two-button horse action and native pre-arm");
+    rt.horsePadButtonA=0x100;rt.horsePadButtonB=0x200;rt.tpsGrenadeButtonMask=0x80;
     pad=unchanged;Input(&pad,0.016f,false);const auto unfocused=pad;
     Check(dg::coop_camera::FilterPad(1,pad)&&Equal(pad,unfocused),"focus loss preserves native input");
     rt.thirdPersonEnabled=false;Input(&pad);const auto off=pad;

@@ -74,7 +74,6 @@ std::atomic_uint32_t g_v127MountedMouseHorsePoseHeld{0};
 std::atomic_uint32_t g_v127FacingFootSamples{0},g_v127FacingFootOffAxis{0},
     g_v127FacingHorseSamples{0},g_v127FacingHorseOffAxis{0};
 std::atomic_ullong g_v127LastFacingLogTick{0};
-std::atomic_uint32_t g_zoneActorGeneration{UINT32_MAX};
 std::atomic<float> g_zoneReferenceYaw{0.0f},g_zoneReferenceArm{0.0f};
 std::atomic_bool g_zoneReferenceActive{false};
 void ResetZoneReference() {
@@ -611,18 +610,23 @@ void HookView(void* camera, float dt, void* outView) {
     // Only F5 / true TPS OFF resets the reference.
     if(!settings.thirdPersonEnabled.load(std::memory_order_relaxed))ResetZoneReference();
     const uint32_t generation=settings.tpsActorGeneration.load();
-    static dg::camera_continuity::Identity previousIdentity{};
-    bool characterSwap=false;
-    if(ownedView){
+    static dg::camera_continuity::ReferenceTracker referenceIdentity{};
+    dg::camera_continuity::Identity identity{};
+    const bool ownedPrimary=ownedView&&viewOwner.index==0;
+    if(ownedPrimary){
         unsigned char type=255;
         std::memcpy(&type,reinterpret_cast<unsigned char*>(viewOwner.character)+0xC18,1);
-        const dg::camera_continuity::Identity identity{viewOwner.localPlayer,viewOwner.world,viewOwner.character,type};
-        characterSwap=dg::camera_continuity::CharacterSwap(previousIdentity,identity);
-        previousIdentity=identity;
+        identity={viewOwner.localPlayer,viewOwner.world,viewOwner.character,type};
     }
-    if(g_zoneActorGeneration.load()!=generation){
-        g_zoneActorGeneration.store(generation);
-        if(!characterSwap)ResetZoneReference();
+    const auto referenceChange=referenceIdentity.Observe(ownedPrimary?&identity:nullptr,generation,
+        dg::local_players::Ready());
+    if(referenceChange==dg::camera_continuity::ReferenceChange::Reset)ResetZoneReference();
+    else if(referenceChange==dg::camera_continuity::ReferenceChange::KeepCharacterSwap){
+        static unsigned swapRecords=0;
+        if(++swapRecords<=24){char line[200]{};
+            sprintf_s(line,"TPS V1.47 CHARACTER_SWAP_KEEP player=1 type=%u generation=%u basisReady=%d yaw=%.2f; native actor rotation unchanged",
+                unsigned(identity.type),generation,g_zoneReferenceActive.load()?1:0,
+                std::remainder(g_zoneReferenceYaw.load()+settings.cameraOrbitYawDegrees.load(),360.0f));Write(line);}
     }
     // Never override cinematics, menu cameras, remote cutaway cameras.
     // Heuristic may miss an in-place cinematic with a top-down-like pose.

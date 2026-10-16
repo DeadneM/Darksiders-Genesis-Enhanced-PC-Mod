@@ -2,6 +2,7 @@
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
 #include "TpsStickRoles.h"
+#include "TpsPadActions.h"
 #include "CameraContinuity.h"
 #include <algorithm>
 #include <cmath>
@@ -14,15 +15,17 @@ namespace {
 // value-only context; it cannot publish P1's mouse ray, orbit or aim telemetry.
 struct State {
     camera_continuity::Identity identity{};
-    uintptr_t local=0,character=0,camera=0;
+    uintptr_t local=0,character=0,camera=0,pressLocal=0;
     float yaw=0,pitch=0,baseYaw=0,arm=900,actorYaw=0,appliedYaw=0;
     bool baseValid=false,armValid=false,held=false,gameplay=false;
     bool paused=false,cinema=false,nativeForm=false;
     float heldView[7]{};
     ULONGLONG viewTick=0,inputTick=0,suspendStarted=0;
     bool focused=false,wheel=false,fire=false,stick=false,temporary=false;
-    bool previousRecenter=false,recenterPending=false;
-    int lastRecenter=-1,lastSuspend=-1;
+    bool recenterPending=false,form=false,horseChordDown=false;
+    int lastSuspend=-1;
+    tps_input::CameraPressState cameraPress{};
+    tps_input::EquipmentHoldState equipment{};
 };
 SRWLOCK g_lock=SRWLOCK_INIT;
 State g_state;
@@ -85,7 +88,8 @@ void ApplyView(void* camera,void* outView,const local_players::Context& owner){
     s.identity=identity;
     s.actorYaw=pose.yaw;
     s.paused=paused;s.cinema=cinema;
-    s.nativeForm=owner.kind==local_players::PoseKind::Ultimate&&characterType!=1;
+    s.form=owner.kind==local_players::PoseKind::Ultimate;
+    s.nativeForm=s.form&&characterType!=1;
     if(!rt.thirdPersonEnabled.load()||cinema||s.temporary){s.gameplay=false;Unlock();return;}
     if(paused){
         if(s.held&&s.camera==reinterpret_cast<uintptr_t>(camera))
@@ -139,12 +143,17 @@ bool ObserveArm(void* arm,float nativeLength){
     }
     Unlock();return true;
 }
-void UpdateInput(const XINPUT_GAMEPAD* pad,bool focused,float dt,
-                 int recenterMask,int suspendMask,int suspendDelayMs){
+bool UpdateInput(const XINPUT_GAMEPAD* pad,bool focused,float dt,
+                 int recenterMask,int suspendMask,int suspendDelayMs,int toggleMask,int toggleHoldMs){
     const auto slot=local_players::PublishedSlot(1);
     const auto now=GetTickCount64();const auto& rt=runtime::Get();
     AcquireSRWLockExclusive(&g_lock);auto& s=g_state;
-    if(!SameOwner(s,slot)){s.focused=false;s.inputTick=0;Unlock();return;}
+    // A long press must also enable TPS before P2 has ever emitted a TPS
+    // view. Only the published local identity is needed; no object reads.
+    if(s.pressLocal!=slot.localPlayer){s.cameraPress={};s.pressLocal=slot.localPlayer;}
+    const auto press=tps_input::CameraPress(s.cameraPress,pad,focused&&pad&&slot.localPlayer,now,
+        toggleMask,toggleHoldMs,recenterMask,rt.thirdPersonEnabled.load());
+    if(!SameOwner(s,slot)){s.focused=false;s.inputTick=0;s.equipment={};Unlock();return press.toggle;}
     s.focused=focused&&pad;s.inputTick=now;
     s.wheel=pad&&Binding(rt.tpsWheelPadMask.load(),*pad);
     s.fire=pad&&Fire(*pad);s.stick=false;
@@ -152,18 +161,15 @@ void UpdateInput(const XINPUT_GAMEPAD* pad,bool focused,float dt,
         s.yaw=0;s.pitch=0;s.baseValid=false;s.held=false;s.gameplay=false;
     }
     if(s.lastSuspend!=suspendMask){s.suspendStarted=0;s.lastSuspend=suspendMask;}
-    const bool suspend=s.focused&&Binding(suspendMask,*pad);
+    const bool suspend=s.focused&&rt.thirdPersonEnabled.load()&&!s.wheel&&Binding(suspendMask,*pad);
     if(suspend&&!s.suspendStarted)s.suspendStarted=now;
     if(!suspend)s.suspendStarted=0;
     s.temporary=suspend&&now>=s.suspendStarted&&
         now-s.suspendStarted>=static_cast<ULONGLONG>(std::clamp(suspendDelayMs,0,3000));
-    if(s.lastRecenter!=recenterMask){s.previousRecenter=false;s.lastRecenter=recenterMask;}
-    const bool recenter=s.focused&&Binding(recenterMask,*pad);
-    if(recenter&&!s.previousRecenter)s.recenterPending=true;
-    s.previousRecenter=recenter;
+    if(press.recenter)s.recenterPending=true;
     if(!s.focused||s.temporary||s.wheel||s.paused||s.cinema||!rt.thirdPersonEnabled.load()||
        !rt.cameraControllerOrbitEnabled.load()||rt.tpsCameraStickMode.load()==0||
-       (rt.tpsMountedAimMode.load()==1&&s.fire)){Unlock();return;}
+       (rt.tpsMountedAimMode.load()==1&&s.fire)){Unlock();return press.toggle;}
     const bool left=rt.tpsCameraStickMode.load()==1;
     const float x=float(tps_input::CameraX(*pad,left))/32767.0f;
     const float y=float(tps_input::CameraY(*pad,left))/32767.0f;
@@ -176,20 +182,44 @@ void UpdateInput(const XINPUT_GAMEPAD* pad,bool focused,float dt,
         s.yaw=std::remainder(s.yaw+x/length*amount*speed*dt,360.0f);
         s.pitch=std::clamp(s.pitch+y/length*amount*speed*dt,-60.0f,60.0f);
     }
-    Unlock();
+    Unlock();return press.toggle;
 }
-bool FilterPad(DWORD id,XINPUT_GAMEPAD& pad){
+bool FilterPad(DWORD id,XINPUT_GAMEPAD& pad,bool focusedGameplay){
     const auto slot=local_players::PublishedSlot(1);
     if(!slot.localPlayer||slot.controllerId<0||DWORD(slot.controllerId)!=id)return false;
     const auto primary=local_players::PublishedSlot(0);
     if(primary.localPlayer&&primary.controllerId==slot.controllerId)return false;
     const auto& rt=runtime::Get();const auto now=GetTickCount64();
     AcquireSRWLockExclusive(&g_lock);
-    const bool active=SameOwner(g_state,slot)&&Active(g_state,now);
-    g_state.fire=Fire(pad);
+    auto& state=g_state;
+    const bool owned=SameOwner(state,slot)&&focusedGameplay&&state.focused&&state.inputTick&&
+        now>=state.inputTick&&now-state.inputTick<250;
+    const bool active=owned&&Active(state,now);
+    state.fire=Fire(pad); // physical firing state, before any equipment remap
+    if(owned&&!state.paused&&!state.cinema&&!state.form){
+        const bool horse=tps_input::MapHorseChord(pad,rt.horsePadButtonA.load(),rt.horsePadButtonB.load());
+        if(horse&&!state.horseChordDown&&rt.horseEverywhereEnabled.load()){
+            rt.horseSummonIntentTick.store(now,std::memory_order_release);
+            rt.tpsLastHorseSummonInputTick.store(now,std::memory_order_release);
+            if(g_log)g_log("TPS V1.47 P2 configured horse chord pre-armed; native summon only");
+        }
+        state.horseChordDown=horse;
+    }else state.horseChordDown=false;
+    // Preserve native wheel selection. Equipment hold/stow must run BEFORE
+    // the temporary-view gate, just as on P1: that action can share its button.
+    const bool wheel=Binding(rt.tpsWheelPadMask.load(),pad);
+    if(!owned||!rt.thirdPersonEnabled.load()||state.paused||state.cinema||state.form)state.equipment={};
+    else if(!wheel){
+        const int mask=rt.tpsGrenadeButtonMask.load();
+        const auto event=tps_input::ApplyEquipmentHold(pad,mask,now,state.equipment);
+        static unsigned equipmentEvents=0;
+        if(g_log&&(event.down||event.up||event.stow)&&++equipmentEvents<=24){
+            char line[180]{};sprintf_s(line,"TPS V1.47 P2 EQUIPMENT action=%s physicalMask=0x%X privateHoldState=1",
+                event.down?"HOLD":event.up?"RELEASE":"STOW",mask);g_log(line);
+        }
+    }
     Unlock();
-    // Buttons/triggers remain native. Wheel selection gets original axes.
-    if(!active||Binding(rt.tpsWheelPadMask.load(),pad)||!native_tps::NativeStickSwapKnown())return true;
+    if(!active||wheel||!native_tps::NativeStickSwapKnown())return true;
     const int mode=rt.tpsCameraStickMode.load();
     const bool swap=native_tps::NativeStickSwap();
     if(mode!=0)tps_input::MapGameplayRoles(pad,mode==1,swap);

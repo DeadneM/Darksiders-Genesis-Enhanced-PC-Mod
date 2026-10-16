@@ -25,6 +25,7 @@
 #include "HorseFeature.h"
 #include "NativeTpsFeature.h"
 #include "TpsStickRoles.h"
+#include "TpsPadActions.h"
 #include "OverlayUi.h"
 #include "RuntimeSettings.h"
 #include "ShaderAimFeature.h"
@@ -126,13 +127,7 @@ std::atomic_uint32_t g_tpsGrenadeDownCount{0},g_tpsGrenadeUpCount{0};
 std::atomic_uint32_t g_tpsGrenadeReleasePulseDelivered{0};
 
 SRWLOCK g_grenadeHoldLock=SRWLOCK_INIT;
-struct GrenadeHoldState {
-    bool physicalDown=false;
-    ULONGLONG releaseStart=0;
-    ULONGLONG releaseFinish=0;
-    bool releasePulseDelivered=false;
-    int selectedMask=0x0080;
-};
+using GrenadeHoldState=dg::tps_input::EquipmentHoldState;
 GrenadeHoldState g_grenadeHoldState{};
 // V0.99 observational-only mouse audit. No synthetic cursor events or
 // native shot/aim edits. Bound every live log, preserve controller paths.
@@ -2433,48 +2428,15 @@ bool TPSFireDown(const XINPUT_GAMEPAD& pad) {
         GamepadBindingDown(dg::runtime::Get().tpsFireSecondaryMask.load(std::memory_order_relaxed),pad);
 }
 void ApplyHoldGrenadeVirtualR3(XINPUT_GAMEPAD& pad,int mask) {
-    const ULONGLONG now=GetTickCount64();
-    // V0.94: the native keyboard E Use Gear already works; only physical
-    // controller rebinding comes through this validated R3 pulse path.
-    const bool physical=mask && GamepadBindingDown(mask,pad);
-    // Remap selected physical button to native R3. The game receives the
-    // same validated V0.84 continuous hold + UP gap + second stow press.
-    if(mask!=XINPUT_GAMEPAD_RIGHT_THUMB)
-        pad.wButtons&=static_cast<WORD>(~XINPUT_GAMEPAD_RIGHT_THUMB);
-    if(mask==0x10000)pad.bLeftTrigger=0;
-    else if(mask==0x20000)pad.bRightTrigger=0;
-    else if(mask)pad.wButtons&=static_cast<WORD>(~static_cast<WORD>(mask));
     AcquireSRWLockExclusive(&g_grenadeHoldLock);
-    auto& st=g_grenadeHoldState;
-    if(st.selectedMask!=mask){
-        st=GrenadeHoldState{};
-        st.selectedMask=mask;
-        Log("TPS V0.86 GRENADE binding now 0x%X",mask);
-    }
-    if(physical!=st.physicalDown){
-        st.physicalDown=physical;
-        if(physical){
-            st.releaseStart=st.releaseFinish=0;
-            st.releasePulseDelivered=false;
-            const unsigned n=++g_tpsGrenadeDownCount;
-            if(n<=8)Log("TPS V0.84 GRENADE: physical DOWN n=%u; forward continuous hold",n);
-        }else{
-            st.releaseStart=now+100;
-            st.releaseFinish=st.releaseStart+200;
-            st.releasePulseDelivered=false;
-            const unsigned n=++g_tpsGrenadeUpCount;
-            if(n<=8)Log("TPS V0.84 GRENADE: physical UP n=%u; stow pulse queued after gap",n);
-        }
-    }
-    const bool releasePulse=!physical&&st.releaseStart&&
-        now>=st.releaseStart&&now<st.releaseFinish;
-    if(physical||releasePulse)pad.wButtons|=XINPUT_GAMEPAD_RIGHT_THUMB;
-    else pad.wButtons&=static_cast<WORD>(~XINPUT_GAMEPAD_RIGHT_THUMB);
-    if(releasePulse&&!st.releasePulseDelivered){
-        st.releasePulseDelivered=true;
-        const unsigned n=++g_tpsGrenadeReleasePulseDelivered;
-        if(n<=8)Log("TPS V0.84 GRENADE: second R3 pulse sent to native XInput n=%u",n);
-    }
+    const auto events=dg::tps_input::ApplyEquipmentHold(pad,mask,GetTickCount64(),g_grenadeHoldState);
+    if(events.rebound)Log("TPS V0.86 GRENADE binding now 0x%X",mask);
+    if(events.down){const unsigned n=++g_tpsGrenadeDownCount;
+        if(n<=8)Log("TPS V0.84 GRENADE: physical DOWN n=%u; forward continuous hold",n);}
+    if(events.up){const unsigned n=++g_tpsGrenadeUpCount;
+        if(n<=8)Log("TPS V0.84 GRENADE: physical UP n=%u; stow pulse queued after gap",n);}
+    if(events.stow){const unsigned n=++g_tpsGrenadeReleasePulseDelivered;
+        if(n<=8)Log("TPS V0.84 GRENADE: second R3 pulse sent to native XInput n=%u",n);}
     ReleaseSRWLockExclusive(&g_grenadeHoldLock);
 }
 
@@ -2485,7 +2447,10 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     if(realStatus!=ERROR_SUCCESS||!state)return realStatus;
     // P2 filters only its verified native ControllerId, with its own view.
     // The existing primary path below keeps every validated button policy.
-    if(dg::coop_camera::FilterPad(user,state->Gamepad))return realStatus;
+    const HWND coopWindow=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+    const bool coopFocused=g_targetValidation.exact&&coopWindow&&GetForegroundWindow()==coopWindow&&
+        !IsIconic(coopWindow)&&!g_overlayVisible.load()&&!g_shuttingDown.load();
+    if(dg::coop_camera::FilterPad(user,state->Gamepad,coopFocused))return realStatus;
     if(user!=static_cast<DWORD>(dg::local_players::PrimaryControllerId()))return realStatus;
     const DWORD status=realStatus;
     if(dg::chaos_pose::ActiveNow()){
@@ -3534,6 +3499,7 @@ void UpdateOrbitInput() {
 
     // V0.94: native E handles keyboard gear and radial-wheel selection.
     // The synthetic keyboard grenade / E release-pulse has been retired.
+    bool primaryToggledThisFrame=false;
     const int toggleMask=g_config.tpsToggleHoldButtonMask;
     static bool toggleHeld=false,toggleConsumed=false;
     static ULONGLONG toggleStarted=0;
@@ -3545,7 +3511,7 @@ void UpdateOrbitInput() {
     if(toggling && toggleHeld && !toggleConsumed &&
        now>=toggleStarted &&
        now-toggleStarted>=static_cast<ULONGLONG>(g_config.tpsToggleHoldMs)){
-        toggleConsumed=true;
+        toggleConsumed=true;primaryToggledThisFrame=true;
         g_config.thirdPersonEnabled=!g_config.thirdPersonEnabled;
         g_config.Save();
         const unsigned count=++g_tpsHoldToggleCount;
@@ -3620,9 +3586,15 @@ void UpdateOrbitInput() {
     const auto coopSlot=dg::local_players::PublishedSlot(1);
     const bool coopConnected=focused&&coopSlot.controllerId>=0&&
         GetCameraXInputState(static_cast<DWORD>(coopSlot.controllerId),&coopPhysical)==ERROR_SUCCESS;
-    dg::coop_camera::UpdateInput(coopConnected?&coopPhysical.Gamepad:nullptr,focused,dt,
-        g_config.tpsRecenterButtonMask,g_config.tpsSuspendButtonMask,g_config.tpsSuspendDelayMs);
-    if (!active) {
+    const bool secondaryToggle=dg::coop_camera::UpdateInput(coopConnected?&coopPhysical.Gamepad:nullptr,focused,dt,
+        g_config.tpsRecenterButtonMask,g_config.tpsSuspendButtonMask,g_config.tpsSuspendDelayMs,
+        g_config.tpsToggleHoldButtonMask,g_config.tpsToggleHoldMs);
+    if(secondaryToggle&&!primaryToggledThisFrame){
+        g_config.thirdPersonEnabled=!g_config.thirdPersonEnabled;g_config.Save();
+        Log("TPS V1.47 P2 long-press shared TPS toggle mask=0x%X TPS=%d",
+            g_config.tpsToggleHoldButtonMask,g_config.thirdPersonEnabled?1:0);
+    }
+    if (!active||!g_config.thirdPersonEnabled) {
         lastButtons=0;
         if(!g_config.thirdPersonEnabled) {
             rt.cameraOrbitYawDegrees.store(0.0f);
