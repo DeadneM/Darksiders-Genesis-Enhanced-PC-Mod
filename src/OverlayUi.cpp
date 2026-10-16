@@ -5,6 +5,7 @@
 #include "AmmoConsumptionFeature.h"
 #include "ShaderAimFeature.h"
 #include "UpdateFeature.h"
+#include "BuildInfo.h"
 
 #include "HorseFeature.h"
 #include "CameraTraceFeature.h"
@@ -816,6 +817,35 @@ void Draw(Context& c) {
                     config.tpsUltimateHeightOffset=std::clamp(config.tpsUltimateHeightOffset,-1000.0f,1000.0f);
                     config.Save();
                 }
+                DrawSectionTitle("Horseback TPS camera");
+                ImGui::TextWrapped("Separate distance and vertical offset while riding. Foot and Ultimate settings stay independent.");
+                ImGui::SetNextItemWidth(245.0f);
+                bool horseChanged=ImGui::SliderFloat("Distance (Horseback)##TPSHorse",
+                    &config.tpsHorseDistanceMultiplier,0.0f,3.0f,"%.2fx");
+                ImGui::SetNextItemWidth(145.0f);
+                horseChanged|=ImGui::InputFloat("Manual distance##TPSHorse",
+                    &config.tpsHorseDistanceMultiplier,0,0,"%.3fx");
+                ImGui::SameLine();
+                if(ImGui::Button("Default##TPSHorseDistance")){
+                    config.tpsHorseDistanceMultiplier=defaults::HorseDistance;horseChanged=true;
+                }
+                ImGui::SetNextItemWidth(245.0f);
+                horseChanged|=ImGui::SliderFloat("Vertical offset (Horseback)##TPSHorse",
+                    &config.tpsHorseHeightOffset,-1000.0f,1000.0f,"%+.0f units");
+                ImGui::SetNextItemWidth(145.0f);
+                horseChanged|=ImGui::InputFloat("Manual height##TPSHorse",
+                    &config.tpsHorseHeightOffset,0,0,"%.1f");
+                ImGui::SameLine();
+                if(ImGui::Button("Default##TPSHorseHeight")){
+                    config.tpsHorseHeightOffset=defaults::HorseHeight;horseChanged=true;
+                }
+                if(horseChanged){
+                    if(!std::isfinite(config.tpsHorseDistanceMultiplier))config.tpsHorseDistanceMultiplier=defaults::HorseDistance;
+                    if(!std::isfinite(config.tpsHorseHeightOffset))config.tpsHorseHeightOffset=defaults::HorseHeight;
+                    config.tpsHorseDistanceMultiplier=std::clamp(config.tpsHorseDistanceMultiplier,0.0f,3.0f);
+                    config.tpsHorseHeightOffset=std::clamp(config.tpsHorseHeightOffset,-1000.0f,1000.0f);
+                    config.Save();
+                }
                 if(ImGui::Button("TPS Camera Values Default"))config.ResetTpsCameraValues();
                 ImGui::Unindent();
             }
@@ -1254,7 +1284,7 @@ void Draw(Context& c) {
             ImGui::Spacing();
 
             const auto update = dg::update::GetStatus();
-            ImGui::Text("Running mod: V1.22 (ASI updater)");
+            ImGui::Text("Running mod: %s",dg::build::Version);
             const bool checked = update.hasLatest && update.checkedBeta == config.updaterBeta;
             if (checked) {
                 ImGui::Text("Latest %s build: %s",

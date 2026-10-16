@@ -279,6 +279,8 @@ public:
     float thirdPersonHeightOffset = 0.0f;
     float tpsUltimateDistanceMultiplier = defaults::UltimateDistance;
     float tpsUltimateHeightOffset = defaults::UltimateHeight;
+    float tpsHorseDistanceMultiplier = defaults::HorseDistance;
+    float tpsHorseHeightOffset = defaults::HorseHeight;
     float tpsFootAnchorOffset = 0.0f; // adjustable +/-500 units
     float cameraStickSpeed = 180.0f;
     float hotstreakChargeMultiplier = 2.00f;

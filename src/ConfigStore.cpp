@@ -393,6 +393,8 @@ void Store::ResetDefaults(bool persist) {
     thirdPersonHeightOffset = 0.0f;
     tpsUltimateDistanceMultiplier = defaults::UltimateDistance;
     tpsUltimateHeightOffset = defaults::UltimateHeight;
+    tpsHorseDistanceMultiplier = defaults::HorseDistance;
+    tpsHorseHeightOffset = defaults::HorseHeight;
     tpsFootAnchorOffset = 0.0f;
     cameraStickSpeed = 180.0f;
     hotstreakChargeMultiplier = 2.00f;
@@ -485,12 +487,14 @@ void Store::ResetTpsCameraValues() {
     thirdPersonHeightOffset=0.0f;
     tpsUltimateDistanceMultiplier=defaults::UltimateDistance;
     tpsUltimateHeightOffset=defaults::UltimateHeight;
+    tpsHorseDistanceMultiplier=defaults::HorseDistance;
+    tpsHorseHeightOffset=defaults::HorseHeight;
     tpsFootAnchorOffset=0.0f;
     cameraStickSpeed=180.0f;
     dg::runtime::Get().cameraOrbitYawDegrees.store(0.0f);
     dg::runtime::Get().cameraOrbitPitchDegrees.store(0.0f);
     Save();
-    Log("V1.40 TPS Camera Values Default: TPS FOV 110, distance .15, pitch -12, height 0; Ultimate distance .30, height 80; foot 0, speed 180");
+    Log("V1.42 TPS Camera Values Default: TPS FOV 110, distance .15, pitch -12, height 0; Ultimate distance .30, height 80; Horse distance .15, height 0; foot 0, speed 180");
 }
 bool Store::Load() {
     if (path_.empty()) {
@@ -685,6 +689,11 @@ bool Store::Load() {
         thirdPersonDistanceMultiplier,path_),0.0f,3.0f);
     tpsUltimateHeightOffset=std::clamp(ReadFloat(L"Values",L"TPSUltimateHeightOffset",
         thirdPersonHeightOffset,path_),-1000.0f,1000.0f);
+    // Existing profiles start mounted framing at their current normal camera.
+    tpsHorseDistanceMultiplier=std::clamp(ReadFloat(L"Values",L"TPSHorseDistanceMultiplier",
+        thirdPersonDistanceMultiplier,path_),0.0f,3.0f);
+    tpsHorseHeightOffset=std::clamp(ReadFloat(L"Values",L"TPSHorseHeightOffset",
+        thirdPersonHeightOffset,path_),-1000.0f,1000.0f);
     cameraStickSpeed=std::clamp(cameraStickSpeed,30.0f,360.0f);
     hotstreakChargeMultiplier =
         ReadFloat(L"Values", L"HotstreakChargeMultiplier", 2.0f, path_);
@@ -865,6 +874,8 @@ void Store::PublishRuntime() const {
     runtime.thirdPersonHeightOffset = thirdPersonHeightOffset;
     runtime.tpsUltimateDistanceMultiplier = tpsUltimateDistanceMultiplier;
     runtime.tpsUltimateHeightOffset = tpsUltimateHeightOffset;
+    runtime.tpsHorseDistanceMultiplier = tpsHorseDistanceMultiplier;
+    runtime.tpsHorseHeightOffset = tpsHorseHeightOffset;
     runtime.tpsFootAnchorOffset = tpsFootAnchorOffset;
     runtime.cameraStickSpeed = cameraStickSpeed;
     runtime.pistolDamageEnabled = pistolDamageEnabled;
@@ -1100,6 +1111,8 @@ bool Store::SaveNow() {
     WriteFloat(L"Values", L"ThirdPersonHeightOffset", thirdPersonHeightOffset, path_);
     WriteFloat(L"Values",L"TPSUltimateDistanceMultiplier",tpsUltimateDistanceMultiplier,path_);
     WriteFloat(L"Values",L"TPSUltimateHeightOffset",tpsUltimateHeightOffset,path_);
+    WriteFloat(L"Values",L"TPSHorseDistanceMultiplier",tpsHorseDistanceMultiplier,path_);
+    WriteFloat(L"Values",L"TPSHorseHeightOffset",tpsHorseHeightOffset,path_);
     WriteFloat(L"Values",L"TPSFootAnchorOffset",tpsFootAnchorOffset,path_);
     WriteFloat(L"Values", L"CameraStickSpeed", cameraStickSpeed, path_);
     WriteFloat(L"Values", L"HotstreakChargeMultiplier", hotstreakChargeMultiplier, path_);

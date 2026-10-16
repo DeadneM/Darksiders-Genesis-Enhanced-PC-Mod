@@ -1,3 +1,11 @@
+## V1.42 - paramètres TPS séparés à cheval (16 octobre 2026)
+
+Base livrée V1.41 debug `04ca27e`. **Sources préparées / EXPÉRIMENTAL**, construction et installation à vérifier. Camera → Third Person → **Horseback TPS camera**, sous la forme ultime : **Distance (Horseback)** et **Vertical offset (Horseback)**, avec curseur, saisie manuelle et Default. Deux valeurs indépendantes persistées ; anciens INI : héritage de leurs paramètres à pied. Défauts neufs0.15/0, reset TPS étendu ; les110 valeurs préexistantes et Inser conservés.
+
+La caméra utilise la pose montée déjà reconnue, avec priorité à la forme ultime si active. Trois sélections de valeurs ajoutées ; provenance de pose, orbite, pitch/FOV partagés, visée/RawInput/XInput, cheval, roues, jauges/munitions et Skip Warning inchangés. Tests de configuration étendus aux trois profils et parité112 clés. Aucun nouveau succès en jeu annoncé. Jeu ouvert pendant la préparation ; installation avec sauvegarde après fermeture. [Détails, critères de test, compatibilité et rollback](docs/V1_42_HORSE_CAMERA_SETTINGS.md).
+
+Correction du retour utilisateur sur la capture Updates : l'affichage « Running mod: V1.22 » était encore écrit en dur malgré la comparaison corrigée en V1.41. Le libellé et le préfixe du journal suivent maintenant BuildInfo ; ils doivent afficher la version compilée V1.42. Ce point manqué dans l'audit est documenté ; logique d'installation et chemins de contrôle inchangés.
+
 ## V1.41 construite, contrôlée et installée — 16 octobre 2026
 
 **CONSTRUIT / CONTRÔLÉ / INSTALLÉ / EXPÉRIMENTAL en attente du test utilisateur.** Base livrée V1.40 `e230b53` ; source V1.41 `d1bae62d3f191f8efb0a2c4b51a50667920ca08a`. [GitHub Actions Windows x64 38843203433](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38843203433) **SUCCESS**, job116787762522, **13/13 CTest réussis** et analyse native MSVC `/analyze` exécutée. Huit avertissements examinés et détaillés dans l'audit, pas une prétendue absence d'avertissements. Test isolé C# local : zéro échec. Archive publiée au commit `0b42a1942c25819fc50152e151263920fb808067`.

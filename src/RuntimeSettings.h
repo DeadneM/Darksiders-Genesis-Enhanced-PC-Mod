@@ -65,6 +65,8 @@ struct Snapshot {
     float thirdPersonHeightOffset = 0.0f;
     float tpsUltimateDistanceMultiplier = defaults::UltimateDistance;
     float tpsUltimateHeightOffset = defaults::UltimateHeight;
+    float tpsHorseDistanceMultiplier = defaults::HorseDistance;
+    float tpsHorseHeightOffset = defaults::HorseHeight;
     float tpsFootAnchorOffset = 0.0f; // estimated capsule center-to-foot, configurable
     float cameraStickSpeed = 180.0f;
     float movementSpeedMultiplier = 1.50f;
@@ -176,6 +178,8 @@ struct State {
     std::atomic<float> thirdPersonHeightOffset{0.0f};
     std::atomic<float> tpsUltimateDistanceMultiplier{defaults::UltimateDistance};
     std::atomic<float> tpsUltimateHeightOffset{defaults::UltimateHeight};
+    std::atomic<float> tpsHorseDistanceMultiplier{defaults::HorseDistance};
+    std::atomic<float> tpsHorseHeightOffset{defaults::HorseHeight};
     std::atomic<float> tpsFootAnchorOffset{0.0f};
     std::atomic<float> cameraStickSpeed{180.0f};
     std::atomic<float> cameraOrbitYawDegrees{0.0f};

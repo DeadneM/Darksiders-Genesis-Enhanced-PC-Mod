@@ -332,6 +332,7 @@ void HookView(void* camera, float dt, void* outView) {
     const bool nativeArmValid=std::isfinite(candidateNativeArm) &&
         candidateNativeArm>=100.0f && candidateNativeArm<=10000.0f;
     const float multiplier=usingChaos?settings.tpsUltimateDistanceMultiplier.load(std::memory_order_relaxed):
+        usingHorse?settings.tpsHorseDistanceMultiplier.load(std::memory_order_relaxed):
         settings.thirdPersonDistanceMultiplier.load(std::memory_order_relaxed);
     const float selectedTpsDistance=std::isfinite(multiplier)&&multiplier>=0&&multiplier<=3
         ?std::clamp((nativeArmValid?candidateNativeArm:900.0f)*multiplier,0.0f,12000.0f)
@@ -652,8 +653,10 @@ void HookView(void* camera, float dt, void* outView) {
         const float op=orbit?settings.cameraOrbitPitchDegrees.load():0.0f;
         const float basePitch=settings.thirdPersonPitchDegrees.load();
         const float mult=usingChaos?settings.tpsUltimateDistanceMultiplier.load():
+            usingHorse?settings.tpsHorseDistanceMultiplier.load():
             settings.thirdPersonDistanceMultiplier.load();
         const float tpHeight=usingChaos?settings.tpsUltimateHeightOffset.load():
+            usingHorse?settings.tpsHorseHeightOffset.load():
             settings.thirdPersonHeightOffset.load();
         const float foot=settings.tpsFootAnchorOffset.load();
         if(std::isfinite(arm)&&arm>=100&&arm<=10000&&

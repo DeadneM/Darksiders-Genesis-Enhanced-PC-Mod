@@ -4272,8 +4272,8 @@ DWORD WINAPI MainThread(LPVOID) {
     g_config.SetPath(g_iniPath);
     g_config.SetLogger(&FeatureLog);
     g_config.Load();
-    Log("V1.22 CONFIG loaded %ls: TPS=%d cursorHooks=REMOVED FOV=%.1f dist=%.3f pitch=%.2f height=%.1f foot=%.1f stickMode=%d mountedAim=%d normalHeight=%.1f SkipWarningRuntime=%d",
-        g_iniPath.c_str(),g_config.thirdPersonEnabled?1:0,
+    Log("%s CONFIG loaded %ls: TPS=%d cursorHooks=REMOVED FOV=%.1f dist=%.3f pitch=%.2f height=%.1f foot=%.1f stickMode=%d mountedAim=%d normalHeight=%.1f SkipWarningRuntime=%d",
+        dg::build::Version,g_iniPath.c_str(),g_config.thirdPersonEnabled?1:0,
         g_config.thirdPersonFovDegrees,
         g_config.thirdPersonDistanceMultiplier,g_config.thirdPersonPitchDegrees,
         g_config.thirdPersonHeightOffset,g_config.tpsFootAnchorOffset,
@@ -4281,6 +4281,8 @@ DWORD WINAPI MainThread(LPVOID) {
         g_config.skipWarningEnabled?1:0);
     Log("TPS V1.37 ULTIMATE_CAMERA loaded distance=%.3f verticalOffset=%.1f (separate from normal form)",
         g_config.tpsUltimateDistanceMultiplier,g_config.tpsUltimateHeightOffset);
+    Log("TPS %s HORSE_CAMERA loaded distance=%.3f verticalOffset=%.1f (separate from foot and Ultimate)",
+        dg::build::Version,g_config.tpsHorseDistanceMultiplier,g_config.tpsHorseHeightOffset);
     Log("V1.05 GAUGES loaded Wrath=%d x%.2f Ultimate=%d x%.2f Synergy=%d x%.2f",
         g_config.wrathChargeEnabled?1:0,g_config.wrathChargeMultiplier,
         g_config.ultimateChargeEnabled?1:0,g_config.ultimateChargeMultiplier,
