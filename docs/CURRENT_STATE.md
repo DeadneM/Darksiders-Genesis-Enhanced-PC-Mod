@@ -1,3 +1,11 @@
+## V1.48 — retour utilisateur du 16 octobre 2026
+
+**VALIDÉ PAR L'UTILISATEUR, pour les fonctions explicitement testées :** réduction de la baisse Hotstreak avec saisie manuelle ; Unlimited et remplissage Hotstreak ; remplissage des munitions ; les quatre nouvelles actions Hotkeys. Ces acquis sont à conserver. Ce retour ne précise pas de test P2/coop et ne valide pas globalement tous les correctifs cumulatifs V1.46–48.
+
+**Lava normal en cloche, manette P1 : toujours défectueux.** Retour utilisateur : la trajectoire semble dépendre du viseur et de l'angle de caméra ; caméra horizontale, le projectile arrive presque aux pieds. Le symptôme est rapporté en jeu ; le lien causal précis avec le point3D/caméra reste à mesurer. Priorité à l'audit de la cible3D et du calcul balistique natif, sans correction arbitraire de yaw. Le faisceau Hotstreak n'est pas signalé. Visée native après dash et Action Recovery restent deux sujets distincts non résolus.
+
+Les contrôles encore attendus portent sur le menu uniforme, l'angle solo Strife/War, la propriété des caméras coop/cheval/ultime et leurs réglages, les commandes P2, les premiers tirs, le retour de cinématique et les options gameplay P2/Unlimited santé-vol plané-sprint. [Liste actuelle et priorités](V1_48_HOTSTREAK_REFILLS.md). Aucune nouvelle build ni modification de gameplay dans ce reçu ; INI personnel, binaires installés et archives conservés.
+
 ## V1.48 — construite, contrôlée et installée : Hotstreak / refills (16 octobre 2026)
 
 **CONSTRUIT / CONTRÔLÉ / INSTALLÉ / EXPÉRIMENTAL — validation utilisateur en jeu requise.** Base cumulative V1.47 construite mais non installée, acquis validés V1.43 et suivants conservés. Source `b7b90d29314ce00229a0737004426cbb0375b28d`, archive debug `550b7784b4f1341521bc8f7113250e5177207232`. [CI Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38964259848) **SUCCESS,22/22 tests** ; huit avertissements historiques, aucun nouveau. Les tests des vrais services P1/P2 couvrent les nouveaux refills, le diviseur, Unlimited ON/OFF, les resets et les générations. Cela ne vaut pas validation en jeu.

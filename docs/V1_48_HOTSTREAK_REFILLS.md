@@ -1,3 +1,30 @@
+## État courant après le retour utilisateur V1.48
+
+Réduction Hotstreak/saisie, Unlimited Hotstreak, refill Hotstreak, refill ammo et quatre actions Hotkeys : **VALIDÉS PAR L'UTILISATEUR**. Les anciens reçus de construction ci-dessous restent historiques ; leurs mentions « validation requise » ne remplacent pas ce nouveau retour. P2/coop n'est pas précisé pour ces validations.
+
+Lava normal en cloche, manette P1 : l'utilisateur rapporte un point d'arrivée presque aux pieds quand la caméra est horizontale, et une dépendance apparente au viseur/à l'angle caméra. **SYMPTÔME CONFIRMÉ PAR SON TEST ; CAUSE EXACTE INCONNUE.** La rotation stockée, la cible3D, les positions de départ/cible, la vitesse et la compensation de gravité doivent être observées ensemble. Le nouveau retour oriente l'enquête sur la construction du point3D et la cohérence du pitch/distance ; il ne prouve pas à lui seul un correctif ou une cause unique. Aucun nouveau hook de visée dans ce reçu.
+
+### Vérifications encore attendues
+
+1. **Menu** : présentation commune (dont Reduce ammo), curseur/saisie/Default, sauvegarde puis rechargement, lisibilité en redimensionnant la fenêtre.
+2. **Échange solo** : choisir un angle, échanger Strife/War plusieurs fois sans déplacer la caméra ; vérifier que l'angle reste choisi. Respawn/changement de zone à comparer séparément.
+3. **Caméras et réglages coop** : chaque vue suit son joueur après réapparition, cheval et formes ultimes ; recentrage dans chaque forme ; FOV coop sur les deux vues et FOV solo indépendant ; distance/offset cheval et ultime appliqués à la bonne forme.
+4. **Commandes P2** : maintien/relâchement équipement, recentrage/appui long TPS, vue temporaire, combinaison cheval, interversion complète des sticks et sélection dans les trois roues ; utiliser les bindings configurés, sans imposer de touche particulière.
+5. **Premiers tirs** : primaire/secondaire alignés avec la visée dès le premier projectile, sans départ latéral ; à pied, cheval et Strife ultime, souris/manette, P1/P2.
+6. **Pause/roues/scènes** : TPS conservé dans pause et trois roues ; vue native dans une vraie scène puis retour TPS ; raccourci temporaire toujours fonctionnel, pas de faux déclenchement.
+7. **Gameplay P2** : vitesse/dégâts/gains, ressources/refills et raccourcis agissent aussi sur P2, sans modifier la réserve de l'autre joueur à tort. Les nouvelles validations Hotstreak/ammo n'établissent pas à elles seules ce point.
+8. **Santé/vol plané/sprint cheval** : refill santé et chacun des Unlimited ON puis OFF ; reprise normale des coûts/durées après désactivation. Tester les coûts en mission : le Courroux est natif gratuit dans le Néant.
+
+### Travail restant et ordre proposé
+
+1. Réparer la trajectoire du **Lava normal** à partir du point3D réel et du calcul balistique natif, en préservant le faisceau Hotstreak et la séparation souris/manette.
+2. Confirmer ou reprendre les corrections cumulatives de caméra/commandes P2 et de premier tir selon les huit contrôles ci-dessus ; elles sont construites mais pas encore toutes validées par l'utilisateur.
+3. Réparer le bug **visée native + dash** qui annule la visée et fait disparaître arc/trait.
+4. Rendre **Action Recovery** réellement fonctionnel pour le dash, notamment l'intervalle entre le troisième et le quatrième dash Strife. Fonction toujours indisponible ; coffre différé.
+5. Après stabilisation, reprendre le nettoyage/optimisation ciblé avec les acquis validés comme référence. Ne pas assimiler les audits ou tests isolés à une réparation en jeu.
+
+Ce reçu modifie uniquement la documentation. Pas de changement d'ASI/INI installé, de valeurs par défaut, de Hotkeys, de release, d'archive ou de branche stable.
+
 ## V1.48 — construite, contrôlée et installée : Hotstreak / refills (16 octobre 2026)
 
 **CONSTRUIT / CONTRÔLÉ / INSTALLÉ / EXPÉRIMENTAL — validation utilisateur en jeu requise.** Base cumulative V1.47 construite mais non installée, acquis validés V1.43 et suivants conservés. Source `b7b90d29314ce00229a0737004426cbb0375b28d`, archive debug `550b7784b4f1341521bc8f7113250e5177207232`. [CI Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38964259848) **SUCCESS,22/22 tests** ; huit avertissements historiques, aucun nouveau. Les tests des vrais services P1/P2 couvrent les nouveaux refills, le diviseur, Unlimited ON/OFF, les resets et les générations. Cela ne vaut pas validation en jeu.
