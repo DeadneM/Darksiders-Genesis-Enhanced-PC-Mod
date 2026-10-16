@@ -11,6 +11,11 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(HotstreakConfigTests tests/HotstreakConfigTests.cpp src/ConfigStore.cpp src/RuntimeSettings.cpp)
+  target_include_directories(HotstreakConfigTests PRIVATE src)
+  target_compile_definitions(HotstreakConfigTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  target_link_libraries(HotstreakConfigTests PRIVATE user32)
+  add_test(NAME HotstreakConfig COMMAND HotstreakConfigTests)
   add_executable(GlideAndHorseTests tests/GlideAndHorseTests.cpp src/RuntimeSettings.cpp)
   target_include_directories(GlideAndHorseTests PRIVATE tests/stubs src)
   target_compile_definitions(GlideAndHorseTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
@@ -201,6 +206,7 @@ add_library(DarksidersGenesisMod SHARED
   src/ManualGaugeFeature.cpp
   src/PotionFeature.cpp
   src/AmmoConsumptionFeature.cpp
+  src/HotstreakFeature.cpp
   src/HorseFeature.cpp
   src/OverlayUi.cpp
   src/RuntimeSettings.cpp

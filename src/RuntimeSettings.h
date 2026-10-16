@@ -53,6 +53,9 @@ struct Snapshot {
     bool reduceAmmoEnabled = defaults::ReduceAmmo;
     bool unlimitedAmmoEnabled = false;
     float ammoConsumptionDivisor = 2.0f;
+    bool reduceHotstreakEnabled = false;
+    bool unlimitedHotstreakEnabled = false;
+    float hotstreakDecreaseDivisor = 2.0f;
     bool potionRechargeEnabled = false;
     bool unlimitedPotionsEnabled = false;
     bool unlimitedHealthEnabled = false;
@@ -171,6 +174,9 @@ struct State {
     std::atomic_bool reduceAmmoEnabled{defaults::ReduceAmmo};
     std::atomic_bool unlimitedAmmoEnabled{false};
     std::atomic<float> ammoConsumptionDivisor{2.0f};
+    std::atomic_bool reduceHotstreakEnabled{false};
+    std::atomic_bool unlimitedHotstreakEnabled{false};
+    std::atomic<float> hotstreakDecreaseDivisor{2.0f};
     std::atomic_bool potionRechargeEnabled{false};
     std::atomic_bool unlimitedPotionsEnabled{false};
     std::atomic_bool unlimitedHealthEnabled{false};

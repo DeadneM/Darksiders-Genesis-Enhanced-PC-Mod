@@ -370,6 +370,7 @@ void Store::ResetDefaults(bool persist) {
     unlimitedUltimateEnabled = false;
     unlimitedSynergyEnabled = false;
     reduceAmmoEnabled = defaults::ReduceAmmo;unlimitedAmmoEnabled = false;ammoConsumptionDivisor = 2.0f;
+    reduceHotstreakEnabled=false;unlimitedHotstreakEnabled=false;hotstreakDecreaseDivisor=2.0f;
     potionRechargeEnabled=false;unlimitedPotionsEnabled=false;potionRechargeMultiplier=2.0f;
     unlimitedHealthEnabled=false;
     unlimitedGlideEnabled=false;
@@ -566,6 +567,9 @@ bool Store::Load() {
     unlimitedSynergyEnabled=ReadBool(L"Features",L"UnlimitedSynergy",false,path_);
     reduceAmmoEnabled=ReadBool(L"Features",L"ReduceAmmoConsumption",defaults::ReduceAmmo,path_);
     unlimitedAmmoEnabled=ReadBool(L"Features",L"UnlimitedAmmo",false,path_);
+    reduceHotstreakEnabled=ReadBool(L"Features",L"ReduceHotstreakDecrease",false,path_);
+    unlimitedHotstreakEnabled=ReadBool(L"Features",L"UnlimitedHotstreak",false,path_);
+    hotstreakDecreaseDivisor=std::clamp(ReadFloat(L"Values",L"HotstreakDecreaseDivisor",2.0f,path_),0.0f,10.0f);
     potionRechargeEnabled=ReadBool(L"Features",L"PotionRecharge",false,path_);
     unlimitedPotionsEnabled=ReadBool(L"Features",L"UnlimitedPotions",false,path_);
     unlimitedHealthEnabled=ReadBool(L"Features",L"UnlimitedHealth",false,path_);
@@ -916,6 +920,9 @@ void Store::PublishRuntime() const {
     runtime.reduceAmmoEnabled = reduceAmmoEnabled;
     runtime.unlimitedAmmoEnabled = unlimitedAmmoEnabled;
     runtime.ammoConsumptionDivisor = ammoConsumptionDivisor;
+    runtime.reduceHotstreakEnabled = reduceHotstreakEnabled;
+    runtime.unlimitedHotstreakEnabled = unlimitedHotstreakEnabled;
+    runtime.hotstreakDecreaseDivisor = hotstreakDecreaseDivisor;
     runtime.potionRechargeEnabled = potionRechargeEnabled;
     runtime.unlimitedPotionsEnabled = unlimitedPotionsEnabled;
     runtime.unlimitedHealthEnabled = unlimitedHealthEnabled;
@@ -1008,6 +1015,9 @@ bool Store::SaveNow() {
     WriteBool(L"Features",L"UnlimitedSynergy",unlimitedSynergyEnabled,path_);
     WriteBool(L"Features",L"ReduceAmmoConsumption",reduceAmmoEnabled,path_);
     WriteBool(L"Features",L"UnlimitedAmmo",unlimitedAmmoEnabled,path_);
+    WriteBool(L"Features",L"ReduceHotstreakDecrease",reduceHotstreakEnabled,path_);
+    WriteBool(L"Features",L"UnlimitedHotstreak",unlimitedHotstreakEnabled,path_);
+    WriteFloat(L"Values",L"HotstreakDecreaseDivisor",hotstreakDecreaseDivisor,path_);
     WriteBool(L"Features",L"PotionRecharge",potionRechargeEnabled,path_);
     WriteBool(L"Features",L"UnlimitedPotions",unlimitedPotionsEnabled,path_);
     WriteBool(L"Features",L"UnlimitedHealth",unlimitedHealthEnabled,path_);

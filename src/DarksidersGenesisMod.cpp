@@ -20,6 +20,7 @@
 #include "ResourceGainFeature.h"
 #include "ManualGaugeFeature.h"
 #include "AmmoConsumptionFeature.h"
+#include "HotstreakFeature.h"
 #include "PotionFeature.h"
 #include "BuildInfo.h"
 #include "HorseFeature.h"
@@ -1415,6 +1416,7 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     dg::resource_gain::OnLivePlayer(character,generation);
     dg::manual_gauges::OnLivePlayer(character,generation,reinterpret_cast<void*>(owner.playerState));
     dg::ammo::OnLivePlayer(character,generation);
+    dg::hotstreak::OnLivePlayer(character,generation);
     dg::potions::OnLivePlayer(character,generation,reinterpret_cast<void*>(owner.playerState));
     dg::health::OnLivePlayer(character,generation);
 }
@@ -2033,6 +2035,19 @@ void TriggerAction(Action action, int functionKey) {
         }
         return;
     }
+    if(action==Action::ReduceHotstreak||action==Action::UnlimitedHotstreak||
+       action==Action::RefillHotstreak||action==Action::RefillAmmo){
+        const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+        if(!hwnd||GetForegroundWindow()!=hwnd||IsIconic(hwnd)||g_overlayVisible.load()||g_shuttingDown.load())return;
+        if(action==Action::RefillHotstreak||action==Action::RefillAmmo){
+            const bool queued=action==Action::RefillAmmo?dg::ammo::RequestRefill():dg::hotstreak::RequestRefill();
+            g_lastAction=std::string(label)+(queued?" [queued]":" [unavailable]");
+        }else{
+            bool& enabled=action==Action::ReduceHotstreak?g_config.reduceHotstreakEnabled:g_config.unlimitedHotstreakEnabled;
+            enabled=!enabled;g_config.Save();g_lastAction=std::string(label)+(enabled?" ON":" OFF");
+        }
+        Log("Resources V1.48 HOTKEY F%d action=%s",functionKey,label);return;
+    }
     if(action==Action::ReduceAmmo||action==Action::UnlimitedAmmo){
         bool& enabled=action==Action::ReduceAmmo?g_config.reduceAmmoEnabled:g_config.unlimitedAmmoEnabled;
         enabled=!enabled;g_config.Save();
@@ -2276,7 +2291,11 @@ void ProcessInput() {
                g_config.hotkeys[static_cast<size_t>(i)]==Action::RefillHealth||
                g_config.hotkeys[static_cast<size_t>(i)]==Action::UnlimitedHealth||
                g_config.hotkeys[static_cast<size_t>(i)]==Action::UnlimitedGlide||
-               g_config.hotkeys[static_cast<size_t>(i)]==Action::UnlimitedHorseSprint)
+               g_config.hotkeys[static_cast<size_t>(i)]==Action::UnlimitedHorseSprint||
+               g_config.hotkeys[static_cast<size_t>(i)]==Action::ReduceHotstreak||
+               g_config.hotkeys[static_cast<size_t>(i)]==Action::UnlimitedHotstreak||
+               g_config.hotkeys[static_cast<size_t>(i)]==Action::RefillHotstreak||
+               g_config.hotkeys[static_cast<size_t>(i)]==Action::RefillAmmo)
                 KeyPressed(VK_F1+i);
         return;
     }
@@ -4117,6 +4136,7 @@ void ShutdownMod() {
     dg::chaos_pose::Shutdown();
     dg::manual_gauges::Shutdown();
     dg::ammo::Shutdown();
+    dg::hotstreak::Shutdown();
     dg::potions::Shutdown();
 
     dg::resource_gain::Shutdown();
@@ -4351,6 +4371,7 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::gauges::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::resource_gain::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::ammo::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::hotstreak::Initialize(&FeatureLog,g_targetValidation.exact,g_originalAddJuice);
     dg::potions::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::local_players::SetLiveObserver(&ServiceLocalGameplay);
     dg::projectile_aim::Initialize(&FeatureLog,g_targetValidation.exact,&ProvideProjectileRotation);

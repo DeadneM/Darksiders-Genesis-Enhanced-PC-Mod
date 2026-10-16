@@ -72,6 +72,10 @@ enum class Action : int {
     UnlimitedHealth,
     UnlimitedGlide,
     UnlimitedHorseSprint,
+    ReduceHotstreak,
+    UnlimitedHotstreak,
+    RefillHotstreak,
+    RefillAmmo,
     Count
 };
 
@@ -120,7 +124,11 @@ kActionLabels = {
     "Fill health",
     "Toggle Unlimited health",
     "Toggle Unlimited glide",
-    "Toggle Unlimited horse sprint"
+    "Toggle Unlimited horse sprint",
+    "Toggle reduced Hotstreak decrease",
+    "Toggle Unlimited Hotstreak",
+    "Fill Hotstreak",
+    "Fill ammunition"
 };
 
 inline constexpr std::array<const wchar_t*, static_cast<std::size_t>(Action::Count)>
@@ -168,7 +176,11 @@ kActionTokens = {
     L"RefillHealth",
     L"UnlimitedHealth",
     L"UnlimitedGlide",
-    L"UnlimitedHorseSprint"
+    L"UnlimitedHorseSprint",
+    L"ReduceHotstreak",
+    L"UnlimitedHotstreak",
+    L"RefillHotstreak",
+    L"RefillAmmo"
 };
 
 // Instant actions share the validated one-shot manual refill queue.
@@ -277,6 +289,9 @@ public:
     bool reduceAmmoEnabled = defaults::ReduceAmmo;
     bool unlimitedAmmoEnabled = false;
     float ammoConsumptionDivisor = 2.0f;
+    bool reduceHotstreakEnabled = false;
+    bool unlimitedHotstreakEnabled = false;
+    float hotstreakDecreaseDivisor = 2.0f;
     bool potionRechargeEnabled = false;
     bool unlimitedPotionsEnabled = false;
     bool unlimitedHealthEnabled = false;

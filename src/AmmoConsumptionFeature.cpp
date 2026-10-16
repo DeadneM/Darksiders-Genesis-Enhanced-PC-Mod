@@ -26,6 +26,9 @@ struct PlayerAmmo {
     Entry entries[16]{};
 };
 PlayerAmmo g_players[2]{};
+struct PublishedReserve {refill::Request request{};Reserve view{};};
+PublishedReserve g_reserves[2]{};
+SRWLOCK g_refillLock=SRWLOCK_INIT;
 bool Readable(const void* p,size_t size){
     MEMORY_BASIC_INFORMATION m{};
     if(!p||!size||!VirtualQuery(p,&m,sizeof(m))||m.State!=MEM_COMMIT||
@@ -138,16 +141,29 @@ void OnLivePlayer(void* actor,uint32_t generation){
     auto& player=g_players[index];
     const auto now=GetTickCount64();
     const uintptr_t identity=reinterpret_cast<uintptr_t>(actor);
-    if(identity==player.actor&&generation==player.generation&&player.tick&&now>=player.tick&&now-player.tick<100)return;
+    AcquireSRWLockShared(&g_refillLock);
+    const bool pending=g_reserves[index].request.requestedActor!=0;
+    ReleaseSRWLockShared(&g_refillLock);
+    if(!pending&&identity==player.actor&&generation==player.generation&&player.tick&&now>=player.tick&&now-player.tick<100)return;
     void* resource=nullptr;void* array=nullptr;int count=0;
     if(!Read(actor,0xEA0,resource)||!Instance(resource,0x3810268)||!Authority(resource)||
        !Read(resource,0x428,array)||!Read(resource,0x430,count)||count<0||count>16||
-       (count&&!Readable(array,size_t(count)*8))){player.tick=0;return;}
+       (count&&!Readable(array,size_t(count)*8))){
+        player.tick=0;AcquireSRWLockExclusive(&g_refillLock);
+        g_reserves[index].request.Observe(identity,generation,now,false);
+        ReleaseSRWLockExclusive(&g_refillLock);return;
+    }
     if(identity!=player.actor||generation!=player.generation||reinterpret_cast<uintptr_t>(resource)!=player.resource)
         for(auto& entry:player.entries)entry={};
     player.actor=identity;player.resource=reinterpret_cast<uintptr_t>(resource);player.generation=generation;player.tick=now;
-    const bool fill=dg::runtime::Get().unlimitedAmmoEnabled.load()&&
-        !dg::native_tps::CinematicActive(unsigned(index))&&!dg::native_tps::IsWorldPaused(actor);
+    const bool gameplay=!dg::native_tps::CinematicActive(unsigned(index))&&!dg::native_tps::IsWorldPaused(actor);
+    AcquireSRWLockExclusive(&g_refillLock);
+    auto& published=g_reserves[index];
+    published.request.Observe(identity,generation,now,true);
+    const bool manual=published.request.Take(identity,generation,now,gameplay);
+    ReleaseSRWLockExclusive(&g_refillLock);
+    const bool fill=gameplay&&(manual||dg::runtime::Get().unlimitedAmmoEnabled.load());
+    unsigned finite=0;bool complete=true;
     Entry next[16]{};
     for(int i=0;i<count;++i){
         void* proxy=nullptr;uintptr_t owner=0;int current=-1;
@@ -155,19 +171,47 @@ void OnLivePlayer(void* actor,uint32_t generation){
            !Read(proxy,0x108,owner)||owner!=player.resource||!Read(proxy,0x34C,current))continue;
         next[i].holder=reinterpret_cast<uintptr_t>(proxy);
         for(const auto& old:player.entries)if(old.holder==next[i].holder){next[i].credit=old.credit;break;}
-        if(!fill||current<0)continue; // native infinite/default ammunition stays native
+        if(current<0)continue; // native infinite/default ammunition stays native
         const int maximum=g_maximum(proxy);
-        if(maximum<=0||maximum>1000000||current>=maximum)continue;
+        if(maximum<=0||maximum>1000000)continue;
+        ++finite;
+        if(!fill||current>=maximum)continue;
         const int after=g_original(proxy,maximum);
+        int readback=-1;
+        if(!Read(proxy,0x34C,readback)||readback!=maximum||after!=maximum)complete=false;
         const unsigned n=++g_topups;
         if(g_log&&(n<=8||n%1000==0)){char line[220]{};
             sprintf_s(line,"Ammo V1.39 UNLIMITED_TOPUP n=%u before=%d after=%d nativeMax=%d proxy=%p generation=%u readbackMatches=%d",
                 n,current,after,maximum,proxy,generation,after==maximum?1:0);g_log(line);}
     }
     for(unsigned i=0;i<16;++i)player.entries[i]=next[i];
+    AcquireSRWLockExclusive(&g_refillLock);
+    published.request.available=finite!=0;published.view.finiteReserves=finite;
+    if(manual){published.request.Complete(finite!=0&&complete);if(finite&&complete)++published.view.refills;}
+    ReleaseSRWLockExclusive(&g_refillLock);
+    if(g_log&&manual){char line[200]{};
+        sprintf_s(line,"Ammo V1.48 REFILL player=%d finiteReserves=%u matches=%d generation=%u",index+1,finite,finite&&complete?1:0,generation);g_log(line);}
 }
 Telemetry GetTelemetry(){return {g_ready.load(),g_observed.load(),g_spends.load(),g_modified.load(),g_topups.load()};}
-void Shutdown(){if(g_log){const auto t=GetTelemetry();char line[220]{};
+bool RequestRefill(){
+    bool queued=false;const auto now=GetTickCount64();AcquireSRWLockExclusive(&g_refillLock);
+    for(unsigned i=0;i<2;++i){auto& request=g_reserves[i].request;
+        if(g_ready.load()&&dg::local_players::Matches(i,request.actor,request.generation))queued=request.Queue(now)||queued;
+    }
+    ReleaseSRWLockExclusive(&g_refillLock);return queued;
+}
+Reserve GetReserve(unsigned index){
+    Reserve view{};AcquireSRWLockExclusive(&g_refillLock);
+    if(index<2){auto& published=g_reserves[index];published.request.Expire(GetTickCount64());view=published.view;
+        const bool matches=dg::local_players::Matches(index,published.request.actor,published.request.generation);
+        if(!matches&&published.request.requestedActor)published.request.Cancel();
+        view.available=g_ready.load()&&published.request.Fresh(GetTickCount64())&&matches;
+        view.pending=published.request.requestedActor!=0;view.result=published.request.result;}
+    ReleaseSRWLockExclusive(&g_refillLock);return view;
+}
+void Shutdown(){
+    AcquireSRWLockExclusive(&g_refillLock);for(auto& published:g_reserves)published.request.Cancel();ReleaseSRWLockExclusive(&g_refillLock);
+    if(g_log){const auto t=GetTelemetry();char line[220]{};
     sprintf_s(line,"Ammo V1.39 totals ready=%d setters=%u spends=%u modified=%u topups=%u gameplayValidation=USER_REQUIRED",
         t.ready?1:0,t.observed,t.spends,t.modified,t.topups);g_log(line);}}
 }

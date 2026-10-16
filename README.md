@@ -1,3 +1,17 @@
+## V1.48 — Hotstreak et remplissage des munitions (source de TEST)
+
+Base debug V1.47 construite, non installée/non validée en jeu ; les acquis validés antérieurs restent protégés. **SOURCE PRÉPARÉE / EXPÉRIMENTAL : compilation V1.48, paquet, installation et test en jeu restent à vérifier.** Ajouts : réduction de la baisse Hotstreak avec diviseur0–10, Unlimited Hotstreak, Fill Hotstreak, Fill ammunition ; quatre actions ajoutées à la fin de Hotkeys, sans remplacer les anciennes. Les deux nouvelles options sont OFF par défaut ;0/1=normal,10=un dixième. Menu curseur/saisie/Default commun. Trois nouvelles clés,122au total ;48IDs d'actions, anciens44inchangés.
+
+Le Hotstreak utilise les fonctions natives de retrait/remplissage et leur plafond ; décroissance/coûts sont séparés des resets. Les remplissages sont exécutés une seule fois par joueur valide sur le thread du jeu, avec annulation après respawn/expiration et contrôle de relecture. P1/P2 ont leurs propres contextes. Le chemin de gains validé n'est pas changé.
+
+**Lava, manette P1 : audit natif avancé, correction NON VALIDÉE et non annoncée.** La capacité Lava normale calcule et conserve sa propre rotation balistique ; elle ne passe pas par le retour commun des pistolets que corrige V1.46. La variante Hotstreak est un faisceau distinct. Les preuves et la prochaine capture sont documentées ; aucun nouveau hook de visée ni rotation du personnage n'est ajouté dans cette build. Visée native après dash NON RÉSOLUE ; Action Recovery INDISPONIBLE. [Preuves, objectifs, tests et rollback](docs/V1_48_HOTSTREAK_REFILLS.md).
+
+## V1.47 — compilation réussie, contrôles locaux du paquet (non installée)
+
+Source `c23fb2e`, archive debug `876dae662aba20cf17e0361966437bad04844fa5`. [CI Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38940318540) **SUCCESS,21/21 tests**, huit avertissements historiques et aucun nouveau. ZIP **836866 octets**, SHA256 `61820C1D0AEDC4071C5624BC7653A43EA453E3906D9BDF3BB5EE0536F71CBA05`, quatre fichiers à la racine, CRC, binaires AMD64, version1.47, INI119clés et concordance du hash CI/dépôt contrôlés. **110 anciennes archives conservées.** La première tentative de compilation a échoué sur deux erreurs de types/const, corrigées avant ce succès. Ni installation ni validation utilisateur V1.47 annoncée.
+
+Le téléchargement direct de contrôle a été refusé par le contrôle automatique d'autorisation : sa limite d'utilisation empêchait la revue, sans avis de danger. Ce contrôle reste **NON EXÉCUTÉ** ; aucune copie du ZIP local n'est présentée comme un téléchargement. V1.47 reste le point de retour construit pour V1.48. Son README de préparation reste immuable dans l'archive.
+
 ## V1.47 — menu unifié et commandes TPS P2 (source de TEST)
 
 Base V1.46 debug `ab65e8c`, acquis validés conservés ; **SOURCE PRÉPARÉE / EXPÉRIMENTAL, compilation et installation à vérifier**. Le retour utilisateur rejette encore le saut d'angle Strife/War et signale des commandes P2 manquantes. Capture en lecture seule : Strife=1, War=2 ; le filtre V1.46 rejetait War et l'ancienne caméra de blend pouvait consommer la nouvelle génération. Correction des deux causes sans écrire la rotation du personnage. Les tests emploient désormais les vraies valeurs natives.

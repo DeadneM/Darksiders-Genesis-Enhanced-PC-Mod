@@ -3,6 +3,7 @@
 #include "ResourceGainFeature.h"
 #include "ManualGaugeFeature.h"
 #include "AmmoConsumptionFeature.h"
+#include "HotstreakFeature.h"
 #include "PotionFeature.h"
 #include "ShaderAimFeature.h"
 #include "UpdateFeature.h"
@@ -51,6 +52,15 @@ bool DrawDelayRow(const char* label,const char* id,int* value,int minimum,int ma
     float edited=static_cast<float>(*value);
     if(!DrawNumberRow(label,id,&edited,float(minimum),float(maximum),float(original),"%.0f ms","%.0f"))return false;
     *value=static_cast<int>(std::lround(edited));return true;
+}
+void DrawRefillResult(const char* player,dg::refill::Result result){
+    switch(result){
+    case dg::refill::Result::Queued:ImGui::TextDisabled("%s: refill queued; return to gameplay.",player);break;
+    case dg::refill::Result::Applied:ImGui::TextDisabled("%s: reserve filled.",player);break;
+    case dg::refill::Result::Rejected:ImGui::TextDisabled("%s: refill unavailable here; retry during gameplay.",player);break;
+    case dg::refill::Result::Cancelled:ImGui::TextDisabled("%s: refill cancelled or expired.",player);break;
+    default:break;
+    }
 }
 void DrawFeatureDescription(const char* note,bool ready,const char* status=nullptr){
     ImGui::Indent(22.0f);
@@ -377,6 +387,11 @@ void Draw(Context& c) {
             ImGui::Separator();
             ImGui::TextUnformatted("Ammunition");
             const bool ammoReady=dg::ammo::GetTelemetry().ready;
+            const auto ammo1=dg::ammo::GetReserve(0),ammo2=dg::ammo::GetReserve(1);
+            ImGui::BeginDisabled((!ammo1.available&&!ammo2.available)||ammo1.pending||ammo2.pending);
+            if(ImGui::Button("Fill ammunition"))dg::ammo::RequestRefill();
+            ImGui::EndDisabled();
+            DrawRefillResult("P1 ammunition",ammo1.result);DrawRefillResult("P2 ammunition",ammo2.result);
             DrawTunableFeature(config,"Reduce ammo consumption","ReduceAmmo",&config.reduceAmmoEnabled,
                 &config.ammoConsumptionDivisor,0.0f,10.0f,2.0f,"%.2f",
                 "0 or 1: normal consumption. 2: half. 10: one tenth. Unlimited takes priority. Assign a toggle in Hotkeys.",
@@ -401,6 +416,21 @@ void Draw(Context& c) {
                 0.0f,100.0f,2.0f,"%.2fx",
                 "Multiplier for earned Hotstreak charge.",
                 t.hotstreakHookReady);
+            const auto hotstreak1=dg::hotstreak::GetTelemetry(0),hotstreak2=dg::hotstreak::GetTelemetry(1);
+            const bool hotstreakReady=hotstreak1.supported;
+            DrawTunableFeature(config,"Reduce Hotstreak decrease","ReduceHotstreak",&config.reduceHotstreakEnabled,
+                &config.hotstreakDecreaseDivisor,0.0f,10.0f,2.0f,"%.2f",
+                "0 or 1: normal decrease. 2: half. 10: one tenth. Reduces passive decay and Hotstreak costs; resets stay native. Assign a toggle in Hotkeys.",
+                hotstreakReady,nullptr,"Decrease divisor");
+            DrawToggleFeature(config,"Unlimited Hotstreak","UnlimitedHotstreak",&config.unlimitedHotstreakEnabled,
+                "Keeps Strife's Hotstreak full. Native activation, weapon behavior and resets are preserved. Assign a toggle in Hotkeys.",hotstreakReady);
+            ImGui::BeginDisabled((!hotstreak1.available&&!hotstreak2.available)||hotstreak1.pending||hotstreak2.pending);
+            if(ImGui::Button("Fill Hotstreak"))dg::hotstreak::RequestRefill();
+            ImGui::EndDisabled();
+            if(hotstreak1.available)ImGui::Text("P1 Hotstreak: %.1f / %.1f",hotstreak1.current,hotstreak1.maximum);
+            if(hotstreak2.available)ImGui::Text("P2 Hotstreak: %.1f / %.1f",hotstreak2.current,hotstreak2.maximum);
+            DrawRefillResult("P1 Hotstreak",hotstreak1.result);DrawRefillResult("P2 Hotstreak",hotstreak2.result);
+            ImGui::TextDisabled("Refill Hotstreak and ammunition can also be assigned in Hotkeys.");
             DrawTunableFeature(config,"Wrath (Courroux) charge","WrathCharge",
                 &config.wrathChargeEnabled,&config.wrathChargeMultiplier,
                 0.0f,100.0f,defaults::WrathGain,"%.2fx",

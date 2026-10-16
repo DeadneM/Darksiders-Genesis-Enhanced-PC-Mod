@@ -4,6 +4,7 @@
 #include "../src/ManualGaugeFeature.cpp"
 #include "../src/ResourceGainFeature.cpp"
 #include "../src/AmmoConsumptionFeature.cpp"
+#include "../src/HotstreakFeature.cpp"
 #include "../src/PotionFeature.cpp"
 #include "../src/HealthFeature.cpp"
 #include <iostream>
@@ -35,23 +36,31 @@ int MaxAmmo(void*){return 10;}
 int MaxPotions(void*){return 3;}
 float Threshold(void*){return 10;}
 void AddPotions(void* p,int add){auto* data=Get<void*>(p,0x580);Put(data,0xC,Get<int>(data,0xC)+add);}
+float MaxHotstreak(void*){return 100;}
+void AddHotstreak(void* p,float add){auto* actor=Get<void*>(p,0xE8);auto* resource=Get<void*>(actor,0xEA0);Put(resource,0x398,std::min(100.0f,Get<float>(resource,0x398)+add));}
+void RemoveHotstreak(void* p,float amount){auto* actor=Get<void*>(p,0xE8);auto* resource=Get<void*>(actor,0xEA0);Put(resource,0x398,std::max(0.0f,Get<float>(resource,0x398)-amount));}
 int Consume(void*,int amount){return amount;}
 float MaxHealth(void*,bool){return 100;}
 float SetHealth(void* p,float v){Put(p,0x37C,v);return v;}
 void Run(){
     std::vector<unsigned char> image(0x3900000);
     const auto base=reinterpret_cast<uintptr_t>(image.data());
-    NativeClass resourceType{},proxyType{},stateBase{},stateType{};
-    Class(resourceType,0);Class(proxyType,0);Class(stateBase,0);Class(stateType,1,&stateBase);
+    NativeClass resourceType{},proxyType{},stateBase{},stateType{},hotstreakType{};
+    Class(resourceType,0);Class(proxyType,0);Class(stateBase,0);Class(stateType,1,&stateBase);Class(hotstreakType,0);
     Put(image.data(),0x3810268,resourceType.object.Ptr());Put(image.data(),0x3811D40,proxyType.object.Ptr());
     Put(image.data(),0x38115E0,stateBase.object.Ptr());Put(image.data(),0x38115D8,stateType.object.Ptr());
-    Object actors[3]{},resources[2]{},states[2]{},proxies[2]{},potionData[2]{};
-    void* arrays[2][1]={{proxies[0].Ptr()},{proxies[1].Ptr()}};
+    Put(image.data(),0x380DB38,hotstreakType.object.Ptr());
+    Object actors[3]{},resources[2]{},states[2]{},proxies[3]{},potionData[2]{},hotstreak[2]{};
+    void* arrays[2][2]={{proxies[0].Ptr(),proxies[2].Ptr()},{proxies[1].Ptr(),nullptr}};
     auto& rt=dg::runtime::Get();
     rt.unlimitedWrathEnabled=false;rt.unlimitedUltimateEnabled=false;rt.unlimitedSynergyEnabled=false;
     rt.unlimitedAmmoEnabled=false;rt.unlimitedPotionsEnabled=false;
+    rt.reduceHotstreakEnabled=false;rt.unlimitedHotstreakEnabled=false;
     for(unsigned i=0;i<2;++i){
         Type(resources[i],resourceType);Type(proxies[i],proxyType);Type(states[i],stateType);
+        Type(hotstreak[i],hotstreakType);Put(hotstreak[i].Ptr(),0xE8,actors[i].Ptr());
+        Put(actors[i].Ptr(),0xCB8,hotstreak[i].Ptr());Put(actors[i].Ptr(),0xC18,static_cast<unsigned char>(1));
+        Put(actors[i].Ptr(),0x118,static_cast<unsigned char>(3));Put(resources[i].Ptr(),0x398,20.0f);
         Put(resources[i].Ptr(),0x118,static_cast<unsigned char>(3));Put(proxies[i].Ptr(),0x118,static_cast<unsigned char>(3));
         Put(states[i].Ptr(),0x118,static_cast<unsigned char>(3));
         Put(actors[i].Ptr(),0xEA0,resources[i].Ptr());Put(actors[i].Ptr(),0x330,states[i].Ptr());
@@ -64,11 +73,15 @@ void Run(){
         c.character=reinterpret_cast<uintptr_t>(actors[i].Ptr());c.playerState=reinterpret_cast<uintptr_t>(states[i].Ptr());
         dg::local_players::Publish(c);
     }
+    Type(proxies[2],proxyType);Put(proxies[2].Ptr(),0x118,static_cast<unsigned char>(3));
+    Put(proxies[2].Ptr(),0x108,resources[0].Ptr());Put(proxies[2].Ptr(),0x34C,-1);Put(resources[0].Ptr(),0x430,2);
     dg::manual_gauges::g_base=base;dg::manual_gauges::g_enabled=true;
     dg::manual_gauges::g_wrath=Wrath;dg::manual_gauges::g_chaos=Ultimate;dg::manual_gauges::g_synergy=Synergy;
     dg::resource_gain::g_base=base;dg::resource_gain::g_ready[0]=true;dg::resource_gain::g_ready[1]=true;
     dg::resource_gain::g_original[0]=Wrath;dg::resource_gain::g_original[1]=Ultimate;
     dg::ammo::g_base=base;dg::ammo::g_ready=true;dg::ammo::g_original=Ammo;dg::ammo::g_maximum=MaxAmmo;
+    dg::hotstreak::g_base=base;dg::hotstreak::g_ready=true;dg::hotstreak::g_original=RemoveHotstreak;
+    dg::hotstreak::g_add=AddHotstreak;dg::hotstreak::g_maximum=MaxHotstreak;
     dg::potions::g_base=base;dg::potions::g_ready=true;dg::potions::g_threshold=Threshold;
     dg::potions::g_maximum=MaxPotions;dg::potions::g_add=AddPotions;dg::potions::g_consume=Consume;
     dg::health::g_base=base;dg::health::g_ready=true;dg::health::g_original=SetHealth;dg::health::g_maximum=MaxHealth;
@@ -79,6 +92,7 @@ void Run(){
         dg::ammo::OnLivePlayer(actors[i].Ptr(),generation);
         dg::potions::OnLivePlayer(actors[i].Ptr(),generation,states[i].Ptr());
         Put(resources[i].Ptr(),0x37C,50.0f);dg::health::OnLivePlayer(actors[i].Ptr(),generation);
+        dg::hotstreak::OnLivePlayer(actors[i].Ptr(),generation);
     }
     Check(dg::manual_gauges::GetTelemetry(0).readyMask==7&&dg::manual_gauges::GetTelemetry(1).readyMask==7,"both players own three independent gauges");
     Check(dg::manual_gauges::RequestSet(7,50),"all-gauge request queues");
@@ -91,6 +105,25 @@ void Run(){
     Check(dg::ammo::Set(proxies[0].Ptr(),9,0x697D92)==10,"P1 first half-cost shot retains its credit");
     Check(dg::ammo::Set(proxies[1].Ptr(),9,0x697D92)==10,"P2 starts its own fractional credit");
     Check(dg::ammo::Set(proxies[0].Ptr(),9,0x697D92)==9&&Get<int>(proxies[1].Ptr(),0x34C)==10,"P1 second shot cannot consume P2 credit");
+    Put(proxies[1].Ptr(),0x34C,2);
+    Check(dg::ammo::RequestRefill(),"ammo refill queues both live players");
+    for(unsigned i=0;i<2;++i)dg::ammo::OnLivePlayer(actors[i].Ptr(),dg::local_players::PublishedSlot(i).generation);
+    Check(Get<int>(proxies[0].Ptr(),0x34C)==10&&Get<int>(proxies[1].Ptr(),0x34C)==10&&Get<int>(proxies[2].Ptr(),0x34C)==-1,"manual ammo fills both native caps and preserves the infinite sentinel");
+    Check(dg::ammo::GetReserve(0).result==dg::refill::Result::Applied&&dg::ammo::GetReserve(1).result==dg::refill::Result::Applied,"both ammo readbacks report success");
+    rt.hotstreakChargeEnabled=true;rt.hotstreakChargeMultiplier=0;
+    Check(dg::hotstreak::RequestRefill(),"Hotstreak refill queues both owned components");
+    for(unsigned i=0;i<2;++i)dg::hotstreak::OnLivePlayer(actors[i].Ptr(),dg::local_players::PublishedSlot(i).generation);
+    Check(Get<float>(resources[0].Ptr(),0x398)==100&&Get<float>(resources[1].Ptr(),0x398)==100,"native refill is independent of the earned-gain multiplier");
+    rt.reduceHotstreakEnabled=true;rt.hotstreakDecreaseDivisor=10;
+    dg::hotstreak::Remove(hotstreak[1].Ptr(),10,0x68B007);
+    Check(Get<float>(resources[1].Ptr(),0x398)==99&&Get<float>(resources[0].Ptr(),0x398)==100,"P2 decay uses its own Hotstreak resource");
+    rt.unlimitedHotstreakEnabled=true;dg::hotstreak::Remove(hotstreak[0].Ptr(),50,0x68BA89);
+    Check(Get<float>(resources[0].Ptr(),0x398)==100,"Unlimited takes priority over reduced native costs");
+    dg::hotstreak::Remove(hotstreak[0].Ptr(),100,0x67892E);
+    Check(Get<float>(resources[0].Ptr(),0x398)==0,"native state reset is never blocked by Unlimited");
+    rt.unlimitedHotstreakEnabled=false;rt.reduceHotstreakEnabled=false;
+    dg::hotstreak::Remove(hotstreak[1].Ptr(),10,0x68B007);
+    Check(Get<float>(resources[1].Ptr(),0x398)==89,"Hotstreak OFF restores native decay immediately");
     Check(dg::potions::RequestRefill(),"potion refill queues both native holders");
     // Bypass only the sample throttle; request dispatch and native caps stay real.
     for(unsigned i=0;i<2;++i){dg::potions::g_players[i].observed=0;dg::potions::OnLivePlayer(actors[i].Ptr(),dg::local_players::PublishedSlot(i).generation,states[i].Ptr());}
@@ -116,6 +149,8 @@ void Run(){
     Check(dg::ammo::Set(proxies[1].Ptr(),9,0x697D92)==9,"P2 respawn invalidates stale ammo credit");
     Check(dg::resource_gain::Set(0,resources[1].Ptr(),55,0x6EA9C9)==55,"P2 respawn invalidates stale reward ownership");
     Check(dg::potions::HookThreshold(states[1].Ptr())==10,"P2 respawn invalidates stale potion holder");
+    rt.unlimitedHotstreakEnabled=true;dg::hotstreak::Remove(hotstreak[1].Ptr(),10,0x68BA89);
+    Check(Get<float>(resources[1].Ptr(),0x398)==79,"P2 respawn invalidates old Hotstreak component");
     rt.unlimitedHealthEnabled=true;
     Check(dg::health::HookSet(resources[1].Ptr(),0)==0,"P2 respawn invalidates old health holder");
     rt.reduceAmmoEnabled=false;rt.unlimitedAmmoEnabled=false;

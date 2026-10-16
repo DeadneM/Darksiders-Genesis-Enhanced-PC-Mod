@@ -59,6 +59,9 @@ void Publish(const Snapshot& s) {
     g_state.reduceAmmoEnabled.store(s.reduceAmmoEnabled);
     g_state.unlimitedAmmoEnabled.store(s.unlimitedAmmoEnabled);
     g_state.ammoConsumptionDivisor.store(s.ammoConsumptionDivisor);
+    g_state.reduceHotstreakEnabled.store(s.reduceHotstreakEnabled);
+    g_state.unlimitedHotstreakEnabled.store(s.unlimitedHotstreakEnabled);
+    g_state.hotstreakDecreaseDivisor.store(s.hotstreakDecreaseDivisor);
     g_state.potionRechargeEnabled.store(s.potionRechargeEnabled);
     g_state.unlimitedPotionsEnabled.store(s.unlimitedPotionsEnabled);
     g_state.unlimitedHealthEnabled.store(s.unlimitedHealthEnabled);
