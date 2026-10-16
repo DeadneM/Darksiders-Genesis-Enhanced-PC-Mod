@@ -189,7 +189,7 @@ bool FilterPad(DWORD id,XINPUT_GAMEPAD& pad,bool focusedGameplay){
     if(!slot.localPlayer||slot.controllerId<0||DWORD(slot.controllerId)!=id)return false;
     const auto primary=local_players::PublishedSlot(0);
     if(primary.localPlayer&&primary.controllerId==slot.controllerId)return false;
-    const auto& rt=runtime::Get();const auto now=GetTickCount64();
+    auto& rt=runtime::Get();const auto now=GetTickCount64();
     AcquireSRWLockExclusive(&g_lock);
     auto& state=g_state;
     const bool owned=SameOwner(state,slot)&&focusedGameplay&&state.focused&&state.inputTick&&
