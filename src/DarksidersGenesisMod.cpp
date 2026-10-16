@@ -11,6 +11,8 @@
 #include "imgui_impl_win32.h"
 
 #include "CameraTraceFeature.h"
+#include "LocalPlayerOwnership.h"
+#include "CoopCameraFeature.h"
 #include "ChaosPoseFeature.h"
 #include "ConfigStore.h"
 #include "EngineIniFeature.h"
@@ -119,11 +121,7 @@ std::atomic_uint32_t g_keyboardHorseInjected{0};
 std::atomic_uint32_t g_tpsHoldSuspendCount{0},g_tpsHoldToggleCount{0};
 std::atomic_uint32_t g_tpsGrenadeDownCount{0},g_tpsGrenadeUpCount{0};
 std::atomic_uint32_t g_tpsGrenadeReleasePulseDelivered{0};
-std::atomic_uint32_t g_tpsGroundAimFxHidden{0};
-std::atomic_uint32_t g_tpsGroundAimFxEntered{0};
-std::atomic_uint32_t g_tpsGroundAimFxAlreadyHidden{0};
-using GroundAimEffectFn=void(*)(void*,bool);
-GroundAimEffectFn g_groundAimEffectOriginal=nullptr;
+
 SRWLOCK g_grenadeHoldLock=SRWLOCK_INIT;
 struct GrenadeHoldState {
     bool physicalDown=false;
@@ -1550,6 +1548,7 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     auto original=g_originalGetPlayerLookInput;
     if(!original)return out;
     auto* result=original(actor,out);
+    if(result&&dg::local_players::CoopActive()&&dg::coop_camera::AdjustLook(actor,result->pitch,result->yaw,result->roll,false))return result;
     const unsigned calls=++g_tpsLookInputCalls;
     if(!result||!IsLiveTPSLookActor(actor) ||
        !std::isfinite(result->pitch)||!std::isfinite(result->yaw)||
@@ -1622,6 +1621,7 @@ NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
     auto original=g_originalGetPlayerLookRotation;
     if(!original)return out;
     auto* result=original(actor,out);
+    if(result&&dg::local_players::CoopActive()&&dg::coop_camera::AdjustLook(actor,result->pitch,result->yaw,result->roll,true))return result;
     const unsigned calls=++g_tpsLookRotationCalls;
     if(!result||!IsLiveTPSLookActor(actor)||!IsTPSLookViewFresh())
         return result;
@@ -1711,54 +1711,9 @@ bool InstallNativeTPSRotationHook() {
     return true;
 }
 
-// Scoped copy of the exact V0.61 native ground-targeting FX detour.
-// This does NOT assert the Strife laser is removed: there may be other FX.
-void HookGroundAimEffect(void* ability,bool hide) {
-    if(!g_groundAimEffectOriginal)return;
-    auto& rt=dg::runtime::Get();
-    // V0.84: three user-selectable scopes. Still a diagnostic ONLY for
-    // Strife's cyan line/semicircle until their actual render effect is found.
-    const bool tps=rt.thirdPersonEnabled.load(std::memory_order_relaxed) &&
-        !rt.tpsTemporarilySuspended.load(std::memory_order_relaxed);
-    const int scope=rt.aimIndicatorHideMode.load(std::memory_order_relaxed);
-    const bool selected=(scope==0)||(scope==1&&!tps)||(scope==2&&tps);
-    const bool forced=g_targetValidation.exact && selected &&
-        !g_overlayVisible.load(std::memory_order_relaxed);
-    // V0.77: separate "native hook was called" from "we forced hide."
-    // The V0.76 log reported 0 hides even during combat, which cannot
-    // distinguish a never-called ability from an already-hidden FX.
-    // This probe is passive outside the prior V0.76 conditional override.
-    const unsigned calls=++g_tpsGroundAimFxEntered;
-    if(hide)++g_tpsGroundAimFxAlreadyHidden;
-    if(calls==1||calls==250||calls==2000)
-        Log("TPS V0.77 FX AUDIT: HideGroundTargetingEffect called n=%u requestedHide=%d forceEnabled=%d tps=%d",
-            calls,hide?1:0,selected?1:0,
-            tps?1:0);
-    if(forced&&!hide){
-        const unsigned n=++g_tpsGroundAimFxHidden;
-        if(n==1||n==1000)
-            Log("TPS V0.77 FX AUDIT: ground FX hide override n=%u",n);
-    }
-    g_groundAimEffectOriginal(ability,forced?true:hide);
-}
-void InstallGroundAimEffectHook() {
-    if(!g_targetValidation.exact)return;
-    auto* target=reinterpret_cast<unsigned char*>(GetModuleHandleW(nullptr))+0x6DDAD0;
-    constexpr unsigned char signature[]={0x48,0x89,0x5C,0x24,0x08,0x57,0x48,0x83,0xEC,0x20};
-    if(std::memcmp(target,signature,sizeof(signature))!=0){
-        Log("TPS V0.76: native ground FX signature mismatch, untouched");return;
-    }
-    const MH_STATUS created=MH_CreateHook(target,reinterpret_cast<void*>(&HookGroundAimEffect),
-       reinterpret_cast<void**>(&g_groundAimEffectOriginal));
-    if(created!=MH_OK){Log("TPS V0.76: ground FX hook create failed=%d",int(created));return;}
-    const MH_STATUS enabled=MH_EnableHook(target);
-    if(enabled!=MH_OK&&enabled!=MH_ERROR_ENABLED){
-       MH_RemoveHook(target);g_groundAimEffectOriginal=nullptr;
-       Log("TPS V0.76: ground FX hook enable failed=%d",int(enabled));
-       return;
-    }
-    Log("TPS V0.76: native HideGroundTargetingEffect READY RVA=0x6DDAD0");
-}
+// V1.45: retire the unproven persistent native ground-FX override.
+// The validated line/arc shader filter alone implements visibility scopes.
+// Native dash/targeting lifecycle receives all its own hide/show requests.
 
 // V0.87 passive audit: do the native targeting UI components receive
 // Unreal events when Strife's blue world-space line/arc are visible?
@@ -1893,11 +1848,18 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
     const bool playerMovementValidated =
         ApplyPlayerMovementTunings(movementComponent);
 
-    if (playerMovementValidated) {
+    dg::local_players::Context localOwner{};
+    // A local pawn is not necessarily the first local player in split screen.
+    // Bind solo telemetry/features to native LocalPlayers[0], independent of
+    // GetMaxSpeed callback order or the last character to respawn.
+    if (playerMovementValidated &&
+        (!dg::local_players::Ready()||
+         (dg::local_players::ResolveActor(characterOwner,localOwner)&&localOwner.index==0))) {
+        const bool identityChanged=g_localPlayerCharacter.load()!=characterOwner;
+        if(identityChanged)g_tpsPlayerGeneration.fetch_add(1);
         CaptureLiveTPSActorYaw(characterOwner);
 
-        // Keep the existing single active-player pointer only for player-only
-        // features. Horse discovery is fully independent in V0.26.
+        // Identity only; no later cached UObject dereference.
         void* previousPlayer =
             g_localPlayerCharacter.exchange(
                 characterOwner,
@@ -1911,7 +1873,6 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         dg::ammo::OnLivePlayer(characterOwner,runtime.tpsActorGeneration.load());
         dg::potions::OnLivePlayer(characterOwner,runtime.tpsActorGeneration.load());
         if (previousPlayer != characterOwner) {
-            g_tpsPlayerGeneration.fetch_add(1);
             Log(
                 "Player identity: active player=%p movement=%p (validated player movement)",
                 characterOwner,
@@ -2500,8 +2461,11 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     const auto original=g_nativeXInputOriginal[slot];
     if(!original)return ERROR_DEVICE_NOT_CONNECTED;
     const DWORD realStatus=original(user,state);
-    // V1.02 controller isolation: never synthesize a pad from mouse input.
-    if(realStatus!=ERROR_SUCCESS||!state||user!=0)return realStatus;
+    if(realStatus!=ERROR_SUCCESS||!state)return realStatus;
+    // P2 filters only its verified native ControllerId, with its own view.
+    // The existing primary path below keeps every validated button policy.
+    if(dg::coop_camera::FilterPad(user,state->Gamepad))return realStatus;
+    if(user!=static_cast<DWORD>(dg::local_players::PrimaryControllerId()))return realStatus;
     const DWORD status=realStatus;
     if(dg::chaos_pose::ActiveNow()){
         g_tpsFireHeld.store(false,std::memory_order_release);
@@ -3198,7 +3162,6 @@ dg::overlay::Context BuildOverlayContext() {
     t.lastOutgoingTagCount =
         g_lastOutgoingTagCount.load();
 
-    t.aimNativeFxCalls = g_tpsGroundAimFxEntered.load();
     t.aimUiTargetingEvents = g_aimUiEvents.load();
     t.aimUiPositionEvents = g_aimUiPositionEvents.load();
     t.mountedIdleLookBlocks = g_tpsMountedIdleNativeLookBlocks.load();
@@ -3465,7 +3428,7 @@ void UpdateOrbitInput() {
     // so a LONG L3 press can enable TPS without a keyboard/F5 toggle.
     XINPUT_STATE physical{};
     const bool padAvailable=focused &&
-        GetCameraXInputState(0,&physical)==ERROR_SUCCESS;
+        GetCameraXInputState(dg::local_players::PrimaryControllerId(),&physical)==ERROR_SUCCESS;
 
     // Only LB / G / Tab open radial wheels; R3/E USE equipment.
     const auto wheelKey=[&](dg::config::TpsKeyboardAction action)->bool{
@@ -3632,6 +3595,12 @@ void UpdateOrbitInput() {
     const float dt=g_orbitLastPresentTick && now-g_orbitLastPresentTick<=100ull
         ? static_cast<float>(now-g_orbitLastPresentTick)*0.001f:0.0f;
     g_orbitLastPresentTick=now;
+    XINPUT_STATE coopPhysical{};
+    const auto coopSlot=dg::local_players::PublishedSlot(1);
+    const bool coopConnected=focused&&coopSlot.controllerId>=0&&
+        GetCameraXInputState(static_cast<DWORD>(coopSlot.controllerId),&coopPhysical)==ERROR_SUCCESS;
+    dg::coop_camera::UpdateInput(coopConnected?&coopPhysical.Gamepad:nullptr,focused,dt,
+        g_config.tpsRecenterButtonMask,g_config.tpsSuspendButtonMask,g_config.tpsSuspendDelayMs);
     if (!active) {
         lastButtons=0;
         if(!g_config.thirdPersonEnabled) {
@@ -3695,7 +3664,7 @@ void UpdateOrbitInput() {
     XINPUT_STATE primary{};
     WORD buttonBits=0;
     bool suspendControllerOrbitOnFire=false;
-    if(GetCameraXInputState(0,&primary)==ERROR_SUCCESS) {
+    if(GetCameraXInputState(dg::local_players::PrimaryControllerId(),&primary)==ERROR_SUCCESS) {
         buttonBits=primary.Gamepad.wButtons;
         // If native right-stick player aim is allowed, do not also orbit
         // our independent TPS camera from that same stick during RT/RB.
@@ -3787,14 +3756,11 @@ void UpdateOrbitInput() {
             suspendControllerOrbitOnFire?"SUSPENDED (RT/RB)":"RESUMED");
     }
     float ax=0.0f,ay=0.0f;
-    {
-        for (DWORD i=0;i<XUSER_MAX_COUNT;++i) {
-            if(!g_config.cameraControllerOrbitEnabled||
-               suspendControllerOrbitOnFire)break;
-            XINPUT_STATE state{};
-            if (GetCameraXInputState(i,&state)!=ERROR_SUCCESS) continue;
+    if(g_config.cameraControllerOrbitEnabled&&!suspendControllerOrbitOnFire&&!IsTPSRadialInputActive()){
+        const DWORD primaryId=static_cast<DWORD>(dg::local_players::PrimaryControllerId());
+        XINPUT_STATE state{};
+        if(GetCameraXInputState(primaryId,&state)==ERROR_SUCCESS){
             // Preserve the validated configurable wheel-selection priority.
-            if(IsTPSRadialInputActive())continue;
             const bool left=g_config.tpsCameraStickMode==1;
             const float x=static_cast<float>(dg::tps_input::CameraX(state.Gamepad,left))/32767.0f;
             const float y=static_cast<float>(dg::tps_input::CameraY(state.Gamepad,left))/32767.0f;
@@ -3803,7 +3769,7 @@ void UpdateOrbitInput() {
                 XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)/32767.0f;
             if (len>dead) {
                 const float m=std::min(1.0f,(len-dead)/(1.0f-dead));
-                ax=x/len*m;ay=y/len*m;break;
+                ax=x/len*m;ay=y/len*m;
             }
         }
     }
@@ -4229,11 +4195,9 @@ void ShutdownMod() {
     Log("TPS V0.84 grenade totals: physicalDown=%u physicalUp=%u nativeReleasePulses=%u (game pickup/stow must be verified visually)",
         g_tpsGrenadeDownCount.load(),g_tpsGrenadeUpCount.load(),
         g_tpsGrenadeReleasePulseDelivered.load());
-    Log("TPS V0.77 totals: holdSuspend=%u longToggle=%u grenadeDown=%u grenadeUp=%u groundFxCalls=%u alreadyHidden=%u forcedHidden=%u",
-        g_tpsHoldSuspendCount.load(),g_tpsHoldToggleCount.load(),
-        g_tpsGrenadeDownCount.load(),g_tpsGrenadeUpCount.load(),
-        g_tpsGroundAimFxEntered.load(),g_tpsGroundAimFxAlreadyHidden.load(),
-        g_tpsGroundAimFxHidden.load());
+    Log("TPS V1.45 native ground-FX override RETIRED; shader scope retained; top-down dash aim requires user retest");
+    Log("TPS configured view-input totals: holdSuspend=%u longToggle=%u",
+        g_tpsHoldSuspendCount.load(),g_tpsHoldToggleCount.load());
     Log("TPS V1.02 controller aim totals: nativeLookInput=%u nativeLookRotation=%u suppressedLook=%u heldYaw=%u padStrafe=%u padLookAim=%u signaturesFailed=%u",
         g_tpsLookInputCalls.load(),g_tpsLookRotationCalls.load(),
         g_tpsNativeLookInputBlocks.load(),g_tpsNativeLookRotationBlocks.load(),
@@ -4356,6 +4320,8 @@ DWORD WINAPI MainThread(LPVOID) {
 
     // Native camera hook and scoped DOF compensation.
     InitializeCameraDof();
+    dg::local_players::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::coop_camera::Initialize(&FeatureLog);
     dg::camera_trace::Install(&FeatureLog);
     dg::native_tps::Install(&ProvideNativeMouseRay,&FeatureLog);
     dg::chaos_pose::Initialize(&FeatureLog,g_targetValidation.exact);
@@ -4374,8 +4340,7 @@ DWORD WINAPI MainThread(LPVOID) {
     if (!InstallMovementSpeedHook()) {
         Log("Movement Speed unavailable; other ASI features remain active.");
     }
-    InstallGroundAimEffectHook();
-    // Alternative visual route probe to the 0-call ground effect; no blocking.
+    // Passive UI observation only; no native ground-target visibility detour.
     InstallAimUiEventProbe();
     if (!InstallNativeTPSRotationHook()) {
         Log("TPS V0.75 native look hooks unavailable; vanilla look path untouched.");

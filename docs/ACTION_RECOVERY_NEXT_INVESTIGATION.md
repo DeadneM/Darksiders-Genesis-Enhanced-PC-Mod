@@ -1,5 +1,11 @@
 # Action Recovery — priorité dash après captures V1.44
 
+## Nouvelle preuve : la chaîne de trois dashs de Strife
+
+La troisième capture de position est maintenant terminée :13753échantillons,979observations dash,16instances, zéro échec de lecture. L'utilisateur demande de comparer la fin du troisième au quatrième dash. Le nom natif confirme que le troisième utilise `Strife_Dash_Level3_Montage`, observé vers0,83s, alors que les deux premiers `Strife_Dash_Level1_Montage` tournent vers0,40s. Dans quatre profils Level3, le déplacement rapide se concentre dans les premières0,4–0,5s ; la fin conserve environ30unités/s de translation pendant environ0,3s. Le prochain dash commence dans les0–32ms suivant la fin native de l'action précédente.
+
+La durée supplémentaire est donc **dans le troisième dash**, pas un délai global après sa fin démontré par la capture. L'instant d'appui n'est pas enregistré : ne pas assimiler le faible intervalle entre actions à une mesure de latence d'entrée. Chercher désormais les sections/interruptions et le nettoyage natif de Level3, ou un réglage natif de sa partie de récupération. Ne plus répéter le prédicat générique MoveInterruptDelay=0 ni forcer seulement MOVE. V1.45 ne modifie pas le dash ; la réparation reste à faire. [Preuves et limites](V1_45_LOCAL_COOP_OWNERSHIP.md).
+
 16 octobre 2026 : l'utilisateur limite désormais l'investigation **au dash uniquement**. Les coffres sont reportés. V1.43 reprend les défauts utilisateur et ne réintroduit aucune intervention recovery.
 
 

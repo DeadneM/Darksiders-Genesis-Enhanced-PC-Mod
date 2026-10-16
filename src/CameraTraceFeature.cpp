@@ -1,4 +1,6 @@
 #include "CameraTraceFeature.h"
+#include "LocalPlayerOwnership.h"
+#include "CoopCameraFeature.h"
 #include "RuntimeSettings.h"
 #include "NativeTpsFeature.h"
 #include "ChaosPoseFeature.h"
@@ -141,6 +143,36 @@ void RecordCinematicEvent(CinematicDebugPhase phase,uint32_t candidate,
 void HookView(void* camera, float dt, void* outView) {
     if (g_view) g_view(camera, dt, outView);
     auto& settings=dg::runtime::Get();
+    dg::native_tps::SampleNativeStickSwap();
+    // A cinematic may switch to a camera with no player component at all.
+    // Mirror the native lifecycle before the player-camera ownership filter.
+    if(dg::native_tps::TargetReady()){
+        const bool cinema=settings.thirdPersonEnabled.load()&&
+            !settings.tpsTemporarilySuspended.load()&&
+            settings.tpsCutsceneAutoSuspend.load()&&dg::native_tps::CinematicActive();
+        settings.tpsCutsceneSuspended.store(cinema,std::memory_order_release);
+        if(cinema){
+            settings.tpsViewGameplay.store(false,std::memory_order_release);
+            settings.tpsMountedViewActive.store(false,std::memory_order_release);
+        }
+    }
+    dg::local_players::Context viewOwner{};
+    const bool ownedView=dg::local_players::ResolveCamera(camera,viewOwner);
+    if(settings.thirdPersonEnabled.load()){
+        // Coop requires a proved player component or manager-owned fallback
+        // camera. Unknown solo camera paths retain the validated fallback.
+        if(!ownedView&&dg::local_players::CoopActive())return;
+        if(ownedView&&viewOwner.index==1){dg::coop_camera::ApplyView(camera,outView,viewOwner);return;}
+        if(ownedView&&viewOwner.kind==dg::local_players::PoseKind::Horse){
+            dg::local_players::Pose horse{};
+            if(dg::local_players::ReadPose(viewOwner,horse)){
+                settings.tpsHorseWorldX.store(horse.x);settings.tpsHorseWorldY.store(horse.y);
+                settings.tpsHorseWorldZ.store(horse.z);settings.tpsHorseYawDegrees.store(horse.yaw);
+                settings.tpsHorseOwnerIdentity.store(viewOwner.pawn);
+                settings.tpsHorsePoseTick.store(GetTickCount64(),std::memory_order_release);
+            }
+        }
+    }
     // V0.66: do not cancel a valid gameplay frame if GetCameraView
     // is called again for a spectator / UI camera in the same frame.
     // The Present crosshair check already requires a fresh successful tick.
@@ -163,7 +195,6 @@ void HookView(void* camera, float dt, void* outView) {
     const ULONGLONG now=GetTickCount64();
     const uint32_t liveGeneration=settings.tpsActorGeneration.load();
     const bool nativeCinema=dg::native_tps::CinematicActive();
-    dg::native_tps::SampleNativeStickSwap();
     const bool nativePause=dg::native_tps::IsWorldPaused(camera);
     const auto wheelTick=settings.tpsAbilityWheelTick.load();
     const bool wheelInput=settings.tpsAbilityWheelHeld.load()&&wheelTick&&
@@ -804,7 +835,8 @@ void HookArm(void* arm, bool trace, bool locationLag, bool rotationLag, float dt
     g_arm(arm, trace, locationLag, rotationLag, dt);
     if (applied != native) std::memcpy(distance, &native, sizeof(float));
     g_inArm = false;
-    if (valid) {
+    const bool secondaryArm=valid&&dg::coop_camera::ObserveArm(arm,native);
+    if (valid&&!secondaryArm) {
         g_nativeDistance.store(native, std::memory_order_relaxed);
         g_appliedDistance.store(applied, std::memory_order_relaxed);
     }

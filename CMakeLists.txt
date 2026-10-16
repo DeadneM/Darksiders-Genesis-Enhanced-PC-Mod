@@ -11,6 +11,13 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(LocalPlayerOwnershipTests tests/LocalPlayerOwnershipTests.cpp)
+  target_include_directories(LocalPlayerOwnershipTests PRIVATE src)
+  add_test(NAME LocalPlayerOwnership COMMAND LocalPlayerOwnershipTests)
+  add_executable(CoopCameraIsolationTests tests/CoopCameraIsolationTests.cpp src/CoopCameraFeature.cpp src/RuntimeSettings.cpp)
+  target_include_directories(CoopCameraIsolationTests PRIVATE src)
+  target_compile_definitions(CoopCameraIsolationTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  add_test(NAME CoopCameraIsolation COMMAND CoopCameraIsolationTests)
   add_executable(TpsStickRolesTests tests/TpsStickRolesTests.cpp)
   target_include_directories(TpsStickRolesTests PRIVATE src)
   add_test(NAME TpsStickRoles COMMAND TpsStickRolesTests)
@@ -163,6 +170,8 @@ set_source_files_properties("${DG_UPDATER_RC}" PROPERTIES OBJECT_DEPENDS "${DG_H
 add_library(DarksidersGenesisMod SHARED
   src/NativeTpsFeature.cpp
   src/CameraTraceFeature.cpp
+  src/LocalPlayerOwnership.cpp
+  src/CoopCameraFeature.cpp
   src/ChaosPoseFeature.cpp
   src/ResourceGainFeature.cpp
   src/ConfigStore.cpp

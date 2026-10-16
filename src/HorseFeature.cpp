@@ -1,6 +1,7 @@
 #include <windows.h>
 
 #include "HorseFeature.h"
+#include "LocalPlayerOwnership.h"
 #include "RuntimeSettings.h"
 
 #include <MinHook.h>
@@ -485,6 +486,12 @@ void ApplySlotLocked(HorseSlot& slot) {
 void PublishHorseCameraPoseFromLiveCallback(void* horse) {
     auto& rt=dg::runtime::Get();
     if(!rt.thirdPersonEnabled.load())return;
+    // In local coop, proximity to P1 cannot prove that this is P1's horse.
+    // The live camera resolver also publishes P1's own possessed mount pose.
+    if(dg::local_players::CoopActive()){
+        dg::local_players::Context owner{};
+        if(!dg::local_players::ResolveActor(horse,owner)||owner.index!=0)return;
+    }
     void* root=nullptr;
     if(!ReadAt(horse,0x158,root)||!root)return;
     float x=0,y=0,z=0,yaw=0;
