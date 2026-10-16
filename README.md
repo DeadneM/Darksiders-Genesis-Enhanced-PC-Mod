@@ -1,8 +1,8 @@
-## V1.48 — acquis acceptés et audit des cinq réparations ouvertes
+## V1.48 — acquis acceptés et audit des six réparations ouvertes
 
 **VALIDÉ PAR L'UTILISATEUR POUR L'INSTANT, hors exceptions signalées.** Le dernier retour accepte le reste du mod : les anciennes listes générales de tests en attente ci-dessous deviennent historiques. Les fonctions acquises, réglages personnels et raccourcis constituent la base à préserver.
 
-Restent ouverts : **roue d'équipement en coop pour P1 et P2 ; Charge Shot à la manette surtout pendant Hotstreak en reculant ; Lava normal en cloche (manette P1) ; visée native après dash ; Action Recovery dash** (coffres différés). L'audit identifie une protection des roues encore fondée sur le bouton configuré plutôt que leur véritable état par joueur, ainsi que des retours de tir natifs distincts du retour des pistolets actuellement corrigé. Les causes exactes et les futurs correctifs ne sont pas validés en jeu.
+Restent ouverts : **roue d'équipement en coop pour P1 et P2 ; Charge Shot à la manette surtout pendant Hotstreak en reculant ; Graviton et inclinaison du tir ; Lava normal en cloche (manette P1) ; visée native après dash ; Action Recovery dash** (coffres différés). Le recentrage TPS conserve le View pitch de **-12°**, qui peut être transmis au départ commun des pistolets ; Graviton utilise aussi des phases natives de charge/Finish. La piste du pitch est étayée dans le code, sa contribution exacte au tir signalé reste à capturer. L'audit conserve également le défaut de couverture des roues par joueur et les calculs natifs propres aux capacités. Les futurs correctifs ne sont pas validés en jeu.
 
 [Audit complet, preuves, limites et TODO actuel](docs/V1_48_OPEN_REPAIRS_AUDIT.md). **Livraison documentaire uniquement : aucune nouvelle build ni installation.** Les prochaines réparations ciblent les fonctions natives et leurs propriétaires, avec objectifs séparés ; source, INI, binaires, archives et branches stables préservés. Les reçus ci-dessous retracent les états antérieurs.
 

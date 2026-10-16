@@ -2,7 +2,7 @@
 
 ## Décision utilisateur et base de travail
 
-Base installée : **V1.48**, source `b7b90d29314ce00229a0737004426cbb0375b28d`, archive `550b7784b4f1341521bc8f7113250e5177207232`. État du dépôt audité : debug `2f9cf4fabae677541a9b06747dc70a9c5e91fa48`. Le dernier retour utilisateur accepte **le reste pour l'instant**. Cette acceptation remplace la liste générale de vérifications encore attendues dans le précédent reçu ; elle conserve explicitement les cinq exceptions ci-dessous. Elle ne constitue pas une mesure instrumentée de chaque combinaison de paramètres.
+Base installée : **V1.48**, source `b7b90d29314ce00229a0737004426cbb0375b28d`, archive `550b7784b4f1341521bc8f7113250e5177207232`. État initial du dépôt audité : debug `2f9cf4fabae677541a9b06747dc70a9c5e91fa48`, audit initial publié dans `c620047`. Le dernier retour utilisateur accepte **le reste pour l'instant**, puis ajoute Graviton aux tirs concernés. Cette acceptation remplace la liste générale de vérifications encore attendues dans le précédent reçu ; elle conserve explicitement les six exceptions ci-dessous. Elle ne constitue pas une mesure instrumentée de chaque combinaison de paramètres.
 
 Les gains/jauges, refills, Unlimited, munitions, nouvelles options Hotstreak et Hotkeys, présentation du menu, comportements caméra et commandes précédemment acceptés constituent désormais la référence à préserver, hors exceptions signalées. Aucun retour vers une ancienne expérience rejetée.
 
@@ -10,11 +10,12 @@ Les gains/jauges, refills, Unlimited, munitions, nouvelles options Hotstreak et 
 | --- | --- | --- |
 | Roue d'équipement en coop | Le stick ne sélectionne plus pour **les deux joueurs** | Défaut de couverture des protections d'entrée prouvé ; cause de chaque blocage encore à corréler en jeu |
 | Charge Shot | **Manette**, aggravation surtout pendant **Hotstreak en reculant** ; P1/P2 non précisé pour ce signalement | Capacité et retour de rotation distincts du retour commun actuellement corrigé ; chemin natif de secours et fin de charge à observer |
+| Graviton | Visée également affectée ; tir déjà descendant avec réglages TPS par défaut et caméra recentrée. Périphérique/joueur non précisés dans ce complément | Le neutre caméra conserve le View pitch de -12° ; ce pitch est copié dans le retour commun quand ses gardes passent. Graviton possède aussi des phases natives Aim/Charge/Finish ; spawn effectif non capturé |
 | Lava normal | Projectile **en cloche, manette P1**, arrive presque aux pieds avec caméra horizontale | Cible 3D, rotation balistique en cache et vitesse sont liées ; correction actuelle des pistolets insuffisante pour couvrir ce retour natif |
 | Visée native après dash | La visée s'annule, arc/trait disparaissent en vue du dessus | Cause non démontrée ; ancien hook de masquage persistant déjà retiré |
 | Action Recovery | Dash uniquement, surtout intervalle **troisième → quatrième dash de Strife** | Fonction actuellement indisponible, sans consommateur gameplay ; point sûr de libération non établi. Coffres différés |
 
-**Statut de cette livraison : AUDIT documentaire, aucune nouvelle build, aucun correctif expérimental installé.** Les 22 suites de tests réussies de V1.48 sont un résultat de sa CI antérieure, pas une reproduction de ces cinq bugs. Les fichiers locaux préfixés `v149-` désignent les outils de travail de cet audit, pas une version V1.49 construite.
+**Statut de cette livraison : AUDIT documentaire, aucune nouvelle build, aucun correctif expérimental installé.** Les 22 suites de tests réussies de V1.48 sont un résultat de sa CI antérieure, pas une reproduction de ces six bugs. Les fichiers locaux préfixés `v149-` désignent les outils de travail de cet audit, pas une version V1.49 construite.
 
 ## Sources et limites des observations
 
@@ -63,7 +64,28 @@ Les propriétés sérialisées repérées montrent `AllowPlayerRotation=true` pe
 
 **Réparation à préparer :** suivre la capacité de charge/Finish du bon joueur jusqu'au spawn et fournir une direction/cible cohérente avec sa caméra 3D, strictement dans le chemin manette Camera Forward demandé. Traiter l'instant du tir comme une action native, pas seulement comme un bouton encore enfoncé. Conserver souris, visée native, roues, spread/physique et réglages propres à chaque projectile. Pas de rotation forcée du personnage, ni de hook global sur toutes les capacités pour masquer le symptôme.
 
-## 3. Lava normal : préserver le calcul balistique complet
+## 3. Complément Graviton / View pitch : le neutre conserve -12°
+
+Nouveau retour utilisateur : **Graviton est aussi affecté** ; avec le cadrage TPS par défaut et la caméra recentrée, certains tirs permettant de monter/descendre partent déjà légèrement vers le bas. L'utilisateur propose View pitch comme piste. Le périphérique, P1/P2 et la variante normale/Hotstreak ne sont pas reprécisés pour Graviton ; ils ne sont pas inventés à partir des autres signalements.
+
+**PROUVÉ dans le source et la configuration livrée :**
+
+- `ThirdPersonPitchDegrees=-12` est le défaut dans ConfigStore, RuntimeSettings, INI et bouton Default du menu. P1 et P2 calculent `pitch = clamp(basePitch + orbitPitch, -75, 65)`. Le recentrage remet l'orbite verticale à zéro ; **le pitch rendu reste donc -12°, pas 0°**.
+- `ProvideProjectileRotation` P1 retourne `view.appliedPitch`, P2 retourne `heldView[3]`. `ProjectileAimFeature::Rotation` copie cette valeur dans le Rotator du départ commun `6A9F20` quand les gardes joueur/pistolets/manette/Camera Forward/caller passent. Aucune origine de bouche ni cible de collision 3D n'entre dans ce fournisseur de rotation.
+- Une direction de pitch -12° possède une composante verticale d'environ -0,208 et descend d'environ 21,3 unités pour 100 unités horizontales **avant toute gravité**, si ce retour est effectivement utilisé tel quel. Cela prouve le sens de l'inclinaison transmise, pas la trajectoire d'un tir Graviton mesuré.
+- Le test existant `ProjectileSpawnTests.cpp` vérifie explicitement que le pitch -12 du fournisseur est recopié. Il vérifie le comportement du retour et son périmètre ; **il ne vérifie pas la convergence depuis la bouche vers le réticule, ni le spawn natif de Graviton**. Aucune réexécution des tests C++ n'est revendiquée dans ce complément documentaire.
+
+**Couverture Graviton identifiée :** le relevé historique V1.46 `v146-live-weapon-objects-20261016-174035.json` expose `MayhemGravityShot_Blueprint_C`, vtable `27A5EC8`, slot `+8E8 → 6A9F20`. L'analyse statique des callbacks de classe donne `MayhemGravityShot (78FED0) → MayhemChargeShot (773730) → MayhemDualPistols (77F4E0) → MayhemRangedWeaponComponent (7CE080)`. Le test de parenté pistolets peut donc inclure ce composant ; **cela ne prouve pas que le Finish signalé passe par le caller 7CFA3B avec le bouton encore maintenu**.
+
+Lecture bornée des assets Graviton, index pak et payloads contrôlés : le composant référence une capacité Aim, une phase Charge et des Finish normaux/Juiced. Les références du Finish de base comprennent `MayhemPlayerProjectileAbility`, déjà étudiée pour Charge Shot ; les Finish ont donc une préparation native à examiner en plus du retour du composant. Propriétés sérialisées repérées : rotation autorisée pendant Aim/Charge/Finish ; vitesse de déplacement de charge 450 ; vitesse initiale du projectile de base 3000, Level1 2500, Level3 3500, Juiced 1500. Ce sont des overrides d'assets, pas une mesure des valeurs finales héritées en jeu. **Aucune valeur de gravité n'est déduite du seul nom “GravityShot”**, ni de l'absence d'un override sérialisé.
+
+**Interprétation :** la piste du View pitch repose maintenant sur un mécanisme réel du mod, compatible avec la pente descendante signalée. Un cadrage incliné vers le bas implique aussi que le centre de l'image regarde vers le bas ; ce fait ne suffit pas à déclarer le défaut -12 erroné. Copier l'orientation caméra produit une direction parallèle depuis la bouche ; pour converger au point visé, il faut connaître cette bouche et le point 3D réellement choisi. Le décalage entre ces deux origines et la préparation propre à chaque capacité peuvent s'ajouter à l'effet du pitch. Leurs contributions exactes restent **INCONNUES en jeu**.
+
+**Direction de réparation commune :** construire le point 3D à partir de la bonne caméra/réticule, puis calculer la direction de départ depuis la bouche réelle, avec le solveur natif quand le tir est balistique. Préserver la possibilité de viser haut/bas, les phases de charge/relâchement, les variantes Hotstreak et les réglages personnels. Les trois tirs concernés partagent cet objectif mais pas nécessairement le même dernier calcul natif. Aucune soustraction systématique de 12°, aucun pitch forcé horizontal, aucun changement du défaut ou de l'INI personnel n'est introduit.
+
+Test discriminant à préparer : même munition/variante et même position, comparer des pitches **effectifs** -12/0/positif, puis recul ; relever ensemble pitch rendu, point cible, bouche, action Finish et direction initiale du projectile. Séparer la pente initiale de la courbure due à la gravité. Ce complément utilise source, fichiers natifs et inventaire historique ; **aucune nouvelle capture Graviton ni réussite en jeu**.
+
+## 4. Lava normal : préserver le calcul balistique complet
 
 Les preuves [V1.48 précédentes](V1_48_HOTSTREAK_REFILLS.md) restent valables. La capacité native `MayhemPlayerLavaShotProjectileAbility`, constructeur `7BB280`, fournit son retour final par **7BBF20**, rotation en cache à `ability+20C/214`. Son Tick `5B7580` appelle `5B7DC0`, qui utilise `66A2B0`, la cible/les positions natives, vitesse et gravité, puis `6647A0` pour le pitch et `664800` pour la vitesse (cache `+218`). Ce retour final n'est pas celui corrigé dans le module des pistolets.
 
@@ -71,7 +93,7 @@ Les preuves [V1.48 précédentes](V1_48_HOTSTREAK_REFILLS.md) restent valables. 
 
 La réparation doit fournir le bon point 3D et vérifier le résultat balistique avant le spawn. Un simple remplacement du yaw ou un ajout arbitraire de pitch ne constitue pas une solution. La variante Lava Hotstreak en faisceau est distincte ; **elle n'est pas le Charge Shot décrit dans le nouveau retour** et n'est pas déclarée défectueuse sans observation correspondante.
 
-## 4. Visée native après dash : distinguer annulation et affichage
+## 5. Visée native après dash : distinguer annulation et affichage
 
 L'ancien detour natif de masquage persistant `6DDAD0` a été retiré en V1.45 ; son ancien champ d'effet `+79C` ne doit pas être réintroduit. [ShaderAimFeature.cpp](../src/ShaderAimFeature.cpp) masque seulement les appels de dessin des deux shaders identifiés (trait `484C3B1B`, arc `88CA97FB`). Il ne modifie pas l'état d'action/visée du personnage.
 
@@ -79,7 +101,7 @@ La configuration personnelle copiée utilise le mode 2 (masquer en TPS). Dans le
 
 **Cause INCONNUE.** Capture utile : état TPS/vue temporaire effectif, intention de visée, action avant/après dash et décision du filtre de dessin au même instant. Un nouvel appui synthétique ou un StartAiming forcé risquerait de masquer le problème et de rompre les bindings. Aucune correction de touche spécifique retenue.
 
-## 5. Action Recovery : du code de compatibilité, pas une fonctionnalité active
+## 6. Action Recovery : du code de compatibilité, pas une fonctionnalité active
 
 **PROUVÉ dans le source actuel :** le menu affiche `Action Recovery - unavailable` ; la Hotkey écrit `retired: no effect` et retourne. `ActionRecovery`, `ActionRecoveryDelayMs`, `ActionRecoveryMultiplier` et `DodgeEarlyUnlockMs` sont toujours chargés/sauvegardés. Les états publiés correspondants n'ont **aucun consommateur gameplay**. Changer ces valeurs ne peut pas améliorer le dash actuel. Ces clés/IDs sont des restes de compatibilité intentionnels ; ne pas les supprimer au prix d'une renumérotation des raccourcis.
 
@@ -103,9 +125,10 @@ Prochaine mesure discriminante : appuis physiques troisième/quatrième dash syn
 | --- | --- | --- |
 | 1 | Protéger les entrées de la vraie roue par propriétaire | P1 et P2 sélectionnent chacun l'équipement, roue sans pause et bindings changés/sticks intervertis ; l'autre caméra reste indépendante, TPS conservé ; maintien/stow fonctionne après fermeture |
 | 2 | Charge Shot Camera Forward | Immobile puis recul/latéral, hors puis pendant Hotstreak : direction cohérente dès le projectile issu de la fin de charge, maintien et relâchement ; pas de régression des tirs ordinaires ou des roues |
-| 3 | Lava normal en cloche | Caméra basse/horizontale/haute : cible 3D cohérente, origine/vitesse/pitch natifs compatibles ; comparer native/TPS et P1/P2, conserver la variante faisceau |
-| 4 | Visée native → dash → visée | Intention conservée et trait/arc réapparaissent quand le mode d'affichage le demande, sans appui ajouté et avec bindings reconfigurés |
-| 5 | Action Recovery dash fonctionnel | Réduction mesurée du délai troisième → quatrième dash après le déplacement utile, sans glissement, perte de distance, état d'action bloqué ou invulnérabilité indue ; OFF restitue le natif |
+| 3 | Graviton et cohérence du pitch 3D | Au recentrage puis en visant haut/bas, normale/Juiced : bouche et point du réticule cohérents ; comparer pitches effectifs -12/0/positif et recul, sans neutraliser la visée verticale |
+| 4 | Lava normal en cloche | Caméra basse/horizontale/haute : cible 3D cohérente, origine/vitesse/pitch natifs compatibles ; comparer native/TPS et P1/P2, conserver la variante faisceau |
+| 5 | Visée native → dash → visée | Intention conservée et trait/arc réapparaissent quand le mode d'affichage le demande, sans appui ajouté et avec bindings reconfigurés |
+| 6 | Action Recovery dash fonctionnel | Réduction mesurée du délai troisième → quatrième dash après le déplacement utile, sans glissement, perte de distance, état d'action bloqué ou invulnérabilité indue ; OFF restitue le natif |
 
 Regrouper uniquement les changements d'une même responsabilité. Les trajectoires et la libération du dash demandent des essais distincts de la réparation des roues. Chaque build ultérieure doit avoir un nouveau numéro et un rollback vers la **V1.48 acceptée hors ces exceptions**, avec conservation fraîche de l'INI et des raccourcis personnels. Pas de nouvelle vérification globale imposée à l'utilisateur pour les fonctions qu'il vient d'accepter.
 
@@ -116,3 +139,5 @@ Cet audit modifie seulement README et documentation cumulative. Source, tests, c
 112 ZIP sont présents sous downloads (**110 archives du mod et deux de l'updater**), arbre Git `881d40b5c8daf8fd540470e74b18054096a07090` à la base de l'audit. Références distantes relues : main `2bc3122c1ae07b7333798462f85c1d9fd3a739f7`, archive `10e0f220b85022bc9269e0cb9390a811a3b1cf89`, tag v1.43 `902861eb1ff34c14dc5ded092581b360767da817`. La [CI V1.48](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38964259848) a été relue : completed/success, source `b7b90d2`. La release publique v1.43 est toujours l'ID 414771221, publiée le 16 octobre à 09:29:27Z, avec son ZIP et son fichier SHA256. Aucune opération de release dans cet audit.
 
 Pièces locales non publiées sous `audit-v131` : `v149-audit-baseline.json`, journal copié SHA256 `25669c319d44ed8ca1d180f6c0357f85242a4b6d972c6e228f2262cd27a2a672`, inventaire `v149-live-views-20261016-231130.json`, propriétaires `v149-ui-owners.json`, capture `v149-actions-readonly.json`, propriétés `v149-asset-properties.json` et désassemblages bornés `v139-full-*`. Le manifeste conserve les empreintes de ces pièces ; les fichiers `v149-*` ne sont pas une nouvelle build.
+
+Complément local Graviton : `v149-graviton-pak-index.json`, `v149-graviton-properties.json`, `v149-graviton-native-lineage.json` et `v149-graviton-pitch-evidence.json`. Assets extraits et désassemblages restent locaux. Audit source repris depuis `c620047`, sans mutation des fonctions, configurations ou archives.

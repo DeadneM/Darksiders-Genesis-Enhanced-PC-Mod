@@ -1,6 +1,6 @@
-## Dernier état : acquis acceptés hors cinq réparations ouvertes
+## Dernier état : acquis acceptés hors six réparations ouvertes
 
-L'utilisateur accepte **le reste pour l'instant**. Les listes générales de tests et mentions de non-validation ci-dessous sont des reçus antérieurs. Les seules réparations actuellement ouvertes sont : **roue d'équipement coop P1/P2 ; Charge Shot manette surtout Hotstreak en reculant ; Lava normal en cloche manette P1 ; visée native après dash ; Action Recovery dash**, coffres différés. Les quatre groupes d'ajouts Hotstreak/ammo/Hotkeys restent explicitement validés.
+L'utilisateur accepte **le reste pour l'instant**. Les listes générales de tests et mentions de non-validation ci-dessous sont des reçus antérieurs. Les seules réparations actuellement ouvertes sont : **roue d'équipement coop P1/P2 ; Charge Shot manette surtout Hotstreak en reculant ; Graviton / inclinaison de tir et View pitch ; Lava normal en cloche manette P1 ; visée native après dash ; Action Recovery dash**, coffres différés. Les quatre groupes d'ajouts Hotstreak/ammo/Hotkeys restent explicitement validés. Le complément Graviton confirme que le neutre caméra garde le pitch de -12° ; aucune correction de trajectoire ni modification des défauts n'est annoncée.
 
 [Nouvel audit complet, preuves et ordre des réparations](V1_48_OPEN_REPAIRS_AUDIT.md). Cette mise à jour est documentaire ; aucune nouvelle build ni installation, aucun nouveau correctif annoncé comme validé. Les états ci-dessous retracent l'historique.
 

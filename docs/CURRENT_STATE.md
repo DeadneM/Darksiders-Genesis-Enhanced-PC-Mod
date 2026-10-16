@@ -6,9 +6,10 @@ Dernière base installée : **V1.48, acceptée par l'utilisateur pour le reste d
 
 1. Roue d'équipement coop : sélection bloquée pour **les deux joueurs**. Publier l'état de la roue native par propriétaire et l'utiliser dans les protections d'entrée/visée/orbite. Le booléen actuel de visibilité est global et réservé aux logs ; le branchement direct de ce booléen dans tous les filtres serait insuffisant.
 2. **Charge Shot manette**, surtout Hotstreak en reculant ; P1/P2 non précisé pour ce signalement. Suivre charge/Finish/spawn et leur vraie direction native, distincte du retour commun des pistolets ; éviter une correction par touche.
-3. **Lava normal en cloche, manette P1** : corriger la cible 3D et la cohérence rotation/vitesse balistiques, sans confondre avec le faisceau Hotstreak.
-4. **Visée native après dash** : identifier annulation d'action ou mauvais état de masquage du trait/arc ; cause encore inconnue.
-5. **Action Recovery dash** : fonction indisponible, anciennes clés/Hotkey sans effet gameplay. Mesurer appui troisième/quatrième dash et transition native ; positions seules insuffisantes. Coffre différé.
+3. **Graviton / View pitch** : nouvel ajout utilisateur. Le neutre TPS conserve -12°, recopiable par le retour commun des pistolets ; Graviton possède aussi Aim/Charge/Finish. Vérifier point 3D et départ depuis la bouche, préserver la visée haut/bas ; aucun défaut/INI changé, aucune causalité complète mesurée en jeu.
+4. **Lava normal en cloche, manette P1** : corriger la cible 3D et la cohérence rotation/vitesse balistiques, sans confondre avec le faisceau Hotstreak.
+5. **Visée native après dash** : identifier annulation d'action ou mauvais état de masquage du trait/arc ; cause encore inconnue.
+6. **Action Recovery dash** : fonction indisponible, anciennes clés/Hotkey sans effet gameplay. Mesurer appui troisième/quatrième dash et transition native ; positions seules insuffisantes. Coffre différé.
 
 [Audit détaillé et critères de réussite](V1_48_OPEN_REPAIRS_AUDIT.md). Statut : **AUDIT DOCUMENTAIRE, aucun nouveau correctif construit/installé**. Lecture seule de la session et des fichiers natifs ; capture passive avec War, sans Charge Shot/Lava/dash, donc aucune causalité prétendument validée. Aucun changement des sources, tests, INI, binaires ou archives. Prochaine build : objectif isolé roues, puis trajectoires et dash en essais distincts. Historique ci-dessous.
 
