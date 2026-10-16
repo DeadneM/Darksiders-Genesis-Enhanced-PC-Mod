@@ -7,6 +7,8 @@
 #include "ShaderAimFeature.h"
 #include "UpdateFeature.h"
 #include "BuildInfo.h"
+#include "HealthFeature.h"
+#include "GlideFeature.h"
 
 #include "HorseFeature.h"
 #include "CameraTraceFeature.h"
@@ -240,6 +242,9 @@ void Draw(Context& c) {
                 "Changes how long the character can glide.",
                 t.movementHookReady
             );
+            if(ImGui::Checkbox("Unlimited glide",&config.unlimitedGlideEnabled))config.Save();
+            ImGui::TextWrapped("Holds the duration budget while gliding. Release and landing stay native. Assign a toggle in Hotkeys.");
+            if(!dg::glide::Ready())ImGui::TextDisabled("Unlimited glide unavailable for this executable.");
 
             ImGui::Unindent(12.0f);
             }
@@ -276,9 +281,21 @@ void Draw(Context& c) {
             );
 
             DrawSectionTitle("Resource recharge");
+            ImGui::TextWrapped("In local co-op, these settings and refill commands apply to both available players.");
+            const auto health=dg::health::GetTelemetry(0),health2=dg::health::GetTelemetry(1);
+            ImGui::BeginDisabled((!health.available&&!health2.available)||health.pending||health2.pending);
+            if(ImGui::Button("Fill health"))dg::health::RequestRefill();
+            ImGui::EndDisabled();
+            if(health.available)ImGui::TextDisabled("P1 health: %.0f / %.0f",health.current,health.maximum);
+            if(health2.available)ImGui::TextDisabled("P2 health: %.0f / %.0f",health2.current,health2.maximum);
+            if(ImGui::Checkbox("Unlimited health",&config.unlimitedHealthEnabled))config.Save();
+            ImGui::TextWrapped("Keeps living players at their native maximum health. Fill and Unlimited are assignable in Hotkeys. Does not revive a defeated character.");
+            if(!health.supported)ImGui::TextDisabled("Health controls unavailable for this executable.");
+            ImGui::Separator();
             const auto charge=dg::gauges::GetTelemetry();
             const auto rewards=dg::resource_gain::GetTelemetry();
-            const auto manual=dg::manual_gauges::GetTelemetry();
+            const auto manual=dg::manual_gauges::GetTelemetry(0),manual2=dg::manual_gauges::GetTelemetry(1);
+            const bool gaugePending=manual.pending||manual2.pending;
             ImGui::TextUnformatted("Set gauges for testing");
             static float gaugePercent=100.0f;
             ImGui::SetNextItemWidth(230.0f);
@@ -287,19 +304,23 @@ void Draw(Context& c) {
                 dg::manual_gauges::Ultimate,dg::manual_gauges::Synergy};
             const char* names[3]={"Set Wrath","Set Ultimate","Set Synergy"};
             for(unsigned i=0;i<3;++i){
-                ImGui::BeginDisabled(manual.pending||!(manual.readyMask&masks[i]));
+                ImGui::BeginDisabled(gaugePending||!((manual.readyMask|manual2.readyMask)&masks[i]));
                 if(ImGui::Button(names[i]))dg::manual_gauges::RequestSet(masks[i],gaugePercent);
                 ImGui::EndDisabled();
                 if(manual.values[i].available){
                     ImGui::SameLine();
-                    ImGui::TextDisabled("%.1f / %.1f",manual.values[i].current,manual.values[i].maximum);
+                    ImGui::TextDisabled("P1: %.1f / %.1f",manual.values[i].current,manual.values[i].maximum);
+                }
+                if(manual2.values[i].available){
+                    ImGui::SameLine();
+                    ImGui::TextDisabled("P2: %.1f / %.1f",manual2.values[i].current,manual2.values[i].maximum);
                 }
             }
-            ImGui::BeginDisabled(manual.pending||manual.readyMask!=dg::manual_gauges::All);
+            ImGui::BeginDisabled(gaugePending||(manual.readyMask!=dg::manual_gauges::All&&manual2.readyMask!=dg::manual_gauges::All));
             if(ImGui::Button("Set all three gauges"))
                 dg::manual_gauges::RequestSet(dg::manual_gauges::All,gaugePercent);
             ImGui::EndDisabled();
-            if(manual.pending){
+            if(gaugePending){
                 ImGui::TextWrapped("Waiting for gameplay to apply the request.");
                 if(ImGui::Button("Cancel gauge request"))dg::manual_gauges::CancelRequest();
             }else if(manual.result==dg::manual_gauges::Result::Applied){
@@ -311,16 +332,17 @@ void Draw(Context& c) {
                      manual.result==dg::manual_gauges::Result::Cancelled){
                 ImGui::TextWrapped("Request cancelled or expired. Return to gameplay and try again.");
             }
-            if(!manual.readyMask)
+            if(!manual.readyMask&&!manual2.readyMask)
                 ImGui::TextWrapped("Available during normal local-host gameplay with a supported player.");
             ImGui::TextWrapped("One click changes the selected level once; it does not keep gauges full or unlock the Ultimate form.");
             ImGui::Separator();
             ImGui::TextUnformatted("Health potions (test)");
-            const auto potions=dg::potions::GetTelemetry();
-            if(!potions.available||potions.pending)ImGui::BeginDisabled();
+            const auto potions=dg::potions::GetTelemetry(0),potions2=dg::potions::GetTelemetry(1);
+            ImGui::BeginDisabled((!potions.available&&!potions2.available)||potions.pending||potions2.pending);
             if(ImGui::Button("Fill health potions"))dg::potions::RequestRefill();
-            if(!potions.available||potions.pending)ImGui::EndDisabled();
-            if(potions.available)ImGui::Text("Reserve: %d / %d",potions.current,potions.maximum);
+            ImGui::EndDisabled();
+            if(potions.available)ImGui::Text("P1 reserve: %d / %d",potions.current,potions.maximum);
+            if(potions2.available)ImGui::Text("P2 reserve: %d / %d",potions2.current,potions2.maximum);
             if(potions.available&&potions.current<potions.maximum&&std::isfinite(potions.overflow)&&
                std::isfinite(potions.nativeThreshold)&&potions.nativeThreshold>0){
                 const float threshold=potions.nativeThreshold/(config.potionRechargeEnabled?config.potionRechargeMultiplier:1.0f);
@@ -343,6 +365,11 @@ void Draw(Context& c) {
             if(config.reduceAmmoEnabled){
                 ImGui::SetNextItemWidth(280.0f);
                 if(ImGui::SliderFloat("Consumption divisor##Ammo",&config.ammoConsumptionDivisor,0.0f,10.0f,"%.2f"))config.Save();
+                ImGui::SetNextItemWidth(120.0f);
+                if(ImGui::InputFloat("Manual value##AmmoDivisor",&config.ammoConsumptionDivisor,0,0,"%.2f")){
+                    config.ammoConsumptionDivisor=std::isfinite(config.ammoConsumptionDivisor)?
+                        std::clamp(config.ammoConsumptionDivisor,0.0f,10.0f):2.0f;config.Save();
+                }
                 ImGui::SameLine();
                 if(ImGui::Button("Default##AmmoDivisor")){config.ammoConsumptionDivisor=2.0f;config.Save();}
             }
@@ -495,6 +522,8 @@ void Draw(Context& c) {
             ImGui::TextDisabled("Horse state: %s | detection events: %u",
                 horseTelemetry.validated?"Ready":"Waiting for mount",
                 horseTelemetry.uniqueCandidatesLogged);
+            if(ImGui::Checkbox("Unlimited horse sprint duration",&config.unlimitedHorseSprintEnabled))config.Save();
+            ImGui::TextWrapped("Stops sprint stamina drain for both local riders. Native recovery and sprint-start conditions stay active. Assign a toggle in Hotkeys.");
 
             ImGui::Unindent(12.0f);
             }
@@ -741,12 +770,30 @@ void Draw(Context& c) {
                     config.Save();
                 if(config.thirdPersonFovEnabled) {
                     ImGui::SetNextItemWidth(245.0f);
-                    if(ImGui::SliderFloat("FOV##TPS",&config.thirdPersonFovDegrees,40.0f,140.0f,"%.0f deg"))
+                    if(ImGui::SliderFloat("FOV solo##TPS",&config.thirdPersonFovDegrees,40.0f,140.0f,"%.0f deg"))
                         config.Save();
                     ImGui::SameLine();
                     if(ImGui::Button("Default##TPSFOV")) {
                         config.thirdPersonFovDegrees=110.0f;config.Save();
                     }
+                    ImGui::SetNextItemWidth(245.0f);
+                    bool coopFovChanged=ImGui::SliderFloat("FOV coop##TPS",
+                        &config.thirdPersonCoopFovDegrees,40.0f,140.0f,"%.0f deg");
+                    ImGui::SameLine();
+                    ImGui::SetNextItemWidth(115.0f);
+                    coopFovChanged |= ImGui::InputFloat("Manual##TPSCoopFOV",
+                        &config.thirdPersonCoopFovDegrees,0.0f,0.0f,"%.1f");
+                    ImGui::SameLine();
+                    if(ImGui::Button("Default##TPSCoopFOV")) {
+                        config.thirdPersonCoopFovDegrees=110.0f;coopFovChanged=true;
+                    }
+                    if(coopFovChanged) {
+                        if(!std::isfinite(config.thirdPersonCoopFovDegrees))
+                            config.thirdPersonCoopFovDegrees=config.thirdPersonFovDegrees;
+                        config.thirdPersonCoopFovDegrees=std::clamp(config.thirdPersonCoopFovDegrees,40.0f,140.0f);
+                        config.Save();
+                    }
+                    ImGui::TextDisabled("Coop FOV applies to both split-screen views; solo keeps its own FOV.");
                 }
                 ImGui::TextDisabled("Only applies when both Third Person and TPS FOV are ON.");
                 ImGui::SetNextItemWidth(245.0f);

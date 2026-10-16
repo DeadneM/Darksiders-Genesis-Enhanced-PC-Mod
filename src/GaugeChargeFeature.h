@@ -7,7 +7,7 @@ struct Telemetry {
     bool synergyReady=false;
     uint32_t synergyBoostCalls=0,synergyObserved=0;
 };
-void Initialize(LogFn logger,std::atomic<void*>* localPlayer,bool exactExecutable);
+void Initialize(LogFn logger,bool exactExecutable);
 Telemetry GetTelemetry();
 void Shutdown();
 }

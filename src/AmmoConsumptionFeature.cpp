@@ -1,4 +1,5 @@
 #include "AmmoConsumptionFeature.h"
+#include "LocalPlayerOwnership.h"
 #include "AmmoConsumptionPolicy.h"
 #include "RuntimeSettings.h"
 #include "NativeTpsFeature.h"
@@ -15,15 +16,16 @@ Setter g_original=nullptr;
 Maximum g_maximum=nullptr;
 LogFn g_log=nullptr;
 uintptr_t g_base=0;
-std::atomic<void*>* g_local=nullptr;
+
 std::atomic_bool g_ready{false};
 std::atomic_uint32_t g_observed{0},g_spends{0},g_modified{0},g_topups{0};
 // Sampled game thread only. Stored UObject identities are compared, never read.
-uintptr_t g_actor=0,g_resource=0;
-uint32_t g_generation=0;
-uint64_t g_tick=0;
 struct Entry {uintptr_t holder=0;Credit credit{};};
-Entry g_entries[16]{};
+struct PlayerAmmo {
+    uintptr_t actor=0,resource=0;uint32_t generation=0;uint64_t tick=0;
+    Entry entries[16]{};
+};
+PlayerAmmo g_players[2]{};
 bool Readable(const void* p,size_t size){
     MEMORY_BASIC_INFORMATION m{};
     if(!p||!size||!VirtualQuery(p,&m,sizeof(m))||m.State!=MEM_COMMIT||
@@ -50,32 +52,40 @@ bool Instance(void* object,uintptr_t slot){
         Read(array,size_t(index)*8,entry)&&entry==static_cast<unsigned char*>(expected)+0x30;
 }
 bool Authority(void* object){unsigned char role=0;return Read(object,0x118,role)&&role==3;}
-int HookSet(void* proxy,int requested){
-    const uintptr_t caller=reinterpret_cast<uintptr_t>(_ReturnAddress())-g_base;
+int Set(void* proxy,int requested,uintptr_t caller){
     ++g_observed;
     auto& rt=dg::runtime::Get();
     const bool reduce=rt.reduceAmmoEnabled.load(),unlimited=rt.unlimitedAmmoEnabled.load();
     if(!g_original)return requested;
     if(!dg::native_tps::OnGameThread())return g_original(proxy,requested);
     if(!reduce&&!unlimited){
-        for(auto& entry:g_entries)entry.credit={};
+        for(auto& player:g_players)for(auto& entry:player.entries)entry.credit={};
         return g_original(proxy,requested);
     }
+    PlayerAmmo* selected=nullptr;unsigned playerIndex=0;
+    for(unsigned i=0;i<2&&!selected;++i){
+        auto& candidate=g_players[i];
+        if(!dg::local_players::Matches(i,candidate.actor,candidate.generation))continue;
+        for(const auto& entry:candidate.entries)
+            if(entry.holder==reinterpret_cast<uintptr_t>(proxy)){selected=&candidate;playerIndex=i;break;}
+    }
+    if(!selected)return g_original(proxy,requested);
+    auto& player=*selected;
     const uint64_t now=GetTickCount64();
-    const auto local=g_local?reinterpret_cast<uintptr_t>(g_local->load(std::memory_order_acquire)):0;
+    const auto local=player.actor;
     // Exact native weapon AUTH_SetAmmo -> proxy setter. Excludes ammo rewards,
     // auto recharge, initialization and manual top-ups from spend arithmetic.
-    if(caller!=0x697D92||!local||local!=g_actor||!g_tick||now<g_tick||now-g_tick>=500||
-       g_generation!=rt.tpsActorGeneration.load()||dg::native_tps::CinematicActive())
+    if(caller!=0x697D92||!local||!player.tick||now<player.tick||now-player.tick>=500||
+       dg::native_tps::CinematicActive(playerIndex))
         return g_original(proxy,requested);
     Entry* state=nullptr;
-    for(auto& entry:g_entries)if(entry.holder==reinterpret_cast<uintptr_t>(proxy)){state=&entry;break;}
+    for(auto& entry:player.entries)if(entry.holder==reinterpret_cast<uintptr_t>(proxy)){state=&entry;break;}
     uintptr_t owner=0;int before=0;
     if(!state||!Instance(proxy,0x3811D40)||!Authority(proxy)||
-       !Read(proxy,0x108,owner)||owner!=g_resource||!Read(proxy,0x34C,before))
+       !Read(proxy,0x108,owner)||owner!=player.resource||!Read(proxy,0x34C,before))
         return g_original(proxy,requested);
     const int effective=ConsumptionRequest(state->credit,local,reinterpret_cast<uintptr_t>(proxy),
-        g_generation,before,requested,reduce,rt.ammoConsumptionDivisor.load(),unlimited);
+        player.generation,before,requested,reduce,rt.ammoConsumptionDivisor.load(),unlimited);
     const bool spend=before>=0&&requested>=0&&requested<before;
     const unsigned n=spend?++g_spends:0;
     if(effective!=requested)++g_modified;
@@ -84,13 +94,16 @@ int HookSet(void* proxy,int requested){
         char line[300]{};
         sprintf_s(line,"Ammo V1.39 SPEND n=%u before=%d nativeRequested=%d effective=%d actual=%d divisor=%.3f reduce=%d unlimited=%d proxy=%p generation=%u gameplay=EXPERIMENTAL",
             n,before,requested,effective,actual,rt.ammoConsumptionDivisor.load(),reduce?1:0,
-            unlimited?1:0,proxy,g_generation);g_log(line);
+            unlimited?1:0,proxy,player.generation);g_log(line);
     }
     return actual;
 }
+int HookSet(void* proxy,int requested){
+    return Set(proxy,requested,reinterpret_cast<uintptr_t>(_ReturnAddress())-g_base);
 }
-void Initialize(LogFn logger,std::atomic<void*>* localPlayer,bool exactExecutable){
-    g_log=logger;g_local=localPlayer;
+}
+void Initialize(LogFn logger,bool exactExecutable){
+    g_log=logger;
     if(!exactExecutable)return;
     g_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     struct Guard {uintptr_t rva;unsigned char bytes[16];};
@@ -118,26 +131,30 @@ void Initialize(LogFn logger,std::atomic<void*>* localPlayer,bool exactExecutabl
     if(g_log)g_log("Ammo V1.39 ready; exact native weapon spend caller, typed live local owned proxies, native finite maximum; OFF=original; EXPERIMENTAL");
 }
 void OnLivePlayer(void* actor,uint32_t generation){
-    if(!g_ready.load()||!g_local||!actor||g_local->load()!=actor||!dg::native_tps::OnGameThread())return;
+    if(!g_ready.load()||!actor||!dg::native_tps::OnGameThread())return;
+    dg::local_players::Slot slot{};
+    const int index=dg::local_players::FindCharacter(actor,&slot);
+    if(index<0||slot.generation!=generation)return;
+    auto& player=g_players[index];
     const auto now=GetTickCount64();
     const uintptr_t identity=reinterpret_cast<uintptr_t>(actor);
-    if(identity==g_actor&&generation==g_generation&&g_tick&&now>=g_tick&&now-g_tick<100)return;
+    if(identity==player.actor&&generation==player.generation&&player.tick&&now>=player.tick&&now-player.tick<100)return;
     void* resource=nullptr;void* array=nullptr;int count=0;
     if(!Read(actor,0xEA0,resource)||!Instance(resource,0x3810268)||!Authority(resource)||
        !Read(resource,0x428,array)||!Read(resource,0x430,count)||count<0||count>16||
-       (count&&!Readable(array,size_t(count)*8))){g_tick=0;return;}
-    if(identity!=g_actor||generation!=g_generation||reinterpret_cast<uintptr_t>(resource)!=g_resource)
-        for(auto& entry:g_entries)entry={};
-    g_actor=identity;g_resource=reinterpret_cast<uintptr_t>(resource);g_generation=generation;g_tick=now;
+       (count&&!Readable(array,size_t(count)*8))){player.tick=0;return;}
+    if(identity!=player.actor||generation!=player.generation||reinterpret_cast<uintptr_t>(resource)!=player.resource)
+        for(auto& entry:player.entries)entry={};
+    player.actor=identity;player.resource=reinterpret_cast<uintptr_t>(resource);player.generation=generation;player.tick=now;
     const bool fill=dg::runtime::Get().unlimitedAmmoEnabled.load()&&
-        !dg::native_tps::CinematicActive()&&!dg::native_tps::IsWorldPaused(actor);
+        !dg::native_tps::CinematicActive(unsigned(index))&&!dg::native_tps::IsWorldPaused(actor);
     Entry next[16]{};
     for(int i=0;i<count;++i){
         void* proxy=nullptr;uintptr_t owner=0;int current=-1;
         if(!Read(array,size_t(i)*8,proxy)||!Instance(proxy,0x3811D40)||!Authority(proxy)||
-           !Read(proxy,0x108,owner)||owner!=g_resource||!Read(proxy,0x34C,current))continue;
+           !Read(proxy,0x108,owner)||owner!=player.resource||!Read(proxy,0x34C,current))continue;
         next[i].holder=reinterpret_cast<uintptr_t>(proxy);
-        for(const auto& old:g_entries)if(old.holder==next[i].holder){next[i].credit=old.credit;break;}
+        for(const auto& old:player.entries)if(old.holder==next[i].holder){next[i].credit=old.credit;break;}
         if(!fill||current<0)continue; // native infinite/default ammunition stays native
         const int maximum=g_maximum(proxy);
         if(maximum<=0||maximum>1000000||current>=maximum)continue;
@@ -147,7 +164,7 @@ void OnLivePlayer(void* actor,uint32_t generation){
             sprintf_s(line,"Ammo V1.39 UNLIMITED_TOPUP n=%u before=%d after=%d nativeMax=%d proxy=%p generation=%u readbackMatches=%d",
                 n,current,after,maximum,proxy,generation,after==maximum?1:0);g_log(line);}
     }
-    for(unsigned i=0;i<16;++i)g_entries[i]=next[i];
+    for(unsigned i=0;i<16;++i)player.entries[i]=next[i];
 }
 Telemetry GetTelemetry(){return {g_ready.load(),g_observed.load(),g_spends.load(),g_modified.load(),g_topups.load()};}
 void Shutdown(){if(g_log){const auto t=GetTelemetry();char line[220]{};

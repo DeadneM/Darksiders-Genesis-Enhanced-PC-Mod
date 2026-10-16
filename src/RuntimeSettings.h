@@ -55,10 +55,14 @@ struct Snapshot {
     float ammoConsumptionDivisor = 2.0f;
     bool potionRechargeEnabled = false;
     bool unlimitedPotionsEnabled = false;
+    bool unlimitedHealthEnabled = false;
+    bool unlimitedGlideEnabled = false;
+    bool unlimitedHorseSprintEnabled = false;
     float potionRechargeMultiplier = 2.0f;
 
     float fovDegrees = 90.0f;
     float thirdPersonFovDegrees = 110.0f;
+    float thirdPersonCoopFovDegrees = 110.0f;
     float cameraZoomPercent = 0.0f;
     float cameraPitchDegrees = 0.0f;
     float cameraYawDegrees = 0.0f;
@@ -169,12 +173,16 @@ struct State {
     std::atomic<float> ammoConsumptionDivisor{2.0f};
     std::atomic_bool potionRechargeEnabled{false};
     std::atomic_bool unlimitedPotionsEnabled{false};
+    std::atomic_bool unlimitedHealthEnabled{false};
+    std::atomic_bool unlimitedGlideEnabled{false};
+    std::atomic_bool unlimitedHorseSprintEnabled{false};
     std::atomic<float> potionRechargeMultiplier{2.0f};
     // V1.24 read-only time of a verified positive local Synergy additive gain.
     std::atomic_ullong lastNativeSynergyPositiveTick{0};
 
     std::atomic<float> fovDegrees{90.0f};
     std::atomic<float> thirdPersonFovDegrees{110.0f};
+    std::atomic<float> thirdPersonCoopFovDegrees{110.0f};
     std::atomic<float> cameraZoomPercent{0.0f};
     std::atomic<float> cameraPitchDegrees{0.0f};
     std::atomic<float> cameraYawDegrees{0.0f};

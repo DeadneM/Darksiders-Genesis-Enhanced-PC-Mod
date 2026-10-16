@@ -1,4 +1,5 @@
 #include "GaugeChargeFeature.h"
+#include "LocalPlayerOwnership.h"
 #include "ManualGaugeFeature.h"
 #include "RuntimeSettings.h"
 #include <MinHook.h>
@@ -30,7 +31,7 @@ using SynergyGainFn=float(*)(void*,void*,float,float,float);
 SynergyFn originalSynergy=nullptr;
 SynergyGainFn originalSynergyGain=nullptr;
 LogFn logger=nullptr;
-std::atomic<void*>* localPlayer=nullptr;
+
 std::atomic_bool synergyReady{false},synergyGainReady{false};
 std::atomic_uint32_t synergyEvents{0};
 std::atomic_uint32_t synergyBoosts{0};
@@ -116,7 +117,7 @@ void Probe(const char* gauge,unsigned n,void* owner,float amount,float current,f
     if(!logger||(n>2 && n%1000!=0))return;
     char line[250]{};
     sprintf_s(line,"Gauge V1.05 AUDIT %s n=%u owner=%p local=%p match=%d amount=%.3f current=%.3f max=%.3f",
-        gauge,n,owner,localPlayer?localPlayer->load():nullptr,match?1:0,amount,current,limit);
+        gauge,n,owner,nullptr,match?1:0,amount,current,limit);
     Log(line);
 }
 void Event(const char* name,unsigned count,float native,float modified){
@@ -143,7 +144,10 @@ float HookSynergyGain(void* manager,void* owner,float a,float b,float c){
     const uintptr_t caller=CallerRva(_ReturnAddress());
     if(!originalSynergyGain)return 0.0f;
     const unsigned n=++synergyGainEvents;
-    void* actor=localPlayer?localPlayer->load(std::memory_order_acquire):nullptr;
+    void* actor=nullptr;
+    if(owner&&Readable(static_cast<unsigned char*>(owner)+0x5C0,sizeof(actor)))
+        std::memcpy(&actor,static_cast<unsigned char*>(owner)+0x5C0,sizeof(actor));
+    if(dg::local_players::FindCharacter(actor)<0)actor=nullptr;
     const int relation=SynergyLocalRelation(owner,actor);
     if(relation>0)++synergyGainLocal;
     const float nativeGain=(a*b)*c;
@@ -200,8 +204,11 @@ float HookSynergyGain(void* manager,void* owner,float a,float b,float c){
 float HookSynergy(void* player,float requested){
     if(!originalSynergy)return 0.0f;
     const unsigned n=++synergyEvents;
-    const void* local=localPlayer?localPlayer->load(std::memory_order_acquire):nullptr;
-    const int relation=SynergyLocalRelation(player,const_cast<void*>(local));
+    void* local=nullptr;
+    if(player&&Readable(static_cast<unsigned char*>(player)+0x5C0,sizeof(local)))
+        std::memcpy(&local,static_cast<unsigned char*>(player)+0x5C0,sizeof(local));
+    if(dg::local_players::FindCharacter(local)<0)local=nullptr;
+    const int relation=SynergyLocalRelation(player,local);
     const bool match=relation>0;
     if(match)++synergyLocal;
     if(relation==2)++synergyOuterReferences;
@@ -265,8 +272,8 @@ bool InstallNative(uintptr_t base,uintptr_t rva,const unsigned char* sig,size_t 
     Log(msg);return true;
 }
 }
-void Initialize(LogFn callback,std::atomic<void*>* local,bool exactExecutable){
-    logger=callback;localPlayer=local;
+void Initialize(LogFn callback,bool exactExecutable){
+    logger=callback;
     if(!exactExecutable){Log("Gauge V1.03: unsupported EXE, all hooks OFF");return;}
     auto status=MH_Initialize();
     if(status!=MH_OK&&status!=MH_ERROR_ALREADY_INITIALIZED){

@@ -1,4 +1,5 @@
 #include "NativeTpsFeature.h"
+#include "LocalPlayerOwnership.h"
 #include <windows.h>
 #include <intrin.h>
 #include <MinHook.h>
@@ -229,7 +230,10 @@ bool Install(RayProvider provider,LogFn log){
     return true;
 }
 bool TargetReady(){return g_ready.load(std::memory_order_acquire);}
-bool CinematicActive(){return g_cinematic.load(std::memory_order_acquire);}
+bool CinematicActive(unsigned index){
+    return dg::local_players::Ready()?dg::local_players::CameraCinematic(index):
+        g_cinematic.load(std::memory_order_acquire);
+}
 bool IsWorldPaused(void* context){
     const auto fn=g_paused.load(std::memory_order_acquire);
     return fn&&context?fn(context):false;

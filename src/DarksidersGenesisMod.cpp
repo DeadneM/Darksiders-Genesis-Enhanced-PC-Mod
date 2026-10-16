@@ -28,6 +28,9 @@
 #include "OverlayUi.h"
 #include "RuntimeSettings.h"
 #include "ShaderAimFeature.h"
+#include "ProjectileAimFeature.h"
+#include "HealthFeature.h"
+#include "GlideFeature.h"
 #include "SkipLogosFeature.h"
 #include "SkipWarningFeature.h"
 #include "TargetValidator.h"
@@ -872,9 +875,7 @@ void HookAddJuice(void* hotStreakComponent, float amount) {
         void* owner = *reinterpret_cast<void**>(
             reinterpret_cast<BYTE*>(hotStreakComponent) + 0xE8
         );
-        void* localPlayer = g_localPlayerCharacter.load();
-
-        if (localPlayer && owner == localPlayer) {
+        if (dg::local_players::FindCharacter(owner)>=0) {
             float multiplier = dg::runtime::Get().hotstreakChargeMultiplier.load(std::memory_order_relaxed);
             if (multiplier < 0.0f) multiplier = 0.0f;
             if (multiplier > 100.0f) multiplier = 100.0f;
@@ -1016,8 +1017,7 @@ void HookFinalOutgoingDamage(void* playerCharacter, void* damageRecord) {
         return;
     }
 
-    void* localPlayer = g_localPlayerCharacter.load();
-    if (!localPlayer || localPlayer != playerCharacter) {
+    if (dg::local_players::FindCharacter(playerCharacter)<0) {
         return;
     }
     // This records the native outgoing damage callback only, not a pickup
@@ -1401,6 +1401,29 @@ void CaptureLiveTPSActorYaw(void* actor) {
             count,actor,root,yaw,px,py,pz);
 }
 
+// Called only from a synchronous native movement/camera callback. The
+// context supplies this player's current native state during possession.
+void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t generation){
+    void* character=reinterpret_cast<void*>(owner.character);
+    if(owner.index==0){
+        g_tpsPlayerGeneration.store(generation,std::memory_order_release);
+        dg::runtime::Get().tpsActorGeneration.store(generation,std::memory_order_release);
+        void* previous=g_localPlayerCharacter.exchange(character,std::memory_order_acq_rel);
+        if(owner.kind==dg::local_players::PoseKind::Foot){
+            CaptureLiveTPSActorYaw(character);
+            dg::horse::ObservePlayerCharacter(character);
+        }else{
+            dg::runtime::Get().tpsActorLocationTick.store(0,std::memory_order_release);
+        }
+        if(previous!=character)Log("Player identity: active player=%p (native LocalPlayers[0])",character);
+    }
+    dg::resource_gain::OnLivePlayer(character,generation);
+    dg::manual_gauges::OnLivePlayer(character,generation,reinterpret_cast<void*>(owner.playerState));
+    dg::ammo::OnLivePlayer(character,generation);
+    dg::potions::OnLivePlayer(character,generation,reinterpret_cast<void*>(owner.playerState));
+    dg::health::OnLivePlayer(character,generation);
+}
+
 // V0.75: use the game's verified UMayhemCharacter native look functions,
 // rather than an interpolation callback that did not execute in V0.74.
 // RVA 0x671A40 = GetPlayerLookInput, referenced by game movement, aiming,
@@ -1538,6 +1561,17 @@ bool ProvideNativeMouseRay(void* actor,dg::native_tps::MouseRay& ray){
     ray.ultimate=dg::chaos_pose::RangedActor(actor);
     ray.fireHeld=MouseAnyFireHeld(); // telemetry only, not the action gate
     return true;
+}
+bool ProvideProjectileRotation(const dg::local_players::Context& owner,float& pitch,float& yaw){
+    if(owner.index==1)return dg::coop_camera::ShotRotation(owner,pitch,yaw);
+    if(owner.index!=0||!IsLiveTPSLookActor(reinterpret_cast<void*>(owner.character))||
+       !IsTPSLookViewFresh()||!IsPadFiringNow()||MouseAnyFireHeld()||IsTPSRadialInputActive()||
+       dg::runtime::Get().tpsMountedAimMode.load()!=0)return false;
+    const auto view=dg::camera_trace::GetTelemetry();
+    const auto now=GetTickCount64();
+    if(!view.appliedWorldTickMs||now<view.appliedWorldTickMs||now-view.appliedWorldTickMs>=250)return false;
+    pitch=view.appliedPitch;yaw=view.appliedYaw;
+    return std::isfinite(pitch)&&std::isfinite(yaw);
 }
 // Candidate Wrath native location from exact-EXE AddWrath disassembly:
  // character+0xEA0 -> resource component, component+0x3A0 -> float.
@@ -1845,42 +1879,11 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
     // during mount transitions. Refresh the persistent player pointer only when
     // this movement component also proves it is a real player movement object
     // through the validated Jump/DoubleJump/Glide property set.
-    const bool playerMovementValidated =
-        ApplyPlayerMovementTunings(movementComponent);
+    ApplyPlayerMovementTunings(movementComponent);
 
     dg::local_players::Context localOwner{};
-    // A local pawn is not necessarily the first local player in split screen.
-    // Bind solo telemetry/features to native LocalPlayers[0], independent of
-    // GetMaxSpeed callback order or the last character to respawn.
-    if (playerMovementValidated &&
-        (!dg::local_players::Ready()||
-         (dg::local_players::ResolveActor(characterOwner,localOwner)&&localOwner.index==0))) {
-        const bool identityChanged=g_localPlayerCharacter.load()!=characterOwner;
-        if(identityChanged)g_tpsPlayerGeneration.fetch_add(1);
-        CaptureLiveTPSActorYaw(characterOwner);
-
-        // Identity only; no later cached UObject dereference.
-        void* previousPlayer =
-            g_localPlayerCharacter.exchange(
-                characterOwner,
-                std::memory_order_relaxed
-            );
-        dg::horse::ObservePlayerCharacter(characterOwner);
-        dg::resource_gain::OnLivePlayer(characterOwner,
-            runtime.tpsActorGeneration.load(std::memory_order_acquire));
-        dg::manual_gauges::OnLivePlayer(characterOwner,
-            runtime.tpsActorGeneration.load(std::memory_order_acquire));
-        dg::ammo::OnLivePlayer(characterOwner,runtime.tpsActorGeneration.load());
-        dg::potions::OnLivePlayer(characterOwner,runtime.tpsActorGeneration.load());
-        if (previousPlayer != characterOwner) {
-            Log(
-                "Player identity: active player=%p movement=%p (validated player movement)",
-                characterOwner,
-                movementComponent
-            );
-            // V0.33's automatic WM_SETCURSOR refresh was ineffective.
-            // V0.34 deliberately makes the next test opt-in (F5).
-        }
+    if(dg::local_players::ResolveActor(characterOwner,localOwner)){
+        dg::local_players::ObserveGameplay(localOwner);
     }
 
     if (!runtime.movementSpeedEnabled.load(std::memory_order_relaxed) || nativeSpeed <= 0.0f) {
@@ -2006,6 +2009,20 @@ void TriggerAction(Action action, int functionKey) {
 
     const char* label = ActionLabel(action);
 
+    if(action==Action::RefillHealth||action==Action::UnlimitedHealth||
+       action==Action::UnlimitedGlide||action==Action::UnlimitedHorseSprint){
+        const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+        if(!hwnd||GetForegroundWindow()!=hwnd||IsIconic(hwnd)||g_overlayVisible.load()||g_shuttingDown.load())return;
+        if(action==Action::RefillHealth){
+            const bool queued=dg::health::RequestRefill();
+            g_lastAction=std::string(label)+(queued?" [queued]":" [unavailable]");
+        }else{
+            bool& enabled=action==Action::UnlimitedHealth?g_config.unlimitedHealthEnabled:
+                action==Action::UnlimitedGlide?g_config.unlimitedGlideEnabled:g_config.unlimitedHorseSprintEnabled;
+            enabled=!enabled;g_config.Save();g_lastAction=std::string(label)+(enabled?" ON":" OFF");
+        }
+        Log("Sustain V1.46 HOTKEY F%d action=%s",functionKey,label);return;
+    }
     if(action==Action::RefillPotions||action==Action::PotionRecharge||action==Action::UnlimitedPotions){
         const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
         if(!hwnd||GetForegroundWindow()!=hwnd||IsIconic(hwnd)||g_overlayVisible.load()||g_shuttingDown.load())return;
@@ -2260,7 +2277,11 @@ void ProcessInput() {
             if(dg::config::GaugeRefillMask(g_config.hotkeys[static_cast<size_t>(i)])||
                g_config.hotkeys[static_cast<size_t>(i)]==Action::RefillPotions||
                g_config.hotkeys[static_cast<size_t>(i)]==Action::PotionRecharge||
-               g_config.hotkeys[static_cast<size_t>(i)]==Action::UnlimitedPotions)
+               g_config.hotkeys[static_cast<size_t>(i)]==Action::UnlimitedPotions||
+               g_config.hotkeys[static_cast<size_t>(i)]==Action::RefillHealth||
+               g_config.hotkeys[static_cast<size_t>(i)]==Action::UnlimitedHealth||
+               g_config.hotkeys[static_cast<size_t>(i)]==Action::UnlimitedGlide||
+               g_config.hotkeys[static_cast<size_t>(i)]==Action::UnlimitedHorseSprint)
                 KeyPressed(VK_F1+i);
         return;
     }
@@ -4112,6 +4133,8 @@ void ShutdownMod() {
 
     Log("Shutdown: begin");
     dg::native_tps::Report();
+    dg::health::Shutdown();
+    dg::glide::Report();
     // Release the supported synthetic horse key before teardown.
     if(g_horseSyntheticHDown.exchange(false))EmitKeyboardVirtualKey('H',false);
     g_config.FlushIfDue(true);
@@ -4196,6 +4219,7 @@ void ShutdownMod() {
         g_tpsGrenadeDownCount.load(),g_tpsGrenadeUpCount.load(),
         g_tpsGrenadeReleasePulseDelivered.load());
     Log("TPS V1.45 native ground-FX override RETIRED; shader scope retained; top-down dash aim requires user retest");
+    dg::projectile_aim::Report();
     Log("TPS configured view-input totals: holdSuspend=%u longToggle=%u",
         g_tpsHoldSuspendCount.load(),g_tpsHoldToggleCount.load());
     Log("TPS V1.02 controller aim totals: nativeLookInput=%u nativeLookRotation=%u suppressedLook=%u heldYaw=%u padStrafe=%u padLookAim=%u signaturesFailed=%u",
@@ -4264,6 +4288,8 @@ DWORD WINAPI MainThread(LPVOID) {
         g_config.thirdPersonHeightOffset,g_config.tpsFootAnchorOffset,
         g_config.tpsCameraStickMode,g_config.tpsMountedAimMode,g_config.cameraHeightOffset,
         g_config.skipWarningEnabled?1:0);
+    Log("TPS %s COOP_FOV loaded solo=%.1f coop=%.1f (both split-screen views)",
+        dg::build::Version,g_config.thirdPersonFovDegrees,g_config.thirdPersonCoopFovDegrees);
     Log("TPS V1.37 ULTIMATE_CAMERA loaded distance=%.3f verticalOffset=%.1f (separate from normal form)",
         g_config.tpsUltimateDistanceMultiplier,g_config.tpsUltimateHeightOffset);
     Log("TPS %s HORSE_CAMERA loaded distance=%.3f verticalOffset=%.1f (separate from foot and Ultimate)",
@@ -4349,11 +4375,15 @@ DWORD WINAPI MainThread(LPVOID) {
     if (!InstallHotstreakChargeHook()) {
         Log("Hotstreak Charge unavailable; other ASI features remain active.");
     }
-    dg::manual_gauges::Initialize(&FeatureLog,&g_localPlayerCharacter,g_targetValidation.exact);
-    dg::gauges::Initialize(&FeatureLog,&g_localPlayerCharacter,g_targetValidation.exact);
-    dg::resource_gain::Initialize(&FeatureLog,&g_localPlayerCharacter,g_targetValidation.exact);
-    dg::ammo::Initialize(&FeatureLog,&g_localPlayerCharacter,g_targetValidation.exact);
-    dg::potions::Initialize(&FeatureLog,&g_localPlayerCharacter,g_targetValidation.exact);
+    dg::manual_gauges::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::gauges::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::resource_gain::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::ammo::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::potions::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::local_players::SetLiveObserver(&ServiceLocalGameplay);
+    dg::projectile_aim::Initialize(&FeatureLog,g_targetValidation.exact,&ProvideProjectileRotation);
+    dg::health::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::glide::Initialize(&FeatureLog,g_targetValidation.exact);
     if (!InstallFinalOutgoingDamageHook()) {
         Log("Final Pistol/Melee Damage hook unavailable; other ASI features remain active.");
     }

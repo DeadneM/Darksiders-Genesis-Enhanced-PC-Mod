@@ -2,6 +2,7 @@
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
 #include "TpsStickRoles.h"
+#include "CameraContinuity.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -12,6 +13,7 @@ namespace {
 // P1 keeps the validated single-player implementation. P2 owns this separate
 // value-only context; it cannot publish P1's mouse ray, orbit or aim telemetry.
 struct State {
+    camera_continuity::Identity identity{};
     uintptr_t local=0,character=0,camera=0;
     float yaw=0,pitch=0,baseYaw=0,arm=900,actorYaw=0,appliedYaw=0;
     bool baseValid=false,armValid=false,held=false,gameplay=false;
@@ -42,7 +44,7 @@ bool SameOwner(const State& state,const local_players::Slot& slot){
 bool Active(const State& state,ULONGLONG now){
     return runtime::Get().thirdPersonEnabled.load()&&state.gameplay&&
         state.focused&&!state.temporary&&!state.wheel&&!state.nativeForm&&
-        !(native_tps::CinematicActive()&&runtime::Get().tpsCutsceneAutoSuspend.load())&&
+        !(native_tps::CinematicActive(1)&&runtime::Get().tpsCutsceneAutoSuspend.load())&&
         state.viewTick&&now>=state.viewTick&&now-state.viewTick<300ull&&
         state.inputTick&&now>=state.inputTick&&now-state.inputTick<250ull;
 }
@@ -56,16 +58,23 @@ void ApplyView(void* camera,void* outView,const local_players::Context& owner){
     if(!local_players::ReadPose(owner,pose))return;
     const auto now=GetTickCount64();
     const bool paused=native_tps::IsWorldPaused(camera);
-    const bool cinema=native_tps::CinematicActive()&&rt.tpsCutsceneAutoSuspend.load();
+    const bool cinema=native_tps::CinematicActive(1)&&rt.tpsCutsceneAutoSuspend.load();
     auto* values=static_cast<unsigned char*>(outView);
     float native[7]{};std::memcpy(native,values,sizeof(native));
     for(float v:native)if(!std::isfinite(v))return;
     if(native[6]<1||native[6]>179)return;
     AcquireSRWLockExclusive(&g_lock);
     auto& s=g_state;
+    unsigned char characterType=255;
+    std::memcpy(&characterType,reinterpret_cast<unsigned char*>(owner.character)+0xC18,1);
+    const camera_continuity::Identity identity{owner.localPlayer,owner.world,owner.character,characterType};
     const bool changed=s.local!=owner.localPlayer||s.character!=owner.character;
     if(changed){
+        const bool swap=camera_continuity::CharacterSwap(s.identity,identity);
+        const State previous=s;
         s=State{};s.local=owner.localPlayer;s.character=owner.character;
+        if(swap){s.baseYaw=previous.baseYaw;s.baseValid=previous.baseValid;
+            s.yaw=previous.yaw;s.pitch=previous.pitch;s.arm=previous.arm;s.armValid=previous.armValid;}
         if(g_log&&++g_ownerEvents<=40){
             char line[200]{};
             sprintf_s(line,"TPS V1.45 COOP_VIEW owner=P2 character=%p localPlayer=%p controllerId=%d; private orbit/hold/aim",
@@ -73,10 +82,9 @@ void ApplyView(void* camera,void* outView,const local_players::Context& owner){
             g_log(line);
         }
     }
+    s.identity=identity;
     s.actorYaw=pose.yaw;
     s.paused=paused;s.cinema=cinema;
-    unsigned char characterType=0;
-    std::memcpy(&characterType,reinterpret_cast<unsigned char*>(owner.character)+0xC18,1);
     s.nativeForm=owner.kind==local_players::PoseKind::Ultimate&&characterType!=1;
     if(!rt.thirdPersonEnabled.load()||cinema||s.temporary){s.gameplay=false;Unlock();return;}
     if(paused){
@@ -107,7 +115,7 @@ void ApplyView(void* camera,void* outView,const local_players::Context& owner){
         pose.y-std::cos(pitch*rad)*std::sin(yaw*rad)*distance,
         pose.z-foot-std::sin(pitch*rad)*distance+height+50.0f,pitch,yaw,native[5],native[6]};
     if(rt.thirdPersonFovEnabled.load()){
-        const float fov=rt.thirdPersonFovDegrees.load();
+        const float fov=rt.thirdPersonCoopFovDegrees.load();
         if(std::isfinite(fov)&&fov>=40&&fov<=140)outgoing[6]=fov;
     }
     for(float v:outgoing)if(!std::isfinite(v)){s.gameplay=false;Unlock();return;}
@@ -211,5 +219,13 @@ bool AdjustLook(void* actor,float& a,float& b,float& c,bool rotation){
         a=0;b=rotation?std::remainder(s.actorYaw,360.0f):0;c=0;
     }
     return true;
+}
+bool ShotRotation(const local_players::Context& owner,float& pitch,float& yaw){
+    const auto slot=local_players::PublishedSlot(1);
+    AcquireSRWLockExclusive(&g_lock);const State s=g_state;Unlock();
+    if(owner.index!=1||owner.character!=s.character||owner.localPlayer!=s.local||
+       !SameOwner(s,slot)||!Active(s,GetTickCount64())||!s.fire||
+       runtime::Get().tpsMountedAimMode.load()!=0)return false;
+    pitch=s.heldView[3];yaw=s.appliedYaw;return std::isfinite(pitch)&&std::isfinite(yaw);
 }
 }

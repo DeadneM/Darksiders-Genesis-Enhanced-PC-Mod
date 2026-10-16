@@ -371,6 +371,9 @@ void Store::ResetDefaults(bool persist) {
     unlimitedSynergyEnabled = false;
     reduceAmmoEnabled = defaults::ReduceAmmo;unlimitedAmmoEnabled = false;ammoConsumptionDivisor = 2.0f;
     potionRechargeEnabled=false;unlimitedPotionsEnabled=false;potionRechargeMultiplier=2.0f;
+    unlimitedHealthEnabled=false;
+    unlimitedGlideEnabled=false;
+    unlimitedHorseSprintEnabled=false;
 
     movementSpeedMultiplier = 1.50f;
     actionRecoveryDelayMs = 0.0f;
@@ -385,6 +388,7 @@ void Store::ResetDefaults(bool persist) {
     horseSprintDurationMultiplier = 5.00f;
     fovDegrees = 90.0f;
     thirdPersonFovDegrees = 110.0f;
+    thirdPersonCoopFovDegrees = 110.0f;
     cameraZoomPercent = 0.0f;
     cameraPitchDegrees = 0.0f;
     cameraYawDegrees = 0.0f;
@@ -483,6 +487,7 @@ void Store::ResetVanillaCameraValues() {
 void Store::ResetTpsCameraValues() {
     thirdPersonFovEnabled=true;
     thirdPersonFovDegrees=110.0f;
+    thirdPersonCoopFovDegrees=110.0f;
     thirdPersonDistanceMultiplier=0.15f;
     thirdPersonPitchDegrees=-12.0f;
     thirdPersonHeightOffset=0.0f;
@@ -496,7 +501,7 @@ void Store::ResetTpsCameraValues() {
     dg::runtime::Get().cameraOrbitPitchDegrees.store(0.0f);
     Save();
     char message[320]{};
-    sprintf_s(message,"TPS Camera Values Default: TPS FOV 110, distance .15, pitch -12, height 0; Ultimate distance %.2f, height %.0f; Horse distance %.2f, height %.0f; foot 0, speed 180",
+    sprintf_s(message,"TPS Camera Values Default: solo/coop TPS FOV 110, distance .15, pitch -12, height 0; Ultimate distance %.2f, height %.0f; Horse distance %.2f, height %.0f; foot 0, speed 180",
         tpsUltimateDistanceMultiplier,tpsUltimateHeightOffset,tpsHorseDistanceMultiplier,tpsHorseHeightOffset);
     Log(message);
 }
@@ -563,6 +568,9 @@ bool Store::Load() {
     unlimitedAmmoEnabled=ReadBool(L"Features",L"UnlimitedAmmo",false,path_);
     potionRechargeEnabled=ReadBool(L"Features",L"PotionRecharge",false,path_);
     unlimitedPotionsEnabled=ReadBool(L"Features",L"UnlimitedPotions",false,path_);
+    unlimitedHealthEnabled=ReadBool(L"Features",L"UnlimitedHealth",false,path_);
+    unlimitedGlideEnabled=ReadBool(L"Features",L"UnlimitedGlide",false,path_);
+    unlimitedHorseSprintEnabled=ReadBool(L"Features",L"UnlimitedHorseSprint",false,path_);
     potionRechargeMultiplier=std::clamp(ReadFloat(L"Values",L"PotionRechargeMultiplier",2.0f,path_),1.0f,100.0f);
     ammoConsumptionDivisor=std::clamp(ReadFloat(L"Values",L"AmmoConsumptionDivisor",2.0f,path_),0.0f,10.0f);
     thirdPersonEnabled =
@@ -668,6 +676,10 @@ bool Store::Load() {
     thirdPersonFovDegrees=ReadFloat(L"Values",L"TPSFOVDegrees",110.0f,path_);
     if(!std::isfinite(thirdPersonFovDegrees))thirdPersonFovDegrees=110.0f; // Match TPS canonical default.
     thirdPersonFovDegrees=std::clamp(thirdPersonFovDegrees,40.0f,140.0f);
+    // Preserve the personal FOV when an existing INI has no separate coop value.
+    thirdPersonCoopFovDegrees=ReadFloat(L"Values",L"TPSCoopFOVDegrees",thirdPersonFovDegrees,path_);
+    if(!std::isfinite(thirdPersonCoopFovDegrees))thirdPersonCoopFovDegrees=thirdPersonFovDegrees;
+    thirdPersonCoopFovDegrees=std::clamp(thirdPersonCoopFovDegrees,40.0f,140.0f);
     cameraZoomPercent =
         ReadFloat(L"Values", L"CameraZoomPercent", 0.0f, path_);
     cameraPitchDegrees =
@@ -906,10 +918,14 @@ void Store::PublishRuntime() const {
     runtime.ammoConsumptionDivisor = ammoConsumptionDivisor;
     runtime.potionRechargeEnabled = potionRechargeEnabled;
     runtime.unlimitedPotionsEnabled = unlimitedPotionsEnabled;
+    runtime.unlimitedHealthEnabled = unlimitedHealthEnabled;
+    runtime.unlimitedGlideEnabled = unlimitedGlideEnabled;
+    runtime.unlimitedHorseSprintEnabled = unlimitedHorseSprintEnabled;
     runtime.potionRechargeMultiplier = potionRechargeMultiplier;
 
     runtime.fovDegrees = fovDegrees;
     runtime.thirdPersonFovDegrees = thirdPersonFovDegrees;
+    runtime.thirdPersonCoopFovDegrees = thirdPersonCoopFovDegrees;
     runtime.cameraZoomPercent = cameraZoomPercent;
     runtime.cameraPitchDegrees = cameraPitchDegrees;
     runtime.cameraYawDegrees = cameraYawDegrees;
@@ -994,6 +1010,9 @@ bool Store::SaveNow() {
     WriteBool(L"Features",L"UnlimitedAmmo",unlimitedAmmoEnabled,path_);
     WriteBool(L"Features",L"PotionRecharge",potionRechargeEnabled,path_);
     WriteBool(L"Features",L"UnlimitedPotions",unlimitedPotionsEnabled,path_);
+    WriteBool(L"Features",L"UnlimitedHealth",unlimitedHealthEnabled,path_);
+    WriteBool(L"Features",L"UnlimitedGlide",unlimitedGlideEnabled,path_);
+    WriteBool(L"Features",L"UnlimitedHorseSprint",unlimitedHorseSprintEnabled,path_);
     WriteFloat(L"Values",L"PotionRechargeMultiplier",potionRechargeMultiplier,path_);
     WriteFloat(L"Values",L"AmmoConsumptionDivisor",ammoConsumptionDivisor,path_);
     WriteBool(L"Features", L"ThirdPerson", thirdPersonEnabled, path_);
@@ -1112,6 +1131,7 @@ bool Store::SaveNow() {
     WriteFloat(L"Values", L"HorseSprintDurationMultiplier", horseSprintDurationMultiplier, path_);
     WriteFloat(L"Values", L"FOVDegrees", fovDegrees, path_);
     WriteFloat(L"Values",L"TPSFOVDegrees",thirdPersonFovDegrees,path_);
+    WriteFloat(L"Values",L"TPSCoopFOVDegrees",thirdPersonCoopFovDegrees,path_);
     for(const wchar_t* key : { L"TPSCombatAimTurnRate",L"TPSAimYawOffsetDegrees",
         L"TPSFacingToleranceDegrees" })
         WriteProfileString(L"Values",key,nullptr,path_.c_str());

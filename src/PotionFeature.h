@@ -11,10 +11,10 @@ struct Telemetry {
     Result result=Result::Idle;
     uint32_t refills=0,holds=0,rateCalls=0;
 };
-void Initialize(LogFn,std::atomic<void*>* localPlayer,bool exactExecutable);
-void OnLivePlayer(void*,uint32_t generation);
+void Initialize(LogFn,bool exactExecutable);
+void OnLivePlayer(void*,uint32_t generation,void* livePlayerState=nullptr);
 bool RequestRefill();
 void CancelRequest();
-Telemetry GetTelemetry();
+Telemetry GetTelemetry(unsigned index=0);
 void Shutdown();
 }

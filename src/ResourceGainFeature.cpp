@@ -1,4 +1,5 @@
 #include "ResourceGainFeature.h"
+#include "LocalPlayerOwnership.h"
 #include "ResourceGainPolicy.h"
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
@@ -17,12 +18,11 @@ std::atomic_bool g_ready[2]{};
 std::atomic_uint32_t g_observed[2]{},g_positive[2]{},g_boosted[2]{};
 LogFn g_log=nullptr;
 uintptr_t g_base=0;
-std::atomic<void*>* g_local=nullptr;
+
 // Written/read on the sampled game thread only. Identities are compared;
 // cached actor/resource pointers are NEVER dereferenced.
-uintptr_t g_actor=0,g_resource=0;
-uint32_t g_generation=0;
-uint64_t g_observedAt=0;
+struct PlayerResource {uintptr_t actor=0,resource=0;uint32_t generation=0;uint64_t observedAt=0;};
+PlayerResource g_players[2]{};
 bool Readable(const void* p,size_t count){
     MEMORY_BASIC_INFORMATION m{};
     if(!p||!VirtualQuery(p,&m,sizeof(m))||m.State!=MEM_COMMIT||
@@ -52,20 +52,27 @@ bool ResourceType(void* resource){
 float Set(unsigned gauge,void* resource,float requested,uintptr_t caller){
     if(!g_original[gauge])return requested;
     ++g_observed[gauge];
+    if(!dg::native_tps::OnGameThread())return g_original[gauge](resource,requested);
     float before=0,maximum=0,bonus=0;
     float effective=requested;
     bool eligible=false;
     const auto now=GetTickCount64();
     auto& rt=dg::runtime::Get();
+    PlayerResource* player=nullptr;unsigned playerIndex=0;
+    for(unsigned i=0;i<2;++i){
+        auto& candidate=g_players[i];
+        if(reinterpret_cast<uintptr_t>(resource)==candidate.resource&&
+           dg::local_players::Matches(i,candidate.actor,candidate.generation)){
+            player=&candidate;playerIndex=i;break;
+        }
+    }
     // Native reward callsites only. This categorically excludes manual
     // refill and the old Add hooks, preventing both double boosts and any
     // change to the user's validated explicit gauge percentages.
     if(RewardCaller(gauge,caller)&&dg::native_tps::OnGameThread()&&
-       now>=g_observedAt&&now-g_observedAt<500&&g_actor&&
-       g_local&&reinterpret_cast<uintptr_t>(g_local->load(std::memory_order_acquire))==g_actor&&
-       rt.tpsActorGeneration.load()==g_generation&&
-       reinterpret_cast<uintptr_t>(resource)==g_resource&&ResourceType(resource)&&
-       !dg::native_tps::CinematicActive()){
+       player&&now>=player->observedAt&&now-player->observedAt<500&&
+       ResourceType(resource)&&
+       !dg::native_tps::CinematicActive(playerIndex)){
         unsigned char role=0;
         const size_t current=gauge==0?0x3A0:0x3A8,cap=gauge==0?0x3A4:0x3AC;
         eligible=Read(resource,0x118,role)&&role==3&&Read(resource,current,before)&&
@@ -87,7 +94,7 @@ float Set(unsigned gauge,void* resource,float requested,uintptr_t caller){
         char line[360]{};
         sprintf_s(line,"Gauge V1.37 NATIVE_REWARD gauge=%s n=%u callerRVA=0x%llX before=%.4f nativeRequested=%.4f effective=%.4f actual=%.4f max=%.4f actor=%p resource=%p manual=0 gameplay=EXPERIMENTAL",
             gauge==0?"WRATH":"ULTIMATE",n,static_cast<unsigned long long>(caller),
-            before,requested,effective,result,maximum,reinterpret_cast<void*>(g_actor),resource);
+            before,requested,effective,result,maximum,reinterpret_cast<void*>(player?player->actor:0),resource);
         g_log(line);
     }
     return result;
@@ -99,8 +106,8 @@ float HookChaos(void* resource,float requested){
     return Set(1,resource,requested,reinterpret_cast<uintptr_t>(_ReturnAddress())-g_base);
 }
 }
-void Initialize(LogFn logger,std::atomic<void*>* localPlayer,bool exactExecutable){
-    g_log=logger;g_local=localPlayer;
+void Initialize(LogFn logger,bool exactExecutable){
+    g_log=logger;
     if(!exactExecutable)return;
     g_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     const unsigned char entry[]={0x40,0x53,0x48,0x83,0xEC,0x40,0x0F,0x29,0x74,0x24,0x30,0x48,0x8B,0xD9,0x0F,0x29};
@@ -143,13 +150,15 @@ void Initialize(LogFn logger,std::atomic<void*>* localPlayer,bool exactExecutabl
             g_ready[0].load()?1:0,g_ready[1].load()?1:0);g_log(line);}
 }
 void OnLivePlayer(void* actor,uint32_t generation){
-    if((!g_ready[0].load()&&!g_ready[1].load())||!actor||!g_local||
-       g_local->load()!=actor||!dg::native_tps::OnGameThread())return;
+    if((!g_ready[0].load()&&!g_ready[1].load())||!actor||!dg::native_tps::OnGameThread())return;
+    dg::local_players::Slot slot{};
+    const int index=dg::local_players::FindCharacter(actor,&slot);
+    if(index<0||slot.generation!=generation)return;
+    auto& player=g_players[index];
     void* resource=nullptr;
     if(Read(actor,0xEA0,resource)&&ResourceType(resource)){
-        g_actor=reinterpret_cast<uintptr_t>(actor);g_resource=reinterpret_cast<uintptr_t>(resource);
-        g_generation=generation;g_observedAt=GetTickCount64();
-    }else{g_actor=0;g_resource=0;g_observedAt=0;}
+        player={reinterpret_cast<uintptr_t>(actor),reinterpret_cast<uintptr_t>(resource),generation,GetTickCount64()};
+    }else{player={};}
 }
 Telemetry GetTelemetry(){
     Telemetry t{};

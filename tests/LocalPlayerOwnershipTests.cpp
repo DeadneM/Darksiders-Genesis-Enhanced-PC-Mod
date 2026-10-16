@@ -20,7 +20,8 @@ struct Graph {
         if(it==fields.end()||it->second.size()!=sizeof(T))return false;
         std::memcpy(&value,it->second.data(),sizeof(T));return true;
     }
-    bool Instance(uintptr_t object,uintptr_t type){const auto it=types.find(object);return it!=types.end()&&it->second==type;}
+    bool Instance(uintptr_t object,uintptr_t type){const auto it=types.find(object);return it!=types.end()&&
+        (it->second==type||(type==layout::CameraClass&&it->second==layout::PlayerCameraClass));}
 };
 constexpr uintptr_t World=0x100000,Level=0x110000,Instance=0x120000,Array=0x130000;
 constexpr uintptr_t P0=0x200000,P1=0x300000;
@@ -89,14 +90,38 @@ void Run(){
     g.types[horse]=layout::HorseClass;g.Put(horse,0x348,PC(P1));g.Put(horse,0x330,State(P1));g.Put(horse,0x20,Level);g.Put(PC(P1),0x350,horse);
     Check(layout::Camera(g,Camera(P1),b)&&b.kind==PoseKind::Horse&&b.pawn==horse&&b.index==1,"own possessed horse supplies pose");
     Check(layout::Resolve(g,horse,b)&&b.index==1,"live horse ownership is reciprocal");
+    constexpr uintptr_t horseCamera=0x680000;
+    g.types[horseCamera]=layout::PlayerCameraClass;g.Put(horseCamera,0x20,horse);g.Put(horseCamera,0xF0,World);
+    Check(layout::Camera(g,horseCamera,b)&&b.pawn==horse&&b.index==1,"native camera owned by the current horse remains gameplay");
     g.Put(P1,0x330,uintptr_t(0));g.Put(P1,0x348,uintptr_t(0));
     Check(layout::Camera(g,Camera(P1),b)&&b.pawn==horse&&b.index==1,"normal pawn unpossessed during mounting remains owned");
     g=Coop();constexpr uintptr_t form=0x700000;
     g.types[form]=layout::FormClass;g.Put(form,0x330,State(P1));g.Put(form,0x20,Level);g.Put(P1,0xE78,form);
     Check(layout::Camera(g,Camera(P1),b)&&b.kind==PoseKind::Ultimate&&b.pawn==form,"own ultimate form while normal pawn retained");
     Check(layout::Resolve(g,form,b)&&b.index==1,"ultimate look actor maps to its local player");
+    constexpr uintptr_t formCamera=0x780000;
+    g.types[formCamera]=layout::PlayerCameraClass;g.Put(formCamera,0x20,form);g.Put(formCamera,0xF0,World);
+    Check(layout::Camera(g,formCamera,b)&&b.kind==PoseKind::Ultimate&&b.index==1,"native camera owned by reciprocal active form remains gameplay");
     g.Put(form,0x330,State(P0));
     Check(layout::Camera(g,Camera(P1),b)&&b.kind==PoseKind::Foot&&b.pawn==P1,"another player's form cannot supply the pose");
+    g=Coop();constexpr uintptr_t manager0=0xB00000,manager1=0xC00000,scene=0xD00000;
+    for(const auto p:{P0,P1}){
+        const auto m=p==P0?manager0:manager1;
+        g.types[m]=layout::ManagerClass;g.Put(PC(p),0x3B8,m);g.Put(m,0x310,PC(p));
+        g.Put(m,0xEA0,p);g.Put(m,0x1440,uintptr_t(0));
+    }
+    Check(layout::View(g,Camera(P0),0)==NativeView::Gameplay&&layout::View(g,Camera(P0),1)==NativeView::Gameplay,"pause/wheels on native player view are gameplay");
+    g.types[scene]=layout::CameraActorClass;g.Put(scene,0x108,uintptr_t(0));
+    g.Put(manager1,0x1440,scene);
+    Check(layout::View(g,Camera(P0),0)==NativeView::Gameplay&&layout::View(g,Camera(P0),1)==NativeView::ExternalCamera,"P2 scene blend does not suspend P1");
+    g.Put(manager1,0xEA0,scene);g.Put(manager1,0x1440,P1);
+    Check(layout::View(g,Camera(P0),1)==NativeView::ExternalCamera,"return blend retains external camera until native handoff");
+    g.Put(manager1,0xEA0,P1);g.Put(manager1,0x1440,uintptr_t(0));
+    Check(layout::View(g,Camera(P0),1)==NativeView::Gameplay,"native handoff resumes gameplay immediately without angle/distance heuristic");
+    g.Put(scene,0x108,manager1);g.Put(manager1,0xEA0,scene);
+    Check(layout::View(g,Camera(P0),1)==NativeView::Gameplay,"manager-owned fallback is not a cutscene");
+    g.Put(manager1,0x310,PC(P0));
+    Check(layout::View(g,Camera(P0),1)==NativeView::Unknown,"mismatched camera manager cannot prove a scene");
 }
 }
 int main(){try{Run();std::cout<<"Native local-player ownership/respawn/isolation checks passed\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

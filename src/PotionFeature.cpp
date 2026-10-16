@@ -1,4 +1,5 @@
 #include "PotionFeature.h"
+#include "LocalPlayerOwnership.h"
 #include "PotionPolicy.h"
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
@@ -18,19 +19,18 @@ Consume g_consume=nullptr;
 Maximum g_maximum=nullptr;
 Add g_add=nullptr;
 LogFn g_log=nullptr;
-std::atomic<void*>* g_local=nullptr;
-uintptr_t g_base=0,g_actor=0,g_holder=0;
-uint32_t g_generation=0;
-uint64_t g_observed=0;
+uintptr_t g_base=0;
+struct PlayerPotions {
+    uintptr_t actor=0,holder=0,requestActor=0,viewActor=0;
+    uint32_t generation=0,requestGeneration=0,viewGeneration=0;
+    uint64_t observed=0,requestTime=0,viewTime=0;
+    Telemetry view{};
+};
+PlayerPotions g_players[2]{};
 std::atomic_bool g_ready{false};
 std::atomic_uint32_t g_holds{0},g_rates{0};
 SRWLOCK g_lock=SRWLOCK_INIT;
-Telemetry g_view{};
-uintptr_t g_requestActor=0;
-uint32_t g_requestGeneration=0;
-uint64_t g_requestTime=0,g_viewTime=0;
-uintptr_t g_viewActor=0;
-uint32_t g_viewGeneration=0;
+
 bool Readable(const void* p,size_t n){
     MEMORY_BASIC_INFORMATION m{};
     if(!p||!n||!VirtualQuery(p,&m,sizeof(m))||m.State!=MEM_COMMIT||
@@ -62,14 +62,16 @@ bool Holder(void* holder,void* actor){
         Read(holder,0x118,role)&&role==3;
 }
 bool Context(void* holder){
-    if(!g_ready.load(std::memory_order_acquire)||!dg::native_tps::OnGameThread()||
-       !g_local||dg::native_tps::CinematicActive())return false;
+    if(!g_ready.load(std::memory_order_acquire)||!dg::native_tps::OnGameThread())return false;
     const auto now=GetTickCount64();
-    void* actor=g_local->load(std::memory_order_acquire);
-    return actor&&reinterpret_cast<uintptr_t>(actor)==g_actor&&
-        reinterpret_cast<uintptr_t>(holder)==g_holder&&
-        dg::runtime::Get().tpsActorGeneration.load()==g_generation&&
-        now>=g_observed&&now-g_observed<1500&&Holder(holder,actor);
+    for(unsigned i=0;i<2;++i){
+        const auto& player=g_players[i];
+        if(!dg::native_tps::CinematicActive(i)&&reinterpret_cast<uintptr_t>(holder)==player.holder&&
+           dg::local_players::Matches(i,player.actor,player.generation)&&
+           now>=player.observed&&now-player.observed<1500&&
+           Holder(holder,reinterpret_cast<void*>(player.actor)))return true;
+    }
+    return false;
 }
 float HookThreshold(void* holder){
     const float native=g_threshold(holder);
@@ -99,8 +101,8 @@ int HookConsume(void* holder,int amount){
     return g_consume(holder,effective);
 }
 }
-void Initialize(LogFn logger,std::atomic<void*>* localPlayer,bool exact){
-    g_log=logger;g_local=localPlayer;
+void Initialize(LogFn logger,bool exact){
+    g_log=logger;
     if(!exact)return;
     g_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     struct Guard {uintptr_t rva;unsigned char bytes[16];};
@@ -133,29 +135,32 @@ void Initialize(LogFn logger,std::atomic<void*>* localPlayer,bool exact){
     g_ready.store(true,std::memory_order_release);
     if(g_log)g_log("Potion V1.44 ready: HEALTH reserve only; native cap/add/overflow threshold and cost; no key-specific patch; EXPERIMENTAL");
 }
-void OnLivePlayer(void* actor,uint32_t generation){
-    if(!g_ready.load(std::memory_order_acquire)||!actor||!g_local||g_local->load()!=actor||
-       !dg::native_tps::OnGameThread())return;
+void OnLivePlayer(void* actor,uint32_t generation,void* livePlayerState){
+    if(!g_ready.load(std::memory_order_acquire)||!actor||!dg::native_tps::OnGameThread())return;
+    dg::local_players::Slot slot{};
+    const int index=dg::local_players::FindCharacter(actor,&slot);
+    if(index<0||slot.generation!=generation)return;
+    auto& player=g_players[index];
     static thread_local bool processing=false;
     if(processing)return;
     processing=true;
     struct Done {bool& active;~Done(){active=false;}} done{processing};
     const auto now=GetTickCount64();
-    if(g_actor==reinterpret_cast<uintptr_t>(actor)&&g_generation==generation&&now>=g_observed&&now-g_observed<100)return;
-    void* holder=nullptr;void* data=nullptr;int current=0;
-    if(!Read(actor,0x330,holder)||!Holder(holder,actor)||!Read(holder,0x580,data)||
+    if(player.actor==reinterpret_cast<uintptr_t>(actor)&&player.generation==generation&&now>=player.observed&&now-player.observed<100)return;
+    void* holder=livePlayerState;void* data=nullptr;int current=0;
+    if((!holder&&!Read(actor,0x330,holder))||!Holder(holder,actor)||!Read(holder,0x580,data)||
        !Read(data,0xC,current)||current<0||current>100)return;
     const int maximum=g_maximum(holder);
     if(maximum<=0||maximum>100)return;
-    g_actor=reinterpret_cast<uintptr_t>(actor);g_holder=reinterpret_cast<uintptr_t>(holder);
-    g_generation=generation;g_observed=now;
-    const bool gameplay=!dg::native_tps::CinematicActive()&&!dg::native_tps::IsWorldPaused(actor);
+    player.actor=reinterpret_cast<uintptr_t>(actor);player.holder=reinterpret_cast<uintptr_t>(holder);
+    player.generation=generation;player.observed=now;
+    const bool gameplay=!dg::native_tps::CinematicActive(unsigned(index))&&!dg::native_tps::IsWorldPaused(actor);
     bool refill=false;
     AcquireSRWLockExclusive(&g_lock);
-    if(g_requestActor){
-        if(g_requestActor!=g_actor||g_requestGeneration!=generation||now<g_requestTime||now-g_requestTime>5000){
-            g_requestActor=0;g_view.pending=false;g_view.result=Result::Cancelled;
-        }else if(gameplay){refill=true;g_requestActor=0;g_view.pending=false;}
+    if(player.requestActor){
+        if(player.requestActor!=player.actor||player.requestGeneration!=generation||now<player.requestTime||now-player.requestTime>5000){
+            player.requestActor=0;player.view.pending=false;player.view.result=Result::Cancelled;
+        }else if(gameplay){refill=true;player.requestActor=0;player.view.pending=false;}
     }
     ReleaseSRWLockExclusive(&g_lock);
     const bool unlimited=dg::runtime::Get().unlimitedPotionsEnabled.load();
@@ -167,36 +172,45 @@ void OnLivePlayer(void* actor,uint32_t generation){
             char line[220]{};sprintf_s(line,"Potion V1.44 REFILL before=%d max=%d added=%d after=%d matches=%d generation=%u",current,maximum,add,after,ok?1:0,generation);g_log(line);
         }
         if(ok)current=after;
-        if(refill){AcquireSRWLockExclusive(&g_lock);g_view.result=ok?Result::Applied:Result::Rejected;if(ok)++g_view.refills;ReleaseSRWLockExclusive(&g_lock);}
+        if(refill){AcquireSRWLockExclusive(&g_lock);player.view.result=ok?Result::Applied:Result::Rejected;if(ok)++player.view.refills;ReleaseSRWLockExclusive(&g_lock);}
     }
     float overflow=0;Read(data,0x10,overflow);
     const float threshold=g_threshold(holder); // unmodified native scale for telemetry
     AcquireSRWLockExclusive(&g_lock);
-    g_view.supported=true;g_view.available=true;g_view.current=current;g_view.maximum=maximum;
-    g_view.overflow=overflow;g_view.nativeThreshold=threshold;g_viewTime=now;
-    g_viewActor=g_actor;g_viewGeneration=generation;
+    player.view.supported=true;player.view.available=true;player.view.current=current;player.view.maximum=maximum;
+    player.view.overflow=overflow;player.view.nativeThreshold=threshold;player.viewTime=now;
+    player.viewActor=player.actor;player.viewGeneration=generation;
     ReleaseSRWLockExclusive(&g_lock);
 }
 bool RequestRefill(){
-    const auto now=GetTickCount64();bool ok=false;
+    const auto now=GetTickCount64();bool queued=false;
     AcquireSRWLockExclusive(&g_lock);
-    if(g_ready.load()&&g_view.available&&!g_requestActor&&g_viewTime&&now>=g_viewTime&&now-g_viewTime<1500){
-        // Identity snapshots are stored under the same lock as the UI sample.
-        g_requestActor=g_viewActor;g_requestGeneration=g_viewGeneration;g_requestTime=now;
-        g_view.pending=true;g_view.result=Result::Queued;ok=true;
+    for(unsigned i=0;i<2;++i){
+        auto& player=g_players[i];
+        if(g_ready.load()&&player.view.available&&!player.requestActor&&player.viewTime&&
+           now>=player.viewTime&&now-player.viewTime<1500&&
+           dg::local_players::Matches(i,player.viewActor,player.viewGeneration)){
+            player.requestActor=player.viewActor;player.requestGeneration=player.viewGeneration;player.requestTime=now;
+            player.view.pending=true;player.view.result=Result::Queued;queued=true;
+        }
     }
-    ReleaseSRWLockExclusive(&g_lock);return ok;
+    ReleaseSRWLockExclusive(&g_lock);return queued;
 }
 void CancelRequest(){
-    AcquireSRWLockExclusive(&g_lock);g_requestActor=0;g_view.pending=false;g_view.result=Result::Cancelled;ReleaseSRWLockExclusive(&g_lock);
+    AcquireSRWLockExclusive(&g_lock);
+    for(auto& player:g_players){player.requestActor=0;player.view.pending=false;player.view.result=Result::Cancelled;}
+    ReleaseSRWLockExclusive(&g_lock);
 }
-Telemetry GetTelemetry(){
-    AcquireSRWLockShared(&g_lock);Telemetry t=g_view;const auto now=GetTickCount64();
-    t.supported=g_ready.load();t.available=t.available&&now>=g_viewTime&&now-g_viewTime<1500;
+Telemetry GetTelemetry(unsigned index){
+    AcquireSRWLockShared(&g_lock);
+    Telemetry t=index<2?g_players[index].view:Telemetry{};const auto now=GetTickCount64();
+    t.supported=g_ready.load();
+    t.available=index<2&&t.available&&now>=g_players[index].viewTime&&now-g_players[index].viewTime<1500&&
+        dg::local_players::Matches(index,g_players[index].viewActor,g_players[index].viewGeneration);
     ReleaseSRWLockShared(&g_lock);t.holds=g_holds.load();t.rateCalls=g_rates.load();return t;
 }
 void Shutdown(){
     g_ready.store(false);CancelRequest();
-    if(g_log){const auto t=GetTelemetry();char line[180]{};sprintf_s(line,"Potion V1.44 totals refills=%u unlimitedCosts=%u rechargeThresholds=%u gameplayValidation=USER_REQUIRED",t.refills,t.holds,t.rateCalls);g_log(line);}
+    if(g_log){auto t=GetTelemetry(0);t.refills+=GetTelemetry(1).refills;char line[180]{};sprintf_s(line,"Potion V1.44 totals refills=%u unlimitedCosts=%u rechargeThresholds=%u gameplayValidation=USER_REQUIRED",t.refills,t.holds,t.rateCalls);g_log(line);}
 }
 }

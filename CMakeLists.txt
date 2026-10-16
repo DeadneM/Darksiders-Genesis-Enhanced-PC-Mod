@@ -11,6 +11,23 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(GlideAndHorseTests tests/GlideAndHorseTests.cpp src/RuntimeSettings.cpp)
+  target_include_directories(GlideAndHorseTests PRIVATE tests/stubs src)
+  target_compile_definitions(GlideAndHorseTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  add_test(NAME GlideAndHorse COMMAND GlideAndHorseTests)
+  add_executable(SustainConfigTests tests/SustainConfigTests.cpp src/ConfigStore.cpp src/RuntimeSettings.cpp)
+  target_include_directories(SustainConfigTests PRIVATE src)
+  target_compile_definitions(SustainConfigTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  target_link_libraries(SustainConfigTests PRIVATE user32)
+  add_test(NAME SustainConfig COMMAND SustainConfigTests)
+  add_executable(ProjectileSpawnTests tests/ProjectileSpawnTests.cpp)
+  target_include_directories(ProjectileSpawnTests PRIVATE tests/stubs src)
+  target_compile_definitions(ProjectileSpawnTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  add_test(NAME ProjectileSpawn COMMAND ProjectileSpawnTests)
+  add_executable(LocalGameplayIsolationTests tests/LocalGameplayIsolationTests.cpp src/RuntimeSettings.cpp)
+  target_include_directories(LocalGameplayIsolationTests PRIVATE tests/stubs src)
+  target_compile_definitions(LocalGameplayIsolationTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  add_test(NAME LocalGameplayIsolation COMMAND LocalGameplayIsolationTests)
   add_executable(LocalPlayerOwnershipTests tests/LocalPlayerOwnershipTests.cpp)
   target_include_directories(LocalPlayerOwnershipTests PRIVATE src)
   add_test(NAME LocalPlayerOwnership COMMAND LocalPlayerOwnershipTests)
@@ -169,6 +186,9 @@ set_source_files_properties("${DG_UPDATER_RC}" PROPERTIES OBJECT_DEPENDS "${DG_H
 
 add_library(DarksidersGenesisMod SHARED
   src/NativeTpsFeature.cpp
+  src/ProjectileAimFeature.cpp
+  src/HealthFeature.cpp
+  src/GlideFeature.cpp
   src/CameraTraceFeature.cpp
   src/LocalPlayerOwnership.cpp
   src/CoopCameraFeature.cpp

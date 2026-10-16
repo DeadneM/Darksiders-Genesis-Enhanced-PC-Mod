@@ -458,6 +458,10 @@ void ApplySlotLocked(HorseSlot& slot) {
                     : slot.nativeStaminaSprintRate / durationMultiplier;
         }
 
+        dg::local_players::Context rider{};
+        if(dg::runtime::Get().unlimitedHorseSprintEnabled.load()&&
+           dg::local_players::ResolveActor(slot.horse,rider))targetSprintRate=0.0f;
+
         if (WriteFloat(
                 slot.horse,
                 kStaminaSprintRateOffset,
@@ -935,6 +939,9 @@ bool IsLiveLocalPlayerForHorseRegion(void* actor){
     if(!actor)return false;
     const auto& rt=dg::runtime::Get();
     if(!rt.horseEverywhereEnabled.load(std::memory_order_relaxed))return false;
+    dg::local_players::Context local{};
+    if(dg::local_players::ResolveActor(actor,local)&&
+       local.character==reinterpret_cast<uintptr_t>(actor))return true;
     if(actor!=g_lastLocalPlayerIdentity.load(std::memory_order_acquire))
         return false;
     const auto at=g_lastLocalPlayerTick.load(std::memory_order_acquire);

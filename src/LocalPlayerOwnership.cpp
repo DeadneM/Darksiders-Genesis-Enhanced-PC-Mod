@@ -1,5 +1,6 @@
 #include "LocalPlayerOwnership.h"
 #include "LocalPlayerLayout.h"
+#include "NativeTpsFeature.h"
 #include <windows.h>
 #include <atomic>
 #include <cmath>
@@ -14,6 +15,11 @@ LogFn g_log=nullptr;
 SRWLOCK g_lock=SRWLOCK_INIT;
 Slot g_slots[2]{};
 unsigned g_changes=0;
+std::atomic<LiveObserver> g_observer{nullptr};
+std::atomic<NativeView> g_views[2]{};
+std::atomic_ullong g_viewTicks[2]{};
+std::atomic_int g_localCount{0};
+std::atomic_ullong g_localCountTick{0};
 bool Readable(const void* p,size_t bytes){
     MEMORY_BASIC_INFORMATION m{};
     if(!p||!VirtualQuery(p,&m,sizeof(m))||m.State!=MEM_COMMIT||
@@ -49,9 +55,18 @@ void Publish(const Context& context){
     auto& slot=g_slots[context.index];
     const bool changed=slot.localPlayer!=context.localPlayer||
         slot.character!=context.character||slot.controllerId!=context.controllerId;
-    slot={context.localPlayer,context.character,context.controllerId,GetTickCount64()};
+    const bool identityChanged=slot.localPlayer!=context.localPlayer||
+        slot.character!=context.character||slot.playerState!=context.playerState;
+    auto generation=slot.generation+(identityChanged?1u:0u);
+    if(!generation)generation=1;
+    slot={context.localPlayer,context.character,context.controllerId,GetTickCount64(),generation,context.playerState};
     // A verified one-player world invalidates an old coop input lease.
-    if(context.localCount==1)g_slots[1]=Slot{};
+    if(context.localCount==1){
+        const auto generation=g_slots[1].generation;
+        g_slots[1]=Slot{};g_slots[1].generation=generation;
+    }
+    g_localCount.store(context.localCount);
+    g_localCountTick.store(GetTickCount64(),std::memory_order_release);
     if(changed&&g_log&&++g_changes<=80){
         char line[260]{};
         sprintf_s(line,"TPS V1.45 LOCAL_OWNER index=%d controllerId=%d localPlayer=%p controller=%p character=%p pawn=%p count=%d",
@@ -91,10 +106,46 @@ bool ResolveActor(void* actor,Context& context){
     Publish(context);return true;
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}
+void SetLiveObserver(LiveObserver observer){g_observer.store(observer,std::memory_order_release);}
+void ObserveGameplay(const Context& context){
+    if(!dg::native_tps::OnGameThread()||context.index<0||context.index>1)return;
+    const auto slot=PublishedSlot(static_cast<unsigned>(context.index));
+    const auto observer=g_observer.load(std::memory_order_acquire);
+    if(observer&&slot.localPlayer==context.localPlayer&&slot.character==context.character)
+        observer(context,slot.generation);
+}
 bool ResolveCamera(void* camera,Context& context){
     Reader r;
     if(!g_ready||!layout::Camera(r,reinterpret_cast<uintptr_t>(camera),context))return false;
     Publish(context);return true;
+}
+void ObserveCameraViews(void* camera){
+    if(!g_ready||!dg::native_tps::OnGameThread())return;
+    Reader reader;uintptr_t world=0;
+    if(!reader.Read(reinterpret_cast<uintptr_t>(camera),0xF0,world)||
+       !reader.Instance(world,layout::WorldClass))return;
+    int count=0;
+    const NativeView observed[]={layout::View(reader,reinterpret_cast<uintptr_t>(camera),0,&count),
+        layout::View(reader,reinterpret_cast<uintptr_t>(camera),1)};
+    if(count){g_localCount.store(count);g_localCountTick.store(GetTickCount64(),std::memory_order_release);}
+    if(observed[0]==NativeView::Unknown&&observed[1]==NativeView::Unknown)return;
+    for(unsigned index=0;index<2;++index){
+        const auto view=observed[index];
+        const auto prior=g_views[index].exchange(view);
+        g_viewTicks[index].store(GetTickCount64(),std::memory_order_release);
+        if(prior!=view&&g_log){
+            char line[160]{};
+            sprintf_s(line,"TPS V1.46 NATIVE_VIEW player=%u owner=%s source=ViewTarget+PendingViewTarget",
+                index+1,view==NativeView::ExternalCamera?"EXTERNAL_CAMERA":
+                view==NativeView::Gameplay?"GAMEPLAY":"UNKNOWN");
+            g_log(line);
+        }
+    }
+}
+bool CameraCinematic(unsigned index){
+    if(index>1)return false;
+    const auto tick=g_viewTicks[index].load(std::memory_order_acquire),now=GetTickCount64();
+    return tick&&now>=tick&&now-tick<500&&g_views[index].load()==NativeView::ExternalCamera;
 }
 bool ReadPose(const Context& context,Pose& pose){
     Reader r;uintptr_t root=0;
@@ -112,6 +163,24 @@ Slot PublishedSlot(unsigned index){
     if(!result.tick||now<result.tick||now-result.tick>1500ull)return {};
     return result;
 }
-bool CoopActive(){return PublishedSlot(1).localPlayer!=0;}
+bool CoopActive(){
+    const auto tick=g_localCountTick.load(std::memory_order_acquire),now=GetTickCount64();
+    return tick&&now>=tick&&now-tick<1500&&g_localCount.load()>1;
+}
+int FindCharacter(const void* actor,Slot* matched){
+    if(!actor)return -1;
+    for(unsigned i=0;i<2;++i){
+        const auto slot=PublishedSlot(i);
+        if(slot.character==reinterpret_cast<uintptr_t>(actor)){
+            if(matched)*matched=slot;
+            return static_cast<int>(i);
+        }
+    }
+    return -1;
+}
+bool Matches(unsigned index,uintptr_t actor,uint32_t generation){
+    const auto slot=PublishedSlot(index);
+    return actor&&slot.character==actor&&slot.generation==generation;
+}
 int PrimaryControllerId(){const auto s=PublishedSlot(0);return s.controllerId>=0?s.controllerId:0;}
 }

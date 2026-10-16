@@ -14,4 +14,5 @@ void UpdateInput(const XINPUT_GAMEPAD* physical,bool focused,float dt,
     int recenterMask,int suspendMask,int suspendDelayMs);
 bool FilterPad(DWORD controllerId,XINPUT_GAMEPAD& pad);
 bool AdjustLook(void* actor,float& a,float& b,float& c,bool rotation);
+bool ShotRotation(const local_players::Context& owner,float& pitch,float& yaw);
 }

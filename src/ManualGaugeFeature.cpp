@@ -1,4 +1,5 @@
 #include "ManualGaugeFeature.h"
+#include "LocalPlayerOwnership.h"
 #include "NativeTpsFeature.h"
 #include "GaugeUnlimitedPolicy.h"
 #include "RuntimeSettings.h"
@@ -13,13 +14,12 @@ namespace {
 using Setter=float(*)(void*,float); // native setters return the new value in XMM0
 Setter g_wrath=nullptr,g_chaos=nullptr,g_synergy=nullptr;
 LogFn g_log=nullptr;
-std::atomic<void*>* g_local=nullptr;
+
 uintptr_t g_base=0;
 std::atomic_bool g_enabled{false};
 SRWLOCK g_lock=SRWLOCK_INIT;
-Telemetry g_state{};
-Request g_request{};
-UnlimitedContext g_unlimited{};
+struct PlayerGauges {Telemetry view{};Request request{};UnlimitedContext unlimited{};};
+PlayerGauges g_players[2]{};
 std::atomic_uint32_t g_holds[3]{},g_topups[3]{};
 
 bool UnlimitedEnabled(unsigned gauge){
@@ -73,7 +73,7 @@ struct Sample {
     Telemetry view;
     void* objects[3]{}; // synchronous live references, never published or cached
 };
-Sample SamplePlayer(void* actor,uint32_t generation,uint64_t now){
+Sample SamplePlayer(void* actor,uint32_t generation,uint64_t now,void* livePlayerState){
     Sample sample{};
     sample.view.supported=true;
     sample.view.actor=reinterpret_cast<uintptr_t>(actor);
@@ -99,11 +99,11 @@ Sample SamplePlayer(void* actor,uint32_t generation,uint64_t now){
             if(g_chaos&&Authority(resources))sample.view.readyMask|=Ultimate;
         }
     }
-    void* holder=nullptr;void* owner=nullptr;
+    void* holder=livePlayerState;void* owner=nullptr;
     // Exact APawn.PlayerState reflected property: 0x377BBC8, offset +0x330.
     // Require native MayhemPlayerState type AND live holder+0x5C0 == actor.
     // No discovery by scanning memory, outer guess, or cached holder pointer.
-    if(Read(actor,0x330,holder)&&IsInstance(holder,0x38115D8)&&
+    if((holder||Read(actor,0x330,holder))&&IsInstance(holder,0x38115D8)&&
        Read(holder,0x5C0,owner)&&owner==actor){
         float current=0,maximum=0,target=0;
         if(Read(holder,0x5A4,current)&&Read(holder,0x498,maximum)&&
@@ -127,8 +127,8 @@ void LogSample(const Sample& sample){
     g_log(line);
 }
 }
-void Initialize(LogFn logger,std::atomic<void*>* localPlayer,bool exactExecutable){
-    g_log=logger;g_local=localPlayer;
+void Initialize(LogFn logger,bool exactExecutable){
+    g_log=logger;
     if(!exactExecutable)return;
     g_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     if(!g_base)return;
@@ -150,7 +150,7 @@ void Initialize(LogFn logger,std::atomic<void*>* localPlayer,bool exactExecutabl
     if(Signature(0x7BFDA0,stateClass)&&Signature(0x583040,synergyEntry))
         g_synergy=reinterpret_cast<Setter>(g_base+0x583040);
     AcquireSRWLockExclusive(&g_lock);
-    g_state.supported=g_wrath||g_chaos||g_synergy;
+    for(auto& player:g_players)player.view.supported=g_wrath||g_chaos||g_synergy;
     ReleaseSRWLockExclusive(&g_lock);
     g_enabled.store(g_wrath||g_chaos||g_synergy,std::memory_order_release);
     if(g_log){
@@ -160,9 +160,12 @@ void Initialize(LogFn logger,std::atomic<void*>* localPlayer,bool exactExecutabl
         g_log(line);
     }
 }
-void OnLivePlayer(void* actor,uint32_t generation){
-    if(!g_enabled.load(std::memory_order_acquire)||!actor||!g_local||
-       g_local->load(std::memory_order_acquire)!=actor||!dg::native_tps::OnGameThread())return;
+void OnLivePlayer(void* actor,uint32_t generation,void* livePlayerState){
+    if(!g_enabled.load(std::memory_order_acquire)||!actor||!dg::native_tps::OnGameThread())return;
+    dg::local_players::Slot slot{};
+    const int index=dg::local_players::FindCharacter(actor,&slot);
+    if(index<0||slot.generation!=generation)return;
+    auto& player=g_players[index];
     static thread_local bool processing=false;
     if(processing)return;
     processing=true;
@@ -171,22 +174,22 @@ void OnLivePlayer(void* actor,uint32_t generation){
     Request request{};
     bool consume=false;
     AcquireSRWLockExclusive(&g_lock);
-    const bool changed=g_state.actor!=reinterpret_cast<uintptr_t>(actor)||g_state.generation!=generation;
-    if(!changed&&!g_request.mask&&now>=g_state.observedAt&&now-g_state.observedAt<100){
+    const bool changed=player.view.actor!=reinterpret_cast<uintptr_t>(actor)||player.view.generation!=generation;
+    if(!changed&&!player.request.mask&&now>=player.view.observedAt&&now-player.view.observedAt<100){
         ReleaseSRWLockExclusive(&g_lock);return;
     }
-    if(g_request.mask){
-        const auto valid=ValidateRequest(g_request,reinterpret_cast<uintptr_t>(actor),generation,now);
+    if(player.request.mask){
+        const auto valid=ValidateRequest(player.request,reinterpret_cast<uintptr_t>(actor),generation,now);
         if(valid!=RequestValidity::Accept){
-            g_state.result=valid==RequestValidity::Expired?Result::Expired:Result::Cancelled;
-            g_request={};g_state.pending=false;
-        }else if(!dg::native_tps::CinematicActive()){
-            request=g_request;g_request={};g_state.pending=false;consume=true;
+            player.view.result=valid==RequestValidity::Expired?Result::Expired:Result::Cancelled;
+            player.request={};player.view.pending=false;
+        }else if(!dg::native_tps::CinematicActive(unsigned(index))){
+            request=player.request;player.request={};player.view.pending=false;consume=true;
         }
     }
-    const Telemetry previous=g_state;
+    const Telemetry previous=player.view;
     ReleaseSRWLockExclusive(&g_lock);
-    Sample sample=SamplePlayer(actor,generation,now);
+    Sample sample=SamplePlayer(actor,generation,now,livePlayerState);
     // Publish only identities from this synchronous, typed local-player sample.
     // The setter hooks independently recheck the live incoming holder and cap.
     UnlimitedContext unlimited{};
@@ -194,7 +197,7 @@ void OnLivePlayer(void* actor,uint32_t generation){
     unlimited.observedAt=now;unlimited.readyMask=sample.view.readyMask;
     for(unsigned i=0;i<3;++i)
         unlimited.holders[i]=reinterpret_cast<uintptr_t>(sample.objects[i]);
-    AcquireSRWLockExclusive(&g_lock);g_unlimited=unlimited;ReleaseSRWLockExclusive(&g_lock);
+    AcquireSRWLockExclusive(&g_lock);player.unlimited=unlimited;ReleaseSRWLockExclusive(&g_lock);
     if(changed||sample.view.readyMask!=previous.readyMask||sample.view.formActive!=previous.formActive)
         LogSample(sample);
     unsigned applied=0;
@@ -225,7 +228,7 @@ void OnLivePlayer(void* actor,uint32_t generation){
             }
         }
     }
-    if(!dg::native_tps::CinematicActive()&&!dg::native_tps::IsWorldPaused(actor)){
+    if(!dg::native_tps::CinematicActive(unsigned(index))&&!dg::native_tps::IsWorldPaused(actor)){
         const Setter setters[3]={g_wrath,g_chaos,g_synergy};
         const size_t offsets[3]={0x3A0,0x3A8,0x5A4};
         for(unsigned i=0;i<3;++i){
@@ -248,24 +251,33 @@ void OnLivePlayer(void* actor,uint32_t generation){
         }
     }
     AcquireSRWLockExclusive(&g_lock);
-    sample.view.requests=g_state.requests;
-    sample.view.applied=g_state.applied+(applied?1u:0u);
-    sample.view.pending=g_state.pending;
+    sample.view.requests=player.view.requests;
+    sample.view.applied=player.view.applied+(applied?1u:0u);
+    sample.view.pending=player.view.pending;
     sample.view.result=consume?(applied==request.mask?Result::Applied:
-        applied?Result::Partial:Result::Rejected):g_state.result;
-    sample.view.lastAppliedMask=consume?applied:g_state.lastAppliedMask;
-    g_state=sample.view;
+        applied?Result::Partial:Result::Rejected):player.view.result;
+    sample.view.lastAppliedMask=consume?applied:player.view.lastAppliedMask;
+    player.view=sample.view;
     ReleaseSRWLockExclusive(&g_lock);
 }
 float UnlimitedRequest(unsigned gauge,void* liveHolder,float requested){
     if(!UnlimitedEnabled(gauge)||!g_enabled.load(std::memory_order_acquire)||
-       !g_local||!liveHolder||!dg::native_tps::OnGameThread()||
-       dg::native_tps::CinematicActive())return requested;
+       !liveHolder||!dg::native_tps::OnGameThread())return requested;
     UnlimitedContext context{};
-    AcquireSRWLockShared(&g_lock);context=g_unlimited;ReleaseSRWLockShared(&g_lock);
-    const auto local=reinterpret_cast<uintptr_t>(g_local->load(std::memory_order_acquire));
-    if(!UnlimitedContextMatches(context,gauge,reinterpret_cast<uintptr_t>(liveHolder),
-        local,dg::runtime::Get().tpsActorGeneration.load(),GetTickCount64())||
+    bool matched=false;
+    UnlimitedContext snapshots[2]{};
+    AcquireSRWLockShared(&g_lock);
+    for(unsigned i=0;i<2;++i)snapshots[i]=g_players[i].unlimited;
+    ReleaseSRWLockShared(&g_lock);
+    for(unsigned i=0;i<2;++i){
+        const auto& candidate=snapshots[i];
+        if(!dg::native_tps::CinematicActive(i)&&dg::local_players::Matches(i,candidate.actor,candidate.generation)&&
+           UnlimitedContextMatches(candidate,gauge,reinterpret_cast<uintptr_t>(liveHolder),
+               candidate.actor,candidate.generation,GetTickCount64())){
+            context=candidate;matched=true;break;
+        }
+    }
+    if(!matched||
        !IsInstance(liveHolder,gauge==Synergy?0x38115D8:0x3810268)||
        !Authority(liveHolder))return requested;
     float maximum=0,bonus=0;
@@ -286,41 +298,47 @@ float UnlimitedRequest(unsigned gauge,void* liveHolder,float requested){
 }
 bool RequestSet(unsigned mask,float percent){
     if(!(mask&All)||(mask&~All)||!std::isfinite(percent)||percent<0||percent>100)return false;
-    const auto now=GetTickCount64();
+    const auto now=GetTickCount64();bool queued=false;
     AcquireSRWLockExclusive(&g_lock);
-    const bool valid=g_enabled.load(std::memory_order_acquire)&&!g_request.mask&&
-        g_state.actor&&g_state.readyMask&&(mask&g_state.readyMask)==mask&&
-        now>=g_state.observedAt&&now-g_state.observedAt<1500;
-    if(valid){
-        g_request={mask,percent,g_state.actor,g_state.generation,now};
-        g_state.pending=true;g_state.result=Result::Queued;++g_state.requests;
+    for(unsigned i=0;i<2;++i){
+        auto& player=g_players[i];const auto& view=player.view;
+        const bool valid=g_enabled.load(std::memory_order_acquire)&&!player.request.mask&&
+            view.actor&&view.readyMask&&(mask&view.readyMask)==mask&&
+            now>=view.observedAt&&now-view.observedAt<1500&&
+            dg::local_players::Matches(i,view.actor,view.generation);
+        if(valid){
+            player.request={mask,percent,view.actor,view.generation,now};
+            player.view.pending=true;player.view.result=Result::Queued;++player.view.requests;
+            queued=true;
+        }
     }
-    ReleaseSRWLockExclusive(&g_lock);
-    return valid;
+    ReleaseSRWLockExclusive(&g_lock);return queued;
 }
 void CancelRequest(){
     AcquireSRWLockExclusive(&g_lock);
-    if(g_request.mask){g_request={};g_state.pending=false;g_state.result=Result::Cancelled;}
+    for(auto& player:g_players)if(player.request.mask){
+        player.request={};player.view.pending=false;player.view.result=Result::Cancelled;
+    }
     ReleaseSRWLockExclusive(&g_lock);
 }
-Telemetry GetTelemetry(){
+Telemetry GetTelemetry(unsigned index){
     AcquireSRWLockShared(&g_lock);
-    Telemetry result=g_state;
+    Telemetry result=index<2?g_players[index].view:Telemetry{};
     const auto now=GetTickCount64();
-    if(!result.observedAt||now<result.observedAt||now-result.observedAt>=1500){
+    if(!result.observedAt||now<result.observedAt||now-result.observedAt>=1500||
+       !dg::local_players::Matches(index,result.actor,result.generation)){
         result.readyMask=0;
         for(auto& value:result.values)value.available=false;
     }
-    ReleaseSRWLockShared(&g_lock);
-    return result;
+    ReleaseSRWLockShared(&g_lock);return result;
 }
 void Shutdown(){
     g_enabled.store(false,std::memory_order_release);
     CancelRequest();
-    const auto t=GetTelemetry();
+    const auto first=GetTelemetry(0),second=GetTelemetry(1);
     if(g_log){
         char line[160]{};
-        sprintf_s(line,"Gauge V1.35 MANUAL_SET totals requests=%u appliedReadback=%u gameplayValidation=USER_REQUIRED",t.requests,t.applied);
+        sprintf_s(line,"Gauge V1.35 MANUAL_SET totals requests=%u appliedReadback=%u gameplayValidation=USER_REQUIRED",first.requests+second.requests,first.applied+second.applied);
         g_log(line);
         sprintf_s(line,"Gauge V1.38 UNLIMITED totals holds=%u/%u/%u topups=%u/%u/%u gameplayValidation=USER_REQUIRED",
             g_holds[0].load(),g_holds[1].load(),g_holds[2].load(),

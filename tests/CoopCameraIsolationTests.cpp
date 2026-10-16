@@ -22,11 +22,16 @@ void Run(){
     rt.cameraOrbitInputEnabled=true;rt.cameraStickSpeed=180;rt.tpsCameraStickMode=2;
     rt.tpsFirePrimaryMask=0x20000;rt.tpsFireSecondaryMask=0x10;rt.tpsWheelPadMask=0x100;
     rt.tpsMountedAimMode=0;rt.tpsCutsceneAutoSuspend=true;
+    rt.thirdPersonFovEnabled=true;rt.thirdPersonFovDegrees=120;rt.thirdPersonCoopFovDegrees=83;
     rt.cameraOrbitYawDegrees=177;rt.cameraOrbitPitchDegrees=22;
     g_character[0xC18]=1;g_respawn[0xC18]=1;
     dg::coop_camera::Initialize(nullptr);
     float view[7]{};View(view);
     Check(Close(view[4],50)&&view[0]>1000&&view[1]>2000,"P2 view follows its own pose, not primary/origin");
+    Check(Close(view[6],83)&&Close(rt.thirdPersonFovDegrees.load(),120),"P2 uses coop FOV and preserves independent solo setting");
+    rt.thirdPersonFovEnabled=false;View(view);
+    Check(Close(view[6],70),"disabling TPS FOV preserves native split-screen FOV");
+    rt.thirdPersonFovEnabled=true;
     XINPUT_GAMEPAD pad{};pad.sThumbRX=30000;Input(&pad);View(view);
     Check(view[4]>50&&Close(rt.cameraOrbitYawDegrees.load(),177)&&Close(rt.cameraOrbitPitchDegrees.load(),22),"P2 orbit cannot move primary orbit");
     auto unchanged=pad;
@@ -38,6 +43,10 @@ void Run(){
     Check(dg::coop_camera::FilterPad(1,pad)&&pad.sThumbRX==0&&pad.sThumbRY==32767&&pad.wButtons==buttons,"rebindable secondary fire points forward without modifying buttons");
     float x=0,y=0,z=0;
     Check(dg::coop_camera::AdjustLook(g_character,x,y,z,true)&&Close(y,view[4]),"P2 firing uses its own emitted yaw");
+    float shotPitch=0,shotYaw=0;
+    Check(dg::coop_camera::ShotRotation(g_owner,shotPitch,shotYaw)&&Close(shotPitch,view[3])&&Close(shotYaw,view[4]),"P2 projectile uses its emitted 3D camera orientation at spawn time");
+    rt.tpsMountedAimMode=1;
+    Check(!dg::coop_camera::ShotRotation(g_owner,shotPitch,shotYaw),"P2 vanilla aim cannot enter camera-forward projectile correction");rt.tpsMountedAimMode=0;
     g_known=false;pad=unchanged;Input(&pad);const auto unknown=pad;
     Check(dg::coop_camera::FilterPad(1,pad)&&Equal(pad,unknown),"unknown native stick layout fails open");g_known=true;
     rt.tpsCameraStickMode=1;pad={};pad.sThumbLX=30000;pad.sThumbRX=12000;Input(&pad);View(view);
@@ -53,6 +62,8 @@ void Run(){
     pad.wButtons=0x20;Input(&pad);View(view);Check(Close(view[4],g_pose.yaw),"P2 recenter follows its own actor");
     g_owner.character=reinterpret_cast<uintptr_t>(g_respawn);g_owner.pawn=g_owner.character;g_pose={8000,9000,200,-70};
     View(view);Check(Close(view[4],-70)&&view[0]>7000&&Close(rt.cameraOrbitYawDegrees.load(),177),"P2 respawn resets only its own held view/orbit");
+    g_character[0xC18]=0;g_owner.character=reinterpret_cast<uintptr_t>(g_character);g_owner.pawn=g_owner.character;g_pose.yaw=130;
+    View(view);Check(Close(view[4],-70),"switching Strife/War retains world camera angle for the same local player");
     pad=unchanged;Input(&pad,0.016f,false);const auto unfocused=pad;
     Check(dg::coop_camera::FilterPad(1,pad)&&Equal(pad,unfocused),"focus loss preserves native input");
     rt.thirdPersonEnabled=false;Input(&pad);const auto off=pad;
@@ -68,7 +79,7 @@ bool ResolveActor(void* actor,Context& c){if(reinterpret_cast<uintptr_t>(actor)!
 }
 namespace dg::native_tps {
 bool IsWorldPaused(void*){return g_paused;}
-bool CinematicActive(){return g_cinema;}
+bool CinematicActive(unsigned){return g_cinema;}
 bool NativeStickSwap(){return g_swap;}
 bool NativeStickSwapKnown(){return g_known;}
 }

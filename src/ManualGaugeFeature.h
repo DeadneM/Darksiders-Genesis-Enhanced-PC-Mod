@@ -16,14 +16,14 @@ struct Telemetry {
     uint32_t generation=0,requests=0,applied=0;
     uint64_t observedAt=0;
 };
-void Initialize(LogFn logger,std::atomic<void*>* localPlayer,bool exactExecutable);
+void Initialize(LogFn logger,bool exactExecutable);
 // Live validated player callback on the camera's sampled game thread only.
-void OnLivePlayer(void* player,uint32_t generation);
+void OnLivePlayer(void* player,uint32_t generation,void* livePlayerState=nullptr);
 // Existing native setters call this with their live argument. Default OFF is
 // an exact pass-through; cached identities are only compared, never followed.
 float UnlimitedRequest(unsigned gauge,void* liveHolder,float requested);
 bool RequestSet(unsigned mask,float percent);
 void CancelRequest();
-Telemetry GetTelemetry();
+Telemetry GetTelemetry(unsigned index=0);
 void Shutdown();
 }

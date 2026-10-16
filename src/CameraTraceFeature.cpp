@@ -1,6 +1,7 @@
 #include "CameraTraceFeature.h"
 #include "LocalPlayerOwnership.h"
 #include "CoopCameraFeature.h"
+#include "CameraContinuity.h"
 #include "RuntimeSettings.h"
 #include "NativeTpsFeature.h"
 #include "ChaosPoseFeature.h"
@@ -144,6 +145,7 @@ void HookView(void* camera, float dt, void* outView) {
     if (g_view) g_view(camera, dt, outView);
     auto& settings=dg::runtime::Get();
     dg::native_tps::SampleNativeStickSwap();
+    dg::local_players::ObserveCameraViews(camera);
     // A cinematic may switch to a camera with no player component at all.
     // Mirror the native lifecycle before the player-camera ownership filter.
     if(dg::native_tps::TargetReady()){
@@ -158,6 +160,7 @@ void HookView(void* camera, float dt, void* outView) {
     }
     dg::local_players::Context viewOwner{};
     const bool ownedView=dg::local_players::ResolveCamera(camera,viewOwner);
+    if(ownedView)dg::local_players::ObserveGameplay(viewOwner);
     if(settings.thirdPersonEnabled.load()){
         // Coop requires a proved player component or manager-owned fallback
         // camera. Unknown solo camera paths retain the validated fallback.
@@ -310,12 +313,20 @@ void HookView(void* camera, float dt, void* outView) {
     }
     dg::chaos_pose::Pose chaosPose{};
     const bool chaosValid=dg::chaos_pose::Sample(camera,chaosPose);
-    const bool usingChaos=thirdPerson&&chaosValid;
-    if(usingChaos){
+    const bool usingChaos=thirdPerson&&(ownedView?
+        viewOwner.kind==dg::local_players::PoseKind::Ultimate:chaosValid);
+    if(usingChaos&&chaosValid){
         // Fresh native form pose for THIS camera callback. Keep the normal
         // player's identity/generation and all horse sampling unchanged.
         ax=chaosPose.x;ay=chaosPose.y;az=chaosPose.z;actorYaw=chaosPose.yaw;
         actorValid=true;usingHorse=false;
+    }
+    if(ownedView){
+        dg::local_players::Pose pose{};
+        if(dg::local_players::ReadPose(viewOwner,pose)){
+            ax=pose.x;ay=pose.y;az=pose.z;actorYaw=pose.yaw;actorValid=true;
+            usingHorse=viewOwner.kind==dg::local_players::PoseKind::Horse;
+        }
     }
     if(thirdPerson&&actorValid){
         if(lastHorse.exchange(usingHorse)!=usingHorse){
@@ -430,7 +441,7 @@ void HookView(void* camera, float dt, void* outView) {
         settings.tpsMountedViewActive.store(false,std::memory_order_release);
         return; // stopped pose callbacks only; no live follow/orbit is frozen
     }
-    const bool gameplayCamera=actorValid&&((normalAngles&&nearPawn)||
+    const bool gameplayCamera=actorValid&&(ownedView||(normalAngles&&nearPawn)||
         (wheelInput&&sameTpsCamera)||usingChaos);
     // V1.31: actor visibility is NOT a reliable pause/cutscene signal.
     // Compare the actual native camera against the LAST VERIFIED normal
@@ -600,9 +611,18 @@ void HookView(void* camera, float dt, void* outView) {
     // Only F5 / true TPS OFF resets the reference.
     if(!settings.thirdPersonEnabled.load(std::memory_order_relaxed))ResetZoneReference();
     const uint32_t generation=settings.tpsActorGeneration.load();
+    static dg::camera_continuity::Identity previousIdentity{};
+    bool characterSwap=false;
+    if(ownedView){
+        unsigned char type=255;
+        std::memcpy(&type,reinterpret_cast<unsigned char*>(viewOwner.character)+0xC18,1);
+        const dg::camera_continuity::Identity identity{viewOwner.localPlayer,viewOwner.world,viewOwner.character,type};
+        characterSwap=dg::camera_continuity::CharacterSwap(previousIdentity,identity);
+        previousIdentity=identity;
+    }
     if(g_zoneActorGeneration.load()!=generation){
         g_zoneActorGeneration.store(generation);
-        ResetZoneReference();
+        if(!characterSwap)ResetZoneReference();
     }
     // Never override cinematics, menu cameras, remote cutaway cameras.
     // Heuristic may miss an in-place cinematic with a top-down-like pose.
@@ -621,7 +641,8 @@ void HookView(void* camera, float dt, void* outView) {
     float appliedFov=nativeFov,appliedPitch=nativePitch,appliedYaw=nativeYaw,appliedHeight=z;
     const bool tpsFov=thirdPerson&&settings.thirdPersonFovEnabled.load();
     if(tpsFov||(!thirdPerson&&settings.fovEnabled.load())){
-        const float target=tpsFov?settings.thirdPersonFovDegrees.load():settings.fovDegrees.load();
+        const float target=tpsFov?(local_players::CoopActive()?
+            settings.thirdPersonCoopFovDegrees.load():settings.thirdPersonFovDegrees.load()):settings.fovDegrees.load();
         if(std::isfinite(target)&&target>=40&&target<=140){
             appliedFov=target;
             std::memcpy(p+24,&appliedFov,4);

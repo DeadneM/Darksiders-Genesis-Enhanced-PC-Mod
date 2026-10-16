@@ -68,6 +68,10 @@ enum class Action : int {
     RefillPotions,
     PotionRecharge,
     UnlimitedPotions,
+    RefillHealth,
+    UnlimitedHealth,
+    UnlimitedGlide,
+    UnlimitedHorseSprint,
     Count
 };
 
@@ -112,7 +116,11 @@ kActionLabels = {
     "Toggle Unlimited ammo",
     "Fill health potions",
     "Toggle potion recharge rate",
-    "Toggle Unlimited potions"
+    "Toggle Unlimited potions",
+    "Fill health",
+    "Toggle Unlimited health",
+    "Toggle Unlimited glide",
+    "Toggle Unlimited horse sprint"
 };
 
 inline constexpr std::array<const wchar_t*, static_cast<std::size_t>(Action::Count)>
@@ -156,7 +164,11 @@ kActionTokens = {
     L"UnlimitedAmmo",
     L"RefillPotions",
     L"PotionRecharge",
-    L"UnlimitedPotions"
+    L"UnlimitedPotions",
+    L"RefillHealth",
+    L"UnlimitedHealth",
+    L"UnlimitedGlide",
+    L"UnlimitedHorseSprint"
 };
 
 // Instant actions share the validated one-shot manual refill queue.
@@ -267,6 +279,9 @@ public:
     float ammoConsumptionDivisor = 2.0f;
     bool potionRechargeEnabled = false;
     bool unlimitedPotionsEnabled = false;
+    bool unlimitedHealthEnabled = false;
+    bool unlimitedGlideEnabled = false;
+    bool unlimitedHorseSprintEnabled = false;
     float potionRechargeMultiplier = 2.0f;
 
     float movementSpeedMultiplier = 1.50f;
@@ -282,6 +297,7 @@ public:
     float horseSprintDurationMultiplier = 5.00f;
     float fovDegrees = 90.0f;
     float thirdPersonFovDegrees = 110.0f;
+    float thirdPersonCoopFovDegrees = 110.0f;
     float cameraZoomPercent = 0.0f;
     float cameraPitchDegrees = 0.0f;
     float cameraYawDegrees = 0.0f;
