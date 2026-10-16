@@ -107,15 +107,7 @@ static std::atomic_bool g_skipLogosTargetValid{false};
 static std::atomic_bool g_skipLogosEnabled{false};
 static std::atomic_bool g_skipLogosPatched{false};
 static std::atomic_bool g_skipLogosHookReady{false};
-static std::atomic_bool g_skipWarningEnabled{false};
-static std::atomic_bool g_warningAttempted{false};
-static std::atomic_bool g_warningApplied{false};
-static std::atomic_bool g_warningHookReady{false};
 // Executed only on the startup thread. Never changed by overlay toggles.
-static volatile BYTE g_warningBootGate = 0;
-static volatile BYTE g_warningNativeSeen = 0;
-static volatile BYTE g_warningNativeSkipped = 0;
-static volatile uintptr_t g_warningNativeSpan = 0;
 static std::atomic_uint32_t g_startupFilterCalls{0};
 
 
@@ -307,17 +299,6 @@ static const FStringView* __cdecl FilterStartupMovieNames(const FStringView* mov
     if (calls > 2) return nullptr;
     StartupTimeline(L"MOVIE_DESCRIPTORS_NATIVE_COPY_ENTER",unsigned(count));
     if(calls==1)ProbeStartupDefinitions();
-    if (calls == 1 && g_skipWarningEnabled.load(std::memory_order_relaxed)) {
-        const bool observed = g_warningNativeSeen != 0;
-        const bool matched = g_warningNativeSkipped != 0;
-        g_warningAttempted.store(observed,std::memory_order_release);
-        g_warningApplied.store(matched,std::memory_order_release);
-        wchar_t info[260]{};
-        const size_t span=static_cast<size_t>(g_warningNativeSpan);
-        swprintf_s(info,L"Skip Warning V1.02: native definition span=0x%Ix (count if stride 0x40: %Iu), seen=%d skipped=%d",
-            span,span%64==0?span/64:0,observed?1:0,matched?1:0);
-        LogLoader(info);
-    }
     if (!g_skipLogosEnabled.load(std::memory_order_relaxed)) return nullptr;
     wchar_t line[220]{};
     swprintf_s(line, L"Skip Logos V0.52: StartupMovies count=%d validPtr=%d",
@@ -367,17 +348,7 @@ static bool HasSupportedNativeCode() {
                        kOriginalCopyLoad, sizeof(kOriginalCopyLoad)) == 0;
 }
 
-static bool ReadWarningEnabledFromIni() {
-    wchar_t path[MAX_PATH]{};
-    if (!g_self || !GetModuleFileNameW(g_self,path,MAX_PATH)) return false;
-    wchar_t* slash=wcsrchr(path,L'\\');
-    if (!slash) return false;
-    *(slash+1)=L'\0';
-    wcscat_s(path,L"DarksidersGenesisMod.ini");
-    const UINT rev=GetPrivateProfileIntW(L"Meta",L"ConfigRevision",0,path);
-    if (rev<2103u) return false;
-    return GetPrivateProfileIntW(L"Features",L"SkipWarning",1,path)!=0;
-}
+
 static bool ReadSkipLogosEnabledFromIni() {
     wchar_t modulePath[MAX_PATH]{};
     if (!g_self || !GetModuleFileNameW(g_self, modulePath, MAX_PATH)) return false;
@@ -523,86 +494,7 @@ static bool InstallSelectiveLogoHook() {
 // native end pointer equal the start, and preserves original CPU flags.
 // The StartupMovies/MoviePlayer initialization remains untouched.
 // Native array data, counts, UE objects and game assets are NEVER edited.
-static bool InstallSkipWarningLoopHook() {
-    if (!HasSupportedNativeCode()) return false;
-    constexpr uintptr_t warningRva=0x0025FEBF;
-    constexpr BYTE original[7]={0x48,0xC1,0xE7,0x06,0x48,0x03,0xFB};
-    auto* target=reinterpret_cast<BYTE*>(GetModuleHandleW(nullptr))+warningRva;
-    if (std::memcmp(target,original,sizeof(original))!=0) {
-        LogLoader(L"Skip Warning V0.55: early loop signature mismatch; left native");
-        return false;
-    }
-    BYTE* island=AllocateNearby(target);
-    if (!island) return false;
-    BYTE* out=island;
-    auto bytes=[&](std::initializer_list<BYTE> v) {
-        for (BYTE b:v) *out++=b;
-    };
-    auto pointer=[&](uintptr_t value) {
-        std::memcpy(out,&value,sizeof(value));out+=sizeof(value);
-    };
 
-    bytes({0x48,0xC1,0xE7,0x06,0x48,0x03,0xFB}); // replay original
-    bytes({0x9C,0x50,0x52}); // preserve original RFLAGS, RAX, RDX
-    bytes({0x48,0xB8}); pointer(reinterpret_cast<uintptr_t>(&g_warningNativeSeen));
-    bytes({0xC6,0x00,0x01});
-    bytes({0x48,0x89,0xFA,0x48,0x29,0xDA}); // rdx = rdi-rbx
-    bytes({0x48,0xB8}); pointer(reinterpret_cast<uintptr_t>(&g_warningNativeSpan));
-    bytes({0x48,0x89,0x10}); // record span, native data unmodified
-    bytes({0x48,0xB8}); pointer(reinterpret_cast<uintptr_t>(&g_warningBootGate));
-    bytes({0x80,0x38,0x00,0x74,0x00}); // disabled? exit
-    BYTE* disabled=out-1;
-    bytes({0x48,0x8D,0x43,0x40}); // rbx+0x40: one definition
-    bytes({0x48,0x39,0xC7,0x74,0x00}); // equal? skip
-    BYTE* one=out-1;
-    bytes({0x48,0x8D,0x83,0x80,0x00,0x00,0x00}); // two definitions
-    bytes({0x48,0x39,0xC7,0x74,0x00}); // exactly TWO definitions? skip
-    BYTE* two=out-1;
-    bytes({0x48,0x8D,0x83,0xC0,0x00,0x00,0x00}); // three definitions (measured V1.01)
-    bytes({0x48,0x39,0xC7,0x75,0x00}); // only 1,2,3 allowed; else exit untouched
-    BYTE* mismatch=out-1;
-    BYTE* skip=out;
-    bytes({0x48,0x89,0xDF}); // end=start: guarded loop bypass
-    bytes({0x48,0xB8}); pointer(reinterpret_cast<uintptr_t>(&g_warningNativeSkipped));
-    bytes({0xC6,0x00,0x01});
-    BYTE* exit=out;
-    if (exit-(disabled+1)>127 || skip-(one+1)>127 || skip-(two+1)>127 ||
-        exit-(mismatch+1)>127) { VirtualFree(island,0,MEM_RELEASE);return false; }
-    *disabled=static_cast<BYTE>(exit-(disabled+1));
-    *one=static_cast<BYTE>(skip-(one+1));
-    *two=static_cast<BYTE>(skip-(two+1));
-    *mismatch=static_cast<BYTE>(exit-(mismatch+1));
-    bytes({0x5A,0x58,0x9D}); // restore RDX, RAX and original RFLAGS
-    bytes({0xFF,0x25,0x00,0x00,0x00,0x00});
-    pointer(reinterpret_cast<uintptr_t>(target+sizeof(original)));
-    const size_t size=static_cast<size_t>(out-island);
-    if (size>256) {VirtualFree(island,0,MEM_RELEASE);return false;}
-    DWORD oldIsland=0;
-    if (!VirtualProtect(island,4096,PAGE_EXECUTE_READ,&oldIsland)) {
-        VirtualFree(island,0,MEM_RELEASE);return false;
-    }
-    FlushInstructionCache(GetCurrentProcess(),island,size);
-    const int64_t displacement=
-        static_cast<int64_t>(reinterpret_cast<uintptr_t>(island))-
-        static_cast<int64_t>(reinterpret_cast<uintptr_t>(target)+5);
-    if (displacement<INT32_MIN || displacement>INT32_MAX) {
-        VirtualFree(island,0,MEM_RELEASE);return false;
-    }
-    BYTE redirect[7]={0xE9,0,0,0,0,0x90,0x90};
-    const int32_t rel=static_cast<int32_t>(displacement);
-    std::memcpy(redirect+1,&rel,sizeof(rel));
-    DWORD old=0;
-    if (!VirtualProtect(target,7,PAGE_EXECUTE_READWRITE,&old)) {
-        VirtualFree(island,0,MEM_RELEASE);return false;
-    }
-    std::memcpy(target,redirect,7);
-    FlushInstructionCache(GetCurrentProcess(),target,7);
-    DWORD ignored=0;
-    VirtualProtect(target,7,old,&ignored);
-    g_warningHookReady.store(true,std::memory_order_release);
-    LogLoader(L"Skip Warning V1.02: guarded 1/2/3-entry native gate installed RVA 0x25FEBF");
-    return true;
-}
 
 static bool ApplySkipLogosPatch(bool enabled) {
     // Do not apply or unapply any code patch after the game's entry point.
@@ -747,18 +639,16 @@ BOOL WINAPI DGUnifiedLogActive() {
 
 extern "C" __declspec(dllexport)
 BOOL WINAPI DGSkipWarningAttempted() {
-    return g_warningAttempted.load() ? TRUE : FALSE;
+    return FALSE; // Legacy ABI: retired boot patch never runs.
 }
 extern "C" __declspec(dllexport)
 BOOL WINAPI DGSkipWarningApplied() {
-    return g_warningApplied.load() ? TRUE : FALSE;
+    return FALSE; // SkipWarningFeature owns the validated presentation path.
 }
 extern "C" __declspec(dllexport)
 BOOL WINAPI DGSetSkipWarningEnabled(BOOL enabled) {
-    // The boot-gate deliberately does not change during gameplay.
-    // Changes are saved in the INI and require a restart.
+    // Retain the legacy export for old ASIs; the unsafe boot patch is retired.
     (void)enabled;
-    g_skipWarningEnabled.store(false,std::memory_order_relaxed);
     return FALSE; // V1.04 quarantined legacy warning patch.
 }
 
@@ -850,8 +740,6 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
         // V1.04: old warning patch is disabled even if legacy INI requested it.
         // Reticle/crosshair regression prevention. MoviePlayer remains intact.
         g_skipLogosEnabled.store(enabled,std::memory_order_relaxed);
-        g_skipWarningEnabled.store(false,std::memory_order_relaxed);
-        g_warningBootGate=0;
         LogLoader(L"Skip Warning V1.05: native loop untouched, passive screen-definition probe only");
         const bool valid = HasSupportedNativeCode();
         g_skipLogosTargetValid.store(valid,std::memory_order_release);

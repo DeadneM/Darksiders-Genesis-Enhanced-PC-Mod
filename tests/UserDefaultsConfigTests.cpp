@@ -54,7 +54,7 @@ int main(int argc,char** argv){
     check(rt.reduceAmmoEnabled.load()&&!rt.unlimitedAmmoEnabled.load(),"runtime receives requested ammo defaults");
     check(rt.wrathChargeMultiplier.load()==4&&rt.ultimateChargeMultiplier.load()==4&&rt.synergyChargeMultiplier.load()==4,"runtime receives x4 gains");
     check(rt.tpsUltimateDistanceMultiplier.load()==0.30f&&rt.tpsUltimateHeightOffset.load()==80,"runtime receives Ultimate camera defaults");
-    WritePrivateProfileStringW(L"Overlay",L"MenuKey",L"Insert",path);
+    WritePrivateProfileStringW(L"Overlay",L"MenuKey",L"VK_C0",path);
     WritePrivateProfileStringW(L"Updater",L"Beta",L"0",path);
     WritePrivateProfileStringW(L"Features",L"ReduceAmmoConsumption",L"0",path);
     WritePrivateProfileStringW(L"Values",L"TPSUltimateDistanceMultiplier",L"0.900",path);
@@ -62,9 +62,21 @@ int main(int argc,char** argv){
     WritePrivateProfileStringW(L"Values",L"WrathChargeMultiplier",L"2.000",path);
     WritePrivateProfileStringW(L"Hotkeys",L"F9",L"FOV",path);
     dg::config::Store personal;personal.SetPath(path);check(personal.Load(),"explicit older personal profile loads");
-    check(personal.menuKey==VK_INSERT&&!personal.updaterBeta&&!personal.reduceAmmoEnabled,"explicit older toggles/menu retained");
+    check(personal.menuKey==0xC0&&!personal.updaterBeta&&!personal.reduceAmmoEnabled,"explicit older toggles/menu retained");
     check(personal.tpsUltimateDistanceMultiplier==0.9f&&personal.tpsUltimateHeightOffset==123&&personal.wrathChargeMultiplier==2,"explicit personal values retained");
     check(personal.hotkeys[8]==dg::config::Action::FOV,"explicit older hotkey retained");
+    check(generated.menuKey==VK_INSERT,"Insert is the authoritative menu default");
+    personal.tpsMousePrimaryButton=VK_XBUTTON1;personal.tpsMouseSecondaryButton=VK_MBUTTON;
+    personal.tpsFirePrimaryMask=0x4000;personal.tpsFireSecondaryMask=0x8000;
+    personal.tpsWheelPadMask=0x0020;personal.tpsGrenadeButtonMask=0x0040;
+    personal.horsePadButtonA=0x0001;personal.horsePadButtonB=0x0002;
+    personal.Save();
+    check(rt.tpsMousePrimaryButton.load()==VK_XBUTTON1&&rt.tpsMouseSecondaryButton.load()==VK_MBUTTON,
+        "native callbacks receive rebound mouse controls");
+    check(rt.tpsFirePrimaryMask.load()==0x4000&&rt.tpsFireSecondaryMask.load()==0x8000&&
+        rt.tpsWheelPadMask.load()==0x0020&&rt.tpsGrenadeButtonMask.load()==0x0040&&
+        rt.horsePadButtonA.load()==0x0001&&rt.horsePadButtonB.load()==0x0002,
+        "native callbacks receive all rebound controller controls");
     personal.ResetTpsCameraValues();
     check(personal.tpsUltimateDistanceMultiplier==0.30f&&personal.tpsUltimateHeightOffset==80,"camera reset uses requested Ultimate defaults");
     personal.ResetDefaults(false);check(personal.SaveNow(),"full compiled defaults reset saves");

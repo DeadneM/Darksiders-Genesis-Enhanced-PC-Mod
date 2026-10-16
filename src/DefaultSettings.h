@@ -2,7 +2,7 @@
 // V1.40 defaults explicitly chosen by the user in the installed V1.39 INI.
 // Used by factory resets, missing-value fallbacks and individual Default buttons.
 namespace dg::defaults {
-inline constexpr int MenuKey=0xC0; // saved token VK_C0 (Win32 VK_OEM_3)
+inline constexpr int MenuKey=0x2D; // Insert, restored at the user's request
 inline constexpr bool UpdaterBeta=true;
 inline constexpr bool ReduceAmmo=true;
 inline constexpr float UltimateDistance=0.30f;

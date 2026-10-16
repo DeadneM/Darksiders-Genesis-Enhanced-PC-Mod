@@ -14,26 +14,17 @@ using ApplySkipIntroFn = bool(*)(bool);
 using ApplySkipLogosFn = bool(*)(bool);
 using ApplySkipWarningFn = bool(*)(bool);
 using ApplyGraphicsAdapterFn = bool(*)(int);
-using AbilityStateNameFn = const char*(*)(unsigned char);
 using LogFn = void(*)(const char*, ...);
 
 struct Telemetry {
     bool hudHookReady = false;
     bool movementHookReady = false;
-    bool recoveryHookReady = false;
     bool finalDamageHookReady = false;
     bool hotstreakHookReady = false;
     unsigned aimNativeFxCalls = 0;
-    unsigned forwardLookSamples = 0;
-    unsigned forwardYawGapCount = 0;
-    float forwardNativeYaw = 0.0f;
-    float forwardCameraYaw = 0.0f;
     unsigned aimUiTargetingEvents = 0;
     unsigned aimUiPositionEvents = 0;
     unsigned mountedIdleLookBlocks = 0;
-    unsigned mountedCtrlDown = 0;
-    unsigned mountedCtrlUp = 0;
-    bool mountedCtrlActive = false;
     unsigned grenadePhysicalDown = 0;
     unsigned grenadePhysicalUp = 0;
     unsigned grenadeNativeReleasePulses = 0;
@@ -46,12 +37,6 @@ struct Telemetry {
     bool skipWarningAttempted = false;
     bool skipWarningApplied = false;
 
-    int actionMoveQueries = 0;
-    int actionMoveLocalQueries = 0;
-    int actionMoveNativeBlocked = 0;
-    int actionMoveForced = 0;
-    int lastActionMoveState = -1;
-    float lastActionMoveElapsed = 0.0f;
 
     int pistolDamageBoostCalls = 0;
     float lastNativePistolDamage = 0.0f;
@@ -89,7 +74,6 @@ struct Context {
     ApplySkipLogosFn applySkipLogos = nullptr;
     ApplySkipWarningFn applySkipWarning = nullptr;
     ApplyGraphicsAdapterFn applyGraphicsAdapter = nullptr;
-    AbilityStateNameFn abilityStateName = nullptr;
     LogFn log = nullptr;
 };
 

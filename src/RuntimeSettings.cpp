@@ -24,6 +24,15 @@ void Publish(const Snapshot& s) {
     g_state.cameraOrbitInputEnabled.store(s.cameraOrbitInputEnabled, std::memory_order_relaxed);
     g_state.cameraControllerOrbitEnabled.store(s.cameraControllerOrbitEnabled);
     g_state.tpsCameraStickMode.store(s.tpsCameraStickMode);
+    g_state.tpsMousePrimaryButton.store(s.tpsMousePrimaryButton,std::memory_order_relaxed);
+    g_state.tpsMouseSecondaryButton.store(s.tpsMouseSecondaryButton,std::memory_order_relaxed);
+    g_state.tpsFirePrimaryMask.store(s.tpsFirePrimaryMask,std::memory_order_relaxed);
+    g_state.tpsFireSecondaryMask.store(s.tpsFireSecondaryMask,std::memory_order_relaxed);
+    g_state.tpsWheelPadMask.store(s.tpsWheelPadMask,std::memory_order_relaxed);
+    g_state.tpsGrenadeButtonMask.store(s.tpsGrenadeButtonMask,std::memory_order_relaxed);
+    g_state.horsePadButtonA.store(s.horsePadButtonA,std::memory_order_relaxed);
+    g_state.horsePadButtonB.store(s.horsePadButtonB,std::memory_order_relaxed);
+
     g_state.tpsCutsceneAutoSuspend.store(s.tpsCutsceneAutoSuspend);
     if(!s.tpsCutsceneAutoSuspend||!s.thirdPersonEnabled)
         g_state.tpsCutsceneSuspended.store(false);

@@ -19,6 +19,15 @@ struct Snapshot {
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
     bool cameraControllerOrbitEnabled = true;
     int tpsCameraStickMode = 2;
+    int tpsMousePrimaryButton = 1;
+    int tpsMouseSecondaryButton = 2;
+    int tpsFirePrimaryMask = 131072;
+    int tpsFireSecondaryMask = 512;
+    int tpsWheelPadMask = 256;
+    int tpsGrenadeButtonMask = 128;
+    int horsePadButtonA = 256;
+    int horsePadButtonB = 512;
+
     bool tpsCutsceneAutoSuspend = true;
     // V0.75: native TPS mouse firing automatically uses camera heading.
     bool tpsHideGroundAimFx = true;
@@ -89,6 +98,17 @@ struct State {
     std::atomic_bool cameraOrbitInputEnabled{true};
     std::atomic_bool cameraControllerOrbitEnabled{true};
     std::atomic_int tpsCameraStickMode{2};
+    // Rebindable controls are published with other runtime settings. Native
+    // callbacks must not race with the editable Store on the render thread.
+    std::atomic_int tpsMousePrimaryButton{1};
+    std::atomic_int tpsMouseSecondaryButton{2};
+    std::atomic_int tpsFirePrimaryMask{131072};
+    std::atomic_int tpsFireSecondaryMask{512};
+    std::atomic_int tpsWheelPadMask{256};
+    std::atomic_int tpsGrenadeButtonMask{128};
+    std::atomic_int horsePadButtonA{256};
+    std::atomic_int horsePadButtonB{512};
+
     std::atomic_bool tpsCutsceneAutoSuspend{true};
     std::atomic_bool tpsCutsceneSuspended{false};
     std::atomic_bool tpsTemporarilySuspended{false};

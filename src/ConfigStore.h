@@ -73,7 +73,7 @@ kActionLabels = {
     "None",
     "Toggle HUD",
     "Movement Speed",
-    "Action Recovery",
+    "Action Recovery (unavailable)",
     "Skip Intro Videos",
     "Third Person",
     "Skip Logos",
@@ -317,6 +317,7 @@ public:
 private:
     std::wstring path_;
     LogFn logger_ = nullptr;
+    bool saveFailureLogged_ = false;
     std::atomic_bool dirty_{false};
     std::atomic_ullong dirtyTick_{0};
 

@@ -208,51 +208,8 @@ void Draw(Context& c) {
                 t.movementHookReady
             );
 
-            if (ImGui::Checkbox(
-                    "Action Recovery",
-                    &config.actionRecoveryEnabled)) {
-                config.Save();
-                *c.lastAction =
-                    std::string("Action Recovery ") +
-                    (config.actionRecoveryEnabled ? "ON" : "OFF");
-            }
-            ImGui::SameLine(310.0f);
-            ImGui::TextDisabled(
-                "%s",
-                t.recoveryHookReady
-                    ? "No effect in last test" : "Hook unavailable"
-            );
-            ImGui::TextDisabled("Shortens the final animation transition. Applied: %d",
-                t.actionMoveForced);
-            ImGui::TextWrapped("Unresolved: the last test applied no recovery changes. This setting and its delay are preserved for further investigation.");
-
-            if (config.actionRecoveryEnabled) {
-                ImGui::Indent();
-                ImGui::SetNextItemWidth(280.0f);
-
-                bool recoveryChanged =
-                    ImGui::SliderFloat(
-                        "Recovery delay (animation end)##ActionRecovery",
-                        &config.actionRecoveryDelayMs,
-                        0.0f,
-                        500.0f,
-                        "%.0f ms"
-                    );
-
-                ImGui::SameLine();
-                if (ImGui::Button(
-                        "Default##Reset_ActionRecovery")) {
-                    config.actionRecoveryDelayMs = 0.0f;
-                    recoveryChanged = true;
-                }
-
-                if (recoveryChanged) {
-                    config.Save();
-                }
-
-
-                ImGui::Unindent();
-            }
+            ImGui::TextDisabled("Action Recovery - unavailable");
+            ImGui::TextWrapped("The previous experiment had no effect and has been retired. Native dash and chest timing is retained. Existing INI values and hotkey assignments remain compatible.");
 
             DrawTunableFeature(
                 config,
@@ -1157,9 +1114,8 @@ void Draw(Context& c) {
             if (ImGui::Button(
                     "Save",
                     ImVec2(110.0f, 0.0f))) {
-                config.SaveNow();
-                *c.lastAction =
-                    "Configuration saved";
+                *c.lastAction = config.SaveNow() ? "Configuration saved"
+                    : "Save failed; changes remain pending. See log.";
             }
 
             ImGui::SameLine();
@@ -1167,10 +1123,10 @@ void Draw(Context& c) {
             if (ImGui::Button(
                     "Reload",
                     ImVec2(110.0f, 0.0f))) {
-                config.Load();
+                const bool loaded=config.Load();
                 c.captureCameraKeyIndex->store(-1);
-                *c.lastAction =
-                    "Configuration reloaded";
+                *c.lastAction = loaded ? "Configuration reloaded"
+                    : "Reload failed. See log.";
             }
 
             ImGui::TextDisabled(

@@ -5,6 +5,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+if(MSVC)
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 include(CTest)
 if(BUILD_TESTING)
   add_executable(TpsStickRolesTests tests/TpsStickRolesTests.cpp)
@@ -40,19 +44,20 @@ if(BUILD_TESTING)
   target_compile_definitions(AmmoConfigTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
   target_link_libraries(AmmoConfigTests PRIVATE user32)
   add_test(NAME AmmoConfig COMMAND AmmoConfigTests)
-  add_executable(ActionRecoveryTests tests/ActionRecoveryTests.cpp)
-  target_include_directories(ActionRecoveryTests PRIVATE src)
-  add_test(NAME ActionRecovery COMMAND ActionRecoveryTests)
+  add_executable(ConfigWriteFailureTests tests/ConfigWriteFailureTests.cpp src/ConfigStore.cpp src/RuntimeSettings.cpp)
+  target_include_directories(ConfigWriteFailureTests PRIVATE src)
+  target_compile_definitions(ConfigWriteFailureTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  target_link_libraries(ConfigWriteFailureTests PRIVATE user32)
+  add_test(NAME ConfigWriteFailures COMMAND ConfigWriteFailureTests)
+  add_executable(UpdateVersionTests tests/UpdateVersionTests.cpp)
+  target_include_directories(UpdateVersionTests PRIVATE src)
+  add_test(NAME UpdateVersion COMMAND UpdateVersionTests)
   add_executable(UserDefaultsConfigTests tests/UserDefaultsConfigTests.cpp src/ConfigStore.cpp src/RuntimeSettings.cpp)
   target_include_directories(UserDefaultsConfigTests PRIVATE src)
   target_compile_definitions(UserDefaultsConfigTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
   target_link_libraries(UserDefaultsConfigTests PRIVATE user32)
   add_test(NAME UserDefaultsConfig COMMAND UserDefaultsConfigTests "${CMAKE_CURRENT_SOURCE_DIR}/config/DarksidersGenesisMod.ini")
 
-endif()
-
-if(MSVC)
-  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
 include(FetchContent)
@@ -110,6 +115,19 @@ set(DG_CSC "$ENV{WINDIR}/Microsoft.NET/Framework64/v4.0.30319/csc.exe")
 if(NOT EXISTS "${DG_CSC}")
   message(FATAL_ERROR "Embedded updater requires the Windows .NET Framework x64 C# compiler")
 endif()
+if(BUILD_TESTING)
+  set(DG_UPDATER_TEST "${CMAKE_CURRENT_BINARY_DIR}/UpdateEngineSafetyTests.exe")
+  file(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tests/UpdateEngineSafetyTests.cs" DG_CSHARP_TEST)
+  file(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/updater/UpdateEngine.cs" DG_CSHARP_TEST_ENGINE)
+  add_custom_command(OUTPUT "${DG_UPDATER_TEST}"
+    COMMAND "${DG_CSC}" /nologo /target:exe /platform:x64 /optimize+
+      "/out:${DG_UPDATER_TEST}" /r:System.dll /r:System.Core.dll
+      /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll
+      /r:System.Web.Extensions.dll "${DG_CSHARP_TEST}" "${DG_CSHARP_TEST_ENGINE}"
+    DEPENDS tests/UpdateEngineSafetyTests.cs updater/UpdateEngine.cs VERBATIM)
+  add_custom_target(dg_updater_tests ALL DEPENDS "${DG_UPDATER_TEST}")
+  add_test(NAME UpdateEngineSafety COMMAND "${DG_UPDATER_TEST}")
+endif()
 set(DG_HELPER_EXE "${CMAKE_CURRENT_BINARY_DIR}/DarksidersGenesisUpdaterCLI.exe")
 # Native paths avoid C# compiler treating forward slashes as argument switches.
 file(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/updater/Program.cs" DG_CSHARP_PROGRAM)
@@ -145,7 +163,6 @@ add_library(DarksidersGenesisMod SHARED
   src/GaugeChargeFeature.cpp
   src/ManualGaugeFeature.cpp
   src/AmmoConsumptionFeature.cpp
-  src/ActionRecoveryFeature.cpp
   src/HorseFeature.cpp
   src/OverlayUi.cpp
   src/RuntimeSettings.cpp
@@ -188,6 +205,12 @@ set_target_properties(dxgi_proxy PROPERTIES
   SUFFIX ".dll"
   RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/out"
 )
+
+option(DG_ENABLE_ANALYZE "Run MSVC native static analysis" OFF)
+if(MSVC AND DG_ENABLE_ANALYZE)
+  target_compile_options(DarksidersGenesisMod PRIVATE /analyze)
+  target_compile_options(dxgi_proxy PRIVATE /analyze)
+endif()
 
 if(MSVC)
   target_compile_options(DarksidersGenesisMod PRIVATE /W4 /EHsc /permissive-)

@@ -93,5 +93,7 @@ bool MarkCurrentCinematicForDebug(); // user annotation only, no camera writes
 const char* CinematicDebugPhaseLabel(CinematicDebugPhase phase);
 void Install(LogFn log);
 Telemetry GetTelemetry();
+// Hot native look callbacks need only this one value, not a full debug snapshot.
+float AppliedYaw();
 bool RecenterOnPlayer();
 }

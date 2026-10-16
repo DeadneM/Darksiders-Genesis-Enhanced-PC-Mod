@@ -1,3 +1,7 @@
+## V1.1 - verified installed binary state (2026-10-16)
+
+The updater now binds its installed-version record to the SHA-256 of both the ASI and dxgi.dll. Replacing either file manually invalidates an old record; automatic installation then waits for an explicit Install Latest action. Personal INI edits do not invalidate it. Old V1.0 records are treated as manual installs until the next explicit installation. The old V1.0 ZIP remains available unchanged.
+
 # Darksiders Genesis Enhanced PC Mod Updater
 
 A standalone Windows x64 updater built against the .NET Framework already included in Windows. This is separate from the mod's four-file ZIP.

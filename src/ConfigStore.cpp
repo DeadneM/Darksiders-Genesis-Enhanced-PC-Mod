@@ -4,6 +4,7 @@
 #include "RuntimeSettings.h"
 
 #include <cwchar>
+#include <cstdio>
 #include <algorithm>
 #include <cmath>
 
@@ -56,12 +57,32 @@ float ReadFloat(
     return (end && end != buffer && std::isfinite(value)) ? value : fallback;
 }
 
+// SaveNow must not report success or clear dirty state after a partial write.
+// Scoped tracking also covers writes made by the typed helpers below.
+struct ProfileWriteStatus { bool ok=true; DWORD error=ERROR_SUCCESS; };
+thread_local ProfileWriteStatus* activeWriteStatus=nullptr;
+struct ProfileWriteScope {
+    ProfileWriteStatus status;
+    ProfileWriteStatus* previous=activeWriteStatus;
+    ProfileWriteScope(){activeWriteStatus=&status;}
+    ~ProfileWriteScope(){activeWriteStatus=previous;}
+};
+BOOL WriteProfileString(const wchar_t* section,const wchar_t* key,
+                        const wchar_t* value,const wchar_t* path){
+    const BOOL ok=WritePrivateProfileStringW(section,key,value,path);
+    if(!ok && activeWriteStatus){
+        if(activeWriteStatus->ok)activeWriteStatus->error=GetLastError();
+        activeWriteStatus->ok=false;
+    }
+    return ok;
+}
+
 void WriteBool(
     const wchar_t* section,
     const wchar_t* key,
     bool value,
     const std::wstring& path) {
-    WritePrivateProfileStringW(
+    WriteProfileString(
         section,
         key,
         value ? L"1" : L"0",
@@ -76,7 +97,7 @@ void WriteFloat(
     const std::wstring& path) {
     wchar_t buffer[64]{};
     swprintf_s(buffer, L"%.3f", value);
-    WritePrivateProfileStringW(
+    WriteProfileString(
         section,
         key,
         buffer,
@@ -476,10 +497,14 @@ bool Store::Load() {
         return false;
     }
 
-    if (GetFileAttributesW(path_.c_str()) ==
-        INVALID_FILE_ATTRIBUTES) {
+    const DWORD attributes=GetFileAttributesW(path_.c_str());
+    if(attributes!=INVALID_FILE_ATTRIBUTES && (attributes&FILE_ATTRIBUTE_DIRECTORY)){
+        Log("INI load failed: path is a directory");
+        return false;
+    }
+    if (attributes == INVALID_FILE_ATTRIBUTES) {
         ResetDefaults(false);
-        SaveNow();
+        if(!SaveNow())return false;
         Log("INI not found -> wrote authoritative defaults");
         return true;
     }
@@ -491,7 +516,7 @@ bool Store::Load() {
     GetPrivateProfileStringW(
         L"Overlay",
         L"MenuKey",
-        L"VK_C0",
+        L"Insert",
         menuKeyText,
         64,
         path_.c_str()
@@ -821,6 +846,15 @@ void Store::PublishRuntime() const {
     runtime.cameraOrbitInputEnabled = thirdPersonEnabled;
     runtime.cameraControllerOrbitEnabled = cameraControllerOrbitEnabled;
     runtime.tpsCameraStickMode = tpsCameraStickMode;
+    runtime.tpsMousePrimaryButton = tpsMousePrimaryButton;
+    runtime.tpsMouseSecondaryButton = tpsMouseSecondaryButton;
+    runtime.tpsFirePrimaryMask = tpsFirePrimaryMask;
+    runtime.tpsFireSecondaryMask = tpsFireSecondaryMask;
+    runtime.tpsWheelPadMask = tpsWheelPadMask;
+    runtime.tpsGrenadeButtonMask = tpsGrenadeButtonMask;
+    runtime.horsePadButtonA = horsePadButtonA;
+    runtime.horsePadButtonB = horsePadButtonB;
+
     runtime.tpsCutsceneAutoSuspend = tpsCutsceneAutoSuspend;
     runtime.tpsHideGroundAimFx = tpsHideGroundAimFx;
     runtime.aimIndicatorHideMode = aimIndicatorHideMode;
@@ -891,11 +925,12 @@ bool Store::SaveNow() {
         return false;
     }
 
+    ProfileWriteScope writes;
     PublishRuntime();
 
     wchar_t revisionText[16]{};
     swprintf_s(revisionText,L"%d",kConfigRevision);
-    WritePrivateProfileStringW(
+    WriteProfileString(
         L"Meta",
         L"ConfigRevision",
         revisionText,
@@ -905,7 +940,7 @@ bool Store::SaveNow() {
     WriteBool(L"Overlay", L"Enabled", overlayEnabled, path_);
     WriteBool(L"Updater", L"Beta", updaterBeta, path_);
     const std::wstring menuKeyToken = KeyTokenFromVK(menuKey);
-    WritePrivateProfileStringW(
+    WriteProfileString(
         L"Overlay",
         L"MenuKey",
         menuKeyToken.c_str(),
@@ -918,14 +953,14 @@ bool Store::SaveNow() {
         L"%d",
         graphicsAdapter
     );
-    WritePrivateProfileStringW(
+    WriteProfileString(
         L"System",
         L"GraphicsAdapter",
         graphicsAdapterText,
         path_.c_str()
     );
 
-    WritePrivateProfileStringW(L"Features", L"ToggleHUD", nullptr, path_.c_str());
+    WriteProfileString(L"Features", L"ToggleHUD", nullptr, path_.c_str());
     WriteBool(L"Features", L"MovementSpeed", movementSpeedEnabled, path_);
     WriteBool(L"Features", L"ActionRecovery", actionRecoveryEnabled, path_);
     WriteBool(L"Features", L"SkipLogos", skipLogosEnabled, path_);
@@ -939,102 +974,102 @@ bool Store::SaveNow() {
     WriteFloat(L"Values",L"AmmoConsumptionDivisor",ammoConsumptionDivisor,path_);
     WriteBool(L"Features", L"ThirdPerson", thirdPersonEnabled, path_);
     WriteBool(L"Features",L"TPSFOV",thirdPersonFovEnabled,path_);
-    WritePrivateProfileStringW(L"Features",L"TPSFollowPlayer",nullptr,path_.c_str());
+    WriteProfileString(L"Features",L"TPSFollowPlayer",nullptr,path_.c_str());
     // Remove obsolete TPS switches from existing user INIs once migrated.
     for(const wchar_t* key : { L"TPSFixedCenterReticle",L"TPSLockZoneCamera",
         L"TPSControllerCombatAim",L"TPSLockCombatFacing",L"TPSStrafeLock",
         L"TPSCameraFacingGuard",L"TPSLockCombatCameraPivot" }) {
-        WritePrivateProfileStringW(L"Features",key,nullptr,path_.c_str());
+        WriteProfileString(L"Features",key,nullptr,path_.c_str());
     }
     // V0.69: remove the broken setting from old INIs. Blocking mouse
     // messages freezes the game's world-plane aim target.
-    WritePrivateProfileStringW(L"Features",L"TPSSuppressVanillaMouseAim",nullptr,path_.c_str());
+    WriteProfileString(L"Features",L"TPSSuppressVanillaMouseAim",nullptr,path_.c_str());
     // V0.70: persist independent orbit controls, remove old combined key.
-    WritePrivateProfileStringW(L"Features",L"CameraMouseGamepad",nullptr,path_.c_str());
+    WriteProfileString(L"Features",L"CameraMouseGamepad",nullptr,path_.c_str());
     // Remove stale mouse-specific INI configuration entirely.
-    WritePrivateProfileStringW(L"Features",L"CameraMouseOrbit",nullptr,path_.c_str());
-    WritePrivateProfileStringW(L"Features",L"TPSMouseCenterAim",nullptr,path_.c_str());
-    WritePrivateProfileStringW(L"Features",L"TPSMouseForwardFire",nullptr,path_.c_str());
-    WritePrivateProfileStringW(L"Features",L"TPSMouseStickMode",nullptr,path_.c_str());
+    WriteProfileString(L"Features",L"CameraMouseOrbit",nullptr,path_.c_str());
+    WriteProfileString(L"Features",L"TPSMouseCenterAim",nullptr,path_.c_str());
+    WriteProfileString(L"Features",L"TPSMouseForwardFire",nullptr,path_.c_str());
+    WriteProfileString(L"Features",L"TPSMouseStickMode",nullptr,path_.c_str());
     WriteBool(L"Features",L"CameraControllerOrbit",tpsCameraStickMode!=0,path_);
     wchar_t stickBuffer[8]{};
     swprintf_s(stickBuffer,L"%d",tpsCameraStickMode);
-    WritePrivateProfileStringW(L"Features",L"TPSCameraStickMode",stickBuffer,path_.c_str());
+    WriteProfileString(L"Features",L"TPSCameraStickMode",stickBuffer,path_.c_str());
     WriteBool(L"Features",L"TPSAutoCutscene",tpsCutsceneAutoSuspend,path_);
     // Remove the V0.71/0.73 ineffective switches, no mapping of old values.
-    WritePrivateProfileStringW(L"Features",L"TPSMouseKeyboardStrafe",nullptr,path_.c_str());
-    WritePrivateProfileStringW(L"Features",L"TPSControllerStrafe",nullptr,path_.c_str());
-    WritePrivateProfileStringW(L"Features",L"TPSMouseStrafeWhileFiring",nullptr,path_.c_str());
-    WritePrivateProfileStringW(L"Features",L"TPSMouseRotateWhileFiring",nullptr,path_.c_str());
+    WriteProfileString(L"Features",L"TPSMouseKeyboardStrafe",nullptr,path_.c_str());
+    WriteProfileString(L"Features",L"TPSControllerStrafe",nullptr,path_.c_str());
+    WriteProfileString(L"Features",L"TPSMouseStrafeWhileFiring",nullptr,path_.c_str());
+    WriteProfileString(L"Features",L"TPSMouseRotateWhileFiring",nullptr,path_.c_str());
     // V0.94: these were mutually confusing user toggles. TPS handles both
     // natively according to selected aiming mode and radial menu state.
-    WritePrivateProfileStringW(L"Features",L"TPSSuppressNativeRightStick",nullptr,path_.c_str());
-    WritePrivateProfileStringW(L"Features",L"TPSControllerStrafeWhileFiring",nullptr,path_.c_str());
-    WritePrivateProfileStringW(L"Features",L"TPSControllerRotateWhileFiring",nullptr,path_.c_str());
+    WriteProfileString(L"Features",L"TPSSuppressNativeRightStick",nullptr,path_.c_str());
+    WriteProfileString(L"Features",L"TPSControllerStrafeWhileFiring",nullptr,path_.c_str());
+    WriteProfileString(L"Features",L"TPSControllerRotateWhileFiring",nullptr,path_.c_str());
     WriteBool(L"Features",L"TPSHoldSuspend",tpsSuspendButtonMask!=0,path_);
     WriteBool(L"Features",L"TPSHoldToggle",tpsToggleHoldButtonMask!=0,path_);
     WriteBool(L"Features",L"TPSGrenadeHold",tpsGrenadeButtonMask!=0,path_);
     WriteBool(L"Features",L"TPSHideGroundAimFx",tpsHideGroundAimFx,path_);
     wchar_t aimModeBuffer[12]{};
     swprintf_s(aimModeBuffer,L"%d",std::clamp(aimIndicatorHideMode,0,2));
-    WritePrivateProfileStringW(L"Features",L"AimIndicatorHideMode",aimModeBuffer,path_.c_str());
+    WriteProfileString(L"Features",L"AimIndicatorHideMode",aimModeBuffer,path_.c_str());
     WriteBool(L"Features",L"TPSHorseStableAimCamera",tpsHorseStableAimCamera,path_);
     wchar_t mountModeText[12]{};
     swprintf_s(mountModeText,L"%d",std::clamp(tpsMountedAimMode,0,1));
-    WritePrivateProfileStringW(L"Features",L"TPSMountedAimMode",mountModeText,path_.c_str());
+    WriteProfileString(L"Features",L"TPSMountedAimMode",mountModeText,path_.c_str());
     wchar_t buttonBuffer[16]{};
     swprintf_s(buttonBuffer,L"%d",tpsGrenadeButtonMask);
-    WritePrivateProfileStringW(L"Controls",L"TPSGrenadeButtonMask",buttonBuffer,path_.c_str());
+    WriteProfileString(L"Controls",L"TPSGrenadeButtonMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsFirePrimaryMask);
-    WritePrivateProfileStringW(L"Controls",L"TPSFirePrimaryMask",buttonBuffer,path_.c_str());
+    WriteProfileString(L"Controls",L"TPSFirePrimaryMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsFireSecondaryMask);
-    WritePrivateProfileStringW(L"Controls",L"TPSFireSecondaryMask",buttonBuffer,path_.c_str());
+    WriteProfileString(L"Controls",L"TPSFireSecondaryMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsMousePrimaryButton);
-    WritePrivateProfileStringW(L"Controls",L"TPSMousePrimaryButton",buttonBuffer,path_.c_str());
+    WriteProfileString(L"Controls",L"TPSMousePrimaryButton",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsMouseSecondaryButton);
-    WritePrivateProfileStringW(L"Controls",L"TPSMouseSecondaryButton",buttonBuffer,path_.c_str());
+    WriteProfileString(L"Controls",L"TPSMouseSecondaryButton",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsWheelPadMask);
-    WritePrivateProfileStringW(L"Controls",L"TPSWheelPadMask",buttonBuffer,path_.c_str());
+    WriteProfileString(L"Controls",L"TPSWheelPadMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsChargedFirePadMask);
-    WritePrivateProfileStringW(L"Controls",L"TPSChargedFirePadMask",buttonBuffer,path_.c_str());
+    WriteProfileString(L"Controls",L"TPSChargedFirePadMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsRecenterButtonMask);
-    WritePrivateProfileStringW(L"Controls",L"TPSRecenterButtonMask",buttonBuffer,path_.c_str());
+    WriteProfileString(L"Controls",L"TPSRecenterButtonMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",horsePadButtonA);
-    WritePrivateProfileStringW(L"Controls",L"HorsePadButtonA",buttonBuffer,path_.c_str());
+    WriteProfileString(L"Controls",L"HorsePadButtonA",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",horsePadButtonB);
-    WritePrivateProfileStringW(L"Controls",L"HorsePadButtonB",buttonBuffer,path_.c_str());
+    WriteProfileString(L"Controls",L"HorsePadButtonB",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsSuspendButtonMask);
-    WritePrivateProfileStringW(L"Controls",L"TPSSuspendButtonMask",buttonBuffer,path_.c_str());
+    WriteProfileString(L"Controls",L"TPSSuspendButtonMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",std::clamp(tpsSuspendDelayMs,0,3000));
-    WritePrivateProfileStringW(L"Controls",L"TPSSuspendDelayMs",buttonBuffer,path_.c_str());
+    WriteProfileString(L"Controls",L"TPSSuspendDelayMs",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsToggleHoldButtonMask);
-    WritePrivateProfileStringW(L"Controls",L"TPSToggleHoldButtonMask",buttonBuffer,path_.c_str());
+    WriteProfileString(L"Controls",L"TPSToggleHoldButtonMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsToggleHoldMs);
-    WritePrivateProfileStringW(L"Controls",L"TPSToggleHoldMs",buttonBuffer,path_.c_str());
-    WritePrivateProfileStringW(L"Features",L"TPSAlwaysFaceCamera",nullptr,path_.c_str());
+    WriteProfileString(L"Controls",L"TPSToggleHoldMs",buttonBuffer,path_.c_str());
+    WriteProfileString(L"Features",L"TPSAlwaysFaceCamera",nullptr,path_.c_str());
 
     WriteBool(L"Features", L"PistolDamage", pistolDamageEnabled, path_);
     WriteBool(L"Features", L"MeleeDamage", meleeDamageEnabled, path_);
     WriteBool(L"Features", L"JumpHeight", jumpHeightEnabled, path_);
     WriteBool(L"Features", L"GlideDuration", glideDurationEnabled, path_);
     WriteBool(L"Features", L"HorseEverywhere", horseEverywhereEnabled, path_);
-    WritePrivateProfileStringW(L"Features",L"HorseAllowRestrictedSummon",nullptr,path_.c_str());
-    WritePrivateProfileStringW(L"Features",L"HorsePreventForcedDesummon",nullptr,path_.c_str());
+    WriteProfileString(L"Features",L"HorseAllowRestrictedSummon",nullptr,path_.c_str());
+    WriteProfileString(L"Features",L"HorsePreventForcedDesummon",nullptr,path_.c_str());
     wchar_t horseMode[8]{}; swprintf_s(horseMode,L"%d",std::clamp(horseAreaMode,0,3));
-    WritePrivateProfileStringW(L"Features",L"HorseAreaMode",horseMode,path_.c_str());
+    WriteProfileString(L"Features",L"HorseAreaMode",horseMode,path_.c_str());
     WriteBool(L"Features", L"HorseSpeed", horseSpeedEnabled, path_);
     WriteBool(L"Features", L"HorseSprintSpeed", horseSprintSpeedEnabled, path_);
     WriteBool(L"Features", L"HorseSprintDuration", horseSprintDurationEnabled, path_);
     WriteBool(L"Features", L"FOV", fovEnabled, path_);
     // V1.22: retire obsolete option on explicit save only.
-    WritePrivateProfileStringW(L"Features", L"HideReticle", nullptr, path_.c_str());
+    WriteProfileString(L"Features", L"HideReticle", nullptr, path_.c_str());
     // Obsolete TPS pointer toggle: now internal, menu-only policy.
     // Remove deprecated key only when user saves settings.
-    WritePrivateProfileStringW(L"Features",L"ShowTPSMousePointer",nullptr,path_.c_str());
+    WriteProfileString(L"Features",L"ShowTPSMousePointer",nullptr,path_.c_str());
     // Remove retired V0.40/V0.41 experiment keys on next save.
     // No automatic focus changes or cursor-source overrides remain.
-    WritePrivateProfileStringW(L"Features", L"CrossCursorTestMode", nullptr, path_.c_str());
-    WritePrivateProfileStringW(L"Features", L"AutoReticleRefreshOnLoad", nullptr, path_.c_str());
+    WriteProfileString(L"Features", L"CrossCursorTestMode", nullptr, path_.c_str());
+    WriteProfileString(L"Features", L"AutoReticleRefreshOnLoad", nullptr, path_.c_str());
     WriteBool(L"Features", L"HotstreakCharge", hotstreakChargeEnabled, path_);
     WriteBool(L"Features",L"WrathCharge",wrathChargeEnabled,path_);
     WriteBool(L"Features",L"UltimateFormCharge",ultimateChargeEnabled,path_);
@@ -1055,7 +1090,7 @@ bool Store::SaveNow() {
     WriteFloat(L"Values",L"TPSFOVDegrees",thirdPersonFovDegrees,path_);
     for(const wchar_t* key : { L"TPSCombatAimTurnRate",L"TPSAimYawOffsetDegrees",
         L"TPSFacingToleranceDegrees" })
-        WritePrivateProfileStringW(L"Values",key,nullptr,path_.c_str());
+        WriteProfileString(L"Values",key,nullptr,path_.c_str());
     WriteFloat(L"Values", L"CameraZoomPercent", cameraZoomPercent, path_);
     WriteFloat(L"Values", L"CameraPitchDegrees", cameraPitchDegrees, path_);
     WriteFloat(L"Values", L"CameraYawDegrees", cameraYawDegrees, path_);
@@ -1068,7 +1103,7 @@ bool Store::SaveNow() {
     WriteFloat(L"Values",L"TPSFootAnchorOffset",tpsFootAnchorOffset,path_);
     WriteFloat(L"Values", L"CameraStickSpeed", cameraStickSpeed, path_);
     WriteFloat(L"Values", L"HotstreakChargeMultiplier", hotstreakChargeMultiplier, path_);
-    WritePrivateProfileStringW(L"Values",L"CameraMouseSensitivity",nullptr,path_.c_str());
+    WriteProfileString(L"Values",L"CameraMouseSensitivity",nullptr,path_.c_str());
     WriteFloat(L"Values",L"WrathChargeMultiplier",wrathChargeMultiplier,path_);
     WriteFloat(L"Values",L"UltimateFormChargeMultiplier",ultimateChargeMultiplier,path_);
     WriteFloat(L"Values",L"SynergyChargeMultiplier",synergyChargeMultiplier,path_);
@@ -1076,7 +1111,7 @@ bool Store::SaveNow() {
     for (int i = 0; i < 12; ++i) {
         wchar_t key[8]{};
         swprintf_s(key, L"F%d", i + 1);
-        WritePrivateProfileStringW(
+        WriteProfileString(
             L"Hotkeys",
             key,
             ActionToken(hotkeys[static_cast<std::size_t>(i)]),
@@ -1085,20 +1120,31 @@ bool Store::SaveNow() {
     }
 
     // Native E already selects gear; the keyboard grenade duplicate is retired.
-    WritePrivateProfileStringW(L"TPSKeyboardHotkeys",L"Grenade",nullptr,path_.c_str());
-    WritePrivateProfileStringW(L"TPSKeyboardHotkeys",L"RadialE",nullptr,path_.c_str());
-    WritePrivateProfileStringW(L"TPSKeyboardHotkeys",L"RadialAlt",nullptr,path_.c_str());
+    WriteProfileString(L"TPSKeyboardHotkeys",L"Grenade",nullptr,path_.c_str());
+    WriteProfileString(L"TPSKeyboardHotkeys",L"RadialE",nullptr,path_.c_str());
+    WriteProfileString(L"TPSKeyboardHotkeys",L"RadialAlt",nullptr,path_.c_str());
     for(size_t i=0;i<tpsKeyboardKeys.size();++i){
         const std::wstring token=KeyTokenFromVK(tpsKeyboardKeys[i]);
-        WritePrivateProfileStringW(L"TPSKeyboardHotkeys",kTpsKeyboardTokens[i],
+        WriteProfileString(L"TPSKeyboardHotkeys",kTpsKeyboardTokens[i],
             token.c_str(),path_.c_str());
     }
     for (size_t i = 0; i < cameraKeys.size(); ++i) {
         const std::wstring value = KeyTokenFromVK(cameraKeys[i]);
-        WritePrivateProfileStringW(
+        WriteProfileString(
             L"CameraHotkeys", kCameraTokens[i], value.c_str(), path_.c_str());
     }
 
+    if(!writes.status.ok){
+        MarkDirty(); // Retry after the normal quiet period; runtime values stay published.
+        if(!saveFailureLogged_){
+            char message[160]{};
+            sprintf_s(message,"INI save failed (Windows error %lu); changes remain pending",writes.status.error);
+            Log(message);
+            saveFailureLogged_=true;
+        }
+        return false;
+    }
+    saveFailureLogged_=false;
     dirty_.store(false, std::memory_order_relaxed);
     Log("INI saved");
     return true;

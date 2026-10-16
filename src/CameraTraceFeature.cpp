@@ -889,6 +889,7 @@ bool RecenterOnPlayer() {
     Write(message);
     return true;
 }
+float AppliedYaw() { return g_appliedYaw.load(); }
 Telemetry GetTelemetry() {
     Telemetry t{};
     t.viewReady = g_viewReady.load();

@@ -1,4 +1,5 @@
 #include "UpdateFeature.h"
+#include "UpdateVersionPolicy.h"
 #include <windows.h>
 #include <winhttp.h>
 #include <algorithm>
@@ -17,8 +18,6 @@ namespace dg::update {
 namespace {
 namespace fs=std::filesystem;
 constexpr char kRepo[]="DeadneM/Darksiders-Genesis-Enhanced-PC-Mod";
-constexpr char kBuiltArchive[]="DarksidersGenesis_V1.22_NO_RETICLE_HIDE_TEST.zip";
-constexpr int kMajor=1,kMinor=22;
 constexpr int kResourceId=101;
 constexpr size_t kMaxResponse=4*1024*1024;
 struct Package {
@@ -204,8 +203,8 @@ void DoCheck(bool beta){
         g_status.minor=p.minor;
         g_status.latest="V"+std::to_string(p.major)+"."+
             (p.minor<10?"0":"")+std::to_string(p.minor);
-        g_status.newer=p.major>kMajor || (p.major==kMajor && p.minor>kMinor);
-        const bool same=(p.major==kMajor && p.minor==kMinor && p.name==kBuiltArchive);
+        g_status.newer=NewerThanCurrent(p.major,p.minor);
+        const bool same=MatchesCurrent(p.major,p.minor,p.name);
         g_status.sameBuild=same;
         g_status.message=same ? "This ASI matches the newest "+std::string(beta?"beta":"stable")+" build." :
             g_status.newer ? "Newer build found. Choose Install after Exit." :

@@ -380,46 +380,7 @@ void PublishSlotLocked(const HorseSlot& slot) {
     }
 }
 
-void RestoreSlotLocked(HorseSlot& slot) {
-    if (!slot.horse) {
-        return;
-    }
 
-    if (slot.movementReady) {
-        WriteFloat(
-            slot.movement,
-            kMaxWalkSpeedOffset,
-            slot.nativeMaxWalkSpeed
-        );
-        WriteFloat(
-            slot.movement,
-            kMaxAccelerationOffset,
-            slot.nativeMaxAcceleration
-        );
-        WriteFloat(
-            slot.movement,
-            kBrakingFrictionFactorOffset,
-            slot.nativeBrakingFrictionFactor
-        );
-    }
-
-    if (slot.horseFieldsReady &&
-        slot.movementReady) {
-        WriteFloat(
-            slot.movement,
-            kSprintingMaxSpeedOffset,
-            slot.nativeSprintingMaxSpeed
-        );
-    }
-
-    if (slot.staminaFieldsReady) {
-        WriteFloat(
-            slot.horse,
-            kStaminaSprintRateOffset,
-            slot.nativeStaminaSprintRate
-        );
-    }
-}
 
 void ApplySlotLocked(HorseSlot& slot) {
     if (!slot.horse) {

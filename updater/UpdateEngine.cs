@@ -38,14 +38,38 @@ namespace DarksidersGenesisUpdater {
             }
         }
         internal static string BackupRoot(string folder) {return Path.Combine(StateFolder(folder),"backups");}
+        private static string BinaryFingerprint(string folder) {
+            var result=new StringBuilder();
+            foreach(string name in new[]{"DarksidersGenesisMod.asi","dxgi.dll"}){
+                string path=Path.Combine(folder,name);
+                if(!File.Exists(path))return "";
+                using(var stream=File.OpenRead(path))
+                using(var hash=SHA256.Create())
+                    result.Append(name).Append(':').Append(
+                        BitConverter.ToString(hash.ComputeHash(stream)).Replace("-","")).Append('\n');
+            }
+            return result.ToString().Trim();
+        }
         internal static string ReadState(string folder) {
-            string file=Path.Combine(StateFolder(folder),"installed.txt");
-            return File.Exists(file)?File.ReadAllText(file).Trim():"";
+            // A manual ASI/DXGI install invalidates the updater's old version ledger.
+            // Treat unbound legacy ledgers as manual installs, requiring confirmation.
+            try {
+                string dir=StateFolder(folder),file=Path.Combine(dir,"installed.txt");
+                string fingerprint=Path.Combine(dir,"installed-binaries.sha256");
+                if(!File.Exists(file)||!File.Exists(fingerprint))return "";
+                string actual=BinaryFingerprint(folder);
+                return actual.Length>0&&actual==File.ReadAllText(fingerprint).Trim()
+                    ?File.ReadAllText(file).Trim():"";
+            }catch(IOException){return "";}
+             catch(UnauthorizedAccessException){return "";}
         }
         private static void SaveState(string folder,string value) {
             string dir=StateFolder(folder);
             Directory.CreateDirectory(dir);
+            string actual=BinaryFingerprint(folder);
+            if(actual.Length==0&&!string.IsNullOrEmpty(value))throw new IOException("Installed binaries missing; version state not saved");
             File.WriteAllText(Path.Combine(dir,"installed.txt"),value??"",Encoding.UTF8);
+            File.WriteAllText(Path.Combine(dir,"installed-binaries.sha256"),actual,Encoding.UTF8);
         }
         private static WebClient Client() {
             ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;

@@ -15,8 +15,7 @@ namespace dg::gauges {
 namespace {
 // Audited SHA-256 9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54:
 // UE4 native function table proves:
-//  UMayhem*::AddWrath wrapper RVA 0x7ABD90 -> native RVA 0x660570(this,float).
-//  ::AddChaos wrapper RVA 0x76FC60 -> native RVA 0x62E060(this,float).
+// Wrath/Ultimate natural gains are handled by ResourceGainFeature (validated).
 //  ::SetCurrentSynergy wrapper RVA 0x7C5240 -> native RVA 0x583040(this,float);
 //  native GetCurrentSynergy 0x56D430: [this+0x5A4] float;
 //  native GetMaxSynergy 0x56FEC0: [this+0x498] float.
@@ -24,22 +23,18 @@ namespace {
 // IMPORTANT V1.06: exact shipping EXE caller RVA 0x7C52C2 reads xmm0
 // after calling SetCurrentSynergy RVA 0x583040. Its original return is FLOAT,
 // not void; V1.05 had accidentally changed the detour ABI.
-using WrathFn=void(*)(void*,float);
-using ChaosFn=float(*)(void*,float);
 using SynergyFn=float(*)(void*,float); // XMM0 return consumed by Blueprint wrapper 0x7C52C2
 // RVA 0x65A1A0: (manager, synergy owner, factorA, factorB, factorC).
 // Native computes current + A*B*C and tail-jumps to SetCurrentSynergy.
 using SynergyGainFn=float(*)(void*,void*,float,float,float);
-WrathFn originalWrath=nullptr;
-ChaosFn originalChaos=nullptr;
 SynergyFn originalSynergy=nullptr;
 SynergyGainFn originalSynergyGain=nullptr;
 LogFn logger=nullptr;
 std::atomic<void*>* localPlayer=nullptr;
-std::atomic_bool wrathReady{false},chaosReady{false},synergyReady{false},synergyGainReady{false};
-std::atomic_uint32_t wrathEvents{0},chaosEvents{0},synergyEvents{0};
-std::atomic_uint32_t wrathBoosts{0},chaosBoosts{0},synergyBoosts{0};
-std::atomic_uint32_t wrathLocal{0},chaosLocal{0},synergyLocal{0},synergyPositive{0},synergyRejected{0};
+std::atomic_bool synergyReady{false},synergyGainReady{false};
+std::atomic_uint32_t synergyEvents{0};
+std::atomic_uint32_t synergyBoosts{0};
+std::atomic_uint32_t synergyLocal{0},synergyPositive{0};
 std::atomic_uint32_t synergyGainEvents{0},synergyGainLocal{0};
 // Audit only: these counters do NOT affect native resource values.
 std::atomic_uint32_t synergyAddPositive{0},synergyAddZero{0},
@@ -130,71 +125,17 @@ void Event(const char* name,unsigned count,float native,float modified){
     sprintf_s(msg,"Gauge V1.03: %s LOCAL gain %.3f -> %.3f n=%u",name,native,modified,count);
     Log(msg);
 }
-bool Local(void* object){
-    return object&&localPlayer&&localPlayer->load(std::memory_order_acquire)==object;
-}
-bool LocalOwner(void* component){
-    if(!component||!localPlayer)return false;
-    void* owner=nullptr;
-    // The native AddChaos reads its live component owner at this offset too.
-    std::memcpy(&owner,static_cast<const unsigned char*>(component)+0xE8,sizeof(owner));
-    return Local(owner);
-}
-float Boost(float value,bool enabled,float factor){
-    if(!enabled||!std::isfinite(value)||value<=0.0f||value>=100000.0f||
-       !std::isfinite(factor)||factor<0.0f||factor>100.0f)
-        return value;
-    return std::clamp(value*factor,0.0f,100000.0f);
-}
+
+
+
 // Inspect native callers only; no change to resource reward arithmetic.
 uintptr_t CallerRva(void* address){
     const uintptr_t base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     const uintptr_t caller=reinterpret_cast<uintptr_t>(address);
     return base && caller>=base && caller-base<0x4000000ull?caller-base:0;
 }
-void HookWrath(void* character,float amount){
-    if(!originalWrath)return;
-    const unsigned n=++wrathEvents;
-    if(logger && (n<=8||n%1000==0)){
-        char msg[220]{};
-        sprintf_s(msg,"Gauge V1.25 WRATH_NATIVE_CALLER n=%u RVA=0x%llX local=%d amount=%.4f",
-            n,static_cast<unsigned long long>(CallerRva(_ReturnAddress())),
-            Local(character)?1:0,amount);
-        Log(msg);
-    }
-    float effective=amount;
-    auto& rt=dg::runtime::Get();
-    const bool match=Local(character);
-    if(match)++wrathLocal;
-    Probe("WRATH AddWrath",n,character,amount,0.0f,0.0f,match);
-    if(match){
-        effective=Boost(amount,rt.wrathChargeEnabled.load(),rt.wrathChargeMultiplier.load());
-        if(effective!=amount)Event("Wrath",++wrathBoosts,amount,effective);
-    }
-    originalWrath(character,effective);
-}
-float HookChaos(void* chaosComponent,float amount){
-    if(!originalChaos)return 0.0f;
-    const unsigned n=++chaosEvents;
-    if(logger && (n<=8||n%1000==0)){
-        char msg[210]{};
-        sprintf_s(msg,"Gauge V1.25 CHAOS_NATIVE_CALLER n=%u RVA=0x%llX amount=%.4f",
-            n,static_cast<unsigned long long>(CallerRva(_ReturnAddress())),amount);
-        Log(msg);
-    }
-    float effective=amount;
-    auto& rt=dg::runtime::Get();
-    void* owner=nullptr;
-    if(chaosComponent)std::memcpy(&owner,static_cast<unsigned char*>(chaosComponent)+0xE8,sizeof(owner));
-    const bool match=Local(owner);
-    if(match)++chaosLocal;
-    Probe("CHAOS AddChaos",n,owner,amount,0.0f,0.0f,match);
-    if(match){
-        effective=Boost(amount,rt.ultimateChargeEnabled.load(),rt.ultimateChargeMultiplier.load());
-        if(effective!=amount)Event("Chaos/Ultimate",++chaosBoosts,amount,effective);
-    }
-    return originalChaos(chaosComponent,effective);
-}
+
+
 // V1.06 native additive path. The game uses a real helper at RVA 0x65A1A0:
 //   GetCurrentSynergy(owner) + A*B*C -> SetCurrentSynergy(owner,absolute).
 // Modify only one positive factor while preserving the native setter's role.
@@ -333,13 +274,7 @@ void Initialize(LogFn callback,std::atomic<void*>* local,bool exactExecutable){
     }
     const auto base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     if(!base)return;
-    constexpr unsigned char wrathSig[]={0x80,0xB9,0x18,0x01,0x00,0x00,0x03};
-    constexpr unsigned char chaosSig[]={0x40,0x53,0x48,0x83,0xEC,0x30};
     constexpr unsigned char synergySig[]={0x40,0x53,0x48,0x83,0xEC,0x30,0xF3,0x0F,0x10,0x81};
-    InstallNative(base,0x660570,wrathSig,sizeof(wrathSig),reinterpret_cast<void*>(&HookWrath),
-                  reinterpret_cast<void**>(&originalWrath),wrathReady,"AddWrath");
-    InstallNative(base,0x62E060,chaosSig,sizeof(chaosSig),reinterpret_cast<void*>(&HookChaos),
-                  reinterpret_cast<void**>(&originalChaos),chaosReady,"AddChaos");
     InstallNative(base,0x583040,synergySig,sizeof(synergySig),reinterpret_cast<void*>(&HookSynergy),
                   reinterpret_cast<void**>(&originalSynergy),synergyReady,"SetCurrentSynergy");
     constexpr unsigned char gainSig[]={0x40,0x53,0x48,0x83,0xEC,0x40,0x0F,0x29,0x74,0x24,0x30};
@@ -347,20 +282,13 @@ void Initialize(LogFn callback,std::atomic<void*>* local,bool exactExecutable){
                   reinterpret_cast<void**>(&originalSynergyGain),synergyGainReady,"AddSynergyNative");
 }
 Telemetry GetTelemetry(){
-    return {wrathReady.load(),chaosReady.load(),synergyReady.load()&&synergyGainReady.load(),
-        wrathBoosts.load(),chaosBoosts.load(),synergyBoosts.load(),
-        wrathEvents.load(),chaosEvents.load(),synergyEvents.load()};
+    return {synergyReady.load()&&synergyGainReady.load(),synergyBoosts.load(),synergyEvents.load()};
 }
 void Shutdown(){
-    char msg[256]{};sprintf_s(msg,
-        "Gauge V1.03 totals observed Wrath=%u Chaos=%u Synergy=%u boosted Wrath=%u Chaos=%u Synergy=%u",
-        wrathEvents.load(),chaosEvents.load(),synergyEvents.load(),
-        wrathBoosts.load(),chaosBoosts.load(),synergyBoosts.load());
-    Log(msg);
-    sprintf_s(msg,"Gauge V1.06 owner totals: WrathLocal=%u ChaosOwnerLocal=%u SynergyLocal=%u (nativeGetCharacter=%u outer=%u noVerifiedOwner=%u) positive=%u rejected=%u",
-        wrathLocal.load(),chaosLocal.load(),synergyLocal.load(),
-        synergyNativeOwnerMatches.load(),synergyOuterReferences.load(),synergyNoVerifiedOwner.load(),
-        synergyPositive.load(),synergyRejected.load());
+    char msg[256]{};
+    sprintf_s(msg,"Gauge Synergy totals: observed=%u local=%u boosted=%u nativeOwner=%u outer=%u unverified=%u",
+        synergyEvents.load(),synergyLocal.load(),synergyBoosts.load(),
+        synergyNativeOwnerMatches.load(),synergyOuterReferences.load(),synergyNoVerifiedOwner.load());
     Log(msg);
     sprintf_s(msg,"Gauge V1.06 additive totals: ready=%u observed=%u verifiedLocal=%u boosted=%u (setter passthrough)",
         synergyGainReady.load()?1u:0u,synergyGainEvents.load(),synergyGainLocal.load(),synergyBoosts.load());

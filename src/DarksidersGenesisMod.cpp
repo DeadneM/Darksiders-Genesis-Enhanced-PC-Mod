@@ -18,7 +18,7 @@
 #include "ResourceGainFeature.h"
 #include "ManualGaugeFeature.h"
 #include "AmmoConsumptionFeature.h"
-#include "ActionRecoveryFeature.h"
+#include "BuildInfo.h"
 #include "HorseFeature.h"
 #include "NativeTpsFeature.h"
 #include "TpsStickRoles.h"
@@ -46,7 +46,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
 
-constexpr const char* kBuild = "1.40-user-defaults-ammo-validated-recovery-unresolved";
+constexpr const char* kBuild = dg::build::Id;
 constexpr const wchar_t* kIniName = L"DarksidersGenesisMod.ini";
 constexpr const wchar_t* kLogName = L"DarksidersGenesisMod.log";
 
@@ -89,43 +89,19 @@ std::atomic_bool g_imguiReady{false};
 // Third Person V0.57: mouse and controller aim isolation.
 std::atomic_uint32_t g_nativePadAimSuppressed{0};
 std::atomic_uint32_t g_nativePadAimSuppressedDuringFire{0};
-std::atomic_uint32_t g_tpsCombatAimSamples{0};
-std::atomic_uint32_t g_tpsCombatFireSamples{0};
+
 // V0.59: actor-heading telemetry sampled ONLY from a live validated player
 // movement callback. Never dereference a cached UObject in Present/XInput.
 std::atomic<float> g_tpsActorWorldYaw{0.0f};
 std::atomic_ullong g_tpsActorYawTick{0};
 std::atomic_uint32_t g_tpsActorYawSamples{0};
-std::atomic_uint32_t g_tpsLeftPassthroughSamples{0};
-std::atomic_uint32_t g_tpsMovingFireSamples{0};
-std::atomic_ullong g_tpsLastAimTick{0};
-std::atomic<float> g_tpsDesiredYawDegrees{0.0f};
-std::atomic<float> g_tpsCommandYawDegrees{0.0f};
-std::atomic_bool g_tpsAimCommandReady{false};
-// V0.63: native cone lock, no forced aim while not attacking.
-std::atomic_uint32_t g_tpsFacingReasserted{0};
-std::atomic_uint32_t g_tpsConeInside{0},g_tpsConeOutside{0};
 std::atomic_bool g_tpsFireHeld{false};
 std::atomic_ullong g_tpsFireLastTick{0};
 std::atomic_bool g_tpsChargeChordHeld{false};
 std::atomic_ullong g_tpsChargeChordTick{0};
-std::atomic_uint32_t g_tpsChargeForwardInjected{0};
-std::atomic_uint32_t g_tpsChargeLookVectorApplied{0},g_tpsChargeLookRotationApplied{0};
 std::atomic_uint32_t g_tpsChargeChordSamples{0};
-// V1.09 read-only phase audit: no new native behavior, just source ordering.
-std::atomic_int g_tpsDiagPadMode{0};
-std::atomic_uint32_t g_tpsDiagPadTransitions{0};
-std::atomic_ullong g_tpsDiagChargeStart{0},g_tpsDiagNormalStart{0};
-std::atomic_uint32_t g_tpsDiagChargedLook{0},g_tpsDiagNormalLook{0},g_tpsDiagOtherLook{0};
-std::atomic_ullong g_tpsDiagWrathTick{0};
-std::atomic_uint32_t g_tpsDiagWrathReads{0},g_tpsDiagWrathPositive{0},g_tpsDiagWrathNegative{0};
-std::atomic_uint32_t g_tpsDiagWrathLoggedChanges{0};
-std::atomic<float> g_tpsDiagWrathPrevious{0.0f};
-std::atomic<void*> g_tpsDiagWrathActor{nullptr};
 
 std::atomic_uint32_t g_tpsPlayerGeneration{0};
-std::atomic_uint32_t g_tpsNativeFacingOff{0},g_tpsNativeFacingRestored{0};
-std::atomic_uint32_t g_tpsStrafeSamples{0};
 // V0.72: track potential Steam Input -> synthetic Windows mouse mapping.
 std::atomic_ullong g_tpsPadCameraStickTick{0};
 // V0.99: V0.95 cursor-warp counter removed; all mouse warps were removed in V0.97.
@@ -150,17 +126,12 @@ GroundAimEffectFn g_groundAimEffectOriginal=nullptr;
 SRWLOCK g_grenadeHoldLock=SRWLOCK_INIT;
 struct GrenadeHoldState {
     bool physicalDown=false;
-    ULONGLONG startPulse=0;
-    ULONGLONG finishPulse=0;
     ULONGLONG releaseStart=0;
     ULONGLONG releaseFinish=0;
     bool releasePulseDelivered=false;
     int selectedMask=0x0080;
 };
 GrenadeHoldState g_grenadeHoldState{};
-SRWLOCK g_tpsFacingLock=SRWLOCK_INIT;
-void* g_tpsFacingCurrentComponent=nullptr;
-bool g_tpsFacingOwned=false;
 // V0.99 observational-only mouse audit. No synthetic cursor events or
 // native shot/aim edits. Bound every live log, preserve controller paths.
 ULONGLONG g_orbitLastPresentTick=0;
@@ -188,9 +159,8 @@ std::atomic_uint32_t g_v118MouseMove{0},g_v118RawInputMessages{0},
 std::atomic_int g_v119MouseDeltaX{0},g_v119MouseDeltaY{0};
 std::atomic_ullong g_v119LastRawMouseTick{0};
 std::atomic_uint32_t g_v119RawMouse{0},g_v119MouseMoveFallback{0},
-    g_v119MouseCameraFrames{0},g_v119MouseForwardLook{0},
-    g_v119MouseForwardRotation{0};
-std::atomic_uint32_t g_v118WrathStable{0},g_v118WrathGainNearCharge{0};
+    g_v119MouseCameraFrames{0};
+
 // V1.20: preserve existing game registrations and legacy mouse messages.
 std::atomic_bool g_v120RawRegistrationChecked{false},g_v120RawAddedByMod{false};
 std::atomic_uint32_t g_v120ExistingRawMouse{0},g_v120RawRegistrationErrors{0},
@@ -202,11 +172,8 @@ std::atomic_uint32_t g_v123EdgeRecenters{0},g_v123SyntheticMovesIgnored{0},
     g_v123RecenterFailures{0};
 // Native mouse button routing counts; original XInput path stays untouched.
 std::atomic_uint32_t g_v124PrimaryRouted{0},g_v124SecondaryRouted{0},
-    g_v124NativeButtonSuppressed{0},g_v124SecondaryForwardLook{0};
-// V1.27 passive getter callsite audit (not projectile detour).
-std::atomic_uint32_t g_v127MountedMousePlayerGetter{0},
-    g_v127MountedMouseHorseGetter{0},g_v127MountedMouseRotationGetter{0};
-std::atomic_uint32_t g_v127NativeFacingFlagOn{0},g_v127NativeFacingFlagOff{0};
+    g_v124NativeButtonSuppressed{0};
+
 // V1.25: monitor actual process-wide RawInput ownership, never overwrite a
 // native registration; re-arm only when there is no mouse registration.
 std::atomic_uint32_t g_v125RawChecks{0},g_v125RawMissing{0},
@@ -220,12 +187,8 @@ std::atomic_ullong g_v125LastPollTick{0};
 std::atomic_ullong g_v126LastRearmAttemptTick{0};
 std::atomic_uint32_t g_v126RearmThrottled{0},g_v126RecoveredAfterEight{0};
 std::atomic_uint32_t g_v125LastProbeRawCount{0},g_v125LastProbeMoveCount{0};
-std::atomic_uint32_t g_v120WrathNearDamage{0},g_v120WrathWhileFiring{0},
-    g_v120WrathWhileIdle{0},g_v120WrathSpendEvents{0};
-std::atomic_ullong g_v120LastLocalDamage{0};
-std::atomic<float> g_v120WrathTotalGained{0.0f},g_v120WrathTotalSpent{0.0f};
+
 std::atomic_bool g_movementHookReady{false};
-std::atomic_bool g_recoveryHookReady{false};
 std::atomic_bool g_skipIntroReady{false};
 std::atomic_bool g_shuttingDown{false};
 dg::target::ValidationResult g_targetValidation{};
@@ -262,7 +225,6 @@ struct PlayerMovementTuningState {
     float glideDurationSeconds = 0.0f;
 };
 
-
 SRWLOCK g_tuningLock = SRWLOCK_INIT;
 std::array<PlayerMovementTuningState, 4> g_playerMovementStates{};
 
@@ -274,7 +236,6 @@ using dg::config::ActionLabel;
 using dg::config::KeyDisplayName;
 
 dg::config::Store g_config;
-
 
 void InitializePaths() {
     wchar_t path[MAX_PATH]{};
@@ -397,7 +358,6 @@ void FeatureLog(const char* message) {
         Log("%s", message);
     }
 }
-
 
 struct PeSectionView {
     BYTE* begin = nullptr;
@@ -528,7 +488,6 @@ BYTE* FindRipRelativeLeaTo(const PeSectionView& text, BYTE* target) {
 
     return count == 1 ? match : nullptr;
 }
-
 
 LONG** ResolveSkipIntroCVarDataSlot() {
     PeSectionView text{};
@@ -849,21 +808,6 @@ bool HookHudHiddenGetter() {
     return nativeHidden || g_hudHidden.load();
 }
 
-BYTE* FindAsciiString(const PeSectionView& section, const char* text) {
-    if (!text) {
-        return nullptr;
-    }
-
-    const size_t bytes = strlen(text) + 1;
-    return FindBytes(section, reinterpret_cast<const BYTE*>(text), bytes);
-}
-
-bool AddressInSection(const PeSectionView& section, const void* address) {
-    const BYTE* p = reinterpret_cast<const BYTE*>(address);
-    return section.begin && p >= section.begin && p < section.begin + section.size;
-}
-
-
 BYTE* ResolveAddJuiceNative() {
     PeSectionView text{};
     if (!GetMainModuleSection(".text", text)) {
@@ -1007,7 +951,6 @@ bool InstallHotstreakChargeHook() {
     return true;
 }
 
-
 BYTE* ResolveFinalOutgoingDamageFilter() {
     PeSectionView text{};
     if (!GetMainModuleSection(".text", text)) {
@@ -1080,7 +1023,6 @@ void HookFinalOutgoingDamage(void* playerCharacter, void* damageRecord) {
     }
     // This records the native outgoing damage callback only, not a pickup
     // or a verified Wrath source. Compare timestamp with gauge samples.
-    g_v120LastLocalDamage.store(GetTickCount64(),std::memory_order_relaxed);
 
     BYTE* record = reinterpret_cast<BYTE*>(damageRecord);
     float* damagePtr = reinterpret_cast<float*>(record + 0x08);
@@ -1403,7 +1345,6 @@ bool ApplyPlayerMovementTunings(void* movementComponent) {
     return true;
 }
 
-
 void CaptureLiveTPSActorYaw(void* actor) {
     if (!actor || !g_targetValidation.exact ||
         !dg::runtime::Get().thirdPersonEnabled.load(std::memory_order_relaxed))
@@ -1461,43 +1402,6 @@ void CaptureLiveTPSActorYaw(void* actor) {
             count,actor,root,yaw,px,py,pz);
 }
 
-// bOrientRotationToMovement native reflected field validated in EXACT EXE:
-// static bit setter at RVA 0x1CF0300: OR BYTE PTR [RCX+0x240], 0x10.
-// Write ONLY within an active local player's live GetMaxSpeed callback.
-// Legacy V0.61-0.66 movement-facing experiment retired. If this ASI ever
-// owned the native flag earlier in the same session, restore it in a LIVE
-// validated movement callback. Never force turn-to-move OFF in new builds.
-void UpdateTPSFacingNative(void* component) {
-    if(!component)return;
-    auto* field=static_cast<unsigned char*>(component)+0x240;
-    // V1.27 read-only observation inside the proven live-local
-    // movement callback, NOT a return to the rejected flag-only experiment.
-    const bool rotatesTowardMovement=(*field & 0x10u)!=0;
-    if(rotatesTowardMovement)++g_v127NativeFacingFlagOn;
-    else ++g_v127NativeFacingFlagOff;
-    static ULONGLONG lastFacingSample=0;
-    const ULONGLONG nowFacing=GetTickCount64();
-    if(!lastFacingSample || (nowFacing>=lastFacingSample&&
-        nowFacing-lastFacingSample>9000ull)){
-        lastFacingSample=nowFacing;
-        const float nativeYaw=g_tpsActorWorldYaw.load(std::memory_order_relaxed);
-        const float cameraYaw=dg::camera_trace::GetTelemetry().appliedYaw;
-        Log("TPS V1.27 FACING_NATIVE bitOrientToMovement=%d rootYaw=%.1f cameraYaw=%.1f gapDeg=%.1f movement=%p (OBSERVE ONLY)",
-            rotatesTowardMovement?1:0,nativeYaw,cameraYaw,
-            std::fabs(std::remainder(cameraYaw-nativeYaw,360.0f)),component);
-    }
-    AcquireSRWLockExclusive(&g_tpsFacingLock);
-    if(g_tpsFacingCurrentComponent!=component){
-        g_tpsFacingCurrentComponent=component;
-        g_tpsFacingOwned=false;
-    }
-    if(g_tpsFacingOwned){
-        if(!(*field&0x10u))*field=static_cast<unsigned char>(*field|0x10u);
-        g_tpsFacingOwned=false;
-        ++g_tpsNativeFacingRestored;
-    }
-    ReleaseSRWLockExclusive(&g_tpsFacingLock);
-}
 // V0.75: use the game's verified UMayhemCharacter native look functions,
 // rather than an interpolation callback that did not execute in V0.74.
 // RVA 0x671A40 = GetPlayerLookInput, referenced by game movement, aiming,
@@ -1515,22 +1419,8 @@ std::atomic_uint32_t g_tpsNativeLookInputBlocks{0};
 std::atomic_uint32_t g_tpsNativeLookInputPadAim{0};
 std::atomic_uint32_t g_tpsPadStrafeApplied{0},g_tpsNativeLookRotationBlocks{0};
 std::atomic_uint32_t g_tpsNativeLookSignatureFailures{0};
-// V0.87: mounted idle native look suppression and low-risk CTRL action
-// bridge for user-described native keyboard aiming. Scope is exclusively
-// active mounted TPS; no changes to grenade / native horse stats.
+// Mounted Vanilla Aim still suppresses native stick look while idle.
 std::atomic_uint32_t g_tpsMountedIdleNativeLookBlocks{0};
-std::atomic_uint32_t g_tpsMountedCtrlDown{0},g_tpsMountedCtrlUp{0};
-// V0.88: native look GETTER is NOT the projectile-raycast source. The
-// Ctrl WM_KEYDOWN experiment in V0.87 posted 8 paired events but user
-// still observed fixed shot direction. Keep measured yaw diagnostics to
-// guide a future exact projectile/raycast hook, no unsafe broad writes.
-std::atomic_uint32_t g_tpsMountedForwardLookSamples{0};
-std::atomic<float> g_tpsMountedForwardLastNativeYaw{0.0f};
-std::atomic<float> g_tpsMountedForwardLastCameraYaw{0.0f};
-std::atomic_uint32_t g_tpsMountedForwardLargeYawGap{0};
-// Passive observation only: avoid touching validated mounted Vanilla Aim,
-// but test whether actual mounted pawn invokes native look getter at all.
-std::atomic_uint32_t g_tpsHorseNativeLookGetterObservations{0};
 // Visual-only audit of 2 OTHER suspected native targeting UI classes.
 // No event is suppressed: the unvalidated V0.82 blocking experiment
 // is NOT merged into this cumulative gameplay branch.
@@ -1540,8 +1430,6 @@ void* const* g_aimUiClassSlot=nullptr;
 void* const* g_aimUiPositionClassSlot=nullptr;
 std::atomic_uint32_t g_aimUiEvents{0},g_aimUiPositionEvents{0};
 std::atomic_uint32_t g_aimUiEventsInTPS{0},g_aimUiEventsWhileFire{0};
-
-std::atomic_bool g_tpsMountedCtrlBridgeDown{false};
 
 // Actual mounted TPS camera source is written by HookView, with a short
 // expiry so stale HorseCharacter callbacks cannot make foot aim mounted.
@@ -1562,12 +1450,7 @@ bool IsTPSRadialInputActive() {
     const auto tick=rt.tpsAbilityWheelTick.load(std::memory_order_acquire);
     return tick&&now>=tick&&now-tick<=180ull;
 }
-bool MountedVanillaAimWhileFiring() {
-    const auto& rt=dg::runtime::Get();
-    return rt.thirdPersonEnabled.load(std::memory_order_relaxed) &&
-        !rt.tpsTemporarilySuspended.load(std::memory_order_relaxed) &&
-        rt.tpsMountedAimMode.load(std::memory_order_relaxed)==1;
-}
+
 bool IsLiveTPSLookActor(void* actor) {
     if(!actor || !g_targetValidation.exact || g_shuttingDown.load() ||
         !dg::runtime::Get().thirdPersonEnabled.load() ||
@@ -1586,8 +1469,8 @@ bool IsLiveTPSLookActor(void* actor) {
     return (tick&&now>=tick&&now-tick<250ull)||IsMountedTPSNow()||dg::chaos_pose::RangedOwner(actor);
 }
 bool MousePhysicalHeld(int vk){return vk && (GetAsyncKeyState(vk)&0x8000)!=0;}
-bool MousePrimaryFireHeld(){return MousePhysicalHeld(g_config.tpsMousePrimaryButton);}
-bool MouseSecondaryFireHeld(){return MousePhysicalHeld(g_config.tpsMouseSecondaryButton);}
+bool MousePrimaryFireHeld(){return MousePhysicalHeld(dg::runtime::Get().tpsMousePrimaryButton.load(std::memory_order_relaxed));}
+bool MouseSecondaryFireHeld(){return MousePhysicalHeld(dg::runtime::Get().tpsMouseSecondaryButton.load(std::memory_order_relaxed));}
 bool MouseAnyFireHeld(){return MousePrimaryFireHeld()||MouseSecondaryFireHeld();}
 // V1.33: camera-center forward ray, independent of physical cursor pixels.
 // Keep V1.32 native collision/local-owner scopes; never simulate XInput.
@@ -1661,109 +1544,12 @@ bool ProvideNativeMouseRay(void* actor,dg::native_tps::MouseRay& ray){
  // character+0xEA0 -> resource component, component+0x3A0 -> float.
  // This is an observation ONLY within the validated local player's live
  // native look callback; no writes, cached UObject dereferences or hooks.
-bool TPSDiagReadable(const void* p,size_t bytes){
-    if(!p || !bytes)return false;
-    MEMORY_BASIC_INFORMATION mbi{};
-    if(!VirtualQuery(p,&mbi,sizeof(mbi))||mbi.State!=MEM_COMMIT||
-       (mbi.Protect&(PAGE_NOACCESS|PAGE_GUARD)))return false;
-    const DWORD prot=mbi.Protect&0xFF;
-    if(prot!=PAGE_READONLY&&prot!=PAGE_READWRITE&&
-       prot!=PAGE_WRITECOPY&&prot!=PAGE_EXECUTE_READ&&
-       prot!=PAGE_EXECUTE_READWRITE&&prot!=PAGE_EXECUTE_WRITECOPY)
-       return false;
-    const uintptr_t at=reinterpret_cast<uintptr_t>(p);
-    const uintptr_t start=reinterpret_cast<uintptr_t>(mbi.BaseAddress);
-    return at>=start&&bytes<=mbi.RegionSize&&
-        at-start<=mbi.RegionSize-bytes;
-}
-void TPSDiagWrathSnapshot(void* actor, ULONGLONG now){
-    ULONGLONG prior=g_tpsDiagWrathTick.load(std::memory_order_relaxed);
-    if(prior&&now>=prior&&now-prior<85)return;
-    if(!g_tpsDiagWrathTick.compare_exchange_strong(
-        prior,now,std::memory_order_relaxed))
-        return;
-    // V1.09: guarded read of native Wrath candidate field. Never writes.
-    const auto* field=reinterpret_cast<const BYTE*>(actor)+0xEA0;
-    if(!TPSDiagReadable(field,sizeof(void*)))return;
-    void* component=nullptr;std::memcpy(&component,field,sizeof(component));
-    if(!component)return;
-    const auto* value=reinterpret_cast<const BYTE*>(component)+0x3A0;
-    if(!TPSDiagReadable(value,sizeof(float)))return;
-    float cur=0.0f;std::memcpy(&cur,value,sizeof(cur));
-    if(!std::isfinite(cur)||std::fabs(cur)>100000.0f)return;
-    const unsigned n=++g_tpsDiagWrathReads;
-    const auto oldActor=g_tpsDiagWrathActor.exchange(actor);
-    const float previous=g_tpsDiagWrathPrevious.exchange(cur);
-    const bool same=oldActor==actor;
-    const float delta=same?cur-previous:0.0f;
-    if(same&&delta>0.05f){
-        ++g_tpsDiagWrathPositive;
-        g_v120WrathTotalGained.fetch_add(delta,std::memory_order_relaxed);
-        if(IsPadFiringNow() || MouseAnyFireHeld())
-            ++g_v120WrathWhileFiring;
-        else ++g_v120WrathWhileIdle;
-        const ULONGLONG damage=g_v120LastLocalDamage.load(std::memory_order_relaxed);
-        if(damage && now>=damage && now-damage<1200ull)++g_v120WrathNearDamage;
-    }
-    if(same&&delta< -0.05f){
-        ++g_tpsDiagWrathNegative;
-        ++g_v120WrathSpendEvents;
-        g_v120WrathTotalSpent.fetch_add(-delta,std::memory_order_relaxed);
-    }
-    if(same&&std::fabs(delta)<=0.05f)++g_v118WrathStable;
-    const ULONGLONG charge=g_tpsDiagChargeStart.load(std::memory_order_acquire);
-    const ULONGLONG age=charge&&now>=charge?now-charge:0;
-    if(same&&delta>0.05f && charge && age<1500ull)++g_v118WrathGainNearCharge;
-    const unsigned diagnostic=(same&&std::fabs(delta)>0.05f)?
-        ++g_tpsDiagWrathLoggedChanges:0u;
-    if(n==1||(diagnostic>0&&diagnostic<=16)){
-        const ULONGLONG damage=g_v120LastLocalDamage.load(std::memory_order_relaxed);
-        const ULONGLONG lastSynergy=dg::runtime::Get().lastNativeSynergyPositiveTick.load(
-            std::memory_order_acquire);
-        Log("Gauge V1.24 WRATH_CANDIDATE n=%u value=%.2f delta=%.2f chargeAgeMs=%llu recentDamageAgeMs=%llu lastSynergyMs=%llu firing=%d (read-only)",
-            n,cur,delta,static_cast<unsigned long long>(age),
-            static_cast<unsigned long long>(damage&&now>=damage?now-damage:0ull),
-            static_cast<unsigned long long>(lastSynergy&&now>=lastSynergy?now-lastSynergy:0ull),
-            (IsPadFiringNow()||MouseAnyFireHeld())?1:0);
-    }
-}
+
 NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     auto original=g_originalGetPlayerLookInput;
     if(!original)return out;
     auto* result=original(actor,out);
     const unsigned calls=++g_tpsLookInputCalls;
-    const auto& lookRt=dg::runtime::Get();
-    const ULONGLONG horseLookTick=lookRt.tpsHorsePoseTick.load(std::memory_order_acquire);
-    const ULONGLONG horseLookNow=GetTickCount64();
-    // V1.27: originating native *getter* caller is not the projectile
-    // function. Log it only during true mounted mouse shots and first samples.
-    if(actor && IsMountedTPSNow() && MouseAnyFireHeld() &&
-       IsTPSLookViewFresh()){
-        const bool local=actor==g_localPlayerCharacter.load(
-            std::memory_order_acquire);
-        const bool horse=horseLookTick && horseLookNow>=horseLookTick &&
-            horseLookNow-horseLookTick<350ull &&
-            reinterpret_cast<uintptr_t>(actor)==
-                lookRt.tpsHorseOwnerIdentity.load(std::memory_order_acquire);
-        const unsigned sample=local?++g_v127MountedMousePlayerGetter:
-            horse?++g_v127MountedMouseHorseGetter:0u;
-        if(sample && (sample<=6u||sample==100u)){
-            const uintptr_t base=reinterpret_cast<uintptr_t>(
-                GetModuleHandleW(nullptr));
-            const uintptr_t caller=reinterpret_cast<uintptr_t>(_ReturnAddress());
-            Log("TPS V1.27 MOUNTED_MOUSE_LOOK_GETTER kind=%s n=%u callerRVA=0x%llX (not bullet raycast)",
-                horse?"HORSE":"PLAYER",sample,
-                static_cast<unsigned long long>(caller>=base?caller-base:0ull));
-        }
-    }
-    if(actor && IsMountedTPSNow()&&horseLookTick&&horseLookNow>=horseLookTick&&
-       horseLookNow-horseLookTick<350ull &&
-       reinterpret_cast<std::uintptr_t>(actor)==
-           lookRt.tpsHorseOwnerIdentity.load(std::memory_order_acquire)){
-        const unsigned n=++g_tpsHorseNativeLookGetterObservations;
-        if(n==1||n==100||n==1000)
-            Log("TPS V0.89 CAMERA FORWARD: native GetPlayerLookInput dispatched on HORSE actor n=%u (original result retained)",n);
-    }
     if(!result||!IsLiveTPSLookActor(actor) ||
        !std::isfinite(result->pitch)||!std::isfinite(result->yaw)||
        !std::isfinite(result->roll))
@@ -1771,21 +1557,9 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     // Diagnostic BEFORE native-vector modification: sample the actual
     // live-player look caller and resource state for ordinary and charged
     // input. This is not a projectile hook and never alters any result.
-    const ULONGLONG diagNow=GetTickCount64();
-    const bool diagCharged=g_tpsChargeChordHeld.load(std::memory_order_acquire);
-    const bool diagNormal=IsPadFiringNow()&&!diagCharged;
-    const unsigned diagCount=diagCharged?++g_tpsDiagChargedLook:
-        diagNormal?++g_tpsDiagNormalLook:++g_tpsDiagOtherLook;
-    // V1.11: retain aggregate look-path counters, remove per-frame caller/Yaw
-    // diagnostic. Wrath candidate deltas still supply actionable telemetry.
-    (void)diagCount;
-    TPSDiagWrathSnapshot(actor,diagNow);
-    // Do not suppress/look-rotate the game's own radial selection vector.
-    // LB / native keyboard equipment, ammo and ability wheels take priority.
     if(IsTPSRadialInputActive())return result;
     auto& rt=dg::runtime::Get();
     const bool mouseFiring=MouseAnyFireHeld();
-    const bool mounted=IsMountedTPSNow();
     const bool padFiring=IsPadFiringNow();
     const bool fire=padFiring||mouseFiring;
     // V1.32: mouse acquisition belongs to native 3D targeting.
@@ -1818,27 +1592,14 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
         // Feed world-facing vector corresponding to the mod TPS view only
         // WHILE firing. Unlike rejected XInput axis remapping this leaves
         // native left-stick player movement COMPLETELY untouched.
-        const float yaw=dg::camera_trace::GetTelemetry().appliedYaw;
+        const float yaw=dg::camera_trace::AppliedYaw();
         if(std::isfinite(yaw)&&std::fabs(yaw)<36000.0f){
-            if(mounted && rt.tpsMountedAimMode.load()==0){
-                const float nativeYaw=std::atan2(result->yaw,result->pitch)*
-                    57.29577951308232f;
-                const float gap=std::fabs(std::remainder(nativeYaw-yaw,360.0f));
-                const unsigned sample=++g_tpsMountedForwardLookSamples;
-                g_tpsMountedForwardLastNativeYaw.store(nativeYaw);
-                g_tpsMountedForwardLastCameraYaw.store(yaw);
-                if(gap>35.0f)++g_tpsMountedForwardLargeYawGap;
-                if(sample==1||sample==100||sample==1000||sample==10000)
-                    Log("TPS V0.88 FORWARD RAYCAST AUDIT: nativeLookYaw=%.1f TPSCameraYaw=%.1f gap=%.1f getterCalls=%u; projectile raycast NOT hooked",
-                        nativeYaw,yaw,gap,sample);
-            }
             const float rad=yaw*0.01745329251994329577f;
             result->pitch=std::cos(rad);
             result->yaw=std::sin(rad);
             result->roll=0.0f;
             const unsigned n=++g_tpsNativeLookInputPadAim;
-            if(mouseFiring && !padFiring)++g_v119MouseForwardLook;
-            if(MouseSecondaryFireHeld() && !padFiring)++g_v124SecondaryForwardLook;
+
             if(n==1||n==120||n==10000)
                 Log("TPS V1.02: controller LOOK VECTOR -> camera during fire n=%u yaw=%.1f calls=%u",
                     n,yaw,calls);
@@ -1861,23 +1622,12 @@ NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
     if(!original)return out;
     auto* result=original(actor,out);
     const unsigned calls=++g_tpsLookRotationCalls;
-    if(IsMountedTPSNow() && MouseAnyFireHeld() &&
-       IsLiveTPSLookActor(actor) && IsTPSLookViewFresh()){
-        const unsigned sample=++g_v127MountedMouseRotationGetter;
-        if(sample<=6u || sample==100u){
-            const uintptr_t base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
-            const uintptr_t caller=reinterpret_cast<uintptr_t>(_ReturnAddress());
-            Log("TPS V1.27 MOUNTED_MOUSE_LOOK_ROTATION n=%u callerRVA=0x%llX (not projectile source)",
-                sample,static_cast<unsigned long long>(caller>=base?caller-base:0ull));
-        }
-    }
     if(!result||!IsLiveTPSLookActor(actor)||!IsTPSLookViewFresh())
         return result;
     if(IsTPSRadialInputActive())return result;
     auto& rt=dg::runtime::Get();
     const bool mouseFire=MouseAnyFireHeld();
     const bool padFire=IsPadFiringNow();
-    const bool mounted=IsMountedTPSNow();
     // V1.19: native mouse firing and controller share TPS Camera Forward.
     const bool playerStrafe=padFire||mouseFire; // controller path preserved
     if(mouseFire&&!padFire)return result; // V1.32: native target, no yaw patch
@@ -1886,7 +1636,7 @@ NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
     if(rt.tpsMountedAimMode.load()==1 && padFire && !mouseFire)return result;
     const bool nativeBlock=rt.tpsCameraStickMode.load()!=0&&IsCameraStickActiveNow();
     const float actorYaw=g_tpsActorWorldYaw.load(std::memory_order_acquire);
-    const float cameraYaw=dg::camera_trace::GetTelemetry().appliedYaw;
+    const float cameraYaw=dg::camera_trace::AppliedYaw();
     if(!std::isfinite(actorYaw)||!std::isfinite(cameraYaw)||
        std::fabs(cameraYaw)>36000.0f)return result;
     // Pad strafe: aim toward the rendered camera heading, retain vanilla
@@ -1896,7 +1646,7 @@ NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
         result->yaw=std::remainder(cameraYaw,360.0f);
         result->roll=0.0f;
         const unsigned n=++g_tpsPadStrafeApplied;
-        if(mouseFire && !padFire)++g_v119MouseForwardRotation;
+
         if(n==1||n==120||n==10000)
             Log("TPS V1.02: controller look rotation -> camera n=%u yaw=%.1f",
                 n,result->yaw);
@@ -2144,7 +1894,7 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
 
     if (playerMovementValidated) {
         CaptureLiveTPSActorYaw(characterOwner);
-        UpdateTPSFacingNative(movementComponent);
+
         // Keep the existing single active-player pointer only for player-only
         // features. Horse discovery is fully independent in V0.26.
         void* previousPlayer =
@@ -2223,19 +1973,6 @@ bool InstallMovementSpeedHook() {
     return true;
 }
 
-const char* AbilityStateName(unsigned char state) {
-    switch (state) {
-    case 0: return "INITIALIZING";
-    case 1: return "STARTING";
-    case 2: return "RUNNING";
-    case 3: return "SUSPENDED";
-    case 4: return "AWAITING_FINISH";
-    case 5: return "FINISHED";
-    case 6: return "FINALIZED";
-    default: return "UNKNOWN";
-    }
-}
-
 bool InstallHudHook() {
     BYTE* getter = ResolveHudHiddenGetter();
     if (!getter) {
@@ -2278,7 +2015,7 @@ bool IsFeatureEnabled(Action action) {
     case Action::MovementSpeed:
         return g_config.movementSpeedEnabled;
     case Action::ActionRecovery:
-        return g_config.actionRecoveryEnabled;
+        return false; // Legacy action retained; ineffective native experiment retired.
     case Action::SkipIntroVideos:
         return g_config.skipIntroEnabled;
     case Action::ThirdPerson:
@@ -2374,21 +2111,8 @@ void TriggerAction(Action action, int functionKey) {
     }
 
     if (action == Action::ActionRecovery) {
-        if (!g_recoveryHookReady.load()) {
-            g_lastAction = "Action Recovery [hook unavailable]";
-            Log("F%d -> Action Recovery ignored (native hook unavailable)", functionKey);
-            return;
-        }
-
-        g_config.actionRecoveryEnabled = !g_config.actionRecoveryEnabled;
-        g_config.Save();
-        g_lastAction = std::string("Action Recovery ") +
-            (g_config.actionRecoveryEnabled ? "ON" : "OFF");
-        Log(
-            "F%d -> Action Recovery %s policy=natural montage blend-out, native completion",
-            functionKey,
-            g_config.actionRecoveryEnabled ? "ON" : "OFF"
-        );
+        g_lastAction = "Action Recovery [retired: no effect]";
+        Log("F%d -> Action Recovery ignored (ineffective experiment retired)", functionKey);
         return;
     }
 
@@ -2416,7 +2140,6 @@ void TriggerAction(Action action, int functionKey) {
         );
         return;
     }
-
 
     // V0.55: every implemented switch is now assignable in F1-F12.
     // Startup-only features persist to INI and take effect on next boot.
@@ -2568,7 +2291,6 @@ void ProcessInput() {
     }
 }
 
-
 void ProcessCameraInput() {
     const HWND hwnd = reinterpret_cast<HWND>(
         g_gameWindowTrace.load(std::memory_order_relaxed));
@@ -2657,7 +2379,6 @@ void ReleaseRenderTarget() {
     }
 }
 
-
 bool ShouldSuppressNativeAim() {
     // Fail open outside the exact supported game, on Alt-Tab and in the menu.
     const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load(std::memory_order_relaxed));
@@ -2706,8 +2427,8 @@ bool TPSChargeChordDown(const XINPUT_GAMEPAD& pad){
         (pad.wButtons&XINPUT_GAMEPAD_Y)!=0;
 }
 bool TPSFireDown(const XINPUT_GAMEPAD& pad) {
-    return GamepadBindingDown(g_config.tpsFirePrimaryMask,pad) ||
-        GamepadBindingDown(g_config.tpsFireSecondaryMask,pad);
+    return GamepadBindingDown(dg::runtime::Get().tpsFirePrimaryMask.load(std::memory_order_relaxed),pad) ||
+        GamepadBindingDown(dg::runtime::Get().tpsFireSecondaryMask.load(std::memory_order_relaxed),pad);
 }
 void ApplyHoldGrenadeVirtualR3(XINPUT_GAMEPAD& pad,int mask) {
     const ULONGLONG now=GetTickCount64();
@@ -2731,7 +2452,6 @@ void ApplyHoldGrenadeVirtualR3(XINPUT_GAMEPAD& pad,int mask) {
     if(physical!=st.physicalDown){
         st.physicalDown=physical;
         if(physical){
-            st.startPulse=now;
             st.releaseStart=st.releaseFinish=0;
             st.releasePulseDelivered=false;
             const unsigned n=++g_tpsGrenadeDownCount;
@@ -2773,7 +2493,7 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
         if(!dg::chaos_pose::RangedActive()||!ShouldSuppressNativeAim()||
            !dg::native_tps::NativeStickSwapKnown())return realStatus;
         auto& formPad=state->Gamepad;
-        if(GamepadBindingDown(g_config.tpsWheelPadMask,formPad)||
+        if(GamepadBindingDown(dg::runtime::Get().tpsWheelPadMask.load(std::memory_order_relaxed),formPad)||
            TPSChargeChordDown(formPad))return realStatus;
         const int cameraMode=rt.tpsCameraStickMode.load();
         const bool swap=dg::native_tps::NativeStickSwap();
@@ -2800,17 +2520,17 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     const bool bindActive=g_targetValidation.exact && bindWindow &&
         GetForegroundWindow()==bindWindow && !IsIconic(bindWindow) &&
         !g_overlayVisible.load() && !g_shuttingDown.load();
-    const bool validChord=bindActive && g_config.horsePadButtonA &&
-        g_config.horsePadButtonB &&
-        g_config.horsePadButtonA!=g_config.horsePadButtonB &&
-        GamepadBindingDown(g_config.horsePadButtonA,pad) &&
-        GamepadBindingDown(g_config.horsePadButtonB,pad);
+    const bool validChord=bindActive && dg::runtime::Get().horsePadButtonA.load(std::memory_order_relaxed) &&
+        dg::runtime::Get().horsePadButtonB.load(std::memory_order_relaxed) &&
+        dg::runtime::Get().horsePadButtonA.load(std::memory_order_relaxed)!=dg::runtime::Get().horsePadButtonB.load(std::memory_order_relaxed) &&
+        GamepadBindingDown(dg::runtime::Get().horsePadButtonA.load(std::memory_order_relaxed),pad) &&
+        GamepadBindingDown(dg::runtime::Get().horsePadButtonB.load(std::memory_order_relaxed),pad);
     // The XInput hook executes before the game consumes the native chord:
     // arm region permission HERE instead of after Present (which can miss
     // the first native HorseRegion getter call in banned zones).
     static std::atomic_bool previousChord{false};
     const bool chordEdge=validChord&&!previousChord.exchange(validChord);
-    if(chordEdge && g_config.horseEverywhereEnabled){
+    if(chordEdge && dg::runtime::Get().horseEverywhereEnabled.load(std::memory_order_relaxed)){
         const auto now=GetTickCount64();
         auto& horseRt=dg::runtime::Get();
         horseRt.horseSummonIntentTick.store(now,std::memory_order_release);
@@ -2828,33 +2548,17 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     // R3 itself is a grenade key: its physical hold is handled separately
     // by UpdateOrbitInput, while the game receives two native toggle edges.
     const HWND localHwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
-    const bool localGameplay=g_config.thirdPersonEnabled &&
+    const bool localGameplay=dg::runtime::Get().thirdPersonEnabled.load(std::memory_order_relaxed) &&
         localHwnd && GetForegroundWindow()==localHwnd &&
         !g_overlayVisible.load() && !IsIconic(localHwnd) &&
         !g_shuttingDown.load();
     // V1.08: LB alone opens the original wheel. LB+Y preserves the native
     // charged-shot chord, never moves the game-facing wheel stick.
-    const bool wheelDown=localGameplay&&GamepadBindingDown(g_config.tpsWheelPadMask,pad);
+    const bool wheelDown=localGameplay&&GamepadBindingDown(dg::runtime::Get().tpsWheelPadMask.load(std::memory_order_relaxed),pad);
     const bool chargedChord=localGameplay&&!validChord&&TPSChargeChordDown(pad);
     const auto chordNow=GetTickCount64();
     // V1.09: record the actual ORIGINAL pad state before any aim filter,
     // including R1/R2 compared to LB+Y and plain LB. Input unmodified.
-    const bool normalShot=localGameplay&&!chargedChord&&(
-        GamepadBindingDown(g_config.tpsFirePrimaryMask,pad)||
-        GamepadBindingDown(g_config.tpsFireSecondaryMask,pad));
-    const int mode=chargedChord?3:normalShot?2:wheelDown?4:0;
-    const int priorMode=g_tpsDiagPadMode.exchange(mode);
-    if(mode!=priorMode){
-        if(mode==3)g_tpsDiagChargeStart.store(chordNow,std::memory_order_release);
-        if(mode==2)g_tpsDiagNormalStart.store(chordNow,std::memory_order_release);
-        const unsigned t=++g_tpsDiagPadTransitions;
-        if(t<=4)
-            Log("TPS V1.09 PAD EDGE n=%u from=%d to=%d bits=0x%04X RT=%u LT=%u rawRX=%d rawRY=%d forwardRule=%s",
-                t,priorMode,mode,unsigned(pad.wButtons),
-                unsigned(pad.bRightTrigger),unsigned(pad.bLeftTrigger),
-                int(pad.sThumbRX),int(pad.sThumbRY),
-                mode==3?"NATIVE_PASSTHROUGH":mode==2?"STICK_UP":"NONE");
-    }
     g_tpsChargeChordHeld.store(chargedChord,std::memory_order_release);
     if(chargedChord){
         g_tpsChargeChordTick.store(chordNow,std::memory_order_release);
@@ -2870,7 +2574,7 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     }
     // R3 is equipment USE; never treat it as opening a radial wheel.
     // The original V0.84 continuous physical hold/stow pulse stays unchanged.
-    const int grenadeMask=g_config.tpsGrenadeButtonMask;
+    const int grenadeMask=dg::runtime::Get().tpsGrenadeButtonMask.load(std::memory_order_relaxed);
     if(localGameplay&&grenadeMask!=0)
         ApplyHoldGrenadeVirtualR3(pad,grenadeMask);
     if(!ShouldSuppressNativeAim())
@@ -2911,7 +2615,6 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     // The same right-stick suppression applies while running, idle AND
     // firing. Our own camera separately reads the UNFILTERED trampoline.
     // This is input isolation, NOT yet a shot-direction fix.
-    const bool mounted=IsMountedTPSNow();
     const bool vanillaAim=rt.tpsMountedAimMode.load()==1;
     const bool blockLook=!vanillaAim || !fire;
     if(blockLook && (dg::tps_input::CameraX(pad,nativeSwap)!=0 ||
@@ -3291,8 +2994,8 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         default:break;
         }
         if(physical){
-            const int target=physical==g_config.tpsMousePrimaryButton
-                ?VK_LBUTTON:physical==g_config.tpsMouseSecondaryButton
+            const int target=physical==dg::runtime::Get().tpsMousePrimaryButton.load(std::memory_order_relaxed)
+                ?VK_LBUTTON:physical==dg::runtime::Get().tpsMouseSecondaryButton.load(std::memory_order_relaxed)
                 ?VK_RBUTTON:0;
             // Unassigned physical L/R clicks cannot activate native shots.
             // Unassigned middle/X retain their original non-fire behavior.
@@ -3435,7 +3138,6 @@ dg::overlay::Context BuildOverlayContext() {
     auto& t = context.telemetry;
     t.hudHookReady = g_hudHookReady.load();
     t.movementHookReady = g_movementHookReady.load();
-    t.recoveryHookReady = g_recoveryHookReady.load();
     t.finalDamageHookReady =
         g_finalOutgoingDamageHookReady.load();
     t.hotstreakHookReady = g_hotstreakHookReady.load();
@@ -3455,12 +3157,6 @@ dg::overlay::Context BuildOverlayContext() {
     t.skipWarningReady=warnings.ready;
     t.skipWarningAttempted=warnings.observed>0;
     t.skipWarningApplied=warnings.advanced>0;
-
-    const auto recovery=dg::recovery::GetTelemetry();
-    t.actionMoveQueries = static_cast<int>(recovery.ticks);
-    t.actionMoveLocalQueries = static_cast<int>(recovery.local);
-    t.actionMoveNativeBlocked = static_cast<int>(recovery.tails);
-    t.actionMoveForced = static_cast<int>(recovery.completed);
 
     t.pistolDamageBoostCalls =
         g_pistolDamageBoostCalls.load();
@@ -3483,16 +3179,9 @@ dg::overlay::Context BuildOverlayContext() {
         g_lastOutgoingTagCount.load();
 
     t.aimNativeFxCalls = g_tpsGroundAimFxEntered.load();
-    t.forwardLookSamples = g_tpsMountedForwardLookSamples.load();
-    t.forwardYawGapCount = g_tpsMountedForwardLargeYawGap.load();
-    t.forwardNativeYaw = g_tpsMountedForwardLastNativeYaw.load();
-    t.forwardCameraYaw = g_tpsMountedForwardLastCameraYaw.load();
     t.aimUiTargetingEvents = g_aimUiEvents.load();
     t.aimUiPositionEvents = g_aimUiPositionEvents.load();
     t.mountedIdleLookBlocks = g_tpsMountedIdleNativeLookBlocks.load();
-    t.mountedCtrlDown = g_tpsMountedCtrlDown.load();
-    t.mountedCtrlUp = g_tpsMountedCtrlUp.load();
-    t.mountedCtrlActive = g_tpsMountedCtrlBridgeDown.load();
     t.grenadePhysicalDown = g_tpsGrenadeDownCount.load();
     t.grenadePhysicalUp = g_tpsGrenadeUpCount.load();
     t.grenadeNativeReleasePulses = g_tpsGrenadeReleasePulseDelivered.load();
@@ -3514,13 +3203,10 @@ dg::overlay::Context BuildOverlayContext() {
         &dg::skip_logos::Apply;
     context.applyGraphicsAdapter =
         &dg::engine_ini::ApplyGraphicsAdapter;
-    context.abilityStateName =
-        &AbilityStateName;
     context.log = &Log;
 
     return context;
 }
-
 
 void TraceGameWindowState(IDXGISwapChain* swapChain) {
     if (!swapChain) {
@@ -3596,7 +3282,6 @@ void TraceGameWindowState(IDXGISwapChain* swapChain) {
         // Focus events are evidence only. No synthetic recovery is queued.
     }
 }
-
 
 // V1.20: register *missing* relative raw mouse only; never override a
 // registration installed by the game, suppress WM_MOUSEMOVE or warp cursor.
@@ -3738,10 +3423,7 @@ void EnsureOrbitWndProc(IDXGISwapChain* chain) {
 }
 // V0.88: retired ineffective Ctrl WM_KEYDOWN bridge. Posting keyboard
 // messages did not change native raycast/shots according to user V0.87.
-void UpdateMountedCtrlAimBridge(HWND, bool, bool) {
-    // Preserve V0.87 telemetry fields for INI/overlay compatibility;
-    // NEVER inject synthetic keyboard input.
-}
+
 // Native H / E input routing is never installed unless a shortcut is set.
 bool EmitKeyboardVirtualKey(WORD vk,bool down){
     INPUT event{};
@@ -3764,7 +3446,7 @@ void UpdateOrbitInput() {
     XINPUT_STATE physical{};
     const bool padAvailable=focused &&
         GetCameraXInputState(0,&physical)==ERROR_SUCCESS;
-    const WORD physicalBits=padAvailable?physical.Gamepad.wButtons:0;
+
     // Only LB / G / Tab open radial wheels; R3/E USE equipment.
     const auto wheelKey=[&](dg::config::TpsKeyboardAction action)->bool{
         const int vk=g_config.tpsKeyboardKeys[static_cast<size_t>(action)];
@@ -3773,15 +3455,14 @@ void UpdateOrbitInput() {
     const bool chargedPhysical=padAvailable&&g_config.thirdPersonEnabled&&
         TPSChargeChordDown(physical.Gamepad);
     const bool wheelOpen=focused && (
-        (padAvailable&&GamepadBindingDown(g_config.tpsWheelPadMask,physical.Gamepad)) ||
+        (padAvailable&&GamepadBindingDown(dg::runtime::Get().tpsWheelPadMask.load(std::memory_order_relaxed),physical.Gamepad)) ||
         wheelKey(dg::config::TpsKeyboardAction::WheelG) ||
         wheelKey(dg::config::TpsKeyboardAction::WheelTab));
     g_tpsChargeChordHeld.store(focused&&chargedPhysical,std::memory_order_release);
     if(focused&&chargedPhysical)g_tpsChargeChordTick.store(now,std::memory_order_release);
     rt.tpsAbilityWheelHeld.store(wheelOpen,std::memory_order_release);
     if(wheelOpen)rt.tpsAbilityWheelTick.store(now,std::memory_order_release);
-    const bool physicalFire=padAvailable&&TPSFireDown(physical.Gamepad);
-    UpdateMountedCtrlAimBridge(hwnd,focused,physicalFire);
+
     // V0.86: native horse summon INPUT evidence only. H and LB+RB are
     // validated user-facing controls. Never inject an artificial summon;
     // simply correlate each real attempt with the existing server hook.
@@ -3805,71 +3486,14 @@ void UpdateOrbitInput() {
         (((GetAsyncKeyState('H')&0x8000)!=0) ||
          KeyboardHeld(dg::config::TpsKeyboardAction::Horse));
     const bool shoulderChord=padAvailable &&
-        g_config.horsePadButtonA && g_config.horsePadButtonB &&
-        g_config.horsePadButtonA!=g_config.horsePadButtonB &&
-        GamepadBindingDown(g_config.horsePadButtonA,physical.Gamepad) &&
-        GamepadBindingDown(g_config.horsePadButtonB,physical.Gamepad);
+        dg::runtime::Get().horsePadButtonA.load(std::memory_order_relaxed) && dg::runtime::Get().horsePadButtonB.load(std::memory_order_relaxed) &&
+        dg::runtime::Get().horsePadButtonA.load(std::memory_order_relaxed)!=dg::runtime::Get().horsePadButtonB.load(std::memory_order_relaxed) &&
+        GamepadBindingDown(dg::runtime::Get().horsePadButtonA.load(std::memory_order_relaxed),physical.Gamepad) &&
+        GamepadBindingDown(dg::runtime::Get().horsePadButtonB.load(std::memory_order_relaxed),physical.Gamepad);
     static bool wasHorseH=false,wasHorseChord=false;
-    static unsigned horseInputAttempts=0;
-    struct SummonAttemptProbe {
-        bool pending=false;
-        ULONGLONG started=0;
-        unsigned count=0,serverBefore=0,nativeCallsBefore=0;
-        unsigned generationBefore=0;
-        bool cameraWasHorse=false;
-        bool nearServerAtPress=false;
-        bool horseWasLive=false;
-        unsigned regionOverridesBefore=0;
-    };
-    static SummonAttemptProbe summonProbe{};
-    const auto mountNow=dg::horse::GetTelemetry();
-    const ULONGLONG horsePoseTick=rt.tpsHorsePoseTick.load(std::memory_order_acquire);
-    const bool freshHorsePose=horsePoseTick&&now>=horsePoseTick&&
-        now-horsePoseTick<750ull;
-    const ULONGLONG mountedTick=rt.tpsMountedViewTick.load(std::memory_order_acquire);
-    const bool trulyMounted=rt.tpsMountedViewActive.load(std::memory_order_acquire)&&
-        mountedTick&&now>=mountedTick&&now-mountedTick<350ull;
-    if(summonProbe.pending&&now>=summonProbe.started&&
-       now-summonProbe.started>=1800ull){
-        const unsigned serverDelta=mountNow.summonServerCalls-
-            summonProbe.serverBefore;
-        // Unreal may call SERVER_SpawnHorseMount in the same frame just
-        // BEFORE our Present/XInput rising-edge logger. Treat a native
-        // request <250ms before the input snapshot as correlated, not
-        // "not sent". Does not imply success, horse callback is separate.
-        const bool serverCorrelated=serverDelta>0||
-            summonProbe.nearServerAtPress;
-        const unsigned nativeDelta=mountNow.uniqueCandidatesLogged-
-            summonProbe.nativeCallsBefore;
-        const unsigned generations=mountNow.horseGeneration-
-            summonProbe.generationBefore;
-        if(summonProbe.count<=28)
-            Log("Horse Everywhere V0.89 AREA RESULT #%u serverDeltaAfterInput=%u serverJustBeforeInput=%d correlatedServer=%d nativeCallbackDelta=%u horseIdentityChanges=%u cameraHorseBefore=%d cameraHorseAfter=%d noServerRequest=%d (possible restriction OR dismount)",
-                summonProbe.count,serverDelta,
-                summonProbe.nearServerAtPress?1:0,serverCorrelated?1:0,
-                nativeDelta,generations,summonProbe.cameraWasHorse?1:0,
-                trulyMounted?1:0,serverCorrelated?0:1);
-        summonProbe.pending=false;
-    }
     if((hPressed&&!wasHorseH)||(shoulderChord&&!wasHorseChord)){
         rt.tpsLastHorseSummonInputTick.store(now,std::memory_order_release);
         rt.horseSummonIntentTick.store(now,std::memory_order_release);
-        const ULONGLONG serverAt=mountNow.lastServerSpawnTick;
-        const bool serverRecent=serverAt&&now>=serverAt&&now-serverAt<250ull;
-        const unsigned n=++horseInputAttempts;
-        summonProbe={true,now,n,mountNow.summonServerCalls,
-            mountNow.uniqueCandidatesLogged,mountNow.horseGeneration,
-            trulyMounted,serverRecent,mountNow.horseCallbackFresh,
-            mountNow.regionOverrides};
-        if(n<=28)
-            Log("Horse Everywhere V0.88 AREA INPUT #%u key=%s enabled=%d cameraHorse=%d nativeCallbackFresh=%d horsePoseFresh=%d serverBefore=%u nativeCalls=%u horseGeneration=%u world=(%.0f,%.0f,%.0f)",
-                n,hPressed&&!wasHorseH?"keyboard":"controller-chord",
-                g_config.horseEverywhereEnabled?1:0,trulyMounted?1:0,
-                mountNow.horseCallbackFresh?1:0,freshHorsePose?1:0,
-                mountNow.summonServerCalls,mountNow.uniqueCandidatesLogged,
-                mountNow.horseGeneration,
-                rt.tpsActorWorldX.load(),rt.tpsActorWorldY.load(),
-                rt.tpsActorWorldZ.load());
     }
     wasHorseH=hPressed;wasHorseChord=shoulderChord;
     // Keyboard equivalents of controller L3 long/short and R3 temporary
@@ -4502,14 +4126,8 @@ void ShutdownMod() {
 
     Log("Shutdown: begin");
     dg::native_tps::Report();
-    // Release any window-local Ctrl aim key we injected, even if the
-    // user closes the game mid-fire. Do not release physical Ctrl.
+    // Release the supported synthetic horse key before teardown.
     if(g_horseSyntheticHDown.exchange(false))EmitKeyboardVirtualKey('H',false);
-    if(g_tpsMountedCtrlBridgeDown.exchange(false)){
-        const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
-        if(hwnd&&IsWindow(hwnd) && !(GetAsyncKeyState(VK_CONTROL)&0x8000))
-            PostMessageW(hwnd,WM_KEYUP,VK_CONTROL,static_cast<LPARAM>(0xC01D0001u));
-    }
     g_config.FlushIfDue(true);
     dg::skip_logos::Shutdown();
     dg::skip_warning::Shutdown();
@@ -4518,7 +4136,7 @@ void ShutdownMod() {
     dg::chaos_pose::Shutdown();
     dg::manual_gauges::Shutdown();
     dg::ammo::Shutdown();
-    dg::recovery::Shutdown();
+
     dg::resource_gain::Shutdown();
     dg::gauges::Shutdown();
     const auto scene=dg::camera_trace::GetTelemetry();
@@ -4550,14 +4168,9 @@ void ShutdownMod() {
     RestoreCameraDof();
     Log("TPS V0.69 totals: mouseInputNative=PASSTHROUGH rightStickReadsFiltered=%u whileFiring=%u",
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
-    Log("TPS V1.10 native LB+Y totals: seen=%u chargeStickWrites=%u chargeLookWrites=%u (expected 0/0) wheelMask=0x%X",
-        g_tpsChargeChordSamples.load(),g_tpsChargeForwardInjected.load(),
-        g_tpsChargeLookVectorApplied.load(),g_config.tpsWheelPadMask);
-    Log("TPS V1.09 PHASE totals: transitions=%u lookCharge=%u lookR1R2=%u lookOther=%u wrathCandidateReads=%u rises=%u falls=%u nativeRotation=%u",
-        g_tpsDiagPadTransitions.load(),g_tpsDiagChargedLook.load(),
-        g_tpsDiagNormalLook.load(),g_tpsDiagOtherLook.load(),
-        g_tpsDiagWrathReads.load(),g_tpsDiagWrathPositive.load(),
-        g_tpsDiagWrathNegative.load(),g_tpsChargeLookRotationApplied.load());
+    Log("TPS native charged-shot passthrough: samples=%u wheelMask=0x%X",
+        g_tpsChargeChordSamples.load(),dg::runtime::Get().tpsWheelPadMask.load(std::memory_order_relaxed));
+
     Log("TPS V1.04 forward totals: all=%u horse=%u foot=%u mappedHorseChord=%u keyboardHorse=%u",
         g_tpsForwardAnalogInjected.load(),g_tpsMountedForwardAnalogInjected.load(),
         g_tpsFootForwardAnalogInjected.load(),g_horsePadChordRemapped.load(),g_keyboardHorseInjected.load());
@@ -4568,13 +4181,8 @@ void ShutdownMod() {
         g_v118MouseLmb.load(),g_v118MouseRmb.load(),g_v118MouseWheel.load());
     Log("TPS V1.19 MOUSE_FORWARD totals: rawMouse=%u moveFallback=%u cameraFrames=%u nativeLookForward=%u nativeRotationForward=%u fallbackEdgeRecenter=V1.23 syntheticPad=0",
         g_v119RawMouse.load(),g_v119MouseMoveFallback.load(),
-        g_v119MouseCameraFrames.load(),g_v119MouseForwardLook.load(),
-        g_v119MouseForwardRotation.load());
-    Log("TPS V1.27 MOUNTED_GETTER_AUDIT playerInput=%u horseInput=%u playerRotation=%u orientMoveOnSamples=%u orientMoveOffSamples=%u projectileHook=NO",
-        g_v127MountedMousePlayerGetter.load(),
-        g_v127MountedMouseHorseGetter.load(),
-        g_v127MountedMouseRotationGetter.load(),
-        g_v127NativeFacingFlagOn.load(),g_v127NativeFacingFlagOff.load());
+        g_v119MouseCameraFrames.load(),0u,0u);
+
     Log("TPS V1.26 RAW_RECOVERY totals: checks=%u missing=%u rearmAttempts=%u rearmSuccess=%u foreignRegistrationProtected=%u stallsWithRegistration=%u warpsAvoided=%u throttled=%u recoveredAfterOldCap=%u lastOwnerState=%d",
         g_v125RawChecks.load(),g_v125RawMissing.load(),
         g_v125RawRearmAttempts.load(),g_v125RawRearmSuccess.load(),
@@ -4583,8 +4191,8 @@ void ShutdownMod() {
         g_v126RecoveredAfterEight.load(),g_v125RawOwnerState.load());
     Log("TPS V1.24 MOUSE_FIRE totals primaryRouted=%u secondaryRouted=%u nativeSuppressed=%u secondaryForwardLook=%u primaryVK=%d secondaryVK=%d",
         g_v124PrimaryRouted.load(),g_v124SecondaryRouted.load(),
-        g_v124NativeButtonSuppressed.load(),g_v124SecondaryForwardLook.load(),
-        g_config.tpsMousePrimaryButton,g_config.tpsMouseSecondaryButton);
+        g_v124NativeButtonSuppressed.load(),0u,
+        dg::runtime::Get().tpsMousePrimaryButton.load(std::memory_order_relaxed),dg::runtime::Get().tpsMouseSecondaryButton.load(std::memory_order_relaxed));
     Log("TPS V1.23 EDGE_RECAPTURE totals: edgeRecenters=%u syntheticMovesIgnored=%u recenterFailures=%u cursorHooks=REMOVED",
         g_v123EdgeRecenters.load(),g_v123SyntheticMovesIgnored.load(),
         g_v123RecenterFailures.load());
@@ -4593,25 +4201,10 @@ void ShutdownMod() {
         g_v120RawRegistrationErrors.load(),g_v120RawMousePackets.load(),
         g_v120RawNonMousePackets.load(),g_v120RawAtEdge.load(),
         g_v119MouseMoveFallback.load());
-    Log("Gauge V1.20 WRATH_CORRELATION (read-only): nearDamage=%u duringFire=%u whileIdle=%u spentEvents=%u totalGained=%.2f totalSpent=%.2f actualNativeAddWrathNotVerified",
-        g_v120WrathNearDamage.load(),g_v120WrathWhileFiring.load(),
-        g_v120WrathWhileIdle.load(),g_v120WrathSpendEvents.load(),
-        g_v120WrathTotalGained.load(),g_v120WrathTotalSpent.load());
-    Log("Gauge V1.18 WRATH_READONLY: readings=%u up=%u down=%u stable=%u risesNearChargeInput=%u nativeWrathHookStillRequiresVerification",
-        g_tpsDiagWrathReads.load(),g_tpsDiagWrathPositive.load(),
-        g_tpsDiagWrathNegative.load(),g_v118WrathStable.load(),
-        g_v118WrathGainNearCharge.load());
-    Log("TPS V0.89 CAMERA FORWARD: horseActorGetPlayerLookInputCalls=%u (passive, no shot raycast hook)",
-        g_tpsHorseNativeLookGetterObservations.load());
-    Log("TPS V0.88 FORWARD RAYCAST AUDIT totals: lookSamples=%u gapOver35deg=%u lastNativeYaw=%.1f lastCameraYaw=%.1f projectileHook=NO",
-        g_tpsMountedForwardLookSamples.load(),g_tpsMountedForwardLargeYawGap.load(),
-        g_tpsMountedForwardLastNativeYaw.load(),g_tpsMountedForwardLastCameraYaw.load());
+
     Log("TPS V0.87 AIM UI PROBE totals: targeting=%u targetingTPS=%u targetingFiring=%u positioning=%u (all events passed through)",
         g_aimUiEvents.load(),g_aimUiEventsInTPS.load(),
         g_aimUiEventsWhileFire.load(),g_aimUiPositionEvents.load());
-    Log("TPS V0.87 mounted aim totals: idleNativeLookBlocks=%u ctrlBridgeDown=%u ctrlBridgeReleased=%u ctrlBridgeActive=%d",
-        g_tpsMountedIdleNativeLookBlocks.load(),g_tpsMountedCtrlDown.load(),
-        g_tpsMountedCtrlUp.load(),g_tpsMountedCtrlBridgeDown.load()?1:0);
     Log("TPS V0.84 grenade totals: physicalDown=%u physicalUp=%u nativeReleasePulses=%u (game pickup/stow must be verified visually)",
         g_tpsGrenadeDownCount.load(),g_tpsGrenadeUpCount.load(),
         g_tpsGrenadeReleasePulseDelivered.load());
@@ -4625,12 +4218,6 @@ void ShutdownMod() {
         g_tpsNativeLookInputBlocks.load(),g_tpsNativeLookRotationBlocks.load(),
         g_tpsPadStrafeApplied.load(),g_tpsNativeLookInputPadAim.load(),
         g_tpsNativeLookSignatureFailures.load());
-    Log("TPS V0.63 totals: coneInside=%u coneOutside=%u reasserted=%u nativeLocks=%u restores=%u",
-        g_tpsConeInside.load(),g_tpsConeOutside.load(),g_tpsFacingReasserted.load(),
-        g_tpsNativeFacingOff.load(),g_tpsNativeFacingRestored.load());
-    Log("TPS V0.63 totals: combatAim=%u fire=%u actorYaw=%u leftNative=%u movingFire=%u",
-        g_tpsCombatAimSamples.load(),g_tpsCombatFireSamples.load(),g_tpsActorYawSamples.load(),
-        g_tpsLeftPassthroughSamples.load(),g_tpsMovingFireSamples.load());
 
     if (g_skipIntroData) {
         *g_skipIntroData = g_skipIntroOriginalValue;
@@ -4770,8 +4357,7 @@ DWORD WINAPI MainThread(LPVOID) {
     if (!InstallNativeTPSRotationHook()) {
         Log("TPS V0.75 native look hooks unavailable; vanilla look path untouched.");
     }
-    g_recoveryHookReady.store(dg::recovery::Initialize(&FeatureLog,&g_localPlayerCharacter,g_targetValidation.exact));
-    if (!g_recoveryHookReady.load())Log("Action Recovery V1.39 unavailable; native animation lifecycle retained.");
+    Log("Action Recovery retired: ineffective V1.39 experiment; native timing retained, legacy INI/actions preserved");
     if (!InstallHotstreakChargeHook()) {
         Log("Hotstreak Charge unavailable; other ASI features remain active.");
     }
