@@ -1,3 +1,15 @@
+## V1.48 — construite, contrôlée et installée : Hotstreak / refills (16 octobre 2026)
+
+**CONSTRUIT / CONTRÔLÉ / INSTALLÉ / EXPÉRIMENTAL — validation utilisateur en jeu requise.** Base cumulative V1.47 construite mais non installée, acquis validés V1.43 et suivants conservés. Source `b7b90d29314ce00229a0737004426cbb0375b28d`, archive debug `550b7784b4f1341521bc8f7113250e5177207232`. [CI Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38964259848) **SUCCESS,22/22 tests** ; huit avertissements historiques, aucun nouveau. Les tests des vrais services P1/P2 couvrent les nouveaux refills, le diviseur, Unlimited ON/OFF, les resets et les générations. Cela ne vaut pas validation en jeu.
+
+Ajouts : **Reduce Hotstreak decrease**0–10 avec saisie manuelle/Default, **Unlimited Hotstreak**, **Fill Hotstreak**, **Fill ammunition**, quatre nouvelles actions Hotkeys appendues44–47 sans remplacer les anciens bindings. Réduction et Unlimited Hotstreak OFF par défaut ;0/1=natif,10=un dixième. Le module natif conserve délais/reset/activation et le plafond du Hotstreak ; les refills font une seule demande fraîche par joueur et contrôlent la relecture. Les119anciennes clés/valeurs et44actions, le calcul validé de consommation des munitions,27fichiers protégés et13fonctions centrales de visée/RawInput/XInput ont été comparés et conservés. V1.47 cumulative : présentation commune de toutes valeurs, échange Strife/War basé sur les types natifs1/2 et commandes d'équipement/TPS P2 avec états distincts, encore à vérifier visuellement.
+
+[ZIP cumulatif V1.48 — téléchargement direct](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.48_HOTSTREAK_REFILLS_TEST.zip), **843312 octets**, SHA256 `6EDA1124513CC88903F8F0DFCC611BE7624024D831CD7FAB5E1043A5F6E1CE90`. Exactement ASI/dxgi.dll/INI/README à la racine, CRC et binaires AMD64, identité1.48 et122clés contrôlés ; empreintes CI/dépôt/téléchargement public identiques. **111 anciennes archives intactes**, main`2bc3122`, archive`10e0f22`, tag/release publiquev1.43`902861e`/id414771221 vérifiés inchangés. Aucune nouvelle release publique créée. Le README du ZIP immuable reste celui de la préparation.
+
+Installation après vérification élevée des processus : le jeu était complètement fermé. Sauvegarde des quatre fichiers et du log : `C:\Users\deadn\.codex\.chatgpt-projects\g-p-6ac1496f81ec8191b55c0e4db2eefebd\audit-v131\install-backup-before-v148-20261016-224804`. ASI et dxgi installés conformes au ZIP ; **INI personnel et raccourcis préservés octet pour octet**, SHA256 avant/après `89647F8748749404EC06725B4EEC792BBC3CBA68B03C1639A9E7CBEDFF988A95`. Les nouvelles clés manquantes utilisent leurs défauts compilés OFF sans remplacer le fichier personnel. Le README installé est ensuite actualisé avec ce reçu. Aucun lancement automatique ni écriture externe de mémoire.
+
+**Lava : l'utilisateur confirme le projectile normal en cloche, manette P1.** Son calcul natif balistique et sa rotation en cache ont été identifiés, mais **aucun correctif Lava n'est annoncé** ; la prochaine capture doit comparer cible3D, cache, entrée au relâchement et caméra. Le faisceau Hotstreak n'est pas signalé. **Visée native après dash NON RÉSOLUE ; Action Recovery INDISPONIBLE.** Test prioritaire : nouveaux refills/Hotkeys, diviseurs1/2/10 puis Unlimited ON/OFF en mission ; ensuite menu/échanges solo/équipement P2 et récapitulatif V1.46–47. [Preuves, limites, critères et rollback](V1_48_HOTSTREAK_REFILLS.md).
+
 # V1.48 — Hotstreak et remplissage des munitions TEST
 
 ## Base, objectif et statuts
@@ -30,7 +42,7 @@ Ajouts seulement : `[Features] ReduceHotstreakDecrease=0`, `UnlimitedHotstreak=0
 
 ## Audit Lava : preuve, inférence et inconnues
 
-Signalement utilisateur : **manette,P1**. La session V1.46 journalise821appels de la base des pistolets,554corrections P1 et aucun P2, mais son quota de logs initiaux ne permet pas d'identifier un tir Lava. Aucun impact réel n'est mesuré.
+Signalement utilisateur confirmé : **projectile normal en cloche, manette,P1** ; le faisceau Hotstreak n'est pas signalé. La session V1.46 journalise821appels de la base des pistolets,554corrections P1 et aucun P2, mais son quota de logs initiaux ne permet pas d'identifier un tir Lava. Aucun impact réel n'est mesuré.
 
 Lecture seule des fichiers du jeu : index du pak v8 de86641entrées, SHA1 de l'index vérifié ; extraction locale bornée des seuls assets Lava utiles avec tailles, blocs Zlib et SHA1 des payloads contrôlés. Aucun asset du jeu n'est ajouté au dépôt ou au ZIP. Le Blueprint Lava normal dérive de `MayhemPlayerLavaShotProjectileAbility` ; sa variante Juiced utilise `MayhemBeamProjectile` et doit être examinée séparément.
 
@@ -38,7 +50,7 @@ Classe native Lava `7BABA0`, constructeur `7BB280`, vtable `27D37B0`, parent `26
 
 1. calcule la rotation initiale avec `66A2B0` (rotation joueur `672760` et direction depuis la bouche `663F80`) ;
 2. conserve le Rotator à `ability+20C/214` ;
-3. lit la cible native et ses positions3D, la vitesse/gravitée du projectile ; ajuste son pitch avec `6647A0` et sa vitesse avec `664800` ;
+3. lit la cible native et ses positions3D, la vitesse/gravité du projectile ; ajuste son pitch avec `6647A0` et sa vitesse avec `664800` ;
 4. fournit la rotation stockée au spawn via le virtuel `+2C0`, implémentation `7BBF20`.
 
 **PROUVÉ : ce retour final est distinct de `6A9F20/7CFA3B`, corrigé pour les pistolets depuis V1.46.** Le pitch et la vitesse sont couplés au point3D pour l'arc. **INFÉRÉ :** l'ancienne direction/cible ou l'instant de cache/release peut expliquer une sortie incohérente ; la condition exacte du bug n'est pas démontrée. Remplacer seulement le yaw ne corrigerait pas le calcul balistique global.
