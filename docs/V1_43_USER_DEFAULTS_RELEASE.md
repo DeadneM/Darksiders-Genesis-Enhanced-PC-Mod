@@ -25,6 +25,8 @@ Action Recovery : priorité **DASH UNIQUEMENT** demandée par l'utilisateur. Cof
 
 ## Publication prévue
 
+Premier essai CI38880117769 : compilation arrêtée par C2660, appel du logger Store à plusieurs arguments au lieu d'une chaîne formatée. Réparé par formatage préalable dans un buffer borné puis appel normal du logger. Tests, packaging et publication ont été sautés sur cet essai ; aucune archive/release V1.43 n'en provient. La construction suivante doit être vérifiée séparément.
+
 V1.43, archive `DarksidersGenesis_V1.43_USER_DEFAULTS_RELEASE.zip`, quatre entrées à la racine, modules AMD64. Tests et analyse statique Windows avant packaging/publication. Conservation des106 anciennes archives, vérification du téléchargement direct, publication GitHub Releasev1.43 attachée au commit source construit avec ZIP et checksum SHA-256.
 
 Le workflow debug publie une release uniquement pour le marqueur explicite `[release v1.43]`. L'ancien workflow main reste intact et n'est pas déclenché. Une nouvelle release est créée en draft avec ses assets, puis publiée ; aucun remplacement d'une ancienne release ou archive. Après succès, contrôler tag, target_commitish, état public non-prerelease et octets des assets. Le numéro Updates vient de BuildInfoV1.43.
