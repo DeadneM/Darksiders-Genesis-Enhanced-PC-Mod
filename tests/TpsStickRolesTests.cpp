@@ -79,7 +79,7 @@ int main(){
     action=dg::tps_input::CameraPress(press,&down,true,3600,0x20,500,0x20,true);require(!action.toggle,"held toggle is not repeated");
     action=dg::tps_input::CameraPress(press,&neutral,true,3700,0x20,500,0x20,false);require(!action.recenter,"release after long press cannot move the camera");
     dg::tps_input::CameraPress(press,&down,true,4000,0x20,500,0x20,false);
-    dg::tps_input::CameraPress(press,nullptr,false,4600,0x20,500,0x20,false);
+    dg::tps_input::CameraPress(press,static_cast<const Pad*>(nullptr),false,4600,0x20,500,0x20,false);
     action=dg::tps_input::CameraPress(press,&down,true,4700,0x20,500,0x20,false);require(!action.toggle,"focus loss resets the hold timer");
     Pad mount=neutral;mount.wButtons=0x1000;require(!dg::tps_input::MapHorseChord(mount,0x1000,0x4000),"horse chord requires both configurable actions simultaneously");
     mount.wButtons|=0x4000;require(dg::tps_input::MapHorseChord(mount,0x1000,0x4000)&&(mount.wButtons&0x300)==0x300,"shared horse chord produces the native summon chord without an extra command");
