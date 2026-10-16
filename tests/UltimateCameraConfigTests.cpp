@@ -44,7 +44,7 @@ int main(){
     check(read.Load()&&almostEqual(read.tpsHorseDistanceMultiplier,0.25f)&&almostEqual(read.tpsHorseHeightOffset,10),"invalid Horse values fall back to current normal camera");
     read.ResetTpsCameraValues();
     check(almostEqual(read.tpsUltimateDistanceMultiplier,0.30f)&&almostEqual(read.tpsUltimateHeightOffset,80),"TPS reset includes Ultimate values");
-    check(almostEqual(read.tpsHorseDistanceMultiplier,0.15f)&&almostEqual(read.tpsHorseHeightOffset,0),"TPS reset includes Horse values");
+    check(almostEqual(read.tpsHorseDistanceMultiplier,0.25f)&&almostEqual(read.tpsHorseHeightOffset,40),"TPS reset includes user-chosen Horse values");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,path);DeleteFileW(path);
     std::printf("TPS form camera config: %u failures\n",failed);return failed?1:0;
 }

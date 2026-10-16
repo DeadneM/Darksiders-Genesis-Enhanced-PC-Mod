@@ -1,3 +1,9 @@
+## V1.43 - profil utilisateur et publication Release (16 octobre 2026)
+
+Base V1.42 debug `45571dd`. Défauts enregistrés par l'utilisateur repris : **cheval distance0.25 / vertical+40**, pied0.15/0, ultime0.30/+80, pitch−12°, FOV TPS110°. Deux différences seulement sur112 clés ; les110 autres, Inser et les raccourcis conservés. Constantes ASI/runtime/reset/Default et INI synchronisés ; chemins natifs et logique de jeu identiques. **Source préparée**, compilation/publication/installation à vérifier.
+
+Release Windows x64 V1.43 demandée, publiée depuis debug après tests et contrôle du ZIP à quatre entrées ;106 anciennes archives et main/archive protégés. Recovery reste indisponible : **prochaine investigation limitée au dash**, coffres reportés. [Profil, contrôles, release et rollback](docs/V1_43_USER_DEFAULTS_RELEASE.md).
+
 ## V1.42 construite, contrôlée et installée — caméra cheval et version updater (16 octobre 2026)
 
 **CONSTRUIT / CONTRÔLÉ / INSTALLÉ / EXPÉRIMENTAL en attente de test en jeu.** Base V1.41 debug `04ca27e`. Source `bf02da378a8890c07581045019ac396d0a008dc3` ; [CI Windows x64 38875417060](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38875417060) **SUCCESS,13/13 tests réussis**, dont vraie persistance/héritage/indépendance des vues pied/cheval/ultime et parité des **112 clés**. Analyse MSVC exécutée, mêmes huit avertissements déjà examinés en V1.41. ZIP publié par Actions au commit `64c4e93c2ee02b5a891237b6facb5306bdcc35e8`.

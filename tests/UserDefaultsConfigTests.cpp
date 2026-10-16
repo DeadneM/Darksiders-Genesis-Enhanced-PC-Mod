@@ -54,7 +54,7 @@ int main(int argc,char** argv){
     check(rt.reduceAmmoEnabled.load()&&!rt.unlimitedAmmoEnabled.load(),"runtime receives requested ammo defaults");
     check(rt.wrathChargeMultiplier.load()==4&&rt.ultimateChargeMultiplier.load()==4&&rt.synergyChargeMultiplier.load()==4,"runtime receives x4 gains");
     check(rt.tpsUltimateDistanceMultiplier.load()==0.30f&&rt.tpsUltimateHeightOffset.load()==80,"runtime receives Ultimate camera defaults");
-    check(rt.tpsHorseDistanceMultiplier.load()==0.15f&&rt.tpsHorseHeightOffset.load()==0,"runtime receives Horse camera defaults");
+    check(rt.tpsHorseDistanceMultiplier.load()==0.25f&&rt.tpsHorseHeightOffset.load()==40,"runtime receives user-chosen Horse camera defaults");
     WritePrivateProfileStringW(L"Overlay",L"MenuKey",L"VK_C0",path);
     WritePrivateProfileStringW(L"Updater",L"Beta",L"0",path);
     WritePrivateProfileStringW(L"Features",L"ReduceAmmoConsumption",L"0",path);

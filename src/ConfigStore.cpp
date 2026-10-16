@@ -494,7 +494,8 @@ void Store::ResetTpsCameraValues() {
     dg::runtime::Get().cameraOrbitYawDegrees.store(0.0f);
     dg::runtime::Get().cameraOrbitPitchDegrees.store(0.0f);
     Save();
-    Log("V1.42 TPS Camera Values Default: TPS FOV 110, distance .15, pitch -12, height 0; Ultimate distance .30, height 80; Horse distance .15, height 0; foot 0, speed 180");
+    Log("TPS Camera Values Default: TPS FOV 110, distance .15, pitch -12, height 0; Ultimate distance %.2f, height %.0f; Horse distance %.2f, height %.0f; foot 0, speed 180",
+        tpsUltimateDistanceMultiplier,tpsUltimateHeightOffset,tpsHorseDistanceMultiplier,tpsHorseHeightOffset);
 }
 bool Store::Load() {
     if (path_.empty()) {
