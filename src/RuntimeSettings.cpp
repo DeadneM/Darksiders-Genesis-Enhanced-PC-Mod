@@ -59,6 +59,9 @@ void Publish(const Snapshot& s) {
     g_state.reduceAmmoEnabled.store(s.reduceAmmoEnabled);
     g_state.unlimitedAmmoEnabled.store(s.unlimitedAmmoEnabled);
     g_state.ammoConsumptionDivisor.store(s.ammoConsumptionDivisor);
+    g_state.potionRechargeEnabled.store(s.potionRechargeEnabled);
+    g_state.unlimitedPotionsEnabled.store(s.unlimitedPotionsEnabled);
+    g_state.potionRechargeMultiplier.store(s.potionRechargeMultiplier);
 
     g_state.fovDegrees.store(s.fovDegrees, std::memory_order_relaxed);
     g_state.thirdPersonFovDegrees.store(s.thirdPersonFovDegrees);

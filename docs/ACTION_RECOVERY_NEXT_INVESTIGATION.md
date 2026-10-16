@@ -1,6 +1,13 @@
-# Action Recovery — priorité dash après V1.43
+# Action Recovery — priorité dash après captures V1.44
 
 16 octobre 2026 : l'utilisateur limite désormais l'investigation **au dash uniquement**. Les coffres sont reportés. V1.43 reprend les défauts utilisateur et ne réintroduit aucune intervention recovery.
+
+
+## Captures du 16 octobre : Strife
+
+Deux captures ont été armées avant les nouveaux tests :22 puis17 instances distinctes du type natif DASH (pas un compte de touches),9877 puis9289 échantillons. La seconde est confirmée par l'utilisateur avec Strife. MoveInterruptDelaySec reste0 ; vtable observée0x27D31B8, Tick0x5B72B0, parent0x68D050. La lecture du vrai helper0x38 puis du weak pointer/AnimInstance résout les montages sans lecture hors taille. Le mode de déplacement(6,5) reste actif jusqu'à la fin native ; les champs de montage148/150 passent0/1 puis1/1, sans fin de fondu exploitable démontrée. La lecture de vélocité ne prouve pas le déplacement physique personnalisé.
+
+Ces mesures identifient enfin le chemin dash, mais n'établissent pas un point sûr pour le terminer plus tôt. Prochaine mesure : déplacement réel et événements natifs de fin du dash, avant toute écriture. L'ancien prédicat de blend tail ne doit pas être réintroduit sur cette seule preuve. V1.44 ajoute les potions ; **aucune réparation Recovery annoncée**. [Audit détaillé](V1_44_NATIVE_POTIONS_AND_DASH_AUDIT.md).
 
 ## Ce qui est démontré
 

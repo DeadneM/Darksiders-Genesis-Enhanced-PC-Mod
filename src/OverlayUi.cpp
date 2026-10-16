@@ -3,6 +3,7 @@
 #include "ResourceGainFeature.h"
 #include "ManualGaugeFeature.h"
 #include "AmmoConsumptionFeature.h"
+#include "PotionFeature.h"
 #include "ShaderAimFeature.h"
 #include "UpdateFeature.h"
 #include "BuildInfo.h"
@@ -313,6 +314,29 @@ void Draw(Context& c) {
             if(!manual.readyMask)
                 ImGui::TextWrapped("Available during normal local-host gameplay with a supported player.");
             ImGui::TextWrapped("One click changes the selected level once; it does not keep gauges full or unlock the Ultimate form.");
+            ImGui::Separator();
+            ImGui::TextUnformatted("Health potions (test)");
+            const auto potions=dg::potions::GetTelemetry();
+            if(!potions.available||potions.pending)ImGui::BeginDisabled();
+            if(ImGui::Button("Fill health potions"))dg::potions::RequestRefill();
+            if(!potions.available||potions.pending)ImGui::EndDisabled();
+            if(potions.available)ImGui::Text("Reserve: %d / %d",potions.current,potions.maximum);
+            if(potions.available&&potions.current<potions.maximum&&std::isfinite(potions.overflow)&&
+               std::isfinite(potions.nativeThreshold)&&potions.nativeThreshold>0){
+                const float threshold=potions.nativeThreshold/(config.potionRechargeEnabled?config.potionRechargeMultiplier:1.0f);
+                ImGui::TextDisabled("Charge for next potion: %.0f%%",std::clamp(potions.overflow/threshold,0.0f,1.0f)*100.0f);
+            }
+            if(potions.pending)ImGui::TextDisabled("Refill queued; return to gameplay.");
+            if(potions.result==dg::potions::Result::Applied)ImGui::TextDisabled("Potion reserve filled.");
+            if(potions.result==dg::potions::Result::Rejected||potions.result==dg::potions::Result::Cancelled)
+                ImGui::TextDisabled("Refill unavailable or cancelled; retry during gameplay.");
+            DrawTunableFeature(config,"Potion recharge rate","PotionRecharge",
+                &config.potionRechargeEnabled,&config.potionRechargeMultiplier,
+                1.0f,100.0f,2.0f,"%.2fx",
+                "Recharges health potions faster from excess healing at full health. x1 is normal. Keeps the native reserve limit and healing amount.",potions.supported);
+            if(ImGui::Checkbox("Unlimited potions",&config.unlimitedPotionsEnabled))config.Save();
+            ImGui::TextWrapped("Unlimited keeps the health-potion reserve full. Healing, cooldown and use conditions remain native. All three potion commands can be assigned in Hotkeys -> F1-F12; existing assignments stay unchanged.");
+            if(!potions.supported)ImGui::TextDisabled("Potion controls unavailable for this executable.");
             ImGui::Separator();
             ImGui::TextUnformatted("Ammunition");
             if(ImGui::Checkbox("Reduce ammo consumption",&config.reduceAmmoEnabled))config.Save();

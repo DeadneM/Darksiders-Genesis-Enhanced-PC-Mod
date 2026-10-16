@@ -370,6 +370,7 @@ void Store::ResetDefaults(bool persist) {
     unlimitedUltimateEnabled = false;
     unlimitedSynergyEnabled = false;
     reduceAmmoEnabled = defaults::ReduceAmmo;unlimitedAmmoEnabled = false;ammoConsumptionDivisor = 2.0f;
+    potionRechargeEnabled=false;unlimitedPotionsEnabled=false;potionRechargeMultiplier=2.0f;
 
     movementSpeedMultiplier = 1.50f;
     actionRecoveryDelayMs = 0.0f;
@@ -560,6 +561,9 @@ bool Store::Load() {
     unlimitedSynergyEnabled=ReadBool(L"Features",L"UnlimitedSynergy",false,path_);
     reduceAmmoEnabled=ReadBool(L"Features",L"ReduceAmmoConsumption",defaults::ReduceAmmo,path_);
     unlimitedAmmoEnabled=ReadBool(L"Features",L"UnlimitedAmmo",false,path_);
+    potionRechargeEnabled=ReadBool(L"Features",L"PotionRecharge",false,path_);
+    unlimitedPotionsEnabled=ReadBool(L"Features",L"UnlimitedPotions",false,path_);
+    potionRechargeMultiplier=std::clamp(ReadFloat(L"Values",L"PotionRechargeMultiplier",2.0f,path_),1.0f,100.0f);
     ammoConsumptionDivisor=std::clamp(ReadFloat(L"Values",L"AmmoConsumptionDivisor",2.0f,path_),0.0f,10.0f);
     thirdPersonEnabled =
         ReadBool(L"Features", L"ThirdPerson", true, path_);
@@ -900,6 +904,9 @@ void Store::PublishRuntime() const {
     runtime.reduceAmmoEnabled = reduceAmmoEnabled;
     runtime.unlimitedAmmoEnabled = unlimitedAmmoEnabled;
     runtime.ammoConsumptionDivisor = ammoConsumptionDivisor;
+    runtime.potionRechargeEnabled = potionRechargeEnabled;
+    runtime.unlimitedPotionsEnabled = unlimitedPotionsEnabled;
+    runtime.potionRechargeMultiplier = potionRechargeMultiplier;
 
     runtime.fovDegrees = fovDegrees;
     runtime.thirdPersonFovDegrees = thirdPersonFovDegrees;
@@ -985,6 +992,9 @@ bool Store::SaveNow() {
     WriteBool(L"Features",L"UnlimitedSynergy",unlimitedSynergyEnabled,path_);
     WriteBool(L"Features",L"ReduceAmmoConsumption",reduceAmmoEnabled,path_);
     WriteBool(L"Features",L"UnlimitedAmmo",unlimitedAmmoEnabled,path_);
+    WriteBool(L"Features",L"PotionRecharge",potionRechargeEnabled,path_);
+    WriteBool(L"Features",L"UnlimitedPotions",unlimitedPotionsEnabled,path_);
+    WriteFloat(L"Values",L"PotionRechargeMultiplier",potionRechargeMultiplier,path_);
     WriteFloat(L"Values",L"AmmoConsumptionDivisor",ammoConsumptionDivisor,path_);
     WriteBool(L"Features", L"ThirdPerson", thirdPersonEnabled, path_);
     WriteBool(L"Features",L"TPSFOV",thirdPersonFovEnabled,path_);

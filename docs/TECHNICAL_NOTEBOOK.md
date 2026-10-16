@@ -1,3 +1,9 @@
+## V1.44 — potions natives TEST et capture Strife (16 octobre 2026)
+
+Base V1.43 debug `5fecde0`. **Sources préparées / EXPÉRIMENTAL, construction et installation à vérifier.** Ajout des commandes **Fill health potions**, **Potion recharge rate** (1–100×, défaut2 désactivé), **Unlimited potions** (OFF), chacune assignable dans Hotkeys → F1-F12. Remplissage et maintien du stock par l'ajout/plafond natifs ; recharge par conversion du surplus de soin ; soin et cooldown conservés. Trois nouvelles clés, 112 valeurs et raccourcis antérieurs inchangés. Entrées/visée/caméra/cheval/roues/jauges/munitions/warnings préservés ; aucun nouveau résultat en jeu revendiqué.
+
+Recovery reste indisponible : deux captures en lecture seule,22 puis17 instances natives de dash, seconde confirmée avec Strife. Délai global0 ; mode de mouvement(6,5) maintenu jusqu'à la fin, aucune fin de fondu exploitable observée. Pas de retour de l'ancien hook sans effet ; prochaine recherche limitée à la fin du déplacement réel et à la libération native du dash, coffres reportés. V1.43 publique,107 archives et main/archive protégés. [Preuves natives, configuration, tests, TODO et rollback](V1_44_NATIVE_POTIONS_AND_DASH_AUDIT.md).
+
 ## V1.43 publiée et installée — défauts utilisateur (16 octobre 2026)
 
 **CONSTRUIT / CONTRÔLÉ / PUBLIÉ / INSTALLÉ.** Base V1.42 debug `45571dd354e316fcb4f1fa255741844c5dd09d54`. Source `902861eb1ff34c14dc5ded092581b360767da817` ; [Actions Windows x64 38880517949](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38880517949) **SUCCESS, 13/13 tests**. ASI, INI, génération, runtime, resets et boutons Default partagent les **112 valeurs** du profil utilisateur. Seuls les défauts cheval changent : **distance 0,25× / vertical +40** ; pied 0,15/0, ultime 0,30/+80, pitch −12°, FOV TPS 110°. Les 110 autres valeurs, Inser et les raccourcis sont conservés.

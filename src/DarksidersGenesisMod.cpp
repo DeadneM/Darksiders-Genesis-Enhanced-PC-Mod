@@ -18,6 +18,7 @@
 #include "ResourceGainFeature.h"
 #include "ManualGaugeFeature.h"
 #include "AmmoConsumptionFeature.h"
+#include "PotionFeature.h"
 #include "BuildInfo.h"
 #include "HorseFeature.h"
 #include "NativeTpsFeature.h"
@@ -1908,6 +1909,7 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
         dg::manual_gauges::OnLivePlayer(characterOwner,
             runtime.tpsActorGeneration.load(std::memory_order_acquire));
         dg::ammo::OnLivePlayer(characterOwner,runtime.tpsActorGeneration.load());
+        dg::potions::OnLivePlayer(characterOwner,runtime.tpsActorGeneration.load());
         if (previousPlayer != characterOwner) {
             g_tpsPlayerGeneration.fetch_add(1);
             Log(
@@ -2043,6 +2045,21 @@ void TriggerAction(Action action, int functionKey) {
 
     const char* label = ActionLabel(action);
 
+    if(action==Action::RefillPotions||action==Action::PotionRecharge||action==Action::UnlimitedPotions){
+        const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+        if(!hwnd||GetForegroundWindow()!=hwnd||IsIconic(hwnd)||g_overlayVisible.load()||g_shuttingDown.load())return;
+        if(action==Action::RefillPotions){
+            const bool queued=dg::potions::RequestRefill();
+            g_lastAction=std::string(label)+(queued?" [queued]":" [unavailable]");
+            Log("Potion V1.44 HOTKEY F%d refillQueued=%d",functionKey,queued?1:0);
+        }else{
+            bool& enabled=action==Action::PotionRecharge?g_config.potionRechargeEnabled:g_config.unlimitedPotionsEnabled;
+            enabled=!enabled;g_config.Save();
+            g_lastAction=std::string(label)+(enabled?" ON":" OFF");
+            Log("Potion V1.44 HOTKEY F%d action=%s enabled=%d",functionKey,label,enabled?1:0);
+        }
+        return;
+    }
     if(action==Action::ReduceAmmo||action==Action::UnlimitedAmmo){
         bool& enabled=action==Action::ReduceAmmo?g_config.reduceAmmoEnabled:g_config.unlimitedAmmoEnabled;
         enabled=!enabled;g_config.Save();
@@ -2279,7 +2296,10 @@ void ProcessInput() {
         // Discard refill edges while editing the menu, including held keys
         // across its close. Existing non-refill F-key behavior is preserved.
         for(int i=0;i<12;++i)
-            if(dg::config::GaugeRefillMask(g_config.hotkeys[static_cast<size_t>(i)]))
+            if(dg::config::GaugeRefillMask(g_config.hotkeys[static_cast<size_t>(i)])||
+               g_config.hotkeys[static_cast<size_t>(i)]==Action::RefillPotions||
+               g_config.hotkeys[static_cast<size_t>(i)]==Action::PotionRecharge||
+               g_config.hotkeys[static_cast<size_t>(i)]==Action::UnlimitedPotions)
                 KeyPressed(VK_F1+i);
         return;
     }
@@ -4136,6 +4156,7 @@ void ShutdownMod() {
     dg::chaos_pose::Shutdown();
     dg::manual_gauges::Shutdown();
     dg::ammo::Shutdown();
+    dg::potions::Shutdown();
 
     dg::resource_gain::Shutdown();
     dg::gauges::Shutdown();
@@ -4367,6 +4388,7 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::gauges::Initialize(&FeatureLog,&g_localPlayerCharacter,g_targetValidation.exact);
     dg::resource_gain::Initialize(&FeatureLog,&g_localPlayerCharacter,g_targetValidation.exact);
     dg::ammo::Initialize(&FeatureLog,&g_localPlayerCharacter,g_targetValidation.exact);
+    dg::potions::Initialize(&FeatureLog,&g_localPlayerCharacter,g_targetValidation.exact);
     if (!InstallFinalOutgoingDamageHook()) {
         Log("Final Pistol/Melee Damage hook unavailable; other ASI features remain active.");
     }

@@ -27,6 +27,14 @@ if(BUILD_TESTING)
   target_compile_definitions(UltimateCameraConfigTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
   target_link_libraries(UltimateCameraConfigTests PRIVATE user32)
   add_test(NAME UltimateCameraConfig COMMAND UltimateCameraConfigTests)
+  add_executable(PotionTests tests/PotionTests.cpp)
+  target_include_directories(PotionTests PRIVATE src)
+  add_test(NAME PotionPolicies COMMAND PotionTests)
+  add_executable(PotionConfigTests tests/PotionConfigTests.cpp src/ConfigStore.cpp src/RuntimeSettings.cpp)
+  target_include_directories(PotionConfigTests PRIVATE src)
+  target_compile_definitions(PotionConfigTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  target_link_libraries(PotionConfigTests PRIVATE user32)
+  add_test(NAME PotionConfig COMMAND PotionConfigTests)
   add_executable(ResourceGainTests tests/ResourceGainTests.cpp)
   target_include_directories(ResourceGainTests PRIVATE src)
   add_test(NAME ResourceGains COMMAND ResourceGainTests)
@@ -162,6 +170,7 @@ add_library(DarksidersGenesisMod SHARED
   src/EngineIniFeature.cpp
   src/GaugeChargeFeature.cpp
   src/ManualGaugeFeature.cpp
+  src/PotionFeature.cpp
   src/AmmoConsumptionFeature.cpp
   src/HorseFeature.cpp
   src/OverlayUi.cpp
