@@ -6,7 +6,7 @@ Date : 16 octobre 2026. Branche **debug**. Base livrée : V1.41 `04ca27e4a0b440e
 
 Ajouter, comme pour la forme ultime, **distance** et **décalage vertical** propres à la caméra TPS à cheval. Modifier la vue montée doit laisser les valeurs à pied et ultime indépendantes ; descendre de cheval doit retrouver la vue à pied existante. Garder l'orbite, la visée, les commandes reconfigurables et les transitions natives déjà en place.
 
-Statut de préparation : sources prêtes, construction/contrôles/livraison à confirmer. Aucune validation en jeu revendiquée.
+Statut final : **CONSTRUIT / CONTRÔLÉ / INSTALLÉ / EXPÉRIMENTAL**. Source `bf02da3`, CI Windows `38875417060` réussie,13/13 tests ; publication `64c4e93`. Aucune validation en jeu revendiquée.
 
 ## Menu et configuration
 
@@ -34,7 +34,7 @@ Capture utilisateur du 16 octobre : **Running mod: V1.22**, alors que Latest aff
 
 Le libellé utilise désormais **BuildInfo::Version**, identique à l'identité de compilation qui alimente la comparaison. La V1.42 doit donc afficher **Running mod: V1.42**, puis suivre les versions suivantes sans nouveau texte figé. Le préfixe « V1.22 CONFIG loaded » du journal est également remplacé par la version compilée. Les commentaires historiques de changements V1.22 sont conservés comme historique ; ils ne représentent pas la version exécutée.
 
-## Contrôles prévus
+## Contrôles réalisés
 
 Tests Windows existants, avec extension du vrai cycle Store/Win32 : héritage d'un ancien INI, persistance des trois vues distinctes, publication runtime, modification ultérieure de la vue pied sans écraser cheval/ultime, limites et valeurs non finies, remise à zéro. Le test des défauts compare maintenant **112 clés** livrées/générées, dont les deux nouvelles. Les tests de comparaison updater suivent la version compilée plutôt qu'un numéro futur figé.
 
@@ -42,7 +42,7 @@ Analyse statique MSVC conservée. Packaging x64 cumulatif : `DarksidersGenesis_V
 
 ## Installation et retour arrière
 
-Jeu ouvert au début de cette demande : aucune modification de ses fichiers pendant la préparation. Après construction et fermeture du jeu : sauvegarde des quatre fichiers et du log, installation des binaires vérifiés ; INI personnel conservé, seules les deux clés manquantes sont ajoutées en reprenant les valeurs à pied au moment de l'installation. Les clés cheval déjà présentes sont conservées. Aucun jeu lancé automatiquement.
+Jeu ouvert au début de cette demande : aucune modification de ses fichiers pendant la préparation. Après construction et fermeture du jeu : sauvegarde des quatre fichiers et du log, installation des binaires vérifiés ; INI personnel conservé intégralement byte pour byte. Les deux clés manquantes héritent des valeurs à pied au chargement et sont créées lors du prochain enregistrement des réglages. Les clés cheval déjà présentes sont conservées. Aucun jeu lancé automatiquement.
 
 Rollback : jeu fermé, restaurer les quatre fichiers de la sauvegarde ou les binaires V1.41 en conservant l'INI ; les nouvelles clés sont ignorées par V1.41. Les anciennes archives ne sont pas écrasées.
 
@@ -54,3 +54,14 @@ Rollback : jeu fermé, restaurer les quatre fichiers de la sauvegarde ou les bin
 4. Sauvegarder/recharger puis vérifier la persistance des trois profils.
 
 Validation du cadrage/transitions en jeu nécessaire. Les limites ouvertes de V1.41 et l'enquête Action Recovery restent dans le TODO cumulatif ; cette version ajoute seulement le profil caméra monté demandé.
+
+
+## Reçu de livraison
+
+[Actions38875417060](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38875417060), job116889177088 : SUCCESS, **13/13 suites**, notamment UltimateCameraConfig étendu aux trois profils et UserDefaultsConfig112 clés. Les huit avertissements MSVC sont de mêmes codes et même portée qu'en V1.41 (shadowing caméra désormais ligne708, autres emplacements conservés) ; aucun masquage ni nouvelle promesse d'analyse sans avertissements.
+
+ZIP 806041 octets, SHA256 `3C47E465DAF03D7C9AE8B6767045A1444CCA03C0A37D67BC15AE30B89F76E2FC`. ASI1184256 octets SHA256 `687BD4E1972229D8A751C5C540B9D1BF81AFE3CF7042996657CBF744C90CE950`, DXGI155648 octets SHA256 `53600F742684DD2550F60A450035AF6AF5534CAB0DC09A07197AE5FC144668D9`. Quatre entrées, AMD64, identité1.42, libellé « Running mod: %s » et chaînes des réglages cheval contrôlés ; ancien libellé « Running mod: V1.22 » absent du binaire. Cela prouve la construction du chemin d'affichage, pas une capture en jeu.
+
+Sauvegarde `C:\Users\deadn\.codex\.chatgpt-projects\g-p-6ac1496f81ec8191b55c0e4db2eefebd\audit-v131\install-backup-before-v142-20261016-104624` ; quatre fichiers antérieurs et log présents. INI avant/après `CD18319DD0468D35E7E0BCDA3A7EEEE9C76F8B7689131C0CA9AD75E313518AE9` / `CD18319DD0468D35E7E0BCDA3A7EEEE9C76F8B7689131C0CA9AD75E313518AE9`.105 archives antérieures identiques ; main `2bc3122c1ae07b7333798462f85c1d9fd3a739f7`, archive `10e0f220b85022bc9269e0cb9390a811a3b1cf89` inchangées. Jeu fermé au remplacement ; aucun lancement automatique.
+
+La question Action Recovery est suivie dans [l'investigation dédiée](ACTION_RECOVERY_NEXT_INVESTIGATION.md) ; aucun retour de l'ancien hook sans effet dans ce build. Le protocole de test caméra ci-dessus reste à valider par l'utilisateur.
