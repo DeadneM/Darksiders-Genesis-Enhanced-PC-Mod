@@ -1,3 +1,17 @@
+## V1.48 — état courant après audit des réparations ouvertes
+
+Dernière base installée : **V1.48, acceptée par l'utilisateur pour le reste du mod, pour l'instant**. Les listes générales de validations encore attendues ci-dessous sont historiques et ne prévalent plus sur ce retour. Acquis, INI personnel et raccourcis à conserver.
+
+**TODO actuel, dans l'ordre :**
+
+1. Roue d'équipement coop : sélection bloquée pour **les deux joueurs**. Publier l'état de la roue native par propriétaire et l'utiliser dans les protections d'entrée/visée/orbite. Le booléen actuel de visibilité est global et réservé aux logs ; le branchement direct de ce booléen dans tous les filtres serait insuffisant.
+2. **Charge Shot manette**, surtout Hotstreak en reculant ; P1/P2 non précisé pour ce signalement. Suivre charge/Finish/spawn et leur vraie direction native, distincte du retour commun des pistolets ; éviter une correction par touche.
+3. **Lava normal en cloche, manette P1** : corriger la cible 3D et la cohérence rotation/vitesse balistiques, sans confondre avec le faisceau Hotstreak.
+4. **Visée native après dash** : identifier annulation d'action ou mauvais état de masquage du trait/arc ; cause encore inconnue.
+5. **Action Recovery dash** : fonction indisponible, anciennes clés/Hotkey sans effet gameplay. Mesurer appui troisième/quatrième dash et transition native ; positions seules insuffisantes. Coffre différé.
+
+[Audit détaillé et critères de réussite](V1_48_OPEN_REPAIRS_AUDIT.md). Statut : **AUDIT DOCUMENTAIRE, aucun nouveau correctif construit/installé**. Lecture seule de la session et des fichiers natifs ; capture passive avec War, sans Charge Shot/Lava/dash, donc aucune causalité prétendument validée. Aucun changement des sources, tests, INI, binaires ou archives. Prochaine build : objectif isolé roues, puis trajectoires et dash en essais distincts. Historique ci-dessous.
+
 ## V1.48 — retour utilisateur du 16 octobre 2026
 
 **VALIDÉ PAR L'UTILISATEUR, pour les fonctions explicitement testées :** réduction de la baisse Hotstreak avec saisie manuelle ; Unlimited et remplissage Hotstreak ; remplissage des munitions ; les quatre nouvelles actions Hotkeys. Ces acquis sont à conserver. Ce retour ne précise pas de test P2/coop et ne valide pas globalement tous les correctifs cumulatifs V1.46–48.

@@ -1,3 +1,9 @@
+## Dernier état : acquis acceptés hors cinq réparations ouvertes
+
+L'utilisateur accepte **le reste pour l'instant**. Les listes générales de tests et mentions de non-validation ci-dessous sont des reçus antérieurs. Les seules réparations actuellement ouvertes sont : **roue d'équipement coop P1/P2 ; Charge Shot manette surtout Hotstreak en reculant ; Lava normal en cloche manette P1 ; visée native après dash ; Action Recovery dash**, coffres différés. Les quatre groupes d'ajouts Hotstreak/ammo/Hotkeys restent explicitement validés.
+
+[Nouvel audit complet, preuves et ordre des réparations](V1_48_OPEN_REPAIRS_AUDIT.md). Cette mise à jour est documentaire ; aucune nouvelle build ni installation, aucun nouveau correctif annoncé comme validé. Les états ci-dessous retracent l'historique.
+
 ## État courant après le retour utilisateur V1.48
 
 Réduction Hotstreak/saisie, Unlimited Hotstreak, refill Hotstreak, refill ammo et quatre actions Hotkeys : **VALIDÉS PAR L'UTILISATEUR**. Les anciens reçus de construction ci-dessous restent historiques ; leurs mentions « validation requise » ne remplacent pas ce nouveau retour. P2/coop n'est pas précisé pour ces validations.

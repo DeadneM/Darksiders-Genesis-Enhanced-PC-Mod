@@ -1,3 +1,11 @@
+## V1.48 — acquis acceptés et audit des cinq réparations ouvertes
+
+**VALIDÉ PAR L'UTILISATEUR POUR L'INSTANT, hors exceptions signalées.** Le dernier retour accepte le reste du mod : les anciennes listes générales de tests en attente ci-dessous deviennent historiques. Les fonctions acquises, réglages personnels et raccourcis constituent la base à préserver.
+
+Restent ouverts : **roue d'équipement en coop pour P1 et P2 ; Charge Shot à la manette surtout pendant Hotstreak en reculant ; Lava normal en cloche (manette P1) ; visée native après dash ; Action Recovery dash** (coffres différés). L'audit identifie une protection des roues encore fondée sur le bouton configuré plutôt que leur véritable état par joueur, ainsi que des retours de tir natifs distincts du retour des pistolets actuellement corrigé. Les causes exactes et les futurs correctifs ne sont pas validés en jeu.
+
+[Audit complet, preuves, limites et TODO actuel](docs/V1_48_OPEN_REPAIRS_AUDIT.md). **Livraison documentaire uniquement : aucune nouvelle build ni installation.** Les prochaines réparations ciblent les fonctions natives et leurs propriétaires, avec objectifs séparés ; source, INI, binaires, archives et branches stables préservés. Les reçus ci-dessous retracent les états antérieurs.
+
 ## V1.48 — retour utilisateur du 16 octobre 2026
 
 **VALIDÉ PAR L'UTILISATEUR, pour les fonctions explicitement testées :** réduction de la baisse Hotstreak avec saisie manuelle ; Unlimited et remplissage Hotstreak ; remplissage des munitions ; les quatre nouvelles actions Hotkeys. Ces acquis sont à conserver. Ce retour ne précise pas de test P2/coop et ne valide pas globalement tous les correctifs cumulatifs V1.46–48.

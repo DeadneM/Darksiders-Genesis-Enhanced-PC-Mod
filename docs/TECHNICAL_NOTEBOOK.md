@@ -1,3 +1,13 @@
+## 16 octobre 2026 — audit V1.48 : roues coop et trajectoires natives
+
+**Décision :** le reste du mod est accepté par l'utilisateur pour l'instant ; exceptions maintenues : roue d'équipement P1/P2, Charge Shot manette surtout Hotstreak/recul, Lava normal en cloche manette P1, visée native après dash, Action Recovery dash (coffre reporté). Les anciens tests généraux en attente sont historiques.
+
+**Constats prouvés :** `RadialActive()` n'alimente que les logs ; les protections P1/P2 utilisent encore le binding de roue, pas un état HUD réellement ouvert et attribué à son joueur. Les références faibles `widget+218/+220` sont LocalPlayer/monde, pas contrôleur/monde ; le contexte propriétaire et la réciprocité ont été lus. Le getter natif de sélection `7983B0` retourne `widget+298`, initialisé à -1 ; index et visibilité Slate ne suffisent pas à prouver une ouverture. Charge Shot Finish utilise la classe projectile dont le retour identifié `59D280` peut obtenir une direction par `672760`, avec un chemin qui contourne le getter Look corrigé ; Lava retourne séparément sa rotation balistique en cache par `7BBF20`. Les conditions actuelles fondées sur le maintien du tir ne suivent pas toute la fin de charge. Cause exacte pendant les tirs signalés non capturée.
+
+**Limites :** journal V1.48 avec événements P1/P2 mais sans identité d'action/impact ; inventaire ultérieur avec un seul contrôleur actif ; 974 lectures passives avec War/Tremor, aucun tir Charge Shot/Lava ou dash. Le champ caméra exploratoire mal aligné est exclu. `5B93F0` est du déplacement de dash, pas une fin d'action ; aucun déblocage ne doit être fondé sur cette confusion. Action Recovery n'a plus de consommateur gameplay, ses clés restent de compatibilité. Les deux atomiques de chord chargé écrits sans lecture et des commentaires trompeurs sont signalés pour nettoyage ciblé ; la fonction de détection du chord possède encore une garde utilisée en forme ultime.
+
+[Audit complet, preuves natives, limites, objectifs et TODO](V1_48_OPEN_REPAIRS_AUDIT.md). **Documentation seulement**, aucun hook/source/INI/build modifié. Base à conserver : V1.48 acceptée hors exceptions. Les essais suivants isoleront roue par joueur, Charge Shot, Lava, visée native puis Recovery ; pas de réouverture des acquis sans nouvelle régression.
+
 ## V1.48 — retour utilisateur du 16 octobre 2026
 
 **VALIDÉ PAR L'UTILISATEUR, pour les fonctions explicitement testées :** réduction de la baisse Hotstreak avec saisie manuelle ; Unlimited et remplissage Hotstreak ; remplissage des munitions ; les quatre nouvelles actions Hotkeys. Ces acquis sont à conserver. Ce retour ne précise pas de test P2/coop et ne valide pas globalement tous les correctifs cumulatifs V1.46–48.
