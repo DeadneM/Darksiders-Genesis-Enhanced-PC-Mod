@@ -62,8 +62,8 @@ void Publish(const Context& context){
     slot={context.localPlayer,context.character,context.controllerId,GetTickCount64(),generation,context.playerState};
     // A verified one-player world invalidates an old coop input lease.
     if(context.localCount==1){
-        const auto generation=g_slots[1].generation;
-        g_slots[1]=Slot{};g_slots[1].generation=generation;
+        const auto previousCoopGeneration=g_slots[1].generation;
+        g_slots[1]=Slot{};g_slots[1].generation=previousCoopGeneration;
     }
     g_localCount.store(context.localCount);
     g_localCountTick.store(GetTickCount64(),std::memory_order_release);

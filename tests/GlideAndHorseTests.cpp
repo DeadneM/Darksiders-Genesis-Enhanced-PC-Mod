@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <vector>
 namespace {
-alignas(16) unsigned char actor[0xE00]{},horse[0xA00]{},component[0xB00]{},movementClass[0x80]{};
+alignas(16) unsigned char actor[0xE00]{},horseActor[0xA00]{},component[0xB00]{},movementClass[0x80]{};
 void* tree[1]{movementClass+0x30};
 bool owned=true;
 unsigned calls=0;
@@ -32,22 +32,22 @@ void Run(){
     rt.unlimitedGlideEnabled=true;owned=false;Tick();
     Check(Get<float>(component,0x9F0)==1.5f,"foreign movement cannot use Unlimited glide");owned=true;
     actor[0xD14]=0;Tick();Check(Get<float>(component,0x9F0)==1.5f,"release or landing leaves native non-glide state alone");
-    dg::horse::HorseSlot slot{};slot.horse=horse;slot.staminaFieldsReady=true;slot.nativeStaminaSprintRate=10;
-    Put(horse,0x9C0,80.0f);Put(horse,0x9C4,100.0f);
+    dg::horse::HorseSlot slot{};slot.horse=horseActor;slot.staminaFieldsReady=true;slot.nativeStaminaSprintRate=10;
+    Put(horseActor,0x9C0,80.0f);Put(horseActor,0x9C4,100.0f);
     dg::horse::g_sprintDurationEnabled=true;dg::horse::g_sprintDurationMultiplier=5;
     rt.unlimitedHorseSprintEnabled=false;dg::horse::ApplySlotLocked(slot);
-    Check(Get<float>(horse,0x918)==2,"validated horse duration multiplier stays unchanged when Unlimited is OFF");
+    Check(Get<float>(horseActor,0x918)==2,"validated horse duration multiplier stays unchanged when Unlimited is OFF");
     rt.unlimitedHorseSprintEnabled=true;dg::horse::ApplySlotLocked(slot);
-    Check(Get<float>(horse,0x918)==0,"Unlimited stops native sprint drain for an owned horse");
+    Check(Get<float>(horseActor,0x918)==0,"Unlimited stops native sprint drain for an owned horse");
     owned=false;dg::horse::ApplySlotLocked(slot);
-    Check(Get<float>(horse,0x918)==2,"foreign horse retains ordinary configured drain");owned=true;
+    Check(Get<float>(horseActor,0x918)==2,"foreign horse retains ordinary configured drain");owned=true;
     rt.unlimitedHorseSprintEnabled=false;dg::horse::ApplySlotLocked(slot);
-    Check(Get<float>(horse,0x918)==2,"horse Unlimited OFF restores configured multiplier");
+    Check(Get<float>(horseActor,0x918)==2,"horse Unlimited OFF restores configured multiplier");
 }
 }
 namespace dg::native_tps {bool OnGameThread(){return true;}}
 namespace dg::local_players {
-bool ResolveActor(void* a,Context& c){if(!owned||(a!=actor&&a!=horse))return false;c={};c.index=1;c.character=reinterpret_cast<uintptr_t>(actor);c.pawn=reinterpret_cast<uintptr_t>(a);c.kind=a==horse?PoseKind::Horse:PoseKind::Foot;return true;}
+bool ResolveActor(void* a,Context& c){if(!owned||(a!=actor&&a!=horseActor))return false;c={};c.index=1;c.character=reinterpret_cast<uintptr_t>(actor);c.pawn=reinterpret_cast<uintptr_t>(a);c.kind=a==horseActor?PoseKind::Horse:PoseKind::Foot;return true;}
 bool CoopActive(){return true;}
 }
 int main(){try{Run();std::cout<<"Actual glide tick and horse sprint budget/OFF/scope checks passed\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
