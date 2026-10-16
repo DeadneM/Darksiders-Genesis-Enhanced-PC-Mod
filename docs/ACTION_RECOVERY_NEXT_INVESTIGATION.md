@@ -6,6 +6,8 @@ La troisième capture de position est maintenant terminée :13753échantillons,9
 
 La durée supplémentaire est donc **dans le troisième dash**, pas un délai global après sa fin démontré par la capture. L'instant d'appui n'est pas enregistré : ne pas assimiler le faible intervalle entre actions à une mesure de latence d'entrée. Chercher désormais les sections/interruptions et le nettoyage natif de Level3, ou un réglage natif de sa partie de récupération. Ne plus répéter le prédicat générique MoveInterruptDelay=0 ni forcer seulement MOVE. V1.45 ne modifie pas le dash ; la réparation reste à faire. [Preuves et limites](V1_45_LOCAL_COOP_OWNERSHIP.md).
 
+Piste native distincte à vérifier : le vrai tick dash `0x5B72B0` appelle la mise à jour propre `0x5B93F0`. Celle-ci décrémente le flottant privé+0x224, le rapporte au+0x228 et applique `MaxDashSpeed`+0x1F8 (nom confirmé par la table de propriétés0x3637368). Elle écrit un vecteur au composant de mouvement+0x10C, différent du+0xD8 resté nul dans les captures. Cela justifie de comparer ce timer/vecteur à l'action et au montage avant de décider d'une fin anticipée. Leur signification finale et la sûreté d'une interruption à zéro **ne sont pas établies par les captures actuelles**, qui n'incluent pas ces champs. Aucun hook ni appel de fin n'est ajouté dans V1.45 sur cette piste.
+
 16 octobre 2026 : l'utilisateur limite désormais l'investigation **au dash uniquement**. Les coffres sont reportés. V1.43 reprend les défauts utilisateur et ne réintroduit aucune intervention recovery.
 
 
