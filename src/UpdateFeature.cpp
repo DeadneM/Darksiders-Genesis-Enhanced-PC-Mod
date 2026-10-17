@@ -151,11 +151,11 @@ fs::path GameDir(){
     if(!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
             reinterpret_cast<LPCWSTR>(&GameDir),&module))
         throw std::runtime_error("ASI module location not found");
-    wchar_t file[32768]{};
-    const DWORD len=GetModuleFileNameW(module,file,32768);
+    std::vector<wchar_t> file(32768);
+    const DWORD len=GetModuleFileNameW(module,file.data(),static_cast<DWORD>(file.size()));
     FreeLibrary(module);
     if(!len || len>=32768)throw std::runtime_error("ASI module pathname invalid");
-    fs::path folder=fs::path(file).parent_path();
+    fs::path folder=fs::path(file.data()).parent_path();
     if(!fs::exists(folder/L"DarksidersGenesis-Win64-Shipping.exe"))
         throw std::runtime_error("Supported game binary not found next to ASI");
     return folder;
@@ -172,10 +172,10 @@ fs::path ExtractHelper(){
     const void* raw=loaded?LockResource(loaded):nullptr;
     if(!raw||length<1024 || length>2*1024*1024)
         throw std::runtime_error("Embedded updater failed validation");
-    wchar_t local[32768]{};
-    const DWORD count=GetEnvironmentVariableW(L"LOCALAPPDATA",local,32768);
+    std::vector<wchar_t> local(32768);
+    const DWORD count=GetEnvironmentVariableW(L"LOCALAPPDATA",local.data(),static_cast<DWORD>(local.size()));
     if(!count||count>=32768)throw std::runtime_error("LOCALAPPDATA not configured");
-    fs::path dir=fs::path(local)/L"DarksidersGenesisEnhancedUpdater"/L"embedded";
+    fs::path dir=fs::path(local.data())/L"DarksidersGenesisEnhancedUpdater"/L"embedded";
     fs::create_directories(dir);
     fs::path target=dir/(L"Updater-1.14-"+std::to_wstring(GetCurrentProcessId())+L".exe");
     {

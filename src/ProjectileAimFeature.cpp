@@ -15,12 +15,12 @@ using Vec3=native_tps::Vec3;
 struct Rotator {float pitch,yaw,roll;};
 static_assert(sizeof(Rotator)==12&&sizeof(Vec3)==12);
 // Reflected pistol return: RCX=component, RDX=Rotator return, R8=input.
-// Finish abilities and Lava use DIFFERENT native paths. The native action
-// authorizes the correction, including on release. No actor rotation write.
+// One target/direction resolver. Native action authorizes both modes, even
+// on release. Ability correction is AFTER 59C930 replaces the early yaw with
+// Instigator yaw; the obsolete early 59D280 hook is removed. No actor write.
 using SpawnRotation=Rotator*(*)(void*,Rotator*,const void*);
 using AbilityRotation=Rotator*(*)(void*,Rotator*);
 using LavaUpdate=void(*)(void*);
-using AimOrigin=Vec3*(*)(Vec3*,void*);
 using ClassGetter=void*(*)();
 using Gravity=float(*)(void*);
 using ArcAngle=float(*)(float,float,float);
@@ -28,7 +28,6 @@ using ArcSpeed=float(*)(const Vec3*,const Vec3*,float,float);
 SpawnRotation g_original=nullptr;
 AbilityRotation g_finish=nullptr;
 LavaUpdate g_lava=nullptr;
-AimOrigin g_origin=nullptr;
 ClassGetter g_movementClass=nullptr;
 Gravity g_gravity=nullptr;
 ArcAngle g_arcAngle=nullptr;
@@ -73,19 +72,26 @@ bool Direction(const Vec3& origin,const Vec3& target,Rotator& rotation){
 }
 bool Target(const local_players::Context& owner,Vec3& target,bool& hit){
     native_tps::MouseRay ray{};
-    return runtime::Get().tps3DAimEnabled.load()&&g_provider&&g_provider(owner,ray)&&native_tps::TraceCameraTarget(owner,ray,target,hit);
+    return g_provider&&g_provider(owner,ray)&&native_tps::TraceCameraTarget(owner,ray,target,hit);
 }
-bool AimAt(const local_players::Context& owner,Rotator& rotation){
-    Vec3 target{},origin{};bool hit=false;
-    if(!g_origin||!Target(owner,target,hit))return false;
-    // The native aim-reference helper used by 663F80. This is NOT a claim
-    // that every projectile spawns at this socket; near-parallax needs play.
-    g_origin(&origin,reinterpret_cast<void*>(owner.pawn));
-    return Direction(origin,target,rotation);
+bool AbilityOrigin(void* ability,Vec3& origin){
+    void* instigator=nullptr;void* root=nullptr;
+    return Read(ability,0x48,instigator)&&Typed(instigator,0x3A58AB0)&&
+        Read(instigator,0x158,root)&&Read(root,0x1A0,origin)&&Finite(origin);
+}
+bool AimAt(const local_players::Context& owner,const Vec3& origin,Rotator& rotation,bool nativeVertical=false){
+    Vec3 target{};bool hit=false;
+    if(!Target(owner,target,hit))return false;
+    Rotator adjusted=rotation;
+    if(!Direction(origin,target,adjusted))return false;
+    // Shared yaw/release/target correction is NEVER disabled by the option.
+    // Only vertical freedom differs. Native Lava pitch stays coupled to speed.
+    if(nativeVertical||!runtime::Get().tps3DAimEnabled.load())adjusted.pitch=rotation.pitch;
+    rotation=adjusted;return true;
 }
 void Observe(const char* path,const local_players::Context& owner,unsigned n,const Rotator& result){
     if(g_log&&(n<=12||n%1000==0)){char line[230]{};
-        sprintf_s(line,"TPS V1.51 TARGET3D path=%s player=%d n=%u pitch=%.2f yaw=%.2f nativeAction=1 actorRotationWritten=0 impactValidation=USER_REQUIRED",
+        sprintf_s(line,"TPS V1.52 TARGET3D path=%s player=%d n=%u pitch=%.2f yaw=%.2f nativeAction=1 actorRotationWritten=0 impactValidation=USER_REQUIRED",
             path,owner.index+1,n,result.pitch,result.yaw);g_log(line);}
 }
 Rotator* Rotation(void* weapon,Rotator* out,const void* input,uintptr_t caller){
@@ -93,8 +99,11 @@ Rotator* Rotation(void* weapon,Rotator* out,const void* input,uintptr_t caller){
     if(!result||caller!=0x7CFA3B||!native_tps::OnGameThread())return result;
     void* actor=nullptr;local_players::Context owner{};
     if(!Read(weapon,0xE8,actor)||!Owner(weapon,actor,owner))return result;
+    // Reflected GetProjectileSpawnRotation has a FVector SpawnLocation
+    // parameter (3640478); 7CF9B0 forwards that actual value as R8.
+    Vec3 origin{};if(!Read(input,0,origin)||!Finite(origin))return result;
     Rotator adjusted=*result;
-    if(AimAt(owner,adjusted)){*result=adjusted;Observe("PISTOL",owner,owner.index==0?++g_adjusted[0]:++g_adjusted[1],adjusted);}
+    if(AimAt(owner,origin,adjusted)){*result=adjusted;Observe("PISTOL",owner,owner.index==0?++g_adjusted[0]:++g_adjusted[1],adjusted);}
     return result;
 }
 Rotator* HookRotation(void* weapon,Rotator* out,const void* input){
@@ -105,8 +114,9 @@ Rotator* Finish(void* ability,Rotator* out){
     if(!result||!native_tps::OnGameThread())return result;
     local_players::Context owner{};
     if(!AbilityOwner(ability,0x3811260,owner))return result;
+    Vec3 origin{};if(!AbilityOrigin(ability,origin))return result;
     Rotator adjusted=*result;
-    if(AimAt(owner,adjusted)){*result=adjusted;Observe("PROJECTILE_FINISH",owner,owner.index==0?++g_finished[0]:++g_finished[1],adjusted);}
+    if(AimAt(owner,origin,adjusted,Typed(ability,0x3811050))){*result=adjusted;Observe("ABILITY_FINAL",owner,owner.index==0?++g_finished[0]:++g_finished[1],adjusted);}
     return result;
 }
 // The actual Lava preparation uses these native formulas and its own speed,
@@ -115,13 +125,12 @@ Rotator* Finish(void* ability,Rotator* out){
 bool SolveLava(void* ability,const local_players::Context& owner,const Vec3& target,bool hit,const char*& rejected,uint32_t& defaultFlags){
     rejected="source/CDO/arc bounds";
     void* projectileClass=nullptr;void* defaults=nullptr;void* vtable=nullptr;
-    void* instigator=nullptr;void* root=nullptr;uintptr_t find=0;
+    uintptr_t find=0;
     Vec3 origin{};float low=0,high=0,initial=0,scale=0;
     if(!g_movementClass||!g_gravity||!g_arcAngle||!g_arcSpeed||!owner.world||
        !Read(ability,0x1E0,projectileClass)||!Read(projectileClass,0xF8,defaults)||!defaults||
        !Read(defaults,0,vtable)||!Read(vtable,0x5E0,find)||!find||
-       !Read(ability,0x48,instigator)||!Typed(instigator,0x3A58AB0)||
-       !Read(instigator,0x158,root)||!Read(root,0x1A0,origin)||
+       !AbilityOrigin(ability,origin)||
        !Read(ability,0x204,low)||!Read(ability,0x208,high)||
        !std::isfinite(low)||!std::isfinite(high)||low>high||low < -89||high>89)return false;
     using FindComponent=void*(*)(void*,void*);
@@ -158,14 +167,14 @@ bool SolveLava(void* ability,const local_players::Context& owner,const Vec3& tar
 }
 void UpdateLava(void* ability){
     if(g_lava)g_lava(ability); // native setup, CDO and charge execute first
-    if(!native_tps::OnGameThread())return;
+    if(!native_tps::OnGameThread()||!runtime::Get().tps3DAimEnabled.load())return;
     local_players::Context owner{};Vec3 target{};bool hit=false;
     if(!AbilityOwner(ability,0x3811050,owner)||!Target(owner,target,hit))return;
     const char* rejected="unknown";uint32_t defaultFlags=0;
     if(!SolveLava(ability,owner,target,hit,rejected,defaultFlags)){
         const auto n=++g_lavaRejected;
         if(g_log&&(n<=8||n%1000==0)){char line[220]{};
-            sprintf_s(line,"TPS V1.51 LAVA_REJECT player=%d n=%u stage=%s defaultFlags=0x%X nativePairRetained=1",owner.index+1,n,rejected,defaultFlags);g_log(line);}
+            sprintf_s(line,"TPS V1.52 LAVA_REJECT player=%d n=%u stage=%s defaultFlags=0x%X nativePairRetained=1",owner.index+1,n,rejected,defaultFlags);g_log(line);}
     }
 }
 }
@@ -175,9 +184,8 @@ void Initialize(LogFn log,bool exactExecutable,RayProvider provider){
     struct Guard {uintptr_t rva;unsigned char bytes[16];};
     const Guard guards[]={
         {0x6A9F20,{0x48,0x89,0x5C,0x24,0x08,0x48,0x89,0x74,0x24,0x10,0x57,0x48,0x83,0xEC,0x50,0x48}},
-        {0x59D280,{0x48,0x89,0x5C,0x24,0x08,0x57,0x48,0x83,0xEC,0x40,0x80,0xB9,0xA4,0x01,0x00,0x00}},
+        {0x59C930,{0x48,0x89,0x5C,0x24,0x08,0x57,0x48,0x83,0xEC,0x50,0x48,0x8B,0x01,0x48,0x8B,0xFA}},
         {0x5B7DC0,{0x48,0x89,0x5C,0x24,0x18,0x55,0x48,0x8B,0xEC,0x48,0x83,0xEC,0x60,0x80,0xB9,0xA4}},
-        {0x66A3B0,{0x48,0x89,0x5C,0x24,0x08,0x57,0x48,0x83,0xEC,0x70,0x48,0x8B,0xFA,0x48,0x8B,0xD9}},
         {0x1DCEE00,{0x4C,0x8B,0xDC,0x48,0x83,0xEC,0x78,0x48,0x8B,0x05,0xAA,0x63,0xC9,0x01,0x48,0x85}},
         {0x1C9BCB0,{0x48,0x83,0xEC,0x28,0x48,0x8B,0x49,0x30,0x48,0x85,0xC9,0x74,0x1D,0xB2,0x01,0xE8}},
         {0x6647A0,{0x48,0x83,0xEC,0x28,0x0F,0x57,0xDB,0x0F,0x2F,0xCB,0x73,0x3E,0xF3,0x0F,0x59,0xC0}},
@@ -186,9 +194,8 @@ void Initialize(LogFn log,bool exactExecutable,RayProvider provider){
         {0x7BABA0,{0x4C,0x8B,0xDC,0x48,0x83,0xEC,0x78,0x48,0x8B,0x05,0xA2,0x64,0x05,0x03,0x48,0x85}}
     };
     for(const auto& guard:guards)if(std::memcmp(reinterpret_cast<void*>(g_base+guard.rva),guard.bytes,16)){
-        if(log)log("TPS V1.51 projectile signatures mismatch; native retained");return;
+        if(log)log("TPS V1.52 projectile signatures mismatch; native retained");return;
     }
-    g_origin=reinterpret_cast<AimOrigin>(g_base+0x66A3B0);
     g_movementClass=reinterpret_cast<ClassGetter>(g_base+0x1DCEE00);
     g_gravity=reinterpret_cast<Gravity>(g_base+0x1C9BCB0);
     g_arcAngle=reinterpret_cast<ArcAngle>(g_base+0x6647A0);
@@ -196,7 +203,7 @@ void Initialize(LogFn log,bool exactExecutable,RayProvider provider){
     struct Hook {uintptr_t rva;void* detour;void** original;};
     const Hook hooks[]={
         {0x6A9F20,reinterpret_cast<void*>(&HookRotation),reinterpret_cast<void**>(&g_original)},
-        {0x59D280,reinterpret_cast<void*>(&Finish),reinterpret_cast<void**>(&g_finish)},
+        {0x59C930,reinterpret_cast<void*>(&Finish),reinterpret_cast<void**>(&g_finish)},
         {0x5B7DC0,reinterpret_cast<void*>(&UpdateLava),reinterpret_cast<void**>(&g_lava)}
     };
     const auto status=MH_Initialize();if(status!=MH_OK&&status!=MH_ERROR_ALREADY_INITIALIZED)return;
@@ -205,12 +212,12 @@ void Initialize(LogFn log,bool exactExecutable,RayProvider provider){
     if(ok)for(const auto& h:hooks)if(MH_EnableHook(reinterpret_cast<void*>(g_base+h.rva))!=MH_OK){ok=false;break;}
     if(!ok){for(unsigned i=0;i<created;++i){MH_DisableHook(reinterpret_cast<void*>(g_base+hooks[i].rva));MH_RemoveHook(reinterpret_cast<void*>(g_base+hooks[i].rva));}
         g_original=nullptr;g_finish=nullptr;g_lava=nullptr;
-        if(log)log("TPS V1.51 projectile hook transaction failed; native retained");return;}
-    if(log)log("TPS V1.51 TARGET3D READY: local Strife pistols + native projectile Finish + Lava paired arc; P1/P2, native collision, release independent; EXPERIMENTAL");
+        if(log)log("TPS V1.52 projectile hook transaction failed; native retained");return;}
+    if(log)log("TPS V1.52 TARGET3D READY: local Strife pistols + final ability rotation + Lava paired arc; P1/P2, native collision, release independent; EXPERIMENTAL");
 }
 void Report(){
     if(!g_log)return;char line[260]{};
-    sprintf_s(line,"TPS V1.51 TARGET3D totals native=%u pistolP1=%u P2=%u finishP1=%u P2=%u lavaP1=%u P2=%u lavaRejected=%u impactValidation=USER_REQUIRED",
+    sprintf_s(line,"TPS V1.52 TARGET3D totals native=%u pistolP1=%u P2=%u finishP1=%u P2=%u lavaP1=%u P2=%u lavaRejected=%u impactValidation=USER_REQUIRED",
         g_calls.load(),g_adjusted[0].load(),g_adjusted[1].load(),g_finished[0].load(),g_finished[1].load(),g_lobbed[0].load(),g_lobbed[1].load(),g_lavaRejected.load());g_log(line);
 }
 }

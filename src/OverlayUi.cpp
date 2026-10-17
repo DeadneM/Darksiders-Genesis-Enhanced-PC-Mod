@@ -857,9 +857,11 @@ void Draw(Context& c) {
                 ImGui::Separator();
                 ImGui::TextDisabled("Unified TPS aiming (on foot + mounted)");
                 if(ImGui::Checkbox("3D aiming (experimental)",&config.tps3DAimEnabled))config.Save();
-                ImGui::TextWrapped(config.tps3DAimEnabled
-                    ? "ON: recentered view aims level; tilt the camera to aim up/down. Framing pitch keeps camera height/position. Applies to mouse/controller and P1/P2 in Camera Forward."
-                    : "OFF: simple camera-forward heading and native trajectories/automatic height targeting. Previous camera framing restored. Applies to mouse/controller and P1/P2.");
+                ImGui::TextWrapped("Same camera and charged-shot correction in both modes. ON adds vertical aiming; OFF keeps native vertical aiming/arc. Mouse/controller, P1/P2, Camera Forward only.");
+                if(config.tps3DAimEnabled){
+                    if(DrawNumberRow("Shot vertical angle","TPSAimPitchOffset",&config.tpsAimPitchOffsetDegrees,-45,45,12,"%+.1f deg","%.1f"))config.Save();
+                    ImGui::TextDisabled("Positive raises the firing ray. +12 deg compensates the default -12 deg view pitch; camera settings do not change.");
+                }
                 constexpr const char* kMountedModes[]={
                     "Camera Forward (free camera while firing)",
                     "Vanilla Aim (pause camera while firing)"

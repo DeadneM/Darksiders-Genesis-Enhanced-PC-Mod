@@ -4,6 +4,7 @@
 
 #include <windows.h>
 #include <cstdio>
+#include <atomic>
 
 namespace dg::skip_logos {
 namespace {
@@ -11,10 +12,10 @@ namespace {
 using BoolFn = BOOL (WINAPI*)();
 using SetEnabledFn = BOOL (WINAPI*)(BOOL);
 
-BoolFn g_targetValidFn = nullptr;
-BoolFn g_patchedFn = nullptr;
-BoolFn g_enabledFn = nullptr;
-SetEnabledFn g_setEnabledFn = nullptr;
+std::atomic<BoolFn> g_targetValidFn{nullptr};
+std::atomic<BoolFn> g_patchedFn{nullptr};
+std::atomic<BoolFn> g_enabledFn{nullptr};
+std::atomic<SetEnabledFn> g_setEnabledFn{nullptr};
 
 LogFn g_logger = nullptr;
 
@@ -30,28 +31,30 @@ bool ResolveProxyExports() {
         return false;
     }
 
-    g_targetValidFn =
+    const auto targetValid =
         reinterpret_cast<BoolFn>(
             GetProcAddress(proxy, "DGSkipLogosTargetValid")
         );
-    g_patchedFn =
+    const auto patched =
         reinterpret_cast<BoolFn>(
             GetProcAddress(proxy, "DGSkipLogosPatched")
         );
-    g_enabledFn =
+    const auto currentEnabled =
         reinterpret_cast<BoolFn>(
             GetProcAddress(proxy, "DGSkipLogosEnabled")
         );
-    g_setEnabledFn =
+    const auto setEnabled =
         reinterpret_cast<SetEnabledFn>(
             GetProcAddress(proxy, "DGSetSkipLogosEnabled")
         );
 
-    return
-        g_targetValidFn &&
-        g_patchedFn &&
-        g_enabledFn &&
-        g_setEnabledFn;
+    if(!targetValid||!patched||!currentEnabled||!setEnabled)return false;
+    // Never publish null exports, even if another caller retries resolution.
+    g_targetValidFn.store(targetValid,std::memory_order_release);
+    g_patchedFn.store(patched,std::memory_order_release);
+    g_enabledFn.store(currentEnabled,std::memory_order_release);
+    g_setEnabledFn.store(setEnabled,std::memory_order_release);
+    return true;
 }
 
 } // namespace
@@ -69,8 +72,7 @@ bool Initialize(LogFn logger) {
             std::memory_order_relaxed
         );
 
-    const bool applied =
-        g_setEnabledFn(enabled ? TRUE : FALSE) != FALSE;
+    const bool applied = Apply(enabled);
 
     const Telemetry t = GetTelemetry();
 
@@ -96,13 +98,12 @@ bool Initialize(LogFn logger) {
 }
 
 bool Apply(bool enabled) {
-    if (!g_setEnabledFn && !ResolveProxyExports()) {
-        return false;
+    auto setEnabled=g_setEnabledFn.load(std::memory_order_acquire);
+    if(!setEnabled){
+        if(!ResolveProxyExports())return false;
+        setEnabled=g_setEnabledFn.load(std::memory_order_acquire);
     }
-
-    return g_setEnabledFn(
-        enabled ? TRUE : FALSE
-    ) != FALSE;
+    return setEnabled&&setEnabled(enabled?TRUE:FALSE)!=FALSE;
 }
 
 
@@ -110,23 +111,15 @@ bool Apply(bool enabled) {
 Telemetry GetTelemetry() {
     Telemetry t{};
 
-    const bool available =
-        g_targetValidFn &&
-        g_patchedFn &&
-        g_enabledFn &&
-        g_setEnabledFn;
-
-    t.proxyAvailable = available;
-    if (!available) {
-        return t;
-    }
-
-    t.targetValid =
-        g_targetValidFn() != FALSE;
-    t.patched =
-        g_patchedFn() != FALSE;
-    t.enabled =
-        g_enabledFn() != FALSE;
+    const auto targetValid=g_targetValidFn.load(std::memory_order_acquire);
+    const auto patched=g_patchedFn.load(std::memory_order_acquire);
+    const auto currentEnabled=g_enabledFn.load(std::memory_order_acquire);
+    const auto setEnabled=g_setEnabledFn.load(std::memory_order_acquire);
+    if(!targetValid||!patched||!currentEnabled||!setEnabled)return t;
+    t.proxyAvailable=true;
+    t.targetValid=targetValid()!=FALSE;
+    t.patched=patched()!=FALSE;
+    t.enabled=currentEnabled()!=FALSE;
 
     return t;
 }

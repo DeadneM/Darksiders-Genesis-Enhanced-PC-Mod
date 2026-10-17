@@ -31,6 +31,8 @@ struct Phase {
 Phase g_phase[2]{};
 struct AimWatch {uintptr_t local=0,character=0;ULONGLONG dash=0,sample=0;unsigned count=0;};
 AimWatch g_aimWatch[2]{};
+struct PadSample {short lx=0,ly=0,rx=0,ry=0;bool known=false,swap=false;ULONGLONG tick=0;};
+thread_local PadSample g_physical[4]{};
 bool Readable(const void* p,size_t bytes){
     MEMORY_BASIC_INFORMATION m{};
     if(!p||!VirtualQuery(p,&m,sizeof(m))||m.State!=MEM_COMMIT||
@@ -169,6 +171,9 @@ void Initialize(LogFn log,bool exactExecutable){
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}
 void Shutdown(){g_ready.store(false,std::memory_order_release);}
+void ObserveControllerInput(unsigned id,short lx,short ly,short rx,short ry,bool known,bool swap){
+    if(id<4&&g_ready.load()&&native_tps::OnGameThread())g_physical[id]={lx,ly,rx,ry,known,swap,GetTickCount64()};
+}
 void ObserveNativeLook(void* actor,float x,float y){
     if(!g_log||!g_ready.load()||!native_tps::OnGameThread())return;
     local_players::Context owner{};
@@ -186,9 +191,12 @@ void ObserveNativeLook(void* actor,float x,float y){
     if(Read(actor,0xC70,component)&&Read(component,0xF8,array)&&
        Read(component,0x100,count)&&Read(component,0x104,capacity)&&count>0&&count<=capacity&&capacity<=64&&
        Read(array,0,action))Read(reinterpret_cast<void*>(action),0,table);
-    char line[320]{};const auto& rt=runtime::Get();
-    sprintf_s(line,"Recovery V1.51 AIM_AFTER_DASH player=%d recovery=%d tps=%d ageMs=%llu rawWorldLook=(%.3f,%.3f) nativeGetter=(%.3f,%.3f) movement=%u/%u activeCount=%d firstActionVtableRva=%llX readOnly=1",
-        owner.index+1,rt.actionRecoveryEnabled.load()?1:0,rt.thirdPersonEnabled.load()?1:0,now-watch.dash,rawX,rawY,x,y,unsigned(mode),unsigned(custom),count,table>=g_base?table-g_base:0);g_log(line);
+    PadSample pad{};
+    if(owner.controllerId>=0&&owner.controllerId<4)pad=g_physical[owner.controllerId];
+    const bool physicalFresh=pad.tick&&now>=pad.tick&&now-pad.tick<=250;
+    char line[450]{};const auto& rt=runtime::Get();
+    sprintf_s(line,"Recovery V1.52 AIM_AFTER_DASH player=%d recovery=%d tps=%d ageMs=%llu physicalFresh=%d rawPad=(%d,%d;%d,%d) nativeSwap=%d rawWorldLook=(%.3f,%.3f) nativeGetter=(%.3f,%.3f) movement=%u/%u activeCount=%d firstActionVtableRva=%llX readOnly=1",
+        owner.index+1,rt.actionRecoveryEnabled.load()?1:0,rt.thirdPersonEnabled.load()?1:0,now-watch.dash,physicalFresh?1:0,pad.lx,pad.ly,pad.rx,pad.ry,pad.known?int(pad.swap):-1,rawX,rawY,x,y,unsigned(mode),unsigned(custom),count,table>=g_base?table-g_base:0);g_log(line);
 }
 void Report(){if(g_log){char line[210]{};sprintf_s(line,"Recovery V1.49 totals positivePhasesP1=%u P2=%u nativeFinishRequestsP1=%u P2=%u gameplayValidation=USER_REQUIRED",g_armed[0].load(),g_armed[1].load(),g_requested[0].load(),g_requested[1].load());g_log(line);}}
 }

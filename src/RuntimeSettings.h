@@ -31,6 +31,7 @@ struct Snapshot {
     bool tpsCutsceneAutoSuspend = true;
     int aimIndicatorHideMode = 2;
     bool tps3DAimEnabled = true;
+    float tpsAimPitchOffsetDegrees = 12.0f;
     int tpsMountedAimMode = 0; // camera free/aim follows view, native mode=1
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
@@ -127,6 +128,7 @@ struct State {
     std::atomic_ullong tpsAbilityWheelTick{0}; // LB/native keyboard selection, R3 passthrough retained for use
     std::atomic_int aimIndicatorHideMode{2};
     std::atomic_bool tps3DAimEnabled{true};
+    std::atomic<float> tpsAimPitchOffsetDegrees{12.0f};
     std::atomic_int tpsMountedAimMode{0};
     std::atomic_bool tpsMountedViewActive{false};
     std::atomic_ullong tpsMountedViewTick{0};

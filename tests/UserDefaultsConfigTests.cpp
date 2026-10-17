@@ -68,8 +68,8 @@ int main(int argc,char** argv){
     check(personal.tpsUltimateDistanceMultiplier==0.9f&&personal.tpsUltimateHeightOffset==123&&personal.wrathChargeMultiplier==2,"explicit personal values retained");
     check(personal.hotkeys[8]==dg::config::Action::FOV,"explicit older hotkey retained");
     check(generated.menuKey==VK_INSERT,"Insert is the authoritative menu default");
-    personal.tps3DAimEnabled=false;check(personal.SaveNow(),"simple aim option saves");
-    dg::config::Store reloaded;reloaded.SetPath(path);check(reloaded.Load()&&!reloaded.tps3DAimEnabled&&!rt.tps3DAimEnabled.load(),"explicit simple aim survives reload and runtime publication");
+    personal.tps3DAimEnabled=false;personal.tpsAimPitchOffsetDegrees=17.5f;check(personal.SaveNow(),"simple aim option and independent shot angle save");
+    dg::config::Store reloaded;reloaded.SetPath(path);check(reloaded.Load()&&!reloaded.tps3DAimEnabled&&!rt.tps3DAimEnabled.load()&&reloaded.tpsAimPitchOffsetDegrees==17.5f&&rt.tpsAimPitchOffsetDegrees.load()==17.5f,"explicit simple aim and manual shot angle survive reload and runtime publication");
     personal.tpsMousePrimaryButton=VK_XBUTTON1;personal.tpsMouseSecondaryButton=VK_MBUTTON;
     personal.tpsFirePrimaryMask=0x4000;personal.tpsFireSecondaryMask=0x8000;
     personal.tpsWheelPadMask=0x0020;personal.tpsGrenadeButtonMask=0x0040;

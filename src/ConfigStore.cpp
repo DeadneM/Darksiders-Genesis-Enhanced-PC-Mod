@@ -334,6 +334,7 @@ void Store::ResetDefaults(bool persist) {
     tpsGrenadeHoldEnabled = true;
     aimIndicatorHideMode = 2; // TPS Only (default)
     tps3DAimEnabled = true;
+    tpsAimPitchOffsetDegrees = 12.0f;
     tpsMountedAimMode = 0;
     tpsGrenadeButtonMask = 0x0080;
     tpsFirePrimaryMask=0x20000;
@@ -586,6 +587,7 @@ bool Store::Load() {
     tpsGrenadeHoldEnabled=ReadBool(L"Features",L"TPSGrenadeHold",true,path_);
     aimIndicatorHideMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(L"Features",L"AimIndicatorHideMode",2,path_.c_str())),0,2);
     tps3DAimEnabled=ReadBool(L"Features",L"TPS3DAim",true,path_);
+    tpsAimPitchOffsetDegrees=std::clamp(ReadFloat(L"Values",L"TPSAimPitchOffsetDegrees",12.0f,path_),-45.0f,45.0f);
     tpsMountedAimMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(L"Features",L"TPSMountedAimMode",0,path_.c_str())),0,1);
     tpsGrenadeButtonMask=static_cast<int>(GetPrivateProfileIntW(L"Controls",L"TPSGrenadeButtonMask",0x0080,path_.c_str()));
     if(!ValidPadBind(tpsGrenadeButtonMask))tpsGrenadeButtonMask=0x0080;
@@ -879,6 +881,7 @@ void Store::PublishRuntime() const {
     runtime.tpsCutsceneAutoSuspend = tpsCutsceneAutoSuspend;
     runtime.aimIndicatorHideMode = aimIndicatorHideMode;
     runtime.tps3DAimEnabled = tps3DAimEnabled;
+    runtime.tpsAimPitchOffsetDegrees = tpsAimPitchOffsetDegrees;
     runtime.tpsMountedAimMode = tpsMountedAimMode;
     runtime.thirdPersonDistanceMultiplier = thirdPersonDistanceMultiplier;
     runtime.thirdPersonPitchDegrees = thirdPersonPitchDegrees;
@@ -1054,6 +1057,7 @@ bool Store::SaveNow() {
     swprintf_s(aimModeBuffer,L"%d",std::clamp(aimIndicatorHideMode,0,2));
     WriteProfileString(L"Features",L"AimIndicatorHideMode",aimModeBuffer,path_.c_str());
     WriteBool(L"Features",L"TPS3DAim",tps3DAimEnabled,path_);
+    WriteFloat(L"Values",L"TPSAimPitchOffsetDegrees",tpsAimPitchOffsetDegrees,path_);
     wchar_t mountModeText[12]{};
     swprintf_s(mountModeText,L"%d",std::clamp(tpsMountedAimMode,0,1));
     WriteProfileString(L"Features",L"TPSMountedAimMode",mountModeText,path_.c_str());

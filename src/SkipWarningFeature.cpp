@@ -125,6 +125,7 @@ bool HookAdvance(void* widget,double currentTime,float delta){
     unsigned advanced=0,calls=0;
     for(;calls<unsigned(cache.count*4+4)&&CanAdvanceWarning(frame.current,frame.target,frame.count,cache.mask);){
         const int index=frame.current>=0?frame.current:frame.target;
+        if(index<0||index>=cache.count||index>=16)break;
         float duration=0;
         if(!Read(frame.durations,size_t(index)*4,duration)||duration!=cache.durations[index])break;
         const Frame before=frame;

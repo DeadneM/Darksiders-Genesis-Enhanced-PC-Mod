@@ -1,3 +1,13 @@
+## V1.52 — base de tir commune, même caméra ON/OFF et entrées natives (17 octobre 2026)
+
+**EXPÉRIMENTAL — build et comportement en jeu encore à contrôler.** Base V1.51 debug ; les changements d'angle caméra liés à 3D et le retour du bug Charge Shot/Hotstreak avec OFF sont rejetés. Les fonctions validées de V1.50 restent conservées. Un seul socle de cible/direction fonctionne dans les deux modes ; la case ne désactive plus la correction au relâchement. ON ajoute seulement la visée verticale et son angle indépendant réglable, défaut **+12°** pour la vue −12° habituelle, sans changer la pose caméra.
+
+Preuve native nouvelle : `59C930` peut remplacer par l'orientation du personnage le yaw corrigé trop tôt dans `59D280`. L'interception est déplacée après cette substitution et l'ancienne retirée. Le pistolet utilise désormais son argument natif `SpawnLocation`, au lieu d'une référence approximative. Pas d'offset horizontal ajouté pour masquer la dérive à gauche ; validation des différentes munitions encore requise.
+
+Le scope du getter de regard exige une vraie vue TPS récente ; lectures caméra XInput brutes et transformations du jeu séparées même en cas de relais entre exports. Ces incohérences peuvent contribuer au dash, **sans preuve d'une réparation en jeu**. Les huit avertissements historiques sont traités dans le source sans les désactiver ; résultat réel de CI à venir. Les 118 valeurs existantes et 48 IDs Hotkeys sont conservés ; une clé d'angle supplémentaire porte le total à 119. [Preuves, limites, six essais et rollback](docs/V1_52_COMMON_AIM_INPUT_CLEANUP_TEST.md).
+
+---
+
 ## V1.51 — construite, contrôlée et installée (17 octobre 2026)
 
 **CONSTRUIT / CONTRÔLÉ / INSTALLÉ / EXPÉRIMENTAL — alignement des tirs à valider en jeu.** Base V1.50 debug partiellement acceptée : roues/équipement/changement de personnage validés par l'utilisateur ; Charge Shot/Graviton/Lava rejetés pour leur direction trop basse. Recovery produit un effet observé, mais la progression du triple dash, la réception lourde et les sticks après dash restent ouverts. Cinématiques à vérifier ; coop/autres fonctions paraissent bonnes, sans validation générale.

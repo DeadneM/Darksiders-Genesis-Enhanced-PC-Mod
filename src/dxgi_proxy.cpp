@@ -163,11 +163,12 @@ static void LogMovieName(const FStringView& e, unsigned index) {
         return;
     }
     wchar_t name[190]{};
-    int n = e.size;
-    if (n && e.data[n-1] == L'\0') --n;
-    std::memcpy(name, e.data, static_cast<size_t>(n) * sizeof(wchar_t));
-    name[n] = 0;
-    for (int i=0; i<n; ++i) if (name[i] < 32) name[i] = L'_';
+    const unsigned length=static_cast<unsigned>(e.size);
+    for(unsigned i=0;i<180u&&i<length;++i){
+        const wchar_t c=e.data[i];
+        if(c==L'\0'&&i+1==length)break;
+        name[i]=c<32?L'_':c;
+    }
     swprintf_s(line, L"Skip Logos V0.49: entry[%u] '%s'",index,name);
     LogLoader(line);
 }

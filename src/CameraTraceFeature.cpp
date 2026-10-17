@@ -1,5 +1,4 @@
 #include "CameraTraceFeature.h"
-#include "TpsCameraPitch.h"
 #include "LocalPlayerOwnership.h"
 #include "CoopCameraFeature.h"
 #include "CameraContinuity.h"
@@ -340,7 +339,7 @@ void HookView(void* camera, float dt, void* outView) {
                     std::memory_order_acquire);
                 const ULONGLONG inputAge=inputTick&&now>=inputTick?
                     now-inputTick:999999ull;
-                char zoneMsg[365]{};
+                char zoneMsg[384]{};
                 sprintf_s(zoneMsg,"Horse Everywhere V0.88 MOUNT EXIT: HORSE->FOOT player=(%.0f,%.0f,%.0f) lastHorsePoseAgeMs=%llu latestMountKeyAgeMs=%llu noRecentMountKey=%d configured=%d (possible forced-removal volume if no recent key; not proof)",
                     ax,ay,az,static_cast<unsigned long long>(horseAge),
                     static_cast<unsigned long long>(inputAge),
@@ -716,8 +715,7 @@ void HookView(void* camera, float dt, void* outView) {
            true&& // vanilla camera yaw/height are not TPS parameters
            mult>=0&&mult<=3&&foot>=-500&&foot<=500&&std::fabs(tpHeight)<=1000){
             constexpr float radians=0.01745329251994329577f;
-            const auto pitch=tps_camera::CameraPitch(basePitch,op,settings.tps3DAimEnabled.load(),settings.tpsMountedAimMode.load());
-            appliedPitch=pitch.view;
+            appliedPitch=std::clamp(basePitch+op,-75.0f,65.0f);
             appliedYaw=std::remainder(baseYaw+oy,360.0f);
             const float distance=std::clamp(arm*mult,0.0f,12000.0f);
             // Foot-level player origin. RootComponent may be at capsule
@@ -731,7 +729,7 @@ void HookView(void* camera, float dt, void* outView) {
             // V0.86: no vertical smoothing. Firing modes control actual
             // native aim + orbit, NOT mount bobbing or camera height.
             const float pivotZ=rawPivotZ;
-            const float pitchRad=pitch.boom*radians,yawRad=appliedYaw*radians;
+            const float pitchRad=appliedPitch*radians,yawRad=appliedYaw*radians;
             const float outX=pivotX-std::cos(pitchRad)*std::cos(yawRad)*distance;
             const float outY=pivotY-std::cos(pitchRad)*std::sin(yawRad)*distance;
             // Preserve V0.98 vertical framing with a TPS-private baseline;
@@ -762,11 +760,11 @@ void HookView(void* camera, float dt, void* outView) {
                     }
                     if(lockZone&&g_zoneReferenceActive.load()&&
                         std::fabs(std::remainder(nativeYaw-baseYaw,360.0f))>5){
-                        const unsigned n=++g_zoneCameraIgnored;
-                        if(n==1||n==10000){
+                        const unsigned ignoredYawCount=++g_zoneCameraIgnored;
+                        if(ignoredYawCount==1||ignoredYawCount==10000){
                             char line[170]{};
                             sprintf_s(line,"TPS V0.68: native camera yaw differs n=%u native=%.1f locked=%.1f",
-                                n,nativeYaw,baseYaw);
+                                ignoredYawCount,nativeYaw,baseYaw);
                             Write(line);
                         }
                     }

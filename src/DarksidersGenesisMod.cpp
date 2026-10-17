@@ -35,6 +35,8 @@
 #include "HealthFeature.h"
 #include "GlideFeature.h"
 #include "ActionRecoveryFeature.h"
+#include "ControllerReadScope.h"
+#include "TpsAimDirection.h"
 #include "NativeObjectIdentity.h"
 #include "NativeMemoryReader.h"
 #include "SkipLogosFeature.h"
@@ -1426,6 +1428,7 @@ bool IsTPSRadialInputActive() {
     return tick&&now>=tick&&now-tick<=180ull;
 }
 
+bool IsTPSLookViewFresh();
 bool IsLiveTPSLookActor(void* actor) {
     if(!actor || !g_targetValidation.exact || g_shuttingDown.load() ||
         !dg::runtime::Get().thirdPersonEnabled.load() ||
@@ -1433,7 +1436,7 @@ bool IsLiveTPSLookActor(void* actor) {
         dg::runtime::Get().tpsCutsceneSuspended.load() ||
         dg::runtime::Get().tpsUiViewHeld.load() ||
         (dg::chaos_pose::ActiveNow()&&!dg::chaos_pose::RangedOwner(actor)) ||
-        g_overlayVisible.load())
+        g_overlayVisible.load()||!IsTPSLookViewFresh())
         return false;
     const auto* player=g_localPlayerCharacter.load(std::memory_order_acquire);
     if(actor!=player || !player)return false;
@@ -1458,11 +1461,9 @@ bool ComputeNativeMouseRay(dg::native_tps::MouseRay& ray){
     if(!view.tick||now<view.tick||now-view.tick>250||!owner.localPlayer||
        view.local!=owner.localPlayer||view.character!=owner.character||view.generation!=owner.generation||
        !std::isfinite(view.pitch)||!std::isfinite(view.yaw))return false;
-    constexpr float rad=0.01745329251994329577f;
-    const float az=view.yaw*rad,el=view.pitch*rad;
-    ray.origin={view.x,view.y,view.z};
-    ray.direction={std::cos(el)*std::cos(az),std::cos(el)*std::sin(az),std::sin(el)};
-    return std::isfinite(view.x)&&std::isfinite(view.y)&&std::isfinite(view.z);
+    ray.origin={view.x,view.y,view.z};const auto& rt=dg::runtime::Get();
+    return std::isfinite(view.x)&&std::isfinite(view.y)&&std::isfinite(view.z)&&
+        dg::tps_aim::Direction(view.pitch,view.yaw,rt.tps3DAimEnabled.load(),rt.tpsAimPitchOffsetDegrees.load(),ray.direction);
 }
 bool IsPadFiringNow() {
     const ULONGLONG now=GetTickCount64();
@@ -1485,7 +1486,7 @@ bool IsTPSLookViewFresh() {
 bool ProvideNativeMouseRay(void* actor,dg::native_tps::MouseRay& ray){
     const auto& rt=dg::runtime::Get();
     if(!actor||!g_targetValidation.exact||g_shuttingDown.load()||
-       !rt.tps3DAimEnabled.load()||!rt.thirdPersonEnabled.load()||rt.tpsTemporarilySuspended.load()||
+       rt.tpsMountedAimMode.load()!=0||!rt.thirdPersonEnabled.load()||rt.tpsTemporarilySuspended.load()||
        rt.tpsCutsceneSuspended.load()||rt.tpsUiViewHeld.load()||
        (dg::chaos_pose::ActiveNow()&&!dg::chaos_pose::RangedActor(actor))||
        g_overlayVisible.load()||IsTPSRadialInputActive()||
@@ -1505,7 +1506,6 @@ bool ProvideNativeMouseRay(void* actor,dg::native_tps::MouseRay& ray){
     return true;
 }
 bool ProvideProjectileRay(const dg::local_players::Context& owner,dg::native_tps::MouseRay& ray){
-    if(!dg::runtime::Get().tps3DAimEnabled.load())return false;
     if(owner.index==1)return dg::coop_camera::ShotRay(owner,ray);
     if(owner.index!=0||!IsLiveTPSLookActor(reinterpret_cast<void*>(owner.character))||
        !IsTPSLookViewFresh()||IsTPSRadialInputActive()||
@@ -1539,7 +1539,7 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     const bool fire=padFiring||mouseFiring;
     // V1.32: mouse acquisition belongs to native 3D targeting.
     // This getter is not projectile authority. Preserve all pad branches.
-    if(mouseFiring&&!padFiring&&rt.tps3DAimEnabled.load())return result;
+    if(mouseFiring&&!padFiring)return result;
     // V1.19: mouse LMB and controller use the SAME Camera Forward
     // heading. No alternative mouse mode, no pad emulation.
     // This changes ONLY the verified local player native TPS look getter.
@@ -1561,7 +1561,7 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     // TPS aim/movement are independent: the camera-vector look path is a
     // fixed internal rule while firing, not an optional "strafe" switch.
     const bool padStrafeFiring=fire;
-    if(padStrafeFiring&&IsTPSLookViewFresh()){
+    if(padStrafeFiring){
         // GetPlayerLookInput returns the native character's world-space
         // X/Y look VECTOR (RVA 0x671A40 reads actor+0xD24/0xD28).
         // Feed world-facing vector corresponding to the mod TPS view only
@@ -1598,7 +1598,7 @@ NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
     auto* result=original(actor,out);
     if(result&&dg::local_players::CoopActive()&&dg::coop_camera::AdjustLook(actor,result->pitch,result->yaw,result->roll,true))return result;
     const unsigned calls=++g_tpsLookRotationCalls;
-    if(!result||!IsLiveTPSLookActor(actor)||!IsTPSLookViewFresh())
+    if(!result||!IsLiveTPSLookActor(actor))
         return result;
     if(IsTPSRadialInputActive())return result;
     auto& rt=dg::runtime::Get();
@@ -1606,7 +1606,7 @@ NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
     const bool padFire=IsPadFiringNow();
     // V1.19: native mouse firing and controller share TPS Camera Forward.
     const bool playerStrafe=padFire||mouseFire; // controller path preserved
-    if(mouseFire&&!padFire&&rt.tps3DAimEnabled.load())return result; // 3D uses native target; simple mode uses flat camera heading
+    if(mouseFire&&!padFire)return result; // shared native target in both vertical modes
     // During mounted Vanilla Aim fire, native look rotation is untouched.
     // While idle, suppress right-stick-origin horseman aim.
     if(rt.tpsMountedAimMode.load()==1 && padFire && !mouseFire)return result;
@@ -2376,8 +2376,13 @@ void ApplyHoldGrenadeVirtualR3(XINPUT_GAMEPAD& pad,int mask) {
 DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     const auto original=g_nativeXInputOriginal[slot];
     if(!original)return ERROR_DEVICE_NOT_CONNECTED;
+    dg::controller_input::GameRead read;
     const DWORD realStatus=original(user,state);
-    if(realStatus!=ERROR_SUCCESS||!state)return realStatus;
+    if(realStatus!=ERROR_SUCCESS||!state||!read.CanFilter())return realStatus;
+    const auto& physical=state->Gamepad;
+    if(dg::native_tps::OnGameThread())
+        dg::recovery::ObserveControllerInput(user,physical.sThumbLX,physical.sThumbLY,physical.sThumbRX,physical.sThumbRY,
+            dg::native_tps::NativeStickSwapKnown(),dg::native_tps::NativeStickSwap());
     // P2 filters only its verified native ControllerId, with its own view.
     // The existing primary path below keeps every validated button policy.
     const HWND coopWindow=reinterpret_cast<HWND>(g_gameWindowTrace.load());
@@ -2567,6 +2572,7 @@ void EnsureNativeXInputAimHooks() {
 // Always prefer the original unfiltered API for our camera.
 // Controllers may not use XInput (Steam Input, HID); those paths need native tracing.
 DWORD GetCameraXInputState(DWORD user,XINPUT_STATE* state) {
+    dg::controller_input::PhysicalRead physicalRead;
     if (!state) return ERROR_BAD_ARGUMENTS;
     for (int i=0;i<4;++i) {
         if (g_nativeXInputOriginal[i] &&

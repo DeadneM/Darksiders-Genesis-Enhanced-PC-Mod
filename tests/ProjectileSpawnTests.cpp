@@ -6,9 +6,9 @@
 namespace {
 using Vec3=dg::native_tps::Vec3;
 using Rotator=dg::projectile_aim::Rotator;
-alignas(16) unsigned char character[0x1000]{},weapon[0x200]{},grenade[0x200]{},ability[0x230]{},cls[0x80]{},foreignClass[0x80]{};
+alignas(16) unsigned char character[0x1000]{},weapon[0x200]{},grenade[0x200]{},ability[0x230]{},cls[0x80]{},foreignClass[0x80]{},lavaClass[0x80]{};
 unsigned char projectileClass[0x100]{},defaults[0x100]{},movement[0x180]{},root[0x1B0]{};
-void* tree[1]{cls+0x30};void* foreignTree[1]{foreignClass+0x30};
+void* tree[1]{cls+0x30};void* foreignTree[1]{foreignClass+0x30};void* lavaTree[2]{cls+0x30,lavaClass+0x30};
 uintptr_t componentTable[0x5E8/8]{};
 bool providerEnabled=true,gameThread=true,paused=false,wheel=false,collision=true,badSpeed=false;
 dg::local_players::Context context{};
@@ -21,13 +21,16 @@ template<class T> T Get(void* p,size_t o){T v{};std::memcpy(&v,static_cast<unsig
 void Check(bool b,const char* msg){if(!b)throw std::runtime_error(msg);}
 bool Close(float a,float b){return std::fabs(a-b)<0.001f;}
 Rotator* Original(void*,Rotator* out,const void* in){forwarded=in;*out={4,23,7};return out;}
-Rotator* OriginalFinish(void*,Rotator* out){*out={-12,-70,7};return out;}
+Rotator* OriginalFinish(void* a,Rotator* out){
+    *out=Get<void*>(a,0x10)==lavaClass?Get<Rotator>(a,0x20C):Rotator{-12,-70,7};
+    out->yaw=-70; // native final helper replaces the early yaw with movement
+    return out;
+}
 void OriginalLava(void* a){++lavaCalls;Put(a,0x20C,Rotator{-20,23,7});Put(a,0x218,2222.0f);}
 bool Provider(const dg::local_players::Context& c,dg::native_tps::MouseRay& ray){
     Check(c.character==reinterpret_cast<uintptr_t>(character),"provider receives current native owner");
     ray.origin={-300,0,300};ray.direction={1,0,0};return providerEnabled;
 }
-Vec3* AimOrigin(Vec3* out,void*){*out={0,0,0};return out;}
 void* MovementClass(){return cls;}
 void* FindComponent(void* actor,void* type){Check(actor==defaults&&type==cls,"same native CDO component lookup");return movement;}
 float Gravity(void* world){Check(world==reinterpret_cast<void*>(0x1234),"same owned world");return -980;}
@@ -44,7 +47,8 @@ void Run(){
     std::vector<unsigned char> image(0x3B00000);
     using namespace dg::projectile_aim;
     g_base=reinterpret_cast<uintptr_t>(image.data());
-    for(auto slot:{0x380C0E0,0x3811260,0x3811050,0x3A58AB0})Put(image.data(),slot,static_cast<void*>(cls));
+    for(auto slot:{0x380C0E0,0x3811260,0x3A58AB0})Put(image.data(),slot,static_cast<void*>(cls));
+    Put(image.data(),0x3811050,static_cast<void*>(lavaClass));Put(lavaClass,0x30,lavaTree+0);Put(lavaClass,0x38,1);
     Put(cls,0x30,tree+0);Put(cls,0x38,0);
     Put(foreignClass,0x30,foreignTree+0);Put(foreignClass,0x38,0);
     Put(weapon,0x10,static_cast<void*>(cls));Put(weapon,0xE8,static_cast<void*>(character));
@@ -58,17 +62,19 @@ void Run(){
     Put(ability,0x204,5.0f);Put(ability,0x208,45.0f);
     context.index=0;context.character=context.pawn=reinterpret_cast<uintptr_t>(character);
     context.controller=0x5678;context.world=0x1234;
-    g_original=Original;g_finish=OriginalFinish;g_lava=OriginalLava;g_origin=AimOrigin;g_provider=Provider;
+    g_original=Original;g_finish=OriginalFinish;g_lava=OriginalLava;g_provider=Provider;
     g_movementClass=MovementClass;g_gravity=Gravity;g_arcAngle=Angle;g_arcSpeed=Speed;
-    Rotator out{},in{44,55,66};
+    Rotator out{},in{0,0,0};
     auto* result=Rotation(weapon,&out,&in,0x7CFA3B);
     Check(result==&out&&Close(out.pitch,19.4712206f)&&Close(out.yaw,45)&&out.roll==7,"native return aims from native reference to actual 3D camera hit, preserving roll");
-    Check(forwarded==&in&&in.pitch==44&&in.yaw==55&&in.roll==66,"native input ABI forwarded untouched");
+    Check(forwarded==&in&&in.pitch==0&&in.yaw==0&&in.roll==0,"native input ABI forwarded untouched");
+    in={1000,0,500};Rotation(weapon,&out,&in,0x7CFA3B);
+    Check(Close(out.yaw,90)&&Close(out.pitch,0),"actual SpawnLocation argument removes reference-origin parallax instead of inventing a horizontal offset");in={0,0,0};
     Finish(ability,&out);
     Check(Close(out.yaw,45)&&Close(out.pitch,19.4712206f),"native Finish uses target independently of the released physical binding or actor heading");
     context.index=1;Finish(ability,&out);
     Check(Close(out.yaw,45)&&g_finished[1]==1,"P2 Finish gets its own verified owner");
-    UpdateLava(ability);
+    Put(ability,0x10,static_cast<void*>(lavaClass));UpdateLava(ability);
     const auto arc=Get<Rotator>(ability,0x20C);
     Check(Close(arc.pitch,31.4712206f)&&Close(arc.yaw,45)&&arc.roll==7&&Get<float>(ability,0x218)==3200,"Lava commits native ballistic rotation and speed as a pair");
     Check(Close(angleDistance,1500)&&Close(speedPitch,arc.pitch)&&speedTarget.z==500,"both native ballistic formulas consume the camera target in 3D");
@@ -77,13 +83,15 @@ void Run(){
     Check(angleCalls==usedAngles&&speedCalls==usedSpeeds&&Get<float>(ability,0x218)==3000&&Close(Get<Rotator>(ability,0x20C).pitch,44.4712206f),"sky/no-hit retains native default launch speed and mean arc lift, no infinite-range solve");
     collision=true;badSpeed=true;UpdateLava(ability);
     Check(Get<Rotator>(ability,0x20C).pitch==-20&&Get<float>(ability,0x218)==2222,"invalid paired solve keeps both native outputs");
-    badSpeed=false;providerEnabled=false;Finish(ability,&out);
+    badSpeed=false;providerEnabled=false;Put(ability,0x10,static_cast<void*>(cls));Finish(ability,&out);
     Check(out.pitch==-12&&out.yaw==-70,"native view, vanilla aim or stale view rejected by provider keeps Finish native");
-    UpdateLava(ability);Check(Get<float>(ability,0x218)==2222,"provider rejection keeps native Lava cache");
+    Put(ability,0x10,static_cast<void*>(lavaClass));UpdateLava(ability);Check(Get<float>(ability,0x218)==2222,"provider rejection keeps native Lava cache");Put(ability,0x10,static_cast<void*>(cls));
     providerEnabled=true;dg::runtime::Get().tps3DAimEnabled=false;
-    Rotation(weapon,&out,&in,0x7CFA3B);Check(out.pitch==4&&out.yaw==23,"simple mode retains exact original pistol result");
-    Finish(ability,&out);Check(out.pitch==-12&&out.yaw==-70,"simple mode retains exact original native Finish including automatic height");
-    UpdateLava(ability);Check(Get<Rotator>(ability,0x20C).pitch==-20&&Get<float>(ability,0x218)==2222,"simple mode bypasses every paired Lava override");
+    Rotation(weapon,&out,&in,0x7CFA3B);Check(out.pitch==4&&Close(out.yaw,45),"simple mode keeps native height and the shared camera-target yaw correction");
+    Finish(ability,&out);Check(out.pitch==-12&&Close(out.yaw,45),"simple mode still corrects final movement yaw at charge release while keeping native height");
+    Put(ability,0x10,static_cast<void*>(lavaClass));UpdateLava(ability);Check(Get<Rotator>(ability,0x20C).pitch==-20&&Get<float>(ability,0x218)==2222,"simple mode keeps the native ballistic pitch/speed pair");
+    Finish(ability,&out);Check(out.pitch==-20&&Close(out.yaw,45)&&Get<float>(ability,0x218)==2222,"Lava shares the same final yaw authority in simple mode, native pitch/speed retained");
+    dg::runtime::Get().tps3DAimEnabled=true;Finish(ability,&out);Check(out.pitch==-20&&Close(out.yaw,45)&&Get<float>(ability,0x218)==2222,"3D Lava final yaw cannot break its paired native ballistic pitch");Put(ability,0x10,static_cast<void*>(cls));
     dg::runtime::Get().tps3DAimEnabled=true;
     providerEnabled=true;Rotation(grenade,&out,&in,0x7CFA3B);Check(out.yaw==23,"gear stays outside pistol ancestry");
     Rotation(weapon,&out,&in,0x123);Check(out.yaw==23,"unproved ordinary caller stays native");

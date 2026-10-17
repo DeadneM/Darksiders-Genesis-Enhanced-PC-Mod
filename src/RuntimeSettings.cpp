@@ -38,6 +38,7 @@ void Publish(const Snapshot& s) {
         g_state.tpsCutsceneSuspended.store(false);
     g_state.aimIndicatorHideMode.store(s.aimIndicatorHideMode, std::memory_order_relaxed);
     g_state.tps3DAimEnabled.store(s.tps3DAimEnabled,std::memory_order_relaxed);
+    g_state.tpsAimPitchOffsetDegrees.store(s.tpsAimPitchOffsetDegrees,std::memory_order_relaxed);
     g_state.tpsMountedAimMode.store(s.tpsMountedAimMode,std::memory_order_relaxed);
     g_state.pistolDamageEnabled.store(s.pistolDamageEnabled, std::memory_order_relaxed);
     g_state.meleeDamageEnabled.store(s.meleeDamageEnabled, std::memory_order_relaxed);
