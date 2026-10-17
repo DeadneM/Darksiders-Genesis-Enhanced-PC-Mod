@@ -180,11 +180,11 @@ void ObserveNativeLook(void* actor,float x,float y){
     if(!local_players::ResolveActor(actor,owner)||owner.index<0||owner.index>1||
        owner.character!=reinterpret_cast<uintptr_t>(actor))return;
     auto& watch=g_aimWatch[owner.index];const auto now=GetTickCount64();const auto& rt=runtime::Get();
-    const unsigned mode=(rt.thirdPersonEnabled.load()?2u:0u)|(rt.actionRecoveryEnabled.load()?1u:0u);
+    const unsigned sampleMode=(rt.thirdPersonEnabled.load()?2u:0u)|(rt.actionRecoveryEnabled.load()?1u:0u);
     if(watch.local!=owner.localPlayer||watch.character!=owner.character||!watch.dash||
-       now<watch.dash||now-watch.dash>3000||watch.count[mode]>=48||
+       now<watch.dash||now-watch.dash>3000||watch.count[sampleMode]>=48||
        (watch.sample&&now>=watch.sample&&now-watch.sample<250))return;
-    watch.sample=now;++watch.count[mode];
+    watch.sample=now;++watch.count[sampleMode];
     float rawX=0,rawY=0;void* movement=nullptr;void* component=nullptr;void* array=nullptr;
     unsigned char mode=0,custom=0;int count=0,capacity=0;uintptr_t action=0,table=0;
     Read(actor,0xD24,rawX);Read(actor,0xD28,rawY);
