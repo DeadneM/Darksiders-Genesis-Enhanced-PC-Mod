@@ -1,3 +1,7 @@
+## V1.2 - complete verified rollback (2026-10-17)
+
+Backups become eligible only after all replaced files and the old version ledger have verified hashes. Partial or corrupt backups are rejected before restoration; an existing INI is always kept. Backups remain available after restore errors. Older unverified backups and the original V1.0/V1.1 ZIPs are preserved. Windows x64 test build; gameplay installation still requires the game to be closed.
+
 ## V1.1 - verified installed binary state (2026-10-16)
 
 The updater now binds its installed-version record to the SHA-256 of both the ASI and dxgi.dll. Replacing either file manually invalidates an old record; automatic installation then waits for an explicit Install Latest action. Personal INI edits do not invalidate it. Old V1.0 records are treated as manual installs until the next explicit installation. The old V1.0 ZIP remains available unchanged.

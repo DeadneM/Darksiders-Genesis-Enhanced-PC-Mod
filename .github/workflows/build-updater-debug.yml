@@ -1,4 +1,4 @@
-name: Build standalone updater on debug
+﻿name: Build standalone updater on debug
 on:
   push:
     branches: [debug]
@@ -38,8 +38,8 @@ jobs:
           New-Item -ItemType Directory -Path updater/dist,downloads -Force | Out-Null
           Copy-Item updater/bin/DarksidersGenesisUpdater.exe updater/dist/
           Copy-Item updater/README.md updater/dist/README.md
-          $zipFile = 'downloads/DarksidersGenesisUpdater_V1.1_Windows.zip'
-          if (Test-Path $zipFile) { Remove-Item $zipFile -Force }
+          $zipFile = 'downloads/DarksidersGenesisUpdater_V1.2_Windows.zip'
+          if (Test-Path -LiteralPath $zipFile) { throw "Numbered updater archive already exists; bump its version" }
           Compress-Archive -Path 'updater/dist/*' -DestinationPath $zipFile -CompressionLevel Optimal
           Add-Type -AssemblyName System.IO.Compression.FileSystem
           $zip = [IO.Compression.ZipFile]::OpenRead((Resolve-Path $zipFile))
@@ -52,8 +52,8 @@ jobs:
       - name: Upload updater test ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesisUpdater_V1.1_Windows
-          path: downloads/DarksidersGenesisUpdater_V1.1_Windows.zip
+          name: DarksidersGenesisUpdater_V1.2_Windows
+          path: downloads/DarksidersGenesisUpdater_V1.2_Windows.zip
           if-no-files-found: error
       - name: Preserve numbered updater ZIP in debug
         shell: pwsh
@@ -66,14 +66,15 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw 'Fetch failed' }
             git reset --mixed origin/debug
             if ($LASTEXITCODE -ne 0) { throw 'Reset failed' }
-            git add -- downloads/DarksidersGenesisUpdater_V1.1_Windows.zip
+            git add -- downloads/DarksidersGenesisUpdater_V1.2_Windows.zip
             if ($LASTEXITCODE -ne 0) { throw 'Add failed' }
             git diff --cached --quiet
             if ($LASTEXITCODE -eq 0) { Write-Host 'Updater ZIP already published'; exit 0 }
-            git commit -m "downloads: preserve compiled standalone updater V1.1"
+            git commit -m "downloads: preserve compiled standalone updater V1.2"
             if ($LASTEXITCODE -ne 0) { throw 'Commit failed' }
             git push origin HEAD:debug
             if ($LASTEXITCODE -eq 0) { exit 0 }
             Start-Sleep -Seconds 2
           }
           throw 'Updater ZIP push failed'
+
