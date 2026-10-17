@@ -1,4 +1,4 @@
-﻿name: Build standalone updater on debug
+﻿name: Standalone updater V1.2 verified rollback TEST
 on:
   push:
     branches: [debug]
@@ -77,4 +77,5 @@ jobs:
             Start-Sleep -Seconds 2
           }
           throw 'Updater ZIP push failed'
+
 
