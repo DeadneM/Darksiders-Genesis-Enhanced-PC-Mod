@@ -1068,7 +1068,6 @@ bool Store::SaveNow() {
     WriteProfileString(L"Controls",L"TPSMouseSecondaryButton",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsWheelPadMask);
     WriteProfileString(L"Controls",L"TPSWheelPadMask",buttonBuffer,path_.c_str());
-    WriteProfileString(L"Controls",L"TPSChargedFirePadMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsRecenterButtonMask);
     WriteProfileString(L"Controls",L"TPSRecenterButtonMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",horsePadButtonA);

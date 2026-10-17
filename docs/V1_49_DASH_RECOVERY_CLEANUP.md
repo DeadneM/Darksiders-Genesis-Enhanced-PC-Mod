@@ -60,6 +60,8 @@ Nouveaux tests du **vrai module** avec frontières natives simulées : physique 
 
 Les22suites V1.48 restent présentes ; **24suites attendues** avec ces deux ajouts. La CI Windows x64 et son analyse doivent confirmer compilation et tests. Contrôler ensuite quatre fichiers à la racine du ZIP, AMD64, version1.49,117clés, absence des cinq noms de réglages retirés dans l'ASI, empreintes CI/dépôt/téléchargement et conservation des112ZIPantérieurs. Ces contrôles ne valident pas la distance, le ressenti ou les transitions réelles du dash.
 
+Première CI `38998637969`, source `0fb9f17` : compilation réussie, test natif DashRecovery réussi et22/24suites réussies. Deux tests de configuration ont décelé une ligne de sauvegarde orpheline `TPSChargedFirePadMask`, qui recréait une clé et pouvait remplacer sa valeur personnelle par celle du buffer précédent. Cette ligne a été supprimée avant toute création de paquet ou installation ; le contrôle statique couvre désormais aussi les noms de clés indépendamment de leur casse. Les tests restent exigeants, sans assouplissement de l'attente de conservation/parité. Huit avertissements MSVC historiques, aucun dans le nouveau module Recovery.
+
 Les autres réparations restent ouvertes : roue d'équipement coop P1/P2, Charge Shot/Hotstreak en reculant, Graviton et cohérence du pitch 3D, Lava normal balistique, visée native après dash. Le pitch par défaut -12° et les chemins de tir ne changent pas ici. Les acquis V1.48, y compris refills/Hotkeys, sont conservés. Coffre différé.
 
 ## Livraison prévue, test et rollback
