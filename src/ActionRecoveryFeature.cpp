@@ -29,7 +29,7 @@ struct Phase {
     bool armed=false,requested=false;
 };
 Phase g_phase[2]{};
-struct AimWatch {uintptr_t local=0,character=0;ULONGLONG dash=0,sample=0;unsigned count=0;};
+struct AimWatch {uintptr_t local=0,character=0;ULONGLONG dash=0,sample=0;unsigned count[4]{};};
 AimWatch g_aimWatch[2]{};
 struct PadSample {short lx=0,ly=0,rx=0,ry=0;bool known=false,swap=false;ULONGLONG tick=0;};
 thread_local PadSample g_physical[4]{};
@@ -179,11 +179,12 @@ void ObserveNativeLook(void* actor,float x,float y){
     local_players::Context owner{};
     if(!local_players::ResolveActor(actor,owner)||owner.index<0||owner.index>1||
        owner.character!=reinterpret_cast<uintptr_t>(actor))return;
-    auto& watch=g_aimWatch[owner.index];const auto now=GetTickCount64();
+    auto& watch=g_aimWatch[owner.index];const auto now=GetTickCount64();const auto& rt=runtime::Get();
+    const unsigned mode=(rt.thirdPersonEnabled.load()?2u:0u)|(rt.actionRecoveryEnabled.load()?1u:0u);
     if(watch.local!=owner.localPlayer||watch.character!=owner.character||!watch.dash||
-       now<watch.dash||now-watch.dash>3000||watch.count>=96||
+       now<watch.dash||now-watch.dash>3000||watch.count[mode]>=48||
        (watch.sample&&now>=watch.sample&&now-watch.sample<250))return;
-    watch.sample=now;++watch.count;
+    watch.sample=now;++watch.count[mode];
     float rawX=0,rawY=0;void* movement=nullptr;void* component=nullptr;void* array=nullptr;
     unsigned char mode=0,custom=0;int count=0,capacity=0;uintptr_t action=0,table=0;
     Read(actor,0xD24,rawX);Read(actor,0xD28,rawY);
@@ -194,7 +195,7 @@ void ObserveNativeLook(void* actor,float x,float y){
     PadSample pad{};
     if(owner.controllerId>=0&&owner.controllerId<4)pad=g_physical[owner.controllerId];
     const bool physicalFresh=pad.tick&&now>=pad.tick&&now-pad.tick<=250;
-    char line[450]{};const auto& rt=runtime::Get();
+    char line[450]{};
     sprintf_s(line,"Recovery V1.52 AIM_AFTER_DASH player=%d recovery=%d tps=%d ageMs=%llu physicalFresh=%d rawPad=(%d,%d;%d,%d) nativeSwap=%d rawWorldLook=(%.3f,%.3f) nativeGetter=(%.3f,%.3f) movement=%u/%u activeCount=%d firstActionVtableRva=%llX readOnly=1",
         owner.index+1,rt.actionRecoveryEnabled.load()?1:0,rt.thirdPersonEnabled.load()?1:0,now-watch.dash,physicalFresh?1:0,pad.lx,pad.ly,pad.rx,pad.ry,pad.known?int(pad.swap):-1,rawX,rawY,x,y,unsigned(mode),unsigned(custom),count,table>=g_base?table-g_base:0);g_log(line);
 }
