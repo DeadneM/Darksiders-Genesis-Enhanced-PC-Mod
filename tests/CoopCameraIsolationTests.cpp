@@ -1,6 +1,7 @@
 #include "CoopCameraFeature.h"
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
+#include "TpsCameraPitch.h"
 #include <cmath>
 #include <cstring>
 #include <iostream>
@@ -26,7 +27,21 @@ void Run(){
     rt.cameraOrbitYawDegrees=177;rt.cameraOrbitPitchDegrees=22;
     g_character[0xC18]=1;g_respawn[0xC18]=1;
     dg::coop_camera::Initialize(nullptr);
+    for(float framing:{-30.0f,-12.0f,15.0f}){
+        const auto neutral=dg::tps_camera::CameraPitch(framing,0,true,0);
+        Check(Close(neutral.boom,framing)&&Close(neutral.view,0),"3D recenter levels the rendered view without changing camera position/framing");
+        for(float tilt:{-20.0f,0.0f,25.0f}){
+            const auto spatial=dg::tps_camera::CameraPitch(framing,tilt,true,0);
+            const auto simple=dg::tps_camera::CameraPitch(framing,tilt,false,0);
+            Check(Close(spatial.view,tilt)&&Close(spatial.boom,simple.boom)&&Close(simple.view,simple.boom),"up/down aim remains coherent and simple mode restores the previous entire view");
+        }
+        Check(Close(dg::tps_camera::CameraPitch(framing,0,true,1).view,framing),"Vanilla Aim keeps its previous orientation");
+    }
     float view[7]{};View(view);
+    Check(Close(view[3],0),"actual recentered P2 view is level in 3D mode");
+    const float savedX=view[0],savedZ=view[2];rt.tps3DAimEnabled=false;View(view);
+    Check(Close(view[3],rt.thirdPersonPitchDegrees.load())&&Close(view[0],savedX)&&Close(view[2],savedZ),"simple P2 mode restores old orientation, position untouched");
+    rt.tps3DAimEnabled=true;View(view);
     Check(Close(view[4],50)&&view[0]>1000&&view[1]>2000,"P2 view follows its own pose, not primary/origin");
     Check(Close(view[6],83)&&Close(rt.thirdPersonFovDegrees.load(),120),"P2 uses coop FOV and preserves independent solo setting");
     rt.thirdPersonFovEnabled=false;View(view);
@@ -45,6 +60,7 @@ void Run(){
     Check(dg::coop_camera::AdjustLook(g_character,x,y,z,true)&&Close(y,view[4]),"P2 firing uses its own emitted yaw");
     dg::native_tps::MouseRay shot{};
     Check(dg::coop_camera::ShotRay(g_owner,shot)&&Close(shot.origin.x,view[0])&&Close(shot.direction.z,std::sin(view[3]*0.01745329251994329577f)),"P2 projectile uses its emitted 3D camera orientation at spawn time");
+    rt.tps3DAimEnabled=false;Check(!dg::coop_camera::ShotRay(g_owner,shot),"simple P2 mode never overrides native projectile trajectories");rt.tps3DAimEnabled=true;
     g_radial[1]=true;pad=unchanged;Input(&pad);const auto nativeWheel=pad;
     Check(dg::coop_camera::FilterPad(1,pad)&&Equal(pad,nativeWheel),"actual native P2 selector protects axes even without the configured button");
     g_radial[1]=false;pad={};Input(&pad);View(view);

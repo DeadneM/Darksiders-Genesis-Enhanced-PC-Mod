@@ -1485,7 +1485,7 @@ bool IsTPSLookViewFresh() {
 bool ProvideNativeMouseRay(void* actor,dg::native_tps::MouseRay& ray){
     const auto& rt=dg::runtime::Get();
     if(!actor||!g_targetValidation.exact||g_shuttingDown.load()||
-       !rt.thirdPersonEnabled.load()||rt.tpsTemporarilySuspended.load()||
+       !rt.tps3DAimEnabled.load()||!rt.thirdPersonEnabled.load()||rt.tpsTemporarilySuspended.load()||
        rt.tpsCutsceneSuspended.load()||rt.tpsUiViewHeld.load()||
        (dg::chaos_pose::ActiveNow()&&!dg::chaos_pose::RangedActor(actor))||
        g_overlayVisible.load()||IsTPSRadialInputActive()||
@@ -1505,6 +1505,7 @@ bool ProvideNativeMouseRay(void* actor,dg::native_tps::MouseRay& ray){
     return true;
 }
 bool ProvideProjectileRay(const dg::local_players::Context& owner,dg::native_tps::MouseRay& ray){
+    if(!dg::runtime::Get().tps3DAimEnabled.load())return false;
     if(owner.index==1)return dg::coop_camera::ShotRay(owner,ray);
     if(owner.index!=0||!IsLiveTPSLookActor(reinterpret_cast<void*>(owner.character))||
        !IsTPSLookViewFresh()||IsTPSRadialInputActive()||
@@ -1522,6 +1523,7 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     auto original=g_originalGetPlayerLookInput;
     if(!original)return out;
     auto* result=original(actor,out);
+    if(result)dg::recovery::ObserveNativeLook(actor,result->pitch,result->yaw);
     if(result&&dg::local_players::CoopActive()&&dg::coop_camera::AdjustLook(actor,result->pitch,result->yaw,result->roll,false))return result;
     const unsigned calls=++g_tpsLookInputCalls;
     if(!result||!IsLiveTPSLookActor(actor) ||
@@ -1537,7 +1539,7 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     const bool fire=padFiring||mouseFiring;
     // V1.32: mouse acquisition belongs to native 3D targeting.
     // This getter is not projectile authority. Preserve all pad branches.
-    if(mouseFiring&&!padFiring)return result;
+    if(mouseFiring&&!padFiring&&rt.tps3DAimEnabled.load())return result;
     // V1.19: mouse LMB and controller use the SAME Camera Forward
     // heading. No alternative mouse mode, no pad emulation.
     // This changes ONLY the verified local player native TPS look getter.
@@ -1604,7 +1606,7 @@ NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
     const bool padFire=IsPadFiringNow();
     // V1.19: native mouse firing and controller share TPS Camera Forward.
     const bool playerStrafe=padFire||mouseFire; // controller path preserved
-    if(mouseFire&&!padFire)return result; // V1.32: native target, no yaw patch
+    if(mouseFire&&!padFire&&rt.tps3DAimEnabled.load())return result; // 3D uses native target; simple mode uses flat camera heading
     // During mounted Vanilla Aim fire, native look rotation is untouched.
     // While idle, suppress right-stick-origin horseman aim.
     if(rt.tpsMountedAimMode.load()==1 && padFire && !mouseFire)return result;

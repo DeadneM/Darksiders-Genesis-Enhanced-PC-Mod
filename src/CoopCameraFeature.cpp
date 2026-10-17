@@ -1,4 +1,5 @@
 #include "CoopCameraFeature.h"
+#include "TpsCameraPitch.h"
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
 #include "TpsStickRoles.h"
@@ -112,12 +113,12 @@ void ApplyView(void* camera,void* outView,const local_players::Context& owner){
        !std::isfinite(height)||std::fabs(height)>1000||!std::isfinite(foot)||std::fabs(foot)>500||
        !std::isfinite(basePitch)){s.gameplay=false;Unlock();return;}
     constexpr float rad=0.01745329251994329577f;
-    const float pitch=std::clamp(basePitch+orbitPitch,-75.0f,65.0f);
+    const auto pitch=tps_camera::CameraPitch(basePitch,orbitPitch,rt.tps3DAimEnabled.load(),rt.tpsMountedAimMode.load());
     const float yaw=std::remainder(s.baseYaw+orbitYaw,360.0f);
     const float distance=std::clamp(s.arm*distanceMultiplier,0.0f,12000.0f);
-    float outgoing[7]={pose.x-std::cos(pitch*rad)*std::cos(yaw*rad)*distance,
-        pose.y-std::cos(pitch*rad)*std::sin(yaw*rad)*distance,
-        pose.z-foot-std::sin(pitch*rad)*distance+height+50.0f,pitch,yaw,native[5],native[6]};
+    float outgoing[7]={pose.x-std::cos(pitch.boom*rad)*std::cos(yaw*rad)*distance,
+        pose.y-std::cos(pitch.boom*rad)*std::sin(yaw*rad)*distance,
+        pose.z-foot-std::sin(pitch.boom*rad)*distance+height+50.0f,pitch.view,yaw,native[5],native[6]};
     if(rt.thirdPersonFovEnabled.load()){
         const float fov=rt.thirdPersonCoopFovDegrees.load();
         if(std::isfinite(fov)&&fov>=40&&fov<=140)outgoing[6]=fov;
@@ -255,7 +256,7 @@ bool ShotRay(const local_players::Context& owner,native_tps::MouseRay& ray){
     AcquireSRWLockExclusive(&g_lock);const State s=g_state;Unlock();
     if(owner.index!=1||owner.character!=s.character||owner.localPlayer!=s.local||
        !SameOwner(s,slot)||!Active(s,GetTickCount64())||
-       runtime::Get().tpsMountedAimMode.load()!=0)return false;
+       !runtime::Get().tps3DAimEnabled.load()||runtime::Get().tpsMountedAimMode.load()!=0)return false;
     const float pitch=s.heldView[3],yaw=s.appliedYaw;
     if(!std::isfinite(pitch)||!std::isfinite(yaw))return false;
     constexpr float rad=0.01745329251994329577f;

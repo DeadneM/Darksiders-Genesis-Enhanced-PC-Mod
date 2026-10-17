@@ -29,6 +29,8 @@ struct Phase {
     bool armed=false,requested=false;
 };
 Phase g_phase[2]{};
+struct AimWatch {uintptr_t local=0,character=0;ULONGLONG dash=0,sample=0;unsigned count=0;};
+AimWatch g_aimWatch[2]{};
 bool Readable(const void* p,size_t bytes){
     MEMORY_BASIC_INFORMATION m{};
     if(!p||!VirtualQuery(p,&m,sizeof(m))||m.State!=MEM_COMMIT||
@@ -92,12 +94,15 @@ void Tick(void* ability,float dt,ULONGLONG now){
     if(g_tick)g_tick(ability,dt);
     if(!native_tps::OnGameThread())return;
     const auto& rt=runtime::Get();
-    if(!g_ready.load(std::memory_order_acquire)||!g_finish||!rt.actionRecoveryEnabled.load()){
+    if(!g_ready.load(std::memory_order_acquire)||!g_finish){
         g_phase[0]={};g_phase[1]={};return;
     }
     if(!std::isfinite(dt)||dt<=0||dt>0.1f)return;
     local_players::Context owner{};
     if(!Owner(ability,owner))return;
+    auto& watch=g_aimWatch[owner.index];
+    watch.local=owner.localPlayer;watch.character=owner.character;watch.dash=now;
+    if(!rt.actionRecoveryEnabled.load()){g_phase[0]={};g_phase[1]={};return;}
     auto& phase=g_phase[owner.index];
     if(native_tps::IsWorldPaused(reinterpret_cast<void*>(owner.character))||
        native_tps::CinematicActive(unsigned(owner.index))){phase={};return;}
@@ -164,5 +169,26 @@ void Initialize(LogFn log,bool exactExecutable){
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}
 void Shutdown(){g_ready.store(false,std::memory_order_release);}
+void ObserveNativeLook(void* actor,float x,float y){
+    if(!g_log||!g_ready.load()||!native_tps::OnGameThread())return;
+    local_players::Context owner{};
+    if(!local_players::ResolveActor(actor,owner)||owner.index<0||owner.index>1||
+       owner.character!=reinterpret_cast<uintptr_t>(actor))return;
+    auto& watch=g_aimWatch[owner.index];const auto now=GetTickCount64();
+    if(watch.local!=owner.localPlayer||watch.character!=owner.character||!watch.dash||
+       now<watch.dash||now-watch.dash>3000||watch.count>=96||
+       (watch.sample&&now>=watch.sample&&now-watch.sample<250))return;
+    watch.sample=now;++watch.count;
+    float rawX=0,rawY=0;void* movement=nullptr;void* component=nullptr;void* array=nullptr;
+    unsigned char mode=0,custom=0;int count=0,capacity=0;uintptr_t action=0,table=0;
+    Read(actor,0xD24,rawX);Read(actor,0xD28,rawY);
+    if(Read(actor,0x388,movement)){Read(movement,0x1B0,mode);Read(movement,0x1B1,custom);}
+    if(Read(actor,0xC70,component)&&Read(component,0xF8,array)&&
+       Read(component,0x100,count)&&Read(component,0x104,capacity)&&count>0&&count<=capacity&&capacity<=64&&
+       Read(array,0,action))Read(reinterpret_cast<void*>(action),0,table);
+    char line[320]{};const auto& rt=runtime::Get();
+    sprintf_s(line,"Recovery V1.51 AIM_AFTER_DASH player=%d recovery=%d tps=%d ageMs=%llu rawWorldLook=(%.3f,%.3f) nativeGetter=(%.3f,%.3f) movement=%u/%u activeCount=%d firstActionVtableRva=%llX readOnly=1",
+        owner.index+1,rt.actionRecoveryEnabled.load()?1:0,rt.thirdPersonEnabled.load()?1:0,now-watch.dash,rawX,rawY,x,y,unsigned(mode),unsigned(custom),count,table>=g_base?table-g_base:0);g_log(line);
+}
 void Report(){if(g_log){char line[210]{};sprintf_s(line,"Recovery V1.49 totals positivePhasesP1=%u P2=%u nativeFinishRequestsP1=%u P2=%u gameplayValidation=USER_REQUIRED",g_armed[0].load(),g_armed[1].load(),g_requested[0].load(),g_requested[1].load());g_log(line);}}
 }

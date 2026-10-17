@@ -54,7 +54,7 @@ void Run(){
     Put(ability,0x48,static_cast<void*>(character));Put(ability,0x1E0,static_cast<void*>(projectileClass));
     Put(projectileClass,0xF8,static_cast<void*>(defaults));Put(defaults,0,componentTable+0);
     componentTable[0x5E0/8]=reinterpret_cast<uintptr_t>(&FindComponent);
-    Put(movement,0x10,static_cast<void*>(cls));Put(movement,0x138,3000.0f);Put(movement,0x154,0.5f);
+    Put(movement,8,uint32_t(0x40020));Put(movement,0x10,static_cast<void*>(cls));Put(movement,0x138,3000.0f);Put(movement,0x154,0.5f);
     Put(ability,0x204,5.0f);Put(ability,0x208,45.0f);
     context.index=0;context.character=context.pawn=reinterpret_cast<uintptr_t>(character);
     context.controller=0x5678;context.world=0x1234;
@@ -80,13 +80,18 @@ void Run(){
     badSpeed=false;providerEnabled=false;Finish(ability,&out);
     Check(out.pitch==-12&&out.yaw==-70,"native view, vanilla aim or stale view rejected by provider keeps Finish native");
     UpdateLava(ability);Check(Get<float>(ability,0x218)==2222,"provider rejection keeps native Lava cache");
+    providerEnabled=true;dg::runtime::Get().tps3DAimEnabled=false;
+    Rotation(weapon,&out,&in,0x7CFA3B);Check(out.pitch==4&&out.yaw==23,"simple mode retains exact original pistol result");
+    Finish(ability,&out);Check(out.pitch==-12&&out.yaw==-70,"simple mode retains exact original native Finish including automatic height");
+    UpdateLava(ability);Check(Get<Rotator>(ability,0x20C).pitch==-20&&Get<float>(ability,0x218)==2222,"simple mode bypasses every paired Lava override");
+    dg::runtime::Get().tps3DAimEnabled=true;
     providerEnabled=true;Rotation(grenade,&out,&in,0x7CFA3B);Check(out.yaw==23,"gear stays outside pistol ancestry");
     Rotation(weapon,&out,&in,0x123);Check(out.yaw==23,"unproved ordinary caller stays native");
     character[0xC18]=2;Finish(ability,&out);Check(out.yaw==-70,"War stays native");character[0xC18]=1;
     wheel=true;Finish(ability,&out);Check(out.yaw==-70,"native selector owns input/aim");wheel=false;
     paused=true;Finish(ability,&out);Check(out.yaw==-70,"pause stays native");paused=false;
     gameThread=false;Finish(ability,&out);Check(out.yaw==-70,"other threads stay native");
-    Check(lavaCalls==4,"native Lava update runs exactly once for each request");
+    Check(lavaCalls==5,"native Lava update runs exactly once for each request");
 }
 }
 namespace dg::native_tps {

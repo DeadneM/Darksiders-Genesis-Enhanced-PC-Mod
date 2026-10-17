@@ -249,6 +249,7 @@ public:
     bool tpsLongPressToggleEnabled = true;
     bool tpsGrenadeHoldEnabled = true;
     int aimIndicatorHideMode = 2; // 0 Everywhere, 1 Default Only, 2 TPS Only
+    bool tps3DAimEnabled = true;
     int tpsMountedAimMode = 0; // 0 camera-forward free, 1 native aim camera locked
     int tpsGrenadeButtonMask = 0x0080; // R3 USE gear (0=OFF)
     int tpsFirePrimaryMask = 0x20000;

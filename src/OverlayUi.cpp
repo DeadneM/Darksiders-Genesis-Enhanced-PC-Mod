@@ -851,11 +851,15 @@ void Draw(Context& c) {
                 DrawToggleFeature(config,"Auto suspend TPS during detected cutscenes (test)","TPSCutscene",
                     &config.tpsCutsceneAutoSuspend,"Yield to a native cinematic camera, then return to TPS. Experimental.",camera.viewReady);
                 ImGui::TextDisabled("Pause/wheels keep TPS; temporary-view shortcut has priority.");
-                ImGui::TextDisabled("Mouse aiming uses native 3D targets; gameplay test required.");
+                ImGui::TextDisabled("Camera Forward offers 3D aiming or simple native trajectories.");
                 ImGui::Separator();
                 ImGui::TextDisabled("Native movement and camera isolation are automatic in TPS.");
                 ImGui::Separator();
                 ImGui::TextDisabled("Unified TPS aiming (on foot + mounted)");
+                if(ImGui::Checkbox("3D aiming (experimental)",&config.tps3DAimEnabled))config.Save();
+                ImGui::TextWrapped(config.tps3DAimEnabled
+                    ? "ON: recentered view aims level; tilt the camera to aim up/down. Framing pitch keeps camera height/position. Applies to mouse/controller and P1/P2 in Camera Forward."
+                    : "OFF: simple camera-forward heading and native trajectories/automatic height targeting. Previous camera framing restored. Applies to mouse/controller and P1/P2.");
                 constexpr const char* kMountedModes[]={
                     "Camera Forward (free camera while firing)",
                     "Vanilla Aim (pause camera while firing)"

@@ -34,6 +34,7 @@ int main(int argc,char** argv){
     if(!DeleteFileW(path))return 1; // only this test's empty file, to exercise missing-INI generation
     dg::config::Store generated;generated.SetPath(path);
     check(generated.Load(),"missing INI generated from compiled defaults");
+    check(generated.tps3DAimEnabled&&dg::runtime::Get().tps3DAimEnabled.load(),"missing option enables 3D aiming by default");
     const auto actual=ReadIni(path);
     size_t keys=0;
     check(actual.size()==shipped.size(),"generated and shipped sections match");
@@ -67,6 +68,8 @@ int main(int argc,char** argv){
     check(personal.tpsUltimateDistanceMultiplier==0.9f&&personal.tpsUltimateHeightOffset==123&&personal.wrathChargeMultiplier==2,"explicit personal values retained");
     check(personal.hotkeys[8]==dg::config::Action::FOV,"explicit older hotkey retained");
     check(generated.menuKey==VK_INSERT,"Insert is the authoritative menu default");
+    personal.tps3DAimEnabled=false;check(personal.SaveNow(),"simple aim option saves");
+    dg::config::Store reloaded;reloaded.SetPath(path);check(reloaded.Load()&&!reloaded.tps3DAimEnabled&&!rt.tps3DAimEnabled.load(),"explicit simple aim survives reload and runtime publication");
     personal.tpsMousePrimaryButton=VK_XBUTTON1;personal.tpsMouseSecondaryButton=VK_MBUTTON;
     personal.tpsFirePrimaryMask=0x4000;personal.tpsFireSecondaryMask=0x8000;
     personal.tpsWheelPadMask=0x0020;personal.tpsGrenadeButtonMask=0x0040;

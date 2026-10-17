@@ -1,3 +1,15 @@
+## V1.51 — visée 3D optionnelle, cadrage et direction séparés (17 octobre 2026)
+
+**EXPÉRIMENTAL — contrôle de build et test en jeu encore à effectuer.** Base V1.50 debug partiellement acceptée : roues/équipement/changement de personnage validés par l'utilisateur ; Charge Shot/Graviton/Lava toujours rejetés pour leur direction trop basse. Recovery produit un effet observé mais la réception lourde et la visée au stick après dash restent ouvertes. Cinématiques en attente ; coop/autres fonctions paraissent bonnes, sans validation générale.
+
+La case **« 3D aiming (experimental) »**, activée par défaut, sépare l'inclinaison de cadrage de la direction rendue : recentrage horizontal, caméra conservée en hauteur, visée haut/bas par l'orbite. OFF retrouve le regard simple Camera Forward et les trajectoires/hauteurs natives, avec la pose caméra précédente. Aucun réglage personnel remplacé ; 118 clés actives et les 48 IDs Hotkeys existants.
+
+Le journal V1.50 confirme **0 recalcul Lava réussi et 1623 rejets**, ainsi que **139 + 7 demandes Recovery natives**. Le contrôle des modèles de composants Lava est corrigé et ses rejets détaillés ; leur cause exacte et les impacts réels restent à vérifier. Les sticks après dash reçoivent une observation bornée en lecture seule, sans nouveau hook ni correction graphique supposée. [Changements, limites, huit essais prioritaires et rollback](docs/V1_51_OPTIONAL_3D_AIM_LEVEL_VIEW_TEST.md).
+
+Les acquis validés sont conservés ; aucun lancement du jeu. Anciens ZIP, main/archive et release v1.43 à préserver et contrôler lors de la livraison. Le reçu de compilation, ZIP et installation sera ajouté après vérification.
+
+---
+
 ## V1.50 — construite, contrôlée et installée (17 octobre 2026)
 
 **CONSTRUIT / CONTRÔLÉ / INSTALLÉ / EXPÉRIMENTAL — validation en jeu à faire.** Base V1.49 debug et acquis V1.48 conservés hors réparations ouvertes. Source ASI/DXGI `832f2d17425f6a79dcebe490ce2f9d61a8c8c8af`, archive `b492f2b96b84bbf20216d2940d2811da6d1b6336`. [GitHub Actions Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39047758200) **SUCCESS, 26/26 suites**. Les tests couvrent les vrais modules avec frontières natives simulées ; ils ne mesurent ni impacts réels ni gain de contrôle après dash.
