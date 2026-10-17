@@ -1,5 +1,15 @@
 # V1.51 — visée 3D optionnelle et vue neutre horizontale
 
+## Reçu de livraison vérifié
+
+**CONSTRUIT / CONTRÔLÉ / INSTALLÉ / EXPÉRIMENTAL**, le 17 octobre 2026. [CI 39065973807](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39065973807) réussie, **26/26 suites**, huit avertissements historiques et aucune nouvelle alerte du changement. Les quatre avertissements ajoutés en V1.50 ont disparu. Source `8f226dc5ece66b3890f7764a08081c9e224cfd3e`, archive `4d064c6852bd67b34ce99c25f41f8641bd499b26`.
+
+[ZIP public contrôlé](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/4d064c6852bd67b34ce99c25f41f8641bd499b26/downloads/DarksidersGenesis_V1.51_OPTIONAL_3D_AIM_LEVEL_VIEW_TEST.zip), 864771 octets, SHA256 `82F22328A8190C1AA71954F183606BC2607160420E0304492E5E9003EBC1706D`. Quatre racines/CRC/AMD64/identité et INI contrôlés. ASI `99C97E052EE343C0DF6426660D47886FF8FC299906FBBA887676475E7D010B37`, DXGI `65D64F4DB70395E408EC430A5E2C3A4D90FB30D223BAEBBD074BEA97F281F127`. 115 anciens ZIP inchangés ; main/archive et v1.43 préservés.
+
+Installation contrôlée jeu fermé, sauvegarde `audit-v131/install-backup-before-v151-20261017-222107`, script de restauration de V1.50 fourni dans cette sauvegarde, non exécuté. INI personnel avant/après `D0E1491510DB41C6ED6CD53875B3F30CD8E88D56AF02343040955465A91D983E`, conservé octet pour octet ; aucun lancement. README installé actualisé avec ce reçu, le ZIP conserve son README de préparation immuable. Aucun nouvel essai en jeu effectué par l'agent.
+
+Constat complémentaire hors build : index natif du PAK vérifié, 86641 entrées ; assets Dash/Land extraits et contrôlés par SHA1 dans l'audit local uniquement. `MayhemAbility_Strife_HeavyLand` et `MayhemAbility_War_HeavyLand` sont des capacités de montage distinctes, avec `Strife_Jump_Land_Heavy_Montage` pour Strife. War sérialise `AllowPlayerMovement=false` ; l'absence de cette propriété explicite sur Strife ne permet pas d'en inventer la valeur héritée. Les variantes `Ground_Dash_Aim` et `Ground_Dash_Fire` existent, et référencent `GetDashInfo`, `GetNextDashStartAbility`. Cela donne une piste pour la progression du triple dash et le retour de visée, sans prouver leur séquence exécutée. Prochaine étape : relever la capacité réellement active et ses transitions après dash/réception, avant toute extension de Recovery.
+
 ## Base et retour utilisateur
 
 Base de travail : V1.50 debug, `c9432c7`, avec les acquis V1.48/V1.49 conservés. **V1.50 n'est pas une base entièrement validée** : Charge Shot, Graviton et Lava restent rejetés pour leur direction trop basse. Le retour utilisateur valide les roues, l'équipement et la continuité de caméra lors du changement de personnage ; ces mécanismes ne sont pas réécrits. Recovery produit désormais un effet constaté, décrit comme la répétition du premier dash. Cinématiques encore à vérifier ; transformations/caméras coop et autres fonctions paraissent bonnes, sans validation générale déduite.
@@ -48,6 +58,6 @@ Roues, maintien équipement et échange Strife/War : simple contrôle de non-ré
 
 ## Livraison et retour arrière
 
-Build Windows x64 attendue via GitHub Actions, 26 suites ; contrôles réels et empreintes ajoutés après exécution. ZIP cumulatif à quatre fichiers racine : ASI, dxgi.dll, INI, README. INI personnel préservé octet pour octet lors de l'installation ; l'option absente prend ON sans modifier ce fichier à l'installation. Anciennes archives, main/archive et release v1.43 conservées.
+Build Windows x64 réussie via GitHub Actions, 26 suites ; empreintes et installation contrôlées dans le reçu ci-dessus. ZIP cumulatif à quatre fichiers racine : ASI, dxgi.dll, INI, README. INI personnel préservé octet pour octet lors de l'installation ; l'option absente prend ON sans modifier ce fichier à l'installation. Anciennes archives, main/archive et release v1.43 conservées.
 
 Rollback rapide de la visée : décocher 3D. Pour revenir intégralement à la V1.50 sauvegardée, restaurer ses binaires et README, garder l'INI courant ; sa visée reste rejetée. Aucun lancement automatique du jeu.
