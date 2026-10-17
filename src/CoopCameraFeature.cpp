@@ -46,7 +46,7 @@ bool SameOwner(const State& state,const local_players::Slot& slot){
 }
 bool Active(const State& state,ULONGLONG now){
     return runtime::Get().thirdPersonEnabled.load()&&state.gameplay&&
-        state.focused&&!state.temporary&&!state.wheel&&!state.nativeForm&&
+        state.focused&&!state.temporary&&!state.wheel&&!native_tps::RadialActive(1)&&!state.nativeForm&&
         !(native_tps::CinematicActive(1)&&runtime::Get().tpsCutsceneAutoSuspend.load())&&
         state.viewTick&&now>=state.viewTick&&now-state.viewTick<300ull&&
         state.inputTick&&now>=state.inputTick&&now-state.inputTick<250ull;
@@ -155,7 +155,7 @@ bool UpdateInput(const XINPUT_GAMEPAD* pad,bool focused,float dt,
         toggleMask,toggleHoldMs,recenterMask,rt.thirdPersonEnabled.load());
     if(!SameOwner(s,slot)){s.focused=false;s.inputTick=0;s.equipment={};Unlock();return press.toggle;}
     s.focused=focused&&pad;s.inputTick=now;
-    s.wheel=pad&&Binding(rt.tpsWheelPadMask.load(),*pad);
+    s.wheel=native_tps::RadialActive(1)||(pad&&Binding(rt.tpsWheelPadMask.load(),*pad));
     s.fire=pad&&Fire(*pad);s.stick=false;
     if(!rt.thirdPersonEnabled.load()){
         s.yaw=0;s.pitch=0;s.baseValid=false;s.held=false;s.gameplay=false;
@@ -207,7 +207,7 @@ bool FilterPad(DWORD id,XINPUT_GAMEPAD& pad,bool focusedGameplay){
     }else state.horseChordDown=false;
     // Preserve native wheel selection. Equipment hold/stow must run BEFORE
     // the temporary-view gate, just as on P1: that action can share its button.
-    const bool wheel=Binding(rt.tpsWheelPadMask.load(),pad);
+    const bool wheel=native_tps::RadialActive(1)||Binding(rt.tpsWheelPadMask.load(),pad);
     if(!owned||!rt.thirdPersonEnabled.load()||state.paused||state.cinema||state.form)state.equipment={};
     else if(!wheel){
         const int mask=rt.tpsGrenadeButtonMask.load();
@@ -250,12 +250,17 @@ bool AdjustLook(void* actor,float& a,float& b,float& c,bool rotation){
     }
     return true;
 }
-bool ShotRotation(const local_players::Context& owner,float& pitch,float& yaw){
+bool ShotRay(const local_players::Context& owner,native_tps::MouseRay& ray){
     const auto slot=local_players::PublishedSlot(1);
     AcquireSRWLockExclusive(&g_lock);const State s=g_state;Unlock();
     if(owner.index!=1||owner.character!=s.character||owner.localPlayer!=s.local||
-       !SameOwner(s,slot)||!Active(s,GetTickCount64())||!s.fire||
+       !SameOwner(s,slot)||!Active(s,GetTickCount64())||
        runtime::Get().tpsMountedAimMode.load()!=0)return false;
-    pitch=s.heldView[3];yaw=s.appliedYaw;return std::isfinite(pitch)&&std::isfinite(yaw);
+    const float pitch=s.heldView[3],yaw=s.appliedYaw;
+    if(!std::isfinite(pitch)||!std::isfinite(yaw))return false;
+    constexpr float rad=0.01745329251994329577f;
+    ray.origin={s.heldView[0],s.heldView[1],s.heldView[2]};
+    ray.direction={std::cos(pitch*rad)*std::cos(yaw*rad),std::cos(pitch*rad)*std::sin(yaw*rad),std::sin(pitch*rad)};
+    ray.fireHeld=s.fire;return true;
 }
 }

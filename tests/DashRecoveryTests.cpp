@@ -49,7 +49,7 @@ void Fresh(){
         Put<unsigned char>(p.movement,0x1B0,6);Put<unsigned char>(p.movement,0x1B1,5);
         Put(p.component,0xE8,static_cast<void*>(p.actor));Put(p.component,0xF8,p.active+0);
         Put(p.component,0x100,1);Put(p.component,0x104,1);
-        Put(p.ability,0,table+0);Put(p.ability,0x10,static_cast<void*>(cls));Put(p.ability,0x48,static_cast<void*>(p.component));
+        Put(p.ability,0,table+0);Put(p.ability,0x10,static_cast<void*>(cls));Put(p.ability,0x48,static_cast<void*>(p.actor));
         Put(p.ability,0x1B0,static_cast<void*>(p.actor));Put(p.ability,0x1D8,reinterpret_cast<void*>(0x1234));
         Put<unsigned char>(p.ability,0xD8,2);Put(p.ability,0xDC,0.4f);Put(p.ability,0x224,0.08f);Put(p.ability,0x228,0.1f);
         owners[i].index=i;owners[i].localPlayer=0x1000+uintptr_t(i);owners[i].character=reinterpret_cast<uintptr_t>(p.actor);
@@ -84,6 +84,7 @@ void Run(){
     Fresh();Tick(0,100);Put(players[0].ability,0xDC,0.0f);Cross(0,116);Check(!finishCalls[0],"reused ability activation must arm again");
     Fresh();Tick(0,100);owners[0].localPlayer=0xDEAD;Cross(0,116);Check(!finishCalls[0],"owner replacement cannot reuse the old phase");
     Unchanged([]{gameThread=false;},"other threads cannot finish actions");
+    Unchanged([]{Put(players[0].ability,0x48,static_cast<void*>(players[0].component));},"an ability component cannot masquerade as the reflected actor Instigator");
     Unchanged([]{paused=true;},"pause keeps native timing");
     Unchanged([]{cinema=true;},"cinematic keeps native timing");
     Unchanged([]{endDuringTick=true;},"native completion during original Tick wins");

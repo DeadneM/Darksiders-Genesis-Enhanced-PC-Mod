@@ -41,6 +41,8 @@ std::atomic<float> g_nativeDistance{0.0f}, g_appliedDistance{0.0f};
 // V1.30: only the emitted TPS view; read-only projection telemetry.
 std::atomic<float> g_tpsEmittedX{0.0f},g_tpsEmittedY{0.0f},g_tpsEmittedZ{0.0f};
 std::atomic_ullong g_tpsEmittedTickMs{0};
+SRWLOCK g_emittedLock=SRWLOCK_INIT;
+AppliedView g_emittedView{};
 // Values only: never retain a UObject for later dereferencing. The identity
 // must match the current live callback and player generation before reuse.
 struct HeldTpsView {
@@ -51,22 +53,15 @@ struct HeldTpsView {
 };
 thread_local HeldTpsView g_heldView;
 thread_local bool g_inArm = false;
-std::atomic<float> g_idlePivotDX{0.0f},g_idlePivotDY{0.0f};
-std::atomic_ullong g_idlePivotTick{0};
-std::atomic_uint32_t g_idlePivotGeneration{UINT32_MAX};
-std::atomic<uint32_t> g_pivotCompensations{0};
 // V0.64: independent TPS FOV, player attachment and zone camera lockdown.
 std::atomic<uint32_t> g_tpsAttachedFrames{0},g_zoneCameraIgnored{0},g_tpsAttachSkipped{0};
 std::atomic<uint32_t> g_tpsFovOverrides{0};
-std::atomic<uint32_t> g_tpsCameraRejected{0};
 // V0.85: mounted-only firing camera stabilization telemetry. This is
 // camera-output-only, never game actor / controller / weapon manipulation.
 std::atomic_uint32_t g_mountedFireRequested{0};
 std::atomic_uint32_t g_mountedFireHorseSelected{0};
 std::atomic_uint32_t g_mountedFireOverrodeFoot{0};
 std::atomic_uint32_t g_mountedFireHorseUnavailable{0};
-std::atomic_uint32_t g_mountedFireVerticalSmoothed{0};
-std::atomic<float> g_mountedFireLastVerticalCorrection{0.0f};
 std::atomic_bool g_mountedFireCurrentlyActive{false};
 // V1.27: separate actual mouse and native-pad mounted view observations.
 std::atomic_uint32_t g_v127MountedMouseViewFrames{0};
@@ -632,7 +627,6 @@ void HookView(void* camera, float dt, void* outView) {
     // Heuristic may miss an in-place cinematic with a top-down-like pose.
     if(thirdPerson&&!gameplayCamera){
         const unsigned n=++g_tpsAttachSkipped;
-        ++g_tpsCameraRejected;
         if(n<=3||n==3000){
             char line[390]{};
             sprintf_s(line,"TPS V0.68: camera REJECT n=%u actorValid=%d fresh=%d near=%d native=(%.0f,%.0f,%.0f) actor=(%.0f,%.0f,%.0f) gapXY=%.1f gapZ=%.1f pitch=%.1f fov=%.1f",
@@ -751,6 +745,11 @@ void HookView(void* camera, float dt, void* outView) {
                 g_tpsEmittedY.store(outY,std::memory_order_relaxed);
                 g_tpsEmittedZ.store(outZ,std::memory_order_relaxed);
                 g_tpsEmittedTickMs.store(now,std::memory_order_release);
+                const auto identity=dg::local_players::PublishedSlot(0);
+                AcquireSRWLockExclusive(&g_emittedLock);
+                g_emittedView={outX,outY,outZ,appliedPitch,appliedYaw,
+                    identity.localPlayer,identity.character,identity.generation,now};
+                ReleaseSRWLockExclusive(&g_emittedLock);
                 if(attached){
                     const unsigned n=++g_tpsAttachedFrames;
                     if(n==1||n==5000){
@@ -950,6 +949,10 @@ bool RecenterOnPlayer() {
     return true;
 }
 float AppliedYaw() { return g_appliedYaw.load(); }
+AppliedView GetAppliedView(){
+    AcquireSRWLockShared(&g_emittedLock);const auto view=g_emittedView;
+    ReleaseSRWLockShared(&g_emittedLock);return view;
+}
 Telemetry GetTelemetry() {
     Telemetry t{};
     t.viewReady = g_viewReady.load();
@@ -969,14 +972,12 @@ Telemetry GetTelemetry() {
     t.mountedFireHorseSelected = g_mountedFireHorseSelected.load();
     t.mountedFireOverrodeFoot = g_mountedFireOverrodeFoot.load();
     t.mountedFireHorseUnavailable = g_mountedFireHorseUnavailable.load();
-    t.mountedFireVerticalSmoothed = g_mountedFireVerticalSmoothed.load();
     t.mountedMouseViewFrames = g_v127MountedMouseViewFrames.load();
     t.mountedMouseHorsePoseHeld = g_v127MountedMouseHorsePoseHeld.load();
     t.facingFootSamples = g_v127FacingFootSamples.load();
     t.facingFootOffAxis = g_v127FacingFootOffAxis.load();
     t.facingHorseSamples = g_v127FacingHorseSamples.load();
     t.facingHorseOffAxis = g_v127FacingHorseOffAxis.load();
-    t.mountedFireLastVerticalCorrection = g_mountedFireLastVerticalCorrection.load();
     t.mountedFireCurrentlyActive = g_mountedFireCurrentlyActive.load();
     t.nativeFov = g_nativeFov.load();
     t.appliedFov = g_appliedFov.load();

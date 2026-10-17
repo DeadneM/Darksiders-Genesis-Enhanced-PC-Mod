@@ -60,8 +60,12 @@ uint32_t BytecodeCRC32(const void* bytes, size_t length) {
 bool EnabledByExistingMode() {
     const auto& rt = dg::runtime::Get();
     const int mode = rt.aimIndicatorHideMode.load(std::memory_order_relaxed);
+    const auto now=GetTickCount64(),view=rt.tpsGameplayViewTick.load(std::memory_order_acquire);
+    const bool liveView=rt.tpsViewGameplay.load(std::memory_order_acquire)&&view&&now>=view&&now-view<=350;
     const bool tps = rt.thirdPersonEnabled.load(std::memory_order_relaxed) &&
-        !rt.tpsTemporarilySuspended.load(std::memory_order_relaxed);
+        !rt.tpsTemporarilySuspended.load(std::memory_order_relaxed)&&
+        !rt.tpsCutsceneSuspended.load(std::memory_order_relaxed)&&
+        (liveView||rt.tpsUiViewHeld.load(std::memory_order_acquire));
     return mode == 0 || (mode == 1 && !tps) || (mode == 2 && tps);
 }
 
@@ -97,7 +101,7 @@ void STDMETHODCALLTYPE HookSetPS(
     const bool matched = shader && g_targetShaders.count(shader) != 0;
     ReleaseSRWLockShared(&g_lock);
     AcquireSRWLockExclusive(&g_lock);
-    g_contextTargetPS[ctx] = matched;
+    if(g_contextTargetPS.count(ctx)||g_contextTargetPS.size()<64)g_contextTargetPS[ctx] = matched;
     ReleaseSRWLockExclusive(&g_lock);
 }
 
@@ -109,6 +113,16 @@ bool Skip(ID3D11DeviceContext* ctx) {
     const bool matched = it != g_contextTargetPS.end() && it->second;
     ReleaseSRWLockShared(&g_lock);
     if (matched) {
+        // ClearState and command lists can bypass our PSSetShader observer.
+        // Verify only would-be blocked draws, retaining the fast path for
+        // ordinary rendering; a stale context entry cannot hide other PSs.
+        ID3D11PixelShader* actual=nullptr;
+        ctx->PSGetShader(&actual,nullptr,nullptr);
+        AcquireSRWLockShared(&g_lock);
+        const bool stillMatched=actual&&g_targetShaders.count(actual)!=0;
+        ReleaseSRWLockShared(&g_lock);
+        if(actual)actual->Release();
+        if(!stillMatched)return false;
         ++g_blockCount;
         return true;
     }

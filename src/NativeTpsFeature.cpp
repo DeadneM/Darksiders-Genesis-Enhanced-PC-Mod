@@ -1,5 +1,7 @@
 #include "NativeTpsFeature.h"
 #include "LocalPlayerOwnership.h"
+#include "NativeMemoryReader.h"
+#include "RadialSelectionState.h"
 #include <windows.h>
 #include <intrin.h>
 #include <MinHook.h>
@@ -20,11 +22,13 @@ static_assert(offsetof(NativeTarget,valid)==12 && sizeof(NativeTarget)==16);
 using Aim2Fn=Vec2*(*)(void*,Vec2*,void*,const Vec3*,bool,void*);
 using Aim3Fn=Vec3*(*)(void*,Vec3*,void*,NativeTarget*,bool,void*);
 using DeprojectFn=bool(*)(void*,const Vec2*,Vec3*,Vec3*);
+using MousePositionFn=bool(*)(void*,float*,float*);
 using CinemaFn=void(*)(void*,bool,bool);
 using PausedFn=bool(*)(void*);
 Aim2Fn g_aim2=nullptr;
 Aim3Fn g_aim3=nullptr;
 DeprojectFn g_deproject=nullptr;
+MousePositionFn g_mousePosition=nullptr;
 CinemaFn g_cinema=nullptr;
 std::atomic<PausedFn> g_paused{nullptr};
 RayProvider g_provider=nullptr;
@@ -41,7 +45,18 @@ VisibleFn g_visible=nullptr;
 std::atomic_bool g_swap{false},g_swapKnown{false};
 std::atomic<DWORD> g_gameThread{0};
 std::atomic_uint32_t g_radialEvents{0},g_idleMouseTargets{0};
-struct RadialSample { uintptr_t identity=0; ULONGLONG visibleAt=0; };
+using WidgetStateFn=void(*)(void*,unsigned char,bool);
+using WidgetControllerFn=void*(*)(void*);
+WidgetStateFn g_widgetState=nullptr;
+WidgetControllerFn g_widgetController=nullptr;
+struct RadialSample {
+    native_objects::Identity identity{};
+    uintptr_t local=0,character=0;
+    uint32_t generation=0;
+    unsigned player=2;
+    RadialSelectionState selection{};
+    bool active=false;
+};
 RadialSample g_radials[8]{};
 SRWLOCK g_radialLock=SRWLOCK_INIT;
 // Same native class-tree test used by the retail binary (e.g. 0x6D9AC0).
@@ -92,6 +107,13 @@ bool HookDeproject(void* controller,const Vec2* pixel,Vec3* origin,Vec3* directi
         return true;
     }
     return g_deproject(controller,pixel,origin,direction);
+}
+bool HookMousePosition(void* controller,float* x,float* y){
+    // The scoped 3D query supplies its own ray. A pad/second viewport does
+    // not need a physical OS cursor inside the window to reach deprojection.
+    if(g_scope&&controller==g_scope->controller&&x&&y&&
+       reinterpret_cast<uintptr_t>(_ReturnAddress())==g_base+0x571E95){*x=0;*y=0;return true;}
+    return g_mousePosition(controller,x,y);
 }
 void Observe(const MouseRay& r,const Vec3& target,bool hit,const char* path){
     const unsigned n=r.ultimate?++g_ultimate:r.mounted?++g_horse:++g_foot;
@@ -178,6 +200,7 @@ void HookCinema(void* instance,bool enabled,bool allPlayers){
         g_log(line);
     }
 }
+void HookWidgetState(void*,unsigned char,bool);
 struct HookSpec {uintptr_t rva; unsigned char bytes[16]; void* detour; void** original;};
 }
 bool Install(RayProvider provider,LogFn log){
@@ -188,6 +211,7 @@ bool Install(RayProvider provider,LogFn log){
         {0x5719A0,{0x48,0x8B,0xC4,0x55,0x57,0x41,0x54,0x41,0x56,0x41,0x57,0x48,0x8D,0xA8,0x38,0xFF},reinterpret_cast<void*>(&HookAim2),reinterpret_cast<void**>(&g_aim2)},
         {0x571E50,{0x40,0x55,0x53,0x56,0x57,0x41,0x56,0x48,0x8D,0x6C,0x24,0xD0,0x48,0x81,0xEC,0x30},reinterpret_cast<void*>(&HookAim3),reinterpret_cast<void**>(&g_aim3)},
         {0x187F0B0,{0x48,0x89,0x5C,0x24,0x08,0x48,0x89,0x74,0x24,0x10,0x57,0x48,0x81,0xEC,0x60,0x01},reinterpret_cast<void*>(&HookDeproject),reinterpret_cast<void**>(&g_deproject)},
+        {0x1ACAA70,{0x48,0x89,0x5C,0x24,0x10,0x48,0x89,0x74,0x24,0x18,0x57,0x48,0x83,0xEC,0x20,0x48},reinterpret_cast<void*>(&HookMousePosition),reinterpret_cast<void**>(&g_mousePosition)},
         {0x648B20,{0x48,0x89,0x74,0x24,0x18,0x57,0x41,0x56,0x41,0x57,0x48,0x83,0xEC,0x20,0x45,0x0F},reinterpret_cast<void*>(&HookCinema),reinterpret_cast<void**>(&g_cinema)}
     };
     constexpr unsigned char pauseBytes[]={0x48,0x83,0xEC,0x28,0x48,0x8B,0xD1,0x41,0xB8,0x01,0x00,0x00,0x00,0x48,0x8B,0x0D};
@@ -203,7 +227,7 @@ bool Install(RayProvider provider,LogFn log){
         if(MH_CreateHook(reinterpret_cast<void*>(g_base+h.rva),h.detour,h.original)!=MH_OK)break;
         ++created;
     }
-    bool ok=created==4;
+    bool ok=created==sizeof(hooks)/sizeof(hooks[0]);
     if(ok){
         for(const auto& h:hooks)
             if(MH_EnableHook(reinterpret_cast<void*>(g_base+h.rva))!=MH_OK){ok=false;break;}
@@ -225,6 +249,18 @@ bool Install(RayProvider provider,LogFn log){
         g_settings=reinterpret_cast<SettingsFn>(g_base+0x1885BE0);
     if(!std::memcmp(reinterpret_cast<void*>(g_base+0x14BEA00),visibleBytes,16))
         g_visible=reinterpret_cast<VisibleFn>(g_base+0x14BEA00);
+    // HUD selector state and controller ownership, proved independently of
+    // the visibility observer. Failure keeps the configurable input guard.
+    constexpr unsigned char stateBytes[]={0x48,0x89,0x5C,0x24,0x08,0x48,0x89,0x74,0x24,0x10,0x57,0x48,0x83,0xEC,0x20,0x0F};
+    constexpr unsigned char controllerBytes[]={0x40,0x53,0x48,0x83,0xEC,0x20,0x48,0x8D,0x99,0x18,0x02,0x00,0x00,0x48,0x8B,0xCB};
+    if(g_visible&&!std::memcmp(reinterpret_cast<void*>(g_base+0x5E41B0),stateBytes,16)&&
+       !std::memcmp(reinterpret_cast<void*>(g_base+0x14B5130),controllerBytes,16)){
+        void* target=reinterpret_cast<void*>(g_base+0x5E41B0);
+        if(MH_CreateHook(target,reinterpret_cast<void*>(&HookWidgetState),reinterpret_cast<void**>(&g_widgetState))==MH_OK){
+            g_widgetController=reinterpret_cast<WidgetControllerFn>(g_base+0x14B5130);
+            if(MH_EnableHook(target)!=MH_OK){MH_RemoveHook(target);g_widgetState=nullptr;g_widgetController=nullptr;}
+        }
+    }
     g_ready.store(true,std::memory_order_release);
     if(log)log("TPS V1.32 native target hooks READY: local physical mouse only; scoped deprojection; native collision; native cinematic observer; gameplay EXPERIMENTAL");
     return true;
@@ -259,48 +295,104 @@ bool OnGameThread(){
     const DWORD thread=g_gameThread.load(std::memory_order_acquire);
     return thread&&thread==GetCurrentThreadId();
 }
-void ObserveUiEvent(void* object){
-    if(!g_ready.load(std::memory_order_acquire)||!g_visible||!object||
-       GetCurrentThreadId()!=g_gameThread.load())return;
+namespace {
+thread_local bool g_observingRadial=false;
+void ObserveRadial(void* object,int request){
+    if(!g_ready.load(std::memory_order_acquire)||!g_visible||!g_widgetController||
+       !object||!OnGameThread()||g_observingRadial)return;
     void* cls=*reinterpret_cast<void**>(g_base+0x380E0B0);
     if(!IsInstanceOf(object,cls))return;
-    static thread_local bool observing=false;
-    if(observing)return;
-    observing=true;
-    const bool visible=g_visible(object);
-    observing=false;
-    const auto now=GetTickCount64();
-    const uintptr_t identity=reinterpret_cast<uintptr_t>(object);
-    bool changed=false;
+    native_objects::MemoryReader reader;
+    native_objects::Identity identity{};
+    if(!native_objects::CaptureLive(g_base,object,identity))return;
+    g_observingRadial=true;
+    void* controller=g_widgetController(object);
+    uintptr_t state=0,actor=0;
+    local_players::Context owner{};
+    const bool owned=reader.Read(reinterpret_cast<uintptr_t>(controller),0x318,state)&&
+        reader.Read(state,0x5C0,actor)&&local_players::ResolveActor(reinterpret_cast<void*>(actor),owner)&&
+        owner.controller==reinterpret_cast<uintptr_t>(controller)&&owner.index>=0&&owner.index<2;
+    const bool visible=owned&&g_visible(object);
+    unsigned char nativeState=3;
+    reader.Read(reinterpret_cast<uintptr_t>(object),0x254,nativeState);
+    g_observingRadial=false;
+    if(!owned)return;
+    const auto slot=local_players::PublishedSlot(unsigned(owner.index));
+    bool changed=false,active=false;
     AcquireSRWLockExclusive(&g_radialLock);
     RadialSample* chosen=nullptr;
-    for(auto& sample:g_radials){
-        if(sample.identity==identity){chosen=&sample;break;}
-        if(!chosen||sample.visibleAt<chosen->visibleAt)chosen=&sample;
+    for(auto& sample:g_radials)if(sample.identity==identity){chosen=&sample;break;}
+    if(!chosen&&request>=0){
+        for(auto& sample:g_radials)if(!sample.identity||!native_objects::Alive(reader,g_base,sample.identity)){
+            chosen=&sample;*chosen={};chosen->identity=identity;break;
+        }
     }
-    if(chosen&&(visible||chosen->identity==identity)){
-        const bool was=chosen->identity==identity&&chosen->visibleAt&&
-            now>=chosen->visibleAt&&now-chosen->visibleAt<250ull;
-        changed=was!=visible;
-        *chosen=visible?RadialSample{identity,now}:RadialSample{};
+    if(chosen){
+        const bool same=chosen->local==owner.localPlayer&&chosen->character==owner.character&&
+            chosen->generation==slot.generation&&chosen->player==unsigned(owner.index);
+        if(!same)chosen->selection={};
+        chosen->local=owner.localPlayer;chosen->character=owner.character;
+        chosen->generation=slot.generation;chosen->player=unsigned(owner.index);
+        if(request>=0)chosen->selection.Request(unsigned(request));
+        active=chosen->selection.Selecting(nativeState,visible);
+        changed=chosen->active!=active;chosen->active=active;
     }
     ReleaseSRWLockExclusive(&g_radialLock);
-    const auto n=++g_radialEvents;
-    if(g_log&&(n<=4||changed)){
-        char line[180]{};
-        sprintf_s(line,"TPS V1.34 NATIVE_RADIAL visible=%d object=%p events=%u bindingIndependent=1",visible?1:0,object,n);
-        g_log(line);
+    if(changed){
+        const auto n=++g_radialEvents;
+        if(g_log&&n<=120){char line[220]{};
+            sprintf_s(line,"TPS V1.50 NATIVE_RADIAL player=%d selecting=%d state=%u request=%d object=%p generation=%u bindingIndependent=1",
+                owner.index+1,active?1:0,unsigned(nativeState),request,object,slot.generation);g_log(line);}
     }
 }
-bool RadialActive(){
-    const auto now=GetTickCount64();
+void HookWidgetState(void* object,unsigned char state,bool update){
+    // The native transition is authoritative; don't infer opening from a
+    // constructed widget's default visibility or from a physical button.
+    native_objects::Identity identity{};
+    const bool live=OnGameThread()&&object&&IsInstanceOf(object,*reinterpret_cast<void**>(g_base+0x380E0B0))&&native_objects::CaptureLive(g_base,object,identity);
+    g_widgetState(object,state,update);
+    native_objects::MemoryReader reader;
+    if(live&&native_objects::Alive(reader,g_base,identity))ObserveRadial(object,state);
+}
+}
+native_objects::Identity CaptureUiEvent(void* object){
+    native_objects::Identity identity{};
+    if(g_ready.load(std::memory_order_acquire)&&OnGameThread()&&object&&
+       IsInstanceOf(object,*reinterpret_cast<void**>(g_base+0x380E0B0)))
+        native_objects::CaptureLive(g_base,object,identity);
+    return identity;
+}
+void ObserveUiEvent(const native_objects::Identity& identity){
+    native_objects::MemoryReader reader;
+    if(OnGameThread()&&native_objects::Alive(reader,g_base,identity))
+        ObserveRadial(reinterpret_cast<void*>(identity.address),-1);
+}
+bool RadialActive(unsigned index){
+    if(index>1)return false;
+    const auto owner=local_players::PublishedSlot(index);
+    if(!owner.localPlayer)return false;
+    native_objects::MemoryReader reader;
     bool active=false;
     AcquireSRWLockShared(&g_radialLock);
     for(const auto& sample:g_radials)
-        if(sample.visibleAt&&now>=sample.visibleAt&&now-sample.visibleAt<250ull)
-            active=true;
+        if(sample.active&&sample.player==index&&sample.local==owner.localPlayer&&
+           sample.character==owner.character&&sample.generation==owner.generation&&
+           native_objects::Alive(reader,g_base,sample.identity)){active=true;break;}
     ReleaseSRWLockShared(&g_radialLock);
     return active;
+}
+bool TraceCameraTarget(const local_players::Context& owner,const MouseRay& ray,Vec3& target,bool& hit){
+    if(!g_ready.load(std::memory_order_acquire)||!g_aim3||!OnGameThread()||
+       owner.index<0||owner.index>1||!owner.controller||!owner.pawn||
+       !Finite(ray.origin)||!Finite(ray.direction))return false;
+    const float length=ray.direction.x*ray.direction.x+ray.direction.y*ray.direction.y+ray.direction.z*ray.direction.z;
+    if(length<0.99f||length>1.01f)return false;
+    NativeTarget fresh{};Vec3 native{};
+    ScopedRay scope(reinterpret_cast<void*>(owner.controller),ray);
+    g_aim3(reinterpret_cast<void*>(owner.controller),&native,reinterpret_cast<void*>(owner.pawn),&fresh,false,nullptr);
+    if(!scope.scope.used)return false;
+    hit=fresh.valid&&Finite(fresh.point);target=hit?fresh.point:FarTarget(ray);
+    return Finite(target);
 }
 void Report(){
     if(!g_log)return;

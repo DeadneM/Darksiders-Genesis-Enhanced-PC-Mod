@@ -241,7 +241,6 @@ public:
     bool skipWarningEnabled = true;
     bool thirdPersonEnabled = true;
     bool thirdPersonFovEnabled = true;
-    bool tpsFollowPlayer = true;
     bool cameraOrbitInputEnabled = true; // derived: controller-only TPS camera
     bool cameraControllerOrbitEnabled = true;
     int tpsCameraStickMode = 2; // 0 OFF, 1 left, 2 right

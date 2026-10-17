@@ -1,6 +1,7 @@
 #pragma once
 #include "LocalPlayerOwnership.h"
 #include <cstddef>
+#include <cmath>
 
 namespace dg::local_players::layout {
 constexpr uintptr_t PlayerClass=0x380FE78, HorseClass=0x380D9B8,
@@ -120,8 +121,15 @@ NativeView View(Reader& r,uintptr_t camera,unsigned index,int* localCount=nullpt
         if(!r.Read(target,0x108,owner))return NativeView::Unknown;
         return owner==manager?NativeView::Gameplay:NativeView::ExternalCamera;
     };
+    // 1AC4A80 consumes PendingViewTarget only during the native blend and
+    // clears it at handoff; BlendTimeToGo is the float at 19E0. A pointer
+    // left in that slot alone must not start or prolong a cinematic.
+    float remaining=0;
+    if(pending&&(!r.Read(manager,0x19E0,remaining)||!std::isfinite(remaining)))return NativeView::Unknown;
     const auto active=classify(current),next=classify(pending);
-    if(active==NativeView::ExternalCamera||next==NativeView::ExternalCamera)
+    if(pending&&remaining<=0&&next==NativeView::Gameplay)return NativeView::Gameplay;
+    if(pending&&remaining<=0)pending=0;
+    if(active==NativeView::ExternalCamera||(pending&&next==NativeView::ExternalCamera))
         return NativeView::ExternalCamera;
     return active==NativeView::Gameplay&&(!pending||next==NativeView::Gameplay)?
         NativeView::Gameplay:NativeView::Unknown;

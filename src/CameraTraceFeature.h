@@ -22,7 +22,6 @@ struct Telemetry {
     uint32_t mountedFireHorseSelected = 0;
     uint32_t mountedFireOverrodeFoot = 0;
     uint32_t mountedFireHorseUnavailable = 0;
-    uint32_t mountedFireVerticalSmoothed = 0;
     // V1.27: camera read-only diagnostics, not native shot trajectory proof.
     uint32_t mountedMouseViewFrames = 0;
     uint32_t mountedMouseHorsePoseHeld = 0;
@@ -30,7 +29,6 @@ struct Telemetry {
     uint32_t facingFootOffAxis = 0;
     uint32_t facingHorseSamples = 0;
     uint32_t facingHorseOffAxis = 0;
-    float mountedFireLastVerticalCorrection = 0.0f;
     bool mountedFireCurrentlyActive = false;
     float nativeFov = 0.0f;
     float appliedFov = 0.0f;
@@ -93,6 +91,13 @@ bool MarkCurrentCinematicForDebug(); // user annotation only, no camera writes
 const char* CinematicDebugPhaseLabel(CinematicDebugPhase phase);
 void Install(LogFn log);
 Telemetry GetTelemetry();
+struct AppliedView {
+    float x=0,y=0,z=0,pitch=0,yaw=0;
+    uintptr_t local=0,character=0;
+    uint32_t generation=0;
+    uint64_t tick=0;
+};
+AppliedView GetAppliedView();
 // Hot native look callbacks need only this one value, not a full debug snapshot.
 float AppliedYaw();
 bool RecenterOnPlayer();

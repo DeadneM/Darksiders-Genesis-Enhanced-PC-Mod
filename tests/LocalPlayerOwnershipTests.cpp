@@ -112,10 +112,15 @@ void Run(){
     }
     Check(layout::View(g,Camera(P0),0)==NativeView::Gameplay&&layout::View(g,Camera(P0),1)==NativeView::Gameplay,"pause/wheels on native player view are gameplay");
     g.types[scene]=layout::CameraActorClass;g.Put(scene,0x108,uintptr_t(0));
-    g.Put(manager1,0x1440,scene);
+    g.Put(manager1,0x1440,scene);g.Put(manager1,0x19E0,1.0f);
     Check(layout::View(g,Camera(P0),0)==NativeView::Gameplay&&layout::View(g,Camera(P0),1)==NativeView::ExternalCamera,"P2 scene blend does not suspend P1");
+    g.Put(manager1,0x19E0,0.0f);
+    Check(layout::View(g,Camera(P0),1)==NativeView::Gameplay,"stale external pending pointer cannot invent a cutscene after its blend expired");
+    g.Put(manager1,0x19E0,1.0f);
     g.Put(manager1,0xEA0,scene);g.Put(manager1,0x1440,P1);
     Check(layout::View(g,Camera(P0),1)==NativeView::ExternalCamera,"return blend retains external camera until native handoff");
+    g.Put(manager1,0x19E0,0.0f);
+    Check(layout::View(g,Camera(P0),1)==NativeView::Gameplay,"completed native return blend releases the cinematic immediately");
     g.Put(manager1,0xEA0,P1);g.Put(manager1,0x1440,uintptr_t(0));
     Check(layout::View(g,Camera(P0),1)==NativeView::Gameplay,"native handoff resumes gameplay immediately without angle/distance heuristic");
     g.Put(scene,0x108,manager1);g.Put(manager1,0xEA0,scene);

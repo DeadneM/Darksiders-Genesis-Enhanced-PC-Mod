@@ -3,6 +3,9 @@
 #include "HorseFeature.h"
 #include "LocalPlayerOwnership.h"
 #include "RuntimeSettings.h"
+#include "NativeTpsFeature.h"
+#include "NativeObjectIdentity.h"
+#include "NativeMemoryReader.h"
 
 #include <MinHook.h>
 
@@ -76,9 +79,10 @@ constexpr std::size_t kMaxAccelerationOffset = 0x1F0;
 constexpr std::size_t kBrakingFrictionFactorOffset = 0x1F8;
 constexpr std::size_t kSprintingMaxSpeedOffset = 0x760;
 
-constexpr std::size_t kMaxHorseSlots = 4;
+constexpr std::size_t kMaxHorseSlots = 64;
 
 struct HorseSlot {
+    native_objects::Identity identity{},movementIdentity{};
     void* horse = nullptr;
     void* movement = nullptr;
 
@@ -99,6 +103,8 @@ struct HorseSlot {
     ULONGLONG lastNativeCaptureTick = 0;
 };
 
+struct HorseMovementBaseline {float walk=0,acceleration=0,braking=0,sprint=0;};
+native_objects::Baselines<HorseMovementBaseline,64> g_movementBaselines;
 SRWLOCK g_lock = SRWLOCK_INIT;
 std::array<HorseSlot, kMaxHorseSlots> g_slots{};
 
@@ -151,6 +157,9 @@ std::atomic_uint32_t g_desummonQueries{0},g_desummonOverrides{0};
 std::atomic_uint32_t g_mountedRegionHolds{0},g_mountedDesummonHolds{0};
 std::atomic<void*> g_lastLocalPlayerIdentity{nullptr};
 std::atomic_ullong g_lastLocalPlayerTick{0};
+// Actual native summon action, privately owned by player, not by a key.
+struct SummonAction {uintptr_t local=0,character=0;ULONGLONG tick=0;};
+SummonAction g_summonActions[2]{}; // game thread only
 
 using HorseFloatFn = float(*)(void*);
 using HorseVoidFn = void(*)(void*);
@@ -290,9 +299,9 @@ float Clamp(float value, float low, float high) {
     return std::clamp(value, low, high);
 }
 
-HorseSlot* FindHorseLocked(void* horse) {
+HorseSlot* FindHorseLocked(const native_objects::Identity& identity) {
     for (auto& slot : g_slots) {
-        if (slot.horse == horse && horse) {
+        if (slot.identity == identity && identity) {
             return &slot;
         }
     }
@@ -311,12 +320,17 @@ HorseSlot* FindMovementLocked(void* movement) {
 }
 
 HorseSlot* AllocateHorseLocked(void* horse) {
-    if (auto* existing = FindHorseLocked(horse)) {
+    native_objects::MemoryReader reader;
+    native_objects::Identity identity{};
+    const auto base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    if(!native_objects::CaptureLive(base,horse,identity))return nullptr;
+    if (auto* existing = FindHorseLocked(identity)) {
         return existing;
     }
 
     for (auto& slot : g_slots) {
-        if (!slot.horse) {
+        if (!slot.identity||!native_objects::Alive(reader,base,slot.identity)) {
+            slot={};slot.identity=identity;
             slot.horse = horse;
             g_horsesFound.fetch_add(1);
             return &slot;
@@ -583,25 +597,10 @@ void CaptureHorseLocked(
     // method is actively executing with this exact live 'this' pointer.
     // Resolve the movement fresh on every native capture. If UE4 recycled the
     // HorseCharacter address across a level transition, a changed movement
-    // pointer marks a new generation and all cached baselines are discarded.
+    // pointer replaces movement baselines only; this same live horse keeps
+    // its original stamina baseline. Object serial reuse starts a new slot.
     void* liveMovement = ResolveHorseMovement(horse);
-
-    if (slot->captures > 0 &&
-        liveMovement &&
-        slot->movement &&
-        liveMovement != slot->movement) {
-        FeatureLog(
-            "HorseFeature V0.31: HORSE GENERATION CHANGED "
-            "horse=%p oldMovement=%p newMovement=%p -> reset baselines",
-            horse,
-            slot->movement,
-            liveMovement
-        );
-
-        const void* preservedHorse = slot->horse;
-        *slot = {};
-        slot->horse = const_cast<void*>(preservedHorse);
-    }
+    if(!liveMovement)return; // Never write the previously cached movement.
 
     const bool firstCapture =
         slot->captures == 0;
@@ -641,60 +640,30 @@ void CaptureHorseLocked(
         }
     }
 
-    if (!slot->movementReady) {
-        void* movement = liveMovement;
-        if (movement) {
-            float walk = 0.0f;
-            float acceleration = 0.0f;
-            float braking = 0.0f;
-            float sprintMax = 0.0f;
-
-            const bool movementFieldsOk =
-                ReadFloat(
-                    movement,
-                    kMaxWalkSpeedOffset,
-                    walk) &&
-                ReadFloat(
-                    movement,
-                    kMaxAccelerationOffset,
-                    acceleration) &&
-                ReadFloat(
-                    movement,
-                    kBrakingFrictionFactorOffset,
-                    braking) &&
-                ReadFloat(
-                    movement,
-                    kSprintingMaxSpeedOffset,
-                    sprintMax);
-
-            if (movementFieldsOk &&
-                walk > 0.0f &&
-                acceleration > 0.0f &&
-                sprintMax >= 0.0f &&
-                sprintMax < 10000.0f) {
-                slot->movement = movement;
-                slot->nativeMaxWalkSpeed = walk;
-                slot->nativeMaxAcceleration = acceleration;
-                slot->nativeBrakingFrictionFactor = braking;
-                slot->nativeSprintingMaxSpeed = sprintMax;
-                slot->horseFieldsReady = sprintMax > 0.0f;
-                slot->movementReady = true;
-
-                FeatureLog(
-                    "HorseFeature V0.31: HORSE MOVEMENT READY "
-                    "horse=%p movement=%p walk=%.1f accel=%.1f "
-                    "brake=%.2f sprintMax=%.1f sprintFieldReady=%d",
-                    horse,
-                    movement,
-                    walk,
-                    acceleration,
-                    braking,
-                    sprintMax,
-                    slot->horseFieldsReady ? 1 : 0
-                );
-            }
-        }
+    native_objects::Identity movementIdentity{};
+    const auto base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    if(!native_objects::CaptureLive(base,liveMovement,movementIdentity))return;
+    auto* movementBaseline=g_movementBaselines.Find(movementIdentity);
+    if(!movementBaseline){
+        HorseMovementBaseline original{};
+        if(!ReadFloat(liveMovement,kMaxWalkSpeedOffset,original.walk)||
+           !ReadFloat(liveMovement,kMaxAccelerationOffset,original.acceleration)||
+           !ReadFloat(liveMovement,kBrakingFrictionFactorOffset,original.braking)||
+           !ReadFloat(liveMovement,kSprintingMaxSpeedOffset,original.sprint)||
+           original.walk<=0||original.acceleration<=0||original.sprint<0||original.sprint>=10000)return;
+        native_objects::MemoryReader reader;
+        movementBaseline=g_movementBaselines.Acquire(reader,base,movementIdentity);
+        if(!movementBaseline)return; // never recapture a live modified component
+        *movementBaseline=original;
+        FeatureLog("Horse movement baseline: horse=%p movement=%p objectIndex=%d serial=%d walk=%.1f sprint=%.1f",
+            horse,liveMovement,movementIdentity.index,movementIdentity.serial,original.walk,original.sprint);
     }
+    slot->movement=liveMovement;slot->movementIdentity=movementIdentity;
+    slot->nativeMaxWalkSpeed=movementBaseline->walk;
+    slot->nativeMaxAcceleration=movementBaseline->acceleration;
+    slot->nativeBrakingFrictionFactor=movementBaseline->braking;
+    slot->nativeSprintingMaxSpeed=movementBaseline->sprint;
+    slot->movementReady=true;slot->horseFieldsReady=movementBaseline->sprint>0;
 
     float currentStamina = 0.0f;
     float maxStamina = 0.0f;
@@ -850,6 +819,10 @@ void HookHorseSetSprintingTrue(
 // Probe of actual server-side spawn request. Same arguments are forwarded;
 // disabled/forbidden mount checks remain entirely owned by the game.
 void HookHorseServerSpawnImpl(void* actor,void* a,void* b,unsigned char flag){
+    dg::local_players::Context actionOwner{};
+    if(dg::native_tps::OnGameThread()&&dg::local_players::ResolveActor(actor,actionOwner)&&
+       actionOwner.index>=0&&actionOwner.index<2&&actionOwner.character==reinterpret_cast<uintptr_t>(actor))
+        g_summonActions[actionOwner.index]={actionOwner.localPlayer,actionOwner.character,GetTickCount64()};
     g_lastServerSpawnLocalOwner.store(
         actor&&actor==g_lastLocalPlayerIdentity.load(std::memory_order_acquire)
             ? actor : nullptr,std::memory_order_release);
@@ -873,6 +846,12 @@ bool IsLocalSummonIntent(void* actor){
     auto& rt=dg::runtime::Get();
     if(!rt.horseEverywhereEnabled.load(std::memory_order_relaxed))return false;
     const ULONGLONG now=GetTickCount64();
+    dg::local_players::Context owner{};
+    if(dg::native_tps::OnGameThread()&&dg::local_players::ResolveActor(actor,owner)&&owner.index>=0&&owner.index<2){
+        const auto& action=g_summonActions[owner.index];
+        if(action.local==owner.localPlayer&&action.character==owner.character&&
+           action.tick&&now>=action.tick&&now-action.tick<=1600)return true;
+    }
     const ULONGLONG pressed=rt.horseSummonIntentTick.load(std::memory_order_acquire);
     const ULONGLONG localTick=g_lastLocalPlayerTick.load(std::memory_order_acquire);
     return pressed&&localTick&&now>=pressed&&now-pressed<=1600ull&&
@@ -912,6 +891,10 @@ bool IsLiveLocalMountedRide(void* actor){
 bool IsCameraIndependentLocalRide(void* actor){
     if(!actor||!dg::runtime::Get().horseEverywhereEnabled.load(std::memory_order_relaxed))
         return false;
+    dg::local_players::Context localOwner{};
+    if(dg::native_tps::OnGameThread()&&dg::local_players::ResolveActor(actor,localOwner)&&
+       localOwner.character==reinterpret_cast<uintptr_t>(actor)&&localOwner.kind==dg::local_players::PoseKind::Horse)
+        return true; // reciprocal Controller.Pawn proves the current mount for P1 AND P2
     void* owner=g_horseLeaseOwner.load(std::memory_order_acquire);
     if(!owner||actor!=owner||
        owner!=g_lastLocalPlayerIdentity.load(std::memory_order_acquire))
@@ -1189,21 +1172,6 @@ void ObservePlayerCharacter(void* player) {
     }
 }
 
-void PollDirectHorse(void*) {
-    // V0.27 deliberately ignores player identity.
-}
-
-void ObserveMovement(
-    void*,
-    void*,
-    void*,
-    float
-) {
-    // V0.31 lifetime safety:
-    // Never dereference or write a cached horse pointer from the generic
-    // movement hook. Only native HorseCharacter callbacks may apply tunings.
-}
-
 float AdjustSpeedResult(
     void*,
     float nativeGetMaxSpeed
@@ -1214,13 +1182,6 @@ float AdjustSpeedResult(
     g_nativeGetMaxSpeed.store(nativeGetMaxSpeed);
     g_appliedGetMaxSpeed.store(nativeGetMaxSpeed);
     return nativeGetMaxSpeed;
-}
-
-void Tick() {
-    // V0.31 lifetime safety:
-    // Deliberately no per-frame writes. Horse UObject pointers are weak raw
-    // observations and can die during seamless travel / level reload. All
-    // tuning writes happen only from native HorseCharacter callbacks.
 }
 
 Telemetry GetTelemetry() {
@@ -1274,7 +1235,10 @@ bool IsValidatedMovement(void* movementComponent) {
     HorseSlot* slot =
         FindMovementLocked(movementComponent);
 
-    if (slot &&
+    native_objects::MemoryReader reader;
+    const auto base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    if (slot && native_objects::Alive(reader,base,slot->identity) &&
+        native_objects::Alive(reader,base,slot->movementIdentity) &&
         slot->lastNativeCaptureTick != 0 &&
         now >= slot->lastNativeCaptureTick &&
         now - slot->lastNativeCaptureTick <= 2000) {

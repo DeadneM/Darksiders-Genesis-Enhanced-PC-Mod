@@ -1,4 +1,6 @@
 #pragma once
+#include "LocalPlayerOwnership.h"
+#include "NativeObjectIdentity.h"
 namespace dg::native_tps {
 struct Vec3 { float x=0,y=0,z=0; };
 struct MouseRay { Vec3 origin,direction; bool mounted=false,fireHeld=false,ultimate=false; };
@@ -10,10 +12,13 @@ bool CinematicActive(unsigned playerIndex=0);
 bool IsWorldPaused(void* liveWorldContext);
 // Called only from native game-thread callbacks, never from Present/XInput.
 void SampleNativeStickSwap();
-void ObserveUiEvent(void* liveObject);
+native_objects::Identity CaptureUiEvent(void* liveObject);
+void ObserveUiEvent(const native_objects::Identity& identity);
 bool NativeStickSwap();
 bool NativeStickSwapKnown();
-bool RadialActive();
+bool RadialActive(unsigned playerIndex=0);
+// Synchronous native collision query using the exact existing scoped helper.
+bool TraceCameraTarget(const local_players::Context&,const MouseRay&,Vec3& target,bool& hit);
 bool OnGameThread();
 void Report();
 }

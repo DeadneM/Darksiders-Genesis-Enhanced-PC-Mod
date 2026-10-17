@@ -1,5 +1,6 @@
 #pragma once
 #include "LocalPlayerOwnership.h"
+#include "NativeTpsFeature.h"
 #include <windows.h>
 #include <Xinput.h>
 
@@ -15,5 +16,5 @@ bool UpdateInput(const XINPUT_GAMEPAD* physical,bool focused,float dt,
     int recenterMask,int suspendMask,int suspendDelayMs,int toggleMask=0,int toggleHoldMs=500);
 bool FilterPad(DWORD controllerId,XINPUT_GAMEPAD& pad,bool focusedGameplay=true);
 bool AdjustLook(void* actor,float& a,float& b,float& c,bool rotation);
-bool ShotRotation(const local_players::Context& owner,float& pitch,float& yaw);
+bool ShotRay(const local_players::Context& owner,native_tps::MouseRay& ray);
 }

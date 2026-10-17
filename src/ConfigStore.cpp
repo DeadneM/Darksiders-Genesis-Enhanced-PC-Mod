@@ -325,7 +325,6 @@ void Store::ResetDefaults(bool persist) {
     skipWarningEnabled = true;
     thirdPersonEnabled = true;
     thirdPersonFovEnabled = true;
-    tpsFollowPlayer = true;
     cameraOrbitInputEnabled = true;
     cameraControllerOrbitEnabled = true;
     tpsCameraStickMode = 2;
@@ -575,7 +574,6 @@ bool Store::Load() {
     thirdPersonEnabled =
         ReadBool(L"Features", L"ThirdPerson", true, path_);
     thirdPersonFovEnabled=ReadBool(L"Features",L"TPSFOV",true,path_);
-    tpsFollowPlayer=true; // permanent verified player attachment
     const bool oldOrbit=ReadBool(L"Features",L"CameraControllerOrbit",true,path_);
     tpsCameraStickMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(
         L"Features",L"TPSCameraStickMode",oldOrbit?2:0,path_.c_str())),0,2);
@@ -852,6 +850,7 @@ bool Store::Load() {
 
 void Store::PublishRuntime() const {
     dg::runtime::Snapshot runtime{};
+    runtime.overlayMenuKey=menuKey;
     runtime.toggleHudEnabled = toggleHudEnabled;
     runtime.fovEnabled = fovEnabled;
     runtime.movementSpeedEnabled = movementSpeedEnabled;
@@ -861,7 +860,6 @@ void Store::PublishRuntime() const {
     runtime.skipWarningEnabled = skipWarningEnabled;
     runtime.thirdPersonEnabled = thirdPersonEnabled;
     runtime.thirdPersonFovEnabled = thirdPersonFovEnabled;
-    runtime.tpsFollowPlayer = tpsFollowPlayer;
     // Mouse TPS orbit shares the existing orbit result; it does not need
     // a controller stick enabled. In native view no TPS orbit is applied.
     runtime.cameraOrbitInputEnabled = thirdPersonEnabled;

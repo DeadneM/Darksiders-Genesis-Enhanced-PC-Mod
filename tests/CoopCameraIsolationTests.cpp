@@ -10,7 +10,7 @@ namespace {
 unsigned char g_character[0x1000]{},g_respawn[0x1000]{};
 dg::local_players::Context g_owner{1,1,2,0x1000,0x2000,reinterpret_cast<uintptr_t>(g_character),reinterpret_cast<uintptr_t>(g_character),0x3000};
 dg::local_players::Pose g_pose{2000,3000,100,50};
-bool g_cinema=false,g_paused=false,g_swap=false,g_known=true;
+bool g_cinema=false,g_paused=false,g_swap=false,g_known=true,g_radial[2]{};
 void Check(bool v,const char* msg){if(!v)throw std::runtime_error(msg);}
 bool Equal(const XINPUT_GAMEPAD& a,const XINPUT_GAMEPAD& b){return std::memcmp(&a,&b,sizeof(a))==0;}
 bool Close(float a,float b){return std::fabs(a-b)<0.001f;}
@@ -43,10 +43,14 @@ void Run(){
     Check(dg::coop_camera::FilterPad(1,pad)&&pad.sThumbRX==0&&pad.sThumbRY==32767&&pad.wButtons==buttons,"rebindable secondary fire points forward without modifying buttons");
     float x=0,y=0,z=0;
     Check(dg::coop_camera::AdjustLook(g_character,x,y,z,true)&&Close(y,view[4]),"P2 firing uses its own emitted yaw");
-    float shotPitch=0,shotYaw=0;
-    Check(dg::coop_camera::ShotRotation(g_owner,shotPitch,shotYaw)&&Close(shotPitch,view[3])&&Close(shotYaw,view[4]),"P2 projectile uses its emitted 3D camera orientation at spawn time");
+    dg::native_tps::MouseRay shot{};
+    Check(dg::coop_camera::ShotRay(g_owner,shot)&&Close(shot.origin.x,view[0])&&Close(shot.direction.z,std::sin(view[3]*0.01745329251994329577f)),"P2 projectile uses its emitted 3D camera orientation at spawn time");
+    g_radial[1]=true;pad=unchanged;Input(&pad);const auto nativeWheel=pad;
+    Check(dg::coop_camera::FilterPad(1,pad)&&Equal(pad,nativeWheel),"actual native P2 selector protects axes even without the configured button");
+    g_radial[1]=false;pad={};Input(&pad);View(view);
+    Check(dg::coop_camera::ShotRay(g_owner,shot),"native Finish may aim after the physical trigger was released");
     rt.tpsMountedAimMode=1;
-    Check(!dg::coop_camera::ShotRotation(g_owner,shotPitch,shotYaw),"P2 vanilla aim cannot enter camera-forward projectile correction");rt.tpsMountedAimMode=0;
+    Check(!dg::coop_camera::ShotRay(g_owner,shot),"P2 vanilla aim cannot enter camera-forward projectile correction");rt.tpsMountedAimMode=0;
     g_known=false;pad=unchanged;Input(&pad);const auto unknown=pad;
     Check(dg::coop_camera::FilterPad(1,pad)&&Equal(pad,unknown),"unknown native stick layout fails open");g_known=true;
     rt.tpsCameraStickMode=1;pad={};pad.sThumbLX=30000;pad.sThumbRX=12000;Input(&pad);View(view);
@@ -97,6 +101,7 @@ bool ResolveActor(void* actor,Context& c){if(reinterpret_cast<uintptr_t>(actor)!
 }
 namespace dg::native_tps {
 bool IsWorldPaused(void*){return g_paused;}
+bool RadialActive(unsigned index){return index<2&&g_radial[index];}
 bool CinematicActive(unsigned){return g_cinema;}
 bool NativeStickSwap(){return g_swap;}
 bool NativeStickSwapKnown(){return g_known;}

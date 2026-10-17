@@ -31,9 +31,12 @@
 #include "RuntimeSettings.h"
 #include "ShaderAimFeature.h"
 #include "ProjectileAimFeature.h"
+#include "MouseFireRouting.h"
 #include "HealthFeature.h"
 #include "GlideFeature.h"
 #include "ActionRecoveryFeature.h"
+#include "NativeObjectIdentity.h"
+#include "NativeMemoryReader.h"
 #include "SkipLogosFeature.h"
 #include "SkipWarningFeature.h"
 #include "TargetValidator.h"
@@ -139,6 +142,7 @@ std::atomic_uint32_t g_resizeBuffersTraceCount{0};
 std::atomic<void*> g_gameWindowTrace{nullptr};
 // Manual F5-only fallback retained for comparison; no auto focus simulation.
 std::atomic_int g_capturedMenuKey{0};
+std::atomic_int g_windowNotice{0};
 std::atomic_int g_captureCameraKeyIndex{-1};
 std::atomic_int g_capturedCameraBinding{0};
 std::array<bool, static_cast<size_t>(dg::config::CameraAction::Count)> g_cameraKeyHeld{};
@@ -159,7 +163,7 @@ std::atomic_uint32_t g_v119RawMouse{0},g_v119MouseMoveFallback{0},
 
 // V1.20: preserve existing game registrations and legacy mouse messages.
 std::atomic_bool g_v120RawRegistrationChecked{false},g_v120RawAddedByMod{false};
-std::atomic_uint32_t g_v120ExistingRawMouse{0},g_v120RawRegistrationErrors{0},
+std::atomic_uint32_t g_v120RawRegistrationErrors{0},
     g_v120RawMousePackets{0},g_v120RawNonMousePackets{0},g_v120RawAtEdge{0};
 // Only limited repositioning at window edge, not a reticle visibility hook.
 std::atomic_ullong g_v123LastPhysicalMouseTick{0},g_v123LastRecenterTick{0};
@@ -212,7 +216,6 @@ std::atomic_uint g_lastOutgoingScaleType{0};
 std::atomic_int g_lastOutgoingTagCount{0};
 std::atomic<void*> g_localPlayerCharacter{nullptr};
 
-std::atomic_int g_movementCaptureRejectLogBudget{12};
 
 struct PlayerMovementTuningState {
     void* component = nullptr;
@@ -222,7 +225,7 @@ struct PlayerMovementTuningState {
 };
 
 SRWLOCK g_tuningLock = SRWLOCK_INIT;
-std::array<PlayerMovementTuningState, 4> g_playerMovementStates{};
+dg::native_objects::Baselines<PlayerMovementTuningState,64> g_playerMovementStates{};
 
 std::array<bool, 256> g_keyDown{};
 std::string g_lastAction = "None";
@@ -1226,67 +1229,27 @@ bool IsReasonablePositiveFloat(float value, float minValue, float maxValue) {
 }
 
 PlayerMovementTuningState* FindOrCapturePlayerMovementState(void* movementComponent) {
-    if (!movementComponent) {
+    dg::native_objects::MemoryReader reader;
+    dg::native_objects::Identity identity{};
+    const auto base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    if(!dg::native_objects::CaptureLive(base,movementComponent,identity))return nullptr;
+    if(auto* existing=g_playerMovementStates.Find(identity))return existing;
+    auto* component=static_cast<unsigned char*>(movementComponent);
+    const float jumpZ=*reinterpret_cast<float*>(component+0x1A0);
+    const float doubleJumpZ=*reinterpret_cast<float*>(component+0x85C);
+    const float glideDuration=*reinterpret_cast<float*>(component+0x86C);
+    if(!IsReasonablePositiveFloat(jumpZ,100.0f,10000.0f)||
+       !IsReasonablePositiveFloat(doubleJumpZ,100.0f,10000.0f)||
+       !IsReasonablePositiveFloat(glideDuration,0.05f,60.0f))return nullptr;
+    auto* slot=g_playerMovementStates.Acquire(reader,base,identity);
+    if(!slot){
+        static std::atomic_bool reported{false};
+        if(!reported.exchange(true))Log("Movement baselines: all slots still live; new object left native, no baseline eviction");
         return nullptr;
     }
-
-    for (auto& state : g_playerMovementStates) {
-        if (state.component == movementComponent) {
-            return &state;
-        }
-    }
-
-    BYTE* component = reinterpret_cast<BYTE*>(movementComponent);
-
-    // Offsets recovered directly from UE4 generated reflection property params
-    // in the audited executable:
-    // UCharacterMovementComponent::JumpZVelocity                 +0x1A0
-    // UMayhemPlayerCharacterMovementComponent::DoubleJumpZVelocity +0x85C
-    // UMayhemPlayerCharacterMovementComponent::GlideDurationSeconds +0x86C
-    const float jumpZ = *reinterpret_cast<float*>(component + 0x1A0);
-    const float doubleJumpZ = *reinterpret_cast<float*>(component + 0x85C);
-    const float glideDuration = *reinterpret_cast<float*>(component + 0x86C);
-
-    if (!IsReasonablePositiveFloat(jumpZ, 100.0f, 10000.0f) ||
-        !IsReasonablePositiveFloat(doubleJumpZ, 100.0f, 10000.0f) ||
-        !IsReasonablePositiveFloat(glideDuration, 0.05f, 60.0f)) {
-        const int budget = g_movementCaptureRejectLogBudget.fetch_sub(1);
-        if (budget > 0) {
-            Log(
-                "Runtime tuning: movement capture rejected component=%p jump=%.3f double=%.3f glide=%.3f",
-                movementComponent,
-                jumpZ,
-                doubleJumpZ,
-                glideDuration
-            );
-        }
-        return nullptr;
-    }
-
-    PlayerMovementTuningState* slot = nullptr;
-    for (auto& state : g_playerMovementStates) {
-        if (!state.component) {
-            slot = &state;
-            break;
-        }
-    }
-    if (!slot) {
-        slot = &g_playerMovementStates[0];
-    }
-
-    slot->component = movementComponent;
-    slot->jumpZVelocity = jumpZ;
-    slot->doubleJumpZVelocity = doubleJumpZ;
-    slot->glideDurationSeconds = glideDuration;
-
-    Log(
-        "Runtime tuning: captured movement component=%p JumpZ=%.3f DoubleJumpZ=%.3f GlideDuration=%.3f",
-        movementComponent,
-        jumpZ,
-        doubleJumpZ,
-        glideDuration
-    );
-
+    *slot={movementComponent,jumpZ,doubleJumpZ,glideDuration};
+    Log("Movement baseline: component=%p objectIndex=%d serial=%d JumpZ=%.3f DoubleJumpZ=%.3f GlideDuration=%.3f",
+        movementComponent,identity.index,identity.serial,jumpZ,doubleJumpZ,glideDuration);
     return slot;
 }
 
@@ -1438,15 +1401,9 @@ std::atomic_uint32_t g_tpsPadStrafeApplied{0},g_tpsNativeLookRotationBlocks{0};
 std::atomic_uint32_t g_tpsNativeLookSignatureFailures{0};
 // Mounted Vanilla Aim still suppresses native stick look while idle.
 std::atomic_uint32_t g_tpsMountedIdleNativeLookBlocks{0};
-// Visual-only audit of 2 OTHER suspected native targeting UI classes.
-// No event is suppressed: the unvalidated V0.82 blocking experiment
-// is NOT merged into this cumulative gameplay branch.
+// Keep native ProcessEvent forwarding for owned radial lifecycle only.
 using AimUiEventDispatchFn=void(*)(void*,void*,void*,void*);
 AimUiEventDispatchFn g_originalAimUiEventDispatch=nullptr;
-void* const* g_aimUiClassSlot=nullptr;
-void* const* g_aimUiPositionClassSlot=nullptr;
-std::atomic_uint32_t g_aimUiEvents{0},g_aimUiPositionEvents{0};
-std::atomic_uint32_t g_aimUiEventsInTPS{0},g_aimUiEventsWhileFire{0};
 
 // Actual mounted TPS camera source is written by HookView, with a short
 // expiry so stale HorseCharacter callbacks cannot make foot aim mounted.
@@ -1460,6 +1417,7 @@ bool IsMountedTPSNow() {
         tick&&now>=tick&&now-tick<300ull;
 }
 bool IsTPSRadialInputActive() {
+    if(dg::native_tps::RadialActive(0))return true;
     const auto now=GetTickCount64();
     // V1.10: no charged-key exception to LB's native radial selection.
     const auto& rt=dg::runtime::Get();
@@ -1492,30 +1450,19 @@ bool MouseAnyFireHeld(){return MousePrimaryFireHeld()||MouseSecondaryFireHeld();
 // V1.33: camera-center forward ray, independent of physical cursor pixels.
 // Keep V1.32 native collision/local-owner scopes; never simulate XInput.
 bool ComputeNativeMouseRay(dg::native_tps::MouseRay& ray){
-    const HWND hwnd=reinterpret_cast<HWND>(
-        g_gameWindowTrace.load(std::memory_order_acquire));
-    if(!hwnd||GetForegroundWindow()!=hwnd||IsIconic(hwnd)||
-       g_overlayVisible.load(std::memory_order_relaxed))return false;
-    const auto t=dg::camera_trace::GetTelemetry();
-    const ULONGLONG now=GetTickCount64();
-    if(!t.appliedWorldTickMs||now<t.appliedWorldTickMs||
-       now-t.appliedWorldTickMs>250ull||
-       !std::isfinite(t.appliedYaw)||!std::isfinite(t.appliedPitch))return false;
+    const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load(std::memory_order_acquire));
+    if(!hwnd||GetForegroundWindow()!=hwnd||IsIconic(hwnd)||g_overlayVisible.load())return false;
+    const auto view=dg::camera_trace::GetAppliedView();
+    const auto owner=dg::local_players::PublishedSlot(0);
+    const auto now=GetTickCount64();
+    if(!view.tick||now<view.tick||now-view.tick>250||!owner.localPlayer||
+       view.local!=owner.localPlayer||view.character!=owner.character||view.generation!=owner.generation||
+       !std::isfinite(view.pitch)||!std::isfinite(view.yaw))return false;
     constexpr float rad=0.01745329251994329577f;
-    const float az=t.appliedYaw*rad,el=t.appliedPitch*rad;
-    const float cy=std::cos(az),sy=std::sin(az),
-        cp=std::cos(el),sp=std::sin(el);
-    const float dx=cp*cy;
-    const float dy=cp*sy;
-    const float dz=sp;
-    const float flat=std::hypot(dx,dy);
-    if(!std::isfinite(flat)||flat<0.01f||
-       !std::isfinite(dz))return false;
-    const float length=std::hypot(flat,dz);
-    if(!std::isfinite(length)||length<0.01f)return false;
-    ray.origin={t.appliedWorldX,t.appliedWorldY,t.appliedWorldZ};
-    ray.direction={dx/length,dy/length,dz/length};
-    return true;
+    const float az=view.yaw*rad,el=view.pitch*rad;
+    ray.origin={view.x,view.y,view.z};
+    ray.direction={std::cos(el)*std::cos(az),std::cos(el)*std::sin(az),std::sin(el)};
+    return std::isfinite(view.x)&&std::isfinite(view.y)&&std::isfinite(view.z);
 }
 bool IsPadFiringNow() {
     const ULONGLONG now=GetTickCount64();
@@ -1557,16 +1504,14 @@ bool ProvideNativeMouseRay(void* actor,dg::native_tps::MouseRay& ray){
     ray.fireHeld=MouseAnyFireHeld(); // telemetry only, not the action gate
     return true;
 }
-bool ProvideProjectileRotation(const dg::local_players::Context& owner,float& pitch,float& yaw){
-    if(owner.index==1)return dg::coop_camera::ShotRotation(owner,pitch,yaw);
+bool ProvideProjectileRay(const dg::local_players::Context& owner,dg::native_tps::MouseRay& ray){
+    if(owner.index==1)return dg::coop_camera::ShotRay(owner,ray);
     if(owner.index!=0||!IsLiveTPSLookActor(reinterpret_cast<void*>(owner.character))||
-       !IsTPSLookViewFresh()||!IsPadFiringNow()||MouseAnyFireHeld()||IsTPSRadialInputActive()||
+       !IsTPSLookViewFresh()||IsTPSRadialInputActive()||
        dg::runtime::Get().tpsMountedAimMode.load()!=0)return false;
-    const auto view=dg::camera_trace::GetTelemetry();
-    const auto now=GetTickCount64();
-    if(!view.appliedWorldTickMs||now<view.appliedWorldTickMs||now-view.appliedWorldTickMs>=250)return false;
-    pitch=view.appliedPitch;yaw=view.appliedYaw;
-    return std::isfinite(pitch)&&std::isfinite(yaw);
+    // Called by an actual native projectile action, including its Finish at
+    // release. The current physical fire binding is not the action lifecycle.
+    return ComputeNativeMouseRay(ray);
 }
 // Candidate Wrath native location from exact-EXE AddWrath disassembly:
  // character+0xEA0 -> resource component, component+0x3A0 -> float.
@@ -1743,35 +1688,12 @@ bool InstallNativeTPSRotationHook() {
 // The validated line/arc shader filter alone implements visibility scopes.
 // Native dash/targeting lifecycle receives all its own hide/show requests.
 
-// V0.87 passive audit: do the native targeting UI components receive
-// Unreal events when Strife's blue world-space line/arc are visible?
-// All events ALWAYS execute the original game callback, no visual or
-// gameplay changes. If counters stay zero the visuals bypass this route.
+// Capture the radial's weak identity BEFORE native dispatch; a destructive
+// event cannot leave the observer dereferencing a freed/reused widget.
 void HookAimUiEventDispatch(void* object,void* function,void* parameters,void* outParameters){
-    if(object && function && g_aimUiClassSlot && g_aimUiPositionClassSlot){
-        const void* actual=*reinterpret_cast<void* const*>(
-            static_cast<const unsigned char*>(object)+0x10);
-        if(actual){
-            const bool targeting=actual==*g_aimUiClassSlot;
-            const bool positioning=actual==*g_aimUiPositionClassSlot;
-            if(targeting||positioning){
-                const unsigned n=targeting?++g_aimUiEvents:++g_aimUiPositionEvents;
-                auto& rt=dg::runtime::Get();
-                const bool tps=rt.thirdPersonEnabled.load(std::memory_order_relaxed);
-                const bool fire=rt.tpsAimActive.load(std::memory_order_relaxed) ||
-                    (MouseAnyFireHeld());
-                if(tps && targeting)++g_aimUiEventsInTPS;
-                if(fire && targeting)++g_aimUiEventsWhileFire;
-                if(n==1||n==100||n==1000)
-                    Log("TPS V0.87 AIM UI PROBE: class=%s events=%u tps=%d firing=%d (PASS THROUGH)",
-                        targeting?"UMayhemTargetingUIComponent":
-                        "UMayhemTargetUiPositionComponent",n,tps?1:0,fire?1:0);
-            }
-        }
-    }
-    if(g_originalAimUiEventDispatch)
-        g_originalAimUiEventDispatch(object,function,parameters,outParameters);
-    dg::native_tps::ObserveUiEvent(object); // live object, after native action
+    const auto identity=dg::native_tps::CaptureUiEvent(object);
+    if(g_originalAimUiEventDispatch)g_originalAimUiEventDispatch(object,function,parameters,outParameters);
+    dg::native_tps::ObserveUiEvent(identity);
 }
 void InstallAimUiEventProbe(){
     if(!g_targetValidation.exact)return;
@@ -1785,8 +1707,6 @@ void InstallAimUiEventProbe(){
         Log("TPS V0.87 AIM UI PROBE: ProcessEvent signature mismatch, disabled");
         return;
     }
-    g_aimUiClassSlot=reinterpret_cast<void* const*>(base+0x3812DD0);
-    g_aimUiPositionClassSlot=reinterpret_cast<void* const*>(base+0x3812DE0);
     const auto made=MH_CreateHook(entry,
         reinterpret_cast<void*>(&HookAimUiEventDispatch),
         reinterpret_cast<void**>(&g_originalAimUiEventDispatch));
@@ -1800,7 +1720,7 @@ void InstallAimUiEventProbe(){
         Log("TPS V0.87 AIM UI PROBE: enable failed=%d",int(enabled));
         return;
     }
-    Log("TPS V0.87 AIM UI PROBE: READY, pass-through classes UMayhemTargetingUIComponent and UMayhemTargetUiPositionComponent");
+    Log("TPS V1.50 RADIAL lifecycle observer READY; native dispatch forwarded, weak identity checked after return");
 }
 
 float HookCharacterGetMaxSpeed(void* movementComponent) {
@@ -1834,20 +1754,6 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
     horseSettings.sprintDurationMultiplier =
         runtime.horseSprintDurationMultiplier.load(std::memory_order_relaxed);
     dg::horse::SetSettings(horseSettings);
-    dg::horse::Tick();
-
-    // V0.31: the generic movement hook never writes cached horse pointers.
-    // It only asks HorseFeature whether this movement was very recently proven
-    // by a live native HorseCharacter callback so player tuning can skip it.
-    void* knownLocalPlayer =
-        g_localPlayerCharacter.load(std::memory_order_relaxed);
-
-    dg::horse::ObserveMovement(
-        movementComponent,
-        characterOwner,
-        knownLocalPlayer,
-        nativeSpeed
-    );
 
     // V0.22A follows the game's direct mount chain instead of identifying
     // the horse from movement-property signatures. Once the exact horse
@@ -1873,10 +1779,10 @@ float HookCharacterGetMaxSpeed(void* movementComponent) {
     // during mount transitions. Refresh the persistent player pointer only when
     // this movement component also proves it is a real player movement object
     // through the validated Jump/DoubleJump/Glide property set.
-    ApplyPlayerMovementTunings(movementComponent);
-
     dg::local_players::Context localOwner{};
     if(dg::local_players::ResolveActor(characterOwner,localOwner)){
+        if(localOwner.kind==dg::local_players::PoseKind::Foot)
+            ApplyPlayerMovementTunings(movementComponent);
         dg::local_players::ObserveGameplay(localOwner);
     }
 
@@ -2234,6 +2140,9 @@ void TriggerAction(Action action, int functionKey) {
 }
 
 void ProcessInput() {
+    const int notice=g_windowNotice.exchange(0);
+    if(notice==1)g_lastAction="Keyboard binding cancelled";
+    else if(notice==2)g_lastAction="Menu key rebind cancelled";
     const int capturedCamera = g_capturedCameraBinding.exchange(0);
     if (capturedCamera) {
         const int action = (capturedCamera >> 8) - 1;
@@ -2485,7 +2394,7 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
         if(!dg::chaos_pose::RangedActive()||!ShouldSuppressNativeAim()||
            !dg::native_tps::NativeStickSwapKnown())return realStatus;
         auto& formPad=state->Gamepad;
-        if(GamepadBindingDown(dg::runtime::Get().tpsWheelPadMask.load(std::memory_order_relaxed),formPad)||
+        if(dg::native_tps::RadialActive(0)||GamepadBindingDown(dg::runtime::Get().tpsWheelPadMask.load(std::memory_order_relaxed),formPad)||
            TPSChargeChordDown(formPad))return realStatus;
         const int cameraMode=rt.tpsCameraStickMode.load();
         const bool swap=dg::native_tps::NativeStickSwap();
@@ -2521,7 +2430,8 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     // arm region permission HERE instead of after Present (which can miss
     // the first native HorseRegion getter call in banned zones).
     static std::atomic_bool previousChord{false};
-    const bool chordEdge=validChord&&!previousChord.exchange(validChord);
+    const bool wasChord=previousChord.exchange(validChord);
+    const bool chordEdge=validChord&&!wasChord;
     if(chordEdge && dg::runtime::Get().horseEverywhereEnabled.load(std::memory_order_relaxed)){
         const auto now=GetTickCount64();
         auto& horseRt=dg::runtime::Get();
@@ -2546,7 +2456,7 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
         !g_shuttingDown.load();
     // V1.08: LB alone opens the original wheel. LB+Y preserves the native
     // charged-shot chord, never moves the game-facing wheel stick.
-    const bool wheelDown=localGameplay&&GamepadBindingDown(dg::runtime::Get().tpsWheelPadMask.load(std::memory_order_relaxed),pad);
+    const bool wheelDown=localGameplay&&(dg::native_tps::RadialActive(0)||GamepadBindingDown(dg::runtime::Get().tpsWheelPadMask.load(std::memory_order_relaxed),pad));
     const auto chordNow=GetTickCount64();
     if(wheelDown){
         auto& wheelRt=dg::runtime::Get();
@@ -2670,9 +2580,43 @@ DWORD GetCameraXInputState(DWORD user,XINPUT_STATE* state) {
     return api?api(user,state):ERROR_DEVICE_NOT_CONNECTED;
 }
 
+dg::tps_input::MouseFireRouting g_mouseFireRouting; // WndProc thread only
+int PhysicalMouseButton(UINT msg,WPARAM wParam,bool& release,bool& twice){
+    release=msg==WM_LBUTTONUP||msg==WM_RBUTTONUP||msg==WM_MBUTTONUP||msg==WM_XBUTTONUP;
+    twice=msg==WM_LBUTTONDBLCLK||msg==WM_RBUTTONDBLCLK||msg==WM_MBUTTONDBLCLK||msg==WM_XBUTTONDBLCLK;
+    switch(msg){
+    case WM_LBUTTONDOWN:case WM_LBUTTONUP:case WM_LBUTTONDBLCLK:return VK_LBUTTON;
+    case WM_RBUTTONDOWN:case WM_RBUTTONUP:case WM_RBUTTONDBLCLK:return VK_RBUTTON;
+    case WM_MBUTTONDOWN:case WM_MBUTTONUP:case WM_MBUTTONDBLCLK:return VK_MBUTTON;
+    case WM_XBUTTONDOWN:case WM_XBUTTONUP:case WM_XBUTTONDBLCLK:return HIWORD(wParam)==XBUTTON1?VK_XBUTTON1:VK_XBUTTON2;
+    default:return 0;
+    }
+}
+void FlushOwnedMouseButtons(HWND hwnd){
+    for(int physical=1;physical<7;++physical){
+        const int target=g_mouseFireRouting.Release(physical);
+        if(target>0&&g_originalWndProc)CallWindowProcW(g_originalWndProc,hwnd,
+            target==VK_LBUTTON?WM_LBUTTONUP:WM_RBUTTONUP,0,0);
+    }
+}
 LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    // V1.02 controller-only TPS: all native mouse messages pass through.
-    // No RAWINPUT reads, WM_MOUSEMOVE filter, mouse-wheel camera or fallback.
+    bool released=false,twice=false;
+    const int physicalButton=PhysicalMouseButton(msg,wParam,released,twice);
+    // Release belongs to the DOWN route even if an overlay, wheel, Alt-Tab
+    // or a binding change has since taken input ownership.
+    if(released){
+        const int target=g_mouseFireRouting.Release(physicalButton);
+        if(target){
+            if(target>0&&g_originalWndProc)return CallWindowProcW(g_originalWndProc,hwnd,
+                target==VK_LBUTTON?WM_LBUTTONUP:WM_RBUTTONUP,
+                LOWORD(wParam)&~(MK_LBUTTON|MK_RBUTTON|MK_MBUTTON|MK_XBUTTON1|MK_XBUTTON2),lParam);
+            return 0;
+        }
+    }
+    if(msg==WM_KILLFOCUS||(msg==WM_ACTIVATEAPP&&!wParam)||
+       (msg==WM_ACTIVATE&&LOWORD(wParam)==WA_INACTIVE))FlushOwnedMouseButtons(hwnd);
+    // Relative RawInput and bounded WM_MOUSEMOVE fallback share the camera.
+    // Forward native messages except explicitly owned overlay/fire routing.
     // Never intercept focus/activation messages needed for Alt-Tab.
     const bool focusMessage = msg == WM_ACTIVATEAPP || msg == WM_ACTIVATE ||
         msg == WM_SETFOCUS || msg == WM_KILLFOCUS || msg == WM_MOUSEACTIVATE;
@@ -2691,8 +2635,8 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             ? CallWindowProcW(g_originalWndProc, hwnd, msg, wParam, lParam)
             : DefWindowProcW(hwnd, msg, wParam, lParam);
     }
-    // V1.18: fresh source-only TPS mouse audit. We do not read WM_INPUT
-    // payloads, suppress any message, alter camera input or reuse V0.98 orbit.
+    // Input diagnostics below are read-only; the subsequent relative-input
+    // path decodes WM_INPUT and supplies the validated camera deltas.
     // WM_INPUT may include NON-MOUSE devices and is counted as such.
     if((msg==WM_MOUSEMOVE || msg==WM_INPUT || msg==WM_LBUTTONDOWN ||
         msg==WM_RBUTTONDOWN || msg==WM_MOUSEWHEEL) &&
@@ -2793,8 +2737,8 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                     kind,n);
         }
     }
-    // V1.19 fresh mouse TPS path. Read only, never swallow WM_INPUT and
-    // never change cursor position or any physical/controller input event.
+    // Relative mouse camera path. Physical motion and the bounded fallback
+    // feed orbit; recenter-generated WM_MOUSEMOVE is excluded below.
     // Mouse and pad both feed the EXISTING TPS camera orbit, so there is one
     // camera-forward shooting direction instead of competing mouse aim modes.
     if (msg==WM_INPUT || msg==WM_MOUSEMOVE) {
@@ -2878,7 +2822,7 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     // for the first keypress in banned zones. No synthetic second H needed.
     if(msg==WM_KEYDOWN && (wParam&0xFF)=='H' &&
        (lParam&(1LL<<30))==0 &&
-       g_targetValidation.exact && g_config.horseEverywhereEnabled &&
+       g_targetValidation.exact && dg::runtime::Get().horseEverywhereEnabled.load() &&
        !g_overlayVisible.load() && GetForegroundWindow()==hwnd &&
        !IsIconic(hwnd) && !g_shuttingDown.load()){
         const auto now=GetTickCount64();
@@ -2893,15 +2837,15 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
         const int cameraCapture = g_captureCameraKeyIndex.load();
         if (cameraCapture >= 0 &&
-            cameraCapture < static_cast<int>(g_config.cameraKeys.size()+g_config.tpsKeyboardKeys.size()) &&
+            cameraCapture < static_cast<int>(dg::config::CameraAction::Count)+static_cast<int>(dg::config::TpsKeyboardAction::Count) &&
             (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN)) {
             const int vk = static_cast<int>(wParam & 0xFF);
             if (vk == VK_ESCAPE) {
                 g_captureCameraKeyIndex.store(-1);
-                g_lastAction = "Keyboard binding cancelled";
+                g_windowNotice.store(1);
                 return TRUE;
             }
-            if (vk != g_config.menuKey && vk != VK_ESCAPE &&
+            if (vk != dg::runtime::Get().overlayMenuKey.load() && vk != VK_ESCAPE &&
                 (vk < VK_F1 || vk > VK_F12) && vk > 0 && vk < 256) {
                 g_capturedCameraBinding.store(((cameraCapture + 1) << 8) | vk);
                 g_captureCameraKeyIndex.store(-1);
@@ -2914,7 +2858,7 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             const int vk = static_cast<int>(wParam & 0xFF);
             if (vk == VK_ESCAPE) {
                 g_captureMenuKey.store(false);
-                g_lastAction = "Menu key rebind cancelled";
+                g_windowNotice.store(2);
                 Log("Menu key rebind cancelled");
                 return TRUE;
             }
@@ -2951,50 +2895,22 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         }
     }
 
-    // TPS-only Win32 fire translation before Unreal native WndProc:
-    // no synthetic pad input, no cursor visibility hook, no game menu changes.
-    if(ShouldSuppressNativeAim() && IsTPSLookViewFresh() &&
-       !IsTPSRadialInputActive()){
-        int physical=0;
-        bool release=false, doubleClick=false;
-        switch(msg){
-        case WM_LBUTTONDOWN: physical=VK_LBUTTON;break;
-        case WM_LBUTTONUP: physical=VK_LBUTTON;release=true;break;
-        case WM_LBUTTONDBLCLK: physical=VK_LBUTTON;doubleClick=true;break;
-        case WM_RBUTTONDOWN: physical=VK_RBUTTON;break;
-        case WM_RBUTTONUP: physical=VK_RBUTTON;release=true;break;
-        case WM_RBUTTONDBLCLK: physical=VK_RBUTTON;doubleClick=true;break;
-        case WM_MBUTTONDOWN: physical=VK_MBUTTON;break;
-        case WM_MBUTTONUP: physical=VK_MBUTTON;release=true;break;
-        case WM_MBUTTONDBLCLK: physical=VK_MBUTTON;doubleClick=true;break;
-        case WM_XBUTTONDOWN: physical=HIWORD(wParam)==XBUTTON1?VK_XBUTTON1:VK_XBUTTON2;break;
-        case WM_XBUTTONUP: physical=HIWORD(wParam)==XBUTTON1?VK_XBUTTON1:VK_XBUTTON2;release=true;break;
-        case WM_XBUTTONDBLCLK: physical=HIWORD(wParam)==XBUTTON1?VK_XBUTTON1:VK_XBUTTON2;doubleClick=true;break;
-        default:break;
-        }
-        if(physical){
-            const int target=physical==dg::runtime::Get().tpsMousePrimaryButton.load(std::memory_order_relaxed)
-                ?VK_LBUTTON:physical==dg::runtime::Get().tpsMouseSecondaryButton.load(std::memory_order_relaxed)
-                ?VK_RBUTTON:0;
-            // Unassigned physical L/R clicks cannot activate native shots.
-            // Unassigned middle/X retain their original non-fire behavior.
-            if(!target && (physical==VK_LBUTTON||physical==VK_RBUTTON)){
-                ++g_v124NativeButtonSuppressed;
-                return 0;
-            }
-            if(target && target!=physical){
-                const UINT routed=target==VK_LBUTTON
-                    ?(release?WM_LBUTTONUP:doubleClick?WM_LBUTTONDBLCLK:WM_LBUTTONDOWN)
-                    :(release?WM_RBUTTONUP:doubleClick?WM_RBUTTONDBLCLK:WM_RBUTTONDOWN);
-                WORD modifiers=static_cast<WORD>(LOWORD(wParam)&
-                    ~(MK_LBUTTON|MK_RBUTTON|MK_MBUTTON|MK_XBUTTON1|MK_XBUTTON2));
-                if(MousePrimaryFireHeld()&&!release)modifiers|=MK_LBUTTON;
-                if(MouseSecondaryFireHeld()&&!release)modifiers|=MK_RBUTTON;
-                msg=routed;
-                wParam=MAKEWPARAM(modifiers,0);
-                if(target==VK_LBUTTON)++g_v124PrimaryRouted;
-                else ++g_v124SecondaryRouted;
-            }
+    // New DOWN events require live focused TPS. Existing routes are private
+    // to the window thread and survive only until their release above.
+    if(physicalButton&&!released&&ShouldSuppressNativeAim()&&IsTPSLookViewFresh()&&!IsTPSRadialInputActive()){
+        const auto& rt=dg::runtime::Get();
+        const int selected=physicalButton==rt.tpsMousePrimaryButton.load()?VK_LBUTTON:
+            physicalButton==rt.tpsMouseSecondaryButton.load()?VK_RBUTTON:
+            (physicalButton==VK_LBUTTON||physicalButton==VK_RBUTTON)?-1:0;
+        const int target=g_mouseFireRouting.Begin(physicalButton,selected);
+        if(target<0){++g_v124NativeButtonSuppressed;return 0;}
+        if(target>0){
+            msg=target==VK_LBUTTON?(twice?WM_LBUTTONDBLCLK:WM_LBUTTONDOWN):(twice?WM_RBUTTONDBLCLK:WM_RBUTTONDOWN);
+            WORD modifiers=LOWORD(wParam)&~(MK_LBUTTON|MK_RBUTTON|MK_MBUTTON|MK_XBUTTON1|MK_XBUTTON2);
+            if(MousePrimaryFireHeld())modifiers|=MK_LBUTTON;
+            if(MouseSecondaryFireHeld())modifiers|=MK_RBUTTON;
+            wParam=MAKEWPARAM(modifiers,0);
+            if(target!=physicalButton){if(target==VK_LBUTTON)++g_v124PrimaryRouted;else ++g_v124SecondaryRouted;}
         }
     }
     return g_originalWndProc
@@ -3157,8 +3073,6 @@ dg::overlay::Context BuildOverlayContext() {
     t.lastOutgoingTagCount =
         g_lastOutgoingTagCount.load();
 
-    t.aimUiTargetingEvents = g_aimUiEvents.load();
-    t.aimUiPositionEvents = g_aimUiPositionEvents.load();
     t.mountedIdleLookBlocks = g_tpsMountedIdleNativeLookBlocks.load();
     t.grenadePhysicalDown = g_tpsGrenadeDownCount.load();
     t.grenadePhysicalUp = g_tpsGrenadeUpCount.load();
@@ -3413,7 +3327,6 @@ bool EmitKeyboardVirtualKey(WORD vk,bool down){
 }
 std::atomic_bool g_horseSyntheticHDown{false};
 void UpdateOrbitInput() {
-    static WORD lastButtons=0;
     auto& rt=dg::runtime::Get();
     const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
     const ULONGLONG now=GetTickCount64();
@@ -3430,7 +3343,7 @@ void UpdateOrbitInput() {
         const int vk=g_config.tpsKeyboardKeys[static_cast<size_t>(action)];
         return vk>0&&vk<256&&(GetAsyncKeyState(vk)&0x8000)!=0;
     };
-    const bool wheelOpen=focused && (
+    const bool wheelOpen=focused && (dg::native_tps::RadialActive(0) ||
         (padAvailable&&GamepadBindingDown(dg::runtime::Get().tpsWheelPadMask.load(std::memory_order_relaxed),physical.Gamepad)) ||
         wheelKey(dg::config::TpsKeyboardAction::WheelG) ||
         wheelKey(dg::config::TpsKeyboardAction::WheelTab));
@@ -3600,7 +3513,6 @@ void UpdateOrbitInput() {
             g_config.tpsToggleHoldButtonMask,g_config.thirdPersonEnabled?1:0);
     }
     if (!active||!g_config.thirdPersonEnabled) {
-        lastButtons=0;
         if(!g_config.thirdPersonEnabled) {
             rt.cameraOrbitYawDegrees.store(0.0f);
             rt.cameraOrbitPitchDegrees.store(0.0f);
@@ -3746,7 +3658,6 @@ void UpdateOrbitInput() {
         previousRecenterPressed=pressed;
         previousRecenterBinding=mask;
     }
-    lastButtons=buttonBits;
     static bool priorSuspend=false;
     if(suspendControllerOrbitOnFire!=priorSuspend) {
         priorSuspend=suspendControllerOrbitOnFire;
@@ -3772,7 +3683,7 @@ void UpdateOrbitInput() {
         }
     }
     // V1.19: single native TPS orbit for mouse and controller. The mouse
-    // path has NO activation option, no cursor warping and no virtual pad.
+    // path uses relative RawInput plus the bounded cursor-edge fallback.
     // Convert relative mouse pixels to view degrees, in this same Present
     // writer that already updates physical controller orbit.
     const int mx=std::clamp(g_v119MouseDeltaX.exchange(0),-300,300);
@@ -3803,11 +3714,6 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     ApplySkipIntroSetting(false);
     UpdateCameraDof();
 
-    // V0.31 HorseFeature::Tick is intentionally a no-op. Horse writes are
-    // allowed only while a native HorseCharacter callback proves the UObject
-    // is alive; cached raw pointers are never written from Present().
-    dg::horse::Tick();
-
     ProcessInput();
     g_config.FlushIfDue(false);
 
@@ -3834,8 +3740,14 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
         dg::overlay::Draw(context);
         ImGui::Render();
         if(g_rtv){
+            ID3D11RenderTargetView* savedTargets[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT]{};
+            ID3D11DepthStencilView* savedDepth=nullptr;
+            g_context->OMGetRenderTargets(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT,savedTargets,&savedDepth);
             g_context->OMSetRenderTargets(1,&g_rtv,nullptr);
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+            g_context->OMSetRenderTargets(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT,savedTargets,savedDepth);
+            for(auto* target:savedTargets)if(target)target->Release();
+            if(savedDepth)savedDepth->Release();
         }
     }else if(g_imguiReady.load()){
         ImGui::GetIO().MouseDrawCursor=false;
@@ -4184,15 +4096,12 @@ void ShutdownMod() {
     Log("TPS V1.23 EDGE_RECAPTURE totals: edgeRecenters=%u syntheticMovesIgnored=%u recenterFailures=%u cursorHooks=REMOVED",
         g_v123EdgeRecenters.load(),g_v123SyntheticMovesIgnored.load(),
         g_v123RecenterFailures.load());
-    Log("TPS V1.20 RELATIVE_INPUT totals: registeredByMod=%d nativePreserved=%u registrationErrors=%u rawMouse=%u rawOther=%u rawAtScreenEdge=%u fallbackMoves=%u edgeOnlyRecenter=1",
-        g_v120RawAddedByMod.load()?1:0,g_v120ExistingRawMouse.load(),
+    Log("TPS V1.20 RELATIVE_INPUT totals: registeredByMod=%d registrationErrors=%u rawMouse=%u rawOther=%u rawAtScreenEdge=%u fallbackMoves=%u edgeOnlyRecenter=1",
+        g_v120RawAddedByMod.load()?1:0,
         g_v120RawRegistrationErrors.load(),g_v120RawMousePackets.load(),
         g_v120RawNonMousePackets.load(),g_v120RawAtEdge.load(),
         g_v119MouseMoveFallback.load());
 
-    Log("TPS V0.87 AIM UI PROBE totals: targeting=%u targetingTPS=%u targetingFiring=%u positioning=%u (all events passed through)",
-        g_aimUiEvents.load(),g_aimUiEventsInTPS.load(),
-        g_aimUiEventsWhileFire.load(),g_aimUiPositionEvents.load());
     Log("TPS V0.84 grenade totals: physicalDown=%u physicalUp=%u nativeReleasePulses=%u (game pickup/stow must be verified visually)",
         g_tpsGrenadeDownCount.load(),g_tpsGrenadeUpCount.load(),
         g_tpsGrenadeReleasePulseDelivered.load());
@@ -4360,7 +4269,7 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::hotstreak::Initialize(&FeatureLog,g_targetValidation.exact,g_originalAddJuice);
     dg::potions::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::local_players::SetLiveObserver(&ServiceLocalGameplay);
-    dg::projectile_aim::Initialize(&FeatureLog,g_targetValidation.exact,&ProvideProjectileRotation);
+    dg::projectile_aim::Initialize(&FeatureLog,g_targetValidation.exact,&ProvideProjectileRay);
     dg::health::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::glide::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::recovery::Initialize(&FeatureLog,g_targetValidation.exact);

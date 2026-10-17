@@ -1,4 +1,4 @@
-name: V1.49 Dash recovery and ASI cleanup TEST
+name: V1.50 Native aim, radial lifecycle and recovery TEST
 on:
   push:
     branches: [debug]
@@ -47,8 +47,8 @@ jobs:
           Copy-Item config/DarksidersGenesisMod.ini dist/
           Copy-Item README.md dist/
           New-Item -ItemType Directory -Path downloads -Force | Out-Null
-          $zipPath = 'downloads/DarksidersGenesis_V1.49_DASH_RECOVERY_CLEANUP_TEST.zip'
-          if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+          $zipPath = 'downloads/DarksidersGenesis_V1.50_AIM_RADIAL_RECOVERY_CLEANUP_TEST.zip'
+          if (Test-Path -LiteralPath $zipPath) { throw "A numbered ZIP already exists; use a new build version" }
           Compress-Archive -Path 'dist/*' -DestinationPath $zipPath -CompressionLevel Optimal
           Add-Type -AssemblyName System.IO.Compression.FileSystem
           $zip = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $zipPath))
@@ -63,8 +63,8 @@ jobs:
       - name: Upload verified Windows x64 ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_V1.49_DASH_RECOVERY_CLEANUP_TEST
-          path: downloads/DarksidersGenesis_V1.49_DASH_RECOVERY_CLEANUP_TEST.zip
+          name: DarksidersGenesis_V1.50_AIM_RADIAL_RECOVERY_CLEANUP_TEST
+          path: downloads/DarksidersGenesis_V1.50_AIM_RADIAL_RECOVERY_CLEANUP_TEST.zip
           if-no-files-found: error
       - name: Preserve numbered experimental ZIP in debug
         shell: pwsh
@@ -73,15 +73,22 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # Always update from the current branch head BEFORE staging the ZIP.
-          # A preceding canceled job may have published the same binary path.
+          # A preceding job may have published this version: verify immutable bytes.
           # Never git rebase a binary archive (add/add creates an unresolvable conflict).
           $published = $false
           for ($i=0; $i -lt 5; $i++) {
             git fetch origin debug
             if ($LASTEXITCODE -ne 0) { throw 'Fetch failed' }
+            $archivePath = 'downloads/DarksidersGenesis_V1.50_AIM_RADIAL_RECOVERY_CLEANUP_TEST.zip'
+            $priorBlob = git ls-tree --format='%(objectname)' origin/debug -- $archivePath
+            if ($LASTEXITCODE -ne 0) { throw 'Archive identity lookup failed' }
+            if ($priorBlob) {
+              $builtBlob = git hash-object -- $archivePath
+              if ($priorBlob -ne $builtBlob) { throw 'Numbered archive already published with different bytes; refusing overwrite' }
+            }
             git reset --mixed origin/debug
             if ($LASTEXITCODE -ne 0) { throw 'Reset to latest origin/debug failed' }
-            git add -- downloads/DarksidersGenesis_V1.49_DASH_RECOVERY_CLEANUP_TEST.zip
+            git add -- downloads/DarksidersGenesis_V1.50_AIM_RADIAL_RECOVERY_CLEANUP_TEST.zip
             if ($LASTEXITCODE -ne 0) { throw 'Archive add failed' }
             git diff --cached --quiet
             if ($LASTEXITCODE -eq 0) {
@@ -89,11 +96,11 @@ jobs:
               $published = $true
               break
             }
-            git commit -m "downloads: preserve verified compiled V1.49 cumulative ZIP"
+            git commit -m "downloads: preserve verified compiled V1.50 cumulative ZIP"
             if ($LASTEXITCODE -ne 0) { throw 'Archive commit failed' }
             git push origin HEAD:debug
             if ($LASTEXITCODE -eq 0) { $published = $true; break }
             Start-Sleep -Seconds 2
           }
           if (-not $published) { throw 'Permanent experimental ZIP push failed' }
-          Write-Host 'V1.49 ZIP https://raw.githubusercontent.com/'"$env:GITHUB_REPOSITORY"'/debug/downloads/DarksidersGenesis_V1.49_DASH_RECOVERY_CLEANUP_TEST.zip'
+          Write-Host 'V1.50 ZIP https://raw.githubusercontent.com/'"$env:GITHUB_REPOSITORY"'/debug/downloads/DarksidersGenesis_V1.50_AIM_RADIAL_RECOVERY_CLEANUP_TEST.zip'

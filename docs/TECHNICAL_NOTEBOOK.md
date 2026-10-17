@@ -1,3 +1,11 @@
+## V1.50 — visée 3D, roues natives, Recovery et nettoyage (préparation)
+
+Base V1.49 debug, acquis V1.48 conservés hors réparations ouvertes. **SOURCE PRÉPARÉE / EXPÉRIMENTAL — compilation Windows et validation utilisateur requises.** Correction d'une garde qui empêchait Action Recovery de passer (Instigator Actor confondu avec composant, confirmé par 1 203 observations historiques), visée vers la collision 3D propre à chaque joueur dans les retours pistolet/Finish, et recalcul couplé rotation/vitesse de Lava avec ses formules natives. Roues attribuées à P1/P2 par transitions natives plutôt que touches ; blend caméra expiré pris en compte. Aucun succès d'impact ni gain de récupération annoncé avant essai.
+
+Nettoyage des variables/API sans effet, caches de valeurs d'origine liés aux serials UE4, protection des relâchements souris, restauration de l'état graphique et sauvegardes updater vérifiées. **117 clés actives, 48 IDs et valeurs personnelles conservés.** Les acquis jauges, refills, paramètres caméra, RawInput, bindings et fonctionnement ordinaire restent le socle. La visée après dash en vue du dessus reste ouverte pour l'orientation ; le masquage graphique a une correction bornée. Pas de promesse de FPS ni d'absence absolue de dettes.
+
+[Preuves, limites, retour arrière et liste complète des 20 essais](V1_50_NATIVE_AIM_RADIAL_RECOVERY_TEST.md). [Audit complet du source V1.49](V1_49_COMPLETE_SOURCE_AUDIT.md). Les reçus précédents ci-dessous restent historiques.
+
 ## V1.49 — construite, contrôlée et installée : Action Recovery dash (17 octobre 2026)
 
 **CONSTRUIT / CONTRÔLÉ / INSTALLÉ / EXPÉRIMENTAL — effet en jeu à valider par l'utilisateur.** Base V1.48 acceptée hors exceptions conservée. Source finale `8a73298f6ececb30d03483857bde921a3fadf614`, archive debug `2408c3740392987a5c1a7c3826b578ec2a619b9a`. [CI Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/38998878024) **SUCCESS, 24/24 tests**. Le vrai module Recovery est testé avec frontières natives simulées ; cela ne mesure pas le délai réel de contrôle dans le jeu. Huit avertissements MSVC historiques, aucun nouveau dans Recovery. La première CI a compilé mais échoué sur deux tests de configuration ; la ligne de sauvegarde orpheline détectée a été retirée avant tout paquet/install, puis les 24 tests ont passé.

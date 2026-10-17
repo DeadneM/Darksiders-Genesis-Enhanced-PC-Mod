@@ -485,17 +485,6 @@ static bool InstallSelectiveLogoHook() {
     return true;
 }
 
-// V0.55: The V0.54 data patch ran at 0x25FF31 *after* the game's
-// StartupScreenDef iteration at 0x25FEB7. That was too late.
-// Instead divert only the seven bytes at 0x25FEBF
-// 48 C1 E7 06 (shl rdi,6) + 48 03 FB (add rdi,rbx).
-// A nearby no-call island replays those instructions and, only if
-// the array contains exactly ONE, TWO or THREE 0x40-byte definitions, makes the
-// native end pointer equal the start, and preserves original CPU flags.
-// The StartupMovies/MoviePlayer initialization remains untouched.
-// Native array data, counts, UE objects and game assets are NEVER edited.
-
-
 static bool ApplySkipLogosPatch(bool enabled) {
     // Do not apply or unapply any code patch after the game's entry point.
     // Runtime checkbox only changes the requested setting for next boot.

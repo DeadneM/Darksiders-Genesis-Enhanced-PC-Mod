@@ -21,8 +21,6 @@ struct Telemetry {
     bool movementHookReady = false;
     bool finalDamageHookReady = false;
     bool hotstreakHookReady = false;
-    unsigned aimUiTargetingEvents = 0;
-    unsigned aimUiPositionEvents = 0;
     unsigned mountedIdleLookBlocks = 0;
     unsigned grenadePhysicalDown = 0;
     unsigned grenadePhysicalUp = 0;

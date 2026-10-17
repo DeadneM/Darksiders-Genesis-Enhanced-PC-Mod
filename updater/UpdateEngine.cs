@@ -202,6 +202,70 @@ namespace DarksidersGenesisUpdater {
                 return sha.ComputeHash(a).SequenceEqual(sha.ComputeHash(b));
             }
         }
+        private static string FileDigest(string file) {
+            using(var stream=File.OpenRead(file))
+            using(var sha=SHA256.Create())
+                return BitConverter.ToString(sha.ComputeHash(stream)).Replace("-","");
+        }
+        internal static void CompleteBackup(string folder,string backup,string[] changed,string previous) {
+            Directory.CreateDirectory(backup);
+            File.WriteAllText(Path.Combine(backup,"state.txt"),previous??"",Encoding.UTF8);
+            var manifest=new Dictionary<string,string>(StringComparer.Ordinal);
+            foreach(string name in changed){
+                if(!Files.Contains(name))throw new InvalidDataException("Invalid backup filename");
+                string source=Path.Combine(folder,name),saved=Path.Combine(backup,name);
+                if(File.Exists(source)){
+                    File.Copy(source,saved);
+                    if(!EqualBinary(source,saved))throw new IOException("Backup verification failed: "+name);
+                    manifest.Add(name,FileDigest(saved));
+                }else{
+                    File.WriteAllText(saved+".missing","");manifest.Add(name,"MISSING");
+                }
+            }
+            manifest.Add("state.txt",FileDigest(Path.Combine(backup,"state.txt")));
+            // Publish completion LAST. A failed copy never becomes a candidate
+            // for rollback and the installation has not started at this point.
+            string temporary=Path.Combine(backup,"backup.pending.json");
+            File.WriteAllText(temporary,new JavaScriptSerializer().Serialize(manifest),Encoding.UTF8);
+            File.Move(temporary,Path.Combine(backup,"backup.complete.json"));
+            VerifyBackup(backup);
+        }
+        internal static Dictionary<string,string> VerifyBackup(string backup) {
+            string complete=Path.Combine(backup,"backup.complete.json");
+            if(!File.Exists(complete))throw new InvalidDataException("Backup is incomplete or predates verified backups");
+            var manifest=new JavaScriptSerializer().Deserialize<Dictionary<string,string>>(File.ReadAllText(complete));
+            if(manifest==null||manifest.Count<4||manifest.Count>5||
+               !new[]{"dxgi.dll","DarksidersGenesisMod.asi","README.md","state.txt"}.All(manifest.ContainsKey))
+                throw new InvalidDataException("Incomplete backup manifest");
+            foreach(var entry in manifest){
+                if(entry.Key!="state.txt"&&!Files.Contains(entry.Key))throw new InvalidDataException("Unexpected backup filename");
+                string saved=Path.Combine(backup,entry.Key);
+                if(entry.Value=="MISSING"&&entry.Key!="state.txt"){
+                    if(File.Exists(saved)||!File.Exists(saved+".missing"))throw new InvalidDataException("Invalid missing-file record");
+                }else if(!Regex.IsMatch(entry.Value??"","^[A-F0-9]{64}$")||!File.Exists(saved)||
+                    FileDigest(saved)!=entry.Value||File.Exists(saved+".missing"))
+                    throw new InvalidDataException("Backup integrity check failed: "+entry.Key);
+            }
+            return manifest;
+        }
+        internal static void RestoreVerifiedBackup(string folder,string backup) {
+            var manifest=VerifyBackup(backup); // check ALL files before any write
+            foreach(var entry in manifest){
+                if(entry.Key=="state.txt"||entry.Key=="DarksidersGenesisMod.ini")continue;
+                string dest=Path.Combine(folder,entry.Key);
+                if(entry.Value=="MISSING"){
+                    if(File.Exists(dest))File.Delete(dest);
+                }else File.Copy(Path.Combine(backup,entry.Key),dest,true);
+            }
+            foreach(var entry in manifest){
+                if(entry.Key=="state.txt"||entry.Key=="DarksidersGenesisMod.ini")continue;
+                string dest=Path.Combine(folder,entry.Key);
+                if(entry.Value=="MISSING"?File.Exists(dest):!File.Exists(dest)||FileDigest(dest)!=entry.Value)
+                    throw new IOException("Restored file verification failed: "+entry.Key);
+            }
+            // Never bind an old version token to a partially restored pair.
+            SaveState(folder,File.ReadAllText(Path.Combine(backup,"state.txt")));
+        }
         internal static string Install(Package p,string folder,Action<string> progress) {
             ValidateFolder(folder);
             string temp=Path.Combine(Path.GetTempPath(),"DGEUpdater-"+Guid.NewGuid().ToString("N"));
@@ -224,16 +288,10 @@ namespace DarksidersGenesisUpdater {
                 Directory.CreateDirectory(root);
                 string backup=Path.Combine(root,DateTime.Now.ToString("yyyyMMdd-HHmmss-fff")+"-"+
                     Guid.NewGuid().ToString("N").Substring(0,6));
-                Directory.CreateDirectory(backup);
                 string previous=ReadState(folder);
-                File.WriteAllText(Path.Combine(backup,"state.txt"),previous,Encoding.UTF8);
                 var changed=new List<string>{"dxgi.dll","DarksidersGenesisMod.asi","README.md"};
                 if(!hasIni)changed.Add("DarksidersGenesisMod.ini");
-                foreach(string name in changed){
-                    string dest=Path.Combine(folder,name);
-                    if(File.Exists(dest))File.Copy(dest,Path.Combine(backup,name));
-                    else File.WriteAllText(Path.Combine(backup,name+".missing"),"");
-                }
+                CompleteBackup(folder,backup,changed.ToArray(),previous);
                 progress("Previous files backed up under LocalAppData.");
                 try {
                     ValidateFolder(folder);
@@ -251,15 +309,8 @@ namespace DarksidersGenesisUpdater {
                     return "Installed "+p.Version+" from "+p.Channel+
                         (hasIni?". Existing INI preserved.":". Default INI created.");
                 } catch {
-                    foreach(string name in changed){
-                        try {
-                            string saved=Path.Combine(backup,name),dest=Path.Combine(folder,name);
-                            if(File.Exists(saved))File.Copy(saved,dest,true);
-                            else if(File.Exists(Path.Combine(backup,name+".missing")) &&
-                                File.Exists(dest))File.Delete(dest);
-                        } catch(Exception ex){progress("RESTORE WARNING "+name+": "+ex.Message);}
-                    }
-                    SaveState(folder,previous);
+                    try {RestoreVerifiedBackup(folder,backup);}
+                    catch(Exception ex){throw new IOException("Install failed; restore incomplete. Verified backup retained at "+backup,ex);}
                     throw;
                 }
             } finally {try{Directory.Delete(temp,true);}catch{}}
@@ -268,23 +319,18 @@ namespace DarksidersGenesisUpdater {
             ValidateFolder(folder);
             string root=BackupRoot(folder);
             if(!Directory.Exists(root))throw new InvalidOperationException("No previous version saved");
-            string[] backups=Directory.GetDirectories(root);
+            string[] backups=Directory.GetDirectories(root).Where(x=>
+                File.Exists(Path.Combine(x,"backup.complete.json"))&&
+                !File.Exists(Path.Combine(x,"rollback.restored"))).ToArray();
             Array.Sort(backups,StringComparer.Ordinal);
             if(backups.Length==0)throw new InvalidOperationException("No previous version saved");
             string last=backups[backups.Length-1];
-            // Restore only the filenames that the previous installation replaced.
-            // Personal INI is never overwritten when it existed before update.
-            foreach(string name in Files){
-                string prior=Path.Combine(last,name);
-                if(File.Exists(prior))File.Copy(prior,Path.Combine(folder,name),true);
-                else if(File.Exists(Path.Combine(last,name+".missing"))){
-                    string dest=Path.Combine(folder,name);
-                    if(File.Exists(dest))File.Delete(dest);
-                }
-            }
-            string state=Path.Combine(last,"state.txt");
-            SaveState(folder,File.Exists(state)?File.ReadAllText(state):"");
-            Directory.Delete(last,true);
+            // Keep the backup on disk, including after a failed restoration.
+            // A personal INI absent from the manifest cannot be overwritten.
+            VerifyBackup(last);
+            ValidateFolder(folder);
+            RestoreVerifiedBackup(folder,last);
+            File.WriteAllText(Path.Combine(last,"rollback.restored"),DateTime.UtcNow.ToString("O"));
             return "Previous binaries restored; personal INI retained.";
         }
     }

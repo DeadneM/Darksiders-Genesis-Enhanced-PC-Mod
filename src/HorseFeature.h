@@ -48,16 +48,9 @@ struct Telemetry {
 void Initialize(LogFn logger);
 void SetSettings(const Settings& settings);
 void ObservePlayerCharacter(void* playerCharacter);
-void PollDirectHorse(void* knownLocalPlayer);
-void ObserveMovement(
-    void* movementComponent,
-    void* characterOwner,
-    void* knownLocalPlayer,
-    float nativeGetMaxSpeed);
 float AdjustSpeedResult(
     void* movementComponent,
     float nativeGetMaxSpeed);
-void Tick();
 Telemetry GetTelemetry();
 bool IsValidatedMovement(void* movementComponent);
 void Shutdown();

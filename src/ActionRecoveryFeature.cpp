@@ -59,7 +59,9 @@ bool Alive(void* actor){
 bool ActiveComponent(void* ability,void* actor){
     void* component=nullptr;void* instigator=nullptr;void* owner=nullptr;void* array=nullptr;
     int count=0,capacity=0;
-    if(!Read(actor,0xC70,component)||!component||!Read(ability,0x48,instigator)||instigator!=component||
+    // Reflected Instigator is an ACTOR, also confirmed in the recorded dash
+    // captures. It is not the actor's ability component at C70.
+    if(!Read(actor,0xC70,component)||!component||!Read(ability,0x48,instigator)||instigator!=actor||
        !Read(component,0xE8,owner)||owner!=actor||!Read(component,0xF8,array)||!array||
        !Read(component,0x100,count)||!Read(component,0x104,capacity)||
        count<=0||count>capacity||capacity>64)return false;

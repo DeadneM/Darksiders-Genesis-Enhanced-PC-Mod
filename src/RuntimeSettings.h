@@ -6,6 +6,7 @@
 namespace dg::runtime {
 
 struct Snapshot {
+    int overlayMenuKey = defaults::MenuKey;
     bool toggleHudEnabled = true;
     bool fovEnabled = false;
     bool movementSpeedEnabled = true;
@@ -15,7 +16,6 @@ struct Snapshot {
     bool skipWarningEnabled = true;
     bool thirdPersonEnabled = true;
     bool thirdPersonFovEnabled = true;
-    bool tpsFollowPlayer = true;
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
     bool cameraControllerOrbitEnabled = true;
     int tpsCameraStickMode = 2;
@@ -92,6 +92,7 @@ struct Snapshot {
 };
 
 struct State {
+    std::atomic_int overlayMenuKey{defaults::MenuKey};
     std::atomic_bool toggleHudEnabled{true};
     std::atomic_bool fovEnabled{false};
     std::atomic_bool movementSpeedEnabled{true};
@@ -101,7 +102,6 @@ struct State {
     std::atomic_bool skipWarningEnabled{true};
     std::atomic_bool thirdPersonEnabled{true};
     std::atomic_bool thirdPersonFovEnabled{true};
-    std::atomic_bool tpsFollowPlayer{true};
     std::atomic_bool tpsViewGameplay{false};
     std::atomic_ullong tpsGameplayViewTick{0};
     std::atomic_bool cameraOrbitInputEnabled{true};

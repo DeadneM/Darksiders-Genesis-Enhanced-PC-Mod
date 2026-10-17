@@ -11,6 +11,7 @@ State& Get() {
 }
 
 void Publish(const Snapshot& s) {
+    g_state.overlayMenuKey.store(s.overlayMenuKey,std::memory_order_relaxed);
     g_state.toggleHudEnabled.store(s.toggleHudEnabled, std::memory_order_relaxed);
     g_state.fovEnabled.store(s.fovEnabled, std::memory_order_relaxed);
     g_state.movementSpeedEnabled.store(s.movementSpeedEnabled, std::memory_order_relaxed);
@@ -20,7 +21,6 @@ void Publish(const Snapshot& s) {
     g_state.skipWarningEnabled.store(s.skipWarningEnabled, std::memory_order_relaxed);
     g_state.thirdPersonEnabled.store(s.thirdPersonEnabled, std::memory_order_relaxed);
     g_state.thirdPersonFovEnabled.store(s.thirdPersonFovEnabled);
-    g_state.tpsFollowPlayer.store(s.tpsFollowPlayer);
     g_state.cameraOrbitInputEnabled.store(s.cameraOrbitInputEnabled, std::memory_order_relaxed);
     g_state.cameraControllerOrbitEnabled.store(s.cameraControllerOrbitEnabled);
     g_state.tpsCameraStickMode.store(s.tpsCameraStickMode);
