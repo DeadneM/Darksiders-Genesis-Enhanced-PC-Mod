@@ -36,9 +36,7 @@ void Publish(const Snapshot& s) {
     g_state.tpsCutsceneAutoSuspend.store(s.tpsCutsceneAutoSuspend);
     if(!s.tpsCutsceneAutoSuspend||!s.thirdPersonEnabled)
         g_state.tpsCutsceneSuspended.store(false);
-    g_state.tpsHideGroundAimFx.store(s.tpsHideGroundAimFx);
     g_state.aimIndicatorHideMode.store(s.aimIndicatorHideMode, std::memory_order_relaxed);
-    g_state.tpsHorseStableAimCamera.store(s.tpsHorseStableAimCamera);
     g_state.tpsMountedAimMode.store(s.tpsMountedAimMode,std::memory_order_relaxed);
     g_state.pistolDamageEnabled.store(s.pistolDamageEnabled, std::memory_order_relaxed);
     g_state.meleeDamageEnabled.store(s.meleeDamageEnabled, std::memory_order_relaxed);

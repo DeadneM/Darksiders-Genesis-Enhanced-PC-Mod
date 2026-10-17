@@ -29,10 +29,7 @@ struct Snapshot {
     int horsePadButtonB = 512;
 
     bool tpsCutsceneAutoSuspend = true;
-    // V0.75: native TPS mouse firing automatically uses camera heading.
-    bool tpsHideGroundAimFx = true;
     int aimIndicatorHideMode = 2;
-    bool tpsHorseStableAimCamera = true;
     int tpsMountedAimMode = 0; // camera free/aim follows view, native mode=1
     bool pistolDamageEnabled = true;
     bool meleeDamageEnabled = true;
@@ -127,9 +124,7 @@ struct State {
     std::atomic_bool tpsUiViewHeld{false}; // native world-pause camera hold; live wheel camera follows normally
     std::atomic_bool tpsAbilityWheelHeld{false}; // LB/keyboard wheels; R3 is USE equipment, not wheel opener
     std::atomic_ullong tpsAbilityWheelTick{0}; // LB/native keyboard selection, R3 passthrough retained for use
-    std::atomic_bool tpsHideGroundAimFx{true};
     std::atomic_int aimIndicatorHideMode{2};
-    std::atomic_bool tpsHorseStableAimCamera{true};
     std::atomic_int tpsMountedAimMode{0};
     std::atomic_bool tpsMountedViewActive{false};
     std::atomic_ullong tpsMountedViewTick{0};

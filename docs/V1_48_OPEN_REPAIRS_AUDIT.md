@@ -1,5 +1,7 @@
 # V1.48 — audit des réparations ouvertes, 16 octobre 2026
 
+**Suite du17octobre :** [V1.49 prépare Action Recovery dash et le retrait des réglages/compteurs morts](V1_49_DASH_RECOVERY_CLEANUP.md), à partir d'une phase native de décélération nouvellement identifiée. Source expérimentale, effet en jeu non validé. Les constats d'inactivité ci-dessous décrivent V1.48 ; ils ne doivent pas être appliqués au nouveau module. Les autres réparations restent ouvertes et les acquis restent protégés.
+
 ## Décision utilisateur et base de travail
 
 Base installée : **V1.48**, source `b7b90d29314ce00229a0737004426cbb0375b28d`, archive `550b7784b4f1341521bc8f7113250e5177207232`. État initial du dépôt audité : debug `2f9cf4fabae677541a9b06747dc70a9c5e91fa48`, audit initial publié dans `c620047`. Le dernier retour utilisateur accepte **le reste pour l'instant**, puis ajoute Graviton aux tirs concernés. Cette acceptation remplace la liste générale de vérifications encore attendues dans le précédent reçu ; elle conserve explicitement les six exceptions ci-dessous. Elle ne constitue pas une mesure instrumentée de chaque combinaison de paramètres.

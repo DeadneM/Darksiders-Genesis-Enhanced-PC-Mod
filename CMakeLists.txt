@@ -11,6 +11,15 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(DashRecoveryTests tests/DashRecoveryTests.cpp src/RuntimeSettings.cpp)
+  target_include_directories(DashRecoveryTests PRIVATE tests/stubs src)
+  target_compile_definitions(DashRecoveryTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  add_test(NAME DashRecovery COMMAND DashRecoveryTests)
+  add_executable(RecoveryConfigTests tests/RecoveryConfigTests.cpp src/ConfigStore.cpp src/RuntimeSettings.cpp)
+  target_include_directories(RecoveryConfigTests PRIVATE src)
+  target_compile_definitions(RecoveryConfigTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  target_link_libraries(RecoveryConfigTests PRIVATE user32)
+  add_test(NAME RecoveryConfig COMMAND RecoveryConfigTests)
   add_executable(HotstreakConfigTests tests/HotstreakConfigTests.cpp src/ConfigStore.cpp src/RuntimeSettings.cpp)
   target_include_directories(HotstreakConfigTests PRIVATE src)
   target_compile_definitions(HotstreakConfigTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
@@ -191,6 +200,7 @@ set_source_files_properties("${DG_UPDATER_RC}" PROPERTIES OBJECT_DEPENDS "${DG_H
 
 add_library(DarksidersGenesisMod SHARED
   src/NativeTpsFeature.cpp
+  src/ActionRecoveryFeature.cpp
   src/ProjectileAimFeature.cpp
   src/HealthFeature.cpp
   src/GlideFeature.cpp

@@ -333,9 +333,7 @@ void Store::ResetDefaults(bool persist) {
     tpsHoldSuspendEnabled = true;
     tpsLongPressToggleEnabled = true;
     tpsGrenadeHoldEnabled = true;
-    tpsHideGroundAimFx = true;
     aimIndicatorHideMode = 2; // TPS Only (default)
-    tpsHorseStableAimCamera = true;
     tpsMountedAimMode = 0;
     tpsGrenadeButtonMask = 0x0080;
     tpsFirePrimaryMask=0x20000;
@@ -343,7 +341,6 @@ void Store::ResetDefaults(bool persist) {
     tpsMousePrimaryButton=VK_LBUTTON;
     tpsMouseSecondaryButton=VK_RBUTTON;
     tpsWheelPadMask=0x0100;
-    tpsChargedFirePadMask=0x8000;
     tpsSuspendButtonMask = 0x0080;
     tpsSuspendDelayMs = 300;
     tpsToggleHoldButtonMask = 0x0040;
@@ -378,8 +375,6 @@ void Store::ResetDefaults(bool persist) {
 
     movementSpeedMultiplier = 1.50f;
     actionRecoveryDelayMs = 0.0f;
-    actionRecoveryMultiplier = 2.00f;
-    dodgeEarlyUnlockMs = 100.0f;
     pistolDamageMultiplier = 2.00f;
     meleeDamageMultiplier = 2.00f;
     jumpHeightMultiplier = 1.25f;
@@ -590,9 +585,7 @@ bool Store::Load() {
     tpsHoldSuspendEnabled=ReadBool(L"Features",L"TPSHoldSuspend",true,path_);
     tpsLongPressToggleEnabled=ReadBool(L"Features",L"TPSHoldToggle",true,path_);
     tpsGrenadeHoldEnabled=ReadBool(L"Features",L"TPSGrenadeHold",true,path_);
-    tpsHideGroundAimFx=ReadBool(L"Features",L"TPSHideGroundAimFx",true,path_);
     aimIndicatorHideMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(L"Features",L"AimIndicatorHideMode",2,path_.c_str())),0,2);
-    tpsHorseStableAimCamera=ReadBool(L"Features",L"TPSHorseStableAimCamera",true,path_);
     tpsMountedAimMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(L"Features",L"TPSMountedAimMode",0,path_.c_str())),0,1);
     tpsGrenadeButtonMask=static_cast<int>(GetPrivateProfileIntW(L"Controls",L"TPSGrenadeButtonMask",0x0080,path_.c_str()));
     if(!ValidPadBind(tpsGrenadeButtonMask))tpsGrenadeButtonMask=0x0080;
@@ -606,11 +599,9 @@ bool Store::Load() {
     if(tpsMousePrimaryButton && tpsMousePrimaryButton==tpsMouseSecondaryButton)
         tpsMouseSecondaryButton=tpsMousePrimaryButton==VK_RBUTTON?VK_LBUTTON:VK_RBUTTON;
     tpsWheelPadMask=GetPrivateProfileIntW(L"Controls",L"TPSWheelPadMask",0x0100,path_.c_str());
-    tpsChargedFirePadMask=GetPrivateProfileIntW(L"Controls",L"TPSChargedFirePadMask",0x8000,path_.c_str());
     if(!ValidPadBind(tpsFirePrimaryMask))tpsFirePrimaryMask=0x20000;
     if(!ValidPadBind(tpsFireSecondaryMask))tpsFireSecondaryMask=0x0200;
     if(!ValidPadBind(tpsWheelPadMask))tpsWheelPadMask=0x0100;
-    if(!ValidPadBind(tpsChargedFirePadMask))tpsChargedFirePadMask=0x8000;
     tpsSuspendButtonMask=GetPrivateProfileIntW(L"Controls",L"TPSSuspendButtonMask",0x0080,path_.c_str());
     tpsSuspendDelayMs=GetPrivateProfileIntW(L"Controls",L"TPSSuspendDelayMs",300,path_.c_str());
     tpsSuspendDelayMs=std::clamp(tpsSuspendDelayMs,0,3000);
@@ -648,7 +639,7 @@ bool Store::Load() {
         ReadBool(L"Features", L"FOV", false, path_);
     hotstreakChargeEnabled =
         ReadBool(L"Features", L"HotstreakCharge", true, path_);
-    // Research presets only; no native resource writes until ownership is proven.
+    // Resource gains use the verified native local-player paths.
     wrathChargeEnabled=ReadBool(L"Features",L"WrathCharge",true,path_);
     ultimateChargeEnabled=ReadBool(L"Features",L"UltimateFormCharge",true,path_);
     synergyChargeEnabled=ReadBool(L"Features",L"SynergyCharge",true,path_);
@@ -657,10 +648,8 @@ bool Store::Load() {
         ReadFloat(L"Values", L"MovementSpeedMultiplier", 1.50f, path_);
     actionRecoveryDelayMs =
         ReadFloat(L"Values", L"ActionRecoveryDelayMs", 0.0f, path_);
-    actionRecoveryMultiplier =
-        ReadFloat(L"Values", L"ActionRecoveryMultiplier", 2.0f, path_);
-    dodgeEarlyUnlockMs =
-        ReadFloat(L"Values", L"DodgeEarlyUnlockMs", 100.0f, path_);
+    if(!std::isfinite(actionRecoveryDelayMs))actionRecoveryDelayMs=0.0f;
+    actionRecoveryDelayMs=std::clamp(actionRecoveryDelayMs,0.0f,300.0f);
     pistolDamageMultiplier =
         ReadFloat(L"Values", L"PistolDamageMultiplier", 2.0f, path_);
     meleeDamageMultiplier =
@@ -888,9 +877,7 @@ void Store::PublishRuntime() const {
     runtime.horsePadButtonB = horsePadButtonB;
 
     runtime.tpsCutsceneAutoSuspend = tpsCutsceneAutoSuspend;
-    runtime.tpsHideGroundAimFx = tpsHideGroundAimFx;
     runtime.aimIndicatorHideMode = aimIndicatorHideMode;
-    runtime.tpsHorseStableAimCamera = tpsHorseStableAimCamera;
     runtime.tpsMountedAimMode = tpsMountedAimMode;
     runtime.thirdPersonDistanceMultiplier = thirdPersonDistanceMultiplier;
     runtime.thirdPersonPitchDegrees = thirdPersonPitchDegrees;
@@ -1062,11 +1049,9 @@ bool Store::SaveNow() {
     WriteBool(L"Features",L"TPSHoldSuspend",tpsSuspendButtonMask!=0,path_);
     WriteBool(L"Features",L"TPSHoldToggle",tpsToggleHoldButtonMask!=0,path_);
     WriteBool(L"Features",L"TPSGrenadeHold",tpsGrenadeButtonMask!=0,path_);
-    WriteBool(L"Features",L"TPSHideGroundAimFx",tpsHideGroundAimFx,path_);
     wchar_t aimModeBuffer[12]{};
     swprintf_s(aimModeBuffer,L"%d",std::clamp(aimIndicatorHideMode,0,2));
     WriteProfileString(L"Features",L"AimIndicatorHideMode",aimModeBuffer,path_.c_str());
-    WriteBool(L"Features",L"TPSHorseStableAimCamera",tpsHorseStableAimCamera,path_);
     wchar_t mountModeText[12]{};
     swprintf_s(mountModeText,L"%d",std::clamp(tpsMountedAimMode,0,1));
     WriteProfileString(L"Features",L"TPSMountedAimMode",mountModeText,path_.c_str());
@@ -1083,7 +1068,6 @@ bool Store::SaveNow() {
     WriteProfileString(L"Controls",L"TPSMouseSecondaryButton",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsWheelPadMask);
     WriteProfileString(L"Controls",L"TPSWheelPadMask",buttonBuffer,path_.c_str());
-    swprintf_s(buttonBuffer,L"%d",tpsChargedFirePadMask);
     WriteProfileString(L"Controls",L"TPSChargedFirePadMask",buttonBuffer,path_.c_str());
     swprintf_s(buttonBuffer,L"%d",tpsRecenterButtonMask);
     WriteProfileString(L"Controls",L"TPSRecenterButtonMask",buttonBuffer,path_.c_str());
@@ -1130,8 +1114,6 @@ bool Store::SaveNow() {
 
     WriteFloat(L"Values", L"MovementSpeedMultiplier", movementSpeedMultiplier, path_);
     WriteFloat(L"Values", L"ActionRecoveryDelayMs", actionRecoveryDelayMs, path_);
-    WriteFloat(L"Values", L"ActionRecoveryMultiplier", actionRecoveryMultiplier, path_);
-    WriteFloat(L"Values", L"DodgeEarlyUnlockMs", dodgeEarlyUnlockMs, path_);
     WriteFloat(L"Values", L"PistolDamageMultiplier", pistolDamageMultiplier, path_);
     WriteFloat(L"Values", L"MeleeDamageMultiplier", meleeDamageMultiplier, path_);
     WriteFloat(L"Values", L"JumpHeightMultiplier", jumpHeightMultiplier, path_);

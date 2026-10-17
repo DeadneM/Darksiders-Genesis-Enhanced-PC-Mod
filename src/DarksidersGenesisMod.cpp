@@ -33,6 +33,7 @@
 #include "ProjectileAimFeature.h"
 #include "HealthFeature.h"
 #include "GlideFeature.h"
+#include "ActionRecoveryFeature.h"
 #include "SkipLogosFeature.h"
 #include "SkipWarningFeature.h"
 #include "TargetValidator.h"
@@ -105,9 +106,6 @@ std::atomic_ullong g_tpsActorYawTick{0};
 std::atomic_uint32_t g_tpsActorYawSamples{0};
 std::atomic_bool g_tpsFireHeld{false};
 std::atomic_ullong g_tpsFireLastTick{0};
-std::atomic_bool g_tpsChargeChordHeld{false};
-std::atomic_ullong g_tpsChargeChordTick{0};
-std::atomic_uint32_t g_tpsChargeChordSamples{0};
 
 std::atomic_uint32_t g_tpsPlayerGeneration{0};
 // V0.72: track potential Steam Input -> synthetic Windows mouse mapping.
@@ -1585,9 +1583,8 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
        !std::isfinite(result->pitch)||!std::isfinite(result->yaw)||
        !std::isfinite(result->roll))
         return result;
-    // Diagnostic BEFORE native-vector modification: sample the actual
-    // live-player look caller and resource state for ordinary and charged
-    // input. This is not a projectile hook and never alters any result.
+    // This live look getter can change the native look result below.
+    // Projectile direction is handled separately in ProjectileAimFeature.
     if(IsTPSRadialInputActive())return result;
     auto& rt=dg::runtime::Get();
     const bool mouseFiring=MouseAnyFireHeld();
@@ -1978,7 +1975,7 @@ bool IsFeatureEnabled(Action action) {
     case Action::MovementSpeed:
         return g_config.movementSpeedEnabled;
     case Action::ActionRecovery:
-        return false; // Legacy action retained; ineffective native experiment retired.
+        return g_config.actionRecoveryEnabled;
     case Action::SkipIntroVideos:
         return g_config.skipIntroEnabled;
     case Action::ThirdPerson:
@@ -2116,8 +2113,14 @@ void TriggerAction(Action action, int functionKey) {
     }
 
     if (action == Action::ActionRecovery) {
-        g_lastAction = "Action Recovery [retired: no effect]";
-        Log("F%d -> Action Recovery ignored (ineffective experiment retired)", functionKey);
+        const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+        if(!hwnd||GetForegroundWindow()!=hwnd||IsIconic(hwnd)||g_overlayVisible.load()||g_shuttingDown.load())return;
+        if(!dg::recovery::Ready()){g_lastAction="Action Recovery [unavailable]";return;}
+        g_config.actionRecoveryEnabled=!g_config.actionRecoveryEnabled;
+        g_config.Save();
+        g_lastAction=std::string("Action Recovery (dash) ")+(g_config.actionRecoveryEnabled?"ON":"OFF");
+        Log("F%d -> Action Recovery dash %s delayMs=%.1f",functionKey,
+            g_config.actionRecoveryEnabled?"ON":"OFF",g_config.actionRecoveryDelayMs);
         return;
     }
 
@@ -2544,17 +2547,7 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     // V1.08: LB alone opens the original wheel. LB+Y preserves the native
     // charged-shot chord, never moves the game-facing wheel stick.
     const bool wheelDown=localGameplay&&GamepadBindingDown(dg::runtime::Get().tpsWheelPadMask.load(std::memory_order_relaxed),pad);
-    const bool chargedChord=localGameplay&&!validChord&&TPSChargeChordDown(pad);
     const auto chordNow=GetTickCount64();
-    // V1.09: record the actual ORIGINAL pad state before any aim filter,
-    // including R1/R2 compared to LB+Y and plain LB. Input unmodified.
-    g_tpsChargeChordHeld.store(chargedChord,std::memory_order_release);
-    if(chargedChord){
-        g_tpsChargeChordTick.store(chordNow,std::memory_order_release);
-        const unsigned n=++g_tpsChargeChordSamples;
-        if(n==1)
-            Log("TPS V1.11 LB+Y passes through native input (0 special writes)");
-    }
     if(wheelDown){
         auto& wheelRt=dg::runtime::Get();
         wheelRt.tpsAbilityWheelHeld.store(true,std::memory_order_release);
@@ -2600,10 +2593,7 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     // V0.94: normal native right-stick isolation is a TPS invariant, not
     // a separate user option. Camera Forward injection above or Vanilla Aim
     // while firing are the only intentional exceptions.
-    // V0.68: NEVER inject artificial XInput aim during RT/RB.
-    // The same right-stick suppression applies while running, idle AND
-    // firing. Our own camera separately reads the UNFILTERED trampoline.
-    // This is input isolation, NOT yet a shot-direction fix.
+    // Outside forward fire, isolate the selected camera stick from native aim.
     const bool vanillaAim=rt.tpsMountedAimMode.load()==1;
     const bool blockLook=!vanillaAim || !fire;
     if(blockLook && (dg::tps_input::CameraX(pad,nativeSwap)!=0 ||
@@ -3435,19 +3425,15 @@ void UpdateOrbitInput() {
     const bool padAvailable=focused &&
         GetCameraXInputState(dg::local_players::PrimaryControllerId(),&physical)==ERROR_SUCCESS;
 
-    // Only LB / G / Tab open radial wheels; R3/E USE equipment.
+    // Configured wheel detectors preserve selection; equipment use is separate.
     const auto wheelKey=[&](dg::config::TpsKeyboardAction action)->bool{
         const int vk=g_config.tpsKeyboardKeys[static_cast<size_t>(action)];
         return vk>0&&vk<256&&(GetAsyncKeyState(vk)&0x8000)!=0;
     };
-    const bool chargedPhysical=padAvailable&&g_config.thirdPersonEnabled&&
-        TPSChargeChordDown(physical.Gamepad);
     const bool wheelOpen=focused && (
         (padAvailable&&GamepadBindingDown(dg::runtime::Get().tpsWheelPadMask.load(std::memory_order_relaxed),physical.Gamepad)) ||
         wheelKey(dg::config::TpsKeyboardAction::WheelG) ||
         wheelKey(dg::config::TpsKeyboardAction::WheelTab));
-    g_tpsChargeChordHeld.store(focused&&chargedPhysical,std::memory_order_release);
-    if(focused&&chargedPhysical)g_tpsChargeChordTick.store(now,std::memory_order_release);
     rt.tpsAbilityWheelHeld.store(wheelOpen,std::memory_order_release);
     if(wheelOpen)rt.tpsAbilityWheelTick.store(now,std::memory_order_release);
 
@@ -4126,6 +4112,8 @@ void ShutdownMod() {
     dg::native_tps::Report();
     dg::health::Shutdown();
     dg::glide::Report();
+    dg::recovery::Shutdown();
+    dg::recovery::Report();
     // Release the supported synthetic horse key before teardown.
     if(g_horseSyntheticHDown.exchange(false))EmitKeyboardVirtualKey('H',false);
     g_config.FlushIfDue(true);
@@ -4170,8 +4158,6 @@ void ShutdownMod() {
     RestoreCameraDof();
     Log("TPS V0.69 totals: mouseInputNative=PASSTHROUGH rightStickReadsFiltered=%u whileFiring=%u",
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
-    Log("TPS native charged-shot passthrough: samples=%u wheelMask=0x%X",
-        g_tpsChargeChordSamples.load(),dg::runtime::Get().tpsWheelPadMask.load(std::memory_order_relaxed));
 
     Log("TPS V1.04 forward totals: all=%u horse=%u foot=%u mappedHorseChord=%u keyboardHorse=%u",
         g_tpsForwardAnalogInjected.load(),g_tpsMountedForwardAnalogInjected.load(),
@@ -4363,7 +4349,7 @@ DWORD WINAPI MainThread(LPVOID) {
     if (!InstallNativeTPSRotationHook()) {
         Log("TPS V0.75 native look hooks unavailable; vanilla look path untouched.");
     }
-    Log("Action Recovery retired: ineffective V1.39 experiment; native timing retained, legacy INI/actions preserved");
+
     if (!InstallHotstreakChargeHook()) {
         Log("Hotstreak Charge unavailable; other ASI features remain active.");
     }
@@ -4377,6 +4363,7 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::projectile_aim::Initialize(&FeatureLog,g_targetValidation.exact,&ProvideProjectileRotation);
     dg::health::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::glide::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::recovery::Initialize(&FeatureLog,g_targetValidation.exact);
     if (!InstallFinalOutgoingDamageHook()) {
         Log("Final Pistol/Melee Damage hook unavailable; other ASI features remain active.");
     }

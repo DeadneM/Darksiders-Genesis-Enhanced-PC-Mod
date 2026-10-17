@@ -253,7 +253,7 @@ void HookView(void* camera, float dt, void* outView) {
     static std::atomic_bool mountedAimPoseLatched{false};
     static std::atomic_bool lastHorse{false};
     // V0.86: the mode of mounted shooting is ALWAYS enforced when in TPS.
-    // The retired vertical-stabilization checkbox is NOT an aim mode gate.
+    // View ownership is independent of the mounted aiming mode.
     // V1.27: mouse shots also hold a VERIFIED recent horse camera pose,
     // just as controller fire has since V0.85. The physical mouse state is
     // published separately; this does not alter native projectile raycasts.

@@ -1,3 +1,11 @@
+## V1.49 — reprise Action Recovery dash et nettoyage (source de TEST)
+
+Demande utilisateur du17octobre : ASI propre, Action Recovery réactivé, changements revérifiés. Base V1.48 acceptée hors exceptions, source historique `4161ac4`. **SOURCE PRÉPARÉE / EXPÉRIMENTAL**, compilation/livraison/effet en jeu à vérifier. Nouveau module branché sur le Tick natif de dash : physique originale d'abord ; décélération positive observée, puis épuisée ; fin complète native une fois par activation/joueur. Délai0–300ms, case et ancien token/ID3 Hotkeys fonctionnels. Aucune réactivation de l'ancien fondu sans effet ou du déblocage MOVE rejeté ; coffre reporté.
+
+Cinq réglages inactifs retirés du code/de l'INI neuf, ainsi que les atomiques écrites sans lecture et compteur passif de chord. **117clés actives**,48IDs et toutes valeurs actives inchangés ; INI personnel non remplacé, lignes inconnues conservées.57autres fichiers source inchangés, voies de visée/entrée à contrôler séparément.24suites attendues, dont deux nouvelles pour le vrai module et la compatibilité de configuration.
+
+Priorité de test : troisième/quatrième dash Strife OFF/ON, distance/glissement/reprise des commandes, puis War/P2. Roue d'équipement coop, Charge Shot, Graviton/pitch, Lava et visée native après dash restent ouverts ; aucun correctif pour ces sujets dans cette build. [Objectif, preuves, limites, tests et rollback](V1_49_DASH_RECOVERY_CLEANUP.md). Les états V1.48 ci-dessous deviennent historiques pour Action Recovery seulement.
+
 ## V1.48 — état courant après audit des réparations ouvertes
 
 Dernière base installée : **V1.48, acceptée par l'utilisateur pour le reste du mod, pour l'instant**. Les listes générales de validations encore attendues ci-dessous sont historiques et ne prévalent plus sur ce retour. Acquis, INI personnel et raccourcis à conserver.

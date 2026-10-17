@@ -84,7 +84,7 @@ kActionLabels = {
     "None",
     "Toggle HUD",
     "Movement Speed",
-    "Action Recovery (unavailable)",
+    "Action Recovery (dash)",
     "Skip Intro Videos",
     "Third Person",
     "Skip Logos",
@@ -249,9 +249,7 @@ public:
     bool tpsHoldSuspendEnabled = true;
     bool tpsLongPressToggleEnabled = true;
     bool tpsGrenadeHoldEnabled = true;
-    bool tpsHideGroundAimFx = true; // legacy diagnostic toggle, no longer in UI
     int aimIndicatorHideMode = 2; // 0 Everywhere, 1 Default Only, 2 TPS Only
-    bool tpsHorseStableAimCamera = true; // legacy setting migrated to mounted aim mode
     int tpsMountedAimMode = 0; // 0 camera-forward free, 1 native aim camera locked
     int tpsGrenadeButtonMask = 0x0080; // R3 USE gear (0=OFF)
     int tpsFirePrimaryMask = 0x20000;
@@ -260,7 +258,6 @@ public:
     int tpsMousePrimaryButton = 0x01;
     int tpsMouseSecondaryButton = 0x02;
     int tpsWheelPadMask = 0x0100;
-    int tpsChargedFirePadMask = 0x8000; // Y/Triangle for LB+Y charged shot
     int tpsSuspendButtonMask = 0x0080; // R3, temporary vanilla view
     int tpsSuspendDelayMs = 300; // delay before R3 hold enables vanilla view, 0..3000
     int tpsToggleHoldButtonMask = 0x0040; // L3, long press TPS toggle
@@ -301,8 +298,6 @@ public:
 
     float movementSpeedMultiplier = 1.50f;
     float actionRecoveryDelayMs = 0.0f;
-    float actionRecoveryMultiplier = 2.00f;
-    float dodgeEarlyUnlockMs = 100.0f;
     float pistolDamageMultiplier = 2.00f;
     float meleeDamageMultiplier = 2.00f;
     float jumpHeightMultiplier = 1.25f;

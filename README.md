@@ -1,3 +1,9 @@
+## V1.49 — Action Recovery dash et nettoyage ASI (source de TEST)
+
+Base V1.48 acceptée hors les six réparations signalées. **SOURCE PRÉPARÉE / EXPÉRIMENTAL, compilation et validation en jeu encore requises.** Action Recovery retrouve une case et son ancien raccourci : après une décélération de dash observée active puis terminée, demande de fin normale native, avec délai0–300ms. La physique originale s'exécute au dt natif avant cette décision ; pas de déblocage forcé des commandes. Coffres différés. Le gain réel entre troisième/quatrième dash reste à tester.
+
+Nettoyage : cinq réglages sans effet et leurs champs compilés retirés, anciennes atomiques/compteurs passifs supprimés, commentaires corrigés ; **117clés actives,48IDs Hotkeys et toutes valeurs actives conservés**. Les anciennes lignes d'un INI personnel restent intactes, sans être consommées par le code.57autres fichiers source protégés. Roues, trajectoires/pitch, RawInput, manettes, cheval, jauges, refills et fonctions validées conservent leurs chemins ; les autres bugs restent ouverts. [Preuves, critères, contrôles et rollback](docs/V1_49_DASH_RECOVERY_CLEANUP.md).
+
 ## V1.48 — acquis acceptés et audit des six réparations ouvertes
 
 **VALIDÉ PAR L'UTILISATEUR POUR L'INSTANT, hors exceptions signalées.** Le dernier retour accepte le reste du mod : les anciennes listes générales de tests en attente ci-dessous deviennent historiques. Les fonctions acquises, réglages personnels et raccourcis constituent la base à préserver.

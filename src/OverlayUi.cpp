@@ -10,6 +10,7 @@
 #include "BuildInfo.h"
 #include "HealthFeature.h"
 #include "GlideFeature.h"
+#include "ActionRecoveryFeature.h"
 
 #include "HorseFeature.h"
 #include "CameraTraceFeature.h"
@@ -241,8 +242,9 @@ void Draw(Context& c) {
                 t.movementHookReady
             );
 
-            ImGui::TextDisabled("Action Recovery - unavailable");
-            ImGui::TextWrapped("The previous experiment had no effect and has been retired. Native dash and chest timing is retained. Existing INI values and hotkey assignments remain compatible.");
+            DrawToggleFeature(config,"Action Recovery (dash)","ActionRecovery",&config.actionRecoveryEnabled,
+                "Experimental: shortens the end of a dash after its deceleration has finished. OFF keeps native timing. Chest animations are unchanged. Assign a toggle in Hotkeys.",dg::recovery::Ready());
+            if(DrawNumberRow("Recovery delay","ActionRecoveryDelay",&config.actionRecoveryDelayMs,0,300,0,"%.0f ms","%.0f"))config.Save();
 
             DrawTunableFeature(
                 config,
@@ -959,7 +961,6 @@ void Draw(Context& c) {
                 ImGui::TextWrapped("This held button lets the game's native right stick select wheel items, "
                     "instead of being intercepted by TPS camera control.");
                 ImGui::TextDisabled("LB+Y: original native ability behavior, no modded aiming or key translation.");
-                ImGui::TextDisabled("Old TPSChargedFirePadMask INI is retained but ignored.");
                 ImGui::TextWrapped("Wheel detector keys never emit fake game input. "
                     "Change them here too when rebinding the game's wheel controls.");
                 ImGui::TextDisabled("Keyboard Use Gear follows the game's own native mapping.");
