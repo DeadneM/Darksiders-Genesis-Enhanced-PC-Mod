@@ -1,5 +1,13 @@
 # V1.52 — base de visée commune, entrées natives et nettoyage
 
+## Reçu vérifié
+
+**CONSTRUIT / CONTRÔLÉ / INSTALLÉ / EXPÉRIMENTAL**, 17 octobre 2026. [GitHub Actions 39070045234](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39070045234) : **27/27 suites, zéro avertissement MSVC ASI/DXGI**, sans désactivation des contrôles. Avis de dépréciation restants des outils externes CMake/Node, séparés de ce résultat. Source `6b081c58497a177d8e8af60dd3320c56e3606b31`, archive `fd4fe3f8cd213e81fb7fbf998c62b595cbf3cd8d`. La première compilation finalisée a été arrêtée pour une collision de nom dans le relevé, avec des alertes de format en cascade ; correction avant production. Aucun ZIP de cette compilation en échec n'a été installé ni publié.
+
+[ZIP public vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/fd4fe3f8cd213e81fb7fbf998c62b595cbf3cd8d/downloads/DarksidersGenesis_V1.52_COMMON_AIM_INPUT_CLEANUP_TEST.zip), **866972 octets**, SHA256 `9B72998C9CD15883CE16AE0412332000449D8587D61675DE0D169BC10BAB58EB`. Quatre racines, CRC, AMD64, identité, 119 clés et 48 IDs contrôlés. ASI `ADEB44C256D5D90BAA744F26FE8AE534C2527BC06BAF1820A8792B09EB109162`, DXGI `F7AF999350B298D251B5428FA88AA2A42F2A46CD33D1BCE115A1880194E2B800`.
+
+Installation jeu fermé, sauvegarde `audit-v131/install-backup-before-v152-20261017-231827`, restauration V1.51 fournie mais non exécutée. INI personnel avant/après `059085DAC051F980A6F9735057D9A741AA0AB70BA177E2D9069DD75162D4E2D9` inchangé. Aucun lancement ni essai en jeu par l'agent. README installé avec ce reçu, ZIP historique immuable. Les 116 anciens ZIP sont vérifiés inchangés ; main/archive et tag/release v1.43 protégés.
+
 ## Objectif et base
 
 Base debug V1.51 `eca1273`, avec les fonctions validées de V1.50 conservées. **Retours V1.51 rejetés** : désactiver 3D réintroduit le tir chargé Hotstreak incorrect ; activer 3D change l'angle caméra ; certains tirs paraissent décalés à gauche. L'utilisateur demande un socle unique, seule la visée verticale devant différer. Les roues, l'équipement, le changement de personnage et les fonctions gameplay validées restent protégés.
@@ -31,7 +39,7 @@ Deux défauts de portée sont corrigés :
 1. Le getter de vecteur de regard pouvait encore neutraliser le stick sans exiger une vue TPS réellement fraîche, contrairement au getter de rotation et au filtre XInput. Le contrôle commun de propriétaire P1 exige maintenant cette vue récente : hors TPS effectif, ces retours restent natifs.
 2. Le polling matériel de caméra appelait un trampoline XInput mais ne protégeait pas les appels éventuellement relayés vers un autre export hooké. Des scopes par thread garantissent maintenant **zéro transformation pendant une lecture matérielle** et **une seule transformation pendant une lecture du jeu**, même si les fournisseurs s'appellent. Ils ne laissent aucun état permanent à la sortie. Les règles de roues, équipement, échange des sticks et boutons de tir restent celles validées, sans touche de dash imposée.
 
-Ces défauts sont visibles dans le code et les cas d'appels imbriqués sont reproduits par un test. **Leur présence dans le scénario utilisateur et leur responsabilité dans le dash ne sont pas prouvées.** Le journal V1.51 n'a que deux dashs échantillonnés, 28 observations, toutes avec TPS et Recovery ON ; aucune comparaison exploitable en vue native/OFF. Le mouvement natif y repasse de 6/5 à 1/0 après les demandes de fin. Les directions physiques de manette sont désormais jointes aux relevés bornés existants, avant transformation, si elles sont fraîches sur le même thread. Les lectures caméra sont exclues de ce relevé ; absence de mesure indiquée explicitement.
+Ces défauts sont visibles dans le code et les cas d'appels imbriqués sont reproduits par un test. **Leur présence dans le scénario utilisateur et leur responsabilité dans le dash ne sont pas prouvées.** La première copie du journal V1.51 n'avait que 28 observations ; le journal complet de 23:00:07 atteint le plafond de 96, toutes avec les options TPS et Recovery ON, et 20 demandes de fin. Ce champ TPS désigne l'option globale, pas la vue réellement affichée. La saturation interdit de déduire quoi que ce soit des essais ultérieurs, en vue native ou Recovery OFF. Le mouvement natif observé repasse de 6/5 à 1/0 après les demandes de fin. V1.52 réserve 48 échantillons pour chacune des quatre combinaisons TPS/Recovery, par joueur, à 250 ms d'intervalle. Les directions physiques de manette sont jointes avant transformation, si elles sont fraîches sur le même thread. Les lectures caméra sont exclues ; absence de mesure indiquée explicitement. Pour une comparaison non ambiguë, désactiver réellement Third Person au test 5.
 
 La physique et la demande de fin Recovery ne sont pas changées. Progression triple dash, réception lourde et perte de visée au stick restent des tickets de gameplay. Aucun nouveau hook de montage, aucun forçage d'un flag AIM/MOVE, aucune correction de shader ajoutée.
 
@@ -46,7 +54,7 @@ La physique et la demande de fin Recovery ne sont pas changées. Progression tri
 | Skip Warning C6385 | Bornes de l'indice revérifiées au point d'accès, en plus du helper |
 | Updater C6262 ×2 | Deux grands tampons UTF-16 déplacés vers des vecteurs sur le tas, mêmes limites/validation des chemins |
 
-Aucune désactivation d'avertissement, aucune modification des seuils d'analyse. Le nombre réel d'alertes de la nouvelle CI sera consigné après compilation. Zéro avertissement éventuel ne signifiera pas que toutes les dettes de threads/arrêt/INI ou tous les bugs du mod sont résolus.
+Aucune désactivation d'avertissement, aucune modification des seuils d'analyse. La CI finale confirme zéro avertissement MSVC ASI/DXGI. Cela ne signifie pas que toutes les dettes de threads/arrêt/INI ou tous les bugs du mod sont résolus.
 
 ## Tests courts de cette build
 
@@ -63,6 +71,6 @@ Pour isoler le bug natif, désactiver réellement Third Person dans le menu pour
 
 ## Contrôles et livraison
 
-27 suites prévues, dont scénarios réels des modules projectile/caméra, lecture XInput imbriquée, valeurs INI, garde de ressources et antérieurs. Windows x64 via GitHub Actions, package immuable à quatre racines. Anciennes archives et main/archive/v1.43 protégés. Installation uniquement jeu fermé, sauvegarde et contrôle de conservation de l'INI ; aucun lancement automatique.
+27 suites exécutées avec succès, dont scénarios des vrais modules projectile/caméra avec frontières natives simulées, lecture XInput imbriquée, valeurs INI, garde de ressources et antérieurs. Windows x64 via GitHub Actions, package immuable à quatre racines. Anciennes archives et main/archive/v1.43 protégés. Installation jeu fermé, sauvegarde et contrôle de conservation de l'INI ; aucun lancement automatique. Les tirs et contrôles réels restent à tester.
 
 Rollback : restaurer ASI/DXGI/README V1.51 sauvegardés, conserver l'INI courant. La case 3D OFF est désormais un mode vertical natif du même socle, **pas un rollback de la correction commune**. Les échecs V1.51 restent documentés.
