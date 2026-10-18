@@ -37,3 +37,9 @@ Le chemin de rendu natif F5D540 traite notamment méthode, ouverture, capteur et
 31/31 suites réussies après correction du format de l’INI livré (0.650), sans changer le test de parité. Compilation MSVC/analyse statique sans avertissement ASI/DXGI ; avis des outils conservés. Voir les références de commit/CI/ZIP dans CURRENT_STATE. Pas de validation en jeu ni d’installation à ce stade.
 
 Le volume LVL09_PostProcessVolume_Dungeon est présent dans Level_09_Base_Dungeon : activé, borné, priorité 0, rayon de mélange 100, poids 1. Les paramètres stockés comprennent focus 1000, région 3400, méthode 1 et ouverture 4, mais les flags d’override focus (octet 16, bit 08) et région (octet 17, bit 04) sont nuls. Ne pas confondre valeur stockée et réglage effectivement mélangé. Les caches caméra actuels/précédents 1A00/1F90 ont le même focus et bit 08 que la sortie de vue ; le cheval reste à 551.2121 dans les trois. Le P1 est repassé à pied lors de ce dernier relevé (329.897), la preuve Ultimate précédente reste distincte. Il faut identifier le résultat final de post-traitement, pas ajouter un hook spéculatif.
+
+## Installation effective
+
+Installation après confirmation utilisateur et vérification de 272 processus visibles, jeu fermé. Sauvegarde V1.57 `install-backup-before-v158-20261018-192726`, manifeste d’intégrité et `Restore-Previous.ps1` conservés ; syntaxe de restauration contrôlée, script non exécuté. **INI personnel inchangé octet pour octet** : `FA9E7A196CB348C9DEF962E2A62A93A4DA91042D21D067D091E232B295E3AB38` ; raccourcis conservés. ASI/DXGI installés identiques au paquet vérifié. Aucun lancement du jeu par l’agent, aucune validation de gameplay. README installé actualisé avec ce reçu ; le ZIP reste immuable.
+
+V1.57 est la sauvegarde de retour arrière ; les prochains essais sont ceux du CURRENT_STATE. Les défauts connus de flou et de tir pendant dash restent ouverts.
