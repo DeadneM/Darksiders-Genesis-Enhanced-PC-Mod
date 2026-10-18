@@ -208,6 +208,10 @@ if(BUILD_TESTING)
   target_include_directories(OverlayBindingScopeTests PRIVATE src)
   target_link_libraries(OverlayBindingScopeTests PRIVATE imgui_static)
   add_test(NAME OverlayBindingScope COMMAND OverlayBindingScopeTests)
+  add_executable(UpdateNoticeTests tests/UpdateNoticeTests.cpp)
+  target_include_directories(UpdateNoticeTests PRIVATE src)
+  target_link_libraries(UpdateNoticeTests PRIVATE imgui_static)
+  add_test(NAME UpdateNotice COMMAND UpdateNoticeTests)
 endif()
 
 

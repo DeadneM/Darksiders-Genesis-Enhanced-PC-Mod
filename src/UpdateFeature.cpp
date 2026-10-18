@@ -30,6 +30,8 @@ std::mutex g_lock;
 Status g_status{};
 Package g_package{};
 std::atomic_bool g_busy{false};
+std::atomic<uint64_t> g_notice{0};
+uint64_t g_checkSerial=0; // protected by g_lock; low bit identifies the channel
 
 std::wstring Widen(const std::string& s){
     if(s.empty())return {};
@@ -204,6 +206,7 @@ void DoCheck(bool beta){
         g_status.latest="V"+std::to_string(p.major)+"."+
             (p.minor<10?"0":"")+std::to_string(p.minor);
         g_status.newer=NewerThanCurrent(p.major,p.minor);
+        if(g_status.newer)g_notice.store((++g_checkSerial<<1)|uint64_t(beta));
         const bool same=MatchesCurrent(p.major,p.minor,p.name);
         g_status.sameBuild=same;
         g_status.message=same ? "This ASI matches the newest "+std::string(beta?"beta":"stable")+" build." :
@@ -254,7 +257,12 @@ Status GetStatus(){
     std::lock_guard<std::mutex> guard(g_lock);
     return g_status;
 }
+uint64_t NoticeId(bool beta){
+    const auto id=g_notice.load();
+    return id&&bool(id&1)==beta?id:0;
+}
 void Invalidate(){
+    g_notice.store(0);
     if(g_busy.load())return;
     std::lock_guard<std::mutex> guard(g_lock);
     g_status=Status{};
@@ -266,6 +274,8 @@ void Check(bool beta){
         std::lock_guard<std::mutex> guard(g_lock);
         g_status.busy=true;
         g_status.hasLatest=false;
+        g_status.newer=false;
+        g_notice.store(0);
         g_status.message=beta?"Checking beta (debug) on GitHub...":"Checking stable (main) on GitHub...";
     }
     try{PinThisModule();std::thread([beta](){DoCheck(beta);}).detach();}

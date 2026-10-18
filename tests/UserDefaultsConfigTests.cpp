@@ -34,6 +34,7 @@ int main(int argc,char** argv){
     if(!DeleteFileW(path))return 1; // only this test's empty file, to exercise missing-INI generation
     dg::config::Store generated;generated.SetPath(path);
     check(generated.Load(),"missing INI generated from compiled defaults");
+    check(!generated.updaterAutoCheck,"automatic network checks remain opt-in for old and missing profiles");
     check(generated.tps3DAimEnabled&&dg::runtime::Get().tps3DAimEnabled.load(),"missing option enables 3D aiming by default");
     check(generated.tpsLensFocusEnabled&&dg::runtime::Get().tpsLensFocusEnabled.load(),"TPS lens experiment defaults ON in store and runtime");
     const auto actual=ReadIni(path);
@@ -59,6 +60,7 @@ int main(int argc,char** argv){
     check(rt.tpsHorseDistanceMultiplier.load()==0.25f&&rt.tpsHorseHeightOffset.load()==40,"runtime receives user-chosen Horse camera defaults");
     WritePrivateProfileStringW(L"Overlay",L"MenuKey",L"VK_C0",path);
     WritePrivateProfileStringW(L"Updater",L"Beta",L"0",path);
+    WritePrivateProfileStringW(L"Updater",L"AutoCheckUpdates",L"1",path);
     WritePrivateProfileStringW(L"Features",L"ReduceAmmoConsumption",L"0",path);
     WritePrivateProfileStringW(L"Features",L"TPSLensFocus",L"0",path);
     WritePrivateProfileStringW(L"Values",L"TPSUltimateDistanceMultiplier",L"0.900",path);
@@ -67,6 +69,7 @@ int main(int argc,char** argv){
     WritePrivateProfileStringW(L"Hotkeys",L"F9",L"FOV",path);
     dg::config::Store personal;personal.SetPath(path);check(personal.Load(),"explicit older personal profile loads");
     check(personal.menuKey==0xC0&&!personal.updaterBeta&&!personal.reduceAmmoEnabled,"explicit older toggles/menu retained");
+    check(personal.updaterAutoCheck&&!personal.updaterBeta,"auto check loads independently of the selected stable channel");
     check(personal.tpsUltimateDistanceMultiplier==0.9f&&personal.tpsUltimateHeightOffset==123&&personal.wrathChargeMultiplier==2,"explicit personal values retained");
     check(personal.hotkeys[8]==dg::config::Action::FOV,"explicit older hotkey retained");
     check(!personal.tpsLensFocusEnabled&&!rt.tpsLensFocusEnabled.load(),"explicit lens OFF survives load and runtime publication");
@@ -83,6 +86,7 @@ int main(int argc,char** argv){
     check(generated.menuKey==VK_INSERT,"Insert is the authoritative menu default");
     personal.tps3DAimEnabled=false;personal.tpsAimPitchOffsetDegrees=17.5f;check(personal.SaveNow(),"simple aim option and independent shot angle save");
     dg::config::Store reloaded;reloaded.SetPath(path);check(reloaded.Load()&&!reloaded.tps3DAimEnabled&&!rt.tps3DAimEnabled.load()&&reloaded.tpsAimPitchOffsetDegrees==17.5f&&rt.tpsAimPitchOffsetDegrees.load()==17.5f,"explicit simple aim and manual shot angle survive reload and runtime publication");
+    check(reloaded.updaterAutoCheck&&!reloaded.updaterBeta,"auto check and stable channel survive save and reload");
     personal.tpsMousePrimaryButton=VK_XBUTTON1;personal.tpsMouseSecondaryButton=VK_MBUTTON;
     personal.tpsFirePrimaryMask=0x4000;personal.tpsFireSecondaryMask=0x8000;
     personal.tpsWheelPadMask=0x0020;personal.tpsGrenadeButtonMask=0x0040;
@@ -98,6 +102,7 @@ int main(int argc,char** argv){
     check(personal.tpsLensFocusEnabled&&rt.tpsLensFocusEnabled.load(),"TPS camera reset restores the lens option default");
     check(personal.tpsUltimateDistanceMultiplier==0.30f&&personal.tpsUltimateHeightOffset==80,"camera reset uses requested Ultimate defaults");
     personal.ResetDefaults(false);check(personal.SaveNow(),"full compiled defaults reset saves");
+    check(!personal.updaterAutoCheck,"full defaults reset restores manual update checks");
     const auto reset=ReadIni(path);
     for(const auto& [section,values]:shipped){
         const auto sectionIt=reset.find(section);check(sectionIt!=reset.end(),"reset section retained");

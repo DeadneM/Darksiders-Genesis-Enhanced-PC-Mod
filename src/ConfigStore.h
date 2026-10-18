@@ -244,6 +244,7 @@ public:
     bool overlayEnabled = true;
     int menuKey = defaults::MenuKey;
     int graphicsAdapter = 0;
+    bool updaterAutoCheck = false;
     bool updaterBeta = defaults::UpdaterBeta; // OFF=main stable, ON=debug beta
 
     bool toggleHudEnabled = true;

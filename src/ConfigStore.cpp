@@ -315,6 +315,7 @@ void Store::ResetDefaults(bool persist) {
     overlayEnabled = true;
     menuKey = defaults::MenuKey;
     graphicsAdapter = 0;
+    updaterAutoCheck = false;
     updaterBeta = defaults::UpdaterBeta;
 
     toggleHudEnabled = true;interactionHudScaleEnabled=true;interactionHudScale=0.65f;
@@ -537,6 +538,7 @@ bool Store::Load() {
     );
     menuKey = ParseKeyToken(menuKeyText, defaults::MenuKey);
 
+    updaterAutoCheck = ReadBool(L"Updater", L"AutoCheckUpdates", false, path_);
     updaterBeta = ReadBool(L"Updater", L"Beta", defaults::UpdaterBeta, path_);
     graphicsAdapter = GetPrivateProfileIntW(
         L"System",
@@ -999,6 +1001,7 @@ bool Store::SaveNow() {
     );
 
     WriteBool(L"Overlay", L"Enabled", overlayEnabled, path_);
+    WriteBool(L"Updater", L"AutoCheckUpdates", updaterAutoCheck, path_);
     WriteBool(L"Updater", L"Beta", updaterBeta, path_);
     const std::wstring menuKeyToken = KeyTokenFromVK(menuKey);
     WriteProfileString(

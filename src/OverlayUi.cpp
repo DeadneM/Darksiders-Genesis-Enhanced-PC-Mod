@@ -11,6 +11,7 @@
 #include "PotionPolicy.h"
 #include "ShaderAimFeature.h"
 #include "UpdateFeature.h"
+#include "UpdateNoticeUi.h"
 #include "BuildInfo.h"
 #include "HealthFeature.h"
 #include "GlideFeature.h"
@@ -209,6 +210,11 @@ void Draw(Context& c) {
     );
     ImGui::Separator();
 
+    const auto update = dg::update::GetStatus();
+    if(update.hasLatest&&update.newer&&update.checkedBeta==config.updaterBeta){
+        DrawUpdateBanner(update.latest.c_str(),config.updaterBeta?"debug":"main");
+        ImGui::Separator();
+    }
     if (ImGui::BeginTabBar("MainTabs")) {
         if (ImGui::BeginTabItem("Gameplay")) {
             ImGui::Spacing();
@@ -1268,17 +1274,23 @@ void Draw(Context& c) {
             ImGui::TextWrapped("Check GitHub and queue a verified update. "
                 "Loaded DLLs are replaced only AFTER the game closes.");
 
+            if(ImGui::Checkbox("Auto check update",&config.updaterAutoCheck)){
+                config.Save();
+                if(config.updaterAutoCheck)dg::update::Check(config.updaterBeta);
+            }
+            ImGui::TextWrapped("Check the selected channel once at startup. A newer build shows an 8-second notification and a yellow reminder above the tabs. Enabling this option also checks now.");
+            ImGui::BeginDisabled(update.busy);
             if (ImGui::Checkbox("Beta updates (debug)", &config.updaterBeta)) {
                 config.Save();
                 dg::update::Invalidate();
                 *c.lastAction = config.updaterBeta ?
                     "Updates channel: debug (beta)" : "Updates channel: main (stable)";
             }
+            ImGui::EndDisabled();
             ImGui::TextDisabled("OFF: main (stable)  |  ON: debug (experimental)");
             ImGui::TextDisabled("Current channel: %s", config.updaterBeta ? "debug" : "main");
             ImGui::Spacing();
 
-            const auto update = dg::update::GetStatus();
             ImGui::Text("Running mod: %s",dg::build::Version);
             const bool checked = update.hasLatest && update.checkedBeta == config.updaterBeta;
             if (checked) {
@@ -1321,8 +1333,7 @@ void Draw(Context& c) {
                 ImGui::TextWrapped("Install %s from %s on next game exit?",
                     update.latest.c_str(), config.updaterBeta ? "debug / beta" : "main / stable");
                 if (!update.newer)
-                    ImGui::TextWrapped("WARNING: this version is not newer than V1.14. "
-                        "You may be downgrading the mod.");
+                    ImGui::TextWrapped("WARNING: this version is not newer than %s. You may be downgrading the mod.",dg::build::Version);
                 ImGui::TextWrapped("The game files will change only AFTER Darksiders Genesis closes. "
                     "Your existing INI is preserved.");
                 ImGui::Spacing();

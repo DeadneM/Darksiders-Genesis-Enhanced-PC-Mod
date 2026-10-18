@@ -1,3 +1,9 @@
+## Priorité V1.63 — 19 octobre 2026
+
+Crash grappin V1.62 identifié : trois arguments natifs perdus, y compris OFF. Correction et auto-check préparés dans [V1.63](V1_63_GRAPPLE_INIT_UPDATE_TEST.md), construction et validation en jeu à effectuer. [Essais cumulatifs depuis V1.60](TESTS_DEPUIS_V1_60.md). V1.62 conservée historiquement, son chemin grappin ne doit plus être proposé comme sûr.
+
+---
+
 # File active — lot V1.62 (19 octobre 2026)
 
 Ce tableau fait foi pour l’état actuel ; les entrées datées conservées plus bas décrivent leurs versions respectives.

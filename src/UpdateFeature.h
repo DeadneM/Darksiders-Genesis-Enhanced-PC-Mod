@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <cstdint>
 
 namespace dg::update {
 struct Status {
@@ -14,6 +15,7 @@ struct Status {
     std::string message = "Choose a channel, then Check for Updates.";
 };
 Status GetStatus();
+uint64_t NoticeId(bool beta);
 void Check(bool beta);
 void InstallAfterExit(bool beta);
 void RestoreAfterExit();

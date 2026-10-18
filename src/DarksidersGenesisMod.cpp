@@ -30,6 +30,9 @@
 #include "TpsStickRoles.h"
 #include "TpsPadActions.h"
 #include "OverlayUi.h"
+#include "UpdateFeature.h"
+#include "UpdateNoticePolicy.h"
+#include "UpdateNoticeUi.h"
 #include "RuntimeSettings.h"
 #include "ShaderAimFeature.h"
 #include "ProjectileAimFeature.h"
@@ -3818,20 +3821,33 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     EnsureNativeXInputAimHooks();
     UpdateOrbitInput();
 
-    // V0.68: restore original V0.32 lazy overlay policy. No rendered TPS
-    // crosshair and no needless ImGui frame during ordinary gameplay.
-    if (!g_imguiReady.load() && g_overlayVisible.load()){
-        Log("Overlay lazy-init requested on first menu open");
-        InitializeImGui(swapChain);
-    }
-    if(g_imguiReady.load()&&swapChain==g_gameSwapChain&&g_overlayVisible.load()){
-        if(GetForegroundWindow()==g_hwnd)ClipCursor(nullptr);
+    // Keep the lazy overlay: only the menu or a pending passive notice renders.
+    static dg::update::ToastTimer updateToast;
+    const bool menuVisible=g_overlayVisible.load();
+    const bool gameSurface=!g_gameSwapChain||swapChain==g_gameSwapChain;
+    const bool foreground=g_hwnd&&GetForegroundWindow()==g_hwnd&&!IsIconic(g_hwnd);
+    const bool toastVisible=gameSurface&&updateToast.Tick(dg::update::NoticeId(g_config.updaterBeta),
+        double(GetTickCount64())/1000.0,foreground);
+    if(!g_imguiReady.load()&&(menuVisible||toastVisible))InitializeImGui(swapChain);
+    if(g_imguiReady.load()&&swapChain==g_gameSwapChain&&(menuVisible||toastVisible)){
+        if(menuVisible&&foreground)ClipCursor(nullptr);
+        auto& io=ImGui::GetIO();
+        const auto menuFlags=io.ConfigFlags;
+        if(!menuVisible){
+            io.ConfigFlags|=ImGuiConfigFlags_NoMouseCursorChange;
+            io.ConfigFlags&=~(ImGuiConfigFlags_NavEnableKeyboard|ImGuiConfigFlags_NavEnableGamepad);
+            io.WantSetMousePos=false;
+        }
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
-        ImGui::GetIO().MouseDrawCursor=true;
-        auto context=BuildOverlayContext();
-        dg::overlay::Draw(context);
+        ImGui::GetIO().MouseDrawCursor=menuVisible;
+        if(menuVisible){auto context=BuildOverlayContext();dg::overlay::Draw(context);}
+        if(toastVisible){
+            const auto status=dg::update::GetStatus();
+            if(status.hasLatest&&status.newer&&status.checkedBeta==g_config.updaterBeta)
+                dg::overlay::DrawUpdateToast(status.latest.c_str(),g_config.updaterBeta?"debug":"main");
+        }
         ImGui::Render();
         if(g_rtv){
             ID3D11RenderTargetView* savedTargets[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT]{};
@@ -3843,6 +3859,7 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
             for(auto* target:savedTargets)if(target)target->Release();
             if(savedDepth)savedDepth->Release();
         }
+        io.ConfigFlags=menuFlags;
     }else if(g_imguiReady.load()){
         ImGui::GetIO().MouseDrawCursor=false;
     }
@@ -4264,6 +4281,7 @@ DWORD WINAPI MainThread(LPVOID) {
     g_config.SetPath(g_iniPath);
     g_config.SetLogger(&FeatureLog);
     g_config.Load();
+    if(g_config.updaterAutoCheck)dg::update::Check(g_config.updaterBeta);
     Log("%s CONFIG loaded %ls: TPS=%d cursorHooks=REMOVED FOV=%.1f dist=%.3f pitch=%.2f height=%.1f foot=%.1f stickMode=%d mountedAim=%d normalHeight=%.1f SkipWarningRuntime=%d",
         dg::build::Version,g_iniPath.c_str(),g_config.thirdPersonEnabled?1:0,
         g_config.thirdPersonFovDegrees,
