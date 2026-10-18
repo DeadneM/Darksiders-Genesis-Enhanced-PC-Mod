@@ -1,3 +1,18 @@
+## V1.54 — profondeur de champ réellement lue par le rendu (18 octobre 2026)
+
+**SOURCE DE TEST / EXPÉRIMENTAL — construction et validation en jeu à effectuer.** Base V1.53 `997433c2e05170f7bf41f65118c137c691101930`. Retour utilisateur : le flou excessif du chapitre 8 reste visible même immobile. L'ancien correctif V0.55 ne modifiait que la copie jeu de `r.DepthOfFieldQuality` ; le rendu lit la copie suivante, à `data+4`. V1.54 corrige ce défaut démontré dans l'exécutable supporté, sans nouveau hook, shader, modification d'Engine.ini ni réglage persistant du jeu.
+
+Les deux copies ont maintenant leur sauvegarde propre et sont supprimées pendant la caméra déplacée, puis restaurées à la vue native. Une valeur native devenue différente de notre zéro est conservée au retour. La suspension cinématique existante restaure les effets natifs ; la classification pause/roues/cinématiques ne change pas. Le réglage manuel de zoom reste indépendant en gameplay. **Le chapitre 8 n'est pas encore validé visuellement : un autre effet du niveau peut contribuer au flou.**
+
+Les deux bugs de **déplacement + visée + dash**, avec ou sans tir et Recovery ON/OFF, restent **OUVERTS**. L'analyse des scripts natifs confirme le choix de trois variantes de dash et leurs transitions propres. `69FBD0` est `DoAimAbility`, pas un calcul de projectile : aucune substitution de munition fondée sur cette mauvaise interprétation n'est ajoutée. La prochaine preuve attendue est la capacité réellement active avant/après le défaut ; capture externe en lecture seule, sans code de diagnostic supplémentaire dans l'ASI. Pas de correctif d'une touche ou d'un stick.
+
+**Conservé :** tirs Lava/Charge Shot et corrections faisceaux/obstruction validés dans les cas testés ; toutes les autres fonctions, valeurs par défaut, 119 clés INI et 48 actions Hotkeys. Aucun changement XInput/RawInput, P2, roues, ressources, balistique ou Recovery. Anciens ZIP et branches main/archive préservés.
+
+**Objectif de cette build isolée :** supprimer la profondeur de champ résiduelle en TPS au chapitre 8, et retrouver les effets natifs hors caméra modifiée. **Tests :** comparer TPS/vue native immobile puis en mouvement ; basculer plusieurs fois ; utiliser le retour temporaire et une cinématique ; contrôle court tirs et roues. Les bugs de dash ne sont pas annoncés corrigés. [Audit, limites et suite](V1_54_CAMERA_DOF_RENDER_FIX_TEST.md). Les paragraphes plus anciens ci-dessous sont historiques.
+
+---
+
+
 ## V1.53 — validations utilisateur et deux bugs de dash ouverts (18 octobre 2026)
 
 **VALIDÉ PAR L'UTILISATEUR :** les points 1 et 2 du dernier protocole sont corrigés : Static Shot/Beam Shot ne partent plus à gauche dans les cas testés ; caméra contre le décor sans inversion du tir, avec obstacle devant toujours bloquant. Conserver ces corrections, ainsi que Lava et le tir chargé déjà validés. Le retour ne détaille pas toutes les variantes ON/OFF, normal/Hotstreak ou P2 ; aucune validation générale de ces combinaisons n'est ajoutée.

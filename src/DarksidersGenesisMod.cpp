@@ -199,7 +199,7 @@ LONG* g_skipIntroData = nullptr;
 LONG g_skipIntroOriginalValue = 1;
 LONG** g_dofSlot = nullptr;
 LONG* g_dofData = nullptr;
-LONG g_dofOriginal = 2;
+LONG g_dofOriginal[2] = {2,2};
 bool g_dofCaptured = false;
 bool g_dofDisabled = false;
 std::atomic_bool g_hotstreakHookReady{false};
@@ -621,9 +621,9 @@ bool ApplySkipIntroSetting(bool logChange) {
     return true;
 }
 
-// V0.55: compensate for camera-distance blur without touching Engine.ini.
-// The registered native r.DepthOfFieldQuality is restored when both
-// Third Person and manual Zoom are off.
+// The native CVar owns two int32 shadows: game and render. F5D59C reads
+// the same registered data through FindConsoleVariable/GetData, then +4.
+// Updating only [0] leaves the renderer's depth of field enabled.
 bool WritableDofData(const LONG* p) {
     if (!p) return false;
     MEMORY_BASIC_INFORMATION mbi{};
@@ -632,7 +632,7 @@ bool WritableDofData(const LONG* p) {
     const DWORD prot=mbi.Protect&0xFF;
     return (prot==PAGE_READWRITE||prot==PAGE_WRITECOPY||
         prot==PAGE_EXECUTE_READWRITE||prot==PAGE_EXECUTE_WRITECOPY) &&
-        reinterpret_cast<uintptr_t>(p)+sizeof(LONG) <=
+        reinterpret_cast<uintptr_t>(p)+2*sizeof(LONG) <=
         reinterpret_cast<uintptr_t>(mbi.BaseAddress)+mbi.RegionSize;
 }
 void InitializeCameraDof() {
@@ -641,13 +641,26 @@ void InitializeCameraDof() {
     if (!base) return;
     const BYTE nameSig[7]={0x48,0x8D,0x15,0x2C,0x25,0x6F,0x02};
     const BYTE slotSig[7]={0x48,0x89,0x05,0xDC,0xB8,0x6F,0x03};
+    const BYTE renderSig[11]={0x48,0x8B,0x05,0xA5,0xEC,0xA5,0x02,0x83,0x78,0x04,0x00};
     if (std::memcmp(base+0x12259D,nameSig,7)!=0 ||
-        std::memcmp(base+0x1225C5,slotSig,7)!=0) {
-        Log("Camera DOF V0.55: unsupported CVar registration, original DOF retained");
+        std::memcmp(base+0x1225C5,slotSig,7)!=0 ||
+        std::memcmp(base+0xF5D59C,renderSig,sizeof(renderSig))!=0) {
+        Log("Camera DOF V1.54: unsupported CVar registration/render shadow; original retained");
         return;
     }
     g_dofSlot=reinterpret_cast<LONG**>(const_cast<BYTE*>(base)+0x381DEA8);
-    Log("Camera DOF V0.55: r.DepthOfFieldQuality registration validated");
+    Log("Camera DOF V1.54: r.DepthOfFieldQuality game/render shadows validated");
+}
+void RestoreCameraDof() {
+    // Restore only our zeroes in the current registered allocation. A native
+    // settings change to another value wins; an old allocation is never used.
+    if (g_dofDisabled && g_dofCaptured && g_dofSlot &&
+        *g_dofSlot==g_dofData && WritableDofData(g_dofData)) {
+        for(unsigned i=0;i<2;++i)
+            InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(g_dofData+i),g_dofOriginal[i],0);
+        Log("Camera DOF V1.54: game/render original values restored where still owned");
+    }
+    g_dofDisabled=false;g_dofCaptured=false;
 }
 void UpdateCameraDof() {
     if (!g_dofSlot || !WritableDofData(*g_dofSlot)) return;
@@ -655,33 +668,33 @@ void UpdateCameraDof() {
     if (data!=g_dofData) {
         g_dofData=data; g_dofCaptured=false; g_dofDisabled=false;
     }
-    const LONG current=*data;
-    if (!g_dofCaptured) {
-        if (current<0 || current>4) return;
-        g_dofOriginal=current;g_dofCaptured=true;
-        Log("Camera DOF V0.55: vanilla native quality=%ld",current);
-    }
     const auto& camera=dg::runtime::Get();
     const float zoom=camera.cameraZoomPercent.load(std::memory_order_relaxed);
-    // R3 temporary vanilla camera also restores the native DOF state;
-    // persistent camera zoom, if enabled, remains an independent reason
-    // for disabling depth-of-field blur.
-    const bool displaced=(camera.thirdPersonEnabled.load(std::memory_order_relaxed) &&
-        !camera.tpsTemporarilySuspended.load(std::memory_order_relaxed)) ||
-        (std::isfinite(zoom)&&std::fabs(zoom)>0.0001f);
-    const LONG desired=displaced ? 0 : g_dofOriginal;
-    if (current!=desired) {
-        InterlockedExchange(reinterpret_cast<volatile LONG*>(data),desired);
-        Log("Camera DOF V0.55: quality %ld -> %ld %s",current,desired,
-            displaced?"camera-distance blur suppressed":"original restored");
+    // Reuse the camera's existing native-cinematic ownership signal. Its
+    // original postprocess wins; no new distance/menu classifier is added.
+    // Manual zoom remains an independent reason to suppress gameplay DOF.
+    const bool displaced=!camera.tpsCutsceneSuspended.load(std::memory_order_relaxed) &&
+        ((camera.thirdPersonEnabled.load(std::memory_order_relaxed) &&
+          !camera.tpsTemporarilySuspended.load(std::memory_order_relaxed)) ||
+         (std::isfinite(zoom)&&std::fabs(zoom)>0.0001f));
+    if(!displaced){RestoreCameraDof();return;}
+    LONG current[2]{};
+    for(unsigned i=0;i<2;++i)
+        current[i]=InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(data+i),0,0);
+    if (!g_dofCaptured) {
+        if (current[0]<0 || current[0]>4 || current[1]<0 || current[1]>4) return;
+        g_dofOriginal[0]=current[0];g_dofOriginal[1]=current[1];g_dofCaptured=true;
+        Log("Camera DOF V1.54: original game=%ld render=%ld",current[0],current[1]);
+    }
+    if(current[0]||current[1]){
+        for(unsigned i=0;i<2;++i)
+            InterlockedExchange(reinterpret_cast<volatile LONG*>(data+i),0);
+        static unsigned corrections=0;const unsigned n=++corrections;
+        if(n<=8||n%1000==0)
+            Log("Camera DOF V1.54: game=%ld render=%ld -> 0/0 n=%u camera-distance blur suppressed",
+                current[0],current[1],n);
     }
     g_dofDisabled=displaced;
-}
-void RestoreCameraDof() {
-    if (g_dofDisabled && g_dofCaptured && WritableDofData(g_dofData) &&
-        *g_dofData==0)
-        InterlockedExchange(reinterpret_cast<volatile LONG*>(g_dofData),g_dofOriginal);
-    g_dofDisabled=false;
 }
 
 bool InstallSkipIntroControl() {
