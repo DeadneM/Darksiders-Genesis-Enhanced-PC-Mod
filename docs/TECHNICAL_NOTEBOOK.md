@@ -1,3 +1,20 @@
+## V1.54 — construite et contrôlée, installation en attente du jeu fermé (18 octobre 2026)
+
+**CONSTRUIT / CONTRÔLÉ / EXPÉRIMENTAL — PAS ENCORE INSTALLÉ NI VALIDÉ EN JEU.** Base V1.53 conservée pour les tirs déjà validés. Le correctif de profondeur de champ atteint désormais les copies jeu **et rendu** ; leur restauration conserve les deux valeurs d'origine et donne priorité à la suspension cinématique existante. La lecture du jeu ouvert en V1.53 a confirmé **jeu=0, rendu=2** : l'ancien journal « DOF supprimée » ne prouvait donc pas une suppression effective dans le rendu. Le test visuel du chapitre 8 reste nécessaire.
+
+[GitHub Actions Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39110618829) **SUCCESS : 28/28 suites, zéro avertissement MSVC ASI/DXGI**. Les avis de dépréciation des outils CMake/Node restent distincts ; aucune suppression d'avertissement ajoutée. Source `56a7c6cfc6f39574a7292bd58d6076330610ee60`, archive immuable `ca87039de126c7c395d0359ed83b069917c90fe0`.
+
+[ZIP cumulatif V1.54 vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/ca87039de126c7c395d0359ed83b069917c90fe0/downloads/DarksidersGenesis_V1.54_CAMERA_DOF_RENDER_FIX_TEST.zip) : **873 459 octets**, SHA256 `1E2579128C11AEBCF0D2EAE21A23BF6771ADB9DFC2A4D7C626F20756900151E0`. Quatre fichiers racine, CRC, AMD64, version, 119 clés/48 actions et téléchargement public HTTP 200 contrôlés. **118 anciennes archives inchangées** ; main/archive, tag et release v1.43 conservés. 72 autres fichiers source et toutes les fonctions hors DOF du module principal inchangés. INI/raccourcis sans modification.
+
+Le jeu est ouvert : **aucun fichier installé remplacé**, aucune écriture dans sa mémoire ni lancement par l'agent. La première interrogation non privilégiée ne voyait pas ses processus ; vérification Windows corrigée en dehors de ce contexte restreint, puis observation `VM_READ` seulement. Ne pas déduire « jeu fermé » d'une liste de processus vide dans un contexte sans visibilité suffisante. Installer après fermeture réelle, sauvegarde et contrôle de l'INI personnel.
+
+**Dash toujours ouvert :** déplacement + visée + dash perd la réponse de visée ; avec tir, une balle normale peut remplacer la munition équipée, Recovery ON comme OFF. Nouveau fait statique : les deux notifications de tir de `Strife_Aim_Dash_Fire_F` imposent `ProjectileOverride = MayhemProjectile_Standard_Blueprint_C` ; les séquences B/L/R référencent également cette classe et restent à contrôler au point d'appel. Cela fournit une piste native concrète, sans prouver encore la provenance de chaque projectile observé ni un comportement du jeu sans ASI. Les variantes spéciales ont leur propre cycle de tir : ne pas remplacer arbitrairement une classe de projectile sans ce cycle. Aucune réparation risquée de munition/visée n'est embarquée dans V1.54 ; capture externe prête pour identifier la transition réelle.
+
+**À tester après installation :** chapitre 8 immobile/mouvement, bascules TPS/vue native, retour temporaire et cinématique ; contrôle court Lava/Charge Shot, faisceaux, collisions devant/derrière et roues coop. [Audit, limites et suite](V1_54_CAMERA_DOF_RENDER_FIX_TEST.md). Les anciens statuts ci-dessous sont historiques.
+
+---
+
+
 ## V1.54 — profondeur de champ réellement lue par le rendu (18 octobre 2026)
 
 **SOURCE DE TEST / EXPÉRIMENTAL — construction et validation en jeu à effectuer.** Base V1.53 `997433c2e05170f7bf41f65118c137c691101930`. Retour utilisateur : le flou excessif du chapitre 8 reste visible même immobile. L'ancien correctif V0.55 ne modifiait que la copie jeu de `r.DepthOfFieldQuality` ; le rendu lit la copie suivante, à `data+4`. V1.54 corrige ce défaut démontré dans l'exécutable supporté, sans nouveau hook, shader, modification d'Engine.ini ni réglage persistant du jeu.
