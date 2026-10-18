@@ -1,3 +1,17 @@
+## V1.53 — construite, contrôlée et installée (18 octobre 2026)
+
+**CONSTRUIT / CONTRÔLÉ / INSTALLÉ / EXPÉRIMENTAL — corrections en jeu à tester.** Base V1.52 ; **Lava et tir chargé validés par l'utilisateur et conservés**, cas simple tir + dash rétabli. V1.53 traite le consommateur natif des faisceaux libres, les cibles de caméra situées derrière le départ du tir, et la protection des dashs de combat contre une fin anticipée Recovery. La description de l'option explique cette limite : **pendant une action native de visée ou de tir, le jeu conserve le dash complet**. La disparition des deux bugs de dash reste à démontrer ; aucune substitution forcée de munition ni réactivation forcée d'AIM/MOVE.
+
+[GitHub Actions Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39105711994) **SUCCESS : 28/28 suites, zéro avertissement MSVC ASI/DXGI**. Source `a240350a0ebeb996a84821f9e39db881c9b909ef`, archive `dfe76d3439537e1afafefd0623e04e5704438038`. La première exécution a été annulée pour inclure le descriptif de Recovery avant livraison ; aucune archive de cet essai interrompu publiée/installée. Les avis de dépréciation des outils CMake/Node restent distincts de l'analyse du code.
+
+[ZIP cumulatif V1.53 vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/dfe76d3439537e1afafefd0623e04e5704438038/downloads/DarksidersGenesis_V1.53_BEAM_FORWARD_OBSTRUCTION_DASH_GUARD_TEST.zip) : **870 636 octets**, SHA256 `3218102DF626F11ECB21E51AC2AF402980535F94768F3CF18D401D176A9AF64A`. Quatre fichiers racine, CRC, AMD64, version, 119 clés et 48 IDs contrôlés ; téléchargement public HTTP 200 identique à la CI/dépôt. ASI `DF497BB1000D072000575C0A6C9C5BF70979829941D170033421BA68EBDEBFEE`, DXGI `DE99816FB5DF1A0AA1FDF919C8EAAA761BC742BB26526E816022C66033D23128`. **117 anciennes archives inchangées**, main/archive, tag et release v1.43 conservés.
+
+Installée jeu fermé, sauvegarde V1.52 `audit-v131/install-backup-before-v153-20261018-085925`, restauration fournie et syntaxe vérifiée, non exécutée. **INI personnel conservé octet pour octet**, SHA256 avant/après `6BCD4FA9A40D92ED4380767C89137B11145DE1FACEB4C3D7DD50F71833B4F407`. Aucun lancement du jeu par l'agent. Le README installé reçoit ce reçu ; celui du ZIP reste immuable. 67 autres fichiers source inchangés ; seul le texte explicatif Recovery change dans le menu. Le calcul Lava reste identique.
+
+**À tester :** Static Shot/Beam Shot ON/OFF et P1/P2 ; caméra contre un mur derrière puis mur devant ; déplacement + visée + dash en vue native, Recovery OFF/ON ; munition spéciale pendant dash ; contrôle court Lava/Charge Shot et roues coop. Les branches de socket reconnu et de ciblage/chaîne des faisceaux restent natives ; leur couverture n'est pas validée. [Audit, critères, limites et cinq essais](V1_53_BEAM_OBSTRUCTION_DASH_GUARD_TEST.md). Les paragraphes de préparation ci-dessous sont historiques.
+
+---
+
 ## V1.53 — faisceaux, obstacle derrière la caméra et protection du dash en combat
 
 ## Base, retour utilisateur et objectif
