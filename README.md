@@ -1,3 +1,22 @@
+## V1.53 — validations utilisateur et deux bugs de dash ouverts (18 octobre 2026)
+
+**VALIDÉ PAR L'UTILISATEUR :** les points 1 et 2 du dernier protocole sont corrigés : Static Shot/Beam Shot ne partent plus à gauche dans les cas testés ; caméra contre le décor sans inversion du tir, avec obstacle devant toujours bloquant. Conserver ces corrections, ainsi que Lava et le tir chargé déjà validés. Le retour ne détaille pas toutes les variantes ON/OFF, normal/Hotstreak ou P2 ; aucune validation générale de ces combinaisons n'est ajoutée.
+
+**Toujours défectueux, avec Action Recovery ON comme OFF :**
+
+1. Déplacement + visée + tir + dash : des munitions normales sortent à la place de la munition choisie.
+2. Déplacement + visée + dash : la commande de visée ne répond plus. Le stick mentionné décrit la reproduction ; le correctif doit concerner la fonction de visée et sa transition d'action, indépendamment des touches, périphériques et interversions de sticks.
+
+La protection de dash en combat V1.53 n'est donc **pas une réparation validée** de ces défauts. Leur reproduction OFF ne permet pas d'attribuer le problème uniquement au raccourcissement actif de Recovery ; elle ne démontre pas non plus que tous les hooks/états du mod sont innocents ni qu'il s'agit d'un bug du jeu sans mod.
+
+Le journal V1.53 commencé à 09:39:46 confirme des essais P1 en vue native : 48 observations après dash avec Recovery ON et 48 avec OFF, avec axes physiques et états d'action encore présents dans plusieurs échantillons. Cela ne prouve pas que la bonne capacité de visée/tir reste active. Douze lignes BEAM_FORWARD attestent aussi l'exécution du chemin corrigé ; **la validation visuelle vient du retour utilisateur**, pas de ces compteurs. Capture privée effectuée sans modifier le jeu ouvert.
+
+**Prochaine étape :** auditer le choix des variantes natives Dash/Aim/Fire, la capacité de munition sélectionnée, les actions en attente et leur reprise à la fin du dash. Rechercher le point commun de transition avant tout nouveau hook. Corriger les fonctions et leurs propriétaires, sans filtrage d'une touche ou d'un stick particulier ; réévaluer la protection Recovery existante avant d'empiler une autre réparation. Réception lourde et progression du triple dash restent des sujets séparés.
+
+V1.53 reste la base conservée avec ces deux exceptions ouvertes. **Mise à jour documentaire uniquement : aucun changement d'ASI, d'INI, de raccourci ou de ZIP, aucune nouvelle build/install ; main/archive préservés.** Source construite `a240350a0ebeb996a84821f9e39db881c9b909ef`, archive immuable `dfe76d3439537e1afafefd0623e04e5704438038`. Les listes de tests et statuts de préparation plus anciens ci-dessous sont historiques.
+
+---
+
 ## V1.53 — construite, contrôlée et installée (18 octobre 2026)
 
 **CONSTRUIT / CONTRÔLÉ / INSTALLÉ / EXPÉRIMENTAL — corrections en jeu à tester.** Base V1.52 ; **Lava et tir chargé validés par l'utilisateur et conservés**, cas simple tir + dash rétabli. V1.53 traite le consommateur natif des faisceaux libres, les cibles de caméra situées derrière le départ du tir, et la protection des dashs de combat contre une fin anticipée Recovery. La description de l'option explique cette limite : **pendant une action native de visée ou de tir, le jeu conserve le dash complet**. La disparition des deux bugs de dash reste à démontrer ; aucune substitution forcée de munition ni réactivation forcée d'AIM/MOVE.
