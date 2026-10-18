@@ -243,7 +243,7 @@ void Draw(Context& c) {
             );
 
             DrawToggleFeature(config,"Action Recovery (dash)","ActionRecovery",&config.actionRecoveryEnabled,
-                "Experimental: shortens the end of a dash after its deceleration has finished. OFF keeps native timing. Chest animations are unchanged. Assign a toggle in Hotkeys.",dg::recovery::Ready());
+                "Experimental: shortens the end of a dash after deceleration. Aiming or firing keeps the full native dash to preserve combat transitions and ammunition. OFF keeps native timing. Chest animations are unchanged. Assign a toggle in Hotkeys.",dg::recovery::Ready());
             if(DrawNumberRow("Recovery delay","ActionRecoveryDelay",&config.actionRecoveryDelayMs,0,300,0,"%.0f ms","%.0f"))config.Save();
 
             DrawTunableFeature(
