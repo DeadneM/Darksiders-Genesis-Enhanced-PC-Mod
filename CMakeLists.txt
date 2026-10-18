@@ -11,6 +11,23 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(GrappleRangeTests tests/GrappleRangeTests.cpp src/RuntimeSettings.cpp)
+  target_include_directories(GrappleRangeTests PRIVATE tests/stubs src)
+  target_compile_definitions(GrappleRangeTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  add_test(NAME GrappleRange COMMAND GrappleRangeTests)
+  add_executable(AirJumpTests tests/AirJumpTests.cpp src/RuntimeSettings.cpp)
+  target_include_directories(AirJumpTests PRIVATE tests/stubs src)
+  target_compile_definitions(AirJumpTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  add_test(NAME AirJump COMMAND AirJumpTests)
+  add_executable(StandardAmmoTests tests/StandardAmmoTests.cpp src/RuntimeSettings.cpp)
+  target_include_directories(StandardAmmoTests PRIVATE tests/stubs src)
+  target_compile_definitions(StandardAmmoTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  add_test(NAME StandardAmmo COMMAND StandardAmmoTests)
+  add_executable(GameplayExtensionsConfigTests tests/GameplayExtensionsConfigTests.cpp src/RuntimeSettings.cpp src/ConfigStore.cpp)
+  target_include_directories(GameplayExtensionsConfigTests PRIVATE tests/stubs src)
+  target_compile_definitions(GameplayExtensionsConfigTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  target_link_libraries(GameplayExtensionsConfigTests PRIVATE user32)
+  add_test(NAME GameplayExtensionsConfig COMMAND GameplayExtensionsConfigTests)
   add_executable(NativeRadialTests tests/NativeRadialTests.cpp)
   target_include_directories(NativeRadialTests PRIVATE tests/stubs src)
   target_compile_definitions(NativeRadialTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
@@ -257,6 +274,8 @@ add_library(DarksidersGenesisMod SHARED
   src/ManualGaugeFeature.cpp
   src/PotionFeature.cpp
   src/AmmoConsumptionFeature.cpp
+  src/GrappleRangeFeature.cpp
+  src/AirJumpFeature.cpp
   src/HotstreakFeature.cpp
   src/HorseFeature.cpp
   src/OverlayUi.cpp

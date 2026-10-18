@@ -1,3 +1,24 @@
+# File active — lot V1.62 (19 octobre 2026)
+
+Ce tableau fait foi pour l’état actuel ; les entrées datées conservées plus bas décrivent leurs versions respectives.
+
+| Sujet | État actuel | Suite |
+| --- | --- | --- |
+| Zoom In/Clear, rangement natif, prompts P1/P2, facteurs sous 1 | VALIDÉS par l’utilisateur | Préserver, contrôle court |
+| Reprise AIM après mouvement+visée+dash | VALIDÉE V1.56, conservée | Ne pas réintroduire l’ancien Recovery |
+| Standard limité / grappin étendu / double saut trois modes | SOURCE EXPÉRIMENTALE V1.62, groupés | CI, paquet puis matrice d’essais commune |
+| Raccourcis de rangement V1.60 | Construits/installés, retour attendu | Clavier, combinaison manette et P1/P2 |
+| Focus TPS V1.61 | Construit/contrôlé, non validé en jeu | Comparaison aux angles flous et toutes formes |
+| Tir Standard de présentation pendant dash | Filtre V1.59 conservé, non validé | Retour sur son/flash/animation résiduelle |
+| Holsters montés | Audit, pas de correction démontrée | Pose finale des bones/sockets, pas de masquage global |
+| Autres sprites P2 | Ouvert après InteractHUD validé | Identifier un autre composant visible défectueux |
+| Modèles 3D alternatifs | Faisabilité ouverte | Quatre meshes main/rangés connus, pas d’alternative compatible prouvée |
+| Nouvelle Action Recovery | Ancienne expérience retirée | Verrou natif précis, objectif et preuve distincts |
+
+[Périmètre et essais du lot V1.62](V1_62_NATIVE_GAMEPLAY_BATCH_TEST.md). Une seule livraison du lot après les contrôles ; aucun sujet restant n’est clos implicitement.
+
+---
+
 # Actualisation V1.61 — 19 octobre 2026
 
 Candidate limitée au flou TPS dépendant des angles, toutes formes : option TPS lens focus ON par défaut, OFF = politique V1.60. Correction de l’ancien audit : le volume de niveau active bien les overrides de focus/région/méthode ; leur prétendue absence était une mauvaise lecture. Nouvelle capture VM_READ et garde native du mode circulaire ; CONSTRUITE / CONTRÔLÉE / EXPÉRIMENTALE : 34/34 suites Windows, paquet vérifié, disponible dans l’updater debug ; essai visuel encore nécessaire. Raccourcis V1.60 installés, validation encore attendue. Grappin, Standard finies, holsters, autres sprites P2 et modèles restent ouverts.

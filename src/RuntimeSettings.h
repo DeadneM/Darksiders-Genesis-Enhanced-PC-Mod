@@ -54,6 +54,11 @@ struct Snapshot {
     bool unlimitedWrathEnabled = false;
     bool unlimitedUltimateEnabled = false;
     bool unlimitedSynergyEnabled = false;
+    bool finiteStandardAmmoEnabled = false;
+    int standardAmmoCapacity = 200;
+    bool grappleRangeEnabled = false;
+    float grappleRangeMultiplier = 2.0f;
+    int infiniteDoubleJumpMode = 0; // 0 Off, 1 rearm after each glide, 2 Always
     bool reduceAmmoEnabled = defaults::ReduceAmmo;
     bool unlimitedAmmoEnabled = false;
     float ammoConsumptionDivisor = 2.0f;
@@ -179,6 +184,11 @@ struct State {
     std::atomic_bool unlimitedWrathEnabled{false};
     std::atomic_bool unlimitedUltimateEnabled{false};
     std::atomic_bool unlimitedSynergyEnabled{false};
+    std::atomic_bool finiteStandardAmmoEnabled{false};
+    std::atomic_int standardAmmoCapacity{200};
+    std::atomic_bool grappleRangeEnabled{false};
+    std::atomic<float> grappleRangeMultiplier{2.0f};
+    std::atomic_int infiniteDoubleJumpMode{0};
     std::atomic_bool reduceAmmoEnabled{defaults::ReduceAmmo};
     std::atomic_bool unlimitedAmmoEnabled{false};
     std::atomic<float> ammoConsumptionDivisor{2.0f};

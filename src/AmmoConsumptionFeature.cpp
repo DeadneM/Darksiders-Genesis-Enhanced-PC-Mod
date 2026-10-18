@@ -13,7 +13,8 @@ namespace {
 using Setter=int(*)(void*,int);
 using Maximum=int(*)(void*);
 Setter g_original=nullptr;
-Maximum g_maximum=nullptr;
+Maximum g_maximum=nullptr,g_nativeMaximum=nullptr;
+std::atomic_bool g_standardReady{false};
 LogFn g_log=nullptr;
 uintptr_t g_base=0;
 
@@ -55,6 +56,25 @@ bool Instance(void* object,uintptr_t slot){
         Read(array,size_t(index)*8,entry)&&entry==static_cast<unsigned char*>(expected)+0x30;
 }
 bool Authority(void* object){unsigned char role=0;return Read(object,0x118,role)&&role==3;}
+bool StandardProxy(void* proxy,const PlayerAmmo& player){
+    uintptr_t owner=0;unsigned char type=0;
+    // Native EAmmoType::DEFAULT=1. DualPistols and StandardShot both own
+    // native Standard reserves; WorldEnder is type 4 and stays infinite.
+    return g_nativeMaximum&&Instance(proxy,0x3811D40)&&Authority(proxy)&&
+        Read(proxy,0x108,owner)&&owner==player.resource&&Read(proxy,0x348,type)&&type==1&&
+        g_nativeMaximum(proxy)==-1;
+}
+int HookMaximum(void* proxy){
+    const int native=g_nativeMaximum?g_nativeMaximum(proxy):-1;
+    if(native!=-1||!g_standardReady.load()||!dg::runtime::Get().finiteStandardAmmoEnabled.load()||
+       !dg::native_tps::OnGameThread())return native;
+    for(unsigned i=0;i<2;++i){const auto& player=g_players[i];
+        if(!dg::local_players::Matches(i,player.actor,player.generation))continue;
+        for(const auto& entry:player.entries)if(entry.holder==reinterpret_cast<uintptr_t>(proxy)&&StandardProxy(proxy,player))
+            return std::clamp(dg::runtime::Get().standardAmmoCapacity.load(),1,10000);
+    }
+    return native;
+}
 int Set(void* proxy,int requested,uintptr_t caller){
     ++g_observed;
     auto& rt=dg::runtime::Get();
@@ -131,6 +151,13 @@ void Initialize(LogFn logger,bool exactExecutable){
     const auto status=MH_EnableHook(target);
     if(status!=MH_OK&&status!=MH_ERROR_ENABLED){MH_RemoveHook(target);g_original=nullptr;return;}
     g_maximum=reinterpret_cast<Maximum>(g_base+0x6A90D0);g_ready.store(true,std::memory_order_release);
+    // Optional extension: failure leaves the validated special-ammo setter live.
+    void* maximum=reinterpret_cast<void*>(g_base+0x6A90D0);
+    if(MH_CreateHook(maximum,reinterpret_cast<void*>(&HookMaximum),reinterpret_cast<void**>(&g_nativeMaximum))==MH_OK){
+        if(MH_EnableHook(maximum)==MH_OK)g_standardReady.store(true,std::memory_order_release);
+        else {MH_RemoveHook(maximum);g_nativeMaximum=nullptr;}
+    }
+    if(g_log)g_log(g_standardReady.load()?"Ammo V1.62 STANDARD_READY native maximum return override; no capacity/stat/CDO writes; OFF=infinite; EXPERIMENTAL":"Ammo V1.62 finite Standard unavailable; original native infinity retained");
     if(g_log)g_log("Ammo V1.39 ready; exact native weapon spend caller, typed live local owned proxies, native finite maximum; OFF=original; EXPERIMENTAL");
 }
 void OnLivePlayer(void* actor,uint32_t generation){
@@ -171,7 +198,25 @@ void OnLivePlayer(void* actor,uint32_t generation){
            !Read(proxy,0x108,owner)||owner!=player.resource||!Read(proxy,0x34C,current))continue;
         next[i].holder=reinterpret_cast<uintptr_t>(proxy);
         for(const auto& old:player.entries)if(old.holder==next[i].holder){next[i].credit=old.credit;break;}
-        if(current<0)continue; // native infinite/default ammunition stays native
+    }
+    // Register only the just-validated local native array before calling its
+    // setters: the maximum callback must see this same owner on first enable.
+    for(unsigned i=0;i<16;++i)player.entries[i]=next[i];
+    for(int i=0;i<count;++i){
+        auto* proxy=reinterpret_cast<void*>(player.entries[i].holder);int current=-1;
+        if(!proxy||!Read(proxy,0x34C,current))continue;
+        if(gameplay&&g_standardReady.load()&&StandardProxy(proxy,player)){
+            const bool enabled=dg::runtime::Get().finiteStandardAmmoEnabled.load();
+            const int cap=std::clamp(dg::runtime::Get().standardAmmoCapacity.load(),1,10000);
+            const int target=enabled?(current<0?cap:std::min(current,cap)):-1;
+            if(target!=current){
+                const int after=g_original(proxy,target);
+                if(g_log){char line[190]{};
+                    sprintf_s(line,"Ammo V1.62 STANDARD player=%d before=%d after=%d capacity=%d enabled=%d EXPERIMENTAL",index+1,current,after,cap,enabled?1:0);g_log(line);}
+                if(!Read(proxy,0x34C,current))continue;
+            }
+        }
+        if(current<0)continue; // other native infinite reserves stay native
         const int maximum=g_maximum(proxy);
         if(maximum<=0||maximum>1000000)continue;
         ++finite;
@@ -184,7 +229,6 @@ void OnLivePlayer(void* actor,uint32_t generation){
             sprintf_s(line,"Ammo V1.39 UNLIMITED_TOPUP n=%u before=%d after=%d nativeMax=%d proxy=%p generation=%u readbackMatches=%d",
                 n,current,after,maximum,proxy,generation,after==maximum?1:0);g_log(line);}
     }
-    for(unsigned i=0;i<16;++i)player.entries[i]=next[i];
     AcquireSRWLockExclusive(&g_refillLock);
     published.request.available=finite!=0;published.view.finiteReserves=finite;
     if(manual){published.request.Complete(finite!=0&&complete);if(finite&&complete)++published.view.refills;}
@@ -192,6 +236,7 @@ void OnLivePlayer(void* actor,uint32_t generation){
     if(g_log&&manual){char line[200]{};
         sprintf_s(line,"Ammo V1.48 REFILL player=%d finiteReserves=%u matches=%d generation=%u",index+1,finite,finite&&complete?1:0,generation);g_log(line);}
 }
+bool StandardReady(){return g_standardReady.load(std::memory_order_acquire);}
 Telemetry GetTelemetry(){return {g_ready.load(),g_observed.load(),g_spends.load(),g_modified.load(),g_topups.load()};}
 bool RequestRefill(){
     bool queued=false;const auto now=GetTickCount64();AcquireSRWLockExclusive(&g_refillLock);

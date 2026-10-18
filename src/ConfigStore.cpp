@@ -369,6 +369,8 @@ void Store::ResetDefaults(bool persist) {
     unlimitedWrathEnabled = false;
     unlimitedUltimateEnabled = false;
     unlimitedSynergyEnabled = false;
+    finiteStandardAmmoEnabled=false;standardAmmoCapacity=200;
+    grappleRangeEnabled=false;grappleRangeMultiplier=2.0f;infiniteDoubleJumpMode=0;
     reduceAmmoEnabled = defaults::ReduceAmmo;unlimitedAmmoEnabled = false;ammoConsumptionDivisor = 2.0f;
     reduceHotstreakEnabled=false;unlimitedHotstreakEnabled=false;hotstreakDecreaseDivisor=2.0f;
     potionRechargeEnabled=false;unlimitedPotionsEnabled=false;potionRechargeMultiplier=2.0f;
@@ -574,6 +576,11 @@ bool Store::Load() {
     unlimitedWrathEnabled=ReadBool(L"Features",L"UnlimitedWrath",false,path_);
     unlimitedUltimateEnabled=ReadBool(L"Features",L"UnlimitedUltimate",false,path_);
     unlimitedSynergyEnabled=ReadBool(L"Features",L"UnlimitedSynergy",false,path_);
+    finiteStandardAmmoEnabled=ReadBool(L"Features",L"FiniteStandardAmmo",false,path_);
+    standardAmmoCapacity=std::clamp(int(GetPrivateProfileIntW(L"Values",L"StandardAmmoCapacity",200,path_.c_str())),1,10000);
+    grappleRangeEnabled=ReadBool(L"Features",L"GrappleRange",false,path_);
+    grappleRangeMultiplier=std::clamp(ReadFloat(L"Values",L"GrappleRangeMultiplier",2.0f,path_),1.0f,10.0f);
+    infiniteDoubleJumpMode=std::clamp(int(GetPrivateProfileIntW(L"Values",L"InfiniteDoubleJumpMode",0,path_.c_str())),0,2);
     reduceAmmoEnabled=ReadBool(L"Features",L"ReduceAmmoConsumption",defaults::ReduceAmmo,path_);
     unlimitedAmmoEnabled=ReadBool(L"Features",L"UnlimitedAmmo",false,path_);
     reduceHotstreakEnabled=ReadBool(L"Features",L"ReduceHotstreakDecrease",false,path_);
@@ -923,6 +930,11 @@ void Store::PublishRuntime() const {
     runtime.unlimitedWrathEnabled = unlimitedWrathEnabled;
     runtime.unlimitedUltimateEnabled = unlimitedUltimateEnabled;
     runtime.unlimitedSynergyEnabled = unlimitedSynergyEnabled;
+    runtime.finiteStandardAmmoEnabled = finiteStandardAmmoEnabled;
+    runtime.standardAmmoCapacity = standardAmmoCapacity;
+    runtime.grappleRangeEnabled = grappleRangeEnabled;
+    runtime.grappleRangeMultiplier = grappleRangeMultiplier;
+    runtime.infiniteDoubleJumpMode = infiniteDoubleJumpMode;
     runtime.reduceAmmoEnabled = reduceAmmoEnabled;
     runtime.unlimitedAmmoEnabled = unlimitedAmmoEnabled;
     runtime.ammoConsumptionDivisor = ammoConsumptionDivisor;
@@ -1028,6 +1040,11 @@ bool Store::SaveNow() {
     WriteBool(L"Features",L"UnlimitedWrath",unlimitedWrathEnabled,path_);
     WriteBool(L"Features",L"UnlimitedUltimate",unlimitedUltimateEnabled,path_);
     WriteBool(L"Features",L"UnlimitedSynergy",unlimitedSynergyEnabled,path_);
+    WriteBool(L"Features",L"FiniteStandardAmmo",finiteStandardAmmoEnabled,path_);
+    WriteProfileString(L"Values",L"StandardAmmoCapacity",std::to_wstring(standardAmmoCapacity).c_str(),path_.c_str());
+    WriteBool(L"Features",L"GrappleRange",grappleRangeEnabled,path_);
+    WriteFloat(L"Values",L"GrappleRangeMultiplier",grappleRangeMultiplier,path_);
+    WriteProfileString(L"Values",L"InfiniteDoubleJumpMode",std::to_wstring(infiniteDoubleJumpMode).c_str(),path_.c_str());
     WriteBool(L"Features",L"ReduceAmmoConsumption",reduceAmmoEnabled,path_);
     WriteBool(L"Features",L"UnlimitedAmmo",unlimitedAmmoEnabled,path_);
     WriteBool(L"Features",L"ReduceHotstreakDecrease",reduceHotstreakEnabled,path_);

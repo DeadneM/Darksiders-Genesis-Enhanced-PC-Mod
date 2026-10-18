@@ -14,6 +14,8 @@
 #include "BuildInfo.h"
 #include "HealthFeature.h"
 #include "GlideFeature.h"
+#include "GrappleRangeFeature.h"
+#include "AirJumpFeature.h"
 
 #include "HorseFeature.h"
 #include "CameraTraceFeature.h"
@@ -312,6 +314,13 @@ void Draw(Context& c) {
             DrawToggleFeature(config,"Unlimited glide","UnlimitedGlide",&config.unlimitedGlideEnabled,
                 "Holds the duration budget while gliding. Release and landing stay native. Assign a toggle in Hotkeys.",dg::glide::Ready());
 
+            constexpr const char* jumpModes[]{"Off","After gliding","Always on"};
+            ImGui::SetNextItemWidth(270.0f);
+            if(ImGui::Combo("Infinite double jump",&config.infiniteDoubleJumpMode,jumpModes,3))config.Save();
+            DrawFeatureDescription("After gliding rearms one double jump each time you glide. Always on allows repeated air jumps. Uses the native jump action and your existing controls.",dg::air_jump::Ready());
+            DrawTunableFeature(config,"Grapple range","GrappleRange",&config.grappleRangeEnabled,
+                &config.grappleRangeMultiplier,1.0f,10.0f,2.0f,"%.2fx",
+                "Scales native acquisition, relay and pull distances together. Applies on the next use; target rules and obstacles remain native. Experimental: traversal limits still require in-game checks.",dg::grapple::Ready());
             ImGui::Unindent(12.0f);
             }
             if(ImGui::CollapsingHeader("Combat and resource gauges",ImGuiTreeNodeFlags_DefaultOpen)){
@@ -434,8 +443,16 @@ void Draw(Context& c) {
                 &config.ammoConsumptionDivisor,0.0f,10.0f,2.0f,"%.2f",
                 "Consumption divisor: 0 or 1 is normal. 0.5 spends twice as much; 2 spends half; 10 spends one tenth. Unlimited takes priority. Assign a toggle in Hotkeys.",
                 ammoReady,nullptr,"Consumption divisor");
+            DrawToggleFeature(config,"Limited Standard ammunition","FiniteStandardAmmo",&config.finiteStandardAmmoEnabled,
+                "Makes native Standard reserves finite. Starts full when enabled; changing capacity clamps the reserve without refilling. OFF restores native infinity. Fill ammunition, reduced consumption and Unlimited also apply. Native Hotstreak rules stay unchanged.",dg::ammo::StandardReady());
+            if(config.finiteStandardAmmoEnabled){
+                float capacity=float(config.standardAmmoCapacity);
+                if(DrawNumberRow("Standard reserve capacity","StandardAmmoCapacity",&capacity,1,10000,200,"%.0f rounds","%.0f")){
+                    config.standardAmmoCapacity=int(std::lround(capacity));config.Save();
+                }
+            }
             DrawToggleFeature(config,"Unlimited ammo","UnlimitedAmmo",&config.unlimitedAmmoEnabled,
-                "Keeps special ammunition available. Takes priority over reduced consumption. Assign a toggle in Hotkeys.",ammoReady);
+                "Keeps finite ammunition full, including Standard when limited. Takes priority over reduced consumption. Assign a toggle in Hotkeys.",ammoReady);
             ImGui::Separator();
             ImGui::TextUnformatted("Unlimited gauges (test)");
             const bool gaugesReady=manual.supported||manual2.supported;

@@ -61,6 +61,11 @@ void Publish(const Snapshot& s) {
     g_state.unlimitedWrathEnabled.store(s.unlimitedWrathEnabled);
     g_state.unlimitedUltimateEnabled.store(s.unlimitedUltimateEnabled);
     g_state.unlimitedSynergyEnabled.store(s.unlimitedSynergyEnabled);
+    g_state.finiteStandardAmmoEnabled.store(s.finiteStandardAmmoEnabled);
+    g_state.standardAmmoCapacity.store(s.standardAmmoCapacity);
+    g_state.grappleRangeEnabled.store(s.grappleRangeEnabled);
+    g_state.grappleRangeMultiplier.store(s.grappleRangeMultiplier);
+    g_state.infiniteDoubleJumpMode.store(s.infiniteDoubleJumpMode);
     g_state.reduceAmmoEnabled.store(s.reduceAmmoEnabled);
     g_state.unlimitedAmmoEnabled.store(s.unlimitedAmmoEnabled);
     g_state.ammoConsumptionDivisor.store(s.ammoConsumptionDivisor);

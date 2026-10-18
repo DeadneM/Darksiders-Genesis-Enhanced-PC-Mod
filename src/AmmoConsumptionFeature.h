@@ -13,6 +13,7 @@ struct Reserve {
 void Initialize(LogFn logger,bool exactExecutable);
 void OnLivePlayer(void* actor,uint32_t generation);
 Telemetry GetTelemetry();
+bool StandardReady();
 bool RequestRefill();
 Reserve GetReserve(unsigned index=0);
 void Shutdown();

@@ -78,6 +78,9 @@ enum class Action : int {
     RefillHotstreak,
     RefillAmmo,
     SheatheWeapons,
+    FiniteStandardAmmo,
+    GrappleRange,
+    InfiniteDoubleJump,
     Count
 };
 
@@ -131,7 +134,10 @@ kActionLabels = {
     "Toggle Unlimited Hotstreak",
     "Fill Hotstreak",
     "Fill ammunition",
-    "Sheathe weapons"
+    "Sheathe weapons",
+    "Toggle limited Standard ammunition",
+    "Toggle grapple range",
+    "Cycle infinite double jump"
 };
 
 inline constexpr std::array<const wchar_t*, static_cast<std::size_t>(Action::Count)>
@@ -184,7 +190,10 @@ kActionTokens = {
     L"UnlimitedHotstreak",
     L"RefillHotstreak",
     L"RefillAmmo",
-    L"SheatheWeapons"
+    L"SheatheWeapons",
+    L"FiniteStandardAmmo",
+    L"GrappleRange",
+    L"InfiniteDoubleJump"
 };
 
 // Instant actions share the validated one-shot manual refill queue.
@@ -296,6 +305,11 @@ public:
     bool unlimitedWrathEnabled = false;
     bool unlimitedUltimateEnabled = false;
     bool unlimitedSynergyEnabled = false;
+    bool finiteStandardAmmoEnabled = false;
+    int standardAmmoCapacity = 200;
+    bool grappleRangeEnabled = false;
+    float grappleRangeMultiplier = 2.0f;
+    int infiniteDoubleJumpMode = 0; // 0 Off, 1 rearm after each glide, 2 Always
     bool reduceAmmoEnabled = defaults::ReduceAmmo;
     bool unlimitedAmmoEnabled = false;
     float ammoConsumptionDivisor = 2.0f;

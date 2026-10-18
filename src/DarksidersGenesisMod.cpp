@@ -20,6 +20,8 @@
 #include "ResourceGainFeature.h"
 #include "ManualGaugeFeature.h"
 #include "AmmoConsumptionFeature.h"
+#include "GrappleRangeFeature.h"
+#include "AirJumpFeature.h"
 #include "HotstreakFeature.h"
 #include "PotionFeature.h"
 #include "BuildInfo.h"
@@ -1426,6 +1428,7 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     dg::potions::OnLivePlayer(character,generation,reinterpret_cast<void*>(owner.playerState));
     dg::health::OnLivePlayer(character,generation);
     dg::sheathing::OnLivePlayer(owner,generation);
+    dg::air_jump::OnLivePlayer(owner,generation);
 }
 
 // V0.75: use the game's verified UMayhemCharacter native look functions,
@@ -2075,6 +2078,11 @@ void TriggerAction(Action action, int functionKey,unsigned playerTargets=3) {
         return; // Preserve the legacy token/slot without changing gameplay or INI.
     }
 
+    if(action==Action::InfiniteDoubleJump){
+        g_config.infiniteDoubleJumpMode=(g_config.infiniteDoubleJumpMode+1)%3;g_config.Save();
+        const char* modes[]{"Off","After gliding","Always on"};
+        g_lastAction=std::string("Infinite double jump: ")+modes[g_config.infiniteDoubleJumpMode];return;
+    }
     if (action == Action::ThirdPerson) {
         g_config.thirdPersonEnabled = !g_config.thirdPersonEnabled;
         g_config.Save();
@@ -2104,6 +2112,8 @@ void TriggerAction(Action action, int functionKey,unsigned playerTargets=3) {
     // Startup-only features persist to INI and take effect on next boot.
     bool* toggle = nullptr;
     switch (action) {
+    case Action::FiniteStandardAmmo: toggle=&g_config.finiteStandardAmmoEnabled; break;
+    case Action::GrappleRange: toggle=&g_config.grappleRangeEnabled; break;
     case Action::FOV: toggle=&g_config.fovEnabled; break;
     case Action::PistolDamage: toggle=&g_config.pistolDamageEnabled; break;
     case Action::MeleeDamage: toggle=&g_config.meleeDamageEnabled; break;
@@ -4358,6 +4368,8 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::projectile_aim::Initialize(&FeatureLog,g_targetValidation.exact,&ProvideProjectileRay);
     dg::health::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::glide::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::grapple::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::air_jump::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::dash_combat::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::interaction_hud::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::sheathing::Initialize(&FeatureLog,g_targetValidation.exact);
