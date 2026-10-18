@@ -3825,7 +3825,10 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     static dg::update::ToastTimer updateToast;
     const bool menuVisible=g_overlayVisible.load();
     const bool gameSurface=!g_gameSwapChain||swapChain==g_gameSwapChain;
-    const bool foreground=g_hwnd&&GetForegroundWindow()==g_hwnd&&!IsIconic(g_hwnd);
+    // The menu and TPS can both be unused at startup: the passive window trace
+    // already identifies the game's window without installing an input hook.
+    const HWND noticeWindow=g_hwnd?g_hwnd:reinterpret_cast<HWND>(g_gameWindowTrace.load());
+    const bool foreground=noticeWindow&&GetForegroundWindow()==noticeWindow&&!IsIconic(noticeWindow);
     const bool toastVisible=gameSurface&&updateToast.Tick(dg::update::NoticeId(g_config.updaterBeta),
         double(GetTickCount64())/1000.0,foreground);
     if(!g_imguiReady.load()&&(menuVisible||toastVisible))InitializeImGui(swapChain);
