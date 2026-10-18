@@ -20,6 +20,7 @@ struct Snapshot {
     bool skipWarningEnabled = true;
     bool thirdPersonEnabled = true;
     bool thirdPersonFovEnabled = true;
+    bool tpsLensFocusEnabled = true;
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
     bool cameraControllerOrbitEnabled = true;
     int tpsCameraStickMode = 2;
@@ -111,6 +112,7 @@ struct State {
     std::atomic_bool skipWarningEnabled{true};
     std::atomic_bool thirdPersonEnabled{true};
     std::atomic_bool thirdPersonFovEnabled{true};
+    std::atomic_bool tpsLensFocusEnabled{true};
     std::atomic_bool tpsViewGameplay{false};
     std::atomic_ullong tpsGameplayViewTick{0};
     std::atomic_bool cameraOrbitInputEnabled{true};

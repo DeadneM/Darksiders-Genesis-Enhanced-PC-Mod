@@ -7,9 +7,11 @@ namespace dg::camera_focus {
 // Exact retail FMinimalViewInfo/PostProcessSettings layout, gated before the
 // camera hook is installed. Only a native per-frame output is ever changed.
 inline std::atomic_bool layoutReady{false};
+inline std::atomic_bool lensLayoutReady{false};
 inline bool Ready(){return layoutReady.load(std::memory_order_acquire);}
+inline bool LensReady(){return lensLayoutReady.load(std::memory_order_acquire);}
 struct Point {float x=0,y=0,z=0;};
-inline bool Compensate(void* output,Point target){
+inline bool Compensate(void* output,Point target,bool lens=false){
     if(!Ready()||!output)return false;
     auto* p=static_cast<unsigned char*>(output);
     float view[7]{},weight=0;
@@ -28,10 +30,18 @@ inline bool Compensate(void* output,Point target){
     if(!std::isfinite(depth)||depth<1||depth>20000)return false;
     const float focus=static_cast<float>(depth);
     // FMinimalViewInfo.PP=0x40; FocalDistance=0x454; override +0x16 mask 0x08 (native blend at 1B2F693).
-    // Preserve quality, method, aperture, blur size/regions and every other
-    // override/weight. No UObject, volume or persistent setting is patched.
+    // Quality, aperture, sizes, regions and blend weights remain authored.
+    // No UObject, level volume or persistent render setting is patched.
     std::memcpy(p+0x40+0x454,&focus,4);
     p[0x40+0x16]|=0x08;
+    // Retail render blend 1B30380 consumes +18 mask 02 for method +23.
+    // CircleDOF=2 uses the existing lens/aperture at this camera's focal plane,
+    // instead of inheriting an isometric level's fixed Gaussian blur regions.
+    // OFF retains the V1.60 focal-distance-only path byte for byte.
+    if(lens&&LensReady()&&p[0x40+0x23]<=2){
+        p[0x40+0x23]=2;
+        p[0x40+0x18]|=0x02;
+    }
     return true;
 }
 }

@@ -25,6 +25,7 @@ void Publish(const Snapshot& s) {
     g_state.skipWarningEnabled.store(s.skipWarningEnabled, std::memory_order_relaxed);
     g_state.thirdPersonEnabled.store(s.thirdPersonEnabled, std::memory_order_relaxed);
     g_state.thirdPersonFovEnabled.store(s.thirdPersonFovEnabled);
+    g_state.tpsLensFocusEnabled.store(s.tpsLensFocusEnabled);
     g_state.cameraOrbitInputEnabled.store(s.cameraOrbitInputEnabled, std::memory_order_relaxed);
     g_state.cameraControllerOrbitEnabled.store(s.cameraControllerOrbitEnabled);
     g_state.tpsCameraStickMode.store(s.tpsCameraStickMode);

@@ -35,6 +35,7 @@ int main(int argc,char** argv){
     dg::config::Store generated;generated.SetPath(path);
     check(generated.Load(),"missing INI generated from compiled defaults");
     check(generated.tps3DAimEnabled&&dg::runtime::Get().tps3DAimEnabled.load(),"missing option enables 3D aiming by default");
+    check(generated.tpsLensFocusEnabled&&dg::runtime::Get().tpsLensFocusEnabled.load(),"TPS lens experiment defaults ON in store and runtime");
     const auto actual=ReadIni(path);
     size_t keys=0;
     check(actual.size()==shipped.size(),"generated and shipped sections match");
@@ -59,6 +60,7 @@ int main(int argc,char** argv){
     WritePrivateProfileStringW(L"Overlay",L"MenuKey",L"VK_C0",path);
     WritePrivateProfileStringW(L"Updater",L"Beta",L"0",path);
     WritePrivateProfileStringW(L"Features",L"ReduceAmmoConsumption",L"0",path);
+    WritePrivateProfileStringW(L"Features",L"TPSLensFocus",L"0",path);
     WritePrivateProfileStringW(L"Values",L"TPSUltimateDistanceMultiplier",L"0.900",path);
     WritePrivateProfileStringW(L"Values",L"TPSUltimateHeightOffset",L"123.000",path);
     WritePrivateProfileStringW(L"Values",L"WrathChargeMultiplier",L"2.000",path);
@@ -67,6 +69,7 @@ int main(int argc,char** argv){
     check(personal.menuKey==0xC0&&!personal.updaterBeta&&!personal.reduceAmmoEnabled,"explicit older toggles/menu retained");
     check(personal.tpsUltimateDistanceMultiplier==0.9f&&personal.tpsUltimateHeightOffset==123&&personal.wrathChargeMultiplier==2,"explicit personal values retained");
     check(personal.hotkeys[8]==dg::config::Action::FOV,"explicit older hotkey retained");
+    check(!personal.tpsLensFocusEnabled&&!rt.tpsLensFocusEnabled.load(),"explicit lens OFF survives load and runtime publication");
     const auto originalBindings=personal.cameraKeys;
     for(size_t i=0;i<personal.cameraKeys.size();++i){
         personal.cameraKeys=originalBindings;personal.cameraKeys[i]=0;
@@ -92,6 +95,7 @@ int main(int argc,char** argv){
         rt.horsePadButtonA.load()==0x0001&&rt.horsePadButtonB.load()==0x0002,
         "native callbacks receive all rebound controller controls");
     personal.ResetTpsCameraValues();
+    check(personal.tpsLensFocusEnabled&&rt.tpsLensFocusEnabled.load(),"TPS camera reset restores the lens option default");
     check(personal.tpsUltimateDistanceMultiplier==0.30f&&personal.tpsUltimateHeightOffset==80,"camera reset uses requested Ultimate defaults");
     personal.ResetDefaults(false);check(personal.SaveNow(),"full compiled defaults reset saves");
     const auto reset=ReadIni(path);

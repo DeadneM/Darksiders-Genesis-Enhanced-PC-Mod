@@ -44,6 +44,35 @@ void Run(){
     Check(Focus(p2)==1000,"P1 output cannot modify P2");dg::camera_focus::Compensate(p2.data(),{700,0,0});
     Check(Focus(p1)==300&&Focus(p2)==700,"split-screen focus planes are independent");
     Check(Focus(Native())==1000,"fresh native frames retain authored focus without a restore write");
+    auto legacy=Native();legacy[0x63]=1;legacy[0x58]=4;Put(legacy,0x340,2.8f);
+    auto missingLayout=legacy;
+    dg::camera_focus::Compensate(legacy.data(),{400,0,0},false);
+    dg::camera_focus::Compensate(missingLayout.data(),{400,0,0},true);
+    Check(legacy==missingLayout,"unverified lens layout falls back exactly to the V1.60 focus path");
+    dg::camera_focus::lensLayoutReady=true;
+    auto lens=Native();lens[0x63]=1;lens[0x58]=4;Put(lens,0x340,2.8f);before=lens;
+    // Retail method blend 1B30380 uses mask 02, not adjacent mask 04.
+    auto renderMethod=[](const View& frame){return frame[0x58]&2?int(frame[0x63]):1;};
+    lens[0x63]=2;Check(renderMethod(lens)==1,"the neighbouring bit cannot activate a method override");
+    lens=before;Check(dg::camera_focus::Compensate(lens.data(),{400,0,0},true)&&renderMethod(lens)==2,
+        "lens option reaches the native CircleDOF method branch");
+    Check(lens[0x58]==6&&lens[0x56]==(before[0x56]|8)&&Focus(lens)==400,
+        "only the two documented override bits are added");
+    for(size_t i=0;i<lens.size();++i)
+        if(i!=0x56&&i!=0x58&&i!=0x63&&(i<0x494||i>=0x498))
+            Check(lens[i]==before[i],"lens mode preserves aperture, sizes, regions, blend weights and all view geometry");
+    auto off=before;dg::camera_focus::Compensate(off.data(),{400,0,0},false);
+    Check(off==legacy,"OFF remains byte-identical to the previous focal-distance-only policy");
+    auto unknown=before;unknown[0x63]=9;auto unknownBefore=unknown;
+    dg::camera_focus::Compensate(unknown.data(),{400,0,0},true);
+    Check(unknown[0x58]==unknownBefore[0x58]&&unknown[0x63]==9,"unknown native methods are never replaced");
+    for(float weight:{0.0f,.5f,2.0f}){
+        auto partial=before;Put(partial,0x38,weight);auto original=partial;
+        Check(!dg::camera_focus::Compensate(partial.data(),{400,0,0},true)&&partial==original,
+            "lens mode cannot raise partial weights or modify an invalid native frame");
+    }
+    p1=before;p2=before;dg::camera_focus::Compensate(p1.data(),{300,0,0},true);
+    Check(p2==before,"P1 lens override cannot leak into P2 or native views");
 }
 }
 int main(){try{Run();std::cout<<"TPS per-view focus and native postprocess preservation passed\n";return 0;}

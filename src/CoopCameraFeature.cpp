@@ -97,7 +97,7 @@ void ApplyView(void* camera,void* outView,const local_players::Context& owner){
     if(paused){
         if(s.held&&s.camera==reinterpret_cast<uintptr_t>(camera)){
             std::memcpy(values,s.heldView,sizeof(s.heldView));
-            camera_focus::Compensate(values,s.focus);
+            camera_focus::Compensate(values,s.focus,rt.tpsLensFocusEnabled.load());
         }
         s.gameplay=false;Unlock();return;
     }
@@ -131,7 +131,7 @@ void ApplyView(void* camera,void* outView,const local_players::Context& owner){
     if(std::fabs(outgoing[0])>=1e7f||std::fabs(outgoing[1])>=1e7f||std::fabs(outgoing[2])>=1e7f){Unlock();return;}
     std::memcpy(values,outgoing,sizeof(outgoing));
     s.focus={pose.x,pose.y,pose.z};
-    camera_focus::Compensate(values,s.focus);
+    camera_focus::Compensate(values,s.focus,rt.tpsLensFocusEnabled.load());
     std::memcpy(s.heldView,outgoing,sizeof(outgoing));
     s.camera=reinterpret_cast<uintptr_t>(camera);s.held=true;
     s.appliedYaw=yaw;s.gameplay=true;s.viewTick=now;

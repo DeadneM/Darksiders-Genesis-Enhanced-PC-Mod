@@ -235,7 +235,7 @@ void HookView(void* camera, float dt, void* outView) {
         // Keep the last rendered TPS composition, including during stopped
         // actor callbacks. No fake actor timestamps, UI aim or synthetic input.
         std::memcpy(p,g_heldView.values,sizeof(g_heldView.values));
-        if(g_heldView.focusValid)camera_focus::Compensate(p,g_heldView.focus);
+        if(g_heldView.focusValid)camera_focus::Compensate(p,g_heldView.focus,settings.tpsLensFocusEnabled.load());
         settings.tpsViewGameplay.store(false,std::memory_order_release);
         settings.tpsMountedViewActive.store(false,std::memory_order_release);
         return;
@@ -441,7 +441,7 @@ void HookView(void* camera, float dt, void* outView) {
         g_heldView.camera==reinterpret_cast<uintptr_t>(camera);
     if(thirdPerson&&wheelInput&&sameTpsCamera&&!actorValid){
         std::memcpy(p,g_heldView.values,sizeof(g_heldView.values));
-        if(g_heldView.focusValid)camera_focus::Compensate(p,g_heldView.focus);
+        if(g_heldView.focusValid)camera_focus::Compensate(p,g_heldView.focus,settings.tpsLensFocusEnabled.load());
         settings.tpsViewGameplay.store(false,std::memory_order_release);
         settings.tpsMountedViewActive.store(false,std::memory_order_release);
         return; // stopped pose callbacks only; no live follow/orbit is frozen
@@ -755,7 +755,7 @@ void HookView(void* camera, float dt, void* outView) {
                 g_heldView.focusValid=attached&&ownedView;
                 if(g_heldView.focusValid){
                     g_heldView.focus={ax,ay,az};
-                    camera_focus::Compensate(p,g_heldView.focus);
+                    camera_focus::Compensate(p,g_heldView.focus,settings.tpsLensFocusEnabled.load());
                 }
                 g_tpsEmittedX.store(outX,std::memory_order_relaxed);
                 g_tpsEmittedY.store(outY,std::memory_order_relaxed);

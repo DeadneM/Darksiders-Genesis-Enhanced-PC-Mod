@@ -664,6 +664,19 @@ void InitializeCameraDof() {
         !std::memcmp(base+0x1DD2DB0,overrideSig,sizeof(overrideSig))&&
         !std::memcmp(base+0x1B2F68F,blendSig,sizeof(blendSig));
     dg::camera_focus::layoutReady.store(focusLayout,std::memory_order_release);
+    const BYTE methodSet[]={0x80,0x49,0x18,0x02,0xC3};
+    const BYTE methodBlend[]={0xA8,0x02,0x74,0x0B,0x0F,0xB6,0x43,0x23,0x88,0x47,0x23};
+    const BYTE circleRender[]={0x80,0xBB,0x83,0x0D,0x00,0x00,0x02,0x75,0x06,0x89,0xB3,0xC0,0x11,0x00,0x00};
+    unsigned methodOffset=0;uint64_t circleValue=0;
+    std::memcpy(&methodOffset,base+0x3796D70+36,4);
+    std::memcpy(&circleValue,base+0x2EBD618,8);
+    const bool lensLayout=focusLayout&&methodOffset==0x23&&circleValue==2&&
+        !std::memcmp(base+0x74CEB0,methodSet,sizeof(methodSet))&&
+        !std::memcmp(base+0x1B30380,methodBlend,sizeof(methodBlend))&&
+        !std::memcmp(base+0x1B22A3B,circleRender,sizeof(circleRender));
+    dg::camera_focus::lensLayoutReady.store(lensLayout,std::memory_order_release);
+    Log(lensLayout?"Camera DOF V1.61: native lens method 2 and override mask 02 verified; per-TPS-view experiment, quality/aperture retained":
+        "Camera DOF V1.61: lens layout unavailable; previous focal-distance-only behavior retained");
     Log(focusLayout?"Camera DOF V1.57: focal-distance override 0x08 validated against native render blend; per-view focus EXPERIMENTAL":
         "Camera DOF V1.57: focus layout/render blend unsupported; V1.54 suppression retained");
 }

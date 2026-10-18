@@ -17,6 +17,7 @@
 
 #include "HorseFeature.h"
 #include "CameraTraceFeature.h"
+#include "TpsCameraFocus.h"
 
 #include "imgui.h"
 
@@ -845,6 +846,9 @@ void Draw(Context& c) {
                     if(DrawNumberRow("FOV solo","TPSFovSolo",&config.thirdPersonFovDegrees,40,140,110,"%.0f deg","%.1f"))config.Save();
                     if(DrawNumberRow("FOV coop","TPSFovCoop",&config.thirdPersonCoopFovDegrees,40,140,110,"%.0f deg","%.1f"))config.Save();
                 }
+                DrawSectionTitle("TPS depth of field");
+                DrawToggleFeature(config,"TPS lens focus (experimental)","TPSLensFocus",&config.tpsLensFocusEnabled,
+                    "Keep lens focus on the character with the current TPS camera, at foot, on horse and in Ultimate. Keeps depth of field active; its appearance may change. OFF keeps the level's blur method with the previous focus correction. Native view and cinematics keep their original effect.",camera_focus::LensReady());
                 DrawSectionTitle("Normal-form TPS camera");
                 if(DrawNumberRow("Distance","TPSDistance",&config.thirdPersonDistanceMultiplier,0,3,0.15f,"%.2fx","%.3f"))config.Save();
                 if(DrawNumberRow("View pitch","TPSPitch",&config.thirdPersonPitchDegrees,-75,65,-12,"%.1f deg","%.1f"))config.Save();

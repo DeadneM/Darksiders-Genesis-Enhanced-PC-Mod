@@ -326,6 +326,7 @@ void Store::ResetDefaults(bool persist) {
     skipWarningEnabled = true;
     thirdPersonEnabled = true;
     thirdPersonFovEnabled = true;
+    tpsLensFocusEnabled = true;
     cameraOrbitInputEnabled = true;
     cameraControllerOrbitEnabled = true;
     tpsCameraStickMode = 2;
@@ -483,6 +484,7 @@ void Store::ResetVanillaCameraValues() {
 }
 void Store::ResetTpsCameraValues() {
     thirdPersonFovEnabled=true;
+    tpsLensFocusEnabled=true;
     thirdPersonFovDegrees=110.0f;
     thirdPersonCoopFovDegrees=110.0f;
     thirdPersonDistanceMultiplier=0.15f;
@@ -587,6 +589,7 @@ bool Store::Load() {
     thirdPersonEnabled =
         ReadBool(L"Features", L"ThirdPerson", true, path_);
     thirdPersonFovEnabled=ReadBool(L"Features",L"TPSFOV",true,path_);
+    tpsLensFocusEnabled=ReadBool(L"Features",L"TPSLensFocus",true,path_);
     const bool oldOrbit=ReadBool(L"Features",L"CameraControllerOrbit",true,path_);
     tpsCameraStickMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(
         L"Features",L"TPSCameraStickMode",oldOrbit?2:0,path_.c_str())),0,2);
@@ -875,6 +878,7 @@ void Store::PublishRuntime() const {
     runtime.skipWarningEnabled = skipWarningEnabled;
     runtime.thirdPersonEnabled = thirdPersonEnabled;
     runtime.thirdPersonFovEnabled = thirdPersonFovEnabled;
+    runtime.tpsLensFocusEnabled = tpsLensFocusEnabled;
     // Mouse TPS orbit shares the existing orbit result; it does not need
     // a controller stick enabled. In native view no TPS orbit is applied.
     runtime.cameraOrbitInputEnabled = thirdPersonEnabled;
@@ -1038,6 +1042,7 @@ bool Store::SaveNow() {
     WriteFloat(L"Values",L"AmmoConsumptionDivisor",ammoConsumptionDivisor,path_);
     WriteBool(L"Features", L"ThirdPerson", thirdPersonEnabled, path_);
     WriteBool(L"Features",L"TPSFOV",thirdPersonFovEnabled,path_);
+    WriteBool(L"Features",L"TPSLensFocus",tpsLensFocusEnabled,path_);
     WriteProfileString(L"Features",L"TPSFollowPlayer",nullptr,path_.c_str());
     // Remove obsolete TPS switches from existing user INIs once migrated.
     for(const wchar_t* key : { L"TPSFixedCenterReticle",L"TPSLockZoneCamera",
