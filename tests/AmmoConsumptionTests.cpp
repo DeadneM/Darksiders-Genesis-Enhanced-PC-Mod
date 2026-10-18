@@ -11,6 +11,17 @@ int main(){
     };
     check(spend(100,99,false)==99,"OFF native spend");
     check(spend(100,99,true,0)==99&&spend(100,99,true,1)==99,"zero and one native spend");
+    check(spend(100,99,true,0.5f)==98,"half divisor doubles consumption");
+    credit={};check(spend(3,1,true,0.5f)==0,"increased consumption saturates at empty reserve");
+    credit={};check(spend(100,99,true,std::numeric_limits<float>::denorm_min())==0,
+        "tiny positive factor drains safely without overflowing an integer cast");
+    credit={};int increased=100;
+    for(int i=0;i<3;++i)increased=spend(increased,increased-1,true,0.75f);
+    check(increased==96,"sub-unit fractional divisor accumulates rather than truncates costs");
+    check(spend(100,99,true,0.5f,true)==100,"Unlimited still overrides increased costs");
+    check(spend(-1,-1,true,0.5f)==-1&&spend(10,30,true,0.5f)==30,
+        "sub-unit divisor preserves native infinity and pickups");
+    credit={};
     int count=100;
     for(int i=0;i<10;++i){count=spend(count,count-1);check(spend(count,count)==count,"duplicate write retained");}
     check(count==99,"division by ten spends one after ten single costs");

@@ -67,6 +67,16 @@ int main(int argc,char** argv){
     check(personal.menuKey==0xC0&&!personal.updaterBeta&&!personal.reduceAmmoEnabled,"explicit older toggles/menu retained");
     check(personal.tpsUltimateDistanceMultiplier==0.9f&&personal.tpsUltimateHeightOffset==123&&personal.wrathChargeMultiplier==2,"explicit personal values retained");
     check(personal.hotkeys[8]==dg::config::Action::FOV,"explicit older hotkey retained");
+    const auto originalBindings=personal.cameraKeys;
+    for(size_t i=0;i<personal.cameraKeys.size();++i){
+        personal.cameraKeys=originalBindings;personal.cameraKeys[i]=0;
+        check(personal.SaveNow(),"cleared camera binding saves");
+        dg::config::Store cleared;cleared.SetPath(path);
+        check(cleared.Load(),"cleared camera binding reloads");
+        auto expected=originalBindings;expected[i]=0;
+        check(cleared.cameraKeys==expected,"each explicit None, including Zoom In, stays unbound without changing other bindings");
+    }
+    personal.cameraKeys=originalBindings;
     check(generated.menuKey==VK_INSERT,"Insert is the authoritative menu default");
     personal.tps3DAimEnabled=false;personal.tpsAimPitchOffsetDegrees=17.5f;check(personal.SaveNow(),"simple aim option and independent shot angle save");
     dg::config::Store reloaded;reloaded.SetPath(path);check(reloaded.Load()&&!reloaded.tps3DAimEnabled&&!rt.tps3DAimEnabled.load()&&reloaded.tpsAimPitchOffsetDegrees==17.5f&&rt.tpsAimPitchOffsetDegrees.load()==17.5f,"explicit simple aim and manual shot angle survive reload and runtime publication");

@@ -8,9 +8,10 @@ namespace dg::runtime {
 struct Snapshot {
     int overlayMenuKey = defaults::MenuKey;
     bool toggleHudEnabled = true;
+    bool interactionHudScaleEnabled = true;
+    float interactionHudScale = 0.65f;
     bool fovEnabled = false;
     bool movementSpeedEnabled = true;
-    bool actionRecoveryEnabled = true;
     bool skipLogosEnabled = true;
     bool skipIntroEnabled = true;
     bool skipWarningEnabled = true;
@@ -79,7 +80,6 @@ struct Snapshot {
     float tpsFootAnchorOffset = 0.0f; // estimated capsule center-to-foot, configurable
     float cameraStickSpeed = 180.0f;
     float movementSpeedMultiplier = 1.50f;
-    float actionRecoveryDelayMs = 0.0f;
     float pistolDamageMultiplier = 2.00f;
     float meleeDamageMultiplier = 2.00f;
     float jumpHeightMultiplier = 1.25f;
@@ -96,9 +96,10 @@ struct Snapshot {
 struct State {
     std::atomic_int overlayMenuKey{defaults::MenuKey};
     std::atomic_bool toggleHudEnabled{true};
+    std::atomic_bool interactionHudScaleEnabled{true};
+    std::atomic<float> interactionHudScale{0.65f};
     std::atomic_bool fovEnabled{false};
     std::atomic_bool movementSpeedEnabled{true};
-    std::atomic_bool actionRecoveryEnabled{true};
     std::atomic_bool skipLogosEnabled{true};
     std::atomic_bool skipIntroEnabled{true};
     std::atomic_bool skipWarningEnabled{true};
@@ -204,7 +205,6 @@ struct State {
     std::atomic<float> cameraOrbitYawDegrees{0.0f};
     std::atomic<float> cameraOrbitPitchDegrees{0.0f};
     std::atomic<float> movementSpeedMultiplier{1.50f};
-    std::atomic<float> actionRecoveryDelayMs{0.0f};
     std::atomic<float> pistolDamageMultiplier{2.00f};
     std::atomic<float> meleeDamageMultiplier{2.00f};
     std::atomic<float> jumpHeightMultiplier{1.25f};

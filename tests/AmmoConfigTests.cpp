@@ -23,10 +23,12 @@ int main(){
     check(a.hotkeys==b.hotkeys,"both ammo actions persist in real INI");
     const auto& rt=dg::runtime::Get();
     check(!rt.reduceAmmoEnabled.load()&&rt.unlimitedAmmoEnabled.load()&&rt.ammoConsumptionDivisor.load()==10,"runtime receives ammo settings");
-    for(auto value:{L"0",L"1",L"2.5",L"10"}){
+    for(auto value:{L"0",L"0.5",L"0.75",L"1",L"2.5",L"10"}){
         WritePrivateProfileStringW(L"Values",L"AmmoConsumptionDivisor",value,path);
         check(b.Load(),"legal ammo divisor reloads");
     }
+    a.ammoConsumptionDivisor=0.5f;check(a.SaveNow()&&b.Load()&&b.ammoConsumptionDivisor==0.5f&&rt.ammoConsumptionDivisor.load()==0.5f,
+        "sub-unit ammo divisor persists and reaches runtime");
     WritePrivateProfileStringW(L"Values",L"AmmoConsumptionDivisor",L"999",path);b.Load();
     check(b.ammoConsumptionDivisor==10,"divisor upper bound");
     WritePrivateProfileStringW(L"Values",L"AmmoConsumptionDivisor",L"-2",path);b.Load();

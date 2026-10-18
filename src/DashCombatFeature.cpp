@@ -1,7 +1,6 @@
-#include "ActionRecoveryFeature.h"
+#include "DashCombatFeature.h"
 #include "LocalPlayerOwnership.h"
 #include "NativeTpsFeature.h"
-#include "RuntimeSettings.h"
 #include "DashCombatPolicy.h"
 #include <windows.h>
 #include <MinHook.h>
@@ -11,26 +10,13 @@
 #include <cstdio>
 #include <cstring>
 
-namespace dg::recovery {
+namespace dg::dash_combat {
 namespace {
 using TickFn=void(*)(void*,float);
-using FinishFn=void(*)(void*,bool);
 TickFn g_tick=nullptr;
-FinishFn g_finish=nullptr;
 uintptr_t g_base=0;
 LogFn g_log=nullptr;
 std::atomic_bool g_ready{false};
-std::atomic_uint32_t g_requested[2]{};
-std::atomic_uint32_t g_armed[2]{};
-// Value-only history, used exclusively by the native game thread. No cached
-// UObject is dereferenced later. A new/expired activation must arm again.
-struct Phase {
-    uintptr_t local=0,character=0,ability=0;
-    float elapsed=0,duration=0;
-    ULONGLONG tick=0;
-    bool armed=false,requested=false;
-};
-Phase g_phase[2]{};
 dash_combat::AimResume g_resume[2]{};
 using NotifyFn=void(*)(void*,void*,void*);
 NotifyFn g_notify=nullptr,g_sound=nullptr,g_particle=nullptr;
@@ -99,18 +85,6 @@ bool Owner(void* ability,local_players::Context& owner){
         Read(actor,0x118,role)&&role==3&&Read(actor,0xC18,type)&&(type==1||type==2)&&Alive(actor)&&
         Read(actor,0x388,movement)&&movement&&Read(movement,0x1B0,mode)&&mode==6&&
         Read(movement,0x1B1,custom)&&custom==5&&ActiveComponent(ability,actor);
-}
-bool CombatAction(void* actor,bool& active){
-    // Native GetActionState thunk 770D00 uses this exact action interface.
-    // ECharacterActions: ranged one=18, ranged two=20, AIM=31. Native dash
-    // code also queries 18/20 here. These are actions, never physical keys.
-    void* table=nullptr;uintptr_t query=0;
-    if(!Read(actor,0x8D0,table)||!Read(table,0x18,query)||!query)return false;
-    using State=unsigned char(*)(void*,unsigned char);
-    const auto state=reinterpret_cast<State>(query);
-    void* actionInterface=static_cast<unsigned char*>(actor)+0x8D0;
-    active=state(actionInterface,18)!=0||state(actionInterface,20)!=0||state(actionInterface,31)!=0;
-    return true;
 }
 template<size_t N> bool NameIs(void* object,const char (&expected)[N]){
     int index=-1,number=-1;uintptr_t names=0,chunk=0,entry=0;uint32_t flags=0;
@@ -241,62 +215,17 @@ void HookParticleNotify(void* notify,void* mesh,void* animation){
     if(!SkipPresentation(notify,mesh,animation,false)&&g_particle)g_particle(notify,mesh,animation);
 }
 void Tick(void* ability,float dt,ULONGLONG now){
-    // Native input, montage notifies and the FULL physics step always run
-    // once at the original dt, before evaluating recovery.
+    // Observe only AFTER the complete native tick. No early finish, timer,
+    // movement flag, montage cancellation or Action Recovery setting remains.
     if(g_tick)g_tick(ability,dt);
-    if(!native_tps::OnGameThread())return;
-    const auto& rt=runtime::Get();
-    if(!g_ready.load(std::memory_order_acquire)||!g_finish){
-        g_phase[0]={};g_phase[1]={};return;
-    }
-    if(!std::isfinite(dt)||dt<=0||dt>0.1f)return;
+    if(!native_tps::OnGameThread()||!g_ready.load(std::memory_order_acquire)||
+       !std::isfinite(dt)||dt<=0||dt>0.1f)return;
     local_players::Context owner{};
     if(!Owner(ability,owner))return;
     float elapsedDash=0;
     if(Read(ability,0xDC,elapsedDash)&&std::isfinite(elapsedDash)&&elapsedDash>=0)
         g_resume[owner.index].Observe(owner.localPlayer,owner.character,
             reinterpret_cast<uintptr_t>(ability),elapsedDash,now);
-    if(!rt.actionRecoveryEnabled.load()){g_phase[0]={};g_phase[1]={};return;}
-    auto& phase=g_phase[owner.index];
-    bool combat=false;
-    if(!CombatAction(reinterpret_cast<void*>(owner.character),combat)||combat){phase={};return;}
-    if(native_tps::IsWorldPaused(reinterpret_cast<void*>(owner.character))||
-       native_tps::CinematicActive(unsigned(owner.index))){phase={};return;}
-    float remaining=0,duration=0,elapsed=0;
-    const float delay=rt.actionRecoveryDelayMs.load();
-    if(!Read(ability,0x224,remaining)||!Read(ability,0x228,duration)||!Read(ability,0xDC,elapsed)||
-       !std::isfinite(remaining)||!std::isfinite(duration)||!std::isfinite(elapsed)||
-       !std::isfinite(delay)||duration<=0||duration>5||remaining>duration+0.001f||remaining < -5||
-       elapsed<0||elapsed>15||delay<0||delay>300){phase={};return;}
-    const bool same=phase.local==owner.localPlayer&&phase.character==owner.character&&
-        phase.ability==reinterpret_cast<uintptr_t>(ability)&&phase.tick&&now>=phase.tick&&
-        now-phase.tick<=250&&elapsed>=phase.elapsed&&duration==phase.duration;
-    if(!same)phase={owner.localPlayer,owner.character,reinterpret_cast<uintptr_t>(ability),elapsed,duration,now,false,false};
-    phase.elapsed=elapsed;phase.tick=now;
-    // 5B0F40 explicitly starts deceleration by setting BOTH 224 and 228.
-    // Zero-initialized or stale negative clocks never authorize completion.
-    if(remaining>0){
-        if(!phase.armed&&!phase.requested){
-            const unsigned n=++g_armed[owner.index];
-            if(g_log&&n<=8){char line[180]{};
-                sprintf_s(line,"Recovery V1.49 DASH_DECELERATION player=%d n=%u elapsed=%.3f duration=%.3f remaining=%.4f",
-                    owner.index+1,n,elapsed,duration,remaining);g_log(line);}
-        }
-        phase.armed=true;return;
-    }
-    if(!phase.armed||phase.requested||-remaining+0.000001f<delay*0.001f)return;
-    phase.requested=true;phase.armed=false;
-    const unsigned n=++g_requested[owner.index];
-    if(g_log&&(n<=8||n%1000==0)){
-        char line[220]{};
-        sprintf_s(line,"Recovery V1.49 DASH_FINISH_REQUEST player=%d n=%u elapsed=%.3f deceleration=%.3f remaining=%.4f delayMs=%.1f nativeCleanup=1 gameplayValidation=USER_REQUIRED",
-            owner.index+1,n,elapsed,duration,remaining,delay);g_log(line);
-    }
-    // The same EndAbility(false) used by the native dash Tick. 59B2D0
-    // dispatches 59C110: stops the montage, clears temporary state, restores
-    // movement and clears dash velocity. No MOVE flag or actor write here.
-    // Do not touch the ability again: completion can detach/recycle it.
-    g_finish(ability,false);
 }
 void HookTick(void* ability,float dt){Tick(ability,dt,GetTickCount64());}
 }
@@ -306,22 +235,19 @@ void Initialize(LogFn log,bool exactExecutable){
     struct Guard {uintptr_t rva;unsigned char bytes[16];};
     const Guard guards[]={
         {0x5B72B0,{0x40,0x53,0x48,0x83,0xEC,0x30,0x0F,0x29,0x74,0x24,0x20,0x48,0x8B,0xD9,0x0F,0x28}},
-        {0x5B0F40,{0x40,0x53,0x48,0x83,0xEC,0x30,0x48,0x8B,0xD9,0x0F,0x29,0x74,0x24,0x20,0x48,0x8B}},
         {0x5B93F0,{0x48,0x8B,0xC4,0x48,0x89,0x58,0x10,0x48,0x89,0x78,0x18,0x55,0x48,0x8D,0x68,0xA1}},
-        {0x59B080,{0x40,0x57,0x48,0x83,0xEC,0x40,0x48,0xC7,0x44,0x24,0x20,0xFE,0xFF,0xFF,0xFF,0x48}},
         {0x59C110,{0x40,0x57,0x48,0x83,0xEC,0x60,0x48,0xC7,0x44,0x24,0x30,0xFE,0xFF,0xFF,0xFF,0x48}},
         {0x7BBFF0,{0x4C,0x8B,0xDC,0x48,0x83,0xEC,0x78,0x48,0x8B,0x05,0x92,0x4F,0x05,0x03,0x48,0x85}}
     };
     for(const auto& guard:guards)if(std::memcmp(reinterpret_cast<void*>(g_base+guard.rva),guard.bytes,16)){
-        if(log)log("Recovery V1.49 signature mismatch; native dash retained");return;
+        if(log)log("Dash combat V1.58 signature mismatch; native dash retained");return;
     }
     const auto init=MH_Initialize();if(init!=MH_OK&&init!=MH_ERROR_ALREADY_INITIALIZED)return;
     void* target=reinterpret_cast<void*>(g_base+0x5B72B0);
     if(MH_CreateHook(target,reinterpret_cast<void*>(&HookTick),reinterpret_cast<void**>(&g_tick))!=MH_OK)return;
-    g_finish=reinterpret_cast<FinishFn>(g_base+0x59B080);
-    if(MH_EnableHook(target)!=MH_OK){MH_RemoveHook(target);g_tick=nullptr;g_finish=nullptr;return;}
+    if(MH_EnableHook(target)!=MH_OK){MH_RemoveHook(target);g_tick=nullptr;return;}
     g_ready.store(true,std::memory_order_release);
-    if(log)log("Recovery V1.49 READY: observed completed dash deceleration only; native finish, P1/P2, original physics dt; EXPERIMENTAL");
+    if(log)log("Dash combat V1.58 READY: native dash observation only; Action Recovery timing intervention removed");
     const Guard combatGuards[]={
         {0x5D8130,{0x48,0x89,0x6C,0x24,0x18,0x57,0x48,0x83,0xEC,0x40,0x48,0x8B,0xBA,0xE8,0x00,0x00}},
         {0x69FBD0,{0x40,0x53,0x48,0x83,0xEC,0x50,0x48,0x83,0xB9,0x18,0x06,0x00,0x00,0x00,0x48,0x8B}},
@@ -364,7 +290,6 @@ void Initialize(LogFn log,bool exactExecutable){
         "Dash presentation V1.57 unavailable; native presentation retained, validated AIM repair kept");
     if(log)log("Dash combat V1.56 READY: live-player held-AIM resume via registered DualPistolsBP after idle ground dash; V1.55 forced-standard scope retained; TPS/Recovery independent; EXPERIMENTAL");
 }
-bool Ready(){return g_ready.load(std::memory_order_acquire);}
 void Shutdown(){g_presentationReady.store(false,std::memory_order_release);g_combatReady.store(false,std::memory_order_release);g_ready.store(false,std::memory_order_release);}
 void OnLivePlayer(void* actor){
     if(!g_ready.load()||!g_combatReady.load()||!g_startAim||g_resuming||!native_tps::OnGameThread())return;
@@ -405,5 +330,5 @@ void OnLivePlayer(void* actor){
     if(g_log&&(n<=8||n%1000==0)){char line[190]{};
         sprintf_s(line,"Dash combat V1.56 AIM_RESTART_REQUEST player=%d n=%u nativeHeldAim=1 oncePerDash=1 gameplay=EXPERIMENTAL",owner.index+1,n);g_log(line);}
 }
-void Report(){if(g_log){char line[260]{};sprintf_s(line,"Recovery/Dash V1.56 totals positivePhasesP1=%u P2=%u nativeFinishRequestsP1=%u P2=%u aimRestartRequests=%u forcedStandardSkipped=%u gameplayValidation=USER_REQUIRED",g_armed[0].load(),g_armed[1].load(),g_requested[0].load(),g_requested[1].load(),g_resumed.load(),g_suppressed.load());g_log(line);}}
+void Report(){if(g_log){char line[240]{};sprintf_s(line,"Dash combat totals aimRestartRequests=%u forcedStandardSkipped=%u soundSkipped=%u effectSkipped=%u; firing-during-dash issue remains open",g_resumed.load(),g_suppressed.load(),g_soundSkipped.load(),g_particleSkipped.load());g_log(line);}}
 }

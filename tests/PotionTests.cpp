@@ -7,6 +7,10 @@ int main(){
     unsigned failed=0;auto check=[&](bool x,const char* s){if(!x){++failed;std::printf("FAIL %s\n",s);}};
     check(RechargeThreshold(250,false,10)==250,"OFF retains native conversion threshold");
     check(RechargeThreshold(250,true,1)==250,"x1 is native");
+    check(RechargeThreshold(250,true,0.5f)==500&&RechargeThreshold(250,true,0.25f)==1000,
+        "sub-unit recharge rate requires proportionally more excess healing");
+    check(RechargeThreshold(250,true,std::numeric_limits<float>::denorm_min())==250,
+        "unrepresentable threshold never becomes infinity");
     check(RechargeThreshold(250,true,2)==125&&RechargeThreshold(250,true,10)==25,"same overflow grants potions twice or ten times as fast");
     check(RechargeThreshold(250,true,100)==2.5f,"maximum permitted rate remains finite and positive");
     for(float n:{0.0f,-1.0f,101.0f,std::numeric_limits<float>::infinity(),std::numeric_limits<float>::quiet_NaN()})

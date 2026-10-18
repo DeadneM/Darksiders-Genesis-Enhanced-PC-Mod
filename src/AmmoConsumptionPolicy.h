@@ -24,10 +24,13 @@ inline int ConsumptionRequest(Credit& credit,uintptr_t actor,uintptr_t holder,
     }
     if(requested==before)return requested; // duplicate writes must not erase fractions
     if(unlimited){credit.remainder=0;return before;}
-    if(factor<=1.0f){credit.remainder=0;return requested;}
+    if(factor<=0.0f||factor==1.0f){credit.remainder=0;return requested;}
     const double debt=credit.remainder+double(before-requested)/factor;
+    // Below one can spend more than the original request. Saturate BEFORE
+    // converting to int; tiny positive factors must not overflow the cast.
+    if(debt>=before){credit.remainder=0;return 0;}
     const int spend=static_cast<int>(std::floor(debt+1e-8));
     credit.remainder=std::clamp(debt-spend,0.0,0.999999999);
-    return before-std::clamp(spend,0,before-requested);
+    return before-std::clamp(spend,0,before);
 }
 }

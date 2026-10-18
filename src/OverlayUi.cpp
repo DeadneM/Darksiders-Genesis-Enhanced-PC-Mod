@@ -1,16 +1,17 @@
 #include "OverlayUi.h"
+#include "InteractionHudFeature.h"
 #include "GaugeChargeFeature.h"
 #include "ResourceGainFeature.h"
 #include "ManualGaugeFeature.h"
 #include "AmmoConsumptionFeature.h"
 #include "HotstreakFeature.h"
 #include "PotionFeature.h"
+#include "PotionPolicy.h"
 #include "ShaderAimFeature.h"
 #include "UpdateFeature.h"
 #include "BuildInfo.h"
 #include "HealthFeature.h"
 #include "GlideFeature.h"
-#include "ActionRecoveryFeature.h"
 
 #include "HorseFeature.h"
 #include "CameraTraceFeature.h"
@@ -197,12 +198,16 @@ void Draw(Context& c) {
     if (ImGui::BeginTabBar("MainTabs")) {
         if (ImGui::BeginTabItem("Gameplay")) {
             ImGui::Spacing();
+            ImGui::TextWrapped("Multipliers: 1 is native; 0.5 gives half speed, height, duration, damage or gains. Cost divisors work in reverse: 0.5 doubles costs. See each option for the meaning of 0.");
 
             if(ImGui::CollapsingHeader("HUD / aiming effects",ImGuiTreeNodeFlags_DefaultOpen)){
             ImGui::Indent(12.0f);
             DrawSectionTitle("HUD and aiming effects");
             ImGui::TextDisabled("Statuses reflect real game hooks and observed events, not just ON/OFF switches.");
 
+            DrawTunableFeature(config,"Interaction prompt size","InteractionHudScale",&config.interactionHudScaleEnabled,
+                &config.interactionHudScale,0.1f,2.0f,0.65f,"%.2fx",
+                "Scales only the interaction prompt above your character. 0.5 is half size; 1 is native. OFF restores its native size. Each local player's prompt follows its own camera; shared world sprites are unchanged.",interaction_hud::Ready());
             bool hudHidden=c.hudHidden->load();
             if (ImGui::Checkbox("HUD Hidden", &hudHidden)) {
                 c.hudHidden->store(hudHidden);
@@ -242,9 +247,7 @@ void Draw(Context& c) {
                 t.movementHookReady
             );
 
-            DrawToggleFeature(config,"Action Recovery (dash)","ActionRecovery",&config.actionRecoveryEnabled,
-                "Experimental: shortens the end of a dash after deceleration. Aiming or firing keeps the full native dash to preserve combat transitions and ammunition. OFF keeps native timing. Chest animations are unchanged. Assign a toggle in Hotkeys.",dg::recovery::Ready());
-            if(DrawNumberRow("Recovery delay","ActionRecoveryDelay",&config.actionRecoveryDelayMs,0,300,0,"%.0f ms","%.0f"))config.Save();
+            ImGui::TextWrapped("Action Recovery has been retired pending a native action-lock redesign. Native dash timing is restored; the validated aim-resume repair remains active.");
 
             DrawTunableFeature(
                 config,
@@ -373,7 +376,7 @@ void Draw(Context& c) {
             if(potions2.available)ImGui::Text("P2 reserve: %d / %d",potions2.current,potions2.maximum);
             if(potions.available&&potions.current<potions.maximum&&std::isfinite(potions.overflow)&&
                std::isfinite(potions.nativeThreshold)&&potions.nativeThreshold>0){
-                const float threshold=potions.nativeThreshold/(config.potionRechargeEnabled?config.potionRechargeMultiplier:1.0f);
+                const float threshold=dg::potions::RechargeThreshold(potions.nativeThreshold,config.potionRechargeEnabled,config.potionRechargeMultiplier);
                 ImGui::TextDisabled("Charge for next potion: %.0f%%",std::clamp(potions.overflow/threshold,0.0f,1.0f)*100.0f);
             }
             if(potions.pending)ImGui::TextDisabled("Refill queued; return to gameplay.");
@@ -382,8 +385,8 @@ void Draw(Context& c) {
                 ImGui::TextDisabled("Refill unavailable or cancelled; retry during gameplay.");
             DrawTunableFeature(config,"Potion recharge rate","PotionRecharge",
                 &config.potionRechargeEnabled,&config.potionRechargeMultiplier,
-                1.0f,100.0f,2.0f,"%.2fx",
-                "Recharges health potions faster from excess healing at full health. x1 is normal. Keeps the native reserve limit and healing amount.",potions.supported);
+                0.0f,100.0f,2.0f,"%.2fx",
+                "From excess healing at full health. 0 or 1: normal. 0.5: half recharge rate. 2: double rate. Keeps the native reserve limit and healing amount.",potions.supported);
             DrawToggleFeature(config,"Unlimited potions","UnlimitedPotions",&config.unlimitedPotionsEnabled,
                 "Keeps the health-potion reserve full. Healing, cooldown and use conditions stay native. Assign the refill, recharge and Unlimited actions in Hotkeys.",potions.supported);
             ImGui::Separator();
@@ -396,7 +399,7 @@ void Draw(Context& c) {
             DrawRefillResult("P1 ammunition",ammo1.result);DrawRefillResult("P2 ammunition",ammo2.result);
             DrawTunableFeature(config,"Reduce ammo consumption","ReduceAmmo",&config.reduceAmmoEnabled,
                 &config.ammoConsumptionDivisor,0.0f,10.0f,2.0f,"%.2f",
-                "0 or 1: normal consumption. 2: half. 10: one tenth. Unlimited takes priority. Assign a toggle in Hotkeys.",
+                "Consumption divisor: 0 or 1 is normal. 0.5 spends twice as much; 2 spends half; 10 spends one tenth. Unlimited takes priority. Assign a toggle in Hotkeys.",
                 ammoReady,nullptr,"Consumption divisor");
             DrawToggleFeature(config,"Unlimited ammo","UnlimitedAmmo",&config.unlimitedAmmoEnabled,
                 "Keeps special ammunition available. Takes priority over reduced consumption. Assign a toggle in Hotkeys.",ammoReady);
@@ -422,7 +425,7 @@ void Draw(Context& c) {
             const bool hotstreakReady=hotstreak1.supported;
             DrawTunableFeature(config,"Reduce Hotstreak decrease","ReduceHotstreak",&config.reduceHotstreakEnabled,
                 &config.hotstreakDecreaseDivisor,0.0f,10.0f,2.0f,"%.2f",
-                "0 or 1: normal decrease. 2: half. 10: one tenth. Reduces passive decay and Hotstreak costs; resets stay native. Assign a toggle in Hotkeys.",
+                "Decrease divisor: 0 or 1 is normal. 0.5 doubles decay/costs, giving a shorter Hotstreak; 2 halves them; 10 gives one tenth. Resets stay native. Assign a toggle in Hotkeys.",
                 hotstreakReady,nullptr,"Decrease divisor");
             DrawToggleFeature(config,"Unlimited Hotstreak","UnlimitedHotstreak",&config.unlimitedHotstreakEnabled,
                 "Keeps Strife's Hotstreak full. Native activation, weapon behavior and resets are preserved. Assign a toggle in Hotkeys.",hotstreakReady);
@@ -1021,12 +1024,14 @@ void Draw(Context& c) {
             ImGui::TextWrapped("Turn the camera left/right. Zero degrees is the native view.");
             if(DrawNumberRow("Yaw","VanillaYaw",&config.cameraYawDegrees,-180,180,0,"%+.1f deg","%.1f"))config.Save();
 
+            ImGui::EndDisabled();
             DrawSectionTitle("Camera keyboard bindings");
             ImGui::TextWrapped(
                 "Default: Up/Down = height, PageUp/PageDown = zoom. "
                 "Home/End = tilt; Left/Right = yaw. "
                 "Press Rebind then the new key; Esc cancels. "
-                "Bindings work only with the overlay closed and the game focused."
+                "Bindings can be changed or cleared in either camera mode. "
+                "They work only in native view, with the overlay closed and the game focused."
             );
             if(BeginKeyboardTable("VanillaCameraKeyboardBindings")){
                 for(size_t i=0;i<config.cameraKeys.size();++i){
@@ -1041,7 +1046,6 @@ void Draw(Context& c) {
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("The native r.DepthOfFieldQuality is restored when Zoom and Third Person are off.");
             ImGui::TextDisabled("Native output changes. Actual framing requires in-game verification.");
-            ImGui::EndDisabled();
             ImGui::Unindent(12.0f);
             }
             ImGui::EndTabItem();
@@ -1160,6 +1164,7 @@ void Draw(Context& c) {
                                  static_cast<int>(
                                      config::Action::Count);
                              ++action) {
+                            if(action==static_cast<int>(config::Action::ActionRecovery))continue;
                             const bool selected =
                                 current == action;
 

@@ -34,7 +34,8 @@
 #include "MouseFireRouting.h"
 #include "HealthFeature.h"
 #include "GlideFeature.h"
-#include "ActionRecoveryFeature.h"
+#include "DashCombatFeature.h"
+#include "InteractionHudFeature.h"
 #include "TpsCameraFocus.h"
 #include "ControllerReadScope.h"
 #include "TpsAimDirection.h"
@@ -1909,7 +1910,7 @@ bool IsFeatureEnabled(Action action) {
     case Action::MovementSpeed:
         return g_config.movementSpeedEnabled;
     case Action::ActionRecovery:
-        return g_config.actionRecoveryEnabled;
+        return false; // Reserved legacy ID; the retired action is never active.
     case Action::SkipIntroVideos:
         return g_config.skipIntroEnabled;
     case Action::ThirdPerson:
@@ -2047,15 +2048,8 @@ void TriggerAction(Action action, int functionKey) {
     }
 
     if (action == Action::ActionRecovery) {
-        const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
-        if(!hwnd||GetForegroundWindow()!=hwnd||IsIconic(hwnd)||g_overlayVisible.load()||g_shuttingDown.load())return;
-        if(!dg::recovery::Ready()){g_lastAction="Action Recovery [unavailable]";return;}
-        g_config.actionRecoveryEnabled=!g_config.actionRecoveryEnabled;
-        g_config.Save();
-        g_lastAction=std::string("Action Recovery (dash) ")+(g_config.actionRecoveryEnabled?"ON":"OFF");
-        Log("F%d -> Action Recovery dash %s delayMs=%.1f",functionKey,
-            g_config.actionRecoveryEnabled?"ON":"OFF",g_config.actionRecoveryDelayMs);
-        return;
+        g_lastAction="Action Recovery retired; this binding can be reassigned in Hotkeys";
+        return; // Preserve the legacy token/slot without changing gameplay or INI.
     }
 
     if (action == Action::ThirdPerson) {
@@ -4054,8 +4048,9 @@ void ShutdownMod() {
     dg::native_tps::Report();
     dg::health::Shutdown();
     dg::glide::Report();
-    dg::recovery::Shutdown();
-    dg::recovery::Report();
+    dg::interaction_hud::Shutdown();
+    dg::dash_combat::Shutdown();
+    dg::dash_combat::Report();
     // Release the supported synthetic horse key before teardown.
     if(g_horseSyntheticHDown.exchange(false))EmitKeyboardVirtualKey('H',false);
     g_config.FlushIfDue(true);
@@ -4302,7 +4297,8 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::projectile_aim::Initialize(&FeatureLog,g_targetValidation.exact,&ProvideProjectileRay);
     dg::health::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::glide::Initialize(&FeatureLog,g_targetValidation.exact);
-    dg::recovery::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::dash_combat::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::interaction_hud::Initialize(&FeatureLog,g_targetValidation.exact);
     if (!InstallFinalOutgoingDamageHook()) {
         Log("Final Pistol/Melee Damage hook unavailable; other ASI features remain active.");
     }

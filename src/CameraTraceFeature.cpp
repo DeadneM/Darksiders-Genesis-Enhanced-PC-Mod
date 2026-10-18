@@ -3,7 +3,7 @@
 #include "CoopCameraFeature.h"
 #include "CameraContinuity.h"
 #include "TpsCameraFocus.h"
-#include "ActionRecoveryFeature.h"
+#include "DashCombatFeature.h"
 #include "RuntimeSettings.h"
 #include "NativeTpsFeature.h"
 #include "ChaosPoseFeature.h"
@@ -162,7 +162,7 @@ void HookView(void* camera, float dt, void* outView) {
         dg::local_players::ObserveGameplay(viewOwner);
         // Runs in both native/TPS views even when an ended aim ability no
         // longer reads look input. Outside native movement/ability ticks.
-        dg::recovery::OnLivePlayer(reinterpret_cast<void*>(viewOwner.character));
+        dg::dash_combat::OnLivePlayer(reinterpret_cast<void*>(viewOwner.character));
     }
     if(settings.thirdPersonEnabled.load()){
         // Coop requires a proved player component or manager-owned fallback

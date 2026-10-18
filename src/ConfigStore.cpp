@@ -317,9 +317,8 @@ void Store::ResetDefaults(bool persist) {
     graphicsAdapter = 0;
     updaterBeta = defaults::UpdaterBeta;
 
-    toggleHudEnabled = true;
+    toggleHudEnabled = true;interactionHudScaleEnabled=true;interactionHudScale=0.65f;
     movementSpeedEnabled = true;
-    actionRecoveryEnabled = true;
     skipLogosEnabled = true;
     skipIntroEnabled = true;
     skipWarningEnabled = true;
@@ -375,7 +374,6 @@ void Store::ResetDefaults(bool persist) {
     unlimitedHorseSprintEnabled=false;
 
     movementSpeedMultiplier = 1.50f;
-    actionRecoveryDelayMs = 0.0f;
     pistolDamageMultiplier = 2.00f;
     meleeDamageMultiplier = 2.00f;
     jumpHeightMultiplier = 1.25f;
@@ -548,10 +546,10 @@ bool Store::Load() {
     }
 
     toggleHudEnabled = true; // V0.54: hidden/visible is the only HUD state
+    interactionHudScaleEnabled=ReadBool(L"Features",L"InteractionHudScale",true,path_);
+    interactionHudScale=std::clamp(ReadFloat(L"Values",L"InteractionHudScale",0.65f,path_),0.1f,2.0f);
     movementSpeedEnabled =
         ReadBool(L"Features", L"MovementSpeed", true, path_);
-    actionRecoveryEnabled =
-        ReadBool(L"Features", L"ActionRecovery", true, path_);
     skipLogosEnabled =
         ReadBool(L"Features", L"SkipLogos", true, path_);
     skipIntroEnabled =
@@ -571,7 +569,7 @@ bool Store::Load() {
     unlimitedHealthEnabled=ReadBool(L"Features",L"UnlimitedHealth",false,path_);
     unlimitedGlideEnabled=ReadBool(L"Features",L"UnlimitedGlide",false,path_);
     unlimitedHorseSprintEnabled=ReadBool(L"Features",L"UnlimitedHorseSprint",false,path_);
-    potionRechargeMultiplier=std::clamp(ReadFloat(L"Values",L"PotionRechargeMultiplier",2.0f,path_),1.0f,100.0f);
+    potionRechargeMultiplier=std::clamp(ReadFloat(L"Values",L"PotionRechargeMultiplier",2.0f,path_),0.0f,100.0f);
     ammoConsumptionDivisor=std::clamp(ReadFloat(L"Values",L"AmmoConsumptionDivisor",2.0f,path_),0.0f,10.0f);
     thirdPersonEnabled =
         ReadBool(L"Features", L"ThirdPerson", true, path_);
@@ -648,10 +646,6 @@ bool Store::Load() {
 
     movementSpeedMultiplier =
         ReadFloat(L"Values", L"MovementSpeedMultiplier", 1.50f, path_);
-    actionRecoveryDelayMs =
-        ReadFloat(L"Values", L"ActionRecoveryDelayMs", 0.0f, path_);
-    if(!std::isfinite(actionRecoveryDelayMs))actionRecoveryDelayMs=0.0f;
-    actionRecoveryDelayMs=std::clamp(actionRecoveryDelayMs,0.0f,300.0f);
     pistolDamageMultiplier =
         ReadFloat(L"Values", L"PistolDamageMultiplier", 2.0f, path_);
     meleeDamageMultiplier =
@@ -856,9 +850,10 @@ void Store::PublishRuntime() const {
     dg::runtime::Snapshot runtime{};
     runtime.overlayMenuKey=menuKey;
     runtime.toggleHudEnabled = toggleHudEnabled;
+    runtime.interactionHudScaleEnabled=interactionHudScaleEnabled;
+    runtime.interactionHudScale=interactionHudScale;
     runtime.fovEnabled = fovEnabled;
     runtime.movementSpeedEnabled = movementSpeedEnabled;
-    runtime.actionRecoveryEnabled = actionRecoveryEnabled;
     runtime.skipLogosEnabled = skipLogosEnabled;
     runtime.skipIntroEnabled = skipIntroEnabled;
     runtime.skipWarningEnabled = skipWarningEnabled;
@@ -929,7 +924,6 @@ void Store::PublishRuntime() const {
     runtime.cameraYawDegrees = cameraYawDegrees;
     runtime.cameraHeightOffset = cameraHeightOffset;
     runtime.movementSpeedMultiplier = movementSpeedMultiplier;
-    runtime.actionRecoveryDelayMs = actionRecoveryDelayMs;
     runtime.pistolDamageMultiplier = pistolDamageMultiplier;
     runtime.meleeDamageMultiplier = meleeDamageMultiplier;
     runtime.jumpHeightMultiplier = jumpHeightMultiplier;
@@ -996,8 +990,9 @@ bool Store::SaveNow() {
     );
 
     WriteProfileString(L"Features", L"ToggleHUD", nullptr, path_.c_str());
+    WriteBool(L"Features",L"InteractionHudScale",interactionHudScaleEnabled,path_);
+    WriteFloat(L"Values",L"InteractionHudScale",interactionHudScale,path_);
     WriteBool(L"Features", L"MovementSpeed", movementSpeedEnabled, path_);
-    WriteBool(L"Features", L"ActionRecovery", actionRecoveryEnabled, path_);
     WriteBool(L"Features", L"SkipLogos", skipLogosEnabled, path_);
     WriteBool(L"Features", L"SkipIntroVideos", skipIntroEnabled, path_);
     WriteBool(L"Features", L"SkipWarning", skipWarningEnabled, path_);
@@ -1118,7 +1113,6 @@ bool Store::SaveNow() {
     WriteBool(L"Features",L"SynergyCharge",synergyChargeEnabled,path_);
 
     WriteFloat(L"Values", L"MovementSpeedMultiplier", movementSpeedMultiplier, path_);
-    WriteFloat(L"Values", L"ActionRecoveryDelayMs", actionRecoveryDelayMs, path_);
     WriteFloat(L"Values", L"PistolDamageMultiplier", pistolDamageMultiplier, path_);
     WriteFloat(L"Values", L"MeleeDamageMultiplier", meleeDamageMultiplier, path_);
     WriteFloat(L"Values", L"JumpHeightMultiplier", jumpHeightMultiplier, path_);

@@ -18,21 +18,26 @@ if(BUILD_TESTING)
   add_executable(NativeObjectIdentityTests tests/NativeObjectIdentityTests.cpp)
   target_include_directories(NativeObjectIdentityTests PRIVATE src)
   add_test(NAME NativeObjectIdentity COMMAND NativeObjectIdentityTests)
-  add_executable(DashRecoveryTests tests/DashRecoveryTests.cpp src/RuntimeSettings.cpp)
-  target_include_directories(DashRecoveryTests PRIVATE tests/stubs src)
-  target_compile_definitions(DashRecoveryTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
-  add_test(NAME DashRecovery COMMAND DashRecoveryTests)
+  add_executable(DashCombatFeatureTests tests/DashCombatFeatureTests.cpp src/RuntimeSettings.cpp)
+  target_include_directories(DashCombatFeatureTests PRIVATE tests/stubs src)
+  target_compile_definitions(DashCombatFeatureTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  add_test(NAME DashCombatFeature COMMAND DashCombatFeatureTests)
+  add_executable(InteractionHudTests tests/InteractionHudTests.cpp src/RuntimeSettings.cpp src/ConfigStore.cpp)
+  target_include_directories(InteractionHudTests PRIVATE tests/stubs src)
+  target_compile_definitions(InteractionHudTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  target_link_libraries(InteractionHudTests PRIVATE user32)
+  add_test(NAME InteractionHud COMMAND InteractionHudTests)
   add_executable(DashCombatTests tests/DashCombatTests.cpp)
   target_include_directories(DashCombatTests PRIVATE src)
   add_test(NAME DashCombat COMMAND DashCombatTests)
   add_executable(TpsCameraFocusTests tests/TpsCameraFocusTests.cpp)
   target_include_directories(TpsCameraFocusTests PRIVATE src)
   add_test(NAME TpsCameraFocus COMMAND TpsCameraFocusTests)
-  add_executable(RecoveryConfigTests tests/RecoveryConfigTests.cpp src/ConfigStore.cpp src/RuntimeSettings.cpp)
-  target_include_directories(RecoveryConfigTests PRIVATE src)
-  target_compile_definitions(RecoveryConfigTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
-  target_link_libraries(RecoveryConfigTests PRIVATE user32)
-  add_test(NAME RecoveryConfig COMMAND RecoveryConfigTests)
+  add_executable(LegacyRecoveryConfigTests tests/LegacyRecoveryConfigTests.cpp src/ConfigStore.cpp src/RuntimeSettings.cpp)
+  target_include_directories(LegacyRecoveryConfigTests PRIVATE src)
+  target_compile_definitions(LegacyRecoveryConfigTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  target_link_libraries(LegacyRecoveryConfigTests PRIVATE user32)
+  add_test(NAME LegacyRecoveryConfig COMMAND LegacyRecoveryConfigTests)
   add_executable(HotstreakConfigTests tests/HotstreakConfigTests.cpp src/ConfigStore.cpp src/RuntimeSettings.cpp)
   target_include_directories(HotstreakConfigTests PRIVATE src)
   target_compile_definitions(HotstreakConfigTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
@@ -219,7 +224,8 @@ set_source_files_properties("${DG_UPDATER_RC}" PROPERTIES OBJECT_DEPENDS "${DG_H
 
 add_library(DarksidersGenesisMod SHARED
   src/NativeTpsFeature.cpp
-  src/ActionRecoveryFeature.cpp
+  src/DashCombatFeature.cpp
+  src/InteractionHudFeature.cpp
   src/ProjectileAimFeature.cpp
   src/HealthFeature.cpp
   src/GlideFeature.cpp

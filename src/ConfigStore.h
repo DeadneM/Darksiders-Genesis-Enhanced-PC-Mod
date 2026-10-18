@@ -84,7 +84,7 @@ kActionLabels = {
     "None",
     "Toggle HUD",
     "Movement Speed",
-    "Action Recovery (dash)",
+    "Action Recovery (retired)",
     "Skip Intro Videos",
     "Third Person",
     "Skip Logos",
@@ -234,8 +234,9 @@ public:
     bool updaterBeta = defaults::UpdaterBeta; // OFF=main stable, ON=debug beta
 
     bool toggleHudEnabled = true;
+    bool interactionHudScaleEnabled = true;
+    float interactionHudScale = 0.65f;
     bool movementSpeedEnabled = true;
-    bool actionRecoveryEnabled = true;
     bool skipLogosEnabled = true;
     bool skipIntroEnabled = true;
     bool skipWarningEnabled = true;
@@ -298,7 +299,6 @@ public:
     float potionRechargeMultiplier = 2.0f;
 
     float movementSpeedMultiplier = 1.50f;
-    float actionRecoveryDelayMs = 0.0f;
     float pistolDamageMultiplier = 2.00f;
     float meleeDamageMultiplier = 2.00f;
     float jumpHeightMultiplier = 1.25f;

@@ -1,3 +1,27 @@
+# Actualisation — 18 octobre 2026, V1.58
+
+L’utilisateur autorise explicitement de commencer la suite malgré le tir pendant dash encore ouvert avec toutes les munitions. Le tableau ci-dessous remplace l’ancien ordre d’attente ; les détails historiques restent conservés.
+
+| Sujet | État actuel | Prochaine preuve / essai |
+| --- | --- | --- |
+| Taille du prompt d’interaction | Candidat V1.58, 0.65 par défaut, saisie manuelle/OFF | Lisibilité et restauration en P1/P2 |
+| Prompt P2 tournant avec P1 | Cause native identifiée, candidat V1.58 limité à InteractHUD | Rotation indépendante des deux vues |
+| Autres sprites plats P2 | Ouvert, pas de correction générale | Identifier un autre composant/propriétaire démontré |
+| Facteurs sous 1 | Candidat V1.58, tests numériques/config | Hotstreak, ammo et potions à 0.5 |
+| Action Recovery | Expérience de fin anticipée retirée V1.58 | Repartir d’un verrou d’action natif, objectif distinct |
+| Visée maintenue après dash | Validée V1.56, code préservé | Contrôle court après retrait Recovery |
+| Tir pendant déplacement + visée + dash | Ouvert toutes munitions, native/TPS | Cycle montage/capacité commun, pas une touche |
+| Flou chapitre 8, cheval et Ultimate | Ouvert ; distance correcte prouvée | Mélange final du rendu, méthode et paramètres du niveau |
+| Rangement manuel, délai réglable/jamais automatique | Demande enregistrée, non implémentée | Fonction et état natifs de rangement |
+| Standard ammo finies | Demande enregistrée, non implémentée | Réserve native, consommation et remplissage |
+| Portée du grappin | Demande enregistrée, non implémentée | Distances et conditions de chaque action native |
+| Modèles des pistolets | Faisabilité ouverte | Propriétaires, sockets, assets compatibles |
+| Pistolets/holsters à cheval | Ouvert | Attachments et états natifs précis |
+
+[Audit V1.58](V1_58_RESOURCE_HUD_CLEANUP_TEST.md). V1.57 reste le rollback installé ; la V1.58 est expérimentale tant que CI/paquet puis essais utilisateur ne sont pas terminés.
+
+---
+
 # Suite du mod — demandes du 18 octobre 2026
 
 **Retour utilisateur du 18 octobre :** déplacement + visée + dash validé dans son essai V1.56. Le personnage reste flou au chapitre 8 ; son et manifestation Standard du Dash Fire spécial restent ouverts. Candidat [V1.57](V1_57_FOCUS_DASH_PRESENTATION_TEST.md) ciblé sur ces deux défauts, sans rouvrir la reprise AIM. Les fonctionnalités suivantes restent non implémentées.

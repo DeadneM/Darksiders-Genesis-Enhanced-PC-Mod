@@ -32,6 +32,15 @@ int main(){
     b.ResetDefaults(false);check(!b.reduceHotstreakEnabled&&!b.unlimitedHotstreakEnabled&&b.hotstreakDecreaseDivisor==2,"reset preserves opt-in policy");
     using dg::hotstreak::DepletionAmount;using dg::hotstreak::DepletionCaller;
     check(DepletionAmount(10,true,0,false)==10&&DepletionAmount(10,true,1,false)==10,"0 and 1 remain native");
+    check(DepletionAmount(10,true,0.5f,false)==20&&DepletionAmount(3,true,0.75f,false)==4,
+        "sub-unit divisor increases depletion and shortens duration");
+    check(DepletionAmount(10,false,0.5f,false)==10&&DepletionAmount(10,true,0.5f,true)==0,
+        "OFF and Unlimited override increased depletion");
+    check(DepletionAmount(10,true,std::numeric_limits<float>::denorm_min(),false)==1000000,
+        "tiny positive factor remains a bounded native request");
+    a.unlimitedHotstreakEnabled=false;a.hotstreakDecreaseDivisor=0.5f;check(a.SaveNow()&&b.Load(),"sub-unit divisor round-trip");
+    check(b.hotstreakDecreaseDivisor==0.5f&&rt.hotstreakDecreaseDivisor.load()==0.5f&&b.hotkeys==a.hotkeys,
+        "sub-unit value reaches runtime without replacing hotkeys");
     check(DepletionAmount(10,true,2.5f,false)==4&&DepletionAmount(10,true,10,false)==1,"fractional and tenth consumption");
     check(DepletionAmount(10,false,10,false)==10&&DepletionAmount(10,true,10,true)==0,"OFF and Unlimited priority");
     check(DepletionAmount(-5,true,10,true)==-5&&DepletionAmount(10,true,std::numeric_limits<float>::infinity(),false)==10,"negative amounts and invalid factor remain native");

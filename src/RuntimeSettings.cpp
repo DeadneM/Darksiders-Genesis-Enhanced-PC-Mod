@@ -13,9 +13,10 @@ State& Get() {
 void Publish(const Snapshot& s) {
     g_state.overlayMenuKey.store(s.overlayMenuKey,std::memory_order_relaxed);
     g_state.toggleHudEnabled.store(s.toggleHudEnabled, std::memory_order_relaxed);
+    g_state.interactionHudScaleEnabled.store(s.interactionHudScaleEnabled);
+    g_state.interactionHudScale.store(s.interactionHudScale);
     g_state.fovEnabled.store(s.fovEnabled, std::memory_order_relaxed);
     g_state.movementSpeedEnabled.store(s.movementSpeedEnabled, std::memory_order_relaxed);
-    g_state.actionRecoveryEnabled.store(s.actionRecoveryEnabled, std::memory_order_relaxed);
     g_state.skipLogosEnabled.store(s.skipLogosEnabled, std::memory_order_relaxed);
     g_state.skipIntroEnabled.store(s.skipIntroEnabled, std::memory_order_relaxed);
     g_state.skipWarningEnabled.store(s.skipWarningEnabled, std::memory_order_relaxed);
@@ -86,7 +87,6 @@ void Publish(const Snapshot& s) {
     g_state.tpsFootAnchorOffset.store(s.tpsFootAnchorOffset);
     g_state.cameraStickSpeed.store(s.cameraStickSpeed, std::memory_order_relaxed);
     g_state.movementSpeedMultiplier.store(s.movementSpeedMultiplier, std::memory_order_relaxed);
-    g_state.actionRecoveryDelayMs.store(s.actionRecoveryDelayMs, std::memory_order_relaxed);
     g_state.pistolDamageMultiplier.store(s.pistolDamageMultiplier, std::memory_order_relaxed);
     g_state.meleeDamageMultiplier.store(s.meleeDamageMultiplier, std::memory_order_relaxed);
     g_state.jumpHeightMultiplier.store(s.jumpHeightMultiplier, std::memory_order_relaxed);

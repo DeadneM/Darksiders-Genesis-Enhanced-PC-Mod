@@ -20,8 +20,10 @@ int main(){
     check(a.hotkeys==b.hotkeys,"three appended actions round-trip as INI tokens");
     const auto& rt=dg::runtime::Get();
     check(rt.potionRechargeEnabled.load()&&rt.unlimitedPotionsEnabled.load()&&rt.potionRechargeMultiplier.load()==10,"all potion settings reach runtime atomics");
-    for(auto v:{L"1",L"2.5",L"10",L"100"}){WritePrivateProfileStringW(L"Values",L"PotionRechargeMultiplier",v,path);check(b.Load(),"legal potion rate loads");}
-    WritePrivateProfileStringW(L"Values",L"PotionRechargeMultiplier",L"0",path);b.Load();check(b.potionRechargeMultiplier==1,"zero clamps to native rate");
+    for(auto v:{L"0.25",L"0.5",L"1",L"2.5",L"10",L"100"}){WritePrivateProfileStringW(L"Values",L"PotionRechargeMultiplier",v,path);check(b.Load(),"legal potion rate loads");}
+    a.potionRechargeMultiplier=0.5f;check(a.SaveNow()&&b.Load()&&b.potionRechargeMultiplier==0.5f&&rt.potionRechargeMultiplier.load()==0.5f,
+        "sub-unit recharge rate persists and reaches runtime");
+    WritePrivateProfileStringW(L"Values",L"PotionRechargeMultiplier",L"0",path);b.Load();check(b.potionRechargeMultiplier==0,"zero retains its native-policy sentinel");
     WritePrivateProfileStringW(L"Values",L"PotionRechargeMultiplier",L"999",path);b.Load();check(b.potionRechargeMultiplier==100,"upper rate bound");
     WritePrivateProfileStringW(L"Values",L"PotionRechargeMultiplier",L"nan",path);b.Load();check(b.potionRechargeMultiplier==2,"nonfinite rate falls back");
     WritePrivateProfileStringW(L"Features",L"PotionRecharge",nullptr,path);WritePrivateProfileStringW(L"Features",L"UnlimitedPotions",nullptr,path);

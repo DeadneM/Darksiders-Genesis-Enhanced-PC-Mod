@@ -12,6 +12,9 @@ inline float DepletionAmount(float amount,bool reduce,float divisor,bool unlimit
     if(unlimited)return 0;
     if(!reduce||!std::isfinite(divisor))return amount;
     const float factor=std::clamp(divisor,0.0f,10.0f);
-    return factor>1?amount/factor:amount;
+    if(factor<=0)return amount; // Historical zero means native, not infinity.
+    // Sub-unit divisors shorten the budget. Bound the native float request
+    // before conversion even for a tiny positive value entered manually.
+    return static_cast<float>(std::min(double(amount)/factor,1000000.0));
 }
 }

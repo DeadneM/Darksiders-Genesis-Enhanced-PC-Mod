@@ -1,7 +1,7 @@
 #pragma once
 namespace dg::build {
-inline constexpr int Major=1,Minor=57;
-inline constexpr char Version[]="V1.57";
-inline constexpr char Id[]="1.57-focus-dash-presentation-test";
-inline constexpr char Archive[]="DarksidersGenesis_V1.57_FOCUS_DASH_PRESENTATION_TEST.zip";
+inline constexpr int Major=1,Minor=58;
+inline constexpr char Version[]="V1.58";
+inline constexpr char Id[]="1.58-resource-hud-cleanup-test";
+inline constexpr char Archive[]="DarksidersGenesis_V1.58_RESOURCE_HUD_CLEANUP_TEST.zip";
 }
