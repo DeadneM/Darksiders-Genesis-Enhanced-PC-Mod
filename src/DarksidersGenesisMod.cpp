@@ -652,15 +652,17 @@ void InitializeCameraDof() {
     g_dofSlot=reinterpret_cast<LONG**>(const_cast<BYTE*>(base)+0x381DEA8);
     Log("Camera DOF V1.54: r.DepthOfFieldQuality game/render shadows validated");
     const BYTE copySig[]={0x48,0x8D,0x93,0xD0,0x02,0x00,0x00,0x48,0x8D,0x4F,0x40};
-    const BYTE overrideSig[]={0x80,0x49,0x16,0x10,0xC3};
+    const BYTE overrideSig[]={0x80,0x49,0x16,0x08,0xC3};
+    const BYTE blendSig[]={0x0F,0xB6,0x42,0x16,0xA8,0x08,0x74,0x29,0xF3,0x0F,0x10,0x87,0x54,0x04,0x00,0x00};
     unsigned focalOffset=0;
     std::memcpy(&focalOffset,base+0x37958E0+36,4);
     const bool focusLayout=focalOffset==0x454&&
         !std::memcmp(base+0x16FA753,copySig,sizeof(copySig))&&
-        !std::memcmp(base+0x1DD2DD0,overrideSig,sizeof(overrideSig));
+        !std::memcmp(base+0x1DD2DB0,overrideSig,sizeof(overrideSig))&&
+        !std::memcmp(base+0x1B2F68F,blendSig,sizeof(blendSig));
     dg::camera_focus::layoutReady.store(focusLayout,std::memory_order_release);
-    Log(focusLayout?"Camera DOF V1.56: per-view TPS player focus ready; native quality/blur settings retained; EXPERIMENTAL":
-        "Camera DOF V1.56: focus layout unsupported; V1.54 suppression retained");
+    Log(focusLayout?"Camera DOF V1.57: focal-distance override 0x08 validated against native render blend; per-view focus EXPERIMENTAL":
+        "Camera DOF V1.57: focus layout/render blend unsupported; V1.54 suppression retained");
 }
 void RestoreCameraDof() {
     // Restore only our zeroes in the current registered allocation. A native

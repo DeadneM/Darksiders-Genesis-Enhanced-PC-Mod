@@ -20,7 +20,18 @@ void Run(){
         "focus follows forward depth, not 500-unit slant distance");
     for(size_t i=0;i<v.size();++i)
         if(i!=0x56&&(i<0x494||i>=0x498))Check(v[i]==before[i],"all non-focus bytes, blend and authored blur settings survive");
-    Check(v[0x56]==(before[0x56]|0x10),"only the native focal-distance override bit is added");
+    Check(v[0x56]==(before[0x56]|0x08),"only the native focal-distance override bit is added");
+    // Retail render blend 1B2F693 consumes bit 0x08 for FocalDistance;
+    // bit 0x10 belongs to Fstop. Reproduce that consumer, not our setter.
+    auto renderFocus=[](const View& frame){return frame[0x56]&8?Focus(frame):1000.0f;};
+    v=Native();v[0x56]=0x10;Put(v,0x494,365.0f);
+    Check(renderFocus(v)==1000,"V1.56's wrong flag leaves the render focus native");
+    Check(dg::camera_focus::Compensate(v.data(),{365,0,0})&&renderFocus(v)==365,
+        "corrected override actually reaches the native focal-distance branch");
+    Check(v[0x56]==0x18,"an authored aperture override is preserved");
+    v=Native();v[0x56]=0;Put(v,0x340,2.8f);
+    dg::camera_focus::Compensate(v.data(),{365,0,0});
+    Check(v[0x56]==8&&renderFocus(v)==365,"fresh native frame activates focus alone, never aperture");
     v=Native();Put(v,16,90.0f);Check(dg::camera_focus::Compensate(v.data(),{0,275,0})&&std::fabs(Focus(v)-275)<.001f,"yaw follows the emitted TPS view");
     v=Native();Put(v,12,-30.0f);Check(dg::camera_focus::Compensate(v.data(),{259.80762f,0,-150})&&std::fabs(Focus(v)-300)<.01f,"pitched view uses its own forward plane");
     v=Native();before=v;Check(!dg::camera_focus::Compensate(v.data(),{-100,0,0})&&v==before,"player behind camera cannot create a negative focal plane");

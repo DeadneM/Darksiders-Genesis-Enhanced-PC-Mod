@@ -1,3 +1,17 @@
+## V1.57 — mise au point TPS et manifestations du tir de dash (18 octobre 2026)
+
+**SOURCE DE TEST / EXPÉRIMENTAL — construction et validation en jeu à effectuer.** Base cumulative V1.56 ; **déplacement + visée maintenue + dash VALIDÉ par l’utilisateur**, dans son essai du 18 octobre. Cette reprise native de visée et le timing/physique Recovery sont conservés. Restent rejetés : personnage flou au chapitre 8 ; son et manifestation du tir Standard pendant déplacement + visée + tir spécial + dash, malgré les projectiles déjà retirés.
+
+Le relevé du chapitre 8 démontre une distance de mise au point correcte dans la caméra, mais le mauvais bit d’activation V1.56 : `0x10` pilote l’ouverture, tandis que le mélange natif lit `0x08` pour la distance. V1.57 corrige ce bit et vérifie aussi la branche qui le consomme ; effet de profondeur, qualité et autres paramètres conservés. L’ancien test contrôlait notre écriture, pas son interprétation native : il reçoit un scénario reproduisant le consommateur du rendu.
+
+Les quatre séquences natives Dash Fire possèdent des notifications séparées pour le son Standard, les flashs et les douilles. Deux interceptions natives vérifiées écartent seulement ces manifestations lorsque le même prédicat que le filtre de projectiles reconnaît un dash local Strife à pied avec tir spécial tenu. Sons de dash/effort/pas, autres effets, tirs Standard ou mixtes/inconnus, autres personnages et modes restent natifs. **Le mouvement corporel du montage Dash Fire est conservé**, pour ne pas changer la suspension/reprise des capacités et casser la charge ; son éventuel recul résiduel n’est pas annoncé comme corrigé. Aucun remplacement de munition ni de capacité.
+
+INI, raccourcis, balistique/cible Lava/Charge/faisceaux, XInput/RawInput, ressources, coop et paramètres caméra inchangés. Aucun asset de jeu modifié ; aucun correctif lié à une touche. Tests prévus : frontières des vrais filtres avec consommateur natif simulé, directions et P1/P2, régression du bit de mise au point, suites cumulatives. **Pas encore de nouveau ZIP ni d’installation ; le jeu ouvert est uniquement lu.**
+
+**Essais prioritaires :** (1) chapitre 8 immobile puis plusieurs angles/distances TPS, personnage net et effet de profondeur présent ; (2) déplacement + visée + tir spécial + dash, quatre directions, normal/Hotstreak : absence de son/flash/douilles Standard ; (3) contrôle court de la visée après dash validée, tir Standard, tir spécial après dash, Charge/Lava/faisceaux et roues P2 ; (4) retour natif/cinématique et chaque vue coop. Au moindre recul de l’acquis AIM ou de la charge, revenir à V1.56. Les demandes HUD/armes/grappin restent dans la [suite prévue](ROADMAP.md).
+
+---
+
 ## V1.56 — construite, contrôlée ; installée (18 octobre 2026)
 
 **Demandes suivantes enregistrées le 18 octobre 2026 :** [HUD/interactions et sprites P2, rangement manuel/automatique des armes, munitions normales limitées, portée du grappin, modèles des pistolets et holsters à cheval](ROADMAP.md). Elles passent **après les réparations actuelles** ; V1.56 reste expérimentale en attente du retour utilisateur. Mise à jour documentaire uniquement, sans changement d'ASI, d'INI ni d'installation.

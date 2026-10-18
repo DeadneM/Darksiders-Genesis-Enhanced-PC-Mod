@@ -21,8 +21,8 @@ dg::local_players::Context owners[2]{};
 bool gameThread=true,paused=false,cinema=false,endDuringTick=false;
 unsigned nativeCalls=0,finishCalls[2]{};float actualDt=0;std::vector<int> order;
 unsigned aimStarts=0;void* aimOwner=nullptr;
-unsigned char aimClass[0x80]{},nameEntries[2][100]{};
-void* namePointers[2]{nameEntries[0],nameEntries[1]};void* nameChunks[1]{namePointers};
+unsigned char aimClass[0x80]{},nameEntries[32][100]{};
+void* namePointers[32]{};void* nameChunks[1]{namePointers};
 template<class T> void Put(void* p,size_t o,T value){std::memcpy(static_cast<unsigned char*>(p)+o,&value,sizeof(value));}
 template<class T> T Get(void* p,size_t o){T value{};std::memcpy(&value,static_cast<unsigned char*>(p)+o,sizeof(value));return value;}
 void Check(bool value,const char* message){if(!value)throw std::runtime_error(message);}
@@ -86,6 +86,8 @@ void Run(){
     Put(image.data(),0x3810F90,static_cast<void*>(cls));
     Put(image.data(),0x3810268,static_cast<void*>(cls));
     Put(image.data(),0x3811D20,static_cast<void*>(cls));
+    for(int i=0;i<32;++i)namePointers[i]=nameEntries[i];
+    Put(image.data(),0x3807E38,static_cast<void*>(cls));
     Put(image.data(),0x3955198,nameChunks+0);Put(aimClass,0x18,1);
     const char weaponName[]="MayhemWeapon_DualPistols_Blueprint_C";
     const char aimName[]="MayhemAbility_Strife_DualPistols_Aim_Start_Ability_C";
@@ -162,6 +164,81 @@ void Run(){
     Tick(1,GetTickCount64());Put(players[1].component,0x100,0);Put<unsigned char>(players[1].movement,0x1B0,1);
     dg::recovery::OnLivePlayer(players[0].actor);Check(!aimStarts,"P1 service cannot consume P2's missing aim");
     dg::recovery::OnLivePlayer(players[1].actor);Check(aimStarts==1&&aimOwner==players[1].actor,"P2 restores only its own registered pistols");
+    // Real hooks/predicates with synthetic native objects. No audio or native
+    // engine functions are called; only the forwarding boundary is mocked.
+    unsigned char notify[0x90]{},notifyClass[0x80]{},mesh[0x100]{},sequence[0x80]{},asset[0x80]{};
+    unsigned char special[0x6C0]{},specialClass[0x80]{},forced[0x80]{};
+    auto label=[](void* object,int index,const char* value){
+        Put(object,0x18,index);Put(object,0x1C,0);std::memset(nameEntries[index],0,100);
+        std::memcpy(nameEntries[index]+0xC,value,std::strlen(value)+1);
+    };
+    auto setup=[&](int player,const char* seq="Strife_Aim_Dash_Fire_F"){
+        Fresh();dg::recovery::g_combatReady=true;dg::recovery::g_presentationReady=true;
+        dg::recovery::g_actionQuery=ActionState;
+        Put<unsigned char>(players[player].actor,0xC18,1);
+        label(notifyClass,2,"AnimNotify_PlaySound");label(sequence,3,seq);
+        label(specialClass,4,"MayhemStaticShot_Blueprint_C");label(asset,5,"char_strife_gunfire_Cue");
+        label(forced,6,"MayhemProjectile_Standard_Blueprint_C");
+        Put(specialClass,0x30,tree+0);Put(specialClass,0x38,0);
+        Put(notifyClass,0x30,tree+0);Put(notifyClass,0x38,0);
+        Put(special,0x10,static_cast<void*>(specialClass));Put(special,0xE8,static_cast<void*>(players[player].actor));
+        players[player].equipped[2]=special;players[player].equipped[3]=special;
+        Put(notify,0x10,static_cast<void*>(notifyClass));Put(notify,0x20,static_cast<void*>(sequence));
+        Put(notify,0x38,static_cast<void*>(asset));Put(notify,0x50,static_cast<void*>(forced));
+        Put(mesh,0xE8,static_cast<void*>(players[player].actor));nativeActions[player]=uint64_t(1)<<18;
+    };
+    for(int player:{0,1})for(bool tps:{false,true})for(bool recovery:{false,true})
+    for(const char* seq:{"Strife_Aim_Dash_Fire_F","Strife_Aim_Dash_Fire_B","Strife_Aim_Dash_Fire_L","Strife_Aim_Dash_Fire_R"}){
+        setup(player,seq);dg::runtime::Get().thirdPersonEnabled=tps;dg::runtime::Get().actionRecoveryEnabled=recovery;
+        const auto actorBefore=std::to_array(players[player].actor);
+        const auto abilityBefore=std::to_array(players[player].ability);
+        Check(dg::recovery::SkipPresentation(notify,mesh,sequence,true),"only special-ammo standard gunfire is skipped for each owned view/direction");
+        label(notifyClass,2,"AnimNotify_PlayParticleEffect");label(asset,5,"VFX_strife_muzzleFlash");
+        Check(dg::recovery::SkipPresentation(notify,mesh,sequence,false),"standard muzzle flash is skipped under the same predicate");
+        label(asset,5,"VFX_strife_bulletCasings");
+        Check(dg::recovery::SkipPresentation(notify,mesh,sequence,false),"standard casings share the exact scope");
+        nativeActions[player]=uint64_t(1)<<20;
+        Check(dg::recovery::SkipPresentation(notify,mesh,sequence,false),"secondary action uses the same presentation rule");
+        Check(std::memcmp(players[player].actor,actorBefore.data(),actorBefore.size())==0&&
+            std::memcmp(players[player].ability,abilityBefore.data(),abilityBefore.size())==0,
+            "presentation filter never changes actor/ability lifecycle, aim or montage");
+    }
+    for(const char* sound:{"char_strife_dash","char_strife_vo_effort_dash","Footstep","UnknownSound"}){
+        setup(0);label(asset,5,sound);Check(!dg::recovery::SkipPresentation(notify,mesh,sequence,true),"dash/effort/other sounds stay native");
+    }
+    for(const char* effect:{"DashSmoke","AbilityEffect","UnknownParticle"}){
+        setup(0);label(notifyClass,2,"AnimNotify_PlayParticleEffect");label(asset,5,effect);
+        Check(!dg::recovery::SkipPresentation(notify,mesh,sequence,false),"unrelated effects stay native");
+    }
+    auto preserved=[&](const std::function<void()>& alter,const char* why){
+        setup(0);alter();Check(!dg::recovery::SkipPresentation(notify,mesh,sequence,true),why);
+    };
+    preserved([&]{label(specialClass,4,"MayhemStandardShot_Blueprint_C");},"normal ammo and its Hotstreak keep gunfire");
+    preserved([&]{label(specialClass,4,"UnknownWeapon");},"unknown ammo stays native");
+    preserved([&]{nativeActions[0]=0;},"no held native fire action stays native");
+    preserved([&]{label(sequence,3,"OtherFireAnimation");},"ordinary shooting and other dashes stay native");
+    preserved([&]{Put(notify,0x20,static_cast<void*>(asset));},"notify must belong to that exact animation");
+    preserved([&]{Put(mesh,0xE8,static_cast<void*>(asset));},"foreign/nonlocal mesh stays native");
+    preserved([&]{players[0].active[0]=nullptr;},"ended dash stays native");
+    preserved([&]{owners[0].kind=dg::local_players::PoseKind::Horse;},"mounted presentation stays native");
+    preserved([&]{owners[0].kind=dg::local_players::PoseKind::Ultimate;},"Ultimate presentation stays native");
+    preserved([&]{paused=true;},"pause stays native");preserved([&]{cinema=true;},"cinematic stays native");
+    preserved([&]{gameThread=false;},"other threads stay native");
+    preserved([&]{dg::recovery::g_presentationReady=false;},"unavailable hooks leave native presentation");
+    preserved([&]{Put(notify,0x10,static_cast<void*>(specialClass));},"unknown notify class stays native");
+    setup(0);dg::recovery::g_sound=+[](void*,void*,void*){++nativeCalls;};
+    dg::recovery::HookSoundNotify(notify,mesh,sequence);Check(nativeCalls==0,"sound hook actually skips its native consumer");
+    label(asset,5,"char_strife_dash");dg::recovery::HookSoundNotify(notify,mesh,sequence);
+    Check(nativeCalls==1,"sound hook forwards an unrelated sound exactly once");
+    setup(0);dg::recovery::g_particle=+[](void*,void*,void*){++nativeCalls;};
+    label(notifyClass,2,"AnimNotify_PlayParticleEffect");label(asset,5,"VFX_strife_muzzleFlash");
+    dg::recovery::HookParticleNotify(notify,mesh,sequence);Check(nativeCalls==0,"effect hook actually skips its native consumer");
+    label(asset,5,"DashSmoke");dg::recovery::HookParticleNotify(notify,mesh,sequence);
+    Check(nativeCalls==1,"effect hook forwards an unrelated effect exactly once");
+    setup(0);dg::recovery::g_notify=+[](void*,void*,void*){++nativeCalls;};
+    dg::recovery::HookSpawnNotify(notify,mesh,sequence);Check(nativeCalls==0,"shared predicate preserves forced-standard projectile filtering");
+    label(specialClass,4,"MayhemStandardShot_Blueprint_C");dg::recovery::HookSpawnNotify(notify,mesh,sequence);
+    Check(nativeCalls==1,"standard projectile notify still forwards exactly once");
 }
 }
 namespace dg::native_tps {

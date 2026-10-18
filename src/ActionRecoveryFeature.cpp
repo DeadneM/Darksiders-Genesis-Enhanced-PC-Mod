@@ -33,7 +33,9 @@ struct Phase {
 Phase g_phase[2]{};
 dash_combat::AimResume g_resume[2]{};
 using NotifyFn=void(*)(void*,void*,void*);
-NotifyFn g_notify=nullptr;
+NotifyFn g_notify=nullptr,g_sound=nullptr,g_particle=nullptr;
+std::atomic_bool g_presentationReady{false};
+std::atomic_uint32_t g_soundSkipped{0},g_particleSkipped{0};
 std::atomic_bool g_combatReady{false};
 std::atomic_uint32_t g_resumed{0},g_suppressed{0},g_unavailable{0};
 using ActionQueryFn=unsigned char(*)(void*,unsigned char);
@@ -197,23 +199,46 @@ dash_combat::Ammo EquippedAmmo(void* actor,unsigned slot){
         ClassNameIs(weapon,"MayhemWorldEnder_Blueprint_C");
     return special?dash_combat::Ammo::Special:dash_combat::Ammo::Unknown;
 }
+bool SuppressDashStandard(void* notify,void* mesh,void* animation,local_players::Context& owner){
+    if(!g_combatReady.load(std::memory_order_acquire)||!native_tps::OnGameThread())return false;
+    void* actor=nullptr;void* outer=nullptr;bool aim=false,primary=false,secondary=false;
+    if(!Read(notify,0x20,outer)||outer!=animation||!Read(mesh,0xE8,actor)||!CombatOwner(actor,owner))return false;
+    const bool sequence=NameIs(animation,"Strife_Aim_Dash_Fire_F")||NameIs(animation,"Strife_Aim_Dash_Fire_B")||
+        NameIs(animation,"Strife_Aim_Dash_Fire_L")||NameIs(animation,"Strife_Aim_Dash_Fire_R");
+    return sequence&&GroundDashActive(actor)&&AimActions(actor,aim,primary,secondary)&&
+        dash_combat::SuppressForcedStandard(true,true,primary,EquippedAmmo(actor,2),secondary,EquippedAmmo(actor,3));
+}
 void HookSpawnNotify(void* notify,void* mesh,void* animation){
-    bool suppress=false;
-    if(g_combatReady.load(std::memory_order_acquire)&&native_tps::OnGameThread()){
-        void* actor=nullptr;void* outer=nullptr;void* forced=nullptr;local_players::Context owner{};
-        bool aim=false,primary=false,secondary=false;
-        const bool local=Read(mesh,0xE8,actor)&&CombatOwner(actor,owner);
-        const bool sequence=local&&(NameIs(animation,"Strife_Aim_Dash_Fire_F")||NameIs(animation,"Strife_Aim_Dash_Fire_B")||
-            NameIs(animation,"Strife_Aim_Dash_Fire_L")||NameIs(animation,"Strife_Aim_Dash_Fire_R"));
-        if(sequence&&Typed(notify,0x3807E38)&&Read(notify,0x20,outer)&&outer==animation&&
-           Read(notify,0x50,forced)&&NameIs(forced,"MayhemProjectile_Standard_Blueprint_C")&&
-           GroundDashActive(actor)&&AimActions(actor,aim,primary,secondary)){
-            suppress=dash_combat::SuppressForcedStandard(true,true,primary,EquippedAmmo(actor,2),secondary,EquippedAmmo(actor,3));
-            if(suppress){const unsigned n=++g_suppressed;if(g_log&&(n<=8||n%1000==0)){
-                char line[200]{};sprintf_s(line,"Dash combat V1.56 FORCED_STANDARD_SKIPPED player=%d n=%u selectedSpecialResumesNatively=1 gameplay=EXPERIMENTAL",owner.index+1,n);g_log(line);}}
-        }
-    }
+    void* forced=nullptr;local_players::Context owner{};
+    const bool suppress=g_combatReady.load(std::memory_order_acquire)&&
+        Typed(notify,0x3807E38)&&Read(notify,0x50,forced)&&NameIs(forced,"MayhemProjectile_Standard_Blueprint_C")&&
+        SuppressDashStandard(notify,mesh,animation,owner);
+    if(suppress){const unsigned n=++g_suppressed;if(g_log&&(n<=8||n%1000==0)){
+        char line[200]{};sprintf_s(line,"Dash combat V1.57 FORCED_STANDARD_SKIPPED player=%d n=%u selectedSpecialResumesNatively=1 gameplay=EXPERIMENTAL",owner.index+1,n);g_log(line);}}
     if(!suppress&&g_notify)g_notify(notify,mesh,animation);
+}
+bool SkipPresentation(void* notify,void* mesh,void* animation,bool sound){
+    if(!g_presentationReady.load(std::memory_order_acquire)||!native_tps::OnGameThread())return false;
+    // Serialized F/B/L/R sequences have separate gunfire, flash and casing
+    // notifies. Keep footsteps, dash/effort sounds, movement and montage intact.
+    void* asset=nullptr;local_players::Context owner{};
+    const bool type=sound?ClassNameIs(notify,"AnimNotify_PlaySound"):
+        ClassNameIs(notify,"AnimNotify_PlayParticleEffect");
+    if(!type||!Read(notify,0x38,asset))return false;
+    const bool known=sound?NameIs(asset,"char_strife_gunfire_Cue"):
+        (NameIs(asset,"VFX_strife_muzzleFlash")||NameIs(asset,"VFX_strife_bulletCasings"));
+    if(!known||!SuppressDashStandard(notify,mesh,animation,owner))return false;
+    const unsigned n=sound?++g_soundSkipped:++g_particleSkipped;
+    if(g_log&&n<=8){char line[200]{};sprintf_s(line,
+        "Dash combat V1.57 %s_SKIPPED player=%d n=%u nativeDashLifecyclePreserved=1 gameplay=EXPERIMENTAL",
+        sound?"STANDARD_SOUND":"STANDARD_EFFECT",owner.index+1,n);g_log(line);}
+    return true;
+}
+void HookSoundNotify(void* notify,void* mesh,void* animation){
+    if(!SkipPresentation(notify,mesh,animation,true)&&g_sound)g_sound(notify,mesh,animation);
+}
+void HookParticleNotify(void* notify,void* mesh,void* animation){
+    if(!SkipPresentation(notify,mesh,animation,false)&&g_particle)g_particle(notify,mesh,animation);
 }
 void Tick(void* ability,float dt,ULONGLONG now){
     // Native input, montage notifies and the FULL physics step always run
@@ -313,10 +338,34 @@ void Initialize(LogFn log,bool exactExecutable){
     g_actionQuery=reinterpret_cast<ActionQueryFn>(g_base+0x669D30);
     g_startAim=reinterpret_cast<StartAimFn>(g_base+0x69FBD0);
     g_combatReady.store(true,std::memory_order_release);
+    // Independent optional pair: failure retains the validated AIM/projectile
+    // repair. Both native entrypoints/vtables are exact-retail signature gated.
+    const unsigned char soundSig[]={0x48,0x8B,0xC4,0x55,0x57,0x41,0x56,0x48,0x8D,0x68,0xA1,0x48,0x81,0xEC,0xB0,0x00};
+    const unsigned char particleSig[]={0x48,0x8B,0x01,0x48,0xFF,0xA0,0x60,0x02,0x00,0x00};
+    uintptr_t soundEntry=0,particleEntry=0;
+    const bool presentationLayout=Read(reinterpret_cast<void*>(g_base+0x2C939B0),0x240,soundEntry)&&soundEntry==g_base+0x16977D0&&
+        Read(reinterpret_cast<void*>(g_base+0x2C935D8),0x240,particleEntry)&&particleEntry==g_base+0x16977C0&&
+        !std::memcmp(reinterpret_cast<void*>(soundEntry),soundSig,sizeof(soundSig))&&
+        !std::memcmp(reinterpret_cast<void*>(particleEntry),particleSig,sizeof(particleSig));
+    void* sound=reinterpret_cast<void*>(soundEntry);void* particle=reinterpret_cast<void*>(particleEntry);
+    bool soundCreated=false,particleCreated=false;
+    if(presentationLayout){
+        soundCreated=MH_CreateHook(sound,reinterpret_cast<void*>(&HookSoundNotify),reinterpret_cast<void**>(&g_sound))==MH_OK;
+        if(soundCreated)particleCreated=MH_CreateHook(particle,reinterpret_cast<void*>(&HookParticleNotify),reinterpret_cast<void**>(&g_particle))==MH_OK;
+        if(soundCreated&&particleCreated&&MH_EnableHook(sound)==MH_OK&&MH_EnableHook(particle)==MH_OK)
+            g_presentationReady.store(true,std::memory_order_release);
+    }
+    if(!g_presentationReady.load()){
+        if(soundCreated){MH_DisableHook(sound);MH_RemoveHook(sound);}
+        if(particleCreated){MH_DisableHook(particle);MH_RemoveHook(particle);}
+        g_sound=nullptr;g_particle=nullptr;
+    }
+    if(log)log(g_presentationReady.load()?"Dash presentation V1.57 READY: exact standard gunfire/flash/casings in owned F/B/L/R special-ammo dash only; EXPERIMENTAL":
+        "Dash presentation V1.57 unavailable; native presentation retained, validated AIM repair kept");
     if(log)log("Dash combat V1.56 READY: live-player held-AIM resume via registered DualPistolsBP after idle ground dash; V1.55 forced-standard scope retained; TPS/Recovery independent; EXPERIMENTAL");
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}
-void Shutdown(){g_combatReady.store(false,std::memory_order_release);g_ready.store(false,std::memory_order_release);}
+void Shutdown(){g_presentationReady.store(false,std::memory_order_release);g_combatReady.store(false,std::memory_order_release);g_ready.store(false,std::memory_order_release);}
 void OnLivePlayer(void* actor){
     if(!g_ready.load()||!g_combatReady.load()||!g_startAim||g_resuming||!native_tps::OnGameThread())return;
     const auto now=GetTickCount64();bool pending=false;

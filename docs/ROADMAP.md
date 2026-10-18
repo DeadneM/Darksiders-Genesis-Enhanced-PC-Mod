@@ -1,5 +1,7 @@
 # Suite du mod — demandes du 18 octobre 2026
 
+**Retour utilisateur du 18 octobre :** déplacement + visée + dash validé dans son essai V1.56. Le personnage reste flou au chapitre 8 ; son et manifestation Standard du Dash Fire spécial restent ouverts. Candidat [V1.57](V1_57_FOCUS_DASH_PRESENTATION_TEST.md) ciblé sur ces deux défauts, sans rouvrir la reprise AIM. Les fonctionnalités suivantes restent non implémentées.
+
 ## État et ordre de travail
 
 **DEMANDES ENREGISTRÉES / NON IMPLÉMENTÉES.** Cette mise à jour est documentaire. Aucun changement d'ASI/DXGI, d'INI, de raccourci ou d'installation ; aucune nouvelle build. Développement exclusivement sur `debug`, main/archive et anciennes archives conservées.

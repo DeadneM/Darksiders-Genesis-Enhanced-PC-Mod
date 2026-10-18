@@ -27,11 +27,11 @@ inline bool Compensate(void* output,Point target){
         (double(target.z)-view[2])*std::sin(pitch);
     if(!std::isfinite(depth)||depth<1||depth>20000)return false;
     const float focus=static_cast<float>(depth);
-    // FMinimalViewInfo.PP=0x40; FocalDistance=0x454; override +0x16 mask 0x10.
+    // FMinimalViewInfo.PP=0x40; FocalDistance=0x454; override +0x16 mask 0x08 (native blend at 1B2F693).
     // Preserve quality, method, aperture, blur size/regions and every other
     // override/weight. No UObject, volume or persistent setting is patched.
     std::memcpy(p+0x40+0x454,&focus,4);
-    p[0x40+0x16]|=0x10;
+    p[0x40+0x16]|=0x08;
     return true;
 }
 }
