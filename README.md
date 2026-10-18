@@ -1,3 +1,22 @@
+## V1.55 — construite, contrôlée et installée (18 octobre 2026)
+
+**CONSTRUIT / CONTRÔLÉ / INSTALLÉ / EXPÉRIMENTAL — validation utilisateur nécessaire.** Base cumulative V1.54 `6bea05ec6347ef4e0a15e34e7c2b6bc8a23491b2`, avec les tirs V1.53 validés conservés. V1.54 n'avait pas été installée : V1.55 remplace directement l'installation V1.53 et apporte aussi son correctif de profondeur de champ côté rendu.
+
+Le candidat redémarre le cycle natif de visée une seule fois après un dash lorsque la liste des capacités est vide et l'action AIM reste tenue. Il écarte aussi les projectiles Standard imposés par les quatre animations Dash Fire lorsque seules des demandes de munitions spéciales reconnues sont tenues. **Les tirs spéciaux reprennent après le dash selon leur cycle natif ; aucun tir spécial continu pendant toute l'animation n'est promis.** Vue du dessus/TPS et Recovery ON/OFF partagent la règle, sans correction d'une touche ou d'un axe. Les demandes mixtes Standard + spécial et les cas inconnus restent natifs.
+
+[GitHub Actions Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39125021680) **SUCCESS : 29/29 suites, zéro avertissement MSVC ASI/DXGI**. Les avis de dépréciation CMake/Node restent ceux des outils ; aucune suppression d'avertissement ajoutée. Source construite `7f99563a26975f07950ef47584d5a2bc0e23dccf`, archive immuable `eb5cd3efea4d0872a1169a7101ee0eadf6402f4a`.
+
+[ZIP cumulatif V1.55 vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/eb5cd3efea4d0872a1169a7101ee0eadf6402f4a/downloads/DarksidersGenesis_V1.55_NATIVE_DASH_COMBAT_RESUME_TEST.zip) : **879 258 octets**, SHA256 `68E196A46ED5316140EC3F0EFCE3198AD776D5A0114B8ED5C401409208189FC3`. Quatre fichiers racine, CRC, AMD64, version, 119 clés/48 actions, retrait de l'ancien diagnostic des axes et téléchargement public HTTP 200 contrôlés. ASI `D740A6275FC4234EB60E83E52D835E735C0E422FA9646E68AEF02813CC0404A6`, DXGI `0845A1045D53A696A6DEEEFFBB79A263A6F18D7634DA61EEA67954AFEF2A9FA0`.
+
+Installation jeu fermé après vérification de 299 processus visibles dans le contexte Windows complet. Sauvegarde locale V1.53 `audit-v131/install-backup-before-v155-20261018-135757`, manifeste d'intégrité et `Restore-Previous.ps1` fourni ; syntaxe de restauration contrôlée, script non exécuté. **INI personnel conservé octet pour octet**, avant/après `6BCD4FA9A40D92ED4380767C89137B11145DE1FACEB4C3D7DD50F71833B4F407`. Aucun lancement du jeu par l'agent. Le README installé reçoit ce reçu ; le README de préparation du ZIP reste immuable avec l'archive.
+
+70 autres fichiers source, le timing/fin/protection en combat de Recovery, le code de transformation XInput restant, RawInput, balistique/cible commune, caméra/DOF, roues, coop, ressources et Hotkeys conservés. **119 anciens ZIP inchangés**, main/archive, tag et release v1.43 préservés. Le relevé des axes physiques V1.53 est retiré ; les deux nouveaux compteurs sont bornés et indiquent des demandes/exclusions, pas une réussite de gameplay.
+
+**Essais prioritaires :** (1) déplacement + visée + dash en vue du dessus puis TPS, Recovery OFF/ON ; (2) Static Shot puis Charge Shot pendant/après le dash, normal/Hotstreak, absence de balle Standard ajoutée ; (3) tir Standard pendant dash inchangé ; (4) P2 et roues ; (5) chapitre 8 immobile et bascule TPS/vue native/cinématique ; (6) contrôle court Lava, Charge Shot, faisceaux et obstacles. [Audit, limites, critères d'arrêt et six essais](docs/V1_55_NATIVE_DASH_COMBAT_RESUME_TEST.md). Aucun de ces résultats n'est encore validé par ce build. Les anciens statuts ci-dessous sont historiques.
+
+---
+
+
 ## V1.55 — reprise native de visée et tirs forcés du dash (18 octobre 2026)
 
 **SOURCE DE TEST / EXPÉRIMENTAL — construction et validation en jeu à effectuer.** Base cumulative V1.54 `6bea05ec6347ef4e0a15e34e7c2b6bc8a23491b2`, avec les tirs V1.53 validés et le correctif DOF V1.54 conservés. Le retour confirme le tir normal pendant le dash en vue du dessus **et en TPS**. La capture Static Shot montre trois dashs Aim et deux dashs Fire : après les deux premiers, plus aucune capacité active malgré un vecteur de visée encore non nul ; pendant les dashs Fire, les capacités de visée existantes sont suspendues puis reprennent.
