@@ -16,6 +16,16 @@ Installation après fermeture du jeu et contrôle de 278 processus visibles. Sau
 
 **À tester :** Clear Zoom In TPS actif puis Reload ; tir + déplacement + visée + dash avec Standard/Beam/Charge/autre munition, normal/Hotstreak et P1/P2 ; visée après dash et roues ; rangement OFF, délai 0.5/2/10 s, jamais automatique et action manuelle via Hotkeys sur Strife/War, y compris retour de cheval/Ultimate. Contrôle court HUD P2 et Hotstreak 0.5. [Audit et limites](V1_59_BINDINGS_NATIVE_SHEATH_TEST.md). Les statuts de préparation ci-dessous sont historiques.
 
+
+## Suite de la file après installation V1.59
+
+L’utilisateur précise attendre une version regroupant les correctifs et futures fonctions. La V1.59 installée est une étape intermédiaire, pas la totalité de cette file. Aucun des sujets ci-dessous n’est déclaré corrigé par la construction actuelle. Les essais V1.59 restent nécessaires avant de retenir ses expériences dans une nouvelle base.
+
+Grappin : analyse hors jeu des Blueprints natifs et des structs imbriqués, parsing complet des propriétés de quinze assets GhostHook. La visée générique contient SearchRadius=1800 pour TargetingProperties, 1500 pour LinkedBeamTargetingProperties, avec angles distincts. La traction a ProxyTargetMaxDistance=1200, ProxyTargetDetachDistance=50 et ProxyTargetReelSpeed=8000. Métadonnées natives : LinkedBeamTargetingProperties à +220 et ProxyTargetMaxDistance à +240 dans leurs classes respectives ; ne pas appliquer ces offsets à une classe inconnue. Ces limites ont des fonctions différentes ; aucun multiplicateur global ou changement d’angle/vitesse n’est livré. Prochaine preuve : consommateurs natifs, classes/propriétaires effectivement actifs et retour OFF avant d’exposer une option de portée. Références privées : v160-ghost-defaults.json, v160-ghost-targeting.json, v160-ghost-property-metadata.json.
+
+Munitions normales finies : le getter natif 6A90D0 calcule la capacité depuis le proxy +350 et le facteur du propriétaire +46C, avec minimum -1. Le setter autoritaire 697E70 limite le compte courant +34C à ce maximum et conserve le sentinelle -1. Cela confirme qu’une jauge affichée seule ne suffirait pas. Il reste à identifier sans ambiguïté le proxy Standard, son initialisation, ses consommateurs de coût et la restauration native OFF ; aucune écriture de capacité ni nouvelle réserve n’est livrée. Les réductions/remplissages validés restent inchangés. Références privées : v160-native-ammo-max.txt, v160-native-ammo-set.txt.
+
+Holsters : le relevé en jeu et les modèles prescrits par le Blueprint Despair concordent ; pose finale/os/sockets et apparence encore à comparer. Modèles alternatifs : quatre géométries main/rangées distinguées des textures, sans nouvel asset alternatif compatible retenu. Flou et autres sprites P2 : toujours ouverts ; aucun effet global supprimé ni parent masqué.
 ---
 
 ## V1.59 — raccourcis, notifications de dash et rangement natif (18 octobre 2026)
