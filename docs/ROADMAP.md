@@ -1,6 +1,6 @@
 # Actualisation V1.61 — 19 octobre 2026
 
-Candidate limitée au flou TPS dépendant des angles, toutes formes : option TPS lens focus ON par défaut, OFF = politique V1.60. Correction de l’ancien audit : le volume de niveau active bien les overrides de focus/région/méthode ; leur prétendue absence était une mauvaise lecture. Nouvelle capture VM_READ et garde native du mode circulaire ; source expérimentale, construction et essai visuel à effectuer. Raccourcis V1.60 installés, validation encore attendue. Grappin, Standard finies, holsters, autres sprites P2 et modèles restent ouverts.
+Candidate limitée au flou TPS dépendant des angles, toutes formes : option TPS lens focus ON par défaut, OFF = politique V1.60. Correction de l’ancien audit : le volume de niveau active bien les overrides de focus/région/méthode ; leur prétendue absence était une mauvaise lecture. Nouvelle capture VM_READ et garde native du mode circulaire ; CONSTRUITE / CONTRÔLÉE / EXPÉRIMENTALE : 34/34 suites Windows, paquet vérifié, disponible dans l’updater debug ; essai visuel encore nécessaire. Raccourcis V1.60 installés, validation encore attendue. Grappin, Standard finies, holsters, autres sprites P2 et modèles restent ouverts.
 
 [Preuves et critères V1.61](V1_61_TPS_LENS_FOCUS_TEST.md). Les anciennes conclusions datées ci-dessous sont historiques et supersédées par cette correction.
 
