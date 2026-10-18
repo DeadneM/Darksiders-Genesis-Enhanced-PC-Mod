@@ -1,3 +1,13 @@
+# État après le retour utilisateur du 19 octobre 2026
+
+**Plus à traiter comme non validés :** raccourcis de rangement, netteté TPS, Standard limité, disparition du son et des effets parasites pendant le dash : confirmés fonctionnels par l'utilisateur. La liste d'essais précédente est conservée ci-dessous comme historique, sans lui redemander ces validations.
+
+**Double saut en échec :** Always on permet trois sauts supplémentaires puis s'arrête ; les autres modes ne donnent pas le résultat attendu. Ne pas présenter Always on comme infini. Reprise de l'analyse après le retour V1.63.
+
+**En attente :** grappin V1.63 et auto-check. Aucun résultat de V1.63 n'est encore déduit du retour préparé avant le dernier message. Nouvelle demande à la file : Ultimate decrease rate 0–10, sens durée et ×2 par défaut. [Retour exact](USER_FEEDBACK_2026_10_19.md).
+
+---
+
 # Essais cumulatifs depuis V1.60
 
 Cette liste n'implique aucune validation en jeu. V1.63 remplace le chemin grappin défectueux de V1.62 ; ne pas reproduire volontairement le crash sur V1.62.

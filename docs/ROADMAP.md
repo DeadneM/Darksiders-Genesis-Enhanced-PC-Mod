@@ -1,3 +1,11 @@
+## Retour utilisateur du 19 octobre — attente des essais V1.63
+
+**VALIDÉS dans les essais rapportés :** raccourcis de rangement, netteté TPS, Standard limité et disparition du son/des effets du tir pendant le dash. **NON VALIDÉ : double saut** ; seul Always on autorise trois sauts supplémentaires, puis bloque. Grappin V1.63 et auto-check : retour encore attendu. La liste a été préparée avant le dernier message V1.63 ; aucune validation de cette build n'est déduite.
+
+**À la file :** Ultimate decrease rate 0–10, durée réduite sous 1, native à 1, allongée au-dessus, **×2 par défaut** ; distinct du gain de jauge. **Attendre le retour V1.63 avant toute nouvelle modification de code/build.** [Retour exact et consigne de reprise](USER_FEEDBACK_2026_10_19.md). Les états antérieurs ci-dessous sont historiques lorsqu'ils diffèrent de ce retour.
+
+---
+
 ## Livraison V1.63 contrôlée — 19 octobre 2026
 
 39/39 suites et ZIP Windows vérifié ; [reçu](V1_63_GRAPPLE_INIT_UPDATE_TEST.md), [essais cumulatifs](TESTS_DEPUIS_V1_60.md). Correctif du contrat natif du grappin + auto-check, encore EXPÉRIMENTAUX en jeu. V1.62 conserve un risque de crash même portée OFF ; archives préservées. Aucun autre sujet clos implicitement.
@@ -18,12 +26,14 @@ Tableau cumulatif actualisé pour V1.63 ; les entrées datées conservées plus 
 | --- | --- | --- |
 | Zoom In/Clear, rangement natif, prompts P1/P2, facteurs sous 1 | VALIDÉS par l’utilisateur | Préserver, contrôle court |
 | Reprise AIM après mouvement+visée+dash | VALIDÉE V1.56, conservée | Ne pas réintroduire l’ancien Recovery |
-| Standard limité / double saut trois modes | CONSTRUITS / CONTRÔLÉS V1.62, conservés dans V1.63, expérimentaux | Matrice d’essais commune en jeu |
+| Standard limité | VALIDÉ par l’utilisateur | Préserver |
+| Double saut trois modes | NON VALIDÉ : Always on permet trois sauts supplémentaires puis bloque ; autres modes sans résultat attendu | Reprendre après le retour V1.63 |
+| Ultimate decrease rate | DEMANDÉ, non implémenté : 0–10, durée ×2 par défaut | Étudier la décharge native après le retour V1.63 |
 | Grappin étendu | Contrat d’appel V1.62 défectueux même OFF ; corrigé dans le code V1.63 | Essai OFF puis ON requis ; 39/39 suites ne prouvent pas l’absence de tout crash |
 | Auto check update | CONSTRUIT / CONTRÔLÉ V1.63, OFF par défaut | Canal choisi au démarrage, avis temporaire passif puis rappel jaune, validation en jeu |
-| Raccourcis de rangement V1.60 | Construits/installés, retour attendu | Clavier, combinaison manette et P1/P2 |
-| Focus TPS V1.61 | Construit/contrôlé, non validé en jeu | Comparaison aux angles flous et toutes formes |
-| Tir Standard de présentation pendant dash | Filtre V1.59 conservé, non validé | Retour sur son/flash/animation résiduelle |
+| Raccourcis de rangement V1.60 | VALIDÉS par l’utilisateur | Préserver |
+| Focus TPS V1.61 | Netteté VALIDÉE par l’utilisateur | Préserver |
+| Présentation du tir pendant dash | Son et effets parasites disparus, VALIDÉ par l’utilisateur | Préserver ; ne pas élargir le retour à des symptômes non rapportés |
 | Holsters montés | Audit, pas de correction démontrée | Pose finale des bones/sockets, pas de masquage global |
 | Autres sprites P2 | Ouvert après InteractHUD validé | Identifier un autre composant visible défectueux |
 | Modèles 3D alternatifs | Faisabilité ouverte | Quatre meshes main/rangés connus, pas d’alternative compatible prouvée |

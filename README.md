@@ -1,3 +1,11 @@
+## Retour utilisateur du 19 octobre — attente des essais V1.63
+
+**VALIDÉS dans les essais rapportés :** raccourcis de rangement, netteté TPS, Standard limité et disparition du son/des effets du tir pendant le dash. **NON VALIDÉ : double saut** ; seul Always on autorise trois sauts supplémentaires, puis bloque. Grappin V1.63 et auto-check : retour encore attendu. La liste a été préparée avant le dernier message V1.63 ; aucune validation de cette build n'est déduite.
+
+**À la file :** Ultimate decrease rate 0–10, durée réduite sous 1, native à 1, allongée au-dessus, **×2 par défaut** ; distinct du gain de jauge. **Attendre le retour V1.63 avant toute nouvelle modification de code/build.** [Retour exact et consigne de reprise](docs/USER_FEEDBACK_2026_10_19.md). Les états antérieurs ci-dessous sont historiques lorsqu'ils diffèrent de ce retour.
+
+---
+
 ## V1.63 — construite et contrôlée, crash grappin corrigé dans le code, essai en jeu requis
 
 **CONSTRUIT / CONTRÔLÉ / EXPÉRIMENTAL — pas encore VALIDÉ en jeu par l'utilisateur.** Base cumulative V1.62 ; correction des quatre arguments de l'initialisation du grappin (OFF compris) et de l'identification du propriétaire entrant. Auto check update facultatif dans Updates, OFF par défaut, canal choisi au démarrage, notification passive de 8 secondes visibles et rappel jaune au-dessus des onglets. Aucun nouveau hook ni changement des commandes/tirs/dash/caméras validés.
