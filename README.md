@@ -1,3 +1,17 @@
+## V1.57 — construite et contrôlée, installation en attente du jeu fermé (18 octobre 2026)
+
+**CONSTRUIT / CONTRÔLÉ / EXPÉRIMENTAL — PAS ENCORE INSTALLÉ NI VALIDÉ EN JEU.** Base cumulative V1.56 ; déplacement + visée + dash validé par l’utilisateur et conservé. Deux corrections ciblées : bit natif d’activation de la distance de mise au point TPS corrigé (`08`, l’ancien `10` activait l’ouverture) ; filtre du son, des flashs et des douilles Standard du Dash Fire avec munitions spéciales. **Le mouvement corporel du montage reste natif**, pour préserver la charge et la reprise des capacités.
+
+[GitHub Actions Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39133116240) **SUCCESS : 30/30 suites, zéro avertissement MSVC ASI/DXGI**. Les avis CMake/Node concernent les outils et ne sont pas masqués. Source construite `773480ba71feab1fcf439ff3473380f6b157df02`, archive immuable `78acf8005d429994c54b6d681d6444eb976b5b70`. Les fixtures exercent les vrais filtres avec des objets natifs simulés et reproduisent le bit lu par le mélange du rendu ; elles ne valident pas la présentation dans le jeu.
+
+[ZIP cumulatif V1.57 vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/78acf8005d429994c54b6d681d6444eb976b5b70/downloads/DarksidersGenesis_V1.57_FOCUS_DASH_PRESENTATION_TEST.zip) : **888,752 octets**, SHA256 `FB7A9D57F609C60FCE66E2C4F6CD33AB2E770BB98BC2909D5D5CAEE9E7B336F6`. Quatre fichiers racine, CRC, AMD64, métadonnées de version, 119 clés/48 actions, téléchargement public HTTP 200 et **121 anciens ZIP inchangés** contrôlés. Aucun changement d’INI/raccourci ; corps de reprise AIM, Tick/fin/physique Recovery, calcul des tirs, XInput/RawInput et fonctions hors périmètre conservés.
+
+Le jeu est ouvert, 276 processus visibles et deux processus Darksiders identifiés : **aucun fichier installé remplacé, aucun lancement ni écriture dans la mémoire du jeu**. Sauvegarde/restauration V1.56 préparée et syntaxe vérifiée ; installation après fermeture effective, INI personnel à conserver octet pour octet. Le README du ZIP garde son état de préparation historique, l’archive reste immuable.
+
+**À tester :** (1) chapitre 8 immobile, angles/distances TPS : personnage net avec profondeur de champ conservée ; (2) déplacement + visée + tir spécial + dash, quatre directions et Hotstreak : absence du son/flash/douilles Standard, reprise du tir spécial intacte ; (3) contrôle court de la visée après dash validée, Standard/Charge/Lava/faisceaux et roues P2 ; (4) chaque vue coop, retour natif/cinématique. Si visée ou charge régressent, revenir à la sauvegarde V1.56. [Audit et limites](docs/V1_57_FOCUS_DASH_PRESENTATION_TEST.md). Les statuts de préparation ci-dessous sont historiques.
+
+---
+
 ## V1.57 — mise au point TPS et manifestations du tir de dash (18 octobre 2026)
 
 **SOURCE DE TEST / EXPÉRIMENTAL — construction et validation en jeu à effectuer.** Base cumulative V1.56 ; **déplacement + visée maintenue + dash VALIDÉ par l’utilisateur**, dans son essai du 18 octobre. Cette reprise native de visée et le timing/physique Recovery sont conservés. Restent rejetés : personnage flou au chapitre 8 ; son et manifestation du tir Standard pendant déplacement + visée + tir spécial + dash, malgré les projectiles déjà retirés.
