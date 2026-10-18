@@ -1,3 +1,9 @@
+## Livraison V1.63 contrôlée — 19 octobre 2026
+
+39/39 suites et ZIP Windows vérifié ; [reçu](V1_63_GRAPPLE_INIT_UPDATE_TEST.md), [essais cumulatifs](TESTS_DEPUIS_V1_60.md). Correctif du contrat natif du grappin + auto-check, encore EXPÉRIMENTAUX en jeu. V1.62 conserve un risque de crash même portée OFF ; archives préservées. Aucun autre sujet clos implicitement.
+
+---
+
 ## Priorité V1.63 — 19 octobre 2026
 
 Crash grappin V1.62 identifié : trois arguments natifs perdus, y compris OFF. Correction et auto-check préparés dans [V1.63](V1_63_GRAPPLE_INIT_UPDATE_TEST.md), construction et validation en jeu à effectuer. [Essais cumulatifs depuis V1.60](TESTS_DEPUIS_V1_60.md). V1.62 conservée historiquement, son chemin grappin ne doit plus être proposé comme sûr.
@@ -6,13 +12,15 @@ Crash grappin V1.62 identifié : trois arguments natifs perdus, y compris OFF. C
 
 # File active — lot V1.62 (19 octobre 2026)
 
-Ce tableau fait foi pour l’état actuel ; les entrées datées conservées plus bas décrivent leurs versions respectives.
+Tableau cumulatif actualisé pour V1.63 ; les entrées datées conservées plus bas décrivent leurs versions respectives.
 
 | Sujet | État actuel | Suite |
 | --- | --- | --- |
 | Zoom In/Clear, rangement natif, prompts P1/P2, facteurs sous 1 | VALIDÉS par l’utilisateur | Préserver, contrôle court |
 | Reprise AIM après mouvement+visée+dash | VALIDÉE V1.56, conservée | Ne pas réintroduire l’ancien Recovery |
-| Standard limité / grappin étendu / double saut trois modes | CONSTRUITS / CONTRÔLÉS V1.62, expérimentaux | 38/38 suites et ZIP contrôlé ; matrice d’essais commune en jeu |
+| Standard limité / double saut trois modes | CONSTRUITS / CONTRÔLÉS V1.62, conservés dans V1.63, expérimentaux | Matrice d’essais commune en jeu |
+| Grappin étendu | Contrat d’appel V1.62 défectueux même OFF ; corrigé dans le code V1.63 | Essai OFF puis ON requis ; 39/39 suites ne prouvent pas l’absence de tout crash |
+| Auto check update | CONSTRUIT / CONTRÔLÉ V1.63, OFF par défaut | Canal choisi au démarrage, avis temporaire passif puis rappel jaune, validation en jeu |
 | Raccourcis de rangement V1.60 | Construits/installés, retour attendu | Clavier, combinaison manette et P1/P2 |
 | Focus TPS V1.61 | Construit/contrôlé, non validé en jeu | Comparaison aux angles flous et toutes formes |
 | Tir Standard de présentation pendant dash | Filtre V1.59 conservé, non validé | Retour sur son/flash/animation résiduelle |

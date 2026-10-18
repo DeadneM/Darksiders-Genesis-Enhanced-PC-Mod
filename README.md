@@ -1,3 +1,15 @@
+## V1.63 — construite et contrôlée, crash grappin corrigé dans le code, essai en jeu requis
+
+**CONSTRUIT / CONTRÔLÉ / EXPÉRIMENTAL — pas encore VALIDÉ en jeu par l'utilisateur.** Base cumulative V1.62 ; correction des quatre arguments de l'initialisation du grappin (OFF compris) et de l'identification du propriétaire entrant. Auto check update facultatif dans Updates, OFF par défaut, canal choisi au démarrage, notification passive de 8 secondes visibles et rappel jaune au-dessus des onglets. Aucun nouveau hook ni changement des commandes/tirs/dash/caméras validés.
+
+[GitHub Actions Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39174543962) **SUCCESS : 39/39 suites, 0 avertissement MSVC ASI/DXGI**. Les avertissements d'outils éventuels sont distincts du code compilé. Source `9c8d51d618f48ef0e3f1d9a2ef8a8578d71ba054`, archive `9d1fbbe737a6f872fd556ab44b23fd0eb6778eaa`. [ZIP cumulatif V1.63 vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/9d1fbbe737a6f872fd556ab44b23fd0eb6778eaa/downloads/DarksidersGenesis_V1.63_GRAPPLE_INIT_UPDATE_TEST.zip) : 918086 octets, SHA256 `6BE3D04FAD6469A8152F0F144EC040BAFBDA03229EEA41BA292D5A6601F02991`. CRC, AMD64, quatre fichiers racine ASI/INI/DXGI/README, marqueurs du correctif et de l'auto-check, 132 clés/52 actions, HTTP 200 et 127 anciens ZIP inchangés contrôlés.
+
+**Priorité d'essai :** sur V1.63, grappin OFF puis ON ×2, viser/lancer/annuler avec Strife et War, puis P2. Ne plus utiliser V1.62 comme référence sûre pour le grappin : son interception erronée est active même avec la portée OFF. Les tests de transmission et le dump expliquent le défaut ; ils ne prouvent pas l'absence de tout autre crash en jeu. Une seule build candidate fournie, archives antérieures conservées. Aucun lancement du jeu, installation ou changement de l'INI personnel par l'agent.
+
+**Essais restants depuis V1.60 :** raccourcis clavier/manette de rangement ; focus du chapitre 8 à pied/cheval/ultime ; Standard limité/remplissage/réduction ; double saut trois modes ; son/flash/animation Standard pendant déplacement+visée+tir+dash ; auto-check et notice. [Matrice cumulative](docs/TESTS_DEPUIS_V1_60.md). Le reste de la file demeure ouvert : holsters montés, autres sprites P2, modèles alternatifs et refonte Action Recovery. Notes de préparation ci-dessous conservées comme historique.
+
+---
+
 ## V1.63 — correctif du crash grappin et notifications de mise à jour (19 octobre 2026)
 
 **SOURCE EXPÉRIMENTALE — construction et contrôles Windows à effectuer.** Base cumulative V1.62 `550df8a3ed697f9a696b57503e5dc1c4cf49440d`. Le rapport utilisateur invalide la sûreté du chemin grappin V1.62, y compris option OFF. Ne plus présenter OFF comme un contournement de ce crash ; V1.61/V1.60 retirent ces interceptions. Toutes les archives sont conservées pour l'historique, sans recommandation de rejouer le crash.
