@@ -2,6 +2,8 @@
 
 L’utilisateur autorise explicitement de commencer la suite malgré le tir pendant dash encore ouvert avec toutes les munitions. Le tableau ci-dessous remplace l’ancien ordre d’attente ; les détails historiques restent conservés.
 
+**V1.58 CONSTRUITE / CONTRÔLÉE / EXPÉRIMENTALE** : 31/31 suites Windows, ZIP cumulatif vérifié et publié sur debug ; installation en attente de fermeture du jeu, aucune validation utilisateur des nouvelles fonctions. [Preuves et limites](V1_58_RESOURCE_HUD_CLEANUP_TEST.md).
+
 | Sujet | État actuel | Prochaine preuve / essai |
 | --- | --- | --- |
 | Taille du prompt d’interaction | Candidat V1.58, 0.65 par défaut, saisie manuelle/OFF | Lisibilité et restauration en P1/P2 |

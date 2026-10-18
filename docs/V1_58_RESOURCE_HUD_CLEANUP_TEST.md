@@ -31,3 +31,9 @@ Le chemin de rendu natif F5D540 traite notamment méthode, ouverture, capteur et
 ## Vérification et arrêt
 
 31 suites prévues : retrait compatible Recovery, vraie reprise AIM simulée, vrai hook HUD simulé avec P1/P2, réaffectation, objet réutilisé, scale native animée, OFF et cas exclus, facteurs et profil complet. CI/ZIP ne démontrent ni rendu ni comportement dans le jeu. Si l’orientation P2 ou la visée après dash régresse : arrêter le candidat et restaurer V1.57. INI personnel sauvegardé et conservé ; anciennes archives et branches protégées intactes.
+
+## Résultat de construction et complément de lecture seule
+
+31/31 suites réussies après correction du format de l’INI livré (0.650), sans changer le test de parité. Compilation MSVC/analyse statique sans avertissement ASI/DXGI ; avis des outils conservés. Voir les références de commit/CI/ZIP dans CURRENT_STATE. Pas de validation en jeu ni d’installation à ce stade.
+
+Le volume LVL09_PostProcessVolume_Dungeon est présent dans Level_09_Base_Dungeon : activé, borné, priorité 0, rayon de mélange 100, poids 1. Les paramètres stockés comprennent focus 1000, région 3400, méthode 1 et ouverture 4, mais les flags d’override focus (octet 16, bit 08) et région (octet 17, bit 04) sont nuls. Ne pas confondre valeur stockée et réglage effectivement mélangé. Les caches caméra actuels/précédents 1A00/1F90 ont le même focus et bit 08 que la sortie de vue ; le cheval reste à 551.2121 dans les trois. Le P1 est repassé à pied lors de ce dernier relevé (329.897), la preuve Ultimate précédente reste distincte. Il faut identifier le résultat final de post-traitement, pas ajouter un hook spéculatif.
