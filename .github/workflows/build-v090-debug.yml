@@ -96,7 +96,7 @@ jobs:
               $published = $true
               break
             }
-            git commit -m "downloads: preserve verified compiled V1.55 cumulative ZIP"
+            git commit -m "downloads: preserve verified compiled cumulative ZIP"
             if ($LASTEXITCODE -ne 0) { throw 'Archive commit failed' }
             git push origin HEAD:debug
             if ($LASTEXITCODE -eq 0) { $published = $true; break }

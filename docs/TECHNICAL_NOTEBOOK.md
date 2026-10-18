@@ -1,3 +1,19 @@
+## V1.56 — construite, contrôlée ; installation en attente du jeu fermé (18 octobre 2026)
+
+**CONSTRUIT / CONTRÔLÉ / PAS ENCORE INSTALLÉ / EXPÉRIMENTAL — validation utilisateur nécessaire.** Base cumulative V1.55, avec les tirs précédemment validés conservés. La nouvelle capture AIM tenu confirme le défaut de reprise V1.55. Deux corrections sont livrées : service dans le passage de caméra qui subsiste après le dash ; accès au composant permanent DualPistolsBP, vérifié dans le personnage et son équipement, au lieu du contexte d'arme vide. La physique/timing de Recovery et le filtre de projectiles V1.55 restent identiques.
+
+La profondeur de champ TPS est maintenant conservée : seule la distance de mise au point de chaque sortie P1/P2 suit le personnage. Qualité, ouverture et autres paramètres natifs restent actifs. **Aspect visuel à tester**, notamment chapitre 8, distances/angles et transitions cinématiques. **Son/animation du tir de dash encore ouverts** ; aucune substitution de variante susceptible d'altérer la charge spéciale n'est livrée.
+
+[GitHub Actions Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39127789158) **SUCCESS : 30/30 suites, zéro avertissement MSVC ASI/DXGI**. Les avis CMake/Node concernent les outils et ne sont pas masqués. Source construite `e574452a645e82fd9f64198036a72f923f818e83`, archive immuable `5eb9a1c53df13df886c639439b21669759752620`. Le test natif simulé atteint bien une demande sur les pistolets enregistrés sans capacité/getter/contexte actif, avec TPS/Recovery OFF/ON et isolation P2 ; ce contrôle ne constitue pas un essai dans le jeu.
+
+[ZIP cumulatif V1.56 vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/5eb9a1c53df13df886c639439b21669759752620/downloads/DarksidersGenesis_V1.56_NATIVE_DASH_FOCUS_TEST.zip) : **885,040 octets**, SHA256 `14F95747114D77D7845693745A6CBE89F7EBE6C8DE25DAD3AE6350D789C73FB2`. Quatre fichiers racine, CRC, AMD64, version/nom d'archive, 119 clés/48 actions, téléchargement public HTTP 200 et **120 anciens ZIP inchangés** contrôlés. Aucun changement d'INI ou de raccourci. Code de balistique/cible, XInput, RawInput et ressources conservé ; aucun nouveau hook, recherche globale d'objets ou filtre audio dans l'ASI.
+
+Le jeu est encore ouvert au dernier contrôle : aucun fichier installé remplacé ; installation préparée avec sauvegarde et conservation de l'INI personnel. Aucun lancement ni écriture mémoire par l'agent.
+
+**Essais prioritaires :** (1) déplacement + visée + dash sans relâchement, native/TPS, Recovery OFF/ON ; (2) Static/Charge/Graviton normal et Hotstreak pendant/après dash, Standard et P2/roues ; (3) chapitre 8 avec effet de profondeur conservé, plusieurs distances/angles, retour temporaire/cinématique et coop ; (4) contrôle court Lava/Charge/faisceaux validés. [Audit, limites et critères d'arrêt](V1_56_NATIVE_DASH_FOCUS_TEST.md). Les statuts de préparation ci-dessous sont historiques.
+
+---
+
 ## V1.56 — reprise de visée native et mise au point TPS (18 octobre 2026)
 
 **SOURCE DE TEST / EXPÉRIMENTAL — construction et validation en jeu à effectuer.** Base cumulative V1.55 `0b1d21a0d35740774a5f870ebab0f1a3919e379e`, avec les tirs précédemment validés conservés. Retour V1.55 : déplacement + visée + dash toujours défectueux ; projectiles Standard forcés retirés mais animation/son encore présents ; tir standard/P2/roues « ça a l'air OK » ; suppression du flou confirmée, conservation de l'effet demandée.
