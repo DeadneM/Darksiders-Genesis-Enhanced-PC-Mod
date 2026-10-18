@@ -1,5 +1,7 @@
 #include "OverlayUi.h"
+#include "OverlayBindingScope.h"
 #include "InteractionHudFeature.h"
+#include "WeaponSheathingFeature.h"
 #include "GaugeChargeFeature.h"
 #include "ResourceGainFeature.h"
 #include "ManualGaugeFeature.h"
@@ -118,7 +120,7 @@ bool BeginKeyboardTable(const char* id){
 }
 void DrawKeyboardRow(Context& c,config::Store& config,const char* label,
     int& value,int original,int bindingIndex){
-    ImGui::PushID(bindingIndex);
+    const BindingRowScope rowScope(bindingIndex);
     ImGui::TableNextRow();
     ImGui::TableSetColumnIndex(0);
     ImGui::TextWrapped("%s",label);
@@ -140,7 +142,6 @@ void DrawKeyboardRow(Context& c,config::Store& config,const char* label,
     if(ImGui::Button("Default",ImVec2(-1.0f,0.0f))){
         value=original;c.captureCameraKeyIndex->store(-1);config.Save();
     }
-    ImGui::PopID();
 }
 } // namespace
 
@@ -246,6 +247,20 @@ void Draw(Context& c) {
                 "Changes walking and running speed for the player.",
                 t.movementHookReady
             );
+
+            DrawSectionTitle("Weapon sheathing");
+            DrawToggleFeature(config,"Control automatic weapon sheathing","WeaponSheathing",&config.weaponSheathingEnabled,
+                "Native combat and ranged idle timers for Strife and War. OFF restores each character's original delay. Foot forms only; horse and Ultimate remain native.",sheathing::Ready());
+            if(config.weaponSheathingEnabled){
+                ImGui::Indent(22.0f);
+                if(ImGui::Checkbox("Never automatically sheathe",&config.sheathNeverEnabled))config.Save();
+                if(!config.sheathNeverEnabled&&DrawNumberRow("Automatic sheathing delay (seconds)","SheathDelaySeconds",&config.sheathDelaySeconds,0,300,10,"%.2f s"))config.Save();
+                ImGui::Unindent(22.0f);
+            }
+            ImGui::BeginDisabled(!sheathing::Ready());
+            if(ImGui::Button("Sheathe weapons now"))sheathing::RequestSheathe();
+            ImGui::EndDisabled();
+            ImGui::TextWrapped("Sheathe weapons can be assigned in Hotkeys, independently of automatic control. Applies to eligible local players, waiting up to 5 seconds for an idle gameplay state. Active attacks/aim, cinematics and transformations stay native.");
 
             ImGui::TextWrapped("Action Recovery has been retired pending a native action-lock redesign. Native dash timing is restored; the validated aim-resume repair remains active.");
 

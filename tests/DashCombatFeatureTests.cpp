@@ -161,6 +161,18 @@ void Run(){
     for(const char* sound:{"char_strife_dash","char_strife_vo_effort_dash","Footstep","UnknownSound"}){
         setup(0);label(asset,5,sound);Check(!dg::dash_combat::SkipPresentation(notify,mesh,sequence,true),"dash/effort/other sounds stay native");
     }
+    setup(0);label(specialClass,4,"MayhemBeamShot_Blueprint_C");
+    Check(dg::dash_combat::SkipPresentation(notify,mesh,sequence,true),
+        "live V1.58 reproduction: primary Beam Shot is special ammo, not an unknown request");
+    dg::dash_combat::g_notify=+[](void*,void*,void*){++nativeCalls;};
+    Put(notify,0x10,static_cast<void*>(cls));Put(notify,0x50,static_cast<void*>(forced));
+    dg::dash_combat::HookSpawnNotify(notify,mesh,sequence);
+    Check(nativeCalls==0,"same equipped Beam Shot also suppresses the forced Standard projectile consumer");
+    setup(0);label(specialClass,4,"AnotherRegisteredRangedSubclass");
+    Check(dg::dash_combat::SkipPresentation(notify,mesh,sequence,true),
+        "valid native ranged-slot subclasses are handled without another weapon-name exception");
+    Check(dg::dash_combat::EquippedAmmo(players[0].actor,5)==dg::dash_combat::Ammo::Unknown,
+        "general classification cannot extend to melee, gear or the general AIM slot");
     for(const char* effect:{"DashSmoke","AbilityEffect","UnknownParticle"}){
         setup(0);label(notifyClass,2,"AnimNotify_PlayParticleEffect");label(asset,5,effect);
         Check(!dg::dash_combat::SkipPresentation(notify,mesh,sequence,false),"unrelated effects stay native");
@@ -169,7 +181,7 @@ void Run(){
         setup(0);alter();Check(!dg::dash_combat::SkipPresentation(notify,mesh,sequence,true),why);
     };
     preserved([&]{label(specialClass,4,"MayhemStandardShot_Blueprint_C");},"normal ammo and its Hotstreak keep gunfire");
-    preserved([&]{label(specialClass,4,"UnknownWeapon");},"unknown ammo stays native");
+    preserved([&]{Put(specialClass,0x38,-1);},"an untyped object in a ranged slot stays native");
     preserved([&]{nativeActions[0]=0;},"no held native fire action stays native");
     preserved([&]{label(sequence,3,"OtherFireAnimation");},"ordinary shooting and other dashes stay native");
     preserved([&]{Put(notify,0x20,static_cast<void*>(asset));},"notify must belong to that exact animation");

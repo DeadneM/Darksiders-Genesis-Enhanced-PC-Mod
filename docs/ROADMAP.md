@@ -1,3 +1,16 @@
+# Actualisation V1.59 — 18 octobre 2026
+
+- VALIDÉ par l’utilisateur : Hotstreak sous 1 et prompts d’interaction P1/P2 de V1.58.
+- Clear Zoom In : conflit en-tête/ligne identifié, candidat V1.59 et test réel ImGui.
+- Dash : Action Recovery supprimé ; filtre des notifications distinct conservé, liste d’armes retirée dans la candidate. Visée sans tir toujours retenue ; tirs Standard forcés encore à valider.
+- Rangement : candidat natif V1.59, contrôle automatique OFF par défaut, jamais/délai 0–300 s, action manuelle assignable. Strife mesuré 4 s ; War Blueprint 5 s, essai War/P2 nécessaire.
+- Grappin, Standard finies, modèles alternatifs, holsters montés : audit poursuivi, non implémentés. Quatre meshes de pistolets (en main/rangés) identifiés ; pas d’alternative 3D compatible démontrée.
+- Flou et autres sprites P2 : encore ouverts. Aucun rendu global modifié.
+
+[Périmètre, preuves et essais V1.59](V1_59_BINDINGS_NATIVE_SHEATH_TEST.md). Statut SOURCE EXPÉRIMENTALE ; les états précédents ci-dessous sont historiques.
+
+---
+
 # Actualisation — 18 octobre 2026, V1.58
 
 L’utilisateur autorise explicitement de commencer la suite malgré le tir pendant dash encore ouvert avec toutes les munitions. Le tableau ci-dessous remplace l’ancien ordre d’attente ; les détails historiques restent conservés.

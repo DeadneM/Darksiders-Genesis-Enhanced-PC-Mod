@@ -15,6 +15,9 @@ void Publish(const Snapshot& s) {
     g_state.toggleHudEnabled.store(s.toggleHudEnabled, std::memory_order_relaxed);
     g_state.interactionHudScaleEnabled.store(s.interactionHudScaleEnabled);
     g_state.interactionHudScale.store(s.interactionHudScale);
+    g_state.weaponSheathingEnabled.store(s.weaponSheathingEnabled);
+    g_state.sheathNeverEnabled.store(s.sheathNeverEnabled);
+    g_state.sheathDelaySeconds.store(s.sheathDelaySeconds);
     g_state.fovEnabled.store(s.fovEnabled, std::memory_order_relaxed);
     g_state.movementSpeedEnabled.store(s.movementSpeedEnabled, std::memory_order_relaxed);
     g_state.skipLogosEnabled.store(s.skipLogosEnabled, std::memory_order_relaxed);

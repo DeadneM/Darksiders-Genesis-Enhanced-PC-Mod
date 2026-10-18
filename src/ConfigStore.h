@@ -76,6 +76,7 @@ enum class Action : int {
     UnlimitedHotstreak,
     RefillHotstreak,
     RefillAmmo,
+    SheatheWeapons,
     Count
 };
 
@@ -128,7 +129,8 @@ kActionLabels = {
     "Toggle reduced Hotstreak decrease",
     "Toggle Unlimited Hotstreak",
     "Fill Hotstreak",
-    "Fill ammunition"
+    "Fill ammunition",
+    "Sheathe weapons"
 };
 
 inline constexpr std::array<const wchar_t*, static_cast<std::size_t>(Action::Count)>
@@ -180,7 +182,8 @@ kActionTokens = {
     L"ReduceHotstreak",
     L"UnlimitedHotstreak",
     L"RefillHotstreak",
-    L"RefillAmmo"
+    L"RefillAmmo",
+    L"SheatheWeapons"
 };
 
 // Instant actions share the validated one-shot manual refill queue.
@@ -236,6 +239,9 @@ public:
     bool toggleHudEnabled = true;
     bool interactionHudScaleEnabled = true;
     float interactionHudScale = 0.65f;
+    bool weaponSheathingEnabled = false;
+    bool sheathNeverEnabled = true;
+    float sheathDelaySeconds = 10.0f;
     bool movementSpeedEnabled = true;
     bool skipLogosEnabled = true;
     bool skipIntroEnabled = true;

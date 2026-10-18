@@ -27,6 +27,11 @@ if(BUILD_TESTING)
   target_compile_definitions(InteractionHudTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
   target_link_libraries(InteractionHudTests PRIVATE user32)
   add_test(NAME InteractionHud COMMAND InteractionHudTests)
+  add_executable(WeaponSheathingTests tests/WeaponSheathingTests.cpp src/RuntimeSettings.cpp src/ConfigStore.cpp)
+  target_include_directories(WeaponSheathingTests PRIVATE src)
+  target_compile_definitions(WeaponSheathingTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  target_link_libraries(WeaponSheathingTests PRIVATE user32)
+  add_test(NAME WeaponSheathing COMMAND WeaponSheathingTests)
   add_executable(DashCombatTests tests/DashCombatTests.cpp)
   target_include_directories(DashCombatTests PRIVATE src)
   add_test(NAME DashCombat COMMAND DashCombatTests)
@@ -178,6 +183,13 @@ target_include_directories(imgui_static PUBLIC
 target_compile_definitions(imgui_static PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 target_link_libraries(imgui_static PUBLIC d3d11 dxgi user32 gdi32 imm32 dwmapi)
 
+if(BUILD_TESTING)
+  add_executable(OverlayBindingScopeTests tests/OverlayBindingScopeTests.cpp)
+  target_include_directories(OverlayBindingScopeTests PRIVATE src)
+  target_link_libraries(OverlayBindingScopeTests PRIVATE imgui_static)
+  add_test(NAME OverlayBindingScope COMMAND OverlayBindingScopeTests)
+endif()
+
 
 # Windows x64 post-exit helper embedded as RT_RCDATA (no extra ZIP root file).
 enable_language(RC)
@@ -226,6 +238,7 @@ add_library(DarksidersGenesisMod SHARED
   src/NativeTpsFeature.cpp
   src/DashCombatFeature.cpp
   src/InteractionHudFeature.cpp
+  src/WeaponSheathingFeature.cpp
   src/ProjectileAimFeature.cpp
   src/HealthFeature.cpp
   src/GlideFeature.cpp

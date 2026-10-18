@@ -159,6 +159,7 @@ void* MainPistols(void* actor){
         NameIs(aimClass,"MayhemAbility_Strife_DualPistols_Aim_Start_Ability_C")?weapon:nullptr;
 }
 dash_combat::Ammo EquippedAmmo(void* actor,unsigned slot){
+    if(slot!=2&&slot!=3)return dash_combat::Ammo::Unknown;
     void* component=nullptr;void* array=nullptr;void* weapon=nullptr;void* reciprocal=nullptr;
     int count=0,capacity=0;
     if(!Read(actor,0xC78,component)||!Read(component,0x108,array)||!array||
@@ -167,11 +168,11 @@ dash_combat::Ammo EquippedAmmo(void* actor,unsigned slot){
        !Typed(weapon,0x3811D20)||!Read(weapon,0xE8,reciprocal)||reciprocal!=actor)
         return dash_combat::Ammo::Unknown;
     if(ClassNameIs(weapon,"MayhemStandardShot_Blueprint_C"))return dash_combat::Ammo::Standard;
-    const bool special=ClassNameIs(weapon,"MayhemStaticShot_Blueprint_C")||
-        ClassNameIs(weapon,"MayhemChargeShot_Blueprint_C")||ClassNameIs(weapon,"MayhemGravityShot_Blueprint_C")||
-        ClassNameIs(weapon,"MayhemLavaShot_Blueprint_C")||ClassNameIs(weapon,"MayhemNatureShot_Blueprint_C")||
-        ClassNameIs(weapon,"MayhemWorldEnder_Blueprint_C");
-    return special?dash_combat::Ammo::Special:dash_combat::Ammo::Unknown;
+    // The caller supplies only the native primary/secondary ranged slots.
+    // A typed weapon reciprocally owned and currently registered there is a
+    // valid equipped ammunition source. Do not enumerate special BP names:
+    // that omitted Beam Shot and cannot cover other legitimate subclasses.
+    return dash_combat::Ammo::Special;
 }
 bool SuppressDashStandard(void* notify,void* mesh,void* animation,local_players::Context& owner){
     if(!g_combatReady.load(std::memory_order_acquire)||!native_tps::OnGameThread())return false;

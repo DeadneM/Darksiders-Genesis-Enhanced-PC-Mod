@@ -36,6 +36,7 @@
 #include "GlideFeature.h"
 #include "DashCombatFeature.h"
 #include "InteractionHudFeature.h"
+#include "WeaponSheathingFeature.h"
 #include "TpsCameraFocus.h"
 #include "ControllerReadScope.h"
 #include "TpsAimDirection.h"
@@ -1410,6 +1411,7 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     dg::hotstreak::OnLivePlayer(character,generation);
     dg::potions::OnLivePlayer(character,generation,reinterpret_cast<void*>(owner.playerState));
     dg::health::OnLivePlayer(character,generation);
+    dg::sheathing::OnLivePlayer(owner,generation);
 }
 
 // V0.75: use the game's verified UMayhemCharacter native look functions,
@@ -1938,6 +1940,12 @@ void TriggerAction(Action action, int functionKey) {
 
     const char* label = ActionLabel(action);
 
+    if(action==Action::SheatheWeapons){
+        const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+        if(!hwnd||GetForegroundWindow()!=hwnd||IsIconic(hwnd)||g_overlayVisible.load()||g_shuttingDown.load())return;
+        const bool queued=dg::sheathing::RequestSheathe();
+        g_lastAction=std::string(label)+(queued?" [queued]":" [unavailable]");return;
+    }
     if(action==Action::RefillHealth||action==Action::UnlimitedHealth||
        action==Action::UnlimitedGlide||action==Action::UnlimitedHorseSprint){
         const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
@@ -2229,7 +2237,8 @@ void ProcessInput() {
                g_config.hotkeys[static_cast<size_t>(i)]==Action::ReduceHotstreak||
                g_config.hotkeys[static_cast<size_t>(i)]==Action::UnlimitedHotstreak||
                g_config.hotkeys[static_cast<size_t>(i)]==Action::RefillHotstreak||
-               g_config.hotkeys[static_cast<size_t>(i)]==Action::RefillAmmo)
+               g_config.hotkeys[static_cast<size_t>(i)]==Action::RefillAmmo||
+               g_config.hotkeys[static_cast<size_t>(i)]==Action::SheatheWeapons)
                 KeyPressed(VK_F1+i);
         return;
     }
@@ -4049,6 +4058,7 @@ void ShutdownMod() {
     dg::health::Shutdown();
     dg::glide::Report();
     dg::interaction_hud::Shutdown();
+    dg::sheathing::Shutdown();
     dg::dash_combat::Shutdown();
     dg::dash_combat::Report();
     // Release the supported synthetic horse key before teardown.
@@ -4299,6 +4309,7 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::glide::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::dash_combat::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::interaction_hud::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::sheathing::Initialize(&FeatureLog,g_targetValidation.exact);
     if (!InstallFinalOutgoingDamageHook()) {
         Log("Final Pistol/Melee Damage hook unavailable; other ASI features remain active.");
     }

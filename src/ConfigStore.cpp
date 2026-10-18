@@ -318,6 +318,7 @@ void Store::ResetDefaults(bool persist) {
     updaterBeta = defaults::UpdaterBeta;
 
     toggleHudEnabled = true;interactionHudScaleEnabled=true;interactionHudScale=0.65f;
+    weaponSheathingEnabled=false;sheathNeverEnabled=true;sheathDelaySeconds=10.0f;
     movementSpeedEnabled = true;
     skipLogosEnabled = true;
     skipIntroEnabled = true;
@@ -546,6 +547,9 @@ bool Store::Load() {
     }
 
     toggleHudEnabled = true; // V0.54: hidden/visible is the only HUD state
+    weaponSheathingEnabled=ReadBool(L"Features",L"WeaponSheathing",false,path_);
+    sheathNeverEnabled=ReadBool(L"Features",L"NeverAutoSheathe",true,path_);
+    sheathDelaySeconds=std::clamp(ReadFloat(L"Values",L"SheathDelaySeconds",10.0f,path_),0.0f,300.0f);
     interactionHudScaleEnabled=ReadBool(L"Features",L"InteractionHudScale",true,path_);
     interactionHudScale=std::clamp(ReadFloat(L"Values",L"InteractionHudScale",0.65f,path_),0.1f,2.0f);
     movementSpeedEnabled =
@@ -852,6 +856,9 @@ void Store::PublishRuntime() const {
     runtime.toggleHudEnabled = toggleHudEnabled;
     runtime.interactionHudScaleEnabled=interactionHudScaleEnabled;
     runtime.interactionHudScale=interactionHudScale;
+    runtime.weaponSheathingEnabled=weaponSheathingEnabled;
+    runtime.sheathNeverEnabled=sheathNeverEnabled;
+    runtime.sheathDelaySeconds=sheathDelaySeconds;
     runtime.fovEnabled = fovEnabled;
     runtime.movementSpeedEnabled = movementSpeedEnabled;
     runtime.skipLogosEnabled = skipLogosEnabled;
@@ -990,6 +997,9 @@ bool Store::SaveNow() {
     );
 
     WriteProfileString(L"Features", L"ToggleHUD", nullptr, path_.c_str());
+    WriteBool(L"Features",L"WeaponSheathing",weaponSheathingEnabled,path_);
+    WriteBool(L"Features",L"NeverAutoSheathe",sheathNeverEnabled,path_);
+    WriteFloat(L"Values",L"SheathDelaySeconds",sheathDelaySeconds,path_);
     WriteBool(L"Features",L"InteractionHudScale",interactionHudScaleEnabled,path_);
     WriteFloat(L"Values",L"InteractionHudScale",interactionHudScale,path_);
     WriteBool(L"Features", L"MovementSpeed", movementSpeedEnabled, path_);
