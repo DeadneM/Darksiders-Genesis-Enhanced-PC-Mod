@@ -1,9 +1,11 @@
 # Actualisation V1.60 — 18 octobre 2026
 
-Zoom In/Clear et rangement V1.59 validés par l’utilisateur. Candidat V1.60 limité aux raccourcis directement dans Weapon sheathing : clavier, un/deux boutons manette ou OFF, Hotkeys conservé, dédoublonnage par joueur et commande propre à chaque manette en coop. SOURCE EXPÉRIMENTALE, construction et essai en jeu à effectuer. Les autres réparations/futures fonctions restent en file, sans nouvelle validation implicite.
+Zoom In/Clear et rangement V1.59 validés par l’utilisateur. Candidat V1.60 limité aux raccourcis directement dans Weapon sheathing : clavier, un/deux boutons manette ou OFF, Hotkeys conservé, dédoublonnage par joueur et commande propre à chaque manette en coop. CONSTRUITE / CONTRÔLÉE / EXPÉRIMENTALE : 34/34 suites et ZIP vérifié, installation par l’utilisateur via updater vérifiée, sauvegarde V1.59 contrôlée. Nouveaux raccourcis non validés en jeu. Les autres réparations/futures fonctions restent en file, sans nouvelle validation implicite.
 
 [Périmètre et essais V1.60](V1_60_SHEATH_SHORTCUTS_TEST.md). États précédents historiques ci-dessous.
 
+
+Retour complémentaire : chapitre 8 encore flou sous certains angles en TPS, à pied, à cheval et en ultime. Non corrigé par V1.60 ; reprise sur le chemin commun du rendu et la zone nette, sans attribuer la cause aux transformations seules.
 ---
 
 # Actualisation V1.59 — 18 octobre 2026
