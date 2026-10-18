@@ -1,3 +1,18 @@
+## V1.55 — reprise native de visée et tirs forcés du dash (18 octobre 2026)
+
+**SOURCE DE TEST / EXPÉRIMENTAL — construction et validation en jeu à effectuer.** Base cumulative V1.54 `6bea05ec6347ef4e0a15e34e7c2b6bc8a23491b2`, avec les tirs V1.53 validés et le correctif DOF V1.54 conservés. Le retour confirme le tir normal pendant le dash en vue du dessus **et en TPS**. La capture Static Shot montre trois dashs Aim et deux dashs Fire : après les deux premiers, plus aucune capacité active malgré un vecteur de visée encore non nul ; pendant les dashs Fire, les capacités de visée existantes sont suspendues puis reprennent.
+
+V1.55 ajoute une demande native de reprise de visée **une seule fois par dash**, uniquement pour le Strife local à pied, au sol, sans capacité active, avec l'action native AIM encore tenue. La fonction native du composant de pistolets reprend son cycle habituel ; aucune touche, inversion de stick, rotation ou bit d'entrée n'est forcé. Le retour de la fonction n'est pas une validation visuelle. Les deux vues et Recovery ON/OFF partagent cette règle.
+
+Les quatre séquences natives Dash Fire contiennent des notifications de projectile. Le cas avant impose explicitement la classe Standard : le correctif écarte ce tir forcé pendant un dash local lorsque les demandes de tir tenues concernent des munitions spéciales reconnues. **Les tirs spéciaux conservent leur pause/reprise native après le dash ; aucune nouvelle variante balistique n'est fabriquée pendant l'animation.** Les tirs standards, tirs hors dash, ennemis, cheval/Ultime et cas inconnus restent natifs. Un maintien simultané Standard + spécial reste natif faute de correspondance démontrée entre les deux notifications de pistolet et les deux sélections de munition.
+
+Nettoyage : retrait du diagnostic des axes physiques ajouté pour l'audit V1.53 ; un suivi de cycle court remplace ses compteurs et les journaux sont bornés. Les traitements XInput/RawInput et les raccourcis sont inchangés. Recovery garde sa physique, sa fin native et sa protection en combat. Les autres fonctions validées, la cible/balistique et l'INI de 119 clés/48 actions sont conservés. Aucun nouvel interrupteur, aucune modification des anciennes archives ou des branches main/archive.
+
+**Réussite à vérifier :** garder la visée après déplacement + visée + dash ; ne plus produire de balle Standard à la place de Static Shot pendant Dash Fire ; reprise normale du tir spécial après le dash. Comparer vue du dessus/TPS et Recovery OFF/ON, puis P2. Contrôler aussi le flou du chapitre 8, Lava/Charge Shot, faisceaux et roues. 29 suites prévues en CI ; compilation, paquet et installation ne prouvent pas ces résultats en jeu. [Audit et protocole](V1_55_NATIVE_DASH_COMBAT_RESUME_TEST.md). Les statuts plus anciens ci-dessous sont historiques.
+
+---
+
+
 ## V1.54 — construite et contrôlée, installation en attente du jeu fermé (18 octobre 2026)
 
 **CONSTRUIT / CONTRÔLÉ / EXPÉRIMENTAL — PAS ENCORE INSTALLÉ NI VALIDÉ EN JEU.** Base V1.53 conservée pour les tirs déjà validés. Le correctif de profondeur de champ atteint désormais les copies jeu **et rendu** ; leur restauration conserve les deux valeurs d'origine et donne priorité à la suspension cinématique existante. La lecture du jeu ouvert en V1.53 a confirmé **jeu=0, rendu=2** : l'ancien journal « DOF supprimée » ne prouvait donc pas une suppression effective dans le rendu. Le test visuel du chapitre 8 reste nécessaire.

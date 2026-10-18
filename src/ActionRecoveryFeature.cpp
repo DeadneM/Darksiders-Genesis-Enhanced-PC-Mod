@@ -2,9 +2,11 @@
 #include "LocalPlayerOwnership.h"
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
+#include "DashCombatPolicy.h"
 #include <windows.h>
 #include <MinHook.h>
 #include <atomic>
+#include <array>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -29,10 +31,12 @@ struct Phase {
     bool armed=false,requested=false;
 };
 Phase g_phase[2]{};
-struct AimWatch {uintptr_t local=0,character=0;ULONGLONG dash=0,sample=0;unsigned count[4]{};};
-AimWatch g_aimWatch[2]{};
-struct PadSample {short lx=0,ly=0,rx=0,ry=0;bool known=false,swap=false;ULONGLONG tick=0;};
-thread_local PadSample g_physical[4]{};
+dash_combat::AimResume g_resume[2]{};
+using NotifyFn=void(*)(void*,void*,void*);
+NotifyFn g_notify=nullptr;
+std::atomic_bool g_combatReady{false};
+std::atomic_uint32_t g_resumed{0},g_suppressed{0};
+thread_local bool g_resuming=false;
 bool Readable(const void* p,size_t bytes){
     MEMORY_BASIC_INFORMATION m{};
     if(!p||!VirtualQuery(p,&m,sizeof(m))||m.State!=MEM_COMMIT||
@@ -102,6 +106,109 @@ bool CombatAction(void* actor,bool& active){
     active=state(actionInterface,18)!=0||state(actionInterface,20)!=0||state(actionInterface,31)!=0;
     return true;
 }
+template<size_t N> bool NameIs(void* object,const char (&expected)[N]){
+    int index=-1,number=-1;uintptr_t names=0,chunk=0,entry=0;uint32_t flags=0;
+    if(!Read(object,0x18,index)||!Read(object,0x1C,number)||number||index<0||index>=2000000||
+       !Read(reinterpret_cast<void*>(g_base+0x3955198),0,names)||!names||
+       !Read(reinterpret_cast<void*>(names),size_t(index/16384)*8,chunk)||!chunk||
+       !Read(reinterpret_cast<void*>(chunk),size_t(index%16384)*8,entry)||!entry||
+       !Read(reinterpret_cast<void*>(entry),8,flags))return false;
+    if(flags&1){
+        std::array<wchar_t,N> text{};if(!Read(reinterpret_cast<void*>(entry),0xC,text))return false;
+        for(size_t i=0;i<N;++i)if(text[i]!=wchar_t(expected[i]))return false;
+        return true;
+    }
+    std::array<char,N> text{};
+    return Read(reinterpret_cast<void*>(entry),0xC,text)&&std::memcmp(text.data(),expected,N)==0;
+}
+template<size_t N> bool ClassNameIs(void* object,const char (&expected)[N]){
+    void* cls=nullptr;return Read(object,0x10,cls)&&NameIs(cls,expected);
+}
+bool CombatOwner(void* actor,local_players::Context& owner){
+    unsigned char type=0,role=0;
+    return actor&&local_players::ResolveActor(actor,owner)&&owner.index>=0&&owner.index<2&&
+        owner.character==reinterpret_cast<uintptr_t>(actor)&&owner.kind==local_players::PoseKind::Foot&&
+        Read(actor,0xC18,type)&&type==1&&Read(actor,0x118,role)&&role==3&&Alive(actor)&&
+        !native_tps::IsWorldPaused(actor)&&!native_tps::CinematicActive(unsigned(owner.index));
+}
+bool AbilityArray(void* actor,void*& array,int& count){
+    void* component=nullptr;void* reciprocal=nullptr;int capacity=0;
+    return Read(actor,0xC70,component)&&component&&Read(component,0xE8,reciprocal)&&reciprocal==actor&&
+        Read(component,0xF8,array)&&Read(component,0x100,count)&&Read(component,0x104,capacity)&&
+        count>=0&&count<=capacity&&capacity<=64&&(!count||array);
+}
+bool AimActions(void* actor,bool& aim,bool& primary,bool& secondary){
+    void* table=nullptr;uintptr_t query=0;
+    // Recorded Strife action interface; 669D30 -> 635100 reads the native
+    // action-state array. No XInput mask, key, axis or synthetic release.
+    if(!Read(actor,0x8D0,table)||!Read(table,0x18,query)||query!=g_base+0x669D30)return false;
+    using Query=unsigned char(*)(void*,unsigned char);auto fn=reinterpret_cast<Query>(query);
+    void* iface=static_cast<unsigned char*>(actor)+0x8D0;
+    aim=fn(iface,31)!=0;primary=fn(iface,18)!=0;secondary=fn(iface,20)!=0;return true;
+}
+bool GroundDashActive(void* actor){
+    void* array=nullptr;int count=0;
+    if(!AbilityArray(actor,array,count))return false;
+    for(int i=0;i<count;++i){
+        void* ability=nullptr;void* table=nullptr;void* instigator=nullptr;void* character=nullptr;
+        void* helper=nullptr;uintptr_t physics=0,cleanup=0;unsigned char state=0;
+        if(Read(array,size_t(i)*8,ability)&&Typed(ability,0x3810F90)&&Read(ability,0,table)&&
+           Read(table,0x2E0,physics)&&physics==g_base+0x5B93F0&&
+           Read(table,0x2A8,cleanup)&&cleanup==g_base+0x59C110&&
+           Read(ability,0xD8,state)&&state==2&&Read(ability,0x1D8,helper)&&helper&&
+           Read(ability,0x48,instigator)&&instigator==actor&&
+           Read(ability,0x1B0,character)&&character==actor)return true;
+    }
+    return false;
+}
+void* MainPistols(void* actor){
+    void* cls=nullptr;void* table=nullptr;uintptr_t getter=0;
+    if(!Read(reinterpret_cast<void*>(g_base+0x3811D70),0,cls)||!cls)return nullptr;
+    // The exact same native ranged-owner interface/GetRangedWeapon used by
+    // 5D8130. CC0 belongs to another field on PlayerCharacter; never guess it.
+    using Interface=void*(*)(void*,void*);
+    void* iface=reinterpret_cast<Interface>(g_base+0xABA640)(actor,cls);
+    if(!iface||!Read(iface,0,table)||!Read(table,0x30,getter)||
+       getter<g_base+0x1000||getter>=g_base+0x2600000)return nullptr;
+    using Getter=void*(*)(void*);void* weapon=reinterpret_cast<Getter>(getter)(iface);
+    void* reciprocal=nullptr;void* aimClass=nullptr;
+    return Typed(weapon,0x3811D20)&&Read(weapon,0xE8,reciprocal)&&reciprocal==actor&&
+        ClassNameIs(weapon,"MayhemWeapon_DualPistols_Blueprint_C")&&
+        Read(weapon,0x618,aimClass)&&aimClass?weapon:nullptr;
+}
+dash_combat::Ammo EquippedAmmo(void* actor,unsigned slot){
+    void* component=nullptr;void* array=nullptr;void* weapon=nullptr;void* reciprocal=nullptr;
+    int count=0,capacity=0;
+    if(!Read(actor,0xC78,component)||!Read(component,0x108,array)||!array||
+       !Read(component,0x110,count)||!Read(component,0x114,capacity)||count<=int(slot)||
+       count>capacity||capacity>32||!Read(array,size_t(slot)*8,weapon)||
+       !Typed(weapon,0x3811D20)||!Read(weapon,0xE8,reciprocal)||reciprocal!=actor)
+        return dash_combat::Ammo::Unknown;
+    if(ClassNameIs(weapon,"MayhemStandardShot_Blueprint_C"))return dash_combat::Ammo::Standard;
+    const bool special=ClassNameIs(weapon,"MayhemStaticShot_Blueprint_C")||
+        ClassNameIs(weapon,"MayhemChargeShot_Blueprint_C")||ClassNameIs(weapon,"MayhemGravityShot_Blueprint_C")||
+        ClassNameIs(weapon,"MayhemLavaShot_Blueprint_C")||ClassNameIs(weapon,"MayhemNatureShot_Blueprint_C")||
+        ClassNameIs(weapon,"MayhemWorldEnder_Blueprint_C");
+    return special?dash_combat::Ammo::Special:dash_combat::Ammo::Unknown;
+}
+void HookSpawnNotify(void* notify,void* mesh,void* animation){
+    bool suppress=false;
+    if(g_combatReady.load(std::memory_order_acquire)&&native_tps::OnGameThread()){
+        void* actor=nullptr;void* outer=nullptr;void* forced=nullptr;local_players::Context owner{};
+        bool aim=false,primary=false,secondary=false;
+        const bool local=Read(mesh,0xE8,actor)&&CombatOwner(actor,owner);
+        const bool sequence=local&&(NameIs(animation,"Strife_Aim_Dash_Fire_F")||NameIs(animation,"Strife_Aim_Dash_Fire_B")||
+            NameIs(animation,"Strife_Aim_Dash_Fire_L")||NameIs(animation,"Strife_Aim_Dash_Fire_R"));
+        if(sequence&&Typed(notify,0x3807E38)&&Read(notify,0x20,outer)&&outer==animation&&
+           Read(notify,0x50,forced)&&NameIs(forced,"MayhemProjectile_Standard_Blueprint_C")&&
+           GroundDashActive(actor)&&AimActions(actor,aim,primary,secondary)){
+            suppress=dash_combat::SuppressForcedStandard(true,true,primary,EquippedAmmo(actor,2),secondary,EquippedAmmo(actor,3));
+            if(suppress){const unsigned n=++g_suppressed;if(g_log&&(n<=8||n%1000==0)){
+                char line[200]{};sprintf_s(line,"Dash combat V1.55 FORCED_STANDARD_SKIPPED player=%d n=%u selectedSpecialResumesNatively=1 gameplay=EXPERIMENTAL",owner.index+1,n);g_log(line);}}
+        }
+    }
+    if(!suppress&&g_notify)g_notify(notify,mesh,animation);
+}
 void Tick(void* ability,float dt,ULONGLONG now){
     // Native input, montage notifies and the FULL physics step always run
     // once at the original dt, before evaluating recovery.
@@ -114,8 +221,10 @@ void Tick(void* ability,float dt,ULONGLONG now){
     if(!std::isfinite(dt)||dt<=0||dt>0.1f)return;
     local_players::Context owner{};
     if(!Owner(ability,owner))return;
-    auto& watch=g_aimWatch[owner.index];
-    watch.local=owner.localPlayer;watch.character=owner.character;watch.dash=now;
+    float elapsedDash=0;
+    if(Read(ability,0xDC,elapsedDash)&&std::isfinite(elapsedDash)&&elapsedDash>=0)
+        g_resume[owner.index].Observe(owner.localPlayer,owner.character,
+            reinterpret_cast<uintptr_t>(ability),elapsedDash,now);
     if(!rt.actionRecoveryEnabled.load()){g_phase[0]={};g_phase[1]={};return;}
     auto& phase=g_phase[owner.index];
     bool combat=false;
@@ -182,37 +291,57 @@ void Initialize(LogFn log,bool exactExecutable){
     if(MH_EnableHook(target)!=MH_OK){MH_RemoveHook(target);g_tick=nullptr;g_finish=nullptr;return;}
     g_ready.store(true,std::memory_order_release);
     if(log)log("Recovery V1.49 READY: observed completed dash deceleration only; native finish, P1/P2, original physics dt; EXPERIMENTAL");
+    const Guard combatGuards[]={
+        {0x5D8130,{0x48,0x89,0x6C,0x24,0x18,0x57,0x48,0x83,0xEC,0x40,0x48,0x8B,0xBA,0xE8,0x00,0x00}},
+        {0x69FBD0,{0x40,0x53,0x48,0x83,0xEC,0x50,0x48,0x83,0xB9,0x18,0x06,0x00,0x00,0x00,0x48,0x8B}},
+        {0xABA640,{0x48,0x89,0x5C,0x24,0x08,0x48,0x89,0x74,0x24,0x10,0x57,0x48,0x83,0xEC,0x20,0x33}},
+        {0x7CC170,{0x4C,0x8B,0xDC,0x48,0x83,0xEC,0x78,0x48,0x8B,0x05,0xF2,0x5B,0x04,0x03,0x48,0x85}},
+        {0x7CE080,{0x4C,0x8B,0xDC,0x48,0x83,0xEC,0x78,0x48,0x8B,0x05,0x92,0x3C,0x04,0x03,0x48,0x85}},
+        {0x669D30,{0x48,0x81,0xC1,0x40,0x05,0x00,0x00,0xE9,0xC4,0xB3,0xFC,0xFF,0xCC,0xCC,0xCC,0xCC}},
+        {0x742030,{0x4C,0x8B,0xDC,0x48,0x83,0xEC,0x78,0x48,0x8B,0x05,0xFA,0x5D,0x0C,0x03,0x48,0x85}}
+    };
+    for(const auto& guard:combatGuards)if(std::memcmp(reinterpret_cast<void*>(g_base+guard.rva),guard.bytes,16)){
+        if(log)log("Dash combat V1.55 signature mismatch; native combat retained");return;
+    }
+    void* notify=reinterpret_cast<void*>(g_base+0x5D8130);
+    if(MH_CreateHook(notify,reinterpret_cast<void*>(&HookSpawnNotify),reinterpret_cast<void**>(&g_notify))!=MH_OK)return;
+    if(MH_EnableHook(notify)!=MH_OK){MH_RemoveHook(notify);g_notify=nullptr;return;}
+    g_combatReady.store(true,std::memory_order_release);
+    if(log)log("Dash combat V1.55 READY: native held-AIM resume after idle ground dash; exact forced-standard notify scope; TPS/Recovery independent; EXPERIMENTAL");
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}
-void Shutdown(){g_ready.store(false,std::memory_order_release);}
-void ObserveControllerInput(unsigned id,short lx,short ly,short rx,short ry,bool known,bool swap){
-    if(id<4&&g_ready.load()&&native_tps::OnGameThread())g_physical[id]={lx,ly,rx,ry,known,swap,GetTickCount64()};
-}
-void ObserveNativeLook(void* actor,float x,float y){
-    if(!g_log||!g_ready.load()||!native_tps::OnGameThread())return;
+void Shutdown(){g_combatReady.store(false,std::memory_order_release);g_ready.store(false,std::memory_order_release);}
+void OnNativeLook(void* actor){
+    if(!g_ready.load()||!g_combatReady.load()||g_resuming||!native_tps::OnGameThread())return;
+    const auto now=GetTickCount64();bool pending=false;
+    for(auto& resume:g_resume){
+        if(resume.seen&&(now<resume.seen||now-resume.seen>3000))resume={};
+        pending=pending||(resume.seen&&!resume.requested);
+    }
+    if(!pending)return;
     local_players::Context owner{};
-    if(!local_players::ResolveActor(actor,owner)||owner.index<0||owner.index>1||
-       owner.character!=reinterpret_cast<uintptr_t>(actor))return;
-    auto& watch=g_aimWatch[owner.index];const auto now=GetTickCount64();const auto& rt=runtime::Get();
-    const unsigned sampleMode=(rt.thirdPersonEnabled.load()?2u:0u)|(rt.actionRecoveryEnabled.load()?1u:0u);
-    if(watch.local!=owner.localPlayer||watch.character!=owner.character||!watch.dash||
-       now<watch.dash||now-watch.dash>3000||watch.count[sampleMode]>=48||
-       (watch.sample&&now>=watch.sample&&now-watch.sample<250))return;
-    watch.sample=now;++watch.count[sampleMode];
-    float rawX=0,rawY=0;void* movement=nullptr;void* component=nullptr;void* array=nullptr;
-    unsigned char mode=0,custom=0;int count=0,capacity=0;uintptr_t action=0,table=0;
-    Read(actor,0xD24,rawX);Read(actor,0xD28,rawY);
-    if(Read(actor,0x388,movement)){Read(movement,0x1B0,mode);Read(movement,0x1B1,custom);}
-    if(Read(actor,0xC70,component)&&Read(component,0xF8,array)&&
-       Read(component,0x100,count)&&Read(component,0x104,capacity)&&count>0&&count<=capacity&&capacity<=64&&
-       Read(array,0,action))Read(reinterpret_cast<void*>(action),0,table);
-    PadSample pad{};
-    if(owner.controllerId>=0&&owner.controllerId<4)pad=g_physical[owner.controllerId];
-    const bool physicalFresh=pad.tick&&now>=pad.tick&&now-pad.tick<=250;
-    bool combat=false;const bool actionsKnown=CombatAction(actor,combat);
-    char line[500]{};
-    sprintf_s(line,"Recovery V1.53 AIM_AFTER_DASH player=%d recovery=%d tps=%d ageMs=%llu physicalFresh=%d rawPad=(%d,%d;%d,%d) nativeSwap=%d rawWorldLook=(%.3f,%.3f) nativeGetter=(%.3f,%.3f) movement=%u/%u activeCount=%d firstActionVtableRva=%llX actionsKnown=%d combatAction=%d readOnly=1",
-        owner.index+1,rt.actionRecoveryEnabled.load()?1:0,rt.thirdPersonEnabled.load()?1:0,now-watch.dash,physicalFresh?1:0,pad.lx,pad.ly,pad.rx,pad.ry,pad.known?int(pad.swap):-1,rawX,rawY,x,y,unsigned(mode),unsigned(custom),count,table>=g_base?table-g_base:0,actionsKnown?1:0,combat?1:0);g_log(line);
+    if(!CombatOwner(actor,owner)){
+        if(owner.index>=0&&owner.index<2&&g_resume[owner.index].actor==reinterpret_cast<uintptr_t>(actor))
+            g_resume[owner.index]={};
+        return;
+    }
+    auto& resume=g_resume[owner.index];
+    if(!resume.seen||resume.requested)return;
+    if(now<resume.seen||now-resume.seen>3000||resume.local!=owner.localPlayer||
+       resume.actor!=owner.character){resume={};return;}
+    void* array=nullptr;int count=0;void* movement=nullptr;unsigned char mode=0;
+    bool aim=false,primary=false,secondary=false;
+    if(!AbilityArray(actor,array,count)||count||!Read(actor,0x388,movement)||
+       !Read(movement,0x1B0,mode)||(mode!=1&&mode!=2)||!AimActions(actor,aim,primary,secondary)||!aim)return;
+    // Lookup can itself enter another native look query. Original getters
+    // still run, but a nested callback can never request a second ability.
+    struct Scope {Scope(){g_resuming=true;}~Scope(){g_resuming=false;}} scope;
+    void* pistols=MainPistols(actor);
+    if(!pistols||!resume.Take(owner.localPlayer,owner.character,now,true,true,aim))return;
+    using StartAim=void(*)(void*);reinterpret_cast<StartAim>(g_base+0x69FBD0)(pistols);
+    const unsigned n=++g_resumed;
+    if(g_log&&(n<=8||n%1000==0)){char line[190]{};
+        sprintf_s(line,"Dash combat V1.55 AIM_RESTART_REQUEST player=%d n=%u nativeHeldAim=1 oncePerDash=1 gameplay=EXPERIMENTAL",owner.index+1,n);g_log(line);}
 }
-void Report(){if(g_log){char line[210]{};sprintf_s(line,"Recovery V1.49 totals positivePhasesP1=%u P2=%u nativeFinishRequestsP1=%u P2=%u gameplayValidation=USER_REQUIRED",g_armed[0].load(),g_armed[1].load(),g_requested[0].load(),g_requested[1].load());g_log(line);}}
+void Report(){if(g_log){char line[260]{};sprintf_s(line,"Recovery/Dash V1.55 totals positivePhasesP1=%u P2=%u nativeFinishRequestsP1=%u P2=%u aimRestartRequests=%u forcedStandardSkipped=%u gameplayValidation=USER_REQUIRED",g_armed[0].load(),g_armed[1].load(),g_requested[0].load(),g_requested[1].load(),g_resumed.load(),g_suppressed.load());g_log(line);}}
 }

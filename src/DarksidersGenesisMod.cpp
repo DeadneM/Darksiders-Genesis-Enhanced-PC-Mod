@@ -1536,7 +1536,7 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     auto original=g_originalGetPlayerLookInput;
     if(!original)return out;
     auto* result=original(actor,out);
-    if(result)dg::recovery::ObserveNativeLook(actor,result->pitch,result->yaw);
+    if(result)dg::recovery::OnNativeLook(actor);
     if(result&&dg::local_players::CoopActive()&&dg::coop_camera::AdjustLook(actor,result->pitch,result->yaw,result->roll,false))return result;
     const unsigned calls=++g_tpsLookInputCalls;
     if(!result||!IsLiveTPSLookActor(actor) ||
@@ -2392,10 +2392,6 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     dg::controller_input::GameRead read;
     const DWORD realStatus=original(user,state);
     if(realStatus!=ERROR_SUCCESS||!state||!read.CanFilter())return realStatus;
-    const auto& physical=state->Gamepad;
-    if(dg::native_tps::OnGameThread())
-        dg::recovery::ObserveControllerInput(user,physical.sThumbLX,physical.sThumbLY,physical.sThumbRX,physical.sThumbRY,
-            dg::native_tps::NativeStickSwapKnown(),dg::native_tps::NativeStickSwap());
     // P2 filters only its verified native ControllerId, with its own view.
     // The existing primary path below keeps every validated button policy.
     const HWND coopWindow=reinterpret_cast<HWND>(g_gameWindowTrace.load());
