@@ -1,5 +1,7 @@
 ## V1.56 — construite, contrôlée ; installée (18 octobre 2026)
 
+**Demandes suivantes enregistrées le 18 octobre 2026 :** [HUD/interactions et sprites P2, rangement manuel/automatique des armes, munitions normales limitées, portée du grappin, modèles des pistolets et holsters à cheval](ROADMAP.md). Elles passent **après les réparations actuelles** ; V1.56 reste expérimentale en attente du retour utilisateur. Mise à jour documentaire uniquement, sans changement d'ASI, d'INI ni d'installation.
+
 **CONSTRUIT / CONTRÔLÉ / INSTALLÉ / EXPÉRIMENTAL — validation utilisateur nécessaire.** Base cumulative V1.55, avec les tirs précédemment validés conservés. La nouvelle capture AIM tenu confirme le défaut de reprise V1.55. Deux corrections sont livrées : service dans le passage de caméra qui subsiste après le dash ; accès au composant permanent DualPistolsBP, vérifié dans le personnage et son équipement, au lieu du contexte d'arme vide. La physique/timing de Recovery et le filtre de projectiles V1.55 restent identiques.
 
 La profondeur de champ TPS est maintenant conservée : seule la distance de mise au point de chaque sortie P1/P2 suit le personnage. Qualité, ouverture et autres paramètres natifs restent actifs. **Aspect visuel à tester**, notamment chapitre 8, distances/angles et transitions cinématiques. **Son/animation du tir de dash encore ouverts** ; aucune substitution de variante susceptible d'altérer la charge spéciale n'est livrée.
