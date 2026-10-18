@@ -6,7 +6,7 @@ Ce tableau fait foi pour l’état actuel ; les entrées datées conservées plu
 | --- | --- | --- |
 | Zoom In/Clear, rangement natif, prompts P1/P2, facteurs sous 1 | VALIDÉS par l’utilisateur | Préserver, contrôle court |
 | Reprise AIM après mouvement+visée+dash | VALIDÉE V1.56, conservée | Ne pas réintroduire l’ancien Recovery |
-| Standard limité / grappin étendu / double saut trois modes | SOURCE EXPÉRIMENTALE V1.62, groupés | CI, paquet puis matrice d’essais commune |
+| Standard limité / grappin étendu / double saut trois modes | CONSTRUITS / CONTRÔLÉS V1.62, expérimentaux | 38/38 suites et ZIP contrôlé ; matrice d’essais commune en jeu |
 | Raccourcis de rangement V1.60 | Construits/installés, retour attendu | Clavier, combinaison manette et P1/P2 |
 | Focus TPS V1.61 | Construit/contrôlé, non validé en jeu | Comparaison aux angles flous et toutes formes |
 | Tir Standard de présentation pendant dash | Filtre V1.59 conservé, non validé | Retour sur son/flash/animation résiduelle |
