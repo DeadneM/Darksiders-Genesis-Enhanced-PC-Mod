@@ -18,7 +18,7 @@ bool NativeStickSwap();
 bool NativeStickSwapKnown();
 bool RadialActive(unsigned playerIndex=0);
 // Synchronous native collision query using the exact existing scoped helper.
-bool TraceCameraTarget(const local_players::Context&,const MouseRay&,Vec3& target,bool& hit);
+bool TraceCameraTarget(const local_players::Context&,const MouseRay&,Vec3& target,bool& hit,const Vec3* source=nullptr);
 bool OnGameThread();
 void Report();
 }

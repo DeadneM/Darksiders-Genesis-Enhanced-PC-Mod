@@ -1,3 +1,15 @@
+## V1.53 — faisceaux, obstacle derrière la caméra et protection du dash en combat
+
+## Base, retour utilisateur et objectif
+
+Base debug V1.52 `8ec540a0542af4a2e77938b932f3e7c8531bbb3b`. Le 18 octobre, l'utilisateur **valide Lava et le tir chargé**. Tir et dash en vue du dessus refonctionnent dans le cas simple. Quatre défauts restent signalés : Static Shot et Beam Shot à gauche ; perte de visée après déplacement + visée + dash ; balles normales pendant dash avec Recovery et une autre munition équipée ; tir retourné vers la caméra quand elle touche le décor. La validation ne couvre pas globalement toutes les munitions/variantes/P2. INI, valeurs par défaut et raccourcis à préserver.
+
+Objectif : corriger la direction du faisceau à son véritable consommateur et empêcher une cible de caméra derrière le départ du tir ; protéger la transition native du dash en combat. Critères : faisceaux vers la cible sans décalage fixe, caméra contre le décor sans tir arrière, munition et visée conservées au dash. **SOURCE DE TEST / EXPÉRIMENTAL**, compilation, installation et comportement réel à vérifier avant de les annoncer.
+
+[Audit, limites et cinq essais](docs/V1_53_BEAM_OBSTRUCTION_DASH_GUARD_TEST.md). 119 cles / 48 IDs Hotkeys conserves.
+
+---
+
 ## V1.52 — base de tir commune et nettoyage vérifiés, installée (17 octobre 2026)
 
 **CONSTRUIT / CONTRÔLÉ / INSTALLÉ / EXPÉRIMENTAL — tirs et dash à valider en jeu.** Base V1.51 debug, dont le changement d'angle caméra avec 3D et le retour du défaut Charge Shot/Hotstreak avec OFF sont rejetés. Les acquis validés de V1.50 sont conservés. **ON/OFF partagent le même socle de direction et la même pose caméra.** La case ne retire plus la correction de direction au relâchement ; ON ajoute seulement la visée verticale. Réglage indépendant **« Shot vertical angle »**, saisie manuelle de −45° à +45°, défaut **+12°** pour la vue −12° habituelle. Il agit sur la trajectoire réelle, sans changer la caméra.

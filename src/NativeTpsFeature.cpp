@@ -2,6 +2,7 @@
 #include "LocalPlayerOwnership.h"
 #include "NativeMemoryReader.h"
 #include "RadialSelectionState.h"
+#include "TpsAimTarget.h"
 #include <windows.h>
 #include <intrin.h>
 #include <MinHook.h>
@@ -136,6 +137,21 @@ Vec3 FarTarget(const MouseRay& r){
             r.origin.y+100000.0f*r.direction.y,
             r.origin.z+100000.0f*r.direction.z};
 }
+bool QueryTarget(void* controller,void* actor,const MouseRay& ray,const Vec3* source,
+                 Vec3& target,bool& hit,void* extra){
+    return tps_aim::ForwardTarget(ray,source,target,hit,[&](const MouseRay& current,Vec3& point,bool& collision){
+        NativeTarget fresh{};Vec3 native{};ScopedRay scope(controller,current);
+        g_aim3(controller,&native,actor,&fresh,false,extra);
+        if(!scope.scope.used)return false;
+        collision=fresh.valid&&Finite(fresh.point);point=collision?fresh.point:FarTarget(current);
+        return Finite(point);
+    });
+}
+bool ActorSource(void* actor,Vec3& source){
+    native_objects::MemoryReader reader;uintptr_t root=0;
+    return reader.Read(reinterpret_cast<uintptr_t>(actor),0x158,root)&&root&&
+        reader.Read(root,0x1A0,source)&&Finite(source);
+}
 Vec3* HookAim3(void* controller,Vec3* out,void* actor,NativeTarget* cache,
                bool debug,void* extra){
     ++g_native3;
@@ -145,18 +161,14 @@ Vec3* HookAim3(void* controller,Vec3* out,void* actor,NativeTarget* cache,
         return g_aim3(controller,out,actor,cache,debug,extra);
     }
     // A stack-local cache prevents old world/old screen targets from being
-    // reused after a miss. Copy back only a native collision HIT, following
-    // the original helper's existing !debug cache-write contract.
-    NativeTarget fresh{};
-    ScopedRay scope(controller,ray);
-    Vec3 native{};
-    g_aim3(controller,&native,actor,&fresh,false,extra);
-    if(!scope.scope.used){ // native helper could not obtain a viewport
+    // reused after a miss. Preserve !debug write ownership and explicitly
+    // clear validity on a miss, including a rejected camera-side hit.
+    Vec3 source{},target{};bool hit=false;
+    if(!QueryTarget(controller,actor,ray,ActorSource(actor,source)?&source:nullptr,target,hit,extra)){
         return g_aim3(controller,out,actor,cache,debug,extra);
     }
-    const bool hit=fresh.valid&&Finite(fresh.point);
-    *out=hit?fresh.point:FarTarget(ray);
-    if(hit&&!debug)*cache=fresh;
+    *out=target;
+    if(!debug)*cache=NativeTarget{target,static_cast<unsigned char>(hit)};
     Observe(ray,*out,hit,"TARGET3D");
     return out;
 }
@@ -168,16 +180,11 @@ Vec2* HookAim2(void* controller,Vec2* out,void* actor,const Vec3* reference,
         ++g_rejected;
         return g_aim2(controller,out,actor,reference,flag,extra);
     }
-    NativeTarget fresh{};
-    Vec3 target{};
-    ScopedRay scope(controller,ray);
+    Vec3 target{};bool hit=false;
     // Reuse the game's actual 3D collision helper with its existing world,
     // query channel and hit result. Do not call the old plane intersection.
-    g_aim3(controller,&target,actor,&fresh,false,extra);
-    if(!scope.scope.used)
+    if(!QueryTarget(controller,actor,ray,reference,target,hit,extra))
         return g_aim2(controller,out,actor,reference,flag,extra);
-    const bool hit=fresh.valid&&Finite(fresh.point);
-    target=hit?fresh.point:FarTarget(ray);
     const float dx=target.x-reference->x,dy=target.y-reference->y;
     const float length=std::hypot(dx,dy);
     if(!std::isfinite(length)||length<0.01f)
@@ -381,18 +388,13 @@ bool RadialActive(unsigned index){
     ReleaseSRWLockShared(&g_radialLock);
     return active;
 }
-bool TraceCameraTarget(const local_players::Context& owner,const MouseRay& ray,Vec3& target,bool& hit){
+bool TraceCameraTarget(const local_players::Context& owner,const MouseRay& ray,Vec3& target,bool& hit,const Vec3* source){
     if(!g_ready.load(std::memory_order_acquire)||!g_aim3||!OnGameThread()||
        owner.index<0||owner.index>1||!owner.controller||!owner.pawn||
        !Finite(ray.origin)||!Finite(ray.direction))return false;
     const float length=ray.direction.x*ray.direction.x+ray.direction.y*ray.direction.y+ray.direction.z*ray.direction.z;
     if(length<0.99f||length>1.01f)return false;
-    NativeTarget fresh{};Vec3 native{};
-    ScopedRay scope(reinterpret_cast<void*>(owner.controller),ray);
-    g_aim3(reinterpret_cast<void*>(owner.controller),&native,reinterpret_cast<void*>(owner.pawn),&fresh,false,nullptr);
-    if(!scope.scope.used)return false;
-    hit=fresh.valid&&Finite(fresh.point);target=hit?fresh.point:FarTarget(ray);
-    return Finite(target);
+    return QueryTarget(reinterpret_cast<void*>(owner.controller),reinterpret_cast<void*>(owner.pawn),ray,source,target,hit,nullptr);
 }
 void Report(){
     if(!g_log)return;

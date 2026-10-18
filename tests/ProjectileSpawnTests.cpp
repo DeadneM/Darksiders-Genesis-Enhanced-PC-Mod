@@ -1,5 +1,6 @@
 #include "../src/ProjectileAimFeature.cpp"
 #include <iostream>
+#include <array>
 #include <limits>
 #include <stdexcept>
 #include <vector>
@@ -8,6 +9,7 @@ using Vec3=dg::native_tps::Vec3;
 using Rotator=dg::projectile_aim::Rotator;
 alignas(16) unsigned char character[0x1000]{},weapon[0x200]{},grenade[0x200]{},ability[0x230]{},cls[0x80]{},foreignClass[0x80]{},lavaClass[0x80]{};
 unsigned char projectileClass[0x100]{},defaults[0x100]{},movement[0x180]{},root[0x1B0]{};
+unsigned char beam[0x650]{},volume[0x300]{};
 void* tree[1]{cls+0x30};void* foreignTree[1]{foreignClass+0x30};void* lavaTree[2]{cls+0x30,lavaClass+0x30};
 uintptr_t componentTable[0x5E8/8]{};
 bool providerEnabled=true,gameThread=true,paused=false,wheel=false,collision=true,badSpeed=false;
@@ -21,6 +23,7 @@ template<class T> T Get(void* p,size_t o){T v{};std::memcpy(&v,static_cast<unsig
 void Check(bool b,const char* msg){if(!b)throw std::runtime_error(msg);}
 bool Close(float a,float b){return std::fabs(a-b)<0.001f;}
 Rotator* Original(void*,Rotator* out,const void* in){forwarded=in;*out={4,23,7};return out;}
+Vec3* OriginalForward(void*,Vec3* out){*out={0.9659258f,0,0.258819f};return out;}
 Rotator* OriginalFinish(void* a,Rotator* out){
     *out=Get<void*>(a,0x10)==lavaClass?Get<Rotator>(a,0x20C):Rotator{-12,-70,7};
     out->yaw=-70; // native final helper replaces the early yaw with movement
@@ -48,6 +51,10 @@ void Run(){
     using namespace dg::projectile_aim;
     g_base=reinterpret_cast<uintptr_t>(image.data());
     for(auto slot:{0x380C0E0,0x3811260,0x3A58AB0})Put(image.data(),slot,static_cast<void*>(cls));
+    Put(image.data(),0x380A4B0,static_cast<void*>(cls));
+    Put(beam,0x10,static_cast<void*>(cls));Put(beam,0x108,static_cast<void*>(character));
+    Put(beam,0x158,static_cast<void*>(volume));Put(beam,0x5E8,static_cast<void*>(volume));
+    Put(volume,0xE8,static_cast<void*>(beam));Put(volume,0x1A0,Vec3{1000,0,500});
     Put(image.data(),0x3811050,static_cast<void*>(lavaClass));Put(lavaClass,0x30,lavaTree+0);Put(lavaClass,0x38,1);
     Put(cls,0x30,tree+0);Put(cls,0x38,0);
     Put(foreignClass,0x30,foreignTree+0);Put(foreignClass,0x38,0);
@@ -63,6 +70,7 @@ void Run(){
     context.index=0;context.character=context.pawn=reinterpret_cast<uintptr_t>(character);
     context.controller=0x5678;context.world=0x1234;
     g_original=Original;g_finish=OriginalFinish;g_lava=OriginalLava;g_provider=Provider;
+    g_forward=OriginalForward;
     g_movementClass=MovementClass;g_gravity=Gravity;g_arcAngle=Angle;g_arcSpeed=Speed;
     Rotator out{},in{0,0,0};
     auto* result=Rotation(weapon,&out,&in,0x7CFA3B);
@@ -98,6 +106,22 @@ void Run(){
     character[0xC18]=2;Finish(ability,&out);Check(out.yaw==-70,"War stays native");character[0xC18]=1;
     wheel=true;Finish(ability,&out);Check(out.yaw==-70,"native selector owns input/aim");wheel=false;
     paused=true;Finish(ability,&out);Check(out.yaw==-70,"pause stays native");paused=false;
+    Vec3 beamDirection{};
+    BeamForward(volume,&beamDirection,0x61D5E5);
+    Check(Close(beamDirection.x,0)&&Close(beamDirection.y,1)&&Close(beamDirection.z,0),"actual native beam consumer aims from volume origin to shared target");
+    const auto beamSnapshot=std::to_array(beam);
+    const auto volumeSnapshot=std::to_array(volume);
+    dg::runtime::Get().tps3DAimEnabled=false;
+    BeamForward(volume,&beamDirection,0x61D5E5);
+    Check(Close(beamDirection.x,0)&&Close(beamDirection.y,0.9659258f)&&Close(beamDirection.z,0.258819f),"simple beams share target/yaw and retain native vertical pitch");
+    dg::runtime::Get().tps3DAimEnabled=true;context.index=0;
+    BeamForward(volume,&beamDirection,0x61D5E5);Check(g_beams[0]==1&&g_beams[1]==2,"beam authority isolated for both local players");
+    Check(std::memcmp(beam,beamSnapshot.data(),sizeof(beam))==0&&std::memcmp(volume,volumeSnapshot.data(),sizeof(volume))==0,"no beam actor, range, damage, target chain or component write");
+    BeamForward(volume,&beamDirection,0x123);Check(beamDirection.x>0.9f&&beamDirection.y==0,"every other UE forward consumer stays native");
+    providerEnabled=false;BeamForward(volume,&beamDirection,0x61D5E5);Check(beamDirection.y==0,"native view rejects beam rewrite");providerEnabled=true;
+    wheel=true;BeamForward(volume,&beamDirection,0x61D5E5);Check(beamDirection.y==0,"wheel retains native beam direction");wheel=false;
+    Put(beam,0x108,static_cast<void*>(grenade));BeamForward(volume,&beamDirection,0x61D5E5);Check(beamDirection.y==0,"foreign beam cannot use local player ray");Put(beam,0x108,static_cast<void*>(character));
+    Put(beam,0x5E8,static_cast<void*>(root));BeamForward(volume,&beamDirection,0x61D5E5);Check(beamDirection.y==0,"only native reciprocal root volume qualifies");Put(beam,0x5E8,static_cast<void*>(volume));
     gameThread=false;Finish(ability,&out);Check(out.yaw==-70,"other threads stay native");
     Check(lavaCalls==5,"native Lava update runs exactly once for each request");
 }
@@ -107,7 +131,7 @@ bool OnGameThread(){return gameThread;}
 bool CinematicActive(unsigned){return false;}
 bool IsWorldPaused(void*){return paused;}
 bool RadialActive(unsigned){return wheel;}
-bool TraceCameraTarget(const local_players::Context&,const MouseRay&,Vec3& target,bool& hit){target=hitTarget;hit=collision;return true;}
+bool TraceCameraTarget(const local_players::Context&,const MouseRay&,Vec3& target,bool& hit,const Vec3* source){Check(source&&std::isfinite(source->x),"shared collision receives the real consumer origin");target=hitTarget;hit=collision;return true;}
 }
 namespace dg::local_players {
 bool ResolveActor(void* a,Context& c){if(a!=character)return false;c=context;return true;}

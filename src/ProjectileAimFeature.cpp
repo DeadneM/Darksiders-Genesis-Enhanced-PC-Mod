@@ -25,6 +25,7 @@ using ClassGetter=void*(*)();
 using Gravity=float(*)(void*);
 using ArcAngle=float(*)(float,float,float);
 using ArcSpeed=float(*)(const Vec3*,const Vec3*,float,float);
+using ForwardVector=Vec3*(*)(void*,Vec3*);
 SpawnRotation g_original=nullptr;
 AbilityRotation g_finish=nullptr;
 LavaUpdate g_lava=nullptr;
@@ -32,10 +33,12 @@ ClassGetter g_movementClass=nullptr;
 Gravity g_gravity=nullptr;
 ArcAngle g_arcAngle=nullptr;
 ArcSpeed g_arcSpeed=nullptr;
+ForwardVector g_forward=nullptr;
 RayProvider g_provider=nullptr;
 uintptr_t g_base=0;
 LogFn g_log=nullptr;
 std::atomic_uint32_t g_calls{0},g_adjusted[2]{},g_finished[2]{},g_lobbed[2]{},g_lavaRejected{0};
+std::atomic_uint32_t g_beams[2]{};
 template<class T> bool Read(const void* object,size_t offset,T& value){
     native_objects::MemoryReader reader;
     return reader.Read(reinterpret_cast<uintptr_t>(object),offset,value);
@@ -70,9 +73,9 @@ bool Direction(const Vec3& origin,const Vec3& target,Rotator& rotation){
     rotation.pitch=std::atan2(z,flat)*deg;rotation.yaw=std::atan2(y,x)*deg;
     return std::isfinite(rotation.pitch)&&std::isfinite(rotation.yaw);
 }
-bool Target(const local_players::Context& owner,Vec3& target,bool& hit){
+bool Target(const local_players::Context& owner,const Vec3& origin,Vec3& target,bool& hit){
     native_tps::MouseRay ray{};
-    return g_provider&&g_provider(owner,ray)&&native_tps::TraceCameraTarget(owner,ray,target,hit);
+    return g_provider&&g_provider(owner,ray)&&native_tps::TraceCameraTarget(owner,ray,target,hit,&origin);
 }
 bool AbilityOrigin(void* ability,Vec3& origin){
     void* instigator=nullptr;void* root=nullptr;
@@ -81,7 +84,7 @@ bool AbilityOrigin(void* ability,Vec3& origin){
 }
 bool AimAt(const local_players::Context& owner,const Vec3& origin,Rotator& rotation,bool nativeVertical=false){
     Vec3 target{};bool hit=false;
-    if(!Target(owner,target,hit))return false;
+    if(!Target(owner,origin,target,hit))return false;
     Rotator adjusted=rotation;
     if(!Direction(origin,target,adjusted))return false;
     // Shared yaw/release/target correction is NEVER disabled by the option.
@@ -91,7 +94,7 @@ bool AimAt(const local_players::Context& owner,const Vec3& origin,Rotator& rotat
 }
 void Observe(const char* path,const local_players::Context& owner,unsigned n,const Rotator& result){
     if(g_log&&(n<=12||n%1000==0)){char line[230]{};
-        sprintf_s(line,"TPS V1.52 TARGET3D path=%s player=%d n=%u pitch=%.2f yaw=%.2f nativeAction=1 actorRotationWritten=0 impactValidation=USER_REQUIRED",
+        sprintf_s(line,"TPS V1.53 TARGET3D path=%s player=%d n=%u pitch=%.2f yaw=%.2f nativeAction=1 actorRotationWritten=0 impactValidation=USER_REQUIRED",
             path,owner.index+1,n,result.pitch,result.yaw);g_log(line);}
 }
 Rotator* Rotation(void* weapon,Rotator* out,const void* input,uintptr_t caller){
@@ -108,6 +111,34 @@ Rotator* Rotation(void* weapon,Rotator* out,const void* input,uintptr_t caller){
 }
 Rotator* HookRotation(void* weapon,Rotator* out,const void* input){
     return Rotation(weapon,out,input,reinterpret_cast<uintptr_t>(_ReturnAddress())-g_base);
+}
+// 61D410 is MayhemBeamShot's native Tick. In its free-fire branch it reads
+// the ROOT/SOCKET forward vector, bypassing the projectile SpawnRotation.
+// Replace this one local beam consumer's return, never the scene transform,
+// beam range, damage, secondary chains or every UE forward-vector call.
+Vec3* BeamForward(void* component,Vec3* out,uintptr_t caller){
+    auto* result=g_forward?g_forward(component,out):out;
+    if(!result||caller!=0x61D5E5||!native_tps::OnGameThread())return result;
+    void* beam=nullptr;void* root=nullptr;void* volume=nullptr;void* actor=nullptr;
+    local_players::Context owner{};unsigned char type=0;Vec3 origin{};
+    if(!Read(component,0xE8,beam)||!Typed(beam,0x380A4B0)||
+       !Read(beam,0x158,root)||root!=component||!Read(beam,0x5E8,volume)||volume!=component||
+       !Read(beam,0x108,actor)||!local_players::ResolveActor(actor,owner)||
+       owner.index<0||owner.index>1||!Read(reinterpret_cast<void*>(owner.character),0xC18,type)||type!=1||
+       native_tps::CinematicActive(unsigned(owner.index))||native_tps::IsWorldPaused(actor)||
+       native_tps::RadialActive(unsigned(owner.index))||!Read(component,0x1A0,origin)||!Finite(origin))return result;
+    Rotator rotation{};
+    // In simple mode preserve the native beam's vertical direction, just as
+    // ordinary shots retain native pitch; common target/yaw correction stays.
+    if(!Finite(*result)||!Direction(Vec3{},*result,rotation)||!AimAt(owner,origin,rotation))return result;
+    constexpr float rad=0.01745329251994329577f;
+    const float pitch=rotation.pitch*rad,yaw=rotation.yaw*rad;
+    *result={std::cos(pitch)*std::cos(yaw),std::cos(pitch)*std::sin(yaw),std::sin(pitch)};
+    Observe("BEAM_FORWARD",owner,owner.index==0?++g_beams[0]:++g_beams[1],rotation);
+    return result;
+}
+Vec3* HookBeamForward(void* component,Vec3* out){
+    return BeamForward(component,out,reinterpret_cast<uintptr_t>(_ReturnAddress())-g_base);
 }
 Rotator* Finish(void* ability,Rotator* out){
     auto* result=g_finish?g_finish(ability,out):out;
@@ -168,13 +199,13 @@ bool SolveLava(void* ability,const local_players::Context& owner,const Vec3& tar
 void UpdateLava(void* ability){
     if(g_lava)g_lava(ability); // native setup, CDO and charge execute first
     if(!native_tps::OnGameThread()||!runtime::Get().tps3DAimEnabled.load())return;
-    local_players::Context owner{};Vec3 target{};bool hit=false;
-    if(!AbilityOwner(ability,0x3811050,owner)||!Target(owner,target,hit))return;
+    local_players::Context owner{};Vec3 origin{},target{};bool hit=false;
+    if(!AbilityOwner(ability,0x3811050,owner)||!AbilityOrigin(ability,origin)||!Target(owner,origin,target,hit))return;
     const char* rejected="unknown";uint32_t defaultFlags=0;
     if(!SolveLava(ability,owner,target,hit,rejected,defaultFlags)){
         const auto n=++g_lavaRejected;
         if(g_log&&(n<=8||n%1000==0)){char line[220]{};
-            sprintf_s(line,"TPS V1.52 LAVA_REJECT player=%d n=%u stage=%s defaultFlags=0x%X nativePairRetained=1",owner.index+1,n,rejected,defaultFlags);g_log(line);}
+            sprintf_s(line,"TPS V1.53 LAVA_REJECT player=%d n=%u stage=%s defaultFlags=0x%X nativePairRetained=1",owner.index+1,n,rejected,defaultFlags);g_log(line);}
     }
 }
 }
@@ -191,10 +222,14 @@ void Initialize(LogFn log,bool exactExecutable,RayProvider provider){
         {0x6647A0,{0x48,0x83,0xEC,0x28,0x0F,0x57,0xDB,0x0F,0x2F,0xCB,0x73,0x3E,0xF3,0x0F,0x59,0xC0}},
         {0x664800,{0x48,0x83,0xEC,0x68,0x44,0x0F,0x29,0x4C,0x24,0x20,0x0F,0x57,0xC0,0x44,0x0F,0x28}},
         {0x7C1CE0,{0x4C,0x8B,0xDC,0x48,0x83,0xEC,0x78,0x48,0x8B,0x05,0x72,0xF5,0x04,0x03,0x48,0x85}},
-        {0x7BABA0,{0x4C,0x8B,0xDC,0x48,0x83,0xEC,0x78,0x48,0x8B,0x05,0xA2,0x64,0x05,0x03,0x48,0x85}}
+        {0x7BABA0,{0x4C,0x8B,0xDC,0x48,0x83,0xEC,0x78,0x48,0x8B,0x05,0xA2,0x64,0x05,0x03,0x48,0x85}},
+        {0x1773600,{0x48,0x83,0xEC,0x18,0x0F,0x28,0x2D,0x05,0xB8,0xED,0x00,0x48,0x8B,0xC2,0x0F,0x29}},
+        {0x61D410,{0x48,0x8B,0xC4,0x55,0x56,0x57,0x41,0x54,0x41,0x55,0x41,0x56,0x41,0x57,0x48,0x8D}},
+        {0x61D5E0,{0xE8,0x1B,0x60,0x15,0x01,0x49,0x8B,0x8E,0xE8,0x05,0x00,0x00,0xF2,0x0F,0x10,0x00}},
+        {0x763190,{0x4C,0x8B,0xDC,0x48,0x83,0xEC,0x78,0x48,0x8B,0x05,0x12,0x73,0x0A,0x03,0x48,0x85}}
     };
     for(const auto& guard:guards)if(std::memcmp(reinterpret_cast<void*>(g_base+guard.rva),guard.bytes,16)){
-        if(log)log("TPS V1.52 projectile signatures mismatch; native retained");return;
+        if(log)log("TPS V1.53 projectile signatures mismatch; native retained");return;
     }
     g_movementClass=reinterpret_cast<ClassGetter>(g_base+0x1DCEE00);
     g_gravity=reinterpret_cast<Gravity>(g_base+0x1C9BCB0);
@@ -204,20 +239,22 @@ void Initialize(LogFn log,bool exactExecutable,RayProvider provider){
     const Hook hooks[]={
         {0x6A9F20,reinterpret_cast<void*>(&HookRotation),reinterpret_cast<void**>(&g_original)},
         {0x59C930,reinterpret_cast<void*>(&Finish),reinterpret_cast<void**>(&g_finish)},
-        {0x5B7DC0,reinterpret_cast<void*>(&UpdateLava),reinterpret_cast<void**>(&g_lava)}
+        {0x5B7DC0,reinterpret_cast<void*>(&UpdateLava),reinterpret_cast<void**>(&g_lava)},
+        {0x1773600,reinterpret_cast<void*>(&HookBeamForward),reinterpret_cast<void**>(&g_forward)}
     };
     const auto status=MH_Initialize();if(status!=MH_OK&&status!=MH_ERROR_ALREADY_INITIALIZED)return;
     unsigned created=0;bool ok=true;
     for(const auto& h:hooks){if(MH_CreateHook(reinterpret_cast<void*>(g_base+h.rva),h.detour,h.original)!=MH_OK){ok=false;break;}++created;}
     if(ok)for(const auto& h:hooks)if(MH_EnableHook(reinterpret_cast<void*>(g_base+h.rva))!=MH_OK){ok=false;break;}
     if(!ok){for(unsigned i=0;i<created;++i){MH_DisableHook(reinterpret_cast<void*>(g_base+hooks[i].rva));MH_RemoveHook(reinterpret_cast<void*>(g_base+hooks[i].rva));}
-        g_original=nullptr;g_finish=nullptr;g_lava=nullptr;
-        if(log)log("TPS V1.52 projectile hook transaction failed; native retained");return;}
-    if(log)log("TPS V1.52 TARGET3D READY: local Strife pistols + final ability rotation + Lava paired arc; P1/P2, native collision, release independent; EXPERIMENTAL");
+        g_original=nullptr;g_finish=nullptr;g_lava=nullptr;g_forward=nullptr;
+        if(log)log("TPS V1.53 projectile hook transaction failed; native retained");return;}
+    if(log)log("TPS V1.53 TARGET3D READY: common target, native forward collision, scoped free-beam direction; original beam range/chains; EXPERIMENTAL");
 }
 void Report(){
     if(!g_log)return;char line[260]{};
-    sprintf_s(line,"TPS V1.52 TARGET3D totals native=%u pistolP1=%u P2=%u finishP1=%u P2=%u lavaP1=%u P2=%u lavaRejected=%u impactValidation=USER_REQUIRED",
+    sprintf_s(line,"TPS V1.53 TARGET3D totals native=%u pistolP1=%u P2=%u finishP1=%u P2=%u lavaP1=%u P2=%u lavaRejected=%u impactValidation=USER_REQUIRED",
         g_calls.load(),g_adjusted[0].load(),g_adjusted[1].load(),g_finished[0].load(),g_finished[1].load(),g_lobbed[0].load(),g_lobbed[1].load(),g_lavaRejected.load());g_log(line);
+    sprintf_s(line,"TPS V1.53 BEAM_FORWARD totals P1=%u P2=%u rootForwardConsumerOnly=1 socketAndTargetChainsNative=1 gameplayValidation=USER_REQUIRED",g_beams[0].load(),g_beams[1].load());g_log(line);
 }
 }

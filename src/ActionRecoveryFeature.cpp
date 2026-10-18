@@ -90,6 +90,18 @@ bool Owner(void* ability,local_players::Context& owner){
         Read(actor,0x388,movement)&&movement&&Read(movement,0x1B0,mode)&&mode==6&&
         Read(movement,0x1B1,custom)&&custom==5&&ActiveComponent(ability,actor);
 }
+bool CombatAction(void* actor,bool& active){
+    // Native GetActionState thunk 770D00 uses this exact action interface.
+    // ECharacterActions: ranged one=18, ranged two=20, AIM=31. Native dash
+    // code also queries 18/20 here. These are actions, never physical keys.
+    void* table=nullptr;uintptr_t query=0;
+    if(!Read(actor,0x8D0,table)||!Read(table,0x18,query)||!query)return false;
+    using State=unsigned char(*)(void*,unsigned char);
+    const auto state=reinterpret_cast<State>(query);
+    void* actionInterface=static_cast<unsigned char*>(actor)+0x8D0;
+    active=state(actionInterface,18)!=0||state(actionInterface,20)!=0||state(actionInterface,31)!=0;
+    return true;
+}
 void Tick(void* ability,float dt,ULONGLONG now){
     // Native input, montage notifies and the FULL physics step always run
     // once at the original dt, before evaluating recovery.
@@ -106,6 +118,8 @@ void Tick(void* ability,float dt,ULONGLONG now){
     watch.local=owner.localPlayer;watch.character=owner.character;watch.dash=now;
     if(!rt.actionRecoveryEnabled.load()){g_phase[0]={};g_phase[1]={};return;}
     auto& phase=g_phase[owner.index];
+    bool combat=false;
+    if(!CombatAction(reinterpret_cast<void*>(owner.character),combat)||combat){phase={};return;}
     if(native_tps::IsWorldPaused(reinterpret_cast<void*>(owner.character))||
        native_tps::CinematicActive(unsigned(owner.index))){phase={};return;}
     float remaining=0,duration=0,elapsed=0;
@@ -195,9 +209,10 @@ void ObserveNativeLook(void* actor,float x,float y){
     PadSample pad{};
     if(owner.controllerId>=0&&owner.controllerId<4)pad=g_physical[owner.controllerId];
     const bool physicalFresh=pad.tick&&now>=pad.tick&&now-pad.tick<=250;
-    char line[450]{};
-    sprintf_s(line,"Recovery V1.52 AIM_AFTER_DASH player=%d recovery=%d tps=%d ageMs=%llu physicalFresh=%d rawPad=(%d,%d;%d,%d) nativeSwap=%d rawWorldLook=(%.3f,%.3f) nativeGetter=(%.3f,%.3f) movement=%u/%u activeCount=%d firstActionVtableRva=%llX readOnly=1",
-        owner.index+1,rt.actionRecoveryEnabled.load()?1:0,rt.thirdPersonEnabled.load()?1:0,now-watch.dash,physicalFresh?1:0,pad.lx,pad.ly,pad.rx,pad.ry,pad.known?int(pad.swap):-1,rawX,rawY,x,y,unsigned(mode),unsigned(custom),count,table>=g_base?table-g_base:0);g_log(line);
+    bool combat=false;const bool actionsKnown=CombatAction(actor,combat);
+    char line[500]{};
+    sprintf_s(line,"Recovery V1.53 AIM_AFTER_DASH player=%d recovery=%d tps=%d ageMs=%llu physicalFresh=%d rawPad=(%d,%d;%d,%d) nativeSwap=%d rawWorldLook=(%.3f,%.3f) nativeGetter=(%.3f,%.3f) movement=%u/%u activeCount=%d firstActionVtableRva=%llX actionsKnown=%d combatAction=%d readOnly=1",
+        owner.index+1,rt.actionRecoveryEnabled.load()?1:0,rt.thirdPersonEnabled.load()?1:0,now-watch.dash,physicalFresh?1:0,pad.lx,pad.ly,pad.rx,pad.ry,pad.known?int(pad.swap):-1,rawX,rawY,x,y,unsigned(mode),unsigned(custom),count,table>=g_base?table-g_base:0,actionsKnown?1:0,combat?1:0);g_log(line);
 }
 void Report(){if(g_log){char line[210]{};sprintf_s(line,"Recovery V1.49 totals positivePhasesP1=%u P2=%u nativeFinishRequestsP1=%u P2=%u gameplayValidation=USER_REQUIRED",g_armed[0].load(),g_armed[1].load(),g_requested[0].load(),g_requested[1].load());g_log(line);}}
 }
