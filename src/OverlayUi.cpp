@@ -446,10 +446,12 @@ void Draw(Context& c) {
             DrawToggleFeature(config,"Limited Standard ammunition","FiniteStandardAmmo",&config.finiteStandardAmmoEnabled,
                 "Makes native Standard reserves finite. Starts full when enabled; changing capacity clamps the reserve without refilling. OFF restores native infinity. Fill ammunition, reduced consumption and Unlimited also apply. Native Hotstreak rules stay unchanged.",dg::ammo::StandardReady());
             if(config.finiteStandardAmmoEnabled){
+                ImGui::Indent(22.0f);
                 float capacity=float(config.standardAmmoCapacity);
                 if(DrawNumberRow("Standard reserve capacity","StandardAmmoCapacity",&capacity,1,10000,200,"%.0f rounds","%.0f")){
                     config.standardAmmoCapacity=int(std::lround(capacity));config.Save();
                 }
+                ImGui::Unindent(22.0f);
             }
             DrawToggleFeature(config,"Unlimited ammo","UnlimitedAmmo",&config.unlimitedAmmoEnabled,
                 "Keeps finite ammunition full, including Standard when limited. Takes priority over reduced consumption. Assign a toggle in Hotkeys.",ammoReady);

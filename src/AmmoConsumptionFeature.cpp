@@ -58,7 +58,7 @@ bool Instance(void* object,uintptr_t slot){
 bool Authority(void* object){unsigned char role=0;return Read(object,0x118,role)&&role==3;}
 bool StandardProxy(void* proxy,const PlayerAmmo& player){
     uintptr_t owner=0;unsigned char type=0;
-    // Native EAmmoType::DEFAULT=1. DualPistols and StandardShot both own
+    // Native EAmmoType::REGULAR=1. DualPistols and StandardShot both own
     // native Standard reserves; WorldEnder is type 4 and stays infinite.
     return g_nativeMaximum&&Instance(proxy,0x3811D40)&&Authority(proxy)&&
         Read(proxy,0x108,owner)&&owner==player.resource&&Read(proxy,0x348,type)&&type==1&&
