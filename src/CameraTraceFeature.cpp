@@ -2,6 +2,8 @@
 #include "LocalPlayerOwnership.h"
 #include "CoopCameraFeature.h"
 #include "CameraContinuity.h"
+#include "TpsCameraFocus.h"
+#include "ActionRecoveryFeature.h"
 #include "RuntimeSettings.h"
 #include "NativeTpsFeature.h"
 #include "ChaosPoseFeature.h"
@@ -49,6 +51,8 @@ struct HeldTpsView {
     uintptr_t camera=0;
     uint32_t generation=UINT32_MAX;
     float values[7]{};
+    camera_focus::Point focus{};
+    bool focusValid=false;
     bool valid=false;
 };
 thread_local HeldTpsView g_heldView;
@@ -154,7 +158,12 @@ void HookView(void* camera, float dt, void* outView) {
     }
     dg::local_players::Context viewOwner{};
     const bool ownedView=dg::local_players::ResolveCamera(camera,viewOwner);
-    if(ownedView)dg::local_players::ObserveGameplay(viewOwner);
+    if(ownedView){
+        dg::local_players::ObserveGameplay(viewOwner);
+        // Runs in both native/TPS views even when an ended aim ability no
+        // longer reads look input. Outside native movement/ability ticks.
+        dg::recovery::OnLivePlayer(reinterpret_cast<void*>(viewOwner.character));
+    }
     if(settings.thirdPersonEnabled.load()){
         // Coop requires a proved player component or manager-owned fallback
         // camera. Unknown solo camera paths retain the validated fallback.
@@ -226,6 +235,7 @@ void HookView(void* camera, float dt, void* outView) {
         // Keep the last rendered TPS composition, including during stopped
         // actor callbacks. No fake actor timestamps, UI aim or synthetic input.
         std::memcpy(p,g_heldView.values,sizeof(g_heldView.values));
+        if(g_heldView.focusValid)camera_focus::Compensate(p,g_heldView.focus);
         settings.tpsViewGameplay.store(false,std::memory_order_release);
         settings.tpsMountedViewActive.store(false,std::memory_order_release);
         return;
@@ -431,6 +441,7 @@ void HookView(void* camera, float dt, void* outView) {
         g_heldView.camera==reinterpret_cast<uintptr_t>(camera);
     if(thirdPerson&&wheelInput&&sameTpsCamera&&!actorValid){
         std::memcpy(p,g_heldView.values,sizeof(g_heldView.values));
+        if(g_heldView.focusValid)camera_focus::Compensate(p,g_heldView.focus);
         settings.tpsViewGameplay.store(false,std::memory_order_release);
         settings.tpsMountedViewActive.store(false,std::memory_order_release);
         return; // stopped pose callbacks only; no live follow/orbit is frozen
@@ -741,6 +752,11 @@ void HookView(void* camera, float dt, void* outView) {
                 std::memcpy(p,&outX,4);std::memcpy(p+4,&outY,4);std::memcpy(p+8,&outZ,4);
                 std::memcpy(p+12,&appliedPitch,4);std::memcpy(p+16,&appliedYaw,4);
                 appliedHeight=outZ;
+                g_heldView.focusValid=attached&&ownedView;
+                if(g_heldView.focusValid){
+                    g_heldView.focus={ax,ay,az};
+                    camera_focus::Compensate(p,g_heldView.focus);
+                }
                 g_tpsEmittedX.store(outX,std::memory_order_relaxed);
                 g_tpsEmittedY.store(outY,std::memory_order_relaxed);
                 g_tpsEmittedZ.store(outZ,std::memory_order_relaxed);

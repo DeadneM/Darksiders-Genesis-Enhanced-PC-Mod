@@ -35,7 +35,11 @@ dash_combat::AimResume g_resume[2]{};
 using NotifyFn=void(*)(void*,void*,void*);
 NotifyFn g_notify=nullptr;
 std::atomic_bool g_combatReady{false};
-std::atomic_uint32_t g_resumed{0},g_suppressed{0};
+std::atomic_uint32_t g_resumed{0},g_suppressed{0},g_unavailable{0};
+using ActionQueryFn=unsigned char(*)(void*,unsigned char);
+using StartAimFn=void(*)(void*);
+ActionQueryFn g_actionQuery=nullptr;
+StartAimFn g_startAim=nullptr;
 thread_local bool g_resuming=false;
 bool Readable(const void* p,size_t bytes){
     MEMORY_BASIC_INFORMATION m{};
@@ -141,8 +145,9 @@ bool AimActions(void* actor,bool& aim,bool& primary,bool& secondary){
     void* table=nullptr;uintptr_t query=0;
     // Recorded Strife action interface; 669D30 -> 635100 reads the native
     // action-state array. No XInput mask, key, axis or synthetic release.
-    if(!Read(actor,0x8D0,table)||!Read(table,0x18,query)||query!=g_base+0x669D30)return false;
-    using Query=unsigned char(*)(void*,unsigned char);auto fn=reinterpret_cast<Query>(query);
+    if(!g_actionQuery||!Read(actor,0x8D0,table)||!Read(table,0x18,query)||
+       query!=reinterpret_cast<uintptr_t>(g_actionQuery))return false;
+    auto fn=g_actionQuery;
     void* iface=static_cast<unsigned char*>(actor)+0x8D0;
     aim=fn(iface,31)!=0;primary=fn(iface,18)!=0;secondary=fn(iface,20)!=0;return true;
 }
@@ -162,19 +167,20 @@ bool GroundDashActive(void* actor){
     return false;
 }
 void* MainPistols(void* actor){
-    void* cls=nullptr;void* table=nullptr;uintptr_t getter=0;
-    if(!Read(reinterpret_cast<void*>(g_base+0x3811D70),0,cls)||!cls)return nullptr;
-    // The exact same native ranged-owner interface/GetRangedWeapon used by
-    // 5D8130. CC0 belongs to another field on PlayerCharacter; never guess it.
-    using Interface=void*(*)(void*,void*);
-    void* iface=reinterpret_cast<Interface>(g_base+0xABA640)(actor,cls);
-    if(!iface||!Read(iface,0,table)||!Read(table,0x30,getter)||
-       getter<g_base+0x1000||getter>=g_base+0x2600000)return nullptr;
-    using Getter=void*(*)(void*);void* weapon=reinterpret_cast<Getter>(getter)(iface);
-    void* reciprocal=nullptr;void* aimClass=nullptr;
+    // The action-context ranged getter 66A7F0 returns null when its E08
+    // context stack is empty. General AIM instead belongs to DualPistolsBP:
+    // reflected Strife member 1038, also registered in native weapon slot 5.
+    void* component=nullptr;void* reciprocal=nullptr;void* array=nullptr;
+    void* weapon=nullptr;void* reflected=nullptr;void* aimClass=nullptr;
+    int count=0,capacity=0;
+    if(!Read(actor,0xC78,component)||!Read(component,0xE8,reciprocal)||reciprocal!=actor||
+       !Read(component,0x108,array)||!array||!Read(component,0x110,count)||
+       !Read(component,0x114,capacity)||count<6||count>capacity||capacity>32||
+       !Read(array,5*8,weapon)||!Read(actor,0x1038,reflected)||weapon!=reflected)return nullptr;
     return Typed(weapon,0x3811D20)&&Read(weapon,0xE8,reciprocal)&&reciprocal==actor&&
         ClassNameIs(weapon,"MayhemWeapon_DualPistols_Blueprint_C")&&
-        Read(weapon,0x618,aimClass)&&aimClass?weapon:nullptr;
+        Read(weapon,0x618,aimClass)&&
+        NameIs(aimClass,"MayhemAbility_Strife_DualPistols_Aim_Start_Ability_C")?weapon:nullptr;
 }
 dash_combat::Ammo EquippedAmmo(void* actor,unsigned slot){
     void* component=nullptr;void* array=nullptr;void* weapon=nullptr;void* reciprocal=nullptr;
@@ -204,7 +210,7 @@ void HookSpawnNotify(void* notify,void* mesh,void* animation){
            GroundDashActive(actor)&&AimActions(actor,aim,primary,secondary)){
             suppress=dash_combat::SuppressForcedStandard(true,true,primary,EquippedAmmo(actor,2),secondary,EquippedAmmo(actor,3));
             if(suppress){const unsigned n=++g_suppressed;if(g_log&&(n<=8||n%1000==0)){
-                char line[200]{};sprintf_s(line,"Dash combat V1.55 FORCED_STANDARD_SKIPPED player=%d n=%u selectedSpecialResumesNatively=1 gameplay=EXPERIMENTAL",owner.index+1,n);g_log(line);}}
+                char line[200]{};sprintf_s(line,"Dash combat V1.56 FORCED_STANDARD_SKIPPED player=%d n=%u selectedSpecialResumesNatively=1 gameplay=EXPERIMENTAL",owner.index+1,n);g_log(line);}}
         }
     }
     if(!suppress&&g_notify)g_notify(notify,mesh,animation);
@@ -294,25 +300,25 @@ void Initialize(LogFn log,bool exactExecutable){
     const Guard combatGuards[]={
         {0x5D8130,{0x48,0x89,0x6C,0x24,0x18,0x57,0x48,0x83,0xEC,0x40,0x48,0x8B,0xBA,0xE8,0x00,0x00}},
         {0x69FBD0,{0x40,0x53,0x48,0x83,0xEC,0x50,0x48,0x83,0xB9,0x18,0x06,0x00,0x00,0x00,0x48,0x8B}},
-        {0xABA640,{0x48,0x89,0x5C,0x24,0x08,0x48,0x89,0x74,0x24,0x10,0x57,0x48,0x83,0xEC,0x20,0x33}},
-        {0x7CC170,{0x4C,0x8B,0xDC,0x48,0x83,0xEC,0x78,0x48,0x8B,0x05,0xF2,0x5B,0x04,0x03,0x48,0x85}},
         {0x7CE080,{0x4C,0x8B,0xDC,0x48,0x83,0xEC,0x78,0x48,0x8B,0x05,0x92,0x3C,0x04,0x03,0x48,0x85}},
         {0x669D30,{0x48,0x81,0xC1,0x40,0x05,0x00,0x00,0xE9,0xC4,0xB3,0xFC,0xFF,0xCC,0xCC,0xCC,0xCC}},
         {0x742030,{0x4C,0x8B,0xDC,0x48,0x83,0xEC,0x78,0x48,0x8B,0x05,0xFA,0x5D,0x0C,0x03,0x48,0x85}}
     };
     for(const auto& guard:combatGuards)if(std::memcmp(reinterpret_cast<void*>(g_base+guard.rva),guard.bytes,16)){
-        if(log)log("Dash combat V1.55 signature mismatch; native combat retained");return;
+        if(log)log("Dash combat V1.56 signature mismatch; native combat retained");return;
     }
     void* notify=reinterpret_cast<void*>(g_base+0x5D8130);
     if(MH_CreateHook(notify,reinterpret_cast<void*>(&HookSpawnNotify),reinterpret_cast<void**>(&g_notify))!=MH_OK)return;
     if(MH_EnableHook(notify)!=MH_OK){MH_RemoveHook(notify);g_notify=nullptr;return;}
+    g_actionQuery=reinterpret_cast<ActionQueryFn>(g_base+0x669D30);
+    g_startAim=reinterpret_cast<StartAimFn>(g_base+0x69FBD0);
     g_combatReady.store(true,std::memory_order_release);
-    if(log)log("Dash combat V1.55 READY: native held-AIM resume after idle ground dash; exact forced-standard notify scope; TPS/Recovery independent; EXPERIMENTAL");
+    if(log)log("Dash combat V1.56 READY: live-player held-AIM resume via registered DualPistolsBP after idle ground dash; V1.55 forced-standard scope retained; TPS/Recovery independent; EXPERIMENTAL");
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}
 void Shutdown(){g_combatReady.store(false,std::memory_order_release);g_ready.store(false,std::memory_order_release);}
-void OnNativeLook(void* actor){
-    if(!g_ready.load()||!g_combatReady.load()||g_resuming||!native_tps::OnGameThread())return;
+void OnLivePlayer(void* actor){
+    if(!g_ready.load()||!g_combatReady.load()||!g_startAim||g_resuming||!native_tps::OnGameThread())return;
     const auto now=GetTickCount64();bool pending=false;
     for(auto& resume:g_resume){
         if(resume.seen&&(now<resume.seen||now-resume.seen>3000))resume={};
@@ -332,16 +338,23 @@ void OnNativeLook(void* actor){
     void* array=nullptr;int count=0;void* movement=nullptr;unsigned char mode=0;
     bool aim=false,primary=false,secondary=false;
     if(!AbilityArray(actor,array,count)||count||!Read(actor,0x388,movement)||
-       !Read(movement,0x1B0,mode)||(mode!=1&&mode!=2)||!AimActions(actor,aim,primary,secondary)||!aim)return;
-    // Lookup can itself enter another native look query. Original getters
-    // still run, but a nested callback can never request a second ability.
+       !Read(movement,0x1B0,mode)||(mode!=1&&mode!=2)||!AimActions(actor,aim,primary,secondary))return;
+    if(!aim){resume={};return;}
+    // The native player-camera callback runs even without an aim ability.
+    // A nested callback cannot request a second ability.
     struct Scope {Scope(){g_resuming=true;}~Scope(){g_resuming=false;}} scope;
     void* pistols=MainPistols(actor);
-    if(!pistols||!resume.Take(owner.localPlayer,owner.character,now,true,true,aim))return;
-    using StartAim=void(*)(void*);reinterpret_cast<StartAim>(g_base+0x69FBD0)(pistols);
+    if(!pistols){
+        resume={}; // Unknown contract: stop, never retry every frame.
+        const unsigned n=++g_unavailable;
+        if(g_log&&n<=8)g_log("Dash combat V1.56 AIM_WEAPON_UNAVAILABLE; native action retained, no retry for this dash");
+        return;
+    }
+    if(!resume.Take(owner.localPlayer,owner.character,now,true,true,aim))return;
+    g_startAim(pistols);
     const unsigned n=++g_resumed;
     if(g_log&&(n<=8||n%1000==0)){char line[190]{};
-        sprintf_s(line,"Dash combat V1.55 AIM_RESTART_REQUEST player=%d n=%u nativeHeldAim=1 oncePerDash=1 gameplay=EXPERIMENTAL",owner.index+1,n);g_log(line);}
+        sprintf_s(line,"Dash combat V1.56 AIM_RESTART_REQUEST player=%d n=%u nativeHeldAim=1 oncePerDash=1 gameplay=EXPERIMENTAL",owner.index+1,n);g_log(line);}
 }
-void Report(){if(g_log){char line[260]{};sprintf_s(line,"Recovery/Dash V1.55 totals positivePhasesP1=%u P2=%u nativeFinishRequestsP1=%u P2=%u aimRestartRequests=%u forcedStandardSkipped=%u gameplayValidation=USER_REQUIRED",g_armed[0].load(),g_armed[1].load(),g_requested[0].load(),g_requested[1].load(),g_resumed.load(),g_suppressed.load());g_log(line);}}
+void Report(){if(g_log){char line[260]{};sprintf_s(line,"Recovery/Dash V1.56 totals positivePhasesP1=%u P2=%u nativeFinishRequestsP1=%u P2=%u aimRestartRequests=%u forcedStandardSkipped=%u gameplayValidation=USER_REQUIRED",g_armed[0].load(),g_armed[1].load(),g_requested[0].load(),g_requested[1].load(),g_resumed.load(),g_suppressed.load());g_log(line);}}
 }

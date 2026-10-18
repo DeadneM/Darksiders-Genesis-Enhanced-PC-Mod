@@ -7,7 +7,9 @@
 #include <vector>
 namespace {
 struct Player {
-    alignas(16) unsigned char actor[0x1000]{},ability[0x240]{},component[0x110]{},movement[0x200]{},resource[0x400]{};
+    alignas(16) unsigned char actor[0x1100]{},ability[0x240]{},component[0x110]{},movement[0x200]{},resource[0x400]{};
+    unsigned char pistols[0x6C0]{},weapons[0x120]{};
+    void* equipped[6]{};
     void* active[1]{};
 };
 Player players[2];
@@ -18,9 +20,13 @@ uintptr_t actionTable[4]{};uint64_t nativeActions[2]{};
 dg::local_players::Context owners[2]{};
 bool gameThread=true,paused=false,cinema=false,endDuringTick=false;
 unsigned nativeCalls=0,finishCalls[2]{};float actualDt=0;std::vector<int> order;
+unsigned aimStarts=0;void* aimOwner=nullptr;
+unsigned char aimClass[0x80]{},nameEntries[2][100]{};
+void* namePointers[2]{nameEntries[0],nameEntries[1]};void* nameChunks[1]{namePointers};
 template<class T> void Put(void* p,size_t o,T value){std::memcpy(static_cast<unsigned char*>(p)+o,&value,sizeof(value));}
 template<class T> T Get(void* p,size_t o){T value{};std::memcpy(&value,static_cast<unsigned char*>(p)+o,sizeof(value));return value;}
 void Check(bool value,const char* message){if(!value)throw std::runtime_error(message);}
+void StartAim(void* weapon){++aimStarts;aimOwner=Get<void*>(weapon,0xE8);}
 int Index(void* a){return a==players[1].ability?1:0;}
 unsigned char ActionState(void* p,unsigned char action){
     const auto actor=static_cast<unsigned char*>(p)-0x8D0;
@@ -43,6 +49,8 @@ void Fresh(){
     auto& rt=dg::runtime::Get();rt.actionRecoveryEnabled=true;rt.actionRecoveryDelayMs=0;
     dg::recovery::g_ready=true;dg::recovery::g_tick=NativeTick;dg::recovery::g_finish=NativeFinish;
     dg::recovery::g_phase[0]={};dg::recovery::g_phase[1]={};
+    dg::recovery::g_resume[0]={};dg::recovery::g_resume[1]={};
+    dg::recovery::g_combatReady=false;aimStarts=0;aimOwner=nullptr;
     nativeActions[0]=nativeActions[1]=0;actionTable[3]=reinterpret_cast<uintptr_t>(&ActionState);
     Put(cls,0x30,tree+0);Put(cls,0x38,0);
     table[0x2E0/8]=dg::recovery::g_base+0x5B93F0;table[0x2A8/8]=dg::recovery::g_base+0x59C110;
@@ -52,6 +60,11 @@ void Fresh(){
         Put(p.actor,0x8D0,actionTable+0);
         Put<unsigned char>(p.actor,0xC18,static_cast<unsigned char>(i+1));Put(p.actor,0x388,static_cast<void*>(p.movement));
         Put(p.actor,0xEA0,static_cast<void*>(p.resource));Put(p.resource,0x10,static_cast<void*>(cls));
+        Put(p.actor,0xC78,static_cast<void*>(p.weapons));Put(p.actor,0x1038,static_cast<void*>(p.pistols));
+        Put(p.weapons,0xE8,static_cast<void*>(p.actor));Put(p.weapons,0x108,p.equipped+0);
+        Put(p.weapons,0x110,6);Put(p.weapons,0x114,6);p.equipped[5]=p.pistols;
+        Put(p.pistols,0x10,static_cast<void*>(cls));Put(p.pistols,0xE8,static_cast<void*>(p.actor));
+        Put(p.pistols,0x618,static_cast<void*>(aimClass));
         Put<unsigned char>(p.resource,0x118,3);Put(p.resource,0x37C,100.0f);
         Put<unsigned char>(p.movement,0x1B0,6);Put<unsigned char>(p.movement,0x1B1,5);
         Put(p.component,0xE8,static_cast<void*>(p.actor));Put(p.component,0xF8,p.active+0);
@@ -68,10 +81,16 @@ void Unchanged(const std::function<void()>& alter,const char* message){
     Fresh();alter();Tick(0,100);Cross(0,116);Check(!finishCalls[0],message);
 }
 void Run(){
-    std::vector<unsigned char> image(0x3900000);
+    std::vector<unsigned char> image(0x3960000);
     dg::recovery::g_base=reinterpret_cast<uintptr_t>(image.data());
     Put(image.data(),0x3810F90,static_cast<void*>(cls));
     Put(image.data(),0x3810268,static_cast<void*>(cls));
+    Put(image.data(),0x3811D20,static_cast<void*>(cls));
+    Put(image.data(),0x3955198,nameChunks+0);Put(aimClass,0x18,1);
+    const char weaponName[]="MayhemWeapon_DualPistols_Blueprint_C";
+    const char aimName[]="MayhemAbility_Strife_DualPistols_Aim_Start_Ability_C";
+    std::memcpy(nameEntries[0]+0xC,weaponName,sizeof(weaponName));
+    std::memcpy(nameEntries[1]+0xC,aimName,sizeof(aimName));
     Fresh();const auto actorBefore=std::to_array(players[0].actor);
     Tick(0,100);Check(!finishCalls[0],"positive deceleration keeps full native movement");
     Cross(0,116);Check(finishCalls[0]==1&&nativeCalls==2&&actualDt==0.016f,"first completed deceleration requests native finish after exact original dt");
@@ -113,6 +132,36 @@ void Run(){
     Unchanged([]{Put(players[0].component,0x104,100);},"invalid ability array stays native");
     Unchanged([]{dg::runtime::Get().actionRecoveryDelayMs=std::numeric_limits<float>::quiet_NaN();},"nonfinite setting stays native");
     Fresh();Tick(0,100,-0.016f);Check(nativeCalls==1&&actualDt==-0.016f&&!finishCalls[0],"invalid dt is forwarded but never used for recovery");
+    // Exercise the actual live callback with the captured missing-ability
+    // state. No look getter is invoked anywhere in this sequence.
+    for(bool tps:{false,true})for(bool recovery:{false,true}){
+        Fresh();dg::runtime::Get().thirdPersonEnabled=tps;dg::runtime::Get().actionRecoveryEnabled=recovery;
+        dg::recovery::g_combatReady=true;dg::recovery::g_actionQuery=ActionState;
+        dg::recovery::g_startAim=StartAim;
+        nativeActions[0]=uint64_t(1)<<31;
+        Tick(0,GetTickCount64());dg::recovery::OnLivePlayer(players[0].actor);
+        Check(!aimStarts,"active dash wins over held aim");
+        Put(players[0].component,0x100,0);Put<unsigned char>(players[0].movement,0x1B0,1);
+        dg::recovery::OnLivePlayer(players[0].actor);
+        Check(aimStarts==1&&aimOwner==players[0].actor,"live callback requests general native AIM with an empty ability/action-context stack and no look getter, TPS/Recovery OFF/ON");
+        dg::recovery::OnLivePlayer(players[0].actor);Check(aimStarts==1,"native request/rejection cannot start abilities repeatedly");
+    }
+    Fresh();dg::recovery::g_combatReady=true;dg::recovery::g_actionQuery=ActionState;
+    dg::recovery::g_startAim=StartAim;
+    nativeActions[0]=uint64_t(1)<<31;Tick(0,GetTickCount64());
+    Put(players[0].component,0x100,0);Put<unsigned char>(players[0].movement,0x1B0,1);nativeActions[0]=0;
+    dg::recovery::OnLivePlayer(players[0].actor);
+    Check(!aimStarts&&!dg::recovery::g_resume[0].seen,"release discards old intent before a later unrelated aim press");
+    Fresh();dg::recovery::g_combatReady=true;dg::recovery::g_actionQuery=ActionState;dg::recovery::g_startAim=StartAim;
+    nativeActions[0]=uint64_t(1)<<31;Tick(0,GetTickCount64());
+    Put(players[0].component,0x100,0);Put<unsigned char>(players[0].movement,0x1B0,1);
+    Put(players[0].actor,0x1038,static_cast<void*>(nullptr));dg::recovery::OnLivePlayer(players[0].actor);
+    Check(!aimStarts&&!dg::recovery::g_resume[0].seen,"unrecognized or mismatching main pistol stops the repair for this dash");
+    Fresh();dg::recovery::g_combatReady=true;dg::recovery::g_actionQuery=ActionState;dg::recovery::g_startAim=StartAim;
+    Put<unsigned char>(players[1].actor,0xC18,1);nativeActions[1]=uint64_t(1)<<31;
+    Tick(1,GetTickCount64());Put(players[1].component,0x100,0);Put<unsigned char>(players[1].movement,0x1B0,1);
+    dg::recovery::OnLivePlayer(players[0].actor);Check(!aimStarts,"P1 service cannot consume P2's missing aim");
+    dg::recovery::OnLivePlayer(players[1].actor);Check(aimStarts==1&&aimOwner==players[1].actor,"P2 restores only its own registered pistols");
 }
 }
 namespace dg::native_tps {

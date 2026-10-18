@@ -35,6 +35,7 @@
 #include "HealthFeature.h"
 #include "GlideFeature.h"
 #include "ActionRecoveryFeature.h"
+#include "TpsCameraFocus.h"
 #include "ControllerReadScope.h"
 #include "TpsAimDirection.h"
 #include "NativeObjectIdentity.h"
@@ -650,6 +651,16 @@ void InitializeCameraDof() {
     }
     g_dofSlot=reinterpret_cast<LONG**>(const_cast<BYTE*>(base)+0x381DEA8);
     Log("Camera DOF V1.54: r.DepthOfFieldQuality game/render shadows validated");
+    const BYTE copySig[]={0x48,0x8D,0x93,0xD0,0x02,0x00,0x00,0x48,0x8D,0x4F,0x40};
+    const BYTE overrideSig[]={0x80,0x49,0x16,0x10,0xC3};
+    unsigned focalOffset=0;
+    std::memcpy(&focalOffset,base+0x37958E0+36,4);
+    const bool focusLayout=focalOffset==0x454&&
+        !std::memcmp(base+0x16FA753,copySig,sizeof(copySig))&&
+        !std::memcmp(base+0x1DD2DD0,overrideSig,sizeof(overrideSig));
+    dg::camera_focus::layoutReady.store(focusLayout,std::memory_order_release);
+    Log(focusLayout?"Camera DOF V1.56: per-view TPS player focus ready; native quality/blur settings retained; EXPERIMENTAL":
+        "Camera DOF V1.56: focus layout unsupported; V1.54 suppression retained");
 }
 void RestoreCameraDof() {
     // Restore only our zeroes in the current registered allocation. A native
@@ -670,13 +681,14 @@ void UpdateCameraDof() {
     }
     const auto& camera=dg::runtime::Get();
     const float zoom=camera.cameraZoomPercent.load(std::memory_order_relaxed);
-    // Reuse the camera's existing native-cinematic ownership signal. Its
-    // original postprocess wins; no new distance/menu classifier is added.
-    // Manual zoom remains an independent reason to suppress gameplay DOF.
-    const bool displaced=!camera.tpsCutsceneSuspended.load(std::memory_order_relaxed) &&
-        ((camera.thirdPersonEnabled.load(std::memory_order_relaxed) &&
-          !camera.tpsTemporarilySuspended.load(std::memory_order_relaxed)) ||
-         (std::isfinite(zoom)&&std::fabs(zoom)>0.0001f));
+    // TPS now compensates the per-view focus plane without disabling DOF.
+    // Retain V1.54 only for unsupported layouts or the separate native zoom.
+    // Cinematic ownership still restores native quality unconditionally.
+    const bool tps=camera.thirdPersonEnabled.load(std::memory_order_relaxed)&&
+        !camera.tpsTemporarilySuspended.load(std::memory_order_relaxed);
+    const bool displaced=!camera.tpsCutsceneSuspended.load(std::memory_order_relaxed)&&
+        ((tps&&!dg::camera_focus::Ready())||
+         (!tps&&std::isfinite(zoom)&&std::fabs(zoom)>0.0001f));
     if(!displaced){RestoreCameraDof();return;}
     LONG current[2]{};
     for(unsigned i=0;i<2;++i)
@@ -1536,7 +1548,6 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     auto original=g_originalGetPlayerLookInput;
     if(!original)return out;
     auto* result=original(actor,out);
-    if(result)dg::recovery::OnNativeLook(actor);
     if(result&&dg::local_players::CoopActive()&&dg::coop_camera::AdjustLook(actor,result->pitch,result->yaw,result->roll,false))return result;
     const unsigned calls=++g_tpsLookInputCalls;
     if(!result||!IsLiveTPSLookActor(actor) ||

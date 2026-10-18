@@ -1,3 +1,19 @@
+## V1.56 — reprise de visée native et mise au point TPS (18 octobre 2026)
+
+**SOURCE DE TEST / EXPÉRIMENTAL — construction et validation en jeu à effectuer.** Base cumulative V1.55 `0b1d21a0d35740774a5f870ebab0f1a3919e379e`, avec les tirs précédemment validés conservés. Retour V1.55 : déplacement + visée + dash toujours défectueux ; projectiles Standard forcés retirés mais animation/son encore présents ; tir standard/P2/roues « ça a l'air OK » ; suppression du flou confirmée, conservation de l'effet demandée.
+
+La nouvelle capture en lecture seule voit **trois Dash Aim** : AIM reste tenu et le vecteur de visée reste non nul, tandis que les capacités deviennent vides pendant plusieurs secondes. Deux défauts V1.55 sont corrigés dans la source : la reprise dépendait d'un getter appelé par la capacité disparue ; son accès à l'arme utilisait une pile de contexte vide après le dash. V1.56 utilise le passage existant de caméra du joueur, dans les deux vues, et le vrai composant `DualPistolsBP`, vérifié à la fois dans le personnage et son équipement. Toujours une seule demande native, avec les gardes de propriétaire/sol/vie/AIM/pause/cinématique ; aucun axe, touche ou bit d'action forcé. Recovery ON/OFF conserve la même physique et le même nettoyage.
+
+En TPS, la qualité de profondeur de champ reste native : seule la distance de mise au point de la vue émise suit la profondeur du personnage. Méthode, ouverture, tailles de flou, transitions, poids et autres effets sont conservés. P1/P2 ont chacun leur sortie ; pauses/roues gardent le dernier plan et les cinématiques/vue native ne reçoivent pas cette compensation. Un poids caméra partiel/inconnu reste natif ; l'ancien zoom manuel et le repli de compatibilité conservent leur règle V1.54. **L'aspect visuel du nouveau plan n'est pas encore validé.**
+
+**Toujours ouvert : son et animation du tir Standard pendant le dash spécial.** Le filtre de projectiles V1.55 est conservé. La piste de sélection d'un Dash Aim à la place du Dash Fire a été écartée avant construction : elle change aussi la suspension/reprise des capacités spéciales, et pourrait dégrader le tir chargé. Aucun nouveau hook de variante, remplacement d'asset ou filtre audio général n'est livré.
+
+Nettoyage : ancien rappel de reprise dans le getter et ancien accès à l'arme de contexte retirés ; aucune couche de correction concurrente. Balistique/cible, XInput, RawInput, coop, raccourcis, ressources et configuration conservés. 119 clés INI, 48 actions Hotkeys et 120 anciennes archives à préserver. Suite de 30 tests prévue, dont un scénario sur le vrai code de reprise avec pile de contexte vide et sans appel au getter, et un contrôle des seuls octets modifiés pour la mise au point. Ces tests ne remplacent pas un essai dans le jeu.
+
+**Essais :** (1) déplacement + visée + dash, vue native/TPS, Recovery OFF/ON, sans relâcher la visée ; (2) tir Static/Charge normal et Hotstreak pendant/après dash, puis Standard et P2/roues ; (3) chapitre 8 immobile/mouvement, plusieurs distances et angles TPS : personnage net, effet de profondeur encore visible ; (4) retour temporaire/vue native/cinématique et chaque vue coop ; (5) contrôle court des tirs Lava, Charge et faisceaux déjà validés. [Audit, limites et critères d'arrêt](V1_56_NATIVE_DASH_FOCUS_TEST.md). Les statuts ci-dessous sont historiques.
+
+---
+
 ## V1.55 — construite, contrôlée et installée (18 octobre 2026)
 
 **CONSTRUIT / CONTRÔLÉ / INSTALLÉ / EXPÉRIMENTAL — validation utilisateur nécessaire.** Base cumulative V1.54 `6bea05ec6347ef4e0a15e34e7c2b6bc8a23491b2`, avec les tirs V1.53 validés conservés. V1.54 n'avait pas été installée : V1.55 remplace directement l'installation V1.53 et apporte aussi son correctif de profondeur de champ côté rendu.

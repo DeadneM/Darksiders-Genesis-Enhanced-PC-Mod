@@ -5,6 +5,7 @@
 #include "TpsStickRoles.h"
 #include "TpsPadActions.h"
 #include "CameraContinuity.h"
+#include "TpsCameraFocus.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -21,6 +22,7 @@ struct State {
     bool baseValid=false,armValid=false,held=false,gameplay=false;
     bool paused=false,cinema=false,nativeForm=false;
     float heldView[7]{};
+    camera_focus::Point focus{};
     ULONGLONG viewTick=0,inputTick=0,suspendStarted=0;
     bool focused=false,wheel=false,fire=false,stick=false,temporary=false;
     bool recenterPending=false,form=false,horseChordDown=false;
@@ -93,8 +95,10 @@ void ApplyView(void* camera,void* outView,const local_players::Context& owner){
     s.nativeForm=s.form&&characterType!=1;
     if(!rt.thirdPersonEnabled.load()||cinema||s.temporary){s.gameplay=false;Unlock();return;}
     if(paused){
-        if(s.held&&s.camera==reinterpret_cast<uintptr_t>(camera))
+        if(s.held&&s.camera==reinterpret_cast<uintptr_t>(camera)){
             std::memcpy(values,s.heldView,sizeof(s.heldView));
+            camera_focus::Compensate(values,s.focus);
+        }
         s.gameplay=false;Unlock();return;
     }
     if(!s.baseValid){s.baseYaw=std::remainder(pose.yaw,360.0f);s.baseValid=true;}
@@ -126,6 +130,8 @@ void ApplyView(void* camera,void* outView,const local_players::Context& owner){
     for(float v:outgoing)if(!std::isfinite(v)){s.gameplay=false;Unlock();return;}
     if(std::fabs(outgoing[0])>=1e7f||std::fabs(outgoing[1])>=1e7f||std::fabs(outgoing[2])>=1e7f){Unlock();return;}
     std::memcpy(values,outgoing,sizeof(outgoing));
+    s.focus={pose.x,pose.y,pose.z};
+    camera_focus::Compensate(values,s.focus);
     std::memcpy(s.heldView,outgoing,sizeof(outgoing));
     s.camera=reinterpret_cast<uintptr_t>(camera);s.held=true;
     s.appliedYaw=yaw;s.gameplay=true;s.viewTick=now;
