@@ -118,6 +118,16 @@ bool BeginKeyboardTable(const char* id){
     ImGui::TableHeadersRow();
     return true;
 }
+void DrawManualPadRow(config::Store& config,const char* label,int& value){
+    constexpr int masks[]={0,0x0100,0x0200,0x0040,0x0080,0x1000,0x2000,0x4000,0x8000,
+        0x0001,0x0002,0x0004,0x0008,0x0010,0x0020,0x10000,0x20000};
+    constexpr const char* labels[]={"OFF","LB / L1","RB / R1","L3","R3","A / Cross","B / Circle",
+        "X / Square","Y / Triangle","D-Pad Up","D-Pad Down","D-Pad Left","D-Pad Right",
+        "Start","Back","LT / L2","RT / R2"};
+    int selected=0;for(int i=0;i<17;++i)if(masks[i]==value)selected=i;
+    ImGui::SetNextItemWidth(270.0f);
+    if(ImGui::Combo(label,&selected,labels,17)){value=masks[selected];config.Save();}
+}
 void DrawKeyboardRow(Context& c,config::Store& config,const char* label,
     int& value,int original,int bindingIndex){
     const BindingRowScope rowScope(bindingIndex);
@@ -257,10 +267,17 @@ void Draw(Context& c) {
                 if(!config.sheathNeverEnabled&&DrawNumberRow("Automatic sheathing delay (seconds)","SheathDelaySeconds",&config.sheathDelaySeconds,0,300,10,"%.2f s"))config.Save();
                 ImGui::Unindent(22.0f);
             }
-            ImGui::BeginDisabled(!sheathing::Ready());
-            if(ImGui::Button("Sheathe weapons now"))sheathing::RequestSheathe();
-            ImGui::EndDisabled();
-            ImGui::TextWrapped("Sheathe weapons can be assigned in Hotkeys, independently of automatic control. Applies to eligible local players, waiting up to 5 seconds for an idle gameplay state. Active attacks/aim, cinematics and transformations stay native.");
+            ImGui::PushID("SheatheBindings");
+            ImGui::TextUnformatted("Sheathe weapons shortcuts");
+            if(BeginKeyboardTable("Keyboard")){
+                DrawKeyboardRow(c,config,"Sheathe weapons",config.sheathKeyboardKey,0,config::kSheathKeyboardBindingIndex);
+                ImGui::EndTable();
+            }
+            DrawManualPadRow(config,"Controller input 1",config.sheathPadButtonA);
+            DrawManualPadRow(config,"Controller input 2",config.sheathPadButtonB);
+            ImGui::TextWrapped("One controller input on OFF: use the other button alone. Two active inputs: press both together. Both OFF: disabled. Each controller affects its own player. Native game bindings are kept; choose an unused button or combination.");
+            ImGui::TextWrapped("The keyboard shortcut and F1-F12 Hotkeys remain available together for eligible local players, independently of automatic control. One press queues one request per player, even with the same key assigned twice. Release before pressing again. Menu/focus changes do not trigger held shortcuts. Active attacks/aim, cinematics and transformations stay native.");
+            ImGui::PopID();
 
             ImGui::TextWrapped("Action Recovery has been retired pending a native action-lock redesign. Native dash timing is restored; the validated aim-resume repair remains active.");
 

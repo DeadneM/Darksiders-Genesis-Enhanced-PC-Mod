@@ -37,6 +37,7 @@
 #include "DashCombatFeature.h"
 #include "InteractionHudFeature.h"
 #include "WeaponSheathingFeature.h"
+#include "ManualActionBinding.h"
 #include "TpsCameraFocus.h"
 #include "ControllerReadScope.h"
 #include "TpsAimDirection.h"
@@ -1933,7 +1934,7 @@ bool KeyPressed(int vk) {
     return pressed;
 }
 
-void TriggerAction(Action action, int functionKey) {
+void TriggerAction(Action action, int functionKey,unsigned playerTargets=3) {
     if (action == Action::None) {
         return;
     }
@@ -1943,7 +1944,8 @@ void TriggerAction(Action action, int functionKey) {
     if(action==Action::SheatheWeapons){
         const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
         if(!hwnd||GetForegroundWindow()!=hwnd||IsIconic(hwnd)||g_overlayVisible.load()||g_shuttingDown.load())return;
-        const bool queued=dg::sheathing::RequestSheathe();
+        bool queued=false;
+        for(unsigned i=0;i<2;++i)if(playerTargets&(1u<<i))queued=dg::sheathing::RequestSheathe(int(i))||queued;
         g_lastAction=std::string(label)+(queued?" [queued]":" [unavailable]");return;
     }
     if(action==Action::RefillHealth||action==Action::UnlimitedHealth||
@@ -2169,6 +2171,7 @@ void TriggerAction(Action action, int functionKey) {
     Log("F%d -> %s (input OK, feature not implemented)", functionKey, label);
 }
 
+unsigned SampleSheathingBindings();
 void ProcessInput() {
     const int notice=g_windowNotice.exchange(0);
     if(notice==1)g_lastAction="Keyboard binding cancelled";
@@ -2184,6 +2187,9 @@ void ProcessInput() {
             g_config.Save();
             Log("TPS V0.92: keyboard shortcut %s -> %s",
                 dg::config::kTpsKeyboardLabels[index],KeyDisplayName(vk).c_str());
+        } else if(action==dg::config::kSheathKeyboardBindingIndex){
+            g_config.sheathKeyboardKey=vk;g_config.Save();
+            g_lastAction=std::string("Sheathe weapons bound to ")+KeyDisplayName(vk);
         } else if (action >= 0 && action < static_cast<int>(g_config.cameraKeys.size())) {
             for (size_t i = 0; i < g_config.cameraKeys.size(); ++i)
                 if (i != static_cast<size_t>(action) && g_config.cameraKeys[i] == vk)
@@ -2222,6 +2228,7 @@ void ProcessInput() {
         Log("Overlay %s by %s", newState ? "OPEN" : "CLOSED", KeyDisplayName(g_config.menuKey).c_str());
     }
 
+    unsigned sheathTargets=SampleSheathingBindings();
     if (g_overlayVisible.load()) {
         // Discard refill edges while editing the menu, including held keys
         // across its close. Existing non-refill F-key behavior is preserved.
@@ -2245,9 +2252,12 @@ void ProcessInput() {
 
     for (int i = 0; i < 12; ++i) {
         if (KeyPressed(VK_F1 + i)) {
-            TriggerAction(g_config.hotkeys[static_cast<size_t>(i)], i + 1);
+            const auto action=g_config.hotkeys[static_cast<size_t>(i)];
+            if(action==Action::SheatheWeapons)sheathTargets|=3;
+            else TriggerAction(action, i + 1);
         }
     }
+    if(sheathTargets)TriggerAction(Action::SheatheWeapons,0,sheathTargets);
 }
 
 void ProcessCameraInput() {
@@ -2613,6 +2623,34 @@ DWORD GetCameraXInputState(DWORD user,XINPUT_STATE* state) {
     return api?api(user,state):ERROR_DEVICE_NOT_CONNECTED;
 }
 
+unsigned SampleSheathingBindings(){
+    static dg::manual_binding::Edge keyboard,pads[2];
+    static uintptr_t actors[2]{};static uint32_t generations[2]{};static int controllers[2]{-1,-1};
+    const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+    const bool allowed=hwnd&&GetForegroundWindow()==hwnd&&!IsIconic(hwnd)&&!g_overlayVisible.load()&&
+        !g_captureMenuKey.load()&&g_captureCameraKeyIndex.load()<0&&!g_shuttingDown.load();
+    const int vk=g_config.sheathKeyboardKey;
+    const bool keyDown=vk>0&&vk<256&&(GetAsyncKeyState(vk)&0x8000)!=0;
+    unsigned targets=keyboard.Observe(vk,0,keyDown,allowed)?3u:0u;
+    const int a=g_config.sheathPadButtonA,b=g_config.sheathPadButtonB;
+    const dg::local_players::Slot slots[]={dg::local_players::PublishedSlot(0),dg::local_players::PublishedSlot(1)};
+    for(unsigned i=0;i<2;++i){
+        const auto& slot=slots[i];const auto& other=slots[1-i];
+        if(actors[i]!=slot.character||generations[i]!=slot.generation||controllers[i]!=slot.controllerId){
+            pads[i].Reset();actors[i]=slot.character;generations[i]=slot.generation;controllers[i]=slot.controllerId;
+        }
+        XINPUT_STATE state{};
+        const bool connected=(a||b)&&slot.character&&slot.controllerId>=0&&slot.controllerId<4&&
+            !(other.character&&other.controllerId==slot.controllerId)&&
+            dg::local_players::Matches(i,slot.character,slot.generation)&&
+            GetCameraXInputState(DWORD(slot.controllerId),&state)==ERROR_SUCCESS;
+        if(!connected){pads[i].Reset();continue;}
+        const bool down=dg::manual_binding::Down(a,b,GamepadBindingDown(a,state.Gamepad),GamepadBindingDown(b,state.Gamepad));
+        if(pads[i].Observe(a,b,down,allowed))targets|=1u<<i;
+    }
+    return targets;
+}
+
 dg::tps_input::MouseFireRouting g_mouseFireRouting; // WndProc thread only
 int PhysicalMouseButton(UINT msg,WPARAM wParam,bool& release,bool& twice){
     release=msg==WM_LBUTTONUP||msg==WM_RBUTTONUP||msg==WM_MBUTTONUP||msg==WM_XBUTTONUP;
@@ -2870,7 +2908,7 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
         const int cameraCapture = g_captureCameraKeyIndex.load();
         if (cameraCapture >= 0 &&
-            cameraCapture < static_cast<int>(dg::config::CameraAction::Count)+static_cast<int>(dg::config::TpsKeyboardAction::Count) &&
+            cameraCapture <= dg::config::kSheathKeyboardBindingIndex &&
             (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN)) {
             const int vk = static_cast<int>(wParam & 0xFF);
             if (vk == VK_ESCAPE) {
@@ -2879,7 +2917,7 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                 return TRUE;
             }
             if (vk != dg::runtime::Get().overlayMenuKey.load() && vk != VK_ESCAPE &&
-                (vk < VK_F1 || vk > VK_F12) && vk > 0 && vk < 256) {
+                (cameraCapture==dg::config::kSheathKeyboardBindingIndex || vk < VK_F1 || vk > VK_F12) && vk > 0 && vk < 256) {
                 g_capturedCameraBinding.store(((cameraCapture + 1) << 8) | vk);
                 g_captureCameraKeyIndex.store(-1);
                 return TRUE;

@@ -1,3 +1,21 @@
+## V1.60 — raccourcis de rangement dans le menu (18 octobre 2026)
+
+**SOURCE EXPÉRIMENTALE — construction, contrôles du paquet et essai en jeu à effectuer.** Base cumulative V1.59 `099bd1ec1a90c54b7a143a586fdf80a1079fa96a`. Retour utilisateur : **Zoom In/Clear et rangement des armes VALIDÉS**. Le résultat du filtre de tir pendant dash n’a pas encore été confirmé ; ce code est conservé sans changement.
+
+**Objectif / réussite :** remplacer le bouton « Sheathe weapons now » par des raccourcis directement dans la section Weapon sheathing, en complément des Hotkeys F1–F12. Un raccourci clavier reconfigurable (Change/Clear/Default) et deux emplacements manette : deux OFF désactivent, un OFF laisse l’autre bouton utilisable seul, deux boutons actifs forment une combinaison. Les gâchettes LT/RT sont proposées. Tout est OFF par défaut ; anciens INI, raccourcis et actions conservés. Aucune touche physique imposée.
+
+Clavier et Hotkeys gardent la portée existante sur les joueurs locaux admissibles. Les demandes simultanées de rangement sont regroupées une seule fois par joueur avant la mise en file native, y compris une même F-touche assignée à la fois dans le menu et Hotkeys. Chaque manette est associée au ControllerId local publié et ne commande que son joueur ; propriétaire ambigu, périphérique déconnecté, identité expirée ou changement de personnage restent sans action. Les lectures physiques utilisent le chemin existant non filtré, sans changer les boutons/sticks transmis au jeu. Le jeu conserve ses raccourcis natifs : choisir une combinaison libre pour éviter de lancer aussi une action native.
+
+Appui unique, aucune répétition tant que le raccourci est maintenu. Configuration, branchement ou changement de joueur pendant un appui ne créent pas d’action ; appuis dans l’overlay ou hors focus consommés. L’action continue d’attendre au plus cinq secondes l’état natif inactif autorisé. Délais automatiques, jamais automatique, fonctions natives Clear, restrictions pied/cheval/Ultimate et sécurité d’action V1.59 préservés. Aucun nouveau hook, aucune rotation/visée/animation modifiée ; aucune ancienne option validée réinitialisée.
+
+**Contrôles prévus :** 34 suites Windows, dont nouveau test de combinaisons/OFF/appui/focus/identités P1/P2, fixture réelle du rangement avec ciblage P2 et requêtes en double, aller-retour INI/migration et vrai Dear ImGui pour les quinze lignes clavier. 125 clés actives, 49 identifiants d’actions ; 124 ZIP précédents à conserver. Ces contrôles ne constituent pas une validation en jeu. Rollback : V1.59 en conservant l’INI personnel.
+
+**À tester :** (1) clavier assigné directement dans Weapon sheathing, Clear puis Reload ; (2) manette avec entrée 1 seule, entrée 2 seule, puis deux boutons ; (3) maintenir, relâcher et réappuyer ; (4) même F-touche via menu et Hotkeys, un seul rangement ; (5) chaque manette n’agit que sur son joueur en coop ; (6) menu ouvert/Alt-Tab/rebranchement avec bouton tenu, aucun rangement différé ; contrôle court du délai automatique/jamais automatique déjà validé. Le critère de réussite reste à confirmer par l’utilisateur.
+
+**Suite distincte :** flou, holsters montés, autres sprites P2, Standard finies, portée du grappin et modèles alternatifs restent ouverts. Cette build ne prétend pas les inclure. La présente demande de raccourcis est isolée pour préserver les fonctions validées.
+
+---
+
 ## V1.59 — construite, contrôlée et installée (18 octobre 2026)
 
 **CONSTRUIT / CONTRÔLÉ / INSTALLÉ / EXPÉRIMENTAL — validation en jeu nécessaire.** Base V1.58 `ca74560cdfa5201a9d67c5222afb0d980b39aa88`, avec Hotstreak sous 1 et prompts P1/P2 validés par l’utilisateur et conservés. La candidate corrige le conflit d’identifiants ImGui en-tête/ligne, retire la liste des armes du filtre de notifications de dash et ajoute le rangement natif demandé : délai 0–300 s ou jamais automatique, bouton et action « Sheathe weapons » assignable dans Hotkeys. **Contrôle automatique OFF par défaut** ; aucune touche de l’utilisateur modifiée.

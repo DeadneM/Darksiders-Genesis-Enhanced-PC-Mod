@@ -319,6 +319,7 @@ void Store::ResetDefaults(bool persist) {
 
     toggleHudEnabled = true;interactionHudScaleEnabled=true;interactionHudScale=0.65f;
     weaponSheathingEnabled=false;sheathNeverEnabled=true;sheathDelaySeconds=10.0f;
+    sheathKeyboardKey=0;sheathPadButtonA=0;sheathPadButtonB=0;
     movementSpeedEnabled = true;
     skipLogosEnabled = true;
     skipIntroEnabled = true;
@@ -550,6 +551,14 @@ bool Store::Load() {
     weaponSheathingEnabled=ReadBool(L"Features",L"WeaponSheathing",false,path_);
     sheathNeverEnabled=ReadBool(L"Features",L"NeverAutoSheathe",true,path_);
     sheathDelaySeconds=std::clamp(ReadFloat(L"Values",L"SheathDelaySeconds",10.0f,path_),0.0f,300.0f);
+    wchar_t sheathKey[64]{};
+    GetPrivateProfileStringW(L"Controls",L"SheatheKeyboardKey",L"OFF",sheathKey,64,path_.c_str());
+    sheathKeyboardKey=ParseKeyToken(sheathKey,0);
+    if(sheathKeyboardKey<0||sheathKeyboardKey>=256)sheathKeyboardKey=0;
+    sheathPadButtonA=GetPrivateProfileIntW(L"Controls",L"SheathePadButtonA",0,path_.c_str());
+    sheathPadButtonB=GetPrivateProfileIntW(L"Controls",L"SheathePadButtonB",0,path_.c_str());
+    if(!ValidPadBind(sheathPadButtonA))sheathPadButtonA=0;
+    if(!ValidPadBind(sheathPadButtonB))sheathPadButtonB=0;
     interactionHudScaleEnabled=ReadBool(L"Features",L"InteractionHudScale",true,path_);
     interactionHudScale=std::clamp(ReadFloat(L"Values",L"InteractionHudScale",0.65f,path_),0.1f,2.0f);
     movementSpeedEnabled =
@@ -999,6 +1008,12 @@ bool Store::SaveNow() {
     WriteProfileString(L"Features", L"ToggleHUD", nullptr, path_.c_str());
     WriteBool(L"Features",L"WeaponSheathing",weaponSheathingEnabled,path_);
     WriteBool(L"Features",L"NeverAutoSheathe",sheathNeverEnabled,path_);
+    WriteProfileString(L"Controls",L"SheatheKeyboardKey",KeyTokenFromVK(sheathKeyboardKey).c_str(),path_.c_str());
+    wchar_t sheathPadText[32]{};
+    swprintf_s(sheathPadText,L"%d",sheathPadButtonA);
+    WriteProfileString(L"Controls",L"SheathePadButtonA",sheathPadText,path_.c_str());
+    swprintf_s(sheathPadText,L"%d",sheathPadButtonB);
+    WriteProfileString(L"Controls",L"SheathePadButtonB",sheathPadText,path_.c_str());
     WriteFloat(L"Values",L"SheathDelaySeconds",sheathDelaySeconds,path_);
     WriteBool(L"Features",L"InteractionHudScale",interactionHudScaleEnabled,path_);
     WriteFloat(L"Values",L"InteractionHudScale",interactionHudScale,path_);

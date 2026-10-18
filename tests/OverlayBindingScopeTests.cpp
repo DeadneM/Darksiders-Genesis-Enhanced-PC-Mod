@@ -12,7 +12,7 @@ void Run(){
     io.Fonts->GetTexDataAsRGBA32(&pixels,&width,&height);
     ImGui::NewFrame();ImGui::SetNextWindowSize({1500,1100});ImGui::Begin("Binding regression");
     const char* headings[]={"Action","Current key","Change","Clear","Reset"};
-    for(const char* table:{"NativeBindings","TPSBindings","OtherBindings"}){
+    for(const char* table:{"NativeBindings","TPSBindings","OtherBindings","SheathingBindings"}){
         Check(ImGui::BeginTable(table,5),"headless native table available");
         std::unordered_set<ImGuiID> ids;
         std::array<ImGuiID,5> headers{};
@@ -24,7 +24,7 @@ void Run(){
         ImGui::TableHeadersRow();
         ImGui::PushID(3);Check(ImGui::GetID("Clear")==headers[3],
             "reproduce the exact pre-fix Zoom In / Clear-header collision");ImGui::PopID();
-        for(int row=0;row<14;++row){
+        for(int row=0;row<15;++row){
             const dg::overlay::BindingRowScope scope(row);
             ImGui::TableNextRow();
             for(int column=2;column<5;++column){

@@ -91,10 +91,10 @@ void OnLivePlayer(const local_players::Context& c,uint32_t generation){
         if(g_log){char line[160]{};sprintf_s(line,"Weapon sheathing V1.59 MANUAL player=%d nativeIdleReadback=%d n=%u EXPERIMENTAL",c.index+1,applied?1:0,++g_manual);g_log(line);}
     }
 }
-bool RequestSheathe(){
-    if(!Ready())return false;bool queued=false;const auto now=GetTickCount64();
+bool RequestSheathe(int playerIndex){
+    if(!Ready()||playerIndex< -1||playerIndex>1)return false;bool queued=false;const auto now=GetTickCount64();
     AcquireSRWLockExclusive(&g_lock);
-    for(unsigned i=0;i<2;++i){auto& p=g_requests[i];if(local_players::Matches(i,p.actor,p.generation))queued=p.Queue(now)||queued;}
+    for(unsigned i=0;i<2;++i){if(playerIndex>=0&&unsigned(playerIndex)!=i)continue;auto& p=g_requests[i];if(local_players::Matches(i,p.actor,p.generation))queued=p.Queue(now)||queued;}
     ReleaseSRWLockExclusive(&g_lock);return queued;
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}

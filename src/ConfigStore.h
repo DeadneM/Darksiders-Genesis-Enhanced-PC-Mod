@@ -10,6 +10,7 @@ enum class CameraAction : int { HeightUp = 0, HeightDown, ZoomOut, ZoomIn, Pitch
 // New V0.92 TPS keyboard actions have the same semantics as the existing
 // controller actions. OFF (0) is intentional for legacy compatibility.
 enum class TpsKeyboardAction : int { Horse = 0, Toggle, Recenter, Suspend, WheelG, WheelTab, Count };
+inline constexpr int kSheathKeyboardBindingIndex=int(CameraAction::Count)+int(TpsKeyboardAction::Count);
 inline constexpr std::array<const char*, 6> kTpsKeyboardLabels = {
     "Summon / dismount horse","Long press TPS ON/OFF",
     "Recenter TPS camera","Hold temporary vanilla view",
@@ -242,6 +243,9 @@ public:
     bool weaponSheathingEnabled = false;
     bool sheathNeverEnabled = true;
     float sheathDelaySeconds = 10.0f;
+    int sheathKeyboardKey = 0;
+    int sheathPadButtonA = 0;
+    int sheathPadButtonB = 0;
     bool movementSpeedEnabled = true;
     bool skipLogosEnabled = true;
     bool skipIntroEnabled = true;

@@ -42,14 +42,32 @@ void Run(){
     rt.weaponSheathingEnabled=false;Tick();Check(Get<float>(actor,0xCD0)==8&&Get<float>(actor,0xCD4)==9,"native data changes are retained as the new baseline");
     wchar_t folder[MAX_PATH]{},path[MAX_PATH]{};Check(GetTempPathW(MAX_PATH,folder)&&GetTempFileNameW(folder,L"DGS",0,path),"temporary INI");
     dg::config::Store a;a.SetPath(path);a.weaponSheathingEnabled=true;a.sheathNeverEnabled=false;a.sheathDelaySeconds=.5f;a.hotkeys[6]=dg::config::Action::SheatheWeapons;
+    a.sheathKeyboardKey=VK_F7;a.sheathPadButtonA=0;a.sheathPadButtonB=0x20000;
     Check(a.SaveNow(),"sheathing settings save");dg::config::Store b;b.SetPath(path);Check(b.Load(),"sheathing settings load");
     Check(b.weaponSheathingEnabled&&!b.sheathNeverEnabled&&b.sheathDelaySeconds==.5f&&b.hotkeys==a.hotkeys&&rt.sheathDelaySeconds.load()==.5f,"options, sub-unit seconds, appended hotkey and runtime round-trip");
+    Check(b.sheathKeyboardKey==VK_F7&&b.sheathPadButtonA==0&&b.sheathPadButtonB==0x20000,"dedicated keyboard duplicates F7 Hotkey and either controller slot can work alone");
+    WritePrivateProfileStringW(L"Controls",L"SheatheKeyboardKey",nullptr,path);
+    WritePrivateProfileStringW(L"Controls",L"SheathePadButtonA",L"3",path);
+    WritePrivateProfileStringW(L"Controls",L"SheathePadButtonB",L"-1",path);
+    Check(b.Load()&&b.sheathKeyboardKey==0&&b.sheathPadButtonA==0&&b.sheathPadButtonB==0,"missing keyboard and invalid pad masks remain OFF");
+    Check(b.hotkeys==a.hotkeys&&b.weaponSheathingEnabled&&b.sheathDelaySeconds==.5f,"legacy hotkeys and validated sheathing options survive binding load");
+    b.sheathKeyboardKey='K';b.sheathPadButtonA=0x0100;b.sheathPadButtonB=0x0200;
+    Check(b.SaveNow()&&b.Load()&&b.sheathKeyboardKey=='K'&&b.sheathPadButtonA==0x0100&&b.sheathPadButtonB==0x0200,"two-button combination round-trip");
     static_assert(int(dg::config::Action::SheatheWeapons)==48&&int(dg::config::Action::RefillAmmo)==47);
     b.ResetDefaults(false);Check(!b.weaponSheathingEnabled&&b.sheathNeverEnabled&&b.sheathDelaySeconds==10,"new automatic behavior remains opt-in");
+    Check(!b.sheathKeyboardKey&&!b.sheathPadButtonA&&!b.sheathPadButtonB,"new shortcuts default to OFF");
+    Tick(); // Refresh eligibility after profile I/O; never depend on disk timing.
+    g_requests[1].Observe(reinterpret_cast<uintptr_t>(actor)+16,8,GetTickCount64(),true);
+    Check(!RequestSheathe(2)&&!RequestSheathe(-2),"invalid player selectors cannot queue anything");
+    Check(RequestSheathe(1)&&!g_requests[0].requestedActor&&g_requests[1].requestedActor,"P2 shortcut does not request P1");
+    g_requests[1]={};
+    Check(RequestSheathe(0)&&!RequestSheathe(0),"duplicate sources cannot add a second manual request");
+    const auto callsBefore=clearCalls;Tick();Tick();
+    Check(clearCalls==callsBefore+2,"merged duplicate requests invoke each native Clear only once");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,path);DeleteFileW(path);
 }
 }
 namespace dg::native_tps {bool OnGameThread(){return gameThread;}bool IsWorldPaused(void*){return paused;}bool CinematicActive(unsigned){return false;}}
-namespace dg::local_players {bool Matches(unsigned i,uintptr_t a,uint32_t g){return i==0&&a==reinterpret_cast<uintptr_t>(actor)&&g==7;}}
+namespace dg::local_players {bool Matches(unsigned i,uintptr_t a,uint32_t g){return (i==0&&a==reinterpret_cast<uintptr_t>(actor)&&g==7)||(i==1&&a==reinterpret_cast<uintptr_t>(actor)+16&&g==8);}}
 int main(){try{Run();std::cout<<"Native sheathing thresholds, restoration, manual lifecycle and configuration passed\n";return 0;}
 catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
