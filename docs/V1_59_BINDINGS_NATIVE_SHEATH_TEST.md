@@ -16,3 +16,11 @@ Le conflit vient de `TableHeadersRow` qui pousse l’index de colonne : l’en-t
 
 **À tester :** (1) Clear Zoom In avec TPS actif puis Reload ; (2) Standard/Beam/Charge et une autre munition, déplacement + visée + tir + dash, normal/Hotstreak et P1/P2 ; (3) contrôle court de visée après dash et roues ; (4) rangement OFF puis délai 0.5/2/10 s et jamais automatique, action manuelle via Hotkeys, Strife/War, pause/attaque/cheval/Ultimate ; (5) HUD P2 et Hotstreak 0.5 restent bons. En cas de régression, revenir à la sauvegarde V1.58 en conservant l’INI personnel.
 
+
+## Construction vérifiée
+
+33/33 suites et zéro avertissement MSVC ASI/DXGI. Le test réel ImGui reproduit l’ancienne collision ; le candidat utilise des identifiants de lignes indépendants des en-têtes. Rangement et filtre sans liste validés uniquement par fixtures ; gameplay non validé. Références CI/source/archive, hash et lien dans CURRENT_STATE.
+
+Le dernier relevé monté n’a pas été effectué : le jeu n’était plus ouvert (277 processus visibles, aucun Darksiders Genesis). Ne pas interpréter cette absence comme une preuve d’attachement correct. Les 29 assets extraits restent des références privées. L’inventaire vérifie StaticMesh pour les quatre modèles main/rangés ; Strife_Gun_02 est MaterialInstanceConstant. L’analyse du Blueprint War est partielle après un type sérialisé non pris en charge, mais le champ CombatIdleDurationSec=5.0 a été lu avant cette limite ; aucun résultat après cette limite n’est revendiqué.
+
+Le jeu a redémarré entre le contrôle de fermeture et l’exécution de l’installateur. Sa garde de processus a refusé l’installation avant toute sauvegarde/remplacement/écriture dans le jeu. V1.58 reste installée ; V1.59 n’est pas annoncée installée. L’observation du cheval et l’installation restent en attente.
