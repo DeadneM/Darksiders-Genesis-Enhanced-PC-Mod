@@ -1,6 +1,6 @@
 # Actualisation V1.59 — 18 octobre 2026
 
-**CONSTRUITE / CONTRÔLÉE / EXPÉRIMENTALE** : CI Windows 33/33, zéro avertissement MSVC ASI/DXGI, ZIP vérifié et publié sur debug ; V1.58 toujours installée, V1.59 en attente du relevé monté et de la fermeture du jeu. Aucune nouvelle fonction V1.59 validée en jeu.
+**CONSTRUITE / CONTRÔLÉE / EXPÉRIMENTALE** : CI Windows 33/33, zéro avertissement MSVC ASI/DXGI, ZIP vérifié et publié sur debug ; V1.59 installée jeu fermé avec sauvegarde V1.58, INI personnel conservé ; relevé monté effectué. Aucune nouvelle fonction V1.59 validée en jeu.
 
 - VALIDÉ par l’utilisateur : Hotstreak sous 1 et prompts d’interaction P1/P2 de V1.58.
 - Clear Zoom In : conflit en-tête/ligne identifié, candidat V1.59 et test réel ImGui.

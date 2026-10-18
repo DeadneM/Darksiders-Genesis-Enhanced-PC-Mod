@@ -24,3 +24,21 @@ Le conflit vient de `TableHeadersRow` qui pousse l’index de colonne : l’en-t
 Le dernier relevé monté n’a pas été effectué : le jeu n’était plus ouvert (277 processus visibles, aucun Darksiders Genesis). Ne pas interpréter cette absence comme une preuve d’attachement correct. Les 29 assets extraits restent des références privées. L’inventaire vérifie StaticMesh pour les quatre modèles main/rangés ; Strife_Gun_02 est MaterialInstanceConstant. L’analyse du Blueprint War est partielle après un type sérialisé non pris en charge, mais le champ CombatIdleDurationSec=5.0 a été lu avant cette limite ; aucun résultat après cette limite n’est revendiqué.
 
 Le jeu a redémarré entre le contrôle de fermeture et l’exécution de l’installateur. Sa garde de processus a refusé l’installation avant toute sauvegarde/remplacement/écriture dans le jeu. V1.58 reste installée ; V1.59 n’est pas annoncée installée. L’observation du cheval et l’installation restent en attente.
+
+## Relevé monté effectivement réalisé
+
+Après la réponse « Cheval prêt », capture VM_READ du processus 30620 : Strife_Blueprint_C normal et pawn Despair_Blueprint_C. Le cheval possède ses propres RightPistol/LeftPistol et RightPistolHolstered/LeftPistolHolstered, différents des composants du personnage normal. Les deux composants en main du cheval ont bVisible=false ; ceux des holsters ont bVisible=true et bHiddenInGame=false. Parents : CharacterMesh0 du cheval. Sockets : Gun_R_Socket/Gun_L_Socket pour les mains, Bone_Strife_Holster_R/L pour les holsters. Tous ces composants ont position/rotation relatives nulles et échelle 1. Les holsters utilisent Strife_Gun_Mesh_R/L, comme les mains. Aucun flag, attachement, mesh ni mémoire du jeu modifié.
+
+Ce relevé exclut une simple activation simultanée des quatre composants montés via leur flag local. Il ne valide pas la pose finale des os, les transforms des sockets, le choix attendu des meshes rangés ni la visibilité effective du personnage normal. Ne pas cacher un parent, réactiver les mains ou substituer un mesh sur cette seule preuve. Prochaine étape : comparaison de la géométrie/pose native et de l’apparence en jeu ; défaut de holster toujours ouvert, aucun correctif monté livré dans V1.59. Les références privées sont v159-live-mounted-weapons.json et v159-mounted-summary.json ; elles ne sont pas livrées au dépôt.
+
+V1.59 reste le paquet déjà construit et contrôlé ; cette observation ne modifie pas le binaire ni l’archive immuable. Installation demandée après fermeture complète du jeu, INI personnel conservé.
+
+## Preuve native complémentaire des holsters
+
+L’index PAK et les données extraites ont été vérifiés par SHA1. Les exports StaticMeshComponent LeftPistolHolstered_GEN_VARIABLE et RightPistolHolstered_GEN_VARIABLE du Blueprint natif Despair prescrivent déjà Strife_Gun_Mesh_L/R, identiques au relevé en jeu. Le choix de mesh observé ne démontre donc pas une substitution par le mod. La pose finale et les sockets restent à comparer visuellement ; aucun remplacement automatique par les assets Stowed n’est justifié par cette seule preuve. Références privées : v159-mounted-pak-index.json, v159-mounted-defaults.txt.
+
+## Installation effective
+
+Installation après fermeture du jeu et contrôle de 278 processus visibles. Sauvegarde V1.58 `install-backup-before-v159-20261018-201943`, manifeste d’intégrité et `Restore-Previous.ps1` conservés ; syntaxe de restauration contrôlée, script non exécuté. **INI personnel inchangé octet pour octet** : `D99169453FEB41296867AA66868480D5730C3FAC5AB36648F1E993E704582487` ; raccourcis conservés. ASI/DXGI installés identiques au paquet vérifié. Aucun lancement du jeu par l’agent, aucune validation de gameplay. README installé actualisé avec ce reçu ; ZIP immuable.
+
+Défauts de holsters et autres sujets en file toujours ouverts. Les nouveaux comportements V1.59 restent expérimentaux jusqu’aux essais utilisateur.
