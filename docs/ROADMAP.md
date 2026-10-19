@@ -1,3 +1,9 @@
+## Livraison V1.64 — 19 octobre 2026
+
+Trois délais de rangement indépendants, raccourcis communs conservés, durée ultime 0–10 : CONSTRUITS / CONTRÔLÉS, non validés en jeu, 40/40 suites. [Reçu et tests](V1_64_WEAPON_TIMERS_ULTIMATE_TEST.md). Grappin V1.63 validé dans l'essai rapporté. Double saut reste en défaut, sans changement de son code ; auto-check sans retour. Aucun autre sujet clos implicitement.
+
+---
+
 ## V1.64 en préparation — 19 octobre 2026
 
 **Grappin V1.63 validé par l'utilisateur dans son essai.** Nouvelle demande de rangement : conserver tous les raccourcis et séparer lames de Strife, pistolets de Strife et épée de War ; lames natives par défaut. Code et migration préparés, avec réglage de durée ultime 0–10, ×2 proposé, OFF par défaut. **CONSTRUCTION À EFFECTUER / EXPÉRIMENTAL**, aucun résultat en jeu revendiqué. Double saut encore ouvert : la séquence n'a pas été capturée ; pas de changement de son code. Aucun lancement/installation ni écriture de l'INI utilisateur par l'agent. [Périmètre, preuves et tests V1.64](V1_64_WEAPON_TIMERS_ULTIMATE_TEST.md). Les instructions d'attente et états antérieurs ci-dessous sont supersédés par le retour reçu et la demande de continuer.
@@ -34,8 +40,8 @@ Tableau cumulatif actualisé pour V1.63 ; les entrées datées conservées plus 
 | Reprise AIM après mouvement+visée+dash | VALIDÉE V1.56, conservée | Ne pas réintroduire l’ancien Recovery |
 | Standard limité | VALIDÉ par l’utilisateur | Préserver |
 | Double saut trois modes | NON VALIDÉ : Always on permet trois sauts supplémentaires puis bloque ; autres modes sans résultat attendu | Reprendre après le retour V1.63 |
-| Ultimate decrease rate | DEMANDÉ, non implémenté : 0–10, durée ×2 par défaut | Étudier la décharge native après le retour V1.63 |
-| Grappin étendu | Contrat d’appel V1.62 défectueux même OFF ; corrigé dans le code V1.63 | Essai OFF puis ON requis ; 39/39 suites ne prouvent pas l’absence de tout crash |
+| Ultimate decrease rate | CONSTRUIT / CONTRÔLÉ V1.64, expérimental : 0–10, valeur ×2, case OFF par défaut | Comparer 0.5/1/2/0 et priorité Unlimited, P1/P2 |
+| Grappin étendu | VALIDÉ V1.63 dans l’essai utilisateur | Préserver ; pas de validation implicite de toutes les traversées |
 | Auto check update | CONSTRUIT / CONTRÔLÉ V1.63, OFF par défaut | Canal choisi au démarrage, avis temporaire passif puis rappel jaune, validation en jeu |
 | Raccourcis de rangement V1.60 | VALIDÉS par l’utilisateur | Préserver |
 | Focus TPS V1.61 | Netteté VALIDÉE par l’utilisateur | Préserver |
