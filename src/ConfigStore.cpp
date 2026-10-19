@@ -320,6 +320,7 @@ void Store::ResetDefaults(bool persist) {
 
     toggleHudEnabled = true;interactionHudScaleEnabled=true;interactionHudScale=0.65f;
     weaponSheathingEnabled=false;sheathNeverEnabled=true;sheathDelaySeconds=10.0f;
+    mountedHolstersEnabled=false;
     sheathStrifeMeleeNeverEnabled=false;sheathStrifeMeleeDelaySeconds=0.0f;
     sheathWarNeverEnabled=true;sheathWarDelaySeconds=10.0f;
     sheathKeyboardKey=0;sheathPadButtonA=0;sheathPadButtonB=0;
@@ -560,6 +561,7 @@ bool Store::Load() {
     weaponSheathingEnabled=ReadBool(L"Features",L"WeaponSheathing",false,path_);
     sheathNeverEnabled=ReadBool(L"Features",L"NeverAutoSheathe",true,path_);
     sheathDelaySeconds=std::clamp(ReadFloat(L"Values",L"SheathDelaySeconds",10.0f,path_),0.0f,300.0f);
+    mountedHolstersEnabled=ReadBool(L"Features",L"MountedPistolHolsters",false,path_);
     sheathStrifeMeleeNeverEnabled=ReadBool(L"Features",L"StrifeMeleeNeverAutoSheathe",false,path_);
     sheathStrifeMeleeDelaySeconds=std::clamp(ReadFloat(L"Values",L"StrifeMeleeSheathDelaySeconds",0.0f,path_),0.0f,300.0f);
     // Existing personal setting continues to govern pistols; War inherits it
@@ -891,6 +893,7 @@ void Store::PublishRuntime() const {
     runtime.weaponSheathingEnabled=weaponSheathingEnabled;
     runtime.sheathNeverEnabled=sheathNeverEnabled;
     runtime.sheathDelaySeconds=sheathDelaySeconds;
+    runtime.mountedHolstersEnabled=mountedHolstersEnabled;
     runtime.sheathStrifeMeleeNeverEnabled=sheathStrifeMeleeNeverEnabled;
     runtime.sheathStrifeMeleeDelaySeconds=sheathStrifeMeleeDelaySeconds;
     runtime.sheathWarNeverEnabled=sheathWarNeverEnabled;
@@ -1050,6 +1053,7 @@ bool Store::SaveNow() {
     swprintf_s(sheathPadText,L"%d",sheathPadButtonB);
     WriteProfileString(L"Controls",L"SheathePadButtonB",sheathPadText,path_.c_str());
     WriteFloat(L"Values",L"SheathDelaySeconds",sheathDelaySeconds,path_);
+    WriteBool(L"Features",L"MountedPistolHolsters",mountedHolstersEnabled,path_);
     WriteBool(L"Features",L"StrifeMeleeNeverAutoSheathe",sheathStrifeMeleeNeverEnabled,path_);
     WriteFloat(L"Values",L"StrifeMeleeSheathDelaySeconds",sheathStrifeMeleeDelaySeconds,path_);
     WriteBool(L"Features",L"WarNeverAutoSheathe",sheathWarNeverEnabled,path_);

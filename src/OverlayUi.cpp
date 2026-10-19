@@ -2,6 +2,7 @@
 #include "OverlayBindingScope.h"
 #include "InteractionHudFeature.h"
 #include "WeaponSheathingFeature.h"
+#include "MountedHolsterFeature.h"
 #include "UltimateDurationFeature.h"
 #include "GaugeChargeFeature.h"
 #include "ResourceGainFeature.h"
@@ -269,6 +270,8 @@ void Draw(Context& c) {
             );
 
             DrawSectionTitle("Weapon sheathing");
+            DrawToggleFeature(config,"Mounted pistol holsters (experimental)","MountedPistolHolsters",&config.mountedHolstersEnabled,
+                "Uses the stowed pistol models while Strife is mounted. Turn OFF to restore the previous appearance. Weapons held in hand keep their normal appearance. Experimental: check alignment in the holsters.",mounted_holsters::Ready());
             DrawToggleFeature(config,"Control automatic weapon sheathing","WeaponSheathing",&config.weaponSheathingEnabled,
                 "Separate automatic delays for Strife's melee blades, Strife's pistols and War's sword. OFF restores native delays. Foot forms only; horse and Ultimate remain native.",sheathing::Ready());
             if(config.weaponSheathingEnabled){
@@ -331,7 +334,7 @@ void Draw(Context& c) {
             constexpr const char* jumpModes[]{"Off","After gliding","Always on"};
             ImGui::SetNextItemWidth(270.0f);
             if(ImGui::Combo("Infinite double jump",&config.infiniteDoubleJumpMode,jumpModes,3))config.Save();
-            DrawFeatureDescription("After gliding rearms one double jump each time you glide. Always on allows repeated air jumps. Uses the native jump action and your existing controls.",dg::air_jump::Ready());
+            DrawFeatureDescription("After gliding rearms one double jump per glide. Always on allows repeated air jumps. In either mode, pressing your jump control ends a glide before requesting the jump. OFF restores normal behavior. Experimental.",dg::air_jump::Ready());
             DrawTunableFeature(config,"Grapple range","GrappleRange",&config.grappleRangeEnabled,
                 &config.grappleRangeMultiplier,1.0f,10.0f,2.0f,"%.2fx",
                 "Scales native acquisition, relay and pull distances together. Applies on the next use; target rules and obstacles remain native. Experimental: traversal limits still require in-game checks.",dg::grapple::Ready());

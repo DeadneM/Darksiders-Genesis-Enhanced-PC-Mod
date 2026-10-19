@@ -42,6 +42,7 @@
 #include "DashCombatFeature.h"
 #include "InteractionHudFeature.h"
 #include "WeaponSheathingFeature.h"
+#include "MountedHolsterFeature.h"
 #include "UltimateDurationFeature.h"
 #include "ManualActionBinding.h"
 #include "TpsCameraFocus.h"
@@ -1432,6 +1433,7 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     dg::potions::OnLivePlayer(character,generation,reinterpret_cast<void*>(owner.playerState));
     dg::health::OnLivePlayer(character,generation);
     dg::sheathing::OnLivePlayer(owner,generation);
+    dg::mounted_holsters::OnLivePlayer(owner);
     dg::air_jump::OnLivePlayer(owner,generation);
 }
 
@@ -4142,6 +4144,7 @@ void ShutdownMod() {
     dg::glide::Report();
     dg::interaction_hud::Shutdown();
     dg::sheathing::Shutdown();
+    dg::mounted_holsters::Shutdown();
     dg::dash_combat::Shutdown();
     dg::dash_combat::Report();
     // Release the supported synthetic horse key before teardown.
@@ -4396,6 +4399,7 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::dash_combat::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::interaction_hud::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::sheathing::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::mounted_holsters::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::ultimate_duration::Initialize(&FeatureLog,g_targetValidation.exact);
     if (!InstallFinalOutgoingDamageHook()) {
         Log("Final Pistol/Melee Damage hook unavailable; other ASI features remain active.");

@@ -253,6 +253,7 @@ public:
     bool toggleHudEnabled = true;
     bool interactionHudScaleEnabled = true;
     float interactionHudScale = 0.65f;
+    bool mountedHolstersEnabled = false;
     bool weaponSheathingEnabled = false;
     bool sheathNeverEnabled = true;
     float sheathDelaySeconds = 10.0f;

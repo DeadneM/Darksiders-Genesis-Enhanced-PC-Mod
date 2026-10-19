@@ -10,6 +10,7 @@ struct Snapshot {
     bool toggleHudEnabled = true;
     bool interactionHudScaleEnabled = true;
     float interactionHudScale = 0.65f;
+    bool mountedHolstersEnabled = false;
     bool weaponSheathingEnabled = false;
     bool sheathNeverEnabled = true;
     float sheathDelaySeconds = 10.0f;
@@ -113,6 +114,7 @@ struct State {
     std::atomic_bool toggleHudEnabled{true};
     std::atomic_bool interactionHudScaleEnabled{true};
     std::atomic<float> interactionHudScale{0.65f};
+    std::atomic_bool mountedHolstersEnabled{false};
     std::atomic_bool weaponSheathingEnabled{false};
     std::atomic_bool sheathNeverEnabled{true};
     std::atomic<float> sheathDelaySeconds{10.0f};
