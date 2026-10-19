@@ -1,0 +1,2 @@
+# Preserve the original mixed line endings in these historical snapshots.
+docs/history/*_THROUGH_V1_66.md -text

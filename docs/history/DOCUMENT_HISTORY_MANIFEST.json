@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-19",
+  "baseCommit": "eb0b287e085f8ad8aee2c866bbe82c98524c593b",
+  "purpose": "separate current status from historical preparation without discarding any prior byte",
+  "files": [
+    {
+      "source": "README.md",
+      "archive": "docs/history/README_THROUGH_V1_66.md",
+      "bytes": 412693,
+      "sha256": "a6e3a68e60ad9dc8a30a651ed302d04fb56ab82c37d43937be86d28a74dcf6c1",
+      "sourceLink": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/eb0b287e085f8ad8aee2c866bbe82c98524c593b/README.md"
+    },
+    {
+      "source": "docs/CURRENT_STATE.md",
+      "archive": "docs/history/CURRENT_STATE_THROUGH_V1_66.md",
+      "bytes": 251311,
+      "sha256": "9bc6b97d9dbf6af7d1bf0ca9998fc1a40d16f31bd03c6bad7edff0e2dafe6627",
+      "sourceLink": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/eb0b287e085f8ad8aee2c866bbe82c98524c593b/docs/CURRENT_STATE.md"
+    },
+    {
+      "source": "docs/ROADMAP.md",
+      "archive": "docs/history/ROADMAP_THROUGH_V1_66.md",
+      "bytes": 27907,
+      "sha256": "a884806c755f50eef99b8099f3482f173f13d1e1e8c2b39ad2d153a71d853f4d",
+      "sourceLink": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/eb0b287e085f8ad8aee2c866bbe82c98524c593b/docs/ROADMAP.md"
+    }
+  ]
+}

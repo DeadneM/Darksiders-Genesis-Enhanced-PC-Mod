@@ -1,3 +1,13 @@
+## Après V1.66 — Recovery natif, modèles et séparation de l’historique
+
+19 octobre 2026. L’utilisateur teste V1.66 et demande de poursuivre le reste. **Préparation uniquement : pas de changement runtime/config, pas de build ni de nouveau relevé de jeu.** [Nouveaux faits et limites](NEXT_RECOVERY_AND_MODELS.md) : MOVE action 29/interruption 1, JUMP action 30/interruption 2 ; séparation masques d’action/interruption/requête ; raison native de fin sur un octet ; pipeline d’interruption et notification de fenêtre identifié, bénéfice sûr encore non établi. Capture externe de la fenêtre préparée sans attachement. L’ancien Recovery reste retiré.
+
+Inventaire privé élargi : index PAK de 86641 entrées vérifié, 119 assets retenus ; quatre géométries de pistolet main/rangement seulement, autres variantes classées matériaux/textures ou corps complet. Aucun sélecteur de modèle alternatif livré. Autres sprites/effets P2 toujours différés.
+
+README, état courant et roadmap raccourcis et rendus actuels ; anciennes versions intégrales préservées avec signatures dans [docs/history](history/DOCUMENT_HISTORY_MANIFEST.json). [File active](ACTIVE_QUEUE.md) pour la reprise. Les reçus, hypothèses et préparations suivants restent l’historique daté, sans annuler le statut courant.
+
+---
+
 ## V1.66 — construite et contrôlée, nouveau cycle de saut expérimental
 
 Base **V1.65** : holsters montés, trois délais de rangement et durée ultime **VALIDÉS par l’utilisateur** ; double saut non validé (deux remontées sans animation puis blocage). V1.66 remplace la substitution de compteur par un réarmement natif conjoint publié à l’animation et anticipe la recherche des modèles montés à pied. Aucun nouveau hook ni réglage. **CONSTRUIT / CONTRÔLÉ / EXPÉRIMENTAL : les sauts animés et la réduction du délai de placement restent à vérifier en jeu.**
