@@ -1,3 +1,13 @@
+## V1.66 — nouveau cycle de saut à tester, acquis V1.65 conservés
+
+**Retour V1.65 :** modèles de holster montés **VALIDÉS** avec un délai de placement ; trois délais de rangement **VALIDÉS** ; durée ultime **VALIDÉE** après activation de sa case. **Double saut NON VALIDÉ** : deux remontées, sans animation, puis blocage. Ces retours remplacent les mentions « à tester » V1.65 ci-dessous.
+
+**Candidat V1.66 EXPÉRIMENTAL, construction à effectuer :** retrait de la substitution du compteur dans DoJump ; réarmement conjoint des deux compteurs via leurs setters natifs au passage de lecture d’animation, après observation du double saut et relâchement de l’action native. Le moteur reçoit le vrai compteur disponible puis publie à nouveau deux au saut réussi. Aucun reset de nœud d’animation, compteur UE, vitesse ou touche forcé. Recherche bornée des modèles de holster anticipée à pied pour réduire l’attente à la montée ; placement validé conservé. [Preuves, limites, tests et rollback](docs/V1_66_NATIVE_JUMP_CYCLE_TEST.md).
+
+**À tester ensemble :** Always pendant au moins dix appuis, animation à chaque nouveau saut ; After gliding un saut par nouveau plané ; OFF, atterrissage et comparaison TPS/vue native ; premier montage après quelques secondes à pied, tir/rangement/descente. Effets et icônes P2 restent reportés à la demande de l’utilisateur. Aucune relance ni installation par l’agent, INI personnel intact. Historique antérieur conservé ci-dessous.
+
+---
+
 ## V1.65 — construite et contrôlée, essais groupés à faire
 
 **CONSTRUIT / CONTRÔLÉ / EXPÉRIMENTAL — pas encore VALIDÉ par l'utilisateur.** Base cumulative V1.64 ; dernier jeu observé V1.63. Le lot regroupe correction du cycle saut/plané, essai réversible des modèles natifs de holster à cheval (nouvelle case OFF par défaut), trois délais de rangement et durée ultime 0–10 inclus depuis V1.64. Les acquis validés sont conservés.

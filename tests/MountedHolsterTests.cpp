@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <vector>
 namespace {
-unsigned char horses[2][0xC10]{},components[2][2][0x600]{},assets[4][0x40]{},items[16*24]{};
+unsigned char characters[2][0x1100]{},horses[2][0xC10]{},components[2][2][0x600]{},assets[4][0x40]{},items[16*24]{};
 void* chunks[1]{items};bool gameThread=true,reject=false;unsigned calls=0;
 template<class T> void Put(void* p,size_t offset,T value){std::memcpy(static_cast<unsigned char*>(p)+offset,&value,sizeof(value));}
 template<class T> T Get(void* p,size_t offset){T value{};std::memcpy(&value,static_cast<unsigned char*>(p)+offset,sizeof(value));return value;}
@@ -30,6 +30,21 @@ void Run(){
             Put(horses[i],j?0xC00:0xBF8,reinterpret_cast<uintptr_t>(components[i][j]));
         }
     }
+    dg::local_players::Context source{};source.index=0;source.kind=dg::local_players::PoseKind::Horse;
+    source.pawn=reinterpret_cast<uintptr_t>(horses[0]);uintptr_t selected=0;
+    Check(SourceComponent(source,selected)&&selected==reinterpret_cast<uintptr_t>(components[0][0]),"mounted source remains the native right holster");
+    source.kind=dg::local_players::PoseKind::Foot;source.pawn=source.character=reinterpret_cast<uintptr_t>(characters[0]);
+    Put<unsigned char>(characters[0],0xC18,1);Put(characters[0],0x380,uintptr_t(0x2000));
+    Put(characters[0],0x1040,reinterpret_cast<uintptr_t>(components[0][0]));
+    Put(components[0][0],0xE8,source.character);Put(components[0][0],0x108,uintptr_t(0x2000));
+    const unsigned beforeWarm=calls;
+    Check(SourceComponent(source,selected)&&calls==beforeWarm,"foot prewarm selects Strife's reciprocal pistol component without changing models");
+    Put<unsigned char>(characters[0],0xC18,2);Check(!SourceComponent(source,selected),"War cannot seed the pistol model lookup");
+    Put<unsigned char>(characters[0],0xC18,1);source.kind=dg::local_players::PoseKind::Ultimate;
+    Check(!SourceComponent(source,selected),"ultimate forms cannot seed the normal pistol lookup");
+    source.kind=dg::local_players::PoseKind::Foot;Put(components[0][0],0x108,uintptr_t(0x3000));
+    Check(!SourceComponent(source,selected),"foot prewarm rejects mismatched parent ownership");
+    Put(components[0][0],0xE8,reinterpret_cast<uintptr_t>(horses[0]));Put(components[0][0],0x108,uintptr_t(0x1000));
     Apply(0,reinterpret_cast<uintptr_t>(horses[0]));Apply(1,reinterpret_cast<uintptr_t>(horses[1]));
     Check(calls==4,"exactly two native model setters per local mount");
     for(unsigned i=0;i<2;++i)for(unsigned j=0;j<2;++j){

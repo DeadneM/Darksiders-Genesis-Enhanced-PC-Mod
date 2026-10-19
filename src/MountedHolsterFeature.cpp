@@ -74,6 +74,14 @@ bool Component(uintptr_t horse,uintptr_t body,uintptr_t component){
     return Read(component,0,vt)&&vt==g_base+0x2A575C8&&
         Read(component,0xE8,owner)&&owner==horse&&Read(component,0x108,parent)&&parent==body;
 }
+bool SourceComponent(const local_players::Context& owner,uintptr_t& component){
+    size_t offset=0;unsigned char type=0;uintptr_t body=0;
+    if(owner.kind==local_players::PoseKind::Horse)offset=0xBF8;
+    else if(owner.kind==local_players::PoseKind::Foot&&owner.pawn==owner.character&&
+            Read(owner.character,0xC18,type)&&type==1)offset=0x1040;
+    else return false;
+    return Read(owner.pawn,0x380,body)&&Read(owner.pawn,offset,component)&&Component(owner.pawn,body,component);
+}
 void Restore(Saved& saved){
     native_objects::MemoryReader reader;uintptr_t mesh=0;
     if(!saved.component)return;
@@ -97,7 +105,7 @@ void Apply(unsigned player,uintptr_t horse){
         if(meshes[i]==g_models[i+2].address)continue;
         if(g_setMesh(reinterpret_cast<void*>(components[i]),reinterpret_cast<void*>(g_models[i+2].address))){
             saved={identity,g_models[i],g_models[i+2]};
-            if(g_log&&++g_changes<=8){char line[130]{};sprintf_s(line,"Mounted holsters V1.65 APPLIED player=%u side=%u nativeStowedMesh=1 EXPERIMENTAL",player+1,i);g_log(line);}
+            if(g_log&&++g_changes<=8){char line[130]{};sprintf_s(line,"Mounted holsters V1.66 APPLIED player=%u side=%u nativeStowedMesh=1 EXPERIMENTAL",player+1,i);g_log(line);}
         }
     }
 }
@@ -109,24 +117,28 @@ void Initialize(LogFn log,bool exactExecutable){
     if(!g_base||std::memcmp(reinterpret_cast<void*>(g_base+0x17DDBC0),setter,sizeof(setter))||
        !Read(g_base+0x2A575C8,0x868,target)||target!=g_base+0x17DDBC0)return;
     g_setMesh=reinterpret_cast<MeshFn>(target);g_ready=true;
-    if(log)log("Mounted holsters V1.65 READY: optional native stowed models, two mounted holster components only; no hooks; EXPERIMENTAL");
+    if(log)log("Mounted holsters V1.66 READY: native stowed models, bounded prewarm on foot; model changes only on the two mounted holsters; no hooks");
 }
 void OnLivePlayer(const local_players::Context& owner){
     if(!g_ready.load()||!native_tps::OnGameThread()||owner.index<0||owner.index>1)return;
     const unsigned player=unsigned(owner.index);const bool enabled=runtime::Get().mountedHolstersEnabled.load();
-    if(!enabled||owner.kind!=local_players::PoseKind::Horse){for(auto& saved:g_saved[player])Restore(saved);return;}
-    uintptr_t cls=0;
-    if(!Read(owner.pawn,0x10,cls)||!NameIs(cls,"Despair_Blueprint_C")||
-       native_tps::IsWorldPaused(reinterpret_cast<void*>(owner.pawn))||native_tps::CinematicActive(player))return;
+    if(!enabled||owner.kind!=local_players::PoseKind::Horse)for(auto& saved:g_saved[player])Restore(saved);
+    if(!enabled||native_tps::IsWorldPaused(reinterpret_cast<void*>(owner.pawn))||native_tps::CinematicActive(player))return;
+    uintptr_t cls=0,component=0;
+    if(owner.kind==local_players::PoseKind::Horse&&
+       (!Read(owner.pawn,0x10,cls)||!NameIs(cls,"Despair_Blueprint_C")))return;
+    if(!SourceComponent(owner,component))return;
     native_objects::MemoryReader reader;
     if(!native_objects::Alive(reader,g_base,g_meshClass)){
-        uintptr_t body=0,component=0,mesh=0;
-        if(!Read(owner.pawn,0x380,body)||!Read(owner.pawn,0xBF8,component)||!Component(owner.pawn,body,component)||
-           !Read(component,0x5B0,mesh)||!Read(mesh,0x10,cls)||!NameIs(cls,"StaticMesh")||
+        uintptr_t mesh=0;
+        if(!Read(component,0x5B0,mesh)||!Read(mesh,0x10,cls)||!NameIs(cls,"StaticMesh")||
            !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(cls),g_meshClass))return;
     }
+    // Start the same bounded lookup while Strife is on foot. Foot observation
+    // never changes a model; warm identities avoid waiting for a whole object
+    // table pass only after the first mount. Assets must already be loaded.
     if(!Models())return;
-    Apply(player,owner.pawn);
+    if(owner.kind==local_players::PoseKind::Horse)Apply(player,owner.pawn);
 }
 bool Ready(){return g_ready.load();}
 void Shutdown(){g_ready=false;}
