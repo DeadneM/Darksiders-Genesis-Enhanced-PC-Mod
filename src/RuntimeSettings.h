@@ -13,6 +13,10 @@ struct Snapshot {
     bool weaponSheathingEnabled = false;
     bool sheathNeverEnabled = true;
     float sheathDelaySeconds = 10.0f;
+    bool sheathStrifeMeleeNeverEnabled = false;
+    float sheathStrifeMeleeDelaySeconds = 0.0f;
+    bool sheathWarNeverEnabled = true;
+    float sheathWarDelaySeconds = 10.0f;
     bool fovEnabled = false;
     bool movementSpeedEnabled = true;
     bool skipLogosEnabled = true;
@@ -50,6 +54,8 @@ struct Snapshot {
     bool hotstreakChargeEnabled = true;
     bool wrathChargeEnabled = true;
     bool ultimateChargeEnabled = true;
+    bool ultimateDecreaseEnabled = false;
+    float ultimateDurationMultiplier = 2.0f;
     bool synergyChargeEnabled = true;
     bool unlimitedWrathEnabled = false;
     bool unlimitedUltimateEnabled = false;
@@ -110,6 +116,10 @@ struct State {
     std::atomic_bool weaponSheathingEnabled{false};
     std::atomic_bool sheathNeverEnabled{true};
     std::atomic<float> sheathDelaySeconds{10.0f};
+    std::atomic_bool sheathStrifeMeleeNeverEnabled{false};
+    std::atomic<float> sheathStrifeMeleeDelaySeconds{0.0f};
+    std::atomic_bool sheathWarNeverEnabled{true};
+    std::atomic<float> sheathWarDelaySeconds{10.0f};
     std::atomic_bool fovEnabled{false};
     std::atomic_bool movementSpeedEnabled{true};
     std::atomic_bool skipLogosEnabled{true};
@@ -180,6 +190,8 @@ struct State {
     std::atomic_bool hotstreakChargeEnabled{true};
     std::atomic_bool wrathChargeEnabled{true};
     std::atomic_bool ultimateChargeEnabled{true};
+    std::atomic_bool ultimateDecreaseEnabled{false};
+    std::atomic<float> ultimateDurationMultiplier{2.0f};
     std::atomic_bool synergyChargeEnabled{true};
     std::atomic_bool unlimitedWrathEnabled{false};
     std::atomic_bool unlimitedUltimateEnabled{false};

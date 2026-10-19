@@ -18,6 +18,10 @@ void Publish(const Snapshot& s) {
     g_state.weaponSheathingEnabled.store(s.weaponSheathingEnabled);
     g_state.sheathNeverEnabled.store(s.sheathNeverEnabled);
     g_state.sheathDelaySeconds.store(s.sheathDelaySeconds);
+    g_state.sheathStrifeMeleeNeverEnabled.store(s.sheathStrifeMeleeNeverEnabled);
+    g_state.sheathStrifeMeleeDelaySeconds.store(s.sheathStrifeMeleeDelaySeconds);
+    g_state.sheathWarNeverEnabled.store(s.sheathWarNeverEnabled);
+    g_state.sheathWarDelaySeconds.store(s.sheathWarDelaySeconds);
     g_state.fovEnabled.store(s.fovEnabled, std::memory_order_relaxed);
     g_state.movementSpeedEnabled.store(s.movementSpeedEnabled, std::memory_order_relaxed);
     g_state.skipLogosEnabled.store(s.skipLogosEnabled, std::memory_order_relaxed);
@@ -57,6 +61,8 @@ void Publish(const Snapshot& s) {
     g_state.hotstreakChargeEnabled.store(s.hotstreakChargeEnabled, std::memory_order_relaxed);
     g_state.wrathChargeEnabled.store(s.wrathChargeEnabled, std::memory_order_relaxed);
     g_state.ultimateChargeEnabled.store(s.ultimateChargeEnabled, std::memory_order_relaxed);
+    g_state.ultimateDecreaseEnabled.store(s.ultimateDecreaseEnabled);
+    g_state.ultimateDurationMultiplier.store(s.ultimateDurationMultiplier);
     g_state.synergyChargeEnabled.store(s.synergyChargeEnabled, std::memory_order_relaxed);
     g_state.unlimitedWrathEnabled.store(s.unlimitedWrathEnabled);
     g_state.unlimitedUltimateEnabled.store(s.unlimitedUltimateEnabled);

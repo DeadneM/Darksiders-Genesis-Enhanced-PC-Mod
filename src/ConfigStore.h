@@ -81,6 +81,7 @@ enum class Action : int {
     FiniteStandardAmmo,
     GrappleRange,
     InfiniteDoubleJump,
+    UltimateDecreaseRate,
     Count
 };
 
@@ -137,7 +138,8 @@ kActionLabels = {
     "Sheathe weapons",
     "Toggle limited Standard ammunition",
     "Toggle grapple range",
-    "Cycle infinite double jump"
+    "Cycle infinite double jump",
+    "Toggle Ultimate decrease rate"
 };
 
 inline constexpr std::array<const wchar_t*, static_cast<std::size_t>(Action::Count)>
@@ -193,7 +195,8 @@ kActionTokens = {
     L"SheatheWeapons",
     L"FiniteStandardAmmo",
     L"GrappleRange",
-    L"InfiniteDoubleJump"
+    L"InfiniteDoubleJump",
+    L"UltimateDecreaseRate"
 };
 
 // Instant actions share the validated one-shot manual refill queue.
@@ -253,6 +256,10 @@ public:
     bool weaponSheathingEnabled = false;
     bool sheathNeverEnabled = true;
     float sheathDelaySeconds = 10.0f;
+    bool sheathStrifeMeleeNeverEnabled = false;
+    float sheathStrifeMeleeDelaySeconds = 0.0f;
+    bool sheathWarNeverEnabled = true;
+    float sheathWarDelaySeconds = 10.0f;
     int sheathKeyboardKey = 0;
     int sheathPadButtonA = 0;
     int sheathPadButtonB = 0;
@@ -302,6 +309,8 @@ public:
     // V1.02 research controls. Fail-closed until three native charge owners are verified.
     bool wrathChargeEnabled = true;
     bool ultimateChargeEnabled = true;
+    bool ultimateDecreaseEnabled = false;
+    float ultimateDurationMultiplier = 2.0f;
     bool synergyChargeEnabled = true;
     bool unlimitedWrathEnabled = false;
     bool unlimitedUltimateEnabled = false;

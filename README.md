@@ -1,3 +1,9 @@
+## V1.64 en préparation — 19 octobre 2026
+
+**Grappin V1.63 validé par l'utilisateur dans son essai.** Nouvelle demande de rangement : conserver tous les raccourcis et séparer lames de Strife, pistolets de Strife et épée de War ; lames natives par défaut. Code et migration préparés, avec réglage de durée ultime 0–10, ×2 proposé, OFF par défaut. **CONSTRUCTION À EFFECTUER / EXPÉRIMENTAL**, aucun résultat en jeu revendiqué. Double saut encore ouvert : la séquence n'a pas été capturée ; pas de changement de son code. Aucun lancement/installation ni écriture de l'INI utilisateur par l'agent. [Périmètre, preuves et tests V1.64](docs/V1_64_WEAPON_TIMERS_ULTIMATE_TEST.md). Les instructions d'attente et états antérieurs ci-dessous sont supersédés par le retour reçu et la demande de continuer.
+
+---
+
 ## Retour utilisateur du 19 octobre — attente des essais V1.63
 
 **VALIDÉS dans les essais rapportés :** raccourcis de rangement, netteté TPS, Standard limité et disparition du son/des effets du tir pendant le dash. **NON VALIDÉ : double saut** ; seul Always on autorise trois sauts supplémentaires, puis bloque. Grappin V1.63 et auto-check : retour encore attendu. La liste a été préparée avant le dernier message V1.63 ; aucune validation de cette build n'est déduite.

@@ -11,6 +11,11 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(UltimateDurationTests tests/UltimateDurationTests.cpp src/RuntimeSettings.cpp src/ConfigStore.cpp)
+  target_include_directories(UltimateDurationTests PRIVATE tests/stubs src)
+  target_compile_definitions(UltimateDurationTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  target_link_libraries(UltimateDurationTests PRIVATE user32)
+  add_test(NAME UltimateDuration COMMAND UltimateDurationTests)
   add_executable(GrappleRangeTests tests/GrappleRangeTests.cpp src/RuntimeSettings.cpp)
   target_include_directories(GrappleRangeTests PRIVATE tests/stubs src)
   target_compile_definitions(GrappleRangeTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
@@ -263,6 +268,7 @@ add_library(DarksidersGenesisMod SHARED
   src/DashCombatFeature.cpp
   src/InteractionHudFeature.cpp
   src/WeaponSheathingFeature.cpp
+  src/UltimateDurationFeature.cpp
   src/ProjectileAimFeature.cpp
   src/HealthFeature.cpp
   src/GlideFeature.cpp

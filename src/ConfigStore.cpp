@@ -320,6 +320,8 @@ void Store::ResetDefaults(bool persist) {
 
     toggleHudEnabled = true;interactionHudScaleEnabled=true;interactionHudScale=0.65f;
     weaponSheathingEnabled=false;sheathNeverEnabled=true;sheathDelaySeconds=10.0f;
+    sheathStrifeMeleeNeverEnabled=false;sheathStrifeMeleeDelaySeconds=0.0f;
+    sheathWarNeverEnabled=true;sheathWarDelaySeconds=10.0f;
     sheathKeyboardKey=0;sheathPadButtonA=0;sheathPadButtonB=0;
     movementSpeedEnabled = true;
     skipLogosEnabled = true;
@@ -366,6 +368,7 @@ void Store::ResetDefaults(bool persist) {
     hotstreakChargeEnabled = true;
     wrathChargeEnabled = true;
     ultimateChargeEnabled = true;
+    ultimateDecreaseEnabled=false;ultimateDurationMultiplier=2.0f;
     synergyChargeEnabled = true;
     unlimitedWrathEnabled = false;
     unlimitedUltimateEnabled = false;
@@ -557,6 +560,12 @@ bool Store::Load() {
     weaponSheathingEnabled=ReadBool(L"Features",L"WeaponSheathing",false,path_);
     sheathNeverEnabled=ReadBool(L"Features",L"NeverAutoSheathe",true,path_);
     sheathDelaySeconds=std::clamp(ReadFloat(L"Values",L"SheathDelaySeconds",10.0f,path_),0.0f,300.0f);
+    sheathStrifeMeleeNeverEnabled=ReadBool(L"Features",L"StrifeMeleeNeverAutoSheathe",false,path_);
+    sheathStrifeMeleeDelaySeconds=std::clamp(ReadFloat(L"Values",L"StrifeMeleeSheathDelaySeconds",0.0f,path_),0.0f,300.0f);
+    // Existing personal setting continues to govern pistols; War inherits it
+    // when the new separate keys are absent. Strife's melee defaults to native.
+    sheathWarNeverEnabled=ReadBool(L"Features",L"WarNeverAutoSheathe",sheathNeverEnabled,path_);
+    sheathWarDelaySeconds=std::clamp(ReadFloat(L"Values",L"WarSheathDelaySeconds",sheathDelaySeconds,path_),0.0f,300.0f);
     wchar_t sheathKey[64]{};
     GetPrivateProfileStringW(L"Controls",L"SheatheKeyboardKey",L"OFF",sheathKey,64,path_.c_str());
     sheathKeyboardKey=ParseKeyToken(sheathKey,0);
@@ -667,6 +676,8 @@ bool Store::Load() {
     // Resource gains use the verified native local-player paths.
     wrathChargeEnabled=ReadBool(L"Features",L"WrathCharge",true,path_);
     ultimateChargeEnabled=ReadBool(L"Features",L"UltimateFormCharge",true,path_);
+    ultimateDecreaseEnabled=ReadBool(L"Features",L"UltimateDecreaseRate",false,path_);
+    ultimateDurationMultiplier=std::clamp(ReadFloat(L"Values",L"UltimateDurationMultiplier",2.0f,path_),0.0f,10.0f);
     synergyChargeEnabled=ReadBool(L"Features",L"SynergyCharge",true,path_);
 
     movementSpeedMultiplier =
@@ -880,6 +891,10 @@ void Store::PublishRuntime() const {
     runtime.weaponSheathingEnabled=weaponSheathingEnabled;
     runtime.sheathNeverEnabled=sheathNeverEnabled;
     runtime.sheathDelaySeconds=sheathDelaySeconds;
+    runtime.sheathStrifeMeleeNeverEnabled=sheathStrifeMeleeNeverEnabled;
+    runtime.sheathStrifeMeleeDelaySeconds=sheathStrifeMeleeDelaySeconds;
+    runtime.sheathWarNeverEnabled=sheathWarNeverEnabled;
+    runtime.sheathWarDelaySeconds=sheathWarDelaySeconds;
     runtime.fovEnabled = fovEnabled;
     runtime.movementSpeedEnabled = movementSpeedEnabled;
     runtime.skipLogosEnabled = skipLogosEnabled;
@@ -928,6 +943,7 @@ void Store::PublishRuntime() const {
     runtime.hotstreakChargeEnabled = hotstreakChargeEnabled;
     runtime.wrathChargeEnabled = wrathChargeEnabled;
     runtime.ultimateChargeEnabled = ultimateChargeEnabled;
+    runtime.ultimateDecreaseEnabled=ultimateDecreaseEnabled;runtime.ultimateDurationMultiplier=ultimateDurationMultiplier;
     runtime.synergyChargeEnabled = synergyChargeEnabled;
     runtime.unlimitedWrathEnabled = unlimitedWrathEnabled;
     runtime.unlimitedUltimateEnabled = unlimitedUltimateEnabled;
@@ -1034,6 +1050,10 @@ bool Store::SaveNow() {
     swprintf_s(sheathPadText,L"%d",sheathPadButtonB);
     WriteProfileString(L"Controls",L"SheathePadButtonB",sheathPadText,path_.c_str());
     WriteFloat(L"Values",L"SheathDelaySeconds",sheathDelaySeconds,path_);
+    WriteBool(L"Features",L"StrifeMeleeNeverAutoSheathe",sheathStrifeMeleeNeverEnabled,path_);
+    WriteFloat(L"Values",L"StrifeMeleeSheathDelaySeconds",sheathStrifeMeleeDelaySeconds,path_);
+    WriteBool(L"Features",L"WarNeverAutoSheathe",sheathWarNeverEnabled,path_);
+    WriteFloat(L"Values",L"WarSheathDelaySeconds",sheathWarDelaySeconds,path_);
     WriteBool(L"Features",L"InteractionHudScale",interactionHudScaleEnabled,path_);
     WriteFloat(L"Values",L"InteractionHudScale",interactionHudScale,path_);
     WriteBool(L"Features", L"MovementSpeed", movementSpeedEnabled, path_);
@@ -1160,6 +1180,8 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"HotstreakCharge", hotstreakChargeEnabled, path_);
     WriteBool(L"Features",L"WrathCharge",wrathChargeEnabled,path_);
     WriteBool(L"Features",L"UltimateFormCharge",ultimateChargeEnabled,path_);
+    WriteBool(L"Features",L"UltimateDecreaseRate",ultimateDecreaseEnabled,path_);
+    WriteFloat(L"Values",L"UltimateDurationMultiplier",ultimateDurationMultiplier,path_);
     WriteBool(L"Features",L"SynergyCharge",synergyChargeEnabled,path_);
 
     WriteFloat(L"Values", L"MovementSpeedMultiplier", movementSpeedMultiplier, path_);

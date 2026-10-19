@@ -14,15 +14,16 @@ namespace {
 using ClearFn=void(*)(void*);
 ClearFn g_combat=nullptr,g_ranged=nullptr;
 uintptr_t g_base=0;LogFn g_log=nullptr;std::atomic_bool g_ready{false};
-struct Baseline {float original[2]{},applied[2]{};bool captured=false,modified=false;};
+struct FieldBaseline {float original=0,applied=0;bool captured=false,modified=false;};
+struct Baseline {FieldBaseline fields[2]{};};
 native_objects::Baselines<Baseline,16> g_baselines;
 refill::Request g_requests[2]{};SRWLOCK g_lock=SRWLOCK_INIT;
 unsigned g_changes=0,g_manual=0;
 template<class T> bool Read(const void* obj,size_t at,T& value){
     native_objects::MemoryReader reader;return reader.Read(reinterpret_cast<uintptr_t>(obj),at,value);
 }
-bool Owned(const local_players::Context& c){
-    auto* actor=reinterpret_cast<void*>(c.character);uintptr_t vt=0,combat=0,ranged=0;unsigned char role=0,type=0;
+bool Owned(const local_players::Context& c,unsigned char& type){
+    auto* actor=reinterpret_cast<void*>(c.character);uintptr_t vt=0,combat=0,ranged=0;unsigned char role=0;
     void* resource=nullptr;float health=0;
     return c.index>=0&&c.index<2&&c.character&&c.localPlayer&&
         Read(actor,0,vt)&&Read(reinterpret_cast<void*>(vt),0xBB8,combat)&&combat==g_base+0x663AC0&&
@@ -30,24 +31,30 @@ bool Owned(const local_players::Context& c){
         Read(actor,0x118,role)&&role==3&&Read(actor,0xC18,type)&&(type==1||type==2)&&
         Read(actor,0xEA0,resource)&&Read(resource,0x37C,health)&&std::isfinite(health)&&health>0;
 }
-void ApplyDuration(void* actor,bool apply){
+void ApplyDuration(void* actor,bool apply,unsigned char type){
     float current[2]{};native_objects::Identity identity{};
     if(!Read(actor,0xCD0,current)||!std::isfinite(current[0])||!std::isfinite(current[1])||
        current[0]<0||current[1]<0||!native_objects::CaptureLive(g_base,actor,identity))return;
     native_objects::MemoryReader reader;auto* b=g_baselines.Acquire(reader,g_base,identity);if(!b)return;
-    const bool ours=b->modified&&current[0]==b->applied[0]&&current[1]==b->applied[1];
-    if(!b->captured||!ours){std::memcpy(b->original,current,sizeof(current));b->captured=true;b->modified=false;}
-    const auto& rt=runtime::Get();const float seconds=rt.sheathDelaySeconds.load();
-    const bool enabled=apply&&rt.weaponSheathingEnabled.load()&&std::isfinite(seconds)&&seconds>=0&&seconds<=300;
-    float target[2]{b->original[0],b->original[1]};
-    if(enabled)target[0]=target[1]=rt.sheathNeverEnabled.load()?std::numeric_limits<float>::max():seconds;
-    if(current[0]!=target[0]||current[1]!=target[1]){
-        // Only native data thresholds. Native elapsed timers, state flags,
-        // animation events, meshes and all action/input states are untouched.
-        std::memcpy(static_cast<unsigned char*>(actor)+0xCD0,target,sizeof(target));
-        if(g_log&&++g_changes<=8)g_log("Weapon sheathing V1.59 native duration thresholds updated; timers and action lifecycle unchanged; EXPERIMENTAL");
+    const auto& rt=runtime::Get();
+    const float seconds[2]={type==1?rt.sheathStrifeMeleeDelaySeconds.load():rt.sheathWarDelaySeconds.load(),rt.sheathDelaySeconds.load()};
+    const bool never[2]={type==1?rt.sheathStrifeMeleeNeverEnabled.load():rt.sheathWarNeverEnabled.load(),rt.sheathNeverEnabled.load()};
+    // Combat: Strife blades / War sword. Ranged: Strife pistols only.
+    // War's ranged equipment stays native; all manual Clear shortcuts remain.
+    bool changed=false;
+    for(unsigned i=0;i<2;++i){
+        auto& field=b->fields[i];
+        const bool ours=field.modified&&current[i]==field.applied;
+        if(!field.captured||!ours){field.original=current[i];field.captured=true;field.modified=false;}
+        const bool modify=apply&&rt.weaponSheathingEnabled.load()&&(type==1||i==0)&&
+            std::isfinite(seconds[i])&&seconds[i]>=0&&seconds[i]<=300;
+        const float target=modify?(never[i]?std::numeric_limits<float>::max():seconds[i]):field.original;
+        if(current[i]!=target){
+            std::memcpy(static_cast<unsigned char*>(actor)+0xCD0+i*sizeof(float),&target,sizeof(target));changed=true;
+        }
+        field.applied=target;field.modified=modify;
     }
-    std::memcpy(b->applied,target,sizeof(target));b->modified=enabled;
+    if(changed&&g_log&&++g_changes<=8)g_log("Weapon sheathing V1.64 duration: independent Strife blades / Strife pistols / War sword; EXPERIMENTAL");
 }
 bool Idle(void* actor){
     void* component=nullptr;void* owner=nullptr;int count=-1,capacity=0;
@@ -69,16 +76,17 @@ void Initialize(LogFn log,bool exactExecutable){
     if(ranged!=0xCD4||combat!=0xCD0)return;
     g_combat=reinterpret_cast<ClearFn>(g_base+0x663AC0);g_ranged=reinterpret_cast<ClearFn>(g_base+0x663DC0);
     g_ready.store(true,std::memory_order_release);
-    if(log)log("Weapon sheathing V1.59 READY: native combat/ranged idle thresholds and native Clear functions, no new hooks; EXPERIMENTAL");
+    if(log)log("Weapon sheathing V1.64 READY: three independent native delays; all manual Clear shortcuts retained; no new sheathing hooks; EXPERIMENTAL");
 }
 void OnLivePlayer(const local_players::Context& c,uint32_t generation){
-    if(!g_ready.load(std::memory_order_acquire)||!native_tps::OnGameThread()||!Owned(c))return;
+    unsigned char type=0;
+    if(!g_ready.load(std::memory_order_acquire)||!native_tps::OnGameThread()||!Owned(c,type))return;
     auto* actor=reinterpret_cast<void*>(c.character);
     const bool foot=c.kind==local_players::PoseKind::Foot;
     const bool gameplay=foot&&!native_tps::IsWorldPaused(actor)&&!native_tps::CinematicActive(unsigned(c.index));
     // Leaving normal form restores the normal character's native thresholds.
     // No horse/Ultimate state or component is ever altered.
-    if(gameplay||!foot)ApplyDuration(actor,gameplay);
+    if(gameplay||!foot)ApplyDuration(actor,gameplay,type);
     bool request=false;const auto now=GetTickCount64();
     AcquireSRWLockExclusive(&g_lock);
     auto& pending=g_requests[c.index];pending.Observe(c.character,generation,now,foot);

@@ -2,6 +2,7 @@
 #include "OverlayBindingScope.h"
 #include "InteractionHudFeature.h"
 #include "WeaponSheathingFeature.h"
+#include "UltimateDurationFeature.h"
 #include "GaugeChargeFeature.h"
 #include "ResourceGainFeature.h"
 #include "ManualGaugeFeature.h"
@@ -269,11 +270,18 @@ void Draw(Context& c) {
 
             DrawSectionTitle("Weapon sheathing");
             DrawToggleFeature(config,"Control automatic weapon sheathing","WeaponSheathing",&config.weaponSheathingEnabled,
-                "Native combat and ranged idle timers for Strife and War. OFF restores each character's original delay. Foot forms only; horse and Ultimate remain native.",sheathing::Ready());
+                "Separate automatic delays for Strife's melee blades, Strife's pistols and War's sword. OFF restores native delays. Foot forms only; horse and Ultimate remain native.",sheathing::Ready());
             if(config.weaponSheathingEnabled){
                 ImGui::Indent(22.0f);
-                if(ImGui::Checkbox("Never automatically sheathe",&config.sheathNeverEnabled))config.Save();
-                if(!config.sheathNeverEnabled&&DrawNumberRow("Automatic sheathing delay (seconds)","SheathDelaySeconds",&config.sheathDelaySeconds,0,300,10,"%.2f s"))config.Save();
+                const char* labels[]={"Strife melee blades","Strife pistols","War sword"};
+                bool* never[]={&config.sheathStrifeMeleeNeverEnabled,&config.sheathNeverEnabled,&config.sheathWarNeverEnabled};
+                float* seconds[]={&config.sheathStrifeMeleeDelaySeconds,&config.sheathDelaySeconds,&config.sheathWarDelaySeconds};
+                for(int i=0;i<3;++i){
+                    ImGui::PushID(labels[i]);ImGui::TextUnformatted(labels[i]);
+                    if(ImGui::Checkbox("Never automatically sheathe",never[i]))config.Save();
+                    if(!*never[i]&&DrawNumberRow("Automatic sheathing delay (seconds)","SheathDelay",seconds[i],0,300,i==0?0.0f:10.0f,"%.2f s"))config.Save();
+                    ImGui::PopID();
+                }
                 ImGui::Unindent(22.0f);
             }
             ImGui::PushID("SheatheBindings");
@@ -499,6 +507,11 @@ void Draw(Context& c) {
                 0.0f,100.0f,defaults::WrathGain,"%.2fx",
                 "Multiplier for native Wrath pickup gains; validated in game.",
                 rewards.ready[0],rewards.ready[0]?"Gains validated by user":"Gain path unavailable");
+            DrawTunableFeature(config,"Ultimate decrease rate","UltimateDecreaseRate",
+                &config.ultimateDecreaseEnabled,&config.ultimateDurationMultiplier,
+                0.0f,10.0f,2.0f,"%.2fx duration",
+                "Duration multiplier: 0.5 halves the duration, 1 is native, 2 doubles it, 10 lasts ten times longer. 0 ends on the next positive native drain tick. Gains and refills stay unchanged; Unlimited Ultimate takes priority.",
+                dg::ultimate_duration::Ready());
             DrawTunableFeature(config,"Ultimate Form / Chaos charge","UltimateCharge",
                 &config.ultimateChargeEnabled,&config.ultimateChargeMultiplier,
                 0.0f,100.0f,defaults::UltimateGain,"%.2fx",

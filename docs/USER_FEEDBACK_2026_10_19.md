@@ -1,3 +1,9 @@
+# Retour complémentaire reçu — 19 octobre 2026
+
+**Grappin V1.63 : « marche », VALIDÉ dans l'essai rapporté.** Rangement : les lames de Strife restent en main avec l'ancien délai commun. Décision finale : garder les raccourcis pour toutes les armes, ajouter trois délais indépendants lames Strife / pistolets Strife / épée War. Cette décision remplace l'exclusion envisagée des lames/raccourcis. L'utilisateur a ensuite demandé de continuer ; l'attente V1.63 indiquée plus bas est levée. Double saut encore ouvert, auto-check sans retour, autres acquis préservés. Voir [V1.64](V1_64_WEAPON_TIMERS_ULTIMATE_TEST.md).
+
+---
+
 # Retour utilisateur consigné — 19 octobre 2026
 
 L'utilisateur précise avoir préparé cette liste avant la dernière réponse de livraison V1.63. La version exacte de ces essais n'est pas précisée : ne pas transformer ce retour en validation du correctif grappin ni de l'auto-check V1.63. Ses confirmations font foi pour les essais rapportés, sans étendre implicitement leur couverture.

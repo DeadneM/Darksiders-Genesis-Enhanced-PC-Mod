@@ -1,3 +1,9 @@
+# Actualisation V1.64 en préparation
+
+Grappin V1.63 désormais confirmé fonctionnel dans l'essai utilisateur. Prochaine vérification ciblée : trois délais de rangement et leurs Never séparés, raccourcis communs conservés ; durée ultime 0–10, OFF/0/0.5/1/2/10 et priorité Unlimited. [Manipulations et statut](V1_64_WEAPON_TIMERS_ULTIMATE_TEST.md). Double saut et auto-check toujours ouverts ; les passages historiques qui attendent le premier retour grappin sont supersédés.
+
+---
+
 # État après le retour utilisateur du 19 octobre 2026
 
 **Plus à traiter comme non validés :** raccourcis de rangement, netteté TPS, Standard limité, disparition du son et des effets parasites pendant le dash : confirmés fonctionnels par l'utilisateur. La liste d'essais précédente est conservée ci-dessous comme historique, sans lui redemander ces validations.

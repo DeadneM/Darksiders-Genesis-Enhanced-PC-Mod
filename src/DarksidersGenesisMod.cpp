@@ -42,6 +42,7 @@
 #include "DashCombatFeature.h"
 #include "InteractionHudFeature.h"
 #include "WeaponSheathingFeature.h"
+#include "UltimateDurationFeature.h"
 #include "ManualActionBinding.h"
 #include "TpsCameraFocus.h"
 #include "ControllerReadScope.h"
@@ -2117,6 +2118,7 @@ void TriggerAction(Action action, int functionKey,unsigned playerTargets=3) {
     switch (action) {
     case Action::FiniteStandardAmmo: toggle=&g_config.finiteStandardAmmoEnabled; break;
     case Action::GrappleRange: toggle=&g_config.grappleRangeEnabled; break;
+    case Action::UltimateDecreaseRate: toggle=&g_config.ultimateDecreaseEnabled; break;
     case Action::FOV: toggle=&g_config.fovEnabled; break;
     case Action::PistolDamage: toggle=&g_config.pistolDamageEnabled; break;
     case Action::MeleeDamage: toggle=&g_config.meleeDamageEnabled; break;
@@ -4394,6 +4396,7 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::dash_combat::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::interaction_hud::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::sheathing::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::ultimate_duration::Initialize(&FeatureLog,g_targetValidation.exact);
     if (!InstallFinalOutgoingDamageHook()) {
         Log("Final Pistol/Melee Damage hook unavailable; other ASI features remain active.");
     }
