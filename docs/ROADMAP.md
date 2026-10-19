@@ -12,9 +12,9 @@ Ancienne fin anticipée retirée depuis V1.58. Nouvelle étude centrée sur la d
 
 Critère : reprendre le déplacement plus tôt après la phase utile du dash, sans glissement, distance/vitesse raccourcie, état temporaire persistant ni différence imprévue TPS/native. Observer le troisième et le quatrième dash Strife ; inclure ensuite War/P2. Les coffres restent différés. Ni simple autorisation MOVE, ni ancien EndAbility(0), ni touche/stick physique ciblé.
 
-## Pistolets et skins : lot V1.67 préparé
+## Pistolets et skins : lot V1.67 construit et contrôlé
 
-Le besoin précisé consiste à choisir l’un des deux pistolets existants par main. Deux listes et les variantes de holster correspondantes sont préparées. Deux cases distinctes ciblent la disponibilité des montures Rampage/Despair et des six apparences de progression, sans attribution de récompense par le mod. Nouveaux comportements expérimentaux, construction et essais en jeu à effectuer. [Inventaire, preuves et limites V1.67](V1_67_PISTOL_CHOICES_AND_SKINS.md). Aucun asset privé du jeu dans le dépôt.
+Le besoin précisé consiste à choisir l’un des deux pistolets existants par main. Deux listes et les variantes de holster correspondantes sont préparées. Deux cases distinctes ciblent la disponibilité des montures Rampage/Despair et des six apparences de progression, sans attribution de récompense par le mod. Construction Windows x64 vérifiée : 42/42 suites, zéro avertissement MSVC, ZIP à quatre fichiers contrôlé. Nouveaux comportements expérimentaux, essais dans le jeu à effectuer. [Inventaire, preuves et limites V1.67](V1_67_PISTOL_CHOICES_AND_SKINS.md). Aucun asset privé du jeu dans le dépôt.
 
 ## Conservations et éléments différés
 

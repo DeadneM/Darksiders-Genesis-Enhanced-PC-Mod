@@ -2,11 +2,11 @@
 
 Mod Windows x64 pour Darksiders Genesis : caméra native/TPS, souris et manette, coop locale, réglages de gameplay, raccourcis et mise à jour intégrée. **Canal expérimental `debug`** ; la branche stable `main` et les anciennes archives sont conservées.
 
-**Nouveau lot V1.67 EXPÉRIMENTAL : pistolet droit/gauche au choix pour chaque main de Strife ; montures bonus et apparences de progression proposées séparément dans la page Skins native. Nouveaux comportements à valider dans le jeu.** Base retenue V1.66, sauts et holsters validés par l’utilisateur le 19 octobre 2026 ; acquits conservés, canal `debug`. [Preuves, inventaire et essais V1.67](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_67_PISTOL_CHOICES_AND_SKINS.md).
+**Nouveau lot V1.67 EXPÉRIMENTAL : pistolet droit/gauche au choix pour chaque main de Strife ; montures bonus et apparences de progression proposées séparément dans la page Skins native. Nouveaux comportements à valider dans le jeu.** Base retenue V1.66, sauts et holsters validés par l’utilisateur le 19 octobre 2026 ; acquis conservés, canal `debug`. [Preuves, inventaire et essais V1.67](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_67_PISTOL_CHOICES_AND_SKINS.md).
 
-[Base validée / rollback : ZIP cumulatif V1.66](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/12061a956b9257284c8b1779503cf058b75fab1f/downloads/DarksidersGenesis_V1.66_NATIVE_JUMP_CYCLE_TEST.zip) · [Contrôles Windows : 41/41 suites, aucun avertissement MSVC](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39217494013) · [Notes et tests V1.66](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_66_NATIVE_JUMP_CYCLE_TEST.md).
+[Télécharger le ZIP cumulatif V1.67](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/c760123057e66f2b3d7053b7acf3441de2cee44e/downloads/DarksidersGenesis_V1.67_PISTOL_CHOICES_SKINS_TEST.zip) · [Contrôles Windows : 42/42 suites, aucun avertissement MSVC](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39253436601) · [Inventaire et essais V1.67](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_67_PISTOL_CHOICES_AND_SKINS.md).
 
-Le ZIP vérifié contient exactement quatre fichiers à la racine : `dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md`. Taille : 934413 octets. SHA256 : `CC15584E210717E4F173967BE47024CA949983FD24870B03190191936888F67F`. La compilation et l’intégrité du paquet ne valident pas le comportement en jeu.
+Le ZIP vérifié contient exactement quatre fichiers à la racine : `dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md`. Taille : 809061 octets. SHA256 : `8E37AE2BBBAD9465BEFE2BC75F2566B74311EB0908E01682D1D6CD02EF3B9591`. **CONSTRUIT / CONTRÔLÉ ; nouveaux comportements EXPÉRIMENTAUX, non validés en jeu.** La compilation et l’intégrité du paquet ne valident pas le comportement en jeu.
 
 ### Installation et mise à jour
 
@@ -39,7 +39,7 @@ Dans Gameplay, section Appearance, choisir **Native / Right pistol model / Left 
 
 Deux cases distinctes, OFF par défaut : **Bonus mount skins** pour Rampage (War) et Despair (Strife) ; **Progression skins** pour les variantes Abyssal, Silver et Gold de chacun. Cela propose les apparences dans la page Skins du jeu, sans récompense attribuée par le mod. Le jeu garde la sélection et peut mémoriser l’apparence équipée. Le PAK de montures existant n’est ni remplacé ni nécessaire au nouveau contrôle ASI ; s’il reste installé, OFF ne retire pas son déblocage natif. Choisir une apparence possédée avant de désactiver un groupe.
 
-Essais groupés : deux pistolets identiques puis inversés à pied/cheval, tirs/rangement, retour Native ; disponibilité de chaque groupe dans Skins, retour OFF et comparaison sans le seul PAK de montures pour prouver l’autonomie de l’ASI. L’INI personnel est prioritaire ; les quatre nouveaux réglages sont Native/Native et OFF/OFF par défaut. Pour retirer le lot, reprendre le ZIP V1.66 en conservant l’INI.
+Essais groupés : deux pistolets identiques puis inversés à pied/cheval, tirs/rangement, retour Native ; fermer et rouvrir la page Skins après chaque changement, vérifier les groupes, retour OFF et comparaison sans le seul PAK de montures pour prouver l’autonomie de l’ASI. L’INI personnel est prioritaire ; les quatre nouveaux réglages sont Native/Native et OFF/OFF par défaut. Pour retirer le lot, reprendre le ZIP V1.66 en conservant l’INI.
 
 ### Raccourcis du profil fourni
 
@@ -59,7 +59,7 @@ Les commandes de caméra native et de TPS ont leurs sections dédiées ; elles n
 
 Retour explicite du 19 octobre 2026 : « pour les sauts c'est bon bravo », « pour les holsters c'est bon bravo », puis « donc tout a lair bon/ ». Ces deux sujets sont clos dans l’essai rapporté ; V1.66 devient la base de travail retenue. Ce retour ne décrit pas une matrice exhaustive de modes, personnages ou situations coop et ne confirme pas séparément Auto check update.
 
-Le code validé est conservé. En cas de nouvelle régression, noter le contexte et garder le journal ; le système de restauration et les anciennes archives permettent un retour arrière en préservant l’INI personnel. Aucun nouveau paquet n’est nécessaire pour enregistrer cette validation.
+Le code validé est conservé. En cas de nouvelle régression, noter le contexte et garder le journal ; le système de restauration et les anciennes archives permettent un retour arrière en préservant l’INI personnel. Le [ZIP V1.66 conservé](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/12061a956b9257284c8b1779503cf058b75fab1f/downloads/DarksidersGenesis_V1.66_NATIVE_JUMP_CYCLE_TEST.zip) permet de revenir à cette base en conservant l’INI personnel.
 
 ### Sources, construction et historique
 
