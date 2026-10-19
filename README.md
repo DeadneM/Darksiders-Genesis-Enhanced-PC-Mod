@@ -2,7 +2,7 @@
 
 Mod Windows x64 pour Darksiders Genesis : caméra native/TPS, souris et manette, coop locale, réglages de gameplay, raccourcis et mise à jour intégrée. **Canal expérimental `debug`** ; la branche stable `main` et les anciennes archives sont conservées.
 
-**Dernier lot : CONSTRUIT / CONTRÔLÉ / EXPÉRIMENTAL.** V1.66 teste le cycle des sauts supplémentaires avec animation et réduit l’attente initiale des modèles de holster en anticipant leur recherche à pied. Retour utilisateur encore attendu. Base V1.65 : placement des holsters, trois délais de rangement et durée ultime validés ; ancien double saut défectueux.
+**Base retenue : V1.66, CONSTRUITE / CONTRÔLÉE ; sauts et holsters VALIDÉS par l’utilisateur dans son essai du 19 octobre 2026.** Le cycle natif de saut et la recherche anticipée des modèles montés sont conservés. Les trois délais de rangement et la durée ultime étaient déjà validés en V1.65. Le canal reste `debug`.
 
 [Télécharger le ZIP cumulatif V1.66](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/12061a956b9257284c8b1779503cf058b75fab1f/downloads/DarksidersGenesis_V1.66_NATIVE_JUMP_CYCLE_TEST.zip) · [Contrôles Windows : 41/41 suites, aucun avertissement MSVC](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39217494013) · [Notes et tests V1.66](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_66_NATIVE_JUMP_CYCLE_TEST.md).
 
@@ -25,8 +25,8 @@ Dans **Updates**, choisir le canal voulu, puis vérifier les mises à jour. Le c
 | Netteté et interaction HUD | Focus TPS, taille et orientation des indications d’interaction P1/P2 | Validés dans les essais rapportés ; autres icônes/effets P2 reportés |
 | Ressources | Gains, remplissages et Unlimited ; munitions, Hotstreak, vie, potions, ultime ; Standard limité | Fonctions validées conservées ; facteurs et descriptions propres à chaque réglage |
 | Mouvement et grappin | Réglages de déplacement/saut/plané/cheval, sprint, portée native du grappin | Acquis conservés ; portée validée dans l’essai utilisateur |
-| Rangement | Délais séparés lames Strife / pistolets Strife / épée War ; action commune avec raccourcis clavier et manette | Validés ; holsters montés validés V1.65, délai initial à revérifier en V1.66 |
-| Sauts supplémentaires | OFF / After gliding / Always on | Expérimental V1.66 ; aucun saut animé répétable encore validé |
+| Rangement | Délais séparés lames Strife / pistolets Strife / épée War ; action commune avec raccourcis clavier et manette | Délais validés V1.65 ; holsters validés dans l’essai V1.66 |
+| Sauts supplémentaires | OFF / After gliding / Always on | Sauts validés dans l’essai utilisateur V1.66 |
 | Action Recovery | Ancienne fin anticipée retirée depuis V1.58 | Pas d’option active ; nouvelle approche en étude |
 | Modèles 3D des pistolets | Inventaire des représentations et de leurs contraintes | Pas de remplacement alternatif livré |
 
@@ -46,13 +46,11 @@ Toutes les affectations suivantes sont reconfigurables et l’INI personnel rest
 
 Les commandes de caméra native et de TPS ont leurs sections dédiées ; elles ne remplacent pas la configuration rebindable du jeu. Le rangement dispose aussi de raccourcis directement dans Gameplay, en plus des actions Hotkeys. **Les raccourcis de rangement dédiés sont non attribués par défaut.**
 
-### Essai V1.66 et retour arrière
+### Validation V1.66 et retour arrière
 
-1. Always : au moins dix nouveaux sauts **avec animation**, en TPS puis vue native ; tester aussi quelques appuis rapprochés.
-2. After gliding : un saut rendu par nouveau plané, y compris demandé pendant le plané ; contrôler OFF et le retour au sol.
-3. Holsters : rester quelques secondes à pied avant la première montée ; vérifier délai, alignement, tir, rangement et descente.
+Retour explicite du 19 octobre 2026 : « pour les sauts c'est bon bravo », « pour les holsters c'est bon bravo », puis « donc tout a lair bon/ ». Ces deux sujets sont clos dans l’essai rapporté ; V1.66 devient la base de travail retenue. Ce retour ne décrit pas une matrice exhaustive de modes, personnages ou situations coop et ne confirme pas séparément Auto check update.
 
-Si les sauts restent sans animation ou se bloquent, remettre cette option OFF et conserver le journal avec le nombre de sauts observé. Pour revenir à V1.65, utiliser le système de restauration ou son archive conservée, en gardant l’INI personnel. Les modèles montés et les autres fonctions validées restent distincts de l’essai des sauts.
+Le code validé est conservé. En cas de nouvelle régression, noter le contexte et garder le journal ; le système de restauration et les anciennes archives permettent un retour arrière en préservant l’INI personnel. Aucun nouveau paquet n’est nécessaire pour enregistrer cette validation.
 
 ### Sources, construction et historique
 

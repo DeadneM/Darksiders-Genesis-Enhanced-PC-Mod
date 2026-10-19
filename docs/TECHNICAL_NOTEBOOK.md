@@ -1,3 +1,13 @@
+## V1.66 — sauts et holsters VALIDÉS par l’utilisateur
+
+19 octobre 2026. Retour explicite : « pour les sauts c'est bon bravo », « pour les holsters c'est bon bravo », puis « donc tout a lair bon/ ». **Sauts et holsters VALIDÉS dans l’essai rapporté ; V1.66 devient la base de travail retenue sur debug.** Les trois délais de rangement et la durée ultime étaient déjà validés en V1.65. Aucun nombre de sauts, mode, personnage, cas coop ou délai mesuré n’est inventé à partir de ce retour général.
+
+Mise à jour documentaire uniquement : code runtime, INI, raccourcis, binaires et ZIP V1.66 conservés. Pas de nouvelle build ni de promotion de main/archive. Action Recovery et modèles alternatifs de pistolets restent ouverts ; autres icônes/effets P2 toujours différés sur demande ; Auto check update sans confirmation visuelle distincte. [État courant](CURRENT_STATE.md) · [File active](ACTIVE_QUEUE.md).
+
+Les critères et mentions « à tester » ci-dessous décrivent la préparation historique et sont remplacés, pour le statut des sauts et holsters, par ce retour utilisateur.
+
+---
+
 ## Après V1.66 — Recovery natif, modèles et séparation de l’historique
 
 19 octobre 2026. L’utilisateur teste V1.66 et demande de poursuivre le reste. **Préparation uniquement : pas de changement runtime/config, pas de build ni de nouveau relevé de jeu.** [Nouveaux faits et limites](NEXT_RECOVERY_AND_MODELS.md) : MOVE action 29/interruption 1, JUMP action 30/interruption 2 ; séparation masques d’action/interruption/requête ; raison native de fin sur un octet ; pipeline d’interruption et notification de fenêtre identifié, bénéfice sûr encore non établi. Capture externe de la fenêtre préparée sans attachement. L’ancien Recovery reste retiré.

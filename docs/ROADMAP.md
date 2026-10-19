@@ -1,10 +1,10 @@
 # Roadmap active
 
-19 octobre 2026. [File active](ACTIVE_QUEUE.md) : référence unique des tâches et statuts. [État de la dernière livraison](CURRENT_STATE.md). Le retour V1.66 est attendu ; le travail documentaire courant ne livre pas une nouvelle build.
+19 octobre 2026. [File active](ACTIVE_QUEUE.md) : référence unique des tâches et statuts. [État de la dernière livraison](CURRENT_STATE.md). Le retour V1.66 valide les sauts et holsters dans l’essai utilisateur ; le travail documentaire courant ne livre pas une nouvelle build.
 
-## En test utilisateur : V1.66
+## Base retenue : V1.66 validée dans l’essai utilisateur
 
-Sauts OFF / Always dix nouveaux sauts avec animation / After gliding un saut par plané ; comparaison TPS/native et atterrissage. Holsters : délai de première montée après quelques secondes à pied puis tir/rangement/descente. Placement V1.65, trois délais et durée ultime déjà validés. Ne pas annoncer la réparation des sauts sur les seules fixtures ou la CI.
+Retour explicite du 19 octobre 2026 : sauts et holsters « c’est bon », puis « tout a lair bon/ ». Conserver leur code V1.66 et les acquis V1.65 (trois délais de rangement et durée ultime). Ce retour clôt les deux sujets dans l’essai rapporté ; il ne décrit pas une couverture exhaustive des modes, personnages et situations coop. Auto check update n’a pas de confirmation visuelle distincte.
 
 ## Action Recovery : repartir du bon étage
 
@@ -21,6 +21,6 @@ L’inventaire élargi du PAK distingue quatre StaticMesh de pistolets, les mat�
 - Autres sprites/effets P2 : différés explicitement ; prompts d’interaction validés conservés.
 - Auto check update : implémenté, retour visuel encore absent ; ne pas compter ce diagnostic comme une fonction nouvelle.
 - Fonctions validées et INI/raccourcis : conserver. Pas de promotion stable ni de remplacement d’ancienne archive.
-- Prochain lot : regrouper les changements retenus et vérifiables après le retour en cours, donner un objectif mesurable et une version distincte.
+- Prochain lot : regrouper les changements retenus et vérifiables à partir de la base V1.66 retenue, donner un objectif mesurable et une version distincte.
 
 Tout l’ancien plan est conservé dans [l’historique de roadmap jusqu’à V1.66](history/ROADMAP_THROUGH_V1_66.md). Les demandes, expériences rejetées et anciens protocoles y restent consultables ; leurs anciens états n’annulent pas cette file.

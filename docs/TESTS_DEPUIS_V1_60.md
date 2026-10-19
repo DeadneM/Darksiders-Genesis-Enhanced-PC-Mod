@@ -1,3 +1,13 @@
+## V1.66 — sauts et holsters VALIDÉS par l’utilisateur
+
+19 octobre 2026. Retour explicite : « pour les sauts c'est bon bravo », « pour les holsters c'est bon bravo », puis « donc tout a lair bon/ ». **Sauts et holsters VALIDÉS dans l’essai rapporté ; V1.66 devient la base de travail retenue sur debug.** Les trois délais de rangement et la durée ultime étaient déjà validés en V1.65. Aucun nombre de sauts, mode, personnage, cas coop ou délai mesuré n’est inventé à partir de ce retour général.
+
+Mise à jour documentaire uniquement : code runtime, INI, raccourcis, binaires et ZIP V1.66 conservés. Pas de nouvelle build ni de promotion de main/archive. Action Recovery et modèles alternatifs de pistolets restent ouverts ; autres icônes/effets P2 toujours différés sur demande ; Auto check update sans confirmation visuelle distincte. [État courant](CURRENT_STATE.md) · [File active](ACTIVE_QUEUE.md).
+
+Les critères et mentions « à tester » ci-dessous décrivent la préparation historique et sont remplacés, pour le statut des sauts et holsters, par ce retour utilisateur.
+
+---
+
 ## V1.66 — construite et contrôlée, nouveau cycle de saut expérimental
 
 Base **V1.65** : holsters montés, trois délais de rangement et durée ultime **VALIDÉS par l’utilisateur** ; double saut non validé (deux remontées sans animation puis blocage). V1.66 remplace la substitution de compteur par un réarmement natif conjoint publié à l’animation et anticipe la recherche des modèles montés à pied. Aucun nouveau hook ni réglage. **CONSTRUIT / CONTRÔLÉ / EXPÉRIMENTAL : les sauts animés et la réduction du délai de placement restent à vérifier en jeu.**

@@ -2,6 +2,8 @@
 
 19 octobre 2026. Base debug `eb0b287e085f8ad8aee2c866bbe82c98524c593b`. Demande : poursuivre les autres tâches pendant l’essai V1.66. **AUDIT / PRÉPARATION, PAS UNE NOUVELLE FONCTION NI UNE BUILD.** Sources runtime et configuration conservées intégralement.
 
+Statut reçu après cette préparation : sauts et holsters V1.66 validés dans l’essai utilisateur du 19 octobre 2026. V1.66 est la base retenue ; l’audit ci-dessous reste une préparation, sans nouvelle fonction livrée. Voir la [file active](ACTIVE_QUEUE.md).
+
 ## Action Recovery : nouveaux repères vérifiés
 
 Le système de fin anticipée retiré en V1.58 n’est pas réintroduit. L’objectif utilisateur reste le contrôle du déplacement après le mouvement utile du dash, initialement limité au dash ; coffres différés.
