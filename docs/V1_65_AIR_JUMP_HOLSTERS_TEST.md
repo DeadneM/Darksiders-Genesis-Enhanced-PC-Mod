@@ -1,3 +1,15 @@
+## V1.65 — construite et contrôlée, essais groupés à faire
+
+**CONSTRUIT / CONTRÔLÉ / EXPÉRIMENTAL — pas encore VALIDÉ par l'utilisateur.** Base cumulative V1.64 ; dernier jeu observé V1.63. Le lot regroupe correction du cycle saut/plané, essai réversible des modèles natifs de holster à cheval (nouvelle case OFF par défaut), trois délais de rangement et durée ultime 0–10 inclus depuis V1.64. Les acquis validés sont conservés.
+
+[GitHub Actions Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39208468459) **SUCCESS : 41/41 suites, 0 avertissement MSVC ASI/DXGI**. Source `fdf7a8607e282d8da1b569c7b13828f41f0bdbe0`, archive `310c19b918f2b682add6e514f09bf2ba6fdf59a4`. [ZIP cumulatif V1.65 vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/310c19b918f2b682add6e514f09bf2ba6fdf59a4/downloads/DarksidersGenesis_V1.65_AIR_JUMP_HOLSTERS_TEST.zip) : 931063 octets, SHA256 `7CEC19D21D94826FE7002A07849A250BA32EF31D5F1880456DF11973F0178CE6`. CRC, AMD64, quatre fichiers racine, marqueurs, **139 clés / 53 actions**, HTTP 200 et **129 anciens ZIP inchangés** vérifiés. Les 138 valeurs précédentes du profil fourni sont conservées ; seule MountedPistolHolsters=0 est ajoutée. Main `2bc3122c1ae07b7333798462f85c1d9fd3a739f7`, archive `10e0f220b85022bc9269e0cb9390a811a3b1cf89` et tag v1.43 `902861eb1ff34c14dc5ded092581b360767da817` revérifiés inchangés.
+
+**Tests dans une même version :** (1) sauts OFF/Always au moins dix appuis/After gliding un saut par nouveau plané, vue native et TPS ; (2) Mounted pistol holsters ON/OFF, orientation puis tir/rangement/montée-descente ; (3) trois délais distincts et raccourcis de rangement ; (4) Ultimate decrease rate 0.5/1/2 puis 0, Unlimited OFF/ON. Auto-check V1.63 encore sans retour. [Détails, preuves et rollback](V1_65_AIR_JUMP_HOLSTERS_TEST.md).
+
+La capture de l'ancienne version identifie le crédit effacé en mode plané et les modèles de holster ; elle **ne valide pas** les nouveaux comportements. Ajustement visuel des Stowed et continuité d'Always encore à confirmer en jeu. Les autres icônes et effets P2 sont laissés en attente à la demande explicite de l'utilisateur ; aucune modification de ces couches. Autres modèles 3D et nouvelle Action Recovery restent ouverts. Aucun lancement/installation par l'agent, aucune écriture de l'INI personnel. Blocs de préparation ci-dessous conservés comme historique.
+
+---
+
 # V1.65 — sauts et holsters, lot cumulatif à tester
 
 Base : debug `562e84e9fd99d61810e604323268aafe98aaf3b5`, V1.64 construite/contrôlée mais ses nouveautés ne sont pas validées par l'utilisateur. Acquis validés : grappin V1.63 dans son essai, raccourcis de rangement, netteté TPS, Standard limité, disparition des sons/effets parasites du dash, prompts d'interaction. Préserver tous ces chemins. La session relancée par l'utilisateur est identifiée V1.63 par son journal.
