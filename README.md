@@ -1,3 +1,13 @@
+## V1.66 — construite et contrôlée, nouveau cycle de saut expérimental
+
+Base **V1.65** : holsters montés, trois délais de rangement et durée ultime **VALIDÉS par l’utilisateur** ; double saut non validé (deux remontées sans animation puis blocage). V1.66 remplace la substitution de compteur par un réarmement natif conjoint publié à l’animation et anticipe la recherche des modèles montés à pied. Aucun nouveau hook ni réglage. **CONSTRUIT / CONTRÔLÉ / EXPÉRIMENTAL : les sauts animés et la réduction du délai de placement restent à vérifier en jeu.**
+
+[Actions Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39217494013) : **41/41 suites, zéro avertissement MSVC ASI/DXGI**. Source `f01f70d563dc4e3716464718fb6642bbdd8f9702`, archive `12061a956b9257284c8b1779503cf058b75fab1f`. [ZIP cumulatif V1.66 vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/12061a956b9257284c8b1779503cf058b75fab1f/downloads/DarksidersGenesis_V1.66_NATIVE_JUMP_CYCLE_TEST.zip) : 934413 octets, SHA256 `CC15584E210717E4F173967BE47024CA949983FD24870B03190191936888F67F`. CRC, AMD64, quatre fichiers racine, marqueurs, lien public HTTP 200 et signature identique contrôlés. **139 réglages et 53 actions inchangés ; 130 anciens ZIP préservés**. Main `2bc3122c1ae07b7333798462f85c1d9fd3a739f7`, archive `10e0f220b85022bc9269e0cb9390a811a3b1cf89` et v1.43 `902861eb1ff34c14dc5ded092581b360767da817` vérifiés intacts. Les avis de dépréciation CMake de MinHook et Node des actions de transfert sont distincts des avertissements du code compilé.
+
+**Essais groupés :** Always dix nouveaux sauts **avec animation**, After gliding un saut par nouveau plané, OFF/atterrissage, TPS/vue native ; délai de première montée après quelques secondes à pied, puis tir/rangement/descente. [Procédure, preuves, limites et rollback](docs/V1_66_NATIVE_JUMP_CYCLE_TEST.md). Acquis de visée, dash, focus, grappin, munitions, ultime, rangement et commandes conservés ; effets/icônes P2 toujours reportés. Aucun lancement ni installation par l’agent, INI personnel intact. Si les sauts restent bloqués ou sans animation, le candidat est à rejeter et l’option à remettre OFF ; compilation et fixtures ne constituent pas une validation du rendu. Les préparations ci-dessous sont historiques.
+
+---
+
 ## V1.66 — nouveau cycle de saut à tester, acquis V1.65 conservés
 
 **Retour V1.65 :** modèles de holster montés **VALIDÉS** avec un délai de placement ; trois délais de rangement **VALIDÉS** ; durée ultime **VALIDÉE** après activation de sa case. **Double saut NON VALIDÉ** : deux remontées, sans animation, puis blocage. Ces retours remplacent les mentions « à tester » V1.65 ci-dessous.
