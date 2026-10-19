@@ -1,3 +1,11 @@
+## V1.67 — choix des pistolets et skins, préparation expérimentale
+
+19 octobre 2026. Base retenue V1.66 : sauts et holsters validés. Demande clarifiée : choisir le modèle du pistolet droit ou gauche dans chaque main, pas importer un modèle supplémentaire. Deux listes indépendantes préparées, variantes Stowed correspondantes à cheval, restauration par identité native. Une interception de disponibilité cosmétique, ciblée sur huit lignes exactes, propose séparément deux montures bonus et six apparences de progression ; aucun grant ni contrôle global de DLC remplacé. PAK de montures local analysé : deux tables, deux booléens par ligne bonus modifiés, aucun modèle ajouté. [Inventaire complet, preuves, limites et essais](V1_67_PISTOL_CHOICES_AND_SKINS.md).
+
+**PRÉPARÉ / EXPÉRIMENTAL : construction Windows et contrôle du ZIP à effectuer, aucune validation en jeu de V1.67.** Quatre clés nouvelles Native/Native/OFF/OFF, 143 clés et 53 actions ; toutes les valeurs antérieures conservées. Sources sauts/visée/caméras/commandes/rangement/dash/ressources/grappin inchangées. PAK et INI personnels non modifiés, aucune relance/installation. Recovery et autres effets P2 hors de ce lot. Les reçus antérieurs restent historiques.
+
+---
+
 ## V1.66 — sauts et holsters VALIDÉS par l’utilisateur
 
 19 octobre 2026. Retour explicite : « pour les sauts c'est bon bravo », « pour les holsters c'est bon bravo », puis « donc tout a lair bon/ ». **Sauts et holsters VALIDÉS dans l’essai rapporté ; V1.66 devient la base de travail retenue sur debug.** Les trois délais de rangement et la durée ultime étaient déjà validés en V1.65. Aucun nombre de sauts, mode, personnage, cas coop ou délai mesuré n’est inventé à partir de ce retour général.

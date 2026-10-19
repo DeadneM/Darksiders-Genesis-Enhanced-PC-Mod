@@ -90,6 +90,11 @@ void WriteBool(
     );
 }
 
+void WriteInt(const wchar_t* section,const wchar_t* key,int value,const std::wstring& path){
+    wchar_t text[32]{};swprintf_s(text,L"%d",value);
+    WriteProfileString(section,key,text,path.c_str());
+}
+
 void WriteFloat(
     const wchar_t* section,
     const wchar_t* key,
@@ -321,6 +326,7 @@ void Store::ResetDefaults(bool persist) {
     toggleHudEnabled = true;interactionHudScaleEnabled=true;interactionHudScale=0.65f;
     weaponSheathingEnabled=false;sheathNeverEnabled=true;sheathDelaySeconds=10.0f;
     mountedHolstersEnabled=false;
+    pistolRightModel=0;pistolLeftModel=0;bonusMountSkinsEnabled=false;progressionSkinsEnabled=false;
     sheathStrifeMeleeNeverEnabled=false;sheathStrifeMeleeDelaySeconds=0.0f;
     sheathWarNeverEnabled=true;sheathWarDelaySeconds=10.0f;
     sheathKeyboardKey=0;sheathPadButtonA=0;sheathPadButtonB=0;
@@ -562,6 +568,12 @@ bool Store::Load() {
     sheathNeverEnabled=ReadBool(L"Features",L"NeverAutoSheathe",true,path_);
     sheathDelaySeconds=std::clamp(ReadFloat(L"Values",L"SheathDelaySeconds",10.0f,path_),0.0f,300.0f);
     mountedHolstersEnabled=ReadBool(L"Features",L"MountedPistolHolsters",false,path_);
+    pistolRightModel=GetPrivateProfileIntW(L"Values",L"PistolRightModel",0,path_.c_str());
+    pistolLeftModel=GetPrivateProfileIntW(L"Values",L"PistolLeftModel",0,path_.c_str());
+    if(pistolRightModel<0||pistolRightModel>2)pistolRightModel=0;
+    if(pistolLeftModel<0||pistolLeftModel>2)pistolLeftModel=0;
+    bonusMountSkinsEnabled=ReadBool(L"Features",L"BonusMountSkins",false,path_);
+    progressionSkinsEnabled=ReadBool(L"Features",L"ProgressionSkins",false,path_);
     sheathStrifeMeleeNeverEnabled=ReadBool(L"Features",L"StrifeMeleeNeverAutoSheathe",false,path_);
     sheathStrifeMeleeDelaySeconds=std::clamp(ReadFloat(L"Values",L"StrifeMeleeSheathDelaySeconds",0.0f,path_),0.0f,300.0f);
     // Existing personal setting continues to govern pistols; War inherits it
@@ -894,6 +906,10 @@ void Store::PublishRuntime() const {
     runtime.sheathNeverEnabled=sheathNeverEnabled;
     runtime.sheathDelaySeconds=sheathDelaySeconds;
     runtime.mountedHolstersEnabled=mountedHolstersEnabled;
+    runtime.pistolRightModel=pistolRightModel;
+    runtime.pistolLeftModel=pistolLeftModel;
+    runtime.bonusMountSkinsEnabled=bonusMountSkinsEnabled;
+    runtime.progressionSkinsEnabled=progressionSkinsEnabled;
     runtime.sheathStrifeMeleeNeverEnabled=sheathStrifeMeleeNeverEnabled;
     runtime.sheathStrifeMeleeDelaySeconds=sheathStrifeMeleeDelaySeconds;
     runtime.sheathWarNeverEnabled=sheathWarNeverEnabled;
@@ -1054,6 +1070,10 @@ bool Store::SaveNow() {
     WriteProfileString(L"Controls",L"SheathePadButtonB",sheathPadText,path_.c_str());
     WriteFloat(L"Values",L"SheathDelaySeconds",sheathDelaySeconds,path_);
     WriteBool(L"Features",L"MountedPistolHolsters",mountedHolstersEnabled,path_);
+    WriteInt(L"Values",L"PistolRightModel",pistolRightModel,path_);
+    WriteInt(L"Values",L"PistolLeftModel",pistolLeftModel,path_);
+    WriteBool(L"Features",L"BonusMountSkins",bonusMountSkinsEnabled,path_);
+    WriteBool(L"Features",L"ProgressionSkins",progressionSkinsEnabled,path_);
     WriteBool(L"Features",L"StrifeMeleeNeverAutoSheathe",sheathStrifeMeleeNeverEnabled,path_);
     WriteFloat(L"Values",L"StrifeMeleeSheathDelaySeconds",sheathStrifeMeleeDelaySeconds,path_);
     WriteBool(L"Features",L"WarNeverAutoSheathe",sheathWarNeverEnabled,path_);

@@ -3,6 +3,7 @@
 #include "InteractionHudFeature.h"
 #include "WeaponSheathingFeature.h"
 #include "MountedHolsterFeature.h"
+#include "CosmeticUnlockFeature.h"
 #include "UltimateDurationFeature.h"
 #include "GaugeChargeFeature.h"
 #include "ResourceGainFeature.h"
@@ -269,9 +270,23 @@ void Draw(Context& c) {
                 t.movementHookReady
             );
 
+            DrawSectionTitle("Appearance");
+            constexpr const char* pistolModels[]={"Native (original for this hand)","Right pistol model","Left pistol model"};
+            ImGui::BeginDisabled(!mounted_holsters::Ready());
+            ImGui::SetNextItemWidth(280.0f);
+            if(ImGui::Combo("Strife right hand##PistolModel",&config.pistolRightModel,pistolModels,3))config.Save();
+            ImGui::SetNextItemWidth(280.0f);
+            if(ImGui::Combo("Strife left hand##PistolModel",&config.pistolLeftModel,pistolModels,3))config.Save();
+            ImGui::EndDisabled();
+            ImGui::TextWrapped("Choose either existing pistol independently for each hand, for both local players. Mounted holsters use the matching stowed model. Native restores that hand's previous model. Experimental: check grip alignment and firing effects.");
+            DrawToggleFeature(config,"Bonus mount skins (experimental)","BonusMountSkins",&config.bonusMountSkinsEnabled,
+                "Makes Rampage (War) and Despair (Strife) available in the game's Skins page without the optional PAK. No automatic equip. OFF restores native availability; a PAK or an existing unlock can still keep them available.",cosmetics::Ready());
+            DrawToggleFeature(config,"Progression skins (experimental)","ProgressionSkins",&config.progressionSkinsEnabled,
+                "Separately makes Abyssal, Silver and Gold appearances available for War and Strife in the game's Skins page. Cosmetic availability only: no quests, armor pieces, stats or achievements granted. OFF restores native availability; choose an owned skin before disabling. Native skin selection may remember your equipped appearance.",cosmetics::Ready());
+
             DrawSectionTitle("Weapon sheathing");
             DrawToggleFeature(config,"Mounted pistol holsters (experimental)","MountedPistolHolsters",&config.mountedHolstersEnabled,
-                "Uses the stowed pistol models while Strife is mounted. Turn OFF to restore the previous appearance. Weapons held in hand keep their normal appearance. Experimental: check alignment in the holsters.",mounted_holsters::Ready());
+                "Uses the stowed pistol models while Strife is mounted. Turn OFF to restore the previous appearance. Per-hand appearance choices use the corresponding stowed models. Experimental: check alignment in the holsters.",mounted_holsters::Ready());
             DrawToggleFeature(config,"Control automatic weapon sheathing","WeaponSheathing",&config.weaponSheathingEnabled,
                 "Separate automatic delays for Strife's melee blades, Strife's pistols and War's sword. OFF restores native delays. Foot forms only; horse and Ultimate remain native.",sheathing::Ready());
             if(config.weaponSheathingEnabled){

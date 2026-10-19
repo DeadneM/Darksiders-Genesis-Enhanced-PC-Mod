@@ -1,5 +1,6 @@
 #include "MountedHolsterFeature.h"
 #include "NativeMemoryReader.h"
+#include "NativeObjectName.h"
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
 #include <algorithm>
@@ -16,21 +17,13 @@ native_objects::Identity g_models[4]{}; // right/left hand, right/left stowed
 native_objects::Identity g_meshClass{};
 struct Saved {native_objects::Identity component{},original{},applied{};};
 Saved g_saved[2][2]{}; // game thread only
+Saved g_hands[2][4]{}; // foot R/L, mounted R/L; independent from holster leases
 int g_cursor=0;ULONGLONG g_scanTick=0;
 template<class T> bool Read(uintptr_t p,size_t offset,T& value){
     native_objects::MemoryReader r;return r.Read(p,offset,value);
 }
 template<size_t N> bool NameIs(uintptr_t p,const char (&expected)[N]){
-    int index=-1,number=-1;uintptr_t names=0,chunk=0,entry=0;uint32_t flags=0;
-    if(!Read(p,0x18,index)||!Read(p,0x1C,number)||number||index<0||index>=2000000||
-       !Read(g_base+0x3955198,0,names)||!Read(names,size_t(index/16384)*8,chunk)||
-       !Read(chunk,size_t(index%16384)*8,entry)||!Read(entry,8,flags))return false;
-    if(flags&1){
-        std::array<wchar_t,N> text{};if(!Read(entry,0xC,text))return false;
-        for(size_t i=0;i<N;++i)if(text[i]!=wchar_t(expected[i]))return false;
-        return true;
-    }
-    std::array<char,N> text{};return Read(entry,0xC,text)&&std::memcmp(text.data(),expected,N)==0;
+    return native_objects::NameIs(g_base,p,expected);
 }
 int Model(uintptr_t object){
     uintptr_t cls=0,package=0;
@@ -90,23 +83,52 @@ void Restore(Saved& saved){
     if(native_objects::Alive(reader,g_base,saved.original)&&g_setMesh&&
        g_setMesh(reinterpret_cast<void*>(saved.component.address),reinterpret_cast<void*>(saved.original.address)))saved={};
 }
+int Choice(unsigned side){
+    const auto& rt=runtime::Get();const int choice=side?rt.pistolLeftModel.load():rt.pistolRightModel.load();
+    return choice>=1&&choice<=2?choice:0;
+}
+void SetModel(Saved& saved,uintptr_t component,int target){
+    native_objects::Identity identity{};uintptr_t current=0;
+    if(!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(component),identity)||!Read(component,0x5B0,current))return;
+    if(saved.component&&saved.component!=identity)Restore(saved);
+    if(saved.component&&saved.component!=identity)return;
+    // A native/foreign mesh change supersedes our baseline. Unknown assets
+    // are never replaced. Returning to Native restores only our last write.
+    if(saved.component&&current!=saved.applied.address)saved={};
+    if(target<0){Restore(saved);return;}
+    int original=-1;
+    for(int i=0;i<4;++i)if(current==g_models[i].address)original=i;
+    if(original<0||current==g_models[target].address)return;
+    const auto baseline=saved.component?saved.original:g_models[original];
+    if(g_setMesh(reinterpret_cast<void*>(component),reinterpret_cast<void*>(g_models[target].address))){
+        saved={identity,baseline,g_models[target]};
+        if(g_log&&++g_changes<=12)g_log("Pistol models V1.67: owned component mesh changed; native socket, visibility, animation and projectile path preserved; EXPERIMENTAL");
+    }
+}
+void ApplyHands(unsigned player,uintptr_t actor,bool mounted){
+    if(player>1)return;
+    uintptr_t body=0,components[2]{};unsigned char role=0,type=0;
+    if(!Read(actor,0x118,role)||role!=3||!Read(actor,0x380,body)||
+       (!mounted&&(!Read(actor,0xC18,type)||type!=1)))return;
+    for(unsigned side=0;side<2;++side){
+        const size_t offset=(mounted?0xBA0:0x1040)+side*8;
+        if(!Read(actor,offset,components[side])||!Component(actor,body,components[side]))continue;
+        const int choice=Choice(side);
+        SetModel(g_hands[player][(mounted?2:0)+side],components[side],choice?choice-1:-1);
+    }
+}
 void Apply(unsigned player,uintptr_t horse){
     if(player>1)return;
     uintptr_t body=0,components[2]{},meshes[2]{};unsigned char role=0;
     if(!Read(horse,0x118,role)||role!=3||!Read(horse,0x380,body)||
        !Read(horse,0xBF8,components[0])||!Read(horse,0xC00,components[1]))return;
     for(unsigned i=0;i<2;++i)if(!Component(horse,body,components[i])||!Read(components[i],0x5B0,meshes[i])||
-       (meshes[i]!=g_models[i].address&&meshes[i]!=g_models[i+2].address))return;
+       (meshes[i]!=g_models[0].address&&meshes[i]!=g_models[1].address&&
+        meshes[i]!=g_models[2].address&&meshes[i]!=g_models[3].address))return;
     for(unsigned i=0;i<2;++i){
-        auto& saved=g_saved[player][i];native_objects::Identity identity{};
-        if(!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(components[i]),identity))continue;
-        if(saved.component&&saved.component!=identity)Restore(saved);
-        if(saved.component&&saved.component!=identity)continue;
-        if(meshes[i]==g_models[i+2].address)continue;
-        if(g_setMesh(reinterpret_cast<void*>(components[i]),reinterpret_cast<void*>(g_models[i+2].address))){
-            saved={identity,g_models[i],g_models[i+2]};
-            if(g_log&&++g_changes<=8){char line[130]{};sprintf_s(line,"Mounted holsters V1.66 APPLIED player=%u side=%u nativeStowedMesh=1 EXPERIMENTAL",player+1,i);g_log(line);}
-        }
+        const int choice=Choice(i);
+        const int target=choice?choice+1:(runtime::Get().mountedHolstersEnabled.load()?int(i)+2:-1);
+        SetModel(g_saved[player][i],components[i],target);
     }
 }
 }
@@ -117,12 +139,15 @@ void Initialize(LogFn log,bool exactExecutable){
     if(!g_base||std::memcmp(reinterpret_cast<void*>(g_base+0x17DDBC0),setter,sizeof(setter))||
        !Read(g_base+0x2A575C8,0x868,target)||target!=g_base+0x17DDBC0)return;
     g_setMesh=reinterpret_cast<MeshFn>(target);g_ready=true;
-    if(log)log("Mounted holsters V1.66 READY: native stowed models, bounded prewarm on foot; model changes only on the two mounted holsters; no hooks");
+    if(log)log("Pistol models V1.67 READY: native left/right selection per hand; matching mounted stowed variants; V1.66 native holster option retained; no new hooks");
 }
 void OnLivePlayer(const local_players::Context& owner){
     if(!g_ready.load()||!native_tps::OnGameThread()||owner.index<0||owner.index>1)return;
-    const unsigned player=unsigned(owner.index);const bool enabled=runtime::Get().mountedHolstersEnabled.load();
+    const unsigned player=unsigned(owner.index);const bool selected=Choice(0)||Choice(1);
+    const bool enabled=runtime::Get().mountedHolstersEnabled.load()||selected;
     if(!enabled||owner.kind!=local_players::PoseKind::Horse)for(auto& saved:g_saved[player])Restore(saved);
+    const bool foot=owner.kind==local_players::PoseKind::Foot&&owner.pawn==owner.character;
+    for(unsigned i=0;i<4;++i)if(!selected||(i<2?!foot:owner.kind!=local_players::PoseKind::Horse))Restore(g_hands[player][i]);
     if(!enabled||native_tps::IsWorldPaused(reinterpret_cast<void*>(owner.pawn))||native_tps::CinematicActive(player))return;
     uintptr_t cls=0,component=0;
     if(owner.kind==local_players::PoseKind::Horse&&
@@ -134,11 +159,11 @@ void OnLivePlayer(const local_players::Context& owner){
         if(!Read(component,0x5B0,mesh)||!Read(mesh,0x10,cls)||!NameIs(cls,"StaticMesh")||
            !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(cls),g_meshClass))return;
     }
-    // Start the same bounded lookup while Strife is on foot. Foot observation
-    // never changes a model; warm identities avoid waiting for a whole object
-    // table pass only after the first mount. Assets must already be loaded.
+    // Same bounded prewarm as V1.66. Only explicit per-hand choices may now
+    // change foot models; Native/Native preserves the validated path.
     if(!Models())return;
-    if(owner.kind==local_players::PoseKind::Horse)Apply(player,owner.pawn);
+    if(owner.kind==local_players::PoseKind::Horse){Apply(player,owner.pawn);ApplyHands(player,owner.pawn,true);}
+    else if(foot)ApplyHands(player,owner.pawn,false);
 }
 bool Ready(){return g_ready.load();}
 void Shutdown(){g_ready=false;}

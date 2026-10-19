@@ -19,6 +19,7 @@ void Run(){
     std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());
     Put(image.data(),0x3959680,chunks+0);Put(image.data(),0x3959694,16);
     g_ready=true;g_setMesh=Setter;
+    dg::runtime::Get().mountedHolstersEnabled=true;
     for(unsigned i=0;i<4;++i)g_models[i]=Register(assets[i],int(i)+1);
     for(unsigned i=0;i<2;++i){
         Put<unsigned char>(horses[i],0x118,3);Put(horses[i],0x380,uintptr_t(0x1000+i));
@@ -57,6 +58,7 @@ void Run(){
     Check(Get<void*>(components[0][0],0x5B0)==assets[0]&&Get<void*>(components[1][0],0x5B0)==assets[2],"OFF restores this player's saved models without touching the other player");
     owner.index=1;owner.kind=dg::local_players::PoseKind::Foot;OnLivePlayer(owner);
     Check(Get<void*>(components[1][1],0x5B0)==assets[1],"dismount restores native models");
+    dg::runtime::Get().mountedHolstersEnabled=true;
     Put(components[0][0],0xE8,uintptr_t(1));const unsigned before=calls;
     Apply(0,reinterpret_cast<uintptr_t>(horses[0]));Check(calls==before,"broken reciprocal owner prevents both replacements");
     Put(components[0][0],0xE8,reinterpret_cast<uintptr_t>(horses[0]));
@@ -65,6 +67,48 @@ void Run(){
     Check(Get<uintptr_t>(components[0][0],0x5B0)==0x1234&&!g_saved[0][0].component,"later native model choice wins over rollback");
     Put(items,6*24+16,999);const unsigned beforeReuse=calls;Restore(g_saved[0][1]);
     Check(calls==beforeReuse&&!g_saved[0][1].component,"stale object serial never restores into a reused component");
+
+    // Per-hand appearance uses the same bounded four-asset cache and setter.
+    // Start from a fresh local foot pair; exact component ownership is required.
+    Saved custom{};
+    Put(components[0][0],0x5B0,static_cast<void*>(assets[0]));
+    const unsigned beforeCustom=calls;
+    SetModel(custom,reinterpret_cast<uintptr_t>(components[0][0]),1);
+    Check(Get<void*>(components[0][0],0x5B0)==assets[1]&&calls==beforeCustom+1,"left pistol can be chosen for the right component");
+    SetModel(custom,reinterpret_cast<uintptr_t>(components[0][0]),2);
+    Check(Get<void*>(components[0][0],0x5B0)==assets[2]&&custom.original==g_models[0],"changing style retains the first native baseline");
+    SetModel(custom,reinterpret_cast<uintptr_t>(components[0][0]),-1);
+    Check(Get<void*>(components[0][0],0x5B0)==assets[0]&&!custom.component,"Native restores the original rather than the last style");
+    Put(components[0][0],0x5B0,uintptr_t(0x1234));
+    const unsigned unknown=calls;SetModel(custom,reinterpret_cast<uintptr_t>(components[0][0]),1);
+    Check(calls==unknown&&!custom.component,"foreign mesh is never replaced");
+    Put(components[0][0],0x5B0,static_cast<void*>(assets[0]));
+    g_saved[0][0]={};g_saved[0][1]={};Put(items,6*24+16,23);
+    Put(components[0][1],0x5B0,static_cast<void*>(assets[1]));
+    dg::runtime::Get().pistolRightModel=2;dg::runtime::Get().pistolLeftModel=1;
+    Apply(0,reinterpret_cast<uintptr_t>(horses[0]));
+    Check(Get<void*>(components[0][0],0x5B0)==assets[3]&&Get<void*>(components[0][1],0x5B0)==assets[2],"swapped hands select matching stowed geometries independently");
+    dg::runtime::Get().mountedHolstersEnabled=false;
+    dg::runtime::Get().pistolRightModel=0;dg::runtime::Get().pistolLeftModel=0;
+    Apply(0,reinterpret_cast<uintptr_t>(horses[0]));
+    Check(Get<void*>(components[0][0],0x5B0)==assets[0]&&Get<void*>(components[0][1],0x5B0)==assets[1],"Native and holster option OFF restore both mounted baselines");
+
+    Put<unsigned char>(characters[0],0x118,3);
+    Put(characters[0],0x1048,reinterpret_cast<uintptr_t>(components[0][1]));
+    for(unsigned j=0;j<2;++j){Put(components[0][j],0xE8,reinterpret_cast<uintptr_t>(characters[0]));Put(components[0][j],0x108,uintptr_t(0x2000));}
+    dg::runtime::Get().pistolRightModel=1;dg::runtime::Get().pistolLeftModel=1;
+    ApplyHands(0,reinterpret_cast<uintptr_t>(characters[0]),false);
+    Check(Get<void*>(components[0][0],0x5B0)==assets[0]&&Get<void*>(components[0][1],0x5B0)==assets[0],"both hands may use the right model");
+    dg::runtime::Get().pistolRightModel=2;dg::runtime::Get().pistolLeftModel=2;
+    ApplyHands(0,reinterpret_cast<uintptr_t>(characters[0]),false);
+    Check(Get<void*>(components[0][0],0x5B0)==assets[1]&&Get<void*>(components[0][1],0x5B0)==assets[1],"both hands may use the left model");
+    dg::runtime::Get().pistolRightModel=0;dg::runtime::Get().pistolLeftModel=0;
+    ApplyHands(0,reinterpret_cast<uintptr_t>(characters[0]),false);
+    Check(Get<void*>(components[0][0],0x5B0)==assets[0]&&Get<void*>(components[0][1],0x5B0)==assets[1],"per-hand Native restores each original foot model");
+    Put<unsigned char>(characters[0],0xC18,2);dg::runtime::Get().pistolRightModel=2;
+    const unsigned warCalls=calls;ApplyHands(0,reinterpret_cast<uintptr_t>(characters[0]),false);
+    Check(calls==warCalls,"War receives no pistol model change");
+    dg::runtime::Get().pistolRightModel=0;
     wchar_t directory[MAX_PATH]{},path[MAX_PATH]{};
     Check(GetTempPathW(MAX_PATH,directory)&&GetTempFileNameW(directory,L"DGH",0,path),"temporary INI");
     dg::config::Store a;a.SetPath(path);Check(a.Load()&&!a.mountedHolstersEnabled,"missing key defaults OFF");

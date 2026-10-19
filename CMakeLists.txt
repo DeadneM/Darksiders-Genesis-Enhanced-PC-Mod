@@ -11,6 +11,11 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(CosmeticUnlockTests tests/CosmeticUnlockTests.cpp src/RuntimeSettings.cpp src/ConfigStore.cpp)
+  target_include_directories(CosmeticUnlockTests PRIVATE tests/stubs src)
+  target_compile_definitions(CosmeticUnlockTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  target_link_libraries(CosmeticUnlockTests PRIVATE user32)
+  add_test(NAME CosmeticUnlock COMMAND CosmeticUnlockTests)
   add_executable(MountedHolsterTests tests/MountedHolsterTests.cpp src/RuntimeSettings.cpp src/ConfigStore.cpp)
   target_include_directories(MountedHolsterTests PRIVATE src)
   target_compile_definitions(MountedHolsterTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
@@ -274,6 +279,7 @@ add_library(DarksidersGenesisMod SHARED
   src/InteractionHudFeature.cpp
   src/WeaponSheathingFeature.cpp
   src/MountedHolsterFeature.cpp
+  src/CosmeticUnlockFeature.cpp
   src/UltimateDurationFeature.cpp
   src/ProjectileAimFeature.cpp
   src/HealthFeature.cpp

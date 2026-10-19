@@ -254,6 +254,10 @@ public:
     bool interactionHudScaleEnabled = true;
     float interactionHudScale = 0.65f;
     bool mountedHolstersEnabled = false;
+    int pistolRightModel = 0;
+    int pistolLeftModel = 0;
+    bool bonusMountSkinsEnabled = false;
+    bool progressionSkinsEnabled = false;
     bool weaponSheathingEnabled = false;
     bool sheathNeverEnabled = true;
     float sheathDelaySeconds = 10.0f;

@@ -1,10 +1,10 @@
-## V1.66 — Darksiders Genesis Enhanced PC Mod
+## V1.67 test — Darksiders Genesis Enhanced PC Mod
 
 Mod Windows x64 pour Darksiders Genesis : caméra native/TPS, souris et manette, coop locale, réglages de gameplay, raccourcis et mise à jour intégrée. **Canal expérimental `debug`** ; la branche stable `main` et les anciennes archives sont conservées.
 
-**Base retenue : V1.66, CONSTRUITE / CONTRÔLÉE ; sauts et holsters VALIDÉS par l’utilisateur dans son essai du 19 octobre 2026.** Le cycle natif de saut et la recherche anticipée des modèles montés sont conservés. Les trois délais de rangement et la durée ultime étaient déjà validés en V1.65. Le canal reste `debug`.
+**Nouveau lot V1.67 EXPÉRIMENTAL : pistolet droit/gauche au choix pour chaque main de Strife ; montures bonus et apparences de progression proposées séparément dans la page Skins native. Nouveaux comportements à valider dans le jeu.** Base retenue V1.66, sauts et holsters validés par l’utilisateur le 19 octobre 2026 ; acquits conservés, canal `debug`. [Preuves, inventaire et essais V1.67](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_67_PISTOL_CHOICES_AND_SKINS.md).
 
-[Télécharger le ZIP cumulatif V1.66](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/12061a956b9257284c8b1779503cf058b75fab1f/downloads/DarksidersGenesis_V1.66_NATIVE_JUMP_CYCLE_TEST.zip) · [Contrôles Windows : 41/41 suites, aucun avertissement MSVC](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39217494013) · [Notes et tests V1.66](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_66_NATIVE_JUMP_CYCLE_TEST.md).
+[Base validée / rollback : ZIP cumulatif V1.66](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/12061a956b9257284c8b1779503cf058b75fab1f/downloads/DarksidersGenesis_V1.66_NATIVE_JUMP_CYCLE_TEST.zip) · [Contrôles Windows : 41/41 suites, aucun avertissement MSVC](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39217494013) · [Notes et tests V1.66](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_66_NATIVE_JUMP_CYCLE_TEST.md).
 
 Le ZIP vérifié contient exactement quatre fichiers à la racine : `dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md`. Taille : 934413 octets. SHA256 : `CC15584E210717E4F173967BE47024CA949983FD24870B03190191936888F67F`. La compilation et l’intégrité du paquet ne valident pas le comportement en jeu.
 
@@ -28,9 +28,18 @@ Dans **Updates**, choisir le canal voulu, puis vérifier les mises à jour. Le c
 | Rangement | Délais séparés lames Strife / pistolets Strife / épée War ; action commune avec raccourcis clavier et manette | Délais validés V1.65 ; holsters validés dans l’essai V1.66 |
 | Sauts supplémentaires | OFF / After gliding / Always on | Sauts validés dans l’essai utilisateur V1.66 |
 | Action Recovery | Ancienne fin anticipée retirée depuis V1.58 | Pas d’option active ; nouvelle approche en étude |
-| Modèles 3D des pistolets | Inventaire des représentations et de leurs contraintes | Pas de remplacement alternatif livré |
+| Modèles 3D des pistolets | Choix indépendant du modèle droit ou gauche par main de Strife | Expérimental V1.67 ; aucun asset supplémentaire |
+| Skins | Deux montures bonus ; six variantes de progression dans deux groupes séparés | Expérimental V1.67 ; disponibilité cosmétique native, aucun déblocage de récompense écrit |
 
 [État courant](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/CURRENT_STATE.md) et [file active](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/ACTIVE_QUEUE.md) font référence pour les éléments restant à tester ou réparer. Une validation utilisateur porte sur l’essai rapporté, sans supposer tous les personnages, chapitres et états coop vérifiés.
+
+### Apparences V1.67
+
+Dans Gameplay, section Appearance, choisir **Native / Right pistol model / Left pistol model** indépendamment pour la main droite et la main gauche. Les holsters montés utilisent le modèle rangé correspondant. Les choix concernent Strife des deux joueurs locaux ; prise en main, effets et pose restent expérimentaux. Native conserve l’apparence d’origine de chaque main.
+
+Deux cases distinctes, OFF par défaut : **Bonus mount skins** pour Rampage (War) et Despair (Strife) ; **Progression skins** pour les variantes Abyssal, Silver et Gold de chacun. Cela propose les apparences dans la page Skins du jeu, sans récompense attribuée par le mod. Le jeu garde la sélection et peut mémoriser l’apparence équipée. Le PAK de montures existant n’est ni remplacé ni nécessaire au nouveau contrôle ASI ; s’il reste installé, OFF ne retire pas son déblocage natif. Choisir une apparence possédée avant de désactiver un groupe.
+
+Essais groupés : deux pistolets identiques puis inversés à pied/cheval, tirs/rangement, retour Native ; disponibilité de chaque groupe dans Skins, retour OFF et comparaison sans le seul PAK de montures pour prouver l’autonomie de l’ASI. L’INI personnel est prioritaire ; les quatre nouveaux réglages sont Native/Native et OFF/OFF par défaut. Pour retirer le lot, reprendre le ZIP V1.66 en conservant l’INI.
 
 ### Raccourcis du profil fourni
 

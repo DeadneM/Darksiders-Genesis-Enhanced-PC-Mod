@@ -16,6 +16,10 @@ void Publish(const Snapshot& s) {
     g_state.interactionHudScaleEnabled.store(s.interactionHudScaleEnabled);
     g_state.interactionHudScale.store(s.interactionHudScale);
     g_state.mountedHolstersEnabled.store(s.mountedHolstersEnabled);
+    g_state.pistolRightModel.store(s.pistolRightModel);
+    g_state.pistolLeftModel.store(s.pistolLeftModel);
+    g_state.bonusMountSkinsEnabled.store(s.bonusMountSkinsEnabled);
+    g_state.progressionSkinsEnabled.store(s.progressionSkinsEnabled);
     g_state.weaponSheathingEnabled.store(s.weaponSheathingEnabled);
     g_state.sheathNeverEnabled.store(s.sheathNeverEnabled);
     g_state.sheathDelaySeconds.store(s.sheathDelaySeconds);

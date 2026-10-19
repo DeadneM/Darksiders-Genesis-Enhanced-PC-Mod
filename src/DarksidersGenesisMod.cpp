@@ -43,6 +43,7 @@
 #include "InteractionHudFeature.h"
 #include "WeaponSheathingFeature.h"
 #include "MountedHolsterFeature.h"
+#include "CosmeticUnlockFeature.h"
 #include "UltimateDurationFeature.h"
 #include "ManualActionBinding.h"
 #include "TpsCameraFocus.h"
@@ -4145,6 +4146,7 @@ void ShutdownMod() {
     dg::interaction_hud::Shutdown();
     dg::sheathing::Shutdown();
     dg::mounted_holsters::Shutdown();
+    dg::cosmetics::Shutdown();
     dg::dash_combat::Shutdown();
     dg::dash_combat::Report();
     // Release the supported synthetic horse key before teardown.
@@ -4400,6 +4402,7 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::interaction_hud::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::sheathing::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::mounted_holsters::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::cosmetics::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::ultimate_duration::Initialize(&FeatureLog,g_targetValidation.exact);
     if (!InstallFinalOutgoingDamageHook()) {
         Log("Final Pistol/Melee Damage hook unavailable; other ASI features remain active.");
