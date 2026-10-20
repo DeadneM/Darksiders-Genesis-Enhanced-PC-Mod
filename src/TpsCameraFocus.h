@@ -4,14 +4,31 @@
 #include <cstring>
 #include <cstdint>
 #include <algorithm>
+#include "CameraBlurSettings.h"
 
 namespace dg::camera_focus {
 // Exact retail FMinimalViewInfo/PostProcessSettings layout, gated before the
 // camera hook is installed. Only a native per-frame output is ever changed.
 inline std::atomic_bool layoutReady{false};
 inline std::atomic_bool lensLayoutReady{false};
+inline std::atomic_bool blurLayoutReady{false};
 inline bool Ready(){return layoutReady.load(std::memory_order_acquire);}
 inline bool LensReady(){return lensLayoutReady.load(std::memory_order_acquire);}
+inline bool BlurReady(){return blurLayoutReady.load(std::memory_order_acquire);}
+inline bool DisableBlur(void* output,bool enabled,bool cinematic=false){
+    if(!enabled||cinematic||!BlurReady()||!output)return false;
+    auto* p=static_cast<unsigned char*>(output);float weight=0;
+    std::memcpy(&weight,p+0x38,4);
+    if(weight!=1.0f||p[0x40+0x23]>2)return false;
+    // A per-view Gaussian kernel of zero disables both DOF layers, even
+    // when the level originally chose a lens method. Native blend consumers
+    // are signature-gated before enabling this policy. No global quality,
+    // motion blur, volume, aperture or other player's output is modified.
+    const float zero=0;
+    std::memcpy(p+0x40+0x474,&zero,4);std::memcpy(p+0x40+0x478,&zero,4);
+    p[0x40+0x17]|=0x80;p[0x40+0x18]|=0x03;p[0x40+0x23]=1;
+    return true;
+}
 struct Point {float x=0,y=0,z=0;};
 struct Bounds {Point center{},extent{};bool valid=false;};
 // Read only a live owner's mesh. Bounds are copied values, never a retained
@@ -67,7 +84,11 @@ inline bool Compensate(void* output,Point target,bool lens=false,Bounds bounds={
         // Native blend 1B2F87E tests the sign of +17 for NearBlurSize.
         // +18 mask01 is FarBlurSize and must remain untouched.
         std::memcpy(p+0x40+0x474,&zero,4);p[0x40+0x17]|=0x80;
-        if(bounds.valid){
+        // Without an explicit camera region, the level volume supplies it
+        // later. A mesh-sized override here would replace (for example) the
+        // hub's 3000-unit region with ~55 units, blurring nearby scenery.
+        // Only enlarge a region that this camera explicitly owns already.
+        if(bounds.valid&&(p[0x40+0x17]&0x04)){
             const double fx=std::cos(pitch)*std::cos(yaw),fy=std::cos(pitch)*std::sin(yaw),fz=std::sin(pitch);
             const double radius=std::fabs(fx)*bounds.extent.x+std::fabs(fy)*bounds.extent.y+std::fabs(fz)*bounds.extent.z;
             const double centerDepth=(double(bounds.center.x)-view[0])*fx+(double(bounds.center.y)-view[1])*fy+(double(bounds.center.z)-view[2])*fz;
@@ -83,6 +104,38 @@ inline bool Compensate(void* output,Point target,bool lens=false,Bounds bounds={
             }
         }
     }
+    return true;
+}
+inline bool ApplyBlur(void* output,const camera_blur::Profile& profile,bool cinematic,
+                      const Point* target=nullptr,Bounds bounds={}){
+    if(cinematic||!BlurReady()||!output)return false;
+    if(profile.disabled)return DisableBlur(output,true);
+    if(!profile.custom||!target||!std::isfinite(profile.distanceMeters)||
+       profile.distanceMeters<0||profile.distanceMeters>200||!std::isfinite(profile.amount)||
+       profile.amount<0||profile.amount>5)return false;
+    auto* p=static_cast<unsigned char*>(output);
+    if(p[0x40+0x23]>2||!Compensate(output,*target))return false;
+    float view[7]{},focus=0;std::memcpy(view,p,sizeof(view));std::memcpy(&focus,p+0x40+0x454,4);
+    float region=profile.distanceMeters*100.0f;
+    if(bounds.valid){
+        constexpr double rad=0.01745329251994329577;
+        const double fx=std::cos(view[3]*rad)*std::cos(view[4]*rad),
+            fy=std::cos(view[3]*rad)*std::sin(view[4]*rad),fz=std::sin(view[3]*rad);
+        const double radius=std::fabs(fx)*bounds.extent.x+std::fabs(fy)*bounds.extent.y+std::fabs(fz)*bounds.extent.z;
+        const double center=(bounds.center.x-view[0])*fx+(bounds.center.y-view[1])*fy+(bounds.center.z-view[2])*fz;
+        const double dx=bounds.center.x-target->x,dy=bounds.center.y-target->y,dz=bounds.center.z-target->z;
+        const double extent2=double(bounds.extent.x)*bounds.extent.x+double(bounds.extent.y)*bounds.extent.y+double(bounds.extent.z)*bounds.extent.z;
+        if(std::isfinite(center)&&std::isfinite(radius)&&radius>0&&radius<=20000&&
+           dx*dx+dy*dy+dz*dz<=extent2)
+            region=std::max(region,static_cast<float>(std::clamp(center+radius-focus,0.0,20000.0)));
+    }
+    // Explicit custom mode deliberately replaces the authored method/region.
+    // Gaussian near=0 protects the foreground; the rear mesh bound is a floor
+    // for the selected clear distance. The level's transition stays authored.
+    const float zero=0;
+    std::memcpy(p+0x40+0x460,&region,4);std::memcpy(p+0x40+0x474,&zero,4);
+    std::memcpy(p+0x40+0x478,&profile.amount,4);
+    p[0x40+0x17]|=0x84;p[0x40+0x18]|=0x03;p[0x40+0x23]=1;
     return true;
 }
 }

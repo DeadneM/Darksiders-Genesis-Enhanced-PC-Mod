@@ -338,6 +338,7 @@ void Store::ResetDefaults(bool persist) {
     thirdPersonEnabled = true;
     thirdPersonFovEnabled = true;
     tpsLensFocusEnabled = true;
+    nativeBlur = {};tpsBlur = {};
     cameraOrbitInputEnabled = true;
     cameraControllerOrbitEnabled = true;
     tpsCameraStickMode = 2;
@@ -626,6 +627,14 @@ bool Store::Load() {
         ReadBool(L"Features", L"ThirdPerson", true, path_);
     thirdPersonFovEnabled=ReadBool(L"Features",L"TPSFOV",true,path_);
     tpsLensFocusEnabled=ReadBool(L"Features",L"TPSLensFocus",true,path_);
+    nativeBlur.disabled=ReadBool(L"Features",L"DisableNativeDOF",false,path_);
+    nativeBlur.custom=ReadBool(L"Features",L"NativeCustomDOF",false,path_);
+    nativeBlur.distanceMeters=std::clamp(ReadFloat(L"Values",L"NativeDOFDistanceMeters",10.0f,path_),0.0f,200.0f);
+    nativeBlur.amount=std::clamp(ReadFloat(L"Values",L"NativeDOFAmount",0.6f,path_),0.0f,5.0f);
+    tpsBlur.disabled=ReadBool(L"Features",L"DisableTPSDOF",false,path_);
+    tpsBlur.custom=ReadBool(L"Features",L"TPSCustomDOF",false,path_);
+    tpsBlur.distanceMeters=std::clamp(ReadFloat(L"Values",L"TPSDOFDistanceMeters",10.0f,path_),0.0f,200.0f);
+    tpsBlur.amount=std::clamp(ReadFloat(L"Values",L"TPSDOFAmount",0.6f,path_),0.0f,5.0f);
     const bool oldOrbit=ReadBool(L"Features",L"CameraControllerOrbit",true,path_);
     tpsCameraStickMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(
         L"Features",L"TPSCameraStickMode",oldOrbit?2:0,path_.c_str())),0,2);
@@ -928,6 +937,8 @@ void Store::PublishRuntime() const {
     runtime.thirdPersonEnabled = thirdPersonEnabled;
     runtime.thirdPersonFovEnabled = thirdPersonFovEnabled;
     runtime.tpsLensFocusEnabled = tpsLensFocusEnabled;
+    runtime.nativeBlur = nativeBlur;
+    runtime.tpsBlur = tpsBlur;
     // Mouse TPS orbit shares the existing orbit result; it does not need
     // a controller stick enabled. In native view no TPS orbit is applied.
     runtime.cameraOrbitInputEnabled = thirdPersonEnabled;
@@ -1116,6 +1127,14 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"ThirdPerson", thirdPersonEnabled, path_);
     WriteBool(L"Features",L"TPSFOV",thirdPersonFovEnabled,path_);
     WriteBool(L"Features",L"TPSLensFocus",tpsLensFocusEnabled,path_);
+    WriteBool(L"Features",L"DisableNativeDOF",nativeBlur.disabled,path_);
+    WriteBool(L"Features",L"NativeCustomDOF",nativeBlur.custom,path_);
+    WriteFloat(L"Values",L"NativeDOFDistanceMeters",nativeBlur.distanceMeters,path_);
+    WriteFloat(L"Values",L"NativeDOFAmount",nativeBlur.amount,path_);
+    WriteBool(L"Features",L"DisableTPSDOF",tpsBlur.disabled,path_);
+    WriteBool(L"Features",L"TPSCustomDOF",tpsBlur.custom,path_);
+    WriteFloat(L"Values",L"TPSDOFDistanceMeters",tpsBlur.distanceMeters,path_);
+    WriteFloat(L"Values",L"TPSDOFAmount",tpsBlur.amount,path_);
     WriteProfileString(L"Features",L"TPSFollowPlayer",nullptr,path_.c_str());
     // Remove obsolete TPS switches from existing user INIs once migrated.
     for(const wchar_t* key : { L"TPSFixedCenterReticle",L"TPSLockZoneCamera",

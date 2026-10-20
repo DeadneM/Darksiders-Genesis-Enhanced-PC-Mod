@@ -58,7 +58,7 @@ void Run(){
     dg::camera_focus::Compensate(missingLayout.data(),{400,0,0},true);
     Check(legacy==missingLayout,"unverified lens layout falls back exactly to the V1.60 focus path");
     dg::camera_focus::lensLayoutReady=true;
-    auto lens=Native();lens[0x63]=1;lens[0x58]=4;Put(lens,0x340,2.8f);before=lens;
+    auto lens=Native();lens[0x63]=1;lens[0x58]=4;lens[0x57]=4;Put(lens,0x4A0,0.0f);Put(lens,0x340,2.8f);before=lens;
     // Native level method and all far-blur fields must survive. Only the
     // close Gaussian layer and the character's sharp region are adapted.
     const dg::camera_focus::Bounds body{{400,0,0},{120,80,100},true};
@@ -71,13 +71,18 @@ void Run(){
         if(i!=0x56&&i!=0x57&&(i<0x494||i>=0x498)&&(i<0x4A0||i>=0x4A4)&&(i<0x4B4||i>=0x4B8))
             Check(lens[i]==before[i],"far blur size, far transition, method, aperture, weight and geometry remain authored");
     auto off=before;dg::camera_focus::Compensate(off.data(),{400,0,0},false,body);
-    Check(off==legacy,"OFF remains byte-identical to the previous focal-distance-only policy");
+    auto focusOnly=before;dg::camera_focus::Compensate(focusOnly.data(),{400,0,0});
+    Check(off==focusOnly,"OFF remains byte-identical to the previous focal-distance-only policy");
     auto unknown=before;unknown[0x63]=9;dg::camera_focus::Compensate(unknown.data(),{400,0,0},true,body);
     auto nativeUnknown=before;nativeUnknown[0x63]=9;dg::camera_focus::Compensate(nativeUnknown.data(),{400,0,0},false);
     Check(unknown==nativeUnknown,"unknown native methods retain the focal-distance-only fallback");
     auto missing=before;missing[0x57]=0;Put(missing,0x4A0,3400.0f);
     dg::camera_focus::Compensate(missing.data(),{400,0,0},true);
     Check(missing[0x57]==0x80,"missing bounds cannot override the native focal region");
+    auto hub=before;hub[0x57]=0;Put(hub,0x4A0,0.0f);
+    dg::camera_focus::Compensate(hub.data(),{400,0,0},true,body);
+    const auto volumeRegion=[](const View& frame){float f=0;std::memcpy(&f,frame.data()+0x4A0,4);return frame[0x57]&4?f:3000.0f;};
+    Check(volumeRegion(hub)==3000,"hub/arene regression: mesh bounds cannot replace a level's 30m clear region with centimetres");
     auto stale=before;stale[0x57]=0;dg::camera_focus::Compensate(stale.data(),{400,0,0},true,{{20000,0,0},{120,80,100},true});
     Check(stale[0x57]==0x80,"bounds of a different pose cannot alter the region during a swap");
     auto authored=before;authored[0x57]=4;Put(authored,0x4A0,3400.0f);
@@ -112,6 +117,59 @@ void Run(){
     }
     p1=before;p2=before;dg::camera_focus::Compensate(p1.data(),{300,0,0},true);
     Check(p2==before,"P1 focus band cannot leak into P2 or native views");
+    auto blur=before;blur[0x63]=2;Put(blur,0x4B4,6.0f);Put(blur,0x4B8,6.0f);auto authoredBlur=blur;
+    Check(!dg::camera_focus::DisableBlur(blur.data(),true)&&blur==authoredBlur,"unverified blur layout is never patched");
+    dg::camera_focus::blurLayoutReady=true;
+    Check(!dg::camera_focus::DisableBlur(blur.data(),false)&&blur==authoredBlur,"default OFF preserves the validated output exactly");
+    Check(!dg::camera_focus::DisableBlur(blur.data(),true,true)&&blur==authoredBlur,"cinematic policy always preserves the native effect");
+    Check(dg::camera_focus::DisableBlur(blur.data(),true),"enabled suppression accepts a verified full-weight gameplay view");
+    float near=1,far=1;std::memcpy(&near,blur.data()+0x4B4,4);std::memcpy(&far,blur.data()+0x4B8,4);
+    Check(blur[0x63]==1&&(blur[0x57]&0x80)&&(blur[0x58]&3)==3&&near==0&&far==0,
+        "native method, NEAR and FAR consumers select a zero Gaussian kernel");
+    for(size_t i=0;i<blur.size();++i)
+        if(i!=0x57&&i!=0x58&&i!=0x63&&(i<0x4B4||i>=0x4BC))
+            Check(blur[i]==authoredBlur[i],"optional blur suppression changes no geometry, aperture, focus, quality or unrelated postprocess bytes");
+    dg::camera_focus::Compensate(blur.data(),{400,0,0},true,body);
+    std::memcpy(&far,blur.data()+0x4B8,4);
+    Check(far==0&&blur[0x63]==1,"the validated focus path cannot reactivate the disabled distant layer");
+    p1=authoredBlur;p2=authoredBlur;dg::camera_focus::DisableBlur(p1.data(),true);
+    Check(p2==authoredBlur,"one player's suppression cannot modify the other view");
+    for(float weight:{0.0f,.5f,2.0f}){
+        auto partial=authoredBlur;Put(partial,0x38,weight);auto original=partial;
+        Check(!dg::camera_focus::DisableBlur(partial.data(),true)&&partial==original,"blur option never raises a partial native weight");
+    }
+    auto unknownBlur=authoredBlur;unknownBlur[0x63]=9;auto unknownOriginal=unknownBlur;
+    Check(!dg::camera_focus::DisableBlur(unknownBlur.data(),true)&&unknownBlur==unknownOriginal,"unknown method retains native blur");
+    auto fresh=authoredBlur;dg::camera_focus::DisableBlur(fresh.data(),false);
+    Check(fresh==authoredBlur,"OFF uses a fresh native frame, without any persistent restore write");
+    using dg::camera_blur::Profile;
+    const dg::camera_focus::Point target{400,0,0};
+    auto custom=authoredBlur;auto original=custom;
+    Check(!dg::camera_focus::ApplyBlur(custom.data(),{},false,&target,body)&&custom==original,
+        "unselected customization keeps the validated per-frame output byte-identical");
+    Check(!dg::camera_focus::ApplyBlur(custom.data(),{false,true,10,.6f},true,&target,body)&&custom==original,
+        "cinematics cannot inherit either custom profile");
+    Check(dg::camera_focus::ApplyBlur(custom.data(),{false,true,10,.6f},false,&target,body),"explicit background customization accepts the live target");
+    std::memcpy(&region,custom.data()+0x4A0,4);std::memcpy(&far,custom.data()+0x4B8,4);
+    Check(region==1000&&far==.6f&&Focus(custom)==400&&custom[0x63]==1,"10 metres and absolute .6 percent kernel reach the native Gaussian consumers");
+    for(size_t i=0;i<custom.size();++i)
+        if(i!=0x56&&i!=0x57&&i!=0x58&&i!=0x63&&(i<0x494||i>=0x498)&&(i<0x4A0||i>=0x4A4)&&(i<0x4B4||i>=0x4BC))
+            Check(custom[i]==original[i],"custom blur preserves geometry, transition, aperture, weights and all unrelated postprocess fields");
+    custom=authoredBlur;dg::camera_focus::ApplyBlur(custom.data(),{false,true,0,2},false,&target,body);
+    std::memcpy(&region,custom.data()+0x4A0,4);
+    Check(region==120,"zero clear distance still protects the rear mesh bound");
+    custom=authoredBlur;Check(dg::camera_focus::ApplyBlur(custom.data(),{true,true,10,3},false),"disable takes precedence without requiring a target");
+    std::memcpy(&far,custom.data()+0x4B8,4);Check(far==0,"disable wins over a stored nonzero amount");
+    for(Profile bad: {Profile{false,true,-1,.6f},Profile{false,true,201,.6f},Profile{false,true,10,6},
+        Profile{false,true,10,std::numeric_limits<float>::quiet_NaN()}}){
+        custom=authoredBlur;Check(!dg::camera_focus::ApplyBlur(custom.data(),bad,false,&target,body)&&custom==authoredBlur,"invalid custom values fail open without partial writes");
+    }
+    custom=authoredBlur;Check(!dg::camera_focus::ApplyBlur(custom.data(),{false,true,10,.6f},false)&&custom==authoredBlur,"missing current pose cannot invent a focal plane");
+    p1=authoredBlur;p2=authoredBlur;
+    dg::camera_focus::ApplyBlur(p1.data(),{false,true,5,1},false,&target,body);
+    dg::camera_focus::ApplyBlur(p2.data(),{false,true,20,2},false,&target,body);
+    float regionP1=0,regionP2=0;std::memcpy(&regionP1,p1.data()+0x4A0,4);std::memcpy(&regionP2,p2.data()+0x4A0,4);
+    Check(regionP1==500&&regionP2==2000,"native and TPS profiles can be applied to independent player outputs without shared render state");
 }
 }
 int main(){try{Run();std::cout<<"TPS per-view focus and native postprocess preservation passed\n";return 0;}

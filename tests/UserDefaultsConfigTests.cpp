@@ -37,6 +37,9 @@ int main(int argc,char** argv){
     check(!generated.updaterAutoCheck,"automatic network checks remain opt-in for old and missing profiles");
     check(generated.tps3DAimEnabled&&dg::runtime::Get().tps3DAimEnabled.load(),"missing option enables 3D aiming by default");
     check(generated.tpsLensFocusEnabled&&dg::runtime::Get().tpsLensFocusEnabled.load(),"TPS lens experiment defaults ON in store and runtime");
+    check(!generated.nativeBlur.disabled&&!generated.tpsBlur.disabled&&!generated.nativeBlur.custom&&!generated.tpsBlur.custom&&
+        !dg::runtime::Get().nativeBlur.Get().custom&&!dg::runtime::Get().tpsBlur.Get().disabled,
+        "old and missing profiles keep both independent blur controls opt-in");
     const auto actual=ReadIni(path);
     size_t keys=0;
     check(actual.size()==shipped.size(),"generated and shipped sections match");
@@ -63,6 +66,10 @@ int main(int argc,char** argv){
     WritePrivateProfileStringW(L"Updater",L"AutoCheckUpdates",L"1",path);
     WritePrivateProfileStringW(L"Features",L"ReduceAmmoConsumption",L"0",path);
     WritePrivateProfileStringW(L"Features",L"TPSLensFocus",L"0",path);
+    WritePrivateProfileStringW(L"Features",L"DisableNativeDOF",L"1",path);
+    WritePrivateProfileStringW(L"Features",L"TPSCustomDOF",L"1",path);
+    WritePrivateProfileStringW(L"Values",L"TPSDOFDistanceMeters",L"17.250",path);
+    WritePrivateProfileStringW(L"Values",L"TPSDOFAmount",L"1.125",path);
     WritePrivateProfileStringW(L"Values",L"TPSUltimateDistanceMultiplier",L"0.900",path);
     WritePrivateProfileStringW(L"Values",L"TPSUltimateHeightOffset",L"123.000",path);
     WritePrivateProfileStringW(L"Values",L"WrathChargeMultiplier",L"2.000",path);
@@ -73,6 +80,9 @@ int main(int argc,char** argv){
     check(personal.tpsUltimateDistanceMultiplier==0.9f&&personal.tpsUltimateHeightOffset==123&&personal.wrathChargeMultiplier==2,"explicit personal values retained");
     check(personal.hotkeys[8]==dg::config::Action::FOV,"explicit older hotkey retained");
     check(!personal.tpsLensFocusEnabled&&!rt.tpsLensFocusEnabled.load(),"explicit lens OFF survives load and runtime publication");
+    check(personal.nativeBlur.disabled&&!personal.tpsBlur.disabled&&personal.tpsBlur.custom&&!personal.nativeBlur.custom&&
+        rt.nativeBlur.Get().disabled&&rt.tpsBlur.Get().custom&&rt.tpsBlur.Get().distanceMeters==17.25f&&rt.tpsBlur.Get().amount==1.125f,
+        "separate native suppression and TPS numeric controls reach the runtime independently");
     const auto originalBindings=personal.cameraKeys;
     for(size_t i=0;i<personal.cameraKeys.size();++i){
         personal.cameraKeys=originalBindings;personal.cameraKeys[i]=0;
@@ -87,6 +97,9 @@ int main(int argc,char** argv){
     personal.tps3DAimEnabled=false;personal.tpsAimPitchOffsetDegrees=17.5f;check(personal.SaveNow(),"simple aim option and independent shot angle save");
     dg::config::Store reloaded;reloaded.SetPath(path);check(reloaded.Load()&&!reloaded.tps3DAimEnabled&&!rt.tps3DAimEnabled.load()&&reloaded.tpsAimPitchOffsetDegrees==17.5f&&rt.tpsAimPitchOffsetDegrees.load()==17.5f,"explicit simple aim and manual shot angle survive reload and runtime publication");
     check(reloaded.updaterAutoCheck&&!reloaded.updaterBeta,"auto check and stable channel survive save and reload");
+    check(reloaded.nativeBlur.disabled&&reloaded.tpsBlur.custom&&reloaded.tpsBlur.distanceMeters==17.25f&&reloaded.tpsBlur.amount==1.125f&&
+        !reloaded.nativeBlur.custom&&!reloaded.tpsBlur.disabled,
+        "both view profiles survive save/reload independently of lens focus and bindings");
     personal.tpsMousePrimaryButton=VK_XBUTTON1;personal.tpsMouseSecondaryButton=VK_MBUTTON;
     personal.tpsFirePrimaryMask=0x4000;personal.tpsFireSecondaryMask=0x8000;
     personal.tpsWheelPadMask=0x0020;personal.tpsGrenadeButtonMask=0x0040;
@@ -99,10 +112,14 @@ int main(int argc,char** argv){
         rt.horsePadButtonA.load()==0x0001&&rt.horsePadButtonB.load()==0x0002,
         "native callbacks receive all rebound controller controls");
     personal.ResetTpsCameraValues();
+    check(personal.nativeBlur.disabled&&personal.tpsBlur.custom&&personal.tpsBlur.distanceMeters==17.25f,"TPS geometry reset preserves separate rendering preferences");
     check(personal.tpsLensFocusEnabled&&rt.tpsLensFocusEnabled.load(),"TPS camera reset restores the lens option default");
     check(personal.tpsUltimateDistanceMultiplier==0.30f&&personal.tpsUltimateHeightOffset==80,"camera reset uses requested Ultimate defaults");
     personal.ResetDefaults(false);check(personal.SaveNow(),"full compiled defaults reset saves");
     check(!personal.updaterAutoCheck,"full defaults reset restores manual update checks");
+    check(!personal.nativeBlur.disabled&&!personal.tpsBlur.custom&&!rt.nativeBlur.Get().disabled&&!rt.tpsBlur.Get().custom&&
+        personal.tpsBlur.distanceMeters==10.0f&&personal.nativeBlur.amount==0.6f,
+        "full defaults restore both authored view policies and their inactive numeric defaults");
     const auto reset=ReadIni(path);
     for(const auto& [section,values]:shipped){
         const auto sectionIt=reset.find(section);check(sectionIt!=reset.end(),"reset section retained");
@@ -110,6 +127,13 @@ int main(int argc,char** argv){
         for(const auto& [key,value]:values){const auto item=sectionIt->second.find(key);
             check(item!=sectionIt->second.end()&&_wcsicmp(item->second.c_str(),value.c_str())==0,"reset reproduces shipped user defaults");}
     }
+    WritePrivateProfileStringW(L"Values",L"NativeDOFDistanceMeters",L"-2",path);
+    WritePrivateProfileStringW(L"Values",L"TPSDOFDistanceMeters",L"9999",path);
+    WritePrivateProfileStringW(L"Values",L"NativeDOFAmount",L"nan",path);
+    WritePrivateProfileStringW(L"Values",L"TPSDOFAmount",L"9",path);
+    dg::config::Store bounded;bounded.SetPath(path);check(bounded.Load(),"out-of-range blur profile loads safely");
+    check(bounded.nativeBlur.distanceMeters==0&&bounded.tpsBlur.distanceMeters==200&&bounded.nativeBlur.amount==0.6f&&bounded.tpsBlur.amount==5,
+        "distance and amount reject NaN and clamp each independent view to its documented bounds");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,path);DeleteFileW(path);
     std::printf("User defaults: %zu keys checked, %u failures\n",keys,failed);return failed?1:0;
 }

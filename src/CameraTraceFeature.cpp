@@ -238,6 +238,7 @@ void HookView(void* camera, float dt, void* outView) {
         // actor callbacks. No fake actor timestamps, UI aim or synthetic input.
         std::memcpy(p,g_heldView.values,sizeof(g_heldView.values));
         if(g_heldView.focusValid)camera_focus::Compensate(p,g_heldView.focus,settings.tpsLensFocusEnabled.load(),g_heldView.focusBounds);
+        camera_focus::ApplyBlur(p,settings.tpsBlur.Get(),dg::native_tps::CinematicActive(),g_heldView.focusValid?&g_heldView.focus:nullptr,g_heldView.focusBounds);
         settings.tpsViewGameplay.store(false,std::memory_order_release);
         settings.tpsMountedViewActive.store(false,std::memory_order_release);
         return;
@@ -444,6 +445,7 @@ void HookView(void* camera, float dt, void* outView) {
     if(thirdPerson&&wheelInput&&sameTpsCamera&&!actorValid){
         std::memcpy(p,g_heldView.values,sizeof(g_heldView.values));
         if(g_heldView.focusValid)camera_focus::Compensate(p,g_heldView.focus,settings.tpsLensFocusEnabled.load(),g_heldView.focusBounds);
+        camera_focus::ApplyBlur(p,settings.tpsBlur.Get(),dg::native_tps::CinematicActive(),g_heldView.focusValid?&g_heldView.focus:nullptr,g_heldView.focusBounds);
         settings.tpsViewGameplay.store(false,std::memory_order_release);
         settings.tpsMountedViewActive.store(false,std::memory_order_release);
         return; // stopped pose callbacks only; no live follow/orbit is frozen
@@ -762,9 +764,10 @@ void HookView(void* camera, float dt, void* outView) {
                 if(g_heldView.focusValid){
                     g_heldView.focus={ax,ay,az};
                     native_objects::MemoryReader reader;
-                    g_heldView.focusBounds=ownedView&&settings.tpsLensFocusEnabled.load()&&camera_focus::LensReady()?camera_focus::ReadBounds(reader,viewOwner.pawn):camera_focus::Bounds{};
+                    g_heldView.focusBounds=ownedView&&(settings.tpsLensFocusEnabled.load()||settings.tpsBlur.custom.load())&&camera_focus::LensReady()?camera_focus::ReadBounds(reader,viewOwner.pawn):camera_focus::Bounds{};
                     if(g_heldView.focusBounds.valid&&usingHorse)g_heldView.focusBounds=camera_focus::Merge(g_heldView.focusBounds,camera_focus::ReadBounds(reader,viewOwner.character));
                     camera_focus::Compensate(p,g_heldView.focus,settings.tpsLensFocusEnabled.load(),g_heldView.focusBounds);
+                    camera_focus::ApplyBlur(p,settings.tpsBlur.Get(),dg::native_tps::CinematicActive(),g_heldView.focusValid?&g_heldView.focus:nullptr,g_heldView.focusBounds);
                 }
                 g_tpsEmittedX.store(outX,std::memory_order_relaxed);
                 g_tpsEmittedY.store(outY,std::memory_order_relaxed);
@@ -843,6 +846,18 @@ void HookView(void* camera, float dt, void* outView) {
         g_heldView.generation=liveGeneration;
         std::memcpy(g_heldView.values,p,sizeof(g_heldView.values));
         g_heldView.valid=true;
+    }
+    if(!thirdPerson&&ownedView){
+        const auto profile=settings.nativeBlur.Get();
+        if(profile.disabled||profile.custom){
+            local_players::Pose pose{};camera_focus::Point target{};camera_focus::Bounds bounds{};
+            const bool valid=local_players::ReadPose(viewOwner,pose);
+            if(valid){target={pose.x,pose.y,pose.z};
+                if(profile.custom){native_objects::MemoryReader reader;
+                    bounds=camera_focus::ReadBounds(reader,viewOwner.pawn);
+                    if(viewOwner.kind==local_players::PoseKind::Horse)bounds=camera_focus::Merge(bounds,camera_focus::ReadBounds(reader,viewOwner.character));}}
+            camera_focus::ApplyBlur(p,profile,native_tps::CinematicActive(static_cast<unsigned>(viewOwner.index)),valid?&target:nullptr,bounds);
+        }
     }
     g_nativeFov.store(nativeFov);g_appliedFov.store(appliedFov);
     g_nativePitch.store(nativePitch);g_appliedPitch.store(appliedPitch);

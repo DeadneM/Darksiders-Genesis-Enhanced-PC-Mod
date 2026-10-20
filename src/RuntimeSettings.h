@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DefaultSettings.h"
+#include "CameraBlurSettings.h"
 #include <atomic>
 
 namespace dg::runtime {
@@ -32,6 +33,7 @@ struct Snapshot {
     bool thirdPersonEnabled = true;
     bool thirdPersonFovEnabled = true;
     bool tpsLensFocusEnabled = true;
+    camera_blur::Profile nativeBlur{},tpsBlur{};
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
     bool cameraControllerOrbitEnabled = true;
     int tpsCameraStickMode = 2;
@@ -143,6 +145,7 @@ struct State {
     std::atomic_bool thirdPersonEnabled{true};
     std::atomic_bool thirdPersonFovEnabled{true};
     std::atomic_bool tpsLensFocusEnabled{true};
+    camera_blur::SharedProfile nativeBlur{},tpsBlur{};
     std::atomic_bool tpsViewGameplay{false};
     std::atomic_ullong tpsGameplayViewTick{0};
     std::atomic_bool cameraOrbitInputEnabled{true};

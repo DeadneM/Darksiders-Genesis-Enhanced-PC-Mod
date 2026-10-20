@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DefaultSettings.h"
+#include "CameraBlurSettings.h"
 #include <array>
 #include <atomic>
 #include <string>
@@ -280,6 +281,7 @@ public:
     bool thirdPersonEnabled = true;
     bool thirdPersonFovEnabled = true;
     bool tpsLensFocusEnabled = true;
+    camera_blur::Profile nativeBlur{},tpsBlur{};
     bool cameraOrbitInputEnabled = true; // derived: controller-only TPS camera
     bool cameraControllerOrbitEnabled = true;
     int tpsCameraStickMode = 2; // 0 OFF, 1 left, 2 right

@@ -893,6 +893,26 @@ void Draw(Context& c) {
                 ImGui::Unindent(12.0f);
             }
 
+            if(ImGui::CollapsingHeader("Depth of field")){
+                ImGui::Indent(12.0f);
+                ImGui::TextWrapped("Independent settings for each gameplay view and both local players. Cinematics keep their authored effect. Motion blur and fog are unchanged.");
+                for(int i=0;i<2;++i){
+                    auto& profile=i==0?config.nativeBlur:config.tpsBlur;
+                    ImGui::PushID(i==0?"NativeDOF":"TPSDOF");
+                    ImGui::Separator();ImGui::TextUnformatted(i==0?"Native view":"TPS view");
+                    DrawToggleFeature(config,"Disable depth-of-field blur","Disable",&profile.disabled,
+                        "Takes precedence over custom settings. Uncheck to restore the effect below.",camera_focus::BlurReady());
+                    ImGui::BeginDisabled(profile.disabled);
+                    if(ImGui::Checkbox("Customize background blur",&profile.custom))config.Save();
+                    if(profile.custom){
+                        if(DrawNumberRow("Clear distance behind character","Distance",&profile.distanceMeters,0,200,10,"%.1f m","%.2f"))config.Save();
+                        if(DrawNumberRow("Blur amount","Amount",&profile.amount,0,5,0.6f,"%.2f %%","%.2f"))config.Save();
+                        ImGui::TextWrapped("The whole character stays sharp. More distance pushes the background blur farther away. Amount is an absolute Gaussian blur size, not a multiplier; zero removes it. Custom mode replaces the level's DOF method for this view.");
+                    }else ImGui::TextDisabled("Level effect%s",i==0?"":" with your TPS character-focus setting");
+                    ImGui::EndDisabled();ImGui::PopID();
+                }
+                ImGui::Unindent(12.0f);
+            }
             if(ImGui::CollapsingHeader("Third Person camera",ImGuiTreeNodeFlags_DefaultOpen)){
             ImGui::Indent(12.0f);
             DrawSectionTitle("Third Person camera");
@@ -925,7 +945,7 @@ void Draw(Context& c) {
                 }
                 DrawSectionTitle("TPS depth of field");
                 DrawToggleFeature(config,"TPS character focus (experimental)","TPSLensFocus",&config.tpsLensFocusEnabled,
-                    "Keep the level's depth-of-field method and distant blur. In TPS, disable the near Gaussian layer and protect the live character's depth range. Foot, mount and Ultimate; both local players. OFF keeps focal-distance correction alone. Native view and cinematics remain authored. Experimental: compare the whole character and background in chapter 8.",camera_focus::LensReady());
+                    "Keep the level's depth-of-field method, clear region and distant blur. In TPS, disable the near Gaussian layer; only enlarge a clear region already overridden by the camera. Foot, mount and Ultimate; both local players. OFF keeps focal-distance correction alone. The separate depth-of-field controls can replace this effect.",camera_focus::LensReady());
                 DrawSectionTitle("Normal-form TPS camera");
                 if(DrawNumberRow("Distance","TPSDistance",&config.thirdPersonDistanceMultiplier,0,3,0.15f,"%.2fx","%.3f"))config.Save();
                 if(DrawNumberRow("View pitch","TPSPitch",&config.thirdPersonPitchDegrees,-75,65,-12,"%.1f deg","%.1f"))config.Save();

@@ -685,6 +685,18 @@ void InitializeCameraDof() {
         !std::memcmp(base+0x1B2F79D,regionBlend,sizeof(regionBlend))&&
         !std::memcmp(base+0x1B2F87E,nearBlend,sizeof(nearBlend));
     dg::camera_focus::lensLayoutReady.store(lensLayout,std::memory_order_release);
+    const BYTE farBlend[]={0x0F,0xB6,0x42,0x18,0xA8,0x01,0x74,0x29,0xF3,0x0F,0x10,0x87,0x78,0x04,0x00,0x00};
+    const BYTE methodBlend[]={0xA8,0x02,0x74,0x0B,0x0F,0xB6,0x43,0x23,0x88,0x47,0x23};
+    unsigned farOffset=0,methodOffset=0;uint64_t gaussianValue=0;
+    std::memcpy(&farOffset,base+0x3795778+36,4);
+    std::memcpy(&methodOffset,base+0x3796D70+36,4);
+    std::memcpy(&gaussianValue,base+0x2EBD608,8);
+    const bool blurLayout=lensLayout&&farOffset==0x478&&methodOffset==0x23&&gaussianValue==1&&
+        !std::memcmp(base+0x1B2F8AB,farBlend,sizeof(farBlend))&&
+        !std::memcmp(base+0x1B30380,methodBlend,sizeof(methodBlend));
+    dg::camera_focus::blurLayoutReady.store(blurLayout,std::memory_order_release);
+    Log(blurLayout?"Camera DOF V1.70: optional native/TPS blur profiles READY; per-view Gaussian distance/amount or disable; EXPERIMENTAL":
+        "Camera DOF V1.70: optional blur profiles unavailable; native output retained");
     Log(lensLayout?"Camera DOF V1.69: near blur 17/80 and focal region 17/04 verified; native method/far blur retained, live mesh focus band EXPERIMENTAL":
         "Camera DOF V1.69: focus-band layout unavailable; previous focal-distance-only behavior retained");
     Log(focusLayout?"Camera DOF V1.57: focal-distance override 0x08 validated against native render blend; per-view focus EXPERIMENTAL":
@@ -714,9 +726,11 @@ void UpdateCameraDof() {
     // Cinematic ownership still restores native quality unconditionally.
     const bool tps=camera.thirdPersonEnabled.load(std::memory_order_relaxed)&&
         !camera.tpsTemporarilySuspended.load(std::memory_order_relaxed);
-    const bool displaced=!camera.tpsCutsceneSuspended.load(std::memory_order_relaxed)&&
+    const bool displaced=!dg::native_tps::CinematicActive()&&!dg::native_tps::CinematicActive(1)&&
+        !camera.tpsCutsceneSuspended.load(std::memory_order_relaxed)&&
         ((tps&&!dg::camera_focus::Ready())||
-         (!tps&&std::isfinite(zoom)&&std::fabs(zoom)>0.0001f));
+         (!tps&&std::isfinite(zoom)&&std::fabs(zoom)>0.0001f&&
+          !(camera.nativeBlur.custom.load()&&dg::camera_focus::BlurReady())));
     if(!displaced){RestoreCameraDof();return;}
     LONG current[2]{};
     for(unsigned i=0;i<2;++i)
