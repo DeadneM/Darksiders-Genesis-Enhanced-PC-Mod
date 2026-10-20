@@ -4,9 +4,9 @@ Mod Windows x64 : caméra native/TPS, souris et manette, coop locale, réglages 
 
 Base cumulative V1.68, sauts/holsters V1.66 et modèles de pistolets V1.67 validés conservés. Durée ultime infinie et sélection des skins V1.68 confirmées dans les essais rapportés ; maintien après redémarrage à tester. **Lot V1.69 EXPÉRIMENTAL : hauteur native du Léviathan, flou lointain TPS et menu rangé.** [État et reçu](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/CURRENT_STATE.md).
 
-[ZIP cumulatif V1.69](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.69_NATIVE_VISUAL_FOCUS_TEST.zip) · [Preuves, limites et essais](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_69_NATIVE_VISUAL_FOCUS_TEST.md).
+[ZIP cumulatif V1.69](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/28f923c0c3336c75d7b7ec76232fc22bc56a13b0/downloads/DarksidersGenesis_V1.69_NATIVE_VISUAL_FOCUS_TEST.zip) · [Preuves, limites et essais](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_69_NATIVE_VISUAL_FOCUS_TEST.md).
 
-Quatre fichiers à la racine : `dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md`. **Construction Windows/contrôle du ZIP à effectuer ; nouvelles corrections visuelles NON VALIDÉES en jeu.** 133 anciennes archives préservées. HUD après arène verrouillée ouvert.
+Quatre fichiers à la racine : `dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md`. **43/43 suites Windows x64, zéro avertissement MSVC, ZIP contrôlé ; nouvelles corrections visuelles NON VALIDÉES en jeu.** SHA256 `C5197C120DD59FB607BF2B33AF56B15EC9D020DA33C4DB01A7E82D3591CFE514` ; 818621 octets. 133 anciennes archives préservées. HUD après arène verrouillée ouvert.
 
 ### Installation et mise à jour
 
@@ -29,7 +29,7 @@ Dans **Updates**, choisir le canal voulu, puis vérifier les mises à jour. Le c
 | Sauts supplémentaires | OFF / After gliding / Always on | Sauts validés dans l’essai utilisateur V1.66 |
 | Action Recovery | Ancienne fin anticipée retirée depuis V1.58 | Pas d’option active ; nouvelle approche en étude |
 | Modèles 3D des pistolets | Choix indépendant du modèle droit ou gauche par main de Strife | Choix gauche/droite validés ; OFF complet encore ouvert |
-| Skins | Deux montures bonus ; six variantes de progression dans deux groupes séparés | Sélection et OFF confirmés V1.68 ; redémarrage et autonomie sans PAK à vérifier |
+| Skins | Deux montures bonus ; six variantes de progression dans deux groupes séparés | Sélection et OFF confirmés V1.68 ; sélection sans PAK confirmée, redémarrage à vérifier |
 
 [État courant](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/CURRENT_STATE.md) et [file active](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/ACTIVE_QUEUE.md) font référence pour les éléments restant à tester ou réparer. Une validation utilisateur porte sur l’essai rapporté, sans supposer tous les personnages, chapitres et états coop vérifiés.
 
@@ -37,7 +37,7 @@ Dans **Updates**, choisir le canal voulu, puis vérifier les mises à jour. Le c
 
 Les choix **Native / Right pistol model / Left pistol model** par main de Strife sont conservés. Les holsters montés utilisent la variante rangée correspondante. Le futur OFF complet (modèle, effets et bras, avec projectiles conservés) n’est pas livré dans cette version.
 
-**Bonus mount skins** et **Progression skins** restent indépendants et OFF par défaut. V1.67 interceptait à tort « équipé » ; V1.68 remplace ce branchement par le vrai « débloqué ». Aucun droit DLC, récompense ou bonus de gameplay accordé par le mod. Le jeu garde la sélection native ; fermer et rouvrir la page Skins après un changement. Le PAK existant est conservé et peut maintenir les montures disponibles avec l’option ASI OFF. L’autonomie de l’ASI reste à tester séparément.
+**Bonus mount skins** et **Progression skins** restent indépendants et OFF par défaut. V1.67 interceptait à tort « équipé » ; V1.68 remplace ce branchement par le vrai « débloqué ». Aucun droit DLC, récompense ou bonus de gameplay accordé par le mod. Le jeu garde la sélection native ; fermer et rouvrir la page Skins après un changement. L’essai V1.68 de chevaux/armures et le retour natif OFF sont confirmés sans PAK cosmétique par le journal moteur. Maintien de l’apparence après redémarrage à tester. Un PAK éventuellement réinstallé peut maintenir des montures disponibles avec l’option ASI OFF.
 
 **Infinite Ultimate duration** bloque seulement le débit de la transformation déjà active, au niveau courant de jauge. Il ne remplit rien et ne rend pas l’activation gratuite. Décocher reprend le multiplicateur de durée si sa case est active, sinon le débit natif. Nouvelle action assignable dans Hotkeys, non attribuée par défaut. **Unlimited Ultimate** conserve son rôle de remplissage.
 

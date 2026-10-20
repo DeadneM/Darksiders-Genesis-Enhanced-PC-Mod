@@ -1,6 +1,6 @@
 # V1.69 — Léviathan, profondeur de champ TPS et menu
 
-20 octobre 2026. **PRÉPARÉ / EXPÉRIMENTAL** ; construction Windows et rendu en jeu à vérifier. Debug uniquement. Base cumulative V1.68 `02a11feb84dfd722c9ddbf8c1fe0fcc5b5d6ebe2`, acquis V1.66/V1.67 conservés.
+20 octobre 2026. **CONSTRUIT / CONTRÔLÉ / EXPÉRIMENTAL** : 43/43 suites Windows x64, zéro avertissement MSVC, ZIP contrôlé. Nouveau rendu en jeu à vérifier. [Reçu de livraison et signatures](CURRENT_STATE.md). Debug uniquement. Base cumulative V1.68 `02a11feb84dfd722c9ddbf8c1fe0fcc5b5d6ebe2`, acquis V1.66/V1.67 conservés.
 
 ## Retours retenus
 
@@ -24,7 +24,7 @@ Référence générale : [DOF Gaussian, Epic UE4](https://dev.epicgames.com/docu
 
 ## HUD et file ouverte
 
-Le Blueprint cuit de sélection d'arène appelle StartMission puis joue son outro sans contrôle de résultat dans ce graphe. OnUiDisplayModeChanged du HUD général n'y fait pas de réaffichage global. Cela ne démontre pas la cause de la panne. La capture V1.67 reste valable : hide natif/mod=0, racine visible/opacité 1, bShowHUD vrai, IsInViewport vrai. Prochain discriminant : état du gestionnaire UI/pile de pages et couche de rendu après l'échec de sélection. Une nouvelle lecture typée est préparée ; elle n'a pas capturé de panne, le jeu étant déjà fermé. **Aucun correctif HUD revendiqué.**
+Le Blueprint cuit de sélection d'arène appelle StartMission puis joue son outro sans contrôle de résultat dans ce graphe. Le wrapper natif `789EA0` appelle `585010` sans écrire de ReturnValue : ne pas inventer un booléen de réussite à intercepter. OnUiDisplayModeChanged du HUD général n'y fait pas de réaffichage global. Cela ne démontre pas la cause de la panne. La capture V1.67 reste valable : hide natif/mod=0, racine visible/opacité 1, bShowHUD vrai, IsInViewport vrai. Prochain discriminant : état du gestionnaire UI/pile de pages et couche de rendu après l'échec de sélection. Une nouvelle lecture typée est préparée ; elle n'a pas capturé de panne, le jeu étant déjà fermé. **Aucun correctif HUD revendiqué.**
 
 OFF complet des pistolets (modèle/effets/bras, projectiles conservés), nouvelle approche Recovery et confirmation Auto check restent ouverts. Autres icônes/effets P2 différés sur demande. Aucun changement de visée, projectile, input, dash, ressource ou mouvement dans ce lot.
 
@@ -36,3 +36,7 @@ OFF complet des pistolets (modèle/effets/bras, projectiles conservés), nouvell
 4. Skins : cheval/armure sélectionnables, OFF rend le natif ; vérifier l'apparence après redémarrage. Essai sans PAK séparé, après fermeture et sauvegarde réversible de ce seul PAK.
 
 Rollback : [V1.68 conservée](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/b1a7110048071987facf6f28af0475b87c1a272b/downloads/DarksidersGenesis_V1.68_VISUALS_ULTIMATE_TEST.zip), en conservant l'INI personnel. Focus OFF garde la distance focale seule ; il ne reproduit pas CircleDOF de V1.68 ON. Main/archive, v1.43, anciennes archives, PAK, sauvegardes et raccourcis préservés.
+
+## Preuve complémentaire sans PAK
+
+Le journal moteur de la session V1.68 12:47–12:57 ne monte que le PAK original ; le PAK cosmétique est absent. Le retour utilisateur valide sélection des chevaux/armures et retour natif OFF dans cet essai sans PAK. Maintien après redémarrage à vérifier. Aucun PAK modifié par l’agent. Cette preuve lève la réserve du début du rapport.
