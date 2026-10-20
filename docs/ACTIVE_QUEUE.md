@@ -1,6 +1,6 @@
 ## Préparation V1.71 — lot cumulé, 20 octobre2026
 
-Demande utilisateur : poursuivre et regrouper les essais. Base V1.70 construite/installée, rendu encore expérimental ; acquis validés conservés. Nouveau candidat **Dash movement recovery** OFF par défaut : reprise par la cause MOVE native après décélération observée et arrêt, sans fin d’ability forcée. Observation des deux listes de skins chevaux, bornée et sans écritures. OFF complet pistolet : slots gauche/droite identifiés, couche de visée partagée ; pas encore livré. **PRÉPARÉ / EXPÉRIMENTAL**, aucune validation de jeu supplémentaire. [Preuves, critère, essais groupés](V1_71_NATIVE_DASH_MOVE_BATCH_TEST.md).
+Demande utilisateur : poursuivre et regrouper les essais. Base V1.70 construite/installée, rendu encore expérimental ; acquis validés conservés. Nouveau candidat **Dash movement recovery** OFF par défaut : reprise par la cause MOVE native après décélération observée et arrêt, sans fin d’ability forcée. Observation des deux listes de skins chevaux, bornée et sans écritures. OFF complet pistolet : slots gauche/droite identifiés, couche de visée partagée ; pas encore livré. **CONSTRUIT / CONTRÔLÉ / INSTALLÉ**,44/44 suites ; aucune validation de jeu supplémentaire. [Preuves, critère, essais groupés](V1_71_NATIVE_DASH_MOVE_BATCH_TEST.md).
 
 ## Reprise V1.70 — rendu par vue, 20 octobre 2026
 
@@ -23,7 +23,7 @@ Base cumulative : V1.68, acquis V1.66/V1.67 conservés et retours V1.68 ci-desso
 | HUD général après refus d’arène verrouillée | Clic sur une arène verrouillée → message de refus → menu transparent → disparition du HUD général ; cause ouverte, non reproduit dans le dernier essai V1.69 | Garder intermittent/ouvert ; aucune intervention aveugle |
 | Autres éléments HUD manquants | Impression incertaine | Identifier les éléments avant toute intervention |
 | OFF complet pistolet | Ouvert : modèle, effets et bras tendu à retirer, projectiles à garder | Séparer la pose d’un bras sans modifier le chemin de tir ; aucun OFF partiel présenté comme terminé |
-| Action Recovery | Ancien système retiré, nouvelle interruption native étudiée | Preuve du bénéfice et du nettoyage avant candidat |
+| Action Recovery | Ancien système retiré ; nouveau candidat V1.71 de reprise MOVE après arrêt, OFF par défaut | Effet à tester ; aucune garantie de bénéfice ni de couverture coffre/attaque au sol |
 | Autres icônes/effets P2 | Reportés explicitement | Ne pas intervenir ; exception Léviathan nouvellement demandée |
 | Auto check update | Construit, retour visuel distinct absent | Confirmer avis temporaire et rappel jaune |
 

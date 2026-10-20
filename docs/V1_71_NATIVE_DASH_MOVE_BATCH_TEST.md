@@ -1,6 +1,6 @@
 # V1.71 — Lot cumulé rendu, reprise de mouvement et observations des skins
 
-20 octobre2026. **PRÉPARÉ / EXPÉRIMENTAL**, compilation et jeu à vérifier. Debug uniquement. Base cumulative V1.70, source3ed44ddf0aba240e2b85a96fa2f8d9cdec231939, installée mais rendu non encore testé. Acquis validés V1.66–V1.69 conservés ; V1.69 a le contre-exemple de flou après arène corrigé en candidat V1.70. L’utilisateur souhaite un essai groupé, pas des demandes de test successives.
+20 octobre2026. **CONSTRUIT / CONTRÔLÉ / INSTALLÉ / EXPÉRIMENTAL**,44/44 suites Windows x64 et zéro avertissement MSVC ; effet en jeu à vérifier. [Reçu et lien](CURRENT_STATE.md). Debug uniquement. Base cumulative V1.70, source3ed44ddf0aba240e2b85a96fa2f8d9cdec231939, installée mais rendu non encore testé. Acquis validés V1.66–V1.69 conservés ; V1.69 a le contre-exemple de flou après arène corrigé en candidat V1.70. L’utilisateur souhaite un essai groupé, pas des demandes de test successives.
 
 ## Objectif et critère de réussite
 
@@ -13,7 +13,7 @@ L’ancien ActionRecovery reste retiré, avec son ID3 réservé et ses anciennes
 Le tick existant observe le dash après le tick natif complet, sans ajouter d’interception. Type dash, mouvement natif Custom6/5, instigateur/composant réciproque, santé/autorité et propriétaire local sont déjà contrôlés. Ajouts :
 
 1. Avoir observé la décélération positive de cette même activation ; un début d’observation sur un compteur déjà négatif n’autorise rien.
-2. Compteur224 arrivé à zéro ou en dessous, durée228 valide, personnage à vitesse totale au plus1 unité/s pendant deux observations. Nouveau monde/propriétaire, horloge réinitialisée, trou de250ms, valeur invalide, pause/cinématique ou option OFF : état expiré.
+2. Compteur224 arrivé à zéro ou en dessous, durée228 valide, personnage à vitesse totale au plus1 unité/s ET déplacement réel de la racine au plus0,01unité entre observations, pendant deux observations. Nouveau monde/propriétaire, horloge réinitialisée, trou de250ms, valeur invalide, pause/cinématique ou option OFF : état expiré.
 3. Demande native MOVE29 réellement maintenue, cause MOVE1 pas déjà disponible dansB0 ; indépendance souris/manette/TPS.
 4. Au plus une demande par activation, via le virtuel natif+2A0 vérifié599310(ability, MOVE1, true). Cette fonction ajoute la permission, émet son événement, puis repasse par les actions natives en attente/maintenues. Pas d’EndAbility avec NONE, d’écriture de timer/mode/masque, d’arrêt de montage ni de touche simulée. Une demande refusée n’est pas répétée chaque frame.
 
@@ -39,3 +39,7 @@ Le graphe Strife possède des slots Shoot_Left et Shoot_Right distincts, mais la
 4. Avec Bonus mount skins coché : choisir les deux montures, jouer jusqu’à une sauvegarde habituelle, recharger puis redémarrer. Noter si les choix restent dans la page ; les logs et sauvegardes seront lus ensuite sans les modifier. Ce point reste OUVERT.
 
 HUD général après refus d’arène verrouillée intermittent non reproduit dans le dernier essai ; pas de réaffichage forcé. Autres sprites/FX P2 reportés. Anciennes archives, main/archive/v1.43, INI/bindings/sauvegardes/PAK à conserver. Rollback : désactiver Dash movement recovery ou réinstaller V1.70 en gardant l’INI personnel.
+
+## Contrôles et recherche complémentaire
+
+Les simulateurs de compteur d’actions et de lecture de pose ont été mis à jour après un premier échec de compilation de tests ; le passage final44/44 fait référence au commit indiqué dans le reçu. Les compilations remplacées/annulées n’ont publié aucune archive. Le test du callback couvre les gardes, la permission MOVE1 une seule fois et la préservation du tick, de la durée, du lifecycle et des octets acteur/mouvement. Relecture privée de167fonctions Blueprint sans arrêt de décodage, longueurs mémoire concordantes.6sauvegardes copiées pour comparaison, sans modifier les originales.

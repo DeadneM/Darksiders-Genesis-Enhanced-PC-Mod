@@ -1,10 +1,10 @@
 ## V1.71 test — Darksiders Genesis Enhanced PC Mod
 
-Canal expérimental **debug**, base cumulative V1.70 et fonctions validées conservées. Lot groupé : contrôles DOF native/TPS et correction de région V1.70, nouveau candidat **Dash movement recovery** OFF par défaut, observations bornées du défaut de sélection des montures. **PRÉPARÉ / EXPÉRIMENTAL**, contrôles Windows/paquet à effectuer, effet en jeu non validé. [Critères et essais cumulés](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_71_NATIVE_DASH_MOVE_BATCH_TEST.md).
+Canal expérimental **debug**, base cumulative V1.70 et fonctions validées conservées. Lot groupé : contrôles DOF native/TPS et correction de région V1.70, nouveau candidat **Dash movement recovery** OFF par défaut, observations bornées du défaut de sélection des montures. **CONSTRUIT / CONTRÔLÉ / EXPÉRIMENTAL** :44/44 suites Windows x64, zéro avertissement MSVC ; ZIP et installation locale contrôlés avec sauvegarde et INI conservé. **Effet en jeu non validé.** [ZIP immuable](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/82a5c678985c5ed397466a37f6ef28fc56ce1bb1/downloads/DarksidersGenesis_V1.71_DASH_MOVE_BATCH_TEST.zip),826278octets, SHA256 `ABE9F9E24C7BBD53E315D12B142E74EE82B74B9FCD608DE924A05E3148310A82`. [Critères et essais cumulés](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_71_NATIVE_DASH_MOVE_BATCH_TEST.md).
 
 Le candidat de reprise utilise la cause de mouvement native après la décélération observée et l’arrêt du dash ; pas de fin forcée d’ability, changement de timer, touche ou axe simulé. Checkbox Gameplay → Player et action Hotkeys sans affectation par défaut. Coffres et attaques d’atterrissage exclus. OFF conserve le chemin validé et arrête les prochaines demandes. Les anciens réglages Recovery restent retirés.
 
-Les contrôles DOF ont deux groupes Native/TPS : Disable et Custom distance/intensité, OFF par défaut, curseur et saisie. **Skins chevaux au chargement toujours ouverts** ; les nouvelles traces sont un diagnostic, sans écriture save. **OFF complet pistolet non livré**, modèles gauche/droite validés conservés. ZIP cumulatif attendu : `DarksidersGenesis_V1.71_DASH_MOVE_BATCH_TEST.zip`, quatre fichiers racine.
+Les contrôles DOF ont deux groupes Native/TPS : Disable et Custom distance/intensité, OFF par défaut, curseur et saisie. **Skins chevaux au chargement toujours ouverts** ; les nouvelles traces sont un diagnostic, sans écriture save. **OFF complet pistolet non livré**, modèles gauche/droite validés conservés. Archive : `DarksidersGenesis_V1.71_DASH_MOVE_BATCH_TEST.zip`, quatre fichiers racine.
 
 ### Installation et mise à jour
 
@@ -25,7 +25,7 @@ Dans **Updates**, choisir le canal voulu, puis vérifier les mises à jour. Le c
 | Mouvement et grappin | Réglages de déplacement/saut/plané/cheval, sprint, portée native du grappin | Acquis conservés ; portée validée dans l’essai utilisateur |
 | Rangement | Délais séparés lames Strife / pistolets Strife / épée War ; action commune avec raccourcis clavier et manette | Délais validés V1.65 ; holsters validés dans l’essai V1.66 |
 | Sauts supplémentaires | OFF / After gliding / Always on | Sauts validés dans l’essai utilisateur V1.66 |
-| Action Recovery | Ancienne fin anticipée retirée depuis V1.58 | Pas d’option active ; nouvelle approche en étude |
+| Action Recovery | Ancienne fin anticipée retirée ; candidat Dash movement recovery V1.71 par permission native après arrêt | OFF par défaut ; bénéfice en jeu à tester, coffres et attaques au sol exclus |
 | Modèles 3D des pistolets | Choix indépendant du modèle droit ou gauche par main de Strife | Choix gauche/droite validés ; OFF complet encore ouvert |
 | Skins | Deux montures bonus ; six variantes de progression dans deux groupes séparés | Sélection et OFF confirmés V1.68 ; sélection sans PAK confirmée, redémarrage à vérifier |
 
