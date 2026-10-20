@@ -1,3 +1,11 @@
+## V1.69 — préparation depuis les retours V1.68
+
+20 octobre 2026. Durée ultime infinie **VALIDÉE par l'utilisateur** ; changement de personnage et netteté du héros au chapitre 8 semblent bons. Décors trop nets en TPS ; Léviathan fonctionne mais trop bas. Skins chevaux/armures et retour natif OFF confirmés ; maintien après redémarrage et autonomie sans PAK non certifiés.
+
+Lot : attache Léviathan sur la racine native (écart mesh −97 prouvé par VM_READ), méthode DOF du niveau et protection de la profondeur du personnage, sections Appearance / Weapon sheathing repliables. **PRÉPARÉ / EXPÉRIMENTAL**, construction Windows et nouveau rendu à contrôler. [Preuves, limites, critères, essais et rollback V1.69](V1_69_NATIVE_VISUAL_FOCUS_TEST.md). HUD d'arène, OFF complet pistolet et nouvelle approche Recovery ouverts ; autres FX P2 reportés.
+
+---
+
 ## Reprise du 20 octobre 2026
 
 La [file active](ACTIVE_QUEUE.md) remplace les anciens états ci-dessous. V1.67 : pistolets validés, skins bonus en échec. V1.68 en préparation : bon contrôle de skins, continuité de focus, durée ultime infinie et visuel Léviathan. HUD après arène verrouillée ouvert ; autres absences HUD incertaines ; OFF complet pistolet non livré. [Preuves et critères V1.68](V1_68_VISUALS_ULTIMATE_TEST.md).

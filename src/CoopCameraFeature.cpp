@@ -6,6 +6,7 @@
 #include "TpsPadActions.h"
 #include "CameraContinuity.h"
 #include "TpsCameraFocus.h"
+#include "NativeMemoryReader.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -23,6 +24,7 @@ struct State {
     bool paused=false,cinema=false,nativeForm=false;
     float heldView[7]{};
     camera_focus::Point focus{};
+    camera_focus::Bounds focusBounds{};
     ULONGLONG viewTick=0,inputTick=0,suspendStarted=0;
     bool focused=false,wheel=false,fire=false,stick=false,temporary=false;
     bool recenterPending=false,form=false,horseChordDown=false;
@@ -97,7 +99,7 @@ void ApplyView(void* camera,void* outView,const local_players::Context& owner){
     if(paused){
         if(s.held&&s.camera==reinterpret_cast<uintptr_t>(camera)){
             std::memcpy(values,s.heldView,sizeof(s.heldView));
-            camera_focus::Compensate(values,s.focus,rt.tpsLensFocusEnabled.load());
+            camera_focus::Compensate(values,s.focus,rt.tpsLensFocusEnabled.load(),s.focusBounds);
         }
         s.gameplay=false;Unlock();return;
     }
@@ -131,7 +133,10 @@ void ApplyView(void* camera,void* outView,const local_players::Context& owner){
     if(std::fabs(outgoing[0])>=1e7f||std::fabs(outgoing[1])>=1e7f||std::fabs(outgoing[2])>=1e7f){Unlock();return;}
     std::memcpy(values,outgoing,sizeof(outgoing));
     s.focus={pose.x,pose.y,pose.z};
-    camera_focus::Compensate(values,s.focus,rt.tpsLensFocusEnabled.load());
+    native_objects::MemoryReader reader;
+    s.focusBounds=rt.tpsLensFocusEnabled.load()&&camera_focus::LensReady()?camera_focus::ReadBounds(reader,owner.pawn):camera_focus::Bounds{};
+    if(s.focusBounds.valid&&owner.kind==local_players::PoseKind::Horse)s.focusBounds=camera_focus::Merge(s.focusBounds,camera_focus::ReadBounds(reader,owner.character));
+    camera_focus::Compensate(values,s.focus,rt.tpsLensFocusEnabled.load(),s.focusBounds);
     std::memcpy(s.heldView,outgoing,sizeof(outgoing));
     s.camera=reinterpret_cast<uintptr_t>(camera);s.held=true;
     s.appliedYaw=yaw;s.gameplay=true;s.viewTick=now;

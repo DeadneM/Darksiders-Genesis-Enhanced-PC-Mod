@@ -110,22 +110,23 @@ void Initialize(LogFn log,bool exactExecutable){
         {0x189A510,{0x40,0x55,0x53,0x56,0x57,0x41,0x54,0x41,0x55,0x41,0x57,0x48,0x8D,0x6C,0x24,0xF9}},
         {0x163EFA0,{0x4C,0x8B,0xC2,0x48,0x85,0xD2,0x74,0x18,0x48,0x39,0x8A,0xE8,0x00,0x00,0x00,0x75}},
         {0x17B1840,{0x40,0x55,0x56,0x57,0x41,0x56,0x41,0x57,0x48,0x8D,0x6C,0x24,0xC9,0x48,0x81,0xEC}},
-        {0x19F3EC0,{0x48,0x8B,0xC4,0x56,0x57,0x41,0x56,0x48,0x81,0xEC,0x80,0x00,0x00,0x00,0x48,0xC7}}
+        {0x19F3EC0,{0x48,0x8B,0xC4,0x56,0x57,0x41,0x56,0x48,0x81,0xEC,0x80,0x00,0x00,0x00,0x48,0xC7}},
+        {0x6BC230,{0x48,0x8B,0xC4,0x53,0x48,0x81,0xEC,0x90,0x00,0x00,0x00,0x48,0x8B,0xD9,0x48,0x8B}}
     };
     for(const auto& guard:guards)if(std::memcmp(reinterpret_cast<void*>(g_base+guard.rva),guard.bytes,16)){
-        if(log)log("Leviathan visual V1.68 unavailable: native signature mismatch");return;
+        if(log)log("Leviathan visual V1.69 unavailable: native signature mismatch");return;
     }
     g_spawn=reinterpret_cast<SpawnFn>(g_base+0x189A510);g_destroy=reinterpret_cast<DestroyFn>(g_base+0x163EFA0);
     g_visible=reinterpret_cast<VisibleFn>(g_base+0x17B1840);g_ready=true;
-    if(log)log("Leviathan visual V1.68 READY: native particle only, no core/status/stats granted; loaded assets only; EXPERIMENTAL");
+    if(log)log("Leviathan visual V1.69 READY: native particle only, no core/status/stats granted; loaded assets only; EXPERIMENTAL");
 }
 void OnLivePlayer(const local_players::Context& owner){
     if(!Ready()||!native_tps::OnGameThread()||owner.index<0||owner.index>1)return;
     auto& state=g_players[owner.index];const auto& rt=runtime::Get();
     const int choice=rt.leviathanVisualMode.load();const bool enabled=rt.leviathanVisualEnabled.load()&&choice>=0&&choice<=3;
-    native_objects::Identity actor{};uintptr_t mesh=0,root=0,reciprocal=0;unsigned char role=0;
-    const bool owned=owner.pawn&&Read(owner.pawn,0x118,role)&&role==3&&Read(owner.pawn,0x380,mesh)&&mesh&&
-        Read(mesh,0xE8,reciprocal)&&reciprocal==owner.pawn&&Read(owner.pawn,0x158,root)&&root&&
+    native_objects::Identity actor{};uintptr_t root=0,reciprocal=0;unsigned char role=0;
+    const bool owned=owner.pawn&&Read(owner.pawn,0x118,role)&&role==3&&Read(owner.pawn,0x158,root)&&root&&
+        Read(root,0xE8,reciprocal)&&reciprocal==owner.pawn&&
         native_objects::CaptureLive(g_base,reinterpret_cast<void*>(owner.pawn),actor);
     if(!enabled||!owned){Clear(state);state={};return;}
     if(state.actor!=actor||state.selection!=choice){
@@ -147,20 +148,24 @@ void OnLivePlayer(const local_players::Context& owner){
     }
     if(choice){
         if(state.effect&&!native_objects::Alive(reader,g_base,state.effect))state.effect={};
-        if(state.effect&&state.parent!=mesh)Remove(state);
+        if(state.effect&&state.parent!=root)Remove(state);
         if(!state.effect&&state.attempts<3){
             ++state.attempts;const Vector zero{},one{1,1,1};
-            void* component=g_spawn(reinterpret_cast<void*>(g_templates[choice-1].address),reinterpret_cast<void*>(mesh),0,&zero,&zero,&one,0,true,0);
+            // Native status particle creation (6BC230)
+            // uses actor+158 when BoneName is None. The three Leviathan
+            // defaults use None. VM_READ confirmed the native Lvl3 emitter
+            // on CollisionCylinder; Strife's mesh is 97 units below it.
+            void* component=g_spawn(reinterpret_cast<void*>(g_templates[choice-1].address),reinterpret_cast<void*>(root),0,&zero,&zero,&one,0,true,0);
             uintptr_t parent=0,componentOwner=0;
-            if(component&&Particle(reinterpret_cast<uintptr_t>(component))&&Read(reinterpret_cast<uintptr_t>(component),0x108,parent)&&parent==mesh&&
+            if(component&&Particle(reinterpret_cast<uintptr_t>(component))&&Read(reinterpret_cast<uintptr_t>(component),0x108,parent)&&parent==root&&
                Read(reinterpret_cast<uintptr_t>(component),0xE8,componentOwner)&&componentOwner==owner.pawn&&
-               native_objects::CaptureLive(g_base,component,state.effect))state.parent=mesh;
+               native_objects::CaptureLive(g_base,component,state.effect))state.parent=root;
             else if(component&&Read(reinterpret_cast<uintptr_t>(component),0xE8,componentOwner)&&componentOwner==owner.pawn)
                 g_destroy(reinterpret_cast<void*>(owner.pawn),component);
         }
         if(!state.effect){
             for(auto& hidden:state.hidden)Restore(hidden);
-            if(g_log&&state.attempts==3){g_log("Leviathan visual V1.68 stopped after three unsuccessful spawns; native effect retained");++state.attempts;}
+            if(g_log&&state.attempts==3){g_log("Leviathan visual V1.69 stopped after three unsuccessful spawns; native effect retained");++state.attempts;}
             return;
         }
     }

@@ -1,14 +1,12 @@
-## V1.68 test — Darksiders Genesis Enhanced PC Mod
+## V1.69 test — Darksiders Genesis Enhanced PC Mod
 
 Mod Windows x64 : caméra native/TPS, souris et manette, coop locale, réglages de gameplay, raccourcis et mise à jour intégrée. Canal expérimental **debug** ; main/archive et anciens ZIP préservés.
 
-Base : V1.66 pour les sauts/holsters validés, avec les sélecteurs de pistolet V1.67 validés par l’utilisateur. **Nouveau lot EXPÉRIMENTAL : vrai contrôle de déblocage des skins, continuité de focus au changement, durée ultime infinie et visuels Léviathan.** Construction, intégrité du paquet et résultat en jeu sont des contrôles distincts. [État et reçu de livraison](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/CURRENT_STATE.md).
+Base cumulative V1.68, sauts/holsters V1.66 et modèles de pistolets V1.67 validés conservés. Durée ultime infinie et sélection des skins V1.68 confirmées dans les essais rapportés ; maintien après redémarrage à tester. **Lot V1.69 EXPÉRIMENTAL : hauteur native du Léviathan, flou lointain TPS et menu rangé.** [État et reçu](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/CURRENT_STATE.md).
 
-[ZIP cumulatif V1.68](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/b1a7110048071987facf6f28af0475b87c1a272b/downloads/DarksidersGenesis_V1.68_VISUALS_ULTIMATE_TEST.zip) · [Preuves, limites et essais](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_68_VISUALS_ULTIMATE_TEST.md).
+[ZIP cumulatif V1.69](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.69_NATIVE_VISUAL_FOCUS_TEST.zip) · [Preuves, limites et essais](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_69_NATIVE_VISUAL_FOCUS_TEST.md).
 
-Le paquet doit contenir exactement quatre fichiers à la racine : `dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md`. Les nouveaux comportements attendent une validation dans le jeu.
-
-**Livraison contrôlée :** 43/43 suites Windows x64, aucun avertissement MSVC, quatre fichiers racine, CRC/AMD64 et téléchargement public HTTP 200 vérifiés. ZIP 817200 octets ; SHA256 `110C3E851C966FD26E87FE31450475553E2985A7158643430923117B2A486960`. Nouveaux résultats en jeu non validés. Les 132 anciennes archives sont inchangées. Le bug HUD après arène verrouillée a été capturé sur V1.67 et reste ouvert.
+Quatre fichiers à la racine : `dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md`. **Construction Windows/contrôle du ZIP à effectuer ; nouvelles corrections visuelles NON VALIDÉES en jeu.** 133 anciennes archives préservées. HUD après arène verrouillée ouvert.
 
 ### Installation et mise à jour
 
@@ -31,11 +29,11 @@ Dans **Updates**, choisir le canal voulu, puis vérifier les mises à jour. Le c
 | Sauts supplémentaires | OFF / After gliding / Always on | Sauts validés dans l’essai utilisateur V1.66 |
 | Action Recovery | Ancienne fin anticipée retirée depuis V1.58 | Pas d’option active ; nouvelle approche en étude |
 | Modèles 3D des pistolets | Choix indépendant du modèle droit ou gauche par main de Strife | Choix gauche/droite validés ; OFF complet encore ouvert |
-| Skins | Deux montures bonus ; six variantes de progression dans deux groupes séparés | Correction V1.68 expérimentale ; aucun grant de récompense |
+| Skins | Deux montures bonus ; six variantes de progression dans deux groupes séparés | Sélection et OFF confirmés V1.68 ; redémarrage et autonomie sans PAK à vérifier |
 
 [État courant](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/CURRENT_STATE.md) et [file active](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/ACTIVE_QUEUE.md) font référence pour les éléments restant à tester ou réparer. Une validation utilisateur porte sur l’essai rapporté, sans supposer tous les personnages, chapitres et états coop vérifiés.
 
-### Apparences et durée ultime V1.68
+### Apparences et durée ultime
 
 Les choix **Native / Right pistol model / Left pistol model** par main de Strife sont conservés. Les holsters montés utilisent la variante rangée correspondante. Le futur OFF complet (modèle, effets et bras, avec projectiles conservés) n’est pas livré dans cette version.
 
@@ -45,9 +43,11 @@ Les choix **Native / Right pistol model / Left pistol model** par main de Strife
 
 **Override Leviathan lightning**, décoché par défaut, rend le comportement natif. Une fois coché : **OFF / Effect 1 / Effect 2 / Effect 3**. Visuel seulement, sans accorder le cœur ou son bonus. Si le visuel choisi est indisponible, le menu l’indique et conserve l’effet natif. Pied/cheval/ultime et P2 à tester, ainsi que le retour natif sans doublon.
 
-**TPS lens focus** change la méthode de profondeur de champ dans les vues TPS ; il peut rendre les décors plus nets. OFF conserve la méthode native et la correction de distance focale. V1.68 propose une correction du bref retour de focale native au changement de personnage, sans changer angle/FOV/ouverture. Le problème est signalé dans plusieurs niveaux. Le HUD absent après sélection d’arène verrouillée reste un diagnostic ouvert ; aucun réaffichage global forcé n’est ajouté.
+**TPS character focus** garde la méthode DOF du niveau. En TPS, la couche Gaussian proche est désactivée et la région nette protège la profondeur du modèle ; flou lointain, qualité et ouverture restent natifs. Clé INI `TPSLensFocus` conservée. OFF garde la correction de distance seule. V1.69 remplace le forçage CircleDOF qui rendait les décors trop nets. Chapitre 8, transformations, changements de personnage et coop restent à tester pour ce nouveau rendu.
 
-Essais groupés et rollback : [rapport V1.68](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_68_VISUALS_ULTIMATE_TEST.md). INI personnel prioritaire ; les trois nouvelles clés gardent le comportement natif par défaut.
+Léviathan s'attache à la racine comme le natif ; l'ancien rattachement au modèle de Strife était 97 unités plus bas. Hauteur corrigée à valider visuellement. **Appearance** et **Weapon sheathing** sont repliables et distinctes de **Player movement** ; réglages et raccourcis conservés.
+
+Le HUD après arène verrouillée reste ouvert ; aucun réaffichage global forcé. OFF complet pistolet et nouvelle approche Recovery ouverts. [Essais et rollback V1.69](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_69_NATIVE_VISUAL_FOCUS_TEST.md).
 
 ### Raccourcis du profil fourni
 

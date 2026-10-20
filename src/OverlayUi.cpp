@@ -238,7 +238,7 @@ void Draw(Context& c) {
                 *c.lastAction=hudHidden?"HUD hidden":"HUD visible";
                 if (c.log) c.log("Overlay -> HUD %s",hudHidden?"HIDDEN":"VISIBLE");
             }
-            ImGui::TextDisabled("%s | F1",t.hudHookReady?"Hook ready":"Unavailable");
+            ImGui::TextDisabled("%s | binding in Hotkeys",t.hudHookReady?"Hook ready":"Unavailable");
             ImGui::TextDisabled("Hides normal on-screen HUD. The blue 3D aim line/arc are separate.");
 
             ImGui::Text("Blue aiming line and semicircle");
@@ -254,24 +254,8 @@ void Draw(Context& c) {
                 aimShaders.hooksReady ? "Ready" : "Unavailable",aimShaders.blockedDraws);
             ImGui::Unindent(12.0f);
             }
-            if(ImGui::CollapsingHeader("Player movement",ImGuiTreeNodeFlags_DefaultOpen)){
+            if(ImGui::CollapsingHeader("Appearance")){
             ImGui::Indent(12.0f);
-            DrawSectionTitle("Player");
-            DrawTunableFeature(
-                config,
-                "Movement Speed",
-                "MovementSpeed",
-                &config.movementSpeedEnabled,
-                &config.movementSpeedMultiplier,
-                0.00f,
-                3.00f,
-                1.50f,
-                "%.2fx",
-                "Changes walking and running speed for the player.",
-                t.movementHookReady
-            );
-
-            DrawSectionTitle("Appearance");
             constexpr const char* pistolModels[]={"Native (original for this hand)","Right pistol model","Left pistol model"};
             ImGui::BeginDisabled(!mounted_holsters::Ready());
             ImGui::SetNextItemWidth(280.0f);
@@ -297,7 +281,10 @@ void Draw(Context& c) {
                     ImGui::TextColored(ImVec4(1,.85f,.25f,1),"Selected effect unavailable here; native visual retained. Change selection or re-enable to retry.");
             }
 
-            DrawSectionTitle("Weapon sheathing");
+            ImGui::Unindent(12.0f);
+            }
+            if(ImGui::CollapsingHeader("Weapon sheathing")){
+            ImGui::Indent(12.0f);
             DrawToggleFeature(config,"Mounted pistol holsters (experimental)","MountedPistolHolsters",&config.mountedHolstersEnabled,
                 "Uses the stowed pistol models while Strife is mounted. Turn OFF to restore the previous appearance. Per-hand appearance choices use the corresponding stowed models. Experimental: check alignment in the holsters.",mounted_holsters::Ready());
             DrawToggleFeature(config,"Control automatic weapon sheathing","WeaponSheathing",&config.weaponSheathingEnabled,
@@ -326,6 +313,25 @@ void Draw(Context& c) {
             ImGui::TextWrapped("One controller input on OFF: use the other button alone. Two active inputs: press both together. Both OFF: disabled. Each controller affects its own player. Native game bindings are kept; choose an unused button or combination.");
             ImGui::TextWrapped("The keyboard shortcut and F1-F12 Hotkeys remain available together for eligible local players, independently of automatic control. One press queues one request per player, even with the same key assigned twice. Release before pressing again. Menu/focus changes do not trigger held shortcuts. Active attacks/aim, cinematics and transformations stay native.");
             ImGui::PopID();
+
+            ImGui::Unindent(12.0f);
+            }
+            if(ImGui::CollapsingHeader("Player movement",ImGuiTreeNodeFlags_DefaultOpen)){
+            ImGui::Indent(12.0f);
+            DrawSectionTitle("Player");
+            DrawTunableFeature(
+                config,
+                "Movement Speed",
+                "MovementSpeed",
+                &config.movementSpeedEnabled,
+                &config.movementSpeedMultiplier,
+                0.00f,
+                3.00f,
+                1.50f,
+                "%.2fx",
+                "Changes walking and running speed for the player.",
+                t.movementHookReady
+            );
 
             ImGui::TextWrapped("Action Recovery has been retired pending a native action-lock redesign. Native dash timing is restored; the validated aim-resume repair remains active.");
 
@@ -918,8 +924,8 @@ void Draw(Context& c) {
                     if(DrawNumberRow("FOV coop","TPSFovCoop",&config.thirdPersonCoopFovDegrees,40,140,110,"%.0f deg","%.1f"))config.Save();
                 }
                 DrawSectionTitle("TPS depth of field");
-                DrawToggleFeature(config,"TPS lens focus (experimental)","TPSLensFocus",&config.tpsLensFocusEnabled,
-                    "Keep lens focus on the character with the current TPS camera, at foot, on horse and in Ultimate. Keeps depth of field active; its appearance may change. OFF keeps the level's blur method with the previous focus correction. Native view and cinematics keep their original effect.",camera_focus::LensReady());
+                DrawToggleFeature(config,"TPS character focus (experimental)","TPSLensFocus",&config.tpsLensFocusEnabled,
+                    "Keep the level's depth-of-field method and distant blur. In TPS, disable the near Gaussian layer and protect the live character's depth range. Foot, mount and Ultimate; both local players. OFF keeps focal-distance correction alone. Native view and cinematics remain authored. Experimental: compare the whole character and background in chapter 8.",camera_focus::LensReady());
                 DrawSectionTitle("Normal-form TPS camera");
                 if(DrawNumberRow("Distance","TPSDistance",&config.thirdPersonDistanceMultiplier,0,3,0.15f,"%.2fx","%.3f"))config.Save();
                 if(DrawNumberRow("View pitch","TPSPitch",&config.thirdPersonPitchDegrees,-75,65,-12,"%.1f deg","%.1f"))config.Save();
@@ -1149,9 +1155,9 @@ void Draw(Context& c) {
                 ImGui::EndTable();
             }
             ImGui::TextDisabled("Hold keys to repeat. Steps: height 50, zoom 10%%, pitch/yaw 5 degrees.");
-            ImGui::TextDisabled("Camera-distance adjustments temporarily disable DOF blur.");
+            ImGui::TextDisabled("Native-view zoom temporarily disables DOF; TPS uses per-player focus.");
             if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("The native r.DepthOfFieldQuality is restored when Zoom and Third Person are off.");
+                ImGui::SetTooltip("The native DOF quality is restored when native-view zoom is off. Supported TPS views retain the level method and per-player focus.");
             ImGui::TextDisabled("Native output changes. Actual framing requires in-game verification.");
             ImGui::Unindent(12.0f);
             }

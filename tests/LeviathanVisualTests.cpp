@@ -27,7 +27,7 @@ void Visible(void* component,bool value,unsigned char propagation){
 void Destroy(void* owner,void* component){Check(owner==actor&&component==custom,"only our owned particle is destroyed");++destroys;}
 void* Spawn(void* asset,void* parent,uint64_t socket,const dg::leviathan_visual::Vector* location,
     const dg::leviathan_visual::Vector* rotation,const dg::leviathan_visual::Vector* scale,unsigned char attach,bool autoDestroy,unsigned char pool){
-    Check(parent==mesh&&socket==0&&location->x==0&&rotation->y==0&&scale->x==1&&scale->z==1&&attach==0&&autoDestroy&&pool==0,"native particle ABI and relative attach parameters preserved");
+    Check(parent==root&&socket==0&&location->x==0&&location->y==0&&location->z==0&&rotation->y==0&&scale->x==1&&scale->z==1&&attach==0&&autoDestroy&&pool==0,"native root attachment without an invented height offset");
     ++spawns;if(rejectSpawn)return nullptr;Put(custom,0x578,asset);return custom;
 }
 void Run(){
@@ -41,11 +41,11 @@ void Run(){
     for(int i=0;i<3;++i){Name(assets[i],labels[i]);Name(packages[i],paths[i]);Put(assets[i],0x10,reinterpret_cast<uintptr_t>(particleClass));Put(assets[i],0x20,reinterpret_cast<uintptr_t>(packages[i]));g_templates[i]=Register(assets[i],i+1);Check(Template(reinterpret_cast<uintptr_t>(assets[i]))==i,"exact particle asset and package identified");}
     Register(actor,4);Register(nativeEffect,5);Register(custom,6);Register(foreign,7);
     Put<unsigned char>(actor,0x118,3);Put(actor,0x380,reinterpret_cast<uintptr_t>(mesh));Put(actor,0x158,reinterpret_cast<uintptr_t>(root));
-    Put(mesh,0xE8,reinterpret_cast<uintptr_t>(actor));Put(root,0x118,reinterpret_cast<uintptr_t>(children));Put<int>(root,0x120,3);Put<int>(root,0x124,3);
+    Put(mesh,0xE8,reinterpret_cast<uintptr_t>(actor));Put(root,0xE8,reinterpret_cast<uintptr_t>(actor));Put(root,0x118,reinterpret_cast<uintptr_t>(children));Put<int>(root,0x120,3);Put<int>(root,0x124,3);
     children[0]=reinterpret_cast<uintptr_t>(nativeEffect);children[1]=reinterpret_cast<uintptr_t>(custom);children[2]=reinterpret_cast<uintptr_t>(foreign);
     for(auto* p:{nativeEffect,custom,foreign}){
         Put(p,0x10,reinterpret_cast<uintptr_t>(componentClass));Put(p,0xE8,reinterpret_cast<uintptr_t>(actor));Put<unsigned char>(p,0x1CC,0x25);
-        Put(p,0x108,reinterpret_cast<uintptr_t>(p==custom?mesh:root));Put(p,0x578,reinterpret_cast<uintptr_t>(assets[0]));
+        Put(p,0x108,reinterpret_cast<uintptr_t>(root));Put(p,0x578,reinterpret_cast<uintptr_t>(assets[0]));
     }
     Put(foreign,0xE8,uintptr_t(1));
     g_ready=true;g_spawn=Spawn;g_destroy=Destroy;g_visible=Visible;
@@ -53,6 +53,9 @@ void Run(){
     owner.kind=dg::local_players::PoseKind::Foot;auto& rt=dg::runtime::Get();
     rt.leviathanVisualEnabled=false;rt.leviathanVisualMode=0;OnLivePlayer(owner);
     Check(!spawns&&!visibleCalls,"default disabled preserves all native visuals");
+    Put(root,0xE8,uintptr_t(1));rt.leviathanVisualEnabled=true;rt.leviathanVisualMode=1;OnLivePlayer(owner);
+    Check(!spawns&&!visibleCalls,"a root with foreign ownership cannot receive or hide particles");
+    Put(root,0xE8,reinterpret_cast<uintptr_t>(actor));rt.leviathanVisualMode=0;
     rt.leviathanVisualEnabled=true;OnLivePlayer(owner);
     Check(!spawns&&Get<unsigned char>(nativeEffect,0x1CC)==5&&Get<unsigned char>(foreign,0x1CC)==0x25,"OFF hides exact local lightning only, preserving other visibility bits and foreign owners");
     Put(nativeEffect,0x578,uintptr_t(0x1234));g_players[0].tick=0;OnLivePlayer(owner);

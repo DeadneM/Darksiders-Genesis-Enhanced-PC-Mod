@@ -3,6 +3,7 @@
 #include "CoopCameraFeature.h"
 #include "CameraContinuity.h"
 #include "TpsCameraFocus.h"
+#include "NativeMemoryReader.h"
 #include "DashCombatFeature.h"
 #include "RuntimeSettings.h"
 #include "NativeTpsFeature.h"
@@ -52,6 +53,7 @@ struct HeldTpsView {
     uint32_t generation=UINT32_MAX;
     float values[7]{};
     camera_focus::Point focus{};
+    camera_focus::Bounds focusBounds{};
     bool focusValid=false;
     bool valid=false;
 };
@@ -235,7 +237,7 @@ void HookView(void* camera, float dt, void* outView) {
         // Keep the last rendered TPS composition, including during stopped
         // actor callbacks. No fake actor timestamps, UI aim or synthetic input.
         std::memcpy(p,g_heldView.values,sizeof(g_heldView.values));
-        if(g_heldView.focusValid)camera_focus::Compensate(p,g_heldView.focus,settings.tpsLensFocusEnabled.load());
+        if(g_heldView.focusValid)camera_focus::Compensate(p,g_heldView.focus,settings.tpsLensFocusEnabled.load(),g_heldView.focusBounds);
         settings.tpsViewGameplay.store(false,std::memory_order_release);
         settings.tpsMountedViewActive.store(false,std::memory_order_release);
         return;
@@ -441,7 +443,7 @@ void HookView(void* camera, float dt, void* outView) {
         g_heldView.camera==reinterpret_cast<uintptr_t>(camera);
     if(thirdPerson&&wheelInput&&sameTpsCamera&&!actorValid){
         std::memcpy(p,g_heldView.values,sizeof(g_heldView.values));
-        if(g_heldView.focusValid)camera_focus::Compensate(p,g_heldView.focus,settings.tpsLensFocusEnabled.load());
+        if(g_heldView.focusValid)camera_focus::Compensate(p,g_heldView.focus,settings.tpsLensFocusEnabled.load(),g_heldView.focusBounds);
         settings.tpsViewGameplay.store(false,std::memory_order_release);
         settings.tpsMountedViewActive.store(false,std::memory_order_release);
         return; // stopped pose callbacks only; no live follow/orbit is frozen
@@ -759,7 +761,10 @@ void HookView(void* camera, float dt, void* outView) {
                 g_heldView.focusValid=attached&&actorValid;
                 if(g_heldView.focusValid){
                     g_heldView.focus={ax,ay,az};
-                    camera_focus::Compensate(p,g_heldView.focus,settings.tpsLensFocusEnabled.load());
+                    native_objects::MemoryReader reader;
+                    g_heldView.focusBounds=ownedView&&settings.tpsLensFocusEnabled.load()&&camera_focus::LensReady()?camera_focus::ReadBounds(reader,viewOwner.pawn):camera_focus::Bounds{};
+                    if(g_heldView.focusBounds.valid&&usingHorse)g_heldView.focusBounds=camera_focus::Merge(g_heldView.focusBounds,camera_focus::ReadBounds(reader,viewOwner.character));
+                    camera_focus::Compensate(p,g_heldView.focus,settings.tpsLensFocusEnabled.load(),g_heldView.focusBounds);
                 }
                 g_tpsEmittedX.store(outX,std::memory_order_relaxed);
                 g_tpsEmittedY.store(outY,std::memory_order_relaxed);
