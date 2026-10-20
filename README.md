@@ -4,9 +4,11 @@ Mod Windows x64 : caméra native/TPS, souris et manette, coop locale, réglages 
 
 Base : V1.66 pour les sauts/holsters validés, avec les sélecteurs de pistolet V1.67 validés par l’utilisateur. **Nouveau lot EXPÉRIMENTAL : vrai contrôle de déblocage des skins, continuité de focus au changement, durée ultime infinie et visuels Léviathan.** Construction, intégrité du paquet et résultat en jeu sont des contrôles distincts. [État et reçu de livraison](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/CURRENT_STATE.md).
 
-[ZIP cumulatif V1.68](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.68_VISUALS_ULTIMATE_TEST.zip) · [Preuves, limites et essais](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_68_VISUALS_ULTIMATE_TEST.md).
+[ZIP cumulatif V1.68](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/b1a7110048071987facf6f28af0475b87c1a272b/downloads/DarksidersGenesis_V1.68_VISUALS_ULTIMATE_TEST.zip) · [Preuves, limites et essais](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_68_VISUALS_ULTIMATE_TEST.md).
 
 Le paquet doit contenir exactement quatre fichiers à la racine : `dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md`. Les nouveaux comportements attendent une validation dans le jeu.
+
+**Livraison contrôlée :** 43/43 suites Windows x64, aucun avertissement MSVC, quatre fichiers racine, CRC/AMD64 et téléchargement public HTTP 200 vérifiés. ZIP 817200 octets ; SHA256 `110C3E851C966FD26E87FE31450475553E2985A7158643430923117B2A486960`. Nouveaux résultats en jeu non validés. Les 132 anciennes archives sont inchangées. Le bug HUD après arène verrouillée a été capturé sur V1.67 et reste ouvert.
 
 ### Installation et mise à jour
 

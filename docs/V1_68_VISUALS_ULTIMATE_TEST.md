@@ -1,6 +1,6 @@
 # V1.68 — apparences, continuité de focus et durée ultime
 
-20 octobre 2026. **PRÉPARÉ / EXPÉRIMENTAL** avant réception des contrôles Windows. Base : V1.66 validée pour sauts/holsters, plus les sélecteurs de pistolets V1.67 explicitement validés par l’utilisateur. Les nouveaux comportements ci-dessous attendent un essai dans le jeu. Branche debug exclusivement.
+20 octobre 2026. **CONSTRUIT / CONTRÔLÉ / EXPÉRIMENTAL** : 43/43 suites Windows x64, zéro avertissement MSVC ; résultat en jeu non validé. [Reçu de livraison et signatures](CURRENT_STATE.md). Base : V1.66 validée pour sauts/holsters, plus les sélecteurs de pistolets V1.67 explicitement validés par l’utilisateur. Les nouveaux comportements ci-dessous attendent un essai dans le jeu. Branche debug exclusivement.
 
 ## Objectif et critère de réussite
 
@@ -49,3 +49,7 @@ Revenir au ZIP V1.67 pour retirer le nouveau lot **en désactivant ses deux case
 - OFF des pistolets : demande complète = garder les projectiles, retirer modèle/effets et bras tendu. Pas livré ici. Les couches d’animation inspectées partent de la colonne entière ; aucun contrôle par bras sûr identifié. Ne pas ajouter une option prétendant tout faire alors qu’elle masque seulement le modèle.
 - Recovery natif : étude ouverte, ancien système retiré. Autres icônes/effets P2 toujours reportés sur demande, sauf le nouveau sélecteur Léviathan explicitement demandé.
 - Auto check update : confirmation visuelle distincte toujours absente.
+
+## Reproduction HUD du 20 octobre après la construction
+
+La panne a été reproduite et observée sur la **V1.67 encore chargée**, indépendamment de la compilation V1.68. Valeurs natives HideHud 0/0 et booléen mod masqué 0, bShowHUD vrai, racine générale présente/visible/opacité 1. Les contrôles déjà présents n’expliquent pas la disparition. Étude du rattachement/affichage du HUD à poursuivre. Aucun correctif HUD ajouté au paquet immuable déjà publié. Captures privées uniquement, aucune modification de mémoire.
