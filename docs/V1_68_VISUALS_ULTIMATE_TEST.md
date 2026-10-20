@@ -53,3 +53,5 @@ Revenir au ZIP V1.67 pour retirer le nouveau lot **en désactivant ses deux case
 ## Reproduction HUD du 20 octobre après la construction
 
 La panne a été reproduite et observée sur la **V1.67 encore chargée**, indépendamment de la compilation V1.68. Valeurs natives HideHud 0/0 et booléen mod masqué 0, bShowHUD vrai, racine générale présente/visible/opacité 1. Les contrôles déjà présents n’expliquent pas la disparition. Étude du rattachement/affichage du HUD à poursuivre. Aucun correctif HUD ajouté au paquet immuable déjà publié. Captures privées uniquement, aucune modification de mémoire.
+
+Contrôle complémentaire : IsInViewport natif renvoie encore vrai dans l’état cassé (lecture des deux pointeurs et du compteur partagé = 1, sans appel du jeu). La piste « HUD simplement détaché du viewport » ne suffit pas ; poursuivre les états d’affichage et bindings/couches Slate.
