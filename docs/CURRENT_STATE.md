@@ -1,3 +1,13 @@
+## Précision utilisateur — HUD général après refus d’une arène verrouillée
+
+20 octobre 2026, après livraison V1.69. Le problème touche **le HUD général**. Déclencheur : cliquer une arène encore verrouillée ; un message indique que le joueur ne l’a pas débloquée, le menu devient transparent, puis le HUD général manque. L’ancienne abréviation « HUD d’arène » ne désignait pas le bon élément ; ne pas limiter la recherche au widget UI_ArenaHUD.
+
+Les données cuites déjà relevées montrent StartMission puis l’animation outro dans le chemin de sélection ; cette animation possède deux pistes RenderOpacity. Le corps natif 585010 présente aussi une branche d’échec après le test 5841F0, avant le chemin de préparation de mission. Cela concorde avec le refus et la transparence décrits, **sans établir quelle branche a été exécutée dans la reproduction ni la cause finale**. Piste : transition de fermeture et restitution du mode UI/HUD après refus. Les captures précédentes (hide natif/mod=0, racine visible, opacité 1, IsInViewport vrai) restent pertinentes.
+
+Prochain relevé ciblé : HUD général, page de sélection, message de refus, pile du gestionnaire UI et état de l’animation de fermeture, avant/après le clic. Critère de réussite : après refus, l’interface retrouve son état correct et le HUD général revient en reprenant le jeu, sans bascule manuelle du HUD. **Correction ouverte ; aucun nouveau patch ni build dans cette clarification.** ASI installé V1.69, INI, raccourcis et archives inchangés.
+
+---
+
 ## V1.69 — CONSTRUITE / CONTRÔLÉE, corrections visuelles EXPÉRIMENTALES
 
 20 octobre 2026. [GitHub Actions Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39412347126) : **43/43 suites, zéro avertissement MSVC ASI/DXGI**. Avis CMake/MinHook et Node des outils distincts. Source `02aac6e0a04ad3fec7d2e7dfcc01425a0d08318f`, archive `28f923c0c3336c75d7b7ec76232fc22bc56a13b0`. [ZIP cumulatif immuable vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/28f923c0c3336c75d7b7ec76232fc22bc56a13b0/downloads/DarksidersGenesis_V1.69_NATIVE_VISUAL_FOCUS_TEST.zip) : **818621 octets**, SHA256 `C5197C120DD59FB607BF2B33AF56B15EC9D020DA33C4DB01A7E82D3591CFE514`. Téléchargement public HTTP 200, hash identique à la CI, CRC, AMD64, exactement quatre fichiers racine, marqueurs, **146 clés et 54 actions** contrôlés. **133 anciennes archives et trois documents historiques inchangés** ; main/archive et v1.43 conservés.

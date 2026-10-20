@@ -40,3 +40,7 @@ Rollback : [V1.68 conservée](https://raw.githubusercontent.com/DeadneM/Darkside
 ## Preuve complémentaire sans PAK
 
 Le journal moteur de la session V1.68 12:47–12:57 ne monte que le PAK original ; le PAK cosmétique est absent. Le retour utilisateur valide sélection des chevaux/armures et retour natif OFF dans cet essai sans PAK. Maintien après redémarrage à vérifier. Aucun PAK modifié par l’agent. Cette preuve lève la réserve du début du rapport.
+
+## Précision après livraison : disparition du HUD général
+
+Le clic sur une arène encore verrouillée affiche un refus de déblocage, rend le menu transparent et fait disparaître **le HUD général**. « HUD d’arène » était une abréviation imprécise. Rechercher la restitution de l’interface après ce refus ; les deux pistes RenderOpacity de l’outro de sélection sont une piste statique cohérente, pas une cause prouvée. Aucun nouveau correctif livré par cette mise à jour documentaire. Voir le relevé précis en tête de CURRENT_STATE.
