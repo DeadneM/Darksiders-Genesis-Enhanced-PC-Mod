@@ -1,6 +1,6 @@
 # V1.70 — Profondeur de champ par vue et région native
 
-20 octobre 2026. Base cumulative V1.69 `02aac6e0a04ad3fec7d2e7dfcc01425a0d08318f`, acquis conservés. **PRÉPARÉ / EXPÉRIMENTAL** : compilation Windows, paquet et rendu à vérifier. Debug uniquement.
+20 octobre 2026. Base cumulative V1.69 `02aac6e0a04ad3fec7d2e7dfcc01425a0d08318f`, acquis conservés. **CONSTRUIT / CONTRÔLÉ / INSTALLÉ / EXPÉRIMENTAL** :43/43 suites Windows, zéro avertissement MSVC, paquet et installation contrôlés. Rendu en jeu à vérifier. [Reçu, signatures et lien](CURRENT_STATE.md). Debug uniquement.
 
 ## Retours et objectif
 
