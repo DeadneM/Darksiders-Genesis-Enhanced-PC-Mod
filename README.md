@@ -1,10 +1,12 @@
-## V1.72 test — Darksiders Genesis Enhanced PC Mod
+## V1.73 test — Darksiders Genesis Enhanced PC Mod
 
-Canal **debug**, base cumulative V1.71 et acquis validés conservés. Lot : maintien des montures bonus déjà sélectionnées pendant le chargement, et distance nette DOF native/TPS jusqu'à **5 000 m**. **PRÉPARÉ / EXPÉRIMENTAL** : compilation Windows, paquet et nouveau résultat en jeu à contrôler. [Preuves, critères et essais groupés](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_72_SELECTED_MOUNT_LOAD_DOF_RANGE_TEST.md).
+Canal **debug**, lot cumulatif : maintien de Despair/Rampage au chargement, distance DOF native/TPS jusqu'à **5 000 m**, nettoyage du Recovery du dash signalé sans effet. **PRÉPARÉ / EXPÉRIMENTAL**, compilation et paquet à contrôler. [Critères et essais groupés](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_73_MOUNT_DOF_CLEANUP_TEST.md).
 
-Le candidat corrige le filtre de chargement qui supprimait les choix Despair/Rampage malgré l'option active. Il conserve seulement les bonus déjà choisis ; aucune apparence imposée, aucun droit DLC ou bonus de gameplay ajouté. La case règle la disponibilité dans le menu ; une monture bonus déjà équipée reste conservée au chargement même OFF, comme l'armure. Le filtre natif reste complet pour les autres entrées et le modèle de base reste sélectionnable. Anciennes observations périodiques V1.71 retirées. Le flou V1.71 semble bon dans le dernier essai utilisateur ; couverture complète non supposée. Dash movement recovery reste OFF par défaut et expérimental, sans nouveau retour.
+La case Bonus mount skins règle la disponibilité du menu ; le bonus déjà équipé reste conservé même OFF, comme les armures. Le modèle de base reste sélectionnable et son choix n'est jamais remplacé automatiquement. Nouveau résultat en jeu à vérifier. Le flou V1.71 semble bon dans le dernier retour utilisateur ; les nouvelles distances restent à essayer.
 
-Archive prévue : `DarksidersGenesis_V1.72_SELECTED_MOUNT_LOAD_DOF_RANGE_TEST.zip`, quatre fichiers à la racine. OFF complet des pistolets toujours ouvert ; modèles gauche/droite validés conservés.
+Le candidat Dash movement recovery V1.71 est **REJETÉ dans l'essai utilisateur et retiré**, avec son état, sa checkbox et son réglage runtime. Les corrections validées de visée/tir pendant le dash sont conservées. Les anciens raccourcis Recovery restent inertes sans décaler les autres. La prochaine recherche commencera par le ground slam, une fois le reste de la liste terminé.
+
+Archive prévue : `DarksidersGenesis_V1.73_MOUNT_DOF_CLEANUP_TEST.zip`, quatre fichiers racine. OFF complet des pistolets reste ouvert ; modèles gauche/droite validés conservés.
 
 ### Installation et mise à jour
 
@@ -25,7 +27,7 @@ Dans **Updates**, choisir le canal voulu, puis vérifier les mises à jour. Le c
 | Mouvement et grappin | Réglages de déplacement/saut/plané/cheval, sprint, portée native du grappin | Acquis conservés ; portée validée dans l’essai utilisateur |
 | Rangement | Délais séparés lames Strife / pistolets Strife / épée War ; action commune avec raccourcis clavier et manette | Délais validés V1.65 ; holsters validés dans l’essai V1.66 |
 | Sauts supplémentaires | OFF / After gliding / Always on | Sauts validés dans l’essai utilisateur V1.66 |
-| Action Recovery | Ancienne fin anticipée retirée ; candidat Dash movement recovery V1.71 par permission native après arrêt | OFF par défaut ; bénéfice en jeu à tester, coffres et attaques au sol exclus |
+| Action Recovery | Candidats retirés après absence de bénéfice dans les essais | Recherche ground slam après le reste de la file ; aucune option active |
 | Modèles 3D des pistolets | Choix indépendant du modèle droit ou gauche par main de Strife | Choix gauche/droite validés ; OFF complet encore ouvert |
 | Skins | Deux montures bonus ; six variantes de progression dans deux groupes séparés | Sélection et OFF confirmés V1.68 ; sélection sans PAK confirmée ; maintien au chargement V1.72 à tester |
 
@@ -35,7 +37,7 @@ Dans **Updates**, choisir le canal voulu, puis vérifier les mises à jour. Le c
 
 Les choix **Native / Right pistol model / Left pistol model** par main de Strife sont conservés. Les holsters montés utilisent la variante rangée correspondante. Le futur OFF complet (modèle, effets et bras, avec projectiles conservés) n’est pas livré dans cette version.
 
-**Bonus mount skins** et **Progression skins** restent indépendants et OFF par défaut. V1.67 interceptait à tort « équipé » ; V1.68 remplace ce branchement par le vrai « débloqué ». Aucun droit DLC, récompense ou bonus de gameplay accordé par le mod. Le jeu garde la sélection native ; fermer et rouvrir la page Skins après un changement. L’essai V1.68 de chevaux/armures et le retour natif OFF sont confirmés sans PAK cosmétique par le journal moteur. Les armures restent dans le dernier essai. Le défaut de chargement des montures a été localisé dans le filtre DLC natif ; V1.72 conserve les deux choix bonus déjà présents lorsque l'option est active, résultat encore à tester. Un PAK éventuellement réinstallé peut maintenir des montures disponibles avec l’option ASI OFF.
+**Bonus mount skins** et **Progression skins** restent indépendants et OFF par défaut. V1.67 interceptait à tort « équipé » ; V1.68 remplace ce branchement par le vrai « débloqué ». Aucun droit DLC, récompense ou bonus de gameplay accordé par le mod. Le jeu garde la sélection native ; fermer et rouvrir la page Skins après un changement. L’essai V1.68 de chevaux/armures et le retour natif OFF sont confirmés sans PAK cosmétique par le journal moteur. Les armures restent dans le dernier essai. Le défaut de chargement des montures a été localisé dans le filtre DLC natif ; V1.72 conserve les deux choix bonus déjà présents même lorsque leur disponibilité dans le menu est désactivée, résultat encore à tester. Un PAK éventuellement réinstallé peut maintenir des montures disponibles avec l’option ASI OFF.
 
 **Infinite Ultimate duration** bloque seulement le débit de la transformation déjà active, au niveau courant de jauge. Il ne remplit rien et ne rend pas l’activation gratuite. Décocher reprend le multiplicateur de durée si sa case est active, sinon le débit natif. Nouvelle action assignable dans Hotkeys, non attribuée par défaut. **Unlimited Ultimate** conserve son rôle de remplissage.
 

@@ -1,23 +1,40 @@
-## V1.72 — montures sélectionnées au chargement et distance DOF étendue
+## V1.73 — lot montures / DOF et retrait du Recovery rejeté
 
-Base cumulative V1.71 ; acquis validés conservés. **PRÉPARÉ / EXPÉRIMENTAL**, construction Windows et contrôle du paquet à effectuer. Retour V1.71 : le flou semble bon dans l'essai utilisateur ; le skin cheval reste perdu au rechargement, l'armure reste. Aucun nouveau verdict sur Dash movement recovery.
+20 octobre 2026, debug uniquement. Base cumulative V1.72 construite et contrôlée, pas installée ; acquis utilisateur conservés. Nouveau retour V1.71 : **Dash movement recovery ne fonctionne pas dans l'essai utilisateur, candidat REJETÉ et retiré**. La prochaine recherche Recovery commencera par le **ground slam**, après le reste de la file, conformément à la demande. Aucun nouveau candidat Recovery dans cette version.
 
-Objectifs : conserver Despair/Rampage déjà choisis lors du chargement même après désactivation de Bonus mount skins, comme les armures, et permettre une distance nette personnalisée supérieure à 1 000 m dans les deux vues. Limite commune portée à **5 000 m** (curseur, saisie, INI et rendu), valeurs par défaut 10 m/0,6 % inchangées. Aucun nouveau réglage ni raccourci.
+Lot : correction du filtre qui supprimait Despair/Rampage au chargement, maintien du choix même disponibilité bonus désactivée (comme les armures), distance DOF Native/TPS jusqu'à **5 000 m**, retrait du diagnostic périodique et du candidat Recovery sans effet. Le nouveau filtre de skins et le maximum DOF attendent leur validation en jeu. **PRÉPARÉ / EXPÉRIMENTAL**, compilation et paquet à contrôler.
 
-Le filtre natif de chargement retirait les lignes marquées DLC avant leur copie au joueur. Le candidat laisse ce filtre fonctionner puis réinsère uniquement les deux choix bonus qu'il vient réellement de supprimer, avec le setter natif de skin. Pas de choix automatique, droit DLC, bonus de gameplay, modification de table ou écriture directe de fichier de sauvegarde. La case agit seulement sur la disponibilité du menu ; OFF ne retire pas un choix bonus déjà enregistré. Le modèle de base reste sélectionnable. Le diagnostic périodique de sélection V1.71 et son appel par image sont retirés : son rôle est terminé. **Nouveau résultat en jeu non validé.**
+Le dash revient exactement au code de V1.70 pour la visée, les tirs et leurs effets validés ; seule la phrase périmée du bilan est nettoyée. Politique, état, appels natifs, checkbox, réglage runtime/INI fourni et tests spécifiques du Recovery rejeté supprimés. Les anciens identifiants de raccourci 3 et 54 restent réservés/inertes pour préserver les affectations personnelles ; ils ne sont plus proposés à l'assignation. Une ancienne clé personnelle n'est ni relue ni réécrite par le mod. **154 réglages fournis, 55 identifiants conservés dont les deux retirés**. Aucun INI personnel remplacé.
 
-Critère de réussite : un bonus choisi reste sélectionné et rendu après chargement puis redémarrage, que l'option soit cochée ou décochée ; les choix d'armure, autres règles DLC et sauvegardes restent natifs. Sans choix bonus, aucun bonus n'est ajouté. OFF rend la disponibilité native du menu ; sélectionner le modèle de base remplace durablement le choix bonus. La distance 1 250,5 m puis 5 000 m doit survivre à la sauvegarde/relecture et déplacer la limite nette sans déplacer la caméra ou le personnage.
+Essais groupés de cette version :
+
+1. Despair et Rampage : choisir, sauvegarde normale, recharger puis redémarrer ; vérifier sélection et modèle. Décocher Bonus mount skins et recharger : garder le bonus équipé avec disponibilité du menu native. Choisir ensuite le cheval de base : il doit rester de base après chargement.
+2. Profils DOF Native/TPS : 20 / 1 250,5 / 5 000 m, quantité 0 / 0,6 / 2 ; saisie et rechargement, arène → mission/hub, chapitre 8 et transformations. Le flou V1.71 semble bon dans le dernier retour, couverture complète non supposée.
+3. Régression courte du dash acquis : déplacement + visée + tir + dash avec munition spéciale, native/TPS. Pas de test Recovery demandé : le candidat est retiré.
+
+OFF complet des pistolets reste ouvert ; couches de pose identifiées mais aucun masquage partiel livré comme complet. HUD général après refus d'arène verrouillée intermittent, autres FX P2 reportés. Suite : OFF par main et HUD s'il réapparaît, puis recherche ground slam. [Preuves du filtre de chargement](V1_72_SELECTED_MOUNT_LOAD_DOF_RANGE_TEST.md).
+
+Archive prévue `DarksidersGenesis_V1.73_MOUNT_DOF_CLEANUP_TEST.zip`, quatre fichiers racine. Anciennes archives, main/archive, INI/raccourcis, PAK et sauvegardes préservés. Jeu fermé par l'utilisateur ; installation après contrôles avec sauvegarde, sans lancement par l'agent.
+
+---
+
+## V1.72 — CONSTRUITE / CONTRÔLÉE, nouveaux comportements EXPÉRIMENTAUX
+
+20 octobre 2026. Base cumulative V1.71, acquis validés préservés. [CI Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39468587155) : **44/44 suites, zéro avertissement MSVC ASI/DXGI**. Avis CMake/MinHook et Node des outils distincts. Source `2973184516b1b035d47e80f800b0833af6411d37`, archive `9dc0eef9afdb237fea1953fea2df7c9632fdbbee`. [ZIP cumulatif immuable vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/9dc0eef9afdb237fea1953fea2df7c9632fdbbee/downloads/DarksidersGenesis_V1.72_SELECTED_MOUNT_LOAD_DOF_RANGE_TEST.zip) : **829605 octets**, SHA256 `A2D87C852B5CBB836B57ECC5EECF3ABCC8FC33B4D59CA829D72BE2A7F78190D2`. HTTP 200/hash, CRC, AMD64 et exactement quatre fichiers racine contrôlés. **155 clés et 55 actions conservées ; 136 anciennes archives inchangées.** Main/archive et v1.43 préservés.
+
+Installation locale prête mais non effectuée : le jeu est encore ouvert. Demande de fermeture en attente ; aucun fichier du jeu remplacé par cette livraison à ce stade. INI, raccourcis, PAK et sauvegardes conservés. Aucun lancement par l'agent. Le README du ZIP décrit la préparation avant CI ; ce reçu complète son statut. **Nouveau résultat en jeu NON VALIDÉ.**
+
+Lot : maintien des deux choix de monture bonus au chargement et distance DOF native/TPS jusqu'à **5 000 m**, sans changer les valeurs par défaut. L'option de skins contrôle seulement leur disponibilité dans le menu : un bonus déjà équipé reste conservé même OFF, comme les armures. Choisir le modèle de base le conserve normalement aux chargements suivants, sans réimposition du bonus. Le filtre natif reste complet pour les autres skins et droits DLC. L'ancien diagnostic périodique V1.71 et son appel par image sont retirés ; un seul hook de chargement ciblé, pas d'empilement de correctifs de personnage.
+
+Preuves : sur la session V1.71, Despair existe dans le joueur, le SaveGame actif et le disque avant rechargement ; après, les deux armures restent et Despair manque au joueur/SaveGame, alors que le disque le contient encore. Filtre natif 6A2460 identifié : retrait des lignes marquées DLC absent. Réinsertion des seuls choix bonus retirés via SetSkin natif, dans cet appel. Classes, appel, signatures, types et listes bornés contrôlés ; pas d'écriture directe de sauvegarde ni de droits DLC. Les simulations vérifient notamment OFF conservant le choix mais pas sa disponibilité, modèle de base/non-bonus non forcé, autre choix natif prioritaire et absence de doublon. [Audit, limites et rollback](V1_72_SELECTED_MOUNT_LOAD_DOF_RANGE_TEST.md).
 
 Essais groupés :
 
-1. Choisir Despair et Rampage, laisser le jeu sauvegarder, recharger puis redémarrer avec Bonus mount skins coché. Vérifier sélection dans la page et monture réellement affichée. Décocher l'option puis recharger : bonus équipé conservé, disponibilité du menu native. Choisir ensuite le modèle de base et recharger : pas de retour bonus imposé.
-2. Rendu automatique : arène → hub/mission, chapitre 8, changements de personnage et pied/cheval/ultime. Retour V1.71 encourageant, couverture complète non supposée.
-3. Profils DOF Native/TPS : Disable puis Custom, valeurs différentes par vue, 20 / 1 250,5 / 5 000 m, quantité 0 / 0,6 / 2. Saisie, redémarrage, roues/pause, cinématiques et coop.
-4. Dash movement recovery V1.71 OFF/ON, Strife troisième/quatrième dash et War, visée/tir en déplacement, native/TPS. Toujours expérimental, OFF par défaut ; rejeter si glissement, aucun bénéfice ou régression de tir/visée.
+1. Choisir Despair et Rampage, laisser la sauvegarde normale, recharger puis redémarrer ; vérifier sélection et modèle. Refaire case décochée : bonus équipé conservé, disponibilité du menu native. Choisir ensuite le cheval de base et recharger : il doit rester de base.
+2. DOF : Native/TPS, saisie 20 / 1 250,5 / 5 000 m et quantité 0 / 0,6 / 2 ; redémarrage, arène → mission/hub, chapitre 8, angles, pied/cheval/ultime et changements de personnage. Dernier retour V1.71 : flou « ça a l'air ok », limité à cet essai.
+3. Dash movement recovery V1.71 OFF/ON, Strife troisième/quatrième dash et War, déplacement/visée/tir, native/TPS ; toujours OFF par défaut, bénéfice sans nouveau verdict. Rejeter en cas de glissement ou régression.
 
-OFF complet des pistolets reste ouvert : modèles validés conservés ; couches Shoot_Left/Right et couche partagée Spine1 relevées en lecture seule, pas de modification de pose ou de notifies. HUD général après refus d'arène verrouillée intermittent ; autres effets P2 reportés sur demande.
-
-[Audit et preuves](V1_72_SELECTED_MOUNT_LOAD_DOF_RANGE_TEST.md). Installation : fermer le jeu, sauvegarder les anciens fichiers, conserver l'INI personnel et les raccourcis. Rollback vers V1.71 conservée ; main/archive et anciennes archives intacts. Aucun lancement du jeu par l'agent.
+OFF complet des pistolets et HUD général intermittent après refus d'arène verrouillée restent ouverts ; autres effets P2 reportés. La première compilation V1.72 a été annulée pendant la construction après la précision utilisateur sur OFF ; elle n'a publié aucune archive. La CI ci-dessus inclut cette précision. Les états historiques ci-dessous ne remplacent pas ce reçu.
 
 ---
 

@@ -84,7 +84,7 @@ enum class Action : int {
     InfiniteDoubleJump,
     UltimateDecreaseRate,
     InfiniteUltimateDuration,
-    DashMovementRecovery,
+    DashMovementRecovery, // retired compatibility ID54; never renumber existing bindings
     Count
 };
 
@@ -144,7 +144,7 @@ kActionLabels = {
     "Cycle infinite double jump",
     "Toggle Ultimate decrease rate",
     "Toggle Infinite Ultimate duration",
-    "Toggle dash movement recovery"
+    "Dash movement recovery (retired)"
 };
 
 inline constexpr std::array<const wchar_t*, static_cast<std::size_t>(Action::Count)>
@@ -277,7 +277,6 @@ public:
     int sheathKeyboardKey = 0;
     int sheathPadButtonA = 0;
     int sheathPadButtonB = 0;
-    bool dashMovementRecoveryEnabled = false;
     bool movementSpeedEnabled = true;
     bool skipLogosEnabled = true;
     bool skipIntroEnabled = true;

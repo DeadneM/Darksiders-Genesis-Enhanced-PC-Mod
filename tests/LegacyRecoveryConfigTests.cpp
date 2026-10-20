@@ -17,12 +17,18 @@ int main(){
         WritePrivateProfileStringW(L"Values",L"DodgeEarlyUnlockMs",L"77",path);
         WritePrivateProfileStringW(L"Controls",L"TPSChargedFirePadMask",L"123",path);
         WritePrivateProfileStringW(L"Hotkeys",L"F8",L"ActionRecovery",path);
+        WritePrivateProfileStringW(L"Features",L"DashMovementRecovery",L"1",path);
+        WritePrivateProfileStringW(L"Hotkeys",L"F7",L"DashMovementRecovery",path);
         Check(store.Load(),"legacy recovery keys do not prevent loading");
         Check(store.hotkeys[7]==dg::config::Action::ActionRecovery&&int(dg::config::Action::ActionRecovery)==3,"old token/ID retained without renumbering active actions");
+        Check(store.hotkeys[6]==dg::config::Action::DashMovementRecovery&&int(dg::config::Action::DashMovementRecovery)==54,
+            "rejected V1.71 token and ID54 remain inert without shifting any personal binding");
         Check(store.SaveNow(),"save ignores retired settings");
         Check(GetPrivateProfileIntW(L"Features",L"ActionRecovery",99,path)==0&&
             GetPrivateProfileIntW(L"Values",L"ActionRecoveryDelayMs",99,path)==75,
             "retired personal keys remain byte-value compatible and inactive");
+        Check(GetPrivateProfileIntW(L"Features",L"DashMovementRecovery",99,path)==1&&
+            store.hotkeys[6]==dg::config::Action::DashMovementRecovery,"retired candidate key and binding preserved without an active runtime setting");
         wchar_t value[64]{};
         GetPrivateProfileStringW(L"Values",L"ActionRecoveryMultiplier",L"",value,64,path);
         Check(wcscmp(value,L"9.5")==0,"retired personal value is preserved without an active compiled setting");

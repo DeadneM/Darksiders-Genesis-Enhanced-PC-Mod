@@ -2097,15 +2097,11 @@ void TriggerAction(Action action, int functionKey,unsigned playerTargets=3) {
         return;
     }
 
-    if (action == Action::ActionRecovery) {
+    if (action == Action::ActionRecovery || action == Action::DashMovementRecovery) {
         g_lastAction="Action Recovery retired; this binding can be reassigned in Hotkeys";
         return; // Preserve the legacy token/slot without changing gameplay or INI.
     }
 
-    if(action==Action::DashMovementRecovery){
-        g_config.dashMovementRecoveryEnabled=!g_config.dashMovementRecoveryEnabled;g_config.Save();
-        g_lastAction=std::string("Dash movement recovery ")+(g_config.dashMovementRecoveryEnabled?"ON (experimental)":"OFF");return;
-    }
     if(action==Action::InfiniteDoubleJump){
         g_config.infiniteDoubleJumpMode=(g_config.infiniteDoubleJumpMode+1)%3;g_config.Save();
         const char* modes[]{"Off","After gliding","Always on"};

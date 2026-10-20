@@ -19,8 +19,6 @@ void* tree[1]{cls+0x30};
 uintptr_t table[0x300/8]{};
 uintptr_t actionTable[4]{};uint64_t nativeActions[2]{};
 dg::local_players::Context owners[2]{};
-dg::local_players::Pose poses[2]{};
-unsigned moveRequests=0;void* moveAbility=nullptr;unsigned char moveCause=255;bool moveAllowed=false;
 bool gameThread=true,paused=false,cinema=false,endDuringTick=false;
 unsigned nativeCalls=0;float actualDt=0;
 unsigned aimStarts=0;void* aimOwner=nullptr;
@@ -30,7 +28,6 @@ template<class T> void Put(void* p,size_t o,T value){std::memcpy(static_cast<uns
 template<class T> T Get(void* p,size_t o){T value{};std::memcpy(&value,static_cast<unsigned char*>(p)+o,sizeof(value));return value;}
 void Check(bool value,const char* message){if(!value)throw std::runtime_error(message);}
 void StartAim(void* weapon){++aimStarts;aimOwner=Get<void*>(weapon,0xE8);}
-void AllowMove(void* ability,unsigned char cause,bool allowed){++moveRequests;moveAbility=ability;moveCause=cause;moveAllowed=allowed;}
 unsigned char ActionState(void* p,unsigned char action){
     const auto actor=static_cast<unsigned char*>(p)-0x8D0;
     return (nativeActions[actor==players[1].actor?1:0]&(uint64_t(1)<<action))?1:0;
@@ -47,10 +44,6 @@ void Fresh(){
     gameThread=true;paused=cinema=endDuringTick=false;
     dg::dash_combat::g_ready=true;dg::dash_combat::g_tick=NativeTick;
     dg::dash_combat::g_resume[0]={};dg::dash_combat::g_resume[1]={};
-    dg::dash_combat::g_recovery[0]={};dg::dash_combat::g_recovery[1]={};
-    dg::dash_combat::g_recoveryWorld[0]=dg::dash_combat::g_recoveryWorld[1]=0;
-    dg::dash_combat::g_recoveryReady=false;dg::runtime::Get().dashMovementRecoveryEnabled=false;
-    moveRequests=0;moveAbility=nullptr;moveCause=255;moveAllowed=false;poses[0]={};poses[1]={};
     dg::dash_combat::g_combatReady=false;aimStarts=0;aimOwner=nullptr;
     nativeActions[0]=nativeActions[1]=0;actionTable[3]=reinterpret_cast<uintptr_t>(&ActionState);
     Put(cls,0x30,tree+0);Put(cls,0x38,0);
@@ -213,39 +206,6 @@ void Run(){
     dg::dash_combat::HookSpawnNotify(notify,mesh,sequence);Check(nativeCalls==0,"shared predicate preserves forced-standard projectile filtering");
     label(specialClass,4,"MayhemStandardShot_Blueprint_C");dg::dash_combat::HookSpawnNotify(notify,mesh,sequence);
     Check(nativeCalls==1,"standard projectile notify still forwards exactly once");
-    // Exercise the actual optional wrapper, including P1 Strife/P2 War and
-    // both camera modes. The native permission call is a recorder; it cannot
-    // hide a forced finish, actor write or repeated request in this fixture.
-    auto enableRecovery=[](){
-        dg::dash_combat::g_recoveryReady=true;dg::dash_combat::g_combatReady=true;
-        dg::dash_combat::g_allowMove=AllowMove;dg::dash_combat::g_actionQuery=ActionState;
-        dg::runtime::Get().dashMovementRecoveryEnabled=true;
-        table[0x2A0/8]=reinterpret_cast<uintptr_t>(&AllowMove);
-        table[0x280/8]=dg::dash_combat::g_base+0x5B2CE0;
-        nativeActions[0]=nativeActions[1]=uint64_t(1)<<29;
-    };
-    for(bool tps:{false,true})for(int player=0;player<2;++player){
-        Fresh();enableRecovery();dg::runtime::Get().thirdPersonEnabled=tps;
-        const auto beforeActor=std::to_array(players[player].actor);
-        const auto beforeMovement=std::to_array(players[player].movement);
-        for(unsigned i=0;i<12;++i)Tick(player,100+i*16);
-        Check(moveRequests==1&&moveAbility==players[player].ability&&moveCause==1&&moveAllowed,
-            "native/TPS and either local owner request native MOVE, exactly once after observed movement end");
-        Check(nativeCalls==12&&Get<unsigned char>(players[player].ability,0xD8)==2&&Get<float>(players[player].ability,0x228)==.1f,
-            "full native tick, active lifecycle and duration remain intact; no forced finish hidden in the wrapper");
-        Check(std::memcmp(players[player].actor,beforeActor.data(),beforeActor.size())==0&&
-              std::memcmp(players[player].movement,beforeMovement.data(),beforeMovement.size())==0,
-            "new candidate never writes actor movement, facing, aim, input, velocity or movement flags");
-    }
-    Fresh();enableRecovery();
-    for(unsigned i=0;i<12;++i){poses[0].x=float(i);Tick(0,100+i*16);}
-    Check(!moveRequests,"continued root displacement prevents native interruption even with zero reported velocity");
-    Fresh();enableRecovery();paused=true;
-    for(unsigned i=0;i<12;++i)Tick(0,100+i*16);
-    Check(!moveRequests,"paused native world cannot receive a recovery request");
-    Fresh();enableRecovery();table[0x280/8]=0;
-    for(unsigned i=0;i<12;++i)Tick(0,100+i*16);
-    Check(!moveRequests,"unknown native interruption implementation fails open");
 }
 }
 namespace dg::native_tps {
@@ -255,6 +215,5 @@ bool CinematicActive(unsigned){return cinema;}
 }
 namespace dg::local_players {
 bool ResolveActor(void* a,Context& result){for(int i=0;i<2;++i)if(a==players[i].actor){result=owners[i];return true;}return false;}
-bool ReadPose(const Context& owner,Pose& result){for(int i=0;i<2;++i)if(owner.character==reinterpret_cast<uintptr_t>(players[i].actor)){result=poses[i];return true;}return false;}
 }
 int main(){try{Run();std::cout<<"Native dash observation, held-aim recovery and presentation boundaries passed\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

@@ -336,9 +336,6 @@ void Draw(Context& c) {
                 t.movementHookReady
             );
 
-            DrawToggleFeature(config,"Dash movement recovery (experimental)","DashMovementRecovery",&config.dashMovementRecoveryEnabled,
-                "From the next dash: once its observed deceleration has ended and the character is stopped, allow the native MOVE interruption only while movement is held. Both views; no button remapping, timer or forced finish. Chests and aerial landing attacks are excluded. OFF stops future requests; a request already accepted by the game finishes natively. Assign a toggle in Hotkeys.",dg::dash_combat::RecoveryReady());
-
             DrawTunableFeature(
                 config,
                 "Jump Height",
@@ -1301,7 +1298,7 @@ void Draw(Context& c) {
                                  static_cast<int>(
                                      config::Action::Count);
                              ++action) {
-                            if(action==static_cast<int>(config::Action::ActionRecovery))continue;
+                            if(action==static_cast<int>(config::Action::ActionRecovery)||action==static_cast<int>(config::Action::DashMovementRecovery))continue;
                             const bool selected =
                                 current == action;
 

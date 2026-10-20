@@ -7,5 +7,4 @@ void Shutdown();
 // ability remains to call a look getter. Independent of the camera mode.
 void OnLivePlayer(void* actor);
 void Report();
-bool RecoveryReady();
 }
