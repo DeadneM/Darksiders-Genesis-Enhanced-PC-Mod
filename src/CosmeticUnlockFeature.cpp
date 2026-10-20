@@ -73,7 +73,7 @@ void FilterSelection(void* save,void* instance,uintptr_t caller){
     // edits this private SaveGame array. Keep the same calling thread/allocator;
     // no cached UObject, actor service, load request or disk write is involved.
     const bool enabled=g_selectionReady.load(std::memory_order_acquire)&&!g_filtering&&
-        runtime::Get().bonusMountSkinsEnabled.load()&&caller==SkinFilterCaller&&
+        caller==SkinFilterCaller&&
         InstanceNamed(reinterpret_cast<uintptr_t>(save),"MayhemSaveGame")&&
         InstanceNamed(reinterpret_cast<uintptr_t>(instance),"MayhemGameInstance");
     if(!enabled){g_filter(save,instance);return;}
@@ -93,7 +93,7 @@ void FilterSelection(void* save,void* instance,uintptr_t caller){
     }
     g_filtering=true;
     g_filter(save,instance); // All native DLC filtering still runs exactly once.
-    if(g_setSkin&&runtime::Get().bonusMountSkinsEnabled.load())for(unsigned i=0;i<count;++i){
+    if(g_setSkin)for(unsigned i=0;i<count;++i){
         const auto after=ReadSkinList(reader,address);const auto& entry=selected[i];
         if(!after.valid||after.count>=32||ContainsType(after,entry.type))continue;
         // Restore only a choice actually removed by this invocation, through
@@ -129,7 +129,7 @@ void Initialize(LogFn log,bool exactExecutable){
             else {MH_RemoveHook(filter);g_filter=nullptr;g_setSkin=nullptr;}
         }
     }
-    if(log)log(g_selectionReady.load()?"Cosmetics V1.72 READY: preserve only selected Despair/Rampage during the verified native DLC load filter; option OFF stays native; EXPERIMENTAL":
+    if(log)log(g_selectionReady.load()?"Cosmetics V1.72 READY: preserve only selected Despair/Rampage during the verified native DLC load filter; menu availability toggle never unequips a saved choice; EXPERIMENTAL":
         "Cosmetics V1.72 selection retention unavailable; native load filter kept");
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}

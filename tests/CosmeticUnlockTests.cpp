@@ -125,7 +125,8 @@ void Run(){
     Check(filterCalls==1&&setSkinCalls==2&&selected().count==3&&ContainsType(selected(),2)&&ContainsType(selected(),8)&&ContainsType(selected(),6)&&!ContainsType(selected(),5),
         "both previous bonus choices survive; armor remains, foreign DLC filtering still runs once");
     reset();rt.bonusMountSkinsEnabled=false;FilterSelection(save,instance,SkinFilterCaller);
-    Check(filterCalls==1&&!setSkinCalls&&selected().count==1,"OFF uses exact native filtering");
+    Check(filterCalls==1&&setSkinCalls==2&&selected().count==3,"OFF hides bonus availability but retains both saved mount choices like armor");
+    owned=false;Check(!HookCheck(nullptr,&despair),"OFF keeps the equipped mount without advertising it as unlocked in the menu");owned=true;
     reset();FilterSelection(save,instance,0);
     Check(filterCalls==1&&!setSkinCalls,"unknown call site cannot retain skins");
     reset();records[1]={foreign,3,{}};records[3]={foreign,4,{}};FilterSelection(save,instance,SkinFilterCaller);
@@ -143,7 +144,7 @@ void Run(){
     reset();filterMode=3;FilterSelection(save,instance,SkinFilterCaller);
     Check(!setSkinCalls,"invalid post-filter container fails open");
     reset();filterMode=4;FilterSelection(save,instance,SkinFilterCaller);
-    Check(!setSkinCalls,"option disabled during native filtering stops retention");
+    Check(setSkinCalls==2&&selected().count==3,"availability disabled during filtering cannot remove the equipped appearance");
     reset();g_filtering=true;FilterSelection(save,instance,SkinFilterCaller);g_filtering=false;
     Check(filterCalls==1&&!setSkinCalls,"reentrant filtering stays native");
     Check(ReadSkinList(reader,reinterpret_cast<uintptr_t>(save)+0x240).count==1,"last mock filter result remains native");
