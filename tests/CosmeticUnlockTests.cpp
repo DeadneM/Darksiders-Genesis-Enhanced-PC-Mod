@@ -68,6 +68,19 @@ void Run(){
     owned=true;rt.bonusMountSkinsEnabled=false;rt.progressionSkinsEnabled=false;
     Check(HookCheck(nullptr,nullptr),"native owned or PAK unlocked availability never revoked");
     Check(names.count<=32,"fixture remained bounded");
+    struct SkinEntry {uintptr_t table;int index,number;unsigned char type,padding[7];};
+    struct SkinArray {uintptr_t data;int count,capacity;};
+    SkinEntry records[2]{{1,2,0,2,{}},{3,4,0,3,{}}};SkinArray nativeList{reinterpret_cast<uintptr_t>(records),2,2};
+    const auto originalList=nativeList;const auto originalFirst=records[0];
+    dg::native_objects::MemoryReader reader;
+    auto classify=[](uintptr_t table,int,int){return table==1?1u:table==3?2u:0u;};
+    auto summary=SummarizeSelection(reader,reinterpret_cast<uintptr_t>(&nativeList),classify);
+    Check(summary.valid&&summary.count==2&&summary.bonusMask==3,"selection observer decodes both mount rows from native 24-byte records");
+    Check(!std::memcmp(&nativeList,&originalList,sizeof(nativeList))&&!std::memcmp(&records[0],&originalFirst,sizeof(originalFirst)),"observation cannot change a selection, row or container");
+    nativeList.capacity=33;Check(!SummarizeSelection(reader,reinterpret_cast<uintptr_t>(&nativeList),classify).valid,"unbounded native arrays are never inspected");
+    nativeList={0,2,2};Check(!SummarizeSelection(reader,reinterpret_cast<uintptr_t>(&nativeList),classify).valid,"missing arrays fail open");
+    nativeList={0,0,0};summary=SummarizeSelection(reader,reinterpret_cast<uintptr_t>(&nativeList),classify);
+    Check(summary.valid&&summary.count==0&&summary.bonusMask==0,"empty native selection remains a valid diagnostic distinction");
 
     wchar_t directory[MAX_PATH]{},path[MAX_PATH]{};
     Check(GetTempPathW(MAX_PATH,directory)&&GetTempFileNameW(directory,L"DGC",0,path),"temporary INI");
@@ -83,4 +96,5 @@ void Run(){
     DeleteFileW(path);
 }
 }
+namespace dg::native_tps {bool OnGameThread(){return false;}}
 int main(){try{Run();std::cout<<"Cosmetic row whitelist, native fallback and configuration passed\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

@@ -2,8 +2,12 @@
 #include "CosmeticNativeBoundary.h"
 #include "NativeObjectName.h"
 #include "RuntimeSettings.h"
+#include "CosmeticSelectionTrace.h"
+#include "LocalPlayerOwnership.h"
+#include "NativeTpsFeature.h"
 #include <MinHook.h>
 #include <atomic>
+#include <cstdio>
 
 namespace dg::cosmetics {
 namespace {
@@ -14,6 +18,8 @@ static_assert(sizeof(RowHandle)==16);
 using CheckFn=bool(*)(void*,const RowHandle*);
 CheckFn g_original=nullptr;uintptr_t g_base=0;LogFn g_log=nullptr;
 std::atomic_bool g_ready{false};std::atomic_uint g_overrides{0};
+struct TraceState {uintptr_t local=0,world=0,state=0,getter=0;ULONGLONG tick=0;SelectionSummary own{},shared{};};
+TraceState g_trace[2]{};unsigned g_traceLogs=0;
 enum class Group {Unknown,BonusMount,Progression};
 
 Group Classify(const RowHandle* handle){
@@ -59,5 +65,29 @@ void Initialize(LogFn log,bool exactExecutable){
     if(log)log("Cosmetics V1.68 READY: verified IsSkinUnlocked boundary; IsSkinEquipped untouched; two bonus mounts / six progression appearances; no grants or ownership writes; EXPERIMENTAL");
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}
+void ObserveSelection(const local_players::Context& owner){
+    if(!Ready()||!native_tps::OnGameThread()||owner.index<0||owner.index>1||!owner.playerState||!g_log||g_traceLogs>=24)return;
+    auto& saved=g_trace[owner.index];
+    if(!runtime::Get().bonusMountSkinsEnabled.load()){saved={};return;}
+    const auto now=GetTickCount64();if(saved.tick&&now>=saved.tick&&now-saved.tick<150)return;
+    native_objects::MemoryReader reader;uintptr_t reciprocal=0,getter=0;
+    if(!reader.Read(owner.controller,0x318,reciprocal)||reciprocal!=owner.playerState||
+       !reader.Read(owner.playerState,0x650,getter))return;
+    auto bonus=[&](uintptr_t table,int index,int number){
+        RowHandle handle{table,index,number};
+        if(Classify(&handle)!=Group::BonusMount)return 0u;
+        return native_objects::NameValueIs(g_base,index,number,"MayhemSkin_Despair")?1u:2u;
+    };
+    const auto own=SummarizeSelection(reader,owner.playerState+0x640,bonus);
+    const auto shared=SummarizeSelection(reader,getter,bonus);
+    const bool changed=saved.local!=owner.localPlayer||saved.world!=owner.world||saved.state!=owner.playerState||
+        saved.getter!=getter||!(saved.own==own)||!(saved.shared==shared);
+    saved={owner.localPlayer,owner.world,owner.playerState,getter,now,own,shared};
+    if(!changed)return;
+    ++g_traceLogs;char line[270]{};sprintf_s(line,
+        "Cosmetics V1.71 SELECTION_READ_ONLY player=%d state=%p getter=%p alias=%d ownValid=%d ownCount=%d ownBonus=%u sharedValid=%d sharedCount=%d sharedBonus=%u mask=Despair1/Rampage2 noSaveWrites=1",
+        owner.index+1,reinterpret_cast<void*>(owner.playerState),reinterpret_cast<void*>(getter),
+        getter!=owner.playerState+0x640,own.valid,own.count,own.bonusMask,shared.valid,shared.count,shared.bonusMask);g_log(line);
+}
 void Shutdown(){g_ready.store(false,std::memory_order_release);}
 }

@@ -1451,6 +1451,7 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     dg::health::OnLivePlayer(character,generation);
     dg::sheathing::OnLivePlayer(owner,generation);
     dg::mounted_holsters::OnLivePlayer(owner);
+    dg::cosmetics::ObserveSelection(owner);
     dg::leviathan_visual::OnLivePlayer(owner);
     dg::air_jump::OnLivePlayer(owner,generation);
 }
@@ -2102,6 +2103,10 @@ void TriggerAction(Action action, int functionKey,unsigned playerTargets=3) {
         return; // Preserve the legacy token/slot without changing gameplay or INI.
     }
 
+    if(action==Action::DashMovementRecovery){
+        g_config.dashMovementRecoveryEnabled=!g_config.dashMovementRecoveryEnabled;g_config.Save();
+        g_lastAction=std::string("Dash movement recovery ")+(g_config.dashMovementRecoveryEnabled?"ON (experimental)":"OFF");return;
+    }
     if(action==Action::InfiniteDoubleJump){
         g_config.infiniteDoubleJumpMode=(g_config.infiniteDoubleJumpMode+1)%3;g_config.Save();
         const char* modes[]{"Off","After gliding","Always on"};

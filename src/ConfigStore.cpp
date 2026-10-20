@@ -331,6 +331,7 @@ void Store::ResetDefaults(bool persist) {
     sheathStrifeMeleeNeverEnabled=false;sheathStrifeMeleeDelaySeconds=0.0f;
     sheathWarNeverEnabled=true;sheathWarDelaySeconds=10.0f;
     sheathKeyboardKey=0;sheathPadButtonA=0;sheathPadButtonB=0;
+    dashMovementRecoveryEnabled = false;
     movementSpeedEnabled = true;
     skipLogosEnabled = true;
     skipIntroEnabled = true;
@@ -569,6 +570,7 @@ bool Store::Load() {
     weaponSheathingEnabled=ReadBool(L"Features",L"WeaponSheathing",false,path_);
     sheathNeverEnabled=ReadBool(L"Features",L"NeverAutoSheathe",true,path_);
     sheathDelaySeconds=std::clamp(ReadFloat(L"Values",L"SheathDelaySeconds",10.0f,path_),0.0f,300.0f);
+    dashMovementRecoveryEnabled=ReadBool(L"Features",L"DashMovementRecovery",false,path_);
     mountedHolstersEnabled=ReadBool(L"Features",L"MountedPistolHolsters",false,path_);
     pistolRightModel=GetPrivateProfileIntW(L"Values",L"PistolRightModel",0,path_.c_str());
     pistolLeftModel=GetPrivateProfileIntW(L"Values",L"PistolLeftModel",0,path_.c_str());
@@ -930,6 +932,7 @@ void Store::PublishRuntime() const {
     runtime.sheathWarNeverEnabled=sheathWarNeverEnabled;
     runtime.sheathWarDelaySeconds=sheathWarDelaySeconds;
     runtime.fovEnabled = fovEnabled;
+    runtime.dashMovementRecoveryEnabled = dashMovementRecoveryEnabled;
     runtime.movementSpeedEnabled = movementSpeedEnabled;
     runtime.skipLogosEnabled = skipLogosEnabled;
     runtime.skipIntroEnabled = skipIntroEnabled;
@@ -1087,6 +1090,7 @@ bool Store::SaveNow() {
     swprintf_s(sheathPadText,L"%d",sheathPadButtonB);
     WriteProfileString(L"Controls",L"SheathePadButtonB",sheathPadText,path_.c_str());
     WriteFloat(L"Values",L"SheathDelaySeconds",sheathDelaySeconds,path_);
+    WriteBool(L"Features",L"DashMovementRecovery",dashMovementRecoveryEnabled,path_);
     WriteBool(L"Features",L"MountedPistolHolsters",mountedHolstersEnabled,path_);
     WriteInt(L"Values",L"PistolRightModel",pistolRightModel,path_);
     WriteInt(L"Values",L"PistolLeftModel",pistolLeftModel,path_);

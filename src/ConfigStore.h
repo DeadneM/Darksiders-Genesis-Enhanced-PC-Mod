@@ -84,6 +84,7 @@ enum class Action : int {
     InfiniteDoubleJump,
     UltimateDecreaseRate,
     InfiniteUltimateDuration,
+    DashMovementRecovery,
     Count
 };
 
@@ -142,7 +143,8 @@ kActionLabels = {
     "Toggle grapple range",
     "Cycle infinite double jump",
     "Toggle Ultimate decrease rate",
-    "Toggle Infinite Ultimate duration"
+    "Toggle Infinite Ultimate duration",
+    "Toggle dash movement recovery"
 };
 
 inline constexpr std::array<const wchar_t*, static_cast<std::size_t>(Action::Count)>
@@ -200,7 +202,8 @@ kActionTokens = {
     L"GrappleRange",
     L"InfiniteDoubleJump",
     L"UltimateDecreaseRate",
-    L"InfiniteUltimateDuration"
+    L"InfiniteUltimateDuration",
+    L"DashMovementRecovery"
 };
 
 // Instant actions share the validated one-shot manual refill queue.
@@ -274,6 +277,7 @@ public:
     int sheathKeyboardKey = 0;
     int sheathPadButtonA = 0;
     int sheathPadButtonB = 0;
+    bool dashMovementRecoveryEnabled = false;
     bool movementSpeedEnabled = true;
     bool skipLogosEnabled = true;
     bool skipIntroEnabled = true;

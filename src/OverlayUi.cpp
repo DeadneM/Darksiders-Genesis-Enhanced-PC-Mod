@@ -21,6 +21,7 @@
 #include "GlideFeature.h"
 #include "GrappleRangeFeature.h"
 #include "AirJumpFeature.h"
+#include "DashCombatFeature.h"
 
 #include "HorseFeature.h"
 #include "CameraTraceFeature.h"
@@ -333,7 +334,8 @@ void Draw(Context& c) {
                 t.movementHookReady
             );
 
-            ImGui::TextWrapped("Action Recovery has been retired pending a native action-lock redesign. Native dash timing is restored; the validated aim-resume repair remains active.");
+            DrawToggleFeature(config,"Dash movement recovery (experimental)","DashMovementRecovery",&config.dashMovementRecoveryEnabled,
+                "From the next dash: once its observed deceleration has ended and the character is stopped, allow the native MOVE interruption only while movement is held. Both views; no button remapping, timer or forced finish. Chests and aerial landing attacks are excluded. OFF stops future requests; a request already accepted by the game finishes natively. Assign a toggle in Hotkeys.",dg::dash_combat::RecoveryReady());
 
             DrawTunableFeature(
                 config,

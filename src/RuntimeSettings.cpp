@@ -30,6 +30,7 @@ void Publish(const Snapshot& s) {
     g_state.sheathWarNeverEnabled.store(s.sheathWarNeverEnabled);
     g_state.sheathWarDelaySeconds.store(s.sheathWarDelaySeconds);
     g_state.fovEnabled.store(s.fovEnabled, std::memory_order_relaxed);
+    g_state.dashMovementRecoveryEnabled.store(s.dashMovementRecoveryEnabled);
     g_state.movementSpeedEnabled.store(s.movementSpeedEnabled, std::memory_order_relaxed);
     g_state.skipLogosEnabled.store(s.skipLogosEnabled, std::memory_order_relaxed);
     g_state.skipIntroEnabled.store(s.skipIntroEnabled, std::memory_order_relaxed);

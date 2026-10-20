@@ -26,6 +26,7 @@ struct Snapshot {
     bool sheathWarNeverEnabled = true;
     float sheathWarDelaySeconds = 10.0f;
     bool fovEnabled = false;
+    bool dashMovementRecoveryEnabled = false;
     bool movementSpeedEnabled = true;
     bool skipLogosEnabled = true;
     bool skipIntroEnabled = true;
@@ -138,6 +139,7 @@ struct State {
     std::atomic_bool sheathWarNeverEnabled{true};
     std::atomic<float> sheathWarDelaySeconds{10.0f};
     std::atomic_bool fovEnabled{false};
+    std::atomic_bool dashMovementRecoveryEnabled{false};
     std::atomic_bool movementSpeedEnabled{true};
     std::atomic_bool skipLogosEnabled{true};
     std::atomic_bool skipIntroEnabled{true};
