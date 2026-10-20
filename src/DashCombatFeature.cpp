@@ -36,6 +36,7 @@ std::atomic_bool g_recoveryReady{false};
 std::atomic_uint g_recoveryRequests{0};
 MovePermissionFn g_allowMove=nullptr;
 MoveRecovery g_recovery[2]{};
+uintptr_t g_recoveryWorld[2]{};
 thread_local bool g_recovering=false;
 bool Readable(const void* p,size_t bytes){
     MEMORY_BASIC_INFORMATION m{};
@@ -225,12 +226,14 @@ void HookParticleNotify(void* notify,void* mesh,void* animation){
 }
 void RecoverMovement(void* ability,const local_players::Context& owner,float elapsed,ULONGLONG now){
     auto& state=g_recovery[owner.index];
+    if(g_recoveryWorld[owner.index]!=owner.world){state={};g_recoveryWorld[owner.index]=owner.world;}
     if(!runtime::Get().dashMovementRecoveryEnabled.load()||!RecoveryReady()||g_recovering||
        native_tps::IsWorldPaused(reinterpret_cast<void*>(owner.character))||native_tps::CinematicActive(unsigned(owner.index))){state={};return;}
-    void* table=nullptr;uintptr_t setter=0;void* ifaceTable=nullptr;uintptr_t query=0;
+    void* table=nullptr;uintptr_t setter=0,interrupt=0;void* ifaceTable=nullptr;uintptr_t query=0;
     void* actor=reinterpret_cast<void*>(owner.character);void* movement=nullptr;
     float remaining=0,duration=0,velocity[3]{};uint64_t interruptMask=0;
     if(!Read(ability,0,table)||!Read(table,0x2A0,setter)||setter!=reinterpret_cast<uintptr_t>(g_allowMove)||
+       !Read(table,0x280,interrupt)||interrupt!=g_base+0x5B2CE0||
        !Read(actor,0x8D0,ifaceTable)||!Read(ifaceTable,0x18,query)||query!=reinterpret_cast<uintptr_t>(g_actionQuery)||
        !Read(ability,0x224,remaining)||!Read(ability,0x228,duration)||!Read(ability,0xB0,interruptMask)||
        !Read(actor,0x388,movement)||!Read(movement,0x10C,velocity)){state={};return;}
@@ -372,5 +375,5 @@ void OnLivePlayer(void* actor){
     if(g_log&&(n<=8||n%1000==0)){char line[190]{};
         sprintf_s(line,"Dash combat V1.56 AIM_RESTART_REQUEST player=%d n=%u nativeHeldAim=1 oncePerDash=1 gameplay=EXPERIMENTAL",owner.index+1,n);g_log(line);}
 }
-void Report(){if(g_log){char line[240]{};sprintf_s(line,"Dash combat totals aimRestartRequests=%u forcedStandardSkipped=%u soundSkipped=%u effectSkipped=%u; firing-during-dash issue remains open",g_resumed.load(),g_suppressed.load(),g_soundSkipped.load(),g_particleSkipped.load());g_log(line);}}
+void Report(){if(g_log){char line[240]{};sprintf_s(line,"Dash combat totals aimRestartRequests=%u forcedStandardSkipped=%u soundSkipped=%u effectSkipped=%u movePermissionRequests=%u; request counts are not gameplay validation",g_resumed.load(),g_suppressed.load(),g_soundSkipped.load(),g_particleSkipped.load(),g_recoveryRequests.load());g_log(line);}}
 }
