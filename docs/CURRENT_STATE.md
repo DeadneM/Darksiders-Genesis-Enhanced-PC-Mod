@@ -1,3 +1,11 @@
+## Retour utilisateur V1.73 — trois essais confirmés, 20 octobre 2026
+
+Réponse «1. marche /2. marche /3. marche /prêt» : conservation des montures au chargement, réglages DOF et contrôle visée/tir/dash **VALIDÉS dans les essais rapportés**, sans extrapolation à des cas non décrits. Le jeu est lancé par l'utilisateur. Capture HUD initiale en lecture seule : parcours complet de307380objets,9853objets UI retenus, zéro erreur, racine générale Visibility4/opacité1. Aucun correctif HUD ni résultat après refus encore annoncé ; reproduction demandée.
+
+[File restante remise à jour](ACTIVE_QUEUE.md) : OFF complet par pistolet, HUD général intermittent, puis ground slam. Autres icônes/FX P2 reportés ; Auto check update déjà codé, retour visuel encore attendu. Ancienne file archivée intégralement, aucun historique perdu. Aucun changement de binaire, INI, PAK ou sauvegarde.
+
+---
+
 ## Suite après V1.73 — audit OFF / HUD, 20 octobre 2026
 
 **AUDIT / OBSERVATION PRÉPARÉE**, aucun changement ASI ni nouveau build. Inspection privée de 18 assets / 121 exports : 14 montages utilisent Shoot_Right, y compris des montages qui font tirer les deux pistolets ; le cheval utilise Blend. Le slot ne désigne donc pas une main. Arrêt/filtrage d'un slot par main écarté ; conserver les événements de projectile et le correctif dash validé. Les effets spéciaux sur sockets communs et la pose partagée restent à résoudre.

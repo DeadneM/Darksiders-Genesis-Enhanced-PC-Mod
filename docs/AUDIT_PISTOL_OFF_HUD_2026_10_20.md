@@ -1,5 +1,7 @@
 # Suite après V1.73 — OFF des pistolets et HUD général
 
+Suite de session : l'utilisateur confirme les trois essais V1.73 et lance le jeu. État initial HUD enregistré en lecture seule : parcours complet, zéro erreur, racine Visibility4 / RenderOpacity1. La reproduction du refus d'arène est demandée ; comparaison après refus en attente. Les paragraphes ci-dessous décrivent l'audit initial, effectué avant ce lancement. [File actuelle](ACTIVE_QUEUE.md).
+
 20 octobre 2026. **AUDIT / PRÉPARATION D'OBSERVATION**, aucune nouvelle version construite. Base cumulative V1.73 installée, nouveaux comportements de chargement des montures et plage DOF encore sans retour de jeu. Les acquis utilisateur et le retrait du Recovery dash sont conservés. Branche debug seulement.
 
 ## OFF : le nom du slot ne désigne pas la main
