@@ -111,7 +111,7 @@ inline bool ApplyBlur(void* output,const camera_blur::Profile& profile,bool cine
     if(cinematic||!BlurReady()||!output)return false;
     if(profile.disabled)return DisableBlur(output,true);
     if(!profile.custom||!target||!std::isfinite(profile.distanceMeters)||
-       profile.distanceMeters<0||profile.distanceMeters>200||!std::isfinite(profile.amount)||
+       profile.distanceMeters<0||profile.distanceMeters>camera_blur::MaxDistanceMeters||!std::isfinite(profile.amount)||
        profile.amount<0||profile.amount>5)return false;
     auto* p=static_cast<unsigned char*>(output);
     if(p[0x40+0x23]>2||!Compensate(output,*target))return false;

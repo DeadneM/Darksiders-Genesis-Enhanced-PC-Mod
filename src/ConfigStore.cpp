@@ -631,11 +631,11 @@ bool Store::Load() {
     tpsLensFocusEnabled=ReadBool(L"Features",L"TPSLensFocus",true,path_);
     nativeBlur.disabled=ReadBool(L"Features",L"DisableNativeDOF",false,path_);
     nativeBlur.custom=ReadBool(L"Features",L"NativeCustomDOF",false,path_);
-    nativeBlur.distanceMeters=std::clamp(ReadFloat(L"Values",L"NativeDOFDistanceMeters",10.0f,path_),0.0f,200.0f);
+    nativeBlur.distanceMeters=std::clamp(ReadFloat(L"Values",L"NativeDOFDistanceMeters",10.0f,path_),0.0f,camera_blur::MaxDistanceMeters);
     nativeBlur.amount=std::clamp(ReadFloat(L"Values",L"NativeDOFAmount",0.6f,path_),0.0f,5.0f);
     tpsBlur.disabled=ReadBool(L"Features",L"DisableTPSDOF",false,path_);
     tpsBlur.custom=ReadBool(L"Features",L"TPSCustomDOF",false,path_);
-    tpsBlur.distanceMeters=std::clamp(ReadFloat(L"Values",L"TPSDOFDistanceMeters",10.0f,path_),0.0f,200.0f);
+    tpsBlur.distanceMeters=std::clamp(ReadFloat(L"Values",L"TPSDOFDistanceMeters",10.0f,path_),0.0f,camera_blur::MaxDistanceMeters);
     tpsBlur.amount=std::clamp(ReadFloat(L"Values",L"TPSDOFAmount",0.6f,path_),0.0f,5.0f);
     const bool oldOrbit=ReadBool(L"Features",L"CameraControllerOrbit",true,path_);
     tpsCameraStickMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(

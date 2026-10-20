@@ -1,3 +1,26 @@
+## V1.72 — montures sélectionnées au chargement et distance DOF étendue
+
+Base cumulative V1.71 ; acquis validés conservés. **PRÉPARÉ / EXPÉRIMENTAL**, construction Windows et contrôle du paquet à effectuer. Retour V1.71 : le flou semble bon dans l'essai utilisateur ; le skin cheval reste perdu au rechargement, l'armure reste. Aucun nouveau verdict sur Dash movement recovery.
+
+Objectifs : conserver Despair/Rampage déjà choisis lors du chargement avec Bonus mount skins coché, et permettre une distance nette personnalisée supérieure à 1 000 m dans les deux vues. Limite commune portée à **5 000 m** (curseur, saisie, INI et rendu), valeurs par défaut 10 m/0,6 % inchangées. Aucun nouveau réglage ni raccourci.
+
+Le filtre natif de chargement retirait les lignes marquées DLC avant leur copie au joueur. Le candidat laisse ce filtre fonctionner puis réinsère uniquement les deux choix bonus qu'il vient réellement de supprimer, avec le setter natif de skin. Pas de choix automatique, droit DLC, bonus de gameplay, modification de table ou écriture directe de fichier de sauvegarde. OFF utilise le filtre natif. Le diagnostic périodique de sélection V1.71 et son appel par image sont retirés : son rôle est terminé. **Nouveau résultat en jeu non validé.**
+
+Critère de réussite : un bonus choisi reste sélectionné et rendu après chargement puis redémarrage, avec l'option cochée ; les choix d'armure, autres règles DLC et sauvegardes restent natifs. Sans choix bonus, aucun bonus n'est ajouté. OFF rend les règles natives. La distance 1 250,5 m puis 5 000 m doit survivre à la sauvegarde/relecture et déplacer la limite nette sans déplacer la caméra ou le personnage.
+
+Essais groupés :
+
+1. Choisir Despair et Rampage, laisser le jeu sauvegarder, recharger puis redémarrer avec Bonus mount skins coché. Vérifier sélection dans la page et monture réellement affichée. Essayer aussi OFF puis une monture native ; pas de retour bonus imposé.
+2. Rendu automatique : arène → hub/mission, chapitre 8, changements de personnage et pied/cheval/ultime. Retour V1.71 encourageant, couverture complète non supposée.
+3. Profils DOF Native/TPS : Disable puis Custom, valeurs différentes par vue, 20 / 1 250,5 / 5 000 m, quantité 0 / 0,6 / 2. Saisie, redémarrage, roues/pause, cinématiques et coop.
+4. Dash movement recovery V1.71 OFF/ON, Strife troisième/quatrième dash et War, visée/tir en déplacement, native/TPS. Toujours expérimental, OFF par défaut ; rejeter si glissement, aucun bénéfice ou régression de tir/visée.
+
+OFF complet des pistolets reste ouvert : modèles validés conservés ; couches Shoot_Left/Right et couche partagée Spine1 relevées en lecture seule, pas de modification de pose ou de notifies. HUD général après refus d'arène verrouillée intermittent ; autres effets P2 reportés sur demande.
+
+[Audit et preuves](V1_72_SELECTED_MOUNT_LOAD_DOF_RANGE_TEST.md). Installation : fermer le jeu, sauvegarder les anciens fichiers, conserver l'INI personnel et les raccourcis. Rollback vers V1.71 conservée ; main/archive et anciennes archives intacts. Aucun lancement du jeu par l'agent.
+
+---
+
 ## Préparation V1.71 — lot cumulé, 20 octobre2026
 
 Demande utilisateur : poursuivre et regrouper les essais. Base V1.70 construite/installée, rendu encore expérimental ; acquis validés conservés. Nouveau candidat **Dash movement recovery** OFF par défaut : reprise par la cause MOVE native après décélération observée et arrêt, sans fin d’ability forcée. Observation des deux listes de skins chevaux, bornée et sans écritures. OFF complet pistolet : slots gauche/droite identifiés, couche de visée partagée ; pas encore livré. **CONSTRUIT / CONTRÔLÉ / INSTALLÉ**,44/44 suites ; aucune validation de jeu supplémentaire. [Preuves, critère, essais groupés](V1_71_NATIVE_DASH_MOVE_BATCH_TEST.md).

@@ -132,8 +132,14 @@ int main(int argc,char** argv){
     WritePrivateProfileStringW(L"Values",L"NativeDOFAmount",L"nan",path);
     WritePrivateProfileStringW(L"Values",L"TPSDOFAmount",L"9",path);
     dg::config::Store bounded;bounded.SetPath(path);check(bounded.Load(),"out-of-range blur profile loads safely");
-    check(bounded.nativeBlur.distanceMeters==0&&bounded.tpsBlur.distanceMeters==200&&bounded.nativeBlur.amount==0.6f&&bounded.tpsBlur.amount==5,
+    check(bounded.nativeBlur.distanceMeters==0&&bounded.tpsBlur.distanceMeters==dg::camera_blur::MaxDistanceMeters&&bounded.nativeBlur.amount==0.6f&&bounded.tpsBlur.amount==5,
         "distance and amount reject NaN and clamp each independent view to its documented bounds");
+    bounded.nativeBlur.distanceMeters=1250.5f;bounded.tpsBlur.distanceMeters=5000.0f;
+    check(bounded.SaveNow(),"long native and TPS distances save");
+    dg::config::Store longDistance;longDistance.SetPath(path);
+    check(longDistance.Load()&&longDistance.nativeBlur.distanceMeters==1250.5f&&longDistance.tpsBlur.distanceMeters==5000.0f&&
+        rt.nativeBlur.Get().distanceMeters==1250.5f&&rt.tpsBlur.Get().distanceMeters==5000.0f,
+        "distances beyond one kilometre survive save/reload and reach both runtime profiles");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,path);DeleteFileW(path);
     std::printf("User defaults: %zu keys checked, %u failures\n",keys,failed);return failed?1:0;
 }

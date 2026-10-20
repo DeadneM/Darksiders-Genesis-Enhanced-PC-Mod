@@ -160,7 +160,13 @@ void Run(){
     Check(region==120,"zero clear distance still protects the rear mesh bound");
     custom=authoredBlur;Check(dg::camera_focus::ApplyBlur(custom.data(),{true,true,10,3},false),"disable takes precedence without requiring a target");
     std::memcpy(&far,custom.data()+0x4B8,4);Check(far==0,"disable wins over a stored nonzero amount");
-    for(Profile bad: {Profile{false,true,-1,.6f},Profile{false,true,201,.6f},Profile{false,true,10,6},
+    for(float meters:{1000.0f,1250.5f,dg::camera_blur::MaxDistanceMeters}){
+        custom=authoredBlur;
+        Check(dg::camera_focus::ApplyBlur(custom.data(),{false,true,meters,.6f},false,&target,body),"long clear distances reach the output without the old 200 metre gate");
+        std::memcpy(&region,custom.data()+0x4A0,4);
+        Check(region==meters*100.0f&&Focus(custom)==400,"metres convert to the native region without moving the character focus");
+    }
+    for(Profile bad: {Profile{false,true,-1,.6f},Profile{false,true,dg::camera_blur::MaxDistanceMeters+1,.6f},Profile{false,true,10,6},
         Profile{false,true,10,std::numeric_limits<float>::quiet_NaN()}}){
         custom=authoredBlur;Check(!dg::camera_focus::ApplyBlur(custom.data(),bad,false,&target,body)&&custom==authoredBlur,"invalid custom values fail open without partial writes");
     }

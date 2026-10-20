@@ -1451,7 +1451,6 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     dg::health::OnLivePlayer(character,generation);
     dg::sheathing::OnLivePlayer(owner,generation);
     dg::mounted_holsters::OnLivePlayer(owner);
-    dg::cosmetics::ObserveSelection(owner);
     dg::leviathan_visual::OnLivePlayer(owner);
     dg::air_jump::OnLivePlayer(owner,generation);
 }

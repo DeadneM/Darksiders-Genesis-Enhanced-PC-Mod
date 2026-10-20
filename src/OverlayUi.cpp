@@ -266,7 +266,9 @@ void Draw(Context& c) {
             ImGui::EndDisabled();
             ImGui::TextWrapped("Choose either existing pistol independently for each hand, for both local players. Mounted holsters use the matching stowed model. Native restores that hand's previous model. Experimental: check grip alignment and firing effects.");
             DrawToggleFeature(config,"Bonus mount skins (experimental)","BonusMountSkins",&config.bonusMountSkinsEnabled,
-                "Makes Rampage (War) and Despair (Strife) available in the game's Skins page without the optional PAK. No automatic equip. OFF restores native availability; a PAK or an existing unlock can still keep them available.",cosmetics::Ready());
+                "Makes Rampage (War) and Despair (Strife) available in the game's Skins page without the optional PAK, and keeps your selected bonus mount when loading a save. No automatic equip. OFF restores native availability and load rules; a PAK or an existing unlock can still keep them available.",cosmetics::Ready());
+            if(config.bonusMountSkinsEnabled&&!cosmetics::SelectionRetentionReady())
+                ImGui::TextDisabled("Keeping mount selection on load is unavailable in this session.");
             DrawToggleFeature(config,"Progression skins (experimental)","ProgressionSkins",&config.progressionSkinsEnabled,
                 "Separately makes Abyssal, Silver and Gold appearances available for War and Strife in the game's Skins page. Cosmetic availability only: no quests, armor pieces, stats or achievements granted. OFF restores native availability; choose an owned skin before disabling. Native skin selection may remember your equipped appearance.",cosmetics::Ready());
 
@@ -907,7 +909,7 @@ void Draw(Context& c) {
                     ImGui::BeginDisabled(profile.disabled);
                     if(ImGui::Checkbox("Customize background blur",&profile.custom))config.Save();
                     if(profile.custom){
-                        if(DrawNumberRow("Clear distance behind character","Distance",&profile.distanceMeters,0,200,10,"%.1f m","%.2f"))config.Save();
+                        if(DrawNumberRow("Clear distance behind character","Distance",&profile.distanceMeters,0,camera_blur::MaxDistanceMeters,10,"%.1f m","%.2f"))config.Save();
                         if(DrawNumberRow("Blur amount","Amount",&profile.amount,0,5,0.6f,"%.2f %%","%.2f"))config.Save();
                         ImGui::TextWrapped("The whole character stays sharp. More distance pushes the background blur farther away. Amount is an absolute Gaussian blur size, not a multiplier; zero removes it. Custom mode replaces the level's DOF method for this view.");
                     }else ImGui::TextDisabled("Level effect%s",i==0?"":" with your TPS character-focus setting");

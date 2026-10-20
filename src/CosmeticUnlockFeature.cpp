@@ -2,24 +2,24 @@
 #include "CosmeticNativeBoundary.h"
 #include "NativeObjectName.h"
 #include "RuntimeSettings.h"
-#include "CosmeticSelectionTrace.h"
-#include "LocalPlayerOwnership.h"
-#include "NativeTpsFeature.h"
+#include "CosmeticSelectionList.h"
 #include <MinHook.h>
 #include <atomic>
 #include <cstdio>
+#include <intrin.h>
 
 namespace dg::cosmetics {
 namespace {
 // PlayerState execIsSkinUnlocked (7C4440) passes a borrowed row handle to
 // 574870(playerState,handle). IsSkinEquipped is deliberately never hooked.
-struct RowHandle {uintptr_t table=0;int index=-1,number=0;};
-static_assert(sizeof(RowHandle)==16);
 using CheckFn=bool(*)(void*,const RowHandle*);
 CheckFn g_original=nullptr;uintptr_t g_base=0;LogFn g_log=nullptr;
 std::atomic_bool g_ready{false};std::atomic_uint g_overrides{0};
-struct TraceState {uintptr_t local=0,world=0,state=0,getter=0;ULONGLONG tick=0;SelectionSummary own{},shared{};};
-TraceState g_trace[2]{};unsigned g_traceLogs=0;
+using FilterFn=void(*)(void*,void*);
+using SetSkinFn=void(*)(void*,const RowHandle*);
+FilterFn g_filter=nullptr;SetSkinFn g_setSkin=nullptr;
+std::atomic_bool g_selectionReady{false};std::atomic_uint g_kept{0};
+thread_local bool g_filtering=false;
 enum class Group {Unknown,BonusMount,Progression};
 
 Group Classify(const RowHandle* handle){
@@ -40,6 +40,11 @@ Group Classify(const RowHandle* handle){
        (row("StrifeSkin_Abyssal")||row("StrifeSkin_Silver")||row("StrifeSkin_Gold")))return Group::Progression;
     return Group::Unknown;
 }
+unsigned char BonusType(const RowHandle& row){
+    if(Classify(&row)!=Group::BonusMount)return 0;
+    // Native EMayhemSkinType: MAYHEM_BP=8 (Despair), RUIN_BP=6 (Rampage).
+    return native_objects::NameValueIs(g_base,row.index,row.number,"MayhemSkin_Despair")?8:6;
+}
 bool HookCheck(void* playerState,const RowHandle* handle){
     if(!g_original)return false;
     const bool native=g_original(playerState,handle);
@@ -53,6 +58,59 @@ bool HookCheck(void* playerState,const RowHandle* handle){
         g_log("Cosmetics V1.68: exact skin unlock overridden; native selection only, no save flags, rewards, stats or DLC ownership written; EXPERIMENTAL");
     return allow;
 }
+template<size_t N> bool InstanceNamed(uintptr_t object,const char (&expected)[N]){
+    native_objects::MemoryReader reader;uintptr_t cls=0;
+    if(!reader.Read(object,0x10,cls))return false;
+    for(unsigned i=0;cls&&i<12;++i){
+        if(native_objects::NameIs(g_base,cls,expected))return true;
+        if(!reader.Read(cls,0x40,cls))return false;
+    }
+    return false;
+}
+void FilterSelection(void* save,void* instance,uintptr_t caller){
+    if(!g_filter)return;
+    // This synchronous native load boundary already resolves these rows and
+    // edits this private SaveGame array. Keep the same calling thread/allocator;
+    // no cached UObject, actor service, load request or disk write is involved.
+    const bool enabled=g_selectionReady.load(std::memory_order_acquire)&&!g_filtering&&
+        runtime::Get().bonusMountSkinsEnabled.load()&&caller==SkinFilterCaller&&
+        InstanceNamed(reinterpret_cast<uintptr_t>(save),"MayhemSaveGame")&&
+        InstanceNamed(reinterpret_cast<uintptr_t>(instance),"MayhemGameInstance");
+    if(!enabled){g_filter(save,instance);return;}
+    native_objects::MemoryReader reader;
+    const auto address=reinterpret_cast<uintptr_t>(save)+0x240;
+    const auto before=ReadSkinList(reader,address);
+    std::array<SkinEntry,2> selected{};unsigned count=0;
+    if(before.valid)for(int i=0;i<before.count;++i){
+        const auto& entry=before.entries[size_t(i)];
+        const auto type=BonusType(entry.row);
+        if(!type||entry.type!=type)continue;
+        unsigned sameType=0;
+        for(int j=0;j<before.count;++j)if(before.entries[size_t(j)].type==entry.type)++sameType;
+        // Ambiguous/corrupt type lists must never invent a winning choice.
+        if(sameType!=1||count==selected.size()){count=0;break;}
+        selected[count++]=entry;
+    }
+    g_filtering=true;
+    g_filter(save,instance); // All native DLC filtering still runs exactly once.
+    if(g_setSkin&&runtime::Get().bonusMountSkinsEnabled.load())for(unsigned i=0;i<count;++i){
+        const auto after=ReadSkinList(reader,address);const auto& entry=selected[i];
+        if(!after.valid||after.count>=32||ContainsType(after,entry.type))continue;
+        // Restore only a choice actually removed by this invocation, through
+        // SetSkin's ordinary row/type resolution and native array allocation.
+        g_setSkin(reinterpret_cast<void*>(address),&entry.row);
+        const auto applied=ReadSkinList(reader,address);
+        bool kept=false;
+        if(applied.valid)for(int j=0;j<applied.count;++j)
+            kept|=applied.entries[size_t(j)].row==entry.row&&applied.entries[size_t(j)].type==entry.type;
+        if(kept){const unsigned n=++g_kept;if(g_log&&n<=12)
+            g_log("Cosmetics V1.72 SELECTED_BONUS_KEPT during native load filter; existing choice only; DLC ownership and disk untouched by this callback; EXPERIMENTAL");}
+    }
+    g_filtering=false;
+}
+void HookFilter(void* save,void* instance){
+    FilterSelection(save,instance,reinterpret_cast<uintptr_t>(_ReturnAddress())-g_base);
+}
 }
 void Initialize(LogFn log,bool exactExecutable){
     g_log=log;if(!exactExecutable)return;g_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));if(!g_base)return;
@@ -63,31 +121,18 @@ void Initialize(LogFn log,bool exactExecutable){
     if(MH_EnableHook(target)!=MH_OK){MH_RemoveHook(target);g_original=nullptr;return;}
     g_ready.store(true,std::memory_order_release);
     if(log)log("Cosmetics V1.68 READY: verified IsSkinUnlocked boundary; IsSkinEquipped untouched; two bonus mounts / six progression appearances; no grants or ownership writes; EXPERIMENTAL");
+    if(SkinFilterBoundaryMatches(g_base)){
+        void* filter=reinterpret_cast<void*>(g_base+SkinFilterRva);
+        if(MH_CreateHook(filter,reinterpret_cast<void*>(&HookFilter),reinterpret_cast<void**>(&g_filter))==MH_OK){
+            g_setSkin=reinterpret_cast<SetSkinFn>(g_base+SetSkinRva);
+            if(MH_EnableHook(filter)==MH_OK)g_selectionReady.store(true,std::memory_order_release);
+            else {MH_RemoveHook(filter);g_filter=nullptr;g_setSkin=nullptr;}
+        }
+    }
+    if(log)log(g_selectionReady.load()?"Cosmetics V1.72 READY: preserve only selected Despair/Rampage during the verified native DLC load filter; option OFF stays native; EXPERIMENTAL":
+        "Cosmetics V1.72 selection retention unavailable; native load filter kept");
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}
-void ObserveSelection(const local_players::Context& owner){
-    if(!Ready()||!native_tps::OnGameThread()||owner.index<0||owner.index>1||!owner.playerState||!g_log||g_traceLogs>=24)return;
-    auto& saved=g_trace[owner.index];
-    if(!runtime::Get().bonusMountSkinsEnabled.load()){saved={};return;}
-    const auto now=GetTickCount64();if(saved.tick&&now>=saved.tick&&now-saved.tick<150)return;
-    native_objects::MemoryReader reader;uintptr_t reciprocal=0,getter=0;
-    if(!reader.Read(owner.controller,0x318,reciprocal)||reciprocal!=owner.playerState||
-       !reader.Read(owner.playerState,0x650,getter))return;
-    auto bonus=[&](uintptr_t table,int index,int number){
-        RowHandle handle{table,index,number};
-        if(Classify(&handle)!=Group::BonusMount)return 0u;
-        return native_objects::NameValueIs(g_base,index,number,"MayhemSkin_Despair")?1u:2u;
-    };
-    const auto own=SummarizeSelection(reader,owner.playerState+0x640,bonus);
-    const auto shared=SummarizeSelection(reader,getter,bonus);
-    const bool changed=saved.local!=owner.localPlayer||saved.world!=owner.world||saved.state!=owner.playerState||
-        saved.getter!=getter||!(saved.own==own)||!(saved.shared==shared);
-    saved={owner.localPlayer,owner.world,owner.playerState,getter,now,own,shared};
-    if(!changed)return;
-    ++g_traceLogs;char line[270]{};sprintf_s(line,
-        "Cosmetics V1.71 SELECTION_READ_ONLY player=%d state=%p getter=%p alias=%d ownValid=%d ownCount=%d ownBonus=%u sharedValid=%d sharedCount=%d sharedBonus=%u mask=Despair1/Rampage2 noSaveWrites=1",
-        owner.index+1,reinterpret_cast<void*>(owner.playerState),reinterpret_cast<void*>(getter),
-        getter!=owner.playerState+0x640,own.valid,own.count,own.bonusMask,shared.valid,shared.count,shared.bonusMask);g_log(line);
-}
-void Shutdown(){g_ready.store(false,std::memory_order_release);}
+bool SelectionRetentionReady(){return g_selectionReady.load(std::memory_order_acquire);}
+void Shutdown(){g_selectionReady.store(false,std::memory_order_release);g_ready.store(false,std::memory_order_release);}
 }
