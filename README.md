@@ -8,6 +8,8 @@ Le candidat Dash movement recovery V1.71 est **REJETÉ dans l'essai utilisateur 
 
 Archive vérifiée : `DarksidersGenesis_V1.73_MOUNT_DOF_CLEANUP_TEST.zip`, quatre fichiers racine. OFF complet des pistolets reste ouvert ; modèles gauche/droite validés conservés.
 
+Suite en cours : [audit OFF des pistolets et HUD général](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/AUDIT_PISTOL_OFF_HUD_2026_10_20.md). Les montages de tir ne séparent pas les mains par leur nom de slot ; aucun OFF partiel ajouté. Observation HUD avant/après préparée, jeu fermé lors du contrôle ; V1.73 reste la version installée.
+
 ### Installation et mise à jour
 
 Placer les quatre fichiers à côté de `DarksidersGenesis-Win64-Shipping.exe`, dans `ProjectMayhem/Binaries/Win64`. Sauvegarder les fichiers déjà présents. Pour mettre à jour une installation existante, **conserver l’INI personnel et ses raccourcis** ; les réglages manquants prennent leur valeur par défaut compilée. Fermer le jeu avant de remplacer les fichiers chargés.

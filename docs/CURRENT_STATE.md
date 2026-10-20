@@ -1,3 +1,11 @@
+## Suite après V1.73 — audit OFF / HUD, 20 octobre 2026
+
+**AUDIT / OBSERVATION PRÉPARÉE**, aucun changement ASI ni nouveau build. Inspection privée de 18 assets / 121 exports : 14 montages utilisent Shoot_Right, y compris des montages qui font tirer les deux pistolets ; le cheval utilise Blend. Le slot ne désigne donc pas une main. Arrêt/filtrage d'un slot par main écarté ; conserver les événements de projectile et le correctif dash validé. Les effets spéciaux sur sockets communs et la pose partagée restent à résoudre.
+
+HUD général intermittent : ancienne comparaison corrigée pour exclure les octets voisins et les fonctions. Aucun état fautif global démontré ; nouvelle observation avant/après à largeur exacte et propriétaires recontrôlés préparée hors ASI. Jeu fermé lors du contrôle, arrêt sans lancement ni capture. Préparation utilisateur en attente. [Preuves, piste écartée et prochaine étape](AUDIT_PISTOL_OFF_HUD_2026_10_20.md). V1.73 reste installée ; aucune nouvelle validation en jeu. Ground slam après le reste, autres FX P2 reportés.
+
+---
+
 ## V1.73 — CONSTRUITE / CONTRÔLÉE / INSTALLÉE, nouveaux comportements EXPÉRIMENTAUX
 
 20 octobre 2026. Base cumulative V1.72 contrôlée, retours V1.71 pris en compte. [CI Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39469924007) : **43/43 suites, zéro avertissement MSVC ASI/DXGI**. La suite propre au candidat Recovery supprimé est retirée ; compatibilité testée dans LegacyRecovery. Avis CMake/MinHook et Node des outils distincts. Source `65f43520c99eda56cf0b63acbb37b7e4d1e83050`, archive `516db3d8cd898e9d544c571a2ba73fdfa38d070b`. [ZIP cumulatif immuable vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/516db3d8cd898e9d544c571a2ba73fdfa38d070b/downloads/DarksidersGenesis_V1.73_MOUNT_DOF_CLEANUP_TEST.zip) : **826993 octets**, SHA256 `1D768FD2F9E178AE969685B23DB91220BEBCDCC71F5BC8DB2FADB98F3A84AF38`. HTTP 200/hash, CRC, AMD64 et quatre fichiers racine contrôlés. **154 réglages fournis, 55 identifiants de raccourci conservés, 137 anciennes archives inchangées** ; main/archive et v1.43 préservés.
