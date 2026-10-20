@@ -1,5 +1,14 @@
 ## V1.73 test — Darksiders Genesis Enhanced PC Mod
 
+### V1.74 — visée sans tir à la manette, TEST en préparation
+
+Base cumulative V1.73. Dans **Gameplay → Aim without firing**, deux entrées configurables : un champ OFF permet l'autre bouton seul, deux entrées actives nécessitent leur maintien simultané, OFF/OFF désactive la fonction. Elles commencent sur OFF. La visée appelle l'action native, sans simuler Ctrl ni générer de tir. En TPS elle suit la caméra du joueur ; en coop chaque manette concerne son propre joueur. Les affectations natives restent actives. Relâcher après menu, changement de personnage ou reconnexion avant de viser de nouveau.
+
+**EXPÉRIMENTAL : compilation, contrôles et essai en jeu seront précisés dans le reçu de livraison.** [Objectif et essais V1.74](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_74_NATIVE_PAD_AIM_TEST.md). INI personnel, raccourcis et acquis V1.73 conservés. Le nouveau choix des six capacités par emplacement est à l'étude, sans option inactive ajoutée.
+
+---
+
+
 Canal **debug**, lot cumulatif : maintien de Despair/Rampage au chargement, distance DOF native/TPS jusqu'à **5 000 m**, nettoyage du Recovery du dash signalé sans effet. **CONSTRUIT / CONTRÔLÉ / INSTALLÉ** ; trois essais V1.73 confirmés par l’utilisateur : 43/43 suites Windows x64, zéro avertissement MSVC ; installation avec sauvegarde et INI personnel conservé. Chargement des montures, réglages DOF et contrôle visée/tir/dash confirmés dans les essais V1.73 rapportés. [ZIP immuable contrôlé](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/516db3d8cd898e9d544c571a2ba73fdfa38d070b/downloads/DarksidersGenesis_V1.73_MOUNT_DOF_CLEANUP_TEST.zip). [Critères et essais groupés](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_73_MOUNT_DOF_CLEANUP_TEST.md).
 
 La case Bonus mount skins règle la disponibilité du menu ; le bonus déjà équipé reste conservé même OFF, comme les armures. Le modèle de base reste sélectionnable et son choix n'est jamais remplacé automatiquement. Chargement des montures, réglages DOF et contrôle visée/tir/dash confirmés dans les essais V1.73 rapportés. Le flou V1.71 semble bon dans le dernier retour utilisateur ; les réglages DOF V1.73 sont également confirmés dans les essais rapportés.
@@ -8,7 +17,7 @@ Le candidat Dash movement recovery V1.71 est **REJETÉ dans l'essai utilisateur 
 
 Archive vérifiée : `DarksidersGenesis_V1.73_MOUNT_DOF_CLEANUP_TEST.zip`, quatre fichiers racine. OFF complet des pistolets reste ouvert ; modèles gauche/droite validés conservés.
 
-Suite en cours : [audit OFF des pistolets et HUD général](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/AUDIT_PISTOL_OFF_HUD_2026_10_20.md). Les montages de tir ne séparent pas les mains par leur nom de slot ; aucun OFF partiel ajouté. État initial du HUD enregistré sur V1.73, visible avec opacité1 ; comparaison après refus en attente.
+Suite en cours : [audit OFF des pistolets et HUD général](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/AUDIT_PISTOL_OFF_HUD_2026_10_20.md). Les montages de tir ne séparent pas les mains par leur nom de slot ; aucun OFF partiel ajouté. Essai V1.73 après refus d’arène : HUD toujours visible, relevés avant/après effectués ; défaut historique placé en surveillance.
 
 ### Installation et mise à jour
 
@@ -49,7 +58,7 @@ Les choix **Native / Right pistol model / Left pistol model** par main de Strife
 
 Léviathan s'attache à la racine comme le natif ; l'ancien rattachement au modèle de Strife était 97 unités plus bas. Hauteur et rangement du menu validés par l’utilisateur dans l’essai V1.69. **Appearance** et **Weapon sheathing** sont repliables et distinctes de **Player movement** ; réglages et raccourcis conservés.
 
-Le HUD après arène verrouillée reste ouvert ; aucun réaffichage global forcé. OFF complet pistolet et nouvelle approche Recovery ouverts. [Essais et rollback V1.69](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_69_NATIVE_VISUAL_FOCUS_TEST.md).
+La disparition du HUD après refus d’arène n’est pas reproduite dans le dernier essai V1.73 ; surveillance, sans correction dédiée ni réaffichage global forcé. OFF complet pistolet et nouvelle approche Recovery ouverts. [Essais et rollback V1.69](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_69_NATIVE_VISUAL_FOCUS_TEST.md).
 
 ### Raccourcis du profil fourni
 

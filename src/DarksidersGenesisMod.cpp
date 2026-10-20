@@ -42,6 +42,7 @@
 #include "DashCombatFeature.h"
 #include "InteractionHudFeature.h"
 #include "WeaponSheathingFeature.h"
+#include "ManualAimFeature.h"
 #include "MountedHolsterFeature.h"
 #include "CosmeticUnlockFeature.h"
 #include "LeviathanVisualFeature.h"
@@ -1450,6 +1451,7 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     dg::potions::OnLivePlayer(character,generation,reinterpret_cast<void*>(owner.playerState));
     dg::health::OnLivePlayer(character,generation);
     dg::sheathing::OnLivePlayer(owner,generation);
+    dg::manual_aim::OnLivePlayer(owner,generation);
     dg::mounted_holsters::OnLivePlayer(owner);
     dg::leviathan_visual::OnLivePlayer(owner);
     dg::air_jump::OnLivePlayer(owner,generation);
@@ -1561,7 +1563,7 @@ bool ProvideNativeMouseRay(void* actor,dg::native_tps::MouseRay& ray){
        rt.tpsCutsceneSuspended.load()||rt.tpsUiViewHeld.load()||
        (dg::chaos_pose::ActiveNow()&&!dg::chaos_pose::RangedActor(actor))||
        g_overlayVisible.load()||IsTPSRadialInputActive()||
-       IsPadFiringNow()||IsCameraStickActiveNow()||
+       IsPadFiringNow()||rt.manualAimHeld[0].load()||IsCameraStickActiveNow()||
        !IsTPSLookViewFresh())return false;
     const bool mounted=IsMountedTPSNow();
     const ULONGLONG now=GetTickCount64();
@@ -1606,10 +1608,11 @@ NativeTPSRotator* HookPlayerLookInput(void* actor,NativeTPSRotator* out) {
     auto& rt=dg::runtime::Get();
     const bool mouseFiring=MouseAnyFireHeld();
     const bool padFiring=IsPadFiringNow();
-    const bool fire=padFiring||mouseFiring;
+    const bool padAiming=padFiring||rt.manualAimHeld[0].load();
+    const bool fire=padAiming||mouseFiring; // look eligibility only, never a fire action
     // V1.32: mouse acquisition belongs to native 3D targeting.
     // This getter is not projectile authority. Preserve all pad branches.
-    if(mouseFiring&&!padFiring)return result;
+    if(mouseFiring&&!padAiming)return result;
     // V1.19: mouse LMB and controller use the SAME Camera Forward
     // heading. No alternative mouse mode, no pad emulation.
     // This changes ONLY the verified local player native TPS look getter.
@@ -1675,11 +1678,12 @@ NativeTPSRotator* HookPlayerLookRotation(void* actor,NativeTPSRotator* out) {
     const bool mouseFire=MouseAnyFireHeld();
     const bool padFire=IsPadFiringNow();
     // V1.19: native mouse firing and controller share TPS Camera Forward.
-    const bool playerStrafe=padFire||mouseFire; // controller path preserved
-    if(mouseFire&&!padFire)return result; // shared native target in both vertical modes
+    const bool padAim=padFire||rt.manualAimHeld[0].load();
+    const bool playerStrafe=padAim||mouseFire; // look only; physical fire path preserved
+    if(mouseFire&&!padAim)return result; // shared native target in both vertical modes
     // During mounted Vanilla Aim fire, native look rotation is untouched.
     // While idle, suppress right-stick-origin horseman aim.
-    if(rt.tpsMountedAimMode.load()==1 && padFire && !mouseFire)return result;
+    if(rt.tpsMountedAimMode.load()==1 && padAim && !mouseFire)return result;
     const bool nativeBlock=rt.tpsCameraStickMode.load()!=0&&IsCameraStickActiveNow();
     const float actorYaw=g_tpsActorWorldYaw.load(std::memory_order_acquire);
     const float cameraYaw=dg::camera_trace::AppliedYaw();
@@ -2221,6 +2225,7 @@ void TriggerAction(Action action, int functionKey,unsigned playerTargets=3) {
 }
 
 unsigned SampleSheathingBindings();
+void SampleManualAimBindings();
 void ProcessInput() {
     const int notice=g_windowNotice.exchange(0);
     if(notice==1)g_lastAction="Keyboard binding cancelled";
@@ -2278,6 +2283,7 @@ void ProcessInput() {
     }
 
     unsigned sheathTargets=SampleSheathingBindings();
+    SampleManualAimBindings();
     if (g_overlayVisible.load()) {
         // Discard refill edges while editing the menu, including held keys
         // across its close. Existing non-refill F-key behavior is preserved.
@@ -2670,6 +2676,34 @@ DWORD GetCameraXInputState(DWORD user,XINPUT_STATE* state) {
     const auto api=reinterpret_cast<NativeXInputGetStateFn>(
         GetProcAddress(mod,"XInputGetState"));
     return api?api(user,state):ERROR_DEVICE_NOT_CONNECTED;
+}
+
+void SampleManualAimBindings(){
+    static dg::manual_binding::Hold pads[2];
+    static uintptr_t actors[2]{};static uint32_t generations[2]{};static int controllers[2]{-1,-1};
+    const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+    const bool allowed=hwnd&&GetForegroundWindow()==hwnd&&!IsIconic(hwnd)&&!g_overlayVisible.load()&&
+        !g_captureMenuKey.load()&&g_captureCameraKeyIndex.load()<0&&!g_shuttingDown.load();
+    const int a=g_config.aimPadButtonA,b=g_config.aimPadButtonB;
+    const dg::local_players::Slot slots[]={dg::local_players::PublishedSlot(0),dg::local_players::PublishedSlot(1)};
+    const auto now=GetTickCount64();
+    for(unsigned i=0;i<2;++i){
+        const auto& slot=slots[i];const auto& other=slots[1-i];
+        if(actors[i]!=slot.character||generations[i]!=slot.generation||controllers[i]!=slot.controllerId){
+            pads[i].Reset();actors[i]=slot.character;generations[i]=slot.generation;controllers[i]=slot.controllerId;
+        }
+        XINPUT_STATE state{};
+        const bool connected=dg::manual_aim::Ready()&&(a||b)&&slot.character&&slot.controllerId>=0&&slot.controllerId<4&&
+            !(other.character&&other.controllerId==slot.controllerId)&&
+            dg::local_players::Matches(i,slot.character,slot.generation)&&
+            GetCameraXInputState(DWORD(slot.controllerId),&state)==ERROR_SUCCESS;
+        bool held=false;
+        if(connected){
+            const bool down=dg::manual_binding::Down(a,b,GamepadBindingDown(a,state.Gamepad),GamepadBindingDown(b,state.Gamepad));
+            held=pads[i].Observe(a,b,down,allowed);
+        }else pads[i].Reset();
+        dg::manual_aim::Publish(i,slot.character,slot.generation,slot.controllerId,held,now);
+    }
 }
 
 unsigned SampleSheathingBindings(){
@@ -4163,6 +4197,7 @@ void ShutdownMod() {
     dg::glide::Report();
     dg::interaction_hud::Shutdown();
     dg::sheathing::Shutdown();
+    dg::manual_aim::Shutdown();
     dg::mounted_holsters::Shutdown();
     dg::cosmetics::Shutdown();
     dg::leviathan_visual::Shutdown();
@@ -4420,6 +4455,7 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::dash_combat::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::interaction_hud::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::sheathing::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::manual_aim::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::mounted_holsters::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::cosmetics::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::leviathan_visual::Initialize(&FeatureLog,g_targetValidation.exact);

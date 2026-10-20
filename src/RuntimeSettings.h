@@ -119,6 +119,8 @@ struct Snapshot {
 };
 
 struct State {
+    // Ephemeral native AIM ownership; never serialized or treated as firing.
+    std::atomic_bool manualAimHeld[2]{false,false};
     std::atomic_int overlayMenuKey{defaults::MenuKey};
     std::atomic_bool toggleHudEnabled{true};
     std::atomic_bool interactionHudScaleEnabled{true};

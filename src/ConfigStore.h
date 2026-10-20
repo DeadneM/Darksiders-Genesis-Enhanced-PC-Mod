@@ -277,6 +277,8 @@ public:
     int sheathKeyboardKey = 0;
     int sheathPadButtonA = 0;
     int sheathPadButtonB = 0;
+    int aimPadButtonA = 0;
+    int aimPadButtonB = 0;
     bool movementSpeedEnabled = true;
     bool skipLogosEnabled = true;
     bool skipIntroEnabled = true;

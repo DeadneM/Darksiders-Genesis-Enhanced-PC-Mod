@@ -331,6 +331,7 @@ void Store::ResetDefaults(bool persist) {
     sheathStrifeMeleeNeverEnabled=false;sheathStrifeMeleeDelaySeconds=0.0f;
     sheathWarNeverEnabled=true;sheathWarDelaySeconds=10.0f;
     sheathKeyboardKey=0;sheathPadButtonA=0;sheathPadButtonB=0;
+    aimPadButtonA=0;aimPadButtonB=0;
     movementSpeedEnabled = true;
     skipLogosEnabled = true;
     skipIntroEnabled = true;
@@ -593,6 +594,10 @@ bool Store::Load() {
     sheathPadButtonB=GetPrivateProfileIntW(L"Controls",L"SheathePadButtonB",0,path_.c_str());
     if(!ValidPadBind(sheathPadButtonA))sheathPadButtonA=0;
     if(!ValidPadBind(sheathPadButtonB))sheathPadButtonB=0;
+    aimPadButtonA=GetPrivateProfileIntW(L"Controls",L"AimWithoutFirePadButtonA",0,path_.c_str());
+    aimPadButtonB=GetPrivateProfileIntW(L"Controls",L"AimWithoutFirePadButtonB",0,path_.c_str());
+    if(!ValidPadBind(aimPadButtonA))aimPadButtonA=0;
+    if(!ValidPadBind(aimPadButtonB))aimPadButtonB=0;
     interactionHudScaleEnabled=ReadBool(L"Features",L"InteractionHudScale",true,path_);
     interactionHudScale=std::clamp(ReadFloat(L"Values",L"InteractionHudScale",0.65f,path_),0.1f,2.0f);
     movementSpeedEnabled =
@@ -1086,6 +1091,8 @@ bool Store::SaveNow() {
     WriteProfileString(L"Controls",L"SheathePadButtonA",sheathPadText,path_.c_str());
     swprintf_s(sheathPadText,L"%d",sheathPadButtonB);
     WriteProfileString(L"Controls",L"SheathePadButtonB",sheathPadText,path_.c_str());
+    WriteInt(L"Controls",L"AimWithoutFirePadButtonA",aimPadButtonA,path_);
+    WriteInt(L"Controls",L"AimWithoutFirePadButtonB",aimPadButtonB,path_);
     WriteFloat(L"Values",L"SheathDelaySeconds",sheathDelaySeconds,path_);
     WriteBool(L"Features",L"MountedPistolHolsters",mountedHolstersEnabled,path_);
     WriteInt(L"Values",L"PistolRightModel",pistolRightModel,path_);

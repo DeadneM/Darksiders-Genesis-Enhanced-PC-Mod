@@ -54,6 +54,16 @@ void Run(){
     dg::native_tps::MouseRay shot{};
     Check(dg::coop_camera::ShotRay(g_owner,shot)&&Close(shot.origin.x,view[0])&&Close(shot.direction.z,std::sin((view[3]+12)*0.01745329251994329577f)),"P2 projectile uses its emitted 3D camera orientation at spawn time");
     rt.tps3DAimEnabled=false;Check(dg::coop_camera::ShotRay(g_owner,shot)&&Close(shot.direction.z,0),"simple P2 mode keeps the common action-time ray, only elevation differs");rt.tps3DAimEnabled=true;
+    pad={};Input(&pad);View(view);x=0;y=-23;z=0;
+    rt.manualAimHeld[0]=true;
+    Check(dg::coop_camera::AdjustLook(g_character,x,y,z,true)&&Close(y,-23),"P1 manual aim never changes P2 look");
+    rt.manualAimHeld[0]=false;rt.manualAimHeld[1]=true;
+    Check(dg::coop_camera::AdjustLook(g_character,x,y,z,true)&&Close(y,view[4]),"P2 aim-only uses its own camera yaw");
+    const auto noFirePad=pad;Check(dg::coop_camera::FilterPad(1,pad)&&Equal(pad,noFirePad),"manual AIM never injects buttons, triggers or stick values");
+    x=0;y=0;z=0;dg::coop_camera::AdjustLook(g_character,x,y,z,false);
+    Check(Close(x,std::cos(view[4]*0.01745329251994329577f))&&Close(y,std::sin(view[4]*0.01745329251994329577f)),"aim-only look vector follows P2 camera");
+    rt.manualAimHeld[1]=false;x=0;y=-23;z=0;dg::coop_camera::AdjustLook(g_character,x,y,z,true);
+    Check(Close(y,-23),"manual aim release restores existing idle look behavior");
     g_radial[1]=true;pad=unchanged;Input(&pad);const auto nativeWheel=pad;
     Check(dg::coop_camera::FilterPad(1,pad)&&Equal(pad,nativeWheel),"actual native P2 selector protects axes even without the configured button");
     g_radial[1]=false;pad={};Input(&pad);View(view);

@@ -1,3 +1,23 @@
+## 20 octobre 2026 — V1.74, source manette de visée native
+
+Action identifiée dans l'enum vivant : AIM31 / AIM_RELEASE32, distincte de RANGED_ATTACK_ONE18 / TWO20. Interface personnage +8D0 : vtable2708780, dispatch681D50, query669D30, gestionnaire acteur664A20. Dispatch respecte les gardes natives ; query lit l'état d'action. Aucun appel ni écriture par la capture externe VM_READ. Nouveau module préparé : signatures, possession réciproque pawn/controller, rôle3, identité faible et callback de jeu ; deux leases par joueur, sources natives composées, annulation respectée, relâchement rejeté différé, échantillon périmé500ms, pas de boucle d'acquisition ni ancien acteur rappelé.
+
+Les deux bindings Controls/AimWithoutFirePadButtonA/B sont optionnels, OFF, sans révision du profil ou ID Hotkey. Lecture physique originale seulement ; état de direction TPS séparé du tir. Tests préparés sur dispatch/query substitués, cycle de maintien, composition, annulations, joueurs, profils et vrai getter coop. [Périmètre et critères V1.74](V1_74_NATIVE_PAD_AIM_TEST.md). Pas encore de réussite de compilation/CI/jeu annoncée.
+
+Demande capacités : choix libre parmi les six pour chaque emplacement des deux personnages, confirmé par l'utilisateur. Inspection native avant toute interception ; conserver coût, lifecycle, commandes reconfigurables, compatibilité personnage et rollback. Ne pas confondre classe de tir, capacité de Courroux et animation, ni copier arbitrairement un pointeur entre personnages.
+
+---
+
+## HUD non reproduit et poses de Strife relevées — 20 octobre 2026
+
+Retour utilisateur après refus d'arène verrouillée : **« hud toujours visible »**. Défaut placé en surveillance ; aucune correction dédiée ni attribution à un ancien changement. Captures avant/après V1.73 complètes, zéro erreur : pile UI vide, HUD final bShowHUD vrai et nouvelle racine visible/opacité1. L'identité de la racine a changé ; ne pas affirmer une conservation du même widget.
+
+Essai des bras effectué par l'utilisateur : repos, visée seule, Standard et Charge Shot. Capture externe VM_READ terminée : **2 939 échantillons retenus, 30 lectures refusées par les contrôles de cohérence**, aucun changement du jeu. AnimInstance reliée au Strife possédé ; hiérarchie de80os, états natifs de visée et classes de tir relevés. Source active de pose identifiée ; les tableaux Cached* sont vides dans cette session. Le chemin natif des sockets de tir consulte aussi les poses : modifier directement les os ne préserverait pas leur origine. OFF reste ouvert ; recherche d'une séparation visuelle, sans patch direct des poses ou de montage. [Preuves et limites](AUDIT_PISTOL_OFF_HUD_2026_10_20.md).
+
+V1.73 et ses acquis restent en place. Aucun nouvel ASI/ZIP, aucune écriture de configuration, PAK ou sauvegarde. [File restante](ACTIVE_QUEUE.md) : OFF, puis ground slam ; autres FX P2 reportés et Auto check update à confirmer visuellement.
+
+---
+
 ## Retour utilisateur V1.73 — trois essais confirmés, 20 octobre 2026
 
 Réponse «1. marche /2. marche /3. marche /prêt» : conservation des montures au chargement, réglages DOF et contrôle visée/tir/dash **VALIDÉS dans les essais rapportés**, sans extrapolation à des cas non décrits. Le jeu est lancé par l'utilisateur. Capture HUD initiale en lecture seule : parcours complet de307380objets,9853objets UI retenus, zéro erreur, racine générale Visibility4/opacité1. Aucun correctif HUD ni résultat après refus encore annoncé ; reproduction demandée.

@@ -67,6 +67,11 @@ if(BUILD_TESTING)
   add_executable(ManualActionBindingTests tests/ManualActionBindingTests.cpp)
   target_include_directories(ManualActionBindingTests PRIVATE src)
   add_test(NAME ManualActionBindings COMMAND ManualActionBindingTests)
+  add_executable(ManualAimTests tests/ManualAimTests.cpp src/RuntimeSettings.cpp src/ConfigStore.cpp)
+  target_include_directories(ManualAimTests PRIVATE tests/stubs src)
+  target_compile_definitions(ManualAimTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  target_link_libraries(ManualAimTests PRIVATE user32)
+  add_test(NAME ManualAim COMMAND ManualAimTests)
   add_executable(WeaponSheathingTests tests/WeaponSheathingTests.cpp src/RuntimeSettings.cpp src/ConfigStore.cpp)
   target_include_directories(WeaponSheathingTests PRIVATE src)
   target_compile_definitions(WeaponSheathingTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
@@ -283,6 +288,7 @@ add_library(DarksidersGenesisMod SHARED
   src/DashCombatFeature.cpp
   src/InteractionHudFeature.cpp
   src/WeaponSheathingFeature.cpp
+  src/ManualAimFeature.cpp
   src/MountedHolsterFeature.cpp
   src/CosmeticUnlockFeature.cpp
   src/LeviathanVisualFeature.cpp

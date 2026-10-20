@@ -2,6 +2,7 @@
 #include "OverlayBindingScope.h"
 #include "InteractionHudFeature.h"
 #include "WeaponSheathingFeature.h"
+#include "ManualAimFeature.h"
 #include "MountedHolsterFeature.h"
 #include "CosmeticUnlockFeature.h"
 #include "LeviathanVisualFeature.h"
@@ -285,6 +286,17 @@ void Draw(Context& c) {
             }
 
             ImGui::Unindent(12.0f);
+            }
+            if(ImGui::CollapsingHeader("Aim without firing")){
+                ImGui::Indent(12.0f);ImGui::PushID("ManualAimBindings");
+                ImGui::BeginDisabled(!manual_aim::Ready());
+                DrawManualPadRow(config,"Controller input 1",config.aimPadButtonA);
+                DrawManualPadRow(config,"Controller input 2",config.aimPadButtonB);
+                ImGui::EndDisabled();
+                ImGui::TextWrapped("Hold to aim without firing. One input on OFF: hold the other button alone. Two active inputs: hold both together. Both OFF: disabled. Each controller affects its own player. In TPS, aim follows that player's camera.");
+                ImGui::TextWrapped("Native game bindings are kept; choose an unused button or combination. Release after closing a menu, changing character or reconnecting the controller before aiming again.");
+                if(!manual_aim::Ready())ImGui::TextWrapped("Unavailable for this executable; native controls remain active.");
+                ImGui::PopID();ImGui::Unindent(12.0f);
             }
             if(ImGui::CollapsingHeader("Weapon sheathing")){
             ImGui::Indent(12.0f);

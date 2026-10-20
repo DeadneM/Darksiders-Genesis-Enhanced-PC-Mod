@@ -265,8 +265,9 @@ bool AdjustLook(void* actor,float& a,float& b,float& c,bool rotation){
     AcquireSRWLockExclusive(&g_lock);const State s=g_state;Unlock();
     if(s.local!=owner.localPlayer||s.character!=owner.character||!Active(s,GetTickCount64()))return true;
     if(!std::isfinite(a)||!std::isfinite(b)||!std::isfinite(c))return true;
-    if(rt.tpsMountedAimMode.load()==1&&s.fire)return true;
-    if(s.fire){
+    const bool aiming=s.fire||rt.manualAimHeld[1].load();
+    if(rt.tpsMountedAimMode.load()==1&&aiming)return true;
+    if(aiming){
         if(rotation){a=0;b=std::remainder(s.appliedYaw,360.0f);c=0;}
         else{constexpr float rad=0.01745329251994329577f;a=std::cos(s.appliedYaw*rad);b=std::sin(s.appliedYaw*rad);c=0;}
     }else if(rt.tpsCameraStickMode.load()!=0&&s.stick){

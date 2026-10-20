@@ -1,3 +1,21 @@
+## V1.74 — visée manette native sans tir, préparation
+
+Base V1.73 validée dans les essais rapportés ; nouvelle fonction EXPÉRIMENTALE en préparation. Deux entrées configurables, OFF/OFF par défaut, maintien par joueur ; action native AIM/AIM_RELEASE, sans Ctrl ni événement de tir. Source native de visée conservée, protection menus/focus/possession/déconnexion ; direction TPS via la caméra du joueur, sans changement des sorties XInput. [Objectif, preuves, critères et tests](V1_74_NATIVE_PAD_AIM_TEST.md). CI, compilation et jeu non encore validés à ce stade.
+
+Nouvelle demande précisée : trois emplacements indépendants pour chacun des deux personnages, avec Native ou choix parmi les six capacités. Étude des propriétaires, animations et coûts avant échange ; pas de sélecteur factice. HUD V1.73 en surveillance, OFF complet toujours ouvert. Installation actuelle V1.73 conservée pendant le jeu ; aucun PAK/INI/sauvegarde modifié.
+
+---
+
+## HUD non reproduit et poses de Strife relevées — 20 octobre 2026
+
+Retour utilisateur après refus d'arène verrouillée : **« hud toujours visible »**. Défaut placé en surveillance ; aucune correction dédiée ni attribution à un ancien changement. Captures avant/après V1.73 complètes, zéro erreur : pile UI vide, HUD final bShowHUD vrai et nouvelle racine visible/opacité1. L'identité de la racine a changé ; ne pas affirmer une conservation du même widget.
+
+Essai des bras effectué par l'utilisateur : repos, visée seule, Standard et Charge Shot. Capture externe VM_READ terminée : **2 939 échantillons retenus, 30 lectures refusées par les contrôles de cohérence**, aucun changement du jeu. AnimInstance reliée au Strife possédé ; hiérarchie de80os, états natifs de visée et classes de tir relevés. Source active de pose identifiée ; les tableaux Cached* sont vides dans cette session. Le chemin natif des sockets de tir consulte aussi les poses : modifier directement les os ne préserverait pas leur origine. OFF reste ouvert ; recherche d'une séparation visuelle, sans patch direct des poses ou de montage. [Preuves et limites](AUDIT_PISTOL_OFF_HUD_2026_10_20.md).
+
+V1.73 et ses acquis restent en place. Aucun nouvel ASI/ZIP, aucune écriture de configuration, PAK ou sauvegarde. [File restante](ACTIVE_QUEUE.md) : OFF, puis ground slam ; autres FX P2 reportés et Auto check update à confirmer visuellement.
+
+---
+
 ## Retour utilisateur V1.73 — trois essais confirmés, 20 octobre 2026
 
 Réponse «1. marche /2. marche /3. marche /prêt» : conservation des montures au chargement, réglages DOF et contrôle visée/tir/dash **VALIDÉS dans les essais rapportés**, sans extrapolation à des cas non décrits. Le jeu est lancé par l'utilisateur. Capture HUD initiale en lecture seule : parcours complet de307380objets,9853objets UI retenus, zéro erreur, racine générale Visibility4/opacité1. Aucun correctif HUD ni résultat après refus encore annoncé ; reproduction demandée.

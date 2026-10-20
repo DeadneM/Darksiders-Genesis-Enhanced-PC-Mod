@@ -7,6 +7,17 @@ int main(){try{
     Check(!Down(0,0,true,true),"two OFF inputs disable the binding");
     Check(Down(1,0,true,false)&&Down(0,2,false,true),"either slot alone works");
     Check(!Down(1,2,true,false)&&!Down(1,2,false,true)&&Down(1,2,true,true),"a chord needs both inputs");
+    Hold hold,p2;
+    Check(!hold.Observe(1,2,true,true,10),"initial held chord must be released");
+    Check(!hold.Observe(1,2,false,true,10)&&hold.Observe(1,2,true,true,10),"release then hold starts aiming");
+    Check(hold.Observe(1,2,true,true,10),"aim continues without repeated button edges");
+    Check(!hold.Observe(1,2,true,false,10)&&!hold.Observe(1,2,true,true,10),"focus/menu loss requires release before resuming");
+    hold.Observe(1,2,false,true,10);Check(hold.Observe(1,2,true,true,10),"released source can aim again");
+    Check(!hold.Observe(3,0,true,true,10),"rebinding while held never acquires AIM");
+    hold.Observe(3,0,false,true,10);Check(hold.Observe(3,0,true,true,10),"single-button hold works");
+    Check(!hold.Observe(3,0,true,true,20),"possession/controller changes consume the held source");
+    hold.Reset();Check(!hold.Observe(3,0,true,true,20),"reconnect-held is blocked");
+    p2.Observe(3,0,false,true,30);Check(p2.Observe(3,0,true,true,30)&&!hold.Observe(3,0,true,true,20),"hold state is independent per player");
     Edge first,second;
     Check(!first.Observe(1,2,true,true,10),"a held input cannot fire when first observed");
     Check(!first.Observe(1,2,false,true,10)&&first.Observe(1,2,true,true,10),"release then chord fires once");
