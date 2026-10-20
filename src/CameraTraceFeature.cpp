@@ -752,7 +752,11 @@ void HookView(void* camera, float dt, void* outView) {
                 std::memcpy(p,&outX,4);std::memcpy(p+4,&outY,4);std::memcpy(p+8,&outZ,4);
                 std::memcpy(p+12,&appliedPitch,4);std::memcpy(p+16,&appliedYaw,4);
                 appliedHeight=outZ;
-                g_heldView.focusValid=attached&&ownedView;
+                // The same validated live position already supplies this TPS
+                // geometry. A character swap can temporarily leave the camera
+                // on the previous owner: do not drop focus while still emitting
+                // the verified gameplay view. Cinematics return before here.
+                g_heldView.focusValid=attached&&actorValid;
                 if(g_heldView.focusValid){
                     g_heldView.focus={ax,ay,az};
                     camera_focus::Compensate(p,g_heldView.focus,settings.tpsLensFocusEnabled.load());

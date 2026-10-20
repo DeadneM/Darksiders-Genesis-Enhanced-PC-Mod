@@ -1,26 +1,20 @@
-# File active — 19 octobre 2026
+# File active — 20 octobre 2026
 
-Ce tableau remplace les files anciennes conservées dans l’historique. Statut VALIDÉ réservé aux retours explicites de l’utilisateur. Base retenue : **V1.66 debug, sauts et holsters VALIDÉS dans l’essai utilisateur du 19 octobre 2026**. Nouveau lot V1.67 CONSTRUIT / CONTRÔLÉ pour les choix de pistolet et les skins ; nouveaux comportements EXPÉRIMENTAUX, essai dans le jeu à effectuer. [Détails](V1_67_PISTOL_CHOICES_AND_SKINS.md).
+Base : V1.66 validée pour les sauts et holsters, plus les choix gauche/droite par main V1.67 validés. Les validations portent sur les essais rapportés. Branche debug uniquement. [Lot V1.68 préparé et critères](V1_68_VISUALS_ULTIMATE_TEST.md).
 
-| Sujet | État actuel | Prochaine étape / critère |
+| Sujet | État | Suite |
 | --- | --- | --- |
-| Sauts supplémentaires | VALIDÉS dans l’essai utilisateur V1.66 ; ancien échec V1.65 remplacé par ce retour | Conserver le cycle natif validé ; rouvrir seulement sur nouveau défaut rapporté |
-| Holsters montés | VALIDÉS dans l’essai utilisateur V1.66 ; placement V1.65 déjà acquis | Conserver les modèles et la recherche anticipée validés |
-| Trois délais de rangement | VALIDÉS par l’utilisateur | Préserver lames Strife / pistolets Strife / épée War et raccourcis communs |
-| Durée ultime | VALIDÉE après activation de sa case ; faux échec rétracté par l’utilisateur | Préserver le débit natif et sa priorité Unlimited |
-| Action Recovery | Ancien système retiré ; nouvelle piste d’interruption native étudiée, non implémentée | Corréler intention de déplacement, requête en attente, masque d’interruption et phase physique avant tout candidat |
-| Modèles des pistolets | Demande précisée : choisir gauche/droite par main, deux listes construites/contrôlées V1.67, non validées en jeu | Vérifier combinaisons, prise en main, tir/rangement, variantes montées et retour Native |
-| Skins bonus / progression | Deux montures et six variantes de personnage identifiées ; deux cases construites/contrôlées V1.67, OFF par défaut, non validées en jeu | Tester la page Skins native et l’indépendance des groupes ; PAK existant prioritaire pour ses déblocages |
-| Autres sprites/effets P2 | REPORTÉS sur demande explicite de l’utilisateur | Ne pas intervenir ; prompts d’interaction déjà validés |
-| Auto check update | Construit/contrôlé V1.63, retour visuel explicite absent | Confirmation visuelle distincte encore attendue pour l’avis temporaire et le rappel jaune du canal choisi |
-| Grappin | VALIDÉ dans l’essai utilisateur V1.63 | Conserver ABI des quatre arguments ; pas de validation implicite de toutes les traversées |
-| Visée, reprise AIM, présentation du tir de dash, focus TPS, Standard fini, ressources et Hotkeys | Acquis rapportés conservés | Surveillance des régressions ; ne pas rouvrir un défaut sans nouveau retour |
+| Sauts, holsters, délais de rangement, durée ultime 0–10, grappin, ressources, visée et dash | Acquis utilisateur conservés | Ne rouvrir que sur un nouveau défaut |
+| Choix du pistolet par main | VALIDÉS V1.67 | Conserver les deux modèles et variantes montées |
+| Skins bonus | ÉCHEC V1.67, mauvais IsSkinEquipped identifié et retiré dans la préparation V1.68 | Tester la sélection avec le PAK actuel, puis autonomie ASI séparément ; progression encore non testée |
+| Focus au changement de personnage | Défaut signalé dans plusieurs niveaux ; trou de focale capturé ; candidat V1.68 | Comparer transition et netteté générale, lentille ON/OFF et vue native |
+| Durée ultime infinie | Préparée V1.68, débit seul et Hotkeys ajouté | Test arrêt/reprise au niveau courant, sans Unlimited Ultimate |
+| Visuels Léviathan | Trois templates exacts identifiés ; sélecteur visuel seul préparé V1.68 | Contrôler les trois effets/OFF, retour natif, transformations et P2 ; aucune validation de rendu |
+| HUD après arène verrouillée | Reproductible selon l’utilisateur ; pas de cause observée | Relevé avant/après des états natifs et widgets, sans forcer tout visible |
+| Autres éléments HUD manquants | Impression incertaine | Identifier les éléments avant toute intervention |
+| OFF complet pistolet | Ouvert : modèle, effets et bras tendu à retirer, projectiles à garder | Séparer la pose d’un bras sans modifier le chemin de tir ; aucun OFF partiel présenté comme terminé |
+| Action Recovery | Ancien système retiré, nouvelle interruption native étudiée | Preuve du bénéfice et du nettoyage avant candidat |
+| Autres icônes/effets P2 | Reportés explicitement | Ne pas intervenir ; exception Léviathan nouvellement demandée |
+| Auto check update | Construit, retour visuel distinct absent | Confirmer avis temporaire et rappel jaune |
 
-## Ordre de travail
-
-1. Conserver V1.66 comme base retenue avec sauts et holsters validés ; ne rouvrir ces sujets que sur un nouveau défaut rapporté. La validation ne présume pas tous les modes, personnages ou états coop testés.
-2. Préparer Recovery à partir du chemin natif d’interruption et de ses vraies raisons. Un booléen vrai, une impulsion ou un compteur de diagnostic ne prouve pas une fonction.
-3. Tester le ZIP V1.67 vérifié : combinaisons gauche/droite et deux groupes de skins ; fermer/rouvrir la page Skins lors des changements. Aucun remplacement des armes en main à partir des meshes Stowed.
-4. Réunir les changements retenus dans un prochain lot cohérent, avec version distincte, rollback et contrôles Windows/ZIP. Garder les modèles/effets P2 différés.
-
-[Preuves nouvelles et limites](NEXT_RECOVERY_AND_MODELS.md) · [Plan](ROADMAP.md) · [État courant](CURRENT_STATE.md). Les états précédents sont conservés dans [l’ancienne roadmap](history/ROADMAP_THROUGH_V1_66.md).
+Préserver INI, raccourcis, PAK, sauvegardes, main/archive et les anciennes archives. [État courant](CURRENT_STATE.md) · [Carnet cumulatif](TECHNICAL_NOTEBOOK.md). Les anciens états sont conservés dans l’historique et Git.

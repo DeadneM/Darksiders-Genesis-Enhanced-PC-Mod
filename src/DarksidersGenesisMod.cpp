@@ -44,6 +44,7 @@
 #include "WeaponSheathingFeature.h"
 #include "MountedHolsterFeature.h"
 #include "CosmeticUnlockFeature.h"
+#include "LeviathanVisualFeature.h"
 #include "UltimateDurationFeature.h"
 #include "ManualActionBinding.h"
 #include "TpsCameraFocus.h"
@@ -1435,6 +1436,7 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     dg::health::OnLivePlayer(character,generation);
     dg::sheathing::OnLivePlayer(owner,generation);
     dg::mounted_holsters::OnLivePlayer(owner);
+    dg::leviathan_visual::OnLivePlayer(owner);
     dg::air_jump::OnLivePlayer(owner,generation);
 }
 
@@ -2122,6 +2124,7 @@ void TriggerAction(Action action, int functionKey,unsigned playerTargets=3) {
     case Action::FiniteStandardAmmo: toggle=&g_config.finiteStandardAmmoEnabled; break;
     case Action::GrappleRange: toggle=&g_config.grappleRangeEnabled; break;
     case Action::UltimateDecreaseRate: toggle=&g_config.ultimateDecreaseEnabled; break;
+    case Action::InfiniteUltimateDuration: toggle=&g_config.ultimateInfiniteDurationEnabled; break;
     case Action::FOV: toggle=&g_config.fovEnabled; break;
     case Action::PistolDamage: toggle=&g_config.pistolDamageEnabled; break;
     case Action::MeleeDamage: toggle=&g_config.meleeDamageEnabled; break;
@@ -4147,6 +4150,7 @@ void ShutdownMod() {
     dg::sheathing::Shutdown();
     dg::mounted_holsters::Shutdown();
     dg::cosmetics::Shutdown();
+    dg::leviathan_visual::Shutdown();
     dg::dash_combat::Shutdown();
     dg::dash_combat::Report();
     // Release the supported synthetic horse key before teardown.
@@ -4403,6 +4407,7 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::sheathing::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::mounted_holsters::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::cosmetics::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::leviathan_visual::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::ultimate_duration::Initialize(&FeatureLog,g_targetValidation.exact);
     if (!InstallFinalOutgoingDamageHook()) {
         Log("Final Pistol/Melee Damage hook unavailable; other ASI features remain active.");

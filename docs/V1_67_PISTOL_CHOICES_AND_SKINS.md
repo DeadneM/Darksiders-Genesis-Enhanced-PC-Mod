@@ -1,3 +1,5 @@
+> Correction du 20 octobre 2026 : les choix de pistolet sont validés par l’utilisateur ; les montures restent grisées. L’interception décrite ci-dessous était IsSkinEquipped, pas IsSkinUnlocked. Le mauvais branchement est remplacé en préparation V1.68. [Preuve, limites et tests corrigés](V1_68_VISUALS_ULTIMATE_TEST.md). Le PAK a bien été retrouvé actif en mémoire. Les indications historiques contraires ne font plus autorité.
+
 ## V1.67 — CONSTRUITE / CONTRÔLÉE, apparences EXPÉRIMENTALES
 
 19 octobre 2026. Base V1.66 validée pour sauts/holsters, conservée. Choix du pistolet natif gauche/droit par main de Strife ; deux cases distinctes pour les montures bonus et les six apparences de progression. **Nouveaux comportements NON VALIDÉS dans le jeu.** [Inventaire, preuves, essais et rollback](V1_67_PISTOL_CHOICES_AND_SKINS.md).

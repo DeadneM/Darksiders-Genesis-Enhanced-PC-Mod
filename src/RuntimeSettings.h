@@ -15,6 +15,8 @@ struct Snapshot {
     int pistolLeftModel = 0;
     bool bonusMountSkinsEnabled = false;
     bool progressionSkinsEnabled = false;
+    bool leviathanVisualEnabled = false;
+    int leviathanVisualMode = 0;
     bool weaponSheathingEnabled = false;
     bool sheathNeverEnabled = true;
     float sheathDelaySeconds = 10.0f;
@@ -60,6 +62,7 @@ struct Snapshot {
     bool wrathChargeEnabled = true;
     bool ultimateChargeEnabled = true;
     bool ultimateDecreaseEnabled = false;
+    bool ultimateInfiniteDurationEnabled = false;
     float ultimateDurationMultiplier = 2.0f;
     bool synergyChargeEnabled = true;
     bool unlimitedWrathEnabled = false;
@@ -123,6 +126,8 @@ struct State {
     std::atomic_int pistolLeftModel{0};
     std::atomic_bool bonusMountSkinsEnabled{false};
     std::atomic_bool progressionSkinsEnabled{false};
+    std::atomic_bool leviathanVisualEnabled{false};
+    std::atomic_int leviathanVisualMode{0};
     std::atomic_bool weaponSheathingEnabled{false};
     std::atomic_bool sheathNeverEnabled{true};
     std::atomic<float> sheathDelaySeconds{10.0f};
@@ -201,6 +206,7 @@ struct State {
     std::atomic_bool wrathChargeEnabled{true};
     std::atomic_bool ultimateChargeEnabled{true};
     std::atomic_bool ultimateDecreaseEnabled{false};
+    std::atomic_bool ultimateInfiniteDurationEnabled{false};
     std::atomic<float> ultimateDurationMultiplier{2.0f};
     std::atomic_bool synergyChargeEnabled{true};
     std::atomic_bool unlimitedWrathEnabled{false};

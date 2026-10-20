@@ -4,6 +4,7 @@
 #include "WeaponSheathingFeature.h"
 #include "MountedHolsterFeature.h"
 #include "CosmeticUnlockFeature.h"
+#include "LeviathanVisualFeature.h"
 #include "UltimateDurationFeature.h"
 #include "GaugeChargeFeature.h"
 #include "ResourceGainFeature.h"
@@ -284,6 +285,18 @@ void Draw(Context& c) {
             DrawToggleFeature(config,"Progression skins (experimental)","ProgressionSkins",&config.progressionSkinsEnabled,
                 "Separately makes Abyssal, Silver and Gold appearances available for War and Strife in the game's Skins page. Cosmetic availability only: no quests, armor pieces, stats or achievements granted. OFF restores native availability; choose an owned skin before disabling. Native skin selection may remember your equipped appearance.",cosmetics::Ready());
 
+            DrawToggleFeature(config,"Override Leviathan lightning (experimental)","LeviathanVisual",&config.leviathanVisualEnabled,
+                "Visual only, for both local players. Select OFF or one of the three native lightning effects without granting the core, its stats or its status effect. Uncheck to restore native visuals. Requires the chosen effect asset to be loaded; otherwise leaves native lightning unchanged. Test foot, mount and Ultimate transitions.",leviathan_visual::Ready());
+            if(config.leviathanVisualEnabled){
+                constexpr const char* effects[]={"OFF (hide Leviathan lightning)","Effect 1","Effect 2","Effect 3"};
+                ImGui::BeginDisabled(!leviathan_visual::Ready());ImGui::SetNextItemWidth(280.0f);
+                if(ImGui::Combo("Leviathan effect",&config.leviathanVisualMode,effects,4))config.Save();
+                ImGui::EndDisabled();
+                if(config.leviathanVisualMode>0&&config.leviathanVisualMode<=3&&
+                   !(leviathan_visual::LoadedMask()&(1u<<unsigned(config.leviathanVisualMode-1))))
+                    ImGui::TextColored(ImVec4(1,.85f,.25f,1),"Selected effect unavailable here; native visual retained. Change selection or re-enable to retry.");
+            }
+
             DrawSectionTitle("Weapon sheathing");
             DrawToggleFeature(config,"Mounted pistol holsters (experimental)","MountedPistolHolsters",&config.mountedHolstersEnabled,
                 "Uses the stowed pistol models while Strife is mounted. Turn OFF to restore the previous appearance. Per-hand appearance choices use the corresponding stowed models. Experimental: check alignment in the holsters.",mounted_holsters::Ready());
@@ -530,6 +543,8 @@ void Draw(Context& c) {
                 0.0f,10.0f,2.0f,"%.2fx duration",
                 "Duration multiplier: 0.5 halves the duration, 1 is native, 2 doubles it, 10 lasts ten times longer. 0 ends on the next positive native drain tick. Gains and refills stay unchanged; Unlimited Ultimate takes priority.",
                 dg::ultimate_duration::Ready());
+            DrawToggleFeature(config,"Infinite Ultimate duration","InfiniteUltimateDuration",&config.ultimateInfiniteDurationEnabled,
+                "Stops only the active form's duration drain, at its current gauge level. Does not fill the gauge or bypass native activation requirements. Takes priority over the duration multiplier; OFF resumes native drain or the enabled multiplier. Assign a toggle in Hotkeys.",dg::ultimate_duration::Ready());
             DrawTunableFeature(config,"Ultimate Form / Chaos charge","UltimateCharge",
                 &config.ultimateChargeEnabled,&config.ultimateChargeMultiplier,
                 0.0f,100.0f,defaults::UltimateGain,"%.2fx",

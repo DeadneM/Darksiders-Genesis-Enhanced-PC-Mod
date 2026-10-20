@@ -24,10 +24,11 @@ float Consume(void* component,float amount,uintptr_t caller){
     if(!g_original)return 0;
     float effective=amount;
     const auto& rt=runtime::Get();const float duration=rt.ultimateDurationMultiplier.load();
+    const bool infinite=rt.ultimateInfiniteDurationEnabled.load();
     local_players::Context owner{};void* actor=nullptr;void* reciprocal=nullptr;void* form=nullptr;void* resource=nullptr;
     unsigned char role=0;float before=0,maximum=0;
-    if(g_ready.load()&&caller==0x68A4EC&&rt.ultimateDecreaseEnabled.load()&&native_tps::OnGameThread()&&
-       std::isfinite(amount)&&amount>0&&std::isfinite(duration)&&duration>=0&&duration<=10&&duration!=1&&
+    if(g_ready.load()&&caller==0x68A4EC&&(infinite||rt.ultimateDecreaseEnabled.load())&&native_tps::OnGameThread()&&
+       std::isfinite(amount)&&amount>0&&(infinite||(std::isfinite(duration)&&duration>=0&&duration<=10&&duration!=1))&&
        Read(component,0xE8,actor)&&actor&&Read(actor,0xCC0,reciprocal)&&reciprocal==component&&
        Read(actor,0xE78,form)&&form&&Read(actor,0xEA0,resource)&&resource&&
        Read(actor,0x118,role)&&role==3&&Read(resource,0x118,role)&&role==3&&
@@ -36,12 +37,13 @@ float Consume(void* component,float amount,uintptr_t caller){
        !native_tps::IsWorldPaused(actor)&&Read(resource,0x3A8,before)&&Read(resource,0x3AC,maximum)&&
        std::isfinite(before)&&std::isfinite(maximum)&&before>0&&before<=maximum&&maximum<=100000){
         // 0 ends at the next positive native decay tick; it never means free form.
-        effective=duration==0?before:float(std::min(double(before),double(amount)/duration));
+        // Infinite duration freezes decay only: no refill, grant or activation bypass.
+        effective=infinite?0.0f:duration==0?before:float(std::min(double(before),double(amount)/duration));
     }
     const float result=g_original(component,effective);
     if(effective!=amount&&g_log&&++g_changes<=12){char line[180]{};
-        sprintf_s(line,"Ultimate duration V1.64 DECAY player=%d native=%.5f effective=%.5f duration=%.3fx return=%.5f EXPERIMENTAL",
-            owner.index+1,amount,effective,duration,result);g_log(line);
+        sprintf_s(line,"Ultimate duration V1.68 DECAY player=%d native=%.5f effective=%.5f duration=%.3fx infinite=%d return=%.5f EXPERIMENTAL",
+            owner.index+1,amount,effective,duration,infinite?1:0,result);g_log(line);
     }
     return result;
 }
@@ -62,7 +64,7 @@ void Initialize(LogFn log,bool exactExecutable){
     if(MH_CreateHook(target,reinterpret_cast<void*>(&HookConsume),reinterpret_cast<void**>(&g_original))!=MH_OK)return;
     if(MH_EnableHook(target)!=MH_OK){MH_RemoveHook(target);g_original=nullptr;return;}
     g_ready.store(true,std::memory_order_release);
-    if(log)log("Ultimate duration V1.64 READY: native active-form decay only; float return, gains, manual refills and Unlimited preserved; EXPERIMENTAL");
+    if(log)log("Ultimate duration V1.68 READY: multiplier or infinite active-form duration; no activation/gain/refill change; native float return and Unlimited preserved; EXPERIMENTAL");
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}
 }

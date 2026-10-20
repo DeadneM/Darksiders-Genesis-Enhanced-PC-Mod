@@ -25,6 +25,20 @@ struct Names {
 void Run(){
     using namespace dg::cosmetics;
     std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());
+    // ABI/whitelist tests alone cannot distinguish neighbouring native functions.
+    Put(image.data(),0x27D7870,g_base+0x27D61D0);Put(image.data(),0x27D7878,g_base+0x7C4440);
+    std::memcpy(image.data()+0x27D61D0,"IsSkinUnlocked",15);
+    const unsigned char code[]={0x48,0x8B,0xC4,0x56,0x57,0x41,0x56,0x48,0x83,0xEC,0x70,0x48,0xC7,0x40,0xB8,0xFE};
+    std::memcpy(image.data()+UnlockRva,code,sizeof(code));image[0x7C44C7]=0xE8;
+    Put<int32_t>(image.data(),0x7C44C8,int32_t(UnlockRva)-0x7C44CC);
+    Check(UnlockBoundaryMatches(g_base),"registered unlock wrapper and direct native call agree");
+    Put(image.data(),0x27D7878,g_base+0x7C4390);
+    Check(!UnlockBoundaryMatches(g_base),"adjacent IsSkinEquipped wrapper rejected");
+    Put(image.data(),0x27D7878,g_base+0x7C4440);
+    Put<int32_t>(image.data(),0x7C44C8,int32_t(0x574860)-0x7C44CC);
+    Check(!UnlockBoundaryMatches(g_base),"wrong equipped target rejected despite correct wrapper label");
+    Put<int32_t>(image.data(),0x7C44C8,int32_t(UnlockRva)-0x7C44CC);
+    image[UnlockRva]^=1;Check(!UnlockBoundaryMatches(g_base),"changed native prologue rejected");image[UnlockRva]^=1;
     Names names;Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(names.chunks));
     unsigned char cls[0x40]{},table[0x40]{},package[0x40]{};
     names.Object(cls,"DataTable");Put(table,0x10,reinterpret_cast<uintptr_t>(cls));Put(table,0x20,reinterpret_cast<uintptr_t>(package));

@@ -1,12 +1,12 @@
-## V1.67 test — Darksiders Genesis Enhanced PC Mod
+## V1.68 test — Darksiders Genesis Enhanced PC Mod
 
-Mod Windows x64 pour Darksiders Genesis : caméra native/TPS, souris et manette, coop locale, réglages de gameplay, raccourcis et mise à jour intégrée. **Canal expérimental `debug`** ; la branche stable `main` et les anciennes archives sont conservées.
+Mod Windows x64 : caméra native/TPS, souris et manette, coop locale, réglages de gameplay, raccourcis et mise à jour intégrée. Canal expérimental **debug** ; main/archive et anciens ZIP préservés.
 
-**Nouveau lot V1.67 EXPÉRIMENTAL : pistolet droit/gauche au choix pour chaque main de Strife ; montures bonus et apparences de progression proposées séparément dans la page Skins native. Nouveaux comportements à valider dans le jeu.** Base retenue V1.66, sauts et holsters validés par l’utilisateur le 19 octobre 2026 ; acquis conservés, canal `debug`. [Preuves, inventaire et essais V1.67](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_67_PISTOL_CHOICES_AND_SKINS.md).
+Base : V1.66 pour les sauts/holsters validés, avec les sélecteurs de pistolet V1.67 validés par l’utilisateur. **Nouveau lot EXPÉRIMENTAL : vrai contrôle de déblocage des skins, continuité de focus au changement, durée ultime infinie et visuels Léviathan.** Construction, intégrité du paquet et résultat en jeu sont des contrôles distincts. [État et reçu de livraison](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/CURRENT_STATE.md).
 
-[Télécharger le ZIP cumulatif V1.67](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/c760123057e66f2b3d7053b7acf3441de2cee44e/downloads/DarksidersGenesis_V1.67_PISTOL_CHOICES_SKINS_TEST.zip) · [Contrôles Windows : 42/42 suites, aucun avertissement MSVC](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39253436601) · [Inventaire et essais V1.67](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_67_PISTOL_CHOICES_AND_SKINS.md).
+[ZIP cumulatif V1.68](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.68_VISUALS_ULTIMATE_TEST.zip) · [Preuves, limites et essais](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_68_VISUALS_ULTIMATE_TEST.md).
 
-Le ZIP vérifié contient exactement quatre fichiers à la racine : `dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md`. Taille : 809061 octets. SHA256 : `8E37AE2BBBAD9465BEFE2BC75F2566B74311EB0908E01682D1D6CD02EF3B9591`. **CONSTRUIT / CONTRÔLÉ ; nouveaux comportements EXPÉRIMENTAUX, non validés en jeu.** La compilation et l’intégrité du paquet ne valident pas le comportement en jeu.
+Le paquet doit contenir exactement quatre fichiers à la racine : `dxgi.dll`, `DarksidersGenesisMod.asi`, `DarksidersGenesisMod.ini`, `README.md`. Les nouveaux comportements attendent une validation dans le jeu.
 
 ### Installation et mise à jour
 
@@ -28,18 +28,24 @@ Dans **Updates**, choisir le canal voulu, puis vérifier les mises à jour. Le c
 | Rangement | Délais séparés lames Strife / pistolets Strife / épée War ; action commune avec raccourcis clavier et manette | Délais validés V1.65 ; holsters validés dans l’essai V1.66 |
 | Sauts supplémentaires | OFF / After gliding / Always on | Sauts validés dans l’essai utilisateur V1.66 |
 | Action Recovery | Ancienne fin anticipée retirée depuis V1.58 | Pas d’option active ; nouvelle approche en étude |
-| Modèles 3D des pistolets | Choix indépendant du modèle droit ou gauche par main de Strife | Expérimental V1.67 ; aucun asset supplémentaire |
-| Skins | Deux montures bonus ; six variantes de progression dans deux groupes séparés | Expérimental V1.67 ; disponibilité cosmétique native, aucun déblocage de récompense écrit |
+| Modèles 3D des pistolets | Choix indépendant du modèle droit ou gauche par main de Strife | Choix gauche/droite validés ; OFF complet encore ouvert |
+| Skins | Deux montures bonus ; six variantes de progression dans deux groupes séparés | Correction V1.68 expérimentale ; aucun grant de récompense |
 
 [État courant](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/CURRENT_STATE.md) et [file active](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/ACTIVE_QUEUE.md) font référence pour les éléments restant à tester ou réparer. Une validation utilisateur porte sur l’essai rapporté, sans supposer tous les personnages, chapitres et états coop vérifiés.
 
-### Apparences V1.67
+### Apparences et durée ultime V1.68
 
-Dans Gameplay, section Appearance, choisir **Native / Right pistol model / Left pistol model** indépendamment pour la main droite et la main gauche. Les holsters montés utilisent le modèle rangé correspondant. Les choix concernent Strife des deux joueurs locaux ; prise en main, effets et pose restent expérimentaux. Native conserve l’apparence d’origine de chaque main.
+Les choix **Native / Right pistol model / Left pistol model** par main de Strife sont conservés. Les holsters montés utilisent la variante rangée correspondante. Le futur OFF complet (modèle, effets et bras, avec projectiles conservés) n’est pas livré dans cette version.
 
-Deux cases distinctes, OFF par défaut : **Bonus mount skins** pour Rampage (War) et Despair (Strife) ; **Progression skins** pour les variantes Abyssal, Silver et Gold de chacun. Cela propose les apparences dans la page Skins du jeu, sans récompense attribuée par le mod. Le jeu garde la sélection et peut mémoriser l’apparence équipée. Le PAK de montures existant n’est ni remplacé ni nécessaire au nouveau contrôle ASI ; s’il reste installé, OFF ne retire pas son déblocage natif. Choisir une apparence possédée avant de désactiver un groupe.
+**Bonus mount skins** et **Progression skins** restent indépendants et OFF par défaut. V1.67 interceptait à tort « équipé » ; V1.68 remplace ce branchement par le vrai « débloqué ». Aucun droit DLC, récompense ou bonus de gameplay accordé par le mod. Le jeu garde la sélection native ; fermer et rouvrir la page Skins après un changement. Le PAK existant est conservé et peut maintenir les montures disponibles avec l’option ASI OFF. L’autonomie de l’ASI reste à tester séparément.
 
-Essais groupés : deux pistolets identiques puis inversés à pied/cheval, tirs/rangement, retour Native ; fermer et rouvrir la page Skins après chaque changement, vérifier les groupes, retour OFF et comparaison sans le seul PAK de montures pour prouver l’autonomie de l’ASI. L’INI personnel est prioritaire ; les quatre nouveaux réglages sont Native/Native et OFF/OFF par défaut. Pour retirer le lot, reprendre le ZIP V1.66 en conservant l’INI.
+**Infinite Ultimate duration** bloque seulement le débit de la transformation déjà active, au niveau courant de jauge. Il ne remplit rien et ne rend pas l’activation gratuite. Décocher reprend le multiplicateur de durée si sa case est active, sinon le débit natif. Nouvelle action assignable dans Hotkeys, non attribuée par défaut. **Unlimited Ultimate** conserve son rôle de remplissage.
+
+**Override Leviathan lightning**, décoché par défaut, rend le comportement natif. Une fois coché : **OFF / Effect 1 / Effect 2 / Effect 3**. Visuel seulement, sans accorder le cœur ou son bonus. Si le visuel choisi est indisponible, le menu l’indique et conserve l’effet natif. Pied/cheval/ultime et P2 à tester, ainsi que le retour natif sans doublon.
+
+**TPS lens focus** change la méthode de profondeur de champ dans les vues TPS ; il peut rendre les décors plus nets. OFF conserve la méthode native et la correction de distance focale. V1.68 propose une correction du bref retour de focale native au changement de personnage, sans changer angle/FOV/ouverture. Le problème est signalé dans plusieurs niveaux. Le HUD absent après sélection d’arène verrouillée reste un diagnostic ouvert ; aucun réaffichage global forcé n’est ajouté.
+
+Essais groupés et rollback : [rapport V1.68](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_68_VISUALS_ULTIMATE_TEST.md). INI personnel prioritaire ; les trois nouvelles clés gardent le comportement natif par défaut.
 
 ### Raccourcis du profil fourni
 

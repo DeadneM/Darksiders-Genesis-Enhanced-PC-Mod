@@ -82,6 +82,7 @@ enum class Action : int {
     GrappleRange,
     InfiniteDoubleJump,
     UltimateDecreaseRate,
+    InfiniteUltimateDuration,
     Count
 };
 
@@ -139,7 +140,8 @@ kActionLabels = {
     "Toggle limited Standard ammunition",
     "Toggle grapple range",
     "Cycle infinite double jump",
-    "Toggle Ultimate decrease rate"
+    "Toggle Ultimate decrease rate",
+    "Toggle Infinite Ultimate duration"
 };
 
 inline constexpr std::array<const wchar_t*, static_cast<std::size_t>(Action::Count)>
@@ -196,7 +198,8 @@ kActionTokens = {
     L"FiniteStandardAmmo",
     L"GrappleRange",
     L"InfiniteDoubleJump",
-    L"UltimateDecreaseRate"
+    L"UltimateDecreaseRate",
+    L"InfiniteUltimateDuration"
 };
 
 // Instant actions share the validated one-shot manual refill queue.
@@ -258,6 +261,8 @@ public:
     int pistolLeftModel = 0;
     bool bonusMountSkinsEnabled = false;
     bool progressionSkinsEnabled = false;
+    bool leviathanVisualEnabled = false;
+    int leviathanVisualMode = 0;
     bool weaponSheathingEnabled = false;
     bool sheathNeverEnabled = true;
     float sheathDelaySeconds = 10.0f;
@@ -315,6 +320,7 @@ public:
     bool wrathChargeEnabled = true;
     bool ultimateChargeEnabled = true;
     bool ultimateDecreaseEnabled = false;
+    bool ultimateInfiniteDurationEnabled = false;
     float ultimateDurationMultiplier = 2.0f;
     bool synergyChargeEnabled = true;
     bool unlimitedWrathEnabled = false;

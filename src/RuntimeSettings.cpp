@@ -20,6 +20,8 @@ void Publish(const Snapshot& s) {
     g_state.pistolLeftModel.store(s.pistolLeftModel);
     g_state.bonusMountSkinsEnabled.store(s.bonusMountSkinsEnabled);
     g_state.progressionSkinsEnabled.store(s.progressionSkinsEnabled);
+    g_state.leviathanVisualEnabled.store(s.leviathanVisualEnabled);
+    g_state.leviathanVisualMode.store(s.leviathanVisualMode);
     g_state.weaponSheathingEnabled.store(s.weaponSheathingEnabled);
     g_state.sheathNeverEnabled.store(s.sheathNeverEnabled);
     g_state.sheathDelaySeconds.store(s.sheathDelaySeconds);
@@ -67,6 +69,7 @@ void Publish(const Snapshot& s) {
     g_state.wrathChargeEnabled.store(s.wrathChargeEnabled, std::memory_order_relaxed);
     g_state.ultimateChargeEnabled.store(s.ultimateChargeEnabled, std::memory_order_relaxed);
     g_state.ultimateDecreaseEnabled.store(s.ultimateDecreaseEnabled);
+    g_state.ultimateInfiniteDurationEnabled.store(s.ultimateInfiniteDurationEnabled);
     g_state.ultimateDurationMultiplier.store(s.ultimateDurationMultiplier);
     g_state.synergyChargeEnabled.store(s.synergyChargeEnabled, std::memory_order_relaxed);
     g_state.unlimitedWrathEnabled.store(s.unlimitedWrathEnabled);

@@ -36,16 +36,29 @@ void Run(){
     unlimited=true;Check(Use()==100,"native Unlimited handling retains priority and its return value");unlimited=false;
     rt.ultimateDurationMultiplier=std::numeric_limits<float>::quiet_NaN();Use();Check(received==4,"nonfinite input fails open");
     Check(calls==18,"every native call, including excluded paths, runs exactly once");
+    rt.ultimateDecreaseEnabled=false;rt.ultimateInfiniteDurationEnabled=true;
+    Use();Check(received==0,"infinite duration stops drain without requiring the multiplier or a valid multiplier value");
+    Use(4,0x64B8C7);Check(received==4,"infinite duration does not bypass activation or other costs");
+    Use(-4);Check(received==-4,"infinite duration preserves gains");
+    Put(resource,0x3A8,0.f);Use();Check(received==4,"infinite duration never refills an empty gauge");Put(resource,0x3A8,80.f);
+    local=false;Use();Check(received==4,"infinite duration excludes remote actors");local=true;
+    paused=true;Use();Check(received==4,"infinite duration excludes pause");paused=false;
+    player=1;Use();Check(received==0,"infinite duration also covers P2");
+    rt.ultimateInfiniteDurationEnabled=false;rt.ultimateDurationMultiplier=2;
+    Use();Check(received==4,"infinite OFF resumes native drain when the multiplier is OFF");
+    rt.ultimateDecreaseEnabled=true;Use();Check(received==2,"infinite OFF restores the retained multiplier when enabled");
 
     wchar_t folder[MAX_PATH]{},path[MAX_PATH]{};Check(GetTempPathW(MAX_PATH,folder)&&GetTempFileNameW(folder,L"DGU",0,path),"temporary INI");
     dg::config::Store config;config.SetPath(path);config.Load();Check(!config.ultimateDecreaseEnabled&&config.ultimateDurationMultiplier==2,"duration option is opt-in with x2 parameter default");
-    config.ultimateDecreaseEnabled=true;config.ultimateDurationMultiplier=.5f;config.hotkeys[10]=dg::config::Action::UltimateDecreaseRate;
+    config.ultimateDecreaseEnabled=true;config.ultimateDurationMultiplier=.5f;config.hotkeys[10]=dg::config::Action::InfiniteUltimateDuration;
+    config.ultimateInfiniteDurationEnabled=true;
     Check(config.SaveNow(),"duration saved");dg::config::Store loaded;loaded.SetPath(path);
     Check(loaded.Load()&&loaded.ultimateDecreaseEnabled&&loaded.ultimateDurationMultiplier==.5f&&
-          loaded.hotkeys==config.hotkeys&&rt.ultimateDurationMultiplier.load()==.5f,"subunit duration, runtime and appended hotkey round-trip");
+          loaded.hotkeys==config.hotkeys&&loaded.ultimateInfiniteDurationEnabled&&rt.ultimateInfiniteDurationEnabled.load()&&rt.ultimateDurationMultiplier.load()==.5f,"subunit duration, infinite duration, runtime and appended hotkey round-trip");
     static_assert(int(dg::config::Action::InfiniteDoubleJump)==51&&int(dg::config::Action::UltimateDecreaseRate)==52);
+    static_assert(int(dg::config::Action::InfiniteUltimateDuration)==53);
     loaded.ultimateDurationMultiplier=0;Check(loaded.SaveNow()&&loaded.Load()&&loaded.ultimateDurationMultiplier==0,"zero survives profile load");
-    loaded.ResetDefaults(false);Check(!loaded.ultimateDecreaseEnabled&&loaded.ultimateDurationMultiplier==2,"reset preserves opt-in default");
+    loaded.ResetDefaults(false);Check(!loaded.ultimateDecreaseEnabled&&!loaded.ultimateInfiniteDurationEnabled&&loaded.ultimateDurationMultiplier==2,"reset preserves opt-in defaults");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,path);DeleteFileW(path);
 }
 }

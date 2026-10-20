@@ -327,6 +327,7 @@ void Store::ResetDefaults(bool persist) {
     weaponSheathingEnabled=false;sheathNeverEnabled=true;sheathDelaySeconds=10.0f;
     mountedHolstersEnabled=false;
     pistolRightModel=0;pistolLeftModel=0;bonusMountSkinsEnabled=false;progressionSkinsEnabled=false;
+    leviathanVisualEnabled=false;leviathanVisualMode=0;
     sheathStrifeMeleeNeverEnabled=false;sheathStrifeMeleeDelaySeconds=0.0f;
     sheathWarNeverEnabled=true;sheathWarDelaySeconds=10.0f;
     sheathKeyboardKey=0;sheathPadButtonA=0;sheathPadButtonB=0;
@@ -375,7 +376,7 @@ void Store::ResetDefaults(bool persist) {
     hotstreakChargeEnabled = true;
     wrathChargeEnabled = true;
     ultimateChargeEnabled = true;
-    ultimateDecreaseEnabled=false;ultimateDurationMultiplier=2.0f;
+    ultimateDecreaseEnabled=false;ultimateDurationMultiplier=2.0f;ultimateInfiniteDurationEnabled=false;
     synergyChargeEnabled = true;
     unlimitedWrathEnabled = false;
     unlimitedUltimateEnabled = false;
@@ -574,6 +575,9 @@ bool Store::Load() {
     if(pistolLeftModel<0||pistolLeftModel>2)pistolLeftModel=0;
     bonusMountSkinsEnabled=ReadBool(L"Features",L"BonusMountSkins",false,path_);
     progressionSkinsEnabled=ReadBool(L"Features",L"ProgressionSkins",false,path_);
+    leviathanVisualEnabled=ReadBool(L"Features",L"LeviathanVisual",false,path_);
+    leviathanVisualMode=GetPrivateProfileIntW(L"Values",L"LeviathanVisualMode",0,path_.c_str());
+    if(leviathanVisualMode<0||leviathanVisualMode>3)leviathanVisualMode=0;
     sheathStrifeMeleeNeverEnabled=ReadBool(L"Features",L"StrifeMeleeNeverAutoSheathe",false,path_);
     sheathStrifeMeleeDelaySeconds=std::clamp(ReadFloat(L"Values",L"StrifeMeleeSheathDelaySeconds",0.0f,path_),0.0f,300.0f);
     // Existing personal setting continues to govern pistols; War inherits it
@@ -691,6 +695,7 @@ bool Store::Load() {
     wrathChargeEnabled=ReadBool(L"Features",L"WrathCharge",true,path_);
     ultimateChargeEnabled=ReadBool(L"Features",L"UltimateFormCharge",true,path_);
     ultimateDecreaseEnabled=ReadBool(L"Features",L"UltimateDecreaseRate",false,path_);
+    ultimateInfiniteDurationEnabled=ReadBool(L"Features",L"InfiniteUltimateDuration",false,path_);
     ultimateDurationMultiplier=std::clamp(ReadFloat(L"Values",L"UltimateDurationMultiplier",2.0f,path_),0.0f,10.0f);
     synergyChargeEnabled=ReadBool(L"Features",L"SynergyCharge",true,path_);
 
@@ -910,6 +915,7 @@ void Store::PublishRuntime() const {
     runtime.pistolLeftModel=pistolLeftModel;
     runtime.bonusMountSkinsEnabled=bonusMountSkinsEnabled;
     runtime.progressionSkinsEnabled=progressionSkinsEnabled;
+    runtime.leviathanVisualEnabled=leviathanVisualEnabled;runtime.leviathanVisualMode=leviathanVisualMode;
     runtime.sheathStrifeMeleeNeverEnabled=sheathStrifeMeleeNeverEnabled;
     runtime.sheathStrifeMeleeDelaySeconds=sheathStrifeMeleeDelaySeconds;
     runtime.sheathWarNeverEnabled=sheathWarNeverEnabled;
@@ -963,6 +969,7 @@ void Store::PublishRuntime() const {
     runtime.wrathChargeEnabled = wrathChargeEnabled;
     runtime.ultimateChargeEnabled = ultimateChargeEnabled;
     runtime.ultimateDecreaseEnabled=ultimateDecreaseEnabled;runtime.ultimateDurationMultiplier=ultimateDurationMultiplier;
+    runtime.ultimateInfiniteDurationEnabled=ultimateInfiniteDurationEnabled;
     runtime.synergyChargeEnabled = synergyChargeEnabled;
     runtime.unlimitedWrathEnabled = unlimitedWrathEnabled;
     runtime.unlimitedUltimateEnabled = unlimitedUltimateEnabled;
@@ -1074,6 +1081,8 @@ bool Store::SaveNow() {
     WriteInt(L"Values",L"PistolLeftModel",pistolLeftModel,path_);
     WriteBool(L"Features",L"BonusMountSkins",bonusMountSkinsEnabled,path_);
     WriteBool(L"Features",L"ProgressionSkins",progressionSkinsEnabled,path_);
+    WriteBool(L"Features",L"LeviathanVisual",leviathanVisualEnabled,path_);
+    WriteInt(L"Values",L"LeviathanVisualMode",leviathanVisualMode,path_);
     WriteBool(L"Features",L"StrifeMeleeNeverAutoSheathe",sheathStrifeMeleeNeverEnabled,path_);
     WriteFloat(L"Values",L"StrifeMeleeSheathDelaySeconds",sheathStrifeMeleeDelaySeconds,path_);
     WriteBool(L"Features",L"WarNeverAutoSheathe",sheathWarNeverEnabled,path_);
@@ -1205,6 +1214,7 @@ bool Store::SaveNow() {
     WriteBool(L"Features",L"WrathCharge",wrathChargeEnabled,path_);
     WriteBool(L"Features",L"UltimateFormCharge",ultimateChargeEnabled,path_);
     WriteBool(L"Features",L"UltimateDecreaseRate",ultimateDecreaseEnabled,path_);
+    WriteBool(L"Features",L"InfiniteUltimateDuration",ultimateInfiniteDurationEnabled,path_);
     WriteFloat(L"Values",L"UltimateDurationMultiplier",ultimateDurationMultiplier,path_);
     WriteBool(L"Features",L"SynergyCharge",synergyChargeEnabled,path_);
 

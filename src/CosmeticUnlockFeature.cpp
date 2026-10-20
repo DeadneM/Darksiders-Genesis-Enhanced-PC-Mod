@@ -1,4 +1,5 @@
 #include "CosmeticUnlockFeature.h"
+#include "CosmeticNativeBoundary.h"
 #include "NativeObjectName.h"
 #include "RuntimeSettings.h"
 #include <MinHook.h>
@@ -6,8 +7,8 @@
 
 namespace dg::cosmetics {
 namespace {
-// 7C4390 passes a borrowed FDataTableRowHandle through 574860 into
-// 60BF90(manager,handle). Return AL is cosmetic availability, not a grant.
+// PlayerState execIsSkinUnlocked (7C4440) passes a borrowed row handle to
+// 574870(playerState,handle). IsSkinEquipped is deliberately never hooked.
 struct RowHandle {uintptr_t table=0;int index=-1,number=0;};
 static_assert(sizeof(RowHandle)==16);
 using CheckFn=bool(*)(void*,const RowHandle*);
@@ -33,9 +34,9 @@ Group Classify(const RowHandle* handle){
        (row("StrifeSkin_Abyssal")||row("StrifeSkin_Silver")||row("StrifeSkin_Gold")))return Group::Progression;
     return Group::Unknown;
 }
-bool HookCheck(void* manager,const RowHandle* handle){
+bool HookCheck(void* playerState,const RowHandle* handle){
     if(!g_original)return false;
-    const bool native=g_original(manager,handle);
+    const bool native=g_original(playerState,handle);
     if(native||!g_ready.load(std::memory_order_acquire))return native;
     const auto& rt=runtime::Get();
     if(!rt.bonusMountSkinsEnabled.load()&&!rt.progressionSkinsEnabled.load())return native;
@@ -43,22 +44,19 @@ bool HookCheck(void* manager,const RowHandle* handle){
     const bool allow=(group==Group::BonusMount&&rt.bonusMountSkinsEnabled.load())||
         (group==Group::Progression&&rt.progressionSkinsEnabled.load());
     if(allow&&g_overrides.fetch_add(1)==0&&g_log)
-        g_log("Cosmetics V1.67: exact skin availability overridden; native selection only, no save flags, rewards, stats or DLC ownership written; EXPERIMENTAL");
+        g_log("Cosmetics V1.68: exact skin unlock overridden; native selection only, no save flags, rewards, stats or DLC ownership written; EXPERIMENTAL");
     return allow;
 }
 }
 void Initialize(LogFn log,bool exactExecutable){
     g_log=log;if(!exactExecutable)return;g_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));if(!g_base)return;
-    constexpr unsigned char signature[]={0x48,0x89,0x5C,0x24,0x08,0x48,0x89,0x74,0x24,0x10,0x57,0x48,0x83,0xEC,0x20,0x48};
-    constexpr unsigned char bridge[]={0x48,0x8B,0x89,0x50,0x06,0x00,0x00,0xE9};
-    if(std::memcmp(reinterpret_cast<void*>(g_base+0x60BF90),signature,sizeof(signature))||
-       std::memcmp(reinterpret_cast<void*>(g_base+0x574860),bridge,sizeof(bridge)))return;
+    if(!UnlockBoundaryMatches(g_base)){if(log)log("Cosmetics V1.68 DISABLED: IsSkinUnlocked registration/call signature mismatch");return;}
     const auto initialized=MH_Initialize();if(initialized!=MH_OK&&initialized!=MH_ERROR_ALREADY_INITIALIZED)return;
-    void* target=reinterpret_cast<void*>(g_base+0x60BF90);
+    void* target=reinterpret_cast<void*>(g_base+UnlockRva);
     if(MH_CreateHook(target,reinterpret_cast<void*>(&HookCheck),reinterpret_cast<void**>(&g_original))!=MH_OK)return;
     if(MH_EnableHook(target)!=MH_OK){MH_RemoveHook(target);g_original=nullptr;return;}
     g_ready.store(true,std::memory_order_release);
-    if(log)log("Cosmetics V1.67 READY: two bonus mounts / six progression appearances, separate opt-in availability; no global entitlement or grant hook; EXPERIMENTAL");
+    if(log)log("Cosmetics V1.68 READY: verified IsSkinUnlocked boundary; IsSkinEquipped untouched; two bonus mounts / six progression appearances; no grants or ownership writes; EXPERIMENTAL");
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}
 void Shutdown(){g_ready.store(false,std::memory_order_release);}
