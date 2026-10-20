@@ -231,16 +231,17 @@ void RecoverMovement(void* ability,const local_players::Context& owner,float ela
        native_tps::IsWorldPaused(reinterpret_cast<void*>(owner.character))||native_tps::CinematicActive(unsigned(owner.index))){state={};return;}
     void* table=nullptr;uintptr_t setter=0,interrupt=0;void* ifaceTable=nullptr;uintptr_t query=0;
     void* actor=reinterpret_cast<void*>(owner.character);void* movement=nullptr;
+    local_players::Pose pose{};
     float remaining=0,duration=0,velocity[3]{};uint64_t interruptMask=0;
     if(!Read(ability,0,table)||!Read(table,0x2A0,setter)||setter!=reinterpret_cast<uintptr_t>(g_allowMove)||
        !Read(table,0x280,interrupt)||interrupt!=g_base+0x5B2CE0||
        !Read(actor,0x8D0,ifaceTable)||!Read(ifaceTable,0x18,query)||query!=reinterpret_cast<uintptr_t>(g_actionQuery)||
        !Read(ability,0x224,remaining)||!Read(ability,0x228,duration)||!Read(ability,0xB0,interruptMask)||
-       !Read(actor,0x388,movement)||!Read(movement,0x10C,velocity)){state={};return;}
+       !Read(actor,0x388,movement)||!Read(movement,0x10C,velocity)||!local_players::ReadPose(owner,pose)){state={};return;}
     const float speed2=velocity[0]*velocity[0]+velocity[1]*velocity[1]+velocity[2]*velocity[2];
     const bool held=g_actionQuery(static_cast<unsigned char*>(actor)+0x8D0,29)!=0;
     if(!state.Sample(owner.localPlayer,owner.character,reinterpret_cast<uintptr_t>(ability),now,
-        elapsed,remaining,duration,speed2,true,held,(interruptMask&2)!=0))return;
+        elapsed,remaining,duration,speed2,true,held,(interruptMask&2)!=0,pose.x,pose.y,pose.z))return;
     struct Scope {Scope(){g_recovering=true;}~Scope(){g_recovering=false;}} scope;
     // Native virtual +2A0 adds the MOVE cause, sends its event and replays the
     // real queued/held action. It owns cleanup; no EndAbility/NONE call, field
