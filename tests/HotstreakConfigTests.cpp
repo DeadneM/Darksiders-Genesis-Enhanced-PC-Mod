@@ -9,7 +9,8 @@ int main(){
     using namespace dg::config;
     static_assert(int(Action::UnlimitedHorseSprint)==43&&int(Action::ReduceHotstreak)==44&&
         int(Action::UnlimitedHotstreak)==45&&int(Action::RefillHotstreak)==46&&int(Action::RefillAmmo)==47&&
-        int(Action::UltimateDecreaseRate)==52&&int(Action::InfiniteUltimateDuration)==53&&int(Action::Count)==54);
+        int(Action::UltimateDecreaseRate)==52&&int(Action::InfiniteUltimateDuration)==53&&
+        int(Action::DashMovementRecovery)==54&&int(Action::Count)==55);
     unsigned failed=0;auto check=[&](bool value,const char* message){if(!value){++failed;std::printf("FAIL %s\n",message);}};
     wchar_t directory[MAX_PATH]{},path[MAX_PATH]{};
     if(!GetTempPathW(MAX_PATH,directory)||!GetTempFileNameW(directory,L"DGH",0,path))return 1;
