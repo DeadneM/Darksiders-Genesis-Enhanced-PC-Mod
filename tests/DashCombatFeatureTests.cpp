@@ -226,7 +226,8 @@ void Run(){
     };
     for(bool tps:{false,true})for(int player=0;player<2;++player){
         Fresh();enableRecovery();dg::runtime::Get().thirdPersonEnabled=tps;
-        const auto beforeActor=std::to_array(players[player].actor),beforeMovement=std::to_array(players[player].movement);
+        const auto beforeActor=std::to_array(players[player].actor);
+        const auto beforeMovement=std::to_array(players[player].movement);
         for(unsigned i=0;i<12;++i)Tick(player,100+i*16);
         Check(moveRequests==1&&moveAbility==players[player].ability&&moveCause==1&&moveAllowed,
             "native/TPS and either local owner request native MOVE, exactly once after observed movement end");
