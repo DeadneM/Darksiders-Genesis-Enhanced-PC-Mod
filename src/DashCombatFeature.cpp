@@ -1,4 +1,5 @@
 #include "DashCombatFeature.h"
+#include "PistolVisualFeature.h"
 #include "LocalPlayerOwnership.h"
 #include "NativeTpsFeature.h"
 #include "DashCombatPolicy.h"
@@ -213,7 +214,7 @@ void HookSoundNotify(void* notify,void* mesh,void* animation){
     if(!SkipPresentation(notify,mesh,animation,true)&&g_sound)g_sound(notify,mesh,animation);
 }
 void HookParticleNotify(void* notify,void* mesh,void* animation){
-    if(!SkipPresentation(notify,mesh,animation,false)&&g_particle)g_particle(notify,mesh,animation);
+    if(!pistol_visual::SkipParticle(notify,mesh)&&!SkipPresentation(notify,mesh,animation,false)&&g_particle)g_particle(notify,mesh,animation);
 }
 void Tick(void* ability,float dt,ULONGLONG now){
     // Observe only AFTER the complete native tick. No early finish, timer,
@@ -331,5 +332,6 @@ void OnLivePlayer(void* actor){
     if(g_log&&(n<=8||n%1000==0)){char line[190]{};
         sprintf_s(line,"Dash combat V1.56 AIM_RESTART_REQUEST player=%d n=%u nativeHeldAim=1 oncePerDash=1 gameplay=EXPERIMENTAL",owner.index+1,n);g_log(line);}
 }
+bool PresentationReady(){return g_presentationReady.load(std::memory_order_acquire);}
 void Report(){if(g_log){char line[240]{};sprintf_s(line,"Dash combat totals aimRestartRequests=%u forcedStandardSkipped=%u soundSkipped=%u effectSkipped=%u; request counts are not gameplay validation",g_resumed.load(),g_suppressed.load(),g_soundSkipped.load(),g_particleSkipped.load());g_log(line);}}
 }

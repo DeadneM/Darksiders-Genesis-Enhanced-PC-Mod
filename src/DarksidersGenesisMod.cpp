@@ -45,6 +45,7 @@
 #include "ManualAimFeature.h"
 #include "HeavyLandingFeature.h"
 #include "MountedHolsterFeature.h"
+#include "PistolVisualFeature.h"
 #include "CosmeticUnlockFeature.h"
 #include "LeviathanVisualFeature.h"
 #include "UltimateDurationFeature.h"
@@ -1457,6 +1458,7 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     dg::heavy_landing::OnLivePlayer(owner,generation,!g_overlayVisible.load()&&gameplayWindow&&
         GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load());
     dg::mounted_holsters::OnLivePlayer(owner);
+    dg::pistol_visual::OnLivePlayer(owner,generation,gameplayWindow&&GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load());
     dg::leviathan_visual::OnLivePlayer(owner);
     dg::air_jump::OnLivePlayer(owner,generation);
 }
@@ -4203,6 +4205,7 @@ void ShutdownMod() {
     dg::sheathing::Shutdown();
     dg::manual_aim::Shutdown();
     dg::heavy_landing::Shutdown();
+    dg::pistol_visual::Shutdown();
     dg::mounted_holsters::Shutdown();
     dg::cosmetics::Shutdown();
     dg::leviathan_visual::Shutdown();
@@ -4463,6 +4466,7 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::manual_aim::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::heavy_landing::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::mounted_holsters::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::pistol_visual::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::cosmetics::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::leviathan_visual::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::ultimate_duration::Initialize(&FeatureLog,g_targetValidation.exact);

@@ -208,6 +208,9 @@ void Run(){
     Check(nativeCalls==1,"standard projectile notify still forwards exactly once");
 }
 }
+// The OFF candidate has its own native-boundary suite. This fixture exercises
+// the validated dash consumer with that optional presentation filter inactive.
+namespace dg::pistol_visual {bool SkipParticle(void*,void*){return false;}}
 namespace dg::native_tps {
 bool OnGameThread(){return gameThread;}
 bool IsWorldPaused(void*){return paused;}

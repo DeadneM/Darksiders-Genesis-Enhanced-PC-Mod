@@ -1,3 +1,13 @@
+## V1.76 — candidat OFF par pistolet à pied, préparation
+
+Base validée : V1.73 dans les essais rapportés. V1.75 est construite/contrôlée mais ses deux nouveautés restent en attente du test utilisateur ; elles sont reprises cumulativement sans validation inventée. L'utilisateur demande de poursuivre et testera le lot plus tard ; installation manuelle, aucune fermeture ou relance à demander.
+
+**PRÉPARÉ / EXPÉRIMENTAL, pas encore construit ni validé en jeu.** Nouveau choix OFF par main dans Appearance, Strife normal à pied, utilisant une pose rangée native et une copie de rendu. Aucun changement des poses des sockets, du calcul de projectile, des actions, du mouvement ou des munitions. Modèles gauche/droite existants, holsters et fonctions V1.75 conservés. Les deux choix fournis restent Native ; aucun nouveau raccourci ou clé INI.
+
+Limites explicites : cheval/ultime restent natifs ; effets de bouche individualisés filtrés par main, effets communs connus retirés seulement avec les deux OFF. Ce n'est donc pas encore le OFF universel de tous les effets/formes. Les six capacités ne sont pas échangeables dans ce build ; adaptation des montages et composants toujours ouverte. [Objectif, preuves, tests et rollback](V1_76_FOOT_PISTOL_OFF_TEST.md). CI et paquet à compléter après résultats réels.
+
+---
+
 ## V1.75 — construite et contrôlée, installation manuelle
 
 21 octobre 2026. **CONSTRUITE / CONTRÔLÉE / NON INSTALLÉE ; nouvelles fonctions EXPÉRIMENTALES, non validées en jeu.** Base V1.73 validée dans les essais rapportés, canal debug. [CI Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39537334409) : 45/45 suites, zéro avertissement MSVC. Visée seule manette avec un/deux boutons et nouveau candidat de déplacement après réception lourde automatique ; les deux sont OFF par défaut. Aucun ancien Recovery du dash réactivé.

@@ -575,8 +575,8 @@ bool Store::Load() {
     mountedHolstersEnabled=ReadBool(L"Features",L"MountedPistolHolsters",false,path_);
     pistolRightModel=GetPrivateProfileIntW(L"Values",L"PistolRightModel",0,path_.c_str());
     pistolLeftModel=GetPrivateProfileIntW(L"Values",L"PistolLeftModel",0,path_.c_str());
-    if(pistolRightModel<0||pistolRightModel>2)pistolRightModel=0;
-    if(pistolLeftModel<0||pistolLeftModel>2)pistolLeftModel=0;
+    if(pistolRightModel<0||pistolRightModel>3)pistolRightModel=0;
+    if(pistolLeftModel<0||pistolLeftModel>3)pistolLeftModel=0;
     bonusMountSkinsEnabled=ReadBool(L"Features",L"BonusMountSkins",false,path_);
     progressionSkinsEnabled=ReadBool(L"Features",L"ProgressionSkins",false,path_);
     leviathanVisualEnabled=ReadBool(L"Features",L"LeviathanVisual",false,path_);

@@ -5,6 +5,7 @@
 #include "ManualAimFeature.h"
 #include "HeavyLandingFeature.h"
 #include "MountedHolsterFeature.h"
+#include "PistolVisualFeature.h"
 #include "CosmeticUnlockFeature.h"
 #include "LeviathanVisualFeature.h"
 #include "UltimateDurationFeature.h"
@@ -259,14 +260,29 @@ void Draw(Context& c) {
             }
             if(ImGui::CollapsingHeader("Appearance")){
             ImGui::Indent(12.0f);
-            constexpr const char* pistolModels[]={"Native (original for this hand)","Right pistol model","Left pistol model"};
+            constexpr const char* pistolModels[]={"Native (original for this hand)","Right pistol model","Left pistol model","OFF (foot, experimental)"};
+            const auto pistolChoice=[&](const char* label,int& value){
+                ImGui::SetNextItemWidth(280.0f);
+                if(ImGui::BeginCombo(label,pistolModels[(value>=0&&value<=3)?value:0])){
+                    for(int i=0;i<4;++i){
+                        ImGui::BeginDisabled(i==3&&!pistol_visual::Ready());
+                        if(ImGui::Selectable(pistolModels[i],value==i)){value=i;config.Save();}
+                        if(value==i)ImGui::SetItemDefaultFocus();
+                        ImGui::EndDisabled();
+                    }
+                    ImGui::EndCombo();
+                }
+            };
             ImGui::BeginDisabled(!mounted_holsters::Ready());
-            ImGui::SetNextItemWidth(280.0f);
-            if(ImGui::Combo("Strife right hand##PistolModel",&config.pistolRightModel,pistolModels,3))config.Save();
-            ImGui::SetNextItemWidth(280.0f);
-            if(ImGui::Combo("Strife left hand##PistolModel",&config.pistolLeftModel,pistolModels,3))config.Save();
+            pistolChoice("Strife right hand##PistolModel",config.pistolRightModel);
+            pistolChoice("Strife left hand##PistolModel",config.pistolLeftModel);
             ImGui::EndDisabled();
             ImGui::TextWrapped("Choose either existing pistol independently for each hand, for both local players. Mounted holsters use the matching stowed model. Native restores that hand's previous model. Experimental: check grip alignment and firing effects.");
+            if(config.pistolRightModel==3||config.pistolLeftModel==3){
+                ImGui::TextWrapped("OFF: normal Strife on foot only. Sheathe both weapons, then stand still briefly. The selected pistol is hidden and its arm rests while aiming; shooting remains active. Melee, horse and Ultimate keep their native presentation. Shared firing effects remain with one visible pistol; both OFF removes the known shared muzzle effects.");
+                if(!pistol_visual::Ready())ImGui::TextDisabled("OFF unavailable for this executable; native presentation retained.");
+                else ImGui::TextDisabled("OFF ready: P1 %s | P2 %s",pistol_visual::PoseReady(0)?"yes":"sheathe and wait",pistol_visual::PoseReady(1)?"yes":"sheathe and wait");
+            }
             DrawToggleFeature(config,"Bonus mount skins (experimental)","BonusMountSkins",&config.bonusMountSkinsEnabled,
                 "Makes Rampage (War) and Despair (Strife) available in the game's Skins page without the optional PAK. A bonus mount already selected stays equipped when loading, even with this option OFF, like armor skins. The native mount remains selectable. No automatic equip. OFF restores native menu availability; a PAK or an existing unlock can still keep them available.",cosmetics::Ready());
             if(!cosmetics::SelectionRetentionReady())

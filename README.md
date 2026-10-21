@@ -1,3 +1,13 @@
+## V1.76 test — Darksiders Genesis Enhanced PC Mod
+
+Lot cumulatif debug : nouvelle option **OFF (foot, experimental)** pour chaque pistolet de Strife dans Gameplay → Appearance. Candidat en préparation, compilation/contrôles non encore confirmés, **non validé en jeu**. Reprend la visée manette sans tir et le Recovery de réception lourde V1.75, encore à tester. Base validée V1.73 conservée dans les essais rapportés.
+
+Pour OFF à pied : ranger les armes puis rester immobile brièvement ; le menu indique quand la pose est prête. Le candidat masque le pistolet choisi et repose son bras pendant la visée, avec tirs actifs. Retour Native réversible. Mêlée, cheval et ultime restent natifs. Les effets connus propres à une main sont filtrés ; certains effets communs restent avec un pistolet visible, puis sont retirés avec les deux OFF. Aucun OFF universel des effets/formes annoncé. Les choix Native et modèles gauche/droite restent disponibles.
+
+Installation manuelle ultérieure : conserver l'INI personnel et ses raccourcis. Aucun fichier du jeu remplacé par l'agent. [Tests groupés, risques bornés et rollback](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_76_FOOT_PISTOL_OFF_TEST.md). Échange libre des six capacités encore en étude. Les sections suivantes décrivent les bases précédentes et leurs statuts historiques.
+
+---
+
 ## V1.75 test — Darksiders Genesis Enhanced PC Mod
 
 Lot cumulatif **debug** sur la base V1.73 validée dans les essais rapportés : **visée sans tir à la manette** avec un ou deux boutons configurables, et candidat **Heavy landing movement recovery** pour reprendre le déplacement après une réception lourde automatique. Version **CONSTRUITE / CONTRÔLÉE**, 45/45 suites Windows x64, zéro avertissement MSVC. Les deux nouveautés sont **EXPÉRIMENTALES**, OFF par défaut et non validées en jeu. [ZIP vérifié, intégrité et reçu de livraison](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_75_DELIVERY_RECEIPT.md). [Objectif et essais groupés](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_75_PAD_AIM_HEAVY_LANDING_TEST.md).

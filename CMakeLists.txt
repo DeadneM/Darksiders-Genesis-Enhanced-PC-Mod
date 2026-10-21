@@ -11,6 +11,11 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(PistolVisualTests tests/PistolVisualTests.cpp src/RuntimeSettings.cpp src/ConfigStore.cpp)
+  target_include_directories(PistolVisualTests PRIVATE tests/stubs src)
+  target_compile_definitions(PistolVisualTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  target_link_libraries(PistolVisualTests PRIVATE user32)
+  add_test(NAME PistolVisual COMMAND PistolVisualTests)
   add_executable(LeviathanVisualTests tests/LeviathanVisualTests.cpp src/RuntimeSettings.cpp src/ConfigStore.cpp)
   target_include_directories(LeviathanVisualTests PRIVATE src)
   target_compile_definitions(LeviathanVisualTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
@@ -296,6 +301,7 @@ add_library(DarksidersGenesisMod SHARED
   src/ManualAimFeature.cpp
   src/HeavyLandingFeature.cpp
   src/MountedHolsterFeature.cpp
+  src/PistolVisualFeature.cpp
   src/CosmeticUnlockFeature.cpp
   src/LeviathanVisualFeature.cpp
   src/UltimateDurationFeature.cpp
