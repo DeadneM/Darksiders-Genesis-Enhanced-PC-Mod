@@ -8,7 +8,7 @@ namespace {
 using dg::pistol_visual::Matrix;using dg::pistol_visual::Matrices;using dg::pistol_visual::Transform;
 unsigned char actors[2][0x1100]{},meshes[2][0x800]{},skeletons[2][0x400]{},renderObjects[2][0x80]{};
 unsigned char packets[2][0x110]{},guns[2][2][0x600]{},items[24*24]{},names[12][128]{},notify[0x100]{},klass[0x40]{},effect[0x40]{};
-uintptr_t nameEntries[12]{},nameChunks[1]{nameEntries};void* chunks[1]{items};
+uintptr_t nameEntries[12]{},nameChunks[1]{reinterpret_cast<uintptr_t>(nameEntries)};void* chunks[1]{items};
 Matrices current[2]{},previous[2]{};std::array<Transform,80> poses[2]{};
 bool gameThread=true,paused=false,cinematic=false,radial=false,presentation=true;unsigned hiddenCalls=0;
 uintptr_t forwarded[7]{};bool initResult=true;
