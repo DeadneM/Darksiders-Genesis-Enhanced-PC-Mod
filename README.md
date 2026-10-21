@@ -1,10 +1,10 @@
 ## V1.77 test — Darksiders Genesis Enhanced PC Mod
 
-Lot cumulatif debug **EN PRÉPARATION / EXPÉRIMENTAL**, non validé en jeu. Nouveau panneau **Gameplay → Wrath ability slots** : trois emplacements indépendants par personnage, parmi ses trois capacités natives. Le jeu conserve le lancement, le déverrouillage, le coût et les animations. Tous les choix fournis valent Native ; anciens réglages/raccourcis conservés.
+Lot cumulatif debug **CONSTRUIT / CONTRÔLÉ : 47/47 suites Windows x64, zéro avertissement MSVC**. Nouveau panneau Gameplay → **Wrath ability slots** : trois choix indépendants par personnage, parmi ses trois capacités natives. Tous les choix fournis valent Native. Le jeu conserve lancement, déverrouillage, coût et animations. **EXPÉRIMENTAL, non validé en jeu.**
 
-**Le choix libre parmi les six capacités n'est pas encore terminé.** Les capacités étrangères nécessitent une adaptation de leurs animations et composants ; cette première étape permet de tester la réaffectation native sans les forcer. Les indications de roue peuvent encore décrire l'emplacement initial. Visée sans tir, réception lourde V1.75 et OFF à pied V1.76 repris cumulativement, toujours à tester. [Objectif, limites et essais groupés](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_77_NATIVE_WRATH_SLOTS_TEST.md).
+**L'échange libre des six capacités reste à terminer.** Les pouvoirs étrangers nécessitent l'adaptation des animations et composants. Les indications de roue peuvent encore décrire l'emplacement initial. Candidats visée sans tir/réception lourde V1.75 et OFF à pied V1.76 repris sans modification, toujours à tester. Base validée V1.73 dans les essais rapportés.
 
-Installation manuelle ultérieure, garder l'INI personnel et les raccourcis. Aucun fichier du jeu remplacé par l'agent. Les sections suivantes décrivent les versions précédentes et leurs statuts historiques.
+[Télécharger le ZIP V1.77 vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/b5da4721104b0b5a08911bf8cc51af88a4559f6f/downloads/DarksidersGenesis_V1.77_NATIVE_WRATH_SLOTS_TEST.zip) · [Reçu et intégrité](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_77_DELIVERY_RECEIPT.md) · [Essais groupés](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_77_NATIVE_WRATH_SLOTS_TEST.md). Installation manuelle ultérieure, garder l'INI personnel et ses raccourcis ; les six nouvelles clés absentes restent Native. Aucun fichier du jeu remplacé par l'agent. Les sections suivantes décrivent les versions précédentes et leurs statuts historiques.
 
 ---
 

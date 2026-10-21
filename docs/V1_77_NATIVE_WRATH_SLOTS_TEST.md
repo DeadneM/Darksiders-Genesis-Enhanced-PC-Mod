@@ -4,7 +4,7 @@
 
 Base cumulative V1.76, construite/contrôlée ; base explicitement validée V1.73 pour les essais rapportés. L'utilisateur autorise de poursuivre « comme si » le lot précédent était validé, sans attendre ses essais groupés : cette instruction autorise la suite mais ne fournit pas de nouvelle observation en jeu.
 
-**PRÉPARÉ / EXPÉRIMENTAL : construction et contrôles à venir, aucune validation en jeu.** Objectif de ce build : trois choix indépendants par personnage parmi **ses trois pouvoirs natifs**, via une seule frontière fonctionnelle, sans remplacement d'entrée physique ni d'animation. Critère : le jeu reçoit le bon ID pour la classe, son déverrouillage et son coût ; désactivation/Native rend le comportement initial, et les autres fonctions restent inchangées.
+**CONSTRUIT / CONTRÔLÉ : 47/47 suites Windows x64, zéro avertissement MSVC ; EXPÉRIMENTAL, aucune validation en jeu.** [Reçu de livraison et intégrité](V1_77_DELIVERY_RECEIPT.md). Objectif de ce build : trois choix indépendants par personnage parmi **ses trois pouvoirs natifs**, via une seule frontière fonctionnelle, sans remplacement d'entrée physique ni d'animation. Critère : le jeu reçoit le bon ID pour la classe, son déverrouillage et son coût ; désactivation/Native rend le comportement initial, et les autres fonctions restent inchangées.
 
 **Le choix libre parmi les six capacités demandé par l'utilisateur n'est pas terminé.** Cette étape rend testable la réaffectation interne. Aucun choix de pouvoir étranger inopérant n'est affiché. L'adaptation Strife ↔ War reste ouverte.
 
@@ -35,6 +35,8 @@ Sur l'exécutable supporté SHA256 `9f4702024df5eea1d51df7745b0ad1ea95b97009982f
 Inventaire privé SHA vérifié de 73 assets de référence, incluant variantes/chains et animations : les données de référence de Strife et War comportent **87 et 135 os sérialisés**, avec racines `Bone_Strife_Root` et `Bone_War_Root` et noms distincts. Cela dépasse la seule différence de nom d'asset de squelette. Aucun contournement du contrôle de squelette ajouté.
 
 Les effets de gameplay sont aussi déclenchés depuis les montages **et** séquences : `SpawnShadowClone`, `DoSpawnCaltropsSpawner`, `StartBeam/DestroyBeam`, `SpawnBlast`, `SetFalling`, `EnableStopOnCollision`. Transférer seulement les notifications d'un montage ignorerait celles des séquences et les transitions. World Ender exige toujours son composant propre, comme établi en V1.76. Prochaine étape : adapter l'animation et le lifecycle par pouvoir, en gardant ces notifications et les origines d'effet cohérentes. Les exports privés et binaires du jeu ne sont pas publiés. 63 exports auxiliaires n'ont pas de propriétés décodées complètement dans cet inventaire ; aucune conclusion de compatibilité n'en est tirée.
+
+Complément après construction : **40/40 fonctions Blueprint des six pouvoirs** entièrement décodées, avec égalité des tailles sérialisées et mémoire. `SpawnShadowClone` cherche explicitement `ShadowCharacterComponent` ; `StartBeam` cherche son composant World Ender. Ces lectures ne prouvent pas leur présence/configuration sur le personnage étranger. Aucun pouvoir étranger lancé. Les erreurs des 63 exports auxiliaires de l’inventaire restent distinctes de ces 40 fonctions contrôlées.
 
 ## Essais groupés ultérieurs
 
