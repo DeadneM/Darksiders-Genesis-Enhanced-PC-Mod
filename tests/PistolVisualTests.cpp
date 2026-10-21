@@ -139,7 +139,7 @@ void Config(){
     wchar_t folder[MAX_PATH]{},path[MAX_PATH]{};
     Check(GetTempPathW(MAX_PATH,folder)&&GetTempFileNameW(folder,L"dgp",0,path),"create isolated INI fixture");
     dg::config::Store a;a.SetPath(path);Check(a.Load(),"load old INI fixture");
-    a.pistolRightModel=3;a.pistolLeftModel=1;a.menuKey=VK_F10;const auto keys=a.hotkeys;a.Save();
+    a.pistolRightModel=3;a.pistolLeftModel=1;a.menuKey=VK_F10;const auto keys=a.hotkeys;Check(a.SaveNow(),"write OFF selection before disk round trip");
     dg::config::Store b;b.SetPath(path);
     Check(b.Load()&&b.pistolRightModel==3&&b.pistolLeftModel==1&&b.menuKey==VK_F10&&b.hotkeys==keys,"OFF round trip preserves independent hand and personal bindings");
     Check(dg::runtime::Get().pistolRightModel.load()==3,"OFF is published to the runtime");
