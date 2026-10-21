@@ -43,6 +43,7 @@
 #include "InteractionHudFeature.h"
 #include "WeaponSheathingFeature.h"
 #include "ManualAimFeature.h"
+#include "HeavyLandingFeature.h"
 #include "MountedHolsterFeature.h"
 #include "CosmeticUnlockFeature.h"
 #include "LeviathanVisualFeature.h"
@@ -1452,6 +1453,9 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     dg::health::OnLivePlayer(character,generation);
     dg::sheathing::OnLivePlayer(owner,generation);
     dg::manual_aim::OnLivePlayer(owner,generation);
+    const HWND gameplayWindow=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+    dg::heavy_landing::OnLivePlayer(owner,generation,!g_overlayVisible.load()&&gameplayWindow&&
+        GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load());
     dg::mounted_holsters::OnLivePlayer(owner);
     dg::leviathan_visual::OnLivePlayer(owner);
     dg::air_jump::OnLivePlayer(owner,generation);
@@ -4198,6 +4202,7 @@ void ShutdownMod() {
     dg::interaction_hud::Shutdown();
     dg::sheathing::Shutdown();
     dg::manual_aim::Shutdown();
+    dg::heavy_landing::Shutdown();
     dg::mounted_holsters::Shutdown();
     dg::cosmetics::Shutdown();
     dg::leviathan_visual::Shutdown();
@@ -4456,6 +4461,7 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::interaction_hud::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::sheathing::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::manual_aim::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::heavy_landing::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::mounted_holsters::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::cosmetics::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::leviathan_visual::Initialize(&FeatureLog,g_targetValidation.exact);

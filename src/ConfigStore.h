@@ -268,6 +268,7 @@ public:
     bool leviathanVisualEnabled = false;
     int leviathanVisualMode = 0;
     bool weaponSheathingEnabled = false;
+    bool heavyLandingRecoveryEnabled = false;
     bool sheathNeverEnabled = true;
     float sheathDelaySeconds = 10.0f;
     bool sheathStrifeMeleeNeverEnabled = false;

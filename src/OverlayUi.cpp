@@ -3,6 +3,7 @@
 #include "InteractionHudFeature.h"
 #include "WeaponSheathingFeature.h"
 #include "ManualAimFeature.h"
+#include "HeavyLandingFeature.h"
 #include "MountedHolsterFeature.h"
 #include "CosmeticUnlockFeature.h"
 #include "LeviathanVisualFeature.h"
@@ -334,6 +335,8 @@ void Draw(Context& c) {
             if(ImGui::CollapsingHeader("Player movement",ImGuiTreeNodeFlags_DefaultOpen)){
             ImGui::Indent(12.0f);
             DrawSectionTitle("Player");
+            DrawToggleFeature(config,"Heavy landing movement recovery (experimental)","HeavyLandingRecovery",&config.heavyLandingRecoveryEnabled,
+                "Allows normal movement shortly after ground contact during the heavy landing after a high fall. Keeps the landing animation and impact effects. Does not change dashes, attacks or character swaps. Native and TPS views; test both characters.",heavy_landing::Ready());
             DrawTunableFeature(
                 config,
                 "Movement Speed",

@@ -1,4 +1,4 @@
-name: V1.74 Native controller aim without firing TEST
+name: V1.75 Native controller aim and heavy landing movement recovery TEST
 on:
   push:
     branches: [debug]
@@ -47,7 +47,7 @@ jobs:
           Copy-Item config/DarksidersGenesisMod.ini dist/
           Copy-Item README.md dist/
           New-Item -ItemType Directory -Path downloads -Force | Out-Null
-          $zipPath = 'downloads/DarksidersGenesis_V1.74_NATIVE_PAD_AIM_TEST.zip'
+          $zipPath = 'downloads/DarksidersGenesis_V1.75_PAD_AIM_HEAVY_LANDING_TEST.zip'
           if (Test-Path -LiteralPath $zipPath) { throw "A numbered ZIP already exists; use a new build version" }
           Compress-Archive -Path 'dist/*' -DestinationPath $zipPath -CompressionLevel Optimal
           Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -63,8 +63,8 @@ jobs:
       - name: Upload verified Windows x64 ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_V1.74_NATIVE_PAD_AIM_TEST
-          path: downloads/DarksidersGenesis_V1.74_NATIVE_PAD_AIM_TEST.zip
+          name: DarksidersGenesis_V1.75_PAD_AIM_HEAVY_LANDING_TEST
+          path: downloads/DarksidersGenesis_V1.75_PAD_AIM_HEAVY_LANDING_TEST.zip
           if-no-files-found: error
       - name: Preserve numbered experimental ZIP in debug
         shell: pwsh
@@ -79,7 +79,7 @@ jobs:
           for ($i=0; $i -lt 5; $i++) {
             git fetch origin debug
             if ($LASTEXITCODE -ne 0) { throw 'Fetch failed' }
-            $archivePath = 'downloads/DarksidersGenesis_V1.74_NATIVE_PAD_AIM_TEST.zip'
+            $archivePath = 'downloads/DarksidersGenesis_V1.75_PAD_AIM_HEAVY_LANDING_TEST.zip'
             $priorBlob = git ls-tree --format='%(objectname)' origin/debug -- $archivePath
             if ($LASTEXITCODE -ne 0) { throw 'Archive identity lookup failed' }
             if ($priorBlob) {
@@ -88,7 +88,7 @@ jobs:
             }
             git reset --mixed origin/debug
             if ($LASTEXITCODE -ne 0) { throw 'Reset to latest origin/debug failed' }
-            git add -- downloads/DarksidersGenesis_V1.74_NATIVE_PAD_AIM_TEST.zip
+            git add -- downloads/DarksidersGenesis_V1.75_PAD_AIM_HEAVY_LANDING_TEST.zip
             if ($LASTEXITCODE -ne 0) { throw 'Archive add failed' }
             git diff --cached --quiet
             if ($LASTEXITCODE -eq 0) {
@@ -103,4 +103,4 @@ jobs:
             Start-Sleep -Seconds 2
           }
           if (-not $published) { throw 'Permanent experimental ZIP push failed' }
-          Write-Host 'V1.74 ZIP https://raw.githubusercontent.com/'"$env:GITHUB_REPOSITORY"'/debug/downloads/DarksidersGenesis_V1.74_NATIVE_PAD_AIM_TEST.zip'
+          Write-Host 'V1.75 ZIP https://raw.githubusercontent.com/'"$env:GITHUB_REPOSITORY"'/debug/downloads/DarksidersGenesis_V1.75_PAD_AIM_HEAVY_LANDING_TEST.zip'

@@ -19,6 +19,7 @@ struct Snapshot {
     bool leviathanVisualEnabled = false;
     int leviathanVisualMode = 0;
     bool weaponSheathingEnabled = false;
+    bool heavyLandingRecoveryEnabled = false;
     bool sheathNeverEnabled = true;
     float sheathDelaySeconds = 10.0f;
     bool sheathStrifeMeleeNeverEnabled = false;
@@ -133,6 +134,7 @@ struct State {
     std::atomic_bool leviathanVisualEnabled{false};
     std::atomic_int leviathanVisualMode{0};
     std::atomic_bool weaponSheathingEnabled{false};
+    std::atomic_bool heavyLandingRecoveryEnabled{false};
     std::atomic_bool sheathNeverEnabled{true};
     std::atomic<float> sheathDelaySeconds{10.0f};
     std::atomic_bool sheathStrifeMeleeNeverEnabled{false};

@@ -23,6 +23,7 @@ void Publish(const Snapshot& s) {
     g_state.leviathanVisualEnabled.store(s.leviathanVisualEnabled);
     g_state.leviathanVisualMode.store(s.leviathanVisualMode);
     g_state.weaponSheathingEnabled.store(s.weaponSheathingEnabled);
+    g_state.heavyLandingRecoveryEnabled.store(s.heavyLandingRecoveryEnabled);
     g_state.sheathNeverEnabled.store(s.sheathNeverEnabled);
     g_state.sheathDelaySeconds.store(s.sheathDelaySeconds);
     g_state.sheathStrifeMeleeNeverEnabled.store(s.sheathStrifeMeleeNeverEnabled);

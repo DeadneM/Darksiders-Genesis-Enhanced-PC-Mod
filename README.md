@@ -1,13 +1,16 @@
-## V1.73 test — Darksiders Genesis Enhanced PC Mod
+## V1.75 test — Darksiders Genesis Enhanced PC Mod
 
-### V1.74 — visée sans tir à la manette, TEST en préparation
+Lot cumulatif **debug** sur la base V1.73 validée dans les essais rapportés : **visée sans tir à la manette** avec un ou deux boutons configurables, et candidat **Heavy landing movement recovery** pour reprendre le déplacement après une réception lourde automatique. Les deux nouveautés sont **EXPÉRIMENTALES**, OFF par défaut ; compilation, contrôles et résultats en jeu seront précisés dans le reçu. [Objectif et essais groupés](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_75_PAD_AIM_HEAVY_LANDING_TEST.md).
 
-Base cumulative V1.73. Dans **Gameplay → Aim without firing**, deux entrées configurables : un champ OFF permet l'autre bouton seul, deux entrées actives nécessitent leur maintien simultané, OFF/OFF désactive la fonction. Elles commencent sur OFF. La visée appelle l'action native, sans simuler Ctrl ni générer de tir. En TPS elle suit la caméra du joueur ; en coop chaque manette concerne son propre joueur. Les affectations natives restent actives. Relâcher après menu, changement de personnage ou reconnexion avant de viser de nouveau.
+Gameplay → **Aim without firing** : un champ OFF laisse l'autre bouton fonctionner seul ; deux entrées actives nécessitent leur maintien ensemble ; OFF/OFF désactive la fonction. Le maintien appelle l'action native, sans simuler Ctrl ou ajouter de tir. En TPS, il suit la caméra du joueur ; chaque manette concerne son propre joueur. Les affectations natives restent actives. Relâcher après menu, changement de personnage ou reconnexion avant de viser à nouveau.
 
-**EXPÉRIMENTAL : compilation, contrôles et essai en jeu seront précisés dans le reçu de livraison.** [Objectif et essais V1.74](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_74_NATIVE_PAD_AIM_TEST.md). INI personnel, raccourcis et acquis V1.73 conservés. Le nouveau choix des six capacités par emplacement est à l'étude, sans option inactive ajoutée.
+Gameplay → Player movement → **Heavy landing movement recovery (experimental)** : ouvre les deux verrous de déplacement après l'impact d'une chute assez haute, sans forcer l'arrêt de l'animation. Ce candidat vise seulement les HeavyLand normaux de Strife/War ; dash, attaques, Rampage, transformations et changements de personnage restent conservés. L'efficacité réelle et les effets doivent être vérifiés en jeu ; trois réceptions Strife observées, pas de War_HeavyLand dans la capture.
+
+**L'échange libre des six capacités et le OFF complet par pistolet restent en étude et ne sont pas annoncés fonctionnels.** Les dépendances de squelettes, composants et rendu sont documentées. [File restante](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/ACTIVE_QUEUE.md). Installation manuelle par l'utilisateur à la fin de sa session, INI personnel et raccourcis à conserver. Aucun fichier du jeu remplacé pendant la préparation.
 
 ---
 
+### Acquis de la base V1.73
 
 Canal **debug**, lot cumulatif : maintien de Despair/Rampage au chargement, distance DOF native/TPS jusqu'à **5 000 m**, nettoyage du Recovery du dash signalé sans effet. **CONSTRUIT / CONTRÔLÉ / INSTALLÉ** ; trois essais V1.73 confirmés par l’utilisateur : 43/43 suites Windows x64, zéro avertissement MSVC ; installation avec sauvegarde et INI personnel conservé. Chargement des montures, réglages DOF et contrôle visée/tir/dash confirmés dans les essais V1.73 rapportés. [ZIP immuable contrôlé](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/516db3d8cd898e9d544c571a2ba73fdfa38d070b/downloads/DarksidersGenesis_V1.73_MOUNT_DOF_CLEANUP_TEST.zip). [Critères et essais groupés](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_73_MOUNT_DOF_CLEANUP_TEST.md).
 

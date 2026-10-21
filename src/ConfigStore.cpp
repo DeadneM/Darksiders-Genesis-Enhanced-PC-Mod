@@ -325,6 +325,7 @@ void Store::ResetDefaults(bool persist) {
 
     toggleHudEnabled = true;interactionHudScaleEnabled=true;interactionHudScale=0.65f;
     weaponSheathingEnabled=false;sheathNeverEnabled=true;sheathDelaySeconds=10.0f;
+    heavyLandingRecoveryEnabled=false;
     mountedHolstersEnabled=false;
     pistolRightModel=0;pistolLeftModel=0;bonusMountSkinsEnabled=false;progressionSkinsEnabled=false;
     leviathanVisualEnabled=false;leviathanVisualMode=0;
@@ -568,6 +569,7 @@ bool Store::Load() {
 
     toggleHudEnabled = true; // V0.54: hidden/visible is the only HUD state
     weaponSheathingEnabled=ReadBool(L"Features",L"WeaponSheathing",false,path_);
+    heavyLandingRecoveryEnabled=ReadBool(L"Features",L"HeavyLandingRecovery",false,path_);
     sheathNeverEnabled=ReadBool(L"Features",L"NeverAutoSheathe",true,path_);
     sheathDelaySeconds=std::clamp(ReadFloat(L"Values",L"SheathDelaySeconds",10.0f,path_),0.0f,300.0f);
     mountedHolstersEnabled=ReadBool(L"Features",L"MountedPistolHolsters",false,path_);
@@ -922,6 +924,7 @@ void Store::PublishRuntime() const {
     runtime.interactionHudScaleEnabled=interactionHudScaleEnabled;
     runtime.interactionHudScale=interactionHudScale;
     runtime.weaponSheathingEnabled=weaponSheathingEnabled;
+    runtime.heavyLandingRecoveryEnabled=heavyLandingRecoveryEnabled;
     runtime.sheathNeverEnabled=sheathNeverEnabled;
     runtime.sheathDelaySeconds=sheathDelaySeconds;
     runtime.mountedHolstersEnabled=mountedHolstersEnabled;
@@ -1084,6 +1087,7 @@ bool Store::SaveNow() {
 
     WriteProfileString(L"Features", L"ToggleHUD", nullptr, path_.c_str());
     WriteBool(L"Features",L"WeaponSheathing",weaponSheathingEnabled,path_);
+    WriteBool(L"Features",L"HeavyLandingRecovery",heavyLandingRecoveryEnabled,path_);
     WriteBool(L"Features",L"NeverAutoSheathe",sheathNeverEnabled,path_);
     WriteProfileString(L"Controls",L"SheatheKeyboardKey",KeyTokenFromVK(sheathKeyboardKey).c_str(),path_.c_str());
     wchar_t sheathPadText[32]{};
