@@ -1,0 +1,91 @@
+{
+  "base": "9dcd5fff6c3fbabe3dde4051f6fe71ac09e70361",
+  "methods": [
+    "A lexical references and production CMake/include graph",
+    "B member producer/consumer plus lifecycle/ABI side effects"
+  ],
+  "files": 110,
+  "cppFiles": 39,
+  "physicalLines": 19711,
+  "outsideProductionGraph": [],
+  "firstPassFunctionCandidates": 156,
+  "externalEntryPointsKept": 153,
+  "windowsEntrypointsKept": 2,
+  "confirmedUnusedGetter": 1,
+  "publicApiCandidates": 21,
+  "publicApiFalsePositives": 20,
+  "telemetryWithoutConsumers": 48,
+  "diagnosticMirrorsRetired": 22,
+  "timestampWithoutConsumer": 1,
+  "changedFiles": {
+    "src/CameraTraceFeature.cpp": {
+      "before": 1089,
+      "after": 1070
+    },
+    "src/CameraTraceFeature.h": {
+      "before": 104,
+      "after": 91
+    },
+    "src/DarksidersGenesisMod.cpp": {
+      "before": 4502,
+      "after": 4459
+    },
+    "src/EngineIniFeature.cpp": {
+      "before": 243,
+      "after": 232
+    },
+    "src/EngineIniFeature.h": {
+      "before": 15,
+      "after": 14
+    },
+    "src/GaugeChargeFeature.cpp": {
+      "before": 314,
+      "after": 311
+    },
+    "src/HorseFeature.cpp": {
+      "before": 1280,
+      "after": 1240
+    },
+    "src/HorseFeature.h": {
+      "before": 58,
+      "after": 41
+    },
+    "src/OverlayUi.h": {
+      "before": 79,
+      "after": 65
+    },
+    "src/RuntimeSettings.h": {
+      "before": 280,
+      "after": 278
+    },
+    "src/ShaderAimFeature.cpp": {
+      "before": 220,
+      "after": 218
+    },
+    "src/ShaderAimFeature.h": {
+      "before": 18,
+      "after": 16
+    }
+  },
+  "added": 5,
+  "deleted": 172,
+  "netReduction": 167,
+  "criticalCallsPreserved": {
+    "src/CameraTraceFeature.cpp": 26,
+    "src/CameraTraceFeature.h": 0,
+    "src/DarksidersGenesisMod.cpp": 59,
+    "src/EngineIniFeature.cpp": 3,
+    "src/EngineIniFeature.h": 1,
+    "src/GaugeChargeFeature.cpp": 10,
+    "src/HorseFeature.cpp": 22,
+    "src/HorseFeature.h": 0,
+    "src/OverlayUi.h": 0,
+    "src/RuntimeSettings.h": 0,
+    "src/ShaderAimFeature.cpp": 10,
+    "src/ShaderAimFeature.h": 0
+  },
+  "gitApplyCheck": true,
+  "productionSourceUnchanged": true,
+  "candidateCompiled": false,
+  "gameplayValidated": false
+}

@@ -1,2 +1,4 @@
 # Preserve the original mixed line endings in these historical snapshots.
 docs/history/*_THROUGH_V1_66.md -text
+# The review patch preserves mixed CRLF/LF context from the exact audited source.
+docs/proposals/V1_77_CLEANUP_REVIEW.patch -text

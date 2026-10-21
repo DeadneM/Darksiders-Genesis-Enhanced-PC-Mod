@@ -1,5 +1,7 @@
 ## V1.77 test — Darksiders Genesis Enhanced PC Mod
 
+[Audit de maintenance comparé](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/AUDIT_DOUBLE_NETTOYAGE_V1_77.md) : patch de nettoyage préparé pour le prochain lot, non appliqué ; V1.77 reste inchangée pendant les essais.
+
 Lot cumulatif debug **CONSTRUIT / CONTRÔLÉ : 47/47 suites Windows x64, zéro avertissement MSVC**. Nouveau panneau Gameplay → **Wrath ability slots** : trois choix indépendants par personnage, parmi ses trois capacités natives. Tous les choix fournis valent Native. Le jeu conserve lancement, déverrouillage, coût et animations. **EXPÉRIMENTAL, non validé en jeu.**
 
 **L'échange libre des six capacités reste à terminer.** Les pouvoirs étrangers nécessitent l'adaptation des animations et composants. Les indications de roue peuvent encore décrire l'emplacement initial. Candidats visée sans tir/réception lourde V1.75 et OFF à pied V1.76 repris sans modification, toujours à tester. Base validée V1.73 dans les essais rapportés.
