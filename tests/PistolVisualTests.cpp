@@ -2,15 +2,17 @@
 #include "ConfigStore.h"
 #include <iostream>
 #include <vector>
+#include <utility>
 #include <stdexcept>
 #include <limits>
 namespace {
 using dg::pistol_visual::Matrix;using dg::pistol_visual::Matrices;using dg::pistol_visual::Transform;
 unsigned char actors[2][0x1100]{},meshes[2][0x800]{},skeletons[2][0x400]{},renderObjects[2][0x80]{};
-unsigned char packets[2][0x110]{},guns[2][2][0x600]{},items[24*24]{},names[12][128]{},notify[0x100]{},klass[0x40]{},effect[0x40]{};
-uintptr_t nameEntries[12]{},nameChunks[1]{reinterpret_cast<uintptr_t>(nameEntries)};void* chunks[1]{items};
+unsigned char packets[2][0x110]{},guns[2][2][0x600]{},items[24*24]{},names[24][128]{},notify[0x100]{},klass[0x40]{},effect[0x40]{};
+uintptr_t nameEntries[24]{},nameChunks[1]{reinterpret_cast<uintptr_t>(nameEntries)};void* chunks[1]{items};
 Matrices current[2]{},previous[2]{};std::array<Transform,80> poses[2]{};
 bool gameThread=true,paused=false,cinematic=false,radial=false,presentation=true;unsigned hiddenCalls=0;
+std::vector<std::pair<bool,unsigned char>> hiddenEvents;
 uintptr_t forwarded[7]{};bool initResult=true;
 template<class T> void Put(void* p,size_t offset,const T& value){std::memcpy(static_cast<unsigned char*>(p)+offset,&value,sizeof(value));}
 template<class T> T Get(void* p,size_t offset){T value{};std::memcpy(&value,static_cast<unsigned char*>(p)+offset,sizeof(value));return value;}
@@ -23,7 +25,7 @@ dg::native_objects::Identity Register(void* p,int index){
 }
 void Name(unsigned index,const char* text){nameEntries[index]=reinterpret_cast<uintptr_t>(names[index]);strcpy_s(reinterpret_cast<char*>(names[index]+12),sizeof(names[index])-12,text);}
 void HiddenSetter(void* object,bool hidden,unsigned char propagation){
-    Check(propagation==1,"native no-child propagation enum retained");++hiddenCalls;
+    Check(propagation<=2,"native propagation enum valid");++hiddenCalls;hiddenEvents.emplace_back(hidden,propagation);
     auto flags=Get<unsigned char>(object,0x1CC);flags=static_cast<unsigned char>((flags&~0x40u)|(hidden?0x40u:0));Put(object,0x1CC,flags);
 }
 void Policy(){
@@ -42,7 +44,7 @@ void Policy(){
     output=source;old=source;clav[0]=Translation(20,7,0);
     Check(cache.Apply(1,clav,1000,output,&old),"right only application");
     for(unsigned i=0;i<BoneCount;++i){
-        const bool right=i>=Upper[0]&&i<Upper[0]+ArmBones;
+        const bool right=i>=Clavicle[0]&&i<Upper[0]+ArmBones;
         Check(Equal(output[i],right?Translation(float(i)+10,9,3):source[i]),"opposite arm, legs, spine, scarf and holsters preserved");
         Check(Equal(old[i],output[i]),"first frame has no phantom old aim pose");
     }
@@ -51,6 +53,19 @@ void Policy(){
     auto bad=clav;bad[1].m[0][0]=std::numeric_limits<float>::infinity();const auto before=output;
     Check(!cache.Apply(3,bad,1060,output,&old)&&std::memcmp(&before,&output,sizeof(output))==0,"invalid opposite arm rejects transaction without partial write");
     Check(!cache.Apply(4,clav,1070,output,nullptr),"unsupported mask rejected");
+    output=source;old=source;clav[1]=Translation(-20,5,0);
+    Check(cache.Apply(2,clav,1200,output,&old),"validated left branch remains independent");
+    for(unsigned i=0;i<BoneCount;++i){
+        const bool left=i>=18&&i<=39;
+        Check(Equal(output[i],left?Translation(float(i)-10,7,3):source[i]),"left OFF preserves native right branch and left clavicle");
+    }
+    output=source;old=source;Check(HideHolsters(2,output,&old),"left holster render collapse");
+    for(unsigned i=0;i<BoneCount;++i)if(i!=79)Check(Equal(output[i],source[i]),"holster suppression cannot alter arms, root, or opposite holster");
+    for(unsigned i=0;i<3;++i)for(unsigned j=0;j<4;++j)Check(output[79].m[i][j]==0&&old[79].m[i][j]==0,"current and previous holster triangles collapse together");
+    Check(output[79].m[3][0]==source[79].m[3][0],"holster collapse preserves finite translation");
+    output=source;old=source;output[78].m[0][0]=std::numeric_limits<float>::infinity();const auto untouched=old;
+    Check(!HideHolsters(3,output,&old)&&std::memcmp(&old,&untouched,sizeof(old))==0,"bad holster matrix cannot partially change other packet");
+    Check(!HideHolsters(4,output,nullptr),"unknown holster mask rejected");
     Check(HideEffect(EffectSide::Right,1)&&!HideEffect(EffectSide::Left,1)&&!HideEffect(EffectSide::Shared,1)&&
           HideEffect(EffectSide::Shared,3)&&!HideEffect(EffectSide::Unknown,3),"per-hand and shared root effects remain distinct");
 }
@@ -80,7 +95,7 @@ void Runtime(){
         Put(meshes[p],0x5A8,std::array<int,2>{-1,0});Put(meshes[p],0x5F4,0);
         Put(meshes[p],0x5B0,Array{reinterpret_cast<uintptr_t>(&poses[p]),80,80});
         for(unsigned i=0;i<80;++i){current[p][i]=Translation(float(i),float(p),5);poses[p][i].q[3]=1;poses[p][i].s[0]=poses[p][i].s[1]=poses[p][i].s[2]=1;}
-        previous[p]=current[p];poses[p][40].t[0]=10;poses[p][17].t[0]=-10;
+        previous[p]=current[p];poses[p][14].t[0]=10;poses[p][17].t[0]=-10;
         for(unsigned side=0;side<2;++side){
             auto gun=Register(guns[p][side],int(p*5+3+side));
             Put(actors[p],0x1040+side*8,gun.address);Put(guns[p][side],0,g_base+0x2A575C8);
@@ -91,10 +106,11 @@ void Runtime(){
     const auto nativePose=poses[0];
     std::array<unsigned char,sizeof(actors)> beforeActors{};std::memcpy(beforeActors.data(),actors,sizeof(actors));
     const auto baseline=current[0];auto& s=g_players[0].snapshot;s.capture=false;s.lower=true;s.tick=1100;
-    dg::runtime::Get().pistolRightModel=3;poses[0][40].t[0]=20;
+    dg::runtime::Get().pistolRightModel=3;poses[0][14].t[0]=20;
     Check(ProcessPacket(reinterpret_cast<uintptr_t>(packets[0]),s.mesh.address,0x1234,0,1100),"render packet receives scoped OFF pose");
-    for(unsigned i=0;i<80;++i)Check(Equal(current[0][i],i>=41&&i<=62?Translation(float(i)+10,0,5):baseline[i]),"only chosen hand render values change");
-    auto expectedPose=nativePose;expectedPose[40].t[0]=20;
+    for(unsigned i=0;i<80;++i)if(i!=78)Check(Equal(current[0][i],i>=40&&i<=62?Translation(float(i)+10,0,5):baseline[i]),"right OFF includes aiming shoulder but preserves opposite arm and spine");
+    for(unsigned i=0;i<3;++i)for(unsigned j=0;j<4;++j)Check(current[0][78].m[i][j]==0,"only OFF-side holster collapsed in runtime packet");
+    auto expectedPose=nativePose;expectedPose[14].t[0]=20;
     Check(std::memcmp(&poses[0],&expectedPose,sizeof(expectedPose))==0&&std::memcmp(beforeActors.data(),actors,sizeof(actors))==0,"native poses, action bytes, firing actors and sockets never written");
     Check(Equal(current[1][41],Translation(41,1,5)),"P1 render packet cannot alter P2");
     const auto result=current[0];s.tick=1000;
@@ -128,20 +144,73 @@ void Runtime(){
     Check(!SkipParticle(notify,meshes[0]),"visible left muzzle preserved");Put(notify,0x84,std::array<int,2>{4,0});
     Check(!SkipParticle(notify,meshes[0]),"shared root effect preserved with visible hand");dg::runtime::Get().pistolLeftModel=3;
     Check(SkipParticle(notify,meshes[0]),"shared root effect suppressed only with both OFF");Put(effect,0x18,5);
-    Check(!SkipParticle(notify,meshes[0]),"unrelated effect never suppressed");Put(effect,0x18,1);gameThread=false;
+    Check(!SkipParticle(notify,meshes[0]),"unrelated effect never suppressed");Put(effect,0x18,1);
+    Name(6,"AnimNotify_CallAbilityFunction");Put(klass,0x18,6);
+    Check(!SkipParticle(notify,meshes[0]),"World Ender lifecycle notification is never a muzzle particle");Put(klass,0x18,0);gameThread=false;
     Check(!SkipParticle(notify,meshes[0]),"notify outside game thread retained");gameThread=true;
     dg::local_players::Context horse{};horse.index=0;horse.kind=dg::local_players::PoseKind::Horse;
     Hide(0,0,s);OnLivePlayer(horse,9,true);
     Check(!PoseReady(0)&&Get<unsigned char>(guns[0][0],0x1CC)==0x21,"leaving normal Strife restores model and discards pose");
+    unsigned char horseActor[0xC10]{},horseMesh[0x800]{},horseGuns[4][0x600]{},pc[0x360]{},strifeClass[0x40]{},horseClass[0x40]{};
+    const auto horseId=Register(horseActor,10),horseMeshId=Register(horseMesh,11);
+    Name(7,"Strife_Blueprint_C");Name(8,"Despair_Blueprint_C");Put(strifeClass,0x18,7);Put(horseClass,0x18,8);
+    Put(actors[0],0x10,reinterpret_cast<uintptr_t>(strifeClass));Put<unsigned char>(actors[0],0xC18,1);
+    Put(horseActor,0x10,reinterpret_cast<uintptr_t>(horseClass));Put<unsigned char>(horseActor,0x118,3);
+    Put(horseActor,0x348,reinterpret_cast<uintptr_t>(pc));Put(pc,0x350,horseId.address);
+    Put(horseActor,0x380,horseMeshId.address);Put(horseMesh,0xE8,horseId.address);
+    horse.localPlayer=1;horse.controller=reinterpret_cast<uintptr_t>(pc);horse.character=reinterpret_cast<uintptr_t>(actors[0]);horse.pawn=horseId.address;
+    for(unsigned i=0;i<4;++i){
+        const auto id=Register(horseGuns[i],12+int(i));Put(horseActor,(i<2?0xBA0:0xBF8)+(i%2)*8,id.address);
+        Put(horseGuns[i],0,g_base+0x2A575C8);Put(horseGuns[i],0xE8,horseId.address);Put(horseGuns[i],0x108,horseMeshId.address);
+        Put<unsigned char>(horseGuns[i],0x1CC,0x21);
+    }
+    dg::runtime::Get().pistolRightModel=3;dg::runtime::Get().pistolLeftModel=0;OnLivePlayer(horse,9,true);
+    Check(Get<unsigned char>(horseGuns[0],0x1CC)==0x61&&Get<unsigned char>(horseGuns[2],0x1CC)==0x61,"mounted OFF hides both owned right hand and stowed pistol");
+    Check(Get<unsigned char>(horseGuns[1],0x1CC)==0x21&&Get<unsigned char>(horseGuns[3],0x1CC)==0x21,"mounted opposite hand and stowed model remain native");
+    Check(!PoseReady(0),"mounted model hiding does not reuse foot arm pose or horse animation");
+    paused=radial=true;OnLivePlayer(horse,9,true);
+    Check(Get<unsigned char>(horseGuns[0],0x1CC)==0x61,"wheel/pause cannot restore OFF models");
+    const auto events=hiddenEvents.size();HookHidden(horseGuns[0],false,2);
+    Check(hiddenEvents.size()==events+2&&hiddenEvents[events]==std::pair<bool,unsigned char>{false,2}&&
+          hiddenEvents[events+1]==std::pair<bool,unsigned char>{true,1}&&Get<unsigned char>(horseGuns[0],0x1CC)==0x61,
+          "native visibility and child propagation forwarded before exact OFF component is retained in same call");
+    paused=radial=false;
+    HookHidden(horseGuns[0],true,1);dg::runtime::Get().pistolRightModel=0;OnLivePlayer(horse,9,true);
+    Check(Get<unsigned char>(horseGuns[0],0x1CC)==0x61&&Get<unsigned char>(horseGuns[2],0x1CC)==0x21,"Native restores latest native mounted visibility independently per component");
+    HookHidden(horseGuns[0],false,1);dg::runtime::Get().pistolLeftModel=3;OnLivePlayer(horse,9,true);
+    Check(Get<unsigned char>(horseGuns[1],0x1CC)==0x61&&Get<unsigned char>(horseGuns[3],0x1CC)==0x61,"left mounted OFF uses left offsets only");
+    OnLivePlayer(horse,9,false);Check(Get<unsigned char>(horseGuns[1],0x1CC)==0x21&&Get<unsigned char>(horseGuns[3],0x1CC)==0x21,"focus loss restores mounted native visibility");
+    const auto n=hiddenCalls;Put(horseActor,0x348,uintptr_t(0));OnLivePlayer(horse,9,true);
+    Check(hiddenCalls==n,"foreign or stale mounted controller cannot hide a component");
+    // Return to a normal pawn with no cached arm pose: OFF still applies now.
+    struct Info {int name,number,parent;};std::array<Info,80> hierarchy{};
+    constexpr int parents[ArmBones]={-1,0,1,2,3,4,2,6,7,2,9,10,2,12,13,2,15,16,2,2,1,0};
+    for(unsigned side=0;side<2;++side)for(unsigned j=0;j<ArmBones;++j)
+        hierarchy[Upper[side]+j].parent=j?int(Upper[side])+parents[j]:int(Clavicle[side]);
+    const unsigned anchors[]={14,17,18,20,40,41,43,78,79};
+    const char* boneNames[]={"Bone_Strife_Spine2","Bone_Strife_Clavicle_L","Bone_Strife_UpperArm_L","Bone_Strife_Hand_L","Bone_Strife_Clavicle_R","Bone_Strife_UpperArm_R","Bone_Strife_Hand_R","Bone_Strife_Holster_R","Bone_Strife_Holster_L"};
+    for(unsigned i=0;i<9;++i){Name(9+i,boneNames[i]);hierarchy[anchors[i]].name=int(9+i);}
+    hierarchy[14].parent=13;hierarchy[17].parent=hierarchy[40].parent=14;hierarchy[78].parent=hierarchy[79].parent=1;
+    Put(skeletons[0],0x190,Array{reinterpret_cast<uintptr_t>(hierarchy.data()),80,80});
+    unsigned char resource[0x380]{};Put<float>(resource,0x37C,100);
+    Put(actors[0],0xEA0,reinterpret_cast<uintptr_t>(resource));Put<unsigned char>(actors[0],0x118,3);
+    Put(actors[0],0x348,reinterpret_cast<uintptr_t>(pc));Put(pc,0x350,reinterpret_cast<uintptr_t>(actors[0]));Put(actors[0],0x380,reinterpret_cast<uintptr_t>(meshes[0]));
+    horse.kind=dg::local_players::PoseKind::Foot;horse.pawn=horse.character;dg::runtime::Get().pistolRightModel=3;dg::runtime::Get().pistolLeftModel=0;
+    OnLivePlayer(horse,10,true);
+    Check(!PoseReady(0)&&Get<unsigned char>(guns[0][0],0x1CC)==0x61,"return to normal form keeps OFF before pose capture is ready");
+    paused=radial=true;OnLivePlayer(horse,10,true);HookHidden(guns[0][0],false,1);
+    Check(Get<unsigned char>(guns[0][0],0x1CC)==0x61,"normal-foot wheel cannot briefly show the hidden pistol");
+    dg::runtime::Get().pistolRightModel=0;OnLivePlayer(horse,10,true);paused=radial=false;
+    Check(Get<unsigned char>(guns[0][0],0x1CC)==0x21,"Native restores foot visibility while wheel is open");
     g_ready=false;
 }
 void Config(){
     wchar_t folder[MAX_PATH]{},path[MAX_PATH]{};
     Check(GetTempPathW(MAX_PATH,folder)&&GetTempFileNameW(folder,L"dgp",0,path),"create isolated INI fixture");
     dg::config::Store a;a.SetPath(path);Check(a.Load(),"load old INI fixture");
-    a.pistolRightModel=3;a.pistolLeftModel=1;a.menuKey=VK_F10;const auto keys=a.hotkeys;Check(a.SaveNow(),"write OFF selection before disk round trip");
+    a.pistolRightModel=3;a.pistolLeftModel=1;a.aimIndicatorHideMode=3;a.menuKey=VK_F10;const auto keys=a.hotkeys;Check(a.SaveNow(),"write OFF selection before disk round trip");
     dg::config::Store b;b.SetPath(path);
-    Check(b.Load()&&b.pistolRightModel==3&&b.pistolLeftModel==1&&b.menuKey==VK_F10&&b.hotkeys==keys,"OFF round trip preserves independent hand and personal bindings");
+    Check(b.Load()&&b.pistolRightModel==3&&b.pistolLeftModel==1&&b.aimIndicatorHideMode==3&&b.menuKey==VK_F10&&b.hotkeys==keys,"OFF round trip preserves independent hand and personal bindings");
     Check(dg::runtime::Get().pistolRightModel.load()==3,"OFF is published to the runtime");
     WritePrivateProfileStringW(L"Values",L"PistolRightModel",L"4",path);
     Check(b.Load()&&b.pistolRightModel==0,"unknown future mode falls back to Native");

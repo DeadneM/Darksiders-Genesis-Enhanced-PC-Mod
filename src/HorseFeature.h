@@ -18,31 +18,14 @@ struct Settings {
 struct Telemetry {
     bool validated = false;
     bool staminaReady = false;
-    bool sprinting = false;
-    bool summonProbeReady = false;
-    bool horseCallbackFresh = false; // recent native callback, not historical seen
     std::uint64_t lastHorseNativeTick = 0;
-    std::uint32_t horseGeneration = 0;
-    std::uint32_t summonServerCalls = 0;
-    std::uint32_t summonServerCallsWhileRequested = 0;
-    std::uint64_t lastServerSpawnTick = 0;
-    std::uint32_t regionQueries = 0, regionOverrides = 0;
-    std::uint32_t desummonQueries = 0, desummonOverrides = 0;
     void* playerOwner = nullptr;
     void* horseOwner = nullptr;
     void* horseMovement = nullptr;
-    float nativeGetMaxSpeed = 0.0f;
-    float appliedGetMaxSpeed = 0.0f;
     float nativeMaxWalkSpeed = 0.0f;
-    float appliedMaxWalkSpeed = 0.0f;
     float nativeMaxAcceleration = 0.0f;
-    float appliedMaxAcceleration = 0.0f;
     float nativeSprintingMaxSpeed = 0.0f;
-    float appliedSprintingMaxSpeed = 0.0f;
-    float nativeSprintDrain = 0.0f;
-    float appliedSprintDrain = 0.0f;
     std::uint32_t uniqueCandidatesLogged = 0;
-    std::uint32_t candidateMatches = 0;
 };
 
 void Initialize(LogFn logger);

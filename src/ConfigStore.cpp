@@ -654,7 +654,7 @@ bool Store::Load() {
     tpsHoldSuspendEnabled=ReadBool(L"Features",L"TPSHoldSuspend",true,path_);
     tpsLongPressToggleEnabled=ReadBool(L"Features",L"TPSHoldToggle",true,path_);
     tpsGrenadeHoldEnabled=ReadBool(L"Features",L"TPSGrenadeHold",true,path_);
-    aimIndicatorHideMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(L"Features",L"AimIndicatorHideMode",2,path_.c_str())),0,2);
+    aimIndicatorHideMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(L"Features",L"AimIndicatorHideMode",2,path_.c_str())),0,3);
     tps3DAimEnabled=ReadBool(L"Features",L"TPS3DAim",true,path_);
     tpsAimPitchOffsetDegrees=std::clamp(ReadFloat(L"Values",L"TPSAimPitchOffsetDegrees",12.0f,path_),-45.0f,45.0f);
     tpsMountedAimMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(L"Features",L"TPSMountedAimMode",0,path_.c_str())),0,1);
@@ -1188,7 +1188,7 @@ bool Store::SaveNow() {
     WriteBool(L"Features",L"TPSHoldToggle",tpsToggleHoldButtonMask!=0,path_);
     WriteBool(L"Features",L"TPSGrenadeHold",tpsGrenadeButtonMask!=0,path_);
     wchar_t aimModeBuffer[12]{};
-    swprintf_s(aimModeBuffer,L"%d",std::clamp(aimIndicatorHideMode,0,2));
+    swprintf_s(aimModeBuffer,L"%d",std::clamp(aimIndicatorHideMode,0,3));
     WriteProfileString(L"Features",L"AimIndicatorHideMode",aimModeBuffer,path_.c_str());
     WriteBool(L"Features",L"TPS3DAim",tps3DAimEnabled,path_);
     WriteFloat(L"Values",L"TPSAimPitchOffsetDegrees",tpsAimPitchOffsetDegrees,path_);

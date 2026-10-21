@@ -54,30 +54,39 @@ using Matrices=std::array<Matrix,BoneCount>;
 struct ArmPose {
     std::array<std::array<Matrix,ArmBones>,2> relative{};
     std::array<std::array<Matrix,ArmBones>,2> previous{};
+    Matrix rightClavicle{},previousRightClavicle{};
     bool ready=false;unsigned previousMask=0;uint64_t previousTick=0;
-    bool Capture(const Matrices& native,const std::array<Matrix,2>& clavicles){
+    bool Capture(const Matrices& native,const std::array<Matrix,2>& anchors){
         decltype(relative) next{};
         for(unsigned side=0;side<2;++side){
-            Matrix inverse{};if(!Inverse(clavicles[side],inverse))return false;
+            Matrix inverse{};if(!Inverse(anchors[side],inverse))return false;
             for(unsigned j=0;j<ArmBones;++j){
                 const auto& source=native[Upper[side]+j];if(!Finite(source))return false;
                 next[side][j]=Multiply(source,inverse);if(!Finite(next[side][j]))return false;
             }
         }
-        relative=next;ready=true;previousMask=0;return true;
+        Matrix spineInverse{};
+        if(!Inverse(anchors[0],spineInverse)||!Finite(native[Clavicle[0]]))return false;
+        const auto shoulder=Multiply(native[Clavicle[0]],spineInverse);
+        if(!Finite(shoulder))return false;
+        rightClavicle=shoulder;relative=next;ready=true;previousMask=0;return true;
     }
     // All-or-nothing on invalid input. Return matrices for current and previous
     // render packets only; untouched bones and the opposite hand stay native.
-    bool Apply(unsigned mask,const std::array<Matrix,2>& clavicles,uint64_t now,
+    bool Apply(unsigned mask,const std::array<Matrix,2>& anchors,uint64_t now,
                Matrices& current,Matrices* old){
         if(!ready||!mask||(mask&~3u))return false;
         decltype(relative) next{};
         for(unsigned side=0;side<2;++side)if(mask&(1u<<side)){
-            if(!Finite(clavicles[side]))return false;
+            if(!Finite(anchors[side]))return false;
             for(unsigned j=0;j<ArmBones;++j){
-                next[side][j]=Multiply(relative[side][j],clavicles[side]);
+                next[side][j]=Multiply(relative[side][j],anchors[side]);
                 if(!Finite(next[side][j]))return false;
             }
+        }
+        Matrix shoulder{};
+        if(mask&1u){
+            shoulder=Multiply(rightClavicle,anchors[0]);if(!Finite(shoulder))return false;
         }
         for(unsigned side=0;side<2;++side)if(mask&(1u<<side)){
             const bool recent=(previousMask&(1u<<side))&&now>=previousTick&&now-previousTick<=100;
@@ -86,9 +95,31 @@ struct ArmPose {
                 if(old)(*old)[Upper[side]+j]=recent?previous[side][j]:next[side][j];
             }
         }
+        if(mask&1u){
+            const bool recent=(previousMask&1u)&&now>=previousTick&&now-previousTick<=100;
+            current[Clavicle[0]]=shoulder;
+            if(old)(*old)[Clavicle[0]]=recent?previousRightClavicle:shoulder;
+            previousRightClavicle=shoulder;
+        }
         previous=next;previousMask=mask;previousTick=now;return true;
     }
 };
+// The right branch also includes its aiming clavicle, anchored at Spine2.
+// The validated left branch keeps its original clavicle-relative behavior.
+inline constexpr unsigned PoseAnchor[2]={14,17};
+// These are leaf bones in the verified normal Strife mesh. Collapse only
+// their rendered triangles; native component poses and firing sockets stay live.
+inline bool HideHolsters(unsigned mask,Matrices& current,Matrices* old){
+    if(!mask||(mask&~3u))return false;
+    for(unsigned side=0;side<2;++side)if(mask&(1u<<side))
+        if(!Finite(current[78+side])||(old&&!Finite((*old)[78+side])))return false;
+    for(unsigned side=0;side<2;++side)if(mask&(1u<<side)){
+        for(unsigned i=0;i<3;++i)for(unsigned j=0;j<4;++j){
+            current[78+side].m[i][j]=0;if(old)(*old)[78+side].m[i][j]=0;
+        }
+    }
+    return true;
+}
 enum class EffectSide { Unknown,Right,Left,Shared };
 inline bool HideEffect(EffectSide side,unsigned mask){
     return side==EffectSide::Right?(mask&1u)!=0:side==EffectSide::Left?(mask&2u)!=0:

@@ -8,20 +8,12 @@ struct Telemetry {
     bool viewReady = false;
     bool armReady = false;
     uint32_t viewCalls = 0;
-    uint32_t armCalls = 0;
     uint32_t tpsAttachedFrames = 0;
-    uint32_t nativeZoneOverridesIgnored = 0;
-    uint32_t tpsAttachDeferred = 0;
-    uint32_t tpsFovSamples = 0;
     uint32_t cinematicEntered = 0;
     uint32_t cinematicExited = 0;
     uint32_t cinematicCandidateBegins = 0;
     uint32_t cinematicMissingActorSamples = 0;
     uint32_t cinematicFarViewSamples = 0;
-    uint32_t mountedFireRequested = 0;
-    uint32_t mountedFireHorseSelected = 0;
-    uint32_t mountedFireOverrodeFoot = 0;
-    uint32_t mountedFireHorseUnavailable = 0;
     // V1.27: camera read-only diagnostics, not native shot trajectory proof.
     uint32_t mountedMouseViewFrames = 0;
     uint32_t mountedMouseHorsePoseHeld = 0;
@@ -29,23 +21,18 @@ struct Telemetry {
     uint32_t facingFootOffAxis = 0;
     uint32_t facingHorseSamples = 0;
     uint32_t facingHorseOffAxis = 0;
-    bool mountedFireCurrentlyActive = false;
     float nativeFov = 0.0f;
     float appliedFov = 0.0f;
     float nativePitch = 0.0f;
     float appliedPitch = 0.0f;
     float nativeYaw = 0.0f;
     float appliedYaw = 0.0f;
-    float nativeHeight = 0.0f;
-    float appliedHeight = 0.0f;
     // V1.30: actual OUTGOING third-person camera view, world-space.
     // Telemetry only; never alters native projectile/aim state.
     float appliedWorldX = 0.0f;
     float appliedWorldY = 0.0f;
     float appliedWorldZ = 0.0f;
     uint64_t appliedWorldTickMs = 0;
-    float nativeArmLength = 0.0f;
-    float appliedArmLength = 0.0f;
 };
 // V1.28 TEMPORARY CUTSCENE DEBUG: events represent a camera-heuristic
 // classification. They are NOT game cutscene asset/sequence names.

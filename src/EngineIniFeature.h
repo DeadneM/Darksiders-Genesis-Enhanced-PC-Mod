@@ -10,6 +10,5 @@ void Initialize(LogFn logger);
 // Valid values are 0..4. Existing unrelated Engine.ini content is preserved.
 bool ApplyGraphicsAdapter(int adapter);
 
-int GetLastAppliedGraphicsAdapter();
 
 } // namespace dg::engine_ini

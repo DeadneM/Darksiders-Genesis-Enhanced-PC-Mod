@@ -239,8 +239,6 @@ struct State {
     std::atomic_bool unlimitedGlideEnabled{false};
     std::atomic_bool unlimitedHorseSprintEnabled{false};
     std::atomic<float> potionRechargeMultiplier{2.0f};
-    // V1.24 read-only time of a verified positive local Synergy additive gain.
-    std::atomic_ullong lastNativeSynergyPositiveTick{0};
 
     std::atomic<float> fovDegrees{90.0f};
     std::atomic<float> thirdPersonFovDegrees{110.0f};

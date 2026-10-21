@@ -21,37 +21,23 @@ struct Telemetry {
     bool movementHookReady = false;
     bool finalDamageHookReady = false;
     bool hotstreakHookReady = false;
-    unsigned mountedIdleLookBlocks = 0;
     unsigned grenadePhysicalDown = 0;
     unsigned grenadePhysicalUp = 0;
     unsigned grenadeNativeReleasePulses = 0;
     bool skipIntroReady = false;
-    bool skipLogosProxyAvailable = false;
     bool skipLogosTargetValid = false;
     bool skipLogosPatched = false;
     bool skipLogosEnabled = true;
     bool skipWarningReady = false;
-    bool skipWarningAttempted = false;
     bool skipWarningApplied = false;
 
 
     int pistolDamageBoostCalls = 0;
-    float lastNativePistolDamage = 0.0f;
-    float lastBoostedPistolDamage = 0.0f;
-    float lastPistolBaseJuice = 0.0f;
 
     int meleeDamageBoostCalls = 0;
-    float lastNativeBaseDamage = 0.0f;
-    float lastBoostedBaseDamage = 0.0f;
-    unsigned lastOutgoingScaleType = 0;
-    int lastOutgoingTagCount = 0;
 
     int hotstreakBoostCalls = 0;
-    float lastNativeJuiceGain = 0.0f;
-    float lastBoostedJuiceGain = 0.0f;
 
-    LONG* skipIntroData = nullptr;
-    LONG skipIntroOriginalValue = 1;
 };
 
 struct Context {

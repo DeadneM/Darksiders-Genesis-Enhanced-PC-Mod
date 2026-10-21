@@ -26,7 +26,7 @@ struct Snapshot {
 struct Player {Snapshot snapshot{};ArmPose pose{};uint64_t renderTick=0;};
 Player g_players[2]{};std::atomic_bool g_poseReady[2]{};
 struct Hidden {native_objects::Identity component{},actor{};bool nativeHidden=false;};
-Hidden g_hidden[2][2]{};std::atomic_uint g_captures{0};
+Hidden g_hidden[2][6]{};std::atomic_uint g_captures{0};
 template<class T> bool Read(uintptr_t p,size_t offset,T& value){native_objects::MemoryReader r;return r.Read(p,offset,value);}
 template<size_t N> bool NameIs(uintptr_t p,const char (&text)[N]){return native_objects::NameIs(g_base,p,text);}
 template<size_t N> bool NameValueIs(int index,int number,const char (&text)[N]){return native_objects::NameValueIs(g_base,index,number,text);}
@@ -47,6 +47,9 @@ bool Bone(uintptr_t info,unsigned index,int parent){
     if(!Read(info,size_t(index)*12,bone)||bone.number||bone.parent!=parent)return false;
     // Fixed supported hierarchy. Do not interpret a renamed/modded skeleton
     // by numeric bone indices alone.
+    if(index==14)return native_objects::NameValueIs(g_base,bone.name,0,"Bone_Strife_Spine2");
+    if(index==78)return native_objects::NameValueIs(g_base,bone.name,0,"Bone_Strife_Holster_R");
+    if(index==79)return native_objects::NameValueIs(g_base,bone.name,0,"Bone_Strife_Holster_L");
     if(index==17)return native_objects::NameValueIs(g_base,bone.name,0,"Bone_Strife_Clavicle_L");
     if(index==18)return native_objects::NameValueIs(g_base,bone.name,0,"Bone_Strife_UpperArm_L");
     if(index==20)return native_objects::NameValueIs(g_base,bone.name,0,"Bone_Strife_Hand_L");
@@ -57,7 +60,8 @@ bool Bone(uintptr_t info,unsigned index,int parent){
 }
 bool Skeleton(uintptr_t mesh,uintptr_t skeleton){
     Array info{};uintptr_t current=0;
-    if(!ArrayOf(skeleton+0x190,BoneCount,info)||!Bone(info.data,17,14)||!Bone(info.data,18,17)||
+    if(!ArrayOf(skeleton+0x190,BoneCount,info)||!Bone(info.data,14,13)||!Bone(info.data,78,1)||!Bone(info.data,79,1)||
+       !Bone(info.data,17,14)||!Bone(info.data,18,17)||
        !Bone(info.data,20,19)||!Bone(info.data,40,14)||!Bone(info.data,41,40)||!Bone(info.data,43,42))return false;
     constexpr int parents[ArmBones]={-1,0,1,2,3,4,2,6,7,2,9,10,2,12,13,2,15,16,2,2,1,0};
     for(unsigned side=0;side<2;++side)for(unsigned j=0;j<ArmBones;++j){
@@ -69,13 +73,13 @@ bool Skeleton(uintptr_t mesh,uintptr_t skeleton){
 }
 unsigned ChoiceMask(){const auto& rt=runtime::Get();return (rt.pistolRightModel.load()==3?1u:0u)|(rt.pistolLeftModel.load()==3?2u:0u);}
 bool Fresh(const Snapshot& s,uint64_t now){return s.gameplay&&now>=s.tick&&now-s.tick<=250;}
-bool Clavicles(uintptr_t mesh,std::array<Matrix,2>& matrices){
+bool Anchors(uintptr_t mesh,std::array<Matrix,2>& matrices){
     int selector=-1;Array cs{};struct Weak {int index,serial;} master{};
     if(!Read(mesh,0x5A8,master)||(master.index>=0&&master.serial>0))return false;
     if(!Read(mesh,0x5F4,selector)||(selector!=0&&selector!=1)||!ArrayOf(mesh+0x5B0+size_t(selector)*16,BoneCount,cs))return false;
     // The native socket path uses exactly this same transform buffer. It is
     // read only. The dynamic render packet receives the changed matrices.
-    for(unsigned side=0;side<2;++side){Transform t{};if(!Read(cs.data,size_t(Clavicle[side])*48,t)||!ToMatrix(t,matrices[side]))return false;}
+    for(unsigned side=0;side<2;++side){Transform t{};if(!Read(cs.data,size_t(PoseAnchor[side])*48,t)||!ToMatrix(t,matrices[side]))return false;}
     int after=-1;Array check{};
     return Read(mesh,0x5F4,after)&&after==selector&&Read(mesh+0x5B0+size_t(selector)*16,0,check)&&
         check.data==cs.data&&check.count==cs.count&&check.capacity==cs.capacity;
@@ -97,8 +101,8 @@ bool ProcessPacket(uintptr_t data,uintptr_t component,uintptr_t renderData,int l
     if(!Read(component,0xE8,actor)||!Read(component,0x5A0,skeleton)||!Read(component,0x6C0,renderObject)||
        !Read(renderObject,0,vt)||vt!=g_base+0x2DC8930||!Read(renderObject,0x40,expectedData)||expectedData!=renderData)return false;
     Array current{},previous{};if(!Packet(data,current,previous))return false;
-    Matrices matrices{},old{};std::array<Matrix,2> clavicles{};
-    if(!Read(current.data,0,matrices)||(previous.count&&!Read(previous.data,0,old))||!Clavicles(component,clavicles))return false;
+    Matrices matrices{},old{};std::array<Matrix,2> anchors{};
+    if(!Read(current.data,0,matrices)||(previous.count&&!Read(previous.data,0,old))||!Anchors(component,anchors))return false;
     bool changed=false,captured=false,handled=false;
     AcquireSRWLockExclusive(&g_lock);
     for(unsigned i=0;i<2;++i){
@@ -109,10 +113,11 @@ bool ProcessPacket(uintptr_t data,uintptr_t component,uintptr_t renderData,int l
            !Live(s.mesh)||!Live(s.actor)||!Live(s.skeleton))continue;
         handled=true;p.renderTick=now;
         if(s.capture&&!p.pose.ready&&s.idleSince&&now>=s.idleSince&&now-s.idleSince>=750){
-            captured=p.pose.Capture(matrices,clavicles);g_poseReady[i]=p.pose.ready;
+            captured=p.pose.Capture(matrices,anchors);g_poseReady[i]=p.pose.ready;
         }else if(s.lower){
-            changed=p.pose.Apply(ChoiceMask(),clavicles,now,matrices,previous.count?&old:nullptr);
+            changed=p.pose.Apply(ChoiceMask(),anchors,now,matrices,previous.count?&old:nullptr);
         }else p.pose.previousMask=0;
+        if(mask)changed=HideHolsters(mask,matrices,previous.count?&old:nullptr)||changed;
         break;
     }
     ReleaseSRWLockExclusive(&g_lock);
@@ -137,12 +142,23 @@ bool HookInit(void* data,void* component,void* renderData,int lod,void* morphs,v
     return result;
 }
 void HookHidden(void* component,bool hidden,unsigned char propagation){
-    if(!g_settingHidden&&native_tps::OnGameThread()){
-        const auto address=reinterpret_cast<uintptr_t>(component);
-        for(auto& player:g_hidden)for(auto& saved:player)
-            if(saved.component.address==address&&Live(saved.component))saved.nativeHidden=hidden;
+    bool keepHidden=false;
+    if(!g_settingHidden&&Ready()&&native_tps::OnGameThread()){
+        const auto address=reinterpret_cast<uintptr_t>(component);const unsigned mask=ChoiceMask();
+        for(auto& player:g_hidden)for(unsigned slot=0;slot<6;++slot){
+            auto& saved=player[slot];uintptr_t owner=0;
+            if(saved.component.address==address&&Live(saved.component)&&Live(saved.actor)&&
+               Read(address,0xE8,owner)&&owner==saved.actor.address){
+                saved.nativeHidden=hidden;keepHidden=(mask&(1u<<(slot%2)))!=0;
+            }
+        }
     }
+    // Preserve the native call, propagation and child visibility first. Then
+    // retain OFF on this exact component before any render packet is submitted.
     if(g_hiddenFn)g_hiddenFn(component,hidden,propagation);
+    if(keepHidden&&!hidden&&g_hiddenFn){
+        g_settingHidden=true;g_hiddenFn(component,true,1);g_settingHidden=false;
+    }
 }
 void SetHidden(uintptr_t component,bool hidden){
     if(!g_hiddenFn)return;
@@ -155,9 +171,9 @@ void Restore(Hidden& saved){
         SetHidden(saved.component.address,saved.nativeHidden);
     saved={};
 }
-void Hide(unsigned player,unsigned side,const Snapshot& snapshot){
-    auto& saved=g_hidden[player][side];uintptr_t component=0,owner=0,parent=0,vt=0;unsigned char flags=0;
-    if(!Read(snapshot.actor.address,0x1040+side*8,component)||!Read(component,0,vt)||vt!=g_base+0x2A575C8||
+void HideAt(unsigned player,unsigned slot,const Snapshot& snapshot,size_t offset){
+    auto& saved=g_hidden[player][slot];uintptr_t component=0,owner=0,parent=0,vt=0;unsigned char flags=0;
+    if(!Read(snapshot.actor.address,offset,component)||!Read(component,0,vt)||vt!=g_base+0x2A575C8||
        !Read(component,0xE8,owner)||owner!=snapshot.actor.address||!Read(component,0x108,parent)||parent!=snapshot.mesh.address||
        !Read(component,0x1CC,flags)){Restore(saved);return;}
     native_objects::Identity id{};
@@ -165,6 +181,17 @@ void Hide(unsigned player,unsigned side,const Snapshot& snapshot){
     if(saved.component&&saved.component!=id)Restore(saved);
     if(!saved.component)saved={id,snapshot.actor,bool(flags&0x40)};
     if(!(flags&0x40))SetHidden(component,true);
+}
+void Hide(unsigned player,unsigned side,const Snapshot& snapshot){HideAt(player,side,snapshot,0x1040+side*8);}
+bool Mounted(const local_players::Context& c,Snapshot& s){
+    uintptr_t cls=0,controller=0,pawn=0,mesh=0,owner=0;unsigned char type=0,role=0;
+    if(c.kind!=local_players::PoseKind::Horse||!c.localPlayer||!c.character||!c.pawn||c.character==c.pawn||
+       !Read(c.character,0x10,cls)||!NameIs(cls,"Strife_Blueprint_C")||!Read(c.character,0xC18,type)||type!=1||
+       !Read(c.pawn,0x10,cls)||!NameIs(cls,"Despair_Blueprint_C")||!Read(c.pawn,0x118,role)||role!=3||
+       !Read(c.pawn,0x348,controller)||controller!=c.controller||!Read(controller,0x350,pawn)||pawn!=c.pawn||
+       !Read(c.pawn,0x380,mesh)||!Read(mesh,0xE8,owner)||owner!=c.pawn)return false;
+    return native_objects::CaptureLive(g_base,reinterpret_cast<void*>(c.pawn),s.actor)&&
+        native_objects::CaptureLive(g_base,reinterpret_cast<void*>(mesh),s.mesh);
 }
 bool Normal(const local_players::Context& c,Snapshot& s){
     uintptr_t cls=0,controller=0,pawn=0,resource=0;unsigned char type=0,role=0;float health=0;
@@ -177,7 +204,7 @@ bool Normal(const local_players::Context& c,Snapshot& s){
     if(!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(c.character),s.actor)||
        !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(pawn),s.mesh)||
        !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(resource),s.skeleton))return false;
-    // Schema check is bounded to the six anchor bones, and is cached by the
+    // Schema check is bounded to the verified anchors and holster leaves, and is cached by the
     // full skeleton identity on later frames.
     bool known=false;AcquireSRWLockShared(&g_lock);
     known=g_players[c.index].snapshot.skeleton==s.skeleton;ReleaseSRWLockShared(&g_lock);
@@ -253,18 +280,28 @@ void OnLivePlayer(const local_players::Context& owner,uint32_t generation,bool f
     const unsigned index=unsigned(owner.index);Snapshot next{};const auto now=GetTickCount64();
     if(Ready()&&local_players::Matches(index,owner.character,generation)&&Normal(owner,next)){
         next.generation=generation;next.tick=now;
-        next.gameplay=focused&&!native_tps::IsWorldPaused(reinterpret_cast<void*>(owner.pawn))&&!native_tps::CinematicActive(index)&&!native_tps::RadialActive(index);
-        next.capture=next.gameplay&&Idle(owner.pawn);next.lower=next.gameplay&&Ranged(owner.pawn);
+        next.gameplay=focused&&!native_tps::CinematicActive(index);
+        const bool action=next.gameplay&&!native_tps::IsWorldPaused(reinterpret_cast<void*>(owner.pawn))&&!native_tps::RadialActive(index);
+        next.capture=action&&Idle(owner.pawn);next.lower=action&&Ranged(owner.pawn);
     }
     AcquireSRWLockExclusive(&g_lock);auto& p=g_players[index];
     const auto& before=p.snapshot;
     const bool same=before.actor==next.actor&&before.mesh==next.mesh&&before.skeleton==next.skeleton&&before.generation==next.generation;
     if(!same){p.pose={};p.renderTick=0;g_poseReady[index]=false;}
     next.idleSince=next.capture?(same&&before.capture&&before.idleSince?before.idleSince:now):0;
-    p.snapshot=next;const unsigned mask=next.gameplay&&p.pose.ready&&p.renderTick&&now>=p.renderTick&&now-p.renderTick<=250?ChoiceMask():0;
+    p.snapshot=next;const unsigned mask=next.gameplay?ChoiceMask():0; // Model choice survives pose recapture after transformations.
     ReleaseSRWLockExclusive(&g_lock);
-    for(unsigned side=0;side<2;++side){
-        if(mask&(1u<<side))Hide(index,side,next);else Restore(g_hidden[index][side]);
+    Snapshot mounted{};
+    const bool horse=Ready()&&focused&&local_players::Matches(index,owner.character,generation)&&Mounted(owner,mounted)&&
+        !native_tps::CinematicActive(index);
+    // Mounted hand/stowed components are separate exact owned meshes. Never
+    // hide the horse/rider parent or alter mounted animation/action state.
+    const unsigned mountedMask=horse?ChoiceMask():0;
+    for(unsigned slot=0;slot<6;++slot){
+        const unsigned side=slot%2;
+        if(slot<2&&(mask&(1u<<side)))Hide(index,side,next);
+        else if(slot>=2&&(mountedMask&(1u<<side)))HideAt(index,slot,mounted,(slot<4?0xBA0:0xBF8)+side*8);
+        else Restore(g_hidden[index][slot]);
     }
 }
 bool SkipParticle(void* notify,void* mesh){

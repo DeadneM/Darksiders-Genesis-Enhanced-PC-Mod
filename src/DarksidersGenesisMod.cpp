@@ -221,18 +221,9 @@ bool g_dofCaptured = false;
 bool g_dofDisabled = false;
 std::atomic_bool g_hotstreakHookReady{false};
 std::atomic_int g_hotstreakBoostCalls{0};
-std::atomic<float> g_lastNativeJuiceGain{0.0f};
-std::atomic<float> g_lastBoostedJuiceGain{0.0f};
 std::atomic_int g_pistolDamageBoostCalls{0};
-std::atomic<float> g_lastNativePistolDamage{0.0f};
-std::atomic<float> g_lastBoostedPistolDamage{0.0f};
-std::atomic<float> g_lastPistolBaseJuice{0.0f};
 std::atomic_int g_meleeDamageBoostCalls{0};
-std::atomic<float> g_lastNativeBaseDamage{0.0f};
-std::atomic<float> g_lastBoostedBaseDamage{0.0f};
 std::atomic_bool g_finalOutgoingDamageHookReady{false};
-std::atomic_uint g_lastOutgoingScaleType{0};
-std::atomic_int g_lastOutgoingTagCount{0};
 std::atomic<void*> g_localPlayerCharacter{nullptr};
 
 
@@ -955,8 +946,6 @@ void HookAddJuice(void* hotStreakComponent, float amount) {
                 effectiveAmount = 100000.0f;
             }
 
-            g_lastNativeJuiceGain.store(amount);
-            g_lastBoostedJuiceGain.store(effectiveAmount);
 
             const int count = g_hotstreakBoostCalls.fetch_add(1) + 1;
             if (count <= 30 || (count % 100) == 0) {
@@ -1105,8 +1094,6 @@ void HookFinalOutgoingDamage(void* playerCharacter, void* damageRecord) {
     const int32_t tagCount = *reinterpret_cast<int32_t*>(record + 0x20);
     const float baseJuice = *reinterpret_cast<float*>(record + 0x28);
 
-    g_lastOutgoingScaleType.store(scaleType);
-    g_lastOutgoingTagCount.store(tagCount);
 
     const bool pistolLike =
         baseJuice > 0.0001f &&
@@ -1129,8 +1116,6 @@ void HookFinalOutgoingDamage(void* playerCharacter, void* damageRecord) {
         if (multiplier > 100.0f) multiplier = 100.0f;
         kind = "PISTOL";
 
-        g_lastNativePistolDamage.store(nativeFinalDamage);
-        g_lastPistolBaseJuice.store(baseJuice);
     } else if (!pistolLike &&
                dg::runtime::Get().meleeDamageEnabled.load(std::memory_order_relaxed)) {
         multiplier = dg::runtime::Get().meleeDamageMultiplier.load(std::memory_order_relaxed);
@@ -1138,7 +1123,6 @@ void HookFinalOutgoingDamage(void* playerCharacter, void* damageRecord) {
         if (multiplier > 100.0f) multiplier = 100.0f;
         kind = "ZERO_JUICE_MELEE_DIAG";
 
-        g_lastNativeBaseDamage.store(nativeFinalDamage);
     } else {
         return;
     }
@@ -1152,10 +1136,8 @@ void HookFinalOutgoingDamage(void* playerCharacter, void* damageRecord) {
 
     int count = 0;
     if (pistolLike) {
-        g_lastBoostedPistolDamage.store(boostedDamage);
         count = g_pistolDamageBoostCalls.fetch_add(1) + 1;
     } else {
-        g_lastBoostedBaseDamage.store(boostedDamage);
         count = g_meleeDamageBoostCalls.fetch_add(1) + 1;
     }
 
@@ -3201,8 +3183,6 @@ dg::overlay::Context BuildOverlayContext() {
 
     const dg::skip_logos::Telemetry skipLogosTelemetry =
         dg::skip_logos::GetTelemetry();
-    t.skipLogosProxyAvailable =
-        skipLogosTelemetry.proxyAvailable;
     t.skipLogosTargetValid =
         skipLogosTelemetry.targetValid;
     t.skipLogosPatched =
@@ -3211,43 +3191,20 @@ dg::overlay::Context BuildOverlayContext() {
         skipLogosTelemetry.enabled;
     const auto warnings=dg::skip_warning::GetTelemetry();
     t.skipWarningReady=warnings.ready;
-    t.skipWarningAttempted=warnings.observed>0;
     t.skipWarningApplied=warnings.advanced>0;
 
     t.pistolDamageBoostCalls =
         g_pistolDamageBoostCalls.load();
-    t.lastNativePistolDamage =
-        g_lastNativePistolDamage.load();
-    t.lastBoostedPistolDamage =
-        g_lastBoostedPistolDamage.load();
-    t.lastPistolBaseJuice =
-        g_lastPistolBaseJuice.load();
 
     t.meleeDamageBoostCalls =
         g_meleeDamageBoostCalls.load();
-    t.lastNativeBaseDamage =
-        g_lastNativeBaseDamage.load();
-    t.lastBoostedBaseDamage =
-        g_lastBoostedBaseDamage.load();
-    t.lastOutgoingScaleType =
-        g_lastOutgoingScaleType.load();
-    t.lastOutgoingTagCount =
-        g_lastOutgoingTagCount.load();
 
-    t.mountedIdleLookBlocks = g_tpsMountedIdleNativeLookBlocks.load();
     t.grenadePhysicalDown = g_tpsGrenadeDownCount.load();
     t.grenadePhysicalUp = g_tpsGrenadeUpCount.load();
     t.grenadeNativeReleasePulses = g_tpsGrenadeReleasePulseDelivered.load();
     t.hotstreakBoostCalls =
         g_hotstreakBoostCalls.load();
-    t.lastNativeJuiceGain =
-        g_lastNativeJuiceGain.load();
-    t.lastBoostedJuiceGain =
-        g_lastBoostedJuiceGain.load();
 
-    t.skipIntroData = g_skipIntroData;
-    t.skipIntroOriginalValue =
-        g_skipIntroOriginalValue;
 
     context.applySkipIntro =
         &ApplySkipIntroSetting;

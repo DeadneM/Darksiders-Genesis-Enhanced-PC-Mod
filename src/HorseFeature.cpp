@@ -117,20 +117,12 @@ std::atomic<float> g_sprintDurationMultiplier{5.0f};
 
 std::atomic_bool g_validated{false};
 std::atomic_bool g_staminaReady{false};
-std::atomic_bool g_sprinting{false};
 std::atomic<void*> g_owner{nullptr};
 std::atomic<void*> g_movement{nullptr};
 
-std::atomic<float> g_nativeGetMaxSpeed{0.0f};
-std::atomic<float> g_appliedGetMaxSpeed{0.0f};
 std::atomic<float> g_nativeMaxWalkSpeed{0.0f};
-std::atomic<float> g_appliedMaxWalkSpeed{0.0f};
 std::atomic<float> g_nativeMaxAcceleration{0.0f};
-std::atomic<float> g_appliedMaxAcceleration{0.0f};
 std::atomic<float> g_nativeSprintingMaxSpeed{0.0f};
-std::atomic<float> g_appliedSprintingMaxSpeed{0.0f};
-std::atomic<float> g_nativeSprintDrain{0.0f};
-std::atomic<float> g_appliedSprintDrain{0.0f};
 
 std::atomic_uint32_t g_nativeHookCalls{0};
 // V0.88: these are observation timestamps/identities, never persistent
@@ -140,7 +132,6 @@ std::atomic_ullong g_lastLiveHorseCallbackTick{0};
 std::atomic<void*> g_lastObservedLiveHorse{nullptr};
 std::atomic_uint32_t g_observedHorseGenerations{0};
 std::atomic_uint32_t g_horsesFound{0};
-std::atomic_bool g_summonServerProbeReady{false};
 std::atomic_uint32_t g_summonServerCalls{0}, g_summonServerCallsRequested{0};
 std::atomic_ullong g_lastServerSpawnTick{0};
 std::atomic<void*> g_lastServerSpawnLocalOwner{nullptr};
@@ -384,14 +375,12 @@ void PublishSlotLocked(const HorseSlot& slot) {
     g_nativeMaxWalkSpeed.store(slot.nativeMaxWalkSpeed);
     g_nativeMaxAcceleration.store(slot.nativeMaxAcceleration);
     g_nativeSprintingMaxSpeed.store(slot.nativeSprintingMaxSpeed);
-    g_nativeSprintDrain.store(slot.nativeStaminaSprintRate);
 
     unsigned char sprinting = 0;
     if (ReadAt(
             slot.horse,
             kSprintingOffset,
             sprinting)) {
-        g_sprinting.store(sprinting != 0);
     }
 }
 
@@ -429,14 +418,12 @@ void ApplySlotLocked(HorseSlot& slot) {
                 slot.movement,
                 kMaxWalkSpeedOffset,
                 targetWalk)) {
-            g_appliedMaxWalkSpeed.store(targetWalk);
         }
 
         if (WriteFloat(
                 slot.movement,
                 kMaxAccelerationOffset,
                 targetAcceleration)) {
-            g_appliedMaxAcceleration.store(targetAcceleration);
         }
 
         WriteFloat(
@@ -457,7 +444,6 @@ void ApplySlotLocked(HorseSlot& slot) {
                 slot.movement,
                 kSprintingMaxSpeedOffset,
                 targetSprint)) {
-            g_appliedSprintingMaxSpeed.store(targetSprint);
         }
     }
 
@@ -480,7 +466,6 @@ void ApplySlotLocked(HorseSlot& slot) {
                 slot.horse,
                 kStaminaSprintRateOffset,
                 targetSprintRate)) {
-            g_appliedSprintDrain.store(targetSprintRate);
         }
     }
 
@@ -1131,11 +1116,11 @@ void Initialize(LogFn logger) {
         g_originalHorseDesummon,g_horseDesummonHookTarget,
         "PlayerCharacter::IsInHorseDesummonRegion (V0.89 scoped test)");
     // Existing native server callback is always invoked unchanged.
-    g_summonServerProbeReady.store(InstallNativeHook(
+    InstallNativeHook(
         kHorseServerSpawnImplRva,kHorseServerSpawnImplPrologue,
         reinterpret_cast<void*>(&HookHorseServerSpawnImpl),
         g_originalServerSpawnImpl,g_serverSpawnImplTarget,
-        "PlayerCharacter::SERVER_SpawnHorseMount_Implementation (OBSERVE ONLY)"));
+        "PlayerCharacter::SERVER_SpawnHorseMount_Implementation (OBSERVE ONLY)");
 
     InstallNativeHook(
         kHorseSetSprintingTrueRva,
@@ -1179,8 +1164,6 @@ float AdjustSpeedResult(
     // Horse speed fields are already applied from live native HorseCharacter
     // callbacks. Returning the engine result here avoids any stale-pointer
     // write path from the shared movement hook.
-    g_nativeGetMaxSpeed.store(nativeGetMaxSpeed);
-    g_appliedGetMaxSpeed.store(nativeGetMaxSpeed);
     return nativeGetMaxSpeed;
 }
 
@@ -1188,38 +1171,15 @@ Telemetry GetTelemetry() {
     Telemetry t{};
     t.validated = g_validated.load();
     t.staminaReady = g_staminaReady.load();
-    t.sprinting = g_sprinting.load();
-    t.summonProbeReady = g_summonServerProbeReady.load();
-    t.summonServerCalls = g_summonServerCalls.load();
-    t.summonServerCallsWhileRequested = g_summonServerCallsRequested.load();
-    t.lastServerSpawnTick = g_lastServerSpawnTick.load();
-    t.regionQueries=g_regionQueries.load();
-    t.regionOverrides=g_regionOverrides.load();
-    t.desummonQueries=g_desummonQueries.load();
-    t.desummonOverrides=g_desummonOverrides.load();
     t.playerOwner = nullptr;
     t.horseOwner = g_owner.load();
     t.horseMovement = g_movement.load();
-    t.nativeGetMaxSpeed = g_nativeGetMaxSpeed.load();
-    t.appliedGetMaxSpeed = g_appliedGetMaxSpeed.load();
     t.nativeMaxWalkSpeed = g_nativeMaxWalkSpeed.load();
-    t.appliedMaxWalkSpeed = g_appliedMaxWalkSpeed.load();
     t.nativeMaxAcceleration = g_nativeMaxAcceleration.load();
-    t.appliedMaxAcceleration =
-        g_appliedMaxAcceleration.load();
     t.nativeSprintingMaxSpeed =
         g_nativeSprintingMaxSpeed.load();
-    t.appliedSprintingMaxSpeed =
-        g_appliedSprintingMaxSpeed.load();
-    t.nativeSprintDrain = g_nativeSprintDrain.load();
-    t.appliedSprintDrain = g_appliedSprintDrain.load();
     t.uniqueCandidatesLogged = g_nativeHookCalls.load();
-    t.candidateMatches = g_horsesFound.load();
     t.lastHorseNativeTick = g_lastLiveHorseCallbackTick.load(std::memory_order_acquire);
-    t.horseGeneration = g_observedHorseGenerations.load(std::memory_order_relaxed);
-    const auto now=GetTickCount64();
-    t.horseCallbackFresh = t.lastHorseNativeTick && now>=t.lastHorseNativeTick &&
-        now-t.lastHorseNativeTick<1100ull;
     return t;
 }
 

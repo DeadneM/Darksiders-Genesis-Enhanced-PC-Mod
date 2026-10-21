@@ -2,7 +2,6 @@
 
 #include "EngineIniFeature.h"
 
-#include <atomic>
 #include <cstdio>
 #include <filesystem>
 #include <string>
@@ -16,7 +15,6 @@ constexpr int kMinGraphicsAdapter = 0;
 constexpr int kMaxGraphicsAdapter = 4;
 
 LogFn g_logger = nullptr;
-std::atomic_int g_lastApplied{-1};
 
 void FeatureLog(const char* text) {
     if (g_logger && text && *text) {
@@ -214,10 +212,6 @@ bool ApplyGraphicsAdapter(int adapter) {
         return false;
     }
 
-    g_lastApplied.store(
-        adapter,
-        std::memory_order_relaxed
-    );
 
     char line[512]{};
     const std::string utf8Path =
@@ -234,10 +228,5 @@ bool ApplyGraphicsAdapter(int adapter) {
     return true;
 }
 
-int GetLastAppliedGraphicsAdapter() {
-    return g_lastApplied.load(
-        std::memory_order_relaxed
-    );
-}
 
 } // namespace dg::engine_ini

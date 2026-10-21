@@ -39,8 +39,7 @@ std::atomic<uint32_t> g_viewCount{0}, g_armCount{0};
 std::atomic<float> g_nativeFov{0.0f}, g_appliedFov{0.0f};
 std::atomic<float> g_nativePitch{0.0f}, g_appliedPitch{0.0f};
 std::atomic<float> g_nativeYaw{0.0f}, g_appliedYaw{0.0f};
-std::atomic<float> g_nativeHeight{0.0f}, g_appliedHeight{0.0f};
-std::atomic<float> g_nativeDistance{0.0f}, g_appliedDistance{0.0f};
+std::atomic<float> g_nativeDistance{0.0f};
 // V1.30: only the emitted TPS view; read-only projection telemetry.
 std::atomic<float> g_tpsEmittedX{0.0f},g_tpsEmittedY{0.0f},g_tpsEmittedZ{0.0f};
 std::atomic_ullong g_tpsEmittedTickMs{0};
@@ -68,7 +67,6 @@ std::atomic_uint32_t g_mountedFireRequested{0};
 std::atomic_uint32_t g_mountedFireHorseSelected{0};
 std::atomic_uint32_t g_mountedFireOverrodeFoot{0};
 std::atomic_uint32_t g_mountedFireHorseUnavailable{0};
-std::atomic_bool g_mountedFireCurrentlyActive{false};
 // V1.27: separate actual mouse and native-pad mounted view observations.
 std::atomic_uint32_t g_v127MountedMouseViewFrames{0};
 std::atomic_uint32_t g_v127MountedMouseHorsePoseHeld{0};
@@ -273,7 +271,6 @@ void HookView(void* camera, float dt, void* outView) {
     const bool activeHorseAim=thirdPerson &&
         (settings.tpsAimActive.load(std::memory_order_acquire)||mouseMountedFire);
     if(mouseMountedFire)++g_v127MountedMouseViewFrames;
-    g_mountedFireCurrentlyActive.store(false,std::memory_order_relaxed);
     if(activeHorseAim){
         ++g_mountedFireRequested;
         // The previous camera frame must have really used a fresh horse
@@ -804,7 +801,6 @@ void HookView(void* camera, float dt, void* outView) {
                 if(usingHorse&&activeHorseAim){
                     ++g_mountedFireHorseSelected;
                     if(mouseMountedFire)++g_v127MountedMouseHorsePoseHeld;
-                    g_mountedFireCurrentlyActive.store(true,std::memory_order_relaxed);
                 }
                 // Read-only facing-angle classification for native player or
                 // live horse pose. The horse yaw is NOT the rider's mesh yaw.
@@ -862,7 +858,6 @@ void HookView(void* camera, float dt, void* outView) {
     g_nativeFov.store(nativeFov);g_appliedFov.store(appliedFov);
     g_nativePitch.store(nativePitch);g_appliedPitch.store(appliedPitch);
     g_nativeYaw.store(nativeYaw);g_appliedYaw.store(appliedYaw);
-    g_nativeHeight.store(z);g_appliedHeight.store(appliedHeight);
     const unsigned n=++g_viewCount;
     if(Sample(n)){
         char line[220]{};
@@ -902,7 +897,6 @@ void HookArm(void* arm, bool trace, bool locationLag, bool rotationLag, float dt
     const bool secondaryArm=valid&&dg::coop_camera::ObserveArm(arm,native);
     if (valid&&!secondaryArm) {
         g_nativeDistance.store(native, std::memory_order_relaxed);
-        g_appliedDistance.store(applied, std::memory_order_relaxed);
     }
     const uint32_t calls = g_armCount.fetch_add(1, std::memory_order_relaxed) + 1;
     if (Sample(calls)) {
@@ -998,41 +992,28 @@ Telemetry GetTelemetry() {
     t.viewReady = g_viewReady.load();
     t.armReady = g_armReady.load();
     t.viewCalls = g_viewCount.load();
-    t.armCalls = g_armCount.load();
     t.tpsAttachedFrames = g_tpsAttachedFrames.load();
-    t.nativeZoneOverridesIgnored = g_zoneCameraIgnored.load();
-    t.tpsAttachDeferred = g_tpsAttachSkipped.load();
-    t.tpsFovSamples = g_tpsFovOverrides.load();
     t.cinematicEntered=g_cinematicEntered.load();
     t.cinematicExited=g_cinematicExited.load();
     t.cinematicCandidateBegins=g_cinematicCandidateBegins.load();
     t.cinematicMissingActorSamples=g_cinematicMissingActorSamples.load();
     t.cinematicFarViewSamples=g_cinematicFarViewSamples.load();
-    t.mountedFireRequested = g_mountedFireRequested.load();
-    t.mountedFireHorseSelected = g_mountedFireHorseSelected.load();
-    t.mountedFireOverrodeFoot = g_mountedFireOverrodeFoot.load();
-    t.mountedFireHorseUnavailable = g_mountedFireHorseUnavailable.load();
     t.mountedMouseViewFrames = g_v127MountedMouseViewFrames.load();
     t.mountedMouseHorsePoseHeld = g_v127MountedMouseHorsePoseHeld.load();
     t.facingFootSamples = g_v127FacingFootSamples.load();
     t.facingFootOffAxis = g_v127FacingFootOffAxis.load();
     t.facingHorseSamples = g_v127FacingHorseSamples.load();
     t.facingHorseOffAxis = g_v127FacingHorseOffAxis.load();
-    t.mountedFireCurrentlyActive = g_mountedFireCurrentlyActive.load();
     t.nativeFov = g_nativeFov.load();
     t.appliedFov = g_appliedFov.load();
     t.nativePitch = g_nativePitch.load();
     t.appliedPitch = g_appliedPitch.load();
     t.nativeYaw = g_nativeYaw.load();
     t.appliedYaw = g_appliedYaw.load();
-    t.nativeHeight = g_nativeHeight.load();
-    t.appliedHeight = g_appliedHeight.load();
     t.appliedWorldX=g_tpsEmittedX.load(std::memory_order_relaxed);
     t.appliedWorldY=g_tpsEmittedY.load(std::memory_order_relaxed);
     t.appliedWorldZ=g_tpsEmittedZ.load(std::memory_order_relaxed);
     t.appliedWorldTickMs=g_tpsEmittedTickMs.load(std::memory_order_acquire);
-    t.nativeArmLength = g_nativeDistance.load();
-    t.appliedArmLength = g_appliedDistance.load();
     return t;
 }
 const char* CinematicDebugPhaseLabel(CinematicDebugPhase phase){

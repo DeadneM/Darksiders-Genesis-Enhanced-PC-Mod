@@ -1,3 +1,7 @@
+Suivi V1.78 : le patch ci-dessous a été appliqué au lot OFF/interface après les retours utilisateur. Compilation et tests en attente à ce stade ; le rapport original conserve son statut au moment de l’audit. [Intégration et limites](V1_78_PISTOL_OFF_LIFECYCLE_CLEANUP_TEST.md).
+
+---
+
 # Double audit des leftovers — V1.77
 
 21 octobre 2026. Base examinée : **debug `9dcd5fff6c3fbabe3dde4051f6fe71ac09e70361`**, source cumulative V1.77. Demande : chercher les éléments retirables pendant les essais utilisateur, vérifier deux fois puis comparer les résultats.

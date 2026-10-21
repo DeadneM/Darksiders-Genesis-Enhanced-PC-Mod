@@ -229,7 +229,7 @@ void Draw(Context& c) {
             ImGui::Spacing();
             ImGui::TextWrapped("Multipliers: 1 is native; 0.5 gives half speed, height, duration, damage or gains. Cost divisors work in reverse: 0.5 doubles costs. See each option for the meaning of 0.");
 
-            if(ImGui::CollapsingHeader("HUD / aiming effects",ImGuiTreeNodeFlags_DefaultOpen)){
+            if(ImGui::CollapsingHeader("HUD / aiming effects")){
             ImGui::Indent(12.0f);
             DrawSectionTitle("HUD and aiming effects");
             ImGui::TextDisabled("Statuses reflect real game hooks and observed events, not just ON/OFF switches.");
@@ -248,11 +248,11 @@ void Draw(Context& c) {
 
             ImGui::Text("Blue aiming line and semicircle");
             constexpr const char* kAimModes[]={
-                "Hide Everywhere", "Default Only", "TPS Only"
+                "Hide Everywhere", "Default Only", "TPS Only", "Never (always visible)"
             };
             ImGui::SetNextItemWidth(260.0f);
             if(ImGui::Combo("Visibility mode##AimIndicator",
-                    &config.aimIndicatorHideMode,kAimModes,3))config.Save();
+                    &config.aimIndicatorHideMode,kAimModes,4))config.Save();
             ImGui::TextDisabled("TPS Only is the default. Default Only means normal/non-TPS camera.");
             const auto aimShaders = dg::aim_shader::GetTelemetry();
             ImGui::TextDisabled("Aim-effect filter: %s | suppressed draws: %u",
@@ -261,7 +261,7 @@ void Draw(Context& c) {
             }
             if(ImGui::CollapsingHeader("Appearance")){
             ImGui::Indent(12.0f);
-            constexpr const char* pistolModels[]={"Native (original for this hand)","Right pistol model","Left pistol model","OFF (foot, experimental)"};
+            constexpr const char* pistolModels[]={"Native (original for this hand)","Right pistol model","Left pistol model","OFF (experimental)"};
             const auto pistolChoice=[&](const char* label,int& value){
                 ImGui::SetNextItemWidth(280.0f);
                 if(ImGui::BeginCombo(label,pistolModels[(value>=0&&value<=3)?value:0])){
@@ -280,9 +280,9 @@ void Draw(Context& c) {
             ImGui::EndDisabled();
             ImGui::TextWrapped("Choose either existing pistol independently for each hand, for both local players. Mounted holsters use the matching stowed model. Native restores that hand's previous model. Experimental: check grip alignment and firing effects.");
             if(config.pistolRightModel==3||config.pistolLeftModel==3){
-                ImGui::TextWrapped("OFF: normal Strife on foot only. Sheathe both weapons, then stand still briefly. The selected pistol is hidden and its arm rests while aiming; shooting remains active. Melee, horse and Ultimate keep their native presentation. Shared firing effects remain with one visible pistol; both OFF removes the known shared muzzle effects.");
+                ImGui::TextWrapped("OFF: sheathe both weapons on foot and stand still briefly to capture the resting arms. The selected pistol and its foot holster are hidden; shooting remains active. Mounted hand and stowed pistol models are also hidden. Mounted arm poses, mounted leather holsters, melee and Ultimate remain native. Shared effects stay with one visible pistol.");
                 if(!pistol_visual::Ready())ImGui::TextDisabled("OFF unavailable for this executable; native presentation retained.");
-                else ImGui::TextDisabled("OFF ready: P1 %s | P2 %s",pistol_visual::PoseReady(0)?"yes":"sheathe and wait",pistol_visual::PoseReady(1)?"yes":"sheathe and wait");
+                else ImGui::TextDisabled("Resting arm pose: P1 %s | P2 %s",pistol_visual::PoseReady(0)?"yes":"sheathe and wait",pistol_visual::PoseReady(1)?"yes":"sheathe and wait");
             }
             DrawToggleFeature(config,"Bonus mount skins (experimental)","BonusMountSkins",&config.bonusMountSkinsEnabled,
                 "Makes Rampage (War) and Despair (Strife) available in the game's Skins page without the optional PAK. A bonus mount already selected stays equipped when loading, even with this option OFF, like armor skins. The native mount remains selectable. No automatic equip. OFF restores native menu availability; a PAK or an existing unlock can still keep them available.",cosmetics::Ready());
@@ -380,7 +380,7 @@ void Draw(Context& c) {
                 ImGui::TextWrapped("A locked power stays locked. Native wheel icons and hints may still describe their original slot. Reopen the wheel after editing. Horse and ultimate abilities remain native. Set all six choices to Native to restore the original mapping.");
                 ImGui::Unindent(12.0f);
             }
-            if(ImGui::CollapsingHeader("Player movement",ImGuiTreeNodeFlags_DefaultOpen)){
+            if(ImGui::CollapsingHeader("Player movement")){
             ImGui::Indent(12.0f);
             DrawSectionTitle("Player");
             DrawToggleFeature(config,"Heavy landing movement recovery (experimental)","HeavyLandingRecovery",&config.heavyLandingRecoveryEnabled,
@@ -438,7 +438,7 @@ void Draw(Context& c) {
                 "Scales native acquisition, relay and pull distances together. Applies on the next use; target rules and obstacles remain native. Experimental: traversal limits still require in-game checks.",dg::grapple::Ready());
             ImGui::Unindent(12.0f);
             }
-            if(ImGui::CollapsingHeader("Combat and resource gauges",ImGuiTreeNodeFlags_DefaultOpen)){
+            if(ImGui::CollapsingHeader("Combat and resource gauges")){
             ImGui::Indent(12.0f);
             DrawSectionTitle("Combat damage");
 
@@ -977,7 +977,7 @@ void Draw(Context& c) {
                 }
                 ImGui::Unindent(12.0f);
             }
-            if(ImGui::CollapsingHeader("Third Person camera",ImGuiTreeNodeFlags_DefaultOpen)){
+            if(ImGui::CollapsingHeader("Third Person camera")){
             ImGui::Indent(12.0f);
             DrawSectionTitle("Third Person camera");
             if (ImGui::Checkbox("Third Person", &config.thirdPersonEnabled)) {

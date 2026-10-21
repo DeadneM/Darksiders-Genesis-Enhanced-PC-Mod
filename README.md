@@ -1,3 +1,17 @@
+## V1.78 test — Darksiders Genesis Enhanced PC Mod
+
+**PRÉPARÉE / EXPÉRIMENTALE, compilation et contrôles en attente.** Base cumulative V1.77, avec les retours utilisateur du 21 octobre : visée sans tir, réglages et updater validés dans les essais rapportés ; OFF avec pistolet droit visible validé à pied. Réception lourde incertaine, coop reportée. [Objectif, preuves, limites et essais](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_78_PISTOL_OFF_LIFECYCLE_CLEANUP_TEST.md).
+
+Lot : choix OFF indépendant du cache de pose, maintien pendant les roues et au retour de l’ultime ; masquage des modèles en main et rangés à cheval ; candidat pour reposer aussi l’épaule droite lorsque seul le pistolet gauche est visible ; masquage du holster à pied du côté OFF dans la seule copie de rendu. Projectiles, sockets et animations de gameplay conservés. Les bras et holsters en cuir du modèle monté restent natifs : aucune validation visuelle supplémentaire n’est supposée.
+
+Le menu propose désormais **Never (always visible)** pour le trait/arc, et ses groupes démarrent repliés. Les choix déjà ouverts restent ouverts pendant la session. Tous les réglages fournis et les raccourcis sont conservés. Nettoyage issu des deux audits : **167 lignes nettes de code inutilisé retirées**, sans gain de FPS ou de taille binaire revendiqué.
+
+**World Ender reste ouvert en TPS.** Le rayon et son effet natifs sont créés et infligent des dégâts ; l’utilisateur voit le rayon en vue du dessus seulement. Le masquage trait/arc n’explique pas le défaut. Aucun hook de rayon ajouté sur cette hypothèse. Les six capacités entre personnages, la réception lourde et le suivi vertical pendant les exécutions restent dans la file active.
+
+Installation **manuelle**, conserver l’INI personnel. Aucun fichier du jeu, PAK ou sauvegarde remplacé par l’agent. Les sections suivantes conservent l’historique de leurs propres versions.
+
+---
+
 ## V1.77 test — Darksiders Genesis Enhanced PC Mod
 
 [Audit de maintenance comparé](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/AUDIT_DOUBLE_NETTOYAGE_V1_77.md) : patch de nettoyage préparé pour le prochain lot, non appliqué ; V1.77 reste inchangée pendant les essais.

@@ -200,8 +200,6 @@ bool Install(ID3D11Device* device, ID3D11DeviceContext* context, LogFn logger) {
 Telemetry GetTelemetry() {
     Telemetry t{};
     t.hooksReady = g_ready.load();
-    t.matchedShaders = g_matchCount.load();
-    t.interceptedDraws = g_drawCount.load();
     t.blockedDraws = g_blockCount.load();
     return t;
 }

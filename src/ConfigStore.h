@@ -297,7 +297,7 @@ public:
     bool tpsHoldSuspendEnabled = true;
     bool tpsLongPressToggleEnabled = true;
     bool tpsGrenadeHoldEnabled = true;
-    int aimIndicatorHideMode = 2; // 0 Everywhere, 1 Default Only, 2 TPS Only
+    int aimIndicatorHideMode = 2; // 0 Everywhere, 1 Default Only, 2 TPS Only, 3 Never
     bool tps3DAimEnabled = true;
     float tpsAimPitchOffsetDegrees = 12.0f;
     int tpsMountedAimMode = 0; // 0 camera-forward free, 1 native aim camera locked
