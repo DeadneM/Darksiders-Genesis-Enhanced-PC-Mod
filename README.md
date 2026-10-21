@@ -1,6 +1,6 @@
 ## V1.75 test — Darksiders Genesis Enhanced PC Mod
 
-Lot cumulatif **debug** sur la base V1.73 validée dans les essais rapportés : **visée sans tir à la manette** avec un ou deux boutons configurables, et candidat **Heavy landing movement recovery** pour reprendre le déplacement après une réception lourde automatique. Les deux nouveautés sont **EXPÉRIMENTALES**, OFF par défaut ; compilation, contrôles et résultats en jeu seront précisés dans le reçu. [Objectif et essais groupés](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_75_PAD_AIM_HEAVY_LANDING_TEST.md).
+Lot cumulatif **debug** sur la base V1.73 validée dans les essais rapportés : **visée sans tir à la manette** avec un ou deux boutons configurables, et candidat **Heavy landing movement recovery** pour reprendre le déplacement après une réception lourde automatique. Version **CONSTRUITE / CONTRÔLÉE**, 45/45 suites Windows x64, zéro avertissement MSVC. Les deux nouveautés sont **EXPÉRIMENTALES**, OFF par défaut et non validées en jeu. [ZIP vérifié, intégrité et reçu de livraison](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_75_DELIVERY_RECEIPT.md). [Objectif et essais groupés](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_75_PAD_AIM_HEAVY_LANDING_TEST.md).
 
 Gameplay → **Aim without firing** : un champ OFF laisse l'autre bouton fonctionner seul ; deux entrées actives nécessitent leur maintien ensemble ; OFF/OFF désactive la fonction. Le maintien appelle l'action native, sans simuler Ctrl ou ajouter de tir. En TPS, il suit la caméra du joueur ; chaque manette concerne son propre joueur. Les affectations natives restent actives. Relâcher après menu, changement de personnage ou reconnexion avant de viser à nouveau.
 
@@ -16,7 +16,7 @@ Canal **debug**, lot cumulatif : maintien de Despair/Rampage au chargement, dist
 
 La case Bonus mount skins règle la disponibilité du menu ; le bonus déjà équipé reste conservé même OFF, comme les armures. Le modèle de base reste sélectionnable et son choix n'est jamais remplacé automatiquement. Chargement des montures, réglages DOF et contrôle visée/tir/dash confirmés dans les essais V1.73 rapportés. Le flou V1.71 semble bon dans le dernier retour utilisateur ; les réglages DOF V1.73 sont également confirmés dans les essais rapportés.
 
-Le candidat Dash movement recovery V1.71 est **REJETÉ dans l'essai utilisateur et retiré**, avec son état, sa checkbox et son réglage runtime. Les corrections validées de visée/tir pendant le dash sont conservées. Les anciens raccourcis Recovery restent inertes sans décaler les autres. La prochaine recherche commencera par le ground slam, une fois le reste de la liste terminé.
+Le candidat Dash movement recovery V1.71 est **REJETÉ dans l'essai utilisateur et retiré**, avec son état, sa checkbox et son réglage runtime. Les corrections validées de visée/tir pendant le dash sont conservées. Les anciens raccourcis Recovery restent inertes sans décaler les autres. V1.75 ajoute un nouveau candidat distinct pour la réception lourde automatique après chute, OFF par défaut et encore expérimental.
 
 Archive vérifiée : `DarksidersGenesis_V1.73_MOUNT_DOF_CLEANUP_TEST.zip`, quatre fichiers racine. OFF complet des pistolets reste ouvert ; modèles gauche/droite validés conservés.
 
@@ -41,7 +41,7 @@ Dans **Updates**, choisir le canal voulu, puis vérifier les mises à jour. Le c
 | Mouvement et grappin | Réglages de déplacement/saut/plané/cheval, sprint, portée native du grappin | Acquis conservés ; portée validée dans l’essai utilisateur |
 | Rangement | Délais séparés lames Strife / pistolets Strife / épée War ; action commune avec raccourcis clavier et manette | Délais validés V1.65 ; holsters validés dans l’essai V1.66 |
 | Sauts supplémentaires | OFF / After gliding / Always on | Sauts validés dans l’essai utilisateur V1.66 |
-| Action Recovery | Candidats retirés après absence de bénéfice dans les essais | Recherche ground slam après le reste de la file ; aucune option active |
+| Recovery | Ancien candidat dash retiré ; nouveau Heavy landing movement recovery pour réception lourde automatique | OFF par défaut, expérimental V1.75 ; efficacité à confirmer en jeu |
 | Modèles 3D des pistolets | Choix indépendant du modèle droit ou gauche par main de Strife | Choix gauche/droite validés ; OFF complet encore ouvert |
 | Skins | Deux montures bonus ; six variantes de progression dans deux groupes séparés | Sélection et OFF confirmés V1.68 ; sélection sans PAK confirmée ; maintien au chargement V1.73 confirmé dans les essais rapportés |
 

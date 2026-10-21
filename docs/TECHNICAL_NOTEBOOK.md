@@ -1,3 +1,15 @@
+## V1.75 — construite et contrôlée, installation manuelle
+
+21 octobre 2026. **CONSTRUITE / CONTRÔLÉE / NON INSTALLÉE ; nouvelles fonctions EXPÉRIMENTALES, non validées en jeu.** Base V1.73 validée dans les essais rapportés, canal debug. [CI Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39537334409) : 45/45 suites, zéro avertissement MSVC. Visée seule manette avec un/deux boutons et nouveau candidat de déplacement après réception lourde automatique ; les deux sont OFF par défaut. Aucun ancien Recovery du dash réactivé.
+
+[ZIP cumulatif public vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/a816cc3db3c446fac407b93dc881058c19e7e43d/downloads/DarksidersGenesis_V1.75_PAD_AIM_HEAVY_LANDING_TEST.zip) : 836203 octets, SHA256 `B6D1F0CE0D3ACE5B5CF27A3C75373778707CC84EA9FA41764B4036B5ABB6EE08`. Quatre fichiers racine/CRC/AMD64 ; 156 valeurs INI antérieures, 55 ID Hotkeys et 139 anciennes archives conservés. main/archive/v1.43 inchangés. Installation manuelle demandée ; V1.73 reste installée, aucun fichier du jeu remplacé.
+
+À tester ensemble : maintien/relâchement de visée native/TPS, personnages et P2 ; réception lourde OFF/ON après haute chute (Strife puis War) ; contrôle court dash/tirs spéciaux/roues/rangement. Efficacité Recovery encore inconnue, War_HeavyLand non observé dans la capture. [Reçu, intégrité, essais et rollback](V1_75_DELIVERY_RECEIPT.md).
+
+**Suite :** adaptation des six capacités, OFF complet par pistolet. Ni sélecteur inerte ni OFF partiel livré. HUD en surveillance, autres FX P2 reportés, notification de mise à jour à confirmer. [Preuves](V1_75_WRATH_HEAVY_LANDING_PISTOL_RESEARCH.md). Les sections suivantes sont historiques ; leurs statuts avant construction ne remplacent pas ce reçu.
+
+---
+
 ## V1.75 — lot visée manette et réception lourde, préparation
 
 Base V1.73 validée dans les essais rapportés, visée V1.74 construite/contrôlée non installée. Nouveau candidat **Heavy landing movement recovery**, OFF par défaut : classes HeavyLand exactes, deux verrous natifs de mouvement après impact, sans hook, Finish, timer, touche ou changement de dash. L'utilisateur confirme qu'il s'agit de la réception lourde automatique après chute, pas de l'attaque plongeante. Capture7480échantillons, trois rejets, six capacités natives et trois HeavyLand Strife ; aucun War_HeavyLand relevé. Nouvelle visée et nouveau candidat **PRÉPARÉS / EXPÉRIMENTAUX**, efficacité en jeu non validée. [Objectif, limites, essais et rollback](V1_75_PAD_AIM_HEAVY_LANDING_TEST.md).

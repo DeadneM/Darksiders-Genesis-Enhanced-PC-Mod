@@ -2,7 +2,7 @@
 
 ## Objectif, base, statut
 
-Lot cumulatif sur **debug**, base V1.73 validée dans les essais rapportés. Inclut la visée manette V1.74 construite/contrôlée et un nouveau candidat ciblé sur la **réception lourde automatique après chute**, conformément à la clarification utilisateur. **PRÉPARÉ / EXPÉRIMENTAL** avant CI, pas encore de validation en jeu. Le reçu complétera les contrôles réellement obtenus. L'utilisateur installera manuellement à la fin de sa session ; aucun remplacement automatique ni fermeture à demander.
+Lot cumulatif sur **debug**, base V1.73 validée dans les essais rapportés. Inclut la visée manette V1.74 construite/contrôlée et un nouveau candidat ciblé sur la **réception lourde automatique après chute**, conformément à la clarification utilisateur. **CONSTRUIT / CONTRÔLÉ / EXPÉRIMENTAL**, 45/45 suites Windows x64 ; efficacité non validée en jeu. [Reçu de livraison, ZIP et intégrité](V1_75_DELIVERY_RECEIPT.md). L'utilisateur installera manuellement à la fin de sa session ; aucun remplacement automatique ni fermeture à demander.
 
 Critère : permettre le déplacement après l'impact d'une réception lourde, en vue native comme en TPS, en conservant les autres animations et fonctions acquises. Le candidat ne force aucune fin d'action et ne change ni timer, vitesse, mouvement en vol, visée, munition ou touche. OFF par défaut.
 
