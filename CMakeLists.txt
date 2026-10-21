@@ -11,6 +11,11 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(WrathSlotTests tests/WrathSlotTests.cpp src/RuntimeSettings.cpp src/ConfigStore.cpp)
+  target_include_directories(WrathSlotTests PRIVATE tests/stubs src)
+  target_compile_definitions(WrathSlotTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  target_link_libraries(WrathSlotTests PRIVATE user32)
+  add_test(NAME WrathSlots COMMAND WrathSlotTests)
   add_executable(PistolVisualTests tests/PistolVisualTests.cpp src/RuntimeSettings.cpp src/ConfigStore.cpp)
   target_include_directories(PistolVisualTests PRIVATE tests/stubs src)
   target_compile_definitions(PistolVisualTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
@@ -302,6 +307,7 @@ add_library(DarksidersGenesisMod SHARED
   src/HeavyLandingFeature.cpp
   src/MountedHolsterFeature.cpp
   src/PistolVisualFeature.cpp
+  src/WrathSlotFeature.cpp
   src/CosmeticUnlockFeature.cpp
   src/LeviathanVisualFeature.cpp
   src/UltimateDurationFeature.cpp

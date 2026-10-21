@@ -1,3 +1,13 @@
+## V1.77 — réaffectation native du Courroux, préparation
+
+**PRÉPARÉ / EXPÉRIMENTAL, pas encore construit ni validé en jeu.** Base cumulative V1.76 ; base utilisateur validée V1.73 pour les essais rapportés. Poursuite autorisée sans attendre l'essai du lot, aucune validation en jeu inventée. Trois emplacements indépendants pour Strife et trois pour War, pour l'instant parmi les trois pouvoirs de chaque personnage. **L'échange libre des six capacités reste ouvert**, avec adaptation des squelettes, notifications et composants. Ne pas annoncer cette demande terminée.
+
+Nouvelle frontière fonctionnelle 663220 : réaffecte ensemble classe, déverrouillage et coût natifs, sans entrée physique ni modification des ressources/sauvegardes/animations. Six clés nouvelles, toutes Native ; 157 anciens réglages et 55 ID Hotkeys conservés. Une seule interception, pas de cache d'objets ni de nouveau service par frame. Cheval/ultime et toutes les fonctions précédentes conservés. Les indications natives de roue peuvent encore décrire l'ancien emplacement. [Objectif, preuves, essais et rollback](V1_77_NATIVE_WRATH_SLOTS_TEST.md).
+
+Tests prévus : ABI x64 à cinq arguments, 18 combinaisons de pouvoirs natifs, contrôles de coût/déverrouillage transmis, P1/P2, personnages inversés, disposition ambiguë/reconnexion/formes, absence d'écriture dans les objets et INI personnel. Essais en jeu groupés plus tard avec les candidats visée/réception lourde/OFF. Installation manuelle ; aucune fermeture, relance ou installation demandée. main/archive et anciennes archives conservées. HUD général en surveillance, autres FX P2 reportés, notification updater à confirmer. Les sections suivantes sont historiques.
+
+---
+
 ## V1.76 — construite et contrôlée, candidat OFF à pied
 
 21 octobre 2026. **CONSTRUITE / CONTRÔLÉE / NON INSTALLÉE PAR L'AGENT ; nouveauté EXPÉRIMENTALE, non validée en jeu.** Base validée V1.73 dans les essais rapportés, suite cumulative de V1.75 dont les nouveautés attendent le test utilisateur. V1.75 a été retrouvée installée sur disque ; ne pas transformer cela en validation de ses fonctions.

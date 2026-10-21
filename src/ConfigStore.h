@@ -1,4 +1,5 @@
 #pragma once
+#include "WrathSlotSettings.h"
 
 #include "DefaultSettings.h"
 #include "CameraBlurSettings.h"
@@ -269,6 +270,7 @@ public:
     int leviathanVisualMode = 0;
     bool weaponSheathingEnabled = false;
     bool heavyLandingRecoveryEnabled = false;
+    wrath_slots::Choices wrathSlots{};
     bool sheathNeverEnabled = true;
     float sheathDelaySeconds = 10.0f;
     bool sheathStrifeMeleeNeverEnabled = false;

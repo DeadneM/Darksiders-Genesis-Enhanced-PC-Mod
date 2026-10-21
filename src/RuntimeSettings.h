@@ -2,6 +2,7 @@
 
 #include "DefaultSettings.h"
 #include "CameraBlurSettings.h"
+#include "WrathSlotSettings.h"
 #include <atomic>
 
 namespace dg::runtime {
@@ -20,6 +21,7 @@ struct Snapshot {
     int leviathanVisualMode = 0;
     bool weaponSheathingEnabled = false;
     bool heavyLandingRecoveryEnabled = false;
+    wrath_slots::Choices wrathSlots{};
     bool sheathNeverEnabled = true;
     float sheathDelaySeconds = 10.0f;
     bool sheathStrifeMeleeNeverEnabled = false;
@@ -135,6 +137,7 @@ struct State {
     std::atomic_int leviathanVisualMode{0};
     std::atomic_bool weaponSheathingEnabled{false};
     std::atomic_bool heavyLandingRecoveryEnabled{false};
+    std::array<std::array<std::atomic_int,3>,2> wrathSlots{};
     std::atomic_bool sheathNeverEnabled{true};
     std::atomic<float> sheathDelaySeconds{10.0f};
     std::atomic_bool sheathStrifeMeleeNeverEnabled{false};

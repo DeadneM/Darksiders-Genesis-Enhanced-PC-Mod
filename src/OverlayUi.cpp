@@ -6,6 +6,7 @@
 #include "HeavyLandingFeature.h"
 #include "MountedHolsterFeature.h"
 #include "PistolVisualFeature.h"
+#include "WrathSlotFeature.h"
 #include "CosmeticUnlockFeature.h"
 #include "LeviathanVisualFeature.h"
 #include "UltimateDurationFeature.h"
@@ -347,6 +348,37 @@ void Draw(Context& c) {
             ImGui::PopID();
 
             ImGui::Unindent(12.0f);
+            }
+            if(ImGui::CollapsingHeader("Wrath ability slots (experimental)")){
+                ImGui::Indent(12.0f);
+                ImGui::TextWrapped("Choose a power independently for each native slot. This stage supports each character's own three powers. Native unlocks, costs, animations and controls stay in use, for both players and camera views. Cross-character powers remain under development.");
+                constexpr const char* names[7]={"Native","Shadow Clone","World Ender","Caltrops","Blade Geyser","Rampage","Stoneskin"};
+                constexpr const char* familyNames[2]={"Strife","War"};
+                ImGui::BeginDisabled(!wrath_slots::Ready());
+                for(unsigned family=0;family<2;++family){
+                    ImGui::PushID(int(family));ImGui::TextUnformatted(familyNames[family]);
+                    for(unsigned slot=0;slot<3;++slot){
+                        ImGui::PushID(int(slot));
+                        const int choice=wrath_slots::Normalize(family,config.wrathSlots[family][slot]);
+                        char label[32]{};sprintf_s(label,"Ability slot %u",slot+1);
+                        if(ImGui::BeginCombo(label,names[choice])){
+                            for(int candidate=0;candidate<7;++candidate){
+                                if(!wrath_slots::Supported(family,candidate))continue;
+                                if(ImGui::Selectable(names[candidate],choice==candidate)){
+                                    config.wrathSlots[family][slot]=candidate;config.Save();
+                                }
+                                if(choice==candidate)ImGui::SetItemDefaultFocus();
+                            }
+                            ImGui::EndCombo();
+                        }
+                        ImGui::PopID();
+                    }
+                    ImGui::PopID();
+                }
+                ImGui::EndDisabled();
+                if(!wrath_slots::Ready())ImGui::TextDisabled("Native ability boundary unavailable; original slots retained.");
+                ImGui::TextWrapped("A locked power stays locked. Native wheel icons and hints may still describe their original slot. Reopen the wheel after editing. Horse and ultimate abilities remain native. Set all six choices to Native to restore the original mapping.");
+                ImGui::Unindent(12.0f);
             }
             if(ImGui::CollapsingHeader("Player movement",ImGuiTreeNodeFlags_DefaultOpen)){
             ImGui::Indent(12.0f);

@@ -24,6 +24,8 @@ void Publish(const Snapshot& s) {
     g_state.leviathanVisualMode.store(s.leviathanVisualMode);
     g_state.weaponSheathingEnabled.store(s.weaponSheathingEnabled);
     g_state.heavyLandingRecoveryEnabled.store(s.heavyLandingRecoveryEnabled);
+    for(unsigned family=0;family<2;++family)for(unsigned slot=0;slot<3;++slot)
+        g_state.wrathSlots[family][slot].store(wrath_slots::Normalize(family,s.wrathSlots[family][slot]));
     g_state.sheathNeverEnabled.store(s.sheathNeverEnabled);
     g_state.sheathDelaySeconds.store(s.sheathDelaySeconds);
     g_state.sheathStrifeMeleeNeverEnabled.store(s.sheathStrifeMeleeNeverEnabled);

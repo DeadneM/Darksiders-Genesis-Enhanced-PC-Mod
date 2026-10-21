@@ -1,3 +1,13 @@
+## V1.77 test — Darksiders Genesis Enhanced PC Mod
+
+Lot cumulatif debug **EN PRÉPARATION / EXPÉRIMENTAL**, non validé en jeu. Nouveau panneau **Gameplay → Wrath ability slots** : trois emplacements indépendants par personnage, parmi ses trois capacités natives. Le jeu conserve le lancement, le déverrouillage, le coût et les animations. Tous les choix fournis valent Native ; anciens réglages/raccourcis conservés.
+
+**Le choix libre parmi les six capacités n'est pas encore terminé.** Les capacités étrangères nécessitent une adaptation de leurs animations et composants ; cette première étape permet de tester la réaffectation native sans les forcer. Les indications de roue peuvent encore décrire l'emplacement initial. Visée sans tir, réception lourde V1.75 et OFF à pied V1.76 repris cumulativement, toujours à tester. [Objectif, limites et essais groupés](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_77_NATIVE_WRATH_SLOTS_TEST.md).
+
+Installation manuelle ultérieure, garder l'INI personnel et les raccourcis. Aucun fichier du jeu remplacé par l'agent. Les sections suivantes décrivent les versions précédentes et leurs statuts historiques.
+
+---
+
 ## V1.76 test — Darksiders Genesis Enhanced PC Mod
 
 Lot cumulatif debug, **CONSTRUIT / CONTRÔLÉ : 46/46 suites Windows x64, zéro avertissement MSVC**. Nouvelle option **OFF (foot, experimental)** par pistolet de Strife dans Gameplay → Appearance. **Non validée en jeu.** Reprend la visée manette sans tir et le Recovery de réception lourde V1.75, encore à tester. Base validée V1.73 dans les essais rapportés.
