@@ -328,6 +328,7 @@ void Store::ResetDefaults(bool persist) {
     heavyLandingRecoveryEnabled=false;
     wrathSlots={};
     mountedHolstersEnabled=false;
+    strifeBladeVisibility=0;mountedJumpEnabled=false;
     pistolRightModel=0;pistolLeftModel=0;bonusMountSkinsEnabled=false;progressionSkinsEnabled=false;
     leviathanVisualEnabled=false;leviathanVisualMode=0;
     sheathStrifeMeleeNeverEnabled=false;sheathStrifeMeleeDelaySeconds=0.0f;
@@ -580,6 +581,9 @@ bool Store::Load() {
     pistolLeftModel=GetPrivateProfileIntW(L"Values",L"PistolLeftModel",0,path_.c_str());
     if(pistolRightModel<0||pistolRightModel>3)pistolRightModel=0;
     if(pistolLeftModel<0||pistolLeftModel>3)pistolLeftModel=0;
+    strifeBladeVisibility=GetPrivateProfileIntW(L"Values",L"StrifeBladeVisibility",0,path_.c_str());
+    if(strifeBladeVisibility<0||strifeBladeVisibility>3)strifeBladeVisibility=0;
+    mountedJumpEnabled=GetPrivateProfileIntW(L"Features",L"MountedJump",0,path_.c_str())!=0;
     bonusMountSkinsEnabled=ReadBool(L"Features",L"BonusMountSkins",false,path_);
     progressionSkinsEnabled=ReadBool(L"Features",L"ProgressionSkins",false,path_);
     leviathanVisualEnabled=ReadBool(L"Features",L"LeviathanVisual",false,path_);
@@ -934,6 +938,8 @@ void Store::PublishRuntime() const {
     runtime.mountedHolstersEnabled=mountedHolstersEnabled;
     runtime.pistolRightModel=pistolRightModel;
     runtime.pistolLeftModel=pistolLeftModel;
+    runtime.strifeBladeVisibility=strifeBladeVisibility;
+    runtime.mountedJumpEnabled=mountedJumpEnabled;
     runtime.bonusMountSkinsEnabled=bonusMountSkinsEnabled;
     runtime.progressionSkinsEnabled=progressionSkinsEnabled;
     runtime.leviathanVisualEnabled=leviathanVisualEnabled;runtime.leviathanVisualMode=leviathanVisualMode;
@@ -1107,6 +1113,8 @@ bool Store::SaveNow() {
     WriteBool(L"Features",L"MountedPistolHolsters",mountedHolstersEnabled,path_);
     WriteInt(L"Values",L"PistolRightModel",pistolRightModel,path_);
     WriteInt(L"Values",L"PistolLeftModel",pistolLeftModel,path_);
+    WriteInt(L"Values",L"StrifeBladeVisibility",strifeBladeVisibility,path_);
+    WriteInt(L"Features",L"MountedJump",mountedJumpEnabled?1:0,path_);
     WriteBool(L"Features",L"BonusMountSkins",bonusMountSkinsEnabled,path_);
     WriteBool(L"Features",L"ProgressionSkins",progressionSkinsEnabled,path_);
     WriteBool(L"Features",L"LeviathanVisual",leviathanVisualEnabled,path_);

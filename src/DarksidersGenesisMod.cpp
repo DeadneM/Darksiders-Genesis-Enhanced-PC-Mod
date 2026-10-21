@@ -22,6 +22,7 @@
 #include "AmmoConsumptionFeature.h"
 #include "GrappleRangeFeature.h"
 #include "AirJumpFeature.h"
+#include "MountedJumpFeature.h"
 #include "HotstreakFeature.h"
 #include "PotionFeature.h"
 #include "BuildInfo.h"
@@ -1444,6 +1445,7 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     dg::pistol_visual::OnLivePlayer(owner,generation,gameplayWindow&&GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load());
     dg::leviathan_visual::OnLivePlayer(owner);
     dg::air_jump::OnLivePlayer(owner,generation);
+    dg::mounted_jump::OnLivePlayer(owner,generation,gameplayWindow&&GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load());
 }
 
 // V0.75: use the game's verified UMayhemCharacter native look functions,
@@ -4419,6 +4421,7 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::glide::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::grapple::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::air_jump::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::mounted_jump::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::dash_combat::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::interaction_hud::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::sheathing::Initialize(&FeatureLog,g_targetValidation.exact);

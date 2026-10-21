@@ -122,6 +122,21 @@ void Run(){
     wheel=true;BeamForward(volume,&beamDirection,0x61D5E5);Check(beamDirection.y==0,"wheel retains native beam direction");wheel=false;
     Put(beam,0x108,static_cast<void*>(grenade));BeamForward(volume,&beamDirection,0x61D5E5);Check(beamDirection.y==0,"foreign beam cannot use local player ray");Put(beam,0x108,static_cast<void*>(character));
     Put(beam,0x5E8,static_cast<void*>(root));BeamForward(volume,&beamDirection,0x61D5E5);Check(beamDirection.y==0,"only native reciprocal root volume qualifies");Put(beam,0x5E8,static_cast<void*>(volume));
+    unsigned char worldWeapon[0x700]{},worldClass[0x80]{},worldName[96]{};
+    uintptr_t entries[1]{reinterpret_cast<uintptr_t>(worldName)},chunks[1]{reinterpret_cast<uintptr_t>(entries)};
+    Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(chunks));
+    strcpy_s(reinterpret_cast<char*>(worldName+12),sizeof(worldName)-12,"MayhemWorldEnder_Blueprint_C");
+    Put(character,0xF98,static_cast<void*>(worldWeapon));Put(worldWeapon,0xE8,static_cast<void*>(character));
+    Put(worldWeapon,0x10,reinterpret_cast<uintptr_t>(worldClass));Put(worldWeapon,0x688,static_cast<void*>(beam));
+    hitTarget={-10000,-10000,500};
+    for(bool freePitch:{false,true}){
+        dg::runtime::Get().tps3DAimEnabled=freePitch;BeamForward(volume,&beamDirection,0x61D5E5);
+        Check(Close(beamDirection.x,0.9659258f)&&Close(beamDirection.y,0)&&Close(beamDirection.z,0.258819f),
+            "World Ender follows native muzzle with camera behind, in both aim modes");
+    }
+    Put(worldWeapon,0x688,static_cast<void*>(nullptr));BeamForward(volume,&beamDirection,0x61D5E5);
+    Check(beamDirection.x<0&&beamDirection.y<0,"ordinary ammo beam still follows camera despite World Ender component existing");
+    Put(character,0xF98,static_cast<void*>(nullptr));hitTarget={1000,1000,500};
     gameThread=false;Finish(ability,&out);Check(out.yaw==-70,"other threads stay native");
     Check(lavaCalls==5,"native Lava update runs exactly once for each request");
 }

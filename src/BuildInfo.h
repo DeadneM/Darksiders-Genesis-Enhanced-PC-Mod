@@ -1,7 +1,7 @@
 #pragma once
 namespace dg::build {
-inline constexpr int Major=1,Minor=78;
-inline constexpr char Version[]="V1.78";
-inline constexpr char Id[]="1.78-pistol-off-lifecycle-cleanup-test";
-inline constexpr char Archive[]="DarksidersGenesis_V1.78_PISTOL_OFF_LIFECYCLE_CLEANUP_TEST.zip";
+inline constexpr int Major=1,Minor=79;
+inline constexpr char Version[]="V1.79";
+inline constexpr char Id[]="1.79-native-worldender-blades-mounted-jump-test";
+inline constexpr char Archive[]="DarksidersGenesis_V1.79_NATIVE_WORLDENDER_BLADES_MOUNTED_JUMP_TEST.zip";
 }

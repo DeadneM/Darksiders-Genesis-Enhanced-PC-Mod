@@ -1,5 +1,6 @@
 #include "ProjectileAimFeature.h"
 #include "NativeMemoryReader.h"
+#include "NativeObjectName.h"
 #include "RuntimeSettings.h"
 #include <windows.h>
 #include <MinHook.h>
@@ -52,6 +53,15 @@ bool TypedClass(void* object,void* expected,bool allowDefaults=false){
         Read(array,size_t(index)*8,item)&&item==static_cast<unsigned char*>(expected)+0x30;
 }
 bool Typed(void* object,uintptr_t slot){void* cls=nullptr;return Read(reinterpret_cast<void*>(g_base+slot),0,cls)&&TypedClass(object,cls);}
+bool WorldEnder(void* beam){
+    void* actor=nullptr;void* weapon=nullptr;void* reciprocal=nullptr;void* projectile=nullptr;uintptr_t cls=0;
+    // Provenance covers all native sizes/upgrades, including Ice Beam.
+    // This ability's montage owns the muzzle axis; changing only the beam
+    // toward the camera can point it opposite to the character and guns.
+    return Read(beam,0x108,actor)&&Read(actor,0xF98,weapon)&&Read(weapon,0xE8,reciprocal)&&reciprocal==actor&&
+        Read(weapon,0x10,cls)&&native_objects::NameIs(g_base,cls,"MayhemWorldEnder_Blueprint_C")&&
+        Read(weapon,0x688,projectile)&&projectile==beam;
+}
 bool Owner(void* weapon,void* actor,local_players::Context& owner){
     unsigned char type=0;void* reciprocal=nullptr;
     return native_tps::OnGameThread()&&Typed(weapon,0x380C0E0)&&
@@ -125,6 +135,7 @@ Vec3* BeamForward(void* component,Vec3* out,uintptr_t caller){
        !Read(beam,0x158,root)||root!=component||!Read(beam,0x5E8,volume)||volume!=component||
        !Read(beam,0x108,actor)||!local_players::ResolveActor(actor,owner)||
        owner.index<0||owner.index>1||!Read(reinterpret_cast<void*>(owner.character),0xC18,type)||type!=1||
+       WorldEnder(beam)||
        native_tps::CinematicActive(unsigned(owner.index))||native_tps::IsWorldPaused(actor)||
        native_tps::RadialActive(unsigned(owner.index))||!Read(component,0x1A0,origin)||!Finite(origin))return result;
     Rotator rotation{};

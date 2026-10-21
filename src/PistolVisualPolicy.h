@@ -54,7 +54,7 @@ using Matrices=std::array<Matrix,BoneCount>;
 struct ArmPose {
     std::array<std::array<Matrix,ArmBones>,2> relative{};
     std::array<std::array<Matrix,ArmBones>,2> previous{};
-    Matrix rightClavicle{},previousRightClavicle{};
+    std::array<Matrix,2> clavicle{},previousClavicle{};
     bool ready=false;unsigned previousMask=0;uint64_t previousTick=0;
     bool Capture(const Matrices& native,const std::array<Matrix,2>& anchors){
         decltype(relative) next{};
@@ -65,11 +65,14 @@ struct ArmPose {
                 next[side][j]=Multiply(source,inverse);if(!Finite(next[side][j]))return false;
             }
         }
-        Matrix spineInverse{};
-        if(!Inverse(anchors[0],spineInverse)||!Finite(native[Clavicle[0]]))return false;
-        const auto shoulder=Multiply(native[Clavicle[0]],spineInverse);
-        if(!Finite(shoulder))return false;
-        rightClavicle=shoulder;relative=next;ready=true;previousMask=0;return true;
+        std::array<Matrix,2> shoulders{};
+        for(unsigned side=0;side<2;++side){
+            Matrix inverse{};
+            if(!Inverse(anchors[side],inverse)||!Finite(native[Clavicle[side]]))return false;
+            shoulders[side]=Multiply(native[Clavicle[side]],inverse);
+            if(!Finite(shoulders[side]))return false;
+        }
+        clavicle=shoulders;relative=next;ready=true;previousMask=0;return true;
     }
     // All-or-nothing on invalid input. Return matrices for current and previous
     // render packets only; untouched bones and the opposite hand stay native.
@@ -84,9 +87,10 @@ struct ArmPose {
                 if(!Finite(next[side][j]))return false;
             }
         }
-        Matrix shoulder{};
-        if(mask&1u){
-            shoulder=Multiply(rightClavicle,anchors[0]);if(!Finite(shoulder))return false;
+        std::array<Matrix,2> shoulders{};
+        for(unsigned side=0;side<2;++side)if(mask&(1u<<side)){
+            shoulders[side]=Multiply(clavicle[side],anchors[side]);
+            if(!Finite(shoulders[side]))return false;
         }
         for(unsigned side=0;side<2;++side)if(mask&(1u<<side)){
             const bool recent=(previousMask&(1u<<side))&&now>=previousTick&&now-previousTick<=100;
@@ -95,27 +99,29 @@ struct ArmPose {
                 if(old)(*old)[Upper[side]+j]=recent?previous[side][j]:next[side][j];
             }
         }
-        if(mask&1u){
-            const bool recent=(previousMask&1u)&&now>=previousTick&&now-previousTick<=100;
-            current[Clavicle[0]]=shoulder;
-            if(old)(*old)[Clavicle[0]]=recent?previousRightClavicle:shoulder;
-            previousRightClavicle=shoulder;
+        for(unsigned side=0;side<2;++side)if(mask&(1u<<side)){
+            const bool recent=(previousMask&(1u<<side))&&now>=previousTick&&now-previousTick<=100;
+            current[Clavicle[side]]=shoulders[side];
+            if(old)(*old)[Clavicle[side]]=recent?previousClavicle[side]:shoulders[side];
+            previousClavicle[side]=shoulders[side];
         }
         previous=next;previousMask=mask;previousTick=now;return true;
     }
 };
-// The right branch also includes its aiming clavicle, anchored at Spine2.
-// The validated left branch keeps its original clavicle-relative behavior.
-inline constexpr unsigned PoseAnchor[2]={14,17};
+// Both complete arm branches include the aiming clavicle. Keeping the left
+// branch relative to its animated clavicle retained the unwanted aiming pose.
+inline constexpr unsigned PoseAnchor[2]={14,14};
+// Retail bone names are opposite to the visible holster side reported in-game.
+inline constexpr unsigned Holster[2]={79,78}; // visible right, visible left
 // These are leaf bones in the verified normal Strife mesh. Collapse only
 // their rendered triangles; native component poses and firing sockets stay live.
 inline bool HideHolsters(unsigned mask,Matrices& current,Matrices* old){
     if(!mask||(mask&~3u))return false;
     for(unsigned side=0;side<2;++side)if(mask&(1u<<side))
-        if(!Finite(current[78+side])||(old&&!Finite((*old)[78+side])))return false;
+        if(!Finite(current[Holster[side]])||(old&&!Finite((*old)[Holster[side]])))return false;
     for(unsigned side=0;side<2;++side)if(mask&(1u<<side)){
         for(unsigned i=0;i<3;++i)for(unsigned j=0;j<4;++j){
-            current[78+side].m[i][j]=0;if(old)(*old)[78+side].m[i][j]=0;
+            current[Holster[side]].m[i][j]=0;if(old)(*old)[Holster[side]].m[i][j]=0;
         }
     }
     return true;

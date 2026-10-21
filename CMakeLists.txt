@@ -11,6 +11,10 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(MountedJumpTests tests/MountedJumpTests.cpp src/RuntimeSettings.cpp)
+  target_include_directories(MountedJumpTests PRIVATE tests/stubs src)
+  target_compile_definitions(MountedJumpTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  add_test(NAME MountedJump COMMAND MountedJumpTests)
   add_executable(WrathSlotTests tests/WrathSlotTests.cpp src/RuntimeSettings.cpp src/ConfigStore.cpp)
   target_include_directories(WrathSlotTests PRIVATE tests/stubs src)
   target_compile_definitions(WrathSlotTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
@@ -328,6 +332,7 @@ add_library(DarksidersGenesisMod SHARED
   src/AmmoConsumptionFeature.cpp
   src/GrappleRangeFeature.cpp
   src/AirJumpFeature.cpp
+  src/MountedJumpFeature.cpp
   src/HotstreakFeature.cpp
   src/HorseFeature.cpp
   src/OverlayUi.cpp

@@ -26,7 +26,7 @@ struct Snapshot {
 struct Player {Snapshot snapshot{};ArmPose pose{};uint64_t renderTick=0;};
 Player g_players[2]{};std::atomic_bool g_poseReady[2]{};
 struct Hidden {native_objects::Identity component{},actor{};bool nativeHidden=false;};
-Hidden g_hidden[2][6]{};std::atomic_uint g_captures{0};
+Hidden g_hidden[2][8]{};std::atomic_uint g_captures{0};
 template<class T> bool Read(uintptr_t p,size_t offset,T& value){native_objects::MemoryReader r;return r.Read(p,offset,value);}
 template<size_t N> bool NameIs(uintptr_t p,const char (&text)[N]){return native_objects::NameIs(g_base,p,text);}
 template<size_t N> bool NameValueIs(int index,int number,const char (&text)[N]){return native_objects::NameValueIs(g_base,index,number,text);}
@@ -72,6 +72,7 @@ bool Skeleton(uintptr_t mesh,uintptr_t skeleton){
     return Read(mesh,0x5A0,current)&&current==skeleton;
 }
 unsigned ChoiceMask(){const auto& rt=runtime::Get();return (rt.pistolRightModel.load()==3?1u:0u)|(rt.pistolLeftModel.load()==3?2u:0u);}
+unsigned BladeMask(){const auto choice=runtime::Get().strifeBladeVisibility.load();return choice==1?2u:choice==2?1u:choice==3?3u:0u;}
 bool Fresh(const Snapshot& s,uint64_t now){return s.gameplay&&now>=s.tick&&now-s.tick<=250;}
 bool Anchors(uintptr_t mesh,std::array<Matrix,2>& matrices){
     int selector=-1;Array cs{};struct Weak {int index,serial;} master{};
@@ -145,11 +146,11 @@ void HookHidden(void* component,bool hidden,unsigned char propagation){
     bool keepHidden=false;
     if(!g_settingHidden&&Ready()&&native_tps::OnGameThread()){
         const auto address=reinterpret_cast<uintptr_t>(component);const unsigned mask=ChoiceMask();
-        for(auto& player:g_hidden)for(unsigned slot=0;slot<6;++slot){
+        for(auto& player:g_hidden)for(unsigned slot=0;slot<8;++slot){
             auto& saved=player[slot];uintptr_t owner=0;
             if(saved.component.address==address&&Live(saved.component)&&Live(saved.actor)&&
                Read(address,0xE8,owner)&&owner==saved.actor.address){
-                saved.nativeHidden=hidden;keepHidden=(mask&(1u<<(slot%2)))!=0;
+                saved.nativeHidden=hidden;keepHidden=((slot<6?mask:BladeMask())&(1u<<(slot%2)))!=0;
             }
         }
     }
@@ -173,9 +174,11 @@ void Restore(Hidden& saved){
 }
 void HideAt(unsigned player,unsigned slot,const Snapshot& snapshot,size_t offset){
     auto& saved=g_hidden[player][slot];uintptr_t component=0,owner=0,parent=0,vt=0;unsigned char flags=0;
-    if(!Read(snapshot.actor.address,offset,component)||!Read(component,0,vt)||vt!=g_base+0x2A575C8||
+    const bool blade=slot>=6;
+    if(!Read(snapshot.actor.address,offset,component)||!Read(component,0,vt)||vt!=g_base+(blade?0x2724250:0x2A575C8)||
        !Read(component,0xE8,owner)||owner!=snapshot.actor.address||!Read(component,0x108,parent)||parent!=snapshot.mesh.address||
-       !Read(component,0x1CC,flags)){Restore(saved);return;}
+       !Read(component,0x1CC,flags)||
+       (blade&&!(slot==6?NameIs(component,"Dagger_R"):NameIs(component,"Dagger_L")))){Restore(saved);return;}
     native_objects::Identity id{};
     if(!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(component),id))return;
     if(saved.component&&saved.component!=id)Restore(saved);
@@ -297,10 +300,12 @@ void OnLivePlayer(const local_players::Context& owner,uint32_t generation,bool f
     // Mounted hand/stowed components are separate exact owned meshes. Never
     // hide the horse/rider parent or alter mounted animation/action state.
     const unsigned mountedMask=horse?ChoiceMask():0;
-    for(unsigned slot=0;slot<6;++slot){
+    const unsigned bladeMask=next.gameplay?BladeMask():0;
+    for(unsigned slot=0;slot<8;++slot){
         const unsigned side=slot%2;
         if(slot<2&&(mask&(1u<<side)))Hide(index,side,next);
-        else if(slot>=2&&(mountedMask&(1u<<side)))HideAt(index,slot,mounted,(slot<4?0xBA0:0xBF8)+side*8);
+        else if(slot>=2&&slot<6&&(mountedMask&(1u<<side)))HideAt(index,slot,mounted,(slot<4?0xBA0:0xBF8)+side*8);
+        else if(slot>=6&&(bladeMask&(1u<<side)))HideAt(index,slot,next,0x1010+side*8);
         else Restore(g_hidden[index][slot]);
     }
 }

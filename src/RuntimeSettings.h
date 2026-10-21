@@ -15,6 +15,8 @@ struct Snapshot {
     bool mountedHolstersEnabled = false;
     int pistolRightModel = 0;
     int pistolLeftModel = 0;
+    int strifeBladeVisibility = 0;
+    bool mountedJumpEnabled = false;
     bool bonusMountSkinsEnabled = false;
     bool progressionSkinsEnabled = false;
     bool leviathanVisualEnabled = false;
@@ -131,6 +133,8 @@ struct State {
     std::atomic_bool mountedHolstersEnabled{false};
     std::atomic_int pistolRightModel{0};
     std::atomic_int pistolLeftModel{0};
+    std::atomic_int strifeBladeVisibility{0};
+    std::atomic_bool mountedJumpEnabled{false};
     std::atomic_bool bonusMountSkinsEnabled{false};
     std::atomic_bool progressionSkinsEnabled{false};
     std::atomic_bool leviathanVisualEnabled{false};

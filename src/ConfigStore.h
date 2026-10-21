@@ -264,6 +264,8 @@ public:
     bool mountedHolstersEnabled = false;
     int pistolRightModel = 0;
     int pistolLeftModel = 0;
+    int strifeBladeVisibility = 0;
+    bool mountedJumpEnabled = false;
     bool bonusMountSkinsEnabled = false;
     bool progressionSkinsEnabled = false;
     bool leviathanVisualEnabled = false;

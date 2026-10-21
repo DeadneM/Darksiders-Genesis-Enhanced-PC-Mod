@@ -25,6 +25,7 @@
 #include "GlideFeature.h"
 #include "GrappleRangeFeature.h"
 #include "AirJumpFeature.h"
+#include "MountedJumpFeature.h"
 #include "DashCombatFeature.h"
 
 #include "HorseFeature.h"
@@ -284,6 +285,11 @@ void Draw(Context& c) {
                 if(!pistol_visual::Ready())ImGui::TextDisabled("OFF unavailable for this executable; native presentation retained.");
                 else ImGui::TextDisabled("Resting arm pose: P1 %s | P2 %s",pistol_visual::PoseReady(0)?"yes":"sheathe and wait",pistol_visual::PoseReady(1)?"yes":"sheathe and wait");
             }
+            constexpr const char* bladeModes[]={"Native","Hide left blade","Hide right blade","Hide both blades"};
+            ImGui::BeginDisabled(!pistol_visual::Ready());ImGui::SetNextItemWidth(280.0f);
+            if(ImGui::Combo("Strife melee blades",&config.strifeBladeVisibility,bladeModes,4))config.Save();
+            ImGui::EndDisabled();
+            ImGui::TextWrapped("Hide each melee blade model independently. Attacks, damage, hand animations and weapon sheathing stay native. Both local players; normal Strife only.");
             DrawToggleFeature(config,"Bonus mount skins (experimental)","BonusMountSkins",&config.bonusMountSkinsEnabled,
                 "Makes Rampage (War) and Despair (Strife) available in the game's Skins page without the optional PAK. A bonus mount already selected stays equipped when loading, even with this option OFF, like armor skins. The native mount remains selectable. No automatic equip. OFF restores native menu availability; a PAK or an existing unlock can still keep them available.",cosmetics::Ready());
             if(!cosmetics::SelectionRetentionReady())
@@ -433,6 +439,8 @@ void Draw(Context& c) {
             ImGui::SetNextItemWidth(270.0f);
             if(ImGui::Combo("Infinite double jump",&config.infiniteDoubleJumpMode,jumpModes,3))config.Save();
             DrawFeatureDescription("After gliding rearms one double jump per glide. Always on allows repeated air jumps. In either mode, pressing your jump control ends a glide before requesting the jump. OFF restores normal behavior. Experimental.",dg::air_jump::Ready());
+            DrawToggleFeature(config,"Jump on horseback (experimental)","MountedJump",&config.mountedJumpEnabled,
+                "Use the game's jump action while riding either mount, with your existing keyboard/controller binding. Native forward leap, ground check and landing; no air jump. OFF restores native behavior. Check animation, sprint, attacks and landing on each mount.",mounted_jump::Ready());
             DrawTunableFeature(config,"Grapple range","GrappleRange",&config.grappleRangeEnabled,
                 &config.grappleRangeMultiplier,1.0f,10.0f,2.0f,"%.2fx",
                 "Scales native acquisition, relay and pull distances together. Applies on the next use; target rules and obstacles remain native. Experimental: traversal limits still require in-game checks.",dg::grapple::Ready());
