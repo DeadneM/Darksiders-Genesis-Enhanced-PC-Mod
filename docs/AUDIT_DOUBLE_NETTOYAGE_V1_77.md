@@ -1,4 +1,4 @@
-Suivi V1.78 : le patch ci-dessous a été appliqué au lot OFF/interface après les retours utilisateur. Compilation et tests en attente à ce stade ; le rapport original conserve son statut au moment de l’audit. [Intégration et limites](V1_78_PISTOL_OFF_LIFECYCLE_CLEANUP_TEST.md).
+Suivi V1.78 : le patch ci-dessous a été appliqué au lot OFF/interface après les retours utilisateur. Intégration construite et contrôlée : [47/47 suites, zéro avertissement MSVC](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39669799213) ; le rapport original conserve son statut au moment de l’audit. [Intégration et limites](V1_78_PISTOL_OFF_LIFECYCLE_CLEANUP_TEST.md).
 
 ---
 

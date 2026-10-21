@@ -2,7 +2,7 @@
 
 ## Base, objectif, statut
 
-Base cumulative V1.77 (`a0dee7cd6e2eeb45da33c55da867966dd278cb50`), debug uniquement. Visée manette sans tir, réglages, updater et seul pistolet droit visible à pied validés par l’utilisateur. Les nouveautés de ce lot sont **PRÉPARÉES / EXPÉRIMENTALES, non compilées et non validées en jeu à ce stade**.
+Base cumulative V1.77 (`a0dee7cd6e2eeb45da33c55da867966dd278cb50`), debug uniquement. Visée manette sans tir, réglages, updater et seul pistolet droit visible à pied validés par l’utilisateur. Les nouveautés de ce lot sont **CONSTRUITES / CONTRÔLÉES : [47/47 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39669799213), zéro avertissement MSVC ; EXPÉRIMENTALES, non validées en jeu**.
 
 Objectif : rendre le choix OFF cohérent avec le lifecycle des modèles, sans le faire dépendre de la capture d’une pose ; retirer les leftovers revérifiés et simplifier l’ouverture du menu. Critère : une main OFF reste masquée dans les roues, à cheval et au retour de l’ultime, Native rend les intentions de visibilité natives les plus récentes, et les tirs/commandes de jeu restent natifs.
 
@@ -10,7 +10,7 @@ Objectif : rendre le choix OFF cohérent avec le lifecycle des modèles, sans le
 
 - OFF du modèle est indépendant de la disponibilité de la pose. Une transformation peut invalider le cache de bras sans réafficher le pistolet. Capturer les bras rangés reste nécessaire pour leur présentation à pied.
 - La fonction native de visibilité reçoit toujours sa demande et sa propagation d’origine. Pour un composant exact encore loué par OFF, la visibilité de ce seul composant est réaffirmée avant soumission du rendu ; aucun parent, roue, son, projectile ou composant étranger masqué. Les intentions natives sont enregistrées et restaurées au retour Native. Roues/pause n’annulent plus ce choix.
-- À cheval, quatre `StaticMeshComponent` précis de Despair sont traités par côté : main `BA0/BA8`, rangés `BF8/C00`, propriétaire réciproque et parent `mesh+380`, classe exacte, rôle local et identité native contrôlés. Les poses montées et leurs holsters en cuir restent natifs dans ce candidat.
+- À cheval, quatre `StaticMeshComponent` précis de Despair sont traités par côté : main `BA0/BA8`, rangés `BF8/C00`, propriétaire réciproque et parent `mesh+380`, classe exacte, rôle local et identité native contrôlés. Les poses montées, leurs effets de tir et les holsters en cuir du modèle monté restent natifs dans ce candidat ; seuls les quatre modèles de pistolets montés sont masqués.
 - Bras droit OFF : sa clavicule de visée faisait encore partie de la pose native active. Le candidat repose aussi cet os dans le paquet de rendu, par rapport à `Bone_Strife_Spine2`. Le bras gauche garde exactement sa base précédente. Aucun os/sous-système de sockets natif écrit.
 - Holsters à pied : hiérarchie de 80 os vérifiée en lecture seule, feuilles 78/79 `Bone_Strife_Holster_R/L`, parent pelvis 1. Réduire les triangles du côté OFF dans les matrices de rendu courantes et précédentes ; aucun masquage du personnage ou du parent. Résultat esthétique encore à tester.
 - Trait/arc : nouveau choix **Never (always visible)**, ID 3, lecture/sauvegarde testées ; anciens ID 0/1/2 et valeur fournie TPS Only inchangés.
