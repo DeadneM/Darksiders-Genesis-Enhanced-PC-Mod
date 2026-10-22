@@ -57,7 +57,9 @@ struct ArmPose {
             shoulders[side]=Multiply(native[Clavicle[side]],inverse);
             if(!Finite(shoulders[side]))return false;
         }
-        clavicle=shoulders;relative=next;ready=true;previousMask=0;return true;
+        // Refresh animation every evaluation without discarding the previous
+        // rendered arm. Lifecycle/action changes reset that history explicitly.
+        clavicle=shoulders;relative=next;ready=true;return true;
     }
     // All-or-nothing on invalid input. Return matrices for current and previous
     // render packets only; untouched bones and the opposite hand stay native.

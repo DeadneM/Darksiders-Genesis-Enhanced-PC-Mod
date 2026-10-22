@@ -1,7 +1,7 @@
 #pragma once
 namespace dg::build {
-inline constexpr int Major=1,Minor=80;
-inline constexpr char Version[]="V1.80";
-inline constexpr char Id[]="1.80-mounted-sounds-packet-arms-test";
-inline constexpr char Archive[]="DarksidersGenesis_V1.80_MOUNTED_SOUNDS_PACKET_ARMS_TEST.zip";
+inline constexpr int Major=1,Minor=81;
+inline constexpr char Version[]="V1.81";
+inline constexpr char Id[]="1.81-native-unarmed-animation-test";
+inline constexpr char Archive[]="DarksidersGenesis_V1.81_NATIVE_UNARMED_ANIMATION_TEST.zip";
 }

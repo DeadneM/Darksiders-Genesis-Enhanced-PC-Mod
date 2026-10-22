@@ -9,8 +9,8 @@ namespace {
 using dg::pistol_visual::Matrix;using dg::pistol_visual::Matrices;
 struct Transform {float q[4]{},t[4]{},s[4]{};}; // unrelated native socket-pose fixture
 unsigned char actors[2][0x1100]{},meshes[2][0x800]{},skeletons[2][0x400]{},renderObjects[2][0x80]{};
-unsigned char packets[2][0x110]{},guns[2][2][0x600]{},items[24*24]{},names[24][128]{},notify[0x100]{},klass[0x40]{},effect[0x40]{};
-uintptr_t nameEntries[24]{},nameChunks[1]{reinterpret_cast<uintptr_t>(nameEntries)};void* chunks[1]{items};
+unsigned char packets[2][0x110]{},guns[2][2][0x600]{},items[48*24]{},names[48][128]{},notify[0x100]{},klass[0x40]{},effect[0x40]{};
+uintptr_t nameEntries[48]{},nameChunks[1]{reinterpret_cast<uintptr_t>(nameEntries)};void* chunks[1]{items};
 Matrices current[2]{},previous[2]{};std::array<Transform,80> poses[2]{};
 bool gameThread=true,paused=false,cinematic=false,radial=false,presentation=true;unsigned hiddenCalls=0;
 std::vector<std::pair<bool,unsigned char>> hiddenEvents;
@@ -58,7 +58,9 @@ void Policy(){
         Check(Equal(output[i],right?Translation(float(i)+10,9,3):source[i]),"opposite arm, legs, spine, scarf and holsters preserved");
         Check(Equal(old[i],output[i]),"first frame has no phantom old aim pose");
     }
-    const auto last=output;clav[0]=Translation(25,7,0);output=source;old=source;
+    const auto last=output;source[41].m[3][1]+=3;
+    Check(cache.Capture(source,{Translation(10,0,0),Translation(-10,0,0)}),"refresh animated source without discarding render history");
+    clav[0]=Translation(25,7,0);output=source;old=source;
     Check(cache.Apply(1,clav,1050,output,&old)&&Equal(old[41],last[41]),"previous render packet uses last transformed arm");
     auto bad=clav;bad[1].m[0][0]=std::numeric_limits<float>::infinity();const auto before=output;
     Check(!cache.Apply(3,bad,1060,output,&old)&&std::memcmp(&before,&output,sizeof(output))==0,"invalid opposite arm rejects transaction without partial write");
@@ -78,11 +80,28 @@ void Policy(){
     Check(!HideHolsters(4,output,nullptr),"unknown holster mask rejected");
     Check(HideEffect(EffectSide::Right,1)&&!HideEffect(EffectSide::Left,1)&&!HideEffect(EffectSide::Shared,1)&&
           HideEffect(EffectSide::Shared,3)&&!HideEffect(EffectSide::Unknown,3),"per-hand and shared root effects remain distinct");
+    AnimationClock clock{};const std::array<float,3> lengths{.8666667f,2.6666667f,1.0666667f};
+    Check(clock.Step(10,0,.25f,lengths),"seed clip phase from native unarmed node");
+    const float phase=clock.phase;
+    Check(clock.Step(10,1,0,lengths)&&clock.phase==phase&&clock.speed==0,"paused world cannot advance cosmetic animation");
+    Check(clock.Step(10.1f,1,0,lengths)&&clock.phase>phase&&clock.speed>0&&clock.speed<1,"live time advances clips and blends speed");
+    std::array<BlendSample,2> samples{};const auto n=clock.Samples(lengths,samples);float sum=0;
+    for(unsigned i=0;i<n;++i){sum+=samples[i].weight;Check(samples[i].index>=0&&samples[i].index<3&&samples[i].time>=0&&samples[i].time<lengths[size_t(samples[i].index)],"native sample time is within its own clip");}
+    Check(n<=2&&std::abs(sum-1)<.001f,"two adjacent samples carry normalized weights");
+    Check(clock.Step(2,1,.5f,lengths)&&clock.phase==.5f&&clock.speed==1,"travel/time reversal resets instead of catching up");
+    Check(!clock.Step(2,std::numeric_limits<float>::quiet_NaN(),0,lengths),"invalid speed rejected");
+    AnimationRig rig{};std::array<LocalTransform,80> local{};Matrices skinning{};
+    for(unsigned i=0;i<80;++i){rig.parents[i]=i?int(i)-1:-1;rig.inverseBind[i]=Translation(0,0,0);local[i].q[3]=1;local[i].t[0]=1;for(unsigned j=0;j<3;++j)local[i].s[j]=1;}
+    Check(rig.Skin(local,skinning)&&Equal(skinning[79],Translation(80,0,0)),"local native clips compose through the actual parent hierarchy");
+    const auto saved=skinning;rig.parents[40]=41;
+    Check(!rig.Skin(local,skinning)&&std::memcmp(&saved,&skinning,sizeof(saved))==0,"invalid hierarchy fails without partial output");
+    LocalTransform rotated{};rotated.q[2]=rotated.q[3]=std::sqrt(.5f);rotated.s[0]=2;rotated.s[1]=3;rotated.s[2]=4;
+    Matrix rotation{};Check(LocalMatrix(rotated,rotation)&&std::abs(rotation.m[0][1]-2)<.001f&&std::abs(rotation.m[1][0]+3)<.001f&&rotation.m[2][2]==4,"UE row-vector quaternion conversion retains nonuniform scale");
 }
 void Runtime(){
     using namespace dg::pistol_visual;
     std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());
-    Put(image.data(),0x3959680,reinterpret_cast<uintptr_t>(chunks));Put(image.data(),0x3959694,24);
+    Put(image.data(),0x3959680,reinterpret_cast<uintptr_t>(chunks));Put(image.data(),0x3959694,48);
     Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(nameChunks));
     g_ready=true;g_hiddenFn=HiddenSetter;g_players[0]={};g_players[1]={};
     dg::runtime::Get().pistolRightModel=0;dg::runtime::Get().pistolLeftModel=0;
@@ -97,7 +116,7 @@ void Runtime(){
     for(unsigned p=0;p<2;++p){
         auto& s=g_players[p].snapshot;
         s.actor=Register(actors[p],int(p*5));s.mesh=Register(meshes[p],int(p*5+1));s.skeleton=Register(skeletons[p],int(p*5+2));
-        s.tick=1000;s.idleSince=100;s.capture=s.gameplay=true;
+        s.tick=1000;s.gameplay=true;
         Put(meshes[p],0xE8,s.actor.address);Put(meshes[p],0x5A0,s.skeleton.address);Put(meshes[p],0x6C0,reinterpret_cast<uintptr_t>(renderObjects[p]));
         Put(renderObjects[p],0,g_base+0x2DC8930);Put(renderObjects[p],0x40,uintptr_t(0x1234));
         Put(packets[p],0,g_base+0x2DC88A8);Put(packets[p],0x10,Array{reinterpret_cast<uintptr_t>(&current[p]),80,80});
@@ -111,11 +130,14 @@ void Runtime(){
             Put(actors[p],0x1040+side*8,gun.address);Put(guns[p][side],0,g_base+0x2A575C8);
             Put(guns[p][side],0xE8,s.actor.address);Put(guns[p][side],0x108,s.mesh.address);Put<unsigned char>(guns[p][side],0x1CC,0x21);
         }
-        Check(ProcessPacket(reinterpret_cast<uintptr_t>(packets[p]),s.mesh.address,0x1234,0,1000)&&g_poseReady[p],"each owned render packet captures a separate sheath pose");
+        const std::array<Matrix,2> anchors{current[p][14],current[p][14]};
+        Check(g_players[p].pose.Capture(current[p],anchors),"seed independent animated sample for packet fixture");
+        g_players[p].sampleTick=1000;
+        Check(!ProcessPacket(reinterpret_cast<uintptr_t>(packets[p]),s.mesh.address,0x1234,0,1000),"both Native do not process or capture render arms");
     }
     const auto nativePose=poses[0];
     std::array<unsigned char,sizeof(actors)> beforeActors{};std::memcpy(beforeActors.data(),actors,sizeof(actors));
-    const auto baseline=current[0];auto& s=g_players[0].snapshot;s.capture=false;s.lower=true;s.tick=1100;
+    const auto baseline=current[0];auto& s=g_players[0].snapshot;s.lower=true;s.tick=1100;
     dg::runtime::Get().pistolRightModel=3;poses[0][14].t[0]=900;current[0][14]=Translation(20,0,5);
     Check(ProcessPacket(reinterpret_cast<uintptr_t>(packets[0]),s.mesh.address,0x1234,0,1100),"render packet receives scoped OFF pose");
     for(unsigned i=0;i<80;++i)if(i!=79&&i!=14)Check(Equal(current[0][i],i>=40&&i<=62?Translation(float(i)+10,0,5):baseline[i]),"right OFF includes aiming shoulder but preserves opposite arm and spine");
@@ -155,7 +177,7 @@ void Runtime(){
     Check(Get<unsigned char>(guns[0][0],0x1CC)==0x21,"return to Native restores latest foreign visibility intent");
     Name(0,"AnimNotify_PlayParticleEffect");Name(1,"VFX_strife_muzzleFlash");Name(2,"VFX_Weapon_Gun_R");Name(3,"VFX_Weapon_Gun_L");Name(4,"VFX_Root_Beam");Name(5,"unrelated_hit_effect");
     Put(klass,0x18,0);Put(notify,0x10,reinterpret_cast<uintptr_t>(klass));Put(effect,0x18,1);Put(notify,0x38,reinterpret_cast<uintptr_t>(effect));
-    const auto now=GetTickCount64();s.tick=now;g_players[0].renderTick=now;Put(notify,0x84,std::array<int,2>{2,0});
+    const auto now=GetTickCount64();s.tick=now;Put(notify,0x84,std::array<int,2>{2,0});
     Check(SkipParticle(notify,meshes[0]),"owned right muzzle suppressed");Put(notify,0x84,std::array<int,2>{3,0});
     Check(!SkipParticle(notify,meshes[0]),"visible left muzzle preserved");Put(notify,0x84,std::array<int,2>{4,0});
     Check(!SkipParticle(notify,meshes[0]),"shared root effect preserved with visible hand");dg::runtime::Get().pistolLeftModel=3;
@@ -213,12 +235,8 @@ void Runtime(){
     Put(actors[0],0x348,reinterpret_cast<uintptr_t>(pc));Put(pc,0x350,reinterpret_cast<uintptr_t>(actors[0]));Put(actors[0],0x380,reinterpret_cast<uintptr_t>(meshes[0]));
     horse.kind=dg::local_players::PoseKind::Foot;horse.pawn=horse.character;dg::runtime::Get().pistolRightModel=3;dg::runtime::Get().pistolLeftModel=0;
     OnLivePlayer(horse,10,true);
-    Check(PoseReady(0)&&Get<unsigned char>(guns[0][0],0x1CC)==0x61,"return to same normal mesh immediately reuses compatible resting arm pose and keeps OFF");
-    const auto cached=g_players[0].poseAsset;
-    Put(items,size_t(cached.index)*24+16,cached.serial+1);OnLivePlayer(horse,11,true);
-    Check(!PoseReady(0)&&!g_players[0].pose.ready,"reused asset address with a new serial invalidates resting matrices");
-    Put(items,size_t(cached.index)*24+16,cached.serial);
-    g_players[0].poseAsset=cached;g_players[0].pose.ready=true;OnLivePlayer(horse,10,true);
+    Check(!PoseReady(0)&&Get<unsigned char>(guns[0][0],0x1CC)==0x61,"return to foot keeps OFF immediately while waiting for a fresh animation evaluation");
+    Check(!g_players[0].pose.ready,"no frozen arm pose survives a transformation");
     paused=radial=true;OnLivePlayer(horse,10,true);HookHidden(guns[0][0],false,1);
     Check(Get<unsigned char>(guns[0][0],0x1CC)==0x61,"normal-foot wheel cannot briefly show the hidden pistol");
     dg::runtime::Get().pistolRightModel=0;OnLivePlayer(horse,10,true);paused=radial=false;
@@ -241,6 +259,60 @@ void Runtime(){
     dg::runtime::Get().strifeBladeVisibility=0;OnLivePlayer(horse,10,true);
     Check(Get<unsigned char>(blade[0],0x1CC)==0x21&&Get<unsigned char>(blade[1],0x1CC)==0x21,"Native restores both blades independently");
     g_ready=false;
+}
+void AnimationBoundary(){
+    using namespace dg::pistol_visual;
+    std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());
+    Put(image.data(),0x3959680,reinterpret_cast<uintptr_t>(chunks));Put(image.data(),0x3959694,48);
+    g_ready=g_animationReady=true;g_players[0]={};g_players[1]={};
+    unsigned char anim[0x500]{},blend[0x100]{},skeleton[0x100]{},seq[3][0x100]{},proxy[0x500]{};
+    struct AssetSample {uintptr_t sequence;float position[3],rate;};AssetSample assetSamples[3]{};
+    auto& p=g_players[0];auto& snapshot=p.snapshot;
+    snapshot.actor=Register(actors[0],0);snapshot.mesh=Register(meshes[0],1);snapshot.skeleton=Register(skeletons[0],2);
+    snapshot.gameplay=snapshot.lower=true;snapshot.tick=1000;snapshot.worldTime=1;snapshot.speed=1;
+    p.source.anim=Register(anim,24);p.source.blend=Register(blend,25);p.source.skeleton=Register(skeleton,26);
+    for(unsigned i=0;i<3;++i){p.source.sequences[i]=Register(seq[i],27+int(i));assetSamples[i].sequence=p.source.sequences[i].address;}
+    Put(blend,0xC8,Array{reinterpret_cast<uintptr_t>(assetSamples),3,3});
+    p.source.lengths={.8666667f,2.6666667f,1.0666667f};
+    std::array<uint16_t,80> required{};
+    for(unsigned i=0;i<80;++i){required[i]=uint16_t(i);p.source.rig.parents[i]=i?0:-1;p.source.rig.inverseBind[i]=Translation(0,0,0);}
+    const auto proxyAt=reinterpret_cast<uintptr_t>(proxy);Put(anim,0x240,proxyAt);Put(anim,0x318,g_base+0x2A77628);
+    Put(proxy,0xA0,p.source.anim.address);Put(proxy,0xB0,p.source.skeleton.address);Put(proxy,0xB8,snapshot.mesh.address);
+    Put(proxy,0x450,Array{reinterpret_cast<uintptr_t>(required.data()),80,80});
+    PoseContext native{};native.proxy=proxyAt;native.pose.container=proxyAt+0x450;native.pose.transforms.count=80;
+    const auto beforeNative=native;
+    static std::array<LocalTransform,80> sampled{};
+    static float animationPhase=0;static unsigned sampleCalls=0;sampleCalls=0;
+    g_initContext=+[](PoseContext* context){context->pose.container=context->proxy+0x450;context->pose.transforms={reinterpret_cast<uintptr_t>(sampled.data()),80,80};};
+    g_sample=+[](void*,const NativeArray* cache,CompactPose*,Curve*){
+        ++sampleCalls;Check(cache->count>=1&&cache->count<=2,"bounded blend samples");
+        const auto* input=reinterpret_cast<const BlendSample*>(cache->data);
+        animationPhase=input[0].time;
+        for(unsigned i=0;i<80;++i){sampled[i]={};sampled[i].q[3]=1;for(unsigned j=0;j<3;++j)sampled[i].s[j]=1;sampled[i].t[0]=float(i);}
+        // Stand-in for the native clip changing its arm transform with time.
+        sampled[41].t[1]=animationPhase*10;
+    };
+    dg::runtime::Get().pistolRightModel=3;dg::runtime::Get().pistolLeftModel=0;
+    Check(SampleAnimation(reinterpret_cast<uintptr_t>(anim)+0x318,&native,1000)&&sampleCalls==1,"owned root samples live unarmed animation");
+    const auto first=p.pose.relative[0][0];snapshot.tick=1050;snapshot.worldTime=1.05f;
+    Check(SampleAnimation(reinterpret_cast<uintptr_t>(anim)+0x318,&native,1050)&&sampleCalls==2&&
+          !Equal(first,p.pose.relative[0][0]),"animation refresh changes arm instead of replaying frozen rest");
+    Check(std::memcmp(&native,&beforeNative,sizeof(native))==0,"native output context and gameplay pose not overwritten");
+    const auto n=sampleCalls;
+    snapshot.lower=false;Check(!SampleAnimation(reinterpret_cast<uintptr_t>(anim)+0x318,&native,1050)&&sampleCalls==n,"melee and powers do not sample replacement arms");snapshot.lower=true;
+    Check(!SampleAnimation(reinterpret_cast<uintptr_t>(anim)+0x320,&native,1050),"foreign animation root rejected");
+    required[20]=19;Check(!SampleAnimation(reinterpret_cast<uintptr_t>(anim)+0x318,&native,1050),"unsupported compact mapping keeps native pose");required[20]=20;
+    Put(proxy,0xB8,uintptr_t(1));Check(!SampleAnimation(reinterpret_cast<uintptr_t>(anim)+0x318,&native,1050),"foreign mesh proxy rejected");Put(proxy,0xB8,snapshot.mesh.address);
+    native.additive=1;Check(!SampleAnimation(reinterpret_cast<uintptr_t>(anim)+0x318,&native,1050),"additive context rejected");native.additive=0;
+    snapshot.tick=700;Check(!SampleAnimation(reinterpret_cast<uintptr_t>(anim)+0x318,&native,1050),"expired snapshot rejects native sampling");snapshot.tick=1050;
+    Put(items,size_t(p.source.anim.index)*24+16,p.source.anim.serial+1);
+    Check(!SampleAnimation(reinterpret_cast<uintptr_t>(anim)+0x318,&native,1050),"animation address reuse rejected by serial");
+    Put(items,size_t(p.source.anim.index)*24+16,p.source.anim.serial);
+    dg::runtime::Get().pistolRightModel=0;
+    Check(!SampleAnimation(reinterpret_cast<uintptr_t>(anim)+0x318,&native,1050)&&sampleCalls==n,"both Native never call extra pose evaluation");
+    static unsigned forwards=0;g_evaluate=+[](void*,PoseContext*){++forwards;};HookEvaluate(nullptr,&native);
+    Check(forwards==1,"every original root evaluation is retained");
+    g_ready=g_animationReady=false;g_sample=nullptr;g_initContext=nullptr;g_evaluate=nullptr;
 }
 void Config(){
     wchar_t folder[MAX_PATH]{},path[MAX_PATH]{};
@@ -266,4 +338,4 @@ bool CinematicActive(unsigned){return cinematic;}bool RadialActive(unsigned){ret
 }
 namespace dg::local_players {bool Matches(unsigned,uintptr_t,uint32_t){return true;}}
 namespace dg::dash_combat {bool PresentationReady(){return presentation;}}
-int main(){try{Policy();Runtime();Config();std::cout<<"Pistol visual native boundary checks passed\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
+int main(){try{Policy();Runtime();AnimationBoundary();Config();std::cout<<"Pistol visual native boundary checks passed\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

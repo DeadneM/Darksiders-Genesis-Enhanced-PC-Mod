@@ -281,9 +281,9 @@ void Draw(Context& c) {
             ImGui::EndDisabled();
             ImGui::TextWrapped("Choose either existing pistol independently for each hand, for both local players. Mounted holsters use the matching stowed model. Native restores that hand's previous model. Experimental: check grip alignment and firing effects.");
             if(config.pistolRightModel==3||config.pistolLeftModel==3){
-                ImGui::TextWrapped("OFF: sheathe both weapons on foot and stand still briefly to capture the resting arms. The selected pistol and its foot holster are hidden; shooting remains active. Mounted hand and stowed pistol models are also hidden. Mounted arm poses, mounted leather holsters, melee and Ultimate remain native. Shared effects stay with one visible pistol.");
+                ImGui::TextWrapped("OFF hides this pistol and its foot holster. On foot, its arm uses native unarmed idle/walk/run animation while aiming or shooting. Melee, powers and other actions keep their native animations. Shooting remains active. Mounted hand and stowed models are also hidden; mounted arms, mounted leather holsters and Ultimate remain native. Shared effects stay with one visible pistol.");
                 if(!pistol_visual::Ready())ImGui::TextDisabled("OFF unavailable for this executable; native presentation retained.");
-                else ImGui::TextDisabled("Resting arm pose: P1 %s | P2 %s",pistol_visual::PoseReady(0)?"yes":"sheathe and wait",pistol_visual::PoseReady(1)?"yes":"sheathe and wait");
+                else ImGui::TextDisabled("Animated OFF arm: P1 %s | P2 %s (while aiming/firing)",pistol_visual::PoseReady(0)?"active":"native / waiting",pistol_visual::PoseReady(1)?"active":"native / waiting");
             }
             constexpr const char* bladeModes[]={"Native","Hide left blade","Hide right blade","Hide both blades"};
             ImGui::BeginDisabled(!pistol_visual::Ready());ImGui::SetNextItemWidth(280.0f);

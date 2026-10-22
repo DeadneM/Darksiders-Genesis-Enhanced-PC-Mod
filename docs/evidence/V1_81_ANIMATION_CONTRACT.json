@@ -1,0 +1,171 @@
+{
+  "executableSha256": "9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54",
+  "readOnlyCapture": {
+    "file": "v181-animation-live-20261022-170832.jsonl",
+    "sha256": "9574f7d6ef42c7b9cbe82f084a7b9cb1843ab4adc79af058e59d8e7eddc65c76",
+    "completion": {
+      "event": "end",
+      "samples": 3498,
+      "rejected": 2
+    },
+    "states": {
+      "[0, 0]": 3231,
+      "[0, 1]": 240,
+      "[1, 0]": 27
+    },
+    "unarmedNode": {
+      "[0, 0]": {
+        "minSpeed": 0.0,
+        "maxSpeed": 4100.0,
+        "minWeight": 0.0041841682977974415,
+        "maxWeight": 1.0,
+        "minTime": 0.0008698403835296631,
+        "maxTime": 0.9996955990791321,
+        "samples": {
+          "1": 3045,
+          "2": 97,
+          "0": 186
+        }
+      },
+      "[0, 1]": {
+        "minSpeed": 0.0,
+        "maxSpeed": 3858.20654296875,
+        "minWeight": 0.004736603237688541,
+        "maxWeight": 0.9150046706199646,
+        "minTime": 0.2368294894695282,
+        "maxTime": 0.8198204040527344,
+        "samples": {
+          "0": 240,
+          "2": 122
+        }
+      },
+      "[1, 0]": {
+        "minSpeed": 0.0,
+        "maxSpeed": 1216.7430419921875,
+        "minWeight": 0.17506003379821777,
+        "maxWeight": 1.0,
+        "minTime": 0.019070088863372803,
+        "maxTime": 0.15386168658733368,
+        "samples": {
+          "0": 27,
+          "2": 20
+        }
+      }
+    }
+  },
+  "rootOffset": "0x318",
+  "rootVtable": "0x2A77628",
+  "rootEvaluate": "0x13C0F50",
+  "proxyOffset": "0x240",
+  "proxyLinks": {
+    "anim": "0xA0",
+    "skeleton": "0xB0",
+    "mesh": "0xB8"
+  },
+  "compactBoneIndices": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    74,
+    75,
+    76,
+    77,
+    78,
+    79
+  ],
+  "asset": "Strife_Locomotion",
+  "samples": [
+    {
+      "index": 0,
+      "name": "Strife_Run",
+      "x": 1,
+      "length": 0.8666666746
+    },
+    {
+      "index": 1,
+      "name": "Strife_Idle",
+      "x": 0,
+      "length": 2.6666667461
+    },
+    {
+      "index": 2,
+      "name": "Strife_Walk",
+      "x": 0.3333333333333333,
+      "length": 1.0666667223
+    }
+  ],
+  "nativeContextInit": "0x1694890",
+  "nativeGetAnimationPose": "0x16B4C30",
+  "newBehaviorGameplayValidated": false
+}
