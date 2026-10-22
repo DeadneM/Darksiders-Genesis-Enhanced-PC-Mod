@@ -1,5 +1,7 @@
 # V1.80 — sons du saut monté et bras OFF cohérents
 
+**V1.80 CONSTRUITE / CONTRÔLÉE : [48/48 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39793144590), zéro avertissement MSVC. Sons et nouveau rendu des bras EXPÉRIMENTAUX, à confirmer en jeu.** [ZIP cumulatif immuable vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/8124f3e683d16dafbabf6bc610c7f2998a2dce4f/downloads/DarksidersGenesis_V1.80_MOUNTED_SOUNDS_PACKET_ARMS_TEST.zip) · [Reçu, empreintes et rollback](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_80_DELIVERY_RECEIPT.md). Installation manuelle, conserver son INI et ses raccourcis.
+
 ## Base, objectif et réussite
 
 Canal debug seulement, base V1.79 `5e2221ba8c0d6ed75f743c0cebeb073301b18487`. Le retour utilisateur du 22 octobre valide le saut et les points 1 à 5 dans les essais rapportés, sauf les bras OFF explicitement encore incorrects à droite comme à gauche. La coop demeure différée. Ne pas transformer cette validation en couverture de toutes les montures et périphériques.
