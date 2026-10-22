@@ -1,5 +1,7 @@
 # V1.81 — bras OFF animés par la locomotion désarmée native
 
+**V1.81 CONSTRUITE / CONTRÔLÉE : [48/48 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39803846206), zéro erreur et zéro avertissement MSVC. Bras animés EXPÉRIMENTAUX, non validés en jeu.** [ZIP cumulatif immuable vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/36d31209abfbf4c0fea6b5afd64184855f1f964b/downloads/DarksidersGenesis_V1.81_NATIVE_UNARMED_ANIMATION_TEST.zip) · [Reçu et empreintes](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_81_DELIVERY_RECEIPT.md). Installation manuelle, garder son INI et ses raccourcis.
+
 ## Base, objectif, statut
 
 Base cumulative V1.80 `3533b3d070a6c41b7976203c7d3e2e27501c9dd3`, debug exclusivement. Le cheval V1.80 est confirmé bon dans l'essai rapporté. Son code, ses sons, les fonctions de tir/visée et de manette restent inchangés. Le repos figé V1.80 est rejeté pour les bras ; il est remplacé, sans empilement d'un second correctif figé.
