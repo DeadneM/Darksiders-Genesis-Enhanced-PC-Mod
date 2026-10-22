@@ -1,5 +1,7 @@
 # V1.85 — lot cumulatif effets de mêlée et protection Stoneskin
 
+**V1.85 CONSTRUITE / CONTRÔLÉE : [51/51 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39845333890), zéro erreur et zéro avertissement MSVC. Nouveaux effets et protection Stoneskin EXPÉRIMENTAUX, non validés en jeu.** [ZIP cumulatif immuable vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/6f05855e2c3ba54b904d78116bc9562895ff997a/downloads/DarksidersGenesis_V1.85_COMPACT_BARE_BLADE_FX_TEST.zip) · [Reçu et rollback](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_85_DELIVERY_RECEIPT.md). Installation manuelle, garder son INI et ses raccourcis.
+
 22 octobre 2026. Base V1.84 `6e27cf7`, debug seulement. Acquis validés V1.81 et suivi TPS des exécutions V1.82 conservés. Les effets de mêlée V1.82 étaient inefficaces dans l'essai utilisateur ; le nouveau chemin reste **EXPÉRIMENTAL, non validé visuellement**. Aucune installation ou relance par l'agent.
 
 ## Objectif et différence avec le build intermédiaire

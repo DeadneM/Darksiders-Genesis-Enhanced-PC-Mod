@@ -1,0 +1,53 @@
+{
+  "ci": {
+    "runId": 39845333890,
+    "jobId": 120056987651,
+    "sourceCommit": "38d4d7aae30e0640b2ec8dcad1de98c20473fe76",
+    "conclusion": "success",
+    "suitesPassed": 51,
+    "testRows": 51,
+    "testSummary": "2026-10-22T20:06:55.4177515Z 100% tests passed out of 51",
+    "compilerWarnings": [],
+    "compilerErrors": [],
+    "toolingWarnings": [
+      "2026-10-22T20:03:04.8819172Z CMake Warning (deprecated) at build/_deps/minhook-src/CMakeLists.txt:27 (cmake_minimum_required):",
+      "2026-10-22T20:03:04.8824485Z This warning is for project developers.  Use -Wno-author or -Wno-deprecated",
+      "2026-10-22T20:06:56.8120094Z (node:1916) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.",
+      "2026-10-22T20:06:57.1179908Z (node:1916) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.",
+      "2026-10-22T20:07:02.7278949Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/"
+    ]
+  },
+  "checks": {
+    "base": "6e27cf78983f196683d786dae5c7372b9a4b1351",
+    "branch": "debug",
+    "oldArchivesUnchanged": 149,
+    "iniKeysUnchanged": 166,
+    "hotkeyActionsUnchanged": true,
+    "unchangedSourceFiles": 120,
+    "onlyMeleeLayoutAndLogVersionChanged": true,
+    "planSizeExpected": 128,
+    "nativeSignatures": {
+      "sig": {
+        "rva": "0x189a140",
+        "signature": "488bc4488958104889681848897020"
+      },
+      "attachSig": {
+        "rva": "0x189a510",
+        "signature": "4055535657415441554157488d6c24f9"
+      },
+      "rootSig": {
+        "rva": "0x17a2590",
+        "signature": "488bc44889581855565741564157"
+      }
+    },
+    "executionCameraUnchanged": true,
+    "foreignPrototypeUnchanged": true,
+    "gameplayValidated": false
+  },
+  "sourceCommit": "38d4d7aae30e0640b2ec8dcad1de98c20473fe76",
+  "planSizeCompiled": 128,
+  "implicitPaddingWarningRemoved": true,
+  "executionCameraUserValidatedInReportedCase": true,
+  "meleeGameplayValidated": false,
+  "stoneskinPrototypeGameplayValidated": false
+}
