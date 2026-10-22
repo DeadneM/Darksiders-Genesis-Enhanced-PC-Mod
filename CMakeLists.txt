@@ -11,6 +11,14 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(ExecutionCameraTests tests/ExecutionCameraTests.cpp)
+  target_include_directories(ExecutionCameraTests PRIVATE src)
+  target_compile_definitions(ExecutionCameraTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+  add_test(NAME ExecutionCamera COMMAND ExecutionCameraTests)
+  add_executable(MeleeEffectTests tests/MeleeEffectTests.cpp src/RuntimeSettings.cpp)
+  target_include_directories(MeleeEffectTests PRIVATE tests/stubs src)
+  target_compile_definitions(MeleeEffectTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+  add_test(NAME MeleeEffect COMMAND MeleeEffectTests)
   add_executable(MountedJumpTests tests/MountedJumpTests.cpp src/RuntimeSettings.cpp)
   target_include_directories(MountedJumpTests PRIVATE tests/stubs src)
   target_compile_definitions(MountedJumpTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
@@ -311,6 +319,8 @@ add_library(DarksidersGenesisMod SHARED
   src/HeavyLandingFeature.cpp
   src/MountedHolsterFeature.cpp
   src/PistolVisualFeature.cpp
+  src/ExecutionCameraFeature.cpp
+  src/MeleeEffectFeature.cpp
   src/WrathSlotFeature.cpp
   src/CosmeticUnlockFeature.cpp
   src/LeviathanVisualFeature.cpp

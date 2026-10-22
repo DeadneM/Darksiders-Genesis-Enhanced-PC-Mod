@@ -211,6 +211,7 @@ void Run(){
 // The OFF candidate has its own native-boundary suite. This fixture exercises
 // the validated dash consumer with that optional presentation filter inactive.
 namespace dg::pistol_visual {bool SkipParticle(void*,void*){return false;}}
+namespace dg::melee_effect {void Particle(void* n,void* m,void* a,void(*original)(void*,void*,void*)){if(original)original(n,m,a);}}
 namespace dg::native_tps {
 bool OnGameThread(){return gameThread;}
 bool IsWorldPaused(void*){return paused;}

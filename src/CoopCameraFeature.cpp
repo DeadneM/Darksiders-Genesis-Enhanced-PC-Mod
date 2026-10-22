@@ -6,6 +6,7 @@
 #include "TpsPadActions.h"
 #include "CameraContinuity.h"
 #include "TpsCameraFocus.h"
+#include "ExecutionCameraFeature.h"
 #include "NativeMemoryReader.h"
 #include <algorithm>
 #include <cmath>
@@ -133,9 +134,10 @@ void ApplyView(void* camera,void* outView,const local_players::Context& owner){
     const float pitch=std::clamp(basePitch+orbitPitch,-75.0f,65.0f);
     const float yaw=std::remainder(s.baseYaw+orbitYaw,360.0f);
     const float distance=std::clamp(s.arm*distanceMultiplier,0.0f,12000.0f);
+    const float executionOffset=execution_camera::Offset(owner,pose.z);
     float outgoing[7]={pose.x-std::cos(pitch*rad)*std::cos(yaw*rad)*distance,
         pose.y-std::cos(pitch*rad)*std::sin(yaw*rad)*distance,
-        pose.z-foot-std::sin(pitch*rad)*distance+height+50.0f,pitch,yaw,native[5],native[6]};
+        pose.z-foot+executionOffset-std::sin(pitch*rad)*distance+height+50.0f,pitch,yaw,native[5],native[6]};
     if(rt.thirdPersonFovEnabled.load()){
         const float fov=rt.thirdPersonCoopFovDegrees.load();
         if(std::isfinite(fov)&&fov>=40&&fov<=140)outgoing[6]=fov;
@@ -143,7 +145,7 @@ void ApplyView(void* camera,void* outView,const local_players::Context& owner){
     for(float v:outgoing)if(!std::isfinite(v)){s.gameplay=false;Unlock();return;}
     if(std::fabs(outgoing[0])>=1e7f||std::fabs(outgoing[1])>=1e7f||std::fabs(outgoing[2])>=1e7f){Unlock();return;}
     std::memcpy(values,outgoing,sizeof(outgoing));
-    s.focus={pose.x,pose.y,pose.z};
+    s.focus={pose.x,pose.y,pose.z+executionOffset};
     native_objects::MemoryReader reader;
     s.focusBounds=(rt.tpsLensFocusEnabled.load()||rt.tpsBlur.custom.load())&&camera_focus::LensReady()?camera_focus::ReadBounds(reader,owner.pawn):camera_focus::Bounds{};
     if(s.focusBounds.valid&&owner.kind==local_players::PoseKind::Horse)s.focusBounds=camera_focus::Merge(s.focusBounds,camera_focus::ReadBounds(reader,owner.character));

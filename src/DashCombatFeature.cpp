@@ -1,5 +1,6 @@
 #include "DashCombatFeature.h"
 #include "PistolVisualFeature.h"
+#include "MeleeEffectFeature.h"
 #include "LocalPlayerOwnership.h"
 #include "NativeTpsFeature.h"
 #include "DashCombatPolicy.h"
@@ -214,7 +215,8 @@ void HookSoundNotify(void* notify,void* mesh,void* animation){
     if(!SkipPresentation(notify,mesh,animation,true)&&g_sound)g_sound(notify,mesh,animation);
 }
 void HookParticleNotify(void* notify,void* mesh,void* animation){
-    if(!pistol_visual::SkipParticle(notify,mesh)&&!SkipPresentation(notify,mesh,animation,false)&&g_particle)g_particle(notify,mesh,animation);
+    if(!pistol_visual::SkipParticle(notify,mesh)&&!SkipPresentation(notify,mesh,animation,false))
+        melee_effect::Particle(notify,mesh,animation,g_particle);
 }
 void Tick(void* ability,float dt,ULONGLONG now){
     // Observe only AFTER the complete native tick. No early finish, timer,

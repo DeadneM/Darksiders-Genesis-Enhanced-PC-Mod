@@ -1,0 +1,77 @@
+#include "MeleeEffectFeature.h"
+#include "MeleeEffectPolicy.h"
+#include "LocalPlayerOwnership.h"
+#include "NativeTpsFeature.h"
+#include "RuntimeSettings.h"
+#include <MinHook.h>
+#include <atomic>
+#include <cstdio>
+
+namespace dg::melee_effect {
+namespace {
+using SpawnFn=void*(*)(void*,void*,const Transform*,bool,unsigned char);
+SpawnFn g_spawn=nullptr;native_bone::LocationFn g_location=nullptr;
+uintptr_t g_base=0;LogFn g_log=nullptr;std::atomic_bool g_ready{false};unsigned g_changes=0;
+struct Plan {uintptr_t world=0,asset=0;Side side=Side::None;unsigned mask=0;native_bone::Point right{},left{};};
+thread_local const Plan* g_plan=nullptr;
+template<class T> bool Read(uintptr_t p,size_t offset,T& value){native_objects::MemoryReader reader;return reader.Read(p,offset,value);}
+template<size_t N> bool Is(uintptr_t p,const char (&text)[N]){return native_objects::NameIs(g_base,p,text);}
+void* HookSpawn(void* world,void* asset,const Transform* transform,bool autoDestroy,unsigned char pooling){
+    Transform source{},out{};const auto* plan=g_plan;
+    if(g_ready&&plan&&plan->world==reinterpret_cast<uintptr_t>(world)&&plan->asset==reinterpret_cast<uintptr_t>(asset)&&
+       plan->mask==Mask(runtime::Get().strifeBladeVisibility.load())&&
+       Read(reinterpret_cast<uintptr_t>(transform),0,source)&&Adjust(source,plan->side,plan->mask,plan->right,plan->left,out)){
+        if(g_log&&++g_changes<=12){char line[160]{};sprintf_s(line,"Strife bare blade FX V1.82: side=%u mask=%u hand origin, scale=0.4; damage trace unchanged; EXPERIMENTAL",unsigned(plan->side),plan->mask);g_log(line);}
+        return g_spawn?g_spawn(world,asset,&out,autoDestroy,pooling):nullptr;
+    }
+    return g_spawn?g_spawn(world,asset,transform,autoDestroy,pooling):nullptr;
+}
+bool Prepare(void* notify,void* liveMesh,void* animation,Plan& plan){
+    if(!g_ready||!native_tps::OnGameThread()||!Mask(runtime::Get().strifeBladeVisibility.load()))return false;
+    const auto object=reinterpret_cast<uintptr_t>(notify),mesh=reinterpret_cast<uintptr_t>(liveMesh),anim=reinterpret_cast<uintptr_t>(animation);
+    uintptr_t cls=0,outer=0,actor=0,package=0;native_bone::Point offset{};unsigned char attached=0;
+    if(!Read(object,0x10,cls)||!Is(cls,"AnimNotify_PlayParticleEffect")||!Read(object,0x20,outer)||outer!=anim||
+       !Read(object,0x38,plan.asset)||!Read(object,0x40,offset)||!Read(object,0x80,attached)||(attached&1)||
+       !Read(plan.asset,0x10,cls)||!Is(cls,"ParticleSystem")||!Read(plan.asset,0x20,package)||
+       !((Is(plan.asset,"VFX_strife_meleeSlice")&&Is(package,"/Game/Particles/VFX_strife_meleeSlice"))||
+         (Is(plan.asset,"VFX_strife_meleeSlice_strong")&&Is(package,"/Game/Particles/VFX_strife_meleeSlice_strong"))||
+         (Is(plan.asset,"VFX_strife_stabSingle")&&Is(package,"/Game/Particles/VFX_strife_stabSingle")))||
+       !Read(mesh,0xE8,actor)||!Read(actor,0x10,cls)||!Is(cls,"Strife_Blueprint_C"))return false;
+    local_players::Context c{};uintptr_t current=0,controller=0,pawn=0;unsigned char role=0,type=0;
+    if(!local_players::ResolveActor(reinterpret_cast<void*>(actor),c)||c.index<0||c.index>1||!c.localPlayer||
+       c.kind!=local_players::PoseKind::Foot||c.pawn!=actor||c.character!=actor||!c.world||
+       !Read(actor,0x380,current)||current!=mesh||!Read(actor,0x118,role)||role!=3||
+       !Read(actor,0xC18,type)||type!=1||!Read(actor,0x348,controller)||controller!=c.controller||
+       !Read(controller,0x350,pawn)||pawn!=actor)return false;
+    unsigned sequence=0;
+    if(Is(anim,"Strife_Atk_Melee_01"))sequence=1;
+    else if(Is(anim,"Strife_Atk_Melee_02"))sequence=2;
+    else if(Is(anim,"Strife_Atk_Melee_03"))sequence=3;
+    else if(Is(anim,"Strife_Air_Atk_Melee_01"))sequence=4;
+    else if(Is(anim,"Strife_Air_Atk_Melee_02"))sequence=5;
+    plan.side=Classify(sequence,offset);plan.mask=Mask(runtime::Get().strifeBladeVisibility.load());
+    if(!Selected(plan.side,plan.mask))return false;
+    native_objects::MemoryReader reader;
+    if(!native_bone::Location(reader,g_base,g_location,mesh,actor,43,"Bone_Strife_Hand_R",plan.right)||
+       !native_bone::Location(reader,g_base,g_location,mesh,actor,20,"Bone_Strife_Hand_L",plan.left))return false;
+    plan.world=c.world;return true;
+}
+}
+void Initialize(LogFn log,bool exactExecutable){
+    g_log=log;if(!exactExecutable)return;g_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    constexpr unsigned char sig[]={0x48,0x8B,0xC4,0x48,0x89,0x58,0x10,0x48,0x89,0x68,0x18,0x48,0x89,0x70,0x20};
+    if(!native_bone::Boundary(g_base)||std::memcmp(reinterpret_cast<void*>(g_base+0x189A140),sig,sizeof(sig)))return;
+    auto* target=reinterpret_cast<void*>(g_base+0x189A140);
+    if(MH_CreateHook(target,reinterpret_cast<void*>(&HookSpawn),reinterpret_cast<void**>(&g_spawn))!=MH_OK)return;
+    if(MH_EnableHook(target)!=MH_OK){MH_RemoveHook(target);g_spawn=nullptr;return;}
+    g_location=reinterpret_cast<native_bone::LocationFn>(g_base+0x17A2380);g_ready=true;
+    if(log)log("Strife bare blade FX V1.82 READY: scoped owned slash/stab only, native damage and notify retained; EXPERIMENTAL");
+}
+void Particle(void* notify,void* mesh,void* animation,NotifyFn original){
+    if(!original)return;
+    Plan plan{};const bool prepared=Prepare(notify,mesh,animation,plan);
+    struct Guard {const Plan* previous;~Guard(){g_plan=previous;}} guard{g_plan};
+    g_plan=prepared?&plan:nullptr;original(notify,mesh,animation);
+}
+void Shutdown(){g_ready=false;}
+}

@@ -48,6 +48,8 @@
 #include "MountedHolsterFeature.h"
 #include "PistolVisualFeature.h"
 #include "WrathSlotFeature.h"
+#include "ExecutionCameraFeature.h"
+#include "MeleeEffectFeature.h"
 #include "CosmeticUnlockFeature.h"
 #include "LeviathanVisualFeature.h"
 #include "UltimateDurationFeature.h"
@@ -4166,6 +4168,8 @@ void ShutdownMod() {
     dg::manual_aim::Shutdown();
     dg::heavy_landing::Shutdown();
     dg::pistol_visual::Shutdown();
+    dg::execution_camera::Shutdown();
+    dg::melee_effect::Shutdown();
     dg::wrath_slots::Shutdown();
     dg::mounted_holsters::Shutdown();
     dg::cosmetics::Shutdown();
@@ -4429,6 +4433,8 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::heavy_landing::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::mounted_holsters::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::pistol_visual::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::execution_camera::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::melee_effect::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::wrath_slots::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::cosmetics::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::leviathan_visual::Initialize(&FeatureLog,g_targetValidation.exact);

@@ -118,6 +118,7 @@ Slot PublishedSlot(unsigned index){if(index==1)return {g_owner.localPlayer,g_own
 bool ReadPose(const Context&,Pose& p){p=g_pose;return true;}
 bool ResolveActor(void* actor,Context& c){if(reinterpret_cast<uintptr_t>(actor)!=g_owner.character)return false;c=g_owner;return true;}
 }
+namespace dg::execution_camera {float Offset(const local_players::Context&,float){return 0;}}
 namespace dg::native_tps {
 bool IsWorldPaused(void*){return g_paused;}
 bool RadialActive(unsigned index){return index<2&&g_radial[index];}

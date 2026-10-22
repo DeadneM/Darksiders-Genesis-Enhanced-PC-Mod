@@ -1,7 +1,7 @@
 #pragma once
 namespace dg::build {
-inline constexpr int Major=1,Minor=81;
-inline constexpr char Version[]="V1.81";
-inline constexpr char Id[]="1.81-native-unarmed-animation-test";
-inline constexpr char Archive[]="DarksidersGenesis_V1.81_NATIVE_UNARMED_ANIMATION_TEST.zip";
+inline constexpr int Major=1,Minor=82;
+inline constexpr char Version[]="V1.82";
+inline constexpr char Id[]="1.82-bare-blade-execution-camera-test";
+inline constexpr char Archive[]="DarksidersGenesis_V1.82_BARE_BLADE_EXECUTION_CAMERA_TEST.zip";
 }

@@ -1,6 +1,7 @@
 #include "CameraTraceFeature.h"
 #include "LocalPlayerOwnership.h"
 #include "CoopCameraFeature.h"
+#include "ExecutionCameraFeature.h"
 #include "CameraContinuity.h"
 #include "TpsCameraFocus.h"
 #include "NativeMemoryReader.h"
@@ -737,7 +738,8 @@ void HookView(void* camera, float dt, void* outView) {
                 std::cos(nativeYaw*radians)*arm;
             const float pivotY=attached?ay:y+std::cos(nativePitch*radians)*
                 std::sin(nativeYaw*radians)*arm;
-            const float rawPivotZ=attached?(az-foot):z+std::sin(nativePitch*radians)*arm;
+            const float executionOffset=ownedView?execution_camera::Offset(viewOwner,az):0;
+            const float rawPivotZ=attached?(az-foot+executionOffset):z+std::sin(nativePitch*radians)*arm;
             // V0.86: no vertical smoothing. Firing modes control actual
             // native aim + orbit, NOT mount bobbing or camera height.
             const float pivotZ=rawPivotZ;
@@ -759,7 +761,7 @@ void HookView(void* camera, float dt, void* outView) {
                 // the verified gameplay view. Cinematics return before here.
                 g_heldView.focusValid=attached&&actorValid;
                 if(g_heldView.focusValid){
-                    g_heldView.focus={ax,ay,az};
+                    g_heldView.focus={ax,ay,az+executionOffset};
                     native_objects::MemoryReader reader;
                     g_heldView.focusBounds=ownedView&&(settings.tpsLensFocusEnabled.load()||settings.tpsBlur.custom.load())&&camera_focus::LensReady()?camera_focus::ReadBounds(reader,viewOwner.pawn):camera_focus::Bounds{};
                     if(g_heldView.focusBounds.valid&&usingHorse)g_heldView.focusBounds=camera_focus::Merge(g_heldView.focusBounds,camera_focus::ReadBounds(reader,viewOwner.character));
