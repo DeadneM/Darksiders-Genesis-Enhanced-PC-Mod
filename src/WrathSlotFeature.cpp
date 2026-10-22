@@ -1,5 +1,6 @@
 #include "WrathSlotFeature.h"
 #include "WrathSlotSettings.h"
+#include "ForeignWrathFeature.h"
 #include "LocalPlayerOwnership.h"
 #include "NativeObjectName.h"
 #include "NativeTpsFeature.h"
@@ -10,7 +11,7 @@
 
 namespace dg::wrath_slots {
 namespace {
-struct Name {int index=-1,number=0;bool operator==(const Name&)const=default;};
+using Name=foreign_wrath::Name;
 static_assert(sizeof(Name)==8);
 // 663220 calls the Blueprint class lookup AND the selected ID's native unlock
 // and Wrath-cost checks. Five arguments include the TSubclassOf sret destination.
@@ -39,7 +40,7 @@ bool ResourceType(uintptr_t resource){
         Read(expected,0x38,index)&&index>=0&&index<=512&&Read(actual,0x38,last)&&last>=index&&
         Read(actual,0x30,chain)&&Read(chain,size_t(index)*8,entry)&&entry==expected+0x30;
 }
-bool Map(void* liveActor,const Name& original,Name& selected){
+bool Map(void* liveActor,const Name& original,Name& selected,uintptr_t& foreignClass,bool& blocked){
     if(!g_ready.load(std::memory_order_acquire)||g_resolving||!Enabled()||!native_tps::OnGameThread())return false;
     local_players::Context owner{};const auto actor=reinterpret_cast<uintptr_t>(liveActor);
     if(!local_players::ResolveActor(liveActor,owner)||owner.index<0||owner.index>1||!owner.localPlayer||
@@ -61,19 +62,26 @@ bool Map(void* liveActor,const Name& original,Name& selected){
     }
     if(slot<0)return false;
     const int choice=runtime::Get().wrathSlots[family][unsigned(slot)].load(std::memory_order_relaxed);
+    if(Foreign(family,choice)){
+        // The original slot's own unlock remains required for a foreign
+        // power. The selected class supplies its cost to the native caller.
+        selected=original;blocked=!foreign_wrath::Prepare(liveActor,foreignClass);return true;
+    }
     const int number=NativeNumber(family,choice);
     if(!number||number==original.number)return false;
     selected={original.index,number};return true;
 }
 uintptr_t* HookResolve(void* actor,uintptr_t* result,Name id,bool* unlocked,bool* affordable){
     if(!g_original)return result;
-    Name selected{};
-    if(!result||!unlocked||!affordable||!Map(actor,id,selected))return g_original(actor,result,id,unlocked,affordable);
+    Name selected{};uintptr_t foreignClass=0;bool blocked=false;
+    if(!result||!unlocked||!affordable||!Map(actor,id,selected,foreignClass,blocked))return g_original(actor,result,id,unlocked,affordable);
+    if(blocked){*result=0;*unlocked=false;*affordable=false;return result;}
     struct Guard {Guard(){g_resolving=true;}~Guard(){g_resolving=false;}} guard;
-    auto* returned=g_original(actor,result,selected,unlocked,affordable);
+    auto* returned=foreignClass?foreign_wrath::Resolve(g_original,actor,result,selected,unlocked,affordable,foreignClass):
+        g_original(actor,result,selected,unlocked,affordable);
     if(g_log&&++g_changes<=12){char line[200]{};sprintf_s(line,
-        "Wrath slots V1.77: native ID number %d -> %d; unlock=%d costOK=%d; native lifecycle retained; EXPERIMENTAL",
-        id.number,selected.number,*unlocked?1:0,*affordable?1:0);g_log(line);}
+        "Wrath slots V1.83: native ID number %d -> %d foreign=%d unlock=%d costOK=%d; native lifecycle retained; EXPERIMENTAL",
+        id.number,selected.number,foreignClass?1:0,*unlocked?1:0,*affordable?1:0);g_log(line);}
     return returned;
 }
 bool Boundary(){
@@ -94,8 +102,11 @@ void Initialize(LogFn log,bool exactExecutable){
     if(MH_CreateHook(target,reinterpret_cast<void*>(&HookResolve),reinterpret_cast<void**>(&g_original))!=MH_OK)return;
     if(MH_EnableHook(target)!=MH_OK){MH_RemoveHook(target);g_original=nullptr;return;}
     g_ready.store(true,std::memory_order_release);
-    if(log)log("Wrath slots V1.77 READY: three independent native-power slots per character; foreign powers unavailable; no input, resource-ID, montage, component or save writes; EXPERIMENTAL");
+    foreign_wrath::Initialize(log,exactExecutable);
+    if(log)log("Wrath slots V1.83 READY: native family mapping retained; Stoneskin adapter on Strife when ready; no input, resource-ID, component or save writes; EXPERIMENTAL");
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}
-void Shutdown(){g_ready.store(false,std::memory_order_release);}
+int ForeignStatus(){return foreign_wrath::Status();}
+void OnLivePlayer(const local_players::Context& owner){foreign_wrath::Observe(owner);}
+void Shutdown(){g_ready.store(false,std::memory_order_release);foreign_wrath::Shutdown();}
 }

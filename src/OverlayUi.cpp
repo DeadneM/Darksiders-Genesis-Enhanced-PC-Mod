@@ -357,7 +357,8 @@ void Draw(Context& c) {
             }
             if(ImGui::CollapsingHeader("Wrath ability slots (experimental)")){
                 ImGui::Indent(12.0f);
-                ImGui::TextWrapped("Choose a power independently for each native slot. This stage supports each character's own three powers. Native unlocks, costs, animations and controls stay in use, for both players and camera views. Cross-character powers remain under development.");
+                ImGui::TextWrapped("Choose a power independently for each slot. Each character keeps its own three powers. Strife can also use Stoneskin (experimental), with its native protection and cost; its casting animation uses Strife's idle pose. The other cross-character powers remain under development.");
+                const int foreignStatus=wrath_slots::ForeignStatus();
                 constexpr const char* names[7]={"Native","Shadow Clone","World Ender","Caltrops","Blade Geyser","Rampage","Stoneskin"};
                 constexpr const char* familyNames[2]={"Strife","War"};
                 ImGui::BeginDisabled(!wrath_slots::Ready());
@@ -370,10 +371,12 @@ void Draw(Context& c) {
                         if(ImGui::BeginCombo(label,names[choice])){
                             for(int candidate=0;candidate<7;++candidate){
                                 if(!wrath_slots::Supported(family,candidate))continue;
+                                ImGui::BeginDisabled(wrath_slots::Foreign(family,candidate)&&foreignStatus==0);
                                 if(ImGui::Selectable(names[candidate],choice==candidate)){
                                     config.wrathSlots[family][slot]=candidate;config.Save();
                                 }
                                 if(choice==candidate)ImGui::SetItemDefaultFocus();
+                                ImGui::EndDisabled();
                             }
                             ImGui::EndCombo();
                         }
@@ -383,7 +386,9 @@ void Draw(Context& c) {
                 }
                 ImGui::EndDisabled();
                 if(!wrath_slots::Ready())ImGui::TextDisabled("Native ability boundary unavailable; original slots retained.");
-                ImGui::TextWrapped("A locked power stays locked. Native wheel icons and hints may still describe their original slot. Reopen the wheel after editing. Horse and ultimate abilities remain native. Set all six choices to Native to restore the original mapping.");
+                ImGui::TextWrapped("Own powers keep their native unlock checks. Stoneskin on Strife requires the original slot to be unlocked; it does not unlock War's progression. It keeps its own native Wrath cost. Native wheel icons and hints may still describe the original slot. Horse and ultimate abilities stay native. Select Native to restore a slot.");
+                if(foreignStatus==1)ImGui::TextWrapped("Stoneskin is preparing. A slot set to Stoneskin stays inactive until it is ready.");
+                if(foreignStatus==0)ImGui::TextDisabled("Stoneskin transfer unavailable; own powers remain available.");
                 ImGui::Unindent(12.0f);
             }
             if(ImGui::CollapsingHeader("Player movement")){

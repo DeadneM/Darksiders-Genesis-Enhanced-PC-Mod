@@ -1446,6 +1446,7 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     dg::mounted_holsters::OnLivePlayer(owner);
     dg::pistol_visual::OnLivePlayer(owner,generation,gameplayWindow&&GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load());
     dg::leviathan_visual::OnLivePlayer(owner);
+    dg::wrath_slots::OnLivePlayer(owner);
     dg::air_jump::OnLivePlayer(owner,generation);
     dg::mounted_jump::OnLivePlayer(owner,generation,!g_overlayVisible.load()&&gameplayWindow&&GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load());
 }

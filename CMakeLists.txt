@@ -11,6 +11,10 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(ForeignWrathTests tests/ForeignWrathTests.cpp src/RuntimeSettings.cpp)
+  target_include_directories(ForeignWrathTests PRIVATE tests/stubs src)
+  target_compile_definitions(ForeignWrathTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+  add_test(NAME ForeignWrath COMMAND ForeignWrathTests)
   add_executable(ExecutionCameraTests tests/ExecutionCameraTests.cpp)
   target_include_directories(ExecutionCameraTests PRIVATE src)
   target_compile_definitions(ExecutionCameraTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
@@ -322,6 +326,7 @@ add_library(DarksidersGenesisMod SHARED
   src/ExecutionCameraFeature.cpp
   src/MeleeEffectFeature.cpp
   src/WrathSlotFeature.cpp
+  src/ForeignWrathFeature.cpp
   src/CosmeticUnlockFeature.cpp
   src/LeviathanVisualFeature.cpp
   src/UltimateDurationFeature.cpp

@@ -10,6 +10,7 @@ unsigned char actors[2][0x1100]{},controllers[2][0x400]{},resources[2][0x480]{},
 uintptr_t names[4]{},chunks[1]{reinterpret_cast<uintptr_t>(names)},resourceChain[1]{};
 dg::local_players::Context owners[2]{};
 bool gameThread=true,resolve=true,nested=false;unsigned resolves=0;
+bool foreignReady=false;unsigned foreignResolves=0;
 struct Call {void* actor;uintptr_t* result;Name id;bool* unlocked;bool* affordable;};
 std::vector<Call> calls;
 template<class T> void Put(void* p,size_t offset,const T& value){std::memcpy(static_cast<unsigned char*>(p)+offset,&value,sizeof(value));}
@@ -28,7 +29,7 @@ uintptr_t* Native(void* actor,uintptr_t* result,Name id,bool* unlocked,bool* aff
 }
 void Fresh(){
     using namespace dg::wrath_slots;
-    gameThread=resolve=true;nested=false;resolves=0;calls.clear();g_ready=true;g_original=Native;g_resolving=false;g_log=nullptr;
+    gameThread=resolve=true;nested=false;resolves=0;foreignReady=false;foreignResolves=0;calls.clear();g_ready=true;g_original=Native;g_resolving=false;g_log=nullptr;
     std::memset(actors,0,sizeof(actors));std::memset(controllers,0,sizeof(controllers));std::memset(resources,0,sizeof(resources));
     std::memset(classes,0,sizeof(classes));resourceChain[0]=reinterpret_cast<uintptr_t>(classes[2])+0x30;
     Put(classes[2],0x30,reinterpret_cast<uintptr_t>(resourceChain));Put(classes[2],0x38,0);
@@ -81,6 +82,12 @@ void Run(){
     Fresh();dg::runtime::Get().wrathSlots[0][0]=2;Put(resources[0],0x3EC,Id(0,2));failOpen("duplicate native IDs reject the complete mapping");
     Fresh();dg::runtime::Get().wrathSlots[0][0]=2;Put(resources[0],0x3F4,Id(1,4));failOpen("foreign resource family rejects mapping");
     Fresh();dg::runtime::Get().wrathSlots[0][0]=4;failOpen("foreign power rejects mapping even if runtime config is corrupted");
+    Fresh();dg::runtime::Get().wrathSlots[0][0]=6;
+    {uintptr_t out=123;bool a=true,b=true;Check(HookResolve(actors[0],&out,Id(0,2),&a,&b)==&out&&!out&&!a&&!b&&calls.empty(),
+        "requested but unavailable foreign power blocks only its slot instead of firing another power");}
+    Fresh();dg::runtime::Get().wrathSlots[0][0]=6;foreignReady=true;
+    Check(Invoke(0,2)==Id(0,2)&&foreignResolves==1&&calls.size()==1,"foreign adapter retains original semantic slot unlock ID and complete native resolve ABI");
+    Check(Invoke(0,3)==Id(0,3)&&foreignResolves==1,"other slots stay native while foreign slot selected");
     Fresh();dg::runtime::Get().wrathSlots[0][0]=2;gameThread=false;failOpen("non-game-thread query remains native");Check(resolves==0,"no owner discovery off game thread");
     Fresh();dg::runtime::Get().wrathSlots[0][0]=2;resolve=false;failOpen("unknown/nonlocal ownership remains native");
     Fresh();dg::runtime::Get().wrathSlots[0][0]=2;owners[0].kind=dg::local_players::PoseKind::Horse;failOpen("horse uses native powers");
@@ -102,6 +109,7 @@ void Run(){
 void Config(){
     using namespace dg::config;using namespace dg::wrath_slots;
     static_assert(int(Action::Count)==55);
+    static_assert(Supported(0,6)&&Foreign(0,6)&&NativeNumber(0,6)==0&&!Supported(0,4)&&!Supported(1,1));
     wchar_t directory[MAX_PATH]{},path[MAX_PATH]{};
     Check(GetTempPathW(MAX_PATH,directory)&&GetTempFileNameW(directory,L"DGW",0,path),"temporary config created");
     Store a;a.SetPath(path);Check(a.Load()&&a.wrathSlots==Choices{},"missing six keys preserve native mapping");
@@ -113,10 +121,21 @@ void Config(){
     WritePrivateProfileStringW(L"Values",Keys[0][0],L"4",path);WritePrivateProfileStringW(L"Values",Keys[1][2],L"1",path);
     WritePrivateProfileStringW(L"Values",Keys[0][1],L"-1",path);WritePrivateProfileStringW(L"Values",Keys[1][1],L"999",path);
     Check(b.Load()&&b.wrathSlots[0][0]==0&&b.wrathSlots[0][1]==0&&b.wrathSlots[1][1]==0&&b.wrathSlots[1][2]==0,"foreign, negative and unknown choices fall back to Native");
+    WritePrivateProfileStringW(L"Values",Keys[0][0],L"6",path);Check(b.Load()&&b.wrathSlots[0][0]==6&&dg::runtime::Get().wrathSlots[0][0].load()==6,"new supported Stoneskin choice survives load without changing key IDs");
     b.ResetDefaults(false);Check(b.wrathSlots==Choices{},"reset restores all native powers");DeleteFileW(path);
 }
 }
 namespace dg::native_tps {bool OnGameThread(){return gameThread;}}
+namespace dg::foreign_wrath {
+void Initialize(LogFn,bool){}
+void Shutdown(){foreignReady=false;}
+int Status(){return foreignReady?2:1;}
+void Observe(const local_players::Context&){}
+bool Prepare(void*,uintptr_t& cls){cls=foreignReady?0xFACE:0;return foreignReady;}
+uintptr_t* Resolve(ResolveFn native,void* actor,uintptr_t* result,Name id,bool* unlocked,bool* affordable,uintptr_t cls){
+    Check(cls==0xFACE,"selected foreign class reaches scoped adapter");++foreignResolves;return native(actor,result,id,unlocked,affordable);
+}
+}
 namespace dg::local_players {
 bool ResolveActor(void* actor,Context& owner){
     ++resolves;if(!resolve)return false;
