@@ -44,4 +44,27 @@ inline bool Adjust(const Transform& source,Side side,unsigned mask,native_bone::
     for(unsigned i=0;i<3;++i)result.scale[i]*=.4f;
     return true;
 }
+// Attached slash notifies use KeepRelativeOffset on Bone_Strife_Root.
+// Express the hand in that same frame: retain parent, socket and rotation.
+inline bool Attached(const Transform& root,native_bone::Point offset,native_bone::Point scale,
+                     Side side,unsigned mask,native_bone::Point right,native_bone::Point left,
+                     native_bone::Point& outOffset,native_bone::Point& outScale){
+    if(!native_bone::Finite(offset)||!native_bone::Finite(scale))return false;
+    Transform checked{};if(!Adjust(root,side,mask,right,left,checked))return false;
+    for(unsigned i=0;i<3;++i)if(std::abs(root.scale[i])<1e-4f)return false;
+    const auto rotate=[](native_bone::Point p,const float* q,float sign){
+        const float x=q[0]*sign,y=q[1]*sign,z=q[2]*sign;
+        const native_bone::Point t{2*(y*p.z-z*p.y),2*(z*p.x-x*p.z),2*(x*p.y-y*p.x)};
+        return native_bone::Point{p.x+q[3]*t.x+y*t.z-z*t.y,
+            p.y+q[3]*t.y+z*t.x-x*t.z,p.z+q[3]*t.z+x*t.y-y*t.x};
+    };
+    auto world=rotate({offset.x*root.scale[0],offset.y*root.scale[1],offset.z*root.scale[2]},root.rotation,1);
+    Transform source=root;source.position[0]+=world.x;source.position[1]+=world.y;source.position[2]+=world.z;
+    if(!Adjust(source,side,mask,right,left,checked))return false;
+    auto local=rotate({checked.position[0]-root.position[0],checked.position[1]-root.position[1],
+        checked.position[2]-root.position[2]},root.rotation,-1);
+    outOffset={local.x/root.scale[0],local.y/root.scale[1],local.z/root.scale[2]};
+    outScale={scale.x*.4f,scale.y*.4f,scale.z*.4f};
+    return native_bone::Finite(outOffset)&&native_bone::Finite(outScale);
+}
 }
