@@ -1,12 +1,14 @@
 # V1.84 — effets de mêlée attachés aux mains nues
 
+**V1.84 intermédiaire CONSTRUITE / CONTRÔLÉE : [51/51 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39844030589), zéro erreur, un avertissement MSVC C4324 de padding de Plan. Nouvelle compilation V1.85 prévue après correction de disposition, sans masquer l'avertissement. Effets EXPÉRIMENTAUX, non validés en jeu.** [Archive conservée](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/c58304fd20466e173e0960ca09e47b399455aa7a/downloads/DarksidersGenesis_V1.84_ATTACHED_BARE_BLADE_FX_TEST.zip) · [Reçu](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_84_DELIVERY_RECEIPT.md). Installation manuelle.
+
 22 octobre 2026. Base cumulative V1.83 `81d61dd`, debug uniquement. V1.81 validée dans les trois essais rapportés, suivi TPS des exécutions V1.82 désormais **VALIDÉ par l'utilisateur**. Caméra et bras OFF conservés sans modification. Effets des épées cachées V1.82 inefficaces selon l'utilisateur.
 
 ## Objectif et preuve de la cause
 
 **EXPÉRIMENTAL**, compilation et paquet à consigner après CI. Critère : les arcs visuels des épées cachées sont compacts et commencent aux mains, sans changer les effets d'une épée visible, les dégâts ou la portée. Aucun résultat de compilation ne vaut validation visuelle.
 
-Lecture externe VM_READ du jeu déjà ouvert, sans appel natif ni écriture : huit notifications ciblées des deux premiers coups et attaques aériennes portent `bAttached=1`, socket `Bone_Strife_Root`. Elles étaient explicitement exclues par V1.82. Sept notifications du troisième coup sont détachées ; sa variante `_03_b` comporte les mêmes offsets et templates mais n'était pas reconnue. Les deux os des mains, leurs indices 20/43, le mesh possédé et ses fonctions virtuelles sont confirmés. Les logs précédents contiennent READY sans trace d'ajustement : cela prouve l'installation du hook, pas son passage effectif sur les coups.
+Lecture externe VM_READ du jeu déjà ouvert, sans appel natif ni écriture : huit notifications ciblées des deux premiers coups et attaques aériennes portent `bAttached=1`, socket `Bone_Strife_Root`. Elles étaient explicitement exclues par V1.82. Six notifications du troisième coup sont détachées ; sa variante `_03_b` comporte les mêmes offsets et templates mais n'était pas reconnue. Les deux os des mains, leurs indices 20/43, le mesh possédé et ses fonctions virtuelles sont confirmés. Les logs précédents contiennent READY sans trace d'ajustement : cela prouve l'installation du hook, pas son passage effectif sur les coups.
 
 ## Correctif limité au rendu
 
