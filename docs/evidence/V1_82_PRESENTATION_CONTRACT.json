@@ -1,0 +1,74 @@
+{
+  "executableSha256": "9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54",
+  "sourceCommit": "6a26b76c6c39c0138022697ae0f859f2310454f1",
+  "ci": {
+    "runId": 39834733781,
+    "jobId": 120019937953,
+    "sourceCommit": "6a26b76c6c39c0138022697ae0f859f2310454f1",
+    "conclusion": "success",
+    "suitesPassed": 50,
+    "testRows": 50,
+    "testSummary": "2026-10-22T18:53:51.5391513Z 100% tests passed out of 50",
+    "compilerWarnings": [],
+    "compilerErrors": [],
+    "toolingWarnings": [
+      "2026-10-22T18:50:05.2008358Z CMake Warning (deprecated) at build/_deps/minhook-src/CMakeLists.txt:27 (cmake_minimum_required):",
+      "2026-10-22T18:53:52.8728708Z (node:5268) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.",
+      "2026-10-22T18:53:53.2953124Z (node:5268) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.",
+      "2026-10-22T18:54:00.3980237Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/"
+    ]
+  },
+  "checks": {
+    "base": "adb5ae898f5ebab45ae0f11b6bd1c0cda7fb165f",
+    "branch": "debug",
+    "oldArchivesUnchanged": 146,
+    "iniKeysUnchanged": 166,
+    "hotkeyActionsUnchanged": true,
+    "unchangedSourceFiles": 108,
+    "nativeSignatures": {
+      "src/NativeBonePoint.h": {
+        "rva": "0x17a2380",
+        "signature": "40534883ec60488b056b0305024833c4"
+      },
+      "src/MeleeEffectFeature.cpp": {
+        "rva": "0x189a140",
+        "signature": "488bc4488958104889681848897020"
+      }
+    },
+    "newOptionalHooks": 1,
+    "foreignAbilitiesAdapterShipped": false,
+    "verticalFinisherObserved": false,
+    "newBehaviorGameplayValidated": false
+  },
+  "capture": {
+    "samples": 4342,
+    "incoherentReadsRejected": 3,
+    "finisherRows": 211,
+    "userConfirmedGroundExecutions": true,
+    "highExecutionObserved": false
+  },
+  "groundReplay": {
+    "activeFinisherRows": 211,
+    "baselineAtStart": [
+      -28.532,
+      -20.75,
+      -21.854
+    ],
+    "maximumRise": 31.5055,
+    "peakCandidateOffset": 0,
+    "readOnlyReplay": true,
+    "notRuntimeValidation": true
+  },
+  "melee": {
+    "nativeNotify": "AnimNotify_PlayParticleEffect",
+    "spawn": "0x189A140",
+    "spawnArgumentCount": 5,
+    "boneLocation": "0x17A2380",
+    "meshVirtualOffset": "0x3F8",
+    "scale": 0.4,
+    "sharedArcRequiresBothBladesHidden": true,
+    "gameplayTraceChanged": false
+  },
+  "gameplayValidated": false,
+  "foreignAbilityAdapterShipped": false
+}

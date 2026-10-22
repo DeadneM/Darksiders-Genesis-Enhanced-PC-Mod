@@ -22,4 +22,6 @@ Piste : créer un montage transitoire depuis une séquence propre au receveur et
 
 ## Suite requise
 
+Complément de l'étude pendant la CI : sept classes de statuts Stoneskin/Molten/Steamroller extraites avec SHA1 vérifié. Les **huit fonctions du statut Stoneskin de base sont entièrement décodées**. Durée du statut de base 10 s, DamageModifier 0,6 ; aura attachée via MayhemPlayerCharacter et socket VFX_Aura. Le graphe contient aussi un cast explicite vers War_Blueprint pour remettre les matériaux de Chaoseater, VorpalBlade, Mesh et TremorGauntletMesh, ainsi qu'un effet de fin propre à War. Il faut vérifier la symétrie application/retrait sur Strife et les variantes héritées ; la compatibilité du montage ne règle donc pas tout le contrat visuel. Aucun de ces statuts n'a été appliqué par l'agent dans le jeu.
+
 Stoneskin : vérifier les statuts de base/Molten/Steamroller sur le receveur, annulation et fin ; construire un premier adaptateur isolé avec garde de signature et retour natif en cas d'indisponibilité. Ensuite Caltrops/Geyser avec leurs notifications ; Clone/World Ender/Rampage ont en plus leurs composants ou phases propres. Les preuves et contraintes [V1.80](V1_80_FOREIGN_WRATH_CONTRACTS.md) restent applicables. Aucun lancement d'aptitude étrangère, chargement d'asset ou écriture de mémoire externe pendant cette étude.

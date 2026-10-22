@@ -1,5 +1,7 @@
 # V1.82 — effets des lames masquées et suivi des exécutions
 
+**V1.82 CONSTRUITE / CONTRÔLÉE : [50/50 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/39834733781), zéro erreur et zéro avertissement MSVC. Nouveaux effets et suivi vertical EXPÉRIMENTAUX, non validés en jeu.** [ZIP cumulatif immuable vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/03a45347f8484ca4af9fa17cf5b49d3e66062cf9/downloads/DarksidersGenesis_V1.82_BARE_BLADE_EXECUTION_CAMERA_TEST.zip) · [Reçu, empreintes et rollback](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_82_DELIVERY_RECEIPT.md). Installation manuelle, conserver son INI et ses raccourcis.
+
 22 octobre 2026. Base V1.81 `adb5ae898f5ebab45ae0f11b6bd1c0cda7fb165f`, branche debug exclusivement. L'utilisateur a répondu « 1. ok / 2. ok / 3. ok » aux essais V1.81 : animation désarmée des bras OFF, conservation mêlée/pouvoirs puis retour, transitions. Ces cas sont VALIDÉS ; aucune extension implicite à la coop ou à toutes les animations. Le code V1.81 correspondant reste inchangé.
 
 ## Objectif et critères
