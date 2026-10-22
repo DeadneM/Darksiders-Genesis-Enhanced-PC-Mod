@@ -439,8 +439,6 @@ void Draw(Context& c) {
             ImGui::SetNextItemWidth(270.0f);
             if(ImGui::Combo("Infinite double jump",&config.infiniteDoubleJumpMode,jumpModes,3))config.Save();
             DrawFeatureDescription("After gliding rearms one double jump per glide. Always on allows repeated air jumps. In either mode, pressing your jump control ends a glide before requesting the jump. OFF restores normal behavior. Experimental.",dg::air_jump::Ready());
-            DrawToggleFeature(config,"Jump on horseback (experimental)","MountedJump",&config.mountedJumpEnabled,
-                "Use the game's jump action while riding either mount, with your existing keyboard/controller binding. Native forward leap, ground check and landing; no air jump. OFF restores native behavior. Check animation, sprint, attacks and landing on each mount.",mounted_jump::Ready());
             DrawTunableFeature(config,"Grapple range","GrappleRange",&config.grappleRangeEnabled,
                 &config.grappleRangeMultiplier,1.0f,10.0f,2.0f,"%.2fx",
                 "Scales native acquisition, relay and pull distances together. Applies on the next use; target rules and obstacles remain native. Experimental: traversal limits still require in-game checks.",dg::grapple::Ready());
@@ -697,6 +695,19 @@ void Draw(Context& c) {
             if(ImGui::SmallButton("Default##HorsePadB")){config.horsePadButtonB=512;config.Save();}
             if(config.horsePadButtonA==config.horsePadButtonB)
                 ImGui::TextDisabled("Choose two DIFFERENT buttons.");
+
+            DrawToggleFeature(config,"Jump on horseback","MountedJump",&config.mountedJumpEnabled,
+                "Use the game's rebindable Jump action while riding either mount. A new press requests a native ground leap, with native animations and landing. No air jump. OFF restores the original behavior. Confirmed in the user's solo test; co-op remains to be checked.",mounted_jump::Ready());
+
+            constexpr const char* horseJumpSounds[]={"Native jump (varied)","Horse snort (varied)","Off"};
+            ImGui::SetNextItemWidth(270.0f);
+            if(ImGui::Combo("Horse jump sound",&config.mountedJumpSound,horseJumpSounds,3))config.Save();
+            ImGui::TextWrapped("A sound on a successful mod jump and its landing. Uses the game's existing random samples and Sfx volume. Experimental; loaded assets only.");
+            if(config.mountedJumpEnabled&&config.mountedJumpSound!=2){
+                const unsigned required=config.mountedJumpSound==1?6u:3u;
+                if((mounted_jump::SoundAssetsReady()&required)!=required)
+                    ImGui::TextDisabled("Waiting for native jump sound assets; the jump remains available.");
+            }
 
             DrawTunableFeature(
                 config,

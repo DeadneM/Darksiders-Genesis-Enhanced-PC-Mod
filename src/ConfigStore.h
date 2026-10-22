@@ -266,6 +266,7 @@ public:
     int pistolLeftModel = 0;
     int strifeBladeVisibility = 0;
     bool mountedJumpEnabled = false;
+    int mountedJumpSound = 0;
     bool bonusMountSkinsEnabled = false;
     bool progressionSkinsEnabled = false;
     bool leviathanVisualEnabled = false;

@@ -23,7 +23,7 @@ struct Snapshot {
     uint32_t generation=0;uint64_t tick=0,idleSince=0;
     bool gameplay=false,capture=false,lower=false;
 };
-struct Player {Snapshot snapshot{};ArmPose pose{};uint64_t renderTick=0;};
+struct Player {Snapshot snapshot{};ArmPose pose{};native_objects::Identity poseAsset{};uint64_t renderTick=0;};
 Player g_players[2]{};std::atomic_bool g_poseReady[2]{};
 struct Hidden {native_objects::Identity component{},actor{};bool nativeHidden=false;};
 Hidden g_hidden[2][8]{};std::atomic_uint g_captures{0};
@@ -74,17 +74,6 @@ bool Skeleton(uintptr_t mesh,uintptr_t skeleton){
 unsigned ChoiceMask(){const auto& rt=runtime::Get();return (rt.pistolRightModel.load()==3?1u:0u)|(rt.pistolLeftModel.load()==3?2u:0u);}
 unsigned BladeMask(){const auto choice=runtime::Get().strifeBladeVisibility.load();return choice==1?2u:choice==2?1u:choice==3?3u:0u;}
 bool Fresh(const Snapshot& s,uint64_t now){return s.gameplay&&now>=s.tick&&now-s.tick<=250;}
-bool Anchors(uintptr_t mesh,std::array<Matrix,2>& matrices){
-    int selector=-1;Array cs{};struct Weak {int index,serial;} master{};
-    if(!Read(mesh,0x5A8,master)||(master.index>=0&&master.serial>0))return false;
-    if(!Read(mesh,0x5F4,selector)||(selector!=0&&selector!=1)||!ArrayOf(mesh+0x5B0+size_t(selector)*16,BoneCount,cs))return false;
-    // The native socket path uses exactly this same transform buffer. It is
-    // read only. The dynamic render packet receives the changed matrices.
-    for(unsigned side=0;side<2;++side){Transform t{};if(!Read(cs.data,size_t(PoseAnchor[side])*48,t)||!ToMatrix(t,matrices[side]))return false;}
-    int after=-1;Array check{};
-    return Read(mesh,0x5F4,after)&&after==selector&&Read(mesh+0x5B0+size_t(selector)*16,0,check)&&
-        check.data==cs.data&&check.count==cs.count&&check.capacity==cs.capacity;
-}
 bool Packet(uintptr_t data,Array& current,Array& previous){
     uintptr_t vt=0;
     if(!Read(data,0,vt)||vt!=g_base+0x2DC88A8||!ArrayOf(data+0x10,BoneCount,current)||!Read(data,0x20,previous)||
@@ -102,8 +91,13 @@ bool ProcessPacket(uintptr_t data,uintptr_t component,uintptr_t renderData,int l
     if(!Read(component,0xE8,actor)||!Read(component,0x5A0,skeleton)||!Read(component,0x6C0,renderObject)||
        !Read(renderObject,0,vt)||vt!=g_base+0x2DC8930||!Read(renderObject,0x40,expectedData)||expectedData!=renderData)return false;
     Array current{},previous{};if(!Packet(data,current,previous))return false;
-    Matrices matrices{},old{};std::array<Matrix,2> anchors{};
-    if(!Read(current.data,0,matrices)||(previous.count&&!Read(previous.data,0,old))||!Anchors(component,anchors))return false;
+    Matrices matrices{},old{};
+    if(!Read(current.data,0,matrices)||(previous.count&&!Read(previous.data,0,old)))return false;
+    // A_i = inverse(bind_i) * componentPose_i. Using the spine matrix from
+    // this same render packet cancels its bind matrix between capture/apply:
+    // A_i_rest * inverse(A_spine_rest) * A_spine_now.
+    // Never combine a submitted pose with another component-space buffer.
+    const std::array<Matrix,2> anchors{matrices[PoseAnchor[0]],matrices[PoseAnchor[1]]};
     bool changed=false,captured=false,handled=false;
     AcquireSRWLockExclusive(&g_lock);
     for(unsigned i=0;i<2;++i){
@@ -114,7 +108,9 @@ bool ProcessPacket(uintptr_t data,uintptr_t component,uintptr_t renderData,int l
            !Live(s.mesh)||!Live(s.actor)||!Live(s.skeleton))continue;
         handled=true;p.renderTick=now;
         if(s.capture&&!p.pose.ready&&s.idleSince&&now>=s.idleSince&&now-s.idleSince>=750){
-            captured=p.pose.Capture(matrices,anchors);g_poseReady[i]=p.pose.ready;
+            captured=p.pose.Capture(matrices,anchors);
+            if(captured)p.poseAsset=s.skeleton;
+            g_poseReady[i]=p.pose.ready;
         }else if(s.lower){
             changed=p.pose.Apply(ChoiceMask(),anchors,now,matrices,previous.count?&old:nullptr);
         }else p.pose.previousMask=0;
@@ -126,7 +122,7 @@ bool ProcessPacket(uintptr_t data,uintptr_t component,uintptr_t renderData,int l
         std::memcpy(reinterpret_cast<void*>(current.data),&matrices,sizeof(matrices));
         if(previous.count)std::memcpy(reinterpret_cast<void*>(previous.data),&old,sizeof(old));
     }
-    if(captured&&g_log&&++g_captures<=4)g_log("Pistol OFF: native sheathed arm render pose captured; component-space socket transforms remain untouched; EXPERIMENTAL");
+    if(captured&&g_log&&++g_captures<=4)g_log("Pistol OFF: V1.80 packet-consistent sheathed arm pose captured; native poses and sockets untouched; EXPERIMENTAL");
     return handled;
 }
 bool HookInit(void* data,void* component,void* renderData,int lod,void* morphs,void* weights,int previousMode){
@@ -290,7 +286,14 @@ void OnLivePlayer(const local_players::Context& owner,uint32_t generation,bool f
     AcquireSRWLockExclusive(&g_lock);auto& p=g_players[index];
     const auto& before=p.snapshot;
     const bool same=before.actor==next.actor&&before.mesh==next.mesh&&before.skeleton==next.skeleton&&before.generation==next.generation;
-    if(!same){p.pose={};p.renderTick=0;g_poseReady[index]=false;}
+    if(!same){
+        // A copied resting pose contains no live UObject access. Keep it over
+        // temporary horse/ultimate/menu observations, but never across a
+        // different mesh asset identity (its inverse-bind matrices may differ).
+        if(next.skeleton&&p.poseAsset!=next.skeleton){p.pose={};p.poseAsset={};}
+        p.pose.previousMask=0;p.renderTick=0;
+    }
+    g_poseReady[index]=next.gameplay&&p.pose.ready&&p.poseAsset==next.skeleton;
     next.idleSince=next.capture?(same&&before.capture&&before.idleSince?before.idleSince:now):0;
     p.snapshot=next;const unsigned mask=next.gameplay?ChoiceMask():0; // Model choice survives pose recapture after transformations.
     ReleaseSRWLockExclusive(&g_lock);

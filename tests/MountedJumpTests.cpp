@@ -4,8 +4,10 @@
 #include <vector>
 namespace {
 unsigned char horse[0xC10]{},normal[0x20]{},move[0x780]{},pc[0x460]{},input[0x400]{},settings[0x100]{};
-unsigned char classes[3][0x100]{},nameData[6][128]{},elements[2][0xF0]{};
-uintptr_t names[6]{},chunks[1]{reinterpret_cast<uintptr_t>(names)};
+unsigned char classes[4][0x100]{},nameData[13][128]{},elements[2][0xF0]{};
+unsigned char audio[3][0x40]{},packages[3][0x40]{},audioItems[3*24]{},root[0x1B0]{};
+uintptr_t audioChunks[1]{reinterpret_cast<uintptr_t>(audioItems)};std::vector<uintptr_t> played;
+uintptr_t names[13]{},chunks[1]{reinterpret_cast<uintptr_t>(names)};
 dg::mounted_jump::Mapping mappings[3]{};dg::local_players::Context owner{};
 bool thread=true,paused=false,radial=false,cinema=false,matched=true;unsigned jumps=0,queries=0;
 template<class T> void Put(void* p,size_t o,T v){std::memcpy(static_cast<unsigned char*>(p)+o,&v,sizeof(v));}
@@ -54,6 +56,31 @@ void Run(){
     owner.index=1;Put(classes[2],0x18,3);Down(0,false);Down(1,false);Tick();Press(1);Check(jumps==7,"War's mount and P2 use the same independent action path");
     Ground();owner.kind=dg::local_players::PoseKind::Foot;Press();Check(jumps==7,"validated foot jump path remains untouched");
     owner.kind=dg::local_players::PoseKind::Horse;matched=false;Press();Check(jumps==7,"stale generation/owner cannot jump");matched=true;
+    // Loaded native SoundCue contracts and per-leap audio lifecycle.
+    const char* audioNames[]={"SoundCue","char_ruin_jump","char_ruin_jump_land","char_ruin_snort_low_vo",
+        "/Game/Audio/Sfx/Character/Ruin/char_ruin_jump","/Game/Audio/Sfx/Character/Ruin/char_ruin_jump_land",
+        "/Game/Audio/Sfx/Character/Ruin/char_ruin_snort_low_vo"};
+    for(unsigned i=0;i<7;++i){names[i+6]=reinterpret_cast<uintptr_t>(nameData[i+6]);strcpy_s(reinterpret_cast<char*>(nameData[i+6]+12),sizeof(nameData[i+6])-12,audioNames[i]);}
+    Put(classes[3],0x18,6);Put(image.data(),0x3959680,reinterpret_cast<uintptr_t>(audioChunks));Put(image.data(),0x3959694,3);
+    for(unsigned i=0;i<3;++i){
+        const auto address=reinterpret_cast<uintptr_t>(audio[i]);Put(audioItems,i*24,address);Put(audioItems,i*24+16,int(i+10));
+        Put(audio[i],0xC,int(i));Put(audio[i],0x10,reinterpret_cast<uintptr_t>(classes[3]));Put(audio[i],0x18,int(i+7));
+        Put(audio[i],0x20,reinterpret_cast<uintptr_t>(packages[i]));Put(packages[i],0x18,int(i+10));
+    }
+    Put(horse,0x158,reinterpret_cast<uintptr_t>(root));Put(root,0xE8,reinterpret_cast<uintptr_t>(horse));Put(root,0x1A0,Vector{10,20,30});
+    g_sound=+[](void* context,void* cue,const Vector* p,const Vector* r,float volume,float pitch,float start,void* attenuation,void* concurrency,void* source){
+        Check(context==horse&&source==horse&&p->x==10&&p->y==20&&p->z==30&&r->x==0&&r->y==0&&r->z==0,"native audio follows the owned horse origin");
+        Check((volume==1.0f||volume==0.9f)&&pitch==1&&start==0&&!attenuation&&!concurrency,"native cue attenuation, Sfx and random samples remain active");
+        played.push_back(reinterpret_cast<uintptr_t>(cue));
+    };
+    auto& sound=dg::runtime::Get().mountedJumpSound;sound=0;Ground();Down(0,false);Down(1,false);Tick();Press();
+    Check(SoundAssetsReady()==7&&played.size()==1&&played[0]==reinterpret_cast<uintptr_t>(audio[0]),"one native varied jump sound on success");
+    Tick();Check(played.size()==1,"held/airborne action never repeats audio");Ground();Tick();Tick();
+    Check(played.size()==2&&played[1]==reinterpret_cast<uintptr_t>(audio[1]),"one native landing sound after this leap reaches ground");
+    sound=1;Press();Check(played.size()==3&&played.back()==reinterpret_cast<uintptr_t>(audio[2]),"alternative snort uses its native random cue");
+    Tick(false);Ground();Tick();Check(played.size()==3,"focus loss cancels any pending landing sound");
+    sound=2;Press();Ground();Tick();Check(played.size()==3,"Off keeps jump working with no added sound");
+    sound=0;Put(audioItems,16,99);Put(audio[0],0x10,reinterpret_cast<uintptr_t>(classes[0]));Press();Check(played.size()==3,"stale sound serial cannot play a recycled object");
     g_ready=false;
 }
 }

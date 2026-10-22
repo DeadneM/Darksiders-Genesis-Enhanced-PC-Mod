@@ -7,8 +7,7 @@ namespace dg::pistol_visual {
 // Row-vector matrices, matching the native CPU ReferenceToLocal FMatrix array.
 // These helpers consume copies; no component pose or socket is ever changed.
 struct Matrix {float m[4][4]{};};
-struct Transform {float q[4]{},t[4]{},s[4]{};};
-static_assert(sizeof(Matrix)==64&&sizeof(Transform)==48);
+static_assert(sizeof(Matrix)==64);
 inline bool Finite(const Matrix& a){
     for(const auto& row:a.m)for(float v:row)if(!std::isfinite(v)||std::abs(v)>1000000)return false;
     return true;
@@ -33,20 +32,6 @@ inline bool Inverse(const Matrix& a,Matrix& inverse){
     }
     for(unsigned i=0;i<4;++i)for(unsigned j=0;j<4;++j)inverse.m[i][j]=float(v[i][j+4]);
     return Finite(inverse);
-}
-inline bool ToMatrix(const Transform& p,Matrix& result){
-    float norm=0;
-    for(float f:p.q){if(!std::isfinite(f))return false;norm+=f*f;}
-    if(norm<0.98f||norm>1.02f)return false;
-    for(unsigned i=0;i<3;++i)if(!std::isfinite(p.t[i])||std::abs(p.t[i])>10000||
-        !std::isfinite(p.s[i])||p.s[i]<0.01f||p.s[i]>100)return false;
-    const float x=p.q[0],y=p.q[1],z=p.q[2],w=p.q[3];
-    Matrix a{};
-    a.m[0][0]=(1-2*(y*y+z*z))*p.s[0];a.m[0][1]=2*(x*y+w*z)*p.s[0];a.m[0][2]=2*(x*z-w*y)*p.s[0];
-    a.m[1][0]=2*(x*y-w*z)*p.s[1];a.m[1][1]=(1-2*(x*x+z*z))*p.s[1];a.m[1][2]=2*(y*z+w*x)*p.s[1];
-    a.m[2][0]=2*(x*z+w*y)*p.s[2];a.m[2][1]=2*(y*z-w*x)*p.s[2];a.m[2][2]=(1-2*(x*x+y*y))*p.s[2];
-    for(unsigned i=0;i<3;++i)a.m[3][i]=p.t[i];a.m[3][3]=1;
-    if(!Finite(a))return false;result=a;return true;
 }
 inline constexpr unsigned BoneCount=80,ArmBones=22;
 inline constexpr unsigned Upper[2]={41,18},Clavicle[2]={40,17}; // R, L
@@ -108,8 +93,9 @@ struct ArmPose {
         previous=next;previousMask=mask;previousTick=now;return true;
     }
 };
-// Both complete arm branches include the aiming clavicle. Keeping the left
-// branch relative to its animated clavicle retained the unwanted aiming pose.
+// Both complete arm branches follow the spine in the same ReferenceToLocal
+// packet. A component-space transform read separately may describe another
+// animation update and cannot be mixed into this solve.
 inline constexpr unsigned PoseAnchor[2]={14,14};
 // Retail bone names are opposite to the visible holster side reported in-game.
 inline constexpr unsigned Holster[2]={79,78}; // visible right, visible left

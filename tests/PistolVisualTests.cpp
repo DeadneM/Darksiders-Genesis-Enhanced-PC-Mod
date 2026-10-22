@@ -6,7 +6,8 @@
 #include <stdexcept>
 #include <limits>
 namespace {
-using dg::pistol_visual::Matrix;using dg::pistol_visual::Matrices;using dg::pistol_visual::Transform;
+using dg::pistol_visual::Matrix;using dg::pistol_visual::Matrices;
+struct Transform {float q[4]{},t[4]{},s[4]{};}; // unrelated native socket-pose fixture
 unsigned char actors[2][0x1100]{},meshes[2][0x800]{},skeletons[2][0x400]{},renderObjects[2][0x80]{};
 unsigned char packets[2][0x110]{},guns[2][2][0x600]{},items[24*24]{},names[24][128]{},notify[0x100]{},klass[0x40]{},effect[0x40]{};
 uintptr_t nameEntries[24]{},nameChunks[1]{reinterpret_cast<uintptr_t>(nameEntries)};void* chunks[1]{items};
@@ -30,13 +31,22 @@ void HiddenSetter(void* object,bool hidden,unsigned char propagation){
 }
 void Policy(){
     using namespace dg::pistol_visual;
-    Transform t{};t.q[3]=1;t.s[0]=t.s[1]=t.s[2]=1;t.t[0]=12;t.t[1]=-5;
-    Matrix m{},inverse{};Check(ToMatrix(t,m)&&Inverse(m,inverse),"native FTransform conversion/inverse");
-    Check(Equal(Multiply(m,inverse),Translation(0,0,0)),"row-vector inverse cancels translation");
-    t.q[2]=.70710678f;t.q[3]=.70710678f;t.s[0]=2;t.s[1]=3;t.s[2]=4;
-    Check(ToMatrix(t,m)&&Inverse(m,inverse)&&Equal(Multiply(m,inverse),Translation(0,0,0)),"rotation and nonuniform scale invert");
+    Matrix inverse{};const auto translated=Translation(12,-5,0);
+    Check(Inverse(translated,inverse)&&Equal(Multiply(translated,inverse),Translation(0,0,0)),"row-vector inverse cancels translation");
     Matrix singular{};Check(!Inverse(singular,inverse),"singular matrix rejected");
-    t.q[3]=std::numeric_limits<float>::quiet_NaN();Check(!ToMatrix(t,m),"invalid native transform rejected");
+    // Noncommuting bind/spine rotations: this is the actual skinning
+    // identity, rather than only a translation fixture for the solver.
+    Matrix bindSpine=Translation(15,-6,2);bindSpine.m[0][0]=bindSpine.m[1][1]=0;
+    bindSpine.m[0][1]=1;bindSpine.m[1][0]=-1;
+    Matrix invBindSpine{},invBindArm{},invRestSpine{};
+    const auto restSpine=Translation(8,3,4),nowSpine=bindSpine,restArm=Translation(40,10,5);
+    Check(Inverse(bindSpine,invBindSpine)&&Inverse(Translation(2,9,-4),invBindArm)&&Inverse(restSpine,invRestSpine),"native bind matrices are invertible");
+    Matrices skin{},skinOld{};for(auto& bone:skin)bone=Translation(0,0,0);
+    skin[41]=Multiply(invBindArm,restArm);ArmPose bound{};
+    std::array<Matrix,2> packetSpine{Multiply(invBindSpine,restSpine),Multiply(invBindSpine,restSpine)};
+    Check(bound.Capture(skin,packetSpine),"capture real inverse-bind representation");
+    packetSpine={Multiply(invBindSpine,nowSpine),Multiply(invBindSpine,nowSpine)};skinOld=skin;
+    Check(bound.Apply(1,packetSpine,500,skin,&skinOld)&&Equal(skin[41],Multiply(Multiply(Multiply(invBindArm,restArm),invRestSpine),nowSpine)),"spine bind cancels with rotation, leaving the correct native skinning transform");
     Matrices source{},output{},old{};
     for(unsigned i=0;i<BoneCount;++i)source[i]=Translation(float(i),2,3);
     ArmPose cache{};std::array<Matrix,2> clav{Translation(10,0,0),Translation(-10,0,0)};
@@ -94,7 +104,7 @@ void Runtime(){
         Put(packets[p],0x20,Array{reinterpret_cast<uintptr_t>(&previous[p]),80,80});
         Put(meshes[p],0x5A8,std::array<int,2>{-1,0});Put(meshes[p],0x5F4,0);
         Put(meshes[p],0x5B0,Array{reinterpret_cast<uintptr_t>(&poses[p]),80,80});
-        for(unsigned i=0;i<80;++i){current[p][i]=Translation(float(i),float(p),5);poses[p][i].q[3]=1;poses[p][i].s[0]=poses[p][i].s[1]=poses[p][i].s[2]=1;}
+        for(unsigned i=0;i<80;++i){current[p][i]=Translation(i==14?10.0f:float(i),float(p),5);poses[p][i].q[3]=1;poses[p][i].s[0]=poses[p][i].s[1]=poses[p][i].s[2]=1;}
         previous[p]=current[p];poses[p][14].t[0]=10;poses[p][17].t[0]=-10;
         for(unsigned side=0;side<2;++side){
             auto gun=Register(guns[p][side],int(p*5+3+side));
@@ -106,17 +116,17 @@ void Runtime(){
     const auto nativePose=poses[0];
     std::array<unsigned char,sizeof(actors)> beforeActors{};std::memcpy(beforeActors.data(),actors,sizeof(actors));
     const auto baseline=current[0];auto& s=g_players[0].snapshot;s.capture=false;s.lower=true;s.tick=1100;
-    dg::runtime::Get().pistolRightModel=3;poses[0][14].t[0]=20;
+    dg::runtime::Get().pistolRightModel=3;poses[0][14].t[0]=900;current[0][14]=Translation(20,0,5);
     Check(ProcessPacket(reinterpret_cast<uintptr_t>(packets[0]),s.mesh.address,0x1234,0,1100),"render packet receives scoped OFF pose");
-    for(unsigned i=0;i<80;++i)if(i!=79)Check(Equal(current[0][i],i>=40&&i<=62?Translation(float(i)+10,0,5):baseline[i]),"right OFF includes aiming shoulder but preserves opposite arm and spine");
+    for(unsigned i=0;i<80;++i)if(i!=79&&i!=14)Check(Equal(current[0][i],i>=40&&i<=62?Translation(float(i)+10,0,5):baseline[i]),"right OFF includes aiming shoulder but preserves opposite arm and spine");
     for(unsigned i=0;i<3;++i)for(unsigned j=0;j<4;++j)Check(current[0][79].m[i][j]==0,"only OFF-side holster collapsed in runtime packet");
-    auto expectedPose=nativePose;expectedPose[14].t[0]=20;
+    auto expectedPose=nativePose;expectedPose[14].t[0]=900;
     Check(std::memcmp(&poses[0],&expectedPose,sizeof(expectedPose))==0&&std::memcmp(beforeActors.data(),actors,sizeof(actors))==0,"native poses, action bytes, firing actors and sockets never written");
     Check(Equal(current[1][41],Translation(41,1,5)),"P1 render packet cannot alter P2");
-    current[0]=baseline;previous[0]=baseline;poses[0][17].t[0]=500;
+    current[0]=baseline;current[0][14]=Translation(20,0,5);previous[0]=baseline;poses[0][17].t[0]=500;
     dg::runtime::Get().pistolRightModel=0;dg::runtime::Get().pistolLeftModel=3;
     Check(ProcessPacket(reinterpret_cast<uintptr_t>(packets[0]),s.mesh.address,0x1234,0,1100),"left OFF uses the same complete branch solve");
-    for(unsigned i=17;i<=39;++i)Check(Equal(current[0][i],Translation(float(i)+10,0,5)),"animated left aiming clavicle cannot pull the resting arm off its spine anchor");
+    for(unsigned i=17;i<=39;++i)Check(Equal(current[0][i],Translation(float(i)+10,0,5)),"component pose from another animation update cannot affect the packet-consistent resting arm");
     Check(poses[0][17].t[0]==500,"native aiming clavicle and firing sockets remain untouched");poses[0][17].t[0]=-10;
     dg::runtime::Get().pistolRightModel=3;dg::runtime::Get().pistolLeftModel=0;
     const auto result=current[0];s.tick=1000;
@@ -203,7 +213,12 @@ void Runtime(){
     Put(actors[0],0x348,reinterpret_cast<uintptr_t>(pc));Put(pc,0x350,reinterpret_cast<uintptr_t>(actors[0]));Put(actors[0],0x380,reinterpret_cast<uintptr_t>(meshes[0]));
     horse.kind=dg::local_players::PoseKind::Foot;horse.pawn=horse.character;dg::runtime::Get().pistolRightModel=3;dg::runtime::Get().pistolLeftModel=0;
     OnLivePlayer(horse,10,true);
-    Check(!PoseReady(0)&&Get<unsigned char>(guns[0][0],0x1CC)==0x61,"return to normal form keeps OFF before pose capture is ready");
+    Check(PoseReady(0)&&Get<unsigned char>(guns[0][0],0x1CC)==0x61,"return to same normal mesh immediately reuses compatible resting arm pose and keeps OFF");
+    const auto cached=g_players[0].poseAsset;
+    Put(items,size_t(cached.index)*24+16,cached.serial+1);OnLivePlayer(horse,11,true);
+    Check(!PoseReady(0)&&!g_players[0].pose.ready,"reused asset address with a new serial invalidates resting matrices");
+    Put(items,size_t(cached.index)*24+16,cached.serial);
+    g_players[0].poseAsset=cached;g_players[0].pose.ready=true;OnLivePlayer(horse,10,true);
     paused=radial=true;OnLivePlayer(horse,10,true);HookHidden(guns[0][0],false,1);
     Check(Get<unsigned char>(guns[0][0],0x1CC)==0x61,"normal-foot wheel cannot briefly show the hidden pistol");
     dg::runtime::Get().pistolRightModel=0;OnLivePlayer(horse,10,true);paused=radial=false;
@@ -232,14 +247,16 @@ void Config(){
     Check(GetTempPathW(MAX_PATH,folder)&&GetTempFileNameW(folder,L"dgp",0,path),"create isolated INI fixture");
     dg::config::Store a;a.SetPath(path);Check(a.Load(),"load old INI fixture");
     Check(a.strifeBladeVisibility==0&&!a.mountedJumpEnabled,"old INI keeps blades native and mounted jump OFF");
-    a.pistolRightModel=3;a.pistolLeftModel=1;a.strifeBladeVisibility=2;a.mountedJumpEnabled=true;a.aimIndicatorHideMode=3;a.menuKey=VK_F10;const auto keys=a.hotkeys;Check(a.SaveNow(),"write OFF selection before disk round trip");
+    a.pistolRightModel=3;a.pistolLeftModel=1;a.strifeBladeVisibility=2;a.mountedJumpEnabled=true;a.mountedJumpSound=1;a.aimIndicatorHideMode=3;a.menuKey=VK_F10;const auto keys=a.hotkeys;Check(a.SaveNow(),"write OFF selection before disk round trip");
     dg::config::Store b;b.SetPath(path);
-    Check(b.Load()&&b.pistolRightModel==3&&b.pistolLeftModel==1&&b.strifeBladeVisibility==2&&b.mountedJumpEnabled&&b.aimIndicatorHideMode==3&&b.menuKey==VK_F10&&b.hotkeys==keys,"OFF round trip preserves independent hand and personal bindings");
+    Check(b.Load()&&b.pistolRightModel==3&&b.pistolLeftModel==1&&b.strifeBladeVisibility==2&&b.mountedJumpEnabled&&b.mountedJumpSound==1&&b.aimIndicatorHideMode==3&&b.menuKey==VK_F10&&b.hotkeys==keys,"OFF round trip preserves independent hand and personal bindings");
     Check(dg::runtime::Get().pistolRightModel.load()==3,"OFF is published to the runtime");
     WritePrivateProfileStringW(L"Values",L"PistolRightModel",L"4",path);
     Check(b.Load()&&b.pistolRightModel==0,"unknown future mode falls back to Native");
     WritePrivateProfileStringW(L"Values",L"StrifeBladeVisibility",L"9",path);
     Check(b.Load()&&b.strifeBladeVisibility==0,"invalid blade choice safely restores Native");
+    WritePrivateProfileStringW(L"Values",L"MountedJumpSound",L"9",path);
+    Check(b.Load()&&b.mountedJumpSound==0&&dg::runtime::Get().mountedJumpSound.load()==0,"unknown sound choice falls back to native samples");
     DeleteFileW(path);
 }
 }
