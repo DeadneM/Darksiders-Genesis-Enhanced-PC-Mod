@@ -15,12 +15,12 @@ using RootFn=Transform*(*)(void*,Transform*,native_bone::Name,int);
 SpawnFn g_spawn=nullptr;native_bone::LocationFn g_location=nullptr;
 AttachFn g_attach=nullptr;RootFn g_root=nullptr;
 uintptr_t g_base=0;LogFn g_log=nullptr;std::atomic_bool g_ready{false};unsigned g_changes=0;
-struct Plan {uintptr_t world=0,asset=0,mesh=0;Side side=Side::None;unsigned mask=0;native_bone::Point right{},left{},offset{};native_bone::Name socket{};Transform root{};bool attached=false;};
+struct Plan {Transform root{};uintptr_t world=0,asset=0,mesh=0;native_bone::Point right{},left{},offset{};native_bone::Name socket{};Side side=Side::None;unsigned mask=0,attached=0;};
 thread_local const Plan* g_plan=nullptr;
 template<class T> bool Read(uintptr_t p,size_t offset,T& value){native_objects::MemoryReader reader;return reader.Read(p,offset,value);}
 template<size_t N> bool Is(uintptr_t p,const char (&text)[N]){return native_objects::NameIs(g_base,p,text);}
 void Changed(const Plan& plan){
-    if(g_log&&++g_changes<=12){char line[160]{};sprintf_s(line,"Strife bare blade FX V1.84: side=%u mask=%u attached=%u hand origin, scale=0.4; damage trace unchanged; EXPERIMENTAL",unsigned(plan.side),plan.mask,unsigned(plan.attached));g_log(line);}
+    if(g_log&&++g_changes<=12){char line[160]{};sprintf_s(line,"Strife bare blade FX V1.85: side=%u mask=%u attached=%u hand origin, scale=0.4; damage trace unchanged; EXPERIMENTAL",unsigned(plan.side),plan.mask,unsigned(plan.attached));g_log(line);}
 }
 void* HookSpawn(void* world,void* asset,const Transform* transform,bool autoDestroy,unsigned char pooling){
     Transform source{},out{};const auto* plan=g_plan;
@@ -101,7 +101,7 @@ void Initialize(LogFn log,bool exactExecutable){
         MH_DisableHook(target);MH_DisableHook(attachTarget);MH_RemoveHook(target);MH_RemoveHook(attachTarget);g_spawn=nullptr;g_attach=nullptr;return;
     }
     g_location=reinterpret_cast<native_bone::LocationFn>(g_base+0x17A2380);g_root=reinterpret_cast<RootFn>(g_base+0x17A2590);g_ready=true;
-    if(log)log("Strife bare blade FX V1.84 READY: scoped attached/detached slash/stab only, native damage and notify retained; EXPERIMENTAL");
+    if(log)log("Strife bare blade FX V1.85 READY: scoped attached/detached slash/stab only, native damage and notify retained; EXPERIMENTAL");
 }
 void Particle(void* notify,void* mesh,void* animation,NotifyFn original){
     if(!original)return;

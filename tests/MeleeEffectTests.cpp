@@ -6,6 +6,7 @@
 
 namespace {
 using namespace dg::melee_effect;
+static_assert(sizeof(Plan)==128,"private per-notify plan remains compact without implicit alignment padding");
 unsigned char actor[0x1100]{},controller[0x400]{},mesh[0x800]{},asset[0x220]{},bones[44*12]{};
 unsigned char notify[0x90]{},sequence[0x80]{},particle[0x80]{},package[0x80]{},cls[3][0x80]{},entries[20][100]{};
 uintptr_t names[20]{},chunks[1]{reinterpret_cast<uintptr_t>(names)},vt[0x400/8]{};
