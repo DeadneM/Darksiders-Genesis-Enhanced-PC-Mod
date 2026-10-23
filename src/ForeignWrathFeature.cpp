@@ -134,6 +134,8 @@ void HookPlay(void* ability,void* montage,float rate,Name section){
     const int choice=ForeignCast(ability,c);
     if(!choice){g_play(ability,montage,rate,section);return;}
     if(choice==4){
+        const auto player=static_cast<unsigned>(c.index);
+        if(player>=2){g_finish(ability,0);return;}
         Animation source{};native_objects::Identity actor{};void* replacement=nullptr;bool played=false;
         if(!g_geyserFailed&&std::isfinite(rate)&&rate>0&&rate<=10&&!section.index&&!section.number&&
            Source(c.character,source)&&native_objects::CaptureLive(g_base,reinterpret_cast<void*>(c.character),actor))
@@ -142,7 +144,7 @@ void HookPlay(void* ability,void* montage,float rate,Name section){
             g_play(ability,replacement,rate,section);uintptr_t instance=0;
             played=Read(reinterpret_cast<uintptr_t>(ability),0x1D8,instance)&&instance&&g_playing(reinterpret_cast<void*>(instance));
         }
-        if(played)g_geyserActors[c.index]=actor;
+        if(played)g_geyserActors[player]=actor;
         else {g_geyserFailed=true;g_finish(ability,0);}
         if(g_log&&++g_events<=12)g_log(played?"Foreign Wrath V1.88 Geyser: native SpawnBlast notify on private compatible montage; native cost/timing/finish retained; EXPERIMENTAL":
             "Foreign Wrath V1.88 Geyser contract unavailable; cast finished and further Geyser requests stopped for this session");

@@ -34,3 +34,6 @@ Stoneskin : transfert partiel conservé, protection et coût natifs ; apparence 
 Installer manuellement après fermeture du jeu, **conserver son INI**. Six réglages d’emplacement inchangés et Native par défaut ; le choix 4 existant devient accepté pour Strife. 168 clés et leurs valeurs par défaut, 55 ID Hotkeys, souris/manette, caméras et ressources validées conservés. Aucune installation, relance, écriture de sauvegarde ou modification du PAK automatique.
 
 Rollback du transfert : choisir Native dans l’emplacement. Rollback binaire : ASI V1.87 validé conservé dans son archive, même INI personnel (le choix Geyser non supporté y revient à Native). V1.86 avec son défaut ABI de curseur n’est pas un repli recommandé. 152 archives antérieures et main/archive/v1.43 gardées intactes.
+
+
+Premier contrôle CI du candidat `f1994aa` (run 40007454113) : compilation réussie, 52/53 suites passées, archive non publiée. Le nouveau test Geyser utilisait `Name{}` (index -1) au lieu de la section native None `{0,0}` ; le garde rejetait correctement cet appel. Test corrigé sans assouplir le garde. Avertissement d’analyse C6386 sur l’index joueur : borne unsigned explicite avant l’écriture du marqueur, sans désactiver l’analyseur. Nouvelle compilation complète requise avant livraison.

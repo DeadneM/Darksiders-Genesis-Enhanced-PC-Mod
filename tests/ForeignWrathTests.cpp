@@ -119,7 +119,7 @@ void Run(){
     Fresh();owner.kind=dg::local_players::PoseKind::Horse;Cast();Check(playedMontage==f.nativeMontage&&!createCalls&&!finishCalls,"horse does not enter foreign on-foot adapter");
     Fresh();g_geyserReady=true;g_geyser={reinterpret_cast<uintptr_t>(f.geyser),3,43};
     Check(Prepare(f.actor,klass,4)&&klass==reinterpret_cast<uintptr_t>(f.geyser),"Geyser prepares only its exact owned class and compatible source");
-    Put(f.ability,0x10,klass);HookPlay(f.ability,f.nativeMontage,.75f,{});
+    Put(f.ability,0x10,klass);HookPlay(f.ability,f.nativeMontage,.75f,{0,0});
     Check(geyserBuilds==1&&createCalls==0&&playCalls==1&&!finishCalls&&playedMontage==f.replacement&&playedRate==.75f,
         "Geyser uses private builder and original playback rate, independently from Stoneskin");
     Check(g_geyserActors[0].address==owner.pawn,"only successful exact actor cast permits unsupported companion cancellation");
