@@ -1,6 +1,6 @@
 # V1.91 — trace Geyser corrigée, gameplay encore non fonctionnel
 
-**DIAGNOSTIC EXPÉRIMENTAL préparé ; compilation et contrôles V1.91 à consigner après CI. Geyser sur Strife NON CORRIGÉ.**
+**V1.91 CONSTRUITE / CONTRÔLÉE : [53/53 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40016586657), zéro erreur et zéro avertissement MSVC. DIAGNOSTIC seulement ; Geyser sur Strife NON CORRIGÉ, non validé en jeu.** [ZIP cumulatif immuable vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/0be129010adbb857e0d3de6bbcdd32b3d7022c1b/downloads/DarksidersGenesis_V1.91_GEYSER_DISPATCH_DIAGNOSTIC_TEST.zip) · [Reçu et rollback](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_91_DELIVERY_RECEIPT.md).
 
 Base validée V1.87 `c20319f93413f849a41b10fdfd96f7842a172ac6` pour les cas rapportés ; cumul V1.90 archive `cc3932ad985ba779d47f60b3f2865e01d5970239`. Geyser sur Strife reste REJETÉ après V1.89. Objectif : obtenir une trace effective du même SpawnBlast sur War natif puis Strife. Réussite du diagnostic : paire entrée/sortie sur chaque personnage, ou limite d’observation explicitement constatée ; aucun succès de gameplay supposé.
 
