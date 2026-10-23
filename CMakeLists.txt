@@ -11,7 +11,7 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
-  add_executable(PlayerPresentationTests tests/PlayerPresentationTests.cpp src/RuntimeSettings.cpp src/ConfigStore.cpp)
+  add_executable(PlayerPresentationTests tests/PlayerPresentationTests.cpp tests/NativeCursorConsumer.cpp src/RuntimeSettings.cpp src/ConfigStore.cpp)
   target_include_directories(PlayerPresentationTests PRIVATE tests/stubs src)
   target_compile_definitions(PlayerPresentationTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
   target_link_libraries(PlayerPresentationTests PRIVATE user32)

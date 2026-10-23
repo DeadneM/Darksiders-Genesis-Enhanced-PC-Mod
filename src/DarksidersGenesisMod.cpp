@@ -4327,7 +4327,7 @@ DWORD WINAPI MainThread(LPVOID) {
     g_config.SetLogger(&FeatureLog);
     g_config.Load();
     if(g_config.updaterAutoCheck)dg::update::Check(g_config.updaterBeta);
-    Log("%s CONFIG loaded %ls: TPS=%d cursorHooks=REMOVED FOV=%.1f dist=%.3f pitch=%.2f height=%.1f foot=%.1f stickMode=%d mountedAim=%d normalHeight=%.1f SkipWarningRuntime=%d",
+    Log("%s CONFIG loaded %ls: TPS=%d osCursorHooks=NONE nativeCursorQuery=ENUM32 FOV=%.1f dist=%.3f pitch=%.2f height=%.1f foot=%.1f stickMode=%d mountedAim=%d normalHeight=%.1f SkipWarningRuntime=%d",
         dg::build::Version,g_iniPath.c_str(),g_config.thirdPersonEnabled?1:0,
         g_config.thirdPersonFovDegrees,
         g_config.thirdPersonDistanceMultiplier,g_config.thirdPersonPitchDegrees,

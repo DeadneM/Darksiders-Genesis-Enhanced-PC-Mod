@@ -1,0 +1,20 @@
+{
+  "crashVersion": "V1.86",
+  "installedAsiSha256": "23b7c932fbda65ea901c8dd77af856f5e62c725b33e4f87fcb890643e65d8127",
+  "exception": "0xc0000005",
+  "faultRva": "0xb10f66",
+  "nativeCursorConsumerRva": "C09350",
+  "nativeSetCursorIndexRva": "B10F66",
+  "cursorReply32": "0xedfb8d08",
+  "cursorReplyByte": 8,
+  "invalidCursorIndexMatchesReadFault": true,
+  "nativeQueryRva": "1ACAA40",
+  "nativeReturnRva": "1ACAA56",
+  "nativeReturnInstruction": "movzx eax, byte [rbx+551]",
+  "oldHookReturnBits": 8,
+  "correctHookReturnBits": 32,
+  "oldFixtureReturnBits": 8,
+  "newFixtureSeparateTranslationUnit": true,
+  "configurationChanged": false,
+  "gameplayValidated": false
+}

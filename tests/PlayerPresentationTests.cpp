@@ -3,6 +3,10 @@
 #include <iostream>
 #include <stdexcept>
 #include <vector>
+#include <type_traits>
+
+void ReadCursorAsEngine(std::int32_t (*)(void*),void*,std::int32_t*);
+static_assert(std::is_same_v<decltype(&dg::presentation::HookCursor),std::int32_t(*)(void*)>);
 
 namespace {
 using namespace dg::presentation;
@@ -10,14 +14,17 @@ unsigned char actor[0x1100]{},pc[0x600]{},localPlayer[0x300]{},manager[0xB0]{},b
 uintptr_t names[12]{},nameChunks[1]{reinterpret_cast<uintptr_t>(names)},armVT[0x9B0/8]{},parentVT[3]{},objectChunks[1]{};
 unsigned char items[2*24]{};dg::local_players::Context owner{};
 bool focused=true,gameThread=true,localOwned=true,paused=false,cinematic=false,radial=false,parentAllowed=true;
-unsigned char nativeCursor=8;unsigned refreshes=0,nativeQueries=0;
+std::int32_t nativeCursor=8;unsigned refreshes=0,nativeQueries=0;
 template<class T> void Put(void* p,size_t offset,T value){std::memcpy(static_cast<unsigned char*>(p)+offset,&value,sizeof(value));}
 void Check(bool ok,const char* text){if(!ok)throw std::runtime_error(text);}
 void Label(void* object,int index,const char* text){Put(object,0x18,index);Put(object,0x1C,0);strcpy_s(reinterpret_cast<char*>(nameEntries[index]+12),108,text);}
 bool Focus(){return focused;}
 bool DisplayNative(void* p){++nativeQueries;return p==augmented;}
 bool ParentNative(void*){return parentAllowed;}
-unsigned char CursorNative(void*){return nativeCursor;}
+std::int32_t CursorNative(void*){return nativeCursor;}
+std::int32_t EngineCursor(void* controller){
+    std::int32_t reply=0x5A5A5A5A;ReadCursorAsEngine(&HookCursor,controller,&reply);return reply;
+}
 void RefreshNative(void* p){++refreshes;HookDisplay(p);}
 void Fresh(){
     focused=gameThread=localOwned=parentAllowed=true;paused=cinematic=radial=false;nativeCursor=8;refreshes=nativeQueries=0;
@@ -61,18 +68,22 @@ void Run(){
     Fresh();rt.warArmAppearance=1;Put(actor,0xFB0,reinterpret_cast<uintptr_t>(augmented));Check(!HookDisplay(basic),"mismatched reciprocal component excluded");
     Fresh();rt.warArmAppearance=1;OnLivePlayer(owner);Check(refreshes==2,"one native refresh for both components");OnLivePlayer(owner);Check(refreshes==2,"no repeated refresh in steady gameplay");
     rt.warArmAppearance=0;OnLivePlayer(owner);Check(refreshes==4,"Native restores through the same skin refresh");
-    Fresh();for(int mode=0;mode<=3;++mode){rt.mouseReticleHideMode=mode;Check(HookCursor(pc)==(mode==1||mode==3?0:8),"TPS mode matrix");}
-    rt.thirdPersonEnabled=false;for(int mode=0;mode<=3;++mode){rt.mouseReticleHideMode=mode;Check(HookCursor(pc)==(mode==2||mode==3?0:8),"normal view mode matrix");}
-    Fresh();rt.mouseReticleHideMode=3;Put(manager,0x88,Array{0x1000,1,1});Check(HookCursor(pc)==8,"native page cursor retained even if crosshair is still selected");
-    Fresh();rt.mouseReticleHideMode=3;Put(manager,0x98,Array{0x1000,1,1});Check(HookCursor(pc)==8,"closing page transition retains cursor");
-    Fresh();rt.mouseReticleHideMode=3;nativeCursor=1;Check(HookCursor(pc)==1,"native menu arrow retained");
-    nativeCursor=0;Check(!HookCursor(pc),"native hidden cursor retained");
-    Fresh();rt.mouseReticleHideMode=3;paused=true;Check(HookCursor(pc)==8,"pause retains cursor");paused=false;radial=true;Check(HookCursor(pc)==8,"wheels retain cursor");
-    radial=false;cinematic=true;Check(HookCursor(pc)==8,"cinematic cursor remains native");cinematic=false;focused=false;Check(HookCursor(pc)==8,"Alt-Tab and overlay focus remain native");
-    Fresh();rt.mouseReticleHideMode=3;gameThread=false;Check(HookCursor(pc)==8,"unverified thread retains cursor");
-    Fresh();rt.mouseReticleHideMode=3;rt.tpsGameplayViewTick=0;Check(HookCursor(pc)==8,"unknown TPS view fails open");
-    Fresh();rt.mouseReticleHideMode=3;owner.index=1;Check(HookCursor(pc)==8,"P2 controller cursor is not changed");
-    Fresh();rt.mouseReticleHideMode=3;Shutdown();Check(HookCursor(pc)==8,"shutdown restores native query output");
+    Fresh();for(int mode=0;mode<=3;++mode){rt.mouseReticleHideMode=mode;Check(EngineCursor(pc)==(mode==1||mode==3?0:8),"TPS mode matrix");}
+    rt.thirdPersonEnabled=false;for(int mode=0;mode<=3;++mode){rt.mouseReticleHideMode=mode;Check(EngineCursor(pc)==(mode==2||mode==3?0:8),"normal view mode matrix");}
+    Fresh();rt.mouseReticleHideMode=3;Put(manager,0x88,Array{0x1000,1,1});Check(EngineCursor(pc)==8,"native page cursor retained even if crosshair is still selected");
+    Fresh();rt.mouseReticleHideMode=3;Put(manager,0x98,Array{0x1000,1,1});Check(EngineCursor(pc)==8,"closing page transition retains cursor");
+    Fresh();rt.mouseReticleHideMode=3;nativeCursor=1;Check(EngineCursor(pc)==1,"native menu arrow retained");
+    nativeCursor=0;Check(!EngineCursor(pc),"native hidden cursor retained");
+    Fresh();rt.mouseReticleHideMode=3;paused=true;Check(EngineCursor(pc)==8,"pause retains cursor");paused=false;radial=true;Check(EngineCursor(pc)==8,"wheels retain cursor");
+    radial=false;cinematic=true;Check(EngineCursor(pc)==8,"cinematic cursor remains native");cinematic=false;focused=false;Check(EngineCursor(pc)==8,"Alt-Tab and overlay focus remain native");
+    Fresh();rt.mouseReticleHideMode=3;gameThread=false;Check(EngineCursor(pc)==8,"unverified thread retains cursor");
+    Fresh();rt.mouseReticleHideMode=3;rt.tpsGameplayViewTick=0;Check(EngineCursor(pc)==8,"unknown TPS view fails open");
+    Fresh();rt.mouseReticleHideMode=3;owner.index=1;Check(EngineCursor(pc)==8,"P2 controller cursor is not changed");
+    Fresh();rt.mouseReticleHideMode=0;
+    for(std::int32_t cursor=0;cursor<15;++cursor){nativeCursor=cursor;Check(EngineCursor(pc)==cursor,"native 32-bit cursor enum consumed unchanged");}
+    Fresh();rt.mouseReticleHideMode=3;nativeCursor=0x5A5A0008;
+    Check(EngineCursor(pc)==0x5A5A0008,"full native value is preserved rather than truncated into crosshair 8");
+    Fresh();rt.mouseReticleHideMode=3;Shutdown();Check(EngineCursor(pc)==8,"shutdown restores native query output");
 }
 void Configuration(){
     wchar_t directory[MAX_PATH]{},path[MAX_PATH]{};

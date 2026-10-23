@@ -9,7 +9,9 @@ namespace dg::presentation {
 namespace {
 using Display=bool(*)(void*);
 using Refresh=void(*)(void*);
-using Cursor=unsigned char(*)(void*);
+// GetMouseCursor returns a 32-bit enum, although CurrentMouseCursor is a byte.
+// A byte-return detour leaves the other EAX bits undefined for Slate's index.
+using Cursor=std::int32_t(*)(void*);
 Display g_display=nullptr,g_parent=nullptr;Refresh g_refresh=nullptr;Cursor g_cursor=nullptr;
 uintptr_t g_base=0;FocusFn g_focus=nullptr;LogFn g_log=nullptr;std::atomic_bool g_ready{false};
 struct Seen {native_objects::Identity actor{};int mode=0;};Seen g_seen[2]{};
@@ -59,8 +61,8 @@ bool HookDisplay(void* live){
 bool Empty(uintptr_t manager,size_t offset){
     Array a{};return Read(manager,offset,a)&&a.count==0&&a.capacity>=0&&a.capacity<=64;
 }
-unsigned char HookCursor(void* live){
-    const unsigned char native=g_cursor?g_cursor(live):static_cast<unsigned char>(0);const int mode=runtime::Get().mouseReticleHideMode.load();
+std::int32_t HookCursor(void* live){
+    const std::int32_t native=g_cursor?g_cursor(live):0;const int mode=runtime::Get().mouseReticleHideMode.load();
     if(!g_ready||mode<1||mode>3||native!=8||!g_focus||!g_focus()||!native_tps::OnGameThread())return native;
     const auto pc=reinterpret_cast<uintptr_t>(live);uintptr_t pawn=0,local=0,manager=0,cls=0,outer=0;
     local_players::Context c{};
@@ -83,16 +85,18 @@ void Initialize(LogFn log,bool exact,FocusFn focus){
     constexpr unsigned char refresh[]={0x40,0x57,0x48,0x83,0xEC,0x60};
     constexpr unsigned char parent[]={0x40,0x57,0x48,0x83,0xEC,0x40};
     constexpr unsigned char cursor[]={0x40,0x53,0x48,0x83,0xEC,0x20,0x48,0x8B,0x01};
+    constexpr unsigned char cursorResult[]={0x0F,0xB6,0x83,0x51,0x05,0x00,0x00}; // movzx eax, byte [rbx+551]
     if(std::memcmp(reinterpret_cast<void*>(g_base+0x7283A0),display,sizeof(display))||
        std::memcmp(reinterpret_cast<void*>(g_base+0x7152C0),refresh,sizeof(refresh))||
        std::memcmp(reinterpret_cast<void*>(g_base+0x705560),parent,sizeof(parent))||
-       std::memcmp(reinterpret_cast<void*>(g_base+0x1ACAA40),cursor,sizeof(cursor)))return;
+       std::memcmp(reinterpret_cast<void*>(g_base+0x1ACAA40),cursor,sizeof(cursor))||
+       std::memcmp(reinterpret_cast<void*>(g_base+0x1ACAA56),cursorResult,sizeof(cursorResult)))return;
     auto* arm=reinterpret_cast<void*>(g_base+0x7283A0);auto* mouse=reinterpret_cast<void*>(g_base+0x1ACAA40);
     if(MH_CreateHook(arm,reinterpret_cast<void*>(&HookDisplay),reinterpret_cast<void**>(&g_display))!=MH_OK)return;
     if(MH_CreateHook(mouse,reinterpret_cast<void*>(&HookCursor),reinterpret_cast<void**>(&g_cursor))!=MH_OK){MH_RemoveHook(arm);g_display=nullptr;return;}
     if(MH_EnableHook(arm)!=MH_OK||MH_EnableHook(mouse)!=MH_OK){MH_DisableHook(arm);MH_DisableHook(mouse);MH_RemoveHook(arm);MH_RemoveHook(mouse);return;}
     g_parent=reinterpret_cast<Display>(g_base+0x705560);g_refresh=reinterpret_cast<Refresh>(g_base+0x7152C0);g_ready=true;
-    if(log)log("Presentation V1.86 READY: native War arm selection and gameplay-only mouse cursor query; native menus/input/unlocks retained; EXPERIMENTAL");
+    if(log)log("Presentation V1.87 READY: 32-bit native cursor enum ABI verified; native War arm selection and menus/input/unlocks retained; EXPERIMENTAL");
 }
 void OnLivePlayer(const local_players::Context& c){
     if(!g_ready||!native_tps::OnGameThread()||c.index<0||c.index>1)return;
