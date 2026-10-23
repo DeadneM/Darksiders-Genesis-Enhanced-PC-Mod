@@ -10,7 +10,7 @@ int Status(int choice=6);
 void Observe(const local_players::Context& owner);
 bool Prepare(void* actor,uintptr_t& abilityClass,int choice=6);
 uintptr_t* Resolve(ResolveFn native,void* actor,uintptr_t* result,Name id,bool* unlocked,bool* affordable,uintptr_t abilityClass);
-// Temporary V1.90 read-only Geyser trace on the existing dispatch boundary.
+// Temporary V1.91 read-only Geyser trace on the existing dispatch boundary.
 // Always forwards the complete native call exactly once when supplied.
 using DispatchFn=void(*)(void*,void*,void*,void*);
 void DispatchEvent(DispatchFn native,void* object,void* function,void* parameters,void* outParameters);

@@ -1,6 +1,6 @@
 # V1.90 — Geyser : trace d’exécution, sans correctif de gameplay
 
-**DIAGNOSTIC EXPÉRIMENTAL préparé ; compilation et contrôles à consigner après CI. Geyser sur Strife NON CORRIGÉ.**
+**V1.90 INTERMÉDIAIRE NON RETENUE pour le diagnostic comparatif : [53/53 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40015555280), zéro erreur et zéro avertissement MSVC, mais filtre War erroné (type 0 au lieu du type natif 2) découvert au second audit. Remplacement V1.91 préparé ; Geyser sur Strife NON CORRIGÉ.** [Archive immuable conservée](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/cc3932ad985ba779d47f60b3f2865e01d5970239/downloads/DarksidersGenesis_V1.90_GEYSER_DISPATCH_DIAGNOSTIC_TEST.zip) · [Reçu et limite](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_90_DELIVERY_RECEIPT.md).
 
 Base validée V1.87 `c20319f93413f849a41b10fdfd96f7842a172ac6` pour les cas rapportés ; cumul V1.89 `6921fb7a19dc93bff331f937299d5fbe0f020a2e`. Geyser V1.89 rejeté pour le transfert vers Strife, pas de validation globale ni P2 déduite. Objectif unique : distinguer notification mise en file, appel Blueprint effectif et activité d’un acteur d’attaque. Réussite du diagnostic : journal avec une paire entrée/sortie de SpawnBlast pour War et Strife, ou absence de cette paire identifiée comme limite à poursuivre. **Cela ne vaut pas réparation du pouvoir.**
 

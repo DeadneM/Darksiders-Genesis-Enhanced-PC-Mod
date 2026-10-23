@@ -113,7 +113,7 @@ void TraceChecks(){
         !std::memcmp(f.blast,blastBefore.data(),blastBefore.size()),"diagnostic writes no actor, ability or blast bytes");
     TraceSetup();Label(f.classes[0],1,"War_Blueprint_C");Put<unsigned char>(f.actor,0xC18,2);Dispatch();
     Check(traceLog.size()==2&&traceLog[0].find("strife=0")!=std::string::npos&&dispatchCalls.size()==1,"same dispatch trace observes War native comparison");
-    for(unsigned failure=0;failure<11;++failure){
+    for(unsigned failure=0;failure<12;++failure){
         TraceSetup();
         if(failure==0)g_spawnFunction=0;
         if(failure==1)Put<unsigned char>(f.ability,8,0x10);
@@ -126,6 +126,7 @@ void TraceChecks(){
         if(failure==8)Shutdown();
         if(failure==9)g_log=nullptr;
         if(failure==10)Put(f.ability,0x1B0,uintptr_t(0));
+        if(failure==11){Label(f.classes[0],1,"War_Blueprint_C");Put<unsigned char>(f.actor,0xC18,0);}
         Dispatch();Check(dispatchCalls.size()==1&&traceLog.empty()&&!g_dispatchTraces,"ineligible dispatch forwards once with no trace or native-state mutation");
     }
     TraceSetup();DispatchEvent(DispatchNative,f.ability,f.instance,f.cdo,f.geyserCdo);

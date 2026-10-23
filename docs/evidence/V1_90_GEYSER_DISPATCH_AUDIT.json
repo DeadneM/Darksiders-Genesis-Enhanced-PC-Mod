@@ -1,0 +1,27 @@
+{
+  "readOnly": true,
+  "sampleCount": 32594,
+  "notificationQueueSamples": {
+    "War_Blueprint_C": 2,
+    "Strife_Blueprint_C": 3
+  },
+  "samplesAreNotCallbackCounts": true,
+  "actualSpawnBlastExecutionProven": false,
+  "attackSpawnProven": false,
+  "damageProven": false,
+  "world": "Level_00",
+  "executableSha256": "9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54",
+  "nativeNotifyRva": "0x5A7C60",
+  "nativeGetterRva": "0x59C840",
+  "blueprintSpawnBlastThunkRva": "0xAC09E0",
+  "canonicalAbilityComponentOffset": "0xC70",
+  "sameSlot": "TPS",
+  "dispatchCacheLiveVerified": false,
+  "reason": "Game closed before V1.90 cache probe; no relaunch requested",
+  "evidenceFiles": {
+    "v190-notify-queue-20261023-213501.jsonl": "1b894eaee9e990a4c944ac043f5cbabc17a99555b7bc097b7194abc0aafbc9d1",
+    "v190-native-notify-contract.json": "98438c125533bfc1a31e3b44d4deb21923605eef5057cacb81dbb8cb9e848d8f",
+    "v190-spawn-blast-functions.json": "e2cee250f91ad53086122bcb5175134d5dd3f10df7860773423b78641d93a5c7",
+    "v190-interface.json": "1d8aae233361b15500027c48ba5af38c2204b16a967f2331d7bdc0e13d29f4ae"
+  }
+}

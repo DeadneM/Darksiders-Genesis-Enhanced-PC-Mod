@@ -1,0 +1,78 @@
+{
+  "ci": {
+    "runId": 40015555280,
+    "jobId": 120626590778,
+    "sourceCommit": "5fc9860fc0fe4bf8114e68143772bae9b3beec3f",
+    "conclusion": "success",
+    "suitesPassed": 53,
+    "testRows": 53,
+    "compilerWarnings": [],
+    "compilerErrors": [],
+    "toolingWarnings": [
+      "2026-10-23T19:58:48.4041124Z CMake Warning (deprecated) at build/_deps/minhook-src/CMakeLists.txt:27 (cmake_minimum_required):",
+      "2026-10-23T20:02:32.4601839Z (node:4620) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.",
+      "2026-10-23T20:02:32.9166360Z (node:4620) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities."
+    ]
+  },
+  "checks": {
+    "diagnosticOnly": true,
+    "dispatchCacheLiveVerified": false,
+    "validatedBase": "c20319f93413f849a41b10fdfd96f7842a172ac6",
+    "base": "6921fb7a19dc93bff331f937299d5fbe0f020a2e",
+    "branch": "debug",
+    "oldArchivesUnchanged": 154,
+    "iniKeysUnchanged": 168,
+    "hotkeyIdsUnchanged": true,
+    "unchangedSourceFiles": 116,
+    "validatedPresentationUnchanged": true,
+    "existingStoneskinCastUnchanged": true,
+    "noNewHooksOrTimer": true,
+    "onlyPrivateCloneStorage": true,
+    "nativeSignaturesVerified": true,
+    "liveMarkerAndIdleGuardsVerified": true,
+    "testsExpected": 53,
+    "gameplayValidated": false
+  },
+  "package": {
+    "sourceCommit": "5fc9860fc0fe4bf8114e68143772bae9b3beec3f",
+    "archiveCommit": "cc3932ad985ba779d47f60b3f2865e01d5970239",
+    "name": "DarksidersGenesis_V1.90_GEYSER_DISPATCH_DIAGNOSTIC_TEST.zip",
+    "size": 920812,
+    "sha256": "F433D3D41B831CB0834DB6067D02103EFD82534CC41E872748F7BFBD05EC5981",
+    "files": {
+      "DarksidersGenesisMod.asi": {
+        "size": 1682432,
+        "sha256": "1A6DB8FEF837B7538B7A9DB0A0BAF4933AD8CC8B00C137228D0566616085E6B6"
+      },
+      "DarksidersGenesisMod.ini": {
+        "size": 4691,
+        "sha256": "99E3EECAD438A6735DD4389D544535FF798BB7F9E9EF0E4E243BC40CC4F13524"
+      },
+      "dxgi.dll": {
+        "size": 155136,
+        "sha256": "CF3C5A06C9E536B6D941AD6081F8628702ECFCF931878E601AF9A981937BA2A7"
+      },
+      "README.md": {
+        "size": 47507,
+        "sha256": "D3ABB7650BF7C9F9D5DCCA6BCD663A94BE8C7A698C2C5E0C3D6F628E9F7289D4"
+      }
+    },
+    "oldArchivesUnchanged": 154,
+    "iniKeys": 168,
+    "hotkeyIdsUnchanged": true,
+    "amd64": true,
+    "crcValid": true,
+    "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/cc3932ad985ba779d47f60b3f2865e01d5970239/downloads/DarksidersGenesis_V1.90_GEYSER_DISPATCH_DIAGNOSTIC_TEST.zip",
+    "httpStatus": 200,
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/main": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "gameplayValidated": false
+  },
+  "diagnosticOnly": true,
+  "gameplayValidated": false,
+  "comparativeDiagnosticAccepted": false,
+  "reason": "War identity 0 in filter and fixture; native War is 2; superseded by V1.91"
+}

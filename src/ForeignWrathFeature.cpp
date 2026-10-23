@@ -80,7 +80,7 @@ void CacheSpawnFunction(){
     for(unsigned i=0;i<256&&field;++i){
         uintptr_t cls=0,outer=0,next=0;
         if(Read(field,0x10,cls)&&Is(cls,"Function")&&Is(field,"SpawnBlast")&&Read(field,0x20,outer)&&outer==g_geyser.address){
-            g_spawnFunction=field;if(g_log)g_log("Geyser V1.90 TRACE ready: exact Blueprint SpawnBlast cached; read-only diagnostics on existing dispatch, no new hook");return;
+            g_spawnFunction=field;if(g_log)g_log("Geyser V1.91 TRACE ready: exact Blueprint SpawnBlast cached; read-only diagnostics on existing dispatch, no new hook");return;
         }
         if(!Read(field,0x28,next)||next==field)return;field=next;
     }
@@ -107,7 +107,7 @@ void TraceNestedBlast(void* live){
     const auto object=reinterpret_cast<uintptr_t>(live);uintptr_t cls=0,owner=0,instigator=0;uint32_t flags=0;
     if(!Read(object,8,flags)||(flags&0x30u)||!Read(object,0x10,cls)||!BlastClass(cls))return;
     Read(object,0x108,owner);Read(object,0x140,instigator);++trace->blasts;
-    char text[240]{};sprintf_s(text,"Geyser V1.90 BLAST_EVENT call=%u object=%p sourceMatch=%d owner=%p instigator=%p; nested Blueprint event observed, damage NOT proven",
+    char text[240]{};sprintf_s(text,"Geyser V1.91 BLAST_EVENT call=%u object=%p sourceMatch=%d owner=%p instigator=%p; nested Blueprint event observed, damage NOT proven",
         trace->number,live,(owner==trace->actor||instigator==trace->actor)?1:0,reinterpret_cast<void*>(owner),reinterpret_cast<void*>(instigator));g_log(text);
 }
 void Scan(uintptr_t generatedClass){
@@ -284,13 +284,13 @@ void DispatchEvent(DispatchFn native,void* object,void* function,void* parameter
     DispatchTrace trace{++g_dispatchTraces,0,c.character};int before=-1,after=-1;
     Read(g_base,0x3959694,before);unsigned char state=255,type=255;
     Read(reinterpret_cast<uintptr_t>(object),0xD8,state);Read(c.character,0xC18,type);
-    char text[240]{};sprintf_s(text,"Geyser V1.90 DISPATCH_BEFORE call=%u player=%d strife=%d state=%u actor=%p objects=%d; actual SpawnBlast entry, read-only",
+    char text[240]{};sprintf_s(text,"Geyser V1.91 DISPATCH_BEFORE call=%u player=%d strife=%d state=%u actor=%p objects=%d; actual SpawnBlast entry, read-only",
         trace.number,c.index+1,type==1?1:0,unsigned(state),reinterpret_cast<void*>(trace.actor),before);g_log(text);
     {
         struct Scope {DispatchTrace* previous;~Scope(){g_dispatchTrace=previous;}} scope{g_dispatchTrace};g_dispatchTrace=&trace;
         native(object,function,parameters,outParameters);
     }
-    Read(g_base,0x3959694,after);sprintf_s(text,"Geyser V1.90 DISPATCH_AFTER call=%u nativeReturned=1 nestedBlastEvents=%u objectsBefore=%d objectsAfter=%d; no damage or cost override",
+    Read(g_base,0x3959694,after);sprintf_s(text,"Geyser V1.91 DISPATCH_AFTER call=%u nativeReturned=1 nestedBlastEvents=%u objectsBefore=%d objectsAfter=%d; no damage or cost override",
         trace.number,trace.blasts,before,after);g_log(text);
 }
 void Shutdown(){g_ready=false;g_assetsReady=false;g_geyserReady=false;}
