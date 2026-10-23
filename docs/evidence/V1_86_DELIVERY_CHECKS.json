@@ -1,0 +1,82 @@
+{
+  "ci": {
+    "runId": 39995845270,
+    "jobId": 120559032585,
+    "sourceCommit": "d0deeb03baffb8d18ae0d129adff31bdb09ffbda",
+    "conclusion": "success",
+    "suitesPassed": 52,
+    "testRows": 52,
+    "testSummary": "2026-10-23T17:36:23.2040575Z 100% tests passed out of 52",
+    "compilerWarnings": [],
+    "compilerErrors": [],
+    "toolingWarnings": [
+      "2026-10-23T17:32:33.1877680Z CMake Warning (deprecated) at build/_deps/minhook-src/CMakeLists.txt:27 (cmake_minimum_required):",
+      "2026-10-23T17:36:24.5370956Z (node:8204) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.",
+      "2026-10-23T17:36:31.0392555Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/"
+    ],
+    "newTest": [
+      "2026-10-23T17:34:02.8935435Z   PlayerPresentationFeature.cpp",
+      "2026-10-23T17:34:05.7585180Z   PlayerPresentationTests.cpp",
+      "2026-10-23T17:34:17.1670407Z   PlayerPresentationTests.vcxproj -> D:\\a\\Darksiders-Genesis-Enhanced-PC-Mod\\Darksiders-Genesis-Enhanced-PC-Mod\\build\\Release\\PlayerPresentationTests.exe",
+      "2026-10-23T17:36:18.6625444Z       Start  1: PlayerPresentation",
+      "2026-10-23T17:36:18.7935769Z  1/52 Test  #1: PlayerPresentation ...............   Passed    0.13 sec"
+    ]
+  },
+  "checks": {
+    "base": "46aff8644d065f0a25ee31895fa131e762b1bef5",
+    "branch": "debug",
+    "oldArchivesUnchanged": 150,
+    "oldIniKeysUnchanged": 166,
+    "totalIniKeys": 168,
+    "hotkeyIdsUnchanged": true,
+    "unchangedSourceFiles": 115,
+    "newNativeSignaturesVerified": {
+      "0x7283a0": "40534883ec20",
+      "0x7152c0": "40574883ec60",
+      "0x705560": "40574883ec40",
+      "0x1acaa40": "40534883ec20488b01"
+    },
+    "executableSha256": "9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54",
+    "leviathanBeforeSharedDetour": true,
+    "meleeEffectsUnchanged": true,
+    "foreignWrathUnchanged": true,
+    "gameplayValidated": false
+  },
+  "package": {
+    "sourceCommit": "d0deeb03baffb8d18ae0d129adff31bdb09ffbda",
+    "archiveCommit": "9c04d2514c82a6dad6961ea05686975cb3dde6d9",
+    "name": "DarksidersGenesis_V1.86_WAR_ARM_RETICLE_LEVIATHAN_TEST.zip",
+    "size": 904868,
+    "sha256": "7D9D509CCF08FF2E39B8CB37AB1EA7C32EA5CCAB3F6B7AF90B6C48BAAAD4009F",
+    "files": {
+      "DarksidersGenesisMod.asi": {
+        "size": 1643008,
+        "sha256": "23B7C932FBDA65EA901C8DD77AF856F5E62C725B33E4F87FCB890643E65D8127"
+      },
+      "DarksidersGenesisMod.ini": {
+        "size": 4691,
+        "sha256": "99E3EECAD438A6735DD4389D544535FF798BB7F9E9EF0E4E243BC40CC4F13524"
+      },
+      "dxgi.dll": {
+        "size": 155136,
+        "sha256": "F811808541D3946C409DBA8797910ABE0F61CDF4430F7F7B3AE3AD956E0AA866"
+      },
+      "README.md": {
+        "size": 38056,
+        "sha256": "3561578AD02E36ACC28D11F0C1CA6906B02948B9EC2BD610065AA976CC28AA12"
+      }
+    },
+    "oldArchivesUnchanged": 150,
+    "iniKeys": 168,
+    "hotkeyIdsUnchanged": true,
+    "amd64": true,
+    "crcValid": true,
+    "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/9c04d2514c82a6dad6961ea05686975cb3dde6d9/downloads/DarksidersGenesis_V1.86_WAR_ARM_RETICLE_LEVIATHAN_TEST.zip",
+    "httpStatus": 200,
+    "gameplayValidated": false
+  },
+  "validatedBladeFxRetained": true,
+  "newPresentationGameplayValidated": false,
+  "stoneskinVisualBugOpen": true,
+  "fiveOtherForeignTransfersDelivered": false
+}
