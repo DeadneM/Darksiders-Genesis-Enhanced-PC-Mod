@@ -1,5 +1,7 @@
 # V1.86 — reçu du lot cumulatif contrôlé
 
+**Retour utilisateur du 23 octobre 2026, après livraison : bras de War et correction Léviathan VALIDÉS dans les essais rapportés.** Leurs implémentations sont conservées. Cette confirmation ne valide ni le réticule V1.87 encore en essai, ni les autres cas/coop. Le réticule V1.86 reste rejeté pour son crash documenté ; le texte de livraison ci-dessous décrit l'état connu au moment de la livraison.
+
 23 octobre 2026. Branche **debug** uniquement. Base V1.85 `46aff8644d065f0a25ee31895fa131e762b1bef5` ; effets des épées masquées maintenant **VALIDÉS par l'utilisateur dans l'essai rapporté**, code conservé. Bras OFF V1.81 et suivi des exécutions V1.82 conservés. **CONSTRUITE / CONTRÔLÉE / EXPÉRIMENTALE** pour les nouveautés, aucun résultat visuel supposé.
 
 - Sources compilées : `d0deeb03baffb8d18ae0d129adff31bdb09ffbda` ; archive : `9c04d2514c82a6dad6961ea05686975cb3dde6d9`.

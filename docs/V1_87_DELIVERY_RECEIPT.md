@@ -1,5 +1,7 @@
 # V1.87 — reçu du correctif de crash réticule
 
+**Retour utilisateur du 23 octobre 2026, après livraison : bras de War et correction Léviathan VALIDÉS dans les essais rapportés.** Leurs implémentations sont conservées. Cette confirmation ne valide ni le réticule V1.87 encore en essai, ni les autres cas/coop. Le réticule V1.86 reste rejeté pour son crash documenté ; le texte de livraison ci-dessous décrit l'état connu au moment de la livraison.
+
 23 octobre 2026. Base cumulative V1.86 `7763e99de8817362e69099cc339287ea07732902` ; son interception de réticule est **REJETÉE pour crash**. Nouveautés War/Léviathan conservées sans validation supplémentaire supposée ; acquis des effets de lame V1.85, exécutions V1.82 et bras OFF V1.81 inchangés. Branche debug seulement, installation manuelle, garder son INI.
 
 - Sources compilées : `03398bd4e736a2c01ee96dd764009fb9d67417ea` ; archive : `64b612f3341a1abebf3dc2961de1580a73904089`.
