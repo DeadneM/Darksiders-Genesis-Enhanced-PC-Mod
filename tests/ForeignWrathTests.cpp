@@ -79,6 +79,7 @@ void Run(){
     std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(nameChunks));
     for(unsigned i=0;i<24;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
     Fresh();uintptr_t klass=0;const auto actorBefore=std::to_array(f.actor);
+    Check(GeyserActor(0)==&g_geyserActors[0]&&GeyserActor(1)==&g_geyserActors[1]&&!GeyserActor(-1)&&!GeyserActor(2),"bounded owner marker accepts only local players 0/1 and no invalid index");
     Check(Prepare(f.actor,klass)&&klass==reinterpret_cast<uintptr_t>(f.stone),"ready native class and own compatible animation enable foreign slot");
     Check(!std::memcmp(f.actor,actorBefore.data(),actorBefore.size()),"preparation writes no actor, input or resource bytes");
     uintptr_t result=0;bool unlocked=false,affordable=true;nested=true;

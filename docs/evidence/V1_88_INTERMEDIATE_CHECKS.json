@@ -1,0 +1,77 @@
+{
+  "runId": 40008159794,
+  "jobId": 120601299853,
+  "sourceCommit": "31e2f177b5929793ed6c88a353a2385af9490b1b",
+  "conclusion": "success",
+  "suitesPassed": 53,
+  "testRows": 53,
+  "testSummary": "2026-10-23T19:04:55.3258187Z 100% tests passed out of 53",
+  "compilerWarnings": [
+    "2026-10-23T19:03:54.8313177Z D:\\a\\Darksiders-Genesis-Enhanced-PC-Mod\\Darksiders-Genesis-Enhanced-PC-Mod\\src\\ForeignWrathFeature.cpp(133): warning C6386: Buffer overrun while writing to 'g_geyserActors':  the writable size is '32' bytes, but '-16' bytes might be written.: Lines: 134, 128, 129, 133 [D:\\a\\Darksiders-Genesis-Enhanced-PC-Mod\\Darksiders-Genesis-Enhanced-PC-Mod\\build\\DarksidersGenesisMod.vcxproj]"
+  ],
+  "compilerErrors": [],
+  "toolingWarnings": [
+    "2026-10-23T19:02:26.6802470Z This warning is for project developers.  Use -Wno-author or -Wno-deprecated",
+    "2026-10-23T19:03:43.7344027Z   WarningPresentationTests.cpp",
+    "2026-10-23T19:03:44.9239360Z   WarningPresentationTests.vcxproj -> D:\\a\\Darksiders-Genesis-Enhanced-PC-Mod\\Darksiders-Genesis-Enhanced-PC-Mod\\build\\Release\\WarningPresentationTests.exe",
+    "2026-10-23T19:04:41.5952777Z   SkipWarningFeature.cpp",
+    "2026-10-23T19:04:53.7956854Z       Start 45: WarningPresentation",
+    "2026-10-23T19:04:53.8046528Z 45/53 Test #45: WarningPresentation ..............   Passed    0.01 sec",
+    "2026-10-23T19:04:56.3589715Z (node:7252) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.",
+    "2026-10-23T19:04:56.3590188Z (Use `node --trace-deprecation ...` to show where the warning was created)",
+    "2026-10-23T19:04:56.7619053Z (node:7252) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.",
+    "2026-10-23T19:05:03.2732278Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/"
+  ],
+  "foreignTests": [
+    "2026-10-23T19:04:52.4299348Z  2/53 Test  #2: ForeignMontage ...................   Passed    0.02 sec",
+    "2026-10-23T19:04:52.4488299Z  3/53 Test  #3: ForeignWrath .....................   Passed    0.02 sec",
+    "2026-10-23T19:04:52.5655519Z  7/53 Test  #7: WrathSlots .......................   Passed    0.06 sec"
+  ],
+  "earlierCheck": {
+    "source": "f1994aa",
+    "runId": 40007454113,
+    "status": "rejected",
+    "published": false,
+    "testFixtureCorrected": true,
+    "explicitOwnerBoundAdded": true
+  },
+  "package": {
+    "sourceCommit": "31e2f177b5929793ed6c88a353a2385af9490b1b",
+    "archiveCommit": "4309438f8a87d95ef33ab14fe0a4bdc0f4dda245",
+    "name": "DarksidersGenesis_V1.88_STRIFE_GEYSER_TRANSFER_TEST.zip",
+    "size": 916481,
+    "sha256": "326F9D69FB56F4FE737E34F322C80D603DD2ABC1E5C42B4FC98A1F4804CECF47",
+    "files": {
+      "DarksidersGenesisMod.asi": {
+        "size": 1673728,
+        "sha256": "0942A318DA4C201DB3AF285E0E2C82DCCD39356110B82FE7FE4372025201256A"
+      },
+      "DarksidersGenesisMod.ini": {
+        "size": 4691,
+        "sha256": "99E3EECAD438A6735DD4389D544535FF798BB7F9E9EF0E4E243BC40CC4F13524"
+      },
+      "dxgi.dll": {
+        "size": 155136,
+        "sha256": "C2E2A7A40E4EF38C9CFA170EFB9F4BCD940EBBB49EE46512ACFFC74235716FC3"
+      },
+      "README.md": {
+        "size": 42945,
+        "sha256": "E4FAA3ECE5D2F10E918CE66BCF1CB85FCB8BEEB792B3A49065A50D0362C1C89B"
+      }
+    },
+    "oldArchivesUnchanged": 152,
+    "iniKeys": 168,
+    "hotkeyIdsUnchanged": true,
+    "amd64": true,
+    "crcValid": true,
+    "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/4309438f8a87d95ef33ab14fe0a4bdc0f4dda245/downloads/DarksidersGenesis_V1.88_STRIFE_GEYSER_TRANSFER_TEST.zip",
+    "httpStatus": 200,
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/main": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "gameplayValidated": false
+  },
+  "supersededBy": "V1.89 pending clean rebuild"
+}

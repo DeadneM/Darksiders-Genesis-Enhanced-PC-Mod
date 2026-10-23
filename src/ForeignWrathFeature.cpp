@@ -25,6 +25,11 @@ struct Override {void* actor=nullptr;uintptr_t abilityClass=0;Name id{};};
 thread_local const Override* g_override=nullptr;
 template<class T> bool Read(uintptr_t p,size_t offset,T& value){native_objects::MemoryReader r;return r.Read(p,offset,value);}
 template<size_t N> bool Is(uintptr_t object,const char (&name)[N]){return native_objects::NameIs(g_base,object,name);}
+native_objects::Identity* GeyserActor(int index){
+    if(index==0)return &g_geyserActors[0];
+    if(index==1)return &g_geyserActors[1];
+    return nullptr;
+}
 bool Alive(const native_objects::Identity& id){native_objects::MemoryReader r;return native_objects::Alive(r,g_base,id);}
 bool StoneClass(uintptr_t object){
     uintptr_t kind=0,package=0;
@@ -113,7 +118,7 @@ bool ForeignLaunch(void* live,local_players::Context& c){
        !Read(cls,0x20,package)||!Is(package,"/Game/Blueprints/Abilities/WarMelee/MayhemAbility_War_LaunchAttack_Blueprint")||
        !Read(ability,0x48,actor)||!Read(ability,0x1B0,character)||actor!=character||!Read(ability,0xD8,state)||(state!=1&&state!=2)||
        !OwnedStrife(reinterpret_cast<void*>(actor),c))return false;
-    const auto& recent=g_geyserActors[c.index];return recent.address==actor&&Alive(recent);
+    const auto* recent=GeyserActor(c.index);return recent&&recent->address==actor&&Alive(*recent);
 }
 bool Duration(void* nativeMontage,float& duration){
     const auto montage=reinterpret_cast<uintptr_t>(nativeMontage);uintptr_t cls=0,package=0;float length=0,scale=0;
@@ -130,12 +135,12 @@ void HookPlay(void* ability,void* montage,float rate,Name section){
     // Geyser can request War's rising-slash companion on interruption. That
     // foreign melee chain has no Strife adapter: finish its unplayed cast safely.
     // War's own rising slash and every unrelated actor remain native.
-    if(ForeignLaunch(ability,c)){g_geyserActors[c.index]={};g_finish(ability,0);return;}
+    if(ForeignLaunch(ability,c)){if(auto* recent=GeyserActor(c.index))*recent={};g_finish(ability,0);return;}
     const int choice=ForeignCast(ability,c);
     if(!choice){g_play(ability,montage,rate,section);return;}
     if(choice==4){
-        const auto player=static_cast<unsigned>(c.index);
-        if(player>=2){g_finish(ability,0);return;}
+        auto* recent=GeyserActor(c.index);
+        if(!recent){g_finish(ability,0);return;}
         Animation source{};native_objects::Identity actor{};void* replacement=nullptr;bool played=false;
         if(!g_geyserFailed&&std::isfinite(rate)&&rate>0&&rate<=10&&!section.index&&!section.number&&
            Source(c.character,source)&&native_objects::CaptureLive(g_base,reinterpret_cast<void*>(c.character),actor))
@@ -144,7 +149,7 @@ void HookPlay(void* ability,void* montage,float rate,Name section){
             g_play(ability,replacement,rate,section);uintptr_t instance=0;
             played=Read(reinterpret_cast<uintptr_t>(ability),0x1D8,instance)&&instance&&g_playing(reinterpret_cast<void*>(instance));
         }
-        if(played)g_geyserActors[player]=actor;
+        if(played)*recent=actor;
         else {g_geyserFailed=true;g_finish(ability,0);}
         if(g_log&&++g_events<=12)g_log(played?"Foreign Wrath V1.88 Geyser: native SpawnBlast notify on private compatible montage; native cost/timing/finish retained; EXPERIMENTAL":
             "Foreign Wrath V1.88 Geyser contract unavailable; cast finished and further Geyser requests stopped for this session");
@@ -206,7 +211,7 @@ void Observe(const local_players::Context& owner){
     if(!wanted||owner.index<0||owner.index>1||!owner.localPlayer||!owner.world||owner.kind!=local_players::PoseKind::Foot)return;
     if(g_world!=owner.world){g_world=owner.world;g_cursor=0;g_count=0;g_complete=false;}
     if(g_requestGeyser&&!g_searchedGeyser){g_cursor=0;g_complete=false;g_searchedGeyser=true;}
-    if(g_geyserActors[owner.index].address&&g_geyserActors[owner.index].address!=owner.character)g_geyserActors[owner.index]={};
+    if(auto* recent=GeyserActor(owner.index);recent&&recent->address&&recent->address!=owner.character)*recent={};
     const auto now=GetTickCount64();if(now>=g_scanTick&&now-g_scanTick<15)return;g_scanTick=now;
     uintptr_t cls=0,kind=0;if(!Read(owner.character,0x10,cls)||!Read(cls,0x10,kind)||!Is(kind,"BlueprintGeneratedClass"))return;
     Scan(kind);
