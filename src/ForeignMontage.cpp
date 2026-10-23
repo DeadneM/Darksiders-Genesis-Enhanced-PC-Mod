@@ -1,0 +1,137 @@
+#include "ForeignMontage.h"
+#include "NativeObjectName.h"
+#include "NativeTpsFeature.h"
+#include <array>
+#include <atomic>
+#include <cmath>
+
+namespace dg::foreign_montage {
+namespace {
+struct Name {int index=0,number=0;};
+struct Array {uintptr_t data=0;int count=0,capacity=0;};
+struct Segment {uintptr_t sequence=0;float start=0,first=0,last=0,rate=0;int loops=0;unsigned char valid=0,pad[3]{};};
+using Event=std::array<unsigned char,184>;
+using Construct=void*(*)(void*,void*,Name,uint32_t,uint32_t,void*,bool,void*,bool);
+using Package=void*(*)();
+using Skeleton=void(*)(void*,void*);
+Construct g_construct=nullptr;Package g_package=nullptr;Skeleton g_skeleton=nullptr;
+uintptr_t g_base=0;std::atomic_bool g_ready{false};
+static_assert(sizeof(Name)==8&&sizeof(Array)==16&&sizeof(Segment)==32);
+template<class T> bool Read(uintptr_t p,size_t offset,T& value){native_objects::MemoryReader r;return r.Read(p,offset,value);}
+template<size_t N> bool Is(uintptr_t p,const char (&text)[N]){return native_objects::NameIs(g_base,p,text);}
+bool Writable(uintptr_t p,size_t bytes){
+    MEMORY_BASIC_INFORMATION m{};
+    if(!p||!VirtualQuery(reinterpret_cast<void*>(p),&m,sizeof(m))||m.State!=MEM_COMMIT||
+       (m.Protect&(PAGE_GUARD|PAGE_NOACCESS))||((m.Protect&0xFF)!=PAGE_READWRITE&&(m.Protect&0xFF)!=PAGE_EXECUTE_READWRITE))return false;
+    const auto offset=p-reinterpret_cast<uintptr_t>(m.BaseAddress);
+    return offset<=m.RegionSize&&bytes<=m.RegionSize-offset;
+}
+template<class T> bool Store(uintptr_t p,size_t offset,const T& value){
+    if(p>UINTPTR_MAX-offset||!Writable(p+offset,sizeof(value)))return false;
+    std::memcpy(reinterpret_cast<void*>(p+offset),&value,sizeof(value));return true;
+}
+bool List(uintptr_t p,size_t offset,Array& a,int max){
+    return Read(p,offset,a)&&a.count>=0&&a.count<=a.capacity&&a.capacity<=max&&(a.data||!a.count);
+}
+bool Empty(uintptr_t p,size_t offset){Array a{};return List(p,offset,a,128)&&!a.count;}
+bool Idle(const Source& s,float& length){
+    uintptr_t cls=0,skeleton=0;float rate=0;std::array<unsigned char,16> guid{};
+    return Read(s.sequence,0x10,cls)&&Is(cls,"AnimSequence")&&Is(s.sequence,"Strife_Idle")&&
+        Read(s.sequence,0x38,skeleton)&&skeleton==s.skeleton&&Read(s.skeleton,0x10,cls)&&Is(cls,"Skeleton")&&Read(s.skeleton,0x160,guid)&&
+        Read(s.sequence,0x90,length)&&std::isfinite(length)&&length>.1f&&length<10&&
+        Read(s.sequence,0x94,rate)&&rate==1&&Empty(s.sequence,0x80)&&
+        native_objects::NameValueIs(g_base,s.slotIndex,s.slotNumber,"TPS");
+}
+bool Original(uintptr_t p){
+    uintptr_t package=0;
+    return Read(p,0x20,package)&&
+        ((Is(p,"War_Wrath_BladeGeyser_Montage")&&Is(package,"/Game/Characters/Heroes/Hero_War/Animation/War_Wrath_BladeGeyser_Montage"))||
+         (Is(p,"War_Wrath_BladeGeyser_Level1_Montage")&&Is(package,"/Game/Characters/Heroes/Hero_War/Animation/War_Wrath_BladeGeyser_Level1_Montage"))||
+         (Is(p,"War_Wrath_BladeGeyser_Level2_Montage")&&Is(package,"/Game/Characters/Heroes/Hero_War/Animation/War_Wrath_BladeGeyser_Level2_Montage"))||
+         (Is(p,"War_Wrath_BladeGeyser_Level3_Montage")&&Is(package,"/Game/Characters/Heroes/Hero_War/Animation/War_Wrath_BladeGeyser_Level3_Montage")));
+}
+struct Layout {uintptr_t cls=0;Array tracks{},segments{},events{},sections{};Segment segment{};float length=0;};
+bool Shape(uintptr_t p,Layout& out){
+    Name slot{};float rate=0,sectionTime=0;uintptr_t cls=0,package=0,skeleton=0,sequenceSkeleton=0;
+    return Read(p,0x10,out.cls)&&Is(out.cls,"AnimMontage")&&Read(out.cls,0x10,cls)&&Is(cls,"Class")&&
+        Read(p,0x90,out.length)&&std::isfinite(out.length)&&std::fabs(out.length-2.3666665554f)<.0001f&&
+        Read(p,0x94,rate)&&rate==1&&List(p,0x158,out.tracks,4)&&out.tracks.count==1&&
+        Read(out.tracks.data,0,slot)&&native_objects::NameValueIs(g_base,slot.index,slot.number,"TPS")&&
+        List(out.tracks.data,8,out.segments,8)&&out.segments.count==1&&Read(out.segments.data,0,out.segment)&&
+        Read(out.segment.sequence,0x10,cls)&&Is(cls,"AnimSequence")&&Is(out.segment.sequence,"War_Wrath_BladeGeyser")&&
+        Read(out.segment.sequence,0x20,package)&&Is(package,"/Game/Characters/Heroes/Hero_War/Animation/War_Wrath_BladeGeyser")&&
+        Read(p,0x38,skeleton)&&Read(out.segment.sequence,0x38,sequenceSkeleton)&&skeleton==sequenceSkeleton&&Is(skeleton,"War_Mesh_Skeleton")&&
+        out.segment.start==0&&out.segment.first==0&&out.segment.last==out.length&&out.segment.rate==1&&out.segment.loops==1&&out.segment.valid==1&&
+        List(p,0x80,out.events,128)&&out.events.count>=1&&List(p,0x148,out.sections,8)&&out.sections.count==1&&
+        Read(out.sections.data,0x24,sectionTime)&&sectionTime==0&&
+        Empty(p,0x168)&&Empty(p,0x180)&&Empty(p,0x190)&&Empty(p,0x128)&&Empty(p,0x138);
+}
+bool SpawnEvent(uintptr_t sequence,Event& event){
+    Array a{};if(!List(sequence,0x80,a,64))return false;
+    bool found=false;
+    for(int i=0;i<a.count;++i){
+        const auto at=a.data+size_t(i)*event.size();uintptr_t notify=0,cls=0,owner=0,vt=0,entry=0,state=0;Name function{};
+        if(!Read(at,0x48,notify)||!Read(notify,0x10,cls)||!Is(cls,"AnimNotify_CallAbilityFunction")||
+           !Read(notify,0x38,function)||!native_objects::NameValueIs(g_base,function.index,function.number,"SpawnBlast"))continue;
+        unsigned char method=255,cached=255,tickType=255;float time=0,duration=0;
+        if(found||!Read(notify,0x20,owner)||owner!=sequence||!Read(notify,0,vt)||!Read(vt,0x240,entry)||entry!=g_base+0x5A7C60||
+           !Read(at,0x50,state)||state||!Read(at,0x58,duration)||duration!=0||
+           !Read(at,0x18,method)||method||!Read(at,0x19,cached)||cached||!Read(at,0x91,tickType)||tickType||
+           !Read(at,0x24,time)||!std::isfinite(time)||time<=0||time>=2.366667f||!Read(at,0,event))return false;
+        found=true;
+    }
+    return found;
+}
+bool Link(uintptr_t element,uintptr_t montage,uintptr_t sequence,float time,float length){
+    const int zero=0;const unsigned char absolute=0;const float start=0;
+    return Store(element,8,montage)&&Store(element,0x10,zero)&&Store(element,0x14,zero)&&
+        Store(element,0x18,absolute)&&Store(element,0x19,absolute)&&Store(element,0x1C,start)&&
+        Store(element,0x20,length)&&Store(element,0x24,time)&&Store(element,0x28,sequence);
+}
+}
+void Initialize(LogFn log,bool exact){
+    if(!exact)return;g_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    constexpr unsigned char construct[]={0x40,0x55,0x53,0x56,0x57,0x41,0x54,0x41,0x56,0x41,0x57,0x48,0x8D,0xAC,0x24,0x40};
+    constexpr unsigned char package[]={0x48,0x8B,0x05,0x59,0xCD,0xED,0x02,0xC3};
+    constexpr unsigned char skeleton[]={0x48,0x85,0xD2,0x74,0x15,0x48,0x3B,0x51,0x38,0x74,0x0F,0x48,0x89,0x51,0x38,0x0F};
+    if(std::memcmp(reinterpret_cast<void*>(g_base+0xAC57A0),construct,sizeof(construct))||
+       std::memcmp(reinterpret_cast<void*>(g_base+0xA7B1B0),package,sizeof(package))||
+       std::memcmp(reinterpret_cast<void*>(g_base+0x16C7130),skeleton,sizeof(skeleton)))return;
+    g_construct=reinterpret_cast<Construct>(g_base+0xAC57A0);g_package=reinterpret_cast<Package>(g_base+0xA7B1B0);
+    g_skeleton=reinterpret_cast<Skeleton>(g_base+0x16C7130);g_ready=true;
+    if(log)log("Foreign montage V1.88 READY: exact native NewObject template ABI, private arrays only; no timer or additional hook; EXPERIMENTAL");
+}
+bool Ready(){return g_ready.load();}
+bool CanBuild(const Source& source){
+    float length=0;uintptr_t cls=0;
+    if(!g_ready||!g_construct||!g_package||!g_skeleton||!native_tps::OnGameThread()||!Idle(source,length))return false;
+    const auto package=reinterpret_cast<uintptr_t>(g_package());
+    return Read(package,0x10,cls)&&Is(cls,"Package")&&Is(package,"/Engine/Transient");
+}
+void* Geyser(uintptr_t original,const Source& source){
+    Layout before{},after{};Event event{};float length=0,time=0;
+    if(!CanBuild(source)||!Idle(source,length)||!Original(original)||!Shape(original,before)||!SpawnEvent(before.segment.sequence,event))return nullptr;
+    std::memcpy(&time,event.data()+0x24,sizeof(time));
+    if(time>=before.length)return nullptr;
+    const auto outer=reinterpret_cast<uintptr_t>(g_package());
+    auto* created=g_construct(reinterpret_cast<void*>(before.cls),reinterpret_cast<void*>(outer),{},0x40u,0,reinterpret_cast<void*>(original),false,nullptr,false);
+    const auto montage=reinterpret_cast<uintptr_t>(created);uintptr_t actualOuter=0;uint32_t flags=0;
+    if(!montage||montage==original||!Read(montage,8,flags)||(flags&0x30u)||!(flags&0x40u)||
+       !Read(montage,0x20,actualOuter)||actualOuter!=outer||!Shape(montage,after)||after.cls!=before.cls||after.length!=before.length||
+       after.events.count!=before.events.count||after.events.data==before.events.data||after.tracks.data==before.tracks.data||
+       after.segments.data==before.segments.data||after.sections.data==before.sections.data||
+       !Writable(after.events.data,event.size())||!Writable(after.segments.data,sizeof(Segment))||
+       !Writable(after.sections.data,88)||!Writable(montage+0x80,sizeof(Array)))return nullptr;
+    // All storage is native-owned and distinct from the source template.
+    // Retain one exact native callback, on the montage's original timeline.
+    Segment segment=after.segment;segment.sequence=source.sequence;segment.last=length;segment.rate=length/after.length;
+    if(!std::isfinite(segment.rate)||segment.rate<=.01f||segment.rate>100)return nullptr;
+    g_skeleton(created,reinterpret_cast<void*>(source.skeleton));
+    const float zero=0;const int one=1;
+    if(!Store(after.segments.data,0,segment)||!Store(after.events.data,0,event)||
+       !Link(after.events.data,montage,source.sequence,time,after.length)||
+       !Link(after.events.data+0x60,montage,source.sequence,time,after.length)||
+       !Link(after.sections.data,montage,source.sequence,zero,after.length)||!Store(montage,0x88,one))return nullptr;
+    return created;
+}
+}

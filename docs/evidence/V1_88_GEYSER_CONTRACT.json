@@ -1,0 +1,48 @@
+{
+  "base": "c20319f93413f849a41b10fdfd96f7842a172ac6",
+  "observationsReadOnly": true,
+  "exactExecutableSha256": "9F4702024DF5EEA1D51DF7745B0AD1EA95B97009982F73DDC1218C53DFF33D54",
+  "contracts": {
+    "nativeGeyserSequenceSeconds": 2.3666665554,
+    "spawnBlastSeconds": 0.48806673288345337,
+    "notify": "AnimNotify_CallAbilityFunction:SpawnBlast",
+    "notifyFunctionRva": "5A7C60",
+    "notifyEventBytes": 184,
+    "constructorRva": "AC57A0",
+    "constructorArguments": 9,
+    "transientPackageGetterRva": "A7B1B0",
+    "setSkeletonRva": "16C7130",
+    "modifiedStorage": "private native-owned clone arrays only",
+    "sourceMontages": [
+      "base",
+      "Level1",
+      "Level2",
+      "Level3"
+    ],
+    "privateAliasesRejected": [
+      "notifies",
+      "tracks",
+      "segments",
+      "sections"
+    ],
+    "extraHooks": 0,
+    "timer": false
+  },
+  "limitations": [
+    "compatible idle pose",
+    "no War rising slash follow-up",
+    "source montage cosmetic notifies not transferred",
+    "assets must already be loaded",
+    "gameplay not yet validated"
+  ],
+  "userValidatedPreserved": [
+    "V1.87 reticle crash fix in reported test",
+    "War arm",
+    "Leviathan",
+    "bare blade effects",
+    "OFF arms",
+    "execution camera"
+  ],
+  "stoneskinVisual": "user unsure original crystal existed; baseline comparison open, no visual change",
+  "gameplayValidated": false
+}

@@ -65,7 +65,7 @@ bool Map(void* liveActor,const Name& original,Name& selected,uintptr_t& foreignC
     if(Foreign(family,choice)){
         // The original slot's own unlock remains required for a foreign
         // power. The selected class supplies its cost to the native caller.
-        selected=original;blocked=!foreign_wrath::Prepare(liveActor,foreignClass);return true;
+        selected=original;blocked=!foreign_wrath::Prepare(liveActor,foreignClass,choice);return true;
     }
     const int number=NativeNumber(family,choice);
     if(!number||number==original.number)return false;
@@ -103,10 +103,10 @@ void Initialize(LogFn log,bool exactExecutable){
     if(MH_EnableHook(target)!=MH_OK){MH_RemoveHook(target);g_original=nullptr;return;}
     g_ready.store(true,std::memory_order_release);
     foreign_wrath::Initialize(log,exactExecutable);
-    if(log)log("Wrath slots V1.83 READY: native family mapping retained; Stoneskin adapter on Strife when ready; no input, resource-ID, component or save writes; EXPERIMENTAL");
+    if(log)log("Wrath slots V1.88 READY: native family mapping retained; Stoneskin/Geyser on Strife when individually ready; no input, resource-ID, component or save writes; EXPERIMENTAL");
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}
-int ForeignStatus(){return foreign_wrath::Status();}
+int ForeignStatus(int choice){return foreign_wrath::Status(choice);}
 void OnLivePlayer(const local_players::Context& owner){foreign_wrath::Observe(owner);}
 void Shutdown(){g_ready.store(false,std::memory_order_release);foreign_wrath::Shutdown();}
 }

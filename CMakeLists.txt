@@ -16,6 +16,10 @@ if(BUILD_TESTING)
   target_compile_definitions(PlayerPresentationTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
   target_link_libraries(PlayerPresentationTests PRIVATE user32)
   add_test(NAME PlayerPresentation COMMAND PlayerPresentationTests)
+  add_executable(ForeignMontageTests tests/ForeignMontageTests.cpp)
+  target_include_directories(ForeignMontageTests PRIVATE tests/stubs src)
+  target_compile_definitions(ForeignMontageTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+  add_test(NAME ForeignMontage COMMAND ForeignMontageTests)
   add_executable(ForeignWrathTests tests/ForeignWrathTests.cpp src/RuntimeSettings.cpp)
   target_include_directories(ForeignWrathTests PRIVATE tests/stubs src)
   target_compile_definitions(ForeignWrathTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
@@ -332,6 +336,7 @@ add_library(DarksidersGenesisMod SHARED
   src/MeleeEffectFeature.cpp
   src/WrathSlotFeature.cpp
   src/ForeignWrathFeature.cpp
+  src/ForeignMontage.cpp
   src/PlayerPresentationFeature.cpp
   src/CosmeticUnlockFeature.cpp
   src/LeviathanVisualFeature.cpp

@@ -8,11 +8,12 @@ using namespace dg::foreign_wrath;
 struct Fixture {
     unsigned char actor[0x1100]{},controller[0x400]{},mesh[0x800]{},anim[0x4D00]{},blend[0xE0]{},samples[72]{},sequence[0x100]{},skeleton[0x80]{};
     unsigned char stone[0x120]{},cdo[0x240]{},ability[0x240]{},nativeMontage[0x180]{},replacement[0x180]{},instance[0x50]{};
+    unsigned char geyser[0x120]{},geyserCdo[0x240]{},geyserPackage[0x80]{},launch[0x80]{},launchPackage[0x80]{};
     unsigned char classes[6][0x80]{},stonePackage[0x80]{},montagePackage[0x80]{},items[640*24]{};
 } f;
 unsigned char entries[24][160]{};uintptr_t names[24]{},nameChunks[1]{reinterpret_cast<uintptr_t>(names)},objectChunks[1]{};
 dg::local_players::Context owner{};bool gameThread=true,local=true,createOK=true,canPlay=true,nested=false,throwResolve=false;
-unsigned getterCalls=0,resolveCalls=0,playCalls=0,finishCalls=0,createCalls=0;unsigned char finishCause=255;
+unsigned getterCalls=0,resolveCalls=0,playCalls=0,finishCalls=0,createCalls=0,geyserBuilds=0;unsigned char finishCause=255;bool helperReady=true;
 void* playedAbility=nullptr;void* playedMontage=nullptr;float playedRate=0;Name playedSection{};
 struct Creation {void* sequence=nullptr;Name slot{};float in=0,out=0,rate=0;int loops=0;float trigger=0,start=0;} creation;
 template<class T>void Put(void* p,size_t o,T value){std::memcpy(static_cast<unsigned char*>(p)+o,&value,sizeof(value));}
@@ -42,7 +43,8 @@ void FinishNative(void*,unsigned char cause){++finishCalls;finishCause=cause;}
 bool PlayingNative(void* instance){Check(instance==f.instance,"native montage instance is checked");return canPlay;}
 void Fresh(){
     f={};owner={};gameThread=local=createOK=canPlay=true;nested=throwResolve=false;
-    getterCalls=resolveCalls=playCalls=finishCalls=createCalls=0;finishCause=255;creation={};
+    getterCalls=resolveCalls=playCalls=finishCalls=createCalls=geyserBuilds=0;finishCause=255;creation={};helperReady=true;
+    g_geyser={};g_geyserActors[0]=g_geyserActors[1]={};g_requestGeyser=g_geyserReady=g_geyserFailed=false;g_searchedGeyser=false;
     g_ready=true;g_assetsReady=true;g_requested=false;g_override=nullptr;g_getter=GetterNative;g_play=PlayNative;g_create=CreateNative;g_finish=FinishNative;g_playing=PlayingNative;g_log=nullptr;
     g_cursor=g_count=0;g_complete=false;g_scanTick=0;g_world=0;
     owner.index=0;owner.localPlayer=123;owner.world=456;owner.controller=reinterpret_cast<uintptr_t>(f.controller);owner.character=owner.pawn=reinterpret_cast<uintptr_t>(f.actor);
@@ -64,7 +66,12 @@ void Fresh(){
     Label(f.montagePackage,13,"/Game/Characters/Heroes/Hero_War/Animation/War_Atk_Stoneskin_Montage");Put(f.nativeMontage,0x90,1.833333f);Put(f.nativeMontage,0x94,1.0f);
     Put(f.replacement,0x10,reinterpret_cast<uintptr_t>(f.classes[4]));Put(f.replacement,0x38,reinterpret_cast<uintptr_t>(f.skeleton));Put(f.replacement,0x90,2.666667f);
     objectChunks[0]=reinterpret_cast<uintptr_t>(f.items);Put(reinterpret_cast<void*>(g_base),0x3959680,reinterpret_cast<uintptr_t>(objectChunks));Put(reinterpret_cast<void*>(g_base),0x3959694,640);
-    Register(1,f.stone,41);g_stone={reinterpret_cast<uintptr_t>(f.stone),1,41};
+    Register(1,f.stone,41);g_stone={reinterpret_cast<uintptr_t>(f.stone),1,41};Register(2,f.actor,42);
+    Put(f.geyser,0x10,reinterpret_cast<uintptr_t>(f.classes[5]));Label(f.geyser,14,"MayhemAbility_Wrath_BladeGeyser_Blueprint_C");
+    Put(f.geyser,0x20,reinterpret_cast<uintptr_t>(f.geyserPackage));Label(f.geyserPackage,15,"/Game/Blueprints/Abilities/MayhemAbility_Wrath_BladeGeyser_Blueprint");
+    Put(f.geyser,0xF8,reinterpret_cast<uintptr_t>(f.geyserCdo));Put(f.geyserCdo,0x10,reinterpret_cast<uintptr_t>(f.geyser));Register(3,f.geyser,43);
+    Label(f.launch,16,"MayhemAbility_War_LaunchAttack_Blueprint_C");Put(f.launch,0x20,reinterpret_cast<uintptr_t>(f.launchPackage));
+    Label(f.launchPackage,17,"/Game/Blueprints/Abilities/WarMelee/MayhemAbility_War_LaunchAttack_Blueprint");
     for(auto& choice:dg::runtime::Get().wrathSlots[0])choice=0;
 }
 void Cast(){HookPlay(f.ability,f.nativeMontage,1.0f,{0,0});}
@@ -87,15 +94,14 @@ void Run(){
     Fresh();Put(f.nativeMontage,0x94,2.0f);Cast();Check(std::abs(2.666667f/playedRate-.9166665f)<.00001f,"native source montage rate scale is preserved in effective cast duration");
     Fresh();owner.index=1;owner.localPlayer=124;Cast();Check(playCalls==1&&playedMontage==f.replacement,"same exact owner contract supports P2 without borrowing P1");
     Fresh();Label(f.nativeMontage,12,"War_Atk_Stoneskin_Molten_Montage");Label(f.montagePackage,13,"/Game/Characters/Heroes/Hero_War/Animation/War_Atk_Stoneskin_Molten_Montage");Cast();Check(playCalls==1&&!finishCalls,"native Molten variant gets its own compatible duration");
-    for(unsigned failure=0;failure<7;++failure){
+    for(unsigned failure=0;failure<6;++failure){
         Fresh();
         if(failure==0)createOK=false;
         if(failure==1)canPlay=false;
         if(failure==2)Put(f.replacement,0x38,uintptr_t(0));
         if(failure==3)Put(f.anim,0x28,uintptr_t(0));
         if(failure==4)Label(f.montagePackage,13,"/Game/Other");
-        if(failure==5)owner.kind=dg::local_players::PoseKind::Horse;
-        if(failure==6)Put(f.nativeMontage,0x90,0.0f);
+        if(failure==5)Put(f.nativeMontage,0x90,0.0f);
         Cast();Check(finishCalls==1&&finishCause==0,"unavailable source/factory/playback ends only exact owned cast through native normal finish");
         Check(!playCalls||playedMontage==f.replacement,"foreign War skeleton is never forwarded on an identified local Strife cast");
     }
@@ -110,8 +116,31 @@ void Run(){
     Observe(owner);Check(g_cursor==512&&!g_assetsReady,"one native observation scans at most 512 table entries");
     g_scanTick=0;Observe(owner);Check(g_assetsReady&&g_stone.index==598,"next bounded slice discovers exact loaded class");
     const int cursor=g_cursor;g_scanTick=0;Observe(owner);Check(g_cursor==cursor,"loaded class is reused without another global scan");
+    Fresh();owner.kind=dg::local_players::PoseKind::Horse;Cast();Check(playedMontage==f.nativeMontage&&!createCalls&&!finishCalls,"horse does not enter foreign on-foot adapter");
+    Fresh();g_geyserReady=true;g_geyser={reinterpret_cast<uintptr_t>(f.geyser),3,43};
+    Check(Prepare(f.actor,klass,4)&&klass==reinterpret_cast<uintptr_t>(f.geyser),"Geyser prepares only its exact owned class and compatible source");
+    Put(f.ability,0x10,klass);HookPlay(f.ability,f.nativeMontage,.75f,{});
+    Check(geyserBuilds==1&&createCalls==0&&playCalls==1&&!finishCalls&&playedMontage==f.replacement&&playedRate==.75f,
+        "Geyser uses private builder and original playback rate, independently from Stoneskin");
+    Check(g_geyserActors[0].address==owner.pawn,"only successful exact actor cast permits unsupported companion cancellation");
+    Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.launch));HookPlay(f.ability,f.nativeMontage,1,{});
+    Check(finishCalls==1&&finishCause==0&&playCalls==1&&!g_geyserActors[0],"unplayed War companion ends through native finish and consumes only its exact owner marker");
+    HookPlay(f.ability,f.nativeMontage,1,{});Check(playCalls==2&&finishCalls==1,"unrelated later companion is not intercepted after marker consumption");
+    Fresh();Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.launch));Cast();Check(playCalls==1&&!finishCalls,"War launch without an owned Geyser cast remains native");
+    Fresh();g_geyserReady=true;g_geyser={reinterpret_cast<uintptr_t>(f.geyser),3,43};Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.geyser));createOK=false;
+    Cast();Check(geyserBuilds==1&&g_geyserFailed&&finishCalls==1&&!playCalls&&Status(4)==0,"failed native clone stops Geyser for the session");
+    Cast();Check(geyserBuilds==1&&finishCalls==2,"stopped Geyser never retries a risky constructor");
+    Check(Status(6)==2&&Prepare(f.actor,klass,6),"Geyser failure leaves independent Stoneskin preparation intact");
+    Fresh();g_geyser={};g_geyserReady=false;g_stone={};g_assetsReady=false;g_requestGeyser=true;g_requested=true;
+    Observe(owner);Check(g_geyserReady&&g_assetsReady&&g_geyser.address==reinterpret_cast<uintptr_t>(f.geyser),"one bounded scan independently discovers both loaded foreign classes");
     Fresh();Shutdown();Cast();Check(playedMontage==f.nativeMontage&&!createCalls&&!finishCalls&&Status()==0,"shutdown restores complete native forwarding");
 }
+}
+namespace dg::foreign_montage {
+void Initialize(LogFn,bool){}
+bool Ready(){return helperReady;}
+bool CanBuild(const Source& s){return helperReady&&s.sequence==reinterpret_cast<uintptr_t>(f.sequence)&&s.skeleton==reinterpret_cast<uintptr_t>(f.skeleton)&&s.slotIndex==9&&s.slotNumber==0;}
+void* Geyser(uintptr_t montage,const Source& s){++geyserBuilds;Check(montage==reinterpret_cast<uintptr_t>(f.nativeMontage)&&CanBuild(s),"private montage receives exact original and own source");return createOK?f.replacement:nullptr;}
 }
 namespace dg::native_tps {bool OnGameThread(){return gameThread;}}
 namespace dg::local_players {bool ResolveActor(void*,Context& c){c=owner;return local;}}

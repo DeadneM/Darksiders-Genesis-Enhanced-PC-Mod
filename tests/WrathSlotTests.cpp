@@ -81,7 +81,9 @@ void Run(){
     const auto failOpen=[](const char* why){Check(Invoke(0,2)==Id(0,2),why);};
     Fresh();dg::runtime::Get().wrathSlots[0][0]=2;Put(resources[0],0x3EC,Id(0,2));failOpen("duplicate native IDs reject the complete mapping");
     Fresh();dg::runtime::Get().wrathSlots[0][0]=2;Put(resources[0],0x3F4,Id(1,4));failOpen("foreign resource family rejects mapping");
-    Fresh();dg::runtime::Get().wrathSlots[0][0]=4;failOpen("foreign power rejects mapping even if runtime config is corrupted");
+    Fresh();dg::runtime::Get().wrathSlots[0][0]=5;failOpen("unsupported foreign power rejects mapping even if runtime config is corrupted");
+    Fresh();dg::runtime::Get().wrathSlots[0][0]=4;foreignReady=true;
+    Check(Invoke(0,2)==Id(0,2)&&foreignResolves==1,"Geyser selects its foreign class while keeping the native semantic slot");
     Fresh();dg::runtime::Get().wrathSlots[0][0]=6;
     {uintptr_t out=123;bool a=true,b=true;Check(HookResolve(actors[0],&out,Id(0,2),&a,&b)==&out&&!out&&!a&&!b&&calls.empty(),
         "requested but unavailable foreign power blocks only its slot instead of firing another power");}
@@ -109,7 +111,7 @@ void Run(){
 void Config(){
     using namespace dg::config;using namespace dg::wrath_slots;
     static_assert(int(Action::Count)==55);
-    static_assert(Supported(0,6)&&Foreign(0,6)&&NativeNumber(0,6)==0&&!Supported(0,4)&&!Supported(1,1));
+    static_assert(Supported(0,6)&&Foreign(0,6)&&NativeNumber(0,6)==0&&Supported(0,4)&&Foreign(0,4)&&!Supported(1,1));
     wchar_t directory[MAX_PATH]{},path[MAX_PATH]{};
     Check(GetTempPathW(MAX_PATH,directory)&&GetTempFileNameW(directory,L"DGW",0,path),"temporary config created");
     Store a;a.SetPath(path);Check(a.Load()&&a.wrathSlots==Choices{},"missing six keys preserve native mapping");
@@ -120,7 +122,7 @@ void Config(){
     for(unsigned f=0;f<2;++f)for(unsigned s=0;s<3;++s)Check(dg::runtime::Get().wrathSlots[f][s].load()==b.wrathSlots[f][s],"six runtime choices published");
     WritePrivateProfileStringW(L"Values",Keys[0][0],L"4",path);WritePrivateProfileStringW(L"Values",Keys[1][2],L"1",path);
     WritePrivateProfileStringW(L"Values",Keys[0][1],L"-1",path);WritePrivateProfileStringW(L"Values",Keys[1][1],L"999",path);
-    Check(b.Load()&&b.wrathSlots[0][0]==0&&b.wrathSlots[0][1]==0&&b.wrathSlots[1][1]==0&&b.wrathSlots[1][2]==0,"foreign, negative and unknown choices fall back to Native");
+    Check(b.Load()&&b.wrathSlots[0][0]==4&&b.wrathSlots[0][1]==0&&b.wrathSlots[1][1]==0&&b.wrathSlots[1][2]==0,"supported Geyser loads while unsupported, negative and unknown choices fall back to Native");
     WritePrivateProfileStringW(L"Values",Keys[0][0],L"6",path);Check(b.Load()&&b.wrathSlots[0][0]==6&&dg::runtime::Get().wrathSlots[0][0].load()==6,"new supported Stoneskin choice survives load without changing key IDs");
     b.ResetDefaults(false);Check(b.wrathSlots==Choices{},"reset restores all native powers");DeleteFileW(path);
 }
@@ -129,11 +131,11 @@ namespace dg::native_tps {bool OnGameThread(){return gameThread;}}
 namespace dg::foreign_wrath {
 void Initialize(LogFn,bool){}
 void Shutdown(){foreignReady=false;}
-int Status(){return foreignReady?2:1;}
+int Status(int){return foreignReady?2:1;}
 void Observe(const local_players::Context&){}
-bool Prepare(void*,uintptr_t& cls){cls=foreignReady?0xFACE:0;return foreignReady;}
+bool Prepare(void*,uintptr_t& cls,int choice){cls=foreignReady?(choice==4?0xB1ADE:0xFACE):0;return foreignReady;}
 uintptr_t* Resolve(ResolveFn native,void* actor,uintptr_t* result,Name id,bool* unlocked,bool* affordable,uintptr_t cls){
-    Check(cls==0xFACE,"selected foreign class reaches scoped adapter");++foreignResolves;return native(actor,result,id,unlocked,affordable);
+    Check(cls==0xFACE||cls==0xB1ADE,"selected foreign class reaches scoped adapter");++foreignResolves;return native(actor,result,id,unlocked,affordable);
 }
 }
 namespace dg::local_players {
