@@ -50,6 +50,7 @@
 #include "WrathSlotFeature.h"
 #include "ExecutionCameraFeature.h"
 #include "MeleeEffectFeature.h"
+#include "PlayerPresentationFeature.h"
 #include "CosmeticUnlockFeature.h"
 #include "LeviathanVisualFeature.h"
 #include "UltimateDurationFeature.h"
@@ -1418,7 +1419,12 @@ void CaptureLiveTPSActorYaw(void* actor) {
 
 // Called only from a synchronous native movement/camera callback. The
 // context supplies this player's current native state during possession.
+bool PresentationFocused(){
+    const auto hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+    return hwnd&&GetForegroundWindow()==hwnd&&!IsIconic(hwnd)&&!g_overlayVisible.load()&&!g_shuttingDown.load();
+}
 void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t generation){
+    dg::presentation::OnLivePlayer(owner);
     void* character=reinterpret_cast<void*>(owner.character);
     if(owner.index==0){
         g_tpsPlayerGeneration.store(generation,std::memory_order_release);
@@ -4170,6 +4176,7 @@ void ShutdownMod() {
     dg::heavy_landing::Shutdown();
     dg::pistol_visual::Shutdown();
     dg::execution_camera::Shutdown();
+    dg::presentation::Shutdown();
     dg::melee_effect::Shutdown();
     dg::wrath_slots::Shutdown();
     dg::mounted_holsters::Shutdown();
@@ -4435,10 +4442,12 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::mounted_holsters::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::pistol_visual::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::execution_camera::Initialize(&FeatureLog,g_targetValidation.exact);
+    // Validate the original shared emitter before the blade FX detour is installed.
+    dg::leviathan_visual::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::melee_effect::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::presentation::Initialize(&FeatureLog,g_targetValidation.exact,&PresentationFocused);
     dg::wrath_slots::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::cosmetics::Initialize(&FeatureLog,g_targetValidation.exact);
-    dg::leviathan_visual::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::ultimate_duration::Initialize(&FeatureLog,g_targetValidation.exact);
     if (!InstallFinalOutgoingDamageHook()) {
         Log("Final Pistol/Melee Damage hook unavailable; other ASI features remain active.");

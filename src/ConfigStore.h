@@ -265,6 +265,7 @@ public:
     int pistolRightModel = 0;
     int pistolLeftModel = 0;
     int strifeBladeVisibility = 0;
+    int warArmAppearance=0,mouseReticleHideMode=0;
     bool mountedJumpEnabled = false;
     int mountedJumpSound = 0;
     bool bonusMountSkinsEnabled = false;

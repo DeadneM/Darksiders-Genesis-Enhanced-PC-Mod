@@ -7,6 +7,7 @@
 #include "MountedHolsterFeature.h"
 #include "PistolVisualFeature.h"
 #include "WrathSlotFeature.h"
+#include "PlayerPresentationFeature.h"
 #include "CosmeticUnlockFeature.h"
 #include "LeviathanVisualFeature.h"
 #include "UltimateDurationFeature.h"
@@ -285,6 +286,15 @@ void Draw(Context& c) {
                 if(!pistol_visual::Ready())ImGui::TextDisabled("OFF unavailable for this executable; native presentation retained.");
                 else ImGui::TextDisabled("Animated OFF arm: P1 %s | P2 %s (while aiming/firing)",pistol_visual::PoseReady(0)?"active":"native / waiting",pistol_visual::PoseReady(1)?"active":"native / waiting");
             }
+            constexpr const char* warArms[]={"Native","Basic","Augmented"};
+            constexpr const char* reticles[]={"Vanilla","Hide in TPS","Hide in normal view","Hide in both views"};
+            ImGui::BeginDisabled(!presentation::Ready());ImGui::SetNextItemWidth(280.0f);
+            if(ImGui::Combo("War arm appearance",&config.warArmAppearance,warArms,3))config.Save();
+            ImGui::TextWrapped("Visual arm variant only, normal War on foot, both local players. Does not grant the Tremor Gauntlet or change equipment. Armor that replaces child meshes keeps its native appearance. Native restores the game's choice.");
+            ImGui::SetNextItemWidth(280.0f);
+            if(ImGui::Combo("Mouse reticle",&config.mouseReticleHideMode,reticles,4))config.Save();
+            ImGui::EndDisabled();
+            ImGui::TextWrapped("Hide the gameplay mouse crosshair in the selected view. Native menus, wheels and the mod menu keep their cursors. Mouse movement, aiming and controller inputs stay unchanged. Vanilla is the default.");
             constexpr const char* bladeModes[]={"Native","Hide left blade","Hide right blade","Hide both blades"};
             ImGui::BeginDisabled(!pistol_visual::Ready());ImGui::SetNextItemWidth(280.0f);
             if(ImGui::Combo("Strife melee blades",&config.strifeBladeVisibility,bladeModes,4))config.Save();
@@ -1016,7 +1026,7 @@ void Draw(Context& c) {
             if (config.thirdPersonEnabled) {
                 ImGui::Indent();
                 DrawSectionTitle("TPS mouse camera");
-                ImGui::TextDisabled("Native reticle/cursor visibility is fully controlled by the game.");
+                ImGui::TextDisabled("Mouse reticle visibility: Gameplay -> Appearance. Menus keep their native cursor.");
                 ImGui::TextDisabled("Relative mouse and Camera Forward firing remain automatic.");
                 ImGui::Spacing();
                 DrawSectionTitle("TPS camera attachment");

@@ -328,7 +328,7 @@ void Store::ResetDefaults(bool persist) {
     heavyLandingRecoveryEnabled=false;
     wrathSlots={};
     mountedHolstersEnabled=false;
-    strifeBladeVisibility=0;mountedJumpEnabled=false;mountedJumpSound=0;
+    strifeBladeVisibility=0;warArmAppearance=mouseReticleHideMode=0;mountedJumpEnabled=false;mountedJumpSound=0;
     pistolRightModel=0;pistolLeftModel=0;bonusMountSkinsEnabled=false;progressionSkinsEnabled=false;
     leviathanVisualEnabled=false;leviathanVisualMode=0;
     sheathStrifeMeleeNeverEnabled=false;sheathStrifeMeleeDelaySeconds=0.0f;
@@ -583,6 +583,10 @@ bool Store::Load() {
     if(pistolLeftModel<0||pistolLeftModel>3)pistolLeftModel=0;
     strifeBladeVisibility=GetPrivateProfileIntW(L"Values",L"StrifeBladeVisibility",0,path_.c_str());
     if(strifeBladeVisibility<0||strifeBladeVisibility>3)strifeBladeVisibility=0;
+    warArmAppearance=GetPrivateProfileIntW(L"Values",L"WarArmAppearance",0,path_.c_str());
+    if(warArmAppearance<0||warArmAppearance>2)warArmAppearance=0;
+    mouseReticleHideMode=GetPrivateProfileIntW(L"Values",L"MouseReticleHideMode",0,path_.c_str());
+    if(mouseReticleHideMode<0||mouseReticleHideMode>3)mouseReticleHideMode=0;
     mountedJumpEnabled=GetPrivateProfileIntW(L"Features",L"MountedJump",0,path_.c_str())!=0;
     mountedJumpSound=GetPrivateProfileIntW(L"Values",L"MountedJumpSound",0,path_.c_str());
     if(mountedJumpSound<0||mountedJumpSound>2)mountedJumpSound=0;
@@ -941,6 +945,7 @@ void Store::PublishRuntime() const {
     runtime.pistolRightModel=pistolRightModel;
     runtime.pistolLeftModel=pistolLeftModel;
     runtime.strifeBladeVisibility=strifeBladeVisibility;
+    runtime.warArmAppearance=warArmAppearance;runtime.mouseReticleHideMode=mouseReticleHideMode;
     runtime.mountedJumpEnabled=mountedJumpEnabled;
     runtime.mountedJumpSound=mountedJumpSound;
     runtime.bonusMountSkinsEnabled=bonusMountSkinsEnabled;
@@ -1117,6 +1122,8 @@ bool Store::SaveNow() {
     WriteInt(L"Values",L"PistolRightModel",pistolRightModel,path_);
     WriteInt(L"Values",L"PistolLeftModel",pistolLeftModel,path_);
     WriteInt(L"Values",L"StrifeBladeVisibility",strifeBladeVisibility,path_);
+    WriteInt(L"Values",L"WarArmAppearance",warArmAppearance,path_);
+    WriteInt(L"Values",L"MouseReticleHideMode",mouseReticleHideMode,path_);
     WriteInt(L"Features",L"MountedJump",mountedJumpEnabled?1:0,path_);
     WriteInt(L"Values",L"MountedJumpSound",mountedJumpSound,path_);
     WriteBool(L"Features",L"BonusMountSkins",bonusMountSkinsEnabled,path_);

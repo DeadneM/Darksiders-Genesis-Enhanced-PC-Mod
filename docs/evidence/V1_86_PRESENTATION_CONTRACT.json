@@ -1,0 +1,48 @@
+{
+  "readOnly": true,
+  "executableSha256": "9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54",
+  "warArm": {
+    "queryRva": "7283A0",
+    "refreshRva": "7152C0",
+    "parentPolicyRva": "705560",
+    "components": [
+      "DefaultGauntletMesh",
+      "TremorGauntletMesh"
+    ],
+    "table": "MayhemWarEquipmentItems",
+    "row": "TremorGauntlet",
+    "actorOffsets": [
+      "FB0",
+      "FB8"
+    ],
+    "unlocksWritten": false
+  },
+  "cursor": {
+    "queryRva": "1ACAA40",
+    "crosshair": 8,
+    "arrow": 1,
+    "none": 0,
+    "uiPageStack": "88",
+    "uiPagesToCull": "98",
+    "observedGameplayCrosshair": 1370,
+    "observedCrosshairDuringPageCull": 7,
+    "preserveOriginalCursorAndMenuTransitions": true
+  },
+  "leviathan": {
+    "sharedEmitterRva": "189A510",
+    "originalSignaturePresentAtLateInit": false,
+    "v185StartupEvidence": [
+      "[2026-10-23 19:04:04.738] Strife bare blade FX V1.85 READY: scoped attached/detached slash/stab only, native damage and notify retained; EXPERIMENTAL",
+      "[2026-10-23 19:04:04.905] Leviathan visual V1.69 unavailable: native signature mismatch"
+    ],
+    "fix": "Verify before blade emitter detour; preserve signature guards and scoped FX"
+  },
+  "stoneskin": {
+    "userReportsIncorrectOnWarAndStrife": true,
+    "warNativePathUnchanged": true,
+    "causeEstablished": false,
+    "visualFixDelivered": false
+  },
+  "fiveOtherForeignTransfersDelivered": false,
+  "gameplayValidated": false
+}

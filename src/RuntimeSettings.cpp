@@ -19,6 +19,7 @@ void Publish(const Snapshot& s) {
     g_state.pistolRightModel.store(s.pistolRightModel);
     g_state.pistolLeftModel.store(s.pistolLeftModel);
     g_state.strifeBladeVisibility.store(s.strifeBladeVisibility);
+    g_state.warArmAppearance.store(s.warArmAppearance);g_state.mouseReticleHideMode.store(s.mouseReticleHideMode);
     g_state.mountedJumpEnabled.store(s.mountedJumpEnabled);
     g_state.mountedJumpSound.store(s.mountedJumpSound);
     g_state.bonusMountSkinsEnabled.store(s.bonusMountSkinsEnabled);
