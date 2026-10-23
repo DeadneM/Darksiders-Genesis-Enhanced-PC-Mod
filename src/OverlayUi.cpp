@@ -367,7 +367,7 @@ void Draw(Context& c) {
             }
             if(ImGui::CollapsingHeader("Wrath ability slots (experimental)")){
                 ImGui::Indent(12.0f);
-                ImGui::TextWrapped("Choose a power independently for each slot. Strife can also use Stoneskin or Blade Geyser (experimental). These transfers use a compatible idle pose. Geyser keeps its native timed blast; War's rising-slash follow-up is not transferred. The other cross-character powers remain under development.");
+                ImGui::TextWrapped("Choose a power independently for each slot. Stoneskin on Strife remains experimental. Blade Geyser on Strife is NOT WORKING and is available for diagnosis only. Other cross-character powers remain under development.");
                 const int stoneStatus=wrath_slots::ForeignStatus(6),geyserStatus=wrath_slots::ForeignStatus(4);
                 constexpr const char* names[7]={"Native","Shadow Clone","World Ender","Caltrops","Blade Geyser","Rampage","Stoneskin"};
                 constexpr const char* familyNames[2]={"Strife","War"};

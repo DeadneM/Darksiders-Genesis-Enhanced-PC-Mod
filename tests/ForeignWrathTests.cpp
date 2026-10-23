@@ -2,6 +2,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <vector>
+#include <string>
+#include <array>
 
 namespace {
 using namespace dg::foreign_wrath;
@@ -9,6 +11,7 @@ struct Fixture {
     unsigned char actor[0x1100]{},controller[0x400]{},mesh[0x800]{},anim[0x4D00]{},blend[0xE0]{},samples[72]{},sequence[0x100]{},skeleton[0x80]{};
     unsigned char stone[0x120]{},cdo[0x240]{},ability[0x240]{},nativeMontage[0x180]{},replacement[0x180]{},instance[0x50]{};
     unsigned char geyser[0x120]{},geyserCdo[0x240]{},geyserPackage[0x80]{},launch[0x80]{},launchPackage[0x80]{};
+    unsigned char function[0x100]{},functionClass[0x80]{},blast[0x400]{},blastClass[0x80]{},blastPackage[0x80]{};
     unsigned char classes[6][0x80]{},stonePackage[0x80]{},montagePackage[0x80]{},items[640*24]{};
 } f;
 unsigned char entries[24][160]{};uintptr_t names[24]{},nameChunks[1]{reinterpret_cast<uintptr_t>(names)},objectChunks[1]{};
@@ -16,6 +19,15 @@ dg::local_players::Context owner{};bool gameThread=true,local=true,createOK=true
 unsigned getterCalls=0,resolveCalls=0,playCalls=0,finishCalls=0,createCalls=0,geyserBuilds=0;unsigned char finishCause=255;bool helperReady=true;
 void* playedAbility=nullptr;void* playedMontage=nullptr;float playedRate=0;Name playedSection{};
 struct Creation {void* sequence=nullptr;Name slot{};float in=0,out=0,rate=0;int loops=0;float trigger=0,start=0;} creation;
+std::vector<std::string> traceLog;std::vector<std::array<void*,4>> dispatchCalls;
+unsigned nestedEvents=0;bool throwDispatch=false;
+void TraceLog(const char* text){traceLog.emplace_back(text);}
+void DispatchNative(void* object,void* function,void* parameters,void* outParameters){
+    dispatchCalls.push_back({object,function,parameters,outParameters});
+    const unsigned count=nestedEvents;nestedEvents=0;
+    for(unsigned i=0;i<count;++i)DispatchEvent(DispatchNative,f.blast,f.instance,f.sequence,f.skeleton);
+    if(throwDispatch)throw std::runtime_error("mock dispatch error");
+}
 template<class T>void Put(void* p,size_t o,T value){std::memcpy(static_cast<unsigned char*>(p)+o,&value,sizeof(value));}
 void Check(bool value,const char* why){if(!value)throw std::runtime_error(why);}
 void Label(void* object,unsigned index,const char* text){Put(object,0x18,int(index));Put(object,0x1C,0);strcpy_s(reinterpret_cast<char*>(entries[index]+12),148,text);}
@@ -43,6 +55,7 @@ void FinishNative(void*,unsigned char cause){++finishCalls;finishCause=cause;}
 bool PlayingNative(void* instance){Check(instance==f.instance,"native montage instance is checked");return canPlay;}
 void Fresh(){
     f={};owner={};gameThread=local=createOK=canPlay=true;nested=throwResolve=false;
+    g_spawnFunction=0;g_dispatchTraces=0;g_dispatchTrace=nullptr;traceLog.clear();dispatchCalls.clear();nestedEvents=0;throwDispatch=false;
     getterCalls=resolveCalls=playCalls=finishCalls=createCalls=geyserBuilds=0;finishCause=255;creation={};helperReady=true;
     g_geyser={};g_geyserActors[0]=g_geyserActors[1]={};g_requestGeyser=g_geyserReady=g_geyserFailed=false;g_searchedGeyser=false;
     g_ready=true;g_assetsReady=true;g_requested=false;g_override=nullptr;g_getter=GetterNative;g_play=PlayNative;g_create=CreateNative;g_finish=FinishNative;g_playing=PlayingNative;g_log=nullptr;
@@ -72,9 +85,62 @@ void Fresh(){
     Put(f.geyser,0xF8,reinterpret_cast<uintptr_t>(f.geyserCdo));Put(f.geyserCdo,0x10,reinterpret_cast<uintptr_t>(f.geyser));Register(3,f.geyser,43);
     Label(f.launch,16,"MayhemAbility_War_LaunchAttack_Blueprint_C");Put(f.launch,0x20,reinterpret_cast<uintptr_t>(f.launchPackage));
     Label(f.launchPackage,17,"/Game/Blueprints/Abilities/WarMelee/MayhemAbility_War_LaunchAttack_Blueprint");
+    Label(f.functionClass,18,"Function");Label(f.function,19,"SpawnBlast");
+    Put(f.function,0x10,reinterpret_cast<uintptr_t>(f.functionClass));Put(f.function,0x20,reinterpret_cast<uintptr_t>(f.geyser));
+    Put(f.geyser,0x48,reinterpret_cast<uintptr_t>(f.function));
+    Label(f.blastClass,20,"MayhemBlast_Wrath_BladeGeyser_Level1_Blueprint_C");
+    Label(f.blastPackage,21,"/Game/Blueprints/Player/MayhemBlast_Wrath_BladeGeyser_Level1_Blueprint");
+    Put(f.blastClass,0x10,reinterpret_cast<uintptr_t>(f.classes[5]));Put(f.blastClass,0x20,reinterpret_cast<uintptr_t>(f.blastPackage));
+    Put(f.blast,0x10,reinterpret_cast<uintptr_t>(f.blastClass));Put(f.blast,0x108,owner.pawn);Put(f.blast,0x140,owner.pawn);
     for(auto& choice:dg::runtime::Get().wrathSlots[0])choice=0;
 }
 void Cast(){HookPlay(f.ability,f.nativeMontage,1.0f,{0,0});}
+void TraceSetup(){
+    Fresh();g_geyser={reinterpret_cast<uintptr_t>(f.geyser),3,43};g_geyserReady=true;
+    Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.geyser));g_log=TraceLog;CacheSpawnFunction();
+    Check(g_spawnFunction==reinterpret_cast<uintptr_t>(f.function),"trace resolves exact class-owned SpawnBlast child");traceLog.clear();
+}
+void Dispatch(){DispatchEvent(DispatchNative,f.ability,f.function,f.cdo,f.geyserCdo);}
+void TraceChecks(){
+    TraceSetup();const auto actorBefore=std::to_array(f.actor);const auto abilityBefore=std::to_array(f.ability);const auto blastBefore=std::to_array(f.blast);
+    nestedEvents=6;Dispatch();
+    Check(dispatchCalls.size()==7&&dispatchCalls[0]==std::array<void*,4>{f.ability,f.function,f.cdo,f.geyserCdo},"dispatch and all four original arguments forward exactly once");
+    for(size_t i=1;i<dispatchCalls.size();++i)Check(dispatchCalls[i]==std::array<void*,4>{f.blast,f.instance,f.sequence,f.skeleton},"nested dispatch arguments stay native");
+    Check(g_dispatchTraces==1&&!g_dispatchTrace&&traceLog.size()==6&&traceLog.front().find("DISPATCH_BEFORE")!=std::string::npos&&
+        traceLog.back().find("nestedBlastEvents=4")!=std::string::npos,"one scoped trace bounds nested event logging and restores context");
+    Check(traceLog[1].find("sourceMatch=1")!=std::string::npos&&traceLog[1].find("damage NOT proven")!=std::string::npos,"blast diagnostic reports source without claiming damage");
+    Check(!std::memcmp(f.actor,actorBefore.data(),actorBefore.size())&&!std::memcmp(f.ability,abilityBefore.data(),abilityBefore.size())&&
+        !std::memcmp(f.blast,blastBefore.data(),blastBefore.size()),"diagnostic writes no actor, ability or blast bytes");
+    TraceSetup();Label(f.classes[0],1,"War_Blueprint_C");Put<unsigned char>(f.actor,0xC18,0);Dispatch();
+    Check(traceLog.size()==2&&traceLog[0].find("strife=0")!=std::string::npos&&dispatchCalls.size()==1,"same dispatch trace observes War native comparison");
+    for(unsigned failure=0;failure<11;++failure){
+        TraceSetup();
+        if(failure==0)g_spawnFunction=0;
+        if(failure==1)Put<unsigned char>(f.ability,8,0x10);
+        if(failure==2)local=false;
+        if(failure==3)Put<unsigned char>(f.actor,0x118,2);
+        if(failure==4)gameThread=false;
+        if(failure==5)owner.kind=dg::local_players::PoseKind::Horse;
+        if(failure==6)Put(f.controller,0x350,uintptr_t(0));
+        if(failure==7)Put(f.items,3*24+16,44);
+        if(failure==8)Shutdown();
+        if(failure==9)g_log=nullptr;
+        if(failure==10)Put(f.ability,0x1B0,uintptr_t(0));
+        Dispatch();Check(dispatchCalls.size()==1&&traceLog.empty()&&!g_dispatchTraces,"ineligible dispatch forwards once with no trace or native-state mutation");
+    }
+    TraceSetup();DispatchEvent(DispatchNative,f.ability,f.instance,f.cdo,f.geyserCdo);
+    Check(dispatchCalls.size()==1&&traceLog.empty(),"unrelated functions keep original dispatch");
+    TraceSetup();DispatchEvent(DispatchNative,f.blast,f.function,f.cdo,f.geyserCdo);
+    Check(dispatchCalls.size()==1&&traceLog.empty(),"same function pointer on another class is not traced");
+    TraceSetup();DispatchTrace previous{};g_dispatchTrace=&previous;throwDispatch=true;bool threw=false;
+    try{Dispatch();}catch(const std::runtime_error&){threw=true;}
+    Check(threw&&dispatchCalls.size()==1&&g_dispatchTrace==&previous&&traceLog.size()==1,"native exception propagates and restores previous trace without false completion");g_dispatchTrace=nullptr;
+    TraceSetup();for(unsigned i=0;i<10;++i)Dispatch();
+    Check(dispatchCalls.size()==10&&g_dispatchTraces==8&&traceLog.size()==16,"eight-call budget stops diagnostics without suppressing native calls");
+    TraceSetup();g_spawnFunction=0;Put(f.function,0x20,uintptr_t(0));CacheSpawnFunction();
+    Check(!g_spawnFunction,"foreign outer is never cached as Geyser SpawnBlast");
+    DispatchEvent(nullptr,f.ability,f.function,f.cdo,f.geyserCdo);Check(dispatchCalls.empty(),"null trampoline remains a no-op");
+}
 void Run(){
     std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(nameChunks));
     for(unsigned i=0;i<24;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
@@ -134,6 +200,7 @@ void Run(){
     Check(Status(6)==2&&Prepare(f.actor,klass,6),"Geyser failure leaves independent Stoneskin preparation intact");
     Fresh();g_geyser={};g_geyserReady=false;g_stone={};g_assetsReady=false;g_requestGeyser=true;g_requested=true;
     Observe(owner);Check(g_geyserReady&&g_assetsReady&&g_geyser.address==reinterpret_cast<uintptr_t>(f.geyser),"one bounded scan independently discovers both loaded foreign classes");
+    TraceChecks();
     Fresh();Shutdown();Cast();Check(playedMontage==f.nativeMontage&&!createCalls&&!finishCalls&&Status()==0,"shutdown restores complete native forwarding");
 }
 }

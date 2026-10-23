@@ -19,6 +19,9 @@ Getter g_getter=nullptr;Play g_play=nullptr;Create g_create=nullptr;Finish g_fin
 uintptr_t g_base=0,g_world=0;LogFn g_log=nullptr;std::atomic_bool g_ready{false},g_requested{false},g_assetsReady{false};
 native_objects::Identity g_stone{},g_geyser{},g_geyserActors[2]{};
 std::atomic_bool g_requestGeyser{false},g_geyserReady{false},g_geyserFailed{false};bool g_searchedGeyser=false;
+uintptr_t g_spawnFunction=0;unsigned g_dispatchTraces=0;
+struct DispatchTrace {unsigned number=0,blasts=0;uintptr_t actor=0;};
+thread_local DispatchTrace* g_dispatchTrace=nullptr;
 int g_cursor=0,g_count=0;bool g_complete=false;uint64_t g_scanTick=0;unsigned g_events=0,g_failures=0;
 struct Array {uintptr_t data=0;int count=0,capacity=0;};
 struct Override {void* actor=nullptr;uintptr_t abilityClass=0;Name id{};};
@@ -71,13 +74,49 @@ bool Source(uintptr_t actor,Animation& out){
         Read(idle.sequence,0x94,rate)&&rate==1&&Read(anim,0x3740,out.slot)&&
         native_objects::NameValueIs(g_base,out.slot.index,out.slot.number,"TPS")&&(out.sequence=idle.sequence)!=0;
 }
+void CacheSpawnFunction(){
+    if(g_spawnFunction||!g_geyser||!Alive(g_geyser))return;
+    uintptr_t field=0;if(!Read(g_geyser.address,0x48,field))return;
+    for(unsigned i=0;i<256&&field;++i){
+        uintptr_t cls=0,outer=0,next=0;
+        if(Read(field,0x10,cls)&&Is(cls,"Function")&&Is(field,"SpawnBlast")&&Read(field,0x20,outer)&&outer==g_geyser.address){
+            g_spawnFunction=field;if(g_log)g_log("Geyser V1.90 TRACE ready: exact Blueprint SpawnBlast cached; read-only diagnostics on existing dispatch, no new hook");return;
+        }
+        if(!Read(field,0x28,next)||next==field)return;field=next;
+    }
+}
+bool TraceOwner(void* live,local_players::Context& c){
+    const auto ability=reinterpret_cast<uintptr_t>(live);uintptr_t cls=0,actor=0,character=0,pawn=0,controller=0;uint32_t flags=0;unsigned char role=0,type=255;
+    return g_geyser&&Alive(g_geyser)&&Read(ability,8,flags)&&!(flags&0x30u)&&Read(ability,0x10,cls)&&cls==g_geyser.address&&
+        Read(ability,0x48,actor)&&Read(ability,0x1B0,character)&&actor==character&&local_players::ResolveActor(reinterpret_cast<void*>(actor),c)&&
+        c.index>=0&&c.index<2&&c.localPlayer&&c.world&&c.kind==local_players::PoseKind::Foot&&c.character==actor&&c.pawn==actor&&
+        Read(actor,0x118,role)&&role==3&&Read(actor,0x10,cls)&&Read(actor,0xC18,type)&&
+        ((type==1&&Is(cls,"Strife_Blueprint_C"))||(type==0&&Is(cls,"War_Blueprint_C")))&&
+        Read(actor,0x348,controller)&&controller==c.controller&&Read(controller,0x350,pawn)&&pawn==actor;
+}
+bool BlastClass(uintptr_t cls){
+    uintptr_t kind=0,package=0;
+    return Read(cls,0x10,kind)&&Is(kind,"BlueprintGeneratedClass")&&Read(cls,0x20,package)&&
+        ((Is(cls,"MayhemBlast_Wrath_BladeGeyser_Level1_Blueprint_C")&&Is(package,"/Game/Blueprints/Player/MayhemBlast_Wrath_BladeGeyser_Level1_Blueprint"))||
+         (Is(cls,"MayhemBlast_Wrath_BladeGeyser_Level2_Blueprint_C")&&Is(package,"/Game/Blueprints/Player/MayhemBlast_Wrath_BladeGeyser_Level2_Blueprint"))||
+         (Is(cls,"MayhemBlast_Wrath_BladeGeyser_Level3_Blueprint_C")&&Is(package,"/Game/Blueprints/Player/MayhemBlast_Wrath_BladeGeyser_Level3_Blueprint"))||
+         (Is(cls,"MayhemBlast_Wrath_BladeGeyser_Level4_Blueprint_C")&&Is(package,"/Game/Blueprints/Player/MayhemBlast_Wrath_BladeGeyser_Level4_Blueprint")));
+}
+void TraceNestedBlast(void* live){
+    auto* trace=g_dispatchTrace;if(!trace||trace->blasts>=4)return;
+    const auto object=reinterpret_cast<uintptr_t>(live);uintptr_t cls=0,owner=0,instigator=0;uint32_t flags=0;
+    if(!Read(object,8,flags)||(flags&0x30u)||!Read(object,0x10,cls)||!BlastClass(cls))return;
+    Read(object,0x108,owner);Read(object,0x140,instigator);++trace->blasts;
+    char text[240]{};sprintf_s(text,"Geyser V1.90 BLAST_EVENT call=%u object=%p sourceMatch=%d owner=%p instigator=%p; nested Blueprint event observed, damage NOT proven",
+        trace->number,live,(owner==trace->actor||instigator==trace->actor)?1:0,reinterpret_cast<void*>(owner),reinterpret_cast<void*>(instigator));g_log(text);
+}
 void Scan(uintptr_t generatedClass){
     bool expired=false;
     if(g_stone&&!Alive(g_stone)){g_stone={};expired=true;}
-    if(g_geyser&&!Alive(g_geyser)){g_geyser={};g_geyserReady=false;expired=true;}
+    if(g_geyser&&!Alive(g_geyser)){g_geyser={};g_spawnFunction=0;g_geyserReady=false;expired=true;}
     if(expired){g_cursor=0;g_complete=false;g_assetsReady=false;}
     const bool geyser=g_requestGeyser.load();
-    if(g_stone){g_assetsReady=true;if(!geyser||g_geyser)return;}
+    if(g_stone){g_assetsReady=true;if(!geyser||g_geyser){if(geyser)CacheSpawnFunction();return;}}
     uintptr_t chunks=0;int count=0;
     if(!Read(g_base,0x3959680,chunks)||!Read(g_base,0x3959694,count)||count<=0||count>2000000)return;
     if(count!=g_count){if(count<g_count)g_cursor=0;g_count=count;g_complete=false;}
@@ -94,7 +133,7 @@ void Scan(uintptr_t generatedClass){
     }
     if(g_cursor>=count)g_complete=true;
     if(g_stone)g_assetsReady=true;
-    if(g_geyser)g_geyserReady=true;
+    if(g_geyser){g_geyserReady=true;CacheSpawnFunction();}
 }
 uintptr_t* HookGetter(void* actor,uintptr_t* result,Name id){
     const auto* request=g_override;
@@ -219,7 +258,7 @@ void Observe(const local_players::Context& owner){
 bool Prepare(void* actor,uintptr_t& abilityClass,int choice){
     g_requested=true;local_players::Context c{};Animation animation{};uintptr_t cdo=0,cls=0;
     if(choice!=4&&choice!=6)return false;
-    if(choice==4)g_requestGeyser=true;
+    if(choice==4){g_requestGeyser=true;CacheSpawnFunction();}
     const auto& selected=choice==4?g_geyser:g_stone;
     if(!g_ready||!(choice==4?g_geyserReady.load():g_assetsReady.load())||!OwnedStrife(actor,c)||Kind(selected.address)!=choice)return false;
     if(!Read(selected.address,0xF8,cdo)||!Read(cdo,0x10,cls)||cls!=selected.address||!Source(c.pawn,animation)){
@@ -233,6 +272,26 @@ uintptr_t* Resolve(ResolveFn native,void* actor,uintptr_t* result,Name id,bool* 
     if(!native)return result;
     Override request{actor,abilityClass,id};struct Scope {const Override* previous;~Scope(){g_override=previous;}} scope{g_override};
     g_override=&request;return native(actor,result,id,unlocked,affordable);
+}
+void DispatchEvent(DispatchFn native,void* object,void* function,void* parameters,void* outParameters){
+    if(!native)return;
+    if(!g_ready||!native_tps::OnGameThread()||!g_log){native(object,function,parameters,outParameters);return;}
+    if(g_dispatchTrace)TraceNestedBlast(object);
+    local_players::Context c{};
+    if(!g_spawnFunction||reinterpret_cast<uintptr_t>(function)!=g_spawnFunction||g_dispatchTraces>=8||!TraceOwner(object,c)){
+        native(object,function,parameters,outParameters);return;
+    }
+    DispatchTrace trace{++g_dispatchTraces,0,c.character};int before=-1,after=-1;
+    Read(g_base,0x3959694,before);unsigned char state=255,type=255;
+    Read(reinterpret_cast<uintptr_t>(object),0xD8,state);Read(c.character,0xC18,type);
+    char text[240]{};sprintf_s(text,"Geyser V1.90 DISPATCH_BEFORE call=%u player=%d strife=%d state=%u actor=%p objects=%d; actual SpawnBlast entry, read-only",
+        trace.number,c.index+1,type==1?1:0,unsigned(state),reinterpret_cast<void*>(trace.actor),before);g_log(text);
+    {
+        struct Scope {DispatchTrace* previous;~Scope(){g_dispatchTrace=previous;}} scope{g_dispatchTrace};g_dispatchTrace=&trace;
+        native(object,function,parameters,outParameters);
+    }
+    Read(g_base,0x3959694,after);sprintf_s(text,"Geyser V1.90 DISPATCH_AFTER call=%u nativeReturned=1 nestedBlastEvents=%u objectsBefore=%d objectsAfter=%d; no damage or cost override",
+        trace.number,trace.blasts,before,after);g_log(text);
 }
 void Shutdown(){g_ready=false;g_assetsReady=false;g_geyserReady=false;}
 }
