@@ -1,0 +1,81 @@
+{
+  "ci": {
+    "runId": 40009032079,
+    "jobId": 120604303321,
+    "sourceCommit": "8459be89bfb2418ce8c80de37be02e7a8cb12f45",
+    "conclusion": "success",
+    "suitesPassed": 53,
+    "testRows": 53,
+    "testSummary": "2026-10-23T19:13:03.9973487Z 100% tests passed out of 53",
+    "compilerWarnings": [],
+    "compilerErrors": [],
+    "toolingWarnings": [
+      "2026-10-23T19:09:04.2874848Z CMake Warning (deprecated) at build/_deps/minhook-src/CMakeLists.txt:27 (cmake_minimum_required):",
+      "2026-10-23T19:13:05.3118230Z (node:7132) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.",
+      "2026-10-23T19:13:05.7918130Z (node:7132) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.",
+      "2026-10-23T19:13:33.7014204Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/"
+    ],
+    "foreignTests": [
+      "2026-10-23T19:12:59.3684640Z  2/53 Test  #2: ForeignMontage ...................   Passed    0.03 sec",
+      "2026-10-23T19:12:59.3939024Z  3/53 Test  #3: ForeignWrath .....................   Passed    0.02 sec",
+      "2026-10-23T19:12:59.5950844Z  7/53 Test  #7: WrathSlots .......................   Passed    0.13 sec"
+    ],
+    "previousVersion": "V1.88 retained with one documented C6386 warning; no suppression in V1.89"
+  },
+  "checks": {
+    "validatedBase": "c20319f93413f849a41b10fdfd96f7842a172ac6",
+    "base": "4309438f8a87d95ef33ab14fe0a4bdc0f4dda245",
+    "branch": "debug",
+    "oldArchivesUnchanged": 153,
+    "iniKeysUnchanged": 168,
+    "hotkeyIdsUnchanged": true,
+    "unchangedSourceFiles": 117,
+    "validatedPresentationUnchanged": true,
+    "existingStoneskinCastUnchanged": true,
+    "noNewHooksOrTimer": true,
+    "onlyPrivateCloneStorage": true,
+    "nativeSignaturesVerified": true,
+    "liveMarkerAndIdleGuardsVerified": true,
+    "testsExpected": 53,
+    "gameplayValidated": false
+  },
+  "package": {
+    "sourceCommit": "8459be89bfb2418ce8c80de37be02e7a8cb12f45",
+    "archiveCommit": "8507ca9ffb9fbc24a62ea6d13146245ae13c335e",
+    "name": "DarksidersGenesis_V1.89_STRIFE_GEYSER_CLEAN_TEST.zip",
+    "size": 917067,
+    "sha256": "EC5BDFC59EB764F7744ED43203D10B85CF99F33BA915A1484C64648795A6BB21",
+    "files": {
+      "DarksidersGenesisMod.asi": {
+        "size": 1673728,
+        "sha256": "7C27644DDE96AE3869BA7A99202AC914D426EB31B510369F3FDE8577173423B4"
+      },
+      "DarksidersGenesisMod.ini": {
+        "size": 4691,
+        "sha256": "99E3EECAD438A6735DD4389D544535FF798BB7F9E9EF0E4E243BC40CC4F13524"
+      },
+      "dxgi.dll": {
+        "size": 155136,
+        "sha256": "C76F5E49E7697BD8303DBFE8AA15E48C28D21676EC64218CE69626BBAA487171"
+      },
+      "README.md": {
+        "size": 45022,
+        "sha256": "028E8D9AEF3576DA3D4D125BF5F813626BAF2F6AE5340B2F23DBDBD6895E485A"
+      }
+    },
+    "oldArchivesUnchanged": 153,
+    "iniKeys": 168,
+    "hotkeyIdsUnchanged": true,
+    "amd64": true,
+    "crcValid": true,
+    "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/8507ca9ffb9fbc24a62ea6d13146245ae13c335e/downloads/DarksidersGenesis_V1.89_STRIFE_GEYSER_CLEAN_TEST.zip",
+    "httpStatus": 200,
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/main": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "gameplayValidated": false
+  },
+  "gameplayValidated": false
+}

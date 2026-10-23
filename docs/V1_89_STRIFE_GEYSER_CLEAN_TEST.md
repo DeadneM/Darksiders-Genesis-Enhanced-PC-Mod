@@ -1,6 +1,6 @@
 # V1.89 — Geyser vers Strife, finalisation du candidat
 
-**EXPÉRIMENTAL, finalisation préparée ; compilation et contrôles à consigner après CI.**
+**V1.89 CONSTRUITE / CONTRÔLÉE : [53/53 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40009032079), zéro erreur et zéro avertissement MSVC. Geyser sur Strife EXPÉRIMENTAL, non validé en jeu.** [ZIP cumulatif immuable vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/8507ca9ffb9fbc24a62ea6d13146245ae13c335e/downloads/DarksidersGenesis_V1.89_STRIFE_GEYSER_CLEAN_TEST.zip) · [Reçu et rollback](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_89_DELIVERY_RECEIPT.md).
 
 Base expressément validée : V1.87 pour le retour du réticule sans crash, War arm et Léviathan ; bras OFF, effets de lames et suivi d’exécution validés auparavant. Base cumulative V1.88 `4309438f8a87d95ef33ab14fe0a4bdc0f4dda245`, Geyser non validé en jeu. **Aucune validation supplémentaire supposée.** [Contrat natif complet et limites du prototype](V1_88_STRIFE_GEYSER_TRANSFER_TEST.md).
 

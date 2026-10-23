@@ -73,5 +73,5 @@
     },
     "gameplayValidated": false
   },
-  "supersededBy": "V1.89 pending clean rebuild"
+  "supersededBy": "V1.89: 53/53 suites, zero MSVC warnings/errors; new gameplay still experimental"
 }
