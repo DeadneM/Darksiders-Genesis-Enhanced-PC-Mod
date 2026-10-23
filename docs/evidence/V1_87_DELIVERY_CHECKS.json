@@ -1,0 +1,149 @@
+{
+  "ci": {
+    "runId": 39998309541,
+    "jobId": 120567525994,
+    "sourceCommit": "03398bd4e736a2c01ee96dd764009fb9d67417ea",
+    "conclusion": "success",
+    "suitesPassed": 52,
+    "testRows": 52,
+    "testSummary": "2026-10-23T17:54:33.6463119Z 100% tests passed out of 52",
+    "compilerWarnings": [],
+    "compilerErrors": [],
+    "toolingWarnings": [
+      "2026-10-23T17:50:41.2893090Z CMake Warning (deprecated) at build/_deps/minhook-src/CMakeLists.txt:27 (cmake_minimum_required):",
+      "2026-10-23T17:54:35.0401265Z (node:1312) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.",
+      "2026-10-23T17:54:44.9638461Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/"
+    ],
+    "abiConsumer": [
+      "2026-10-23T17:52:14.0482070Z   NativeCursorConsumer.cpp",
+      "2026-10-23T17:54:29.0462232Z  1/52 Test  #1: PlayerPresentation ...............   Passed    0.14 sec"
+    ]
+  },
+  "checks": {
+    "base": "7763e99de8817362e69099cc339287ea07732902",
+    "branch": "debug",
+    "oldArchivesUnchanged": 151,
+    "iniKeysUnchanged": 168,
+    "hotkeyIdsUnchanged": true,
+    "unchangedSourceFiles": 121,
+    "warArmUnchanged": true,
+    "leviathanUnchanged": true,
+    "onlyCursorAbiAndGuardChanged": true,
+    "nativeReturnInstructionVerified": true,
+    "crashIndexFaultCalculationMatches": true,
+    "engineStyleSeparateTranslationUnit": true,
+    "gameplayValidated": false
+  },
+  "package": {
+    "sourceCommit": "03398bd4e736a2c01ee96dd764009fb9d67417ea",
+    "archiveCommit": "64b612f3341a1abebf3dc2961de1580a73904089",
+    "name": "DarksidersGenesis_V1.87_CURSOR_ENUM_ABI_FIX_TEST.zip",
+    "size": 905522,
+    "sha256": "B55E34E80343A7BDF168D1228C7C36B0E964F419F2CA043C5545A91E72A0B978",
+    "files": {
+      "DarksidersGenesisMod.asi": {
+        "size": 1643008,
+        "sha256": "EE3EC8EB0CAC96D2D0D17C0D05B9C31FAF277E25D50D1A8BEA403C11386DE1BA"
+      },
+      "DarksidersGenesisMod.ini": {
+        "size": 4691,
+        "sha256": "99E3EECAD438A6735DD4389D544535FF798BB7F9E9EF0E4E243BC40CC4F13524"
+      },
+      "dxgi.dll": {
+        "size": 155136,
+        "sha256": "FD01711D382CD2DA31D8D98195D059076D3DAA6D5FFDF07E541B3078870FC1D4"
+      },
+      "README.md": {
+        "size": 40357,
+        "sha256": "6E710DCCDAB49E543FA2443A3AAB086FB043ADDDB5074FB91B3F186227951D5E"
+      }
+    },
+    "oldArchivesUnchanged": 151,
+    "iniKeys": 168,
+    "hotkeyIdsUnchanged": true,
+    "amd64": true,
+    "crcValid": true,
+    "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/64b612f3341a1abebf3dc2961de1580a73904089/downloads/DarksidersGenesis_V1.87_CURSOR_ENUM_ABI_FIX_TEST.zip",
+    "httpStatus": 200,
+    "gameplayValidated": false
+  },
+  "oldBinary": {
+    "version": "186",
+    "cursorRva": "0x30e20",
+    "callbackSpan": [
+      "0x30e20",
+      "0x314a0"
+    ],
+    "returnBlocks": [
+      [
+        "3142E jb 0x18003143d",
+        "31430 sub rax, rdi",
+        "31433 mov cl, 1",
+        "31435 cmp rax, 0x12c",
+        "3143B jbe 0x18003146d",
+        "3143D mov al, 8",
+        "3143F mov r12, qword ptr [rsp + 0x128]",
+        "31447 mov rsi, qword ptr [rsp + 0x120]",
+        "3144F mov r15, qword ptr [rsp + 0x130]",
+        "31457 mov rbx, qword ptr [rsp + 0x138]",
+        "3145F add rsp, 0x100",
+        "31466 pop r14",
+        "31468 pop rdi",
+        "31469 pop rbp",
+        "3146A ret "
+      ]
+    ],
+    "returnMoves": [
+      "30E57 movzx eax, byte ptr [rip + 0x14bcaa]",
+      "30F30 mov eax, dword ptr [rbp + 0xb]",
+      "31005 mov eax, dword ptr [rbp - 0x75]",
+      "310B4 mov eax, dword ptr [rbp + 0x3b]",
+      "31155 mov eax, dword ptr [rbp - 0x75]",
+      "31209 mov eax, dword ptr [rbp - 0x75]",
+      "312B1 mov eax, dword ptr [rbp - 0x75]",
+      "31365 mov eax, dword ptr [rbp - 0x75]",
+      "3143D mov al, 8",
+      "3148F movzx eax, dil"
+    ]
+  },
+  "newBinary": {
+    "version": "187",
+    "cursorRva": "0x30e20",
+    "callbackSpan": [
+      "0x30e20",
+      "0x31490"
+    ],
+    "returnBlocks": [
+      [
+        "31429 sub rax, rdi",
+        "3142C mov cl, 1",
+        "3142E cmp rax, 0x12c",
+        "31434 jbe 0x180031465",
+        "31436 mov eax, 8",
+        "3143B mov r12, qword ptr [rsp + 0x120]",
+        "31443 mov r15, qword ptr [rsp + 0x128]",
+        "3144B lea r11, [rsp + 0x100]",
+        "31453 mov rbx, qword ptr [r11 + 0x30]",
+        "31457 mov rsi, qword ptr [r11 + 0x38]",
+        "3145B mov rsp, r11",
+        "3145E pop r14",
+        "31460 pop rdi",
+        "31461 pop rbp",
+        "31462 ret "
+      ]
+    ],
+    "returnMoves": [
+      "30E5C movzx eax, byte ptr [rip + 0x14bca5]",
+      "30F2A mov eax, dword ptr [rbp + 0xb]",
+      "30FFE mov eax, dword ptr [rbp - 0x75]",
+      "310AD mov eax, dword ptr [rbp + 0x3b]",
+      "3114E mov eax, dword ptr [rbp - 0x75]",
+      "31202 mov eax, dword ptr [rbp - 0x75]",
+      "312AA mov eax, dword ptr [rbp - 0x75]",
+      "3135E mov eax, dword ptr [rbp - 0x75]",
+      "31436 mov eax, 8",
+      "31488 mov eax, edi"
+    ]
+  },
+  "gameplayValidated": false
+}
