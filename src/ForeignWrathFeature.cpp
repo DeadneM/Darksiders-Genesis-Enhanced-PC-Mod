@@ -75,7 +75,7 @@ bool Source(uintptr_t actor,Animation& out){
         native_objects::NameValueIs(g_base,out.slot.index,out.slot.number,"TPS")&&(out.sequence=idle.sequence)!=0;
 }
 void CacheSpawnFunction(){
-    if(g_spawnFunction||!g_geyser||!Alive(g_geyser))return;
+    if(!native_tps::OnGameThread()||g_spawnFunction||!g_geyser||!Alive(g_geyser))return;
     uintptr_t field=0;if(!Read(g_geyser.address,0x48,field))return;
     for(unsigned i=0;i<256&&field;++i){
         uintptr_t cls=0,outer=0,next=0;
@@ -91,7 +91,7 @@ bool TraceOwner(void* live,local_players::Context& c){
         Read(ability,0x48,actor)&&Read(ability,0x1B0,character)&&actor==character&&local_players::ResolveActor(reinterpret_cast<void*>(actor),c)&&
         c.index>=0&&c.index<2&&c.localPlayer&&c.world&&c.kind==local_players::PoseKind::Foot&&c.character==actor&&c.pawn==actor&&
         Read(actor,0x118,role)&&role==3&&Read(actor,0x10,cls)&&Read(actor,0xC18,type)&&
-        ((type==1&&Is(cls,"Strife_Blueprint_C"))||(type==0&&Is(cls,"War_Blueprint_C")))&&
+        ((type==1&&Is(cls,"Strife_Blueprint_C"))||(type==2&&Is(cls,"War_Blueprint_C")))&&
         Read(actor,0x348,controller)&&controller==c.controller&&Read(controller,0x350,pawn)&&pawn==actor;
 }
 bool BlastClass(uintptr_t cls){

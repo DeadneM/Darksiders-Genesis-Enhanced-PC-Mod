@@ -111,7 +111,7 @@ void TraceChecks(){
     Check(traceLog[1].find("sourceMatch=1")!=std::string::npos&&traceLog[1].find("damage NOT proven")!=std::string::npos,"blast diagnostic reports source without claiming damage");
     Check(!std::memcmp(f.actor,actorBefore.data(),actorBefore.size())&&!std::memcmp(f.ability,abilityBefore.data(),abilityBefore.size())&&
         !std::memcmp(f.blast,blastBefore.data(),blastBefore.size()),"diagnostic writes no actor, ability or blast bytes");
-    TraceSetup();Label(f.classes[0],1,"War_Blueprint_C");Put<unsigned char>(f.actor,0xC18,0);Dispatch();
+    TraceSetup();Label(f.classes[0],1,"War_Blueprint_C");Put<unsigned char>(f.actor,0xC18,2);Dispatch();
     Check(traceLog.size()==2&&traceLog[0].find("strife=0")!=std::string::npos&&dispatchCalls.size()==1,"same dispatch trace observes War native comparison");
     for(unsigned failure=0;failure<11;++failure){
         TraceSetup();
@@ -139,6 +139,8 @@ void TraceChecks(){
     Check(dispatchCalls.size()==10&&g_dispatchTraces==8&&traceLog.size()==16,"eight-call budget stops diagnostics without suppressing native calls");
     TraceSetup();g_spawnFunction=0;Put(f.function,0x20,uintptr_t(0));CacheSpawnFunction();
     Check(!g_spawnFunction,"foreign outer is never cached as Geyser SpawnBlast");
+    Put(f.function,0x20,reinterpret_cast<uintptr_t>(f.geyser));gameThread=false;CacheSpawnFunction();
+    Check(!g_spawnFunction,"function cache never resolves on another thread");
     DispatchEvent(nullptr,f.ability,f.function,f.cdo,f.geyserCdo);Check(dispatchCalls.empty(),"null trampoline remains a no-op");
 }
 void Run(){
