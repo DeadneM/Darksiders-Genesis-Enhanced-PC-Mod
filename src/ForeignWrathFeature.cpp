@@ -1,5 +1,6 @@
 #include "ForeignWrathFeature.h"
 #include "ForeignMontage.h"
+#include "ForeignCaltropsFeature.h"
 #include "NativeObjectName.h"
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
@@ -137,7 +138,7 @@ void Scan(uintptr_t generatedClass){
 }
 uintptr_t* HookGetter(void* actor,uintptr_t* result,Name id){
     const auto* request=g_override;
-    if(g_ready&&request&&request->actor==actor&&request->id==id&&result&&native_tps::OnGameThread()&&Kind(request->abilityClass)){
+    if(g_ready&&request&&request->actor==actor&&request->id==id&&result&&native_tps::OnGameThread()&&(Kind(request->abilityClass)||foreign_caltrops::IsClass(request->abilityClass))){
         *result=request->abilityClass;return result;
     }
     return g_getter?g_getter(actor,result,id):result;
@@ -171,6 +172,7 @@ bool Duration(void* nativeMontage,float& duration){
 void HookPlay(void* ability,void* montage,float rate,Name section){
     local_players::Context c{};float duration=0;
     if(!g_play)return;
+    if(foreign_caltrops::HandlePlay(g_play,ability,montage,rate,section))return;
     // Geyser can request War's rising-slash companion on interruption. That
     // foreign melee chain has no Strife adapter: finish its unplayed cast safely.
     // War's own rising slash and every unrelated actor remain native.
@@ -237,14 +239,17 @@ void Initialize(LogFn log,bool exactExecutable){
     if(MH_CreateHook(play,reinterpret_cast<void*>(&HookPlay),reinterpret_cast<void**>(&g_play))!=MH_OK){MH_RemoveHook(getter);g_getter=nullptr;return;}
     if(MH_EnableHook(getter)!=MH_OK||MH_EnableHook(play)!=MH_OK){MH_DisableHook(getter);MH_DisableHook(play);MH_RemoveHook(getter);MH_RemoveHook(play);g_getter=nullptr;g_play=nullptr;return;}
     g_create=reinterpret_cast<Create>(g_base+0x168A410);g_finish=reinterpret_cast<Finish>(g_base+0x59B080);g_playing=reinterpret_cast<Playing>(g_base+0x676620);g_ready=true;
+    foreign_caltrops::Initialize(log,exactExecutable);
     if(log)log("Foreign Wrath V1.88 READY: Stoneskin and Geyser on owned Strife only, native unlock/cost/lifecycle; compatible private montage; EXPERIMENTAL");
 }
 int Status(int choice){
+    if(choice==3)return foreign_caltrops::Status();
     if(!g_ready)return 0;g_requested=true;
     if(choice==4){g_requestGeyser=true;return foreign_montage::Ready()&&!g_geyserFailed?(g_geyserReady?2:1):0;}
     return choice==6?(g_assetsReady?2:1):0;
 }
 void Observe(const local_players::Context& owner){
+    foreign_caltrops::Observe(owner);
     if(!g_ready||!native_tps::OnGameThread())return;
     bool wanted=g_requested.load();for(const auto& choice:runtime::Get().wrathSlots[0]){wanted=wanted||choice.load()==6||choice.load()==4;if(choice.load()==4)g_requestGeyser=true;}
     if(!wanted||owner.index<0||owner.index>1||!owner.localPlayer||!owner.world||owner.kind!=local_players::PoseKind::Foot)return;
@@ -256,6 +261,7 @@ void Observe(const local_players::Context& owner){
     Scan(kind);
 }
 bool Prepare(void* actor,uintptr_t& abilityClass,int choice){
+    if(choice==3)return foreign_caltrops::Prepare(actor,abilityClass);
     g_requested=true;local_players::Context c{};Animation animation{};uintptr_t cdo=0,cls=0;
     if(choice!=4&&choice!=6)return false;
     if(choice==4){g_requestGeyser=true;CacheSpawnFunction();}
@@ -293,5 +299,5 @@ void DispatchEvent(DispatchFn native,void* object,void* function,void* parameter
     Read(g_base,0x3959694,after);sprintf_s(text,"Geyser V1.91 DISPATCH_AFTER call=%u nativeReturned=1 nestedBlastEvents=%u objectsBefore=%d objectsAfter=%d; no damage or cost override",
         trace.number,trace.blasts,before,after);g_log(text);
 }
-void Shutdown(){g_ready=false;g_assetsReady=false;g_geyserReady=false;}
+void Shutdown(){foreign_caltrops::Shutdown();g_ready=false;g_assetsReady=false;g_geyserReady=false;}
 }

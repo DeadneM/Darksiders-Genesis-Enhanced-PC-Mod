@@ -84,6 +84,11 @@ void Run(){
     Fresh();dg::runtime::Get().wrathSlots[0][0]=5;failOpen("unsupported foreign power rejects mapping even if runtime config is corrupted");
     Fresh();dg::runtime::Get().wrathSlots[0][0]=4;foreignReady=true;
     Check(Invoke(0,2)==Id(0,2)&&foreignResolves==1,"Geyser selects its foreign class while keeping the native semantic slot");
+    for(unsigned slot=0;slot<3;++slot){
+        Fresh();dg::runtime::Get().wrathSlots[1][slot]=3;foreignReady=true;
+        Check(Invoke(1,int(slot+2))==Id(1,int(slot+2))&&foreignResolves==1&&calls.size()==1,"Caltrops on War retains each original slot unlock/cost ABI and one native resolve");
+        Check(Invoke(0,2)==Id(0,2)&&foreignResolves==1,"War transfer cannot remap Strife's own Caltrops or other slots");
+    }
     Fresh();dg::runtime::Get().wrathSlots[0][0]=6;
     {uintptr_t out=123;bool a=true,b=true;Check(HookResolve(actors[0],&out,Id(0,2),&a,&b)==&out&&!out&&!a&&!b&&calls.empty(),
         "requested but unavailable foreign power blocks only its slot instead of firing another power");}
@@ -112,6 +117,7 @@ void Config(){
     using namespace dg::config;using namespace dg::wrath_slots;
     static_assert(int(Action::Count)==55);
     static_assert(Supported(0,6)&&Foreign(0,6)&&NativeNumber(0,6)==0&&Supported(0,4)&&Foreign(0,4)&&!Supported(1,1));
+    static_assert(Supported(1,3)&&Foreign(1,3)&&NativeNumber(1,3)==0&&!Supported(0,5)&&!Supported(1,2));
     wchar_t directory[MAX_PATH]{},path[MAX_PATH]{};
     Check(GetTempPathW(MAX_PATH,directory)&&GetTempFileNameW(directory,L"DGW",0,path),"temporary config created");
     Store a;a.SetPath(path);Check(a.Load()&&a.wrathSlots==Choices{},"missing six keys preserve native mapping");
@@ -124,6 +130,7 @@ void Config(){
     WritePrivateProfileStringW(L"Values",Keys[0][1],L"-1",path);WritePrivateProfileStringW(L"Values",Keys[1][1],L"999",path);
     Check(b.Load()&&b.wrathSlots[0][0]==4&&b.wrathSlots[0][1]==0&&b.wrathSlots[1][1]==0&&b.wrathSlots[1][2]==0,"supported Geyser loads while unsupported, negative and unknown choices fall back to Native");
     WritePrivateProfileStringW(L"Values",Keys[0][0],L"6",path);Check(b.Load()&&b.wrathSlots[0][0]==6&&dg::runtime::Get().wrathSlots[0][0].load()==6,"new supported Stoneskin choice survives load without changing key IDs");
+    WritePrivateProfileStringW(L"Values",Keys[1][0],L"3",path);Check(b.Load()&&b.wrathSlots[1][0]==3&&dg::runtime::Get().wrathSlots[1][0].load()==3&&b.menuKey==0xC0,"War Caltrops choice loads using existing key while custom menu binding remains intact");
     b.ResetDefaults(false);Check(b.wrathSlots==Choices{},"reset restores all native powers");DeleteFileW(path);
 }
 }

@@ -367,8 +367,8 @@ void Draw(Context& c) {
             }
             if(ImGui::CollapsingHeader("Wrath ability slots (experimental)")){
                 ImGui::Indent(12.0f);
-                ImGui::TextWrapped("Choose a power independently for each slot. Stoneskin on Strife remains experimental. Blade Geyser on Strife is NOT WORKING and is available for diagnosis only. Other cross-character powers remain under development.");
-                const int stoneStatus=wrath_slots::ForeignStatus(6),geyserStatus=wrath_slots::ForeignStatus(4);
+                ImGui::TextWrapped("Choose a power independently for each slot. Stoneskin on Strife remains experimental. Caltrops on War is an untested ground-only prototype: compatible idle pose, effect requested at cast start. Blade Geyser on Strife is NOT WORKING and is available for diagnosis only. Other transfers remain under development.");
+                const int stoneStatus=wrath_slots::ForeignStatus(6),geyserStatus=wrath_slots::ForeignStatus(4),caltropsStatus=wrath_slots::ForeignStatus(3);
                 constexpr const char* names[7]={"Native","Shadow Clone","World Ender","Caltrops","Blade Geyser","Rampage","Stoneskin"};
                 constexpr const char* familyNames[2]={"Strife","War"};
                 ImGui::BeginDisabled(!wrath_slots::Ready());
@@ -381,7 +381,7 @@ void Draw(Context& c) {
                         if(ImGui::BeginCombo(label,names[choice])){
                             for(int candidate=0;candidate<7;++candidate){
                                 if(!wrath_slots::Supported(family,candidate))continue;
-                                ImGui::BeginDisabled(wrath_slots::Foreign(family,candidate)&&(candidate==4?geyserStatus:stoneStatus)==0);
+                                ImGui::BeginDisabled(wrath_slots::Foreign(family,candidate)&&(candidate==3?caltropsStatus:(candidate==4?geyserStatus:stoneStatus))==0);
                                 if(ImGui::Selectable(names[candidate],choice==candidate)){
                                     config.wrathSlots[family][slot]=candidate;config.Save();
                                 }
@@ -397,9 +397,10 @@ void Draw(Context& c) {
                 ImGui::EndDisabled();
                 if(!wrath_slots::Ready())ImGui::TextDisabled("Native ability boundary unavailable; original slots retained.");
                 ImGui::TextWrapped("The original slot must be unlocked. Transferred powers keep their native Wrath cost and do not unlock War's progression. Wheel icons and hints may still describe the original slot. Horse and ultimate abilities stay native. Select Native to restore a slot.");
-                if(stoneStatus==1||geyserStatus==1)ImGui::TextWrapped("Foreign powers are preparing. A selected transfer stays inactive until its own assets are ready.");
+                if(stoneStatus==1||geyserStatus==1||caltropsStatus==1)ImGui::TextWrapped("Foreign powers are preparing. A selected transfer stays inactive until its own assets are ready.");
                 if(!stoneStatus)ImGui::TextDisabled("Stoneskin transfer unavailable.");
                 if(!geyserStatus)ImGui::TextDisabled("Blade Geyser transfer unavailable. After a failed cast, restart the game before retrying.");
+                if(!caltropsStatus)ImGui::TextDisabled("Caltrops transfer unavailable. Select Native after an unsuccessful test.");
                 ImGui::Unindent(12.0f);
             }
             if(ImGui::CollapsingHeader("Player movement")){
