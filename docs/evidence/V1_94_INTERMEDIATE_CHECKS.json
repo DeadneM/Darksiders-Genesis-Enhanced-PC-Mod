@@ -1,0 +1,70 @@
+{
+  "ci": {
+    "runId": 40114166154,
+    "jobId": 120931912903,
+    "sourceCommit": "92936358461bc4480ba2e0cb824156a1ab556e7d",
+    "conclusion": "success",
+    "suitesPassed": 54,
+    "testRows": 54,
+    "compilerWarnings": [],
+    "compilerErrors": [],
+    "sourceGateExecuted": true,
+    "toolingWarnings": [
+      "2026-10-24T17:01:18.9994798Z CMake Warning (deprecated) at build/_deps/minhook-src/CMakeLists.txt:27 (cmake_minimum_required):",
+      "2026-10-24T17:05:24.1392518Z (node:4884) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.",
+      "2026-10-24T17:05:24.4995364Z (node:4884) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities."
+    ],
+    "testEvidence": [
+      "2026-10-24T17:01:59.0283081Z   ForeignMontageTests.cpp",
+      "2026-10-24T17:02:07.9711893Z   ForeignWrathTests.cpp",
+      "2026-10-24T17:02:59.7394017Z   ForeignWrathFeature.cpp",
+      "2026-10-24T17:03:01.9576843Z   ForeignMontage.cpp",
+      "2026-10-24T17:05:18.5887849Z       Start  2: ForeignMontage",
+      "2026-10-24T17:05:18.6336159Z  2/54 Test  #2: ForeignMontage ...................   Passed    0.04 sec",
+      "2026-10-24T17:05:18.6342069Z       Start  3: ForeignWrath",
+      "2026-10-24T17:05:18.6764886Z  3/54 Test  #3: ForeignWrath .....................   Passed    0.04 sec",
+      "2026-10-24T17:05:22.6094263Z 100% tests passed out of 54"
+    ],
+    "checkoutSourceVerified": true
+  },
+  "package": {
+    "sourceCommit": "92936358461bc4480ba2e0cb824156a1ab556e7d",
+    "archiveCommit": "b3ef24427762282638b9221c126606e7d612f58c",
+    "name": "DarksidersGenesis_V1.94_WAR_CALTROPS_GROUND_TEST.zip",
+    "size": 941205,
+    "sha256": "337DDAB9E5A6E16C54D11C7ACC69D4ACA578DEDDC6B01257EFB5EEF34543FA61",
+    "files": {
+      "DarksidersGenesisMod.asi": {
+        "size": 1726464,
+        "sha256": "B6EFFED50DD35DB549FF81AD3B467539FF9E7E2C46692CA0904FA31A85E2BBD6"
+      },
+      "DarksidersGenesisMod.ini": {
+        "size": 4691,
+        "sha256": "99E3EECAD438A6735DD4389D544535FF798BB7F9E9EF0E4E243BC40CC4F13524"
+      },
+      "dxgi.dll": {
+        "size": 155136,
+        "sha256": "8018AFB36BB176A9386131F81C41B732C2D6187C5BB2441B113677DA1D7EC01A"
+      },
+      "README.md": {
+        "size": 57178,
+        "sha256": "A319EFEE8CE24D9E05238B9F4DE87E3ADC946FCB16097660A858FA4E382BA11C"
+      }
+    },
+    "oldArchivesUnchanged": 158,
+    "iniKeys": 168,
+    "hotkeyIdsUnchanged": 55,
+    "amd64": true,
+    "crcValid": true,
+    "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/b3ef24427762282638b9221c126606e7d612f58c/downloads/DarksidersGenesis_V1.94_WAR_CALTROPS_GROUND_TEST.zip",
+    "httpStatus": 200,
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/main": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "gameplayValidated": false
+  },
+  "status": "intermediate retained; same gameplay as final V1.95, archive name suffix from previous Caltrops build",
+  "gameplayValidated": false
+}

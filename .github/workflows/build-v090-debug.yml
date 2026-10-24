@@ -1,4 +1,4 @@
-name: V1.94 Strife Geyser presentation TEST
+name: V1.95 Strife Geyser presentation TEST
 on:
   push:
     branches: [debug]
@@ -22,6 +22,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: true
+      - name: Read archive identity from the compiled build header
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $header = Get-Content -Raw -LiteralPath src/BuildInfo.h
+          $archive = [regex]::Match($header, 'Archive\[\]="([^"]+)"').Groups[1].Value
+          $version = [regex]::Match($header, 'Version\[\]="(V[0-9]+\.[0-9]+)"').Groups[1].Value
+          if ($archive -notmatch '^DarksidersGenesis_V[0-9]+\.[0-9]+_[A-Z0-9_]+\.zip$' -or -not $version -or -not $archive.StartsWith("DarksidersGenesis_" + $version + "_")) { throw 'Invalid or inconsistent build archive identity' }
+          "DG_ARCHIVE=$archive" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Configure Windows x64
         shell: pwsh
         run: |
@@ -47,7 +56,7 @@ jobs:
           Copy-Item config/DarksidersGenesisMod.ini dist/
           Copy-Item README.md dist/
           New-Item -ItemType Directory -Path downloads -Force | Out-Null
-          $zipPath = 'downloads/DarksidersGenesis_V1.94_WAR_CALTROPS_GROUND_TEST.zip'
+          $zipPath = 'downloads/' + $env:DG_ARCHIVE
           if (Test-Path -LiteralPath $zipPath) { throw "A numbered ZIP already exists; use a new build version" }
           Compress-Archive -Path 'dist/*' -DestinationPath $zipPath -CompressionLevel Optimal
           Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -63,8 +72,8 @@ jobs:
       - name: Upload verified Windows x64 ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_V1.94_WAR_CALTROPS_GROUND_TEST
-          path: downloads/DarksidersGenesis_V1.94_WAR_CALTROPS_GROUND_TEST.zip
+          name: ${{ env.DG_ARCHIVE }}
+          path: downloads/${{ env.DG_ARCHIVE }}
           if-no-files-found: error
       - name: Preserve numbered experimental ZIP in debug
         shell: pwsh
@@ -82,7 +91,7 @@ jobs:
             git diff --quiet $env:GITHUB_SHA origin/debug -- src tests config CMakeLists.txt README.md .github/workflows/build-v090-debug.yml
             if ($LASTEXITCODE -eq 1) { throw 'Compiled sources have changed on debug; do not publish an obsolete numbered ZIP' }
             if ($LASTEXITCODE -ne 0) { throw 'Compiled source identity check failed' }
-            $archivePath = 'downloads/DarksidersGenesis_V1.94_WAR_CALTROPS_GROUND_TEST.zip'
+            $archivePath = 'downloads/' + $env:DG_ARCHIVE
             $priorBlob = git ls-tree --format='%(objectname)' origin/debug -- $archivePath
             if ($LASTEXITCODE -ne 0) { throw 'Archive identity lookup failed' }
             if ($priorBlob) {
@@ -91,7 +100,7 @@ jobs:
             }
             git reset --mixed origin/debug
             if ($LASTEXITCODE -ne 0) { throw 'Reset to latest origin/debug failed' }
-            git add -- downloads/DarksidersGenesis_V1.94_WAR_CALTROPS_GROUND_TEST.zip
+            git add -- $archivePath
             if ($LASTEXITCODE -ne 0) { throw 'Archive add failed' }
             git diff --cached --quiet
             if ($LASTEXITCODE -eq 0) {
@@ -106,4 +115,4 @@ jobs:
             Start-Sleep -Seconds 2
           }
           if (-not $published) { throw 'Permanent experimental ZIP push failed' }
-          Write-Host 'V1.94 ZIP https://raw.githubusercontent.com/'"$env:GITHUB_REPOSITORY"'/debug/downloads/DarksidersGenesis_V1.94_WAR_CALTROPS_GROUND_TEST.zip'
+          Write-Host ("ZIP https://raw.githubusercontent.com/" + $env:GITHUB_REPOSITORY + "/debug/downloads/" + $env:DG_ARCHIVE)

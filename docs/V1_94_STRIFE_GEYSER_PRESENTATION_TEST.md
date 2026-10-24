@@ -1,6 +1,6 @@
 # V1.94 — présentation de Blade Geyser sur Strife
 
-**EXPÉRIMENTAL, NON VALIDÉ EN JEU. Compilation et contrôles à consigner après CI.** Base expressément validée V1.87 pour les acquis rapportés, cumul V1.93. Objectif unique : rétablir la présentation compatible omise par le montage Geyser privé ; succès attendu : son de lancement et lames/nova visibles au bon endroit, une seule attaque, fin normale, Geyser de War intact. La pose reste celle de repos Strife_Idle ; ce candidat ne prétend pas transférer le geste de War ni résoudre une absence de dégâts. Installation manuelle, garder son INI/raccourcis/PAK/sauvegardes. P2 plus tard.
+**V1.94 INTERMÉDIAIRE CONSERVÉE : 54/54 suites et zéro avertissement MSVC, mais suffixe d’archive resté sur Caltrops. Remplacée par V1.95 avec le même code de jeu et un nom de ZIP centralisé. Aucun résultat en jeu supposé.** Base expressément validée V1.87 pour les acquis rapportés, cumul V1.93. Objectif unique : rétablir la présentation compatible omise par le montage Geyser privé ; succès attendu : son de lancement et lames/nova visibles au bon endroit, une seule attaque, fin normale, Geyser de War intact. La pose reste celle de repos Strife_Idle ; ce candidat ne prétend pas transférer le geste de War ni résoudre une absence de dégâts. Installation manuelle, garder son INI/raccourcis/PAK/sauvegardes. P2 plus tard.
 
 ## Preuve et changement
 
