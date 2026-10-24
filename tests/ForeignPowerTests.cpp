@@ -49,7 +49,7 @@ void Fresh(bool war=true,int kind=0){
  Put(f.montage,0x158,reinterpret_cast<uintptr_t>(f.tracks));Put(f.tracks,0,Name{33,0});Live(f.actor);Live(f.ability);
  objectChunks[0]=reinterpret_cast<uintptr_t>(f.items);Put(reinterpret_cast<void*>(g_base),0x3959680,reinterpret_cast<uintptr_t>(objectChunks));Put(reinterpret_cast<void*>(g_base),0x3959694,64);
 }
-void Cast(){Check(HandlePlay(PlayNative,f.ability,f.montage,.75f,{}),"recognized cast handled");}
+void Cast(){Check(HandlePlay(PlayNative,f.ability,f.montage,.75f,Name{0,0}),"recognized cast handled");}
 void Run(){
  std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(nameChunks));for(unsigned i=0;i<64;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
  for(int choice:{1,2,5}){Fresh(choice!=5,choice==1?0:(choice==2?1:2));uintptr_t cls=0;
@@ -57,7 +57,7 @@ void Run(){
   Check(Status(6)==0&&!Prepare(f.actor,cls,6),"retired power unavailable");
   Cast();Check(builds==1&&plays==1&&!finishes&&lastPlayed==f.replacement,"compatible cast preserves native playback");
   Check(constructors==(choice==5?0u:1u)&&registrations==constructors,"only powers needing an owned helper create one");
-  if(choice==2)Check(At<Name>(f.components[1],0x600).index==32&&At<Name>(f.components[1],0x608)==Name{},"World Ender uses own sword, no foreign pistol socket");
+  if(choice==2)Check(At<Name>(f.components[1],0x600).index==32&&At<Name>(f.components[1],0x608)==Name{0,0},"World Ender uses own sword, no foreign pistol socket");
   Cast();Check(constructors==(choice==5?0u:1u),"same owned helper reused across casts");
  }
  for(int phase=3;phase<7;++phase){Fresh(false,2);owner.index=1;Cast();Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.power[phase]));Cast();Check(plays==2&&RampageActor(1)->address==owner.character,"all four Rampage finish phases use same P2 owner");}

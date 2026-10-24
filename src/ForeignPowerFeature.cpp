@@ -112,7 +112,7 @@ bool Helper(const local_players::Context& c,int index){
            !Read(mesh,0xE8,owner)||owner!=c.character||!Read(mesh,0x18,meshName)||
            !Property(g_helper[index].address,"DefaultWeaponMesh","NameProperty",8,weapon)||!Property(g_helper[index].address,"DefaultMuzzleSocket","NameProperty",8,muzzle))return false;
     }
-    const auto component=reinterpret_cast<uintptr_t>(g_construct(reinterpret_cast<void*>(g_helper[index].address),reinterpret_cast<void*>(c.character),{},0x40u,0,reinterpret_cast<void*>(cdo),false,nullptr,false));
+    const auto component=reinterpret_cast<uintptr_t>(g_construct(reinterpret_cast<void*>(g_helper[index].address),reinterpret_cast<void*>(c.character),Name{0,0},0x40u,0,reinterpret_cast<void*>(cdo),false,nullptr,false));
     uint32_t flags=0;
     if(!Alive(state->actor)||!component||component==cdo||!Read(component,0x10,cls)||cls!=g_helper[index].address||!Read(component,0x20,outer)||outer!=c.character||
        !Read(component,8,flags)||(flags&0x30u)||!(flags&0x40u)||!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(component),identity))return false;
