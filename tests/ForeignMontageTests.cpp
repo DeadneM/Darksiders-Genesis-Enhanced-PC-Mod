@@ -13,6 +13,7 @@ struct Fixture {
     unsigned char tracks[24]{},segments[64]{},events[368]{},sections[88]{},sequenceEvents[552]{};
     unsigned char copyTracks[24]{},copySegments[64]{},copyEvents[64*184]{},copySections[88]{};
     unsigned char blade[0x100]{},bladeCopy[0x100]{},nova[0x100]{},sound[0x100]{},other[0x100]{},assets[4][0x80]{};
+    unsigned char blastClass[0x80]{},blastField[0x80]{},nameClass[0x80]{},blast[0x100]{},blastCopy[0x100]{};
 } f;
 unsigned char entries[40][256]{};uintptr_t names[40]{},chunks[1]{reinterpret_cast<uintptr_t>(names)};
 bool gameThread=true;int mode=0;unsigned constructors=0,skeletonCalls=0,reserves=0;
@@ -30,6 +31,10 @@ void ReserveNative(void* array,int count){
 }
 void* ConstructNative(void* cls,void* outer,Name name,uint32_t flags,uint32_t internal,void* templ,bool transients,void* graph,bool assume){
     ++constructors;
+    if(templ==f.blast){
+        Check(cls==f.blastClass&&outer==f.copy&&flags==0x40u,"blast clone has exact class and private montage owner");
+        std::memcpy(f.blastCopy,f.blast,sizeof(f.blast));Put(f.blastCopy,8,flags);Put(f.blastCopy,0x20,reinterpret_cast<uintptr_t>(outer));return f.blastCopy;
+    }
     if(templ==f.blade){
         Check(cls==f.classes[6]&&outer==f.copy&&!name.index&&!name.number&&flags==0x40u&&!internal&&!transients&&!graph&&!assume,
               "root notify clone uses its exact native class and private montage outer");
@@ -197,6 +202,14 @@ void Batch(){
               !std::memcmp(f.segments,before->segments,sizeof(f.segments)),"generic transfer leaves original montage/sequence/events untouched");
         for(int bad:{2,3,4,5,6,7,8,9}){mode=bad;Check(!Compatible(reinterpret_cast<uintptr_t>(f.original),source),"generic clone rejects shared arrays, CDO and wrong outer");}
     }
+    Fresh();Label(f.original,7,"War_Atk_Rampage_Strike_Level1_Montage");Label(f.originalPackage,8,"/Game/Characters/Heroes/Hero_War/Animation/War_Atk_Rampage_Strike_Level1_Montage");
+    Label(f.blastClass,25,"AnimNotify_SpawnBlast");Label(f.blastField,26,"SpawnSocket");Label(f.nameClass,27,"NameProperty");strcpy_s(reinterpret_cast<char*>(entries[28]+12),244,"Bone_War_Hand_L");
+    Put(f.blastClass,0x48,reinterpret_cast<uintptr_t>(f.blastField));Put(f.blastField,0x10,reinterpret_cast<uintptr_t>(f.nameClass));Put(f.blastField,0x34,8);Put(f.blastField,0x44,0x40);
+    Put(f.blast,0x10,reinterpret_cast<uintptr_t>(f.blastClass));Put(f.blast,0x20,reinterpret_cast<uintptr_t>(f.war));Put(f.blast,0x40,Name{28,0});
+    Put(f.war,0x80,Array{reinterpret_cast<uintptr_t>(f.sequenceEvents),2,2});Put(f.sequenceEvents,184+0x48,reinterpret_cast<uintptr_t>(f.blast));Put(f.sequenceEvents,184+0x24,.6f);
+    Check(Compatible(reinterpret_cast<uintptr_t>(f.original),source)==f.copy&&At<Name>(f.blastCopy,0x40).index==source.rootIndex&&At<Name>(f.blast,0x40).index==28,
+          "Rampage reflected SpawnSocket is rebound privately to own root; native blast and source socket preserved");
+    Put(f.blastField,0x18,19);Check(!Compatible(reinterpret_cast<uintptr_t>(f.original),source),"missing exact native SpawnSocket rejects unsafe blast transfer");
     Check(dg::native_objects::NameValueEquals(g_base,19,0,"Bone_Strife_Root")&&!dg::native_objects::NameValueEquals(g_base,19,0,"Bone_Strife")&&
           !dg::native_objects::NameValueEquals(g_base,19,1,"Bone_Strife_Root")&&!dg::native_objects::NameValueEquals(g_base,-1,0,"X"),"dynamic names require exact full value, valid index and no instance number");
     Put(entries[39],8,uint32_t(1));const wchar_t wide[]=L"WideName";std::memcpy(entries[39]+12,wide,sizeof(wide));
