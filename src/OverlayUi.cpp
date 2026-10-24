@@ -367,8 +367,8 @@ void Draw(Context& c) {
             }
             if(ImGui::CollapsingHeader("Wrath ability slots (experimental)")){
                 ImGui::Indent(12.0f);
-                ImGui::TextWrapped("Choose a power independently for each slot. Caltrops and Geyser effects/damage were confirmed; their transferred animations remain incomplete. Clone, World Ender and Rampage transfers are experimental and use compatible idle poses. Our Stoneskin adaptation is removed: War's original Stoneskin remains available through Native.");
-                int status[6]={2,wrath_slots::ForeignStatus(1),wrath_slots::ForeignStatus(2),wrath_slots::ForeignStatus(3),wrath_slots::ForeignStatus(4),wrath_slots::ForeignStatus(5)};
+                ImGui::TextWrapped("Transfers retained: Clone and Caltrops on War, Geyser on Strife. Effects work in reported tests; animations remain incomplete. World Ender on War and Rampage on Strife were rejected and removed after gameplay failures. Original powers remain available on their own character. Stoneskin stays native on War.");
+                int status[6]={2,wrath_slots::ForeignStatus(1),0,wrath_slots::ForeignStatus(3),wrath_slots::ForeignStatus(4),0};
                 constexpr const char* names[6]={"Native","Shadow Clone","World Ender","Caltrops","Blade Geyser","Rampage"};
                 constexpr const char* familyNames[2]={"Strife","War"};
                 ImGui::BeginDisabled(!wrath_slots::Ready());
@@ -397,7 +397,7 @@ void Draw(Context& c) {
                 ImGui::EndDisabled();
                 if(!wrath_slots::Ready())ImGui::TextDisabled("Native ability boundary unavailable; original slots retained.");
                 ImGui::TextWrapped("The original slot must be unlocked. Transferred powers keep their native Wrath cost and do not unlock War's progression. Wheel icons and hints may still describe the original slot. Horse and ultimate abilities stay native. Select Native to restore a slot.");
-                for(int power=1;power<6;++power){
+                for(int power:{1,3,4}){
                     if(status[power]==1)ImGui::TextDisabled("%s: preparing loaded assets.",names[power]);
                     if(status[power]==0)ImGui::TextDisabled("%s transfer unavailable; select Native after an unsuccessful cast.",names[power]);
                 }

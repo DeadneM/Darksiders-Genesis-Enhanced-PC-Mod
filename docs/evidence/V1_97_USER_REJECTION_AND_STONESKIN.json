@@ -1,0 +1,22 @@
+{
+  "userReport": {
+    "version": "V1.96",
+    "rampageOnStrife": "reject: permanent input lock",
+    "worldEnderOnWar": "reject: no functioning beam",
+    "cloneOnWar": "effects work, animation fails",
+    "allForeignAnimations": "incorrect",
+    "stoneskinCrystal": "only while Stoneskin is active"
+  },
+  "userLogSha256": "eca52a6eb785c793bf0b58a721387a47fa9493a07b6571c0949446d8abb95c3f",
+  "nativePakIndexSha1": "5d0982cd46a5221290cb6ed24696e3962e9dddff",
+  "installedPakFiles": [
+    "ProjectMayhem-WindowsNoEditor.pak"
+  ],
+  "nativeStoneSkinApplyStingerCore": true,
+  "stingerParticle": "P_Stinger_CreatureCore_StoneSkin",
+  "stingerStaticMesh": "Dn_VFX_Rocks_Single_J",
+  "stingerMaterial": "M_VFX_StoneSkin_Thorns",
+  "liveComponentIdentified": false,
+  "crystalCauseProven": false,
+  "crystalFixed": false
+}

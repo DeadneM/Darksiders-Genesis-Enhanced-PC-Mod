@@ -89,10 +89,10 @@ void Run(){
         Check(Invoke(1,int(slot+2))==Id(1,int(slot+2))&&foreignResolves==1&&calls.size()==1,"Caltrops on War retains each original slot unlock/cost ABI and one native resolve");
         Check(Invoke(0,2)==Id(0,2)&&foreignResolves==1,"War transfer cannot remap Strife's own Caltrops or other slots");
     }
-    Fresh();dg::runtime::Get().wrathSlots[0][0]=5;
+    Fresh();dg::runtime::Get().wrathSlots[0][0]=4;
     {uintptr_t out=123;bool a=true,b=true;Check(HookResolve(actors[0],&out,Id(0,2),&a,&b)==&out&&!out&&!a&&!b&&calls.empty(),
         "requested but unavailable foreign power blocks only its slot instead of firing another power");}
-    Fresh();dg::runtime::Get().wrathSlots[0][0]=5;foreignReady=true;
+    Fresh();dg::runtime::Get().wrathSlots[0][0]=4;foreignReady=true;
     Check(Invoke(0,2)==Id(0,2)&&foreignResolves==1&&calls.size()==1,"foreign adapter retains original semantic slot unlock ID and complete native resolve ABI");
     Check(Invoke(0,3)==Id(0,3)&&foreignResolves==1,"other slots stay native while foreign slot selected");
     Fresh();dg::runtime::Get().wrathSlots[0][0]=2;gameThread=false;failOpen("non-game-thread query remains native");Check(resolves==0,"no owner discovery off game thread");
@@ -117,7 +117,7 @@ void Config(){
     using namespace dg::config;using namespace dg::wrath_slots;
     static_assert(int(Action::Count)==55);
     static_assert(!Supported(0,6)&&!Supported(1,6)&&Supported(0,4)&&Foreign(0,4)&&Supported(1,1)&&Foreign(1,1));
-    static_assert(Supported(1,3)&&Foreign(1,3)&&NativeNumber(1,3)==0&&Supported(0,5)&&Supported(1,2));
+    static_assert(Supported(1,3)&&Foreign(1,3)&&NativeNumber(1,3)==0&&!Supported(0,5)&&!Supported(1,2));
     wchar_t directory[MAX_PATH]{},path[MAX_PATH]{};
     Check(GetTempPathW(MAX_PATH,directory)&&GetTempFileNameW(directory,L"DGW",0,path),"temporary config created");
     Store a;a.SetPath(path);Check(a.Load()&&a.wrathSlots==Choices{},"missing six keys preserve native mapping");
@@ -131,6 +131,8 @@ void Config(){
     Check(b.Load()&&b.wrathSlots[0][0]==4&&b.wrathSlots[0][1]==0&&b.wrathSlots[1][1]==0&&b.wrathSlots[1][2]==1,"supported Geyser loads while unsupported, negative and unknown choices fall back to Native");
     WritePrivateProfileStringW(L"Values",Keys[0][0],L"6",path);Check(b.Load()&&b.wrathSlots[0][0]==0&&dg::runtime::Get().wrathSlots[0][0].load()==0,"retired choice falls back to Native without changing keys");
     WritePrivateProfileStringW(L"Values",Keys[1][0],L"3",path);Check(b.Load()&&b.wrathSlots[1][0]==3&&dg::runtime::Get().wrathSlots[1][0].load()==3&&b.menuKey==0xC0,"War Caltrops choice loads using existing key while custom menu binding remains intact");
+    WritePrivateProfileStringW(L"Values",Keys[0][0],L"5",path);WritePrivateProfileStringW(L"Values",Keys[1][0],L"2",path);
+    Check(b.Load()&&b.wrathSlots[0][0]==0&&b.wrathSlots[1][0]==0,"rejected Rampage/World Ender transfers normalize to Native");
     b.ResetDefaults(false);Check(b.wrathSlots==Choices{},"reset restores all native powers");DeleteFileW(path);
 }
 }

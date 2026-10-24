@@ -29,7 +29,7 @@ void PlayNative(void* ability,void* montage,float rate,Name){++plays;lastPlayed=
 void Fresh(bool war=true,int kind=0){
  f={};local=gameThread=buildOK=registered=playOK=true;reassign=false;constructors=registrations=builds=plays=finishes=0;lastPlayed=nullptr;liveId=0;
  g_ready=true;g_failed=g_requested=0;g_construct=ConstructNative;g_register=RegisterNative;g_finish=FinishNative;g_playing=PlayingNative;g_handling=nullptr;g_log=nullptr;g_cursor=g_count=0;g_scanTick=0;
- for(auto& x:g_rampage)x={};for(auto& x:g_owned)x={};
+ for(auto& x:g_owned)x={};
  const char* classes[]={"BlueprintGeneratedClass","Class","AnimSequence",war?"War_Blueprint_C":"Strife_Blueprint_C",war?"WarAnim_Blueprint_C":"StrifeAnim_Blueprint_C","ObjectProperty","NameProperty"};
  for(int i=0;i<7;++i)Label(f.classes[i],i+1,classes[i]);
  owner={};owner.index=0;owner.localPlayer=123;owner.world=456;owner.controller=reinterpret_cast<uintptr_t>(f.controller);owner.pawn=owner.character=reinterpret_cast<uintptr_t>(f.actor);
@@ -37,10 +37,10 @@ void Fresh(bool war=true,int kind=0){
  Put(f.actor,0x380,reinterpret_cast<uintptr_t>(f.mesh));Put(f.actor,0x388,reinterpret_cast<uintptr_t>(f.movement));Put(f.movement,0xE8,owner.character);Put<unsigned char>(f.movement,0x1B0,1);
  Put(f.mesh,0xE8,owner.character);Put(f.mesh,0x718,reinterpret_cast<uintptr_t>(f.anim));Put(f.mesh,0x5A0,reinterpret_cast<uintptr_t>(f.asset));Put(f.anim,0x10,reinterpret_cast<uintptr_t>(f.classes[4]));Put(f.anim,0x28,reinterpret_cast<uintptr_t>(f.skeleton));
  Put(f.asset,0x190,Array{reinterpret_cast<uintptr_t>(f.bone),1,1});strcpy_s(reinterpret_cast<char*>(entries[8]+12),244,war?"Bone_War_Root":"Bone_Strife_Root");Put(f.bone,0,Name{8,0});
- for(int i=0;i<2;++i){Label(f.idle[i],9+i,i?"War_Idle":"Strife_Idle");Put(f.idle[i],0x10,reinterpret_cast<uintptr_t>(f.classes[2]));Put(f.idle[i],0x38,reinterpret_cast<uintptr_t>(f.skeleton));Put(f.idle[i],0x90,2.666667f);Put(f.idle[i],0x94,1.0f);g_idle[i]=Live(f.idle[i]);}
- for(int i=0;i<7;++i){Label(f.power[i],11+i,PowerNames[i]);Label(f.packages[i],18+i,PowerPackages[i]);Put(f.power[i],0x10,reinterpret_cast<uintptr_t>(f.classes[0]));Put(f.power[i],0x20,reinterpret_cast<uintptr_t>(f.packages[i]));g_power[i]=Live(f.power[i]);}
+ for(int i=0;i<2;++i){Label(f.idle[i],9+i,i?"War_Idle":"Strife_Idle");Put(f.idle[i],0x10,reinterpret_cast<uintptr_t>(f.classes[2]));Put(f.idle[i],0x38,reinterpret_cast<uintptr_t>(f.skeleton));Put(f.idle[i],0x90,2.666667f);Put(f.idle[i],0x94,1.0f);if(i==1)g_idle[0]=Live(f.idle[i]);}
+ for(int i=0;i<7;++i){Label(f.power[i],11+i,i?"RejectedAbility_C":PowerNames[0]);Label(f.packages[i],18+i,i?"/Game/RejectedAbility":PowerPackages[0]);Put(f.power[i],0x10,reinterpret_cast<uintptr_t>(f.classes[0]));Put(f.power[i],0x20,reinterpret_cast<uintptr_t>(f.packages[i]));if(i==0)g_power[0]=Live(f.power[i]);}
  Label(f.helpers[0],25,"ShadowCharacterComponent");Label(f.helperPackages[0],26,"/Script/DarksidersGenesis");Label(f.helpers[1],27,"MayhemWorldEnder_Blueprint_C");Label(f.helperPackages[1],28,"/Game/Blueprints/Player/MayhemWorldEnder_Blueprint");
- for(int i=0;i<2;++i){Put(f.helpers[i],0x10,reinterpret_cast<uintptr_t>(f.classes[i?0:1]));Put(f.helpers[i],0x20,reinterpret_cast<uintptr_t>(f.helperPackages[i]));Put(f.helpers[i],0xF8,reinterpret_cast<uintptr_t>(f.cdos[i]));Put(f.cdos[i],0x10,reinterpret_cast<uintptr_t>(f.helpers[i]));g_helper[i]=Live(f.helpers[i]);}
+ for(int i=0;i<2;++i){Put(f.helpers[i],0x10,reinterpret_cast<uintptr_t>(f.classes[i?0:1]));Put(f.helpers[i],0x20,reinterpret_cast<uintptr_t>(f.helperPackages[i]));Put(f.helpers[i],0xF8,reinterpret_cast<uintptr_t>(f.cdos[i]));Put(f.cdos[i],0x10,reinterpret_cast<uintptr_t>(f.helpers[i]));if(i==0)g_helper[0]=Live(f.helpers[i]);}
  Label(f.fields[0],29,"Chaoseater");Label(f.fields[1],30,"DefaultWeaponMesh");Label(f.fields[2],31,"DefaultMuzzleSocket");Label(f.weapon,32,"OwnSword");
  for(int i=0;i<3;++i){Put(f.fields[i],0x10,reinterpret_cast<uintptr_t>(f.classes[i?6:5]));Put(f.fields[i],0x34,8);Put(f.fields[i],0x44,i?0x600+(i-1)*8:0x1000);}
  Put(f.classes[3],0x48,reinterpret_cast<uintptr_t>(f.fields[0]));Put(f.actor,0x1000,reinterpret_cast<uintptr_t>(f.weapon));Put(f.weapon,0xE8,owner.character);
@@ -52,7 +52,7 @@ void Fresh(bool war=true,int kind=0){
 void Cast(){Check(HandlePlay(PlayNative,f.ability,f.montage,.75f,Name{0,0}),"recognized cast handled");}
 void Run(){
  std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(nameChunks));for(unsigned i=0;i<64;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
- for(int choice:{1,2,5}){Fresh(choice!=5,choice==1?0:(choice==2?1:2));uintptr_t cls=0;
+ for(int choice:{1}){Fresh(choice!=5,choice==1?0:(choice==2?1:2));uintptr_t cls=0;
   Check(Prepare(f.actor,cls,choice)&&cls==At<uintptr_t>(f.ability,0x10)&&!constructors&&!registrations,"preparation selects exact loaded class without construction");
   Check(Status(6)==0&&!Prepare(f.actor,cls,6),"retired power unavailable");
   Cast();Check(builds==1&&plays==1&&!finishes&&lastPlayed==f.replacement,"compatible cast preserves native playback");
@@ -60,10 +60,12 @@ void Run(){
   if(choice==2)Check(At<Name>(f.components[1],0x600).index==32&&At<Name>(f.components[1],0x608)==Name{0,0},"World Ender uses own sword, no foreign pistol socket");
   Cast();Check(constructors==(choice==5?0u:1u),"same owned helper reused across casts");
  }
- for(int phase=3;phase<7;++phase){Fresh(false,2);owner.index=1;Cast();Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.power[phase]));Cast();Check(plays==2&&RampageActor(1)->address==owner.character,"all four Rampage finish phases use same P2 owner");}
+ Fresh();owner.index=1;Cast();Check(plays==1&&constructors==1,"P2 Clone retains its own component");
+ for(int rejected:{2,5}){Fresh();uintptr_t cls=123;Check(!Status(rejected)&&!Prepare(f.actor,cls,rejected)&&cls==123&&!constructors,"rejected transfer cannot resolve or construct anything");}
+ Fresh(true,1);Check(!HandlePlay(PlayNative,f.ability,f.montage,.75f,Name{0,0}),"unrelated native power remains untouched");
  for(int bad=0;bad<5;++bad){Fresh();if(bad==0)local=false;if(bad==1)gameThread=false;if(bad==2)owner.kind=dg::local_players::PoseKind::Horse;if(bad==3)Put<unsigned char>(f.actor,0x118,2);if(bad==4)Put<unsigned char>(f.ability,8,0x10);
   Check(!HandlePlay(PlayNative,f.ability,f.montage,.75f,{})&&!constructors&&!plays&&!finishes,"nonlocal, off-thread, transformed, remote and CDO paths untouched");}
- Fresh();registered=false;Cast();Check(finishes==1&&Status(1)==0&&!builds,"registration failure finishes exact cast and disables only that power");Check(Status(2)==2&&Status(5)==2,"other experimental powers remain available");
+ Fresh();registered=false;Cast();Check(finishes==1&&Status(1)==0&&!builds,"registration failure finishes exact cast and disables only that power");Check(Status(2)==0&&Status(5)==0,"rejected powers stay unavailable");
  Fresh();buildOK=false;Cast();Cast();Check(finishes==2&&builds==1&&constructors==1,"failed montage is not reconstructed repeatedly");
  Fresh();reassign=true;Cast();Check(!plays&&!finishes,"owner changed during construction is never played or finished through stale owner");
  Fresh(false,3);Check(!HandlePlay(PlayNative,f.ability,f.montage,.75f,{})&&!builds,"unassociated Rampage finish is untouched");
@@ -76,4 +78,4 @@ void* Compatible(uintptr_t m,const Source& s){++builds;Check(m==reinterpret_cast
 }
 namespace dg::native_tps {bool OnGameThread(){return gameThread;}}
 namespace dg::local_players {bool ResolveActor(void*,Context& c){c=owner;return local;}}
-int main(){try{Run();std::cout<<"Owned power components, native ABI, four-phase lifecycle, failure isolation and passthrough passed\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
+int main(){try{Run();std::cout<<"Owned power components, native ABI, rejected transfer removal, failure isolation and passthrough passed\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

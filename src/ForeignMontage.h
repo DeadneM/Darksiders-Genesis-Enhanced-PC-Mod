@@ -10,7 +10,7 @@ bool CanBuild(const Source&);
 // NewObject with the source as template: only private, non-aliased native
 // arrays are edited. The engine owns allocation, notify timing and cleanup.
 void* Geyser(uintptr_t nativeMontage,const Source&);
-// Remaining experimental powers: native callback/blast timeline,
+// Retained Clone transfer: native callback timeline,
 // compatible pose, and root-only presentation. Weapon sockets are excluded.
 void* Compatible(uintptr_t nativeMontage,const Source&);
 }

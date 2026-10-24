@@ -154,11 +154,11 @@ void Initialize(LogFn log,bool exactExecutable){
     g_finish=reinterpret_cast<Finish>(g_base+0x59B080);g_playing=reinterpret_cast<Playing>(g_base+0x676620);g_ready=true;
     foreign_caltrops::Initialize(log,exactExecutable);
     foreign_power::Initialize(log,exactExecutable);
-    if(log)log("Foreign Wrath V1.96 READY: Geyser and batched foreign powers, native unlock/cost/lifecycle; compatible private montages");
+    if(log)log("Foreign Wrath V1.97 READY: Geyser, Caltrops and Clone only, native unlock/cost/lifecycle; compatible private montages");
 }
 int Status(int choice){
     if(choice==3)return foreign_caltrops::Status();
-    if(choice==1||choice==2||choice==5)return foreign_power::Status(choice);
+    if(choice==1)return foreign_power::Status(choice);
     if(choice!=4||!g_ready)return 0;g_requested=true;
     return foreign_montage::Ready()&&!g_geyserFailed?(g_geyserReady?2:1):0;
 }
@@ -175,7 +175,7 @@ void Observe(const local_players::Context& owner){
 }
 bool Prepare(void* actor,uintptr_t& abilityClass,int choice){
     if(choice==3)return foreign_caltrops::Prepare(actor,abilityClass);
-    if(choice==1||choice==2||choice==5)return foreign_power::Prepare(actor,abilityClass,choice);
+    if(choice==1)return foreign_power::Prepare(actor,abilityClass,choice);
     if(choice!=4)return false;g_requested=true;
     local_players::Context c{};Animation animation{};uintptr_t cdo=0,cls=0;
     if(!g_ready||!g_geyserReady||!OwnedStrife(actor,c)||Kind(g_geyser.address)!=4||g_geyserFailed||

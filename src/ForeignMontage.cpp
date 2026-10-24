@@ -203,26 +203,9 @@ namespace {
 bool Named(uintptr_t p,const char* text){int index=0,number=0;return Read(p,0x18,index)&&Read(p,0x1C,number)&&native_objects::NameValueEquals(g_base,index,number,text);}
 bool TransferMontage(uintptr_t p){
     uintptr_t package=0;if(!Read(p,0x20,package))return false;
-    constexpr const char* strife[]={"Strife_SpawnClone_Back_Montage","Strife_SpawnClone_F_Montage","Strife_Aim_WorldEnder_Montage"};
-    constexpr const char* war[]={"War_Atk_Rampage_Start_Montage","War_Atk_Rampage_Land_Montage","War_Atk_Rampage_Strike_Level1_Montage","War_Atk_Rampage_Strike_Level2_Montage","War_Atk_Rampage_Strike_Level3_Montage"};
+    constexpr const char* names[]={"Strife_SpawnClone_Back_Montage","Strife_SpawnClone_F_Montage"};
     char path[200]{};
-    for(const auto* name:strife)if(Named(p,name)){sprintf_s(path,"/Game/Characters/Heroes/Hero_Strife/Animations/%s",name);return Named(package,path);}
-    for(const auto* name:war)if(Named(p,name)){sprintf_s(path,"/Game/Characters/Heroes/Hero_War/Animation/%s",name);return Named(package,path);}
-    return false;
-}
-bool RootProperty(uintptr_t notify,uintptr_t cls,size_t& offset,Name& socket){
-    if(Is(cls,"AnimNotify_PlayParticleEffect")){offset=0x84;return Read(notify,offset,socket);}
-    offset=0;socket={};
-    for(unsigned depth=0;cls&&depth<16;++depth){
-        uintptr_t field=0;if(!Read(cls,0x48,field))return false;
-        for(unsigned n=0;field&&n<256;++n){
-            uintptr_t type=0,next=0;int size=0,at=0;
-            if(Read(field,0x10,type)&&Is(type,"NameProperty")&&Is(field,"SpawnSocket")&&Read(field,0x34,size)&&size==8&&
-               Read(field,0x44,at)&&at>=0x30&&at<=0x200){offset=size_t(at);return Read(notify,offset,socket);}
-            if(!Read(field,0x28,next)||next==field)return false;field=next;
-        }
-        uintptr_t parent=0;if(!Read(cls,0x40,parent)||parent==cls)return false;cls=parent;
-    }
+    for(const auto* name:names)if(Named(p,name)){sprintf_s(path,"/Game/Characters/Heroes/Hero_Strife/Animations/%s",name);return Named(package,path);}
     return false;
 }
 bool Gather(uintptr_t asset,const Array& list,float first,float last,float start,float rate,Presentation& plan){
@@ -230,16 +213,15 @@ bool Gather(uintptr_t asset,const Array& list,float first,float last,float start
         const auto at=list.data+size_t(i)*sizeof(Event);uintptr_t notify=0,cls=0,state=0;float time=0,duration=0;unsigned char tick=255;
         if(!Read(at,0x48,notify))return false;if(!notify)continue;
         if(!Read(notify,0x10,cls))return false;
-        const bool callback=Is(cls,"AnimNotify_CallAbilityFunction"),particle=Is(cls,"AnimNotify_PlayParticleEffect"),blast=Is(cls,"AnimNotify_SpawnBlast");
-        if(!callback&&!particle&&!blast&&!Is(cls,"AnimNotify_PlaySound"))continue;
+        const bool callback=Is(cls,"AnimNotify_CallAbilityFunction"),particle=Is(cls,"AnimNotify_PlayParticleEffect");
+        if(!callback&&!particle&&!Is(cls,"AnimNotify_PlaySound"))continue;
         if(!Read(at,0x24,time)||!std::isfinite(time))return false;
         if(time<first||time>=last)continue;
-        size_t socketOffset=0;Name socket{};
-        if((particle||blast)&&!RootProperty(notify,cls,socketOffset,socket))return false;
+        Name socket{};
+        if(particle&&!Read(notify,0x84,socket))return false;
         if((socket.index||socket.number)&&!native_objects::NameValueIs(g_base,socket.index,socket.number,"Bone_War_Root")&&
            !native_objects::NameValueIs(g_base,socket.index,socket.number,"Bone_Strife_Root")&&
-           !native_objects::NameValueIs(g_base,socket.index,socket.number,"VFX_Root")&&
-           !(blast&&native_objects::NameValueIs(g_base,socket.index,socket.number,"Bone_War_Hand_L")))continue;
+           !native_objects::NameValueIs(g_base,socket.index,socket.number,"VFX_Root"))continue;
         uintptr_t owner=0;
         if(plan.count<0||plan.count>=int(plan.events.size())||!Read(notify,0x20,owner)||owner!=asset||!Read(at,0x50,state)||state||
            !Read(at,0x58,duration)||duration!=0||!Read(at,0x91,tick)||tick>1||!Read(at,0,plan.events[plan.count]))return false;
@@ -251,17 +233,15 @@ bool Gather(uintptr_t asset,const Array& list,float first,float last,float start
 bool Rebind(Event& event,uintptr_t montage,const Source& source){
     uintptr_t notify=0,cls=0;std::memcpy(&notify,event.data()+0x48,sizeof(notify));
     if(!Read(notify,0x10,cls))return false;
-    if(!Is(cls,"AnimNotify_PlayParticleEffect")&&!Is(cls,"AnimNotify_SpawnBlast"))return true;
-    size_t offset=0;Name socket{};if(!RootProperty(notify,cls,offset,socket))return false;
+    if(!Is(cls,"AnimNotify_PlayParticleEffect"))return true;
+    constexpr size_t offset=0x84;Name socket{};if(!Read(notify,offset,socket))return false;
     if(!socket.index&&!socket.number)return true;
     const auto copy=reinterpret_cast<uintptr_t>(g_construct(reinterpret_cast<void*>(cls),reinterpret_cast<void*>(montage),{},0x40u,0,reinterpret_cast<void*>(notify),false,nullptr,false));
     uintptr_t actual=0,outer=0;uint32_t flags=0;
     if(!copy||copy==notify||!Read(copy,0x10,actual)||actual!=cls||!Read(copy,0x20,outer)||outer!=montage||
        !Read(copy,8,flags)||(flags&0x30u)||!(flags&0x40u))return false;
-    if(Is(cls,"AnimNotify_PlayParticleEffect")){
-        std::array<unsigned char,0x54> payload{};if(!Read(notify,0x38,payload)||!Store(copy,0x38,payload))return false;
-    }
-    if(!offset||!Store(copy,offset,Name{source.rootIndex,source.rootNumber}))return false;
+    std::array<unsigned char,0x54> payload{};if(!Read(notify,0x38,payload)||!Store(copy,0x38,payload))return false;
+    if(!Store(copy,offset,Name{source.rootIndex,source.rootNumber}))return false;
     std::memcpy(event.data()+0x48,&copy,sizeof(copy));return true;
 }
 }

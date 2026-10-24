@@ -1,3 +1,15 @@
+## V1.97 - Repli apres rejet de V1.96
+
+V1.96 REJETEE en jeu : Rampage sur Strife bloque le personnage ; World Ender sur War echoue ; Clone fonctionne sans animation correcte. Caltrops/Geyser : effets et degats confirmes, animations toujours incorrectes. **V1.97 CANDIDAT : compilation et controles en attente.** Base : V1.95 et uniquement les effets retenus de Clone V1.96.
+
+Le code des deux transferts rejetes est retire, pas seulement masque dans le menu. Les anciennes selections Rampage sur Strife et World Ender sur War reviennent a Native. Leurs pouvoirs d'origine restent disponibles sur leur propre personnage. Clone/Caltrops sur War et Geyser sur Strife conserves. Aucun changement des tirs, cameras, controles, effets valides ou defauts INI.
+
+Stoneskin reste natif sur War ; aucune adaptation de ce pouvoir. Cristal toujours signale, uniquement pendant Stoneskin : NON CORRIGE. Le PAK d'origine contient un effet de pointes de pierre conditionne par un coeur ; piste seulement, aucun composant observe en jeu et aucune attribution de cause. Animations : les poses idle ne sont pas une solution finale ; il faut reprendre le transfert d'animation et son lifecycle avant de reintroduire les pouvoirs rejetes.
+
+Installation manuelle avec INI/raccourcis/PAK/sauvegardes conserves. 168 cles, 55 ID Hotkeys, 161 anciennes archives ; debug uniquement, P2 reporte. [Etat, preuves et essais](docs/V1_97_RETAINED_FOREIGN_SUBSET_TEST.md). Les entrees suivantes sont historiques.
+
+---
+
 ## V1.96 - lot des capacites et retrait de notre Stoneskin
 
 24 octobre 2026. **CONSTRUITE / CONTROLEE : [55/55 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40119582099), zero avertissement/erreur MSVC. Nouveaux transferts EXPERIMENTAUX, non valides en jeu.** [ZIP cumulatif immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/fbb17b46f293e9c64fb59ebfa7ae5d4cb92bc923/downloads/DarksidersGenesis_V1.96_FOREIGN_POWER_BATCH_TEST.zip) - [Recu](docs/V1_96_DELIVERY_RECEIPT.md). Base cumulative V1.95. Caltrops sur War et Geyser sur Strife : effets et degats confirmes par l'utilisateur ; animations incorrectes. Ces chemins sont conserves.
