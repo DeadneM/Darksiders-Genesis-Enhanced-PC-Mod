@@ -1769,7 +1769,7 @@ bool InstallNativeTPSRotationHook() {
 // event cannot leave the observer dereferencing a freed/reused widget.
 void HookAimUiEventDispatch(void* object,void* function,void* parameters,void* outParameters){
     const auto identity=dg::native_tps::CaptureUiEvent(object);
-    dg::foreign_wrath::DispatchEvent(g_originalAimUiEventDispatch,object,function,parameters,outParameters);
+    if(g_originalAimUiEventDispatch)g_originalAimUiEventDispatch(object,function,parameters,outParameters);
     dg::native_tps::ObserveUiEvent(identity);
 }
 void InstallAimUiEventProbe(){

@@ -62,6 +62,7 @@ bool Map(void* liveActor,const Name& original,Name& selected,uintptr_t& foreignC
     }
     if(slot<0)return false;
     const int choice=runtime::Get().wrathSlots[family][unsigned(slot)].load(std::memory_order_relaxed);
+    if(!Supported(family,choice))return false;
     if(Foreign(family,choice)){
         // The original slot's own unlock remains required for a foreign
         // power. The selected class supplies its cost to the native caller.
@@ -103,7 +104,7 @@ void Initialize(LogFn log,bool exactExecutable){
     if(MH_EnableHook(target)!=MH_OK){MH_RemoveHook(target);g_original=nullptr;return;}
     g_ready.store(true,std::memory_order_release);
     foreign_wrath::Initialize(log,exactExecutable);
-    if(log)log("Wrath slots V1.88 READY: native family mapping retained; Stoneskin/Geyser on Strife when individually ready; no input, resource-ID, component or save writes; EXPERIMENTAL");
+    if(log)log("Wrath slots V1.96 READY: batched transfers use the selected native class and cost; original slots/inputs retained; EXPERIMENTAL");
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}
 int ForeignStatus(int choice){return foreign_wrath::Status(choice);}

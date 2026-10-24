@@ -1,3 +1,15 @@
+## V1.96 - lot des capacites et retrait de notre Stoneskin
+
+24 octobre 2026. **CANDIDAT EXPERIMENTAL ; compilation et controles en attente.** Base cumulative V1.95. Caltrops sur War et Geyser sur Strife : effets et degats confirmes par l'utilisateur ; animations incorrectes. Ces chemins sont conserves.
+
+Le meme lot ajoute Clone et World Ender sur War, Rampage et ses quatre suites sur Strife. Composants propres au lanceur et montages prives compatibles. Poses idle : animations, mouvement de Rampage et nouveaux effets/degats non valides en jeu.
+
+Notre adaptation de Stoneskin et son choix explicite sont supprimes. Ancien choix 6 = Native ; Stoneskin original de War conserve via Native. Comparer le cristal apres redemarrage complet, sa cause reste inconnue. Trace Geyser temporaire retiree. Aucun nouveau hook ou timer de gameplay.
+
+Installation manuelle avec INI, raccourcis, PAK et sauvegardes conserves. 168 cles, 55 ID Hotkeys et 160 anciennes archives preserves. Debug exclusivement ; P2 reporte. [Contrat et essais](docs/V1_96_FOREIGN_POWER_BATCH_TEST.md). Les entrees suivantes sont historiques.
+
+---
+
 ## V1.95 — Geyser sur Strife, candidat final et identité du ZIP centralisée
 
 24 octobre 2026. **CONSTRUITE / CONTRÔLÉE : [54/54 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40114886605), zéro erreur et zéro avertissement MSVC. Geyser sur Strife EXPÉRIMENTAL, non validé en jeu.** [ZIP cumulatif immuable vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/027dae183a714754e66263e4f0f3bc0622498c42/downloads/DarksidersGenesis_V1.95_STRIFE_GEYSER_PRESENTATION_TEST.zip) · [Reçu](docs/V1_95_DELIVERY_RECEIPT.md). Base validée V1.87 dans les cas rapportés ; cumul V1.93 et correction de présentation V1.94. Celle-ci a passé 54/54 suites sans avertissement MSVC, mais son archive publiée porte encore le suffixe Caltrops : elle reste immuable et intermédiaire. V1.95 conserve exactement son code de jeu et fait lire le nom du ZIP depuis BuildInfo, avec vérification de sa version avant compilation.

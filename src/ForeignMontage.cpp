@@ -199,4 +199,124 @@ void* Geyser(uintptr_t original,const Source& source){
        !Store(montage,0x88,presentation.count))return nullptr;
     return created;
 }
+namespace {
+bool Named(uintptr_t p,const char* text){int index=0,number=0;return Read(p,0x18,index)&&Read(p,0x1C,number)&&native_objects::NameValueEquals(g_base,index,number,text);}
+bool TransferMontage(uintptr_t p){
+    uintptr_t package=0;if(!Read(p,0x20,package))return false;
+    constexpr const char* strife[]={"Strife_SpawnClone_Back_Montage","Strife_SpawnClone_F_Montage","Strife_Aim_WorldEnder_Montage"};
+    constexpr const char* war[]={"War_Atk_Rampage_Start_Montage","War_Atk_Rampage_Land_Montage","War_Atk_Rampage_Strike_Level1_Montage","War_Atk_Rampage_Strike_Level2_Montage","War_Atk_Rampage_Strike_Level3_Montage"};
+    char path[200]{};
+    for(const auto* name:strife)if(Named(p,name)){sprintf_s(path,"/Game/Characters/Heroes/Hero_Strife/Animations/%s",name);return Named(package,path);}
+    for(const auto* name:war)if(Named(p,name)){sprintf_s(path,"/Game/Characters/Heroes/Hero_War/Animation/%s",name);return Named(package,path);}
+    return false;
+}
+bool RootProperty(uintptr_t notify,uintptr_t cls,size_t& offset,Name& socket){
+    if(Is(cls,"AnimNotify_PlayParticleEffect")){offset=0x84;return Read(notify,offset,socket);}
+    offset=0;socket={};
+    for(unsigned depth=0;cls&&depth<16;++depth){
+        uintptr_t field=0;if(!Read(cls,0x48,field))return false;
+        for(unsigned n=0;field&&n<256;++n){
+            uintptr_t type=0,next=0;int size=0,at=0;
+            if(Read(field,0x10,type)&&Is(type,"NameProperty")&&Is(field,"SocketName")&&Read(field,0x34,size)&&size==8&&
+               Read(field,0x44,at)&&at>=0x30&&at<=0x200){offset=size_t(at);return Read(notify,offset,socket);}
+            if(!Read(field,0x28,next)||next==field)return false;field=next;
+        }
+        uintptr_t parent=0;if(!Read(cls,0x40,parent)||parent==cls)return false;cls=parent;
+    }
+    return true;
+}
+bool Gather(uintptr_t asset,const Array& list,float first,float last,float start,float rate,Presentation& plan){
+    for(int i=0;i<list.count;++i){
+        const auto at=list.data+size_t(i)*sizeof(Event);uintptr_t notify=0,cls=0,state=0;float time=0,duration=0;unsigned char tick=255;
+        if(!Read(at,0x48,notify))return false;if(!notify)continue;
+        if(!Read(notify,0x10,cls))return false;
+        const bool callback=Is(cls,"AnimNotify_CallAbilityFunction"),particle=Is(cls,"AnimNotify_PlayParticleEffect"),blast=Is(cls,"AnimNotify_SpawnBlast");
+        if(!callback&&!particle&&!blast&&!Is(cls,"AnimNotify_PlaySound"))continue;
+        if(!Read(at,0x24,time)||!std::isfinite(time))return false;
+        if(time<first||time>=last)continue;
+        size_t socketOffset=0;Name socket{};
+        if((particle||blast)&&!RootProperty(notify,cls,socketOffset,socket))return false;
+        if((socket.index||socket.number)&&!native_objects::NameValueIs(g_base,socket.index,socket.number,"Bone_War_Root")&&
+           !native_objects::NameValueIs(g_base,socket.index,socket.number,"Bone_Strife_Root")&&
+           !native_objects::NameValueIs(g_base,socket.index,socket.number,"VFX_Root"))continue;
+        uintptr_t owner=0;
+        if(plan.count<0||plan.count>=int(plan.events.size())||!Read(notify,0x20,owner)||owner!=asset||!Read(at,0x50,state)||state||
+           !Read(at,0x58,duration)||duration!=0||!Read(at,0x91,tick)||tick>1||!Read(at,0,plan.events[plan.count]))return false;
+        const float mapped=start+(time-first)/rate;
+        std::memcpy(plan.events[plan.count].data()+0x24,&mapped,sizeof(mapped));plan.events[plan.count][0x91]=0;++plan.count;
+    }
+    return true;
+}
+bool Rebind(Event& event,uintptr_t montage,const Source& source){
+    uintptr_t notify=0,cls=0;std::memcpy(&notify,event.data()+0x48,sizeof(notify));
+    if(!Read(notify,0x10,cls))return false;
+    if(!Is(cls,"AnimNotify_PlayParticleEffect")&&!Is(cls,"AnimNotify_SpawnBlast"))return true;
+    size_t offset=0;Name socket{};if(!RootProperty(notify,cls,offset,socket))return false;
+    if(!socket.index&&!socket.number)return true;
+    const auto copy=reinterpret_cast<uintptr_t>(g_construct(reinterpret_cast<void*>(cls),reinterpret_cast<void*>(montage),{},0x40u,0,reinterpret_cast<void*>(notify),false,nullptr,false));
+    uintptr_t actual=0,outer=0;uint32_t flags=0;
+    if(!copy||copy==notify||!Read(copy,0x10,actual)||actual!=cls||!Read(copy,0x20,outer)||outer!=montage||
+       !Read(copy,8,flags)||(flags&0x30u)||!(flags&0x40u))return false;
+    if(Is(cls,"AnimNotify_PlayParticleEffect")){
+        std::array<unsigned char,0x54> payload{};if(!Read(notify,0x38,payload)||!Store(copy,0x38,payload))return false;
+    }
+    if(!offset||!Store(copy,offset,Name{source.rootIndex,source.rootNumber}))return false;
+    std::memcpy(event.data()+0x48,&copy,sizeof(copy));return true;
+}
+}
+void* Compatible(uintptr_t original,const Source& source){
+    if(!g_ready||!g_construct||!g_package||!g_skeleton||!g_reserve||!native_tps::OnGameThread()||!TransferMontage(original))return nullptr;
+    uintptr_t cls=0,skeleton=0;Array tracks{},segments{},events{},sections{},idleEvents{};float length=0,rate=0,idleLength=0;
+    if(!Read(source.sequence,0x10,cls)||!Is(cls,"AnimSequence")||(!Is(source.sequence,"Strife_Idle")&&!Is(source.sequence,"War_Idle"))||
+       !Read(source.sequence,0x38,skeleton)||skeleton!=source.skeleton||!Read(source.sequence,0x90,idleLength)||!std::isfinite(idleLength)||idleLength<=.1f||idleLength>=10||
+       !List(source.sequence,0x80,idleEvents,128)||idleEvents.count||
+       (!native_objects::NameValueIs(g_base,source.rootIndex,source.rootNumber,"Bone_War_Root")&&!native_objects::NameValueIs(g_base,source.rootIndex,source.rootNumber,"Bone_Strife_Root"))||
+       !Read(original,0x10,cls)||!Is(cls,"AnimMontage")||!Read(original,0x90,length)||!std::isfinite(length)||length<=.1f||length>=20||
+       !Read(original,0x94,rate)||rate!=1||!List(original,0x158,tracks,4)||tracks.count!=1||!List(tracks.data,8,segments,8)||!segments.count||
+       !List(original,0x80,events,128)||!List(original,0x148,sections,16)||!sections.count||!Empty(original,0x168)||!Empty(original,0x128)||!Empty(original,0x138))return nullptr;
+    Name slot{};if(!Read(tracks.data,0,slot)||slot.index!=source.slotIndex||slot.number!=source.slotNumber)return nullptr;
+    Presentation plan{};
+    for(int i=0;i<segments.count;++i){
+        Segment segment{};Array notifies{};
+        if(!Read(segments.data,size_t(i)*sizeof(Segment),segment)||!segment.valid||segment.loops<1||segment.loops>10||
+           !std::isfinite(segment.first)||!std::isfinite(segment.last)||!std::isfinite(segment.start)||!std::isfinite(segment.rate)||
+           segment.first<0||segment.last<=segment.first||segment.rate<=0||segment.rate>10||segment.start<0||
+           !Read(segment.sequence,0x10,cls)||!Is(cls,"AnimSequence")||!List(segment.sequence,0x80,notifies,128))return nullptr;
+        const float duration=(segment.last-segment.first)/segment.rate;
+        for(int loop=0;loop<segment.loops;++loop)if(!Gather(segment.sequence,notifies,segment.first,segment.last,segment.start+float(loop)*duration,segment.rate,plan))return nullptr;
+    }
+    if(!Gather(original,events,0,length,0,1,plan))return nullptr;
+    std::stable_sort(plan.events.begin(),plan.events.begin()+plan.count,[](const Event& a,const Event& b){float x=0,y=0;std::memcpy(&x,a.data()+0x24,4);std::memcpy(&y,b.data()+0x24,4);return x<y;});
+    const auto outer=reinterpret_cast<uintptr_t>(g_package());
+    if(!Read(original,0x10,cls))return nullptr;
+    auto* created=g_construct(reinterpret_cast<void*>(cls),reinterpret_cast<void*>(outer),{},0x40u,0,reinterpret_cast<void*>(original),false,nullptr,false);
+    const auto copy=reinterpret_cast<uintptr_t>(created);uintptr_t actual=0,actualOuter=0;uint32_t flags=0;Array privateTracks{},privateSegments{},privateSections{},privateEvents{};
+    if(!copy||copy==original||!Read(copy,0x10,actual)||actual!=cls||!Read(copy,0x20,actualOuter)||actualOuter!=outer||
+       !Read(copy,8,flags)||(flags&0x30u)||!(flags&0x40u)||!List(copy,0x158,privateTracks,4)||privateTracks.count!=tracks.count||privateTracks.data==tracks.data||
+       !List(privateTracks.data,8,privateSegments,8)||privateSegments.count!=segments.count||privateSegments.data==segments.data||
+       !List(copy,0x148,privateSections,16)||privateSections.count!=sections.count||privateSections.data==sections.data||
+       !List(copy,0x80,privateEvents,128)||(events.data&&privateEvents.data==events.data)||
+       !Writable(copy+0x80,16)||!Writable(privateSegments.data,size_t(segments.count)*sizeof(Segment))||!Writable(privateSections.data,size_t(sections.count)*88))return nullptr;
+    for(int i=0;i<plan.count;++i)if(!Rebind(plan.events[i],copy,source))return nullptr;
+    if(plan.count>privateEvents.capacity)g_reserve(reinterpret_cast<void*>(copy+0x80),plan.count);
+    if(!List(copy,0x80,privateEvents,512)||privateEvents.capacity<plan.count||(events.data&&privateEvents.data==events.data)||
+       (plan.count&&!Writable(privateEvents.data,size_t(plan.count)*sizeof(Event))))return nullptr;
+    g_skeleton(created,reinterpret_cast<void*>(source.skeleton));
+    for(int i=0;i<segments.count;++i){
+        Segment s{};if(!Read(segments.data,size_t(i)*sizeof(Segment),s))return nullptr;
+        const float span=(s.last-s.first)/s.rate;s.sequence=source.sequence;s.first=0;s.last=idleLength;s.rate=idleLength/span;
+        if(!std::isfinite(s.rate)||s.rate<=.01f||s.rate>100||!Store(privateSegments.data,size_t(i)*sizeof(Segment),s))return nullptr;
+    }
+    for(int i=0;i<plan.count;++i){
+        const auto at=privateEvents.data+size_t(i)*sizeof(Event);float time=0;std::memcpy(&time,plan.events[i].data()+0x24,4);
+        if(!std::isfinite(time)||time<0||time>=length||!Store(at,0,plan.events[i])||!Link(at,copy,source.sequence,time,length)||!Link(at+0x60,copy,source.sequence,time,length))return nullptr;
+    }
+    for(int i=0;i<sections.count;++i){
+        float time=0;const auto at=privateSections.data+size_t(i)*88;
+        if(!Read(at,0x24,time)||!std::isfinite(time)||time<0||time>=length||!Link(at,copy,source.sequence,time,length))return nullptr;
+    }
+    const int zero=0;
+    if(!Store(copy,0x88,plan.count)||!Store(copy,0x188,zero)||!Store(copy,0x198,zero))return nullptr;
+    return created;
+}
 }

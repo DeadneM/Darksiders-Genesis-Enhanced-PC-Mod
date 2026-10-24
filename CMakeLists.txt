@@ -20,10 +20,14 @@ if(BUILD_TESTING)
   target_include_directories(ForeignMontageTests PRIVATE tests/stubs src)
   target_compile_definitions(ForeignMontageTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
   add_test(NAME ForeignMontage COMMAND ForeignMontageTests)
-  add_executable(ForeignWrathTests tests/ForeignWrathTests.cpp src/ForeignCaltropsFeature.cpp src/RuntimeSettings.cpp)
+  add_executable(ForeignWrathTests tests/ForeignWrathTests.cpp src/ForeignCaltropsFeature.cpp src/ForeignPowerFeature.cpp src/RuntimeSettings.cpp)
   target_include_directories(ForeignWrathTests PRIVATE tests/stubs src)
   target_compile_definitions(ForeignWrathTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
   add_test(NAME ForeignWrath COMMAND ForeignWrathTests)
+  add_executable(ForeignPowerTests tests/ForeignPowerTests.cpp src/RuntimeSettings.cpp)
+  target_include_directories(ForeignPowerTests PRIVATE tests/stubs src)
+  target_compile_definitions(ForeignPowerTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+  add_test(NAME ForeignPower COMMAND ForeignPowerTests)
   add_executable(ForeignCaltropsTests tests/ForeignCaltropsTests.cpp src/RuntimeSettings.cpp)
   target_include_directories(ForeignCaltropsTests PRIVATE tests/stubs src)
   target_compile_definitions(ForeignCaltropsTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
@@ -342,6 +346,7 @@ add_library(DarksidersGenesisMod SHARED
   src/ForeignWrathFeature.cpp
   src/ForeignCaltropsFeature.cpp
   src/ForeignMontage.cpp
+  src/ForeignPowerFeature.cpp
   src/PlayerPresentationFeature.cpp
   src/CosmeticUnlockFeature.cpp
   src/LeviathanVisualFeature.cpp

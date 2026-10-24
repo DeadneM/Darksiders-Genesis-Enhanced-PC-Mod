@@ -2,225 +2,77 @@
 #include <iostream>
 #include <stdexcept>
 #include <vector>
-#include <string>
-#include <array>
-
 namespace {
 using namespace dg::foreign_wrath;
 struct Fixture {
-    unsigned char actor[0x1100]{},controller[0x400]{},mesh[0x800]{},anim[0x4D00]{},blend[0xE0]{},samples[72]{},sequence[0x100]{},skeleton[0x80]{};
-    unsigned char stone[0x120]{},cdo[0x240]{},ability[0x240]{},nativeMontage[0x180]{},replacement[0x180]{},instance[0x50]{};
-    unsigned char geyser[0x120]{},geyserCdo[0x240]{},geyserPackage[0x80]{},launch[0x80]{},launchPackage[0x80]{};
-    unsigned char function[0x100]{},functionClass[0x80]{},blast[0x400]{},blastClass[0x80]{},blastPackage[0x80]{};
-    unsigned char skeletalMesh[0x200]{},rootBone[12]{};
-    unsigned char classes[6][0x80]{},stonePackage[0x80]{},montagePackage[0x80]{},items[640*24]{};
+ unsigned char actor[0x1100]{},controller[0x400]{},mesh[0x800]{},anim[0x4D00]{},blend[0xE0]{},samples[72]{},idle[0x100]{},skeleton[0x80]{};
+ unsigned char power[0x120]{},package[0x100]{},cdo[0x240]{},ability[0x240]{},montage[0x180]{},replacement[0x180]{},instance[0x50]{};
+ unsigned char launch[0x80]{},launchPackage[0x100]{},asset[0x200]{},bone[12]{},classes[6][0x80]{},items[640*24]{};
 } f;
-unsigned char entries[25][160]{};uintptr_t names[25]{},nameChunks[1]{reinterpret_cast<uintptr_t>(names)},objectChunks[1]{};
-dg::local_players::Context owner{};bool gameThread=true,local=true,createOK=true,canPlay=true,nested=false,throwResolve=false;
-unsigned getterCalls=0,resolveCalls=0,playCalls=0,finishCalls=0,createCalls=0,geyserBuilds=0;unsigned char finishCause=255;bool helperReady=true;
-void* playedAbility=nullptr;void* playedMontage=nullptr;float playedRate=0;Name playedSection{};
-struct Creation {void* sequence=nullptr;Name slot{};float in=0,out=0,rate=0;int loops=0;float trigger=0,start=0;} creation;
-std::vector<std::string> traceLog;std::vector<std::array<void*,4>> dispatchCalls;
-unsigned nestedEvents=0;bool throwDispatch=false;
-void TraceLog(const char* text){traceLog.emplace_back(text);}
-void DispatchNative(void* object,void* function,void* parameters,void* outParameters){
-    dispatchCalls.push_back({object,function,parameters,outParameters});
-    const unsigned count=nestedEvents;nestedEvents=0;
-    for(unsigned i=0;i<count;++i)DispatchEvent(DispatchNative,f.blast,f.instance,f.sequence,f.skeleton);
-    if(throwDispatch)throw std::runtime_error("mock dispatch error");
-}
-template<class T>void Put(void* p,size_t o,T value){std::memcpy(static_cast<unsigned char*>(p)+o,&value,sizeof(value));}
+unsigned char entries[24][192]{};uintptr_t names[24]{},nameChunks[1]{reinterpret_cast<uintptr_t>(names)},objectChunks[1]{};
+dg::local_players::Context owner{};bool gameThread=true,local=true,buildOK=true,playing=true,helperReady=true,throwResolve=false;
+unsigned plays=0,finishes=0,builds=0,getters=0,resolves=0;void* played=nullptr;float playedRate=0;
+template<class T>void Put(void* p,size_t at,T value){std::memcpy(static_cast<unsigned char*>(p)+at,&value,sizeof(value));}
 void Check(bool value,const char* why){if(!value)throw std::runtime_error(why);}
-void Label(void* object,unsigned index,const char* text){Put(object,0x18,int(index));Put(object,0x1C,0);strcpy_s(reinterpret_cast<char*>(entries[index]+12),148,text);}
-void Register(unsigned index,void* object,int serial){
-    Put(object,8,uint32_t(0));Put(object,0xC,int(index));Put(f.items,index*24,reinterpret_cast<uintptr_t>(object));Put(f.items,index*24+8,uint32_t(0));Put(f.items,index*24+16,serial);
+void Label(void* p,int id,const char* text){Put(p,0x18,id);strcpy_s(reinterpret_cast<char*>(entries[id]+12),180,text);}
+void Register(int id,void* p,int serial){Put(p,0xC,id);Put(f.items,size_t(id)*24,reinterpret_cast<uintptr_t>(p));Put(f.items,size_t(id)*24+16,serial);}
+uintptr_t* Getter(void*,uintptr_t* result,Name){++getters;*result=0xCAFE;return result;}
+uintptr_t* Resolver(void* actor,uintptr_t* result,Name id,bool* unlocked,bool* affordable){
+ ++resolves;HookGetter(actor,result,id);*unlocked=true;*affordable=false;
+ if(throwResolve)throw std::runtime_error("native resolver");return result;
 }
-uintptr_t* GetterNative(void*,uintptr_t* result,Name){++getterCalls;if(result)*result=0xCAFE;return result;}
-uintptr_t* ResolveNative(void* actor,uintptr_t* result,Name id,bool* unlocked,bool* affordable){
-    ++resolveCalls;HookGetter(actor,result,id);*unlocked=id.number==2;*affordable=false;
-    if(nested){
-        uintptr_t other=0;HookGetter(actor,&other,{id.index,id.number+1});Check(other==0xCAFE,"unrelated ID stays native inside foreign scope");
-        HookGetter(f.controller,&other,id);Check(other==0xCAFE,"other actor stays native inside foreign scope");
-    }
-    if(throwResolve)throw std::runtime_error("mock native error");
-    return result;
-}
-void PlayNative(void* ability,void* montage,float rate,Name section){
-    ++playCalls;playedAbility=ability;playedMontage=montage;playedRate=rate;playedSection=section;
-    Put(ability,0x1D8,reinterpret_cast<uintptr_t>(f.instance));
-}
-void* CreateNative(void* seq,Name slot,float in,float out,float rate,int loops,float trigger,float start){
-    ++createCalls;creation={seq,slot,in,out,rate,loops,trigger,start};return createOK?f.replacement:nullptr;
-}
-void FinishNative(void*,unsigned char cause){++finishCalls;finishCause=cause;}
-bool PlayingNative(void* instance){Check(instance==f.instance,"native montage instance is checked");return canPlay;}
+void PlayNative(void* ability,void* montage,float rate,Name){++plays;played=montage;playedRate=rate;Put(ability,0x1D8,reinterpret_cast<uintptr_t>(f.instance));}
+void FinishNative(void* ability,unsigned char cause){Check(ability==f.ability&&cause==0,"only current cast finishes normally");++finishes;}
+bool PlayingNative(void* instance){Check(instance==f.instance,"own montage instance");return playing;}
 void Fresh(){
-    f={};owner={};gameThread=local=createOK=canPlay=true;nested=throwResolve=false;
-    g_spawnFunction=0;g_dispatchTraces=0;g_dispatchTrace=nullptr;traceLog.clear();dispatchCalls.clear();nestedEvents=0;throwDispatch=false;
-    getterCalls=resolveCalls=playCalls=finishCalls=createCalls=geyserBuilds=0;finishCause=255;creation={};helperReady=true;
-    g_geyser={};g_geyserActors[0]=g_geyserActors[1]={};g_requestGeyser=g_geyserReady=g_geyserFailed=false;g_searchedGeyser=false;
-    g_ready=true;g_assetsReady=true;g_requested=false;g_override=nullptr;g_getter=GetterNative;g_play=PlayNative;g_create=CreateNative;g_finish=FinishNative;g_playing=PlayingNative;g_log=nullptr;
-    g_cursor=g_count=0;g_complete=false;g_scanTick=0;g_world=0;
-    owner.index=0;owner.localPlayer=123;owner.world=456;owner.controller=reinterpret_cast<uintptr_t>(f.controller);owner.character=owner.pawn=reinterpret_cast<uintptr_t>(f.actor);
-    const char* labels[]={"Strife_Blueprint_C","StrifeAnim_Blueprint_C","BlendSpace1D","AnimSequence","AnimMontage","BlueprintGeneratedClass"};
-    for(unsigned i=0;i<6;++i)Label(f.classes[i],i+1,labels[i]);
-    Put(f.classes[0],0x10,reinterpret_cast<uintptr_t>(f.classes[5]));
-    Put(f.actor,0x10,reinterpret_cast<uintptr_t>(f.classes[0]));Put<unsigned char>(f.actor,0x118,3);Put<unsigned char>(f.actor,0xC18,1);
-    Put(f.actor,0x348,owner.controller);Put(f.controller,0x350,owner.pawn);Put(f.actor,0x380,reinterpret_cast<uintptr_t>(f.mesh));Put(f.mesh,0xE8,owner.pawn);
-    Put(f.mesh,0x718,reinterpret_cast<uintptr_t>(f.anim));Put(f.anim,0x10,reinterpret_cast<uintptr_t>(f.classes[1]));Put(f.anim,0x4C38,owner.pawn);
-    Put(f.mesh,0x5A0,reinterpret_cast<uintptr_t>(f.skeletalMesh));Put(f.skeletalMesh,0x190,Array{reinterpret_cast<uintptr_t>(f.rootBone),1,1});
-    strcpy_s(reinterpret_cast<char*>(entries[24]+12),148,"Bone_Strife_Root");Put(f.rootBone,0,Name{24,0});
-    Put(f.anim,0x49C8,g_base+0x2A76860);Put(f.anim,0x4A10,reinterpret_cast<uintptr_t>(f.blend));Put(f.blend,0x10,reinterpret_cast<uintptr_t>(f.classes[2]));Label(f.blend,7,"Strife_Locomotion");
-    Put(f.blend,0xC8,Array{reinterpret_cast<uintptr_t>(f.samples),3,3});Put(f.samples,24,reinterpret_cast<uintptr_t>(f.sequence));Put(f.samples,44,1.0f);
-    Put(f.sequence,0x10,reinterpret_cast<uintptr_t>(f.classes[3]));Label(f.sequence,8,"Strife_Idle");Put(f.sequence,0x38,reinterpret_cast<uintptr_t>(f.skeleton));
-    Put(f.sequence,0x90,2.666667f);Put(f.sequence,0x94,1.0f);Put(f.anim,0x28,reinterpret_cast<uintptr_t>(f.skeleton));
-    strcpy_s(reinterpret_cast<char*>(entries[9]+12),148,"TPS");Put(f.anim,0x3740,Name{9,0});
-    Put(f.stone,0x10,reinterpret_cast<uintptr_t>(f.classes[5]));Label(f.stone,10,"MayhemAbility_StoneSkin_Blueprint_C");Put(f.stone,0x20,reinterpret_cast<uintptr_t>(f.stonePackage));
-    Label(f.stonePackage,11,"/Game/Blueprints/Abilities/Stoneskin/MayhemAbility_StoneSkin_Blueprint");Put(f.stone,0xF8,reinterpret_cast<uintptr_t>(f.cdo));Put(f.cdo,0x10,reinterpret_cast<uintptr_t>(f.stone));
-    Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.stone));Put(f.ability,0x48,owner.pawn);Put(f.ability,0x1B0,owner.pawn);Put<unsigned char>(f.ability,0xD8,1);
-    Put(f.nativeMontage,0x10,reinterpret_cast<uintptr_t>(f.classes[4]));Label(f.nativeMontage,12,"War_Atk_Stoneskin_Montage");Put(f.nativeMontage,0x20,reinterpret_cast<uintptr_t>(f.montagePackage));
-    Label(f.montagePackage,13,"/Game/Characters/Heroes/Hero_War/Animation/War_Atk_Stoneskin_Montage");Put(f.nativeMontage,0x90,1.833333f);Put(f.nativeMontage,0x94,1.0f);
-    Put(f.replacement,0x10,reinterpret_cast<uintptr_t>(f.classes[4]));Put(f.replacement,0x38,reinterpret_cast<uintptr_t>(f.skeleton));Put(f.replacement,0x90,2.666667f);
-    objectChunks[0]=reinterpret_cast<uintptr_t>(f.items);Put(reinterpret_cast<void*>(g_base),0x3959680,reinterpret_cast<uintptr_t>(objectChunks));Put(reinterpret_cast<void*>(g_base),0x3959694,640);
-    Register(1,f.stone,41);g_stone={reinterpret_cast<uintptr_t>(f.stone),1,41};Register(2,f.actor,42);
-    Put(f.geyser,0x10,reinterpret_cast<uintptr_t>(f.classes[5]));Label(f.geyser,14,"MayhemAbility_Wrath_BladeGeyser_Blueprint_C");
-    Put(f.geyser,0x20,reinterpret_cast<uintptr_t>(f.geyserPackage));Label(f.geyserPackage,15,"/Game/Blueprints/Abilities/MayhemAbility_Wrath_BladeGeyser_Blueprint");
-    Put(f.geyser,0xF8,reinterpret_cast<uintptr_t>(f.geyserCdo));Put(f.geyserCdo,0x10,reinterpret_cast<uintptr_t>(f.geyser));Register(3,f.geyser,43);
-    Label(f.launch,16,"MayhemAbility_War_LaunchAttack_Blueprint_C");Put(f.launch,0x20,reinterpret_cast<uintptr_t>(f.launchPackage));
-    Label(f.launchPackage,17,"/Game/Blueprints/Abilities/WarMelee/MayhemAbility_War_LaunchAttack_Blueprint");
-    Label(f.functionClass,18,"Function");Label(f.function,19,"SpawnBlast");
-    Put(f.function,0x10,reinterpret_cast<uintptr_t>(f.functionClass));Put(f.function,0x20,reinterpret_cast<uintptr_t>(f.geyser));
-    Put(f.geyser,0x48,reinterpret_cast<uintptr_t>(f.function));
-    Label(f.blastClass,20,"MayhemBlast_Wrath_BladeGeyser_Level1_Blueprint_C");
-    Label(f.blastPackage,21,"/Game/Blueprints/Player/MayhemBlast_Wrath_BladeGeyser_Level1_Blueprint");
-    Put(f.blastClass,0x10,reinterpret_cast<uintptr_t>(f.classes[5]));Put(f.blastClass,0x20,reinterpret_cast<uintptr_t>(f.blastPackage));
-    Put(f.blast,0x10,reinterpret_cast<uintptr_t>(f.blastClass));Put(f.blast,0x108,owner.pawn);Put(f.blast,0x140,owner.pawn);
-    for(auto& choice:dg::runtime::Get().wrathSlots[0])choice=0;
+ f={};owner={};gameThread=local=buildOK=playing=helperReady=true;throwResolve=false;plays=finishes=builds=getters=resolves=0;played=nullptr;playedRate=0;
+ g_ready=g_geyserReady=true;g_requested=g_geyserFailed=false;g_getter=Getter;g_play=PlayNative;g_finish=FinishNative;g_playing=PlayingNative;g_log=nullptr;g_override=nullptr;
+ g_cursor=g_count=0;g_complete=false;g_scanTick=0;g_world=0;g_events=0;g_geyserActors[0]=g_geyserActors[1]={};
+ const char* labels[]={"Strife_Blueprint_C","StrifeAnim_Blueprint_C","BlendSpace1D","AnimSequence","AnimMontage","BlueprintGeneratedClass"};
+ for(int i=0;i<6;++i)Label(f.classes[i],i+1,labels[i]);
+ Label(f.blend,7,"Strife_Locomotion");Label(f.idle,8,"Strife_Idle");strcpy_s(reinterpret_cast<char*>(entries[9]+12),180,"TPS");
+ Label(f.power,10,"MayhemAbility_Wrath_BladeGeyser_Blueprint_C");Label(f.package,11,"/Game/Blueprints/Abilities/MayhemAbility_Wrath_BladeGeyser_Blueprint");
+ Label(f.launch,12,"MayhemAbility_War_LaunchAttack_Blueprint_C");Label(f.launchPackage,13,"/Game/Blueprints/Abilities/WarMelee/MayhemAbility_War_LaunchAttack_Blueprint");
+ strcpy_s(reinterpret_cast<char*>(entries[14]+12),180,"Bone_Strife_Root");
+ owner.index=0;owner.localPlayer=123;owner.world=456;owner.controller=reinterpret_cast<uintptr_t>(f.controller);owner.character=owner.pawn=reinterpret_cast<uintptr_t>(f.actor);
+ Put(f.actor,0x10,reinterpret_cast<uintptr_t>(f.classes[0]));Put<unsigned char>(f.actor,0x118,3);Put<unsigned char>(f.actor,0xC18,1);Put(f.actor,0x348,owner.controller);Put(f.controller,0x350,owner.pawn);
+ Put(f.actor,0x380,reinterpret_cast<uintptr_t>(f.mesh));Put(f.mesh,0xE8,owner.pawn);Put(f.mesh,0x718,reinterpret_cast<uintptr_t>(f.anim));Put(f.mesh,0x5A0,reinterpret_cast<uintptr_t>(f.asset));
+ Put(f.asset,0x190,Array{reinterpret_cast<uintptr_t>(f.bone),1,1});Put(f.bone,0,Name{14,0});
+ Put(f.anim,0x10,reinterpret_cast<uintptr_t>(f.classes[1]));Put(f.anim,0x4C38,owner.pawn);Put(f.anim,0x49C8,g_base+0x2A76860);Put(f.anim,0x4A10,reinterpret_cast<uintptr_t>(f.blend));Put(f.anim,0x3740,Name{9,0});
+ Put(f.blend,0x10,reinterpret_cast<uintptr_t>(f.classes[2]));Put(f.blend,0xC8,Array{reinterpret_cast<uintptr_t>(f.samples),3,3});Put(f.samples,24,reinterpret_cast<uintptr_t>(f.idle));Put(f.samples,44,1.0f);
+ Put(f.idle,0x10,reinterpret_cast<uintptr_t>(f.classes[3]));Put(f.idle,0x38,reinterpret_cast<uintptr_t>(f.skeleton));Put(f.idle,0x90,2.666667f);Put(f.idle,0x94,1.0f);Put(f.anim,0x28,reinterpret_cast<uintptr_t>(f.skeleton));
+ Put(f.power,0x10,reinterpret_cast<uintptr_t>(f.classes[5]));Put(f.power,0x20,reinterpret_cast<uintptr_t>(f.package));Put(f.power,0xF8,reinterpret_cast<uintptr_t>(f.cdo));Put(f.cdo,0x10,reinterpret_cast<uintptr_t>(f.power));
+ Put(f.launch,0x20,reinterpret_cast<uintptr_t>(f.launchPackage));Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.power));Put(f.ability,0x48,owner.pawn);Put(f.ability,0x1B0,owner.pawn);Put<unsigned char>(f.ability,0xD8,2);
+ Register(0,f.power,41);Register(1,f.actor,42);Register(2,f.ability,43);g_geyser={reinterpret_cast<uintptr_t>(f.power),0,41};
+ objectChunks[0]=reinterpret_cast<uintptr_t>(f.items);Put(reinterpret_cast<void*>(g_base),0x3959680,reinterpret_cast<uintptr_t>(objectChunks));Put(reinterpret_cast<void*>(g_base),0x3959694,640);
 }
-void Cast(){HookPlay(f.ability,f.nativeMontage,1.0f,{0,0});}
-void TraceSetup(){
-    Fresh();g_geyser={reinterpret_cast<uintptr_t>(f.geyser),3,43};g_geyserReady=true;
-    Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.geyser));g_log=TraceLog;CacheSpawnFunction();
-    Check(g_spawnFunction==reinterpret_cast<uintptr_t>(f.function),"trace resolves exact class-owned SpawnBlast child");traceLog.clear();
-}
-void Dispatch(){DispatchEvent(DispatchNative,f.ability,f.function,f.cdo,f.geyserCdo);}
-void TraceChecks(){
-    TraceSetup();const auto actorBefore=std::to_array(f.actor);const auto abilityBefore=std::to_array(f.ability);const auto blastBefore=std::to_array(f.blast);
-    nestedEvents=6;Dispatch();
-    Check(dispatchCalls.size()==7&&dispatchCalls[0]==std::array<void*,4>{f.ability,f.function,f.cdo,f.geyserCdo},"dispatch and all four original arguments forward exactly once");
-    for(size_t i=1;i<dispatchCalls.size();++i)Check(dispatchCalls[i]==std::array<void*,4>{f.blast,f.instance,f.sequence,f.skeleton},"nested dispatch arguments stay native");
-    Check(g_dispatchTraces==1&&!g_dispatchTrace&&traceLog.size()==6&&traceLog.front().find("DISPATCH_BEFORE")!=std::string::npos&&
-        traceLog.back().find("nestedBlastEvents=4")!=std::string::npos,"one scoped trace bounds nested event logging and restores context");
-    Check(traceLog[1].find("sourceMatch=1")!=std::string::npos&&traceLog[1].find("damage NOT proven")!=std::string::npos,"blast diagnostic reports source without claiming damage");
-    Check(!std::memcmp(f.actor,actorBefore.data(),actorBefore.size())&&!std::memcmp(f.ability,abilityBefore.data(),abilityBefore.size())&&
-        !std::memcmp(f.blast,blastBefore.data(),blastBefore.size()),"diagnostic writes no actor, ability or blast bytes");
-    TraceSetup();Label(f.classes[0],1,"War_Blueprint_C");Put<unsigned char>(f.actor,0xC18,2);Dispatch();
-    Check(traceLog.size()==2&&traceLog[0].find("strife=0")!=std::string::npos&&dispatchCalls.size()==1,"same dispatch trace observes War native comparison");
-    for(unsigned failure=0;failure<12;++failure){
-        TraceSetup();
-        if(failure==0)g_spawnFunction=0;
-        if(failure==1)Put<unsigned char>(f.ability,8,0x10);
-        if(failure==2)local=false;
-        if(failure==3)Put<unsigned char>(f.actor,0x118,2);
-        if(failure==4)gameThread=false;
-        if(failure==5)owner.kind=dg::local_players::PoseKind::Horse;
-        if(failure==6)Put(f.controller,0x350,uintptr_t(0));
-        if(failure==7)Put(f.items,3*24+16,44);
-        if(failure==8)Shutdown();
-        if(failure==9)g_log=nullptr;
-        if(failure==10)Put(f.ability,0x1B0,uintptr_t(0));
-        if(failure==11){Label(f.classes[0],1,"War_Blueprint_C");Put<unsigned char>(f.actor,0xC18,0);}
-        Dispatch();Check(dispatchCalls.size()==1&&traceLog.empty()&&!g_dispatchTraces,"ineligible dispatch forwards once with no trace or native-state mutation");
-    }
-    TraceSetup();DispatchEvent(DispatchNative,f.ability,f.instance,f.cdo,f.geyserCdo);
-    Check(dispatchCalls.size()==1&&traceLog.empty(),"unrelated functions keep original dispatch");
-    TraceSetup();DispatchEvent(DispatchNative,f.blast,f.function,f.cdo,f.geyserCdo);
-    Check(dispatchCalls.size()==1&&traceLog.empty(),"same function pointer on another class is not traced");
-    TraceSetup();DispatchTrace previous{};g_dispatchTrace=&previous;throwDispatch=true;bool threw=false;
-    try{Dispatch();}catch(const std::runtime_error&){threw=true;}
-    Check(threw&&dispatchCalls.size()==1&&g_dispatchTrace==&previous&&traceLog.size()==1,"native exception propagates and restores previous trace without false completion");g_dispatchTrace=nullptr;
-    TraceSetup();for(unsigned i=0;i<10;++i)Dispatch();
-    Check(dispatchCalls.size()==10&&g_dispatchTraces==8&&traceLog.size()==16,"eight-call budget stops diagnostics without suppressing native calls");
-    TraceSetup();g_spawnFunction=0;Put(f.function,0x20,uintptr_t(0));CacheSpawnFunction();
-    Check(!g_spawnFunction,"foreign outer is never cached as Geyser SpawnBlast");
-    Put(f.function,0x20,reinterpret_cast<uintptr_t>(f.geyser));gameThread=false;CacheSpawnFunction();
-    Check(!g_spawnFunction,"function cache never resolves on another thread");
-    DispatchEvent(nullptr,f.ability,f.function,f.cdo,f.geyserCdo);Check(dispatchCalls.empty(),"null trampoline remains a no-op");
-}
+void Cast(){HookPlay(f.ability,f.montage,.75f,{});}
 void Run(){
-    std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(nameChunks));
-    for(unsigned i=0;i<25;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
-    Fresh();uintptr_t klass=0;const auto actorBefore=std::to_array(f.actor);
-    Check(GeyserActor(0)==&g_geyserActors[0]&&GeyserActor(1)==&g_geyserActors[1]&&!GeyserActor(-1)&&!GeyserActor(2),"bounded owner marker accepts only local players 0/1 and no invalid index");
-    Check(Prepare(f.actor,klass)&&klass==reinterpret_cast<uintptr_t>(f.stone),"ready native class and own compatible animation enable foreign slot");
-    Check(!std::memcmp(f.actor,actorBefore.data(),actorBefore.size()),"preparation writes no actor, input or resource bytes");
-    uintptr_t result=0;bool unlocked=false,affordable=true;nested=true;
-    auto* out=Resolve(ResolveNative,f.actor,&result,{18,2},&unlocked,&affordable,klass);
-    Check(out==&result&&result==klass&&unlocked&&!affordable&&resolveCalls==1&&getterCalls==2&&!g_override,"native resolver keeps return, slot-unlock and cost results with exact scoped class override");
-    HookGetter(f.actor,&result,{18,2});Check(result==0xCAFE,"class lookup outside scope remains native");
-    throwResolve=true;try{Resolve(ResolveNative,f.actor,&result,{18,2},&unlocked,&affordable,klass);}catch(const std::runtime_error&){}
-    Check(!g_override,"scope is restored if native resolver throws");
-    Fresh();Cast();Check(playCalls==1&&createCalls==1&&!finishCalls&&playedAbility==f.ability&&playedMontage==f.replacement,"one compatible montage goes through original native ability player");
-    Check(std::abs(2.666667f/playedRate-1.833333f)<.00001f&&playedSection==Name{0,0},"cast duration and section preserved");
-    Check(creation.sequence==f.sequence&&creation.slot==Name{9,0}&&creation.in==.1f&&creation.out==.1f&&creation.rate==1&&creation.loops==1&&creation.trigger==-1&&creation.start==0,"all eight native factory arguments match proved ABI");
-    Check(!std::memcmp(f.actor,actorBefore.data(),actorBefore.size()),"casting adapter never writes pawn movement or gameplay bytes");
-    Fresh();Put(f.nativeMontage,0x94,2.0f);Cast();Check(std::abs(2.666667f/playedRate-.9166665f)<.00001f,"native source montage rate scale is preserved in effective cast duration");
-    Fresh();owner.index=1;owner.localPlayer=124;Cast();Check(playCalls==1&&playedMontage==f.replacement,"same exact owner contract supports P2 without borrowing P1");
-    Fresh();Label(f.nativeMontage,12,"War_Atk_Stoneskin_Molten_Montage");Label(f.montagePackage,13,"/Game/Characters/Heroes/Hero_War/Animation/War_Atk_Stoneskin_Molten_Montage");Cast();Check(playCalls==1&&!finishCalls,"native Molten variant gets its own compatible duration");
-    for(unsigned failure=0;failure<6;++failure){
-        Fresh();
-        if(failure==0)createOK=false;
-        if(failure==1)canPlay=false;
-        if(failure==2)Put(f.replacement,0x38,uintptr_t(0));
-        if(failure==3)Put(f.anim,0x28,uintptr_t(0));
-        if(failure==4)Label(f.montagePackage,13,"/Game/Other");
-        if(failure==5)Put(f.nativeMontage,0x90,0.0f);
-        Cast();Check(finishCalls==1&&finishCause==0,"unavailable source/factory/playback ends only exact owned cast through native normal finish");
-        Check(!playCalls||playedMontage==f.replacement,"foreign War skeleton is never forwarded on an identified local Strife cast");
-    }
-    Fresh();Put<unsigned char>(f.ability,8,0x10);Cast();Check(playCalls==1&&playedMontage==f.nativeMontage&&!finishCalls&&!createCalls,"CDO never adapted or finished");
-    Fresh();Label(f.classes[0],1,"War_Blueprint_C");Cast();Check(playedMontage==f.nativeMontage&&!createCalls&&!finishCalls,"War's own Stoneskin is fully native");
-    Fresh();local=false;Cast();Check(playedMontage==f.nativeMontage&&!createCalls&&!finishCalls,"unknown or nonlocal owner fully native");
-    Fresh();Put<unsigned char>(f.actor,0x118,2);Cast();Check(playedMontage==f.nativeMontage&&!createCalls&&!finishCalls,"remote role is never adapted or finished");
-    Fresh();gameThread=false;Cast();Check(playedMontage==f.nativeMontage&&!createCalls&&!finishCalls,"other threads pass all native arguments unchanged");
-    Fresh();Put(f.items,1*24+16,42);Check(!Prepare(f.actor,klass),"expired class serial cannot resolve another foreign cast");
-    Fresh();g_assetsReady=false;Check(!Prepare(f.actor,klass),"not-yet-discovered class leaves slot unavailable");
-    Fresh();g_stone={};g_assetsReady=false;std::memset(f.items,0,sizeof(f.items));Register(598,f.stone,41);g_requested=true;
-    Observe(owner);Check(g_cursor==512&&!g_assetsReady,"one native observation scans at most 512 table entries");
-    g_scanTick=0;Observe(owner);Check(g_assetsReady&&g_stone.index==598,"next bounded slice discovers exact loaded class");
-    const int cursor=g_cursor;g_scanTick=0;Observe(owner);Check(g_cursor==cursor,"loaded class is reused without another global scan");
-    Fresh();owner.kind=dg::local_players::PoseKind::Horse;Cast();Check(playedMontage==f.nativeMontage&&!createCalls&&!finishCalls,"horse does not enter foreign on-foot adapter");
-    Fresh();g_geyserReady=true;g_geyser={reinterpret_cast<uintptr_t>(f.geyser),3,43};
-    Check(Prepare(f.actor,klass,4)&&klass==reinterpret_cast<uintptr_t>(f.geyser),"Geyser prepares only its exact owned class and compatible source");
-    Put(f.ability,0x10,klass);HookPlay(f.ability,f.nativeMontage,.75f,{0,0});
-    Check(geyserBuilds==1&&createCalls==0&&playCalls==1&&!finishCalls&&playedMontage==f.replacement&&playedRate==.75f,
-        "Geyser uses private builder and original playback rate, independently from Stoneskin");
-    Check(g_geyserActors[0].address==owner.pawn,"only successful exact actor cast permits unsupported companion cancellation");
-    Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.launch));HookPlay(f.ability,f.nativeMontage,1,{});
-    Check(finishCalls==1&&finishCause==0&&playCalls==1&&!g_geyserActors[0],"unplayed War companion ends through native finish and consumes only its exact owner marker");
-    HookPlay(f.ability,f.nativeMontage,1,{});Check(playCalls==2&&finishCalls==1,"unrelated later companion is not intercepted after marker consumption");
-    Fresh();Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.launch));Cast();Check(playCalls==1&&!finishCalls,"War launch without an owned Geyser cast remains native");
-    Fresh();g_geyserReady=true;g_geyser={reinterpret_cast<uintptr_t>(f.geyser),3,43};Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.geyser));createOK=false;
-    Cast();Check(geyserBuilds==1&&g_geyserFailed&&finishCalls==1&&!playCalls&&Status(4)==0,"failed native clone stops Geyser for the session");
-    Cast();Check(geyserBuilds==1&&finishCalls==2,"stopped Geyser never retries a risky constructor");
-    Check(Status(6)==2&&Prepare(f.actor,klass,6),"Geyser failure leaves independent Stoneskin preparation intact");
-    Fresh();g_geyserReady=true;g_geyser={reinterpret_cast<uintptr_t>(f.geyser),3,43};Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.geyser));
-    Put(f.rootBone,0,Name{9,0});Cast();
-    Check(!geyserBuilds&&!playCalls&&finishCalls==1&&g_geyserFailed,"unproved character root stops only foreign Geyser before any builder call");
-    Check(Prepare(f.actor,klass,6),"Stoneskin remains usable without the Geyser-only root contract");
-    Fresh();g_geyser={};g_geyserReady=false;g_stone={};g_assetsReady=false;g_requestGeyser=true;g_requested=true;
-    Observe(owner);Check(g_geyserReady&&g_assetsReady&&g_geyser.address==reinterpret_cast<uintptr_t>(f.geyser),"one bounded scan independently discovers both loaded foreign classes");
-    TraceChecks();
-    Fresh();Shutdown();Cast();Check(playedMontage==f.nativeMontage&&!createCalls&&!finishCalls&&Status()==0,"shutdown restores complete native forwarding");
+ std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(nameChunks));for(unsigned i=0;i<24;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
+ Fresh();uintptr_t cls=0;Check(Prepare(f.actor,cls,4)&&cls==reinterpret_cast<uintptr_t>(f.power),"ready Geyser retains own class");
+ Check(!Prepare(f.actor,cls,6)&&Status(6)==0,"retired transfer cannot be requested or adapted");
+ uintptr_t result=0;bool unlocked=false,affordable=true;Resolve(Resolver,f.actor,&result,{9,2},&unlocked,&affordable,cls);
+ Check(result==cls&&unlocked&&!affordable&&resolves==1&&!getters&&!g_override,"scoped class override preserves native unlock/cost and one resolve");
+ HookGetter(f.actor,&result,{9,2});Check(result==0xCAFE&&getters==1,"ordinary class lookup stays native");
+ throwResolve=true;try{Resolve(Resolver,f.actor,&result,{9,2},&unlocked,&affordable,cls);}catch(const std::runtime_error&){}Check(!g_override,"exception restores scope");
+ Fresh();Cast();Check(builds==1&&plays==1&&!finishes&&played==f.replacement&&playedRate==.75f,"validated Geyser builder/rate/lifecycle retained");
+ Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.launch));Cast();Check(finishes==1&&!g_geyserActors[0],"unsupported companion consumes only its own recent Geyser marker");
+ Cast();Check(plays==2&&finishes==1,"unrelated later launch remains native");
+ Fresh();owner.index=1;Cast();Check(builds==1&&g_geyserActors[1].address==owner.pawn,"P2 owns its own marker");
+ for(unsigned failure=0;failure<6;++failure){Fresh();if(failure==0)local=false;if(failure==1)gameThread=false;if(failure==2)owner.kind=dg::local_players::PoseKind::Horse;
+  if(failure==3)Put<unsigned char>(f.actor,0x118,2);if(failure==4)Label(f.classes[0],1,"War_Blueprint_C");if(failure==5)Put<unsigned char>(f.ability,8,0x10);
+  Cast();Check(!builds&&!finishes&&played==f.montage,"native/nonlocal/foreign-pose/default path passes through");}
+ Fresh();buildOK=false;Cast();Check(g_geyserFailed&&finishes==1&&Status(4)==0,"failed compatible montage stops only Geyser");Cast();Check(builds==1,"failed constructor not retried");
+ Fresh();g_geyser={};g_geyserReady=false;g_requested=true;std::memset(f.items,0,sizeof(f.items));Register(598,f.power,41);Observe(owner);Check(g_cursor==512&&!g_geyserReady,"scan stays bounded");g_scanTick=0;Observe(owner);Check(g_geyserReady,"later bounded slice finds loaded class");
+ Fresh();Shutdown();Cast();Check(played==f.montage&&!builds,"shutdown restores native calls");
 }
 }
 namespace dg::foreign_montage {
-void Initialize(LogFn,bool){}
-bool Ready(){return helperReady;}
-bool CanBuild(const Source& s){return helperReady&&s.sequence==reinterpret_cast<uintptr_t>(f.sequence)&&s.skeleton==reinterpret_cast<uintptr_t>(f.skeleton)&&s.slotIndex==9&&s.slotNumber==0;}
-void* Geyser(uintptr_t montage,const Source& s){++geyserBuilds;Check(montage==reinterpret_cast<uintptr_t>(f.nativeMontage)&&CanBuild(s)&&s.rootIndex==24&&s.rootNumber==0,"private montage receives exact original, own source and own Strife root");return createOK?f.replacement:nullptr;}
+void Initialize(LogFn,bool){}bool Ready(){return helperReady;}
+bool CanBuild(const Source& s){return helperReady&&s.sequence==reinterpret_cast<uintptr_t>(f.idle)&&s.skeleton==reinterpret_cast<uintptr_t>(f.skeleton)&&s.slotIndex==9;}
+void* Geyser(uintptr_t m,const Source& s){++builds;Check(m==reinterpret_cast<uintptr_t>(f.montage)&&CanBuild(s)&&s.rootIndex==14,"own source/root reach Geyser builder");return buildOK?f.replacement:nullptr;}
+void* Compatible(uintptr_t,const Source&){return nullptr;}
 }
 namespace dg::native_tps {bool OnGameThread(){return gameThread;}}
 namespace dg::local_players {bool ResolveActor(void*,Context& c){c=owner;return local;}}
-int main(){try{Run();std::cout<<"Scoped foreign class, original unlock/cost, eight-argument montage factory and native finish isolation passed\n";return 0;}
-catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
+int main(){try{Run();std::cout<<"Geyser isolation, retired transfer removal, scoped resolver and native passthrough passed\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

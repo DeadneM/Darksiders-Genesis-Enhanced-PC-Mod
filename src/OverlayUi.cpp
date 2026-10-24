@@ -367,9 +367,9 @@ void Draw(Context& c) {
             }
             if(ImGui::CollapsingHeader("Wrath ability slots (experimental)")){
                 ImGui::Indent(12.0f);
-                ImGui::TextWrapped("Choose a power independently for each slot. Stoneskin on Strife remains experimental. Caltrops on War is an untested ground-only prototype: compatible idle pose, effect requested at cast start. Blade Geyser on Strife is NOT WORKING and is available for diagnosis only. Other transfers remain under development.");
-                const int stoneStatus=wrath_slots::ForeignStatus(6),geyserStatus=wrath_slots::ForeignStatus(4),caltropsStatus=wrath_slots::ForeignStatus(3);
-                constexpr const char* names[7]={"Native","Shadow Clone","World Ender","Caltrops","Blade Geyser","Rampage","Stoneskin"};
+                ImGui::TextWrapped("Choose a power independently for each slot. Caltrops and Geyser effects/damage were confirmed; their transferred animations remain incomplete. Clone, World Ender and Rampage transfers are experimental and use compatible idle poses. Our Stoneskin adaptation is removed: War's original Stoneskin remains available through Native.");
+                int status[6]={2,wrath_slots::ForeignStatus(1),wrath_slots::ForeignStatus(2),wrath_slots::ForeignStatus(3),wrath_slots::ForeignStatus(4),wrath_slots::ForeignStatus(5)};
+                constexpr const char* names[6]={"Native","Shadow Clone","World Ender","Caltrops","Blade Geyser","Rampage"};
                 constexpr const char* familyNames[2]={"Strife","War"};
                 ImGui::BeginDisabled(!wrath_slots::Ready());
                 for(unsigned family=0;family<2;++family){
@@ -379,9 +379,9 @@ void Draw(Context& c) {
                         const int choice=wrath_slots::Normalize(family,config.wrathSlots[family][slot]);
                         char label[32]{};sprintf_s(label,"Ability slot %u",slot+1);
                         if(ImGui::BeginCombo(label,names[choice])){
-                            for(int candidate=0;candidate<7;++candidate){
+                            for(int candidate=0;candidate<6;++candidate){
                                 if(!wrath_slots::Supported(family,candidate))continue;
-                                ImGui::BeginDisabled(wrath_slots::Foreign(family,candidate)&&(candidate==3?caltropsStatus:(candidate==4?geyserStatus:stoneStatus))==0);
+                                ImGui::BeginDisabled(wrath_slots::Foreign(family,candidate)&&status[candidate]==0);
                                 if(ImGui::Selectable(names[candidate],choice==candidate)){
                                     config.wrathSlots[family][slot]=candidate;config.Save();
                                 }
@@ -397,10 +397,10 @@ void Draw(Context& c) {
                 ImGui::EndDisabled();
                 if(!wrath_slots::Ready())ImGui::TextDisabled("Native ability boundary unavailable; original slots retained.");
                 ImGui::TextWrapped("The original slot must be unlocked. Transferred powers keep their native Wrath cost and do not unlock War's progression. Wheel icons and hints may still describe the original slot. Horse and ultimate abilities stay native. Select Native to restore a slot.");
-                if(stoneStatus==1||geyserStatus==1||caltropsStatus==1)ImGui::TextWrapped("Foreign powers are preparing. A selected transfer stays inactive until its own assets are ready.");
-                if(!stoneStatus)ImGui::TextDisabled("Stoneskin transfer unavailable.");
-                if(!geyserStatus)ImGui::TextDisabled("Blade Geyser transfer unavailable. After a failed cast, restart the game before retrying.");
-                if(!caltropsStatus)ImGui::TextDisabled("Caltrops transfer unavailable. Select Native after an unsuccessful test.");
+                for(int power=1;power<6;++power){
+                    if(status[power]==1)ImGui::TextDisabled("%s: preparing loaded assets.",names[power]);
+                    if(status[power]==0)ImGui::TextDisabled("%s transfer unavailable; select Native after an unsuccessful cast.",names[power]);
+                }
                 ImGui::Unindent(12.0f);
             }
             if(ImGui::CollapsingHeader("Player movement")){

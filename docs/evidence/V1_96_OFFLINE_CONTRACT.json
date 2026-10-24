@@ -1,0 +1,23 @@
+{
+  "abilityPackagesPresentInNativePak": [
+    "/Game/Blueprints/Abilities/ShadowStrife/MayhemAbility_ShadowStrife_Blueprint",
+    "/Game/Blueprints/Abilities/WorldEnder/MayhemAbility_WorldEnder_Finish_Blueprint",
+    "/Game/Blueprints/Abilities/Rampage/MayhemAbility_Rampage_Start_Blueprint",
+    "/Game/Blueprints/Abilities/Rampage/MayhemAbility_Rampage_Finish_Land_Blueprint",
+    "/Game/Blueprints/Abilities/Rampage/MayhemAbility_Rampage_Finish_Slam_Level1_Blueprint",
+    "/Game/Blueprints/Abilities/Rampage/MayhemAbility_Rampage_Finish_Slam_Level2_Blueprint",
+    "/Game/Blueprints/Abilities/Rampage/MayhemAbility_Rampage_Finish_Slam_Level3_Blueprint",
+    "/Game/Blueprints/Player/MayhemWorldEnder_Blueprint"
+  ],
+  "nativeExeSha256": "9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54",
+  "newObjectRva": "0xAC57A0",
+  "registerComponentWithWorldRva": "0x1750880",
+  "eventReserveRva": "0x2C42C0",
+  "nativeRegistrationAndMontageUntestedInGame": true,
+  "latestRuntimeObservation": "game not running; no game launched",
+  "userConfirmed": [
+    "Caltrops effects/damage on War",
+    "Geyser effects/damage on Strife"
+  ],
+  "animationsConfirmed": false
+}

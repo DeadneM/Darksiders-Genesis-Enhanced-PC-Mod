@@ -10,8 +10,8 @@ using namespace dg::foreign_montage;
 struct Fixture {
     unsigned char original[0x200]{},copy[0x200]{},war[0x180]{},idle[0x180]{},warSkeleton[0x180]{},strifeSkeleton[0x180]{};
     unsigned char classes[8][0x80]{},originalPackage[0x80]{},warPackage[0x80]{},transient[0x80]{},notify[0x100]{},notifyVtable[0x280]{};
-    unsigned char tracks[24]{},segments[32]{},events[368]{},sections[88]{},sequenceEvents[552]{};
-    unsigned char copyTracks[24]{},copySegments[32]{},copyEvents[64*184]{},copySections[88]{};
+    unsigned char tracks[24]{},segments[64]{},events[368]{},sections[88]{},sequenceEvents[552]{};
+    unsigned char copyTracks[24]{},copySegments[64]{},copyEvents[64*184]{},copySections[88]{};
     unsigned char blade[0x100]{},bladeCopy[0x100]{},nova[0x100]{},sound[0x100]{},other[0x100]{},assets[4][0x80]{};
 } f;
 unsigned char entries[40][256]{};uintptr_t names[40]{},chunks[1]{reinterpret_cast<uintptr_t>(names)};
@@ -47,7 +47,8 @@ void* ConstructNative(void* cls,void* outer,Name name,uint32_t flags,uint32_t in
     Put(f.copy,0x80,Array{reinterpret_cast<uintptr_t>(mode==3?f.events:f.copyEvents),2,2});
     Put(f.copy,0x148,Array{reinterpret_cast<uintptr_t>(mode==4?f.sections:f.copySections),1,1});
     Put(f.copy,0x158,Array{reinterpret_cast<uintptr_t>(mode==5?f.tracks:f.copyTracks),1,1});
-    Put(f.copyTracks,8,Array{reinterpret_cast<uintptr_t>(mode==6?f.segments:f.copySegments),1,1});
+    const auto segments=At<Array>(f.tracks,8);
+    Put(f.copyTracks,8,Array{reinterpret_cast<uintptr_t>(mode==6?f.segments:f.copySegments),segments.count,segments.capacity});
     if(mode==7)Put(f.copy,8,uint32_t(0x50));
     if(mode==8)Put(f.copy,0x20,uintptr_t(0));
     if(mode==9)Put(f.copy,8,uint32_t(0));
@@ -176,7 +177,32 @@ void Run(){
         Check(Geyser(reinterpret_cast<uintptr_t>(f.original),source)==f.copy,"each known upgrade montage uses the same guarded native contract");
     }
 }
+void Batch(){
+    std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(chunks));
+    const char* labels[]={"Strife_SpawnClone_Back_Montage","Strife_SpawnClone_F_Montage","Strife_Aim_WorldEnder_Montage","War_Atk_Rampage_Start_Montage","War_Atk_Rampage_Land_Montage","War_Atk_Rampage_Strike_Level1_Montage","War_Atk_Rampage_Strike_Level2_Montage","War_Atk_Rampage_Strike_Level3_Montage"};
+    for(unsigned i=0;i<8;++i){
+        Fresh();char package[200]{};sprintf_s(package,"/Game/Characters/Heroes/%s/%s/%s",i<3?"Hero_Strife":"Hero_War",i<3?"Animations":"Animation",labels[i]);
+        Label(f.original,7,labels[i]);Label(f.originalPackage,8,package);
+        Put(f.war,0x80,Array{reinterpret_cast<uintptr_t>(f.sequenceEvents),1,1});
+        const float span=At<float>(f.original,0x90);Put(f.original,0x90,span*2);
+        auto segment=At<Segment>(f.segments,0);segment.start=span;Put(f.segments,32,segment);Put(f.tracks,8,Array{reinterpret_cast<uintptr_t>(f.segments),2,2});
+        Put(f.original,0x188,2);Put(f.original,0x198,2);Put(f.sequenceEvents,0x91,static_cast<unsigned char>(1));
+        const auto before=std::make_unique<Fixture>(f);
+        Check(Compatible(reinterpret_cast<uintptr_t>(f.original),source)==f.copy,"all eight exact montages support multiple source segments");
+        Check(At<int>(f.copy,0x88)==4&&At<int>(f.copy,0x188)==0&&At<int>(f.copy,0x198)==0,"private queued notifications replace private branch caches");
+        Check(At<uintptr_t>(f.copyEvents,2*184+0x48)==reinterpret_cast<uintptr_t>(f.notify)&&At<uintptr_t>(f.copyEvents,3*184+0x48)==reinterpret_cast<uintptr_t>(f.notify)&&
+              std::abs(At<float>(f.copyEvents,3*184+0x24)-(.4880667329f+span))<.00001f,"native callbacks keep exact mapped segment times without duplication");
+        Check(At<Segment>(f.copySegments,32).sequence==source.sequence&&At<Segment>(f.copySegments,32).start==span,"compatible pose preserves later segment start");
+        Check(!std::memcmp(f.original,before->original,sizeof(f.original))&&!std::memcmp(f.sequenceEvents,before->sequenceEvents,sizeof(f.sequenceEvents))&&
+              !std::memcmp(f.segments,before->segments,sizeof(f.segments)),"generic transfer leaves original montage/sequence/events untouched");
+        for(int bad:{2,3,4,5,6,7,8,9}){mode=bad;Check(!Compatible(reinterpret_cast<uintptr_t>(f.original),source),"generic clone rejects shared arrays, CDO and wrong outer");}
+    }
+    Check(dg::native_objects::NameValueEquals(g_base,19,0,"Bone_Strife_Root")&&!dg::native_objects::NameValueEquals(g_base,19,0,"Bone_Strife")&&
+          !dg::native_objects::NameValueEquals(g_base,19,1,"Bone_Strife_Root")&&!dg::native_objects::NameValueEquals(g_base,-1,0,"X"),"dynamic names require exact full value, valid index and no instance number");
+    Put(entries[39],8,uint32_t(1));const wchar_t wide[]=L"WideName";std::memcpy(entries[39]+12,wide,sizeof(wide));
+    Check(dg::native_objects::NameValueEquals(g_base,39,0,"WideName")&&!dg::native_objects::NameValueEquals(g_base,39,0,"Wide"),"bounded dynamic name lookup supports wide names");
+}
 }
 namespace dg::native_tps {bool OnGameThread(){return gameThread;}}
-int main(){try{Run();std::cout<<"Private native montage allocation, nine-argument ABI, notify timing, source preservation and alias rejection passed\n";return 0;}
+int main(){try{Run();Batch();std::cout<<"Private native montage allocation, callback mapping, source preservation and alias rejection passed\n";return 0;}
 catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

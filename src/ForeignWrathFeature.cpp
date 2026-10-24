@@ -1,6 +1,7 @@
 #include "ForeignWrathFeature.h"
 #include "ForeignMontage.h"
 #include "ForeignCaltropsFeature.h"
+#include "ForeignPowerFeature.h"
 #include "NativeObjectName.h"
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
@@ -13,17 +14,13 @@ namespace dg::foreign_wrath {
 namespace {
 using Getter=uintptr_t*(*)(void*,uintptr_t*,Name);
 using Play=void(*)(void*,void*,float,Name);
-using Create=void*(*)(void*,Name,float,float,float,int,float,float);
 using Finish=void(*)(void*,unsigned char);
 using Playing=bool(*)(void*);
-Getter g_getter=nullptr;Play g_play=nullptr;Create g_create=nullptr;Finish g_finish=nullptr;Playing g_playing=nullptr;
-uintptr_t g_base=0,g_world=0;LogFn g_log=nullptr;std::atomic_bool g_ready{false},g_requested{false},g_assetsReady{false};
-native_objects::Identity g_stone{},g_geyser{},g_geyserActors[2]{};
-std::atomic_bool g_requestGeyser{false},g_geyserReady{false},g_geyserFailed{false};bool g_searchedGeyser=false;
-uintptr_t g_spawnFunction=0;unsigned g_dispatchTraces=0;
-struct DispatchTrace {unsigned number=0,blasts=0;uintptr_t actor=0;};
-thread_local DispatchTrace* g_dispatchTrace=nullptr;
-int g_cursor=0,g_count=0;bool g_complete=false;uint64_t g_scanTick=0;unsigned g_events=0,g_failures=0;
+Getter g_getter=nullptr;Play g_play=nullptr;Finish g_finish=nullptr;Playing g_playing=nullptr;
+uintptr_t g_base=0,g_world=0;LogFn g_log=nullptr;std::atomic_bool g_ready{false},g_requested{false};
+native_objects::Identity g_geyser{},g_geyserActors[2]{};
+std::atomic_bool g_geyserReady{false},g_geyserFailed{false};
+int g_cursor=0,g_count=0;bool g_complete=false;uint64_t g_scanTick=0;unsigned g_events=0;
 struct Array {uintptr_t data=0;int count=0,capacity=0;};
 struct Override {void* actor=nullptr;uintptr_t abilityClass=0;Name id{};};
 thread_local const Override* g_override=nullptr;
@@ -35,21 +32,13 @@ native_objects::Identity* GeyserActor(int index){
     return nullptr;
 }
 bool Alive(const native_objects::Identity& id){native_objects::MemoryReader r;return native_objects::Alive(r,g_base,id);}
-bool StoneClass(uintptr_t object){
-    uintptr_t kind=0,package=0;
-    if(!Read(object,0x10,kind)||!Is(kind,"BlueprintGeneratedClass")||!Read(object,0x20,package))return false;
-    return Is(object,"MayhemAbility_StoneSkin_Blueprint_C")&&Is(package,"/Game/Blueprints/Abilities/Stoneskin/MayhemAbility_StoneSkin_Blueprint");
-}
+
 bool GeyserClass(uintptr_t object){
     uintptr_t kind=0,package=0;
     return Read(object,0x10,kind)&&Is(kind,"BlueprintGeneratedClass")&&Read(object,0x20,package)&&
         Is(object,"MayhemAbility_Wrath_BladeGeyser_Blueprint_C")&&Is(package,"/Game/Blueprints/Abilities/MayhemAbility_Wrath_BladeGeyser_Blueprint");
 }
-int Kind(uintptr_t cls){
-    if(cls==g_stone.address&&Alive(g_stone)&&StoneClass(cls))return 6;
-    if(cls==g_geyser.address&&Alive(g_geyser)&&GeyserClass(cls))return 4;
-    return 0;
-}
+int Kind(uintptr_t cls){return cls==g_geyser.address&&Alive(g_geyser)&&GeyserClass(cls)?4:0;}
 bool OwnedStrife(void* live,local_players::Context& c){
     const auto actor=reinterpret_cast<uintptr_t>(live);uintptr_t cls=0,controller=0,pawn=0;unsigned char role=0,type=0;
     return native_tps::OnGameThread()&&local_players::ResolveActor(live,c)&&c.index>=0&&c.index<2&&c.localPlayer&&c.world&&
@@ -75,49 +64,9 @@ bool Source(uintptr_t actor,Animation& out){
         Read(idle.sequence,0x94,rate)&&rate==1&&Read(anim,0x3740,out.slot)&&
         native_objects::NameValueIs(g_base,out.slot.index,out.slot.number,"TPS")&&(out.sequence=idle.sequence)!=0;
 }
-void CacheSpawnFunction(){
-    if(!native_tps::OnGameThread()||g_spawnFunction||!g_geyser||!Alive(g_geyser))return;
-    uintptr_t field=0;if(!Read(g_geyser.address,0x48,field))return;
-    for(unsigned i=0;i<256&&field;++i){
-        uintptr_t cls=0,outer=0,next=0;
-        if(Read(field,0x10,cls)&&Is(cls,"Function")&&Is(field,"SpawnBlast")&&Read(field,0x20,outer)&&outer==g_geyser.address){
-            g_spawnFunction=field;if(g_log)g_log("Geyser V1.91 TRACE ready: exact Blueprint SpawnBlast cached; read-only diagnostics on existing dispatch, no new hook");return;
-        }
-        if(!Read(field,0x28,next)||next==field)return;field=next;
-    }
-}
-bool TraceOwner(void* live,local_players::Context& c){
-    const auto ability=reinterpret_cast<uintptr_t>(live);uintptr_t cls=0,actor=0,character=0,pawn=0,controller=0;uint32_t flags=0;unsigned char role=0,type=255;
-    return g_geyser&&Alive(g_geyser)&&Read(ability,8,flags)&&!(flags&0x30u)&&Read(ability,0x10,cls)&&cls==g_geyser.address&&
-        Read(ability,0x48,actor)&&Read(ability,0x1B0,character)&&actor==character&&local_players::ResolveActor(reinterpret_cast<void*>(actor),c)&&
-        c.index>=0&&c.index<2&&c.localPlayer&&c.world&&c.kind==local_players::PoseKind::Foot&&c.character==actor&&c.pawn==actor&&
-        Read(actor,0x118,role)&&role==3&&Read(actor,0x10,cls)&&Read(actor,0xC18,type)&&
-        ((type==1&&Is(cls,"Strife_Blueprint_C"))||(type==2&&Is(cls,"War_Blueprint_C")))&&
-        Read(actor,0x348,controller)&&controller==c.controller&&Read(controller,0x350,pawn)&&pawn==actor;
-}
-bool BlastClass(uintptr_t cls){
-    uintptr_t kind=0,package=0;
-    return Read(cls,0x10,kind)&&Is(kind,"BlueprintGeneratedClass")&&Read(cls,0x20,package)&&
-        ((Is(cls,"MayhemBlast_Wrath_BladeGeyser_Level1_Blueprint_C")&&Is(package,"/Game/Blueprints/Player/MayhemBlast_Wrath_BladeGeyser_Level1_Blueprint"))||
-         (Is(cls,"MayhemBlast_Wrath_BladeGeyser_Level2_Blueprint_C")&&Is(package,"/Game/Blueprints/Player/MayhemBlast_Wrath_BladeGeyser_Level2_Blueprint"))||
-         (Is(cls,"MayhemBlast_Wrath_BladeGeyser_Level3_Blueprint_C")&&Is(package,"/Game/Blueprints/Player/MayhemBlast_Wrath_BladeGeyser_Level3_Blueprint"))||
-         (Is(cls,"MayhemBlast_Wrath_BladeGeyser_Level4_Blueprint_C")&&Is(package,"/Game/Blueprints/Player/MayhemBlast_Wrath_BladeGeyser_Level4_Blueprint")));
-}
-void TraceNestedBlast(void* live){
-    auto* trace=g_dispatchTrace;if(!trace||trace->blasts>=4)return;
-    const auto object=reinterpret_cast<uintptr_t>(live);uintptr_t cls=0,owner=0,instigator=0;uint32_t flags=0;
-    if(!Read(object,8,flags)||(flags&0x30u)||!Read(object,0x10,cls)||!BlastClass(cls))return;
-    Read(object,0x108,owner);Read(object,0x140,instigator);++trace->blasts;
-    char text[240]{};sprintf_s(text,"Geyser V1.91 BLAST_EVENT call=%u object=%p sourceMatch=%d owner=%p instigator=%p; nested Blueprint event observed, damage NOT proven",
-        trace->number,live,(owner==trace->actor||instigator==trace->actor)?1:0,reinterpret_cast<void*>(owner),reinterpret_cast<void*>(instigator));g_log(text);
-}
 void Scan(uintptr_t generatedClass){
-    bool expired=false;
-    if(g_stone&&!Alive(g_stone)){g_stone={};expired=true;}
-    if(g_geyser&&!Alive(g_geyser)){g_geyser={};g_spawnFunction=0;g_geyserReady=false;expired=true;}
-    if(expired){g_cursor=0;g_complete=false;g_assetsReady=false;}
-    const bool geyser=g_requestGeyser.load();
-    if(g_stone){g_assetsReady=true;if(!geyser||g_geyser){if(geyser)CacheSpawnFunction();return;}}
+    if(g_geyser&&!Alive(g_geyser)){g_geyser={};g_geyserReady=false;g_cursor=0;g_complete=false;}
+    if(g_geyser){g_geyserReady=true;return;}
     uintptr_t chunks=0;int count=0;
     if(!Read(g_base,0x3959680,chunks)||!Read(g_base,0x3959694,count)||count<=0||count>2000000)return;
     if(count!=g_count){if(count<g_count)g_cursor=0;g_count=count;g_complete=false;}
@@ -126,19 +75,13 @@ void Scan(uintptr_t generatedClass){
         uintptr_t chunk=0,object=0,cls=0;uint32_t flags=0;
         if(!Read(chunks,size_t(g_cursor/65536)*8,chunk)||!Read(chunk,size_t(g_cursor%65536)*24,object)||!object||
            !Read(chunk,size_t(g_cursor%65536)*24+8,flags)||(flags&0x30000000u)||!Read(object,0x10,cls)||cls!=generatedClass)continue;
-        if(!g_stone&&StoneClass(object)&&native_objects::CaptureLive(g_base,reinterpret_cast<void*>(object),g_stone)&&g_log)
-            g_log("Foreign Wrath V1.83 Stoneskin assets ready; no package load or cross-player component borrowing");
-        if(geyser&&!g_geyser&&GeyserClass(object)&&native_objects::CaptureLive(g_base,reinterpret_cast<void*>(object),g_geyser)&&g_log)
-            g_log("Foreign Wrath V1.88 Geyser class ready; private native montage contract checked on cast; EXPERIMENTAL");
-        if(g_stone&&(!geyser||g_geyser))break;
+        if(GeyserClass(object)&&native_objects::CaptureLive(g_base,reinterpret_cast<void*>(object),g_geyser))break;
     }
-    if(g_cursor>=count)g_complete=true;
-    if(g_stone)g_assetsReady=true;
-    if(g_geyser){g_geyserReady=true;CacheSpawnFunction();}
+    if(g_cursor>=count)g_complete=true;if(g_geyser)g_geyserReady=true;
 }
 uintptr_t* HookGetter(void* actor,uintptr_t* result,Name id){
     const auto* request=g_override;
-    if(g_ready&&request&&request->actor==actor&&request->id==id&&result&&native_tps::OnGameThread()&&(Kind(request->abilityClass)||foreign_caltrops::IsClass(request->abilityClass))){
+    if(g_ready&&request&&request->actor==actor&&request->id==id&&result&&native_tps::OnGameThread()&&(Kind(request->abilityClass)||foreign_caltrops::IsClass(request->abilityClass)||foreign_power::IsClass(request->abilityClass))){
         *result=request->abilityClass;return result;
     }
     return g_getter?g_getter(actor,result,id):result;
@@ -147,7 +90,7 @@ int ForeignCast(void* live,local_players::Context& c){
     const auto ability=reinterpret_cast<uintptr_t>(live);
     uintptr_t cls=0,actor=0,character=0;unsigned char state=0,role=0;
     uint32_t objectFlags=0;
-    if(!(g_ready&&g_create&&g_finish&&g_playing&&native_tps::OnGameThread()&&Read(ability,8,objectFlags)&&!(objectFlags&0x30u)&&
+    if(!(g_ready&&g_finish&&g_playing&&native_tps::OnGameThread()&&Read(ability,8,objectFlags)&&!(objectFlags&0x30u)&&
         Read(ability,0x10,cls)&&Read(ability,0x48,actor)&&Read(ability,0x1B0,character)&&character==actor&&
         Read(ability,0xD8,state)&&(state==1||state==2)&&Read(actor,0x118,role)&&role==3&&OwnedStrife(reinterpret_cast<void*>(actor),c)))return 0;
     return Kind(cls);
@@ -160,76 +103,42 @@ bool ForeignLaunch(void* live,local_players::Context& c){
        !OwnedStrife(reinterpret_cast<void*>(actor),c))return false;
     const auto* recent=GeyserActor(c.index);return recent&&recent->address==actor&&Alive(*recent);
 }
-bool Duration(void* nativeMontage,float& duration){
-    const auto montage=reinterpret_cast<uintptr_t>(nativeMontage);uintptr_t cls=0,package=0;float length=0,scale=0;
-    if(!(Read(montage,0x10,cls)&&Is(cls,"AnimMontage")&&Read(montage,0x20,package)&&
-        ((Is(montage,"War_Atk_Stoneskin_Montage")&&Is(package,"/Game/Characters/Heroes/Hero_War/Animation/War_Atk_Stoneskin_Montage"))||
-         (Is(montage,"War_Atk_Stoneskin_Molten_Montage")&&Is(package,"/Game/Characters/Heroes/Hero_War/Animation/War_Atk_Stoneskin_Molten_Montage")))&&
-        Read(montage,0x90,length)&&std::isfinite(length)&&length>.1f&&length<10&&
-        Read(montage,0x94,scale)&&std::isfinite(scale)&&scale>.1f&&scale<10))return false;
-    duration=length/scale;return true;
-}
+
 void HookPlay(void* ability,void* montage,float rate,Name section){
-    local_players::Context c{};float duration=0;
+    local_players::Context c{};
     if(!g_play)return;
-    if(foreign_caltrops::HandlePlay(g_play,ability,montage,rate,section))return;
-    // Geyser can request War's rising-slash companion on interruption. That
-    // foreign melee chain has no Strife adapter: finish its unplayed cast safely.
-    // War's own rising slash and every unrelated actor remain native.
+    if(foreign_caltrops::HandlePlay(g_play,ability,montage,rate,section)||foreign_power::HandlePlay(g_play,ability,montage,rate,section))return;
     if(ForeignLaunch(ability,c)){if(auto* recent=GeyserActor(c.index))*recent={};g_finish(ability,0);return;}
-    const int choice=ForeignCast(ability,c);
-    if(!choice){g_play(ability,montage,rate,section);return;}
-    if(choice==4){
-        auto* recent=GeyserActor(c.index);
-        if(!recent){g_finish(ability,0);return;}
-        Animation source{};native_objects::Identity actor{};void* replacement=nullptr;bool played=false;
-        uintptr_t mesh=0,asset=0;Array bones{};Name root{};
-        if(!g_geyserFailed&&std::isfinite(rate)&&rate>0&&rate<=10&&!section.index&&!section.number&&
-           Source(c.character,source)&&native_objects::CaptureLive(g_base,reinterpret_cast<void*>(c.character),actor)&&
-           Read(c.character,0x380,mesh)&&Read(mesh,0x5A0,asset)&&Read(asset,0x190,bones)&&bones.data&&
-           bones.count>0&&bones.count<=bones.capacity&&bones.capacity<=1000&&Read(bones.data,0,root)&&
-           native_objects::NameValueIs(g_base,root.index,root.number,"Bone_Strife_Root"))
-            replacement=foreign_montage::Geyser(reinterpret_cast<uintptr_t>(montage),{source.sequence,source.skeleton,source.slot.index,source.slot.number,root.index,root.number});
-        if(replacement){
-            g_play(ability,replacement,rate,section);uintptr_t instance=0;
-            played=Read(reinterpret_cast<uintptr_t>(ability),0x1D8,instance)&&instance&&g_playing(reinterpret_cast<void*>(instance));
-        }
-        if(played)*recent=actor;
-        else {g_geyserFailed=true;g_finish(ability,0);}
-        if(g_log&&++g_events<=12)g_log(played?"Foreign Wrath V1.94 Geyser: one native SpawnBlast, native blade/nova FX and cast sound on private compatible montage; idle pose, damage UNVERIFIED; EXPERIMENTAL":
-            "Foreign Wrath V1.88 Geyser contract unavailable; cast finished and further Geyser requests stopped for this session");
-        return;
+    if(!ForeignCast(ability,c)){g_play(ability,montage,rate,section);return;}
+
+    auto* recent=GeyserActor(c.index);
+    if(!recent){g_finish(ability,0);return;}
+    Animation source{};native_objects::Identity actor{};void* replacement=nullptr;bool played=false;
+    uintptr_t mesh=0,asset=0;Array bones{};Name root{};
+    if(!g_geyserFailed&&std::isfinite(rate)&&rate>0&&rate<=10&&!section.index&&!section.number&&
+       Source(c.character,source)&&native_objects::CaptureLive(g_base,reinterpret_cast<void*>(c.character),actor)&&
+       Read(c.character,0x380,mesh)&&Read(mesh,0x5A0,asset)&&Read(asset,0x190,bones)&&bones.data&&
+       bones.count>0&&bones.count<=bones.capacity&&bones.capacity<=1000&&Read(bones.data,0,root)&&
+       native_objects::NameValueIs(g_base,root.index,root.number,"Bone_Strife_Root"))
+        replacement=foreign_montage::Geyser(reinterpret_cast<uintptr_t>(montage),{source.sequence,source.skeleton,source.slot.index,source.slot.number,root.index,root.number});
+    if(replacement){
+        g_play(ability,replacement,rate,section);uintptr_t instance=0;
+        played=Read(reinterpret_cast<uintptr_t>(ability),0x1D8,instance)&&instance&&g_playing(reinterpret_cast<void*>(instance));
     }
-    Animation source{};void* replacement=nullptr;float length=0;uintptr_t skeleton=0,cls=0;bool played=false;
-    // A transient compatible montage contains no foreign animation notifies.
-    // Pass it through the ability's original play/finish delegate lifecycle.
-    if(OwnedStrife(reinterpret_cast<void*>(c.character),c)&&Duration(montage,duration)&&
-       std::isfinite(rate)&&rate>0&&rate<=10&&section.index==0&&section.number==0&&Source(c.pawn,source))
-        replacement=g_create(reinterpret_cast<void*>(source.sequence),source.slot,.1f,.1f,1.0f,1,-1.0f,0.0f);
-    if(replacement&&Read(reinterpret_cast<uintptr_t>(replacement),0x10,cls)&&Is(cls,"AnimMontage")&&
-       Read(reinterpret_cast<uintptr_t>(replacement),0x38,skeleton)&&skeleton==source.skeleton&&
-       Read(reinterpret_cast<uintptr_t>(replacement),0x90,length)&&std::isfinite(length)&&length>.1f&&length<10){
-        const float adjusted=rate*length/duration;
-        if(std::isfinite(adjusted)&&adjusted>.01f&&adjusted<100){
-            g_play(ability,replacement,adjusted,section);uintptr_t instance=0;
-            played=Read(reinterpret_cast<uintptr_t>(ability),0x1D8,instance)&&instance&&g_playing(reinterpret_cast<void*>(instance));
-        }
-    }
-    // 5A76D0 uses Finish(cause=0) after native montage completion. During
-    // OnStart, 59B080 defers that same request safely until start returns.
-    if(!played)g_finish(ability,0);
-    if(g_log&&++g_events<=12){char text[200]{};sprintf_s(text,
-        "Foreign Wrath V1.83 Stoneskin player=%d compatibleMontage=%d nativeDuration=%.3f; native status/cost retained; EXPERIMENTAL",c.index+1,played?1:0,duration);g_log(text);}
+    if(played)*recent=actor;
+    else {g_geyserFailed=true;g_finish(ability,0);}
+    if(g_log&&++g_events<=12)g_log(played?"Foreign Wrath V1.94 Geyser: one native SpawnBlast, native blade/nova FX and cast sound on private compatible montage; idle pose, damage UNVERIFIED; EXPERIMENTAL":
+        "Foreign Wrath V1.88 Geyser contract unavailable; cast finished and further Geyser requests stopped for this session");
+    return;
+
 }
 bool Boundary(){
     constexpr unsigned char getter[]={0x48,0x89,0x5C,0x24,0x08,0x48,0x89,0x74,0x24,0x10,0x57,0x48,0x83,0xEC,0x30};
     constexpr unsigned char play[]={0x48,0x89,0x5C,0x24,0x10,0x57,0x48,0x83,0xEC,0x40,0x48,0x8B,0x81,0xB0,0x01,0x00};
-    constexpr unsigned char create[]={0x48,0x8B,0xC4,0x48,0x89,0x50,0x10,0x55,0x56,0x57,0x41,0x56,0x41,0x57,0x48,0x8D};
     constexpr unsigned char finish[]={0x40,0x57,0x48,0x83,0xEC,0x40,0x48,0xC7,0x44,0x24,0x20,0xFE,0xFF,0xFF,0xFF,0x48};
     constexpr unsigned char playing[]={0x48,0x89,0x5C,0x24,0x08,0x57,0x48,0x83,0xEC,0x20,0x48,0x8B,0xD9,0x48,0x83,0xC1};
     return g_base&&!std::memcmp(reinterpret_cast<void*>(g_base+0x7AAC30),getter,sizeof(getter))&&
         !std::memcmp(reinterpret_cast<void*>(g_base+0x5AA190),play,sizeof(play))&&
-        !std::memcmp(reinterpret_cast<void*>(g_base+0x168A410),create,sizeof(create))&&
         !std::memcmp(reinterpret_cast<void*>(g_base+0x59B080),finish,sizeof(finish))&&
         !std::memcmp(reinterpret_cast<void*>(g_base+0x676620),playing,sizeof(playing));
 }
@@ -242,23 +151,23 @@ void Initialize(LogFn log,bool exactExecutable){
     if(MH_CreateHook(getter,reinterpret_cast<void*>(&HookGetter),reinterpret_cast<void**>(&g_getter))!=MH_OK)return;
     if(MH_CreateHook(play,reinterpret_cast<void*>(&HookPlay),reinterpret_cast<void**>(&g_play))!=MH_OK){MH_RemoveHook(getter);g_getter=nullptr;return;}
     if(MH_EnableHook(getter)!=MH_OK||MH_EnableHook(play)!=MH_OK){MH_DisableHook(getter);MH_DisableHook(play);MH_RemoveHook(getter);MH_RemoveHook(play);g_getter=nullptr;g_play=nullptr;return;}
-    g_create=reinterpret_cast<Create>(g_base+0x168A410);g_finish=reinterpret_cast<Finish>(g_base+0x59B080);g_playing=reinterpret_cast<Playing>(g_base+0x676620);g_ready=true;
+    g_finish=reinterpret_cast<Finish>(g_base+0x59B080);g_playing=reinterpret_cast<Playing>(g_base+0x676620);g_ready=true;
     foreign_caltrops::Initialize(log,exactExecutable);
-    if(log)log("Foreign Wrath V1.88 READY: Stoneskin and Geyser on owned Strife only, native unlock/cost/lifecycle; compatible private montage; EXPERIMENTAL");
+    foreign_power::Initialize(log,exactExecutable);
+    if(log)log("Foreign Wrath V1.96 READY: Geyser and batched foreign powers, native unlock/cost/lifecycle; compatible private montages");
 }
 int Status(int choice){
     if(choice==3)return foreign_caltrops::Status();
-    if(!g_ready)return 0;g_requested=true;
-    if(choice==4){g_requestGeyser=true;return foreign_montage::Ready()&&!g_geyserFailed?(g_geyserReady?2:1):0;}
-    return choice==6?(g_assetsReady?2:1):0;
+    if(choice==1||choice==2||choice==5)return foreign_power::Status(choice);
+    if(choice!=4||!g_ready)return 0;g_requested=true;
+    return foreign_montage::Ready()&&!g_geyserFailed?(g_geyserReady?2:1):0;
 }
 void Observe(const local_players::Context& owner){
-    foreign_caltrops::Observe(owner);
+    foreign_caltrops::Observe(owner);foreign_power::Observe(owner);
     if(!g_ready||!native_tps::OnGameThread())return;
-    bool wanted=g_requested.load();for(const auto& choice:runtime::Get().wrathSlots[0]){wanted=wanted||choice.load()==6||choice.load()==4;if(choice.load()==4)g_requestGeyser=true;}
+    bool wanted=g_requested.load();for(const auto& choice:runtime::Get().wrathSlots[0])wanted=wanted||choice.load()==4;
     if(!wanted||owner.index<0||owner.index>1||!owner.localPlayer||!owner.world||owner.kind!=local_players::PoseKind::Foot)return;
     if(g_world!=owner.world){g_world=owner.world;g_cursor=0;g_count=0;g_complete=false;}
-    if(g_requestGeyser&&!g_searchedGeyser){g_cursor=0;g_complete=false;g_searchedGeyser=true;}
     if(auto* recent=GeyserActor(owner.index);recent&&recent->address&&recent->address!=owner.character)*recent={};
     const auto now=GetTickCount64();if(now>=g_scanTick&&now-g_scanTick<15)return;g_scanTick=now;
     uintptr_t cls=0,kind=0;if(!Read(owner.character,0x10,cls)||!Read(cls,0x10,kind)||!Is(kind,"BlueprintGeneratedClass"))return;
@@ -266,42 +175,19 @@ void Observe(const local_players::Context& owner){
 }
 bool Prepare(void* actor,uintptr_t& abilityClass,int choice){
     if(choice==3)return foreign_caltrops::Prepare(actor,abilityClass);
-    g_requested=true;local_players::Context c{};Animation animation{};uintptr_t cdo=0,cls=0;
-    if(choice!=4&&choice!=6)return false;
-    if(choice==4){g_requestGeyser=true;CacheSpawnFunction();}
-    const auto& selected=choice==4?g_geyser:g_stone;
-    if(!g_ready||!(choice==4?g_geyserReady.load():g_assetsReady.load())||!OwnedStrife(actor,c)||Kind(selected.address)!=choice)return false;
-    if(!Read(selected.address,0xF8,cdo)||!Read(cdo,0x10,cls)||cls!=selected.address||!Source(c.pawn,animation)){
-        if(g_log&&++g_failures<=6)g_log("Foreign Wrath waiting: native class default or own compatible animation unavailable; selected slot inactive, no cost");
-        return false;
-    }
-    if(choice==4&&(g_geyserFailed||!foreign_montage::CanBuild({animation.sequence,animation.skeleton,animation.slot.index,animation.slot.number})))return false;
-    abilityClass=selected.address;return true;
+    if(choice==1||choice==2||choice==5)return foreign_power::Prepare(actor,abilityClass,choice);
+    if(choice!=4)return false;g_requested=true;
+    local_players::Context c{};Animation animation{};uintptr_t cdo=0,cls=0;
+    if(!g_ready||!g_geyserReady||!OwnedStrife(actor,c)||Kind(g_geyser.address)!=4||g_geyserFailed||
+       !Read(g_geyser.address,0xF8,cdo)||!Read(cdo,0x10,cls)||cls!=g_geyser.address||!Source(c.pawn,animation)||
+       !foreign_montage::CanBuild({animation.sequence,animation.skeleton,animation.slot.index,animation.slot.number}))return false;
+    abilityClass=g_geyser.address;return true;
 }
 uintptr_t* Resolve(ResolveFn native,void* actor,uintptr_t* result,Name id,bool* unlocked,bool* affordable,uintptr_t abilityClass){
     if(!native)return result;
     Override request{actor,abilityClass,id};struct Scope {const Override* previous;~Scope(){g_override=previous;}} scope{g_override};
     g_override=&request;return native(actor,result,id,unlocked,affordable);
 }
-void DispatchEvent(DispatchFn native,void* object,void* function,void* parameters,void* outParameters){
-    if(!native)return;
-    if(!g_ready||!native_tps::OnGameThread()||!g_log){native(object,function,parameters,outParameters);return;}
-    if(g_dispatchTrace)TraceNestedBlast(object);
-    local_players::Context c{};
-    if(!g_spawnFunction||reinterpret_cast<uintptr_t>(function)!=g_spawnFunction||g_dispatchTraces>=8||!TraceOwner(object,c)){
-        native(object,function,parameters,outParameters);return;
-    }
-    DispatchTrace trace{++g_dispatchTraces,0,c.character};int before=-1,after=-1;
-    Read(g_base,0x3959694,before);unsigned char state=255,type=255;
-    Read(reinterpret_cast<uintptr_t>(object),0xD8,state);Read(c.character,0xC18,type);
-    char text[240]{};sprintf_s(text,"Geyser V1.91 DISPATCH_BEFORE call=%u player=%d strife=%d state=%u actor=%p objects=%d; actual SpawnBlast entry, read-only",
-        trace.number,c.index+1,type==1?1:0,unsigned(state),reinterpret_cast<void*>(trace.actor),before);g_log(text);
-    {
-        struct Scope {DispatchTrace* previous;~Scope(){g_dispatchTrace=previous;}} scope{g_dispatchTrace};g_dispatchTrace=&trace;
-        native(object,function,parameters,outParameters);
-    }
-    Read(g_base,0x3959694,after);sprintf_s(text,"Geyser V1.91 DISPATCH_AFTER call=%u nativeReturned=1 nestedBlastEvents=%u objectsBefore=%d objectsAfter=%d; no damage or cost override",
-        trace.number,trace.blasts,before,after);g_log(text);
-}
-void Shutdown(){foreign_caltrops::Shutdown();g_ready=false;g_assetsReady=false;g_geyserReady=false;}
+
+void Shutdown(){foreign_caltrops::Shutdown();foreign_power::Shutdown();g_ready=false;g_geyserReady=false;}
 }

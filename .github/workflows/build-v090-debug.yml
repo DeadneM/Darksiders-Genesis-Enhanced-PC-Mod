@@ -1,4 +1,4 @@
-name: V1.95 Strife Geyser presentation TEST
+name: V1.96 foreign power batch TEST
 on:
   push:
     branches: [debug]
