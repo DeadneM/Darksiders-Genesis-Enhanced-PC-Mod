@@ -1,0 +1,36 @@
+{
+  "runId": 40057951291,
+  "jobId": 120765002088,
+  "sourceCommit": "616105597138f4a7012b2c48bd1be6ff6a14369e",
+  "conclusion": "cancelled",
+  "buildAndTestsStepsSucceeded": true,
+  "suitesPassed": 54,
+  "testRows": 54,
+  "archivePublishedBeforeCancellation": true,
+  "compilerWarnings": [],
+  "compilerErrors": [],
+  "notFinalCandidate": true,
+  "instanceScopeFixIncluded": false,
+  "gameplayValidated": false,
+  "archiveCommit": "13e70e35a81d32c607e97076142cdd5dd5a23751",
+  "size": 930819,
+  "sha256": "F0A750CD4B47260708EF44D237564A6448A14A155BDC80DFD470FA9BE4564C67",
+  "files": {
+    "DarksidersGenesisMod.asi": {
+      "size": 1710592,
+      "sha256": "D25CE6886351935BD8F3419F1F7575E53AD4CADF99AE6C10D50E5B33EABC90F8"
+    },
+    "DarksidersGenesisMod.ini": {
+      "size": 4691,
+      "sha256": "99E3EECAD438A6735DD4389D544535FF798BB7F9E9EF0E4E243BC40CC4F13524"
+    },
+    "dxgi.dll": {
+      "size": 155136,
+      "sha256": "995979F20538AD8937AC817969FE623B82A78B2BC3A5F1816CF35704F236589B"
+    },
+    "README.md": {
+      "size": 52452,
+      "sha256": "C438741B4F91E0ADF69083B13E78F462AA785C61870AD5F895831E9D72F83328"
+    }
+  }
+}

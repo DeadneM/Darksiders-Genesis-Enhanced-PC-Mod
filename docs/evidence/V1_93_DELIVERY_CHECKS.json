@@ -1,0 +1,80 @@
+{
+  "ci": {
+    "runId": 40058379301,
+    "jobId": 120766401827,
+    "sourceCommit": "359683a77a4ebd5a64312ca45c9c9885bb9ca235",
+    "conclusion": "success",
+    "suitesPassed": 54,
+    "testRows": 54,
+    "compilerWarnings": [],
+    "compilerErrors": [],
+    "sourceGateExecuted": true,
+    "toolingWarnings": [
+      "2026-10-24T03:28:37.0759643Z CMake Warning (deprecated) at build/_deps/minhook-src/CMakeLists.txt:27 (cmake_minimum_required):",
+      "2026-10-24T03:31:39.1505208Z (node:9020) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.",
+      "2026-10-24T03:31:39.5320974Z (node:9020) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities."
+    ]
+  },
+  "checks": {
+    "base": "13e70e35a81d32c607e97076142cdd5dd5a23751",
+    "validatedBase": "c20319f93413f849a41b10fdfd96f7842a172ac6",
+    "branch": "debug",
+    "oldArchivesUnchanged": 157,
+    "iniKeysUnchanged": 168,
+    "hotkeyIdsUnchanged": 55,
+    "unchangedSourceFiles": 116,
+    "validatedPresentationUnchanged": true,
+    "existingStoneskinCastUnchanged": true,
+    "geyserCodeAndTraceUnchanged": true,
+    "nativeStrifeClassifierUnchanged": true,
+    "noNewHooks": true,
+    "groundOnly": true,
+    "nativeSpawnerAbiVerifiedOffline": true,
+    "offlineAssetsVerified": true,
+    "liveGameLaunched": false,
+    "runtimeCapturesRequested": false,
+    "gameplayValidated": false,
+    "userAuthorizedOfflineProgress": true,
+    "testsExpected": 54
+  },
+  "package": {
+    "sourceCommit": "359683a77a4ebd5a64312ca45c9c9885bb9ca235",
+    "archiveCommit": "85f4d9a893ddfe85e6aef2799e339b2b7d567102",
+    "name": "DarksidersGenesis_V1.93_WAR_CALTROPS_GROUND_TEST.zip",
+    "size": 931353,
+    "sha256": "3318C82C62287B61AE1AE79114CC92AC77EDE9E611278F18DC4F793174A4F491",
+    "files": {
+      "DarksidersGenesisMod.asi": {
+        "size": 1710592,
+        "sha256": "B71E4699109FE18ECB7D7B153C562B66E9DF08A0D276EE4D10379D2CC3806998"
+      },
+      "DarksidersGenesisMod.ini": {
+        "size": 4691,
+        "sha256": "99E3EECAD438A6735DD4389D544535FF798BB7F9E9EF0E4E243BC40CC4F13524"
+      },
+      "dxgi.dll": {
+        "size": 155136,
+        "sha256": "074A5EDB61EF71DAC1D0CEFE229661F76B9402BE023AC528A4715F2426136290"
+      },
+      "README.md": {
+        "size": 54550,
+        "sha256": "C803705ADD1C09CD88AF53B319952ED7BFC37FF10D9DF93470FF04947532A707"
+      }
+    },
+    "oldArchivesUnchanged": 157,
+    "iniKeys": 168,
+    "hotkeyIdsUnchanged": true,
+    "amd64": true,
+    "crcValid": true,
+    "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/85f4d9a893ddfe85e6aef2799e339b2b7d567102/downloads/DarksidersGenesis_V1.93_WAR_CALTROPS_GROUND_TEST.zip",
+    "httpStatus": 200,
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/main": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "gameplayValidated": false
+  },
+  "gameplayValidated": false,
+  "userAuthorizedOfflineProgress": true
+}

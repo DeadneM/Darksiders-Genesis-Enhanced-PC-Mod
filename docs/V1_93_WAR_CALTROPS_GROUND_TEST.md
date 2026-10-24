@@ -1,6 +1,6 @@
 # V1.93 — transfert expérimental Caltrops vers War, au sol
 
-**EXPÉRIMENTAL NON TESTÉ EN JEU ; compilation et contrôles V1.93 à consigner après CI.**
+**V1.93 CONSTRUITE / CONTRÔLÉE : [54/54 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40058379301), zéro erreur et zéro avertissement MSVC. Caltrops sur War EXPÉRIMENTAL, NON TESTÉ EN JEU.** [ZIP cumulatif immuable vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/85f4d9a893ddfe85e6aef2799e339b2b7d567102/downloads/DarksidersGenesis_V1.93_WAR_CALTROPS_GROUND_TEST.zip) · [Reçu et rollback](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/blob/debug/docs/V1_93_DELIVERY_RECEIPT.md).
 
 Base validée V1.87 `c20319f93413f849a41b10fdfd96f7842a172ac6` dans les cas rapportés ; cumul V1.92 corrigé `dac4d9d5a0e68b493d639cce67c50e18ddc364ac` ; archive intermédiaire `13e70e35a81d32c607e97076142cdd5dd5a23751`. L’utilisateur autorise explicitement le travail sans essai immédiat. **Aucune validation V1.91 ni V1.93 inventée.** Geyser sur Strife reste rejeté après V1.89 ; son diagnostic V1.91 reste inchangé et en attente de test. Objectif de ce build : proposer un premier effet Caltrops natif appartenant à War, au sol, sans détourner les entrées ni modifier Strife. Réussite de gameplay, différée : apparition et dégâts de Caltrops, un seul lancer par entrée de cast, coût natif en mission, retour aux commandes et Native, sans régression des pouvoirs propres.
 
