@@ -217,13 +217,13 @@ bool RootProperty(uintptr_t notify,uintptr_t cls,size_t& offset,Name& socket){
         uintptr_t field=0;if(!Read(cls,0x48,field))return false;
         for(unsigned n=0;field&&n<256;++n){
             uintptr_t type=0,next=0;int size=0,at=0;
-            if(Read(field,0x10,type)&&Is(type,"NameProperty")&&Is(field,"SocketName")&&Read(field,0x34,size)&&size==8&&
+            if(Read(field,0x10,type)&&Is(type,"NameProperty")&&Is(field,"SpawnSocket")&&Read(field,0x34,size)&&size==8&&
                Read(field,0x44,at)&&at>=0x30&&at<=0x200){offset=size_t(at);return Read(notify,offset,socket);}
             if(!Read(field,0x28,next)||next==field)return false;field=next;
         }
         uintptr_t parent=0;if(!Read(cls,0x40,parent)||parent==cls)return false;cls=parent;
     }
-    return true;
+    return false;
 }
 bool Gather(uintptr_t asset,const Array& list,float first,float last,float start,float rate,Presentation& plan){
     for(int i=0;i<list.count;++i){
@@ -238,7 +238,8 @@ bool Gather(uintptr_t asset,const Array& list,float first,float last,float start
         if((particle||blast)&&!RootProperty(notify,cls,socketOffset,socket))return false;
         if((socket.index||socket.number)&&!native_objects::NameValueIs(g_base,socket.index,socket.number,"Bone_War_Root")&&
            !native_objects::NameValueIs(g_base,socket.index,socket.number,"Bone_Strife_Root")&&
-           !native_objects::NameValueIs(g_base,socket.index,socket.number,"VFX_Root"))continue;
+           !native_objects::NameValueIs(g_base,socket.index,socket.number,"VFX_Root")&&
+           !(blast&&native_objects::NameValueIs(g_base,socket.index,socket.number,"Bone_War_Hand_L")))continue;
         uintptr_t owner=0;
         if(plan.count<0||plan.count>=int(plan.events.size())||!Read(notify,0x20,owner)||owner!=asset||!Read(at,0x50,state)||state||
            !Read(at,0x58,duration)||duration!=0||!Read(at,0x91,tick)||tick>1||!Read(at,0,plan.events[plan.count]))return false;
