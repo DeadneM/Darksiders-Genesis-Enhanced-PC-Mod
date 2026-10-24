@@ -1,0 +1,77 @@
+{
+  "ci": {
+    "runId": 40123319154,
+    "jobId": 120959363084,
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40123319154",
+    "sourceCommit": "b0ea407970fe18e4bddf7fcae8059fe983562b95",
+    "conclusion": "success",
+    "passedSuites": 55,
+    "msvcWarnings": 0,
+    "msvcErrors": 0,
+    "allTestsPassed": true,
+    "archiveIdentityVerified": true,
+    "runtimeValidated": false
+  },
+  "package": {
+    "sourceCommit": "b0ea407970fe18e4bddf7fcae8059fe983562b95",
+    "archiveCommit": "81b4e41b4d0b9a2d74eee45ba6f63bcbe986c217",
+    "name": "DarksidersGenesis_V1.97_FOREIGN_POWERS_SAFE_SUBSET_TEST.zip",
+    "size": 951502,
+    "sha256": "8A0B6C626BF7B56A9CE88F43844C757581B97C4D232AB913044E6CAB5F46ED13",
+    "files": {
+      "DarksidersGenesisMod.asi": {
+        "size": 1742336,
+        "sha256": "A823C3D0E72FCFCD563BBEE88F9130B86651E9672A4D980E62B0EFFA5C53CDE0"
+      },
+      "DarksidersGenesisMod.ini": {
+        "size": 4691,
+        "sha256": "99E3EECAD438A6735DD4389D544535FF798BB7F9E9EF0E4E243BC40CC4F13524"
+      },
+      "dxgi.dll": {
+        "size": 155136,
+        "sha256": "06114B6CD2C858F34592568DAF1005649E2DA526386033FBCDB4084ADFA67179"
+      },
+      "README.md": {
+        "size": 62035,
+        "sha256": "D013A989DE46E2D91C9DE3914CFA2E1A7929622758FDDD5F9003C3732BC10D3C"
+      }
+    },
+    "oldArchivesUnchanged": 161,
+    "iniKeys": 168,
+    "hotkeyIdsUnchanged": 55,
+    "amd64": true,
+    "crcValid": true,
+    "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/81b4e41b4d0b9a2d74eee45ba6f63bcbe986c217/downloads/DarksidersGenesis_V1.97_FOREIGN_POWERS_SAFE_SUBSET_TEST.zip",
+    "httpStatus": 200,
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/main": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "gameplayValidated": false
+  },
+  "static": {
+    "base": "778468962262d78a476a718ef8463b13fcda25c8",
+    "acceptedGameplayBase": "5b35a2be7f6a53d51f9b953f9d14a8bab93f14fc",
+    "oldArchivesUnchanged": 161,
+    "iniBytesUnchanged": true,
+    "hotkeyIdsUnchanged": 55,
+    "changedSourceFiles": [
+      "src/BuildInfo.h",
+      "src/ForeignMontage.cpp",
+      "src/ForeignMontage.h",
+      "src/ForeignPowerFeature.cpp",
+      "src/ForeignWrathFeature.cpp",
+      "src/OverlayUi.cpp",
+      "src/WrathSlotSettings.h"
+    ],
+    "caltropsAndGeyserPreserved": true,
+    "rejectedTransferCodeRemoved": true,
+    "animationFixed": false,
+    "stoneskinCrystalFixed": false,
+    "runtimeValidated": false
+  },
+  "gameplayValidated": false,
+  "stoneskinCrystalFixed": false,
+  "animationsFixed": false
+}

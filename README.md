@@ -1,6 +1,6 @@
 ## V1.97 - Repli apres rejet de V1.96
 
-V1.96 REJETEE en jeu : Rampage sur Strife bloque le personnage ; World Ender sur War echoue ; Clone fonctionne sans animation correcte. Caltrops/Geyser : effets et degats confirmes, animations toujours incorrectes. **V1.97 CANDIDAT : compilation et controles en attente.** Base : V1.95 et uniquement les effets retenus de Clone V1.96.
+V1.96 REJETEE en jeu : Rampage sur Strife bloque le personnage ; World Ender sur War echoue ; Clone fonctionne sans animation correcte. Caltrops/Geyser : effets et degats confirmes, animations toujours incorrectes. **V1.97 CONSTRUITE / CONTROLEE : [55/55 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40123319154), zero avertissement/erreur MSVC ; repli NON VALIDE EN JEU.** [ZIP cumulatif immuable](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/81b4e41b4d0b9a2d74eee45ba6f63bcbe986c217/downloads/DarksidersGenesis_V1.97_FOREIGN_POWERS_SAFE_SUBSET_TEST.zip) - [Recu](docs/V1_97_DELIVERY_RECEIPT.md). Base : V1.95 et uniquement les effets retenus de Clone V1.96.
 
 Le code des deux transferts rejetes est retire, pas seulement masque dans le menu. Les anciennes selections Rampage sur Strife et World Ender sur War reviennent a Native. Leurs pouvoirs d'origine restent disponibles sur leur propre personnage. Clone/Caltrops sur War et Geyser sur Strife conserves. Aucun changement des tirs, cameras, controles, effets valides ou defauts INI.
 

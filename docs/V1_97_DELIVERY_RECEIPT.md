@@ -1,0 +1,11 @@
+# V1.97 - Recu du repli
+
+CONSTRUITE / CONTROLEE : [55/55 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40123319154), zero avertissement ou erreur MSVC. [ZIP cumulatif immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/81b4e41b4d0b9a2d74eee45ba6f63bcbe986c217/downloads/DarksidersGenesis_V1.97_FOREIGN_POWERS_SAFE_SUBSET_TEST.zip). Aucun resultat en jeu suppose.
+
+Base des chemins retenus : V1.95 / 5b35a2be7f6a53d51f9b953f9d14a8bab93f14fc et effet de Clone V1.96 confirme par l'utilisateur. V1.96 REJETEE : Rampage bloque Strife, World Ender ne fonctionne pas sur War. Leurs transferts/classes/composants/suites et commandes de rayon sont retires de l'adaptateur. Anciennes selections remises a Native ; pouvoirs propres conserves. Clone/Caltrops sur War et Geyser sur Strife restent partiels, sans animation correcte.
+
+Stoneskin : aucune adaptation active, cristal uniquement pendant le pouvoir, NON CORRIGE. Le PAK d'origine contient des effets de pierres et de cristaux, dont un coeur active pendant Stoneskin ; aucune preuve que ce soit le composant signale. Jeu ferme pendant cette analyse, aucun objet du cristal observe en direct, aucune ecriture dans le jeu. [Preuves et limites](V1_97_RETAINED_FOREIGN_SUBSET_TEST.md).
+
+Source compilee `b0ea407970fe18e4bddf7fcae8059fe983562b95` ; commit archive `81b4e41b4d0b9a2d74eee45ba6f63bcbe986c217`. ZIP 951502 octets, SHA256 `8A0B6C626BF7B56A9CE88F43844C757581B97C4D232AB913044E6CAB5F46ED13`. Quatre fichiers racine, CRC valide, ASI/dxgi AMD64, README et INI compares aux sources, HTTP 200 public verifie. 168 cles INI/defauts et 55 ID Hotkeys inchanges ; 161 anciennes archives preservees, 162 au total. main/archive/v1.43 verifies intacts. Autres controles, tirs, cameras et effets valides conserves.
+
+Installation manuelle jeu ferme, garder son INI, raccourcis, PAK et sauvegardes. Essai : choix des pouvoirs/retour Native des selections rejetees, puis Clone/Caltrops/Geyser ; P2 differe. Animations et cristal restent ouverts. Prochaine etape : identifier le vrai composant du cristal, puis reprendre les animations propres au receveur et isoler leurs notifications avant de reintroduire les transferts rejetes. La piste d'animation est seulement une etude, pas une fonction livree.

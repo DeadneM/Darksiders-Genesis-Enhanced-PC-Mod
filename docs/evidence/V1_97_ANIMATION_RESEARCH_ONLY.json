@@ -1,0 +1,18 @@
+{
+  "status": "research only; no new animation implementation",
+  "currentFailure": "Idle pose substituted for foreign animation; no rig remapping or donor root motion transferred",
+  "candidateWarSequence": "War_Atk_Stoneskin",
+  "candidateStrifeSequence": "Strife_SpawnClone_F",
+  "mustIsolateNotifyArrays": true,
+  "reason": "Native receiving animations also have their own ability/material callbacks; copying them blindly could cause extra powers or Stoneskin materials",
+  "possibleImplementation": "private native-owned copy of own sequence, remove only its private notifications, preserve own skeleton; supply original foreign power callback timeline in private montage",
+  "gates": [
+    "exact source class/package/skeleton and live owner",
+    "native duplicate owns notify storage; reject aliases",
+    "no mutation of source assets or CDO",
+    "own root-motion and full ability release validated",
+    "test actual pose and interruption in game"
+  ],
+  "implemented": false,
+  "runtimeValidated": false
+}
