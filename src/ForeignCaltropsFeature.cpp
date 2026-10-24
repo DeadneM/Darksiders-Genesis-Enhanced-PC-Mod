@@ -17,7 +17,7 @@ Create g_create=nullptr;Finish g_finish=nullptr;Playing g_playing=nullptr;Spawn 
 uintptr_t g_base=0;LogFn g_log=nullptr;
 std::atomic_bool g_ready{false},g_requested{false},g_loaded{false},g_failed{false};
 native_objects::Identity g_power{},g_idle{};int g_cursor=0,g_count=0;uint64_t g_scanTick=0;unsigned g_events=0;
-thread_local bool g_handling=false;
+thread_local void* g_handling=nullptr;
 struct Array {uintptr_t data=0;int count=0,capacity=0;};
 struct Source {uintptr_t mesh=0,sequence=0,skeleton=0;Name pelvis{};float length=0;};
 template<class T> bool Read(uintptr_t p,size_t o,T& value){native_objects::MemoryReader r;return r.Read(p,o,value);}
@@ -121,8 +121,8 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     if(!Read(p,0x10,cls)||!IsClass(cls)||!Read(p,8,flags)||(flags&0x30u)||!Read(p,0x48,actor)||!Read(p,0x1B0,character)||actor!=character||
        !Read(p,0xD8,state)||(state!=1&&state!=2))return false;
     local_players::Context c{};if(!Owner(reinterpret_cast<void*>(actor),c))return false;
-    if(g_handling)return true;
-    struct Scope {Scope(){g_handling=true;}~Scope(){g_handling=false;}} scope;
+    if(g_handling==ability)return true;
+    struct Scope {void* previous;explicit Scope(void* live):previous(g_handling){g_handling=live;}~Scope(){g_handling=previous;}} scope{ability};
     Source source{};Name slot{};float duration=0;uintptr_t projectile=0;native_objects::Identity cast{},pawn{};
     if(g_failed||!std::isfinite(rate)||rate<=0||rate>10||section.index||section.number||!Animation(c,source)||!Montage(montage,slot,duration)||
        !Projectile(p,projectile)||!native_objects::CaptureLive(g_base,ability,cast)||!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(actor),pawn)){Stop(ability);return true;}

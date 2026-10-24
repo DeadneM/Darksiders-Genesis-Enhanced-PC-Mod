@@ -39,7 +39,7 @@ void SpawnNative(void* ability,void* projectile,Name bone){++spawns;spawned={abi
 void Fresh(){
     f={};owner={};gameThread=local=createOK=playing=true;reenter=expire=expireCreate=changeOwner=throwPlay=false;
     creates=plays=spawns=finishes=playingCalls=0;playedRate=0;playedMontage=nullptr;playedSection={};created={};spawned={};
-    g_ready=g_loaded=true;g_requested=g_failed=false;g_handling=false;g_log=nullptr;g_cursor=g_count=0;g_scanTick=0;g_events=0;
+    g_ready=g_loaded=true;g_requested=g_failed=false;g_handling=nullptr;g_log=nullptr;g_cursor=g_count=0;g_scanTick=0;g_events=0;
     g_create=CreateNative;g_finish=FinishNative;g_playing=PlayingNative;g_spawn=SpawnNative;
     const char* labels[]={"BlueprintGeneratedClass","AnimSequence","AnimMontage","War_Blueprint_C","WarAnim_Blueprint_C"};
     for(int i=0;i<5;++i)Label(f.classes[i],i+1,labels[i]);
@@ -78,6 +78,7 @@ void Run(){
     Check(spawned.ability==f.ability&&spawned.projectile==f.projectile&&spawned.bone==Name{16,0},"three-argument native spawn uses current ability, own default class and War pelvis FName");
     Check(!std::memcmp(f.actor,actor.data(),actor.size())&&!std::memcmp(f.cdo,cdo.data(),cdo.size())&&!std::memcmp(f.idle,idle.data(),idle.size())&&!std::memcmp(f.montage,original.data(),original.size()),"no actor, source, CDO, input or resource writes");
     Fresh();owner.index=1;owner.localPlayer=789;Check(Cast()&&spawns==1&&spawned.ability==f.ability,"same ownership contract permits P2 without borrowing P1; runtime still untested");
+    Fresh();g_handling=f.controller;Check(Cast()&&spawns==1&&g_handling==f.controller,"another cast's scope cannot suppress this cast and is restored after nested handling");g_handling=nullptr;
     Fresh();Label(f.montage,13,"Strife_Caltrops_Ground_B_Montage");Label(f.montagePackage,14,"/Game/Characters/Heroes/Hero_Strife/Animations/Strife_Caltrops_Ground_B_Montage");Check(Cast()&&spawns==1,"backward ground montage keeps the base spawner contract");
     for(unsigned fail=0;fail<11;++fail){
         Fresh();
