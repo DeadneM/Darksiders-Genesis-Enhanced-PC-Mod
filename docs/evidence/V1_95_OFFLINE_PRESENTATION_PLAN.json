@@ -1,0 +1,463 @@
+[
+  {
+    "asset": "War_Wrath_BladeGeyser",
+    "nativeEventCount": 30,
+    "selectedEvents": [
+      {
+        "kind": "AnimNotify_CallAbilityFunction",
+        "asset": "SpawnBlast:0",
+        "socket": "None:0",
+        "time": 0.48806673288345337
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_blade",
+        "socket": "Bone_War_Root:0",
+        "time": 0.5087080001831055
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_blade",
+        "socket": "Bone_War_Root:0",
+        "time": 0.522392749786377
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_blade",
+        "socket": "Bone_War_Root:0",
+        "time": 0.545105516910553
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_blade",
+        "socket": "Bone_War_Root:0",
+        "time": 0.5669140219688416
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar",
+        "socket": "None:0",
+        "time": 0.5880073308944702
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_blade",
+        "socket": "Bone_War_Root:0",
+        "time": 0.5930545926094055
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar",
+        "socket": "None:0",
+        "time": 0.6031491160392761
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar",
+        "socket": "None:0",
+        "time": 0.6258618831634521
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_blade",
+        "socket": "Bone_War_Root:0",
+        "time": 0.6334328055381775
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar",
+        "socket": "None:0",
+        "time": 0.6435273289680481
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar",
+        "socket": "None:0",
+        "time": 0.6510982513427734
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar",
+        "socket": "None:0",
+        "time": 0.6738109588623047
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar",
+        "socket": "None:0",
+        "time": 0.6940000653266907
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar",
+        "socket": "None:0",
+        "time": 0.719236433506012
+      }
+    ],
+    "mergedCount": null
+  },
+  {
+    "asset": "War_Wrath_BladeGeyser_Level1_Montage",
+    "nativeEventCount": 10,
+    "selectedEvents": [
+      {
+        "kind": "AnimNotify_PlaySound",
+        "asset": "char_war_wrath_bladegeyser",
+        "socket": "None:0",
+        "time": 0.0
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_nova",
+        "socket": "None:0",
+        "time": 0.45930200815200806
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.81529700756073
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.81529700756073
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.81529700756073
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.81529700756073
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.81529700756073
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.81529700756073
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.8152971863746643
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.8152971863746643
+      }
+    ],
+    "mergedCount": 25
+  },
+  {
+    "asset": "War_Wrath_BladeGeyser_Level2_Montage",
+    "nativeEventCount": 18,
+    "selectedEvents": [
+      {
+        "kind": "AnimNotify_PlaySound",
+        "asset": "char_war_wrath_bladegeyser",
+        "socket": "None:0",
+        "time": 0.0
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_nova",
+        "socket": "None:0",
+        "time": 0.45930200815200806
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.81529700756073
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.81529700756073
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.81529700756073
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.81529700756073
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.81529700756073
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.81529700756073
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.81529700756073
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.81529700756073
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl2",
+        "socket": "None:0",
+        "time": 0.94781893491745
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl2",
+        "socket": "None:0",
+        "time": 0.9478189945220947
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl2",
+        "socket": "None:0",
+        "time": 0.9478189945220947
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl2",
+        "socket": "None:0",
+        "time": 0.9478189945220947
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl2",
+        "socket": "None:0",
+        "time": 0.9478189945220947
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl2",
+        "socket": "None:0",
+        "time": 0.9478189945220947
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl2",
+        "socket": "None:0",
+        "time": 0.9478189945220947
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl2",
+        "socket": "None:0",
+        "time": 0.9478189945220947
+      }
+    ],
+    "mergedCount": 33
+  },
+  {
+    "asset": "War_Wrath_BladeGeyser_Level3_Montage",
+    "nativeEventCount": 26,
+    "selectedEvents": [
+      {
+        "kind": "AnimNotify_PlaySound",
+        "asset": "char_war_wrath_bladegeyser",
+        "socket": "None:0",
+        "time": 0.0
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_nova",
+        "socket": "None:0",
+        "time": 0.45930200815200806
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.81529700756073
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.81529700756073
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.81529700756073
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.81529700756073
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.81529700756073
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.81529700756073
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.81529700756073
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl1",
+        "socket": "None:0",
+        "time": 0.81529700756073
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl2",
+        "socket": "None:0",
+        "time": 0.8815580606460571
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl2",
+        "socket": "None:0",
+        "time": 0.8815580606460571
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl2",
+        "socket": "None:0",
+        "time": 0.8844389915466309
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl2",
+        "socket": "None:0",
+        "time": 0.8844389915466309
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl2",
+        "socket": "None:0",
+        "time": 0.8873198628425598
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl2",
+        "socket": "None:0",
+        "time": 0.8873198628425598
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl2",
+        "socket": "None:0",
+        "time": 0.8873198628425598
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl2",
+        "socket": "None:0",
+        "time": 0.8873198628425598
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl3",
+        "socket": "None:0",
+        "time": 0.9420571327209473
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl3",
+        "socket": "None:0",
+        "time": 0.9420571327209473
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl3",
+        "socket": "None:0",
+        "time": 0.944938063621521
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl3",
+        "socket": "None:0",
+        "time": 0.944938063621521
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl3",
+        "socket": "None:0",
+        "time": 0.94781893491745
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl3",
+        "socket": "None:0",
+        "time": 0.94781893491745
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl3",
+        "socket": "None:0",
+        "time": 0.9506998658180237
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_bladeFar_Lvl3",
+        "socket": "None:0",
+        "time": 0.9506998658180237
+      }
+    ],
+    "mergedCount": 41
+  },
+  {
+    "asset": "War_Wrath_BladeGeyser_Montage",
+    "nativeEventCount": 2,
+    "selectedEvents": [
+      {
+        "kind": "AnimNotify_PlaySound",
+        "asset": "char_war_wrath_bladegeyser",
+        "socket": "None:0",
+        "time": 0.0
+      },
+      {
+        "kind": "AnimNotify_PlayParticleEffect",
+        "asset": "VFX_war_wrath_bladeGeyser_nova",
+        "socket": "None:0",
+        "time": 0.45930200815200806
+      }
+    ],
+    "mergedCount": 17
+  }
+]

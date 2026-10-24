@@ -1,0 +1,88 @@
+{
+  "ci": {
+    "runId": 40114886605,
+    "jobId": 120934016256,
+    "sourceCommit": "dcef9ac95154f9c304b6d7865eb57b853166fa17",
+    "conclusion": "success",
+    "suitesPassed": 54,
+    "testRows": 54,
+    "compilerWarnings": [],
+    "compilerErrors": [],
+    "sourceGateExecuted": true,
+    "archiveIdentityStepExecuted": true,
+    "checkoutSourceVerified": true,
+    "toolingWarnings": [
+      "2026-10-24T17:10:45.6069415Z CMake Warning (deprecated) at build/_deps/minhook-src/CMakeLists.txt:27 (cmake_minimum_required):",
+      "2026-10-24T17:14:39.1208482Z (node:6944) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.",
+      "2026-10-24T17:14:39.5666980Z (node:6944) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities."
+    ]
+  },
+  "checks": {
+    "base": "b3ef24427762282638b9221c126606e7d612f58c",
+    "validatedBase": "c20319f93413f849a41b10fdfd96f7842a172ac6",
+    "branch": "debug",
+    "oldArchivesUnchanged": 159,
+    "iniKeysUnchanged": 168,
+    "hotkeyIdsUnchanged": 55,
+    "changedCode": [
+      "src/BuildInfo.h",
+      "src/ForeignMontage.cpp",
+      "src/ForeignMontage.h",
+      "src/ForeignWrathFeature.cpp",
+      "tests/ForeignMontageTests.cpp",
+      "tests/ForeignWrathTests.cpp"
+    ],
+    "existingStoneskinCastUnchanged": true,
+    "caltropsUnchanged": true,
+    "dispatchTraceUnchanged": true,
+    "validatedPresentationUnchanged": true,
+    "noNewHooksOrTimer": true,
+    "nativeEventReserveVerifiedOffline": true,
+    "gameLaunched": false,
+    "installed": false,
+    "gameplayValidated": false,
+    "testsExpected": 54,
+    "gameplaySameAsCompiledV194": true,
+    "archiveIdentityCentralized": true,
+    "archiveHeaderVersionConsistent": true
+  },
+  "package": {
+    "sourceCommit": "dcef9ac95154f9c304b6d7865eb57b853166fa17",
+    "archiveCommit": "027dae183a714754e66263e4f0f3bc0622498c42",
+    "name": "DarksidersGenesis_V1.95_STRIFE_GEYSER_PRESENTATION_TEST.zip",
+    "size": 941487,
+    "sha256": "63DDDFC77BBC1459C78F00AAF8BDCFA13F151252BD7FC73D68948B65FA0D5F26",
+    "files": {
+      "DarksidersGenesisMod.asi": {
+        "size": 1726464,
+        "sha256": "EB0550B9F3DFFEA4B5A6250A5EE4DE02B070C8DC4D33EDF36E3F14A7D3242FD0"
+      },
+      "DarksidersGenesisMod.ini": {
+        "size": 4691,
+        "sha256": "99E3EECAD438A6735DD4389D544535FF798BB7F9E9EF0E4E243BC40CC4F13524"
+      },
+      "dxgi.dll": {
+        "size": 155136,
+        "sha256": "B0037EC492EAFD7CA7BA8A70840C9C939529055670BE79926AE6AA3D21D6C229"
+      },
+      "README.md": {
+        "size": 58574,
+        "sha256": "F9342EE6CADE82D25E5FC30B551AAFB8810EA8F73186D754ED7035EFE8065529"
+      }
+    },
+    "oldArchivesUnchanged": 159,
+    "iniKeys": 168,
+    "hotkeyIdsUnchanged": 55,
+    "amd64": true,
+    "crcValid": true,
+    "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/027dae183a714754e66263e4f0f3bc0622498c42/downloads/DarksidersGenesis_V1.95_STRIFE_GEYSER_PRESENTATION_TEST.zip",
+    "httpStatus": 200,
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/main": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "gameplayValidated": false
+  },
+  "gameplayValidated": false
+}
