@@ -1,4 +1,4 @@
-name: V1.93 War Caltrops ground TEST
+name: V1.94 Strife Geyser presentation TEST
 on:
   push:
     branches: [debug]
@@ -47,7 +47,7 @@ jobs:
           Copy-Item config/DarksidersGenesisMod.ini dist/
           Copy-Item README.md dist/
           New-Item -ItemType Directory -Path downloads -Force | Out-Null
-          $zipPath = 'downloads/DarksidersGenesis_V1.93_WAR_CALTROPS_GROUND_TEST.zip'
+          $zipPath = 'downloads/DarksidersGenesis_V1.94_WAR_CALTROPS_GROUND_TEST.zip'
           if (Test-Path -LiteralPath $zipPath) { throw "A numbered ZIP already exists; use a new build version" }
           Compress-Archive -Path 'dist/*' -DestinationPath $zipPath -CompressionLevel Optimal
           Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -63,8 +63,8 @@ jobs:
       - name: Upload verified Windows x64 ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesis_V1.93_WAR_CALTROPS_GROUND_TEST
-          path: downloads/DarksidersGenesis_V1.93_WAR_CALTROPS_GROUND_TEST.zip
+          name: DarksidersGenesis_V1.94_WAR_CALTROPS_GROUND_TEST
+          path: downloads/DarksidersGenesis_V1.94_WAR_CALTROPS_GROUND_TEST.zip
           if-no-files-found: error
       - name: Preserve numbered experimental ZIP in debug
         shell: pwsh
@@ -82,7 +82,7 @@ jobs:
             git diff --quiet $env:GITHUB_SHA origin/debug -- src tests config CMakeLists.txt README.md .github/workflows/build-v090-debug.yml
             if ($LASTEXITCODE -eq 1) { throw 'Compiled sources have changed on debug; do not publish an obsolete numbered ZIP' }
             if ($LASTEXITCODE -ne 0) { throw 'Compiled source identity check failed' }
-            $archivePath = 'downloads/DarksidersGenesis_V1.93_WAR_CALTROPS_GROUND_TEST.zip'
+            $archivePath = 'downloads/DarksidersGenesis_V1.94_WAR_CALTROPS_GROUND_TEST.zip'
             $priorBlob = git ls-tree --format='%(objectname)' origin/debug -- $archivePath
             if ($LASTEXITCODE -ne 0) { throw 'Archive identity lookup failed' }
             if ($priorBlob) {
@@ -91,7 +91,7 @@ jobs:
             }
             git reset --mixed origin/debug
             if ($LASTEXITCODE -ne 0) { throw 'Reset to latest origin/debug failed' }
-            git add -- downloads/DarksidersGenesis_V1.93_WAR_CALTROPS_GROUND_TEST.zip
+            git add -- downloads/DarksidersGenesis_V1.94_WAR_CALTROPS_GROUND_TEST.zip
             if ($LASTEXITCODE -ne 0) { throw 'Archive add failed' }
             git diff --cached --quiet
             if ($LASTEXITCODE -eq 0) {
@@ -106,4 +106,4 @@ jobs:
             Start-Sleep -Seconds 2
           }
           if (-not $published) { throw 'Permanent experimental ZIP push failed' }
-          Write-Host 'V1.93 ZIP https://raw.githubusercontent.com/'"$env:GITHUB_REPOSITORY"'/debug/downloads/DarksidersGenesis_V1.93_WAR_CALTROPS_GROUND_TEST.zip'
+          Write-Host 'V1.94 ZIP https://raw.githubusercontent.com/'"$env:GITHUB_REPOSITORY"'/debug/downloads/DarksidersGenesis_V1.94_WAR_CALTROPS_GROUND_TEST.zip'

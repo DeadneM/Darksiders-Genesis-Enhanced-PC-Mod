@@ -4,6 +4,7 @@
 #include <array>
 #include <atomic>
 #include <cmath>
+#include <algorithm>
 
 namespace dg::foreign_montage {
 namespace {
@@ -14,7 +15,8 @@ using Event=std::array<unsigned char,184>;
 using Construct=void*(*)(void*,void*,Name,uint32_t,uint32_t,void*,bool,void*,bool);
 using Package=void*(*)();
 using Skeleton=void(*)(void*,void*);
-Construct g_construct=nullptr;Package g_package=nullptr;Skeleton g_skeleton=nullptr;
+using Reserve=void(*)(void*,int);
+Construct g_construct=nullptr;Package g_package=nullptr;Skeleton g_skeleton=nullptr;Reserve g_reserve=nullptr;
 uintptr_t g_base=0;std::atomic_bool g_ready{false};
 static_assert(sizeof(Name)==8&&sizeof(Array)==16&&sizeof(Segment)==32);
 template<class T> bool Read(uintptr_t p,size_t offset,T& value){native_objects::MemoryReader r;return r.Read(p,offset,value);}
@@ -88,17 +90,63 @@ bool Link(uintptr_t element,uintptr_t montage,uintptr_t sequence,float time,floa
         Store(element,0x18,absolute)&&Store(element,0x19,absolute)&&Store(element,0x1C,start)&&
         Store(element,0x20,length)&&Store(element,0x24,time)&&Store(element,0x28,sequence);
 }
+bool BladeEffect(uintptr_t asset){
+    return Is(asset,"VFX_war_wrath_bladeGeyser_blade")||Is(asset,"VFX_war_wrath_bladeGeyser_bladeFar")||
+        Is(asset,"VFX_war_wrath_bladeGeyser_nova")||Is(asset,"VFX_war_wrath_bladeGeyser_bladeFar_Lvl1")||
+        Is(asset,"VFX_war_wrath_bladeGeyser_bladeFar_Lvl2")||Is(asset,"VFX_war_wrath_bladeGeyser_bladeFar_Lvl3");
+}
+struct Presentation {std::array<Event,64> events{};int count=0,sounds=0,particles=0,spawns=0;};
+bool Collect(uintptr_t asset,const Array& events,Presentation& out,const Event* spawn=nullptr){
+    uintptr_t callback=0;if(spawn)std::memcpy(&callback,spawn->data()+0x48,sizeof(callback));
+    for(int i=0;i<events.count;++i){
+        const auto at=events.data+size_t(i)*sizeof(Event);uintptr_t notify=0,cls=0,effect=0,owner=0,state=0;float time=0,duration=0;
+        if(!Read(at,0x48,notify))return false;
+        if(!notify)continue;
+        if(notify==callback){
+            if(out.count<0||out.count>=int(out.events.size()))return false;
+            out.events[out.count++]=*spawn;++out.spawns;continue;
+        }
+        if(!Read(notify,0x10,cls))return false;
+        const bool particle=Is(cls,"AnimNotify_PlayParticleEffect"),sound=Is(cls,"AnimNotify_PlaySound");
+        if(!particle&&!sound)continue;
+        if(!Read(notify,0x38,effect))return false;
+        if(!effect||!(particle?BladeEffect(effect):Is(effect,"char_war_wrath_bladegeyser")))continue;
+        unsigned char tickType=255;
+        if(out.count<0||out.count>=int(out.events.size())||!Read(notify,0x20,owner)||owner!=asset||
+           !Read(at,0x50,state)||state||!Read(at,0x58,duration)||duration!=0||!Read(at,0x91,tickType)||tickType||
+           !Read(at,0x24,time)||!std::isfinite(time)||time<0||time>=2.366667f||!Read(at,0,out.events[out.count]))return false;
+        ++out.count;if(particle)++out.particles;else ++out.sounds;
+    }
+    return true;
+}
+bool AdaptRoot(Event& event,uintptr_t montage,const Source& source){
+    uintptr_t notify=0,cls=0;std::memcpy(&notify,event.data()+0x48,sizeof(notify));
+    if(!Read(notify,0x10,cls))return false;
+    if(!Is(cls,"AnimNotify_PlayParticleEffect"))return true;
+    Name socket{};if(!Read(notify,0x84,socket))return false;
+    if(!socket.index&&!socket.number)return true;
+    if(!native_objects::NameValueIs(g_base,socket.index,socket.number,"Bone_War_Root"))return false;
+    const auto copy=reinterpret_cast<uintptr_t>(g_construct(reinterpret_cast<void*>(cls),reinterpret_cast<void*>(montage),{},0x40u,0,
+        reinterpret_cast<void*>(notify),false,nullptr,false));
+    uintptr_t actualClass=0,outer=0;uint32_t flags=0;std::array<unsigned char,0x54> payload{};
+    if(!copy||copy==notify||!Read(copy,8,flags)||(flags&0x30u)||!(flags&0x40u)||
+       !Read(copy,0x10,actualClass)||actualClass!=cls||!Read(copy,0x20,outer)||outer!=montage||
+       !Read(notify,0x38,payload)||!Store(copy,0x38,payload)||!Store(copy,0x84,Name{source.rootIndex,source.rootNumber}))return false;
+    std::memcpy(event.data()+0x48,&copy,sizeof(copy));return true;
+}
 }
 void Initialize(LogFn log,bool exact){
     if(!exact)return;g_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     constexpr unsigned char construct[]={0x40,0x55,0x53,0x56,0x57,0x41,0x54,0x41,0x56,0x41,0x57,0x48,0x8D,0xAC,0x24,0x40};
     constexpr unsigned char package[]={0x48,0x8B,0x05,0x59,0xCD,0xED,0x02,0xC3};
     constexpr unsigned char skeleton[]={0x48,0x85,0xD2,0x74,0x15,0x48,0x3B,0x51,0x38,0x74,0x0F,0x48,0x89,0x51,0x38,0x0F};
+    constexpr unsigned char reserve[]={0x48,0x89,0x5C,0x24,0x08,0x57,0x48,0x83,0xEC,0x20,0x48,0x63,0xDA,0x48,0x8B,0xF9,0x85,0xD2,0x74,0x3A,0x48,0x69,0xCB,0xB8};
     if(std::memcmp(reinterpret_cast<void*>(g_base+0xAC57A0),construct,sizeof(construct))||
        std::memcmp(reinterpret_cast<void*>(g_base+0xA7B1B0),package,sizeof(package))||
-       std::memcmp(reinterpret_cast<void*>(g_base+0x16C7130),skeleton,sizeof(skeleton)))return;
+       std::memcmp(reinterpret_cast<void*>(g_base+0x16C7130),skeleton,sizeof(skeleton))||
+       std::memcmp(reinterpret_cast<void*>(g_base+0x2C42C0),reserve,sizeof(reserve)))return;
     g_construct=reinterpret_cast<Construct>(g_base+0xAC57A0);g_package=reinterpret_cast<Package>(g_base+0xA7B1B0);
-    g_skeleton=reinterpret_cast<Skeleton>(g_base+0x16C7130);g_ready=true;
+    g_skeleton=reinterpret_cast<Skeleton>(g_base+0x16C7130);g_reserve=reinterpret_cast<Reserve>(g_base+0x2C42C0);g_ready=true;
     if(log)log("Foreign montage V1.88 READY: exact native NewObject template ABI, private arrays only; no timer or additional hook; EXPERIMENTAL");
 }
 bool Ready(){return g_ready.load();}
@@ -109,10 +157,17 @@ bool CanBuild(const Source& source){
     return Read(package,0x10,cls)&&Is(cls,"Package")&&Is(package,"/Engine/Transient");
 }
 void* Geyser(uintptr_t original,const Source& source){
-    Layout before{},after{};Event event{};float length=0,time=0;
-    if(!CanBuild(source)||!Idle(source,length)||!Original(original)||!Shape(original,before)||!SpawnEvent(before.segment.sequence,event))return nullptr;
+    Layout before{},after{};Event event{};float length=0,time=0;Array sequenceEvents{};Presentation presentation{};
+    if(!g_reserve||!CanBuild(source)||!Idle(source,length)||
+       !native_objects::NameValueIs(g_base,source.rootIndex,source.rootNumber,"Bone_Strife_Root")||
+       !Original(original)||!Shape(original,before)||!SpawnEvent(before.segment.sequence,event)||
+       !List(before.segment.sequence,0x80,sequenceEvents,64)||!Collect(before.segment.sequence,sequenceEvents,presentation,&event)||
+       !Collect(original,before.events,presentation)||presentation.spawns!=1||presentation.sounds!=1||!presentation.particles)return nullptr;
     std::memcpy(&time,event.data()+0x24,sizeof(time));
     if(time>=before.length)return nullptr;
+    std::stable_sort(presentation.events.begin(),presentation.events.begin()+presentation.count,[](const Event& a,const Event& b){
+        float ta=0,tb=0;std::memcpy(&ta,a.data()+0x24,sizeof(ta));std::memcpy(&tb,b.data()+0x24,sizeof(tb));return ta<tb;
+    });
     const auto outer=reinterpret_cast<uintptr_t>(g_package());
     auto* created=g_construct(reinterpret_cast<void*>(before.cls),reinterpret_cast<void*>(outer),{},0x40u,0,reinterpret_cast<void*>(original),false,nullptr,false);
     const auto montage=reinterpret_cast<uintptr_t>(created);uintptr_t actualOuter=0;uint32_t flags=0;
@@ -123,15 +178,25 @@ void* Geyser(uintptr_t original,const Source& source){
        !Writable(after.events.data,event.size())||!Writable(after.segments.data,sizeof(Segment))||
        !Writable(after.sections.data,88)||!Writable(montage+0x80,sizeof(Array)))return nullptr;
     // All storage is native-owned and distinct from the source template.
-    // Retain one exact native callback, on the montage's original timeline.
+    // Keep the single native callback and compatible presentation on its timeline.
     Segment segment=after.segment;segment.sequence=source.sequence;segment.last=length;segment.rate=length/after.length;
     if(!std::isfinite(segment.rate)||segment.rate<=.01f||segment.rate>100)return nullptr;
+    for(int i=0;i<presentation.count;++i)if(!AdaptRoot(presentation.events[i],montage,source))return nullptr;
+    // Use the game's 184-byte array reserve helper, on the private clone only.
+    // No CRT allocation is ever handed to Unreal's array destructor.
+    if(presentation.count>after.events.capacity)g_reserve(reinterpret_cast<void*>(montage+0x80),presentation.count);
+    Array storage{};
+    if(!List(montage,0x80,storage,512)||storage.data==before.events.data||storage.capacity<presentation.count||
+       !Writable(storage.data,size_t(presentation.count)*sizeof(Event)))return nullptr;
     g_skeleton(created,reinterpret_cast<void*>(source.skeleton));
-    const float zero=0;const int one=1;
-    if(!Store(after.segments.data,0,segment)||!Store(after.events.data,0,event)||
-       !Link(after.events.data,montage,source.sequence,time,after.length)||
-       !Link(after.events.data+0x60,montage,source.sequence,time,after.length)||
-       !Link(after.sections.data,montage,source.sequence,zero,after.length)||!Store(montage,0x88,one))return nullptr;
+    const float zero=0;
+    for(int i=0;i<presentation.count;++i){
+        const auto at=storage.data+size_t(i)*sizeof(Event);std::memcpy(&time,presentation.events[i].data()+0x24,sizeof(time));
+        if(!Store(at,0,presentation.events[i])||!Link(at,montage,source.sequence,time,after.length)||
+           !Link(at+0x60,montage,source.sequence,time,after.length))return nullptr;
+    }
+    if(!Store(after.segments.data,0,segment)||!Link(after.sections.data,montage,source.sequence,zero,after.length)||
+       !Store(montage,0x88,presentation.count))return nullptr;
     return created;
 }
 }

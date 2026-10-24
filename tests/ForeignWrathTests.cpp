@@ -12,9 +12,10 @@ struct Fixture {
     unsigned char stone[0x120]{},cdo[0x240]{},ability[0x240]{},nativeMontage[0x180]{},replacement[0x180]{},instance[0x50]{};
     unsigned char geyser[0x120]{},geyserCdo[0x240]{},geyserPackage[0x80]{},launch[0x80]{},launchPackage[0x80]{};
     unsigned char function[0x100]{},functionClass[0x80]{},blast[0x400]{},blastClass[0x80]{},blastPackage[0x80]{};
+    unsigned char skeletalMesh[0x200]{},rootBone[12]{};
     unsigned char classes[6][0x80]{},stonePackage[0x80]{},montagePackage[0x80]{},items[640*24]{};
 } f;
-unsigned char entries[24][160]{};uintptr_t names[24]{},nameChunks[1]{reinterpret_cast<uintptr_t>(names)},objectChunks[1]{};
+unsigned char entries[25][160]{};uintptr_t names[25]{},nameChunks[1]{reinterpret_cast<uintptr_t>(names)},objectChunks[1]{};
 dg::local_players::Context owner{};bool gameThread=true,local=true,createOK=true,canPlay=true,nested=false,throwResolve=false;
 unsigned getterCalls=0,resolveCalls=0,playCalls=0,finishCalls=0,createCalls=0,geyserBuilds=0;unsigned char finishCause=255;bool helperReady=true;
 void* playedAbility=nullptr;void* playedMontage=nullptr;float playedRate=0;Name playedSection{};
@@ -67,6 +68,8 @@ void Fresh(){
     Put(f.actor,0x10,reinterpret_cast<uintptr_t>(f.classes[0]));Put<unsigned char>(f.actor,0x118,3);Put<unsigned char>(f.actor,0xC18,1);
     Put(f.actor,0x348,owner.controller);Put(f.controller,0x350,owner.pawn);Put(f.actor,0x380,reinterpret_cast<uintptr_t>(f.mesh));Put(f.mesh,0xE8,owner.pawn);
     Put(f.mesh,0x718,reinterpret_cast<uintptr_t>(f.anim));Put(f.anim,0x10,reinterpret_cast<uintptr_t>(f.classes[1]));Put(f.anim,0x4C38,owner.pawn);
+    Put(f.mesh,0x5A0,reinterpret_cast<uintptr_t>(f.skeletalMesh));Put(f.skeletalMesh,0x190,Array{reinterpret_cast<uintptr_t>(f.rootBone),1,1});
+    strcpy_s(reinterpret_cast<char*>(entries[24]+12),148,"Bone_Strife_Root");Put(f.rootBone,0,Name{24,0});
     Put(f.anim,0x49C8,g_base+0x2A76860);Put(f.anim,0x4A10,reinterpret_cast<uintptr_t>(f.blend));Put(f.blend,0x10,reinterpret_cast<uintptr_t>(f.classes[2]));Label(f.blend,7,"Strife_Locomotion");
     Put(f.blend,0xC8,Array{reinterpret_cast<uintptr_t>(f.samples),3,3});Put(f.samples,24,reinterpret_cast<uintptr_t>(f.sequence));Put(f.samples,44,1.0f);
     Put(f.sequence,0x10,reinterpret_cast<uintptr_t>(f.classes[3]));Label(f.sequence,8,"Strife_Idle");Put(f.sequence,0x38,reinterpret_cast<uintptr_t>(f.skeleton));
@@ -146,7 +149,7 @@ void TraceChecks(){
 }
 void Run(){
     std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(nameChunks));
-    for(unsigned i=0;i<24;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
+    for(unsigned i=0;i<25;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
     Fresh();uintptr_t klass=0;const auto actorBefore=std::to_array(f.actor);
     Check(GeyserActor(0)==&g_geyserActors[0]&&GeyserActor(1)==&g_geyserActors[1]&&!GeyserActor(-1)&&!GeyserActor(2),"bounded owner marker accepts only local players 0/1 and no invalid index");
     Check(Prepare(f.actor,klass)&&klass==reinterpret_cast<uintptr_t>(f.stone),"ready native class and own compatible animation enable foreign slot");
@@ -201,6 +204,10 @@ void Run(){
     Cast();Check(geyserBuilds==1&&g_geyserFailed&&finishCalls==1&&!playCalls&&Status(4)==0,"failed native clone stops Geyser for the session");
     Cast();Check(geyserBuilds==1&&finishCalls==2,"stopped Geyser never retries a risky constructor");
     Check(Status(6)==2&&Prepare(f.actor,klass,6),"Geyser failure leaves independent Stoneskin preparation intact");
+    Fresh();g_geyserReady=true;g_geyser={reinterpret_cast<uintptr_t>(f.geyser),3,43};Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.geyser));
+    Put(f.rootBone,0,Name{9,0});Cast();
+    Check(!geyserBuilds&&!playCalls&&finishCalls==1&&g_geyserFailed,"unproved character root stops only foreign Geyser before any builder call");
+    Check(Prepare(f.actor,klass,6),"Stoneskin remains usable without the Geyser-only root contract");
     Fresh();g_geyser={};g_geyserReady=false;g_stone={};g_assetsReady=false;g_requestGeyser=true;g_requested=true;
     Observe(owner);Check(g_geyserReady&&g_assetsReady&&g_geyser.address==reinterpret_cast<uintptr_t>(f.geyser),"one bounded scan independently discovers both loaded foreign classes");
     TraceChecks();
@@ -211,7 +218,7 @@ namespace dg::foreign_montage {
 void Initialize(LogFn,bool){}
 bool Ready(){return helperReady;}
 bool CanBuild(const Source& s){return helperReady&&s.sequence==reinterpret_cast<uintptr_t>(f.sequence)&&s.skeleton==reinterpret_cast<uintptr_t>(f.skeleton)&&s.slotIndex==9&&s.slotNumber==0;}
-void* Geyser(uintptr_t montage,const Source& s){++geyserBuilds;Check(montage==reinterpret_cast<uintptr_t>(f.nativeMontage)&&CanBuild(s),"private montage receives exact original and own source");return createOK?f.replacement:nullptr;}
+void* Geyser(uintptr_t montage,const Source& s){++geyserBuilds;Check(montage==reinterpret_cast<uintptr_t>(f.nativeMontage)&&CanBuild(s)&&s.rootIndex==24&&s.rootNumber==0,"private montage receives exact original, own source and own Strife root");return createOK?f.replacement:nullptr;}
 }
 namespace dg::native_tps {bool OnGameThread(){return gameThread;}}
 namespace dg::local_players {bool ResolveActor(void*,Context& c){c=owner;return local;}}

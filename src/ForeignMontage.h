@@ -3,7 +3,7 @@
 
 namespace dg::foreign_montage {
 using LogFn=void(*)(const char*);
-struct Source {uintptr_t sequence=0,skeleton=0;int slotIndex=0,slotNumber=0;};
+struct Source {uintptr_t sequence=0,skeleton=0;int slotIndex=0,slotNumber=0,rootIndex=0,rootNumber=0;};
 void Initialize(LogFn,bool exactExecutable);
 bool Ready();
 bool CanBuild(const Source&);

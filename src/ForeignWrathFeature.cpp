@@ -183,16 +183,20 @@ void HookPlay(void* ability,void* montage,float rate,Name section){
         auto* recent=GeyserActor(c.index);
         if(!recent){g_finish(ability,0);return;}
         Animation source{};native_objects::Identity actor{};void* replacement=nullptr;bool played=false;
+        uintptr_t mesh=0,asset=0;Array bones{};Name root{};
         if(!g_geyserFailed&&std::isfinite(rate)&&rate>0&&rate<=10&&!section.index&&!section.number&&
-           Source(c.character,source)&&native_objects::CaptureLive(g_base,reinterpret_cast<void*>(c.character),actor))
-            replacement=foreign_montage::Geyser(reinterpret_cast<uintptr_t>(montage),{source.sequence,source.skeleton,source.slot.index,source.slot.number});
+           Source(c.character,source)&&native_objects::CaptureLive(g_base,reinterpret_cast<void*>(c.character),actor)&&
+           Read(c.character,0x380,mesh)&&Read(mesh,0x5A0,asset)&&Read(asset,0x190,bones)&&bones.data&&
+           bones.count>0&&bones.count<=bones.capacity&&bones.capacity<=1000&&Read(bones.data,0,root)&&
+           native_objects::NameValueIs(g_base,root.index,root.number,"Bone_Strife_Root"))
+            replacement=foreign_montage::Geyser(reinterpret_cast<uintptr_t>(montage),{source.sequence,source.skeleton,source.slot.index,source.slot.number,root.index,root.number});
         if(replacement){
             g_play(ability,replacement,rate,section);uintptr_t instance=0;
             played=Read(reinterpret_cast<uintptr_t>(ability),0x1D8,instance)&&instance&&g_playing(reinterpret_cast<void*>(instance));
         }
         if(played)*recent=actor;
         else {g_geyserFailed=true;g_finish(ability,0);}
-        if(g_log&&++g_events<=12)g_log(played?"Foreign Wrath V1.88 Geyser: native SpawnBlast notify on private compatible montage; native cost/timing/finish retained; EXPERIMENTAL":
+        if(g_log&&++g_events<=12)g_log(played?"Foreign Wrath V1.94 Geyser: one native SpawnBlast, native blade/nova FX and cast sound on private compatible montage; idle pose, damage UNVERIFIED; EXPERIMENTAL":
             "Foreign Wrath V1.88 Geyser contract unavailable; cast finished and further Geyser requests stopped for this session");
         return;
     }
