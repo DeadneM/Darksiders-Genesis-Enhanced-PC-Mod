@@ -1,0 +1,74 @@
+{
+  "static": {
+    "base": "6a0301cde7d3d8d3f1fe19035f2596adcb7c69a4",
+    "branch": "debug",
+    "changedSource": [
+      "src/BuildInfo.h",
+      "src/ForeignCaltropsFeature.cpp",
+      "src/ForeignMontage.cpp",
+      "src/ForeignMontage.h",
+      "src/ForeignPowerFeature.cpp",
+      "src/ForeignWrathFeature.cpp",
+      "src/OverlayUi.cpp"
+    ],
+    "iniKeys": 168,
+    "hotkeyIdsUnchanged": 55,
+    "configUnchanged": true,
+    "cmakeUnchanged": true,
+    "updaterUnchanged": true,
+    "diffCheckPassed": true,
+    "gameplayValidated": false
+  },
+  "ci": {
+    "run": 40135148178,
+    "job": 120994987151,
+    "sourceCommit": "5bcc2d78a5594512f1b7a9cb8f69b176c58d6513",
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40135148178",
+    "conclusion": "success",
+    "passedSuites": 55,
+    "msvcWarnings": 0,
+    "msvcErrors": 0,
+    "summary": "100% tests passed out of 55",
+    "runtimeValidated": false
+  },
+  "package": {
+    "sourceCommit": "5bcc2d78a5594512f1b7a9cb8f69b176c58d6513",
+    "archiveCommit": "9f21be738b703e1cc6f40c5422531e4130b57486",
+    "name": "DarksidersGenesis_V1.98_RECEIVER_CASTING_GESTURES_TEST.zip",
+    "size": 954000,
+    "sha256": "D96B3C8F990CFD05AACC2867CEC9C0FDA051CC55519DFB8C90C5C872F74E0196",
+    "files": {
+      "DarksidersGenesisMod.asi": {
+        "size": 1748992,
+        "sha256": "8BBFDE41CF937DC34D1F678E42A6AD930C34C59D0E593A98976874F0B9AFDC9A"
+      },
+      "DarksidersGenesisMod.ini": {
+        "size": 4691,
+        "sha256": "99E3EECAD438A6735DD4389D544535FF798BB7F9E9EF0E4E243BC40CC4F13524"
+      },
+      "dxgi.dll": {
+        "size": 155136,
+        "sha256": "A6FF96376AB24CFD21E0896CFC2B682EFD1B92EB6D46FA97643F0D5E08F16928"
+      },
+      "README.md": {
+        "size": 64032,
+        "sha256": "35C5C5F199086F4DDAFB9A1869B3C16BD6C91EA3A7A739E5E32CBFC31401D7DE"
+      }
+    },
+    "oldArchivesUnchanged": 162,
+    "iniKeys": 168,
+    "hotkeyIdsUnchanged": 55,
+    "amd64": true,
+    "crcValid": true,
+    "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/9f21be738b703e1cc6f40c5422531e4130b57486/downloads/DarksidersGenesis_V1.98_RECEIVER_CASTING_GESTURES_TEST.zip",
+    "httpStatus": 200,
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/main": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "gameplayValidated": false
+  },
+  "runtimeValidated": false,
+  "openStingerRequest": "Follow model on all axes even while stationary; capture requested, not implemented in this build"
+}

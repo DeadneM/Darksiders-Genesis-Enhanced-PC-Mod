@@ -1,5 +1,7 @@
 ## V1.98 - Gestes propres au receveur et cristal Stinger identifie
 
+**CONSTRUITE / CONTROLEE : [55/55 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40135148178), zero avertissement/erreur MSVC. [ZIP immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/9f21be738b703e1cc6f40c5422531e4130b57486/downloads/DarksidersGenesis_V1.98_RECEIVER_CASTING_GESTURES_TEST.zip) - [Recu](V1_98_DELIVERY_RECEIPT.md). Rendu des gestes EXPERIMENTAL, non valide en jeu.**
+
 Lot EXPERIMENTAL, validation en jeu encore requise. Base cumulative V1.97 ; acquis utilisateur : effets/degats Geyser et Caltrops V1.95, effet Clone V1.96. V1.97 reste un repli construit/controle, pas une version declaree validee par l'utilisateur.
 
 Geyser sur Strife utilise un geste de canalisation Strife ; Clone/Caltrops sur War un geste War. Squelettes propres, fichiers d'animation natifs inchanges, sons/pas seuls dans ces gestes. Durees des casts, callbacks et effets retenus conserves ; retour a la pose precedente si le geste charge est indisponible. Aucun nouveau hook, chargement force ou timer. Rampage sur Strife et World Ender sur War restent retires ; pouvoirs propres natifs conserves.

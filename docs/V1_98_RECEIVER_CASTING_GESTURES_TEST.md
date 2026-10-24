@@ -16,7 +16,7 @@ Base cumulative V1.97 `6a0301cde7d3d8d3f1fe19035f2596adcb7c69a4`. Acquis utilisa
 
 ## Cristal Stoneskin : diagnostic termine pour sa provenance
 
-Lecture externe uniquement, QUERY_LIMITED_INFORMATION|VM_READ, sans appel natif ni ecriture. 1184 echantillons, 90 changements en cinq minutes. Le statut MayhemStatusEffect_Core_Stinger_2_Blueprint_C possede P_Stinger_CreatureCore_StoneSkin, attache au CollisionCylinder de War (socket None). Effet a la hauteur de la capsule ; poussiere Boneskin/StoneSkin a Bone_War_Root, 97 unites plus bas. Deux activations avec Stinger, puis une activation avec les effets Stoneskin ordinaires et sans Stinger. L'utilisateur confirme : « bien vu le crystal nest plus » apres retrait du coeur.
+Lecture externe uniquement, QUERY_LIMITED_INFORMATION|VM_READ, sans appel natif ni ecriture. 1184 echantillons, 90 changements en cinq minutes. Le statut MayhemStatusEffect_Core_Stinger_2_Blueprint_C possede P_Stinger_CreatureCore_StoneSkin, attache au CollisionCylinder de War (socket None). Effet a la hauteur de la capsule ; poussiere StoneSkin a Bone_War_Root, 97 unites plus bas. Deux activations avec Stinger, puis une activation avec les effets Stoneskin ordinaires et sans Stinger. L'utilisateur confirme : « bien vu le crystal nest plus » apres retrait du coeur.
 
 Cela identifie le visuel signale et le coeur qui le cree. Cela ne prouve pas que le mod n'a jamais affecte son positionnement historique ; aucune mesure sans ASI n'a ete faite. Aucun repositionnement ou masquage global n'est ajoute. Stoneskin natif reste intact. [Observation compacte et limites](evidence/V1_98_STONESKIN_STINGER_OBSERVATION.json).
 
@@ -28,3 +28,7 @@ Cela identifie le visuel signale et le coeur qui le cree. Cela ne prouve pas que
 4. Facultatif : Stoneskin avec/sans Stinger pour reconnaitre son effet ; aucun nouveau correctif visuel dans ce lot. Acquis et P2 a verifier separement si necessaire, sans validation supposee.
 
 Rollback : jeu ferme, remettre l'ASI/dxgi de V1.97 en gardant son INI. Revenir a Native pour un transfert insatisfaisant. Toutes les anciennes archives sont conservees ; installation et lancement laisses a l'utilisateur.
+
+## Nouvelle demande : orientation Stinger
+
++Apres identification du cristal, l'utilisateur demande qu'il soit dirige devant le modele et suive ses rotations sur tous les axes, meme sans deplacement. Cette adaptation n'est PAS incluse dans V1.98 : la compilation etait deja lancee. Une capture externe compare capsule, mesh, racine, bassin et colonne. La premiere pose est lisible, mais aucune rotation n'etait encore enregistree. Le socket natif VFX_Aura de War depend de Bone_War_Root avec un offset Z de 120 ; cela ne prouve pas qu'il suive les rotations recherchees. Ne pas choisir une attache ou ajouter un offset d'angle sans la comparaison demandee. Test demande : tourner sur place en visant, puis marcher et tourner, Stinger equipe si possible. Aucun hook, PAK ni etat du jeu modifie pour ce relevé.
