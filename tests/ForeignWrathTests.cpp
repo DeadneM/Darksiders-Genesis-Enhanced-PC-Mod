@@ -46,7 +46,7 @@ void Fresh(){
  Register(0,f.power,41);Register(1,f.actor,42);Register(2,f.ability,43);g_geyser={reinterpret_cast<uintptr_t>(f.power),0,41};
  objectChunks[0]=reinterpret_cast<uintptr_t>(f.items);Put(reinterpret_cast<void*>(g_base),0x3959680,reinterpret_cast<uintptr_t>(objectChunks));Put(reinterpret_cast<void*>(g_base),0x3959694,640);
 }
-void Cast(){HookPlay(f.ability,f.montage,.75f,{});}
+void Cast(){HookPlay(f.ability,f.montage,.75f,Name{0,0});}
 void Run(){
  std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(nameChunks));for(unsigned i=0;i<24;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
  Fresh();uintptr_t cls=0;Check(Prepare(f.actor,cls,4)&&cls==reinterpret_cast<uintptr_t>(f.power),"ready Geyser retains own class");
