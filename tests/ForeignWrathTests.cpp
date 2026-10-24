@@ -30,6 +30,7 @@ void Fresh(){
  g_cursor=g_count=0;g_complete=false;g_scanTick=0;g_world=0;g_events=0;g_geyserActors[0]=g_geyserActors[1]={};
  const char* labels[]={"Strife_Blueprint_C","StrifeAnim_Blueprint_C","BlendSpace1D","AnimSequence","AnimMontage","BlueprintGeneratedClass"};
  for(int i=0;i<6;++i)Label(f.classes[i],i+1,labels[i]);
+ Put(f.classes[0],0x10,reinterpret_cast<uintptr_t>(f.classes[5]));
  Label(f.blend,7,"Strife_Locomotion");Label(f.idle,8,"Strife_Idle");strcpy_s(reinterpret_cast<char*>(entries[9]+12),180,"TPS");
  Label(f.power,10,"MayhemAbility_Wrath_BladeGeyser_Blueprint_C");Label(f.package,11,"/Game/Blueprints/Abilities/MayhemAbility_Wrath_BladeGeyser_Blueprint");
  Label(f.launch,12,"MayhemAbility_War_LaunchAttack_Blueprint_C");Label(f.launchPackage,13,"/Game/Blueprints/Abilities/WarMelee/MayhemAbility_War_LaunchAttack_Blueprint");
