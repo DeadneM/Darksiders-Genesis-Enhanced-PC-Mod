@@ -1,0 +1,90 @@
+{
+  "observedBuild": "V1.93",
+  "sourceCommit": "359683a77a4ebd5a64312ca45c9c9885bb9ca235",
+  "logSha256": "234d608e59326df65afdb7bcf22cae4cc2b7a754198bd56d902e032f3915a9bb",
+  "comparison": [
+    {
+      "call": 1,
+      "player": 1,
+      "character": "War",
+      "state": 2,
+      "actualSpawnBlastObserved": true,
+      "nativeReturned": true,
+      "nestedEvents": 4,
+      "uniqueObservedBlastObjects": 1,
+      "sourceMatches": true
+    },
+    {
+      "call": 2,
+      "player": 1,
+      "character": "Strife",
+      "state": 2,
+      "actualSpawnBlastObserved": true,
+      "nativeReturned": true,
+      "nestedEvents": 4,
+      "uniqueObservedBlastObjects": 1,
+      "sourceMatches": true
+    }
+  ],
+  "userReport": "Strife reste fige sans effet",
+  "freshOfflinePayloadsChecked": 10,
+  "sourceSha256": "2a4300c7dc873c00cf9ba6f0150919908caef60da0ebfef6dec7f614ef1db96e",
+  "nativePresentationSummary": [
+    {
+      "asset": "War_Wrath_BladeGeyser",
+      "notifyObjectClasses": {
+        "AnimNotify_CallAbilityFunction": 1,
+        "AnimNotify_PlayParticleEffect": 20,
+        "AnimNotify_PlaySound": 3
+      },
+      "sockets": [
+        "Bone_War_Root:0",
+        "VFX_Root:0",
+        "VFX_Sword_Base:2"
+      ]
+    },
+    {
+      "asset": "War_Wrath_BladeGeyser_Level1_Montage",
+      "notifyObjectClasses": {
+        "AnimNotify_PlayParticleEffect": 9,
+        "AnimNotify_PlaySound": 1
+      },
+      "sockets": []
+    },
+    {
+      "asset": "War_Wrath_BladeGeyser_Level2_Montage",
+      "notifyObjectClasses": {
+        "AnimNotify_PlayParticleEffect": 17,
+        "AnimNotify_PlaySound": 1
+      },
+      "sockets": []
+    },
+    {
+      "asset": "War_Wrath_BladeGeyser_Level3_Montage",
+      "notifyObjectClasses": {
+        "AnimNotify_PlayParticleEffect": 25,
+        "AnimNotify_PlaySound": 1
+      },
+      "sockets": []
+    },
+    {
+      "asset": "War_Wrath_BladeGeyser_Montage",
+      "notifyObjectClasses": {
+        "AnimNotify_PlayParticleEffect": 1,
+        "AnimNotify_PlaySound": 1
+      },
+      "sockets": []
+    }
+  ],
+  "findings": [
+    "SpawnBlast executes and forwards once for both characters",
+    "At least one corresponding owned Geyser blast object emits nested events for each cast",
+    "The private montage drops native sound and VFX, leaving only SpawnBlast on Strife_Idle",
+    "Native presentation includes War-specific root/sword sockets; blindly restoring every notify is unsafe"
+  ],
+  "damageMeasured": false,
+  "foreignGeyserValidated": false,
+  "codeChanged": false,
+  "newBuildCreated": false,
+  "liveVisualSnapshot": "Game was no longer running; no launch or memory write performed"
+}
