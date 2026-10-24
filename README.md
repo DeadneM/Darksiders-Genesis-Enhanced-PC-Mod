@@ -1,6 +1,6 @@
 ## V1.96 - lot des capacites et retrait de notre Stoneskin
 
-24 octobre 2026. **CANDIDAT EXPERIMENTAL ; compilation et controles en attente.** Base cumulative V1.95. Caltrops sur War et Geyser sur Strife : effets et degats confirmes par l'utilisateur ; animations incorrectes. Ces chemins sont conserves.
+24 octobre 2026. **CONSTRUITE / CONTROLEE : [55/55 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40119582099), zero avertissement/erreur MSVC. Nouveaux transferts EXPERIMENTAUX, non valides en jeu.** [ZIP cumulatif immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/fbb17b46f293e9c64fb59ebfa7ae5d4cb92bc923/downloads/DarksidersGenesis_V1.96_FOREIGN_POWER_BATCH_TEST.zip) - [Recu](docs/V1_96_DELIVERY_RECEIPT.md). Base cumulative V1.95. Caltrops sur War et Geyser sur Strife : effets et degats confirmes par l'utilisateur ; animations incorrectes. Ces chemins sont conserves.
 
 Le meme lot ajoute Clone et World Ender sur War, Rampage et ses quatre suites sur Strife. Composants propres au lanceur et montages prives compatibles. Poses idle : animations, mouvement de Rampage et nouveaux effets/degats non valides en jeu.
 

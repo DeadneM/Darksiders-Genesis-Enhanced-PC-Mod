@@ -1,0 +1,67 @@
+{
+  "static": {
+    "base": "5b35a2be7f6a53d51f9b953f9d14a8bab93f14fc",
+    "oldArchivesUnchanged": 160,
+    "iniBytesUnchanged": true,
+    "caltropsLogicUnchanged": true,
+    "geyserBuilderUnchanged": true,
+    "controllerCameraAndAimUntouched": true,
+    "temporaryTraceRemoved": true,
+    "stoneAdapterRemoved": true,
+    "retiredChoiceReturnsNative": true,
+    "gameplayValidated": false
+  },
+  "ci": {
+    "runId": 40119582099,
+    "jobId": 120948157450,
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40119582099",
+    "sourceCommit": "a1d9f2f2bd9c1181f491a1748f39705f7a2f31a9",
+    "conclusion": "success",
+    "passedSuites": 55,
+    "msvcWarnings": 0,
+    "msvcErrors": 0,
+    "allTestsPassed": true,
+    "archiveIdentityVerified": true,
+    "sourceIdentityGatePresent": true,
+    "gameplayValidated": false
+  },
+  "package": {
+    "sourceCommit": "a1d9f2f2bd9c1181f491a1748f39705f7a2f31a9",
+    "archiveCommit": "fbb17b46f293e9c64fb59ebfa7ae5d4cb92bc923",
+    "name": "DarksidersGenesis_V1.96_FOREIGN_POWER_BATCH_TEST.zip",
+    "size": 954372,
+    "sha256": "A126802D7A3467E1CC26B5DBCB0503ACDB9B4EFBCD15705520DA5F05E7D050D3",
+    "files": {
+      "DarksidersGenesisMod.asi": {
+        "size": 1752576,
+        "sha256": "64AC9C192B0643797937059E5D22ABE90BB42F17DF6589BCB571BA6400411BBC"
+      },
+      "DarksidersGenesisMod.ini": {
+        "size": 4691,
+        "sha256": "99E3EECAD438A6735DD4389D544535FF798BB7F9E9EF0E4E243BC40CC4F13524"
+      },
+      "dxgi.dll": {
+        "size": 155136,
+        "sha256": "6EFD24D258C80BB0CB31E05D0738972E62C9CD63094A36152332D2E368DB4F72"
+      },
+      "README.md": {
+        "size": 60115,
+        "sha256": "218D79AE64D8EE15ADB7F0A28CBE2DAA83427AA6BBC8704B81A1ADB3545CE3E4"
+      }
+    },
+    "oldArchivesUnchanged": 160,
+    "iniKeys": 168,
+    "hotkeyIdsUnchanged": 55,
+    "amd64": true,
+    "crcValid": true,
+    "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/fbb17b46f293e9c64fb59ebfa7ae5d4cb92bc923/downloads/DarksidersGenesis_V1.96_FOREIGN_POWER_BATCH_TEST.zip",
+    "httpStatus": 200,
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/main": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "gameplayValidated": false
+  },
+  "runtimeValidation": "Caltrops/Geyser effects and damage user-confirmed; new transfers and crystal comparison untested; animations incomplete"
+}
