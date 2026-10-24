@@ -1,6 +1,6 @@
 # V1.92 — transfert expérimental Caltrops vers War, au sol
 
-**EXPÉRIMENTAL NON TESTÉ EN JEU ; compilation et contrôles V1.92 à consigner après CI.**
+**V1.92 INTERMÉDIAIRE ARCHIVÉE, remplacée par V1.93 : 54 suites passées sur les sources 6161055, mais ce ZIP précède la correction dac4d9d de réentrance par instance. Son run a été annulé trop tard, après publication. Aucun résultat de jeu supposé ; archive conservée sans modification.**
 
 Base validée V1.87 `c20319f93413f849a41b10fdfd96f7842a172ac6` dans les cas rapportés ; cumul V1.91 `d974c184aad840b248806598696da57ac2443837`. L’utilisateur autorise explicitement le travail sans essai immédiat. **Aucune validation V1.91 ni V1.92 inventée.** Geyser sur Strife reste rejeté après V1.89 ; son diagnostic V1.91 reste inchangé et en attente de test. Objectif de ce build : proposer un premier effet Caltrops natif appartenant à War, au sol, sans détourner les entrées ni modifier Strife. Réussite de gameplay, différée : apparition et dégâts de Caltrops, un seul lancer par entrée de cast, coût natif en mission, retour aux commandes et Native, sans régression des pouvoirs propres.
 

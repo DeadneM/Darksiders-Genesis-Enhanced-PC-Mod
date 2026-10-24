@@ -87,7 +87,7 @@ void Scan(){
 }
 void Stop(void* ability){
     g_failed=true;g_finish(ability,0);
-    if(g_log&&g_events++<12)g_log("Caltrops V1.92 stopped: owned War cast contract unavailable; native finish requested, select Native; no repeated constructor attempt");
+    if(g_log&&g_events++<12)g_log("Caltrops V1.93 stopped: owned War cast contract unavailable; native finish requested, select Native; no repeated constructor attempt");
 }
 }
 void Initialize(LogFn log,bool exact){
@@ -100,7 +100,7 @@ void Initialize(LogFn log,bool exact){
        std::memcmp(reinterpret_cast<void*>(g_base+0x59B080),finish,sizeof(finish))||std::memcmp(reinterpret_cast<void*>(g_base+0x676620),playing,sizeof(playing)))return;
     g_create=reinterpret_cast<Create>(g_base+0x168A410);g_finish=reinterpret_cast<Finish>(g_base+0x59B080);
     g_playing=reinterpret_cast<Playing>(g_base+0x676620);g_spawn=reinterpret_cast<Spawn>(g_base+0x5AE2B0);g_ready=true;
-    if(log)log("Caltrops V1.92 READY: War ground-only adapter, own pelvis and native projectile factory; no new hook or timer; EXPERIMENTAL UNTESTED IN GAME");
+    if(log)log("Caltrops V1.93 READY: War ground-only adapter, own pelvis and native projectile factory; no new hook or timer; EXPERIMENTAL UNTESTED IN GAME");
 }
 int Status(){g_requested=true;return !g_ready||g_failed?0:(g_loaded?2:1);}
 bool IsClass(uintptr_t p){return g_ready&&native_tps::OnGameThread()&&p==g_power.address&&Alive(g_power)&&Class(p);}
@@ -144,7 +144,7 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     // start, not a transplanted notification. Native creation keeps ownership,
     // upgrades and damage. No Strife socket, shared component, timer or CDO edit.
     g_spawn(ability,reinterpret_cast<void*>(projectile),source.pelvis);
-    if(g_log&&g_events++<12)g_log("Caltrops V1.92: owned War compatible montage playing, one native base-spawner request from Bone_War_Pelvis at start; spawn/damage UNVALIDATED");
+    if(g_log&&g_events++<12)g_log("Caltrops V1.93: owned War compatible montage playing, one native base-spawner request from Bone_War_Pelvis at start; spawn/damage UNVALIDATED");
     return true;
 }
 void Shutdown(){g_ready=false;g_loaded=false;}

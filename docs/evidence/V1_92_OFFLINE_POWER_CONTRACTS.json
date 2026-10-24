@@ -1,0 +1,46 @@
+{
+  "mode": "offline",
+  "readOnly": true,
+  "sourceSha256": "a2a530ce8b4e1d37cf59fd6cd1b9f5e98cb3c92bfdb7446b6bc1d15e5e008ff3",
+  "all40FunctionsSizeChecked": true,
+  "contracts": [
+    {
+      "ability": "MayhemAbility_ShadowStrife_Blueprint",
+      "decodedFunctions": 5,
+      "components": [
+        "MeshComponent",
+        "ShadowCharacterComponent"
+      ],
+      "followups": [],
+      "functions": [
+        "SpawnShadowClone"
+      ]
+    },
+    {
+      "ability": "MayhemAbility_WorldEnder_Finish_Blueprint",
+      "decodedFunctions": 6,
+      "components": [
+        "MayhemWorldEnder_Blueprint_C"
+      ],
+      "followups": [],
+      "functions": [
+        "StartBeam"
+      ]
+    },
+    {
+      "ability": "MayhemAbility_Rampage_Start_Blueprint",
+      "decodedFunctions": 8,
+      "components": [],
+      "followups": [
+        "MayhemAbility_Rampage_Finish_Land_Blueprint_C",
+        "MayhemAbility_Rampage_Finish_Slam_Level1_Blueprint_C",
+        "MayhemAbility_Rampage_Finish_Slam_Level2_Blueprint_C",
+        "MayhemAbility_Rampage_Finish_Slam_Level3_Blueprint_C"
+      ],
+      "functions": []
+    }
+  ],
+  "noGameLaunched": true,
+  "newRuntimeValidation": false,
+  "conclusion": "No borrowed components, partial Rampage chain or inactive foreign choices enabled; Caltrops ground prototype isolated separately"
+}
