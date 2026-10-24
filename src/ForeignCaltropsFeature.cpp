@@ -1,4 +1,5 @@
 #include "ForeignCaltropsFeature.h"
+#include "ForeignMontage.h"
 #include "NativeObjectName.h"
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
@@ -126,6 +127,7 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     Source source{};Name slot{};float duration=0;uintptr_t projectile=0;native_objects::Identity cast{},pawn{};
     if(g_failed||!std::isfinite(rate)||rate<=0||rate>10||section.index||section.number||!Animation(c,source)||!Montage(montage,slot,duration)||
        !Projectile(p,projectile)||!native_objects::CaptureLive(g_base,ability,cast)||!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(actor),pawn)){Stop(ability);return true;}
+    source.sequence=foreign_montage::CastingSequence(source.sequence,source.skeleton,source.length);
     auto* replacement=g_create(reinterpret_cast<void*>(source.sequence),slot,.1f,.1f,1,1,-1,0);
     if(!Alive(cast)||!Alive(pawn))return true;
     const auto clone=reinterpret_cast<uintptr_t>(replacement);uintptr_t skeleton=0;float length=0;
@@ -144,7 +146,7 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     // start, not a transplanted notification. Native creation keeps ownership,
     // upgrades and damage. No Strife socket, shared component, timer or CDO edit.
     g_spawn(ability,reinterpret_cast<void*>(projectile),source.pelvis);
-    if(g_log&&g_events++<12)g_log("Caltrops V1.93: owned War compatible montage playing, one native base-spawner request from Bone_War_Pelvis at start; spawn/damage UNVALIDATED");
+    if(g_log&&g_events++<12)g_log("Caltrops V1.98: one native spawner, original cast duration; own War casting gesture when loaded, idle fallback; animation EXPERIMENTAL");
     return true;
 }
 void Shutdown(){g_ready=false;g_loaded=false;}

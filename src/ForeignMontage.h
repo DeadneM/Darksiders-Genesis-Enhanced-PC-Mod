@@ -7,6 +7,10 @@ struct Source {uintptr_t sequence=0,skeleton=0;int slotIndex=0,slotNumber=0,root
 void Initialize(LogFn,bool exactExecutable);
 bool Ready();
 bool CanBuild(const Source&);
+// Reuse the existing bounded object scan; no loader, timer or source edits.
+void ObserveSequence(uintptr_t object);
+bool GesturesReady();
+uintptr_t CastingSequence(uintptr_t fallback,uintptr_t skeleton,float& length);
 // NewObject with the source as template: only private, non-aliased native
 // arrays are edited. The engine owns allocation, notify timing and cleanup.
 void* Geyser(uintptr_t nativeMontage,const Source&);

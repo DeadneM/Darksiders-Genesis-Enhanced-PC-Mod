@@ -13,8 +13,9 @@ struct Fixture {
     unsigned char tracks[24]{},segments[64]{},events[368]{},sections[88]{},sequenceEvents[552]{};
     unsigned char copyTracks[24]{},copySegments[64]{},copyEvents[64*184]{},copySections[88]{};
     unsigned char blade[0x100]{},bladeCopy[0x100]{},nova[0x100]{},sound[0x100]{},other[0x100]{},assets[4][0x80]{};
+    unsigned char gesture[0x240]{},gesturePackage[0x80]{},gestureEvents[552]{},gestureNotifies[3][0x100]{},footstepClass[0x80]{},gestureTrack[4]{},items[8*24]{};
 } f;
-unsigned char entries[40][256]{};uintptr_t names[40]{},chunks[1]{reinterpret_cast<uintptr_t>(names)};
+unsigned char entries[48][256]{};uintptr_t names[48]{},chunks[1]{reinterpret_cast<uintptr_t>(names)},objectChunks[1]{};
 bool gameThread=true;int mode=0;unsigned constructors=0,skeletonCalls=0,reserves=0;
 Source source{};
 template<class T>void Put(void* p,size_t offset,T value){std::memcpy(static_cast<unsigned char*>(p)+offset,&value,sizeof(value));}
@@ -24,7 +25,7 @@ void Label(void* object,unsigned index,const char* text){Put(object,0x18,int(ind
 void* PackageNative(){return f.transient;}
 void SkeletonNative(void* asset,void* skeleton){++skeletonCalls;Put(asset,0x38,reinterpret_cast<uintptr_t>(skeleton));}
 void ReserveNative(void* array,int count){
-    ++reserves;Check(array==f.copy+0x80&&count==4,"native reserve only receives private event header and merged count");
+    ++reserves;Check(array==f.copy+0x80&&(count==4||count==5),"native reserve only receives private event header and merged count");
     if(mode==10)return;
     Put(array,0,Array{reinterpret_cast<uintptr_t>(mode==11?f.events:f.copyEvents),2,count});
 }
@@ -55,7 +56,7 @@ void* ConstructNative(void* cls,void* outer,Name name,uint32_t flags,uint32_t in
     return f.copy;
 }
 void Fresh(){
-    f={};entries[0][12]=0;gameThread=true;mode=0;constructors=skeletonCalls=reserves=0;g_ready=true;
+    f={};entries[0][12]=0;gameThread=true;mode=0;constructors=skeletonCalls=reserves=0;g_ready=true;g_gestures[0]=g_gestures[1]={};
     g_construct=ConstructNative;g_package=PackageNative;g_skeleton=SkeletonNative;g_reserve=ReserveNative;
     const char* labels[]={"AnimMontage","Class","AnimSequence","Skeleton","Package","AnimNotify_CallAbilityFunction","AnimNotify_PlayParticleEffect","AnimNotify_PlaySound"};
     const unsigned ids[]={1,2,3,4,5,6,17,18};for(unsigned i=0;i<8;++i)Label(f.classes[i],ids[i],labels[i]);
@@ -99,7 +100,7 @@ void Fresh(){
 }
 void Run(){
     std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(chunks));
-    for(unsigned i=0;i<40;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
+    for(unsigned i=0;i<48;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
     Fresh();const auto original=std::make_unique<Fixture>(f);
     Check(CanBuild(source)&&Geyser(reinterpret_cast<uintptr_t>(f.original),source)==f.copy,"known template creates private compatible native montage");
     Check(constructors==2&&skeletonCalls==1&&reserves==1,"one montage, one root-only notify clone and native private reserve");
@@ -202,7 +203,60 @@ void Batch(){
     Put(entries[39],8,uint32_t(1));const wchar_t wide[]=L"WideName";std::memcpy(entries[39]+12,wide,sizeof(wide));
     Check(dg::native_objects::NameValueEquals(g_base,39,0,"WideName")&&!dg::native_objects::NameValueEquals(g_base,39,0,"Wide"),"bounded dynamic name lookup supports wide names");
 }
+void GestureFixture(bool war=false){
+    Fresh();
+    auto* skeleton=war?f.warSkeleton:f.strifeSkeleton;
+    Label(skeleton,war?11:12,war?"War_Mesh_Skeleton":"Strife_Skeleton");
+    Label(f.gesture,40,war?"War_Channel_Start":"Strife_Aether_Channel_Start");
+    Label(f.gesturePackage,41,war?"/Game/Characters/Heroes/Hero_War/Animation/War_Channel_Start":"/Game/Characters/Heroes/Hero_Strife/Animations/Strife_Aether_Channel_Start");
+    Label(f.footstepClass,42,"AnimNotify_PlayFootstep");
+    Put(f.gesture,0x10,reinterpret_cast<uintptr_t>(f.classes[2]));Put(f.gesture,0x20,reinterpret_cast<uintptr_t>(f.gesturePackage));Put(f.gesture,0x38,reinterpret_cast<uintptr_t>(skeleton));
+    Put(f.gesture,0x90,war?.5666666627f:1.f);Put(f.gesture,0x94,1.f);Put<unsigned char>(f.gesture,0x1A1,war?1:0);
+    Put(f.gesture,0x80,Array{reinterpret_cast<uintptr_t>(f.gestureEvents),3,3});Put(f.gesture,0xB0,Array{reinterpret_cast<uintptr_t>(f.gestureTrack),1,1});
+    const float times[2][3]={{0,0,.4308005273f},{0,.1327852011f,.3913668990f}};
+    for(int i=0;i<3;++i){auto* e=f.gestureEvents+i*184;auto* n=f.gestureNotifies[i];Put(e,0x48,reinterpret_cast<uintptr_t>(n));Put(e,0x24,times[war?1:0][i]);
+        Put(n,0x10,reinterpret_cast<uintptr_t>(war&&i>0?f.footstepClass:f.classes[7]));Put(n,0x20,reinterpret_cast<uintptr_t>(f.gesture));}
+    Put(f.gesture,0xC,1);Put(f.items,24,reinterpret_cast<uintptr_t>(f.gesture));Put(f.items,24+16,77);
+    objectChunks[0]=reinterpret_cast<uintptr_t>(f.items);Put(reinterpret_cast<void*>(g_base),0x3959680,reinterpret_cast<uintptr_t>(objectChunks));Put(reinterpret_cast<void*>(g_base),0x3959694,8);
+}
+void Gestures(){
+    std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(chunks));
+    for(unsigned i=0;i<48;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
+    for(bool war:{false,true}){
+        GestureFixture(war);const auto before=std::make_unique<Fixture>(f);ObserveSequence(reinterpret_cast<uintptr_t>(f.gesture));float duration=5;
+        const auto skeleton=reinterpret_cast<uintptr_t>(war?f.warSkeleton:f.strifeSkeleton);
+        Check(CastingSequence(source.sequence,skeleton,duration)==reinterpret_cast<uintptr_t>(f.gesture)&&duration==(war?.5666666627f:1.f),"exact receiver gesture selected with its duration");
+        Check(!constructors&&!skeletonCalls&&!std::memcmp(f.gesture,before->gesture,sizeof(f.gesture))&&!std::memcmp(f.gestureEvents,before->gestureEvents,sizeof(f.gestureEvents)),"gesture discovery and selection leave assets and notifies unchanged");
+        duration=5;Check(CastingSequence(source.sequence,reinterpret_cast<uintptr_t>(f.other),duration)==source.sequence&&duration==5,"foreign skeleton keeps validated idle fallback");
+        Put(f.items,24+16,78);duration=5;Check(CastingSequence(source.sequence,skeleton,duration)==source.sequence&&duration==5,"expired gesture cannot be reused by address");
+    }
+    for(int bad=0;bad<10;++bad){
+        GestureFixture();
+        if(bad==0)Label(f.gesturePackage,41,"/Unrelated/Strife_Aether_Channel_Start");
+        if(bad==1)Put(f.gesture,0x90,std::numeric_limits<float>::quiet_NaN());
+        if(bad==2)Put<unsigned char>(f.gesture,0x1A1,1);
+        if(bad==3)Put(f.gestureEvents,0x50,reinterpret_cast<uintptr_t>(f.other));
+        if(bad==4)Put(f.gestureEvents,0x58,.1f);
+        if(bad==5)Put(f.gestureNotifies[0],0x10,reinterpret_cast<uintptr_t>(f.classes[5]));
+        if(bad==6)Put(f.gestureNotifies[0],0x10,reinterpret_cast<uintptr_t>(f.classes[6]));
+        if(bad==7)Put(f.gestureEvents,2*184+0x24,.8f);
+        if(bad==8)Put(f.gestureTrack,0,1);
+        if(bad==9)gameThread=false;
+        ObserveSequence(reinterpret_cast<uintptr_t>(f.gesture));float duration=5;
+        Check(CastingSequence(source.sequence,source.skeleton,duration)==source.sequence&&duration==5&&!constructors,"wrong package, root, time, state, callback or effect cannot enter gesture playback");
+    }
+    GestureFixture();ObserveSequence(reinterpret_cast<uintptr_t>(f.gesture));
+    Check(Geyser(reinterpret_cast<uintptr_t>(f.original),source)==f.copy,"gesture integrates with validated Geyser builder");
+    const auto segment=At<Segment>(f.copySegments,0);
+    Check(segment.sequence==reinterpret_cast<uintptr_t>(f.gesture)&&segment.last==1&&std::fabs(segment.rate-1/2.3666665554f)<.00001f,"gesture fits existing cast span instead of changing callback timing");
+    Check(At<uintptr_t>(f.copyEvents,2*184+0x48)==reinterpret_cast<uintptr_t>(f.notify)&&At<float>(f.copyEvents,2*184+0x24)==.4880667329f&&At<int>(f.copy,0x88)==4,"one original blast callback and complete presentation remain on their native times");
+    GestureFixture(true);ObserveSequence(reinterpret_cast<uintptr_t>(f.gesture));
+    Label(f.idle,13,"War_Idle");Put(f.idle,0x38,reinterpret_cast<uintptr_t>(f.warSkeleton));source.skeleton=reinterpret_cast<uintptr_t>(f.warSkeleton);source.rootIndex=20;
+    Label(f.original,7,"Strife_SpawnClone_F_Montage");Label(f.originalPackage,8,"/Game/Characters/Heroes/Hero_Strife/Animations/Strife_SpawnClone_F_Montage");
+    Check(Compatible(reinterpret_cast<uintptr_t>(f.original),source)==f.copy&&At<Segment>(f.copySegments,0).sequence==reinterpret_cast<uintptr_t>(f.gesture),"Clone builder uses War gesture on own skeleton");
+    Check(At<int>(f.copy,0x88)==5&&At<float>(f.copyEvents,2*184+0x24)==.4880667329f,"Clone event plan and native callback timeline are preserved");
+}
 }
 namespace dg::native_tps {bool OnGameThread(){return gameThread;}}
-int main(){try{Run();Batch();std::cout<<"Private native montage allocation, callback mapping, source preservation and alias rejection passed\n";return 0;}
+int main(){try{Run();Batch();Gestures();std::cout<<"Private native montage allocation, callback mapping, source preservation and alias rejection passed\n";return 0;}
 catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

@@ -66,7 +66,7 @@ bool Source(uintptr_t actor,Animation& out){
 }
 void Scan(uintptr_t generatedClass){
     if(g_geyser&&!Alive(g_geyser)){g_geyser={};g_geyserReady=false;g_cursor=0;g_complete=false;}
-    if(g_geyser){g_geyserReady=true;return;}
+    if(g_geyser){g_geyserReady=true;if(foreign_montage::GesturesReady())return;}
     uintptr_t chunks=0;int count=0;
     if(!Read(g_base,0x3959680,chunks)||!Read(g_base,0x3959694,count)||count<=0||count>2000000)return;
     if(count!=g_count){if(count<g_count)g_cursor=0;g_count=count;g_complete=false;}
@@ -74,8 +74,10 @@ void Scan(uintptr_t generatedClass){
     for(unsigned n=0;n<512&&g_cursor<count;++n,++g_cursor){
         uintptr_t chunk=0,object=0,cls=0;uint32_t flags=0;
         if(!Read(chunks,size_t(g_cursor/65536)*8,chunk)||!Read(chunk,size_t(g_cursor%65536)*24,object)||!object||
-           !Read(chunk,size_t(g_cursor%65536)*24+8,flags)||(flags&0x30000000u)||!Read(object,0x10,cls)||cls!=generatedClass)continue;
-        if(GeyserClass(object)&&native_objects::CaptureLive(g_base,reinterpret_cast<void*>(object),g_geyser))break;
+           !Read(chunk,size_t(g_cursor%65536)*24+8,flags)||(flags&0x30000000u)||!Read(object,0x10,cls))continue;
+        if(Is(cls,"AnimSequence"))foreign_montage::ObserveSequence(object);
+        if(cls!=generatedClass)continue;
+        if(!g_geyser&&GeyserClass(object))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(object),g_geyser);
     }
     if(g_cursor>=count)g_complete=true;if(g_geyser)g_geyserReady=true;
 }
@@ -127,7 +129,7 @@ void HookPlay(void* ability,void* montage,float rate,Name section){
     }
     if(played)*recent=actor;
     else {g_geyserFailed=true;g_finish(ability,0);}
-    if(g_log&&++g_events<=12)g_log(played?"Foreign Wrath V1.94 Geyser: one native SpawnBlast, native blade/nova FX and cast sound on private compatible montage; idle pose, damage UNVERIFIED; EXPERIMENTAL":
+    if(g_log&&++g_events<=12)g_log(played?"Foreign Wrath V1.98 Geyser: native callback and FX timeline retained; own casting gesture when loaded, idle fallback; animation EXPERIMENTAL":
         "Foreign Wrath V1.88 Geyser contract unavailable; cast finished and further Geyser requests stopped for this session");
     return;
 
@@ -157,6 +159,7 @@ void Initialize(LogFn log,bool exactExecutable){
     if(log)log("Foreign Wrath V1.97 READY: Geyser, Caltrops and Clone only, native unlock/cost/lifecycle; compatible private montages");
 }
 int Status(int choice){
+    if(choice==1||choice==3||choice==4)g_requested=true;
     if(choice==3)return foreign_caltrops::Status();
     if(choice==1)return foreign_power::Status(choice);
     if(choice!=4||!g_ready)return 0;g_requested=true;
@@ -165,7 +168,7 @@ int Status(int choice){
 void Observe(const local_players::Context& owner){
     foreign_caltrops::Observe(owner);foreign_power::Observe(owner);
     if(!g_ready||!native_tps::OnGameThread())return;
-    bool wanted=g_requested.load();for(const auto& choice:runtime::Get().wrathSlots[0])wanted=wanted||choice.load()==4;
+    bool wanted=g_requested.load();for(const auto& slots:runtime::Get().wrathSlots)for(const auto& choice:slots)wanted=wanted||choice.load()==1||choice.load()==3||choice.load()==4;
     if(!wanted||owner.index<0||owner.index>1||!owner.localPlayer||!owner.world||owner.kind!=local_players::PoseKind::Foot)return;
     if(g_world!=owner.world){g_world=owner.world;g_cursor=0;g_count=0;g_complete=false;}
     if(auto* recent=GeyserActor(owner.index);recent&&recent->address&&recent->address!=owner.character)*recent={};

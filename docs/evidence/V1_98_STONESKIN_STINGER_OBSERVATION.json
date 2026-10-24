@@ -1,0 +1,151 @@
+{
+  "status": "SOURCE OF REPORTED CRYSTAL CONFIRMED BY USER; placement not modified",
+  "processRights": "QUERY_LIMITED_INFORMATION|VM_READ",
+  "nativeCalls": false,
+  "memoryWrites": false,
+  "frames": 1184,
+  "changes": 90,
+  "captureSha256": "623C834DF93C62577778F0902F33560B1E495BE387A63D5CC5F9EF61E4A07CB7",
+  "executableSha256": "9F4702024DF5EEA1D51DF7745B0AD1EA95B97009982F73DDC1218C53DFF33D54",
+  "particleTemplate": "P_Stinger_CreatureCore_StoneSkin",
+  "statusClass": "MayhemStatusEffect_Core_Stinger_2_Blueprint_C",
+  "ownerClass": "War_Blueprint_C",
+  "parentClass": "CapsuleComponent",
+  "parentName": "CollisionCylinder",
+  "socket": "None",
+  "positions": {
+    "particle": [
+      -2093.940185546875,
+      274.92742919921875,
+      132.82464599609375
+    ],
+    "capsule": [
+      -2093.940185546875,
+      274.92742919921875,
+      132.82464599609375
+    ],
+    "mesh": [
+      -2093.940185546875,
+      274.92742919921875,
+      35.82464599609375
+    ]
+  },
+  "userReport": "bien vu le crystal nest plus",
+  "test": "Remove Stinger core, then cast Stoneskin again",
+  "transitions": [
+    {
+      "seconds": 0.0,
+      "templates": []
+    },
+    {
+      "seconds": 33.108,
+      "templates": [
+        "P_Stinger_CreatureCore_StoneSkin"
+      ]
+    },
+    {
+      "seconds": 34.686,
+      "templates": [
+        "P_Stinger_CreatureCore_StoneSkin",
+        "P_WarStoneSkin_Molten",
+        "P_WarStoneSkin_Molten_NoDust",
+        "P_WarStoneSkin_OnlyDust"
+      ]
+    },
+    {
+      "seconds": 34.928,
+      "templates": [
+        "P_Stinger_CreatureCore_StoneSkin",
+        "P_WarStoneSkin_Molten",
+        "P_WarStoneSkin_OnlyDust"
+      ]
+    },
+    {
+      "seconds": 38.837,
+      "templates": [
+        "P_Stinger_CreatureCore_StoneSkin",
+        "P_WarStoneSkin_OnlyDust"
+      ]
+    },
+    {
+      "seconds": 43.066,
+      "templates": [
+        "P_WarStoneSkin_OnlyDust"
+      ]
+    },
+    {
+      "seconds": 44.126,
+      "templates": [
+        "P_Stinger_CreatureCore_StoneSkin"
+      ]
+    },
+    {
+      "seconds": 45.674,
+      "templates": [
+        "P_Stinger_CreatureCore_StoneSkin",
+        "P_WarStoneSkin_Molten",
+        "P_WarStoneSkin_Molten_NoDust",
+        "P_WarStoneSkin_OnlyDust"
+      ]
+    },
+    {
+      "seconds": 45.916,
+      "templates": [
+        "P_Stinger_CreatureCore_StoneSkin",
+        "P_WarStoneSkin_Molten",
+        "P_WarStoneSkin_OnlyDust"
+      ]
+    },
+    {
+      "seconds": 49.728,
+      "templates": [
+        "P_Stinger_CreatureCore_StoneSkin",
+        "P_WarStoneSkin_OnlyDust"
+      ]
+    },
+    {
+      "seconds": 54.157,
+      "templates": [
+        "P_WarStoneSkin_OnlyDust"
+      ]
+    },
+    {
+      "seconds": 54.984,
+      "templates": [
+        "P_War_StoneSkin_Base_Crumble_Expiration"
+      ]
+    },
+    {
+      "seconds": 57.066,
+      "templates": []
+    },
+    {
+      "seconds": 214.565,
+      "templates": [
+        "P_WarStoneSkin_Molten",
+        "P_WarStoneSkin_OnlyDust"
+      ]
+    },
+    {
+      "seconds": 218.042,
+      "templates": [
+        "P_WarStoneSkin_OnlyDust"
+      ]
+    },
+    {
+      "seconds": 223.103,
+      "templates": []
+    },
+    {
+      "seconds": 223.908,
+      "templates": [
+        "P_War_StoneSkin_Base_Crumble_Expiration"
+      ]
+    },
+    {
+      "seconds": 225.29,
+      "templates": []
+    }
+  ],
+  "conclusion": "Stinger particle absent on later Stoneskin cast; normal Stoneskin dust/molten/crumble retained. Native core effect source identified. Does not prove the ASI never affected historical positioning. No generic particle hide or offset correction added."
+}

@@ -1,0 +1,84 @@
+{
+  "status": "EXPERIMENTAL, NOT VALIDATED IN GAME",
+  "loadedObservationReadOnly": true,
+  "sourceAssetsUnchanged": true,
+  "contracts": [
+    {
+      "name": "War_Channel_Start",
+      "uassetSha256": "5EABF4FD2E6CDA263363AD0378B5E98D3E89779B566F7F0314A1122E8551ADAC",
+      "uexpSha256": "04C86F14AEF1E455C491A65F2CDBA87B8739CB1F7239F0E9087978064AF254D2",
+      "loaded": {
+        "package": "/Game/Characters/Heroes/Hero_War/Animation/War_Channel_Start",
+        "skeleton": "War_Mesh_Skeleton",
+        "length": 0.5666666626930237,
+        "rootMotion": "01",
+        "firstTrackSkeletonBone": 0,
+        "events": [
+          {
+            "cls": "AnimNotify_PlaySound",
+            "time": 0.0,
+            "duration": 0.0,
+            "state": null
+          },
+          {
+            "cls": "AnimNotify_PlayFootstep",
+            "time": 0.13278520107269287,
+            "duration": 0.0,
+            "state": null
+          },
+          {
+            "cls": "AnimNotify_PlayFootstep",
+            "time": 0.3913668990135193,
+            "duration": 0.0,
+            "state": null
+          }
+        ]
+      },
+      "cookedRootContract": {
+        "firstSkeletonBone": 0,
+        "compressedTrackOffsetCount": 536,
+        "firstTrackOffsetAndKeyCounts": [
+          0,
+          1,
+          12,
+          1
+        ],
+        "translationKeys": 1,
+        "rotationKeys": 1,
+        "meaning": "constant root track, zero extracted delta; native root-motion flag not edited"
+      }
+    },
+    {
+      "name": "Strife_Aether_Channel_Start",
+      "uassetSha256": "5289E1D98F31AD95AE7836456E6D5A850E85B44272CE1841AEBD2CEC86C3D31A",
+      "uexpSha256": "56DC53C38B270441FE1C02D3C860D252582371DA1B0528DF30E96069E4548FE0",
+      "loaded": {
+        "package": "/Game/Characters/Heroes/Hero_Strife/Animations/Strife_Aether_Channel_Start",
+        "skeleton": "Strife_Skeleton",
+        "length": 1.0,
+        "rootMotion": "00",
+        "firstTrackSkeletonBone": 0,
+        "events": [
+          {
+            "cls": "AnimNotify_PlaySound",
+            "time": 0.0,
+            "duration": 0.0,
+            "state": null
+          },
+          {
+            "cls": "AnimNotify_PlaySound",
+            "time": 0.0,
+            "duration": 0.0,
+            "state": null
+          },
+          {
+            "cls": "AnimNotify_PlaySound",
+            "time": 0.43080052733421326,
+            "duration": 0.0,
+            "state": null
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,3 +1,15 @@
+## V1.98 - Gestes propres au receveur et cristal Stinger identifie
+
+Lot EXPERIMENTAL, validation en jeu encore requise. Base cumulative V1.97 ; acquis utilisateur : effets/degats Geyser et Caltrops V1.95, effet Clone V1.96. V1.97 reste un repli construit/controle, pas une version declaree validee par l'utilisateur.
+
+Geyser sur Strife utilise un geste de canalisation Strife ; Clone/Caltrops sur War un geste War. Squelettes propres, fichiers d'animation natifs inchanges, sons/pas seuls dans ces gestes. Durees des casts, callbacks et effets retenus conserves ; retour a la pose precedente si le geste charge est indisponible. Aucun nouveau hook, chargement force ou timer. Rampage sur Strife et World Ender sur War restent retires ; pouvoirs propres natifs conserves.
+
+Cristal Stoneskin : capture en lecture seule identifie P_Stinger_CreatureCore_StoneSkin du coeur Stinger, attache a CollisionCylinder, 97 unites au-dessus de la racine du modele. L'utilisateur confirme sa disparition en retirant ce coeur ; les effets Stoneskin ordinaires restent presents. Source visuelle CONFIRMEE ; aucune preuve de deplacement cause par le mod, aucun correctif global d'effets ajoute. [Preuves, objectif, essais et rollback](V1_98_RECEIVER_CASTING_GESTURES_TEST.md).
+
+Installation manuelle jeu ferme, conserver son INI/raccourcis/PAK/sauvegardes. 168 cles et 55 ID Hotkeys inchanges ; 162 archives anterieures a conserver ; debug seulement, P2 differe. Le recu de livraison donne les resultats Windows/ZIP lorsqu'ils sont disponibles. Les entrees suivantes sont historiques.
+
+---
+
 ## V1.97 - Repli apres rejet de V1.96
 
 V1.96 REJETEE en jeu : Rampage sur Strife bloque le personnage ; World Ender sur War echoue ; Clone fonctionne sans animation correcte. Caltrops/Geyser : effets et degats confirmes, animations toujours incorrectes. **V1.97 CONSTRUITE / CONTROLEE : [55/55 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40123319154), zero avertissement/erreur MSVC ; repli NON VALIDE EN JEU.** [ZIP cumulatif immuable](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/81b4e41b4d0b9a2d74eee45ba6f63bcbe986c217/downloads/DarksidersGenesis_V1.97_FOREIGN_POWERS_SAFE_SUBSET_TEST.zip) - [Recu](V1_97_DELIVERY_RECEIPT.md). Base : V1.95 et uniquement les effets retenus de Clone V1.96.

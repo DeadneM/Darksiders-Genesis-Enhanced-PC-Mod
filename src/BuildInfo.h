@@ -1,7 +1,7 @@
 #pragma once
 namespace dg::build {
-inline constexpr int Major=1,Minor=97;
-inline constexpr char Version[]="V1.97";
-inline constexpr char Id[]="1.97-foreign-powers-safe-subset-test";
-inline constexpr char Archive[]="DarksidersGenesis_V1.97_FOREIGN_POWERS_SAFE_SUBSET_TEST.zip";
+inline constexpr int Major=1,Minor=98;
+inline constexpr char Version[]="V1.98";
+inline constexpr char Id[]="1.98-receiver-casting-gestures-test";
+inline constexpr char Archive[]="DarksidersGenesis_V1.98_RECEIVER_CASTING_GESTURES_TEST.zip";
 }
