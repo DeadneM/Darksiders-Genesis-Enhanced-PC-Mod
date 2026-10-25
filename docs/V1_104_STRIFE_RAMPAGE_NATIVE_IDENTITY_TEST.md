@@ -1,5 +1,7 @@
 # V1.104 - Rampage Strife, identites de slots et mouvement natif
 
+**CONSTRUITE / CONTROLEE : [59/59 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40203015804), zero avertissement/erreur MSVC. [ZIP GitHub immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/acd4ba2cf79577a3c8aa9b8cf09e40f4eee2193b/downloads/DarksidersGenesis_V1.104_STRIFE_RAMPAGE_NATIVE_IDENTITY_TEST.zip) - [Recu](V1_104_DELIVERY_RECEIPT.md). Rampage Strife reste EXPERIMENTAL, NON VALIDE EN JEU. Compilation exclusivement sur GitHub Actions ; archive disponible pour l'updater du jeu, canal debug. Aucune compilation ni installation locale.**
+
 25 octobre 2026. Base V1.103 : les deux points d'essai reception lourde approuves par l'utilisateur ; scope limite aux essais rapportes, pas de validation P2 inventee. Stoneskin/police V1.102, Geyser/Clone/Caltrops V1.98 et World Ender War V1.100 conserves. La suite demandee est explicitement Rampage sur Strife. Nouveau candidat EXPERIMENTAL.
 
 ## Objectif et critere de reussite

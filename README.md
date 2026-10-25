@@ -1,6 +1,8 @@
 ## V1.104 - Rampage Strife, refus identifie et identites natives
 
-**EXPERIMENTALE, NON VALIDEE EN JEU ; compilation et livraison a controler.** Base V1.103 reception lourde validee par l'utilisateur, avec Stoneskin/police V1.102 et Geyser/Clone/Caltrops V1.98/World Ender War V1.100 conserves. Priorite explicite : Rampage sur Strife.
+**CONSTRUITE / CONTROLEE : [59/59 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40203015804), zero avertissement/erreur MSVC. [ZIP GitHub immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/acd4ba2cf79577a3c8aa9b8cf09e40f4eee2193b/downloads/DarksidersGenesis_V1.104_STRIFE_RAMPAGE_NATIVE_IDENTITY_TEST.zip) - [Recu](docs/V1_104_DELIVERY_RECEIPT.md). Rampage Strife reste EXPERIMENTAL, NON VALIDE EN JEU. Compilation exclusivement sur GitHub Actions ; archive disponible pour l'updater du jeu, canal debug. Aucune compilation ni installation locale.**
+
+**EXPERIMENTALE, NON VALIDEE EN JEU ; compilation et livraison controlees ; essai en jeu requis.** Base V1.103 reception lourde validee par l'utilisateur, avec Stoneskin/police V1.102 et Geyser/Clone/Caltrops V1.98/World Ender War V1.100 conserves. Priorite explicite : Rampage sur Strife.
 
 Le releve actuel en lecture seule reproduit le refus de l'ancien garde : il exigeait le texte Upperbody_Flinches alors que le FName charge s'affiche UpperBody_Flinches. Les cinq classes de phases sont chargees ; squelette/racine/idle et proprietaires corrects. Le nouveau garde compare les vrais couples index/numero des cinq slots, verifie leur unicite et refuse le slot de mouvement s'il est rendu. Aucun changement global des comparaisons de noms.
 

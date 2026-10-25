@@ -1,0 +1,170 @@
+{
+  "acceptedBase": "V1.103 heavy landing, V1.102 Stoneskin/font and retained accepted transfers",
+  "baselineCommit": "07818091c719d4aeda2901ef08a0bbfb2282560a",
+  "static": {
+    "iniKeys": 169,
+    "hotkeyIdsUnchanged": 55,
+    "acceptedMontagePrefixUnchanged": true,
+    "acceptedStoneskinFunctionsUnchanged": true,
+    "otherSourceTestConfigFilesUnchanged": 186,
+    "runtimeReadContracts": {
+      "readOnly": true,
+      "gates": {
+        "localStrife": true,
+        "authority": true,
+        "characterType": true,
+        "reciprocalPawn": true,
+        "ownMovement": true,
+        "walking": true,
+        "ownMesh": true,
+        "ownAnim": true,
+        "rootMotionMontagesOnly": true,
+        "fiveUniqueSlots": true,
+        "noMotionSlotRendered": true,
+        "validNativeSlotPairs": true,
+        "ownSkeleton": true,
+        "ownRoot": true,
+        "idleClass": true,
+        "idlePackage": true,
+        "classesLoaded": true
+      },
+      "allReadContractsPass": true,
+      "oldGraphGuardPasses": false,
+      "runtimeSlots": [
+        "UpperBody",
+        "TPS",
+        "Shoot_Left",
+        "Shoot_Right",
+        "UpperBody_Flinches"
+      ],
+      "motionSlot": "DefaultSlot",
+      "nativeRootMotionMode": 3,
+      "notANativePrepareCall": true
+    }
+  },
+  "ci": {
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40203015804",
+    "runId": 40203015804,
+    "jobId": 121197999294,
+    "sourceCommit": "7f4c0d4830b8146668d076e99bc49347db4f77cd",
+    "passedSuites": 59,
+    "msvcWarnings": 0,
+    "msvcErrors": 0,
+    "passedTests": [
+      "Test  #1: PlayerPresentation ...............   Passed",
+      "Test  #2: ForeignMontage ...................   Passed",
+      "Test  #3: ForeignWrath .....................   Passed",
+      "Test  #4: ForeignBeam ......................   Passed",
+      "Test  #5: ForeignRampage ...................   Passed",
+      "Test  #6: ForeignRampageMontage ............   Passed",
+      "Test  #7: ForeignPower .....................   Passed",
+      "Test  #8: ForeignCaltrops ..................   Passed",
+      "Test  #9: ExecutionCamera ..................   Passed",
+      "Test #10: MeleeEffect ......................   Passed",
+      "Test #11: MountedJump ......................   Passed",
+      "Test #12: WrathSlots .......................   Passed",
+      "Test #13: PistolVisual .....................   Passed",
+      "Test #14: LeviathanVisual ..................   Passed",
+      "Test #15: CosmeticUnlock ...................   Passed",
+      "Test #16: MountedHolsters ..................   Passed",
+      "Test #17: UltimateDuration .................   Passed",
+      "Test #18: GrappleRange .....................   Passed",
+      "Test #19: AirJump ..........................   Passed",
+      "Test #20: StandardAmmo .....................   Passed",
+      "Test #21: GameplayExtensionsConfig .........   Passed",
+      "Test #22: NativeRadial .....................   Passed",
+      "Test #23: NativeObjectIdentity .............   Passed",
+      "Test #24: DashCombatFeature ................   Passed",
+      "Test #25: InteractionHud ...................   Passed",
+      "Test #26: ManualActionBindings .............   Passed",
+      "Test #27: HeavyLanding .....................   Passed",
+      "Test #28: ManualAim ........................   Passed",
+      "Test #29: WeaponSheathing ..................   Passed",
+      "Test #30: DashCombat .......................   Passed",
+      "Test #31: TpsCameraFocus ...................   Passed",
+      "Test #32: LegacyRecoveryConfig .............   Passed",
+      "Test #33: HotstreakConfig ..................   Passed",
+      "Test #34: GlideAndHorse ....................   Passed",
+      "Test #35: SustainConfig ....................   Passed",
+      "Test #36: ProjectileSpawn ..................   Passed",
+      "Test #37: TpsAimTarget .....................   Passed",
+      "Test #38: LocalGameplayIsolation ...........   Passed",
+      "Test #39: LocalPlayerOwnership .............   Passed",
+      "Test #40: CoopCameraIsolation ..............   Passed",
+      "Test #41: ControllerReadScope ..............   Passed",
+      "Test #42: TpsStickRoles ....................   Passed",
+      "Test #43: GaugeRequests ....................   Passed",
+      "Test #44: GaugeHotkeys .....................   Passed",
+      "Test #45: UltimateCameraConfig .............   Passed",
+      "Test #46: PotionPolicies ...................   Passed",
+      "Test #47: PotionConfig .....................   Passed",
+      "Test #48: ResourceGains ....................   Passed",
+      "Test #49: GaugeUnlimited ...................   Passed",
+      "Test #50: WarningPresentation ..............   Passed",
+      "Test #51: AmmoConsumption ..................   Passed",
+      "Test #52: AmmoConfig .......................   Passed",
+      "Test #53: ConfigWriteFailures ..............   Passed",
+      "Test #54: UpdateVersion ....................   Passed",
+      "Test #55: UserDefaultsConfig ...............   Passed",
+      "Test #56: MenuAppearance ...................   Passed",
+      "Test #57: OverlayBindingScope ..............   Passed",
+      "Test #58: UpdateNotice .....................   Passed",
+      "Test #59: UpdateEngineSafety ...............   Passed"
+    ]
+  },
+  "package": {
+    "sourceCommit": "7f4c0d4830b8146668d076e99bc49347db4f77cd",
+    "archiveCommit": "acd4ba2cf79577a3c8aa9b8cf09e40f4eee2193b",
+    "name": "DarksidersGenesis_V1.104_STRIFE_RAMPAGE_NATIVE_IDENTITY_TEST.zip",
+    "size": 992208,
+    "sha256": "2516EE8D6EB220117BEC8A7DC126DF521DEE04A285DFB65983DFF7470A70B31A",
+    "files": {
+      "DarksidersGenesisMod.asi": {
+        "size": 1832448,
+        "sha256": "5ED9D712EFBBB22CD1CFC63661171CDDF6CC58219E25DB49A74BE706E302E391"
+      },
+      "DarksidersGenesisMod.ini": {
+        "size": 4708,
+        "sha256": "599E7AEE6350160BF70985B406A4C0B35094F282B6269971A48C88778AB5C29B"
+      },
+      "dxgi.dll": {
+        "size": 155136,
+        "sha256": "7529635575FCE0020F970CA910D12E29928EBCC63F4CECD7A3CABEA16541C550"
+      },
+      "README.md": {
+        "size": 78995,
+        "sha256": "AFE5DE0903505E971DF48882AAB508D78A1F48B5BEEC7AF7E70F5A17F727B5C8"
+      }
+    },
+    "oldArchivesUnchanged": 168,
+    "iniKeys": 169,
+    "hotkeyIdsUnchanged": 55,
+    "amd64": true,
+    "crcValid": true,
+    "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/acd4ba2cf79577a3c8aa9b8cf09e40f4eee2193b/downloads/DarksidersGenesis_V1.104_STRIFE_RAMPAGE_NATIVE_IDENTITY_TEST.zip",
+    "httpStatus": 200,
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/main": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "gameplayValidated": false
+  },
+  "updater": {
+    "channel": "debug",
+    "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+    "selectedArchive": "DarksidersGenesis_V1.104_STRIFE_RAMPAGE_NATIVE_IDENTITY_TEST.zip",
+    "blobSha": "9512d128d8f9f3366feb2701ba52d4b049bb378f",
+    "httpStatus": 200,
+    "sha256": "2516EE8D6EB220117BEC8A7DC126DF521DEE04A285DFB65983DFF7470A70B31A",
+    "matchesCurrentUpdaterSelectionRules": true,
+    "gameUiObserved": false
+  },
+  "buildLocation": "GitHub Actions only",
+  "localBuild": false,
+  "localInstall": false,
+  "experimental": [
+    "Strife Rampage native identity and private root-motion montage"
+  ],
+  "gameplayValidated": false
+}
