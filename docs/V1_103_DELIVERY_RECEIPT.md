@@ -18,3 +18,7 @@ Installation manuelle jeu ferme, conserver INI/raccourcis/PAK/sauvegardes. Aucun
 Essais : Strife puis War, meme chute assez haute en native et TPS, OFF/ON ; maintenir le deplacement pour comparer la reprise ; sans deplacement conserver l'impact/animation ; seconde chute, puis dash et attaque. Remettre OFF en cas d'anomalie. Repli V1.102 avec la case OFF. Les temps compares reposent sur l'ability et les assets/rate d'origine ; leur synchronisation effective et le blend restent a tester.
 
 Rampage Strife reste retire. Aucune erreur de package/squelette/DefaultSlot identifiee hors ligne ; l'etat exact au refus ancien n'est pas capture. READY sans CAST ne prouve pas un lancement. La prochaine etape est une capture ciblee du refus, pas la reactivation du montage rejete. P2 et effets P2 restent differes.
+
+## Retour utilisateur V1.103 - reception lourde validee, priorite Rampage
+
+25 octobre 2026 : l'utilisateur confirme « 1. oui bravo ca marche / 2. oui » pour les deux points d'essai de V1.103. **Reception lourde VALIDEE dans ses essais rapportes**, sans inventer de mesures ou de validation P2. Conserver ce chemin, Stoneskin/police V1.102 et les transferts deja acceptes. Priorite explicite : poursuivre **Rampage sur Strife**, pas un autre sujet. Aucun nouveau build pour cette consignation.
