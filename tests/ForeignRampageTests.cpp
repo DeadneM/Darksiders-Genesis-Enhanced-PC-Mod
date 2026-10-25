@@ -69,11 +69,11 @@ void Run(){
  Fresh();Cast();Put<unsigned char>(f.ability,0xD8,0);Observe(context);
  Check(g_cast[0].actor&&g_cast[0].phase==0,"ordinary Start end preserves pending native handoff");
  Live(f.nextAbility);Put(f.nextAbility,0x10,g_phases[4].address);Put(f.nextAbility,0x48,context.character);Put(f.nextAbility,0x1B0,context.character);Put<unsigned char>(f.nextAbility,0xD8,1);
- Check(HandlePlay(PlayNative,f.nextAbility,f.montage,2,{})&&plays==2&&!finishes&&g_cast[0].phase==4,"distinct native Slam3 accepted after inactive Start");
+ Check(HandlePlay(PlayNative,f.nextAbility,f.montage,2,{0,0})&&plays==2&&!finishes&&g_cast[0].phase==4,"distinct native Slam3 accepted after inactive Start");
  Put<unsigned char>(f.nextAbility,0xD8,0);Observe(context);Check(bool(g_cast[0].actor),"ordinary Slam end preserves final companion association");
  Put(f.nextAbility,0x10,reinterpret_cast<uintptr_t>(f.launch));Put<unsigned char>(f.nextAbility,0xD8,1);
- Check(HandlePlay(PlayNative,f.nextAbility,f.montage,2,{})&&finishes==1&&cause==0&&!g_cast[0].actor,"final native companion consumes token after parent completion");
- Check(!HandlePlay(PlayNative,f.nextAbility,f.montage,2,{}),"consumed token never catches unrelated later companion");
+ Check(HandlePlay(PlayNative,f.nextAbility,f.montage,2,{0,0})&&finishes==1&&cause==0&&!g_cast[0].actor,"final native companion consumes token after parent completion");
+ Check(!HandlePlay(PlayNative,f.nextAbility,f.montage,2,{0,0}),"consumed token never catches unrelated later companion");
  Fresh();Cast();Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.launch));Check(Cast()&&finishes==1&&cause==0&&g_cast[0].phase==0,"early own companion finishes without stealing pending Start handoff or forwarding foreign bones");
  Phase(4);Check(Cast()&&plays==2&&g_cast[0].phase==4,"early companion does not orphan subsequent native Slam");
  for(int boundary=0;boundary<4;++boundary){
