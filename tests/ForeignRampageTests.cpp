@@ -74,7 +74,8 @@ void Run(){
  Put(f.nextAbility,0x10,reinterpret_cast<uintptr_t>(f.launch));Put<unsigned char>(f.nextAbility,0xD8,1);
  Check(HandlePlay(PlayNative,f.nextAbility,f.montage,2,{})&&finishes==1&&cause==0&&!g_cast[0].actor,"final native companion consumes token after parent completion");
  Check(!HandlePlay(PlayNative,f.nextAbility,f.montage,2,{}),"consumed token never catches unrelated later companion");
- Fresh();Cast();Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.launch));Check(!Cast()&&g_cast[0].phase==0,"companion before native finish phase not claimed");
+ Fresh();Cast();Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.launch));Check(Cast()&&finishes==1&&cause==0&&g_cast[0].phase==0,"early own companion finishes without stealing pending Start handoff or forwarding foreign bones");
+ Phase(4);Check(Cast()&&plays==2&&g_cast[0].phase==4,"early companion does not orphan subsequent native Slam");
  for(int boundary=0;boundary<4;++boundary){
   Fresh();Cast();Put<unsigned char>(f.ability,0xD8,0);
   if(boundary==0)++context.world;if(boundary==1)context.kind=dg::local_players::PoseKind::Horse;

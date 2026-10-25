@@ -136,7 +136,10 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     if(!Read(p,0x10,cls)||!Read(p,8,flags)||(flags&0x30u)||!Read(p,0x48,actor)||!Read(p,0x1B0,character)||character!=actor||
        !Read(p,0xD8,state)||(state!=1&&state!=2)||!Owner(reinterpret_cast<void*>(actor),c,false))return false;
     auto* mark=PlayerCast(c.index);if(!mark)return false;
-    if(Companion(cls)&&Recent(c)&&mark->phase>0){*mark={};g_finish(ability,0);return true;}
+    if(Companion(cls)&&Recent(c)){
+        if(mark->phase>0)*mark={}; // an early companion cannot steal Start's pending handoff
+        g_finish(ability,0);return true;
+    }
     const int phase=Kind(cls);if(phase<0)return false;
     if(phase&&(!Recent(c)||mark->phase!=0)){Stop(ability,phase,c,"finish has no pending own Start");return true;}
     if(g_handling==ability)return true;
