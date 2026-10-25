@@ -596,7 +596,7 @@ bool CopyLaterSounds(uintptr_t original,void* privateMontage){
        !Read(copy,0x90,length)||!std::isfinite(length)||length<=.1f||length>=10||!List(copy,0x80,events,64)||events.count||
        !List(copy,0x158,tracks,4)||tracks.count!=1||!List(tracks.data,8,segments,4)||segments.count!=1)return false;
     Segment playback{};if(!Read(segments.data,0,playback))return false;
-    Presentation later{};const float scale=length/plan.length;
+    unsigned later=0;const float scale=length/plan.length;
     for(unsigned i=0;i<plan.count;++i){
         auto cue=plan.cues[i];if(cue.time==0)continue;
         const float mapped=cue.time*scale;float offset=0,endOffset=0;
@@ -605,16 +605,16 @@ bool CopyLaterSounds(uintptr_t original,void* privateMontage){
         offset*=scale/cue.rate;endOffset*=scale/cue.rate;
         std::memcpy(cue.event.data()+0x24,&mapped,4);std::memcpy(cue.event.data()+0x30,&mapped,4);
         std::memcpy(cue.event.data()+0x34,&offset,4);std::memcpy(cue.event.data()+0x38,&endOffset,4);cue.event[0x91]=0;
-        later.events[later.count++]=cue.event;
+        cue.time=mapped;plan.cues[later++]=cue;
     }
-    if(!later.count)return true;
-    std::stable_sort(later.events.begin(),later.events.begin()+later.count,[](const Event& a,const Event& b){float x=0,y=0;std::memcpy(&x,a.data()+0x24,4);std::memcpy(&y,b.data()+0x24,4);return x<y;});
-    if(later.count>events.capacity)g_reserve(reinterpret_cast<void*>(copy+0x80),later.count);
-    if(!List(copy,0x80,events,512)||events.capacity<later.count||!Writable(events.data,size_t(later.count)*sizeof(Event))||!Writable(copy+0x88,4))return false;
-    for(int i=0;i<later.count;++i){
-        const auto at=events.data+size_t(i)*sizeof(Event);float time=0;std::memcpy(&time,later.events[i].data()+0x24,4);
-        if(!Store(at,0,later.events[i])||!Link(at,copy,playback.sequence,time,length)||!Link(at+0x60,copy,playback.sequence,time,length))return false;
+    if(!later)return true;
+    std::stable_sort(plan.cues.begin(),plan.cues.begin()+later,[](const Cue& a,const Cue& b){return a.time<b.time;});
+    if(later>unsigned(events.capacity))g_reserve(reinterpret_cast<void*>(copy+0x80),int(later));
+    if(!List(copy,0x80,events,512)||unsigned(events.capacity)<later||!Writable(events.data,size_t(later)*sizeof(Event))||!Writable(copy+0x88,4))return false;
+    for(unsigned i=0;i<later;++i){
+        const auto at=events.data+size_t(i)*sizeof(Event);const auto& cue=plan.cues[i];
+        if(!Store(at,0,cue.event)||!Link(at,copy,playback.sequence,cue.time,length)||!Link(at+0x60,copy,playback.sequence,cue.time,length))return false;
     }
-    return Store(copy,0x88,later.count);
+    return Store(copy,0x88,int(later));
 }
 }

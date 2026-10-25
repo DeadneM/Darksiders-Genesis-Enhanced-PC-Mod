@@ -23,7 +23,7 @@ void Sound(void* notify,void* mesh,void* asset){
  ++calls;if(expire)Put(f.items,24+16,44);
 }
 void ReserveNative(void* header,int n){
- Check(header==f.copy+0x80&&n==1,"only private event header reaches native allocator");++reserves;
+ Check(header==f.copy+0x80&&n>=1&&n<=2,"only private event header reaches native allocator");++reserves;
  Put(header,0,Array{reinterpret_cast<uintptr_t>(f.copyEvents),0,n});
 }
 void Fresh(){
@@ -60,6 +60,7 @@ void Run(){
  Check(At<float>(f.copyEvents,0x24)==.5f&&At<float>(f.copyEvents,0x34)==.00005f&&At<uintptr_t>(f.copyEvents,0x48)==reinterpret_cast<uintptr_t>(f.notifies[1]),"real-time timing, native volume/pitch/cue preserved");
  Check(At<uintptr_t>(f.copyEvents,8)==reinterpret_cast<uintptr_t>(f.copy)&&At<uintptr_t>(f.copyEvents,0x28)==reinterpret_cast<uintptr_t>(f.playback),"audio links target only private gesture");
  Check(!Copy()&&reserves==1,"existing private timeline never overwritten or duplicated");
+ Fresh();Put(f.events,0x24,1.5f);Check(Copy()&&At<int>(f.copy,0x88)==2&&At<float>(f.copyEvents,0x24)==.5f&&At<float>(f.copyEvents,184+0x24)==.75f,"single compacted plan preserves and sorts cues from both source timelines");
  Fresh();Check(OpeningSound(reinterpret_cast<uintptr_t>(f.notifies[0]),0)&&!OpeningSound(reinterpret_cast<uintptr_t>(f.notifies[0]),.1f),"only supported boundary cue bypasses blend-sensitive queue");
  Presentation merged{};Check(Gather(reinterpret_cast<uintptr_t>(f.original),At<Array>(f.original,0x80),0,2,0,1,merged)&&!merged.count,"opening cue excluded from private Clone/beam queue to avoid duplicate playback");
  Check(Gather(reinterpret_cast<uintptr_t>(f.sequence),At<Array>(f.sequence,0x80),0,2,0,1,merged)&&merged.count==1,"later source cue retained in existing native timeline");

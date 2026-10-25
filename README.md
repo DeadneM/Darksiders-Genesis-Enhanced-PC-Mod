@@ -1,3 +1,15 @@
+## V1.106 - Rampage et sons transferts, plan audio unique
+
+**EXPERIMENTALE, compilation GitHub et livraison a controler ; NON VALIDEE EN JEU.** Base fonctionnelle validee V1.103. Ce lot cumule la correction mesuree Rampage (vitesse native du depart 1,5) et la reprise des sons des pouvoirs transferee de V1.105. Regles, couts, degats et autres acquis conserves.
+
+V1.105 a passe 60/60 suites Windows, mais MSVC a signale C6262 : CopyLaterSounds utilisait 18 828 octets de pile en dupliquant son plan d'evenements. V1.106 compacte et trie le meme plan en place ; pas de deuxieme plan, nouveau timer ou etat de cast. Le test couvre aussi deux sons issus des deux chronologies source, conserves et tries. Le nom du workflow devient generique, l'identite du ZIP continue de venir du BuildInfo compile. [Recu V1.105](docs/V1_105_DELIVERY_RECEIPT.md).
+
+La cause du grisement V1.104 est un abandon natif apres refus du montage de depart a 1,5 par le garde qui exigeait 1. Cette constante est corrigee, sans forcer une autre vitesse. Sons de lancement via le notify sonore natif sur le receveur apres succes ; sons plus tardifs Caltrops/Stoneskin copies sur leur geste prive. Les risques audio de boucle/doublon et le cycle Rampage complet restent a valider. [Preuves, limites et essais](docs/V1_106_RAMPAGE_FOREIGN_AUDIO_COMPACT_TEST.md).
+
+Compilation uniquement GitHub Actions ; telechargement depuis l'updater du jeu canal debug. Aucune installation locale. 169 cles INI, 55 ID Hotkeys et reception lourde validee inchanges ; 170 anciennes archives preservees. Test groupe : Rampage Strife native/TPS, relachement/obstacle/deuxieme lancement ; puis sons Geyser/Stoneskin Strife et Clone/Caltrops/World Ender War, sans doublon ni son qui persiste. P2 differe, pose Rampage locomotion Strife.
+
+---
+
 ## V1.105 - Rampage : vitesse native, sons des capacites transferees
 
 **EXPERIMENTALE, compilation GitHub et livraison a controler ; NON VALIDEE EN JEU.** Base validee V1.103 conservee. Retour V1.104 : Rampage Strife ne se lance pas puis devient grise ; candidat REJETE dans cet essai. Sons des capacites transferees signales absents.

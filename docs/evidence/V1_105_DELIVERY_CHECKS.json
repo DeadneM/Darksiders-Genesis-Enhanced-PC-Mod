@@ -1,0 +1,113 @@
+{
+  "ci": {
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40216282794",
+    "runId": 40216282794,
+    "jobId": 121237994959,
+    "sourceCommit": "12dbb75bf1e1cbdbeac8d389054e0887d5edec1a",
+    "passedSuites": 60,
+    "msvcWarnings": 1,
+    "msvcErrors": 0,
+    "passedTests": [
+      "Test  #1: PlayerPresentation ...............   Passed",
+      "Test  #2: ForeignMontage ...................   Passed",
+      "Test  #3: ForeignAudio .....................   Passed",
+      "Test  #4: ForeignWrath .....................   Passed",
+      "Test  #5: ForeignBeam ......................   Passed",
+      "Test  #6: ForeignRampage ...................   Passed",
+      "Test  #7: ForeignRampageMontage ............   Passed",
+      "Test  #8: ForeignPower .....................   Passed",
+      "Test  #9: ForeignCaltrops ..................   Passed",
+      "Test #10: ExecutionCamera ..................   Passed",
+      "Test #11: MeleeEffect ......................   Passed",
+      "Test #12: MountedJump ......................   Passed",
+      "Test #13: WrathSlots .......................   Passed",
+      "Test #14: PistolVisual .....................   Passed",
+      "Test #15: LeviathanVisual ..................   Passed",
+      "Test #16: CosmeticUnlock ...................   Passed",
+      "Test #17: MountedHolsters ..................   Passed",
+      "Test #18: UltimateDuration .................   Passed",
+      "Test #19: GrappleRange .....................   Passed",
+      "Test #20: AirJump ..........................   Passed",
+      "Test #21: StandardAmmo .....................   Passed",
+      "Test #22: GameplayExtensionsConfig .........   Passed",
+      "Test #23: NativeRadial .....................   Passed",
+      "Test #24: NativeObjectIdentity .............   Passed",
+      "Test #25: DashCombatFeature ................   Passed",
+      "Test #26: InteractionHud ...................   Passed",
+      "Test #27: ManualActionBindings .............   Passed",
+      "Test #28: HeavyLanding .....................   Passed",
+      "Test #29: ManualAim ........................   Passed",
+      "Test #30: WeaponSheathing ..................   Passed",
+      "Test #31: DashCombat .......................   Passed",
+      "Test #32: TpsCameraFocus ...................   Passed",
+      "Test #33: LegacyRecoveryConfig .............   Passed",
+      "Test #34: HotstreakConfig ..................   Passed",
+      "Test #35: GlideAndHorse ....................   Passed",
+      "Test #36: SustainConfig ....................   Passed",
+      "Test #37: ProjectileSpawn ..................   Passed",
+      "Test #38: TpsAimTarget .....................   Passed",
+      "Test #39: LocalGameplayIsolation ...........   Passed",
+      "Test #40: LocalPlayerOwnership .............   Passed",
+      "Test #41: CoopCameraIsolation ..............   Passed",
+      "Test #42: ControllerReadScope ..............   Passed",
+      "Test #43: TpsStickRoles ....................   Passed",
+      "Test #44: GaugeRequests ....................   Passed",
+      "Test #45: GaugeHotkeys .....................   Passed",
+      "Test #46: UltimateCameraConfig .............   Passed",
+      "Test #47: PotionPolicies ...................   Passed",
+      "Test #48: PotionConfig .....................   Passed",
+      "Test #49: ResourceGains ....................   Passed",
+      "Test #50: GaugeUnlimited ...................   Passed",
+      "Test #51: WarningPresentation ..............   Passed",
+      "Test #52: AmmoConsumption ..................   Passed",
+      "Test #53: AmmoConfig .......................   Passed",
+      "Test #54: ConfigWriteFailures ..............   Passed",
+      "Test #55: UpdateVersion ....................   Passed",
+      "Test #56: UserDefaultsConfig ...............   Passed",
+      "Test #57: MenuAppearance ...................   Passed",
+      "Test #58: OverlayBindingScope ..............   Passed",
+      "Test #59: UpdateNotice .....................   Passed",
+      "Test #60: UpdateEngineSafety ...............   Passed"
+    ]
+  },
+  "package": {
+    "sourceCommit": "12dbb75bf1e1cbdbeac8d389054e0887d5edec1a",
+    "archiveCommit": "f0262b09301e903ef89f5be2ab4964f717aa0ce0",
+    "name": "DarksidersGenesis_V1.105_RAMPAGE_NATIVE_RATE_FOREIGN_AUDIO_TEST.zip",
+    "size": 1001523,
+    "sha256": "ACE0FECDF412BB12290CC5760401BE1220D14F10B3FBF0A9639C0A8AF6C5FE25",
+    "files": {
+      "DarksidersGenesisMod.asi": {
+        "size": 1849344,
+        "sha256": "BBB1DDC035F8DBF76B91FEEE1C65594F72E01E51330FCB9027C7F2A8584266D3"
+      },
+      "DarksidersGenesisMod.ini": {
+        "size": 4708,
+        "sha256": "599E7AEE6350160BF70985B406A4C0B35094F282B6269971A48C88778AB5C29B"
+      },
+      "dxgi.dll": {
+        "size": 155136,
+        "sha256": "4CB15B00F593D6ED56C2A2C84F1CFB49337E5235DC90405C251A1F91A4EA3D0A"
+      },
+      "README.md": {
+        "size": 81924,
+        "sha256": "238436113E78A8388A9B7166EEB756FBDAC32744189878B662EFF1AEBF221977"
+      }
+    },
+    "oldArchivesUnchanged": 169,
+    "iniKeys": 169,
+    "hotkeyIdsUnchanged": 55,
+    "amd64": true,
+    "crcValid": true,
+    "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/f0262b09301e903ef89f5be2ab4964f717aa0ce0/downloads/DarksidersGenesis_V1.105_RAMPAGE_NATIVE_RATE_FOREIGN_AUDIO_TEST.zip",
+    "httpStatus": 200,
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/main": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "gameplayValidated": false
+  },
+  "gameplayValidated": false,
+  "warning": "C6262 CopyLaterSounds uses 18828 bytes of stack; compacted in V1.106"
+}

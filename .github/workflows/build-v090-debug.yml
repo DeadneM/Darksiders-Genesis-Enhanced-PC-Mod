@@ -1,4 +1,4 @@
-name: V1.104 Strife Rampage native identity TEST
+name: Debug Windows x64 TEST
 on:
   push:
     branches: [debug]
