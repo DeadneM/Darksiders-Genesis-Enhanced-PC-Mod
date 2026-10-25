@@ -251,8 +251,9 @@ void* Geyser(uintptr_t original,const Source& source){
 }
 namespace {
 bool Named(uintptr_t p,const char* text){int index=0,number=0;return Read(p,0x18,index)&&Read(p,0x1C,number)&&native_objects::NameValueEquals(g_base,index,number,text);}
-bool TransferMontage(uintptr_t p){
+bool TransferMontage(uintptr_t p,bool beam){
     uintptr_t package=0;if(!Read(p,0x20,package))return false;
+    if(beam)return Is(p,"Strife_Aim_WorldEnder_Montage")&&Is(package,"/Game/Characters/Heroes/Hero_Strife/Animations/Strife_Aim_WorldEnder_Montage");
     constexpr const char* names[]={"Strife_SpawnClone_Back_Montage","Strife_SpawnClone_F_Montage"};
     char path[200]{};
     for(const auto* name:names)if(Named(p,name)){sprintf_s(path,"/Game/Characters/Heroes/Hero_Strife/Animations/%s",name);return Named(package,path);}
@@ -280,8 +281,41 @@ bool Gather(uintptr_t asset,const Array& list,float first,float last,float start
     }
     return true;
 }
+bool Interrupts(uintptr_t asset,const Array& events,float first,float last,float start,float rate,Presentation& plan){
+    for(int i=0;i<events.count;++i){
+        const auto at=events.data+size_t(i)*sizeof(Event);uintptr_t state=0,cls=0,owner=0,notify=0;float time=0,duration=0;
+        if(!Read(at,0x50,state))return false;
+        if(!state)continue;
+        if(!Read(state,0x10,cls))return false;
+        if(!Is(cls,"AnimNotify_EnableAbilityInterrupt"))continue;
+        if(!Read(at,0x24,time)||!std::isfinite(time))return false;
+        if(time<first||time>=last)continue;
+        if(plan.count>=int(plan.events.size())||!Read(state,0x20,owner)||owner!=asset||!Read(at,0x48,notify)||notify||
+           !Read(at,0x58,duration)||!std::isfinite(duration)||duration<=0||time+duration>last+.001f||!Read(at,0,plan.events[plan.count]))return false;
+        const float mapped=start+(time-first)/rate,span=duration/rate;
+        std::memcpy(plan.events[plan.count].data()+0x24,&mapped,4);std::memcpy(plan.events[plan.count].data()+0x58,&span,4);
+        plan.events[plan.count][0x91]=0;++plan.count;
+    }
+    return true;
+}
+bool BeamCallbacks(const Presentation& plan){
+    int starts=0,ends=0;
+    for(int i=0;i<plan.count;++i){
+        uintptr_t notify=0,cls=0;Name function{};float time=0;
+        std::memcpy(&notify,plan.events[i].data()+0x48,8);if(!notify)continue;
+        if(!Read(notify,0x10,cls))return false;
+        if(!Is(cls,"AnimNotify_CallAbilityFunction"))continue;
+        if(!Read(notify,0x38,function))return false;
+        std::memcpy(&time,plan.events[i].data()+0x24,4);
+        if(native_objects::NameValueIs(g_base,function.index,function.number,"StartBeam")&&std::fabs(time-.6564341187f)<.0001f)++starts;
+        else if(native_objects::NameValueIs(g_base,function.index,function.number,"DestroyBeam")&&std::fabs(time-3.5871195793f)<.0001f)++ends;
+        else return false;
+    }
+    return starts==1&&ends==1;
+}
 bool Rebind(Event& event,uintptr_t montage,const Source& source){
     uintptr_t notify=0,cls=0;std::memcpy(&notify,event.data()+0x48,sizeof(notify));
+    if(!notify){uintptr_t state=0;return Read(reinterpret_cast<uintptr_t>(event.data()),0x50,state)&&Read(state,0x10,cls)&&Is(cls,"AnimNotify_EnableAbilityInterrupt");}
     if(!Read(notify,0x10,cls))return false;
     if(!Is(cls,"AnimNotify_PlayParticleEffect"))return true;
     constexpr size_t offset=0x84;Name socket{};if(!Read(notify,offset,socket))return false;
@@ -294,9 +328,8 @@ bool Rebind(Event& event,uintptr_t montage,const Source& source){
     if(!Store(copy,offset,Name{source.rootIndex,source.rootNumber}))return false;
     std::memcpy(event.data()+0x48,&copy,sizeof(copy));return true;
 }
-}
-void* Compatible(uintptr_t original,const Source& source){
-    if(!g_ready||!g_construct||!g_package||!g_skeleton||!g_reserve||!native_tps::OnGameThread()||!TransferMontage(original))return nullptr;
+void* Retarget(uintptr_t original,const Source& source,bool beam){
+    if(!g_ready||!g_construct||!g_package||!g_skeleton||!g_reserve||!native_tps::OnGameThread()||!TransferMontage(original,beam))return nullptr;
     uintptr_t cls=0,skeleton=0;Array tracks{},segments{},events{},sections{},idleEvents{};float length=0,rate=0,idleLength=0;
     if(!Read(source.sequence,0x10,cls)||!Is(cls,"AnimSequence")||(!Is(source.sequence,"Strife_Idle")&&!Is(source.sequence,"War_Idle"))||
        !Read(source.sequence,0x38,skeleton)||skeleton!=source.skeleton||!Read(source.sequence,0x90,idleLength)||!std::isfinite(idleLength)||idleLength<=.1f||idleLength>=10||
@@ -306,6 +339,8 @@ void* Compatible(uintptr_t original,const Source& source){
        !Read(original,0x94,rate)||rate!=1||!List(original,0x158,tracks,4)||tracks.count!=1||!List(tracks.data,8,segments,8)||!segments.count||
        !List(original,0x80,events,128)||!List(original,0x148,sections,16)||!sections.count||!Empty(original,0x168)||!Empty(original,0x128)||!Empty(original,0x138))return nullptr;
     Name slot{};if(!Read(tracks.data,0,slot)||slot.index!=source.slotIndex||slot.number!=source.slotNumber)return nullptr;
+    if(beam&&(segments.count!=3||std::fabs(length-4.8999996185f)>.0001f||
+       !native_objects::NameValueIs(g_base,source.rootIndex,source.rootNumber,"Bone_War_Root")))return nullptr;
     const auto playback=CastingSequence(source.sequence,source.skeleton,idleLength);
     Presentation plan{};
     for(int i=0;i<segments.count;++i){
@@ -315,9 +350,13 @@ void* Compatible(uintptr_t original,const Source& source){
            segment.first<0||segment.last<=segment.first||segment.rate<=0||segment.rate>10||segment.start<0||
            !Read(segment.sequence,0x10,cls)||!Is(cls,"AnimSequence")||!List(segment.sequence,0x80,notifies,128))return nullptr;
         const float duration=(segment.last-segment.first)/segment.rate;
-        for(int loop=0;loop<segment.loops;++loop)if(!Gather(segment.sequence,notifies,segment.first,segment.last,segment.start+float(loop)*duration,segment.rate,plan))return nullptr;
+        for(int loop=0;loop<segment.loops;++loop){
+            const float start=segment.start+float(loop)*duration;
+            if(!Gather(segment.sequence,notifies,segment.first,segment.last,start,segment.rate,plan)||
+               (beam&&!Interrupts(segment.sequence,notifies,segment.first,segment.last,start,segment.rate,plan)))return nullptr;
+        }
     }
-    if(!Gather(original,events,0,length,0,1,plan))return nullptr;
+    if(!Gather(original,events,0,length,0,1,plan)||(beam&&(!Interrupts(original,events,0,length,0,1,plan)||!BeamCallbacks(plan))))return nullptr;
     std::stable_sort(plan.events.begin(),plan.events.begin()+plan.count,[](const Event& a,const Event& b){float x=0,y=0;std::memcpy(&x,a.data()+0x24,4);std::memcpy(&y,b.data()+0x24,4);return x<y;});
     const auto outer=reinterpret_cast<uintptr_t>(g_package());
     if(!Read(original,0x10,cls))return nullptr;
@@ -341,7 +380,9 @@ void* Compatible(uintptr_t original,const Source& source){
     }
     for(int i=0;i<plan.count;++i){
         const auto at=privateEvents.data+size_t(i)*sizeof(Event);float time=0;std::memcpy(&time,plan.events[i].data()+0x24,4);
-        if(!std::isfinite(time)||time<0||time>=length||!Store(at,0,plan.events[i])||!Link(at,copy,playback,time,length)||!Link(at+0x60,copy,playback,time,length))return nullptr;
+        float duration=0;std::memcpy(&duration,plan.events[i].data()+0x58,4);
+        if(!std::isfinite(time)||time<0||time>=length||!std::isfinite(duration)||duration<0||time+duration>length+.001f||
+           !Store(at,0,plan.events[i])||!Link(at,copy,playback,time,length)||!Link(at+0x60,copy,playback,std::min(time+duration,length),length))return nullptr;
     }
     for(int i=0;i<sections.count;++i){
         float time=0;const auto at=privateSections.data+size_t(i)*88;
@@ -351,4 +392,7 @@ void* Compatible(uintptr_t original,const Source& source){
     if(!Store(copy,0x88,plan.count)||!Store(copy,0x188,zero)||!Store(copy,0x198,zero))return nullptr;
     return created;
 }
+}
+void* Compatible(uintptr_t original,const Source& source){return Retarget(original,source,false);}
+void* WorldEnder(uintptr_t original,const Source& source){return Retarget(original,source,true);}
 }

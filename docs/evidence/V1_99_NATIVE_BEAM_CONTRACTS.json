@@ -1,0 +1,101 @@
+{
+  "base": "f703595606a410ea9c7817de22ea626a31b9985b",
+  "validatedUser": [
+    "V1.98 Geyser Strife gesture",
+    "V1.98 Clone/Caltrops War gestures",
+    "Native Stinger appearance, closed"
+  ],
+  "gameplayValidated": false,
+  "readerAccess": "QUERY_LIMITED_INFORMATION|VM_READ",
+  "executableSha256": "9F4702024DF5EEA1D51DF7745B0AD1EA95B97009982F73DDC1218C53DFF33D54",
+  "receiverWarSchema": {
+    "fieldCount": 281,
+    "chaoseaterPresent": false,
+    "meshFields": [
+      {
+        "name": "Mesh",
+        "kind": "ObjectProperty",
+        "size": 8,
+        "offset": 896
+      }
+    ],
+    "fullSchemaSha256": "d371df818e4ef80e025a005675476d7ff9bb0b8e0b4188f898e503e91e457e70"
+  },
+  "componentHierarchy": [
+    [
+      "MayhemWorldEnder_Blueprint_C",
+      "MayhemBeamShot",
+      "MayhemDualPistols",
+      "MayhemRangedWeaponComponent",
+      "MayhemEquippableStaticMeshComponent",
+      "StaticMeshComponent",
+      "MeshComponent",
+      "PrimitiveComponent",
+      "SceneComponent",
+      "ActorComponent",
+      "Object"
+    ]
+  ],
+  "nativeAttachment": {
+    "sceneWrapper": "0x1DD86B0",
+    "implementation": "0x17A7310",
+    "argumentCount": 7,
+    "attachParentOffset": "0x108",
+    "rules": [
+      2,
+      2,
+      2
+    ],
+    "weld": false
+  },
+  "source": {
+    "mesh": "CharacterMesh0",
+    "socket": "VFX_Aura",
+    "bone": "Bone_War_Root"
+  },
+  "sourceHashes": {
+    "v199-native-power-contracts.json": "df5b5c75982d1ad7667a7d85b5e397d999827ea50f827e1f2e2254f5e8de47d9",
+    "v199-worldender-contract.json": "10bbecfed60094b4e9eb31ac1aed5892717c61a57b4d2267caeaa3e726e37adb",
+    "v199-worldender-helper-proof.txt": "59569b62b4c6217c66cb318a6e211ed0acdd4f8ddc5bb6d9693401d619b6b52c",
+    "v199-beam-lifecycle-vtables.txt": "9c4ee01a0ec6e77c8cf71990aa3e9cc39c80051e11862c4d0daf062d57d6c346",
+    "v199-movement-clip-contracts.json": "104299cfef0c10c736d9846534cda790b1c3a9599ebf55c0c246e18c4bff9009"
+  },
+  "beamCallbacks": [
+    {
+      "name": "StartBeam",
+      "seconds": 0.6564341187
+    },
+    {
+      "name": "DestroyBeam",
+      "seconds": 3.5871195793
+    }
+  ],
+  "rampageTransfer": "UNAVAILABLE: native root-motion transfer unproven",
+  "verifiedNativeSignatureGates": {
+    "ctor": {
+      "rva": "0xac57a0",
+      "signature": "4055535657415441564157488dac2440"
+    },
+    "reg": {
+      "rva": "0x1750880",
+      "signature": "40565741564883ec5048c7442430feff"
+    },
+    "attach": {
+      "rva": "0x17a7310",
+      "signature": "4883ec280fb6442450884424490fb644"
+    },
+    "destroy": {
+      "rva": "0x163efa0",
+      "signature": "4c8bc24885d2741848398ae800000075"
+    },
+    "finish": {
+      "rva": "0x59b080",
+      "signature": "40574883ec4048c7442420feffffff48"
+    },
+    "playing": {
+      "rva": "0x676620",
+      "signature": "48895c2408574883ec20488bd94883c1"
+    }
+  },
+  "abilitySourceFieldsWritten": false
+}

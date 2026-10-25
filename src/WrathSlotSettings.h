@@ -11,7 +11,7 @@ inline constexpr const wchar_t* Keys[2][3]={
 constexpr bool Own(unsigned family,int choice){
     return family<2&&choice>=int(family)*3+1&&choice<=int(family)*3+3&&choice!=6;
 }
-constexpr bool Foreign(unsigned family,int choice){return (family==0&&choice==4)||(family==1&&(choice==1||choice==3));}
+constexpr bool Foreign(unsigned family,int choice){return (family==0&&choice==4)||(family==1&&(choice>=1&&choice<=3));}
 constexpr bool Supported(unsigned family,int choice){return family<2&&(choice==0||Own(family,choice)||Foreign(family,choice));}
 constexpr int Normalize(unsigned family,int choice){return Supported(family,choice)?choice:0;}
 constexpr int NativeNumber(unsigned family,int choice){

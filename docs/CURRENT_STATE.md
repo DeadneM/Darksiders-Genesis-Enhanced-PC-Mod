@@ -1,3 +1,15 @@
+## V1.99 - World Ender sur War, composant natif propre
+
+**Base V1.98 VALIDEE par l'utilisateur le 25 octobre 2026** : gestes Geyser sur Strife, Clone/Caltrops sur War approuves ; Stinger natif deja accepte et cloture. Ce nouveau candidat conserve ces acquis. **V1.99 EXPERIMENTALE, NON TESTEE EN JEU ; compilation et livraison a controler avant annonce.**
+
+L'ancien transfert World Ender cherchait une propriete `Chaoseater` absente de War. Le nouveau chemin utilise son vrai modele `CharacterMesh0`, le point natif `VFX_Aura` et un composant de rayon prive lui appartenant, enregistre dans son monde et attache a sa capsule par le moteur. Montage prive avec geste War, deux callbacks StartBeam/DestroyBeam uniques aux temps natifs et etats d'annulation conserves. Pas de nouveau hook, timer, touche imposee ni modification d'un asset partage. [Contrat, preuves, essais et rollback](V1_99_WAR_WORLD_ENDER_NATIVE_COMPONENT_TEST.md).
+
+Rampage sur Strife reste indisponible : sa boucle utilise le mouvement porte par les animations de War, absent des clips Strife et de la pose idle rejetee. Aucune reactivation de cet ancien adaptateur. Pouvoirs propres natifs, tirs/cameras/controleurs/roues et acquis conserves. INI de 168 cles, 55 ID Hotkeys et valeurs par defaut inchanges ; 163 anciennes archives intactes, debug uniquement. Installation manuelle en conservant son INI, ses raccourcis, son PAK et ses sauvegardes. P2 reporte.
+
+Test groupe : War a pied en mission, World Ender dans un emplacement, verifier rayon et degats en vue native puis TPS, fin du pouvoir, reprise du mouvement et second lancement ; remettre Native et comparer Strife. Verifier rapidement les trois transferts valides. Le rendu, l'orientation, les sons et les variantes du rayon sur War restent a approuver en jeu.
+
+---
+
 ## V1.98 - Gestes propres au receveur et cristal Stinger identifie
 
 ### Retour utilisateur du 25 octobre 2026 - Stinger cloture

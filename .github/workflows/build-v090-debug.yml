@@ -1,4 +1,4 @@
-name: V1.98 receiver casting gestures TEST
+name: V1.99 War World Ender native component TEST
 on:
   push:
     branches: [debug]

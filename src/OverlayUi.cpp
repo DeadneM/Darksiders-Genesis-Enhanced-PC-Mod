@@ -367,8 +367,8 @@ void Draw(Context& c) {
             }
             if(ImGui::CollapsingHeader("Wrath ability slots (experimental)")){
                 ImGui::Indent(12.0f);
-                ImGui::TextWrapped("Transfers retained: Clone and Caltrops on War, Geyser on Strife. Experimental casting gestures use the receiving character's own animations; idle fallback if the gesture is not loaded. Effects and native cast duration are retained. World Ender on War and Rampage on Strife remain unavailable. Original powers, including War's Stoneskin, stay native.");
-                int status[6]={2,wrath_slots::ForeignStatus(1),0,wrath_slots::ForeignStatus(3),wrath_slots::ForeignStatus(4),0};
+                ImGui::TextWrapped("Validated transfers: Clone and Caltrops on War, Geyser on Strife. World Ender on War is experimental: own casting gesture and beam source, native cast duration and cancellation. Idle fallback if the gesture is not loaded. Rampage on Strife remains unavailable. Original powers, including War's Stoneskin, stay native.");
+                int status[6]={2,wrath_slots::ForeignStatus(1),wrath_slots::ForeignStatus(2),wrath_slots::ForeignStatus(3),wrath_slots::ForeignStatus(4),0};
                 constexpr const char* names[6]={"Native","Shadow Clone","World Ender","Caltrops","Blade Geyser","Rampage"};
                 constexpr const char* familyNames[2]={"Strife","War"};
                 ImGui::BeginDisabled(!wrath_slots::Ready());

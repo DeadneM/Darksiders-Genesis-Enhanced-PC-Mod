@@ -17,4 +17,6 @@ void* Geyser(uintptr_t nativeMontage,const Source&);
 // Retained Clone transfer: native callback timeline,
 // compatible pose, and root-only presentation. Weapon sockets are excluded.
 void* Compatible(uintptr_t nativeMontage,const Source&);
+// War-owned World Ender: finite native beam timeline and cancellation states.
+void* WorldEnder(uintptr_t nativeMontage,const Source&);
 }

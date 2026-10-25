@@ -2,6 +2,7 @@
 #include "ForeignMontage.h"
 #include "ForeignCaltropsFeature.h"
 #include "ForeignPowerFeature.h"
+#include "ForeignBeamFeature.h"
 #include "NativeObjectName.h"
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
@@ -65,8 +66,9 @@ bool Source(uintptr_t actor,Animation& out){
         native_objects::NameValueIs(g_base,out.slot.index,out.slot.number,"TPS")&&(out.sequence=idle.sequence)!=0;
 }
 void Scan(uintptr_t generatedClass){
+    if(foreign_beam::InvalidateAssets()){g_cursor=0;g_complete=false;}
     if(g_geyser&&!Alive(g_geyser)){g_geyser={};g_geyserReady=false;g_cursor=0;g_complete=false;}
-    if(g_geyser){g_geyserReady=true;if(foreign_montage::GesturesReady())return;}
+    if(g_geyser){g_geyserReady=true;if(foreign_montage::GesturesReady()&&foreign_beam::AssetsReady())return;}
     uintptr_t chunks=0;int count=0;
     if(!Read(g_base,0x3959680,chunks)||!Read(g_base,0x3959694,count)||count<=0||count>2000000)return;
     if(count!=g_count){if(count<g_count)g_cursor=0;g_count=count;g_complete=false;}
@@ -75,6 +77,7 @@ void Scan(uintptr_t generatedClass){
         uintptr_t chunk=0,object=0,cls=0;uint32_t flags=0;
         if(!Read(chunks,size_t(g_cursor/65536)*8,chunk)||!Read(chunk,size_t(g_cursor%65536)*24,object)||!object||
            !Read(chunk,size_t(g_cursor%65536)*24+8,flags)||(flags&0x30000000u)||!Read(object,0x10,cls))continue;
+        foreign_beam::ObserveObject(object);
         if(Is(cls,"AnimSequence"))foreign_montage::ObserveSequence(object);
         if(cls!=generatedClass)continue;
         if(!g_geyser&&GeyserClass(object))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(object),g_geyser);
@@ -83,7 +86,7 @@ void Scan(uintptr_t generatedClass){
 }
 uintptr_t* HookGetter(void* actor,uintptr_t* result,Name id){
     const auto* request=g_override;
-    if(g_ready&&request&&request->actor==actor&&request->id==id&&result&&native_tps::OnGameThread()&&(Kind(request->abilityClass)||foreign_caltrops::IsClass(request->abilityClass)||foreign_power::IsClass(request->abilityClass))){
+    if(g_ready&&request&&request->actor==actor&&request->id==id&&result&&native_tps::OnGameThread()&&(Kind(request->abilityClass)||foreign_caltrops::IsClass(request->abilityClass)||foreign_power::IsClass(request->abilityClass)||foreign_beam::IsClass(request->abilityClass))){
         *result=request->abilityClass;return result;
     }
     return g_getter?g_getter(actor,result,id):result;
@@ -109,7 +112,8 @@ bool ForeignLaunch(void* live,local_players::Context& c){
 void HookPlay(void* ability,void* montage,float rate,Name section){
     local_players::Context c{};
     if(!g_play)return;
-    if(foreign_caltrops::HandlePlay(g_play,ability,montage,rate,section)||foreign_power::HandlePlay(g_play,ability,montage,rate,section))return;
+    if(foreign_caltrops::HandlePlay(g_play,ability,montage,rate,section)||foreign_power::HandlePlay(g_play,ability,montage,rate,section)||
+       foreign_beam::HandlePlay(g_play,ability,montage,rate,section))return;
     if(ForeignLaunch(ability,c)){if(auto* recent=GeyserActor(c.index))*recent={};g_finish(ability,0);return;}
     if(!ForeignCast(ability,c)){g_play(ability,montage,rate,section);return;}
 
@@ -156,10 +160,12 @@ void Initialize(LogFn log,bool exactExecutable){
     g_finish=reinterpret_cast<Finish>(g_base+0x59B080);g_playing=reinterpret_cast<Playing>(g_base+0x676620);g_ready=true;
     foreign_caltrops::Initialize(log,exactExecutable);
     foreign_power::Initialize(log,exactExecutable);
-    if(log)log("Foreign Wrath V1.97 READY: Geyser, Caltrops and Clone only, native unlock/cost/lifecycle; compatible private montages");
+    foreign_beam::Initialize(log,exactExecutable);
+    if(log)log("Foreign Wrath V1.99 READY: validated Geyser/Caltrops/Clone; experimental War World Ender; Rampage transfer unavailable");
 }
 int Status(int choice){
-    if(choice==1||choice==3||choice==4)g_requested=true;
+    if(choice>=1&&choice<=4)g_requested=true;
+    if(choice==2)return foreign_beam::Status();
     if(choice==3)return foreign_caltrops::Status();
     if(choice==1)return foreign_power::Status(choice);
     if(choice!=4||!g_ready)return 0;g_requested=true;
@@ -168,7 +174,7 @@ int Status(int choice){
 void Observe(const local_players::Context& owner){
     foreign_caltrops::Observe(owner);foreign_power::Observe(owner);
     if(!g_ready||!native_tps::OnGameThread())return;
-    bool wanted=g_requested.load();for(const auto& slots:runtime::Get().wrathSlots)for(const auto& choice:slots)wanted=wanted||choice.load()==1||choice.load()==3||choice.load()==4;
+    bool wanted=g_requested.load();for(const auto& slots:runtime::Get().wrathSlots)for(const auto& choice:slots)wanted=wanted||(choice.load()>=1&&choice.load()<=4);
     if(!wanted||owner.index<0||owner.index>1||!owner.localPlayer||!owner.world||owner.kind!=local_players::PoseKind::Foot)return;
     if(g_world!=owner.world){g_world=owner.world;g_cursor=0;g_count=0;g_complete=false;}
     if(auto* recent=GeyserActor(owner.index);recent&&recent->address&&recent->address!=owner.character)*recent={};
@@ -179,6 +185,7 @@ void Observe(const local_players::Context& owner){
 bool Prepare(void* actor,uintptr_t& abilityClass,int choice){
     if(choice==3)return foreign_caltrops::Prepare(actor,abilityClass);
     if(choice==1)return foreign_power::Prepare(actor,abilityClass,choice);
+    if(choice==2){g_requested=true;return foreign_beam::Prepare(actor,abilityClass);}
     if(choice!=4)return false;g_requested=true;
     local_players::Context c{};Animation animation{};uintptr_t cdo=0,cls=0;
     if(!g_ready||!g_geyserReady||!OwnedStrife(actor,c)||Kind(g_geyser.address)!=4||g_geyserFailed||
@@ -192,5 +199,5 @@ uintptr_t* Resolve(ResolveFn native,void* actor,uintptr_t* result,Name id,bool* 
     g_override=&request;return native(actor,result,id,unlocked,affordable);
 }
 
-void Shutdown(){foreign_caltrops::Shutdown();foreign_power::Shutdown();g_ready=false;g_geyserReady=false;}
+void Shutdown(){foreign_caltrops::Shutdown();foreign_power::Shutdown();foreign_beam::Shutdown();g_ready=false;g_geyserReady=false;}
 }
