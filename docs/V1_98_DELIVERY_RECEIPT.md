@@ -13,3 +13,8 @@ Base cumulative V1.97 `6a0301cde7d3d8d3f1fe19035f2596adcb7c69a4` ; acquis utilis
 Installation manuelle jeu ferme en conservant son INI, raccourcis, PAK et sauvegardes ; aucun fichier installe ni jeu lance par l'agent. Tests : Geyser Strife puis Clone/Caltrops War, vue native/TPS, effets/degats/cout hors hub, fin du pouvoir, deplacement et retour Native. P2 differe. Rollback : ASI/dxgi V1.97 jeu ferme, INI personnel conserve. [Contrat et liste detaillee](V1_98_RECEIVER_CASTING_GESTURES_TEST.md).
 
 Stoneskin : cristal identifie comme l'effet du coeur Stinger par VM_READ et confirme disparu par l'utilisateur lorsqu'il retire ce coeur. Effet attache a la capsule, poussiere au pied du modele ; aucun correctif de position applique. Cette provenance ne prouve pas l'absence d'influence historique du mod. La nouvelle demande de suivi de l'orientation du modele sur tous les axes reste OUVERTE, releve de rotations demande, pas incluse dans ce ZIP.
+
+### Retour utilisateur du 25 octobre 2026 - Stinger cloture
+
+Sur V1.98, l'utilisateur confirme que le cristal du coeur Stinger est dans le dos, bien attache au personnage, et accepte ce rendu comme le comportement vanilla retrouve. **Apparence Stinger VALIDEE par l'utilisateur ; demande de deplacement/orientation vers l'avant CLOTUREE.** Conserver cet effet natif, sans nouvelle adaptation, reattache ou decalage. Le releve de rotations est arrete. Cette validation concerne uniquement Stinger/Stoneskin, pas les gestes Geyser/Clone/Caltrops V1.98, qui restent experimentaux et a tester. Aucun code ASI, INI, raccourci, PAK ou fichier du jeu modifie ; aucun nouveau build.
+

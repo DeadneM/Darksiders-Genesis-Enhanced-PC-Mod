@@ -1,5 +1,9 @@
 ## V1.98 - Gestes propres au receveur et cristal Stinger identifie
 
+### Retour utilisateur du 25 octobre 2026 - Stinger cloture
+
+Sur V1.98, l'utilisateur confirme que le cristal du coeur Stinger est dans le dos, bien attache au personnage, et accepte ce rendu comme le comportement vanilla retrouve. **Apparence Stinger VALIDEE par l'utilisateur ; demande de deplacement/orientation vers l'avant CLOTUREE.** Conserver cet effet natif, sans nouvelle adaptation, reattache ou decalage. Le releve de rotations est arrete. Cette validation concerne uniquement Stinger/Stoneskin, pas les gestes Geyser/Clone/Caltrops V1.98, qui restent experimentaux et a tester. Aucun code ASI, INI, raccourci, PAK ou fichier du jeu modifie ; aucun nouveau build.
+
 **CONSTRUITE / CONTROLEE : [55/55 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40135148178), zero avertissement/erreur MSVC. [ZIP immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/9f21be738b703e1cc6f40c5422531e4130b57486/downloads/DarksidersGenesis_V1.98_RECEIVER_CASTING_GESTURES_TEST.zip) - [Recu](V1_98_DELIVERY_RECEIPT.md). Rendu des gestes EXPERIMENTAL, non valide en jeu.**
 
 Lot EXPERIMENTAL, validation en jeu encore requise. Base cumulative V1.97 ; acquis utilisateur : effets/degats Geyser et Caltrops V1.95, effet Clone V1.96. V1.97 reste un repli construit/controle, pas une version declaree validee par l'utilisateur.
@@ -319,6 +323,6 @@ Le nettoyage du code, le retrait des diagnostics devenus inutiles, la cohérence
 
 Préserver INI, raccourcis, PAK, sauvegardes, main/archive et tous les anciens ZIP. Regrouper les changements cohérents ; aucune nouvelle build de diagnostic seule. [Audit OFF/HUD](AUDIT_PISTOL_OFF_HUD_2026_10_20.md) · [État courant](CURRENT_STATE.md) · [Historique intégral de la précédente file](history/ACTIVE_QUEUE_THROUGH_AUDIT_2026_10_20.md).
 
-## Nouvelle demande : orientation Stinger
+## Orientation Stinger - CLOTUREE le 25 octobre 2026
 
-+Apres identification du cristal, l'utilisateur demande qu'il soit dirige devant le modele et suive ses rotations sur tous les axes, meme sans deplacement. Cette adaptation n'est PAS incluse dans V1.98 : la compilation etait deja lancee. Une capture externe compare capsule, mesh, racine, bassin et colonne. La premiere pose est lisible, mais aucune rotation n'etait encore enregistree. Le socket natif VFX_Aura de War depend de Bone_War_Root avec un offset Z de 120 ; cela ne prouve pas qu'il suive les rotations recherchees. Ne pas choisir une attache ou ajouter un offset d'angle sans la comparaison demandee. Test demande : tourner sur place en visant, puis marcher et tourner, Stinger equipe si possible. Aucun hook, PAK ni etat du jeu modifie pour ce relevé.
+V1.98 : cristal dans le dos, bien attache, comportement vanilla accepte par l'utilisateur. Conserver le rendu natif ; aucune reattache ni correction vers l'avant. Releve arrete. Validation limitee a Stinger/Stoneskin ; gestes des pouvoirs encore a tester.

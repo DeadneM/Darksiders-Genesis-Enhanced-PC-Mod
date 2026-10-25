@@ -70,5 +70,18 @@
     "gameplayValidated": false
   },
   "runtimeValidated": false,
-  "openStingerRequest": "Follow model on all axes even while stationary; capture requested, not implemented in this build"
+  "openStingerRequest": "CLOSED 2026-10-25: native appearance accepted by user; no orientation change",
+  "stingerUserAcceptance": {
+    "date": "2026-10-25",
+    "version": "V1.98",
+    "userReports": [
+      "en 1.98 le crystal est dans le dos et est bien attacher au perso",
+      "je pense que le dos cest bon aussi",
+      "on retrouver un comportement vanilla"
+    ],
+    "acceptedScope": "Native Stinger crystal appearance and attachment",
+    "frontOrientationRequest": "CLOSED: preserve native appearance",
+    "gestureAnimationValidation": "NOT GIVEN",
+    "newCodeOrBuild": false
+  }
 }

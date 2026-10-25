@@ -29,6 +29,7 @@ Cela identifie le visuel signale et le coeur qui le cree. Cela ne prouve pas que
 
 Rollback : jeu ferme, remettre l'ASI/dxgi de V1.97 en gardant son INI. Revenir a Native pour un transfert insatisfaisant. Toutes les anciennes archives sont conservees ; installation et lancement laisses a l'utilisateur.
 
-## Nouvelle demande : orientation Stinger
+### Retour utilisateur du 25 octobre 2026 - Stinger cloture
 
-+Apres identification du cristal, l'utilisateur demande qu'il soit dirige devant le modele et suive ses rotations sur tous les axes, meme sans deplacement. Cette adaptation n'est PAS incluse dans V1.98 : la compilation etait deja lancee. Une capture externe compare capsule, mesh, racine, bassin et colonne. La premiere pose est lisible, mais aucune rotation n'etait encore enregistree. Le socket natif VFX_Aura de War depend de Bone_War_Root avec un offset Z de 120 ; cela ne prouve pas qu'il suive les rotations recherchees. Ne pas choisir une attache ou ajouter un offset d'angle sans la comparaison demandee. Test demande : tourner sur place en visant, puis marcher et tourner, Stinger equipe si possible. Aucun hook, PAK ni etat du jeu modifie pour ce relevé.
+Sur V1.98, l'utilisateur confirme que le cristal du coeur Stinger est dans le dos, bien attache au personnage, et accepte ce rendu comme le comportement vanilla retrouve. **Apparence Stinger VALIDEE par l'utilisateur ; demande de deplacement/orientation vers l'avant CLOTUREE.** Conserver cet effet natif, sans nouvelle adaptation, reattache ou decalage. Le releve de rotations est arrete. Cette validation concerne uniquement Stinger/Stoneskin, pas les gestes Geyser/Clone/Caltrops V1.98, qui restent experimentaux et a tester. Aucun code ASI, INI, raccourci, PAK ou fichier du jeu modifie ; aucun nouveau build.
+

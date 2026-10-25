@@ -147,5 +147,18 @@
       "templates": []
     }
   ],
-  "conclusion": "Stinger particle absent on later Stoneskin cast; normal Stoneskin dust/molten/crumble retained. Native core effect source identified. Does not prove the ASI never affected historical positioning. No generic particle hide or offset correction added."
+  "conclusion": "Stinger particle absent on later Stoneskin cast; normal Stoneskin dust/molten/crumble retained. Native core effect source identified. Does not prove the ASI never affected historical positioning. No generic particle hide or offset correction added.",
+  "userAcceptance": {
+    "date": "2026-10-25",
+    "version": "V1.98",
+    "userReports": [
+      "en 1.98 le crystal est dans le dos et est bien attacher au perso",
+      "je pense que le dos cest bon aussi",
+      "on retrouver un comportement vanilla"
+    ],
+    "acceptedScope": "Native Stinger crystal appearance and attachment",
+    "frontOrientationRequest": "CLOSED: preserve native appearance",
+    "gestureAnimationValidation": "NOT GIVEN",
+    "newCodeOrBuild": false
+  }
 }
