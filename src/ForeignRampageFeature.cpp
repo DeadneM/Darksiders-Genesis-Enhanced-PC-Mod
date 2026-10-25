@@ -15,7 +15,9 @@ Finish g_finish=nullptr;Playing g_playing=nullptr;
 uintptr_t g_base=0;foreign_wrath::LogFn g_log=nullptr;unsigned g_events=0,g_refusals=0;const char* g_refusal=nullptr;
 std::atomic_bool g_ready{false},g_failed{false};
 native_objects::Identity g_phases[5]{},g_idle{};
-struct Cast {native_objects::Identity actor{},ability{};uintptr_t world=0;};Cast g_cast[2]{};
+// One native Rampage spans different ability objects. The actor token
+// survives Start's ordinary end and is consumed by the final companion.
+struct Cast {native_objects::Identity actor{};uintptr_t world=0;int phase=-1;};Cast g_cast[2]{};
 Cast* PlayerCast(int index){if(index==0)return &g_cast[0];if(index==1)return &g_cast[1];return nullptr;}
 thread_local void* g_handling=nullptr;
 constexpr const char* Names[]={"MayhemAbility_Rampage_Start_Blueprint_C","MayhemAbility_Rampage_Finish_Land_Blueprint_C",
@@ -86,7 +88,7 @@ void Stop(void* ability,int phase,const local_players::Context& c,const char* wh
     // These are native Blueprint abort branches. A normal start finish would
     // otherwise launch another War phase after a failed private montage.
     g_finish(ability,phase==0?28:2);
-    if(g_log&&g_events++<12){char line[256]{};sprintf_s(line,"Rampage V1.105 stopped phase=%d: %s; native abort, transfer disabled for session; select Native",phase,why);g_log(line);}
+    if(g_log&&g_events++<12){char line[256]{};sprintf_s(line,"Rampage V1.107 stopped phase=%d: %s; native abort, transfer disabled for session; select Native",phase,why);g_log(line);}
 }
 bool Companion(uintptr_t cls){
     uintptr_t package=0;return Is(cls,"MayhemAbility_War_LaunchAttack_Blueprint_C")&&Read(cls,0x20,package)&&
@@ -99,7 +101,7 @@ void Initialize(foreign_wrath::LogFn log,bool exact){
     constexpr unsigned char playing[]={0x48,0x89,0x5C,0x24,0x08,0x57,0x48,0x83,0xEC,0x20,0x48,0x8B,0xD9,0x48,0x83,0xC1};
     if(std::memcmp(reinterpret_cast<void*>(g_base+0x59B080),finish,sizeof(finish))||std::memcmp(reinterpret_cast<void*>(g_base+0x676620),playing,sizeof(playing)))return;
     g_finish=reinterpret_cast<Finish>(g_base+0x59B080);g_playing=reinterpret_cast<Playing>(g_base+0x676620);g_ready=true;
-    if(log)log("Rampage V1.105 READY: private native motion and lifecycle; unused live-graph slot required; Strife locomotion pose; EXPERIMENTAL");
+    if(log)log("Rampage V1.107 READY: private native motion and lifecycle; unused live-graph slot required; Strife locomotion pose; EXPERIMENTAL");
 }
 bool AssetsReady(){for(const auto& id:g_phases)if(!Alive(id))return false;return Alive(g_idle);}
 bool InvalidateAssets(){
@@ -123,7 +125,7 @@ bool Prepare(void* actor,uintptr_t& abilityClass){
     else if(!Owner(actor,c,true))rejected="local Strife ownership or grounded state";
     else Source(c,source,&rejected);
     if(rejected){
-        if(g_log&&g_refusal!=rejected&&g_refusals<12){++g_refusals;char line[200]{};sprintf_s(line,"Rampage V1.105 PREPARE refused: %s",rejected);g_log(line);}
+        if(g_log&&g_refusal!=rejected&&g_refusals<12){++g_refusals;char line[200]{};sprintf_s(line,"Rampage V1.107 PREPARE refused: %s",rejected);g_log(line);}
         g_refusal=rejected;return false;
     }
     g_refusal=nullptr;abilityClass=g_phases[0].address;return true;
@@ -134,9 +136,9 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     if(!Read(p,0x10,cls)||!Read(p,8,flags)||(flags&0x30u)||!Read(p,0x48,actor)||!Read(p,0x1B0,character)||character!=actor||
        !Read(p,0xD8,state)||(state!=1&&state!=2)||!Owner(reinterpret_cast<void*>(actor),c,false))return false;
     auto* mark=PlayerCast(c.index);if(!mark)return false;
-    if(Companion(cls)&&Recent(c)){*mark={};g_finish(ability,0);return true;}
+    if(Companion(cls)&&Recent(c)&&mark->phase>0){*mark={};g_finish(ability,0);return true;}
     const int phase=Kind(cls);if(phase<0)return false;
-    if(phase&&!Recent(c)){Stop(ability,phase,c,"orphan finish phase");return true;}
+    if(phase&&(!Recent(c)||mark->phase!=0)){Stop(ability,phase,c,"finish has no pending own Start");return true;}
     if(g_handling==ability)return true;
     struct Guard{void* old;~Guard(){g_handling=old;}} guard{g_handling};g_handling=ability;
     native_objects::Identity abi{},pawn{};foreign_montage::Source source{};
@@ -145,20 +147,23 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     auto* replacement=foreign_montage::RampageMotion(reinterpret_cast<uintptr_t>(montage),source);
     if(!Alive(abi)||!Alive(pawn)||!Read(p,0x48,character)||character!=actor)return true;
     if(!replacement){Stop(ability,phase,c,"private motion montage construction/shape failed");return true;}
-    *mark={pawn,abi,c.world};
+    *mark={pawn,c.world,phase};
     native(ability,replacement,rate,section);
     if(!Alive(abi)||!Alive(pawn)||!Read(p,0x48,character)||character!=actor)return true;
     uintptr_t instance=0;
     if(!Read(p,0x1D8,instance)||!instance||!g_playing(reinterpret_cast<void*>(instance))){Stop(ability,phase,c,"native montage playback not active");return true;}
     foreign_montage::StartSounds(reinterpret_cast<uintptr_t>(montage),ability);
-    if(g_log&&g_events++<12){char line[180]{};sprintf_s(line,"Rampage V1.105 CAST player=%d phase=%d: native motion/loop/collision/finish; own locomotion pose; EXPERIMENTAL",c.index+1,phase);g_log(line);}
+    if(g_log&&g_events++<12){char line[180]{};sprintf_s(line,"Rampage V1.107 CAST player=%d phase=%d: native motion/loop/collision/finish; own locomotion pose; EXPERIMENTAL",c.index+1,phase);g_log(line);}
     return true;
 }
 void Observe(const local_players::Context& c){
     if(!g_ready||!native_tps::OnGameThread()||c.index<0||c.index>1)return;
-    auto* mark=PlayerCast(c.index);if(!mark)return;unsigned char state=0;
-    if(mark->actor&&(mark->world!=c.world||mark->actor.address!=c.character||!Alive(mark->actor)||!Alive(mark->ability)||
-       !Read(mark->ability.address,0xD8,state)||(state!=1&&state!=2)))*mark={};
+    auto* mark=PlayerCast(c.index);if(!mark)return;
+    // Start is already finished when native code creates Land/Slam; the
+    // final companion can likewise follow its parent's ordinary completion.
+    // No old ability is retained/read/called to authorize that handoff.
+    if(mark->actor&&(mark->world!=c.world||mark->actor.address!=c.character||c.pawn!=c.character||
+       c.kind!=local_players::PoseKind::Foot||!Alive(mark->actor)))*mark={};
 }
 void Shutdown(){g_ready=false;for(auto& c:g_cast)c={};}
 }

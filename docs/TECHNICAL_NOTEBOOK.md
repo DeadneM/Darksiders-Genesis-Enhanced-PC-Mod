@@ -1,3 +1,17 @@
+## V1.107 - Rampage : conserver la transition native depart vers frappe
+
+**EXPERIMENTALE, compilation et livraison GitHub a controler ; NON VALIDEE EN JEU.** Base fonctionnelle V1.103 validee ; acquis conserves. Retour V1.106 : deplacement Rampage puis commandes bloquees, candidat REJETE pour cet essai. Sons V1.106 : essai utilisateur differe, adaptation audio conservee sans modification.
+
+Journal : CAST depart puis, 413 ms plus tard, Slam3 refuse comme orphelin. Observe supprimait l'association des que Start n'etait plus actif, avant la creation native de la frappe ; le compagnon pouvait aussi consommer un token avant toute phase de fin. V1.107 conserve un token faible propre acteur/monde, exige Start avant une seule phase de fin et consomme le token au compagnon final. Aucun ancien objet de capacite n'est conserve ou appele pour autoriser la transition. Pas de timer, nouvel input ou nouveau hook.
+
+La copie privee des notifies est reconstruite depuis les evenements source, comme les autres transferts retenus ; elle ne doit pas etre identique octet par octet a une copie native qui peut instancier ses notifies. Les sections acceptent uniquement le relien natif vers leur copie ; boucles/temps/autres champs restent compares, tableaux partages toujours refuses. Mouvement natif et vitesse 1,5 du depart conserves.
+
+Suggestion d'animation etudiee : Strife_Dash, Strife_AirDash_Fall et Strife_AirDash_Land_Still existent dans le PAK original. **Leur adaptation visuelle n'est pas incluse** : leur remplacement direct supprimerait la piste de mouvement Rampage ou ajouterait les callbacks du dash. La pose actuelle reste la locomotion de Strife ; cette version cible le blocage et la sortie du pouvoir. [Contrat, preuves et suite](V1_107_RAMPAGE_NATIVE_PHASE_HANDOFF_TEST.md).
+
+Compilation uniquement GitHub Actions, updater canal debug ; aucune installation locale. 169 cles INI, 55 ID Hotkeys, reception lourde et chemins input/camera inchanges ; 171 anciennes archives preservees. Test : Rampage Strife native/TPS, relachement puis marche/attaque et second lancement, ensuite obstacle ; verifier que le journal atteint la phase de fin sans refus orphelin. P2 differe.
+
+---
+
 ## V1.106 - Rampage et sons transferts, plan audio unique
 
 **CONSTRUITE / CONTROLEE : [60/60 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40216944702), zero avertissement/erreur MSVC. [ZIP GitHub immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/a8f88bdd9d5771085d4cddf838b7384d03eb24ef/downloads/DarksidersGenesis_V1.106_RAMPAGE_FOREIGN_AUDIO_COMPACT_TEST.zip) - [Recu](V1_106_DELIVERY_RECEIPT.md). Rampage et audio V1.106 restent EXPERIMENTAUX, NON VALIDES EN JEU. Disponible pour l'updater du jeu, canal debug ; compilation uniquement GitHub, aucune installation locale.**

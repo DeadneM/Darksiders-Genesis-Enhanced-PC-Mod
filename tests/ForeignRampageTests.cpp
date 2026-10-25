@@ -10,7 +10,7 @@ struct Fixture {
  unsigned char actor[0x1100]{},controller[0x400]{},mesh[0x800]{},anim[0x800]{},movement[0x200]{},asset[0x240]{},bone[12]{},skeleton[0x200]{};
  unsigned char classes[8][0x80]{},powers[5][0x120]{},packages[5][0x100]{},idle[0x240]{},idlePackage[0x100]{};
  unsigned char properties[5][0x80]{},structure[0x80]{},slotProperty[0x80]{},launch[0x120]{},launchPackage[0x100]{};
- unsigned char ability[0x240]{},montage[0x200]{},replacement[0x200]{},instance[0x40]{},items[64*24]{};
+ unsigned char ability[0x240]{},nextAbility[0x240]{},montage[0x200]{},replacement[0x200]{},instance[0x40]{},items[64*24]{};
 } f;
 unsigned char entries[48][256]{};uintptr_t names[48]{},chunks[1]{reinterpret_cast<uintptr_t>(names)},objectChunks[1]{};
 dg::local_players::Context context{};bool local=true,thread=true,buildOK=true,playOK=true,reassign=false;int liveId=0;
@@ -19,10 +19,10 @@ template<class T> void Put(void* p,size_t at,const T& v){std::memcpy(static_cast
 void Check(bool pass,const char* why){if(!pass)throw std::runtime_error(why);}
 void Label(void* p,int id,const char* text){Put(p,0x18,id);strcpy_s(reinterpret_cast<char*>(entries[id]+12),244,text);}
 dg::native_objects::Identity Live(void* p){const int id=liveId++;Put(p,0xC,id);Put(f.items,size_t(id)*24,reinterpret_cast<uintptr_t>(p));Put(f.items,size_t(id)*24+16,100+id);return {reinterpret_cast<uintptr_t>(p),id,100+id};}
-void FinishNative(void* p,unsigned char why){Check(p==f.ability,"only own cast finishes");++finishes;cause=why;}
+void FinishNative(void* p,unsigned char why){Check(p==f.ability||p==f.nextAbility,"only own cast finishes");++finishes;cause=why;}
 bool PlayingNative(void* p){Check(p==f.instance,"own native montage instance");return playOK;}
 void PlayNative(void* p,void* montage,float rate,Name section){
- Check(p==f.ability&&montage==f.replacement&&rate==2&&section==Name{0,0},"native rate/section retained exactly");++plays;Put(p,0x1D8,reinterpret_cast<uintptr_t>(f.instance));
+ Check((p==f.ability||p==f.nextAbility)&&montage==f.replacement&&rate==2&&section==Name{0,0},"native rate/section retained exactly");++plays;Put(p,0x1D8,reinterpret_cast<uintptr_t>(f.instance));
 }
 void Phase(int phase){Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.powers[phase]));}
 void Fresh(){
@@ -64,7 +64,24 @@ void Run(){
  for(int failure=0;failure<5;++failure){Fresh();if(failure==0)Put(f.anim,0x100,Name{11,0});if(failure==1)Put(f.slotProperty,0x34,4);if(failure==2)Put(f.properties[4],0x28,reinterpret_cast<uintptr_t>(f.properties[4]));if(failure==3)Put(f.anim,0x100,Name{27,0});if(failure==4)Put(f.properties[0],0x44,0x20000);Check(!Prepare(f.actor,cls)&&Cast()&&cause==28&&!builds,"rendered DefaultSlot/unknown graph/duplicate/invalid reflection all fail closed");}
  for(int failure=0;failure<8;++failure){Fresh();if(failure==0)local=false;if(failure==1)thread=false;if(failure==2)context.kind=dg::local_players::PoseKind::Horse;if(failure==3)Put<unsigned char>(f.actor,0x118,2);if(failure==4)Label(f.classes[2],3,"War_Blueprint_C");if(failure==5)Put<uint32_t>(f.ability,8,0x10);if(failure==6)context.index=-1;if(failure==7)context.index=2;Check(!Cast()&&!builds&&!finishes,"native War/remote/mount/default/nonlocal/off-thread/out-of-range players untouched");}
  Fresh();Put(f.items,size_t(g_idle.index)*24+16,999);Check(Status()==1&&InvalidateAssets()&&!InvalidateAssets(),"asset serial change requests exactly one bounded rescan");ObserveObject(reinterpret_cast<uintptr_t>(f.idle));Check(Status()==2,"recaptured loaded idle restores readiness");
- Fresh();Cast();Put<unsigned char>(f.ability,0xD8,0);Observe(context);Check(!g_cast[0].actor,"finished cast marker cleared by lifecycle observation");
+ // Regression from the runtime log: Observe runs after Start finishes,
+ // before a DISTINCT native Slam ability calls PlayMontage.
+ Fresh();Cast();Put<unsigned char>(f.ability,0xD8,0);Observe(context);
+ Check(g_cast[0].actor&&g_cast[0].phase==0,"ordinary Start end preserves pending native handoff");
+ Live(f.nextAbility);Put(f.nextAbility,0x10,g_phases[4].address);Put(f.nextAbility,0x48,context.character);Put(f.nextAbility,0x1B0,context.character);Put<unsigned char>(f.nextAbility,0xD8,1);
+ Check(HandlePlay(PlayNative,f.nextAbility,f.montage,2,{})&&plays==2&&!finishes&&g_cast[0].phase==4,"distinct native Slam3 accepted after inactive Start");
+ Put<unsigned char>(f.nextAbility,0xD8,0);Observe(context);Check(g_cast[0].actor,"ordinary Slam end preserves final companion association");
+ Put(f.nextAbility,0x10,reinterpret_cast<uintptr_t>(f.launch));Put<unsigned char>(f.nextAbility,0xD8,1);
+ Check(HandlePlay(PlayNative,f.nextAbility,f.montage,2,{})&&finishes==1&&cause==0&&!g_cast[0].actor,"final native companion consumes token after parent completion");
+ Check(!HandlePlay(PlayNative,f.nextAbility,f.montage,2,{}),"consumed token never catches unrelated later companion");
+ Fresh();Cast();Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.launch));Check(!Cast()&&g_cast[0].phase==0,"companion before native finish phase not claimed");
+ for(int boundary=0;boundary<4;++boundary){
+  Fresh();Cast();Put<unsigned char>(f.ability,0xD8,0);
+  if(boundary==0)++context.world;if(boundary==1)context.kind=dg::local_players::PoseKind::Horse;
+  if(boundary==2)++context.pawn;if(boundary==3)Put(f.items,size_t(g_cast[0].actor.index)*24+16,999);
+  Observe(context);Check(!g_cast[0].actor,"world, mount, pawn or actor serial invalidation clears handoff token");
+ }
+ Fresh();Cast();Phase(2);Cast();Phase(3);Check(Cast()&&finishes==1&&cause==2&&plays==2,"a second finisher cannot reuse a consumed Start phase");
  Fresh();Put<unsigned char>(f.movement,0x1B0,3);Check(!Prepare(f.actor,cls),"airborne request unavailable");
  for(unsigned char mode:{0,1,2}){Fresh();Put(f.anim,0x30,mode);Check(!Prepare(f.actor,cls)&&Cast()&&cause==28&&!builds,"non-montage root-motion mode rejected without changing the mode");Check(f.anim[0x30]==mode,"never changes root-motion policy");}
  Fresh();Put(f.anim,0x100,Name{26,1});Check(!Prepare(f.actor,cls),"instanced slot name rejected");

@@ -40,6 +40,8 @@ void* ConstructNative(void* cls,void* outer,Name n,uint32_t flags,uint32_t inter
  clone(f.copy,0x180,f.copyMarkers,At<Array>(f.montage,0x180),12,mode==8);
  clone(f.copy,0x190,f.copyStates,At<Array>(f.montage,0x190),4,mode==9);
  if(mode==10)f.copyMarkers[0]^=1;
+ if(mode==11)f.copyEvents[0x40]^=1; // constructor-normalized private notify data
+ if(mode==12)Put(f.copySections,8,reinterpret_cast<uintptr_t>(f.copy));
  return f.copy;
 }
 void Fresh(int kind=0){
@@ -87,6 +89,8 @@ void Run(){
   if(kind>=2)Check(At<Name>(f.notifyCopy,0x38).index==15&&At<uintptr_t>(f.notifyCopy,0x40)==At<uintptr_t>(f.notify,0x40)&&At<uintptr_t>(f.copyEvents,0x48)==reinterpret_cast<uintptr_t>(f.notifyCopy),"private slam origin moves to own root, exact native blast class preserved");
  }
  for(int failure=1;failure<=10;++failure){Fresh();mode=failure;const auto before=f;Check(!Build()&&!skeletonCalls,"null/CDO/alias/changed cache rejected before changing skeleton");Check(!std::memcmp(f.montage,before.montage,sizeof(f.montage))&&!std::memcmp(f.segments,before.segments,sizeof(f.segments)),"rejected clone leaves sources untouched");}
+ Fresh(4);mode=11;Check(Build()==f.copy&&f.copyEvents[0x40]==f.events[0x40],"finite slam rebuilds exact source cues after native notify instancing");
+ Fresh();mode=12;Check(Build()==f.copy,"native constructor self-relink accepted without weakening timing and loop checks");
  Fresh();Check(At<float>(f.montage,0x94)==1.5f&&Build()==f.copy&&At<float>(f.copy,0x94)==1.5f,"measured native start rate 1.5 preserved, no forced slowdown");
  Fresh();Put(f.montage,0x94,1.f);Check(!Build()&&!constructions,"old invented rate 1 rejected by measured start contract");
  Fresh(1);Put(f.montage,0x94,1.5f);Check(!Build()&&!constructions,"landing retains its own native rate 1");

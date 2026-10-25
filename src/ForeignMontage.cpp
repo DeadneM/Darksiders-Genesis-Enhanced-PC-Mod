@@ -445,14 +445,26 @@ bool MotionShape(uintptr_t p,int kind,MotionLayout& out){
     }
     return true;
 }
-template<size_t Stride> bool Separate(const Array& original,const Array& copy){
+template<size_t Stride> bool Separate(const Array& original,const Array& copy,uintptr_t sourceOwner=0,uintptr_t privateOwner=0){
     if(copy.count!=original.count||(original.data&&copy.data==original.data))return false;
     if(!original.count)return true;
     const size_t bytes=size_t(original.count)*Stride;
     if(!Writable(copy.data,bytes))return false;
     // Read through the same bounded memory reader before comparing the arrays.
-    for(size_t at=0;at<bytes;at+=Stride){std::array<unsigned char,Stride> a{},b{};if(!Read(original.data,at,a)||!Read(copy.data,at,b)||a!=b)return false;}
+    for(size_t at=0;at<bytes;at+=Stride){
+        std::array<unsigned char,Stride> a{},b{};if(!Read(original.data,at,a)||!Read(copy.data,at,b))return false;
+        if constexpr(Stride==88){
+            // UObject instancing may already relink a section to its clone.
+            uintptr_t before=0,after=0;std::memcpy(&before,a.data()+8,8);std::memcpy(&after,b.data()+8,8);
+            if(before==sourceOwner&&after==privateOwner)std::memcpy(b.data()+8,&before,8);
+        }
+        if(a!=b)return false;
+    }
     return true;
+}
+bool PrivateEvents(const Array& original,const Array& copy){
+    return original.count==copy.count&&(!original.data||copy.data!=original.data)&&
+        (!original.count||Writable(copy.data,size_t(original.count)*sizeof(Event)));
 }
 bool MotionNotify(Event& event,uintptr_t montage,const Source& source){
     uintptr_t notify=0,cls=0;std::memcpy(&notify,event.data()+0x48,8);
@@ -493,14 +505,16 @@ void* RampageMotion(uintptr_t original,const Source& source){
     const auto copy=reinterpret_cast<uintptr_t>(created);uintptr_t actual=0;uint32_t flags=0;
     if(!copy||copy==original||!Read(copy,0x20,actual)||actual!=outer||!Read(copy,8,flags)||(flags&0x30u)||!(flags&0x40u)||
        !MotionShape(copy,kind,after)||after.cls!=before.cls||!Separate<32>(before.segments,after.segments)||
-       !Separate<88>(before.sections,after.sections)||!Separate<184>(before.events,after.events)||
+       !Separate<88>(before.sections,after.sections,original,copy)||!PrivateEvents(before.events,after.events)||
        !Separate<12>(before.markers,after.markers)||!Separate<4>(before.states,after.states)||
        after.tracks.data==before.tracks.data||!Writable(after.tracks.data,24))return fail("private clone identity, arrays or source equality");
     // Motion clips, loop sections, branching caches and native cue times stay
     // intact. Only private skeleton/slot/link targets and impact sockets change.
     for(int i=0;i<after.events.count;++i){
         Event event{};const auto at=after.events.data+size_t(i)*sizeof(Event);
-        if(!Read(at,0,event)||!MotionNotify(event,copy,source)||!Store(at,0,event)||!Store(at,8,copy)||!Store(at,0x68,copy))return fail("private event or impact socket");
+        // Like the accepted transfer builders, rebuild from the source
+        // timeline: a native clone may legitimately instance notify objects.
+        if(!Read(before.events.data,size_t(i)*sizeof(Event),event)||!MotionNotify(event,copy,source)||!Store(at,0,event)||!Store(at,8,copy)||!Store(at,0x68,copy))return fail("private event or impact socket");
     }
     for(int i=0;i<after.sections.count;++i)if(!Store(after.sections.data+size_t(i)*88,8,copy))return nullptr;
     if(!Store(after.tracks.data,0,Name{source.slotIndex,source.slotNumber}))return nullptr;
