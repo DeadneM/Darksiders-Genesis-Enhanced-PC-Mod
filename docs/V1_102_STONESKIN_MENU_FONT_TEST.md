@@ -1,5 +1,7 @@
 # V1.102 - Stoneskin pour les deux personnages, police et retrait du Rampage rejete
 
+**CONSTRUITE / CONTROLEE : [57/57 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40194346246), zero avertissement/erreur MSVC. [ZIP immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/00581c2daeb87a192b99d2bfbac75ea1b36557c8/downloads/DarksidersGenesis_V1.102_STONESKIN_MENU_FONT_TEST.zip) - [Recu](V1_102_DELIVERY_RECEIPT.md). Stoneskin Strife et police EXPERIMENTAUX, NON VALIDES EN JEU ; acquis V1.98 et World Ender War V1.100 valides conserves.**
+
 ## Base et retours retenus
 
 V1.98 validee pour Geyser Strife, Clone/Caltrops War et Stinger natif. L'utilisateur confirme World Ender War deja fonctionnel en V1.100 et les trois anciens transferts toujours fonctionnels en V1.101. Rampage Strife V1.100/V1.101 est REJETE (icone disparue, fonctionnement anormal). Aucun fichier source d'un transfert valide n'est remplace par l'ancien prototype. Source cumulative debug 042efcc, archives immuables.
@@ -36,3 +38,8 @@ Tests avec le vrai ImGui : taille demandee, popup, restauration de l'echelle et 
 4. Ancienne selection Strife Rampage : son emplacement doit redevenir Native. Verifier que les quatre transferts acceptes et les inputs/roues restent normaux. Si un transfert est en preparation/indisponible, son slot doit garder une classe/icone native et ne pas lancer le mauvais pouvoir.
 
 Conserver INI/raccourcis/PAK/sauvegardes ; aucune installation ou relance du jeu par l'agent. 166 archives precedentes et branches main/archive/v1.43 protegees. Repli : V1.100 avec uniquement les transferts acceptes et Strife Rampage sur Native, ou V1.98 pour le sous-ensemble entierement valide avant World Ender. Prochaine etape : retour groupe Stoneskin/police ; Rampage et reception lourde restent ouverts, autres FX P2 reportes.
+
+
+## Verification native supplementaire du refus
+
+Le seul appel de lancement identifie a 0x664DBC appelle 0x663220 puis verifie successivement les deux sorties booleennes (0x664DC1 et 0x664DC8) et la classe (0x664DCF), avant la requete de lancement 0x67C7B0 a 0x664E06. Mettre affordable=false empeche donc ce dispatch tout en conservant la classe d'icone. Les trois autres appels identifies dans 0x5EAE30 servent aux requetes de slots. Cette preuve hors ligne ne constitue pas une validation visuelle du HUD ; test en jeu requis.

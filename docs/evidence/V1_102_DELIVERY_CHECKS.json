@@ -1,0 +1,88 @@
+{
+  "static": {
+    "base": "042efcc61588de9415e43b81164fb32b93d449dd",
+    "branch": "debug",
+    "iniKeys": 169,
+    "previousIniKeysUnchanged": 168,
+    "hotkeyIdsUnchanged": 55,
+    "acceptedMontagePrefixUnchanged": true,
+    "acceptedBeamCloneCaltropsModulesUnchanged": true,
+    "rejectedRampageRemoved": true,
+    "gameplayValidated": false
+  },
+  "ci": {
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40194346246",
+    "runId": 40194346246,
+    "jobId": 121171865971,
+    "sourceCommit": "be2cfe17cd6d0e88819cc7daf474440da1a202bb",
+    "conclusion": "success",
+    "passedSuites": 57,
+    "msvcWarnings": 0,
+    "msvcErrors": 0,
+    "totals": [
+      "2026-10-25T12:46:23.6894204Z 100% tests passed out of 57",
+      "2026-10-25T12:46:23.6894652Z Total Test time (real) =   3.34 sec"
+    ],
+    "gameplayValidated": false
+  },
+  "package": {
+    "sourceCommit": "be2cfe17cd6d0e88819cc7daf474440da1a202bb",
+    "archiveCommit": "00581c2daeb87a192b99d2bfbac75ea1b36557c8",
+    "name": "DarksidersGenesis_V1.102_STONESKIN_MENU_FONT_TEST.zip",
+    "size": 973932,
+    "sha256": "586BDEFE15B059E5C47DD7A5999F818D8C2E2EF36D8EB115002FFA8CAF3690B7",
+    "files": {
+      "DarksidersGenesisMod.asi": {
+        "size": 1792000,
+        "sha256": "9EAD00E20797C56D51904103D26D852807F4EA1F55B74BEF0A66101C49822E5E"
+      },
+      "DarksidersGenesisMod.ini": {
+        "size": 4708,
+        "sha256": "599E7AEE6350160BF70985B406A4C0B35094F282B6269971A48C88778AB5C29B"
+      },
+      "dxgi.dll": {
+        "size": 155136,
+        "sha256": "E74D456E41A7CDB55352206D7AF44EFFE4468A7C302470C15FF6F78D6EEA1220"
+      },
+      "README.md": {
+        "size": 73143,
+        "sha256": "1611381B2A03CC486915AAA15695ABB5F2CEA42C719B374F31F6D5D226113119"
+      }
+    },
+    "oldArchivesUnchanged": 166,
+    "iniKeys": 169,
+    "hotkeyIdsUnchanged": 55,
+    "amd64": true,
+    "crcValid": true,
+    "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/00581c2daeb87a192b99d2bfbac75ea1b36557c8/downloads/DarksidersGenesis_V1.102_STONESKIN_MENU_FONT_TEST.zip",
+    "httpStatus": 200,
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/main": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "gameplayValidated": false
+  },
+  "nativeRefusalChecksBeforeDispatch": {
+    "resolveCall": "664DBC",
+    "checks": [
+      "664DC1",
+      "664DC8",
+      "664DCF"
+    ],
+    "dispatchCall": "664E06"
+  },
+  "runtimeValidated": false,
+  "accepted": [
+    "V1.98 retained subset",
+    "War World Ender V1.100 user approved"
+  ],
+  "rejected": [
+    "Strife Rampage V1.100/V1.101"
+  ],
+  "experimental": [
+    "Strife Stoneskin partial native-status transfer",
+    "menu font size",
+    "unavailable-slot icon retention"
+  ]
+}
