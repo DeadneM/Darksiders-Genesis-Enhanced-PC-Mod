@@ -16,3 +16,9 @@ Base retenue : acquis V1.98 et World Ender sur War V1.100, confirme par l'utilis
 Installation manuelle jeu ferme, conserver son INI/raccourcis/PAK/sauvegardes. Aucun lancement ou remplacement de fichier du jeu par l'agent. [Contrat, limites et essais groupes](V1_102_STONESKIN_MENU_FONT_TEST.md).
 
 Essais : police 18/24 et reouverture ; Stoneskin sur les deux personnages (cout, protection/expiration, commandes, retour Native) ; icone du slot Strife avec ancienne selection Rampage ; bref controle des quatre transferts valides. P2 reporte. La suite se fera sur ce retour groupe ; Rampage et reception lourde restent ouverts.
+
+## Retour utilisateur V1.102 - Stoneskin et police valides
+
+25 octobre 2026 : « stoneskin valide / taille police ok ». **Stoneskin et taille de police VALIDES par l'utilisateur dans ses essais.** Conserver ces chemins et leurs limites documentees ; aucune nouvelle mesure de degats, variante ou validation P2 inventee. World Ender War V1.100 et Geyser/Clone/Caltrops V1.98 restent retenus. Base de reprise : V1.102 avec ces acquis. Rampage Strife V1.100/V1.101 reste rejete et retire ; reception lourde toujours ouverte. Le refus d'icone indisponible n'a pas de validation visuelle distincte rapportee. Pas de nouveau build pour cette consignation.
+
+---
