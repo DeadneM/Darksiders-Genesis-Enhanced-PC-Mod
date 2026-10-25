@@ -16,6 +16,7 @@ uintptr_t g_base=0;foreign_wrath::LogFn g_log=nullptr;unsigned g_events=0;
 std::atomic_bool g_ready{false},g_failed{false};
 native_objects::Identity g_phases[5]{},g_idle{};
 struct Cast {native_objects::Identity actor{},ability{};uintptr_t world=0;};Cast g_cast[2]{};
+Cast* PlayerCast(int index){if(index==0)return &g_cast[0];if(index==1)return &g_cast[1];return nullptr;}
 thread_local void* g_handling=nullptr;
 constexpr const char* Names[]={"MayhemAbility_Rampage_Start_Blueprint_C","MayhemAbility_Rampage_Finish_Land_Blueprint_C",
     "MayhemAbility_Rampage_Finish_Slam_Level1_Blueprint_C","MayhemAbility_Rampage_Finish_Slam_Level2_Blueprint_C","MayhemAbility_Rampage_Finish_Slam_Level3_Blueprint_C"};
@@ -76,9 +77,10 @@ bool Source(const local_players::Context& c,foreign_montage::Source& out){
        !Read(g_base,0x3A32340,slot)||!native_objects::NameValueIs(g_base,slot.index,slot.number,"DefaultSlot"))return false;
     out.sequence=g_idle.address;out.rootIndex=root.index;out.rootNumber=root.number;out.slotIndex=slot.index;out.slotNumber=slot.number;return true;
 }
-bool Recent(const local_players::Context& c){const auto& mark=g_cast[c.index];return mark.world==c.world&&mark.actor.address==c.character&&Alive(mark.actor);}
+bool Recent(const local_players::Context& c){const auto* mark=PlayerCast(c.index);return mark&&mark->world==c.world&&mark->actor.address==c.character&&Alive(mark->actor);}
 void Stop(void* ability,int phase,const local_players::Context& c){
-    g_failed=true;g_cast[c.index]={};
+    auto* mark=PlayerCast(c.index);if(!mark)return;
+    g_failed=true;*mark={};
     // These are native Blueprint abort branches. A normal start finish would
     // otherwise launch another War phase after a failed private montage.
     g_finish(ability,phase==0?28:2);
@@ -122,7 +124,8 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     const auto p=reinterpret_cast<uintptr_t>(ability);uintptr_t cls=0,actor=0,character=0;uint32_t flags=0;unsigned char state=0;local_players::Context c{};
     if(!Read(p,0x10,cls)||!Read(p,8,flags)||(flags&0x30u)||!Read(p,0x48,actor)||!Read(p,0x1B0,character)||character!=actor||
        !Read(p,0xD8,state)||(state!=1&&state!=2)||!Owner(reinterpret_cast<void*>(actor),c,false))return false;
-    if(Companion(cls)&&Recent(c)){g_cast[c.index]={};g_finish(ability,0);return true;}
+    auto* mark=PlayerCast(c.index);if(!mark)return false;
+    if(Companion(cls)&&Recent(c)){*mark={};g_finish(ability,0);return true;}
     const int phase=Kind(cls);if(phase<0)return false;
     if(phase&&!Recent(c)){Stop(ability,phase,c);return true;}
     if(g_handling==ability)return true;
@@ -133,7 +136,7 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     auto* replacement=foreign_montage::RampageMotion(reinterpret_cast<uintptr_t>(montage),source);
     if(!Alive(abi)||!Alive(pawn)||!Read(p,0x48,character)||character!=actor)return true;
     if(!replacement){Stop(ability,phase,c);return true;}
-    g_cast[c.index]={pawn,abi,c.world};
+    *mark={pawn,abi,c.world};
     native(ability,replacement,rate,section);
     if(!Alive(abi)||!Alive(pawn)||!Read(p,0x48,character)||character!=actor)return true;
     uintptr_t instance=0;
@@ -143,9 +146,9 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
 }
 void Observe(const local_players::Context& c){
     if(!g_ready||!native_tps::OnGameThread()||c.index<0||c.index>1)return;
-    auto& mark=g_cast[c.index];unsigned char state=0;
-    if(mark.actor&&(mark.world!=c.world||mark.actor.address!=c.character||!Alive(mark.actor)||!Alive(mark.ability)||
-       !Read(mark.ability.address,0xD8,state)||(state!=1&&state!=2)))mark={};
+    auto* mark=PlayerCast(c.index);if(!mark)return;unsigned char state=0;
+    if(mark->actor&&(mark->world!=c.world||mark->actor.address!=c.character||!Alive(mark->actor)||!Alive(mark->ability)||
+       !Read(mark->ability.address,0xD8,state)||(state!=1&&state!=2)))*mark={};
 }
 void Shutdown(){g_ready=false;for(auto& c:g_cast)c={};}
 }

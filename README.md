@@ -1,3 +1,15 @@
+## V1.101 - lot Rampage Strife / rayon War, controle des joueurs explicite
+
+**EXPERIMENTALE, NON VALIDEE EN JEU ; compilation et livraison a controler.** Base validee V1.98. Cumul des candidats V1.99/V1.100 : direction et pose de World Ender War, mouvement natif et fins de Rampage Strife. V1.100 a passe 58/58 suites mais l'analyse MSVC signale C6386 sur l'index du tableau d'etats ; son ZIP reste une archive intermediaire.
+
+V1.101 remplace tous les acces variables a ce tableau par un resolveur borne explicite P1/P2, avec refus des indices invalides et tests -1/2. Aucune suppression d'avertissement. Les deux candidats de gameplay restent identiques : rayon dans le repere propre de War, geste unique puis pose maintenue ; Rampage en mouvement natif sur une piste non evaluee par le corps de Strife. Pas d'animation Rampage dediee annoncee.
+
+Geyser/Clone/Caltrops valides, Stinger natif, cameras, tirs, manettes, roues et autres acquis conserves. 168 cles INI et 55 ID Hotkeys inchanges ; 165 archives precedentes a conserver, debug uniquement. Installation manuelle jeu ferme en gardant INI/raccourcis/PAK/sauvegardes. P2 differe. [Contrat, essais et repli](docs/V1_101_STRIFE_RAMPAGE_WAR_BEAM_TEST.md).
+
+Essai groupe : War World Ender dans les deux vues (direction, pose, fin et relance) ; Strife Rampage en espace libre puis face a un obstacle (mouvement, degats, fin/reprise et relance) ; retour Native et controle rapide des trois transferts deja valides. Ces comportements restent a approuver en jeu.
+
+---
+
 ## V1.100 - Rampage Strife et correction du rayon War
 
 **EXPERIMENTALE, NON VALIDEE EN JEU. Compilation Windows et livraison a verifier.** Base validee V1.98 ; cumul V1.99 avec retour utilisateur partiel : World Ender fonctionne sur War, mais tire a 90 degres a droite dans les deux vues et repete son geste. Ces deux defauts restent ouverts jusqu'au prochain essai.

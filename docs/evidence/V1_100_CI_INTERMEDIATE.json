@@ -1,0 +1,18 @@
+{
+  "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40177287968",
+  "runId": 40177287968,
+  "jobId": 121120631954,
+  "sourceCommit": "9fc1a5a4fcac06444f9ee5625cb9a31f4f63c1de",
+  "conclusion": "success",
+  "passedSuites": 58,
+  "msvcWarnings": 1,
+  "msvcErrors": 0,
+  "totals": [
+    "2026-10-25T08:41:17.8711074Z \u001b[36;1mif ($LASTEXITCODE -ne 0) { throw \"Policy or configuration tests failed\" }\u001b[0m",
+    "2026-10-25T08:41:25.1057425Z 100% tests passed out of 58",
+    "2026-10-25T08:41:25.1057902Z Total Test time (real) =   6.39 sec"
+  ],
+  "gameplayValidated": false,
+  "deliveryStatus": "Intermediate: replaced by V1.101 before recommendation due to C6386 warning",
+  "userValidated": false
+}
