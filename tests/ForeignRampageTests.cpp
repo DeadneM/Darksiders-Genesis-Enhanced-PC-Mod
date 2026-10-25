@@ -70,7 +70,7 @@ void Run(){
  Check(g_cast[0].actor&&g_cast[0].phase==0,"ordinary Start end preserves pending native handoff");
  Live(f.nextAbility);Put(f.nextAbility,0x10,g_phases[4].address);Put(f.nextAbility,0x48,context.character);Put(f.nextAbility,0x1B0,context.character);Put<unsigned char>(f.nextAbility,0xD8,1);
  Check(HandlePlay(PlayNative,f.nextAbility,f.montage,2,{})&&plays==2&&!finishes&&g_cast[0].phase==4,"distinct native Slam3 accepted after inactive Start");
- Put<unsigned char>(f.nextAbility,0xD8,0);Observe(context);Check(g_cast[0].actor,"ordinary Slam end preserves final companion association");
+ Put<unsigned char>(f.nextAbility,0xD8,0);Observe(context);Check(bool(g_cast[0].actor),"ordinary Slam end preserves final companion association");
  Put(f.nextAbility,0x10,reinterpret_cast<uintptr_t>(f.launch));Put<unsigned char>(f.nextAbility,0xD8,1);
  Check(HandlePlay(PlayNative,f.nextAbility,f.montage,2,{})&&finishes==1&&cause==0&&!g_cast[0].actor,"final native companion consumes token after parent completion");
  Check(!HandlePlay(PlayNative,f.nextAbility,f.montage,2,{}),"consumed token never catches unrelated later companion");
