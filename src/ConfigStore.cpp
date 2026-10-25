@@ -319,6 +319,7 @@ void Store::Log(const char* text) const {
 void Store::ResetDefaults(bool persist) {
     overlayEnabled = true;
     menuKey = defaults::MenuKey;
+    menuFontSize = menu::DefaultFontSize;
     graphicsAdapter = 0;
     updaterAutoCheck = false;
     updaterBeta = defaults::UpdaterBeta;
@@ -553,6 +554,7 @@ bool Store::Load() {
         path_.c_str()
     );
     menuKey = ParseKeyToken(menuKeyText, defaults::MenuKey);
+    menuFontSize=menu::FontSize(ReadFloat(L"Overlay",L"FontSize",menu::DefaultFontSize,path_));
 
     updaterAutoCheck = ReadBool(L"Updater", L"AutoCheckUpdates", false, path_);
     updaterBeta = ReadBool(L"Updater", L"Beta", defaults::UpdaterBeta, path_);
@@ -1080,6 +1082,8 @@ bool Store::SaveNow() {
     );
 
     WriteBool(L"Overlay", L"Enabled", overlayEnabled, path_);
+    menuFontSize=menu::FontSize(menuFontSize);
+    WriteFloat(L"Overlay",L"FontSize",menuFontSize,path_);
     WriteBool(L"Updater", L"AutoCheckUpdates", updaterAutoCheck, path_);
     WriteBool(L"Updater", L"Beta", updaterBeta, path_);
     const std::wstring menuKeyToken = KeyTokenFromVK(menuKey);

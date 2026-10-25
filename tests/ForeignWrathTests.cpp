@@ -7,11 +7,12 @@ using namespace dg::foreign_wrath;
 struct Fixture {
  unsigned char actor[0x1100]{},controller[0x400]{},mesh[0x800]{},anim[0x4D00]{},blend[0xE0]{},samples[72]{},idle[0x100]{},skeleton[0x80]{};
  unsigned char power[0x120]{},package[0x100]{},cdo[0x240]{},ability[0x240]{},montage[0x180]{},replacement[0x180]{},instance[0x50]{};
+ unsigned char stone[0x120]{},stonePackage[0x100]{},stoneCdo[0x240]{};
  unsigned char launch[0x80]{},launchPackage[0x100]{},asset[0x200]{},bone[12]{},classes[6][0x80]{},items[640*24]{};
 } f;
 unsigned char entries[24][192]{};uintptr_t names[24]{},nameChunks[1]{reinterpret_cast<uintptr_t>(names)},objectChunks[1]{};
 dg::local_players::Context owner{};bool gameThread=true,local=true,buildOK=true,playing=true,helperReady=true,throwResolve=false;
-unsigned plays=0,finishes=0,builds=0,getters=0,resolves=0;void* played=nullptr;float playedRate=0;
+unsigned plays=0,finishes=0,builds=0,getters=0,resolves=0,creates=0;bool createOK=true,reassign=false;void* played=nullptr;float playedRate=0;
 template<class T>void Put(void* p,size_t at,T value){std::memcpy(static_cast<unsigned char*>(p)+at,&value,sizeof(value));}
 void Check(bool value,const char* why){if(!value)throw std::runtime_error(why);}
 void Label(void* p,int id,const char* text){Put(p,0x18,id);strcpy_s(reinterpret_cast<char*>(entries[id]+12),180,text);}
@@ -24,9 +25,15 @@ uintptr_t* Resolver(void* actor,uintptr_t* result,Name id,bool* unlocked,bool* a
 void PlayNative(void* ability,void* montage,float rate,Name){++plays;played=montage;playedRate=rate;Put(ability,0x1D8,reinterpret_cast<uintptr_t>(f.instance));}
 void FinishNative(void* ability,unsigned char cause){Check(ability==f.ability&&cause==0,"only current cast finishes normally");++finishes;}
 bool PlayingNative(void* instance){Check(instance==f.instance,"own montage instance");return playing;}
+void* CreateNative(void* sequence,Name slot,float in,float out,float rate,int loops,float trigger,float start){
+ ++creates;Check(sequence==f.idle&&slot==Name{9,0}&&in==.1f&&out==.1f&&rate==1&&loops==1&&trigger==-1&&start==0,"exact eight-argument native factory on own sequence and slot");
+ if(reassign)Put(f.ability,0x48,uintptr_t(0));
+ Put(f.replacement,0x10,reinterpret_cast<uintptr_t>(f.classes[4]));Put(f.replacement,0x38,reinterpret_cast<uintptr_t>(f.skeleton));Put(f.replacement,0x90,2.666667f);
+ return createOK?f.replacement:nullptr;
+}
 void Fresh(){
  f={};owner={};gameThread=local=buildOK=playing=helperReady=true;throwResolve=false;plays=finishes=builds=getters=resolves=0;played=nullptr;playedRate=0;
- g_ready=g_geyserReady=true;g_requested=g_geyserFailed=false;g_getter=Getter;g_play=PlayNative;g_finish=FinishNative;g_playing=PlayingNative;g_log=nullptr;g_override=nullptr;
+ g_ready=g_geyserReady=true;g_requested=g_geyserFailed=g_stoneFailed=false;g_stone={};g_create=CreateNative;creates=0;createOK=true;reassign=false;g_getter=Getter;g_play=PlayNative;g_finish=FinishNative;g_playing=PlayingNative;g_log=nullptr;g_override=nullptr;
  g_cursor=g_count=0;g_complete=false;g_scanTick=0;g_world=0;g_events=0;g_geyserActors[0]=g_geyserActors[1]={};
  const char* labels[]={"Strife_Blueprint_C","StrifeAnim_Blueprint_C","BlendSpace1D","AnimSequence","AnimMontage","BlueprintGeneratedClass"};
  for(int i=0;i<6;++i)Label(f.classes[i],i+1,labels[i]);
@@ -47,11 +54,18 @@ void Fresh(){
  Register(0,f.power,41);Register(1,f.actor,42);Register(2,f.ability,43);g_geyser={reinterpret_cast<uintptr_t>(f.power),0,41};
  objectChunks[0]=reinterpret_cast<uintptr_t>(f.items);Put(reinterpret_cast<void*>(g_base),0x3959680,reinterpret_cast<uintptr_t>(objectChunks));Put(reinterpret_cast<void*>(g_base),0x3959694,640);
 }
+void Stone(){
+ Fresh();Label(f.stone,15,"MayhemAbility_StoneSkin_Blueprint_C");Label(f.stonePackage,16,"/Game/Blueprints/Abilities/Stoneskin/MayhemAbility_StoneSkin_Blueprint");
+ Put(f.stone,0x10,reinterpret_cast<uintptr_t>(f.classes[5]));Put(f.stone,0x20,reinterpret_cast<uintptr_t>(f.stonePackage));Put(f.stone,0xF8,reinterpret_cast<uintptr_t>(f.stoneCdo));Put(f.stoneCdo,0x10,reinterpret_cast<uintptr_t>(f.stone));
+ Register(3,f.stone,44);g_stone={reinterpret_cast<uintptr_t>(f.stone),3,44};Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.stone));
+ Label(f.montage,17,"War_Atk_Stoneskin_Montage");Label(f.launchPackage,18,"/Game/Characters/Heroes/Hero_War/Animation/War_Atk_Stoneskin_Montage");
+ Put(f.montage,0x10,reinterpret_cast<uintptr_t>(f.classes[4]));Put(f.montage,0x20,reinterpret_cast<uintptr_t>(f.launchPackage));Put(f.montage,0x90,1.2f);Put(f.montage,0x94,1.f);
+}
 void Cast(){HookPlay(f.ability,f.montage,.75f,Name{0,0});}
 void Run(){
  std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(nameChunks));for(unsigned i=0;i<24;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
  Fresh();uintptr_t cls=0;Check(Prepare(f.actor,cls,4)&&cls==reinterpret_cast<uintptr_t>(f.power),"ready Geyser retains own class");
- Check(!Prepare(f.actor,cls,6)&&Status(6)==0,"retired transfer cannot be requested or adapted");
+ Check(!Prepare(f.actor,cls,5)&&Status(5)==0,"rejected Rampage cannot be requested or adapted");
  uintptr_t result=0;bool unlocked=false,affordable=true;Resolve(Resolver,f.actor,&result,{9,2},&unlocked,&affordable,cls);
  Check(result==cls&&unlocked&&!affordable&&resolves==1&&!getters&&!g_override,"scoped class override preserves native unlock/cost and one resolve");
  HookGetter(f.actor,&result,{9,2});Check(result==0xCAFE&&getters==1,"ordinary class lookup stays native");
@@ -65,6 +79,14 @@ void Run(){
   Cast();Check(!builds&&!finishes&&played==f.montage,"native/nonlocal/foreign-pose/default path passes through");}
  Fresh();buildOK=false;Cast();Check(g_geyserFailed&&finishes==1&&Status(4)==0,"failed compatible montage stops only Geyser");Cast();Check(builds==1,"failed constructor not retried");
  Fresh();g_geyser={};g_geyserReady=false;g_requested=true;std::memset(f.items,0,sizeof(f.items));Register(598,f.power,41);Observe(owner);Check(g_cursor==512&&!g_geyserReady,"scan stays bounded");g_scanTick=0;Observe(owner);Check(g_geyserReady,"later bounded slice finds loaded class");
+ Stone();Check(Prepare(f.actor,cls,6)&&cls==reinterpret_cast<uintptr_t>(f.stone),"Stoneskin ready on owned Strife with class default and compatible animation");
+ const auto before=std::vector<unsigned char>(f.montage,f.montage+sizeof(f.montage));Cast();
+ Check(plays==1&&creates==1&&!finishes&&!builds&&std::fabs(playedRate-(.75f*2.666667f/1.2f))<.0001f,"Stoneskin uses own factory, exact native cast duration and finish delegate; no Geyser path");
+ Check(!std::memcmp(f.montage,before.data(),sizeof(f.montage)),"native Stoneskin source montage unchanged");
+ Stone();createOK=false;Cast();Cast();Check(finishes==2&&creates==1&&Status(6)==0&&Status(4)==2,"factory failure disables only Stoneskin and safely ends current cast without retry");
+ Stone();reassign=true;Cast();Check(!plays&&!finishes,"replacement owner never receives stale playback/finish");
+ Stone();Label(f.classes[0],1,"War_Blueprint_C");Cast();Check(played==f.montage&&!creates&&!finishes,"War original Stoneskin montage remains fully native");
+ Stone();owner.index=1;Cast();Check(creates==1&&plays==1,"Stoneskin resolves P2 ownership independently in fixtures");
  Fresh();Shutdown();Cast();Check(played==f.montage&&!builds,"shutdown restores native calls");
 }
 }
@@ -76,7 +98,6 @@ bool CanBuild(const Source& s){return helperReady&&s.sequence==reinterpret_cast<
 void* Geyser(uintptr_t m,const Source& s){++builds;Check(m==reinterpret_cast<uintptr_t>(f.montage)&&CanBuild(s)&&s.rootIndex==14,"own source/root reach Geyser builder");return buildOK?f.replacement:nullptr;}
 void* Compatible(uintptr_t,const Source&){return nullptr;}
 void* WorldEnder(uintptr_t,const Source&){return nullptr;}
-void* RampageMotion(uintptr_t,const Source&){return nullptr;}
 }
 namespace dg::native_tps {bool OnGameThread(){return gameThread;}}
 namespace dg::local_players {bool ResolveActor(void*,Context& c){c=owner;return local;}}

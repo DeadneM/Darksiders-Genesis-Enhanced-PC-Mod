@@ -76,7 +76,12 @@ uintptr_t* HookResolve(void* actor,uintptr_t* result,Name id,bool* unlocked,bool
     if(!g_original)return result;
     Name selected{};uintptr_t foreignClass=0;bool blocked=false;
     if(!result||!unlocked||!affordable||!Map(actor,id,selected,foreignClass,blocked))return g_original(actor,result,id,unlocked,affordable);
-    if(blocked){*result=0;*unlocked=false;*affordable=false;return result;}
+    if(blocked){
+        // Keep the original slot's class/icon and unlock state while the
+        // selected foreign power is unavailable. Do not cast another power.
+        auto* returned=g_original(actor,result,id,unlocked,affordable);
+        *affordable=false;return returned;
+    }
     struct Guard {Guard(){g_resolving=true;}~Guard(){g_resolving=false;}} guard;
     auto* returned=foreignClass?foreign_wrath::Resolve(g_original,actor,result,selected,unlocked,affordable,foreignClass):
         g_original(actor,result,selected,unlocked,affordable);

@@ -19,7 +19,4 @@ void* Geyser(uintptr_t nativeMontage,const Source&);
 void* Compatible(uintptr_t nativeMontage,const Source&);
 // War-owned World Ender: finite native beam timeline and cancellation states.
 void* WorldEnder(uintptr_t nativeMontage,const Source&);
-// Native Rampage motion/notifies on an unused slot: no War bone pose is
-// evaluated by Strife. The caller must verify the live graph lacks that slot.
-void* RampageMotion(uintptr_t nativeMontage,const Source&);
 }

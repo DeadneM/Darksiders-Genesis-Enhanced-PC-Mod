@@ -1,5 +1,6 @@
 #include "OverlayUi.h"
 #include "OverlayBindingScope.h"
+#include "MenuFontScope.h"
 #include "InteractionHudFeature.h"
 #include "WeaponSheathingFeature.h"
 #include "ManualAimFeature.h"
@@ -182,6 +183,7 @@ void Draw(Context& c) {
     }
 
     auto& config = *c.config;
+    const MenuFontScope menuFont(config.menuFontSize);
     const Telemetry& t = c.telemetry;
 
     ImGui::SetNextWindowSize(
@@ -367,9 +369,9 @@ void Draw(Context& c) {
             }
             if(ImGui::CollapsingHeader("Wrath ability slots (experimental)")){
                 ImGui::Indent(12.0f);
-                ImGui::TextWrapped("Validated transfers: Clone and Caltrops on War, Geyser on Strife. Experimental: World Ender on War uses its own firing frame and a held casting pose; Rampage on Strife retains native motion and transitions with Strife's locomotion pose, without War's bone animation. Test movement, collision and return to control. Original powers, including War's Stoneskin, stay native.");
-                int status[6]={2,wrath_slots::ForeignStatus(1),wrath_slots::ForeignStatus(2),wrath_slots::ForeignStatus(3),wrath_slots::ForeignStatus(4),wrath_slots::ForeignStatus(5)};
-                constexpr const char* names[6]={"Native","Shadow Clone","World Ender","Caltrops","Blade Geyser","Rampage"};
+                ImGui::TextWrapped("Validated transfers: Clone, Caltrops and World Ender on War; Geyser on Strife. Stoneskin is selectable for both: native on War, native protection with a compatible Strife casting pose on Strife (experimental). War's stone material, launch shockwave and weapon effects are not copied. Rejected Rampage transfer removed; Rampage on War stays native.");
+                int status[7]={2,wrath_slots::ForeignStatus(1),wrath_slots::ForeignStatus(2),wrath_slots::ForeignStatus(3),wrath_slots::ForeignStatus(4),0,wrath_slots::ForeignStatus(6)};
+                constexpr const char* names[7]={"Native","Shadow Clone","World Ender","Caltrops","Blade Geyser","Rampage","Stoneskin"};
                 constexpr const char* familyNames[2]={"Strife","War"};
                 ImGui::BeginDisabled(!wrath_slots::Ready());
                 for(unsigned family=0;family<2;++family){
@@ -379,7 +381,7 @@ void Draw(Context& c) {
                         const int choice=wrath_slots::Normalize(family,config.wrathSlots[family][slot]);
                         char label[32]{};sprintf_s(label,"Ability slot %u",slot+1);
                         if(ImGui::BeginCombo(label,names[choice])){
-                            for(int candidate=0;candidate<6;++candidate){
+                            for(int candidate=0;candidate<7;++candidate){
                                 if(!wrath_slots::Supported(family,candidate))continue;
                                 ImGui::BeginDisabled(wrath_slots::Foreign(family,candidate)&&status[candidate]==0);
                                 if(ImGui::Selectable(names[candidate],choice==candidate)){
@@ -1537,6 +1539,10 @@ void Draw(Context& c) {
 
         if (ImGui::BeginTabItem("About")) {
             ImGui::Spacing();
+            if(ImGui::CollapsingHeader("Menu appearance")){
+                if(DrawNumberRow("Font size","MenuFontSize",&config.menuFontSize,menu::MinFontSize,menu::MaxFontSize,menu::DefaultFontSize,"%.1f px","%.1f"))config.Save();
+                ImGui::TextWrapped("Changes mod menu text and its popups only. 13 px is the original size. Saved in the INI; takes effect on the next frame.");
+            }
             ImGui::Text(
                 "Darksiders Genesis Enhanced - cleaned ASI core"
             );

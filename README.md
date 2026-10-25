@@ -1,3 +1,19 @@
+## V1.102 - Stoneskin pour les deux personnages et police du menu
+
+**EXPERIMENTALE ; compilation et livraison a controler.** Base retenue : acquis V1.98 et World Ender sur War V1.100, explicitement confirme par l'utilisateur. Geyser/Clone/Caltrops toujours valides. Rampage sur Strife V1.100/V1.101 REJETE : icone de capacite disparue et comportement anormal. Ce chemin, ses montages, sa reflexion et ses tests specifiques sont retires de l'ASI ; une ancienne selection Strife=5 revient a Native. Rampage propre de War conserve.
+
+Stoneskin est selectionnable dans chacun des trois emplacements des deux personnages : chemin natif sur War ; sur Strife, statut/cout/duree natifs et geste compatible avec son propre squelette. Transfert Strife EXPERIMENTAL et partiel : materiau de pierre War, onde de choc du montage et effets d'arme non copies. Stinger reste natif, sans reattache ou correction visuelle.
+
+About → Menu appearance : taille de police du menu de 10 a 32 px, saisie exacte et Default 13 px, enregistree dans [Overlay] FontSize. Curseur et fenetres du mod gardent leur fonctionnement ; autres overlays et jeu hors du scope de cette taille. INI personnel conserve, cle absente = taille d'origine.
+
+Refus d'un transfert indisponible : le resolveur garde la classe/icone et le debloquage natifs du slot, puis bloque seulement son utilisation ; il ne renvoie plus une classe vide. Une capacite encore verrouillee reste verrouillee. Ce changement traite un defaut confirme du code, sans attribuer une cause runtime non capturee a Rampage.
+
+169 cles INI (une ajout), 55 ID Hotkeys et anciens reglages preserves ; 166 archives precedentes intactes, debug seulement. Installation manuelle jeu ferme, garder INI/raccourcis/PAK/sauvegardes. P2 reporte. [Contrat, preuves, essais et repli](docs/V1_102_STONESKIN_MENU_FONT_TEST.md).
+
+Test groupe : police et reouverture du menu ; Stoneskin Strife/War (cout, protection et expiration, fin du cast/retour Native) ; controle de l'icone apres ancienne selection Rampage et bref controle des quatre transferts valides. Aucun nouveau resultat en jeu annonce.
+
+---
+
 ## V1.101 - lot Rampage Strife / rayon War, controle des joueurs explicite
 
 **CONSTRUITE / CONTROLEE : [58/58 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40191183951), zero avertissement/erreur MSVC. [ZIP immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/417e6047dd3857850e6f55dd82cbdb83c0470a20/downloads/DarksidersGenesis_V1.101_STRIFE_RAMPAGE_WAR_BEAM_TEST.zip) - [Recu](docs/V1_101_DELIVERY_RECEIPT.md). Corrections War et Rampage Strife EXPERIMENTALES, NON VALIDEES EN JEU ; base V1.98 validee.**

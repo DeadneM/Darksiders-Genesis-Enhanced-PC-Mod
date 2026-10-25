@@ -2,6 +2,7 @@
 #include "WrathSlotSettings.h"
 
 #include "DefaultSettings.h"
+#include "MenuAppearance.h"
 #include "CameraBlurSettings.h"
 #include <array>
 #include <atomic>
@@ -254,6 +255,7 @@ class Store {
 public:
     bool overlayEnabled = true;
     int menuKey = defaults::MenuKey;
+    float menuFontSize = menu::DefaultFontSize;
     int graphicsAdapter = 0;
     bool updaterAutoCheck = false;
     bool updaterBeta = defaults::UpdaterBeta; // OFF=main stable, ON=debug beta

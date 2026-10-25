@@ -1,6 +1,5 @@
 #include "ForeignMontage.h"
 #include "NativeObjectName.h"
-#include "NativePropertyField.h"
 #include "NativeTpsFeature.h"
 #include <array>
 #include <atomic>
@@ -405,98 +404,4 @@ void* Retarget(uintptr_t original,const Source& source,bool beam){
 }
 void* Compatible(uintptr_t original,const Source& source){return Retarget(original,source,false);}
 void* WorldEnder(uintptr_t original,const Source& source){return Retarget(original,source,true);}
-namespace {
-struct MotionLayout {uintptr_t cls=0;Array tracks{},segments{},sections{},events{},markers{},states{};};
-int RampageAsset(uintptr_t p){
-    constexpr const char* names[]={"War_Atk_Rampage_Start_Montage","War_Atk_Rampage_Land_Montage",
-        "War_Atk_Rampage_Strike_Level1_Montage","War_Atk_Rampage_Strike_Level2_Montage","War_Atk_Rampage_Strike_Level3_Montage"};
-    uintptr_t package=0;if(!Read(p,0x20,package))return -1;
-    for(int i=0;i<5;++i)if(Named(p,names[i])){char path[200]{};sprintf_s(path,"/Game/Characters/Heroes/Hero_War/Animation/%s",names[i]);return Named(package,path)?i:-1;}
-    return -1;
-}
-bool MotionShape(uintptr_t p,int kind,MotionLayout& out){
-    uintptr_t cls=0,skeleton=0;float length=0,rate=0;Name slot{};
-    if(kind<0||kind>4||!Read(p,0x10,out.cls)||!Is(out.cls,"AnimMontage")||!Read(out.cls,0x10,cls)||!Is(cls,"Class")||
-       !Read(p,0x38,skeleton)||!Is(skeleton,"War_Mesh_Skeleton")||!Read(p,0x90,length)||
-       !std::isfinite(length)||std::fabs(length-(kind==0?1.4f:(kind==1?1.3666667f:1.2666667f)))>.00001f||
-       !Read(p,0x94,rate)||rate!=1||!List(p,0x158,out.tracks,4)||out.tracks.count!=1||
-       !Read(out.tracks.data,0,slot)||!native_objects::NameValueIs(g_base,slot.index,slot.number,"TPS")||
-       !List(out.tracks.data,8,out.segments,4)||out.segments.count!=(kind==0?2:1)||
-       !List(p,0x148,out.sections,4)||out.sections.count!=(kind==0?2:1)||!List(p,0x80,out.events,128)||
-       !List(p,0x180,out.markers,256)||!List(p,0x190,out.states,128)||!Empty(p,0x128)||!Empty(p,0x138)||!Empty(p,0x168))return false;
-    for(int i=0;i<out.segments.count;++i){
-        Segment s{};uintptr_t sequenceSkeleton=0,package=0;unsigned char motion=0;char path[200]{};
-        const char* name=kind==0?(i?"War_Atk_Rampage_Run":"War_Atk_Rampage_Start"):(kind==1?"War_Dash_F_Air_Land":"War_Atk_Rampage_Strike");
-        sprintf_s(path,"/Game/Characters/Heroes/Hero_War/Animation/%s",name);
-        if(!Read(out.segments.data,size_t(i)*sizeof(Segment),s)||!Read(s.sequence,0x10,cls)||!Is(cls,"AnimSequence")||!Named(s.sequence,name)||
-           !Read(s.sequence,0x20,package)||!Named(package,path)||!Read(s.sequence,0x38,sequenceSkeleton)||sequenceSkeleton!=skeleton||
-           s.valid!=1||s.loops!=1||s.rate!=1||s.first!=0||!std::isfinite(s.last)||
-           std::fabs(s.last-(kind==0?(i?1.0666667f:.33333334f):length))>.00001f||
-           std::fabs(s.start-(i?.33333334f:0.f))>.00001f||
-           (kind==0&&(!Read(s.sequence,0x1A1,motion)||motion!=1)))return false;
-    }
-    return true;
-}
-template<size_t Stride> bool Separate(const Array& original,const Array& copy){
-    if(copy.count!=original.count||(original.data&&copy.data==original.data))return false;
-    if(!original.count)return true;
-    const size_t bytes=size_t(original.count)*Stride;
-    if(!Writable(copy.data,bytes))return false;
-    // Read through the same bounded memory reader before comparing the arrays.
-    for(size_t at=0;at<bytes;at+=Stride){std::array<unsigned char,Stride> a{},b{};if(!Read(original.data,at,a)||!Read(copy.data,at,b)||a!=b)return false;}
-    return true;
-}
-bool MotionNotify(Event& event,uintptr_t montage,const Source& source){
-    uintptr_t notify=0,cls=0;std::memcpy(&notify,event.data()+0x48,8);
-    if(!notify)return true;
-    if(!Read(notify,0x10,cls))return false;
-    if(Is(cls,"AnimNotify_PlayParticleEffect"))return AdaptRoot(event,montage,source);
-    if(!Is(cls,"AnimNotify_SpawnBlast"))return true;
-    // Slam impacts are authored at War's hand. Bind the private impact notify
-    // to Strife's root; retain the exact native blast class and other payload.
-    Name socket{};uintptr_t blast=0;int socketAt=0,blastAt=0;
-    if(!native_objects::PropertyField(g_base,cls,"SpawnSocket","NameProperty",8,socketAt)||
-       !native_objects::PropertyField(g_base,cls,"BlastClass","ClassProperty",8,blastAt)||
-       !Read(notify,size_t(socketAt),socket)||!native_objects::NameValueIs(g_base,socket.index,socket.number,"Bone_War_Hand_L")||
-       !Read(notify,size_t(blastAt),blast)||!blast)return false;
-    const auto copy=reinterpret_cast<uintptr_t>(g_construct(reinterpret_cast<void*>(cls),reinterpret_cast<void*>(montage),{},0x40u,0,reinterpret_cast<void*>(notify),false,nullptr,false));
-    uintptr_t actual=0,outer=0,copiedBlast=0;uint32_t flags=0;
-    if(!copy||copy==notify||!Read(copy,0x10,actual)||actual!=cls||!Read(copy,0x20,outer)||outer!=montage||
-       !Read(copy,8,flags)||(flags&0x30u)||!(flags&0x40u)||!Read(copy,size_t(blastAt),copiedBlast)||copiedBlast!=blast||
-       !Store(copy,size_t(socketAt),Name{source.rootIndex,source.rootNumber}))return false;
-    std::memcpy(event.data()+0x48,&copy,8);return true;
-}
-}
-void* RampageMotion(uintptr_t original,const Source& source){
-    if(!g_ready||!g_construct||!g_package||!g_skeleton||!native_tps::OnGameThread()||
-       !native_objects::NameValueIs(g_base,source.slotIndex,source.slotNumber,"DefaultSlot")||
-       !native_objects::NameValueIs(g_base,source.rootIndex,source.rootNumber,"Bone_Strife_Root")||!Is(source.skeleton,"Strife_Skeleton"))return nullptr;
-    // CanBuild's shared idle contract expects TPS; the private output uses the
-    // unused DefaultSlot, independently verified against the live Strife graph.
-    uintptr_t cls=0,idleSkeleton=0;float length=0,rate=0;
-    if(!Read(source.sequence,0x10,cls)||!Is(cls,"AnimSequence")||!Is(source.sequence,"Strife_Idle")||
-       !Read(source.sequence,0x38,idleSkeleton)||idleSkeleton!=source.skeleton||!Read(source.sequence,0x90,length)||
-       !std::isfinite(length)||length<=.1f||length>=10||!Read(source.sequence,0x94,rate)||rate!=1||!Empty(source.sequence,0x80))return nullptr;
-    const int kind=RampageAsset(original);MotionLayout before{},after{};
-    const auto outer=reinterpret_cast<uintptr_t>(g_package());
-    if(!Read(outer,0x10,cls)||!Is(cls,"Package")||!Is(outer,"/Engine/Transient")||!MotionShape(original,kind,before))return nullptr;
-    auto* created=g_construct(reinterpret_cast<void*>(before.cls),reinterpret_cast<void*>(outer),{},0x40u,0,reinterpret_cast<void*>(original),false,nullptr,false);
-    const auto copy=reinterpret_cast<uintptr_t>(created);uintptr_t actual=0;uint32_t flags=0;
-    if(!copy||copy==original||!Read(copy,0x20,actual)||actual!=outer||!Read(copy,8,flags)||(flags&0x30u)||!(flags&0x40u)||
-       !MotionShape(copy,kind,after)||after.cls!=before.cls||!Separate<32>(before.segments,after.segments)||
-       !Separate<88>(before.sections,after.sections)||!Separate<184>(before.events,after.events)||
-       !Separate<12>(before.markers,after.markers)||!Separate<4>(before.states,after.states)||
-       after.tracks.data==before.tracks.data||!Writable(after.tracks.data,24))return nullptr;
-    // Motion clips, loop sections, branching caches and native cue times stay
-    // intact. Only private skeleton/slot/link targets and impact sockets change.
-    for(int i=0;i<after.events.count;++i){
-        Event event{};const auto at=after.events.data+size_t(i)*sizeof(Event);
-        if(!Read(at,0,event)||!MotionNotify(event,copy,source)||!Store(at,0,event)||!Store(at,8,copy)||!Store(at,0x68,copy))return nullptr;
-    }
-    for(int i=0;i<after.sections.count;++i)if(!Store(after.sections.data+size_t(i)*88,8,copy))return nullptr;
-    if(!Store(after.tracks.data,0,Name{source.slotIndex,source.slotNumber}))return nullptr;
-    g_skeleton(created,reinterpret_cast<void*>(source.skeleton));
-    if(!Read(copy,0x38,actual)||actual!=source.skeleton)return nullptr;
-    return created;
-}
 }
