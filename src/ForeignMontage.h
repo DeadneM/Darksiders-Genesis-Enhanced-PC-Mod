@@ -19,4 +19,6 @@ void* Geyser(uintptr_t nativeMontage,const Source&);
 void* Compatible(uintptr_t nativeMontage,const Source&);
 // War-owned World Ender: finite native beam timeline and cancellation states.
 void* WorldEnder(uintptr_t nativeMontage,const Source&);
+// Root motion uses the first track, on a slot absent from the live graph.
+void* RampageMotion(uintptr_t nativeMontage,const Source&);
 }

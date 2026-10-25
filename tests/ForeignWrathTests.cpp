@@ -65,7 +65,7 @@ void Cast(){HookPlay(f.ability,f.montage,.75f,Name{0,0});}
 void Run(){
  std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(nameChunks));for(unsigned i=0;i<24;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
  Fresh();uintptr_t cls=0;Check(Prepare(f.actor,cls,4)&&cls==reinterpret_cast<uintptr_t>(f.power),"ready Geyser retains own class");
- Check(!Prepare(f.actor,cls,5)&&Status(5)==0,"rejected Rampage cannot be requested or adapted");
+ Check(!Prepare(f.actor,cls,5)&&Status(5)!=2,"Rampage remains unavailable until its separate asset/motion contract is ready");
  uintptr_t result=0;bool unlocked=false,affordable=true;Resolve(Resolver,f.actor,&result,{9,2},&unlocked,&affordable,cls);
  Check(result==cls&&unlocked&&!affordable&&resolves==1&&!getters&&!g_override,"scoped class override preserves native unlock/cost and one resolve");
  HookGetter(f.actor,&result,{9,2});Check(result==0xCAFE&&getters==1,"ordinary class lookup stays native");
@@ -98,6 +98,7 @@ bool CanBuild(const Source& s){return helperReady&&s.sequence==reinterpret_cast<
 void* Geyser(uintptr_t m,const Source& s){++builds;Check(m==reinterpret_cast<uintptr_t>(f.montage)&&CanBuild(s)&&s.rootIndex==14,"own source/root reach Geyser builder");return buildOK?f.replacement:nullptr;}
 void* Compatible(uintptr_t,const Source&){return nullptr;}
 void* WorldEnder(uintptr_t,const Source&){return nullptr;}
+void* RampageMotion(uintptr_t,const Source&){return nullptr;}
 }
 namespace dg::native_tps {bool OnGameThread(){return gameThread;}}
 namespace dg::local_players {bool ResolveActor(void*,Context& c){c=owner;return local;}}

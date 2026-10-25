@@ -81,9 +81,15 @@ void Run(){
     const auto failOpen=[](const char* why){Check(Invoke(0,2)==Id(0,2),why);};
     Fresh();dg::runtime::Get().wrathSlots[0][0]=2;Put(resources[0],0x3EC,Id(0,2));failOpen("duplicate native IDs reject the complete mapping");
     Fresh();dg::runtime::Get().wrathSlots[0][0]=2;Put(resources[0],0x3F4,Id(1,4));failOpen("foreign resource family rejects mapping");
-    Fresh();dg::runtime::Get().wrathSlots[0][0]=5;failOpen("rejected Rampage transfer falls back to Native even in stale runtime config");
+    Fresh();dg::runtime::Get().wrathSlots[0][0]=7;failOpen("unknown transfer falls back to Native even in corrupt runtime config");
     Fresh();dg::runtime::Get().wrathSlots[0][0]=4;foreignReady=true;
     Check(Invoke(0,2)==Id(0,2)&&foreignResolves==1,"Geyser selects its foreign class while keeping the native semantic slot");
+    for(unsigned slot=0;slot<3;++slot){
+        Fresh();dg::runtime::Get().wrathSlots[0][slot]=5;foreignReady=true;
+        Check(Invoke(0,int(slot+2))==Id(0,int(slot+2))&&foreignResolves==1&&calls.size()==1,"Rampage retains each native semantic slot unlock/cost ABI");
+    }
+    Fresh();dg::runtime::Get().wrathSlots[0][0]=5;
+    {uintptr_t out=123;bool a=true,b=true;HookResolve(actors[0],&out,Id(0,2),&a,&b);Check(out&&a&&!b,"unavailable Rampage keeps native class/icon and unlock while blocking cast");}
     for(unsigned slot=0;slot<3;++slot)for(int choice:{2,3}){
         Fresh();dg::runtime::Get().wrathSlots[1][slot]=choice;foreignReady=true;
         Check(Invoke(1,int(slot+2))==Id(1,int(slot+2))&&foreignResolves==1&&calls.size()==1,"Caltrops on War retains each original slot unlock/cost ABI and one native resolve");
@@ -117,7 +123,7 @@ void Config(){
     using namespace dg::config;using namespace dg::wrath_slots;
     static_assert(int(Action::Count)==55);
     static_assert(Supported(0,6)&&Foreign(0,6)&&Supported(1,6)&&!Foreign(1,6)&&NativeNumber(1,6)==4&&Supported(0,4)&&Foreign(0,4)&&Supported(1,1)&&Foreign(1,1));
-    static_assert(Supported(1,3)&&Foreign(1,3)&&NativeNumber(1,3)==0&&!Supported(0,5)&&Supported(1,2)&&Foreign(1,2));
+    static_assert(Supported(1,3)&&Foreign(1,3)&&NativeNumber(1,3)==0&&Supported(0,5)&&Foreign(0,5)&&Supported(1,2)&&Foreign(1,2));
     wchar_t directory[MAX_PATH]{},path[MAX_PATH]{};
     Check(GetTempPathW(MAX_PATH,directory)&&GetTempFileNameW(directory,L"DGW",0,path),"temporary config created");
     Store a;a.SetPath(path);Check(a.Load()&&a.wrathSlots==Choices{},"missing six keys preserve native mapping");
@@ -132,7 +138,7 @@ void Config(){
     WritePrivateProfileStringW(L"Values",Keys[0][0],L"6",path);Check(b.Load()&&b.wrathSlots[0][0]==6&&dg::runtime::Get().wrathSlots[0][0].load()==6,"Stoneskin uses its reserved ID without changing keys");
     WritePrivateProfileStringW(L"Values",Keys[1][0],L"3",path);Check(b.Load()&&b.wrathSlots[1][0]==3&&dg::runtime::Get().wrathSlots[1][0].load()==3&&b.menuKey==0xC0,"War Caltrops choice loads using existing key while custom menu binding remains intact");
     WritePrivateProfileStringW(L"Values",Keys[0][0],L"5",path);WritePrivateProfileStringW(L"Values",Keys[1][0],L"2",path);
-    Check(b.Load()&&b.wrathSlots[0][0]==0&&b.wrathSlots[1][0]==2,"rejected Strife Rampage restores Native; accepted World Ender preserved");
+    Check(b.Load()&&b.wrathSlots[0][0]==5&&b.wrathSlots[1][0]==2,"Rampage uses its reserved choice ID; accepted World Ender preserved");
     b.ResetDefaults(false);Check(b.wrathSlots==Choices{},"reset restores all native powers");DeleteFileW(path);
 }
 }

@@ -3,6 +3,7 @@
 #include "ForeignCaltropsFeature.h"
 #include "ForeignPowerFeature.h"
 #include "ForeignBeamFeature.h"
+#include "ForeignRampageFeature.h"
 #include "NativeObjectName.h"
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
@@ -77,10 +78,11 @@ bool Source(uintptr_t actor,Animation& out){
         native_objects::NameValueIs(g_base,out.slot.index,out.slot.number,"TPS")&&(out.sequence=idle.sequence)!=0;
 }
 void Scan(uintptr_t generatedClass){
-    if(foreign_beam::InvalidateAssets()){g_cursor=0;g_complete=false;}
+    const bool beamChanged=foreign_beam::InvalidateAssets(),rampageChanged=foreign_rampage::InvalidateAssets();
+    if(beamChanged||rampageChanged){g_cursor=0;g_complete=false;}
     if(g_geyser&&!Alive(g_geyser)){g_geyser={};g_geyserReady=false;g_cursor=0;g_complete=false;}
     if(g_stone&&!Alive(g_stone)){g_stone={};g_cursor=0;g_complete=false;}
-    if(g_geyser){g_geyserReady=true;if(foreign_montage::GesturesReady()&&foreign_beam::AssetsReady()&&g_stone)return;}
+    if(g_geyser){g_geyserReady=true;if(foreign_montage::GesturesReady()&&foreign_beam::AssetsReady()&&g_stone&&foreign_rampage::AssetsReady())return;}
     uintptr_t chunks=0;int count=0;
     if(!Read(g_base,0x3959680,chunks)||!Read(g_base,0x3959694,count)||count<=0||count>2000000)return;
     if(count!=g_count){if(count<g_count)g_cursor=0;g_count=count;g_complete=false;}
@@ -89,7 +91,7 @@ void Scan(uintptr_t generatedClass){
         uintptr_t chunk=0,object=0,cls=0;uint32_t flags=0;
         if(!Read(chunks,size_t(g_cursor/65536)*8,chunk)||!Read(chunk,size_t(g_cursor%65536)*24,object)||!object||
            !Read(chunk,size_t(g_cursor%65536)*24+8,flags)||(flags&0x30000000u)||!Read(object,0x10,cls))continue;
-        foreign_beam::ObserveObject(object);
+        foreign_beam::ObserveObject(object);foreign_rampage::ObserveObject(object);
         if(Is(cls,"AnimSequence"))foreign_montage::ObserveSequence(object);
         if(cls!=generatedClass)continue;
         if(!g_geyser&&GeyserClass(object))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(object),g_geyser);
@@ -99,7 +101,7 @@ void Scan(uintptr_t generatedClass){
 }
 uintptr_t* HookGetter(void* actor,uintptr_t* result,Name id){
     const auto* request=g_override;
-    if(g_ready&&request&&request->actor==actor&&request->id==id&&result&&native_tps::OnGameThread()&&(Kind(request->abilityClass)||foreign_caltrops::IsClass(request->abilityClass)||foreign_power::IsClass(request->abilityClass)||foreign_beam::IsClass(request->abilityClass))){
+    if(g_ready&&request&&request->actor==actor&&request->id==id&&result&&native_tps::OnGameThread()&&(Kind(request->abilityClass)||foreign_caltrops::IsClass(request->abilityClass)||foreign_power::IsClass(request->abilityClass)||foreign_beam::IsClass(request->abilityClass)||foreign_rampage::IsClass(request->abilityClass))){
         *result=request->abilityClass;return result;
     }
     return g_getter?g_getter(actor,result,id):result;
@@ -160,7 +162,7 @@ void HookPlay(void* ability,void* montage,float rate,Name section){
     local_players::Context c{};
     if(!g_play)return;
     if(foreign_caltrops::HandlePlay(g_play,ability,montage,rate,section)||foreign_power::HandlePlay(g_play,ability,montage,rate,section)||
-       foreign_beam::HandlePlay(g_play,ability,montage,rate,section))return;
+       foreign_beam::HandlePlay(g_play,ability,montage,rate,section)||foreign_rampage::HandlePlay(g_play,ability,montage,rate,section))return;
     if(ForeignLaunch(ability,c)){if(auto* recent=GeyserActor(c.index))*recent={};g_finish(ability,0);return;}
     const int choice=ForeignCast(ability,c);
     if(!choice){g_play(ability,montage,rate,section);return;}
@@ -211,11 +213,12 @@ void Initialize(LogFn log,bool exactExecutable){
     if(!std::memcmp(reinterpret_cast<void*>(g_base+0x168A410),create,sizeof(create)))g_create=reinterpret_cast<Create>(g_base+0x168A410);
     foreign_caltrops::Initialize(log,exactExecutable);
     foreign_power::Initialize(log,exactExecutable);
-    foreign_beam::Initialize(log,exactExecutable);
-    if(log)log("Foreign Wrath V1.102 READY: validated Geyser/Caltrops/Clone/War beam; Stoneskin Strife EXPERIMENTAL; rejected Rampage removed");
+    foreign_beam::Initialize(log,exactExecutable);foreign_rampage::Initialize(log,exactExecutable);
+    if(log)log("Foreign Wrath V1.104 READY: accepted Geyser/Caltrops/Clone/War beam/Stoneskin preserved; Rampage Strife native-motion candidate");
 }
 int Status(int choice){
     if(choice==6){g_requested=true;return !g_ready||!g_create||g_stoneFailed?0:(Alive(g_stone)?2:1);}
+    if(choice==5){g_requested=true;return foreign_rampage::Status();}
     if(choice>=1&&choice<=4)g_requested=true;
     if(choice==2)return foreign_beam::Status();
     if(choice==3)return foreign_caltrops::Status();
@@ -224,9 +227,9 @@ int Status(int choice){
     return foreign_montage::Ready()&&!g_geyserFailed?(g_geyserReady?2:1):0;
 }
 void Observe(const local_players::Context& owner){
-    foreign_caltrops::Observe(owner);foreign_power::Observe(owner);
+    foreign_caltrops::Observe(owner);foreign_power::Observe(owner);foreign_rampage::Observe(owner);
     if(!g_ready||!native_tps::OnGameThread())return;
-    bool wanted=g_requested.load();for(const auto& slots:runtime::Get().wrathSlots)for(const auto& choice:slots)wanted=wanted||((choice.load()>=1&&choice.load()<=4)||choice.load()==6);
+    bool wanted=g_requested.load();for(const auto& slots:runtime::Get().wrathSlots)for(const auto& choice:slots)wanted=wanted||((choice.load()>=1&&choice.load()<=5)||choice.load()==6);
     if(!wanted||owner.index<0||owner.index>1||!owner.localPlayer||!owner.world||owner.kind!=local_players::PoseKind::Foot)return;
     if(g_world!=owner.world){g_world=owner.world;g_cursor=0;g_count=0;g_complete=false;}
     if(auto* recent=GeyserActor(owner.index);recent&&recent->address&&recent->address!=owner.character)*recent={};
@@ -241,6 +244,7 @@ bool Prepare(void* actor,uintptr_t& abilityClass,int choice){
            !Read(g_stone.address,0xF8,cdo)||!Read(cdo,0x10,cls)||cls!=g_stone.address)return false;
         abilityClass=g_stone.address;return true;
     }
+    if(choice==5){g_requested=true;return foreign_rampage::Prepare(actor,abilityClass);}
     if(choice==3)return foreign_caltrops::Prepare(actor,abilityClass);
     if(choice==1)return foreign_power::Prepare(actor,abilityClass,choice);
     if(choice==2){g_requested=true;return foreign_beam::Prepare(actor,abilityClass);}
@@ -257,5 +261,5 @@ uintptr_t* Resolve(ResolveFn native,void* actor,uintptr_t* result,Name id,bool* 
     g_override=&request;return native(actor,result,id,unlocked,affordable);
 }
 
-void Shutdown(){foreign_caltrops::Shutdown();foreign_power::Shutdown();foreign_beam::Shutdown();g_ready=false;g_geyserReady=false;}
+void Shutdown(){foreign_caltrops::Shutdown();foreign_power::Shutdown();foreign_beam::Shutdown();foreign_rampage::Shutdown();g_ready=false;g_geyserReady=false;}
 }

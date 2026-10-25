@@ -369,8 +369,8 @@ void Draw(Context& c) {
             }
             if(ImGui::CollapsingHeader("Wrath ability slots (experimental)")){
                 ImGui::Indent(12.0f);
-                ImGui::TextWrapped("Validated transfers: Clone, Caltrops and World Ender on War; Geyser on Strife. Stoneskin is selectable for both: native on War, native protection with a compatible Strife casting pose on Strife (experimental). War's stone material, launch shockwave and weapon effects are not copied. Rejected Rampage transfer removed; Rampage on War stays native.");
-                int status[7]={2,wrath_slots::ForeignStatus(1),wrath_slots::ForeignStatus(2),wrath_slots::ForeignStatus(3),wrath_slots::ForeignStatus(4),0,wrath_slots::ForeignStatus(6)};
+                ImGui::TextWrapped("Validated transfers: Clone, Caltrops and World Ender on War; Geyser and Stoneskin on Strife. Stoneskin and Rampage on War stay native. Experimental Rampage on Strife: native motion, loop, collision and finish with Strife's own locomotion pose. No dedicated War charge/strike pose is displayed. Test movement, damage, release and a second cast. War's stone material, launch shockwave and weapon effects are not copied to Strife.");
+                int status[7]={2,wrath_slots::ForeignStatus(1),wrath_slots::ForeignStatus(2),wrath_slots::ForeignStatus(3),wrath_slots::ForeignStatus(4),wrath_slots::ForeignStatus(5),wrath_slots::ForeignStatus(6)};
                 constexpr const char* names[7]={"Native","Shadow Clone","World Ender","Caltrops","Blade Geyser","Rampage","Stoneskin"};
                 constexpr const char* familyNames[2]={"Strife","War"};
                 ImGui::BeginDisabled(!wrath_slots::Ready());

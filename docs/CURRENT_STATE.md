@@ -1,3 +1,17 @@
+## V1.104 - Rampage Strife, refus identifie et identites natives
+
+**EXPERIMENTALE, NON VALIDEE EN JEU ; compilation et livraison a controler.** Base V1.103 reception lourde validee par l'utilisateur, avec Stoneskin/police V1.102 et Geyser/Clone/Caltrops V1.98/World Ender War V1.100 conserves. Priorite explicite : Rampage sur Strife.
+
+Le releve actuel en lecture seule reproduit le refus de l'ancien garde : il exigeait le texte Upperbody_Flinches alors que le FName charge s'affiche UpperBody_Flinches. Les cinq classes de phases sont chargees ; squelette/racine/idle et proprietaires corrects. Le nouveau garde compare les vrais couples index/numero des cinq slots, verifie leur unicite et refuse le slot de mouvement s'il est rendu. Aucun changement global des comparaisons de noms.
+
+Rampage est de nouveau selectionnable dans les trois emplacements de Strife : mouvement/segments/boucle/collisions et fins natifs, montages prives, pose de locomotion propre. Mode moteur 3 verifie avant de construire : il extrait ce mouvement sans le ponderer par un slot de rendu absent. Pas de pose osseuse War imposee a Strife, vitesse manuelle, fin par timer ou touche simulee. Refus/abandon journalises et natifs ; icone/classe du slot conservee si indisponible. **Mouvement effectif, degats, relachement, collisions et fin restent a tester.**
+
+169 cles INI, 55 ID Hotkeys et defauts inchanges ; 168 anciennes archives preservees ; debug seulement. Installation manuelle jeu ferme, garder son INI/raccourcis/PAK/sauvegardes. [Contrat, preuves, limites et essais](V1_104_STRIFE_RAMPAGE_NATIVE_IDENTITY_TEST.md). P2 et effets P2 restent differes.
+
+Test : Strife a pied, Rampage sur un emplacement debloque, essai en espace libre puis face a un obstacle en vue native et TPS ; verifier deplacement/degats, relachement, reprise et deuxieme lancement. Revenir a Native si anomalie. Ne pas confondre READY avec CAST dans le journal.
+
+---
+
 ## Retour utilisateur V1.103 - reception lourde validee, priorite Rampage
 
 25 octobre 2026 : l'utilisateur confirme « 1. oui bravo ca marche / 2. oui » pour les deux points d'essai de V1.103. **Reception lourde VALIDEE dans ses essais rapportes**, sans inventer de mesures ou de validation P2. Conserver ce chemin, Stoneskin/police V1.102 et les transferts deja acceptes. Priorite explicite : poursuivre **Rampage sur Strife**, pas un autre sujet. Aucun nouveau build pour cette consignation.

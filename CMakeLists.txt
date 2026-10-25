@@ -20,7 +20,7 @@ if(BUILD_TESTING)
   target_include_directories(ForeignMontageTests PRIVATE tests/stubs src)
   target_compile_definitions(ForeignMontageTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
   add_test(NAME ForeignMontage COMMAND ForeignMontageTests)
-  add_executable(ForeignWrathTests tests/ForeignWrathTests.cpp src/ForeignCaltropsFeature.cpp src/ForeignPowerFeature.cpp src/ForeignBeamFeature.cpp src/RuntimeSettings.cpp)
+  add_executable(ForeignWrathTests tests/ForeignWrathTests.cpp src/ForeignCaltropsFeature.cpp src/ForeignPowerFeature.cpp src/ForeignBeamFeature.cpp src/ForeignRampageFeature.cpp src/RuntimeSettings.cpp)
   target_include_directories(ForeignWrathTests PRIVATE tests/stubs src)
   target_compile_definitions(ForeignWrathTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
   add_test(NAME ForeignWrath COMMAND ForeignWrathTests)
@@ -28,6 +28,14 @@ if(BUILD_TESTING)
   target_include_directories(ForeignBeamTests PRIVATE tests/stubs src)
   target_compile_definitions(ForeignBeamTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
   add_test(NAME ForeignBeam COMMAND ForeignBeamTests)
+  add_executable(ForeignRampageTests tests/ForeignRampageTests.cpp)
+  target_include_directories(ForeignRampageTests PRIVATE tests/stubs src)
+  target_compile_definitions(ForeignRampageTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+  add_test(NAME ForeignRampage COMMAND ForeignRampageTests)
+  add_executable(ForeignRampageMontageTests tests/ForeignRampageMontageTests.cpp)
+  target_include_directories(ForeignRampageMontageTests PRIVATE tests/stubs src)
+  target_compile_definitions(ForeignRampageMontageTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+  add_test(NAME ForeignRampageMontage COMMAND ForeignRampageMontageTests)
   add_executable(ForeignPowerTests tests/ForeignPowerTests.cpp src/RuntimeSettings.cpp)
   target_include_directories(ForeignPowerTests PRIVATE tests/stubs src)
   target_compile_definitions(ForeignPowerTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
@@ -357,6 +365,7 @@ add_library(DarksidersGenesisMod SHARED
   src/ForeignMontage.cpp
   src/ForeignPowerFeature.cpp
   src/ForeignBeamFeature.cpp
+  src/ForeignRampageFeature.cpp
   src/PlayerPresentationFeature.cpp
   src/CosmeticUnlockFeature.cpp
   src/LeviathanVisualFeature.cpp
