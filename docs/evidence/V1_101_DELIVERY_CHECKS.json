@@ -1,0 +1,78 @@
+{
+  "static": {
+    "base": "b5236070b950e6f78e7d48974e6031c14b442a51",
+    "branch": "debug",
+    "iniKeys": 168,
+    "hotkeyIdsUnchanged": 55,
+    "diffCheckPassed": true,
+    "validatedGeyserAndGesturesFunctionsUnchanged": true,
+    "validatedCloneAndCaltropsModulesUnchanged": true,
+    "unrelatedSourceUnchanged": true,
+    "gameplayValidated": false,
+    "explicitPlayerStateGuard": true,
+    "invalidPlayerIndexTests": [
+      -1,
+      2
+    ]
+  },
+  "ci": {
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40191183951",
+    "runId": 40191183951,
+    "jobId": 121162349696,
+    "sourceCommit": "f95fc0199a77307e22b0b97b94c47eff143e76c4",
+    "conclusion": "success",
+    "passedSuites": 58,
+    "msvcWarnings": 0,
+    "msvcErrors": 0,
+    "totals": [
+      "2026-10-25T12:04:44.1039313Z 100% tests passed out of 58",
+      "2026-10-25T12:04:44.1041001Z Total Test time (real) =   4.77 sec"
+    ],
+    "gameplayValidated": false
+  },
+  "package": {
+    "sourceCommit": "f95fc0199a77307e22b0b97b94c47eff143e76c4",
+    "archiveCommit": "417e6047dd3857850e6f55dd82cbdb83c0470a20",
+    "name": "DarksidersGenesis_V1.101_STRIFE_RAMPAGE_WAR_BEAM_TEST.zip",
+    "size": 982262,
+    "sha256": "726A539888EB11ADAF4FC1300E5737CA05C25E794A8997BF72EFF5A67ED20B2F",
+    "files": {
+      "DarksidersGenesisMod.asi": {
+        "size": 1811968,
+        "sha256": "23CCECD6A1E0C59068AFCE7A8BC63892465E9EA42F70208E5FF145391E95237B"
+      },
+      "DarksidersGenesisMod.ini": {
+        "size": 4691,
+        "sha256": "99E3EECAD438A6735DD4389D544535FF798BB7F9E9EF0E4E243BC40CC4F13524"
+      },
+      "dxgi.dll": {
+        "size": 155136,
+        "sha256": "27F374037AE74BFA0DBC77C84AE09D713708077BFB10E4C47BC324B1C4DF6CFA"
+      },
+      "README.md": {
+        "size": 70465,
+        "sha256": "7AA51C341EAD782A8EA83BB2AC6825A6424012C73F70E3AB640B8FF4B5A9B266"
+      }
+    },
+    "oldArchivesUnchanged": 165,
+    "iniKeys": 168,
+    "hotkeyIdsUnchanged": 55,
+    "amd64": true,
+    "crcValid": true,
+    "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/417e6047dd3857850e6f55dd82cbdb83c0470a20/downloads/DarksidersGenesis_V1.101_STRIFE_RAMPAGE_WAR_BEAM_TEST.zip",
+    "httpStatus": 200,
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/main": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "gameplayValidated": false
+  },
+  "runtimeValidated": false,
+  "validatedBase": "V1.98 user approved",
+  "openTransfers": [
+    "War World Ender direction and held pose",
+    "Strife Rampage native motion and finish"
+  ],
+  "stinger": "Native appearance accepted, closed"
+}

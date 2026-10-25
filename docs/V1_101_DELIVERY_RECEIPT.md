@@ -1,0 +1,17 @@
+# V1.101 - Rampage Strife et correction du rayon War
+
+**CONSTRUITE / CONTROLEE : [58/58 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40191183951), zero erreur ou avertissement MSVC. [ZIP cumulatif immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/417e6047dd3857850e6f55dd82cbdb83c0470a20/downloads/DarksidersGenesis_V1.101_STRIFE_RAMPAGE_WAR_BEAM_TEST.zip). Nouveaux chemins EXPERIMENTAUX, NON VALIDES EN JEU.**
+
+Base explicitement validee V1.98. Source cumulative V1.100 `b5236070b950e6f78e7d48974e6031c14b442a51`. Retour V1.99 partiel : rayon War fonctionne mais direction a 90 degres a droite dans les deux vues et geste repete. Ces deux defauts et Rampage Strife attendent le prochain essai ; aucun succes en jeu invente.
+
+- World Ender War : composant de tir prive aligne capsule et socket None ; ancienne recherche VFX_Aura retiree. FName complet, dont numero d'instance, conserve. Geste initial unique puis derniere image maintenue pendant Fire, idle propre pendant End. Duree, cout et callbacks natifs conserves ; camera et visee generales inchangees.
+- Rampage Strife : montage prive avec segments de mouvement Start/Run et quatre fins natifs, slot DefaultSlot non evalue par le graphe, verifie par reflexion. Squelette propre et locomotion Strife, aucune pose War imposee. Boucle, collisions, evenements et fins natives ; abandon 28/2 en cas d'echec, compagnon War borne au propre acteur/monde. Limite : pas de geste Rampage dedie ; mouvement/degats/sorties non prouves par les fixtures.
+- V1.100 intermediaire a passe 58 suites mais emis C6386. V1.101 remplace les acces variables a g_cast par PlayerCast borne explicitement P1/P2 et ajoute les index invalides -1/2 aux essais. Aucun avertissement masque. Archive V1.100 conservee sans remplacement.
+- Deux relectures concordantes : moteur MeshComponent/FName complet ; extraction de mouvement premiere piste independante de la pose ; graphe Strife exact ; sources/segments/marqueurs compares, refus des alias et proprietaires invalides. Geyser et fonctions de gestes compares a la base, modules Caltrops/Clone intacts. INI de 168 cles, defauts et 55 ID Hotkeys conserves.
+- 165 anciennes archives comparees par SHA256, 166 ZIP au total. main/archive/v1.43 verifies intacts ; debug uniquement.
+- Source compilee : `f95fc0199a77307e22b0b97b94c47eff143e76c4`. Commit archive : `417e6047dd3857850e6f55dd82cbdb83c0470a20`.
+- ZIP : 982262 octets ; SHA256 `726A539888EB11ADAF4FC1300E5737CA05C25E794A8997BF72EFF5A67ED20B2F`. Quatre fichiers racine, CRC valide, ASI et dxgi AMD64 ; README/INI compares au commit compile. Lien public HTTP 200 avec octets identiques verifies.
+
+Installation manuelle jeu ferme, garder INI/raccourcis/PAK/sauvegardes. Aucun lancement ni installation du jeu par l'agent. Essais groupes : War World Ender dans les deux vues (direction, pose, fin/relance), Strife Rampage en espace libre puis face a un obstacle (deplacement, degats, fin/reprise et relance), retour Native et trois transferts valides. P2 differe. [Contrat, limites et rollback](V1_101_STRIFE_RAMPAGE_WAR_BEAM_TEST.md).
+
+Suite : exploiter ce retour groupe avant toute promotion. Le repli entierement valide demeure V1.98 ; les archives experimentales restent disponibles. Le suivi vertical des executions, les visuels d'armes et Stinger acceptes ne sont pas remis en chantier.

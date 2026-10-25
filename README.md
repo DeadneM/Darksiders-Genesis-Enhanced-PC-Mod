@@ -1,6 +1,8 @@
 ## V1.101 - lot Rampage Strife / rayon War, controle des joueurs explicite
 
-**EXPERIMENTALE, NON VALIDEE EN JEU ; compilation et livraison a controler.** Base validee V1.98. Cumul des candidats V1.99/V1.100 : direction et pose de World Ender War, mouvement natif et fins de Rampage Strife. V1.100 a passe 58/58 suites mais l'analyse MSVC signale C6386 sur l'index du tableau d'etats ; son ZIP reste une archive intermediaire.
+**CONSTRUITE / CONTROLEE : [58/58 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40191183951), zero avertissement/erreur MSVC. [ZIP immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/417e6047dd3857850e6f55dd82cbdb83c0470a20/downloads/DarksidersGenesis_V1.101_STRIFE_RAMPAGE_WAR_BEAM_TEST.zip) - [Recu](docs/V1_101_DELIVERY_RECEIPT.md). Corrections War et Rampage Strife EXPERIMENTALES, NON VALIDEES EN JEU ; base V1.98 validee.**
+
+**EXPERIMENTALE, NON VALIDEE EN JEU ; compilation et livraison controlees ; validation en jeu requise.** Base validee V1.98. Cumul des candidats V1.99/V1.100 : direction et pose de World Ender War, mouvement natif et fins de Rampage Strife. V1.100 a passe 58/58 suites mais l'analyse MSVC signale C6386 sur l'index du tableau d'etats ; son ZIP reste une archive intermediaire.
 
 V1.101 remplace tous les acces variables a ce tableau par un resolveur borne explicite P1/P2, avec refus des indices invalides et tests -1/2. Aucune suppression d'avertissement. Les deux candidats de gameplay restent identiques : rayon dans le repere propre de War, geste unique puis pose maintenue ; Rampage en mouvement natif sur une piste non evaluee par le corps de Strife. Pas d'animation Rampage dediee annoncee.
 
