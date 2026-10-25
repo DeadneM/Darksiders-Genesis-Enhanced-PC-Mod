@@ -409,7 +409,7 @@ void Draw(Context& c) {
             ImGui::Indent(12.0f);
             DrawSectionTitle("Player");
             DrawToggleFeature(config,"Heavy landing movement recovery (experimental)","HeavyLandingRecovery",&config.heavyLandingRecoveryEnabled,
-                "Allows normal movement shortly after ground contact during the heavy landing after a high fall. Keeps the landing animation and impact effects. Does not change dashes, attacks or character swaps. Native and TPS views; test both characters.",heavy_landing::Ready());
+                "Opens the native movement interruption window shortly after a heavy landing impact. Moving can end the recovery through the game's own cancellation; staying still keeps the landing animation. Does not change dashes, attacks or character swaps. Native and TPS views; experimental, test both characters.",heavy_landing::Ready());
             DrawTunableFeature(
                 config,
                 "Movement Speed",

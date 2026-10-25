@@ -1,3 +1,15 @@
+## V1.103 - reception lourde par interruption native du mouvement
+
+**EXPERIMENTALE, NON VALIDEE EN JEU ; compilation et livraison a controler.** Base V1.102 : Stoneskin et taille de police explicitement VALIDES par l'utilisateur ; Geyser/Clone/Caltrops V1.98 et World Ender War V1.100 conserves. Rampage Strife V1.100/V1.101 reste rejete et retire.
+
+La reception lourde apres une chute utilise maintenant sa vraie fenetre native d'interruption MOVE, ouverte apres l'impact (0,15 s et sol continu 50 ms). Le moteur decide de la fin du pouvoir, du blend de l'animation et de la reprise lorsque le joueur se deplace. L'ancien correctif qui ecrivait AllowPlayerMovement et le bit d'action MOVE est retire. Pas de fin forcee, simulation de touche, changement des dashs ou ecriture de vitesse. La case existante reste OFF par defaut ; les raccourcis reaffectes suivent l'action native.
+
+169 cles INI, 55 ID Hotkeys et anciens reglages inchanges ; 167 anciennes archives preservees ; debug uniquement. Installation manuelle jeu ferme en conservant son INI/raccourcis/PAK/sauvegardes. [Contrat, preuves, limites et essais](docs/V1_103_HEAVY_LANDING_NATIVE_INTERRUPT_TEST.md). Le transfert Rampage demande encore un releve du refus exact ; aucun candidat aveugle reactive. P2 reste a tester plus tard.
+
+Essai groupe : Strife puis War, meme chute en vue native et TPS, case OFF puis ON ; maintenir le deplacement a la reception et comparer la reprise, refaire sans bouger (animation/impact natifs), puis verifier dash et attaques. Remettre OFF si le rendu ou les commandes regressent.
+
+---
+
 ## Retour utilisateur V1.102 - Stoneskin et police valides
 
 25 octobre 2026 : « stoneskin valide / taille police ok ». **Stoneskin et taille de police VALIDES par l'utilisateur dans ses essais.** Conserver ces chemins et leurs limites documentees ; aucune nouvelle mesure de degats, variante ou validation P2 inventee. World Ender War V1.100 et Geyser/Clone/Caltrops V1.98 restent retenus. Base de reprise : V1.102 avec ces acquis. Rampage Strife V1.100/V1.101 reste rejete et retire ; reception lourde toujours ouverte. Le refus d'icone indisponible n'a pas de validation visuelle distincte rapportee. Pas de nouveau build pour cette consignation.
