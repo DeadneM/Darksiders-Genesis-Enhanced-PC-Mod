@@ -1,5 +1,7 @@
 # V1.106 - Rampage et audio, version compacte cumulative
 
+**CONSTRUITE / CONTROLEE : [60/60 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40216944702), zero avertissement/erreur MSVC. [ZIP GitHub immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/a8f88bdd9d5771085d4cddf838b7384d03eb24ef/downloads/DarksidersGenesis_V1.106_RAMPAGE_FOREIGN_AUDIO_COMPACT_TEST.zip) - [Recu](V1_106_DELIVERY_RECEIPT.md). Rampage et audio V1.106 restent EXPERIMENTAUX, NON VALIDES EN JEU. Disponible pour l'updater du jeu, canal debug ; compilation uniquement GitHub, aucune installation locale.**
+
 **EXPERIMENTALE, NON VALIDEE EN JEU ; compilation et livraison a controler.** Base acceptee V1.103, avec correction Rampage/audio V1.105. [Recu V1.105](V1_105_DELIVERY_RECEIPT.md) : 60/60 suites, un C6262 a corriger.
 
 V1.106 retire le second plan Presentation de CopyLaterSounds : filtrage des sons initiaux et mise a l'echelle se font dans Sounds existant, puis tri et ecriture dans le tableau natif prive. Aucun changement du son, des callbacks ou de la logique de cast. Test ajoute pour le compactage et le tri des deux timelines, sans perte ni doublon. Le workflow porte un nom generique ; le BuildInfo compile determine toujours le numero reel et l'archive. Aucune compilation locale.

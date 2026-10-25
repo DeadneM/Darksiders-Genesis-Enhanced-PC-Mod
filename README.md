@@ -1,6 +1,8 @@
 ## V1.106 - Rampage et sons transferts, plan audio unique
 
-**EXPERIMENTALE, compilation GitHub et livraison a controler ; NON VALIDEE EN JEU.** Base fonctionnelle validee V1.103. Ce lot cumule la correction mesuree Rampage (vitesse native du depart 1,5) et la reprise des sons des pouvoirs transferee de V1.105. Regles, couts, degats et autres acquis conserves.
+**CONSTRUITE / CONTROLEE : [60/60 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40216944702), zero avertissement/erreur MSVC. [ZIP GitHub immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/a8f88bdd9d5771085d4cddf838b7384d03eb24ef/downloads/DarksidersGenesis_V1.106_RAMPAGE_FOREIGN_AUDIO_COMPACT_TEST.zip) - [Recu](docs/V1_106_DELIVERY_RECEIPT.md). Rampage et audio V1.106 restent EXPERIMENTAUX, NON VALIDES EN JEU. Disponible pour l'updater du jeu, canal debug ; compilation uniquement GitHub, aucune installation locale.**
+
+**EXPERIMENTALE, compilation GitHub et livraison controlees, essai en jeu requis ; NON VALIDEE EN JEU.** Base fonctionnelle validee V1.103. Ce lot cumule la correction mesuree Rampage (vitesse native du depart 1,5) et la reprise des sons des pouvoirs transferee de V1.105. Regles, couts, degats et autres acquis conserves.
 
 V1.105 a passe 60/60 suites Windows, mais MSVC a signale C6262 : CopyLaterSounds utilisait 18 828 octets de pile en dupliquant son plan d'evenements. V1.106 compacte et trie le meme plan en place ; pas de deuxieme plan, nouveau timer ou etat de cast. Le test couvre aussi deux sons issus des deux chronologies source, conserves et tries. Le nom du workflow devient generique, l'identite du ZIP continue de venir du BuildInfo compile. [Recu V1.105](docs/V1_105_DELIVERY_RECEIPT.md).
 
@@ -12,7 +14,7 @@ Compilation uniquement GitHub Actions ; telechargement depuis l'updater du jeu c
 
 ## V1.105 - Rampage : vitesse native, sons des capacites transferees
 
-**EXPERIMENTALE, compilation GitHub et livraison a controler ; NON VALIDEE EN JEU.** Base validee V1.103 conservee. Retour V1.104 : Rampage Strife ne se lance pas puis devient grise ; candidat REJETE dans cet essai. Sons des capacites transferees signales absents.
+**EXPERIMENTALE, compilation GitHub et livraison controlees, essai en jeu requis ; NON VALIDEE EN JEU.** Base validee V1.103 conservee. Retour V1.104 : Rampage Strife ne se lance pas puis devient grise ; candidat REJETE dans cet essai. Sons des capacites transferees signales absents.
 
 Le journal atteint bien le lancement, puis le constructeur refuse le montage. Lecture du jeu actuel : War_Atk_Rampage_Start_Montage a RateScale=1,5, alors que le garde V1.104 exigeait 1. Les quatre fins sont a 1. V1.105 exige ces valeurs mesurees et les conserve dans la copie ; aucun ralentissement force, vitesse du personnage ecrite ou retrait des controles de proprietaire. Les refus de copie/events sont maintenant distingues dans le journal.
 

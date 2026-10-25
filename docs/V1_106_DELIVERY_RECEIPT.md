@@ -1,0 +1,21 @@
+# V1.106 - Rampage et sons des capacites transferees
+
+**CONSTRUITE / CONTROLEE : [60/60 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40216944702), zero avertissement/erreur MSVC. [ZIP cumulatif immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/a8f88bdd9d5771085d4cddf838b7384d03eb24ef/downloads/DarksidersGenesis_V1.106_RAMPAGE_FOREIGN_AUDIO_COMPACT_TEST.zip). Corrections Rampage/audio EXPERIMENTALES, NON VALIDEES EN JEU.**
+
+Source compilee `dd9782e88fd2ce8d4c14d0e9746a68052a74e388` ; archive GitHub `a8f88bdd9d5771085d4cddf838b7384d03eb24ef`. Base fonctionnelle V1.103 validee ; V1.104 conservee comme archive d'un candidat Rampage rejete par l'essai utilisateur. Compilation exclusivement sur GitHub Actions, aucune compilation locale, installation ou relance du jeu par l'agent. Telechargement par l'utilisateur via l'updater debug.
+
+Le journal V1.104 atteint le constructeur puis refuse la forme ; la lecture actuelle trouve le depart Rampage a RateScale 1,5, refuse par l'ancien garde a 1. Correction a la valeur native 1,5, quatre fins a 1, sans ecriture de vitesse. Tous les gardes et le repli d'abandon conserves. Les fixtures couvrent ces taux et les copies privees ; le mouvement/degats/fin restent a prouver dans le moteur.
+
+V1.105 avait passe 60/60 suites avec C6262 (18 828 octets de pile) ; son archive est conservee. V1.106 compacte et trie Sounds en place, retire le second plan Presentation et ajoute un cas de regression a deux cues. Le nom du workflow est generique ; l'identite vient toujours du BuildInfo compile.
+
+L'audio commun utilise l'entree native Notify 0x16977D0 apres lancement confirme, avec le mesh propre du receveur. Les sons initiaux pris en charge sont exclus des plans prives Geyser/Clone/World Ender pour eviter une double lecture. Caltrops/Stoneskin recuperent aussi leurs sons plus tardifs dans le geste prive avec le meme temps reel. Cue/volume/pitch/mixer/attenuation restent natifs. Pas de nouveau hook, timer, input ou asset audio. La perte de piste Caltrops/Stoneskin est constatee dans le code ; l'absence exacte des sons deja copies a t=0 n'a pas ete mesuree dans le mixeur. Aucun resultat d'audibilite invente.
+
+- 60 suites Windows reussies, dont ForeignAudio et les contrats Rampage/5 phases. Tests source/identites/expiration/ABI, copie tardive/timing, absence de doublons dans le plan, fallback et refus verifies par fixtures ; les stubs des autres tests n'evaluent pas le moteur sonore.
+- 198 autres fichiers source/tests/config compares inchanges ; HeavyLandingFeature/tests et INI compares aussi a V1.103. Camera, visee, roues, RawInput/XInput et raccourcis conserves. 169 cles INI et 55 ID Hotkeys ; aucun nouveau parametre.
+- 170 archives anciennes comparees par SHA256, 171 ZIP au total ; main/archive/v1.43 verifies intacts.
+- ZIP 1005021 octets, SHA256 `E418764A1F8B2739E88DD936E50BFB6DB3C410580244807C58283239352429A8` ; quatre fichiers racine, CRC valide, ASI/dxgi AMD64, README/INI compares a la source compilee. HTTP 200 et octets identiques verifies sur lien immuable et lien debug.
+- Listing de l'updater debug verifie avec ses regles de selection : V1.106 est la derniere archive admissible. La fenetre du jeu n'a pas ete observee pour ce controle.
+
+Essais groupes : Rampage Strife en native/TPS, espace libre puis obstacle, deplacement/degats/relachement/retour des commandes et second cast ; puis sons Geyser/Stoneskin Strife, Clone/Caltrops/World Ender War au lancement, pendant et apres l'effet, sans doublon. Controler aussi les pouvoirs originaux sur leur personnage habituel. Garder le journal en cas de refus ou de son absent. P2 differe ; pose Rampage locomotion Strife, sons de boucle/autres composants et doublon possible Rampage a verifier.
+
+Depuis l'updater debug, garder INI/raccourcis/PAK/sauvegardes et laisser l'installation intervenir jeu ferme. Repli V1.103 avec Rampage Strife sur Native. [Contrat detaille](V1_106_RAMPAGE_FOREIGN_AUDIO_COMPACT_TEST.md). Le README embarque est celui de la source compilee, anterieur a ce recu. Suite : retour groupe puis correction du premier refus reel/son absent, pas une nouvelle capacite.
