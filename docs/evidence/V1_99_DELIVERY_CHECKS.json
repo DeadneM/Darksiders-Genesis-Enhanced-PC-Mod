@@ -1,0 +1,126 @@
+{
+  "static": {
+    "base": "f703595606a410ea9c7817de22ea626a31b9985b",
+    "branch": "debug",
+    "iniKeys": 168,
+    "hotkeyIdsUnchanged": 55,
+    "diffCheckPassed": true,
+    "validatedGeyserAndGesturesFunctionsUnchanged": true,
+    "validatedCloneAndCaltropsModulesUnchanged": true,
+    "unrelatedSourceUnchanged": true,
+    "gameplayValidated": false
+  },
+  "ci": {
+    "id": 40174981083,
+    "jobId": 121113593775,
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40174981083",
+    "sourceCommit": "d6979d568b77370791f54354bf91a683b45a6148",
+    "conclusion": "success",
+    "passedSuites": 56,
+    "msvcWarnings": 0,
+    "msvcErrors": 0,
+    "allTestsPassed": true,
+    "passedTests": [
+      "2026-10-25T08:05:53.3285700Z  1/56 Test  #1: PlayerPresentation ...............   Passed    0.14 sec",
+      "2026-10-25T08:05:53.3945619Z  2/56 Test  #2: ForeignMontage ...................   Passed    0.06 sec",
+      "2026-10-25T08:05:53.4164857Z  3/56 Test  #3: ForeignWrath .....................   Passed    0.02 sec",
+      "2026-10-25T08:05:53.4390284Z  4/56 Test  #4: ForeignBeam ......................   Passed    0.02 sec",
+      "2026-10-25T08:05:53.4608573Z  5/56 Test  #5: ForeignPower .....................   Passed    0.02 sec",
+      "2026-10-25T08:05:53.4850923Z  6/56 Test  #6: ForeignCaltrops ..................   Passed    0.02 sec",
+      "2026-10-25T08:05:53.5076488Z  7/56 Test  #7: ExecutionCamera ..................   Passed    0.02 sec",
+      "2026-10-25T08:05:53.5295032Z  8/56 Test  #8: MeleeEffect ......................   Passed    0.02 sec",
+      "2026-10-25T08:05:53.5580843Z  9/56 Test  #9: MountedJump ......................   Passed    0.03 sec",
+      "2026-10-25T08:05:53.7177771Z 10/56 Test #10: WrathSlots .......................   Passed    0.16 sec",
+      "2026-10-25T08:05:53.8880122Z 11/56 Test #11: PistolVisual .....................   Passed    0.17 sec",
+      "2026-10-25T08:05:54.0057727Z 12/56 Test #12: LeviathanVisual ..................   Passed    0.12 sec",
+      "2026-10-25T08:05:54.1336539Z 13/56 Test #13: CosmeticUnlock ...................   Passed    0.13 sec",
+      "2026-10-25T08:05:54.2485475Z 14/56 Test #14: MountedHolsters ..................   Passed    0.11 sec",
+      "2026-10-25T08:05:54.4004295Z 15/56 Test #15: UltimateDuration .................   Passed    0.15 sec",
+      "2026-10-25T08:05:54.4112242Z 16/56 Test #16: GrappleRange .....................   Passed    0.01 sec",
+      "2026-10-25T08:05:54.4220689Z 17/56 Test #17: AirJump ..........................   Passed    0.01 sec",
+      "2026-10-25T08:05:54.4419031Z 18/56 Test #18: StandardAmmo .....................   Passed    0.02 sec",
+      "2026-10-25T08:05:54.5538281Z 19/56 Test #19: GameplayExtensionsConfig .........   Passed    0.11 sec",
+      "2026-10-25T08:05:54.5740530Z 20/56 Test #20: NativeRadial .....................   Passed    0.02 sec",
+      "2026-10-25T08:05:54.5857573Z 21/56 Test #21: NativeObjectIdentity .............   Passed    0.01 sec",
+      "2026-10-25T08:05:54.6127667Z 22/56 Test #22: DashCombatFeature ................   Passed    0.03 sec",
+      "2026-10-25T08:05:54.6833555Z 23/56 Test #23: InteractionHud ...................   Passed    0.07 sec",
+      "2026-10-25T08:05:54.6944990Z 24/56 Test #24: ManualActionBindings .............   Passed    0.01 sec",
+      "2026-10-25T08:05:54.8136769Z 25/56 Test #25: HeavyLanding .....................   Passed    0.12 sec",
+      "2026-10-25T08:05:54.9858872Z 26/56 Test #26: ManualAim ........................   Passed    0.17 sec",
+      "2026-10-25T08:05:55.1728302Z 27/56 Test #27: WeaponSheathing ..................   Passed    0.19 sec",
+      "2026-10-25T08:05:55.1833973Z 28/56 Test #28: DashCombat .......................   Passed    0.01 sec",
+      "2026-10-25T08:05:55.1940938Z 29/56 Test #29: TpsCameraFocus ...................   Passed    0.01 sec",
+      "2026-10-25T08:05:55.3198767Z 30/56 Test #30: LegacyRecoveryConfig .............   Passed    0.12 sec",
+      "2026-10-25T08:05:55.4707690Z 31/56 Test #31: HotstreakConfig ..................   Passed    0.15 sec",
+      "2026-10-25T08:05:55.4907758Z 32/56 Test #32: GlideAndHorse ....................   Passed    0.02 sec",
+      "2026-10-25T08:05:55.5629653Z 33/56 Test #33: SustainConfig ....................   Passed    0.07 sec",
+      "2026-10-25T08:05:55.5835665Z 34/56 Test #34: ProjectileSpawn ..................   Passed    0.02 sec",
+      "2026-10-25T08:05:55.5937232Z 35/56 Test #35: TpsAimTarget .....................   Passed    0.01 sec",
+      "2026-10-25T08:05:55.6135080Z 36/56 Test #36: LocalGameplayIsolation ...........   Passed    0.02 sec",
+      "2026-10-25T08:05:55.6237085Z 37/56 Test #37: LocalPlayerOwnership .............   Passed    0.01 sec",
+      "2026-10-25T08:05:55.6336894Z 38/56 Test #38: CoopCameraIsolation ..............   Passed    0.01 sec",
+      "2026-10-25T08:05:55.6434377Z 39/56 Test #39: ControllerReadScope ..............   Passed    0.01 sec",
+      "2026-10-25T08:05:55.6529219Z 40/56 Test #40: TpsStickRoles ....................   Passed    0.01 sec",
+      "2026-10-25T08:05:55.6626428Z 41/56 Test #41: GaugeRequests ....................   Passed    0.01 sec",
+      "2026-10-25T08:05:55.7311029Z 42/56 Test #42: GaugeHotkeys .....................   Passed    0.07 sec",
+      "2026-10-25T08:05:55.9056963Z 43/56 Test #43: UltimateCameraConfig .............   Passed    0.17 sec",
+      "2026-10-25T08:05:55.9164815Z 44/56 Test #44: PotionPolicies ...................   Passed    0.01 sec",
+      "2026-10-25T08:05:56.1301156Z 45/56 Test #45: PotionConfig .....................   Passed    0.21 sec",
+      "2026-10-25T08:05:56.1405936Z 46/56 Test #46: ResourceGains ....................   Passed    0.01 sec",
+      "2026-10-25T08:05:56.1502651Z 47/56 Test #47: GaugeUnlimited ...................   Passed    0.01 sec",
+      "2026-10-25T08:05:56.1600734Z 48/56 Test #48: WarningPresentation ..............   Passed    0.01 sec",
+      "2026-10-25T08:05:56.1697757Z 49/56 Test #49: AmmoConsumption ..................   Passed    0.01 sec",
+      "2026-10-25T08:05:56.3727738Z 50/56 Test #50: AmmoConfig .......................   Passed    0.20 sec",
+      "2026-10-25T08:05:56.4614398Z 51/56 Test #51: ConfigWriteFailures ..............   Passed    0.09 sec",
+      "2026-10-25T08:05:56.4721259Z 52/56 Test #52: UpdateVersion ....................   Passed    0.01 sec",
+      "2026-10-25T08:05:57.0804334Z 53/56 Test #53: UserDefaultsConfig ...............   Passed    0.61 sec",
+      "2026-10-25T08:05:57.0995762Z 54/56 Test #54: OverlayBindingScope ..............   Passed    0.02 sec",
+      "2026-10-25T08:05:57.1180766Z 55/56 Test #55: UpdateNotice .....................   Passed    0.02 sec",
+      "2026-10-25T08:05:57.9034457Z 56/56 Test #56: UpdateEngineSafety ...............   Passed    0.78 sec"
+    ]
+  },
+  "package": {
+    "sourceCommit": "d6979d568b77370791f54354bf91a683b45a6148",
+    "archiveCommit": "030d79dc867acc19431c3b710b5b9eb62ce60818",
+    "name": "DarksidersGenesis_V1.99_WAR_WORLD_ENDER_NATIVE_COMPONENT_TEST.zip",
+    "size": 967545,
+    "sha256": "CF2C838EE951227FE79B83A0C9B8666445DDE877999277AF5A90B964D63A15F4",
+    "files": {
+      "DarksidersGenesisMod.asi": {
+        "size": 1778688,
+        "sha256": "D6EF8422DF6422AEB2D8AB180934210EFCFD5D3F81DDC774EE8F2D014A1E05B3"
+      },
+      "DarksidersGenesisMod.ini": {
+        "size": 4691,
+        "sha256": "99E3EECAD438A6735DD4389D544535FF798BB7F9E9EF0E4E243BC40CC4F13524"
+      },
+      "dxgi.dll": {
+        "size": 155136,
+        "sha256": "DFD9DCD957E59BF347157BA22B5579F7BFAA7F979D0071500AF845C698F8CFB6"
+      },
+      "README.md": {
+        "size": 66525,
+        "sha256": "631FA87A78B3E543FB8709B6BA95B65059CEC1947E823B457C380099AAF519B6"
+      }
+    },
+    "oldArchivesUnchanged": 163,
+    "iniKeys": 168,
+    "hotkeyIdsUnchanged": 55,
+    "amd64": true,
+    "crcValid": true,
+    "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/030d79dc867acc19431c3b710b5b9eb62ce60818/downloads/DarksidersGenesis_V1.99_WAR_WORLD_ENDER_NATIVE_COMPONENT_TEST.zip",
+    "httpStatus": 200,
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/main": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "gameplayValidated": false
+  },
+  "runtimeValidated": false,
+  "validatedBase": "V1.98 user approved",
+  "openTransfers": [
+    "Rampage on Strife"
+  ],
+  "stinger": "Native appearance accepted, closed"
+}

@@ -1,0 +1,17 @@
+# V1.99 - World Ender sur War
+
+**CONSTRUITE / CONTROLEE : [56/56 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40174981083), zero erreur ou avertissement MSVC. [ZIP cumulatif immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/030d79dc867acc19431c3b710b5b9eb62ce60818/downloads/DarksidersGenesis_V1.99_WAR_WORLD_ENDER_NATIVE_COMPONENT_TEST.zip). World Ender War EXPERIMENTAL, NON VALIDE EN JEU.**
+
+Base cumulative V1.98 `f703595606a410ea9c7817de22ea626a31b9985b`, maintenant VALIDEE par l'utilisateur pour les gestes Geyser Strife, Clone/Caltrops War ; effets/degats deja retenus et Stinger natif accepte. Aucun succes en jeu invente pour ce nouveau transfert.
+
+- World Ender War : vrai mesh CharacterMesh0 et socket natif VFX_Aura, composant prive enregistre/attache au bon acteur. Les champs de source de l'ability restent None ; le resolveur natif prend les valeurs du composant prive. Montage compatible conserve StartBeam/DestroyBeam uniques, duree et etats d'annulation. Ni nouveau hook, ni timer, ni chargement force, ni retarget de squelette donneur.
+- Deux relectures concordent : le vieux contrat cherchait Chaoseater, absent des 281 champs reflechis de War ; six signatures natives et la vraie AttachParent +0x108 verifiees sur l'EXE. Les anciens tests avaient invente cette propriete et conservaient du code inatteignable ; ces vestiges sont retires. Nouvelle suite avec le vrai contexte War. Modules Geyser/Caltrops/Clone et fonctions de gestes approuves compares a la base ; autres sources de jeu intactes.
+- 168 cles INI, defauts et 55 ID Hotkeys conserves. 163 anciennes archives comparees par SHA256, 164 ZIP au total. main/archive/v1.43 verifies intacts ; debug uniquement.
+- Source compilee : `d6979d568b77370791f54354bf91a683b45a6148`. Commit archive : `030d79dc867acc19431c3b710b5b9eb62ce60818`.
+- ZIP : 967545 octets ; SHA256 `CF2C838EE951227FE79B83A0C9B8666445DDE877999277AF5A90B964D63A15F4`. Quatre fichiers racine, CRC valide, ASI et dxgi AMD64 ; README/INI compares aux sources, lien public HTTP 200 et octets identiques verifies.
+
+Installation manuelle en gardant son INI, ses raccourcis, son PAK et ses sauvegardes. Aucun jeu lance ni fichier du jeu installe par l'agent. Essais : War World Ender a pied, mission, vues native et TPS ; rayon/degats/cout, directions, fin/annulation, reprise des commandes et deuxieme lancement. Retour Native puis verification Strife World Ender, Clone/Caltrops War et Geyser Strife. P2 differe. [Contrat, limites et test detaille](V1_99_WAR_WORLD_ENDER_NATIVE_COMPONENT_TEST.md).
+
+Rampage Strife reste indisponible. Boucle et cycle de fin natifs identifies, mais leur mouvement vient des animations War. L'extraction exacte est confirmee dans UAnimMontage::ExtractRootMotionForTrackRange a 0x168E5E0 : premiere piste du montage seulement (+0x158, puis +8 pour AnimTrack, appel 0x1655880). Cela ouvre une piste pour separer mouvement et pose ; la compatibilite, l'evaluation du squelette et les fins de charge ne sont pas encore demontrees. Aucune telle piste cachee ni adaptation de mouvement n'est livree. Prochaine etape : resoudre ce transfert sans reprendre la boucle idle de V1.96 qui bloquait Strife.
+
+Repli : ZIP V1.98 valide, fichiers ASI/dxgi restaures jeu ferme, INI personnel conserve. Le rendu, l'orientation, les sons, les variantes/coeurs, les chargements et l'annulation de World Ender sur War restent a approuver en jeu. CI et fixtures ne prouvent ni le rendu ni les degats.

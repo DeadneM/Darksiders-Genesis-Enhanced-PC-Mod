@@ -1,5 +1,7 @@
 # V1.99 - World Ender sur War
 
+**CONSTRUITE / CONTROLEE : [56/56 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40174981083), zero avertissement/erreur MSVC. [ZIP immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/030d79dc867acc19431c3b710b5b9eb62ce60818/downloads/DarksidersGenesis_V1.99_WAR_WORLD_ENDER_NATIVE_COMPONENT_TEST.zip) - [Recu](V1_99_DELIVERY_RECEIPT.md). World Ender War EXPERIMENTAL, NON VALIDE EN JEU ; base V1.98 validee.**
+
 ## Base, objectif et statut
 
 Base cumulative `f703595606a410ea9c7817de22ea626a31b9985b` et ZIP V1.98. L'utilisateur vient de confirmer « oui tester et approuver » pour les gestes Geyser Strife et Clone/Caltrops War ; ces chemins sont maintenant VALIDES dans les cas rapportes. Stinger : rendu natif dorsal accepte, dossier cloture. V1.99 est un nouveau candidat EXPERIMENTAL ; les tests de fixtures et la CI ne constituent pas une validation en jeu.
