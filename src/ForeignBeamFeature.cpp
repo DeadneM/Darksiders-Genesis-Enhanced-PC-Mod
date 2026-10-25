@@ -23,7 +23,7 @@ std::atomic_bool g_ready{false},g_failed{false};
 native_objects::Identity g_power{},g_component{},g_idle{};
 struct Owned {native_objects::Identity actor{},component{};};Owned g_owned[2]{};
 struct Array {uintptr_t data=0;int count=0,capacity=0;};
-struct Source {foreign_montage::Source animation{};uintptr_t mesh=0,root=0;Name meshName{0,0},socket{0,0};};
+struct Source {foreign_montage::Source animation{};uintptr_t mesh=0,root=0;};
 thread_local void* g_handling=nullptr;
 template<class T> bool Read(uintptr_t p,size_t at,T& value){native_objects::MemoryReader r;return r.Read(p,at,value);}
 template<size_t N> bool Is(uintptr_t p,const char (&text)[N]){return native_objects::NameIs(g_base,p,text);}
@@ -50,47 +50,24 @@ bool Owner(void* live,local_players::Context& c,bool grounded){
         Read(actor,0x118,role)&&role==3&&Read(actor,0x348,controller)&&controller==c.controller&&Read(controller,0x350,pawn)&&pawn==actor&&
         (!grounded||(Read(actor,0x388,movement)&&Read(movement,0xE8,owner)&&owner==actor&&Read(movement,0x1B0,mode)&&mode==1));
 }
-bool Socket(uintptr_t object,Name& result){
-    // Native SkeletalMesh/Skeleton Sockets property, followed through bounded reflection.
-    uintptr_t cls=0;if(!Read(object,0x10,cls))return false;
-    for(int depth=0;cls&&depth<16;++depth){
-        uintptr_t field=0;if(!Read(cls,0x48,field))return false;
-        for(int n=0;field&&n<128;++n){
-            uintptr_t kind=0;int size=0,offset=0;
-            if(Is(field,"Sockets")&&Read(field,0x10,kind)&&Is(kind,"ArrayProperty")&&Read(field,0x34,size)&&size==16&&
-               Read(field,0x44,offset)&&offset>=0x28&&offset<0x1000){
-                Array sockets{};if(!Read(object,size_t(offset),sockets)||sockets.count<0||sockets.count>sockets.capacity||sockets.capacity>512||(!sockets.data&&sockets.count))return false;
-                for(int i=0;i<sockets.count;++i){
-                    uintptr_t socket=0;Name name{0,0},bone{0,0};
-                    if(Read(sockets.data,size_t(i)*8,socket)&&Read(socket,0x10,kind)&&Is(kind,"SkeletalMeshSocket")&&
-                       Read(socket,0x28,name)&&native_objects::NameValueIs(g_base,name.index,name.number,"VFX_Aura")&&
-                       Read(socket,0x30,bone)&&native_objects::NameValueIs(g_base,bone.index,bone.number,"Bone_War_Root")){result=name;return true;}
-                }
-            }
-            if(!Read(field,0x28,field))return false;
-        }
-        if(!Read(cls,0x40,cls))return false;
-    }
-    return false;
-}
 bool Animation(const local_players::Context& c,Source& out){
     uintptr_t cls=0,anim=0,asset=0,skeleton=0,owner=0;Array bones{},events{};Name root{0,0};float length=0,rate=0;
-    if(!Alive(g_idle)||!Read(c.character,0x380,out.mesh)||!Is(out.mesh,"CharacterMesh0")||!Read(out.mesh,0x18,out.meshName)||
+    if(!Alive(g_idle)||!Read(c.character,0x380,out.mesh)||!Is(out.mesh,"CharacterMesh0")||
        !Read(out.mesh,0xE8,owner)||owner!=c.character||!Read(c.character,0x158,out.root)||!Read(out.root,0xE8,owner)||owner!=c.character||
        !Read(out.mesh,0x718,anim)||!Read(anim,0x10,cls)||!Is(cls,"WarAnim_Blueprint_C")||!Read(anim,0x28,skeleton)||
        !Read(g_idle.address,0x38,out.animation.skeleton)||skeleton!=out.animation.skeleton||!Is(skeleton,"War_Mesh_Skeleton")||
        !Read(out.mesh,0x5A0,asset)||!Read(asset,0x190,bones)||!bones.data||bones.count<=0||bones.count>bones.capacity||bones.capacity>512||
        !Read(bones.data,0,root)||!native_objects::NameValueIs(g_base,root.index,root.number,"Bone_War_Root")||
        !Read(g_idle.address,0x90,length)||!std::isfinite(length)||length<=.1f||length>=10||!Read(g_idle.address,0x94,rate)||rate!=1||
-       !Read(g_idle.address,0x80,events)||events.count||(!Socket(asset,out.socket)&&!Socket(skeleton,out.socket)))return false;
+       !Read(g_idle.address,0x80,events)||events.count)return false;
     out.animation.sequence=g_idle.address;out.animation.rootIndex=root.index;out.animation.rootNumber=root.number;return true;
 }
 bool Attached(const Owned& item,const local_players::Context& c,const Source& source){
-    uintptr_t owner=0,parent=0;unsigned char registered=0;Name socket{0,0},meshName{0,0};
+    uintptr_t owner=0,parent=0;unsigned char registered=0;Name socket{0,0},meshName{0,0},actualName{0,0};
     return Alive(item.actor)&&item.actor.address==c.character&&Alive(item.component)&&
         Read(item.component.address,0xE8,owner)&&owner==c.character&&Read(item.component.address,0xAC,registered)&&(registered&1)&&
-        Read(item.component.address,0x108,parent)&&parent==source.root&&Read(item.component.address,0x698,meshName)&&meshName==source.meshName&&
-        Read(item.component.address,0x690,socket)&&socket==source.socket;
+        Read(item.component.address,0x108,parent)&&parent==source.root&&Read(item.component.address,0x18,actualName)&&Read(item.component.address,0x698,meshName)&&meshName==actualName&&
+        Read(item.component.address,0x690,socket)&&socket==Name{0,0};
 }
 void Discard(Owned& item){
     uintptr_t owner=0;
@@ -111,13 +88,17 @@ bool Helper(const local_players::Context& c,const Source& source){
     if(!Alive(state->actor)||!component||component==cdo||!Read(component,0x10,cls)||cls!=g_component.address||
        !Read(component,0x20,outer)||outer!=c.character||!Read(component,8,flags)||(flags&0x30u)||!(flags&0x40u)||
        !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(component),state->component))return false;
-    if(!Store(component,0x698,source.meshName)||!Store(component,0x690,source.socket)){Discard(*state);return false;}
+    // The private StaticMeshComponent supplies the beam's own firing frame.
+    // VFX_Aura follows War's artistic root-bone axes, not the native firing axis.
+    Name firingMesh{0,0};
+    if(!Read(component,0x18,firingMesh)||firingMesh.index<=0||firingMesh.index>=2000000||firingMesh.number<0||firingMesh.number>=2000000||
+       !Store(component,0x698,firingMesh)||!Store(component,0x690,Name{0,0})){Discard(*state);return false;}
     g_register(reinterpret_cast<void*>(component),reinterpret_cast<void*>(c.world));
     if(!Alive(state->actor)||!Alive(state->component))return false;
     uintptr_t owner=0,root=0,mesh=0;unsigned char registered=0;
     if(!Read(component,0xE8,owner)||owner!=c.character||!Read(component,0xAC,registered)||!(registered&1)||
        !Read(c.character,0x158,root)||root!=source.root||!Read(c.character,0x380,mesh)||mesh!=source.mesh){Discard(*state);return false;}
-    // Snap all three rules to this War's capsule; native beam source is its own mesh/socket.
+    // Snap to this War's capsule. None socket uses the firing component's native world frame.
     if(!g_attach(reinterpret_cast<void*>(component),reinterpret_cast<void*>(source.root),Name{0,0},2,2,2,false)||!Attached(*state,c,source)){Discard(*state);return false;}
     return true;
 }
@@ -127,7 +108,7 @@ void Stop(void* ability){
     if(Read(p,0x10,cls)&&IsClass(cls)&&Read(p,0x48,actor)&&Read(p,0x1B0,character)&&character==actor&&
        Read(p,0xD8,state)&&(state==1||state==2)&&Owner(reinterpret_cast<void*>(actor),c,false)&&
        native_objects::CaptureLive(g_base,ability,id))g_finish(ability,0);
-    if(g_log&&g_events++<12)g_log("World Ender V1.99 stopped: owned War contract unavailable; native finish, transfer disabled for session; select Native");
+    if(g_log&&g_events++<12)g_log("World Ender V1.100 stopped: owned War contract unavailable; native finish, transfer disabled for session; select Native");
 }
 }
 void Initialize(foreign_wrath::LogFn log,bool exact){
@@ -144,7 +125,7 @@ void Initialize(foreign_wrath::LogFn log,bool exact){
     g_construct=reinterpret_cast<Construct>(g_base+0xAC57A0);g_register=reinterpret_cast<Register>(g_base+0x1750880);
     g_attach=reinterpret_cast<Attach>(g_base+0x17A7310);g_destroy=reinterpret_cast<Destroy>(g_base+0x163EFA0);
     g_finish=reinterpret_cast<Finish>(g_base+0x59B080);g_playing=reinterpret_cast<Playing>(g_base+0x676620);g_ready=true;
-    if(log)log("World Ender V1.99 READY: War-owned scene component and authored VFX_Aura source; native beam lifecycle; EXPERIMENTAL");
+    if(log)log("World Ender V1.100 READY: own capsule-aligned firing component, None socket; native beam lifecycle; EXPERIMENTAL");
 }
 bool AssetsReady(){return Alive(g_power)&&Alive(g_component)&&Alive(g_idle);}
 bool InvalidateAssets(){
@@ -191,7 +172,7 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     native(ability,replacement,rate,section);
     if(!Alive(abi)||!Alive(pawn)||!Read(p,0x48,character)||character!=actor)return true;
     uintptr_t instance=0;if(!Read(p,0x1D8,instance)||!instance||!g_playing(reinterpret_cast<void*>(instance))){Stop(ability);return true;}
-    if(g_log&&g_events++<12){char text[180]{};sprintf_s(text,"World Ender V1.99 CAST player=%d: owned War mesh/VFX_Aura, compatible gesture; native StartBeam/DestroyBeam; EXPERIMENTAL",c.index+1);g_log(text);}
+    if(g_log&&g_events++<12){char text[180]{};sprintf_s(text,"World Ender V1.100 CAST player=%d: own firing frame, one gesture then held pose; native StartBeam/DestroyBeam; EXPERIMENTAL",c.index+1);g_log(text);}
     return true;
 }
 void Shutdown(){g_ready=false;for(auto& item:g_owned)item={};}

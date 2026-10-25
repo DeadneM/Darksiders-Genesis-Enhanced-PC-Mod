@@ -117,7 +117,7 @@ void Config(){
     using namespace dg::config;using namespace dg::wrath_slots;
     static_assert(int(Action::Count)==55);
     static_assert(!Supported(0,6)&&!Supported(1,6)&&Supported(0,4)&&Foreign(0,4)&&Supported(1,1)&&Foreign(1,1));
-    static_assert(Supported(1,3)&&Foreign(1,3)&&NativeNumber(1,3)==0&&!Supported(0,5)&&Supported(1,2)&&Foreign(1,2));
+    static_assert(Supported(1,3)&&Foreign(1,3)&&NativeNumber(1,3)==0&&Supported(0,5)&&Supported(1,2)&&Foreign(1,2));
     wchar_t directory[MAX_PATH]{},path[MAX_PATH]{};
     Check(GetTempPathW(MAX_PATH,directory)&&GetTempFileNameW(directory,L"DGW",0,path),"temporary config created");
     Store a;a.SetPath(path);Check(a.Load()&&a.wrathSlots==Choices{},"missing six keys preserve native mapping");
@@ -132,7 +132,7 @@ void Config(){
     WritePrivateProfileStringW(L"Values",Keys[0][0],L"6",path);Check(b.Load()&&b.wrathSlots[0][0]==0&&dg::runtime::Get().wrathSlots[0][0].load()==0,"retired choice falls back to Native without changing keys");
     WritePrivateProfileStringW(L"Values",Keys[1][0],L"3",path);Check(b.Load()&&b.wrathSlots[1][0]==3&&dg::runtime::Get().wrathSlots[1][0].load()==3&&b.menuKey==0xC0,"War Caltrops choice loads using existing key while custom menu binding remains intact");
     WritePrivateProfileStringW(L"Values",Keys[0][0],L"5",path);WritePrivateProfileStringW(L"Values",Keys[1][0],L"2",path);
-    Check(b.Load()&&b.wrathSlots[0][0]==0&&b.wrathSlots[1][0]==2,"Rampage remains rejected; experimental World Ender uses existing key and stable ID");
+    Check(b.Load()&&b.wrathSlots[0][0]==5&&b.wrathSlots[1][0]==2,"experimental Rampage and World Ender use existing keys and stable IDs");
     b.ResetDefaults(false);Check(b.wrathSlots==Choices{},"reset restores all native powers");DeleteFileW(path);
 }
 }

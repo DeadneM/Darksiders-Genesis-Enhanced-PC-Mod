@@ -9,7 +9,7 @@ using namespace dg::foreign_beam;
 struct Fixture {
  unsigned char actor[0x1100]{},controller[0x400]{},mesh[0x800]{},root[0x200]{},anim[0x80]{},movement[0x200]{},asset[0x240]{},bone[12]{},skeleton[0x200]{};
  unsigned char classes[10][0x80]{},power[0x120]{},powerPackage[0x100]{},helper[0x120]{},helperPackage[0x100]{},cdo[0x800]{},component[0x800]{};
- unsigned char idle[0x200]{},idlePackage[0x100]{},socket[0x80]{},property[0x80]{},socketPointers[8]{},ability[0x240]{},montage[0x180]{},tracks[24]{},replacement[0x200]{},instance[0x40]{},items[32*24]{};
+ unsigned char idle[0x200]{},idlePackage[0x100]{},ability[0x240]{},montage[0x180]{},tracks[24]{},replacement[0x200]{},instance[0x40]{},items[32*24]{};
 } f;
 unsigned char entries[40][256]{};uintptr_t names[40]{},nameChunks[1]{reinterpret_cast<uintptr_t>(names)},objectChunks[1]{};
 dg::local_players::Context context{};
@@ -22,7 +22,7 @@ void Label(void* p,int id,const char* text){Put(p,0x18,id);strcpy_s(reinterpret_
 dg::native_objects::Identity Live(void* p){const int id=liveId++;Put(p,0xC,id);Put(f.items,size_t(id)*24,reinterpret_cast<uintptr_t>(p));Put(f.items,size_t(id)*24+16,100+id);return {reinterpret_cast<uintptr_t>(p),id,100+id};}
 void* ConstructNative(void* cls,void* outer,Name name,uint32_t flags,uint32_t internal,void* templ,bool copy,void* graph,bool assume){
  ++constructors;Check(cls==f.helper&&outer==f.actor&&templ==f.cdo&&name==Name{0,0}&&flags==0x40&&!internal&&!copy&&!graph&&!assume,"exact nine-argument native construction, own actor and CDO");
- std::memcpy(f.component,f.cdo,sizeof(f.component));Put(f.component,8,flags);Put(f.component,0x20,context.character);Live(f.component);return f.component;
+ std::memcpy(f.component,f.cdo,sizeof(f.component));Put(f.component,8,flags);Put(f.component,0x20,context.character);Label(f.component,28,"MayhemWorldEnder_Blueprint_C");Put(f.component,0x1C,1);Live(f.component);return f.component;
 }
 void RegisterNative(void* p,void* world){
  ++registrations;Check(p==f.component&&world==reinterpret_cast<void*>(context.world),"register only in own world");
@@ -53,9 +53,6 @@ void Fresh(bool war=true){
  Put(f.mesh,0xE8,context.character);Put(f.mesh,0x718,reinterpret_cast<uintptr_t>(f.anim));Put(f.mesh,0x5A0,reinterpret_cast<uintptr_t>(f.asset));Label(f.mesh,25,"CharacterMesh0");
  Put(f.anim,0x10,reinterpret_cast<uintptr_t>(f.classes[3]));Put(f.anim,0x28,reinterpret_cast<uintptr_t>(f.skeleton));Label(f.skeleton,22,"War_Mesh_Skeleton");Put(f.skeleton,0x10,reinterpret_cast<uintptr_t>(f.classes[5]));
  Put(f.asset,0x10,reinterpret_cast<uintptr_t>(f.classes[4]));Put(f.asset,0x190,Array{reinterpret_cast<uintptr_t>(f.bone),1,1});Put(f.bone,0,Name{24,0});strcpy_s(reinterpret_cast<char*>(entries[24]+12),244,"Bone_War_Root");
- Label(f.property,23,"Sockets");Put(f.property,0x10,reinterpret_cast<uintptr_t>(f.classes[7]));Put(f.property,0x34,16);Put(f.property,0x44,0x180);Put(f.classes[5],0x48,reinterpret_cast<uintptr_t>(f.property));
- Put(f.skeleton,0x180,Array{reinterpret_cast<uintptr_t>(f.socketPointers),1,1});Put(f.socketPointers,0,reinterpret_cast<uintptr_t>(f.socket));Put(f.socket,0x10,reinterpret_cast<uintptr_t>(f.classes[6]));
- Put(f.socket,0x28,Name{26,0});Put(f.socket,0x30,Name{24,0});strcpy_s(reinterpret_cast<char*>(entries[26]+12),244,"VFX_Aura");
  Label(f.power,11,"MayhemAbility_WorldEnder_Finish_Blueprint_C");Label(f.powerPackage,12,"/Game/Blueprints/Abilities/WorldEnder/MayhemAbility_WorldEnder_Finish_Blueprint");
  Label(f.helper,13,"MayhemWorldEnder_Blueprint_C");Label(f.helperPackage,14,"/Game/Blueprints/Player/MayhemWorldEnder_Blueprint");
  for(auto pair:{std::pair{f.power,f.powerPackage},std::pair{f.helper,f.helperPackage}}){Put(pair.first,0x10,reinterpret_cast<uintptr_t>(f.classes[0]));Put(pair.first,0x20,reinterpret_cast<uintptr_t>(pair.second));}
@@ -70,18 +67,15 @@ void Fresh(bool war=true){
 void Cast(){Check(HandlePlay(PlayNative,f.ability,f.montage,.75f,Name{0,0}),"owned War cast handled");}
 void Run(){
  std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(nameChunks));for(unsigned i=0;i<40;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
- Fresh();uintptr_t cls=0;Check(Prepare(f.actor,cls)&&cls==reinterpret_cast<uintptr_t>(f.power)&&!constructors,"preparation uses real War main mesh and socket without constructing");
+ Fresh();uintptr_t cls=0;Check(Prepare(f.actor,cls)&&cls==reinterpret_cast<uintptr_t>(f.power)&&!constructors,"preparation uses real War mesh and firing frame without constructing");
  const auto beforeCdo=std::vector<unsigned char>(f.cdo,f.cdo+sizeof(f.cdo));Cast();Cast();
  Check(plays==2&&builds==2&&constructors==1&&registrations==1&&attachments==1&&!finishes&&!destructions,"own registered and attached helper reused; native playback runs once per cast");
- Check(At<Name>(f.component,0x698)==Name{25,0}&&At<Name>(f.component,0x690)==Name{26,0}&&!std::memcmp(f.cdo,beforeCdo.data(),sizeof(f.cdo)),"helper private defaults use own mesh/socket, source CDO unchanged");
+ Check(At<Name>(f.component,0x698)==Name{28,1}&&At<Name>(f.component,0x690)==Name{0,0}&&!std::memcmp(f.cdo,beforeCdo.data(),sizeof(f.cdo)),"private firing mesh uses its engine-assigned name including number, no artistic socket; CDO unchanged");
  Fresh();context.index=1;Cast();Check(plays==1&&g_owned[0].actor.address==context.character,"ownership also resolves P2 without borrowing P1");
  Fresh();buildOK=false;Cast();Cast();Check(finishes==2&&builds==1&&!constructors&&Status()==0,"bad montage stops only this transfer and leaves no unused helper");
  Fresh();registerOK=false;Cast();Check(finishes==1&&destructions==1&&!attachments&&!plays&&!g_owned[0].component,"failed registration cleans exact newly owned helper before attaching");
  Fresh();attachOK=false;Cast();Check(finishes==1&&destructions==1&&!plays&&!g_owned[0].component,"failed attachment cleans component and finishes native cast");
  Fresh();reassign=true;Cast();Check(!plays&&!constructors&&!finishes,"owner change during builder never reaches helper or stale finish");
- Fresh();Put(f.socket,0x30,Name{0,0});Check(!Prepare(f.actor,cls)&&!constructors,"missing authored War socket refuses before construction");
- Fresh();Put(f.property,0x10,reinterpret_cast<uintptr_t>(f.classes[8]));Check(!Prepare(f.actor,cls),"wrong reflection field type cannot be used as array");
- Fresh();Put(f.skeleton,0x180,Array{0,1,1});Check(!Prepare(f.actor,cls),"malformed socket list rejected");
  Fresh();Put(f.ability,0x1F8,Name{25,0});Cast();Check(finishes==1&&!builds&&!constructors,"unexpected non-native ability source is refused, not overwritten");
  Fresh();Put(f.items,size_t(g_component.index)*24+16,999);Check(Status()==1&&!Prepare(f.actor,cls),"expired class identity not reused by pointer");
  Check(InvalidateAssets()&&!g_component&&!InvalidateAssets(),"one expired asset requests one new bounded scan, not continuous full rescans");
@@ -98,4 +92,4 @@ void* WorldEnder(uintptr_t m,const Source& s){++builds;Check(m==reinterpret_cast
 }
 namespace dg::native_tps {bool OnGameThread(){return thread;}}
 namespace dg::local_players {bool ResolveActor(void*,Context& c){c=context;return local;}}
-int main(){try{Run();std::cout<<"War beam ownership, real mesh/socket, native ABI, cleanup and failure isolation passed\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
+int main(){try{Run();std::cout<<"War beam ownership, own firing frame, native ABI, cleanup and failure isolation passed\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

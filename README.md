@@ -1,3 +1,17 @@
+## V1.100 - Rampage Strife et correction du rayon War
+
+**EXPERIMENTALE, NON VALIDEE EN JEU. Compilation Windows et livraison a verifier.** Base validee V1.98 ; cumul V1.99 avec retour utilisateur partiel : World Ender fonctionne sur War, mais tire a 90 degres a droite dans les deux vues et repete son geste. Ces deux defauts restent ouverts jusqu'au prochain essai.
+
+Ce lot remplace la source artistique VFX_Aura par le repere de tir du composant prive, aligne sur la capsule de War. Son geste se joue une fois, maintient sa pose pendant le rayon, puis revient a son idle ; duree, callbacks, cout et annulation natifs conserves. Aucun changement de camera ni correctif general des tirs.
+
+Rampage sur Strife revient par un chemin distinct de V1.96 : mouvements portes par les animations, boucle, collisions et phases de fin natifs dans un montage prive. La piste utilise un emplacement absent du graphe de Strife, verifie a chaque lancement : son corps garde ses propres poses de locomotion, sans recevoir les os de War. **Pas d'animation Rampage dediee a Strife annoncee ; mouvement, degats et sortie restent a tester.** Contrats refuses = abandon natif du pouvoir et transfert indisponible pour la session, sans timer de secours.
+
+Geyser/Clone/Caltrops valides, Stoneskin/Stinger natifs, controles, tirs et cameras conserves. INI de 168 cles et 55 ID Hotkeys inchanges ; 164 anciennes archives a conserver, debug seulement. Installation manuelle jeu ferme, garder son INI, ses raccourcis, PAK et sauvegardes. P2 differe. [Preuves, essais et rollback](docs/V1_100_STRIFE_RAMPAGE_WAR_BEAM_TEST.md).
+
+Test groupe : World Ender sur War dans les deux vues, orientation, pose maintenue et sortie ; Rampage sur Strife en espace libre puis face a un obstacle, fin et relance ; retour Native et comparaison des pouvoirs propres. Aucun resultat CI ne remplace ces essais en jeu.
+
+---
+
 ## V1.99 - World Ender sur War, composant natif propre
 
 **CONSTRUITE / CONTROLEE : [56/56 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40174981083), zero avertissement/erreur MSVC. [ZIP immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/030d79dc867acc19431c3b710b5b9eb62ce60818/downloads/DarksidersGenesis_V1.99_WAR_WORLD_ENDER_NATIVE_COMPONENT_TEST.zip) - [Recu](docs/V1_99_DELIVERY_RECEIPT.md). World Ender War EXPERIMENTAL, NON VALIDE EN JEU ; base V1.98 validee.**

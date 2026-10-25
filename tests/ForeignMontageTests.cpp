@@ -285,7 +285,10 @@ void Beams(){
     BeamFixture();const auto before=std::make_unique<Fixture>(f);
     Check(WorldEnder(reinterpret_cast<uintptr_t>(f.original),source)==f.copy,"finite three-segment beam montage builds on own skeleton");
     Check(At<uintptr_t>(f.copy,0x38)==source.skeleton&&At<int>(f.copy,0x88)==3,"private skeleton and complete native callback/cancellation event plan");
-    Check(At<Segment>(f.copySegments,32).loops==3&&At<Segment>(f.copySegments,64).loops==1&&At<float>(f.copy,0x90)==4.8999996185f,"native beam segment repeats and complete finite duration retained");
+    Check(At<Segment>(f.copySegments,32).loops==1&&At<Segment>(f.copySegments,64).loops==1&&At<float>(f.copy,0x90)==4.8999996185f,"native complete duration retained without repeating the casting gesture");
+    const auto hold=At<Segment>(f.copySegments,32),end=At<Segment>(f.copySegments,64);
+    Check(hold.first>hold.last-.034f&&std::fabs((hold.last-hold.first)/hold.rate-2.9f)<.0001f&&end.sequence==source.sequence,
+          "beam holds the final source frame for the full fire phase, then returns to own idle");
     Check(At<float>(f.copyEvents,0x24)==.6564341187f&&At<float>(f.copyEvents,2*184+0x24)==3.5871195793f,"StartBeam and DestroyBeam keep exact original times");
     Check(At<uintptr_t>(f.copyEvents,184+0x50)==reinterpret_cast<uintptr_t>(f.beamInterrupt)&&At<float>(f.copyEvents,184+0x58)==3.885350704f&&
           std::fabs(At<float>(f.copyEvents,184+0x60+0x24)-4.8999996185f)<.00001f,"native cancellation state keeps duration and linked end time, not start time");

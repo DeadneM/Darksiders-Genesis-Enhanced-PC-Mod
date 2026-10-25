@@ -76,6 +76,7 @@ bool CanBuild(const Source& s){return helperReady&&s.sequence==reinterpret_cast<
 void* Geyser(uintptr_t m,const Source& s){++builds;Check(m==reinterpret_cast<uintptr_t>(f.montage)&&CanBuild(s)&&s.rootIndex==14,"own source/root reach Geyser builder");return buildOK?f.replacement:nullptr;}
 void* Compatible(uintptr_t,const Source&){return nullptr;}
 void* WorldEnder(uintptr_t,const Source&){return nullptr;}
+void* RampageMotion(uintptr_t,const Source&){return nullptr;}
 }
 namespace dg::native_tps {bool OnGameThread(){return gameThread;}}
 namespace dg::local_players {bool ResolveActor(void*,Context& c){c=owner;return local;}}

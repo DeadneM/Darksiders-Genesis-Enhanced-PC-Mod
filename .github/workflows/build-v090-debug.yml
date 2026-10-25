@@ -1,4 +1,4 @@
-name: V1.99 War World Ender native component TEST
+name: V1.100 Strife Rampage and War beam TEST
 on:
   push:
     branches: [debug]
