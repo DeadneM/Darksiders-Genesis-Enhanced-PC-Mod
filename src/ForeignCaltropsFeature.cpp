@@ -135,6 +135,7 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
        !Read(clone,0x90,length)||!std::isfinite(length)||std::fabs(length-source.length)>.001f){Stop(ability);return true;}
     const float adjusted=rate*length/duration;
     if(!std::isfinite(adjusted)||adjusted<=.01f||adjusted>=100){Stop(ability);return true;}
+    foreign_montage::CopyLaterSounds(reinterpret_cast<uintptr_t>(montage),replacement);
     native(ability,replacement,adjusted,section);
     uintptr_t instance=0;
     if(!Alive(cast)||!Alive(pawn))return true;
@@ -146,6 +147,7 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     // start, not a transplanted notification. Native creation keeps ownership,
     // upgrades and damage. No Strife socket, shared component, timer or CDO edit.
     g_spawn(ability,reinterpret_cast<void*>(projectile),source.pelvis);
+    if(Alive(cast)&&Alive(pawn))foreign_montage::StartSounds(reinterpret_cast<uintptr_t>(montage),ability);
     if(g_log&&g_events++<12)g_log("Caltrops V1.98: one native spawner, original cast duration; own War casting gesture when loaded, idle fallback; animation EXPERIMENTAL");
     return true;
 }

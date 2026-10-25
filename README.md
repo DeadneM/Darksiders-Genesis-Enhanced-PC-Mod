@@ -1,3 +1,17 @@
+## V1.105 - Rampage : vitesse native, sons des capacites transferees
+
+**EXPERIMENTALE, compilation GitHub et livraison a controler ; NON VALIDEE EN JEU.** Base validee V1.103 conservee. Retour V1.104 : Rampage Strife ne se lance pas puis devient grise ; candidat REJETE dans cet essai. Sons des capacites transferees signales absents.
+
+Le journal atteint bien le lancement, puis le constructeur refuse le montage. Lecture du jeu actuel : War_Atk_Rampage_Start_Montage a RateScale=1,5, alors que le garde V1.104 exigeait 1. Les quatre fins sont a 1. V1.105 exige ces valeurs mesurees et les conserve dans la copie ; aucun ralentissement force, vitesse du personnage ecrite ou retrait des controles de proprietaire. Les refus de copie/events sont maintenant distingues dans le journal.
+
+Audio : les poses propres Caltrops/Stoneskin perdaient la piste sonore source. Geyser/Clone/World Ender copiaient deja des sons, tous leurs sons de lancement releves etant a t=0. Leur non-audibilite exacte n'a pas ete tracee dans le mixeur. Le candidat appelle une fois le notify sonore natif d'origine apres lancement confirme, sur le mesh propre du receveur ; ces sons sont exclus des pistes privees Geyser/Clone/World Ender pour eviter une double lecture. Les sons ulterieurs de Caltrops/Stoneskin sont copies sur leur geste prive avec le meme instant reel. Cue, voix, volume, pitch, attenuation et mixer restent natifs. Pas de nouveau hook, timer, touche imposee ou fichier audio ajoute.
+
+Reglages, raccourcis, reception lourde validee et comportements des pouvoirs natifs inchanges. Debug uniquement ; 169 cles INI, 55 ID Hotkeys, 169 anciennes archives preservees. Compilation exclusivement GitHub Actions, telechargement via l'updater du jeu canal debug ; aucune compilation/installation locale. [Contrat, limites et essais](docs/V1_105_RAMPAGE_NATIVE_RATE_FOREIGN_AUDIO_TEST.md).
+
+Essais groupes : Rampage Strife en native/TPS (deplacement, degats, relachement, obstacle, deuxieme cast), puis sons Geyser/Stoneskin Strife et Clone/Caltrops/World Ender War. Verifier sons de lancement, sons pendant/apres effet, absence de doublon et pouvoirs natifs inchanges. P2 reste differe. La pose Rampage reste la locomotion Strife, sans charge/frappe dediee.
+
+---
+
 ## V1.104 - Rampage Strife, refus identifie et identites natives
 
 **CONSTRUITE / CONTROLEE : [59/59 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40203015804), zero avertissement/erreur MSVC. [ZIP GitHub immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/acd4ba2cf79577a3c8aa9b8cf09e40f4eee2193b/downloads/DarksidersGenesis_V1.104_STRIFE_RAMPAGE_NATIVE_IDENTITY_TEST.zip) - [Recu](docs/V1_104_DELIVERY_RECEIPT.md). Rampage Strife reste EXPERIMENTAL, NON VALIDE EN JEU. Compilation exclusivement sur GitHub Actions ; archive disponible pour l'updater du jeu, canal debug. Aucune compilation ni installation locale.**

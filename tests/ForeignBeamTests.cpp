@@ -87,6 +87,7 @@ void Run(){
 }
 }
 namespace dg::foreign_montage {
+void StartSounds(uintptr_t,void*){}bool CopyLaterSounds(uintptr_t,void*){return true;}
 bool Ready(){return true;}
 void* WorldEnder(uintptr_t m,const Source& s){++builds;Check(m==reinterpret_cast<uintptr_t>(f.montage)&&s.sequence==reinterpret_cast<uintptr_t>(f.idle)&&s.skeleton==reinterpret_cast<uintptr_t>(f.skeleton)&&s.rootIndex==24&&s.slotIndex==27,"only own War skeleton/pose/root and source slot reach beam builder");if(reassign)Put(f.ability,0x48,uintptr_t(0));return buildOK?f.replacement:nullptr;}
 }

@@ -91,6 +91,7 @@ void Run(){
 }
 }
 namespace dg::foreign_montage {
+void StartSounds(uintptr_t,void*){}bool CopyLaterSounds(uintptr_t,void*){return true;}
 void Initialize(LogFn,bool){}bool Ready(){return helperReady;}
 void ObserveSequence(uintptr_t){}bool GesturesReady(){return true;}
 uintptr_t CastingSequence(uintptr_t fallback,uintptr_t,float&){return fallback;}

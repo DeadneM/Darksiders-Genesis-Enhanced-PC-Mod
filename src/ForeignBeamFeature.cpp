@@ -172,6 +172,7 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     native(ability,replacement,rate,section);
     if(!Alive(abi)||!Alive(pawn)||!Read(p,0x48,character)||character!=actor)return true;
     uintptr_t instance=0;if(!Read(p,0x1D8,instance)||!instance||!g_playing(reinterpret_cast<void*>(instance))){Stop(ability);return true;}
+    foreign_montage::StartSounds(reinterpret_cast<uintptr_t>(montage),ability);
     if(g_log&&g_events++<12){char text[180]{};sprintf_s(text,"World Ender V1.100 CAST player=%d: own firing frame, one gesture then held pose; native StartBeam/DestroyBeam; EXPERIMENTAL",c.index+1);g_log(text);}
     return true;
 }

@@ -144,6 +144,8 @@ void StonePlay(void* ability,void* montage,float rate,Name section,const local_p
            Read(copy,0x90,length)&&std::isfinite(length)&&length>.1f&&length<10){
             const float adjusted=rate*length/duration;
             if(std::isfinite(adjusted)&&adjusted>.01f&&adjusted<100){
+                // Audio only: source status, cost and visual policy stay native.
+                foreign_montage::CopyLaterSounds(original,replacement);
                 g_play(ability,replacement,adjusted,section);
                 if(!Alive(abi)||!Alive(pawn)||!Read(p,0x48,owner)||owner!=c.character)return;
                 uintptr_t instance=0;played=Read(p,0x1D8,instance)&&instance&&g_playing(reinterpret_cast<void*>(instance));
@@ -154,6 +156,7 @@ void StonePlay(void* ability,void* montage,float rate,Name section,const local_p
     // Only its incompatible body animation is adapted; War/materials/Stinger
     // and the status duration/removal remain native. No borrowed components.
     if(!played){g_stoneFailed=true;g_finish(ability,0);}
+    else foreign_montage::StartSounds(original,ability);
     if(g_log&&g_stoneEvents++<12)g_log(played?"Stoneskin V1.102 CAST: own Strife pose, native status/cost/duration and finish; War visuals not transplanted; EXPERIMENTAL":
         "Stoneskin V1.102 stopped: own cast contract unavailable; native finish, transfer disabled for session; select Native");
 }
@@ -182,7 +185,7 @@ void HookPlay(void* ability,void* montage,float rate,Name section){
         g_play(ability,replacement,rate,section);uintptr_t instance=0;
         played=Read(reinterpret_cast<uintptr_t>(ability),0x1D8,instance)&&instance&&g_playing(reinterpret_cast<void*>(instance));
     }
-    if(played)*recent=actor;
+    if(played){*recent=actor;foreign_montage::StartSounds(reinterpret_cast<uintptr_t>(montage),ability);}
     else {g_geyserFailed=true;g_finish(ability,0);}
     if(g_log&&++g_events<=12)g_log(played?"Foreign Wrath V1.98 Geyser: native callback and FX timeline retained; own casting gesture when loaded, idle fallback; animation EXPERIMENTAL":
         "Foreign Wrath V1.88 Geyser contract unavailable; cast finished and further Geyser requests stopped for this session");
@@ -214,7 +217,7 @@ void Initialize(LogFn log,bool exactExecutable){
     foreign_caltrops::Initialize(log,exactExecutable);
     foreign_power::Initialize(log,exactExecutable);
     foreign_beam::Initialize(log,exactExecutable);foreign_rampage::Initialize(log,exactExecutable);
-    if(log)log("Foreign Wrath V1.104 READY: accepted Geyser/Caltrops/Clone/War beam/Stoneskin preserved; Rampage Strife native-motion candidate");
+    if(log)log("Foreign Wrath V1.105 READY: accepted Geyser/Caltrops/Clone/War beam/Stoneskin preserved; Rampage Strife native-motion candidate");
 }
 int Status(int choice){
     if(choice==6){g_requested=true;return !g_ready||!g_create||g_stoneFailed?0:(Alive(g_stone)?2:1);}

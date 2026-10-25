@@ -54,7 +54,7 @@ void Fresh(int kind=0){
  Label(f.transient,13,"/Engine/Transient");Put(f.transient,0x10,reinterpret_cast<uintptr_t>(f.classes[3]));
  strcpy_s(reinterpret_cast<char*>(entries[14]+12),244,"DefaultSlot");strcpy_s(reinterpret_cast<char*>(entries[15]+12),244,"Bone_Strife_Root");strcpy_s(reinterpret_cast<char*>(entries[16]+12),244,"TPS");
  source={reinterpret_cast<uintptr_t>(f.idle),reinterpret_cast<uintptr_t>(f.skeleton),14,0,15,0};
- const float length=kind==0?1.4f:(kind==1?1.3666667f:1.2666667f);Put(f.montage,0x38,reinterpret_cast<uintptr_t>(f.warSkeleton));Put(f.montage,0x90,length);Put(f.montage,0x94,1.f);
+ const float length=kind==0?1.4f:(kind==1?1.3666667f:1.2666667f);Put(f.montage,0x38,reinterpret_cast<uintptr_t>(f.warSkeleton));Put(f.montage,0x90,length);Put(f.montage,0x94,kind==0?1.5f:1.f);
  Put(f.montage,0x158,Array{reinterpret_cast<uintptr_t>(f.tracks),1,1});Put(f.tracks,0,Name{16,0});Put(f.tracks,8,Array{reinterpret_cast<uintptr_t>(f.segments),kind==0?2:1,2});
  Put(f.montage,0x148,Array{reinterpret_cast<uintptr_t>(f.sections),kind==0?2:1,2});Put(f.montage,0x80,Array{reinterpret_cast<uintptr_t>(f.events),1,1});
  Put(f.montage,0x180,Array{reinterpret_cast<uintptr_t>(f.markers),1,1});Put(f.montage,0x190,Array{reinterpret_cast<uintptr_t>(f.states),1,1});
@@ -87,6 +87,9 @@ void Run(){
   if(kind>=2)Check(At<Name>(f.notifyCopy,0x38).index==15&&At<uintptr_t>(f.notifyCopy,0x40)==At<uintptr_t>(f.notify,0x40)&&At<uintptr_t>(f.copyEvents,0x48)==reinterpret_cast<uintptr_t>(f.notifyCopy),"private slam origin moves to own root, exact native blast class preserved");
  }
  for(int failure=1;failure<=10;++failure){Fresh();mode=failure;const auto before=f;Check(!Build()&&!skeletonCalls,"null/CDO/alias/changed cache rejected before changing skeleton");Check(!std::memcmp(f.montage,before.montage,sizeof(f.montage))&&!std::memcmp(f.segments,before.segments,sizeof(f.segments)),"rejected clone leaves sources untouched");}
+ Fresh();Check(At<float>(f.montage,0x94)==1.5f&&Build()==f.copy&&At<float>(f.copy,0x94)==1.5f,"measured native start rate 1.5 preserved, no forced slowdown");
+ Fresh();Put(f.montage,0x94,1.f);Check(!Build()&&!constructions,"old invented rate 1 rejected by measured start contract");
+ Fresh(1);Put(f.montage,0x94,1.5f);Check(!Build()&&!constructions,"landing retains its own native rate 1");
  Fresh();source.slotIndex=16;Check(!Build()&&!constructions,"rendered TPS slot forbidden for foreign bone motion");
  Fresh();thread=false;Check(!Build()&&!constructions,"off-thread construction forbidden");
  Fresh();Put<unsigned char>(f.sequences[1],0x1A1,0);Check(!Build()&&!constructions,"missing source motion rejected");

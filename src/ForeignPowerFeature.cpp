@@ -140,6 +140,7 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     if(!Alive(abi)||!Alive(pawn))return true;
     if(!Read(p,0x48,ownerAfter)||ownerAfter!=actor)return true;
     uintptr_t instance=0;if(!Read(p,0x1D8,instance)||!instance||!g_playing(reinterpret_cast<void*>(instance))){Stop(ability,choice);return true;}
+    foreign_montage::StartSounds(reinterpret_cast<uintptr_t>(montage),ability);
     if(g_log&&g_events++<16){char line[180]{};sprintf_s(line,"Foreign powers V1.98 CAST choice=%d phase=%d player=%d; own gesture when loaded, idle fallback; native callbacks, animation EXPERIMENTAL",choice,kind,c.index+1);g_log(line);}
     return true;
 }

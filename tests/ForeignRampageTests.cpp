@@ -74,6 +74,7 @@ void Run(){
 }
 }
 namespace dg::foreign_montage {
+void StartSounds(uintptr_t,void*){}bool CopyLaterSounds(uintptr_t,void*){return true;}
 bool Ready(){return true;}
 void* RampageMotion(uintptr_t montage,const Source& s){++builds;Check(montage==reinterpret_cast<uintptr_t>(f.montage)&&s.sequence==reinterpret_cast<uintptr_t>(f.idle)&&s.skeleton==reinterpret_cast<uintptr_t>(f.skeleton)&&s.slotIndex==11&&s.rootIndex==10,"only own skeleton/root/unused slot reaches motion builder");if(reassign)Put(f.ability,0x48,uintptr_t(0));return buildOK?f.replacement:nullptr;}
 }

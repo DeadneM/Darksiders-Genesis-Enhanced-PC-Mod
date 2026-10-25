@@ -124,7 +124,8 @@ void Run(){
     Fresh();Shutdown();Check(Status()==0&&!Prepare(f.actor,cls)&&!Cast(),"shutdown returns all paths to unavailable/native forwarding");
 }
 }
-namespace dg::foreign_montage {uintptr_t CastingSequence(uintptr_t fallback,uintptr_t,float& length){if(gesture){length=.5666666627f;return reinterpret_cast<uintptr_t>(f.strifeSkeleton);}return fallback;}}
+namespace dg::foreign_montage {
+void StartSounds(uintptr_t,void*){}bool CopyLaterSounds(uintptr_t,void*){return true;}uintptr_t CastingSequence(uintptr_t fallback,uintptr_t,float& length){if(gesture){length=.5666666627f;return reinterpret_cast<uintptr_t>(f.strifeSkeleton);}return fallback;}}
 namespace dg::native_tps {bool OnGameThread(){return gameThread;}}
 namespace dg::local_players {bool ResolveActor(void* actor,Context& c){c=owner;return local&&reinterpret_cast<uintptr_t>(actor)==owner.character;}}
 int main(){try{Run();std::cout<<"Caltrops ownership, native ABI, compatible montage, source isolation and failure lifecycle passed\n";return 0;}

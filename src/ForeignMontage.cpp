@@ -19,6 +19,9 @@ using Package=void*(*)();
 using Skeleton=void(*)(void*,void*);
 using Reserve=void(*)(void*,int);
 Construct g_construct=nullptr;Package g_package=nullptr;Skeleton g_skeleton=nullptr;Reserve g_reserve=nullptr;
+using SoundNotify=void(*)(void*,void*,void*);
+SoundNotify g_soundNotify=nullptr;LogFn g_log=nullptr;unsigned g_soundEvents=0,g_motionRefusals=0;
+bool OpeningSound(uintptr_t notify,float time);
 uintptr_t g_base=0;std::atomic_bool g_ready{false};
 native_objects::Identity g_gestures[2]{};
 static_assert(sizeof(Name)==8&&sizeof(Array)==16&&sizeof(Segment)==32);
@@ -143,7 +146,8 @@ bool Collect(uintptr_t asset,const Array& events,Presentation& out,const Event* 
         if(out.count<0||out.count>=int(out.events.size())||!Read(notify,0x20,owner)||owner!=asset||
            !Read(at,0x50,state)||state||!Read(at,0x58,duration)||duration!=0||!Read(at,0x91,tickType)||tickType||
            !Read(at,0x24,time)||!std::isfinite(time)||time<0||time>=2.366667f||!Read(at,0,out.events[out.count]))return false;
-        ++out.count;if(particle)++out.particles;else ++out.sounds;
+        if(sound){++out.sounds;if(OpeningSound(notify,time))continue;}else ++out.particles;
+        ++out.count;
     }
     return true;
 }
@@ -164,7 +168,7 @@ bool AdaptRoot(Event& event,uintptr_t montage,const Source& source){
 }
 }
 void Initialize(LogFn log,bool exact){
-    if(!exact)return;g_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    if(!exact)return;g_log=log;g_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     constexpr unsigned char construct[]={0x40,0x55,0x53,0x56,0x57,0x41,0x54,0x41,0x56,0x41,0x57,0x48,0x8D,0xAC,0x24,0x40};
     constexpr unsigned char package[]={0x48,0x8B,0x05,0x59,0xCD,0xED,0x02,0xC3};
     constexpr unsigned char skeleton[]={0x48,0x85,0xD2,0x74,0x15,0x48,0x3B,0x51,0x38,0x74,0x0F,0x48,0x89,0x51,0x38,0x0F};
@@ -173,6 +177,8 @@ void Initialize(LogFn log,bool exact){
        std::memcmp(reinterpret_cast<void*>(g_base+0xA7B1B0),package,sizeof(package))||
        std::memcmp(reinterpret_cast<void*>(g_base+0x16C7130),skeleton,sizeof(skeleton))||
        std::memcmp(reinterpret_cast<void*>(g_base+0x2C42C0),reserve,sizeof(reserve)))return;
+    constexpr unsigned char sound[]={0x48,0x8B,0xC4,0x55,0x57,0x41,0x56,0x48,0x8D,0x68,0xA1,0x48,0x81,0xEC,0xB0,0x00};
+    if(!std::memcmp(reinterpret_cast<void*>(g_base+0x16977D0),sound,sizeof(sound)))g_soundNotify=reinterpret_cast<SoundNotify>(g_base+0x16977D0);
     g_gestures[0]=g_gestures[1]={};
     g_construct=reinterpret_cast<Construct>(g_base+0xAC57A0);g_package=reinterpret_cast<Package>(g_base+0xA7B1B0);
     g_skeleton=reinterpret_cast<Skeleton>(g_base+0x16C7130);g_reserve=reinterpret_cast<Reserve>(g_base+0x2C42C0);g_ready=true;
@@ -279,6 +285,7 @@ bool Gather(uintptr_t asset,const Array& list,float first,float last,float start
         if(plan.count<0||plan.count>=int(plan.events.size())||!Read(notify,0x20,owner)||owner!=asset||!Read(at,0x50,state)||state||
            !Read(at,0x58,duration)||duration!=0||!Read(at,0x91,tick)||tick>1||!Read(at,0,plan.events[plan.count]))return false;
         const float mapped=start+(time-first)/rate;
+        if(OpeningSound(notify,mapped))continue;
         std::memcpy(plan.events[plan.count].data()+0x24,&mapped,sizeof(mapped));plan.events[plan.count][0x91]=0;++plan.count;
     }
     return true;
@@ -420,7 +427,7 @@ bool MotionShape(uintptr_t p,int kind,MotionLayout& out){
     if(kind<0||kind>4||!Read(p,0x10,out.cls)||!Is(out.cls,"AnimMontage")||!Read(out.cls,0x10,cls)||!Is(cls,"Class")||
        !Read(p,0x38,skeleton)||!Is(skeleton,"War_Mesh_Skeleton")||!Read(p,0x90,length)||
        !std::isfinite(length)||std::fabs(length-(kind==0?1.4f:(kind==1?1.3666667f:1.2666667f)))>.00001f||
-       !Read(p,0x94,rate)||rate!=1||!List(p,0x158,out.tracks,4)||out.tracks.count!=1||
+       !Read(p,0x94,rate)||rate!=(kind==0?1.5f:1.f)||!List(p,0x158,out.tracks,4)||out.tracks.count!=1||
        !Read(out.tracks.data,0,slot)||!native_objects::NameValueIs(g_base,slot.index,slot.number,"TPS")||
        !List(out.tracks.data,8,out.segments,4)||out.segments.count!=(kind==0?2:1)||
        !List(p,0x148,out.sections,4)||out.sections.count!=(kind==0?2:1)||!List(p,0x80,out.events,128)||
@@ -478,26 +485,136 @@ void* RampageMotion(uintptr_t original,const Source& source){
     if(!Read(source.sequence,0x10,cls)||!Is(cls,"AnimSequence")||!Is(source.sequence,"Strife_Idle")||
        !Read(source.sequence,0x38,idleSkeleton)||idleSkeleton!=source.skeleton||!Read(source.sequence,0x90,length)||
        !std::isfinite(length)||length<=.1f||length>=10||!Read(source.sequence,0x94,rate)||rate!=1||!Empty(source.sequence,0x80))return nullptr;
+    auto fail=[](const char* why)->void*{if(g_log&&g_motionRefusals++<8){char line[200]{};sprintf_s(line,"Rampage V1.105 montage refused: %s",why);g_log(line);}return nullptr;};
     const int kind=RampageAsset(original);MotionLayout before{},after{};
     const auto outer=reinterpret_cast<uintptr_t>(g_package());
-    if(!Read(outer,0x10,cls)||!Is(cls,"Package")||!Is(outer,"/Engine/Transient")||!MotionShape(original,kind,before))return nullptr;
+    if(!Read(outer,0x10,cls)||!Is(cls,"Package")||!Is(outer,"/Engine/Transient")||!MotionShape(original,kind,before))return fail("source phase, native rate or layout");
     auto* created=g_construct(reinterpret_cast<void*>(before.cls),reinterpret_cast<void*>(outer),{},0x40u,0,reinterpret_cast<void*>(original),false,nullptr,false);
     const auto copy=reinterpret_cast<uintptr_t>(created);uintptr_t actual=0;uint32_t flags=0;
     if(!copy||copy==original||!Read(copy,0x20,actual)||actual!=outer||!Read(copy,8,flags)||(flags&0x30u)||!(flags&0x40u)||
        !MotionShape(copy,kind,after)||after.cls!=before.cls||!Separate<32>(before.segments,after.segments)||
        !Separate<88>(before.sections,after.sections)||!Separate<184>(before.events,after.events)||
        !Separate<12>(before.markers,after.markers)||!Separate<4>(before.states,after.states)||
-       after.tracks.data==before.tracks.data||!Writable(after.tracks.data,24))return nullptr;
+       after.tracks.data==before.tracks.data||!Writable(after.tracks.data,24))return fail("private clone identity, arrays or source equality");
     // Motion clips, loop sections, branching caches and native cue times stay
     // intact. Only private skeleton/slot/link targets and impact sockets change.
     for(int i=0;i<after.events.count;++i){
         Event event{};const auto at=after.events.data+size_t(i)*sizeof(Event);
-        if(!Read(at,0,event)||!MotionNotify(event,copy,source)||!Store(at,0,event)||!Store(at,8,copy)||!Store(at,0x68,copy))return nullptr;
+        if(!Read(at,0,event)||!MotionNotify(event,copy,source)||!Store(at,0,event)||!Store(at,8,copy)||!Store(at,0x68,copy))return fail("private event or impact socket");
     }
     for(int i=0;i<after.sections.count;++i)if(!Store(after.sections.data+size_t(i)*88,8,copy))return nullptr;
     if(!Store(after.tracks.data,0,Name{source.slotIndex,source.slotNumber}))return nullptr;
     g_skeleton(created,reinterpret_cast<void*>(source.skeleton));
     if(!Read(copy,0x38,actual)||actual!=source.skeleton)return nullptr;
     return created;
+}
+namespace {
+bool SoundValid(uintptr_t notify){
+    uintptr_t cls=0,sound=0,vt=0,entry=0;Name socket{};float volume=0,pitch=0;
+    return g_soundNotify&&Read(notify,0x10,cls)&&Is(cls,"AnimNotify_PlaySound")&&
+        Read(notify,0,vt)&&Read(vt,0x240,entry)&&entry==reinterpret_cast<uintptr_t>(g_soundNotify)&&
+        Read(notify,0x38,sound)&&Read(sound,0x10,cls)&&(Is(cls,"SoundCue")||Is(cls,"SoundWave"))&&
+        Read(notify,0x40,volume)&&std::isfinite(volume)&&volume>0&&volume<=10&&
+        Read(notify,0x44,pitch)&&std::isfinite(pitch)&&pitch>.01f&&pitch<=4&&
+        Read(notify,0x4C,socket)&&socket.index==0&&socket.number==0;
+}
+bool OpeningSound(uintptr_t notify,float time){return time==0&&SoundValid(notify);}
+struct Cue {Event event{};uintptr_t notify=0,asset=0;float time=0,rate=1;};
+struct Sounds {std::array<Cue,32> cues{};unsigned count=0;float length=0;};
+bool AudioAsset(uintptr_t p){
+    if(Original(p)||TransferMontage(p,false)||TransferMontage(p,true)||RampageAsset(p)>=0)return true;
+    constexpr const char* names[]={"War_Atk_Stoneskin_Montage","War_Atk_Stoneskin_Molten_Montage",
+        "Strife_Caltrops_Ground_F_Montage","Strife_Caltrops_Ground_B_Montage"};
+    uintptr_t package=0;if(!Read(p,0x20,package))return false;
+    for(unsigned i=0;i<4;++i)if(Named(p,names[i])){
+        char path[200]{};sprintf_s(path,i<2?"/Game/Characters/Heroes/Hero_War/Animation/%s":"/Game/Characters/Heroes/Hero_Strife/Animations/%s",names[i]);
+        return Named(package,path);
+    }
+    return false;
+}
+bool CueList(uintptr_t asset,float first,float last,float start,float rate,Sounds& out){
+    Array events{};if(!List(asset,0x80,events,128))return false;
+    for(int i=0;i<events.count;++i){
+        const auto at=events.data+size_t(i)*sizeof(Event);uintptr_t notify=0,cls=0,owner=0,state=0;float time=0,duration=0;
+        if(!Read(at,0x48,notify))return false;
+        if(!notify)continue;
+        if(!Read(notify,0x10,cls))return false;
+        if(!Is(cls,"AnimNotify_PlaySound"))continue;
+        if(!Read(at,0x24,time)||!std::isfinite(time))return false;
+        if(time<first||time>=last)continue;
+        if(out.count>=out.cues.size()||!SoundValid(notify)||!Read(notify,0x20,owner)||owner!=asset||
+           !Read(at,0x50,state)||state||!Read(at,0x58,duration)||duration!=0)return false;
+        const float mapped=start+(time-first)/rate;if(!std::isfinite(mapped)||mapped<0||mapped>=out.length)return false;
+        auto& cue=out.cues[out.count];
+        if(!Read(at,0,cue.event))return false;
+        // A source notify represented in both timelines must not play twice.
+        bool duplicate=false;for(unsigned j=0;j<out.count;++j)if(out.cues[j].notify==notify&&out.cues[j].time==mapped)duplicate=true;
+        if(!duplicate){cue.notify=notify;cue.asset=asset;cue.time=mapped;cue.rate=rate;++out.count;}
+    }
+    return true;
+}
+bool SoundPlan(uintptr_t original,Sounds& out){
+    uintptr_t cls=0;Array tracks{},segments{};
+    if(!g_soundNotify||!AudioAsset(original)||!Read(original,0x10,cls)||!Is(cls,"AnimMontage")||
+       !Read(original,0x90,out.length)||!std::isfinite(out.length)||out.length<=.1f||out.length>=20||
+       !List(original,0x158,tracks,4)||tracks.count!=1||!List(tracks.data,8,segments,8)||!segments.count||
+       !CueList(original,0,out.length,0,1,out))return false;
+    for(int i=0;i<segments.count;++i){
+        Segment s{};if(!Read(segments.data,size_t(i)*sizeof(Segment),s)||!s.valid||s.loops<1||s.loops>10||
+           !std::isfinite(s.first)||!std::isfinite(s.last)||!std::isfinite(s.start)||!std::isfinite(s.rate)||
+           s.first<0||s.last<=s.first||s.start<0||s.rate<=0||s.rate>10||!Read(s.sequence,0x10,cls)||!Is(cls,"AnimSequence"))return false;
+        for(int loop=0;loop<s.loops;++loop)if(!CueList(s.sequence,s.first,s.last,s.start+float(loop)*(s.last-s.first)/s.rate,s.rate,out))return false;
+    }
+    return true;
+}
+}
+void StartSounds(uintptr_t original,void* liveAbility){
+    if(!g_ready||!g_soundNotify||!native_tps::OnGameThread())return;
+    const auto ability=reinterpret_cast<uintptr_t>(liveAbility);uintptr_t actor=0,character=0,mesh=0,owner=0,controller=0,pawn=0,cls=0;unsigned char state=0,local=0,role=0;
+    Sounds plan{};native_objects::Identity actorId{},abilityId{};
+    if(!Read(ability,0xD8,state)||(state!=1&&state!=2)||!Read(ability,0x48,actor)||!Read(ability,0x1B0,character)||character!=actor||
+       !Read(actor,0x10,cls)||(!Is(cls,"Strife_Blueprint_C")&&!Is(cls,"War_Blueprint_C"))||
+       !Read(actor,0x118,role)||role!=3||!Read(actor,0x348,controller)||!Read(controller,0x350,pawn)||pawn!=actor||
+       !Read(controller,0x654,local)||local!=1||!Read(actor,0x380,mesh)||!Read(mesh,0xE8,owner)||owner!=actor||
+       !native_objects::CaptureLive(g_base,liveAbility,abilityId)||!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(actor),actorId)||!SoundPlan(original,plan))return;
+    native_objects::MemoryReader reader;unsigned count=0;
+    for(unsigned i=0;i<plan.count;++i){
+        const auto& cue=plan.cues[i];if(cue.time!=0)continue;
+        if(!native_objects::Alive(reader,g_base,actorId)||!native_objects::Alive(reader,g_base,abilityId)||
+           !Read(ability,0x48,owner)||owner!=actor||!Read(actor,0x380,owner)||owner!=mesh||!SoundValid(cue.notify))return;
+        // Same native notify entry as an animation event: cue, mixer,
+        // attenuation, volume, pitch and attachment remain engine-owned.
+        g_soundNotify(reinterpret_cast<void*>(cue.notify),reinterpret_cast<void*>(mesh),reinterpret_cast<void*>(cue.asset));++count;
+    }
+    if(g_log&&g_soundEvents++<16){char line[180]{};sprintf_s(line,"Foreign audio V1.105 START cues=%u: native sound notify on receiver mesh, no timer or input; audibility unvalidated",count);g_log(line);}
+}
+bool CopyLaterSounds(uintptr_t original,void* privateMontage){
+    if(!g_ready||!g_reserve||!native_tps::OnGameThread())return false;
+    const auto copy=reinterpret_cast<uintptr_t>(privateMontage);uintptr_t cls=0,outer=0;uint32_t flags=0;float length=0;Array events{},tracks{},segments{};Sounds plan{};
+    if(!copy||copy==original||!SoundPlan(original,plan)||!Read(copy,0x10,cls)||!Is(cls,"AnimMontage")||
+       !Read(copy,8,flags)||(flags&0x30u)||!(flags&0x40u)||!Read(copy,0x20,outer)||!Is(outer,"/Engine/Transient")||
+       !Read(copy,0x90,length)||!std::isfinite(length)||length<=.1f||length>=10||!List(copy,0x80,events,64)||events.count||
+       !List(copy,0x158,tracks,4)||tracks.count!=1||!List(tracks.data,8,segments,4)||segments.count!=1)return false;
+    Segment playback{};if(!Read(segments.data,0,playback))return false;
+    Presentation later{};const float scale=length/plan.length;
+    for(unsigned i=0;i<plan.count;++i){
+        auto cue=plan.cues[i];if(cue.time==0)continue;
+        const float mapped=cue.time*scale;float offset=0,endOffset=0;
+        std::memcpy(&offset,cue.event.data()+0x34,4);std::memcpy(&endOffset,cue.event.data()+0x38,4);
+        if(!std::isfinite(offset)||!std::isfinite(endOffset)||mapped>=length)return false;
+        offset*=scale/cue.rate;endOffset*=scale/cue.rate;
+        std::memcpy(cue.event.data()+0x24,&mapped,4);std::memcpy(cue.event.data()+0x30,&mapped,4);
+        std::memcpy(cue.event.data()+0x34,&offset,4);std::memcpy(cue.event.data()+0x38,&endOffset,4);cue.event[0x91]=0;
+        later.events[later.count++]=cue.event;
+    }
+    if(!later.count)return true;
+    std::stable_sort(later.events.begin(),later.events.begin()+later.count,[](const Event& a,const Event& b){float x=0,y=0;std::memcpy(&x,a.data()+0x24,4);std::memcpy(&y,b.data()+0x24,4);return x<y;});
+    if(later.count>events.capacity)g_reserve(reinterpret_cast<void*>(copy+0x80),later.count);
+    if(!List(copy,0x80,events,512)||events.capacity<later.count||!Writable(events.data,size_t(later.count)*sizeof(Event))||!Writable(copy+0x88,4))return false;
+    for(int i=0;i<later.count;++i){
+        const auto at=events.data+size_t(i)*sizeof(Event);float time=0;std::memcpy(&time,later.events[i].data()+0x24,4);
+        if(!Store(at,0,later.events[i])||!Link(at,copy,playback.sequence,time,length)||!Link(at+0x60,copy,playback.sequence,time,length))return false;
+    }
+    return Store(copy,0x88,later.count);
 }
 }

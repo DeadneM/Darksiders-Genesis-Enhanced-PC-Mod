@@ -86,7 +86,7 @@ void Stop(void* ability,int phase,const local_players::Context& c,const char* wh
     // These are native Blueprint abort branches. A normal start finish would
     // otherwise launch another War phase after a failed private montage.
     g_finish(ability,phase==0?28:2);
-    if(g_log&&g_events++<12){char line[256]{};sprintf_s(line,"Rampage V1.104 stopped phase=%d: %s; native abort, transfer disabled for session; select Native",phase,why);g_log(line);}
+    if(g_log&&g_events++<12){char line[256]{};sprintf_s(line,"Rampage V1.105 stopped phase=%d: %s; native abort, transfer disabled for session; select Native",phase,why);g_log(line);}
 }
 bool Companion(uintptr_t cls){
     uintptr_t package=0;return Is(cls,"MayhemAbility_War_LaunchAttack_Blueprint_C")&&Read(cls,0x20,package)&&
@@ -99,7 +99,7 @@ void Initialize(foreign_wrath::LogFn log,bool exact){
     constexpr unsigned char playing[]={0x48,0x89,0x5C,0x24,0x08,0x57,0x48,0x83,0xEC,0x20,0x48,0x8B,0xD9,0x48,0x83,0xC1};
     if(std::memcmp(reinterpret_cast<void*>(g_base+0x59B080),finish,sizeof(finish))||std::memcmp(reinterpret_cast<void*>(g_base+0x676620),playing,sizeof(playing)))return;
     g_finish=reinterpret_cast<Finish>(g_base+0x59B080);g_playing=reinterpret_cast<Playing>(g_base+0x676620);g_ready=true;
-    if(log)log("Rampage V1.104 READY: private native motion and lifecycle; unused live-graph slot required; Strife locomotion pose; EXPERIMENTAL");
+    if(log)log("Rampage V1.105 READY: private native motion and lifecycle; unused live-graph slot required; Strife locomotion pose; EXPERIMENTAL");
 }
 bool AssetsReady(){for(const auto& id:g_phases)if(!Alive(id))return false;return Alive(g_idle);}
 bool InvalidateAssets(){
@@ -123,7 +123,7 @@ bool Prepare(void* actor,uintptr_t& abilityClass){
     else if(!Owner(actor,c,true))rejected="local Strife ownership or grounded state";
     else Source(c,source,&rejected);
     if(rejected){
-        if(g_log&&g_refusal!=rejected&&g_refusals<12){++g_refusals;char line[200]{};sprintf_s(line,"Rampage V1.104 PREPARE refused: %s",rejected);g_log(line);}
+        if(g_log&&g_refusal!=rejected&&g_refusals<12){++g_refusals;char line[200]{};sprintf_s(line,"Rampage V1.105 PREPARE refused: %s",rejected);g_log(line);}
         g_refusal=rejected;return false;
     }
     g_refusal=nullptr;abilityClass=g_phases[0].address;return true;
@@ -150,7 +150,8 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     if(!Alive(abi)||!Alive(pawn)||!Read(p,0x48,character)||character!=actor)return true;
     uintptr_t instance=0;
     if(!Read(p,0x1D8,instance)||!instance||!g_playing(reinterpret_cast<void*>(instance))){Stop(ability,phase,c,"native montage playback not active");return true;}
-    if(g_log&&g_events++<12){char line[180]{};sprintf_s(line,"Rampage V1.104 CAST player=%d phase=%d: native motion/loop/collision/finish; own locomotion pose; EXPERIMENTAL",c.index+1,phase);g_log(line);}
+    foreign_montage::StartSounds(reinterpret_cast<uintptr_t>(montage),ability);
+    if(g_log&&g_events++<12){char line[180]{};sprintf_s(line,"Rampage V1.105 CAST player=%d phase=%d: native motion/loop/collision/finish; own locomotion pose; EXPERIMENTAL",c.index+1,phase);g_log(line);}
     return true;
 }
 void Observe(const local_players::Context& c){

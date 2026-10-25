@@ -21,4 +21,8 @@ void* Compatible(uintptr_t nativeMontage,const Source&);
 void* WorldEnder(uintptr_t nativeMontage,const Source&);
 // Root motion uses the first track, on a slot absent from the live graph.
 void* RampageMotion(uintptr_t nativeMontage,const Source&);
+// Successful foreign casts only: native opening audio once on the receiver's
+// own mesh. Later sounds on dynamic gestures remain engine-timed notifies.
+void StartSounds(uintptr_t nativeMontage,void* liveAbility);
+bool CopyLaterSounds(uintptr_t nativeMontage,void* privateMontage);
 }

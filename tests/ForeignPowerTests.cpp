@@ -68,6 +68,7 @@ void Run(){
 }
 }
 namespace dg::foreign_montage {
+void StartSounds(uintptr_t,void*){}bool CopyLaterSounds(uintptr_t,void*){return true;}
 bool Ready(){return true;}
 void* Compatible(uintptr_t m,const Source& s){++builds;Check(m==reinterpret_cast<uintptr_t>(f.montage)&&s.sequence==reinterpret_cast<uintptr_t>(f.idle[At<unsigned char>(f.actor,0xC18)==2?1:0])&&s.slotIndex==33,"only own skeleton/pose and original slot reach builder");if(reassign)Put(f.ability,0x48,uintptr_t(0));return buildOK?f.replacement:nullptr;}
 }
