@@ -1,0 +1,169 @@
+{
+  "static": {
+    "exeSha256": "9F4702024DF5EEA1D51DF7745B0AD1EA95B97009982F73DDC1218C53DFF33D54",
+    "nativeSignatures": {
+      "5A9D60": "40574883ec4048c7442420feffffff",
+      "599310": "40574883ec4048c7442420feffffff",
+      "5A85A9": "e8b2170000",
+      "5A9DF8": "488b8120010000480fabd0"
+    },
+    "interruptEnum": {
+      "name": "EAbilityInterrupt::MOVE",
+      "value": 1
+    },
+    "nativeNotifyCall": "5A85A9 -> 5A9D60",
+    "requestedMask": "120",
+    "effectiveMask": "B0",
+    "reconcile": "5B4739 -> virtual2A0 -> 599310",
+    "nativeWindows": {
+      "Strife": [
+        {
+          "asset": "Strife_Jump_Land_Heavy",
+          "at": 0.6684650182723999,
+          "duration": 0.9648683071136475
+        },
+        {
+          "asset": "Strife_Jump_Land_Heavy",
+          "at": 0.8333730101585388,
+          "duration": 0.7999603152275085
+        }
+      ],
+      "War": [
+        {
+          "asset": "War_Jump_Land_Heavy_Montage",
+          "at": 0.4024589955806732,
+          "duration": 1.1975409984588623
+        },
+        {
+          "asset": "War_Jump_Land_Heavy_Montage",
+          "at": 0.8134250044822693,
+          "duration": 0.7865750193595886
+        }
+      ]
+    },
+    "oldManualMovementWritesRemoved": true,
+    "rejectedRampageStillRemoved": true,
+    "firstPass": "Native ABI/enum/notify/window verified against exact EXE and cooked assets",
+    "secondPass": "Ownership/lifecycle code reviewed; Windows HeavyLanding fixtures passed among 57/57 suites",
+    "comparison": "Native MOVE window is shared path; no old manual movement unlock remains",
+    "otherSourceTestConfigFilesUnchanged": 191,
+    "iniKeys": 169,
+    "hotkeyIdsUnchanged": 55,
+    "previousArchives": 167,
+    "gameplayValidated": false
+  },
+  "ci": {
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40199153318",
+    "runId": 40199153318,
+    "jobId": 121186396841,
+    "source": "100e2c34b3e108f93894ba1e1d18205bb65b097b",
+    "passedSuites": 57,
+    "msvcWarnings": 0,
+    "msvcErrors": 0,
+    "passedTests": [
+      "Test  #1: PlayerPresentation ...............   Passed",
+      "Test  #2: ForeignMontage ...................   Passed",
+      "Test  #3: ForeignWrath .....................   Passed",
+      "Test  #4: ForeignBeam ......................   Passed",
+      "Test  #5: ForeignPower .....................   Passed",
+      "Test  #6: ForeignCaltrops ..................   Passed",
+      "Test  #7: ExecutionCamera ..................   Passed",
+      "Test  #8: MeleeEffect ......................   Passed",
+      "Test  #9: MountedJump ......................   Passed",
+      "Test #10: WrathSlots .......................   Passed",
+      "Test #11: PistolVisual .....................   Passed",
+      "Test #12: LeviathanVisual ..................   Passed",
+      "Test #13: CosmeticUnlock ...................   Passed",
+      "Test #14: MountedHolsters ..................   Passed",
+      "Test #15: UltimateDuration .................   Passed",
+      "Test #16: GrappleRange .....................   Passed",
+      "Test #17: AirJump ..........................   Passed",
+      "Test #18: StandardAmmo .....................   Passed",
+      "Test #19: GameplayExtensionsConfig .........   Passed",
+      "Test #20: NativeRadial .....................   Passed",
+      "Test #21: NativeObjectIdentity .............   Passed",
+      "Test #22: DashCombatFeature ................   Passed",
+      "Test #23: InteractionHud ...................   Passed",
+      "Test #24: ManualActionBindings .............   Passed",
+      "Test #25: HeavyLanding .....................   Passed",
+      "Test #26: ManualAim ........................   Passed",
+      "Test #27: WeaponSheathing ..................   Passed",
+      "Test #28: DashCombat .......................   Passed",
+      "Test #29: TpsCameraFocus ...................   Passed",
+      "Test #30: LegacyRecoveryConfig .............   Passed",
+      "Test #31: HotstreakConfig ..................   Passed",
+      "Test #32: GlideAndHorse ....................   Passed",
+      "Test #33: SustainConfig ....................   Passed",
+      "Test #34: ProjectileSpawn ..................   Passed",
+      "Test #35: TpsAimTarget .....................   Passed",
+      "Test #36: LocalGameplayIsolation ...........   Passed",
+      "Test #37: LocalPlayerOwnership .............   Passed",
+      "Test #38: CoopCameraIsolation ..............   Passed",
+      "Test #39: ControllerReadScope ..............   Passed",
+      "Test #40: TpsStickRoles ....................   Passed",
+      "Test #41: GaugeRequests ....................   Passed",
+      "Test #42: GaugeHotkeys .....................   Passed",
+      "Test #43: UltimateCameraConfig .............   Passed",
+      "Test #44: PotionPolicies ...................   Passed",
+      "Test #45: PotionConfig .....................   Passed",
+      "Test #46: ResourceGains ....................   Passed",
+      "Test #47: GaugeUnlimited ...................   Passed",
+      "Test #48: WarningPresentation ..............   Passed",
+      "Test #49: AmmoConsumption ..................   Passed",
+      "Test #50: AmmoConfig .......................   Passed",
+      "Test #51: ConfigWriteFailures ..............   Passed",
+      "Test #52: UpdateVersion ....................   Passed",
+      "Test #53: UserDefaultsConfig ...............   Passed",
+      "Test #54: MenuAppearance ...................   Passed",
+      "Test #55: OverlayBindingScope ..............   Passed",
+      "Test #56: UpdateNotice .....................   Passed",
+      "Test #57: UpdateEngineSafety ...............   Passed"
+    ]
+  },
+  "package": {
+    "sourceCommit": "100e2c34b3e108f93894ba1e1d18205bb65b097b",
+    "archiveCommit": "74cb774b480f1cfb5cd2ed6e8d8a15ccd0fd39ec",
+    "name": "DarksidersGenesis_V1.103_HEAVY_LANDING_NATIVE_INTERRUPT_TEST.zip",
+    "size": 976150,
+    "sha256": "2FF84AFDB1C505E218EC2AD7EAEBCB64B4325180C08E70B451F75C60E1D962F8",
+    "files": {
+      "DarksidersGenesisMod.asi": {
+        "size": 1795072,
+        "sha256": "FCC40F08F99AE6FB8D309575B655E0731D03D45A0737B7EE937915136129DE78"
+      },
+      "DarksidersGenesisMod.ini": {
+        "size": 4708,
+        "sha256": "599E7AEE6350160BF70985B406A4C0B35094F282B6269971A48C88778AB5C29B"
+      },
+      "dxgi.dll": {
+        "size": 155136,
+        "sha256": "67E51653FC29557E0AF94DBD1389738FC15E93ABB61A3E502EA656EB4464B3CC"
+      },
+      "README.md": {
+        "size": 75974,
+        "sha256": "1118F2AD13CBB0BD589805DADA801354C41024E76FBC2CB5ACA053DCA23EF42C"
+      }
+    },
+    "oldArchivesUnchanged": 167,
+    "iniKeys": 169,
+    "hotkeyIdsUnchanged": 55,
+    "amd64": true,
+    "crcValid": true,
+    "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/74cb774b480f1cfb5cd2ed6e8d8a15ccd0fd39ec/downloads/DarksidersGenesis_V1.103_HEAVY_LANDING_NATIVE_INTERRUPT_TEST.zip",
+    "httpStatus": 200,
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/main": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "gameplayValidated": false
+  },
+  "acceptedBase": "V1.102 user-approved Stoneskin and menu font; retained V1.98 and War beam V1.100",
+  "experimental": [
+    "Heavy landing early native MOVE interruption"
+  ],
+  "open": [
+    "Strife Rampage refusal not yet captured"
+  ],
+  "runtimeValidated": false
+}

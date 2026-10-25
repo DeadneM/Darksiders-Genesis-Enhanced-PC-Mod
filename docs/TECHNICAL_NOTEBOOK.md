@@ -1,6 +1,8 @@
 ## V1.103 - reception lourde par interruption native du mouvement
 
-**EXPERIMENTALE, NON VALIDEE EN JEU ; compilation et livraison a controler.** Base V1.102 : Stoneskin et taille de police explicitement VALIDES par l'utilisateur ; Geyser/Clone/Caltrops V1.98 et World Ender War V1.100 conserves. Rampage Strife V1.100/V1.101 reste rejete et retire.
+**CONSTRUITE / CONTROLEE : [57/57 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40199153318), zero avertissement/erreur MSVC. [ZIP immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/74cb774b480f1cfb5cd2ed6e8d8a15ccd0fd39ec/downloads/DarksidersGenesis_V1.103_HEAVY_LANDING_NATIVE_INTERRUPT_TEST.zip) - [Recu](V1_103_DELIVERY_RECEIPT.md). Nouvelle reception lourde EXPERIMENTALE, NON VALIDEE EN JEU ; base V1.102 validee pour Stoneskin et police.**
+
+**EXPERIMENTALE, NON VALIDEE EN JEU ; compilation et livraison controlees ; essai en jeu requis.** Base V1.102 : Stoneskin et taille de police explicitement VALIDES par l'utilisateur ; Geyser/Clone/Caltrops V1.98 et World Ender War V1.100 conserves. Rampage Strife V1.100/V1.101 reste rejete et retire.
 
 La reception lourde apres une chute utilise maintenant sa vraie fenetre native d'interruption MOVE, ouverte apres l'impact (0,15 s et sol continu 50 ms). Le moteur decide de la fin du pouvoir, du blend de l'animation et de la reprise lorsque le joueur se deplace. L'ancien correctif qui ecrivait AllowPlayerMovement et le bit d'action MOVE est retire. Pas de fin forcee, simulation de touche, changement des dashs ou ecriture de vitesse. La case existante reste OFF par defaut ; les raccourcis reaffectes suivent l'action native.
 

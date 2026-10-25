@@ -1,5 +1,7 @@
 # V1.103 - reception lourde, interruption native MOVE
 
+**CONSTRUITE / CONTROLEE : [57/57 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40199153318), zero avertissement/erreur MSVC. [ZIP immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/74cb774b480f1cfb5cd2ed6e8d8a15ccd0fd39ec/downloads/DarksidersGenesis_V1.103_HEAVY_LANDING_NATIVE_INTERRUPT_TEST.zip) - [Recu](V1_103_DELIVERY_RECEIPT.md). Nouvelle reception lourde EXPERIMENTALE, NON VALIDEE EN JEU ; base V1.102 validee pour Stoneskin et police.**
+
 25 octobre 2026. Base debug V1.102 validee par l'utilisateur pour Stoneskin et police. Acquis Geyser/Clone/Caltrops V1.98 et World Ender War V1.100 conserves. Nouvelle recuperation EXPERIMENTALE, non validee en jeu.
 
 ## Objectif et critere de reussite
@@ -24,7 +26,7 @@ Limite : les temps compares sont ceux de l'ability, avec le montage original/rat
 
 Premiere passe : EXE exact, enum MOVE=1, appel de NotifyBegin, masques demandes/effectifs, reconciliation native et marqueurs des deux montages verifies hors ligne. Deuxieme passe : code/fixtures verifies pour sol/impact, proprietaires, package/rate, OFF, pause/roues/cinema, instance recyclee, autres fenetres et fin native. Les deux passent par le meme point natif ; l'ancienne ecriture de permissions de marche a ete retiree, pas cumulee avec ce candidat.
 
-Rampage Strife : packages, squelette Strife_Skeleton, cinq slots du graphe et FName DefaultSlot sont corrects dans les preuves consultees. L'initialiseur 0x1D7590 confirme DefaultSlot a base+0x3A32340. Ces hypotheses sont ecartees ; aucune preuve ne designe encore la condition precise de Prepare qui echouait. Le log V1.101 consulte contient READY mais aucun CAST. Il serait injustifie de relivrer le meme montage War sur un slot non evalue. Le code rejete reste absent ; une capture de refus ciblee est preparee hors ASI, sans ecriture ni lancement du jeu. Jeu ferme lors du preflight courant, pas de nouvelle preuve runtime.
+Rampage Strife : packages, squelette Strife_Skeleton, cinq slots du graphe et FName DefaultSlot sont corrects dans les preuves consultees. L'initialiseur 0x1D7590 confirme DefaultSlot a base+0x3A32340. Aucune erreur de ces constantes n'a ete identifiee ; leur etat lors du refus ancien reste inconnu ; aucune preuve ne designe encore la condition precise de Prepare qui echouait. Le log V1.101 consulte contient READY mais aucun CAST. Il serait injustifie de relivrer le meme montage War sur un slot non evalue. Le code rejete reste absent ; une capture de refus ciblee est preparee hors ASI, sans ecriture ni lancement du jeu. Jeu ferme lors du preflight courant, pas de nouvelle preuve runtime.
 
 ## Conservation et essais
 
