@@ -6,6 +6,8 @@ using LogFn=void(*)(const char*);
 struct Source {uintptr_t sequence=0,skeleton=0;int slotIndex=0,slotNumber=0,rootIndex=0,rootNumber=0,spineIndex=0,spineNumber=0;};
 void Initialize(LogFn,bool exactExecutable);
 bool Ready();
+// Private foreign montages only: preserve longer authored fades.
+bool SmoothExit(void* privateMontage);
 bool CanBuild(const Source&);
 // Reuse the existing bounded object scan; no loader, timer or source edits.
 void ObserveSequence(uintptr_t object);

@@ -11,6 +11,10 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(StoneSkinVisualTests tests/StoneSkinVisualTests.cpp)
+  target_include_directories(StoneSkinVisualTests PRIVATE tests/stubs src)
+  target_compile_definitions(StoneSkinVisualTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+  add_test(NAME StoneSkinVisual COMMAND StoneSkinVisualTests)
   add_executable(PlayerPresentationTests tests/PlayerPresentationTests.cpp tests/NativeCursorConsumer.cpp src/RuntimeSettings.cpp src/ConfigStore.cpp)
   target_include_directories(PlayerPresentationTests PRIVATE tests/stubs src)
   target_compile_definitions(PlayerPresentationTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
@@ -24,7 +28,7 @@ if(BUILD_TESTING)
   target_include_directories(ForeignAudioTests PRIVATE tests/stubs src)
   target_compile_definitions(ForeignAudioTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
   add_test(NAME ForeignAudio COMMAND ForeignAudioTests)
-  add_executable(ForeignWrathTests tests/ForeignWrathTests.cpp src/ForeignCaltropsFeature.cpp src/ForeignPowerFeature.cpp src/ForeignBeamFeature.cpp src/ForeignRampageFeature.cpp src/RuntimeSettings.cpp)
+  add_executable(ForeignWrathTests tests/ForeignWrathTests.cpp src/StoneSkinVisual.cpp src/ForeignCaltropsFeature.cpp src/ForeignPowerFeature.cpp src/ForeignBeamFeature.cpp src/ForeignRampageFeature.cpp src/RuntimeSettings.cpp)
   target_include_directories(ForeignWrathTests PRIVATE tests/stubs src)
   target_compile_definitions(ForeignWrathTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
   add_test(NAME ForeignWrath COMMAND ForeignWrathTests)
@@ -368,6 +372,7 @@ add_library(DarksidersGenesisMod SHARED
   src/ExecutionCameraFeature.cpp
   src/MeleeEffectFeature.cpp
   src/WrathSlotFeature.cpp
+  src/StoneSkinVisual.cpp
   src/ForeignWrathFeature.cpp
   src/ForeignCaltropsFeature.cpp
   src/ForeignMontage.cpp

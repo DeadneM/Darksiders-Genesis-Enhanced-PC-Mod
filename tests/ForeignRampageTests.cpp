@@ -34,7 +34,7 @@ void SampleNative(void* sequence,dg::pistol_visual::CompactPose* pose,dg::pistol
 }
 void Fresh(){
  f={};context={};local=thread=buildOK=playOK=true;reassign=false;liveId=0;builds=plays=finishes=0;cause=255;
- g_ready=true;g_failed=false;g_log=nullptr;g_events=0;g_handling=nullptr;g_sample=nullptr;g_position=nullptr;g_visualMask=0;for(auto& v:g_visual)v={};g_idle={};for(auto& id:g_phases)id={};for(auto& c:g_cast)c={};g_finish=FinishNative;g_playing=PlayingNative;
+ g_ready=true;g_failed=false;g_log=nullptr;g_events=0;g_handling=nullptr;g_sample=nullptr;g_visualMask=0;for(auto& v:g_visual)v={};g_idle={};for(auto& id:g_phases)id={};for(auto& c:g_cast)c={};g_finish=FinishNative;g_playing=PlayingNative;
  const char* classes[]={"BlueprintGeneratedClass","AnimSequence","Strife_Blueprint_C","StrifeAnim_Blueprint_C","Skeleton","StructProperty","NameProperty","Class"};
  for(int i=0;i<8;++i)Label(f.classes[i],i+1,classes[i]);
  context.index=0;context.world=456;context.localPlayer=123;context.character=context.pawn=reinterpret_cast<uintptr_t>(f.actor);context.controller=reinterpret_cast<uintptr_t>(f.controller);
@@ -98,7 +98,7 @@ void Run(){
  Fresh();Shutdown();Check(!Cast()&&!builds,"shutdown restores native passthrough");
  // The visual sampler is independent of the chain authorization token and
  // never advances animation, generates notifies or applies root motion.
- Fresh();samples=0;g_sample=SampleNative;Visual v{};v.ability=Live(f.ability);v.actor=Live(f.actor);v.mesh=Live(f.mesh);v.anim=Live(f.anim);v.skeleton=Live(f.skeleton);v.montage=Live(f.replacement);v.sequence=Live(f.poseSequence);v.position=.6f;v.length=1.2f;v.tick=GetTickCount64();g_visual[0]=v;g_visualMask=1;
+ Fresh();samples=0;g_sample=SampleNative;Visual v{};v.actor=Live(f.actor);v.mesh=Live(f.mesh);v.anim=Live(f.anim);v.skeleton=Live(f.skeleton);v.montage=Live(f.replacement);v.sequence=Live(f.poseSequence);v.position=.6f;v.length=1.2f;v.tick=GetTickCount64();g_visual[0]=v;g_visualMask=1;
  Put(f.poseSequence,0x38,v.skeleton.address);Put(f.poseSequence,0x90,1.3f);Put(f.anim,0x240,reinterpret_cast<uintptr_t>(f.proxy));Put(f.anim,0x318,g_base+0x2A77628);
  Put(f.proxy,0xA0,v.anim.address);Put(f.proxy,0xB8,v.mesh.address);Put(f.proxy,0xB0,v.skeleton.address);for(unsigned i=0;i<80;++i)f.compact[i]=uint16_t(i);
  Put(f.proxy,0x450,Array{reinterpret_cast<uintptr_t>(f.compact),80,80});f.pose[0].t[0]=123;
@@ -107,15 +107,17 @@ void Run(){
  f.compact[1]=2;Check(!Evaluate(f.anim+0x318,&output)&&samples==1,"unknown compact mapping preserves native evaluation");f.compact[1]=1;
  // Regression: runtime Slam remains active ~0.25 s after its montage
  // disappears. GetPosition then returns zero; never replay Devil Heel's start.
- g_position=[](void*,void*)->float{return .6f;};Put(f.instance,0x28,v.montage.address);Put(f.ability,0x1D8,reinterpret_cast<uintptr_t>(f.instance));
- g_cast[0]={v.actor,context.world,4};Observe(context);Check(g_visualMask==1&&g_visual[0].position==.6f,"own active native montage updates presentation");
- playOK=false;g_position=[](void*,void*)->float{throw std::runtime_error("ended montage position must never be read");};Observe(context);
- Check(g_visualMask==0&&!Evaluate(f.anim+0x318,&output),"native montage end clears pose although ability still active, preserving pending companion");
- Check(g_cast[0].phase==4,"presentation end never consumes native handoff token");
- g_visual[0]=v;g_visualMask=1;playOK=true;Put(f.instance,0x28,uintptr_t(0));Observe(context);Check(g_visualMask==0,"replaced helper montage cannot refresh an old pose");
- g_visual[0]=v;g_visualMask=1;
- Put<unsigned char>(f.ability,0xD8,0);Check(!Evaluate(f.anim+0x318,&output)&&samples==1,"finished cast cannot leave a borrowed pose");Put<unsigned char>(f.ability,0xD8,2);
- Put(f.items,size_t(v.sequence.index)*24+16,999);Check(!Evaluate(f.anim+0x318,&output)&&samples==1,"stale animation identity never reaches native sampler");
+ unsigned char nativeInstance[0x160]{};uintptr_t nativeInstances[]={reinterpret_cast<uintptr_t>(nativeInstance)};
+ Put(f.anim,0x78,Array{reinterpret_cast<uintptr_t>(nativeInstances),1,1});Put(nativeInstance,0,v.montage.address);Put(nativeInstance,0x128,.6f);Put(nativeInstance,0x148,1.f);
+ g_cast[0]={v.actor,context.world,4};Observe(context);Check(g_visualMask==1&&g_visual[0].position==.6f,"owned native list retains exact position");
+ // Ability/map may already be gone; the native montage remains in its fade.
+ Put<unsigned char>(f.ability,0xD8,0);Put(nativeInstance,0x148,.25f);Observe(context);
+ f.pose[1].t[0]=1;f.pose[1].q[3]=1;f.pose[1].s[0]=f.pose[1].s[1]=f.pose[1].s[2]=1;
+ Check(Evaluate(f.anim+0x318,&output)&&samples==2&&std::fabs(f.pose[1].t[0]-81.f)<.0001f,"ended ability uses actual native fade weight, never resets sequence time");
+ Put(f.anim,0x78,Array{});Observe(context);Check(g_visualMask==0&&!Evaluate(f.anim+0x318,&output),"removed native instance clears visual without replay");
+ Check(g_cast[0].phase==4,"visual completion never consumes chain token");
+ g_visual[0]=v;g_visualMask=1;Put<unsigned char>(f.ability,0xD8,2);
+ Put(f.items,size_t(v.sequence.index)*24+16,999);Check(!Evaluate(f.anim+0x318,&output)&&samples==2,"stale animation identity never reaches native sampler");
 }
 }
 namespace dg::foreign_montage {

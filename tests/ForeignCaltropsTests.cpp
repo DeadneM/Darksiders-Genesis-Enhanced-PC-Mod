@@ -74,7 +74,7 @@ void Run(){
     Fresh();uintptr_t cls=0;const auto actor=std::to_array(f.actor);const auto cdo=std::to_array(f.cdo);const auto idle=std::to_array(f.idle);const auto original=std::to_array(f.montage);
     Check(Prepare(f.actor,cls)&&cls==reinterpret_cast<uintptr_t>(f.power)&&!creates&&!spawns,"preparation validates own class, idle and spawner without creating anything");
     reenter=true;Check(Cast(1.25f)&&creates==1&&plays==1&&spawns==1&&!finishes&&!g_handling,"one native creation/play/spawn, including reentrant native playback");
-    Check(created.sequence==f.idle&&created.slot==Name{17,0}&&created.in==.1f&&created.out==.1f&&created.rate==1&&created.loops==1&&created.trigger==-1&&created.start==0,"all eight native dynamic-montage arguments match contract");
+    Check(created.sequence==f.idle&&created.slot==Name{17,0}&&created.in==.1f&&created.out==.18f&&created.rate==1&&created.loops==1&&created.trigger==-1&&created.start==0,"all eight native dynamic-montage arguments match contract");
     Check(playedMontage==f.replacement&&playedSection==Name{0,0}&&std::fabs(5.3333334923f/playedRate-2.3333332539f/1.25f)<.0001f,"own War montage preserves effective native cast duration and requested rate");
     Check(spawned.ability==f.ability&&spawned.projectile==f.projectile&&spawned.bone==Name{16,0},"three-argument native spawn uses current ability, own default class and War pelvis FName");
     Check(!std::memcmp(f.actor,actor.data(),actor.size())&&!std::memcmp(f.cdo,cdo.data(),cdo.size())&&!std::memcmp(f.idle,idle.data(),idle.size())&&!std::memcmp(f.montage,original.data(),original.size()),"no actor, source, CDO, input or resource writes");

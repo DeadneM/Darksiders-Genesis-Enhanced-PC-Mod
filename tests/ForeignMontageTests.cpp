@@ -16,6 +16,7 @@ struct Fixture {
     unsigned char beamSequences[3][0x180]{},beamDestroy[0x100]{},beamInterrupt[0x100]{},beamStateClass[0x80]{};
     unsigned char gesture[0x240]{},gesturePackage[0x80]{},gestureEvents[552]{},gestureNotifies[3][0x100]{},footstepClass[0x80]{},gestureTrack[4]{},items[8*24]{};
  unsigned char interruptClass[0x80]{},interrupts[2][0x80]{};
+    unsigned char blendProperty[0x80]{},blendStruct[0x80]{},blendTime[0x80]{},structClass[0x80]{},floatClass[0x80]{};
 } f;
 unsigned char entries[64][256]{};uintptr_t names[64]{},chunks[1]{reinterpret_cast<uintptr_t>(names)},objectChunks[1]{};
 bool gameThread=true;int mode=0;unsigned constructors=0,skeletonCalls=0,reserves=0;
@@ -64,6 +65,9 @@ void Fresh(){
     const char* labels[]={"AnimMontage","Class","AnimSequence","Skeleton","Package","AnimNotify_CallAbilityFunction","AnimNotify_PlayParticleEffect","AnimNotify_PlaySound"};
     const unsigned ids[]={1,2,3,4,5,6,17,18};for(unsigned i=0;i<8;++i)Label(f.classes[i],ids[i],labels[i]);
     Put(f.classes[0],0x10,reinterpret_cast<uintptr_t>(f.classes[1]));
+    Label(f.blendProperty,49,"BlendOut");Label(f.blendStruct,50,"AlphaBlend");Label(f.blendTime,51,"BlendTime");Label(f.structClass,52,"StructProperty");Label(f.floatClass,53,"FloatProperty");
+    Put(f.classes[0],0x48,reinterpret_cast<uintptr_t>(f.blendProperty));Put(f.blendProperty,0x10,reinterpret_cast<uintptr_t>(f.structClass));Put(f.blendProperty,0x34,48);Put(f.blendProperty,0x44,0xE0);Put(f.blendProperty,0x70,reinterpret_cast<uintptr_t>(f.blendStruct));
+    Put(f.blendStruct,0x48,reinterpret_cast<uintptr_t>(f.blendTime));Put(f.blendTime,0x10,reinterpret_cast<uintptr_t>(f.floatClass));Put(f.blendTime,0x34,4);Put(f.blendTime,0x44,8);
     Put(f.original,0x10,reinterpret_cast<uintptr_t>(f.classes[0]));Label(f.original,7,"War_Wrath_BladeGeyser_Montage");
     Label(f.originalPackage,8,"/Game/Characters/Heroes/Hero_War/Animation/War_Wrath_BladeGeyser_Montage");
     Put(f.original,0x20,reinterpret_cast<uintptr_t>(f.originalPackage));Put(f.original,0x38,reinterpret_cast<uintptr_t>(f.warSkeleton));
@@ -282,16 +286,23 @@ void BeamFixture(){
     Put(f.events,368+0x50,reinterpret_cast<uintptr_t>(f.beamInterrupt));Put(f.events,368+0x24,1.014648795f);Put(f.events,368+0x58,3.885350704f);
     Put(f.original,0x80,Array{reinterpret_cast<uintptr_t>(f.events),3,3});
 }
+void Fades(){
+    Fresh();Check(!SmoothExit(f.original),"original montage is never edited");
+    Check(ConstructNative(f.classes[0],f.transient,{},0x40,0,f.original,false,nullptr,false)==f.copy,"private copy");
+    Check(SmoothExit(f.copy)&&At<float>(f.copy,0xE8)==.18f&&At<float>(f.original,0xE8)==0,"only private fade extended");
+    Put(f.copy,0xE8,.4f);Check(SmoothExit(f.copy)&&At<float>(f.copy,0xE8)==.4f,"longer authored fade retained");
+    Put(f.blendTime,0x44,48);Check(!SmoothExit(f.copy),"invalid reflected blend member fails closed");
+}
 void GeyserPacing(){
     std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(chunks));for(unsigned i=0;i<64;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
-    GestureFixture(false);ObserveSequence(reinterpret_cast<uintptr_t>(f.gesture));
+    Fades();GestureFixture(false);ObserveSequence(reinterpret_cast<uintptr_t>(f.gesture));
     g_reserveSegments=[](void* header,int count){Check(header==f.copyTracks+8&&count==2,"32-byte native reserve restricted to own cloned animation track");Put(header,0,Array{reinterpret_cast<uintptr_t>(f.copySegments),1,3});};
     Put(f.war,0x80,Array{reinterpret_cast<uintptr_t>(f.sequenceEvents),5,8});Label(f.interruptClass,48,"AnimNotify_EnableAbilityInterrupt");
     for(int i=0;i<2;++i){Put(f.interrupts[i],0x10,reinterpret_cast<uintptr_t>(f.interruptClass));Put(f.interrupts[i],0x20,reinterpret_cast<uintptr_t>(f.war));auto* e=f.sequenceEvents+(3+i)*184;const float time=i?1.0523383617f:.7892537713f;Put(e,0x50,reinterpret_cast<uintptr_t>(f.interrupts[i]));Put(e,0x24,time);Put(e,0x58,2.3666665554f-time);}
     const auto before=std::make_unique<Fixture>(f);Check(Geyser(reinterpret_cast<uintptr_t>(f.original),source)==f.copy,"Geyser gesture and native cancel windows build privately");
     Check(At<Array>(f.copyTracks,8).count==2&&At<int>(f.copy,0x88)==6&&At<float>(f.copy,0x90)==2.3666665554f,"native montage duration and all gameplay cues retained with two own-pose segments");
     auto cast=At<Segment>(f.copySegments,0),idle=At<Segment>(f.copySegments,32);
-    Check(cast.sequence==reinterpret_cast<uintptr_t>(f.gesture)&&cast.rate==1&&cast.last==1&&idle.sequence==source.sequence&&idle.start==1&&std::fabs(idle.last/idle.rate-(2.3666665554f-1))<.00001f,"one-second gesture keeps native speed; own idle covers remaining native cast span");
+    Check(cast.sequence==reinterpret_cast<uintptr_t>(f.gesture)&&cast.rate==1&&cast.last==1&&idle.sequence==cast.sequence&&idle.start==1&&idle.first>idle.last-.034f&&std::fabs((idle.last-idle.first)/idle.rate-(2.3666665554f-1))<.00001f,"one-second gesture keeps native speed; own idle covers remaining native cast span");
     Check(At<float>(f.copyEvents,2*184+0x24)==.4880667329f&&At<uintptr_t>(f.copyEvents,2*184+0x48)==reinterpret_cast<uintptr_t>(f.notify),"actual blast callback not sped up or delayed to match a visual workaround");
     Check(At<uintptr_t>(f.copyEvents,4*184+0x50)==reinterpret_cast<uintptr_t>(f.interrupts[0])&&At<int>(f.copyEvents,4*184+0x74)==1&&std::fabs(At<float>(f.copyEvents,4*184+0x84)-2.3666665554f)<.00001f,"native MOVE state can begin in gesture and end in idle segment");
     Check(!std::memcmp(f.war,before->war,sizeof(f.war))&&!std::memcmp(f.sequenceEvents,before->sequenceEvents,sizeof(f.sequenceEvents))&&!std::memcmp(f.interrupts,before->interrupts,sizeof(f.interrupts)),"source animation, callback times and control windows never edited");
@@ -304,7 +315,7 @@ void Beams(){
     Check(At<uintptr_t>(f.copy,0x38)==source.skeleton&&At<int>(f.copy,0x88)==3,"private skeleton and complete native callback/cancellation event plan");
     Check(At<Segment>(f.copySegments,32).loops==1&&At<Segment>(f.copySegments,64).loops==1&&At<float>(f.copy,0x90)==4.8999996185f,"native complete duration retained without repeating the casting gesture");
     const auto hold=At<Segment>(f.copySegments,32),end=At<Segment>(f.copySegments,64);
-    Check(hold.first>hold.last-.034f&&std::fabs((hold.last-hold.first)/hold.rate-2.9f)<.0001f&&end.sequence==source.sequence,
+    Check(hold.first>hold.last-.034f&&std::fabs((hold.last-hold.first)/hold.rate-2.9f)<.0001f&&end.sequence==hold.sequence&&end.first==hold.first,
           "beam holds the final source frame for the full fire phase, then returns to own idle");
     Check(At<float>(f.copyEvents,0x24)==.6564341187f&&At<float>(f.copyEvents,2*184+0x24)==3.5871195793f,"StartBeam and DestroyBeam keep exact original times");
     Check(At<uintptr_t>(f.copyEvents,184+0x50)==reinterpret_cast<uintptr_t>(f.beamInterrupt)&&At<float>(f.copyEvents,184+0x58)==3.885350704f&&

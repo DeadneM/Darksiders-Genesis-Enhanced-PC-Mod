@@ -1,5 +1,6 @@
 #include "ForeignWrathFeature.h"
 #include "ForeignMontage.h"
+#include "StoneSkinVisual.h"
 #include "ForeignCaltropsFeature.h"
 #include "ForeignPowerFeature.h"
 #include "ForeignBeamFeature.h"
@@ -25,7 +26,7 @@ uintptr_t g_base=0,g_world=0;LogFn g_log=nullptr;std::atomic_bool g_ready{false}
 native_objects::Identity g_geyser{},g_geyserActors[2]{};
 native_objects::Identity g_stone{};std::atomic_bool g_stoneFailed{false};unsigned g_stoneEvents=0;
 std::atomic_bool g_geyserReady{false},g_geyserFailed{false};
-native_objects::Identity g_sequenceClass{},g_nativeClass{};
+native_objects::Identity g_sequenceClass{},g_nativeClass{},g_materialClass{};
 int g_cursor=0,g_count=0;bool g_complete=false;uint64_t g_scanTick=0;unsigned g_events=0;
 struct Array {uintptr_t data=0;int count=0,capacity=0;};
 struct Override {void* actor=nullptr;uintptr_t abilityClass=0;Name id{};};
@@ -81,10 +82,10 @@ bool Source(uintptr_t actor,Animation& out){
 void Scan(uintptr_t generatedClass){
     const bool beamChanged=foreign_beam::InvalidateAssets(),rampageChanged=foreign_rampage::InvalidateAssets();
     const bool caltropsChanged=foreign_caltrops::InvalidateAssets(),cloneChanged=foreign_power::InvalidateAssets();
-    if(beamChanged||rampageChanged||caltropsChanged||cloneChanged){g_cursor=0;g_complete=false;}
+    if(stone_visual::InvalidateAssets()||beamChanged||rampageChanged||caltropsChanged||cloneChanged){g_cursor=0;g_complete=false;}
     if(g_geyser&&!Alive(g_geyser)){g_geyser={};g_geyserReady=false;g_cursor=0;g_complete=false;}
     if(g_stone&&!Alive(g_stone)){g_stone={};g_cursor=0;g_complete=false;}
-    if(g_geyser){g_geyserReady=true;if(foreign_montage::GesturesReady()&&foreign_beam::AssetsReady()&&g_stone&&foreign_rampage::AssetsReady()&&foreign_caltrops::AssetsReady()&&foreign_power::AssetsReady())return;}
+    if(g_geyser){g_geyserReady=true;if(stone_visual::AssetsReady()&&foreign_montage::GesturesReady()&&foreign_beam::AssetsReady()&&g_stone&&foreign_rampage::AssetsReady()&&foreign_caltrops::AssetsReady()&&foreign_power::AssetsReady())return;}
     uintptr_t chunks=0;int count=0;
     if(!Read(g_base,0x3959680,chunks)||!Read(g_base,0x3959694,count)||count<=0||count>2000000)return;
     if(count!=g_count){if(count<g_count)g_cursor=0;g_count=count;g_complete=false;}
@@ -95,6 +96,7 @@ void Scan(uintptr_t generatedClass){
     const bool timed=QueryPerformanceFrequency(&frequency)&&frequency.QuadPart>=1000&&QueryPerformanceCounter(&started);
     if(g_sequenceClass&&!Alive(g_sequenceClass))g_sequenceClass={};
     if(g_nativeClass&&!Alive(g_nativeClass))g_nativeClass={};
+    if(g_materialClass&&!Alive(g_materialClass))g_materialClass={};
     for(unsigned n=0;n<256&&g_cursor<count;++n,++g_cursor){
         if(n&&!(n%16)&&timed){LARGE_INTEGER now{};
             if(QueryPerformanceCounter(&now)&&now.QuadPart-started.QuadPart>=frequency.QuadPart/1000)break;}
@@ -103,7 +105,9 @@ void Scan(uintptr_t generatedClass){
            !Read(chunk,size_t(g_cursor%65536)*24+8,flags)||(flags&0x30000000u)||!Read(object,0x10,cls))continue;
         if(!g_sequenceClass&&Is(cls,"AnimSequence"))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(cls),g_sequenceClass);
         if(!g_nativeClass&&Is(cls,"Class"))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(cls),g_nativeClass);
+        if(!g_materialClass&&Is(cls,"MaterialInstanceConstant"))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(cls),g_materialClass);
         const unsigned kind=cls==generatedClass?1u:cls==g_nativeClass.address?2u:cls==g_sequenceClass.address?3u:0u;
+        if(cls==g_materialClass.address)stone_visual::ObserveObject(object);
         if(!kind)continue;
         foreign_caltrops::ObserveObject(object,kind);foreign_power::ObserveObject(object,kind);
         if(kind==1||kind==3){foreign_beam::ObserveObject(object);foreign_rampage::ObserveObject(object);}
@@ -152,14 +156,15 @@ void StonePlay(void* ability,void* montage,float rate,Name section,const local_p
        Read(original,0x94,scale)&&std::isfinite(scale)&&scale>.1f&&scale<10){
         duration/=scale;length=source.length;
         const auto sequence=foreign_montage::CastingSequence(source.sequence,source.skeleton,length);
-        auto* replacement=g_create(reinterpret_cast<void*>(sequence),source.slot,.1f,.1f,1.f,1,-1.f,0.f);
+        auto* replacement=g_create(reinterpret_cast<void*>(sequence),source.slot,.1f,.18f,1.f,1,-1.f,0.f);
         if(!Alive(abi)||!Alive(pawn)||!Read(p,0x48,owner)||owner!=c.character)return;
         const auto copy=reinterpret_cast<uintptr_t>(replacement);
         if(copy&&copy!=original&&Read(copy,0x10,cls)&&Is(cls,"AnimMontage")&&Read(copy,0x38,skeleton)&&skeleton==source.skeleton&&
            Read(copy,0x90,length)&&std::isfinite(length)&&length>.1f&&length<10){
             const float adjusted=rate*length/duration;
             if(std::isfinite(adjusted)&&adjusted>.01f&&adjusted<100){
-                // Audio only: source status, cost and visual policy stay native.
+                // Native status/cost, own gesture; body coating is observed
+                // independently from the status list, never from this clip.
                 foreign_montage::CopyLaterSounds(original,replacement);
                 g_play(ability,replacement,adjusted,section);
                 if(!Alive(abi)||!Alive(pawn)||!Read(p,0x48,owner)||owner!=c.character)return;
@@ -168,11 +173,11 @@ void StonePlay(void* ability,void* montage,float rate,Name section,const local_p
         }
     }
     // The native Blueprint applies the status and cost before PlayMontage.
-    // Only its incompatible body animation is adapted; War/materials/Stinger
-    // and the status duration/removal remain native. No borrowed components.
+    // War and Stinger stay native. A separate owned-material observer follows
+    // the actual Strife status lifetime; no borrowed components or timer.
     if(!played){g_stoneFailed=true;g_finish(ability,0);}
     else foreign_montage::StartSounds(original,ability);
-    if(g_log&&g_stoneEvents++<12)g_log(played?"Stoneskin V1.102 CAST: own Strife pose, native status/cost/duration and finish; War visuals not transplanted; EXPERIMENTAL":
+    if(g_log&&g_stoneEvents++<12)g_log(played?"Stoneskin V1.112 CAST: own Strife pose, native status/cost/duration and finish; private coating observer; EXPERIMENTAL":
         "Stoneskin V1.102 stopped: own cast contract unavailable; native finish, transfer disabled for session; select Native");
 }
 
@@ -220,7 +225,7 @@ bool Boundary(){
 }
 void Initialize(LogFn log,bool exactExecutable){
     g_log=log;if(!exactExecutable)return;g_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
-    foreign_montage::Initialize(log,exactExecutable);
+    foreign_montage::Initialize(log,exactExecutable);stone_visual::Initialize(log,exactExecutable);
     if(!Boundary()){if(log)log("Foreign Wrath V1.83 unavailable: native lifecycle signature mismatch");return;}
     auto* getter=reinterpret_cast<void*>(g_base+0x7AAC30);auto* play=reinterpret_cast<void*>(g_base+0x5AA190);
     if(MH_CreateHook(getter,reinterpret_cast<void*>(&HookGetter),reinterpret_cast<void**>(&g_getter))!=MH_OK)return;
@@ -246,7 +251,7 @@ int Status(int choice){
     return foreign_montage::Ready()&&!g_geyserFailed?(g_geyserReady?2:1):0;
 }
 void Observe(const local_players::Context& owner){
-    foreign_rampage::Observe(owner);
+    foreign_rampage::Observe(owner);stone_visual::Observe(owner);
     if(!g_ready||!native_tps::OnGameThread())return;
     bool wanted=g_requested.load();for(const auto& slots:runtime::Get().wrathSlots)for(const auto& choice:slots)wanted=wanted||((choice.load()>=1&&choice.load()<=5)||choice.load()==6);
     if(!wanted||owner.index<0||owner.index>1||!owner.localPlayer||!owner.world||owner.kind!=local_players::PoseKind::Foot)return;
@@ -280,5 +285,5 @@ uintptr_t* Resolve(ResolveFn native,void* actor,uintptr_t* result,Name id,bool* 
     g_override=&request;return native(actor,result,id,unlocked,affordable);
 }
 
-void Shutdown(){foreign_caltrops::Shutdown();foreign_power::Shutdown();foreign_beam::Shutdown();foreign_rampage::Shutdown();g_ready=false;g_geyserReady=false;}
+void Shutdown(){stone_visual::Shutdown();foreign_caltrops::Shutdown();foreign_power::Shutdown();foreign_beam::Shutdown();foreign_rampage::Shutdown();g_ready=false;g_geyserReady=false;}
 }

@@ -1,3 +1,15 @@
+## V1.112 - Fins des pouvoirs et revetement Stoneskin Strife
+
+**EXPERIMENTALE / NON VALIDEE EN JEU. Compilation et livraison GitHub a controler.** Base V1.111, avec les acquis explicitement valides : effets WingClip V1.110, sons/vitesses des pouvoirs, flash Lava et fonctions precedentes. Le retour V1.111 signale des fins abruptes pour Rampage/Geyser Strife et les trois pouvoirs de Strife sur War ; cela reste le critere de validation du nouveau lot.
+
+Geyser et World Ender gardent une pose continue jusqu'au fondu, sans saut vers un segment idle. Les copies privees des montages conservent leurs fondus plus longs et ont un minimum de sortie de 0,18 s ; Caltrops et Stoneskin utilisent aussi cette sortie douce. Rampage suit le poids et la position de son vrai montage pendant le fondu, meme apres la fin de la capacite, au lieu d'arreter brutalement la pose. Mouvement, durees, evenements de degats/cout et fenetres de reprise des commandes conserves.
+
+Capture Stoneskin : War recoit ses materiaux natifs, Strife recoit les memes statuts sans revetement. Nouveau candidat : quatre materiaux dynamiques prives pour le corps/equipement/tissu de Strife, parametres natifs Stoneskin ou Molten selon les vrais statuts. Les materiaux d'origine sont gardes par le parent du materiau prive, puis restaures a l'expiration ou transformation ; un remplacement natif gagne. War, Stinger, statistiques et durees restent natifs. **Compatibilite visuelle des textures de War sur Strife a verifier en jeu.**
+
+169 cles INI / 55 ID Hotkeys conserves. Aucun changement de camera, tirs, input/XInput, reception lourde ou reglages. P2 toujours differe. Compilation uniquement GitHub ; installation manuelle/updater debug par l'utilisateur. Anciennes archives preservees. [Preuves, limites, essais et rollback](docs/V1_112_POWER_BLENDS_STRIFE_STONESKIN_TEST.md).
+
+---
+
 ## V1.111 - Repere Rampage et rythme des gestes natifs
 
 **CONSTRUITE / CONTROLEE : [61/61 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40363876283), zero avertissement/erreur MSVC. [ZIP public immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/0f1a5d47ac05b67ed950d9338fe06d8b7c38a3d0/downloads/DarksidersGenesis_V1.111_NATIVE_POWER_TIMING_FRAME_TEST.zip) - [Recu](docs/V1_111_DELIVERY_RECEIPT.md). Updater debug : V1.111 selectionnee, octets verifies. Defender : aucune menace detectee dans le ZIP final et les quatre fichiers, protections actives. Corrections EXPERIMENTALES, NON VALIDEES EN JEU.**

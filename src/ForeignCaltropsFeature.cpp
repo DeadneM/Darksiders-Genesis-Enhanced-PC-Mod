@@ -116,7 +116,7 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     if(g_failed||!std::isfinite(rate)||rate<=0||rate>10||section.index||section.number||!Animation(c,source)||!Montage(montage,slot,duration)||
        !Projectile(p,projectile)||!native_objects::CaptureLive(g_base,ability,cast)||!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(actor),pawn)){Stop(ability);return true;}
     source.sequence=foreign_montage::CastingSequence(source.sequence,source.skeleton,source.length);
-    auto* replacement=g_create(reinterpret_cast<void*>(source.sequence),slot,.1f,.1f,1,1,-1,0);
+    auto* replacement=g_create(reinterpret_cast<void*>(source.sequence),slot,.1f,.18f,1,1,-1,0);
     if(!Alive(cast)||!Alive(pawn))return true;
     const auto clone=reinterpret_cast<uintptr_t>(replacement);uintptr_t skeleton=0;float length=0;
     if(!clone||clone==reinterpret_cast<uintptr_t>(montage)||!Read(clone,0x10,cls)||!Is(cls,"AnimMontage")||!Read(clone,0x38,skeleton)||skeleton!=source.skeleton||

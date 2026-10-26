@@ -4,6 +4,7 @@
 #include "NativeTpsFeature.h"
 #include "PistolAnimationPolicy.h"
 #include <atomic>
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 
@@ -17,12 +18,11 @@ uintptr_t g_base=0;foreign_wrath::LogFn g_log=nullptr;unsigned g_events=0,g_refu
 std::atomic_bool g_ready{false},g_failed{false};
 native_objects::Identity g_phases[5]{},g_idle{};
 native_objects::Identity g_poses[2]{};
-using Position=float(*)(void*,void*);
 struct Extract {bool root=true;unsigned char pad[3]{};float time=0;};
 static_assert(sizeof(Extract)==8&&offsetof(Extract,time)==4);
 using Sample=void(*)(void*,pistol_visual::CompactPose*,pistol_visual::Curve*,const Extract*);
-Position g_position=nullptr;Sample g_sample=nullptr;
-struct Visual {native_objects::Identity ability{},actor{},mesh{},anim{},skeleton{},montage{},sequence{};float position=0,length=0;uint64_t tick=0;};
+Sample g_sample=nullptr;
+struct Visual {native_objects::Identity actor{},mesh{},anim{},skeleton{},montage{},sequence{};float position=0,length=0,weight=1;uint64_t tick=0;};
 Visual g_visual[2]{};SRWLOCK g_visualLock=SRWLOCK_INIT;std::atomic_uint g_visualMask{0};
 Visual* PlayerVisual(int index){if(index==0)return &g_visual[0];if(index==1)return &g_visual[1];return nullptr;}
 // One native Rampage spans different ability objects. The actor token
@@ -102,15 +102,15 @@ void ClearVisual(int index){
     const unsigned bit=target==&g_visual[0]?1u:2u;
     AcquireSRWLockExclusive(&g_visualLock);*target={};g_visualMask.fetch_and(~bit,std::memory_order_relaxed);ReleaseSRWLockExclusive(&g_visualLock);
 }
-void BeginVisual(const local_players::Context& c,void* ability,void* montage,int phase){
+void BeginVisual(const local_players::Context& c,void* montage,int phase){
     auto* target=PlayerVisual(c.index);if(!target)return;
     Visual v{};uintptr_t mesh=0,anim=0,q_skeleton=0;
-    if(!Read(c.character,0x380,mesh)||!Read(mesh,0x718,anim)||!Read(anim,0x28,q_skeleton)||!native_objects::CaptureLive(g_base,ability,v.ability)||
+    if(!Read(c.character,0x380,mesh)||!Read(mesh,0x718,anim)||!Read(anim,0x28,q_skeleton)||
        !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(c.character),v.actor)||
        !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(mesh),v.mesh)||!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(anim),v.anim)||
        !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(q_skeleton),v.skeleton)||!native_objects::CaptureLive(g_base,montage,v.montage)||
        !Read(reinterpret_cast<uintptr_t>(montage),0x90,v.length))return;
-    v.sequence=g_poses[phase?1:0];v.tick=GetTickCount64();
+    v.sequence=g_poses[phase?1:0];v.tick=GetTickCount64();v.weight=0;
     AcquireSRWLockExclusive(&g_visualLock);*target=v;g_visualMask.fetch_or(target==&g_visual[0]?1u:2u,std::memory_order_relaxed);ReleaseSRWLockExclusive(&g_visualLock);
 }
 bool Recent(const local_players::Context& c){const auto* mark=PlayerCast(c.index);return mark&&mark->world==c.world&&mark->actor.address==c.character&&Alive(mark->actor);}
@@ -133,12 +133,9 @@ void Initialize(foreign_wrath::LogFn log,bool exact){
     constexpr unsigned char playing[]={0x48,0x89,0x5C,0x24,0x08,0x57,0x48,0x83,0xEC,0x20,0x48,0x8B,0xD9,0x48,0x83,0xC1};
     if(std::memcmp(reinterpret_cast<void*>(g_base+0x59B080),finish,sizeof(finish))||std::memcmp(reinterpret_cast<void*>(g_base+0x676620),playing,sizeof(playing)))return;
     g_finish=reinterpret_cast<Finish>(g_base+0x59B080);g_playing=reinterpret_cast<Playing>(g_base+0x676620);g_ready=true;
-    constexpr unsigned char position[]={0x48,0x83,0xEC,0x38,0x0F,0x29,0x74,0x24,0x20,0x0F,0x57,0xF6,0x48,0x85,0xD2,0x74};
     constexpr unsigned char sample[]={0x48,0x89,0x74,0x24,0x18,0x48,0x89,0x7C,0x24,0x20,0x55,0x41,0x54,0x41,0x56,0x48};
-    if(!std::memcmp(reinterpret_cast<void*>(g_base+0x16778E0),position,sizeof(position))&&!std::memcmp(reinterpret_cast<void*>(g_base+0x1690BD0),sample,sizeof(sample))){
-        g_position=reinterpret_cast<Position>(g_base+0x16778E0);g_sample=reinterpret_cast<Sample>(g_base+0x1690BD0);
-    }
-    if(log){char line[220]{};sprintf_s(line,"Rampage V1.110 READY: private native charge timeline; own Dash/Devil Heel pose=%u; EXPERIMENTAL",unsigned(g_position&&g_sample));log(line);}
+    if(!std::memcmp(reinterpret_cast<void*>(g_base+0x1690BD0),sample,sizeof(sample)))g_sample=reinterpret_cast<Sample>(g_base+0x1690BD0);
+    if(log){char line[220]{};sprintf_s(line,"Rampage V1.110 READY: private native charge timeline; own Dash/Devil Heel pose=%u; EXPERIMENTAL",unsigned(g_sample!=nullptr));log(line);}
 }
 bool AssetsReady(){for(const auto& id:g_phases)if(!Alive(id))return false;return Alive(g_idle)&&Alive(g_poses[0])&&Alive(g_poses[1]);}
 bool InvalidateAssets(){
@@ -193,7 +190,7 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     if(!Alive(abi)||!Alive(pawn)||!Read(p,0x48,character)||character!=actor)return true;
     if(!replacement){Stop(ability,phase,c,"private motion montage construction/shape failed");return true;}
     *mark={pawn,c.world,phase};
-    BeginVisual(c,ability,replacement,phase);
+    BeginVisual(c,replacement,phase);
     native(ability,replacement,rate,section);
     if(!Alive(abi)||!Alive(pawn)||!Read(p,0x48,character)||character!=actor)return true;
     uintptr_t instance=0;
@@ -212,21 +209,32 @@ void Observe(const local_players::Context& c){
        c.kind!=local_players::PoseKind::Foot||!Alive(mark->actor)))*mark={};
     auto* target=PlayerVisual(c.index);if(!target)return;
     Visual next{};AcquireSRWLockShared(&g_visualLock);next=*target;ReleaseSRWLockShared(&g_visualLock);
-    unsigned char state=0;uintptr_t actor=0,mesh=0,anim=0,helper=0,montage=0;
-    if(!g_failed&&mark->actor&&Alive(next.ability)&&Alive(next.actor)&&Alive(next.anim)&&Alive(next.montage)&&
-       next.actor.address==c.character&&Read(next.ability.address,0x48,actor)&&actor==c.character&&Read(actor,0x380,mesh)&&mesh==next.mesh.address&&
-       Read(mesh,0x718,anim)&&anim==next.anim.address&&Read(next.ability.address,0xD8,state)&&(state==1||state==2)&&g_position&&g_playing&&
-       Read(next.ability.address,0x1D8,helper)&&Read(helper,0x28,montage)&&montage==next.montage.address&&g_playing(reinterpret_cast<void*>(helper))){
-        next.position=g_position(reinterpret_cast<void*>(anim),reinterpret_cast<void*>(next.montage.address));next.tick=GetTickCount64();
-        AcquireSRWLockExclusive(&g_visualLock);*target=next;ReleaseSRWLockExclusive(&g_visualLock);
-    }else ClearVisual(c.index);
+    uintptr_t mesh=0,anim=0;struct Array {uintptr_t data=0;int count=0,capacity=0;};Array instances{};
+    bool found=false;
+    if(!g_failed&&c.kind==local_players::PoseKind::Foot&&c.pawn==c.character&&
+       Alive(next.actor)&&Alive(next.mesh)&&Alive(next.anim)&&Alive(next.montage)&&next.actor.address==c.character&&
+       Read(c.character,0x380,mesh)&&mesh==next.mesh.address&&Read(mesh,0x718,anim)&&anim==next.anim.address&&
+       Read(anim,0x78,instances)&&instances.count>=0&&instances.count<=instances.capacity&&instances.capacity<=32&&
+       (instances.data||!instances.count)){
+        // GetPosition(montage) uses the active map, removed before fade-out.
+        // The owning AnimInstance's live list retains the position and weight
+        // until the native blend has actually finished.
+        for(int i=0;i<instances.count;++i){
+            uintptr_t instance=0,montage=0;float position=0,weight=0;
+            if(!Read(instances.data,size_t(i)*8,instance)||!instance||!Read(instance,0,montage)||montage!=next.montage.address)continue;
+            if(!Read(instance,0x128,position)||!Read(instance,0x148,weight)||!std::isfinite(position)||position<0||position>next.length+.001f||
+               !std::isfinite(weight)||weight<0||weight>1.001f)break;
+            next.position=position;next.weight=std::clamp(weight,0.f,1.f);next.tick=GetTickCount64();found=true;break;
+        }
+    }
+    if(found){AcquireSRWLockExclusive(&g_visualLock);*target=next;ReleaseSRWLockExclusive(&g_visualLock);}
+    else ClearVisual(c.index);
 }
 bool Evaluate(void* node,pistol_visual::PoseContext* output){
     if(!g_visualMask.load(std::memory_order_relaxed)||!g_ready||g_failed||!g_sample||!output)return false;Visual v{};const auto now=GetTickCount64();
     AcquireSRWLockShared(&g_visualLock);for(const auto& p:g_visual)if(p.anim&&reinterpret_cast<uintptr_t>(node)==p.anim.address+0x318){v=p;break;}ReleaseSRWLockShared(&g_visualLock);
-    unsigned char state=0;
-    if(!v.anim||now<v.tick||now-v.tick>100||!Alive(v.ability)||!Alive(v.montage)||!Alive(v.actor)||!Alive(v.mesh)||!Alive(v.anim)||!Alive(v.sequence)||!Alive(v.skeleton)||
-       !Read(v.ability.address,0xD8,state)||(state!=1&&state!=2)||
+    if(!v.anim||now<v.tick||now-v.tick>100||!Alive(v.montage)||!Alive(v.actor)||!Alive(v.mesh)||!Alive(v.anim)||!Alive(v.sequence)||!Alive(v.skeleton)||
+       !std::isfinite(v.weight)||v.weight<=0||v.weight>1||
        !std::isfinite(v.position)||v.position<0||!std::isfinite(v.length)||v.length<=0||v.position>v.length+.001f)return false;
     struct Array {uintptr_t data=0;int count=0,capacity=0;};
     uintptr_t proxy=0,actual=0;uint64_t vt=0;float length=0;Array required{};pistol_visual::PoseContext context{};
@@ -240,10 +248,23 @@ bool Evaluate(void* node,pistol_visual::PoseContext* output){
     // Pure pose extraction in the native evaluation scope: no second motion,
     // notify, cost, damage, input, animation update or timer. Keep the current
     // root transform; War's original montage alone controls displacement.
-    pistol_visual::LocalTransform root{};if(!Read(context.pose.transforms.data,0,root))return false;
+    std::array<pistol_visual::LocalTransform,80> original{};
+    if(!Read(context.pose.transforms.data,0,original))return false;
     const Extract extract{true,{},std::min(length,v.position*length/v.length)};
     g_sample(reinterpret_cast<void*>(v.sequence.address),&output->pose,&output->curve,&extract);
-    std::memcpy(reinterpret_cast<void*>(context.pose.transforms.data),&root,sizeof(root));return true;
+    auto* pose=reinterpret_cast<pistol_visual::LocalTransform*>(context.pose.transforms.data);
+    // Blend only the visual pose. The game's own montage weight supplies
+    // both fade directions, even after the gameplay ability has finished.
+    if(v.weight<1)for(unsigned i=1;i<80;++i){
+        const auto& a=original[i];auto& b=pose[i];float dot=0,norm=0;
+        for(unsigned j=0;j<4;++j)dot+=a.q[j]*b.q[j];
+        const float sign=dot<0?-1.f:1.f;
+        for(unsigned j=0;j<4;++j){b.q[j]=a.q[j]*(1-v.weight)+sign*b.q[j]*v.weight;norm+=b.q[j]*b.q[j];}
+        if(norm>1.e-12f&&std::isfinite(norm)){const float inv=1/std::sqrt(norm);for(auto& x:b.q)x*=inv;}
+        else std::memcpy(b.q,a.q,sizeof(b.q));
+        for(unsigned j=0;j<3;++j){b.t[j]=a.t[j]+(b.t[j]-a.t[j])*v.weight;b.s[j]=a.s[j]+(b.s[j]-a.s[j])*v.weight;}
+    }
+    pose[0]=original[0];return true;
 }
 void Shutdown(){g_ready=false;for(auto& c:g_cast)c={};ClearVisual(0);ClearVisual(1);}
 }

@@ -188,6 +188,22 @@ void Initialize(LogFn log,bool exact){
     if(log)log(g_soundNotify?"Foreign montage V1.108 READY: private native montages and sound entry verified before shared detours":"Foreign montage V1.108 READY; opening sound boundary unavailable");
 }
 bool Ready(){return g_ready.load();}
+bool SmoothExit(void* live){
+    const auto montage=reinterpret_cast<uintptr_t>(live);uintptr_t cls=0,field=0,type=0;uint32_t flags=0;int at=-1,blend=-1;float duration=0;
+    if(!g_ready||!native_tps::OnGameThread()||!Read(montage,8,flags)||(flags&0x30u)||!(flags&0x40u)||
+       !Read(montage,0x10,cls)||!Is(cls,"AnimMontage")||
+       !native_objects::PropertyField(g_base,cls,"BlendOut","StructProperty",48,at)||!Read(cls,0x48,field))return false;
+    for(int n=0;field&&n<512;++n){
+        if(Is(field,"BlendOut")){
+            if(!Read(field,0x70,type)||!Is(type,"AlphaBlend")||
+               !native_objects::PropertyField(g_base,type,"BlendTime","FloatProperty",4,blend)||blend<0||blend>44||
+               !Read(montage,size_t(at)+blend,duration)||!std::isfinite(duration)||duration<0||duration>5)return false;
+            return Store(montage,size_t(at)+blend,std::max(duration,.18f));
+        }
+        if(!Read(field,0x28,field))return false;
+    }
+    return false;
+}
 void ObserveSequence(uintptr_t p){
     if(!g_ready||!native_tps::OnGameThread())return;
     const int kind=Is(p,"Strife_Aether_Channel_Start")?0:(Is(p,"War_Channel_Start")?1:-1);
@@ -251,10 +267,12 @@ void* Geyser(uintptr_t original,const Source& source){
     Array segments=after.segments;Segment idle{};
     if(paced){
         if(segments.capacity<2)g_reserveSegments(reinterpret_cast<void*>(after.tracks.data+8),2);
-        float idleLength=0;
         if(!List(after.tracks.data,8,segments,16)||segments.data==before.segments.data||segments.capacity<2||
-           !Writable(segments.data,2*sizeof(Segment))||!Read(source.sequence,0x90,idleLength)||!std::isfinite(idleLength)||idleLength<=0)return nullptr;
-        segment.rate=1;idle=segment;idle.sequence=source.sequence;idle.start=length;idle.last=idleLength;idle.rate=idleLength/(after.length-length);
+           !Writable(segments.data,2*sizeof(Segment)))return nullptr;
+        // Keep the last cast pose continuous; the montage's native blend-out
+        // returns to locomotion, rather than switching abruptly to idle.
+        segment.rate=1;idle=segment;idle.start=length;idle.first=std::max(0.f,length-1.f/30.f);
+        idle.rate=(idle.last-idle.first)/(after.length-length);
         if(!std::isfinite(idle.rate)||idle.rate<=.01f||idle.rate>100)return nullptr;
     }
 
@@ -270,7 +288,7 @@ void* Geyser(uintptr_t original,const Source& source){
         const auto at=storage.data+size_t(i)*sizeof(Event);float duration=0;
         std::memcpy(&time,presentation.events[i].data()+0x24,sizeof(time));std::memcpy(&duration,presentation.events[i].data()+0x58,4);
         auto link=[&](uintptr_t element,float value){
-            const bool second=paced&&value>=length;const auto sequence=second?source.sequence:playback;
+            const bool second=paced&&value>=length;const auto sequence=playback;
             const float begin=second?length:0,span=paced?(second?after.length-length:length):after.length;
             return Link(element,montage,sequence,value,span)&&Store(element,0x14,second?1:0)&&Store(element,0x1C,begin);
         };
@@ -278,7 +296,7 @@ void* Geyser(uintptr_t original,const Source& source){
     }
     if(paced&&(!Store(segments.data,sizeof(Segment),idle)||!Store(after.tracks.data,0x10,2)))return nullptr;
     if(!Store(segments.data,0,segment)||!Link(after.sections.data,montage,playback,zero,after.length)||
-       !Store(montage,0x88,presentation.count))return nullptr;
+       !Store(montage,0x88,presentation.count)||!SmoothExit(created))return nullptr;
     return created;
 }
 namespace {
@@ -427,11 +445,10 @@ void* Retarget(uintptr_t original,const Source& source,bool beam){
         s.start=mapTime(s.start);
         s.sequence=playback;s.first=0;s.last=idleLength;s.rate=idleLength/span;
         if(beam){
-            // Start once, hold the last source frame during the complete beam,
-            // then return to War's own idle. The full fire interval is retained.
+            // Hold a continuous cast pose through the beam and its tail; native
+            // blend-out returns to locomotion without an idle-segment jump.
             const float total=span*float(s.loops);s.loops=1;
-            if(i==1)s.first=std::max(0.f,idleLength-1.f/30.f);
-            if(i==2){s.sequence=source.sequence;s.first=0;if(!Read(source.sequence,0x90,s.last))return nullptr;}
+            if(i>=1)s.first=std::max(0.f,idleLength-1.f/30.f);
             s.rate=(s.last-s.first)/total;
         }
         if(!std::isfinite(s.rate)||s.rate<=.01f||s.rate>100||!Store(privateSegments.data,size_t(i)*sizeof(Segment),s))return nullptr;
@@ -452,7 +469,7 @@ void* Retarget(uintptr_t original,const Source& source,bool beam){
         if(!Read(at,0x24,time)||!std::isfinite(time)||time<0||time>=oldLength||!Link(at,copy,playback,mapTime(time),length))return nullptr;
     }
     const int zero=0;
-    if(!Store(copy,0x88,plan.count)||!Store(copy,0x188,zero)||!Store(copy,0x198,zero))return nullptr;
+    if(!Store(copy,0x88,plan.count)||!Store(copy,0x188,zero)||!Store(copy,0x198,zero)||!SmoothExit(created))return nullptr;
     return created;
 }
 }
