@@ -34,7 +34,7 @@ void* CreateNative(void* sequence,Name slot,float in,float out,float rate,int lo
 void Fresh(){
  f={};owner={};gameThread=local=buildOK=playing=helperReady=true;throwResolve=false;plays=finishes=builds=getters=resolves=0;played=nullptr;playedRate=0;
  g_ready=g_geyserReady=true;g_requested=g_geyserFailed=g_stoneFailed=false;g_stone={};g_create=CreateNative;creates=0;createOK=true;reassign=false;g_getter=Getter;g_play=PlayNative;g_finish=FinishNative;g_playing=PlayingNative;g_log=nullptr;g_override=nullptr;
- g_cursor=g_count=0;g_complete=false;g_scanTick=0;g_world=0;g_events=0;g_geyserActors[0]=g_geyserActors[1]={};
+ g_sequenceClass=g_nativeClass={};g_cursor=g_count=0;g_complete=false;g_scanTick=0;g_world=0;g_events=0;g_geyserActors[0]=g_geyserActors[1]={};
  const char* labels[]={"Strife_Blueprint_C","StrifeAnim_Blueprint_C","BlendSpace1D","AnimSequence","AnimMontage","BlueprintGeneratedClass"};
  for(int i=0;i<6;++i)Label(f.classes[i],i+1,labels[i]);
  Put(f.classes[0],0x10,reinterpret_cast<uintptr_t>(f.classes[5]));
@@ -78,7 +78,7 @@ void Run(){
   if(failure==3)Put<unsigned char>(f.actor,0x118,2);if(failure==4)Label(f.classes[0],1,"War_Blueprint_C");if(failure==5)Put<unsigned char>(f.ability,8,0x10);
   Cast();Check(!builds&&!finishes&&played==f.montage,"native/nonlocal/foreign-pose/default path passes through");}
  Fresh();buildOK=false;Cast();Check(g_geyserFailed&&finishes==1&&Status(4)==0,"failed compatible montage stops only Geyser");Cast();Check(builds==1,"failed constructor not retried");
- Fresh();g_geyser={};g_geyserReady=false;g_requested=true;std::memset(f.items,0,sizeof(f.items));Register(598,f.power,41);Observe(owner);Check(g_cursor==512&&!g_geyserReady,"scan stays bounded");g_scanTick=0;Observe(owner);Check(g_geyserReady,"later bounded slice finds loaded class");
+ Fresh();g_geyser={};g_geyserReady=false;g_requested=true;std::memset(f.items,0,sizeof(f.items));Register(598,f.power,41);Observe(owner);Check(g_cursor>0&&g_cursor<=256&&!g_geyserReady,"single shared scan stays within object and elapsed-time bounds");for(int i=0;i<40&&!g_geyserReady;++i){g_scanTick=0;Observe(owner);}Check(g_geyserReady,"successive bounded shared slices find the loaded class");
  Stone();Check(Prepare(f.actor,cls,6)&&cls==reinterpret_cast<uintptr_t>(f.stone),"Stoneskin ready on owned Strife with class default and compatible animation");
  const auto before=std::vector<unsigned char>(f.montage,f.montage+sizeof(f.montage));Cast();
  Check(plays==1&&creates==1&&!finishes&&!builds&&std::fabs(playedRate-(.75f*2.666667f/1.2f))<.0001f,"Stoneskin uses own factory, exact native cast duration and finish delegate; no Geyser path");
@@ -100,6 +100,7 @@ void* Geyser(uintptr_t m,const Source& s){++builds;Check(m==reinterpret_cast<uin
 void* Compatible(uintptr_t,const Source&){return nullptr;}
 void* WorldEnder(uintptr_t,const Source&){return nullptr;}
 void* RampageMotion(uintptr_t,const Source&){return nullptr;}
+uintptr_t RampageNotify(uintptr_t n,uintptr_t,const Source&){return n;}
 }
 namespace dg::native_tps {bool OnGameThread(){return gameThread;}}
 namespace dg::local_players {bool ResolveActor(void*,Context& c){c=owner;return local;}}

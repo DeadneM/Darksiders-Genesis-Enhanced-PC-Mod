@@ -8,7 +8,9 @@ using PlayFn=void(*)(void*,void*,float,Name);
 void Initialize(LogFn,bool exactExecutable);
 int Status();
 bool IsClass(uintptr_t);
-void Observe(const local_players::Context&);
+bool AssetsReady();
+bool InvalidateAssets();
+void ObserveObject(uintptr_t,unsigned kind);
 bool Prepare(void* actor,uintptr_t& abilityClass);
 // True only when an identified, owned War cast was handled. Other native
 // players/powers remain the caller's responsibility, without argument changes.

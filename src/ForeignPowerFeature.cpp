@@ -2,7 +2,6 @@
 #include "ForeignMontage.h"
 #include "NativeObjectName.h"
 #include "NativeTpsFeature.h"
-#include "RuntimeSettings.h"
 #include <atomic>
 #include <cmath>
 #include <cstdio>
@@ -16,7 +15,7 @@ using Finish=void(*)(void*,unsigned char);
 using Playing=bool(*)(void*);
 Construct g_construct=nullptr;Register g_register=nullptr;Finish g_finish=nullptr;Playing g_playing=nullptr;
 uintptr_t g_base=0;foreign_wrath::LogFn g_log=nullptr;std::atomic_bool g_ready{false};
-std::atomic_uint g_requested{0},g_failed{0};int g_cursor=0,g_count=0;uint64_t g_scanTick=0;unsigned g_events=0;
+std::atomic_uint g_failed{0};unsigned g_events=0;
 native_objects::Identity g_power[1]{},g_helper[1]{},g_idle[1]{};
 struct OwnedHelpers {native_objects::Identity actor{},component{};};OwnedHelpers g_owned[2]{};
 struct Array {uintptr_t data=0;int count=0,capacity=0;};
@@ -48,25 +47,6 @@ bool Source(const local_players::Context& c,bool war,foreign_montage::Source& ou
         ((out.sequence=idle.address),(out.rootIndex=root.index),(out.rootNumber=root.number),true);
 }
 bool ReadyChoice(int choice){return choice==1&&Alive(g_power[0])&&Alive(g_idle[0])&&Alive(g_helper[0]);}
-void Scan(){
-    for(auto& id:g_power)if(id&&!Alive(id)){id={};g_cursor=0;}
-    for(auto& id:g_helper)if(id&&!Alive(id)){id={};g_cursor=0;}
-    for(auto& id:g_idle)if(id&&!Alive(id)){id={};g_cursor=0;}
-    bool complete=true;for(int choice:{1})if((g_requested&Bit(choice))&&!ReadyChoice(choice))complete=false;if(complete)return;
-    uintptr_t chunks=0;int count=0;if(!Read(g_base,0x3959680,chunks)||!Read(g_base,0x3959694,count)||count<=0||count>2000000)return;
-    if(count<g_count)g_cursor=0;g_count=count;
-    for(unsigned n=0;n<512&&g_cursor<count;++n,++g_cursor){
-        uintptr_t chunk=0,p=0,cls=0,outer=0;uint32_t flags=0;
-        if(!Read(chunks,size_t(g_cursor/65536)*8,chunk)||!Read(chunk,size_t(g_cursor%65536)*24,p)||!p||!Read(chunk,size_t(g_cursor%65536)*24+8,flags)||(flags&0x30000000u)||!Read(p,0x10,cls))continue;
-        if(Named(cls,"BlueprintGeneratedClass")){
-            for(int i=0;i<1;++i)if(!g_power[i]&&Class(p,PowerNames[i],PowerPackages[i]))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(p),g_power[i]);
-        }else if(Named(cls,"Class")){
-            if(!g_helper[0]&&Class(p,"ShadowCharacterComponent","/Script/DarksidersGenesis",true))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(p),g_helper[0]);
-        }else if(Named(cls,"AnimSequence")&&Read(p,0x20,outer)){
-            if(!g_idle[0]&&Named(p,"War_Idle")&&Named(outer,"/Game/Characters/Heroes/Hero_War/Animation/War_Idle"))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(p),g_idle[0]);
-        }
-    }
-}
 bool Helper(const local_players::Context& c){
     OwnedHelpers* state=nullptr;
     for(auto& item:g_owned)if(item.actor.address==c.character&&Alive(item.actor)){state=&item;break;}
@@ -102,11 +82,17 @@ void Initialize(foreign_wrath::LogFn log,bool exact){
     g_construct=reinterpret_cast<Construct>(g_base+0xAC57A0);g_register=reinterpret_cast<Register>(g_base+0x1750880);g_finish=reinterpret_cast<Finish>(g_base+0x59B080);g_playing=reinterpret_cast<Playing>(g_base+0x676620);g_ready=true;
     if(log)log("Foreign powers V1.97 READY: Clone on War only; rejected World Ender/Rampage adapters removed; compatible idle pose, native callbacks");
 }
-int Status(int choice){const unsigned bit=Bit(choice);if(!bit||!g_ready||!foreign_montage::Ready()||(g_failed&bit))return 0;g_requested.fetch_or(bit);return ReadyChoice(choice)?2:1;}
-void Observe(const local_players::Context& c){
-    if(!g_ready||!native_tps::OnGameThread()||!c.localPlayer||!c.world||c.kind!=local_players::PoseKind::Foot)return;
-    for(const auto& choices:runtime::Get().wrathSlots)for(const auto& choice:choices)if(Bit(choice.load()))g_requested.fetch_or(Bit(choice.load()));
-    if(!g_requested)return;const auto now=GetTickCount64();if(now>=g_scanTick&&now-g_scanTick<15)return;g_scanTick=now;Scan();
+int Status(int choice){const unsigned bit=Bit(choice);if(!bit||!g_ready||!foreign_montage::Ready()||(g_failed&bit))return 0;return ReadyChoice(choice)?2:1;}
+bool AssetsReady(){return ReadyChoice(1);}
+bool InvalidateAssets(){
+    if(!g_ready||!native_tps::OnGameThread())return false;bool changed=false;
+    for(auto* id:{&g_power[0],&g_helper[0],&g_idle[0]})if(*id&&!Alive(*id)){*id={};changed=true;}return changed;
+}
+void ObserveObject(uintptr_t p,unsigned kind){
+    if(!g_ready||!native_tps::OnGameThread())return;uintptr_t outer=0;
+    if(kind==1&&!g_power[0]&&Class(p,PowerNames[0],PowerPackages[0]))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(p),g_power[0]);
+    if(kind==2&&!g_helper[0]&&Class(p,"ShadowCharacterComponent","/Script/DarksidersGenesis",true))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(p),g_helper[0]);
+    if(kind==3&&!g_idle[0]&&Named(p,"War_Idle")&&Read(p,0x20,outer)&&Named(outer,"/Game/Characters/Heroes/Hero_War/Animation/War_Idle"))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(p),g_idle[0]);
 }
 bool IsClass(uintptr_t p){return g_ready&&native_tps::OnGameThread()&&Kind(p)==0;}
 bool Prepare(void* actor,uintptr_t& abilityClass,int choice){
@@ -144,5 +130,5 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     if(g_log&&g_events++<16){char line[180]{};sprintf_s(line,"Foreign powers V1.98 CAST choice=%d phase=%d player=%d; own gesture when loaded, idle fallback; native callbacks, animation EXPERIMENTAL",choice,kind,c.index+1);g_log(line);}
     return true;
 }
-void Shutdown(){g_ready=false;g_requested=0;for(auto& item:g_owned)item={};}
+void Shutdown(){g_ready=false;for(auto& item:g_owned)item={};}
 }

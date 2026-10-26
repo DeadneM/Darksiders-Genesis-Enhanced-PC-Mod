@@ -25,6 +25,7 @@ uintptr_t g_base=0,g_world=0;LogFn g_log=nullptr;std::atomic_bool g_ready{false}
 native_objects::Identity g_geyser{},g_geyserActors[2]{};
 native_objects::Identity g_stone{};std::atomic_bool g_stoneFailed{false};unsigned g_stoneEvents=0;
 std::atomic_bool g_geyserReady{false},g_geyserFailed{false};
+native_objects::Identity g_sequenceClass{},g_nativeClass{};
 int g_cursor=0,g_count=0;bool g_complete=false;uint64_t g_scanTick=0;unsigned g_events=0;
 struct Array {uintptr_t data=0;int count=0,capacity=0;};
 struct Override {void* actor=nullptr;uintptr_t abilityClass=0;Name id{};};
@@ -79,21 +80,35 @@ bool Source(uintptr_t actor,Animation& out){
 }
 void Scan(uintptr_t generatedClass){
     const bool beamChanged=foreign_beam::InvalidateAssets(),rampageChanged=foreign_rampage::InvalidateAssets();
-    if(beamChanged||rampageChanged){g_cursor=0;g_complete=false;}
+    const bool caltropsChanged=foreign_caltrops::InvalidateAssets(),cloneChanged=foreign_power::InvalidateAssets();
+    if(beamChanged||rampageChanged||caltropsChanged||cloneChanged){g_cursor=0;g_complete=false;}
     if(g_geyser&&!Alive(g_geyser)){g_geyser={};g_geyserReady=false;g_cursor=0;g_complete=false;}
     if(g_stone&&!Alive(g_stone)){g_stone={};g_cursor=0;g_complete=false;}
-    if(g_geyser){g_geyserReady=true;if(foreign_montage::GesturesReady()&&foreign_beam::AssetsReady()&&g_stone&&foreign_rampage::AssetsReady())return;}
+    if(g_geyser){g_geyserReady=true;if(foreign_montage::GesturesReady()&&foreign_beam::AssetsReady()&&g_stone&&foreign_rampage::AssetsReady()&&foreign_caltrops::AssetsReady()&&foreign_power::AssetsReady())return;}
     uintptr_t chunks=0;int count=0;
     if(!Read(g_base,0x3959680,chunks)||!Read(g_base,0x3959694,count)||count<=0||count>2000000)return;
     if(count!=g_count){if(count<g_count)g_cursor=0;g_count=count;g_complete=false;}
     if(g_complete)return;
-    for(unsigned n=0;n<512&&g_cursor<count;++n,++g_cursor){
+    // One shared discovery pass instead of three independent 512-object scans.
+    // At most 256 objects, checking a 1 ms high-resolution budget every 16.
+    LARGE_INTEGER started{},frequency{};
+    const bool timed=QueryPerformanceFrequency(&frequency)&&frequency.QuadPart>=1000&&QueryPerformanceCounter(&started);
+    if(g_sequenceClass&&!Alive(g_sequenceClass))g_sequenceClass={};
+    if(g_nativeClass&&!Alive(g_nativeClass))g_nativeClass={};
+    for(unsigned n=0;n<256&&g_cursor<count;++n,++g_cursor){
+        if(n&&!(n%16)&&timed){LARGE_INTEGER now{};
+            if(QueryPerformanceCounter(&now)&&now.QuadPart-started.QuadPart>=frequency.QuadPart/1000)break;}
         uintptr_t chunk=0,object=0,cls=0;uint32_t flags=0;
         if(!Read(chunks,size_t(g_cursor/65536)*8,chunk)||!Read(chunk,size_t(g_cursor%65536)*24,object)||!object||
            !Read(chunk,size_t(g_cursor%65536)*24+8,flags)||(flags&0x30000000u)||!Read(object,0x10,cls))continue;
-        foreign_beam::ObserveObject(object);foreign_rampage::ObserveObject(object);
-        if(Is(cls,"AnimSequence"))foreign_montage::ObserveSequence(object);
-        if(cls!=generatedClass)continue;
+        if(!g_sequenceClass&&Is(cls,"AnimSequence"))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(cls),g_sequenceClass);
+        if(!g_nativeClass&&Is(cls,"Class"))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(cls),g_nativeClass);
+        const unsigned kind=cls==generatedClass?1u:cls==g_nativeClass.address?2u:cls==g_sequenceClass.address?3u:0u;
+        if(!kind)continue;
+        foreign_caltrops::ObserveObject(object,kind);foreign_power::ObserveObject(object,kind);
+        if(kind==1||kind==3){foreign_beam::ObserveObject(object);foreign_rampage::ObserveObject(object);}
+        if(kind==3)foreign_montage::ObserveSequence(object);
+        if(kind!=1)continue;
         if(!g_geyser&&GeyserClass(object))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(object),g_geyser);
         if(!g_stone&&StoneClass(object))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(object),g_stone);
     }
@@ -220,6 +235,7 @@ void Initialize(LogFn log,bool exactExecutable){
     if(log)log("Foreign Wrath V1.105 READY: accepted Geyser/Caltrops/Clone/War beam/Stoneskin preserved; Rampage Strife native-motion candidate");
 }
 int Status(int choice){
+    if(choice>=1&&choice<=6)g_requested=true;
     if(choice==6){g_requested=true;return !g_ready||!g_create||g_stoneFailed?0:(Alive(g_stone)?2:1);}
     if(choice==5){g_requested=true;return foreign_rampage::Status();}
     if(choice>=1&&choice<=4)g_requested=true;
@@ -230,7 +246,7 @@ int Status(int choice){
     return foreign_montage::Ready()&&!g_geyserFailed?(g_geyserReady?2:1):0;
 }
 void Observe(const local_players::Context& owner){
-    foreign_caltrops::Observe(owner);foreign_power::Observe(owner);foreign_rampage::Observe(owner);
+    foreign_rampage::Observe(owner);
     if(!g_ready||!native_tps::OnGameThread())return;
     bool wanted=g_requested.load();for(const auto& slots:runtime::Get().wrathSlots)for(const auto& choice:slots)wanted=wanted||((choice.load()>=1&&choice.load()<=5)||choice.load()==6);
     if(!wanted||owner.index<0||owner.index>1||!owner.localPlayer||!owner.world||owner.kind!=local_players::PoseKind::Foot)return;

@@ -11,6 +11,8 @@ struct Fixture {
  unsigned char classes[8][0x80]{},powers[5][0x120]{},packages[5][0x100]{},idle[0x240]{},idlePackage[0x100]{};
  unsigned char properties[5][0x80]{},structure[0x80]{},slotProperty[0x80]{},launch[0x120]{},launchPackage[0x100]{};
  unsigned char ability[0x240]{},nextAbility[0x240]{},montage[0x200]{},replacement[0x200]{},instance[0x40]{},items[64*24]{};
+ unsigned char proxy[0x600]{},poseSequence[0x240]{};uint16_t compact[80]{};
+ std::array<dg::pistol_visual::LocalTransform,80> pose{};
 } f;
 unsigned char entries[48][256]{};uintptr_t names[48]{},chunks[1]{reinterpret_cast<uintptr_t>(names)},objectChunks[1]{};
 dg::local_players::Context context{};bool local=true,thread=true,buildOK=true,playOK=true,reassign=false;int liveId=0;
@@ -25,9 +27,14 @@ void PlayNative(void* p,void* montage,float rate,Name section){
  Check((p==f.ability||p==f.nextAbility)&&montage==f.replacement&&rate==2&&section==Name{0,0},"native rate/section retained exactly");++plays;Put(p,0x1D8,reinterpret_cast<uintptr_t>(f.instance));
 }
 void Phase(int phase){Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.powers[phase]));}
+unsigned samples=0;
+void SampleNative(void* sequence,dg::pistol_visual::CompactPose* pose,dg::pistol_visual::Curve*,const Extract* extract){
+ Check(sequence==f.poseSequence&&pose->transforms.data==reinterpret_cast<uintptr_t>(f.pose.data())&&extract->root&&std::fabs(extract->time-.65f)<.00001f,"pure native pose uses own sequence, exact extraction ABI and finite mapped phase");
+ ++samples;f.pose[0].t[0]=999;f.pose[1].t[0]=321;
+}
 void Fresh(){
  f={};context={};local=thread=buildOK=playOK=true;reassign=false;liveId=0;builds=plays=finishes=0;cause=255;
- g_ready=true;g_failed=false;g_log=nullptr;g_events=0;g_handling=nullptr;g_idle={};for(auto& id:g_phases)id={};for(auto& c:g_cast)c={};g_finish=FinishNative;g_playing=PlayingNative;
+ g_ready=true;g_failed=false;g_log=nullptr;g_events=0;g_handling=nullptr;g_sample=nullptr;g_position=nullptr;for(auto& v:g_visual)v={};g_idle={};for(auto& id:g_phases)id={};for(auto& c:g_cast)c={};g_finish=FinishNative;g_playing=PlayingNative;
  const char* classes[]={"BlueprintGeneratedClass","AnimSequence","Strife_Blueprint_C","StrifeAnim_Blueprint_C","Skeleton","StructProperty","NameProperty","Class"};
  for(int i=0;i<8;++i)Label(f.classes[i],i+1,classes[i]);
  context.index=0;context.world=456;context.localPlayer=123;context.character=context.pawn=reinterpret_cast<uintptr_t>(f.actor);context.controller=reinterpret_cast<uintptr_t>(f.controller);
@@ -38,7 +45,7 @@ void Fresh(){
  Put(f.bone,0,Name{10,0});strcpy_s(reinterpret_cast<char*>(entries[10]+12),244,"Bone_Strife_Root");strcpy_s(reinterpret_cast<char*>(entries[11]+12),244,"DefaultSlot");Put(reinterpret_cast<void*>(g_base),0x3A32340,Name{11,0});
  Put(f.actor,0x388,reinterpret_cast<uintptr_t>(f.movement));Put(f.movement,0xE8,context.character);Put<unsigned char>(f.movement,0x1B0,1);
  for(int i=0;i<5;++i){char path[200]{};sprintf_s(path,"/Game/Blueprints/Abilities/Rampage/%.*s",int(std::strlen(Names[i])-2),Names[i]);Label(f.powers[i],12+i,Names[i]);Label(f.packages[i],17+i,path);Put(f.powers[i],0x10,reinterpret_cast<uintptr_t>(f.classes[0]));Put(f.powers[i],0x20,reinterpret_cast<uintptr_t>(f.packages[i]));g_phases[i]=Live(f.powers[i]);}
- Label(f.idle,22,"Strife_Idle");Label(f.idlePackage,23,"/Game/Characters/Heroes/Hero_Strife/Animations/Strife_Idle");Put(f.idle,0x20,reinterpret_cast<uintptr_t>(f.idlePackage));Put(f.idle,0x10,reinterpret_cast<uintptr_t>(f.classes[1]));Put(f.idle,0x38,reinterpret_cast<uintptr_t>(f.skeleton));g_idle=Live(f.idle);
+ Label(f.idle,22,"Strife_Idle");Label(f.idlePackage,23,"/Game/Characters/Heroes/Hero_Strife/Animations/Strife_Idle");Put(f.idle,0x20,reinterpret_cast<uintptr_t>(f.idlePackage));Put(f.idle,0x10,reinterpret_cast<uintptr_t>(f.classes[1]));Put(f.idle,0x38,reinterpret_cast<uintptr_t>(f.skeleton));g_idle=Live(f.idle);g_poses[0]=g_poses[1]=g_idle;
  Label(f.structure,24,"AnimNode_Slot");Label(f.slotProperty,25,"SlotName");Put(f.structure,0x48,reinterpret_cast<uintptr_t>(f.slotProperty));Put(f.slotProperty,0x10,reinterpret_cast<uintptr_t>(f.classes[6]));Put(f.slotProperty,0x34,8);Put(f.slotProperty,0x44,0);
  Put(f.classes[3],0x48,reinterpret_cast<uintptr_t>(f.properties[0]));constexpr const char* slots[]={"UpperBody","TPS","Shoot_Left","Shoot_Right","UpperBody_Flinches"};
  for(int i=0;i<5;++i){Put(f.properties[i],0x10,reinterpret_cast<uintptr_t>(f.classes[5]));Put(f.properties[i],0x70,reinterpret_cast<uintptr_t>(f.structure));Put(f.properties[i],0x34,16);Put(f.properties[i],0x44,0x100+i*16);if(i<4)Put(f.properties[i],0x28,reinterpret_cast<uintptr_t>(f.properties[i+1]));strcpy_s(reinterpret_cast<char*>(entries[26+i]+12),244,slots[i]);Put(f.anim,size_t(0x100+i*16),Name{26+i,0});}
@@ -63,7 +70,7 @@ void Run(){
  Fresh();reassign=true;Check(Cast()&&!plays&&!finishes,"owner replacement during builder never uses stale cast");
  for(int failure=0;failure<5;++failure){Fresh();if(failure==0)Put(f.anim,0x100,Name{11,0});if(failure==1)Put(f.slotProperty,0x34,4);if(failure==2)Put(f.properties[4],0x28,reinterpret_cast<uintptr_t>(f.properties[4]));if(failure==3)Put(f.anim,0x100,Name{27,0});if(failure==4)Put(f.properties[0],0x44,0x20000);Check(!Prepare(f.actor,cls)&&Cast()&&cause==28&&!builds,"rendered DefaultSlot/unknown graph/duplicate/invalid reflection all fail closed");}
  for(int failure=0;failure<8;++failure){Fresh();if(failure==0)local=false;if(failure==1)thread=false;if(failure==2)context.kind=dg::local_players::PoseKind::Horse;if(failure==3)Put<unsigned char>(f.actor,0x118,2);if(failure==4)Label(f.classes[2],3,"War_Blueprint_C");if(failure==5)Put<uint32_t>(f.ability,8,0x10);if(failure==6)context.index=-1;if(failure==7)context.index=2;Check(!Cast()&&!builds&&!finishes,"native War/remote/mount/default/nonlocal/off-thread/out-of-range players untouched");}
- Fresh();Put(f.items,size_t(g_idle.index)*24+16,999);Check(Status()==1&&InvalidateAssets()&&!InvalidateAssets(),"asset serial change requests exactly one bounded rescan");ObserveObject(reinterpret_cast<uintptr_t>(f.idle));Check(Status()==2,"recaptured loaded idle restores readiness");
+ Fresh();Put(f.items,size_t(g_idle.index)*24+16,999);Check(Status()==1&&InvalidateAssets()&&!InvalidateAssets(),"asset serial change requests exactly one bounded rescan");ObserveObject(reinterpret_cast<uintptr_t>(f.idle));Check(Status()==1,"own Dash/Kick weak identities must also be rediscovered");g_poses[0]=g_poses[1]=g_idle;Check(Status()==2,"all required weak asset identities restore readiness");
  // Regression from the runtime log: Observe runs after Start finishes,
  // before a DISTINCT native Slam ability calls PlayMontage.
  Fresh();Cast();Put<unsigned char>(f.ability,0xD8,0);Observe(context);
@@ -89,11 +96,23 @@ void Run(){
  Fresh();Put(f.items,size_t(g_phases[0].index)*24+16,0);Check(Status()==1&&!Prepare(f.actor,cls),"unidentified class is unavailable without a null icon override");
  Fresh();const int abilityIndex=liveId-1;Put(f.items,size_t(abilityIndex)*24+16,0);Check(Cast()&&finishes==1&&cause==28&&!plays,"uncapturable live callback aborts rather than leaving the cast frozen");
  Fresh();Shutdown();Check(!Cast()&&!builds,"shutdown restores native passthrough");
+ // The visual sampler is independent of the chain authorization token and
+ // never advances animation, generates notifies or applies root motion.
+ Fresh();samples=0;g_sample=SampleNative;Visual v{};v.ability=Live(f.ability);v.actor=Live(f.actor);v.mesh=Live(f.mesh);v.anim=Live(f.anim);v.skeleton=Live(f.skeleton);v.montage=Live(f.replacement);v.sequence=Live(f.poseSequence);v.position=.6f;v.length=1.2f;v.tick=GetTickCount64();g_visual[0]=v;
+ Put(f.poseSequence,0x38,v.skeleton.address);Put(f.poseSequence,0x90,1.3f);Put(f.anim,0x240,reinterpret_cast<uintptr_t>(f.proxy));Put(f.anim,0x318,g_base+0x2A77628);
+ Put(f.proxy,0xA0,v.anim.address);Put(f.proxy,0xB8,v.mesh.address);Put(f.proxy,0xB0,v.skeleton.address);for(unsigned i=0;i<80;++i)f.compact[i]=uint16_t(i);
+ Put(f.proxy,0x450,Array{reinterpret_cast<uintptr_t>(f.compact),80,80});f.pose[0].t[0]=123;
+ dg::pistol_visual::PoseContext output{};output.proxy=reinterpret_cast<uintptr_t>(f.proxy);output.pose.container=output.proxy+0x450;output.pose.transforms={reinterpret_cast<uintptr_t>(f.pose.data()),80,80};
+ Check(Evaluate(f.anim+0x318,&output)&&samples==1&&f.pose[0].t[0]==123&&f.pose[1].t[0]==321&&!plays&&!finishes,"own visual pose sampled once, native root kept and no gameplay callback");
+ f.compact[1]=2;Check(!Evaluate(f.anim+0x318,&output)&&samples==1,"unknown compact mapping preserves native evaluation");f.compact[1]=1;
+ Put<unsigned char>(f.ability,0xD8,0);Check(!Evaluate(f.anim+0x318,&output)&&samples==1,"finished cast cannot leave a borrowed pose");Put<unsigned char>(f.ability,0xD8,2);
+ Put(f.items,size_t(v.sequence.index)*24+16,999);Check(!Evaluate(f.anim+0x318,&output)&&samples==1,"stale animation identity never reaches native sampler");
 }
 }
 namespace dg::foreign_montage {
 void StartSounds(uintptr_t,void*){}bool CopyLaterSounds(uintptr_t,void*){return true;}
 bool Ready(){return true;}
+uintptr_t RampageNotify(uintptr_t n,uintptr_t,const Source&){return n;}
 void* RampageMotion(uintptr_t montage,const Source& s){++builds;Check(montage==reinterpret_cast<uintptr_t>(f.montage)&&s.sequence==reinterpret_cast<uintptr_t>(f.idle)&&s.skeleton==reinterpret_cast<uintptr_t>(f.skeleton)&&s.slotIndex==11&&s.rootIndex==10,"only own skeleton/root/unused slot reaches motion builder");if(reassign)Put(f.ability,0x48,uintptr_t(0));return buildOK?f.replacement:nullptr;}
 }
 namespace dg::native_tps {bool OnGameThread(){return thread;}}

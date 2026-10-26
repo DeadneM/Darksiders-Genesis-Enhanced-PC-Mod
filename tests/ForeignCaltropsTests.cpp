@@ -39,7 +39,7 @@ void SpawnNative(void* ability,void* projectile,Name bone){++spawns;spawned={abi
 void Fresh(){
     f={};owner={};gesture=false;gameThread=local=createOK=playing=true;reenter=expire=expireCreate=changeOwner=throwPlay=false;
     creates=plays=spawns=finishes=playingCalls=0;playedRate=0;playedMontage=nullptr;playedSection={};created={};spawned={};
-    g_ready=g_loaded=true;g_requested=g_failed=false;g_handling=nullptr;g_log=nullptr;g_cursor=g_count=0;g_scanTick=0;g_events=0;
+    g_ready=true;g_failed=false;g_handling=nullptr;g_log=nullptr;g_events=0;
     g_create=CreateNative;g_finish=FinishNative;g_playing=PlayingNative;g_spawn=SpawnNative;
     const char* labels[]={"BlueprintGeneratedClass","AnimSequence","AnimMontage","War_Blueprint_C","WarAnim_Blueprint_C"};
     for(int i=0;i<5;++i)Label(f.classes[i],i+1,labels[i]);
@@ -117,10 +117,12 @@ void Run(){
     Fresh();changeOwner=true;Check(Cast()&&plays==1&&!spawns&&!finishes&&g_failed,"owner change during playback cannot spawn for or finish another player's cast");
     Fresh();throwPlay=true;bool threw=false;try{Cast();}catch(const std::runtime_error&){threw=true;}
     Check(threw&&!g_handling&&!spawns&&!finishes,"native C++ exception propagates while scope restores");
-    Fresh();g_power={};g_idle={};g_loaded=false;std::memset(f.items,0,sizeof(f.items));Register(510,f.power,10);Register(513,f.idle,20);g_requested=true;
-    Observe(owner);Check(g_cursor==512&&g_power&&!g_idle&&Status()==1,"loaded discovery reads at most 512 entries per observation");
-    g_scanTick=0;Observe(owner);Check(g_power&&g_idle&&Status()==2,"next bounded slice completes independent loaded-asset discovery");
-    Fresh();gesture=true;Check(Cast()&&creates==1&&plays==1&&spawns==1&&!finishes&&created.sequence==f.strifeSkeleton&&std::fabs(playedRate-.5666666627f/2.3333332539f)<.00001f,"receiver gesture preserves cast duration, one native spawn and successful lifecycle");
+    Fresh();g_power={};g_idle={};
+    ObserveObject(reinterpret_cast<uintptr_t>(f.power),3);Check(!g_power,"shared discovery rejects the wrong object kind");
+    ObserveObject(reinterpret_cast<uintptr_t>(f.power),1);Check(g_power&&!g_idle&&Status()==1,"one typed discovery event captures only its matching class");
+    ObserveObject(reinterpret_cast<uintptr_t>(f.idle),3);Check(AssetsReady()&&Status()==2,"typed sequence event completes discovery without another GUObject pass");
+    Put(f.items,2*24+16,999);Check(InvalidateAssets()&&!InvalidateAssets(),"asset serial change invalidates once");
+    Fresh();gesture=true;Check(Cast()&&creates==1&&plays==1&&spawns==1&&!finishes&&created.sequence==f.strifeSkeleton&&playedRate==1.f,"receiver gesture uses authored speed, one native spawn and successful lifecycle");
     Fresh();Shutdown();Check(Status()==0&&!Prepare(f.actor,cls)&&!Cast(),"shutdown returns all paths to unavailable/native forwarding");
 }
 }

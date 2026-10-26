@@ -1,3 +1,13 @@
+## V1.108 - Rampage, presentation des pouvoirs, Lava et decouverte bornee
+
+**EXPERIMENTALE : compilation Windows x64 uniquement sur GitHub, controles et livraison a verifier ; NON VALIDEE EN JEU.** Base fonctionnelle validee V1.103, code de transition V1.107 conserve. Les nouveaux essais V1.107 montrent des phases Start/Slam repetables ; l'utilisateur confirme encore absence des degats/effets de charge, mauvaises poses, lenteur des transferts et sons manquants. Cela ne valide pas tout Rampage.
+
+Lot : attaches natives de la charge Rampage pour Strife, pose propre Strife_Dash puis Talon du Diable (AirKick1), sans remplacer le mouvement natif ; temps du geste War corrige pour Clone/Caltrops et preparation/retour World Ender, avec intervalle de degats du rayon conserve ; son de lancement valide avant le detour partage du dash et boucle sonore native du laser restauree. Flash Lava normal rattache au vrai canon correspondant, sans changement des projectiles/trajectoires. Arc de l'attaque secondaire reconnu pour les lames OFF. Trois scans d'objets remplaces par un seul, au plus 256 entrees et budget haute resolution de 1 ms controle toutes les 16 entrees.
+
+169 cles INI et 55 ID Hotkeys conserves, aucune nouvelle option ni touche. Chemins input/camera, reception lourde, autres acquis et 172 anciennes archives gardes ; main/archive/v1.43 intacts. P2 reste differe. Voir [preuves, limites et essais](docs/V1_108_RAMPAGE_LAVA_POWER_PRESENTATION_TEST.md). Telechargement depuis l'updater du jeu, canal debug ; aucun build ou remplacement local par l'agent.
+
+---
+
 ## V1.107 - Rampage : conserver la transition native depart vers frappe
 
 **CONSTRUITE / CONTROLEE : [60/60 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40225339622), zero avertissement/erreur MSVC. [ZIP GitHub immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/52cf0bc7939f65200ce17b978fd10e19109d0371/downloads/DarksidersGenesis_V1.107_RAMPAGE_NATIVE_PHASE_HANDOFF_TEST.zip) - [Recu](docs/V1_107_DELIVERY_RECEIPT.md). Transition Rampage EXPERIMENTALE, NON VALIDEE EN JEU. Disponible pour l'updater canal debug, compilation uniquement GitHub. Audio V1.106 inchange, essai utilisateur differe.**

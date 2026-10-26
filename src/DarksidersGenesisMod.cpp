@@ -4435,6 +4435,8 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::grapple::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::air_jump::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::mounted_jump::Initialize(&FeatureLog,g_targetValidation.exact);
+    // Validate the native sound entry before the shared dash audio detour.
+    dg::wrath_slots::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::dash_combat::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::interaction_hud::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::sheathing::Initialize(&FeatureLog,g_targetValidation.exact);
@@ -4447,7 +4449,6 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::leviathan_visual::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::melee_effect::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::presentation::Initialize(&FeatureLog,g_targetValidation.exact,&PresentationFocused);
-    dg::wrath_slots::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::cosmetics::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::ultimate_duration::Initialize(&FeatureLog,g_targetValidation.exact);
     if (!InstallFinalOutgoingDamageHook()) {

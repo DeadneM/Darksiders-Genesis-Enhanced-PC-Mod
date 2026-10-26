@@ -5,6 +5,7 @@
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
 #include "DashCombatFeature.h"
+#include "ForeignRampageFeature.h"
 #include <MinHook.h>
 #include <atomic>
 #include <cstdio>
@@ -340,7 +341,7 @@ void HookEvaluate(void* node,PoseContext* output){
     // All actors retain their original evaluation. Only the exact owned
     // Strife root may supply an additional private unarmed presentation pose.
     if(g_evaluate)g_evaluate(node,output);
-    SampleAnimation(reinterpret_cast<uintptr_t>(node),output,GetTickCount64());
+    if(!foreign_rampage::Evaluate(node,output))SampleAnimation(reinterpret_cast<uintptr_t>(node),output,GetTickCount64());
 }
 EffectSide Side(int index,int number){
     if(NameValueIs(index,number,"VFX_Weapon_Gun_R")||NameValueIs(index,number,"Gun_R_Socket")||

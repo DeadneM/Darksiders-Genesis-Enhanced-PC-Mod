@@ -205,8 +205,8 @@ void Batch(){
     Put(entries[39],8,uint32_t(1));const wchar_t wide[]=L"WideName";std::memcpy(entries[39]+12,wide,sizeof(wide));
     Check(dg::native_objects::NameValueEquals(g_base,39,0,"WideName")&&!dg::native_objects::NameValueEquals(g_base,39,0,"Wide"),"bounded dynamic name lookup supports wide names");
 }
-void GestureFixture(bool war=false){
-    Fresh();
+void GestureFixture(bool war=false,bool reset=true){
+    if(reset)Fresh();
     auto* skeleton=war?f.warSkeleton:f.strifeSkeleton;
     Label(skeleton,war?11:12,war?"War_Mesh_Skeleton":"Strife_Skeleton");
     Label(f.gesture,40,war?"War_Channel_Start":"Strife_Aether_Channel_Start");
@@ -256,7 +256,9 @@ void Gestures(){
     Label(f.idle,13,"War_Idle");Put(f.idle,0x38,reinterpret_cast<uintptr_t>(f.warSkeleton));source.skeleton=reinterpret_cast<uintptr_t>(f.warSkeleton);source.rootIndex=20;
     Label(f.original,7,"Strife_SpawnClone_F_Montage");Label(f.originalPackage,8,"/Game/Characters/Heroes/Hero_Strife/Animations/Strife_SpawnClone_F_Montage");
     Check(Compatible(reinterpret_cast<uintptr_t>(f.original),source)==f.copy&&At<Segment>(f.copySegments,0).sequence==reinterpret_cast<uintptr_t>(f.gesture),"Clone builder uses War gesture on own skeleton");
-    Check(At<int>(f.copy,0x88)==5&&At<float>(f.copyEvents,2*184+0x24)==.4880667329f,"Clone event plan and native callback timeline are preserved");
+    Check(At<int>(f.copy,0x88)==5&&std::fabs(At<float>(f.copy,0x90)-.5666666627f)<.00001f&&
+          std::fabs(At<float>(f.copyEvents,2*184+0x24)-.4880667329f*.5666666627f/2.3666665554f)<.00001f&&
+          std::fabs(At<Segment>(f.copySegments,0).rate-1.f)<.00001f,"Clone keeps its complete event plan while the owned gesture and callbacks use the shorter authored duration");
 }
 void BeamFixture(){
     Fresh();
@@ -305,6 +307,13 @@ void Beams(){
     }
     for(int bad:{2,3,4,5,6,7,8,9}){BeamFixture();mode=bad;Check(!WorldEnder(reinterpret_cast<uintptr_t>(f.original),source),"beam clone rejects aliased arrays, CDO and bad owner");}
     BeamFixture();Check(!Compatible(reinterpret_cast<uintptr_t>(f.original),source),"validated Clone API does not silently accept the new beam montage");
+    BeamFixture();Label(f.beamStateClass,44,"AnimNotify_SoundLoopRange");Put(f.events,368+0x24,0.f);Put(f.events,368+0x58,4.8999996185f);
+    Check(WorldEnder(reinterpret_cast<uintptr_t>(f.original),source)==f.copy&&At<uintptr_t>(f.copyEvents,0x50)==reinterpret_cast<uintptr_t>(f.beamInterrupt),"native sound loop state retains engine-owned begin/end lifecycle on receiver");
+    BeamFixture();GestureFixture(true,false);ObserveSequence(reinterpret_cast<uintptr_t>(f.gesture));
+    Check(WorldEnder(reinterpret_cast<uintptr_t>(f.original),source)==f.copy,"quick beam uses the compatible owned gesture");
+    const float start=At<float>(f.copyEvents,0x24),stop=At<float>(f.copyEvents,368+0x24);
+    Check(std::fabs(start-.5666666627f)<.00001f&&std::fabs((stop-start)-(3.5871195793f-.6564341187f))<.00001f&&
+          std::fabs(At<float>(f.copy,0x90)-stop-.2f)<.00001f,"wind-up/recovery shorten while the exact native damage interval is preserved");
 }
 }
 namespace dg::native_tps {bool OnGameThread(){return gameThread;}}

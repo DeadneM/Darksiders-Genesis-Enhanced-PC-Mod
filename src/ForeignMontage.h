@@ -3,7 +3,7 @@
 
 namespace dg::foreign_montage {
 using LogFn=void(*)(const char*);
-struct Source {uintptr_t sequence=0,skeleton=0;int slotIndex=0,slotNumber=0,rootIndex=0,rootNumber=0;};
+struct Source {uintptr_t sequence=0,skeleton=0;int slotIndex=0,slotNumber=0,rootIndex=0,rootNumber=0,spineIndex=0,spineNumber=0;};
 void Initialize(LogFn,bool exactExecutable);
 bool Ready();
 bool CanBuild(const Source&);
@@ -21,6 +21,7 @@ void* Compatible(uintptr_t nativeMontage,const Source&);
 void* WorldEnder(uintptr_t nativeMontage,const Source&);
 // Root motion uses the first track, on a slot absent from the live graph.
 void* RampageMotion(uintptr_t nativeMontage,const Source&);
+uintptr_t RampageNotify(uintptr_t notify,uintptr_t privateOuter,const Source&);
 // Successful foreign casts only: native opening audio once on the receiver's
 // own mesh. Later sounds on dynamic gestures remain engine-timed notifies.
 void StartSounds(uintptr_t nativeMontage,void* liveAbility);

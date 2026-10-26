@@ -338,4 +338,5 @@ bool CinematicActive(unsigned){return cinematic;}bool RadialActive(unsigned){ret
 }
 namespace dg::local_players {bool Matches(unsigned,uintptr_t,uint32_t){return true;}}
 namespace dg::dash_combat {bool PresentationReady(){return presentation;}}
+namespace dg::foreign_rampage {bool Evaluate(void*,pistol_visual::PoseContext*){return false;}}
 int main(){try{Policy();Runtime();AnimationBoundary();Config();std::cout<<"Pistol visual native boundary checks passed\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

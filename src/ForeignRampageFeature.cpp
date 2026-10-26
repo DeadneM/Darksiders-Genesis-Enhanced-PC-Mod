@@ -2,6 +2,8 @@
 #include "ForeignMontage.h"
 #include "NativePropertyField.h"
 #include "NativeTpsFeature.h"
+#include "PistolAnimationPolicy.h"
+#include <MinHook.h>
 #include <atomic>
 #include <cmath>
 #include <cstdio>
@@ -15,6 +17,15 @@ Finish g_finish=nullptr;Playing g_playing=nullptr;
 uintptr_t g_base=0;foreign_wrath::LogFn g_log=nullptr;unsigned g_events=0,g_refusals=0;const char* g_refusal=nullptr;
 std::atomic_bool g_ready{false},g_failed{false};
 native_objects::Identity g_phases[5]{},g_idle{};
+native_objects::Identity g_poses[2]{};
+using Notify=void(*)(void*,void*,void*);
+using Position=float(*)(void*,void*);
+struct Extract {bool root=true;unsigned char pad[3]{};float time=0;};
+static_assert(sizeof(Extract)==8&&offsetof(Extract,time)==4);
+using Sample=void(*)(void*,pistol_visual::CompactPose*,pistol_visual::Curve*,const Extract*);
+Notify g_blast=nullptr,g_surface=nullptr;Position g_position=nullptr;Sample g_sample=nullptr;
+struct Visual {native_objects::Identity ability{},actor{},mesh{},anim{},skeleton{},montage{},sequence{};foreign_montage::Source source{};float position=0,length=0;uint64_t tick=0;};
+Visual g_visual[2]{};SRWLOCK g_visualLock=SRWLOCK_INIT;
 // One native Rampage spans different ability objects. The actor token
 // survives Start's ordinary end and is consumed by the final companion.
 struct Cast {native_objects::Identity actor{};uintptr_t world=0;int phase=-1;};Cast g_cast[2]{};
@@ -79,8 +90,44 @@ bool Source(const local_players::Context& c,foreign_montage::Source& out,const c
     if(!Read(anim,0x28,skeleton)||!Read(g_idle.address,0x38,out.skeleton)||skeleton!=out.skeleton||!Is(skeleton,"Strife_Skeleton"))return fail("own skeleton");
     if(!Read(mesh,0x5A0,asset)||!Read(asset,0x190,bones)||!bones.data||bones.count<=0||bones.count>bones.capacity||bones.capacity>512||
        !Read(bones.data,0,root)||!native_objects::NameValueIs(g_base,root.index,root.number,"Bone_Strife_Root"))return fail("own root bone");
+    // Spine is used only by the opening native charge blast, never a made-up
+    // offset. A missing spine leaves presentation adaptation unavailable.
+    Name spine{};
+    if(bones.count>13&&Read(bones.data,13*12,spine)&&native_objects::NameValueIs(g_base,spine.index,spine.number,"Bone_Strife_Spine1")){
+        out.spineIndex=spine.index;out.spineNumber=spine.number;
+    }
     out.sequence=g_idle.address;out.rootIndex=root.index;out.rootNumber=root.number;out.slotIndex=slot.index;out.slotNumber=slot.number;return true;
 }
+void ClearVisual(int index){AcquireSRWLockExclusive(&g_visualLock);g_visual[index]={};ReleaseSRWLockExclusive(&g_visualLock);}
+void BeginVisual(const local_players::Context& c,void* ability,void* montage,int phase,const foreign_montage::Source& source){
+    Visual v{};v.source=source;uintptr_t mesh=0,anim=0;
+    if(!Read(c.character,0x380,mesh)||!Read(mesh,0x718,anim)||!native_objects::CaptureLive(g_base,ability,v.ability)||
+       !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(c.character),v.actor)||
+       !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(mesh),v.mesh)||!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(anim),v.anim)||
+       !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(source.skeleton),v.skeleton)||!native_objects::CaptureLive(g_base,montage,v.montage)||
+       !Read(reinterpret_cast<uintptr_t>(montage),0x90,v.length))return;
+    v.sequence=g_poses[phase?1:0];v.tick=GetTickCount64();
+    AcquireSRWLockExclusive(&g_visualLock);g_visual[c.index]=v;ReleaseSRWLockExclusive(&g_visualLock);
+}
+void MotionNotify(Notify native,void* notify,void* mesh,void* animation){
+    if(!native)return;
+    if(g_ready&&!g_failed&&native_tps::OnGameThread()){
+        const auto m=reinterpret_cast<uintptr_t>(mesh),a=reinterpret_cast<uintptr_t>(animation);uintptr_t actor=0,owner=0,package=0;local_players::Context c{};
+        if(Read(m,0xE8,actor)&&Owner(reinterpret_cast<void*>(actor),c,false)&&
+           (Is(a,"War_Atk_Rampage_Start")||Is(a,"War_Atk_Rampage_Run"))&&Read(a,0x20,package)){
+            char path[200]{};sprintf_s(path,"/Game/Characters/Heroes/Hero_War/Animation/%s",Is(a,"War_Atk_Rampage_Start")?"War_Atk_Rampage_Start":"War_Atk_Rampage_Run");
+            const auto& v=g_visual[c.index];unsigned char state=0;
+            if(Named(package,path)&&Alive(v.ability)&&Alive(v.montage)&&v.actor.address==actor&&v.mesh.address==m&&Read(v.ability.address,0x48,owner)&&owner==actor&&
+               Read(v.ability.address,0xD8,state)&&(state==1||state==2)){
+                const auto adapted=foreign_montage::RampageNotify(reinterpret_cast<uintptr_t>(notify),v.montage.address,v.source);
+                if(adapted){native(reinterpret_cast<void*>(adapted),mesh,animation);return;}
+            }
+        }
+    }
+    native(notify,mesh,animation);
+}
+void Blast(void* n,void* m,void* a){MotionNotify(g_blast,n,m,a);}
+void Surface(void* n,void* m,void* a){MotionNotify(g_surface,n,m,a);}
 bool Recent(const local_players::Context& c){const auto* mark=PlayerCast(c.index);return mark&&mark->world==c.world&&mark->actor.address==c.character&&Alive(mark->actor);}
 void Stop(void* ability,int phase,const local_players::Context& c,const char* why="motion source unavailable"){
     auto* mark=PlayerCast(c.index);if(!mark)return;
@@ -101,13 +148,29 @@ void Initialize(foreign_wrath::LogFn log,bool exact){
     constexpr unsigned char playing[]={0x48,0x89,0x5C,0x24,0x08,0x57,0x48,0x83,0xEC,0x20,0x48,0x8B,0xD9,0x48,0x83,0xC1};
     if(std::memcmp(reinterpret_cast<void*>(g_base+0x59B080),finish,sizeof(finish))||std::memcmp(reinterpret_cast<void*>(g_base+0x676620),playing,sizeof(playing)))return;
     g_finish=reinterpret_cast<Finish>(g_base+0x59B080);g_playing=reinterpret_cast<Playing>(g_base+0x676620);g_ready=true;
-    if(log)log("Rampage V1.107 READY: private native motion and lifecycle; unused live-graph slot required; Strife locomotion pose; EXPERIMENTAL");
+    constexpr unsigned char position[]={0x48,0x83,0xEC,0x38,0x0F,0x29,0x74,0x24,0x20,0x0F,0x57,0xF6,0x48,0x85,0xD2,0x74};
+    constexpr unsigned char sample[]={0x48,0x89,0x74,0x24,0x18,0x48,0x89,0x7C,0x24,0x20,0x55,0x41,0x54,0x41,0x56,0x48};
+    if(!std::memcmp(reinterpret_cast<void*>(g_base+0x16778E0),position,sizeof(position))&&!std::memcmp(reinterpret_cast<void*>(g_base+0x1690BD0),sample,sizeof(sample))){
+        g_position=reinterpret_cast<Position>(g_base+0x16778E0);g_sample=reinterpret_cast<Sample>(g_base+0x1690BD0);
+    }
+    constexpr unsigned char blast[]={0x48,0x89,0x74,0x24,0x18,0x48,0x89,0x7C,0x24,0x20,0x41,0x56,0x48,0x83,0xEC,0x50};
+    constexpr unsigned char surface[]={0x40,0x55,0x56,0x57,0x41,0x54,0x41,0x55,0x41,0x56,0x41,0x57,0x48,0x8D,0xAC,0x24};
+    auto* b=reinterpret_cast<void*>(g_base+0x5D7DF0);auto* s=reinterpret_cast<void*>(g_base+0x5D7760);
+    if(!std::memcmp(b,blast,sizeof(blast))&&!std::memcmp(s,surface,sizeof(surface))){
+        const bool cb=MH_CreateHook(b,reinterpret_cast<void*>(&Blast),reinterpret_cast<void**>(&g_blast))==MH_OK;
+        const bool cs=cb&&MH_CreateHook(s,reinterpret_cast<void*>(&Surface),reinterpret_cast<void**>(&g_surface))==MH_OK;
+        if(!cs||MH_EnableHook(b)!=MH_OK||MH_EnableHook(s)!=MH_OK){
+            if(cb){MH_DisableHook(b);MH_RemoveHook(b);}if(cs){MH_DisableHook(s);MH_RemoveHook(s);}g_blast=g_surface=nullptr;
+        }
+    }
+    if(log){char line[220]{};sprintf_s(line,"Rampage V1.108 READY: native motion/phase token; own Dash/Devil Heel pose=%u; scoped native charge blast/surface=%u; EXPERIMENTAL",unsigned(g_position&&g_sample),unsigned(g_blast&&g_surface));log(line);}
 }
-bool AssetsReady(){for(const auto& id:g_phases)if(!Alive(id))return false;return Alive(g_idle);}
+bool AssetsReady(){for(const auto& id:g_phases)if(!Alive(id))return false;return Alive(g_idle)&&Alive(g_poses[0])&&Alive(g_poses[1]);}
 bool InvalidateAssets(){
     if(!g_ready||!native_tps::OnGameThread())return false;bool changed=false;
     for(auto& id:g_phases)if(id&&!Alive(id)){id={};changed=true;}
-    if(g_idle&&!Alive(g_idle)){g_idle={};changed=true;}return changed;
+    if(g_idle&&!Alive(g_idle)){g_idle={};changed=true;}
+    for(auto& id:g_poses)if(id&&!Alive(id)){id={};changed=true;}return changed;
 }
 void ObserveObject(uintptr_t p){
     if(!g_ready||!native_tps::OnGameThread())return;
@@ -115,6 +178,10 @@ void ObserveObject(uintptr_t p){
     uintptr_t cls=0,package=0;
     if(!Alive(g_idle)&&Read(p,0x10,cls)&&Is(cls,"AnimSequence")&&Is(p,"Strife_Idle")&&Read(p,0x20,package)&&
        Is(package,"/Game/Characters/Heroes/Hero_Strife/Animations/Strife_Idle"))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(p),g_idle);
+    if(Read(p,0x10,cls)&&Is(cls,"AnimSequence"))for(int i=0;i<2;++i){
+        const char* name=i?"Strife_Air_Atk_Melee_Kick":"Strife_Dash";char path[200]{};sprintf_s(path,"/Game/Characters/Heroes/Hero_Strife/Animations/%s",name);
+        if(!Alive(g_poses[i])&&Named(p,name)&&Read(p,0x20,package)&&Named(package,path))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(p),g_poses[i]);
+    }
 }
 int Status(){return !g_ready||g_failed||!foreign_montage::Ready()?0:(AssetsReady()?2:1);}
 bool IsClass(uintptr_t cls){return g_ready&&native_tps::OnGameThread()&&Kind(cls)>=0;}
@@ -151,12 +218,13 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     if(!Alive(abi)||!Alive(pawn)||!Read(p,0x48,character)||character!=actor)return true;
     if(!replacement){Stop(ability,phase,c,"private motion montage construction/shape failed");return true;}
     *mark={pawn,c.world,phase};
+    BeginVisual(c,ability,replacement,phase,source); // native first-frame notifies can now resolve their own actor
     native(ability,replacement,rate,section);
     if(!Alive(abi)||!Alive(pawn)||!Read(p,0x48,character)||character!=actor)return true;
     uintptr_t instance=0;
     if(!Read(p,0x1D8,instance)||!instance||!g_playing(reinterpret_cast<void*>(instance))){Stop(ability,phase,c,"native montage playback not active");return true;}
     foreign_montage::StartSounds(reinterpret_cast<uintptr_t>(montage),ability);
-    if(g_log&&g_events++<12){char line[180]{};sprintf_s(line,"Rampage V1.107 CAST player=%d phase=%d: native motion/loop/collision/finish; own locomotion pose; EXPERIMENTAL",c.index+1,phase);g_log(line);}
+    if(g_log&&g_events++<12){char line[180]{};sprintf_s(line,"Rampage V1.108 CAST player=%d phase=%d: native motion/loop/collision/finish; own Dash/Devil Heel presentation; EXPERIMENTAL",c.index+1,phase);g_log(line);}
     return true;
 }
 void Observe(const local_players::Context& c){
@@ -167,6 +235,38 @@ void Observe(const local_players::Context& c){
     // No old ability is retained/read/called to authorize that handoff.
     if(mark->actor&&(mark->world!=c.world||mark->actor.address!=c.character||c.pawn!=c.character||
        c.kind!=local_players::PoseKind::Foot||!Alive(mark->actor)))*mark={};
+    Visual next{};AcquireSRWLockShared(&g_visualLock);next=g_visual[c.index];ReleaseSRWLockShared(&g_visualLock);
+    unsigned char state=0;uintptr_t actor=0,mesh=0,anim=0;
+    if(!g_failed&&mark->actor&&Alive(next.ability)&&Alive(next.actor)&&Alive(next.anim)&&Alive(next.montage)&&
+       next.actor.address==c.character&&Read(next.ability.address,0x48,actor)&&actor==c.character&&Read(actor,0x380,mesh)&&mesh==next.mesh.address&&
+       Read(mesh,0x718,anim)&&anim==next.anim.address&&Read(next.ability.address,0xD8,state)&&(state==1||state==2)&&g_position){
+        next.position=g_position(reinterpret_cast<void*>(anim),reinterpret_cast<void*>(next.montage.address));next.tick=GetTickCount64();
+        AcquireSRWLockExclusive(&g_visualLock);g_visual[c.index]=next;ReleaseSRWLockExclusive(&g_visualLock);
+    }else ClearVisual(c.index);
 }
-void Shutdown(){g_ready=false;for(auto& c:g_cast)c={};}
+bool Evaluate(void* node,pistol_visual::PoseContext* output){
+    if(!g_ready||g_failed||!g_sample||!output)return false;Visual v{};const auto now=GetTickCount64();
+    AcquireSRWLockShared(&g_visualLock);for(const auto& p:g_visual)if(p.anim&&reinterpret_cast<uintptr_t>(node)==p.anim.address+0x318){v=p;break;}ReleaseSRWLockShared(&g_visualLock);
+    unsigned char state=0;
+    if(!v.anim||now<v.tick||now-v.tick>100||!Alive(v.ability)||!Alive(v.montage)||!Alive(v.actor)||!Alive(v.mesh)||!Alive(v.anim)||!Alive(v.sequence)||!Alive(v.skeleton)||
+       !Read(v.ability.address,0xD8,state)||(state!=1&&state!=2)||
+       !std::isfinite(v.position)||v.position<0||!std::isfinite(v.length)||v.length<=0||v.position>v.length+.001f)return false;
+    struct Array {uintptr_t data=0;int count=0,capacity=0;};
+    uintptr_t proxy=0,actual=0;uint64_t vt=0;float length=0;Array required{};pistol_visual::PoseContext context{};
+    if(!Read(reinterpret_cast<uintptr_t>(node),0,vt)||vt!=g_base+0x2A77628||!Read(reinterpret_cast<uintptr_t>(output),0,context)||context.additive||
+       !Read(v.anim.address,0x240,proxy)||context.proxy!=proxy||!Read(proxy,0xA0,actual)||actual!=v.anim.address||
+       !Read(proxy,0xB8,actual)||actual!=v.mesh.address||!Read(proxy,0xB0,actual)||actual!=v.skeleton.address||
+       context.pose.container!=proxy+0x450||context.pose.transforms.count!=80||context.pose.transforms.capacity<80||context.pose.transforms.capacity>1024||
+       !context.pose.transforms.data||(context.pose.transforms.data&15u)||!Read(proxy,0x450,required)||!required.data||required.count!=80||required.capacity<80||required.capacity>1024||
+       !Read(v.sequence.address,0x38,actual)||actual!=v.skeleton.address||!Read(v.sequence.address,0x90,length)||!std::isfinite(length)||length<=0||length>5)return false;
+    std::array<uint16_t,80> indices{};if(!Read(required.data,0,indices))return false;for(unsigned i=0;i<80;++i)if(indices[i]!=i)return false;
+    // Pure pose extraction in the native evaluation scope: no second motion,
+    // notify, cost, damage, input, animation update or timer. Keep the current
+    // root transform; War's original montage alone controls displacement.
+    pistol_visual::LocalTransform root{};if(!Read(context.pose.transforms.data,0,root))return false;
+    const Extract extract{true,{},std::min(length,v.position*length/v.length)};
+    g_sample(reinterpret_cast<void*>(v.sequence.address),&output->pose,&output->curve,&extract);
+    std::memcpy(reinterpret_cast<void*>(context.pose.transforms.data),&root,sizeof(root));return true;
+}
+void Shutdown(){g_ready=false;for(auto& c:g_cast)c={};ClearVisual(0);ClearVisual(1);}
 }

@@ -81,6 +81,11 @@ void Run(){
     Fresh();dg::runtime::Get().strifeBladeVisibility=1;attachedPosition={0,-100,100};Put(notify,0x40,attachedPosition);owner.index=1;InvokeAttached();
     Check(Near(sentPosition.x,99)&&Near(sentPosition.y,-33)&&Near(sentPosition.z,74.25f),"attached left arc uses P2 owned left hand");
     Fresh();dg::runtime::Get().strifeBladeVisibility=0;InvokeAttached();Check(Near(sentPosition.x,-30)&&Near(sentScale.x,2)&&!roots,"visible blade attached arc remains native");
+    for(int choice:{1,2,3}){Fresh();dg::runtime::Get().strifeBladeVisibility=choice;
+        Label(sequence,5,"Strife_Atk_Melee_Kick_Launch_Level1_Montage");Put(notify,0x40,dg::native_bone::Point{100,0,160});
+        Label(particle,3,"VFX_strife_meleeSlice_strong");Label(package,4,"/Game/Particles/VFX_strife_meleeSlice_strong");Invoke();
+        Check(sent.scale[0]==.8f&&sent.position[0]==(choice==1?100:10),"secondary common launcher arc follows the selected bare hand or nearest hand when both blades are OFF");
+    }
     Fresh();vt[0x3F0/8]=0;InvokeAttached();Check(Near(sentPosition.x,-30)&&!roots,"unexpected root virtual forwards without native query");
     Fresh();rootTransform.scale[1]=0;InvokeAttached();Check(Near(sentPosition.x,-30)&&Near(sentScale.x,2),"singular root does not change an attached effect");
     Fresh();rootTransform.rotation[3]=2;InvokeAttached();Check(Near(sentPosition.x,-30),"invalid root quaternion stays native");

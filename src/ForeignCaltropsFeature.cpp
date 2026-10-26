@@ -2,7 +2,6 @@
 #include "ForeignMontage.h"
 #include "NativeObjectName.h"
 #include "NativeTpsFeature.h"
-#include "RuntimeSettings.h"
 #include <atomic>
 #include <cmath>
 
@@ -16,8 +15,8 @@ using Playing=bool(*)(void*);
 using Spawn=void(*)(void*,void*,Name);
 Create g_create=nullptr;Finish g_finish=nullptr;Playing g_playing=nullptr;Spawn g_spawn=nullptr;
 uintptr_t g_base=0;LogFn g_log=nullptr;
-std::atomic_bool g_ready{false},g_requested{false},g_loaded{false},g_failed{false};
-native_objects::Identity g_power{},g_idle{};int g_cursor=0,g_count=0;uint64_t g_scanTick=0;unsigned g_events=0;
+std::atomic_bool g_ready{false},g_failed{false};
+native_objects::Identity g_power{},g_idle{};unsigned g_events=0;
 thread_local void* g_handling=nullptr;
 struct Array {uintptr_t data=0;int count=0,capacity=0;};
 struct Source {uintptr_t mesh=0,sequence=0,skeleton=0;Name pelvis{};float length=0;};
@@ -70,22 +69,6 @@ bool Montage(void* live,Name& slot,float& duration){
         Read(p,0x94,rate)&&rate==1&&Read(p,0x158,tracks)&&tracks.data&&tracks.count==1&&tracks.capacity>=1&&tracks.capacity<=4&&
         Read(tracks.data,0,slot)&&native_objects::NameValueIs(g_base,slot.index,slot.number,"TPS")&&((duration=length),true);
 }
-void Scan(){
-    if((g_power&&!Alive(g_power))||(g_idle&&!Alive(g_idle))){g_power={};g_idle={};g_loaded=false;g_cursor=0;}
-    if(g_power&&g_idle){g_loaded=true;return;}
-    uintptr_t chunks=0;int count=0;
-    if(!Read(g_base,0x3959680,chunks)||!Read(g_base,0x3959694,count)||count<=0||count>2000000)return;
-    if(count<g_count)g_cursor=0;g_count=count;
-    const int limit=g_cursor+(count-g_cursor<512?count-g_cursor:512);
-    for(;g_cursor<limit;++g_cursor){
-        uintptr_t chunk=0,object=0;uint32_t flags=0;
-        if(!Read(chunks,size_t(g_cursor/65536)*8,chunk)||!Read(chunk,size_t(g_cursor%65536)*24,object)||!object||
-           !Read(chunk,size_t(g_cursor%65536)*24+8,flags)||(flags&0x30000000u))continue;
-        if(!g_power&&Class(object))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(object),g_power);
-        if(!g_idle&&Idle(object))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(object),g_idle);
-    }
-    if(g_power&&g_idle)g_loaded=true;
-}
 void Stop(void* ability){
     g_failed=true;g_finish(ability,0);
     if(g_log&&g_events++<12)g_log("Caltrops V1.93 stopped: owned War cast contract unavailable; native finish requested, select Native; no repeated constructor attempt");
@@ -103,15 +86,20 @@ void Initialize(LogFn log,bool exact){
     g_playing=reinterpret_cast<Playing>(g_base+0x676620);g_spawn=reinterpret_cast<Spawn>(g_base+0x5AE2B0);g_ready=true;
     if(log)log("Caltrops V1.93 READY: War ground-only adapter, own pelvis and native projectile factory; no new hook or timer; EXPERIMENTAL UNTESTED IN GAME");
 }
-int Status(){g_requested=true;return !g_ready||g_failed?0:(g_loaded?2:1);}
+int Status(){return !g_ready||g_failed?0:(AssetsReady()?2:1);}
 bool IsClass(uintptr_t p){return g_ready&&native_tps::OnGameThread()&&p==g_power.address&&Alive(g_power)&&Class(p);}
-void Observe(const local_players::Context& c){
-    if(!g_ready||g_failed||!native_tps::OnGameThread()||c.index<0||c.index>1||!c.localPlayer||!c.world||c.kind!=local_players::PoseKind::Foot)return;
-    bool wanted=g_requested.load();for(const auto& choice:runtime::Get().wrathSlots[1])wanted=wanted||choice.load()==3;
-    if(!wanted)return;const auto now=GetTickCount64();if(now>=g_scanTick&&now-g_scanTick<15)return;g_scanTick=now;Scan();
+bool AssetsReady(){return Alive(g_power)&&Alive(g_idle);}
+bool InvalidateAssets(){
+    if(!g_ready||!native_tps::OnGameThread())return false;bool changed=false;
+    for(auto* id:{&g_power,&g_idle})if(*id&&!Alive(*id)){*id={};changed=true;}return changed;
+}
+void ObserveObject(uintptr_t object,unsigned kind){
+    if(!g_ready||!native_tps::OnGameThread())return;
+    if(kind==1&&!g_power&&Class(object))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(object),g_power);
+    if(kind==3&&!g_idle&&Idle(object))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(object),g_idle);
 }
 bool Prepare(void* actor,uintptr_t& abilityClass){
-    g_requested=true;if(!g_ready||g_failed||!native_tps::OnGameThread()||!IsClass(g_power.address))return false;
+    if(!g_ready||g_failed||!native_tps::OnGameThread()||!IsClass(g_power.address))return false;
     local_players::Context c{};Source source{};uintptr_t cdo=0,cls=0,projectile=0;
     if(!Owner(actor,c)||!Animation(c,source)||!Read(g_power.address,0xF8,cdo)||!Read(cdo,0x10,cls)||cls!=g_power.address||!Projectile(cdo,projectile))return false;
     abilityClass=g_power.address;return true;
@@ -133,7 +121,7 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     const auto clone=reinterpret_cast<uintptr_t>(replacement);uintptr_t skeleton=0;float length=0;
     if(!clone||clone==reinterpret_cast<uintptr_t>(montage)||!Read(clone,0x10,cls)||!Is(cls,"AnimMontage")||!Read(clone,0x38,skeleton)||skeleton!=source.skeleton||
        !Read(clone,0x90,length)||!std::isfinite(length)||std::fabs(length-source.length)>.001f){Stop(ability);return true;}
-    const float adjusted=rate*length/duration;
+    const float adjusted=rate*(source.sequence==g_idle.address?length/duration:1.f); // own gesture at native speed; accepted idle fallback
     if(!std::isfinite(adjusted)||adjusted<=.01f||adjusted>=100){Stop(ability);return true;}
     foreign_montage::CopyLaterSounds(reinterpret_cast<uintptr_t>(montage),replacement);
     native(ability,replacement,adjusted,section);
@@ -148,7 +136,7 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     // upgrades and damage. No Strife socket, shared component, timer or CDO edit.
     g_spawn(ability,reinterpret_cast<void*>(projectile),source.pelvis);
     if(Alive(cast)&&Alive(pawn))foreign_montage::StartSounds(reinterpret_cast<uintptr_t>(montage),ability);
-    if(g_log&&g_events++<12)g_log("Caltrops V1.98: one native spawner, original cast duration; own War casting gesture when loaded, idle fallback; animation EXPERIMENTAL");
+    if(g_log&&g_events++<12)g_log("Caltrops V1.98: one native spawner, own War gesture at native speed; own War casting gesture when loaded, idle fallback; animation EXPERIMENTAL");
     return true;
 }
 void Shutdown(){g_ready=false;g_loaded=false;}

@@ -182,7 +182,7 @@ void Initialize(LogFn log,bool exact){
     g_gestures[0]=g_gestures[1]={};
     g_construct=reinterpret_cast<Construct>(g_base+0xAC57A0);g_package=reinterpret_cast<Package>(g_base+0xA7B1B0);
     g_skeleton=reinterpret_cast<Skeleton>(g_base+0x16C7130);g_reserve=reinterpret_cast<Reserve>(g_base+0x2C42C0);g_ready=true;
-    if(log)log("Foreign montage V1.88 READY: exact native NewObject template ABI, private arrays only; no timer or additional hook; EXPERIMENTAL");
+    if(log)log(g_soundNotify?"Foreign montage V1.108 READY: private native montages and sound entry verified before shared detours":"Foreign montage V1.108 READY; opening sound boundary unavailable");
 }
 bool Ready(){return g_ready.load();}
 void ObserveSequence(uintptr_t p){
@@ -296,7 +296,7 @@ bool Interrupts(uintptr_t asset,const Array& events,float first,float last,float
         if(!Read(at,0x50,state))return false;
         if(!state)continue;
         if(!Read(state,0x10,cls))return false;
-        if(!Is(cls,"AnimNotify_EnableAbilityInterrupt"))continue;
+        if(!Is(cls,"AnimNotify_EnableAbilityInterrupt")&&!Is(cls,"AnimNotify_SoundLoopRange"))continue;
         if(!Read(at,0x24,time)||!std::isfinite(time))return false;
         if(time<first||time>=last)continue;
         if(plan.count>=int(plan.events.size())||!Read(state,0x20,owner)||owner!=asset||!Read(at,0x48,notify)||notify||
@@ -324,7 +324,8 @@ bool BeamCallbacks(const Presentation& plan){
 }
 bool Rebind(Event& event,uintptr_t montage,const Source& source){
     uintptr_t notify=0,cls=0;std::memcpy(&notify,event.data()+0x48,sizeof(notify));
-    if(!notify){uintptr_t state=0;return Read(reinterpret_cast<uintptr_t>(event.data()),0x50,state)&&Read(state,0x10,cls)&&Is(cls,"AnimNotify_EnableAbilityInterrupt");}
+    if(!notify){uintptr_t state=0;return Read(reinterpret_cast<uintptr_t>(event.data()),0x50,state)&&Read(state,0x10,cls)&&
+        (Is(cls,"AnimNotify_EnableAbilityInterrupt")||Is(cls,"AnimNotify_SoundLoopRange"));}
     if(!Read(notify,0x10,cls))return false;
     if(!Is(cls,"AnimNotify_PlayParticleEffect"))return true;
     constexpr size_t offset=0x84;Name socket{};if(!Read(notify,offset,socket))return false;
@@ -351,6 +352,18 @@ void* Retarget(uintptr_t original,const Source& source,bool beam){
     if(beam&&(segments.count!=3||std::fabs(length-4.8999996185f)>.0001f||
        !native_objects::NameValueIs(g_base,source.rootIndex,source.rootNumber,"Bone_War_Root")))return nullptr;
     const auto playback=CastingSequence(source.sequence,source.skeleton,idleLength);
+    // Use War's own cast at authored speed. Preserve the complete beam's
+    // damage interval; only its wind-up and return are shortened.
+    const bool quick=playback!=source.sequence&&Is(source.skeleton,"War_Mesh_Skeleton");
+    const float oldLength=length;
+    const auto mapTime=[&](float time){
+        if(!quick)return time;
+        if(!beam)return time*idleLength/oldLength;
+        constexpr float begin=.6564341187f,fire=3.5871195793f-begin;
+        if(time<=begin)return time*idleLength/begin;
+        if(time<=begin+fire)return idleLength+time-begin;
+        return idleLength+fire+(time-begin-fire)*.2f/(oldLength-begin-fire);
+    };
     Presentation plan{};
     for(int i=0;i<segments.count;++i){
         Segment segment{};Array notifies{};
@@ -378,17 +391,20 @@ void* Retarget(uintptr_t original,const Source& source,bool beam){
        !List(copy,0x80,privateEvents,128)||(events.data&&privateEvents.data==events.data)||
        !Writable(copy+0x80,16)||!Writable(privateSegments.data,size_t(segments.count)*sizeof(Segment))||!Writable(privateSections.data,size_t(sections.count)*88))return nullptr;
     for(int i=0;i<plan.count;++i)if(!Rebind(plan.events[i],copy,source))return nullptr;
+    length=mapTime(oldLength);
+    if(quick&&!Store(copy,0x90,length))return nullptr;
     if(plan.count>privateEvents.capacity)g_reserve(reinterpret_cast<void*>(copy+0x80),plan.count);
     if(!List(copy,0x80,privateEvents,512)||privateEvents.capacity<plan.count||(events.data&&privateEvents.data==events.data)||
        (plan.count&&!Writable(privateEvents.data,size_t(plan.count)*sizeof(Event))))return nullptr;
     g_skeleton(created,reinterpret_cast<void*>(source.skeleton));
     for(int i=0;i<segments.count;++i){
         Segment s{};if(!Read(segments.data,size_t(i)*sizeof(Segment),s))return nullptr;
-        const float span=(s.last-s.first)/s.rate;
+        const float span=(mapTime(s.start+(s.last-s.first)/s.rate*float(s.loops))-mapTime(s.start))/float(s.loops);
+        s.start=mapTime(s.start);
         s.sequence=playback;s.first=0;s.last=idleLength;s.rate=idleLength/span;
         if(beam){
             // Start once, hold the last source frame during the complete beam,
-            // then return to War's own idle. Cast/callback times stay native.
+            // then return to War's own idle. The full fire interval is retained.
             const float total=span*float(s.loops);s.loops=1;
             if(i==1)s.first=std::max(0.f,idleLength-1.f/30.f);
             if(i==2){s.sequence=source.sequence;s.first=0;if(!Read(source.sequence,0x90,s.last))return nullptr;}
@@ -399,12 +415,17 @@ void* Retarget(uintptr_t original,const Source& source,bool beam){
     for(int i=0;i<plan.count;++i){
         const auto at=privateEvents.data+size_t(i)*sizeof(Event);float time=0;std::memcpy(&time,plan.events[i].data()+0x24,4);
         float duration=0;std::memcpy(&duration,plan.events[i].data()+0x58,4);
+        const float end=mapTime(time+duration);time=mapTime(time);duration=end-time;
+        std::memcpy(plan.events[i].data()+0x24,&time,4);std::memcpy(plan.events[i].data()+0x30,&time,4);std::memcpy(plan.events[i].data()+0x58,&duration,4);
+        // Trigger offsets follow their local interval, including notify states.
+        for(size_t offset:{size_t(0x34),size_t(0x38)}){float value=0;std::memcpy(&value,plan.events[i].data()+offset,4);
+            if(!std::isfinite(value))return nullptr;value*=length/oldLength;std::memcpy(plan.events[i].data()+offset,&value,4);}
         if(!std::isfinite(time)||time<0||time>=length||!std::isfinite(duration)||duration<0||time+duration>length+.001f||
            !Store(at,0,plan.events[i])||!Link(at,copy,playback,time,length)||!Link(at+0x60,copy,playback,std::min(time+duration,length),length))return nullptr;
     }
     for(int i=0;i<sections.count;++i){
         float time=0;const auto at=privateSections.data+size_t(i)*88;
-        if(!Read(at,0x24,time)||!std::isfinite(time)||time<0||time>=length||!Link(at,copy,playback,time,length))return nullptr;
+        if(!Read(at,0x24,time)||!std::isfinite(time)||time<0||time>=oldLength||!Link(at,copy,playback,mapTime(time),length))return nullptr;
     }
     const int zero=0;
     if(!Store(copy,0x88,plan.count)||!Store(copy,0x188,zero)||!Store(copy,0x198,zero))return nullptr;
@@ -467,25 +488,34 @@ bool PrivateEvents(const Array& original,const Array& copy){
         (!original.count||Writable(copy.data,size_t(original.count)*sizeof(Event)));
 }
 bool MotionNotify(Event& event,uintptr_t montage,const Source& source){
-    uintptr_t notify=0,cls=0;std::memcpy(&notify,event.data()+0x48,8);
-    if(!notify)return true;
-    if(!Read(notify,0x10,cls))return false;
-    if(Is(cls,"AnimNotify_PlayParticleEffect"))return AdaptRoot(event,montage,source);
-    if(!Is(cls,"AnimNotify_SpawnBlast"))return true;
-    // Slam impacts are authored at War's hand. Bind the private impact notify
-    // to Strife's root; retain the exact native blast class and other payload.
-    Name socket{};uintptr_t blast=0;int socketAt=0,blastAt=0;
-    if(!native_objects::PropertyField(g_base,cls,"SpawnSocket","NameProperty",8,socketAt)||
-       !native_objects::PropertyField(g_base,cls,"BlastClass","ClassProperty",8,blastAt)||
-       !Read(notify,size_t(socketAt),socket)||!native_objects::NameValueIs(g_base,socket.index,socket.number,"Bone_War_Hand_L")||
-       !Read(notify,size_t(blastAt),blast)||!blast)return false;
-    const auto copy=reinterpret_cast<uintptr_t>(g_construct(reinterpret_cast<void*>(cls),reinterpret_cast<void*>(montage),{},0x40u,0,reinterpret_cast<void*>(notify),false,nullptr,false));
-    uintptr_t actual=0,outer=0,copiedBlast=0;uint32_t flags=0;
-    if(!copy||copy==notify||!Read(copy,0x10,actual)||actual!=cls||!Read(copy,0x20,outer)||outer!=montage||
-       !Read(copy,8,flags)||(flags&0x30u)||!(flags&0x40u)||!Read(copy,size_t(blastAt),copiedBlast)||copiedBlast!=blast||
-       !Store(copy,size_t(socketAt),Name{source.rootIndex,source.rootNumber}))return false;
+    uintptr_t notify=0;std::memcpy(&notify,event.data()+0x48,8);if(!notify)return true;
+    const auto copy=RampageNotify(notify,montage,source);if(!copy)return false;
     std::memcpy(event.data()+0x48,&copy,8);return true;
 }
+}
+uintptr_t RampageNotify(uintptr_t notify,uintptr_t outer,const Source& source){
+    if(!g_ready||!g_construct||!native_tps::OnGameThread())return 0;
+    uintptr_t cls=0,blast=0;int socketAt=0,blastAt=0;Name socket{},replacement{};
+    if(!Read(notify,0x10,cls))return 0;
+    if(Is(cls,"AnimNotify_SpawnBlast")){
+        if(!native_objects::PropertyField(g_base,cls,"SpawnSocket","NameProperty",8,socketAt)||
+           !native_objects::PropertyField(g_base,cls,"BlastClass","ClassProperty",8,blastAt)||!Read(notify,size_t(blastAt),blast)||!blast)return 0;
+    }else if(Is(cls,"AnimNotify_PlayParticleEffect")||Is(cls,"AnimNotify_PlaySurfaceParticleEffect")){
+        if(!native_objects::PropertyField(g_base,cls,"SocketName","NameProperty",8,socketAt))return 0;
+    }else return notify;
+    if(!Read(notify,size_t(socketAt),socket))return 0;
+    if(native_objects::NameValueIs(g_base,socket.index,socket.number,"Bone_War_Spine1")){
+        if(!native_objects::NameValueIs(g_base,source.spineIndex,source.spineNumber,"Bone_Strife_Spine1"))return 0;
+        replacement={source.spineIndex,source.spineNumber};
+    }else if(native_objects::NameValueIs(g_base,socket.index,socket.number,"Bone_War_Root")||
+             native_objects::NameValueIs(g_base,socket.index,socket.number,"Bone_War_Hand_L"))replacement={source.rootIndex,source.rootNumber};
+    else return notify;
+    const auto copy=reinterpret_cast<uintptr_t>(g_construct(reinterpret_cast<void*>(cls),reinterpret_cast<void*>(outer),{},0x40u,0,reinterpret_cast<void*>(notify),false,nullptr,false));
+    uintptr_t actual=0,parent=0,copiedBlast=0;uint32_t flags=0;
+    if(!copy||copy==notify||!Read(copy,0x10,actual)||actual!=cls||!Read(copy,0x20,parent)||parent!=outer||
+       !Read(copy,8,flags)||(flags&0x30u)||!(flags&0x40u)||(blast&&(!Read(copy,size_t(blastAt),copiedBlast)||copiedBlast!=blast))||
+       !Store(copy,size_t(socketAt),replacement))return 0;
+    return copy;
 }
 void* RampageMotion(uintptr_t original,const Source& source){
     if(!g_ready||!g_construct||!g_package||!g_skeleton||!native_tps::OnGameThread()||

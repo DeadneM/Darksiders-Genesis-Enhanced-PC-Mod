@@ -28,7 +28,7 @@ bool PlayingNative(void* p){Check(p==f.instance,"montage instance remains owned"
 void PlayNative(void* ability,void* montage,float rate,Name){++plays;lastPlayed=montage;Check(ability==f.ability&&rate==.75f,"original rate and ability retained");Put(ability,0x1D8,reinterpret_cast<uintptr_t>(f.instance));}
 void Fresh(bool war=true,int kind=0){
  f={};local=gameThread=buildOK=registered=playOK=true;reassign=false;constructors=registrations=builds=plays=finishes=0;lastPlayed=nullptr;liveId=0;
- g_ready=true;g_failed=g_requested=0;g_construct=ConstructNative;g_register=RegisterNative;g_finish=FinishNative;g_playing=PlayingNative;g_handling=nullptr;g_log=nullptr;g_cursor=g_count=0;g_scanTick=0;
+ g_ready=true;g_failed=0;g_construct=ConstructNative;g_register=RegisterNative;g_finish=FinishNative;g_playing=PlayingNative;g_handling=nullptr;g_log=nullptr;
  for(auto& x:g_owned)x={};
  const char* classes[]={"BlueprintGeneratedClass","Class","AnimSequence",war?"War_Blueprint_C":"Strife_Blueprint_C",war?"WarAnim_Blueprint_C":"StrifeAnim_Blueprint_C"};
  for(int i=0;i<5;++i)Label(f.classes[i],i+1,classes[i]);

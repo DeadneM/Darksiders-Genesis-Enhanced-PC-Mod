@@ -7,6 +7,7 @@ inline unsigned Mask(int choice){return choice==1?2u:choice==2?1u:choice==3?3u:0
 inline bool Near(float a,float b){return std::isfinite(a)&&std::abs(a-b)<.05f;}
 inline Side Classify(unsigned sequence,native_bone::Point offset){
     if(!native_bone::Finite(offset))return Side::None;
+    if(sequence==6&&Near(offset.x,100)&&Near(offset.y,0)&&Near(offset.z,160))return Side::Shared;
     if(sequence==5&&Near(offset.x,0)&&((Near(offset.y,-100)&&Near(offset.z,125))||
        (Near(offset.y,-150)&&Near(offset.z,90))||(Near(offset.y,0)&&Near(offset.z,125))))return Side::Shared;
     if(!Near(offset.z,100))return Side::None;
