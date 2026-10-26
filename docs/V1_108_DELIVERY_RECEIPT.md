@@ -1,5 +1,7 @@
 # V1.108 - Verified GitHub delivery, experimental gameplay batch
 
+**26 octobre 2026 : telechargement V1.108 bloque par Defender sur ce PC. Les controles CI/HTTP precedents restent exacts mais ne prouvaient pas la compatibilite antivirus. Voir V1_109_TRANSPARENT_ZIP_DELIVERY_TEST.md pour le diagnostic de conteneur et la nouvelle livraison. Ne pas confondre avec un echec de serveur ou une validation de securite.**
+
 **CONSTRUITE / CONTROLEE : [61/61 Windows x64 suites](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40313742351), zero MSVC warning/error. [Immutable cumulative ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/4d27f93e3db5d829adf268bb07e58957cdaf51cf/downloads/DarksidersGenesis_V1.108_RAMPAGE_LAVA_POWER_PRESENTATION_TEST.zip). Public debug updater listing selects V1.108 and returns the identical verified archive. Gameplay EXPERIMENTAL, NOT USER VALIDATED.**
 
 Functional accepted baseline V1.103 (`07818091c719d4aeda2901ef08a0bbfb2282560a`); source resumed from verified V1.107 receipt `daafeb17ce05d2d2894393e30a5f71e8c37d5201`. Compiled source `169e616aa21bf40d9d8d602ea1547a027f3bd4c2`; bot archive commit `4d27f93e3db5d829adf268bb07e58957cdaf51cf`. Current V1.107 user feedback confirms repeatable Start/Slam path but missing charge damage/FX, incorrect ending pose, slow foreign War powers and absent audio, Lava muzzle flash too high, incomplete secondary blade FX and startup stutter. Each remains a candidate for user test, not an accepted correction on CI evidence alone.

@@ -58,7 +58,9 @@ jobs:
           New-Item -ItemType Directory -Path downloads -Force | Out-Null
           $zipPath = 'downloads/' + $env:DG_ARCHIVE
           if (Test-Path -LiteralPath $zipPath) { throw "A numbered ZIP already exists; use a new build version" }
-          Compress-Archive -Path 'dist/*' -DestinationPath $zipPath -CompressionLevel Optimal
+          # Transparent ZIP payload: V1.108's compressed container was flagged
+          # while the same four files and NoCompression container scanned clean.
+          Compress-Archive -Path 'dist/*' -DestinationPath $zipPath -CompressionLevel NoCompression
           Add-Type -AssemblyName System.IO.Compression.FileSystem
           $zip = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $zipPath))
           try {
@@ -67,6 +69,16 @@ jobs:
             foreach ($name in $expected) { if ($names -notcontains $name) { throw "Missing root entry $name" } }
             if ($names.Count -ne 4) { throw "ZIP root requires 4 files; got $($names.Count)" }
             if ($names | Where-Object { $_.Contains('/') -or $_.Contains('\') }) { throw 'Nested path in ZIP' }
+            foreach ($entry in $zip.Entries) {
+              $input = $entry.Open()
+              $memory = [System.IO.MemoryStream]::new()
+              try {
+                $input.CopyTo($memory)
+                $archived = $memory.ToArray()
+                $source = [System.IO.File]::ReadAllBytes((Join-Path (Resolve-Path dist) $entry.FullName))
+                if ($archived.Length -ne $source.Length -or [Convert]::ToBase64String($archived) -ne [Convert]::ToBase64String($source)) { throw "ZIP bytes differ: $($entry.FullName)" }
+              } finally { $input.Dispose(); $memory.Dispose() }
+            }
           } finally { $zip.Dispose() }
           Get-FileHash $zipPath -Algorithm SHA256
       - name: Upload verified Windows x64 ZIP

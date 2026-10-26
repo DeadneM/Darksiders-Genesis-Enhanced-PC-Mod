@@ -1,0 +1,36 @@
+{
+  "originalZipSha256": "3AD60D1145C96BB7B5484F757948325C7AE8C5DA07C305BE2ACE063B2F397EF3",
+  "diagnosticZipSha256": "3313167751A6B9591F43BFD5443AD4884E555C19E590047A048E12FF2157DA00",
+  "identicalFourFiles": true,
+  "crcValid": true,
+  "files": [
+    {
+      "name": "DarksidersGenesisMod.asi",
+      "method": 8,
+      "bytes": 1875968,
+      "stored": 1876258
+    },
+    {
+      "name": "dxgi.dll",
+      "method": 8,
+      "bytes": 155136,
+      "stored": 155161
+    },
+    {
+      "name": "DarksidersGenesisMod.ini",
+      "method": 8,
+      "bytes": 4708,
+      "stored": 4713
+    },
+    {
+      "name": "README.md",
+      "method": 8,
+      "bytes": 88877,
+      "stored": 88892
+    }
+  ],
+  "originalDefenderThreat": "Trojan:Script/Ulthar.A!ml",
+  "individualPayloadScan": "no threats",
+  "noCompressionZipScan": "no threats",
+  "protectionSettingsChanged": false
+}

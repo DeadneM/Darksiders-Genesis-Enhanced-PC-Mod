@@ -1,3 +1,11 @@
+## V1.109 - Livraison ZIP sans compression
+
+**EXPERIMENTALE : recompilation et livraison GitHub a controler. Code de jeu V1.108 conserve ; NON VALIDE EN JEU.** V1.108 est disponible sur GitHub mais Defender a bloque son ZIP avec Trojan:Script/Ulthar.A!ml. Le controle sur les quatre fichiers extraits ne detecte rien ; un ZIP NoCompression contenant les memes fichiers verifies par SHA256 passe aussi le controle. C'est un constat sur ce moteur/signatures, pas une certification generale ni un avis Microsoft de faux positif.
+
+V1.109 change uniquement l'identite de version et le conditionnement ZIP NoCompression, avec comparaison de chaque fichier archive a la sortie compilee. Aucun nouveau correctif de jeu, option, touche ou changement des protections antivirus. 169 cles INI / 55 ID Hotkeys conserves. Les 173 anciennes archives restent dans GitHub ; l'antivirus a mis la copie locale de V1.108 en quarantaine, elle n'est ni restauree ni supprimee de l'historique. [Incident, preuves et controles](docs/V1_109_TRANSPARENT_ZIP_DELIVERY_TEST.md).
+
+---
+
 ## V1.108 - Rampage, presentation des pouvoirs, Lava et decouverte bornee
 
 **CONSTRUITE / CONTROLEE : [61/61 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40313742351), zero avertissement/erreur MSVC. [ZIP immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/4d27f93e3db5d829adf268bb07e58957cdaf51cf/downloads/DarksidersGenesis_V1.108_RAMPAGE_LAVA_POWER_PRESENTATION_TEST.zip) - [Recu](docs/V1_108_DELIVERY_RECEIPT.md). Listing public updater debug : V1.108 selectionnee, octets verifies. Correctifs EXPERIMENTAUX, NON VALIDES EN JEU.**
