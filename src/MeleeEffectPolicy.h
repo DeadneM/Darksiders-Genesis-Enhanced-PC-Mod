@@ -2,11 +2,12 @@
 #include "NativeBonePoint.h"
 #include <cmath>
 namespace dg::melee_effect {
-enum class Side {None,Right,Left,Shared};
+enum class Side {None,Right,Left,Shared,AuthoredHand};
 inline unsigned Mask(int choice){return choice==1?2u:choice==2?1u:choice==3?3u:0u;}
 inline bool Near(float a,float b){return std::isfinite(a)&&std::abs(a-b)<.05f;}
 inline Side Classify(unsigned sequence,native_bone::Point offset){
     if(!native_bone::Finite(offset))return Side::None;
+    if(sequence==7&&Near(offset.x,0)&&Near(offset.z,100)&&(Near(offset.y,60)||Near(offset.y,-60)))return Side::AuthoredHand;
     if(sequence==6&&Near(offset.x,100)&&Near(offset.y,0)&&Near(offset.z,160))return Side::Shared;
     if(sequence==5&&Near(offset.x,0)&&((Near(offset.y,-100)&&Near(offset.z,125))||
        (Near(offset.y,-150)&&Near(offset.z,90))||(Near(offset.y,0)&&Near(offset.z,125))))return Side::Shared;
@@ -24,7 +25,7 @@ inline Side Classify(unsigned sequence,native_bone::Point offset){
     return Side::None;
 }
 inline bool Selected(Side side,unsigned mask){
-    return side==Side::Right?(mask&1)!=0:side==Side::Left?(mask&2)!=0:side==Side::Shared?mask==3:false;
+    return side==Side::Right?(mask&1)!=0:side==Side::Left?(mask&2)!=0:side==Side::Shared?mask==3:side==Side::AuthoredHand?mask!=0:false;
 }
 struct alignas(16) Transform {float rotation[4]{},position[4]{},scale[4]{};};
 static_assert(sizeof(Transform)==48);
@@ -35,9 +36,11 @@ inline bool Adjust(const Transform& source,Side side,unsigned mask,native_bone::
     for(unsigned i=0;i<3;++i)if(!std::isfinite(source.position[i])||std::abs(source.position[i])>1e7f||
        !std::isfinite(source.scale[i])||std::abs(source.scale[i])>1000)return false;
     auto hand=side==Side::Left?left:right;
-    if(side==Side::Shared){
+    if(side==Side::Shared||side==Side::AuthoredHand){
         auto distance=[&](native_bone::Point p){const double x=p.x-source.position[0],y=p.y-source.position[1],z=p.z-source.position[2];return x*x+y*y+z*z;};
-        if(distance(left)<distance(right))hand=left;
+        const bool useLeft=distance(left)<distance(right);
+        if(side==Side::AuthoredHand&&!Selected(useLeft?Side::Left:Side::Right,mask))return false;
+        if(useLeft)hand=left;
     }
     // These authored root-centred arcs cover a blade sweep. Keep their
     // orientation and lifetime; a bare hand gets a compact 40% visual arc.

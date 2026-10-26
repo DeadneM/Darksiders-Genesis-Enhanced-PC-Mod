@@ -81,8 +81,15 @@ bool Prepare(void* notify,void* liveMesh,void* animation,Plan& plan){
     else if(Is(anim,"Strife_Air_Atk_Melee_01"))sequence=4;
     else if(Is(anim,"Strife_Air_Atk_Melee_02"))sequence=5;
     else if(Is(anim,"Strife_Atk_Melee_Kick_Launch_Level1_Montage")||Is(anim,"Strife_Atk_Melee_Kick_Launch_Level2_Montage"))sequence=6;
+    else if(Is(anim,"Strife_Atk_WingClip_F")||Is(anim,"Strife_Atk_WingClip_B")){
+        uintptr_t animationPackage=0;
+        if(!Read(anim,0x20,animationPackage)||
+           !(Is(animationPackage,"/Game/Characters/Heroes/Hero_Strife/Animations/Strife_Atk_WingClip_F")||
+             Is(animationPackage,"/Game/Characters/Heroes/Hero_Strife/Animations/Strife_Atk_WingClip_B")))return false;
+        sequence=7;
+    }
     plan.side=Classify(sequence,offset);plan.mask=Mask(runtime::Get().strifeBladeVisibility.load());
-    // The secondary launcher has one common authored arc, not two blade
+    // The separate launcher has one common authored arc, not two blade
     // emitters. With one blade OFF, its compact origin is that bare hand.
     if(sequence==6&&plan.side==Side::Shared&&plan.mask!=3)plan.side=plan.mask==1?Side::Right:Side::Left;
     if(!Selected(plan.side,plan.mask))return false;

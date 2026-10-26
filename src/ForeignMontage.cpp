@@ -487,15 +487,47 @@ bool PrivateEvents(const Array& original,const Array& copy){
     return original.count==copy.count&&(!original.data||copy.data!=original.data)&&
         (!original.count||Writable(copy.data,size_t(original.count)*sizeof(Event)));
 }
-bool MotionNotify(Event& event,uintptr_t montage,const Source& source){
-    uintptr_t notify=0;std::memcpy(&notify,event.data()+0x48,8);if(!notify)return true;
-    const auto copy=RampageNotify(notify,montage,source);if(!copy)return false;
-    std::memcpy(event.data()+0x48,&copy,8);return true;
+// Source-sequence cues are queued by slot in this engine. DefaultSlot is
+// deliberately absent from Strife's graph: promote only charge gameplay/FX
+// onto the private montage timeline, which the engine dispatches independently.
+bool ChargeEvents(const MotionLayout& layout,Presentation& plan){
+    unsigned blasts=0,surfaces=0,shields=0,collisions=0;
+    for(int segmentIndex=0;segmentIndex<layout.segments.count;++segmentIndex){
+        Segment segment{};Array events{};
+        if(!Read(layout.segments.data,size_t(segmentIndex)*sizeof(Segment),segment)||!List(segment.sequence,0x80,events,128))return false;
+        for(int i=0;i<events.count;++i){
+            const auto at=events.data+size_t(i)*sizeof(Event);uintptr_t notify=0,state=0,cls=0,owner=0;float time=0,duration=0;unsigned char tick=255;
+            if(!Read(at,0x48,notify)||!Read(at,0x50,state)||(notify&&state)||!Read(at,0x24,time)||!std::isfinite(time))return false;
+            if(time<segment.first||time>=segment.last)continue;
+            const auto object=notify?notify:state;if(!object)continue;
+            if(!Read(object,0x10,cls))return false;
+            const bool blast=Is(cls,"AnimNotify_SpawnBlast"),surface=Is(cls,"AnimNotify_PlaySurfaceParticleEffect");
+            const bool shield=Is(cls,"AnimNotifyState_TimedParticleEffect"),callback=Is(cls,"AnimNotify_CallAbilityFunction");
+            if(!blast&&!surface&&!shield&&!callback)continue; // audio remains on its validated path
+            Name function{};
+            if(callback&&(!Read(object,0x38,function)||!native_objects::NameValueIs(g_base,function.index,function.number,"EnableStopOnCollision")))return false;
+            if((shield?!state:!notify)||!Read(object,0x20,owner)||owner!=segment.sequence||
+               !Read(at,0x58,duration)||!std::isfinite(duration)||duration<0||
+               (shield?(duration<=0||time+duration>segment.last+.001f):duration!=0)||
+               !Read(at,0x91,tick)||tick>1||plan.count>=int(plan.events.size())||!Read(at,0,plan.events[plan.count]))return false;
+            const float mapped=segment.start+(time-segment.first)/segment.rate,span=duration/segment.rate;
+            auto& event=plan.events[plan.count++];std::memcpy(event.data()+0x24,&mapped,4);std::memcpy(event.data()+0x58,&span,4);
+            event[0x91]=0; // queued native notify/state lifecycle, including cancellation cleanup
+            ++(blast?blasts:surface?surfaces:shield?shields:collisions);
+        }
+    }
+    return blasts==1&&surfaces==6&&shields==1&&collisions==1;
 }
+uintptr_t RampageNotify(uintptr_t notify,uintptr_t outer,const Source& source);
+bool MotionNotify(Event& event,uintptr_t montage,const Source& source){
+    uintptr_t notify=0;size_t at=0x48;std::memcpy(&notify,event.data()+at,8);
+    if(!notify){at=0x50;std::memcpy(&notify,event.data()+at,8);if(!notify)return true;}
+    const auto copy=RampageNotify(notify,montage,source);if(!copy)return false;
+    std::memcpy(event.data()+at,&copy,8);return true;
 }
 uintptr_t RampageNotify(uintptr_t notify,uintptr_t outer,const Source& source){
     if(!g_ready||!g_construct||!native_tps::OnGameThread())return 0;
-    uintptr_t cls=0,blast=0;int socketAt=0,blastAt=0;Name socket{},replacement{};bool particle=false;
+    uintptr_t cls=0,blast=0;int socketAt=0,blastAt=0;Name socket{},replacement{};bool particle=false,timed=false;
     if(!Read(notify,0x10,cls))return 0;
     if(Is(cls,"AnimNotify_SpawnBlast")){
         if(!native_objects::PropertyField(g_base,cls,"SpawnSocket","NameProperty",8,socketAt)||
@@ -503,6 +535,12 @@ uintptr_t RampageNotify(uintptr_t notify,uintptr_t outer,const Source& source){
     }else if(Is(cls,"AnimNotify_PlayParticleEffect")||Is(cls,"AnimNotify_PlaySurfaceParticleEffect")){
         particle=true;
         if(!native_objects::PropertyField(g_base,cls,"SocketName","NameProperty",8,socketAt)||socketAt!=0x84)return 0;
+    }else if(Is(cls,"AnimNotifyState_TimedParticleEffect")){
+        timed=true;uintptr_t effect=0,package=0;int templateAt=0;
+        if(!native_objects::PropertyField(g_base,cls,"SocketName","NameProperty",8,socketAt)||
+           !native_objects::PropertyField(g_base,cls,"PSTemplate","ObjectProperty",8,templateAt)||
+           !Read(notify,size_t(templateAt),effect)||!Is(effect,"P_Rampage_Shield")||!Read(effect,0x20,package)||
+           !Is(package,"/Game/VFX/Particles/Characters/War/Rampage/P_Rampage_Shield"))return 0;
     }else return notify;
     if(!Read(notify,size_t(socketAt),socket))return 0;
     if(native_objects::NameValueIs(g_base,socket.index,socket.number,"Bone_War_Spine1")){
@@ -510,6 +548,7 @@ uintptr_t RampageNotify(uintptr_t notify,uintptr_t outer,const Source& source){
         replacement={source.spineIndex,source.spineNumber};
     }else if(native_objects::NameValueIs(g_base,socket.index,socket.number,"Bone_War_Root")||
              native_objects::NameValueIs(g_base,socket.index,socket.number,"Bone_War_Hand_L"))replacement={source.rootIndex,source.rootNumber};
+    else if(timed&&native_objects::NameValueIs(g_base,socket.index,socket.number,"VFX_Root"))replacement={source.rootIndex,source.rootNumber};
     else return notify;
     const auto copy=reinterpret_cast<uintptr_t>(g_construct(reinterpret_cast<void*>(cls),reinterpret_cast<void*>(outer),{},0x40u,0,reinterpret_cast<void*>(notify),false,nullptr,false));
     uintptr_t actual=0,parent=0,copiedBlast=0;uint32_t flags=0;
@@ -521,6 +560,7 @@ uintptr_t RampageNotify(uintptr_t notify,uintptr_t outer,const Source& source){
     if(particle){std::array<unsigned char,0x54> payload{};
         if(!Read(notify,0x38,payload)||!Store(copy,0x38,payload)||!Store(copy,size_t(socketAt),replacement))return 0;}
     return copy;
+}
 }
 void* RampageMotion(uintptr_t original,const Source& source){
     if(!g_ready||!g_construct||!g_package||!g_skeleton||!native_tps::OnGameThread()||
@@ -536,6 +576,8 @@ void* RampageMotion(uintptr_t original,const Source& source){
     const int kind=RampageAsset(original);MotionLayout before{},after{};
     const auto outer=reinterpret_cast<uintptr_t>(g_package());
     if(!Read(outer,0x10,cls)||!Is(cls,"Package")||!Is(outer,"/Engine/Transient")||!MotionShape(original,kind,before))return fail("source phase, native rate or layout");
+    Presentation charge{};
+    if(kind==0&&(!g_reserve||before.events.count||before.markers.count||before.states.count||!ChargeEvents(before,charge)))return fail("native charge cues or unused-slot timeline");
     auto* created=g_construct(reinterpret_cast<void*>(before.cls),reinterpret_cast<void*>(outer),{},0x40u,0,reinterpret_cast<void*>(original),false,nullptr,false);
     const auto copy=reinterpret_cast<uintptr_t>(created);uintptr_t actual=0;uint32_t flags=0;
     if(!copy||copy==original||!Read(copy,0x20,actual)||actual!=outer||!Read(copy,8,flags)||(flags&0x30u)||!(flags&0x40u)||
@@ -543,12 +585,24 @@ void* RampageMotion(uintptr_t original,const Source& source){
        !Separate<88>(before.sections,after.sections,original,copy)||!PrivateEvents(before.events,after.events)||
        !Separate<12>(before.markers,after.markers)||!Separate<4>(before.states,after.states)||
        after.tracks.data==before.tracks.data||!Writable(after.tracks.data,24))return fail("private clone identity, arrays or source equality");
-    // Motion clips, loop sections, branching caches and native cue times stay
-    // intact. Only private skeleton/slot/link targets and impact sockets change.
-    for(int i=0;i<after.events.count;++i){
+    // Motion clips, section loops and native rates stay intact. No source
+    // object is edited, no manual blast/FX call or extra detour is needed.
+    if(kind==0){
+        if(charge.count>after.events.capacity)g_reserve(reinterpret_cast<void*>(copy+0x80),charge.count);
+        Array storage{};
+        if(!List(copy,0x80,storage,128)||storage.data==before.events.data||storage.capacity<charge.count||
+           !Writable(storage.data,size_t(charge.count)*sizeof(Event)))return fail("private charge storage");
+        for(int i=0;i<charge.count;++i){
+            auto event=charge.events[i];float time=0,duration=0;std::memcpy(&time,event.data()+0x24,4);std::memcpy(&duration,event.data()+0x58,4);
+            const int index=time>=.33333334f?1:0;Segment segment{};
+            if(!Read(before.segments.data,size_t(index)*sizeof(Segment),segment)||!MotionNotify(event,copy,source))return fail("private charge notify/socket");
+            const auto at=storage.data+size_t(i)*sizeof(Event);
+            if(!Store(at,0,event)||!Link(at,copy,segment.sequence,time,segment.last)||!Link(at+0x60,copy,segment.sequence,time+duration,segment.last)||
+               !Store(at,0x14,index)||!Store(at,0x74,index)||!Store(at,0x1C,segment.start)||!Store(at,0x7C,segment.start))return nullptr;
+        }
+        if(!Store(copy,0x88,charge.count))return nullptr;
+    }else for(int i=0;i<after.events.count;++i){
         Event event{};const auto at=after.events.data+size_t(i)*sizeof(Event);
-        // Like the accepted transfer builders, rebuild from the source
-        // timeline: a native clone may legitimately instance notify objects.
         if(!Read(before.events.data,size_t(i)*sizeof(Event),event)||!MotionNotify(event,copy,source)||!Store(at,0,event)||!Store(at,8,copy)||!Store(at,0x68,copy))return fail("private event or impact socket");
     }
     for(int i=0;i<after.sections.count;++i)if(!Store(after.sections.data+size_t(i)*88,8,copy))return nullptr;

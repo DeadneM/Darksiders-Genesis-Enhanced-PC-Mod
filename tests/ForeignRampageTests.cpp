@@ -105,6 +105,15 @@ void Run(){
  dg::pistol_visual::PoseContext output{};output.proxy=reinterpret_cast<uintptr_t>(f.proxy);output.pose.container=output.proxy+0x450;output.pose.transforms={reinterpret_cast<uintptr_t>(f.pose.data()),80,80};
  Check(Evaluate(f.anim+0x318,&output)&&samples==1&&f.pose[0].t[0]==123&&f.pose[1].t[0]==321&&!plays&&!finishes,"own visual pose sampled once, native root kept and no gameplay callback");
  f.compact[1]=2;Check(!Evaluate(f.anim+0x318,&output)&&samples==1,"unknown compact mapping preserves native evaluation");f.compact[1]=1;
+ // Regression: runtime Slam remains active ~0.25 s after its montage
+ // disappears. GetPosition then returns zero; never replay Devil Heel's start.
+ g_position=[](void*,void*)->float{return .6f;};Put(f.instance,0x28,v.montage.address);Put(f.ability,0x1D8,reinterpret_cast<uintptr_t>(f.instance));
+ g_cast[0]={v.actor,context.world,4};Observe(context);Check(g_visualMask==1&&g_visual[0].position==.6f,"own active native montage updates presentation");
+ playOK=false;g_position=[](void*,void*)->float{throw std::runtime_error("ended montage position must never be read");};Observe(context);
+ Check(g_visualMask==0&&!Evaluate(f.anim+0x318,&output),"native montage end clears pose although ability still active, preserving pending companion");
+ Check(g_cast[0].phase==4,"presentation end never consumes native handoff token");
+ g_visual[0]=v;g_visualMask=1;playOK=true;Put(f.instance,0x28,uintptr_t(0));Observe(context);Check(g_visualMask==0,"replaced helper montage cannot refresh an old pose");
+ g_visual[0]=v;g_visualMask=1;
  Put<unsigned char>(f.ability,0xD8,0);Check(!Evaluate(f.anim+0x318,&output)&&samples==1,"finished cast cannot leave a borrowed pose");Put<unsigned char>(f.ability,0xD8,2);
  Put(f.items,size_t(v.sequence.index)*24+16,999);Check(!Evaluate(f.anim+0x318,&output)&&samples==1,"stale animation identity never reaches native sampler");
 }
@@ -112,7 +121,6 @@ void Run(){
 namespace dg::foreign_montage {
 void StartSounds(uintptr_t,void*){}bool CopyLaterSounds(uintptr_t,void*){return true;}
 bool Ready(){return true;}
-uintptr_t RampageNotify(uintptr_t n,uintptr_t,const Source&){return n;}
 void* RampageMotion(uintptr_t montage,const Source& s){++builds;Check(montage==reinterpret_cast<uintptr_t>(f.montage)&&s.sequence==reinterpret_cast<uintptr_t>(f.idle)&&s.skeleton==reinterpret_cast<uintptr_t>(f.skeleton)&&s.slotIndex==11&&s.rootIndex==10,"only own skeleton/root/unused slot reaches motion builder");if(reassign)Put(f.ability,0x48,uintptr_t(0));return buildOK?f.replacement:nullptr;}
 }
 namespace dg::native_tps {bool OnGameThread(){return thread;}}

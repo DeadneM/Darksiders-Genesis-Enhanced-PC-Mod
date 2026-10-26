@@ -86,6 +86,16 @@ void Run(){
         Label(particle,3,"VFX_strife_meleeSlice_strong");Label(package,4,"/Game/Particles/VFX_strife_meleeSlice_strong");Invoke();
         Check(sent.scale[0]==.8f&&sent.position[0]==(choice==1?100:10),"secondary common launcher arc follows the selected bare hand or nearest hand when both blades are OFF");
     }
+    for(const char* animation:{"Strife_Atk_WingClip_F","Strife_Atk_WingClip_B"})for(int choice:{1,2,3}){
+        Fresh();Label(sequence,5,animation);unsigned char animationPackage[0x80]{};
+        char path[160]{};sprintf_s(path,"/Game/Characters/Heroes/Hero_Strife/Animations/%s",animation);Label(animationPackage,12,path);Put(sequence,0x20,reinterpret_cast<uintptr_t>(animationPackage));
+        dg::runtime::Get().strifeBladeVisibility=choice;Put(notify,0x40,dg::native_bone::Point{0,60,100});
+        source.position[0]=100;source.position[1]=200;source.position[2]=300;Invoke();
+        Check(sent.scale[0]==(choice==2?2.f:.8f),"each spinning arc follows its closest actual hand; visible opposite blade is preserved");
+        nativeNotifies=spawns=0;source.position[0]=10;source.position[1]=20;source.position[2]=30;Invoke();
+        Check(sent.scale[0]==(choice==1?2.f:.8f),"mirrored spinning arc independently respects right OFF and both OFF");
+        nativeNotifies=spawns=0;Label(animationPackage,12,"/Game/Other");Invoke();Check(sent.scale[0]==2,"same-name spinning asset outside original package stays native");
+    }
     Fresh();vt[0x3F0/8]=0;InvokeAttached();Check(Near(sentPosition.x,-30)&&!roots,"unexpected root virtual forwards without native query");
     Fresh();rootTransform.scale[1]=0;InvokeAttached();Check(Near(sentPosition.x,-30)&&Near(sentScale.x,2),"singular root does not change an attached effect");
     Fresh();rootTransform.rotation[3]=2;InvokeAttached();Check(Near(sentPosition.x,-30),"invalid root quaternion stays native");

@@ -1,3 +1,13 @@
+## V1.110 - Charge Rampage, sortie de pose et coup tournoyant
+
+**EXPERIMENTALE : compilation et livraison GitHub a controler ; NON VALIDEE EN JEU.** Base fonctionnelle V1.103, acquis precedents conserves ; sur V1.109 l'utilisateur valide les vitesses/sons des pouvoirs transferes et le flash Lava au canon. Demarrage juge moins lent. Charge Rampage (degats/effet), petit mouvement apres Talon du Diable et effets du coup tournoyant restent ouverts.
+
+Capture groupee V1.109 : deux Rampages War et deux Strife, puis les quatre configurations de lames. Le coup tournoyant est WingClip, pas Kick Launch. Ses arcs sont reduits a 40 % et rapproches de leur main native uniquement si sa lame est OFF ; meme chemin visuel que les attaques deja acceptees. Rampage reprend neuf evenements natifs de charge sur son montage prive (blast, six effets de sol, bouclier temporel et collision), avec les classes/temps/durees du jeu. Deux hooks de charge retires. Le suivi de pose cesse lorsque le vrai montage se termine, meme si la capacite reste active environ 0,25 s.
+
+Sons, vitesses, flash Lava, trajectoires, stats/chiffres de degats, inputs/camera et reception lourde valides conserves ; 169 cles INI, 55 ID Hotkeys, aucune nouvelle option. P2 differe. Les degats de charge n'ont pas ete compares sur des ennemis pendant le releve : ils restent a tester. Compilation uniquement GitHub, updater debug et ZIP quatre fichiers NoCompression ; aucune installation locale. [Preuves, limites, essais et rollback](docs/V1_110_NATIVE_CHARGE_WINGCLIP_TEST.md).
+
+---
+
 ## V1.109 - Livraison ZIP sans compression
 
 **CONSTRUITE / CONTROLEE : [61/61 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40346271897), zero avertissement/erreur. [ZIP public immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/24cf9a9ecd44c67ff69be88b1149e3d5b7f1b675/downloads/DarksidersGenesis_V1.109_TRANSPARENT_ZIP_DELIVERY_TEST.zip) - [Recu](docs/V1_109_DELIVERY_RECEIPT.md). Defender : aucune menace detectee dans le ZIP final et les quatre fichiers extraits ; protections actives. Updater debug : V1.109 selectionnee et octets verifies. Code de jeu V1.108 conserve, toujours EXPERIMENTAL / NON VALIDE EN JEU.**

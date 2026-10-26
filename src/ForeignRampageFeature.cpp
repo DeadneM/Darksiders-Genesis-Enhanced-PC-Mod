@@ -3,7 +3,6 @@
 #include "NativePropertyField.h"
 #include "NativeTpsFeature.h"
 #include "PistolAnimationPolicy.h"
-#include <MinHook.h>
 #include <atomic>
 #include <cmath>
 #include <cstdio>
@@ -18,13 +17,12 @@ uintptr_t g_base=0;foreign_wrath::LogFn g_log=nullptr;unsigned g_events=0,g_refu
 std::atomic_bool g_ready{false},g_failed{false};
 native_objects::Identity g_phases[5]{},g_idle{};
 native_objects::Identity g_poses[2]{};
-using Notify=void(*)(void*,void*,void*);
 using Position=float(*)(void*,void*);
 struct Extract {bool root=true;unsigned char pad[3]{};float time=0;};
 static_assert(sizeof(Extract)==8&&offsetof(Extract,time)==4);
 using Sample=void(*)(void*,pistol_visual::CompactPose*,pistol_visual::Curve*,const Extract*);
-Notify g_blast=nullptr,g_surface=nullptr;Position g_position=nullptr;Sample g_sample=nullptr;
-struct Visual {native_objects::Identity ability{},actor{},mesh{},anim{},skeleton{},montage{},sequence{};foreign_montage::Source source{};float position=0,length=0;uint64_t tick=0;};
+Position g_position=nullptr;Sample g_sample=nullptr;
+struct Visual {native_objects::Identity ability{},actor{},mesh{},anim{},skeleton{},montage{},sequence{};float position=0,length=0;uint64_t tick=0;};
 Visual g_visual[2]{};SRWLOCK g_visualLock=SRWLOCK_INIT;std::atomic_uint g_visualMask{0};
 Visual* PlayerVisual(int index){if(index==0)return &g_visual[0];if(index==1)return &g_visual[1];return nullptr;}
 // One native Rampage spans different ability objects. The actor token
@@ -104,37 +102,17 @@ void ClearVisual(int index){
     const unsigned bit=target==&g_visual[0]?1u:2u;
     AcquireSRWLockExclusive(&g_visualLock);*target={};g_visualMask.fetch_and(~bit,std::memory_order_relaxed);ReleaseSRWLockExclusive(&g_visualLock);
 }
-void BeginVisual(const local_players::Context& c,void* ability,void* montage,int phase,const foreign_montage::Source& source){
+void BeginVisual(const local_players::Context& c,void* ability,void* montage,int phase){
     auto* target=PlayerVisual(c.index);if(!target)return;
-    Visual v{};v.source=source;uintptr_t mesh=0,anim=0;
-    if(!Read(c.character,0x380,mesh)||!Read(mesh,0x718,anim)||!native_objects::CaptureLive(g_base,ability,v.ability)||
+    Visual v{};uintptr_t mesh=0,anim=0,q_skeleton=0;
+    if(!Read(c.character,0x380,mesh)||!Read(mesh,0x718,anim)||!Read(anim,0x28,q_skeleton)||!native_objects::CaptureLive(g_base,ability,v.ability)||
        !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(c.character),v.actor)||
        !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(mesh),v.mesh)||!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(anim),v.anim)||
-       !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(source.skeleton),v.skeleton)||!native_objects::CaptureLive(g_base,montage,v.montage)||
+       !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(q_skeleton),v.skeleton)||!native_objects::CaptureLive(g_base,montage,v.montage)||
        !Read(reinterpret_cast<uintptr_t>(montage),0x90,v.length))return;
     v.sequence=g_poses[phase?1:0];v.tick=GetTickCount64();
     AcquireSRWLockExclusive(&g_visualLock);*target=v;g_visualMask.fetch_or(target==&g_visual[0]?1u:2u,std::memory_order_relaxed);ReleaseSRWLockExclusive(&g_visualLock);
 }
-void MotionNotify(Notify native,void* notify,void* mesh,void* animation){
-    if(!native)return;
-    if(g_ready&&!g_failed&&native_tps::OnGameThread()){
-        const auto m=reinterpret_cast<uintptr_t>(mesh),a=reinterpret_cast<uintptr_t>(animation);uintptr_t actor=0,owner=0,package=0;local_players::Context c{};
-        if(Read(m,0xE8,actor)&&Owner(reinterpret_cast<void*>(actor),c,false)&&
-           (Is(a,"War_Atk_Rampage_Start")||Is(a,"War_Atk_Rampage_Run"))&&Read(a,0x20,package)){
-            char path[200]{};sprintf_s(path,"/Game/Characters/Heroes/Hero_War/Animation/%s",Is(a,"War_Atk_Rampage_Start")?"War_Atk_Rampage_Start":"War_Atk_Rampage_Run");
-            const auto* target=PlayerVisual(c.index);if(!target){native(notify,mesh,animation);return;}
-            const auto& v=*target;unsigned char state=0;
-            if(Named(package,path)&&Alive(v.ability)&&Alive(v.montage)&&v.actor.address==actor&&v.mesh.address==m&&Read(v.ability.address,0x48,owner)&&owner==actor&&
-               Read(v.ability.address,0xD8,state)&&(state==1||state==2)){
-                const auto adapted=foreign_montage::RampageNotify(reinterpret_cast<uintptr_t>(notify),v.montage.address,v.source);
-                if(adapted){native(reinterpret_cast<void*>(adapted),mesh,animation);return;}
-            }
-        }
-    }
-    native(notify,mesh,animation);
-}
-void Blast(void* n,void* m,void* a){MotionNotify(g_blast,n,m,a);}
-void Surface(void* n,void* m,void* a){MotionNotify(g_surface,n,m,a);}
 bool Recent(const local_players::Context& c){const auto* mark=PlayerCast(c.index);return mark&&mark->world==c.world&&mark->actor.address==c.character&&Alive(mark->actor);}
 void Stop(void* ability,int phase,const local_players::Context& c,const char* why="motion source unavailable"){
     auto* mark=PlayerCast(c.index);if(!mark)return;
@@ -160,17 +138,7 @@ void Initialize(foreign_wrath::LogFn log,bool exact){
     if(!std::memcmp(reinterpret_cast<void*>(g_base+0x16778E0),position,sizeof(position))&&!std::memcmp(reinterpret_cast<void*>(g_base+0x1690BD0),sample,sizeof(sample))){
         g_position=reinterpret_cast<Position>(g_base+0x16778E0);g_sample=reinterpret_cast<Sample>(g_base+0x1690BD0);
     }
-    constexpr unsigned char blast[]={0x48,0x89,0x74,0x24,0x18,0x48,0x89,0x7C,0x24,0x20,0x41,0x56,0x48,0x83,0xEC,0x50};
-    constexpr unsigned char surface[]={0x40,0x55,0x56,0x57,0x41,0x54,0x41,0x55,0x41,0x56,0x41,0x57,0x48,0x8D,0xAC,0x24};
-    auto* b=reinterpret_cast<void*>(g_base+0x5D7DF0);auto* s=reinterpret_cast<void*>(g_base+0x5D7760);
-    if(!std::memcmp(b,blast,sizeof(blast))&&!std::memcmp(s,surface,sizeof(surface))){
-        const bool cb=MH_CreateHook(b,reinterpret_cast<void*>(&Blast),reinterpret_cast<void**>(&g_blast))==MH_OK;
-        const bool cs=cb&&MH_CreateHook(s,reinterpret_cast<void*>(&Surface),reinterpret_cast<void**>(&g_surface))==MH_OK;
-        if(!cs||MH_EnableHook(b)!=MH_OK||MH_EnableHook(s)!=MH_OK){
-            if(cb){MH_DisableHook(b);MH_RemoveHook(b);}if(cs){MH_DisableHook(s);MH_RemoveHook(s);}g_blast=g_surface=nullptr;
-        }
-    }
-    if(log){char line[220]{};sprintf_s(line,"Rampage V1.108 READY: native motion/phase token; own Dash/Devil Heel pose=%u; scoped native charge blast/surface=%u; EXPERIMENTAL",unsigned(g_position&&g_sample),unsigned(g_blast&&g_surface));log(line);}
+    if(log){char line[220]{};sprintf_s(line,"Rampage V1.110 READY: private native charge timeline; own Dash/Devil Heel pose=%u; EXPERIMENTAL",unsigned(g_position&&g_sample));log(line);}
 }
 bool AssetsReady(){for(const auto& id:g_phases)if(!Alive(id))return false;return Alive(g_idle)&&Alive(g_poses[0])&&Alive(g_poses[1]);}
 bool InvalidateAssets(){
@@ -225,13 +193,13 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     if(!Alive(abi)||!Alive(pawn)||!Read(p,0x48,character)||character!=actor)return true;
     if(!replacement){Stop(ability,phase,c,"private motion montage construction/shape failed");return true;}
     *mark={pawn,c.world,phase};
-    BeginVisual(c,ability,replacement,phase,source); // native first-frame notifies can now resolve their own actor
+    BeginVisual(c,ability,replacement,phase);
     native(ability,replacement,rate,section);
     if(!Alive(abi)||!Alive(pawn)||!Read(p,0x48,character)||character!=actor)return true;
     uintptr_t instance=0;
     if(!Read(p,0x1D8,instance)||!instance||!g_playing(reinterpret_cast<void*>(instance))){Stop(ability,phase,c,"native montage playback not active");return true;}
     foreign_montage::StartSounds(reinterpret_cast<uintptr_t>(montage),ability);
-    if(g_log&&g_events++<12){char line[180]{};sprintf_s(line,"Rampage V1.108 CAST player=%d phase=%d: native motion/loop/collision/finish; own Dash/Devil Heel presentation; EXPERIMENTAL",c.index+1,phase);g_log(line);}
+    if(g_log&&g_events++<12){char line[180]{};sprintf_s(line,"Rampage V1.110 CAST player=%d phase=%d: native motion/loop/collision/finish; own Dash/Devil Heel presentation; EXPERIMENTAL",c.index+1,phase);g_log(line);}
     return true;
 }
 void Observe(const local_players::Context& c){
@@ -244,10 +212,11 @@ void Observe(const local_players::Context& c){
        c.kind!=local_players::PoseKind::Foot||!Alive(mark->actor)))*mark={};
     auto* target=PlayerVisual(c.index);if(!target)return;
     Visual next{};AcquireSRWLockShared(&g_visualLock);next=*target;ReleaseSRWLockShared(&g_visualLock);
-    unsigned char state=0;uintptr_t actor=0,mesh=0,anim=0;
+    unsigned char state=0;uintptr_t actor=0,mesh=0,anim=0,helper=0,montage=0;
     if(!g_failed&&mark->actor&&Alive(next.ability)&&Alive(next.actor)&&Alive(next.anim)&&Alive(next.montage)&&
        next.actor.address==c.character&&Read(next.ability.address,0x48,actor)&&actor==c.character&&Read(actor,0x380,mesh)&&mesh==next.mesh.address&&
-       Read(mesh,0x718,anim)&&anim==next.anim.address&&Read(next.ability.address,0xD8,state)&&(state==1||state==2)&&g_position){
+       Read(mesh,0x718,anim)&&anim==next.anim.address&&Read(next.ability.address,0xD8,state)&&(state==1||state==2)&&g_position&&g_playing&&
+       Read(next.ability.address,0x1D8,helper)&&Read(helper,0x28,montage)&&montage==next.montage.address&&g_playing(reinterpret_cast<void*>(helper))){
         next.position=g_position(reinterpret_cast<void*>(anim),reinterpret_cast<void*>(next.montage.address));next.tick=GetTickCount64();
         AcquireSRWLockExclusive(&g_visualLock);*target=next;ReleaseSRWLockExclusive(&g_visualLock);
     }else ClearVisual(c.index);
