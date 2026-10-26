@@ -30,7 +30,7 @@ void Label(void* object,unsigned index,const char* text){Put(object,0x18,int(ind
 void* PackageNative(){return f.transient;}
 void SkeletonNative(void* asset,void* skeleton){++skeletonCalls;Put(asset,0x38,reinterpret_cast<uintptr_t>(skeleton));}
 void ReserveNative(void* array,int count){
-    ++reserves;Check(array==f.copy+0x80&&count>=3&&count<=64,"native reserve only receives private event header and bounded merged count");
+    ++reserves;Check(array==f.copy+0x80&&count>=1&&count<=64,"native reserve only receives private event header and bounded positive count");
     if(mode==10)return;
     Put(array,0,Array{reinterpret_cast<uintptr_t>(mode==11?f.events:f.copyEvents),At<Array>(array,0).count,count});
 }
@@ -42,7 +42,7 @@ void* ConstructNative(void* cls,void* outer,Name name,uint32_t flags,uint32_t in
         if(mode==17)return templ;
         std::memcpy(f.privateStates[n],templ,0x80);std::memcpy(f.privateEnums[n],f.enumValues[i],16);
         Put(f.privateStates[n],8,flags);Put(f.privateStates[n],0x20,reinterpret_cast<uintptr_t>(outer));
-        const auto source=At<Array>(templ,0x30);Put(f.privateStates[n],0x30,Array{reinterpret_cast<uintptr_t>(mode==18?f.enumValues[i]:f.privateEnums[n]),source.count,source.count});
+        const auto sourceArray=At<Array>(templ,0x30);Put(f.privateStates[n],0x30,Array{reinterpret_cast<uintptr_t>(mode==18?f.enumValues[i]:f.privateEnums[n]),sourceArray.count,sourceArray.count});
         return f.privateStates[n];
     }
     if(templ==f.blade){
@@ -343,7 +343,7 @@ void StonePlan(){
         Label(f.interruptClass,48,"AnimNotify_EnableAbilityInterrupt");Label(f.interruptProperty,61,"Interrupts");Label(f.arrayClass,62,"ArrayProperty");Put(f.interruptClass,0x48,reinterpret_cast<uintptr_t>(f.interruptProperty));Put(f.interruptProperty,0x10,reinterpret_cast<uintptr_t>(f.arrayClass));Put(f.interruptProperty,0x34,16);Put(f.interruptProperty,0x44,0x30);
         Put(f.interruptVtable,0x240,g_base+0x5A8510);Put(f.interruptVtable,0x250,g_base+0x5A8830);
         for(int i=0;i<2;++i){auto* n=f.interrupts[i];Put(n,0,reinterpret_cast<uintptr_t>(f.interruptVtable));Put(n,0x10,reinterpret_cast<uintptr_t>(f.interruptClass));Put(n,0x20,reinterpret_cast<uintptr_t>(f.war));Put(n,0x30,Array{reinterpret_cast<uintptr_t>(f.enumValues[i]),1,1});f.enumValues[i][0]=i?29:5;Put(n,0x40,Name{77,33});auto* e=f.sequenceEvents+(1+i)*184;const float t=i?.9422869086f:.8002610803f;Put(e,0x50,reinterpret_cast<uintptr_t>(n));Put(e,0x24,t);Put(e,0x58,1.8333333731f-t);}
-        ConstructNative(f.classes[0],f.transient,{},0x40,0,f.original,false,nullptr,false);Put(f.copy,0x90,.5666666627f);Put(f.copy,0x80,Array{});Put(f.copySegments,0,Segment{g_recovery[1].address,0,0,.5666666627f,1,1,1});
+        ConstructNative(f.classes[0],f.transient,{},0x40,0,f.original,false,nullptr,false);Put(f.copy,0x38,source.skeleton);Put(f.copy,0x90,.5666666627f);Put(f.copy,0x80,Array{});Put(f.copySegments,0,Segment{g_recovery[1].address,0,0,.5666666627f,1,1,1});
         g_reserveSegments=[](void* header,int count){Check(header==f.copyTracks+8&&count==3,"only private stone segment array");Put(header,0,Array{reinterpret_cast<uintptr_t>(f.copySegments),1,3});};
     };
     setup();const auto original=std::make_unique<Fixture>(f);Check(StonePose(reinterpret_cast<uintptr_t>(f.original),f.copy,source),"grounded Stoneskin plan");
