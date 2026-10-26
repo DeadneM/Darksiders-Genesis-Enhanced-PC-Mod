@@ -11,7 +11,7 @@ struct Fixture {
  unsigned char original[4][0x100]{},mid[4][0x100]{},materials[2][0x100]{},items[32*24]{};
  uintptr_t overrides[4]{},statuses[2]{};
 } f;
-uintptr_t objectChunks[1]{};local_players::Context owner{};unsigned copies=0,creates=0,sets=0;int id=0;bool thread=true,failCopy=false;
+uintptr_t objectChunks[1]{};dg::local_players::Context owner{};unsigned copies=0,creates=0,sets=0;int id=0;bool thread=true;
 template<class T>void Put(void* p,size_t at,const T& v){std::memcpy(static_cast<unsigned char*>(p)+at,&v,sizeof(v));}
 void Check(bool ok,const char* why){if(!ok)throw std::runtime_error(why);}
 void Label(void* p,int i,const char* s){Put(p,0x18,i);strcpy_s(reinterpret_cast<char*>(entries[i]+12),244,s);}
@@ -54,7 +54,7 @@ void Run(){
  Put(f.component,0x138,0);Observe(owner);Check(sets==4&&!g_visual[0].actor,"status removal restores inherited slots");for(auto p:f.overrides)Check(!p,"original inheritance restored");
  Fresh();f.overrides[1]=reinterpret_cast<uintptr_t>(f.original[1]);Observe(owner);f.overrides[2]=reinterpret_cast<uintptr_t>(f.original[2]);Put(f.component,0x138,0);Observe(owner);Check(f.overrides[1]==reinterpret_cast<uintptr_t>(f.original[1])&&f.overrides[2]==reinterpret_cast<uintptr_t>(f.original[2])&&sets==3,"explicit material restored; native replacement wins");
  Fresh();Put(f.component,0x138,2);Observe(owner);Check(g_visual[0].variant==1,"active Molten core chooses native variant");
- owner.kind=local_players::PoseKind::Horse;Observe(owner);Check(!g_visual[0].actor&&sets==4,"transformation restores old owned body only");
+ owner.kind=dg::local_players::PoseKind::Horse;Observe(owner);Check(!g_visual[0].actor&&sets==4,"transformation restores old owned body only");
  for(int bad=0;bad<5;++bad){Fresh();if(bad==0)thread=false;if(bad==1)owner.index=2;if(bad==2)owner.localPlayer=0;if(bad==3)Put<unsigned char>(f.actor,0x118,2);if(bad==4)Label(f.classes[0],1,"War_Blueprint_C");Observe(owner);Check(!creates&&!copies&&!sets,"War, remote, off-thread and invalid ownership untouched");}
  Fresh();Put(f.functions[3],0xC0,uintptr_t(0));Observe(owner);Check(creates==4&&!copies&&sets==4&&!g_visual[0].slots[0].material,"unknown parameter API rolls back factory-installed MIDs");
  Fresh();Observe(owner);Put(f.items,size_t(g_visual[0].mesh.index)*24+16,999);Put(f.component,0x138,0);Observe(owner);Check(!sets&&!g_visual[0].actor,"expired mesh identity never receives restore");
