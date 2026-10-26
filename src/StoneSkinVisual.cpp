@@ -11,8 +11,8 @@ struct Array {uintptr_t data=0;int count=0,capacity=0;};
 using Event=void(*)(void*,void*,void*);
 Event g_event=nullptr;uintptr_t g_base=0;foreign_wrath::LogFn g_log=nullptr;unsigned g_events=0;
 Id g_materials[2]{};
-struct Slot {Id material{},original{};bool inherited=false;};
-struct Visual {Id actor{},mesh{};uintptr_t world=0;int variant=-1;std::array<Slot,4> slots{};};
+struct Slot {Id material{},original{};bool inherited=false,failed=false;uintptr_t observed=0;};
+struct Visual {Id actor{},mesh{},asset{};uintptr_t world=0;int variant=-1;std::array<Slot,4> slots{};};
 Visual g_visual[2]{};
 template<class T>bool Read(uintptr_t p,size_t at,T& v){native_objects::MemoryReader r;return r.Read(p,at,v);}
 template<size_t N>bool Is(uintptr_t p,const char(&s)[N]){return native_objects::NameIs(g_base,p,s);}
@@ -72,13 +72,40 @@ bool Copy(uintptr_t material,uintptr_t source){
     struct Args {uintptr_t source=0;bool quick=true;unsigned char pad[7]{};} args{source};
     g_event(reinterpret_cast<void*>(material),reinterpret_cast<void*>(f),&args);return true;
 }
+bool BodySlot(uintptr_t asset,unsigned index){
+    int at=-1;Array slots{};uintptr_t cls=0;foreign_wrath::Name slot{};
+    // Supported native FSkeletalMaterial is 40 bytes, MaterialSlotName +8.
+    // Choose by the mesh's real role, never by a hand/key or guessed order.
+    return Read(asset,0x10,cls)&&Is(cls,"SkeletalMesh")&&Field(asset,"Materials","ArrayProperty",16,at)&&List(asset,at,slots,32)&&
+        index<unsigned(slots.count)&&Read(slots.data,size_t(index)*40+8,slot)&&
+        (native_objects::NameValueIs(g_base,slot.index,slot.number,"Strife_Body")||native_objects::NameValueIs(g_base,slot.index,slot.number,"Strife_Gear"));
+}
+bool StoneBody(uintptr_t material,uintptr_t source){
+    const auto f=Function(material,"SetScalarParameterValue",0x1D97290);int at=-1;Array values{};unsigned found=0;
+    if(!f||!Parameter(f,"ParameterName","NameProperty",8,0)||!Parameter(f,"Value","FloatProperty",4,8)||
+       !Field(source,"ScalarParameterValues","ArrayProperty",16,at)||!List(source,at,values,64))return false;
+    for(int i=0;i<values.count;++i){
+        foreign_wrath::Name name{};int association=-1,index=0;
+        const auto p=values.data+size_t(i)*36;
+        if(!Read(p,0,name)||!Read(p,8,association)||!Read(p,12,index)||association!=2||index!=-1)continue;
+        const unsigned bit=native_objects::NameValueIs(g_base,name.index,name.number,"Emissive_Power_Base")?1u:
+            (native_objects::NameValueIs(g_base,name.index,name.number,"Emissive_Power_Scroll")?2u:0u);
+        if(!bit)continue;
+        // War's emissive texture mask uses War's UVs. On Strife it lights
+        // skin regions instead of cloth; suppress only our body MID's glow.
+        struct Args {foreign_wrath::Name name{};float value=0;int pad=0;} args{name};
+        g_event(reinterpret_cast<void*>(material),reinterpret_cast<void*>(f),&args);found|=bit;
+    }
+    return found==3;
+}
 void Restore(Visual& v){
-    uintptr_t owner=0;
+    uintptr_t owner=0,asset=0;int at=-1;
     if(g_event&&Alive(v.actor)&&Alive(v.mesh)&&Read(v.mesh.address,0xE8,owner)&&owner==v.actor.address){
+        const bool sameAsset=Field(v.mesh.address,"SkeletalMesh","ObjectProperty",8,at)&&Read(v.mesh.address,at,asset)&&asset==v.asset.address;
         for(unsigned i=0;i<v.slots.size();++i){auto& s=v.slots[i];uintptr_t current=0;
             // Only our MID may be replaced. A native/user skin change wins.
             if(Alive(s.material)&&Override(v.mesh.address,int(i),current)&&current==s.material.address&&
-               (s.inherited||Alive(s.original)))Set(v.mesh.address,int(i),s.inherited?0:s.original.address);
+               (s.inherited||!sameAsset||Alive(s.original)))Set(v.mesh.address,int(i),s.inherited||!sameAsset?0:s.original.address);
         }
     }
     v={};
@@ -121,40 +148,43 @@ bool InvalidateAssets(){
 }
 void Observe(const local_players::Context& c){
     if(!g_event||!native_tps::OnGameThread()||c.index<0||c.index>1)return;
-    auto& v=g_visual[c.index];uintptr_t cls=0,pc=0,pawn=0,mesh=0,owner=0;unsigned char role=0;
+    auto& v=g_visual[c.index];uintptr_t cls=0,pc=0,pawn=0,mesh=0,owner=0,asset=0;unsigned char role=0;int at=-1;
     const bool owned=c.localPlayer&&c.world&&c.kind==local_players::PoseKind::Foot&&c.character&&c.pawn==c.character&&
         Read(c.character,0x10,cls)&&Is(cls,"Strife_Blueprint_C")&&Read(c.character,0x118,role)&&role==3&&
         Read(c.character,0x348,pc)&&pc==c.controller&&Read(pc,0x350,pawn)&&pawn==c.character&&
-        Read(c.character,0x380,mesh)&&Read(mesh,0xE8,owner)&&owner==c.character;
+        Read(c.character,0x380,mesh)&&Read(mesh,0xE8,owner)&&owner==c.character&&Field(mesh,"SkeletalMesh","ObjectProperty",8,at)&&Read(mesh,at,asset)&&asset;
     const int variant=owned?Status(c.character):-1;
-    if(v.actor&&(variant<0||variant!=v.variant||v.world!=c.world||v.actor.address!=c.character||v.mesh.address!=mesh||!Alive(v.actor)||!Alive(v.mesh)))Restore(v);
+    if(v.actor&&(variant<0||variant!=v.variant||v.world!=c.world||v.actor.address!=c.character||v.mesh.address!=mesh||v.asset.address!=asset||!Alive(v.actor)||!Alive(v.mesh)||!Alive(v.asset)))Restore(v);
     if(!owned||variant<0||!Alive(g_materials[variant]))return;
     if(!v.actor){
-        if(!Capture(c.character,v.actor)||!Capture(mesh,v.mesh)){v={};return;}
+        if(!Capture(c.character,v.actor)||!Capture(mesh,v.mesh)||!Capture(asset,v.asset)){v={};return;}
         v.world=c.world;v.variant=variant;
     }
-    // Strife has four populated body/gear/cloth slots; the fifth is empty.
+    // Coat body/gear only. Native cloth keeps its own color and texture.
     // A MID's original parent holds the previous appearance strongly through
     // GC. Only native uniform parameters are copied; no shared material edit.
     for(unsigned i=0;i<v.slots.size();++i){
         auto& slot=v.slots[i];uintptr_t current=0;
         if(!Override(mesh,int(i),current))continue;
         if(Alive(slot.material)&&current==slot.material.address)continue;
+        if(slot.failed&&slot.observed==current)continue;
         slot={};
+        if(!BodySlot(asset,i))continue;
         const auto f=Function(mesh,"GetMaterial",0x1DC9CB0);
         if(!f||!Parameter(f,"ElementIndex","IntProperty",4,0)||!Parameter(f,"ReturnValue","ObjectProperty",8,8))continue;
         struct Args {int index=0,pad=0;uintptr_t result=0;} args{int(i)};
         g_event(reinterpret_cast<void*>(mesh),reinterpret_cast<void*>(f),&args);
         Id original{};if(!args.result||!Capture(args.result,original))continue;
-        const auto mid=Create(mesh,int(i),args.result);uintptr_t parent=0;int at=-1;Id identity{};
-        if(!mid||mid==args.result||!Field(mid,"Parent","ObjectProperty",8,at)||!Read(mid,at,parent)||parent!=args.result||
-           !Capture(mid,identity)||!Copy(mid,g_materials[variant].address)){
+        const auto mid=Create(mesh,int(i),args.result);uintptr_t parent=0;int parentAt=-1;Id identity{};
+        if(!mid||mid==args.result||!Field(mid,"Parent","ObjectProperty",8,parentAt)||!Read(mid,parentAt,parent)||parent!=args.result||
+           !Capture(mid,identity)||!Copy(mid,g_materials[variant].address)||!StoneBody(mid,g_materials[variant].address)){
             // Factory installs the MID before copying. Roll back on failure.
             uintptr_t now=0;if(mid&&Override(mesh,int(i),now)&&now==mid)Set(mesh,int(i),current);
+            slot.failed=true;slot.observed=current;
             continue;
         }
         slot={identity,original,current==0};
-        if(g_log&&g_events++<8)g_log("Stoneskin V1.112 visual: private Strife MID, native base/molten parameters; status-owned lifetime; EXPERIMENTAL UV fit");
+        if(g_log&&g_events++<8)g_log("Stoneskin V1.113 visual: body/gear stone, native cloth, body emissive mask disabled; status-owned lifetime; EXPERIMENTAL");
     }
 }
 void Shutdown(){

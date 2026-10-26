@@ -1,6 +1,6 @@
 # Remaining work after V1.111 / candidate V1.112
 
-- V1.112: grouped runtime validation of power exits and Strife Stoneskin coating; material fit remains experimental.
+- V1.112 user validation: Rampage Strife ending, all three Strife powers on War, and Stoneskin expiration accepted. V1.113 tests only Geyser static return, Stoneskin grounded gesture/movement and body/cloth rendering.
 - Rampage opening charge damage on real enemies and latest shield orientation require explicit confirmation.
 - Appearance inventory recorded in V1_112_APPEARANCE_CATALOG.md: 1,502 candidate export tables read, 269 detailed assets, Caltrops base/frost 1/2/3 visual bindings confirmed. Next implement a visual-only selector after runtime validation; tool/core usage, unlocks and equipped saves remain separate.
 - P2 runtime tests deferred by user. Audit private instancing of mutable interruption-notify caches before simultaneous foreign casts; existing single-player acceptance is not coop proof.

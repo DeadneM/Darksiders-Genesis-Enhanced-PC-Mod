@@ -12,6 +12,9 @@ bool CanBuild(const Source&);
 // Reuse the existing bounded object scan; no loader, timer or source edits.
 void ObserveSequence(uintptr_t object);
 bool GesturesReady();
+bool RecoveryReady();
+uintptr_t StoneSequence(uintptr_t skeleton,float& length);
+bool StonePose(uintptr_t original,void* privateMontage,const Source&);
 uintptr_t CastingSequence(uintptr_t fallback,uintptr_t skeleton,float& length);
 // NewObject with the source as template: only private, non-aliased native
 // arrays are edited. The engine owns allocation, notify timing and cleanup.

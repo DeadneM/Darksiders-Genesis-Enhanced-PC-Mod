@@ -95,6 +95,9 @@ void StartSounds(uintptr_t,void*){}bool CopyLaterSounds(uintptr_t,void*){return 
 void Initialize(LogFn,bool){}bool Ready(){return helperReady;}
 void ObserveSequence(uintptr_t){}bool GesturesReady(){return true;}
 uintptr_t CastingSequence(uintptr_t fallback,uintptr_t,float&){return fallback;}
+bool RecoveryReady(){return true;}
+uintptr_t StoneSequence(uintptr_t,float& length){length=2.666667f;return reinterpret_cast<uintptr_t>(f.idle);}
+bool StonePose(uintptr_t original,void* copy,const Source& s){Check(original==reinterpret_cast<uintptr_t>(f.montage)&&copy==f.replacement&&s.skeleton==reinterpret_cast<uintptr_t>(f.skeleton),"only own Stoneskin plan reaches builder");return true;}
 bool CanBuild(const Source& s){return helperReady&&s.sequence==reinterpret_cast<uintptr_t>(f.idle)&&s.skeleton==reinterpret_cast<uintptr_t>(f.skeleton)&&s.slotIndex==9;}
 void* Geyser(uintptr_t m,const Source& s){++builds;Check(m==reinterpret_cast<uintptr_t>(f.montage)&&CanBuild(s)&&s.rootIndex==14,"own source/root reach Geyser builder");return buildOK?f.replacement:nullptr;}
 void* Compatible(uintptr_t,const Source&){return nullptr;}

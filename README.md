@@ -1,3 +1,15 @@
+## V1.113 - Retours au sol Strife et roles Stoneskin
+
+**PREPAREE / EXPERIMENTALE, NON VALIDEE EN JEU. Compilation et livraison GitHub a verifier.** Base V1.112. Retours utilisateur : fin Rampage Strife, trois pouvoirs de Strife sur War et expiration/restauration Stoneskin Strife explicitement VALIDES. Ces chemins retenus restent preserves. Restent la levitation Geyser a l'arret, l'animation Stoneskin trop longue avec glissement, et le corps rouge/tissu pierre.
+
+Geyser garde son debut accepte puis joue son vrai retour Aether au sol a vitesse native, au lieu de tenir sa pose suspendue ; pic/cout/duree et commandes inchanges. Stoneskin reprend le geste sol Strife et sa fin a vitesse native, avec fenetres d'interruption natives copiees sur des etats prives : MOVE a 0,942 s. Duree/cout/statut/sons restent natifs, pas de Finish anticipe ni touche simulee.
+
+Le revetement vise les vrais slots Strife_Body / Strife_Gear, garde les deux tissus natifs, et coupe sur ses seuls materiaux prives l'emission rouge dont le masque UV est propre a War. Expiration/restauration retenues, refus mis en cache pour eviter de recreer un materiau a chaque image. **Le tissu conserve son apparence native ; le rendu Molten de la cape de War n'est pas reproduit a l'identique sur Strife.**
+
+169 cles INI / 55 ID Hotkeys, camera, input/XInput, tirs, fonctions validees et anciennes archives conserves. P2 toujours differe. Compilation uniquement GitHub, installation par l'utilisateur via updater debug. [Contrat, preuves, essais et rollback](docs/V1_113_GROUNDED_GEYSER_STONESKIN_ROLES_TEST.md).
+
+---
+
 ## V1.112 - Fins des pouvoirs et revetement Stoneskin Strife
 
 **CONSTRUITE / CONTROLEE : [62/62 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40402937664), zero avertissement/erreur MSVC. [ZIP public immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/2b609415cffaff77a99fc1615cf8ba51c3574813/downloads/DarksidersGenesis_V1.112_POWER_BLENDS_STRIFE_STONESKIN_TEST.zip) - [Recu](docs/V1_112_DELIVERY_RECEIPT.md). Updater debug : V1.112 selectionnee, octets verifies. Defender : aucune menace detectee dans le ZIP et les quatre fichiers, protections actives. Corrections EXPERIMENTALES, NON VALIDEES EN JEU.**

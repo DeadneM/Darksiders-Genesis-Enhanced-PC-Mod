@@ -85,7 +85,7 @@ void Scan(uintptr_t generatedClass){
     if(stone_visual::InvalidateAssets()||beamChanged||rampageChanged||caltropsChanged||cloneChanged){g_cursor=0;g_complete=false;}
     if(g_geyser&&!Alive(g_geyser)){g_geyser={};g_geyserReady=false;g_cursor=0;g_complete=false;}
     if(g_stone&&!Alive(g_stone)){g_stone={};g_cursor=0;g_complete=false;}
-    if(g_geyser){g_geyserReady=true;if(stone_visual::AssetsReady()&&foreign_montage::GesturesReady()&&foreign_beam::AssetsReady()&&g_stone&&foreign_rampage::AssetsReady()&&foreign_caltrops::AssetsReady()&&foreign_power::AssetsReady())return;}
+    if(g_geyser){g_geyserReady=true;if(stone_visual::AssetsReady()&&foreign_montage::RecoveryReady()&&foreign_montage::GesturesReady()&&foreign_beam::AssetsReady()&&g_stone&&foreign_rampage::AssetsReady()&&foreign_caltrops::AssetsReady()&&foreign_power::AssetsReady())return;}
     uintptr_t chunks=0;int count=0;
     if(!Read(g_base,0x3959680,chunks)||!Read(g_base,0x3959694,count)||count<=0||count>2000000)return;
     if(count!=g_count){if(count<g_count)g_cursor=0;g_count=count;g_complete=false;}
@@ -155,17 +155,17 @@ void StonePlay(void* ability,void* montage,float rate,Name section,const local_p
        Read(original,0x90,duration)&&std::isfinite(duration)&&duration>.1f&&duration<10&&
        Read(original,0x94,scale)&&std::isfinite(scale)&&scale>.1f&&scale<10){
         duration/=scale;length=source.length;
-        const auto sequence=foreign_montage::CastingSequence(source.sequence,source.skeleton,length);
-        auto* replacement=g_create(reinterpret_cast<void*>(sequence),source.slot,.1f,.18f,1.f,1,-1.f,0.f);
+        const auto sequence=foreign_montage::StoneSequence(source.skeleton,length);
+        auto* replacement=sequence?g_create(reinterpret_cast<void*>(sequence),source.slot,.1f,.18f,1.f,1,-1.f,0.f):nullptr;
         if(!Alive(abi)||!Alive(pawn)||!Read(p,0x48,owner)||owner!=c.character)return;
         const auto copy=reinterpret_cast<uintptr_t>(replacement);
         if(copy&&copy!=original&&Read(copy,0x10,cls)&&Is(cls,"AnimMontage")&&Read(copy,0x38,skeleton)&&skeleton==source.skeleton&&
+           foreign_montage::StonePose(original,replacement,{source.sequence,source.skeleton,source.slot.index,source.slot.number})&&
            Read(copy,0x90,length)&&std::isfinite(length)&&length>.1f&&length<10){
             const float adjusted=rate*length/duration;
             if(std::isfinite(adjusted)&&adjusted>.01f&&adjusted<100){
-                // Native status/cost, own gesture; body coating is observed
-                // independently from the status list, never from this clip.
-                foreign_montage::CopyLaterSounds(original,replacement);
+                // The private plan already retains native sounds and its
+                // own interruption states; body coating follows the status.
                 g_play(ability,replacement,adjusted,section);
                 if(!Alive(abi)||!Alive(pawn)||!Read(p,0x48,owner)||owner!=c.character)return;
                 uintptr_t instance=0;played=Read(p,0x1D8,instance)&&instance&&g_playing(reinterpret_cast<void*>(instance));
@@ -177,7 +177,7 @@ void StonePlay(void* ability,void* montage,float rate,Name section,const local_p
     // the actual Strife status lifetime; no borrowed components or timer.
     if(!played){g_stoneFailed=true;g_finish(ability,0);}
     else foreign_montage::StartSounds(original,ability);
-    if(g_log&&g_stoneEvents++<12)g_log(played?"Stoneskin V1.112 CAST: own Strife pose, native status/cost/duration and finish; private coating observer; EXPERIMENTAL":
+    if(g_log&&g_stoneEvents++<12)g_log(played?"Stoneskin V1.113 CAST: grounded own gesture and recovery, private native MOVE window; status/coating lifetime preserved; EXPERIMENTAL":
         "Stoneskin V1.102 stopped: own cast contract unavailable; native finish, transfer disabled for session; select Native");
 }
 
@@ -241,7 +241,7 @@ void Initialize(LogFn log,bool exactExecutable){
 }
 int Status(int choice){
     if(choice>=1&&choice<=6)g_requested=true;
-    if(choice==6){g_requested=true;return !g_ready||!g_create||g_stoneFailed?0:(Alive(g_stone)?2:1);}
+    if(choice==6){g_requested=true;return !g_ready||!g_create||g_stoneFailed?0:(Alive(g_stone)&&foreign_montage::RecoveryReady()?2:1);}
     if(choice==5){g_requested=true;return foreign_rampage::Status();}
     if(choice>=1&&choice<=4)g_requested=true;
     if(choice==2)return foreign_beam::Status();

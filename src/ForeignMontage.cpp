@@ -23,7 +23,8 @@ using SoundNotify=void(*)(void*,void*,void*);
 SoundNotify g_soundNotify=nullptr;LogFn g_log=nullptr;unsigned g_soundEvents=0,g_motionRefusals=0;
 bool OpeningSound(uintptr_t notify,float time);
 uintptr_t g_base=0;std::atomic_bool g_ready{false};
-native_objects::Identity g_gestures[2]{};
+native_objects::Identity g_gestures[2]{},g_recovery[3]{};
+bool g_interruptBoundary=false;
 static_assert(sizeof(Name)==8&&sizeof(Array)==16&&sizeof(Segment)==32);
 template<class T> bool Read(uintptr_t p,size_t offset,T& value){native_objects::MemoryReader r;return r.Read(p,offset,value);}
 template<size_t N> bool Is(uintptr_t p,const char (&text)[N]){return native_objects::NameIs(g_base,p,text);}
@@ -72,6 +73,23 @@ bool Gesture(uintptr_t p,int kind,float& length){
            !Read(at,0x50,state)||state||!Read(at,0x58,duration)||duration||!Read(at,0x24,time)||
            !std::isfinite(time)||std::fabs(time-times[kind][i])>.00001f||
            !(kind==1&&i>0?Is(cls,"AnimNotify_PlayFootstep"):Is(cls,"AnimNotify_PlaySound")))return false;
+    }
+    return true;
+}
+bool Recovery(uintptr_t p,int kind,float& length){
+    constexpr const char* names[]={"Strife_Aether_Channel_End","Strife_Channel_Start","Strife_Channel_End"};
+    constexpr float lengths[]={.8333333135f,.5666666627f,.6666666865f};
+    constexpr float times[3][2]={{.0538592972f,.1021469459f},{0,.3735954762f},{.3803706467f,.5543919206f}};
+    uintptr_t cls=0,package=0,skeleton=0;float rate=0;unsigned char root=255;Array events{},tracks{};int bone=-1,index=0,number=0;
+    if(kind<0||kind>2||!Read(p,0x18,index)||!Read(p,0x1C,number)||!native_objects::NameValueEquals(g_base,index,number,names[kind])||
+       !Read(p,0x10,cls)||!Is(cls,"AnimSequence")||!Read(p,0x20,package)||!Read(p,0x38,skeleton)||!Is(skeleton,"Strife_Skeleton")||
+       !Read(p,0x90,length)||!std::isfinite(length)||std::fabs(length-lengths[kind])>.00001f||!Read(p,0x94,rate)||rate!=1||!Read(p,0x1A1,root)||root!=(kind?1:0)||
+       !List(p,0xB0,tracks,1024)||!tracks.count||!Read(tracks.data,0,bone)||bone!=0||!List(p,0x80,events,8)||events.count!=2)return false;
+    char path[200]{};sprintf_s(path,"/Game/Characters/Heroes/Hero_Strife/Animations/%s",names[kind]);
+    if(!Read(package,0x18,index)||!Read(package,0x1C,number)||!native_objects::NameValueEquals(g_base,index,number,path))return false;
+    for(int i=0;i<2;++i){uintptr_t notify=0,owner=0,state=0;float time=0,duration=0;const auto at=events.data+size_t(i)*184;
+        if(!Read(at,0x48,notify)||!Read(notify,0x10,cls)||!Read(notify,0x20,owner)||owner!=p||!Read(at,0x50,state)||state||!Read(at,0x58,duration)||duration||
+           !Read(at,0x24,time)||!std::isfinite(time)||std::fabs(time-times[kind][i])>.00001f||!(kind==1&&i==0?Is(cls,"AnimNotify_PlaySound"):Is(cls,"AnimNotify_PlayFootstep")))return false;
     }
     return true;
 }
@@ -182,7 +200,10 @@ void Initialize(LogFn log,bool exact){
     if(!std::memcmp(reinterpret_cast<void*>(g_base+0x256970),segments,sizeof(segments)))g_reserveSegments=reinterpret_cast<Reserve>(g_base+0x256970);
     constexpr unsigned char sound[]={0x48,0x8B,0xC4,0x55,0x57,0x41,0x56,0x48,0x8D,0x68,0xA1,0x48,0x81,0xEC,0xB0,0x00};
     if(!std::memcmp(reinterpret_cast<void*>(g_base+0x16977D0),sound,sizeof(sound)))g_soundNotify=reinterpret_cast<SoundNotify>(g_base+0x16977D0);
-    g_gestures[0]=g_gestures[1]={};
+    constexpr unsigned char begin[]={0x40,0x56,0x48,0x83,0xEC,0x20,0x48,0x8B,0xF1,0x48,0x8B,0x8A,0xE8,0,0,0};
+    constexpr unsigned char end[]={0x41,0x54,0x41,0x56,0x41,0x57,0x48,0x83,0xEC,0x40,0x48,0xC7,0x44,0x24,0x20,0xFE};
+    g_interruptBoundary=!std::memcmp(reinterpret_cast<void*>(g_base+0x5A8510),begin,sizeof(begin))&&!std::memcmp(reinterpret_cast<void*>(g_base+0x5A8830),end,sizeof(end));
+    g_gestures[0]=g_gestures[1]={};for(auto& id:g_recovery)id={};
     g_construct=reinterpret_cast<Construct>(g_base+0xAC57A0);g_package=reinterpret_cast<Package>(g_base+0xA7B1B0);
     g_skeleton=reinterpret_cast<Skeleton>(g_base+0x16C7130);g_reserve=reinterpret_cast<Reserve>(g_base+0x2C42C0);g_ready=true;
     if(log)log(g_soundNotify?"Foreign montage V1.108 READY: private native montages and sound entry verified before shared detours":"Foreign montage V1.108 READY; opening sound boundary unavailable");
@@ -207,7 +228,11 @@ bool SmoothExit(void* live){
 void ObserveSequence(uintptr_t p){
     if(!g_ready||!native_tps::OnGameThread())return;
     const int kind=Is(p,"Strife_Aether_Channel_Start")?0:(Is(p,"War_Channel_Start")?1:-1);
-    if(kind<0)return;
+    if(kind<0){
+        native_objects::MemoryReader reader;
+        for(int i=0;i<3;++i){float length=0;if(!native_objects::Alive(reader,g_base,g_recovery[i])&&Recovery(p,i,length))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(p),g_recovery[i]);}
+        return;
+    }
     native_objects::MemoryReader reader;
     if(native_objects::Alive(reader,g_base,g_gestures[kind]))return;
     g_gestures[kind]={};float length=0;
@@ -216,6 +241,14 @@ void ObserveSequence(uintptr_t p){
 bool GesturesReady(){
     native_objects::MemoryReader reader;
     return native_objects::Alive(reader,g_base,g_gestures[0])&&native_objects::Alive(reader,g_base,g_gestures[1]);
+}
+bool RecoveryReady(){
+    native_objects::MemoryReader reader;for(const auto& id:g_recovery)if(!native_objects::Alive(reader,g_base,id))return false;return true;
+}
+uintptr_t StoneSequence(uintptr_t skeleton,float& length){
+    native_objects::MemoryReader reader;uintptr_t actual=0;
+    return native_tps::OnGameThread()&&native_objects::Alive(reader,g_base,g_recovery[1])&&Recovery(g_recovery[1].address,1,length)&&
+        Read(g_recovery[1].address,0x38,actual)&&actual==skeleton?g_recovery[1].address:0;
 }
 uintptr_t CastingSequence(uintptr_t fallback,uintptr_t skeleton,float& length){
     if(!g_ready||!native_tps::OnGameThread())return fallback;
@@ -240,7 +273,10 @@ void* Geyser(uintptr_t original,const Source& source){
        !List(before.segment.sequence,0x80,sequenceEvents,64)||!Collect(before.segment.sequence,sequenceEvents,presentation,&event)||
        !Collect(original,before.events,presentation)||!Interrupts(before.segment.sequence,sequenceEvents,0,before.length,0,1,presentation)||presentation.spawns!=1||presentation.sounds!=1||!presentation.particles)return nullptr;
     const auto playback=CastingSequence(source.sequence,source.skeleton,length);
-    const bool paced=playback!=source.sequence&&g_reserveSegments&&length<before.length;
+    float returnLength=0;uintptr_t returnSkeleton=0;native_objects::MemoryReader reader;
+    const auto returning=g_recovery[0].address;
+    const bool paced=playback!=source.sequence&&g_reserveSegments&&native_objects::Alive(reader,g_base,g_recovery[0])&&
+        Recovery(returning,0,returnLength)&&Read(returning,0x38,returnSkeleton)&&returnSkeleton==source.skeleton&&length+returnLength<before.length;
 
     std::memcpy(&time,event.data()+0x24,sizeof(time));
     if(time>=before.length)return nullptr;
@@ -264,16 +300,16 @@ void* Geyser(uintptr_t original,const Source& source){
         uintptr_t notify=0;std::memcpy(&notify,presentation.events[i].data()+0x48,8);
         if(notify&&!AdaptRoot(presentation.events[i],montage,source))return nullptr;
     }
-    Array segments=after.segments;Segment idle{};
+    Array segments=after.segments;Segment recovery{},hold{};
     if(paced){
-        if(segments.capacity<2)g_reserveSegments(reinterpret_cast<void*>(after.tracks.data+8),2);
-        if(!List(after.tracks.data,8,segments,16)||segments.data==before.segments.data||segments.capacity<2||
-           !Writable(segments.data,2*sizeof(Segment)))return nullptr;
-        // Keep the last cast pose continuous; the montage's native blend-out
-        // returns to locomotion, rather than switching abruptly to idle.
-        segment.rate=1;idle=segment;idle.start=length;idle.first=std::max(0.f,length-1.f/30.f);
-        idle.rate=(idle.last-idle.first)/(after.length-length);
-        if(!std::isfinite(idle.rate)||idle.rate<=.01f||idle.rate>100)return nullptr;
+        if(segments.capacity<3)g_reserveSegments(reinterpret_cast<void*>(after.tracks.data+8),3);
+        if(!List(after.tracks.data,8,segments,16)||segments.data==before.segments.data||segments.capacity<3||
+           !Writable(segments.data,3*sizeof(Segment)))return nullptr;
+        // Use the authored landing, not the airborne final Start frame.
+        segment.rate=1;recovery=segment;recovery.sequence=returning;recovery.start=length;recovery.last=returnLength;
+        hold=recovery;hold.start=length+returnLength;hold.first=std::max(0.f,returnLength-1.f/30.f);
+        hold.rate=(hold.last-hold.first)/(after.length-hold.start);
+        if(!std::isfinite(hold.rate)||hold.rate<=.01f||hold.rate>100)return nullptr;
     }
 
     // Use the game's 184-byte array reserve helper, on the private clone only.
@@ -288,13 +324,14 @@ void* Geyser(uintptr_t original,const Source& source){
         const auto at=storage.data+size_t(i)*sizeof(Event);float duration=0;
         std::memcpy(&time,presentation.events[i].data()+0x24,sizeof(time));std::memcpy(&duration,presentation.events[i].data()+0x58,4);
         auto link=[&](uintptr_t element,float value){
-            const bool second=paced&&value>=length;const auto sequence=playback;
-            const float begin=second?length:0,span=paced?(second?after.length-length:length):after.length;
-            return Link(element,montage,sequence,value,span)&&Store(element,0x14,second?1:0)&&Store(element,0x1C,begin);
+            const int index=paced?(value>=hold.start?2:(value>=length?1:0)):0;
+            const auto sequence=index?returning:playback;
+            const float begin=index==2?hold.start:(index==1?length:0),span=paced?(index==2?after.length-hold.start:(index==1?returnLength:length)):after.length;
+            return Link(element,montage,sequence,value,span)&&Store(element,0x14,index)&&Store(element,0x1C,begin);
         };
         if(!Store(at,0,presentation.events[i])||!link(at,time)||!link(at+0x60,time+duration))return nullptr;
     }
-    if(paced&&(!Store(segments.data,sizeof(Segment),idle)||!Store(after.tracks.data,0x10,2)))return nullptr;
+    if(paced&&(!Store(segments.data,sizeof(Segment),recovery)||!Store(segments.data,2*sizeof(Segment),hold)||!Store(after.tracks.data,0x10,3)))return nullptr;
     if(!Store(segments.data,0,segment)||!Link(after.sections.data,montage,playback,zero,after.length)||
        !Store(montage,0x88,presentation.count)||!SmoothExit(created))return nullptr;
     return created;
@@ -790,5 +827,68 @@ bool CopyLaterSounds(uintptr_t original,void* privateMontage){
         if(!Store(at,0,cue.event)||!Link(at,copy,playback.sequence,cue.time,length)||!Link(at+0x60,copy,playback.sequence,cue.time,length))return false;
     }
     return Store(copy,0x88,int(later));
+}
+namespace {
+bool PrivateInterrupt(Event& event,uintptr_t montage){
+    uintptr_t state=0,cls=0,actual=0,outer=0,vt=0,begin=0,end=0;int offset=-1;Array before{},after{};uint32_t flags=0;
+    std::memcpy(&state,event.data()+0x50,8);
+    if(!g_interruptBoundary||!Read(state,0x10,cls)||!Is(cls,"AnimNotify_EnableAbilityInterrupt")||
+       !native_objects::PropertyField(g_base,cls,"Interrupts","ArrayProperty",16,offset)||offset!=0x30||
+       !List(state,offset,before,64)||!before.count||!Read(state,0,vt)||!Read(vt,0x240,begin)||begin!=g_base+0x5A8510||
+       !Read(vt,0x250,end)||end!=g_base+0x5A8830)return false;
+    const auto copy=reinterpret_cast<uintptr_t>(g_construct(reinterpret_cast<void*>(cls),reinterpret_cast<void*>(montage),{},0x40u,0,reinterpret_cast<void*>(state),false,nullptr,false));
+    if(!copy||copy==state||!Read(copy,8,flags)||(flags&0x30u)||!(flags&0x40u)||!Read(copy,0x10,actual)||actual!=cls||
+       !Read(copy,0x20,outer)||outer!=montage||!List(copy,offset,after,64)||after.count!=before.count||after.data==before.data)return false;
+    for(int i=0;i<before.count;++i){unsigned char a=255,b=255;
+        if(!Read(before.data,size_t(i),a)||!Read(after.data,size_t(i),b)||a!=b||a>=64)return false;
+    }
+    // Native Begin/End cache their target ability immediately after Interrupts.
+    // Reset the PRIVATE weak cache, never the source or another player's state.
+    struct Weak {int index=-1,serial=0;};
+    if(!Store(copy,0x40,Weak{}))return false;
+    std::memcpy(event.data()+0x50,&copy,8);return true;
+}
+}
+bool StonePose(uintptr_t original,void* privateMontage,const Source& source){
+    const auto copy=reinterpret_cast<uintptr_t>(privateMontage);uintptr_t cls=0,package=0,sequence=0,skeleton=0;Array tracks{},segments{},nativeTracks{},nativeSegments{},events{};
+    float duration=0,startLength=0,endLength=0,rate=0;native_objects::MemoryReader reader;
+    if(!g_ready||!g_reserveSegments||!g_interruptBoundary||!native_tps::OnGameThread()||!copy||copy==original||
+       !Read(original,0x20,package)||
+       !((Is(original,"War_Atk_Stoneskin_Montage")&&Is(package,"/Game/Characters/Heroes/Hero_War/Animation/War_Atk_Stoneskin_Montage"))||
+         (Is(original,"War_Atk_Stoneskin_Molten_Montage")&&Is(package,"/Game/Characters/Heroes/Hero_War/Animation/War_Atk_Stoneskin_Molten_Montage")))||
+       !Read(original,0x90,duration)||!std::isfinite(duration)||std::fabs(duration-1.8333333731f)>.00001f||!Read(original,0x94,rate)||rate!=1||
+       !native_objects::Alive(reader,g_base,g_recovery[1])||!native_objects::Alive(reader,g_base,g_recovery[2])||
+       !Recovery(g_recovery[1].address,1,startLength)||!Recovery(g_recovery[2].address,2,endLength)||startLength+endLength>=duration||
+       !Read(g_recovery[1].address,0x38,skeleton)||skeleton!=source.skeleton||!Read(g_recovery[2].address,0x38,skeleton)||skeleton!=source.skeleton||
+       !Read(copy,0x10,cls)||!Is(cls,"AnimMontage")||!List(copy,0x158,tracks,4)||tracks.count!=1||!List(tracks.data,8,segments,4)||segments.count!=1||
+       !Read(segments.data,0,sequence)||sequence!=g_recovery[1].address||!List(original,0x158,nativeTracks,4)||nativeTracks.count!=1||
+       !List(nativeTracks.data,8,nativeSegments,4)||nativeSegments.count!=1||!Read(nativeSegments.data,0,sequence)||!List(sequence,0x80,events,64))return false;
+    Presentation plan{};if(!Interrupts(sequence,events,0,duration,0,1,plan)||plan.count!=2)return false;
+    Segment start{},ending{},hold{};
+    if(!Read(segments.data,0,start)||!start.valid||start.loops!=1||start.first||start.start||start.last!=startLength||start.rate!=1)return false;
+    // Keep the native sound and ability timeline. Only the compatible gesture
+    // is at authored speed, ending in its own grounded rest pose.
+    start.rate=startLength/duration;
+    if(!Store(copy,0x90,duration)||!Store(segments.data,0,start)||!CopyLaterSounds(original,privateMontage))return false;
+    Array audio{};if(!List(copy,0x80,audio,64)||plan.count+audio.count>64)return false;
+    for(int i=0;i<audio.count;++i)if(!Read(audio.data,size_t(i)*184,plan.events[plan.count++]))return false;
+    for(int i=0;i<2;++i)if(!PrivateInterrupt(plan.events[i],copy))return false;
+    g_reserveSegments(reinterpret_cast<void*>(tracks.data+8),3);
+    if(!List(tracks.data,8,segments,8)||segments.capacity<3||!Writable(segments.data,3*sizeof(Segment)))return false;
+    start.rate=1;ending=start;ending.sequence=g_recovery[2].address;ending.start=startLength;ending.last=endLength;
+    hold=ending;hold.start=startLength+endLength;hold.first=endLength-1.f/30.f;hold.rate=(hold.last-hold.first)/(duration-hold.start);
+    if(!Store(segments.data,0,start)||!Store(segments.data,32,ending)||!Store(segments.data,64,hold)||!Store(tracks.data,0x10,3))return false;
+    std::stable_sort(plan.events.begin(),plan.events.begin()+plan.count,[](const Event& a,const Event& b){float x=0,y=0;std::memcpy(&x,a.data()+0x24,4);std::memcpy(&y,b.data()+0x24,4);return x<y;});
+    if(audio.capacity<plan.count)g_reserve(reinterpret_cast<void*>(copy+0x80),plan.count);
+    if(!List(copy,0x80,audio,128)||audio.capacity<plan.count||!Writable(audio.data,size_t(plan.count)*184))return false;
+    auto link=[&](uintptr_t at,float time){
+        const int index=time>=hold.start?2:(time>=ending.start?1:0);const auto& s=index==2?hold:(index==1?ending:start);
+        const float span=index==2?duration-hold.start:(index==1?endLength:startLength);
+        return Link(at,copy,s.sequence,time,span)&&Store(at,0x14,index)&&Store(at,0x1C,s.start);
+    };
+    for(int i=0;i<plan.count;++i){float time=0,span=0;std::memcpy(&time,plan.events[i].data()+0x24,4);std::memcpy(&span,plan.events[i].data()+0x58,4);const auto at=audio.data+size_t(i)*184;
+        if(!Store(at,0,plan.events[i])||!link(at,time)||!link(at+0x60,time+span))return false;
+    }
+    return Store(copy,0x88,plan.count)&&SmoothExit(privateMontage);
 }
 }
