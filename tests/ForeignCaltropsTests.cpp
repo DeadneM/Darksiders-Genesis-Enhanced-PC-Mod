@@ -1,4 +1,5 @@
 #include "../src/ForeignCaltropsFeature.cpp"
+#include "../src/RuntimeSettings.h"
 #include <array>
 #include <iostream>
 #include <limits>

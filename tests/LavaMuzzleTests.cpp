@@ -4,6 +4,7 @@
 #include <vector>
 namespace {
 using namespace dg::melee_effect;
+namespace native_bone=dg::native_bone;
 struct Fixture {
  unsigned char actor[0x1100]{},controller[0x400]{},mesh[0x800]{},weapons[2][0x400]{},notify[2][0x90]{},projectiles[2][0x90]{};
  unsigned char montage[0x200]{},package[0x80]{},asset[0x80]{},classes[5][0x80]{},properties[2][0x80]{},events[4*184]{};
