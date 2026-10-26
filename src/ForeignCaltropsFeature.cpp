@@ -139,5 +139,5 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     if(g_log&&g_events++<12)g_log("Caltrops V1.98: one native spawner, own War gesture at native speed; own War casting gesture when loaded, idle fallback; animation EXPERIMENTAL");
     return true;
 }
-void Shutdown(){g_ready=false;g_loaded=false;}
+void Shutdown(){g_ready=false;}
 }
