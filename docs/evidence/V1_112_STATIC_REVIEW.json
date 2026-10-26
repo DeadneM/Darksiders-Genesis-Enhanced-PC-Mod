@@ -1,0 +1,41 @@
+{
+  "baseline": "ad3aaa547028a7da6a5b7d6bf1be5a42db52afd3",
+  "sourceCommit": "8d6e2f502f108643440bdfc9427685eac4cfc120",
+  "unchangedScopes": [
+    "config",
+    "updater",
+    "src/RuntimeSettings.cpp",
+    "src/RuntimeSettings.h",
+    "src/NativeTpsFeature.cpp",
+    "src/NativeTpsFeature.h",
+    "src/DarksidersGenesisMod.cpp",
+    "src/HeavyLandingFeature.cpp",
+    "src/MeleeEffectFeature.cpp",
+    "src/MeleeEffectPolicy.h",
+    "src/PistolVisualFeature.cpp",
+    "src/PistolAnimationPolicy.h",
+    "src/ExecutionCameraFeature.cpp",
+    "src/ForeignBeamFeature.cpp",
+    "src/ForeignPowerFeature.cpp"
+  ],
+  "unchangedMontageSections": [
+    {
+      "section": "bool SoundValid(",
+      "sha256": "3490ca38b961ec7cb2a1f5e57496362ac86f44e118012c3444c41356c9f21237"
+    },
+    {
+      "section": "struct MotionLayout",
+      "sha256": "eedb012c915904c7bfb30482c85f6b6aa95a757d70e2528c2e306ba1737b2918"
+    },
+    {
+      "section": "void* RampageMotion(",
+      "sha256": "ca006393f71ec97b82edbe18cdcbe3fabf4f3c3f397c5ccccfa6dc8490a57737"
+    }
+  ],
+  "cMakeSuites": 62,
+  "localBuild": false,
+  "externalRuntimeWrites": false,
+  "localInstall": false,
+  "gameplayValidated": false,
+  "remainingAudit": "Shared native interrupt-notify mutable cache instancing predates this candidate; P2 runtime tests deferred"
+}

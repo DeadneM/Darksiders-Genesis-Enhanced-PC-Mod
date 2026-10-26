@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.112_POWER_BLENDS_STRIFE_STONESKIN_TEST.zip",
+  "blobSha": "373df36a74c3ccd850352050d6f841bc4c09a812",
+  "httpStatus": 200,
+  "sha256": "EBDF021A0CD4B0C4DD315F9CC376E8B80177FE21CAFF492E0D4F35F426AF86D1",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}

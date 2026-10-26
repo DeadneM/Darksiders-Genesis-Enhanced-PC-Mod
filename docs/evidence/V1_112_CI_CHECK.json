@@ -1,0 +1,18 @@
+{
+  "runId": 40402937664,
+  "jobId": 121853243880,
+  "sourceCommit": "8d6e2f502f108643440bdfc9427685eac4cfc120",
+  "conclusion": "success",
+  "testsPassed": 62,
+  "msvcWarnings": [],
+  "msvcErrors": [],
+  "firstRun": {
+    "runId": 40402083695,
+    "jobId": 121850276054,
+    "conclusion": "failure",
+    "cause": "StoneSkinVisualTests ownership namespace qualification missing; ASI itself compiled; no ZIP published"
+  },
+  "localBuild": false,
+  "localInstall": false,
+  "runtimeValidated": false
+}
