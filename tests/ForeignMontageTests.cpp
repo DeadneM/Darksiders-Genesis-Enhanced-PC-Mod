@@ -10,13 +10,14 @@ using namespace dg::foreign_montage;
 struct Fixture {
     unsigned char original[0x200]{},copy[0x200]{},war[0x180]{},idle[0x180]{},warSkeleton[0x180]{},strifeSkeleton[0x180]{};
     unsigned char classes[8][0x80]{},originalPackage[0x80]{},warPackage[0x80]{},transient[0x80]{},notify[0x100]{},notifyVtable[0x280]{};
-    unsigned char tracks[24]{},segments[96]{},events[4*184]{},sections[88]{},sequenceEvents[552]{};
+    unsigned char tracks[24]{},segments[96]{},events[4*184]{},sections[88]{},sequenceEvents[8*184]{};
     unsigned char copyTracks[24]{},copySegments[96]{},copyEvents[64*184]{},copySections[88]{};
     unsigned char blade[0x100]{},bladeCopy[0x100]{},nova[0x100]{},sound[0x100]{},other[0x100]{},assets[4][0x80]{};
     unsigned char beamSequences[3][0x180]{},beamDestroy[0x100]{},beamInterrupt[0x100]{},beamStateClass[0x80]{};
     unsigned char gesture[0x240]{},gesturePackage[0x80]{},gestureEvents[552]{},gestureNotifies[3][0x100]{},footstepClass[0x80]{},gestureTrack[4]{},items[8*24]{};
+ unsigned char interruptClass[0x80]{},interrupts[2][0x80]{};
 } f;
-unsigned char entries[48][256]{};uintptr_t names[48]{},chunks[1]{reinterpret_cast<uintptr_t>(names)},objectChunks[1]{};
+unsigned char entries[64][256]{};uintptr_t names[64]{},chunks[1]{reinterpret_cast<uintptr_t>(names)},objectChunks[1]{};
 bool gameThread=true;int mode=0;unsigned constructors=0,skeletonCalls=0,reserves=0;
 Source source{};
 template<class T>void Put(void* p,size_t offset,T value){std::memcpy(static_cast<unsigned char*>(p)+offset,&value,sizeof(value));}
@@ -58,7 +59,7 @@ void* ConstructNative(void* cls,void* outer,Name name,uint32_t flags,uint32_t in
     return f.copy;
 }
 void Fresh(){
-    f={};entries[0][12]=0;gameThread=true;mode=0;constructors=skeletonCalls=reserves=0;g_ready=true;g_gestures[0]=g_gestures[1]={};
+    f={};entries[0][12]=0;gameThread=true;mode=0;constructors=skeletonCalls=reserves=0;g_reserveSegments=nullptr;g_ready=true;g_gestures[0]=g_gestures[1]={};
     g_construct=ConstructNative;g_package=PackageNative;g_skeleton=SkeletonNative;g_reserve=ReserveNative;
     const char* labels[]={"AnimMontage","Class","AnimSequence","Skeleton","Package","AnimNotify_CallAbilityFunction","AnimNotify_PlayParticleEffect","AnimNotify_PlaySound"};
     const unsigned ids[]={1,2,3,4,5,6,17,18};for(unsigned i=0;i<8;++i)Label(f.classes[i],ids[i],labels[i]);
@@ -102,7 +103,7 @@ void Fresh(){
 }
 void Run(){
     std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(chunks));
-    for(unsigned i=0;i<48;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
+    for(unsigned i=0;i<64;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
     Fresh();const auto original=std::make_unique<Fixture>(f);
     Check(CanBuild(source)&&Geyser(reinterpret_cast<uintptr_t>(f.original),source)==f.copy,"known template creates private compatible native montage");
     Check(constructors==2&&skeletonCalls==1&&reserves==1,"one montage, one root-only notify clone and native private reserve");
@@ -223,7 +224,7 @@ void GestureFixture(bool war=false,bool reset=true){
 }
 void Gestures(){
     std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(chunks));
-    for(unsigned i=0;i<48;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
+    for(unsigned i=0;i<64;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
     for(bool war:{false,true}){
         GestureFixture(war);const auto before=std::make_unique<Fixture>(f);ObserveSequence(reinterpret_cast<uintptr_t>(f.gesture));float duration=5;
         const auto skeleton=reinterpret_cast<uintptr_t>(war?f.warSkeleton:f.strifeSkeleton);
@@ -281,9 +282,22 @@ void BeamFixture(){
     Put(f.events,368+0x50,reinterpret_cast<uintptr_t>(f.beamInterrupt));Put(f.events,368+0x24,1.014648795f);Put(f.events,368+0x58,3.885350704f);
     Put(f.original,0x80,Array{reinterpret_cast<uintptr_t>(f.events),3,3});
 }
+void GeyserPacing(){
+    GestureFixture(false);ObserveSequence(reinterpret_cast<uintptr_t>(f.gesture));
+    g_reserveSegments=[](void* header,int count){Check(header==f.copyTracks+8&&count==2,"32-byte native reserve restricted to own cloned animation track");Put(header,0,Array{reinterpret_cast<uintptr_t>(f.copySegments),1,3});};
+    Put(f.war,0x80,Array{reinterpret_cast<uintptr_t>(f.sequenceEvents),5,8});Label(f.interruptClass,48,"AnimNotify_EnableAbilityInterrupt");
+    for(int i=0;i<2;++i){Put(f.interrupts[i],0x10,reinterpret_cast<uintptr_t>(f.interruptClass));Put(f.interrupts[i],0x20,reinterpret_cast<uintptr_t>(f.war));auto* e=f.sequenceEvents+(3+i)*184;const float time=i?1.0523383617f:.7892537713f;Put(e,0x50,reinterpret_cast<uintptr_t>(f.interrupts[i]));Put(e,0x24,time);Put(e,0x58,2.3666665554f-time);}
+    const auto before=std::make_unique<Fixture>(f);Check(Geyser(reinterpret_cast<uintptr_t>(f.original),source)==f.copy,"Geyser gesture and native cancel windows build privately");
+    Check(At<Array>(f.copyTracks,8).count==2&&At<int>(f.copy,0x88)==6&&At<float>(f.copy,0x90)==2.3666665554f,"native montage duration and all gameplay cues retained with two own-pose segments");
+    auto cast=At<Segment>(f.copySegments,0),idle=At<Segment>(f.copySegments,32);
+    Check(cast.sequence==reinterpret_cast<uintptr_t>(f.gesture)&&cast.rate==1&&cast.last==1&&idle.sequence==source.sequence&&idle.start==1&&std::fabs(idle.last/idle.rate-(2.3666665554f-1))<.00001f,"one-second gesture keeps native speed; own idle covers remaining native cast span");
+    Check(At<float>(f.copyEvents,2*184+0x24)==.4880667329f&&At<uintptr_t>(f.copyEvents,2*184+0x48)==reinterpret_cast<uintptr_t>(f.notify),"actual blast callback not sped up or delayed to match a visual workaround");
+    Check(At<uintptr_t>(f.copyEvents,4*184+0x50)==reinterpret_cast<uintptr_t>(f.interrupts[0])&&At<int>(f.copyEvents,4*184+0x74)==1&&std::fabs(At<float>(f.copyEvents,4*184+0x84)-2.3666665554f)<.00001f,"native MOVE state can begin in gesture and end in idle segment");
+    Check(!std::memcmp(f.war,before->war,sizeof(f.war))&&!std::memcmp(f.sequenceEvents,before->sequenceEvents,sizeof(f.sequenceEvents))&&!std::memcmp(f.interrupts,before->interrupts,sizeof(f.interrupts)),"source animation, callback times and control windows never edited");
+}
 void Beams(){
     std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(chunks));
-    for(unsigned i=0;i<48;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
+    for(unsigned i=0;i<64;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
     BeamFixture();const auto before=std::make_unique<Fixture>(f);
     Check(WorldEnder(reinterpret_cast<uintptr_t>(f.original),source)==f.copy,"finite three-segment beam montage builds on own skeleton");
     Check(At<uintptr_t>(f.copy,0x38)==source.skeleton&&At<int>(f.copy,0x88)==3,"private skeleton and complete native callback/cancellation event plan");
@@ -317,5 +331,5 @@ void Beams(){
 }
 }
 namespace dg::native_tps {bool OnGameThread(){return gameThread;}}
-int main(){try{Run();Batch();Gestures();Beams();std::cout<<"Private native montage allocation, callback mapping, source preservation and alias rejection passed\n";return 0;}
+int main(){try{Run();Batch();Gestures();GeyserPacing();Beams();std::cout<<"Private native montage allocation, callback mapping, source preservation and alias rejection passed\n";return 0;}
 catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

@@ -18,7 +18,7 @@ using Construct=void*(*)(void*,void*,Name,uint32_t,uint32_t,void*,bool,void*,boo
 using Package=void*(*)();
 using Skeleton=void(*)(void*,void*);
 using Reserve=void(*)(void*,int);
-Construct g_construct=nullptr;Package g_package=nullptr;Skeleton g_skeleton=nullptr;Reserve g_reserve=nullptr;
+Construct g_construct=nullptr;Package g_package=nullptr;Skeleton g_skeleton=nullptr;Reserve g_reserve=nullptr,g_reserveSegments=nullptr;
 using SoundNotify=void(*)(void*,void*,void*);
 SoundNotify g_soundNotify=nullptr;LogFn g_log=nullptr;unsigned g_soundEvents=0,g_motionRefusals=0;
 bool OpeningSound(uintptr_t notify,float time);
@@ -151,6 +151,7 @@ bool Collect(uintptr_t asset,const Array& events,Presentation& out,const Event* 
     }
     return true;
 }
+bool Interrupts(uintptr_t asset,const Array&,float first,float last,float start,float rate,Presentation&);
 bool AdaptRoot(Event& event,uintptr_t montage,const Source& source){
     uintptr_t notify=0,cls=0;std::memcpy(&notify,event.data()+0x48,sizeof(notify));
     if(!Read(notify,0x10,cls))return false;
@@ -177,6 +178,8 @@ void Initialize(LogFn log,bool exact){
        std::memcmp(reinterpret_cast<void*>(g_base+0xA7B1B0),package,sizeof(package))||
        std::memcmp(reinterpret_cast<void*>(g_base+0x16C7130),skeleton,sizeof(skeleton))||
        std::memcmp(reinterpret_cast<void*>(g_base+0x2C42C0),reserve,sizeof(reserve)))return;
+    constexpr unsigned char segments[]={0x48,0x89,0x5C,0x24,0x08,0x57,0x48,0x83,0xEC,0x20,0x48,0x63,0xDA,0x48,0x8B,0xF9,0x85,0xD2,0x74,0x1E,0x48,0x8B,0xCB,0x33,0xD2,0x48,0xC1,0xE1,0x05};
+    if(!std::memcmp(reinterpret_cast<void*>(g_base+0x256970),segments,sizeof(segments)))g_reserveSegments=reinterpret_cast<Reserve>(g_base+0x256970);
     constexpr unsigned char sound[]={0x48,0x8B,0xC4,0x55,0x57,0x41,0x56,0x48,0x8D,0x68,0xA1,0x48,0x81,0xEC,0xB0,0x00};
     if(!std::memcmp(reinterpret_cast<void*>(g_base+0x16977D0),sound,sizeof(sound)))g_soundNotify=reinterpret_cast<SoundNotify>(g_base+0x16977D0);
     g_gestures[0]=g_gestures[1]={};
@@ -219,8 +222,10 @@ void* Geyser(uintptr_t original,const Source& source){
        !native_objects::NameValueIs(g_base,source.rootIndex,source.rootNumber,"Bone_Strife_Root")||
        !Original(original)||!Shape(original,before)||!SpawnEvent(before.segment.sequence,event)||
        !List(before.segment.sequence,0x80,sequenceEvents,64)||!Collect(before.segment.sequence,sequenceEvents,presentation,&event)||
-       !Collect(original,before.events,presentation)||presentation.spawns!=1||presentation.sounds!=1||!presentation.particles)return nullptr;
+       !Collect(original,before.events,presentation)||!Interrupts(before.segment.sequence,sequenceEvents,0,before.length,0,1,presentation)||presentation.spawns!=1||presentation.sounds!=1||!presentation.particles)return nullptr;
     const auto playback=CastingSequence(source.sequence,source.skeleton,length);
+    const bool paced=playback!=source.sequence&&g_reserveSegments&&length<before.length;
+
     std::memcpy(&time,event.data()+0x24,sizeof(time));
     if(time>=before.length)return nullptr;
     std::stable_sort(presentation.events.begin(),presentation.events.begin()+presentation.count,[](const Event& a,const Event& b){
@@ -239,7 +244,20 @@ void* Geyser(uintptr_t original,const Source& source){
     // Keep the single native callback and compatible presentation on its timeline.
     Segment segment=after.segment;segment.sequence=playback;segment.last=length;segment.rate=length/after.length;
     if(!std::isfinite(segment.rate)||segment.rate<=.01f||segment.rate>100)return nullptr;
-    for(int i=0;i<presentation.count;++i)if(!AdaptRoot(presentation.events[i],montage,source))return nullptr;
+    for(int i=0;i<presentation.count;++i){
+        uintptr_t notify=0;std::memcpy(&notify,presentation.events[i].data()+0x48,8);
+        if(notify&&!AdaptRoot(presentation.events[i],montage,source))return nullptr;
+    }
+    Array segments=after.segments;Segment idle{};
+    if(paced){
+        if(segments.capacity<2)g_reserveSegments(reinterpret_cast<void*>(after.tracks.data+8),2);
+        float idleLength=0;
+        if(!List(after.tracks.data,8,segments,16)||segments.data==before.segments.data||segments.capacity<2||
+           !Writable(segments.data,2*sizeof(Segment))||!Read(source.sequence,0x90,idleLength)||!std::isfinite(idleLength)||idleLength<=0)return nullptr;
+        segment.rate=1;idle=segment;idle.sequence=source.sequence;idle.start=length;idle.last=idleLength;idle.rate=idleLength/(after.length-length);
+        if(!std::isfinite(idle.rate)||idle.rate<=.01f||idle.rate>100)return nullptr;
+    }
+
     // Use the game's 184-byte array reserve helper, on the private clone only.
     // No CRT allocation is ever handed to Unreal's array destructor.
     if(presentation.count>after.events.capacity)g_reserve(reinterpret_cast<void*>(montage+0x80),presentation.count);
@@ -249,11 +267,17 @@ void* Geyser(uintptr_t original,const Source& source){
     g_skeleton(created,reinterpret_cast<void*>(source.skeleton));
     const float zero=0;
     for(int i=0;i<presentation.count;++i){
-        const auto at=storage.data+size_t(i)*sizeof(Event);std::memcpy(&time,presentation.events[i].data()+0x24,sizeof(time));
-        if(!Store(at,0,presentation.events[i])||!Link(at,montage,playback,time,after.length)||
-           !Link(at+0x60,montage,playback,time,after.length))return nullptr;
+        const auto at=storage.data+size_t(i)*sizeof(Event);float duration=0;
+        std::memcpy(&time,presentation.events[i].data()+0x24,sizeof(time));std::memcpy(&duration,presentation.events[i].data()+0x58,4);
+        auto link=[&](uintptr_t element,float value){
+            const bool second=paced&&value>=length;const auto sequence=second?source.sequence:playback;
+            const float begin=second?length:0,span=paced?(second?after.length-length:length):after.length;
+            return Link(element,montage,sequence,value,span)&&Store(element,0x14,second?1:0)&&Store(element,0x1C,begin);
+        };
+        if(!Store(at,0,presentation.events[i])||!link(at,time)||!link(at+0x60,time+duration))return nullptr;
     }
-    if(!Store(after.segments.data,0,segment)||!Link(after.sections.data,montage,playback,zero,after.length)||
+    if(paced&&(!Store(segments.data,sizeof(Segment),idle)||!Store(after.tracks.data,0x10,2)))return nullptr;
+    if(!Store(segments.data,0,segment)||!Link(after.sections.data,montage,playback,zero,after.length)||
        !Store(montage,0x88,presentation.count))return nullptr;
     return created;
 }
@@ -518,6 +542,33 @@ bool ChargeEvents(const MotionLayout& layout,Presentation& plan){
     }
     return blasts==1&&surfaces==6&&shields==1&&collisions==1;
 }
+struct Rotation {float pitch=0,yaw=0,roll=0;};
+bool RootSocketYaw(uintptr_t notify,Name name,float& yaw){
+    uintptr_t sequence=0,skeleton=0,cls=0;int socketsAt=0;Array sockets{};
+    if(!Read(notify,0x20,sequence)||!Is(sequence,"War_Atk_Rampage_Run")||!Read(sequence,0x38,skeleton)||!Is(skeleton,"War_Mesh_Skeleton")||
+       !Read(skeleton,0x10,cls)||!native_objects::PropertyField(g_base,cls,"Sockets","ArrayProperty",16,socketsAt)||!List(skeleton,size_t(socketsAt),sockets,128))return false;
+    for(int i=0;i<sockets.count;++i){
+        uintptr_t socket=0,outer=0;Name actual{},bone{};int nameAt=0,boneAt=0,rotationAt=0,locationAt=0;Rotation rotation{};std::array<float,3> location{};
+        if(!Read(sockets.data,size_t(i)*8,socket)||!Read(socket,0x10,cls)||!Is(cls,"SkeletalMeshSocket")||
+           !Read(socket,0x20,outer)||outer!=skeleton||!native_objects::PropertyField(g_base,cls,"SocketName","NameProperty",8,nameAt)||!Read(socket,size_t(nameAt),actual))return false;
+        if(actual.index!=name.index||actual.number!=name.number)continue;
+        if(!native_objects::PropertyField(g_base,cls,"BoneName","NameProperty",8,boneAt)||!Read(socket,size_t(boneAt),bone)||
+           !native_objects::NameValueIs(g_base,bone.index,bone.number,"Bone_War_Root")||
+           !native_objects::PropertyField(g_base,cls,"RelativeRotation","StructProperty",12,rotationAt)||!Read(socket,size_t(rotationAt),rotation)||
+           !native_objects::PropertyField(g_base,cls,"RelativeLocation","StructProperty",12,locationAt)||!Read(socket,size_t(locationAt),location)||
+           rotation.pitch||rotation.roll||location[0]||location[1]||location[2]||!std::isfinite(rotation.yaw)||std::fabs(rotation.yaw)>360)return false;
+        yaw=rotation.yaw;return true;
+    }
+    return false;
+}
+bool MotionEvents(const MotionLayout& layout,int kind,Presentation& plan){
+    if(kind==0)return !layout.events.count&&!layout.markers.count&&!layout.states.count&&ChargeEvents(layout,plan);
+    if(layout.events.count>int(plan.events.size()))return false;
+    for(int i=0;i<layout.events.count;++i)if(!Read(layout.events.data,size_t(i)*sizeof(Event),plan.events[plan.count++]))return false;
+    Segment segment{};Array events{};
+    return Read(layout.segments.data,0,segment)&&List(segment.sequence,0x80,events,128)&&
+        Interrupts(segment.sequence,events,segment.first,segment.last,segment.start,segment.rate,plan);
+}
 uintptr_t RampageNotify(uintptr_t notify,uintptr_t outer,const Source& source);
 bool MotionNotify(Event& event,uintptr_t montage,const Source& source){
     uintptr_t notify=0;size_t at=0x48;std::memcpy(&notify,event.data()+at,8);
@@ -527,7 +578,7 @@ bool MotionNotify(Event& event,uintptr_t montage,const Source& source){
 }
 uintptr_t RampageNotify(uintptr_t notify,uintptr_t outer,const Source& source){
     if(!g_ready||!g_construct||!native_tps::OnGameThread())return 0;
-    uintptr_t cls=0,blast=0;int socketAt=0,blastAt=0;Name socket{},replacement{};bool particle=false,timed=false;
+    uintptr_t cls=0,blast=0;int socketAt=0,blastAt=0;Name socket{},replacement{};bool particle=false,timed=false;Rotation timedRotation{};int rotationAt=0;
     if(!Read(notify,0x10,cls))return 0;
     if(Is(cls,"AnimNotify_SpawnBlast")){
         if(!native_objects::PropertyField(g_base,cls,"SpawnSocket","NameProperty",8,socketAt)||
@@ -548,13 +599,19 @@ uintptr_t RampageNotify(uintptr_t notify,uintptr_t outer,const Source& source){
         replacement={source.spineIndex,source.spineNumber};
     }else if(native_objects::NameValueIs(g_base,socket.index,socket.number,"Bone_War_Root")||
              native_objects::NameValueIs(g_base,socket.index,socket.number,"Bone_War_Hand_L"))replacement={source.rootIndex,source.rootNumber};
-    else if(timed&&native_objects::NameValueIs(g_base,socket.index,socket.number,"VFX_Root"))replacement={source.rootIndex,source.rootNumber};
+    else if(timed&&native_objects::NameValueIs(g_base,socket.index,socket.number,"VFX_Root")){
+        float yaw=0;int locationAt=0;std::array<float,3> location{};
+        if(!native_objects::PropertyField(g_base,cls,"LocationOffset","StructProperty",12,locationAt)||!Read(notify,size_t(locationAt),location)||
+           location[0]||location[1]||!std::isfinite(location[2])||!RootSocketYaw(notify,socket,yaw)||!native_objects::PropertyField(g_base,cls,"RotationOffset","StructProperty",12,rotationAt)||
+           !Read(notify,size_t(rotationAt),timedRotation)||!std::isfinite(timedRotation.pitch)||!std::isfinite(timedRotation.yaw)||!std::isfinite(timedRotation.roll))return 0;
+        timedRotation.yaw+=yaw;replacement={source.rootIndex,source.rootNumber};
+    }
     else return notify;
     const auto copy=reinterpret_cast<uintptr_t>(g_construct(reinterpret_cast<void*>(cls),reinterpret_cast<void*>(outer),{},0x40u,0,reinterpret_cast<void*>(notify),false,nullptr,false));
     uintptr_t actual=0,parent=0,copiedBlast=0;uint32_t flags=0;
     if(!copy||copy==notify||!Read(copy,0x10,actual)||actual!=cls||!Read(copy,0x20,parent)||parent!=outer||
        !Read(copy,8,flags)||(flags&0x30u)||!(flags&0x40u)||(blast&&(!Read(copy,size_t(blastAt),copiedBlast)||copiedBlast!=blast))||
-       !Store(copy,size_t(socketAt),replacement))return 0;
+       !Store(copy,size_t(socketAt),replacement)||(rotationAt&&!Store(copy,size_t(rotationAt),timedRotation)))return 0;
     // Preserve the existing particle quaternion/cache as well as reflected
     // fields. NewObject need not copy non-UPROPERTY native cached values.
     if(particle){std::array<unsigned char,0x54> payload{};
@@ -577,7 +634,7 @@ void* RampageMotion(uintptr_t original,const Source& source){
     const auto outer=reinterpret_cast<uintptr_t>(g_package());
     if(!Read(outer,0x10,cls)||!Is(cls,"Package")||!Is(outer,"/Engine/Transient")||!MotionShape(original,kind,before))return fail("source phase, native rate or layout");
     Presentation charge{};
-    if(kind==0&&(!g_reserve||before.events.count||before.markers.count||before.states.count||!ChargeEvents(before,charge)))return fail("native charge cues or unused-slot timeline");
+    if(!g_reserve||!MotionEvents(before,kind,charge))return fail("native motion cues or unused-slot timeline");
     auto* created=g_construct(reinterpret_cast<void*>(before.cls),reinterpret_cast<void*>(outer),{},0x40u,0,reinterpret_cast<void*>(original),false,nullptr,false);
     const auto copy=reinterpret_cast<uintptr_t>(created);uintptr_t actual=0;uint32_t flags=0;
     if(!copy||copy==original||!Read(copy,0x20,actual)||actual!=outer||!Read(copy,8,flags)||(flags&0x30u)||!(flags&0x40u)||
@@ -587,23 +644,20 @@ void* RampageMotion(uintptr_t original,const Source& source){
        after.tracks.data==before.tracks.data||!Writable(after.tracks.data,24))return fail("private clone identity, arrays or source equality");
     // Motion clips, section loops and native rates stay intact. No source
     // object is edited, no manual blast/FX call or extra detour is needed.
-    if(kind==0){
+    if(charge.count){
         if(charge.count>after.events.capacity)g_reserve(reinterpret_cast<void*>(copy+0x80),charge.count);
         Array storage{};
         if(!List(copy,0x80,storage,128)||storage.data==before.events.data||storage.capacity<charge.count||
            !Writable(storage.data,size_t(charge.count)*sizeof(Event)))return fail("private charge storage");
         for(int i=0;i<charge.count;++i){
             auto event=charge.events[i];float time=0,duration=0;std::memcpy(&time,event.data()+0x24,4);std::memcpy(&duration,event.data()+0x58,4);
-            const int index=time>=.33333334f?1:0;Segment segment{};
+            const int index=kind==0&&time>=.33333334f?1:0;Segment segment{};
             if(!Read(before.segments.data,size_t(index)*sizeof(Segment),segment)||!MotionNotify(event,copy,source))return fail("private charge notify/socket");
             const auto at=storage.data+size_t(i)*sizeof(Event);
             if(!Store(at,0,event)||!Link(at,copy,segment.sequence,time,segment.last)||!Link(at+0x60,copy,segment.sequence,time+duration,segment.last)||
                !Store(at,0x14,index)||!Store(at,0x74,index)||!Store(at,0x1C,segment.start)||!Store(at,0x7C,segment.start))return nullptr;
         }
         if(!Store(copy,0x88,charge.count))return nullptr;
-    }else for(int i=0;i<after.events.count;++i){
-        Event event{};const auto at=after.events.data+size_t(i)*sizeof(Event);
-        if(!Read(before.events.data,size_t(i)*sizeof(Event),event)||!MotionNotify(event,copy,source)||!Store(at,0,event)||!Store(at,8,copy)||!Store(at,0x68,copy))return fail("private event or impact socket");
     }
     for(int i=0;i<after.sections.count;++i)if(!Store(after.sections.data+size_t(i)*88,8,copy))return nullptr;
     if(!Store(after.tracks.data,0,Name{source.slotIndex,source.slotNumber}))return nullptr;

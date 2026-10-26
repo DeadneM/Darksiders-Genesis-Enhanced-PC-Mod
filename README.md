@@ -1,3 +1,13 @@
+## V1.111 - Repere Rampage et rythme des gestes natifs
+
+**EXPERIMENTALE : compilation et livraison GitHub a controler ; NON VALIDEE EN JEU.** Base V1.110, effets du coup tournoyant explicitement VALIDES par l'utilisateur, sons/vitesses des autres pouvoirs et flash Lava conserves. Retour V1.110 : bouclier Rampage present mais tourne de 90 degres a droite dans les deux vues ; fin nettement meilleure mais court arret ; geste Geyser Strife mal synchronise, pas une demande de raccourcir seulement le blocage final. Degats de charge non confirmes.
+
+Le bouclier prive reprend la rotation du vrai socket War VFX_Root lue dans le squelette natif ; aucun angle de camera compense. Les fenetres natives d'interruption des fins Rampage et de Geyser sont conservees sur le montage prive, avec debut/fin exacts. Geyser joue le geste propre Strife a sa vitesse d'origine puis revient a sa pose d'attente : fini l'etirement uniforme d'une seconde sur 2,37 secondes. Temps de SpawnBlast, effets, cout et duree du montage restent natifs. Aucun Finish anticipe, timer ou nouveau hook.
+
+Acquis du coup tournoyant, tirs, camera, XInput et reception lourde inchanges ; 169 cles INI / 55 ID Hotkeys conserves. P2 differe. Compilation uniquement GitHub, updater debug et ZIP quatre fichiers NoCompression ; aucune installation locale. [Preuves, limites, essais et rollback](docs/V1_111_NATIVE_POWER_TIMING_FRAME_TEST.md).
+
+---
+
 ## V1.110 - Charge Rampage, sortie de pose et coup tournoyant
 
 **CONSTRUITE / CONTROLEE : [61/61 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40356864172), zero avertissement/erreur MSVC. [ZIP public immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/b43590e2f481e48ece13cd321c568001f26a4846/downloads/DarksidersGenesis_V1.110_NATIVE_CHARGE_WINGCLIP_TEST.zip) - [Recu](docs/V1_110_DELIVERY_RECEIPT.md). Updater debug : V1.110 selectionnee, octets verifies. Defender : aucune menace detectee dans le ZIP final et les quatre fichiers, protections actives. Corrections EXPERIMENTALES, NON VALIDEES EN JEU.**
