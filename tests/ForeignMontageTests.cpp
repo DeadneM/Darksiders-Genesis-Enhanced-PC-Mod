@@ -283,6 +283,7 @@ void BeamFixture(){
     Put(f.original,0x80,Array{reinterpret_cast<uintptr_t>(f.events),3,3});
 }
 void GeyserPacing(){
+    std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(chunks));for(unsigned i=0;i<64;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
     GestureFixture(false);ObserveSequence(reinterpret_cast<uintptr_t>(f.gesture));
     g_reserveSegments=[](void* header,int count){Check(header==f.copyTracks+8&&count==2,"32-byte native reserve restricted to own cloned animation track");Put(header,0,Array{reinterpret_cast<uintptr_t>(f.copySegments),1,3});};
     Put(f.war,0x80,Array{reinterpret_cast<uintptr_t>(f.sequenceEvents),5,8});Label(f.interruptClass,48,"AnimNotify_EnableAbilityInterrupt");
