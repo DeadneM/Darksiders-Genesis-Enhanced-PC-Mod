@@ -34,7 +34,7 @@ void SampleNative(void* sequence,dg::pistol_visual::CompactPose* pose,dg::pistol
 }
 void Fresh(){
  f={};context={};local=thread=buildOK=playOK=true;reassign=false;liveId=0;builds=plays=finishes=0;cause=255;
- g_ready=true;g_failed=false;g_log=nullptr;g_events=0;g_handling=nullptr;g_sample=nullptr;g_position=nullptr;for(auto& v:g_visual)v={};g_idle={};for(auto& id:g_phases)id={};for(auto& c:g_cast)c={};g_finish=FinishNative;g_playing=PlayingNative;
+ g_ready=true;g_failed=false;g_log=nullptr;g_events=0;g_handling=nullptr;g_sample=nullptr;g_position=nullptr;g_visualMask=0;for(auto& v:g_visual)v={};g_idle={};for(auto& id:g_phases)id={};for(auto& c:g_cast)c={};g_finish=FinishNative;g_playing=PlayingNative;
  const char* classes[]={"BlueprintGeneratedClass","AnimSequence","Strife_Blueprint_C","StrifeAnim_Blueprint_C","Skeleton","StructProperty","NameProperty","Class"};
  for(int i=0;i<8;++i)Label(f.classes[i],i+1,classes[i]);
  context.index=0;context.world=456;context.localPlayer=123;context.character=context.pawn=reinterpret_cast<uintptr_t>(f.actor);context.controller=reinterpret_cast<uintptr_t>(f.controller);
@@ -98,7 +98,7 @@ void Run(){
  Fresh();Shutdown();Check(!Cast()&&!builds,"shutdown restores native passthrough");
  // The visual sampler is independent of the chain authorization token and
  // never advances animation, generates notifies or applies root motion.
- Fresh();samples=0;g_sample=SampleNative;Visual v{};v.ability=Live(f.ability);v.actor=Live(f.actor);v.mesh=Live(f.mesh);v.anim=Live(f.anim);v.skeleton=Live(f.skeleton);v.montage=Live(f.replacement);v.sequence=Live(f.poseSequence);v.position=.6f;v.length=1.2f;v.tick=GetTickCount64();g_visual[0]=v;
+ Fresh();samples=0;g_sample=SampleNative;Visual v{};v.ability=Live(f.ability);v.actor=Live(f.actor);v.mesh=Live(f.mesh);v.anim=Live(f.anim);v.skeleton=Live(f.skeleton);v.montage=Live(f.replacement);v.sequence=Live(f.poseSequence);v.position=.6f;v.length=1.2f;v.tick=GetTickCount64();g_visual[0]=v;g_visualMask=1;
  Put(f.poseSequence,0x38,v.skeleton.address);Put(f.poseSequence,0x90,1.3f);Put(f.anim,0x240,reinterpret_cast<uintptr_t>(f.proxy));Put(f.anim,0x318,g_base+0x2A77628);
  Put(f.proxy,0xA0,v.anim.address);Put(f.proxy,0xB8,v.mesh.address);Put(f.proxy,0xB0,v.skeleton.address);for(unsigned i=0;i<80;++i)f.compact[i]=uint16_t(i);
  Put(f.proxy,0x450,Array{reinterpret_cast<uintptr_t>(f.compact),80,80});f.pose[0].t[0]=123;

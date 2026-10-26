@@ -495,13 +495,14 @@ bool MotionNotify(Event& event,uintptr_t montage,const Source& source){
 }
 uintptr_t RampageNotify(uintptr_t notify,uintptr_t outer,const Source& source){
     if(!g_ready||!g_construct||!native_tps::OnGameThread())return 0;
-    uintptr_t cls=0,blast=0;int socketAt=0,blastAt=0;Name socket{},replacement{};
+    uintptr_t cls=0,blast=0;int socketAt=0,blastAt=0;Name socket{},replacement{};bool particle=false;
     if(!Read(notify,0x10,cls))return 0;
     if(Is(cls,"AnimNotify_SpawnBlast")){
         if(!native_objects::PropertyField(g_base,cls,"SpawnSocket","NameProperty",8,socketAt)||
            !native_objects::PropertyField(g_base,cls,"BlastClass","ClassProperty",8,blastAt)||!Read(notify,size_t(blastAt),blast)||!blast)return 0;
     }else if(Is(cls,"AnimNotify_PlayParticleEffect")||Is(cls,"AnimNotify_PlaySurfaceParticleEffect")){
-        if(!native_objects::PropertyField(g_base,cls,"SocketName","NameProperty",8,socketAt))return 0;
+        particle=true;
+        if(!native_objects::PropertyField(g_base,cls,"SocketName","NameProperty",8,socketAt)||socketAt!=0x84)return 0;
     }else return notify;
     if(!Read(notify,size_t(socketAt),socket))return 0;
     if(native_objects::NameValueIs(g_base,socket.index,socket.number,"Bone_War_Spine1")){
@@ -515,6 +516,10 @@ uintptr_t RampageNotify(uintptr_t notify,uintptr_t outer,const Source& source){
     if(!copy||copy==notify||!Read(copy,0x10,actual)||actual!=cls||!Read(copy,0x20,parent)||parent!=outer||
        !Read(copy,8,flags)||(flags&0x30u)||!(flags&0x40u)||(blast&&(!Read(copy,size_t(blastAt),copiedBlast)||copiedBlast!=blast))||
        !Store(copy,size_t(socketAt),replacement))return 0;
+    // Preserve the existing particle quaternion/cache as well as reflected
+    // fields. NewObject need not copy non-UPROPERTY native cached values.
+    if(particle){std::array<unsigned char,0x54> payload{};
+        if(!Read(notify,0x38,payload)||!Store(copy,0x38,payload)||!Store(copy,size_t(socketAt),replacement))return 0;}
     return copy;
 }
 void* RampageMotion(uintptr_t original,const Source& source){

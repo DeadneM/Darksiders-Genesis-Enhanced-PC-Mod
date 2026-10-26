@@ -25,7 +25,8 @@ static_assert(sizeof(Extract)==8&&offsetof(Extract,time)==4);
 using Sample=void(*)(void*,pistol_visual::CompactPose*,pistol_visual::Curve*,const Extract*);
 Notify g_blast=nullptr,g_surface=nullptr;Position g_position=nullptr;Sample g_sample=nullptr;
 struct Visual {native_objects::Identity ability{},actor{},mesh{},anim{},skeleton{},montage{},sequence{};foreign_montage::Source source{};float position=0,length=0;uint64_t tick=0;};
-Visual g_visual[2]{};SRWLOCK g_visualLock=SRWLOCK_INIT;
+Visual g_visual[2]{};SRWLOCK g_visualLock=SRWLOCK_INIT;std::atomic_uint g_visualMask{0};
+Visual* PlayerVisual(int index){if(index==0)return &g_visual[0];if(index==1)return &g_visual[1];return nullptr;}
 // One native Rampage spans different ability objects. The actor token
 // survives Start's ordinary end and is consumed by the final companion.
 struct Cast {native_objects::Identity actor{};uintptr_t world=0;int phase=-1;};Cast g_cast[2]{};
@@ -98,8 +99,13 @@ bool Source(const local_players::Context& c,foreign_montage::Source& out,const c
     }
     out.sequence=g_idle.address;out.rootIndex=root.index;out.rootNumber=root.number;out.slotIndex=slot.index;out.slotNumber=slot.number;return true;
 }
-void ClearVisual(int index){AcquireSRWLockExclusive(&g_visualLock);g_visual[index]={};ReleaseSRWLockExclusive(&g_visualLock);}
+void ClearVisual(int index){
+    auto* target=PlayerVisual(index);if(!target)return;
+    const unsigned bit=target==&g_visual[0]?1u:2u;
+    AcquireSRWLockExclusive(&g_visualLock);*target={};g_visualMask.fetch_and(~bit,std::memory_order_relaxed);ReleaseSRWLockExclusive(&g_visualLock);
+}
 void BeginVisual(const local_players::Context& c,void* ability,void* montage,int phase,const foreign_montage::Source& source){
+    auto* target=PlayerVisual(c.index);if(!target)return;
     Visual v{};v.source=source;uintptr_t mesh=0,anim=0;
     if(!Read(c.character,0x380,mesh)||!Read(mesh,0x718,anim)||!native_objects::CaptureLive(g_base,ability,v.ability)||
        !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(c.character),v.actor)||
@@ -107,7 +113,7 @@ void BeginVisual(const local_players::Context& c,void* ability,void* montage,int
        !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(source.skeleton),v.skeleton)||!native_objects::CaptureLive(g_base,montage,v.montage)||
        !Read(reinterpret_cast<uintptr_t>(montage),0x90,v.length))return;
     v.sequence=g_poses[phase?1:0];v.tick=GetTickCount64();
-    AcquireSRWLockExclusive(&g_visualLock);g_visual[c.index]=v;ReleaseSRWLockExclusive(&g_visualLock);
+    AcquireSRWLockExclusive(&g_visualLock);*target=v;g_visualMask.fetch_or(target==&g_visual[0]?1u:2u,std::memory_order_relaxed);ReleaseSRWLockExclusive(&g_visualLock);
 }
 void MotionNotify(Notify native,void* notify,void* mesh,void* animation){
     if(!native)return;
@@ -116,7 +122,8 @@ void MotionNotify(Notify native,void* notify,void* mesh,void* animation){
         if(Read(m,0xE8,actor)&&Owner(reinterpret_cast<void*>(actor),c,false)&&
            (Is(a,"War_Atk_Rampage_Start")||Is(a,"War_Atk_Rampage_Run"))&&Read(a,0x20,package)){
             char path[200]{};sprintf_s(path,"/Game/Characters/Heroes/Hero_War/Animation/%s",Is(a,"War_Atk_Rampage_Start")?"War_Atk_Rampage_Start":"War_Atk_Rampage_Run");
-            const auto& v=g_visual[c.index];unsigned char state=0;
+            const auto* target=PlayerVisual(c.index);if(!target){native(notify,mesh,animation);return;}
+            const auto& v=*target;unsigned char state=0;
             if(Named(package,path)&&Alive(v.ability)&&Alive(v.montage)&&v.actor.address==actor&&v.mesh.address==m&&Read(v.ability.address,0x48,owner)&&owner==actor&&
                Read(v.ability.address,0xD8,state)&&(state==1||state==2)){
                 const auto adapted=foreign_montage::RampageNotify(reinterpret_cast<uintptr_t>(notify),v.montage.address,v.source);
@@ -235,17 +242,18 @@ void Observe(const local_players::Context& c){
     // No old ability is retained/read/called to authorize that handoff.
     if(mark->actor&&(mark->world!=c.world||mark->actor.address!=c.character||c.pawn!=c.character||
        c.kind!=local_players::PoseKind::Foot||!Alive(mark->actor)))*mark={};
-    Visual next{};AcquireSRWLockShared(&g_visualLock);next=g_visual[c.index];ReleaseSRWLockShared(&g_visualLock);
+    auto* target=PlayerVisual(c.index);if(!target)return;
+    Visual next{};AcquireSRWLockShared(&g_visualLock);next=*target;ReleaseSRWLockShared(&g_visualLock);
     unsigned char state=0;uintptr_t actor=0,mesh=0,anim=0;
     if(!g_failed&&mark->actor&&Alive(next.ability)&&Alive(next.actor)&&Alive(next.anim)&&Alive(next.montage)&&
        next.actor.address==c.character&&Read(next.ability.address,0x48,actor)&&actor==c.character&&Read(actor,0x380,mesh)&&mesh==next.mesh.address&&
        Read(mesh,0x718,anim)&&anim==next.anim.address&&Read(next.ability.address,0xD8,state)&&(state==1||state==2)&&g_position){
         next.position=g_position(reinterpret_cast<void*>(anim),reinterpret_cast<void*>(next.montage.address));next.tick=GetTickCount64();
-        AcquireSRWLockExclusive(&g_visualLock);g_visual[c.index]=next;ReleaseSRWLockExclusive(&g_visualLock);
+        AcquireSRWLockExclusive(&g_visualLock);*target=next;ReleaseSRWLockExclusive(&g_visualLock);
     }else ClearVisual(c.index);
 }
 bool Evaluate(void* node,pistol_visual::PoseContext* output){
-    if(!g_ready||g_failed||!g_sample||!output)return false;Visual v{};const auto now=GetTickCount64();
+    if(!g_visualMask.load(std::memory_order_relaxed)||!g_ready||g_failed||!g_sample||!output)return false;Visual v{};const auto now=GetTickCount64();
     AcquireSRWLockShared(&g_visualLock);for(const auto& p:g_visual)if(p.anim&&reinterpret_cast<uintptr_t>(node)==p.anim.address+0x318){v=p;break;}ReleaseSRWLockShared(&g_visualLock);
     unsigned char state=0;
     if(!v.anim||now<v.tick||now-v.tick>100||!Alive(v.ability)||!Alive(v.montage)||!Alive(v.actor)||!Alive(v.mesh)||!Alive(v.anim)||!Alive(v.sequence)||!Alive(v.skeleton)||
