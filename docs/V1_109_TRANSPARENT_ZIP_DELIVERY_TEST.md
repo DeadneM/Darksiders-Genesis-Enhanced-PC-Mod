@@ -1,6 +1,8 @@
 # V1.109 - Transparent ZIP delivery compatibility
 
-EXPERIMENTAL. GitHub Windows build, public download and final Defender scan pending. Gameplay remains exactly V1.108 except BuildInfo version/archive identity. Functional accepted baseline remains V1.103. User installs from in-game debug updater; no local compile or game installation.
+**CONSTRUITE / CONTROLEE : [61/61 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40346271897), zero avertissement/erreur. [ZIP public immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/24cf9a9ecd44c67ff69be88b1149e3d5b7f1b675/downloads/DarksidersGenesis_V1.109_TRANSPARENT_ZIP_DELIVERY_TEST.zip) - [Recu](V1_109_DELIVERY_RECEIPT.md). Defender : aucune menace detectee dans le ZIP final et les quatre fichiers extraits ; protections actives. Updater debug : V1.109 selectionnee et octets verifies. Code de jeu V1.108 conserve, toujours EXPERIMENTAL / NON VALIDE EN JEU.**
+
+EXPERIMENTAL. GitHub Windows build, public download and final Defender scan passed as recorded in the receipt. Gameplay remains exactly V1.108 except BuildInfo version/archive identity. Functional accepted baseline remains V1.103. User installs from in-game debug updater; no local compile or game installation.
 
 ## Observed incident
 
