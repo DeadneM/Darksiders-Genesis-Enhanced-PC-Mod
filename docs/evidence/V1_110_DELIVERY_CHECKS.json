@@ -1,0 +1,274 @@
+{
+  "ci": {
+    "runId": 40356864172,
+    "jobId": 121691555868,
+    "sourceCommit": "830ad5d450d5044476dbce47e76368b6d022f287",
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40356864172",
+    "status": "completed",
+    "conclusion": "success",
+    "passedSuites": 61,
+    "msvcWarnings": 0,
+    "msvcErrors": 0,
+    "runnerNotice": "checkout@v4 and upload-artifact@v4 target deprecated Node.js 20; runner forces Node.js 24; all steps succeeded"
+  },
+  "package": {
+    "sourceCommit": "830ad5d450d5044476dbce47e76368b6d022f287",
+    "archiveCommit": "b43590e2f481e48ece13cd321c568001f26a4846",
+    "name": "DarksidersGenesis_V1.110_NATIVE_CHARGE_WINGCLIP_TEST.zip",
+    "size": 2134108,
+    "sha256": "52C33CCF593E2D8B6F6454E3374F5B67332CFFE8829D7E13BCDE43E7C9CF9178",
+    "files": {
+      "DarksidersGenesisMod.asi": {
+        "size": 1881088,
+        "stored": 1881088,
+        "method": 0,
+        "sha256": "66F1F8115E57A6FB25EF53603A3372A6FEDF6C81C1CEE2C6664E4BAD8C633715"
+      },
+      "DarksidersGenesisMod.ini": {
+        "size": 4708,
+        "stored": 4708,
+        "method": 0,
+        "sha256": "599E7AEE6350160BF70985B406A4C0B35094F282B6269971A48C88778AB5C29B"
+      },
+      "dxgi.dll": {
+        "size": 155136,
+        "stored": 155136,
+        "method": 0,
+        "sha256": "EF846C6AD189CDA9EB04572892178ECEA2A2AAA816A838FE3C5E387174C99AA2"
+      },
+      "README.md": {
+        "size": 92720,
+        "stored": 92720,
+        "method": 0,
+        "sha256": "8F6AFC351680064EBEDCD24B7D3C7595951BB5AB6CBC97582CD7732705D29CC6"
+      }
+    },
+    "oldArchiveGitBlobsUnchanged": 174,
+    "archiveCount": 175,
+    "iniKeys": 169,
+    "hotkeyIdsUnchanged": 55,
+    "acceptedPathsUnchanged": true,
+    "amd64": true,
+    "crcValid": true,
+    "noCompression": true,
+    "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/b43590e2f481e48ece13cd321c568001f26a4846/downloads/DarksidersGenesis_V1.110_NATIVE_CHARGE_WINGCLIP_TEST.zip",
+    "httpStatus": 200,
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/main": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "localBuild": false,
+    "localInstall": false,
+    "protectionSettingsChanged": false,
+    "gameplayValidated": false
+  },
+  "updater": {
+    "channel": "debug",
+    "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+    "selectedArchive": "DarksidersGenesis_V1.110_NATIVE_CHARGE_WINGCLIP_TEST.zip",
+    "blobSha": "17ffcc4de9137234859ba7ebf22a2e60edc23116",
+    "httpStatus": 200,
+    "sha256": "52C33CCF593E2D8B6F6454E3374F5B67332CFFE8829D7E13BCDE43E7C9CF9178",
+    "matchesCurrentUpdaterSelectionRules": true,
+    "gameUiObserved": false
+  },
+  "defender": {
+    "defender": {
+      "AMProductVersion": "4.18.26090.9",
+      "AMEngineVersion": "1.1.26090.9",
+      "AntivirusSignatureVersion": "1.461.211.0",
+      "AntivirusSignatureLastUpdated": "/Date(1792986057000)/",
+      "RealTimeProtectionEnabled": true,
+      "OnAccessProtectionEnabled": true,
+      "AntivirusEnabled": true
+    },
+    "after": {
+      "RealTimeProtectionEnabled": true,
+      "OnAccessProtectionEnabled": true,
+      "AntivirusEnabled": true
+    },
+    "protectionSettingsChanged": false,
+    "zip": {
+      "exitCode": 0,
+      "result": "no threats"
+    },
+    "payload": {
+      "exitCode": 0,
+      "result": "no threats"
+    }
+  },
+  "capture": {
+    "readOnly": true,
+    "pid": 18376,
+    "rights": "QUERY_LIMITED_INFORMATION|VM_READ",
+    "captureFile": "v210-rampage-melee-20261026-165200.jsonl",
+    "captureSha256": "d9f49fe628d18b8419e2b43a36b97b0d10b62d1988db0589a0a3bb0634acf23d",
+    "preflightSha256": "1f9399f7f56e7cafb597ec57d1d3f65403ecab590f18784b89999313c223b46a",
+    "rampageCasts": [
+      {
+        "character": "War_Blueprint_C",
+        "ability": "MayhemAbility_Rampage_Start_Blueprint_C",
+        "first": 118.375,
+        "last": 118.766,
+        "missingWhileActive": 0,
+        "lastNativePosition": 1.18405,
+        "span": 0.391
+      },
+      {
+        "character": "War_Blueprint_C",
+        "ability": "MayhemAbility_Rampage_Finish_Slam_Level3_Blueprint_C",
+        "first": 118.797,
+        "last": 120.031,
+        "missingWhileActive": 7,
+        "lastNativePosition": 1.01209,
+        "span": 1.234
+      },
+      {
+        "character": "War_Blueprint_C",
+        "ability": "MayhemAbility_Rampage_Start_Blueprint_C",
+        "first": 124.11,
+        "last": 124.485,
+        "missingWhileActive": 0,
+        "lastNativePosition": 1.15227,
+        "span": 0.375
+      },
+      {
+        "character": "War_Blueprint_C",
+        "ability": "MayhemAbility_Rampage_Finish_Slam_Level3_Blueprint_C",
+        "first": 124.516,
+        "last": 125.766,
+        "missingWhileActive": 7,
+        "lastNativePosition": 0.99726,
+        "span": 1.25
+      },
+      {
+        "character": "Strife_Blueprint_C",
+        "ability": "MayhemAbility_Rampage_Start_Blueprint_C",
+        "first": 129.719,
+        "last": 130.11,
+        "missingWhileActive": 0,
+        "lastNativePosition": 1.15093,
+        "span": 0.391
+      },
+      {
+        "character": "Strife_Blueprint_C",
+        "ability": "MayhemAbility_Rampage_Finish_Slam_Level3_Blueprint_C",
+        "first": 130.141,
+        "last": 131.375,
+        "missingWhileActive": 8,
+        "lastNativePosition": 0.99906,
+        "span": 1.234
+      },
+      {
+        "character": "Strife_Blueprint_C",
+        "ability": "MayhemAbility_Rampage_Start_Blueprint_C",
+        "first": 133.078,
+        "last": 133.453,
+        "missingWhileActive": 0,
+        "lastNativePosition": 1.10292,
+        "span": 0.375
+      },
+      {
+        "character": "Strife_Blueprint_C",
+        "ability": "MayhemAbility_Rampage_Finish_Slam_Level3_Blueprint_C",
+        "first": 133.485,
+        "last": 134.75,
+        "missingWhileActive": 9,
+        "lastNativePosition": 0.97022,
+        "span": 1.265
+      }
+    ],
+    "spinCasts": [
+      {
+        "ability": "MayhemAbility_Strife_HeavyAttack1_Back_Blueprint_C",
+        "montagesSeen": [
+          "Strife_Atk_WingClip_B_Snare_Montage"
+        ],
+        "componentHiddenStates": [
+          [
+            false,
+            false
+          ],
+          [
+            true,
+            true
+          ]
+        ]
+      },
+      {
+        "ability": "MayhemAbility_Strife_HeavyAttack1_Back_Blueprint_C",
+        "montagesSeen": [
+          "Strife_Atk_WingClip_B_Snare_Montage"
+        ],
+        "componentHiddenStates": [
+          [
+            false,
+            true
+          ],
+          [
+            true,
+            true
+          ]
+        ]
+      },
+      {
+        "ability": "MayhemAbility_Strife_HeavyAttack1_Back_Blueprint_C",
+        "montagesSeen": [
+          "Strife_Atk_WingClip_B_Snare_Montage"
+        ],
+        "componentHiddenStates": [
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            false
+          ]
+        ]
+      },
+      {
+        "ability": "MayhemAbility_Strife_HeavyAttack1_Back_Blueprint_C",
+        "montagesSeen": [
+          "Strife_Atk_WingClip_B_Snare_Montage"
+        ],
+        "componentHiddenStates": [
+          [
+            true,
+            true
+          ]
+        ]
+      }
+    ],
+    "enemyDamageCompared": false,
+    "sourceSlotEffectCacheCompleteness": false,
+    "globalTransientCacheLimitation": "Objects reusing old GUObject slots may be missed; absence from global cache is not proof of absence in game.",
+    "targetWrites": false,
+    "injection": false,
+    "nativeCalls": false
+  },
+  "static": {
+    "status": "STATIC_ONLY_NOT_COMPILED",
+    "acceptedPathsIdentical": {
+      "src/MeleeEffectFeature.cpp:bool PrepareLava(": "f7604d73536e7e0269280722a8fd47c53b6d4708f5c71b3c376a1aa8f55ea493",
+      "src/ForeignMontage.cpp:#include": "cc3e1e1465829e719b1c4ec613486249ddbeeb2dc12b976142e16b70680fe371",
+      "src/ForeignMontage.cpp:bool SoundValid(": "3490ca38b961ec7cb2a1f5e57496362ac86f44e118012c3444c41356c9f21237",
+      "src/ForeignRampageFeature.cpp:bool Owner(": "2b82ce487fc8fe48dffc7e4acd419a6ef8530428ba2467a881cde1d3a1439961"
+    },
+    "nativeChargeEventCounts": {
+      "AnimNotify_SpawnBlast": 1,
+      "AnimNotify_PlaySurfaceParticleEffect": 6,
+      "AnimNotifyState_TimedParticleEffect": 1,
+      "AnimNotify_CallAbilityFunction": 1
+    },
+    "hooksRemoved": 2,
+    "configAndInputsUnchanged": true,
+    "runtimeWrites": false,
+    "localBuild": false,
+    "gameplayValidated": false
+  },
+  "localBuild": false,
+  "localInstall": false,
+  "gameplayValidated": false
+}

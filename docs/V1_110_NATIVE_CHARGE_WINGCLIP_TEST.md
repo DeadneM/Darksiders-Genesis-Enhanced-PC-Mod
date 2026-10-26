@@ -1,6 +1,8 @@
 # V1.110 - Native charge cues and WingClip
 
-EXPERIMENTAL, not validated in game. GitHub build and delivery pending. Cumulative source base V1.109 e45d368b519d13bf516afed7ace99c58fd8c902e; accepted functional base V1.103 with subsequent user acceptances retained. No local build, game launch or installation. User installs through debug updater.
+**CONSTRUITE / CONTROLEE : [61/61 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40356864172), zero avertissement/erreur MSVC. [ZIP public immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/b43590e2f481e48ece13cd321c568001f26a4846/downloads/DarksidersGenesis_V1.110_NATIVE_CHARGE_WINGCLIP_TEST.zip) - [Recu](V1_110_DELIVERY_RECEIPT.md). Updater debug : V1.110 selectionnee, octets verifies. Defender : aucune menace detectee dans le ZIP final et les quatre fichiers, protections actives. Corrections EXPERIMENTALES, NON VALIDEES EN JEU.**
+
+EXPERIMENTAL, not validated in game. GitHub build, package, public updater and Defender checks passed; see receipt. Cumulative source base V1.109 e45d368b519d13bf516afed7ace99c58fd8c902e; accepted functional base V1.103 with subsequent user acceptances retained. No local build, game launch or installation. User installs through debug updater.
 
 ## User results retained
 
