@@ -1,0 +1,88 @@
+{
+  "baseline": {
+    "sourceBaseline": "daafeb17ce05d2d2894393e30a5f71e8c37d5201",
+    "validatedBaseline": "07818091c719d4aeda2901ef08a0bbfb2282560a",
+    "oldArchives": 172,
+    "iniKeys": 169,
+    "hotkeyIds": 55,
+    "otherSourceTestConfigFilesUnchanged": 179,
+    "localBuild": false,
+    "localInstall": false,
+    "gameplayValidated": false
+  },
+  "ci": {
+    "runId": 40313742351,
+    "jobId": 121541358092,
+    "sourceCommit": "169e616aa21bf40d9d8d602ea1547a027f3bd4c2",
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40313742351",
+    "conclusion": "success",
+    "passedSuites": 61,
+    "msvcWarnings": 0,
+    "msvcErrors": 0,
+    "localBuild": false,
+    "gameplayValidated": false
+  },
+  "package": {
+    "sourceCommit": "169e616aa21bf40d9d8d602ea1547a027f3bd4c2",
+    "archiveCommit": "4d27f93e3db5d829adf268bb07e58957cdaf51cf",
+    "name": "DarksidersGenesis_V1.108_RAMPAGE_LAVA_POWER_PRESENTATION_TEST.zip",
+    "size": 1014627,
+    "sha256": "3AD60D1145C96BB7B5484F757948325C7AE8C5DA07C305BE2ACE063B2F397EF3",
+    "files": {
+      "DarksidersGenesisMod.asi": {
+        "size": 1875968,
+        "sha256": "E975A81AE3C993815047D7E60B0BBBB3CC1AC2310ED37D56E395F5233841235B"
+      },
+      "DarksidersGenesisMod.ini": {
+        "size": 4708,
+        "sha256": "599E7AEE6350160BF70985B406A4C0B35094F282B6269971A48C88778AB5C29B"
+      },
+      "dxgi.dll": {
+        "size": 155136,
+        "sha256": "4DDD151A7468539FA1D06B37AEBA76D117A826B49BB3EBBAE1795CE83D40767F"
+      },
+      "README.md": {
+        "size": 88877,
+        "sha256": "7EF737DD415F2A4EFD310858D1D40E8C05437EA59647FB9EA81CFD196853F3CE"
+      }
+    },
+    "oldArchivesUnchanged": 172,
+    "iniKeys": 169,
+    "hotkeyIdsUnchanged": 55,
+    "amd64": true,
+    "crcValid": true,
+    "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/4d27f93e3db5d829adf268bb07e58957cdaf51cf/downloads/DarksidersGenesis_V1.108_RAMPAGE_LAVA_POWER_PRESENTATION_TEST.zip",
+    "httpStatus": 200,
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/main": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "gameplayValidated": false
+  },
+  "updater": {
+    "channel": "debug",
+    "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+    "selectedArchive": "DarksidersGenesis_V1.108_RAMPAGE_LAVA_POWER_PRESENTATION_TEST.zip",
+    "blobSha": "3f0ab466b387031db35553e9152c793ac92d7604",
+    "httpStatus": 200,
+    "sha256": "3AD60D1145C96BB7B5484F757948325C7AE8C5DA07C305BE2ACE063B2F397EF3",
+    "matchesCurrentUpdaterSelectionRules": true,
+    "gameUiObserved": false
+  },
+  "priorFailedRun": {
+    "runId": 40312519710,
+    "compileErrors": [
+      "explicit RuntimeSettings test include missing",
+      "native_bone test namespace missing"
+    ],
+    "msvcWarning": "C6385 player state index; replaced by bounded selection",
+    "archivePublished": false
+  },
+  "localBuild": false,
+  "localInstall": false,
+  "projectilesChanged": false,
+  "normalLavaFlashOnly": true,
+  "gameplayValidated": false,
+  "p2Deferred": true
+}

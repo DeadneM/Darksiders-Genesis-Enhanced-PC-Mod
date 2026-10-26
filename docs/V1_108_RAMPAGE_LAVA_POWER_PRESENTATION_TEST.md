@@ -1,6 +1,8 @@
 # V1.108 - Rampage / Lava muzzle flash / foreign power presentation
 
-EXPERIMENTAL, NOT GAMEPLAY VALIDATED. GitHub-only compilation and package verification pending. Functional accepted baseline V1.103; source baseline V1.107 plus its verified delivery receipt (`daafeb1`). User keeps their installed INI/bindings and downloads through the debug updater. No local compile, install, game launch, external memory write or native call by a reader.
+**CONSTRUITE / CONTROLEE : [61/61 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40313742351), zero avertissement/erreur MSVC. [ZIP immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/4d27f93e3db5d829adf268bb07e58957cdaf51cf/downloads/DarksidersGenesis_V1.108_RAMPAGE_LAVA_POWER_PRESENTATION_TEST.zip) - [Recu](V1_108_DELIVERY_RECEIPT.md). Listing public updater debug : V1.108 selectionnee, octets verifies. Correctifs EXPERIMENTAUX, NON VALIDES EN JEU.**
+
+EXPERIMENTAL, NOT GAMEPLAY VALIDATED. GitHub-only compilation and package verification passed; see receipt. Functional accepted baseline V1.103; source baseline V1.107 plus its verified delivery receipt (`daafeb1`). User keeps their installed INI/bindings and downloads through the debug updater. No local compile, install, game launch, external memory write or native call by a reader.
 
 ## Objective and success criterion
 
@@ -20,7 +22,7 @@ One coherent presentation/latency batch: Strife Rampage must charge with its nat
 
 ## Controls and limits
 
-61 meaningful Windows suites planned, including new Lava pairing/ownership/OFF/source preservation fixture; existing transfer lifecycle, original assets/alias guards, exact native motion, pure own-pose/root preservation and stale mapping/identity rejection, shorter gesture/callback mapping, sound-loop state, bounded shared discovery, primary and secondary blade FX. Fixtures and CI are not game validation.
+61 meaningful Windows suites passed, including new Lava pairing/ownership/OFF/source preservation fixture; existing transfer lifecycle, original assets/alias guards, exact native motion, pure own-pose/root preservation and stale mapping/identity rejection, shorter gesture/callback mapping, sound-loop state, bounded shared discovery, primary and secondary blade FX. Fixtures and CI are not game validation.
 
 169 INI keys / 55 hotkey IDs unchanged. ProjectileAim, HeavyLanding, input mappings, TPS camera, RawInput, Alt-Tab, menus/wheels, mount/ultimate/skins/gauges and accepted behaviors retain their source. No cleanup of unrelated features. All 172 old ZIPs and protected refs retained. Rollback: keep older archive/INI; use Native slots for experimental foreign powers or V1.103 accepted baseline. P2 and deferred sprites are not declared validated.
 
