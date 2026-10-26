@@ -1,0 +1,326 @@
+[
+  {
+    "asset": "Strife_Aether_Channel",
+    "length": 1.7666666507720947,
+    "root": false,
+    "events": []
+  },
+  {
+    "asset": "Strife_Aether_Channel_End",
+    "length": 0.8333333134651184,
+    "root": false,
+    "events": [
+      {
+        "time": 0.053859297186136246,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlayFootstep",
+        "state": "None"
+      },
+      {
+        "time": 0.1021469458937645,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlayFootstep",
+        "state": "None"
+      }
+    ]
+  },
+  {
+    "asset": "Strife_Aether_Channel_Start",
+    "length": 1.0,
+    "root": false,
+    "events": [
+      {
+        "time": 0.0,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlaySound",
+        "state": "None"
+      },
+      {
+        "time": 0.0,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlaySound",
+        "state": "None"
+      },
+      {
+        "time": 0.43080052733421326,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlaySound",
+        "state": "None"
+      }
+    ]
+  },
+  {
+    "asset": "Strife_Channel",
+    "length": 1.7666666507720947,
+    "root": true,
+    "events": [],
+    "rootOffsetAndKeyCounts": [
+      0,
+      1,
+      12,
+      1
+    ]
+  },
+  {
+    "asset": "Strife_Channel_End",
+    "length": 0.6666666865348816,
+    "root": true,
+    "events": [
+      {
+        "time": 0.3803706467151642,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlayFootstep",
+        "state": "None"
+      },
+      {
+        "time": 0.5543919205665588,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlayFootstep",
+        "state": "None"
+      }
+    ],
+    "rootOffsetAndKeyCounts": [
+      0,
+      1,
+      12,
+      1
+    ]
+  },
+  {
+    "asset": "Strife_Channel_Start",
+    "length": 0.5666666626930237,
+    "root": true,
+    "events": [
+      {
+        "time": 0.0,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlaySound",
+        "state": "None"
+      },
+      {
+        "time": 0.3735954761505127,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlayFootstep",
+        "state": "None"
+      }
+    ],
+    "rootOffsetAndKeyCounts": [
+      0,
+      1,
+      12,
+      1
+    ]
+  },
+  {
+    "asset": "War_Atk_Stoneskin",
+    "length": 1.8333333730697632,
+    "root": false,
+    "events": [
+      {
+        "time": 0.0,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlaySound",
+        "state": "None"
+      },
+      {
+        "time": 0.716946005821228,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlaySound",
+        "state": "None"
+      },
+      {
+        "time": 0.7404290437698364,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlayParticleEffect",
+        "state": "None"
+      },
+      {
+        "time": 0.7404290437698364,
+        "duration": 0.0,
+        "notify": "AnimNotify_CameraShake",
+        "state": "None"
+      },
+      {
+        "time": 0.7411059737205505,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlayParticleEffect",
+        "state": "None"
+      },
+      {
+        "time": 0.7416359782218933,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlaySurfaceParticleEffect",
+        "state": "None"
+      },
+      {
+        "time": 0.7416359782218933,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlaySurfaceParticleEffect",
+        "state": "None"
+      },
+      {
+        "time": 0.7470611333847046,
+        "duration": 0.0,
+        "notify": "AnimNotify_SpawnActor",
+        "state": "None"
+      },
+      {
+        "time": 0.748789370059967,
+        "duration": 0.0,
+        "notify": "AnimNotify_SpawnBlast",
+        "state": "None"
+      },
+      {
+        "time": 0.749142050743103,
+        "duration": 0.0,
+        "notify": "AnimNotify_War_StoneSkinBase_C",
+        "state": "None"
+      },
+      {
+        "time": 0.8002610802650452,
+        "duration": 1.0330722332000732,
+        "notify": "None",
+        "state": "AnimNotify_EnableAbilityInterrupt",
+        "interrupts": [
+          "EAbilityInterrupt::JUMP",
+          "EAbilityInterrupt::ATTACK_ONE",
+          "EAbilityInterrupt::ATTACK_TWO",
+          "EAbilityInterrupt::RANGED_ATTACK_ONE",
+          "EAbilityInterrupt::SWAP_CHARACTER",
+          "EAbilityInterrupt::WRATH_ONE",
+          "EAbilityInterrupt::WRATH_TWO",
+          "EAbilityInterrupt::WRATH_THREE",
+          "EAbilityInterrupt::SUMMON_STEED",
+          "EAbilityInterrupt::CHAOS_FORM",
+          "EAbilityInterrupt::AIM",
+          "EAbilityInterrupt::ABILITY_ONE",
+          "EAbilityInterrupt::ABILITY_TWO"
+        ]
+      },
+      {
+        "time": 0.9422869086265564,
+        "duration": 0.8910461068153381,
+        "notify": "None",
+        "state": "AnimNotify_EnableAbilityInterrupt",
+        "interrupts": [
+          "EAbilityInterrupt::MOVE"
+        ]
+      },
+      {
+        "time": 1.600484013557434,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlayFootstep",
+        "state": "None"
+      },
+      {
+        "time": 1.8333330154418945,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlayFootstep",
+        "state": "None"
+      }
+    ]
+  },
+  {
+    "asset": "War_Atk_Stoneskin_Molten",
+    "length": 1.8333333730697632,
+    "root": false,
+    "events": [
+      {
+        "time": 0.0,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlaySound",
+        "state": "None"
+      },
+      {
+        "time": 0.716946005821228,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlaySound",
+        "state": "None"
+      },
+      {
+        "time": 0.7404290437698364,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlayParticleEffect",
+        "state": "None"
+      },
+      {
+        "time": 0.7404290437698364,
+        "duration": 0.0,
+        "notify": "AnimNotify_CameraShake",
+        "state": "None"
+      },
+      {
+        "time": 0.7411062121391296,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlayParticleEffect",
+        "state": "None"
+      },
+      {
+        "time": 0.7416362166404724,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlaySurfaceParticleEffect",
+        "state": "None"
+      },
+      {
+        "time": 0.7416362166404724,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlaySurfaceParticleEffect",
+        "state": "None"
+      },
+      {
+        "time": 0.748789370059967,
+        "duration": 0.0,
+        "notify": "AnimNotify_SpawnBlast",
+        "state": "None"
+      },
+      {
+        "time": 0.749142050743103,
+        "duration": 0.0,
+        "notify": "AnimNotify_War_StoneSkinMolten_C",
+        "state": "None"
+      },
+      {
+        "time": 0.8002610802650452,
+        "duration": 1.0330722332000732,
+        "notify": "None",
+        "state": "AnimNotify_EnableAbilityInterrupt",
+        "interrupts": [
+          "EAbilityInterrupt::JUMP",
+          "EAbilityInterrupt::ATTACK_ONE",
+          "EAbilityInterrupt::ATTACK_TWO",
+          "EAbilityInterrupt::RANGED_ATTACK_ONE",
+          "EAbilityInterrupt::SWAP_CHARACTER",
+          "EAbilityInterrupt::WRATH_ONE",
+          "EAbilityInterrupt::WRATH_TWO",
+          "EAbilityInterrupt::WRATH_THREE",
+          "EAbilityInterrupt::SUMMON_STEED",
+          "EAbilityInterrupt::CHAOS_FORM",
+          "EAbilityInterrupt::AIM",
+          "EAbilityInterrupt::ABILITY_ONE",
+          "EAbilityInterrupt::ABILITY_TWO"
+        ]
+      },
+      {
+        "time": 0.9422869086265564,
+        "duration": 0.8910461068153381,
+        "notify": "None",
+        "state": "AnimNotify_EnableAbilityInterrupt",
+        "interrupts": [
+          "EAbilityInterrupt::MOVE"
+        ]
+      },
+      {
+        "time": 1.6004841327667236,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlayFootstep",
+        "state": "None"
+      },
+      {
+        "time": 1.8333333730697632,
+        "duration": 0.0,
+        "notify": "AnimNotify_PlayFootstep",
+        "state": "None"
+      }
+    ]
+  }
+]

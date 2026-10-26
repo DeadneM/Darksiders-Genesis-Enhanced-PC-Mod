@@ -1,0 +1,17 @@
+{
+  "runId": 40410419216,
+  "jobId": 121879412392,
+  "sourceCommit": "6c0b9cee531eee27fe54829c6c39fa8370853bf2",
+  "conclusion": "success",
+  "testsPassed": 62,
+  "msvcWarnings": [],
+  "msvcErrors": [],
+  "firstRun": {
+    "runId": 40409718808,
+    "testsPassed": 61,
+    "failed": "ForeignMontage fixture retained minimum allocation count 3; native allocator supports 1; test-only correction"
+  },
+  "gameplayValidated": false,
+  "localBuild": false,
+  "localInstall": false
+}

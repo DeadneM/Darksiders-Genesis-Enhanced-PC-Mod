@@ -1,6 +1,8 @@
 ## V1.113 - Retours au sol Strife et roles Stoneskin
 
-**PREPAREE / EXPERIMENTALE, NON VALIDEE EN JEU. Compilation et livraison GitHub a verifier.** Base V1.112. Retours utilisateur : fin Rampage Strife, trois pouvoirs de Strife sur War et expiration/restauration Stoneskin Strife explicitement VALIDES. Ces chemins retenus restent preserves. Restent la levitation Geyser a l'arret, l'animation Stoneskin trop longue avec glissement, et le corps rouge/tissu pierre.
+**CONSTRUITE / CONTROLEE : [62/62 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40410419216), zero avertissement/erreur MSVC. [ZIP public immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/84583fc7f21b497a747733ddb3f1ea923fa3c6c9/downloads/DarksidersGenesis_V1.113_GROUNDED_GEYSER_STONESKIN_ROLES_TEST.zip) - [Recu](V1_113_DELIVERY_RECEIPT.md). Updater debug : V1.113 selectionnee, octets verifies. Defender : aucune menace detectee dans le ZIP final et les quatre fichiers, protections actives. Nouveaux ajustements EXPERIMENTAUX, NON VALIDES EN JEU.**
+
+**PREPAREE / EXPERIMENTALE, NON VALIDEE EN JEU. Compilation et livraison GitHub controlees, essai en jeu requis.** Base V1.112. Retours utilisateur : fin Rampage Strife, trois pouvoirs de Strife sur War et expiration/restauration Stoneskin Strife explicitement VALIDES. Ces chemins retenus restent preserves. Restent la levitation Geyser a l'arret, l'animation Stoneskin trop longue avec glissement, et le corps rouge/tissu pierre.
 
 Geyser garde son debut accepte puis joue son vrai retour Aether au sol a vitesse native, au lieu de tenir sa pose suspendue ; pic/cout/duree et commandes inchanges. Stoneskin reprend le geste sol Strife et sa fin a vitesse native, avec fenetres d'interruption natives copiees sur des etats prives : MOVE a 0,942 s. Duree/cout/statut/sons restent natifs, pas de Finish anticipe ni touche simulee.
 

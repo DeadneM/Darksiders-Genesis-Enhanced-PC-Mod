@@ -1,0 +1,52 @@
+{
+  "sourceCommit": "6c0b9cee531eee27fe54829c6c39fa8370853bf2",
+  "archiveCommit": "84583fc7f21b497a747733ddb3f1ea923fa3c6c9",
+  "name": "DarksidersGenesis_V1.113_GROUNDED_GEYSER_STONESKIN_ROLES_TEST.zip",
+  "size": 2201877,
+  "sha256": "46AC7B6608C9971BE6777C407DEA733871D8AADA3B8E40F5DF3F85D9358D72A2",
+  "files": {
+    "DarksidersGenesisMod.asi": {
+      "size": 1942016,
+      "stored": 1942016,
+      "method": 0,
+      "sha256": "6BBBC8E378AB75747EE5CB0B783B222F90B674F790B32E655353EFC1A1513446"
+    },
+    "DarksidersGenesisMod.ini": {
+      "size": 4708,
+      "stored": 4708,
+      "method": 0,
+      "sha256": "599E7AEE6350160BF70985B406A4C0B35094F282B6269971A48C88778AB5C29B"
+    },
+    "dxgi.dll": {
+      "size": 155136,
+      "stored": 155136,
+      "method": 0,
+      "sha256": "03507829D2D8FD1277ED0F6B173F3DE8EAD5A75B8CB7EDC24692F4F946EBEE6D"
+    },
+    "README.md": {
+      "size": 99561,
+      "stored": 99561,
+      "method": 0,
+      "sha256": "B58B82946B3CACAB3024E219EE8B0E5E90DBF6BF7BAD625D3E65DD3D697DE56F"
+    }
+  },
+  "oldArchiveGitBlobsUnchanged": 177,
+  "archiveCount": 178,
+  "iniKeys": 169,
+  "hotkeyIdsUnchanged": 55,
+  "acceptedPathsUnchanged": true,
+  "amd64": true,
+  "crcValid": true,
+  "noCompression": true,
+  "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/84583fc7f21b497a747733ddb3f1ea923fa3c6c9/downloads/DarksidersGenesis_V1.113_GROUNDED_GEYSER_STONESKIN_ROLES_TEST.zip",
+  "httpStatus": 200,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "localBuild": false,
+  "localInstall": false,
+  "protectionSettingsChanged": false,
+  "gameplayValidated": false
+}

@@ -1,0 +1,33 @@
+{
+  "sourceBaseline": "0eff6f24907822170c908af499e93317a9004683",
+  "oldArchiveCount": 177,
+  "unchangedFiles": [
+    "src/ForeignRampageFeature.cpp",
+    "src/ForeignCaltropsFeature.cpp",
+    "src/ForeignPowerFeature.cpp",
+    "src/ForeignBeamFeature.cpp",
+    "src/MeleeEffectFeature.cpp",
+    "src/PistolVisualFeature.cpp",
+    "src/NativeTpsFeature.cpp",
+    "src/HeavyLandingFeature.cpp",
+    "src/RuntimeSettings.cpp",
+    "src/RuntimeSettings.h",
+    "config",
+    "updater"
+  ],
+  "unchangedMontageSections": [
+    {
+      "begin": "bool Named(uintptr_t p,const char* text){",
+      "sha256": "17bc5c5cd122d06ea416d0a1ee9f63d4075669f0590a1999e2417d3e3c187300"
+    },
+    {
+      "begin": "bool SoundValid(",
+      "sha256": "b3afe8ef5391e69f0eb8a0aef8bfc41b8a26a2fcfb695baf512db99e78d181ec"
+    }
+  ],
+  "localBuild": false,
+  "externalRuntimeWrites": false,
+  "localInstall": false,
+  "gameplayValidated": false,
+  "finalSourceCommit": "6c0b9cee531eee27fe54829c6c39fa8370853bf2"
+}

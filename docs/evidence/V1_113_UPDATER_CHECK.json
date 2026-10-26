@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.113_GROUNDED_GEYSER_STONESKIN_ROLES_TEST.zip",
+  "blobSha": "9201c3d18fd5c23fdba90d51095c8c278fc77e1f",
+  "httpStatus": 200,
+  "sha256": "46AC7B6608C9971BE6777C407DEA733871D8AADA3B8E40F5DF3F85D9358D72A2",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}
