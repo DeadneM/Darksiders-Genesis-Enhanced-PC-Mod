@@ -1,5 +1,7 @@
 # V1.107 - Rampage : enchainement des phases natives
 
+**CONSTRUITE / CONTROLEE : [60/60 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40225339622), zero avertissement/erreur MSVC. [ZIP GitHub immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/52cf0bc7939f65200ce17b978fd10e19109d0371/downloads/DarksidersGenesis_V1.107_RAMPAGE_NATIVE_PHASE_HANDOFF_TEST.zip) - [Recu](V1_107_DELIVERY_RECEIPT.md). Transition Rampage EXPERIMENTALE, NON VALIDEE EN JEU. Disponible pour l'updater canal debug, compilation uniquement GitHub. Audio V1.106 inchange, essai utilisateur differe.**
+
 **Objectif** : conserver l'association du Rampage Strife pendant le passage entre Start, une frappe/atterrissage et le compagnon final. **Critere de reussite** : deplacement, frappe/degats, relachement, reprise marche/attaque et second lancement en native/TPS, sans blocage. EXPERIMENTAL, NON VALIDE EN JEU.
 
 ## Retour et preuves

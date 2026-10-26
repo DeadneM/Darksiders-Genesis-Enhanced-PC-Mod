@@ -1,6 +1,8 @@
 ## V1.107 - Rampage : conserver la transition native depart vers frappe
 
-**EXPERIMENTALE, compilation et livraison GitHub a controler ; NON VALIDEE EN JEU.** Base fonctionnelle V1.103 validee ; acquis conserves. Retour V1.106 : deplacement Rampage puis commandes bloquees, candidat REJETE pour cet essai. Sons V1.106 : essai utilisateur differe, adaptation audio conservee sans modification.
+**CONSTRUITE / CONTROLEE : [60/60 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40225339622), zero avertissement/erreur MSVC. [ZIP GitHub immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/52cf0bc7939f65200ce17b978fd10e19109d0371/downloads/DarksidersGenesis_V1.107_RAMPAGE_NATIVE_PHASE_HANDOFF_TEST.zip) - [Recu](V1_107_DELIVERY_RECEIPT.md). Transition Rampage EXPERIMENTALE, NON VALIDEE EN JEU. Disponible pour l'updater canal debug, compilation uniquement GitHub. Audio V1.106 inchange, essai utilisateur differe.**
+
+**EXPERIMENTALE, compilation et livraison GitHub controlees, essai en jeu requis ; NON VALIDEE EN JEU.** Base fonctionnelle V1.103 validee ; acquis conserves. Retour V1.106 : deplacement Rampage puis commandes bloquees, candidat REJETE pour cet essai. Sons V1.106 : essai utilisateur differe, adaptation audio conservee sans modification.
 
 Journal : CAST depart puis, 413 ms plus tard, Slam3 refuse comme orphelin. Observe supprimait l'association des que Start n'etait plus actif, avant la creation native de la frappe ; le compagnon pouvait aussi consommer un token avant toute phase de fin. V1.107 conserve un token faible propre acteur/monde, exige Start avant une seule phase de fin et consomme le token au compagnon final ; un compagnon precoce reste neutralise sans effacer Start. Aucun ancien objet de capacite n'est conserve ou appele pour autoriser la transition. Pas de timer, nouvel input ou nouveau hook.
 

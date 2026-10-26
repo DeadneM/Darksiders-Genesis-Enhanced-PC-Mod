@@ -1,0 +1,24 @@
+# V1.107 - Rampage : transition native entre capacites
+
+**CONSTRUITE / CONTROLEE : [60/60 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40225339622), zero avertissement/erreur MSVC. [ZIP cumulatif immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/52cf0bc7939f65200ce17b978fd10e19109d0371/downloads/DarksidersGenesis_V1.107_RAMPAGE_NATIVE_PHASE_HANDOFF_TEST.zip). Correction EXPERIMENTALE, NON VALIDEE EN JEU.**
+
+Source compilee `89210f2bd523526c9392d6abf5b7b84c97150cad` ; archive GitHub `52cf0bc7939f65200ce17b978fd10e19109d0371`. Base fonctionnelle validee V1.103. V1.106 : utilisateur confirme deplacement puis blocage de Rampage, candidat rejete pour cet essai. Son audio n'a pas ete teste et reste differe, conserve sans modification. Anciennes versions gardees pour comparaison/repli.
+
+Premier passage V1.107 40224183241 : echec C2664 dans la nouvelle fixture (conversion explicite Identity vers bool manquante), corrige avant publication ; aucun ZIP issu de ce passage. Les resultats en tete concernent uniquement le commit final compile ci-dessus.
+
+Passage 40224781312 : compilation sans avertissement, 59/60 suites reussies ; le nouveau scenario utilisait Name par defaut (index -1, non initialise) au lieu du None natif (index/numero 0/0). Le garde rejetait correctement cette section invalide. Fixture corrigee vers la vraie valeur du callback, sans desactiver le garde ; aucun ZIP publie par ce passage.
+
+Journal : depart CAST puis Slam3 refuse comme orphelin 413 ms apres. Le marqueur etait efface par Observe a la fin de Start, et le compagnon pouvait le consommer avant toute phase de fin. Le nouveau token propre acteur/monde/phase survit a la fin normale de Start, permet une seule fin et est consomme par le compagnon final. Un compagnon precoce du meme cast reste termine nativement sans effacer Start. Plus de reference retenue a l'ancienne capacite ; les nouveaux callbacks gardent leurs propres identites et controles. Le journal ne permet pas de choisir entre les deux anciennes suppressions ; les fixtures reproduisent les deux. Le lecteur de cette reprise a trouve le jeu ferme, sans nouvelle capture live, appel ou ecriture au jeu.
+
+Les evenements sont reconstruits depuis la source dans un tableau prive, comme les autres constructeurs retenus. La normalisation legitime de notifies par NewObject ne provoque plus une comparaison brute fautive. Sections : seul le relien source vers copie est tolere ; temps/boucles/autres champs et tableaux de mouvement/caches restent compares. Alias toujours refuses. Pas de nouveau hook, timer, input, vitesse forcee ou allocateur.
+
+Les clips natifs Strife_Dash, Strife_AirDash_Fall et Strife_AirDash_Land_Still ont ete identifies hors ligne dans le PAK original. Leur adaptation visuelle reste a faire : la piste de mouvement Rampage et les propres notifies du dash doivent rester isoles. Aucun de ces clips n'est injecte par V1.107 ; locomotion Strife actuelle conservee. Cela ne presente pas la suggestion utilisateur comme deja realisee.
+
+- 60 suites Windows reussies : regression avec deux objets de capacite distincts, Start termine puis Observe puis Slam3, fin observee puis compagnon, consommation unique, compagnon premature, mondes/pawns/monture/serial invalides ; notifies prives normalises et sections reliees, alias/cache invalides. Fixtures, pas preuve du controle/rendu moteur en jeu.
+- 196 autres fichiers source/tests/config compares inchanges ; prefixe des montages retenus et helpers audio identiques a V1.106. Reception lourde validee conservee ; INI 169 cles et 55 ID Hotkeys, camera/visee, RawInput/XInput, roues, cheval et autres acquis inchanges.
+- 171 anciennes archives comparees par SHA256, 172 ZIP au total ; main/archive/v1.43 verifies intacts.
+- ZIP 1005615 octets, SHA256 `C74598B20A8321EF8BDBE76ADD5D426759C892EF4DA89F9662CE76265A9915BB` ; quatre fichiers racine, CRC valide, ASI/dxgi AMD64, README/INI compares a la source compilee. HTTP 200, octets identiques sur liens immuable/debug ; listing updater selectionne V1.107 selon ses regles. Fenetre du jeu non observee pour ce controle.
+
+Depuis l'updater debug, conserver INI/raccourcis/PAK/sauvegardes. Aucune compilation locale, installation ou relance du jeu par l'agent. Essai cible : Strife Rampage a pied en native/TPS, relacher puis verifier frappe/degats, marche/attaque et deuxieme lancement ; ensuite obstacle. Journal a conserver si blocage, en particulier CAST phase de fin ou refus exact. Rampage original War doit rester fonctionnel. Audio et P2 differes. Repli V1.103 avec Strife Rampage sur Native.
+
+[Contrat detaille](V1_107_RAMPAGE_NATIVE_PHASE_HANDOFF_TEST.md). Suite : verifier la sortie effective de Rampage, puis adapter la proposition Dash/AirDash sans perdre le mouvement natif. Le README embarque est celui de la source compilee, anterieur a ce recu.
