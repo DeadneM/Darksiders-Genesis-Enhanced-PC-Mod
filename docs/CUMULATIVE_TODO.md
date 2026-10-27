@@ -1,3 +1,9 @@
+## Decision utilisateur : conserver V1.123 pour le moment
+
+L'utilisateur choisit explicitement « Conserver V1.123 pour l'instant ». L'essai SetMovementMode est mis de cote : aucun patch applique, aucun appel moteur, aucune nouvelle build ou installation. Ne pas relancer cet essai ni redemander son autorisation sans reprise explicite du sujet par l'utilisateur. V1.123 reste la version installee ; Stoneskin/Geyser et le geste Caltrops acceptes sont conserves. Seul le petit saut final Caltrops reste OPEN.
+
+---
+
 ## Caltrops native-state observation - approval boundary
 
 - Two casts captured read-only: root does not rise; in-air pose flags true during native flying, then falling~47ms and walking. Full stomp and existing validated visuals unchanged.

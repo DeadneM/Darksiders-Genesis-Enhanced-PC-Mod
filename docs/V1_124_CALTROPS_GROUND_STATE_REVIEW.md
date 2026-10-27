@@ -19,3 +19,7 @@ Native method calls can still crash if their ABI/object contract is wrong, and a
 ## Automatic review result - explicit authorization pending
 
 Automatic approval review rejected the source patch before application: the public SetMovementMode runtime call and locomotion change are distinct from the user's limited SpawnEmitterAttached permission; the user has not explicitly authorized this potentially crashing engine trial. The proposed patch was not applied, compiled or executed. Source/test/config/control paths remain unchanged. Do not retry through another route or execute the call from the external reader. Human authorization must explicitly name this bounded SetMovementMode trial before inclusion. V1.123 remains installed and its accepted Stoneskin/Geyser behavior is retained.
+
+## User decision superseding the pending question
+
+User explicitly selected: Conserver V1.123 pour l'instant. The proposed SetMovementMode trial is set aside and is NOT authorized. No patch, build, installation or live intervention. Keep V1.123 and all accepted features; terminal Caltrops hop remains open. Do not retry this method or repeat its approval question unless the user explicitly reopens the topic. Earlier review text is retained as history, not an active permission request.

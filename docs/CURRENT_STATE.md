@@ -1,3 +1,9 @@
+## Decision utilisateur : conserver V1.123 pour le moment
+
+L'utilisateur choisit explicitement « Conserver V1.123 pour l'instant ». L'essai SetMovementMode est mis de cote : aucun patch applique, aucun appel moteur, aucune nouvelle build ou installation. Ne pas relancer cet essai ni redemander son autorisation sans reprise explicite du sujet par l'utilisateur. V1.123 reste la version installee ; Stoneskin/Geyser et le geste Caltrops acceptes sont conserves. Seul le petit saut final Caltrops reste OPEN.
+
+---
+
 ## Caltrops War - releve live apres retour V1.123
 
 Deux activations capturees en lecture seule : le personnage ne monte pas en position monde ; sa pose est pourtant marquee en l'air. Mouvement natif **sol -> vol (~1.83s) -> chute (~47ms) -> sol** observe deux fois, avec elevation du bassin du modele. Le sursaut final n'est pas declare corrige. Proposition : une demande publique native de marche, une seule fois au debut d'un Caltrops War parti du sol, avec controles stricts. **Patch refuse avant application par l'approbation automatique : accord humain explicite requis pour cet essai SetMovementMode, distinct des particules Stoneskin.** [Perimetre et risques](V1_124_CALTROPS_GROUND_STATE_REVIEW.md). Aucun nouveau code/build/installation ; Stoneskin valide et Geyser restent inchanges.
