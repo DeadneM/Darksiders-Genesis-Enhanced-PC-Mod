@@ -1,3 +1,15 @@
+## V1.119 - Une demi-seconde de plus pour Geyser et Stoneskin
+
+**PREPAREE / EXPERIMENTALE, NON VALIDEE EN JEU. Compilation et livraison GitHub a verifier.** Base cumulative V1.118, installee et verifiee lors de la demande precedente, INI personnel conserve. Dernier retour : ajouter 0.5 seconde aux deux animations ; Caltrops War fait toujours le petit saut, donc son changement de duree V1.118 ne le corrige PAS.
+
+Geyser immobile : retour 0.65 -> **1.15s**, meme debut 0.85s et fondu progressif 0.22s ; fin visuelle 2.00s au lieu de 1.50s, dans le montage natif 2.3667s. Aucun ajout au verrouillage du personnage, aux callbacks, au deplacement ou au saut. En mouvement, le chemin natif est conserve. Stoneskin Strife : activation habituelle 1.00 -> **1.50s** (+0.50s a la duree anterieure), memes fondus 0.16/0.30s, memes materiaux/sons et duree du statut. War Stoneskin reste natif.
+
+Caltrops reste **OUVERT** et inchange dans cette version. Le journal V1.118 confirme le retour War_Start/End actif lors des essais ; allonger le geste n'a pas supprime le saut. Une observation du personnage entier versus sa pose doit departager un vrai decollement et un mouvement visuel. Le lifecycle natif vol/chute est une hypothese de source, pas une mesure en jeu. Le garde VM rejete precedemment reste exclu ; choix utilisateur de la methode simple conserve. Pas de nouveau hook ni nouvelle experience de mouvement.
+
+Clone, Rampage, World Ender, menu Appearance, visee/camera/manette, INI 212 cles et 55 Hotkeys inchanges. Compilation GitHub seulement, pas d'installation ou lancement automatique. [Contrat, criteres et tests](docs/V1_119_LONGER_STRIFE_CASTS_TEST.md).
+
+---
+
 ## V1.118 - Transitions Geyser / Stoneskin
 
 **CONSTRUITE / CONTROLEE : [65/65 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40504809854), zero avertissement/erreur MSVC. [ZIP public cumulatif verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/a080bb2202058ab1d3879a29231f8f8a846f66d5/downloads/DarksidersGenesis_V1.118_SMOOTHER_STRIFE_CASTS_TEST.zip) - [Recu](docs/V1_118_DELIVERY_RECEIPT.md). Updater debug V1.118 : choix et octets verifies. Defender ZIP/quatre fichiers : aucune menace detectee, protections actives. Transitions EXPERIMENTALES a valider ; Caltrops reste OUVERT, garde refuse non inclus.**

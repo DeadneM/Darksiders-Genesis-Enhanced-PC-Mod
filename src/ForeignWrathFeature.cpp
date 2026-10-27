@@ -165,7 +165,7 @@ void StonePlay(void* ability,void* montage,float rate,Name section,const local_p
            Read(copy,0x90,length)&&std::isfinite(length)&&length>.1f&&length<10){
             // Activation is short; the already-applied native status keeps its
             // own lifetime. Same Aether gesture as V1.112, no new return clip.
-            const float activation=std::min(duration,1.f);
+            const float activation=std::min(duration,1.f)+.5f;
             const float adjusted=rate*length/activation;
             if(std::isfinite(adjusted)&&adjusted>.01f&&adjusted<100){
                 // Native status/cost, own gesture; body coating is observed
@@ -182,7 +182,7 @@ void StonePlay(void* ability,void* montage,float rate,Name section,const local_p
     // the actual Strife status lifetime; no borrowed components or timer.
     if(!played){g_stoneFailed=true;g_finish(ability,0);}
     else foreign_montage::StartSounds(original,ability);
-    if(g_log&&g_stoneEvents++<12)g_log(played?"Stoneskin V1.118 CAST: one-second Aether activation, softer 0.16/0.30s fades; native status lifetime independent; EXPERIMENTAL":
+    if(g_log&&g_stoneEvents++<12)g_log(played?"Stoneskin V1.119 CAST: Aether activation +0.50s (normally 1.50s), retained 0.16/0.30s fades; native status lifetime independent; EXPERIMENTAL":
         "Stoneskin V1.102 stopped: own cast contract unavailable; native finish, transfer disabled for session; select Native");
 }
 

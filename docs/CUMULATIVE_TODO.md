@@ -1,3 +1,10 @@
+## V1.119 user feedback and candidate
+
+- User requests Geyser/Stoneskin animations +0.50s: stationary return1.15s / nominal activation1.50s prepared, native gameplay retained.
+- Caltrops War still hops in V1.118: NOT FIXED by the0.55s return. Stop duration-only retries; ask actor lift versus rendered-pose bob before another repair. Caltrops code unchanged now.
+- Earlier Clone/Appearance/Rampage validations preserved. Stoneskin artwork/library variants/P2 not newly validated.
+- No hook/VM/movement-control patch, no new config key, GitHub build only; personal INI untouched.
+
 V1.118 delivered: 65/65 GitHub tests, ZIP/updater/Defender controlled; Geyser/Stoneskin transitions EXPERIMENTAL, Caltrops OPEN. [Receipt](V1_118_DELIVERY_RECEIPT.md).
 
 User chooses simplest animation approach: Caltrops return0.55s as validated Clone, total1.12s. VM guard excluded; no explicit method approval inferred. Hop still needs test.

@@ -15,7 +15,7 @@ using Sample=void(*)(void*,pistol_visual::CompactPose*,pistol_visual::Curve*,con
 using InitContext=void(*)(pistol_visual::PoseContext*);
 Sample g_sample=nullptr;InitContext g_initContext=nullptr;uintptr_t g_base=0;Id g_return{};std::atomic_uint g_mask{0};SRWLOCK g_lock=SRWLOCK_INIT;
 foreign_wrath::LogFn g_log=nullptr;std::atomic_uint g_samples{0};
-constexpr float ReturnStart=.85f,ReturnSpan=.65f,ReturnBlend=.22f;
+constexpr float ReturnStart=.85f,ReturnSpan=1.15f,ReturnBlend=.22f;
 struct Visual {Id actor{},ability{},mesh{},anim{},skeleton{},montage{},movement{};uintptr_t world=0;int input=-1,lastInput=-1,velocity=-1,acceleration=-1;float position=0,weight=0;uint64_t tick=0;};
 Visual g_players[2]{};
 template<class T>bool Read(uintptr_t p,size_t at,T& out){native_objects::MemoryReader r;return r.Read(p,at,out);}
@@ -109,7 +109,7 @@ bool Evaluate(void* node,pistol_visual::PoseContext* output){
         for(unsigned j=0;j<3;++j){b.t[j]=a.t[j]+(b.t[j]-a.t[j])*v.weight;b.s[j]=a.s[j]+(b.s[j]-a.s[j])*v.weight;}
         pose[i]=b;
     }
-    if(g_log&&g_samples.fetch_add(1)==0)g_log("Geyser V1.118 static return: 0.65s clip, smooth 0.22s blend; live curves, root and gameplay untouched; EXPERIMENTAL");return true;
+    if(g_log&&g_samples.fetch_add(1)==0)g_log("Geyser V1.119 static return: 1.15s clip (+0.50s), smooth 0.22s blend; live curves, root and gameplay untouched; EXPERIMENTAL");return true;
 }
 void Shutdown(){Clear(0);Clear(1);g_sample=nullptr;g_initContext=nullptr;}
 }

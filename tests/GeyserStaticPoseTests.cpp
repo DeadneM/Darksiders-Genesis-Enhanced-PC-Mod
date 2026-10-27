@@ -28,7 +28,7 @@ dg::pistol_visual::PoseContext Setup(){
  Visual v{};v.actor=Live(f.actor,0);v.ability=Live(f.ability,1);v.mesh=Live(f.mesh,2);v.anim=Live(f.anim,3);v.skeleton=Live(f.skeleton,4);v.montage=Live(f.montage,5);v.movement=Live(f.movement,6);g_return=Live(f.sequence,7);v.world=1;v.input=0x500;v.lastInput=0x50C;v.velocity=0xD8;v.acceleration=0x188;g_players[0]=v;g_players[1]={};
  chunks[0]=reinterpret_cast<uintptr_t>(f.items);Put(reinterpret_cast<void*>(g_base),0x3959680,reinterpret_cast<uintptr_t>(chunks));Put(reinterpret_cast<void*>(g_base),0x3959694,16);
  Put(f.actor,0x380,v.mesh.address);Put(f.mesh,0xE8,v.actor.address);Put(f.mesh,0x718,v.anim.address);Put(f.movement,0xE8,v.actor.address);Put<unsigned char>(f.movement,0x1B0,1);Put(f.ability,0x48,v.actor.address);Put<unsigned char>(f.ability,0xD8,2);
- f.instanceList[0]=reinterpret_cast<uintptr_t>(f.instance);Put(f.anim,0x78,Array{reinterpret_cast<uintptr_t>(f.instanceList),1,1});Put(f.instance,0,v.montage.address);Put(f.instance,0x128,1.6f);Put(f.instance,0x148,1.f);
+ f.instanceList[0]=reinterpret_cast<uintptr_t>(f.instance);Put(f.anim,0x78,Array{reinterpret_cast<uintptr_t>(f.instanceList),1,1});Put(f.instance,0,v.montage.address);Put(f.instance,0x128,2.1f);Put(f.instance,0x148,1.f);
  Put(f.anim,0x318,g_base+0x2A77628);Put(f.anim,0x240,reinterpret_cast<uintptr_t>(f.proxy));Put(f.proxy,0xA0,v.anim.address);Put(f.proxy,0xB8,v.mesh.address);Put(f.proxy,0xB0,v.skeleton.address);Put(f.sequence,0x38,v.skeleton.address);Put(f.sequence,0x90,.8333333135f);
  for(unsigned i=0;i<80;++i){f.bones[i]=uint16_t(i);f.pose[i].q[3]=1;f.pose[i].s[0]=f.pose[i].s[1]=f.pose[i].s[2]=1;}f.pose[0].t[0]=13;f.pose[1].t[0]=10;
  Put(f.proxy,0x450,Array{reinterpret_cast<uintptr_t>(f.bones),80,80});dg::pistol_visual::PoseContext out{};out.proxy=reinterpret_cast<uintptr_t>(f.proxy);out.pose.container=out.proxy+0x450;out.pose.transforms={reinterpret_cast<uintptr_t>(f.pose.data()),80,80};return out;
@@ -38,8 +38,10 @@ void Run(){
  const auto actor=std::vector<unsigned char>(std::begin(f.actor),std::end(f.actor)),movement=std::vector<unsigned char>(std::begin(f.movement),std::end(f.movement)),ability=std::vector<unsigned char>(std::begin(f.ability),std::end(f.ability));
  Observe(owner);Check(Evaluate(f.anim+0x318,&out)&&calls==1&&f.pose[0].t[0]==13&&f.pose[1].t[0]==20,"only the stationary rendered pose changes, preserving root");
  Check(!std::memcmp(actor.data(),f.actor,sizeof(f.actor))&&!std::memcmp(movement.data(),f.movement,sizeof(f.movement))&&!std::memcmp(ability.data(),f.ability,sizeof(f.ability)),"movement, jump/action flags, ability memory and vectors remain byte-identical");
- out=Setup();liveCurve=&out.curve;Put(f.instance,0x128,.96f);expectedTime=.14102564f;Observe(owner);
+ out=Setup();liveCurve=&out.curve;Put(f.instance,0x128,.96f);expectedTime=.07971014f;Observe(owner);
  Check(Evaluate(f.anim+0x318,&out)&&std::fabs(f.pose[1].t[0]-15.f)<.001f&&f.pose[0].t[0]==13,"mid-transition blends halfway without snapping the rendered bone or its root");
+ out=Setup();liveCurve=&out.curve;Put(f.instance,0x128,1.5f);expectedTime=.47101449f;Observe(owner);
+ Check(Evaluate(f.anim+0x318,&out)&&calls==1,"old visual end now lies within the half-second-longer return, without changing the native ability timeline");
  out=Setup();liveCurve=&out.curve;Put(f.instance,0x128,.86f);Observe(owner);
  Check(g_players[0].weight>0&&g_players[0].weight<.01f&&!calls,"early return has an eased onset rather than the former linear jump in weight");
  for(int mode=0;mode<6;++mode){out=Setup();liveCurve=&out.curve;if(mode==0)Put(f.movement,0xD8,Vector{10,0,0});if(mode==1)Put(f.movement,0x188,Vector{10,0,0});if(mode==2)Put(f.actor,0x500,Vector{1,0,0});if(mode==3)Put(f.actor,0x50C,Vector{1,0,0});if(mode==4)Put<unsigned char>(f.movement,0x1B0,3);if(mode==5)Put(f.instance,0x128,.8f);const auto before=f.pose;Observe(owner);Check(!Evaluate(f.anim+0x318,&out)&&!calls&&!std::memcmp(before.data(),f.pose.data(),sizeof(f.pose)),"movement/intent against wall/jump/start pose all retain native output");}
