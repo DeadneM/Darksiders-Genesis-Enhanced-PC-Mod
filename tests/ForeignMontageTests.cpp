@@ -296,15 +296,15 @@ void Fades(){
 void GeyserPacing(){
     std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(chunks));for(unsigned i=0;i<64;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
     Fades();GestureFixture(false);ObserveSequence(reinterpret_cast<uintptr_t>(f.gesture));
-    g_reserveSegments=[](void* header,int count){Check(header==f.copyTracks+8&&count==2,"32-byte native reserve restricted to own cloned animation track");Put(header,0,Array{reinterpret_cast<uintptr_t>(f.copySegments),1,3});};
+    g_reserveSegments=[](void*,int){Check(false,"Geyser must never allocate a second return/held-frame segment");};
     Put(f.war,0x80,Array{reinterpret_cast<uintptr_t>(f.sequenceEvents),5,8});Label(f.interruptClass,48,"AnimNotify_EnableAbilityInterrupt");
     for(int i=0;i<2;++i){Put(f.interrupts[i],0x10,reinterpret_cast<uintptr_t>(f.interruptClass));Put(f.interrupts[i],0x20,reinterpret_cast<uintptr_t>(f.war));auto* e=f.sequenceEvents+(3+i)*184;const float time=i?1.0523383617f:.7892537713f;Put(e,0x50,reinterpret_cast<uintptr_t>(f.interrupts[i]));Put(e,0x24,time);Put(e,0x58,2.3666665554f-time);}
     const auto before=std::make_unique<Fixture>(f);Check(Geyser(reinterpret_cast<uintptr_t>(f.original),source)==f.copy,"Geyser gesture and native cancel windows build privately");
-    Check(At<Array>(f.copyTracks,8).count==2&&At<int>(f.copy,0x88)==6&&At<float>(f.copy,0x90)==2.3666665554f,"native montage duration and all gameplay cues retained with two own-pose segments");
-    auto cast=At<Segment>(f.copySegments,0),idle=At<Segment>(f.copySegments,32);
-    Check(cast.sequence==reinterpret_cast<uintptr_t>(f.gesture)&&cast.rate==1&&cast.last==1&&idle.sequence==cast.sequence&&idle.start==1&&idle.first>idle.last-.034f&&std::fabs((idle.last-idle.first)/idle.rate-(2.3666665554f-1))<.00001f,"one-second gesture keeps native speed; own idle covers remaining native cast span");
+    Check(At<Array>(f.copyTracks,8).count==1&&At<int>(f.copy,0x88)==6&&At<float>(f.copy,0x90)==2.3666665554f,"native montage duration and all gameplay cues retained with one continuous gesture");
+    auto cast=At<Segment>(f.copySegments,0);
+    Check(cast.sequence==reinterpret_cast<uintptr_t>(f.gesture)&&cast.first==0&&cast.last==1&&std::fabs(cast.rate-1/2.3666665554f)<.00001f,"complete compatible gesture fits original montage, without held final frame or added return pose");
     Check(At<float>(f.copyEvents,2*184+0x24)==.4880667329f&&At<uintptr_t>(f.copyEvents,2*184+0x48)==reinterpret_cast<uintptr_t>(f.notify),"actual blast callback not sped up or delayed to match a visual workaround");
-    Check(At<uintptr_t>(f.copyEvents,4*184+0x50)==reinterpret_cast<uintptr_t>(f.interrupts[0])&&At<int>(f.copyEvents,4*184+0x74)==1&&std::fabs(At<float>(f.copyEvents,4*184+0x84)-2.3666665554f)<.00001f,"native MOVE state can begin in gesture and end in idle segment");
+    Check(At<uintptr_t>(f.copyEvents,4*184+0x50)==reinterpret_cast<uintptr_t>(f.interrupts[0])&&At<int>(f.copyEvents,4*184+0x74)==0&&std::fabs(At<float>(f.copyEvents,4*184+0x84)-2.3666665554f)<.00001f,"native MOVE state keeps its exact linked end on the original single segment");
     Check(!std::memcmp(f.war,before->war,sizeof(f.war))&&!std::memcmp(f.sequenceEvents,before->sequenceEvents,sizeof(f.sequenceEvents))&&!std::memcmp(f.interrupts,before->interrupts,sizeof(f.interrupts)),"source animation, callback times and control windows never edited");
 }
 void Beams(){

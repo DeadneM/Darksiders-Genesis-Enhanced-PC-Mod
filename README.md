@@ -1,3 +1,15 @@
+## V1.121 - Retour aux gestes continus, particules de lancement Stoneskin
+
+**PREPAREE / EXPERIMENTALE, NON VALIDEE EN JEU. Compilation et livraison GitHub a verifier.** Base cumulative V1.120, avec retour cible vers les chemins precedant les retouches de duree. Reference acceptee des capacites : V1.112 ; acquis valides plus recents conserves. Dernier verdict utilisateur : Caltrops V1.120 REJETE, retour Geyser REJETE (mouvement vertical), Stoneskin activation/rendu/restauration VALIDES sauf particules de lancement absentes.
+
+Caltrops War retrouve un seul geste sur la duree native du pouvoir (environ 2.333s avant facteur natif), comme avant le raccourcissement V1.108 : retrait du retour War_End et de toute la continuite temporaire du graphe V1.120. Geyser Strife retrouve un seul geste continu sur 2.3667s : suppression de la pose de fin ajoutee, du maintien d'une derniere image et du module de reechantillonnage GeyserStaticPose, y compris son appel dans le hook partage. Les callbacks de degats et fenetres d'interruption natives restent a leurs temps acceptes. Aucun patch de mouvement, saut, vol/chute, input ou script VM. **Le geste pourra etre plus lent ; l'absence de rebond reste a tester.**
+
+Stoneskin garde exactement son activation acceptee (normalement 1.50s), ses fondus et ses materiaux. Les deux notifications natives de particules de lancement Base/Molten sont copiees dans son seul montage prive Strife ; phases et filtres d'affichage conserves, doublons evites. Aucun transfert du blast, du statut War/Stinger, des effets de surface, du camera shake ou des callbacks de gameplay. Un contrat indisponible est signale au journal et laisse le pouvoir accepte fonctionner.
+
+Clone, Rampage, World Ender, War Stoneskin natif, apparences, camera/manette/cheval/menus/updater et reglages personnels preserves. INI 212 cles et 55 Hotkeys inchanges. Compilation uniquement sur GitHub debug, aucun lancement ou installation locale. [Objectif, changements et tests](docs/V1_121_NATIVE_CAST_RESET_STONESKIN_FX_TEST.md).
+
+---
+
 ## V1.120 - Continuite de la pose de War pendant Caltrops
 
 **CONSTRUITE / CONTROLEE : [65/65 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40519850736), zero avertissement/erreur MSVC. [ZIP public cumulatif verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/d218ecb22e9f4e3aa2e3ad528775d63e86f0c347/downloads/DarksidersGenesis_V1.120_CALTROPS_SOURCE_POSE_TEST.zip) - [Recu](docs/V1_120_DELIVERY_RECEIPT.md). Updater debug V1.120 : choix et octets verifies. Defender ZIP/quatre fichiers : aucune menace detectee, protections actives. Continuité visuelle Caltrops EXPERIMENTALE, a valider en jeu ; Geyser/Stoneskin +0.50s conserves.**

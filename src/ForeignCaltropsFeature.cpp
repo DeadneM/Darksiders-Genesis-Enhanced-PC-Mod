@@ -1,9 +1,7 @@
 #include "ForeignCaltropsFeature.h"
 #include "ForeignMontage.h"
 #include "NativeObjectName.h"
-#include "NativePropertyField.h"
 #include "NativeTpsFeature.h"
-#include <array>
 #include <atomic>
 #include <cmath>
 
@@ -20,8 +18,6 @@ uintptr_t g_base=0;LogFn g_log=nullptr;
 std::atomic_bool g_ready{false},g_failed{false};
 native_objects::Identity g_power{},g_idle{};unsigned g_events=0;
 thread_local void* g_handling=nullptr;
-struct Continuity {native_objects::Identity actor{},ability{},mesh{},anim{};uintptr_t world=0;int flag=-1;};
-std::array<Continuity,2> g_continuity{};unsigned g_continuityEvents=0;
 struct Array {uintptr_t data=0;int count=0,capacity=0;};
 struct Source {uintptr_t mesh=0,sequence=0,skeleton=0;Name pelvis{};float length=0;};
 template<class T> bool Read(uintptr_t p,size_t o,T& value){native_objects::MemoryReader r;return r.Read(p,o,value);}
@@ -39,60 +35,13 @@ bool Idle(uintptr_t p){
         std::isfinite(length)&&std::fabs(length-5.3333334923f)<.001f&&Read(p,0x94,rate)&&rate==1&&
         Read(p,0x80,events)&&events.count==0&&events.capacity>=0&&events.capacity<=128;
 }
-bool Owner(void* live,local_players::Context& c,bool grounded=true){
+bool Owner(void* live,local_players::Context& c){
     const auto actor=reinterpret_cast<uintptr_t>(live);uintptr_t cls=0,controller=0,pawn=0,movement=0,owner=0;unsigned char type=0,role=0,mode=0;
     return local_players::ResolveActor(live,c)&&c.index>=0&&c.index<2&&c.localPlayer&&c.world&&
         c.kind==local_players::PoseKind::Foot&&c.pawn==actor&&c.character==actor&&
         Read(actor,0x10,cls)&&Is(cls,"War_Blueprint_C")&&Read(actor,0xC18,type)&&type==2&&Read(actor,0x118,role)&&role==3&&
         Read(actor,0x348,controller)&&controller==c.controller&&Read(controller,0x350,pawn)&&pawn==actor&&
-        Read(actor,0x388,movement)&&Read(movement,0xE8,owner)&&owner==actor&&(!grounded||(Read(movement,0x1B0,mode)&&mode==1));
-}
-template<size_t N>bool FieldObject(uintptr_t cls,const char(&name)[N],uintptr_t& result){
-    for(int level=0;cls&&level<16;++level){uintptr_t field=0;if(!Read(cls,0x48,field))return false;
-        for(int i=0;field&&i<512;++i){if(Is(field,name)){result=field;return true;}uintptr_t next=0;if(!Read(field,0x28,next)||next==field)return false;field=next;}
-        if(field||!Read(cls,0x40,cls))return false;
-    }return false;
-}
-bool SlotFlag(uintptr_t anim,int& at){
-    constexpr char slot[]="AnimGraphNode_Slot_E905C13C481BC22BAA7A96B6C1C1C9C3";
-    uintptr_t cls=0,field=0,structure=0,type=0,boolField=0;int node=-1,nameAt=-1,flagAt=-1;Name name{};std::array<unsigned char,4> boolean{};
-    if(!Read(anim,0x10,cls)||!Is(cls,"WarAnim_Blueprint_C")||
-       !native_objects::PropertyField(g_base,cls,slot,"StructProperty",72,node)||!FieldObject(cls,slot,field)||
-       !Read(field,0x70,structure)||!Is(structure,"AnimNode_Slot")||!Read(structure,0x10,type)||!Is(type,"ScriptStruct")||
-       !native_objects::PropertyField(g_base,structure,"SlotName","NameProperty",8,nameAt)||nameAt!=32||
-       !native_objects::PropertyField(g_base,structure,"bAlwaysUpdateSourcePose","BoolProperty",1,flagAt)||flagAt!=40||
-       !FieldObject(structure,"bAlwaysUpdateSourcePose",boolField)||!Read(boolField,0x70,boolean)||
-       boolean!=std::array<unsigned char,4>{1,0,1,255}||!Read(anim,size_t(node+nameAt),name)||
-       !native_objects::NameValueIs(g_base,name.index,name.number,"TPS"))return false;
-    at=node+flagAt;return true;
-}
-bool StoreFlag(uintptr_t anim,int at,unsigned char value){
-    if(!anim||at<0||at>65535||value>1||anim>UINTPTR_MAX-size_t(at))return false;const auto p=anim+size_t(at);MEMORY_BASIC_INFORMATION m{};
-    if(!VirtualQuery(reinterpret_cast<void*>(p),&m,sizeof(m))||m.State!=MEM_COMMIT||(m.Protect&(PAGE_GUARD|PAGE_NOACCESS))||
-       ((m.Protect&0xFF)!=PAGE_READWRITE&&(m.Protect&0xFF)!=PAGE_EXECUTE_READWRITE))return false;
-    const auto delta=p-reinterpret_cast<uintptr_t>(m.BaseAddress);if(delta>=m.RegionSize)return false;
-    std::memcpy(reinterpret_cast<void*>(p),&value,1);return true;
-}
-void Restore(Continuity& saved){
-    uintptr_t actor=0,anim=0;int at=-1;unsigned char value=0;
-    if(saved.flag>=0&&Alive(saved.actor)&&Alive(saved.mesh)&&Alive(saved.anim)&&Read(saved.mesh.address,0xE8,actor)&&actor==saved.actor.address&&
-       Read(saved.mesh.address,0x718,anim)&&anim==saved.anim.address&&SlotFlag(anim,at)&&at==saved.flag&&Read(anim,size_t(at),value)&&value==1)
-        StoreFlag(anim,at,0);
-    saved={};
-}
-void BeginContinuity(const local_players::Context& c,void* ability,uintptr_t mesh){
-    if(c.index<0||c.index>1)return;auto& prior=g_continuity[size_t(c.index)];Restore(prior);
-    Continuity saved{};local_players::Context owned{};uintptr_t anim=0,owner=0;uint32_t flags=0;int at=-1;unsigned char value=255,state=0;
-    if(!Owner(reinterpret_cast<void*>(c.character),owned,false)||owned.index!=c.index||owned.world!=c.world||
-       !Read(reinterpret_cast<uintptr_t>(ability),0x48,owner)||owner!=c.character||!Read(reinterpret_cast<uintptr_t>(ability),0x1B0,owner)||owner!=c.character||
-       !Read(reinterpret_cast<uintptr_t>(ability),0xD8,state)||(state!=1&&state!=2)||
-       !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(c.character),saved.actor)||!native_objects::CaptureLive(g_base,ability,saved.ability)||
-       !Read(c.character,0x380,owner)||owner!=mesh||!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(mesh),saved.mesh)||!Read(mesh,0xE8,owner)||owner!=c.character||
-       !Read(mesh,0x718,anim)||!Read(anim,8,flags)||(flags&0x30u)||!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(anim),saved.anim)||!SlotFlag(anim,at)||
-       !Read(anim,size_t(at),value)||value>1){if(g_log&&g_continuityEvents++<8)g_log("Caltrops V1.120 pose continuity unavailable; previous presentation retained");return;}
-    if(value)return; // A native true value is never owned or reset by the mod.
-    if(!StoreFlag(anim,at,1))return;saved.world=c.world;saved.flag=at;prior=saved;
-    if(g_log&&g_continuityEvents++<8)g_log("Caltrops V1.120 source pose kept updating on owned War TPS slot; restored at cast end; EXPERIMENTAL visual continuity");
+        Read(actor,0x388,movement)&&Read(movement,0xE8,owner)&&owner==actor&&Read(movement,0x1B0,mode)&&mode==1;
 }
 bool Animation(const local_players::Context& c,Source& out){
     uintptr_t anim=0,cls=0,owner=0,asset=0,skeleton=0;Array bones{};struct Bone {Name name;int parent=0;} pelvis{};
@@ -172,9 +121,8 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     const auto clone=reinterpret_cast<uintptr_t>(replacement);uintptr_t skeleton=0;float length=0;
     if(!clone||clone==reinterpret_cast<uintptr_t>(montage)||!Read(clone,0x10,cls)||!Is(cls,"AnimMontage")||!Read(clone,0x38,skeleton)||skeleton!=source.skeleton||
        !Read(clone,0x90,length)||!std::isfinite(length)||std::fabs(length-source.length)>.001f){Stop(ability);return true;}
-    const float adjusted=rate*(source.sequence==g_idle.address?length/duration:1.f); // own gesture at native speed; accepted idle fallback
+    const float adjusted=rate*length/duration; // complete source gesture over the original cast span, before duration retunes
     if(!std::isfinite(adjusted)||adjusted<=.01f||adjusted>=100){Stop(ability);return true;}
-    foreign_montage::CompleteGroundCast(replacement,source.skeleton,.55f); // same complete return as the user-validated War Clone
     foreign_montage::CopyLaterSounds(reinterpret_cast<uintptr_t>(montage),replacement);
     native(ability,replacement,adjusted,section);
     uintptr_t instance=0;
@@ -187,23 +135,9 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     // start, not a transplanted notification. Native creation keeps ownership,
     // upgrades and damage. No Strife socket, shared component, timer or CDO edit.
     g_spawn(ability,reinterpret_cast<void*>(projectile),source.pelvis);
-    if(Alive(cast)&&Alive(pawn))BeginContinuity(c,ability,source.mesh);
     if(Alive(cast)&&Alive(pawn))foreign_montage::StartSounds(reinterpret_cast<uintptr_t>(montage),ability);
-    if(g_log&&g_events++<12)g_log("Caltrops V1.98: one native spawner, own War gesture at native speed; own War casting gesture when loaded, idle fallback; animation EXPERIMENTAL");
+    if(g_log&&g_events++<12)g_log("Caltrops V1.121: original cast span restored; one continuous own War gesture and one native spawner, no added return; animation EXPERIMENTAL");
     return true;
 }
-void Observe(const local_players::Context& c){
-    if(!native_tps::OnGameThread()||c.index<0||c.index>1)return;
-    // Service both records even after a local player disappears. Resolving
-    // each saved actor again avoids leaving its flag owned by a removed P2.
-    for(size_t index=0;index<g_continuity.size();++index){auto& saved=g_continuity[index];if(!saved.actor)continue;
-    local_players::Context owned{};uintptr_t actor=0,mesh=0,anim=0,cls=0;unsigned char state=0;const auto expected=saved.actor.address;
-    if(!g_ready||!Alive(saved.actor)||!Alive(saved.ability)||!Alive(saved.mesh)||!Alive(saved.anim)||
-       c.world!=saved.world||!Owner(reinterpret_cast<void*>(expected),owned,false)||owned.index!=int(index)||owned.world!=saved.world||
-       !Read(saved.ability.address,0x10,cls)||!IsClass(cls)||!Read(saved.ability.address,0x48,actor)||actor!=expected||
-       !Read(saved.ability.address,0x1B0,actor)||actor!=expected||!Read(saved.ability.address,0xD8,state)||(state!=1&&state!=2)||
-       !Read(expected,0x380,mesh)||mesh!=saved.mesh.address||!Read(mesh,0x718,anim)||anim!=saved.anim.address)Restore(saved);
-    }
-}
-void Shutdown(){if(native_tps::OnGameThread())for(auto& saved:g_continuity)Restore(saved);g_ready=false;}
+void Shutdown(){g_ready=false;}
 }

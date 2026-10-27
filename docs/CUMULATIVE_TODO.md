@@ -1,3 +1,10 @@
+## V1.121 latest verdict and clean retry
+
+- REJECTED: Caltrops recent duration/End/source-pose attempts, Geyser added ending pose/held frame (vertical bob). Removed from current ASI, historical packages preserved.
+- VALIDATED by user: current Stoneskin gesture/duration/materials/restoration. Missing launch particles only: scoped native particle candidate added; activation/status remain accepted.
+- EXPERIMENTAL: one continuous gesture over original cast duration for Caltrops/Geyser, no added end pose, source flag, physics or VM patch. Visual outcome and normal movement/jump must be checked.
+- Clone/Rampage/WorldEnder and other accepted features/settings preserved. Coop tests last. No local install/build/launch.
+
 V1.120 delivered: 65/65 GitHub tests, ZIP/updater/Defender controlled; Caltrops source-pose continuity EXPERIMENTAL, not yet user validated. Both half-second Strife animation changes retained. [Receipt](V1_120_DELIVERY_RECEIPT.md).
 
 ## V1.120 Caltrops clarification and visual candidate

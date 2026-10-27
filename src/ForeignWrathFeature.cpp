@@ -1,7 +1,6 @@
 #include "ForeignWrathFeature.h"
 #include "ForeignMontage.h"
 #include "StoneSkinVisual.h"
-#include "GeyserStaticPose.h"
 #include "ForeignCaltropsFeature.h"
 #include "ForeignPowerFeature.h"
 #include "ForeignBeamFeature.h"
@@ -84,10 +83,10 @@ bool Source(uintptr_t actor,Animation& out){
 void Scan(uintptr_t generatedClass){
     const bool beamChanged=foreign_beam::InvalidateAssets(),rampageChanged=foreign_rampage::InvalidateAssets();
     const bool caltropsChanged=foreign_caltrops::InvalidateAssets(),cloneChanged=foreign_power::InvalidateAssets();
-    if(geyser_static::InvalidateAssets()||stone_visual::InvalidateAssets()||beamChanged||rampageChanged||caltropsChanged||cloneChanged){g_cursor=0;g_complete=false;}
+    if(stone_visual::InvalidateAssets()||beamChanged||rampageChanged||caltropsChanged||cloneChanged){g_cursor=0;g_complete=false;}
     if(g_geyser&&!Alive(g_geyser)){g_geyser={};g_geyserReady=false;g_cursor=0;g_complete=false;}
     if(g_stone&&!Alive(g_stone)){g_stone={};g_cursor=0;g_complete=false;}
-    if(g_geyser){g_geyserReady=true;if(stone_visual::AssetsReady()&&geyser_static::AssetsReady()&&foreign_montage::GesturesReady()&&foreign_beam::AssetsReady()&&g_stone&&foreign_rampage::AssetsReady()&&foreign_caltrops::AssetsReady()&&foreign_power::AssetsReady())return;}
+    if(g_geyser){g_geyserReady=true;if(stone_visual::AssetsReady()&&foreign_montage::GesturesReady()&&foreign_beam::AssetsReady()&&g_stone&&foreign_rampage::AssetsReady()&&foreign_caltrops::AssetsReady()&&foreign_power::AssetsReady())return;}
     uintptr_t chunks=0;int count=0;
     if(!Read(g_base,0x3959680,chunks)||!Read(g_base,0x3959694,count)||count<=0||count>2000000)return;
     if(count!=g_count){if(count<g_count)g_cursor=0;g_count=count;g_complete=false;}
@@ -113,7 +112,7 @@ void Scan(uintptr_t generatedClass){
         if(!kind)continue;
         foreign_caltrops::ObserveObject(object,kind);foreign_power::ObserveObject(object,kind);
         if(kind==1||kind==3){foreign_beam::ObserveObject(object);foreign_rampage::ObserveObject(object);}
-        if(kind==3){foreign_montage::ObserveSequence(object);geyser_static::ObserveSequence(object);}
+        if(kind==3){foreign_montage::ObserveSequence(object);}
         if(kind!=1)continue;
         if(!g_geyser&&GeyserClass(object))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(object),g_geyser);
         if(!g_stone&&StoneClass(object))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(object),g_stone);
@@ -149,7 +148,7 @@ void StonePlay(void* ability,void* montage,float rate,Name section,const local_p
     uintptr_t cls=0,package=0,skeleton=0,owner=0;float duration=0,scale=0,length=0;Animation source{};
     native_objects::Identity abi{},pawn{};
     if(!native_objects::CaptureLive(g_base,ability,abi)||!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(c.character),pawn))return;
-    bool played=false;
+    bool played=false,launchEffects=false;
     if(g_create&&!g_stoneFailed&&std::isfinite(rate)&&rate>0&&rate<=10&&!section.index&&!section.number&&Source(c.character,source)&&
        Read(original,0x10,cls)&&Is(cls,"AnimMontage")&&Read(original,0x20,package)&&
        ((Is(original,"War_Atk_Stoneskin_Montage")&&Is(package,"/Game/Characters/Heroes/Hero_War/Animation/War_Atk_Stoneskin_Montage"))||
@@ -171,6 +170,7 @@ void StonePlay(void* ability,void* montage,float rate,Name section,const local_p
                 // Native status/cost, own gesture; body coating is observed
                 // independently from the status list, never from this clip.
                 foreign_montage::CopyLaterSounds(original,replacement);
+                launchEffects=foreign_montage::CopyStoneskinLaunchEffects(original,replacement);
                 g_play(ability,replacement,adjusted,section);
                 if(!Alive(abi)||!Alive(pawn)||!Read(p,0x48,owner)||owner!=c.character)return;
                 uintptr_t instance=0;played=Read(p,0x1D8,instance)&&instance&&g_playing(reinterpret_cast<void*>(instance));
@@ -182,7 +182,9 @@ void StonePlay(void* ability,void* montage,float rate,Name section,const local_p
     // the actual Strife status lifetime; no borrowed components or timer.
     if(!played){g_stoneFailed=true;g_finish(ability,0);}
     else foreign_montage::StartSounds(original,ability);
-    if(g_log&&g_stoneEvents++<12)g_log(played?"Stoneskin V1.119 CAST: Aether activation +0.50s (normally 1.50s), retained 0.16/0.30s fades; native status lifetime independent; EXPERIMENTAL":
+    if(g_log&&g_stoneEvents++<12)g_log(played?(launchEffects?
+        "Stoneskin V1.121 CAST: accepted activation/fades/status retained; native launch particles queued; visual EXPERIMENTAL":
+        "Stoneskin V1.121 CAST: accepted activation/fades/status retained; launch particle contract unavailable"):
         "Stoneskin V1.102 stopped: own cast contract unavailable; native finish, transfer disabled for session; select Native");
 }
 
@@ -210,7 +212,7 @@ void HookPlay(void* ability,void* montage,float rate,Name section){
         g_play(ability,replacement,rate,section);uintptr_t instance=0;
         played=Read(reinterpret_cast<uintptr_t>(ability),0x1D8,instance)&&instance&&g_playing(reinterpret_cast<void*>(instance));
     }
-    if(played){*recent=actor;geyser_static::Begin(c,ability,replacement);foreign_montage::StartSounds(reinterpret_cast<uintptr_t>(montage),ability);}
+    if(played){*recent=actor;foreign_montage::StartSounds(reinterpret_cast<uintptr_t>(montage),ability);}
     else {g_geyserFailed=true;g_finish(ability,0);}
     if(g_log&&++g_events<=12)g_log(played?"Foreign Wrath V1.98 Geyser: native callback and FX timeline retained; own casting gesture when loaded, idle fallback; animation EXPERIMENTAL":
         "Foreign Wrath V1.88 Geyser contract unavailable; cast finished and further Geyser requests stopped for this session");
@@ -230,7 +232,7 @@ bool Boundary(){
 }
 void Initialize(LogFn log,bool exactExecutable){
     g_log=log;if(!exactExecutable)return;g_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
-    geyser_static::Initialize(log,exactExecutable);foreign_montage::Initialize(log,exactExecutable);stone_visual::Initialize(log,exactExecutable);
+    foreign_montage::Initialize(log,exactExecutable);stone_visual::Initialize(log,exactExecutable);
     if(!Boundary()){if(log)log("Foreign Wrath V1.83 unavailable: native lifecycle signature mismatch");return;}
     auto* getter=reinterpret_cast<void*>(g_base+0x7AAC30);auto* play=reinterpret_cast<void*>(g_base+0x5AA190);
     if(MH_CreateHook(getter,reinterpret_cast<void*>(&HookGetter),reinterpret_cast<void**>(&g_getter))!=MH_OK)return;
@@ -256,7 +258,7 @@ int Status(int choice){
     return foreign_montage::Ready()&&!g_geyserFailed?(g_geyserReady?2:1):0;
 }
 void Observe(const local_players::Context& owner){
-    foreign_rampage::Observe(owner);geyser_static::Observe(owner);stone_visual::Observe(owner);foreign_caltrops::Observe(owner);
+    foreign_rampage::Observe(owner);stone_visual::Observe(owner);
     if(!g_ready||!native_tps::OnGameThread())return;
     bool wanted=g_requested.load();for(const auto& slots:runtime::Get().wrathSlots)for(const auto& choice:slots)wanted=wanted||((choice.load()>=1&&choice.load()<=5)||choice.load()==6);
     if(!wanted||owner.index<0||owner.index>1||!owner.localPlayer||!owner.world||owner.kind!=local_players::PoseKind::Foot)return;
@@ -290,5 +292,5 @@ uintptr_t* Resolve(ResolveFn native,void* actor,uintptr_t* result,Name id,bool* 
     g_override=&request;return native(actor,result,id,unlocked,affordable);
 }
 
-void Shutdown(){geyser_static::Shutdown();stone_visual::Shutdown();foreign_caltrops::Shutdown();foreign_power::Shutdown();foreign_beam::Shutdown();foreign_rampage::Shutdown();g_ready=false;g_geyserReady=false;}
+void Shutdown(){stone_visual::Shutdown();foreign_caltrops::Shutdown();foreign_power::Shutdown();foreign_beam::Shutdown();foreign_rampage::Shutdown();g_ready=false;g_geyserReady=false;}
 }

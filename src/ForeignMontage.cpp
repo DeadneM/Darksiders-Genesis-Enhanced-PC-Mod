@@ -279,7 +279,6 @@ void* Geyser(uintptr_t original,const Source& source){
        !List(before.segment.sequence,0x80,sequenceEvents,64)||!Collect(before.segment.sequence,sequenceEvents,presentation,&event)||
        !Collect(original,before.events,presentation)||!Interrupts(before.segment.sequence,sequenceEvents,0,before.length,0,1,presentation)||presentation.spawns!=1||presentation.sounds!=1||!presentation.particles)return nullptr;
     const auto playback=CastingSequence(source.sequence,source.skeleton,length);
-    const bool paced=playback!=source.sequence&&g_reserveSegments&&length<before.length;
 
     std::memcpy(&time,event.data()+0x24,sizeof(time));
     if(time>=before.length)return nullptr;
@@ -303,17 +302,7 @@ void* Geyser(uintptr_t original,const Source& source){
         uintptr_t notify=0;std::memcpy(&notify,presentation.events[i].data()+0x48,8);
         if(notify&&!AdaptRoot(presentation.events[i],montage,source))return nullptr;
     }
-    Array segments=after.segments;Segment idle{};
-    if(paced){
-        if(segments.capacity<2)g_reserveSegments(reinterpret_cast<void*>(after.tracks.data+8),2);
-        if(!List(after.tracks.data,8,segments,16)||segments.data==before.segments.data||segments.capacity<2||
-           !Writable(segments.data,2*sizeof(Segment)))return nullptr;
-        // Keep the last cast pose continuous; the montage's native blend-out
-        // returns to locomotion, rather than switching abruptly to idle.
-        segment.rate=1;idle=segment;idle.start=length;idle.first=std::max(0.f,length-1.f/30.f);
-        idle.rate=(idle.last-idle.first)/(after.length-length);
-        if(!std::isfinite(idle.rate)||idle.rate<=.01f||idle.rate>100)return nullptr;
-    }
+    Array segments=after.segments;
 
     // Use the game's 184-byte array reserve helper, on the private clone only.
     // No CRT allocation is ever handed to Unreal's array destructor.
@@ -326,14 +315,9 @@ void* Geyser(uintptr_t original,const Source& source){
     for(int i=0;i<presentation.count;++i){
         const auto at=storage.data+size_t(i)*sizeof(Event);float duration=0;
         std::memcpy(&time,presentation.events[i].data()+0x24,sizeof(time));std::memcpy(&duration,presentation.events[i].data()+0x58,4);
-        auto link=[&](uintptr_t element,float value){
-            const bool second=paced&&value>=length;const auto sequence=playback;
-            const float begin=second?length:0,span=paced?(second?after.length-length:length):after.length;
-            return Link(element,montage,sequence,value,span)&&Store(element,0x14,second?1:0)&&Store(element,0x1C,begin);
-        };
+        auto link=[&](uintptr_t element,float value){return Link(element,montage,playback,value,after.length);};
         if(!Store(at,0,presentation.events[i])||!link(at,time)||!link(at+0x60,time+duration))return nullptr;
     }
-    if(paced&&(!Store(segments.data,sizeof(Segment),idle)||!Store(after.tracks.data,0x10,2)))return nullptr;
     if(!Store(segments.data,0,segment)||!Link(after.sections.data,montage,playback,zero,after.length)||
        !Store(montage,0x88,presentation.count)||!SmoothExit(created))return nullptr;
     return created;
@@ -833,5 +817,70 @@ bool CopyLaterSounds(uintptr_t original,void* privateMontage){
         if(!Store(at,0,cue.event)||!Link(at,copy,playback.sequence,cue.time,length)||!Link(at+0x60,copy,playback.sequence,cue.time,length))return false;
     }
     return Store(copy,0x88,int(later));
+}
+bool CopyStoneskinLaunchEffects(uintptr_t original,void* privateMontage){
+    if(!g_ready||!g_reserve||!g_package||!native_tps::OnGameThread())return false;
+    const auto copy=reinterpret_cast<uintptr_t>(privateMontage);uintptr_t cls=0,package=0,skeleton=0,outer=0;
+    Array tracks{},segments{},sourceEvents{},events{};Segment native{},playback{};float span=0,length=0;uint32_t flags=0;
+    if(!copy||copy==original||!Read(original,0x10,cls)||!Is(cls,"AnimMontage")||!Read(original,0x20,package))return false;
+    const bool molten=Is(original,"War_Atk_Stoneskin_Molten_Montage")&&
+        Is(package,"/Game/Characters/Heroes/Hero_War/Animation/War_Atk_Stoneskin_Molten_Montage");
+    if(!molten&&!(Is(original,"War_Atk_Stoneskin_Montage")&&
+        Is(package,"/Game/Characters/Heroes/Hero_War/Animation/War_Atk_Stoneskin_Montage")))return false;
+    if(!Read(original,0x90,span)||std::fabs(span-1.8333333731f)>.00001f||!std::isfinite(span)||
+       !List(original,0x158,tracks,4)||tracks.count!=1||!List(tracks.data,8,segments,4)||segments.count!=1||
+       !Read(segments.data,0,native)||native.start||native.first||native.last!=span||native.rate!=1||native.loops!=1||native.valid!=1||
+       !Read(native.sequence,0x10,cls)||!Is(cls,"AnimSequence")||!Read(native.sequence,0x20,package)||
+       !(molten?(Is(native.sequence,"War_Atk_Stoneskin_Molten")&&Is(package,"/Game/Characters/Heroes/Hero_War/Animation/War_Atk_Stoneskin_Molten")):
+           (Is(native.sequence,"War_Atk_Stoneskin")&&Is(package,"/Game/Characters/Heroes/Hero_War/Animation/War_Atk_Stoneskin")))||
+       !Read(native.sequence,0x38,skeleton)||!Is(skeleton,"War_Mesh_Skeleton")||!List(native.sequence,0x80,sourceEvents,64)||
+       !Read(copy,0x10,cls)||!Is(cls,"AnimMontage")||!Read(copy,8,flags)||(flags&0x30u)||
+       !Read(copy,0x20,outer)||outer!=reinterpret_cast<uintptr_t>(g_package())||!Is(outer,"/Engine/Transient")||
+       !Read(copy,0x90,length)||!std::isfinite(length)||length<=.1f||length>=10||!List(copy,0x80,events,32)||
+       (events.data&&(events.data==sourceEvents.data))||!Empty(copy,0x180)||!Empty(copy,0x190)||
+       !List(copy,0x158,tracks,4)||tracks.count!=1||!List(tracks.data,8,segments,4)||segments.count!=1||
+       !Read(segments.data,0,playback)||playback.start||playback.first||playback.last!=length||playback.rate!=1||playback.loops!=1||playback.valid!=1||
+       !Read(playback.sequence,0x38,skeleton)||!Is(skeleton,"Strife_Skeleton")||!Read(copy,0x38,outer)||outer!=skeleton)return false;
+    std::array<Event,32> plan{};Event effects[2]{};uintptr_t notifies[2]{};unsigned found=0;int count=events.count;
+    const char* names[2]={molten?"P_WarStoneSkin_Molten":"P_WarStoneSkin_Base",molten?"P_WarStoneSkin_Molten_NoDust":"P_WarStoneSkin_Base_NoDust"};
+    for(int i=0;i<sourceEvents.count;++i){
+        const auto at=sourceEvents.data+size_t(i)*sizeof(Event);uintptr_t notify=0,effect=0,owner=0,state=0;Name socket{};float time=0,duration=0;unsigned char attached=255,tick=255;
+        if(!Read(at,0x48,notify))return false;
+        if(!notify||!Read(notify,0x10,cls)||!Is(cls,"AnimNotify_PlayParticleEffect"))continue;
+        if(!Read(notify,0x38,effect))return false;
+        const int kind=Named(effect,names[0])?0:(Named(effect,names[1])?1:-1);if(kind<0)continue;
+        if((found&(1u<<kind))||!Read(effect,0x10,cls)||!Is(cls,"ParticleSystem")||!Read(notify,0x20,owner)||owner!=native.sequence||
+           !Read(notify,0x84,socket)||socket.index||socket.number||!Read(notify,0x8C,attached)||attached||
+           !Read(at,0x50,state)||state||!Read(at,0x58,duration)||duration||!Read(at,0x91,tick)||tick||!Read(at,0x24,time)||!std::isfinite(time)||
+           std::fabs(time-(kind?.741106f:.740429f))>.00001f||!Read(at,0,effects[kind]))return false;
+        notifies[kind]=notify;found|=1u<<kind;
+    }
+    if(found!=3)return false;
+    for(int i=0;i<count;++i){
+        const auto at=events.data+size_t(i)*sizeof(Event);uintptr_t notify=0,state=0;float time=0,duration=0;
+        if(!Read(at,0,plan[i])||!Read(at,0x48,notify)||!Read(notify,0x10,cls)||
+           (!Is(cls,"AnimNotify_PlaySound")&&notify!=notifies[0]&&notify!=notifies[1])||
+           !Read(at,0x50,state)||state||!Read(at,0x58,duration)||duration||!Read(at,0x24,time)||!std::isfinite(time)||time<0||time>=length)return false;
+    }
+    const float scale=length/span;
+    for(int k=0;k<2;++k){
+        bool present=false;for(int i=0;i<count;++i){uintptr_t n=0;std::memcpy(&n,plan[i].data()+0x48,8);if(n==notifies[k])present=true;}
+        if(present)continue;if(count==int(plan.size()))return false;
+        auto event=effects[k];float time=0,offset=0,endOffset=0;std::memcpy(&time,event.data()+0x24,4);
+        std::memcpy(&offset,event.data()+0x34,4);std::memcpy(&endOffset,event.data()+0x38,4);
+        if(!std::isfinite(offset)||!std::isfinite(endOffset))return false;
+        time*=scale;offset*=scale;endOffset*=scale;
+        std::memcpy(event.data()+0x30,&time,4);std::memcpy(event.data()+0x34,&offset,4);std::memcpy(event.data()+0x38,&endOffset,4);
+        const auto at=reinterpret_cast<uintptr_t>(event.data());
+        if(!Link(at,copy,playback.sequence,time,length)||!Link(at+0x60,copy,playback.sequence,time,length))return false;
+        plan[count++]=event;
+    }
+    if(count==events.count)return true;
+    std::stable_sort(plan.begin(),plan.begin()+count,[](const Event& a,const Event& b){float ta=0,tb=0;std::memcpy(&ta,a.data()+0x24,4);std::memcpy(&tb,b.data()+0x24,4);return ta<tb;});
+    if(count>events.capacity)g_reserve(reinterpret_cast<void*>(copy+0x80),count);
+    if(!List(copy,0x80,events,64)||events.capacity<count||events.data==sourceEvents.data||
+       !Writable(events.data,size_t(count)*sizeof(Event))||!Writable(copy+0x88,4))return false;
+    for(int i=0;i<count;++i)if(!Store(events.data+size_t(i)*sizeof(Event),0,plan[i]))return false;
+    return Store(copy,0x88,count);
 }
 }

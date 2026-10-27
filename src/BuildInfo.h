@@ -1,7 +1,7 @@
 #pragma once
 namespace dg::build {
-inline constexpr int Major=1,Minor=120;
-inline constexpr char Version[]="V1.120";
-inline constexpr char Id[]="1.120-caltrops-source-pose-test";
-inline constexpr char Archive[]="DarksidersGenesis_V1.120_CALTROPS_SOURCE_POSE_TEST.zip";
+inline constexpr int Major=1,Minor=121;
+inline constexpr char Version[]="V1.121";
+inline constexpr char Id[]="1.121-native-cast-reset-stoneskin-fx-test";
+inline constexpr char Archive[]="DarksidersGenesis_V1.121_NATIVE_CAST_RESET_STONESKIN_FX_TEST.zip";
 }
