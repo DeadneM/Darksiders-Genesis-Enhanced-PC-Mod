@@ -67,7 +67,7 @@ bool SlotFlag(uintptr_t anim,int& at){
     at=node+flagAt;return true;
 }
 bool StoreFlag(uintptr_t anim,int at,unsigned char value){
-    if(at<0||at>65535||value>1||anim>UINTPTR_MAX-size_t(at))return false;const auto p=anim+size_t(at);MEMORY_BASIC_INFORMATION m{};
+    if(!anim||at<0||at>65535||value>1||anim>UINTPTR_MAX-size_t(at))return false;const auto p=anim+size_t(at);MEMORY_BASIC_INFORMATION m{};
     if(!VirtualQuery(reinterpret_cast<void*>(p),&m,sizeof(m))||m.State!=MEM_COMMIT||(m.Protect&(PAGE_GUARD|PAGE_NOACCESS))||
        ((m.Protect&0xFF)!=PAGE_READWRITE&&(m.Protect&0xFF)!=PAGE_EXECUTE_READWRITE))return false;
     const auto delta=p-reinterpret_cast<uintptr_t>(m.BaseAddress);if(delta>=m.RegionSize)return false;
@@ -82,13 +82,13 @@ void Restore(Continuity& saved){
 }
 void BeginContinuity(const local_players::Context& c,void* ability,uintptr_t mesh){
     if(c.index<0||c.index>1)return;auto& prior=g_continuity[size_t(c.index)];Restore(prior);
-    Continuity saved{};local_players::Context owned{};uintptr_t anim=0,owner=0;int at=-1;unsigned char value=255,state=0;
+    Continuity saved{};local_players::Context owned{};uintptr_t anim=0,owner=0;uint32_t flags=0;int at=-1;unsigned char value=255,state=0;
     if(!Owner(reinterpret_cast<void*>(c.character),owned,false)||owned.index!=c.index||owned.world!=c.world||
        !Read(reinterpret_cast<uintptr_t>(ability),0x48,owner)||owner!=c.character||!Read(reinterpret_cast<uintptr_t>(ability),0x1B0,owner)||owner!=c.character||
        !Read(reinterpret_cast<uintptr_t>(ability),0xD8,state)||(state!=1&&state!=2)||
        !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(c.character),saved.actor)||!native_objects::CaptureLive(g_base,ability,saved.ability)||
-       !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(mesh),saved.mesh)||!Read(mesh,0xE8,owner)||owner!=c.character||
-       !Read(mesh,0x718,anim)||!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(anim),saved.anim)||!SlotFlag(anim,at)||
+       !Read(c.character,0x380,owner)||owner!=mesh||!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(mesh),saved.mesh)||!Read(mesh,0xE8,owner)||owner!=c.character||
+       !Read(mesh,0x718,anim)||!Read(anim,8,flags)||(flags&0x30u)||!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(anim),saved.anim)||!SlotFlag(anim,at)||
        !Read(anim,size_t(at),value)||value>1){if(g_log&&g_continuityEvents++<8)g_log("Caltrops V1.120 pose continuity unavailable; previous presentation retained");return;}
     if(value)return; // A native true value is never owned or reset by the mod.
     if(!StoreFlag(anim,at,1))return;saved.world=c.world;saved.flag=at;prior=saved;
