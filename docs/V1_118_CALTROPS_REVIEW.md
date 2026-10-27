@@ -1,4 +1,6 @@
-# Caltrops on War - source diagnosis and pending method approval
+# Caltrops on War - source diagnosis and retained animation choice
+
+Decision: user chooses the simplest animation adjustment. No active VM-guard approval request; guard abandoned and excluded from V1.118. Only End duration0.55s as validated Clone is included, still experimental.
 
 **OPEN. NO GUARD IMPLEMENTED OR INCLUDED IN V1.118.** User confirms Caltrops still makes a small hop in V1.117; Clone is now OK and must remain untouched. V1.117 log shows War Start/End applied immediately before Caltrops at13:11:50/52/55, so the helper was active. Root translation/rotation tracks in both War clips are constant, but that alone cannot certify a stationary body or movement component.
 

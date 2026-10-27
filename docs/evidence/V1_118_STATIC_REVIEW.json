@@ -1,0 +1,67 @@
+{
+  "sourceBaseline": "5878450b61212d2d68470a1db99c76272c2d4db3",
+  "oldArchiveCount": 182,
+  "unchangedPaths": [
+    "src/ForeignMontage.cpp",
+    "src/ForeignMontage.h",
+    "src/ForeignPowerFeature.cpp",
+    "src/ForeignRampageFeature.cpp",
+    "src/ForeignBeamFeature.cpp",
+    "src/StoneSkinVisual.cpp",
+    "src/PistolVisualFeature.cpp",
+    "src/MeleeEffectFeature.cpp",
+    "src/NativeTpsFeature.cpp",
+    "src/HeavyLandingFeature.cpp",
+    "src/EffectAppearanceFeature.cpp",
+    "src/OverlayUi.cpp",
+    "updater",
+    "config",
+    "src/RuntimeSettings.h",
+    "src/RuntimeSettings.cpp",
+    "src/ConfigStore.h"
+  ],
+  "iniKeysUnchanged": 212,
+  "hotkeyIdsUnchanged": 55,
+  "requiredSuites": 65,
+  "userValidated": [
+    "Appearance tab visible",
+    "War Clone"
+  ],
+  "experimental": [
+    "Geyser stationary return smoothstep and 0.65s span",
+    "Stoneskin 0.16/0.30s blends",
+    "Caltrops End0.55s as validated Clone, total1.1167s; native lifecycle intact"
+  ],
+  "open": [
+    "Caltrops hop",
+    "body/cloth artwork and effect library variants unconfirmed",
+    "P2 deferred"
+  ],
+  "newHooks": 0,
+  "vmGuardIncluded": false,
+  "automaticApprovalRejected": true,
+  "readOnlySnapshot": "GAME_NOT_RUNNING; no launch/capture",
+  "localBuild": false,
+  "localInstall": false,
+  "externalProcessWrites": false,
+  "gameplayValidated": false,
+  "userDecision": "Simplest retained animation path; not approval for rejected VM guard",
+  "secondReview": {
+    "sourceCommit": "f4945e3848d98e0caffa679baccaca1bb0dcc19e",
+    "reviewsAgree": true,
+    "acceptedPathsUnchanged": true,
+    "onlyFadesStaticReturnAndCaltropsEndDuration": true,
+    "cloneAppearanceMaterialsByteIdentical": true,
+    "noNewHook": true,
+    "noVmStackOrMovementModePatch": true,
+    "allIniAndHotkeyDefinitionsByteIdentical": true,
+    "animationReturnNotGameplayCertification": true,
+    "automaticApprovalRejectedGuardExcluded": true,
+    "sourceChanges": [
+      "src/BuildInfo.h",
+      "src/ForeignCaltropsFeature.cpp",
+      "src/ForeignWrathFeature.cpp",
+      "src/GeyserStaticPose.cpp"
+    ]
+  }
+}

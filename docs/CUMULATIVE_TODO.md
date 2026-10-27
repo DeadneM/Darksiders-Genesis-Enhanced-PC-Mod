@@ -1,3 +1,5 @@
+V1.118 delivered: 65/65 GitHub tests, ZIP/updater/Defender controlled; Geyser/Stoneskin transitions EXPERIMENTAL, Caltrops OPEN. [Receipt](V1_118_DELIVERY_RECEIPT.md).
+
 User chooses simplest animation approach: Caltrops return0.55s as validated Clone, total1.12s. VM guard excluded; no explicit method approval inferred. Hop still needs test.
 
 ## V1.118 latest user report

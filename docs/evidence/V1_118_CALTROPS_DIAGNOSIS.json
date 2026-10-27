@@ -1,0 +1,33 @@
+{
+  "status": "SOURCE DIAGNOSIS ONLY; HOP NOT MEASURED LIVE",
+  "sessionVersion": "V1.117",
+  "logSha256": "3876932af9476417bf68d01bd74c20615d5fc84b3f69949162d64b72a76615d5",
+  "caltropsReturnLogged": [
+    "13:11:50.950",
+    "13:11:52.879",
+    "13:11:55.720"
+  ],
+  "blueprint": {
+    "asset": "MayhemAbility_SpawnCaltrops_Blueprint",
+    "onStart": "PlayMontage then SetMovementMode(5,0)",
+    "onFinish": "if locally controlled and mode5 then SetMovementMode(3,0)",
+    "processInterrupt": "SetFalling: mode3 and 0.7*InitialVelocity",
+    "bytecodeMemorySizes": {
+      "ExecuteUbergraph": 979,
+      "SetFalling": 218
+    }
+  },
+  "nativeThunk": "0x1CF1600; two byte parameters then native vtable+0x570",
+  "runtimeCapture": false,
+  "guardIncluded": false,
+  "automaticApprovalRejection": "global hook and VM stack cursor write risk crash/corruption; explicit method approval required",
+  "animationOnlyChange": {
+    "historicalCastSeconds": 2.3333332539,
+    "authoredStartSeconds": 0.5666666627,
+    "previousEndSeconds": 0.3,
+    "newEndSeconds": 0.55,
+    "totalSeconds": 1.1166666627,
+    "source": "same End timing as user-validated Clone"
+  },
+  "userDecision": "Simplest animation method, no VM guard authorization inferred"
+}

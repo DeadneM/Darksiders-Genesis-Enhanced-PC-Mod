@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.118_SMOOTHER_STRIFE_CASTS_TEST.zip",
+  "blobSha": "507318131ee2628d6a53324caa4210b20111db5a",
+  "httpStatus": 200,
+  "sha256": "610009AC02D6831AC68AB6C5DEC084D84FAD63BA425258B7D58D831B1F5B4EEC",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}
