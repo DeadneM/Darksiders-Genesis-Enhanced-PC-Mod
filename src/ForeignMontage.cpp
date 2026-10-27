@@ -244,11 +244,12 @@ uintptr_t CastingSequence(uintptr_t fallback,uintptr_t skeleton,float& length){
 }
 bool CompleteGroundCast(void* live,uintptr_t skeleton,float returnSeconds){
     native_objects::MemoryReader reader;const auto montage=reinterpret_cast<uintptr_t>(live);
-    uintptr_t cls=0,actual=0;uint32_t flags=0;float startLength=0,endLength=0,total=0;Array tracks{},segments{},sections{};Segment start{};Name slot{};
-    if(!g_ready||!native_tps::OnGameThread()||!g_reserveSegments||!std::isfinite(returnSeconds)||returnSeconds<.15f||returnSeconds>1||
+    uintptr_t cls=0,actual=0,outer=0;uint32_t flags=0;float startLength=0,endLength=0,total=0;Array tracks{},segments{},sections{};Segment start{};Name slot{};
+    if(!g_ready||!native_tps::OnGameThread()||!g_package||!g_reserveSegments||!std::isfinite(returnSeconds)||returnSeconds<.15f||returnSeconds>1||
        !native_objects::Alive(reader,g_base,g_warReturn)||!WarReturn(g_warReturn.address)||!Is(skeleton,"War_Mesh_Skeleton")||
        !Read(g_warReturn.address,0x38,actual)||actual!=skeleton||!Read(g_warReturn.address,0x90,endLength)||
-       !native_objects::Alive(reader,g_base,g_gestures[1])||!Read(montage,8,flags)||(flags&0x30u)||!(flags&0x40u)||
+       !native_objects::Alive(reader,g_base,g_gestures[1])||!Read(montage,8,flags)||(flags&0x30u)||
+       !Read(montage,0x20,outer)||outer!=reinterpret_cast<uintptr_t>(g_package())||!Is(outer,"/Engine/Transient")||
        !Read(montage,0x10,cls)||!Is(cls,"AnimMontage")||!Read(montage,0x38,actual)||actual!=skeleton||
        !Read(montage,0x90,startLength)||!std::isfinite(startLength)||std::fabs(startLength-.5666666627f)>.00001f||!List(montage,0x158,tracks,4)||tracks.count!=1||
        !Read(tracks.data,0,slot)||!native_objects::NameValueIs(g_base,slot.index,slot.number,"TPS")||!List(tracks.data,8,segments,4)||segments.count!=1||
