@@ -256,7 +256,7 @@ int Status(int choice){
     return foreign_montage::Ready()&&!g_geyserFailed?(g_geyserReady?2:1):0;
 }
 void Observe(const local_players::Context& owner){
-    foreign_rampage::Observe(owner);geyser_static::Observe(owner);stone_visual::Observe(owner);
+    foreign_rampage::Observe(owner);geyser_static::Observe(owner);stone_visual::Observe(owner);foreign_caltrops::Observe(owner);
     if(!g_ready||!native_tps::OnGameThread())return;
     bool wanted=g_requested.load();for(const auto& slots:runtime::Get().wrathSlots)for(const auto& choice:slots)wanted=wanted||((choice.load()>=1&&choice.load()<=5)||choice.load()==6);
     if(!wanted||owner.index<0||owner.index>1||!owner.localPlayer||!owner.world||owner.kind!=local_players::PoseKind::Foot)return;

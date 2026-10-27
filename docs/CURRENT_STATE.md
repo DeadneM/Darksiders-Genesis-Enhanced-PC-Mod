@@ -1,3 +1,13 @@
+## V1.120 - Continuite de la pose de War pendant Caltrops
+
+**PREPAREE / EXPERIMENTALE, NON VALIDEE EN JEU. Compilation et livraison GitHub a verifier.** Base cumulative V1.119 : demi-seconde ajoutee a Geyser et Stoneskin conservee exactement. Precision utilisateur sur Caltrops : surtout un mouvement du corps, sans deplacement reel. Le diagnostic s'oriente donc vers la reprise de la pose, pas vers un vrai saut physique ; le garde VM reste abandonne.
+
+Le TPS Slot du graphe War a bAlwaysUpdateSourcePose=false dans le PAK. L'essai active temporairement cette option native uniquement pour Caltrops transfere sur War : sa pose de fond continue a se mettre a jour sous le geste, puis le reglage d'origine est restaure. Champ exact verifie par reflection, identites faibles du joueur/acteur/mesh/animation/pouvoir et monde controles ; un reglage deja actif reste actif, un contrat inconnu garde le comportement precedent. [Principe documente par Epic](https://dev.epicgames.com/documentation/en-us/unreal-engine/python-api/class/AnimNode_Slot?application_version=4.27).
+
+Le lien entre la pose arretee et le rebond est une **hypothese**, pas un resultat observe en jeu. Aucun nouveau hook, changement de duree, mouvement/vol/chute, script VM, callback, cout, degat ou projectile. Clone/Rampage/World Ender, Native Strife, camera/manette/menus et apparences gardes. INI 212 cles et 55 Hotkeys inchanges. Compilation GitHub, aucune installation/lancement automatique. [Contrat, preuves, tests et rollback](V1_120_CALTROPS_SOURCE_POSE_TEST.md).
+
+---
+
 ## V1.119 - Une demi-seconde de plus pour Geyser et Stoneskin
 
 **CONSTRUITE / CONTROLEE : [65/65 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40513219454), zero avertissement/erreur MSVC. [ZIP public cumulatif verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/38e0bfab00c001975d8d74c83414cfaa27e8cdc2/downloads/DarksidersGenesis_V1.119_LONGER_STRIFE_CASTS_TEST.zip) - [Recu](V1_119_DELIVERY_RECEIPT.md). Updater debug V1.119 : choix et octets verifies. Defender ZIP/quatre fichiers : aucune menace detectee, protections actives. Animations +0.50s EXPERIMENTALES a valider ; Caltrops reste OUVERT et inchange.**

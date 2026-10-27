@@ -15,5 +15,7 @@ bool Prepare(void* actor,uintptr_t& abilityClass);
 // True only when an identified, owned War cast was handled. Other native
 // players/powers remain the caller's responsibility, without argument changes.
 bool HandlePlay(PlayFn,void* ability,void* montage,float rate,Name section);
+// Restore this cast's temporary slot-source update setting on its game thread.
+void Observe(const local_players::Context&);
 void Shutdown();
 }

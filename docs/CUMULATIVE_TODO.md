@@ -1,3 +1,10 @@
+## V1.120 Caltrops clarification and visual candidate
+
+- User: body bobs without actual displacement. Native movement/VM guard abandoned; no physical jump fix attempted.
+- Candidate: keep native War TPS source pose updating only during owned transferred Caltrops; exact reflection/identity guards and restoration, no new hook/timing change. Visual hypothesis, not runtime validated.
+- Prior End0.55 timing did NOT fix bob. Geyser/Stoneskin +0.50s retained exactly, pending user verdict. Clone/Appearance/Rampage accepted paths preserved.
+- INI/Hotkeys unchanged, GitHub only, P2 last.
+
 V1.119 delivered: 65/65 GitHub suites, ZIP/updater/Defender controlled; both +0.50s animation adjustments EXPERIMENTAL. Caltrops hop OPEN, unchanged. [Receipt](V1_119_DELIVERY_RECEIPT.md).
 
 ## V1.119 user feedback and candidate
