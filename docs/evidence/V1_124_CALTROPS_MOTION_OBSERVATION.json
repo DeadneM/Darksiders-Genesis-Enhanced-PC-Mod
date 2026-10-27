@@ -1,0 +1,158 @@
+{
+  "readOnly": true,
+  "nativeCalls": false,
+  "memoryWrites": false,
+  "pid": 41568,
+  "samples": 9757,
+  "errors": 0,
+  "seconds": 119.98399999999674,
+  "casts": [
+    {
+      "start": 28.48399999999674,
+      "end": 30.312000000005355,
+      "modeTransitions": [
+        {
+          "t": 28.48399999999674,
+          "mode": 5,
+          "z": 162.1282958984375,
+          "vz": 0.0,
+          "pelvisZ": 94.31204986572266,
+          "air": "01",
+          "falling": "00",
+          "active": true
+        },
+        {
+          "t": 30.312000000005355,
+          "mode": 3,
+          "z": 162.1282958984375,
+          "vz": 0.0,
+          "pelvisZ": 110.43821716308594,
+          "air": "01",
+          "falling": "00",
+          "active": false
+        },
+        {
+          "t": 30.35899999999674,
+          "mode": 1,
+          "z": 162.1282958984375,
+          "vz": 0.0,
+          "pelvisZ": 108.61827850341797,
+          "air": "00",
+          "falling": "00",
+          "active": false
+        }
+      ],
+      "fallingSeconds": 0.046999999991385266,
+      "rootZRange": [
+        160.81289672851562,
+        162.1282958984375
+      ],
+      "pelvisZRange": [
+        51.921268463134766,
+        110.45158386230469
+      ],
+      "airDuringFlight": true,
+      "maximumPelvisSample": {
+        "t": 30.35899999999674,
+        "mode": 3,
+        "z": 160.81289672851562,
+        "vz": -80.28379821777344,
+        "pelvisZ": 110.45158386230469,
+        "air": "01",
+        "falling": "01",
+        "active": false
+      }
+    },
+    {
+      "start": 43.73399999999674,
+      "end": 45.57799999999406,
+      "modeTransitions": [
+        {
+          "t": 43.73399999999674,
+          "mode": 5,
+          "z": 162.1282958984375,
+          "vz": 0.0,
+          "pelvisZ": 94.493896484375,
+          "air": "00",
+          "falling": "00",
+          "active": true
+        },
+        {
+          "t": 45.57799999999406,
+          "mode": 3,
+          "z": 162.1282958984375,
+          "vz": 0.0,
+          "pelvisZ": 110.04186248779297,
+          "air": "01",
+          "falling": "00",
+          "active": false
+        },
+        {
+          "t": 45.625,
+          "mode": 1,
+          "z": 162.1282958984375,
+          "vz": 0.0,
+          "pelvisZ": 110.02741241455078,
+          "air": "00",
+          "falling": "00",
+          "active": false
+        }
+      ],
+      "fallingSeconds": 0.04700000000593718,
+      "rootZRange": [
+        160.71690368652344,
+        162.1282958984375
+      ],
+      "pelvisZRange": [
+        51.92271423339844,
+        110.4218978881836
+      ],
+      "airDuringFlight": true,
+      "maximumPelvisSample": {
+        "t": 45.59299999999348,
+        "mode": 3,
+        "z": 161.76229858398438,
+        "vz": -42.34873580932617,
+        "pelvisZ": 110.4218978881836,
+        "air": "01",
+        "falling": "01",
+        "active": false
+      }
+    }
+  ],
+  "publicApiContract": {
+    "name": "SetMovementMode",
+    "outer": "CharacterMovementComponent",
+    "nativeRva": "0x1cf1600",
+    "flags": "0x4020400",
+    "parameterBytes": 2,
+    "parameters": [
+      {
+        "name": "NewMovementMode",
+        "kind": "ByteProperty",
+        "size": 1,
+        "offset": 0
+      },
+      {
+        "name": "NewCustomMode",
+        "kind": "ByteProperty",
+        "size": 1,
+        "offset": 1
+      }
+    ]
+  },
+  "movementClasses": [
+    "MayhemPlayerCharacterMovementComponent",
+    "MayhemCharacterMovementComponent",
+    "CharacterMovementComponent",
+    "PawnMovementComponent",
+    "NavMovementComponent",
+    "MovementComponent",
+    "ActorComponent",
+    "Object"
+  ],
+  "observed": "Grounded root position with elevated pelvis/air-animation flags during flying; transient falling at completion. No correction has been executed.",
+  "rejectedSourcePatchApplied": false,
+  "explicitMovementTrialApprovalPending": true,
+  "newBuild": false
+}

@@ -1,3 +1,9 @@
+## Caltrops War - releve live apres retour V1.123
+
+Deux activations capturees en lecture seule : le personnage ne monte pas en position monde ; sa pose est pourtant marquee en l'air. Mouvement natif **sol -> vol (~1.83s) -> chute (~47ms) -> sol** observe deux fois, avec elevation du bassin du modele. Le sursaut final n'est pas declare corrige. Proposition : une demande publique native de marche, une seule fois au debut d'un Caltrops War parti du sol, avec controles stricts. **Patch refuse avant application par l'approbation automatique : accord humain explicite requis pour cet essai SetMovementMode, distinct des particules Stoneskin.** [Perimetre et risques](docs/V1_124_CALTROPS_GROUND_STATE_REVIEW.md). Aucun nouveau code/build/installation ; Stoneskin valide et Geyser restent inchanges.
+
+---
+
 ## Retour utilisateur V1.123 - Stoneskin valide, fin Caltrops ouverte
 
 Stoneskin sur Strife (explosion et cendres incluses) et Stoneskin natif sur War : **VALIDES par l'utilisateur dans les essais effectues**. Caltrops War : geste et sortie des pics acceptes, **petit saut final toujours present** sur la video ; reste a corriger. Geyser et les acquis restent inchanges, coop en dernier. Video/logs examines ; la transition native vol/chute est une cause candidate, pas encore mesuree sur cette execution. Aucun nouveau code/ZIP livre pour ce diagnostic. [Analyse et prochaine etape](docs/V1_123_USER_VALIDATION.md).

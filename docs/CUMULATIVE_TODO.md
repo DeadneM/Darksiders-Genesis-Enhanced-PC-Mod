@@ -1,3 +1,9 @@
+## Caltrops native-state observation - approval boundary
+
+- Two casts captured read-only: root does not rise; in-air pose flags true during native flying, then falling~47ms and walking. Full stomp and existing validated visuals unchanged.
+- Prepared scoped public SetMovementMode(1,0) one-shot candidate for initial grounded War Caltrops. Automatic approval refused source patch for missing explicit authorization of this distinct movement trial. Patch NOT applied; no build or game mutation. Await specific human approval; do not bypass.
+- [Measured evidence](evidence/V1_124_CALTROPS_MOTION_OBSERVATION.json), [scope/risk](V1_124_CALTROPS_GROUND_STATE_REVIEW.md). Coop last.
+
 ## V1.123 user validation after installation
 
 - User VALIDATED Strife Stoneskin including launch/expiry visuals, and native War Stoneskin in tested scenarios. Freeze these paths and Geyser.
