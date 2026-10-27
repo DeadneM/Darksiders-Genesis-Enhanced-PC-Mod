@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.124_WAR_CALTROPS_GROUND_STATE_TEST.zip",
+  "blobSha": "8877dadd3cceda8a43c6f55a8412cc4b69711731",
+  "httpStatus": 200,
+  "sha256": "9E342FB93CAA9472BAB026D90271666A14AF00BF8EA537AA011E0D5DF242CD36",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}

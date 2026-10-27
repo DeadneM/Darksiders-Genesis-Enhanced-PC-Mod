@@ -1,3 +1,5 @@
+V1.124 delivered:65/65 GitHub suites, no MSVC warning/error, ZIP/updater/Defender controlled. Explicitly authorized one-shot War Caltrops ground-state API trial EXPERIMENTAL. V1.123 validated features preserved; no local install/launch. [Receipt](V1_124_DELIVERY_RECEIPT.md).
+
 ## V1.124 authorized one-shot Caltrops ground-state trial
 
 - Explicit new user authorization received2026-10-28 for the exact bounded SetMovementMode(1,0) call; earlier deferral is superseded for this trial only.

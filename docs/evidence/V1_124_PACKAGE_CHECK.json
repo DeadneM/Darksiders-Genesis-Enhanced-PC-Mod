@@ -1,0 +1,52 @@
+{
+  "sourceCommit": "3bab35a50a37a6b6dfa5f8ac4c68a47418f9548b",
+  "archiveCommit": "c6751b4ef8835f25e9a72cd6c424d4ea833bcff6",
+  "name": "DarksidersGenesis_V1.124_WAR_CALTROPS_GROUND_STATE_TEST.zip",
+  "size": 2352342,
+  "sha256": "9E342FB93CAA9472BAB026D90271666A14AF00BF8EA537AA011E0D5DF242CD36",
+  "files": {
+    "DarksidersGenesisMod.asi": {
+      "size": 2063360,
+      "stored": 2063360,
+      "method": 0,
+      "sha256": "828B64963690A5AACB6FDE51774BEC9281CB062EEAA393376AA9A6D95CDC0C3D"
+    },
+    "DarksidersGenesisMod.ini": {
+      "size": 5895,
+      "stored": 5895,
+      "method": 0,
+      "sha256": "D57D7604F9A1DD6D5D397DBF41559E69F0E1EB24793A320E31BD8A83B6A90BD9"
+    },
+    "dxgi.dll": {
+      "size": 155136,
+      "stored": 155136,
+      "method": 0,
+      "sha256": "8E88558C909350A9C87B2251BADA986E676FC44CFCDB4D1CBAF19E6E62E5BB2A"
+    },
+    "README.md": {
+      "size": 127495,
+      "stored": 127495,
+      "method": 0,
+      "sha256": "E21791F37EE4BD6C8C8E2F5FB92C72DD6C741E2B95802C9129701C2C1553F836"
+    }
+  },
+  "oldArchiveGitBlobsUnchanged": 188,
+  "archiveCount": 189,
+  "iniKeys": 212,
+  "hotkeyIdsUnchanged": 55,
+  "acceptedPathsUnchanged": true,
+  "amd64": true,
+  "crcValid": true,
+  "noCompression": true,
+  "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/c6751b4ef8835f25e9a72cd6c424d4ea833bcff6/downloads/DarksidersGenesis_V1.124_WAR_CALTROPS_GROUND_STATE_TEST.zip",
+  "httpStatus": 200,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "localBuild": false,
+  "localInstall": false,
+  "protectionSettingsChanged": false,
+  "gameplayValidated": false
+}
