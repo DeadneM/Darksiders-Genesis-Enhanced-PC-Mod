@@ -1,0 +1,13 @@
+{
+ "runId":40473336773,
+ "jobId":122085453833,
+ "sourceCommit":"1c1f7191c022ba1dc646b4e982bd451924c84ed4",
+ "conclusion":"success",
+ "testsPassed":64,
+ "testSummary":"100% tests passed out of 64",
+ "msvcWarnings":[],
+ "msvcErrors":[],
+ "logsReadVia":"GitHub fetch_workflow_job_logs",
+ "localBuild":false,
+ "gameplayValidated":false
+}

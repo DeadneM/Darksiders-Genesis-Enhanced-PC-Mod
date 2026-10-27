@@ -1,0 +1,61 @@
+{
+  "sourceBaseline": "2adb699d202d332d00a6fa5c9411c7805826ac1c",
+  "oldArchiveCount": 180,
+  "unchangedPaths": [
+    "src/ForeignMontage.cpp",
+    "src/ForeignMontage.h",
+    "src/GeyserStaticPose.cpp",
+    "src/StoneSkinVisual.cpp",
+    "src/ForeignWrathFeature.cpp",
+    "src/ForeignRampageFeature.cpp",
+    "src/ForeignCaltropsFeature.cpp",
+    "src/ForeignPowerFeature.cpp",
+    "src/ForeignBeamFeature.cpp",
+    "src/MeleeEffectFeature.cpp",
+    "src/PistolVisualFeature.cpp",
+    "src/NativeTpsFeature.cpp",
+    "src/HeavyLandingFeature.cpp",
+    "src/LeviathanVisualFeature.cpp",
+    "src/MountedJumpFeature.cpp",
+    "src/CosmeticUnlockFeature.cpp",
+    "updater"
+  ],
+  "oldIniValuesPreserved": 170,
+  "newIniKeys": 42,
+  "totalIniKeys": 212,
+  "hotkeyIdsUnchanged": 55,
+  "families": 43,
+  "assets": 451,
+  "roles": 98,
+  "oldCaltropsModuleRemoved": true,
+  "existingFactoryHookOnly": true,
+  "pendingV114V115NotValidated": true,
+  "localBuild": false,
+  "localInstall": false,
+  "externalProcessWrites": false,
+  "gameplayValidated": false,
+  "secondReview": {
+    "sourceCommit": "1c1f7191c022ba1dc646b4e982bd451924c84ed4",
+    "acceptedGameplayAndPendingModulesUnchanged": true,
+    "mainOnlyModuleRename": true,
+    "hotkeyIdsTextIdentical": true,
+    "allVariantsStayInTheirOwnRole": true,
+    "oldCaltropsValuesStable": true,
+    "singleExistingVisualHook": true,
+    "exeSha256": "9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54",
+    "assetExportCaseDifferences": [
+      {
+        "path": "P_NatureShot_HEalStealAura",
+        "export": "P_NatureShot_HealStealAura"
+      }
+    ],
+    "sourceSha256": "58f35eab7f4f10fe27d51df48adf1a5fd1d5c95d684404c0f4ce1cf204c993f6",
+    "limits": [
+      "emitted particles only; direct/SCS components may stay native",
+      "no mesh/material/texture override",
+      "loaded assets only",
+      "single-look groups Native/Hidden only",
+      "V1.114 and V1.115 still unvalidated; P2 last"
+    ]
+  }
+}

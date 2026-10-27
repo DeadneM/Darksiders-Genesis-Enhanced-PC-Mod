@@ -1,6 +1,8 @@
 ## V1.116 - Bibliotheque des effets natifs
 
-**PREPAREE / EXPERIMENTALE, NON VALIDEE EN JEU. Compilation et livraison GitHub a verifier.** L'utilisateur demande toutes les autres familles ; V1.114 et V1.115 restent en attente de son essai. Base de gameplay retenue V1.112 ; V1.113 reste REJETEE. Aucun nouveau changement de visée, dash, controle, animation ou revetement Stoneskin dans ce lot.
+**CONSTRUITE / CONTROLEE : [64/64 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40473336773), zero avertissement/erreur MSVC. [ZIP public cumulatif verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/22f011465c0b1eb69bf068a55a4b0fdb3e66e341/downloads/DarksidersGenesis_V1.116_NATIVE_EFFECT_LIBRARY_TEST.zip) - [Recu](V1_116_DELIVERY_RECEIPT.md). Updater debug V1.116 : selection et octets verifies. Defender ZIP/quatre fichiers : aucune menace detectee, protections actives. Bibliotheque EXPERIMENTALE, NON VALIDEE EN JEU ; V1.114/115 restent en attente du retour utilisateur.**
+
+**CONSTRUITE / CONTROLEE ; EXPERIMENTALE, NON VALIDEE EN JEU.** L'utilisateur demande toutes les autres familles ; V1.114 et V1.115 restent en attente de son essai. Base de gameplay retenue V1.112 ; V1.113 reste REJETEE. Aucun nouveau changement de visée, dash, controle, animation ou revetement Stoneskin dans ce lot.
 
 Appearance > Effect appearances : **43 groupes / 451 ParticleSystem natifs / 98 roles visuels** verifies dans le PAK principal. Outils, pouvoirs, munitions Strife, armes War, montures/formes et coeurs. Variantes nommees seulement lorsqu'un asset natif du meme role existe ; **Native / Hidden** pour les familles sans autre habillage prouve. Chaque groupe est independant, toutes les nouvelles options sont Native et les categories sont fermees par defaut. [Liste exacte des choix](V1_116_EFFECT_LIBRARY_CATALOG.md).
 
