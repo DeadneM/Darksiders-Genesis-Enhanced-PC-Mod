@@ -1,3 +1,15 @@
+## V1.115 - Premier choix d'apparence Caltrops
+
+**PREPAREE / EXPERIMENTALE, NON VALIDEE EN JEU. Compilation et livraison GitHub a verifier.** L'utilisateur demande de poursuivre les skins et remet son essai V1.114 a plus tard : **V1.114 n'est pas validee**. Base retenue de gameplay V1.112, experience V1.114 conservee sans modification dans ce cumul. V1.113 reste REJETEE. Rampage Strife / trois pouvoirs sur War / expiration Stoneskin gardent leur validation precedente.
+
+Menu Gameplay > apparences > Ability appearances : **Caltrops Native / Base / Frost 1 / Frost 2 / Frost 3**. Ce premier choix agit sur le **glyphe d'apparition et l'explosion des nouveaux effets**. Modele au sol, effet d'attente et glyphe en boucle restent natifs. D'autres familles restent au catalogue, pas annoncees comme selectionnables. Aucun coeur, degat, rayon, cout, statut, projectile ou progression n'est remplace.
+
+Une substitution du seul template de particules a la creation, sur six references exactes du catalogue, dans le monde local courant. Pas de modification des CDO, materiaux, composants existants ni sauvegardes. Native est le defaut et restaure les prochains effets. Assets deja charges uniquement ; un effet absent garde son rendu natif. Pas de chargement synchrone ou parcours d'assets au demarrage avec Native. Groupe ferme par defaut.
+
+170 cles INI (169 preservees + CaltropsAppearance=0), 55 ID Hotkeys inchanges. Anciennes archives et main/archive conserves. Compilation exclusivement GitHub ; installation via updater debug par l'utilisateur. [Contrat, limites, tests et rollback](docs/V1_115_CALTROPS_BURST_APPEARANCE_TEST.md).
+
+---
+
 ## V1.114 - Reprise V1.112, Geyser statique et Stoneskin
 
 **CONSTRUITE / CONTROLEE : [63/63 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40445567125), zero avertissement/erreur MSVC. [ZIP public immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/4ee6f649835353de4e369d03b63100b66112c967/downloads/DarksidersGenesis_V1.114_RETAINED_CASTS_STATIC_GEYSER_FIRE_TEST.zip) - [Recu](docs/V1_114_DELIVERY_RECEIPT.md). Updater debug : V1.114 selectionnee, octets verifies. Defender : aucune menace detectee dans le ZIP et les quatre fichiers, protections actives. EXPERIMENTALE, NON VALIDEE EN JEU. V1.113 REJETEE, base retenue V1.112.**

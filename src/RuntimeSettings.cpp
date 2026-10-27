@@ -1,4 +1,5 @@
 #include "RuntimeSettings.h"
+#include "CaltropsAppearancePolicy.h"
 
 namespace dg::runtime {
 
@@ -26,6 +27,7 @@ void Publish(const Snapshot& s) {
     g_state.progressionSkinsEnabled.store(s.progressionSkinsEnabled);
     g_state.leviathanVisualEnabled.store(s.leviathanVisualEnabled);
     g_state.leviathanVisualMode.store(s.leviathanVisualMode);
+    g_state.caltropsAppearance.store(caltrops_appearance::Normalize(s.caltropsAppearance));
     g_state.weaponSheathingEnabled.store(s.weaponSheathingEnabled);
     g_state.heavyLandingRecoveryEnabled.store(s.heavyLandingRecoveryEnabled);
     for(unsigned family=0;family<2;++family)for(unsigned slot=0;slot<3;++slot)

@@ -11,6 +11,10 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(CaltropsAppearanceTests tests/CaltropsAppearanceTests.cpp src/RuntimeSettings.cpp)
+  target_include_directories(CaltropsAppearanceTests PRIVATE tests/stubs src)
+  target_compile_definitions(CaltropsAppearanceTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+  add_test(NAME CaltropsAppearance COMMAND CaltropsAppearanceTests)
   add_executable(GeyserStaticPoseTests tests/GeyserStaticPoseTests.cpp)
   target_include_directories(GeyserStaticPoseTests PRIVATE tests/stubs src)
   target_compile_definitions(GeyserStaticPoseTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
@@ -387,6 +391,7 @@ add_library(DarksidersGenesisMod SHARED
   src/PlayerPresentationFeature.cpp
   src/CosmeticUnlockFeature.cpp
   src/LeviathanVisualFeature.cpp
+  src/CaltropsAppearanceFeature.cpp
   src/UltimateDurationFeature.cpp
   src/ProjectileAimFeature.cpp
   src/HealthFeature.cpp

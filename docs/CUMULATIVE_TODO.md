@@ -1,3 +1,9 @@
+## V1.115 current appearance experiment
+
+- User defers V1.114 validation and asks for skins; do not mark its Geyser/Stoneskin work accepted.
+- Caltrops Native/Base/Frost 1/2/3 initial glyph and explosion selector prepared, runtime test pending. Ground model/idle/loop stay native; loaded assets only.
+- Other catalogue families and Caltrops loop remain future work. All previous pending tests retained; coop last.
+
 ## V1.114 current priority
 
 - V1.113 REJECTED: persistent jump lock after Geyser, wrong Stoneskin gesture/render.

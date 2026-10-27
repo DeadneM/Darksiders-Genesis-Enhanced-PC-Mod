@@ -54,6 +54,7 @@
 #include "PlayerPresentationFeature.h"
 #include "CosmeticUnlockFeature.h"
 #include "LeviathanVisualFeature.h"
+#include "CaltropsAppearanceFeature.h"
 #include "UltimateDurationFeature.h"
 #include "ManualActionBinding.h"
 #include "TpsCameraFocus.h"
@@ -1453,6 +1454,7 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     dg::mounted_holsters::OnLivePlayer(owner);
     dg::pistol_visual::OnLivePlayer(owner,generation,gameplayWindow&&GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load());
     dg::leviathan_visual::OnLivePlayer(owner);
+    dg::caltrops_appearance::OnLivePlayer(owner);
     dg::wrath_slots::OnLivePlayer(owner);
     dg::air_jump::OnLivePlayer(owner,generation);
     dg::mounted_jump::OnLivePlayer(owner,generation,!g_overlayVisible.load()&&gameplayWindow&&GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load());
@@ -4183,6 +4185,7 @@ void ShutdownMod() {
     dg::mounted_holsters::Shutdown();
     dg::cosmetics::Shutdown();
     dg::leviathan_visual::Shutdown();
+    dg::caltrops_appearance::Shutdown();
     dg::dash_combat::Shutdown();
     dg::dash_combat::Report();
     // Release the supported synthetic horse key before teardown.
@@ -4448,6 +4451,7 @@ DWORD WINAPI MainThread(LPVOID) {
     // Validate the original shared emitter before the blade FX detour is installed.
     dg::leviathan_visual::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::melee_effect::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::caltrops_appearance::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::presentation::Initialize(&FeatureLog,g_targetValidation.exact,&PresentationFocused);
     dg::cosmetics::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::ultimate_duration::Initialize(&FeatureLog,g_targetValidation.exact);

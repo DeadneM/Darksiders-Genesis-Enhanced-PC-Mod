@@ -11,6 +11,7 @@
 #include "PlayerPresentationFeature.h"
 #include "CosmeticUnlockFeature.h"
 #include "LeviathanVisualFeature.h"
+#include "CaltropsAppearanceFeature.h"
 #include "UltimateDurationFeature.h"
 #include "GaugeChargeFeature.h"
 #include "ResourceGainFeature.h"
@@ -308,6 +309,18 @@ void Draw(Context& c) {
                 ImGui::TextDisabled("Keeping mount selection on load is unavailable in this session.");
             DrawToggleFeature(config,"Progression skins (experimental)","ProgressionSkins",&config.progressionSkinsEnabled,
                 "Separately makes Abyssal, Silver and Gold appearances available for War and Strife in the game's Skins page. Cosmetic availability only: no quests, armor pieces, stats or achievements granted. OFF restores native availability; choose an owned skin before disabling. Native skin selection may remember your equipped appearance.",cosmetics::Ready());
+
+            if(ImGui::CollapsingHeader("Ability appearances (experimental)")){
+                ImGui::Indent(12.0f);ImGui::BeginDisabled(!caltrops_appearance::Ready());
+                constexpr const char* appearances[]={"Native","Base","Frost 1","Frost 2","Frost 3"};
+                ImGui::SetNextItemWidth(280.0f);
+                if(ImGui::Combo("Caltrops appearance",&config.caltropsAppearance,appearances,5))config.Save();
+                ImGui::EndDisabled();
+                ImGui::TextWrapped("Initial glyph and explosion only, for newly created Caltrops effects in the current local world. No core, damage, radius, cost or status change. The ground model, idle effect and looping glyph stay native. Native restores subsequent effects; existing particles finish normally.");
+                if(config.caltropsAppearance>0&&config.caltropsAppearance<=4&&!(caltrops_appearance::LoadedMask()&(1u<<config.caltropsAppearance)))
+                    ImGui::TextColored(ImVec4(1,.85f,.25f,1),"Preparing selected effect assets. Missing assets keep their native appearance; no synchronous loading.");
+                ImGui::Unindent(12.0f);
+            }
 
             DrawToggleFeature(config,"Override Leviathan lightning (experimental)","LeviathanVisual",&config.leviathanVisualEnabled,
                 "Visual only, for both local players. Select OFF or one of the three native lightning effects without granting the core, its stats or its status effect. Uncheck to restore native visuals. Requires the chosen effect asset to be loaded; otherwise leaves native lightning unchanged. Test foot, mount and Ultimate transitions.",leviathan_visual::Ready());

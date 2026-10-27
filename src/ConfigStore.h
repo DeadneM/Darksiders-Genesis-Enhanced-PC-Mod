@@ -274,6 +274,7 @@ public:
     bool progressionSkinsEnabled = false;
     bool leviathanVisualEnabled = false;
     int leviathanVisualMode = 0;
+    int caltropsAppearance = 0;
     bool weaponSheathingEnabled = false;
     bool heavyLandingRecoveryEnabled = false;
     wrath_slots::Choices wrathSlots{};
