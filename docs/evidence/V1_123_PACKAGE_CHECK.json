@@ -1,0 +1,52 @@
+{
+  "sourceCommit": "2ede45b86bae9c5fd6c15f123cb3523554225e4e",
+  "archiveCommit": "6091b34fdafa759d6b37d75b17ab7ac7cc2b5e97",
+  "name": "DarksidersGenesis_V1.123_STONESKIN_TRANSITIONS_CALTROPS_STOMP_TEST.zip",
+  "size": 2332848,
+  "sha256": "14269800F3ADF5DF640EBF15AC36F7215BF3FCA79D87B07B252399507CF0F279",
+  "files": {
+    "DarksidersGenesisMod.asi": {
+      "size": 2048000,
+      "stored": 2048000,
+      "method": 0,
+      "sha256": "76A3C904D48EDE96794C0FF2A1733DC1C465EFEABBB9627FE365934736230B82"
+    },
+    "DarksidersGenesisMod.ini": {
+      "size": 5895,
+      "stored": 5895,
+      "method": 0,
+      "sha256": "D57D7604F9A1DD6D5D397DBF41559E69F0E1EB24793A320E31BD8A83B6A90BD9"
+    },
+    "dxgi.dll": {
+      "size": 155136,
+      "stored": 155136,
+      "method": 0,
+      "sha256": "66216D67A9AAD5E64131362560434F0257ABE011C581BDB7CA56076DDFAF0FC6"
+    },
+    "README.md": {
+      "size": 123361,
+      "stored": 123361,
+      "method": 0,
+      "sha256": "3DBC4D483EC376F046EF1DB639077113075B03424728ACDB273FBFD93A214A7D"
+    }
+  },
+  "oldArchiveGitBlobsUnchanged": 187,
+  "archiveCount": 188,
+  "iniKeys": 212,
+  "hotkeyIdsUnchanged": 55,
+  "acceptedPathsUnchanged": true,
+  "amd64": true,
+  "crcValid": true,
+  "noCompression": true,
+  "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/6091b34fdafa759d6b37d75b17ab7ac7cc2b5e97/downloads/DarksidersGenesis_V1.123_STONESKIN_TRANSITIONS_CALTROPS_STOMP_TEST.zip",
+  "httpStatus": 200,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "localBuild": false,
+  "localInstall": false,
+  "protectionSettingsChanged": false,
+  "gameplayValidated": false
+}

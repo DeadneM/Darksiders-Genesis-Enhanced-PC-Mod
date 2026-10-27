@@ -1,3 +1,5 @@
+V1.123 delivered:65/65 GitHub suites, ZIP/updater/Defender controlled. Geyser frozen; Stoneskin launch/expiry and War stomp Caltrops experimental. No local install or gameplay validation. [Receipt](V1_123_DELIVERY_RECEIPT.md).
+
 ## V1.123 latest steering
 
 - Geyser V1.122 explicitly VALIDATED: frozen unchanged. Stoneskin gesture/materials validated; only launch/complete-expiry particles requested.

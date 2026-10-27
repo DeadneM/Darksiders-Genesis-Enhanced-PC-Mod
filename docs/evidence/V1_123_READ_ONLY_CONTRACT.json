@@ -1,0 +1,154 @@
+{
+  "readOnly": true,
+  "nativeCalls": false,
+  "memoryWrites": false,
+  "pid": 38944,
+  "functions": [
+    {
+      "object": {
+        "address": "0x29f56d836c0",
+        "index": 37402,
+        "serial": 0,
+        "cls": "Function",
+        "name": "SpawnEmitterAttached"
+      },
+      "flags": "0x4822401",
+      "parmsSize": 72,
+      "parameters": [
+        {
+          "name": "EmitterTemplate",
+          "kind": "ObjectProperty",
+          "size": 8,
+          "offset": 0
+        },
+        {
+          "name": "AttachToComponent",
+          "kind": "ObjectProperty",
+          "size": 8,
+          "offset": 8
+        },
+        {
+          "name": "AttachPointName",
+          "kind": "NameProperty",
+          "size": 8,
+          "offset": 16
+        },
+        {
+          "name": "Location",
+          "kind": "StructProperty",
+          "size": 12,
+          "offset": 24,
+          "struct": "Vector"
+        },
+        {
+          "name": "Rotation",
+          "kind": "StructProperty",
+          "size": 12,
+          "offset": 36,
+          "struct": "Rotator"
+        },
+        {
+          "name": "Scale",
+          "kind": "StructProperty",
+          "size": 12,
+          "offset": 48,
+          "struct": "Vector"
+        },
+        {
+          "name": "LocationType",
+          "kind": "ByteProperty",
+          "size": 1,
+          "offset": 60
+        },
+        {
+          "name": "bAutoDestroy",
+          "kind": "BoolProperty",
+          "size": 1,
+          "offset": 61,
+          "boolLayout": [
+            1,
+            0,
+            1,
+            255
+          ]
+        },
+        {
+          "name": "PoolingMethod",
+          "kind": "EnumProperty",
+          "size": 1,
+          "offset": 62
+        },
+        {
+          "name": "ReturnValue",
+          "kind": "ObjectProperty",
+          "size": 8,
+          "offset": 64
+        }
+      ]
+    }
+  ],
+  "sourceNotifyEntries": [
+    {
+      "time": 0.0,
+      "kind": "AnimNotify_PlaySound",
+      "notifyEntryRva": "0x16977d0"
+    },
+    {
+      "time": 0.716946005821228,
+      "kind": "AnimNotify_PlaySound",
+      "notifyEntryRva": "0x16977d0"
+    },
+    {
+      "time": 0.7404290437698364,
+      "kind": "AnimNotify_PlayParticleEffect",
+      "notifyEntryRva": "0x16977c0"
+    },
+    {
+      "time": 0.7404290437698364,
+      "kind": "AnimNotify_CameraShake",
+      "notifyEntryRva": "0x5a7e70"
+    },
+    {
+      "time": 0.7411059737205505,
+      "kind": "AnimNotify_PlayParticleEffect",
+      "notifyEntryRva": "0x16977c0"
+    },
+    {
+      "time": 0.7416359782218933,
+      "kind": "AnimNotify_PlaySurfaceParticleEffect",
+      "notifyEntryRva": "0x5d7760"
+    },
+    {
+      "time": 0.7416359782218933,
+      "kind": "AnimNotify_PlaySurfaceParticleEffect",
+      "notifyEntryRva": "0x5d7760"
+    },
+    {
+      "time": 0.7470611333847046,
+      "kind": "AnimNotify_SpawnActor",
+      "notifyEntryRva": "0x5d7c00"
+    },
+    {
+      "time": 0.748789370059967,
+      "kind": "AnimNotify_SpawnBlast",
+      "notifyEntryRva": "0x5d7df0"
+    },
+    {
+      "time": 0.749142050743103,
+      "kind": "AnimNotify_War_StoneSkinBase_C",
+      "notifyEntryRva": "0x1697780"
+    },
+    {
+      "time": 1.600484013557434,
+      "kind": "AnimNotify_PlayFootstep",
+      "notifyEntryRva": "0x5d6e50"
+    },
+    {
+      "time": 1.8333330154418945,
+      "kind": "AnimNotify_PlayFootstep",
+      "notifyEntryRva": "0x5d6e50"
+    }
+  ],
+  "nativeCaltropsHasSpawnBlastFunction": false,
+  "note": "SpawnBlast source notify has its own native virtual entry; absence of an ability UFunction does not suppress it. External capture does not validate runtime rendering."
+}

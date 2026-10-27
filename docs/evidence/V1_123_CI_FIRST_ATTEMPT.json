@@ -1,0 +1,17 @@
+{
+  "runId": 40559293791,
+  "jobId": 122383658369,
+  "sourceCommit": "1f653fe2afd6d478d4381775ab34360b5c8ae062",
+  "conclusion": "failure",
+  "testsPassed": 64,
+  "failedTest": "StoneTransitionFx",
+  "failure": "only current owned mesh, no donor socket",
+  "msvcWarnings": [
+    "2026-10-27T18:25:45.0517423Z D:\\a\\Darksiders-Genesis-Enhanced-PC-Mod\\Darksiders-Genesis-Enhanced-PC-Mod\\src\\ForeignCaltropsFeature.cpp(164): warning C28020: The expression '_Param_(1)<2' is not true at this call.: Lines: 136, 137, 139, 140, 141, 142, 143, 145, 146, 147, 148, 150, 151, 152, 153, 154, 155, 156, 157, 159, 160, 161, 162, 164 [D:\\a\\Darksiders-Genesis-Enhanced-PC-Mod\\Darksiders-Genesis-Enhanced-PC-Mod\\build\\DarksidersGenesisMod.vcxproj]\r"
+  ],
+  "packagePublished": false,
+  "corrections": [
+    "Explicit None FName {0,0}; Name default is invalid {-1,0}",
+    "Explicit P1/P2 cue assignment after capture"
+  ]
+}

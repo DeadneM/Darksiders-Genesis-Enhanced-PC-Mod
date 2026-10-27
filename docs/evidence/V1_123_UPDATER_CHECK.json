@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.123_STONESKIN_TRANSITIONS_CALTROPS_STOMP_TEST.zip",
+  "blobSha": "e8f5e2b18c6a3dab13debaaf896e4ee230d43a7b",
+  "httpStatus": 200,
+  "sha256": "14269800F3ADF5DF640EBF15AC36F7215BF3FCA79D87B07B252399507CF0F279",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}

@@ -1,0 +1,27 @@
+﻿{
+    "zip":  {
+                "output":  "Scan starting...\r\nScan finished.\r\nScanning C:\\Users\\deadn\\.codex\\.chatgpt-projects\\g-p-6ac1496f81ec8191b55c0e4db2eefebd\\work-debug\\downloads\\DarksidersGenesis_V1.123_STONESKIN_TRANSITIONS_CALTROPS_STOMP_TEST.zip found no threats.\r\n",
+                "exitCode":  0,
+                "result":  "no threats"
+            },
+    "defender":  {
+                     "AMProductVersion":  "4.18.26090.9",
+                     "AMEngineVersion":  "1.1.26090.9",
+                     "AntivirusSignatureVersion":  "1.461.225.0",
+                     "AntivirusSignatureLastUpdated":  "\/Date(1793077970000)\/",
+                     "RealTimeProtectionEnabled":  true,
+                     "OnAccessProtectionEnabled":  true,
+                     "AntivirusEnabled":  true
+                 },
+    "after":  {
+                  "RealTimeProtectionEnabled":  true,
+                  "OnAccessProtectionEnabled":  true,
+                  "AntivirusEnabled":  true
+              },
+    "protectionSettingsChanged":  false,
+    "payload":  {
+                    "output":  "Scan starting...\r\nScan finished.\r\nScanning C:\\Users\\deadn\\.codex\\.chatgpt-projects\\g-p-6ac1496f81ec8191b55c0e4db2eefebd\\audit-v131\\v223-verified found no threats.\r\n",
+                    "exitCode":  0,
+                    "result":  "no threats"
+                }
+}
