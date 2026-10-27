@@ -1,3 +1,5 @@
+V1.119 delivered: 65/65 GitHub suites, ZIP/updater/Defender controlled; both +0.50s animation adjustments EXPERIMENTAL. Caltrops hop OPEN, unchanged. [Receipt](V1_119_DELIVERY_RECEIPT.md).
+
 ## V1.119 user feedback and candidate
 
 - User requests Geyser/Stoneskin animations +0.50s: stationary return1.15s / nominal activation1.50s prepared, native gameplay retained.

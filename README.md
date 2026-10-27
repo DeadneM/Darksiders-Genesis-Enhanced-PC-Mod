@@ -1,6 +1,8 @@
 ## V1.119 - Une demi-seconde de plus pour Geyser et Stoneskin
 
-**PREPAREE / EXPERIMENTALE, NON VALIDEE EN JEU. Compilation et livraison GitHub a verifier.** Base cumulative V1.118, installee et verifiee lors de la demande precedente, INI personnel conserve. Dernier retour : ajouter 0.5 seconde aux deux animations ; Caltrops War fait toujours le petit saut, donc son changement de duree V1.118 ne le corrige PAS.
+**CONSTRUITE / CONTROLEE : [65/65 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40513219454), zero avertissement/erreur MSVC. [ZIP public cumulatif verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/38e0bfab00c001975d8d74c83414cfaa27e8cdc2/downloads/DarksidersGenesis_V1.119_LONGER_STRIFE_CASTS_TEST.zip) - [Recu](docs/V1_119_DELIVERY_RECEIPT.md). Updater debug V1.119 : choix et octets verifies. Defender ZIP/quatre fichiers : aucune menace detectee, protections actives. Animations +0.50s EXPERIMENTALES a valider ; Caltrops reste OUVERT et inchange.**
+
+**CONSTRUITE / CONTROLEE ; EXPERIMENTALE, NON VALIDEE EN JEU.** Base cumulative V1.118, installee et verifiee lors de la demande precedente, INI personnel conserve. Dernier retour : ajouter 0.5 seconde aux deux animations ; Caltrops War fait toujours le petit saut, donc son changement de duree V1.118 ne le corrige PAS.
 
 Geyser immobile : retour 0.65 -> **1.15s**, meme debut 0.85s et fondu progressif 0.22s ; fin visuelle 2.00s au lieu de 1.50s, dans le montage natif 2.3667s. Aucun ajout au verrouillage du personnage, aux callbacks, au deplacement ou au saut. En mouvement, le chemin natif est conserve. Stoneskin Strife : activation habituelle 1.00 -> **1.50s** (+0.50s a la duree anterieure), memes fondus 0.16/0.30s, memes materiaux/sons et duree du statut. War Stoneskin reste natif.
 
