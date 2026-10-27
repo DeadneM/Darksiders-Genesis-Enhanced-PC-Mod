@@ -30,3 +30,7 @@ Updater debug selectionne V1.123 blob `e8f5e2b18c6a3dab13debaaf896e4ee230d43a7b`
 Non installee localement pendant le jeu ouvert. Conserver INI personnel et V1.122 ZIP/sauvegarde preinstallation pour rollback.
 
 Preuves : [CI](evidence/V1_123_CI_CHECK.json), [ZIP](evidence/V1_123_PACKAGE_CHECK.json), [updater](evidence/V1_123_UPDATER_CHECK.json), [Defender](evidence/V1_123_DEFENDER_CHECK.json), [deux relectures](evidence/V1_123_STATIC_REVIEW.json), [contrat observe en lecture seule](evidence/V1_123_READ_ONLY_CONTRACT.json).
+
+## Installation locale sur demande ulterieure
+
+V1.123 installee apres demande explicite « installe la », jeu ferme. Sauvegarde V1.122 complete verifiee avant remplacement : `before-V1.123-20261027-224229-e9a7da`. ASI, DXGI et README remplaces depuis le ZIP verifie ; leurs empreintes et leur architecture ont ete relues independamment apres copie. INI personnel identique octet pour octet a sa sauvegarde, raccourcis conserves. EXE natif identique ; aucun lancement du jeu, aucune modification volontaire de PAK ou de sauvegarde. Inventaire PAK (chemins/tailles/dates) inchange. Validation en jeu encore attendue. [Recu d'installation](evidence/V1_123_INSTALL_CHECK.json).

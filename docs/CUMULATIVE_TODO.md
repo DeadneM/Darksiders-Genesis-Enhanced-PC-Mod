@@ -1,3 +1,5 @@
+V1.123 subsequently installed on explicit user request: verified V1.122 backup, exact payload hashes, personal INI byte-identical, no game launch. Gameplay validation still pending. [Install receipt](evidence/V1_123_INSTALL_CHECK.json).
+
 V1.123 delivered:65/65 GitHub suites, ZIP/updater/Defender controlled. Geyser frozen; Stoneskin launch/expiry and War stomp Caltrops experimental. No local install or gameplay validation. [Receipt](V1_123_DELIVERY_RECEIPT.md).
 
 ## V1.123 latest steering
