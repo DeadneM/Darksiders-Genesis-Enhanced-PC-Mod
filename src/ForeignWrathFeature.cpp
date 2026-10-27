@@ -164,7 +164,7 @@ void StonePlay(void* ability,void* montage,float rate,Name section,const local_p
            Read(copy,0x90,length)&&std::isfinite(length)&&length>.1f&&length<10){
             // Activation is short; the already-applied native status keeps its
             // own lifetime. Same Aether gesture as V1.112, no new return clip.
-            const float activation=std::min(duration,1.f)+.5f;
+            const float activation=std::min(duration,1.f)+.25f;
             const float adjusted=rate*length/activation;
             if(std::isfinite(adjusted)&&adjusted>.01f&&adjusted<100){
                 // Native status/cost, own gesture; body coating is observed
@@ -183,8 +183,8 @@ void StonePlay(void* ability,void* montage,float rate,Name section,const local_p
     if(!played){g_stoneFailed=true;g_finish(ability,0);}
     else foreign_montage::StartSounds(original,ability);
     if(g_log&&g_stoneEvents++<12)g_log(played?(launchEffects?
-        "Stoneskin V1.121 CAST: accepted activation/fades/status retained; native launch particles queued; visual EXPERIMENTAL":
-        "Stoneskin V1.121 CAST: accepted activation/fades/status retained; launch particle contract unavailable"):
+        "Stoneskin V1.122 CAST: same Aether gesture, activation normally 1.25s; native status/FX lifetime retained; launch particles queued; EXPERIMENTAL":
+        "Stoneskin V1.122 CAST: same Aether gesture, activation normally 1.25s; native status retained; launch particle contract unavailable"):
         "Stoneskin V1.102 stopped: own cast contract unavailable; native finish, transfer disabled for session; select Native");
 }
 

@@ -115,13 +115,15 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     Source source{};Name slot{};float duration=0;uintptr_t projectile=0;native_objects::Identity cast{},pawn{};
     if(g_failed||!std::isfinite(rate)||rate<=0||rate>10||section.index||section.number||!Animation(c,source)||!Montage(montage,slot,duration)||
        !Projectile(p,projectile)||!native_objects::CaptureLive(g_base,ability,cast)||!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(actor),pawn)){Stop(ability);return true;}
-    source.sequence=foreign_montage::CastingSequence(source.sequence,source.skeleton,source.length);
+    const auto grounded=foreign_montage::CaltropsGesture(source.skeleton,source.length);
+    if(grounded){source.sequence=grounded;duration=source.length;}
+    else source.sequence=foreign_montage::CastingSequence(source.sequence,source.skeleton,source.length);
     auto* replacement=g_create(reinterpret_cast<void*>(source.sequence),slot,.1f,.18f,1,1,-1,0);
     if(!Alive(cast)||!Alive(pawn))return true;
     const auto clone=reinterpret_cast<uintptr_t>(replacement);uintptr_t skeleton=0;float length=0;
     if(!clone||clone==reinterpret_cast<uintptr_t>(montage)||!Read(clone,0x10,cls)||!Is(cls,"AnimMontage")||!Read(clone,0x38,skeleton)||skeleton!=source.skeleton||
        !Read(clone,0x90,length)||!std::isfinite(length)||std::fabs(length-source.length)>.001f){Stop(ability);return true;}
-    const float adjusted=rate*length/duration; // complete source gesture over the original cast span, before duration retunes
+    const float adjusted=rate*length/duration;
     if(!std::isfinite(adjusted)||adjusted<=.01f||adjusted>=100){Stop(ability);return true;}
     foreign_montage::CopyLaterSounds(reinterpret_cast<uintptr_t>(montage),replacement);
     native(ability,replacement,adjusted,section);
@@ -136,7 +138,9 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     // upgrades and damage. No Strife socket, shared component, timer or CDO edit.
     g_spawn(ability,reinterpret_cast<void*>(projectile),source.pelvis);
     if(Alive(cast)&&Alive(pawn))foreign_montage::StartSounds(reinterpret_cast<uintptr_t>(montage),ability);
-    if(g_log&&g_events++<12)g_log("Caltrops V1.121: original cast span restored; one continuous own War gesture and one native spawner, no added return; animation EXPERIMENTAL");
+    if(g_log&&g_events++<12)g_log(grounded?
+        "Caltrops V1.122: single complete grounded War gesture at authored speed, no Start/End splice; native spawner; EXPERIMENTAL":
+        "Caltrops V1.122: grounded gesture unavailable; V1.121 original-span fallback retained; EXPERIMENTAL");
     return true;
 }
 void Shutdown(){g_ready=false;}

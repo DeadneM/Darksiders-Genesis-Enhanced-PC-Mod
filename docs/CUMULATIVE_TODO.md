@@ -1,3 +1,10 @@
+## V1.122 latest steering
+
+- V1.121 installed on explicit request, verified backup/INI preservation, no launch/runtime validation.
+- User keeps Geyser/Stoneskin gestures and effects, wants shorter activation. Candidate Geyser1.75s with all FX/damage times native; Stoneskin1.25s with independent status lifetime.
+- Caltrops different candidate: complete grounded War gesture alone, no Start/End splice, source flag, physics/VM patch or new scan/hook. V1.121 fallback if asset unavailable. Visual result OPEN.
+- Preserve Clone/Rampage/WorldEnder, all validated settings/control paths. Coop last.
+
 V1.121 delivered: 65/65 GitHub suites, ZIP/updater/Defender controlled. Caltrops/Geyser original-span retry and Stoneskin launch FX EXPERIMENTAL; accepted Stoneskin duration/materials retained. [Receipt](V1_121_DELIVERY_RECEIPT.md).
 
 ## V1.121 latest verdict and clean retry

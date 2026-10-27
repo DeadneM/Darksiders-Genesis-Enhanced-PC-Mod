@@ -255,7 +255,7 @@ void Gestures(){
     GestureFixture();ObserveSequence(reinterpret_cast<uintptr_t>(f.gesture));
     Check(Geyser(reinterpret_cast<uintptr_t>(f.original),source)==f.copy,"gesture integrates with validated Geyser builder");
     const auto segment=At<Segment>(f.copySegments,0);
-    Check(segment.sequence==reinterpret_cast<uintptr_t>(f.gesture)&&segment.last==1&&std::fabs(segment.rate-1/2.3666665554f)<.00001f,"gesture fits existing cast span instead of changing callback timing");
+    Check(segment.sequence==reinterpret_cast<uintptr_t>(f.gesture)&&segment.last==1&&std::fabs(segment.rate-1/1.75f)<.00001f,"same gesture uses shorter 1.75s cast without changing callback timing");
     Check(At<uintptr_t>(f.copyEvents,2*184+0x48)==reinterpret_cast<uintptr_t>(f.notify)&&At<float>(f.copyEvents,2*184+0x24)==.4880667329f&&At<int>(f.copy,0x88)==4,"one original blast callback and complete presentation remain on their native times");
     GestureFixture(true);ObserveSequence(reinterpret_cast<uintptr_t>(f.gesture));
     Label(f.idle,13,"War_Idle");Put(f.idle,0x38,reinterpret_cast<uintptr_t>(f.warSkeleton));source.skeleton=reinterpret_cast<uintptr_t>(f.warSkeleton);source.rootIndex=20;
@@ -300,12 +300,15 @@ void GeyserPacing(){
     Put(f.war,0x80,Array{reinterpret_cast<uintptr_t>(f.sequenceEvents),5,8});Label(f.interruptClass,48,"AnimNotify_EnableAbilityInterrupt");
     for(int i=0;i<2;++i){Put(f.interrupts[i],0x10,reinterpret_cast<uintptr_t>(f.interruptClass));Put(f.interrupts[i],0x20,reinterpret_cast<uintptr_t>(f.war));auto* e=f.sequenceEvents+(3+i)*184;const float time=i?1.0523383617f:.7892537713f;Put(e,0x50,reinterpret_cast<uintptr_t>(f.interrupts[i]));Put(e,0x24,time);Put(e,0x58,2.3666665554f-time);}
     const auto before=std::make_unique<Fixture>(f);Check(Geyser(reinterpret_cast<uintptr_t>(f.original),source)==f.copy,"Geyser gesture and native cancel windows build privately");
-    Check(At<Array>(f.copyTracks,8).count==1&&At<int>(f.copy,0x88)==6&&At<float>(f.copy,0x90)==2.3666665554f,"native montage duration and all gameplay cues retained with one continuous gesture");
+    Check(At<Array>(f.copyTracks,8).count==1&&At<int>(f.copy,0x88)==6&&At<float>(f.copy,0x90)==1.75f,"shorter private montage keeps every native presentation and gameplay cue on one continuous gesture");
     auto cast=At<Segment>(f.copySegments,0);
-    Check(cast.sequence==reinterpret_cast<uintptr_t>(f.gesture)&&cast.first==0&&cast.last==1&&std::fabs(cast.rate-1/2.3666665554f)<.00001f,"complete compatible gesture fits original montage, without held final frame or added return pose");
+    Check(cast.sequence==reinterpret_cast<uintptr_t>(f.gesture)&&cast.first==0&&cast.last==1&&std::fabs(cast.rate-1/1.75f)<.00001f,"same complete compatible gesture fits 1.75s, without held final frame or added return pose");
     Check(At<float>(f.copyEvents,2*184+0x24)==.4880667329f&&At<uintptr_t>(f.copyEvents,2*184+0x48)==reinterpret_cast<uintptr_t>(f.notify),"actual blast callback not sped up or delayed to match a visual workaround");
-    Check(At<uintptr_t>(f.copyEvents,4*184+0x50)==reinterpret_cast<uintptr_t>(f.interrupts[0])&&At<int>(f.copyEvents,4*184+0x74)==0&&std::fabs(At<float>(f.copyEvents,4*184+0x84)-2.3666665554f)<.00001f,"native MOVE state keeps its exact linked end on the original single segment");
+    Check(At<uintptr_t>(f.copyEvents,4*184+0x50)==reinterpret_cast<uintptr_t>(f.interrupts[0])&&At<int>(f.copyEvents,4*184+0x74)==0&&std::fabs(At<float>(f.copyEvents,4*184+0x84)-1.75f)<.00001f&&
+          std::fabs(At<float>(f.copyEvents,4*184+0x58)-(1.75f-.7892537713f))<.00001f,"cancel state keeps original start and closes exactly at shorter montage end");
     Check(!std::memcmp(f.war,before->war,sizeof(f.war))&&!std::memcmp(f.sequenceEvents,before->sequenceEvents,sizeof(f.sequenceEvents))&&!std::memcmp(f.interrupts,before->interrupts,sizeof(f.interrupts)),"source animation, callback times and control windows never edited");
+    GestureFixture(false);ObserveSequence(reinterpret_cast<uintptr_t>(f.gesture));Put(f.sequenceEvents,184+0x24,2.f);
+    Check(!Geyser(reinterpret_cast<uintptr_t>(f.original),source)&&!constructors,"later unknown effect is rejected before construction instead of silently dropping or speeding it up");
 }
 void Beams(){
     std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(chunks));

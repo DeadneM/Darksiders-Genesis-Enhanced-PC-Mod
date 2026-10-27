@@ -242,6 +242,12 @@ uintptr_t CastingSequence(uintptr_t fallback,uintptr_t skeleton,float& length){
     }
     return fallback;
 }
+uintptr_t CaltropsGesture(uintptr_t skeleton,float& length){
+    native_objects::MemoryReader reader;uintptr_t actual=0;float span=0;
+    if(!g_ready||!native_tps::OnGameThread()||!native_objects::Alive(reader,g_base,g_warReturn)||!WarReturn(g_warReturn.address)||
+       !Read(g_warReturn.address,0x38,actual)||actual!=skeleton||!Read(g_warReturn.address,0x90,span))return 0;
+    length=span;return g_warReturn.address;
+}
 bool CompleteGroundCast(void* live,uintptr_t skeleton,float returnSeconds){
     native_objects::MemoryReader reader;const auto montage=reinterpret_cast<uintptr_t>(live);
     uintptr_t cls=0,actual=0,outer=0;uint32_t flags=0;float startLength=0,endLength=0,total=0;Array tracks{},segments{},sections{};Segment start{};Name slot{};
@@ -279,7 +285,10 @@ void* Geyser(uintptr_t original,const Source& source){
        !List(before.segment.sequence,0x80,sequenceEvents,64)||!Collect(before.segment.sequence,sequenceEvents,presentation,&event)||
        !Collect(original,before.events,presentation)||!Interrupts(before.segment.sequence,sequenceEvents,0,before.length,0,1,presentation)||presentation.spawns!=1||presentation.sounds!=1||!presentation.particles)return nullptr;
     const auto playback=CastingSequence(source.sequence,source.skeleton,length);
-
+    const float castSeconds=playback==source.sequence?before.length:1.75f;
+    // Keep every damage/FX cue at its native time. Only the final gesture
+    // and its cancel windows end earlier; spawned effects keep their life.
+    for(int i=0;i<presentation.count;++i){float at=0;std::memcpy(&at,presentation.events[i].data()+0x24,4);if(at>=castSeconds)return nullptr;}
     std::memcpy(&time,event.data()+0x24,sizeof(time));
     if(time>=before.length)return nullptr;
     std::stable_sort(presentation.events.begin(),presentation.events.begin()+presentation.count,[](const Event& a,const Event& b){
@@ -296,7 +305,7 @@ void* Geyser(uintptr_t original,const Source& source){
        !Writable(after.sections.data,88)||!Writable(montage+0x80,sizeof(Array)))return nullptr;
     // All storage is native-owned and distinct from the source template.
     // Keep the single native callback and compatible presentation on its timeline.
-    Segment segment=after.segment;segment.sequence=playback;segment.last=length;segment.rate=length/after.length;
+    Segment segment=after.segment;segment.sequence=playback;segment.last=length;segment.rate=length/castSeconds;
     if(!std::isfinite(segment.rate)||segment.rate<=.01f||segment.rate>100)return nullptr;
     for(int i=0;i<presentation.count;++i){
         uintptr_t notify=0;std::memcpy(&notify,presentation.events[i].data()+0x48,8);
@@ -315,11 +324,12 @@ void* Geyser(uintptr_t original,const Source& source){
     for(int i=0;i<presentation.count;++i){
         const auto at=storage.data+size_t(i)*sizeof(Event);float duration=0;
         std::memcpy(&time,presentation.events[i].data()+0x24,sizeof(time));std::memcpy(&duration,presentation.events[i].data()+0x58,4);
-        auto link=[&](uintptr_t element,float value){return Link(element,montage,playback,value,after.length);};
+        duration=std::min(duration,castSeconds-time);std::memcpy(presentation.events[i].data()+0x58,&duration,4);
+        auto link=[&](uintptr_t element,float value){return Link(element,montage,playback,value,castSeconds);};
         if(!Store(at,0,presentation.events[i])||!link(at,time)||!link(at+0x60,time+duration))return nullptr;
     }
-    if(!Store(segments.data,0,segment)||!Link(after.sections.data,montage,playback,zero,after.length)||
-       !Store(montage,0x88,presentation.count)||!SmoothExit(created))return nullptr;
+    if(!Store(segments.data,0,segment)||!Link(after.sections.data,montage,playback,zero,castSeconds)||
+       !Store(montage,0x90,castSeconds)||!Store(montage,0x88,presentation.count)||!SmoothExit(created))return nullptr;
     return created;
 }
 namespace {

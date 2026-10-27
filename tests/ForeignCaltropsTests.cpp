@@ -16,7 +16,7 @@ struct Fixture {
 } f;
 unsigned char entries[24][192]{};uintptr_t names[24]{},nameChunks[1]{reinterpret_cast<uintptr_t>(names)},objectChunks[1]{};
 dg::local_players::Context owner{};
-bool gesture=false;bool gameThread=true,local=true,createOK=true,playing=true,reenter=false,expire=false,expireCreate=false,changeOwner=false,throwPlay=false;
+bool gesture=false,groundedGesture=false;bool gameThread=true,local=true,createOK=true,playing=true,reenter=false,expire=false,expireCreate=false,changeOwner=false,throwPlay=false;
 unsigned creates=0,plays=0,spawns=0,finishes=0,playingCalls=0;float playedRate=0;void* playedMontage=nullptr;Name playedSection{};
 struct Created {void* sequence=nullptr;Name slot{};float in=0,out=0,rate=0;int loops=0;float trigger=0,start=0;} created;
 struct Spawned {void* ability=nullptr;void* projectile=nullptr;Name bone{};} spawned;
@@ -25,7 +25,7 @@ void Check(bool ok,const char* why){if(!ok)throw std::runtime_error(why);}
 void Label(void* object,int index,const char* name){Put(object,0x18,index);Put(object,0x1C,0);strcpy_s(reinterpret_cast<char*>(entries[index]+12),180,name);}
 void Register(int index,void* object,int serial){Put(object,0xC,index);Put(f.items,size_t(index)*24,reinterpret_cast<uintptr_t>(object));Put(f.items,size_t(index)*24+16,serial);}
 void* CreateNative(void* sequence,Name slot,float in,float out,float rate,int loops,float trigger,float start){
-    ++creates;created={sequence,slot,in,out,rate,loops,trigger,start};if(expireCreate)Put(f.items,4*24+16,51);if(gesture)Put(f.replacement,0x90,.5666666627f);return createOK?f.replacement:nullptr;
+    ++creates;created={sequence,slot,in,out,rate,loops,trigger,start};if(expireCreate)Put(f.items,4*24+16,51);if(gesture||groundedGesture)Put(f.replacement,0x90,groundedGesture?.6666666865f:.5666666627f);return createOK?f.replacement:nullptr;
 }
 void PlayNative(void* ability,void* montage,float rate,Name section){
     ++plays;playedMontage=montage;playedRate=rate;playedSection=section;Put(ability,0x1D8,reinterpret_cast<uintptr_t>(f.instance));
@@ -38,7 +38,7 @@ bool PlayingNative(void* instance){++playingCalls;Check(instance==f.instance,"ex
 void FinishNative(void* ability,unsigned char cause){++finishes;Check(ability==f.ability&&cause==0,"only current cast receives normal native finish");}
 void SpawnNative(void* ability,void* projectile,Name bone){++spawns;spawned={ability,projectile,bone};Check(playingCalls==1,"spawn only follows confirmed native playback");}
 void Fresh(){
-    f={};owner={};gesture=false;gameThread=local=createOK=playing=true;reenter=expire=expireCreate=changeOwner=throwPlay=false;
+    f={};owner={};gesture=groundedGesture=false;gameThread=local=createOK=playing=true;reenter=expire=expireCreate=changeOwner=throwPlay=false;
     creates=plays=spawns=finishes=playingCalls=0;playedRate=0;playedMontage=nullptr;playedSection={};created={};spawned={};
     g_ready=true;g_failed=false;g_handling=nullptr;g_log=nullptr;g_events=0;
     g_create=CreateNative;g_finish=FinishNative;g_playing=PlayingNative;g_spawn=SpawnNative;
@@ -124,10 +124,13 @@ void Run(){
     ObserveObject(reinterpret_cast<uintptr_t>(f.idle),3);Check(AssetsReady()&&Status()==2,"typed sequence event completes discovery without another GUObject pass");
     Put(f.items,2*24+16,999);Check(InvalidateAssets()&&!InvalidateAssets(),"asset serial change invalidates once");
     Fresh();gesture=true;Check(Cast()&&creates==1&&plays==1&&spawns==1&&!finishes&&created.sequence==f.strifeSkeleton&&std::fabs(playedRate-(.5666666627f/2.3333332539f))<.0001f,"receiver gesture restores original cast span, one native spawn and successful lifecycle");
+    Fresh();groundedGesture=true;auto beforeGround=f;Put(beforeGround.ability,0x1D8,reinterpret_cast<uintptr_t>(f.instance));Check(Cast()&&creates==1&&plays==1&&spawns==1&&!finishes&&created.sequence==f.strifeSkeleton&&playedRate==1.f,"one complete grounded gesture at native speed, no added segment or extra spawn");
+    Check(!std::memcmp(f.actor,beforeGround.actor,sizeof(f.actor))&&!std::memcmp(f.movement,beforeGround.movement,sizeof(f.movement))&&!std::memcmp(f.ability,beforeGround.ability,sizeof(f.ability))&&!std::memcmp(f.montage,beforeGround.montage,sizeof(f.montage)),"new Caltrops presentation leaves actor, physics, ability and native montage unchanged");
     Fresh();Shutdown();Check(Status()==0&&!Prepare(f.actor,cls)&&!Cast(),"shutdown returns all paths to unavailable/native forwarding");
 }
 }
 namespace dg::foreign_montage {
+uintptr_t CaltropsGesture(uintptr_t,float& length){if(!groundedGesture)return 0;length=.6666666865f;return reinterpret_cast<uintptr_t>(f.strifeSkeleton);}
 void StartSounds(uintptr_t,void*){}bool CopyLaterSounds(uintptr_t,void*){return true;}uintptr_t CastingSequence(uintptr_t fallback,uintptr_t,float& length){if(gesture){length=.5666666627f;return reinterpret_cast<uintptr_t>(f.strifeSkeleton);}return fallback;}}
 namespace dg::native_tps {bool OnGameThread(){return gameThread;}}
 namespace dg::local_players {bool ResolveActor(void* actor,Context& c){c=owner;return local&&reinterpret_cast<uintptr_t>(actor)==owner.character;}}

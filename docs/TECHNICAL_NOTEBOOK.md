@@ -1,3 +1,13 @@
+## V1.122 - Memes gestes et effets, activations plus courtes
+
+**PREPAREE / EXPERIMENTALE, NON VALIDEE EN JEU. Compilation et livraison GitHub a verifier.** Base cumulative V1.121. Precision utilisateur : garder les gestes et les effets choisis pour Geyser/Stoneskin, raccourcir seulement l'activation. V1.121 installee sur demande avec sauvegarde de V1.120 et INI personnel conserve ; jeu non lance par l'agent.
+
+Geyser Strife : meme Aether_Channel_Start et memes effets, geste complet **1.75s au lieu de 2.3667s**. Declenchements des pics et degats conserves exactement (dernier effet 0.71924s, blast 0.48807s). Seule la fin des fenetres d'interruption se ferme au nouvel arret ; leurs debuts restent natifs. Aucun pic supprime ou accelere, aucun maintien de pose ou retour ajoute. Stoneskin Strife : meme geste, memes fondus, particules et materiaux, activation habituelle **1.25s au lieu de 1.50s** ; duree du statut/protection et vie des particules inchangees.
+
+Caltrops War : essai different, un seul War_Channel_End complet a sa vitesse native (~0.6667s), a la place de Start et sans raccord Start/End. Ce geste est deja disponible dans la decouverte bornee ; aucune nouvelle recherche par frame. S'il manque ou expire, V1.121 reste le repli. Spawn, degats, cout et lifecycle physique natifs conserves ; absence du rebond a verifier en jeu. Pas de patch VM/mouvement ou nouvel hook. Clone/Rampage/WorldEnder, War Stoneskin, camera/manette/cheval/menus/updater et INI/Hotkeys gardes. [Contrat et essais](V1_122_SHORT_CASTS_GROUNDED_CALTROPS_TEST.md).
+
+---
+
 ## V1.121 - Retour aux gestes continus, particules de lancement Stoneskin
 
 **CONSTRUITE / CONTROLEE : [65/65 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40542119595), zero avertissement/erreur MSVC. [ZIP public cumulatif verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/eb36a53e2a1bd3280a973b4caa6c4e025063d30f/downloads/DarksidersGenesis_V1.121_NATIVE_CAST_RESET_STONESKIN_FX_TEST.zip) - [Recu](V1_121_DELIVERY_RECEIPT.md). Updater debug V1.121 : choix et octets verifies. Defender ZIP/quatre fichiers : aucune menace detectee, protections actives. Retour Caltrops/Geyser et lancement Stoneskin EXPERIMENTAUX ; activation/materiaux Stoneskin deja valides conserves.**
