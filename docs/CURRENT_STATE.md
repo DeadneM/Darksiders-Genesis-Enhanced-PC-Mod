@@ -1,3 +1,13 @@
+## V1.123 - Effets Stoneskin et coup de pied Caltrops
+
+**PREPAREE / EXPERIMENTALE. Compilation et livraison GitHub a verifier.** Base cumulative V1.122. Geyser est explicitement VALIDE : aucun changement. Geste Stoneskin1.25s, fondus, materiaux et duree native conserves. Essai visuel limite explicitement autorise : explosion Base/Molten quand le revetement apparait sur Strife, cendres quand le statut expire completement. API publique SpawnEmitterAttached avec contrat72 octets confirme en lecture seule, controle avant chaque appel. Aucun appel/ecriture du lecteur externe.
+
+Caltrops War : geste complet de son Stoneskin (~1.8333s), pics au signal natif du coup de pied, une seule creation. Trois gardes natifs verifies par signatures filtrent seulement les notifications de peau/acteur/blast du montage prive de Caltrops ; le hook de particules existant recoit le signal. War Stoneskin ordinaire est transmis intact. Lifecycle vol/chute natif conserve : absence de rebond a verifier. Ancien chemin de particules qui refusait les effets et getter Caltrops inutilise supprimes. [Contrat et essais](V1_123_STONESKIN_TRANSITIONS_CALTROPS_STOMP_TEST.md), [autorisation et perimetre](V1_123_STONESKIN_FX_REVIEW.md).
+
+Clone/Rampage/WorldEnder, Geyser, materiaux Stoneskin, camera/manette/cheval/menus/updater et INI/Hotkeys conserves. Les nouveaux effets et le geste Caltrops restent EXPERIMENTAUX, NON VALIDES EN JEU. Aucun lancement, compilation ou remplacement du jeu local.
+
+---
+
 ## V1.122 - Memes gestes et effets, activations plus courtes
 
 **CONSTRUITE / CONTROLEE : [65/65 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40545654508), zero avertissement/erreur MSVC. [ZIP public cumulatif verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/ee21e5c88a1f0fa8eedd6e2d4206529b86360d97/downloads/DarksidersGenesis_V1.122_SHORT_CASTS_GROUNDED_CALTROPS_TEST.zip) - [Recu](V1_122_DELIVERY_RECEIPT.md). Updater debug et Defender controles. V1.122 installee sur demande avec sauvegarde verifiee de V1.121, INI/PAK conserves, sans lancement du jeu. Gestes raccourcis et Caltrops EXPERIMENTAUX, non valides en jeu.**

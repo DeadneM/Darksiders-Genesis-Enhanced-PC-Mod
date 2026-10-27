@@ -108,7 +108,7 @@ void Scan(uintptr_t generatedClass){
         if(!g_nativeClass&&Is(cls,"Class"))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(cls),g_nativeClass);
         if(!g_materialClass&&Is(cls,"MaterialInstanceConstant"))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(cls),g_materialClass);
         const unsigned kind=cls==generatedClass?1u:cls==g_nativeClass.address?2u:cls==g_sequenceClass.address?3u:0u;
-        if(cls==g_materialClass.address)stone_visual::ObserveObject(object);
+        if(cls==g_materialClass.address||kind==2||Is(cls,"ParticleSystem"))stone_visual::ObserveObject(object);
         if(!kind)continue;
         foreign_caltrops::ObserveObject(object,kind);foreign_power::ObserveObject(object,kind);
         if(kind==1||kind==3){foreign_beam::ObserveObject(object);foreign_rampage::ObserveObject(object);}
@@ -148,7 +148,7 @@ void StonePlay(void* ability,void* montage,float rate,Name section,const local_p
     uintptr_t cls=0,package=0,skeleton=0,owner=0;float duration=0,scale=0,length=0;Animation source{};
     native_objects::Identity abi{},pawn{};
     if(!native_objects::CaptureLive(g_base,ability,abi)||!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(c.character),pawn))return;
-    bool played=false,launchEffects=false;
+    bool played=false;
     if(g_create&&!g_stoneFailed&&std::isfinite(rate)&&rate>0&&rate<=10&&!section.index&&!section.number&&Source(c.character,source)&&
        Read(original,0x10,cls)&&Is(cls,"AnimMontage")&&Read(original,0x20,package)&&
        ((Is(original,"War_Atk_Stoneskin_Montage")&&Is(package,"/Game/Characters/Heroes/Hero_War/Animation/War_Atk_Stoneskin_Montage"))||
@@ -170,7 +170,6 @@ void StonePlay(void* ability,void* montage,float rate,Name section,const local_p
                 // Native status/cost, own gesture; body coating is observed
                 // independently from the status list, never from this clip.
                 foreign_montage::CopyLaterSounds(original,replacement);
-                launchEffects=foreign_montage::CopyStoneskinLaunchEffects(original,replacement);
                 g_play(ability,replacement,adjusted,section);
                 if(!Alive(abi)||!Alive(pawn)||!Read(p,0x48,owner)||owner!=c.character)return;
                 uintptr_t instance=0;played=Read(p,0x1D8,instance)&&instance&&g_playing(reinterpret_cast<void*>(instance));
@@ -181,10 +180,9 @@ void StonePlay(void* ability,void* montage,float rate,Name section,const local_p
     // War and Stinger stay native. A separate owned-material observer follows
     // the actual Strife status lifetime; no borrowed components or timer.
     if(!played){g_stoneFailed=true;g_finish(ability,0);}
-    else foreign_montage::StartSounds(original,ability);
-    if(g_log&&g_stoneEvents++<12)g_log(played?(launchEffects?
-        "Stoneskin V1.122 CAST: same Aether gesture, activation normally 1.25s; native status/FX lifetime retained; launch particles queued; EXPERIMENTAL":
-        "Stoneskin V1.122 CAST: same Aether gesture, activation normally 1.25s; native status retained; launch particle contract unavailable"):
+    else {foreign_montage::StartSounds(original,ability);stone_visual::Cast(c);}
+    if(g_log&&g_stoneEvents++<12)g_log(played?
+        "Stoneskin V1.123 CAST: accepted 1.25s gesture retained; explosion/crumble follow coating/status edges; EXPERIMENTAL FX":
         "Stoneskin V1.102 stopped: own cast contract unavailable; native finish, transfer disabled for session; select Native");
 }
 

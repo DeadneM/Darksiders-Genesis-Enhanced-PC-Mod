@@ -1,6 +1,7 @@
 #include "DashCombatFeature.h"
 #include "PistolVisualFeature.h"
 #include "MeleeEffectFeature.h"
+#include "ForeignCaltropsFeature.h"
 #include "LocalPlayerOwnership.h"
 #include "NativeTpsFeature.h"
 #include "DashCombatPolicy.h"
@@ -215,6 +216,7 @@ void HookSoundNotify(void* notify,void* mesh,void* animation){
     if(!SkipPresentation(notify,mesh,animation,true)&&g_sound)g_sound(notify,mesh,animation);
 }
 void HookParticleNotify(void* notify,void* mesh,void* animation){
+    if(foreign_caltrops::HandleNotify(notify,mesh,animation))return;
     if(!pistol_visual::SkipParticle(notify,mesh)&&!SkipPresentation(notify,mesh,animation,false))
         melee_effect::Particle(notify,mesh,animation,g_particle);
 }

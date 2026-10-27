@@ -13,9 +13,6 @@ bool CanBuild(const Source&);
 void ObserveSequence(uintptr_t object);
 bool GesturesReady();
 uintptr_t CastingSequence(uintptr_t fallback,uintptr_t skeleton,float& length);
-// Caltrops on War: one complete grounded return, with no appended clip.
-// Zero keeps the previous owned gesture when the native asset is unavailable.
-uintptr_t CaltropsGesture(uintptr_t skeleton,float& length);
 // Private War Clone casts only; append the native grounded return.
 // Missing return leaves the previous valid cast intact.
 bool CompleteGroundCast(void* privateMontage,uintptr_t skeleton,float returnSeconds);
@@ -33,7 +30,4 @@ void* RampageMotion(uintptr_t nativeMontage,const Source&);
 // own mesh. Later sounds on dynamic gestures remain engine-timed notifies.
 void StartSounds(uintptr_t nativeMontage,void* liveAbility);
 bool CopyLaterSounds(uintptr_t nativeMontage,void* privateMontage);
-// Strife Stoneskin only: copy the two native, unattached launch particles.
-// Status, Stinger, blast, surface effects and camera notifies stay native.
-bool CopyStoneskinLaunchEffects(uintptr_t nativeMontage,void* privateMontage);
 }

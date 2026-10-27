@@ -13,6 +13,7 @@ struct Fixture {
  uintptr_t overrides[4]{},statuses[2]{};
 } f;
 uintptr_t objectChunks[1]{};dg::local_players::Context owner{};unsigned copies=0,creates=0,sets=0,scalarCalls=0;int id=0;bool thread=true,failFactory=false;
+unsigned fx[3]{};bool fxReady=true;
 template<class T>void Put(void* p,size_t at,const T& v){std::memcpy(static_cast<unsigned char*>(p)+at,&v,sizeof(v));}
 void Check(bool ok,const char* why){if(!ok)throw std::runtime_error(why);}
 void Label(void* p,int i,const char* s){Put(p,0x18,i);strcpy_s(reinterpret_cast<char*>(entries[i]+12),244,s);}
@@ -26,7 +27,7 @@ void Dispatch(void* object,void* function,void* args){
  Check(function==f.functions[3]&&object!=f.materials[0]&&object!=f.materials[1],"parameter copy only on private MID");++copies;
 }
 void Fresh(){
- f={};g_visual[0]=g_visual[1]={};g_fields={};for(auto& variant:g_materials)for(auto& m:variant)m={};g_event=Dispatch;g_log=nullptr;g_events=0;owner={};id=0;copies=creates=sets=scalarCalls=0;thread=true;failFactory=false;
+ f={};g_visual[0]=g_visual[1]={};g_transitions[0]=g_transitions[1]={};g_fields={};for(auto& variant:g_materials)for(auto& m:variant)m={};g_event=Dispatch;g_log=nullptr;g_events=0;owner={};id=0;copies=creates=sets=scalarCalls=0;thread=true;failFactory=false;for(auto& n:fx)n=0;fxReady=true;
  const char* labels[]={"Strife_Blueprint_C","MeshClass","StatusComponent","MayhemStatusEffect_StoneSkin_Base_Blueprint_C","MaterialInstanceDynamic","Function","ObjectProperty","ArrayProperty","IntProperty","NameProperty","BoolProperty","MayhemStatusEffect_Core_FallenDog_Molten_2_Blueprint_C"};
  for(int i=0;i<12;++i)Label(f.classes[i],i+1,labels[i]);
  Label(f.classes[12],44,"FloatProperty");Label(f.classes[13],45,"SkeletalMesh");Label(f.asset,40,"Strife");Put(f.asset,0x10,reinterpret_cast<uintptr_t>(f.classes[13]));Put(f.mesh,0x5A0,reinterpret_cast<uintptr_t>(f.asset));
@@ -72,7 +73,19 @@ void Run(){
  Fresh();Observe(owner);owner.kind=dg::local_players::PoseKind::Horse;Observe(owner);Check(sets==4&&!g_visual[0].actor,"transformation restores only own visual state");
  for(int bad=0;bad<5;++bad){Fresh();if(bad==0)thread=false;if(bad==1)owner.index=2;if(bad==2)owner.localPlayer=0;if(bad==3)Put<unsigned char>(f.actor,0x118,2);if(bad==4)Label(f.classes[0],1,"War_Blueprint_C");Observe(owner);Check(!creates&&!sets,"War, off-thread, remote and invalid owners untouched");}
  Fresh();owner.index=1;Observe(owner);Check(g_visual[1].actor&&!g_visual[0].actor,"independent per-player observation");Shutdown();Check(sets==4&&!g_event,"game-thread shutdown restores originals");
+ Fresh();Cast(owner);Observe(owner);Observe(owner);Check(fx[0]==1&&!fx[1]&&!fx[2]&&creates==4,"one explosion exactly when accepted coating appears, no per-frame burst or material recreation");
+ Cast(owner);Observe(owner);Check(fx[0]==2&&creates==4,"recast can emit one explosion without recreating accepted material state");
+ Put(f.component,0x138,0);Observe(owner);Observe(owner);Check(fx[2]==1&&sets==4,"one crumble at complete status expiry, not cast animation end");
+ Fresh();Put(f.component,0x138,2);Cast(owner);Observe(owner);Check(fx[1]==1&&!fx[0],"Molten status chooses Molten launch");Put(f.component,0x138,1);Observe(owner);Check(!fx[2],"Molten-to-base transition is not full expiration");
+ Fresh();fxReady=false;Cast(owner);Observe(owner);Check(!fx[0]&&g_transitions[0].pending,"late assets defer explosion without replaying cast or altering materials");fxReady=true;Observe(owner);Check(fx[0]==1&&!g_transitions[0].pending,"bounded shared discovery completing emits deferred launch once");
+ for(int change=0;change<4;++change){Fresh();Cast(owner);Observe(owner);
+  if(change==0)owner.kind=dg::local_players::PoseKind::Horse;if(change==1)owner.world=99;if(change==2)Put(f.component,0x138,129);if(change==3){Shutdown();Check(!fx[2],"shutdown never emits expiry");continue;}
+  Observe(owner);Check(!fx[2],"transformation/world loss/unknown status read does not fake expiration");}
 }
 }
 namespace dg::native_tps {bool OnGameThread(){return thread;}}
+namespace dg::stone_fx {
+void Initialize(uintptr_t,Event){}void ObserveObject(uintptr_t){}bool AssetsReady(){return fxReady;}bool Ready(int){return fxReady;}bool InvalidateAssets(){return false;}void Shutdown(){}
+bool Spawn(const local_players::Context& c,int kind){Check(c.character==owner.character&&kind>=0&&kind<3,"cosmetic edge uses current owner and exact known effect");++fx[kind];return fxReady;}
+}
 int main(){try{Run();std::cout<<"Stoneskin owned material lifecycle, restoration, API guards and isolation passed\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

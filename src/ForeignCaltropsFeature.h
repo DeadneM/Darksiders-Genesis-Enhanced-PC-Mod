@@ -15,5 +15,6 @@ bool Prepare(void* actor,uintptr_t& abilityClass);
 // True only when an identified, owned War cast was handled. Other native
 // players/powers remain the caller's responsibility, without argument changes.
 bool HandlePlay(PlayFn,void* ability,void* montage,float rate,Name section);
+bool HandleNotify(void* notify,void* mesh,void* animation);
 void Shutdown();
 }

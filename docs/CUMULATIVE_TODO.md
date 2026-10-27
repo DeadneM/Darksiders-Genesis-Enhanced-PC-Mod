@@ -1,3 +1,11 @@
+## V1.123 latest steering
+
+- Geyser V1.122 explicitly VALIDATED: frozen unchanged. Stoneskin gesture/materials validated; only launch/complete-expiry particles requested.
+- Explicit limited visual authorization received for ASI SpawnEmitterAttached; public function and 72-byte contract read from game, external reader remains read-only. Internal notify constructor/direct-invocation proposal abandoned.
+- Candidate: Strife Base/Molten launch once at coating, native ash once at full status expiry; no cast-end timer, world/form/shutdown false expiry.
+- War Caltrops: full Stoneskin foot stomp, one native caltrops burst on existing particle callback; three actual source notify entries filter private donor coating/actor/blast. Native physics/VM untouched; hop result OPEN.
+- Remove failed launch copier and unused Caltrops getter/tests; preserve validated Clone/Rampage/WorldEnder, controls/config. Coop last. No local build or installation.
+
 V1.122 delivered:65/65 GitHub suites, ZIP/updater/Defender controlled. Geyser1.75s, Stoneskin1.25s with same gestures/FX, Caltrops grounded one-shot candidate; gameplay unverified. V1.122 installee sur demande avec sauvegarde verifiee de V1.121, INI/PAK conserves, sans lancement du jeu. [Receipt](V1_122_DELIVERY_RECEIPT.md).
 
 ## V1.122 latest steering

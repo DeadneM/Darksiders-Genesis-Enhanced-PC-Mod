@@ -242,12 +242,6 @@ uintptr_t CastingSequence(uintptr_t fallback,uintptr_t skeleton,float& length){
     }
     return fallback;
 }
-uintptr_t CaltropsGesture(uintptr_t skeleton,float& length){
-    native_objects::MemoryReader reader;uintptr_t actual=0;float span=0;
-    if(!g_ready||!native_tps::OnGameThread()||!native_objects::Alive(reader,g_base,g_warReturn)||!WarReturn(g_warReturn.address)||
-       !Read(g_warReturn.address,0x38,actual)||actual!=skeleton||!Read(g_warReturn.address,0x90,span))return 0;
-    length=span;return g_warReturn.address;
-}
 bool CompleteGroundCast(void* live,uintptr_t skeleton,float returnSeconds){
     native_objects::MemoryReader reader;const auto montage=reinterpret_cast<uintptr_t>(live);
     uintptr_t cls=0,actual=0,outer=0;uint32_t flags=0;float startLength=0,endLength=0,total=0;Array tracks{},segments{},sections{};Segment start{};Name slot{};
@@ -827,70 +821,5 @@ bool CopyLaterSounds(uintptr_t original,void* privateMontage){
         if(!Store(at,0,cue.event)||!Link(at,copy,playback.sequence,cue.time,length)||!Link(at+0x60,copy,playback.sequence,cue.time,length))return false;
     }
     return Store(copy,0x88,int(later));
-}
-bool CopyStoneskinLaunchEffects(uintptr_t original,void* privateMontage){
-    if(!g_ready||!g_reserve||!g_package||!native_tps::OnGameThread())return false;
-    const auto copy=reinterpret_cast<uintptr_t>(privateMontage);uintptr_t cls=0,package=0,skeleton=0,outer=0;
-    Array tracks{},segments{},sourceEvents{},events{};Segment native{},playback{};float span=0,length=0;uint32_t flags=0;
-    if(!copy||copy==original||!Read(original,0x10,cls)||!Is(cls,"AnimMontage")||!Read(original,0x20,package))return false;
-    const bool molten=Is(original,"War_Atk_Stoneskin_Molten_Montage")&&
-        Is(package,"/Game/Characters/Heroes/Hero_War/Animation/War_Atk_Stoneskin_Molten_Montage");
-    if(!molten&&!(Is(original,"War_Atk_Stoneskin_Montage")&&
-        Is(package,"/Game/Characters/Heroes/Hero_War/Animation/War_Atk_Stoneskin_Montage")))return false;
-    if(!Read(original,0x90,span)||std::fabs(span-1.8333333731f)>.00001f||!std::isfinite(span)||
-       !List(original,0x158,tracks,4)||tracks.count!=1||!List(tracks.data,8,segments,4)||segments.count!=1||
-       !Read(segments.data,0,native)||native.start||native.first||native.last!=span||native.rate!=1||native.loops!=1||native.valid!=1||
-       !Read(native.sequence,0x10,cls)||!Is(cls,"AnimSequence")||!Read(native.sequence,0x20,package)||
-       !(molten?(Is(native.sequence,"War_Atk_Stoneskin_Molten")&&Is(package,"/Game/Characters/Heroes/Hero_War/Animation/War_Atk_Stoneskin_Molten")):
-           (Is(native.sequence,"War_Atk_Stoneskin")&&Is(package,"/Game/Characters/Heroes/Hero_War/Animation/War_Atk_Stoneskin")))||
-       !Read(native.sequence,0x38,skeleton)||!Is(skeleton,"War_Mesh_Skeleton")||!List(native.sequence,0x80,sourceEvents,64)||
-       !Read(copy,0x10,cls)||!Is(cls,"AnimMontage")||!Read(copy,8,flags)||(flags&0x30u)||
-       !Read(copy,0x20,outer)||outer!=reinterpret_cast<uintptr_t>(g_package())||!Is(outer,"/Engine/Transient")||
-       !Read(copy,0x90,length)||!std::isfinite(length)||length<=.1f||length>=10||!List(copy,0x80,events,32)||
-       (events.data&&(events.data==sourceEvents.data))||!Empty(copy,0x180)||!Empty(copy,0x190)||
-       !List(copy,0x158,tracks,4)||tracks.count!=1||!List(tracks.data,8,segments,4)||segments.count!=1||
-       !Read(segments.data,0,playback)||playback.start||playback.first||playback.last!=length||playback.rate!=1||playback.loops!=1||playback.valid!=1||
-       !Read(playback.sequence,0x38,skeleton)||!Is(skeleton,"Strife_Skeleton")||!Read(copy,0x38,outer)||outer!=skeleton)return false;
-    std::array<Event,32> plan{};Event effects[2]{};uintptr_t notifies[2]{};unsigned found=0;int count=events.count;
-    const char* names[2]={molten?"P_WarStoneSkin_Molten":"P_WarStoneSkin_Base",molten?"P_WarStoneSkin_Molten_NoDust":"P_WarStoneSkin_Base_NoDust"};
-    for(int i=0;i<sourceEvents.count;++i){
-        const auto at=sourceEvents.data+size_t(i)*sizeof(Event);uintptr_t notify=0,effect=0,owner=0,state=0;Name socket{};float time=0,duration=0;unsigned char attached=255,tick=255;
-        if(!Read(at,0x48,notify))return false;
-        if(!notify||!Read(notify,0x10,cls)||!Is(cls,"AnimNotify_PlayParticleEffect"))continue;
-        if(!Read(notify,0x38,effect))return false;
-        const int kind=Named(effect,names[0])?0:(Named(effect,names[1])?1:-1);if(kind<0)continue;
-        if((found&(1u<<kind))||!Read(effect,0x10,cls)||!Is(cls,"ParticleSystem")||!Read(notify,0x20,owner)||owner!=native.sequence||
-           !Read(notify,0x84,socket)||socket.index||socket.number||!Read(notify,0x8C,attached)||attached||
-           !Read(at,0x50,state)||state||!Read(at,0x58,duration)||duration||!Read(at,0x91,tick)||tick||!Read(at,0x24,time)||!std::isfinite(time)||
-           std::fabs(time-(kind?.741106f:.740429f))>.00001f||!Read(at,0,effects[kind]))return false;
-        notifies[kind]=notify;found|=1u<<kind;
-    }
-    if(found!=3)return false;
-    for(int i=0;i<count;++i){
-        const auto at=events.data+size_t(i)*sizeof(Event);uintptr_t notify=0,state=0;float time=0,duration=0;
-        if(!Read(at,0,plan[i])||!Read(at,0x48,notify)||!Read(notify,0x10,cls)||
-           (!Is(cls,"AnimNotify_PlaySound")&&notify!=notifies[0]&&notify!=notifies[1])||
-           !Read(at,0x50,state)||state||!Read(at,0x58,duration)||duration||!Read(at,0x24,time)||!std::isfinite(time)||time<0||time>=length)return false;
-    }
-    const float scale=length/span;
-    for(int k=0;k<2;++k){
-        bool present=false;for(int i=0;i<count;++i){uintptr_t n=0;std::memcpy(&n,plan[i].data()+0x48,8);if(n==notifies[k])present=true;}
-        if(present)continue;if(count==int(plan.size()))return false;
-        auto event=effects[k];float time=0,offset=0,endOffset=0;std::memcpy(&time,event.data()+0x24,4);
-        std::memcpy(&offset,event.data()+0x34,4);std::memcpy(&endOffset,event.data()+0x38,4);
-        if(!std::isfinite(offset)||!std::isfinite(endOffset))return false;
-        time*=scale;offset*=scale;endOffset*=scale;
-        std::memcpy(event.data()+0x30,&time,4);std::memcpy(event.data()+0x34,&offset,4);std::memcpy(event.data()+0x38,&endOffset,4);
-        const auto at=reinterpret_cast<uintptr_t>(event.data());
-        if(!Link(at,copy,playback.sequence,time,length)||!Link(at+0x60,copy,playback.sequence,time,length))return false;
-        plan[count++]=event;
-    }
-    if(count==events.count)return true;
-    std::stable_sort(plan.begin(),plan.begin()+count,[](const Event& a,const Event& b){float ta=0,tb=0;std::memcpy(&ta,a.data()+0x24,4);std::memcpy(&tb,b.data()+0x24,4);return ta<tb;});
-    if(count>events.capacity)g_reserve(reinterpret_cast<void*>(copy+0x80),count);
-    if(!List(copy,0x80,events,64)||events.capacity<count||events.data==sourceEvents.data||
-       !Writable(events.data,size_t(count)*sizeof(Event))||!Writable(copy+0x88,4))return false;
-    for(int i=0;i<count;++i)if(!Store(events.data+size_t(i)*sizeof(Event),0,plan[i]))return false;
-    return Store(copy,0x88,count);
 }
 }

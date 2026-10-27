@@ -1,4 +1,5 @@
 #include "StoneSkinVisual.h"
+#include "StoneTransitionFx.h"
 #include "NativePropertyField.h"
 #include "NativeTpsFeature.h"
 #include <array>
@@ -14,6 +15,8 @@ Id g_materials[2][2]{}; // [base/Molten][body/cloth]
 struct Slot {Id material{},original{};bool inherited=false,failed=false;uintptr_t observed=0;};
 struct Visual {Id actor{},mesh{},asset{};uintptr_t world=0;int variant=-1;std::array<Slot,4> slots{};};
 Visual g_visual[2]{};
+struct Transition {Id actor{};uintptr_t world=0;bool pending=false;};
+Transition g_transitions[2]{};
 template<class T>bool Read(uintptr_t p,size_t at,T& v){native_objects::MemoryReader r;return r.Read(p,at,v);}
 template<size_t N>bool Is(uintptr_t p,const char(&s)[N]){return native_objects::NameIs(g_base,p,s);}
 bool Alive(const Id& id){native_objects::MemoryReader r;return native_objects::Alive(r,g_base,id);}
@@ -102,21 +105,25 @@ void Restore(Visual& v){
     }
     v={};
 }
-int Status(uintptr_t actor){
-    int at=-1;uintptr_t component=0,owner=0;Array statuses{};bool stone=false,molten=false;
+int Status(uintptr_t actor,bool* known=nullptr){
+    int at=-1;uintptr_t component=0,owner=0;Array statuses{};bool stone=false,molten=false,complete=true;
     if(!Field(actor,"m_pStatusEffectComponent","ObjectProperty",8,at)||!Read(actor,at,component)||
        !Read(component,0xE8,owner)||owner!=actor||!Field(component,"m_statusEffects","ArrayProperty",16,at)||!List(component,at,statuses,128))return -1;
     for(int i=0;i<statuses.count;++i){
         uintptr_t status=0,cls=0,instigator=0;
-        if(!Read(statuses.data,size_t(i)*8,status)||!status||!Read(status,0x10,cls)||
-           !Field(status,"m_pInstigatorActor","ObjectProperty",8,at)||!Read(status,at,instigator)||instigator!=actor)continue;
+        if(!Read(statuses.data,size_t(i)*8,status)){complete=false;continue;}
+        if(!status)continue;
+        if(!Read(status,0x10,cls)||
+           !Field(status,"m_pInstigatorActor","ObjectProperty",8,at)||!Read(status,at,instigator)){complete=false;continue;}
+        if(instigator!=actor)continue;
         for(int n=0;cls&&n<12;++n){
             if(Is(cls,"MayhemStatusEffect_StoneSkin_Base_Blueprint_C"))stone=true;
             if(Is(cls,"MayhemStatusEffect_Core_FallenDog_Molten_1_Blueprint_C")||Is(cls,"MayhemStatusEffect_Core_FallenDog_Molten_2_Blueprint_C")||
                Is(cls,"MayhemStatusEffect_Core_FallenDog_Molten_3_Blueprint_C"))molten=true;
-            if(!Read(cls,0x40,cls))break;
+            if(!Read(cls,0x40,cls)){complete=false;break;}
         }
     }
+    if(known)*known=complete||stone;
     return stone?(molten?1:0):-1;
 }
 }
@@ -125,8 +132,10 @@ void Initialize(foreign_wrath::LogFn log,bool exact){
     // Existing exact-executable ProcessEvent boundary, possibly already
     // detoured by the mod's UI observer. No additional hook or native ABI.
     g_event=reinterpret_cast<Event>(g_base+0xAC0630);
+    stone_fx::Initialize(g_base,g_event);
 }
 void ObserveObject(uintptr_t p){
+    stone_fx::ObserveObject(p);
     if(!g_event||!native_tps::OnGameThread())return;uintptr_t cls=0,package=0;
     if(!Read(p,0x10,cls)||!Is(cls,"MaterialInstanceConstant")||!Read(p,0x20,package))return;
     constexpr const char* names[]={"War_Inst_StoneSkin_A","War_Inst_StoneSkin_B","War_Inst_StoneSkin_Molten_A","War_Inst_StoneSkin_Molten_B"};
@@ -137,8 +146,12 @@ void ObserveObject(uintptr_t p){
            native_objects::NameValueEquals(g_base,packageIndex,packageNumber,path))Capture(p,g_materials[i/2][i%2]);
     }
 }
-bool AssetsReady(){for(const auto& variant:g_materials)for(const auto& id:variant)if(!Alive(id))return false;return true;}
-bool InvalidateAssets(){bool changed=false;for(auto& variant:g_materials)for(auto& id:variant)if(id&&!Alive(id)){id={};changed=true;}return changed;}
+bool AssetsReady(){for(const auto& variant:g_materials)for(const auto& id:variant)if(!Alive(id))return false;return stone_fx::AssetsReady();}
+bool InvalidateAssets(){bool changed=stone_fx::InvalidateAssets();for(auto& variant:g_materials)for(auto& id:variant)if(id&&!Alive(id)){id={};changed=true;}return changed;}
+void Cast(const local_players::Context& c){
+    if(!g_event||!native_tps::OnGameThread()||c.index<0||c.index>1)return;
+    Transition next{};if(Capture(c.character,next.actor)){next.world=c.world;next.pending=true;g_transitions[c.index]=next;}
+}
 
 void Observe(const local_players::Context& c){
     if(!g_event||!native_tps::OnGameThread()||c.index<0||c.index>1)return;
@@ -147,9 +160,15 @@ void Observe(const local_players::Context& c){
         Read(c.character,0x10,cls)&&Is(cls,"Strife_Blueprint_C")&&Read(c.character,0x118,role)&&role==3&&
         Read(c.character,0x348,pc)&&pc==c.controller&&Read(pc,0x350,pawn)&&pawn==c.character&&
         Read(c.character,0x380,mesh)&&Read(mesh,0xE8,owner)&&owner==c.character&&Field(mesh,"SkeletalMesh","ObjectProperty",8,at)&&Read(mesh,at,asset)&&asset;
-    const int variant=owned?Status(c.character):-1;
+    bool statusKnown=false;const int variant=owned?Status(c.character,&statusKnown):-1;
+    auto& transition=g_transitions[c.index];
+    const bool same=owned&&v.actor.address==c.character&&v.world==c.world&&v.mesh.address==mesh&&v.asset.address==asset&&
+        Alive(v.actor)&&Alive(v.mesh)&&Alive(v.asset);
+    if(same&&statusKnown&&variant<0){const bool ok=stone_fx::Spawn(c,2);
+        if(g_log&&g_events++<16)g_log(ok?"Stoneskin V1.123 expiry: native crumble at complete coating removal":"Stoneskin V1.123 expiry effect unavailable; native material restoration retained");}
     if(v.actor&&(variant<0||variant!=v.variant||v.world!=c.world||v.actor.address!=c.character||v.mesh.address!=mesh||v.asset.address!=asset||!Alive(v.actor)||!Alive(v.mesh)||!Alive(v.asset)))Restore(v);
-    if(!owned||variant<0||!Alive(g_materials[variant][0])||!Alive(g_materials[variant][1]))return;
+    if(!owned||variant<0){if(!owned||statusKnown)transition={};return;}
+    if(!Alive(g_materials[variant][0])||!Alive(g_materials[variant][1]))return;
     if(!v.actor){
         if(!Capture(c.character,v.actor)||!Capture(mesh,v.mesh)||!Capture(asset,v.asset)){v={};return;}
         v.world=c.world;v.variant=variant;
@@ -186,9 +205,14 @@ void Observe(const local_players::Context& c){
         slot={identity,original,current==0};
         if(g_log&&g_events++<8)g_log("Stoneskin V1.117 visual: mineral body/gear, native fire on cloth only; private MIDs and status-owned restoration; EXPERIMENTAL UV fit");
     }
+    if(transition.pending&&transition.world==c.world&&transition.actor.address==c.character&&Alive(transition.actor)){
+        bool coated=false;for(const auto& slot:v.slots)coated=coated||Alive(slot.material);
+        if(coated&&stone_fx::Ready(variant)){transition.pending=false;const bool ok=stone_fx::Spawn(c,variant);
+            if(g_log&&g_events++<16)g_log(ok?"Stoneskin V1.123 launch: native explosion at coating appearance":"Stoneskin V1.123 launch effect unavailable; accepted gesture/materials retained");}
+    }
 }
 void Shutdown(){
     if(native_tps::OnGameThread())for(auto& v:g_visual)Restore(v);
-    g_event=nullptr;g_fields={};
+    g_event=nullptr;g_fields={};g_transitions[0]=g_transitions[1]={};stone_fx::Shutdown();
 }
 }

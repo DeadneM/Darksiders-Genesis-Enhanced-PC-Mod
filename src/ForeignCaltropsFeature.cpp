@@ -1,8 +1,11 @@
 #include "ForeignCaltropsFeature.h"
 #include "ForeignMontage.h"
+#include "DashCombatFeature.h"
 #include "NativeObjectName.h"
 #include "NativeTpsFeature.h"
+#include <MinHook.h>
 #include <atomic>
+#include <array>
 #include <cmath>
 
 namespace dg::foreign_caltrops {
@@ -10,13 +13,17 @@ namespace {
 using Create=void*(*)(void*,Name,float,float,float,int,float,float);
 using Finish=void(*)(void*,unsigned char);
 using Playing=bool(*)(void*);
+using Notify=void(*)(void*,void*,void*);
 // 7AF460 decodes a subclass and an eight-byte FName, then calls 5AE2B0.
 // That native helper uses this ability's Character, authority and spawn path.
 using Spawn=void(*)(void*,void*,Name);
 Create g_create=nullptr;Finish g_finish=nullptr;Playing g_playing=nullptr;Spawn g_spawn=nullptr;
+std::array<Notify,3> g_donors{};
 uintptr_t g_base=0;LogFn g_log=nullptr;
 std::atomic_bool g_ready{false},g_failed{false};
-native_objects::Identity g_power{},g_idle{};unsigned g_events=0;
+native_objects::Identity g_power{},g_stomp{};unsigned g_events=0;
+struct Cue {native_objects::Identity actor{},ability{},mesh{},montage{},sequence{};Name bone{};uintptr_t world=0;bool spawned=false;};
+std::array<Cue,2> g_cues{};
 thread_local void* g_handling=nullptr;
 struct Array {uintptr_t data=0;int count=0,capacity=0;};
 struct Source {uintptr_t mesh=0,sequence=0,skeleton=0;Name pelvis{};float length=0;};
@@ -28,25 +35,25 @@ bool Class(uintptr_t p){
     return Read(p,0x10,cls)&&Is(cls,"BlueprintGeneratedClass")&&Is(p,"MayhemAbility_SpawnCaltrops_Blueprint_C")&&
         Read(p,0x20,package)&&Is(package,"/Game/Blueprints/Abilities/Caltrops/MayhemAbility_SpawnCaltrops_Blueprint");
 }
-bool Idle(uintptr_t p){
+bool Stomp(uintptr_t p){
     uintptr_t cls=0,package=0;float length=0,rate=0;Array events{};
-    return Read(p,0x10,cls)&&Is(cls,"AnimSequence")&&Is(p,"War_Idle")&&Read(p,0x20,package)&&
-        Is(package,"/Game/Characters/Heroes/Hero_War/Animation/War_Idle")&&Read(p,0x90,length)&&
-        std::isfinite(length)&&std::fabs(length-5.3333334923f)<.001f&&Read(p,0x94,rate)&&rate==1&&
-        Read(p,0x80,events)&&events.count==0&&events.capacity>=0&&events.capacity<=128;
+    return Read(p,0x10,cls)&&Is(cls,"AnimSequence")&&Is(p,"War_Atk_Stoneskin")&&Read(p,0x20,package)&&
+        Is(package,"/Game/Characters/Heroes/Hero_War/Animation/War_Atk_Stoneskin")&&Read(p,0x90,length)&&
+        std::isfinite(length)&&std::fabs(length-1.8333333731f)<.00001f&&Read(p,0x94,rate)&&rate==1&&
+        Read(p,0x80,events)&&events.data&&events.count>=2&&events.count<=events.capacity&&events.capacity<=64;
 }
-bool Owner(void* live,local_players::Context& c){
+bool Owner(void* live,local_players::Context& c,bool grounded=true){
     const auto actor=reinterpret_cast<uintptr_t>(live);uintptr_t cls=0,controller=0,pawn=0,movement=0,owner=0;unsigned char type=0,role=0,mode=0;
     return local_players::ResolveActor(live,c)&&c.index>=0&&c.index<2&&c.localPlayer&&c.world&&
         c.kind==local_players::PoseKind::Foot&&c.pawn==actor&&c.character==actor&&
         Read(actor,0x10,cls)&&Is(cls,"War_Blueprint_C")&&Read(actor,0xC18,type)&&type==2&&Read(actor,0x118,role)&&role==3&&
         Read(actor,0x348,controller)&&controller==c.controller&&Read(controller,0x350,pawn)&&pawn==actor&&
-        Read(actor,0x388,movement)&&Read(movement,0xE8,owner)&&owner==actor&&Read(movement,0x1B0,mode)&&mode==1;
+        Read(actor,0x388,movement)&&Read(movement,0xE8,owner)&&owner==actor&&(!grounded||(Read(movement,0x1B0,mode)&&mode==1));
 }
 bool Animation(const local_players::Context& c,Source& out){
     uintptr_t anim=0,cls=0,owner=0,asset=0,skeleton=0;Array bones{};struct Bone {Name name;int parent=0;} pelvis{};
-    if(!Alive(g_idle)||!Idle(g_idle.address))return false;
-    out.sequence=g_idle.address;
+    if(!Alive(g_stomp)||!Stomp(g_stomp.address))return false;
+    out.sequence=g_stomp.address;
     return Read(c.character,0x380,out.mesh)&&Read(out.mesh,0xE8,owner)&&owner==c.character&&
         Read(out.mesh,0x718,anim)&&Read(anim,0x10,cls)&&Is(cls,"WarAnim_Blueprint_C")&&
         Read(anim,0x28,skeleton)&&Read(out.sequence,0x38,out.skeleton)&&skeleton==out.skeleton&&Is(skeleton,"War_Mesh_Skeleton")&&
@@ -60,19 +67,25 @@ bool Projectile(uintptr_t ability,uintptr_t& cls){
         Is(cls,"MayhemCaltropSpawnerProjectile_Base_Blueprint_C")&&Read(cls,0x20,package)&&
         Is(package,"/Game/Blueprints/Projectiles/MayhemCaltropSpawnerProjectile_Base_Blueprint");
 }
-bool Montage(void* live,Name& slot,float& duration){
+bool Montage(void* live,Name& slot){
     const auto p=reinterpret_cast<uintptr_t>(live);uintptr_t cls=0,package=0,skeleton=0;float length=0,rate=0;Array tracks{};
     return Read(p,0x10,cls)&&Is(cls,"AnimMontage")&&Read(p,0x20,package)&&
         ((Is(p,"Strife_Caltrops_Ground_F_Montage")&&Is(package,"/Game/Characters/Heroes/Hero_Strife/Animations/Strife_Caltrops_Ground_F_Montage"))||
          (Is(p,"Strife_Caltrops_Ground_B_Montage")&&Is(package,"/Game/Characters/Heroes/Hero_Strife/Animations/Strife_Caltrops_Ground_B_Montage")))&&
         Read(p,0x38,skeleton)&&Is(skeleton,"Strife_Skeleton")&&Read(p,0x90,length)&&std::isfinite(length)&&std::fabs(length-2.3333332539f)<.001f&&
         Read(p,0x94,rate)&&rate==1&&Read(p,0x158,tracks)&&tracks.data&&tracks.count==1&&tracks.capacity>=1&&tracks.capacity<=4&&
-        Read(tracks.data,0,slot)&&native_objects::NameValueIs(g_base,slot.index,slot.number,"TPS")&&((duration=length),true);
+        Read(tracks.data,0,slot)&&native_objects::NameValueIs(g_base,slot.index,slot.number,"TPS");
 }
 void Stop(void* ability){
     g_failed=true;g_finish(ability,0);
     if(g_log&&g_events++<12)g_log("Caltrops V1.93 stopped: owned War cast contract unavailable; native finish requested, select Native; no repeated constructor attempt");
 }
+void Donor(size_t which,void* notify,void* mesh,void* animation){
+    if(!HandleNotify(notify,mesh,animation)&&g_donors[which])g_donors[which](notify,mesh,animation);
+}
+void SkinNotify(void* notify,void* mesh,void* animation){Donor(0,notify,mesh,animation);}
+void ActorNotify(void* notify,void* mesh,void* animation){Donor(1,notify,mesh,animation);}
+void BlastNotify(void* notify,void* mesh,void* animation){Donor(2,notify,mesh,animation);}
 }
 void Initialize(LogFn log,bool exact){
     g_log=log;if(!exact)return;g_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
@@ -83,23 +96,38 @@ void Initialize(LogFn log,bool exact){
     if(std::memcmp(reinterpret_cast<void*>(g_base+0x5AE2B0),spawn,sizeof(spawn))||std::memcmp(reinterpret_cast<void*>(g_base+0x168A410),create,sizeof(create))||
        std::memcmp(reinterpret_cast<void*>(g_base+0x59B080),finish,sizeof(finish))||std::memcmp(reinterpret_cast<void*>(g_base+0x676620),playing,sizeof(playing)))return;
     g_create=reinterpret_cast<Create>(g_base+0x168A410);g_finish=reinterpret_cast<Finish>(g_base+0x59B080);
-    g_playing=reinterpret_cast<Playing>(g_base+0x676620);g_spawn=reinterpret_cast<Spawn>(g_base+0x5AE2B0);g_ready=true;
-    if(log)log("Caltrops V1.93 READY: War ground-only adapter, own pelvis and native projectile factory; no new hook or timer; EXPERIMENTAL UNTESTED IN GAME");
+    g_playing=reinterpret_cast<Playing>(g_base+0x676620);g_spawn=reinterpret_cast<Spawn>(g_base+0x5AE2B0);
+    // Read-only capture verified these three entries in the source sequence's
+    // notify vtables (+0x240), including the Blueprint coating notification.
+    constexpr uintptr_t donorRvas[]={0x1697780,0x5D7C00,0x5D7DF0};
+    constexpr unsigned char donorBytes[3][16]={
+        {0x48,0x89,0x5C,0x24,0x08,0x57,0x48,0x83,0xEC,0x20,0x48,0x8B,0x59,0x30,0x48,0x8B},
+        {0x48,0x89,0x5C,0x24,0x18,0x48,0x89,0x54,0x24,0x10,0x55,0x48,0x8B,0xEC,0x48,0x83},
+        {0x48,0x89,0x74,0x24,0x18,0x48,0x89,0x7C,0x24,0x20,0x41,0x56,0x48,0x83,0xEC,0x50}};
+    for(size_t i=0;i<3;++i)if(std::memcmp(reinterpret_cast<void*>(g_base+donorRvas[i]),donorBytes[i],16))return;
+    const auto initialized=MH_Initialize();if(initialized!=MH_OK&&initialized!=MH_ERROR_ALREADY_INITIALIZED)return;
+    const Notify detours[]={SkinNotify,ActorNotify,BlastNotify};size_t created=0;
+    for(;created<3;++created)if(MH_CreateHook(reinterpret_cast<void*>(g_base+donorRvas[created]),reinterpret_cast<void*>(detours[created]),reinterpret_cast<void**>(&g_donors[created]))!=MH_OK)break;
+    bool enabled=created==3;
+    if(enabled)for(size_t i=0;i<3;++i)if(MH_EnableHook(reinterpret_cast<void*>(g_base+donorRvas[i]))!=MH_OK){enabled=false;break;}
+    if(!enabled){for(size_t i=0;i<created;++i){MH_DisableHook(reinterpret_cast<void*>(g_base+donorRvas[i]));MH_RemoveHook(reinterpret_cast<void*>(g_base+donorRvas[i]));}g_donors={};return;}
+    g_ready=true;
+    if(log)log("Caltrops V1.123 READY: complete own War stomp, three signature-checked donor guards; no timer or physics/VM write; EXPERIMENTAL UNTESTED IN GAME");
 }
 int Status(){return !g_ready||g_failed?0:(AssetsReady()?2:1);}
 bool IsClass(uintptr_t p){return g_ready&&native_tps::OnGameThread()&&p==g_power.address&&Alive(g_power)&&Class(p);}
-bool AssetsReady(){return Alive(g_power)&&Alive(g_idle);}
+bool AssetsReady(){return Alive(g_power)&&Alive(g_stomp);}
 bool InvalidateAssets(){
     if(!g_ready||!native_tps::OnGameThread())return false;bool changed=false;
-    for(auto* id:{&g_power,&g_idle})if(*id&&!Alive(*id)){*id={};changed=true;}return changed;
+    for(auto* id:{&g_power,&g_stomp})if(*id&&!Alive(*id)){*id={};changed=true;}return changed;
 }
 void ObserveObject(uintptr_t object,unsigned kind){
     if(!g_ready||!native_tps::OnGameThread())return;
     if(kind==1&&!g_power&&Class(object))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(object),g_power);
-    if(kind==3&&!g_idle&&Idle(object))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(object),g_idle);
+    if(kind==3&&!g_stomp&&Stomp(object))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(object),g_stomp);
 }
 bool Prepare(void* actor,uintptr_t& abilityClass){
-    if(!g_ready||g_failed||!native_tps::OnGameThread()||!IsClass(g_power.address))return false;
+    if(!g_ready||g_failed||!native_tps::OnGameThread()||!IsClass(g_power.address)||!dash_combat::PresentationReady())return false;
     local_players::Context c{};Source source{};uintptr_t cdo=0,cls=0,projectile=0;
     if(!Owner(actor,c)||!Animation(c,source)||!Read(g_power.address,0xF8,cdo)||!Read(cdo,0x10,cls)||cls!=g_power.address||!Projectile(cdo,projectile))return false;
     abilityClass=g_power.address;return true;
@@ -112,18 +140,15 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     local_players::Context c{};if(!Owner(reinterpret_cast<void*>(actor),c))return false;
     if(g_handling==ability)return true;
     struct Scope {void* previous;explicit Scope(void* live):previous(g_handling){g_handling=live;}~Scope(){g_handling=previous;}} scope{ability};
-    Source source{};Name slot{};float duration=0;uintptr_t projectile=0;native_objects::Identity cast{},pawn{};
-    if(g_failed||!std::isfinite(rate)||rate<=0||rate>10||section.index||section.number||!Animation(c,source)||!Montage(montage,slot,duration)||
+    Source source{};Name slot{};uintptr_t projectile=0;native_objects::Identity cast{},pawn{};
+    if(g_failed||!dash_combat::PresentationReady()||!std::isfinite(rate)||rate<=0||rate>10||section.index||section.number||!Animation(c,source)||!Montage(montage,slot)||
        !Projectile(p,projectile)||!native_objects::CaptureLive(g_base,ability,cast)||!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(actor),pawn)){Stop(ability);return true;}
-    const auto grounded=foreign_montage::CaltropsGesture(source.skeleton,source.length);
-    if(grounded){source.sequence=grounded;duration=source.length;}
-    else source.sequence=foreign_montage::CastingSequence(source.sequence,source.skeleton,source.length);
     auto* replacement=g_create(reinterpret_cast<void*>(source.sequence),slot,.1f,.18f,1,1,-1,0);
     if(!Alive(cast)||!Alive(pawn))return true;
     const auto clone=reinterpret_cast<uintptr_t>(replacement);uintptr_t skeleton=0;float length=0;
     if(!clone||clone==reinterpret_cast<uintptr_t>(montage)||!Read(clone,0x10,cls)||!Is(cls,"AnimMontage")||!Read(clone,0x38,skeleton)||skeleton!=source.skeleton||
        !Read(clone,0x90,length)||!std::isfinite(length)||std::fabs(length-source.length)>.001f){Stop(ability);return true;}
-    const float adjusted=rate*length/duration;
+    const float adjusted=rate;
     if(!std::isfinite(adjusted)||adjusted<=.01f||adjusted>=100){Stop(ability);return true;}
     foreign_montage::CopyLaterSounds(reinterpret_cast<uintptr_t>(montage),replacement);
     native(ability,replacement,adjusted,section);
@@ -133,15 +158,42 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     if(!Read(p,0x48,ownerAfter)||ownerAfter!=actor||!Read(p,0x1B0,characterAfter)||characterAfter!=actor||
        !Projectile(p,projectileAfter)||projectileAfter!=projectile){g_failed=true;return true;}
     if(!Read(p,0x1D8,instance)||!instance||!g_playing(reinterpret_cast<void*>(instance))||!Owner(reinterpret_cast<void*>(actor),c)){Stop(ability);return true;}
-    // Deliberate ground prototype: request the native base spawner at cast
-    // start, not a transplanted notification. Native creation keeps ownership,
-    // upgrades and damage. No Strife socket, shared component, timer or CDO edit.
-    g_spawn(ability,reinterpret_cast<void*>(projectile),source.pelvis);
+    Cue next{};next.actor=pawn;next.ability=cast;next.sequence=g_stomp;next.bone=source.pelvis;next.world=c.world;
+    if(!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(source.mesh),next.mesh)||
+       !native_objects::CaptureLive(g_base,replacement,next.montage)){Stop(ability);return true;}
+    g_cues[size_t(c.index)]=next;
     if(Alive(cast)&&Alive(pawn))foreign_montage::StartSounds(reinterpret_cast<uintptr_t>(montage),ability);
-    if(g_log&&g_events++<12)g_log(grounded?
-        "Caltrops V1.122: single complete grounded War gesture at authored speed, no Start/End splice; native spawner; EXPERIMENTAL":
-        "Caltrops V1.122: grounded gesture unavailable; V1.121 original-span fallback retained; EXPERIMENTAL");
+    if(g_log&&g_events++<12)g_log("Caltrops V1.123: complete War Stoneskin gesture; native spawner awaits foot stomp; donor coating/actor/blast guards active; no timer or physics/VM write; EXPERIMENTAL");
     return true;
 }
-void Shutdown(){g_ready=false;}
+bool HandleNotify(void* live,void* mesh,void* animation){
+    if(!g_ready||!native_tps::OnGameThread()||(!g_cues[0].actor&&!g_cues[1].actor))return false;
+    const auto notify=reinterpret_cast<uintptr_t>(live),component=reinterpret_cast<uintptr_t>(mesh),asset=reinterpret_cast<uintptr_t>(animation);
+    uintptr_t actor=0,outer=0;if(!Read(component,0xE8,actor)||!Read(notify,0x20,outer)||outer!=asset)return false;
+    for(auto& cue:g_cues){
+        if(cue.actor.address!=actor||cue.mesh.address!=component||asset!=cue.sequence.address||!Alive(cue.actor)||!Alive(cue.ability)||
+           !Alive(cue.mesh)||!Alive(cue.montage)||!Alive(cue.sequence))continue;
+        local_players::Context c{};uintptr_t owner=0,character=0,instance=0,current=0,abilities=0,list=0,last=0;int count=0,capacity=0;
+        if(!Read(actor,0x380,owner)||owner!=component||!Read(cue.ability.address,0x48,owner)||owner!=actor||!Read(cue.ability.address,0x1B0,character)||character!=actor||
+           !Read(cue.ability.address,0x1D8,instance)||!Read(instance,0x28,current)||current!=cue.montage.address||!g_playing(reinterpret_cast<void*>(instance))||
+           !Read(actor,0xC70,abilities)||!Read(abilities,0xE8,owner)||owner!=actor||!Read(abilities,0xF8,list)||
+           !Read(abilities,0x100,count)||!Read(abilities,0x104,capacity)||count<=0||count>capacity||capacity>64||
+           !Read(list,size_t(count-1)*8,last)||last!=cue.ability.address)continue;
+        // A still-playing private cast never receives donor Stoneskin
+        // cosmetics after ownership/form loss, but cannot spawn caltrops.
+        if(!Owner(reinterpret_cast<void*>(actor),c,false)||c.world!=cue.world||c.index<0||c.index>1||&g_cues[size_t(c.index)]!=&cue)return true;
+        uintptr_t cls=0,effect=0;unsigned char state=0;
+        const bool stomp=Read(notify,0x10,cls)&&Is(cls,"AnimNotify_PlayParticleEffect")&&Read(notify,0x38,effect)&&
+            (Is(effect,"P_WarStoneSkin_Base")||Is(effect,"P_WarStoneSkin_Base_NoDust"));
+        if(stomp&&!cue.spawned&&Read(cue.ability.address,0xD8,state)&&(state==1||state==2)){
+            uintptr_t projectile=0;if(!Projectile(cue.ability.address,projectile))return true;
+            cue.spawned=true;g_spawn(reinterpret_cast<void*>(cue.ability.address),reinterpret_cast<void*>(projectile),cue.bone);
+            if(g_log&&g_events++<16)g_log("Caltrops V1.123 STOMP: one native spawner on own War pelvis; donor Stoneskin presentation suppressed");
+        }
+        // Narrow hooks consume donor particles/BP visual notifies and
+        // Stinger actor spawn only in this exact current private cast.
+        return true;
+    }return false;
+}
+void Shutdown(){g_ready=false;if(native_tps::OnGameThread())g_cues={};}
 }

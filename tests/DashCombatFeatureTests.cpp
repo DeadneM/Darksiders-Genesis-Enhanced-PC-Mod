@@ -20,6 +20,7 @@ uintptr_t table[0x300/8]{};
 uintptr_t actionTable[4]{};uint64_t nativeActions[2]{};
 dg::local_players::Context owners[2]{};
 bool gameThread=true,paused=false,cinema=false,endDuringTick=false;
+bool caltropsHandled=false;
 unsigned nativeCalls=0;float actualDt=0;
 unsigned aimStarts=0;void* aimOwner=nullptr;
 unsigned char aimClass[0x80]{},nameEntries[32][100]{};
@@ -206,10 +207,13 @@ void Run(){
     dg::dash_combat::HookSpawnNotify(notify,mesh,sequence);Check(nativeCalls==0,"shared predicate preserves forced-standard projectile filtering");
     label(specialClass,4,"MayhemStandardShot_Blueprint_C");dg::dash_combat::HookSpawnNotify(notify,mesh,sequence);
     Check(nativeCalls==1,"standard projectile notify still forwards exactly once");
+    nativeCalls=0;caltropsHandled=true;dg::dash_combat::HookParticleNotify(notify,mesh,sequence);
+    Check(!nativeCalls,"scoped foreign Caltrops particle guard consumes the stomp cue before the native donor effect");caltropsHandled=false;
 }
 }
 // The OFF candidate has its own native-boundary suite. This fixture exercises
 // the validated dash consumer with that optional presentation filter inactive.
+namespace dg::foreign_caltrops {bool HandleNotify(void*,void*,void*){return caltropsHandled;}}
 namespace dg::pistol_visual {bool SkipParticle(void*,void*){return false;}}
 namespace dg::melee_effect {void Particle(void* n,void* m,void* a,void(*original)(void*,void*,void*)){if(original)original(n,m,a);}}
 namespace dg::native_tps {

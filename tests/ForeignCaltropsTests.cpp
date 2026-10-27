@@ -10,22 +10,25 @@ namespace {
 using namespace dg::foreign_caltrops;
 struct Fixture {
     unsigned char actor[0x1100]{},controller[0x400]{},movement[0x300]{},mesh[0x800]{},anim[0x100]{},skeleton[0x200]{},meshAsset[0x300]{},bones[24]{};
-    unsigned char idle[0x100]{},idlePackage[0x100]{},power[0x120]{},powerPackage[0x100]{},cdo[0x240]{},ability[0x240]{};
+    unsigned char sequence[0x100]{},sequencePackage[0x100]{},power[0x120]{},powerPackage[0x100]{},cdo[0x240]{},ability[0x240]{};
     unsigned char projectile[0x100]{},projectilePackage[0x100]{},montage[0x180]{},montagePackage[0x100]{},tracks[24]{},strifeSkeleton[0x80]{};
+    unsigned char notify[0x100]{},particle[0x80]{},particleClass[0x80]{},abilityComponent[0x110]{},events[368]{};uintptr_t active[1]{};
     unsigned char replacement[0x180]{},instance[0x50]{},classes[5][0x80]{},items[640*24]{};
 } f;
 unsigned char entries[24][192]{};uintptr_t names[24]{},nameChunks[1]{reinterpret_cast<uintptr_t>(names)},objectChunks[1]{};
 dg::local_players::Context owner{};
-bool gesture=false,groundedGesture=false;bool gameThread=true,local=true,createOK=true,playing=true,reenter=false,expire=false,expireCreate=false,changeOwner=false,throwPlay=false;
+bool presentation=true;bool gameThread=true,local=true,createOK=true,playing=true,reenter=false,expire=false,expireCreate=false,changeOwner=false,throwPlay=false;
 unsigned creates=0,plays=0,spawns=0,finishes=0,playingCalls=0;float playedRate=0;void* playedMontage=nullptr;Name playedSection{};
+unsigned donorCalls=0;
 struct Created {void* sequence=nullptr;Name slot{};float in=0,out=0,rate=0;int loops=0;float trigger=0,start=0;} created;
 struct Spawned {void* ability=nullptr;void* projectile=nullptr;Name bone{};} spawned;
 template<class T>void Put(void* p,size_t offset,T value){std::memcpy(static_cast<unsigned char*>(p)+offset,&value,sizeof(value));}
 void Check(bool ok,const char* why){if(!ok)throw std::runtime_error(why);}
+void DonorNative(void* notify,void* mesh,void* sequence){++donorCalls;Check(notify==f.notify&&mesh==f.mesh&&sequence==f.sequence,"unrelated native notify arguments are forwarded intact");}
 void Label(void* object,int index,const char* name){Put(object,0x18,index);Put(object,0x1C,0);strcpy_s(reinterpret_cast<char*>(entries[index]+12),180,name);}
 void Register(int index,void* object,int serial){Put(object,0xC,index);Put(f.items,size_t(index)*24,reinterpret_cast<uintptr_t>(object));Put(f.items,size_t(index)*24+16,serial);}
 void* CreateNative(void* sequence,Name slot,float in,float out,float rate,int loops,float trigger,float start){
-    ++creates;created={sequence,slot,in,out,rate,loops,trigger,start};if(expireCreate)Put(f.items,4*24+16,51);if(gesture||groundedGesture)Put(f.replacement,0x90,groundedGesture?.6666666865f:.5666666627f);return createOK?f.replacement:nullptr;
+    ++creates;created={sequence,slot,in,out,rate,loops,trigger,start};if(expireCreate)Put(f.items,4*24+16,51);return createOK?f.replacement:nullptr;
 }
 void PlayNative(void* ability,void* montage,float rate,Name section){
     ++plays;playedMontage=montage;playedRate=rate;playedSection=section;Put(ability,0x1D8,reinterpret_cast<uintptr_t>(f.instance));
@@ -36,16 +39,16 @@ void PlayNative(void* ability,void* montage,float rate,Name section){
 }
 bool PlayingNative(void* instance){++playingCalls;Check(instance==f.instance,"exact native instance supplied to IsPlaying");return playing;}
 void FinishNative(void* ability,unsigned char cause){++finishes;Check(ability==f.ability&&cause==0,"only current cast receives normal native finish");}
-void SpawnNative(void* ability,void* projectile,Name bone){++spawns;spawned={ability,projectile,bone};Check(playingCalls==1,"spawn only follows confirmed native playback");}
+void SpawnNative(void* ability,void* projectile,Name bone){++spawns;spawned={ability,projectile,bone};Check(playingCalls>=2,"spawn follows confirmed playback and the current stomp callback");}
 void Fresh(){
-    f={};owner={};gesture=groundedGesture=false;gameThread=local=createOK=playing=true;reenter=expire=expireCreate=changeOwner=throwPlay=false;
+    f={};owner={};presentation=true;g_cues={};gameThread=local=createOK=playing=true;reenter=expire=expireCreate=changeOwner=throwPlay=false;
     creates=plays=spawns=finishes=playingCalls=0;playedRate=0;playedMontage=nullptr;playedSection={};created={};spawned={};
     g_ready=true;g_failed=false;g_handling=nullptr;g_log=nullptr;g_events=0;
     g_create=CreateNative;g_finish=FinishNative;g_playing=PlayingNative;g_spawn=SpawnNative;
     const char* labels[]={"BlueprintGeneratedClass","AnimSequence","AnimMontage","War_Blueprint_C","WarAnim_Blueprint_C"};
     for(int i=0;i<5;++i)Label(f.classes[i],i+1,labels[i]);
     Label(f.power,6,"MayhemAbility_SpawnCaltrops_Blueprint_C");Label(f.powerPackage,7,"/Game/Blueprints/Abilities/Caltrops/MayhemAbility_SpawnCaltrops_Blueprint");
-    Label(f.idle,8,"War_Idle");Label(f.idlePackage,9,"/Game/Characters/Heroes/Hero_War/Animation/War_Idle");Label(f.skeleton,10,"War_Mesh_Skeleton");
+    Label(f.sequence,8,"War_Atk_Stoneskin");Label(f.sequencePackage,9,"/Game/Characters/Heroes/Hero_War/Animation/War_Atk_Stoneskin");Label(f.skeleton,10,"War_Mesh_Skeleton");
     Label(f.projectile,11,"MayhemCaltropSpawnerProjectile_Base_Blueprint_C");Label(f.projectilePackage,12,"/Game/Blueprints/Projectiles/MayhemCaltropSpawnerProjectile_Base_Blueprint");
     Label(f.montage,13,"Strife_Caltrops_Ground_F_Montage");Label(f.montagePackage,14,"/Game/Characters/Heroes/Hero_Strife/Animations/Strife_Caltrops_Ground_F_Montage");Label(f.strifeSkeleton,15,"Strife_Skeleton");
     strcpy_s(reinterpret_cast<char*>(entries[16]+12),180,"Bone_War_Pelvis");strcpy_s(reinterpret_cast<char*>(entries[17]+12),180,"TPS");
@@ -59,25 +62,33 @@ void Fresh(){
     Put(f.cdo,0x10,reinterpret_cast<uintptr_t>(f.power));Put(f.cdo,0x1E0,reinterpret_cast<uintptr_t>(f.projectile));
     Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.power));Put(f.ability,0x48,owner.pawn);Put(f.ability,0x1B0,owner.pawn);Put<unsigned char>(f.ability,0xD8,1);Put(f.ability,0x1E0,reinterpret_cast<uintptr_t>(f.projectile));
     Put(f.projectile,0x10,reinterpret_cast<uintptr_t>(f.classes[0]));Put(f.projectile,0x20,reinterpret_cast<uintptr_t>(f.projectilePackage));
-    Put(f.idle,0x10,reinterpret_cast<uintptr_t>(f.classes[1]));Put(f.idle,0x20,reinterpret_cast<uintptr_t>(f.idlePackage));Put(f.idle,0x38,reinterpret_cast<uintptr_t>(f.skeleton));Put(f.idle,0x90,5.3333334923f);Put(f.idle,0x94,1.0f);
+    Put(f.sequence,0x10,reinterpret_cast<uintptr_t>(f.classes[1]));Put(f.sequence,0x20,reinterpret_cast<uintptr_t>(f.sequencePackage));Put(f.sequence,0x38,reinterpret_cast<uintptr_t>(f.skeleton));Put(f.sequence,0x90,1.8333333731f);Put(f.sequence,0x94,1.0f);
     Put(f.montage,0x10,reinterpret_cast<uintptr_t>(f.classes[2]));Put(f.montage,0x20,reinterpret_cast<uintptr_t>(f.montagePackage));Put(f.montage,0x38,reinterpret_cast<uintptr_t>(f.strifeSkeleton));Put(f.montage,0x90,2.3333332539f);Put(f.montage,0x94,1.0f);
-    Put(f.montage,0x158,Array{reinterpret_cast<uintptr_t>(f.tracks),1,1});Put(f.tracks,0,Name{17,0});Put(f.replacement,0x10,reinterpret_cast<uintptr_t>(f.classes[2]));Put(f.replacement,0x38,reinterpret_cast<uintptr_t>(f.skeleton));Put(f.replacement,0x90,5.3333334923f);
+    Put(f.montage,0x158,Array{reinterpret_cast<uintptr_t>(f.tracks),1,1});Put(f.tracks,0,Name{17,0});Put(f.replacement,0x10,reinterpret_cast<uintptr_t>(f.classes[2]));Put(f.replacement,0x38,reinterpret_cast<uintptr_t>(f.skeleton));Put(f.replacement,0x90,1.8333333731f);
     objectChunks[0]=reinterpret_cast<uintptr_t>(f.items);Put(reinterpret_cast<void*>(g_base),0x3959680,reinterpret_cast<uintptr_t>(objectChunks));Put(reinterpret_cast<void*>(g_base),0x3959694,640);
-    Register(1,f.power,10);Register(2,f.idle,20);Register(3,f.actor,30);Register(4,f.ability,50);
-    g_power={reinterpret_cast<uintptr_t>(f.power),1,10};g_idle={reinterpret_cast<uintptr_t>(f.idle),2,20};
+    Register(1,f.power,10);Register(2,f.sequence,20);Register(3,f.actor,30);Register(4,f.ability,50);
+    Register(5,f.mesh,60);Register(6,f.replacement,70);
+    Put(f.sequence,0x80,Array{reinterpret_cast<uintptr_t>(f.events),2,2});
+    Label(f.particleClass,18,"AnimNotify_PlayParticleEffect");Label(f.particle,19,"P_WarStoneSkin_Base");
+    Put(f.notify,0x10,reinterpret_cast<uintptr_t>(f.particleClass));Put(f.notify,0x20,reinterpret_cast<uintptr_t>(f.sequence));Put(f.notify,0x38,reinterpret_cast<uintptr_t>(f.particle));
+    Put(f.events,0x48,reinterpret_cast<uintptr_t>(f.notify));Put(f.events,0x24,.740429f);Put(f.events,184+0x48,reinterpret_cast<uintptr_t>(f.notify));Put(f.events,184+0x24,.741106f);
+    Put(f.instance,0x28,reinterpret_cast<uintptr_t>(f.replacement));Put(f.actor,0xC70,reinterpret_cast<uintptr_t>(f.abilityComponent));
+    Put(f.abilityComponent,0xE8,owner.character);f.active[0]=reinterpret_cast<uintptr_t>(f.ability);Put(f.abilityComponent,0xF8,reinterpret_cast<uintptr_t>(f.active));Put(f.abilityComponent,0x100,1);Put(f.abilityComponent,0x104,1);
+    g_power={reinterpret_cast<uintptr_t>(f.power),1,10};g_stomp={reinterpret_cast<uintptr_t>(f.sequence),2,20};
     for(auto& choice:dg::runtime::Get().wrathSlots[1])choice=0;
 }
-bool Cast(float rate=1,Name section={0,0}){return HandlePlay(PlayNative,f.ability,f.montage,rate,section);}
+bool CueNow(){return HandleNotify(f.notify,f.mesh,f.sequence);}
+bool Cast(float rate=1,Name section={0,0},bool cue=true){const bool result=HandlePlay(PlayNative,f.ability,f.montage,rate,section);if(cue)CueNow();return result;}
 void Run(){
     std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(nameChunks));
     for(unsigned i=0;i<24;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
-    Fresh();uintptr_t cls=0;const auto actor=std::to_array(f.actor);const auto cdo=std::to_array(f.cdo);const auto idle=std::to_array(f.idle);const auto original=std::to_array(f.montage);
-    Check(Prepare(f.actor,cls)&&cls==reinterpret_cast<uintptr_t>(f.power)&&!creates&&!spawns,"preparation validates own class, idle and spawner without creating anything");
+    Fresh();uintptr_t cls=0;const auto actor=std::to_array(f.actor);const auto cdo=std::to_array(f.cdo);const auto sequence=std::to_array(f.sequence);const auto original=std::to_array(f.montage);
+    Check(Prepare(f.actor,cls)&&cls==reinterpret_cast<uintptr_t>(f.power)&&!creates&&!spawns,"preparation validates own class, sequence and spawner without creating anything");
     reenter=true;Check(Cast(1.25f)&&creates==1&&plays==1&&spawns==1&&!finishes&&!g_handling,"one native creation/play/spawn, including reentrant native playback");
-    Check(created.sequence==f.idle&&created.slot==Name{17,0}&&created.in==.1f&&created.out==.18f&&created.rate==1&&created.loops==1&&created.trigger==-1&&created.start==0,"all eight native dynamic-montage arguments match contract");
-    Check(playedMontage==f.replacement&&playedSection==Name{0,0}&&std::fabs(5.3333334923f/playedRate-2.3333332539f/1.25f)<.0001f,"own War montage preserves effective native cast duration and requested rate");
+    Check(created.sequence==f.sequence&&created.slot==Name{17,0}&&created.in==.1f&&created.out==.18f&&created.rate==1&&created.loops==1&&created.trigger==-1&&created.start==0,"all eight native dynamic-montage arguments match contract");
+    Check(playedMontage==f.replacement&&playedSection==Name{0,0}&&playedRate==1.25f,"complete Stoneskin gesture uses its authored duration and requested rate");
     Check(spawned.ability==f.ability&&spawned.projectile==f.projectile&&spawned.bone==Name{16,0},"three-argument native spawn uses current ability, own default class and War pelvis FName");
-    Check(!std::memcmp(f.actor,actor.data(),actor.size())&&!std::memcmp(f.cdo,cdo.data(),cdo.size())&&!std::memcmp(f.idle,idle.data(),idle.size())&&!std::memcmp(f.montage,original.data(),original.size()),"no actor, source, CDO, input or resource writes");
+    Check(!std::memcmp(f.actor,actor.data(),actor.size())&&!std::memcmp(f.cdo,cdo.data(),cdo.size())&&!std::memcmp(f.sequence,sequence.data(),sequence.size())&&!std::memcmp(f.montage,original.data(),original.size()),"no actor, source, CDO, input or resource writes");
     Fresh();owner.index=1;owner.localPlayer=789;Check(Cast()&&spawns==1&&spawned.ability==f.ability,"same ownership contract permits P2 without borrowing P1; runtime still untested");
     Fresh();g_handling=f.controller;Check(Cast()&&spawns==1&&g_handling==f.controller,"another cast's scope cannot suppress this cast and is restored after nested handling");g_handling=nullptr;
     Fresh();Label(f.montage,13,"Strife_Caltrops_Ground_B_Montage");Label(f.montagePackage,14,"/Game/Characters/Heroes/Hero_Strife/Animations/Strife_Caltrops_Ground_B_Montage");Check(Cast()&&spawns==1,"backward ground montage keeps the base spawner contract");
@@ -106,7 +117,7 @@ void Run(){
         if(fail==3)Put(f.bones,12,Name{17,0});
         if(fail==4)Label(f.projectilePackage,12,"/Game/Other");
         if(fail==5)Label(f.montage,13,"Strife_Caltrops_Air_F_Montage");
-        if(fail==6)Put(f.idle,0x80,Array{1,1,1});
+        if(fail==6)Put(f.sequence,0x80,Array{1,1,1});
         if(fail==7)Put(f.replacement,0x90,std::numeric_limits<float>::quiet_NaN());
         Check(Cast()&&finishes==1&&!spawns&&g_failed&&Status()==0&&!g_handling,"unknown montage/bone, failed factory/playback stops only owned transfer through native normal finish");
         cls=123;Check(!Prepare(f.actor,cls)&&cls==123,"stopped transfer blocks next request without cost or output mutation");
@@ -118,20 +129,39 @@ void Run(){
     Fresh();changeOwner=true;Check(Cast()&&plays==1&&!spawns&&!finishes&&g_failed,"owner change during playback cannot spawn for or finish another player's cast");
     Fresh();throwPlay=true;bool threw=false;try{Cast();}catch(const std::runtime_error&){threw=true;}
     Check(threw&&!g_handling&&!spawns&&!finishes,"native C++ exception propagates while scope restores");
-    Fresh();g_power={};g_idle={};
+    Fresh();g_power={};g_stomp={};
     ObserveObject(reinterpret_cast<uintptr_t>(f.power),3);Check(!g_power,"shared discovery rejects the wrong object kind");
-    ObserveObject(reinterpret_cast<uintptr_t>(f.power),1);Check(g_power&&!g_idle&&Status()==1,"one typed discovery event captures only its matching class");
-    ObserveObject(reinterpret_cast<uintptr_t>(f.idle),3);Check(AssetsReady()&&Status()==2,"typed sequence event completes discovery without another GUObject pass");
+    ObserveObject(reinterpret_cast<uintptr_t>(f.power),1);Check(g_power&&!g_stomp&&Status()==1,"one typed discovery event captures only its matching class");
+    ObserveObject(reinterpret_cast<uintptr_t>(f.sequence),3);Check(AssetsReady()&&Status()==2,"typed sequence event completes discovery without another GUObject pass");
     Put(f.items,2*24+16,999);Check(InvalidateAssets()&&!InvalidateAssets(),"asset serial change invalidates once");
-    Fresh();gesture=true;Check(Cast()&&creates==1&&plays==1&&spawns==1&&!finishes&&created.sequence==f.strifeSkeleton&&std::fabs(playedRate-(.5666666627f/2.3333332539f))<.0001f,"receiver gesture restores original cast span, one native spawn and successful lifecycle");
-    Fresh();groundedGesture=true;auto beforeGround=f;Put(beforeGround.ability,0x1D8,reinterpret_cast<uintptr_t>(f.instance));Check(Cast()&&creates==1&&plays==1&&spawns==1&&!finishes&&created.sequence==f.strifeSkeleton&&playedRate==1.f,"one complete grounded gesture at native speed, no added segment or extra spawn");
-    Check(!std::memcmp(f.actor,beforeGround.actor,sizeof(f.actor))&&!std::memcmp(f.movement,beforeGround.movement,sizeof(f.movement))&&!std::memcmp(f.ability,beforeGround.ability,sizeof(f.ability))&&!std::memcmp(f.montage,beforeGround.montage,sizeof(f.montage)),"new Caltrops presentation leaves actor, physics, ability and native montage unchanged");
+    Fresh();Check(Cast(1,{0,0},false)&&!spawns&&creates==1&&plays==1,"no spawn at cast start; one complete Stoneskin gesture, no timer");
+    Put<unsigned char>(f.movement,0x1B0,5);const auto movement=std::to_array(f.movement);
+    Check(CueNow()&&spawns==1&&CueNow()&&spawns==1,"native stomp triggers exactly one spawn; duplicate/no-dust cue cannot double it");
+    Check(!std::memcmp(f.movement,movement.data(),movement.size()),"native flying state and all movement fields untouched by cue");
+    for(int bad=0;bad<12;++bad){Fresh();Cast(1,{0,0},false);
+        if(bad==0)Put(f.items,5*24+16,999);if(bad==1)owner.world=999;if(bad==2)owner.index=1;if(bad==3)f.active[0]=reinterpret_cast<uintptr_t>(f.controller);
+        if(bad==4)Put(f.instance,0x28,reinterpret_cast<uintptr_t>(f.montage));if(bad==5)playing=false;if(bad==6)Put(f.notify,0x20,reinterpret_cast<uintptr_t>(f.montage));
+        if(bad==7)Put(f.mesh,0xE8,reinterpret_cast<uintptr_t>(f.controller));if(bad==8)Put(f.ability,0x48,reinterpret_cast<uintptr_t>(f.controller));
+        if(bad==9)gameThread=false;if(bad==10)owner.kind=dg::local_players::PoseKind::Ultimate;if(bad==11)Put(f.items,4*24+16,999);
+        const bool consumeOnly=bad==1||bad==2||bad==10;
+        Check(CueNow()==consumeOnly&&!spawns,"stale/unrelated forwards; retained private cast on world/player/form loss suppresses donor cosmetics without spawning");}
+    Fresh();Cast(1,{0,0},false);Label(f.particleClass,18,"AnimNotify_War_StoneSkinBase_C");Check(CueNow()&&!spawns,"donor Stoneskin material notify suppressed without applying its buff or emitting caltrops early");
+    Fresh();presentation=false;cls=123;Check(!Prepare(f.actor,cls)&&cls==123,"missing existing notify hooks reject choice before native cost");
+    const Notify donors[]={SkinNotify,ActorNotify,BlastNotify};
+    for(const auto hook:donors){
+        Fresh();g_donors.fill(DonorNative);donorCalls=0;Label(f.particleClass,18,"AnimNotify_War_StoneSkinBase_C");
+        hook(f.notify,f.mesh,f.sequence);Check(donorCalls==1,"no foreign cast: native War coating/actor/blast notification is forwarded once");
+        Cast(1,{0,0},false);hook(f.notify,f.mesh,f.sequence);Check(donorCalls==1&&!spawns,"exact private Caltrops cast suppresses all three donor notification paths");
+        Put(f.instance,0x28,reinterpret_cast<uintptr_t>(f.montage));hook(f.notify,f.mesh,f.sequence);
+        Check(donorCalls==2,"ordinary or replaced montage forwards native War notification even when an old Caltrops cue exists");
+        g_ready=false;hook(f.notify,f.mesh,f.sequence);Check(donorCalls==3,"unavailable adapter forwards the original callback unchanged");
+    }
     Fresh();Shutdown();Check(Status()==0&&!Prepare(f.actor,cls)&&!Cast(),"shutdown returns all paths to unavailable/native forwarding");
 }
 }
 namespace dg::foreign_montage {
-uintptr_t CaltropsGesture(uintptr_t,float& length){if(!groundedGesture)return 0;length=.6666666865f;return reinterpret_cast<uintptr_t>(f.strifeSkeleton);}
-void StartSounds(uintptr_t,void*){}bool CopyLaterSounds(uintptr_t,void*){return true;}uintptr_t CastingSequence(uintptr_t fallback,uintptr_t,float& length){if(gesture){length=.5666666627f;return reinterpret_cast<uintptr_t>(f.strifeSkeleton);}return fallback;}}
+void StartSounds(uintptr_t,void*){}bool CopyLaterSounds(uintptr_t,void*){return true;}}
+namespace dg::dash_combat {bool PresentationReady(){return presentation;}}
 namespace dg::native_tps {bool OnGameThread(){return gameThread;}}
 namespace dg::local_players {bool ResolveActor(void* actor,Context& c){c=owner;return local&&reinterpret_cast<uintptr_t>(actor)==owner.character;}}
 int main(){try{Run();std::cout<<"Caltrops ownership, native ABI, compatible montage, source isolation and failure lifecycle passed\n";return 0;}

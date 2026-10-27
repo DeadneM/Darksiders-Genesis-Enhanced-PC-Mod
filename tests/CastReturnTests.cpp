@@ -37,12 +37,6 @@ void Fresh(){
 void Run(){
  std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());for(int i=0;i<16;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);chunks[0]=reinterpret_cast<uintptr_t>(names);objectChunks[0]=reinterpret_cast<uintptr_t>(f.items);
  Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(chunks));Put(image.data(),0x3959680,reinterpret_cast<uintptr_t>(objectChunks));Put(image.data(),0x3959694,8);
- Fresh();float span=5;const auto original=f;
- Check(CaltropsGesture(reinterpret_cast<uintptr_t>(f.skeleton),span)==reinterpret_cast<uintptr_t>(f.finish)&&std::fabs(span-.6666666865f)<.00001f&&
-       !reserves&&!std::memcmp(&f,&original,sizeof(f)),"Caltrops selects complete native return without construction, source changes or another segment");
- for(int bad=0;bad<6;++bad){Fresh();if(bad==0)gameThread=false;if(bad==1)g_warReturn={};if(bad==2)Put(f.items,1*24+16,999);
-  if(bad==3)Put(f.events,0x24,.5f);if(bad==4)Label(f.skeleton,4,"Strife_Skeleton");span=5;
-  Check(!CaltropsGesture(reinterpret_cast<uintptr_t>(bad==5?f.start:f.skeleton),span)&&span==5&&!reserves,"wrong receiver, stale/missing/invalid asset or thread keeps previous Caltrops fallback");}
  for(float seconds:{.30f,.55f}){
   Fresh();if(seconds==.30f)Put(f.montage,8,uint32_t(0));const auto before=f;Check(CompleteGroundCast(f.montage,reinterpret_cast<uintptr_t>(f.skeleton),seconds),"known private cast appends the authored grounded return, including native dynamic montages with flags zero");
   const auto finish=At<Segment>(f.segments,32);Check(reserves==1&&At<int>(f.tracks,0x10)==2&&std::fabs(At<float>(f.montage,0x90)-(.5666666627f+seconds))<.00001f&&

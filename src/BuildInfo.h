@@ -1,7 +1,7 @@
 #pragma once
 namespace dg::build {
-inline constexpr int Major=1,Minor=122;
-inline constexpr char Version[]="V1.122";
-inline constexpr char Id[]="1.122-short-casts-grounded-caltrops-test";
-inline constexpr char Archive[]="DarksidersGenesis_V1.122_SHORT_CASTS_GROUNDED_CALTROPS_TEST.zip";
+inline constexpr int Major=1,Minor=123;
+inline constexpr char Version[]="V1.123";
+inline constexpr char Id[]="1.123-stoneskin-transitions-caltrops-stomp-test";
+inline constexpr char Archive[]="DarksidersGenesis_V1.123_STONESKIN_TRANSITIONS_CALTROPS_STOMP_TEST.zip";
 }
