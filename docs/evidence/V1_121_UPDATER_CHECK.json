@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.121_NATIVE_CAST_RESET_STONESKIN_FX_TEST.zip",
+  "blobSha": "dbfcca4ef4d45c388b28978235aa72f439a66b7c",
+  "httpStatus": 200,
+  "sha256": "18318EA88CD6298FDD414AD8241F5DB9DA9BC37E064EC6137E8439EF577697BF",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}

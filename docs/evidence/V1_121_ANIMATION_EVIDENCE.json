@@ -1,0 +1,23 @@
+{
+  "nativeStoneskinSpan": 1.8333333730697632,
+  "launchTimes": [
+    0.7404290437698364,
+    0.7411059737205505
+  ],
+  "moltenLaunchTimes": [
+    0.7404290437698364,
+    0.7411062121391296
+  ],
+  "effects": [
+    "P_WarStoneSkin_Base",
+    "P_WarStoneSkin_Base_NoDust",
+    "P_WarStoneSkin_Molten",
+    "P_WarStoneSkin_Molten_NoDust"
+  ],
+  "attached": false,
+  "socket": "None",
+  "nativeFiltersPreserved": true,
+  "unrelatedGameplayAndSurfaceAndShakeNotifiesCopied": false,
+  "acceptedActivationSecondsNormally": 1.5,
+  "notRuntimeProof": true
+}

@@ -1,3 +1,5 @@
+V1.121 delivered: 65/65 GitHub suites, ZIP/updater/Defender controlled. Caltrops/Geyser original-span retry and Stoneskin launch FX EXPERIMENTAL; accepted Stoneskin duration/materials retained. [Receipt](V1_121_DELIVERY_RECEIPT.md).
+
 ## V1.121 latest verdict and clean retry
 
 - REJECTED: Caltrops recent duration/End/source-pose attempts, Geyser added ending pose/held frame (vertical bob). Removed from current ASI, historical packages preserved.
