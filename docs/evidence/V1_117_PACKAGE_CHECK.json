@@ -1,0 +1,52 @@
+{
+  "sourceCommit": "abbae7a03656ec2d7b608a50a264381bfde2cf69",
+  "archiveCommit": "d5df57ef5cff693e8496e81bcb080baf4faefd3f",
+  "name": "DarksidersGenesis_V1.117_CAST_RETURN_MINERAL_CLOTH_MENU_TEST.zip",
+  "size": 2320237,
+  "sha256": "3C8EF5CFBC06D4E651C787F4E795186CF214201529C05B60872BDA3D01A216A4",
+  "files": {
+    "DarksidersGenesisMod.asi": {
+      "size": 2049536,
+      "stored": 2049536,
+      "method": 0,
+      "sha256": "931670DD564F2058711A583E1F80C64FB827CE31505AD3B33A065887AD23E8E1"
+    },
+    "DarksidersGenesisMod.ini": {
+      "size": 5895,
+      "stored": 5895,
+      "method": 0,
+      "sha256": "D57D7604F9A1DD6D5D397DBF41559E69F0E1EB24793A320E31BD8A83B6A90BD9"
+    },
+    "dxgi.dll": {
+      "size": 155136,
+      "stored": 155136,
+      "method": 0,
+      "sha256": "386DAC53D8981F976D4B5B58EB928F8CFFEF352CBB8B1DA8973AB17BC90BB5D9"
+    },
+    "README.md": {
+      "size": 109214,
+      "stored": 109214,
+      "method": 0,
+      "sha256": "B88F05B35BC90210EC09D3C72E79E8C92E04684F6FF7D2596FA8367C76543F37"
+    }
+  },
+  "oldArchiveGitBlobsUnchanged": 181,
+  "archiveCount": 182,
+  "iniKeys": 212,
+  "hotkeyIdsUnchanged": 55,
+  "acceptedPathsUnchanged": true,
+  "amd64": true,
+  "crcValid": true,
+  "noCompression": true,
+  "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/d5df57ef5cff693e8496e81bcb080baf4faefd3f/downloads/DarksidersGenesis_V1.117_CAST_RETURN_MINERAL_CLOTH_MENU_TEST.zip",
+  "httpStatus": 200,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "localBuild": false,
+  "localInstall": false,
+  "protectionSettingsChanged": false,
+  "gameplayValidated": false
+}

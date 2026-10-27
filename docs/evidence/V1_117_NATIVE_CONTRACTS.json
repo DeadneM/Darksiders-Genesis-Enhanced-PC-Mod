@@ -1,0 +1,38 @@
+{
+  "exeSha256": "9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54",
+  "contextInit": "0x1694890",
+  "purePoseSample": "0x1690BD0",
+  "materialScalarEntry": "0x1D97290",
+  "nativeSegmentReserve": "0x256970",
+  "dynamicMontage": "0x168A410",
+  "nativeDynamicConstructor": "0x168A555 xor r9d,r9d -> 0x168A561 call 0xAC57A0; flags zero, Outer engine transient package",
+  "constantRootTrackOffsets": [
+    0,
+    1,
+    12,
+    1
+  ],
+  "assets": [
+    {
+      "name": "War_Channel_Start",
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_Channel_Start.uasset",
+      "sha1": "f9acd83c7983907449f43bae0b7cec1fa62c488d"
+    },
+    {
+      "name": "War_Channel_End",
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_Channel_End.uasset",
+      "sha1": "a3d3c2618b04763794365a1fb164120c194595ef"
+    }
+  ],
+  "warEndNotifies": [
+    {
+      "className": "AnimNotify_PlayFootstep",
+      "time": 0.2398081571
+    },
+    {
+      "className": "AnimNotify_PlayFootstep",
+      "time": 0.5440219045
+    }
+  ],
+  "liveProcessWrites": false
+}

@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.117_CAST_RETURN_MINERAL_CLOTH_MENU_TEST.zip",
+  "blobSha": "0596013dc83386ea5591b87cc6b67e5219d26fef",
+  "httpStatus": 200,
+  "sha256": "3C8EF5CFBC06D4E651C787F4E795186CF214201529C05B60872BDA3D01A216A4",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}

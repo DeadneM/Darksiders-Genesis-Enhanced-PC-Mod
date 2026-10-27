@@ -1,3 +1,5 @@
+Verified delivery: [receipt](V1_117_DELIVERY_RECEIPT.md). Native dynamic Caltrops montage constructor 0x168A410 passes flags zero to NewObject; private ownership uses exact /Engine/Transient Outer and rejects CDO/archetype.
+
 # V1.117 - Cast returns, mineral body and discoverable appearance library
 
 ## Base, reports and success criterion

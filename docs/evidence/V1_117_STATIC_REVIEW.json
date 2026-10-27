@@ -1,0 +1,74 @@
+{
+  "sourceBaseline": "d5b15e53086f6fc0713685e43d159ab7b5bf8c27",
+  "oldArchiveCount": 181,
+  "unchangedPaths": [
+    "src/ForeignRampageFeature.cpp",
+    "src/ForeignBeamFeature.cpp",
+    "src/ForeignPowerFeature.cpp",
+    "src/PistolVisualFeature.cpp",
+    "src/NativeTpsFeature.cpp",
+    "src/HeavyLandingFeature.cpp",
+    "src/MeleeEffectFeature.cpp",
+    "src/LeviathanVisualFeature.cpp",
+    "src/EffectAppearanceFeature.cpp",
+    "src/EffectAppearanceData.h",
+    "src/EffectAppearanceSettings.h",
+    "src/MountedJumpFeature.cpp",
+    "src/CosmeticUnlockFeature.cpp",
+    "updater"
+  ],
+  "iniKeysUnchanged": 212,
+  "hotkeyIdsUnchanged": 55,
+  "requiredSuites": 65,
+  "video": {
+    "size": 243504050,
+    "sha256": "e8e8cf707b865a8b5e8a497395dd975b92f569d4c440cff6a7761b7ce35b028c",
+    "durationSeconds": 30.87,
+    "framesReviewed": 124,
+    "upload": false
+  },
+  "priorSessionLogSha256": "7f9dd0b3da6f70de59b809119d54ac36f3bec3ca257304e361fbd066dffafcba",
+  "userValidated": [
+    "Strife Rampage"
+  ],
+  "runtimePending": [
+    "static Geyser return",
+    "Strife Stoneskin activation/coating",
+    "War Caltrops return",
+    "War Clone duration",
+    "appearance choices"
+  ],
+  "localBuild": false,
+  "localInstall": false,
+  "externalProcessWrites": false,
+  "gameplayValidated": false,
+  "secondReview": {
+    "sourceCommit": "abbae7a03656ec2d7b608a50a264381bfde2cf69",
+    "preservedFunctions": [
+      "void* Geyser(",
+      "void* Retarget(",
+      "void* WorldEnder(",
+      "void* RampageMotion(",
+      "void StartSounds(",
+      "bool CopyLaterSounds(",
+      "bool SmoothExit("
+    ],
+    "acceptedPathsUnchanged": true,
+    "uiSettingReferencesIdentical": true,
+    "allIniAndHotkeyDefinitionsByteIdentical": true,
+    "noAddedHooks": true,
+    "nativeDynamicMontageFlagsZeroHandledByExactTransientOuter": true,
+    "privatePoseAndCurveAliasRefusal": true,
+    "liveCurveAndRootNotWritten": true,
+    "bodyEmissionOnPrivateMidsOnly": true,
+    "exeSha256": "9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54",
+    "limits": [
+      "in-game rendering/control return still experimental",
+      "War End loaded assets only",
+      "emitted particle library does not replace direct/SCS components",
+      "UV fit on Strife body not certified",
+      "P2 deferred"
+    ],
+    "reviewsAgree": true
+  }
+}

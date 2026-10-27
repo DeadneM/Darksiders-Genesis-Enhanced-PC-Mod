@@ -1,3 +1,5 @@
+V1.117 delivered: 65/65 GitHub suites, package/updater/Defender controlled; gameplay corrections still EXPERIMENTAL. [Receipt](V1_117_DELIVERY_RECEIPT.md).
+
 ## V1.117 grouped video follow-up
 
 - User-validated: Strife Rampage perfect, preserve. Prior accepted camera/controls and War World Ender retained.
