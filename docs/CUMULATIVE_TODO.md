@@ -1,3 +1,10 @@
+## V1.114 current priority
+
+- V1.113 REJECTED: persistent jump lock after Geyser, wrong Stoneskin gesture/render.
+- Retain V1.112 montage/control paths; stationary render-only Geyser and short original Stoneskin activation await user validation.
+- Native Stoneskin A/B full shaders preserve fire switches; final Strife UV fit remains experimental.
+- Rampage Strife ending, three Strife powers on War and status expiry accepted; initial Rampage charge damage unconfirmed; P2 last.
+
 # Remaining work after V1.111 / candidate V1.112
 
 - V1.112 user validation: Rampage Strife ending, all three Strife powers on War, and Stoneskin expiration accepted. V1.113 tests only Geyser static return, Stoneskin grounded gesture/movement and body/cloth rendering.

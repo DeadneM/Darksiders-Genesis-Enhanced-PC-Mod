@@ -1,3 +1,15 @@
+## V1.114 - Reprise V1.112, Geyser statique et Stoneskin
+
+**PREPAREE / EXPERIMENTALE, NON VALIDEE EN JEU. Compilation et livraison GitHub a verifier.** V1.113 REJETEE : le saut reste bloque apres Geyser, meme apres la fin des pics ; son geste Stoneskin et le rendu corps/tissu ne correspondent pas a la demande. Retour complet du constructeur de montage V1.112, sans les segments ni nouveaux etats d'interruption V1.113. Rampage Strife, trois pouvoirs Strife sur War et expiration Stoneskin restent VALIDES par l'utilisateur.
+
+Geyser : gameplay et montage V1.112 conserves ; seulement a l'arret, presentation de la vraie fin Aether via l'evaluation visuelle existante. Aucune ecriture de deplacement, saut, commande, duree, evenement ou aptitude. Mouvement, intention de mouvement et chute conservent la pose native. Une courbe non prise en charge refuse l'ajustement visuel ; le gameplay reste V1.112.
+
+Stoneskin : geste Aether V1.112 raccourci a 0,75 s a vitesse normale, statut et expiration independants. Materiaux prives heritant des vrais shaders natifs A pour corps/equipement et B pour tissu, base/Molten selon le statut : ne supprime plus les regions en feu. **Le placement final des textures War sur les UV de Strife reste experimental.**
+
+169 cles INI / 55 ID Hotkeys, camera, XInput, tirs et anciennes archives preserves. Coop en dernier. Compilation exclusivement GitHub ; installation manuelle/updater debug par l'utilisateur. [Contrat, limites, tests et rollback](docs/V1_114_RETAINED_CASTS_STATIC_GEYSER_FIRE_TEST.md).
+
+---
+
 ## V1.113 - Retours au sol Strife et roles Stoneskin
 
 **CONSTRUITE / CONTROLEE : [62/62 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40410419216), zero avertissement/erreur MSVC. [ZIP public immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/84583fc7f21b497a747733ddb3f1ea923fa3c6c9/downloads/DarksidersGenesis_V1.113_GROUNDED_GEYSER_STONESKIN_ROLES_TEST.zip) - [Recu](docs/V1_113_DELIVERY_RECEIPT.md). Updater debug : V1.113 selectionnee, octets verifies. Defender : aucune menace detectee dans le ZIP final et les quatre fichiers, protections actives. Nouveaux ajustements EXPERIMENTAUX, NON VALIDES EN JEU.**

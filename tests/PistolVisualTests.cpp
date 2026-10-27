@@ -340,3 +340,5 @@ namespace dg::local_players {bool Matches(unsigned,uintptr_t,uint32_t){return tr
 namespace dg::dash_combat {bool PresentationReady(){return presentation;}}
 namespace dg::foreign_rampage {bool Evaluate(void*,pistol_visual::PoseContext*){return false;}}
 int main(){try{Policy();Runtime();AnimationBoundary();Config();std::cout<<"Pistol visual native boundary checks passed\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
+
+namespace dg::geyser_static {bool Evaluate(void*,pistol_visual::PoseContext*){return false;}}

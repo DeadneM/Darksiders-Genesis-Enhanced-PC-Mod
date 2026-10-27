@@ -8,11 +8,11 @@ unsigned char entries[64][256]{};uintptr_t names[64]{},chunks[1]{reinterpret_cas
 struct Fixture {
  unsigned char actor[0x1100]{},controller[0x400]{},mesh[0x800]{},component[0x180]{},status[0x100]{},molten[0x100]{};
  unsigned char classes[14][0x80]{},fields[10][0x80]{},functions[5][0x110]{},parameters[16][0x80]{};
- unsigned char original[4][0x100]{},mid[4][0x100]{},materials[2][0x100]{},items[32*24]{};
+ unsigned char original[4][0x100]{},mid[4][0x100]{},materials[4][0x100]{},items[32*24]{};
  unsigned char asset[0x140]{},skinSlots[160]{},scalars[72]{};
  uintptr_t overrides[4]{},statuses[2]{};
 } f;
-uintptr_t objectChunks[1]{};dg::local_players::Context owner{};unsigned copies=0,creates=0,sets=0,scalarCalls=0;int id=0;bool thread=true;
+uintptr_t objectChunks[1]{};dg::local_players::Context owner{};unsigned copies=0,creates=0,sets=0,scalarCalls=0;int id=0;bool thread=true,failFactory=false;
 template<class T>void Put(void* p,size_t at,const T& v){std::memcpy(static_cast<unsigned char*>(p)+at,&v,sizeof(v));}
 void Check(bool ok,const char* why){if(!ok)throw std::runtime_error(why);}
 void Label(void* p,int i,const char* s){Put(p,0x18,i);strcpy_s(reinterpret_cast<char*>(entries[i]+12),244,s);}
@@ -20,18 +20,18 @@ Id Live(void* p){const int n=id++;Put(p,0xC,n);Put(f.items,size_t(n)*24,reinterp
 void Property(void* p,int label,const char* name,void* kind,int size,int at,void* next=nullptr){Label(p,label,name);Put(p,0x10,reinterpret_cast<uintptr_t>(kind));Put(p,0x34,size);Put(p,0x44,at);Put(p,0x28,reinterpret_cast<uintptr_t>(next));}
 void Dispatch(void* object,void* function,void* args){
  if(function==f.functions[0]){Check(object==f.mesh,"only owned mesh GetMaterial");auto* raw=static_cast<unsigned char*>(args);int index=0;std::memcpy(&index,raw,4);Put(raw,8,f.overrides[index]?f.overrides[index]:reinterpret_cast<uintptr_t>(f.original[index]));return;}
- if(function==f.functions[1]){Check(object==f.mesh,"only owned mesh factory");int index=0;std::memcpy(&index,args,4);uintptr_t parent=0;std::memcpy(&parent,static_cast<unsigned char*>(args)+8,8);++creates;Put(f.mid[index],0x10,reinterpret_cast<uintptr_t>(f.classes[4]));Put(f.mid[index],0x40,parent);Live(f.mid[index]);f.overrides[index]=reinterpret_cast<uintptr_t>(f.mid[index]);Put(args,24,f.overrides[index]);return;}
+ if(function==f.functions[1]){Check(object==f.mesh,"only owned mesh factory");int index=0;std::memcpy(&index,args,4);uintptr_t parent=0;std::memcpy(&parent,static_cast<unsigned char*>(args)+8,8);++creates;if(failFactory){f.overrides[index]=parent;return;}Put(f.mid[index],0x10,reinterpret_cast<uintptr_t>(f.classes[4]));Put(f.mid[index],0x40,parent);Live(f.mid[index]);f.overrides[index]=reinterpret_cast<uintptr_t>(f.mid[index]);Put(args,24,f.overrides[index]);return;}
  if(function==f.functions[2]){Check(object==f.mesh,"only owned mesh SetMaterial");int index=0;uintptr_t value=0;std::memcpy(&index,args,4);std::memcpy(&value,static_cast<unsigned char*>(args)+8,8);f.overrides[index]=value;++sets;return;}
  if(function==f.functions[4]){bool own=false;for(auto& m:f.mid)own=own||object==m;Check(own,"body emission only on private MID");float value=1;std::memcpy(&value,static_cast<unsigned char*>(args)+8,4);Check(value==0,"body emission disabled without changing the source texture");++scalarCalls;return;}
  Check(function==f.functions[3]&&object!=f.materials[0]&&object!=f.materials[1],"parameter copy only on private MID");++copies;
 }
 void Fresh(){
- f={};g_visual[0]=g_visual[1]={};g_fields={};g_materials[0]=g_materials[1]={};g_event=Dispatch;g_log=nullptr;g_events=0;owner={};id=0;copies=creates=sets=scalarCalls=0;thread=true;
+ f={};g_visual[0]=g_visual[1]={};g_fields={};for(auto& variant:g_materials)for(auto& m:variant)m={};g_event=Dispatch;g_log=nullptr;g_events=0;owner={};id=0;copies=creates=sets=scalarCalls=0;thread=true;failFactory=false;
  const char* labels[]={"Strife_Blueprint_C","MeshClass","StatusComponent","MayhemStatusEffect_StoneSkin_Base_Blueprint_C","MaterialInstanceDynamic","Function","ObjectProperty","ArrayProperty","IntProperty","NameProperty","BoolProperty","MayhemStatusEffect_Core_FallenDog_Molten_2_Blueprint_C"};
  for(int i=0;i<12;++i)Label(f.classes[i],i+1,labels[i]);
  Label(f.classes[12],44,"FloatProperty");Label(f.classes[13],45,"SkeletalMesh");Label(f.asset,40,"Strife");Put(f.asset,0x10,reinterpret_cast<uintptr_t>(f.classes[13]));Put(f.mesh,0x5A0,reinterpret_cast<uintptr_t>(f.asset));
  Label(f.fields[8],41,"Strife_Body");Label(f.fields[9],42,"Strife_Gear");Label(f.functions[4],43,"Strife_Cloth");
- for(int i=0;i<4;++i){dg::foreign_wrath::Name n{i==0?41:i==1?42:43,0};Put(f.skinSlots,size_t(i)*40+8,n);}
+ for(int i=0;i<4;++i){dg::foreign_wrath::Name n{i==0?41:i==1?42:43,0};Put(f.skinSlots,size_t(i)*40,reinterpret_cast<uintptr_t>(f.original[i]));Put(f.skinSlots,size_t(i)*40+8,n);}
  Put(f.asset,0xA0,Array{reinterpret_cast<uintptr_t>(f.skinSlots),4,4});
  Property(f.fields[5],46,"SkeletalMesh",f.classes[6],8,0x5A0,f.fields[1]);Property(f.fields[6],47,"Materials",f.classes[7],16,0xA0);Property(f.fields[7],50,"ScalarParameterValues",f.classes[7],16,0x60,f.functions[3]);
  Put(f.classes[13],0x48,reinterpret_cast<uintptr_t>(f.fields[6]));
@@ -56,22 +56,22 @@ void Fresh(){
  chain(2,{parameter(25,"ElementIndex",8,4,0),parameter(29,"Material",6,8,8)});
  chain(3,{parameter(30,"Source",6,8,0),parameter(31,"bQuickParametersOnly",10,1,8)});
  chain(4,{parameter(51,"ParameterName",9,8,0),parameter(52,"Value",12,4,8)});
- Live(f.actor);Live(f.mesh);Live(f.asset);for(auto& m:f.original)Live(m);for(int i=0;i<2;++i)g_materials[i]=Live(f.materials[i]);
+ Live(f.actor);Live(f.mesh);Live(f.asset);for(auto& m:f.original)Live(m);for(int i=0;i<4;++i)g_materials[i/2][i%2]=Live(f.materials[i]);
  owner.index=0;owner.world=1;owner.localPlayer=2;owner.character=owner.pawn=reinterpret_cast<uintptr_t>(f.actor);owner.controller=reinterpret_cast<uintptr_t>(f.controller);
 }
 void Run(){
  std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(chunks));for(int i=0;i<64;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);objectChunks[0]=reinterpret_cast<uintptr_t>(f.items);Put(image.data(),0x3959680,reinterpret_cast<uintptr_t>(objectChunks));Put(image.data(),0x3959694,32);
- Fresh();Observe(owner);Check(creates==2&&copies==2&&scalarCalls==4&&g_visual[0].variant==0&&!f.overrides[2]&&!f.overrides[3],"body/gear stone with emission zero, both native cloth slots untouched");Observe(owner);Check(creates==2&&copies==2&&scalarCalls==4,"no repeated creation/copy or scalar writes while unchanged");
- Put(f.component,0x138,0);Observe(owner);Check(sets==2&&!g_visual[0].actor,"status removal restores inherited slots");for(auto p:f.overrides)Check(!p,"original inheritance restored");
- Fresh();f.overrides[1]=reinterpret_cast<uintptr_t>(f.original[1]);Observe(owner);f.overrides[0]=reinterpret_cast<uintptr_t>(f.original[0]);Put(f.component,0x138,0);Observe(owner);Check(f.overrides[1]==reinterpret_cast<uintptr_t>(f.original[1])&&f.overrides[0]==reinterpret_cast<uintptr_t>(f.original[0])&&sets==1,"explicit material restored; native replacement wins");
- Fresh();Put(f.component,0x138,2);Observe(owner);Check(g_visual[0].variant==1,"active Molten core chooses native variant");
- owner.kind=dg::local_players::PoseKind::Horse;Observe(owner);Check(!g_visual[0].actor&&sets==2,"transformation restores old owned body only");
- for(int bad=0;bad<5;++bad){Fresh();if(bad==0)thread=false;if(bad==1)owner.index=2;if(bad==2)owner.localPlayer=0;if(bad==3)Put<unsigned char>(f.actor,0x118,2);if(bad==4)Label(f.classes[0],1,"War_Blueprint_C");Observe(owner);Check(!creates&&!copies&&!sets,"War, remote, off-thread and invalid ownership untouched");}
- Fresh();Put(f.functions[3],0xC0,uintptr_t(0));Observe(owner);Check(creates==2&&!copies&&sets==2&&!g_visual[0].slots[0].material,"unknown parameter API rolls back factory-installed MIDs");Observe(owner);Check(creates==2&&sets==2,"failed visual contract never allocates/restores every frame");
- Fresh();Observe(owner);Put(f.items,size_t(g_visual[0].mesh.index)*24+16,999);Put(f.component,0x138,0);Observe(owner);Check(!sets&&!g_visual[0].actor,"expired mesh identity never receives restore");
- Fresh();Put(f.skinSlots,8,dg::foreign_wrath::Name{43,0});Put(f.skinSlots,88,dg::foreign_wrath::Name{41,0});Observe(owner);Check(!f.overrides[0]&&f.overrides[1]&&f.overrides[2]&&!f.overrides[3],"material roles follow slot names even when their order changes");
- Fresh();Put(f.functions[4],0xC0,uintptr_t(0));Observe(owner);Check(!scalarCalls&&sets==2&&!f.overrides[0]&&!f.overrides[1],"unknown scalar API rolls back body coating without touching cloth");
- Fresh();owner.index=1;Observe(owner);Check(g_visual[1].actor&&!g_visual[0].actor,"P2 has independent visual state in fixture");Shutdown();Check(sets==2&&!g_event,"game-thread shutdown restores owned materials");
+ auto parents=[](int variant){for(int i=0;i<4;++i){uintptr_t parent=0;std::memcpy(&parent,f.mid[i]+0x40,8);Check(parent==reinterpret_cast<uintptr_t>(f.materials[variant*2+(i<2?0:1)]),"body/gear A and cloth B retain full native shaders, including fire switches");}};
+ Fresh();const auto materials=std::vector<unsigned char>(reinterpret_cast<unsigned char*>(f.materials),reinterpret_cast<unsigned char*>(f.materials)+sizeof(f.materials));Observe(owner);Check(creates==4&&!copies&&!scalarCalls,"four private native shader parents, no uniform copy or emissive suppression");parents(0);Check(!std::memcmp(materials.data(),f.materials,sizeof(f.materials)),"source shader/material parameters remain byte-identical");Observe(owner);Check(creates==4,"no per-frame recreation");Put(f.component,0x138,0);Observe(owner);Check(sets==4&&!g_visual[0].actor,"accepted status expiration and native inheritance restoration retained");for(auto x:f.overrides)Check(!x,"native materials restored");
+ Fresh();Put(f.component,0x138,2);Observe(owner);parents(1);Check(g_visual[0].variant==1&&!scalarCalls&&!copies,"Molten body and scarf retain native emission");
+ Fresh();f.overrides[1]=reinterpret_cast<uintptr_t>(f.original[1]);Observe(owner);f.overrides[0]=reinterpret_cast<uintptr_t>(f.original[0]);Put(f.component,0x138,0);Observe(owner);Check(sets==3&&f.overrides[1]==reinterpret_cast<uintptr_t>(f.original[1]),"explicit original restored and native replacement wins");
+ Fresh();f.overrides[0]=reinterpret_cast<uintptr_t>(f.original[2]);Observe(owner);Check(creates==3&&f.overrides[0]==reinterpret_cast<uintptr_t>(f.original[2]),"unsupported overrides never lose their last strong reference");
+ Fresh();Put(f.functions[1],0xC0,uintptr_t(0));Observe(owner);Check(!creates&&!sets,"unrecognized material factory fails closed");Observe(owner);Check(!creates&&!sets,"failed factory contract is not retried per frame");
+ Fresh();failFactory=true;Observe(owner);Check(creates==4&&sets==4,"failed dynamic factory source assignments are rolled back");for(auto x:f.overrides)Check(!x,"failure preserves original native inheritance");Observe(owner);Check(creates==4&&sets==4,"failed creation is cached after rollback");
+ Fresh();Put(f.skinSlots,8,dg::foreign_wrath::Name{43,0});Observe(owner);uintptr_t parent=0;std::memcpy(&parent,f.mid[0]+0x40,8);Check(parent==reinterpret_cast<uintptr_t>(f.materials[1]),"role follows material slot name, not its index");
+ Fresh();Observe(owner);owner.kind=dg::local_players::PoseKind::Horse;Observe(owner);Check(sets==4&&!g_visual[0].actor,"transformation restores only own visual state");
+ for(int bad=0;bad<5;++bad){Fresh();if(bad==0)thread=false;if(bad==1)owner.index=2;if(bad==2)owner.localPlayer=0;if(bad==3)Put<unsigned char>(f.actor,0x118,2);if(bad==4)Label(f.classes[0],1,"War_Blueprint_C");Observe(owner);Check(!creates&&!sets,"War, off-thread, remote and invalid owners untouched");}
+ Fresh();owner.index=1;Observe(owner);Check(g_visual[1].actor&&!g_visual[0].actor,"independent per-player observation");Shutdown();Check(sets==4&&!g_event,"game-thread shutdown restores originals");
 }
 }
 namespace dg::native_tps {bool OnGameThread(){return thread;}}
