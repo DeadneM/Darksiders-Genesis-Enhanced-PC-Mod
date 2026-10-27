@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.122_SHORT_CASTS_GROUNDED_CALTROPS_TEST.zip",
+  "blobSha": "f639c3406f9cd9e546c7b7d7fdbd4cac621eef71",
+  "httpStatus": 200,
+  "sha256": "2586CFD855B0CE8C9C1E9EEAD99FD36B7ECC55BA876A788318EA56885A74FFC4",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}

@@ -1,6 +1,8 @@
 ## V1.122 - Memes gestes et effets, activations plus courtes
 
-**PREPAREE / EXPERIMENTALE, NON VALIDEE EN JEU. Compilation et livraison GitHub a verifier.** Base cumulative V1.121. Precision utilisateur : garder les gestes et les effets choisis pour Geyser/Stoneskin, raccourcir seulement l'activation. V1.121 installee sur demande avec sauvegarde de V1.120 et INI personnel conserve ; jeu non lance par l'agent.
+**CONSTRUITE / CONTROLEE : [65/65 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40545654508), zero avertissement/erreur MSVC. [ZIP public cumulatif verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/ee21e5c88a1f0fa8eedd6e2d4206529b86360d97/downloads/DarksidersGenesis_V1.122_SHORT_CASTS_GROUNDED_CALTROPS_TEST.zip) - [Recu](docs/V1_122_DELIVERY_RECEIPT.md). Updater debug et Defender controles. V1.122 installee sur demande avec sauvegarde verifiee de V1.121, INI/PAK conserves, sans lancement du jeu. Gestes raccourcis et Caltrops EXPERIMENTAUX, non valides en jeu.**
+
+**CONSTRUITE / CONTROLEE ; EXPERIMENTALE, NON VALIDEE EN JEU.** Base cumulative V1.121. Precision utilisateur : garder les gestes et les effets choisis pour Geyser/Stoneskin, raccourcir seulement l'activation. V1.121 installee sur demande avec sauvegarde de V1.120 et INI personnel conserve ; jeu non lance par l'agent.
 
 Geyser Strife : meme Aether_Channel_Start et memes effets, geste complet **1.75s au lieu de 2.3667s**. Declenchements des pics et degats conserves exactement (dernier effet 0.71924s, blast 0.48807s). Seule la fin des fenetres d'interruption se ferme au nouvel arret ; leurs debuts restent natifs. Aucun pic supprime ou accelere, aucun maintien de pose ou retour ajoute. Stoneskin Strife : meme geste, memes fondus, particules et materiaux, activation habituelle **1.25s au lieu de 1.50s** ; duree du statut/protection et vie des particules inchangees.
 

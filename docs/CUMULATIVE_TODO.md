@@ -1,3 +1,5 @@
+V1.122 delivered:65/65 GitHub suites, ZIP/updater/Defender controlled. Geyser1.75s, Stoneskin1.25s with same gestures/FX, Caltrops grounded one-shot candidate; gameplay unverified. V1.122 installee sur demande avec sauvegarde verifiee de V1.121, INI/PAK conserves, sans lancement du jeu. [Receipt](V1_122_DELIVERY_RECEIPT.md).
+
 ## V1.122 latest steering
 
 - V1.121 installed on explicit request, verified backup/INI preservation, no launch/runtime validation.

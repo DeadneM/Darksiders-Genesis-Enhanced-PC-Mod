@@ -1,0 +1,43 @@
+{
+  "sourceAssets": [
+    "War_Wrath_BladeGeyser",
+    "War_Wrath_BladeGeyser_Montage"
+  ],
+  "lastNativeParticleTime": 0.719236433506012,
+  "nativeBlastTime": 0.48806673288345337,
+  "nativeParticleTimes": [
+    0.05553872883319855,
+    0.13615946471691132,
+    0.14332574605941772,
+    0.19627855718135834,
+    0.24157361686229706,
+    0.3057416081428528,
+    0.5087080001831055,
+    0.522392749786377,
+    0.545105516910553,
+    0.5669140219688416,
+    0.5880073308944702,
+    0.5930545926094055,
+    0.6031491160392761,
+    0.6258618831634521,
+    0.6334328055381775,
+    0.6435273289680481,
+    0.6510982513427734,
+    0.6738109588623047,
+    0.6940000653266907,
+    0.719236433506012,
+    0.45930200815200806
+  ],
+  "newGestureSeconds": 1.75,
+  "effectAndDamageTimesScaled": false,
+  "sourceFilesReadOnly": true,
+  "notRuntimeProof": true,
+  "nativeGeyserBlueprint": {
+    "decodedFunctions": 7,
+    "memorySizesMatch": true,
+    "scriptSha256": "560308fb59a8272a46d420ebf9ca69731bde5dfa2a96d1f8539b18774209bbe4",
+    "spawnReceiver": "Character",
+    "onFinishDestroysBlast": false,
+    "agentGameLaunch": false
+  }
+}
