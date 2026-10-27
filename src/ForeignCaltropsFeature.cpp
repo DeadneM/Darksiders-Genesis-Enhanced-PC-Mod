@@ -26,7 +26,7 @@ uintptr_t g_base=0;LogFn g_log=nullptr;
 std::atomic_bool g_ready{false},g_failed{false};
 native_objects::Identity g_power{},g_stomp{};unsigned g_events=0;
 struct Vec {float x=0,y=0,z=0;};
-struct Ground {native_objects::Identity movement{},root{};Vec position{};bool pending=false;};
+struct Ground {native_objects::Identity movement{},root{};Vec position{};uintptr_t world=0,controller=0,localPlayer=0;int index=-1;bool pending=false;};
 struct Cue {native_objects::Identity actor{},ability{},mesh{},montage{},sequence{};Name bone{};uintptr_t world=0;bool spawned=false;Ground ground{};};
 std::array<Cue,2> g_cues{};
 thread_local void* g_handling=nullptr;
@@ -83,7 +83,7 @@ void CaptureGround(const local_players::Context& c,Ground& out){
        !Field(movement,"Velocity","StructProperty",velocity)||!Position(velocity)||std::fabs(velocity.z)>1||!MovementFunction(movement))return;
     Ground next{};if(!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(movement),next.movement)||
        !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(root),next.root))return;
-    next.position=position;next.pending=true;out=next;
+    next.position=position;next.world=c.world;next.controller=c.controller;next.localPlayer=c.localPlayer;next.index=c.index;next.pending=true;out=next;
 }
 bool Animation(const local_players::Context& c,Source& out){
     uintptr_t anim=0,cls=0,owner=0,asset=0,skeleton=0;Array bones{};struct Bone {Name name;int parent=0;} pelvis{};
@@ -240,6 +240,7 @@ void Observe(const local_players::Context& c){
     // One early request for this grounded foreign cast, never a held mode.
     ground.pending=false;
     if(!c.localPlayer||!c.world||c.character!=cue.actor.address||c.pawn!=c.character||c.world!=cue.world||c.kind!=local_players::PoseKind::Foot||
+       c.world!=ground.world||c.index!=ground.index||c.controller!=ground.controller||c.localPlayer!=ground.localPlayer||
        !Alive(cue.actor)||!Alive(cue.ability)||!Alive(cue.mesh)||!Alive(cue.montage)||!Alive(ground.movement)||!Alive(ground.root)||
        native_tps::IsWorldPaused(reinterpret_cast<void*>(c.character))||native_tps::CinematicActive(unsigned(c.index))||native_tps::RadialActive(unsigned(c.index)))return;
     local_players::Context actual{};uintptr_t owner=0,movement=0,root=0,updated=0,helper=0,montage=0,mesh=0,component=0,list=0,last=0;int count=0,capacity=0;

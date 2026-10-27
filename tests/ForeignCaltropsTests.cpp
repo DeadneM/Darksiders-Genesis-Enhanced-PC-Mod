@@ -14,7 +14,7 @@ struct Fixture {
     unsigned char projectile[0x100]{},projectilePackage[0x100]{},montage[0x180]{},montagePackage[0x100]{},tracks[24]{},strifeSkeleton[0x80]{};
     unsigned char notify[0x100]{},particle[0x80]{},particleClass[0x80]{},abilityComponent[0x110]{},events[368]{};uintptr_t active[1]{};
     unsigned char replacement[0x180]{},instance[0x50]{},classes[5][0x80]{},items[640*24]{};
-    unsigned char root[0x200]{},groundClasses[7][0x100]{},groundFields[6][0x80]{},modeFunction[0x100]{};
+    unsigned char root[0x200]{},groundClasses[7][0x100]{},groundFields[6][0x80]{},modeFunction[0x100]{},otherController[0x400]{};
 } f;
 unsigned char entries[64][192]{};uintptr_t names[64]{},nameChunks[1]{reinterpret_cast<uintptr_t>(names)},objectChunks[1]{};
 dg::local_players::Context owner{};
@@ -22,6 +22,7 @@ bool presentation=true;bool gameThread=true,local=true,createOK=true,playing=tru
 unsigned creates=0,plays=0,spawns=0,finishes=0,playingCalls=0;float playedRate=0;void* playedMontage=nullptr;Name playedSection{};
 unsigned donorCalls=0;
 unsigned groundCalls=0;bool paused=false,cinema=false,radial=false,reenterGround=false,engineFalls=false;
+int playContextChange=0;
 struct Created {void* sequence=nullptr;Name slot{};float in=0,out=0,rate=0;int loops=0;float trigger=0,start=0;} created;
 struct Spawned {void* ability=nullptr;void* projectile=nullptr;Name bone{};} spawned;
 template<class T>void Put(void* p,size_t offset,T value){std::memcpy(static_cast<unsigned char*>(p)+offset,&value,sizeof(value));}
@@ -37,6 +38,10 @@ void PlayNative(void* ability,void* montage,float rate,Name section){
     if(reenter){reenter=false;Check(HandlePlay(PlayNative,ability,f.montage,rate,section),"reentrant same owned cast stays handled");}
     if(expire)Put(f.items,4*24+16,51);
     if(changeOwner)Put(ability,0x1B0,reinterpret_cast<uintptr_t>(f.controller));
+    if(playContextChange==1)++owner.world;
+    if(playContextChange==2)owner.index=1;
+    if(playContextChange==3)++owner.localPlayer;
+    if(playContextChange==4){owner.controller=reinterpret_cast<uintptr_t>(f.otherController);Put(f.actor,0x348,owner.controller);Put(f.otherController,0x350,owner.pawn);}
     if(throwPlay)throw std::runtime_error("native playback error");
 }
 bool PlayingNative(void* instance){++playingCalls;Check(instance==f.instance,"exact native instance supplied to IsPlaying");return playing;}
@@ -46,7 +51,7 @@ void Fresh(){
     f={};owner={};presentation=true;g_cues={};gameThread=local=createOK=playing=true;reenter=expire=expireCreate=changeOwner=throwPlay=false;
     creates=plays=spawns=finishes=playingCalls=0;playedRate=0;playedMontage=nullptr;playedSection={};created={};spawned={};
     g_ready=true;g_failed=false;g_handling=nullptr;g_log=nullptr;g_events=0;g_event=nullptr;
-    groundCalls=0;paused=cinema=radial=reenterGround=engineFalls=false;
+    groundCalls=0;paused=cinema=radial=reenterGround=engineFalls=false;playContextChange=0;
     g_create=CreateNative;g_finish=FinishNative;g_playing=PlayingNative;g_spawn=SpawnNative;
     const char* labels[]={"BlueprintGeneratedClass","AnimSequence","AnimMontage","War_Blueprint_C","WarAnim_Blueprint_C"};
     for(int i=0;i<5;++i)Label(f.classes[i],i+1,labels[i]);
@@ -119,6 +124,7 @@ void GroundTests(){
     Put<unsigned char>(f.movement,0x1B0,3);Observe(owner);Check(groundCalls==1,"later native falling is never held or retried");
     Put<unsigned char>(f.movement,0x1B0,1);ArmGround();Observe(owner);Check(groundCalls==2,"new qualifying activation gets its own single request");
     Fresh();GroundSetup();owner.index=1;owner.localPlayer=789;ArmGround();Observe(owner);Check(groundCalls==1&&!g_cues[0].actor,"P2 uses only its own reciprocal context; runtime P2 remains unverified");
+    for(int changed=1;changed<=4;++changed){Fresh();GroundSetup();playContextChange=changed;ArmGround();Observe(owner);Check(!groundCalls,"world/index/local-player/controller rebinding during native playback cannot reuse the pre-play ground baseline");}
     for(int bad=0;bad<12;++bad){Fresh();GroundSetup();
         if(bad==0)Put(f.modeFunction,0x9E,uint16_t(3));if(bad==1)Put(f.modeFunction,0x98,uint32_t(0x4022400));if(bad==2)Put(f.groundFields[5],0x44,0);
         if(bad==3)Put(f.modeFunction,0xC0,g_base+0x1CF1601);if(bad==4)Put(f.movement,0xF8,uintptr_t(0));if(bad==5)Put(f.movement,0x190,uintptr_t(0));
