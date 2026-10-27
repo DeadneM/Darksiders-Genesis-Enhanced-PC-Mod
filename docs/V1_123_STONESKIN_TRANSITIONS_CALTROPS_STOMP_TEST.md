@@ -32,6 +32,8 @@ ForeignMontage Geyser function and all retained helpers byte-identical to baseli
 
 ## Grouped user test and rollback
 
+First GitHub attempt compiled but failed the new public-FX fixture: the shared Name type defaults to invalid {-1,0}, not None. Explicit {0,0} now marshals the verified socket argument, without weakening the test. One C28020 warning on cue index assignment is addressed with explicit P1/P2 branches after identity capture. No ZIP was created/published by that failed attempt. The next complete CI run must pass all65 suites with no MSVC warning before delivery.
+
 1. Strife Stoneskin Base and Molten: accepted gesture/coating, explosion when coating appears, ash only when full protection/coating ends, movement/jump and stats normal.
 2. War Caltrops at rest/moving in TPS/native: complete foot stomp, one burst at stomp, no little hop, no stone coating/Stinger borrowed blast, native cost/damage/sound; can move and jump afterwards.
 3. Ordinary War Stoneskin: appearance/Stinger remain native. Quick accepted Geyser/Clone/Rampage/WorldEnder regression; Geyser not modified. Coop last.

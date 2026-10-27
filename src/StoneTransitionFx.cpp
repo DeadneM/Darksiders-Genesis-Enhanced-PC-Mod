@@ -54,7 +54,7 @@ bool Spawn(const local_players::Context& c,int kind){
        !Parameter(f,"LocationType","ByteProperty",1,60)||!Parameter(f,"bAutoDestroy","BoolProperty",1,61)||
        !Parameter(f,"PoolingMethod","EnumProperty",1,62)||!Parameter(f,"ReturnValue","ObjectProperty",8,64))return false;
     struct Vec {float x=0,y=0,z=0;};
-    struct Args {uintptr_t effect=0,mesh=0;foreign_wrath::Name socket{};Vec position{},rotation{},scale{1,1,1};
+    struct Args {uintptr_t effect=0,mesh=0;foreign_wrath::Name socket{0,0};Vec position{},rotation{},scale{1,1,1};
         unsigned char locationType=0;bool autoDestroy=true;unsigned char pooling=0,pad=0;uintptr_t result=0;};
     static_assert(sizeof(Args)==72&&offsetof(Args,result)==64&&offsetof(Args,autoDestroy)==61);
     Args args{};args.effect=g_assets[kind].address;args.mesh=mesh;if(kind==2)args.position.z=180;

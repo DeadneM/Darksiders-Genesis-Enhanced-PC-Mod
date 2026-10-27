@@ -161,7 +161,9 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     Cue next{};next.actor=pawn;next.ability=cast;next.sequence=g_stomp;next.bone=source.pelvis;next.world=c.world;
     if(!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(source.mesh),next.mesh)||
        !native_objects::CaptureLive(g_base,replacement,next.montage)){Stop(ability);return true;}
-    g_cues[size_t(c.index)]=next;
+    if(c.index==0)g_cues[0]=next;
+    else if(c.index==1)g_cues[1]=next;
+    else {Stop(ability);return true;}
     if(Alive(cast)&&Alive(pawn))foreign_montage::StartSounds(reinterpret_cast<uintptr_t>(montage),ability);
     if(g_log&&g_events++<12)g_log("Caltrops V1.123: complete War Stoneskin gesture; native spawner awaits foot stomp; donor coating/actor/blast guards active; no timer or physics/VM write; EXPERIMENTAL");
     return true;
