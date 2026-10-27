@@ -1,0 +1,52 @@
+{
+  "sourceCommit": "fd278264d07822dfcc66e45117c0de9e45524060",
+  "archiveCommit": "979ce9420809716c83f6ab7c17074592746db481",
+  "name": "DarksidersGenesis_V1.115_CALTROPS_BURST_APPEARANCE_TEST.zip",
+  "size": 2214166,
+  "sha256": "DC3FD66A468FD67F1FF12F3A6A0A7D9D4A6A01BB8401C2FEA4E1B8B97616A8F4",
+  "files": {
+    "DarksidersGenesisMod.asi": {
+      "size": 1949696,
+      "stored": 1949696,
+      "method": 0,
+      "sha256": "F7611F6075DDA40CCB1F5F515BF01D8C1FB75D80E6535704B5AB1D75289976EB"
+    },
+    "DarksidersGenesisMod.ini": {
+      "size": 4799,
+      "stored": 4799,
+      "method": 0,
+      "sha256": "EB40904867ED65ED23778D8911FB786A36DE42FFAC70C52C030E6C8050A431EC"
+    },
+    "dxgi.dll": {
+      "size": 155136,
+      "stored": 155136,
+      "method": 0,
+      "sha256": "1E8D0BE6758E95BD1822D1BDEF23FC512BA7CC18DECAC45B7446CBF8F2F80D5B"
+    },
+    "README.md": {
+      "size": 104079,
+      "stored": 104079,
+      "method": 0,
+      "sha256": "9B67ED92C4693654BF27A295A364E4ADC7C620712D55BADB8780025060505AD9"
+    }
+  },
+  "oldArchiveGitBlobsUnchanged": 179,
+  "archiveCount": 180,
+  "iniKeys": 170,
+  "hotkeyIdsUnchanged": 55,
+  "acceptedPathsUnchanged": true,
+  "amd64": true,
+  "crcValid": true,
+  "noCompression": true,
+  "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/979ce9420809716c83f6ab7c17074592746db481/downloads/DarksidersGenesis_V1.115_CALTROPS_BURST_APPEARANCE_TEST.zip",
+  "httpStatus": 200,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "localBuild": false,
+  "localInstall": false,
+  "protectionSettingsChanged": false,
+  "gameplayValidated": false
+}

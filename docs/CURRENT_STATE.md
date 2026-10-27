@@ -1,6 +1,8 @@
 ## V1.115 - Premier choix d'apparence Caltrops
 
-**PREPAREE / EXPERIMENTALE, NON VALIDEE EN JEU. Compilation et livraison GitHub a verifier.** L'utilisateur demande de poursuivre les skins et remet son essai V1.114 a plus tard : **V1.114 n'est pas validee**. Base retenue de gameplay V1.112, experience V1.114 conservee sans modification dans ce cumul. V1.113 reste REJETEE. Rampage Strife / trois pouvoirs sur War / expiration Stoneskin gardent leur validation precedente.
+**CONSTRUITE / CONTROLEE : [64/64 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40452540269), zero avertissement/erreur MSVC. [ZIP cumulatif public verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/979ce9420809716c83f6ab7c17074592746db481/downloads/DarksidersGenesis_V1.115_CALTROPS_BURST_APPEARANCE_TEST.zip) - [Recu](V1_115_DELIVERY_RECEIPT.md). Updater debug : V1.115 selectionnee et octets verifies. Defender ZIP/quatre fichiers : aucune menace detectee, protections actives. Apparences EXPERIMENTALES, NON VALIDEES EN JEU ; V1.114 reste egalement en attente du retour utilisateur.**
+
+**CONSTRUITE / CONTROLEE ; EXPERIMENTALE, NON VALIDEE EN JEU.** L'utilisateur demande de poursuivre les skins et remet son essai V1.114 a plus tard : **V1.114 n'est pas validee**. Base retenue de gameplay V1.112, experience V1.114 conservee sans modification dans ce cumul. V1.113 reste REJETEE. Rampage Strife / trois pouvoirs sur War / expiration Stoneskin gardent leur validation precedente.
 
 Menu Gameplay > apparences > Ability appearances : **Caltrops Native / Base / Frost 1 / Frost 2 / Frost 3**. Ce premier choix agit sur le **glyphe d'apparition et l'explosion des nouveaux effets**. Modele au sol, effet d'attente et glyphe en boucle restent natifs. D'autres familles restent au catalogue, pas annoncees comme selectionnables. Aucun coeur, degat, rayon, cout, statut, projectile ou progression n'est remplace.
 

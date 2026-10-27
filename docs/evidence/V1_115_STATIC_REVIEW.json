@@ -1,0 +1,48 @@
+{
+  "sourceBaseline": "7f31ac5ba1a039d4080e36f92d696c1efab5a3fb",
+  "oldArchiveCount": 179,
+  "unchangedPaths": [
+    "src/ForeignMontage.cpp",
+    "src/ForeignMontage.h",
+    "src/GeyserStaticPose.cpp",
+    "src/StoneSkinVisual.cpp",
+    "src/ForeignWrathFeature.cpp",
+    "src/ForeignRampageFeature.cpp",
+    "src/ForeignCaltropsFeature.cpp",
+    "src/ForeignPowerFeature.cpp",
+    "src/ForeignBeamFeature.cpp",
+    "src/MeleeEffectFeature.cpp",
+    "src/PistolVisualFeature.cpp",
+    "src/NativeTpsFeature.cpp",
+    "src/HeavyLandingFeature.cpp",
+    "src/LeviathanVisualFeature.cpp",
+    "updater"
+  ],
+  "oldIniValuesPreserved": 169,
+  "newIniKeys": [
+    "Values/CaltropsAppearance=0"
+  ],
+  "totalIniKeys": 170,
+  "hotkeyIdsUnchanged": 55,
+  "pendingV114NotValidated": true,
+  "localBuild": false,
+  "localInstall": false,
+  "externalRuntimeWrites": false,
+  "gameplayValidated": false,
+  "secondReview": {
+    "sourceCommit": "fd278264d07822dfcc66e45117c0de9e45524060",
+    "acceptedAndPending114ModulesUnchanged": true,
+    "mainIntegrationOnlyFourAdditions": true,
+    "hotkeyEnumByteTextIdentical": true,
+    "onlyCreationTemplateArgumentSubstituted": true,
+    "noSourceOrGameplayMemoryWrites": true,
+    "sourceSha256": "8d3a3f132d0c6f744ae81025685c282a2463238b4f4de1dd3b69afedb487b680",
+    "limitations": [
+      "No in-game visual/stat validation",
+      "Loaded particle assets only",
+      "Initial glyph/explosion only; ground idle/loop stays native",
+      "Scope is Caltrops templates in fresh local world",
+      "Pending V1.114 not accepted; P2 last"
+    ]
+  }
+}

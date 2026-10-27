@@ -1,0 +1,275 @@
+{
+  "readOnly": true,
+  "exeSha256": "9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54",
+  "factoryRva": "0x187E600",
+  "signature": "48895c24104889742418574883ec6041",
+  "abi": [
+    "ParticleSystem template",
+    "UWorld",
+    "optional UObject Outer",
+    "bool autoDestroy",
+    "byte pooling"
+  ],
+  "returns": "ParticleSystemComponent pointer",
+  "spans": [
+    {
+      "entry": "0x187e600",
+      "end": "0x187e6f6",
+      "signature": "48895c24104889742418574883ec6041",
+      "calls": [
+        {
+          "rva": "0x187e661",
+          "target": "0x140ab1400"
+        },
+        {
+          "rva": "0x187e66d",
+          "target": "0x141dac150"
+        },
+        {
+          "rva": "0x187e696",
+          "target": "0x140ac57a0"
+        },
+        {
+          "rva": "0x187e6cf",
+          "target": "0x1419f3ec0"
+        }
+      ]
+    },
+    {
+      "entry": "0x189a140",
+      "end": "0x189a2ae",
+      "signature": "488bc448895810488968184889702057",
+      "calls": [
+        {
+          "rva": "0x189a1ad",
+          "target": "0x1408a3b90"
+        },
+        {
+          "rva": "0x189a1e3",
+          "target": "0x141c9cd60"
+        },
+        {
+          "rva": "0x189a201",
+          "target": "0x14187e600"
+        },
+        {
+          "rva": "0x189a25e",
+          "target": "0x141750880"
+        },
+        {
+          "rva": "0x189a268",
+          "target": "0x1419db790"
+        },
+        {
+          "rva": "0x189a26d",
+          "target": "0x1417c9c20"
+        },
+        {
+          "rva": "0x189a27b",
+          "target": "qword ptr [r8 + 0x70]"
+        }
+      ]
+    },
+    {
+      "entry": "0x189a2b0",
+      "end": "0x189a3c5",
+      "signature": "48895c241048896c2418564883ec3049",
+      "calls": [
+        {
+          "rva": "0x189a2e6",
+          "target": "0x141c3fa90"
+        },
+        {
+          "rva": "0x189a2ff",
+          "target": "0x141c9cd60"
+        },
+        {
+          "rva": "0x189a31c",
+          "target": "0x14187e600"
+        },
+        {
+          "rva": "0x189a37f",
+          "target": "0x141750880"
+        },
+        {
+          "rva": "0x189a389",
+          "target": "0x1419db790"
+        },
+        {
+          "rva": "0x189a38e",
+          "target": "0x1417c9c20"
+        },
+        {
+          "rva": "0x189a39c",
+          "target": "qword ptr [r8 + 0x70]"
+        }
+      ]
+    },
+    {
+      "entry": "0x189a510",
+      "end": "0x189a83a",
+      "signature": "4055535657415441554157488d6c24f9",
+      "calls": [
+        {
+          "rva": "0x189a58b",
+          "target": "0x14089af80"
+        },
+        {
+          "rva": "0x189a5ae",
+          "target": "0x141745b80"
+        },
+        {
+          "rva": "0x189a5d9",
+          "target": "0x14187e600"
+        },
+        {
+          "rva": "0x189a5f3",
+          "target": "0x1417b2430"
+        },
+        {
+          "rva": "0x189a614",
+          "target": "qword ptr [r10 + 0x3f0]"
+        },
+        {
+          "rva": "0x189a623",
+          "target": "0x1408a1520"
+        },
+        {
+          "rva": "0x189a683",
+          "target": "0x140897000"
+        },
+        {
+          "rva": "0x189a6cb",
+          "target": "0x1408a3b90"
+        },
+        {
+          "rva": "0x189a754",
+          "target": "qword ptr [rax + 0x3f0]"
+        },
+        {
+          "rva": "0x189a80f",
+          "target": "0x141750880"
+        },
+        {
+          "rva": "0x189a819",
+          "target": "0x1419db790"
+        },
+        {
+          "rva": "0x189a81e",
+          "target": "0x1417c9c20"
+        },
+        {
+          "rva": "0x189a82c",
+          "target": "qword ptr [r8 + 0x70]"
+        }
+      ]
+    },
+    {
+      "entry": "0x1d19930",
+      "end": "0x1d19b50",
+      "signature": "40555356574156488d6c24c94881ecb0",
+      "calls": [
+        {
+          "rva": "0x1d19960",
+          "target": "0x140ac8060"
+        },
+        {
+          "rva": "0x1d1997d",
+          "target": "0x140ac8090"
+        },
+        {
+          "rva": "0x1d19997",
+          "target": "0x140ac8060"
+        },
+        {
+          "rva": "0x1d199b4",
+          "target": "0x140ac8090"
+        },
+        {
+          "rva": "0x1d199ca",
+          "target": "0x140ac8060"
+        },
+        {
+          "rva": "0x1d199e7",
+          "target": "0x140ac8090"
+        },
+        {
+          "rva": "0x1d199fd",
+          "target": "0x140ac8060"
+        },
+        {
+          "rva": "0x1d19a1a",
+          "target": "0x140ac8090"
+        },
+        {
+          "rva": "0x1d19a30",
+          "target": "0x140ac8060"
+        },
+        {
+          "rva": "0x1d19a4d",
+          "target": "0x140ac8090"
+        },
+        {
+          "rva": "0x1d19a66",
+          "target": "0x140ac8060"
+        },
+        {
+          "rva": "0x1d19a83",
+          "target": "0x140ac8090"
+        },
+        {
+          "rva": "0x1d19aa4",
+          "target": "0x140ac8060"
+        },
+        {
+          "rva": "0x1d19ac1",
+          "target": "0x140ac8090"
+        },
+        {
+          "rva": "0x1d19b2e",
+          "target": "0x14189a2b0"
+        }
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "name": "P_Strife_Caltrop_Glyph_Init_1B",
+      "package": "/Game/VFX/Particles/Characters/Strife/Caltrops/Strife_Caltrop_1B/P_Strife_Caltrop_Glyph_Init_1B",
+      "pakPath": "ProjectMayhem/Content/VFX/Particles/Characters/Strife/Caltrops/Strife_Caltrop_1B/P_Strife_Caltrop_Glyph_Init_1B.uasset",
+      "sha1": "a862dcca8cc39ea691b5358ec0fd1833a27ff753"
+    },
+    {
+      "name": "P_Strife_Caltrop_Glyph_Init_Frost_01",
+      "package": "/Game/VFX/Particles/Characters/Strife/Caltrops/Caltrop_Frost/Level_1/P_Strife_Caltrop_Glyph_Init_Frost_01",
+      "pakPath": "ProjectMayhem/Content/VFX/Particles/Characters/Strife/Caltrops/Caltrop_Frost/Level_1/P_Strife_Caltrop_Glyph_Init_Frost_01.uasset",
+      "sha1": "117d00c5b99821cd3f5ef81464b4c7116b88481c"
+    },
+    {
+      "name": "P_Strife_Caltrop_Trigger_1B",
+      "package": "/Game/VFX/Particles/Characters/Strife/Caltrops/Strife_Caltrop_1B/P_Strife_Caltrop_Trigger_1B",
+      "pakPath": "ProjectMayhem/Content/VFX/Particles/Characters/Strife/Caltrops/Strife_Caltrop_1B/P_Strife_Caltrop_Trigger_1B.uasset",
+      "sha1": "d390d152a3d938bcd7ecfd8f5e315b315db7ea78"
+    },
+    {
+      "name": "P_Strife_Caltrop_Trigger_Frost_Lvl1",
+      "package": "/Game/VFX/Particles/Characters/Strife/Caltrops/Caltrop_Frost/Level_1/P_Strife_Caltrop_Trigger_Frost_Lvl1",
+      "pakPath": "ProjectMayhem/Content/VFX/Particles/Characters/Strife/Caltrops/Caltrop_Frost/Level_1/P_Strife_Caltrop_Trigger_Frost_Lvl1.uasset",
+      "sha1": "0a83a83ff0d5c860afed75cd7f55956e0c171940"
+    },
+    {
+      "name": "P_Strife_Caltrop_Trigger_Frost_Lvl2",
+      "package": "/Game/VFX/Particles/Characters/Strife/Caltrops/Caltrop_Frost/Level_2/P_Strife_Caltrop_Trigger_Frost_Lvl2",
+      "pakPath": "ProjectMayhem/Content/VFX/Particles/Characters/Strife/Caltrops/Caltrop_Frost/Level_2/P_Strife_Caltrop_Trigger_Frost_Lvl2.uasset",
+      "sha1": "2b15fb1461ce367afe09e40ecaa6133898c272f6"
+    },
+    {
+      "name": "P_Strife_Caltrop_Trigger_Frost_Lvl3",
+      "package": "/Game/VFX/Particles/Characters/Strife/Caltrops/Caltrop_Frost/Level_3/P_Strife_Caltrop_Trigger_Frost_Lvl3",
+      "pakPath": "ProjectMayhem/Content/VFX/Particles/Characters/Strife/Caltrops/Caltrop_Frost/Level_3/P_Strife_Caltrop_Trigger_Frost_Lvl3.uasset",
+      "sha1": "8a9558e8ebe63181ecd6da1799d51564395bd9be"
+    }
+  ],
+  "noProcessWrites": true,
+  "gameplayValidated": false
+}
