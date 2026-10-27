@@ -2,6 +2,7 @@
 #include "ForeignMontage.h"
 #include "DashCombatFeature.h"
 #include "NativeObjectName.h"
+#include "NativePropertyField.h"
 #include "NativeTpsFeature.h"
 #include <MinHook.h>
 #include <atomic>
@@ -14,15 +15,19 @@ using Create=void*(*)(void*,Name,float,float,float,int,float,float);
 using Finish=void(*)(void*,unsigned char);
 using Playing=bool(*)(void*);
 using Notify=void(*)(void*,void*,void*);
+using Event=void(*)(void*,void*,void*);
 // 7AF460 decodes a subclass and an eight-byte FName, then calls 5AE2B0.
 // That native helper uses this ability's Character, authority and spawn path.
 using Spawn=void(*)(void*,void*,Name);
 Create g_create=nullptr;Finish g_finish=nullptr;Playing g_playing=nullptr;Spawn g_spawn=nullptr;
 std::array<Notify,3> g_donors{};
+Event g_event=nullptr;
 uintptr_t g_base=0;LogFn g_log=nullptr;
 std::atomic_bool g_ready{false},g_failed{false};
 native_objects::Identity g_power{},g_stomp{};unsigned g_events=0;
-struct Cue {native_objects::Identity actor{},ability{},mesh{},montage{},sequence{};Name bone{};uintptr_t world=0;bool spawned=false;};
+struct Vec {float x=0,y=0,z=0;};
+struct Ground {native_objects::Identity movement{},root{};Vec position{};bool pending=false;};
+struct Cue {native_objects::Identity actor{},ability{},mesh{},montage{},sequence{};Name bone{};uintptr_t world=0;bool spawned=false;Ground ground{};};
 std::array<Cue,2> g_cues{};
 thread_local void* g_handling=nullptr;
 struct Array {uintptr_t data=0;int count=0,capacity=0;};
@@ -49,6 +54,36 @@ bool Owner(void* live,local_players::Context& c,bool grounded=true){
         Read(actor,0x10,cls)&&Is(cls,"War_Blueprint_C")&&Read(actor,0xC18,type)&&type==2&&Read(actor,0x118,role)&&role==3&&
         Read(actor,0x348,controller)&&controller==c.controller&&Read(controller,0x350,pawn)&&pawn==actor&&
         Read(actor,0x388,movement)&&Read(movement,0xE8,owner)&&owner==actor&&(!grounded||(Read(movement,0x1B0,mode)&&mode==1));
+}
+template<class T> bool Field(uintptr_t object,const char* name,const char* kind,T& value){
+    uintptr_t cls=0;int at=-1;return Read(object,0x10,cls)&&native_objects::PropertyField(g_base,cls,name,kind,int(sizeof(T)),at)&&Read(object,size_t(at),value);
+}
+uintptr_t MovementFunction(uintptr_t movement){
+    uintptr_t cls=0;if(!Read(movement,0x10,cls)||!Is(cls,"MayhemPlayerCharacterMovementComponent"))return 0;
+    for(int level=0;cls&&level<16;++level){uintptr_t field=0;if(!Read(cls,0x48,field))return 0;
+        for(int i=0;field&&i<512;++i){
+            if(Is(field,"SetMovementMode")){uintptr_t kind=0,outer=0,entry=0;uint32_t flags=0;uint16_t bytes=0;int mode=-1,custom=-1;
+                return Is(cls,"CharacterMovementComponent")&&Read(field,0x10,kind)&&Is(kind,"Function")&&Read(field,0x20,outer)&&outer==cls&&
+                    Read(field,0xC0,entry)&&entry==g_base+0x1CF1600&&Read(field,0x98,flags)&&(flags&0x2400u)==0x400u&&Read(field,0x9E,bytes)&&bytes==2&&
+                    native_objects::PropertyField(g_base,field,"NewMovementMode","ByteProperty",1,mode)&&mode==0&&
+                    native_objects::PropertyField(g_base,field,"NewCustomMode","ByteProperty",1,custom)&&custom==1?field:0;
+            }
+            uintptr_t next=0;if(!Read(field,0x28,next)||next==field)return 0;field=next;
+        }
+        if(field||!Read(cls,0x40,cls))return 0;
+    }return 0;
+}
+bool Position(const Vec& v){return std::isfinite(v.x)&&std::isfinite(v.y)&&std::isfinite(v.z);}
+void CaptureGround(const local_players::Context& c,Ground& out){
+    uintptr_t movement=0,root=0,updated=0,owner=0;Vec velocity{},position{};unsigned char mode=0,custom=0;
+    if(!g_event||!Read(c.character,0x388,movement)||!Read(movement,0xE8,owner)||owner!=c.character||
+       !Field(movement,"CharacterOwner","ObjectProperty",owner)||owner!=c.character||!Read(movement,0x1B0,mode)||mode!=1||
+       !Read(movement,0x1B1,custom)||custom||!Field(c.character,"RootComponent","ObjectProperty",root)||!Read(root,0xE8,owner)||owner!=c.character||
+       !Field(movement,"UpdatedComponent","ObjectProperty",updated)||updated!=root||!Read(root,0x1A0,position)||!Position(position)||
+       !Field(movement,"Velocity","StructProperty",velocity)||!Position(velocity)||std::fabs(velocity.z)>1||!MovementFunction(movement))return;
+    Ground next{};if(!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(movement),next.movement)||
+       !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(root),next.root))return;
+    next.position=position;next.pending=true;out=next;
 }
 bool Animation(const local_players::Context& c,Source& out){
     uintptr_t anim=0,cls=0,owner=0,asset=0,skeleton=0;Array bones{};struct Bone {Name name;int parent=0;} pelvis{};
@@ -89,6 +124,7 @@ void BlastNotify(void* notify,void* mesh,void* animation){Donor(2,notify,mesh,an
 }
 void Initialize(LogFn log,bool exact){
     g_log=log;if(!exact)return;g_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    g_event=reinterpret_cast<Event>(g_base+0xAC0630);
     constexpr unsigned char spawn[]={0x48,0x89,0x5C,0x24,0x18,0x48,0x89,0x74,0x24,0x20,0x48,0x89,0x54,0x24,0x10,0x57,0x48,0x83,0xEC,0x30,0x48,0x8B,0x81,0xB0};
     constexpr unsigned char create[]={0x48,0x8B,0xC4,0x48,0x89,0x50,0x10,0x55,0x56,0x57,0x41,0x56,0x41,0x57,0x48,0x8D};
     constexpr unsigned char finish[]={0x40,0x57,0x48,0x83,0xEC,0x40,0x48,0xC7,0x44,0x24,0x20,0xFE,0xFF,0xFF,0xFF,0x48};
@@ -143,6 +179,7 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     Source source{};Name slot{};uintptr_t projectile=0;native_objects::Identity cast{},pawn{};
     if(g_failed||!dash_combat::PresentationReady()||!std::isfinite(rate)||rate<=0||rate>10||section.index||section.number||!Animation(c,source)||!Montage(montage,slot)||
        !Projectile(p,projectile)||!native_objects::CaptureLive(g_base,ability,cast)||!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(actor),pawn)){Stop(ability);return true;}
+    Ground ground{};CaptureGround(c,ground);
     auto* replacement=g_create(reinterpret_cast<void*>(source.sequence),slot,.1f,.18f,1,1,-1,0);
     if(!Alive(cast)||!Alive(pawn))return true;
     const auto clone=reinterpret_cast<uintptr_t>(replacement);uintptr_t skeleton=0;float length=0;
@@ -158,7 +195,7 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     if(!Read(p,0x48,ownerAfter)||ownerAfter!=actor||!Read(p,0x1B0,characterAfter)||characterAfter!=actor||
        !Projectile(p,projectileAfter)||projectileAfter!=projectile){g_failed=true;return true;}
     if(!Read(p,0x1D8,instance)||!instance||!g_playing(reinterpret_cast<void*>(instance))||!Owner(reinterpret_cast<void*>(actor),c)){Stop(ability);return true;}
-    Cue next{};next.actor=pawn;next.ability=cast;next.sequence=g_stomp;next.bone=source.pelvis;next.world=c.world;
+    Cue next{};next.actor=pawn;next.ability=cast;next.sequence=g_stomp;next.bone=source.pelvis;next.world=c.world;next.ground=ground;
     if(!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(source.mesh),next.mesh)||
        !native_objects::CaptureLive(g_base,replacement,next.montage)){Stop(ability);return true;}
     if(c.index==0)g_cues[0]=next;
@@ -196,6 +233,40 @@ bool HandleNotify(void* live,void* mesh,void* animation){
         // Stinger actor spawn only in this exact current private cast.
         return true;
     }return false;
+}
+void Observe(const local_players::Context& c){
+    if(!g_ready||!g_event||!native_tps::OnGameThread()||c.index<0||c.index>1)return;
+    auto& cue=g_cues[size_t(c.index)];auto& ground=cue.ground;if(!ground.pending)return;
+    // One early request for this grounded foreign cast, never a held mode.
+    ground.pending=false;
+    if(!c.localPlayer||!c.world||c.character!=cue.actor.address||c.pawn!=c.character||c.world!=cue.world||c.kind!=local_players::PoseKind::Foot||
+       !Alive(cue.actor)||!Alive(cue.ability)||!Alive(cue.mesh)||!Alive(cue.montage)||!Alive(ground.movement)||!Alive(ground.root)||
+       native_tps::IsWorldPaused(reinterpret_cast<void*>(c.character))||native_tps::CinematicActive(unsigned(c.index))||native_tps::RadialActive(unsigned(c.index)))return;
+    local_players::Context actual{};uintptr_t owner=0,movement=0,root=0,updated=0,helper=0,montage=0,mesh=0,component=0,list=0,last=0;int count=0,capacity=0;
+    unsigned char state=0,mode=0,custom=0;float age=0;Vec position{},velocity{};
+    if(!Owner(reinterpret_cast<void*>(c.character),actual,false)||actual.index!=c.index||actual.world!=c.world||actual.controller!=c.controller||actual.localPlayer!=c.localPlayer||
+       !Read(c.character,0x380,mesh)||mesh!=cue.mesh.address||!Read(mesh,0xE8,owner)||owner!=c.character||
+       !Read(cue.ability.address,0x48,owner)||owner!=c.character||!Read(cue.ability.address,0x1B0,owner)||owner!=c.character||
+       !Read(cue.ability.address,0xD8,state)||state!=2||!Read(cue.ability.address,0xDC,age)||!std::isfinite(age)||age<0||age>.15f||
+       !Read(cue.ability.address,0x1D8,helper)||!Read(helper,0x28,montage)||montage!=cue.montage.address||!g_playing(reinterpret_cast<void*>(helper))||
+       !Read(c.character,0xC70,component)||!Read(component,0xE8,owner)||owner!=c.character||!Read(component,0xF8,list)||
+       !Read(component,0x100,count)||!Read(component,0x104,capacity)||count<=0||count>capacity||capacity>64||!Read(list,size_t(count-1)*8,last)||last!=cue.ability.address||
+       !Read(c.character,0x388,movement)||movement!=ground.movement.address||!Read(movement,0xE8,owner)||owner!=c.character||
+       !Field(movement,"CharacterOwner","ObjectProperty",owner)||owner!=c.character||!Field(c.character,"RootComponent","ObjectProperty",root)||root!=ground.root.address||
+       !Read(root,0xE8,owner)||owner!=c.character||!Field(movement,"UpdatedComponent","ObjectProperty",updated)||updated!=root||
+       !Read(movement,0x1B0,mode)||mode!=5||!Read(movement,0x1B1,custom)||custom||!Read(root,0x1A0,position)||!Position(position)||
+       !Field(movement,"Velocity","StructProperty",velocity)||!Position(velocity)||std::fabs(velocity.z)>1)return;
+    const float dx=position.x-ground.position.x,dy=position.y-ground.position.y;
+    if(!std::isfinite(dx)||!std::isfinite(dy)||std::fabs(position.z-ground.position.z)>1.5f||dx*dx+dy*dy>625.f)return;
+    const auto function=MovementFunction(movement);if(!function)return;
+    struct Args {unsigned char mode=1,custom=0;} args;static_assert(sizeof(Args)==2);
+    // Explicitly authorized public API; engine owns floor/gravity changes.
+    // No mode/velocity/animation field or VM instruction is written here.
+    g_event(reinterpret_cast<void*>(movement),reinterpret_cast<void*>(function),&args);
+    const bool walking=Alive(ground.movement)&&Read(movement,0x1B0,mode)&&mode==1;
+    if(g_log&&g_events++<20)g_log(walking?
+        "Caltrops V1.124 GROUND_REQUEST: one public walking request, walking readback; native floor/gravity retained; hop EXPERIMENTAL":
+        "Caltrops V1.124 GROUND_REQUEST: one public request, native result not walking or unavailable; no retry; hop EXPERIMENTAL");
 }
 void Shutdown(){g_ready=false;if(native_tps::OnGameThread())g_cues={};}
 }

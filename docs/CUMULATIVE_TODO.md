@@ -1,3 +1,10 @@
+## V1.124 authorized one-shot Caltrops ground-state trial
+
+- Explicit new user authorization received2026-10-28 for the exact bounded SetMovementMode(1,0) call; earlier deferral is superseded for this trial only.
+- Preserve validated V1.123 Stoneskin/Geyser and Caltrops stomp/spawn/audio. Candidate: one early engine walking request, after a proven ground-start foreign War cast; no held mode, new hook, pose sampler or VM edit.
+- Verify GitHub65 suites, no MSVC warnings, four-root NoCompression ZIP/updater/Defender,188 prior archives/protected refs. No local compilation, installation or launch.
+- Runtime hop correction EXPERIMENTAL: test idle/moving native/TPS, movement/jump/ledge/cancel; Strife native Caltrops regression; coop last.
+
 ## Decision utilisateur : conserver V1.123 pour le moment
 
 L'utilisateur choisit explicitement « Conserver V1.123 pour l'instant ». L'essai SetMovementMode est mis de cote : aucun patch applique, aucun appel moteur, aucune nouvelle build ou installation. Ne pas relancer cet essai ni redemander son autorisation sans reprise explicite du sujet par l'utilisateur. V1.123 reste la version installee ; Stoneskin/Geyser et le geste Caltrops acceptes sont conserves. Seul le petit saut final Caltrops reste OPEN.

@@ -105,6 +105,6 @@ void* RampageMotion(uintptr_t,const Source&){return nullptr;}
 uintptr_t RampageNotify(uintptr_t n,uintptr_t,const Source&){return n;}
 }
 namespace dg::dash_combat {bool PresentationReady(){return true;}}
-namespace dg::native_tps {bool OnGameThread(){return gameThread;}}
+namespace dg::native_tps {bool OnGameThread(){return gameThread;}bool IsWorldPaused(void*){return false;}bool CinematicActive(unsigned){return false;}bool RadialActive(unsigned){return false;}}
 namespace dg::local_players {bool ResolveActor(void*,Context& c){c=owner;return local;}}
 int main(){try{Run();std::cout<<"Geyser isolation, retired transfer removal, scoped resolver and native passthrough passed\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

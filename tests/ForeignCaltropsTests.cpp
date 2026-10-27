@@ -14,12 +14,14 @@ struct Fixture {
     unsigned char projectile[0x100]{},projectilePackage[0x100]{},montage[0x180]{},montagePackage[0x100]{},tracks[24]{},strifeSkeleton[0x80]{};
     unsigned char notify[0x100]{},particle[0x80]{},particleClass[0x80]{},abilityComponent[0x110]{},events[368]{};uintptr_t active[1]{};
     unsigned char replacement[0x180]{},instance[0x50]{},classes[5][0x80]{},items[640*24]{};
+    unsigned char root[0x200]{},groundClasses[7][0x100]{},groundFields[6][0x80]{},modeFunction[0x100]{};
 } f;
-unsigned char entries[24][192]{};uintptr_t names[24]{},nameChunks[1]{reinterpret_cast<uintptr_t>(names)},objectChunks[1]{};
+unsigned char entries[64][192]{};uintptr_t names[64]{},nameChunks[1]{reinterpret_cast<uintptr_t>(names)},objectChunks[1]{};
 dg::local_players::Context owner{};
 bool presentation=true;bool gameThread=true,local=true,createOK=true,playing=true,reenter=false,expire=false,expireCreate=false,changeOwner=false,throwPlay=false;
 unsigned creates=0,plays=0,spawns=0,finishes=0,playingCalls=0;float playedRate=0;void* playedMontage=nullptr;Name playedSection{};
 unsigned donorCalls=0;
+unsigned groundCalls=0;bool paused=false,cinema=false,radial=false,reenterGround=false,engineFalls=false;
 struct Created {void* sequence=nullptr;Name slot{};float in=0,out=0,rate=0;int loops=0;float trigger=0,start=0;} created;
 struct Spawned {void* ability=nullptr;void* projectile=nullptr;Name bone{};} spawned;
 template<class T>void Put(void* p,size_t offset,T value){std::memcpy(static_cast<unsigned char*>(p)+offset,&value,sizeof(value));}
@@ -43,7 +45,8 @@ void SpawnNative(void* ability,void* projectile,Name bone){++spawns;spawned={abi
 void Fresh(){
     f={};owner={};presentation=true;g_cues={};gameThread=local=createOK=playing=true;reenter=expire=expireCreate=changeOwner=throwPlay=false;
     creates=plays=spawns=finishes=playingCalls=0;playedRate=0;playedMontage=nullptr;playedSection={};created={};spawned={};
-    g_ready=true;g_failed=false;g_handling=nullptr;g_log=nullptr;g_events=0;
+    g_ready=true;g_failed=false;g_handling=nullptr;g_log=nullptr;g_events=0;g_event=nullptr;
+    groundCalls=0;paused=cinema=radial=reenterGround=engineFalls=false;
     g_create=CreateNative;g_finish=FinishNative;g_playing=PlayingNative;g_spawn=SpawnNative;
     const char* labels[]={"BlueprintGeneratedClass","AnimSequence","AnimMontage","War_Blueprint_C","WarAnim_Blueprint_C"};
     for(int i=0;i<5;++i)Label(f.classes[i],i+1,labels[i]);
@@ -79,9 +82,70 @@ void Fresh(){
 }
 bool CueNow(){return HandleNotify(f.notify,f.mesh,f.sequence);}
 bool Cast(float rate=1,Name section={0,0},bool cue=true){const bool result=HandlePlay(PlayNative,f.ability,f.montage,rate,section);if(cue)CueNow();return result;}
+void GroundDispatch(void* object,void* function,void* params){
+    Check(object==f.movement&&function==f.modeFunction,"only current owned movement component and exact reflected API");
+    const auto* bytes=static_cast<unsigned char*>(params);Check(bytes[0]==1&&bytes[1]==0,"exact two-byte walking/custom0 request");++groundCalls;
+    if(reenterGround){reenterGround=false;Observe(owner);}
+    Put<unsigned char>(f.movement,0x1B0,engineFalls?3:1); // engine result, not an adapter field write
+}
+void GroundSetup(){
+    const char* labels[]={"MayhemPlayerCharacterMovementComponent","CharacterMovementComponent","Function","ObjectProperty","StructProperty","ByteProperty","CapsuleComponent"};
+    for(int i=0;i<7;++i)Label(f.groundClasses[i],27+i,labels[i]);
+    auto property=[&](int i,int id,const char* label,int kind,int bytes,int offset,uintptr_t next){
+        Label(f.groundFields[i],id,label);Put(f.groundFields[i],0x10,reinterpret_cast<uintptr_t>(f.groundClasses[kind]));Put(f.groundFields[i],0x34,bytes);Put(f.groundFields[i],0x44,offset);Put(f.groundFields[i],0x28,next);
+    };
+    property(0,20,"RootComponent",3,8,0x140,0);
+    property(1,21,"CharacterOwner",3,8,0x190,reinterpret_cast<uintptr_t>(f.groundFields[2]));
+    property(2,22,"UpdatedComponent",3,8,0xF8,reinterpret_cast<uintptr_t>(f.groundFields[3]));
+    property(3,23,"Velocity",4,12,0x10C,reinterpret_cast<uintptr_t>(f.modeFunction));
+    property(4,25,"NewMovementMode",5,1,0,reinterpret_cast<uintptr_t>(f.groundFields[5]));property(5,26,"NewCustomMode",5,1,1,0);
+    Label(f.modeFunction,24,"SetMovementMode");Put(f.modeFunction,0x10,reinterpret_cast<uintptr_t>(f.groundClasses[2]));Put(f.modeFunction,0x20,reinterpret_cast<uintptr_t>(f.groundClasses[1]));
+    Put(f.modeFunction,0xC0,g_base+0x1CF1600);Put(f.modeFunction,0x98,uint32_t(0x4020400));Put(f.modeFunction,0x9E,uint16_t(2));Put(f.modeFunction,0x48,reinterpret_cast<uintptr_t>(f.groundFields[4]));
+    Put(f.groundClasses[0],0x40,reinterpret_cast<uintptr_t>(f.groundClasses[1]));Put(f.groundClasses[1],0x48,reinterpret_cast<uintptr_t>(f.groundFields[1]));
+    Put(f.classes[3],0x48,reinterpret_cast<uintptr_t>(f.groundFields[0]));Put(f.actor,0x140,reinterpret_cast<uintptr_t>(f.root));
+    Put(f.movement,0x10,reinterpret_cast<uintptr_t>(f.groundClasses[0]));Put(f.movement,0x190,owner.character);Put(f.movement,0xF8,reinterpret_cast<uintptr_t>(f.root));Put(f.movement,0x10C,Vec{});
+    Put(f.root,0x10,reinterpret_cast<uintptr_t>(f.groundClasses[6]));Put(f.root,0xE8,owner.character);Put(f.root,0x1A0,Vec{10,20,162});
+    Register(7,f.movement,80);Register(8,f.root,90);g_event=GroundDispatch;
+}
+void ArmGround(){
+    Check(Cast(1,{0,0},false),"accepted full Caltrops gesture still plays");
+    Put<unsigned char>(f.ability,0xD8,2);Put(f.ability,0xDC,.02f);Put<unsigned char>(f.movement,0x1B0,5);
+}
+void GroundTests(){
+    Fresh();GroundSetup();ArmGround();Check(g_cues[0].ground.pending&&!groundCalls,"native call deferred until after the Blueprint requests flying");
+    const auto before=f;reenterGround=true;Observe(owner);Observe(owner);auto expected=before;Put<unsigned char>(expected.movement,0x1B0,1);
+    Check(groundCalls==1&&!g_cues[0].ground.pending&&!std::memcmp(&f,&expected,sizeof(f)),"one engine call including reentry; adapter does not alter actor/root/velocity/assets or other fields");
+    Check(CueNow()&&spawns==1&&created.sequence==f.sequence&&created.out==.18f,"same accepted stomp, native timing and one spawner after ground request");
+    Put<unsigned char>(f.movement,0x1B0,3);Observe(owner);Check(groundCalls==1,"later native falling is never held or retried");
+    Put<unsigned char>(f.movement,0x1B0,1);ArmGround();Observe(owner);Check(groundCalls==2,"new qualifying activation gets its own single request");
+    Fresh();GroundSetup();owner.index=1;owner.localPlayer=789;ArmGround();Observe(owner);Check(groundCalls==1&&!g_cues[0].actor,"P2 uses only its own reciprocal context; runtime P2 remains unverified");
+    for(int bad=0;bad<12;++bad){Fresh();GroundSetup();
+        if(bad==0)Put(f.modeFunction,0x9E,uint16_t(3));if(bad==1)Put(f.modeFunction,0x98,uint32_t(0x4022400));if(bad==2)Put(f.groundFields[5],0x44,0);
+        if(bad==3)Put(f.modeFunction,0xC0,g_base+0x1CF1601);if(bad==4)Put(f.movement,0xF8,uintptr_t(0));if(bad==5)Put(f.movement,0x190,uintptr_t(0));
+        if(bad==6)Put(f.root,0xE8,uintptr_t(0));if(bad==7)Put(f.root,0x1A0,Vec{0,0,std::numeric_limits<float>::quiet_NaN()});if(bad==8)Put(f.movement,0x10C,Vec{0,0,2});
+        if(bad==9)Put<unsigned char>(f.movement,0x1B1,1);if(bad==10)Put(f.groundFields[0],0x10,reinterpret_cast<uintptr_t>(f.groundClasses[4]));if(bad==11)Put<uint32_t>(f.root,8,0x10);
+        ArmGround();Observe(owner);Check(!groundCalls&&plays==1&&!finishes,"unknown initial/API contract retains accepted cast without movement intervention");
+    }
+    for(int bad=0;bad<35;++bad){Fresh();GroundSetup();ArmGround();Check(g_cues[0].ground.pending,"valid initial contract captured before negative runtime case");
+        if(bad==0)gameThread=false;if(bad==1)paused=true;if(bad==2)cinema=true;if(bad==3)radial=true;if(bad==4)local=false;
+        if(bad==5)owner.world=999;if(bad==6)owner.index=1;if(bad==7)owner.kind=dg::local_players::PoseKind::Horse;if(bad==8)owner.localPlayer=0;
+        if(bad==9)Put<unsigned char>(f.ability,0xD8,3);if(bad==10)Put(f.ability,0xDC,.151f);if(bad==11)Put(f.ability,0xDC,std::numeric_limits<float>::quiet_NaN());
+        if(bad==12)Put(f.items,7*24+16,999);if(bad==13)Put(f.items,8*24+16,999);if(bad==14)Put(f.instance,0x28,reinterpret_cast<uintptr_t>(f.montage));
+        if(bad==15)f.active[0]=reinterpret_cast<uintptr_t>(f.controller);if(bad==16)Put(f.root,0x1A0,Vec{10,20,164});if(bad==17)Put(f.root,0x1A0,Vec{36,20,162});
+        if(bad==18)Put(f.movement,0x10C,Vec{0,0,2});if(bad==19)Put<unsigned char>(f.movement,0x1B0,1);if(bad==20)Put<unsigned char>(f.movement,0x1B0,3);
+        if(bad==21)Put<unsigned char>(f.movement,0x1B1,1);if(bad==22)Put(f.ability,0x48,uintptr_t(0));if(bad==23)Put(f.movement,0xE8,uintptr_t(0));
+        if(bad==24)Put(f.movement,0x190,uintptr_t(0));if(bad==25)Put(f.movement,0xF8,uintptr_t(0));if(bad==26)Put(f.actor,0x140,uintptr_t(0));
+        if(bad==27)Put(f.actor,0x380,uintptr_t(0));if(bad==28)Put<unsigned char>(f.actor,0x118,2);if(bad==29)Put(f.modeFunction,0x9E,uint16_t(3));
+        if(bad==30)playing=false;if(bad==31)owner.kind=dg::local_players::PoseKind::Ultimate;if(bad==32)g_ready=false;if(bad==33)g_event=nullptr;
+        if(bad==34){Label(f.classes[3],4,"Strife_Blueprint_C");Put<unsigned char>(f.actor,0xC18,1);}
+        Observe(owner);Observe(owner);Check(!groundCalls,"late/stale/nonlocal/transformed/moved/paused/custom/native/other cast never receives API call");
+    }
+    Fresh();GroundSetup();ArmGround();engineFalls=true;Observe(owner);Observe(owner);Check(groundCalls==1&&f.movement[0x1B0]==3,"native engine falling result is retained without a retry");
+    Fresh();GroundSetup();ArmGround();Shutdown();Observe(owner);Check(!groundCalls,"shutdown never invokes movement API or restores a forced mode");
+}
 void Run(){
     std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(nameChunks));
-    for(unsigned i=0;i<24;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
+    for(unsigned i=0;i<64;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);
     Fresh();uintptr_t cls=0;const auto actor=std::to_array(f.actor);const auto cdo=std::to_array(f.cdo);const auto sequence=std::to_array(f.sequence);const auto original=std::to_array(f.montage);
     Check(Prepare(f.actor,cls)&&cls==reinterpret_cast<uintptr_t>(f.power)&&!creates&&!spawns,"preparation validates own class, sequence and spawner without creating anything");
     reenter=true;Check(Cast(1.25f)&&creates==1&&plays==1&&spawns==1&&!finishes&&!g_handling,"one native creation/play/spawn, including reentrant native playback");
@@ -157,12 +221,13 @@ void Run(){
         g_ready=false;hook(f.notify,f.mesh,f.sequence);Check(donorCalls==3,"unavailable adapter forwards the original callback unchanged");
     }
     Fresh();Shutdown();Check(Status()==0&&!Prepare(f.actor,cls)&&!Cast(),"shutdown returns all paths to unavailable/native forwarding");
+    GroundTests();
 }
 }
 namespace dg::foreign_montage {
 void StartSounds(uintptr_t,void*){}bool CopyLaterSounds(uintptr_t,void*){return true;}}
 namespace dg::dash_combat {bool PresentationReady(){return presentation;}}
-namespace dg::native_tps {bool OnGameThread(){return gameThread;}}
+namespace dg::native_tps {bool OnGameThread(){return gameThread;}bool IsWorldPaused(void*){return paused;}bool CinematicActive(unsigned){return cinema;}bool RadialActive(unsigned){return radial;}}
 namespace dg::local_players {bool ResolveActor(void* actor,Context& c){c=owner;return local&&reinterpret_cast<uintptr_t>(actor)==owner.character;}}
 int main(){try{Run();std::cout<<"Caltrops ownership, native ABI, compatible montage, source isolation and failure lifecycle passed\n";return 0;}
 catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

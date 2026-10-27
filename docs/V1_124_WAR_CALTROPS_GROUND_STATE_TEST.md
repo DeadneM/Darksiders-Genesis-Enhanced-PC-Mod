@@ -1,0 +1,28 @@
+# V1.124 - War Caltrops one-shot grounded state test
+
+## Base, objective and authorization
+
+Base V1.123, current debug `3318b55514bb870876986989fb078c7ec4ed8421`, compiled accepted ASI source `2ede45b86bae9c5fd6c15f123cb3523554225e4e`. User validates Strife Stoneskin explosion/ash and native War Stoneskin, retains the complete War stomp/spike burst and Geyser. Only terminal Caltrops hop remains. Read-only two-cast evidence9757 samples/0 errors shows root height does not rise, but in-air animation flags remain true during flying5, then falling3 lasts~47ms. This supports a state/pose mismatch, not an imported Strife animation fragment. V1.123 explicitly creates one War_Atk_Stoneskin sequence; only sounds are copied from original Strife montage.
+
+The user first deferred the public API proposal, later reopened the lightest solution and explicitly answered **Autoriser cet appel unique** on2026-10-28 to the named SetMovementMode(1,0) trial. [Measured scope, prior refusals and subsequent permission](V1_124_CALTROPS_GROUND_STATE_REVIEW.md). This permission does not cover the old VM-cursor guard, other movement experiments or any external process write/call. No further approval needed for this exact scope.
+
+Success: War's accepted stomp and one spike burst remain unchanged, terminal aerial jerk disappears, native cost/damage/audio and normal movement/jump/ledge/cancellation remain. Failure/skip leaves the V1.123 cast behavior intact. All new runtime outcomes EXPERIMENTAL until user test. No local build, installation or game launch.
+
+## Implementation and limits
+
+- At owned local authoritative foot-War Caltrops start, capture weak movement/root identities, world, native walking1/custom0 and root position. Require reflected CharacterOwner, RootComponent and UpdatedComponent reciprocity, finite near-zero vertical velocity and valid exact native method layout. Missing initial contract is optional: accepted V1.123 cast still plays.
+- Existing game-thread local-player observer receives one pending opportunity. Same actor/player/controller/world, live actor/mesh/movement/root/private montage, same active current ability, native state2/age0..0.15s, flying5/custom0, root Z within1.5 and XY within25 units, vertical speed<=1 unit/s. Paused/cinematic/radial, remote/Strife, horse/ultimate, stale/changed ownership/montage, ended/taken-over cast, late/displaced/airborne or unknown data => no call. Pending is consumed before dispatch, including reentrant callbacks. There is no held walking mode or later forced recovery.
+- Public reflected CharacterMovementComponent.SetMovementMode has native entry0x1CF1600, native instance flags, ParmsSize2, ByteProperties NewMovementMode0 and NewCustomMode1. All checked again before dispatch through existing ProcessEvent boundary0xAC0630, with a local two-byte(1,0) buffer. No direct native thunk call, function interception or FFrame code stepping. Engine reconciles floor/gravity normally; if result is falling/unavailable, no retry. Log readback is not visual proof.
+- No direct write to MovementMode, Velocity, animation flags, floor, root transform, source sequence/CDO or script cursor. Existing weak-identity infrastructure retained. Old V1.118 VM guard absent. External observers remain read-only and no runtime trial has been executed by an external script.
+- Same full War Stoneskin gesture1.833333s, .10/.18 fades, playback rate, deferred single native spawner at stomp, sounds, source skeleton/bone validation, three donor suppression hooks and failure lifecycle. Native Strife Caltrops and all other powers/control paths unaffected.
+- No new hook, object pass, timer or per-frame pose calculation. Idle path is an existing observer's cheap pending check; reflection/identity gates only during cast start/one pending request. No measured FPS/performance claim. Under a delayed frame beyond0.15s or actual displacement it deliberately skips; visible hop may remain in those cases. Interruption retains its own native falling path. These are explicit limits, not proof of corrected gameplay.
+
+## Verification and user test
+
+GitHub Windows x64 only,65 suites expected. Expanded existing Caltrops suite mocks the exact public API and two byte args, checks one call per activation even under reentry, unchanged source/actor/root/velocity and one burst, P2 reciprocal context, no repeated walking after later falling, native falling result retained, shutdown without API. Twelve initial-contract rejection cases and35 runtime negative cases cover layout/native entry/flags, authority, ownership, weak identities, class/form, thread, time/mode/custom state, displacement, velocity, pause/cinematic/radial and montage/ability takeover. Existing Geyser, Stoneskin and control fixtures retained. Two independent source reviews, package/updater/Defender checks required; fixtures do not certify rendering.
+
+1. War Caltrops idle in TPS and native: same stomp/spikes, no final hop; move and jump immediately afterwards.
+2. Repeat while moving, then cancel normally and test near a safe ledge. Check no floating, frozen movement or jump, and no repeated walking request. Skip logging/readback must be distinguished from a successful candidate application.
+3. Strife native Caltrops remains native; accepted Stoneskin/Geyser/other powers quick regression only. Coop last.
+
+Keep personal INI:212 defaults/values and55 Hotkeys unchanged. Cumulative NoCompression ZIP with exactly ASI/DXGI/INI/README at root.188 older Git archives retained (189 total after publication), main/archive/v1.43 intact. V1.123 archive and verified preinstall backup remain rollback. No local install without explicit request and closed game.

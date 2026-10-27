@@ -1,3 +1,13 @@
+## V1.124 - Caltrops War, essai natif unique de retour au sol
+
+**PREPAREE / EXPERIMENTALE, NON VALIDEE EN JEU. Compilation et livraison GitHub a verifier.** Base cumulative V1.123 ; Stoneskin Strife/War, Geyser et geste Caltrops acceptes sont conserves. L'utilisateur a rouvert le sujet puis explicitement autorise « Autoriser cet appel unique » le2026-10-28, ce qui remplace la decision anterieure de differer cet essai precis. [Accord et perimetre](V1_124_CALTROPS_GROUND_STATE_REVIEW.md).
+
+Apres un Caltrops War parti du sol, une seule demande publique SetMovementMode(1,0) dans l'ASI vise a eviter la pose aerienne parasite finale. Le moteur gere ensuite normalement sol/gravite ; pas de maintien, second appel ou modification brute de mouvement/animation. Meme joueur/monde, identites vivantes, montage/capacite courants, debut0..0.15s, faible deplacement vertical/horizontal et vitesse verticale quasi nulle obligatoires. Cas inconnu : comportement V1.123 conserve. Cout/degats/pics, geste1.8333s et fondus.10/.18, sons et gardes donneuses restent identiques. [Contrat, objectif et test](V1_124_WAR_CALTROPS_GROUND_STATE_TEST.md).
+
+Pas de nouveau hook, scanner d'objets ou calcul de pose par frame ; pas de changement INI/Hotkeys ni du chemin manette. Lecteur externe en lecture seule, ancien garde VM refuse absent. Compilation uniquement GitHub, aucune installation ou relance locale. Le sursaut reste NON VALIDE jusqu'a essai utilisateur ; coop en dernier.
+
+---
+
 ## Decision utilisateur : conserver V1.123 pour le moment
 
 L'utilisateur choisit explicitement « Conserver V1.123 pour l'instant ». L'essai SetMovementMode est mis de cote : aucun patch applique, aucun appel moteur, aucune nouvelle build ou installation. Ne pas relancer cet essai ni redemander son autorisation sans reprise explicite du sujet par l'utilisateur. V1.123 reste la version installee ; Stoneskin/Geyser et le geste Caltrops acceptes sont conserves. Seul le petit saut final Caltrops reste OPEN.

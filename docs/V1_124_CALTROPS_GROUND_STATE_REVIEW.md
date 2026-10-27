@@ -23,3 +23,7 @@ Automatic approval review rejected the source patch before application: the publ
 ## User decision superseding the pending question
 
 User explicitly selected: Conserver V1.123 pour l'instant. The proposed SetMovementMode trial is set aside and is NOT authorized. No patch, build, installation or live intervention. Keep V1.123 and all accepted features; terminal Caltrops hop remains open. Do not retry this method or repeat its approval question unless the user explicitly reopens the topic. Earlier review text is retained as history, not an active permission request.
+
+## Subsequent explicit authorization - 2026-10-28
+
+After reopening the choice and requesting the simplest/lightest correction, the user answered the specific API question: **Autoriser cet appel unique**. This authorizes the bounded ASI SetMovementMode(1,0) trial described above, once per qualifying ground-start War Caltrops. It supersedes the earlier decision to defer this precise trial. It does not authorize the abandoned VM-cursor hook, calls by external readers, unrelated movement changes or other engine experiments. Implementation and GitHub tests may proceed; gameplay remains experimental until the user tests the resulting build.

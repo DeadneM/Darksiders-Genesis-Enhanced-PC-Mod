@@ -16,5 +16,6 @@ bool Prepare(void* actor,uintptr_t& abilityClass);
 // players/powers remain the caller's responsibility, without argument changes.
 bool HandlePlay(PlayFn,void* ability,void* montage,float rate,Name section);
 bool HandleNotify(void* notify,void* mesh,void* animation);
+void Observe(const local_players::Context&);
 void Shutdown();
 }
