@@ -134,12 +134,13 @@ void Run(){
     Put<unsigned char>(f.movement,0x1B0,5);Observe(owner);Check(f.anim[0x128]==1&&g_continuity[0].actor&&f.movement[0x1B0]==5,"native flying phase remains untouched while the source pose keeps updating");
     Put<unsigned char>(f.ability,0xD8,0);Observe(owner);Check(!f.anim[0x128]&&!g_continuity[0].actor&&f.movement[0x1B0]==5,"cast end restores only the owned source flag, never movement mode");
     Fresh();f.anim[0x128]=1;Cast();Put<unsigned char>(f.ability,0xD8,0);Observe(owner);Check(f.anim[0x128]==1&&!g_continuity[0].actor,"native already-enabled source update is never reset by the mod");
-    for(int bad=0;bad<5;++bad){Fresh();if(bad==0)Put(f.fields[0],0x34,71);if(bad==1)Put(f.fields[2],0x70,std::array<unsigned char,4>{1,0,1,1});if(bad==2)Put(f.anim,0x120,Name{16,0});if(bad==3)f.anim[0x128]=3;if(bad==4)Label(f.fields[0],24,"OtherSlot");const auto beforeFlag=f.anim[0x128];
+    for(int bad=0;bad<6;++bad){Fresh();if(bad==0)Put(f.fields[0],0x34,71);if(bad==1)Put(f.fields[2],0x70,std::array<unsigned char,4>{1,0,1,1});if(bad==2)Put(f.anim,0x120,Name{16,0});if(bad==3)f.anim[0x128]=3;if(bad==4)Label(f.fields[0],24,"OtherSlot");if(bad==5)Put(f.anim,8,uint32_t(0x10));const auto beforeFlag=f.anim[0x128];
         Check(Cast()&&spawns==1&&!finishes&&f.anim[0x128]==beforeFlag&&!g_continuity[0].actor,"unsupported reflection/bitfield/name/value retains previous native presentation and successful Caltrops");}
     for(int end=0;end<4;++end){Fresh();Cast();if(end==0)owner.world=999;if(end==1)owner.kind=dg::local_players::PoseKind::Horse;if(end==2)owner.character=reinterpret_cast<uintptr_t>(f.controller);if(end==3)Put(f.actor,0x348,uintptr_t(0));Observe(owner);Check(!f.anim[0x128]&&!g_continuity[0].actor,"world/owner/transformation loss restores only the original owned animation slot");}
     Fresh();Cast();Put(f.items,6*24+16,999);Observe(owner);Check(f.anim[0x128]==1&&!g_continuity[0].actor,"expired animation identity cannot be written during restoration");
     Fresh();Cast();f.anim[0x128]=3;Put<unsigned char>(f.ability,0xD8,0);Observe(owner);Check(f.anim[0x128]==3&&!g_continuity[0].actor,"unexpected native flag replacement is preserved instead of overwritten");
     Fresh();owner.index=1;Cast();Check(g_continuity[1].actor&&!g_continuity[0].actor,"per-player continuity does not borrow the other player's animation");Shutdown();Check(!f.anim[0x128],"game-thread shutdown restores the flag owned by the active cast");
+    Fresh();owner.index=1;Cast();owner.index=0;Observe(owner);Check(!f.anim[0x128]&&!g_continuity[1].actor,"remaining player's observer cleans up the removed or reassigned P2 record");
     Fresh();Shutdown();Check(Status()==0&&!Prepare(f.actor,cls)&&!Cast(),"shutdown returns all paths to unavailable/native forwarding");
 }
 }

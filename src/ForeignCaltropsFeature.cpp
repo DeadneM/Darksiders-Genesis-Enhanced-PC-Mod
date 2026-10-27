@@ -193,14 +193,17 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
     return true;
 }
 void Observe(const local_players::Context& c){
-    if(!native_tps::OnGameThread()||c.index<0||c.index>1)return;auto& saved=g_continuity[size_t(c.index)];if(!saved.actor)return;
-    local_players::Context owned{};uintptr_t actor=0,mesh=0,anim=0,cls=0;unsigned char state=0;
+    if(!native_tps::OnGameThread()||c.index<0||c.index>1)return;
+    // Service both records even after a local player disappears. Resolving
+    // each saved actor again avoids leaving its flag owned by a removed P2.
+    for(size_t index=0;index<g_continuity.size();++index){auto& saved=g_continuity[index];if(!saved.actor)continue;
+    local_players::Context owned{};uintptr_t actor=0,mesh=0,anim=0,cls=0;unsigned char state=0;const auto expected=saved.actor.address;
     if(!g_ready||!Alive(saved.actor)||!Alive(saved.ability)||!Alive(saved.mesh)||!Alive(saved.anim)||
-       c.world!=saved.world||c.character!=saved.actor.address||c.kind!=local_players::PoseKind::Foot||c.pawn!=c.character||
-       !Owner(reinterpret_cast<void*>(saved.actor.address),owned,false)||owned.index!=c.index||owned.world!=saved.world||
-       !Read(saved.ability.address,0x10,cls)||!IsClass(cls)||!Read(saved.ability.address,0x48,actor)||actor!=c.character||
-       !Read(saved.ability.address,0x1B0,actor)||actor!=c.character||!Read(saved.ability.address,0xD8,state)||(state!=1&&state!=2)||
-       !Read(c.character,0x380,mesh)||mesh!=saved.mesh.address||!Read(mesh,0x718,anim)||anim!=saved.anim.address)Restore(saved);
+       c.world!=saved.world||!Owner(reinterpret_cast<void*>(expected),owned,false)||owned.index!=int(index)||owned.world!=saved.world||
+       !Read(saved.ability.address,0x10,cls)||!IsClass(cls)||!Read(saved.ability.address,0x48,actor)||actor!=expected||
+       !Read(saved.ability.address,0x1B0,actor)||actor!=expected||!Read(saved.ability.address,0xD8,state)||(state!=1&&state!=2)||
+       !Read(expected,0x380,mesh)||mesh!=saved.mesh.address||!Read(mesh,0x718,anim)||anim!=saved.anim.address)Restore(saved);
+    }
 }
 void Shutdown(){if(native_tps::OnGameThread())for(auto& saved:g_continuity)Restore(saved);g_ready=false;}
 }
