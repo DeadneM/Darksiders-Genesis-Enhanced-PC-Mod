@@ -3,6 +3,7 @@
 #include "DefaultSettings.h"
 #include "CameraBlurSettings.h"
 #include "WrathSlotSettings.h"
+#include "EffectAppearanceSettings.h"
 #include <atomic>
 
 namespace dg::runtime {
@@ -23,7 +24,7 @@ struct Snapshot {
     bool progressionSkinsEnabled = false;
     bool leviathanVisualEnabled = false;
     int leviathanVisualMode = 0;
-    int caltropsAppearance = 0;
+    effect_appearance::Choices effectAppearances{};
     bool weaponSheathingEnabled = false;
     bool heavyLandingRecoveryEnabled = false;
     wrath_slots::Choices wrathSlots{};
@@ -144,7 +145,9 @@ struct State {
     std::atomic_bool progressionSkinsEnabled{false};
     std::atomic_bool leviathanVisualEnabled{false};
     std::atomic_int leviathanVisualMode{0};
-    std::atomic_int caltropsAppearance{0};
+    std::array<std::atomic_int,effect_appearance::FamilyCount> effectAppearances{};
+    std::atomic_uint64_t effectAppearanceMask{0};
+    std::atomic_uint effectAppearanceGeneration{0};
     std::atomic_bool weaponSheathingEnabled{false};
     std::atomic_bool heavyLandingRecoveryEnabled{false};
     std::array<std::array<std::atomic_int,3>,2> wrathSlots{};

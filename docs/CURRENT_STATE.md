@@ -1,3 +1,15 @@
+## V1.116 - Bibliotheque des effets natifs
+
+**PREPAREE / EXPERIMENTALE, NON VALIDEE EN JEU. Compilation et livraison GitHub a verifier.** L'utilisateur demande toutes les autres familles ; V1.114 et V1.115 restent en attente de son essai. Base de gameplay retenue V1.112 ; V1.113 reste REJETEE. Aucun nouveau changement de visée, dash, controle, animation ou revetement Stoneskin dans ce lot.
+
+Appearance > Effect appearances : **43 groupes / 451 ParticleSystem natifs / 98 roles visuels** verifies dans le PAK principal. Outils, pouvoirs, munitions Strife, armes War, montures/formes et coeurs. Variantes nommees seulement lorsqu'un asset natif du meme role existe ; **Native / Hidden** pour les familles sans autre habillage prouve. Chaque groupe est independant, toutes les nouvelles options sont Native et les categories sont fermees par defaut. [Liste exacte des choix](V1_116_EFFECT_LIBRARY_CATALOG.md).
+
+Un seul moteur et le hook visuel deja utilise en V1.115 remplacent le prototype Caltrops, sans doublon ni ancien module compile. Templates a la creation uniquement ; Hidden garde le composant et son lifecycle natifs, masque le rendu puis restaure uniquement la visibilite modifiee. Pas de nouveau hook de combat, classe de projectile/coeur, degat, cout, statut, sauvegarde, modele ou materiau remplace. Les slots Caltrops 0..4 et les 170 anciens reglages restent identiques ; 42 nouvelles cles Native, 212 au total, 55 ID Hotkeys inchanges.
+
+Assets deja charges uniquement : une variante manquante garde le rendu natif. Les effets deja presents ou les composants crees directement hors du point de creation commun peuvent garder leur apparence ; ce lot ne pretend pas remplacer toutes les textures du jeu. Leviathan, Stinger, armures, pistolets/bras/holsters et corps Stoneskin gardent leurs options et chemins precedents. Les formes/montures changent ici seulement leurs effets, pas leurs modeles. [Contrat, preuves, tests et rollback](V1_116_NATIVE_EFFECT_LIBRARY_TEST.md).
+
+---
+
 ## V1.115 - Premier choix d'apparence Caltrops
 
 **CONSTRUITE / CONTROLEE : [64/64 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40452540269), zero avertissement/erreur MSVC. [ZIP cumulatif public verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/979ce9420809716c83f6ab7c17074592746db481/downloads/DarksidersGenesis_V1.115_CALTROPS_BURST_APPEARANCE_TEST.zip) - [Recu](V1_115_DELIVERY_RECEIPT.md). Updater debug : V1.115 selectionnee et octets verifies. Defender ZIP/quatre fichiers : aucune menace detectee, protections actives. Apparences EXPERIMENTALES, NON VALIDEES EN JEU ; V1.114 reste egalement en attente du retour utilisateur.**

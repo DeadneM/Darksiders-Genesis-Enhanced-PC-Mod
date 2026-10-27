@@ -140,12 +140,20 @@ int main(int argc,char** argv){
     check(longDistance.Load()&&longDistance.nativeBlur.distanceMeters==1250.5f&&longDistance.tpsBlur.distanceMeters==5000.0f&&
         rt.nativeBlur.Get().distanceMeters==1250.5f&&rt.tpsBlur.Get().distanceMeters==5000.0f,
         "distances beyond one kilometre survive save/reload and reach both runtime profiles");
-    check(generated.caltropsAppearance==0,"old and missing profiles keep native Caltrops appearance");
-    longDistance.caltropsAppearance=4;check(longDistance.SaveNow(),"Caltrops appearance saves independently");
+    check(generated.effectAppearances[0]==0,"old and missing profiles keep native Caltrops appearance");
+    for(unsigned family=0;family<dg::effect_appearance::FamilyCount;++family){
+        check(generated.effectAppearances[family]==0,"each new appearance defaults to Native");
+        longDistance.effectAppearances[family]=1;
+    }
+    check(longDistance.SaveNow(),"all appearance families save together");
+    dg::config::Store allEffects;allEffects.SetPath(path);check(allEffects.Load(),"all appearance families reload");
+    for(unsigned family=0;family<dg::effect_appearance::FamilyCount;++family)
+        check(allEffects.effectAppearances[family]==1&&rt.effectAppearances[family].load()==1,"every independent appearance reaches runtime");
+    longDistance.effectAppearances[0]=4;check(longDistance.SaveNow(),"Caltrops appearance saves independently");
     dg::config::Store appearance;appearance.SetPath(path);
-    check(appearance.Load()&&appearance.caltropsAppearance==4&&rt.caltropsAppearance.load()==4,"selected visual survives reload and reaches runtime");
+    check(appearance.Load()&&appearance.effectAppearances[0]==4&&rt.effectAppearances[0].load()==4,"selected visual survives reload and reaches runtime");
     WritePrivateProfileStringW(L"Values",L"CaltropsAppearance",L"99",path);
-    check(appearance.Load()&&appearance.caltropsAppearance==0&&rt.caltropsAppearance.load()==0,"unsupported appearance safely restores Native");
+    check(appearance.Load()&&appearance.effectAppearances[0]==0&&rt.effectAppearances[0].load()==0,"unsupported appearance safely restores Native");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,path);DeleteFileW(path);
     std::printf("User defaults: %zu keys checked, %u failures\n",keys,failed);return failed?1:0;
 }

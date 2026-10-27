@@ -11,7 +11,8 @@
 #include "PlayerPresentationFeature.h"
 #include "CosmeticUnlockFeature.h"
 #include "LeviathanVisualFeature.h"
-#include "CaltropsAppearanceFeature.h"
+#include "EffectAppearanceFeature.h"
+#include <cstring>
 #include "UltimateDurationFeature.h"
 #include "GaugeChargeFeature.h"
 #include "ResourceGainFeature.h"
@@ -310,15 +311,22 @@ void Draw(Context& c) {
             DrawToggleFeature(config,"Progression skins (experimental)","ProgressionSkins",&config.progressionSkinsEnabled,
                 "Separately makes Abyssal, Silver and Gold appearances available for War and Strife in the game's Skins page. Cosmetic availability only: no quests, armor pieces, stats or achievements granted. OFF restores native availability; choose an owned skin before disabling. Native skin selection may remember your equipped appearance.",cosmetics::Ready());
 
-            if(ImGui::CollapsingHeader("Ability appearances (experimental)")){
-                ImGui::Indent(12.0f);ImGui::BeginDisabled(!caltrops_appearance::Ready());
-                constexpr const char* appearances[]={"Native","Base","Frost 1","Frost 2","Frost 3"};
-                ImGui::SetNextItemWidth(280.0f);
-                if(ImGui::Combo("Caltrops appearance",&config.caltropsAppearance,appearances,5))config.Save();
-                ImGui::EndDisabled();
-                ImGui::TextWrapped("Initial glyph and explosion only, for newly created Caltrops effects in the current local world. No core, damage, radius, cost or status change. The ground model, idle effect and looping glyph stay native. Native restores subsequent effects; existing particles finish normally.");
-                if(config.caltropsAppearance>0&&config.caltropsAppearance<=4&&!(caltrops_appearance::LoadedMask()&(1u<<config.caltropsAppearance)))
-                    ImGui::TextColored(ImVec4(1,.85f,.25f,1),"Preparing selected effect assets. Missing assets keep their native appearance; no synchronous loading.");
+            if(ImGui::CollapsingHeader("Effect appearances (experimental)")){
+                ImGui::Indent(12.0f);
+                ImGui::TextWrapped("Visual effects only. Native keeps the game and equipped cores. Alternatives change new emitted effects; Hidden keeps their native lifetime and hides their rendering. Models, materials, damage, cost and controls stay native. Some single-look families offer Native/Hidden only.");
+                constexpr const char* categories[]={"Tools","Powers","Strife ammunition","War weapons","Mounts and forms","Creature cores","Other effects"};
+                for(const auto* category:categories)if(ImGui::CollapsingHeader(category)){
+                    ImGui::Indent(12.0f);ImGui::BeginDisabled(!effect_appearance::Ready());
+                    for(unsigned family=0;family<effect_appearance::FamilyCount;++family){const auto& info=effect_appearance::Families[family];
+                        if(std::strcmp(category,info.category))continue;ImGui::PushID(int(family));ImGui::SetNextItemWidth(260.0f);
+                        if(ImGui::Combo(info.label,&config.effectAppearances[family],info.choices.data(),int(info.count)))config.Save();
+                        const int choice=effect_appearance::Normalize(family,config.effectAppearances[family]);
+                        if(choice&&!(effect_appearance::LoadedMask(family)&(1u<<choice)))ImGui::TextColored(ImVec4(1,.85f,.25f,1),"Effect assets not ready: native appearance retained.");
+                        ImGui::PopID();
+                    }
+                    ImGui::EndDisabled();ImGui::Unindent(12.0f);
+                }
+                ImGui::TextWrapped("Loaded assets only: no synchronous loading. Existing emitters may keep their previous appearance until the next use. Stoneskin here changes particles, not the body coating. Leviathan keeps its dedicated option below. Checkpoint/armor/model choices stay in their existing controls.");
                 ImGui::Unindent(12.0f);
             }
 

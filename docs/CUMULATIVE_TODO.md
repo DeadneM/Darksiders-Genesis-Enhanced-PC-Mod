@@ -1,3 +1,10 @@
+## V1.116 shared appearance library
+
+- User requests all remaining families: 43 groups / 451 native particles / 98 roles prepared; runtime validation pending.
+- One common renderer replaces Caltrops-only code. All defaults Native, 42 new keys; 170 previous values and 55 Hotkey IDs retained.
+- Only emitted particles: direct/static components and model/material variants need separate evidence; no fabricated alternate for single-look families.
+- V1.114/115 remain unvalidated, V1.113 rejected; gameplay modules and accepted work unchanged; P2 last.
+
 ## V1.115 current appearance experiment
 
 - User defers V1.114 validation and asks for skins; do not mark its Geyser/Stoneskin work accepted.

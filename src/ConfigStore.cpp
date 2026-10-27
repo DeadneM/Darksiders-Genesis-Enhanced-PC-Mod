@@ -1,7 +1,7 @@
 #include <windows.h>
 
 #include "ConfigStore.h"
-#include "CaltropsAppearancePolicy.h"
+
 #include "RuntimeSettings.h"
 
 #include <cwchar>
@@ -332,7 +332,7 @@ void Store::ResetDefaults(bool persist) {
     mountedHolstersEnabled=false;
     strifeBladeVisibility=0;warArmAppearance=mouseReticleHideMode=0;mountedJumpEnabled=false;mountedJumpSound=0;
     pistolRightModel=0;pistolLeftModel=0;bonusMountSkinsEnabled=false;progressionSkinsEnabled=false;
-    leviathanVisualEnabled=false;leviathanVisualMode=0;caltropsAppearance=0;
+    leviathanVisualEnabled=false;leviathanVisualMode=0;effectAppearances={};
     sheathStrifeMeleeNeverEnabled=false;sheathStrifeMeleeDelaySeconds=0.0f;
     sheathWarNeverEnabled=true;sheathWarDelaySeconds=10.0f;
     sheathKeyboardKey=0;sheathPadButtonA=0;sheathPadButtonB=0;
@@ -598,7 +598,8 @@ bool Store::Load() {
     leviathanVisualEnabled=ReadBool(L"Features",L"LeviathanVisual",false,path_);
     leviathanVisualMode=GetPrivateProfileIntW(L"Values",L"LeviathanVisualMode",0,path_.c_str());
     if(leviathanVisualMode<0||leviathanVisualMode>3)leviathanVisualMode=0;
-    caltropsAppearance=caltrops_appearance::Normalize(GetPrivateProfileIntW(L"Values",L"CaltropsAppearance",0,path_.c_str()));
+    for(unsigned family=0;family<effect_appearance::FamilyCount;++family)
+        effectAppearances[family]=effect_appearance::Normalize(family,GetPrivateProfileIntW(L"Values",effect_appearance::Families[family].key,0,path_.c_str()));
     sheathStrifeMeleeNeverEnabled=ReadBool(L"Features",L"StrifeMeleeNeverAutoSheathe",false,path_);
     sheathStrifeMeleeDelaySeconds=std::clamp(ReadFloat(L"Values",L"StrifeMeleeSheathDelaySeconds",0.0f,path_),0.0f,300.0f);
     // Existing personal setting continues to govern pistols; War inherits it
@@ -955,7 +956,7 @@ void Store::PublishRuntime() const {
     runtime.bonusMountSkinsEnabled=bonusMountSkinsEnabled;
     runtime.progressionSkinsEnabled=progressionSkinsEnabled;
     runtime.leviathanVisualEnabled=leviathanVisualEnabled;runtime.leviathanVisualMode=leviathanVisualMode;
-    runtime.caltropsAppearance=caltropsAppearance;
+    runtime.effectAppearances=effectAppearances;
     runtime.sheathStrifeMeleeNeverEnabled=sheathStrifeMeleeNeverEnabled;
     runtime.sheathStrifeMeleeDelaySeconds=sheathStrifeMeleeDelaySeconds;
     runtime.sheathWarNeverEnabled=sheathWarNeverEnabled;
@@ -1137,7 +1138,8 @@ bool Store::SaveNow() {
     WriteBool(L"Features",L"ProgressionSkins",progressionSkinsEnabled,path_);
     WriteBool(L"Features",L"LeviathanVisual",leviathanVisualEnabled,path_);
     WriteInt(L"Values",L"LeviathanVisualMode",leviathanVisualMode,path_);
-    WriteInt(L"Values",L"CaltropsAppearance",caltrops_appearance::Normalize(caltropsAppearance),path_);
+    for(unsigned family=0;family<effect_appearance::FamilyCount;++family)
+        WriteInt(L"Values",effect_appearance::Families[family].key,effect_appearance::Normalize(family,effectAppearances[family]),path_);
     WriteBool(L"Features",L"StrifeMeleeNeverAutoSheathe",sheathStrifeMeleeNeverEnabled,path_);
     WriteFloat(L"Values",L"StrifeMeleeSheathDelaySeconds",sheathStrifeMeleeDelaySeconds,path_);
     WriteBool(L"Features",L"WarNeverAutoSheathe",sheathWarNeverEnabled,path_);
