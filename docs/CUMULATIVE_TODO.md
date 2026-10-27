@@ -1,3 +1,5 @@
+User chooses simplest animation approach: Caltrops return0.55s as validated Clone, total1.12s. VM guard excluded; no explicit method approval inferred. Hop still needs test.
+
 ## V1.118 latest user report
 
 - VALIDATED by user: Appearance tab present, War Clone OK; preserve those and earlier Rampage.
