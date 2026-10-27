@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.114_RETAINED_CASTS_STATIC_GEYSER_FIRE_TEST.zip",
+  "blobSha": "7b4130000162008d36ef442d824c6bf58ead1fe7",
+  "httpStatus": 200,
+  "sha256": "86BF7AA1983340F55D53EBC173B02E2C60927C2A9077E2A38C1884D42B936057",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}

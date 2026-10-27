@@ -1,0 +1,15 @@
+{
+  "runId": 40445567125,
+  "jobId": 121995905690,
+  "sourceCommit": "299121174810d71468357e5eb1e708a4c09de96a",
+  "conclusion": "success",
+  "testsPassed": 63,
+  "testSummary": "100% tests passed out of 63",
+  "msvcWarnings": [],
+  "msvcErrors": [],
+  "logsCharacters": 71709,
+  "logsReadVia": "GitHub fetch_workflow_job_logs",
+  "runnerNotice": "Node.js 20 deprecated; checkout and upload forced to Node.js 24. Separate from compiler diagnostics.",
+  "localBuild": false,
+  "gameplayValidated": false
+}

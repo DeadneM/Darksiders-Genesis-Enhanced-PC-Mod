@@ -1,0 +1,51 @@
+{
+  "sourceBaseline": "1aef1f789432f6835062a57e2e4ae4410ba959ea",
+  "retainedBase": "0eff6f24907822170c908af499e93317a9004683",
+  "oldArchiveCount": 178,
+  "restoredExact": {
+    "src/ForeignMontage.cpp": "16c421f4429618501ac9aaf2769e6ba30838b5f411b112c1a0b0f73abc302373",
+    "src/ForeignMontage.h": "4042a4d1675930ab3f8a42952d7f1a357e9766e97e99f12dd8517f05f1313136",
+    "tests/ForeignMontageTests.cpp": "0b89cf011d8186f030a924d8f124bd44c7aae5c38c2824cba619a2b14dde2d86"
+  },
+  "unchangedPaths": [
+    "src/ForeignRampageFeature.cpp",
+    "src/ForeignCaltropsFeature.cpp",
+    "src/ForeignPowerFeature.cpp",
+    "src/ForeignBeamFeature.cpp",
+    "src/MeleeEffectFeature.cpp",
+    "src/NativeTpsFeature.cpp",
+    "src/HeavyLandingFeature.cpp",
+    "src/RuntimeSettings.cpp",
+    "src/RuntimeSettings.h",
+    "config",
+    "updater"
+  ],
+  "nativeMontageAndEventsRetained": true,
+  "renderOnlyStaticGeyser": true,
+  "curveBearingContextRefused": true,
+  "localBuild": false,
+  "externalRuntimeWrites": false,
+  "localInstall": false,
+  "gameplayValidated": false,
+  "independentReview": {
+    "sourceCommit": "299121174810d71468357e5eb1e708a4c09de96a",
+    "baselineAndRetainedPathsAgree": true,
+    "rejectedRecoverySymbolsAbsent": true,
+    "existingRootHookOnly": true,
+    "pistolIntegrationExact": true,
+    "fullNativeShaderParent": true,
+    "oldUniformCopyAndEmissionSuppressionRemoved": true,
+    "sourceHashes": {
+      "src/GeyserStaticPose.cpp": "c071fdce8a7553826de0193aff9431ffb5ee89d045330c2152ee5f8bd819c712",
+      "src/StoneSkinVisual.cpp": "d38c99269494e84a51b2a1d2404dd660bae7906b70060fd8ec64597513e18d3a",
+      "src/ForeignWrathFeature.cpp": "2f7a73715fdb89fcd3c87429f9cac81b7c2f7bb1455d31313d342bf13b5f0cc5"
+    },
+    "limits": [
+      "No independent capture of persistent jump root cause",
+      "Pure pose fixture is not gameplay jump validation",
+      "Curve-bearing context keeps previous stationary pose",
+      "Native War texture UV masks on Strife remain experimental",
+      "Coop last"
+    ]
+  }
+}
