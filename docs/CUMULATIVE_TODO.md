@@ -1,3 +1,5 @@
+V1.120 delivered: 65/65 GitHub tests, ZIP/updater/Defender controlled; Caltrops source-pose continuity EXPERIMENTAL, not yet user validated. Both half-second Strife animation changes retained. [Receipt](V1_120_DELIVERY_RECEIPT.md).
+
 ## V1.120 Caltrops clarification and visual candidate
 
 - User: body bobs without actual displacement. Native movement/VM guard abandoned; no physical jump fix attempted.

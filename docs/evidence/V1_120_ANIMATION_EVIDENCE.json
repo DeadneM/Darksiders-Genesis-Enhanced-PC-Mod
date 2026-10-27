@@ -1,0 +1,49 @@
+{
+  "userClarification": "mostly body movement without actual displacement",
+  "asset": "WarAnim_Blueprint",
+  "slotField": "AnimGraphNode_Slot_E905C13C481BC22BAA7A96B6C1C1C9C3",
+  "cookedSlot": {
+    "Source": {
+      "LinkID": 160
+    },
+    "SlotName": "TPS:0",
+    "bAlwaysUpdateSourcePose": false
+  },
+  "supportedPriorReadOnlySchema": {
+    "elementSize": 72,
+    "fields": [
+      {
+        "name": "Source",
+        "kind": "StructProperty",
+        "offset": 16,
+        "elementSize": 16,
+        "structAddress": "0x231b6604000",
+        "structName": "PoseLink"
+      },
+      {
+        "name": "SlotName",
+        "kind": "NameProperty",
+        "offset": 32,
+        "elementSize": 8
+      },
+      {
+        "name": "bAlwaysUpdateSourcePose",
+        "kind": "BoolProperty",
+        "offset": 40,
+        "elementSize": 1
+      }
+    ]
+  },
+  "runtimeBoolMetadataMustStillMatch": [
+    1,
+    0,
+    1,
+    255
+  ],
+  "hypothesisNotMeasuredLive": true,
+  "officialSemantics": "https://dev.epicgames.com/documentation/en-us/unreal-engine/python-api/class/AnimNode_Slot?application_version=4.27",
+  "documentationNotUsedAsGameAbi": true,
+  "newHook": false,
+  "physicsChanged": false,
+  "vmGuardIncluded": false
+}

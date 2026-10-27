@@ -1,0 +1,12 @@
+{
+  "runId": 40519850736,
+  "jobId": 122243955679,
+  "sourceCommit": "da6af2537dae1251b51901d5a08318c2b70143d1",
+  "conclusion": "success",
+  "testsPassed": 65,
+  "testSummary": "2026-10-27T14:23:29.4480229Z 100% tests passed out of 65\r",
+  "msvcWarnings": [],
+  "msvcErrors": [],
+  "logsReadVia": "GitHub fetch_workflow_job_logs",
+  "localBuild": false
+}

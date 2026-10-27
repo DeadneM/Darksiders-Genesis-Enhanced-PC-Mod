@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.120_CALTROPS_SOURCE_POSE_TEST.zip",
+  "blobSha": "784748668f8d2fada01305cbf6a91b5ad7b68759",
+  "httpStatus": 200,
+  "sha256": "6F5751F0A0933194F3C2E9CF5A0D0241AEA4F91767AC4ED0B4CD7D1623EB259E",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}
