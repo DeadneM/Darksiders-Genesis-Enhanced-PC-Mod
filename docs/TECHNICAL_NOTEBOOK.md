@@ -1,3 +1,9 @@
+## Retour utilisateur V1.123 - Stoneskin valide, fin Caltrops ouverte
+
+Stoneskin sur Strife (explosion et cendres incluses) et Stoneskin natif sur War : **VALIDES par l'utilisateur dans les essais effectues**. Caltrops War : geste et sortie des pics acceptes, **petit saut final toujours present** sur la video ; reste a corriger. Geyser et les acquis restent inchanges, coop en dernier. Video/logs examines ; la transition native vol/chute est une cause candidate, pas encore mesuree sur cette execution. Aucun nouveau code/ZIP livre pour ce diagnostic. [Analyse et prochaine etape](V1_123_USER_VALIDATION.md).
+
+---
+
 ## V1.123 - Effets Stoneskin et coup de pied Caltrops
 
 **CONSTRUITE / CONTROLEE : [65/65 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40560388902), zero avertissement/erreur MSVC. [ZIP public cumulatif verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/6091b34fdafa759d6b37d75b17ab7ac7cc2b5e97/downloads/DarksidersGenesis_V1.123_STONESKIN_TRANSITIONS_CALTROPS_STOMP_TEST.zip) - [Recu](V1_123_DELIVERY_RECEIPT.md). Updater debug et Defender controles. Installee sur demande avec sauvegarde V1.122 verifiee, INI/PAK conserves ; jeu non lance. Effets Stoneskin et geste Caltrops EXPERIMENTAUX, non valides en jeu. Geyser valide conserve.**

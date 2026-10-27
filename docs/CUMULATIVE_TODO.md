@@ -1,3 +1,10 @@
+## V1.123 user validation after installation
+
+- User VALIDATED Strife Stoneskin including launch/expiry visuals, and native War Stoneskin in tested scenarios. Freeze these paths and Geyser.
+- War Caltrops stomp/burst accepted; terminal small hop still OPEN and visible on attached video. Source flight5 -> falling3 candidate; no latest live motion timing yet.
+- Read-only local War position/mode/pelvis capture prepared; waiting for user readiness. No movement/VM guard, new ASI or diagnostic-only ZIP. Coop last.
+- [Video/log review](V1_123_USER_VALIDATION.md).
+
 V1.123 subsequently installed on explicit user request: verified V1.122 backup, exact payload hashes, personal INI byte-identical, no game launch. Gameplay validation still pending. [Install receipt](evidence/V1_123_INSTALL_CHECK.json).
 
 V1.123 delivered:65/65 GitHub suites, ZIP/updater/Defender controlled. Geyser frozen; Stoneskin launch/expiry and War stomp Caltrops experimental. No local install or gameplay validation. [Receipt](V1_123_DELIVERY_RECEIPT.md).

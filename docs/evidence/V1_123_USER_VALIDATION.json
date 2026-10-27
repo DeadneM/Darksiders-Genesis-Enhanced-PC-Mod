@@ -1,0 +1,59 @@
+{
+  "version": "V1.123",
+  "userReport": {
+    "strifeStoneskin": "validated",
+    "nativeWarStoneskin": "validated",
+    "warCaltrops": "everything accepted except final small hop",
+    "coop": "not tested"
+  },
+  "video": {
+    "name": "ProjectMayhem   2026-10-27 22-56-49.mp4",
+    "sha256": "BD1B9C0FFC0D5A48077015037436C2D8591DD5998D9433B39A54AC1A938960C2",
+    "durationSeconds": 13.85,
+    "size": 121087257,
+    "resolution": [
+      2560,
+      1440
+    ],
+    "examined": true,
+    "endingFramesSeconds": [
+      5.4,
+      6.8
+    ],
+    "observation": "Foot stomp and spike burst precede a brief upward body/pose jerk, followed by a crouched recovery. Video cannot measure actor/capsule position or movement mode."
+  },
+  "logs": {
+    "caltropsCasts": 5,
+    "stompSpawnRequests": 5,
+    "effects": [
+      "[2026-10-27 22:56:08.653] Stoneskin V1.123 launch: native explosion at coating appearance",
+      "[2026-10-27 22:56:18.615] Stoneskin V1.123 expiry: native crumble at complete coating removal",
+      "[2026-10-27 22:56:19.775] Stoneskin V1.123 launch: native explosion at coating appearance"
+    ],
+    "casts": [
+      "[2026-10-27 22:56:30.928] Caltrops V1.123: complete War Stoneskin gesture; native spawner awaits foot stomp; donor coating/actor/blast guards active; no timer or physics/VM write; EXPERIMENTAL",
+      "[2026-10-27 22:56:35.336] Caltrops V1.123: complete War Stoneskin gesture; native spawner awaits foot stomp; donor coating/actor/blast guards active; no timer or physics/VM write; EXPERIMENTAL",
+      "[2026-10-27 22:56:39.314] Caltrops V1.123: complete War Stoneskin gesture; native spawner awaits foot stomp; donor coating/actor/blast guards active; no timer or physics/VM write; EXPERIMENTAL",
+      "[2026-10-27 22:56:52.202] Caltrops V1.123: complete War Stoneskin gesture; native spawner awaits foot stomp; donor coating/actor/blast guards active; no timer or physics/VM write; EXPERIMENTAL",
+      "[2026-10-27 22:56:56.973] Caltrops V1.123: complete War Stoneskin gesture; native spawner awaits foot stomp; donor coating/actor/blast guards active; no timer or physics/VM write; EXPERIMENTAL"
+    ],
+    "stomps": [
+      "[2026-10-27 22:56:31.660] Caltrops V1.123 STOMP: one native spawner on own War pelvis; donor Stoneskin presentation suppressed",
+      "[2026-10-27 22:56:36.084] Caltrops V1.123 STOMP: one native spawner on own War pelvis; donor Stoneskin presentation suppressed",
+      "[2026-10-27 22:56:40.062] Caltrops V1.123 STOMP: one native spawner on own War pelvis; donor Stoneskin presentation suppressed",
+      "[2026-10-27 22:56:52.948] Caltrops V1.123 STOMP: one native spawner on own War pelvis; donor Stoneskin presentation suppressed",
+      "[2026-10-27 22:56:57.722] Caltrops V1.123 STOMP: one native spawner on own War pelvis; donor Stoneskin presentation suppressed"
+    ]
+  },
+  "sourceEvidence": {
+    "onStart": "PlayMontage then flying5",
+    "onFinish": "if locally controlled and mode5 then falling3",
+    "processInterrupt": "SetFalling: falling3 plus0.7*InitialVelocity",
+    "causalStatus": "consistent candidate; latest live mode/position transition not measured"
+  },
+  "codeChanged": false,
+  "newBuild": false,
+  "externalMemoryWrites": false,
+  "nativeCalls": false,
+  "formerRejectedVmGuardAbsent": true
+}
