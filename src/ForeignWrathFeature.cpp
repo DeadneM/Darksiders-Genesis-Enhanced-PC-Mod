@@ -158,7 +158,7 @@ void StonePlay(void* ability,void* montage,float rate,Name section,const local_p
        Read(original,0x94,scale)&&std::isfinite(scale)&&scale>.1f&&scale<10){
         duration/=scale;length=source.length;
         const auto sequence=foreign_montage::CastingSequence(source.sequence,source.skeleton,length);
-        auto* replacement=g_create(reinterpret_cast<void*>(sequence),source.slot,.1f,.18f,1.f,1,-1.f,0.f);
+        auto* replacement=g_create(reinterpret_cast<void*>(sequence),source.slot,.16f,.30f,1.f,1,-1.f,0.f);
         if(!Alive(abi)||!Alive(pawn)||!Read(p,0x48,owner)||owner!=c.character)return;
         const auto copy=reinterpret_cast<uintptr_t>(replacement);
         if(copy&&copy!=original&&Read(copy,0x10,cls)&&Is(cls,"AnimMontage")&&Read(copy,0x38,skeleton)&&skeleton==source.skeleton&&
@@ -182,7 +182,7 @@ void StonePlay(void* ability,void* montage,float rate,Name section,const local_p
     // the actual Strife status lifetime; no borrowed components or timer.
     if(!played){g_stoneFailed=true;g_finish(ability,0);}
     else foreign_montage::StartSounds(original,ability);
-    if(g_log&&g_stoneEvents++<12)g_log(played?"Stoneskin V1.117 CAST: full one-second Aether activation; native status lifetime independent; EXPERIMENTAL":
+    if(g_log&&g_stoneEvents++<12)g_log(played?"Stoneskin V1.118 CAST: one-second Aether activation, softer 0.16/0.30s fades; native status lifetime independent; EXPERIMENTAL":
         "Stoneskin V1.102 stopped: own cast contract unavailable; native finish, transfer disabled for session; select Native");
 }
 

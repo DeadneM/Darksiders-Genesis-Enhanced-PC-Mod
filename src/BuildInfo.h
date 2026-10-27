@@ -1,7 +1,7 @@
 #pragma once
 namespace dg::build {
-inline constexpr int Major=1,Minor=117;
-inline constexpr char Version[]="V1.117";
-inline constexpr char Id[]="1.117-cast-return-mineral-cloth-menu-test";
-inline constexpr char Archive[]="DarksidersGenesis_V1.117_CAST_RETURN_MINERAL_CLOTH_MENU_TEST.zip";
+inline constexpr int Major=1,Minor=118;
+inline constexpr char Version[]="V1.118";
+inline constexpr char Id[]="1.118-smoother-strife-casts-test";
+inline constexpr char Archive[]="DarksidersGenesis_V1.118_SMOOTHER_STRIFE_CASTS_TEST.zip";
 }

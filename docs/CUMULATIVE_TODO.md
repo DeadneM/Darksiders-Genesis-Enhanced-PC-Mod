@@ -1,3 +1,10 @@
+## V1.118 latest user report
+
+- VALIDATED by user: Appearance tab present, War Clone OK; preserve those and earlier Rampage.
+- OPEN: Geyser/Stoneskin a little abrupt; isolated fade/return retune prepared, native gameplay intact.
+- OPEN: Caltrops hop persists; Blueprint flight/fall path identified offline. Proposed VM guard rejected by automatic approval review; no guard implemented. Explicit method approval and further proof required.
+- Library variants/mineral artwork not explicitly validated; P2 deferred. No new keys/hooks/local build/install.
+
 V1.117 delivered: 65/65 GitHub suites, package/updater/Defender controlled; gameplay corrections still EXPERIMENTAL. [Receipt](V1_117_DELIVERY_RECEIPT.md).
 
 ## V1.117 grouped video follow-up

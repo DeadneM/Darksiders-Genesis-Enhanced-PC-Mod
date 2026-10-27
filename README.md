@@ -1,3 +1,15 @@
+## V1.118 - Transitions Geyser / Stoneskin
+
+**PREPAREE / EXPERIMENTALE, NON VALIDEE EN JEU. Compilation et livraison GitHub a verifier.** Base cumulative V1.117. Dernier retour utilisateur : onglet Appearance present et Clone War OK (VALIDES) ; Geyser et Stoneskin un peu trop abrupts ; petit saut de Caltrops toujours present (OUVERT). Les variantes de la bibliotheque et le rendu mineral precis de Strife ne sont pas explicitement valides par ce retour. Rampage reste valide et intact.
+
+Geyser immobile : meme debut a 0.85s, retour visuel etire de 0.50 a 0.65s, fondu progressif sur 0.22s au lieu du fondu lineaire 0.12s. Racine/courbes actives, deplacement et saut inchanges. Stoneskin : meme geste de 1 seconde, transitions d'entree/sortie 0.16/0.30s au lieu de 0.10/0.18s ; effets, cout, duree du statut et restauration inchanges. Aucun autre changement de gameplay ni nouveau hook.
+
+Caltrops : le journal confirme le retour War_Start/End actif. Le Blueprint natif passe ensuite en vol (5), puis chute (3) a la fin ; c'est une cause candidate du petit saut, pas une transition mesuree en direct. Le garde VM propose a ete refuse par le controle d'approbation automatique pour risque de crash/corruption et absence d'accord explicite pour cette methode. Il n'est ni ajoute ni compile. Le jeu etait ferme lors du relevé en lecture seule ; aucun lancement. Caltrops et Clone gardent exactement V1.117. [Diagnostic et proposition a approuver](docs/V1_118_CALTROPS_REVIEW.md).
+
+Compilation GitHub seulement, pas d'installation locale ; INI 212 cles, 55 Hotkeys, anciennes archives et main/archive preserves. [Contrat et tests](docs/V1_118_SMOOTHER_STRIFE_CASTS_TEST.md).
+
+---
+
 ## V1.117 - Retours d'animation, Stoneskin et onglet Appearance
 
 **CONSTRUITE / CONTROLEE : [65/65 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40494010438), zero avertissement/erreur MSVC. [ZIP public cumulatif verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/d5df57ef5cff693e8496e81bcb080baf4faefd3f/downloads/DarksidersGenesis_V1.117_CAST_RETURN_MINERAL_CLOTH_MENU_TEST.zip) - [Recu](docs/V1_117_DELIVERY_RECEIPT.md). Updater debug : V1.117 et octets verifies. Defender ZIP/quatre fichiers : aucune menace detectee, protections actives. Corrections EXPERIMENTALES, a valider en jeu. Rampage conserve, INI/raccourcis inchanges.**

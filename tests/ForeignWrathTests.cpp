@@ -26,7 +26,7 @@ void PlayNative(void* ability,void* montage,float rate,Name){++plays;played=mont
 void FinishNative(void* ability,unsigned char cause){Check(ability==f.ability&&cause==0,"only current cast finishes normally");++finishes;}
 bool PlayingNative(void* instance){Check(instance==f.instance,"own montage instance");return playing;}
 void* CreateNative(void* sequence,Name slot,float in,float out,float rate,int loops,float trigger,float start){
- ++creates;Check(sequence==f.idle&&slot==Name{9,0}&&in==.1f&&out==.18f&&rate==1&&loops==1&&trigger==-1&&start==0,"exact eight-argument native factory on own sequence and slot");
+ ++creates;Check(sequence==f.idle&&slot==Name{9,0}&&in==.16f&&out==.30f&&rate==1&&loops==1&&trigger==-1&&start==0,"exact eight-argument native factory with softer owned Stoneskin fades, one loop and unchanged trigger");
  if(reassign)Put(f.ability,0x48,uintptr_t(0));
  Put(f.replacement,0x10,reinterpret_cast<uintptr_t>(f.classes[4]));Put(f.replacement,0x38,reinterpret_cast<uintptr_t>(f.skeleton));Put(f.replacement,0x90,2.666667f);
  return createOK?f.replacement:nullptr;
