@@ -24,6 +24,7 @@ SoundNotify g_soundNotify=nullptr;LogFn g_log=nullptr;unsigned g_soundEvents=0,g
 bool OpeningSound(uintptr_t notify,float time);
 uintptr_t g_base=0;std::atomic_bool g_ready{false};
 native_objects::Identity g_gestures[2]{};
+native_objects::Identity g_warReturn{};unsigned g_returns=0;
 static_assert(sizeof(Name)==8&&sizeof(Array)==16&&sizeof(Segment)==32);
 template<class T> bool Read(uintptr_t p,size_t offset,T& value){native_objects::MemoryReader r;return r.Read(p,offset,value);}
 template<size_t N> bool Is(uintptr_t p,const char (&text)[N]){return native_objects::NameIs(g_base,p,text);}
@@ -72,6 +73,19 @@ bool Gesture(uintptr_t p,int kind,float& length){
            !Read(at,0x50,state)||state||!Read(at,0x58,duration)||duration||!Read(at,0x24,time)||
            !std::isfinite(time)||std::fabs(time-times[kind][i])>.00001f||
            !(kind==1&&i>0?Is(cls,"AnimNotify_PlayFootstep"):Is(cls,"AnimNotify_PlaySound")))return false;
+    }
+    return true;
+}
+bool WarReturn(uintptr_t p){
+    uintptr_t cls=0,package=0,skeleton=0;float length=0,rate=0;unsigned char root=0;Array tracks{},events{};int first=-1;
+    if(!Read(p,0x10,cls)||!Is(cls,"AnimSequence")||!Is(p,"War_Channel_End")||!Read(p,0x20,package)||
+       !Is(package,"/Game/Characters/Heroes/Hero_War/Animation/War_Channel_End")||!Read(p,0x38,skeleton)||!Is(skeleton,"War_Mesh_Skeleton")||
+       !Read(p,0x90,length)||!std::isfinite(length)||std::fabs(length-.6666666865f)>.00001f||!Read(p,0x94,rate)||rate!=1||!Read(p,0x1A1,root)||root!=1||
+       !List(p,0xB0,tracks,1024)||!tracks.count||!Read(tracks.data,0,first)||first!=0||!List(p,0x80,events,16)||events.count!=2)return false;
+    constexpr float times[]={.2398081571f,.5440219045f};
+    for(int i=0;i<2;++i){const auto at=events.data+size_t(i)*sizeof(Event);uintptr_t notify=0,state=0,owner=0;float time=0,duration=0;
+        if(!Read(at,0x48,notify)||!Read(notify,0x10,cls)||!Is(cls,"AnimNotify_PlayFootstep")||!Read(notify,0x20,owner)||owner!=p||
+           !Read(at,0x50,state)||state||!Read(at,0x58,duration)||duration||!Read(at,0x24,time)||!std::isfinite(time)||std::fabs(time-times[i])>.00001f)return false;
     }
     return true;
 }
@@ -182,7 +196,7 @@ void Initialize(LogFn log,bool exact){
     if(!std::memcmp(reinterpret_cast<void*>(g_base+0x256970),segments,sizeof(segments)))g_reserveSegments=reinterpret_cast<Reserve>(g_base+0x256970);
     constexpr unsigned char sound[]={0x48,0x8B,0xC4,0x55,0x57,0x41,0x56,0x48,0x8D,0x68,0xA1,0x48,0x81,0xEC,0xB0,0x00};
     if(!std::memcmp(reinterpret_cast<void*>(g_base+0x16977D0),sound,sizeof(sound)))g_soundNotify=reinterpret_cast<SoundNotify>(g_base+0x16977D0);
-    g_gestures[0]=g_gestures[1]={};
+    g_gestures[0]=g_gestures[1]={};g_warReturn={};
     g_construct=reinterpret_cast<Construct>(g_base+0xAC57A0);g_package=reinterpret_cast<Package>(g_base+0xA7B1B0);
     g_skeleton=reinterpret_cast<Skeleton>(g_base+0x16C7130);g_reserve=reinterpret_cast<Reserve>(g_base+0x2C42C0);g_ready=true;
     if(log)log(g_soundNotify?"Foreign montage V1.108 READY: private native montages and sound entry verified before shared detours":"Foreign montage V1.108 READY; opening sound boundary unavailable");
@@ -206,6 +220,8 @@ bool SmoothExit(void* live){
 }
 void ObserveSequence(uintptr_t p){
     if(!g_ready||!native_tps::OnGameThread())return;
+    native_objects::MemoryReader returnReader;
+    if(!native_objects::Alive(returnReader,g_base,g_warReturn)&&Is(p,"War_Channel_End")&&WarReturn(p))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(p),g_warReturn);
     const int kind=Is(p,"Strife_Aether_Channel_Start")?0:(Is(p,"War_Channel_Start")?1:-1);
     if(kind<0)return;
     native_objects::MemoryReader reader;
@@ -215,7 +231,7 @@ void ObserveSequence(uintptr_t p){
 }
 bool GesturesReady(){
     native_objects::MemoryReader reader;
-    return native_objects::Alive(reader,g_base,g_gestures[0])&&native_objects::Alive(reader,g_base,g_gestures[1]);
+    return native_objects::Alive(reader,g_base,g_gestures[0])&&native_objects::Alive(reader,g_base,g_gestures[1])&&native_objects::Alive(reader,g_base,g_warReturn);
 }
 uintptr_t CastingSequence(uintptr_t fallback,uintptr_t skeleton,float& length){
     if(!g_ready||!native_tps::OnGameThread())return fallback;
@@ -225,6 +241,28 @@ uintptr_t CastingSequence(uintptr_t fallback,uintptr_t skeleton,float& length){
            Read(g_gestures[i].address,0x38,actual)&&actual==skeleton){length=duration;return g_gestures[i].address;}
     }
     return fallback;
+}
+bool CompleteGroundCast(void* live,uintptr_t skeleton,float returnSeconds){
+    native_objects::MemoryReader reader;const auto montage=reinterpret_cast<uintptr_t>(live);
+    uintptr_t cls=0,actual=0;uint32_t flags=0;float startLength=0,endLength=0,total=0;Array tracks{},segments{},sections{};Segment start{};Name slot{};
+    if(!g_ready||!native_tps::OnGameThread()||!g_reserveSegments||!std::isfinite(returnSeconds)||returnSeconds<.15f||returnSeconds>1||
+       !native_objects::Alive(reader,g_base,g_warReturn)||!WarReturn(g_warReturn.address)||!Is(skeleton,"War_Mesh_Skeleton")||
+       !Read(g_warReturn.address,0x38,actual)||actual!=skeleton||!Read(g_warReturn.address,0x90,endLength)||
+       !native_objects::Alive(reader,g_base,g_gestures[1])||!Read(montage,8,flags)||(flags&0x30u)||!(flags&0x40u)||
+       !Read(montage,0x10,cls)||!Is(cls,"AnimMontage")||!Read(montage,0x38,actual)||actual!=skeleton||
+       !Read(montage,0x90,startLength)||!std::isfinite(startLength)||std::fabs(startLength-.5666666627f)>.00001f||!List(montage,0x158,tracks,4)||tracks.count!=1||
+       !Read(tracks.data,0,slot)||!native_objects::NameValueIs(g_base,slot.index,slot.number,"TPS")||!List(tracks.data,8,segments,4)||segments.count!=1||
+       !Read(segments.data,0,start)||start.sequence!=g_gestures[1].address||start.start!=0||start.first!=0||start.last!=startLength||start.rate!=1||start.loops!=1||!start.valid||
+       !List(montage,0x148,sections,4)||sections.count!=1||!Writable(montage+0x90,4)||!Writable(tracks.data+0x10,4))return false;
+    total=startLength+returnSeconds;
+    // Only a private native-owned array grows; the existing first segment,
+    // callbacks/sounds and all interruption/control state remain unchanged.
+    g_reserveSegments(reinterpret_cast<void*>(tracks.data+8),2);
+    Array storage{};if(!List(tracks.data,8,storage,4)||storage.capacity<2||!Writable(storage.data,2*sizeof(Segment)))return false;
+    Segment finish{g_warReturn.address,startLength,0,endLength,endLength/returnSeconds,1,1,{}};
+    if(!Store(storage.data,0,start)||!Store(storage.data,sizeof(Segment),finish)||!Store(montage,0x90,total)||!Store(tracks.data,0x10,2))return false;
+    if(g_log&&g_returns++<8)g_log("War cast V1.117: native Start/End pair; existing callback times retained, grounded return added; EXPERIMENTAL");
+    return true;
 }
 bool CanBuild(const Source& source){
     float length=0;uintptr_t cls=0;
@@ -473,7 +511,11 @@ void* Retarget(uintptr_t original,const Source& source,bool beam){
     return created;
 }
 }
-void* Compatible(uintptr_t original,const Source& source){return Retarget(original,source,false);}
+void* Compatible(uintptr_t original,const Source& source){
+    auto* result=Retarget(original,source,false);
+    if(result)CompleteGroundCast(result,source.skeleton,.55f);
+    return result;
+}
 void* WorldEnder(uintptr_t original,const Source& source){return Retarget(original,source,true);}
 namespace {
 struct MotionLayout {uintptr_t cls=0;Array tracks{},segments{},sections{},events{},markers{},states{};};

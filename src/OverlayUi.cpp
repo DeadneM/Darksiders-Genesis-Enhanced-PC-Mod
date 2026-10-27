@@ -265,85 +265,6 @@ void Draw(Context& c) {
                 aimShaders.hooksReady ? "Ready" : "Unavailable",aimShaders.blockedDraws);
             ImGui::Unindent(12.0f);
             }
-            if(ImGui::CollapsingHeader("Appearance")){
-            ImGui::Indent(12.0f);
-            constexpr const char* pistolModels[]={"Native (original for this hand)","Right pistol model","Left pistol model","OFF (experimental)"};
-            const auto pistolChoice=[&](const char* label,int& value){
-                ImGui::SetNextItemWidth(280.0f);
-                if(ImGui::BeginCombo(label,pistolModels[(value>=0&&value<=3)?value:0])){
-                    for(int i=0;i<4;++i){
-                        ImGui::BeginDisabled(i==3&&!pistol_visual::Ready());
-                        if(ImGui::Selectable(pistolModels[i],value==i)){value=i;config.Save();}
-                        if(value==i)ImGui::SetItemDefaultFocus();
-                        ImGui::EndDisabled();
-                    }
-                    ImGui::EndCombo();
-                }
-            };
-            ImGui::BeginDisabled(!mounted_holsters::Ready());
-            pistolChoice("Strife right hand##PistolModel",config.pistolRightModel);
-            pistolChoice("Strife left hand##PistolModel",config.pistolLeftModel);
-            ImGui::EndDisabled();
-            ImGui::TextWrapped("Choose either existing pistol independently for each hand, for both local players. Mounted holsters use the matching stowed model. Native restores that hand's previous model. Experimental: check grip alignment and firing effects.");
-            if(config.pistolRightModel==3||config.pistolLeftModel==3){
-                ImGui::TextWrapped("OFF hides this pistol and its foot holster. On foot, its arm uses native unarmed idle/walk/run animation while aiming or shooting. Melee, powers and other actions keep their native animations. Shooting remains active. Mounted hand and stowed models are also hidden; mounted arms, mounted leather holsters and Ultimate remain native. Shared effects stay with one visible pistol.");
-                if(!pistol_visual::Ready())ImGui::TextDisabled("OFF unavailable for this executable; native presentation retained.");
-                else ImGui::TextDisabled("Animated OFF arm: P1 %s | P2 %s (while aiming/firing)",pistol_visual::PoseReady(0)?"active":"native / waiting",pistol_visual::PoseReady(1)?"active":"native / waiting");
-            }
-            constexpr const char* warArms[]={"Native","Basic","Augmented"};
-            constexpr const char* reticles[]={"Vanilla","Hide in TPS","Hide in normal view","Hide in both views"};
-            ImGui::BeginDisabled(!presentation::Ready());ImGui::SetNextItemWidth(280.0f);
-            if(ImGui::Combo("War arm appearance",&config.warArmAppearance,warArms,3))config.Save();
-            ImGui::TextWrapped("Visual arm variant only, normal War on foot, both local players. Does not grant the Tremor Gauntlet or change equipment. Armor that replaces child meshes keeps its native appearance. Native restores the game's choice.");
-            ImGui::SetNextItemWidth(280.0f);
-            if(ImGui::Combo("Mouse reticle",&config.mouseReticleHideMode,reticles,4))config.Save();
-            ImGui::EndDisabled();
-            ImGui::TextWrapped("Hide the gameplay mouse crosshair in the selected view. Native menus, wheels and the mod menu keep their cursors. Mouse movement, aiming and controller inputs stay unchanged. Vanilla is the default.");
-            constexpr const char* bladeModes[]={"Native","Hide left blade","Hide right blade","Hide both blades"};
-            ImGui::BeginDisabled(!pistol_visual::Ready());ImGui::SetNextItemWidth(280.0f);
-            if(ImGui::Combo("Strife melee blades",&config.strifeBladeVisibility,bladeModes,4))config.Save();
-            ImGui::EndDisabled();
-            ImGui::TextWrapped("Hide each melee blade model independently. Attacks, damage, hand animations and weapon sheathing stay native. Both local players; normal Strife only.");
-            DrawToggleFeature(config,"Bonus mount skins (experimental)","BonusMountSkins",&config.bonusMountSkinsEnabled,
-                "Makes Rampage (War) and Despair (Strife) available in the game's Skins page without the optional PAK. A bonus mount already selected stays equipped when loading, even with this option OFF, like armor skins. The native mount remains selectable. No automatic equip. OFF restores native menu availability; a PAK or an existing unlock can still keep them available.",cosmetics::Ready());
-            if(!cosmetics::SelectionRetentionReady())
-                ImGui::TextDisabled("Keeping mount selection on load is unavailable in this session.");
-            DrawToggleFeature(config,"Progression skins (experimental)","ProgressionSkins",&config.progressionSkinsEnabled,
-                "Separately makes Abyssal, Silver and Gold appearances available for War and Strife in the game's Skins page. Cosmetic availability only: no quests, armor pieces, stats or achievements granted. OFF restores native availability; choose an owned skin before disabling. Native skin selection may remember your equipped appearance.",cosmetics::Ready());
-
-            if(ImGui::CollapsingHeader("Effect appearances (experimental)")){
-                ImGui::Indent(12.0f);
-                ImGui::TextWrapped("Visual effects only. Native keeps the game and equipped cores. Alternatives change new emitted effects; Hidden keeps their native lifetime and hides their rendering. Models, materials, damage, cost and controls stay native. Some single-look families offer Native/Hidden only.");
-                constexpr const char* categories[]={"Tools","Powers","Strife ammunition","War weapons","Mounts and forms","Creature cores","Other effects"};
-                for(const auto* category:categories)if(ImGui::CollapsingHeader(category)){
-                    ImGui::Indent(12.0f);ImGui::BeginDisabled(!effect_appearance::Ready());
-                    for(unsigned family=0;family<effect_appearance::FamilyCount;++family){const auto& info=effect_appearance::Families[family];
-                        if(std::strcmp(category,info.category))continue;ImGui::PushID(int(family));ImGui::SetNextItemWidth(260.0f);
-                        if(ImGui::Combo(info.label,&config.effectAppearances[family],info.choices.data(),int(info.count)))config.Save();
-                        const int choice=effect_appearance::Normalize(family,config.effectAppearances[family]);
-                        if(choice&&!(effect_appearance::LoadedMask(family)&(1u<<choice)))ImGui::TextColored(ImVec4(1,.85f,.25f,1),"Effect assets not ready: native appearance retained.");
-                        ImGui::PopID();
-                    }
-                    ImGui::EndDisabled();ImGui::Unindent(12.0f);
-                }
-                ImGui::TextWrapped("Loaded assets only: no synchronous loading. Existing emitters may keep their previous appearance until the next use. Stoneskin here changes particles, not the body coating. Leviathan keeps its dedicated option below. Checkpoint/armor/model choices stay in their existing controls.");
-                ImGui::Unindent(12.0f);
-            }
-
-            DrawToggleFeature(config,"Override Leviathan lightning (experimental)","LeviathanVisual",&config.leviathanVisualEnabled,
-                "Visual only, for both local players. Select OFF or one of the three native lightning effects without granting the core, its stats or its status effect. Uncheck to restore native visuals. Requires the chosen effect asset to be loaded; otherwise leaves native lightning unchanged. Test foot, mount and Ultimate transitions.",leviathan_visual::Ready());
-            if(config.leviathanVisualEnabled){
-                constexpr const char* effects[]={"OFF (hide Leviathan lightning)","Effect 1","Effect 2","Effect 3"};
-                ImGui::BeginDisabled(!leviathan_visual::Ready());ImGui::SetNextItemWidth(280.0f);
-                if(ImGui::Combo("Leviathan effect",&config.leviathanVisualMode,effects,4))config.Save();
-                ImGui::EndDisabled();
-                if(config.leviathanVisualMode>0&&config.leviathanVisualMode<=3&&
-                   !(leviathan_visual::LoadedMask()&(1u<<unsigned(config.leviathanVisualMode-1))))
-                    ImGui::TextColored(ImVec4(1,.85f,.25f,1),"Selected effect unavailable here; native visual retained. Change selection or re-enable to retry.");
-            }
-
-            ImGui::Unindent(12.0f);
-            }
             if(ImGui::CollapsingHeader("Aim without firing")){
                 ImGui::Indent(12.0f);ImGui::PushID("ManualAimBindings");
                 ImGui::BeginDisabled(!manual_aim::Ready());
@@ -907,6 +828,88 @@ void Draw(Context& c) {
             ImGui::Unindent(12.0f);
             }
 
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("Appearance")) {
+            ImGui::TextWrapped("Choose ability, weapon, mount and core effects below. Model and armor controls follow the effect library.");
+            ImGui::PushID("AppearanceTab");
+            if(ImGui::CollapsingHeader("Effect appearances (experimental)")){
+                ImGui::Indent(12.0f);
+                ImGui::TextWrapped("Visual effects only. Native keeps the game and equipped cores. Alternatives change new emitted effects; Hidden keeps their native lifetime and hides their rendering. Models, materials, damage, cost and controls stay native. Some single-look families offer Native/Hidden only.");
+                constexpr const char* categories[]={"Tools","Powers","Strife ammunition","War weapons","Mounts and forms","Creature cores","Other effects"};
+                for(const auto* category:categories)if(ImGui::CollapsingHeader(category)){
+                    ImGui::Indent(12.0f);ImGui::BeginDisabled(!effect_appearance::Ready());
+                    for(unsigned family=0;family<effect_appearance::FamilyCount;++family){const auto& info=effect_appearance::Families[family];
+                        if(std::strcmp(category,info.category))continue;ImGui::PushID(int(family));ImGui::SetNextItemWidth(260.0f);
+                        if(ImGui::Combo(info.label,&config.effectAppearances[family],info.choices.data(),int(info.count)))config.Save();
+                        const int choice=effect_appearance::Normalize(family,config.effectAppearances[family]);
+                        if(choice&&!(effect_appearance::LoadedMask(family)&(1u<<choice)))ImGui::TextColored(ImVec4(1,.85f,.25f,1),"Effect assets not ready: native appearance retained.");
+                        ImGui::PopID();
+                    }
+                    ImGui::EndDisabled();ImGui::Unindent(12.0f);
+                }
+                ImGui::TextWrapped("Loaded assets only: no synchronous loading. Existing emitters may keep their previous appearance until the next use. Stoneskin here changes particles, not the body coating. Leviathan keeps its dedicated option below. Checkpoint/armor/model choices stay in their existing controls.");
+                ImGui::Unindent(12.0f);
+            }
+
+            constexpr const char* pistolModels[]={"Native (original for this hand)","Right pistol model","Left pistol model","OFF (experimental)"};
+            const auto pistolChoice=[&](const char* label,int& value){
+                ImGui::SetNextItemWidth(280.0f);
+                if(ImGui::BeginCombo(label,pistolModels[(value>=0&&value<=3)?value:0])){
+                    for(int i=0;i<4;++i){
+                        ImGui::BeginDisabled(i==3&&!pistol_visual::Ready());
+                        if(ImGui::Selectable(pistolModels[i],value==i)){value=i;config.Save();}
+                        if(value==i)ImGui::SetItemDefaultFocus();
+                        ImGui::EndDisabled();
+                    }
+                    ImGui::EndCombo();
+                }
+            };
+            ImGui::BeginDisabled(!mounted_holsters::Ready());
+            pistolChoice("Strife right hand##PistolModel",config.pistolRightModel);
+            pistolChoice("Strife left hand##PistolModel",config.pistolLeftModel);
+            ImGui::EndDisabled();
+            ImGui::TextWrapped("Choose either existing pistol independently for each hand, for both local players. Mounted holsters use the matching stowed model. Native restores that hand's previous model. Experimental: check grip alignment and firing effects.");
+            if(config.pistolRightModel==3||config.pistolLeftModel==3){
+                ImGui::TextWrapped("OFF hides this pistol and its foot holster. On foot, its arm uses native unarmed idle/walk/run animation while aiming or shooting. Melee, powers and other actions keep their native animations. Shooting remains active. Mounted hand and stowed models are also hidden; mounted arms, mounted leather holsters and Ultimate remain native. Shared effects stay with one visible pistol.");
+                if(!pistol_visual::Ready())ImGui::TextDisabled("OFF unavailable for this executable; native presentation retained.");
+                else ImGui::TextDisabled("Animated OFF arm: P1 %s | P2 %s (while aiming/firing)",pistol_visual::PoseReady(0)?"active":"native / waiting",pistol_visual::PoseReady(1)?"active":"native / waiting");
+            }
+            constexpr const char* warArms[]={"Native","Basic","Augmented"};
+            constexpr const char* reticles[]={"Vanilla","Hide in TPS","Hide in normal view","Hide in both views"};
+            ImGui::BeginDisabled(!presentation::Ready());ImGui::SetNextItemWidth(280.0f);
+            if(ImGui::Combo("War arm appearance",&config.warArmAppearance,warArms,3))config.Save();
+            ImGui::TextWrapped("Visual arm variant only, normal War on foot, both local players. Does not grant the Tremor Gauntlet or change equipment. Armor that replaces child meshes keeps its native appearance. Native restores the game's choice.");
+            ImGui::SetNextItemWidth(280.0f);
+            if(ImGui::Combo("Mouse reticle",&config.mouseReticleHideMode,reticles,4))config.Save();
+            ImGui::EndDisabled();
+            ImGui::TextWrapped("Hide the gameplay mouse crosshair in the selected view. Native menus, wheels and the mod menu keep their cursors. Mouse movement, aiming and controller inputs stay unchanged. Vanilla is the default.");
+            constexpr const char* bladeModes[]={"Native","Hide left blade","Hide right blade","Hide both blades"};
+            ImGui::BeginDisabled(!pistol_visual::Ready());ImGui::SetNextItemWidth(280.0f);
+            if(ImGui::Combo("Strife melee blades",&config.strifeBladeVisibility,bladeModes,4))config.Save();
+            ImGui::EndDisabled();
+            ImGui::TextWrapped("Hide each melee blade model independently. Attacks, damage, hand animations and weapon sheathing stay native. Both local players; normal Strife only.");
+            DrawToggleFeature(config,"Bonus mount skins (experimental)","BonusMountSkins",&config.bonusMountSkinsEnabled,
+                "Makes Rampage (War) and Despair (Strife) available in the game's Skins page without the optional PAK. A bonus mount already selected stays equipped when loading, even with this option OFF, like armor skins. The native mount remains selectable. No automatic equip. OFF restores native menu availability; a PAK or an existing unlock can still keep them available.",cosmetics::Ready());
+            if(!cosmetics::SelectionRetentionReady())
+                ImGui::TextDisabled("Keeping mount selection on load is unavailable in this session.");
+            DrawToggleFeature(config,"Progression skins (experimental)","ProgressionSkins",&config.progressionSkinsEnabled,
+                "Separately makes Abyssal, Silver and Gold appearances available for War and Strife in the game's Skins page. Cosmetic availability only: no quests, armor pieces, stats or achievements granted. OFF restores native availability; choose an owned skin before disabling. Native skin selection may remember your equipped appearance.",cosmetics::Ready());
+
+            DrawToggleFeature(config,"Override Leviathan lightning (experimental)","LeviathanVisual",&config.leviathanVisualEnabled,
+                "Visual only, for both local players. Select OFF or one of the three native lightning effects without granting the core, its stats or its status effect. Uncheck to restore native visuals. Requires the chosen effect asset to be loaded; otherwise leaves native lightning unchanged. Test foot, mount and Ultimate transitions.",leviathan_visual::Ready());
+            if(config.leviathanVisualEnabled){
+                constexpr const char* effects[]={"OFF (hide Leviathan lightning)","Effect 1","Effect 2","Effect 3"};
+                ImGui::BeginDisabled(!leviathan_visual::Ready());ImGui::SetNextItemWidth(280.0f);
+                if(ImGui::Combo("Leviathan effect",&config.leviathanVisualMode,effects,4))config.Save();
+                ImGui::EndDisabled();
+                if(config.leviathanVisualMode>0&&config.leviathanVisualMode<=3&&
+                   !(leviathan_visual::LoadedMask()&(1u<<unsigned(config.leviathanVisualMode-1))))
+                    ImGui::TextColored(ImVec4(1,.85f,.25f,1),"Selected effect unavailable here; native visual retained. Change selection or re-enable to retry.");
+            }
+
+            ImGui::PopID();
             ImGui::EndTabItem();
         }
 

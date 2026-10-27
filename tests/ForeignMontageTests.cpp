@@ -60,7 +60,7 @@ void* ConstructNative(void* cls,void* outer,Name name,uint32_t flags,uint32_t in
     return f.copy;
 }
 void Fresh(){
-    f={};entries[0][12]=0;gameThread=true;mode=0;constructors=skeletonCalls=reserves=0;g_reserveSegments=nullptr;g_ready=true;g_gestures[0]=g_gestures[1]={};
+    f={};entries[0][12]=0;gameThread=true;mode=0;constructors=skeletonCalls=reserves=0;g_reserveSegments=nullptr;g_ready=true;g_gestures[0]=g_gestures[1]={};g_warReturn={};
     g_construct=ConstructNative;g_package=PackageNative;g_skeleton=SkeletonNative;g_reserve=ReserveNative;
     const char* labels[]={"AnimMontage","Class","AnimSequence","Skeleton","Package","AnimNotify_CallAbilityFunction","AnimNotify_PlayParticleEffect","AnimNotify_PlaySound"};
     const unsigned ids[]={1,2,3,4,5,6,17,18};for(unsigned i=0;i<8;++i)Label(f.classes[i],ids[i],labels[i]);

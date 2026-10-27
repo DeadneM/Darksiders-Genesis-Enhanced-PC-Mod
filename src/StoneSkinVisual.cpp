@@ -76,6 +76,20 @@ int Surface(uintptr_t asset,unsigned index,uintptr_t& original){
        native_objects::NameValueIs(g_base,slot.index,slot.number,"Strife_Cloth_ncl1_1"))return 1;
     return -1;
 }
+bool MineralBody(uintptr_t material,uintptr_t source){
+    const auto f=Function(material,"SetScalarParameterValue",0x1D97290);int at=-1;Array values{};unsigned found=0;
+    if(!f||!Parameter(f,"ParameterName","NameProperty",8,0)||!Parameter(f,"Value","FloatProperty",4,8)||
+       !Field(source,"ScalarParameterValues","ArrayProperty",16,at)||!List(source,at,values,64))return false;
+    for(int i=0;i<values.count;++i){foreign_wrath::Name name{};int association=-1,index=0;const auto p=values.data+size_t(i)*36;
+        if(!Read(p,0,name)||!Read(p,8,association)||!Read(p,12,index)||association!=2||index!=-1)continue;
+        const unsigned bit=native_objects::NameValueIs(g_base,name.index,name.number,"Emissive_Power_Base")?1u:
+            (native_objects::NameValueIs(g_base,name.index,name.number,"Emissive_Power_Scroll")?2u:0u);
+        if(!bit)continue;
+        struct Args {foreign_wrath::Name name{};float value=0;int pad=0;} args{name};
+        g_event(reinterpret_cast<void*>(material),reinterpret_cast<void*>(f),&args);found|=bit;
+    }
+    return found==3;
+}
 void Restore(Visual& v){
     uintptr_t owner=0,asset=0;int at=-1;
     if(g_event&&Alive(v.actor)&&Alive(v.mesh)&&Read(v.mesh.address,0xE8,owner)&&owner==v.actor.address){
@@ -157,16 +171,20 @@ void Observe(const local_players::Context& c){
         g_event(reinterpret_cast<void*>(mesh),reinterpret_cast<void*>(f),&args);
         Id original{};if(!args.result||!Capture(args.result,original))continue;
         if(args.result!=nativeOriginal){slot.failed=true;slot.observed=current;continue;}
-        const auto source=g_materials[variant][surface].address;
+        // War's UV emissive masks illuminate the wrong regions on Strife.
+        // Body/gear use the mineral base shader without its private glow;
+        // cloth retains the native base/Molten shader and its fire.
+        const auto source=g_materials[surface==0?0:variant][surface].address;
         const auto mid=Create(mesh,int(i),source);uintptr_t parent=0;int parentAt=-1;Id identity{};
-        if(!mid||mid==source||!Field(mid,"Parent","ObjectProperty",8,parentAt)||!Read(mid,parentAt,parent)||parent!=source||!Capture(mid,identity)){
+        if(!mid||mid==source||!Field(mid,"Parent","ObjectProperty",8,parentAt)||!Read(mid,parentAt,parent)||parent!=source||!Capture(mid,identity)||
+           (surface==0&&!MineralBody(mid,source))){
             // Factory may install its source or MID before validation.
             uintptr_t now=0;if(Override(mesh,int(i),now)&&((mid&&now==mid)||now==source))Set(mesh,int(i),current);
             slot.failed=true;slot.observed=current;
             continue;
         }
         slot={identity,original,current==0};
-        if(g_log&&g_events++<8)g_log("Stoneskin V1.114 visual: private native A/B body/cloth shader, base/Molten fire switches intact; status-owned lifetime; EXPERIMENTAL UV fit");
+        if(g_log&&g_events++<8)g_log("Stoneskin V1.117 visual: mineral body/gear, native fire on cloth only; private MIDs and status-owned restoration; EXPERIMENTAL UV fit");
     }
 }
 void Shutdown(){

@@ -1,3 +1,12 @@
+## V1.117 grouped video follow-up
+
+- User-validated: Strife Rampage perfect, preserve. Prior accepted camera/controls and War World Ender retained.
+- OPEN: Geyser static tail (V116 refused curve-bearing output); new private native pose/curve return prepared, gameplay untouched.
+- OPEN: Strife Stoneskin too short and body too fiery; 1s activation / mineral body / native cloth prepared, full expiry restoration retained.
+- OPEN: War Caltrops end hop / Clone gesture too short; private native channel return prepared.
+- User could see NO new appearance choices. Existing 43-group library moved into direct Appearance tab; variants still unvalidated, no renderer expansion.
+- 212 INI keys/55 Hotkey IDs unchanged. Github-only build, no local install/launch. Coop remains last.
+
 ## V1.116 shared appearance library
 
 - User requests all remaining families: 43 groups / 451 native particles / 98 roles prepared; runtime validation pending.

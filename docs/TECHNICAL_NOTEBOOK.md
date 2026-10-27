@@ -1,3 +1,15 @@
+## V1.117 - Retours d'animation, Stoneskin et onglet Appearance
+
+**PREPAREE / EXPERIMENTALE, NON VALIDEE EN JEU. Compilation et livraison GitHub a verifier.** Base cumulative V1.116 ; acquis de gameplay retenus V1.112 et validations suivantes. Retour video du 27/10 : Rampage sur Strife parfait, conserve sans changement. Geyser immobile garde une pose apres les pics, Stoneskin trop court et trop en feu, Clone War trop court, Caltrops War fait un bref saut. L'utilisateur confirme ne voir aucun nouveau choix d'apparence ; aucune variante V1.116 n'est donc annoncee validee.
+
+Nouvel onglet **Appearance**, visible directement entre Gameplay et Camera : ouvrir **Effect appearances (experimental)** puis Tools / Powers / Strife ammunition / etc. Les groupes restent fermes par defaut. Les 43 groupes / 451 effets natifs sont conserves ; aucun nouveau skin invente. Models/armures/reticule/Leviathan sont regroupes dans ce meme onglet. [Catalogue des choix](V1_116_EFFECT_LIBRARY_CATALOG.md).
+
+Geyser : retour visuel seulement a l'arret, avec contexte natif prive pour les os et courbes ; le journal V1.116 montrait que les contextes avec courbes etaient refuses. Mouvement/saut/racine/courbes actives et fin native du pouvoir restent intacts. Stoneskin : activation propre de Strife portee de 0.75 a 1 seconde ; corps/gear mineral sans emission uniforme, tissu garde son materiau de feu. Clone/Caltrops sur War : retour natif War_Channel_End ajoute au geste War_Channel_Start, 0.55 / 0.30 seconde ; effets/sons/callbacks existants conserves. Le resultat visuel exact attend l'essai en jeu.
+
+Pas de compilation/installation locale, lancement ni ecriture dans le jeu. INI 212 cles et 55 Hotkeys inchanges. [Contrat, preuves video, criteres et rollback](V1_117_CAST_RETURN_MINERAL_CLOTH_MENU_TEST.md).
+
+---
+
 ## V1.116 - Bibliotheque des effets natifs
 
 **CONSTRUITE / CONTROLEE : [64/64 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40473336773), zero avertissement/erreur MSVC. [ZIP public cumulatif verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/22f011465c0b1eb69bf068a55a4b0fdb3e66e341/downloads/DarksidersGenesis_V1.116_NATIVE_EFFECT_LIBRARY_TEST.zip) - [Recu](V1_116_DELIVERY_RECEIPT.md). Updater debug V1.116 : selection et octets verifies. Defender ZIP/quatre fichiers : aucune menace detectee, protections actives. Bibliotheque EXPERIMENTALE, NON VALIDEE EN JEU ; V1.114/115 restent en attente du retour utilisateur.**

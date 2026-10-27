@@ -13,6 +13,9 @@ bool CanBuild(const Source&);
 void ObserveSequence(uintptr_t object);
 bool GesturesReady();
 uintptr_t CastingSequence(uintptr_t fallback,uintptr_t skeleton,float& length);
+// Private War Clone/Caltrops casts only; append the native grounded return.
+// Missing return leaves the previous valid cast intact.
+bool CompleteGroundCast(void* privateMontage,uintptr_t skeleton,float returnSeconds);
 // NewObject with the source as template: only private, non-aliased native
 // arrays are edited. The engine owns allocation, notify timing and cleanup.
 void* Geyser(uintptr_t nativeMontage,const Source&);

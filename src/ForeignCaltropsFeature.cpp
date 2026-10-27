@@ -123,6 +123,7 @@ bool HandlePlay(PlayFn native,void* ability,void* montage,float rate,Name sectio
        !Read(clone,0x90,length)||!std::isfinite(length)||std::fabs(length-source.length)>.001f){Stop(ability);return true;}
     const float adjusted=rate*(source.sequence==g_idle.address?length/duration:1.f); // own gesture at native speed; accepted idle fallback
     if(!std::isfinite(adjusted)||adjusted<=.01f||adjusted>=100){Stop(ability);return true;}
+    foreign_montage::CompleteGroundCast(replacement,source.skeleton,.30f);
     foreign_montage::CopyLaterSounds(reinterpret_cast<uintptr_t>(montage),replacement);
     native(ability,replacement,adjusted,section);
     uintptr_t instance=0;

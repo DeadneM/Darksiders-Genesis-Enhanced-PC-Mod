@@ -128,6 +128,7 @@ void Run(){
 }
 }
 namespace dg::foreign_montage {
+bool CompleteGroundCast(void*,uintptr_t,float){return false;}
 void StartSounds(uintptr_t,void*){}bool CopyLaterSounds(uintptr_t,void*){return true;}uintptr_t CastingSequence(uintptr_t fallback,uintptr_t,float& length){if(gesture){length=.5666666627f;return reinterpret_cast<uintptr_t>(f.strifeSkeleton);}return fallback;}}
 namespace dg::native_tps {bool OnGameThread(){return gameThread;}}
 namespace dg::local_players {bool ResolveActor(void* actor,Context& c){c=owner;return local&&reinterpret_cast<uintptr_t>(actor)==owner.character;}}

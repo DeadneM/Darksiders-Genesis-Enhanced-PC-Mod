@@ -12,8 +12,10 @@ struct Array {uintptr_t data=0;int count=0,capacity=0;};
 struct Vector {float x=0,y=0,z=0;};
 struct Extract {bool root=true;unsigned char pad[3]{};float time=0;};
 using Sample=void(*)(void*,pistol_visual::CompactPose*,pistol_visual::Curve*,const Extract*);
-Sample g_sample=nullptr;uintptr_t g_base=0;Id g_return{};std::atomic_uint g_mask{0};SRWLOCK g_lock=SRWLOCK_INIT;
-foreign_wrath::LogFn g_log=nullptr;std::atomic_uint g_samples{0},g_curveSkips{0};
+using InitContext=void(*)(pistol_visual::PoseContext*);
+Sample g_sample=nullptr;InitContext g_initContext=nullptr;uintptr_t g_base=0;Id g_return{};std::atomic_uint g_mask{0};SRWLOCK g_lock=SRWLOCK_INIT;
+foreign_wrath::LogFn g_log=nullptr;std::atomic_uint g_samples{0};
+constexpr float ReturnStart=.85f,ReturnSpan=.50f,ReturnBlend=.12f;
 struct Visual {Id actor{},ability{},mesh{},anim{},skeleton{},montage{},movement{};uintptr_t world=0;int input=-1,lastInput=-1,velocity=-1,acceleration=-1;float position=0,weight=0;uint64_t tick=0;};
 Visual g_players[2]{};
 template<class T>bool Read(uintptr_t p,size_t at,T& out){native_objects::MemoryReader r;return r.Read(p,at,out);}
@@ -29,7 +31,11 @@ void Clear(int index){AcquireSRWLockExclusive(&g_lock);g_players[index]={};g_mas
 void Initialize(foreign_wrath::LogFn log,bool exact){
     g_log=log;if(!exact)return;g_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     constexpr unsigned char sample[]={0x48,0x89,0x74,0x24,0x18,0x48,0x89,0x7C,0x24,0x20,0x55,0x41,0x54,0x41,0x56,0x48};
-    if(!std::memcmp(reinterpret_cast<void*>(g_base+0x1690BD0),sample,sizeof(sample)))g_sample=reinterpret_cast<Sample>(g_base+0x1690BD0);
+    constexpr unsigned char context[]={0x48,0x89,0x5C,0x24,0x08,0x48,0x89,0x74,0x24,0x10,0x48,0x89,0x7C,0x24,0x18};
+    if(!std::memcmp(reinterpret_cast<void*>(g_base+0x1690BD0),sample,sizeof(sample))&&
+       !std::memcmp(reinterpret_cast<void*>(g_base+0x1694890),context,sizeof(context))){
+        g_sample=reinterpret_cast<Sample>(g_base+0x1690BD0);g_initContext=reinterpret_cast<InitContext>(g_base+0x1694890);
+    }
 }
 void ObserveSequence(uintptr_t p){
     if(!g_sample||!native_tps::OnGameThread()||Alive(g_return))return;
@@ -67,11 +73,11 @@ void Observe(const local_players::Context& c){
     // direction against a wall is movement intent too, even with zero speed.
     if(!Read(v.movement.address,0x1B0,mode)||mode!=1||!Still(c.character,v.input,.000001f)||!Still(c.character,v.lastInput,.000001f)||
        !Still(v.movement.address,v.velocity,1)||!Still(v.movement.address,v.acceleration,1))v.weight=0;
-    v.weight=std::clamp(v.weight,0.f,1.f)*std::clamp((v.position-1.f)/.18f,0.f,1.f);v.tick=GetTickCount64();
+    v.weight=std::clamp(v.weight,0.f,1.f)*std::clamp((v.position-ReturnStart)/ReturnBlend,0.f,1.f);v.tick=GetTickCount64();
     AcquireSRWLockExclusive(&g_lock);g_players[c.index]=v;ReleaseSRWLockExclusive(&g_lock);
 }
 bool Evaluate(void* node,pistol_visual::PoseContext* output){
-    if(!g_sample||!g_mask.load(std::memory_order_relaxed)||!output)return false;Visual v{};const auto now=GetTickCount64();
+    if(!g_sample||!g_initContext||!g_mask.load(std::memory_order_relaxed)||!output)return false;Visual v{};const auto now=GetTickCount64();
     AcquireSRWLockShared(&g_lock);for(const auto& p:g_players)if(p.anim&&reinterpret_cast<uintptr_t>(node)==p.anim.address+0x318){v=p;break;}ReleaseSRWLockShared(&g_lock);
     if(!v.tick||now<v.tick||now-v.tick>100||v.weight<=0||!Alive(v.actor)||!Alive(v.mesh)||!Alive(v.anim)||!Alive(v.skeleton)||!Alive(v.montage)||!AssetsReady())return false;
     uintptr_t proxy=0,p=0,vt=0;Array bones{};pistol_visual::PoseContext context{};float length=0;
@@ -80,21 +86,29 @@ bool Evaluate(void* node,pistol_visual::PoseContext* output){
        context.pose.container!=proxy+0x450||context.pose.transforms.count!=80||context.pose.transforms.capacity<80||context.pose.transforms.capacity>1024||!context.pose.transforms.data||(context.pose.transforms.data&15u)||
        !Read(proxy,0x450,bones)||!bones.data||bones.count!=80||bones.capacity<80||bones.capacity>1024||!Read(g_return.address,0x38,p)||p!=v.skeleton.address||
        !Read(g_return.address,0x90,length)||!std::isfinite(length)||length<=0||length>1)return false;
-    if(context.curve.values.data||context.curve.values.count||context.curve.values.capacity){if(g_log&&g_curveSkips.fetch_add(1)==0)g_log("Geyser V1.114 static render skipped: curve-bearing context; V1.112 gameplay/pose retained");return false;}
     std::array<uint16_t,80> indices{};std::array<pistol_visual::LocalTransform,80> original{};
     if(!Read(bones.data,0,indices)||!Read(context.pose.transforms.data,0,original))return false;for(unsigned i=0;i<80;++i)if(indices[i]!=i)return false;
-    // No curve values are touched: refuse unknown curve-bearing contexts and
-    // give the pure extractor a private empty header, not the live curve.
-    auto privateCurve=context.curve;
-    const Extract extract{true,{},std::clamp(v.position-1.f,0.f,length)};g_sample(reinterpret_cast<void*>(g_return.address),&output->pose,&privateCurve,&extract);
+    // Same native MemStack context as the accepted pistol-arm sampler. Both
+    // transforms AND curve buffers are private to this evaluation scope.
+    // Never clone an owning TArray header or modify the live curve values.
+    pistol_visual::PoseContext sampled{};sampled.proxy=proxy;g_initContext(&sampled);
+    if(sampled.pose.container!=context.pose.container||sampled.pose.transforms.count!=80||sampled.pose.transforms.capacity<80||
+       sampled.pose.transforms.capacity>1024||!sampled.pose.transforms.data||(sampled.pose.transforms.data&15u)||
+       sampled.pose.transforms.data==context.pose.transforms.data||
+       (context.curve.values.data&&sampled.curve.values.data==context.curve.values.data))return false;
+    const Extract extract{true,{},std::clamp((v.position-ReturnStart)*length/ReturnSpan,0.f,length)};
+    g_sample(reinterpret_cast<void*>(g_return.address),&sampled.pose,&sampled.curve,&extract);
+    std::array<pistol_visual::LocalTransform,80> returned{};
+    if(sampled.pose.transforms.count!=80||!Read(sampled.pose.transforms.data,0,returned))return false;
     auto* pose=reinterpret_cast<pistol_visual::LocalTransform*>(context.pose.transforms.data);
-    if(v.weight<1)for(unsigned i=1;i<80;++i){const auto& a=original[i];auto& b=pose[i];float dot=0,norm=0;
+    for(unsigned i=1;i<80;++i){const auto& a=original[i];auto b=returned[i];float dot=0,norm=0;
         for(unsigned j=0;j<4;++j)dot+=a.q[j]*b.q[j];const float sign=dot<0?-1.f:1.f;
         for(unsigned j=0;j<4;++j){b.q[j]=a.q[j]*(1-v.weight)+sign*b.q[j]*v.weight;norm+=b.q[j]*b.q[j];}
         if(norm>1.e-12f&&std::isfinite(norm)){const float inv=1/std::sqrt(norm);for(auto& q:b.q)q*=inv;}else std::memcpy(b.q,a.q,sizeof(b.q));
         for(unsigned j=0;j<3;++j){b.t[j]=a.t[j]+(b.t[j]-a.t[j])*v.weight;b.s[j]=a.s[j]+(b.s[j]-a.s[j])*v.weight;}
+        pose[i]=b;
     }
-    pose[0]=original[0];if(g_log&&g_samples.fetch_add(1)==0)g_log("Geyser V1.114 static render sampled: original V1.112 montage/events untouched; no movement/jump state writes");return true;
+    if(g_log&&g_samples.fetch_add(1)==0)g_log("Geyser V1.117 static return sampled with private native pose/curves; live curves, root and gameplay untouched; EXPERIMENTAL");return true;
 }
-void Shutdown(){Clear(0);Clear(1);g_sample=nullptr;}
+void Shutdown(){Clear(0);Clear(1);g_sample=nullptr;g_initContext=nullptr;}
 }

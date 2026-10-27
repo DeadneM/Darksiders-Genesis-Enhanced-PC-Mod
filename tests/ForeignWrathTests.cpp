@@ -81,7 +81,7 @@ void Run(){
  Fresh();g_geyser={};g_geyserReady=false;g_requested=true;std::memset(f.items,0,sizeof(f.items));Register(598,f.power,41);Observe(owner);Check(g_cursor>0&&g_cursor<=256&&!g_geyserReady,"single shared scan stays within object and elapsed-time bounds");for(int i=0;i<40&&!g_geyserReady;++i){g_scanTick=0;Observe(owner);}Check(g_geyserReady,"successive bounded shared slices find the loaded class");
  Stone();Check(Prepare(f.actor,cls,6)&&cls==reinterpret_cast<uintptr_t>(f.stone),"Stoneskin ready on owned Strife with class default and compatible animation");
  const auto before=std::vector<unsigned char>(f.montage,f.montage+sizeof(f.montage));Cast();
- Check(plays==1&&creates==1&&!finishes&&!builds&&std::fabs(playedRate-(.75f*2.666667f/.75f))<.0001f,"Stoneskin uses own factory, exact native cast duration and finish delegate; no Geyser path");
+ Check(plays==1&&creates==1&&!finishes&&!builds&&std::fabs(playedRate-(.75f*2.666667f/1.f))<.0001f,"Stoneskin uses own factory, exact native cast duration and finish delegate; no Geyser path");
  Check(!std::memcmp(f.montage,before.data(),sizeof(f.montage)),"native Stoneskin source montage unchanged");
  Stone();createOK=false;Cast();Cast();Check(finishes==2&&creates==1&&Status(6)==0&&Status(4)==2,"factory failure disables only Stoneskin and safely ends current cast without retry");
  Stone();reassign=true;Cast();Check(!plays&&!finishes,"replacement owner never receives stale playback/finish");
@@ -91,6 +91,7 @@ void Run(){
 }
 }
 namespace dg::foreign_montage {
+bool CompleteGroundCast(void*,uintptr_t,float){return false;}
 void StartSounds(uintptr_t,void*){}bool CopyLaterSounds(uintptr_t,void*){return true;}
 void Initialize(LogFn,bool){}bool Ready(){return helperReady;}
 void ObserveSequence(uintptr_t){}bool GesturesReady(){return true;}
