@@ -19,3 +19,9 @@ Source `ba56debb0458c447a1b350b384228cf38d5d4e13`, archive `cfc71c93c41ce6c98548
 Garder l'INI personnel. Verifier une seule case reception lourde avec les valeurs retenues ; deux chutes avec mouvement maintenu puis saut, native/TPS. Coffre puis dash separement : maintenir mouvement jusqu'a la fin, verifier seconde interaction/loot/saut et munition speciale. Quitter normalement le jeu pour ecrire les bilans ; ressenti utilisateur encore necessaire. Pour la visee, conserver le cas caisse/pot devant ennemi derriere pour le prochain releve cible. Coop plus tard.
 
 Rollback : cases Recovery OFF, ou ZIP V1.126 avec l'INI sauvegarde. [Contrat et double passe](V1_127_UNIFIED_LANDING_RECOVERY_TEST.md), [CI](evidence/V1_127_CI_CHECK.json), [ZIP](evidence/V1_127_PACKAGE_CHECK.json), [updater](evidence/V1_127_UPDATER_CHECK.json), [Defender](evidence/V1_127_DEFENDER_CHECK.json).
+
+## Installation locale sur demande ulterieure
+
+V1.127 installee a la demande explicite « installe1.127 et je teste ». Ancienne version V1.126 confirmee par son ASI ; sauvegarde des trois fichiers remplaces, de l'INI et du journal precedent verifiee avant copie : `before-V1.127-20261028-132824-23353552`. ASI/DXGI/README copies depuis le ZIP controle, hashes AMD64 et identite1.127 relus independamment apres installation. INI personnel identique octet pour octet, raccourcis conserves. EXE original identique ; PAK non ecrits, inventaire noms/tailles/dates UTC identique. Jeu non lance, aucune validation en jeu inventee. [Verification d'installation](evidence/V1_127_INSTALL_CHECK.json).
+
+Precision utilisateur : en TPS souris, un ennemi peut attirer le rayon jusqu'au bord de l'ecran au lieu de la caisse/pot vise devant. Cela renforce la piste de selection/cible native, sans en prouver le mecanisme ; le correctif de visee reste ouvert et aucun changement de ce chemin n'est inclus dans V1.127.
