@@ -1,5 +1,6 @@
 #include "OverlayUi.h"
 #include "OverlayBindingScope.h"
+#include "OverlayLayout.h"
 #include "MenuFontScope.h"
 #include "InteractionHudFeature.h"
 #include "WeaponSheathingFeature.h"
@@ -46,34 +47,13 @@
 namespace dg::overlay {
 namespace {
 
-// One value layout for gameplay and every camera mode. Widths are derived
-// from the actual available space; narrow windows wrap instead of clipping.
-bool DrawNumberRow(const char* label,const char* id,float* value,
-    float minimum,float maximum,float original,const char* format,const char* inputFormat="%.2f"){
-    ImGui::PushID(id);
-    ImGui::TextWrapped("%s",label);
-    const float available=std::max(1.0f,ImGui::GetContentRegionAvail().x);
-    const float gap=ImGui::GetStyle().ItemSpacing.x;
-    const float resetWidth=ImGui::CalcTextSize("Default").x+2*ImGui::GetStyle().FramePadding.x;
-    const float manualWidth=std::min(100.0f,available);
-    const bool oneLine=available>=160.0f+manualWidth+resetWidth+2*gap;
-    ImGui::SetNextItemWidth(oneLine?available-manualWidth-resetWidth-2*gap:available);
-    bool changed=ImGui::SliderFloat("##Slider",value,minimum,maximum,format);
-    if(oneLine)ImGui::SameLine();
-    ImGui::SetNextItemWidth(manualWidth);
-    changed|=ImGui::InputFloat("##Manual",value,0.0f,0.0f,inputFormat);
-    if(ImGui::IsItemHovered())ImGui::SetTooltip("Enter an exact value.");
-    if(oneLine||available>=manualWidth+resetWidth+gap)ImGui::SameLine();
-    if(ImGui::Button("Default")){*value=original;changed=true;}
-    if(changed){
-        if(!std::isfinite(*value))*value=original;
-        *value=std::clamp(*value,minimum,maximum);
-    }
-    ImGui::PopID();return changed;
-}
+using layout::NumberRow;
+using layout::HelpText;
+using layout::Choice;
+
 bool DrawDelayRow(const char* label,const char* id,int* value,int minimum,int maximum,int original){
     float edited=static_cast<float>(*value);
-    if(!DrawNumberRow(label,id,&edited,float(minimum),float(maximum),float(original),"%.0f ms","%.0f"))return false;
+    if(!NumberRow(label,id,&edited,float(minimum),float(maximum),float(original),"%.0f ms","%.0f"))return false;
     *value=static_cast<int>(std::lround(edited));return true;
 }
 void DrawRefillResult(const char* player,dg::refill::Result result){
@@ -86,12 +66,10 @@ void DrawRefillResult(const char* player,dg::refill::Result result){
     }
 }
 void DrawFeatureDescription(const char* note,bool ready,const char* status=nullptr){
-    ImGui::Indent(22.0f);
-    ImGui::PushStyleColor(ImGuiCol_Text,ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-    ImGui::TextWrapped("%s",status?status:ready?"Ready":"Unavailable");
-    ImGui::PopStyleColor();
-    if(note)ImGui::TextWrapped("%s",note);
-    ImGui::Unindent(22.0f);
+    ImGui::Indent(layout::ValueIndent());
+    if(status||!ready)ImGui::TextWrapped("%s",status?status:"Unavailable in this session.");
+    HelpText(note);
+    ImGui::Unindent(layout::ValueIndent());
 }
 void DrawToggleFeature(config::Store& config,const char* label,const char* id,bool* enabled,
     const char* note,bool ready=true,const char* status=nullptr){
@@ -108,9 +86,9 @@ void DrawTunableFeature(config::Store& config,const char* label,const char* id,
     if(ImGui::Checkbox(label,enabled))config.Save();
     DrawFeatureDescription(note,ready,status);
     if(*enabled){
-        ImGui::Indent(22.0f);
-        if(DrawNumberRow(valueLabel,"Value",value,minimum,maximum,original,format))config.Save();
-        ImGui::Unindent(22.0f);
+        ImGui::Indent(layout::ValueIndent());
+        if(NumberRow(valueLabel,"Value",value,minimum,maximum,original,format))config.Save();
+        ImGui::Unindent(layout::ValueIndent());
     }
     ImGui::Spacing();ImGui::PopID();
 }
@@ -131,9 +109,9 @@ bool BeginKeyboardTable(const char* id){
         ImGuiTableFlags_SizingStretchProp))return false;
     ImGui::TableSetupColumn("Action",ImGuiTableColumnFlags_WidthStretch,3.3f);
     ImGui::TableSetupColumn("Current key",ImGuiTableColumnFlags_WidthStretch,1.4f);
-    ImGui::TableSetupColumn("Change",ImGuiTableColumnFlags_WidthFixed,95.0f);
-    ImGui::TableSetupColumn("Clear",ImGuiTableColumnFlags_WidthFixed,72.0f);
-    ImGui::TableSetupColumn("Reset",ImGuiTableColumnFlags_WidthFixed,76.0f);
+    ImGui::TableSetupColumn("Change",ImGuiTableColumnFlags_WidthFixed,ImGui::CalcTextSize("Press key...").x+2*(ImGui::GetStyle().FramePadding.x+ImGui::GetStyle().CellPadding.x));
+    ImGui::TableSetupColumn("Clear",ImGuiTableColumnFlags_WidthFixed,ImGui::CalcTextSize("Clear").x+2*(ImGui::GetStyle().FramePadding.x+ImGui::GetStyle().CellPadding.x));
+    ImGui::TableSetupColumn("Reset",ImGuiTableColumnFlags_WidthFixed,ImGui::CalcTextSize("Default").x+2*(ImGui::GetStyle().FramePadding.x+ImGui::GetStyle().CellPadding.x));
     ImGui::TableHeadersRow();
     return true;
 }
@@ -144,8 +122,7 @@ void DrawManualPadRow(config::Store& config,const char* label,int& value){
         "X / Square","Y / Triangle","D-Pad Up","D-Pad Down","D-Pad Left","D-Pad Right",
         "Start","Back","LT / L2","RT / R2"};
     int selected=0;for(int i=0;i<17;++i)if(masks[i]==value)selected=i;
-    ImGui::SetNextItemWidth(270.0f);
-    if(ImGui::Combo(label,&selected,labels,17)){value=masks[selected];config.Save();}
+    if(Choice(label,&selected,labels,17)){value=masks[selected];config.Save();}
 }
 void DrawKeyboardRow(Context& c,config::Store& config,const char* label,
     int& value,int original,int bindingIndex){
@@ -187,6 +164,7 @@ void Draw(Context& c) {
 
     auto& config = *c.config;
     const MenuFontScope menuFont(config.menuFontSize);
+    const layout::StyleScope menuStyle;
     const Telemetry& t = c.telemetry;
 
     ImGui::SetNextWindowSize(
@@ -198,6 +176,10 @@ void Draw(Context& c) {
         ImGuiCond_FirstUseEver
     );
 
+    const auto display=ImGui::GetIO().DisplaySize;
+    ImGui::SetNextWindowSizeConstraints(
+        ImVec2(std::min(std::max(480.f,34*ImGui::GetFontSize()),std::max(1.f,display.x-32)),std::min(300.f,std::max(1.f,display.y-32))),
+        ImVec2(std::max(1.f,display.x-16),std::max(1.f,display.y-16)));
     bool open = true;
     if (!ImGui::Begin(
             "Darksiders Genesis Enhanced",
@@ -210,7 +192,7 @@ void Draw(Context& c) {
         return;
     }
 
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,ImVec2(9.0f,8.0f));
+    ImGui::PushTextWrapPos(0.f);
     ImGui::Text(
         "ASI Overlay  v%s",
         c.build ? c.build : "unknown"
@@ -231,15 +213,14 @@ void Draw(Context& c) {
         DrawUpdateBanner(update.latest.c_str(),config.updaterBeta?"debug":"main");
         ImGui::Separator();
     }
+    ImGui::TextDisabled("Hover descriptions marked (?) for details.");
     if (ImGui::BeginTabBar("MainTabs")) {
         if (ImGui::BeginTabItem("Gameplay")) {
             ImGui::Spacing();
-            ImGui::TextWrapped("Multipliers: 1 is native; 0.5 gives half speed, height, duration, damage or gains. Cost divisors work in reverse: 0.5 doubles costs. See each option for the meaning of 0.");
+            HelpText("Multipliers: 0.5 = half, 1 = native, 2 = double. Cost divisors work in reverse; each option explains its rules.");
 
             if(ImGui::CollapsingHeader("HUD / aiming effects")){
-            ImGui::Indent(12.0f);
-            DrawSectionTitle("HUD and aiming effects");
-            ImGui::TextDisabled("Statuses reflect real game hooks and observed events, not just ON/OFF switches.");
+            ImGui::Indent();
 
             DrawTunableFeature(config,"Interaction prompt size","InteractionHudScale",&config.interactionHudScaleEnabled,
                 &config.interactionHudScale,0.1f,2.0f,0.65f,"%.2fx",
@@ -257,44 +238,43 @@ void Draw(Context& c) {
             constexpr const char* kAimModes[]={
                 "Hide Everywhere", "Default Only", "TPS Only", "Never (always visible)"
             };
-            ImGui::SetNextItemWidth(260.0f);
-            if(ImGui::Combo("Visibility mode##AimIndicator",
+            if(Choice("Visibility mode##AimIndicator",
                     &config.aimIndicatorHideMode,kAimModes,4))config.Save();
             ImGui::TextDisabled("TPS Only is the default. Default Only means normal/non-TPS camera.");
             const auto aimShaders = dg::aim_shader::GetTelemetry();
             ImGui::TextDisabled("Aim-effect filter: %s | suppressed draws: %u",
                 aimShaders.hooksReady ? "Ready" : "Unavailable",aimShaders.blockedDraws);
-            ImGui::Unindent(12.0f);
+            ImGui::Unindent();
             }
             if(ImGui::CollapsingHeader("Aim without firing")){
-                ImGui::Indent(12.0f);ImGui::PushID("ManualAimBindings");
+                ImGui::Indent();ImGui::PushID("ManualAimBindings");
                 ImGui::BeginDisabled(!manual_aim::Ready());
                 DrawManualPadRow(config,"Controller input 1",config.aimPadButtonA);
                 DrawManualPadRow(config,"Controller input 2",config.aimPadButtonB);
                 ImGui::EndDisabled();
-                ImGui::TextWrapped("Hold to aim without firing. One input on OFF: hold the other button alone. Two active inputs: hold both together. Both OFF: disabled. Each controller affects its own player. In TPS, aim follows that player's camera.");
-                ImGui::TextWrapped("Native game bindings are kept; choose an unused button or combination. Release after closing a menu, changing character or reconnecting the controller before aiming again.");
+                HelpText("Hold to aim without firing. One input on OFF: hold the other button alone. Two active inputs: hold both together. Both OFF: disabled. Each controller affects its own player. In TPS, aim follows that player's camera.");
+                HelpText("Native game bindings are kept; choose an unused button or combination. Release after closing a menu, changing character or reconnecting the controller before aiming again.");
                 if(!manual_aim::Ready())ImGui::TextWrapped("Unavailable for this executable; native controls remain active.");
-                ImGui::PopID();ImGui::Unindent(12.0f);
+                ImGui::PopID();ImGui::Unindent();
             }
             if(ImGui::CollapsingHeader("Weapon sheathing")){
-            ImGui::Indent(12.0f);
+            ImGui::Indent();
             DrawToggleFeature(config,"Mounted pistol holsters (experimental)","MountedPistolHolsters",&config.mountedHolstersEnabled,
                 "Uses the stowed pistol models while Strife is mounted. Turn OFF to restore the previous appearance. Per-hand appearance choices use the corresponding stowed models. Experimental: check alignment in the holsters.",mounted_holsters::Ready());
             DrawToggleFeature(config,"Control automatic weapon sheathing","WeaponSheathing",&config.weaponSheathingEnabled,
                 "Separate automatic delays for Strife's melee blades, Strife's pistols and War's sword. OFF restores native delays. Foot forms only; horse and Ultimate remain native.",sheathing::Ready());
             if(config.weaponSheathingEnabled){
-                ImGui::Indent(22.0f);
+                ImGui::Indent(layout::ValueIndent());
                 const char* labels[]={"Strife melee blades","Strife pistols","War sword"};
                 bool* never[]={&config.sheathStrifeMeleeNeverEnabled,&config.sheathNeverEnabled,&config.sheathWarNeverEnabled};
                 float* seconds[]={&config.sheathStrifeMeleeDelaySeconds,&config.sheathDelaySeconds,&config.sheathWarDelaySeconds};
                 for(int i=0;i<3;++i){
                     ImGui::PushID(labels[i]);ImGui::TextUnformatted(labels[i]);
                     if(ImGui::Checkbox("Never automatically sheathe",never[i]))config.Save();
-                    if(!*never[i]&&DrawNumberRow("Automatic sheathing delay (seconds)","SheathDelay",seconds[i],0,300,i==0?0.0f:10.0f,"%.2f s"))config.Save();
+                    if(!*never[i]&&NumberRow("Automatic sheathing delay (seconds)","SheathDelay",seconds[i],0,300,i==0?0.0f:10.0f,"%.2f s"))config.Save();
                     ImGui::PopID();
                 }
-                ImGui::Unindent(22.0f);
+                ImGui::Unindent(layout::ValueIndent());
             }
             ImGui::PushID("SheatheBindings");
             ImGui::TextUnformatted("Sheathe weapons shortcuts");
@@ -304,15 +284,15 @@ void Draw(Context& c) {
             }
             DrawManualPadRow(config,"Controller input 1",config.sheathPadButtonA);
             DrawManualPadRow(config,"Controller input 2",config.sheathPadButtonB);
-            ImGui::TextWrapped("One controller input on OFF: use the other button alone. Two active inputs: press both together. Both OFF: disabled. Each controller affects its own player. Native game bindings are kept; choose an unused button or combination.");
-            ImGui::TextWrapped("The keyboard shortcut and F1-F12 Hotkeys remain available together for eligible local players, independently of automatic control. One press queues one request per player, even with the same key assigned twice. Release before pressing again. Menu/focus changes do not trigger held shortcuts. Active attacks/aim, cinematics and transformations stay native.");
+            HelpText("One controller input on OFF: use the other button alone. Two active inputs: press both together. Both OFF: disabled. Each controller affects its own player. Native game bindings are kept; choose an unused button or combination.");
+            HelpText("The keyboard shortcut and F1-F12 Hotkeys remain available together for eligible local players, independently of automatic control. One press queues one request per player, even with the same key assigned twice. Release before pressing again. Menu/focus changes do not trigger held shortcuts. Active attacks/aim, cinematics and transformations stay native.");
             ImGui::PopID();
 
-            ImGui::Unindent(12.0f);
+            ImGui::Unindent();
             }
             if(ImGui::CollapsingHeader("Wrath ability slots (experimental)")){
-                ImGui::Indent(12.0f);
-                ImGui::TextWrapped("Validated transfers: Clone, Caltrops and World Ender on War; Geyser and Stoneskin on Strife. Stoneskin and Rampage on War stay native. Experimental Rampage on Strife: native motion, loop, collision and finish with Strife's own locomotion pose. No dedicated War charge/strike pose is displayed. Test movement, damage, release and a second cast. War's stone material, launch shockwave and weapon effects are not copied to Strife.");
+                ImGui::Indent();
+                HelpText("Choose any of the six powers for each slot. Native restores the original power. Transferred powers keep their costs; character-specific animations and visuals are adapted. Local co-op still needs a separate test.");
                 int status[7]={2,wrath_slots::ForeignStatus(1),wrath_slots::ForeignStatus(2),wrath_slots::ForeignStatus(3),wrath_slots::ForeignStatus(4),wrath_slots::ForeignStatus(5),wrath_slots::ForeignStatus(6)};
                 constexpr const char* names[7]={"Native","Shadow Clone","World Ender","Caltrops","Blade Geyser","Rampage","Stoneskin"};
                 constexpr const char* familyNames[2]={"Strife","War"};
@@ -341,27 +321,30 @@ void Draw(Context& c) {
                 }
                 ImGui::EndDisabled();
                 if(!wrath_slots::Ready())ImGui::TextDisabled("Native ability boundary unavailable; original slots retained.");
-                ImGui::TextWrapped("The original slot must be unlocked. Transferred powers keep their native Wrath cost and do not unlock War's progression. Wheel icons and hints may still describe the original slot. Horse and ultimate abilities stay native. Select Native to restore a slot.");
+                HelpText("The original slot must be unlocked. Transferred powers keep their native Wrath cost and do not unlock War's progression. Wheel icons and hints may still describe the original slot. Horse and ultimate abilities stay native. Select Native to restore a slot.");
                 for(int power:{1,3,4}){
                     if(status[power]==1)ImGui::TextDisabled("%s: preparing loaded assets.",names[power]);
                     if(status[power]==0)ImGui::TextDisabled("%s transfer unavailable; select Native after an unsuccessful cast.",names[power]);
                 }
-                ImGui::Unindent(12.0f);
+                ImGui::Unindent();
             }
             if(ImGui::CollapsingHeader("Player movement")){
-            ImGui::Indent(12.0f);
-            DrawSectionTitle("Player");
+            ImGui::Indent();
             DrawTunableFeature(config,"Heavy landing movement recovery","HeavyLandingRecovery",&config.heavyLandingRecoveryEnabled,
                 &config.heavyLandingDelaySeconds,.05f,.8f,.15f,"%.3f s",
-                "Delay from the start of a heavy landing before movement can interrupt it. Uses the timing accepted in V1.126. Staying still keeps the animation; the game handles cancellation. Native and TPS views. Does not change dashes or attacks.",heavy_landing::Ready());
-            if(DrawNumberRow("Continuous ground contact","HeavyLandingGroundSeconds",&config.heavyLandingGroundSeconds,0.f,.25f,.05f,"%.3f s","%.3f"))config.Save();
+                "Delay from the start of a heavy landing before movement can interrupt it. Uses the timing accepted in V1.126. Staying still keeps the animation; the game handles cancellation. Native and TPS views. Does not change dashes or attacks.",heavy_landing::Ready(),nullptr,"Recovery delay");
+            if(config.heavyLandingRecoveryEnabled&&ImGui::TreeNode("Advanced landing settings")){
+                if(NumberRow("Ground stability time","HeavyLandingGroundSeconds",&config.heavyLandingGroundSeconds,0.f,.25f,.05f,"%.3f s","%.3f"))config.Save();
+                HelpText("Minimum continuous contact with the ground. 0.05 s filters brief contacts before recovery can open.");
+                ImGui::TreePop();
+            }
             if(ImGui::TreeNode("Recovery experiments")){
                 DrawToggleFeature(config,"Ground dash after-animation recovery (experimental)","RecoveryDashTail",&config.recoveryDashTailEnabled,
                     "Only after an observed native montage stops completely and forced dash motion has ended. Opens native MOVE interruption; hold movement to test. Does not shorten an active dash, change ammo or simulate a button. May do nothing if native cleanup has already finished.",recovery_tail::Ready());
                 DrawToggleFeature(config,"Chest after-animation recovery (experimental)","RecoveryChestTail",&config.recoveryChestTailEnabled,
                     "Only exact chest interactions, after observing their native montage play then stop. Loot and animation remain native. Opens MOVE interruption if the action is still running. Check loot, movement and a second interaction; OFF restores a window owned by this experiment.",recovery_tail::Ready());
-                if(DrawNumberRow("Wait after animation stops","RecoveryTailDelaySeconds",&config.recoveryTailDelaySeconds,0.f,1.f,0.f,"%.3f s","%.3f"))config.Save();
-                ImGui::TextWrapped("Dash and chest experiments default OFF. The last delay is shared by dash and chest; 0 adds no wait beyond a 30 ms stopped-animation confirmation. Unknown actions, menus, transformations and cinematics keep native behavior. Test Native and TPS separately.");
+                if(NumberRow("Wait after animation stops","RecoveryTailDelaySeconds",&config.recoveryTailDelaySeconds,0.f,1.f,0.f,"%.3f s","%.3f"))config.Save();
+                HelpText("Dash and chest experiments default OFF. The last delay is shared by dash and chest; 0 adds no wait beyond a 30 ms stopped-animation confirmation. Unknown actions, menus, transformations and cinematics keep native behavior. Test Native and TPS separately.");
                 ImGui::TreePop();
             }
             DrawTunableFeature(
@@ -409,16 +392,15 @@ void Draw(Context& c) {
                 "Holds the duration budget while gliding. Release and landing stay native. Assign a toggle in Hotkeys.",dg::glide::Ready());
 
             constexpr const char* jumpModes[]{"Off","After gliding","Always on"};
-            ImGui::SetNextItemWidth(270.0f);
-            if(ImGui::Combo("Infinite double jump",&config.infiniteDoubleJumpMode,jumpModes,3))config.Save();
+            if(Choice("Infinite double jump",&config.infiniteDoubleJumpMode,jumpModes,3))config.Save();
             DrawFeatureDescription("After gliding rearms one double jump per glide. Always on allows repeated air jumps. In either mode, pressing your jump control ends a glide before requesting the jump. OFF restores normal behavior. Experimental.",dg::air_jump::Ready());
             DrawTunableFeature(config,"Grapple range","GrappleRange",&config.grappleRangeEnabled,
                 &config.grappleRangeMultiplier,1.0f,10.0f,2.0f,"%.2fx",
                 "Scales native acquisition, relay and pull distances together. Applies on the next use; target rules and obstacles remain native. Experimental: traversal limits still require in-game checks.",dg::grapple::Ready());
-            ImGui::Unindent(12.0f);
+            ImGui::Unindent();
             }
             if(ImGui::CollapsingHeader("Combat and resource gauges")){
-            ImGui::Indent(12.0f);
+            ImGui::Indent();
             DrawSectionTitle("Combat damage");
 
             DrawTunableFeature(
@@ -466,7 +448,7 @@ void Draw(Context& c) {
             const bool gaugePending=manual.pending||manual2.pending;
             ImGui::TextUnformatted("Set gauges for testing");
             static float gaugePercent=100.0f;
-            DrawNumberRow("Target level","ManualGauges",&gaugePercent,0.0f,100.0f,100.0f,"%.0f %%");
+            NumberRow("Target level","ManualGauges",&gaugePercent,0.0f,100.0f,100.0f,"%.0f %%");
             const unsigned masks[3]={dg::manual_gauges::Wrath,
                 dg::manual_gauges::Ultimate,dg::manual_gauges::Synergy};
             const char* names[3]={"Set Wrath","Set Ultimate","Set Synergy"};
@@ -540,12 +522,12 @@ void Draw(Context& c) {
             DrawToggleFeature(config,"Limited Standard ammunition","FiniteStandardAmmo",&config.finiteStandardAmmoEnabled,
                 "Makes native Standard reserves finite. Starts full when enabled; changing capacity clamps the reserve without refilling. OFF restores native infinity. Fill ammunition, reduced consumption and Unlimited also apply. Native Hotstreak rules stay unchanged.",dg::ammo::StandardReady());
             if(config.finiteStandardAmmoEnabled){
-                ImGui::Indent(22.0f);
+                ImGui::Indent(layout::ValueIndent());
                 float capacity=float(config.standardAmmoCapacity);
-                if(DrawNumberRow("Standard reserve capacity","StandardAmmoCapacity",&capacity,1,10000,200,"%.0f rounds","%.0f")){
+                if(NumberRow("Standard reserve capacity","StandardAmmoCapacity",&capacity,1,10000,200,"%.0f rounds","%.0f")){
                     config.standardAmmoCapacity=int(std::lround(capacity));config.Save();
                 }
-                ImGui::Unindent(22.0f);
+                ImGui::Unindent(layout::ValueIndent());
             }
             DrawToggleFeature(config,"Unlimited ammo","UnlimitedAmmo",&config.unlimitedAmmoEnabled,
                 "Keeps finite ammunition full, including Standard when limited. Takes priority over reduced consumption. Assign a toggle in Hotkeys.",ammoReady);
@@ -613,19 +595,17 @@ void Draw(Context& c) {
             ImGui::TextDisabled("Observed in-game: pistol %d | melee-like %d | Hotstreak %d",
                 t.pistolDamageBoostCalls,t.meleeDamageBoostCalls,t.hotstreakBoostCalls);
 
-            ImGui::Unindent(12.0f);
+            ImGui::Unindent();
             }
             if(ImGui::CollapsingHeader("Horse and riding")){
-            ImGui::Indent(12.0f);
-            DrawSectionTitle("Horse");
+            ImGui::Indent();
 
             const horse::Telemetry horseTelemetry =
                 horse::GetTelemetry();
             constexpr const char* horseAreas[]={
                 "Off", "In all area", "Restricted only", "Banned zone only"
             };
-            ImGui::SetNextItemWidth(285.0f);
-            if(ImGui::Combo("Horse Everywhere##HorseAreaMode",
+            if(Choice("Horse Everywhere##HorseAreaMode",
                     &config.horseAreaMode,horseAreas,4)){
                 config.horseEverywhereEnabled=config.horseAreaMode!=0;
                 config.Save();
@@ -655,8 +635,7 @@ void Draw(Context& c) {
             auto HorsePadCombo=[&](const char* label,int& mask){
                 int index=0;
                 for(int i=0;i<16;++i)if(horsePadValues[i]==mask){index=i;break;}
-                ImGui::SetNextItemWidth(270.0f);
-                if(ImGui::Combo(label,&index,horsePadNames,16)){
+                if(Choice(label,&index,horsePadNames,16)){
                     mask=horsePadValues[index];config.Save();
                 }
             };
@@ -673,9 +652,8 @@ void Draw(Context& c) {
                 "Use the game's rebindable Jump action while riding either mount. A new press requests a native ground leap, with native animations and landing. No air jump. OFF restores the original behavior. Confirmed in the user's solo test; co-op remains to be checked.",mounted_jump::Ready());
 
             constexpr const char* horseJumpSounds[]={"Native jump (varied)","Horse snort (varied)","Off"};
-            ImGui::SetNextItemWidth(270.0f);
-            if(ImGui::Combo("Horse jump sound",&config.mountedJumpSound,horseJumpSounds,3))config.Save();
-            ImGui::TextWrapped("A sound on a successful mod jump and its landing. Uses the game's existing random samples and Sfx volume. Experimental; loaded assets only.");
+            if(Choice("Horse jump sound",&config.mountedJumpSound,horseJumpSounds,3))config.Save();
+            HelpText("A sound on a successful mod jump and its landing. Uses the game's existing random samples and Sfx volume. Experimental; loaded assets only.");
             if(config.mountedJumpEnabled&&config.mountedJumpSound!=2){
                 const unsigned required=config.mountedJumpSound==1?6u:3u;
                 if((mounted_jump::SoundAssetsReady()&required)!=required)
@@ -737,11 +715,10 @@ void Draw(Context& c) {
                 "Stops sprint stamina drain for both local riders. Native recovery and sprint-start conditions stay active. Assign a toggle in Hotkeys.",
                 horseTelemetry.staminaReady,horseTelemetry.staminaReady?"Ready":"Waiting for horse stamina");
 
-            ImGui::Unindent(12.0f);
+            ImGui::Unindent();
             }
             if(ImGui::CollapsingHeader("System and startup")){
-            ImGui::Indent(12.0f);
-            DrawSectionTitle("System");
+            ImGui::Indent();
 
             ImGui::Text("Graphics Adapter");
             ImGui::TextDisabled(
@@ -749,14 +726,13 @@ void Draw(Context& c) {
             );
 
             ImGui::Indent();
-            ImGui::SetNextItemWidth(245.0f);
             int selectedGraphicsAdapter =
                 config.graphicsAdapter;
             const char* graphicsAdapters[] = {
                 "0", "1", "2", "3", "4"
             };
 
-            if (ImGui::Combo(
+            if (Choice(
                     "Value##GraphicsAdapter",
                     &selectedGraphicsAdapter,
                     graphicsAdapters,
@@ -837,7 +813,7 @@ void Draw(Context& c) {
 
             ImGui::Spacing();
             ImGui::TextDisabled("Startup options take effect after a game restart.");
-            ImGui::Unindent(12.0f);
+            ImGui::Unindent();
             }
 
             ImGui::EndTabItem();
@@ -847,28 +823,29 @@ void Draw(Context& c) {
             ImGui::TextWrapped("Choose ability, weapon, mount and core effects below. Model and armor controls follow the effect library.");
             ImGui::PushID("AppearanceTab");
             if(ImGui::CollapsingHeader("Effect appearances (experimental)")){
-                ImGui::Indent(12.0f);
-                ImGui::TextWrapped("Visual effects only. Native keeps the game and equipped cores. Alternatives change new emitted effects; Hidden keeps their native lifetime and hides their rendering. Models, materials, damage, cost and controls stay native. Some single-look families offer Native/Hidden only.");
+                ImGui::Indent();
+                HelpText("Visual effects only. Native keeps the game and equipped cores. Alternatives change new emitted effects; Hidden keeps their native lifetime and hides their rendering. Models, materials, damage, cost and controls stay native. Some single-look families offer Native/Hidden only.");
                 constexpr const char* categories[]={"Tools","Powers","Strife ammunition","War weapons","Mounts and forms","Creature cores","Other effects"};
                 for(const auto* category:categories)if(ImGui::CollapsingHeader(category)){
-                    ImGui::Indent(12.0f);ImGui::BeginDisabled(!effect_appearance::Ready());
+                    ImGui::Indent();ImGui::BeginDisabled(!effect_appearance::Ready());
                     for(unsigned family=0;family<effect_appearance::FamilyCount;++family){const auto& info=effect_appearance::Families[family];
-                        if(std::strcmp(category,info.category))continue;ImGui::PushID(int(family));ImGui::SetNextItemWidth(260.0f);
-                        if(ImGui::Combo(info.label,&config.effectAppearances[family],info.choices.data(),int(info.count)))config.Save();
+                        if(std::strcmp(category,info.category))continue;ImGui::PushID(int(family));if(Choice(info.label,&config.effectAppearances[family],info.choices.data(),int(info.count)))config.Save();
                         const int choice=effect_appearance::Normalize(family,config.effectAppearances[family]);
                         if(choice&&!(effect_appearance::LoadedMask(family)&(1u<<choice)))ImGui::TextColored(ImVec4(1,.85f,.25f,1),"Effect assets not ready: native appearance retained.");
                         ImGui::PopID();
                     }
-                    ImGui::EndDisabled();ImGui::Unindent(12.0f);
+                    ImGui::EndDisabled();ImGui::Unindent();
                 }
-                ImGui::TextWrapped("Loaded assets only: no synchronous loading. Existing emitters may keep their previous appearance until the next use. Stoneskin here changes particles, not the body coating. Leviathan keeps its dedicated option below. Checkpoint/armor/model choices stay in their existing controls.");
-                ImGui::Unindent(12.0f);
+                HelpText("Loaded assets only: no synchronous loading. Existing emitters may keep their previous appearance until the next use. Stoneskin here changes particles, not the body coating. Leviathan keeps its dedicated option below. Checkpoint/armor/model choices stay in their existing controls.");
+                ImGui::Unindent();
             }
 
+            if(ImGui::CollapsingHeader("Character models")){
+            ImGui::Indent();
             constexpr const char* pistolModels[]={"Native (original for this hand)","Right pistol model","Left pistol model","OFF (experimental)"};
             const auto pistolChoice=[&](const char* label,int& value){
-                ImGui::SetNextItemWidth(280.0f);
-                if(ImGui::BeginCombo(label,pistolModels[(value>=0&&value<=3)?value:0])){
+                ImGui::PushID(label);layout::Label(label);ImGui::SetNextItemWidth(layout::ControlWidth());
+                if(ImGui::BeginCombo("##Choice",pistolModels[(value>=0&&value<=3)?value:0])){
                     for(int i=0;i<4;++i){
                         ImGui::BeginDisabled(i==3&&!pistol_visual::Ready());
                         if(ImGui::Selectable(pistolModels[i],value==i)){value=i;config.Save();}
@@ -877,31 +854,33 @@ void Draw(Context& c) {
                     }
                     ImGui::EndCombo();
                 }
+                ImGui::PopID();
             };
             ImGui::BeginDisabled(!mounted_holsters::Ready());
             pistolChoice("Strife right hand##PistolModel",config.pistolRightModel);
             pistolChoice("Strife left hand##PistolModel",config.pistolLeftModel);
             ImGui::EndDisabled();
-            ImGui::TextWrapped("Choose either existing pistol independently for each hand, for both local players. Mounted holsters use the matching stowed model. Native restores that hand's previous model. Experimental: check grip alignment and firing effects.");
+            HelpText("Choose either existing pistol independently for each hand, for both local players. Mounted holsters use the matching stowed model. Native restores that hand's previous model. Experimental: check grip alignment and firing effects.");
             if(config.pistolRightModel==3||config.pistolLeftModel==3){
-                ImGui::TextWrapped("OFF hides this pistol and its foot holster. On foot, its arm uses native unarmed idle/walk/run animation while aiming or shooting. Melee, powers and other actions keep their native animations. Shooting remains active. Mounted hand and stowed models are also hidden; mounted arms, mounted leather holsters and Ultimate remain native. Shared effects stay with one visible pistol.");
+                HelpText("OFF hides this pistol and its foot holster. On foot, its arm uses native unarmed idle/walk/run animation while aiming or shooting. Melee, powers and other actions keep their native animations. Shooting remains active. Mounted hand and stowed models are also hidden; mounted arms, mounted leather holsters and Ultimate remain native. Shared effects stay with one visible pistol.");
                 if(!pistol_visual::Ready())ImGui::TextDisabled("OFF unavailable for this executable; native presentation retained.");
                 else ImGui::TextDisabled("Animated OFF arm: P1 %s | P2 %s (while aiming/firing)",pistol_visual::PoseReady(0)?"active":"native / waiting",pistol_visual::PoseReady(1)?"active":"native / waiting");
             }
             constexpr const char* warArms[]={"Native","Basic","Augmented"};
             constexpr const char* reticles[]={"Vanilla","Hide in TPS","Hide in normal view","Hide in both views"};
-            ImGui::BeginDisabled(!presentation::Ready());ImGui::SetNextItemWidth(280.0f);
-            if(ImGui::Combo("War arm appearance",&config.warArmAppearance,warArms,3))config.Save();
-            ImGui::TextWrapped("Visual arm variant only, normal War on foot, both local players. Does not grant the Tremor Gauntlet or change equipment. Armor that replaces child meshes keeps its native appearance. Native restores the game's choice.");
-            ImGui::SetNextItemWidth(280.0f);
-            if(ImGui::Combo("Mouse reticle",&config.mouseReticleHideMode,reticles,4))config.Save();
+            ImGui::BeginDisabled(!presentation::Ready());if(Choice("War arm appearance",&config.warArmAppearance,warArms,3))config.Save();
+            HelpText("Visual arm variant only, normal War on foot, both local players. Does not grant the Tremor Gauntlet or change equipment. Armor that replaces child meshes keeps its native appearance. Native restores the game's choice.");
+            if(Choice("Mouse reticle",&config.mouseReticleHideMode,reticles,4))config.Save();
             ImGui::EndDisabled();
-            ImGui::TextWrapped("Hide the gameplay mouse crosshair in the selected view. Native menus, wheels and the mod menu keep their cursors. Mouse movement, aiming and controller inputs stay unchanged. Vanilla is the default.");
+            HelpText("Hide the gameplay mouse crosshair in the selected view. Native menus, wheels and the mod menu keep their cursors. Mouse movement, aiming and controller inputs stay unchanged. Vanilla is the default.");
             constexpr const char* bladeModes[]={"Native","Hide left blade","Hide right blade","Hide both blades"};
-            ImGui::BeginDisabled(!pistol_visual::Ready());ImGui::SetNextItemWidth(280.0f);
-            if(ImGui::Combo("Strife melee blades",&config.strifeBladeVisibility,bladeModes,4))config.Save();
+            ImGui::BeginDisabled(!pistol_visual::Ready());if(Choice("Strife melee blades",&config.strifeBladeVisibility,bladeModes,4))config.Save();
             ImGui::EndDisabled();
-            ImGui::TextWrapped("Hide each melee blade model independently. Attacks, damage, hand animations and weapon sheathing stay native. Both local players; normal Strife only.");
+            HelpText("Hide each melee blade model independently. Attacks, damage, hand animations and weapon sheathing stay native. Both local players; normal Strife only.");
+            ImGui::Unindent();
+            }
+            if(ImGui::CollapsingHeader("Unlockable skins")){
+            ImGui::Indent();
             DrawToggleFeature(config,"Bonus mount skins (experimental)","BonusMountSkins",&config.bonusMountSkinsEnabled,
                 "Makes Rampage (War) and Despair (Strife) available in the game's Skins page without the optional PAK. A bonus mount already selected stays equipped when loading, even with this option OFF, like armor skins. The native mount remains selectable. No automatic equip. OFF restores native menu availability; a PAK or an existing unlock can still keep them available.",cosmetics::Ready());
             if(!cosmetics::SelectionRetentionReady())
@@ -909,18 +888,23 @@ void Draw(Context& c) {
             DrawToggleFeature(config,"Progression skins (experimental)","ProgressionSkins",&config.progressionSkinsEnabled,
                 "Separately makes Abyssal, Silver and Gold appearances available for War and Strife in the game's Skins page. Cosmetic availability only: no quests, armor pieces, stats or achievements granted. OFF restores native availability; choose an owned skin before disabling. Native skin selection may remember your equipped appearance.",cosmetics::Ready());
 
+            ImGui::Unindent();
+            }
+            if(ImGui::CollapsingHeader("Leviathan lightning")){
+            ImGui::Indent();
             DrawToggleFeature(config,"Override Leviathan lightning (experimental)","LeviathanVisual",&config.leviathanVisualEnabled,
                 "Visual only, for both local players. Select OFF or one of the three native lightning effects without granting the core, its stats or its status effect. Uncheck to restore native visuals. Requires the chosen effect asset to be loaded; otherwise leaves native lightning unchanged. Test foot, mount and Ultimate transitions.",leviathan_visual::Ready());
             if(config.leviathanVisualEnabled){
                 constexpr const char* effects[]={"OFF (hide Leviathan lightning)","Effect 1","Effect 2","Effect 3"};
-                ImGui::BeginDisabled(!leviathan_visual::Ready());ImGui::SetNextItemWidth(280.0f);
-                if(ImGui::Combo("Leviathan effect",&config.leviathanVisualMode,effects,4))config.Save();
+                ImGui::BeginDisabled(!leviathan_visual::Ready());if(Choice("Leviathan effect",&config.leviathanVisualMode,effects,4))config.Save();
                 ImGui::EndDisabled();
                 if(config.leviathanVisualMode>0&&config.leviathanVisualMode<=3&&
                    !(leviathan_visual::LoadedMask()&(1u<<unsigned(config.leviathanVisualMode-1))))
                     ImGui::TextColored(ImVec4(1,.85f,.25f,1),"Selected effect unavailable here; native visual retained. Change selection or re-enable to retry.");
             }
 
+            ImGui::Unindent();
+            }
             ImGui::PopID();
             ImGui::EndTabItem();
         }
@@ -939,8 +923,8 @@ void Draw(Context& c) {
             // events, never asset / LevelSequence names or proof of dialogue.
             if(ImGui::CollapsingHeader("Cutscenes: detection history (DEBUG)")){
                 const auto history=dg::camera_trace::GetCinematicDebugSnapshot();
-                ImGui::Indent(12.0f);
-                ImGui::TextWrapped("Shows up to 24 recent camera-transition events. "
+                ImGui::Indent();
+                HelpText("Shows up to 24 recent camera-transition events. "
                     "An ENTER means the mod switched to native view; "
                     "it does NOT identify a cinematic asset.");
                 ImGui::Text("Detected: %u | Returned: %u | Candidates: %u",
@@ -1019,21 +1003,21 @@ void Draw(Context& c) {
                 }
                 if(history.count==0)
                     ImGui::TextDisabled("No events yet. Trigger a camera transition in TPS.");
-                ImGui::TextWrapped("V1.29 TPS_DISTANCE = native camera has moved beyond "
+                HelpText("V1.29 TPS_DISTANCE = native camera has moved beyond "
                     "its calibrated normal position by your TPS camera distance. "
                     "Native camera baseline is NOT the visible TPS camera distance.");
-                ImGui::TextWrapped("SHORT_CUT = large native-camera jump below 500 ms, "
+                HelpText("SHORT_CUT = large native-camera jump below 500 ms, "
                     "not proof of a named cutscene. STATIC_NO_ACTOR means "
                     "player disappeared but camera did not move: pause/menu possible. "
                     "REJECTED = brief unconfirmed camera change.");
                 ImGui::TextWrapped("USER_MARK = user observation only. "
                     "In-place cinematic with a static native camera may still be missed.");
-                ImGui::Unindent(12.0f);
+                ImGui::Unindent();
             }
 
             if(ImGui::CollapsingHeader("Depth of field")){
-                ImGui::Indent(12.0f);
-                ImGui::TextWrapped("Independent settings for each gameplay view and both local players. Cinematics keep their authored effect. Motion blur and fog are unchanged.");
+                ImGui::Indent();
+                HelpText("Independent settings for each gameplay view and both local players. Cinematics keep their authored effect. Motion blur and fog are unchanged.");
                 for(int i=0;i<2;++i){
                     auto& profile=i==0?config.nativeBlur:config.tpsBlur;
                     ImGui::PushID(i==0?"NativeDOF":"TPSDOF");
@@ -1043,17 +1027,16 @@ void Draw(Context& c) {
                     ImGui::BeginDisabled(profile.disabled);
                     if(ImGui::Checkbox("Customize background blur",&profile.custom))config.Save();
                     if(profile.custom){
-                        if(DrawNumberRow("Clear distance behind character","Distance",&profile.distanceMeters,0,camera_blur::MaxDistanceMeters,10,"%.1f m","%.2f"))config.Save();
-                        if(DrawNumberRow("Blur amount","Amount",&profile.amount,0,5,0.6f,"%.2f %%","%.2f"))config.Save();
-                        ImGui::TextWrapped("The whole character stays sharp. More distance pushes the background blur farther away. Amount is an absolute Gaussian blur size, not a multiplier; zero removes it. Custom mode replaces the level's DOF method for this view.");
+                        if(NumberRow("Clear distance behind character","Distance",&profile.distanceMeters,0,camera_blur::MaxDistanceMeters,10,"%.1f m","%.2f"))config.Save();
+                        if(NumberRow("Blur amount","Amount",&profile.amount,0,5,0.6f,"%.2f %%","%.2f"))config.Save();
+                        HelpText("The whole character stays sharp. More distance pushes the background blur farther away. Amount is an absolute Gaussian blur size, not a multiplier; zero removes it. Custom mode replaces the level's DOF method for this view.");
                     }else ImGui::TextDisabled("Level effect%s",i==0?"":" with your TPS character-focus setting");
                     ImGui::EndDisabled();ImGui::PopID();
                 }
-                ImGui::Unindent(12.0f);
+                ImGui::Unindent();
             }
             if(ImGui::CollapsingHeader("Third Person camera")){
-            ImGui::Indent(12.0f);
-            DrawSectionTitle("Third Person camera");
+            ImGui::Indent();
             if (ImGui::Checkbox("Third Person", &config.thirdPersonEnabled)) {
                 config.Save();
                 *c.lastAction=config.thirdPersonEnabled?"Third Person ON":"Third Person OFF";
@@ -1078,42 +1061,41 @@ void Draw(Context& c) {
                 DrawToggleFeature(config,"Enable TPS FOV override","TPSFov",&config.thirdPersonFovEnabled,
                     "Solo and local co-op have separate values. Coop FOV applies to both split-screen views.",camera.viewReady);
                 if(config.thirdPersonFovEnabled){
-                    if(DrawNumberRow("FOV solo","TPSFovSolo",&config.thirdPersonFovDegrees,40,140,110,"%.0f deg","%.1f"))config.Save();
-                    if(DrawNumberRow("FOV coop","TPSFovCoop",&config.thirdPersonCoopFovDegrees,40,140,110,"%.0f deg","%.1f"))config.Save();
+                    if(NumberRow("FOV solo","TPSFovSolo",&config.thirdPersonFovDegrees,40,140,110,"%.0f deg","%.1f"))config.Save();
+                    if(NumberRow("FOV coop","TPSFovCoop",&config.thirdPersonCoopFovDegrees,40,140,110,"%.0f deg","%.1f"))config.Save();
                 }
                 DrawSectionTitle("TPS depth of field");
                 DrawToggleFeature(config,"TPS character focus (experimental)","TPSLensFocus",&config.tpsLensFocusEnabled,
                     "Keep the level's depth-of-field method, clear region and distant blur. In TPS, disable the near Gaussian layer; only enlarge a clear region already overridden by the camera. Foot, mount and Ultimate; both local players. OFF keeps focal-distance correction alone. The separate depth-of-field controls can replace this effect.",camera_focus::LensReady());
                 DrawSectionTitle("Normal-form TPS camera");
-                if(DrawNumberRow("Distance","TPSDistance",&config.thirdPersonDistanceMultiplier,0,3,0.15f,"%.2fx","%.3f"))config.Save();
-                if(DrawNumberRow("View pitch","TPSPitch",&config.thirdPersonPitchDegrees,-75,65,-12,"%.1f deg","%.1f"))config.Save();
-                if(DrawNumberRow("Vertical offset","TPSHeight",&config.thirdPersonHeightOffset,-1000,1000,0,"%+.0f units","%.1f"))config.Save();
+                if(NumberRow("Distance","TPSDistance",&config.thirdPersonDistanceMultiplier,0,3,0.15f,"%.2fx","%.3f"))config.Save();
+                if(NumberRow("View pitch","TPSPitch",&config.thirdPersonPitchDegrees,-75,65,-12,"%.1f deg","%.1f"))config.Save();
+                if(NumberRow("Vertical offset","TPSHeight",&config.thirdPersonHeightOffset,-1000,1000,0,"%+.0f units","%.1f"))config.Save();
                 ImGui::Spacing();
                 constexpr const char* stickOptions[]={"OFF (native sticks)","Camera Left / Move Right","Camera Right / Move Left"};
-                ImGui::SetNextItemWidth(285.0f);
-                if(ImGui::Combo("TPS camera joystick",&config.tpsCameraStickMode,stickOptions,3)){
+                if(Choice("TPS camera joystick",&config.tpsCameraStickMode,stickOptions,3)){
                     config.cameraControllerOrbitEnabled=config.tpsCameraStickMode!=0;
                     config.cameraOrbitInputEnabled=config.cameraControllerOrbitEnabled;
                     config.Save();
                 }
                 if(config.tpsCameraStickMode!=0){
-                    if(DrawNumberRow("Stick speed","TPSStickSpeed",&config.cameraStickSpeed,30,360,180,"%.0f deg/s","%.1f"))config.Save();
+                    if(NumberRow("Stick speed","TPSStickSpeed",&config.cameraStickSpeed,30,360,180,"%.0f deg/s","%.1f"))config.Save();
                 }
                 ImGui::TextDisabled("Only Third Person, focused game, closed overlay.");
                 ImGui::TextDisabled("TPS swaps complete roles: camera Left = movement Right.");
                 ImGui::TextDisabled("Native in-game stick swap is accounted for by Camera Forward.");
-                if(DrawNumberRow("Foot origin correction","TPSFoot",&config.tpsFootAnchorOffset,-500,500,0,"%+.0f units","%.1f"))config.Save();
+                if(NumberRow("Foot origin correction","TPSFoot",&config.tpsFootAnchorOffset,-500,500,0,"%+.0f units","%.1f"))config.Save();
                 DrawSectionTitle("Ultimate form TPS camera");
                 ImGui::TextWrapped("Separate distance and vertical offset while transformed. Normal-form settings stay independent.");
-                if(DrawNumberRow("Distance (Ultimate form)","TPSUltimateDistance",&config.tpsUltimateDistanceMultiplier,0,3,
+                if(NumberRow("Distance (Ultimate form)","TPSUltimateDistance",&config.tpsUltimateDistanceMultiplier,0,3,
                     defaults::UltimateDistance,"%.2fx","%.3f"))config.Save();
-                if(DrawNumberRow("Vertical offset (Ultimate form)","TPSUltimateHeight",&config.tpsUltimateHeightOffset,-1000,1000,
+                if(NumberRow("Vertical offset (Ultimate form)","TPSUltimateHeight",&config.tpsUltimateHeightOffset,-1000,1000,
                     defaults::UltimateHeight,"%+.0f units","%.1f"))config.Save();
                 DrawSectionTitle("Horseback TPS camera");
                 ImGui::TextWrapped("Separate distance and vertical offset while riding. Foot and Ultimate settings stay independent.");
-                if(DrawNumberRow("Distance (Horseback)","TPSHorseDistance",&config.tpsHorseDistanceMultiplier,0,3,
+                if(NumberRow("Distance (Horseback)","TPSHorseDistance",&config.tpsHorseDistanceMultiplier,0,3,
                     defaults::HorseDistance,"%.2fx","%.3f"))config.Save();
-                if(DrawNumberRow("Vertical offset (Horseback)","TPSHorseHeight",&config.tpsHorseHeightOffset,-1000,1000,
+                if(NumberRow("Vertical offset (Horseback)","TPSHorseHeight",&config.tpsHorseHeightOffset,-1000,1000,
                     defaults::HorseHeight,"%+.0f units","%.1f"))config.Save();
                 if(ImGui::Button("TPS Camera Values Default"))config.ResetTpsCameraValues();
                 ImGui::Unindent();
@@ -1131,17 +1113,16 @@ void Draw(Context& c) {
                 ImGui::Separator();
                 ImGui::TextDisabled("Unified TPS aiming (on foot + mounted)");
                 if(ImGui::Checkbox("3D aiming (experimental)",&config.tps3DAimEnabled))config.Save();
-                ImGui::TextWrapped("Same camera and charged-shot correction in both modes. ON adds vertical aiming; OFF keeps native vertical aiming/arc. Mouse/controller, P1/P2, Camera Forward only.");
+                HelpText("Same camera and charged-shot correction in both modes. ON adds vertical aiming; OFF keeps native vertical aiming/arc. Mouse/controller, P1/P2, Camera Forward only.");
                 if(config.tps3DAimEnabled){
-                    if(DrawNumberRow("Shot vertical angle","TPSAimPitchOffset",&config.tpsAimPitchOffsetDegrees,-45,45,12,"%+.1f deg","%.1f"))config.Save();
+                    if(NumberRow("Shot vertical angle","TPSAimPitchOffset",&config.tpsAimPitchOffsetDegrees,-45,45,12,"%+.1f deg","%.1f"))config.Save();
                     ImGui::TextDisabled("Positive raises the firing ray. +12 deg compensates the default -12 deg view pitch; camera settings do not change.");
                 }
                 constexpr const char* kMountedModes[]={
                     "Camera Forward (free camera while firing)",
                     "Vanilla Aim (pause camera while firing)"
                 };
-                ImGui::SetNextItemWidth(510.0f);
-                if(ImGui::Combo("TPS aiming mode##MountedMode",
+                if(Choice("TPS aiming mode##MountedMode",
                     &config.tpsMountedAimMode,kMountedModes,2))config.Save();
                 ImGui::TextWrapped(config.tpsMountedAimMode==0
                     ? "Camera Forward: native aim receives a forward stick while firing; camera stays free (foot mode EXPERIMENTAL)."
@@ -1167,11 +1148,10 @@ void Draw(Context& c) {
                     int index=0;
                     for(int i=0;i<kButtonCount;++i)
                         if(mask==kButtons[i]){index=i;break;}
-                    ImGui::SetNextItemWidth(285.0f);
-                    if(ImGui::Combo(title,&index,kButtonLabels,kButtonCount)){
+                    if(Choice(title,&index,kButtonLabels,kButtonCount)){
                         mask=kButtons[index];config.Save();
                     }
-                    ImGui::SameLine();
+                    layout::SameLineIfFits(ImGui::CalcTextSize("Default").x+2*ImGui::GetStyle().FramePadding.x);
                     ImGui::PushID(title);
                     if(ImGui::SmallButton("Default")){mask=defaultMask;config.Save();}
                     ImGui::PopID();
@@ -1193,14 +1173,13 @@ void Draw(Context& c) {
                 auto MouseFireBind=[&](const char* label,int& binding,int& other,int original){
                     int index=0;
                     for(int i=0;i<6;++i)if(mouseCodes[i]==binding){index=i;break;}
-                    ImGui::SetNextItemWidth(285.0f);
-                    if(ImGui::Combo(label,&index,mouseLabels,6)){
+                    if(Choice(label,&index,mouseLabels,6)){
                         const int selected=mouseCodes[index];
                         if(selected && selected==other)other=binding;
                         binding=selected;
                         config.Save();
                     }
-                    ImGui::SameLine();
+                    layout::SameLineIfFits(ImGui::CalcTextSize("Default").x+2*ImGui::GetStyle().FramePadding.x);
                     ImGui::PushID(label);
                     if(ImGui::SmallButton("Default")){
                         binding=original;
@@ -1229,7 +1208,7 @@ void Draw(Context& c) {
                 if(DrawDelayRow("Temporary view delay","HoldTPSDelay",&config.tpsSuspendDelayMs,0,3000,300))config.Save();
                 ImGui::Spacing();
                 BindGamepadMask("Use selected equipment##TPS",config.tpsGrenadeButtonMask,128);
-                ImGui::TextWrapped("Uses selected equipment for either local player. This action is separate from wheel selection. "
+                HelpText("Uses selected equipment for either local player. This action is separate from wheel selection. "
                     "Hold to equip; release uses the existing native stow pulse.");
                 ImGui::Separator();
                 ImGui::TextDisabled("Native GAME bindings: manually match in-game controls");
@@ -1238,13 +1217,13 @@ void Draw(Context& c) {
                 BindGamepadMask("Detect alternate fire (default RB)##TPS",config.tpsFireSecondaryMask,512);
                 ImGui::TextWrapped("Optional second SHOOT input; OFF disables this detector.");
                 BindGamepadMask("Detect wheel opening (default LB)##TPS",config.tpsWheelPadMask,256);
-                ImGui::TextWrapped("This held button lets the game's native right stick select wheel items, "
+                HelpText("This held button lets the game's native right stick select wheel items, "
                     "instead of being intercepted by TPS camera control.");
                 ImGui::TextDisabled("LB+Y: original native ability behavior, no modded aiming or key translation.");
-                ImGui::TextWrapped("Wheel detector keys never emit fake game input. "
+                HelpText("Wheel detector keys never emit fake game input. "
                     "Change them here too when rebinding the game's wheel controls.");
                 ImGui::TextDisabled("Keyboard Use Gear follows the game's own native mapping.");
-                ImGui::TextWrapped("Controller bindings apply to P1 and P2. Each player has independent equipment hold/stow, temporary view and recenter. A long press toggles the shared TPS option.");
+                HelpText("Controller bindings apply to P1 and P2. Each player has independent equipment hold/stow, temporary view and recenter. A long press toggles the shared TPS option.");
                 ImGui::TextDisabled("P1 equipment stow pulses: %u | DOWN %u / UP %u",
                     t.grenadeNativeReleasePulses,t.grenadePhysicalDown,t.grenadePhysicalUp);
                 if(config.tpsGrenadeButtonMask!=0 &&
@@ -1255,15 +1234,15 @@ void Draw(Context& c) {
                 if(config.tpsToggleHoldButtonMask!=0 &&
                    config.tpsToggleHoldButtonMask==config.tpsSuspendButtonMask)
                     ImGui::TextDisabled("Long TPS and temporary view share one button.");
-                ImGui::TextWrapped("Native game actions remain unless deliberately remapped "
+                HelpText("Native game actions remain unless deliberately remapped "
                     "for grenade. LT/RT and other game buttons can conflict with "
                     "their original actions. OFF disables the mod shortcut only.");
                 ImGui::Unindent();
             }
-            ImGui::Unindent(12.0f);
+            ImGui::Unindent();
             }
             if(ImGui::CollapsingHeader("Original game camera")){
-            ImGui::Indent(12.0f);
+            ImGui::Indent();
             ImGui::TextDisabled("Normal aiming and camera return when TPS is OFF.");
             if(config.thirdPersonEnabled)
                 ImGui::TextDisabled("Vanilla camera settings are disabled during TPS; saved values stay intact.");
@@ -1283,21 +1262,21 @@ void Draw(Context& c) {
             if(ImGui::Button("Zoom -##Camera")){config.cameraZoomPercent-=10;zoomChanged=true;}
             ImGui::SameLine();
             if(ImGui::Button("Zoom +##Camera")){config.cameraZoomPercent+=10;zoomChanged=true;}
-            zoomChanged|=DrawNumberRow("Zoom","VanillaZoom",&config.cameraZoomPercent,-75,200,0,"%+.0f%%","%.1f");
+            zoomChanged|=NumberRow("Zoom","VanillaZoom",&config.cameraZoomPercent,-75,200,0,"%+.0f%%","%.1f");
             if(zoomChanged){config.cameraZoomPercent=std::clamp(config.cameraZoomPercent,-75.0f,200.0f);config.Save();}
             DrawSectionTitle("Camera height");
             ImGui::TextWrapped("Vanilla camera height offset, default zero. TPS height is independent.");
-            if(DrawNumberRow("Height","VanillaHeight",&config.cameraHeightOffset,-1500,1500,0,"%+.0f units","%.1f"))config.Save();
+            if(NumberRow("Height","VanillaHeight",&config.cameraHeightOffset,-1500,1500,0,"%+.0f units","%.1f"))config.Save();
             DrawSectionTitle("Camera angle");
             ImGui::TextWrapped("Vanilla camera pitch offset. TPS uses its own view pitch.");
-            if(DrawNumberRow("Pitch","VanillaPitch",&config.cameraPitchDegrees,-35,35,0,"%+.1f deg","%.1f"))config.Save();
+            if(NumberRow("Pitch","VanillaPitch",&config.cameraPitchDegrees,-35,35,0,"%+.1f deg","%.1f"))config.Save();
             DrawSectionTitle("Horizontal camera rotation (yaw)");
             ImGui::TextWrapped("Turn the camera left/right. Zero degrees is the native view.");
-            if(DrawNumberRow("Yaw","VanillaYaw",&config.cameraYawDegrees,-180,180,0,"%+.1f deg","%.1f"))config.Save();
+            if(NumberRow("Yaw","VanillaYaw",&config.cameraYawDegrees,-180,180,0,"%+.1f deg","%.1f"))config.Save();
 
             ImGui::EndDisabled();
             DrawSectionTitle("Camera keyboard bindings");
-            ImGui::TextWrapped(
+            HelpText(
                 "Default: Up/Down = height, PageUp/PageDown = zoom. "
                 "Home/End = tilt; Left/Right = yaw. "
                 "Press Rebind then the new key; Esc cancels. "
@@ -1317,7 +1296,7 @@ void Draw(Context& c) {
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("The native DOF quality is restored when native-view zoom is off. Supported TPS views retain the level method and per-player focus.");
             ImGui::TextDisabled("Native output changes. Actual framing requires in-game verification.");
-            ImGui::Unindent(12.0f);
+            ImGui::Unindent();
             }
             ImGui::EndTabItem();
         }
@@ -1330,7 +1309,7 @@ void Draw(Context& c) {
                 "Open / close: %s",
                 menuKeyName.c_str()
             );
-            ImGui::SameLine(280.0f);
+            layout::SameLineIfFits(ImGui::CalcTextSize("Rebind Menu Key").x+2*ImGui::GetStyle().FramePadding.x);
 
             if (c.captureMenuKey->load()) {
                 ImGui::TextDisabled(
@@ -1347,7 +1326,7 @@ void Draw(Context& c) {
                 }
             }
 
-            ImGui::SameLine();
+            layout::SameLineIfFits(ImGui::CalcTextSize("Default").x+2*ImGui::GetStyle().FramePadding.x);
             if(ImGui::Button("Default##MenuKey")){config.menuKey=defaults::MenuKey;config.Save();}
             ImGui::Spacing();
 
@@ -1423,7 +1402,7 @@ void Draw(Context& c) {
                         current = 0;
                     }
 
-                    ImGui::SetNextItemWidth(390.0f);
+                    ImGui::SetNextItemWidth(layout::ControlWidth(390.f));
 
                     if (ImGui::BeginCombo(
                             comboId,
@@ -1488,7 +1467,7 @@ void Draw(Context& c) {
                 config.Save();
                 if(config.updaterAutoCheck)dg::update::Check(config.updaterBeta);
             }
-            ImGui::TextWrapped("Check the selected channel once at startup. A newer build shows an 8-second notification and a yellow reminder above the tabs. Enabling this option also checks now.");
+            HelpText("Check the selected channel once at startup. A newer build shows an 8-second notification and a yellow reminder above the tabs. Enabling this option also checks now.");
             ImGui::BeginDisabled(update.busy);
             if (ImGui::Checkbox("Beta updates (debug)", &config.updaterBeta)) {
                 config.Save();
@@ -1576,11 +1555,11 @@ void Draw(Context& c) {
         if (ImGui::BeginTabItem("About")) {
             ImGui::Spacing();
             if(ImGui::CollapsingHeader("Menu appearance")){
-                if(DrawNumberRow("Font size","MenuFontSize",&config.menuFontSize,menu::MinFontSize,menu::MaxFontSize,menu::DefaultFontSize,"%.1f px","%.1f"))config.Save();
+                if(NumberRow("Font size","MenuFontSize",&config.menuFontSize,menu::MinFontSize,menu::MaxFontSize,menu::DefaultFontSize,"%.1f px","%.1f"))config.Save();
                 ImGui::TextWrapped("Changes mod menu text and its popups only. 13 px is the original size. Saved in the INI; takes effect on the next frame.");
             }
             ImGui::Text(
-                "Darksiders Genesis Enhanced - cleaned ASI core"
+                "Darksiders Genesis Enhanced"
             );
             ImGui::Spacing();
             ImGui::TextWrapped(
@@ -1671,12 +1650,12 @@ void Draw(Context& c) {
     }
 
     ImGui::Separator();
-    ImGui::Text(
+    ImGui::TextWrapped(
         "Last action: %s",
         c.lastAction->c_str()
     );
 
-    ImGui::PopStyleVar();
+    ImGui::PopTextWrapPos();
     ImGui::End();
 
     if (!open) {

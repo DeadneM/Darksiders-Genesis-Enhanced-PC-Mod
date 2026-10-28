@@ -1,3 +1,11 @@
+## File active - V1.128 presentation du menu
+
+**PREPAREE / CONTROLES GITHUB EN ATTENTE ; MENU COMPLET NON VALIDE EN JEU.** Base V1.127 installee et conservee. Aide courte avec details au survol (?), marges et champs adaptes a la police, listes et valeurs homogenes, groupes Appearance fermes initialement, libelle/contact sol avances clarifies. Parametres, controles et modules de jeu inchanges ;218valeurs INI/55ID Hotkeys conserves. [Perimetre, deux passes et essai](V1_128_MENU_READABILITY_TEST.md).
+
+Compilation uniquement GitHub ; aucun jeu lance ou remplacement V1.128 local. main reste V1.124 validee ; anciens ZIP/archive preserves. Bug de selection du tir souris TPS sur destructible reste ouvert, coffre/dash non declares valides. Les sections suivantes sont historiques.
+
+---
+
 ## File active - V1.127
 
 V1.127 ensuite installee sur demande, sauvegarde V1.126 verifiee ; INI/raccourcis/PAK conserves, jeu non lance. Precision visee souris TPS : un ennemi peut attirer le rayon jusqu'au bord de l'ecran au lieu du destructible proche. Bug ouvert ; aucun correctif de visee dans ce lot. [Installation](evidence/V1_127_INSTALL_CHECK.json).

@@ -1,0 +1,31 @@
+{
+  "base": "fd4bb91be175e7768ab1997af53c0806bac7b6f3",
+  "stableValidatedBase": "V1.124 on main",
+  "installedBase": "V1.127 backed up and installed on explicit request",
+  "scope": "menu presentation only",
+  "changedProduction": [
+    "CMakeLists.txt",
+    "src/BuildInfo.h",
+    "src/OverlayUi.cpp"
+  ],
+  "newUiHeader": "src/OverlayLayout.h",
+  "iniKeysUnchanged": 218,
+  "configWritesSameOrder": true,
+  "commandHandlersSameOrder": true,
+  "numericControlsSameIdsRangesDefaults": 24,
+  "confirmationsUnchanged": 3,
+  "newSettings": false,
+  "gameplayModulesChanged": false,
+  "controllerBindingsChanged": false,
+  "hotkeyIdsUnchanged": 55,
+  "descriptions": "first sentence or up to100characters; full original available on hover; warnings/statuses and confirmations retained",
+  "groupsClosedByDefault": true,
+  "groundTime": "same value/key/default, clearer label under Advanced landing settings",
+  "test": "Actual Dear ImGui layout: 12 combinations of widths240/480/990 and fonts10/13/20/32, Default click, no idle mutation, style restore; existing binding-scope suite retained",
+  "review1": "UI-only file boundary, config mutation and command sequence, settings byte parity",
+  "review2": "numeric ID/pointer/range/default fingerprint, confirmation handler equivalence, scopes and style stacks, old binding IDs and hand/model groups reviewed",
+  "gameplayValidated": false,
+  "fullMenuVisualValidation": false,
+  "localBuild": false,
+  "localInstall": false
+}

@@ -1,3 +1,11 @@
+## V1.128 - menu plus lisible et homogene
+
+**PREPAREE / CONTROLES GITHUB EN ATTENTE ; MENU COMPLET NON VALIDE EN JEU.** Base V1.127 installee et conservee. Aide courte avec details au survol (?), marges et champs adaptes a la police, listes et valeurs homogenes, groupes Appearance fermes initialement, libelle/contact sol avances clarifies. Parametres, controles et modules de jeu inchanges ;218valeurs INI/55ID Hotkeys conserves. [Perimetre, deux passes et essai](V1_128_MENU_READABILITY_TEST.md).
+
+Compilation uniquement GitHub ; aucun jeu lance ou remplacement V1.128 local. main reste V1.124 validee ; anciens ZIP/archive preserves. Bug de selection du tir souris TPS sur destructible reste ouvert, coffre/dash non declares valides. Les sections suivantes sont historiques.
+
+---
+
 ## V1.127 - reception lourde unifiee et bilan Recovery
 
 **CONSTRUITE / CONTROLEE : [66/66 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40686258358), zero avertissement/erreur MSVC. [ZIP cumulatif public verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/cfc71c93c41ce6c985487e1fa692afe18155bbe4/downloads/DarksidersGenesis_V1.127_RECOVERY_EXPERIMENTS_TEST.zip) - [Recu](V1_127_DELIVERY_RECEIPT.md). Updater debug et Defender controles. Timing reception lourde V1.126 accepte puis fusionne ; conditionnement V1.127 non valide en jeu. Gain coffre/dash et tir TPS souris restent ouverts. main reste en V1.124 ; installation locale ensuite demandee et verifiee, INI conserve ; jeu non lance.**
