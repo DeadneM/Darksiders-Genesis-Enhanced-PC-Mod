@@ -1,3 +1,9 @@
+# Orientation actuelle - 28 octobre 2026
+
+V1.124 et correctif Caltrops War **VALIDES par l'utilisateur dans son essai**. [File active actuelle](ACTIVE_QUEUE.md) et [validation/limites](V1_124_USER_VALIDATION.md) font reference ; les versions ci-dessous sont historiques. Suite recommandee : consolider le code actuel, terminer les essais d'apparences et de degats Rampage, puis coop/P2 differee. Reception lourde deja validee, dash rejete non reactive. Aucun nouveau build ni changement de runtime.
+
+---
+
 ## V1.77 — construite et contrôlée, réaffectation native du Courroux
 
 Complément du 21 octobre : [double audit des leftovers](AUDIT_DOUBLE_NETTOYAGE_V1_77.md), deux méthodes confrontées. Proposition de nettoyage **167 lignes nettes / 12 fichiers**, patch séparé non appliqué et non compilé. Les sources actives et le ZIP V1.77 restent inchangés pendant les essais utilisateur. Intégrer au prochain lot cohérent et repasser les contrôles ; l'échange des six capacités et OFF universel restent ouverts.

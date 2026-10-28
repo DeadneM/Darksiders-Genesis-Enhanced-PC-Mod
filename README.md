@@ -1,3 +1,5 @@
+**28 octobre 2026 : V1.124 / correctif du petit saut final Caltrops War VALIDES par l'utilisateur dans son essai. Base retenue pour la suite ; Geyser/Stoneskin et acquis conserves.** [Validation et limites](docs/V1_124_USER_VALIDATION.md) - [file restante actuelle](docs/ACTIVE_QUEUE.md). Pas de nouvelle build ou installation. Les statuts de preparation/livraison ci-dessous restent historiques et ne remplacent pas ce retour ; le ZIP publie reste immuable.
+
 ## V1.124 - Caltrops War, essai natif unique de retour au sol
 
 **CONSTRUITE / CONTROLEE : [65/65 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40601516701), zero avertissement/erreur MSVC. [ZIP cumulatif public verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/c6751b4ef8835f25e9a72cd6c424d4ea833bcff6/downloads/DarksidersGenesis_V1.124_WAR_CALTROPS_GROUND_STATE_TEST.zip) - [Recu](docs/V1_124_DELIVERY_RECEIPT.md). Updater debug et Defender controles. Essai Caltrops EXPERIMENTAL, non valide en jeu ; pas d'installation locale. V1.123 et acquis valides conserves.**

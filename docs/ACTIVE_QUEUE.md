@@ -1,3 +1,23 @@
+# File active - V1.124 validee, 28 octobre 2026
+
+**Base retenue : V1.124. Caltrops War et son petit saut final : VALIDES par l'utilisateur, sujet clos.** Geyser, Stoneskin, Rampage/World Ender/Clone acceptes, controles et autres acquis conserves. [Retour exact et limites](V1_124_USER_VALIDATION.md).
+
+| Sujet restant | Etat et prochaine action |
+| --- | --- |
+| Consolidation du code actuel | Recommandation : nouvel audit en deux passes des transferts/diagnostics/restaurations ; aucun retrait non examine. Nettoyage V1.77 deja integre en V1.78. |
+| Bibliotheque d'apparences | Onglet livre ; variantes/Hidden/retour Native a tester par famille. Modeles/materiaux/composants persistants hors bibliotheque de particules. |
+| Rampage Strife, degats de charge | Comparaison sur ennemis encore non rapportee explicitement ; presentation et fin acceptees. |
+| Coop/P2 | Essais finaux differes : pouvoirs simultanes, sons/effets, roues, camera/formes et reglages P2. |
+| Autres icones/FX plats P2 | Reportes expressement ; identifier avant intervention. Prompts d'interaction valides conserves. |
+| HUD general apres arene verrouillee | Surveillance uniquement, non reproduit aux derniers essais. |
+| Recovery dash/coffres | Anciennes pistes differees ; pas de retour du candidat dash rejete. Reception lourde V1.103 deja validee. |
+
+Pas de nouvelle build pour la validation documentaire. Suite conseillee : consolidation, essais groupes des apparences/degats, puis coop. Aucune promotion stable automatique. INI/raccourcis/PAK/sauvegardes et archives preserves.
+
+---
+
+# Historique conserve - les anciens etats ne remplacent pas la file ci-dessus
+
 ## V1.111 - Repere Rampage et rythme des gestes natifs
 
 **CONSTRUITE / CONTROLEE : [61/61 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40363876283), zero avertissement/erreur MSVC. [ZIP public immuable verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/0f1a5d47ac05b67ed950d9338fe06d8b7c38a3d0/downloads/DarksidersGenesis_V1.111_NATIVE_POWER_TIMING_FRAME_TEST.zip) - [Recu](V1_111_DELIVERY_RECEIPT.md). Updater debug : V1.111 selectionnee, octets verifies. Defender : aucune menace detectee dans le ZIP final et les quatre fichiers, protections actives. Corrections EXPERIMENTALES, NON VALIDEES EN JEU.**

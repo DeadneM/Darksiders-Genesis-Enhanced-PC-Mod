@@ -1,3 +1,5 @@
+**28 octobre 2026 : retour utilisateur « super cest valider » sur V1.124. Correctif Caltrops War VALIDE dans l'essai rapporte ; conserver l'appel natif unique borne, le geste, les pics et les sons.** Geyser/Stoneskin acceptes restent figes. [Consignation, limites et sujets restants](V1_124_USER_VALIDATION.md). Aucun protocole exhaustif/P2 ni mesure de degats inventes ; aucune nouvelle build ou modification runtime. Historique de livraison ci-dessous conserve.
+
 ## V1.124 - Caltrops War, essai natif unique de retour au sol
 
 **CONSTRUITE / CONTROLEE : [65/65 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40601516701), zero avertissement/erreur MSVC. [ZIP cumulatif public verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/c6751b4ef8835f25e9a72cd6c424d4ea833bcff6/downloads/DarksidersGenesis_V1.124_WAR_CALTROPS_GROUND_STATE_TEST.zip) - [Recu](V1_124_DELIVERY_RECEIPT.md). Updater debug et Defender controles. Essai Caltrops EXPERIMENTAL, non valide en jeu ; pas d'installation locale. V1.123 et acquis valides conserves.**

@@ -1,3 +1,5 @@
+**28 octobre 2026 : V1.124 / correctif du petit saut final Caltrops War VALIDES par l'utilisateur dans son essai. Sujet clos ; Geyser/Stoneskin et acquis conserves.** [Retour et limites](V1_124_USER_VALIDATION.md) - [file restante actuelle](ACTIVE_QUEUE.md). Apparences/degats de charge a confirmer, coop/FX P2 differes, HUD en surveillance ; reception lourde deja validee. Consolidation du code recommandee, pas encore executee. Les etats ci-dessous sont historiques. Aucun nouveau build ni changement runtime.
+
 V1.124 delivered:65/65 GitHub suites, no MSVC warning/error, ZIP/updater/Defender controlled. Explicitly authorized one-shot War Caltrops ground-state API trial EXPERIMENTAL. V1.123 validated features preserved; no local install/launch. [Receipt](V1_124_DELIVERY_RECEIPT.md).
 
 ## V1.124 authorized one-shot Caltrops ground-state trial
