@@ -1,4 +1,5 @@
 #include "RuntimeSettings.h"
+#include "RecoverySettings.h"
 
 
 namespace dg::runtime {
@@ -38,6 +39,11 @@ void Publish(const Snapshot& s) {
     if(appearanceChanged)g_state.effectAppearanceGeneration.fetch_add(1);
     g_state.weaponSheathingEnabled.store(s.weaponSheathingEnabled);
     g_state.heavyLandingRecoveryEnabled.store(s.heavyLandingRecoveryEnabled);
+    g_state.heavyLandingCustomTimingEnabled.store(s.heavyLandingCustomTimingEnabled);
+    g_state.heavyLandingDelaySeconds.store(recovery_settings::LandingDelay(s.heavyLandingDelaySeconds));
+    g_state.heavyLandingGroundSeconds.store(recovery_settings::GroundTime(s.heavyLandingGroundSeconds));
+    g_state.recoveryDashTailEnabled.store(s.recoveryDashTailEnabled);g_state.recoveryChestTailEnabled.store(s.recoveryChestTailEnabled);
+    g_state.recoveryTailDelaySeconds.store(recovery_settings::TailDelay(s.recoveryTailDelaySeconds));
     for(unsigned family=0;family<2;++family)for(unsigned slot=0;slot<3;++slot)
         g_state.wrathSlots[family][slot].store(wrath_slots::Normalize(family,s.wrathSlots[family][slot]));
     g_state.sheathNeverEnabled.store(s.sheathNeverEnabled);

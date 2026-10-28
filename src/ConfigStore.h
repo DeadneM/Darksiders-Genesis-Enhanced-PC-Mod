@@ -278,6 +278,10 @@ public:
     effect_appearance::Choices effectAppearances{};
     bool weaponSheathingEnabled = false;
     bool heavyLandingRecoveryEnabled = false;
+    bool heavyLandingCustomTimingEnabled = false;
+    float heavyLandingDelaySeconds = .15f,heavyLandingGroundSeconds = .05f;
+    bool recoveryDashTailEnabled = false,recoveryChestTailEnabled = false;
+    float recoveryTailDelaySeconds = 0;
     wrath_slots::Choices wrathSlots{};
     bool sheathNeverEnabled = true;
     float sheathDelaySeconds = 10.0f;

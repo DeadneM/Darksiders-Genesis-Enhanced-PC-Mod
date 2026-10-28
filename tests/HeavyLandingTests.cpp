@@ -27,6 +27,7 @@ bool Released(unsigned i=0){return (Get<uint64_t>(abilities[i],0x120)&dg::heavy_
 void Fresh(){
     using namespace dg::heavy_landing;
     gameThread=true;paused=false;now=1000;g_saved={};g_ground[0]={};g_ground[1]={};
+    dg::runtime::Get().heavyLandingCustomTimingEnabled=false;
     g_ready=true;g_window=Window;g_interrupt=Interrupt;opens=restores=0;nativeArgs=true;dg::runtime::Get().heavyLandingRecoveryEnabled=true;
     for(unsigned i=0;i<2;++i){
         std::memset(actors[i],0,sizeof(actors[i]));std::memset(abilities[i],0,sizeof(abilities[i]));
@@ -88,6 +89,11 @@ void Run(){
     Fresh();Tick();now+=60;Tick();Put(abilities[0],0xDC,.7f);dg::runtime::Get().heavyLandingRecoveryEnabled=false;Tick();Check(Released()&&!restores,"does not close due native MOVE notify");
     Fresh();Tick();now+=60;Tick();Put<unsigned char>(abilities[0],0xD8,4);Tick();Check(!restores,"completed ability not called");
     Fresh();Tick();now+=60;Tick();Put<uint64_t>(abilities[0],0x120,OtherBits|MoveBit|(uint64_t(1)<<12));dg::runtime::Get().heavyLandingRecoveryEnabled=false;Tick();Check(Get<uint64_t>(abilities[0],0x120)==(OtherBits|(uint64_t(1)<<12)),"other native windows preserved");
+    Fresh();dg::runtime::Get().heavyLandingCustomTimingEnabled=true;dg::runtime::Get().heavyLandingDelaySeconds=.4f;dg::runtime::Get().heavyLandingGroundSeconds=.1f;
+    Tick();now+=100;Tick();Check(!Released(),"custom landing delay preserves the initial gesture");Put(abilities[0],0xDC,.4f);Tick();Check(Released(),"custom landing delay opens at the requested time");
+    Put(abilities[0],0xDC,.7f);dg::runtime::Get().heavyLandingRecoveryEnabled=false;Tick();Check(!Released()&&restores==1,"custom profile restores until actual MOVE notify, not attack interrupt");
+    Fresh();dg::runtime::Get().heavyLandingCustomTimingEnabled=true;dg::runtime::Get().heavyLandingDelaySeconds=.1f;dg::runtime::Get().heavyLandingGroundSeconds=.2f;
+    Tick();now+=199;Tick();Check(!Released(),"custom ground-contact requirement respected");++now;Tick();Check(Released(),"custom stable ground requirement expires");
     wchar_t folder[MAX_PATH]{},path[MAX_PATH]{};Check(GetTempPathW(MAX_PATH,folder)&&GetTempFileNameW(folder,L"DGL",0,path),"temporary INI");
     dg::config::Store c;c.SetPath(path);Check(c.Load()&&!c.heavyLandingRecoveryEnabled,"legacy INI defaults to native landing");
     c.heavyLandingRecoveryEnabled=true;c.aimPadButtonA=0x40;c.sheathKeyboardKey='K';Check(c.SaveNow(),"landing option saves");

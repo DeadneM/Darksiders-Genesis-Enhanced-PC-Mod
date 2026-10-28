@@ -27,6 +27,10 @@ struct Snapshot {
     effect_appearance::Choices effectAppearances{};
     bool weaponSheathingEnabled = false;
     bool heavyLandingRecoveryEnabled = false;
+    bool heavyLandingCustomTimingEnabled = false;
+    float heavyLandingDelaySeconds = .15f,heavyLandingGroundSeconds = .05f;
+    bool recoveryDashTailEnabled = false,recoveryChestTailEnabled = false;
+    float recoveryTailDelaySeconds = 0;
     wrath_slots::Choices wrathSlots{};
     bool sheathNeverEnabled = true;
     float sheathDelaySeconds = 10.0f;
@@ -150,6 +154,10 @@ struct State {
     std::atomic_uint effectAppearanceGeneration{0};
     std::atomic_bool weaponSheathingEnabled{false};
     std::atomic_bool heavyLandingRecoveryEnabled{false};
+    std::atomic_bool heavyLandingCustomTimingEnabled{false};
+    std::atomic<float> heavyLandingDelaySeconds{.15f},heavyLandingGroundSeconds{.05f};
+    std::atomic_bool recoveryDashTailEnabled{false},recoveryChestTailEnabled{false};
+    std::atomic<float> recoveryTailDelaySeconds{0};
     std::array<std::array<std::atomic_int,3>,2> wrathSlots{};
     std::atomic_bool sheathNeverEnabled{true};
     std::atomic<float> sheathDelaySeconds{10.0f};

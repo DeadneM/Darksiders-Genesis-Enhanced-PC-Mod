@@ -4,6 +4,7 @@
 #include "InteractionHudFeature.h"
 #include "WeaponSheathingFeature.h"
 #include "ManualAimFeature.h"
+#include "RecoveryTailFeature.h"
 #include "HeavyLandingFeature.h"
 #include "MountedHolsterFeature.h"
 #include "PistolVisualFeature.h"
@@ -352,6 +353,19 @@ void Draw(Context& c) {
             DrawSectionTitle("Player");
             DrawToggleFeature(config,"Heavy landing movement recovery (experimental)","HeavyLandingRecovery",&config.heavyLandingRecoveryEnabled,
                 "Opens the native movement interruption window shortly after a heavy landing impact. Moving can end the recovery through the game's own cancellation; staying still keeps the landing animation. Does not change dashes, attacks or character swaps. Native and TPS views; experimental, test both characters.",heavy_landing::Ready());
+            if(ImGui::TreeNode("Recovery experiments")){
+                DrawTunableFeature(config,"Custom heavy landing timing (experimental)","HeavyLandingCustomTiming",&config.heavyLandingCustomTimingEnabled,
+                    &config.heavyLandingDelaySeconds,.05f,.8f,.15f,"%.3f s",
+                    "Requires Heavy landing movement recovery above. Delay from ability start before opening native MOVE interruption. OFF keeps the accepted timing. Movement ends the action through the game; no animation is stopped directly.",heavy_landing::Ready());
+                if(DrawNumberRow("Continuous ground contact","HeavyLandingGroundSeconds",&config.heavyLandingGroundSeconds,0.f,.25f,.05f,"%.3f s","%.3f"))config.Save();
+                DrawToggleFeature(config,"Ground dash after-animation recovery (experimental)","RecoveryDashTail",&config.recoveryDashTailEnabled,
+                    "Only after an observed native montage stops completely and forced dash motion has ended. Opens native MOVE interruption; hold movement to test. Does not shorten an active dash, change ammo or simulate a button. May do nothing if native cleanup has already finished.",recovery_tail::Ready());
+                DrawToggleFeature(config,"Chest after-animation recovery (experimental)","RecoveryChestTail",&config.recoveryChestTailEnabled,
+                    "Only exact chest interactions, after observing their native montage play then stop. Loot and animation remain native. Opens MOVE interruption if the action is still running. Check loot, movement and a second interaction; OFF restores a window owned by this experiment.",recovery_tail::Ready());
+                if(DrawNumberRow("Wait after animation stops","RecoveryTailDelaySeconds",&config.recoveryTailDelaySeconds,0.f,1.f,0.f,"%.3f s","%.3f"))config.Save();
+                ImGui::TextWrapped("All new experiments default OFF. The last delay is shared by dash and chest; 0 adds no wait beyond a 30 ms stopped-animation confirmation. Unknown actions, menus, transformations and cinematics keep native behavior. Test Native and TPS separately.");
+                ImGui::TreePop();
+            }
             DrawTunableFeature(
                 config,
                 "Movement Speed",

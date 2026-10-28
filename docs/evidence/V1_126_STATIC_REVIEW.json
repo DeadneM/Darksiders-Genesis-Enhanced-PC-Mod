@@ -1,0 +1,95 @@
+{
+  "base": "73d500d0e7da869baabcb3ff11bbdc0863877b7f",
+  "validatedBase": "V1.124 on main",
+  "iniKeys": 219,
+  "oldIniValuesUnchanged": 212,
+  "settingsAdded": [
+    [
+      "Features",
+      "heavylandingcustomtiming",
+      "0"
+    ],
+    [
+      "Features",
+      "recoverydashtail",
+      "0"
+    ],
+    [
+      "Features",
+      "recoverychesttail",
+      "0"
+    ],
+    [
+      "Values",
+      "tremorsurfaceappearance",
+      "0"
+    ],
+    [
+      "Values",
+      "heavylandingdelayseconds",
+      "0.150"
+    ],
+    [
+      "Values",
+      "heavylandinggroundseconds",
+      "0.050"
+    ],
+    [
+      "Values",
+      "recoverytaildelayseconds",
+      "0.000"
+    ]
+  ],
+  "hotkeyIdsUnchanged": 55,
+  "stableFiles": [
+    "src/LeviathanVisualFeature.cpp",
+    "src/LeviathanVisualFeature.h",
+    "src/EffectAppearanceFeature.cpp",
+    "src/ForeignCaltropsFeature.cpp",
+    "src/ForeignWrathFeature.cpp",
+    "src/ForeignMontage.cpp",
+    "src/StoneSkinVisual.cpp",
+    "src/StoneTransitionFx.cpp",
+    "src/ForeignRampageFeature.cpp",
+    "src/ForeignBeamFeature.cpp",
+    "src/DashCombatFeature.cpp",
+    "src/NativeTpsFeature.cpp",
+    "src/ProjectileAimFeature.cpp",
+    "src/PistolVisualFeature.cpp",
+    "src/ForeignPowerFeature.cpp"
+  ],
+  "newHook": false,
+  "newNativeFunction": false,
+  "newRuntimeContexts": "exact owned chest/ground dash after observed complete native montage; explicit experimental opt-in",
+  "nativeDirectionFields": {
+    "ForwardMontage": {
+      "offset": "0x200",
+      "registrationRvas": [
+        "0x3637338"
+      ]
+    },
+    "BackwardMontage": {
+      "offset": "0x208",
+      "registrationRvas": [
+        "0x3637308"
+      ]
+    },
+    "RightMontage": {
+      "offset": "0x210",
+      "registrationRvas": [
+        "0x36372d8"
+      ]
+    },
+    "LeftMontage": {
+      "offset": "0x218",
+      "registrationRvas": [
+        "0x36372a8"
+      ]
+    }
+  },
+  "firstReview": "Settings/default parity, native contracts, callback placement, observed-playback and motion guards, ABI signatures and identity lifetime checked",
+  "secondReview": "Existing landing path when custom OFF, source/damage/velocity/animation not written, stale/world/ownership cleanup, old appearance mappings by asset identity, separate Leviathan and fixture coverage checked",
+  "gameplayValidated": false,
+  "localBuild": false,
+  "localInstall": false
+}

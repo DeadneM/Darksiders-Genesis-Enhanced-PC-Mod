@@ -46,6 +46,7 @@ LegionCore,
 OtherStrifeFx,
 OtherWarFx,
 OtherMountFx,
+TremorSurface,
 Count };
 inline constexpr unsigned FamilyCount=unsigned(Family::Count);
 static_assert(FamilyCount<=64);
@@ -95,6 +96,7 @@ inline constexpr std::array<FamilyInfo,FamilyCount> Families={{
 {L"OtherStrifeFxAppearance","Other Strife effects","Other effects",{"Native","Hidden"},2},
 {L"OtherWarFxAppearance","Other War effects","Other effects",{"Native","Hidden"},2},
 {L"OtherMountFxAppearance","Other mount effects","Other effects",{"Native","Hidden"},2},
+{L"TremorSurfaceAppearance","Tremor surface impact","Tools",{"Native","Gold debris","Metal debris","Stone debris","Water splash","Hidden"},6},
 }};
 inline constexpr int Normalize(unsigned family,int choice){return family<FamilyCount&&choice>=0&&unsigned(choice)<Families[family].count?choice:0;}
 inline constexpr int Hidden(unsigned family){return int(Families[family].count)-1;}

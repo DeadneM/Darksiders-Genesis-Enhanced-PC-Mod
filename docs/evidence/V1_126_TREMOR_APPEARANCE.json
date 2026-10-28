@@ -1,0 +1,50 @@
+{
+  "indexSha1": "5d0982cd46a5221290cb6ed24696e3962e9dddff",
+  "newFamily": "Tremor surface impact",
+  "familyIndex": 43,
+  "roleIndex": 98,
+  "assets": [
+    {
+      "family": "Tremor",
+      "name": "P_Tremor_Gold_Explosion",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/PlayerGear/TremorGauntlet/Ground/P_Tremor_Gold_Explosion.uasset",
+      "sha1": "d7f00a6a21dc01371d9d7c7de01a31cb45248511",
+      "exportClass": "ParticleSystem",
+      "verified": true
+    },
+    {
+      "family": "Tremor",
+      "name": "P_Tremor_Metal",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/PlayerGear/TremorGauntlet/Ground/P_Tremor_Metal.uasset",
+      "sha1": "339d79988be252c861b9f1f33dcb73466dac5002",
+      "exportClass": "ParticleSystem",
+      "verified": true
+    },
+    {
+      "family": "Tremor",
+      "name": "P_Tremor_Stone",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/PlayerGear/TremorGauntlet/Ground/P_Tremor_Stone.uasset",
+      "sha1": "680c3d58664e90eca102246d30fef1f8c71f71e1",
+      "exportClass": "ParticleSystem",
+      "verified": true
+    },
+    {
+      "family": "Tremor",
+      "name": "P_Tremor_Water_Lg_01",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/PlayerGear/TremorGauntlet/Ground/P_Tremor_Water_Lg_01.uasset",
+      "sha1": "079ed2429f16336ec57ff714c5494882a978dab1",
+      "exportClass": "ParticleSystem",
+      "verified": true
+    }
+  ],
+  "oldFamiliesUnchanged": 43,
+  "oldRoleMappingsByAssetNameUnchanged": 98,
+  "totalFamilies": 44,
+  "totalAssets": 455,
+  "totalRoles": 99,
+  "default": "Native",
+  "rendererChanged": false,
+  "leviathanIncluded": false,
+  "gameplayValidated": false,
+  "limitation": "Only newly created particle templates through the retained factory and already loaded target assets; no visual result claimed"
+}

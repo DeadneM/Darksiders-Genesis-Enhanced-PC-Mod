@@ -1,3 +1,11 @@
+# File active - V1.126 preparee
+
+28 octobre 2026. Garder toutes les apparences actuelles ; Leviathan confirme reste a part. Ajout candidat : impact de surface Tremor or/metal/pierre/eau, sans nouveau renderer. Recovery : trois essais opt-in (custom reception lourde, fin coffre, fin dash) et temps reglables ; nouvelle suite + anciennes fixtures avant livraison. [Contrat et essai groupe](V1_126_RECOVERY_EXPERIMENTS_TEST.md).
+
+main reste en V1.124 validee ; debug seulement. Geyser/Stoneskin/Caltrops et autres acquis preserves ; coop plus tard, HUD/P2 en surveillance. Aucun correctif declare valide avant retour utilisateur. Pas de lancement/installation locale.
+
+---
+
 # File active - promotion V1.124 et consolidation V1.125
 
 28 octobre 2026. Demandes utilisateur prises en compte : main contient la V1.124 validee ; travaux suivants uniquement debug. V1.125 construite/controlee, nettoyage non valide en jeu, pas de nouvelle intervention Recovery.

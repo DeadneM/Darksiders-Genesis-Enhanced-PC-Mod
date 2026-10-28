@@ -45,6 +45,7 @@
 #include "WeaponSheathingFeature.h"
 #include "ManualAimFeature.h"
 #include "HeavyLandingFeature.h"
+#include "RecoveryTailFeature.h"
 #include "MountedHolsterFeature.h"
 #include "PistolVisualFeature.h"
 #include "WrathSlotFeature.h"
@@ -1450,6 +1451,8 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     dg::manual_aim::OnLivePlayer(owner,generation);
     const HWND gameplayWindow=reinterpret_cast<HWND>(g_gameWindowTrace.load());
     dg::heavy_landing::OnLivePlayer(owner,generation,!g_overlayVisible.load()&&gameplayWindow&&
+        GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load());
+    dg::recovery_tail::OnLivePlayer(owner,generation,!g_overlayVisible.load()&&gameplayWindow&&
         GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load());
     dg::mounted_holsters::OnLivePlayer(owner);
     dg::pistol_visual::OnLivePlayer(owner,generation,gameplayWindow&&GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load());
@@ -4176,6 +4179,7 @@ void ShutdownMod() {
     dg::interaction_hud::Shutdown();
     dg::sheathing::Shutdown();
     dg::manual_aim::Shutdown();
+    dg::recovery_tail::Shutdown();
     dg::heavy_landing::Shutdown();
     dg::pistol_visual::Shutdown();
     dg::execution_camera::Shutdown();
@@ -4445,6 +4449,7 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::sheathing::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::manual_aim::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::heavy_landing::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::recovery_tail::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::mounted_holsters::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::pistol_visual::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::execution_camera::Initialize(&FeatureLog,g_targetValidation.exact);

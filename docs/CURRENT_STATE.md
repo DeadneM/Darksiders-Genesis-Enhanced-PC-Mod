@@ -1,3 +1,13 @@
+## V1.126 - essais Recovery et impact Tremor
+
+**PREPAREE / CONTROLES GITHUB EN ATTENTE ; EXPERIMENTALE, NON VALIDEE EN JEU.** Base V1.125 controlee, V1.124 validee reste sur main. A la demande utilisateur, apparences actuelles conservees et Leviathan confirme independant/inchange.
+
+Player movement -> Recovery experiments : temps de reception lourde optionnels et deux essais MOVE natifs apres arret complet observe du montage coffre/dash. Cases OFF par defaut, pas de Finish/Stop, touche imposee, timer/vitesse/animation ecrit ou nouveau hook. Les chemins valides sont conserves quand les essais sont OFF. Ajouter seulement Tremor surface impact (Native/or/metal/pierre/eau/Hidden), via quatre ParticleSystem natifs verifies et la fabrique existante ; pas de refonte des anciens groupes.
+
+Sept cles nouvelles,219valeurs au total ;212anciennes et55ID Hotkeys conserves. Compilation uniquement GitHub, aucune installation/relance locale. [Perimetre, limites et essais](V1_126_RECOVERY_EXPERIMENTS_TEST.md). Les etats suivants sont historiques.
+
+---
+
 ## V1.125 - consolidation et carte des temps Recovery
 
 **CONSTRUITE / CONTROLEE : [65/65 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40665878336), zero avertissement/erreur MSVC. [ZIP cumulatif public verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/2dd91999a23acbed02dd5c2b4b2a7aedd6f0a6ac/downloads/DarksidersGenesis_V1.125_CONSOLIDATION_RECOVERY_MAP_TEST.zip) - [Recu](V1_125_DELIVERY_RECEIPT.md). Updater debug et Defender controles. Nettoyage NON VALIDE EN JEU ; pas de correctif Recovery general ni de correction des apparences revendiques. main reste en V1.124 validee. Aucune installation locale.**

@@ -146,6 +146,11 @@ if(BUILD_TESTING)
   add_executable(ManualActionBindingTests tests/ManualActionBindingTests.cpp)
   target_include_directories(ManualActionBindingTests PRIVATE src)
   add_test(NAME ManualActionBindings COMMAND ManualActionBindingTests)
+  add_executable(RecoveryTailTests tests/RecoveryTailTests.cpp src/RuntimeSettings.cpp src/ConfigStore.cpp)
+  target_include_directories(RecoveryTailTests PRIVATE src)
+  target_compile_definitions(RecoveryTailTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  target_link_libraries(RecoveryTailTests PRIVATE user32)
+  add_test(NAME RecoveryTail COMMAND RecoveryTailTests)
   add_executable(HeavyLandingTests tests/HeavyLandingTests.cpp src/RuntimeSettings.cpp src/ConfigStore.cpp)
   target_include_directories(HeavyLandingTests PRIVATE src)
   target_compile_definitions(HeavyLandingTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
@@ -379,6 +384,7 @@ add_library(DarksidersGenesisMod SHARED
   src/WeaponSheathingFeature.cpp
   src/ManualAimFeature.cpp
   src/HeavyLandingFeature.cpp
+  src/RecoveryTailFeature.cpp
   src/MountedHolsterFeature.cpp
   src/PistolVisualFeature.cpp
   src/ExecutionCameraFeature.cpp
