@@ -1,0 +1,29 @@
+{
+  "sourceCommit": "a9eb384e357bec61830d111606a9c1ee6fe45aca",
+  "runId": 40764748962,
+  "jobId": 123085808347,
+  "conclusion": "success",
+  "testsPassed": 67,
+  "msvcWarnings": [],
+  "msvcErrors": [],
+  "summary": [
+    "2026-10-28T20:42:09.9845779Z 63/67 Test #63: OverlayLayout ....................   Passed    0.02 sec\r",
+    "2026-10-28T20:42:10.2529197Z 65/67 Test #65: OverlayBindingScope ..............   Passed    0.02 sec\r",
+    "2026-10-28T20:42:11.1292264Z 100% tests passed out of 67\r",
+    "2026-10-28T20:42:11.1292654Z Total Test time (real) =   6.62 sec\r",
+    "2026-10-28T20:42:14.5988296Z \u001b[36;1m  git commit -m \"downloads: preserve verified compiled cumulative ZIP\"\u001b[0m\r",
+    "2026-10-28T20:42:16.3232125Z [debug 6c3abcc] downloads: preserve verified compiled cumulative ZIP\r"
+  ],
+  "platform": "Windows x64 Release; MSVC /analyze",
+  "fullMenuVisualValidation": false,
+  "intermediate": {
+    "sourceCommit": "9f61ce50aed819034116f8b29fe33d805e969390",
+    "runId": 40763665916,
+    "jobId": 123081950972,
+    "testsPassed": 67,
+    "status": "cancelled",
+    "numberedZipPublished": false,
+    "actionsArtifactUploaded": true,
+    "reason": "Concurrent final source push rejected old bot push; obsolete-source guard then refused numbered ZIP preservation. Only final source used."
+  }
+}

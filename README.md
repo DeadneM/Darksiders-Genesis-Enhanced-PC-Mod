@@ -1,6 +1,8 @@
 ## V1.128 - clearer and consistent mod menu
 
-**PREPAREE / CONTROLES GITHUB EN ATTENTE ; MENU COMPLET NON VALIDE EN JEU.** Base V1.127 installee et conservee. Aide courte avec details au survol (?), marges et champs adaptes a la police, listes et valeurs homogenes, groupes Appearance fermes initialement, libelle/contact sol avances clarifies. Parametres, controles et modules de jeu inchanges ;218valeurs INI/55ID Hotkeys conserves. [Perimetre, deux passes et essai](docs/V1_128_MENU_READABILITY_TEST.md).
+**CONSTRUITE / CONTROLEE : [67/67 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40764748962), zero avertissement/erreur MSVC. [ZIP cumulatif public verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/6c3abcc6373088e21ba10404406946ba81a46790/downloads/DarksidersGenesis_V1.128_MENU_READABILITY_TEST.zip) - [Recu](docs/V1_128_DELIVERY_RECEIPT.md). Updater debug et Defender controles. Presentation du menu uniquement ; rendu complet a valider en jeu. V1.127 reste installee, INI personnel conserve ; main reste V1.124.**
+
+**CONSTRUITE / CONTROLEE ; MENU COMPLET NON VALIDE EN JEU.** Base V1.127 installee et conservee. Aide courte avec details au survol (?), marges et champs adaptes a la police, listes et valeurs homogenes, groupes Appearance fermes initialement, libelle/contact sol avances clarifies. Parametres, controles et modules de jeu inchanges ;218valeurs INI/55ID Hotkeys conserves. [Perimetre, deux passes et essai](docs/V1_128_MENU_READABILITY_TEST.md).
 
 Compilation uniquement GitHub ; aucun jeu lance ou remplacement V1.128 local. main reste V1.124 validee ; anciens ZIP/archive preserves. Bug de selection du tir souris TPS sur destructible reste ouvert, coffre/dash non declares valides. Les sections suivantes sont historiques.
 

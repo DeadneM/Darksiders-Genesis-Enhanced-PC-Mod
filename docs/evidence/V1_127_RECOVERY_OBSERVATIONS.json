@@ -1,0 +1,35 @@
+{
+  "version": "V1.127",
+  "sessionLogSha256": "be127bfa16f41a10af59250a64fa9752f55636a1ac45ee2a7e2629adace27d72",
+  "bytes": 106972,
+  "counters": {
+    "ground dash": {
+      "tracked": 7,
+      "playbackObserved": 7,
+      "stopObserved": 1,
+      "motionBlockedAtStop": 0,
+      "nativeMoveAtStop": 1,
+      "requests": 0
+    },
+    "chest": {
+      "tracked": 2,
+      "playbackObserved": 2,
+      "stopObserved": 2,
+      "motionBlockedAtStop": 0,
+      "nativeMoveAtStop": 0,
+      "requests": 2
+    }
+  },
+  "events": [
+    "[2026-10-28 13:41:35.554] Recovery tail V1.127: player=1 target=chest montageStopped=1 motionReady=1 nativeMoveAlready=0; movementLatency=UNMEASURED",
+    "[2026-10-28 13:41:35.583] Recovery tail V1.127: player=1 target=chest stopped montage, native MOVE window requested; EXPERIMENTAL",
+    "[2026-10-28 13:42:02.070] Recovery tail V1.127: player=1 target=ground dash montageStopped=1 motionReady=1 nativeMoveAlready=1; movementLatency=UNMEASURED",
+    "[2026-10-28 13:42:05.113] Recovery tail V1.127: player=1 target=chest montageStopped=1 motionReady=1 nativeMoveAlready=0; movementLatency=UNMEASURED",
+    "[2026-10-28 13:42:05.146] Recovery tail V1.127: player=1 target=chest stopped montage, native MOVE window requested; EXPERIMENTAL",
+    "[2026-10-28 13:45:00.740] Recovery tail V1.127 totals target=ground dash tracked=7 playbackObserved=7 stopObserved=1 motionBlockedAtStop=0 nativeMoveAtStop=1 requests=0 movementLatency=UNMEASURED",
+    "[2026-10-28 13:45:00.740] Recovery tail V1.127 totals target=chest tracked=2 playbackObserved=2 stopObserved=2 motionBlockedAtStop=0 nativeMoveAtStop=0 requests=2 movementLatency=UNMEASURED"
+  ],
+  "interpretation": "For the sole observed stopped dash, MOVE was already present so the mod had no window to open. The remaining six tracked contexts have no stopped observation; they are not asserted to be six complete activations. Both observed chests requested MOVE. No movement latency or benefit measured.",
+  "gameplayBenefitValidated": false,
+  "patchApplied": false
+}

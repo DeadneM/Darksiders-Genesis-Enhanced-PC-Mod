@@ -1,6 +1,6 @@
 # V1.128 - lisibilite et presentation homogene du menu
 
-28 octobre 2026. **PREPAREE / CONTROLES GITHUB EN ATTENTE ; RENDU COMPLET NON VALIDE EN JEU.** Base V1.127 installee sur demande avec sauvegarde V1.126 et INI conserve. L'utilisateur demande des espaces plus lisibles, des descriptions moins longues et une experience homogene ; retour general positif, pas de nouvelle validation specifique du gain coffre/dash supposee. Suite debug ; main reste V1.124.
+28 octobre 2026. **CONSTRUITE / CONTROLEE ; RENDU COMPLET NON VALIDE EN JEU.** Base V1.127 installee sur demande avec sauvegarde V1.126 et INI conserve. L'utilisateur demande des espaces plus lisibles, des descriptions moins longues et une experience homogene ; retour general positif, pas de nouvelle validation specifique du gain coffre/dash supposee. Suite debug ; main reste V1.124.
 
 ## Objectif et critere
 

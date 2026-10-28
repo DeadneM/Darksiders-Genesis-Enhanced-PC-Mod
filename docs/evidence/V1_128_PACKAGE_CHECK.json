@@ -1,0 +1,50 @@
+{
+  "sourceCommit": "a9eb384e357bec61830d111606a9c1ee6fe45aca",
+  "archiveCommit": "6c3abcc6373088e21ba10404406946ba81a46790",
+  "name": "DarksidersGenesis_V1.128_MENU_READABILITY_TEST.zip",
+  "size": 2382234,
+  "sha256": "886CAD4459767D1B463BC880841F0F5ACFCD5E0EDF2DE78F3C50DD183315912A",
+  "files": {
+    "DarksidersGenesisMod.asi": {
+      "size": 2085888,
+      "method": 0,
+      "sha256": "DF17482D6CC58027200429F8F51EDC0EADD144C2B6C12A746AAA51A3E3453F5A"
+    },
+    "DarksidersGenesisMod.ini": {
+      "size": 6060,
+      "method": 0,
+      "sha256": "ED163822ABD7DCE7B12D2136DA0C027C507A286A2349F0EA8A235C0A017153B9"
+    },
+    "dxgi.dll": {
+      "size": 155136,
+      "method": 0,
+      "sha256": "E7409B20CCDA1229FD1873D98E660855B0362C5EAC84FE7E1BE41A1D15122BC1"
+    },
+    "README.md": {
+      "size": 134694,
+      "method": 0,
+      "sha256": "D665DFF1E97C7CA202D6835C4E20BAA1D4C9439CFFE609E209F8AFC8BAAC7D06"
+    }
+  },
+  "oldArchiveGitBlobsUnchanged": 192,
+  "archiveCount": 193,
+  "iniKeys": 218,
+  "hotkeyIdsUnchanged": 55,
+  "aimingCameraControlPowerPathsUnchanged": true,
+  "amd64": true,
+  "crcValid": true,
+  "noCompression": true,
+  "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/6c3abcc6373088e21ba10404406946ba81a46790/downloads/DarksidersGenesis_V1.128_MENU_READABILITY_TEST.zip",
+  "httpStatus": 200,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "e2e519f7ea84d4b773fd7a31611779ae68308696",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "localBuild": false,
+  "localInstall": false,
+  "menuPresentationOnly": true,
+  "fullMenuVisualValidation": false,
+  "chestDashBenefitValidated": false,
+  "aimingFixClaimed": false
+}
