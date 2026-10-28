@@ -1,6 +1,8 @@
 ## V1.125 - consolidation et carte des temps Recovery
 
-**PREPAREE / CONTROLES GITHUB EN ATTENTE ; NON VALIDEE EN JEU.** Base V1.124 validee, maintenant promue sans recompilation sur main a la demande utilisateur. La suite reste sur debug. [Promotion](docs/V1_124_MAIN_PROMOTION.md).
+**CONSTRUITE / CONTROLEE : [65/65 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40665878336), zero avertissement/erreur MSVC. [ZIP cumulatif public verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/2dd91999a23acbed02dd5c2b4b2a7aedd6f0a6ac/downloads/DarksidersGenesis_V1.125_CONSOLIDATION_RECOVERY_MAP_TEST.zip) - [Recu](docs/V1_125_DELIVERY_RECEIPT.md). Updater debug et Defender controles. Nettoyage NON VALIDE EN JEU ; pas de correctif Recovery general ni de correction des apparences revendiques. main reste en V1.124 validee. Aucune installation locale.**
+
+**CONSTRUITE / CONTROLEE ; NETTOYAGE NON VALIDE EN JEU.** Base V1.124 validee, maintenant promue sans recompilation sur main a la demande utilisateur. La suite reste sur debug. [Promotion](docs/V1_124_MAIN_PROMOTION.md).
 
 Deux passes d'audit confrontees : copie de telemetrie cheval sans lecteur retiree, adaptateur Clone reduit a son seul receveur War (tableaux a une entree et branches inaccessibles retires). Pas de changement intentionnel des capacites ; Geyser/Stoneskin/Caltrops et autres acquis conserves,212valeurs INI/55ID Hotkeys inchanges. [Audit et limites](docs/V1_125_DOUBLE_AUDIT.md).
 

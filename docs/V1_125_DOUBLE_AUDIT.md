@@ -22,4 +22,4 @@ Le remplacement actuel ne voit que les nouvelles particules passant par la fabri
 
 ## Statut
 
-V1.125 PREPAREE : nettoyage sans nouveau comportement intentionnel ; GitHub Windows x64/65suites/avertissements/ZIP/updater/Defender a controler avant livraison. Recovery est une carte documentee, pas un nouveau correctif en jeu. main reste exactement sur la V1.124 validee ; suite debug seulement. Pas de compilation, installation ou lancement local. INI personnel, raccourcis, PAK et sauvegardes inchanges.
+V1.125 CONSTRUITE / CONTROLEE : nettoyage sans nouveau comportement intentionnel ; GitHub Windows x64 65/65 suites, zero avertissement/erreur MSVC, ZIP/updater/Defender controles. NON VALIDEE EN JEU. Recovery est une carte documentee, pas un nouveau correctif en jeu. main reste exactement sur la V1.124 validee ; suite debug seulement. Pas de compilation, installation ou lancement local. INI personnel, raccourcis, PAK et sauvegardes inchanges.

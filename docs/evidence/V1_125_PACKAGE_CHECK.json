@@ -1,0 +1,49 @@
+{
+  "sourceCommit": "c7f8c29fe7398149b848fcbe17b7ef16d6735009",
+  "archiveCommit": "2dd91999a23acbed02dd5c2b4b2a7aedd6f0a6ac",
+  "name": "DarksidersGenesis_V1.125_CONSOLIDATION_RECOVERY_MAP_TEST.zip",
+  "size": 2355221,
+  "sha256": "4C07060ADB4762F71C439896837F2B73BF15C07A1D497AF0203D0FF837B3636A",
+  "files": {
+    "DarksidersGenesisMod.asi": {
+      "size": 2063872,
+      "method": 0,
+      "sha256": "957FFF008326DD4D6441F9CD1801C26F9954368F8BEB91853F1B547C0BF41707"
+    },
+    "DarksidersGenesisMod.ini": {
+      "size": 5895,
+      "method": 0,
+      "sha256": "D57D7604F9A1DD6D5D397DBF41559E69F0E1EB24793A320E31BD8A83B6A90BD9"
+    },
+    "dxgi.dll": {
+      "size": 155136,
+      "method": 0,
+      "sha256": "2573BDD3504A67887797E5863CDA78FB42FF76D203129B9D96550888ECEA1D35"
+    },
+    "README.md": {
+      "size": 129862,
+      "method": 0,
+      "sha256": "8526232E69A77B1184C3B41469A34233659F377F4131E9C302D0CE7DB8196950"
+    }
+  },
+  "oldArchiveGitBlobsUnchanged": 189,
+  "archiveCount": 190,
+  "iniKeys": 212,
+  "hotkeyIdsUnchanged": 55,
+  "acceptedPowerCameraControlPathsUnchanged": true,
+  "amd64": true,
+  "crcValid": true,
+  "noCompression": true,
+  "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/2dd91999a23acbed02dd5c2b4b2a7aedd6f0a6ac/downloads/DarksidersGenesis_V1.125_CONSOLIDATION_RECOVERY_MAP_TEST.zip",
+  "httpStatus": 200,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "e2e519f7ea84d4b773fd7a31611779ae68308696",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "localBuild": false,
+  "localInstall": false,
+  "recoveryTimingChanged": false,
+  "appearanceFixClaimed": false,
+  "gameplayValidated": false
+}
