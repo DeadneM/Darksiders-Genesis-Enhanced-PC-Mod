@@ -90,10 +90,10 @@ void Service(const local_players::Context& c,uint32_t generation,bool focused,ui
     if(!Alive(saved.ability)||!Alive(saved.actor)||!Alive(saved.helper)||!Alive(saved.montage)){saved={};return;}
     if(playing){if(saved.owned){Restore(saved);return;}saved.playing=true;saved.stopped=0;return;}
     if(!saved.playing||saved.owned)return; // Never treat an unstarted montage as a completed one.
-    if(mode!=1||custom){
-        float remaining=0,total=0;if(kind!=1||mode!=6||custom!=5||!Read(ability,0x224,remaining)||!Read(ability,0x228,total)||
+    if(kind==1){
+        float remaining=0,total=0;if(!((mode==1&&!custom)||(mode==6&&custom==5))||!Read(ability,0x224,remaining)||!Read(ability,0x228,total)||
            !std::isfinite(remaining)||!std::isfinite(total)||remaining>0||total<=0)return;
-    }
+    }else if(mode!=1||custom)return;
     if(!saved.stopped){saved.stopped=now;return;}
     float delay=settings.recoveryTailDelaySeconds.load();if(!std::isfinite(delay)||delay<0||delay>1)delay=0;
     if(now<saved.stopped||now-saved.stopped<30+uint64_t(delay*1000)||(requested|enabled)&MoveBit)return;
