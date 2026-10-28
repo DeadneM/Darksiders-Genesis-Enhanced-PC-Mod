@@ -1,0 +1,29 @@
+{
+  "sourceCommit": "ba56debb0458c447a1b350b384228cf38d5d4e13",
+  "runId": 40686258358,
+  "jobId": 122809265336,
+  "conclusion": "success",
+  "testsPassed": 66,
+  "msvcWarnings": [],
+  "msvcErrors": [],
+  "summary": [
+    "2026-10-28T12:15:15.8297191Z   DG_ARCHIVE: DarksidersGenesis_V1.127_RECOVERY_EXPERIMENTS_TEST.zip\r",
+    "2026-10-28T12:15:47.9053293Z   DG_ARCHIVE: DarksidersGenesis_V1.127_RECOVERY_EXPERIMENTS_TEST.zip\r",
+    "2026-10-28T12:19:03.0219060Z   DG_ARCHIVE: DarksidersGenesis_V1.127_RECOVERY_EXPERIMENTS_TEST.zip\r",
+    "2026-10-28T12:19:08.9529660Z 100% tests passed out of 66\r",
+    "2026-10-28T12:19:08.9529951Z Total Test time (real) =   5.15 sec\r",
+    "2026-10-28T12:19:09.1101207Z   DG_ARCHIVE: DarksidersGenesis_V1.127_RECOVERY_EXPERIMENTS_TEST.zip\r",
+    "2026-10-28T12:19:09.9230758Z   name: DarksidersGenesis_V1.127_RECOVERY_EXPERIMENTS_TEST.zip\r",
+    "2026-10-28T12:19:09.9231104Z   path: downloads/DarksidersGenesis_V1.127_RECOVERY_EXPERIMENTS_TEST.zip\r",
+    "2026-10-28T12:19:09.9232365Z   DG_ARCHIVE: DarksidersGenesis_V1.127_RECOVERY_EXPERIMENTS_TEST.zip\r",
+    "2026-10-28T12:19:10.9994563Z Artifact DarksidersGenesis_V1.127_RECOVERY_EXPERIMENTS_TEST.zip.zip successfully finalized. Artifact ID 12814718603\r",
+    "2026-10-28T12:19:10.9995905Z Artifact DarksidersGenesis_V1.127_RECOVERY_EXPERIMENTS_TEST.zip has been successfully uploaded! Final size is 1084148 bytes. Artifact ID is 12814718603\r",
+    "2026-10-28T12:19:11.0281908Z \u001b[36;1m  git commit -m \"downloads: preserve verified compiled cumulative ZIP\"\u001b[0m\r",
+    "2026-10-28T12:19:11.0340112Z   DG_ARCHIVE: DarksidersGenesis_V1.127_RECOVERY_EXPERIMENTS_TEST.zip\r",
+    "2026-10-28T12:19:12.0604272Z [debug cfc71c9] downloads: preserve verified compiled cumulative ZIP\r",
+    "2026-10-28T12:19:12.0605159Z  create mode 100644 downloads/DarksidersGenesis_V1.127_RECOVERY_EXPERIMENTS_TEST.zip\r",
+    "2026-10-28T12:19:13.9642321Z ZIP https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.127_RECOVERY_EXPERIMENTS_TEST.zip\r"
+  ],
+  "platform": "Windows x64 Release; MSVC /analyze",
+  "gameplayValidated": false
+}

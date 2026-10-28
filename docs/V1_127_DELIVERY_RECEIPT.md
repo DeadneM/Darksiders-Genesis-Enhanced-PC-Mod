@@ -1,0 +1,21 @@
+# V1.127 - reception lourde unifiee et bilan Recovery
+
+28 octobre 2026. **CONSTRUIT / CONTROLE ; NOUVEAU CONDITIONNEMENT NON VALIDE EN JEU.** Base cumulative V1.126 ; son timing custom reception lourde a ete valide par l'utilisateur. Une seule case regroupe maintenant ce chemin et ses deux valeurs. Coffre/dash restent EXPERIMENTAUX ; aucun correctif de tir revendique. main reste en V1.124 validee ; uniquement debug. Aucun jeu lance, build local ou installation ; INI personnel/raccourcis/PAK/sauvegardes non modifies.
+
+Source `ba56debb0458c447a1b350b384228cf38d5d4e13`, archive `cfc71c93c41ce6c985487e1fa692afe18155bbe4`. [GitHub Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40686258358) : **66/66 suites**, zero avertissement/erreur MSVC. Meme suite complete, cas de migration du profil et de compteurs supplementaires ; pas une preuve de jeu.
+
+## Changements et acquis
+
+- Heavy landing movement recovery : une case et delai, contact sol conserve. Default0,15s, contact0,05s ; plages0,05..0,8 et0..0,25. Suppression du drapeau custom, de sa branche legacy et de la case dependante. Le code actif reconstruit hors commentaires/espaces est identique au chemin V1.126 master+custom ON accepte. A la sauvegarde, seule la cle obsolete HeavyLandingCustomTiming est effacee ; master, temps,218valeurs restantes/55ID Hotkeys conserves. Ancien master OFF reste natif.
+- Coffre/dash : comportement identique, ajout de compteurs et12observations bornees plus2bilans a la fermeture. Separe animation suivie, lecture/arret observes, mouvement non pret/fenetre native deja presente au premier arret, demandes. Pas de nouveau hook, appel moteur ou ecriture de timer/animation/mouvement. Les compteurs ne mesurent pas la latence de controle.
+- Journal utilisateur V1.126 :6demandes coffre,0demande dash,8messages reception lourde plafonnes. Le coffre a execute son chemin, gain non mesure ; dash non demontre. Les options etaient ON dans l'INI releve en fin de session. [Logs et double revue](evidence/V1_127_STATIC_REVIEW.json).
+- Visee : cas confirme TPS souris sur caisse/pot destructible,3D ON dans le profil releve. Manette/autres munitions non testes. Deux pistes exact-EXE/PAK : trace Projectile19 peut ignorer le profil Destructible=Overlap ; chemins du faisceau avec cible620/628 contournent la branche libre corrigee. Pas encore d'identite de cible/ordre de collisions dans le journal, donc **aucun correctif de visee dans ce build**. [Audit](evidence/V1_127_MOUSE_TARGET_AUDIT.json).
+- Leviathan confirme et separe, apparences/Tremor, Geyser/Stoneskin/Caltrops/Rampage/Clone/WorldEnder, cameras/visee/XInput/RawInput/roues/menus et autres chemins de jeu preserves. main/archive/v1.43 intacts ;191anciens ZIP identiques,192au total.
+
+## ZIP et essai groupe
+
+[ZIP cumulatif immuable](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/cfc71c93c41ce6c985487e1fa692afe18155bbe4/downloads/DarksidersGenesis_V1.127_RECOVERY_EXPERIMENTS_TEST.zip), 2377616octets, SHA256 `5F9B72E19948100BB7A6DD6BEDCCE5C50C424B494B3B1B376F954151A53EAE43`. Quatre racines exactes (ASI,dxgi.dll,INI,README), methode0 sans compression, CRC valide, ASI/DXGI AMD64, README/INI compares a la source compilee. Updater debug selectionne V1.127 et telecharge exactement le meme hash. Defender ZIP et contenu : exit0/aucune menace, protections actives avant/apres, sans exclusions ni reglages modifies ; ce controle ne garantit pas tous les moteurs antivirus.
+
+Garder l'INI personnel. Verifier une seule case reception lourde avec les valeurs retenues ; deux chutes avec mouvement maintenu puis saut, native/TPS. Coffre puis dash separement : maintenir mouvement jusqu'a la fin, verifier seconde interaction/loot/saut et munition speciale. Quitter normalement le jeu pour ecrire les bilans ; ressenti utilisateur encore necessaire. Pour la visee, conserver le cas caisse/pot devant ennemi derriere pour le prochain releve cible. Coop plus tard.
+
+Rollback : cases Recovery OFF, ou ZIP V1.126 avec l'INI sauvegarde. [Contrat et double passe](V1_127_UNIFIED_LANDING_RECOVERY_TEST.md), [CI](evidence/V1_127_CI_CHECK.json), [ZIP](evidence/V1_127_PACKAGE_CHECK.json), [updater](evidence/V1_127_UPDATER_CHECK.json), [Defender](evidence/V1_127_DEFENDER_CHECK.json).

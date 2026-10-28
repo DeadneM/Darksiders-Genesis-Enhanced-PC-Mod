@@ -20,5 +20,50 @@
   "conclusion": "two concrete candidates; the log has no target identities or obstruction hit ordering, so this is not a reproduced diagnosis",
   "patchApplied": false,
   "newHook": false,
-  "newNativeCall": false
+  "newNativeCall": false,
+  "objectConfirmedByUser": "crate or destructible pot",
+  "verifiedOriginalAssets": {
+    "pakIndexSha1": "5d0982cd46a5221290cb6ed24696e3962e9dddff",
+    "configPakStreamSha1": "259a80f023c621719b19c7b40dcd6c6b2c2e400b",
+    "configPayloadSha256": "3e429153f8f1145084677712d8e4e7556fcf9f576cf7678d10f2337501d9bd27",
+    "assets": [
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Player/MayhemStaticShot_Blueprint.uasset",
+        "pakStreamSha1": "3564979b33a65afbf46d862465b94c2300796489",
+        "payloadSha256": "fa5097c672f3ac0e04634db99c83df1f78a1685371fe819f2ccead0c7a6a72ab"
+      },
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Player/MayhemStaticShot_Blueprint.uexp",
+        "pakStreamSha1": "de49af823b94757b730d8cb3ae3a671c30b1255e",
+        "payloadSha256": "377536cee63a9916c9ca36ff96cd4f4432d987ab3d9e529f6833542a227e2583"
+      },
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Projectiles/MayhemProjectile_StaticShot_LightningArc_Blueprint.uasset",
+        "pakStreamSha1": "2e44ce2f3e5366bc980cda796e73bcbd81e7879f",
+        "payloadSha256": "c21495f9877ae9707c43b20536d9a21a7d858f33ebe051bcfedf8c637c0ed204"
+      },
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Projectiles/MayhemProjectile_StaticShot_LightningArc_Blueprint.uexp",
+        "pakStreamSha1": "88033808ff90011551e75c03056a4bff42bb02e4",
+        "payloadSha256": "91e1bc52181e6b502a1a92c8422b66e2a50b40607e6be698e8fd164376028f59"
+      },
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Projectiles/MayhemProjectile_StaticShot_LightningArc_Primary_Juiced_Blueprint.uasset",
+        "pakStreamSha1": "89993a34a8883335269cd5ce3b2b6c7d8be19550",
+        "payloadSha256": "585beffba8b065d1812dce37b975d3847e4b7bed6f3289be42d4f2628a403d7d"
+      },
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Projectiles/MayhemProjectile_StaticShot_LightningArc_Primary_Juiced_Blueprint.uexp",
+        "pakStreamSha1": "320b992db5b7c0b8341f37dcc215ed5389cfd5f7",
+        "payloadSha256": "8459709f752c0ada979788678fa1d04823fb58a29c0784251b696b68148c18ca"
+      }
+    ],
+    "chainTargetsNormal": 4,
+    "chainTargetsJuiced": 7,
+    "chainMaxDistanceOwner": 1800,
+    "primaryBeamMaxLength": 1200,
+    "units": "UE units",
+    "visualGameplayTest": false
+  },
+  "secondaryArcsMustBePreserved": true
 }

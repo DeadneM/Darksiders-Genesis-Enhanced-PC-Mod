@@ -1,6 +1,6 @@
 ## File active - V1.127
 
-**PREPAREE / CONTROLES GITHUB EN ATTENTE ; NOUVEAU CONDITIONNEMENT NON VALIDE EN JEU.** Base V1.126 : timing personnalise reception lourde accepte par l'utilisateur, fusionne dans la case existante avec ses valeurs. Coffre :6demandes dans le journal ; dash :0. Aucun gain de controle prouve par ces traces. Ajout d'un bilan borne sans changer leurs gardes/mouvement. Visee souris TPS : investigation trace Projectile/objets Overlap et branche BeamShot ciblee ; aucun patch de visee, manette non testee. [Perimetre, limites et essai](V1_127_UNIFIED_LANDING_RECOVERY_TEST.md).
+**CONSTRUITE / CONTROLEE ; NOUVEAU CONDITIONNEMENT NON VALIDE EN JEU.** Base V1.126 : timing personnalise reception lourde accepte par l'utilisateur, fusionne dans la case existante avec ses valeurs. Coffre :6demandes dans le journal ; dash :0. Aucun gain de controle prouve par ces traces. Ajout d'un bilan borne sans changer leurs gardes/mouvement. Visee souris TPS : investigation trace Projectile/objets Overlap et branche du faisceau ciblee ; aucun patch de visee, manette non testee. [Perimetre, limites et essai](V1_127_UNIFIED_LANDING_RECOVERY_TEST.md).
 
 218valeurs INI conservees, cle doublee retraitee a la sauvegarde ;55ID Hotkeys inchanges. Leviathan/apparences/transfer capacites/cameras/controles preserves. main reste en V1.124 ; debug seulement. Pas d'installation, relance ou compilation locale. Les sections suivantes sont historiques.
 
