@@ -136,16 +136,16 @@ void DrawKeyboardRow(Context& c,config::Store& config,const char* label,
     else ImGui::TextDisabled("UNBOUND");
     ImGui::TableSetColumnIndex(2);
     const bool capturing=c.captureCameraKeyIndex->load()==bindingIndex;
-    if(ImGui::Button(capturing?"Press key...":"Change",ImVec2(-1.0f,0.0f))){
+    if(layout::Button(capturing?"Press key...":"Change",ImVec2(-1.0f,0.0f))){
         c.captureMenuKey->store(false);
         c.captureCameraKeyIndex->store(bindingIndex);
     }
     ImGui::TableSetColumnIndex(3);
-    if(ImGui::Button("Clear",ImVec2(-1.0f,0.0f))){
+    if(layout::Button("Clear",ImVec2(-1.0f,0.0f))){
         value=0;c.captureCameraKeyIndex->store(-1);config.Save();
     }
     ImGui::TableSetColumnIndex(4);
-    if(ImGui::Button("Default",ImVec2(-1.0f,0.0f))){
+    if(layout::Button("Default",ImVec2(-1.0f,0.0f))){
         value=original;c.captureCameraKeyIndex->store(-1);config.Save();
     }
 }
@@ -435,7 +435,7 @@ void Draw(Context& c) {
             ImGui::TextWrapped("In local co-op, these settings and refill commands apply to both available players.");
             const auto health=dg::health::GetTelemetry(0),health2=dg::health::GetTelemetry(1);
             ImGui::BeginDisabled((!health.available&&!health2.available)||health.pending||health2.pending);
-            if(ImGui::Button("Fill health"))dg::health::RequestRefill();
+            if(layout::Button("Fill health"))dg::health::RequestRefill();
             ImGui::EndDisabled();
             if(health.available)ImGui::TextDisabled("P1 health: %.0f / %.0f",health.current,health.maximum);
             if(health2.available)ImGui::TextDisabled("P2 health: %.0f / %.0f",health2.current,health2.maximum);
@@ -454,7 +454,7 @@ void Draw(Context& c) {
             const char* names[3]={"Set Wrath","Set Ultimate","Set Synergy"};
             for(unsigned i=0;i<3;++i){
                 ImGui::BeginDisabled(gaugePending||!((manual.readyMask|manual2.readyMask)&masks[i]));
-                if(ImGui::Button(names[i]))dg::manual_gauges::RequestSet(masks[i],gaugePercent);
+                if(layout::Button(names[i]))dg::manual_gauges::RequestSet(masks[i],gaugePercent);
                 ImGui::EndDisabled();
                 if(manual.values[i].available){
                     ImGui::SameLine();
@@ -466,12 +466,12 @@ void Draw(Context& c) {
                 }
             }
             ImGui::BeginDisabled(gaugePending||(manual.readyMask!=dg::manual_gauges::All&&manual2.readyMask!=dg::manual_gauges::All));
-            if(ImGui::Button("Set all three gauges"))
+            if(layout::Button("Set all three gauges"))
                 dg::manual_gauges::RequestSet(dg::manual_gauges::All,gaugePercent);
             ImGui::EndDisabled();
             if(gaugePending){
                 ImGui::TextWrapped("Waiting for gameplay to apply the request.");
-                if(ImGui::Button("Cancel gauge request"))dg::manual_gauges::CancelRequest();
+                if(layout::Button("Cancel gauge request"))dg::manual_gauges::CancelRequest();
             }else if(manual.result==dg::manual_gauges::Result::Applied){
                 ImGui::TextWrapped("Gauge values applied. Check the gauges and Ultimate activation in game.");
             }else if(manual.result==dg::manual_gauges::Result::Partial||
@@ -488,7 +488,7 @@ void Draw(Context& c) {
             ImGui::TextUnformatted("Health potions (test)");
             const auto potions=dg::potions::GetTelemetry(0),potions2=dg::potions::GetTelemetry(1);
             ImGui::BeginDisabled((!potions.available&&!potions2.available)||potions.pending||potions2.pending);
-            if(ImGui::Button("Fill health potions"))dg::potions::RequestRefill();
+            if(layout::Button("Fill health potions"))dg::potions::RequestRefill();
             ImGui::EndDisabled();
             if(potions.available)ImGui::Text("P1 reserve: %d / %d",potions.current,potions.maximum);
             if(potions2.available)ImGui::Text("P2 reserve: %d / %d",potions2.current,potions2.maximum);
@@ -512,7 +512,7 @@ void Draw(Context& c) {
             const bool ammoReady=dg::ammo::GetTelemetry().ready;
             const auto ammo1=dg::ammo::GetReserve(0),ammo2=dg::ammo::GetReserve(1);
             ImGui::BeginDisabled((!ammo1.available&&!ammo2.available)||ammo1.pending||ammo2.pending);
-            if(ImGui::Button("Fill ammunition"))dg::ammo::RequestRefill();
+            if(layout::Button("Fill ammunition"))dg::ammo::RequestRefill();
             ImGui::EndDisabled();
             DrawRefillResult("P1 ammunition",ammo1.result);DrawRefillResult("P2 ammunition",ammo2.result);
             DrawTunableFeature(config,"Reduce ammo consumption","ReduceAmmo",&config.reduceAmmoEnabled,
@@ -558,7 +558,7 @@ void Draw(Context& c) {
             DrawToggleFeature(config,"Unlimited Hotstreak","UnlimitedHotstreak",&config.unlimitedHotstreakEnabled,
                 "Keeps Strife's Hotstreak full. Native activation, weapon behavior and resets are preserved. Assign a toggle in Hotkeys.",hotstreakReady);
             ImGui::BeginDisabled((!hotstreak1.available&&!hotstreak2.available)||hotstreak1.pending||hotstreak2.pending);
-            if(ImGui::Button("Fill Hotstreak"))dg::hotstreak::RequestRefill();
+            if(layout::Button("Fill Hotstreak"))dg::hotstreak::RequestRefill();
             ImGui::EndDisabled();
             if(hotstreak1.available)ImGui::Text("P1 Hotstreak: %.1f / %.1f",hotstreak1.current,hotstreak1.maximum);
             if(hotstreak2.available)ImGui::Text("P2 Hotstreak: %.1f / %.1f",hotstreak2.current,hotstreak2.maximum);
@@ -934,7 +934,7 @@ void Draw(Context& c) {
                     history.currentlySuspended?"Native view (TPS suspended)":
                     history.activeCandidateId?"Candidate / waiting":"TPS / normal",
                     history.activeCandidateId);
-                if(ImGui::Button("Mark cinematic playing NOW (manual debug)")){
+                if(layout::Button("Mark cinematic playing NOW (manual debug)")){
                     const bool recorded=dg::camera_trace::MarkCurrentCinematicForDebug();
                     if(c.log)c.log(recorded
                         ?"TPS V1.28 DEBUG UI: scene manually marked by player"
@@ -1097,7 +1097,7 @@ void Draw(Context& c) {
                     defaults::HorseDistance,"%.2fx","%.3f"))config.Save();
                 if(NumberRow("Vertical offset (Horseback)","TPSHorseHeight",&config.tpsHorseHeightOffset,-1000,1000,
                     defaults::HorseHeight,"%+.0f units","%.1f"))config.Save();
-                if(ImGui::Button("TPS Camera Values Default"))config.ResetTpsCameraValues();
+                if(layout::Button("TPS Camera Values Default"))config.ResetTpsCameraValues();
                 ImGui::Unindent();
             }
             if (config.thirdPersonEnabled) {
@@ -1153,7 +1153,7 @@ void Draw(Context& c) {
                     }
                     layout::SameLineIfFits(ImGui::CalcTextSize("Default").x+2*ImGui::GetStyle().FramePadding.x);
                     ImGui::PushID(title);
-                    if(ImGui::SmallButton("Default")){mask=defaultMask;config.Save();}
+                    if(layout::Button("Default")){mask=defaultMask;config.Save();}
                     ImGui::PopID();
                 };
                 DrawSectionTitle("Keyboard shortcuts");
@@ -1181,7 +1181,7 @@ void Draw(Context& c) {
                     }
                     layout::SameLineIfFits(ImGui::CalcTextSize("Default").x+2*ImGui::GetStyle().FramePadding.x);
                     ImGui::PushID(label);
-                    if(ImGui::SmallButton("Default")){
+                    if(layout::Button("Default")){
                         binding=original;
                         if(other==binding)other=original==VK_LBUTTON?VK_RBUTTON:VK_LBUTTON;
                         config.Save();
@@ -1247,7 +1247,7 @@ void Draw(Context& c) {
             if(config.thirdPersonEnabled)
                 ImGui::TextDisabled("Vanilla camera settings are disabled during TPS; saved values stay intact.");
             ImGui::BeginDisabled(config.thirdPersonEnabled);
-            if(ImGui::Button("Camera Values Default"))config.ResetVanillaCameraValues();
+            if(layout::Button("Camera Values Default"))config.ResetVanillaCameraValues();
             DrawSectionTitle("Field of view");
             DrawTunableFeature(config,"Enable FOV Override","FOV",
                 &config.fovEnabled,&config.fovDegrees,
@@ -1259,9 +1259,9 @@ void Draw(Context& c) {
             DrawSectionTitle("Camera distance");
             ImGui::TextWrapped("SpringArm Zoom is mainly for vanilla. TPS keeps its own camera distance.");
             bool zoomChanged=false;
-            if(ImGui::Button("Zoom -##Camera")){config.cameraZoomPercent-=10;zoomChanged=true;}
+            if(layout::Button("Zoom -##Camera")){config.cameraZoomPercent-=10;zoomChanged=true;}
             ImGui::SameLine();
-            if(ImGui::Button("Zoom +##Camera")){config.cameraZoomPercent+=10;zoomChanged=true;}
+            if(layout::Button("Zoom +##Camera")){config.cameraZoomPercent+=10;zoomChanged=true;}
             zoomChanged|=NumberRow("Zoom","VanillaZoom",&config.cameraZoomPercent,-75,200,0,"%+.0f%%","%.1f");
             if(zoomChanged){config.cameraZoomPercent=std::clamp(config.cameraZoomPercent,-75.0f,200.0f);config.Save();}
             DrawSectionTitle("Camera height");
@@ -1315,7 +1315,7 @@ void Draw(Context& c) {
                 ImGui::TextDisabled(
                     "Press a key...  Esc = cancel"
                 );
-            } else if (ImGui::Button(
+            } else if (layout::Button(
                     "Rebind Menu Key",
                     ImVec2(160.0f, 0.0f))) {
                 c.captureMenuKey->store(true);
@@ -1327,10 +1327,10 @@ void Draw(Context& c) {
             }
 
             layout::SameLineIfFits(ImGui::CalcTextSize("Default").x+2*ImGui::GetStyle().FramePadding.x);
-            if(ImGui::Button("Default##MenuKey")){config.menuKey=defaults::MenuKey;config.Save();}
+            if(layout::Button("Default##MenuKey")){config.menuKey=defaults::MenuKey;config.Save();}
             ImGui::Spacing();
 
-            if (ImGui::Button(
+            if (layout::Button(
                     "Save",
                     ImVec2(110.0f, 0.0f))) {
                 *c.lastAction = config.SaveNow() ? "Configuration saved"
@@ -1339,7 +1339,7 @@ void Draw(Context& c) {
 
             ImGui::SameLine();
 
-            if (ImGui::Button(
+            if (layout::Button(
                     "Reload",
                     ImVec2(110.0f, 0.0f))) {
                 const bool loaded=config.Load();
@@ -1439,7 +1439,7 @@ void Draw(Context& c) {
                     }
                     ImGui::SameLine();
                     ImGui::PushID(i+8600);
-                    if(ImGui::SmallButton("Default")){
+                    if(layout::Button("Default")){
                         config.hotkeys[static_cast<size_t>(i)]=config::kDefaultHotkeys[static_cast<size_t>(i)];
                         config.Save();
                     }
@@ -1493,7 +1493,7 @@ void Draw(Context& c) {
             ImGui::Spacing();
 
             ImGui::BeginDisabled(update.busy);
-            if (ImGui::Button("Check for Updates", ImVec2(195.0f, 0.0f))) {
+            if (layout::Button("Check for Updates", ImVec2(195.0f, 0.0f))) {
                 dg::update::Check(config.updaterBeta);
             }
             ImGui::EndDisabled();
@@ -1501,13 +1501,13 @@ void Draw(Context& c) {
 
             const bool canInstall = !update.busy && checked && !update.sameBuild;
             ImGui::BeginDisabled(!canInstall);
-            if (ImGui::Button("Install on Game Exit", ImVec2(195.0f, 0.0f))) {
+            if (layout::Button("Install on Game Exit", ImVec2(195.0f, 0.0f))) {
                 ImGui::OpenPopup("Confirm Mod Update");
             }
             ImGui::EndDisabled();
             ImGui::SameLine();
             ImGui::BeginDisabled(update.busy);
-            if (ImGui::Button("Restore Previous", ImVec2(155.0f, 0.0f))) {
+            if (layout::Button("Restore Previous", ImVec2(155.0f, 0.0f))) {
                 ImGui::OpenPopup("Confirm Mod Rollback");
             }
             ImGui::EndDisabled();
@@ -1526,12 +1526,12 @@ void Draw(Context& c) {
                 ImGui::TextWrapped("The game files will change only AFTER Darksiders Genesis closes. "
                     "Your existing INI is preserved.");
                 ImGui::Spacing();
-                if (ImGui::Button("Confirm Update", ImVec2(160.0f, 0.0f))) {
+                if (layout::Button("Confirm Update", ImVec2(160.0f, 0.0f))) {
                     dg::update::InstallAfterExit(config.updaterBeta);
                     ImGui::CloseCurrentPopup();
                 }
                 ImGui::SameLine();
-                if (ImGui::Button("Cancel##ModUpdate", ImVec2(110.0f, 0.0f)))
+                if (layout::Button("Cancel##ModUpdate", ImVec2(110.0f, 0.0f)))
                     ImGui::CloseCurrentPopup();
                 ImGui::EndPopup();
             }
@@ -1540,12 +1540,12 @@ void Draw(Context& c) {
                 ImGui::TextWrapped("Restore the latest backed-up mod binaries after game exit?");
                 ImGui::TextDisabled("The existing mod INI will not be replaced.");
                 ImGui::Spacing();
-                if (ImGui::Button("Confirm Restore", ImVec2(160.0f, 0.0f))) {
+                if (layout::Button("Confirm Restore", ImVec2(160.0f, 0.0f))) {
                     dg::update::RestoreAfterExit();
                     ImGui::CloseCurrentPopup();
                 }
                 ImGui::SameLine();
-                if (ImGui::Button("Cancel##ModRollback", ImVec2(110.0f, 0.0f)))
+                if (layout::Button("Cancel##ModRollback", ImVec2(110.0f, 0.0f)))
                     ImGui::CloseCurrentPopup();
                 ImGui::EndPopup();
             }
@@ -1593,7 +1593,7 @@ void Draw(Context& c) {
             // Reset INI in About did nothing because popup IDs did not match.
             static std::string factoryResetFeedback;
             static bool factoryResetSuccess = false;
-            if (ImGui::Button("Reset INI to Factory Defaults")) {
+            if (layout::Button("Reset INI to Factory Defaults")) {
                 if (c.log) c.log("Overlay INI Factory Reset: button clicked; awaiting confirmation");
                 ImGui::OpenPopup("Reset INI to Factory Defaults?");
             }
@@ -1606,7 +1606,7 @@ void Draw(Context& c) {
                 ImGui::TextWrapped("Your current INI is preserved in a dated .bak beside the new INI.");
                 ImGui::TextDisabled("Game saves and Engine.ini are NOT changed.");
                 ImGui::Spacing();
-                if (ImGui::Button("Confirm Reset", ImVec2(160.0f, 0.0f))) {
+                if (layout::Button("Confirm Reset", ImVec2(160.0f, 0.0f))) {
                     if (c.log) c.log("Overlay INI Factory Reset: confirmation received");
                     const bool ok = config.ResetIniFileToDefaults();
                     factoryResetSuccess = ok;
@@ -1627,7 +1627,7 @@ void Draw(Context& c) {
                     ImGui::CloseCurrentPopup();
                 }
                 ImGui::SameLine();
-                if (ImGui::Button("Cancel", ImVec2(110.0f, 0.0f))) {
+                if (layout::Button("Cancel", ImVec2(110.0f, 0.0f))) {
                     factoryResetFeedback = "CANCELLED: The INI was not changed.";
                     factoryResetSuccess = false;
                     *c.lastAction = factoryResetFeedback;

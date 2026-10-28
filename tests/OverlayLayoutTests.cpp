@@ -21,6 +21,12 @@ FrameResult Frame(float width,float font,float& value,int& choice){
         dg::overlay::layout::Choice("Selection##test",&choice,choices,2);
         Check(ImGui::GetItemRectMax().x<=right+.5f,"choice control fits at every width");
         dg::overlay::layout::HelpText("A concise first sentence. A longer explanation remains in hover help without adding another permanent paragraph.");
+        dg::overlay::layout::Button("Save");
+        Check(ImGui::GetItemRectMax().x<=right+.5f,"natural button label fits at every width");
+        if(width>=990){
+            dg::overlay::layout::Button("Install on Game Exit",{195,0});
+            Check(ImGui::GetItemRectMax().x<=right+.5f,"fixed-width action button follows the selected font");
+        }
         ImGui::End();
     }
     const auto& after=ImGui::GetStyle();

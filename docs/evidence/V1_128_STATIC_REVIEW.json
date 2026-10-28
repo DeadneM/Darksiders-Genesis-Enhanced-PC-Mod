@@ -6,6 +6,7 @@
   "changedProduction": [
     "CMakeLists.txt",
     "src/BuildInfo.h",
+    "src/OverlayLayout.h",
     "src/OverlayUi.cpp"
   ],
   "newUiHeader": "src/OverlayLayout.h",

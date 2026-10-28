@@ -55,6 +55,13 @@ inline void SameLineIfFits(float width){
     const float right=ImGui::GetCursorScreenPos().x+ImGui::GetContentRegionAvail().x;
     if(ImGui::GetItemRectMax().x+ImGui::GetStyle().ItemSpacing.x+width<=right)ImGui::SameLine();
 }
+inline bool Button(const char* label,const ImVec2& size=ImVec2(0,0)){
+    if(size.x<0)return ImGui::Button(label,size); // Fill an existing table cell.
+    const float scale=ImGui::GetFontSize()/13.f;
+    const float width=std::max(size.x*scale,ImGui::CalcTextSize(label,nullptr,true).x+2*ImGui::GetStyle().FramePadding.x);
+    if(width>ImGui::GetContentRegionAvail().x)ImGui::NewLine();
+    return ImGui::Button(label,ImVec2(width,size.y>0?size.y*scale:size.y));
+}
 template<class... Args> bool Choice(const char* label,int* value,Args&&... args){
     ImGui::PushID(label);Label(label);ImGui::SetNextItemWidth(ControlWidth());
     const bool changed=ImGui::Combo("##Choice",value,std::forward<Args>(args)...);
