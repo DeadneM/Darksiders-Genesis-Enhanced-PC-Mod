@@ -18,7 +18,6 @@ struct Settings {
 struct Telemetry {
     bool validated = false;
     bool staminaReady = false;
-    std::uint64_t lastHorseNativeTick = 0;
     void* playerOwner = nullptr;
     void* horseOwner = nullptr;
     void* horseMovement = nullptr;

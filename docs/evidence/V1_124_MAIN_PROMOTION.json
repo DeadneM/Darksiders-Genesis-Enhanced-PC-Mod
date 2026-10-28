@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-28",
+  "authorization": "User explicitly requests push latest validated version to main",
+  "previousMain": "2bc3122c1ae07b7333798462f85c1d9fd3a739f7",
+  "promotedCommit": "e2e519f7ea84d4b773fd7a31611779ae68308696",
+  "fastForward": true,
+  "archive": "DarksidersGenesis_V1.124_WAR_CALTROPS_GROUND_STATE_TEST.zip",
+  "zipSha256": "9E342FB93CAA9472BAB026D90271666A14AF00BF8EA537AA011E0D5DF242CD36",
+  "mainUpdaterSelects124": true,
+  "httpStatus": 200,
+  "refs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/debug": "e2e519f7ea84d4b773fd7a31611779ae68308696",
+    "refs/heads/main": "e2e519f7ea84d4b773fd7a31611779ae68308696",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "rebuilt": false,
+  "localInstall": false,
+  "newReleaseCreated": false
+}

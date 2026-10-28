@@ -1,3 +1,15 @@
+## V1.125 - consolidation et carte des temps Recovery
+
+**PREPAREE / CONTROLES GITHUB EN ATTENTE ; NON VALIDEE EN JEU.** Base V1.124 validee, maintenant promue sans recompilation sur main a la demande utilisateur. La suite reste sur debug. [Promotion](V1_124_MAIN_PROMOTION.md).
+
+Deux passes d'audit confrontees : copie de telemetrie cheval sans lecteur retiree, adaptateur Clone reduit a son seul receveur War (tableaux a une entree et branches inaccessibles retires). Pas de changement intentionnel des capacites ; Geyser/Stoneskin/Caltrops et autres acquis conserves,212valeurs INI/55ID Hotkeys inchanges. [Audit et limites](V1_125_DOUBLE_AUDIT.md).
+
+Recovery :27assets natifs relus, distinction entre montage/fondu/interruption/fin de capacite. Les fenetres MOVE des receptions lourdes sont0,833373s Strife/0,813425s War ;0,668465/0,402459 concernent d'autres actions. **Code HeavyLanding valide inchange ; aucun correctif Recovery general annonce.** [Carte complete](V1_125_RECOVERY_TIMING_MAP.md).
+
+Retour utilisateur : apparences partiellement sans effet/peu interessantes (11groupes visibilite seulement), Rampage accepte, coop plus tard, FX P2 semblaient bons et HUD general plus reproduit. Aucun nouveau hook ou essai natif, installation/lancement local. Les statuts suivants restent historiques.
+
+---
+
 **28 octobre 2026 : V1.124 / correctif du petit saut final Caltrops War VALIDES par l'utilisateur dans son essai. Sujet clos ; Geyser/Stoneskin et acquis conserves.** [Retour exact, limites et suite](V1_124_USER_VALIDATION.md) - [file active actuelle](ACTIVE_QUEUE.md). Pas de nouvelle build ou installation ; les statuts experimentaux ci-dessous decrivent la livraison avant ce retour et restent historiques.
 
 ## V1.124 - Caltrops War, essai natif unique de retour au sol

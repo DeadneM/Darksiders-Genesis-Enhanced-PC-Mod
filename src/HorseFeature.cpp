@@ -1179,7 +1179,6 @@ Telemetry GetTelemetry() {
     t.nativeSprintingMaxSpeed =
         g_nativeSprintingMaxSpeed.load();
     t.uniqueCandidatesLogged = g_nativeHookCalls.load();
-    t.lastHorseNativeTick = g_lastLiveHorseCallbackTick.load(std::memory_order_acquire);
     return t;
 }
 

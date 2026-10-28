@@ -37,11 +37,11 @@ void Fresh(bool war=true,int kind=0){
  Put(f.actor,0x380,reinterpret_cast<uintptr_t>(f.mesh));Put(f.actor,0x388,reinterpret_cast<uintptr_t>(f.movement));Put(f.movement,0xE8,owner.character);Put<unsigned char>(f.movement,0x1B0,1);
  Put(f.mesh,0xE8,owner.character);Put(f.mesh,0x718,reinterpret_cast<uintptr_t>(f.anim));Put(f.mesh,0x5A0,reinterpret_cast<uintptr_t>(f.asset));Put(f.anim,0x10,reinterpret_cast<uintptr_t>(f.classes[4]));Put(f.anim,0x28,reinterpret_cast<uintptr_t>(f.skeleton));
  Put(f.asset,0x190,Array{reinterpret_cast<uintptr_t>(f.bone),1,1});strcpy_s(reinterpret_cast<char*>(entries[8]+12),244,war?"Bone_War_Root":"Bone_Strife_Root");Put(f.bone,0,Name{8,0});
- for(int i=0;i<2;++i){Label(f.idle[i],9+i,i?"War_Idle":"Strife_Idle");Put(f.idle[i],0x10,reinterpret_cast<uintptr_t>(f.classes[2]));Put(f.idle[i],0x38,reinterpret_cast<uintptr_t>(f.skeleton));Put(f.idle[i],0x90,2.666667f);Put(f.idle[i],0x94,1.0f);if(i==1)g_idle[0]=Live(f.idle[i]);}
- for(int i=0;i<2;++i){Label(f.power[i],11+i,i?"UnrelatedAbility_C":PowerNames[0]);Label(f.packages[i],18+i,i?"/Game/UnrelatedAbility":PowerPackages[0]);Put(f.power[i],0x10,reinterpret_cast<uintptr_t>(f.classes[0]));Put(f.power[i],0x20,reinterpret_cast<uintptr_t>(f.packages[i]));if(i==0)g_power[0]=Live(f.power[i]);}
+ for(int i=0;i<2;++i){Label(f.idle[i],9+i,i?"War_Idle":"Strife_Idle");Put(f.idle[i],0x10,reinterpret_cast<uintptr_t>(f.classes[2]));Put(f.idle[i],0x38,reinterpret_cast<uintptr_t>(f.skeleton));Put(f.idle[i],0x90,2.666667f);Put(f.idle[i],0x94,1.0f);if(i==1)g_idle=Live(f.idle[i]);}
+ for(int i=0;i<2;++i){Label(f.power[i],11+i,i?"UnrelatedAbility_C":PowerName);Label(f.packages[i],18+i,i?"/Game/UnrelatedAbility":PowerPackage);Put(f.power[i],0x10,reinterpret_cast<uintptr_t>(f.classes[0]));Put(f.power[i],0x20,reinterpret_cast<uintptr_t>(f.packages[i]));if(i==0)g_power=Live(f.power[i]);}
  Label(f.helpers[0],25,"ShadowCharacterComponent");Label(f.helperPackages[0],26,"/Script/DarksidersGenesis");
  Put(f.helpers[0],0x10,reinterpret_cast<uintptr_t>(f.classes[1]));Put(f.helpers[0],0x20,reinterpret_cast<uintptr_t>(f.helperPackages[0]));
- Put(f.helpers[0],0xF8,reinterpret_cast<uintptr_t>(f.cdos[0]));Put(f.cdos[0],0x10,reinterpret_cast<uintptr_t>(f.helpers[0]));g_helper[0]=Live(f.helpers[0]);
+ Put(f.helpers[0],0xF8,reinterpret_cast<uintptr_t>(f.cdos[0]));Put(f.cdos[0],0x10,reinterpret_cast<uintptr_t>(f.helpers[0]));g_helper=Live(f.helpers[0]);
  Put(f.ability,0x10,reinterpret_cast<uintptr_t>(f.power[kind]));Put(f.ability,0x48,owner.character);Put(f.ability,0x1B0,owner.character);Put<unsigned char>(f.ability,0xD8,2);
  Put(f.montage,0x158,reinterpret_cast<uintptr_t>(f.tracks));Put(f.tracks,0,Name{33,0});Live(f.actor);Live(f.ability);
  objectChunks[0]=reinterpret_cast<uintptr_t>(f.items);Put(reinterpret_cast<void*>(g_base),0x3959680,reinterpret_cast<uintptr_t>(objectChunks));Put(reinterpret_cast<void*>(g_base),0x3959694,64);
@@ -56,6 +56,8 @@ void Run(){
   Check(constructors==1&&registrations==1,"Clone creates and registers exactly its own helper");
   Cast();Check(constructors==1,"same owned helper reused across casts");
  }
+ Fresh(false);uintptr_t nativeClass=123;Check(!Prepare(f.actor,nativeClass,1)&&nativeClass==123&&!HandlePlay(PlayNative,f.ability,f.montage,.75f,{})&&!constructors&&!plays&&!finishes,"native Strife Clone never enters the War adapter");
+ for(int mismatch=0;mismatch<3;++mismatch){Fresh();if(mismatch==0)Put<unsigned char>(f.actor,0xC18,1);if(mismatch==1)Label(f.classes[4],5,"StrifeAnim_Blueprint_C");if(mismatch==2)strcpy_s(reinterpret_cast<char*>(entries[8]+12),244,"Bone_Strife_Root");uintptr_t cls=123;Check(!Prepare(f.actor,cls,1)&&cls==123&&!constructors&&!plays&&!finishes,"mixed actor, animation or bone ownership cannot prepare a foreign Clone");}
  Fresh();owner.index=1;Cast();Check(plays==1&&constructors==1,"P2 Clone retains its own component");
  for(int rejected:{2,5}){Fresh();uintptr_t cls=123;Check(!Status(rejected)&&!Prepare(f.actor,cls,rejected)&&cls==123&&!constructors,"Clone module never handles another transfer choice");}
  Fresh(true,1);Check(!HandlePlay(PlayNative,f.ability,f.montage,.75f,Name{0,0}),"unrelated native power remains untouched");

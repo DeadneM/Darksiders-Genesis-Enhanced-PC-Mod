@@ -1,0 +1,1401 @@
+{
+  "base": "e2e519f7ea84d4b773fd7a31611779ae68308696",
+  "previousCleanup": "V1.78, already integrated; not counted again",
+  "sourceFiles": 145,
+  "cppFiles": 52,
+  "physicalLines": 24020,
+  "outsideProductionGraph": [],
+  "passA": {
+    "method": "A: lexical references plus CMake/include graph; no dead-code verdict by token count alone",
+    "singleUseGlobals": 0,
+    "storeOnlyGlobals": 0,
+    "functionCandidates": 224,
+    "publicCandidates": 32,
+    "functionDisposition": [
+      {
+        "file": "src/AirJumpFeature.cpp",
+        "symbol": "OnLivePlayer",
+        "line": 141,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/AirJumpFeature.cpp",
+        "symbol": "Initialize",
+        "line": 159,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/AirJumpFeature.cpp",
+        "symbol": "Ready",
+        "line": 200,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/AmmoConsumptionFeature.cpp",
+        "symbol": "Initialize",
+        "line": 128,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/AmmoConsumptionFeature.cpp",
+        "symbol": "OnLivePlayer",
+        "line": 163,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/AmmoConsumptionFeature.cpp",
+        "symbol": "StandardReady",
+        "line": 239,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/AmmoConsumptionFeature.cpp",
+        "symbol": "RequestRefill",
+        "line": 241,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/AmmoConsumptionFeature.cpp",
+        "symbol": "GetReserve",
+        "line": 248,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/AmmoConsumptionFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 257,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/CameraTraceFeature.cpp",
+        "symbol": "Install",
+        "line": 942,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/CameraTraceFeature.cpp",
+        "symbol": "RecenterOnPlayer",
+        "line": 961,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/CameraTraceFeature.cpp",
+        "symbol": "AppliedYaw",
+        "line": 987,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/CameraTraceFeature.cpp",
+        "symbol": "GetAppliedView",
+        "line": 988,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/CameraTraceFeature.cpp",
+        "symbol": "GetTelemetry",
+        "line": 992,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/CameraTraceFeature.cpp",
+        "symbol": "GetCinematicDebugSnapshot",
+        "line": 1033,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/CameraTraceFeature.cpp",
+        "symbol": "MarkCurrentCinematicForDebug",
+        "line": 1052,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ChaosPoseFeature.cpp",
+        "symbol": "Initialize",
+        "line": 62,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ChaosPoseFeature.cpp",
+        "symbol": "Sample",
+        "line": 86,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ChaosPoseFeature.cpp",
+        "symbol": "GetLiveYaw",
+        "line": 149,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ChaosPoseFeature.cpp",
+        "symbol": "RangedActor",
+        "line": 155,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ChaosPoseFeature.cpp",
+        "symbol": "RangedOwner",
+        "line": 160,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ChaosPoseFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 163,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ConfigStore.cpp",
+        "symbol": "ActionLabel",
+        "line": 135,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ConfigStore.cpp",
+        "symbol": "KeyDisplayName",
+        "line": 167,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/CoopCameraFeature.cpp",
+        "symbol": "Initialize",
+        "line": 62,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/CoopCameraFeature.cpp",
+        "symbol": "ApplyView",
+        "line": 63,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/CoopCameraFeature.cpp",
+        "symbol": "ObserveArm",
+        "line": 159,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/CoopCameraFeature.cpp",
+        "symbol": "UpdateInput",
+        "line": 172,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/CoopCameraFeature.cpp",
+        "symbol": "FilterPad",
+        "line": 213,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/CoopCameraFeature.cpp",
+        "symbol": "AdjustLook",
+        "line": 257,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/CoopCameraFeature.cpp",
+        "symbol": "ShotRay",
+        "line": 280,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/CosmeticUnlockFeature.cpp",
+        "symbol": "Initialize",
+        "line": 115,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/CosmeticUnlockFeature.cpp",
+        "symbol": "Ready",
+        "line": 135,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/CosmeticUnlockFeature.cpp",
+        "symbol": "SelectionRetentionReady",
+        "line": 136,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/CosmeticUnlockFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 137,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/DarksidersGenesisMod.cpp",
+        "symbol": "DllMain",
+        "line": 4471,
+        "disposition": "Windows loader entry point"
+      },
+      {
+        "file": "src/DashCombatFeature.cpp",
+        "symbol": "Initialize",
+        "line": 238,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/DashCombatFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 299,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/DashCombatFeature.cpp",
+        "symbol": "OnLivePlayer",
+        "line": 300,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/DashCombatFeature.cpp",
+        "symbol": "PresentationReady",
+        "line": 339,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/DashCombatFeature.cpp",
+        "symbol": "Report",
+        "line": 340,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/dxgi_proxy.cpp",
+        "symbol": "DllMain",
+        "line": 717,
+        "disposition": "Windows loader entry point"
+      },
+      {
+        "file": "src/EffectAppearanceFeature.cpp",
+        "symbol": "Initialize",
+        "line": 119,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/EffectAppearanceFeature.cpp",
+        "symbol": "OnLivePlayer",
+        "line": 129,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/EffectAppearanceFeature.cpp",
+        "symbol": "Ready",
+        "line": 143,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/EffectAppearanceFeature.cpp",
+        "symbol": "LoadedMask",
+        "line": 144,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/EffectAppearanceFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 145,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/EngineIniFeature.cpp",
+        "symbol": "Initialize",
+        "line": 105,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/EngineIniFeature.cpp",
+        "symbol": "ApplyGraphicsAdapter",
+        "line": 109,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ExecutionCameraFeature.cpp",
+        "symbol": "Initialize",
+        "line": 36,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ExecutionCameraFeature.cpp",
+        "symbol": "Offset",
+        "line": 42,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ExecutionCameraFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 62,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignBeamFeature.cpp",
+        "symbol": "Initialize",
+        "line": 114,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignBeamFeature.cpp",
+        "symbol": "InvalidateAssets",
+        "line": 131,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignBeamFeature.cpp",
+        "symbol": "ObserveObject",
+        "line": 137,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignBeamFeature.cpp",
+        "symbol": "Prepare",
+        "line": 147,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignBeamFeature.cpp",
+        "symbol": "HandlePlay",
+        "line": 152,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignBeamFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 179,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignCaltropsFeature.cpp",
+        "symbol": "Initialize",
+        "line": 125,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignCaltropsFeature.cpp",
+        "symbol": "Status",
+        "line": 153,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignCaltropsFeature.cpp",
+        "symbol": "InvalidateAssets",
+        "line": 156,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignCaltropsFeature.cpp",
+        "symbol": "ObserveObject",
+        "line": 160,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignCaltropsFeature.cpp",
+        "symbol": "Prepare",
+        "line": 165,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignCaltropsFeature.cpp",
+        "symbol": "HandlePlay",
+        "line": 171,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignCaltropsFeature.cpp",
+        "symbol": "Observe",
+        "line": 237,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignCaltropsFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 272,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignMontage.cpp",
+        "symbol": "Initialize",
+        "line": 185,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignMontage.cpp",
+        "symbol": "Ready",
+        "line": 204,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignMontage.cpp",
+        "symbol": "ObserveSequence",
+        "line": 221,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignMontage.cpp",
+        "symbol": "GesturesReady",
+        "line": 232,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignMontage.cpp",
+        "symbol": "Geyser",
+        "line": 274,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignMontage.cpp",
+        "symbol": "Compatible",
+        "line": 503,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignMontage.cpp",
+        "symbol": "WorldEnder",
+        "line": 508,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignMontage.cpp",
+        "symbol": "RampageMotion",
+        "line": 670,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignMontage.cpp",
+        "symbol": "StartSounds",
+        "line": 776,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignMontage.cpp",
+        "symbol": "CopyLaterSounds",
+        "line": 796,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignPowerFeature.cpp",
+        "symbol": "Initialize",
+        "line": 74,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignPowerFeature.cpp",
+        "symbol": "AssetsReady",
+        "line": 86,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignPowerFeature.cpp",
+        "symbol": "InvalidateAssets",
+        "line": 87,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignPowerFeature.cpp",
+        "symbol": "ObserveObject",
+        "line": 91,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignPowerFeature.cpp",
+        "symbol": "IsClass",
+        "line": 97,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignPowerFeature.cpp",
+        "symbol": "Prepare",
+        "line": 98,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignPowerFeature.cpp",
+        "symbol": "HandlePlay",
+        "line": 103,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignPowerFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 133,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignRampageFeature.cpp",
+        "symbol": "Initialize",
+        "line": 130,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignRampageFeature.cpp",
+        "symbol": "InvalidateAssets",
+        "line": 141,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignRampageFeature.cpp",
+        "symbol": "ObserveObject",
+        "line": 147,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignRampageFeature.cpp",
+        "symbol": "IsClass",
+        "line": 159,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignRampageFeature.cpp",
+        "symbol": "Prepare",
+        "line": 160,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignRampageFeature.cpp",
+        "symbol": "HandlePlay",
+        "line": 172,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignRampageFeature.cpp",
+        "symbol": "Observe",
+        "line": 202,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignRampageFeature.cpp",
+        "symbol": "Evaluate",
+        "line": 233,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignRampageFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 269,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ForeignWrathFeature.cpp",
+        "symbol": "Resolve",
+        "line": 287,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/GaugeChargeFeature.cpp",
+        "symbol": "Initialize",
+        "line": 272,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/GaugeChargeFeature.cpp",
+        "symbol": "GetTelemetry",
+        "line": 288,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/GaugeChargeFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 291,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/GlideFeature.cpp",
+        "symbol": "Initialize",
+        "line": 63,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/GlideFeature.cpp",
+        "symbol": "Ready",
+        "line": 81,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/GlideFeature.cpp",
+        "symbol": "Report",
+        "line": 82,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/GrappleRangeFeature.cpp",
+        "symbol": "Initialize",
+        "line": 69,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/GrappleRangeFeature.cpp",
+        "symbol": "Ready",
+        "line": 91,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/HealthFeature.cpp",
+        "symbol": "Initialize",
+        "line": 76,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/HealthFeature.cpp",
+        "symbol": "OnLivePlayer",
+        "line": 94,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/HealthFeature.cpp",
+        "symbol": "RequestRefill",
+        "line": 132,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/HealthFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 149,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/HeavyLandingFeature.cpp",
+        "symbol": "Initialize",
+        "line": 106,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/HeavyLandingFeature.cpp",
+        "symbol": "Ready",
+        "line": 120,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/HeavyLandingFeature.cpp",
+        "symbol": "OnLivePlayer",
+        "line": 121,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/HeavyLandingFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 122,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/HorseFeature.cpp",
+        "symbol": "Initialize",
+        "line": 1069,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/HorseFeature.cpp",
+        "symbol": "SetSettings",
+        "line": 1135,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/HorseFeature.cpp",
+        "symbol": "ObservePlayerCharacter",
+        "line": 1150,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/HorseFeature.cpp",
+        "symbol": "AdjustSpeedResult",
+        "line": 1159,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/HorseFeature.cpp",
+        "symbol": "GetTelemetry",
+        "line": 1169,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/HorseFeature.cpp",
+        "symbol": "IsValidatedMovement",
+        "line": 1185,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/HorseFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 1211,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/HotstreakFeature.cpp",
+        "symbol": "Initialize",
+        "line": 79,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/HotstreakFeature.cpp",
+        "symbol": "OnLivePlayer",
+        "line": 102,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/HotstreakFeature.cpp",
+        "symbol": "RequestRefill",
+        "line": 142,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/HotstreakFeature.cpp",
+        "symbol": "GetTelemetry",
+        "line": 149,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/HotstreakFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 158,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/InteractionHudFeature.cpp",
+        "symbol": "Initialize",
+        "line": 92,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/InteractionHudFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 115,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/InteractionHudFeature.cpp",
+        "symbol": "Ready",
+        "line": 116,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/LeviathanVisualFeature.cpp",
+        "symbol": "Initialize",
+        "line": 106,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/LeviathanVisualFeature.cpp",
+        "symbol": "OnLivePlayer",
+        "line": 123,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/LeviathanVisualFeature.cpp",
+        "symbol": "LoadedMask",
+        "line": 175,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/LeviathanVisualFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 176,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/LocalPlayerOwnership.cpp",
+        "symbol": "Initialize",
+        "line": 81,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/LocalPlayerOwnership.cpp",
+        "symbol": "ResolveActor",
+        "line": 103,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/LocalPlayerOwnership.cpp",
+        "symbol": "Ready",
+        "line": 108,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/LocalPlayerOwnership.cpp",
+        "symbol": "SetLiveObserver",
+        "line": 109,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/LocalPlayerOwnership.cpp",
+        "symbol": "ObserveGameplay",
+        "line": 110,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/LocalPlayerOwnership.cpp",
+        "symbol": "ResolveCamera",
+        "line": 117,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/LocalPlayerOwnership.cpp",
+        "symbol": "ObserveCameraViews",
+        "line": 122,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/LocalPlayerOwnership.cpp",
+        "symbol": "CameraCinematic",
+        "line": 145,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/LocalPlayerOwnership.cpp",
+        "symbol": "ReadPose",
+        "line": 150,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/LocalPlayerOwnership.cpp",
+        "symbol": "CoopActive",
+        "line": 166,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/LocalPlayerOwnership.cpp",
+        "symbol": "FindCharacter",
+        "line": 170,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/LocalPlayerOwnership.cpp",
+        "symbol": "Matches",
+        "line": 181,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/LocalPlayerOwnership.cpp",
+        "symbol": "PrimaryControllerId",
+        "line": 185,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ManualAimFeature.cpp",
+        "symbol": "Initialize",
+        "line": 133,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ManualAimFeature.cpp",
+        "symbol": "Ready",
+        "line": 145,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ManualAimFeature.cpp",
+        "symbol": "Publish",
+        "line": 146,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ManualAimFeature.cpp",
+        "symbol": "OnLivePlayer",
+        "line": 151,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ManualAimFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 152,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ManualGaugeFeature.cpp",
+        "symbol": "Initialize",
+        "line": 130,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ManualGaugeFeature.cpp",
+        "symbol": "OnLivePlayer",
+        "line": 163,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ManualGaugeFeature.cpp",
+        "symbol": "UnlimitedRequest",
+        "line": 263,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ManualGaugeFeature.cpp",
+        "symbol": "RequestSet",
+        "line": 299,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ManualGaugeFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 335,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/MeleeEffectFeature.cpp",
+        "symbol": "Initialize",
+        "line": 144,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/MeleeEffectFeature.cpp",
+        "symbol": "Particle",
+        "line": 162,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/MeleeEffectFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 168,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/MountedHolsterFeature.cpp",
+        "symbol": "Initialize",
+        "line": 135,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/MountedHolsterFeature.cpp",
+        "symbol": "OnLivePlayer",
+        "line": 144,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/MountedHolsterFeature.cpp",
+        "symbol": "Ready",
+        "line": 168,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/MountedHolsterFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 169,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/MountedJumpFeature.cpp",
+        "symbol": "OnLivePlayer",
+        "line": 141,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/MountedJumpFeature.cpp",
+        "symbol": "Initialize",
+        "line": 170,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/MountedJumpFeature.cpp",
+        "symbol": "SoundAssetsReady",
+        "line": 182,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/NativeTpsFeature.cpp",
+        "symbol": "Install",
+        "line": 213,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/NativeTpsFeature.cpp",
+        "symbol": "CinematicActive",
+        "line": 276,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/NativeTpsFeature.cpp",
+        "symbol": "IsWorldPaused",
+        "line": 280,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/NativeTpsFeature.cpp",
+        "symbol": "SampleNativeStickSwap",
+        "line": 284,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/NativeTpsFeature.cpp",
+        "symbol": "CaptureUiEvent",
+        "line": 365,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/NativeTpsFeature.cpp",
+        "symbol": "ObserveUiEvent",
+        "line": 372,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/NativeTpsFeature.cpp",
+        "symbol": "RadialActive",
+        "line": 377,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/NativeTpsFeature.cpp",
+        "symbol": "TraceCameraTarget",
+        "line": 391,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/NativeTpsFeature.cpp",
+        "symbol": "Report",
+        "line": 399,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/OverlayUi.cpp",
+        "symbol": "Draw",
+        "line": 175,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/PistolVisualFeature.cpp",
+        "symbol": "Initialize",
+        "line": 362,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/PistolVisualFeature.cpp",
+        "symbol": "OnLivePlayer",
+        "line": 395,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/PistolVisualFeature.cpp",
+        "symbol": "SkipParticle",
+        "line": 440,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/PistolVisualFeature.cpp",
+        "symbol": "PoseReady",
+        "line": 457,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/PistolVisualFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 463,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/PlayerPresentationFeature.cpp",
+        "symbol": "Initialize",
+        "line": 82,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/PlayerPresentationFeature.cpp",
+        "symbol": "OnLivePlayer",
+        "line": 101,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/PlayerPresentationFeature.cpp",
+        "symbol": "Ready",
+        "line": 112,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/PlayerPresentationFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 113,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/PotionFeature.cpp",
+        "symbol": "Initialize",
+        "line": 104,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/PotionFeature.cpp",
+        "symbol": "OnLivePlayer",
+        "line": 138,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/PotionFeature.cpp",
+        "symbol": "RequestRefill",
+        "line": 185,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/PotionFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 212,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ProjectileAimFeature.cpp",
+        "symbol": "Initialize",
+        "line": 223,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ProjectileAimFeature.cpp",
+        "symbol": "Report",
+        "line": 265,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ResourceGainFeature.cpp",
+        "symbol": "Initialize",
+        "line": 109,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ResourceGainFeature.cpp",
+        "symbol": "OnLivePlayer",
+        "line": 152,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ResourceGainFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 169,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/RuntimeSettings.cpp",
+        "symbol": "Get",
+        "line": 9,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ShaderAimFeature.cpp",
+        "symbol": "Install",
+        "line": 165,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ShaderAimFeature.cpp",
+        "symbol": "GetTelemetry",
+        "line": 199,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/ShaderAimFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 206,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/SkipLogosFeature.cpp",
+        "symbol": "Initialize",
+        "line": 61,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/SkipLogosFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 126,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/SkipWarningFeature.cpp",
+        "symbol": "Initialize",
+        "line": 151,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/SkipWarningFeature.cpp",
+        "symbol": "Apply",
+        "line": 185,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/SkipWarningFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 187,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/StoneSkinVisual.cpp",
+        "symbol": "Cast",
+        "line": 151,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/StoneSkinVisual.cpp",
+        "symbol": "Observe",
+        "line": 155,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/StoneTransitionFx.cpp",
+        "symbol": "Initialize",
+        "line": 25,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/StoneTransitionFx.cpp",
+        "symbol": "ObserveObject",
+        "line": 26,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/StoneTransitionFx.cpp",
+        "symbol": "AssetsReady",
+        "line": 37,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/StoneTransitionFx.cpp",
+        "symbol": "Ready",
+        "line": 38,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/StoneTransitionFx.cpp",
+        "symbol": "InvalidateAssets",
+        "line": 39,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/StoneTransitionFx.cpp",
+        "symbol": "Spawn",
+        "line": 40,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/StoneTransitionFx.cpp",
+        "symbol": "Shutdown",
+        "line": 66,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/TargetValidator.cpp",
+        "symbol": "ValidateCurrentExecutable",
+        "line": 129,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/UltimateDurationFeature.cpp",
+        "symbol": "Initialize",
+        "line": 52,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/UltimateDurationFeature.cpp",
+        "symbol": "Ready",
+        "line": 69,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/UpdateFeature.cpp",
+        "symbol": "GetStatus",
+        "line": 255,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/UpdateFeature.cpp",
+        "symbol": "NoticeId",
+        "line": 260,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/UpdateFeature.cpp",
+        "symbol": "Invalidate",
+        "line": 264,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/UpdateFeature.cpp",
+        "symbol": "Check",
+        "line": 271,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/UpdateFeature.cpp",
+        "symbol": "InstallAfterExit",
+        "line": 284,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/UpdateFeature.cpp",
+        "symbol": "RestoreAfterExit",
+        "line": 299,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/WeaponSheathingFeature.cpp",
+        "symbol": "Initialize",
+        "line": 68,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/WeaponSheathingFeature.cpp",
+        "symbol": "OnLivePlayer",
+        "line": 81,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/WeaponSheathingFeature.cpp",
+        "symbol": "RequestSheathe",
+        "line": 102,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/WeaponSheathingFeature.cpp",
+        "symbol": "Shutdown",
+        "line": 109,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/WrathSlotFeature.cpp",
+        "symbol": "Ready",
+        "line": 114,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/WrathSlotFeature.cpp",
+        "symbol": "ForeignStatus",
+        "line": 115,
+        "disposition": "qualified production use in another module"
+      },
+      {
+        "file": "src/WrathSlotFeature.cpp",
+        "symbol": "OnLivePlayer",
+        "line": 116,
+        "disposition": "qualified production use in another module"
+      }
+    ]
+  },
+  "passB": {
+    "method": "B: member producer/consumer tracing plus immutable diagnostic states; independent input scan",
+    "unconsumedTelemetry": [
+      {
+        "header": "src/HorseFeature.h",
+        "field": "lastHorseNativeTick",
+        "uses": [
+          {
+            "file": "src/HorseFeature.cpp",
+            "line": 1182,
+            "write": true,
+            "text": "t.lastHorseNativeTick = g_lastLiveHorseCallbackTick.load(std::memory_order_acquire);"
+          }
+        ]
+      }
+    ],
+    "storeOnlyRuntime": [],
+    "constantDiagnosticAtomics": []
+  },
+  "manualComparison": {
+    "singleEntryCloneScaffold": "three one-element identities, two one-element name tables, one one-pass loop; all War/Strife selector callers are proven constant War",
+    "removedTelemetry": "one unread copy and field; producer and gameplay heartbeat consumers retained",
+    "publicCandidateDisposition": "15 ConfigStore members/unqualified local calls, 2 type-parser false positives, 2 locally used montage helpers, 9 namespace-forward-declaration misclassifications, 2 local Finite helpers, Potion CancelRequest at shutdown, local FinitePoint helper; all retained",
+    "unchangedNativeCallSequence": 6,
+    "changedRuntimeFiles": [
+      "src/BuildInfo.h",
+      "src/ForeignPowerFeature.cpp",
+      "src/HorseFeature.cpp",
+      "src/HorseFeature.h"
+    ],
+    "netPhysicalRuntimeLinesRemoved": 2,
+    "iniHotkeysAndWorkflowUnchanged": true
+  },
+  "limitations": [
+    "Same agent, two different methods; no independent second human/agent claimed",
+    "Static lexical candidates are not dead-code proof; undecidable candidates retained",
+    "No FPS/binary size improvement promised",
+    "Recovery investigation adds no runtime hook or timing change",
+    "Appearance library reported partially nonfunctional/uninteresting; not certified by its fixture suite"
+  ]
+}

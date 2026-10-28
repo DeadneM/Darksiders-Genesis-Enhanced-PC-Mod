@@ -1,3 +1,21 @@
+# File active - promotion V1.124 et consolidation V1.125
+
+28 octobre 2026. Demandes utilisateur prises en compte : main contient la V1.124 validee ; travaux suivants uniquement debug. V1.125 en preparation pour nettoyage controle, pas de nouvelle intervention Recovery.
+
+| Sujet | Etat courant |
+| --- | --- |
+| Apparences | Retour negatif partiel : plusieurs sans effet/peu interessantes.11groupes visibilite seulement. Identifier composants utiles et cibles chargees avant un nouveau correctif ; options/INI conserves. |
+| Recovery apres animation | Recherche active : [carte des valeurs/verrous](V1_125_RECOVERY_TIMING_MAP.md),27assets natifs controles. Aucun delai global prouve. Code reception lourde valide inchange. |
+| Nettoyage post-V1.78 | Deux passes confrontees, suppressions bornees ; controle GitHub du lot en attente. [Audit](V1_125_DOUBLE_AUDIT.md). |
+| Rampage Strife | Accepte dans le retour «2. ok». Aucun chiffre de degats mesure invente. |
+| Coop | Plus tard, selon utilisateur ; aucune validation exhaustive supposee. |
+| FX/icones P2 | «cetait ok il me semble» : pas de bug actuel confirme, surveiller au prochain essai coop. |
+| HUD general | Plus reproduit selon utilisateur, surveillance seulement. |
+
+Geyser/Stoneskin/Caltrops et autres acquis conserves. Les anciens tableaux ci-dessous sont historiques et ne remettent pas ces sujets en attente.
+
+---
+
 # File active - V1.124 validee, 28 octobre 2026
 
 **Base retenue : V1.124. Caltrops War et son petit saut final : VALIDES par l'utilisateur, sujet clos.** Geyser, Stoneskin, Rampage/World Ender/Clone acceptes, controles et autres acquis conserves. [Retour exact et limites](V1_124_USER_VALIDATION.md).

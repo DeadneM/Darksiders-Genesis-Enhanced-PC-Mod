@@ -1,0 +1,448 @@
+{
+  "readOnly": true,
+  "indexSha1": "5d0982cd46a5221290cb6ed24696e3962e9dddff",
+  "assetCount": 27,
+  "parseLimits": [],
+  "rows": [
+    {
+      "asset": "MayhemAbility_Ground_Dash_Base_Blueprint",
+      "path": "ProjectMayhem/Content/Blueprints/Abilities/Dash/MayhemAbility_Ground_Dash_Base_Blueprint.uasset",
+      "cls": "MayhemAbility_Ground_Dash_Base_Blueprint_C",
+      "properties": {
+        "PlayerTurnRate": 1000.0,
+        "AbilityTimeout": 3.0
+      },
+      "interruptWindows": []
+    },
+    {
+      "asset": "MayhemAbility_Strife_ChestInteract",
+      "path": "ProjectMayhem/Content/Blueprints/Abilities/Interact/MayhemAbility_Strife_ChestInteract.uasset",
+      "cls": "MayhemAbility_Strife_ChestInteract_C",
+      "properties": {},
+      "interruptWindows": []
+    },
+    {
+      "asset": "MayhemAbility_Strife_Ground_Dash_Blueprint",
+      "path": "ProjectMayhem/Content/Blueprints/Abilities/Dash/MayhemAbility_Strife_Ground_Dash_Blueprint.uasset",
+      "cls": "MayhemAbility_Strife_Ground_Dash_Blueprint_C",
+      "properties": {},
+      "interruptWindows": []
+    },
+    {
+      "asset": "MayhemAbility_Strife_Ground_Dash_Level1_Blueprint",
+      "path": "ProjectMayhem/Content/Blueprints/Abilities/Dash/MayhemAbility_Strife_Ground_Dash_Level1_Blueprint.uasset",
+      "cls": "MayhemAbility_Strife_Ground_Dash_Level1_Blueprint_C",
+      "properties": {
+        "MaxDashSpeed": 4100.0,
+        "ForwardMontage": "Strife_Dash_Level1_Montage",
+        "BackwardMontage": "Strife_Dash_Back_Level1_Montage",
+        "NextDashStartAbility": "MayhemAbility_Strife_Ground_Dash_Start_Level2_Blueprint_C"
+      },
+      "interruptWindows": []
+    },
+    {
+      "asset": "MayhemAbility_Strife_Ground_Dash_Level3_Blueprint",
+      "path": "ProjectMayhem/Content/Blueprints/Abilities/Dash/MayhemAbility_Strife_Ground_Dash_Level3_Blueprint.uasset",
+      "cls": "MayhemAbility_Strife_Ground_Dash_Level3_Blueprint_C",
+      "properties": {
+        "MaxDashSpeed": 2750.0,
+        "ForwardMontage": "Strife_Dash_Level3_Montage",
+        "BackwardMontage": "Strife_Dash_Back_Level3_Montage"
+      },
+      "interruptWindows": []
+    },
+    {
+      "asset": "MayhemAbility_Strife_HeavyLand",
+      "path": "ProjectMayhem/Content/Blueprints/Abilities/Land/MayhemAbility_Strife_HeavyLand.uasset",
+      "cls": "MayhemAbility_Strife_HeavyLand_C",
+      "properties": {},
+      "interruptWindows": []
+    },
+    {
+      "asset": "MayhemAbility_War_ChestInteract",
+      "path": "ProjectMayhem/Content/Blueprints/Abilities/Interact/MayhemAbility_War_ChestInteract.uasset",
+      "cls": "MayhemAbility_War_ChestInteract_C",
+      "properties": {},
+      "interruptWindows": []
+    },
+    {
+      "asset": "MayhemAbility_War_Ground_Dash_Blueprint",
+      "path": "ProjectMayhem/Content/Blueprints/Abilities/Dash/MayhemAbility_War_Ground_Dash_Blueprint.uasset",
+      "cls": "MayhemAbility_War_Ground_Dash_Blueprint_C",
+      "properties": {
+        "MaxDashSpeed": 5000.0,
+        "NextDashStartAbility": "MayhemAbility_War_Ground_Dash_Start_Blueprint_C",
+        "PlayerTurnRate": 2000.0
+      },
+      "interruptWindows": []
+    },
+    {
+      "asset": "MayhemAbility_War_HeavyLand",
+      "path": "ProjectMayhem/Content/Blueprints/Abilities/Land/MayhemAbility_War_HeavyLand.uasset",
+      "cls": "MayhemAbility_War_HeavyLand_C",
+      "properties": {
+        "AllowPlayerMovement": false
+      },
+      "interruptWindows": []
+    },
+    {
+      "asset": "Strife_Dash",
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_Dash.uasset",
+      "cls": "AnimSequence",
+      "properties": {
+        "SequenceLength": 1.4333332777023315
+      },
+      "interruptWindows": [
+        {
+          "time": 0.29956701397895813,
+          "duration": 1.1337660551071167,
+          "notify": "None",
+          "state": "AnimNotify_EnableAbilityInterrupt",
+          "interrupts": [
+            "EAbilityInterrupt::RANGED_ATTACK_ONE",
+            "EAbilityInterrupt::ATTACK_ONE",
+            "EAbilityInterrupt::ATTACK_TWO",
+            "EAbilityInterrupt::RANGED_ATTACK_TWO",
+            "EAbilityInterrupt::WRATH_ONE",
+            "EAbilityInterrupt::WRATH_TWO",
+            "EAbilityInterrupt::WRATH_THREE",
+            "EAbilityInterrupt::SWAP_CHARACTER",
+            "EAbilityInterrupt::CHAOS_FORM",
+            "EAbilityInterrupt::SUMMON_STEED"
+          ]
+        },
+        {
+          "time": 0.3933652639389038,
+          "duration": 1.0399680137634277,
+          "notify": "None",
+          "state": "AnimNotify_EnableAbilityInterrupt",
+          "interrupts": [
+            "EAbilityInterrupt::JUMP"
+          ]
+        },
+        {
+          "time": 0.6911739706993103,
+          "duration": 0.7421589493751526,
+          "notify": "None",
+          "state": "AnimNotify_EnableAbilityInterrupt",
+          "interrupts": [
+            "EAbilityInterrupt::MOVE"
+          ]
+        }
+      ]
+    },
+    {
+      "asset": "Strife_Dash_Level1_Montage",
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_Dash_Level1_Montage.uasset",
+      "cls": "AnimMontage",
+      "properties": {
+        "SequenceLength": 1.4333332777023315,
+        "BlendIn": {
+          "BlendTime": 0.0
+        },
+        "BlendOut": {
+          "BlendTime": 0.15000000596046448
+        }
+      },
+      "interruptWindows": []
+    },
+    {
+      "asset": "Strife_Dash_Level3_Montage",
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_Dash_Level3_Montage.uasset",
+      "cls": "AnimMontage",
+      "properties": {
+        "SequenceLength": 2.3333332538604736,
+        "BlendIn": {
+          "BlendTime": 0.0
+        },
+        "BlendOut": {
+          "BlendTime": 0.15000000596046448
+        }
+      },
+      "interruptWindows": []
+    },
+    {
+      "asset": "Strife_IA_Chest_A_Open",
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_IA_Chest_A_Open.uasset",
+      "cls": "AnimSequence",
+      "properties": {
+        "bEnableRootMotion": true,
+        "SequenceLength": 2.7333333492279053
+      },
+      "interruptWindows": []
+    },
+    {
+      "asset": "Strife_IA_Chest_A_Open_Montage",
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_IA_Chest_A_Open_Montage.uasset",
+      "cls": "AnimMontage",
+      "properties": {
+        "SequenceLength": 2.7333333492279053,
+        "BlendIn": {
+          "BlendTime": 0.10000000149011612
+        },
+        "BlendOut": {
+          "BlendTime": 0.10000000149011612
+        }
+      },
+      "interruptWindows": []
+    },
+    {
+      "asset": "Strife_IA_En_Chest_A_Open",
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_IA_En_Chest_A_Open.uasset",
+      "cls": "AnimSequence",
+      "properties": {
+        "bEnableRootMotion": true,
+        "SequenceLength": 2.7333333492279053
+      },
+      "interruptWindows": []
+    },
+    {
+      "asset": "Strife_IA_En_Chest_A_Open_Montage",
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_IA_En_Chest_A_Open_Montage.uasset",
+      "cls": "AnimMontage",
+      "properties": {
+        "SequenceLength": 2.7333333492279053,
+        "BlendIn": {
+          "BlendTime": 0.10000000149011612
+        },
+        "BlendOut": {
+          "BlendTime": 0.10000000149011612
+        }
+      },
+      "interruptWindows": []
+    },
+    {
+      "asset": "Strife_Jump_Land_Heavy",
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_Jump_Land_Heavy.uasset",
+      "cls": "AnimSequence",
+      "properties": {
+        "bEnableRootMotion": true,
+        "SequenceLength": 1.6333333253860474
+      },
+      "interruptWindows": [
+        {
+          "time": 0.6684650182723999,
+          "duration": 0.9648683071136475,
+          "notify": "None",
+          "state": "AnimNotify_EnableAbilityInterrupt",
+          "interrupts": [
+            "EAbilityInterrupt::ATTACK_ONE",
+            "EAbilityInterrupt::ATTACK_TWO",
+            "EAbilityInterrupt::JUMP",
+            "EAbilityInterrupt::ABILITY_ONE",
+            "EAbilityInterrupt::WRATH_ONE",
+            "EAbilityInterrupt::WRATH_TWO",
+            "EAbilityInterrupt::WRATH_THREE",
+            "EAbilityInterrupt::RANGED_ATTACK_ONE",
+            "EAbilityInterrupt::ABILITY_TWO",
+            "EAbilityInterrupt::SWAP_CHARACTER"
+          ]
+        },
+        {
+          "time": 0.8333730101585388,
+          "duration": 0.7999603152275085,
+          "notify": "None",
+          "state": "AnimNotify_EnableAbilityInterrupt",
+          "interrupts": [
+            "EAbilityInterrupt::MOVE"
+          ]
+        }
+      ]
+    },
+    {
+      "asset": "Strife_Jump_Land_Heavy_Montage",
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_Jump_Land_Heavy_Montage.uasset",
+      "cls": "AnimMontage",
+      "properties": {
+        "SequenceLength": 1.6333333253860474,
+        "BlendIn": {
+          "BlendTime": 0.10000000149011612
+        },
+        "BlendOut": {
+          "BlendTime": 0.20000000298023224
+        }
+      },
+      "interruptWindows": []
+    },
+    {
+      "asset": "War_Atk_Dash",
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_Atk_Dash.uasset",
+      "cls": "AnimSequence",
+      "properties": {
+        "bEnableRootMotion": true,
+        "SequenceLength": 1.7666666507720947
+      },
+      "interruptWindows": [
+        {
+          "time": 0.4849749207496643,
+          "duration": 1.2816917896270752,
+          "notify": "None",
+          "state": "AnimNotify_EnableAbilityInterrupt",
+          "interrupts": [
+            "EAbilityInterrupt::ATTACK_ONE",
+            "EAbilityInterrupt::ATTACK_TWO",
+            "EAbilityInterrupt::JUMP",
+            "EAbilityInterrupt::RANGED_ATTACK_ONE",
+            "EAbilityInterrupt::WRATH_ONE",
+            "EAbilityInterrupt::WRATH_TWO",
+            "EAbilityInterrupt::WRATH_THREE",
+            "EAbilityInterrupt::CHAOS_FORM",
+            "EAbilityInterrupt::SWAP_CHARACTER",
+            "EAbilityInterrupt::SUMMON_STEED",
+            "EAbilityInterrupt::ABILITY_ONE"
+          ]
+        },
+        {
+          "time": 0.7594227194786072,
+          "duration": 1.0072438716888428,
+          "notify": "None",
+          "state": "AnimNotify_EnableAbilityInterrupt",
+          "interrupts": [
+            "EAbilityInterrupt::ABILITY_TWO"
+          ]
+        },
+        {
+          "time": 0.880814790725708,
+          "duration": 0.8858518600463867,
+          "notify": "None",
+          "state": "AnimNotify_EnableAbilityInterrupt",
+          "interrupts": [
+            "EAbilityInterrupt::MOVE"
+          ]
+        }
+      ]
+    },
+    {
+      "asset": "War_Atk_Dash_Level1_Montage",
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_Atk_Dash_Level1_Montage.uasset",
+      "cls": "AnimMontage",
+      "properties": {
+        "SequenceLength": 1.7666666507720947,
+        "BlendIn": {
+          "BlendTime": 0.10000000149011612
+        },
+        "BlendOut": {
+          "BlendTime": 0.10000000149011612
+        }
+      },
+      "interruptWindows": []
+    },
+    {
+      "asset": "War_Atk_Dash_Level3_Montage",
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_Atk_Dash_Level3_Montage.uasset",
+      "cls": "AnimMontage",
+      "properties": {
+        "SequenceLength": 1.7666666507720947,
+        "BlendIn": {
+          "BlendTime": 0.10000000149011612
+        },
+        "BlendOut": {
+          "BlendTime": 0.10000000149011612
+        }
+      },
+      "interruptWindows": []
+    },
+    {
+      "asset": "War_IA_Chest_A_Open",
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_IA_Chest_A_Open.uasset",
+      "cls": "AnimSequence",
+      "properties": {
+        "bEnableRootMotion": true,
+        "SequenceLength": 2.1666667461395264
+      },
+      "interruptWindows": []
+    },
+    {
+      "asset": "War_IA_Chest_A_Open_Montage",
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_IA_Chest_A_Open_Montage.uasset",
+      "cls": "AnimMontage",
+      "properties": {
+        "SequenceLength": 2.1666667461395264,
+        "BlendIn": {
+          "BlendTime": 0.10000000149011612
+        },
+        "BlendOut": {
+          "BlendTime": 0.10000000149011612
+        }
+      },
+      "interruptWindows": []
+    },
+    {
+      "asset": "War_IA_En_Chest_A_Open",
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_IA_En_Chest_A_Open.uasset",
+      "cls": "AnimSequence",
+      "properties": {
+        "bEnableRootMotion": true,
+        "SequenceLength": 2.1666667461395264
+      },
+      "interruptWindows": []
+    },
+    {
+      "asset": "War_IA_En_Chest_A_Open_Montage",
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_IA_En_Chest_A_Open_Montage.uasset",
+      "cls": "AnimMontage",
+      "properties": {
+        "SequenceLength": 2.1666667461395264,
+        "BlendIn": {
+          "BlendTime": 0.10000000149011612
+        },
+        "BlendOut": {
+          "BlendTime": 0.10000000149011612
+        }
+      },
+      "interruptWindows": []
+    },
+    {
+      "asset": "War_Jump_Land_Heavy",
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_Jump_Land_Heavy.uasset",
+      "cls": "AnimSequence",
+      "properties": {
+        "SequenceLength": 1.600000023841858
+      },
+      "interruptWindows": []
+    },
+    {
+      "asset": "War_Jump_Land_Heavy_Montage",
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_Jump_Land_Heavy_Montage.uasset",
+      "cls": "AnimMontage",
+      "properties": {
+        "SequenceLength": 1.600000023841858,
+        "BlendIn": {
+          "BlendTime": 0.10000000149011612
+        },
+        "BlendOut": {
+          "BlendTime": 0.20000000298023224
+        }
+      },
+      "interruptWindows": [
+        {
+          "time": 0.4024589955806732,
+          "duration": 1.1975409984588623,
+          "notify": "None",
+          "state": "AnimNotify_EnableAbilityInterrupt",
+          "interrupts": [
+            "EAbilityInterrupt::ATTACK_ONE",
+            "EAbilityInterrupt::ATTACK_TWO",
+            "EAbilityInterrupt::JUMP",
+            "EAbilityInterrupt::ABILITY_ONE",
+            "EAbilityInterrupt::WRATH_ONE",
+            "EAbilityInterrupt::WRATH_TWO",
+            "EAbilityInterrupt::WRATH_THREE",
+            "EAbilityInterrupt::RANGED_ATTACK_ONE",
+            "EAbilityInterrupt::ABILITY_TWO",
+            "EAbilityInterrupt::SWAP_CHARACTER"
+          ]
+        },
+        {
+          "time": 0.8134250044822693,
+          "duration": 0.7865750193595886,
+          "notify": "None",
+          "state": "AnimNotify_EnableAbilityInterrupt",
+          "interrupts": [
+            "EAbilityInterrupt::MOVE"
+          ]
+        }
+      ]
+    }
+  ]
+}

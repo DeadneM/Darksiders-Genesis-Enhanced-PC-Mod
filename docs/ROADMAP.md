@@ -1,3 +1,9 @@
+# Orientation actuelle - V1.124 sur main, suite debug
+
+Promotion explicite V1.124 verifiee sans recompilation. Suite autorisee : recherche des verrous apres animation, audit en deux passes des ajouts depuis V1.78 et retrait uniquement prouve. Apparences a reprendre selon retour negatif partiel ; coop differee, FX P2/HUD en surveillance. [File actuelle](ACTIVE_QUEUE.md), [carte Recovery](V1_125_RECOVERY_TIMING_MAP.md), [audit](V1_125_DOUBLE_AUDIT.md). Les paragraphes suivants restent historiques.
+
+---
+
 # Orientation actuelle - 28 octobre 2026
 
 V1.124 et correctif Caltrops War **VALIDES par l'utilisateur dans son essai**. [File active actuelle](ACTIVE_QUEUE.md) et [validation/limites](V1_124_USER_VALIDATION.md) font reference ; les versions ci-dessous sont historiques. Suite recommandee : consolider le code actuel, terminer les essais d'apparences et de degats Rampage, puis coop/P2 differee. Reception lourde deja validee, dash rejete non reactive. Aucun nouveau build ni changement de runtime.
