@@ -1,6 +1,8 @@
 ## V1.126 - essais Recovery et impact Tremor
 
-**PREPAREE / CONTROLES GITHUB EN ATTENTE ; EXPERIMENTALE, NON VALIDEE EN JEU.** Base V1.125 controlee, V1.124 validee reste sur main. A la demande utilisateur, apparences actuelles conservees et Leviathan confirme independant/inchange.
+**CONSTRUITE / CONTROLEE : [66/66 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40672465858), zero avertissement/erreur MSVC. [ZIP cumulatif public verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/8ea941ff3993d970fb89577b4c165ad94a739eeb/downloads/DarksidersGenesis_V1.126_RECOVERY_EXPERIMENTS_TEST.zip) - [Recu](docs/V1_126_DELIVERY_RECEIPT.md). Updater debug et Defender controles. Recovery/Tremor EXPERIMENTAUX, NON VALIDES EN JEU, nouvelles cases OFF. Leviathan et apparences precedentes conserves. main reste en V1.124 validee ; aucune installation locale.**
+
+**CONSTRUITE / CONTROLEE ; EXPERIMENTALE, NON VALIDEE EN JEU.** Base V1.125 controlee, V1.124 validee reste sur main. A la demande utilisateur, apparences actuelles conservees et Leviathan confirme independant/inchange.
 
 Player movement -> Recovery experiments : temps de reception lourde optionnels et deux essais MOVE natifs apres arret complet observe du montage coffre/dash. Cases OFF par defaut, pas de Finish/Stop, touche imposee, timer/vitesse/animation ecrit ou nouveau hook. Les chemins valides sont conserves quand les essais sont OFF. Ajouter seulement Tremor surface impact (Native/or/metal/pierre/eau/Hidden), via quatre ParticleSystem natifs verifies et la fabrique existante ; pas de refonte des anciens groupes.
 

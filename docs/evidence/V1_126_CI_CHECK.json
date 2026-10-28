@@ -1,0 +1,18 @@
+{
+  "runId": 40672465858,
+  "jobId": 122762643761,
+  "sourceCommit": "059fba2a7068e33518e36d6373873cdba0d41f5c",
+  "conclusion": "success",
+  "testsPassed": 66,
+  "testSummary": "2026-10-28T10:34:44.0791173Z 100% tests passed out of 66\r",
+  "msvcWarnings": [],
+  "msvcErrors": [],
+  "logsReadVia": "GitHub fetch_workflow_job_logs",
+  "supersededRun": {
+    "runId": 40672179715,
+    "jobId": 122761448431,
+    "conclusion": "cancelled",
+    "packageUploadPublication": "skipped before any ZIP publication"
+  },
+  "localBuild": false
+}

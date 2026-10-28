@@ -1,6 +1,6 @@
 # V1.126 - essais Recovery et effets de surface Tremor
 
-28 octobre 2026. **PREPAREE / CONTROLES GITHUB EN ATTENTE ; NON VALIDEE EN JEU.** Base cumulative V1.125 controlee, issue de V1.124 validee et conservee sur main. L'utilisateur demande de garder les apparences actuelles, chercher seulement des ajouts, conserver le Leviathan confirme a part, et autorise des parametres Recovery experimentaux. Suite uniquement debug ; pas de lancement, installation ou build local.
+28 octobre 2026. **CONSTRUITE / CONTROLEE ; NOUVEAUTES NON VALIDEES EN JEU.** Base cumulative V1.125 controlee, issue de V1.124 validee et conservee sur main. L'utilisateur demande de garder les apparences actuelles, chercher seulement des ajouts, conserver le Leviathan confirme a part, et autorise des parametres Recovery experimentaux. Suite uniquement debug ; pas de lancement, installation ou build local.
 
 ## Objectifs et criteres
 

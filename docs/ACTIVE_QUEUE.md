@@ -1,4 +1,4 @@
-# File active - V1.126 preparee
+# File active - V1.126 construite/controlee, essais en jeu attendus
 
 28 octobre 2026. Garder toutes les apparences actuelles ; Leviathan confirme reste a part. Ajout candidat : impact de surface Tremor or/metal/pierre/eau, sans nouveau renderer. Recovery : trois essais opt-in (custom reception lourde, fin coffre, fin dash) et temps reglables ; nouvelle suite + anciennes fixtures avant livraison. [Contrat et essai groupe](V1_126_RECOVERY_EXPERIMENTS_TEST.md).
 
