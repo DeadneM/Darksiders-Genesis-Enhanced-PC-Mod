@@ -27,7 +27,7 @@ bool Released(unsigned i=0){return (Get<uint64_t>(abilities[i],0x120)&dg::heavy_
 void Fresh(){
     using namespace dg::heavy_landing;
     gameThread=true;paused=false;now=1000;g_saved={};g_ground[0]={};g_ground[1]={};
-    dg::runtime::Get().heavyLandingCustomTimingEnabled=false;
+    dg::runtime::Get().heavyLandingDelaySeconds=.15f;dg::runtime::Get().heavyLandingGroundSeconds=.05f;
     g_ready=true;g_window=Window;g_interrupt=Interrupt;opens=restores=0;nativeArgs=true;dg::runtime::Get().heavyLandingRecoveryEnabled=true;
     for(unsigned i=0;i<2;++i){
         std::memset(actors[i],0,sizeof(actors[i]));std::memset(abilities[i],0,sizeof(abilities[i]));
@@ -86,19 +86,23 @@ void Run(){
     owners[0].kind=dg::local_players::PoseKind::Ultimate;Tick();Check(!Released()&&Released(1),"transform restores only its player");
     Fresh();Put<uint64_t>(abilities[0],0x120,OtherBits|MoveBit);Tick();now+=60;Tick();dg::runtime::Get().heavyLandingRecoveryEnabled=false;Tick();Check(Released()&&!opens&&!restores,"pre-existing window never owned or closed");
     Fresh();Tick();now+=60;Tick();Put(items,3*24+16,99);dg::runtime::Get().heavyLandingRecoveryEnabled=false;Tick();Check(Released()&&!restores,"reused identity discarded without call on new object");
-    Fresh();Tick();now+=60;Tick();Put(abilities[0],0xDC,.7f);dg::runtime::Get().heavyLandingRecoveryEnabled=false;Tick();Check(Released()&&!restores,"does not close due native MOVE notify");
+    Fresh();Tick();now+=60;Tick();Put(abilities[0],0xDC,.84f);dg::runtime::Get().heavyLandingRecoveryEnabled=false;Tick();Check(Released()&&!restores,"does not close due native MOVE notify");
     Fresh();Tick();now+=60;Tick();Put<unsigned char>(abilities[0],0xD8,4);Tick();Check(!restores,"completed ability not called");
     Fresh();Tick();now+=60;Tick();Put<uint64_t>(abilities[0],0x120,OtherBits|MoveBit|(uint64_t(1)<<12));dg::runtime::Get().heavyLandingRecoveryEnabled=false;Tick();Check(Get<uint64_t>(abilities[0],0x120)==(OtherBits|(uint64_t(1)<<12)),"other native windows preserved");
-    Fresh();dg::runtime::Get().heavyLandingCustomTimingEnabled=true;dg::runtime::Get().heavyLandingDelaySeconds=.4f;dg::runtime::Get().heavyLandingGroundSeconds=.1f;
+    Fresh();dg::runtime::Get().heavyLandingDelaySeconds=.4f;dg::runtime::Get().heavyLandingGroundSeconds=.1f;
     Tick();now+=100;Tick();Check(!Released(),"custom landing delay preserves the initial gesture");Put(abilities[0],0xDC,.4f);Tick();Check(Released(),"custom landing delay opens at the requested time");
     Put(abilities[0],0xDC,.7f);dg::runtime::Get().heavyLandingRecoveryEnabled=false;Tick();Check(!Released()&&restores==1,"custom profile restores until actual MOVE notify, not attack interrupt");
-    Fresh();dg::runtime::Get().heavyLandingCustomTimingEnabled=true;dg::runtime::Get().heavyLandingDelaySeconds=.1f;dg::runtime::Get().heavyLandingGroundSeconds=.2f;
+    Fresh();dg::runtime::Get().heavyLandingDelaySeconds=.1f;dg::runtime::Get().heavyLandingGroundSeconds=.2f;
     Tick();now+=199;Tick();Check(!Released(),"custom ground-contact requirement respected");++now;Tick();Check(Released(),"custom stable ground requirement expires");
     wchar_t folder[MAX_PATH]{},path[MAX_PATH]{};Check(GetTempPathW(MAX_PATH,folder)&&GetTempFileNameW(folder,L"DGL",0,path),"temporary INI");
     dg::config::Store c;c.SetPath(path);Check(c.Load()&&!c.heavyLandingRecoveryEnabled,"legacy INI defaults to native landing");
     c.heavyLandingRecoveryEnabled=true;c.aimPadButtonA=0x40;c.sheathKeyboardKey='K';Check(c.SaveNow(),"landing option saves");
     dg::config::Store loaded;loaded.SetPath(path);Check(loaded.Load()&&loaded.heavyLandingRecoveryEnabled&&dg::runtime::Get().heavyLandingRecoveryEnabled.load(),"option reaches the runtime and survives reload");
     Check(loaded.aimPadButtonA==0x40&&loaded.sheathKeyboardKey=='K',"manual aim and previous shortcuts survive landing profile I/O");
+    WritePrivateProfileStringW(L"Features",L"HeavyLandingCustomTiming",L"1",path);
+    loaded.heavyLandingDelaySeconds=.22f;loaded.heavyLandingGroundSeconds=.08f;Check(loaded.SaveNow(),"save retires duplicate checkbox");
+    wchar_t retired[8]{};Check(!GetPrivateProfileStringW(L"Features",L"HeavyLandingCustomTiming",L"",retired,8,path),"duplicate key removed");
+    dg::config::Store migrated;migrated.SetPath(path);Check(migrated.Load()&&migrated.heavyLandingRecoveryEnabled&&migrated.heavyLandingDelaySeconds==.22f&&migrated.heavyLandingGroundSeconds==.08f&&migrated.sheathKeyboardKey=='K',"unified landing preserves master, timing and bindings");
     loaded.ResetDefaults(false);Check(!loaded.heavyLandingRecoveryEnabled,"reset returns the experimental recovery to OFF");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,path);DeleteFileW(path);
     Shutdown();Check(!Ready(),"shutdown disables callbacks without off-thread restoration");

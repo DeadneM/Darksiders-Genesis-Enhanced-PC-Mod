@@ -1,0 +1,43 @@
+{
+  "base": "94bd8b3a54d2628818d3800948ee24406ef5ec66",
+  "validatedStable": "V1.124 on main",
+  "acceptedFeature": "V1.126 custom heavy landing timing accepted by user",
+  "heavyLandingSingleToggle": true,
+  "acceptedCustomOnCodeEquivalent": true,
+  "removedSetting": "Features.HeavyLandingCustomTiming",
+  "retainedIniValuesUnchanged": 218,
+  "hotkeysUnchanged": true,
+  "oldKeyRemovedOnlyOnSave": true,
+  "protectedFiles": [
+    "src/NativeTpsFeature.cpp",
+    "src/ProjectileAimFeature.cpp",
+    "src/DarksidersGenesisMod.cpp",
+    "src/LeviathanVisualFeature.cpp",
+    "src/LeviathanVisualFeature.h",
+    "src/EffectAppearanceFeature.cpp",
+    "src/EffectAppearanceData.h",
+    "src/EffectAppearanceSettings.h",
+    "src/DashCombatFeature.cpp",
+    "src/ForeignCaltropsFeature.cpp",
+    "src/ForeignRampageFeature.cpp",
+    "src/ForeignPowerFeature.cpp",
+    "src/PistolVisualFeature.cpp",
+    "src/StoneSkinVisual.cpp",
+    "src/ForeignMontage.cpp"
+  ],
+  "review1": "setting writer/reader/runtime/UI traced, retired flag and duplicate legacy branch removed; profile migration covered",
+  "review2": "independent reconstruction of V1.126 accepted custom=ON code equivalent after comments/whitespace; gameplay guards and movement API calls preserved; diagnostic motion predicate logically unchanged",
+  "sourceLog": {
+    "sha256": "e6ba68685f7d052d7e54428dceb6502e6e57ec3b7ca9475a7cc230f37746bcde",
+    "bytes": 200423,
+    "lines": 1287,
+    "chestRequests": 6,
+    "dashRequests": 0,
+    "heavyLandingMessages": 8,
+    "heavyLandingLoggingCapped": true
+  },
+  "recoveryOutcome": "requests are not proof of earlier movement; dash remains unvalidated",
+  "gameplayValidated": false,
+  "localBuild": false,
+  "localInstall": false
+}

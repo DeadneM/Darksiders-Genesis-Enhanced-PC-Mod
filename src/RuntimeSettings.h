@@ -27,7 +27,6 @@ struct Snapshot {
     effect_appearance::Choices effectAppearances{};
     bool weaponSheathingEnabled = false;
     bool heavyLandingRecoveryEnabled = false;
-    bool heavyLandingCustomTimingEnabled = false;
     float heavyLandingDelaySeconds = .15f,heavyLandingGroundSeconds = .05f;
     bool recoveryDashTailEnabled = false,recoveryChestTailEnabled = false;
     float recoveryTailDelaySeconds = 0;
@@ -154,7 +153,6 @@ struct State {
     std::atomic_uint effectAppearanceGeneration{0};
     std::atomic_bool weaponSheathingEnabled{false};
     std::atomic_bool heavyLandingRecoveryEnabled{false};
-    std::atomic_bool heavyLandingCustomTimingEnabled{false};
     std::atomic<float> heavyLandingDelaySeconds{.15f},heavyLandingGroundSeconds{.05f};
     std::atomic_bool recoveryDashTailEnabled{false},recoveryChestTailEnabled{false};
     std::atomic<float> recoveryTailDelaySeconds{0};

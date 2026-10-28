@@ -328,7 +328,7 @@ void Store::ResetDefaults(bool persist) {
 
     toggleHudEnabled = true;interactionHudScaleEnabled=true;interactionHudScale=0.65f;
     weaponSheathingEnabled=false;sheathNeverEnabled=true;sheathDelaySeconds=10.0f;
-    heavyLandingRecoveryEnabled=false;heavyLandingCustomTimingEnabled=false;
+    heavyLandingRecoveryEnabled=false;
     heavyLandingDelaySeconds=.15f;heavyLandingGroundSeconds=.05f;
     recoveryDashTailEnabled=recoveryChestTailEnabled=false;recoveryTailDelaySeconds=0;
     wrathSlots={};
@@ -578,7 +578,6 @@ bool Store::Load() {
     toggleHudEnabled = true; // V0.54: hidden/visible is the only HUD state
     weaponSheathingEnabled=ReadBool(L"Features",L"WeaponSheathing",false,path_);
     heavyLandingRecoveryEnabled=ReadBool(L"Features",L"HeavyLandingRecovery",false,path_);
-    heavyLandingCustomTimingEnabled=ReadBool(L"Features",L"HeavyLandingCustomTiming",false,path_);
     heavyLandingDelaySeconds=recovery_settings::LandingDelay(ReadFloat(L"Values",L"HeavyLandingDelaySeconds",.15f,path_));
     heavyLandingGroundSeconds=recovery_settings::GroundTime(ReadFloat(L"Values",L"HeavyLandingGroundSeconds",.05f,path_));
     recoveryDashTailEnabled=ReadBool(L"Features",L"RecoveryDashTail",false,path_);
@@ -952,7 +951,7 @@ void Store::PublishRuntime() const {
     runtime.interactionHudScale=interactionHudScale;
     runtime.weaponSheathingEnabled=weaponSheathingEnabled;
     runtime.heavyLandingRecoveryEnabled=heavyLandingRecoveryEnabled;
-    runtime.heavyLandingCustomTimingEnabled=heavyLandingCustomTimingEnabled;runtime.heavyLandingDelaySeconds=heavyLandingDelaySeconds;runtime.heavyLandingGroundSeconds=heavyLandingGroundSeconds;
+    runtime.heavyLandingDelaySeconds=heavyLandingDelaySeconds;runtime.heavyLandingGroundSeconds=heavyLandingGroundSeconds;
     runtime.recoveryDashTailEnabled=recoveryDashTailEnabled;runtime.recoveryChestTailEnabled=recoveryChestTailEnabled;runtime.recoveryTailDelaySeconds=recoveryTailDelaySeconds;
     runtime.wrathSlots=wrathSlots;
     runtime.sheathNeverEnabled=sheathNeverEnabled;
@@ -1125,7 +1124,7 @@ bool Store::SaveNow() {
     WriteProfileString(L"Features", L"ToggleHUD", nullptr, path_.c_str());
     WriteBool(L"Features",L"WeaponSheathing",weaponSheathingEnabled,path_);
     WriteBool(L"Features",L"HeavyLandingRecovery",heavyLandingRecoveryEnabled,path_);
-    WriteBool(L"Features",L"HeavyLandingCustomTiming",heavyLandingCustomTimingEnabled,path_);
+    WriteProfileString(L"Features",L"HeavyLandingCustomTiming",nullptr,path_.c_str()); // Retired V1.126 duplicate; preserve master and timing values.
     WriteFloat(L"Values",L"HeavyLandingDelaySeconds",recovery_settings::LandingDelay(heavyLandingDelaySeconds),path_);
     WriteFloat(L"Values",L"HeavyLandingGroundSeconds",recovery_settings::GroundTime(heavyLandingGroundSeconds),path_);
     WriteBool(L"Features",L"RecoveryDashTail",recoveryDashTailEnabled,path_);WriteBool(L"Features",L"RecoveryChestTail",recoveryChestTailEnabled,path_);

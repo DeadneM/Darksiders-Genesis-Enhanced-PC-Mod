@@ -1,3 +1,11 @@
+## V1.127 - unified heavy landing and Recovery evidence
+
+**PREPAREE / CONTROLES GITHUB EN ATTENTE ; NOUVEAU CONDITIONNEMENT NON VALIDE EN JEU.** Base V1.126 : timing personnalise reception lourde accepte par l'utilisateur, fusionne dans la case existante avec ses valeurs. Coffre :6demandes dans le journal ; dash :0. Aucun gain de controle prouve par ces traces. Ajout d'un bilan borne sans changer leurs gardes/mouvement. Visee souris TPS : investigation trace Projectile/objets Overlap et branche BeamShot ciblee ; aucun patch de visee, manette non testee. [Perimetre, limites et essai](docs/V1_127_UNIFIED_LANDING_RECOVERY_TEST.md).
+
+218valeurs INI conservees, cle doublee retraitee a la sauvegarde ;55ID Hotkeys inchanges. Leviathan/apparences/transfer capacites/cameras/controles preserves. main reste en V1.124 ; debug seulement. Pas d'installation, relance ou compilation locale. Les sections suivantes sont historiques.
+
+---
+
 ## V1.126 - essais Recovery et impact Tremor
 
 **CONSTRUITE / CONTROLEE : [66/66 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40672465858), zero avertissement/erreur MSVC. [ZIP cumulatif public verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/8ea941ff3993d970fb89577b4c165ad94a739eeb/downloads/DarksidersGenesis_V1.126_RECOVERY_EXPERIMENTS_TEST.zip) - [Recu](docs/V1_126_DELIVERY_RECEIPT.md). Updater debug et Defender controles. Recovery/Tremor EXPERIMENTAUX, NON VALIDES EN JEU, nouvelles cases OFF. Leviathan et apparences precedentes conserves. main reste en V1.124 validee ; aucune installation locale.**

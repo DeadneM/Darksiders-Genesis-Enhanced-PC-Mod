@@ -278,7 +278,6 @@ public:
     effect_appearance::Choices effectAppearances{};
     bool weaponSheathingEnabled = false;
     bool heavyLandingRecoveryEnabled = false;
-    bool heavyLandingCustomTimingEnabled = false;
     float heavyLandingDelaySeconds = .15f,heavyLandingGroundSeconds = .05f;
     bool recoveryDashTailEnabled = false,recoveryChestTailEnabled = false;
     float recoveryTailDelaySeconds = 0;

@@ -39,7 +39,6 @@ void Publish(const Snapshot& s) {
     if(appearanceChanged)g_state.effectAppearanceGeneration.fetch_add(1);
     g_state.weaponSheathingEnabled.store(s.weaponSheathingEnabled);
     g_state.heavyLandingRecoveryEnabled.store(s.heavyLandingRecoveryEnabled);
-    g_state.heavyLandingCustomTimingEnabled.store(s.heavyLandingCustomTimingEnabled);
     g_state.heavyLandingDelaySeconds.store(recovery_settings::LandingDelay(s.heavyLandingDelaySeconds));
     g_state.heavyLandingGroundSeconds.store(recovery_settings::GroundTime(s.heavyLandingGroundSeconds));
     g_state.recoveryDashTailEnabled.store(s.recoveryDashTailEnabled);g_state.recoveryChestTailEnabled.store(s.recoveryChestTailEnabled);

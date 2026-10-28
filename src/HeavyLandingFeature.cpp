@@ -73,16 +73,15 @@ void Service(const local_players::Context& owner,uint32_t generation,bool focuse
     for(auto& saved:g_saved)if(saved.owner==index)saved.seen=false;
     // Same native window as AnimNotify_EnableAbilityInterrupt. The engine
     // handles held/rebound movement, cancellation and montage cleanup.
-    const bool customTiming=runtime::Get().heavyLandingCustomTimingEnabled.load();
-    const float delay=customTiming?recovery_settings::LandingDelay(runtime::Get().heavyLandingDelaySeconds.load()):.15f;
-    const auto groundTime=customTiming?uint64_t(recovery_settings::GroundTime(runtime::Get().heavyLandingGroundSeconds.load())*1000):uint64_t(50);
+    const float delay=recovery_settings::LandingDelay(runtime::Get().heavyLandingDelaySeconds.load());
+    const auto groundTime=uint64_t(recovery_settings::GroundTime(runtime::Get().heavyLandingGroundSeconds.load())*1000);
     if(now>=ground.since&&now-ground.since>=groundTime){
         for(int n=0;n<count;++n){
             uintptr_t ability=0,instigator=0,character=0,ownMovement=0;unsigned char state=0,pending=0;
             uint64_t requested=0,enabled=0;float elapsed=0;
-            // Keep the accepted legacy path when the new experiment is OFF.
-            // Custom timing uses the actual cooked MOVE notify, not attack/JUMP.
-            const float nativeWindow=customTiming?(type==1?.8333730102f:.8134250045f):(type==1?.6684650183f:.4024589956f);
+            // Unified timing accepted by the user in V1.126.
+            // Use the actual cooked MOVE notify, not attack/JUMP.
+            const float nativeWindow=type==1?.8333730102f:.8134250045f;
             if(!Read(array,size_t(n)*8,ability)||!Heavy(ability,type)||!Read(ability,0x48,instigator)||instigator!=pawn||
                !Read(ability,0x1B0,character)||character!=pawn||!Read(ability,0x1C8,ownMovement)||ownMovement!=movement||
                !Read(ability,0xD8,state)||state!=2||!Read(ability,0x148,pending)||pending||!Read(ability,0xDC,elapsed)||!std::isfinite(elapsed)||

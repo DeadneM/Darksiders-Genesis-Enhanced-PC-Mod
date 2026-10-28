@@ -15,7 +15,10 @@ using Playing=bool(*)(void*);
 Interrupt g_window=nullptr,g_interrupt=nullptr;Playing g_playing=nullptr;
 uintptr_t g_base=0;LogFn g_log=nullptr;std::atomic_bool g_ready{false};unsigned g_events=0;
 using Id=native_objects::Identity;
-struct Pending {Id actor{},ability{},helper{},montage{};uintptr_t world=0;uint32_t generation=0;bool playing=false,owned=false;uint64_t stopped=0;};
+struct Counts {std::atomic_uint32_t tracked{0},played{0},stopped{0},motionBlocked{0},nativeMove{0},requested{0};};
+std::array<Counts,2> g_counts{};unsigned g_observations=0; // game-thread events; bounded output
+
+struct Pending {Id actor{},ability{},helper{},montage{};uintptr_t world=0;uint32_t generation=0;bool playing=false,owned=false,stopObserved=false;uint64_t stopped=0;};
 std::array<Pending,2> g_pending{};
 template<class T>bool Read(uintptr_t p,size_t at,T& value){native_objects::MemoryReader r;return r.Read(p,at,value);}
 bool Alive(const Id& id){native_objects::MemoryReader r;return native_objects::Alive(r,g_base,id);}
@@ -84,22 +87,30 @@ void Service(const local_players::Context& c,uint32_t generation,bool focused,ui
     if(saved.ability.address!=ability||!Alive(saved.ability)||saved.actor.address!=pawn||saved.world!=c.world||saved.generation!=generation||
        saved.helper.address!=helper||saved.montage.address!=montage||!Alive(saved.helper)||!Alive(saved.montage)){
         Restore(saved);Pending next{};if(!Capture(pawn,next.actor)||!Capture(ability,next.ability)||!Capture(helper,next.helper)||!Capture(montage,next.montage))return;
-        next.world=c.world;next.generation=generation;saved=next;
+        next.world=c.world;next.generation=generation;saved=next;++g_counts[kind-1].tracked;
     }
     const bool playing=g_playing(reinterpret_cast<void*>(helper));
     if(!Alive(saved.ability)||!Alive(saved.actor)||!Alive(saved.helper)||!Alive(saved.montage)){saved={};return;}
-    if(playing){if(saved.owned){Restore(saved);return;}saved.playing=true;saved.stopped=0;return;}
+    if(playing){if(saved.owned){Restore(saved);return;}if(!saved.playing)++g_counts[kind-1].played;saved.playing=true;saved.stopped=0;return;}
     if(!saved.playing||saved.owned)return; // Never treat an unstarted montage as a completed one.
-    if(kind==1){
-        float remaining=0,total=0;if(!((mode==1&&!custom)||(mode==6&&custom==5))||!Read(ability,0x224,remaining)||!Read(ability,0x228,total)||
-           !std::isfinite(remaining)||!std::isfinite(total)||remaining>0||total<=0)return;
-    }else if(mode!=1||custom)return;
+    float remaining=0,total=0;
+    const bool motionReady=kind==1?
+        (((mode==1&&!custom)||(mode==6&&custom==5))&&Read(ability,0x224,remaining)&&Read(ability,0x228,total)&&
+         std::isfinite(remaining)&&std::isfinite(total)&&remaining<=0&&total>0):(mode==1&&!custom);
+    if(!saved.stopObserved){
+        saved.stopObserved=true;auto& counts=g_counts[kind-1];++counts.stopped;
+        if(!motionReady)++counts.motionBlocked;if((requested|enabled)&MoveBit)++counts.nativeMove;
+        if(g_log&&g_observations++<12){char line[230]{};sprintf_s(line,
+            "Recovery tail V1.127: player=%d target=%s montageStopped=1 motionReady=%d nativeMoveAlready=%d; movementLatency=UNMEASURED",
+            c.index+1,kind==1?"ground dash":"chest",motionReady?1:0,((requested|enabled)&MoveBit)?1:0);g_log(line);}
+    }
+    if(!motionReady)return;
     if(!saved.stopped){saved.stopped=now;return;}
     float delay=settings.recoveryTailDelaySeconds.load();if(!std::isfinite(delay)||delay<0||delay>1)delay=0;
     if(now<saved.stopped||now-saved.stopped<30+uint64_t(delay*1000)||(requested|enabled)&MoveBit)return;
-    saved.owned=true; // Reentrant observations cannot issue the request twice.
+    saved.owned=true;++g_counts[kind-1].requested; // Reentrant observations cannot issue the request twice.
     g_window(reinterpret_cast<void*>(ability),1,true);
-    if(g_log&&g_events++<12){char line[180]{};sprintf_s(line,"Recovery tail V1.126: player=%d target=%s stopped montage, native MOVE window requested; EXPERIMENTAL",c.index+1,kind==1?"ground dash":"chest");g_log(line);}
+    if(g_log&&g_events++<12){char line[180]{};sprintf_s(line,"Recovery tail V1.127: player=%d target=%s stopped montage, native MOVE window requested; EXPERIMENTAL",c.index+1,kind==1?"ground dash":"chest");g_log(line);}
 }
 }
 void Initialize(LogFn log,bool exact){
@@ -112,5 +123,10 @@ void Initialize(LogFn log,bool exact){
 }
 bool Ready(){return g_ready.load();}
 void OnLivePlayer(const local_players::Context& c,uint32_t generation,bool focused){Service(c,generation,focused,GetTickCount64());}
-void Shutdown(){g_ready=false;} // No cached-object access from the teardown thread.
+void Shutdown(){
+    g_ready=false; // No cached-object access from the teardown thread.
+    if(g_log)for(unsigned i=0;i<2;++i){const auto& c=g_counts[i];char line[280]{};
+        sprintf_s(line,"Recovery tail V1.127 totals target=%s tracked=%u playbackObserved=%u stopObserved=%u motionBlockedAtStop=%u nativeMoveAtStop=%u requests=%u movementLatency=UNMEASURED",
+            i==0?"ground dash":"chest",c.tracked.load(),c.played.load(),c.stopped.load(),c.motionBlocked.load(),c.nativeMove.load(),c.requested.load());g_log(line);}
+}
 }

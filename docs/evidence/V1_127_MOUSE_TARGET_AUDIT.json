@@ -1,0 +1,24 @@
+{
+  "userConfirmed": "TPS mouse; Static Shot reported; other ammunition not established",
+  "controller": "user assumption only, untested",
+  "profile": {
+    "tps3DAim": true,
+    "cameraPitch": -12,
+    "aimPitchOffset": 12
+  },
+  "nativeExeSha256": "9F4702024DF5EEA1D51DF7745B0AD1EA95B97009982F73DDC1218C53DFF33D54",
+  "nativeHelper": "0x571E50 -> 0x171E560 single trace; channel19 Projectile",
+  "pakIndexSha1": "5d0982cd46a5221290cb6ed24696e3962e9dddff",
+  "collisionEvidence": {
+    "Projectile": "GameTraceChannel6;19",
+    "Damage": "GameTraceChannel3;16",
+    "Destructible": "Projectile=Overlap, Damage defaults Block",
+    "Pawn": "Projectile=Overlap, Damage=Ignore",
+    "CharacterMesh": "Projectile=Ignore; Damage defaults Block"
+  },
+  "beamEvidence": "61D410 target component620 and location628 branches bypass free root-forward consumer61D5E5",
+  "conclusion": "two concrete candidates; the log has no target identities or obstruction hit ordering, so this is not a reproduced diagnosis",
+  "patchApplied": false,
+  "newHook": false,
+  "newNativeCall": false
+}
