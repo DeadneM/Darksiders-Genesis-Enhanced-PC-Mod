@@ -15,6 +15,7 @@ void Run(){
     Check(Pull(ray,candidate,farPoint,false,25,quarter)&&Pull(ray,candidate,farPoint,false,50,half)&&Pull(ray,candidate,farPoint,false,100,full),"all positive strengths work in the bounded cone");
     Check(quarter.direction.y>0&&quarter.direction.y<half.direction.y&&half.direction.y<full.direction.y,"strength changes progressively rather than switching a lock");
     Check(std::abs(full.direction.y/full.direction.x-.05f)<.0001f&&full.direction.z>0&&full.mounted,"full correction aims in3D and preserves ray context");
+    Vec depthPoint{};Check(Pull(ray,candidate,farPoint,false,100,full,&depthPoint)&&depthPoint.x==candidate.x&&depthPoint.y==candidate.y&&depthPoint.z==candidate.z,"the same correction also returns the finite selected depth, not the sky endpoint");
     Check(!Pull(ray,Vec{1000,150,0},farPoint,false,100,full)&&!Pull(ray,Vec{-100,0,0},farPoint,false,100,full),"lateral and backward candidates cannot attract the shot");
     Check(!Pull(ray,candidate,Vec{500,0,0},true,100,full),"a closer reported collision has priority");
     Check(ClearPath(ray,Vec{1000,0,0},farPoint,false,false),"a character that overlaps Projectile does not need to block the visibility ray");

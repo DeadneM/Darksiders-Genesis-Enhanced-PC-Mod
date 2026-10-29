@@ -25,7 +25,7 @@ template<class Ray,class Vec>bool ClearPath(const Ray& ray,const Vec& candidate,
 // New added assistance, NOT a percentage of the native game's own settings.
 // Project onto the ray at the target's depth before interpolating, so a sky
 // endpoint at100000 units cannot dilute the requested strength.
-template<class Ray,class Vec>bool Pull(const Ray& ray,const Vec& candidate,const Vec& obstruction,bool blocked,float percent,Ray& result){
+template<class Ray,class Vec>bool Pull(const Ray& ray,const Vec& candidate,const Vec& obstruction,bool blocked,float percent,Ray& result,Vec* aimPoint=nullptr){
     const float weight=Strength(percent)*.01f;if(weight<=0)return false;
     const float x=candidate.x-ray.origin.x,y=candidate.y-ray.origin.y,z=candidate.z-ray.origin.z;
     const float depth=x*ray.direction.x+y*ray.direction.y+z*ray.direction.z;
@@ -37,6 +37,8 @@ template<class Ray,class Vec>bool Pull(const Ray& ray,const Vec& candidate,const
     const float dy=ray.direction.y*depth*(1-weight)+y*weight;
     const float dz=ray.direction.z*depth*(1-weight)+z*weight;
     const float length=std::hypot(std::hypot(dx,dy),dz);if(!std::isfinite(length)||length<1)return false;
-    result=ray;result.direction={dx/length,dy/length,dz/length};return true;
+    result=ray;result.direction={dx/length,dy/length,dz/length};
+    if(aimPoint)*aimPoint={ray.origin.x+dx,ray.origin.y+dy,ray.origin.z+dz};
+    return true;
 }
 }

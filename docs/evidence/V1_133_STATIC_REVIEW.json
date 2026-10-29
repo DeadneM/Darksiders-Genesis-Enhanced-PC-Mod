@@ -1,0 +1,94 @@
+{
+  "version": "V1.133",
+  "dateUTC": "2026-10-29T21:31:48.377466+00:00",
+  "sourceBase": "351ddff8c3b1c729dbceaef6d2b8b643c75d4871",
+  "acceptedBase": "V1.130 explicitly validated by user; V1.131 positive assist failed",
+  "userReport": "Slider increased during gameplay, then reset to zero; final INI cannot explain failure",
+  "session": {
+    "loaded": "V1.131",
+    "rangeLocal": "2026-10-29 22:15:44..22:20:07",
+    "logSha256": "84b752cad1a839291034194a665642012f314e38b967381e3de6e2a1170d3e56",
+    "profileSha256": "b0ba574abf217217beac0caf698d0190fd7dad6e2d832b7ff903eb0d9a84b716",
+    "applications": [
+      0,
+      0
+    ],
+    "settingsTimelineAvailable": false,
+    "liveReadOnlyCapture": "prepared; game closed at preflight, user preparation pending"
+  },
+  "pass1": {
+    "kind": "source/config/native collision contract",
+    "unchangedFiles": [
+      "src/NativeTpsFeature.cpp",
+      "src/NativeTpsFeature.h",
+      "src/PistolVisualFeature.cpp",
+      "src/MountedHolsterFeature.cpp",
+      "src/CoopCameraFeature.cpp",
+      "src/LocalPlayerOwnership.cpp",
+      "src/DarksidersGenesisMod.cpp",
+      "src/ConfigStore.cpp",
+      "src/ConfigStore.h",
+      "src/RuntimeSettings.cpp",
+      "src/RuntimeSettings.h",
+      "src/OverlayUi.cpp",
+      "config/DarksidersGenesisMod.ini",
+      ".github/workflows/build-v090-debug.yml"
+    ],
+    "unchangedFunctionBodies": [
+      "Owner",
+      "AbilityOwner",
+      "AmmoKind",
+      "BeamWeapon",
+      "AimAt",
+      "Rotation",
+      "Finish",
+      "SolveLava",
+      "UpdateLava",
+      "PrimaryStatic",
+      "BeamContact",
+      "AssignTarget",
+      "BeamForward"
+    ],
+    "iniKeysUnchanged": 227,
+    "hotkeyIdsUnchanged": 55,
+    "originalEngineSha256": "3e429153f8f1145084677712d8e4e7556fcf9f576cf7678d10f2337501d9bd27",
+    "projectileCollisionProfiles": {
+      "Pawn": "ECR_Overlap",
+      "CharacterMesh": "ECR_Ignore",
+      "Destructible": "ECR_Overlap"
+    },
+    "finding": "V1.131 required selected enemy to BLOCK the Projectile ray; Pawn overlaps and CharacterMesh ignores this channel. Real enemies can therefore never satisfy this extra condition.",
+    "interpolation": "Pull arithmetic and ray direction unchanged; also return its finite interpolated point at candidate depth"
+  },
+  "pass2": {
+    "kind": "independent geometry and consumer review",
+    "cases": [
+      "successful no-hit query is clear toward a native candidate",
+      "blocking world behind candidate is clear",
+      "different closer blocking surface rejects",
+      "selected actor near surface accepts",
+      "unavailable query rejects",
+      "recycled identity rejects",
+      "original ray nearer collision and six-degree cone unchanged",
+      "zero keeps previous result and performs no new target/LOS query",
+      "nonblocking enemy keeps finite aim-point depth for muzzle convergence and native Lava solver",
+      "closer blocker on partial ray still takes priority"
+    ],
+    "comparison": "Mandatory target BLOCK is replaced only in optional positive assistance. V1.130 Static real-contact/child exclusions and all accepted consumers remain identical. No channel/response changes or new hook. The shared Target consumer retains the interpolated point, rather than a wall/sky beyond the nonblocking enemy; native Lava formulas are unchanged.",
+    "tests": "AimAssist and actual ProjectileSpawn path regression extensions; Windows CI pending"
+  },
+  "limitations": [
+    "No proof yet that this was the only gate blocking the user session; native target availability/cone still require live evidence",
+    "No result from gameplay assumed; V1.132 remains experimental",
+    "Projectile overlap profiles are not converted into blocking geometry; native cover trace behavior retained",
+    "Reason counters describe calculation eligibility, not projectile hits"
+  ],
+  "newHook": false,
+  "actorScan": false,
+  "actorRotationWrite": false,
+  "localBuild": false,
+  "localInstall": false,
+  "gameplayValidated": false,
+  "lastBuiltIntermediate": "V1.132, source a970bf1c26195afe4541bc41e0e55633230126af, archive e23e3ac1b6943e17980e88b6f934525520a3e4d7; not installed, no gameplay validation",
+  "lastBuiltIntermediateCommit": "e23e3ac1b6943e17980e88b6f934525520a3e4d7"
+}

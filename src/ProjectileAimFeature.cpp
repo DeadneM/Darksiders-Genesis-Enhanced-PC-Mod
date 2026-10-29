@@ -51,13 +51,13 @@ void ObserveAssistSetting(unsigned player,int kind,float strength){
     auto& last=g_assistSettings[player];const int mode=runtime::Get().tpsAimAssistMode.load();
     if(last.mode==mode&&last.kind==kind&&last.strength==strength)return;
     last.mode=mode;last.kind=kind;last.strength=strength;
-    if(g_log&&last.logs++<16){char line[200]{};sprintf_s(line,"TPS V1.132 AIM_ASSIST setting player=%u mode=%s ammo=%d strength=%.1f usedByShotConsumer=1",player+1,mode==1?"per-ammunition":"global",kind,strength);g_log(line);}
+    if(g_log&&last.logs++<16){char line[200]{};sprintf_s(line,"TPS V1.133 AIM_ASSIST setting player=%u mode=%s ammo=%d strength=%.1f usedByShotConsumer=1",player+1,mode==1?"per-ammunition":"global",kind,strength);g_log(line);}
 }
 bool AssistOutcome(unsigned player,AssistResult reason,int kind,float strength){
     const unsigned n=++g_assistResults[player][unsigned(reason)];
     if(g_log&&reason!=AssistResult::Off&&n<=2){
         constexpr const char* names[]={"off","unknown-ammunition","no-native-target","invalid-target","outside-cone-or-nearer-original-hit","query-unavailable","nearer-surface-on-candidate-ray","applied"};
-        char line[220]{};sprintf_s(line,"TPS V1.132 AIM_ASSIST player=%u result=%s ammo=%d strength=%.1f n=%u impactUnmeasured=1",player+1,names[unsigned(reason)],kind,strength,n);g_log(line);
+        char line[220]{};sprintf_s(line,"TPS V1.133 AIM_ASSIST player=%u result=%s ammo=%d strength=%.1f n=%u impactUnmeasured=1",player+1,names[unsigned(reason)],kind,strength,n);g_log(line);
     }
     return reason==AssistResult::Applied;
 }
@@ -145,7 +145,7 @@ void* BeamWeapon(void* beam){
     }
     return result;
 }
-bool AssistedRay(const local_players::Context& owner,const Vec3& origin,void* weapon,const native_tps::MouseRay& ray,const Vec3& baseTarget,bool blocked,native_tps::MouseRay& assisted){
+bool AssistedRay(const local_players::Context& owner,const Vec3& origin,void* weapon,const native_tps::MouseRay& ray,const Vec3& baseTarget,bool blocked,native_tps::MouseRay& assisted,Vec3* aimPoint=nullptr){
     if(owner.index<0||owner.index>1||!native_tps::OnGameThread())return false;
     const unsigned player=unsigned(owner.index);int kind=-1;const float strength=AssistStrength(weapon,&kind);
     ObserveAssistSetting(player,kind,strength);
@@ -158,22 +158,28 @@ bool AssistedRay(const local_players::Context& owner,const Vec3& origin,void* we
        !Read(reinterpret_cast<void*>(actor),8,flags)||(flags&0x18030u)||!Read(reinterpret_cast<void*>(actor),0x158,root)||
        !Read(reinterpret_cast<void*>(root),0xE8,reciprocal)||reciprocal!=actor)return AssistOutcome(player,AssistResult::InvalidTarget,kind,strength);
     Vec3 candidate{};if(!Read(reinterpret_cast<void*>(root),0x1A0,candidate)||!Finite(candidate))return AssistOutcome(player,AssistResult::InvalidTarget,kind,strength);
-    native_tps::MouseRay full{},partial{};
-    if(!aim_assist::Pull(ray,candidate,baseTarget,blocked,strength,partial)||!aim_assist::Pull(ray,candidate,baseTarget,blocked,100,full))return AssistOutcome(player,AssistResult::Geometry,kind,strength);
+    native_tps::MouseRay full{},partial{};Vec3 point{};
+    if(!aim_assist::Pull(ray,candidate,baseTarget,blocked,strength,partial,&point)||!aim_assist::Pull(ray,candidate,baseTarget,blocked,100,full))return AssistOutcome(player,AssistResult::Geometry,kind,strength);
     Vec3 contactPoint{};bool hit=false;native_objects::Identity contact{};
     if(!native_tps::TraceCameraContact(owner,full,contactPoint,hit,contact,&origin))return AssistOutcome(player,AssistResult::QueryFailed,kind,strength);
     const native_objects::Identity selected{actor,weak.index,weak.serial};
     if(!native_objects::Alive(reader,g_base,selected))return AssistOutcome(player,AssistResult::InvalidTarget,kind,strength);
     if(!aim_assist::ClearPath(full,candidate,contactPoint,hit,contact==selected))return AssistOutcome(player,AssistResult::Obstructed,kind,strength);
-    assisted=partial;++g_assisted[player];return AssistOutcome(player,AssistResult::Applied,kind,strength);
+    assisted=partial;if(aimPoint)*aimPoint=point;++g_assisted[player];return AssistOutcome(player,AssistResult::Applied,kind,strength);
 }
 bool Target(const local_players::Context& owner,const Vec3& origin,Vec3& target,bool& hit,void* weapon=nullptr){
     native_tps::MouseRay ray{};
     if(!g_provider||!g_provider(owner,ray)||!native_tps::TraceCameraTarget(owner,ray,target,hit,&origin))return false;
-    native_tps::MouseRay assisted{};
-    if(weapon&&AssistedRay(owner,origin,weapon,ray,target,hit,assisted)){
+    native_tps::MouseRay assisted{};Vec3 aimPoint{};
+    if(weapon&&AssistedRay(owner,origin,weapon,ray,target,hit,assisted,&aimPoint)){
         Vec3 point{};bool collision=false;
-        if(native_tps::TraceCameraTarget(owner,assisted,point,collision,&origin)){target=point;hit=collision;}
+        if(native_tps::TraceCameraTarget(owner,assisted,point,collision,&origin)){
+            // The enemy may not block Projectile. Keep its interpolated depth
+            // for muzzle convergence and native Lava ballistics instead of
+            // aiming at the wall/sky behind it. Closer partial-ray cover wins.
+            const bool clear=aim_assist::ClearPath(assisted,aimPoint,point,collision,false);
+            target=clear?aimPoint:point;hit=clear||collision;
+        }
     }
     return true;
 }
@@ -431,8 +437,8 @@ void Initialize(LogFn log,bool exactExecutable,RayProvider provider){
     if(log)log(g_staticReady?"TPS V1.130 STATIC_CONTACT READY: primary target lifetime filtered by physical contact; secondary beams native; EXPERIMENTAL":"TPS V1.130 STATIC_CONTACT unavailable; accepted aiming paths retained");
 }
 void Report(){
-    if(g_log){char line[360]{};sprintf_s(line,"TPS V1.132 AIM_ASSIST totals P1=%u P2=%u addedAssistanceOnly=1 gameplayValidation=USER_REQUIRED",g_assisted[0].load(),g_assisted[1].load());g_log(line);
-        for(unsigned p=0;p<2;++p){auto& r=g_assistResults[p];sprintf_s(line,"TPS V1.132 AIM_ASSIST reasons player=%u off=%u unknownAmmo=%u noTarget=%u invalidTarget=%u geometry=%u queryFailed=%u obstructed=%u applied=%u impactUnmeasured=1",p+1,r[0].load(),r[1].load(),r[2].load(),r[3].load(),r[4].load(),r[5].load(),r[6].load(),r[7].load());g_log(line);}}
+    if(g_log){char line[360]{};sprintf_s(line,"TPS V1.133 AIM_ASSIST totals P1=%u P2=%u addedAssistanceOnly=1 gameplayValidation=USER_REQUIRED",g_assisted[0].load(),g_assisted[1].load());g_log(line);
+        for(unsigned p=0;p<2;++p){auto& r=g_assistResults[p];sprintf_s(line,"TPS V1.133 AIM_ASSIST reasons player=%u off=%u unknownAmmo=%u noTarget=%u invalidTarget=%u geometry=%u queryFailed=%u obstructed=%u applied=%u impactUnmeasured=1",p+1,r[0].load(),r[1].load(),r[2].load(),r[3].load(),r[4].load(),r[5].load(),r[6].load(),r[7].load());g_log(line);}}
     if(g_log){char line[300]{};sprintf_s(line,"TPS V1.130 STATIC_CONTACT totals checks=%u/%u filtered=%u/%u actualContact=%u/%u queryUnavailable=%u/%u primaryOnly=1 impactValidation=USER_REQUIRED",g_staticChecks[0].load(),g_staticChecks[1].load(),g_staticTargets[0].load(),g_staticTargets[1].load(),g_staticContacts[0].load(),g_staticContacts[1].load(),g_staticUnavailable[0].load(),g_staticUnavailable[1].load());g_log(line);}
     if(!g_log)return;char line[260]{};
     sprintf_s(line,"TPS V1.53 TARGET3D totals native=%u pistolP1=%u P2=%u finishP1=%u P2=%u lavaP1=%u P2=%u lavaRejected=%u impactValidation=USER_REQUIRED",

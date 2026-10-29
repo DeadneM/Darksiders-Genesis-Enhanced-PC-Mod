@@ -12,7 +12,7 @@ unsigned char projectileClass[0x100]{},defaults[0x100]{},movement[0x180]{},root[
 unsigned char beam[0x650]{},volume[0x300]{};
 void* tree[1]{cls+0x30};void* foreignTree[1]{foreignClass+0x30};void* lavaTree[2]{cls+0x30,lavaClass+0x30};
 uintptr_t componentTable[0x5E8/8]{};
-bool validRay=true,contactAvailable=true,contactHit=true,traceFromRay=false;unsigned contactQueries=0;dg::native_objects::Identity contactActor{};
+bool validRay=true,contactAvailable=true,contactHit=true,traceFromRay=false,partialCover=false;unsigned contactQueries=0;dg::native_objects::Identity contactActor{};
 bool providerEnabled=true,gameThread=true,paused=false,wheel=false,collision=true,badSpeed=false;
 dg::local_players::Context context{};
 const void* forwarded=nullptr;
@@ -210,12 +210,15 @@ void Run(){
         strcpy_s(reinterpret_cast<char*>(staticNames[1]+12),116,dg::aim_assist::Packages[i]);
         rt.tpsAimAssistAmmo[i]=60;Vec3 point{};bool hit=false;
         Check(AmmoKind(staticWeapon)==int(i)&&Target(context,view.origin,point,hit,staticWeapon)&&point.y>0,"all seven ammo classes share the same assisted3D collision target");
+        Check(hit&&Close(point.x,2000)&&Close(point.y,60),"a nonblocking target keeps its finite interpolated depth for muzzle convergence and ballistics");
         context.index=1;Check(AssistedRay(context,view.origin,staticWeapon,view,farPoint,false,added),"P2 reads its own native character target");context.index=0;
         if(i==4||i==6)Check(BeamWeapon(beam)==staticWeapon,"native beam owner maps to the actual registered ammunition");
         if(i==3){Put(ability,0x10,static_cast<void*>(lavaClass));Put(ability,0x50,static_cast<void*>(staticWeapon));UpdateLava(ability);Check(Get<Rotator>(ability,0x20C).yaw>0,"Lava target assistance reaches the paired native ballistic solver");}
         rt.tpsAimAssistAmmo[i]=0;
     }
     rt.tpsAimAssistMode=0;rt.tpsAimAssistGlobal=100;
+    partialCover=true;Vec3 coverPoint{};bool coverHit=false;
+    Check(Target(context,view.origin,coverPoint,coverHit,staticWeapon)&&coverHit&&coverPoint.x<500,"closer cover on the partially assisted ray wins over the finite candidate point");partialCover=false;
     strcpy_s(reinterpret_cast<char*>(staticNames[2]+12),116,"MayhemWorldEnder_Blueprint_C");Put(worldClass,0x18,2);
     Put(character,0xF98,static_cast<void*>(worldWeapon));Put(worldWeapon,0x688,static_cast<void*>(beam));
     BeamForward(volume,&beamDirection,0x61D5E5);Check(beamDirection.y==0,"enabled ammo assistance cannot redirect World Ender");Put(character,0xF98,static_cast<void*>(nullptr));
@@ -236,7 +239,7 @@ bool OnGameThread(){return gameThread;}
 bool CinematicActive(unsigned){return false;}
 bool IsWorldPaused(void*){return paused;}
 bool RadialActive(unsigned){return wheel;}
-bool TraceCameraTarget(const local_players::Context&,const MouseRay& ray,Vec3& target,bool& hit,const Vec3* source){Check(source&&std::isfinite(source->x),"shared collision receives the real consumer origin");target=traceFromRay?Vec3{ray.origin.x+1500*ray.direction.x,ray.origin.y+1500*ray.direction.y,ray.origin.z+1500*ray.direction.z}:hitTarget;hit=collision;return true;}
+bool TraceCameraTarget(const local_players::Context&,const MouseRay& ray,Vec3& target,bool& hit,const Vec3* source){Check(source&&std::isfinite(source->x),"shared collision receives the real consumer origin");target=traceFromRay?Vec3{ray.origin.x+1500*ray.direction.x,ray.origin.y+1500*ray.direction.y,ray.origin.z+1500*ray.direction.z}:hitTarget;hit=collision;if(partialCover&&ray.direction.y>0.001f){target={ray.origin.x+500*ray.direction.x,ray.origin.y+500*ray.direction.y,ray.origin.z+500*ray.direction.z};hit=true;}return true;}
 }
 namespace dg::local_players {
 bool ResolveActor(void* a,Context& c){if(a!=character)return false;c=context;return true;}
