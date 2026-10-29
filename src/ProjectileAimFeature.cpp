@@ -160,6 +160,8 @@ bool AssistedRay(const local_players::Context& owner,const Vec3& origin,void* we
     Vec3 candidate{};if(!Read(reinterpret_cast<void*>(root),0x1A0,candidate)||!Finite(candidate))return AssistOutcome(player,AssistResult::InvalidTarget,kind,strength);
     native_tps::MouseRay full{},partial{};Vec3 point{};
     if(!aim_assist::Pull(ray,candidate,baseTarget,blocked,strength,partial,&point)||!aim_assist::Pull(ray,candidate,baseTarget,blocked,100,full))return AssistOutcome(player,AssistResult::Geometry,kind,strength);
+    const float ahead=(point.x-origin.x)*partial.direction.x+(point.y-origin.y)*partial.direction.y+(point.z-origin.z)*partial.direction.z;
+    if(!Finite(origin)||!std::isfinite(ahead)||ahead<=.01f)return AssistOutcome(player,AssistResult::Geometry,kind,strength);
     Vec3 contactPoint{};bool hit=false;native_objects::Identity contact{};
     if(!native_tps::TraceCameraContact(owner,full,contactPoint,hit,contact,&origin))return AssistOutcome(player,AssistResult::QueryFailed,kind,strength);
     const native_objects::Identity selected{actor,weak.index,weak.serial};

@@ -193,6 +193,7 @@ void Run(){
     Check(AssistedRay(context,view.origin,staticWeapon,view,farPoint,false,added)&&added.direction.y>0,"global assistance consumes native weak target and confirmed LOS");
     const float halfway=added.direction.y;rt.tpsAimAssistGlobal=100;
     Check(AssistedRay(context,view.origin,staticWeapon,view,farPoint,false,added)&&added.direction.y>halfway,"live global slider progressively increases3D pull");
+    Check(!AssistedRay(context,Vec3{3000,0,300},staticWeapon,view,farPoint,false,added),"a finite candidate between camera and muzzle cannot turn the shot backward");
     const unsigned visibleQueries=contactQueries;
     Check(!AssistedRay(context,view.origin,staticWeapon,view,Vec3{500,0,300},true,added)&&contactQueries==visibleQueries,"nearby collision takes priority without extra trace");
     contactHit=false;Check(AssistedRay(context,view.origin,staticWeapon,view,farPoint,false,added),"native Projectile overlap/ignore profiles still permit assistance when there is no blocking obstacle");contactHit=true;
