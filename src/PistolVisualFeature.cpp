@@ -1,5 +1,6 @@
 #include "PistolVisualFeature.h"
 #include "PistolAnimationPolicy.h"
+#include "PistolAppearanceSlots.h"
 #include "NativeMemoryReader.h"
 #include "NativeObjectName.h"
 #include "NativeTpsFeature.h"
@@ -28,7 +29,7 @@ struct Snapshot {
     native_objects::Identity actor{},mesh{},skeleton{};
     uint32_t generation=0;uint64_t tick=0;
     float worldTime=0,speed=0,nativePhase=0;
-    bool gameplay=false,lower=false;
+    bool present=false,gameplay=false,lower=false;
 };
 struct AnimationSource {
     native_objects::Identity anim{},blend{},skeleton{};
@@ -88,7 +89,7 @@ bool Skeleton(uintptr_t mesh,uintptr_t skeleton){
 }
 unsigned ChoiceMask(){const auto& rt=runtime::Get();return (rt.pistolRightModel.load()==3?1u:0u)|(rt.pistolLeftModel.load()==3?2u:0u);}
 unsigned BladeMask(){const auto choice=runtime::Get().strifeBladeVisibility.load();return choice==1?2u:choice==2?1u:choice==3?3u:0u;}
-bool Fresh(const Snapshot& s,uint64_t now){return s.gameplay&&now>=s.tick&&now-s.tick<=250;}
+bool FreshPose(const Snapshot& s,uint64_t now){return s.gameplay&&now>=s.tick&&now-s.tick<=250;}
 bool Packet(uintptr_t data,Array& current,Array& previous){
     uintptr_t vt=0;
     if(!Read(data,0,vt)||vt!=g_base+0x2DC88A8||!ArrayOf(data+0x10,BoneCount,current)||!Read(data,0x20,previous)||
@@ -100,7 +101,7 @@ bool Packet(uintptr_t data,Array& current,Array& previous){
 bool ProcessPacket(uintptr_t data,uintptr_t component,uintptr_t renderData,int lod,uint64_t now){
     if(!Ready()||lod<0||lod>8)return false;
     bool tracked=false;const auto mask=ChoiceMask();AcquireSRWLockShared(&g_lock);
-    for(const auto& p:g_players)if(mask&&p.snapshot.mesh.address==component&&Fresh(p.snapshot,now))tracked=true;
+    for(const auto& p:g_players)if(mask&&p.snapshot.mesh.address==component&&p.snapshot.present)tracked=true;
     ReleaseSRWLockShared(&g_lock);if(!tracked)return false;
     uintptr_t actor=0,skeleton=0,renderObject=0,vt=0,expectedData=0;
     if(!Read(component,0xE8,actor)||!Read(component,0x5A0,skeleton)||!Read(component,0x6C0,renderObject)||
@@ -119,11 +120,11 @@ bool ProcessPacket(uintptr_t data,uintptr_t component,uintptr_t renderData,int l
         auto& p=g_players[i];const auto& s=p.snapshot;
         // component is a LIVE native argument. Cached UObject addresses are
         // compared only after object-table identities are validated.
-        if(s.mesh.address!=component||s.actor.address!=actor||s.skeleton.address!=skeleton||!Fresh(s,now)||
-           !Live(s.mesh)||!Live(s.actor)||!Live(s.skeleton))continue;
+        if(s.mesh.address!=component||s.actor.address!=actor||s.skeleton.address!=skeleton||!s.present||
+           !Live(s.mesh)||!Live(s.actor)||!Live(s.skeleton)||!pistol_appearance::Controlled(actor))continue;
         handled=true;
         const bool sampled=p.pose.ready&&p.sampleTick&&now>=p.sampleTick&&now-p.sampleTick<=100;
-        if(s.lower&&sampled)changed=p.pose.Apply(mask,anchors,now,matrices,previous.count?&old:nullptr);
+        if(s.lower&&FreshPose(s,now)&&sampled)changed=p.pose.Apply(mask,anchors,now,matrices,previous.count?&old:nullptr);
         else p.pose.previousMask=0;
         if(mask)changed=HideHolsters(mask,matrices,previous.count?&old:nullptr)||changed;
         break;
@@ -143,20 +144,10 @@ bool HookInit(void* data,void* component,void* renderData,int lod,void* morphs,v
         reinterpret_cast<uintptr_t>(renderData),lod,GetTickCount64());
     return result;
 }
+bool RetainVisibility(uintptr_t component,bool nativeHidden);
 void HookHidden(void* component,bool hidden,unsigned char propagation){
-    bool keepHidden=false;
-    if(!g_settingHidden&&Ready()&&native_tps::OnGameThread()){
-        const auto address=reinterpret_cast<uintptr_t>(component);const unsigned mask=ChoiceMask();
-        for(auto& player:g_hidden)for(unsigned slot=0;slot<8;++slot){
-            auto& saved=player[slot];uintptr_t owner=0;
-            if(saved.component.address==address&&Live(saved.component)&&Live(saved.actor)&&
-               Read(address,0xE8,owner)&&owner==saved.actor.address){
-                saved.nativeHidden=hidden;keepHidden=((slot<6?mask:BladeMask())&(1u<<(slot%2)))!=0;
-            }
-        }
-    }
-    // Preserve the native call, propagation and child visibility first. Then
-    // retain OFF on this exact component before any render packet is submitted.
+    const bool keepHidden=!g_settingHidden&&Ready()&&native_tps::OnGameThread()&&
+        RetainVisibility(reinterpret_cast<uintptr_t>(component),hidden);
     if(g_hiddenFn)g_hiddenFn(component,hidden,propagation);
     if(keepHidden&&!hidden&&g_hiddenFn){
         g_settingHidden=true;g_hiddenFn(component,true,1);g_settingHidden=false;
@@ -173,20 +164,26 @@ void Restore(Hidden& saved){
         SetHidden(saved.component.address,saved.nativeHidden);
     saved={};
 }
-void HideAt(unsigned player,unsigned slot,const Snapshot& snapshot,size_t offset){
-    auto& saved=g_hidden[player][slot];uintptr_t component=0,owner=0,parent=0,vt=0;unsigned char flags=0;
-    const bool blade=slot>=6;
-    if(!Read(snapshot.actor.address,offset,component)||!Read(component,0,vt)||vt!=g_base+(blade?0x2724250:0x2A575C8)||
-       !Read(component,0xE8,owner)||owner!=snapshot.actor.address||!Read(component,0x108,parent)||parent!=snapshot.mesh.address||
-       !Read(component,0x1CC,flags)||
-       (blade&&!(slot==6?NameIs(component,"Dagger_R"):NameIs(component,"Dagger_L")))){Restore(saved);return;}
+void HideAt(unsigned player,unsigned slot,const Snapshot& snapshot){
+    auto& saved=g_hidden[player][slot];uintptr_t component=0;unsigned char flags=0;
+    if(!pistol_appearance::Component(g_base,snapshot.actor.address,snapshot.mesh.address,slot,component,flags)){Restore(saved);return;}
     native_objects::Identity id{};
     if(!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(component),id))return;
     if(saved.component&&saved.component!=id)Restore(saved);
     if(!saved.component)saved={id,snapshot.actor,bool(flags&0x40)};
     if(!(flags&0x40))SetHidden(component,true);
 }
-void Hide(unsigned player,unsigned side,const Snapshot& snapshot){HideAt(player,side,snapshot,0x1040+side*8);}
+bool RetainVisibility(uintptr_t component,bool nativeHidden){
+    pistol_appearance::OwnedSlot owned{};
+    if(!pistol_appearance::Resolve(g_base,component,owned))return false;
+    auto& saved=g_hidden[owned.context.index][owned.slot];
+    if(saved.component&&saved.component!=owned.component)Restore(saved);
+    const unsigned mask=owned.slot<6?ChoiceMask():BladeMask();
+    const bool off=(mask&(1u<<(owned.slot%2)))!=0;
+    if(off&&!saved.component)saved={owned.component,owned.actor,nativeHidden};
+    if(saved.component==owned.component)saved.nativeHidden=nativeHidden;
+    return off;
+}
 bool Mounted(const local_players::Context& c,Snapshot& s){
     uintptr_t cls=0,controller=0,pawn=0,mesh=0,owner=0;unsigned char type=0,role=0;
     if(c.kind!=local_players::PoseKind::Horse||!c.localPlayer||!c.character||!c.pawn||c.character==c.pawn||
@@ -289,7 +286,7 @@ bool SampleAnimation(uintptr_t node,PoseContext* output,uint64_t now){
     Snapshot snapshot{};auto& source=scratch.source;AnimationClock clock{};unsigned index=2;
     AcquireSRWLockShared(&g_lock);
     for(unsigned i=0;i<2;++i){const auto& p=g_players[i];
-        if(p.source.anim&&node==p.source.anim.address+0x318&&Fresh(p.snapshot,now)&&p.snapshot.lower){
+        if(p.source.anim&&node==p.source.anim.address+0x318&&FreshPose(p.snapshot,now)&&p.snapshot.lower){
             snapshot=p.snapshot;source=p.source;clock=p.clock;index=i;break;
         }
     }
@@ -328,7 +325,7 @@ bool SampleAnimation(uintptr_t node,PoseContext* output,uint64_t now){
        !source.rig.Skin(local,skin)||!pose.Capture(skin,{skin[14],skin[14]}))return false;
     bool published=false;AcquireSRWLockExclusive(&g_lock);auto& p=g_players[index];
     if(p.snapshot.actor==snapshot.actor&&p.snapshot.mesh==snapshot.mesh&&p.snapshot.skeleton==snapshot.skeleton&&
-       p.snapshot.generation==snapshot.generation&&p.source.anim==source.anim&&p.snapshot.lower&&Fresh(p.snapshot,now)){
+       p.snapshot.generation==snapshot.generation&&p.source.anim==source.anim&&p.snapshot.lower&&FreshPose(p.snapshot,now)){
         // Retain the previous *rendered* frame across changing animation data.
         p.pose.relative=pose.relative;p.pose.clavicle=pose.clavicle;p.pose.ready=true;
         p.clock=clock;p.sampleTick=now;published=true;
@@ -395,9 +392,9 @@ void Initialize(LogFn log,bool exactExecutable){
 void OnLivePlayer(const local_players::Context& owner,uint32_t generation,bool focused){
     if(!native_tps::OnGameThread()||owner.index<0||owner.index>1)return;
     const unsigned index=unsigned(owner.index);Snapshot next{};const auto now=GetTickCount64();
-    if(Ready()&&local_players::Matches(index,owner.character,generation)&&Normal(owner,next)){
-        next.generation=generation;next.tick=now;
-        next.gameplay=focused&&!native_tps::CinematicActive(index);
+    if(Ready()&&Normal(owner,next)){
+        next.generation=generation;next.tick=now;next.present=true;
+        next.gameplay=focused&&local_players::Matches(index,owner.character,generation)&&!native_tps::CinematicActive(index);
         next.lower=next.gameplay&&!native_tps::IsWorldPaused(reinterpret_cast<void*>(owner.pawn))&&
             !native_tps::RadialActive(index)&&Ranged(owner.pawn);
     }
@@ -420,20 +417,19 @@ void OnLivePlayer(const local_players::Context& owner,uint32_t generation,bool f
         p.pose={};p.clock={};p.sampleTick=0;
     }
     p.snapshot=next;p.source=source;
-    const unsigned mask=next.gameplay?ChoiceMask():0;
+    const unsigned mask=next.present?ChoiceMask():0;
     ReleaseSRWLockExclusive(&g_lock);
     Snapshot mounted{};
-    const bool horse=Ready()&&focused&&local_players::Matches(index,owner.character,generation)&&Mounted(owner,mounted)&&
-        !native_tps::CinematicActive(index);
+    const bool horse=Ready()&&Mounted(owner,mounted);
     // Mounted hand/stowed components are separate exact owned meshes. Never
     // hide the horse/rider parent or alter mounted animation/action state.
     const unsigned mountedMask=horse?ChoiceMask():0;
-    const unsigned bladeMask=next.gameplay?BladeMask():0;
+    const unsigned bladeMask=next.present?BladeMask():0;
     for(unsigned slot=0;slot<8;++slot){
         const unsigned side=slot%2;
-        if(slot<2&&(mask&(1u<<side)))Hide(index,side,next);
-        else if(slot>=2&&slot<6&&(mountedMask&(1u<<side)))HideAt(index,slot,mounted,(slot<4?0xBA0:0xBF8)+side*8);
-        else if(slot>=6&&(bladeMask&(1u<<side)))HideAt(index,slot,next,0x1010+side*8);
+        if(slot<2&&(mask&(1u<<side)))HideAt(index,side,next);
+        else if(slot>=2&&slot<6&&(mountedMask&(1u<<side)))HideAt(index,slot,mounted);
+        else if(slot>=6&&(bladeMask&(1u<<side)))HideAt(index,slot,next);
         else Restore(g_hidden[index][slot]);
     }
 }
@@ -444,20 +440,27 @@ bool SkipParticle(void* notify,void* mesh){
     if(!Read(object,0x10,cls)||!NameIs(cls,"AnimNotify_PlayParticleEffect")||!Read(object,0x38,asset)||
        !Muzzle(asset)||!Read(object,0x84,socket))return false;
     const auto side=Side(socket.index,socket.number);if(side==EffectSide::Unknown)return false;
-    bool skip=false;const auto now=GetTickCount64();AcquireSRWLockShared(&g_lock);
+    bool skip=false;AcquireSRWLockShared(&g_lock);
     for(const auto& p:g_players){
         const auto& s=p.snapshot;
-        if(s.mesh.address==component&&Fresh(s,now)&&Live(s.mesh)&&Live(s.actor)){
+        if(s.mesh.address==component&&s.present&&Live(s.mesh)&&Live(s.actor)&&pistol_appearance::Controlled(s.actor.address)){
             skip=HideEffect(side,ChoiceMask());break;
         }
     }
     ReleaseSRWLockShared(&g_lock);return skip;
 }
+void OnMeshAssigned(void* component){
+    if(!Ready()||!native_tps::OnGameThread())return;
+    pistol_appearance::OwnedSlot owned{};if(!pistol_appearance::Resolve(g_base,reinterpret_cast<uintptr_t>(component),owned))return;
+    const unsigned mask=owned.slot<6?ChoiceMask():BladeMask();
+    if(mask&(1u<<(owned.slot%2))){Snapshot s{};s.actor=owned.actor;s.mesh=owned.body;HideAt(unsigned(owned.context.index),owned.slot,s);}
+    else {auto& saved=g_hidden[owned.context.index][owned.slot];if(saved.component==owned.component)Restore(saved);}
+}
 bool Ready(){return g_ready.load(std::memory_order_acquire)&&dash_combat::PresentationReady();}
 bool PoseReady(unsigned index){
     if(index>=2||!Ready())return false;
     const auto now=GetTickCount64();AcquireSRWLockShared(&g_lock);const auto& p=g_players[index];
-    const bool ready=p.snapshot.lower&&Fresh(p.snapshot,now)&&p.pose.ready&&p.sampleTick&&now>=p.sampleTick&&now-p.sampleTick<=100;
+    const bool ready=p.snapshot.lower&&FreshPose(p.snapshot,now)&&p.pose.ready&&p.sampleTick&&now>=p.sampleTick&&now-p.sampleTick<=100;
     ReleaseSRWLockShared(&g_lock);return ready;
 }
 void Shutdown(){g_ready=false;g_animationReady=false;}

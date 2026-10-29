@@ -1,3 +1,11 @@
+## File active - V1.129
+
+**PREPAREE / CONTROLES GITHUB EN ATTENTE ; EXPERIMENTALE, NON VALIDEE EN JEU.** Base V1.128 observee installee. Statique : retirer uniquement la cible assistee initiale du faisceau principal TPS Camera Forward ; conserver rebonds et autres chemins. Pistolets : resolution du composant live dans les setters natifs de modele/visibilite, apparence independante du focus/menu et du TTL des poses. Ancienne politique cachee/gatee remplacee ; animation de bras conservee.
+
+218 valeurs INI / 55 ID Hotkeys inchanges ; autres modules preserves. Trois suites etendues et deux passes d'audit confrontees. [Preuves, limites et essai groupe](V1_129_STATIC_TARGET_PISTOL_LIFECYCLE_TEST.md). GitHub seulement, aucun lancement ni installation ; main reste V1.124, archive et anciens ZIP preserves. Coffre/dash restent non valides ; coop plus tard. Les sections suivantes sont historiques.
+
+---
+
 ## File active - V1.128 presentation du menu
 
 **CONSTRUITE / CONTROLEE ; MENU COMPLET NON VALIDE EN JEU.** Base V1.127 installee et conservee. Aide courte avec details au survol (?), marges et champs adaptes a la police, listes et valeurs homogenes, groupes Appearance fermes initialement, libelle/contact sol avances clarifies. Parametres, controles et modules de jeu inchanges ;218valeurs INI/55ID Hotkeys conserves. [Perimetre, deux passes et essai](V1_128_MENU_READABILITY_TEST.md).

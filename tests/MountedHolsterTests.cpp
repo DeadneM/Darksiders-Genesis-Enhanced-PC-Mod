@@ -4,8 +4,9 @@
 #include <stdexcept>
 #include <vector>
 namespace {
-unsigned char characters[2][0x1100]{},horses[2][0xC10]{},components[2][2][0x600]{},assets[4][0x40]{},items[16*24]{};
-void* chunks[1]{items};bool gameThread=true,reject=false;unsigned calls=0;
+unsigned char characters[2][0x1100]{},horses[2][0xC10]{},components[2][2][0x600]{},assets[4][0x40]{},items[64*24]{};
+void* chunks[1]{items};dg::local_players::Context liveOwners[2]{};unsigned visibilityRefreshes=0;
+bool gameThread=true,reject=false;unsigned calls=0;
 template<class T> void Put(void* p,size_t offset,T value){std::memcpy(static_cast<unsigned char*>(p)+offset,&value,sizeof(value));}
 template<class T> T Get(void* p,size_t offset){T value{};std::memcpy(&value,static_cast<unsigned char*>(p)+offset,sizeof(value));return value;}
 void Check(bool value,const char* why){if(!value)throw std::runtime_error(why);}
@@ -17,7 +18,7 @@ bool Setter(void* p,void* model){++calls;if(reject)return false;Put(p,0x5B0,mode
 void Run(){
     using namespace dg::mounted_holsters;
     std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());
-    Put(image.data(),0x3959680,chunks+0);Put(image.data(),0x3959694,16);
+    Put(image.data(),0x3959680,chunks+0);Put(image.data(),0x3959694,64);
     g_ready=true;g_setMesh=Setter;
     dg::runtime::Get().mountedHolstersEnabled=true;
     for(unsigned i=0;i<4;++i)g_models[i]=Register(assets[i],int(i)+1);
@@ -109,6 +110,33 @@ void Run(){
     const unsigned warCalls=calls;ApplyHands(0,reinterpret_cast<uintptr_t>(characters[0]),false);
     Check(calls==warCalls,"War receives no pistol model change");
     dg::runtime::Get().pistolRightModel=0;
+    // Native setter boundary, including a newly assigned owned component.
+    unsigned char body[2][0x800]{},pc[2][0x360]{},klass[0x40]{},entry[80]{};
+    uintptr_t names[1]{reinterpret_cast<uintptr_t>(entry)},nameChunks[1]{reinterpret_cast<uintptr_t>(names)};
+    strcpy_s(reinterpret_cast<char*>(entry+12),68,"Strife_Blueprint_C");Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(nameChunks));
+    for(unsigned p=0;p<2;++p){
+        Register(characters[p],10+int(p*2));Register(body[p],11+int(p*2));
+        Put(characters[p],0x10,reinterpret_cast<uintptr_t>(klass));Put<unsigned char>(characters[p],0xC18,1);Put<unsigned char>(characters[p],0x118,3);
+        Put(characters[p],0x348,reinterpret_cast<uintptr_t>(pc[p]));Put(pc[p],0x350,reinterpret_cast<uintptr_t>(characters[p]));
+        Put(characters[p],0x380,reinterpret_cast<uintptr_t>(body[p]));Put(body[p],0xE8,reinterpret_cast<uintptr_t>(characters[p]));
+        auto& c=liveOwners[p];c.index=int(p);c.localPlayer=1+p;c.kind=dg::local_players::PoseKind::Foot;
+        c.character=c.pawn=reinterpret_cast<uintptr_t>(characters[p]);c.controller=reinterpret_cast<uintptr_t>(pc[p]);
+        for(unsigned side=0;side<2;++side){Put(characters[p],0x1040+side*8,reinterpret_cast<uintptr_t>(components[p][side]));Put(components[p][side],0xE8,c.pawn);Put(components[p][side],0x108,reinterpret_cast<uintptr_t>(body[p]));}
+    }
+    g_hands[0][0]={};g_hands[1][0]={};dg::runtime::Get().pistolRightModel=2;
+    const auto c0=calls,v0=visibilityRefreshes;
+    Check(HookSetMesh(components[0][0],assets[0])&&calls==c0+1&&Get<void*>(components[0][0],0x5B0)==assets[1],"native assignment retains selected model with one original call");
+    Check(visibilityRefreshes==v0+1&&g_hands[0][0].original==g_models[0],"visibility refresh follows successful mesh assignment and records native intent");
+    HookSetMesh(components[1][0],assets[0]);Check(g_hands[1][0].component.address==reinterpret_cast<uintptr_t>(components[1][0]),"P2 native replacement tracked independently");
+    dg::runtime::Get().pistolRightModel=0;HookSetMesh(components[0][0],assets[0]);
+    Check(Get<void*>(components[0][0],0x5B0)==assets[0]&&!g_hands[0][0].component,"Native drops custom lease and forwards native mesh");
+    dg::runtime::Get().pistolRightModel=2;
+    HookSetMesh(components[0][0],reinterpret_cast<void*>(0x1234));Check(Get<uintptr_t>(components[0][0],0x5B0)==0x1234,"unknown mesh remains native");
+    Put(components[0][0],0xE8,uintptr_t(0));HookSetMesh(components[0][0],assets[0]);Check(Get<void*>(components[0][0],0x5B0)==assets[0],"foreign component excluded");Put(components[0][0],0xE8,liveOwners[0].pawn);
+    Put(items,5*24+16,999);HookSetMesh(components[0][0],assets[0]);Check(Get<void*>(components[0][0],0x5B0)==assets[1],"live setter argument may capture its current serial safely");Put(items,5*24+16,22);
+    reject=true;const auto rejected=calls;Check(!HookSetMesh(components[0][0],assets[0])&&calls==rejected+1,"native setter failure and return value retained");reject=false;
+    gameThread=false;HookSetMesh(components[0][0],assets[0]);Check(Get<void*>(components[0][0],0x5B0)==assets[0],"other thread bypasses appearance policy");gameThread=true;
+    dg::runtime::Get().pistolRightModel=0;
     wchar_t directory[MAX_PATH]{},path[MAX_PATH]{};
     Check(GetTempPathW(MAX_PATH,directory)&&GetTempFileNameW(directory,L"DGH",0,path),"temporary INI");
     dg::config::Store a;a.SetPath(path);Check(a.Load()&&!a.mountedHolstersEnabled,"missing key defaults OFF");
@@ -118,4 +146,6 @@ void Run(){
 }
 }
 namespace dg::native_tps {bool OnGameThread(){return gameThread;}bool IsWorldPaused(void*){return false;}bool CinematicActive(unsigned){return false;}}
+namespace dg::local_players {bool ResolveActor(void* a,Context& c){for(const auto& owner:liveOwners)if(owner.pawn==reinterpret_cast<uintptr_t>(a)){c=owner;return true;}return false;}}
+namespace dg::pistol_visual {void OnMeshAssigned(void*){++visibilityRefreshes;}}
 int main(){try{Run();std::cout<<"Mounted holster model scope, rollback, identity and config passed\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

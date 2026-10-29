@@ -1,4 +1,7 @@
 #include "MountedHolsterFeature.h"
+#include "PistolAppearanceSlots.h"
+#include "PistolVisualFeature.h"
+#include <MinHook.h>
 #include "NativeMemoryReader.h"
 #include "NativeObjectName.h"
 #include "NativeTpsFeature.h"
@@ -12,7 +15,7 @@ namespace dg::mounted_holsters {
 namespace {
 using MeshFn=bool(*)(void*,void*);
 MeshFn g_setMesh=nullptr;uintptr_t g_base=0;LogFn g_log=nullptr;
-std::atomic_bool g_ready{false};unsigned g_changes=0;
+std::atomic_bool g_ready{false},g_boundaryReady{false};unsigned g_changes=0;std::atomic_uint32_t g_retained[2]{};
 native_objects::Identity g_models[4]{}; // right/left hand, right/left stowed
 native_objects::Identity g_meshClass{};
 struct Saved {native_objects::Identity component{},original{},applied{};};
@@ -102,8 +105,46 @@ void SetModel(Saved& saved,uintptr_t component,int target){
     const auto baseline=saved.component?saved.original:g_models[original];
     if(g_setMesh(reinterpret_cast<void*>(component),reinterpret_cast<void*>(g_models[target].address))){
         saved={identity,baseline,g_models[target]};
+        pistol_visual::OnMeshAssigned(reinterpret_cast<void*>(component));
         if(g_log&&++g_changes<=12)g_log("Pistol models V1.67: owned component mesh changed; native socket, visibility, animation and projectile path preserved; EXPERIMENTAL");
     }
+}
+int CachedModel(uintptr_t model){
+    native_objects::MemoryReader reader;
+    for(int i=0;i<4;++i)if(g_models[i].address==model&&native_objects::Alive(reader,g_base,g_models[i]))return i;
+    return -1;
+}
+void* NativeMeshChoice(const pistol_appearance::OwnedSlot& owned,void* requested,int& incoming,int& target){
+    incoming=CachedModel(reinterpret_cast<uintptr_t>(requested));target=-1;
+    const int choice=Choice(owned.slot%2);
+    if(owned.slot<4)target=choice?choice-1:-1;
+    else if(owned.slot<6)target=choice?choice+1:(runtime::Get().mountedHolstersEnabled.load()?int(owned.slot%2)+2:-1);
+    native_objects::MemoryReader reader;
+    return incoming>=0&&target>=0&&native_objects::Alive(reader,g_base,g_models[target])?
+        reinterpret_cast<void*>(g_models[target].address):requested;
+}
+bool HookSetMesh(void* component,void* mesh){
+    if(!g_setMesh)return false;
+    pistol_appearance::OwnedSlot owned{};
+    const bool tracked=g_ready.load()&&native_tps::OnGameThread()&&
+        pistol_appearance::Resolve(g_base,reinterpret_cast<uintptr_t>(component),owned)&&owned.slot<6;
+    if(!tracked)return g_setMesh(component,mesh);
+    int incoming=-1,target=-1;void* effective=NativeMeshChoice(owned,mesh,incoming,target);
+    Saved& saved=owned.slot<4?g_hands[owned.context.index][owned.slot]:g_saved[owned.context.index][owned.slot-4];
+    if(saved.component&&saved.component!=owned.component)Restore(saved);
+    const bool result=g_setMesh(component,effective);
+    uintptr_t actual=0;
+    if(result&&Read(owned.component.address,0x5B0,actual)){
+        if(effective!=mesh&&actual==reinterpret_cast<uintptr_t>(effective)){
+            saved={owned.component,g_models[incoming],g_models[target]};
+            if(g_log&&++g_retained[owned.context.index]<=8)g_log("Pistol models V1.129: native assignment retained the selected owned model; menus and focus independent; EXPERIMENTAL");
+        }else if(saved.component==owned.component&&
+                 (actual!=saved.applied.address||(effective==mesh&&actual==reinterpret_cast<uintptr_t>(mesh))))saved={};
+    }
+    // OFF is enforced after the mesh assignment too: an engine refresh must
+    // not expose a newly assigned pistol before its next visibility event.
+    pistol_visual::OnMeshAssigned(component);
+    return result;
 }
 void ApplyHands(unsigned player,uintptr_t actor,bool mounted){
     if(player>1)return;
@@ -138,8 +179,16 @@ void Initialize(LogFn log,bool exactExecutable){
     uintptr_t target=0;
     if(!g_base||std::memcmp(reinterpret_cast<void*>(g_base+0x17DDBC0),setter,sizeof(setter))||
        !Read(g_base+0x2A575C8,0x868,target)||target!=g_base+0x17DDBC0)return;
-    g_setMesh=reinterpret_cast<MeshFn>(target);g_ready=true;
-    if(log)log("Pistol models V1.67 READY: native left/right selection per hand; matching mounted stowed variants; V1.66 native holster option retained; no new hooks");
+    g_setMesh=reinterpret_cast<MeshFn>(target);void* original=nullptr;
+    const auto mh=MH_Initialize();
+    if((mh==MH_OK||mh==MH_ERROR_ALREADY_INITIALIZED)&&
+       MH_CreateHook(reinterpret_cast<void*>(target),reinterpret_cast<void*>(&HookSetMesh),&original)==MH_OK){
+        g_setMesh=reinterpret_cast<MeshFn>(original);
+        if(MH_EnableHook(reinterpret_cast<void*>(target))==MH_OK)g_boundaryReady=true;
+        else {MH_RemoveHook(reinterpret_cast<void*>(target));g_setMesh=reinterpret_cast<MeshFn>(target);}
+    }
+    g_ready=true;
+    if(log)log(g_boundaryReady?"Pistol models V1.129 READY: owned native mesh assignments enforce selected models; shared visibility policy":"Pistol models V1.129: global mesh boundary unavailable; previous live reconciliation retained");
 }
 void OnLivePlayer(const local_players::Context& owner){
     if(!g_ready.load()||!native_tps::OnGameThread()||owner.index<0||owner.index>1)return;
@@ -148,7 +197,7 @@ void OnLivePlayer(const local_players::Context& owner){
     if(!enabled||owner.kind!=local_players::PoseKind::Horse)for(auto& saved:g_saved[player])Restore(saved);
     const bool foot=owner.kind==local_players::PoseKind::Foot&&owner.pawn==owner.character;
     for(unsigned i=0;i<4;++i)if(!selected||(i<2?!foot:owner.kind!=local_players::PoseKind::Horse))Restore(g_hands[player][i]);
-    if(!enabled||native_tps::IsWorldPaused(reinterpret_cast<void*>(owner.pawn))||native_tps::CinematicActive(player))return;
+    if(!enabled)return; // Appearance stays selected during pause, wheels, menus and cinematics.
     uintptr_t cls=0,component=0;
     if(owner.kind==local_players::PoseKind::Horse&&
        (!Read(owner.pawn,0x10,cls)||!NameIs(cls,"Despair_Blueprint_C")))return;

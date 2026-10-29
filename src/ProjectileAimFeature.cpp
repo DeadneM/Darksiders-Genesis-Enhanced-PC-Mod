@@ -27,6 +27,7 @@ using Gravity=float(*)(void*);
 using ArcAngle=float(*)(float,float,float);
 using ArcSpeed=float(*)(const Vec3*,const Vec3*,float,float);
 using ForwardVector=Vec3*(*)(void*,Vec3*);
+using SetTargetComponent=void(*)(void*,void*);
 SpawnRotation g_original=nullptr;
 AbilityRotation g_finish=nullptr;
 LavaUpdate g_lava=nullptr;
@@ -35,6 +36,8 @@ Gravity g_gravity=nullptr;
 ArcAngle g_arcAngle=nullptr;
 ArcSpeed g_arcSpeed=nullptr;
 ForwardVector g_forward=nullptr;
+SetTargetComponent g_setTarget=nullptr;std::atomic_bool g_staticReady{false};
+std::atomic_uint32_t g_staticTargets[2]{};
 RayProvider g_provider=nullptr;
 uintptr_t g_base=0;
 LogFn g_log=nullptr;
@@ -122,7 +125,47 @@ Rotator* Rotation(void* weapon,Rotator* out,const void* input,uintptr_t caller){
 Rotator* HookRotation(void* weapon,Rotator* out,const void* input){
     return Rotation(weapon,out,input,reinterpret_cast<uintptr_t>(_ReturnAddress())-g_base);
 }
-// 61D410 is MayhemBeamShot's native Tick. In its free-fire branch it reads
+// Native 697FD0 creates the PRIMARY beam, stores it in weapon+688, then
+// assigns the input interface's assisted target via 617B90 at 6981CB.
+// This bypasses the free-fire forward-vector path. Suppress only this
+// initial assignment for an owned Static Shot in TPS Camera Forward.
+// Child beams, hit retargeting, other ammunition and native view stay native.
+bool PrimaryStatic(void* beam,local_players::Context& owner){
+    if(!g_staticReady.load()||!native_tps::OnGameThread()||!native_tps::TargetReady()||!Typed(beam,0x380A4B0))return false;
+    void* actor=nullptr;void* root=nullptr;void* volume=nullptr;void* registry=nullptr;void* reciprocal=nullptr;void* list=nullptr;
+    unsigned char type=0,role=0;int count=0,capacity=0;
+    if(!Read(beam,0x108,actor)||!local_players::ResolveActor(actor,owner)||owner.index<0||owner.index>1||
+       owner.kind!=local_players::PoseKind::Foot||owner.character!=reinterpret_cast<uintptr_t>(actor)||owner.pawn!=owner.character||
+       !owner.localPlayer||!owner.controller||!Read(actor,0xC18,type)||type!=1||!Read(actor,0x118,role)||role!=3||
+       native_tps::CinematicActive(unsigned(owner.index))||native_tps::IsWorldPaused(actor)||native_tps::RadialActive(unsigned(owner.index))||
+       !Read(beam,0x158,root)||!Read(beam,0x5E8,volume)||!root||root!=volume||!Read(root,0xE8,reciprocal)||reciprocal!=beam||
+       !Read(actor,0xC78,registry)||!Read(registry,0xE8,reciprocal)||reciprocal!=actor||!Read(registry,0x108,list)||!list||
+       !Read(registry,0x110,count)||!Read(registry,0x114,capacity)||count<4||count>capacity||capacity>32)return false;
+    for(unsigned slot:{2u,3u}){
+        void* weapon=nullptr;void* primary=nullptr;uintptr_t cls=0,package=0;uint32_t flags=0;
+        if(Read(list,slot*8,weapon)&&weapon&&Read(weapon,8,flags)&&!(flags&0x18030u)&&
+           Read(weapon,0xE8,reciprocal)&&reciprocal==actor&&Read(weapon,0x688,primary)&&primary==beam&&
+           Read(weapon,0x10,cls)&&native_objects::NameIs(g_base,cls,"MayhemStaticShot_Blueprint_C")&&
+           Read(cls,0x20,package)&&native_objects::NameIs(g_base,package,"/Game/Blueprints/Player/MayhemStaticShot_Blueprint"))return true;
+    }
+    return false;
+}
+void AssignTarget(void* beam,void* component,uintptr_t caller){
+    local_players::Context owner{};native_tps::MouseRay ray{};
+    bool manual=false;
+    if(component&&caller==0x6981D0&&PrimaryStatic(beam,owner)&&g_provider&&g_provider(owner,ray)){
+        const float length=ray.direction.x*ray.direction.x+ray.direction.y*ray.direction.y+ray.direction.z*ray.direction.z;
+        manual=Finite(ray.origin)&&Finite(ray.direction)&&std::isfinite(length)&&length>.99f&&length<1.01f;
+    }
+    // Forward the exact original call once. The native setter owns target
+    // bookkeeping; no raw target/actor/rotation/range/damage field writes.
+    if(g_setTarget)g_setTarget(beam,manual?nullptr:component);
+    if(manual){const unsigned n=++g_staticTargets[owner.index];
+        if(g_log&&n<=8){char line[210]{};sprintf_s(line,
+            "TPS V1.129 STATIC_PRIMARY player=%d initial assisted target omitted; free ray and secondary chains native; impactValidation=USER_REQUIRED",owner.index+1);g_log(line);}}
+}
+void HookAssignTarget(void* beam,void* component){AssignTarget(beam,component,reinterpret_cast<uintptr_t>(_ReturnAddress())-g_base);}
+// 61D410 is MayhemBeamProjectile's native Tick. In its free-fire branch it reads
 // the ROOT/SOCKET forward vector, bypassing the projectile SpawnRotation.
 // Replace this one local beam consumer's return, never the scene transform,
 // beam range, damage, secondary chains or every UE forward-vector call.
@@ -258,11 +301,23 @@ void Initialize(LogFn log,bool exactExecutable,RayProvider provider){
     for(const auto& h:hooks){if(MH_CreateHook(reinterpret_cast<void*>(g_base+h.rva),h.detour,h.original)!=MH_OK){ok=false;break;}++created;}
     if(ok)for(const auto& h:hooks)if(MH_EnableHook(reinterpret_cast<void*>(g_base+h.rva))!=MH_OK){ok=false;break;}
     if(!ok){for(unsigned i=0;i<created;++i){MH_DisableHook(reinterpret_cast<void*>(g_base+hooks[i].rva));MH_RemoveHook(reinterpret_cast<void*>(g_base+hooks[i].rva));}
-        g_original=nullptr;g_finish=nullptr;g_lava=nullptr;g_forward=nullptr;
+        g_original=nullptr;g_finish=nullptr;g_lava=nullptr;g_forward=nullptr;g_setTarget=nullptr;g_staticReady=false;
         if(log)log("TPS V1.53 projectile hook transaction failed; native retained");return;}
     if(log)log("TPS V1.53 TARGET3D READY: common target, native forward collision, scoped free-beam direction; original beam range/chains; EXPERIMENTAL");
+    // The new optional boundary cannot disable the accepted aiming paths.
+    const unsigned char setter[]={0x40,0x55,0x57,0x48,0x83,0xEC,0x28,0x48,0x83,0xB9,0x38,0x06,0x00,0x00,0x00,0x48};
+    const unsigned char site[]={0xE8,0xC0,0xF9,0xF7,0xFF,0xEB,0x2D,0x48,0x8B,0x97,0xE8,0x00,0x00,0x00,0x48,0x8D};
+    void* original=nullptr;void* target=reinterpret_cast<void*>(g_base+0x617B90);
+    if(!std::memcmp(target,setter,sizeof(setter))&&!std::memcmp(reinterpret_cast<void*>(g_base+0x6981CB),site,sizeof(site))&&
+       MH_CreateHook(target,reinterpret_cast<void*>(&HookAssignTarget),&original)==MH_OK){
+        g_setTarget=reinterpret_cast<SetTargetComponent>(original);
+        if(MH_EnableHook(target)==MH_OK)g_staticReady=true;
+        else {MH_RemoveHook(target);g_setTarget=nullptr;}
+    }
+    if(log)log(g_staticReady?"TPS V1.129 STATIC_PRIMARY READY: initial Static assisted target scoped; secondary chains native; EXPERIMENTAL":"TPS V1.129 STATIC_PRIMARY unavailable; accepted aiming paths retained");
 }
 void Report(){
+    if(g_log){char line[180]{};sprintf_s(line,"TPS V1.129 STATIC_PRIMARY totals P1=%u P2=%u initialAssignmentOnly=1 chainsNative=1 impactValidation=USER_REQUIRED",g_staticTargets[0].load(),g_staticTargets[1].load());g_log(line);}
     if(!g_log)return;char line[260]{};
     sprintf_s(line,"TPS V1.53 TARGET3D totals native=%u pistolP1=%u P2=%u finishP1=%u P2=%u lavaP1=%u P2=%u lavaRejected=%u impactValidation=USER_REQUIRED",
         g_calls.load(),g_adjusted[0].load(),g_adjusted[1].load(),g_finished[0].load(),g_finished[1].load(),g_lobbed[0].load(),g_lobbed[1].load(),g_lavaRejected.load());g_log(line);

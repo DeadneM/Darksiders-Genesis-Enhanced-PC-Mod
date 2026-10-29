@@ -12,6 +12,7 @@ unsigned char projectileClass[0x100]{},defaults[0x100]{},movement[0x180]{},root[
 unsigned char beam[0x650]{},volume[0x300]{};
 void* tree[1]{cls+0x30};void* foreignTree[1]{foreignClass+0x30};void* lavaTree[2]{cls+0x30,lavaClass+0x30};
 uintptr_t componentTable[0x5E8/8]{};
+bool validRay=true;
 bool providerEnabled=true,gameThread=true,paused=false,wheel=false,collision=true,badSpeed=false;
 dg::local_players::Context context{};
 const void* forwarded=nullptr;
@@ -32,7 +33,7 @@ Rotator* OriginalFinish(void* a,Rotator* out){
 void OriginalLava(void* a){++lavaCalls;Put(a,0x20C,Rotator{-20,23,7});Put(a,0x218,2222.0f);}
 bool Provider(const dg::local_players::Context& c,dg::native_tps::MouseRay& ray){
     Check(c.character==reinterpret_cast<uintptr_t>(character),"provider receives current native owner");
-    ray.origin={-300,0,300};ray.direction={1,0,0};return providerEnabled;
+    ray.origin={-300,0,300};ray.direction=validRay?Vec3{1,0,0}:Vec3{0,0,0};return providerEnabled;
 }
 void* MovementClass(){return cls;}
 void* FindComponent(void* actor,void* type){Check(actor==defaults&&type==cls,"same native CDO component lookup");return movement;}
@@ -137,11 +138,43 @@ void Run(){
     Put(worldWeapon,0x688,static_cast<void*>(nullptr));BeamForward(volume,&beamDirection,0x61D5E5);
     Check(beamDirection.x<0&&beamDirection.y<0,"ordinary ammo beam still follows camera despite World Ender component existing");
     Put(character,0xF98,static_cast<void*>(nullptr));hitTarget={1000,1000,500};
+    // Initial Static target assignment is distinct from its secondary chain.
+    unsigned char staticWeapon[0x700]{},staticClass[0x80]{},package[0x40]{},registry[0x120]{};
+    unsigned char staticNames[2][128]{};uintptr_t staticEntries[2]{reinterpret_cast<uintptr_t>(staticNames[0]),reinterpret_cast<uintptr_t>(staticNames[1])};
+    uintptr_t staticChunks[1]{reinterpret_cast<uintptr_t>(staticEntries)},ammo[4]{};
+    strcpy_s(reinterpret_cast<char*>(staticNames[0]+12),116,"MayhemStaticShot_Blueprint_C");
+    strcpy_s(reinterpret_cast<char*>(staticNames[1]+12),116,"/Game/Blueprints/Player/MayhemStaticShot_Blueprint");
+    Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(staticChunks));Put(package,0x18,1);
+    Put(staticClass,0x20,reinterpret_cast<uintptr_t>(package));Put(staticWeapon,0x10,reinterpret_cast<uintptr_t>(staticClass));
+    Put(staticWeapon,0xE8,static_cast<void*>(character));Put(staticWeapon,0x688,static_cast<void*>(beam));
+    Put(character,0xC78,static_cast<void*>(registry));Put(registry,0xE8,static_cast<void*>(character));ammo[2]=reinterpret_cast<uintptr_t>(staticWeapon);
+    Put(registry,0x108,reinterpret_cast<uintptr_t>(ammo));Put(registry,0x110,4);Put(registry,0x114,4);
+    character[0x118]=3;context.kind=dg::local_players::PoseKind::Foot;context.localPlayer=1;
+    g_staticReady=true;
+    static void* assigned=nullptr;static unsigned assignments=0;
+    g_setTarget=+[](void* b,void* target){Check(b==beam,"same beam forwarded");assigned=target;++assignments;};
+    auto retained=[&](uintptr_t caller=0x6981D0){const auto n=assignments;AssignTarget(beam,root,caller);Check(assignments==n+1&&assigned==root,"noneligible assignment forwarded exactly once");};
+    AssignTarget(beam,root,0x6981D0);Check(assignments==1&&!assigned&&g_staticTargets[0]==1,"TPS primary Static omits only initial assisted target");
+    context.index=1;AssignTarget(beam,root,0x6981D0);Check(!assigned&&g_staticTargets[1]==1,"P2 has independent primary authority");context.index=0;
+    retained(0x61D000); // hit/chain retargeting must stay native
+    providerEnabled=false;retained();providerEnabled=true;
+    validRay=false;retained();validRay=true;
+    paused=true;retained();paused=false;wheel=true;retained();wheel=false;
+    context.kind=dg::local_players::PoseKind::Horse;retained();context.kind=dg::local_players::PoseKind::Foot;
+    Put(staticWeapon,8,uint32_t(0x20));retained();Put(staticWeapon,8,uint32_t(0));
+    Put(staticWeapon,0x688,static_cast<void*>(root));retained();Put(staticWeapon,0x688,static_cast<void*>(beam));
+    staticNames[0][12]='X';retained();staticNames[0][12]='M';
+    staticNames[1][12]='X';retained();staticNames[1][12]='/';
+    Put(volume,0xE8,static_cast<void*>(character));retained();Put(volume,0xE8,static_cast<void*>(beam));
+    context.character=reinterpret_cast<uintptr_t>(grenade);retained();context.character=context.pawn;
+    gameThread=false;retained();gameThread=true;g_staticReady=false;retained();g_staticReady=true;
+    const auto n=assignments;AssignTarget(beam,nullptr,0x6981D0);Check(assignments==n+1&&!assigned,"native null target remains null without extra setter");
     gameThread=false;Finish(ability,&out);Check(out.yaw==-70,"other threads stay native");
     Check(lavaCalls==5,"native Lava update runs exactly once for each request");
 }
 }
 namespace dg::native_tps {
+bool TargetReady(){return true;}
 bool OnGameThread(){return gameThread;}
 bool CinematicActive(unsigned){return false;}
 bool IsWorldPaused(void*){return paused;}

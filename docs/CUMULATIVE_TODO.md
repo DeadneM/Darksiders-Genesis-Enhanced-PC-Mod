@@ -1,3 +1,11 @@
+## V1.129 - deux corrections ciblees a valider
+
+**PREPAREE / CONTROLES GITHUB EN ATTENTE ; EXPERIMENTALE, NON VALIDEE EN JEU.** Base V1.128 observee installee. Statique : retirer uniquement la cible assistee initiale du faisceau principal TPS Camera Forward ; conserver rebonds et autres chemins. Pistolets : resolution du composant live dans les setters natifs de modele/visibilite, apparence independante du focus/menu et du TTL des poses. Ancienne politique cachee/gatee remplacee ; animation de bras conservee.
+
+218 valeurs INI / 55 ID Hotkeys inchanges ; autres modules preserves. Trois suites etendues et deux passes d'audit confrontees. [Preuves, limites et essai groupe](V1_129_STATIC_TARGET_PISTOL_LIFECYCLE_TEST.md). GitHub seulement, aucun lancement ni installation ; main reste V1.124, archive et anciens ZIP preserves. Coffre/dash restent non valides ; coop plus tard. Les sections suivantes sont historiques.
+
+---
+
 ## V1.128 - ergonomie du menu
 
 **CONSTRUITE / CONTROLEE : [67/67 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40764748962), zero avertissement/erreur MSVC. [ZIP cumulatif public verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/6c3abcc6373088e21ba10404406946ba81a46790/downloads/DarksidersGenesis_V1.128_MENU_READABILITY_TEST.zip) - [Recu](V1_128_DELIVERY_RECEIPT.md). Updater debug et Defender controles. Presentation du menu uniquement ; rendu complet a valider en jeu. V1.127 reste installee, INI personnel conserve ; main reste V1.124.**

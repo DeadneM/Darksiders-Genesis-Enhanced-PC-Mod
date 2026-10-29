@@ -1,0 +1,36 @@
+{
+  "base": "beb3763d1e74cd993a84091c1bbf34ab7134fad0",
+  "validatedStableBase": "V1.124 on main",
+  "installedEvidence": "V1.128 session log and supplied video",
+  "changedProduction": [
+    "src/BuildInfo.h",
+    "src/MountedHolsterFeature.cpp",
+    "src/PistolAppearanceSlots.h",
+    "src/PistolVisualFeature.cpp",
+    "src/PistolVisualFeature.h",
+    "src/ProjectileAimFeature.cpp"
+  ],
+  "pass1": {
+    "method": "compare all source files to V1.128; compare accepted projectile and animation function bodies",
+    "result": "only six scoped production paths; accepted camera/input/damage/powers and other modules unchanged",
+    "iniUnchanged": true
+  },
+  "pass2": {
+    "method": "trace native assignment lifecycle independently from UI symptoms; check live reciprocal owner, identity and setter callsites",
+    "result": "appearance has no focus/menu/pose-TTL dependency; Static suppresses only exact initial primary assignment; optional hooks fail independently",
+    "noScanInSetter": true,
+    "noEngineCallOnRenderThread": true
+  },
+  "comparison": "passes agree; rejected shared pose/appearance expiry, isolated optional Static hook to avoid disabling accepted aim paths, required native setter success before lease update",
+  "oldFix": "V1.78 cached visibility interception retained; cached-only resolver replaced by live owned-slot resolver, foot/horse focus gates and holster pose-TTL removed; V1.81 animated arm solver preserved",
+  "suitesExtended": [
+    "ProjectileSpawn",
+    "PistolVisual",
+    "MountedHolsters"
+  ],
+  "newIniKeys": 0,
+  "hotkeyIdsUnchanged": 55,
+  "gameplayValidated": false,
+  "localBuild": false,
+  "localInstall": false
+}

@@ -12,6 +12,8 @@ unsigned char actors[2][0x1100]{},meshes[2][0x800]{},skeletons[2][0x400]{},rende
 unsigned char packets[2][0x110]{},guns[2][2][0x600]{},items[48*24]{},names[48][128]{},notify[0x100]{},klass[0x40]{},effect[0x40]{};
 uintptr_t nameEntries[48]{},nameChunks[1]{reinterpret_cast<uintptr_t>(nameEntries)};void* chunks[1]{items};
 Matrices current[2]{},previous[2]{};std::array<Transform,80> poses[2]{};
+unsigned char controllers[2][0x360]{},actorClass[0x40]{};
+dg::local_players::Context owners[2]{};
 bool gameThread=true,paused=false,cinematic=false,radial=false,presentation=true;unsigned hiddenCalls=0;
 std::vector<std::pair<bool,unsigned char>> hiddenEvents;
 uintptr_t forwarded[7]{};bool initResult=true;
@@ -103,6 +105,7 @@ void Runtime(){
     std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());
     Put(image.data(),0x3959680,reinterpret_cast<uintptr_t>(chunks));Put(image.data(),0x3959694,48);
     Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(nameChunks));
+    Name(30,"Strife_Blueprint_C");Put(actorClass,0x18,30);
     g_ready=true;g_hiddenFn=HiddenSetter;g_players[0]={};g_players[1]={};
     dg::runtime::Get().pistolRightModel=0;dg::runtime::Get().pistolLeftModel=0;
     g_init=+[](void* d,void* c,void* r,int lod,void* m,void* w,int mode){
@@ -116,7 +119,12 @@ void Runtime(){
     for(unsigned p=0;p<2;++p){
         auto& s=g_players[p].snapshot;
         s.actor=Register(actors[p],int(p*5));s.mesh=Register(meshes[p],int(p*5+1));s.skeleton=Register(skeletons[p],int(p*5+2));
-        s.tick=1000;s.gameplay=true;
+        s.tick=1000;s.present=s.gameplay=true;
+        Put(actors[p],0x348,reinterpret_cast<uintptr_t>(controllers[p]));Put(controllers[p],0x350,s.actor.address);
+        Put(actors[p],0x10,reinterpret_cast<uintptr_t>(actorClass));Put<unsigned char>(actors[p],0x118,3);Put<unsigned char>(actors[p],0xC18,1);
+        Put(actors[p],0x380,s.mesh.address);
+        owners[p].index=int(p);owners[p].kind=dg::local_players::PoseKind::Foot;owners[p].localPlayer=1+p;
+        owners[p].character=owners[p].pawn=s.actor.address;owners[p].controller=reinterpret_cast<uintptr_t>(controllers[p]);
         Put(meshes[p],0xE8,s.actor.address);Put(meshes[p],0x5A0,s.skeleton.address);Put(meshes[p],0x6C0,reinterpret_cast<uintptr_t>(renderObjects[p]));
         Put(renderObjects[p],0,g_base+0x2DC8930);Put(renderObjects[p],0x40,uintptr_t(0x1234));
         Put(packets[p],0,g_base+0x2DC88A8);Put(packets[p],0x10,Array{reinterpret_cast<uintptr_t>(&current[p]),80,80});
@@ -151,8 +159,10 @@ void Runtime(){
     for(unsigned i=17;i<=39;++i)Check(Equal(current[0][i],Translation(float(i)+10,0,5)),"component pose from another animation update cannot affect the packet-consistent resting arm");
     Check(poses[0][17].t[0]==500,"native aiming clavicle and firing sockets remain untouched");poses[0][17].t[0]=-10;
     dg::runtime::Get().pistolRightModel=3;dg::runtime::Get().pistolLeftModel=0;
-    const auto result=current[0];s.tick=1000;
-    Check(!ProcessPacket(reinterpret_cast<uintptr_t>(packets[0]),s.mesh.address,0x1234,0,1400)&&std::memcmp(&result,&current[0],sizeof(result))==0,"expired owner fails open without render write");
+    current[0]=baseline;s.tick=1000;
+    Check(ProcessPacket(reinterpret_cast<uintptr_t>(packets[0]),s.mesh.address,0x1234,0,1400)&&Equal(current[0][41],baseline[41])&&current[0][79].m[0][0]==0,"expired pose keeps permanent holster hiding without reusing animation");
+    current[0]=baseline;s.gameplay=false;
+    Check(ProcessPacket(reinterpret_cast<uintptr_t>(packets[0]),s.mesh.address,0x1234,0,1500)&&Equal(current[0][41],baseline[41])&&current[0][79].m[0][0]==0,"focus loss keeps holster hidden and leaves native arms intact");s.gameplay=true;
     s.tick=1100;Put(items,size_t(s.actor.index)*24+16,s.actor.serial+1);
     Check(!ProcessPacket(reinterpret_cast<uintptr_t>(packets[0]),s.mesh.address,0x1234,0,1100),"reused actor serial cannot reuse cached pose");
     Put(items,size_t(s.actor.index)*24+16,s.actor.serial);
@@ -170,10 +180,10 @@ void Runtime(){
     Check(Ranged(s.actor.address),"registered native ammo ability can lower the OFF arm");
     Put(ability,0x48,uintptr_t(0x1234));Check(!Ranged(s.actor.address),"foreign ability cannot qualify as owned shooting");Put(ability,0x48,s.actor.address);
     Put<unsigned char>(actors[0],0xD15,1);Check(!Ranged(s.actor.address),"melee animation remains native");Put<unsigned char>(actors[0],0xD15,0);
-    Hide(0,0,s);Check(Get<unsigned char>(guns[0][0],0x1CC)==0x61,"hidden flag preserves native visibility and unrelated bits");
+    HideAt(0,0,s);Check(Get<unsigned char>(guns[0][0],0x1CC)==0x61,"hidden flag preserves native visibility and unrelated bits");
     HookHidden(guns[0][0],true,1);Restore(g_hidden[0][0]);
     Check(Get<unsigned char>(guns[0][0],0x1CC)==0x61,"foreign native hide supersedes our original baseline");
-    HookHidden(guns[0][0],false,1);Hide(0,0,s);HookHidden(guns[0][0],false,1);Hide(0,0,s);Restore(g_hidden[0][0]);
+    HookHidden(guns[0][0],false,1);HideAt(0,0,s);HookHidden(guns[0][0],false,1);HideAt(0,0,s);Restore(g_hidden[0][0]);
     Check(Get<unsigned char>(guns[0][0],0x1CC)==0x21,"return to Native restores latest foreign visibility intent");
     Name(0,"AnimNotify_PlayParticleEffect");Name(1,"VFX_strife_muzzleFlash");Name(2,"VFX_Weapon_Gun_R");Name(3,"VFX_Weapon_Gun_L");Name(4,"VFX_Root_Beam");Name(5,"unrelated_hit_effect");
     Put(klass,0x18,0);Put(notify,0x10,reinterpret_cast<uintptr_t>(klass));Put(effect,0x18,1);Put(notify,0x38,reinterpret_cast<uintptr_t>(effect));
@@ -187,7 +197,7 @@ void Runtime(){
     Check(!SkipParticle(notify,meshes[0]),"World Ender lifecycle notification is never a muzzle particle");Put(klass,0x18,0);gameThread=false;
     Check(!SkipParticle(notify,meshes[0]),"notify outside game thread retained");gameThread=true;
     dg::local_players::Context horse{};horse.index=0;horse.kind=dg::local_players::PoseKind::Horse;
-    Hide(0,0,s);OnLivePlayer(horse,9,true);
+    HideAt(0,0,s);OnLivePlayer(horse,9,true);
     Check(!PoseReady(0)&&Get<unsigned char>(guns[0][0],0x1CC)==0x21,"leaving normal Strife restores model and discards pose");
     unsigned char horseActor[0xC10]{},horseMesh[0x800]{},horseGuns[4][0x600]{},pc[0x360]{},strifeClass[0x40]{},horseClass[0x40]{};
     const auto horseId=Register(horseActor,10),horseMeshId=Register(horseMesh,11);
@@ -196,7 +206,7 @@ void Runtime(){
     Put(horseActor,0x10,reinterpret_cast<uintptr_t>(horseClass));Put<unsigned char>(horseActor,0x118,3);
     Put(horseActor,0x348,reinterpret_cast<uintptr_t>(pc));Put(pc,0x350,horseId.address);
     Put(horseActor,0x380,horseMeshId.address);Put(horseMesh,0xE8,horseId.address);
-    horse.localPlayer=1;horse.controller=reinterpret_cast<uintptr_t>(pc);horse.character=reinterpret_cast<uintptr_t>(actors[0]);horse.pawn=horseId.address;
+    horse.localPlayer=1;horse.controller=reinterpret_cast<uintptr_t>(pc);horse.character=reinterpret_cast<uintptr_t>(actors[0]);horse.pawn=horseId.address;owners[0]=horse;
     for(unsigned i=0;i<4;++i){
         const auto id=Register(horseGuns[i],12+int(i));Put(horseActor,(i<2?0xBA0:0xBF8)+(i%2)*8,id.address);
         Put(horseGuns[i],0,g_base+0x2A575C8);Put(horseGuns[i],0xE8,horseId.address);Put(horseGuns[i],0x108,horseMeshId.address);
@@ -208,18 +218,19 @@ void Runtime(){
     Check(!PoseReady(0),"mounted model hiding does not reuse foot arm pose or horse animation");
     paused=radial=true;OnLivePlayer(horse,9,true);
     Check(Get<unsigned char>(horseGuns[0],0x1CC)==0x61,"wheel/pause cannot restore OFF models");
+    Restore(g_hidden[0][2]);
     const auto events=hiddenEvents.size();HookHidden(horseGuns[0],false,2);
     Check(hiddenEvents.size()==events+2&&hiddenEvents[events]==std::pair<bool,unsigned char>{false,2}&&
           hiddenEvents[events+1]==std::pair<bool,unsigned char>{true,1}&&Get<unsigned char>(horseGuns[0],0x1CC)==0x61,
-          "native visibility and child propagation forwarded before exact OFF component is retained in same call");
+          "first native visibility event discovers uncached OFF component and preserves child propagation");
     paused=radial=false;
     HookHidden(horseGuns[0],true,1);dg::runtime::Get().pistolRightModel=0;OnLivePlayer(horse,9,true);
     Check(Get<unsigned char>(horseGuns[0],0x1CC)==0x61&&Get<unsigned char>(horseGuns[2],0x1CC)==0x21,"Native restores latest native mounted visibility independently per component");
     HookHidden(horseGuns[0],false,1);dg::runtime::Get().pistolLeftModel=3;OnLivePlayer(horse,9,true);
     Check(Get<unsigned char>(horseGuns[1],0x1CC)==0x61&&Get<unsigned char>(horseGuns[3],0x1CC)==0x61,"left mounted OFF uses left offsets only");
-    OnLivePlayer(horse,9,false);Check(Get<unsigned char>(horseGuns[1],0x1CC)==0x21&&Get<unsigned char>(horseGuns[3],0x1CC)==0x21,"focus loss restores mounted native visibility");
+    OnLivePlayer(horse,9,false);Check(Get<unsigned char>(horseGuns[1],0x1CC)==0x61&&Get<unsigned char>(horseGuns[3],0x1CC)==0x61,"focus loss retains mounted OFF appearance");
     const auto n=hiddenCalls;Put(horseActor,0x348,uintptr_t(0));OnLivePlayer(horse,9,true);
-    Check(hiddenCalls==n,"foreign or stale mounted controller cannot hide a component");
+    Check(hiddenCalls==n+2&&Get<unsigned char>(horseGuns[1],0x1CC)==0x21,"invalid mounted controller restores only the existing leases");
     // Return to a normal pawn with no cached arm pose: OFF still applies now.
     struct Info {int name,number,parent;};std::array<Info,80> hierarchy{};
     constexpr int parents[ArmBones]={-1,0,1,2,3,4,2,6,7,2,9,10,2,12,13,2,15,16,2,2,1,0};
@@ -233,12 +244,14 @@ void Runtime(){
     unsigned char resource[0x380]{};Put<float>(resource,0x37C,100);
     Put(actors[0],0xEA0,reinterpret_cast<uintptr_t>(resource));Put<unsigned char>(actors[0],0x118,3);
     Put(actors[0],0x348,reinterpret_cast<uintptr_t>(pc));Put(pc,0x350,reinterpret_cast<uintptr_t>(actors[0]));Put(actors[0],0x380,reinterpret_cast<uintptr_t>(meshes[0]));
-    horse.kind=dg::local_players::PoseKind::Foot;horse.pawn=horse.character;dg::runtime::Get().pistolRightModel=3;dg::runtime::Get().pistolLeftModel=0;
+    horse.kind=dg::local_players::PoseKind::Foot;horse.pawn=horse.character;owners[0]=horse;dg::runtime::Get().pistolRightModel=3;dg::runtime::Get().pistolLeftModel=0;
     OnLivePlayer(horse,10,true);
     Check(!PoseReady(0)&&Get<unsigned char>(guns[0][0],0x1CC)==0x61,"return to foot keeps OFF immediately while waiting for a fresh animation evaluation");
     Check(!g_players[0].pose.ready,"no frozen arm pose survives a transformation");
     paused=radial=true;OnLivePlayer(horse,10,true);HookHidden(guns[0][0],false,1);
     Check(Get<unsigned char>(guns[0][0],0x1CC)==0x61,"normal-foot wheel cannot briefly show the hidden pistol");
+    Restore(g_hidden[0][0]);OnMeshAssigned(guns[0][0]);
+    Check(Get<unsigned char>(guns[0][0],0x1CC)==0x61,"mesh refresh reapplies OFF before the next live observer");
     dg::runtime::Get().pistolRightModel=0;OnLivePlayer(horse,10,true);paused=radial=false;
     Check(Get<unsigned char>(guns[0][0],0x1CC)==0x21,"Native restores foot visibility while wheel is open");
     // The blades are exact primitive weapon meshes, with separate native intent.
@@ -269,7 +282,7 @@ void AnimationBoundary(){
     struct AssetSample {uintptr_t sequence;float position[3],rate;};AssetSample assetSamples[3]{};
     auto& p=g_players[0];auto& snapshot=p.snapshot;
     snapshot.actor=Register(actors[0],0);snapshot.mesh=Register(meshes[0],1);snapshot.skeleton=Register(skeletons[0],2);
-    snapshot.gameplay=snapshot.lower=true;snapshot.tick=1000;snapshot.worldTime=1;snapshot.speed=1;
+    snapshot.present=snapshot.gameplay=snapshot.lower=true;snapshot.tick=1000;snapshot.worldTime=1;snapshot.speed=1;
     p.source.anim=Register(anim,24);p.source.blend=Register(blend,25);p.source.skeleton=Register(skeleton,26);
     for(unsigned i=0;i<3;++i){p.source.sequences[i]=Register(seq[i],27+int(i));assetSamples[i].sequence=p.source.sequences[i].address;}
     Put(blend,0xC8,Array{reinterpret_cast<uintptr_t>(assetSamples),3,3});
@@ -336,7 +349,8 @@ namespace dg::native_tps {
 bool OnGameThread(){return gameThread;}bool IsWorldPaused(void*){return paused;}
 bool CinematicActive(unsigned){return cinematic;}bool RadialActive(unsigned){return radial;}
 }
-namespace dg::local_players {bool Matches(unsigned,uintptr_t,uint32_t){return true;}}
+namespace dg::local_players {bool Matches(unsigned,uintptr_t,uint32_t){return true;}
+bool ResolveActor(void* actor,Context& out){for(const auto& c:owners)if(c.pawn==reinterpret_cast<uintptr_t>(actor)){out=c;return true;}return false;}}
 namespace dg::dash_combat {bool PresentationReady(){return presentation;}}
 namespace dg::foreign_rampage {bool Evaluate(void*,pistol_visual::PoseContext*){return false;}}
 int main(){try{Policy();Runtime();AnimationBoundary();Config();std::cout<<"Pistol visual native boundary checks passed\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
