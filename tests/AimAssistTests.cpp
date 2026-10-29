@@ -10,14 +10,14 @@ void Check(bool b,const char* label){if(!b)throw std::runtime_error(label);}
 struct Vec {float x,y,z;};struct Ray {Vec origin,direction;bool mounted=true;};
 void Run(){
     using namespace dg::aim_assist;
-    const Ray ray{{0,0,0},{1,0,0}};const Vec candidate{1000,50,20},far{100000,0,0};Ray quarter{},half{},full{};
-    Check(!Pull(ray,candidate,far,false,0,full),"zero adds no assistance");
-    Check(Pull(ray,candidate,far,false,25,quarter)&&Pull(ray,candidate,far,false,50,half)&&Pull(ray,candidate,far,false,100,full),"all positive strengths work in the bounded cone");
+    const Ray ray{{0,0,0},{1,0,0}};const Vec candidate{1000,50,20},farPoint{100000,0,0};Ray quarter{},half{},full{};
+    Check(!Pull(ray,candidate,farPoint,false,0,full),"zero adds no assistance");
+    Check(Pull(ray,candidate,farPoint,false,25,quarter)&&Pull(ray,candidate,farPoint,false,50,half)&&Pull(ray,candidate,farPoint,false,100,full),"all positive strengths work in the bounded cone");
     Check(quarter.direction.y>0&&quarter.direction.y<half.direction.y&&half.direction.y<full.direction.y,"strength changes progressively rather than switching a lock");
     Check(std::abs(full.direction.y/full.direction.x-.05f)<.0001f&&full.direction.z>0&&full.mounted,"full correction aims in3D and preserves ray context");
-    Check(!Pull(ray,Vec{1000,150,0},far,false,100,full)&&!Pull(ray,Vec{-100,0,0},far,false,100,full),"lateral and backward candidates cannot attract the shot");
+    Check(!Pull(ray,Vec{1000,150,0},farPoint,false,100,full)&&!Pull(ray,Vec{-100,0,0},farPoint,false,100,full),"lateral and backward candidates cannot attract the shot");
     Check(!Pull(ray,candidate,Vec{500,0,0},true,100,full),"a closer reported collision has priority");
-    Check(!Pull(ray,candidate,far,false,std::numeric_limits<float>::quiet_NaN(),full)&&Strength(150)==100&&Strength(-4)==0,"invalid settings cannot create an unbounded correction");
+    Check(!Pull(ray,candidate,farPoint,false,std::numeric_limits<float>::quiet_NaN(),full)&&Strength(150)==100&&Strength(-4)==0,"invalid settings cannot create an unbounded correction");
     wchar_t dir[MAX_PATH]{},path[MAX_PATH]{};
     Check(GetTempPathW(MAX_PATH,dir)&&GetTempFileNameW(dir,L"DGA",0,path),"isolated INI");
     dg::config::Store a;a.SetPath(path);Check(a.Load()&&a.tpsAimAssistMode==0&&a.tpsAimAssistGlobal==0,"legacy profile preserves V1.130 by default");

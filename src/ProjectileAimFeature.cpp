@@ -120,7 +120,7 @@ void* BeamWeapon(void* beam){
     for(int i=0;i<n;++i){
         void* ability=nullptr;void* weapon=nullptr;void* owner=nullptr;uint32_t flags=0;
         if(!Read(active,size_t(i)*8,ability)||!Read(ability,8,flags)||(flags&0x18030u)||!Read(ability,0x1B0,owner)||owner!=actor||
-           !Read(ability,0x50,weapon)||!weapon||(weapon!=weapons[0]&&weapon!=weapons[1])||AmmoKind(weapon)<0)continue;
+           !Read(ability,0x50,weapon)||!weapon||(weapon!=weapons[0]&&weapon!=weapons[1])||AmmoKind(weapon)<0||Typed(weapon,0x380A4F0))continue;
         if(result&&result!=weapon)return nullptr;result=weapon;
     }
     return result;

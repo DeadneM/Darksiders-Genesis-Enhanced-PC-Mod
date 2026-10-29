@@ -186,18 +186,18 @@ void Run(){
     gameThread=true;context.index=0;
     unsigned char targetRoot[0x1B0]{};Put(victim,0x158,static_cast<void*>(targetRoot));Put(targetRoot,0xE8,static_cast<void*>(victim));Put(targetRoot,0x1A0,Vec3{2000,100,300});
     Put(character,0xE98,std::array<int,2>{1,33});contactActor={reinterpret_cast<uintptr_t>(victim),1,33};
-    auto& rt=dg::runtime::Get();native_tps::MouseRay view{},added{};Provider(context,view);const Vec3 far{100000,0,300};
+    auto& rt=dg::runtime::Get();dg::native_tps::MouseRay view{},added{};Provider(context,view);const Vec3 farPoint{100000,0,300};
     const unsigned beforeQueries=contactQueries;
-    Check(!AssistedRay(context,view.origin,staticWeapon,view,far,false,added)&&contactQueries==beforeQueries,"default zero has no new target read/query or correction");
+    Check(!AssistedRay(context,view.origin,staticWeapon,view,farPoint,false,added)&&contactQueries==beforeQueries,"default zero has no new target read/query or correction");
     rt.tpsAimAssistGlobal=50;
-    Check(AssistedRay(context,view.origin,staticWeapon,view,far,false,added)&&added.direction.y>0,"global assistance consumes native weak target and confirmed LOS");
+    Check(AssistedRay(context,view.origin,staticWeapon,view,farPoint,false,added)&&added.direction.y>0,"global assistance consumes native weak target and confirmed LOS");
     const float halfway=added.direction.y;rt.tpsAimAssistGlobal=100;
-    Check(AssistedRay(context,view.origin,staticWeapon,view,far,false,added)&&added.direction.y>halfway,"live global slider progressively increases3D pull");
+    Check(AssistedRay(context,view.origin,staticWeapon,view,farPoint,false,added)&&added.direction.y>halfway,"live global slider progressively increases3D pull");
     const unsigned visibleQueries=contactQueries;
     Check(!AssistedRay(context,view.origin,staticWeapon,view,Vec3{500,0,300},true,added)&&contactQueries==visibleQueries,"nearby collision takes priority without extra trace");
-    contactHit=false;Check(!AssistedRay(context,view.origin,staticWeapon,view,far,false,added),"occluded/unconfirmed native candidate cannot affect aiming");contactHit=true;
-    Put(objects,40,34);Check(!AssistedRay(context,view.origin,staticWeapon,view,far,false,added),"recycled native target identity rejected");Put(objects,40,33);
-    rt.tpsAimAssistMode=1;Check(!AssistedRay(context,view.origin,staticWeapon,view,far,false,added),"per-ammunition zero does not inherit a nonzero global strength");
+    contactHit=false;Check(!AssistedRay(context,view.origin,staticWeapon,view,farPoint,false,added),"occluded/unconfirmed native candidate cannot affect aiming");contactHit=true;
+    Put(objects,40,34);Check(!AssistedRay(context,view.origin,staticWeapon,view,farPoint,false,added),"recycled native target identity rejected");Put(objects,40,33);
+    rt.tpsAimAssistMode=1;Check(!AssistedRay(context,view.origin,staticWeapon,view,farPoint,false,added),"per-ammunition zero does not inherit a nonzero global strength");
     collision=false;traceFromRay=true;
     Put(staticClass,0x30,tree+0);Put(staticClass,0x38,0);Put(image.data(),0x380A4F0,static_cast<void*>(cls));
     for(unsigned i=0;i<dg::aim_assist::Count;++i){
@@ -205,7 +205,7 @@ void Run(){
         strcpy_s(reinterpret_cast<char*>(staticNames[1]+12),116,dg::aim_assist::Packages[i]);
         rt.tpsAimAssistAmmo[i]=60;Vec3 point{};bool hit=false;
         Check(AmmoKind(staticWeapon)==int(i)&&Target(context,view.origin,point,hit,staticWeapon)&&point.y>0,"all seven ammo classes share the same assisted3D collision target");
-        context.index=1;Check(AssistedRay(context,view.origin,staticWeapon,view,far,false,added),"P2 reads its own native character target");context.index=0;
+        context.index=1;Check(AssistedRay(context,view.origin,staticWeapon,view,farPoint,false,added),"P2 reads its own native character target");context.index=0;
         if(i==4||i==6)Check(BeamWeapon(beam)==staticWeapon,"native beam owner maps to the actual registered ammunition");
         if(i==3){Put(ability,0x10,static_cast<void*>(lavaClass));Put(ability,0x50,static_cast<void*>(staticWeapon));UpdateLava(ability);Check(Get<Rotator>(ability,0x20C).yaw>0,"Lava target assistance reaches the paired native ballistic solver");}
         rt.tpsAimAssistAmmo[i]=0;
@@ -214,6 +214,10 @@ void Run(){
     strcpy_s(reinterpret_cast<char*>(staticNames[2]+12),116,"MayhemWorldEnder_Blueprint_C");Put(worldClass,0x18,2);
     Put(character,0xF98,static_cast<void*>(worldWeapon));Put(worldWeapon,0x688,static_cast<void*>(beam));
     BeamForward(volume,&beamDirection,0x61D5E5);Check(beamDirection.y==0,"enabled ammo assistance cannot redirect World Ender");Put(character,0xF98,static_cast<void*>(nullptr));
+    unsigned char firing[0x110]{},currentAbility[0x1B8]{};void* currentList[1]{currentAbility};
+    Put(character,0xC70,static_cast<void*>(firing));Put(firing,0xE8,static_cast<void*>(character));Put(firing,0xF8,currentList+0);Put(firing,0x100,1);Put(firing,0x104,1);
+    Put(currentAbility,0x1B0,static_cast<void*>(character));Put(currentAbility,0x50,static_cast<void*>(staticWeapon));
+    Put(staticWeapon,0x688,static_cast<void*>(nullptr));Check(!BeamWeapon(beam),"a secondary beam cannot inherit the primary Static weapon's assistance through its active ability");Put(staticWeapon,0x688,static_cast<void*>(beam));
     providerEnabled=false;Rotation(staticWeapon,&out,&in,0x7CFA3B);Check(out.yaw==23,"positive assistance remains outside native view");providerEnabled=true;
     paused=true;Rotation(staticWeapon,&out,&in,0x7CFA3B);Check(out.yaw==23,"positive assistance remains outside pause");paused=false;
     rt.tpsAimAssistMode=0;rt.tpsAimAssistGlobal=0;traceFromRay=false;collision=true;
