@@ -1,0 +1,25 @@
+{
+  "status": "INSTALLED_VERIFIED",
+  "version": "V1.130",
+  "previousVersion": "V1.129",
+  "changed": [
+    "DarksidersGenesisMod.asi",
+    "dxgi.dll",
+    "README.md"
+  ],
+  "installedHashes": {
+    "DarksidersGenesisMod.asi": "C8C51BA71D021BBBC72DEEED3BF2184CB53D1205C73AA7DD1F52FEB983279365",
+    "dxgi.dll": "941ED2D00D185F9B16AE936D490776817383EF7B570761E6BE57F768BB17B459",
+    "README.md": "746035E78BA1A148A63E9498A87154811EF7CF20DC9E92CAA3458B7D3B577594"
+  },
+  "personalIniUnchanged": true,
+  "personalIniSha256": "EDED42D89F27C894D0EBF4F8791FF7E29146782EBA92A1E481F4DA31CC76F0D5",
+  "pakUnchanged": true,
+  "pakEvidence": "Names, sizes and UTC modification timestamps unchanged; no PAK writes",
+  "gameExeUnchanged": true,
+  "gameLaunched": false,
+  "gameplayValidated": false,
+  "independentPostInstallVerification": true,
+  "zipSha256": "938BDDA13AA00949F31DFE8590DE643DCA865AC291EE9723D16965E8B9909BAD",
+  "backupFolder": "before-V1.130-20261029-034821-7254d2ef"
+}
