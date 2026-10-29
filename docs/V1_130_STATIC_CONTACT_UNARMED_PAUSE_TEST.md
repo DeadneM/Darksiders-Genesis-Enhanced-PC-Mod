@@ -1,6 +1,6 @@
 # V1.130 - Static contact et pose de main vide pendant les interfaces
 
-29 octobre 2026. PREPAREE / CONTROLES GITHUB EN ATTENTE ; EXPERIMENTALE, NON VALIDEE EN JEU. Base V1.129 cumulative ; main reste V1.124 validee. Retour utilisateur : Statique toujours attire ; clarification explicite, le deuxieme pistolet NE revient PAS, seule la main vide se leve. Le masquage modele V1.129 est conserve ; la pose en interface et le filtre initial sont insuffisants.
+29 octobre 2026. CONSTRUITE / CONTROLEE ; EXPERIMENTALE, NON VALIDEE EN JEU. Base V1.129 cumulative ; main reste V1.124 validee. Retour utilisateur : Statique toujours attire ; clarification explicite, le deuxieme pistolet NE revient PAS, seule la main vide se leve. Le masquage modele V1.129 est conserve ; la pose en interface et le filtre initial sont insuffisants.
 
 ## Cause prouvee et remplacement
 

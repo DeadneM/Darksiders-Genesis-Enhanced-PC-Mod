@@ -1,0 +1,17 @@
+{
+  "sourceCommit": "4d6ef8452d1f10f6ece433dcaee73683c79d43a8",
+  "runId": 40807486983,
+  "jobId": 123229793866,
+  "conclusion": "success",
+  "testsPassed": 67,
+  "msvcWarnings": [],
+  "msvcErrors": [],
+  "summary": [
+    "2026-10-29T02:42:54.6629034Z 100% tests passed out of 67\r",
+    "2026-10-29T02:42:54.6629546Z Total Test time (real) =   5.69 sec\r",
+    "2026-10-29T02:42:57.1250784Z \u001b[36;1m  git commit -m \"downloads: preserve verified compiled cumulative ZIP\"\u001b[0m\r",
+    "2026-10-29T02:42:59.1076203Z [debug 0aac20c] downloads: preserve verified compiled cumulative ZIP\r"
+  ],
+  "platform": "Windows x64 Release; MSVC /analyze",
+  "gameplayValidated": false
+}

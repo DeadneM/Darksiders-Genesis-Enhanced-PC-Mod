@@ -1,0 +1,53 @@
+{
+  "sourceCommit": "4d6ef8452d1f10f6ece433dcaee73683c79d43a8",
+  "archiveCommit": "0aac20c4f76f6d10ce11f2ac5fbf718beaf2360e",
+  "name": "DarksidersGenesis_V1.130_STATIC_CONTACT_UNARMED_PAUSE_TEST.zip",
+  "size": 2404140,
+  "sha256": "938BDDA13AA00949F31DFE8590DE643DCA865AC291EE9723D16965E8B9909BAD",
+  "files": {
+    "DarksidersGenesisMod.asi": {
+      "size": 2104832,
+      "method": 0,
+      "sha256": "C8C51BA71D021BBBC72DEEED3BF2184CB53D1205C73AA7DD1F52FEB983279365"
+    },
+    "DarksidersGenesisMod.ini": {
+      "size": 6060,
+      "method": 0,
+      "sha256": "ED163822ABD7DCE7B12D2136DA0C027C507A286A2349F0EA8A235C0A017153B9"
+    },
+    "dxgi.dll": {
+      "size": 155136,
+      "method": 0,
+      "sha256": "941ED2D00D185F9B16AE936D490776817383EF7B570761E6BE57F768BB17B459"
+    },
+    "README.md": {
+      "size": 137656,
+      "method": 0,
+      "sha256": "746035E78BA1A148A63E9498A87154811EF7CF20DC9E92CAA3458B7D3B577594"
+    }
+  },
+  "oldArchiveGitBlobsUnchanged": 194,
+  "archiveCount": 195,
+  "iniKeys": 218,
+  "hotkeyIdsUnchanged": 55,
+  "acceptedProjectileBodiesCompared": true,
+  "cameraControlPowerPathsUnchanged": true,
+  "amd64": true,
+  "crcValid": true,
+  "noCompression": true,
+  "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/0aac20c4f76f6d10ce11f2ac5fbf718beaf2360e/downloads/DarksidersGenesis_V1.130_STATIC_CONTACT_UNARMED_PAUSE_TEST.zip",
+  "httpStatus": 200,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "e2e519f7ea84d4b773fd7a31611779ae68308696",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "localBuild": false,
+  "localInstall": false,
+  "newFeaturesGameplayValidated": false,
+  "chestDashBenefitValidated": false,
+  "staticTargetLifecycle": true,
+  "collisionIdentityObserver": true,
+  "unarmedUiPoseHold": true,
+  "validatedModelVisibilityPreserved": true
+}

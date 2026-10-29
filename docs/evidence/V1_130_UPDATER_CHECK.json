@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.130_STATIC_CONTACT_UNARMED_PAUSE_TEST.zip",
+  "blobSha": "04306f0e6c9569720beb23b2905cb4c18f03d333",
+  "httpStatus": 200,
+  "sha256": "938BDDA13AA00949F31DFE8590DE643DCA865AC291EE9723D16965E8B9909BAD",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}

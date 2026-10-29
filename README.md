@@ -1,6 +1,8 @@
 ## V1.130 - Static contact and unarmed pause presentation
 
-**PREPAREE / CONTROLES GITHUB EN ATTENTE ; EXPERIMENTALE, NON VALIDEE EN JEU.** Retour V1.129 : Statique et pose de main vide toujours incorrects ; utilisateur confirme que le modele masque reste cache. Masquage/modeles V1.129 conserves. Filtre initial remplace par le controle de contact pendant les reassignations natives du faisceau principal ; conservation de la derniere pose desarmee valide pendant UI/focus uniquement.
+**CONSTRUITE / CONTROLEE : [67/67 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40807486983), zero avertissement/erreur MSVC. [ZIP cumulatif public verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/0aac20c4f76f6d10ce11f2ac5fbf718beaf2360e/downloads/DarksidersGenesis_V1.130_STATIC_CONTACT_UNARMED_PAUSE_TEST.zip) - [Recu](docs/V1_130_DELIVERY_RECEIPT.md). Updater debug et Defender controles. Statique/pose UI EXPERIMENTAUX, NON VALIDES EN JEU. Masquage modele V1.129 confirme conserve ; aucune installation V1.130. main reste V1.124.**
+
+**CONSTRUITE / CONTROLEE ; EXPERIMENTALE, NON VALIDEE EN JEU.** Retour V1.129 : Statique et pose de main vide toujours incorrects ; utilisateur confirme que le modele masque reste cache. Masquage/modeles V1.129 conserves. Filtre initial remplace par le controle de contact pendant les reassignations natives du faisceau principal ; conservation de la derniere pose desarmee valide pendant UI/focus uniquement.
 
 Base cumulative V1.129 ;218 valeurs INI /55 Hotkey ID et autres acquis preserves. [Causes, preuves, limites et tests](docs/V1_130_STATIC_CONTACT_UNARMED_PAUSE_TEST.md). GitHub seulement, aucune installation/relance ; main reste V1.124, archive et anciens ZIP preserves. Coop plus tard. Les sections suivantes sont historiques.
 
