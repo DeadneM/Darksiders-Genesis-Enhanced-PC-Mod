@@ -176,7 +176,8 @@ void HideAt(unsigned player,unsigned slot,const Snapshot& snapshot){
 bool RetainVisibility(uintptr_t component,bool nativeHidden){
     pistol_appearance::OwnedSlot owned{};
     if(!pistol_appearance::Resolve(g_base,component,owned))return false;
-    auto& saved=g_hidden[owned.context.index][owned.slot];
+    const unsigned player=unsigned(owned.context.index);if(player>1||owned.slot>=8)return false;
+    auto& saved=g_hidden[player][owned.slot];
     if(saved.component&&saved.component!=owned.component)Restore(saved);
     const unsigned mask=owned.slot<6?ChoiceMask():BladeMask();
     const bool off=(mask&(1u<<(owned.slot%2)))!=0;
@@ -452,9 +453,10 @@ bool SkipParticle(void* notify,void* mesh){
 void OnMeshAssigned(void* component){
     if(!Ready()||!native_tps::OnGameThread())return;
     pistol_appearance::OwnedSlot owned{};if(!pistol_appearance::Resolve(g_base,reinterpret_cast<uintptr_t>(component),owned))return;
+    const unsigned player=unsigned(owned.context.index);if(player>1||owned.slot>=8)return;
     const unsigned mask=owned.slot<6?ChoiceMask():BladeMask();
-    if(mask&(1u<<(owned.slot%2))){Snapshot s{};s.actor=owned.actor;s.mesh=owned.body;HideAt(unsigned(owned.context.index),owned.slot,s);}
-    else {auto& saved=g_hidden[owned.context.index][owned.slot];if(saved.component==owned.component)Restore(saved);}
+    if(mask&(1u<<(owned.slot%2))){Snapshot s{};s.actor=owned.actor;s.mesh=owned.body;HideAt(player,owned.slot,s);}
+    else {auto& saved=g_hidden[player][owned.slot];if(saved.component==owned.component)Restore(saved);}
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire)&&dash_combat::PresentationReady();}
 bool PoseReady(unsigned index){

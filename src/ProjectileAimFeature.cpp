@@ -146,7 +146,7 @@ bool PrimaryStatic(void* beam,local_players::Context& owner){
         if(Read(list,slot*8,weapon)&&weapon&&Read(weapon,8,flags)&&!(flags&0x18030u)&&
            Read(weapon,0xE8,reciprocal)&&reciprocal==actor&&Read(weapon,0x688,primary)&&primary==beam&&
            Read(weapon,0x10,cls)&&native_objects::NameIs(g_base,cls,"MayhemStaticShot_Blueprint_C")&&
-           Read(cls,0x20,package)&&native_objects::NameIs(g_base,package,"/Game/Blueprints/Player/MayhemStaticShot_Blueprint"))return true;
+           Read(reinterpret_cast<void*>(cls),0x20,package)&&native_objects::NameIs(g_base,package,"/Game/Blueprints/Player/MayhemStaticShot_Blueprint"))return true;
     }
     return false;
 }

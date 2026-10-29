@@ -128,16 +128,17 @@ bool HookSetMesh(void* component,void* mesh){
     pistol_appearance::OwnedSlot owned{};
     const bool tracked=g_ready.load()&&native_tps::OnGameThread()&&
         pistol_appearance::Resolve(g_base,reinterpret_cast<uintptr_t>(component),owned)&&owned.slot<6;
-    if(!tracked)return g_setMesh(component,mesh);
+    const unsigned player=unsigned(owned.context.index);
+    if(!tracked||player>1)return g_setMesh(component,mesh);
     int incoming=-1,target=-1;void* effective=NativeMeshChoice(owned,mesh,incoming,target);
-    Saved& saved=owned.slot<4?g_hands[owned.context.index][owned.slot]:g_saved[owned.context.index][owned.slot-4];
+    Saved& saved=owned.slot<4?g_hands[player][owned.slot]:g_saved[player][owned.slot-4];
     if(saved.component&&saved.component!=owned.component)Restore(saved);
     const bool result=g_setMesh(component,effective);
     uintptr_t actual=0;
     if(result&&Read(owned.component.address,0x5B0,actual)){
         if(effective!=mesh&&actual==reinterpret_cast<uintptr_t>(effective)){
             saved={owned.component,g_models[incoming],g_models[target]};
-            if(g_log&&++g_retained[owned.context.index]<=8)g_log("Pistol models V1.129: native assignment retained the selected owned model; menus and focus independent; EXPERIMENTAL");
+            if(g_log&&++g_retained[player]<=8)g_log("Pistol models V1.129: native assignment retained the selected owned model; menus and focus independent; EXPERIMENTAL");
         }else if(saved.component==owned.component&&
                  (actual!=saved.applied.address||(effective==mesh&&actual==reinterpret_cast<uintptr_t>(mesh))))saved={};
     }
