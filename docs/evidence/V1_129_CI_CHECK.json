@@ -1,0 +1,24 @@
+{
+  "sourceCommit": "e61d5724f45243f2d67fdcec63574c17567464be",
+  "runId": 40801514118,
+  "jobId": 123210466032,
+  "conclusion": "success",
+  "testsPassed": 67,
+  "msvcWarnings": [],
+  "msvcErrors": [],
+  "summary": [
+    "2026-10-29T01:41:09.9966365Z 100% tests passed out of 67\r",
+    "2026-10-29T01:41:09.9966665Z Total Test time (real) =   4.37 sec\r",
+    "2026-10-29T01:41:12.3321777Z \u001b[36;1m  git commit -m \"downloads: preserve verified compiled cumulative ZIP\"\u001b[0m\r",
+    "2026-10-29T01:41:13.3860781Z [debug 029b171] downloads: preserve verified compiled cumulative ZIP\r"
+  ],
+  "platform": "Windows x64 Release; MSVC /analyze",
+  "gameplayValidated": false,
+  "intermediate": {
+    "sourceCommit": "b54305c4c6782858edd9b331e2f62af2cf171684",
+    "runId": 40800729421,
+    "status": "failure",
+    "numberedZipPublished": false,
+    "reason": "C2672 class pointer conversion; C6385 signed owner indices. Corrected before successful final run."
+  }
+}

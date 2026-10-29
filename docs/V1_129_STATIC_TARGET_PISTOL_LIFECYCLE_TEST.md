@@ -1,6 +1,6 @@
 # V1.129 - Static primary targeting and persistent pistol appearance
 
-29 octobre 2026. PREPAREE / CONTROLES GITHUB EN ATTENTE ; EXPERIMENTALE, NON VALIDEE EN JEU. Base cumulative V1.128 observee dans le journal et la video utilisateur du 28 octobre ; main reste V1.124 validee. Deux objectifs : empecher Statique TPS de privilegier son ennemi assiste initial, et conserver les choix de modeles/OFF pendant les transitions d'interface. Compilation seulement GitHub ; aucun lancement ni installation locale.
+29 octobre 2026. CONSTRUITE / CONTROLEE ; EXPERIMENTALE, NON VALIDEE EN JEU. Base cumulative V1.128 observee dans le journal et la video utilisateur du 28 octobre ; main reste V1.124 validee. Deux objectifs : empecher Statique TPS de privilegier son ennemi assiste initial, et conserver les choix de modeles/OFF pendant les transitions d'interface. Compilation seulement GitHub ; aucun lancement ni installation locale.
 
 ## Preuves et correction Statique
 

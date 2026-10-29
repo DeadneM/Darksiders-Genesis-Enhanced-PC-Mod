@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.129_STATIC_TARGET_PISTOL_LIFECYCLE_TEST.zip",
+  "blobSha": "953ba4c9c5c4ba32be71388b5a458da8e1574b85",
+  "httpStatus": 200,
+  "sha256": "C9CC2E3FEC9B5A7B73C2A42712003F8E4016DCD5257B564548722EC7CD37E63C",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}

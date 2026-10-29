@@ -1,0 +1,51 @@
+{
+  "sourceCommit": "e61d5724f45243f2d67fdcec63574c17567464be",
+  "archiveCommit": "029b17124e24f766db66b5a171d5aed68cb6536f",
+  "name": "DarksidersGenesis_V1.129_STATIC_TARGET_PISTOL_LIFECYCLE_TEST.zip",
+  "size": 2397603,
+  "sha256": "C9CC2E3FEC9B5A7B73C2A42712003F8E4016DCD5257B564548722EC7CD37E63C",
+  "files": {
+    "DarksidersGenesisMod.asi": {
+      "size": 2099712,
+      "method": 0,
+      "sha256": "FAB53DF6DA649FF4F20E8BD729300F8022314BC7E317B6FE45C864F93326951D"
+    },
+    "DarksidersGenesisMod.ini": {
+      "size": 6060,
+      "method": 0,
+      "sha256": "ED163822ABD7DCE7B12D2136DA0C027C507A286A2349F0EA8A235C0A017153B9"
+    },
+    "dxgi.dll": {
+      "size": 155136,
+      "method": 0,
+      "sha256": "DF5EE1EEB63D2CD99D8104386D2DC99F12B3413513A7FA421015F2857BF87B91"
+    },
+    "README.md": {
+      "size": 136239,
+      "method": 0,
+      "sha256": "DDC7EF597E2AED49BF49A5C93762B4C0499AEF2264558A1133108D04BC11C6E7"
+    }
+  },
+  "oldArchiveGitBlobsUnchanged": 193,
+  "archiveCount": 194,
+  "iniKeys": 218,
+  "hotkeyIdsUnchanged": 55,
+  "acceptedProjectileBodiesCompared": true,
+  "cameraControlPowerPathsUnchanged": true,
+  "amd64": true,
+  "crcValid": true,
+  "noCompression": true,
+  "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/029b17124e24f766db66b5a171d5aed68cb6536f/downloads/DarksidersGenesis_V1.129_STATIC_TARGET_PISTOL_LIFECYCLE_TEST.zip",
+  "httpStatus": 200,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "e2e519f7ea84d4b773fd7a31611779ae68308696",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "localBuild": false,
+  "localInstall": false,
+  "newFeaturesGameplayValidated": false,
+  "chestDashBenefitValidated": false,
+  "staticInitialTargetOnly": true,
+  "pistolLifecyclePolicy": true
+}
