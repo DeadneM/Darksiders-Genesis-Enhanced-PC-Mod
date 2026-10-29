@@ -1,6 +1,6 @@
 # V1.133 - visibilite et profondeur de l'aide TPS
 
-PREPAREE / CONTROLES GITHUB EN ATTENTE ; NON VALIDEE EN JEU. Base acceptee : V1.130. V1.132 visibilite a ete construite par GitHub avant la fin de la revue de profondeur ; son archive est conservee, sans installation ni validation en jeu. Les curseurs Global / Per ammunition V1.131 sont conserves, mais leur effet positif est rejete par le retour utilisateur. Il avait augmente la valeur puis remis zero : le dernier INI a zero ne prouve pas un essai desactive.
+CONSTRUITE / CONTROLEE ; NON VALIDEE EN JEU. Base acceptee : V1.130. V1.132 visibilite a ete construite par GitHub avant la fin de la revue de profondeur ; son archive est conservee, sans installation ni validation en jeu. Les curseurs Global / Per ammunition V1.131 sont conserves, mais leur effet positif est rejete par le retour utilisateur. Il avait augmente la valeur puis remis zero : le dernier INI a zero ne prouve pas un essai desactive.
 
 ## Probleme et correction limitee
 
@@ -21,3 +21,5 @@ Deux passes confrontees : contrat natif/config et parite des acquis, puis geomet
 Garder son INI. En TPS Camera Forward, ennemi visible a cote du centre : comparer Global 0 / 50 / 100, puis Per ammunition avec un type a 0 et un autre a 100. Tester d'abord Standard et Statique, puis autres munitions/Hotstreak. Un ennemi loin sur le bord ou derriere un obstacle ne doit pas attirer. Verifier le retour a zero, la vue native et la main vide pendant pause/roues. Fermer normalement le jeu pour obtenir les bilans. Coop plus tard. La capture externe preparee est uniquement en lecture, sans appels au jeu ; aucun jeu lance automatiquement.
 
 227 valeurs et 55 actions Hotkeys conservees ; cameras, souris/manette, poses/modeles et solveur Lava inchanges. Compilation GitHub seulement ; aucune installation de V1.133 sans demande. Retour zero ou archive V1.130 validee. main V1.124, archive, anciennes archives et profil personnel preserves.
+
+Dernier controle : le point fini doit aussi rester DEVANT la bouche native du tir, pas seulement devant la camera. Une cible entre camera et canon est refusee pour conserver la protection contre les tirs retournant vers la camera. Regression couverte, sans nouveau hook.

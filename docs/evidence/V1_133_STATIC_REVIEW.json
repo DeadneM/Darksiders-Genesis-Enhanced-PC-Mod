@@ -72,10 +72,12 @@
       "original ray nearer collision and six-degree cone unchanged",
       "zero keeps previous result and performs no new target/LOS query",
       "nonblocking enemy keeps finite aim-point depth for muzzle convergence and native Lava solver",
-      "closer blocker on partial ray still takes priority"
+      "closer blocker on partial ray still takes priority",
+      "finite assisted point must remain ahead of actual native muzzle, not only ahead of camera"
     ],
     "comparison": "Mandatory target BLOCK is replaced only in optional positive assistance. V1.130 Static real-contact/child exclusions and all accepted consumers remain identical. No channel/response changes or new hook. The shared Target consumer retains the interpolated point, rather than a wall/sky beyond the nonblocking enemy; native Lava formulas are unchanged.",
-    "tests": "AimAssist and actual ProjectileSpawn path regression extensions; Windows CI pending"
+    "tests": "68/68 Windows x64 Release suites passed; zero MSVC warnings/errors. This is not gameplay proof.",
+    "finalResult": "Both reviews agree: no new hook/channel/actor scan; selected-actor BLOCK requirement removed; finite interpolation depth and closer-cover priority retained, native origin-forward invariant explicitly checked. Positive effect still needs game validation."
   },
   "limitations": [
     "No proof yet that this was the only gate blocking the user session; native target availability/cone still require live evidence",
@@ -90,5 +92,6 @@
   "localInstall": false,
   "gameplayValidated": false,
   "lastBuiltIntermediate": "V1.132, source a970bf1c26195afe4541bc41e0e55633230126af, archive e23e3ac1b6943e17980e88b6f934525520a3e4d7; not installed, no gameplay validation",
-  "lastBuiltIntermediateCommit": "e23e3ac1b6943e17980e88b6f934525520a3e4d7"
+  "lastBuiltIntermediateCommit": "e23e3ac1b6943e17980e88b6f934525520a3e4d7",
+  "lastSourceReviewed": "c43d937f1602bdcc7bd23d97eb93bfaf80449836"
 }

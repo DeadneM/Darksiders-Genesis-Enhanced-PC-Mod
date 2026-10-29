@@ -1,6 +1,8 @@
 ## V1.133 - visibilite et profondeur de l'aide TPS
 
-**PREPAREE / CONTROLES GITHUB EN ATTENTE ; NON VALIDEE EN JEU.** Retour V1.131 : valeur augmentee puis remise a zero, aucune application journalisee. Le garde exigeant un contact bloquant avec l'ennemi est incompatible avec des profils natifs Projectile Overlap/Ignore. Verification remplacee par absence d'obstacle avant la cible ; journal des valeurs utilisees et raisons de refus. Cela reste une correction a tester, pas la preuve de l'unique cause en jeu.
+**CONSTRUITE / CONTROLEE : [68/68 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40959653744), zero avertissement/erreur MSVC. [ZIP cumulatif verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/7f3b9ec2cc71ef997543cfe5d2751a867190db6f/downloads/DarksidersGenesis_V1.133_AIM_ASSIST_TARGET_DEPTH_TEST.zip) - [Recu](docs/V1_133_DELIVERY_RECEIPT.md). Updater debug et Defender controles ; correction EXPERIMENTALE, NON VALIDEE EN JEU. V1.131 reste installee ; V1.130 reste la base acceptee.**
+
+**CONSTRUITE / CONTROLEE ; NON VALIDEE EN JEU.** Retour V1.131 : valeur augmentee puis remise a zero, aucune application journalisee. Le garde exigeant un contact bloquant avec l'ennemi est incompatible avec des profils natifs Projectile Overlap/Ignore. Verification remplacee par absence d'obstacle avant la cible ; journal des valeurs utilisees et raisons de refus. Cela reste une correction a tester, pas la preuve de l'unique cause en jeu.
 
 Le point assiste garde aussi la profondeur finie du candidat : convergence depuis le canon et solveur natif Lava ne visent pas le mur/ciel derriere un ennemi non bloquant. Un obstacle plus proche sur le rayon partiel garde la priorite.
 

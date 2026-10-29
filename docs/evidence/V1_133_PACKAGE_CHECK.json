@@ -1,0 +1,54 @@
+{
+  "sourceCommit": "c43d937f1602bdcc7bd23d97eb93bfaf80449836",
+  "archiveCommit": "7f3b9ec2cc71ef997543cfe5d2751a867190db6f",
+  "name": "DarksidersGenesis_V1.133_AIM_ASSIST_TARGET_DEPTH_TEST.zip",
+  "size": 2426622,
+  "sha256": "EABB728BF99CB83A158A6F835D46D710494ECB7810F3B3479D75D1FE56F4E833",
+  "files": {
+    "DarksidersGenesisMod.asi": {
+      "size": 2122240,
+      "method": 0,
+      "sha256": "D0E69E4CC38F1A7D1CBE55732A3F9F442DFFA93DC0A0F82C412C051754F86835"
+    },
+    "DarksidersGenesisMod.ini": {
+      "size": 6288,
+      "method": 0,
+      "sha256": "FA7B640BE61507C7BFD572560CFEA37A00AD721A330687DE13DE6F1D7C65E991"
+    },
+    "dxgi.dll": {
+      "size": 155136,
+      "method": 0,
+      "sha256": "5EB4F1BEDF8B658925DD683CDEE63D00DA8CD8B1E871F59E6776DA4C5FC1C809"
+    },
+    "README.md": {
+      "size": 142502,
+      "method": 0,
+      "sha256": "9FD2DA662FC951DF0336192B0FCC11D794ED73CBCD961CBD00150B1253076A63"
+    }
+  },
+  "oldArchiveGitBlobsUnchanged": 197,
+  "archiveCount": 198,
+  "iniKeys": 227,
+  "hotkeyIdsUnchanged": 55,
+  "acceptedProjectileBodiesCompared": true,
+  "cameraControlPowerPathsUnchanged": true,
+  "amd64": true,
+  "crcValid": true,
+  "noCompression": true,
+  "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/7f3b9ec2cc71ef997543cfe5d2751a867190db6f/downloads/DarksidersGenesis_V1.133_AIM_ASSIST_TARGET_DEPTH_TEST.zip",
+  "httpStatus": 200,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "e2e519f7ea84d4b773fd7a31611779ae68308696",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "localBuild": false,
+  "localInstall": false,
+  "newFeaturesGameplayValidated": false,
+  "chestDashBenefitValidated": false,
+  "validatedV130Preserved": true,
+  "optionalAddedAssist": true,
+  "globalOrSevenAmmoValues": true,
+  "defaultStrengthZero": true,
+  "newIniKeys": 0
+}

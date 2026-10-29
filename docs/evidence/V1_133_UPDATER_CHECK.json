@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.133_AIM_ASSIST_TARGET_DEPTH_TEST.zip",
+  "blobSha": "5d597c9d1c8e68027045984912f51e35304619bd",
+  "httpStatus": 200,
+  "sha256": "EABB728BF99CB83A158A6F835D46D710494ECB7810F3B3479D75D1FE56F4E833",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}

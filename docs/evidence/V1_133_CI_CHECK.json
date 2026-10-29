@@ -1,0 +1,16 @@
+{
+  "sourceCommit": "c43d937f1602bdcc7bd23d97eb93bfaf80449836",
+  "runId": 40959653744,
+  "jobId": 123749401239,
+  "conclusion": "success",
+  "testsPassed": 68,
+  "msvcWarnings": [],
+  "msvcErrors": [],
+  "summary": [
+    "2026-10-29T21:45:29.0193148Z 100% tests passed out of 68\r",
+    "2026-10-29T21:45:29.0193462Z Total Test time (real) =   5.27 sec\r",
+    "2026-10-29T21:45:33.8024623Z [debug 7f3b9ec] downloads: preserve verified compiled cumulative ZIP\r"
+  ],
+  "platform": "Windows x64 Release; MSVC /analyze",
+  "gameplayValidated": false
+}
