@@ -1,0 +1,24 @@
+{
+  "sourceCommit": "5d241d0e45166a927d6278d93bb5d65631403b35",
+  "runId": 40947674176,
+  "jobId": 123707207747,
+  "conclusion": "success",
+  "testsPassed": 68,
+  "msvcWarnings": [],
+  "msvcErrors": [],
+  "summary": [
+    "2026-10-29T20:23:08.4909211Z 100% tests passed out of 68\r",
+    "2026-10-29T20:23:08.4910042Z Total Test time (real) =   7.00 sec\r",
+    "2026-10-29T20:23:11.7047309Z \u001b[36;1m  git commit -m \"downloads: preserve verified compiled cumulative ZIP\"\u001b[0m\r",
+    "2026-10-29T20:23:12.9175339Z [debug 73c494f] downloads: preserve verified compiled cumulative ZIP\r"
+  ],
+  "platform": "Windows x64 Release; MSVC /analyze",
+  "gameplayValidated": false,
+  "intermediate": {
+    "runId": 40946286116,
+    "sourceCommit": "d1b0e7d0b5b4cd563832225f818dd80d5ee95a7b",
+    "conclusion": "failure",
+    "numberedZipPublished": false,
+    "reason": "New tests had Win32 far macro collision and missing namespace qualification. Corrected before final successful run; production had no compile errors."
+  }
+}

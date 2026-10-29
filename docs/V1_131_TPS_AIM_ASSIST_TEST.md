@@ -1,6 +1,6 @@
 # V1.131 - aide a la visee TPS globale ou par munition
 
-29 octobre 2026. PREPAREE / CONTROLES GITHUB EN ATTENTE ; NOUVELLE AIDE NON VALIDEE EN JEU. Base V1.130 explicitement validee par l'utilisateur («1.130 valider»), apres installation verifiee. Le masquage/pose de main vide et le controle de cible de Statique valides restent la reference. main reste V1.124 ; pas de promotion demandee.
+29 octobre 2026. CONSTRUITE / CONTROLEE ; NOUVELLE AIDE NON VALIDEE EN JEU. Base V1.130 explicitement validee par l'utilisateur («1.130 valider»), apres installation verifiee. Le masquage/pose de main vide et le controle de cible de Statique valides restent la reference. main reste V1.124 ; pas de promotion demandee.
 
 ## Reglage
 
@@ -12,7 +12,7 @@ Un seul ajustement de cible3D partage par les consommateurs de projectile, fin d
 
 Identification de la munition par classe et package exacts, dans les sept assets natifs verifies. Les faisceaux utilisent leur arme primaire enregistree, ou l'arme unique de leur capacite active native ; plusieurs consommateurs differents simultanes ne sont pas devines. Les instances inconnues gardent le chemin existant. Le filtre physique Static V1.130 consulte le meme rayon assiste puis conserve ses gardes de contact et exclusions des enfants. Le solveur natif Lava vitesse/pitch reste identique, seul son point d'entree peut changer. En mode3D OFF, la hauteur/arc natif reste prioritaire comme avant ; le centrage vertical n'est pas force. World Ender et autres pouvoirs restent exclus.
 
-Souris/manette, P1/P2 et formes passent par les autorisations TPS Camera Forward existantes ; vue native, pause/roues, cinematiques et autres modes ne recoivent pas cette correction. Pas de nouveau lien a une touche. Si aucune cible native n'est disponible (ou si elle est hors cone/occultee), aucune aide ajoutee. Sur monture/coop ou certains Hotstreak, disponibilite de la cible/arme reste a confirmer en jeu ; refus plutot qu'attribution arbitraire. Les degats, portee, vitesse de projectile et rebonds ne sont pas modifies. Pas de promesse de FPS.
+Souris/manette, P1/P2 et formes passent par les autorisations TPS Camera Forward existantes ; vue native, pause/roues, cinematiques et autres modes ne recoivent pas cette correction. Pas de nouveau lien a une touche. Si aucune cible native n'est disponible (ou si elle est hors cone/occultee), aucune aide ajoutee. Sur monture/coop ou certains Hotstreak, disponibilite de la cible/arme reste a confirmer en jeu ; refus plutot qu'attribution arbitraire. Les parametres de degats, portee et rebonds restent identiques ; Lava conserve son couple vitesse/angle calcule par les formules natives. Pas de promesse de FPS.
 
 ## Controles et essai
 

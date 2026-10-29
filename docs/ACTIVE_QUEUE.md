@@ -1,6 +1,8 @@
 ## File active - V1.131
 
-**PREPAREE / CONTROLES GITHUB EN ATTENTE ; NOUVELLE AIDE NON VALIDEE EN JEU.** V1.130 explicitement validee par l'utilisateur devient la base. Ajout demande : aide TPS0..100%, Global ou Per ammunition (sept valeurs), saisie manuelle/Default ;0 par defaut conserve V1.130. Meme calcul de cible3D pour les consommateurs, cible native visible dans un cone borne ; aucune rotation d'acteur ou nouveau hook.
+**CONSTRUITE / CONTROLEE : [68/68 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40947674176), zero avertissement/erreur MSVC. [ZIP cumulatif public verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/73c494fb4acdd7d33125427dd2b084b921a434bc/downloads/DarksidersGenesis_V1.131_TPS_AIM_ASSIST_TEST.zip) - [Recu](V1_131_DELIVERY_RECEIPT.md). Updater debug et Defender controles. Nouvelle aide EXPERIMENTALE, NON VALIDEE EN JEU ; V1.130 validee reste installee. main reste V1.124.**
+
+**CONSTRUITE / CONTROLEE ; NOUVELLE AIDE NON VALIDEE EN JEU.** V1.130 explicitement validee par l'utilisateur devient la base. Ajout demande : aide TPS0..100%, Global ou Per ammunition (sept valeurs), saisie manuelle/Default ;0 par defaut conserve V1.130. Meme calcul de cible3D pour les consommateurs, cible native visible dans un cone borne ; aucune rotation d'acteur ou nouveau hook.
 
 Neuf nouvelles cles /227 au total ;218 anciennes valeurs et55ID Hotkeys conserves. Modeles/pose UI/Statique V1.130, cameras/input et autres acquis preserves. [Perimetre, limites et essai](V1_131_TPS_AIM_ASSIST_TEST.md), [validation V1.130](evidence/V1_130_USER_VALIDATION.json). GitHub seulement, V1.130 reste installee ; pas de relance/installation automatique. main reste V1.124, archive et anciens ZIP intacts. Les sections suivantes sont historiques.
 

@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.131_TPS_AIM_ASSIST_TEST.zip",
+  "blobSha": "e647ea1bfd12560c860ac9aa7b37541473c77d0e",
+  "httpStatus": 200,
+  "sha256": "17E4F72CA4B0E61AA200893AC9AA12F601C3D1E0BC0A74F3C35D50F3BA73D07D",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}
