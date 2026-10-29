@@ -1,3 +1,11 @@
+## V1.130 - Statique et main vide restent a valider
+
+**PREPAREE / CONTROLES GITHUB EN ATTENTE ; EXPERIMENTALE, NON VALIDEE EN JEU.** Retour V1.129 : Statique et pose de main vide toujours incorrects ; utilisateur confirme que le modele masque reste cache. Masquage/modeles V1.129 conserves. Filtre initial remplace par le controle de contact pendant les reassignations natives du faisceau principal ; conservation de la derniere pose desarmee valide pendant UI/focus uniquement.
+
+Base cumulative V1.129 ;218 valeurs INI /55 Hotkey ID et autres acquis preserves. [Causes, preuves, limites et tests](V1_130_STATIC_CONTACT_UNARMED_PAUSE_TEST.md). GitHub seulement, aucune installation/relance ; main reste V1.124, archive et anciens ZIP preserves. Coop plus tard. Les sections suivantes sont historiques.
+
+---
+
 ## V1.129 - deux corrections ciblees a valider
 
 **CONSTRUITE / CONTROLEE : [67/67 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40801514118), zero avertissement/erreur MSVC. [ZIP cumulatif public verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/029b17124e24f766db66b5a171d5aed68cb6536f/downloads/DarksidersGenesis_V1.129_STATIC_TARGET_PISTOL_LIFECYCLE_TEST.zip) - [Recu](V1_129_DELIVERY_RECEIPT.md). Updater debug et Defender controles. Correctifs EXPERIMENTAUX, NON VALIDES EN JEU ; V1.128 observee installee, aucune installation V1.129. main reste V1.124.**

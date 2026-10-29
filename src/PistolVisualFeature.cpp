@@ -29,7 +29,7 @@ struct Snapshot {
     native_objects::Identity actor{},mesh{},skeleton{};
     uint32_t generation=0;uint64_t tick=0;
     float worldTime=0,speed=0,nativePhase=0;
-    bool present=false,gameplay=false,lower=false;
+    bool present=false,gameplay=false,lower=false,suspended=false;
 };
 struct AnimationSource {
     native_objects::Identity anim{},blend{},skeleton{};
@@ -42,7 +42,7 @@ struct Player {
 };
 Player g_players[2]{};
 struct Hidden {native_objects::Identity component{},actor{};bool nativeHidden=false;};
-Hidden g_hidden[2][8]{};std::atomic_uint g_captures{0};
+Hidden g_hidden[2][8]{};std::atomic_uint g_captures{0},g_uiHeld[2]{};
 template<class T> bool Read(uintptr_t p,size_t offset,T& value){native_objects::MemoryReader r;return r.Read(p,offset,value);}
 template<size_t N> bool NameIs(uintptr_t p,const char (&text)[N]){return native_objects::NameIs(g_base,p,text);}
 template<size_t N> bool NameValueIs(int index,int number,const char (&text)[N]){return native_objects::NameValueIs(g_base,index,number,text);}
@@ -123,8 +123,9 @@ bool ProcessPacket(uintptr_t data,uintptr_t component,uintptr_t renderData,int l
         if(s.mesh.address!=component||s.actor.address!=actor||s.skeleton.address!=skeleton||!s.present||
            !Live(s.mesh)||!Live(s.actor)||!Live(s.skeleton)||!pistol_appearance::Controlled(actor))continue;
         handled=true;
+        const bool frozen=s.suspended&&s.present&&p.pose.ready&&p.sampleTick;
         const bool sampled=p.pose.ready&&p.sampleTick&&now>=p.sampleTick&&now-p.sampleTick<=100;
-        if(s.lower&&FreshPose(s,now)&&sampled)changed=p.pose.Apply(mask,anchors,now,matrices,previous.count?&old:nullptr);
+        if(s.lower&&(frozen||(FreshPose(s,now)&&sampled)))changed=p.pose.Apply(mask,anchors,now,matrices,previous.count?&old:nullptr);
         else p.pose.previousMask=0;
         if(mask)changed=HideHolsters(mask,matrices,previous.count?&old:nullptr)||changed;
         break;
@@ -287,7 +288,7 @@ bool SampleAnimation(uintptr_t node,PoseContext* output,uint64_t now){
     Snapshot snapshot{};auto& source=scratch.source;AnimationClock clock{};unsigned index=2;
     AcquireSRWLockShared(&g_lock);
     for(unsigned i=0;i<2;++i){const auto& p=g_players[i];
-        if(p.source.anim&&node==p.source.anim.address+0x318&&FreshPose(p.snapshot,now)&&p.snapshot.lower){
+        if(p.source.anim&&node==p.source.anim.address+0x318&&!p.snapshot.suspended&&FreshPose(p.snapshot,now)&&p.snapshot.lower){
             snapshot=p.snapshot;source=p.source;clock=p.clock;index=i;break;
         }
     }
@@ -326,7 +327,7 @@ bool SampleAnimation(uintptr_t node,PoseContext* output,uint64_t now){
        !source.rig.Skin(local,skin)||!pose.Capture(skin,{skin[14],skin[14]}))return false;
     bool published=false;AcquireSRWLockExclusive(&g_lock);auto& p=g_players[index];
     if(p.snapshot.actor==snapshot.actor&&p.snapshot.mesh==snapshot.mesh&&p.snapshot.skeleton==snapshot.skeleton&&
-       p.snapshot.generation==snapshot.generation&&p.source.anim==source.anim&&p.snapshot.lower&&FreshPose(p.snapshot,now)){
+       p.snapshot.generation==snapshot.generation&&p.source.anim==source.anim&&!p.snapshot.suspended&&p.snapshot.lower&&FreshPose(p.snapshot,now)){
         // Retain the previous *rendered* frame across changing animation data.
         p.pose.relative=pose.relative;p.pose.clavicle=pose.clavicle;p.pose.ready=true;
         p.clock=clock;p.sampleTick=now;published=true;
@@ -393,19 +394,26 @@ void Initialize(LogFn log,bool exactExecutable){
 void OnLivePlayer(const local_players::Context& owner,uint32_t generation,bool focused){
     if(!native_tps::OnGameThread()||owner.index<0||owner.index>1)return;
     const unsigned index=unsigned(owner.index);Snapshot next{};const auto now=GetTickCount64();
+    const bool cinema=native_tps::CinematicActive(index);bool mayFreeze=false;
     if(Ready()&&Normal(owner,next)){
         next.generation=generation;next.tick=now;next.present=true;
-        next.gameplay=focused&&local_players::Matches(index,owner.character,generation)&&!native_tps::CinematicActive(index);
-        next.lower=next.gameplay&&!native_tps::IsWorldPaused(reinterpret_cast<void*>(owner.pawn))&&
-            !native_tps::RadialActive(index)&&Ranged(owner.pawn);
+        next.gameplay=focused&&local_players::Matches(index,owner.character,generation)&&!cinema;
+        const bool paused=native_tps::IsWorldPaused(reinterpret_cast<void*>(owner.pawn)),ranged=Ranged(owner.pawn);
+        next.suspended=!focused||paused||native_tps::RadialActive(index);
+        mayFreeze=paused||ranged;next.lower=next.gameplay&&!next.suspended&&ranged;
     }
     AnimationSource source{};
     AcquireSRWLockShared(&g_lock);
     const auto& before=g_players[index].snapshot;
     const bool same=before.actor==next.actor&&before.mesh==next.mesh&&before.skeleton==next.skeleton&&before.generation==next.generation;
     if(same)source=g_players[index].source;
+    // Freeze the last verified unarmed presentation only while native UI/focus
+    // suspends play. A melee/power pose that was already native stays native.
+    if(same&&next.suspended&&mayFreeze&&!cinema){
+        next.lower=before.lower;next.worldTime=before.worldTime;next.speed=before.speed;next.nativePhase=before.nativePhase;
+    }
     ReleaseSRWLockShared(&g_lock);
-    if(next.lower&&ChoiceMask()){
+    if(next.lower&&!next.suspended&&ChoiceMask()){
         float speed=0,maxSpeed=0;
         if(!Source(next,source)||!Read(source.anim.address,0x298,speed)||!Read(source.anim.address,0x294,maxSpeed)||
            !std::isfinite(speed)||!std::isfinite(maxSpeed)||speed<0||maxSpeed<1||
@@ -417,9 +425,11 @@ void OnLivePlayer(const local_players::Context& owner,uint32_t generation,bool f
     if(!same||p.source.anim!=source.anim||!next.lower||!ChoiceMask()){
         p.pose={};p.clock={};p.sampleTick=0;
     }
+    const bool frozen=next.suspended&&next.lower&&p.pose.ready&&p.sampleTick;
     p.snapshot=next;p.source=source;
     const unsigned mask=next.present?ChoiceMask():0;
     ReleaseSRWLockExclusive(&g_lock);
+    if(frozen&&g_log&&++g_uiHeld[index]<=2)g_log("Pistol OFF V1.130 UI_POSE retained: verified private unarmed arm frozen during native pause/focus hold; actor/socket pose unchanged");
     Snapshot mounted{};
     const bool horse=Ready()&&Mounted(owner,mounted);
     // Mounted hand/stowed components are separate exact owned meshes. Never
@@ -462,7 +472,8 @@ bool Ready(){return g_ready.load(std::memory_order_acquire)&&dash_combat::Presen
 bool PoseReady(unsigned index){
     if(index>=2||!Ready())return false;
     const auto now=GetTickCount64();AcquireSRWLockShared(&g_lock);const auto& p=g_players[index];
-    const bool ready=p.snapshot.lower&&FreshPose(p.snapshot,now)&&p.pose.ready&&p.sampleTick&&now>=p.sampleTick&&now-p.sampleTick<=100;
+    const bool ready=p.snapshot.lower&&p.pose.ready&&p.sampleTick&&
+        (p.snapshot.suspended||(FreshPose(p.snapshot,now)&&now>=p.sampleTick&&now-p.sampleTick<=100));
     ReleaseSRWLockShared(&g_lock);return ready;
 }
 void Shutdown(){g_ready=false;g_animationReady=false;}

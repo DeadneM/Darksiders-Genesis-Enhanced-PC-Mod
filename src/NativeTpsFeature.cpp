@@ -26,6 +26,8 @@ using DeprojectFn=bool(*)(void*,const Vec2*,Vec3*,Vec3*);
 using MousePositionFn=bool(*)(void*,float*,float*);
 using CinemaFn=void(*)(void*,bool,bool);
 using PausedFn=bool(*)(void*);
+using TraceFn=bool(*)(void*,void*,const Vec3*,const Vec3*,unsigned,const void*,const void*);
+TraceFn g_trace=nullptr;std::atomic_bool g_contactReady{false};
 Aim2Fn g_aim2=nullptr;
 Aim3Fn g_aim3=nullptr;
 DeprojectFn g_deproject=nullptr;
@@ -78,12 +80,12 @@ struct RayScope {
     void* controller;
     MouseRay ray;
     RayScope* previous;
-    bool used=false;
+    bool used=false,wantContact=false,contactSeen=false;native_objects::Identity contact{};
 };
 thread_local RayScope* g_scope=nullptr;
 struct ScopedRay {
     RayScope scope;
-    ScopedRay(void* c,const MouseRay& r):scope{c,r,g_scope}{g_scope=&scope;}
+    ScopedRay(void* c,const MouseRay& r,bool contact=false):scope{c,r,g_scope}{scope.wantContact=contact;g_scope=&scope;}
     ~ScopedRay(){g_scope=scope.previous;}
 };
 bool Finite(const Vec3& v){
@@ -94,6 +96,24 @@ bool Context(void* actor,MouseRay& r){
     const float n=r.direction.x*r.direction.x+r.direction.y*r.direction.y+
         r.direction.z*r.direction.z;
     return Finite(r.origin)&&Finite(r.direction)&&n>0.99f&&n<1.01f;
+}
+// UWorld::LineTraceSingleByChannel: seven arguments proved at 571F6D
+// and 171E560. Observe only the result of OUR synchronous camera query.
+// No query parameter, channel, collision result or return value is changed.
+bool ObserveTrace(void* result,bool hit,uintptr_t caller){
+    if(!g_scope||!g_scope->wantContact||caller!=0x571F72)return false;
+    g_scope->contactSeen=true;g_scope->contact={};
+    struct Weak {int index,serial;};Weak weak{};unsigned char flags=0;
+    native_objects::MemoryReader reader;uintptr_t actor=0;int serial=0;uint32_t itemFlags=0;
+    const auto at=reinterpret_cast<uintptr_t>(result);
+    if(hit&&reader.Read(at,0,flags)&&(flags&1)&&reader.Read(at,0x68,weak)&&weak.serial>0&&
+       native_objects::Item(reader,g_base,weak.index,actor,serial,itemFlags)&&serial==weak.serial)
+        g_scope->contact={actor,weak.index,weak.serial};
+    return true;
+}
+bool HookTrace(void* world,void* result,const Vec3* from,const Vec3* to,unsigned channel,const void* params,const void* response){
+    const bool hit=g_trace&&g_trace(world,result,from,to,channel,params,response);
+    ObserveTrace(result,hit,reinterpret_cast<uintptr_t>(_ReturnAddress())-g_base);return hit;
 }
 bool HookDeproject(void* controller,const Vec2* pixel,Vec3* origin,Vec3* direction){
     // This is a shared UE helper. Only the exact game mouse collision-helper
@@ -138,12 +158,13 @@ Vec3 FarTarget(const MouseRay& r){
             r.origin.z+100000.0f*r.direction.z};
 }
 bool QueryTarget(void* controller,void* actor,const MouseRay& ray,const Vec3* source,
-                 Vec3& target,bool& hit,void* extra){
+                 Vec3& target,bool& hit,void* extra,native_objects::Identity* contact=nullptr){
     return tps_aim::ForwardTarget(ray,source,target,hit,[&](const MouseRay& current,Vec3& point,bool& collision){
-        NativeTarget fresh{};Vec3 native{};ScopedRay scope(controller,current);
+        NativeTarget fresh{};Vec3 native{};ScopedRay scope(controller,current,contact!=nullptr);
         g_aim3(controller,&native,actor,&fresh,false,extra);
-        if(!scope.scope.used)return false;
+        if(!scope.scope.used||(contact&&!scope.scope.contactSeen))return false;
         collision=fresh.valid&&Finite(fresh.point);point=collision?fresh.point:FarTarget(current);
+        if(contact)*contact=collision?scope.scope.contact:native_objects::Identity{};
         return Finite(point);
     });
 }
@@ -268,6 +289,17 @@ bool Install(RayProvider provider,LogFn log){
             if(MH_EnableHook(target)!=MH_OK){MH_RemoveHook(target);g_widgetState=nullptr;g_widgetController=nullptr;}
         }
     }
+    // Optional result observer. Its failure cannot disable accepted targeting.
+    constexpr unsigned char traceBytes[]={0x4C,0x8B,0xDC,0x48,0x83,0xEC,0x78,0x41,0x8B,0x41,0x08,0xF2,0x41,0x0F,0x10,0x01};
+    constexpr unsigned char siteBytes[]={0xE8,0xEE,0xC5,0x1A,0x01};
+    void* traceTarget=reinterpret_cast<void*>(g_base+0x171E560);void* traceOriginal=nullptr;
+    if(!std::memcmp(traceTarget,traceBytes,sizeof(traceBytes))&&!std::memcmp(reinterpret_cast<void*>(g_base+0x571F6D),siteBytes,sizeof(siteBytes))&&
+       MH_CreateHook(traceTarget,reinterpret_cast<void*>(&HookTrace),&traceOriginal)==MH_OK){
+        g_trace=reinterpret_cast<TraceFn>(traceOriginal);
+        if(MH_EnableHook(traceTarget)==MH_OK)g_contactReady=true;
+        else {MH_RemoveHook(traceTarget);g_trace=nullptr;}
+    }
+    if(log)log(g_contactReady?"TPS V1.130 CONTACT READY: scoped native camera collision identity; parameters and result unchanged":"TPS V1.130 CONTACT unavailable: previous targeting retained");
     g_ready.store(true,std::memory_order_release);
     if(log)log("TPS V1.32 native target hooks READY: local physical mouse only; scoped deprojection; native collision; native cinematic observer; gameplay EXPERIMENTAL");
     return true;
@@ -395,6 +427,14 @@ bool TraceCameraTarget(const local_players::Context& owner,const MouseRay& ray,V
     const float length=ray.direction.x*ray.direction.x+ray.direction.y*ray.direction.y+ray.direction.z*ray.direction.z;
     if(length<0.99f||length>1.01f)return false;
     return QueryTarget(reinterpret_cast<void*>(owner.controller),reinterpret_cast<void*>(owner.pawn),ray,source,target,hit,nullptr);
+}
+bool TraceCameraContact(const local_players::Context& owner,const MouseRay& ray,Vec3& target,bool& hit,native_objects::Identity& contact,const Vec3* source){
+    contact={};
+    if(!g_contactReady.load()||!g_ready.load()||!g_aim3||!OnGameThread()||owner.index<0||owner.index>1||!owner.controller||!owner.pawn||
+       !Finite(ray.origin)||!Finite(ray.direction))return false;
+    const float length=ray.direction.x*ray.direction.x+ray.direction.y*ray.direction.y+ray.direction.z*ray.direction.z;
+    if(length<.99f||length>1.01f)return false;
+    return QueryTarget(reinterpret_cast<void*>(owner.controller),reinterpret_cast<void*>(owner.pawn),ray,source,target,hit,nullptr,&contact);
 }
 void Report(){
     if(!g_log)return;

@@ -12,7 +12,7 @@ unsigned char projectileClass[0x100]{},defaults[0x100]{},movement[0x180]{},root[
 unsigned char beam[0x650]{},volume[0x300]{};
 void* tree[1]{cls+0x30};void* foreignTree[1]{foreignClass+0x30};void* lavaTree[2]{cls+0x30,lavaClass+0x30};
 uintptr_t componentTable[0x5E8/8]{};
-bool validRay=true;
+bool validRay=true,contactAvailable=true;dg::native_objects::Identity contactActor{};
 bool providerEnabled=true,gameThread=true,paused=false,wheel=false,collision=true,badSpeed=false;
 dg::local_players::Context context{};
 const void* forwarded=nullptr;
@@ -156,7 +156,19 @@ void Run(){
     auto retained=[&](uintptr_t caller=0x6981D0){const auto n=assignments;AssignTarget(beam,root,caller);Check(assignments==n+1&&assigned==root,"noneligible assignment forwarded exactly once");};
     AssignTarget(beam,root,0x6981D0);Check(assignments==1&&!assigned&&g_staticTargets[0]==1,"TPS primary Static omits only initial assisted target");
     context.index=1;AssignTarget(beam,root,0x6981D0);Check(!assigned&&g_staticTargets[1]==1,"P2 has independent primary authority");context.index=0;
-    retained(0x61D000); // hit/chain retargeting must stay native
+    AssignTarget(beam,root,0x5B9F80);Check(!assigned,"ongoing aim update cannot reintroduce an assisted target");
+    unsigned char victim[0x100]{},other[0x100]{},hitRecord[0x8C]{},objects[48]{};
+    void* objectChunks[1]{objects};Put(image.data(),0x3959680,reinterpret_cast<uintptr_t>(objectChunks));Put(image.data(),0x3959694,2);
+    Put(objects,24,reinterpret_cast<uintptr_t>(victim));Put(objects,40,33);contactActor={reinterpret_cast<uintptr_t>(victim),1,33};
+    Put(root,0xE8,static_cast<void*>(victim));Put(volume,0x280,reinterpret_cast<uintptr_t>(hitRecord));Put(volume,0x288,1);Put(volume,0x28C,1);
+    Put<unsigned char>(hitRecord,4,1);Put(hitRecord,0x6C,std::array<int,2>{1,33});
+    retained(0x5B9F80);Check(g_staticContacts[0]==1,"actual blocking contact on both native ray and beam keeps native target and chains");
+    Put(root,0xE8,static_cast<void*>(other));AssignTarget(beam,root,0x5B9F80);Check(!assigned,"a different beam or ray victim cannot authorize the assisted enemy");Put(root,0xE8,static_cast<void*>(victim));
+    Put<unsigned char>(hitRecord,4,0);AssignTarget(beam,root,0x5B9F80);Check(!assigned,"nonblocking overlap does not invent a confirmed hit");Put<unsigned char>(hitRecord,4,1);
+    Put(objects,40,34);AssignTarget(beam,root,0x5B9F80);Check(!assigned,"recycled contact identity cannot authorize targeting");Put(objects,40,33);
+    contactActor={};AssignTarget(beam,root,0x76B3E0);Check(!assigned,"reflected target reassignment follows the same root policy");
+    contactAvailable=false;retained();contactAvailable=true;
+    Put(staticWeapon,0x688,static_cast<void*>(root));retained(0x76B3E0);Put(staticWeapon,0x688,static_cast<void*>(beam)); // child/unregistered beam remains native
     providerEnabled=false;retained();providerEnabled=true;
     validRay=false;retained();validRay=true;
     paused=true;retained();paused=false;wheel=true;retained();wheel=false;
@@ -175,6 +187,7 @@ void Run(){
 }
 namespace dg::native_tps {
 bool TargetReady(){return true;}
+bool TraceCameraContact(const local_players::Context&,const MouseRay&,Vec3& target,bool& hit,dg::native_objects::Identity& actor,const Vec3*){target=hitTarget;hit=collision;actor=contactActor;return contactAvailable;}
 bool OnGameThread(){return gameThread;}
 bool CinematicActive(unsigned){return false;}
 bool IsWorldPaused(void*){return paused;}

@@ -163,6 +163,13 @@ void Runtime(){
     Check(ProcessPacket(reinterpret_cast<uintptr_t>(packets[0]),s.mesh.address,0x1234,0,1400)&&Equal(current[0][41],baseline[41])&&current[0][79].m[0][0]==0,"expired pose keeps permanent holster hiding without reusing animation");
     current[0]=baseline;s.gameplay=false;
     Check(ProcessPacket(reinterpret_cast<uintptr_t>(packets[0]),s.mesh.address,0x1234,0,1500)&&Equal(current[0][41],baseline[41])&&current[0][79].m[0][0]==0,"focus loss keeps holster hidden and leaves native arms intact");s.gameplay=true;
+    // Same already verified pose survives native UI suspension beyond either TTL.
+    current[0]=baseline;current[0][41]=Translation(900,3,8);s.suspended=true;s.gameplay=false;s.lower=true;
+    Check(ProcessPacket(reinterpret_cast<uintptr_t>(packets[0]),s.mesh.address,0x1234,0,9000)&&Equal(current[0][41],Translation(41,0,5)),"native paused packet keeps verified OFF arm without a fresh sample");
+    Check(Equal(current[0][17],baseline[17]),"UI pose does not change the equipped opposite arm");
+    s.suspended=false;current[0]=baseline;current[0][41]=Translation(900,3,8);
+    ProcessPacket(reinterpret_cast<uintptr_t>(packets[0]),s.mesh.address,0x1234,0,9001);
+    Check(Equal(current[0][41],Translation(900,3,8)),"UI close cannot reuse an expired pose in active gameplay");s.gameplay=true;
     s.tick=1100;Put(items,size_t(s.actor.index)*24+16,s.actor.serial+1);
     Check(!ProcessPacket(reinterpret_cast<uintptr_t>(packets[0]),s.mesh.address,0x1234,0,1100),"reused actor serial cannot reuse cached pose");
     Put(items,size_t(s.actor.index)*24+16,s.actor.serial);
@@ -248,7 +255,10 @@ void Runtime(){
     OnLivePlayer(horse,10,true);
     Check(!PoseReady(0)&&Get<unsigned char>(guns[0][0],0x1CC)==0x61,"return to foot keeps OFF immediately while waiting for a fresh animation evaluation");
     Check(!g_players[0].pose.ready,"no frozen arm pose survives a transformation");
+    auto& footPlayer=g_players[0];Check(footPlayer.pose.Capture(current[0],{current[0][14],current[0][14]}),"seed a verified gameplay sample before UI suspension");
+    footPlayer.snapshot.lower=true;footPlayer.sampleTick=1;
     paused=radial=true;OnLivePlayer(horse,10,true);HookHidden(guns[0][0],false,1);
+    Check(footPlayer.snapshot.suspended&&footPlayer.snapshot.lower&&footPlayer.pose.ready,"native UI observer preserves the already verified unarmed presentation");
     Check(Get<unsigned char>(guns[0][0],0x1CC)==0x61,"normal-foot wheel cannot briefly show the hidden pistol");
     Restore(g_hidden[0][0]);OnMeshAssigned(guns[0][0]);
     Check(Get<unsigned char>(guns[0][0],0x1CC)==0x61,"mesh refresh reapplies OFF before the next live observer");
@@ -312,6 +322,7 @@ void AnimationBoundary(){
           !Equal(first,p.pose.relative[0][0]),"animation refresh changes arm instead of replaying frozen rest");
     Check(std::memcmp(&native,&beforeNative,sizeof(native))==0,"native output context and gameplay pose not overwritten");
     const auto n=sampleCalls;
+    snapshot.suspended=true;Check(!SampleAnimation(reinterpret_cast<uintptr_t>(anim)+0x318,&native,1050)&&sampleCalls==n,"suspended UI reuses private presentation without extra native evaluation");snapshot.suspended=false;
     snapshot.lower=false;Check(!SampleAnimation(reinterpret_cast<uintptr_t>(anim)+0x318,&native,1050)&&sampleCalls==n,"melee and powers do not sample replacement arms");snapshot.lower=true;
     Check(!SampleAnimation(reinterpret_cast<uintptr_t>(anim)+0x320,&native,1050),"foreign animation root rejected");
     required[20]=19;Check(!SampleAnimation(reinterpret_cast<uintptr_t>(anim)+0x318,&native,1050),"unsupported compact mapping keeps native pose");required[20]=20;

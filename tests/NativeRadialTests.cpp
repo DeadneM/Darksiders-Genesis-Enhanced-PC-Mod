@@ -44,6 +44,20 @@ void Run(){
     Check(!RadialActive(1),"respawn generation expires an old selector");
     HookWidgetState(widgets[1],1,false);Put(items,40,8);
     Check(!RadialActive(1),"recycled widget serial cannot retain selection authority");
+    // Contact observer records only our scoped query, without touching hit bytes.
+    unsigned char hitResult[0x88]{};Put<unsigned char>(hitResult,0,1);Put(hitResult,0x68,std::array<int,2>{0,7});
+    const auto hitBefore=std::to_array(hitResult);
+    MouseRay ray{};ScopedRay scope(controllers[0],ray,true);
+    Check(!ObserveTrace(hitResult,true,0x123)&&!scope.scope.contactSeen,"unrelated trace caller is not captured");
+    Check(ObserveTrace(hitResult,true,0x571F72)&&scope.scope.contact.address==reinterpret_cast<uintptr_t>(widgets[0]),"camera trace contact uses exact native actor weak identity");
+    Check(std::memcmp(hitBefore.data(),hitResult,sizeof(hitResult))==0,"read-only contact capture preserves all native hit bytes");
+    Put(items,16,8);ObserveTrace(hitResult,true,0x571F72);Check(!scope.scope.contact,"stale actor serial rejected");Put(items,16,7);
+    ObserveTrace(hitResult,false,0x571F72);Check(scope.scope.contactSeen&&!scope.scope.contact,"native miss remains a miss");
+    {ScopedRay nested(controllers[1],ray,false);Check(!ObserveTrace(hitResult,true,0x571F72),"ordinary native queries do not collect contact metadata");}
+    Check(g_scope==&scope.scope,"nested query restores the previous scope");
+    static unsigned traceCalls=0;g_trace=+[](void* world,void* result,const Vec3* from,const Vec3* to,unsigned channel,const void* params,const void* response){
+        ++traceCalls;Check(world==controllers[0]&&result==widgets[0]&&from==nullptr&&to==nullptr&&channel==19&&params==actors[0]&&response==actors[1],"all seven trace arguments forwarded unchanged");return true;};
+    Check(HookTrace(controllers[0],widgets[0],nullptr,nullptr,19,actors[0],actors[1])&&traceCalls==1,"native trace return and single original invocation preserved");g_trace=nullptr;
     dg::tps_input::MouseFireRouting mouse;
     Check(mouse.Begin(5,1)==1&&mouse.Begin(5,2)==1,"held mouse route survives a binding change");
     Check(mouse.Release(5)==1&&mouse.Release(5)==0,"route releases its original native button exactly once");

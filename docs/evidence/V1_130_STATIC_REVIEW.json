@@ -1,0 +1,41 @@
+{
+  "base": "5c98dac9e7dfb564c56d2830e0c9ae96468ed72c",
+  "validatedStable": "V1.124 on main; later accepted features preserved",
+  "observedVersion": "V1.129",
+  "userResult": {
+    "static": "ineffective/rejected",
+    "modelVisibility": "user confirms second gun remains hidden; only empty hand rises",
+    "uiArmPose": "rejected"
+  },
+  "runtime": {
+    "staticInitialFiltered": 2,
+    "beamForward": 159
+  },
+  "pass1": "all changed production paths enumerated; accepted projectile, input/camera and model functions unchanged; INI identical",
+  "pass2": "native tail jump restores target after creation; seven trace arguments verified; FHitResult weak identity and volume last-block layout traced independently; paused pose reuse limited to same live actor/body/skeleton/generation",
+  "comparison": "initial-call filter replaced, not stacked; existing render-arm solver and accepted model visibility retained; new result observer changes neither trace parameters nor native result",
+  "changedProduction": [
+    "src/BuildInfo.h",
+    "src/NativeTpsFeature.cpp",
+    "src/NativeTpsFeature.h",
+    "src/PistolVisualFeature.cpp",
+    "src/ProjectileAimFeature.cpp"
+  ],
+  "newHook": "read-only identity capture during requested synchronous camera query only; optional and independently guarded",
+  "unchanged": [
+    "XInput/RawInput and rebindable actions",
+    "camera/blur",
+    "power transfers and timing",
+    "damage/range/secondary beam implementation",
+    "model and visibility lifecycle V1.129",
+    "218 INI values /55 Hotkey IDs"
+  ],
+  "testsExtended": [
+    "ProjectileSpawn",
+    "PistolVisual",
+    "NativeRadial"
+  ],
+  "gameplayValidated": false,
+  "localBuild": false,
+  "localInstall": false
+}
