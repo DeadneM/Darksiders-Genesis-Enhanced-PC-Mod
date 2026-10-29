@@ -42,7 +42,7 @@ RayProvider g_provider=nullptr;
 uintptr_t g_base=0;
 LogFn g_log=nullptr;
 std::atomic_uint32_t g_calls{0},g_adjusted[2]{},g_finished[2]{},g_lobbed[2]{},g_lavaRejected{0};
-std::atomic_uint32_t g_beams[2]{};
+std::atomic_uint32_t g_beams[2]{},g_assisted[2]{};
 template<class T> bool Read(const void* object,size_t offset,T& value){
     native_objects::MemoryReader reader;
     return reader.Read(reinterpret_cast<uintptr_t>(object),offset,value);
@@ -86,18 +86,81 @@ bool Direction(const Vec3& origin,const Vec3& target,Rotator& rotation){
     rotation.pitch=std::atan2(z,flat)*deg;rotation.yaw=std::atan2(y,x)*deg;
     return std::isfinite(rotation.pitch)&&std::isfinite(rotation.yaw);
 }
-bool Target(const local_players::Context& owner,const Vec3& origin,Vec3& target,bool& hit){
+bool Named(uintptr_t object,const char* expected){
+    struct Name {int index,number;} name{};
+    return Read(reinterpret_cast<void*>(object),0x18,name)&&native_objects::NameValueEquals(g_base,name.index,name.number,expected);
+}
+int AmmoKind(void* weapon){
+    uintptr_t cls=0,package=0;uint32_t flags=0;
+    if(!Read(weapon,8,flags)||(flags&0x18030u)||!Read(weapon,0x10,cls)||!Read(reinterpret_cast<void*>(cls),0x20,package))return -1;
+    for(unsigned i=0;i<aim_assist::Count;++i)if(Named(cls,aim_assist::Classes[i])&&Named(package,aim_assist::Packages[i]))return int(i);
+    return -1;
+}
+bool AssistConfigured(){const auto& r=runtime::Get();return r.tpsAimAssistMode.load()==1||aim_assist::Strength(r.tpsAimAssistGlobal.load())>0;}
+float AssistStrength(void* weapon){
+    if(!AssistConfigured())return 0;const int kind=AmmoKind(weapon);if(kind<0||unsigned(kind)>=aim_assist::Count)return 0;
+    const auto& r=runtime::Get();return aim_assist::Strength(r.tpsAimAssistMode.load()==1?r.tpsAimAssistAmmo[unsigned(kind)].load():r.tpsAimAssistGlobal.load());
+}
+void* BeamWeapon(void* beam){
+    if(!AssistConfigured())return nullptr;
+    void* actor=nullptr;void* registry=nullptr;void* reciprocal=nullptr;void* list=nullptr;int count=0,capacity=0;
+    if(!Read(beam,0x108,actor)||!Read(actor,0xC78,registry)||!Read(registry,0xE8,reciprocal)||reciprocal!=actor||
+       !Read(registry,0x108,list)||!list||!Read(registry,0x110,count)||!Read(registry,0x114,capacity)||count<4||count>capacity||capacity>32)return nullptr;
+    void* weapons[2]{};
+    for(unsigned i=0;i<2;++i){
+        void* current=nullptr;if(!Read(list,(i+2)*8,weapons[i])||!Read(weapons[i],0xE8,reciprocal)||reciprocal!=actor)weapons[i]=nullptr;
+        // Only the proven native BeamShot class owns this member.
+        if(weapons[i]&&Typed(weapons[i],0x380A4F0)&&Read(weapons[i],0x688,current)&&current==beam)return weapons[i];
+    }
+    // Projectile-based Hotstreak beams can instead identify their active
+    // native firing ability. Ambiguous simultaneous consumers fail open.
+    void* abilities=nullptr;void* active=nullptr;int n=0,cap=0;void* result=nullptr;
+    if(!Read(actor,0xC70,abilities)||!Read(abilities,0xE8,reciprocal)||reciprocal!=actor||!Read(abilities,0xF8,active)||
+       !Read(abilities,0x100,n)||!Read(abilities,0x104,cap)||n<0||n>cap||cap>32||(!active&&n))return nullptr;
+    for(int i=0;i<n;++i){
+        void* ability=nullptr;void* weapon=nullptr;void* owner=nullptr;uint32_t flags=0;
+        if(!Read(active,size_t(i)*8,ability)||!Read(ability,8,flags)||(flags&0x18030u)||!Read(ability,0x1B0,owner)||owner!=actor||
+           !Read(ability,0x50,weapon)||!weapon||(weapon!=weapons[0]&&weapon!=weapons[1])||AmmoKind(weapon)<0)continue;
+        if(result&&result!=weapon)return nullptr;result=weapon;
+    }
+    return result;
+}
+bool AssistedRay(const local_players::Context& owner,const Vec3& origin,void* weapon,const native_tps::MouseRay& ray,const Vec3& baseTarget,bool blocked,native_tps::MouseRay& assisted){
+    const float strength=AssistStrength(weapon);if(strength<=0||owner.index<0||owner.index>1||!native_tps::OnGameThread())return false;
+    // The native aim update stores its already-selected actor in this weak
+    // field (5B9C12..5B9C1C). Never scan actors or invent a target.
+    struct Weak {int index,serial;} weak{};native_objects::MemoryReader reader;uintptr_t actor=0,root=0,reciprocal=0;int serial=0;uint32_t flags=0;
+    if(!Read(reinterpret_cast<void*>(owner.character),0xE98,weak)||weak.serial<=0||
+       !native_objects::Item(reader,g_base,weak.index,actor,serial,flags)||serial!=weak.serial||actor==owner.character||actor==owner.pawn||
+       !Read(reinterpret_cast<void*>(actor),8,flags)||(flags&0x18030u)||!Read(reinterpret_cast<void*>(actor),0x158,root)||
+       !Read(reinterpret_cast<void*>(root),0xE8,reciprocal)||reciprocal!=actor)return false;
+    Vec3 candidate{};if(!Read(reinterpret_cast<void*>(root),0x1A0,candidate)||!Finite(candidate))return false;
+    native_tps::MouseRay full{},partial{};
+    if(!aim_assist::Pull(ray,candidate,baseTarget,blocked,strength,partial)||!aim_assist::Pull(ray,candidate,baseTarget,blocked,100,full))return false;
+    Vec3 contactPoint{};bool hit=false;native_objects::Identity contact{};
+    if(!native_tps::TraceCameraContact(owner,full,contactPoint,hit,contact,&origin)||!hit||contact.address!=actor||contact.index!=weak.index||contact.serial!=weak.serial)return false;
+    const unsigned player=unsigned(owner.index);if(player>1)return false;assisted=partial;++g_assisted[player];
+    if(g_log&&g_assisted[player].load()<=4)g_log("TPS V1.131 AIM_ASSIST applied: native-selected visible target inside6-degree cone; added strength only; gameplayValidation=USER_REQUIRED");
+    return true;
+}
+bool Target(const local_players::Context& owner,const Vec3& origin,Vec3& target,bool& hit,void* weapon=nullptr){
     native_tps::MouseRay ray{};
-    return g_provider&&g_provider(owner,ray)&&native_tps::TraceCameraTarget(owner,ray,target,hit,&origin);
+    if(!g_provider||!g_provider(owner,ray)||!native_tps::TraceCameraTarget(owner,ray,target,hit,&origin))return false;
+    native_tps::MouseRay assisted{};
+    if(weapon&&AssistedRay(owner,origin,weapon,ray,target,hit,assisted)){
+        Vec3 point{};bool collision=false;
+        if(native_tps::TraceCameraTarget(owner,assisted,point,collision,&origin)){target=point;hit=collision;}
+    }
+    return true;
 }
 bool AbilityOrigin(void* ability,Vec3& origin){
     void* instigator=nullptr;void* root=nullptr;
     return Read(ability,0x48,instigator)&&Typed(instigator,0x3A58AB0)&&
         Read(instigator,0x158,root)&&Read(root,0x1A0,origin)&&Finite(origin);
 }
-bool AimAt(const local_players::Context& owner,const Vec3& origin,Rotator& rotation,bool nativeVertical=false){
+bool AimAt(const local_players::Context& owner,const Vec3& origin,Rotator& rotation,bool nativeVertical=false,void* weapon=nullptr){
     Vec3 target{};bool hit=false;
-    if(!Target(owner,origin,target,hit))return false;
+    if(!Target(owner,origin,target,hit,weapon))return false;
     Rotator adjusted=rotation;
     if(!Direction(origin,target,adjusted))return false;
     // Shared yaw/release/target correction is NEVER disabled by the option.
@@ -119,7 +182,7 @@ Rotator* Rotation(void* weapon,Rotator* out,const void* input,uintptr_t caller){
     // parameter (3640478); 7CF9B0 forwards that actual value as R8.
     Vec3 origin{};if(!Read(input,0,origin)||!Finite(origin))return result;
     Rotator adjusted=*result;
-    if(AimAt(owner,origin,adjusted)){*result=adjusted;Observe("PISTOL",owner,owner.index==0?++g_adjusted[0]:++g_adjusted[1],adjusted);}
+    if(AimAt(owner,origin,adjusted,false,weapon)){*result=adjusted;Observe("PISTOL",owner,owner.index==0?++g_adjusted[0]:++g_adjusted[1],adjusted);}
     return result;
 }
 Rotator* HookRotation(void* weapon,Rotator* out,const void* input){
@@ -131,7 +194,7 @@ Rotator* HookRotation(void* weapon,Rotator* out,const void* input){
 // assignments throughout the life of an owned primary Static Shot.
 // A real contact on both the camera ray and beam volume remains eligible.
 // Child beams, hit retargeting, other ammunition and native view stay native.
-bool PrimaryStatic(void* beam,local_players::Context& owner){
+bool PrimaryStatic(void* beam,local_players::Context& owner,void** source=nullptr){
     if(!g_staticReady.load()||!native_tps::OnGameThread()||!native_tps::TargetReady()||!Typed(beam,0x380A4B0))return false;
     void* actor=nullptr;void* root=nullptr;void* volume=nullptr;void* registry=nullptr;void* reciprocal=nullptr;void* list=nullptr;
     unsigned char type=0,role=0;int count=0,capacity=0;
@@ -147,7 +210,7 @@ bool PrimaryStatic(void* beam,local_players::Context& owner){
         if(Read(list,slot*8,weapon)&&weapon&&Read(weapon,8,flags)&&!(flags&0x18030u)&&
            Read(weapon,0xE8,reciprocal)&&reciprocal==actor&&Read(weapon,0x688,primary)&&primary==beam&&
            Read(weapon,0x10,cls)&&native_objects::NameIs(g_base,cls,"MayhemStaticShot_Blueprint_C")&&
-           Read(reinterpret_cast<void*>(cls),0x20,package)&&native_objects::NameIs(g_base,package,"/Game/Blueprints/Player/MayhemStaticShot_Blueprint"))return true;
+           Read(reinterpret_cast<void*>(cls),0x20,package)&&native_objects::NameIs(g_base,package,"/Game/Blueprints/Player/MayhemStaticShot_Blueprint")){if(source)*source=weapon;return true;}
     }
     return false;
 }
@@ -165,14 +228,19 @@ bool BeamContact(void* beam,void* component,const native_objects::Identity& came
         weak.index==cameraContact.index&&weak.serial==cameraContact.serial&&native_objects::Alive(reader,g_base,cameraContact);
 }
 void AssignTarget(void* beam,void* component,uintptr_t caller){
-    local_players::Context owner{};native_tps::MouseRay ray{};bool manual=false;
-    if(component&&PrimaryStatic(beam,owner)&&g_provider&&g_provider(owner,ray)){
+    local_players::Context owner{};native_tps::MouseRay ray{};bool manual=false;void* weapon=nullptr;
+    if(component&&PrimaryStatic(beam,owner,&weapon)&&g_provider&&g_provider(owner,ray)){
         const unsigned player=unsigned(owner.index);if(player>1){if(g_setTarget)g_setTarget(beam,component);return;}++g_staticChecks[player];
         const float length=ray.direction.x*ray.direction.x+ray.direction.y*ray.direction.y+ray.direction.z*ray.direction.z;
         Vec3 target{},origin{};bool hit=false;void* volume=nullptr;native_objects::Identity contact{};
         if(Finite(ray.origin)&&Finite(ray.direction)&&std::isfinite(length)&&length>.99f&&length<1.01f&&
            Read(beam,0x5E8,volume)&&Read(volume,0x1A0,origin)&&Finite(origin)&&
            native_tps::TraceCameraContact(owner,ray,target,hit,contact,&origin)){
+            native_tps::MouseRay assisted{};
+            if(AssistedRay(owner,origin,weapon,ray,target,hit,assisted)){
+                Vec3 point{};bool collision=false;native_objects::Identity adjustedContact{};
+                if(native_tps::TraceCameraContact(owner,assisted,point,collision,adjustedContact,&origin)){target=point;hit=collision;contact=adjustedContact;}
+            }
             manual=!hit||!BeamContact(beam,component,contact);
             if(!manual)++g_staticContacts[player];
         }else ++g_staticUnavailable[player];
@@ -204,7 +272,7 @@ Vec3* BeamForward(void* component,Vec3* out,uintptr_t caller){
     Rotator rotation{};
     // In simple mode preserve the native beam's vertical direction, just as
     // ordinary shots retain native pitch; common target/yaw correction stays.
-    if(!Finite(*result)||!Direction(Vec3{},*result,rotation)||!AimAt(owner,origin,rotation))return result;
+    if(!Finite(*result)||!Direction(Vec3{},*result,rotation)||!AimAt(owner,origin,rotation,false,BeamWeapon(beam)))return result;
     constexpr float rad=0.01745329251994329577f;
     const float pitch=rotation.pitch*rad,yaw=rotation.yaw*rad;
     *result={std::cos(pitch)*std::cos(yaw),std::cos(pitch)*std::sin(yaw),std::sin(pitch)};
@@ -220,8 +288,8 @@ Rotator* Finish(void* ability,Rotator* out){
     local_players::Context owner{};
     if(!AbilityOwner(ability,0x3811260,owner))return result;
     Vec3 origin{};if(!AbilityOrigin(ability,origin))return result;
-    Rotator adjusted=*result;
-    if(AimAt(owner,origin,adjusted,Typed(ability,0x3811050))){*result=adjusted;Observe("ABILITY_FINAL",owner,owner.index==0?++g_finished[0]:++g_finished[1],adjusted);}
+    Rotator adjusted=*result;void* weapon=nullptr;Read(ability,0x50,weapon);
+    if(AimAt(owner,origin,adjusted,Typed(ability,0x3811050),weapon)){*result=adjusted;Observe("ABILITY_FINAL",owner,owner.index==0?++g_finished[0]:++g_finished[1],adjusted);}
     return result;
 }
 // The actual Lava preparation uses these native formulas and its own speed,
@@ -274,7 +342,9 @@ void UpdateLava(void* ability){
     if(g_lava)g_lava(ability); // native setup, CDO and charge execute first
     if(!native_tps::OnGameThread()||!runtime::Get().tps3DAimEnabled.load())return;
     local_players::Context owner{};Vec3 origin{},target{};bool hit=false;
-    if(!AbilityOwner(ability,0x3811050,owner)||!AbilityOrigin(ability,origin)||!Target(owner,origin,target,hit))return;
+    if(!AbilityOwner(ability,0x3811050,owner)||!AbilityOrigin(ability,origin))return;
+    void* weapon=nullptr;Read(ability,0x50,weapon);
+    if(!Target(owner,origin,target,hit,weapon))return;
     const char* rejected="unknown";uint32_t defaultFlags=0;
     if(!SolveLava(ability,owner,target,hit,rejected,defaultFlags)){
         const auto n=++g_lavaRejected;
@@ -337,6 +407,7 @@ void Initialize(LogFn log,bool exactExecutable,RayProvider provider){
     if(log)log(g_staticReady?"TPS V1.130 STATIC_CONTACT READY: primary target lifetime filtered by physical contact; secondary beams native; EXPERIMENTAL":"TPS V1.130 STATIC_CONTACT unavailable; accepted aiming paths retained");
 }
 void Report(){
+    if(g_log){char line[160]{};sprintf_s(line,"TPS V1.131 AIM_ASSIST totals P1=%u P2=%u addedAssistanceOnly=1 gameplayValidation=USER_REQUIRED",g_assisted[0].load(),g_assisted[1].load());g_log(line);}
     if(g_log){char line[300]{};sprintf_s(line,"TPS V1.130 STATIC_CONTACT totals checks=%u/%u filtered=%u/%u actualContact=%u/%u queryUnavailable=%u/%u primaryOnly=1 impactValidation=USER_REQUIRED",g_staticChecks[0].load(),g_staticChecks[1].load(),g_staticTargets[0].load(),g_staticTargets[1].load(),g_staticContacts[0].load(),g_staticContacts[1].load(),g_staticUnavailable[0].load(),g_staticUnavailable[1].load());g_log(line);}
     if(!g_log)return;char line[260]{};
     sprintf_s(line,"TPS V1.53 TARGET3D totals native=%u pistolP1=%u P2=%u finishP1=%u P2=%u lavaP1=%u P2=%u lavaRejected=%u impactValidation=USER_REQUIRED",

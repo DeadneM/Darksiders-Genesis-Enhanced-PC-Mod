@@ -21,3 +21,7 @@ Installer via updater en gardant son INI. Statique : caisse/pot proche avec enne
 ## Installation locale demandee ensuite
 
 Sur demande explicite « installe la », V1.130 installee apres verification de fermeture du jeu. Sauvegarde V1.129 `before-V1.130-20261029-034821-7254d2ef`, ASI/DXGI/README et INI/journal precedents compares par hash ; trois fichiers remplaces depuis le ZIP controle. Seconde verification independante : ASI/DXGI AMD64, identite1.130, hashes attendus, INI byte-identique et EXE original identique. PAK non ecrits, inventaire noms/tailles/dates UTC identique. Jeu non lance ; correctifs toujours a valider par l'utilisateur. [Preuve](evidence/V1_130_INSTALL_CHECK.json).
+
+## Validation utilisateur
+
+29 octobre 2026 : message explicite utilisateur "1.130 valider". V1.130 devient la base acceptee pour la suite ; coop/monture non deduites de ce retour. [Trace](evidence/V1_130_USER_VALIDATION.json).

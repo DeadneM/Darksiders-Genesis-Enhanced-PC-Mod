@@ -3,6 +3,7 @@
 #include "EffectAppearanceSettings.h"
 
 #include "DefaultSettings.h"
+#include "AimAssistSettings.h"
 #include "MenuAppearance.h"
 #include "CameraBlurSettings.h"
 #include <array>
@@ -309,6 +310,7 @@ public:
     bool tpsLongPressToggleEnabled = true;
     bool tpsGrenadeHoldEnabled = true;
     int aimIndicatorHideMode = 2; // 0 Everywhere, 1 Default Only, 2 TPS Only, 3 Never
+    int tpsAimAssistMode=0;float tpsAimAssistGlobal=0;std::array<float,aim_assist::Count> tpsAimAssistAmmo{};
     bool tps3DAimEnabled = true;
     float tpsAimPitchOffsetDegrees = 12.0f;
     int tpsMountedAimMode = 0; // 0 camera-forward free, 1 native aim camera locked

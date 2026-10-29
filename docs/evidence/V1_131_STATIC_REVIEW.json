@@ -1,0 +1,32 @@
+{
+  "base": "0292bbf1ed96082149e9f805f50c0246c72601b9",
+  "acceptedBase": "V1.130 explicitly validated by user",
+  "newIniKeys": 9,
+  "totalIniKeys": 227,
+  "oldValuesPreserved": 218,
+  "hotkeyIdsPreserved": 55,
+  "pass1": "configuration parity, unchanged model/UI-pose/native-collision/input/camera/power modules, unchanged native paired Lava solver; new sliders zero by default",
+  "pass2": "3D projected-depth interpolation, bounded six-degree forward cone, native selected weak actor with current serial/root owner, LOS actor equality, closer native obstruction priority, exact per-consumer ammo class/package, ambiguous beam owners stay unassisted",
+  "comparison": "one common target adjustment for seven ammo types; no new hook, actor scan, native rotation write or horizontal special-case; zero bypasses all new target/LOS work",
+  "ammoClasses": [
+    "MayhemStandardShot_Blueprint_C",
+    "MayhemChargeShot_Blueprint_C",
+    "MayhemGravityShot_Blueprint_C",
+    "MayhemLavaShot_Blueprint_C",
+    "MayhemBeamShot_Blueprint_C",
+    "MayhemNatureShot_Blueprint_C",
+    "MayhemStaticShot_Blueprint_C"
+  ],
+  "pakIndexSha1": "5d0982cd46a5221290cb6ed24696e3962e9dddff",
+  "nativeCandidate": "5B9C12..5B9C1C: native aim update stores selected actor as FWeakObjectPtr at player+E98; read only through current index/serial",
+  "limits": [
+    "New assistance requires the game to supply a valid selected target; unavailable/occluded/outside cone remains baseline",
+    "Ambiguous simultaneous native beam consumers are not guessed",
+    "Positive assistance and mounted/co-op coverage need game validation",
+    "Strength percentage means added mod correction, not a percentage of vanilla"
+  ],
+  "newTests": "AimAssist policy/config suite; positive path of all seven class consumers and Lava paired input, WorldEnder/native-view/pause exclusions in ProjectileSpawn",
+  "gameplayValidated": false,
+  "localBuild": false,
+  "localInstall": false
+}

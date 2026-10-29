@@ -12,7 +12,7 @@ unsigned char projectileClass[0x100]{},defaults[0x100]{},movement[0x180]{},root[
 unsigned char beam[0x650]{},volume[0x300]{};
 void* tree[1]{cls+0x30};void* foreignTree[1]{foreignClass+0x30};void* lavaTree[2]{cls+0x30,lavaClass+0x30};
 uintptr_t componentTable[0x5E8/8]{};
-bool validRay=true,contactAvailable=true;dg::native_objects::Identity contactActor{};
+bool validRay=true,contactAvailable=true,contactHit=true,traceFromRay=false;unsigned contactQueries=0;dg::native_objects::Identity contactActor{};
 bool providerEnabled=true,gameThread=true,paused=false,wheel=false,collision=true,badSpeed=false;
 dg::local_players::Context context{};
 const void* forwarded=nullptr;
@@ -140,7 +140,7 @@ void Run(){
     Put(character,0xF98,static_cast<void*>(nullptr));hitTarget={1000,1000,500};
     // Initial Static target assignment is distinct from its secondary chain.
     unsigned char staticWeapon[0x700]{},staticClass[0x80]{},package[0x40]{},registry[0x120]{};
-    unsigned char staticNames[2][128]{};uintptr_t staticEntries[2]{reinterpret_cast<uintptr_t>(staticNames[0]),reinterpret_cast<uintptr_t>(staticNames[1])};
+    unsigned char staticNames[3][128]{};uintptr_t staticEntries[3]{reinterpret_cast<uintptr_t>(staticNames[0]),reinterpret_cast<uintptr_t>(staticNames[1]),reinterpret_cast<uintptr_t>(staticNames[2])};
     uintptr_t staticChunks[1]{reinterpret_cast<uintptr_t>(staticEntries)},ammo[4]{};
     strcpy_s(reinterpret_cast<char*>(staticNames[0]+12),116,"MayhemStaticShot_Blueprint_C");
     strcpy_s(reinterpret_cast<char*>(staticNames[1]+12),116,"/Game/Blueprints/Player/MayhemStaticShot_Blueprint");
@@ -157,7 +157,7 @@ void Run(){
     AssignTarget(beam,root,0x6981D0);Check(assignments==1&&!assigned&&g_staticTargets[0]==1,"TPS primary Static omits only initial assisted target");
     context.index=1;AssignTarget(beam,root,0x6981D0);Check(!assigned&&g_staticTargets[1]==1,"P2 has independent primary authority");context.index=0;
     AssignTarget(beam,root,0x5B9F80);Check(!assigned,"ongoing aim update cannot reintroduce an assisted target");
-    unsigned char victim[0x100]{},other[0x100]{},hitRecord[0x8C]{},objects[48]{};
+    unsigned char victim[0x200]{},other[0x100]{},hitRecord[0x8C]{},objects[48]{};
     void* objectChunks[1]{objects};Put(image.data(),0x3959680,reinterpret_cast<uintptr_t>(objectChunks));Put(image.data(),0x3959694,2);
     Put(objects,24,reinterpret_cast<uintptr_t>(victim));Put(objects,40,33);contactActor={reinterpret_cast<uintptr_t>(victim),1,33};
     Put(root,0xE8,static_cast<void*>(victim));Put(volume,0x280,reinterpret_cast<uintptr_t>(hitRecord));Put(volume,0x288,1);Put(volume,0x28C,1);
@@ -183,16 +183,51 @@ void Run(){
     const auto n=assignments;AssignTarget(beam,nullptr,0x6981D0);Check(assignments==n+1&&!assigned,"native null target remains null without extra setter");
     gameThread=false;Finish(ability,&out);Check(out.yaw==-70,"other threads stay native");
     Check(lavaCalls==5,"native Lava update runs exactly once for each request");
+    gameThread=true;context.index=0;
+    unsigned char targetRoot[0x1B0]{};Put(victim,0x158,static_cast<void*>(targetRoot));Put(targetRoot,0xE8,static_cast<void*>(victim));Put(targetRoot,0x1A0,Vec3{2000,100,300});
+    Put(character,0xE98,std::array<int,2>{1,33});contactActor={reinterpret_cast<uintptr_t>(victim),1,33};
+    auto& rt=dg::runtime::Get();native_tps::MouseRay view{},added{};Provider(context,view);const Vec3 far{100000,0,300};
+    const unsigned beforeQueries=contactQueries;
+    Check(!AssistedRay(context,view.origin,staticWeapon,view,far,false,added)&&contactQueries==beforeQueries,"default zero has no new target read/query or correction");
+    rt.tpsAimAssistGlobal=50;
+    Check(AssistedRay(context,view.origin,staticWeapon,view,far,false,added)&&added.direction.y>0,"global assistance consumes native weak target and confirmed LOS");
+    const float halfway=added.direction.y;rt.tpsAimAssistGlobal=100;
+    Check(AssistedRay(context,view.origin,staticWeapon,view,far,false,added)&&added.direction.y>halfway,"live global slider progressively increases3D pull");
+    const unsigned visibleQueries=contactQueries;
+    Check(!AssistedRay(context,view.origin,staticWeapon,view,Vec3{500,0,300},true,added)&&contactQueries==visibleQueries,"nearby collision takes priority without extra trace");
+    contactHit=false;Check(!AssistedRay(context,view.origin,staticWeapon,view,far,false,added),"occluded/unconfirmed native candidate cannot affect aiming");contactHit=true;
+    Put(objects,40,34);Check(!AssistedRay(context,view.origin,staticWeapon,view,far,false,added),"recycled native target identity rejected");Put(objects,40,33);
+    rt.tpsAimAssistMode=1;Check(!AssistedRay(context,view.origin,staticWeapon,view,far,false,added),"per-ammunition zero does not inherit a nonzero global strength");
+    collision=false;traceFromRay=true;
+    Put(staticClass,0x30,tree+0);Put(staticClass,0x38,0);Put(image.data(),0x380A4F0,static_cast<void*>(cls));
+    for(unsigned i=0;i<dg::aim_assist::Count;++i){
+        strcpy_s(reinterpret_cast<char*>(staticNames[0]+12),116,dg::aim_assist::Classes[i]);
+        strcpy_s(reinterpret_cast<char*>(staticNames[1]+12),116,dg::aim_assist::Packages[i]);
+        rt.tpsAimAssistAmmo[i]=60;Vec3 point{};bool hit=false;
+        Check(AmmoKind(staticWeapon)==int(i)&&Target(context,view.origin,point,hit,staticWeapon)&&point.y>0,"all seven ammo classes share the same assisted3D collision target");
+        context.index=1;Check(AssistedRay(context,view.origin,staticWeapon,view,far,false,added),"P2 reads its own native character target");context.index=0;
+        if(i==4||i==6)Check(BeamWeapon(beam)==staticWeapon,"native beam owner maps to the actual registered ammunition");
+        if(i==3){Put(ability,0x10,static_cast<void*>(lavaClass));Put(ability,0x50,static_cast<void*>(staticWeapon));UpdateLava(ability);Check(Get<Rotator>(ability,0x20C).yaw>0,"Lava target assistance reaches the paired native ballistic solver");}
+        rt.tpsAimAssistAmmo[i]=0;
+    }
+    rt.tpsAimAssistMode=0;rt.tpsAimAssistGlobal=100;
+    strcpy_s(reinterpret_cast<char*>(staticNames[2]+12),116,"MayhemWorldEnder_Blueprint_C");Put(worldClass,0x18,2);
+    Put(character,0xF98,static_cast<void*>(worldWeapon));Put(worldWeapon,0x688,static_cast<void*>(beam));
+    BeamForward(volume,&beamDirection,0x61D5E5);Check(beamDirection.y==0,"enabled ammo assistance cannot redirect World Ender");Put(character,0xF98,static_cast<void*>(nullptr));
+    providerEnabled=false;Rotation(staticWeapon,&out,&in,0x7CFA3B);Check(out.yaw==23,"positive assistance remains outside native view");providerEnabled=true;
+    paused=true;Rotation(staticWeapon,&out,&in,0x7CFA3B);Check(out.yaw==23,"positive assistance remains outside pause");paused=false;
+    rt.tpsAimAssistMode=0;rt.tpsAimAssistGlobal=0;traceFromRay=false;collision=true;
+
 }
 }
 namespace dg::native_tps {
 bool TargetReady(){return true;}
-bool TraceCameraContact(const local_players::Context&,const MouseRay&,Vec3& target,bool& hit,dg::native_objects::Identity& actor,const Vec3*){target=hitTarget;hit=collision;actor=contactActor;return contactAvailable;}
+bool TraceCameraContact(const local_players::Context&,const MouseRay&,Vec3& target,bool& hit,dg::native_objects::Identity& actor,const Vec3*){++contactQueries;target=hitTarget;hit=contactHit;actor=contactActor;return contactAvailable;}
 bool OnGameThread(){return gameThread;}
 bool CinematicActive(unsigned){return false;}
 bool IsWorldPaused(void*){return paused;}
 bool RadialActive(unsigned){return wheel;}
-bool TraceCameraTarget(const local_players::Context&,const MouseRay&,Vec3& target,bool& hit,const Vec3* source){Check(source&&std::isfinite(source->x),"shared collision receives the real consumer origin");target=hitTarget;hit=collision;return true;}
+bool TraceCameraTarget(const local_players::Context&,const MouseRay& ray,Vec3& target,bool& hit,const Vec3* source){Check(source&&std::isfinite(source->x),"shared collision receives the real consumer origin");target=traceFromRay?Vec3{ray.origin.x+1500*ray.direction.x,ray.origin.y+1500*ray.direction.y,ray.origin.z+1500*ray.direction.z}:hitTarget;hit=collision;return true;}
 }
 namespace dg::local_players {
 bool ResolveActor(void* a,Context& c){if(a!=character)return false;c=context;return true;}
