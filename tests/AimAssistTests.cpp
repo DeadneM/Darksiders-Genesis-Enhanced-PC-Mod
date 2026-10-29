@@ -17,6 +17,11 @@ void Run(){
     Check(std::abs(full.direction.y/full.direction.x-.05f)<.0001f&&full.direction.z>0&&full.mounted,"full correction aims in3D and preserves ray context");
     Check(!Pull(ray,Vec{1000,150,0},farPoint,false,100,full)&&!Pull(ray,Vec{-100,0,0},farPoint,false,100,full),"lateral and backward candidates cannot attract the shot");
     Check(!Pull(ray,candidate,Vec{500,0,0},true,100,full),"a closer reported collision has priority");
+    Check(ClearPath(ray,Vec{1000,0,0},farPoint,false,false),"a character that overlaps Projectile does not need to block the visibility ray");
+    Check(ClearPath(ray,Vec{1000,0,0},Vec{1500,0,0},true,false),"world geometry behind the selected character does not hide it");
+    Check(!ClearPath(ray,Vec{1000,0,0},Vec{500,0,0},true,false),"a different blocking actor in front still hides the selected character");
+    Check(ClearPath(ray,Vec{1000,0,0},Vec{950,0,0},true,true),"the selected actor's near surface is visible before its root point");
+    Check(!ClearPath(ray,Vec{1000,0,0},Vec{std::numeric_limits<float>::quiet_NaN(),0,0},true,true),"invalid blocking points remain rejected");
     Check(!Pull(ray,candidate,farPoint,false,std::numeric_limits<float>::quiet_NaN(),full)&&Strength(150)==100&&Strength(-4)==0,"invalid settings cannot create an unbounded correction");
     wchar_t dir[MAX_PATH]{},path[MAX_PATH]{};
     Check(GetTempPathW(MAX_PATH,dir)&&GetTempFileNameW(dir,L"DGA",0,path),"isolated INI");

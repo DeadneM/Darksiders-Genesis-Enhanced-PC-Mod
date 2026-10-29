@@ -43,6 +43,24 @@ uintptr_t g_base=0;
 LogFn g_log=nullptr;
 std::atomic_uint32_t g_calls{0},g_adjusted[2]{},g_finished[2]{},g_lobbed[2]{},g_lavaRejected{0};
 std::atomic_uint32_t g_beams[2]{},g_assisted[2]{};
+enum class AssistResult:unsigned {Off,UnknownAmmo,NoTarget,InvalidTarget,Geometry,QueryFailed,Obstructed,Applied,Count};
+std::atomic_uint32_t g_assistResults[2][unsigned(AssistResult::Count)]{};
+struct AssistSetting {int mode=-1,kind=-2;float strength=-1;unsigned logs=0;};
+AssistSetting g_assistSettings[2]{}; // observed only on the verified game thread
+void ObserveAssistSetting(unsigned player,int kind,float strength){
+    auto& last=g_assistSettings[player];const int mode=runtime::Get().tpsAimAssistMode.load();
+    if(last.mode==mode&&last.kind==kind&&last.strength==strength)return;
+    last.mode=mode;last.kind=kind;last.strength=strength;
+    if(g_log&&last.logs++<16){char line[200]{};sprintf_s(line,"TPS V1.132 AIM_ASSIST setting player=%u mode=%s ammo=%d strength=%.1f usedByShotConsumer=1",player+1,mode==1?"per-ammunition":"global",kind,strength);g_log(line);}
+}
+bool AssistOutcome(unsigned player,AssistResult reason,int kind,float strength){
+    const unsigned n=++g_assistResults[player][unsigned(reason)];
+    if(g_log&&reason!=AssistResult::Off&&n<=2){
+        constexpr const char* names[]={"off","unknown-ammunition","no-native-target","invalid-target","outside-cone-or-nearer-original-hit","query-unavailable","nearer-surface-on-candidate-ray","applied"};
+        char line[220]{};sprintf_s(line,"TPS V1.132 AIM_ASSIST player=%u result=%s ammo=%d strength=%.1f n=%u impactUnmeasured=1",player+1,names[unsigned(reason)],kind,strength,n);g_log(line);
+    }
+    return reason==AssistResult::Applied;
+}
 template<class T> bool Read(const void* object,size_t offset,T& value){
     native_objects::MemoryReader reader;
     return reader.Read(reinterpret_cast<uintptr_t>(object),offset,value);
@@ -97,8 +115,10 @@ int AmmoKind(void* weapon){
     return -1;
 }
 bool AssistConfigured(){const auto& r=runtime::Get();return r.tpsAimAssistMode.load()==1||aim_assist::Strength(r.tpsAimAssistGlobal.load())>0;}
-float AssistStrength(void* weapon){
+float AssistStrength(void* weapon,int* selectedKind=nullptr){
+    if(selectedKind)*selectedKind=-1;
     if(!AssistConfigured())return 0;const int kind=AmmoKind(weapon);if(kind<0||unsigned(kind)>=aim_assist::Count)return 0;
+    if(selectedKind)*selectedKind=kind;
     const auto& r=runtime::Get();return aim_assist::Strength(r.tpsAimAssistMode.load()==1?r.tpsAimAssistAmmo[unsigned(kind)].load():r.tpsAimAssistGlobal.load());
 }
 void* BeamWeapon(void* beam){
@@ -126,22 +146,26 @@ void* BeamWeapon(void* beam){
     return result;
 }
 bool AssistedRay(const local_players::Context& owner,const Vec3& origin,void* weapon,const native_tps::MouseRay& ray,const Vec3& baseTarget,bool blocked,native_tps::MouseRay& assisted){
-    const float strength=AssistStrength(weapon);if(strength<=0||owner.index<0||owner.index>1||!native_tps::OnGameThread())return false;
+    if(owner.index<0||owner.index>1||!native_tps::OnGameThread())return false;
+    const unsigned player=unsigned(owner.index);int kind=-1;const float strength=AssistStrength(weapon,&kind);
+    ObserveAssistSetting(player,kind,strength);
+    if(strength<=0)return AssistOutcome(player,AssistConfigured()&&kind<0?AssistResult::UnknownAmmo:AssistResult::Off,kind,strength);
     // The native aim update stores its already-selected actor in this weak
     // field (5B9C12..5B9C1C). Never scan actors or invent a target.
     struct Weak {int index,serial;} weak{};native_objects::MemoryReader reader;uintptr_t actor=0,root=0,reciprocal=0;int serial=0;uint32_t flags=0;
-    if(!Read(reinterpret_cast<void*>(owner.character),0xE98,weak)||weak.serial<=0||
-       !native_objects::Item(reader,g_base,weak.index,actor,serial,flags)||serial!=weak.serial||actor==owner.character||actor==owner.pawn||
+    if(!Read(reinterpret_cast<void*>(owner.character),0xE98,weak)||weak.serial<=0)return AssistOutcome(player,AssistResult::NoTarget,kind,strength);
+    if(!native_objects::Item(reader,g_base,weak.index,actor,serial,flags)||serial!=weak.serial||actor==owner.character||actor==owner.pawn||
        !Read(reinterpret_cast<void*>(actor),8,flags)||(flags&0x18030u)||!Read(reinterpret_cast<void*>(actor),0x158,root)||
-       !Read(reinterpret_cast<void*>(root),0xE8,reciprocal)||reciprocal!=actor)return false;
-    Vec3 candidate{};if(!Read(reinterpret_cast<void*>(root),0x1A0,candidate)||!Finite(candidate))return false;
+       !Read(reinterpret_cast<void*>(root),0xE8,reciprocal)||reciprocal!=actor)return AssistOutcome(player,AssistResult::InvalidTarget,kind,strength);
+    Vec3 candidate{};if(!Read(reinterpret_cast<void*>(root),0x1A0,candidate)||!Finite(candidate))return AssistOutcome(player,AssistResult::InvalidTarget,kind,strength);
     native_tps::MouseRay full{},partial{};
-    if(!aim_assist::Pull(ray,candidate,baseTarget,blocked,strength,partial)||!aim_assist::Pull(ray,candidate,baseTarget,blocked,100,full))return false;
+    if(!aim_assist::Pull(ray,candidate,baseTarget,blocked,strength,partial)||!aim_assist::Pull(ray,candidate,baseTarget,blocked,100,full))return AssistOutcome(player,AssistResult::Geometry,kind,strength);
     Vec3 contactPoint{};bool hit=false;native_objects::Identity contact{};
-    if(!native_tps::TraceCameraContact(owner,full,contactPoint,hit,contact,&origin)||!hit||contact.address!=actor||contact.index!=weak.index||contact.serial!=weak.serial)return false;
-    const unsigned player=unsigned(owner.index);if(player>1)return false;assisted=partial;++g_assisted[player];
-    if(g_log&&g_assisted[player].load()<=4)g_log("TPS V1.131 AIM_ASSIST applied: native-selected visible target inside6-degree cone; added strength only; gameplayValidation=USER_REQUIRED");
-    return true;
+    if(!native_tps::TraceCameraContact(owner,full,contactPoint,hit,contact,&origin))return AssistOutcome(player,AssistResult::QueryFailed,kind,strength);
+    const native_objects::Identity selected{actor,weak.index,weak.serial};
+    if(!native_objects::Alive(reader,g_base,selected))return AssistOutcome(player,AssistResult::InvalidTarget,kind,strength);
+    if(!aim_assist::ClearPath(full,candidate,contactPoint,hit,contact==selected))return AssistOutcome(player,AssistResult::Obstructed,kind,strength);
+    assisted=partial;++g_assisted[player];return AssistOutcome(player,AssistResult::Applied,kind,strength);
 }
 bool Target(const local_players::Context& owner,const Vec3& origin,Vec3& target,bool& hit,void* weapon=nullptr){
     native_tps::MouseRay ray{};
@@ -407,7 +431,8 @@ void Initialize(LogFn log,bool exactExecutable,RayProvider provider){
     if(log)log(g_staticReady?"TPS V1.130 STATIC_CONTACT READY: primary target lifetime filtered by physical contact; secondary beams native; EXPERIMENTAL":"TPS V1.130 STATIC_CONTACT unavailable; accepted aiming paths retained");
 }
 void Report(){
-    if(g_log){char line[160]{};sprintf_s(line,"TPS V1.131 AIM_ASSIST totals P1=%u P2=%u addedAssistanceOnly=1 gameplayValidation=USER_REQUIRED",g_assisted[0].load(),g_assisted[1].load());g_log(line);}
+    if(g_log){char line[360]{};sprintf_s(line,"TPS V1.132 AIM_ASSIST totals P1=%u P2=%u addedAssistanceOnly=1 gameplayValidation=USER_REQUIRED",g_assisted[0].load(),g_assisted[1].load());g_log(line);
+        for(unsigned p=0;p<2;++p){auto& r=g_assistResults[p];sprintf_s(line,"TPS V1.132 AIM_ASSIST reasons player=%u off=%u unknownAmmo=%u noTarget=%u invalidTarget=%u geometry=%u queryFailed=%u obstructed=%u applied=%u impactUnmeasured=1",p+1,r[0].load(),r[1].load(),r[2].load(),r[3].load(),r[4].load(),r[5].load(),r[6].load(),r[7].load());g_log(line);}}
     if(g_log){char line[300]{};sprintf_s(line,"TPS V1.130 STATIC_CONTACT totals checks=%u/%u filtered=%u/%u actualContact=%u/%u queryUnavailable=%u/%u primaryOnly=1 impactValidation=USER_REQUIRED",g_staticChecks[0].load(),g_staticChecks[1].load(),g_staticTargets[0].load(),g_staticTargets[1].load(),g_staticContacts[0].load(),g_staticContacts[1].load(),g_staticUnavailable[0].load(),g_staticUnavailable[1].load());g_log(line);}
     if(!g_log)return;char line[260]{};
     sprintf_s(line,"TPS V1.53 TARGET3D totals native=%u pistolP1=%u P2=%u finishP1=%u P2=%u lavaP1=%u P2=%u lavaRejected=%u impactValidation=USER_REQUIRED",

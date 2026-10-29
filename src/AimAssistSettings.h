@@ -10,6 +10,18 @@ inline constexpr std::array<const char*,Count> Classes={"MayhemStandardShot_Blue
 inline constexpr std::array<const char*,Count> Packages={"/Game/Blueprints/Player/MayhemStandardShot_Blueprint","/Game/Blueprints/Player/MayhemChargeShot_Blueprint","/Game/Blueprints/Player/MayhemGravityShot_Blueprint","/Game/Blueprints/Player/MayhemLavaShot_Blueprint","/Game/Blueprints/Player/MayhemBeamShot_Blueprint","/Game/Blueprints/Player/MayhemNatureShot_Blueprint","/Game/Blueprints/Player/MayhemStaticShot_Blueprint"};
 inline constexpr std::array<const wchar_t*,Count> Keys={L"TPSAimAssistStandard",L"TPSAimAssistCharge",L"TPSAimAssistGraviton",L"TPSAimAssistLava",L"TPSAimAssistBeam",L"TPSAimAssistNature",L"TPSAimAssistStatic"};
 inline float Strength(float value){return std::isfinite(value)?std::clamp(value,0.0f,100.0f):0.0f;}
+// The native Projectile trace ignores/overlaps character collision profiles.
+// Visibility therefore means no earlier blocking surface, not a mandatory
+// blocking hit on the selected actor. A hit on that actor's near surface is
+// also valid, even though its root/aim point lies farther along the ray.
+template<class Ray,class Vec>bool ClearPath(const Ray& ray,const Vec& candidate,const Vec& point,bool hit,bool sameActor){
+    if(!hit)return true;
+    if(!std::isfinite(point.x)||!std::isfinite(point.y)||!std::isfinite(point.z))return false;
+    if(sameActor)return true;
+    const float depth=(candidate.x-ray.origin.x)*ray.direction.x+(candidate.y-ray.origin.y)*ray.direction.y+(candidate.z-ray.origin.z)*ray.direction.z;
+    const float surface=(point.x-ray.origin.x)*ray.direction.x+(point.y-ray.origin.y)*ray.direction.y+(point.z-ray.origin.z)*ray.direction.z;
+    return std::isfinite(depth)&&depth>0&&std::isfinite(surface)&&surface>=depth-1;
+}
 // New added assistance, NOT a percentage of the native game's own settings.
 // Project onto the ray at the target's depth before interpolating, so a sky
 // endpoint at100000 units cannot dilute the requested strength.

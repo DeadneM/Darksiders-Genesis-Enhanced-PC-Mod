@@ -195,7 +195,12 @@ void Run(){
     Check(AssistedRay(context,view.origin,staticWeapon,view,farPoint,false,added)&&added.direction.y>halfway,"live global slider progressively increases3D pull");
     const unsigned visibleQueries=contactQueries;
     Check(!AssistedRay(context,view.origin,staticWeapon,view,Vec3{500,0,300},true,added)&&contactQueries==visibleQueries,"nearby collision takes priority without extra trace");
-    contactHit=false;Check(!AssistedRay(context,view.origin,staticWeapon,view,farPoint,false,added),"occluded/unconfirmed native candidate cannot affect aiming");contactHit=true;
+    contactHit=false;Check(AssistedRay(context,view.origin,staticWeapon,view,farPoint,false,added),"native Projectile overlap/ignore profiles still permit assistance when there is no blocking obstacle");contactHit=true;
+    const auto savedContact=contactActor;const auto savedPoint=hitTarget;contactActor={};
+    hitTarget={500,0,300};Check(!AssistedRay(context,view.origin,staticWeapon,view,farPoint,false,added),"a nearer surface on the candidate ray still rejects assistance");
+    hitTarget={5000,0,300};Check(AssistedRay(context,view.origin,staticWeapon,view,farPoint,false,added),"the camera ray may hit the world behind a nonblocking enemy");
+    contactAvailable=false;Check(!AssistedRay(context,view.origin,staticWeapon,view,farPoint,false,added),"an unavailable query must not count as an unobstructed ray");contactAvailable=true;
+    hitTarget=savedPoint;contactActor=savedContact;
     Put(objects,40,34);Check(!AssistedRay(context,view.origin,staticWeapon,view,farPoint,false,added),"recycled native target identity rejected");Put(objects,40,33);
     rt.tpsAimAssistMode=1;Check(!AssistedRay(context,view.origin,staticWeapon,view,farPoint,false,added),"per-ammunition zero does not inherit a nonzero global strength");
     collision=false;traceFromRay=true;

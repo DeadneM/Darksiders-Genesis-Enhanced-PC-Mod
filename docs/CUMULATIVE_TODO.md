@@ -1,3 +1,11 @@
+## V1.132 - visibilite de l'aide TPS
+
+**PREPAREE / CONTROLES GITHUB EN ATTENTE ; NON VALIDEE EN JEU.** Retour V1.131 : valeur augmentee puis remise a zero, aucune application journalisee. Le garde exigeant un contact bloquant avec l'ennemi est incompatible avec des profils natifs Projectile Overlap/Ignore. Verification remplacee par absence d'obstacle avant la cible ; journal des valeurs utilisees et raisons de refus. Cela reste une correction a tester, pas la preuve de l'unique cause en jeu.
+
+Base acceptee V1.130 ; mode Global / sept munitions V1.131, valeurs par defaut et INI personnel conserves. Cone, priorite aux collisions proches, contact Statique, cameras/input, pose UI et pouvoirs inchanges. [Perimetre et essai](V1_132_AIM_ASSIST_VISIBILITY_TEST.md), [deux passes](evidence/V1_132_STATIC_REVIEW.json). GitHub seulement ; aucune installation V1.132 ni jeu lance, main/archive/anciens ZIP preserves.
+
+---
+
 ## V1.131 - potar TPS a valider
 
 **CONSTRUITE / CONTROLEE : [68/68 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40947674176), zero avertissement/erreur MSVC. [ZIP cumulatif public verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/73c494fb4acdd7d33125427dd2b084b921a434bc/downloads/DarksidersGenesis_V1.131_TPS_AIM_ASSIST_TEST.zip) - [Recu](V1_131_DELIVERY_RECEIPT.md). Updater debug et Defender controles. Nouvelle aide EXPERIMENTALE, NON VALIDEE EN JEU ; V1.131 ensuite installee sur demande, INI conserve, jeu non lance. main reste V1.124.**
