@@ -1,3 +1,9 @@
+## Audit après essai V1.135 — guidage Statique par défaut
+
+**AUDIT CONTRÔLÉ ; correction non construite.** Le réglage semble agir selon l'utilisateur, mais le guidage par défaut reste contesté. Deux passes confirment que OFF/100 conserve les angles natifs tout en remplaçant encore direction de recherche et point final : ce n'est pas une référence native complète.311utilisations du point ajoutées au journal, toutes munitions/réglages confondus ; cause unique non prouvée. V1.135 installée vérifiée par hash. [Constats, limites et suite](STATIC_DEFAULT_GUIDANCE_AUDIT_2026_10_30.md). Aucun code/INI/fichier du jeu modifié, aucun build ; historique ci-dessous conservé.
+
+---
+
 ## V1.135 - retour a l'acquisition native
 
 **CONSTRUITE / CONTROLEE : [69/69 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41117665955), zero avertissement/erreur MSVC. [ZIP cumulatif verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/f4a32cf5a72015c99cecb146ff960526df2ea834/downloads/DarksidersGenesis_V1.135_NATIVE_ACQUISITION_TEST.zip) - [Recu](V1_135_DELIVERY_RECEIPT.md). Updater debug et Defender controles. Nouveau comportement EXPERIMENTAL, NON VALIDE EN JEU ; aucune installation par l'agent.**

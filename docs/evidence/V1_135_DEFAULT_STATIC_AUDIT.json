@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-30",
+  "status": "AUDIT_ONLY_NO_SOURCE_CHANGE_NO_BUILD_NO_INSTALL",
+  "sourceCommit": "b89d6d9166c42d5bc340aa83b98adbe7d79c04c1",
+  "userReport": "Adjustment seems functional; Static default guidance feels stronger than remembered vanilla. Full native equivalence unvalidated.",
+  "installedAsiSha256": "75ab0c07c09c3bb005e29e292258b6560293e07307c20c41a67689ddb892fc82",
+  "logSha256": "7403b33153474dd953f0dae97694d7717a0324f0671f81272af0f8fb6398a66f",
+  "logEvidence": [
+    "[2026-10-30 21:17:55.362] TPS V1.135 NATIVE_ASSIST READY: native target selection and chains; optional angular scale;100%=native; EXPERIMENTAL",
+    "[2026-10-30 22:20:11.641] TPS V1.135 NATIVE_ASSIST player=1 ammo=-1 percent=200.0 scaled=1 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 selected=0 gameplayValidation=USER_REQUIRED",
+    "[2026-10-30 22:20:11.642] TPS V1.135 NATIVE_ASSIST player=1 ammo=-1 percent=200.0 scaled=1 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 selected=0 gameplayValidation=USER_REQUIRED",
+    "[2026-10-30 22:20:11.659] TPS V1.135 NATIVE_ASSIST player=1 ammo=-1 percent=200.0 scaled=1 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 selected=0 gameplayValidation=USER_REQUIRED",
+    "[2026-10-30 22:20:11.675] TPS V1.135 NATIVE_ASSIST player=1 ammo=-1 percent=200.0 scaled=1 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 selected=0 gameplayValidation=USER_REQUIRED",
+    "[2026-10-30 22:20:11.693] TPS V1.135 NATIVE_ASSIST player=1 ammo=-1 percent=200.0 scaled=1 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 selected=0 gameplayValidation=USER_REQUIRED",
+    "[2026-10-30 22:20:11.710] TPS V1.135 NATIVE_ASSIST player=1 ammo=0 percent=200.0 scaled=1 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 selected=0 gameplayValidation=USER_REQUIRED",
+    "[2026-10-30 22:20:11.711] TPS V1.135 NATIVE_ASSIST player=1 ammo=0 percent=200.0 scaled=1 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 selected=0 gameplayValidation=USER_REQUIRED",
+    "[2026-10-30 22:20:11.728] TPS V1.135 NATIVE_ASSIST player=1 ammo=0 percent=200.0 scaled=1 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 selected=0 gameplayValidation=USER_REQUIRED",
+    "[2026-10-30 22:20:20.617] TPS V1.135 NATIVE_ASSIST player=1 ammo=-1 percent=0.0 scaled=1 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 selected=0 gameplayValidation=USER_REQUIRED",
+    "[2026-10-30 22:20:20.649] TPS V1.135 NATIVE_ASSIST player=1 ammo=0 percent=0.0 scaled=1 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 selected=0 gameplayValidation=USER_REQUIRED",
+    "[2026-10-30 22:20:22.449] TPS V1.135 NATIVE_ASSIST player=1 ammo=6 percent=0.0 scaled=1 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 selected=0 gameplayValidation=USER_REQUIRED",
+    "[2026-10-30 22:20:30.399] TPS V1.135 NATIVE_ASSIST player=1 ammo=-1 percent=100.0 scaled=0 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 selected=0 gameplayValidation=USER_REQUIRED",
+    "[2026-10-30 22:20:30.430] TPS V1.135 NATIVE_ASSIST player=1 ammo=6 percent=100.0 scaled=0 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 selected=0 gameplayValidation=USER_REQUIRED",
+    "[2026-10-30 22:20:33.698] TPS V1.135 NATIVE_ASSIST player=1 ammo=0 percent=100.0 scaled=0 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 selected=0 gameplayValidation=USER_REQUIRED",
+    "[2026-10-30 22:21:40.993] TPS V1.135 NATIVE_ASSIST totals queries=1172/0 scaled=231/0 nativePoints=311/0 passthrough=659 gameplayValidation=USER_REQUIRED"
+  ],
+  "pass1": [
+    "OFF maps to percent100 but does not bypass SelectTarget or native_assist::Target.",
+    "SelectTarget replaces original direction with TPS camera direction even OFF/100.",
+    "Shared projectile target resolver prioritizes cached selected-actor point over camera collision, even OFF/100.",
+    "Cache can live250ms without a consumer-side renewed angular/collision test; common finder fallback is allowed outside enabled per-ammunition mode.",
+    "At100 original native angular limits are not written; no new native radius/scoring/reach/chain tuning found in this module."
+  ],
+  "pass2": [
+    "Original selector call5B9BEA receives a direction constructed by672760 then8A8F10. Its selected actor is published to character+E98 at5B9C12..1C.",
+    "Native beam creation69818F..1CB and update5B9FD0..5B9FFF already attach/detach native selected-target root via617B90.",
+    "Native selector6C39C8..39DE checks angular limits before score/current-target preference. Strong native acquisition itself exists.",
+    "New shared point override can additionally affect free-beam caller61D5E5 when native beam has no attached target. No separate weapon damage/range adjustment is needed to change perceived steering."
+  ],
+  "conclusion": "100% means native angular values, not native behavior end-to-end. Added unconditional direction/point substitution is a credible confounder; unique cause or quantified vanilla difference not proven.",
+  "limits": [
+    "311 nativePoints counts span the session and all ammunition/settings, not311 Static hits at100.",
+    "Session includes200%,0%,100%; finalINI100 does not prove settings for every shot.",
+    "No new runtime capture, memory write, native call, compilation, installation or INI edit.",
+    "No native versus mod A/B gameplay comparison; no promised removal of all native lock-on."
+  ],
+  "nextStep": "Remove added point/direction authority through a shared native-consumer design, not another contact filter or range change. Prove OFF/100 reference before tuning native angles. Requires a new isolated implementation and runtime test.",
+  "nativeDisassemblySha256": "2f96ede4c95e80e0b08dae8dd4f2bb6462437665cb6bed57f293cb557955ce3c"
+}
