@@ -1,3 +1,9 @@
+## Audit Statique - 30 octobre 2026
+
+**REGRESSION SIGNALEE V1.133 ; AUDIT CONTROLE, REPARATION NON CONSTRUITE.** Le journal compte5166applications d'aide, mais2637/2637cibles principales Statique retirees. Le filtre V1.130 modifie le chemin natif de longueur et le cycle des chaines ; sa preservation n'est plus consideree comme correcte. Les curseurs V1.131..133 ajoutent une correction, ils ne reglent pas le natif. Objectif revise : restaurer selection/cycle natifs puis ajustement optionnel,100%=natif, sans changer portee/degats/rebonds. [Audit et limites](docs/STATIC_NATIVE_BEHAVIOR_AUDIT_2026_10_30.md). Autres acquis conserves ; V1.133 reste installee, aucune nouvelle compilation/installation/capture. Verification du contrat natif de parametres avant implementation.
+
+---
+
 ## V1.133 - visibilite et profondeur de l'aide TPS
 
 **CONSTRUITE / CONTROLEE : [68/68 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40959653744), zero avertissement/erreur MSVC. [ZIP cumulatif verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/7f3b9ec2cc71ef997543cfe5d2751a867190db6f/downloads/DarksidersGenesis_V1.133_AIM_ASSIST_TARGET_DEPTH_TEST.zip) - [Recu](docs/V1_133_DELIVERY_RECEIPT.md). Updater debug et Defender controles ; correction EXPERIMENTALE, NON VALIDEE EN JEU. V1.133 installee sur demande ; V1.130 reste la base acceptee.**

@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-30",
+  "versionObserved": "V1.133",
+  "userReport": "Static apparent range reduced; restore native behavior and tune native assistance instead of adding a replacement",
+  "sourceCommit": "b6e9032b4c9b5bfe809a5b2bef96436911eac870",
+  "session": {
+    "logSha256": "ED4AE27E186FB3DD287B0DEE165288D448DC9842E8D6C2C0F099C3D0D53873CC",
+    "profileSha256": "F16F2CC9575D543B4DF7B26B14DF2529C13F90CE1B2E973C5371BF1D3F4CC539",
+    "endLocal": "2026-10-30 19:56:39",
+    "addedAssistApplications": [
+      5166,
+      0
+    ],
+    "staticChecks": 2637,
+    "staticTargetsRemoved": 2637,
+    "staticContactsAccepted": 0,
+    "globalAssistFinal": 100,
+    "projectileImpactOrRangeMeasured": false
+  },
+  "pass1": "Source + session: AssignTarget filters every native primary Static assignment observed, including at added-assist zero. Added assistance is not a scale of native selection.",
+  "pass2": "Independent native Tick + setter + original assets: target620 branch computes length640 from distance to component; free branch uses BeamMaxLength5AC. Setter617B90 changes native target bookkeeping and clears/destroys associated secondary projectiles on target change. Chain routine61FC90 requires target620 and chain info638.",
+  "comparison": "The filter changes native control flow, reach behavior and chain lifecycle without writing a range scalar. This is a concrete cause mechanism consistent with the report; exact lost distance and full symptom reproduction remain unmeasured.",
+  "native": {
+    "tick": "61D492..61D53F target-component path;61D601 free-length fallback",
+    "setter": "617BC1..617C6C removes prior target association, destroys/resets child list, then stores new target",
+    "chain": "61FCCA..61FCE2 requires target and chain info",
+    "baseAssets": {
+      "beamMaxLength": 1200,
+      "maxDistanceFromOwner": 1800,
+      "maxNumTargetsNormal": 4,
+      "maxNumTargetsHotstreak": 7,
+      "units": "UE game units; serialized asset defaults, not measured effective gameplay range"
+    },
+    "selector": "6C3520 native selector reads distance and angular gates, scores and sorts candidates. Fields at28/2C/30/38 are observed but not yet a typed runtime parameter contract."
+  },
+  "decision": {
+    "acceptedBehaviorPreserved": "Pistol models/unarmed UI pose, controls/cameras and unrelated validated modules",
+    "staticFilter": "no longer considered a correct native-preserving fix; replace/remove at native-selection layer, not with another post-selection null-target patch",
+    "oldSliders": "V1.131..133 are added mod pull, not native percentage; do not relabel existing code as native",
+    "requestedControl": "Optional native-assist adjustment, OFF/native and100%=native; lower values narrow native acquisition, higher widen it; global/per-ammo; range/damage/chain counts stay independent",
+    "nextStep": "Identify and verify per-weapon native selector ownership/configuration and baseline restoration before implementing a scale. No guessed float offsets or instant new build."
+  },
+  "newBuild": false,
+  "newInstall": false,
+  "gameLaunched": false,
+  "externalMemoryCapture": false,
+  "gameplayFixValidated": false
+}
