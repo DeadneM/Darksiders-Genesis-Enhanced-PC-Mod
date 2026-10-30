@@ -1,0 +1,265 @@
+{
+  "nativeContract": "MayhemTargetingProperties: size0x30; SearchRadius offset0, VerticalSearchAngle offset4, HorizontalSearchAngle offset8. Native selector6C3520 reads helper28/2C/30 and calls66A620 for native bone/bounds aim point.",
+  "registrationTables": [
+    "3648570 SearchRadius offset0",
+    "3648548 VerticalSearchAngle offset4",
+    "3648520 HorizontalSearchAngle offset8"
+  ],
+  "matrix": [
+    {
+      "asset": "MayhemAbility_Strife_StaticShot_Aim_Blueprint.uasset",
+      "className": "MayhemAbility_Strife_StaticShot_Aim_Blueprint_C",
+      "properties": {
+        "SearchRadius": 16500.0,
+        "HorizontalSearchAngle": 30.0,
+        "DistanceWeight": 1.0,
+        "TargetBoneName": "Socket_Projectile_Impact:0"
+      },
+      "override": "MayhemAbility_Strife_DualPistols_Aim_Blueprint_C"
+    },
+    {
+      "asset": "MayhemAbility_Strife_BeamShot_Aim_Blueprint.uasset",
+      "className": "MayhemAbility_Strife_BeamShot_Aim_Blueprint_C",
+      "properties": {
+        "SearchRadius": 1200.0,
+        "VerticalSearchAngle": 80.0,
+        "HorizontalSearchAngle": 35.0,
+        "CurrentTargetWeight": 1.0,
+        "TargetBoneName": "Socket_Projectile_Impact:0"
+      },
+      "override": "MayhemAbility_Strife_DualPistols_Aim_Blueprint_C"
+    },
+    {
+      "asset": "MayhemAbility_ShadowStrife_DualPistols_Aim_Blueprint.uasset",
+      "className": "MayhemAbility_ShadowStrife_DualPistols_Aim_Blueprint_C",
+      "properties": {
+        "SearchRadius": 2000.0,
+        "VerticalSearchAngle": 80.0,
+        "HorizontalSearchAngle": 360.0,
+        "DistanceWeight": 1.0,
+        "TargetBoneName": "Socket_Projectile_Impact:0"
+      },
+      "override": null
+    },
+    {
+      "asset": "MayhemAbility_Strife_BeamShot_Aim_Blueprint.uasset",
+      "className": "MayhemAbility_Strife_BeamShot_Aim_Blueprint_C",
+      "properties": {
+        "SearchRadius": 1200.0,
+        "VerticalSearchAngle": 80.0,
+        "HorizontalSearchAngle": 35.0,
+        "CurrentTargetWeight": 1.0,
+        "TargetBoneName": "Socket_Projectile_Impact:0"
+      },
+      "override": "MayhemAbility_Strife_DualPistols_Aim_Blueprint_C"
+    },
+    {
+      "asset": "MayhemAbility_Strife_ChargeShot_Aim_Blueprint.uasset",
+      "className": "MayhemAbility_Strife_ChargeShot_Aim_Blueprint_C",
+      "properties": {
+        "SearchRadius": 1200.0,
+        "HorizontalSearchAngle": 30.0,
+        "DistanceWeight": 1.0,
+        "CurrentTargetWeight": 0.5,
+        "TargetBoneName": "Socket_Projectile_Impact:0"
+      },
+      "override": "MayhemAbility_Strife_DualPistols_Aim_Blueprint_C"
+    },
+    {
+      "asset": "MayhemAbility_Strife_DualPistols_Aim_Blueprint.uasset",
+      "className": "MayhemAbility_Strife_DualPistols_Aim_Blueprint_C",
+      "properties": {
+        "SearchRadius": 7500.0,
+        "HorizontalSearchAngle": 45.0,
+        "DistanceWeight": 0.75,
+        "CurrentTargetWeight": 1.0,
+        "TargetBoneName": "Socket_Projectile_Impact:0"
+      },
+      "override": null
+    },
+    {
+      "asset": "MayhemAbility_Strife_StandardShot_Aim_Blueprint.uasset",
+      "className": "MayhemAbility_Strife_StandardShot_Aim_Blueprint_C",
+      "properties": {
+        "SearchRadius": 1200.0,
+        "HorizontalSearchAngle": 30.0,
+        "TargetBoneName": "Socket_Projectile_Impact:0"
+      },
+      "override": "MayhemAbility_Strife_DualPistols_Aim_Blueprint_C"
+    }
+  ],
+  "originalAssetsVerified": {
+    "MayhemAbility_Strife_StaticShot_Aim_Blueprint.uasset": [
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Abilities/MayhemAbility_Strife_StaticShot_Aim_Blueprint.uasset",
+        "streamSha1": "15c3a49dab72e63bc5deb97c67c87bdebca6aeff",
+        "payloadSha256": "1e9bd96bac638f8e4b17f898af79c336f34af918e0045ee5df9e3d106b3d7bf3"
+      },
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Abilities/MayhemAbility_Strife_StaticShot_Aim_Blueprint.uexp",
+        "streamSha1": "b49d597f3e1e0ea58b15ddf2dd920534fe7fe3c3",
+        "payloadSha256": "80f47576b09e1da78e0e265aed67fbdfff7acc632e4a2bc7b2e1bd83b3cec52e"
+      }
+    ],
+    "Strife_Blueprint.uasset": [
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Strife_Blueprint.uasset",
+        "streamSha1": "4b5a766707bb150928b2118fdd981a40f68d2ae8",
+        "payloadSha256": "595a2a57b1e058ab10fabbaa3c994c823c9cec286d8e20f9efdf8721179f9492"
+      },
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Strife_Blueprint.uexp",
+        "streamSha1": "feb797e34fce8e2a4a2b86f914f18a83bfda5e57",
+        "payloadSha256": "4511187fa0edadfca701bd1e007818c23b94a01600d7ea2be1b194b0ac7eefec"
+      }
+    ],
+    "MayhemAbility_Strife_BeamShot_Aim_Blueprint.uasset": [
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Abilities/DualPistols/MayhemAbility_Strife_BeamShot_Aim_Blueprint.uasset",
+        "streamSha1": "ec41f8d860cdec463ae2c6ac233c73b13ec48e4b",
+        "payloadSha256": "a9b76e3c7808a8e7913b938513b4ae09b4e97eacb692722bbcf73c9f5693dfbb"
+      },
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Abilities/DualPistols/MayhemAbility_Strife_BeamShot_Aim_Blueprint.uexp",
+        "streamSha1": "9b52182929470b8865ed3c929efc62da50a4b0fd",
+        "payloadSha256": "d1c34d0ce3c4f10b6559ca15df97c8801885ef83135a8339f717aabf02d08a9a"
+      }
+    ],
+    "MayhemAbility_Strife_Ground_Dash_Aim_Blueprint.uasset": [
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Abilities/Dash/MayhemAbility_Strife_Ground_Dash_Aim_Blueprint.uasset",
+        "streamSha1": "5e9ab26cf79df1d1e01852a80b88920b6624e6a1",
+        "payloadSha256": "d7193d5f24152b3252fc8de56405bedbeb8da96268a7d4cdbfb1c89a5d64e03a"
+      },
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Abilities/Dash/MayhemAbility_Strife_Ground_Dash_Aim_Blueprint.uexp",
+        "streamSha1": "d4b5603119cee788cca731b1f89213825c35035b",
+        "payloadSha256": "018494dde43fa0679d8315f3749b9c568411ad178a07ecf3c1a8dc38f33c3ad5"
+      }
+    ],
+    "MayhemAbility_Strife_Ground_Dash_Aim_Level1_Blueprint.uasset": [
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Abilities/Dash/MayhemAbility_Strife_Ground_Dash_Aim_Level1_Blueprint.uasset",
+        "streamSha1": "c05f3854139ee005c89b16f4d6a02ac57e60e194",
+        "payloadSha256": "1752d6c2bf024a78d858a72f6985d957f1e1a6f93a4c511e51c9dba043adf404"
+      },
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Abilities/Dash/MayhemAbility_Strife_Ground_Dash_Aim_Level1_Blueprint.uexp",
+        "streamSha1": "f24d2de6e3bdc786bd8c7aa5f3e65e0c77de1761",
+        "payloadSha256": "ec8e5bfef5db80290453e3165209fea38a89a0a42ffcf1b69349af2bf21a92a4"
+      }
+    ],
+    "MayhemAbility_Strife_Ground_Dash_Aim_Level2_Blueprint.uasset": [
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Abilities/Dash/MayhemAbility_Strife_Ground_Dash_Aim_Level2_Blueprint.uasset",
+        "streamSha1": "16feeb00ac9fe940bf1149a4815b221a88ab0ad9",
+        "payloadSha256": "29aa2a67aec1273ab976822f0c3b1eb3541f206dd5655f50fd5e048efe88b16d"
+      },
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Abilities/Dash/MayhemAbility_Strife_Ground_Dash_Aim_Level2_Blueprint.uexp",
+        "streamSha1": "f15d86f31473cecdc374e5a0e7e050da89284da6",
+        "payloadSha256": "755afec4e09ef2b074c2a6da5f14ff4534be323c760ab0895265a1e43f919d30"
+      }
+    ],
+    "MayhemAbility_Strife_Ground_Dash_Aim_Level3_Blueprint.uasset": [
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Abilities/Dash/MayhemAbility_Strife_Ground_Dash_Aim_Level3_Blueprint.uasset",
+        "streamSha1": "8948a80baaa8d9d5e8f24d3c212b3d355df06926",
+        "payloadSha256": "e2ad2b51d03947f39de72d57da5550235184ed4118ed3265ceffbe93c3b39856"
+      },
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Abilities/Dash/MayhemAbility_Strife_Ground_Dash_Aim_Level3_Blueprint.uexp",
+        "streamSha1": "a73a57b8ac467f2373f49f7bb97d014685cc5587",
+        "payloadSha256": "504002c8d2349ceed4a7a61ff8494c458e99d1650d7af5b56335548f9fa06f0d"
+      }
+    ],
+    "MayhemAbility_Mayhem_DualPistols_Aim_Blueprint.uasset": [
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Player/Horse/Abilities/MayhemAbility_Mayhem_DualPistols_Aim_Blueprint.uasset",
+        "streamSha1": "62ba1abf6e7019dd0dfd383bf91ac26b7fc12bb4",
+        "payloadSha256": "02c898a8416c05b15025c49a44fd32555dee4bac3bc4e174fe53a7fe5d21b4e0"
+      },
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Player/Horse/Abilities/MayhemAbility_Mayhem_DualPistols_Aim_Blueprint.uexp",
+        "streamSha1": "27fa7934538ff0851250dc6c3a2e098ad202d3be",
+        "payloadSha256": "75a98a0c50686f3575b7847c62cc35cebdd0b82d1e02125c5c3a8093529c6d5e"
+      }
+    ],
+    "MayhemAbility_ShadowStrife_DualPistols_Aim_Blueprint.uasset": [
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Player/Companions/Abilities/MayhemAbility_ShadowStrife_DualPistols_Aim_Blueprint.uasset",
+        "streamSha1": "f50ef7a4f2156f9a9e5739240145c34f65e42e6e",
+        "payloadSha256": "d2dc1fac27509ae98b29bb360c18c9a4d15c28e31822163213198d43bd467ca3"
+      },
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Player/Companions/Abilities/MayhemAbility_ShadowStrife_DualPistols_Aim_Blueprint.uexp",
+        "streamSha1": "0ec6265865075b09825242ad55a62cca1597bb1f",
+        "payloadSha256": "06ed69388c9da763fe2ad27183b9e9571f603e37688cd6f22d48eca5c8999769"
+      }
+    ],
+    "MayhemAbility_Strife_ChargeShot_Aim_Blueprint.uasset": [
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Abilities/DualPistols/MayhemAbility_Strife_ChargeShot_Aim_Blueprint.uasset",
+        "streamSha1": "21d5d7a0a1a79400bdf6eee1f36232313f120814",
+        "payloadSha256": "8084f576a6de7f2885deb7fa0b2b588fd2a7fd96a049d30626d4f52396f01b5a"
+      },
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Abilities/DualPistols/MayhemAbility_Strife_ChargeShot_Aim_Blueprint.uexp",
+        "streamSha1": "7b37ef5a06ef2893b8fddfce42bbdf66b053c762",
+        "payloadSha256": "d219d625b83542e083f9df383d9a05afb168e92045fd80c7c30ccccaee0ad20a"
+      }
+    ],
+    "MayhemAbility_Strife_DualPistols_Aim_Blueprint.uasset": [
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Abilities/DualPistols/MayhemAbility_Strife_DualPistols_Aim_Blueprint.uasset",
+        "streamSha1": "60bbe7c0ee218ff95807df50eccf71667c0195ad",
+        "payloadSha256": "f0e31fe541202f9d96a2ade9c3bfcab7d9bfb901de12ed44a66101c4b00d9920"
+      },
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Abilities/DualPistols/MayhemAbility_Strife_DualPistols_Aim_Blueprint.uexp",
+        "streamSha1": "b7f390b66b8684bbc0431006cd9502f70545df26",
+        "payloadSha256": "36f589a70a1f03563c72d229fbca5361dc9f6fbef3db1c6fef00535ed779c566"
+      }
+    ],
+    "MayhemAbility_Strife_DualPistols_Aim_End_Ability.uasset": [
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Abilities/MayhemAbility_Strife_DualPistols_Aim_End_Ability.uasset",
+        "streamSha1": "f66d07708bf8c3b775589de5c51db615c370365e",
+        "payloadSha256": "2fdaa970b6dc997fdcde4511c3cbde92dcba883b86206e5634d46c08205d333b"
+      },
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Abilities/MayhemAbility_Strife_DualPistols_Aim_End_Ability.uexp",
+        "streamSha1": "14215c91ffda1fda06f26635efb9f86e3ae77849",
+        "payloadSha256": "b9cac7044479c08a7103a1eba28cf64492d817db071880b570a029bf62eeb4ed"
+      }
+    ],
+    "MayhemAbility_Strife_DualPistols_Aim_Start_Ability.uasset": [
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Abilities/MayhemAbility_Strife_DualPistols_Aim_Start_Ability.uasset",
+        "streamSha1": "d1f7b68624f1d101be2b70e285e56759eacbd407",
+        "payloadSha256": "b19497cffe70a29907e89ab4146f80721bbcd6efa350b0bd31ab30c9f29ff8e5"
+      },
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Abilities/MayhemAbility_Strife_DualPistols_Aim_Start_Ability.uexp",
+        "streamSha1": "4059ac6de06127795bcc422346f3f21f04c32bc2",
+        "payloadSha256": "5aa5b7efba92a80d11afb27436067e7aa8c6bbe8dea47a5e6b0a8e549defc846"
+      }
+    ],
+    "MayhemAbility_Strife_StandardShot_Aim_Blueprint.uasset": [
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Abilities/DualPistols/MayhemAbility_Strife_StandardShot_Aim_Blueprint.uasset",
+        "streamSha1": "7d85c323e00cc0e282f6ec389f9d84c1279c4483",
+        "payloadSha256": "93fff090f5ef812f614326a58a36b5cef7b2cff60ce103eb4d7eb24253c27213"
+      },
+      {
+        "path": "ProjectMayhem/Content/Blueprints/Abilities/DualPistols/MayhemAbility_Strife_StandardShot_Aim_Blueprint.uexp",
+        "streamSha1": "fb9ebefc0ea587659c64b6b1d3e847cc4fd4ca38",
+        "payloadSha256": "8fc560d8918da6722b7d30ac7df27dbe87abbd5d40685ff8161ba49f0dd8230a"
+      }
+    ]
+  },
+  "decision": "Scale acquisition angles only, leave search radius, beam reach, damage and chains unchanged.100%=native. Native shared/override ownership still requires the prepared read-only live observation before connecting writes.",
+  "liveObservationPending": true,
+  "newBuild": false,
+  "newInstall": false
+}

@@ -2,6 +2,8 @@
 
 **REGRESSION SIGNALEE V1.133 ; AUDIT CONTROLE, REPARATION NON CONSTRUITE.** Le journal compte5166applications d'aide, mais2637/2637cibles principales Statique retirees. Le filtre V1.130 modifie le chemin natif de longueur et le cycle des chaines ; sa preservation n'est plus consideree comme correcte. Les curseurs V1.131..133 ajoutent une correction, ils ne reglent pas le natif. Objectif revise : restaurer selection/cycle natifs puis ajustement optionnel,100%=natif, sans changer portee/degats/rebonds. [Audit et limites](STATIC_NATIVE_BEHAVIOR_AUDIT_2026_10_30.md). Autres acquis conserves ; V1.133 reste installee, aucune nouvelle compilation/installation/capture. Verification du contrat natif de parametres avant implementation.
 
+Contrat natif retrouve : SearchRadius/VerticalSearchAngle/HorizontalSearchAngle, matrice des assets et profils OverrideAbility controles. Branchement au selecteur en attente du releve de propriete, politique preparee hors ASI. [Preuves](evidence/NATIVE_AIM_PARAMETER_CONTRACT_2026_10_30.json).
+
 ---
 
 ## V1.133 - visibilite et profondeur de l'aide TPS
