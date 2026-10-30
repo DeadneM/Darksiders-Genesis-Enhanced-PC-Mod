@@ -1,4 +1,5 @@
 #include "ProjectileAimFeature.h"
+#include "NativeAimAssistFeature.h"
 #include "NativeMemoryReader.h"
 #include "NativeObjectName.h"
 #include "RuntimeSettings.h"
@@ -27,7 +28,6 @@ using Gravity=float(*)(void*);
 using ArcAngle=float(*)(float,float,float);
 using ArcSpeed=float(*)(const Vec3*,const Vec3*,float,float);
 using ForwardVector=Vec3*(*)(void*,Vec3*);
-using SetTargetComponent=void(*)(void*,void*);
 SpawnRotation g_original=nullptr;
 AbilityRotation g_finish=nullptr;
 LavaUpdate g_lava=nullptr;
@@ -36,31 +36,11 @@ Gravity g_gravity=nullptr;
 ArcAngle g_arcAngle=nullptr;
 ArcSpeed g_arcSpeed=nullptr;
 ForwardVector g_forward=nullptr;
-SetTargetComponent g_setTarget=nullptr;std::atomic_bool g_staticReady{false};
-std::atomic_uint32_t g_staticTargets[2]{},g_staticContacts[2]{},g_staticChecks[2]{},g_staticUnavailable[2]{};
 RayProvider g_provider=nullptr;
 uintptr_t g_base=0;
 LogFn g_log=nullptr;
 std::atomic_uint32_t g_calls{0},g_adjusted[2]{},g_finished[2]{},g_lobbed[2]{},g_lavaRejected{0};
-std::atomic_uint32_t g_beams[2]{},g_assisted[2]{};
-enum class AssistResult:unsigned {Off,UnknownAmmo,NoTarget,InvalidTarget,Geometry,QueryFailed,Obstructed,Applied,Count};
-std::atomic_uint32_t g_assistResults[2][unsigned(AssistResult::Count)]{};
-struct AssistSetting {int mode=-1,kind=-2;float strength=-1;unsigned logs=0;};
-AssistSetting g_assistSettings[2]{}; // observed only on the verified game thread
-void ObserveAssistSetting(unsigned player,int kind,float strength){
-    auto& last=g_assistSettings[player];const int mode=runtime::Get().tpsAimAssistMode.load();
-    if(last.mode==mode&&last.kind==kind&&last.strength==strength)return;
-    last.mode=mode;last.kind=kind;last.strength=strength;
-    if(g_log&&last.logs++<16){char line[200]{};sprintf_s(line,"TPS V1.133 AIM_ASSIST setting player=%u mode=%s ammo=%d strength=%.1f usedByShotConsumer=1",player+1,mode==1?"per-ammunition":"global",kind,strength);g_log(line);}
-}
-bool AssistOutcome(unsigned player,AssistResult reason,int kind,float strength){
-    const unsigned n=++g_assistResults[player][unsigned(reason)];
-    if(g_log&&reason!=AssistResult::Off&&n<=2){
-        constexpr const char* names[]={"off","unknown-ammunition","no-native-target","invalid-target","outside-cone-or-nearer-original-hit","query-unavailable","nearer-surface-on-candidate-ray","applied"};
-        char line[220]{};sprintf_s(line,"TPS V1.133 AIM_ASSIST player=%u result=%s ammo=%d strength=%.1f n=%u impactUnmeasured=1",player+1,names[unsigned(reason)],kind,strength,n);g_log(line);
-    }
-    return reason==AssistResult::Applied;
-}
+std::atomic_uint32_t g_beams[2]{};
 template<class T> bool Read(const void* object,size_t offset,T& value){
     native_objects::MemoryReader reader;
     return reader.Read(reinterpret_cast<uintptr_t>(object),offset,value);
@@ -104,25 +84,7 @@ bool Direction(const Vec3& origin,const Vec3& target,Rotator& rotation){
     rotation.pitch=std::atan2(z,flat)*deg;rotation.yaw=std::atan2(y,x)*deg;
     return std::isfinite(rotation.pitch)&&std::isfinite(rotation.yaw);
 }
-bool Named(uintptr_t object,const char* expected){
-    struct Name {int index,number;} name{};
-    return Read(reinterpret_cast<void*>(object),0x18,name)&&native_objects::NameValueEquals(g_base,name.index,name.number,expected);
-}
-int AmmoKind(void* weapon){
-    uintptr_t cls=0,package=0;uint32_t flags=0;
-    if(!Read(weapon,8,flags)||(flags&0x18030u)||!Read(weapon,0x10,cls)||!Read(reinterpret_cast<void*>(cls),0x20,package))return -1;
-    for(unsigned i=0;i<aim_assist::Count;++i)if(Named(cls,aim_assist::Classes[i])&&Named(package,aim_assist::Packages[i]))return int(i);
-    return -1;
-}
-bool AssistConfigured(){const auto& r=runtime::Get();return r.tpsAimAssistMode.load()==1||aim_assist::Strength(r.tpsAimAssistGlobal.load())>0;}
-float AssistStrength(void* weapon,int* selectedKind=nullptr){
-    if(selectedKind)*selectedKind=-1;
-    if(!AssistConfigured())return 0;const int kind=AmmoKind(weapon);if(kind<0||unsigned(kind)>=aim_assist::Count)return 0;
-    if(selectedKind)*selectedKind=kind;
-    const auto& r=runtime::Get();return aim_assist::Strength(r.tpsAimAssistMode.load()==1?r.tpsAimAssistAmmo[unsigned(kind)].load():r.tpsAimAssistGlobal.load());
-}
 void* BeamWeapon(void* beam){
-    if(!AssistConfigured())return nullptr;
     void* actor=nullptr;void* registry=nullptr;void* reciprocal=nullptr;void* list=nullptr;int count=0,capacity=0;
     if(!Read(beam,0x108,actor)||!Read(actor,0xC78,registry)||!Read(registry,0xE8,reciprocal)||reciprocal!=actor||
        !Read(registry,0x108,list)||!list||!Read(registry,0x110,count)||!Read(registry,0x114,capacity)||count<4||count>capacity||capacity>32)return nullptr;
@@ -140,50 +102,15 @@ void* BeamWeapon(void* beam){
     for(int i=0;i<n;++i){
         void* ability=nullptr;void* weapon=nullptr;void* owner=nullptr;uint32_t flags=0;
         if(!Read(active,size_t(i)*8,ability)||!Read(ability,8,flags)||(flags&0x18030u)||!Read(ability,0x1B0,owner)||owner!=actor||
-           !Read(ability,0x50,weapon)||!weapon||(weapon!=weapons[0]&&weapon!=weapons[1])||AmmoKind(weapon)<0||Typed(weapon,0x380A4F0))continue;
+           !Read(ability,0x50,weapon)||!weapon||(weapon!=weapons[0]&&weapon!=weapons[1])||native_assist::AmmoKind(weapon)<0||Typed(weapon,0x380A4F0))continue;
         if(result&&result!=weapon)return nullptr;result=weapon;
     }
     return result;
 }
-bool AssistedRay(const local_players::Context& owner,const Vec3& origin,void* weapon,const native_tps::MouseRay& ray,const Vec3& baseTarget,bool blocked,native_tps::MouseRay& assisted,Vec3* aimPoint=nullptr){
-    if(owner.index<0||owner.index>1||!native_tps::OnGameThread())return false;
-    const unsigned player=unsigned(owner.index);int kind=-1;const float strength=AssistStrength(weapon,&kind);
-    ObserveAssistSetting(player,kind,strength);
-    if(strength<=0)return AssistOutcome(player,AssistConfigured()&&kind<0?AssistResult::UnknownAmmo:AssistResult::Off,kind,strength);
-    // The native aim update stores its already-selected actor in this weak
-    // field (5B9C12..5B9C1C). Never scan actors or invent a target.
-    struct Weak {int index,serial;} weak{};native_objects::MemoryReader reader;uintptr_t actor=0,root=0,reciprocal=0;int serial=0;uint32_t flags=0;
-    if(!Read(reinterpret_cast<void*>(owner.character),0xE98,weak)||weak.serial<=0)return AssistOutcome(player,AssistResult::NoTarget,kind,strength);
-    if(!native_objects::Item(reader,g_base,weak.index,actor,serial,flags)||serial!=weak.serial||actor==owner.character||actor==owner.pawn||
-       !Read(reinterpret_cast<void*>(actor),8,flags)||(flags&0x18030u)||!Read(reinterpret_cast<void*>(actor),0x158,root)||
-       !Read(reinterpret_cast<void*>(root),0xE8,reciprocal)||reciprocal!=actor)return AssistOutcome(player,AssistResult::InvalidTarget,kind,strength);
-    Vec3 candidate{};if(!Read(reinterpret_cast<void*>(root),0x1A0,candidate)||!Finite(candidate))return AssistOutcome(player,AssistResult::InvalidTarget,kind,strength);
-    native_tps::MouseRay full{},partial{};Vec3 point{};
-    if(!aim_assist::Pull(ray,candidate,baseTarget,blocked,strength,partial,&point)||!aim_assist::Pull(ray,candidate,baseTarget,blocked,100,full))return AssistOutcome(player,AssistResult::Geometry,kind,strength);
-    const float ahead=(point.x-origin.x)*partial.direction.x+(point.y-origin.y)*partial.direction.y+(point.z-origin.z)*partial.direction.z;
-    if(!Finite(origin)||!std::isfinite(ahead)||ahead<=.01f)return AssistOutcome(player,AssistResult::Geometry,kind,strength);
-    Vec3 contactPoint{};bool hit=false;native_objects::Identity contact{};
-    if(!native_tps::TraceCameraContact(owner,full,contactPoint,hit,contact,&origin))return AssistOutcome(player,AssistResult::QueryFailed,kind,strength);
-    const native_objects::Identity selected{actor,weak.index,weak.serial};
-    if(!native_objects::Alive(reader,g_base,selected))return AssistOutcome(player,AssistResult::InvalidTarget,kind,strength);
-    if(!aim_assist::ClearPath(full,candidate,contactPoint,hit,contact==selected))return AssistOutcome(player,AssistResult::Obstructed,kind,strength);
-    assisted=partial;if(aimPoint)*aimPoint=point;++g_assisted[player];return AssistOutcome(player,AssistResult::Applied,kind,strength);
-}
 bool Target(const local_players::Context& owner,const Vec3& origin,Vec3& target,bool& hit,void* weapon=nullptr){
-    native_tps::MouseRay ray{};
-    if(!g_provider||!g_provider(owner,ray)||!native_tps::TraceCameraTarget(owner,ray,target,hit,&origin))return false;
-    native_tps::MouseRay assisted{};Vec3 aimPoint{};
-    if(weapon&&AssistedRay(owner,origin,weapon,ray,target,hit,assisted,&aimPoint)){
-        Vec3 point{};bool collision=false;
-        if(native_tps::TraceCameraTarget(owner,assisted,point,collision,&origin)){
-            // The enemy may not block Projectile. Keep its interpolated depth
-            // for muzzle convergence and native Lava ballistics instead of
-            // aiming at the wall/sky behind it. Closer partial-ray cover wins.
-            const bool clear=aim_assist::ClearPath(assisted,aimPoint,point,collision,false);
-            target=clear?aimPoint:point;hit=clear||collision;
-        }
-    }
-    return true;
+    native_tps::MouseRay ray{};if(!g_provider||!g_provider(owner,ray))return false;
+    if(native_assist::Target(owner,weapon,ray,origin,target)){hit=true;return true;}
+    return native_tps::TraceCameraTarget(owner,ray,target,hit,&origin);
 }
 bool AbilityOrigin(void* ability,Vec3& origin){
     void* instigator=nullptr;void* root=nullptr;
@@ -220,71 +147,6 @@ Rotator* Rotation(void* weapon,Rotator* out,const void* input,uintptr_t caller){
 Rotator* HookRotation(void* weapon,Rotator* out,const void* input){
     return Rotation(weapon,out,input,reinterpret_cast<uintptr_t>(_ReturnAddress())-g_base);
 }
-// Native 697FD0 creates the PRIMARY beam, stores it in weapon+688, then
-// assigns the input interface's assisted target via 617B90 at 6981CB.
-// This bypasses the free-fire forward-vector path. Suppress only this
-// assignments throughout the life of an owned primary Static Shot.
-// A real contact on both the camera ray and beam volume remains eligible.
-// Child beams, hit retargeting, other ammunition and native view stay native.
-bool PrimaryStatic(void* beam,local_players::Context& owner,void** source=nullptr){
-    if(!g_staticReady.load()||!native_tps::OnGameThread()||!native_tps::TargetReady()||!Typed(beam,0x380A4B0))return false;
-    void* actor=nullptr;void* root=nullptr;void* volume=nullptr;void* registry=nullptr;void* reciprocal=nullptr;void* list=nullptr;
-    unsigned char type=0,role=0;int count=0,capacity=0;
-    if(!Read(beam,0x108,actor)||!local_players::ResolveActor(actor,owner)||owner.index<0||owner.index>1||
-       owner.kind!=local_players::PoseKind::Foot||owner.character!=reinterpret_cast<uintptr_t>(actor)||owner.pawn!=owner.character||
-       !owner.localPlayer||!owner.controller||!Read(actor,0xC18,type)||type!=1||!Read(actor,0x118,role)||role!=3||
-       native_tps::CinematicActive(unsigned(owner.index))||native_tps::IsWorldPaused(actor)||native_tps::RadialActive(unsigned(owner.index))||
-       !Read(beam,0x158,root)||!Read(beam,0x5E8,volume)||!root||root!=volume||!Read(root,0xE8,reciprocal)||reciprocal!=beam||
-       !Read(actor,0xC78,registry)||!Read(registry,0xE8,reciprocal)||reciprocal!=actor||!Read(registry,0x108,list)||!list||
-       !Read(registry,0x110,count)||!Read(registry,0x114,capacity)||count<4||count>capacity||capacity>32)return false;
-    for(unsigned slot:{2u,3u}){
-        void* weapon=nullptr;void* primary=nullptr;uintptr_t cls=0,package=0;uint32_t flags=0;
-        if(Read(list,slot*8,weapon)&&weapon&&Read(weapon,8,flags)&&!(flags&0x18030u)&&
-           Read(weapon,0xE8,reciprocal)&&reciprocal==actor&&Read(weapon,0x688,primary)&&primary==beam&&
-           Read(weapon,0x10,cls)&&native_objects::NameIs(g_base,cls,"MayhemStaticShot_Blueprint_C")&&
-           Read(reinterpret_cast<void*>(cls),0x20,package)&&native_objects::NameIs(g_base,package,"/Game/Blueprints/Player/MayhemStaticShot_Blueprint")){if(source)*source=weapon;return true;}
-    }
-    return false;
-}
-bool BeamContact(void* beam,void* component,const native_objects::Identity& cameraContact){
-    if(!cameraContact)return false;
-    void* owner=nullptr;void* volume=nullptr;uintptr_t hits=0;int count=0,capacity=0;
-    if(!Read(component,0xE8,owner)||reinterpret_cast<uintptr_t>(owner)!=cameraContact.address||!Read(beam,0x5E8,volume)||
-       !Read(volume,0x280,hits)||!hits||!Read(volume,0x288,count)||!Read(volume,0x28C,capacity)||count<1||count>capacity||capacity>256)return false;
-    // Exact native Tick at61D652..61D6A0: 0x8C-byte entries, FHitResult
-    // starts at+4; only its last blocking result supplies the contact actor.
-    const size_t offset=size_t(count-1)*0x8C+4;if(hits>UINTPTR_MAX-offset)return false;
-    const auto result=hits+offset;unsigned char flags=0;
-    struct Weak {int index,serial;} weak{};native_objects::MemoryReader reader;
-    return reader.Read(result,0,flags)&&(flags&1)&&reader.Read(result,0x68,weak)&&
-        weak.index==cameraContact.index&&weak.serial==cameraContact.serial&&native_objects::Alive(reader,g_base,cameraContact);
-}
-void AssignTarget(void* beam,void* component,uintptr_t caller){
-    local_players::Context owner{};native_tps::MouseRay ray{};bool manual=false;void* weapon=nullptr;
-    if(component&&PrimaryStatic(beam,owner,&weapon)&&g_provider&&g_provider(owner,ray)){
-        const unsigned player=unsigned(owner.index);if(player>1){if(g_setTarget)g_setTarget(beam,component);return;}++g_staticChecks[player];
-        const float length=ray.direction.x*ray.direction.x+ray.direction.y*ray.direction.y+ray.direction.z*ray.direction.z;
-        Vec3 target{},origin{};bool hit=false;void* volume=nullptr;native_objects::Identity contact{};
-        if(Finite(ray.origin)&&Finite(ray.direction)&&std::isfinite(length)&&length>.99f&&length<1.01f&&
-           Read(beam,0x5E8,volume)&&Read(volume,0x1A0,origin)&&Finite(origin)&&
-           native_tps::TraceCameraContact(owner,ray,target,hit,contact,&origin)){
-            native_tps::MouseRay assisted{};
-            if(AssistedRay(owner,origin,weapon,ray,target,hit,assisted)){
-                Vec3 point{};bool collision=false;native_objects::Identity adjustedContact{};
-                if(native_tps::TraceCameraContact(owner,assisted,point,collision,adjustedContact,&origin)){target=point;hit=collision;contact=adjustedContact;}
-            }
-            manual=!hit||!BeamContact(beam,component,contact);
-            if(!manual)++g_staticContacts[player];
-        }else ++g_staticUnavailable[player];
-    }
-    // This covers both initial creation and the native aim update's tail jump
-    // at5B9FF5. Caller addresses cannot define the lifetime of a beam target.
-    if(g_setTarget)g_setTarget(beam,manual?nullptr:component);
-    if(manual){const unsigned player=unsigned(owner.index);if(player>1)return;const unsigned n=++g_staticTargets[player];
-        if(g_log&&n<=8){char line[240]{};sprintf_s(line,
-            "TPS V1.130 STATIC_CONTACT player=%u filtered=%u caller=%llX targetAbsentOnRayOrBeam=1 secondaryBeamsNative=1 impactValidation=USER_REQUIRED",player+1,n,static_cast<unsigned long long>(caller));g_log(line);}}
-}
-void HookAssignTarget(void* beam,void* component){AssignTarget(beam,component,reinterpret_cast<uintptr_t>(_ReturnAddress())-g_base);}
 // 61D410 is MayhemBeamProjectile's native Tick. In its free-fire branch it reads
 // the ROOT/SOCKET forward vector, bypassing the projectile SpawnRotation.
 // Replace this one local beam consumer's return, never the scene transform,
@@ -423,25 +285,13 @@ void Initialize(LogFn log,bool exactExecutable,RayProvider provider){
     for(const auto& h:hooks){if(MH_CreateHook(reinterpret_cast<void*>(g_base+h.rva),h.detour,h.original)!=MH_OK){ok=false;break;}++created;}
     if(ok)for(const auto& h:hooks)if(MH_EnableHook(reinterpret_cast<void*>(g_base+h.rva))!=MH_OK){ok=false;break;}
     if(!ok){for(unsigned i=0;i<created;++i){MH_DisableHook(reinterpret_cast<void*>(g_base+hooks[i].rva));MH_RemoveHook(reinterpret_cast<void*>(g_base+hooks[i].rva));}
-        g_original=nullptr;g_finish=nullptr;g_lava=nullptr;g_forward=nullptr;g_setTarget=nullptr;g_staticReady=false;
+        g_original=nullptr;g_finish=nullptr;g_lava=nullptr;g_forward=nullptr;
         if(log)log("TPS V1.53 projectile hook transaction failed; native retained");return;}
     if(log)log("TPS V1.53 TARGET3D READY: common target, native forward collision, scoped free-beam direction; original beam range/chains; EXPERIMENTAL");
-    // The new optional boundary cannot disable the accepted aiming paths.
-    const unsigned char setter[]={0x40,0x55,0x57,0x48,0x83,0xEC,0x28,0x48,0x83,0xB9,0x38,0x06,0x00,0x00,0x00,0x48};
-    const unsigned char site[]={0xE8,0xC0,0xF9,0xF7,0xFF,0xEB,0x2D,0x48,0x8B,0x97,0xE8,0x00,0x00,0x00,0x48,0x8D};
-    void* original=nullptr;void* target=reinterpret_cast<void*>(g_base+0x617B90);
-    if(!std::memcmp(target,setter,sizeof(setter))&&!std::memcmp(reinterpret_cast<void*>(g_base+0x6981CB),site,sizeof(site))&&
-       MH_CreateHook(target,reinterpret_cast<void*>(&HookAssignTarget),&original)==MH_OK){
-        g_setTarget=reinterpret_cast<SetTargetComponent>(original);
-        if(MH_EnableHook(target)==MH_OK)g_staticReady=true;
-        else {MH_RemoveHook(target);g_setTarget=nullptr;}
-    }
-    if(log)log(g_staticReady?"TPS V1.130 STATIC_CONTACT READY: primary target lifetime filtered by physical contact; secondary beams native; EXPERIMENTAL":"TPS V1.130 STATIC_CONTACT unavailable; accepted aiming paths retained");
+    native_assist::Initialize(log,exactExecutable,provider);
 }
 void Report(){
-    if(g_log){char line[360]{};sprintf_s(line,"TPS V1.133 AIM_ASSIST totals P1=%u P2=%u addedAssistanceOnly=1 gameplayValidation=USER_REQUIRED",g_assisted[0].load(),g_assisted[1].load());g_log(line);
-        for(unsigned p=0;p<2;++p){auto& r=g_assistResults[p];sprintf_s(line,"TPS V1.133 AIM_ASSIST reasons player=%u off=%u unknownAmmo=%u noTarget=%u invalidTarget=%u geometry=%u queryFailed=%u obstructed=%u applied=%u impactUnmeasured=1",p+1,r[0].load(),r[1].load(),r[2].load(),r[3].load(),r[4].load(),r[5].load(),r[6].load(),r[7].load());g_log(line);}}
-    if(g_log){char line[300]{};sprintf_s(line,"TPS V1.130 STATIC_CONTACT totals checks=%u/%u filtered=%u/%u actualContact=%u/%u queryUnavailable=%u/%u primaryOnly=1 impactValidation=USER_REQUIRED",g_staticChecks[0].load(),g_staticChecks[1].load(),g_staticTargets[0].load(),g_staticTargets[1].load(),g_staticContacts[0].load(),g_staticContacts[1].load(),g_staticUnavailable[0].load(),g_staticUnavailable[1].load());g_log(line);}
+    native_assist::Report();
     if(!g_log)return;char line[260]{};
     sprintf_s(line,"TPS V1.53 TARGET3D totals native=%u pistolP1=%u P2=%u finishP1=%u P2=%u lavaP1=%u P2=%u lavaRejected=%u impactValidation=USER_REQUIRED",
         g_calls.load(),g_adjusted[0].load(),g_adjusted[1].load(),g_finished[0].load(),g_finished[1].load(),g_lobbed[0].load(),g_lobbed[1].load(),g_lavaRejected.load());g_log(line);

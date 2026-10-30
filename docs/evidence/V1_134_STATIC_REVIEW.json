@@ -1,0 +1,79 @@
+{
+  "version": "V1.134",
+  "status": "PREPARED_NOT_BUILT",
+  "acceptedBase": "V1.130 prior acceptance; Static filter specifically rejected after V1.133 report",
+  "sourceBase": "b5511e05a211555b0060b1ba29c3050d38629019",
+  "live": {
+    "readOnly": true,
+    "fileSha256": "6255ed9f9d01209ed4314344792a0bda455f0c21bd12a791cdbbe4dac7fd1992",
+    "samples": 1785,
+    "errors": 0,
+    "observed": [
+      "Common DualPistols",
+      "Standard",
+      "Static"
+    ],
+    "nativeFinderClass": "MayhemTargetFinder",
+    "ownerField": "helper+58",
+    "outerAbility": "helper+20",
+    "abilityFinder": "ability+218",
+    "weapon": "ability+1D8",
+    "properties": "ability+1E0",
+    "getter": "5A1620",
+    "effectiveProfile": [
+      7500,
+      90,
+      45,
+      0.75,
+      1
+    ],
+    "nativeCalls": false,
+    "memoryWrites": false
+  },
+  "pass1": "Read-only capture + reflected binary metadata + original PAK. Each action owns a distinct native finder with shared configured values. Weapon ownership and actual schema verified; native point resolver66A620 has RCX=result/RDX=actor/R8=FName by value.",
+  "pass2": "Source cleanup/consumer comparison: setter suppression, added pull and orphan native-contact observer deleted. One native-selector hook replaces two obsolete hooks. Native selector/cache/point resolver retain original selection, range and chain data; scoped angular changes restored before return. Native point flows to shared consumers with forward-muzzle guard.",
+  "unchangedFiles": [
+    "src/DarksidersGenesisMod.cpp",
+    "src/PistolVisualFeature.cpp",
+    "src/MountedHolsterFeature.cpp",
+    "src/CoopCameraFeature.cpp",
+    "src/LocalPlayerOwnership.cpp"
+  ],
+  "unchangedConsumers": [
+    "Owner",
+    "AbilityOwner",
+    "Direction",
+    "AbilityOrigin",
+    "Rotation",
+    "Finish",
+    "SolveLava",
+    "UpdateLava",
+    "BeamForward"
+  ],
+  "config": {
+    "keys": 228,
+    "other218ValuesPreserved": true,
+    "hotkeyIdsPreserved": 55,
+    "nativeEnabledDefault": false,
+    "nativePercentDefault": 100,
+    "range": [
+      0,
+      200
+    ],
+    "oldNineExperimentalKeysRetired": true,
+    "otherPersonalValuesAndBindingsPreserved": true,
+    "oldIniNotWrittenByAgent": true
+  },
+  "limits": [
+    "Runtime correction NOT validated; observation only establishes ownership and parameters",
+    "Adjustment scoped to normal Strife on foot P1/P2; horse/ultimate are native passthrough",
+    "Per-ammunition mode does not scale common finder; attributed action finder controls its native choice. Missing action attribution remains native, no guessing",
+    "Zero collapses native angles to exact axis; not post-selection target deletion",
+    "No guarantee that native target preference prioritizes destructibles; native class filters are retained",
+    "C++ unwind restoration tested synthetically, not all engine faults"
+  ],
+  "localBuild": false,
+  "localInstall": false,
+  "gameLaunched": false,
+  "gameplayValidated": false
+}

@@ -77,7 +77,7 @@ void Publish(const Snapshot& s) {
     if(!s.tpsCutsceneAutoSuspend||!s.thirdPersonEnabled)
         g_state.tpsCutsceneSuspended.store(false);
     g_state.aimIndicatorHideMode.store(s.aimIndicatorHideMode, std::memory_order_relaxed);
-    g_state.tpsAimAssistMode.store(std::clamp(s.tpsAimAssistMode,0,1));g_state.tpsAimAssistGlobal.store(aim_assist::Strength(s.tpsAimAssistGlobal));
+    g_state.tpsAimAssistEnabled.store(s.tpsAimAssistEnabled);g_state.tpsAimAssistMode.store(std::clamp(s.tpsAimAssistMode,0,1));g_state.tpsAimAssistGlobal.store(aim_assist::Strength(s.tpsAimAssistGlobal));
     for(unsigned i=0;i<aim_assist::Count;++i)g_state.tpsAimAssistAmmo[i].store(aim_assist::Strength(s.tpsAimAssistAmmo[i]));
     g_state.tps3DAimEnabled.store(s.tps3DAimEnabled,std::memory_order_relaxed);
     g_state.tpsAimPitchOffsetDegrees.store(s.tpsAimPitchOffsetDegrees,std::memory_order_relaxed);

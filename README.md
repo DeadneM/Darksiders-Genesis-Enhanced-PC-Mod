@@ -1,3 +1,11 @@
+## V1.134 - retour a l'acquisition native
+
+**PREPAREE / CONTROLES GITHUB EN ATTENTE ; NON VALIDEE EN JEU.** Remplace le filtre de cible Statique et l'aide ajoutee par le selecteur natif et son point socket/bornes. Option0..200%,100%=reference native, OFF par defaut ; Global ou sept munitions. Deux hooks obsoletes retires, un hook natif garde ; portee/poids/degats/chaines non ajustes. Profil actif et proprietaires confirmes par1785echantillons en lecture seule, sans erreur.
+
+Portee du nouvel ajustement : Strife a pied P1/P2 ; monture/ultime gardent le selecteur natif.218autres valeurs /55Hotkeys et fonctions validees conserves. Schema d'aide neuf,228cles. [Perimetre, nettoyage, limites et tests](docs/V1_134_NATIVE_ACQUISITION_TEST.md). GitHub seulement, V1.133 reste installee ; aucun INI ou fichier de jeu remplace. main/archive et anciennes archives preserves.
+
+---
+
 ## Audit Statique - 30 octobre 2026
 
 **REGRESSION SIGNALEE V1.133 ; AUDIT CONTROLE, REPARATION NON CONSTRUITE.** Le journal compte5166applications d'aide, mais2637/2637cibles principales Statique retirees. Le filtre V1.130 modifie le chemin natif de longueur et le cycle des chaines ; sa preservation n'est plus consideree comme correcte. Les curseurs V1.131..133 ajoutent une correction, ils ne reglent pas le natif. Objectif revise : restaurer selection/cycle natifs puis ajustement optionnel,100%=natif, sans changer portee/degats/rebonds. [Audit et limites](docs/STATIC_NATIVE_BEHAVIOR_AUDIT_2026_10_30.md). Autres acquis conserves ; V1.133 reste installee, aucune nouvelle compilation/installation/capture. Verification du contrat natif de parametres avant implementation.

@@ -20,7 +20,5 @@ bool RadialActive(unsigned playerIndex=0);
 // Synchronous native collision query using the exact existing scoped helper.
 bool TraceCameraTarget(const local_players::Context&,const MouseRay&,Vec3& target,bool& hit,const Vec3* source=nullptr);
 bool OnGameThread();
-// Same query, with the observed native blocking actor identity. No new collision policy.
-bool TraceCameraContact(const local_players::Context&,const MouseRay&,Vec3&,bool&,native_objects::Identity&,const Vec3* source=nullptr);
 void Report();
 }

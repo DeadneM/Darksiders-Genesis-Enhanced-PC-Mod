@@ -1112,17 +1112,18 @@ void Draw(Context& c) {
                 ImGui::TextDisabled("Native movement and camera isolation are automatic in TPS.");
                 ImGui::Separator();
                 ImGui::TextDisabled("Unified TPS aiming (on foot + mounted)");
-                if(ImGui::TreeNode("Added TPS aim assist")){
+                if(ImGui::TreeNode("Native TPS aim assist")){
+                    if(ImGui::Checkbox("Adjust native acquisition",&config.tpsAimAssistEnabled))config.Save();
                     constexpr const char* modes[]={"Global","Per ammunition"};
                     if(Choice("Adjustment mode##AimAssist",&config.tpsAimAssistMode,modes,2))config.Save();
                     if(config.tpsAimAssistMode==0){
-                        if(NumberRow("Strength","TPSAimAssistGlobal",&config.tpsAimAssistGlobal,0,100,0,"%.0f %%","%.1f"))config.Save();
+                        if(NumberRow("Acquisition","TPSNativeAimAssistGlobal",&config.tpsAimAssistGlobal,0,200,100,"%.0f %%","%.1f"))config.Save();
                     }else for(unsigned i=0;i<aim_assist::Count;++i){
                         ImGui::PushID(int(i));
-                        if(NumberRow(aim_assist::Names[i],"TPSAimAssistAmmo",&config.tpsAimAssistAmmo[i],0,100,0,"%.0f %%","%.1f"))config.Save();
+                        if(NumberRow(aim_assist::Names[i],"TPSNativeAimAssistAmmo",&config.tpsAimAssistAmmo[i],0,200,100,"%.0f %%","%.1f"))config.Save();
                         ImGui::PopID();
                     }
-                    HelpText("0 keeps validated V1.130 aiming. Up to100% added pull toward the game's selected target within6 degrees. Global or seven independent ammunition values, including Hotstreak. Native view, damage and range stay unchanged. Experimental; requires a visible native target.");
+                    HelpText("OFF or100%: native acquisition. Lower narrows the native angles; higher widens them.0 restricts to the exact axis. Search distance, beam reach and chains are unchanged. Experimental. Strife on foot, P1/P2; horse and ultimate keep native acquisition.");
                     ImGui::TreePop();
                 }
                 if(ImGui::Checkbox("3D aiming (experimental)",&config.tps3DAimEnabled))config.Save();

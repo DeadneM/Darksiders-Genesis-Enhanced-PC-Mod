@@ -61,7 +61,7 @@ struct Snapshot {
 
     bool tpsCutsceneAutoSuspend = true;
     int aimIndicatorHideMode = 2;
-    int tpsAimAssistMode=0;float tpsAimAssistGlobal=0;std::array<float,aim_assist::Count> tpsAimAssistAmmo{};
+    bool tpsAimAssistEnabled=false;int tpsAimAssistMode=0;float tpsAimAssistGlobal=100;std::array<float,aim_assist::Count> tpsAimAssistAmmo=aim_assist::Defaults;
     bool tps3DAimEnabled = true;
     float tpsAimPitchOffsetDegrees = 12.0f;
     int tpsMountedAimMode = 0; // camera free/aim follows view, native mode=1
@@ -197,7 +197,7 @@ struct State {
     std::atomic_bool tpsAbilityWheelHeld{false}; // LB/keyboard wheels; R3 is USE equipment, not wheel opener
     std::atomic_ullong tpsAbilityWheelTick{0}; // LB/native keyboard selection, R3 passthrough retained for use
     std::atomic_int aimIndicatorHideMode{2};
-    std::atomic_int tpsAimAssistMode{0};std::atomic<float> tpsAimAssistGlobal{0};std::array<std::atomic<float>,aim_assist::Count> tpsAimAssistAmmo{};
+    std::atomic_bool tpsAimAssistEnabled{false};std::atomic_int tpsAimAssistMode{0};std::atomic<float> tpsAimAssistGlobal{100};std::array<std::atomic<float>,aim_assist::Count> tpsAimAssistAmmo{100,100,100,100,100,100,100};
     std::atomic_bool tps3DAimEnabled{true};
     std::atomic<float> tpsAimPitchOffsetDegrees{12.0f};
     std::atomic_int tpsMountedAimMode{0};

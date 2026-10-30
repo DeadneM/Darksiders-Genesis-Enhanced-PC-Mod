@@ -11,6 +11,10 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(NativeAimAssistTests tests/NativeAimAssistTests.cpp src/RuntimeSettings.cpp)
+  target_include_directories(NativeAimAssistTests PRIVATE tests/stubs src)
+  target_compile_definitions(NativeAimAssistTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+  add_test(NAME NativeAimAssist COMMAND NativeAimAssistTests)
   add_executable(AimAssistTests tests/AimAssistTests.cpp src/RuntimeSettings.cpp src/ConfigStore.cpp)
   target_include_directories(AimAssistTests PRIVATE src)
   target_compile_definitions(AimAssistTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
@@ -413,6 +417,7 @@ add_library(DarksidersGenesisMod SHARED
   src/EffectAppearanceFeature.cpp
   src/UltimateDurationFeature.cpp
   src/ProjectileAimFeature.cpp
+  src/NativeAimAssistFeature.cpp
   src/HealthFeature.cpp
   src/GlideFeature.cpp
   src/CameraTraceFeature.cpp

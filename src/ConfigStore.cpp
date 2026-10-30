@@ -356,7 +356,7 @@ void Store::ResetDefaults(bool persist) {
     tpsLongPressToggleEnabled = true;
     tpsGrenadeHoldEnabled = true;
     aimIndicatorHideMode = 2; // TPS Only (default)
-    tpsAimAssistMode=0;tpsAimAssistGlobal=0;tpsAimAssistAmmo={};
+    tpsAimAssistEnabled=false;tpsAimAssistMode=0;tpsAimAssistGlobal=100;tpsAimAssistAmmo=aim_assist::Defaults;
     tps3DAimEnabled = true;
     tpsAimPitchOffsetDegrees = 12.0f;
     tpsMountedAimMode = 0;
@@ -679,9 +679,10 @@ bool Store::Load() {
     tpsLongPressToggleEnabled=ReadBool(L"Features",L"TPSHoldToggle",true,path_);
     tpsGrenadeHoldEnabled=ReadBool(L"Features",L"TPSGrenadeHold",true,path_);
     aimIndicatorHideMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(L"Features",L"AimIndicatorHideMode",2,path_.c_str())),0,3);
-    tpsAimAssistMode=std::clamp(int(GetPrivateProfileIntW(L"Features",L"TPSAimAssistMode",0,path_.c_str())),0,1);
-    tpsAimAssistGlobal=aim_assist::Strength(ReadFloat(L"Values",L"TPSAimAssistGlobal",0,path_));
-    for(unsigned i=0;i<aim_assist::Count;++i)tpsAimAssistAmmo[i]=aim_assist::Strength(ReadFloat(L"Values",aim_assist::Keys[i],0,path_));
+    tpsAimAssistEnabled=ReadBool(L"Features",L"TPSNativeAimAssist",false,path_);
+    tpsAimAssistMode=std::clamp(int(GetPrivateProfileIntW(L"Features",L"TPSNativeAimAssistMode",0,path_.c_str())),0,1);
+    tpsAimAssistGlobal=aim_assist::Strength(ReadFloat(L"Values",L"TPSNativeAimAssistGlobal",100,path_));
+    for(unsigned i=0;i<aim_assist::Count;++i)tpsAimAssistAmmo[i]=aim_assist::Strength(ReadFloat(L"Values",aim_assist::Keys[i],100,path_));
     tps3DAimEnabled=ReadBool(L"Features",L"TPS3DAim",true,path_);
     tpsAimPitchOffsetDegrees=std::clamp(ReadFloat(L"Values",L"TPSAimPitchOffsetDegrees",12.0f,path_),-45.0f,45.0f);
     tpsMountedAimMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(L"Features",L"TPSMountedAimMode",0,path_.c_str())),0,1);
@@ -1001,7 +1002,7 @@ void Store::PublishRuntime() const {
 
     runtime.tpsCutsceneAutoSuspend = tpsCutsceneAutoSuspend;
     runtime.aimIndicatorHideMode = aimIndicatorHideMode;
-    runtime.tpsAimAssistMode=tpsAimAssistMode;runtime.tpsAimAssistGlobal=tpsAimAssistGlobal;runtime.tpsAimAssistAmmo=tpsAimAssistAmmo;
+    runtime.tpsAimAssistEnabled=tpsAimAssistEnabled;runtime.tpsAimAssistMode=tpsAimAssistMode;runtime.tpsAimAssistGlobal=tpsAimAssistGlobal;runtime.tpsAimAssistAmmo=tpsAimAssistAmmo;
     runtime.tps3DAimEnabled = tps3DAimEnabled;
     runtime.tpsAimPitchOffsetDegrees = tpsAimPitchOffsetDegrees;
     runtime.tpsMountedAimMode = tpsMountedAimMode;
@@ -1239,9 +1240,19 @@ bool Store::SaveNow() {
     wchar_t aimModeBuffer[12]{};
     swprintf_s(aimModeBuffer,L"%d",std::clamp(aimIndicatorHideMode,0,3));
     WriteProfileString(L"Features",L"AimIndicatorHideMode",aimModeBuffer,path_.c_str());
+    WriteBool(L"Features",L"TPSNativeAimAssist",tpsAimAssistEnabled,path_);
     wchar_t assistMode[8]{};swprintf_s(assistMode,L"%d",std::clamp(tpsAimAssistMode,0,1));
-    WriteProfileString(L"Features",L"TPSAimAssistMode",assistMode,path_.c_str());WriteFloat(L"Values",L"TPSAimAssistGlobal",aim_assist::Strength(tpsAimAssistGlobal),path_);
+    WriteProfileString(L"Features",L"TPSNativeAimAssistMode",assistMode,path_.c_str());WriteFloat(L"Values",L"TPSNativeAimAssistGlobal",aim_assist::Strength(tpsAimAssistGlobal),path_);
     for(unsigned i=0;i<aim_assist::Count;++i)WriteFloat(L"Values",aim_assist::Keys[i],aim_assist::Strength(tpsAimAssistAmmo[i]),path_);
+    WriteProfileString(L"Features",L"TPSAimAssistMode",nullptr,path_.c_str());
+    WriteProfileString(L"Values",L"TPSAimAssistGlobal",nullptr,path_.c_str());
+    WriteProfileString(L"Values",L"TPSAimAssistStandard",nullptr,path_.c_str());
+    WriteProfileString(L"Values",L"TPSAimAssistCharge",nullptr,path_.c_str());
+    WriteProfileString(L"Values",L"TPSAimAssistGraviton",nullptr,path_.c_str());
+    WriteProfileString(L"Values",L"TPSAimAssistLava",nullptr,path_.c_str());
+    WriteProfileString(L"Values",L"TPSAimAssistBeam",nullptr,path_.c_str());
+    WriteProfileString(L"Values",L"TPSAimAssistNature",nullptr,path_.c_str());
+    WriteProfileString(L"Values",L"TPSAimAssistStatic",nullptr,path_.c_str());
     WriteBool(L"Features",L"TPS3DAim",tps3DAimEnabled,path_);
     WriteFloat(L"Values",L"TPSAimPitchOffsetDegrees",tpsAimPitchOffsetDegrees,path_);
     wchar_t mountModeText[12]{};
