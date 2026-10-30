@@ -1,6 +1,6 @@
 # V1.135 - acquisition native et suppression des corrections ajoutees
 
-30 octobre 2026. PREPAREE / CONTROLES GITHUB EN ATTENTE ; NON VALIDEE EN JEU. Objectif : retrouver le cycle de Statique natif et proposer un ajustement de ses angles d'acquisition, avec100% comme reference. Reussite a confirmer : portee/chaines natives revenues, difference50/100/150sans fausser trajectoires ou controles. V1.133 reste installee ; aucun nouveau fichier de jeu remplace.
+30 octobre 2026. CONSTRUITE / CONTROLEE ; NON VALIDEE EN JEU. Objectif : retrouver le cycle de Statique natif et proposer un ajustement de ses angles d'acquisition, avec100% comme reference. Reussite a confirmer : portee/chaines natives revenues, difference50/100/150sans fausser trajectoires ou controles. V1.133 reste installee ; aucun nouveau fichier de jeu remplace.
 
 ## Preuves avant changement
 

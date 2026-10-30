@@ -24,6 +24,8 @@ Revenir au choix de cible et au cycle du faisceau natifs ; retirer le filtre for
 
 L'option demandee doit modifier l'accrochage natif : OFF conserve le jeu ;100% est la reference native ; en dessous, acquisition plus restrictive ; au-dessus, plus permissive. Global et valeurs par munition restent souhaites. Portee physique, degats et nombre/distance des chaines restent independants. Les champs distance/angles/score sont visibles dans le selecteur6C3520, mais leurs types/proprietaires par arme et leur restauration doivent etre verifies avant ecriture. Aucun nouvel offset brut n'est applique dans cet audit. Il ne suffit pas de changer le texte du curseur actuel.
 
+Suite de cet audit : [V1.135 construite et controlee,69/69suites sans avertissement ; comportement encore a valider](V1_135_DELIVERY_RECEIPT.md). Le texte ci-dessous conserve les constats et l'etat historique de l'enquete.
+
 ## Parametres retrouves avant implementation
 
 Les champs sont maintenant nommes par les metadonnees du binaire : MayhemTargetingProperties (0x30octets), SearchRadius a0, VerticalSearchAngle a4, HorizontalSearchAngle a8. Le selecteur6C3520 lit ces trois champs depuis helper+28/+2C/+30.66A620 calcule le point natif depuis Socket_Projectile_Impact ou les bornes du modele : ne pas substituer arbitrairement la racine/pieds du personnage.

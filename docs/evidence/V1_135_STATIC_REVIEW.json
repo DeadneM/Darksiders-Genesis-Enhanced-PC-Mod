@@ -1,6 +1,6 @@
 {
   "version": "V1.135",
-  "status": "PREPARED_NOT_BUILT",
+  "status": "BUILT_CHECKED_EXPERIMENTAL_GAMEPLAY_UNVALIDATED",
   "acceptedBase": "V1.130 prior acceptance; Static filter specifically rejected after V1.133 report",
   "sourceBase": "b5511e05a211555b0060b1ba29c3050d38629019",
   "live": {
@@ -85,5 +85,9 @@
     "installed": false,
     "fix": "Explicit bounds at the new native selector array consumers; warnings are not suppressed",
     "archivePreserved": true
-  }
+  },
+  "compiledSource": "209a25e0ce3d592cf771d12035b9eef02b85d93e",
+  "ciRun": 41117665955,
+  "testsPassed": 69,
+  "msvcWarnings": 0
 }

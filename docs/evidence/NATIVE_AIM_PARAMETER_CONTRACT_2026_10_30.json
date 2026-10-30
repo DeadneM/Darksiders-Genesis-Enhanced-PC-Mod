@@ -258,8 +258,29 @@
       }
     ]
   },
-  "decision": "Scale acquisition angles only, leave search radius, beam reach, damage and chains unchanged.100%=native. Native shared/override ownership still requires the prepared read-only live observation before connecting writes.",
-  "liveObservationPending": true,
+  "decision": "Ownership observation completed for Standard/Static/common native finders. V1.135 scales owned native angular limits only, with 100%=native reference and temporary values restored; search radius, beam reach, damage and chains are not adjusted. Runtime effect still unvalidated.",
+  "liveObservationPending": false,
   "newBuild": false,
-  "newInstall": false
+  "newInstall": false,
+  "liveOwnershipObserved": {
+    "samples": 1785,
+    "errors": 0,
+    "readOnly": true,
+    "nativeCalls": false,
+    "memoryWrites": false,
+    "normalStrife": true,
+    "activeHelperProperties": [
+      7500,
+      90,
+      45,
+      0.75,
+      1
+    ],
+    "observedAmmo": [
+      "Standard",
+      "Static"
+    ],
+    "sharedProfileDistinctFinderInstances": true
+  },
+  "implementation": "V1.135 built, checked, not installed or gameplay validated; scoped native angle adjustment, guards and limits in V1_135_NATIVE_ACQUISITION_TEST.md"
 }

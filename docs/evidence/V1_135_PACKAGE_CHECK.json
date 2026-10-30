@@ -1,0 +1,50 @@
+{
+  "sourceCommit": "209a25e0ce3d592cf771d12035b9eef02b85d93e",
+  "archiveCommit": "f4a32cf5a72015c99cecb146ff960526df2ea834",
+  "name": "DarksidersGenesis_V1.135_NATIVE_ACQUISITION_TEST.zip",
+  "size": 2425004,
+  "sha256": "3863D6F78C3AAA6991A6D983A00396E3645139705C1EA869BC6D8838CAB81578",
+  "files": {
+    "DarksidersGenesisMod.asi": {
+      "size": 2117120,
+      "sha256": "75AB0C07C09C3BB005E29E292258B6560293E07307C20C41A67689DDB892FC82",
+      "method": 0
+    },
+    "DarksidersGenesisMod.ini": {
+      "size": 6380,
+      "sha256": "1C73C0D1EA5936D601205CC94544B2B41451FCFCE63E5B8F39726687110E762D",
+      "method": 0
+    },
+    "dxgi.dll": {
+      "size": 155136,
+      "sha256": "6091916811BEA53AF9C232761FCA7258CDFF87E71C6196D2B7A0812B6F20F163",
+      "method": 0
+    },
+    "README.md": {
+      "size": 145912,
+      "sha256": "1CC19C84450AABEABA32FCB805BD8E4578F47C71D4A22773FCDA79D2D3357851",
+      "method": 0
+    }
+  },
+  "oldArchiveGitBlobsUnchanged": 199,
+  "archiveCount": 200,
+  "iniKeys": 228,
+  "unrelatedIniValuesUnchanged": 218,
+  "hotkeyIdsUnchanged": 55,
+  "amd64": true,
+  "crcValid": true,
+  "noCompression": true,
+  "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/f4a32cf5a72015c99cecb146ff960526df2ea834/downloads/DarksidersGenesis_V1.135_NATIVE_ACQUISITION_TEST.zip",
+  "httpStatus": 200,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "e2e519f7ea84d4b773fd7a31611779ae68308696",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "localBuild": false,
+  "localInstall": false,
+  "gameplayValidated": false,
+  "retiredFilterAndPullAbsent": true,
+  "nativeScaleDefaultDisabled": true,
+  "nativeScaleDefaultPercent": 100
+}
