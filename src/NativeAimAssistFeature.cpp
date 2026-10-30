@@ -66,7 +66,11 @@ void* SelectTarget(void* finder,void* actor,const Vec* direction,void* predicate
     if(!g_ready||g_nested||!Scope(reinterpret_cast<uintptr_t>(finder),reinterpret_cast<uintptr_t>(actor),owner,weapon,kind)||!g_ray||!g_ray(owner,ray)){
         ++g_unmapped;return g_select(finder,actor,direction,predicate);
     }
-    const auto p=unsigned(owner.index),slot=kind<0?aim_assist::Count:unsigned(kind);const float percent=Percent(kind);
+    const auto p=unsigned(owner.index);
+    if(p>=2||kind< -1||kind>=int(aim_assist::Count))return g_select(finder,actor,direction,predicate);
+    const auto slot=kind<0?aim_assist::Count:unsigned(kind);
+    if(slot>aim_assist::Count)return g_select(finder,actor,direction,predicate);
+    const float percent=Percent(kind);
     auto& choice=g_choices[p][slot];choice={};void* selected=nullptr;bool scaled=false,safe=false;
     struct Nested {Nested(){g_nested=true;}~Nested(){g_nested=false;}} nested;
     {Angles angles;safe=angles.Set(reinterpret_cast<uintptr_t>(finder),percent);
@@ -86,7 +90,7 @@ void* SelectTarget(void* finder,void* actor,const Vec* direction,void* predicate
     auto& observed=g_observed[p][slot];const bool changed=!observed.known||observed.percent!=choice.percent;
     observed.known=true;observed.percent=choice.percent;
     if(g_log&&(g_queries[p].load()<=8||(changed&&observed.changes++<16))){float radius=0,v=0,h=0;Read(reinterpret_cast<uintptr_t>(finder),0x28,radius);Read(reinterpret_cast<uintptr_t>(finder),0x2C,v);Read(reinterpret_cast<uintptr_t>(finder),0x30,h);
-        char line[300]{};sprintf_s(line,"TPS V1.134 NATIVE_ASSIST player=%u ammo=%d percent=%.1f scaled=%d nativeRadius=%.1f nativeAngles=%.1f/%.1f restored=1 selected=%d gameplayValidation=USER_REQUIRED",p+1,kind,percent,scaled?1:0,radius,v,h,selected?1:0);g_log(line);}
+        char line[300]{};sprintf_s(line,"TPS V1.135 NATIVE_ASSIST player=%u ammo=%d percent=%.1f scaled=%d nativeRadius=%.1f nativeAngles=%.1f/%.1f restored=1 selected=%d gameplayValidation=USER_REQUIRED",p+1,kind,percent,scaled?1:0,radius,v,h,selected?1:0);g_log(line);}
     return selected;
 }
 }
@@ -116,12 +120,12 @@ void Initialize(projectile_aim::LogFn log,bool exact,projectile_aim::RayProvider
     constexpr unsigned char getter[]={0x48,0x8B,0x81,0x18,0x02,0x00,0x00,0xC3};
     // Getter bytes are verified alongside the live ABI before delivery.
     if(std::memcmp(reinterpret_cast<void*>(base+0x6C3520),selector,sizeof(selector))||std::memcmp(reinterpret_cast<void*>(base+0x66A620),point,sizeof(point))||
-       std::memcmp(reinterpret_cast<void*>(base+0x5A1620),getter,sizeof(getter))){if(log)log("TPS V1.134 NATIVE_ASSIST signatures unavailable; native selector retained");return;}
+       std::memcmp(reinterpret_cast<void*>(base+0x5A1620),getter,sizeof(getter))){if(log)log("TPS V1.135 NATIVE_ASSIST signatures unavailable; native selector retained");return;}
     g_base=base;void* original=nullptr;void* target=reinterpret_cast<void*>(base+0x6C3520);
     if(MH_CreateHook(target,reinterpret_cast<void*>(&SelectTarget),&original)!=MH_OK)return;
     g_select=reinterpret_cast<Select>(original);g_point=reinterpret_cast<AimPoint>(base+0x66A620);
     if(MH_EnableHook(target)!=MH_OK){MH_RemoveHook(target);g_select=nullptr;g_point=nullptr;return;}
-    g_ready=true;if(log)log("TPS V1.134 NATIVE_ASSIST READY: native target selection and chains; optional angular scale;100%=native; EXPERIMENTAL");
+    g_ready=true;if(log)log("TPS V1.135 NATIVE_ASSIST READY: native target selection and chains; optional angular scale;100%=native; EXPERIMENTAL");
 }
-void Report(){if(!g_log)return;char line[260]{};sprintf_s(line,"TPS V1.134 NATIVE_ASSIST totals queries=%u/%u scaled=%u/%u nativePoints=%u/%u passthrough=%u gameplayValidation=USER_REQUIRED",g_queries[0].load(),g_queries[1].load(),g_scaled[0].load(),g_scaled[1].load(),g_points[0].load(),g_points[1].load(),g_unmapped.load());g_log(line);}
+void Report(){if(!g_log)return;char line[260]{};sprintf_s(line,"TPS V1.135 NATIVE_ASSIST totals queries=%u/%u scaled=%u/%u nativePoints=%u/%u passthrough=%u gameplayValidation=USER_REQUIRED",g_queries[0].load(),g_queries[1].load(),g_scaled[0].load(),g_scaled[1].load(),g_points[0].load(),g_points[1].load(),g_unmapped.load());g_log(line);}
 }

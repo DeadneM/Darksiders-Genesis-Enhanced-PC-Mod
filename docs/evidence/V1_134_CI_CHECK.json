@@ -1,0 +1,21 @@
+{
+  "sourceCommit": "bda5bbca399bf96a6bfeaf3fffa3a6af33a932f0",
+  "runId": 41116577827,
+  "jobId": 124272241369,
+  "conclusion": "success",
+  "testsPassed": 69,
+  "msvcWarnings": [
+    "2026-10-30T19:40:19.0904376Z D:\\a\\Darksiders-Genesis-Enhanced-PC-Mod\\Darksiders-Genesis-Enhanced-PC-Mod\\src\\NativeAimAssistFeature.cpp(70): warning C6385: Reading invalid data from 'g_choices':  the readable size is '1280' bytes, but '2748779069440' bytes may be read.: Lines: 64, 65, 66, 69, 70 [D:\\a\\Darksiders-Genesis-Enhanced-PC-Mod\\Darksiders-Genesis-Enhanced-PC-Mod\\build\\DarksidersGenesisMod.vcxproj]\r",
+    "2026-10-30T19:40:19.0907589Z D:\\a\\Darksiders-Genesis-Enhanced-PC-Mod\\Darksiders-Genesis-Enhanced-PC-Mod\\src\\NativeAimAssistFeature.cpp(78): warning C6385: Reading invalid data from 'g_queries':  the readable size is '8' bytes, but '17179869184' bytes may be read.: Lines: 64, 65, 66, 69, 70, 71, 72, 73, 76, 72, 77, 78 [D:\\a\\Darksiders-Genesis-Enhanced-PC-Mod\\Darksiders-Genesis-Enhanced-PC-Mod\\build\\DarksidersGenesisMod.vcxproj]\r",
+    "2026-10-30T19:40:19.0913151Z D:\\a\\Darksiders-Genesis-Enhanced-PC-Mod\\Darksiders-Genesis-Enhanced-PC-Mod\\src\\NativeAimAssistFeature.cpp(78): warning C6385: Reading invalid data from 'g_scaled':  the readable size is '8' bytes, but '17179869184' bytes may be read.: Lines: 64, 65, 66, 69, 70, 71, 72, 73, 76, 72, 77, 78 [D:\\a\\Darksiders-Genesis-Enhanced-PC-Mod\\Darksiders-Genesis-Enhanced-PC-Mod\\build\\DarksidersGenesisMod.vcxproj]\r",
+    "2026-10-30T19:40:19.0918193Z D:\\a\\Darksiders-Genesis-Enhanced-PC-Mod\\Darksiders-Genesis-Enhanced-PC-Mod\\src\\NativeAimAssistFeature.cpp(86): warning C6385: Reading invalid data from 'g_observed':  the readable size is '192' bytes, but '412316860416' bytes may be read.: Lines: 64, 65, 66, 69, 70, 71, 72, 73, 76, 72, 77, 78, 79, 80, 81, 82, 86 [D:\\a\\Darksiders-Genesis-Enhanced-PC-Mod\\Darksiders-Genesis-Enhanced-PC-Mod\\build\\DarksidersGenesisMod.vcxproj]\r"
+  ],
+  "msvcErrors": [],
+  "summary": [
+    "2026-10-30T19:41:40.4685685Z 100% tests passed out of 69\r",
+    "2026-10-30T19:41:40.4686167Z Total Test time (real) =   8.00 sec\r",
+    "2026-10-30T19:41:44.5874974Z [debug 32b3f15] downloads: preserve verified compiled cumulative ZIP\r"
+  ],
+  "platform": "Windows x64 Release; MSVC /analyze",
+  "gameplayValidated": false
+}

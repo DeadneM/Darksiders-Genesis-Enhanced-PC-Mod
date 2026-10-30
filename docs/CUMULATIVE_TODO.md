@@ -1,3 +1,11 @@
+## V1.135 - retour a l'acquisition native
+
+**PREPAREE / CONTROLES GITHUB EN ATTENTE ; NON VALIDEE EN JEU.** Remplace le filtre de cible Statique et l'aide ajoutee par le selecteur natif et son point socket/bornes. Option0..200%,100%=reference native, OFF par defaut ; Global ou sept munitions. Deux hooks obsoletes retires, un hook natif garde ; portee/poids/degats/chaines non ajustes. Profil actif et proprietaires confirmes par1785echantillons en lecture seule, sans erreur.
+
+Portee du nouvel ajustement : Strife a pied P1/P2 ; monture/ultime gardent le selecteur natif.218autres valeurs /55Hotkeys et fonctions validees conserves. Schema d'aide neuf,228cles. [Perimetre, nettoyage, limites et tests](V1_135_NATIVE_ACQUISITION_TEST.md). GitHub seulement, V1.133 reste installee ; aucun INI ou fichier de jeu remplace. main/archive et anciennes archives preserves.
+
+---
+
 ## V1.134 - retour a l'acquisition native
 
 **PREPAREE / CONTROLES GITHUB EN ATTENTE ; NON VALIDEE EN JEU.** Remplace le filtre de cible Statique et l'aide ajoutee par le selecteur natif et son point socket/bornes. Option0..200%,100%=reference native, OFF par defaut ; Global ou sept munitions. Deux hooks obsoletes retires, un hook natif garde ; portee/poids/degats/chaines non ajustes. Profil actif et proprietaires confirmes par1785echantillons en lecture seule, sans erreur.
