@@ -1,12 +1,14 @@
 ## V1.133 - visibilite et profondeur de l'aide TPS
 
-**CONSTRUITE / CONTROLEE : [68/68 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40959653744), zero avertissement/erreur MSVC. [ZIP cumulatif verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/7f3b9ec2cc71ef997543cfe5d2751a867190db6f/downloads/DarksidersGenesis_V1.133_AIM_ASSIST_TARGET_DEPTH_TEST.zip) - [Recu](V1_133_DELIVERY_RECEIPT.md). Updater debug et Defender controles ; correction EXPERIMENTALE, NON VALIDEE EN JEU. V1.131 reste installee ; V1.130 reste la base acceptee.**
+**CONSTRUITE / CONTROLEE : [68/68 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/40959653744), zero avertissement/erreur MSVC. [ZIP cumulatif verifie](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/7f3b9ec2cc71ef997543cfe5d2751a867190db6f/downloads/DarksidersGenesis_V1.133_AIM_ASSIST_TARGET_DEPTH_TEST.zip) - [Recu](V1_133_DELIVERY_RECEIPT.md). Updater debug et Defender controles ; correction EXPERIMENTALE, NON VALIDEE EN JEU. V1.133 installee sur demande ; V1.130 reste la base acceptee.**
 
 **CONSTRUITE / CONTROLEE ; NON VALIDEE EN JEU.** Retour V1.131 : valeur augmentee puis remise a zero, aucune application journalisee. Le garde exigeant un contact bloquant avec l'ennemi est incompatible avec des profils natifs Projectile Overlap/Ignore. Verification remplacee par absence d'obstacle avant la cible ; journal des valeurs utilisees et raisons de refus. Cela reste une correction a tester, pas la preuve de l'unique cause en jeu.
 
 Le point assiste garde aussi la profondeur finie du candidat : convergence depuis le canon et solveur natif Lava ne visent pas le mur/ciel derriere un ennemi non bloquant. Un obstacle plus proche sur le rayon partiel garde la priorite.
 
-Base acceptee V1.130 ; mode Global / sept munitions V1.131, valeurs par defaut et INI personnel conserves. Cone, priorite aux collisions proches, contact Statique, cameras/input, pose UI et pouvoirs inchanges. [Perimetre et essai](V1_133_AIM_ASSIST_TARGET_DEPTH_TEST.md), [deux passes](evidence/V1_133_STATIC_REVIEW.json). GitHub seulement ; aucune installation V1.133 ni jeu lance, main/archive/anciens ZIP preserves.
+Base acceptee V1.130 ; mode Global / sept munitions V1.131, valeurs par defaut et INI personnel conserves. Cone, priorite aux collisions proches, contact Statique, cameras/input, pose UI et pouvoirs inchanges. [Perimetre et essai](V1_133_AIM_ASSIST_TARGET_DEPTH_TEST.md), [deux passes](evidence/V1_133_STATIC_REVIEW.json). Compilation GitHub ; V1.133 installee sur demande, INI conserve, jeu non lance ; main/archive/anciens ZIP preserves.
+
+Installation demandee le 30 octobre 2026 : V1.133 installee et relue, sauvegarde V1.131 `before-V1.133-20261030-194838-8270be80` ; INI/raccourcis byte-identiques, EXE original et PAK preserves, jeu non lance. [Preuve](evidence/V1_133_INSTALL_CHECK.json).
 
 ---
 
