@@ -1,0 +1,273 @@
+{
+  "date": "2026-10-31",
+  "status": "HISTORICAL_AUDIT_ONLY_NO_BUILD_NO_INSTALL",
+  "scope": "Only commits preceding the first reported Static attraction during V1.126 play; V1.129 onward cannot be the initiating cause.",
+  "firstReportEvidence": "User report before request to install1.127; archived1.126 session28Oct12:30..12:57. Exact first affected build remains unknown.",
+  "snapshots": {
+    "V1.52": {
+      "commit": "52d253b084d1768e4da90152c4a155223826f7d7",
+      "files": {
+        "src/ProjectileAimFeature.cpp": {
+          "blob": "b32414d4e1375ed0777be850b11837abf9d9ae6e",
+          "sha256": "3b08e184a955532482cb2ad256f999f74117ac627150c170c65c7621bcb2b6b4"
+        },
+        "src/NativeTpsFeature.cpp": {
+          "blob": "ff7c8cda6b0104688e929c81c4a2093cebd00604",
+          "sha256": "1b8ac3c89951625aae8cec81b84e3d09e8c0d17d723bd7754a8853ca054d9efa"
+        },
+        "src/TpsAimDirection.h": {
+          "blob": "1eae1bcc566a6e81734bdec89c4f9ff41fd680c9",
+          "sha256": "ed18c268898ecffc5576073871dad04c4068383a18e21b000129834d3938441b"
+        }
+      }
+    },
+    "V1.53": {
+      "commit": "0100424469731cb9cb74e0d34035d5914b51444b",
+      "files": {
+        "src/ProjectileAimFeature.cpp": {
+          "blob": "a3965b0acbe07c59af4a1480282b5580a4e16008",
+          "sha256": "4458524668bc1ce8e4d030317bdc68b078db9cbdac19067c8bb9b10bada668ba"
+        },
+        "src/NativeTpsFeature.cpp": {
+          "blob": "5d0b6642f84b97a1bd3b3dff6ebf4f786d942a95",
+          "sha256": "317e6bd4e8a7c29ad5d37dd93cba1634185ea7f9e199932d30ecd0536ab25322"
+        },
+        "src/TpsAimDirection.h": {
+          "blob": "1eae1bcc566a6e81734bdec89c4f9ff41fd680c9",
+          "sha256": "ed18c268898ecffc5576073871dad04c4068383a18e21b000129834d3938441b"
+        }
+      }
+    },
+    "V1.79": {
+      "commit": "86ec926a6ff43496603036d1a4cfe0beb5b18c74",
+      "files": {
+        "src/ProjectileAimFeature.cpp": {
+          "blob": "418b7c98e2063cc564688f594dc6d5bdce157fd1",
+          "sha256": "a549f0d817e6b147f6826d3623186268b7040114abd551dd3ab133560a53635a"
+        },
+        "src/NativeTpsFeature.cpp": {
+          "blob": "5d0b6642f84b97a1bd3b3dff6ebf4f786d942a95",
+          "sha256": "317e6bd4e8a7c29ad5d37dd93cba1634185ea7f9e199932d30ecd0536ab25322"
+        },
+        "src/TpsAimDirection.h": {
+          "blob": "1eae1bcc566a6e81734bdec89c4f9ff41fd680c9",
+          "sha256": "ed18c268898ecffc5576073871dad04c4068383a18e21b000129834d3938441b"
+        }
+      }
+    },
+    "V1.108": {
+      "commit": "36143cb804e45ed191a2d07edec3d5e2491c123a",
+      "files": {
+        "src/ProjectileAimFeature.cpp": {
+          "blob": "418b7c98e2063cc564688f594dc6d5bdce157fd1",
+          "sha256": "a549f0d817e6b147f6826d3623186268b7040114abd551dd3ab133560a53635a"
+        },
+        "src/NativeTpsFeature.cpp": {
+          "blob": "5d0b6642f84b97a1bd3b3dff6ebf4f786d942a95",
+          "sha256": "317e6bd4e8a7c29ad5d37dd93cba1634185ea7f9e199932d30ecd0536ab25322"
+        },
+        "src/TpsAimDirection.h": {
+          "blob": "1eae1bcc566a6e81734bdec89c4f9ff41fd680c9",
+          "sha256": "ed18c268898ecffc5576073871dad04c4068383a18e21b000129834d3938441b"
+        }
+      }
+    },
+    "V1.116": {
+      "commit": "1c1f7191c022ba1dc646b4e982bd451924c84ed4",
+      "files": {
+        "src/ProjectileAimFeature.cpp": {
+          "blob": "418b7c98e2063cc564688f594dc6d5bdce157fd1",
+          "sha256": "a549f0d817e6b147f6826d3623186268b7040114abd551dd3ab133560a53635a"
+        },
+        "src/NativeTpsFeature.cpp": {
+          "blob": "5d0b6642f84b97a1bd3b3dff6ebf4f786d942a95",
+          "sha256": "317e6bd4e8a7c29ad5d37dd93cba1634185ea7f9e199932d30ecd0536ab25322"
+        },
+        "src/TpsAimDirection.h": {
+          "blob": "1eae1bcc566a6e81734bdec89c4f9ff41fd680c9",
+          "sha256": "ed18c268898ecffc5576073871dad04c4068383a18e21b000129834d3938441b"
+        }
+      }
+    },
+    "V1.124": {
+      "commit": "e2e519f7ea84d4b773fd7a31611779ae68308696",
+      "files": {
+        "src/ProjectileAimFeature.cpp": {
+          "blob": "418b7c98e2063cc564688f594dc6d5bdce157fd1",
+          "sha256": "a549f0d817e6b147f6826d3623186268b7040114abd551dd3ab133560a53635a"
+        },
+        "src/NativeTpsFeature.cpp": {
+          "blob": "5d0b6642f84b97a1bd3b3dff6ebf4f786d942a95",
+          "sha256": "317e6bd4e8a7c29ad5d37dd93cba1634185ea7f9e199932d30ecd0536ab25322"
+        },
+        "src/TpsAimDirection.h": {
+          "blob": "1eae1bcc566a6e81734bdec89c4f9ff41fd680c9",
+          "sha256": "ed18c268898ecffc5576073871dad04c4068383a18e21b000129834d3938441b"
+        }
+      }
+    },
+    "V1.125": {
+      "commit": "c7f8c29fe7398149b848fcbe17b7ef16d6735009",
+      "files": {
+        "src/ProjectileAimFeature.cpp": {
+          "blob": "418b7c98e2063cc564688f594dc6d5bdce157fd1",
+          "sha256": "a549f0d817e6b147f6826d3623186268b7040114abd551dd3ab133560a53635a"
+        },
+        "src/NativeTpsFeature.cpp": {
+          "blob": "5d0b6642f84b97a1bd3b3dff6ebf4f786d942a95",
+          "sha256": "317e6bd4e8a7c29ad5d37dd93cba1634185ea7f9e199932d30ecd0536ab25322"
+        },
+        "src/TpsAimDirection.h": {
+          "blob": "1eae1bcc566a6e81734bdec89c4f9ff41fd680c9",
+          "sha256": "ed18c268898ecffc5576073871dad04c4068383a18e21b000129834d3938441b"
+        }
+      }
+    },
+    "V1.126": {
+      "commit": "6aa9735333ba3b7da1fa4cf4b3690eb979eb9b32",
+      "files": {
+        "src/ProjectileAimFeature.cpp": {
+          "blob": "418b7c98e2063cc564688f594dc6d5bdce157fd1",
+          "sha256": "a549f0d817e6b147f6826d3623186268b7040114abd551dd3ab133560a53635a"
+        },
+        "src/NativeTpsFeature.cpp": {
+          "blob": "5d0b6642f84b97a1bd3b3dff6ebf4f786d942a95",
+          "sha256": "317e6bd4e8a7c29ad5d37dd93cba1634185ea7f9e199932d30ecd0536ab25322"
+        },
+        "src/TpsAimDirection.h": {
+          "blob": "1eae1bcc566a6e81734bdec89c4f9ff41fd680c9",
+          "sha256": "ed18c268898ecffc5576073871dad04c4068383a18e21b000129834d3938441b"
+        }
+      }
+    },
+    "V1.127": {
+      "commit": "ba56debb0458c447a1b350b384228cf38d5d4e13",
+      "files": {
+        "src/ProjectileAimFeature.cpp": {
+          "blob": "418b7c98e2063cc564688f594dc6d5bdce157fd1",
+          "sha256": "a549f0d817e6b147f6826d3623186268b7040114abd551dd3ab133560a53635a"
+        },
+        "src/NativeTpsFeature.cpp": {
+          "blob": "5d0b6642f84b97a1bd3b3dff6ebf4f786d942a95",
+          "sha256": "317e6bd4e8a7c29ad5d37dd93cba1634185ea7f9e199932d30ecd0536ab25322"
+        },
+        "src/TpsAimDirection.h": {
+          "blob": "1eae1bcc566a6e81734bdec89c4f9ff41fd680c9",
+          "sha256": "ed18c268898ecffc5576073871dad04c4068383a18e21b000129834d3938441b"
+        }
+      }
+    },
+    "V1.128": {
+      "commit": "9f61ce50aed819034116f8b29fe33d805e969390",
+      "files": {
+        "src/ProjectileAimFeature.cpp": {
+          "blob": "418b7c98e2063cc564688f594dc6d5bdce157fd1",
+          "sha256": "a549f0d817e6b147f6826d3623186268b7040114abd551dd3ab133560a53635a"
+        },
+        "src/NativeTpsFeature.cpp": {
+          "blob": "5d0b6642f84b97a1bd3b3dff6ebf4f786d942a95",
+          "sha256": "317e6bd4e8a7c29ad5d37dd93cba1634185ea7f9e199932d30ecd0536ab25322"
+        },
+        "src/TpsAimDirection.h": {
+          "blob": "1eae1bcc566a6e81734bdec89c4f9ff41fd680c9",
+          "sha256": "ed18c268898ecffc5576073871dad04c4068383a18e21b000129834d3938441b"
+        }
+      }
+    }
+  },
+  "unchangedAimFunctions": {
+    "ComputeNativeMouseRay": {
+      "unchangedV79Through126": true,
+      "sha256": "15bd3c5411fd80c64570a371684dd3e318850c85f38df1826a98c8f4dd435b75"
+    },
+    "ProvideNativeMouseRay": {
+      "unchangedV79Through126": true,
+      "sha256": "62c2ade61dc36d6f4e014aa2225998e5cc381cd17f7a89c18543c495a7de5e65"
+    },
+    "ProvideProjectileRay": {
+      "unchangedV79Through126": true,
+      "sha256": "6583c5421179a05990996cb8dd344965175281bbc463b10b7dd175de54f0dfb6"
+    },
+    "HookPlayerLookInput": {
+      "unchangedV79Through126": true,
+      "sha256": "78ec5395f06f62d74a5b0531873ae3c02d44f406854ea112ccf451f03909bc1d"
+    },
+    "HookPlayerLookRotation": {
+      "unchangedV79Through126": true,
+      "sha256": "a2733a8a7a45338e2d84e4786ba0f0424e5190d39565985325296ef887d5628e"
+    }
+  },
+  "preReportAimHistory": [
+    "cf613bb714c53c9677ca19496a01ccd88e59aa62 V1.32: unify local mouse native targets and native camera lifecycle TEST",
+    "d362076f357306db1d45d727ae21622236bf5f6d V1.34: consistent TPS stick roles and native pause camera ownership",
+    "25f2d94e1ab62a56e9f18f62333bb353f7582498 V1.35: explicit native gauge levels for reproducible Ultimate testing",
+    "f8c98585b981bbe1f3bdbe821e4874f9ada6b5d4 V1.37: Ultimate camera values, Strife aiming and scoped native gauge rewards",
+    "890bcda07224ecd26a0b4f89c422363dec9456db V1.46: isolate coop gameplay, repair camera ownership and add sustain controls",
+    "832f2d17425f6a79dcebe490ce2f9d61a8c8c8af debug: prepare V1.50 native target aiming, radial ownership and recovery cleanup",
+    "8f226dc5ece66b3890f7764a08081c9e224cfd3e debug: add optional 3D aiming with level neutral view and native simple fallback",
+    "52d253b084d1768e4da90152c4a155223826f7d7 debug: unify native action aiming, separate shot angle and clean input scopes and warnings",
+    "0100424469731cb9cb74e0d34035d5914b51444b debug: correct native free-beam direction and camera-side targets; protect combat dash lifecycle",
+    "86ec926a6ff43496603036d1a4cfe0beb5b18c74 V1.79 native World Ender axis, symmetric OFF arms, blade choices and mounted Jump candidate"
+  ],
+  "sessions": {
+    "V1.116": {
+      "sha256": "7f9dd0b3da6f70de59b809119d54ac36f3bec3ca257304e361fbd066dffafcba",
+      "evidence": [
+        "[2026-10-27 11:28:53.700] V1.116 CONFIG loaded C:\\Program Files (x86)\\Steam\\steamapps\\common\\DarksidersGenesis\\ProjectMayhem\\Binaries\\Win64\\DarksidersGenesisMod.ini: TPS=1 osCursorHooks=NONE nativeCursorQuery=ENUM32 FOV=110.0 dist=0.150 pitch=-12.00 height=0.0 foot=0.0 stickMode=2 mountedAim=0 normalHeight=0.0 SkipWarningRuntime=1",
+        "[2026-10-27 11:41:53.713] TPS V1.32 native targeting totals: ready=1 helper2=16 helper3=0 scopedRays=0 foot=0 horse=0 nativeHits=0 noHitForward=0 nativePass=16 actualProjectileImpacts=UNMEASURED",
+        "[2026-10-27 11:41:54.099] TPS V1.53 TARGET3D totals native=3 pistolP1=0 P2=0 finishP1=0 P2=0 lavaP1=0 P2=0 lavaRejected=0 impactValidation=USER_REQUIRED",
+        "[2026-10-27 11:41:54.099] TPS V1.53 BEAM_FORWARD totals P1=0 P2=0 rootForwardConsumerOnly=1 socketAndTargetChainsNative=1 gameplayValidation=USER_REQUIRED"
+      ]
+    },
+    "V1.123": {
+      "sha256": "7a5a4e0c10ba91826156411dbb883a55609f6040fbdb8fdc45217e42127f9bac",
+      "evidence": [
+        "[2026-10-27 22:52:34.001] V1.123 CONFIG loaded C:\\Program Files (x86)\\Steam\\steamapps\\common\\DarksidersGenesis\\ProjectMayhem\\Binaries\\Win64\\DarksidersGenesisMod.ini: TPS=1 osCursorHooks=NONE nativeCursorQuery=ENUM32 FOV=110.0 dist=0.150 pitch=-12.00 height=0.0 foot=0.0 stickMode=2 mountedAim=0 normalHeight=0.0 SkipWarningRuntime=1",
+        "[2026-10-27 22:57:08.068] TPS V1.32 native targeting totals: ready=1 helper2=10 helper3=0 scopedRays=0 foot=0 horse=0 nativeHits=0 noHitForward=0 nativePass=10 actualProjectileImpacts=UNMEASURED",
+        "[2026-10-27 22:57:08.537] TPS V1.53 TARGET3D totals native=1 pistolP1=0 P2=0 finishP1=0 P2=0 lavaP1=0 P2=0 lavaRejected=0 impactValidation=USER_REQUIRED",
+        "[2026-10-27 22:57:08.537] TPS V1.53 BEAM_FORWARD totals P1=0 P2=0 rootForwardConsumerOnly=1 socketAndTargetChainsNative=1 gameplayValidation=USER_REQUIRED"
+      ]
+    },
+    "V1.126": {
+      "sha256": "e6ba68685f7d052d7e54428dceb6502e6e57ec3b7ca9475a7cc230f37746bcde",
+      "evidence": [
+        "[2026-10-28 12:30:16.825] V1.126 CONFIG loaded C:\\Program Files (x86)\\Steam\\steamapps\\common\\DarksidersGenesis\\ProjectMayhem\\Binaries\\Win64\\DarksidersGenesisMod.ini: TPS=1 osCursorHooks=NONE nativeCursorQuery=ENUM32 FOV=110.0 dist=0.150 pitch=-12.00 height=0.0 foot=0.0 stickMode=2 mountedAim=0 normalHeight=0.0 SkipWarningRuntime=1",
+        "[2026-10-28 12:57:05.799] TPS V1.32 native targeting totals: ready=1 helper2=7559 helper3=0 scopedRays=11848 foot=5711 horse=266 nativeHits=5750 noHitForward=227 nativePass=1582 actualProjectileImpacts=UNMEASURED",
+        "[2026-10-28 12:57:06.286] TPS V1.53 TARGET3D totals native=371 pistolP1=306 P2=0 finishP1=3837 P2=0 lavaP1=0 P2=0 lavaRejected=0 impactValidation=USER_REQUIRED",
+        "[2026-10-28 12:57:06.287] TPS V1.53 BEAM_FORWARD totals P1=1708 P2=0 rootForwardConsumerOnly=1 socketAndTargetChainsNative=1 gameplayValidation=USER_REQUIRED"
+      ]
+    }
+  },
+  "profileSubset": [
+    "TPS3DAim=1",
+    "TPSFOVDegrees=110.000",
+    "ThirdPersonDistanceMultiplier=0.150",
+    "ThirdPersonPitchDegrees=-12.000",
+    "TPSAimPitchOffsetDegrees=12.000",
+    "StaticShotAppearance=0"
+  ],
+  "pass1": "Git blobs for ProjectileAimFeature, NativeTpsFeature and TpsAimDirection are identicalV1.79..V1.128; five main aim providers/getters unchangedV1.79..V1.126. Last projectile changeV1.79 only adds exact WorldEnder exclusion. No direct assist/range tuning found in the recent sequence.",
+  "pass2": "Native61D492 target-component620 branch and61D544 explicit-point628 branch precede/skip free-forward61D5E0/61D5E5. The V1.53 camera correction only intercepts the latter. Native target assignment5B9F80..5B9FFF /69818F..6981CB was untouched atV1.126. Separate native selector direction6C3520 and camera collision571E50 remain independently authoritative.",
+  "candidateA": "Old split authority: camera-ray free fire corrected sinceV1.53 but assigned target lock uses actor/component position. Explains mechanism for ray leaving reticle without a new range/strength edit. Presence proven, responsibility for particular gameplay symptom not isolated.",
+  "candidateB": "V1.32 replaces original mouse2D routine5719A0 (optional native under-cursor branch checks hit-component response to AutoTargeting18) with3D routine571E50 using Projectile19. Destructible is Overlap onProjectile, so a pot/crate need not be retained by that blocking trace. This does not alone explain arbitrary lateral tracking.",
+  "excludedAsInitiatingCause": [
+    "V1.129 initial Static setter filter",
+    "V1.130 contact-lifetime filter",
+    "V1.131..133 added assist sliders",
+    "V1.134..135 native selection replacement/cache"
+  ],
+  "recentReview": "V1.79..126 ordinary camera changes: finisher height followV1.82 with ordinary offset target0; DOF changes separate from acquisition. Cursor hiding changes only enum, no mouse position write. Foreign WorldEnder helper guarded to owned War / exact power, no Static data writes found. Visual template selection native0 in V1.126 profile. This is source-level negative evidence, not universal side-effect proof.",
+  "limits": [
+    "No chronological A/B on pastASI versions",
+    "No exact target/component identity in first symptom log",
+    "No native radius/angles measured in that historical session; later7500/90/45 sample cannot be projected back as a measurement",
+    "No gameplay replay, memory edit or new native call",
+    "No claim thatV1.53 newly increased native assist; it exposes an incomplete common aiming contract"
+  ],
+  "conclusion": "Earlier, concrete architecture mismatch identified; no recent pre-report strength increase identified. CurrentV1.135 unconditional cache redirect is a separate later confounder, not the historical origin.",
+  "nextStep": "Resolve actual native target assignment and free-ray direction consistently, preserving native validity/chain/range rules. Compare strict native targeting with TPS camera first; do not reintroduce the rejected physical-contact setter filter or simply lower range.",
+  "privateNativeEvidenceSha256": {
+    "v237-native-historical-input.txt": "84ae6d59f5fb477f8f320323e972b5cd09e32ca980b7c0b85a87cb8e0d2fb8b2",
+    "v227-static-beam-tick.txt": "14dc957baaa25a686d643d9e49f95d03a56dbc7732d8cfb60ad39f6b773ba0c0"
+  }
+}

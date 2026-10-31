@@ -1,3 +1,9 @@
+## Enquête Statique avant le premier signalement — 31 octobre 2026
+
+**AUDIT HISTORIQUE CONTRÔLÉ ; cause initiale non isolée en jeu.** Premier retour situé sur V1.126. Comparaison de dix versions : trois fichiers de visée identiques V1.79–128, cinq fonctions principales identiques V1.79–126 ; aucun renforcement récent du sélecteur trouvé. Piste antérieure concrète : depuis V1.53, le correctif TPS ne couvre que la branche libre du faisceau, contournée par sa cible native affectée. La collision des destructibles constitue une seconde piste distincte. [Chronologie, preuves et limites](docs/STATIC_PRE_REPORT_HISTORY_2026_10_31.md). Aucun code/INI/fichier de jeu changé, aucun build ; V1.129 et suivantes exclues comme origine initiale.
+
+---
+
 ## Audit après essai V1.135 — guidage Statique par défaut
 
 **AUDIT CONTRÔLÉ ; correction non construite.** Le réglage semble agir selon l'utilisateur, mais le guidage par défaut reste contesté. Deux passes confirment que OFF/100 conserve les angles natifs tout en remplaçant encore direction de recherche et point final : ce n'est pas une référence native complète.311utilisations du point ajoutées au journal, toutes munitions/réglages confondus ; cause unique non prouvée. V1.135 installée vérifiée par hash. [Constats, limites et suite](docs/STATIC_DEFAULT_GUIDANCE_AUDIT_2026_10_30.md). Aucun code/INI/fichier du jeu modifié, aucun build ; historique ci-dessous conservé.
