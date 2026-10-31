@@ -47,6 +47,7 @@ jobs:
           ctest --test-dir build -C Release --output-on-failure
           if ($LASTEXITCODE -ne 0) { throw "Policy or configuration tests failed" }
       - name: Package verified four root files
+        if: ${{ !contains(github.event.head_commit.message, '[check only]') }}
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -82,12 +83,14 @@ jobs:
           } finally { $zip.Dispose() }
           Get-FileHash $zipPath -Algorithm SHA256
       - name: Upload verified Windows x64 ZIP
+        if: ${{ !contains(github.event.head_commit.message, '[check only]') }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.DG_ARCHIVE }}
           path: downloads/${{ env.DG_ARCHIVE }}
           if-no-files-found: error
       - name: Preserve numbered experimental ZIP in debug
+        if: ${{ !contains(github.event.head_commit.message, '[check only]') }}
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'

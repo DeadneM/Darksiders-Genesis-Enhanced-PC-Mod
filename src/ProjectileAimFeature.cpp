@@ -84,13 +84,8 @@ bool Direction(const Vec3& origin,const Vec3& target,Rotator& rotation){
     rotation.pitch=std::atan2(z,flat)*deg;rotation.yaw=std::atan2(y,x)*deg;
     return std::isfinite(rotation.pitch)&&std::isfinite(rotation.yaw);
 }
-bool Target(const local_players::Context& owner,const Vec3& origin,Vec3& target,bool& hit,const Vec3* consumed=nullptr){
+bool Target(const local_players::Context& owner,const Vec3& origin,Vec3& target,bool& hit){
     native_tps::MouseRay ray{};if(!g_provider||!g_provider(owner,ray))return false;
-    if(consumed&&Finite(*consumed)){
-        const auto& p=*consumed;
-        const float ahead=(p.x-origin.x)*ray.direction.x+(p.y-origin.y)*ray.direction.y+(p.z-origin.z)*ray.direction.z;
-        if(std::isfinite(ahead)&&ahead>.01f){target=p;hit=true;return true;}
-    }
     return native_tps::TraceCameraTarget(owner,ray,target,hit,&origin);
 }
 bool AbilityOrigin(void* ability,Vec3& origin){
@@ -98,9 +93,9 @@ bool AbilityOrigin(void* ability,Vec3& origin){
     return Read(ability,0x48,instigator)&&Typed(instigator,0x3A58AB0)&&
         Read(instigator,0x158,root)&&Read(root,0x1A0,origin)&&Finite(origin);
 }
-bool AimAt(const local_players::Context& owner,const Vec3& origin,Rotator& rotation,bool nativeVertical=false,const Vec3* consumed=nullptr){
+bool AimAt(const local_players::Context& owner,const Vec3& origin,Rotator& rotation,bool nativeVertical=false){
     Vec3 target{};bool hit=false;
-    if(!Target(owner,origin,target,hit,consumed))return false;
+    if(!Target(owner,origin,target,hit))return false;
     Rotator adjusted=rotation;
     if(!Direction(origin,target,adjusted))return false;
     // Shared yaw/release/target correction is NEVER disabled by the option.
@@ -114,8 +109,7 @@ void Observe(const char* path,const local_players::Context& owner,unsigned n,con
             path,owner.index+1,n,result.pitch,result.yaw);g_log(line);}
 }
 Rotator* Rotation(void* weapon,Rotator* out,const void* input,uintptr_t caller){
-    native_assist::ShotScope native;
-    auto* result=g_original?g_original(weapon,out,input):out;native.Close();++g_calls;
+    auto* result=g_original?g_original(weapon,out,input):out;++g_calls;
     if(!result||caller!=0x7CFA3B||!native_tps::OnGameThread())return result;
     void* actor=nullptr;local_players::Context owner{};
     if(!Read(weapon,0xE8,actor)||!Owner(weapon,actor,owner))return result;
@@ -123,7 +117,7 @@ Rotator* Rotation(void* weapon,Rotator* out,const void* input,uintptr_t caller){
     // parameter (3640478); 7CF9B0 forwards that actual value as R8.
     Vec3 origin{};if(!Read(input,0,origin)||!Finite(origin))return result;
     Rotator adjusted=*result;
-    if(AimAt(owner,origin,adjusted,false,native.used?&native.point:nullptr)){*result=adjusted;Observe("PISTOL",owner,owner.index==0?++g_adjusted[0]:++g_adjusted[1],adjusted);}
+    if(AimAt(owner,origin,adjusted,false)){*result=adjusted;Observe("PISTOL",owner,owner.index==0?++g_adjusted[0]:++g_adjusted[1],adjusted);}
     return result;
 }
 Rotator* HookRotation(void* weapon,Rotator* out,const void* input){
@@ -159,14 +153,13 @@ Vec3* HookBeamForward(void* component,Vec3* out){
     return BeamForward(component,out,reinterpret_cast<uintptr_t>(_ReturnAddress())-g_base);
 }
 Rotator* Finish(void* ability,Rotator* out){
-    native_assist::ShotScope native;
-    auto* result=g_finish?g_finish(ability,out):out;native.Close();
+    auto* result=g_finish?g_finish(ability,out):out;
     if(!result||!native_tps::OnGameThread())return result;
     local_players::Context owner{};
     if(!AbilityOwner(ability,0x3811260,owner))return result;
     Vec3 origin{};if(!AbilityOrigin(ability,origin))return result;
     Rotator adjusted=*result;
-    if(AimAt(owner,origin,adjusted,Typed(ability,0x3811050),native.used?&native.point:nullptr)){*result=adjusted;Observe("ABILITY_FINAL",owner,owner.index==0?++g_finished[0]:++g_finished[1],adjusted);}
+    if(AimAt(owner,origin,adjusted,Typed(ability,0x3811050))){*result=adjusted;Observe("ABILITY_FINAL",owner,owner.index==0?++g_finished[0]:++g_finished[1],adjusted);}
     return result;
 }
 // The actual Lava preparation uses these native formulas and its own speed,
@@ -216,13 +209,11 @@ bool SolveLava(void* ability,const local_players::Context& owner,const Vec3& tar
     return true;
 }
 void UpdateLava(void* ability){
-    native_assist::ShotScope native;
     if(g_lava)g_lava(ability); // native setup, CDO and charge execute first
-    native.Close();
     if(!native_tps::OnGameThread()||!runtime::Get().tps3DAimEnabled.load())return;
     local_players::Context owner{};Vec3 origin{},target{};bool hit=false;
     if(!AbilityOwner(ability,0x3811050,owner)||!AbilityOrigin(ability,origin))return;
-    if(!Target(owner,origin,target,hit,native.used?&native.point:nullptr))return;
+    if(!Target(owner,origin,target,hit))return;
     const char* rejected="unknown";uint32_t defaultFlags=0;
     if(!SolveLava(ability,owner,target,hit,rejected,defaultFlags)){
         const auto n=++g_lavaRejected;

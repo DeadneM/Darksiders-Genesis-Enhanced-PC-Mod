@@ -4,6 +4,8 @@
 
 Décision utilisateur : rétablir d'abord la cohérence de la chaîne native, puis l'ajustement optionnel. Aucun nouveau build/hook/rollback/installation, ni fichier de jeu/INI modifié ; lecture externe autorisée après signal prêt. Autres acquis protégés ; cause historique initiale encore ouverte. Les reçus ci-dessous sont historiques.
 
+
+**Préparation source suivante :** retrait du hook de point V1.136 et des portées/tests qui simulaient son usage ; sélecteur et calculs de tir libre/Charge/Lava conservés. Contrôle Windows GitHub sans conditionnement ni publication de ZIP (`[check only]`) ; aucune correction visible annoncée. [Périmètre et comparaison native/TPS encore nécessaire](NATIVE_AIM_CLEANUP_2026_10_31.md).
 ---
 
 ## V1.136 — chaîne native de ciblage TPS
