@@ -1,0 +1,75 @@
+{
+  "date": "2026-10-31",
+  "version": "V1.136",
+  "status": "USER_REJECTED_AIMING",
+  "userReport": "Original Static attraction not fixed; aim-assist sliders no longer have visible effect. User clarified slider issue, not newly wrong shot directions.",
+  "sourceCommit": "aa87712d800d4492423c623e77b6227707378350",
+  "logSha256": "DE7DB176D09F3CE73FE041AC14937505C717A6AAA56EF0EDFB7C1C67B51CA64B",
+  "iniSha256": "48516D315D0FC819A80193EA29960232F4821C2DEFA4E5A56D521A55E0D02CB3",
+  "installedAsiSha256": "D4071AF50365E925904B5B78926E6169FCF4B62AC6ED9C75FACCE2CA2D56883A",
+  "counters": {
+    "queries": [
+      485,
+      0
+    ],
+    "scaled": [
+      0,
+      0
+    ],
+    "originalConsumerPoints": 0,
+    "passthrough": 35,
+    "originalCursor2D": 435,
+    "forwardFallback": 41
+  },
+  "observedPercentValues": [
+    100.0
+  ],
+  "finalIniSubset": [
+    "TPS3DAim=1",
+    "TPSNativeAimAssist=0",
+    "TPSNativeAimAssistMode=0",
+    "TPSNativeAimAssistGlobal=0.000"
+  ],
+  "evidence": [
+    "[2026-10-31 20:12:51.051] TPS V1.136 NATIVE_ASSIST READY: original direction and native consumer; angular scale only; no actor/point cache; EXPERIMENTAL",
+    "[2026-10-31 20:13:18.812] TPS V1.136 CURSOR_QUERY native2D accepted: native under-cursor selection, same TPS deprojection; no retained actor cache",
+    "[2026-10-31 20:13:18.828] TPS V1.136 NATIVE_ASSIST player=1 ammo=-1 percent=100.0 scaled=0 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 originalDirection=1 selected=0",
+    "[2026-10-31 20:13:18.828] TPS V1.136 NATIVE_ASSIST player=1 ammo=-1 percent=100.0 scaled=0 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 originalDirection=1 selected=0",
+    "[2026-10-31 20:13:18.834] TPS V1.136 CURSOR_QUERY native2D accepted: native under-cursor selection, same TPS deprojection; no retained actor cache",
+    "[2026-10-31 20:13:18.849] TPS V1.136 NATIVE_ASSIST player=1 ammo=-1 percent=100.0 scaled=0 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 originalDirection=1 selected=0",
+    "[2026-10-31 20:13:18.855] TPS V1.136 CURSOR_QUERY native2D accepted: native under-cursor selection, same TPS deprojection; no retained actor cache",
+    "[2026-10-31 20:13:18.870] TPS V1.136 NATIVE_ASSIST player=1 ammo=0 percent=100.0 scaled=0 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 originalDirection=1 selected=0",
+    "[2026-10-31 20:13:18.870] TPS V1.136 NATIVE_ASSIST player=1 ammo=0 percent=100.0 scaled=0 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 originalDirection=1 selected=0",
+    "[2026-10-31 20:13:18.876] TPS V1.136 CURSOR_QUERY native2D accepted: native under-cursor selection, same TPS deprojection; no retained actor cache",
+    "[2026-10-31 20:13:18.892] TPS V1.136 NATIVE_ASSIST player=1 ammo=0 percent=100.0 scaled=0 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 originalDirection=1 selected=0",
+    "[2026-10-31 20:13:18.914] TPS V1.136 NATIVE_ASSIST player=1 ammo=0 percent=100.0 scaled=0 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 originalDirection=1 selected=0",
+    "[2026-10-31 20:13:18.938] TPS V1.136 NATIVE_ASSIST player=1 ammo=0 percent=100.0 scaled=0 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 originalDirection=1 selected=0",
+    "[2026-10-31 20:13:41.668] TPS V1.136 NATIVE_ASSIST player=1 ammo=6 percent=100.0 scaled=0 nativeRadius=7500.0 nativeAngles=90.0/45.0 restored=1 originalDirection=1 selected=1",
+    "[2026-10-31 20:14:46.654] Shutdown: begin",
+    "[2026-10-31 20:14:46.656] TPS V1.136 CURSOR_QUERY totals original2D=435 forwardFallback=41 selectedActorCache=REMOVED impactValidation=USER_REQUIRED",
+    "[2026-10-31 20:14:47.071] TPS V1.136 NATIVE_ASSIST totals queries=485/0 scaled=0/0 originalConsumerPoints=0 passthrough=35 impactValidation=USER_REQUIRED",
+    "[2026-10-31 20:14:47.071] TPS V1.53 TARGET3D totals native=25 pistolP1=24 P2=0 finishP1=405 P2=0 lavaP1=0 P2=0 lavaRejected=0 impactValidation=USER_REQUIRED",
+    "[2026-10-31 20:14:47.071] TPS V1.53 BEAM_FORWARD totals P1=0 P2=0 rootForwardConsumerOnly=1 socketAndTargetChainsNative=1 gameplayValidation=USER_REQUIRED"
+  ],
+  "findings": [
+    "Hooks initialized and new2D path executed; this does not prove a repair.",
+    "Scoped point observer recorded zero actual consumption, so the new intended bridge did not participate in this session. Removing the previous target-point bridge was not justified by runtime equivalence.",
+    "No scaled native query is recorded. FinalOFF/global0 does not prove what the user tested before returning to those settings.",
+    "Menu Save immediately publishes all assist fields; no missing config/runtime binding found on source review. Unlike most tunable features, assist sliders are visible/editable while their enabling box isOFF.",
+    "No successful scoped free-beam correction logged; this alone cannot distinguish native lock from rejected guard/context.",
+    "The original Static assignment setter and target branch remained untouched inV1.136, so the historical lock was not directly repaired."
+  ],
+  "questions": [
+    "Checkbox enabled during trial: confirmed by user. The pre-install backup also has enabled1/global100. Do not infer an unchecked trial from finalOFF/global0.",
+    "Pending: user readiness for read-only correlated finder/beam/settings capture."
+  ],
+  "decision": "RejectV1.136; no further speculative hook, new build, install, setting edit or automatic rollback during this diagnostic. V1.135 package/backup remains the functional reference for slider behavior, not a fully validated Static baseline. Native target-assignment source and original direction require actual correlated state evidence before another repair.",
+  "changesToGame": false,
+  "newBuild": false,
+  "gameLaunched": false,
+  "memoryCaptureStarted": false,
+  "runtimeProofFromCI": false,
+  "userConfirmedEnabledDuringTrial": true,
+  "readerPrepared": "audit-v131/v239_read_aim_state.py; original finder candidates, input vectors, native selected weak actor and actual beam620 target/628 point/270 direction; disk setting timeline. Not executed before user readiness.",
+  "testLimitation": "Synthetic fixtures deliberately invoked59D3BD inside original-shot stubs; real session recorded zero such consumption. Tests checked scope mechanics, not the existence of that runtime route. Their pass cannot justify a functional replacement."
+}

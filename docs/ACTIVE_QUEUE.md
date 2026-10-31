@@ -1,3 +1,9 @@
+## V1.136 — visée rejetée après essai
+
+**REJETÉE PAR L'UTILISATEUR.** Verrouillage Statique initial non corrigé ; curseurs sans effet malgré la case cochée confirmée. Journal :485requêtes attribuées,0modulation,0point consommé observé ; le remplacement de la liaison au tir n'était pas démontré par les fixtures. [Constats et prochaine preuve](V1_136_REJECTION_AND_NEXT_EVIDENCE.md). Aucun nouveau build/hook/rollback ni changement de l'installation pendant ce diagnostic ; lecteur externe préparé, attente du signal utilisateur avant lecture. Les reçus de construction et d'installation ci-dessous restent historiques, sans validation en jeu.
+
+---
+
 ## V1.136 — chaîne native de ciblage TPS
 
 **CONSTRUITE / CONTRÔLÉE ; EXPÉRIMENTALE, À VALIDER EN JEU.** [70/70 suites Windows x64](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41230908006), zéro avertissement/erreur MSVC. [ZIP cumulatif vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/0f990303aa719ef42d341c85cc1fd0c5c28acb26/downloads/DarksidersGenesis_V1.136_NATIVE_TPS_TARGET_PIPELINE_TEST.zip) - [Reçu](V1_136_DELIVERY_RECEIPT.md). Remplace le recentrage/cache V1.134–135 : recherche native sous le réticule restaurée dans la déprojection TPS, direction d'origine du sélecteur conservée, point assisté uniquement lorsqu'il est consommé par l'appel natif courant. Aucun filtre de contact Statique ni diminution de portée ; réglage natif global/par munition conservé. Autres fonctions validées,228clés/55Hotkeys inchangés. [Objectif, risques, nettoyage et essai](V1_136_NATIVE_TPS_TARGET_PIPELINE_TEST.md). Installation ensuite demandée et vérifiée ci-dessous, INI personnel conservé, aucun lancement ni build local ; main/archive et anciens ZIP conservés.
