@@ -1,0 +1,10 @@
+{
+  "agentInstallation": false,
+  "gameLaunchedByAgent": false,
+  "installedAsiSha256": "75AB0C07C09C3BB005E29E292258B6560293E07307C20C41A67689DDB892FC82",
+  "installedAsiUnchangedSincePrebuildObservation": true,
+  "personalIniSha256": "7C49742F85E0EEBA8613FBB19544EC4A5976E1CB8BF5D2C7E4FAFA17E0538D6D",
+  "personalIniUnchangedSincePrebuildObservation": true,
+  "personalIniWrittenByAgent": false,
+  "newBuildOnlyInDebugPackage": true
+}

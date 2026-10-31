@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.136_NATIVE_TPS_TARGET_PIPELINE_TEST.zip",
+  "blobSha": "7d1190ffd869c76da0f229d0fa0e19b8f6fe5930",
+  "httpStatus": 200,
+  "sha256": "9F4DC29FD3F62A63224643A9F57BECFCC513E274228AE138F57AB52E0996BA93",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}

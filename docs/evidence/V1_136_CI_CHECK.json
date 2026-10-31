@@ -1,0 +1,29 @@
+{
+  "sourceCommit": "aa87712d800d4492423c623e77b6227707378350",
+  "runId": 41230908006,
+  "jobId": 124624746581,
+  "conclusion": "success",
+  "testsPassed": 70,
+  "msvcWarnings": [],
+  "msvcErrors": [],
+  "summary": [
+    "2026-10-31T18:50:43.2834647Z Total Test time (real) =   6.91 sec\r",
+    "2026-10-31T18:50:43.4599053Z   DG_ARCHIVE: DarksidersGenesis_V1.136_NATIVE_TPS_TARGET_PIPELINE_TEST.zip\r",
+    "2026-10-31T18:50:44.3821311Z   name: DarksidersGenesis_V1.136_NATIVE_TPS_TARGET_PIPELINE_TEST.zip\r",
+    "2026-10-31T18:50:44.3821813Z   path: downloads/DarksidersGenesis_V1.136_NATIVE_TPS_TARGET_PIPELINE_TEST.zip\r",
+    "2026-10-31T18:50:44.3823305Z   DG_ARCHIVE: DarksidersGenesis_V1.136_NATIVE_TPS_TARGET_PIPELINE_TEST.zip\r",
+    "2026-10-31T18:50:46.3382553Z Artifact DarksidersGenesis_V1.136_NATIVE_TPS_TARGET_PIPELINE_TEST.zip.zip successfully finalized. Artifact ID 13053991393\r",
+    "2026-10-31T18:50:46.3384710Z Artifact DarksidersGenesis_V1.136_NATIVE_TPS_TARGET_PIPELINE_TEST.zip has been successfully uploaded! Final size is 1098866 bytes. Artifact ID is 13053991393\r",
+    "2026-10-31T18:50:46.3694560Z \u001b[36;1m  git commit -m \"downloads: preserve verified compiled cumulative ZIP\"\u001b[0m\r",
+    "2026-10-31T18:50:46.3764377Z   DG_ARCHIVE: DarksidersGenesis_V1.136_NATIVE_TPS_TARGET_PIPELINE_TEST.zip\r",
+    "2026-10-31T18:50:48.2895160Z [debug 0f99030] downloads: preserve verified compiled cumulative ZIP\r",
+    "2026-10-31T18:50:48.2897162Z  create mode 100644 downloads/DarksidersGenesis_V1.136_NATIVE_TPS_TARGET_PIPELINE_TEST.zip\r",
+    "2026-10-31T18:50:50.2768450Z ZIP https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/debug/downloads/DarksidersGenesis_V1.136_NATIVE_TPS_TARGET_PIPELINE_TEST.zip\r"
+  ],
+  "platform": "Windows x64 Release; MSVC /analyze",
+  "gameplayValidated": false,
+  "externalToolNotices": [
+    "MinHook upstream CMake minimum-version deprecation",
+    "GitHub Actions Node/punycode/url.parse deprecations; separate from zero MSVC source warnings"
+  ]
+}

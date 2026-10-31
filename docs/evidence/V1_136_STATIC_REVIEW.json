@@ -1,6 +1,6 @@
 {
   "version": "V1.136",
-  "status": "SOURCE_REVIEWED_CI_PENDING_GAMEPLAY_UNVALIDATED",
+  "status": "BUILT_CHECKED_EXPERIMENTAL_GAMEPLAY_UNVALIDATED",
   "baseCommit": "0d974c4ae3a3ceb023bb1ef2a47df21bfd822a30",
   "pass1": "Historical root: original native mouse2D query reinstated with same TPS ray in initial and nested cursor deprojection; native caller arguments/direction retained; zero selected-actor cache; source restoration verified against exact native callsites.",
   "pass2": "Consumer/cleanup: direct cached-candidate Target/BeamWeapon classification deleted; only actual native59D340 point consumption can be observed within the original projectile operation; scopes close immediately after original; free beam never borrows selected points. Original original-resolver call runs once, no ASI invocation. Original solver/ownership/body/chain data functions and unrelated files compared.",
@@ -62,5 +62,9 @@
     "Synchronous consumer point/no subsequent-shot inheritance",
     "Actual projectile/Finish/Lava/free-beam paths",
     "Other native/controller/paused/wheel contexts retained"
-  ]
+  ],
+  "compiledSource": "aa87712d800d4492423c623e77b6227707378350",
+  "ciRun": 41230908006,
+  "testsPassed": 70,
+  "msvcWarnings": 0
 }

@@ -1,6 +1,6 @@
 # V1.136 — native TPS target pipeline
 
-31 octobre 2026. **PRÉPARÉE / EXPÉRIMENTALE ; validation en jeu requise.** Base cumulative V1.135, dont le recentrage/cache reste contesté. Les autres acquis validés sont conservés. Objectif unique : remplacer les corrections ajoutées par une chaîne native cohérente entre recherche sous le réticule, sélection et consommation de la cible. Critère : Statique n'est plus attirée vers un ennemi latéral au détriment de la caisse/pot visé, sans raccourcir sa portée ou casser ses chaînes ; référence OFF/100 avant réglage.
+31 octobre 2026. **CONSTRUITE / CONTRÔLÉE ; EXPÉRIMENTALE, À VALIDER EN JEU.** Base cumulative V1.135, dont le recentrage/cache reste contesté. Les autres acquis validés sont conservés. Objectif unique : remplacer les corrections ajoutées par une chaîne native cohérente entre recherche sous le réticule, sélection et consommation de la cible. Critère : Statique n'est plus attirée vers un ennemi latéral au détriment de la caisse/pot visé, sans raccourcir sa portée ou casser ses chaînes ; référence OFF/100 avant réglage.
 
 ## Remplacement de l'approche précédente
 
@@ -28,3 +28,5 @@ Les228clés INI et55Hotkeys restent identiques. Aucun INI personnel ni fichier d
 Fixtures ciblées : recherche2D native prioritaire, même rayon dans sa recherche imbriquée, arguments inchangés, repli horizontal/arrière, autre contrôleur/site hors portée, nettoyage sur exception ; sélecteur appelé une fois avec sa direction d'origine et angles restaurés ; point consommé uniquement par son appel natif, imbrication et tir suivant sans héritage ; sorties réelles projectile/release/Lava et faisceau libre. Ces contrôles ne prouvent pas le comportement final en jeu.
 
 Installation manuelle ou updater debug en gardant son INI. Dans la même scène TPS souris, commencer caseOFF puisON100 : pot/caisse proche devant un ennemi, puis ennemi latéral et éloigné. Tourner la caméra pendant Statique ; vérifier portée ressentie et chaînes, normal et Hotstreak. Comparer ensuite50/100/150, puis Standard/Charge/Lava. Vérifier vue native et manette sans changer leurs réglages ; coop en dernier. Quitter normalement pour les bilans CURSOR_QUERY/NATIVE_ASSIST. Rollback complet : ZIP V1.135 conservé avec son INI. Ne pas annoncer le bug corrigé avant ce retour.
+
+Livraison vérifiée : [70/70 suites, zéro avertissement MSVC](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41230908006), [ZIP cumulatif](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/0f990303aa719ef42d341c85cc1fd0c5c28acb26/downloads/DarksidersGenesis_V1.136_NATIVE_TPS_TARGET_PIPELINE_TEST.zip), [reçu et limites](V1_136_DELIVERY_RECEIPT.md). Aucun essai en jeu ni installation par l’agent.
