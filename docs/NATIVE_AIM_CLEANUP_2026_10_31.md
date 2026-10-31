@@ -1,6 +1,6 @@
 # Préparation de la réparation native — 31 octobre 2026
 
-**SOURCE PRÉPARÉE ; contrôle Windows GitHub requis ; réparation non livrée.** Base cumulative d741677 / V1.136 rejetée pour la visée, autres fonctions validées conservées. Le code retiré vient uniquement de l'expérience V1.136 ; pas de retour global à une version antérieure.
+**CONSTRUIT / CONTRÔLÉ : 70/70 contrôles Windows x64, zéro avertissement/erreur MSVC ; réparation native TPS non livrée.** Base cumulative d741677 / V1.136 rejetée pour la visée, autres fonctions validées conservées. Le code retiré vient uniquement de l'expérience V1.136 ; pas de retour global à une version antérieure.
 
 ## Objectif et critère de cette étape
 
@@ -16,6 +16,14 @@ Le workflow debug accepte le marqueur de commit `[check only]` : compilation et 
 
 ## Limite à résoudre avant de choisir une nouvelle correction
 
-Le profil actif observé 7500 / 90 / 45 et les chemins natifs affectés ne suffisent pas à démontrer ce que ferait le jeu en vue du dessus dans la même scène. L'utilisateur n'avait testé que TPS souris lors du premier signalement. La comparaison native/TPS, réglage d'acquisition OFF, a été demandée pendant ce travail. Ne pas transformer son absence en confirmation que le sélecteur du jeu est défectueux, ni attribuer au seul pourcentage des essais où les cibles diffèrent.
+L'utilisateur confirme maintenant que le verrouillage excessif se produit **seulement en TPS**, ajustement OFF. Cette comparaison oriente la réparation vers l'adaptation TPS, sans établir encore quel point/direction/cible diffère entre les deux chemins. Le profil actif observé 7500 / 90 / 45 ne prouve pas à lui seul un défaut du sélecteur original. Ne pas attribuer au seul pourcentage des essais où les cibles diffèrent.
+
+Un lecteur comparatif est préparé : réglage ThirdPerson, rotation native enregistrée, méthodes des capacités actives, regard natif, acteur sélectionné et cible/point/direction du vrai faisceau. Il reste externe, en lecture seule, sans appel moteur ni écriture. À la tentative de reprise le jeu était fermé : aucune capture n'a été lancée et aucun jeu ouvert par l'agent. Attente du nouveau signal prêt avant la comparaison des tirs dans les deux vues.
 
 Le défaut actuel de cohérence reste documenté dans [le relevé corrélé](V1_136_CORRELATED_NATIVE_PATH.md). Le nettoyage élimine une expérience sans mécanisme de remplacement démontré ; il ne promet aucune modification visible de Statique. Aucune répétition du test 200 % déjà réalisé n'est demandée.
+
+## Résultat du contrôle
+
+Commit source `588af564207674421469f73bc723825e8e2334c4`. [GitHub Actions réussi](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41236714587) : compilation Release x64 avec analyse MSVC et 70/70 suites réussies. Les trois étapes package/artifact/publication sont bien omises ; aucune archive ajoutée et aucun binaire téléchargé/installé. Les avertissements d'outils externes MinHook/CMake et Actions/Node sont distincts des zéro avertissement MSVC. [Reçu CI](evidence/NATIVE_AIM_CLEANUP_CI_2026_10_31.json).
+
+La première passe vérifie la suppression du hook et du transport du point supposé, ainsi que l'absence de cache de rechange. La seconde confronte le diff, 150 autres fichiers source inchangés en contenu Git, les corps conservés du calcul de direction/solveur Lava/faisceau libre et les tests Windows réels. Les résultats concordent sur le nettoyage ; aucun ne prouve une correction du symptôme Statique. [Périmètre contrôlé](evidence/NATIVE_AIM_CLEANUP_2026_10_31.json).

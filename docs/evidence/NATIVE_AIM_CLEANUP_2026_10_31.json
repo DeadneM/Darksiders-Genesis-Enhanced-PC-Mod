@@ -1,5 +1,5 @@
 {
-  "status": "SOURCE_REVIEWED_NOT_GAMEPLAY_VALIDATED",
+  "status": "COMPILED_AND_CHECKED_NOT_A_GAMEPLAY_FIX",
   "base": "d7416770d54d45770c151b3a944f44972acb54b7",
   "sourceFilesChanged": [
     "NativeAimAssistFeature.cpp",
@@ -169,5 +169,6 @@
   "buildIdentityUnchanged": true,
   "gameFilesModified": false,
   "newArchivePublished": false,
-  "userQuestionPending": "Does Static still lock strongly in native view, adjustment OFF, same scene?"
+  "userQuestionPending": "User confirms excess lock only in TPS; actual native/TPS beam comparison pending game readiness, game closed at attempted preflight.",
+  "ciEvidence": "NATIVE_AIM_CLEANUP_CI_2026_10_31.json"
 }

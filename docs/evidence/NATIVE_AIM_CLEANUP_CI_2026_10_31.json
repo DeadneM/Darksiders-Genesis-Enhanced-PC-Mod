@@ -1,0 +1,22 @@
+{
+  "sourceCommit": "588af564207674421469f73bc723825e8e2334c4",
+  "runId": 41236714587,
+  "jobId": 124641935877,
+  "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41236714587",
+  "conclusion": "success",
+  "testsPassed": 70,
+  "msvcWarnings": [],
+  "msvcErrors": [],
+  "summary": "2026-10-31T20:04:40.0143579Z 100% tests passed out of 70",
+  "packageStep": "skipped",
+  "artifactStep": "skipped",
+  "publishStep": "skipped",
+  "newZipPublished": false,
+  "installationChanged": false,
+  "gameplayValidated": false,
+  "scope": "Remove disproven V1.136 target observer only; native TPS repair remains pending correlated native/TPS observation",
+  "externalToolNotices": [
+    "MinHook upstream CMake minimum-version deprecation",
+    "GitHub Actions Node.js 20 runtime deprecation"
+  ]
+}
