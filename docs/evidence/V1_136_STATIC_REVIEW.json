@@ -1,0 +1,66 @@
+{
+  "version": "V1.136",
+  "status": "SOURCE_REVIEWED_CI_PENDING_GAMEPLAY_UNVALIDATED",
+  "baseCommit": "0d974c4ae3a3ceb023bb1ef2a47df21bfd822a30",
+  "pass1": "Historical root: original native mouse2D query reinstated with same TPS ray in initial and nested cursor deprojection; native caller arguments/direction retained; zero selected-actor cache; source restoration verified against exact native callsites.",
+  "pass2": "Consumer/cleanup: direct cached-candidate Target/BeamWeapon classification deleted; only actual native59D340 point consumption can be observed within the original projectile operation; scopes close immediately after original; free beam never borrows selected points. Original original-resolver call runs once, no ASI invocation. Original solver/ownership/body/chain data functions and unrelated files compared.",
+  "unchangedFileHashes": {
+    "src/DarksidersGenesisMod.cpp": "965ddd237bbf949a79aa26d5bc840b4160827d9d345154746041f929f08816c6",
+    "src/CameraTraceFeature.cpp": "bba9074a3e9dd835b8574610d2deccb0e33444006fb91112d67416c62ecb8840",
+    "src/CoopCameraFeature.cpp": "e47459499479ebaa070e947028b7fb4c70dc4f1ef5e815a008c39386640a1c01",
+    "src/PistolVisualFeature.cpp": "ff13c5f73d6f31c0ccaba1c6005424ac0663cec33fa7f10b5ba895851d8b83e2",
+    "src/MountedHolsterFeature.cpp": "de26469fc44c15084e81ab98e0129c7776aa4facc00650be61d07b9aae0844d7",
+    "src/ForeignWrathFeature.cpp": "b4303ed7c7d124cc2d652315e94902fa9efed6243fa5e26fb6e2c22b0a843c7c",
+    "src/ForeignCaltropsFeature.cpp": "b87992ce05b29b65a14c67c35d39761a4e5bede2c5a3d1524072d969212b95c6",
+    "src/ForeignMontage.cpp": "7bf201766d0032b51067c19e3511f99e2a7287ac83a240d0a89947853b47231f",
+    "src/ManualAimFeature.cpp": "da15934cacdef13ea6e82251f936d94bffc425eeb28f2b328c093633f6c7fa62",
+    "src/LocalPlayerOwnership.cpp": "adf0cc257e075415e87d7464a249e36a536d87d6b97a208e5a64fd6f25a130cc",
+    "src/TpsAimDirection.h": "ed18c268898ecffc5576073871dad04c4068383a18e21b000129834d3938441b",
+    "src/TpsAimTarget.h": "26db406e496c100c8dfa36011a3b5222b427f40f1f74996b13c4a370c23a2e0a",
+    "src/ConfigStore.cpp": "1a9117590942571b0be56dfb25b6d7f019b9acb76a63d528dc53e5371297c735",
+    "src/ConfigStore.h": "76efe47d466f3a94113c6aacbc3d5a8b389451ada53bb31e9e4e44231c400966",
+    "src/RuntimeSettings.cpp": "f0c19355a8fb39b1f33674c2c1ae33dbe49eae8c3129dd63d7d11370cd3eb294",
+    "src/RuntimeSettings.h": "50998974296ac70187579119ceef95d7285a97ae0b96094dd526be4635197f39",
+    "src/AimAssistSettings.h": "1b15140148cb4bb8f680b104cf2f5a4f56454436b35d27cfc603fd3f557e7ae5",
+    "config/DarksidersGenesisMod.ini": "1c73c0d1ea5936d601205cc94544b2b41451fcfce63e5b8f39726687110e762d"
+  },
+  "unchangedShotFunctions": [
+    "TypedClass",
+    "Typed",
+    "WorldEnder",
+    "Owner",
+    "AbilityOwner",
+    "Finite",
+    "Direction",
+    "AbilityOrigin",
+    "SolveLava"
+  ],
+  "sameIniAndBindings": true,
+  "noLocalBuild": true,
+  "noInstall": true,
+  "noGameLaunch": true,
+  "newNativeCallFromExternalReader": false,
+  "hooks": {
+    "removedPersistentCache": true,
+    "originalSelectorDirection": true,
+    "pureResolverObserver": "66A620; recorded only return59D3BD during original owned shot",
+    "existingDeprojectionExtraSites": [
+      "571A77",
+      "1AC95E6"
+    ],
+    "noSetterFilter": true
+  },
+  "runtimeLimits": [
+    "Native2D under-cursor path has not been tested in liveTPS",
+    "No claim of unique historical cause or total native equivalence",
+    "Native angular assistance and chains can still lock valid targets; no range/damage/chain-count increase",
+    "Slider scoped normalStrife footP1/P2; co-op test deferred"
+  ],
+  "testPlan": [
+    "Original cursor query + nested deprojection",
+    "Native selector input/once-only/angles restored",
+    "Synchronous consumer point/no subsequent-shot inheritance",
+    "Actual projectile/Finish/Lava/free-beam paths",
+    "Other native/controller/paused/wheel contexts retained"
+  ]
+}

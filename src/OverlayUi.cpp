@@ -1123,7 +1123,7 @@ void Draw(Context& c) {
                         if(NumberRow(aim_assist::Names[i],"TPSNativeAimAssistAmmo",&config.tpsAimAssistAmmo[i],0,200,100,"%.0f %%","%.1f"))config.Save();
                         ImGui::PopID();
                     }
-                    HelpText("OFF or100%: native acquisition. Lower narrows the native angles; higher widens them.0 restricts to the exact axis. Search distance, beam reach and chains are unchanged. Experimental. Strife on foot, P1/P2; horse and ultimate keep native acquisition.");
+                    HelpText("OFF/100%: native angular limits. Lower/higher changes acquisition angles only. No added snap or target cache. Experimental: normal Strife on foot, P1/P2.");
                     ImGui::TreePop();
                 }
                 if(ImGui::Checkbox("3D aiming (experimental)",&config.tps3DAimEnabled))config.Save();

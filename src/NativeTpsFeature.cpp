@@ -39,6 +39,7 @@ std::atomic_bool g_ready{false},g_cinematic{false};
 std::atomic_uint32_t g_foot{0},g_horse{0},g_hits{0},g_misses{0},g_rays{0};
 std::atomic_uint32_t g_ultimate{0};
 std::atomic_uint32_t g_native2{0},g_native3{0},g_rejected{0};
+std::atomic_uint32_t g_cursorNative{0},g_cursorFallback{0};
 using SettingsFn=void*(*)();
 using VisibleFn=bool(*)(void*);
 SettingsFn g_settings=nullptr;
@@ -78,12 +79,12 @@ struct RayScope {
     void* controller;
     MouseRay ray;
     RayScope* previous;
-    bool used=false;
+    bool used=false,native2=false;
 };
 thread_local RayScope* g_scope=nullptr;
 struct ScopedRay {
     RayScope scope;
-    ScopedRay(void* c,const MouseRay& r):scope{c,r,g_scope}{g_scope=&scope;}
+    ScopedRay(void* c,const MouseRay& r,bool native2=false):scope{c,r,g_scope,false,native2}{g_scope=&scope;}
     ~ScopedRay(){g_scope=scope.previous;}
 };
 bool Finite(const Vec3& v){
@@ -95,11 +96,12 @@ bool Context(void* actor,MouseRay& r){
         r.direction.z*r.direction.z;
     return Finite(r.origin)&&Finite(r.direction)&&n>0.99f&&n<1.01f;
 }
-bool HookDeproject(void* controller,const Vec2* pixel,Vec3* origin,Vec3* direction){
+bool ScopedDeproject(void* controller,const Vec2* pixel,Vec3* origin,Vec3* direction,uintptr_t ret){
     // This is a shared UE helper. Only the exact game mouse collision-helper
     // callsite inside our synchronous, verified-local scope can be replaced.
-    const uintptr_t ret=reinterpret_cast<uintptr_t>(_ReturnAddress());
-    if(g_scope&&controller==g_scope->controller&&ret==g_base+0x571EB8&&
+    const bool nativeSite=ret==g_base+0x571EB8||(g_scope&&g_scope->native2&&
+        (ret==g_base+0x571A77||ret==g_base+0x1AC95E6));
+    if(g_scope&&controller==g_scope->controller&&nativeSite&&
        origin&&direction){
         *origin=g_scope->ray.origin;
         *direction=g_scope->ray.direction;
@@ -108,6 +110,9 @@ bool HookDeproject(void* controller,const Vec2* pixel,Vec3* origin,Vec3* directi
         return true;
     }
     return g_deproject(controller,pixel,origin,direction);
+}
+bool HookDeproject(void* controller,const Vec2* pixel,Vec3* origin,Vec3* direction){
+    return ScopedDeproject(controller,pixel,origin,direction,reinterpret_cast<uintptr_t>(_ReturnAddress()));
 }
 bool HookMousePosition(void* controller,float* x,float* y){
     // The scoped 3D query supplies its own ray. A pad/second viewport does
@@ -180,9 +185,23 @@ Vec2* HookAim2(void* controller,Vec2* out,void* actor,const Vec3* reference,
         ++g_rejected;
         return g_aim2(controller,out,actor,reference,flag,extra);
     }
+    // Restore the native under-cursor selection/response checks. Both its
+    // initial ray and nested cursor hit query use this same scoped TPS ray.
+    // A horizontal/behind plane result has no usable native solution: retain
+    // the accepted forward 3D fallback instead of reintroducing rear shots.
+    Vec2 native{};
+    {
+        ScopedRay scope(controller,ray,true);
+        auto* result=g_aim2(controller,&native,actor,reference,flag,extra);
+        if(result&&scope.scope.used&&std::isfinite(result->x)&&std::isfinite(result->y)&&
+           result->x*ray.direction.x+result->y*ray.direction.y>0.01f){
+            *out=*result;
+            if(++g_cursorNative<=4&&g_log)g_log("TPS V1.136 CURSOR_QUERY native2D accepted: native under-cursor selection, same TPS deprojection; no retained actor cache");
+            return out;
+        }
+    }
+    ++g_cursorFallback;
     Vec3 target{};bool hit=false;
-    // Reuse the game's actual 3D collision helper with its existing world,
-    // query channel and hit result. Do not call the old plane intersection.
     if(!QueryTarget(controller,actor,ray,reference,target,hit,extra))
         return g_aim2(controller,out,actor,reference,flag,extra);
     const float dx=target.x-reference->x,dy=target.y-reference->y;
@@ -407,6 +426,9 @@ void Report(){
     g_log(line);
     sprintf_s(line,"TPS V1.34 native action totals: radialEvents=%u nativeSwapKnown=%d nativeSwap=%d mouseTargetsWithoutHeldButton=%u wheelsCoverage=UNVALIDATED",
         g_radialEvents.load(),NativeStickSwapKnown()?1:0,NativeStickSwap()?1:0,g_idleMouseTargets.load());
+    g_log(line);
+    sprintf_s(line,"TPS V1.136 CURSOR_QUERY totals original2D=%u forwardFallback=%u selectedActorCache=REMOVED impactValidation=USER_REQUIRED",
+        g_cursorNative.load(),g_cursorFallback.load());
     g_log(line);
 }
 }

@@ -3,6 +3,7 @@
 #include "NativeObjectName.h"
 #include "RuntimeSettings.h"
 #include <MinHook.h>
+#include <intrin.h>
 #include <atomic>
 #include <cstdio>
 #include <cstring>
@@ -14,9 +15,9 @@ using AimPoint=Vec*(*)(Vec*,void*,uint64_t);
 Select g_select=nullptr;AimPoint g_point=nullptr;
 uintptr_t g_base=0;projectile_aim::LogFn g_log=nullptr;projectile_aim::RayProvider g_ray=nullptr;
 std::atomic_bool g_ready{false};thread_local bool g_nested=false;
-std::atomic_uint32_t g_queries[2]{},g_scaled[2]{},g_points[2]{},g_unmapped{0};
-struct Choice {uintptr_t local=0,character=0,pawn=0,weapon=0;uint32_t generation=0;uint64_t time=0,bone=0;float percent=100;native_objects::Identity target{};};
-Choice g_choices[2][aim_assist::Count+1]{};
+std::atomic_uint32_t g_queries[2]{},g_scaled[2]{},g_unmapped{0};
+thread_local ShotScope* g_shot=nullptr;
+std::atomic_uint32_t g_consumed{0};
 struct Observation {bool known=false;float percent=100;unsigned changes=0;};
 Observation g_observed[2][aim_assist::Count+1]{};
 template<class T> bool Read(uintptr_t p,size_t at,T& v){native_objects::MemoryReader r;return r.Read(p,at,v);}
@@ -71,47 +72,37 @@ void* SelectTarget(void* finder,void* actor,const Vec* direction,void* predicate
     const auto slot=kind<0?aim_assist::Count:unsigned(kind);
     if(slot>aim_assist::Count)return g_select(finder,actor,direction,predicate);
     const float percent=Percent(kind);
-    auto& choice=g_choices[p][slot];choice={};void* selected=nullptr;bool scaled=false,safe=false;
+    void* selected=nullptr;bool scaled=false,safe=false;
     struct Nested {Nested(){g_nested=true;}~Nested(){g_nested=false;}} nested;
     {Angles angles;safe=angles.Set(reinterpret_cast<uintptr_t>(finder),percent);
         scaled=safe&&percent!=100;
-        // Same original selector, callback, owner and cache. TPS Camera Forward
-        // supplies its direction; only two native angular limits are borrowed.
-        selected=g_select(finder,actor,&ray.direction,predicate);
-    } // Restore native angles BEFORE recording or calling any point helper.
-    ++g_queries[p];if(scaled)++g_scaled[p];
-    const auto generation=local_players::PublishedSlot(p).generation;
-    choice.local=owner.localPlayer;choice.character=owner.character;choice.pawn=owner.pawn;choice.weapon=weapon;
-    choice.generation=generation;choice.time=GetTickCount64();choice.percent=safe?percent:100;
-    if(selected){native_objects::MemoryReader reader;
-        native_objects::Capture(reader,g_base,reinterpret_cast<uintptr_t>(selected),choice.target);
-        Read(reinterpret_cast<uintptr_t>(finder),0x3C,choice.bone);
+        // Keep the direction and predicate supplied by the native caller.
+        // The native mouse query now owns TPS deprojection, not this selector.
+        selected=g_select(finder,actor,direction,predicate);
     }
-    auto& observed=g_observed[p][slot];const bool changed=!observed.known||observed.percent!=choice.percent;
-    observed.known=true;observed.percent=choice.percent;
+    ++g_queries[p];if(scaled)++g_scaled[p];
+    auto& observed=g_observed[p][slot];const bool changed=!observed.known||observed.percent!=percent;
+    observed.known=true;observed.percent=percent;
     if(g_log&&(g_queries[p].load()<=8||(changed&&observed.changes++<16))){float radius=0,v=0,h=0;Read(reinterpret_cast<uintptr_t>(finder),0x28,radius);Read(reinterpret_cast<uintptr_t>(finder),0x2C,v);Read(reinterpret_cast<uintptr_t>(finder),0x30,h);
-        char line[300]{};sprintf_s(line,"TPS V1.135 NATIVE_ASSIST player=%u ammo=%d percent=%.1f scaled=%d nativeRadius=%.1f nativeAngles=%.1f/%.1f restored=1 selected=%d gameplayValidation=USER_REQUIRED",p+1,kind,percent,scaled?1:0,radius,v,h,selected?1:0);g_log(line);}
+        char line[300]{};sprintf_s(line,"TPS V1.136 NATIVE_ASSIST player=%u ammo=%d percent=%.1f scaled=%d nativeRadius=%.1f nativeAngles=%.1f/%.1f restored=1 originalDirection=1 selected=%d",p+1,kind,percent,scaled?1:0,radius,v,h,selected?1:0);g_log(line);}
     return selected;
 }
-}
-int AmmoKind(void* weapon){return Kind(reinterpret_cast<uintptr_t>(weapon));}
-bool Target(const local_players::Context& owner,void* weapon,const native_tps::MouseRay& ray,const Vec& origin,Vec& point){
-    if(!g_ready||!g_point||!native_tps::OnGameThread()||owner.index<0||owner.index>1||!weapon)return false;
-    const int kind=Kind(reinterpret_cast<uintptr_t>(weapon));if(kind<0)return false;
-    const auto p=unsigned(owner.index);const auto& rt=runtime::Get();const auto generation=local_players::PublishedSlot(p).generation;
-    auto eligible=[&](const Choice& c,bool common){return c.local==owner.localPlayer&&c.character==owner.character&&c.pawn==owner.pawn&&c.generation==generation&&
-        (common||c.weapon==reinterpret_cast<uintptr_t>(weapon))&&GetTickCount64()-c.time<=250&&c.percent==Percent(common?-1:kind);};
-    const Choice* c=&g_choices[p][unsigned(kind)];
-    if(!eligible(*c,false)){
-        if(rt.tpsAimAssistEnabled.load()&&rt.tpsAimAssistMode.load()==1)return false;
-        c=&g_choices[p][aim_assist::Count];if(!eligible(*c,true))return false;
+Vec* ResolvePoint(Vec* out,void* actor,uint64_t bone,uintptr_t caller){
+    auto* result=g_point?g_point(out,actor,bone):out;
+    // 59D340 takes its OWN current finder choice and calls this resolver.
+    // Observe that native consumption, never turn a finder candidate into a
+    // destination for a different weapon, frame or player.
+    if(g_shot&&caller==0x59D3BD&&result&&std::isfinite(result->x)&&std::isfinite(result->y)&&std::isfinite(result->z)){
+        g_shot->point=*result;g_shot->used=true;++g_consumed;
     }
-    native_objects::MemoryReader reader;uint32_t flags=0;if(!native_objects::Alive(reader,g_base,c->target)||!Read(c->target.address,8,flags)||(flags&0x18030u))return false;
-    Vec candidate{};g_point(&candidate,reinterpret_cast<void*>(c->target.address),c->bone);
-    const float ahead=(candidate.x-origin.x)*ray.direction.x+(candidate.y-origin.y)*ray.direction.y+(candidate.z-origin.z)*ray.direction.z;
-    if(!std::isfinite(candidate.x)||!std::isfinite(candidate.y)||!std::isfinite(candidate.z)||!std::isfinite(ahead)||ahead<=.01f)return false;
-    point=candidate;++g_points[p];return true;
+    return result;
 }
+Vec* HookPoint(Vec* out,void* actor,uint64_t bone){return ResolvePoint(out,actor,bone,reinterpret_cast<uintptr_t>(_ReturnAddress())-g_base);}
+}
+ShotScope::ShotScope():previous_(g_shot){g_shot=this;}
+ShotScope::~ShotScope(){Close();}
+void ShotScope::Close(){if(open_){g_shot=previous_;open_=false;}}
+
 void Initialize(projectile_aim::LogFn log,bool exact,projectile_aim::RayProvider provider){
     g_log=log;g_ray=provider;if(!exact)return;
     const auto base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
@@ -120,12 +111,16 @@ void Initialize(projectile_aim::LogFn log,bool exact,projectile_aim::RayProvider
     constexpr unsigned char getter[]={0x48,0x8B,0x81,0x18,0x02,0x00,0x00,0xC3};
     // Getter bytes are verified alongside the live ABI before delivery.
     if(std::memcmp(reinterpret_cast<void*>(base+0x6C3520),selector,sizeof(selector))||std::memcmp(reinterpret_cast<void*>(base+0x66A620),point,sizeof(point))||
-       std::memcmp(reinterpret_cast<void*>(base+0x5A1620),getter,sizeof(getter))){if(log)log("TPS V1.135 NATIVE_ASSIST signatures unavailable; native selector retained");return;}
-    g_base=base;void* original=nullptr;void* target=reinterpret_cast<void*>(base+0x6C3520);
-    if(MH_CreateHook(target,reinterpret_cast<void*>(&SelectTarget),&original)!=MH_OK)return;
-    g_select=reinterpret_cast<Select>(original);g_point=reinterpret_cast<AimPoint>(base+0x66A620);
-    if(MH_EnableHook(target)!=MH_OK){MH_RemoveHook(target);g_select=nullptr;g_point=nullptr;return;}
-    g_ready=true;if(log)log("TPS V1.135 NATIVE_ASSIST READY: native target selection and chains; optional angular scale;100%=native; EXPERIMENTAL");
+       std::memcmp(reinterpret_cast<void*>(base+0x5A1620),getter,sizeof(getter))){if(log)log("TPS V1.136 NATIVE_ASSIST signatures unavailable; native selector retained");return;}
+    g_base=base;
+    struct Hook {uintptr_t rva;void* callback;void** original;};
+    const Hook hooks[]={{0x6C3520,reinterpret_cast<void*>(&SelectTarget),reinterpret_cast<void**>(&g_select)},
+        {0x66A620,reinterpret_cast<void*>(&HookPoint),reinterpret_cast<void**>(&g_point)}};
+    unsigned created=0;bool ok=true;
+    for(const auto& h:hooks){if(MH_CreateHook(reinterpret_cast<void*>(base+h.rva),h.callback,h.original)!=MH_OK){ok=false;break;}++created;}
+    if(ok)for(const auto& h:hooks)if(MH_EnableHook(reinterpret_cast<void*>(base+h.rva))!=MH_OK){ok=false;break;}
+    if(!ok){for(unsigned i=0;i<created;++i){MH_DisableHook(reinterpret_cast<void*>(base+hooks[i].rva));MH_RemoveHook(reinterpret_cast<void*>(base+hooks[i].rva));}g_select=nullptr;g_point=nullptr;return;}
+    g_ready=true;if(log)log("TPS V1.136 NATIVE_ASSIST READY: original direction and native consumer; angular scale only; no actor/point cache; EXPERIMENTAL");
 }
-void Report(){if(!g_log)return;char line[260]{};sprintf_s(line,"TPS V1.135 NATIVE_ASSIST totals queries=%u/%u scaled=%u/%u nativePoints=%u/%u passthrough=%u gameplayValidation=USER_REQUIRED",g_queries[0].load(),g_queries[1].load(),g_scaled[0].load(),g_scaled[1].load(),g_points[0].load(),g_points[1].load(),g_unmapped.load());g_log(line);}
+void Report(){if(!g_log)return;char line[260]{};sprintf_s(line,"TPS V1.136 NATIVE_ASSIST totals queries=%u/%u scaled=%u/%u originalConsumerPoints=%u passthrough=%u impactValidation=USER_REQUIRED",g_queries[0].load(),g_queries[1].load(),g_scaled[0].load(),g_scaled[1].load(),g_consumed.load(),g_unmapped.load());g_log(line);}
 }

@@ -84,32 +84,13 @@ bool Direction(const Vec3& origin,const Vec3& target,Rotator& rotation){
     rotation.pitch=std::atan2(z,flat)*deg;rotation.yaw=std::atan2(y,x)*deg;
     return std::isfinite(rotation.pitch)&&std::isfinite(rotation.yaw);
 }
-void* BeamWeapon(void* beam){
-    void* actor=nullptr;void* registry=nullptr;void* reciprocal=nullptr;void* list=nullptr;int count=0,capacity=0;
-    if(!Read(beam,0x108,actor)||!Read(actor,0xC78,registry)||!Read(registry,0xE8,reciprocal)||reciprocal!=actor||
-       !Read(registry,0x108,list)||!list||!Read(registry,0x110,count)||!Read(registry,0x114,capacity)||count<4||count>capacity||capacity>32)return nullptr;
-    void* weapons[2]{};
-    for(unsigned i=0;i<2;++i){
-        void* current=nullptr;if(!Read(list,(i+2)*8,weapons[i])||!Read(weapons[i],0xE8,reciprocal)||reciprocal!=actor)weapons[i]=nullptr;
-        // Only the proven native BeamShot class owns this member.
-        if(weapons[i]&&Typed(weapons[i],0x380A4F0)&&Read(weapons[i],0x688,current)&&current==beam)return weapons[i];
-    }
-    // Projectile-based Hotstreak beams can instead identify their active
-    // native firing ability. Ambiguous simultaneous consumers fail open.
-    void* abilities=nullptr;void* active=nullptr;int n=0,cap=0;void* result=nullptr;
-    if(!Read(actor,0xC70,abilities)||!Read(abilities,0xE8,reciprocal)||reciprocal!=actor||!Read(abilities,0xF8,active)||
-       !Read(abilities,0x100,n)||!Read(abilities,0x104,cap)||n<0||n>cap||cap>32||(!active&&n))return nullptr;
-    for(int i=0;i<n;++i){
-        void* ability=nullptr;void* weapon=nullptr;void* owner=nullptr;uint32_t flags=0;
-        if(!Read(active,size_t(i)*8,ability)||!Read(ability,8,flags)||(flags&0x18030u)||!Read(ability,0x1B0,owner)||owner!=actor||
-           !Read(ability,0x50,weapon)||!weapon||(weapon!=weapons[0]&&weapon!=weapons[1])||native_assist::AmmoKind(weapon)<0||Typed(weapon,0x380A4F0))continue;
-        if(result&&result!=weapon)return nullptr;result=weapon;
-    }
-    return result;
-}
-bool Target(const local_players::Context& owner,const Vec3& origin,Vec3& target,bool& hit,void* weapon=nullptr){
+bool Target(const local_players::Context& owner,const Vec3& origin,Vec3& target,bool& hit,const Vec3* consumed=nullptr){
     native_tps::MouseRay ray{};if(!g_provider||!g_provider(owner,ray))return false;
-    if(native_assist::Target(owner,weapon,ray,origin,target)){hit=true;return true;}
+    if(consumed&&Finite(*consumed)){
+        const auto& p=*consumed;
+        const float ahead=(p.x-origin.x)*ray.direction.x+(p.y-origin.y)*ray.direction.y+(p.z-origin.z)*ray.direction.z;
+        if(std::isfinite(ahead)&&ahead>.01f){target=p;hit=true;return true;}
+    }
     return native_tps::TraceCameraTarget(owner,ray,target,hit,&origin);
 }
 bool AbilityOrigin(void* ability,Vec3& origin){
@@ -117,9 +98,9 @@ bool AbilityOrigin(void* ability,Vec3& origin){
     return Read(ability,0x48,instigator)&&Typed(instigator,0x3A58AB0)&&
         Read(instigator,0x158,root)&&Read(root,0x1A0,origin)&&Finite(origin);
 }
-bool AimAt(const local_players::Context& owner,const Vec3& origin,Rotator& rotation,bool nativeVertical=false,void* weapon=nullptr){
+bool AimAt(const local_players::Context& owner,const Vec3& origin,Rotator& rotation,bool nativeVertical=false,const Vec3* consumed=nullptr){
     Vec3 target{};bool hit=false;
-    if(!Target(owner,origin,target,hit,weapon))return false;
+    if(!Target(owner,origin,target,hit,consumed))return false;
     Rotator adjusted=rotation;
     if(!Direction(origin,target,adjusted))return false;
     // Shared yaw/release/target correction is NEVER disabled by the option.
@@ -133,7 +114,8 @@ void Observe(const char* path,const local_players::Context& owner,unsigned n,con
             path,owner.index+1,n,result.pitch,result.yaw);g_log(line);}
 }
 Rotator* Rotation(void* weapon,Rotator* out,const void* input,uintptr_t caller){
-    auto* result=g_original?g_original(weapon,out,input):out;++g_calls;
+    native_assist::ShotScope native;
+    auto* result=g_original?g_original(weapon,out,input):out;native.Close();++g_calls;
     if(!result||caller!=0x7CFA3B||!native_tps::OnGameThread())return result;
     void* actor=nullptr;local_players::Context owner{};
     if(!Read(weapon,0xE8,actor)||!Owner(weapon,actor,owner))return result;
@@ -141,7 +123,7 @@ Rotator* Rotation(void* weapon,Rotator* out,const void* input,uintptr_t caller){
     // parameter (3640478); 7CF9B0 forwards that actual value as R8.
     Vec3 origin{};if(!Read(input,0,origin)||!Finite(origin))return result;
     Rotator adjusted=*result;
-    if(AimAt(owner,origin,adjusted,false,weapon)){*result=adjusted;Observe("PISTOL",owner,owner.index==0?++g_adjusted[0]:++g_adjusted[1],adjusted);}
+    if(AimAt(owner,origin,adjusted,false,native.used?&native.point:nullptr)){*result=adjusted;Observe("PISTOL",owner,owner.index==0?++g_adjusted[0]:++g_adjusted[1],adjusted);}
     return result;
 }
 Rotator* HookRotation(void* weapon,Rotator* out,const void* input){
@@ -166,7 +148,7 @@ Vec3* BeamForward(void* component,Vec3* out,uintptr_t caller){
     Rotator rotation{};
     // In simple mode preserve the native beam's vertical direction, just as
     // ordinary shots retain native pitch; common target/yaw correction stays.
-    if(!Finite(*result)||!Direction(Vec3{},*result,rotation)||!AimAt(owner,origin,rotation,false,BeamWeapon(beam)))return result;
+    if(!Finite(*result)||!Direction(Vec3{},*result,rotation)||!AimAt(owner,origin,rotation))return result;
     constexpr float rad=0.01745329251994329577f;
     const float pitch=rotation.pitch*rad,yaw=rotation.yaw*rad;
     *result={std::cos(pitch)*std::cos(yaw),std::cos(pitch)*std::sin(yaw),std::sin(pitch)};
@@ -177,13 +159,14 @@ Vec3* HookBeamForward(void* component,Vec3* out){
     return BeamForward(component,out,reinterpret_cast<uintptr_t>(_ReturnAddress())-g_base);
 }
 Rotator* Finish(void* ability,Rotator* out){
-    auto* result=g_finish?g_finish(ability,out):out;
+    native_assist::ShotScope native;
+    auto* result=g_finish?g_finish(ability,out):out;native.Close();
     if(!result||!native_tps::OnGameThread())return result;
     local_players::Context owner{};
     if(!AbilityOwner(ability,0x3811260,owner))return result;
     Vec3 origin{};if(!AbilityOrigin(ability,origin))return result;
-    Rotator adjusted=*result;void* weapon=nullptr;Read(ability,0x50,weapon);
-    if(AimAt(owner,origin,adjusted,Typed(ability,0x3811050),weapon)){*result=adjusted;Observe("ABILITY_FINAL",owner,owner.index==0?++g_finished[0]:++g_finished[1],adjusted);}
+    Rotator adjusted=*result;
+    if(AimAt(owner,origin,adjusted,Typed(ability,0x3811050),native.used?&native.point:nullptr)){*result=adjusted;Observe("ABILITY_FINAL",owner,owner.index==0?++g_finished[0]:++g_finished[1],adjusted);}
     return result;
 }
 // The actual Lava preparation uses these native formulas and its own speed,
@@ -233,12 +216,13 @@ bool SolveLava(void* ability,const local_players::Context& owner,const Vec3& tar
     return true;
 }
 void UpdateLava(void* ability){
+    native_assist::ShotScope native;
     if(g_lava)g_lava(ability); // native setup, CDO and charge execute first
+    native.Close();
     if(!native_tps::OnGameThread()||!runtime::Get().tps3DAimEnabled.load())return;
     local_players::Context owner{};Vec3 origin{},target{};bool hit=false;
     if(!AbilityOwner(ability,0x3811050,owner)||!AbilityOrigin(ability,origin))return;
-    void* weapon=nullptr;Read(ability,0x50,weapon);
-    if(!Target(owner,origin,target,hit,weapon))return;
+    if(!Target(owner,origin,target,hit,native.used?&native.point:nullptr))return;
     const char* rejected="unknown";uint32_t defaultFlags=0;
     if(!SolveLava(ability,owner,target,hit,rejected,defaultFlags)){
         const auto n=++g_lavaRejected;

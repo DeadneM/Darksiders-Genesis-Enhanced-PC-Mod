@@ -1,3 +1,9 @@
+## V1.136 — chaîne native de ciblage TPS
+
+**PRÉPARÉE / EXPÉRIMENTALE ; construction GitHub et essai requis.** Remplace le recentrage/cache V1.134–135 : recherche native sous le réticule restaurée dans la déprojection TPS, direction d'origine du sélecteur conservée, point assisté uniquement lorsqu'il est consommé par l'appel natif courant. Aucun filtre de contact Statique ni diminution de portée ; réglage natif global/par munition conservé. Autres fonctions validées,228clés/55Hotkeys inchangés. [Objectif, risques, nettoyage et essai](docs/V1_136_NATIVE_TPS_TARGET_PIPELINE_TEST.md). Aucun fichier du jeu/INI personnel modifié, aucun lancement ni build local ; main/archive et anciens ZIP conservés.
+
+---
+
 ## Enquête Statique avant le premier signalement — 31 octobre 2026
 
 **AUDIT HISTORIQUE CONTRÔLÉ ; cause initiale non isolée en jeu.** Premier retour situé sur V1.126. Comparaison de dix versions : trois fichiers de visée identiques V1.79–128, cinq fonctions principales identiques V1.79–126 ; aucun renforcement récent du sélecteur trouvé. Piste antérieure concrète : depuis V1.53, le correctif TPS ne couvre que la branche libre du faisceau, contournée par sa cible native affectée. La collision des destructibles constitue une seconde piste distincte. [Chronologie, preuves et limites](docs/STATIC_PRE_REPORT_HISTORY_2026_10_31.md). Aucun code/INI/fichier de jeu changé, aucun build ; V1.129 et suivantes exclues comme origine initiale.
