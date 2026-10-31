@@ -1,0 +1,305 @@
+{
+  "status": "OBSERVED_AND_SOURCE_CHECKED_NOT_A_REPAIR",
+  "date": "2026-10-31",
+  "installedVersion": "1.136",
+  "userDecision": "Restore native targeting integration before optional assist adjustment",
+  "memoryWrites": false,
+  "nativeCalls": false,
+  "gameFilesModified": false,
+  "buildCreated": false,
+  "readinessExplicit": true,
+  "sourceFiles": {
+    "NativeAimAssistFeature.cpp": "BC846B12F29A2BA900A25F055A0C9804A066FAFE5500E515576BEC573C5C978C",
+    "NativeTpsFeature.cpp": "76B56E427E33FB3C5A409321A4CD7B318F8930117CEAFFCB66C4683A93FC27A3",
+    "ProjectileAimFeature.cpp": "FF1FF110C9B2C01BFF59B3CF85242DD83FE381FB3130ECAB8CCE7E78532D778E"
+  },
+  "captures": [
+    {
+      "file": "v239-aim-state-20261031-203317.jsonl",
+      "sha256": "9700B83C6CBD71251B6989E224BB2268CA62B0B1A6D6FB26B3CCF3497DBB5884",
+      "samples": 862,
+      "recordedMemoryErrors": 0,
+      "lastSeconds": 87.31200000000536,
+      "terminatedByIniLock": true,
+      "phases": [
+        {
+          "settings": [
+            "0",
+            "0",
+            "0.000"
+          ],
+          "first": 0.0,
+          "last": 66.76500000001397,
+          "samples": 652,
+          "players": 652,
+          "beams": 0,
+          "targets": {},
+          "beamTargetMatchesSelected": 0,
+          "beamAnglesToRawLookRange": null,
+          "beamTargetAlignmentRange": null
+        },
+        {
+          "settings": [
+            "1",
+            "0",
+            "0.000"
+          ],
+          "first": 64.53100000001723,
+          "last": 78.54700000002049,
+          "samples": 124,
+          "players": 124,
+          "beams": 34,
+          "targets": {
+            "NO_COMPONENT_TARGET": 34
+          },
+          "beamTargetMatchesSelected": 0,
+          "beamAnglesToRawLookRange": [
+            0.25735563555087887,
+            76.06106368060543
+          ],
+          "beamTargetAlignmentRange": null
+        },
+        {
+          "settings": [
+            "1",
+            "0",
+            "100.000"
+          ],
+          "first": 78.65600000001723,
+          "last": 87.31200000000536,
+          "samples": 86,
+          "players": 86,
+          "beams": 35,
+          "targets": {
+            "Goblin_Armored_Character_C": 35
+          },
+          "beamTargetMatchesSelected": 35,
+          "beamAnglesToRawLookRange": [
+            15.031986948946138,
+            22.75430460447752
+          ],
+          "beamTargetAlignmentRange": [
+            0.0,
+            0.02403320813237114
+          ]
+        }
+      ]
+    },
+    {
+      "file": "v239-aim-state-20261031-203735.jsonl",
+      "sha256": "D0EAB61D54E254B528CE3F10559CD828D58793898DD26DDCF20EA4C05CEE56FA",
+      "samples": 1185,
+      "recordedMemoryErrors": 0,
+      "lastSeconds": 120.0460000000021,
+      "terminatedByIniLock": false,
+      "phases": [
+        {
+          "settings": [
+            "1",
+            "0",
+            "100.000"
+          ],
+          "first": 0.0,
+          "last": 120.0460000000021,
+          "samples": 1185,
+          "players": 1185,
+          "beams": 0,
+          "targets": {},
+          "beamTargetMatchesSelected": 0,
+          "beamAnglesToRawLookRange": null,
+          "beamTargetAlignmentRange": null
+        }
+      ]
+    }
+  ],
+  "logSnapshot": {
+    "file": "v240-native-path-20261031-204659.log",
+    "sha256": "35D8F349EB1DDEA32AFC69FDC32A36DD9C312428F3990834C2157F3A90421675",
+    "nativeAssistSettings": [
+      {
+        "time": "2026-10-31 20:32:19.081",
+        "player": 1,
+        "ammo": -1,
+        "percent": 100.0,
+        "scaled": false,
+        "selected": false
+      },
+      {
+        "time": "2026-10-31 20:32:19.082",
+        "player": 1,
+        "ammo": -1,
+        "percent": 100.0,
+        "scaled": false,
+        "selected": false
+      },
+      {
+        "time": "2026-10-31 20:32:19.099",
+        "player": 1,
+        "ammo": -1,
+        "percent": 100.0,
+        "scaled": false,
+        "selected": false
+      },
+      {
+        "time": "2026-10-31 20:32:19.116",
+        "player": 1,
+        "ammo": -1,
+        "percent": 100.0,
+        "scaled": false,
+        "selected": false
+      },
+      {
+        "time": "2026-10-31 20:32:19.134",
+        "player": 1,
+        "ammo": -1,
+        "percent": 100.0,
+        "scaled": false,
+        "selected": false
+      },
+      {
+        "time": "2026-10-31 20:32:19.151",
+        "player": 1,
+        "ammo": 6,
+        "percent": 100.0,
+        "scaled": false,
+        "selected": false
+      },
+      {
+        "time": "2026-10-31 20:32:19.151",
+        "player": 1,
+        "ammo": 6,
+        "percent": 100.0,
+        "scaled": false,
+        "selected": false
+      },
+      {
+        "time": "2026-10-31 20:32:19.168",
+        "player": 1,
+        "ammo": 6,
+        "percent": 100.0,
+        "scaled": false,
+        "selected": false
+      },
+      {
+        "time": "2026-10-31 20:34:09.088",
+        "player": 1,
+        "ammo": 0,
+        "percent": 100.0,
+        "scaled": false,
+        "selected": false
+      },
+      {
+        "time": "2026-10-31 20:34:26.745",
+        "player": 1,
+        "ammo": -1,
+        "percent": 0.0,
+        "scaled": true,
+        "selected": false
+      },
+      {
+        "time": "2026-10-31 20:34:26.779",
+        "player": 1,
+        "ammo": 6,
+        "percent": 0.0,
+        "scaled": true,
+        "selected": false
+      },
+      {
+        "time": "2026-10-31 20:34:36.987",
+        "player": 1,
+        "ammo": -1,
+        "percent": 100.0,
+        "scaled": false,
+        "selected": true
+      },
+      {
+        "time": "2026-10-31 20:34:37.020",
+        "player": 1,
+        "ammo": 6,
+        "percent": 100.0,
+        "scaled": false,
+        "selected": true
+      },
+      {
+        "time": "2026-10-31 20:34:46.385",
+        "player": 1,
+        "ammo": -1,
+        "percent": 200.0,
+        "scaled": true,
+        "selected": true
+      },
+      {
+        "time": "2026-10-31 20:34:46.454",
+        "player": 1,
+        "ammo": 6,
+        "percent": 200.0,
+        "scaled": true,
+        "selected": true
+      },
+      {
+        "time": "2026-10-31 20:40:27.510",
+        "player": 1,
+        "ammo": -1,
+        "percent": 100.0,
+        "scaled": false,
+        "selected": false
+      },
+      {
+        "time": "2026-10-31 20:40:27.544",
+        "player": 1,
+        "ammo": 6,
+        "percent": 100.0,
+        "scaled": false,
+        "selected": false
+      },
+      {
+        "time": "2026-10-31 20:40:36.088",
+        "player": 1,
+        "ammo": -1,
+        "percent": 200.0,
+        "scaled": true,
+        "selected": true
+      },
+      {
+        "time": "2026-10-31 20:40:36.153",
+        "player": 1,
+        "ammo": 6,
+        "percent": 200.0,
+        "scaled": true,
+        "selected": true
+      },
+      {
+        "time": "2026-10-31 20:40:37.771",
+        "player": 1,
+        "ammo": 0,
+        "percent": 200.0,
+        "scaled": true,
+        "selected": true
+      }
+    ]
+  },
+  "nativeInterface": {
+    "name": "MayhemRangedWeaponUser",
+    "ownerClass": "MayhemPlayerCharacter",
+    "offset": "0xb08",
+    "methods": {
+      "0x10": "0x66a550",
+      "0x18": "0x66a0a0",
+      "0x20": "0x66a100"
+    },
+    "actorVirtuals": {
+      "0x6a8": "0x56cac0",
+      "0x9d0": "0x56d3d0"
+    }
+  },
+  "conclusions": [
+    "At 100 percent all 35 observed Static beam samples target the character-selected enemy; 15.03..22.75 degrees from raw world look, not a measured crosshair angle.",
+    "At 0 percent the 34 observed beam samples have no assigned component target. Trials differ in time and targets: not an isolated causal A/B test.",
+    "Both common/Static and Standard report 200 percent with scaled=1 in the later log. This disproves complete non-transmission for this session, not the user perception.",
+    "Complementary capture ended before the later shots; zero beams in that file. 200 percent has log evidence only, no correlated beam trajectory capture.",
+    "Actual projectile interface method20=66A100 -> actor virtual6A8=56CAC0 -> cached rotator95C; this route does not call target resolver59D3BD.",
+    "V1.136 ShotScope observer assumption is inapplicable to this normal projectile interface route. Do not widen callers or replace it with a cross-frame candidate cache without evidence.",
+    "ProjectileAimFeature replaces ordinary native rotation by TraceCameraTarget when no consumed point; assigned Static target branch bypasses BeamForward.",
+    "No unmodified-game TPS A/B comparison was performed. Exact original cause of pre-V1.127 Static report remains unproven."
+  ]
+}

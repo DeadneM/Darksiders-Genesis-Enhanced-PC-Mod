@@ -1,6 +1,8 @@
-## V1.136 — visée rejetée après essai
+## V1.136 — rejet confirmé, priorité à l'intégration native
 
-**REJETÉE PAR L'UTILISATEUR.** Verrouillage Statique initial non corrigé ; curseurs sans effet malgré la case cochée confirmée. Journal :485requêtes attribuées,0modulation,0point consommé observé ; le remplacement de la liaison au tir n'était pas démontré par les fixtures. [Constats et prochaine preuve](docs/V1_136_REJECTION_AND_NEXT_EVIDENCE.md). Aucun nouveau build/hook/rollback ni changement de l'installation pendant ce diagnostic ; lecteur externe préparé, attente du signal utilisateur avant lecture. Les reçus de construction et d'installation ci-dessous restent historiques, sans validation en jeu.
+**REJETÉE POUR LA VISÉE ; DIAGNOSTIC OBSERVÉ, NON CORRIGÉ.** Les essais groupés sont faits. Le journal confirme 200 % appliqué au sélecteur pour Standard/Statique ; cela ne valide pas son effet final. À 100 %, les 35 échantillons de faisceau Statique suivent tous l'ennemi sélectionné, tandis que la correction des pistolets peut remplacer leur résultat natif. L'interface réelle du pistolet ne passe pas par le résolveur supposé par V1.136 : cette substitution n'était pas fondée. [Preuves, limites et ordre de réparation](docs/V1_136_CORRELATED_NATIVE_PATH.md).
+
+Décision utilisateur : rétablir d'abord la cohérence de la chaîne native, puis l'ajustement optionnel. Aucun nouveau build/hook/rollback/installation, ni fichier de jeu/INI modifié ; lecture externe autorisée après signal prêt. Autres acquis protégés ; cause historique initiale encore ouverte. Les reçus ci-dessous sont historiques.
 
 ---
 

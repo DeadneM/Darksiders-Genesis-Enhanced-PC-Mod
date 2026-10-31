@@ -25,3 +25,7 @@ Un lecteur externe en lecture seule est préparé pour relever simultanément le
 V1.135 et sa sauvegarde restent disponibles comme référence précédente où l'effet des réglages semblait perceptible ; son guidage par défaut contesté n'en fait pas une base Statique validée. Aucun rollback automatique, installation, nouveau build ou hook n'est effectué pendant ce diagnostic. L'installation reste V1.136 jusqu'à une action autorisée distincte. main/archive et anciennes archives intacts.
 
 [Rejet utilisateur, empreintes et compteurs](evidence/V1_136_USER_REJECTION.json). Les reçus CI/package/install de V1.136 restent historiques et ne constituent pas une validation en jeu.
+
+## Complément après les essais autorisés
+
+Les essais ont depuis été réalisés. Le journal confirme la modulation à 200 % pour Standard et Statique ; la première session sans modulation ne suffisait donc pas à établir une panne de transmission. La lecture du vrai faisceau confirme son suivi de la cible native affectée. La lecture des méthodes réelles et l'EXE montrent aussi que le chemin de rotation du pistolet n'atteint pas l'appel attendu par l'observateur V1.136. La réparation reste ouverte, avec priorité utilisateur à l'intégration native avant le réglage. [Rapport corrélé, limites des captures et preuves](V1_136_CORRELATED_NATIVE_PATH.md).
