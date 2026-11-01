@@ -13,7 +13,7 @@ int main(){
     check(GetTempPathW(MAX_PATH,directory)!=0,"temporary directory available");
     check(GetTempFileNameW(directory,L"DGA",0,path)!=0,"temporary file created");
     Store a;a.SetPath(path);
-    check(a.reduceAmmoEnabled&&!a.unlimitedAmmoEnabled&&a.ammoConsumptionDivisor==2,"user defaults: reduced ammo ON, Unlimited OFF");
+    check(a.reduceAmmoEnabled&&!a.unlimitedAmmoEnabled&&a.ammoConsumptionDivisor==1,"user defaults: reduced ammo ON, Unlimited OFF");
     check(a.hotkeys==kDefaultHotkeys,"user default bindings selected");
     a.reduceAmmoEnabled=false;a.unlimitedAmmoEnabled=true;a.ammoConsumptionDivisor=10;
     a.hotkeys[9]=Action::ReduceAmmo;a.hotkeys[10]=Action::UnlimitedAmmo;
@@ -34,12 +34,12 @@ int main(){
     WritePrivateProfileStringW(L"Values",L"AmmoConsumptionDivisor",L"-2",path);b.Load();
     check(b.ammoConsumptionDivisor==0,"divisor lower bound");
     WritePrivateProfileStringW(L"Values",L"AmmoConsumptionDivisor",L"nan",path);b.Load();
-    check(b.ammoConsumptionDivisor==2,"nonfinite divisor uses default");
+    check(b.ammoConsumptionDivisor==1,"nonfinite divisor uses default");
     WritePrivateProfileStringW(L"Features",L"ReduceAmmoConsumption",nullptr,path);
     WritePrivateProfileStringW(L"Features",L"UnlimitedAmmo",nullptr,path);
     WritePrivateProfileStringW(L"Values",L"AmmoConsumptionDivisor",nullptr,path);b.Load();
-    check(b.reduceAmmoEnabled&&!b.unlimitedAmmoEnabled&&b.ammoConsumptionDivisor==2,"missing ammo keys use the requested user defaults");
-    b.ResetDefaults(false);check(b.reduceAmmoEnabled&&!b.unlimitedAmmoEnabled&&b.ammoConsumptionDivisor==2,"reset restores the requested user defaults");
+    check(b.reduceAmmoEnabled&&!b.unlimitedAmmoEnabled&&b.ammoConsumptionDivisor==1,"missing ammo keys use the requested user defaults");
+    b.ResetDefaults(false);check(b.reduceAmmoEnabled&&!b.unlimitedAmmoEnabled&&b.ammoConsumptionDivisor==1,"reset restores the requested user defaults");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,path);DeleteFileW(path);
     std::printf("Ammo config: %u failures\n",failed);return failed?1:0;
 }

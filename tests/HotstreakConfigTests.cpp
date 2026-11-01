@@ -15,7 +15,7 @@ int main(){
     wchar_t directory[MAX_PATH]{},path[MAX_PATH]{};
     if(!GetTempPathW(MAX_PATH,directory)||!GetTempFileNameW(directory,L"DGH",0,path))return 1;
     Store a;a.SetPath(path);
-    check(!a.reduceHotstreakEnabled&&!a.unlimitedHotstreakEnabled&&a.hotstreakDecreaseDivisor==2,"new modifiers default OFF");
+    check(!a.reduceHotstreakEnabled&&!a.unlimitedHotstreakEnabled&&a.hotstreakDecreaseDivisor==1,"new modifiers default OFF");
     check(a.hotkeys==kDefaultHotkeys,"no established hotkey is reassigned");
     a.reduceHotstreakEnabled=true;a.unlimitedHotstreakEnabled=true;a.hotstreakDecreaseDivisor=2.5f;
     a.hotkeys[8]=Action::ReduceHotstreak;a.hotkeys[9]=Action::UnlimitedHotstreak;
@@ -26,12 +26,12 @@ int main(){
     const auto& rt=dg::runtime::Get();check(rt.reduceHotstreakEnabled.load()&&rt.unlimitedHotstreakEnabled.load()&&rt.hotstreakDecreaseDivisor.load()==2.5f,"native runtime receives all settings");
     WritePrivateProfileStringW(L"Values",L"HotstreakDecreaseDivisor",L"999",path);b.Load();check(b.hotstreakDecreaseDivisor==10,"upper bound");
     WritePrivateProfileStringW(L"Values",L"HotstreakDecreaseDivisor",L"-5",path);b.Load();check(b.hotstreakDecreaseDivisor==0,"lower bound");
-    WritePrivateProfileStringW(L"Values",L"HotstreakDecreaseDivisor",L"nan",path);b.Load();check(b.hotstreakDecreaseDivisor==2,"nonfinite uses safe default");
+    WritePrivateProfileStringW(L"Values",L"HotstreakDecreaseDivisor",L"nan",path);b.Load();check(b.hotstreakDecreaseDivisor==1,"nonfinite uses safe default");
     WritePrivateProfileStringW(L"Features",L"ReduceHotstreakDecrease",nullptr,path);
     WritePrivateProfileStringW(L"Features",L"UnlimitedHotstreak",nullptr,path);
     WritePrivateProfileStringW(L"Values",L"HotstreakDecreaseDivisor",nullptr,path);
-    b.Load();check(!b.reduceHotstreakEnabled&&!b.unlimitedHotstreakEnabled&&b.hotstreakDecreaseDivisor==2&&b.hotkeys==a.hotkeys,"legacy profile opts out without replacing hotkeys");
-    b.ResetDefaults(false);check(!b.reduceHotstreakEnabled&&!b.unlimitedHotstreakEnabled&&b.hotstreakDecreaseDivisor==2,"reset preserves opt-in policy");
+    b.Load();check(!b.reduceHotstreakEnabled&&!b.unlimitedHotstreakEnabled&&b.hotstreakDecreaseDivisor==1&&b.hotkeys==a.hotkeys,"legacy profile opts out without replacing hotkeys");
+    b.ResetDefaults(false);check(!b.reduceHotstreakEnabled&&!b.unlimitedHotstreakEnabled&&b.hotstreakDecreaseDivisor==1,"reset preserves opt-in policy");
     using dg::hotstreak::DepletionAmount;using dg::hotstreak::DepletionCaller;
     check(DepletionAmount(10,true,0,false)==10&&DepletionAmount(10,true,1,false)==10,"0 and 1 remain native");
     check(DepletionAmount(10,true,0.5f,false)==20&&DepletionAmount(3,true,0.75f,false)==4,

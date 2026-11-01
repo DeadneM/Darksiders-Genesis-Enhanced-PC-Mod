@@ -21,6 +21,7 @@ FrameResult Frame(float width,float font,float& value,int& choice){
         dg::overlay::layout::Choice("Selection##test",&choice,choices,2);
         Check(ImGui::GetItemRectMax().x<=right+.5f,"choice control fits at every width");
         dg::overlay::layout::HelpText("A concise first sentence. A longer explanation remains in hover help without adding another permanent paragraph.");
+        Check(!dg::overlay::layout::Group("Unopened section"),"groups retain closed-by-default behavior");
         dg::overlay::layout::Button("Save");
         Check(ImGui::GetItemRectMax().x<=right+.5f,"natural button label fits at every width");
         if(width>=990){
@@ -31,6 +32,8 @@ FrameResult Frame(float width,float font,float& value,int& choice){
     }
     const auto& after=ImGui::GetStyle();
     Check(after.WindowPadding.x==before.WindowPadding.x&&after.FramePadding.y==before.FramePadding.y&&after.ItemSpacing.y==before.ItemSpacing.y&&after.ItemInnerSpacing.x==before.ItemInnerSpacing.x&&after.IndentSpacing==before.IndentSpacing,"menu spacing scope restores the surrounding ImGui style");
+    Check(after.FrameRounding==before.FrameRounding&&after.GrabRounding==before.GrabRounding&&after.FrameBorderSize==before.FrameBorderSize&&after.ScrollbarSize==before.ScrollbarSize,"menu shape scope restores all surrounding geometry");
+    for(unsigned i=0;i<ImGuiCol_COUNT;++i){const auto& a=after.Colors[i];const auto& b=before.Colors[i];Check(a.x==b.x&&a.y==b.y&&a.z==b.z&&a.w==b.w,"menu palette never leaks into the game or other windows");}
     ImGui::Render();return result;
 }
 void Run(){

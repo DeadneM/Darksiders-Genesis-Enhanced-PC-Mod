@@ -1,0 +1,325 @@
+{
+  "base": "dbfe180c9f0d432f903975a83be6b553239d9eac",
+  "approvedChoices": 72,
+  "approvedDelta": 48,
+  "totalKeys": 228,
+  "otherKeysUnchanged": 180,
+  "unchangedOutsideOriginalList": 156,
+  "iniMatchesAllApprovedValues": true,
+  "iniRevisionUnchanged": true,
+  "hotkeyIdsUnchanged": 55,
+  "hotkeyDefaultsChanged": true,
+  "mainPromoted": false,
+  "personalIniWritten": false,
+  "localBuild": false,
+  "gameplayHooksChanged": false,
+  "sourceFiles": [
+    "src/BuildInfo.h",
+    "src/CameraBlurSettings.h",
+    "src/ConfigStore.cpp",
+    "src/ConfigStore.h",
+    "src/DefaultSettings.h",
+    "src/OverlayLayout.h",
+    "src/OverlayUi.cpp",
+    "src/RuntimeSettings.h"
+  ],
+  "reviewOne": "Map approved 72 choices onto all 228 keys, constructors/reset/fallback/runtime and individual reset buttons",
+  "reviewTwo": "Check explicit personal OFF and bindings survive load, retained compatibility fallbacks, closed group IDs/style restoration and narrow-width layouts",
+  "reviewAgreement": "Only defaults and overlay presentation change; no native ability, aim, camera or input hook implementation changes",
+  "limitations": [
+    "Menu appearance requires user visual validation",
+    "New defaults do not overwrite an existing INI",
+    "Recovery defaults approved ON but experimental functionality status unchanged",
+    "V1.140 timing probes remain available; no new performance improvement claimed"
+  ],
+  "changes": [
+    {
+      "section": "Updater",
+      "key": "AutoCheckUpdates",
+      "before": "0",
+      "after": "1"
+    },
+    {
+      "section": "Features",
+      "key": "MountedJump",
+      "before": "0",
+      "after": "1"
+    },
+    {
+      "section": "Features",
+      "key": "MountedPistolHolsters",
+      "before": "0",
+      "after": "1"
+    },
+    {
+      "section": "Features",
+      "key": "BonusMountSkins",
+      "before": "0",
+      "after": "1"
+    },
+    {
+      "section": "Features",
+      "key": "WeaponSheathing",
+      "before": "0",
+      "after": "1"
+    },
+    {
+      "section": "Features",
+      "key": "NeverAutoSheathe",
+      "before": "1",
+      "after": "0"
+    },
+    {
+      "section": "Features",
+      "key": "WarNeverAutoSheathe",
+      "before": "1",
+      "after": "0"
+    },
+    {
+      "section": "Features",
+      "key": "HeavyLandingRecovery",
+      "before": "0",
+      "after": "1"
+    },
+    {
+      "section": "Features",
+      "key": "RecoveryDashTail",
+      "before": "0",
+      "after": "1"
+    },
+    {
+      "section": "Features",
+      "key": "RecoveryChestTail",
+      "before": "0",
+      "after": "1"
+    },
+    {
+      "section": "Features",
+      "key": "NativeCustomDOF",
+      "before": "0",
+      "after": "1"
+    },
+    {
+      "section": "Features",
+      "key": "TPSCustomDOF",
+      "before": "0",
+      "after": "1"
+    },
+    {
+      "section": "Features",
+      "key": "TPSNativeAimAssist",
+      "before": "0",
+      "after": "1"
+    },
+    {
+      "section": "Values",
+      "key": "MouseReticleHideMode",
+      "before": "0",
+      "after": "1"
+    },
+    {
+      "section": "Values",
+      "key": "InteractionHudScale",
+      "before": "0.650",
+      "after": "0.500"
+    },
+    {
+      "section": "Values",
+      "key": "TPSCoopFOVDegrees",
+      "before": "110.000",
+      "after": "80.000"
+    },
+    {
+      "section": "Values",
+      "key": "NativeDOFAmount",
+      "before": "0.600",
+      "after": "0.500"
+    },
+    {
+      "section": "Values",
+      "key": "TPSDOFDistanceMeters",
+      "before": "10.000",
+      "after": "250.000"
+    },
+    {
+      "section": "Values",
+      "key": "TPSDOFAmount",
+      "before": "0.600",
+      "after": "0.500"
+    },
+    {
+      "section": "Values",
+      "key": "TPSNativeAimAssistGlobal",
+      "before": "100.000",
+      "after": "50.000"
+    },
+    {
+      "section": "Values",
+      "key": "HotstreakChargeMultiplier",
+      "before": "2.000",
+      "after": "1.000"
+    },
+    {
+      "section": "Values",
+      "key": "WrathChargeMultiplier",
+      "before": "4.000",
+      "after": "1.000"
+    },
+    {
+      "section": "Values",
+      "key": "UltimateFormChargeMultiplier",
+      "before": "4.000",
+      "after": "1.000"
+    },
+    {
+      "section": "Values",
+      "key": "UltimateDurationMultiplier",
+      "before": "2.000",
+      "after": "1.000"
+    },
+    {
+      "section": "Values",
+      "key": "SynergyChargeMultiplier",
+      "before": "4.000",
+      "after": "1.000"
+    },
+    {
+      "section": "Values",
+      "key": "GrappleRangeMultiplier",
+      "before": "2.000",
+      "after": "1.000"
+    },
+    {
+      "section": "Values",
+      "key": "AmmoConsumptionDivisor",
+      "before": "2.000",
+      "after": "1.000"
+    },
+    {
+      "section": "Values",
+      "key": "HotstreakDecreaseDivisor",
+      "before": "2.000",
+      "after": "1.000"
+    },
+    {
+      "section": "Values",
+      "key": "PotionRechargeMultiplier",
+      "before": "2.000",
+      "after": "1.000"
+    },
+    {
+      "section": "Hotkeys",
+      "key": "F2",
+      "before": "RefillUltimate",
+      "after": "RefillAmmo"
+    },
+    {
+      "section": "Hotkeys",
+      "key": "F3",
+      "before": "RefillSynergy",
+      "after": "RefillHotstreak"
+    },
+    {
+      "section": "Hotkeys",
+      "key": "F4",
+      "before": "RefillWrath",
+      "after": "RefillPotions"
+    },
+    {
+      "section": "Hotkeys",
+      "key": "F5",
+      "before": "UnlimitedAllGauges",
+      "after": "None"
+    },
+    {
+      "section": "Hotkeys",
+      "key": "F6",
+      "before": "UnlimitedUltimate",
+      "after": "None"
+    },
+    {
+      "section": "Hotkeys",
+      "key": "F7",
+      "before": "UnlimitedSynergy",
+      "after": "None"
+    },
+    {
+      "section": "Hotkeys",
+      "key": "F8",
+      "before": "UnlimitedWrath",
+      "after": "None"
+    },
+    {
+      "section": "Hotkeys",
+      "key": "F9",
+      "before": "UnlimitedAmmo",
+      "after": "None"
+    },
+    {
+      "section": "CameraHotkeys",
+      "key": "HeightUp",
+      "before": "Up",
+      "after": "None"
+    },
+    {
+      "section": "CameraHotkeys",
+      "key": "HeightDown",
+      "before": "Down",
+      "after": "None"
+    },
+    {
+      "section": "CameraHotkeys",
+      "key": "ZoomOut",
+      "before": "PageUp",
+      "after": "None"
+    },
+    {
+      "section": "CameraHotkeys",
+      "key": "ZoomIn",
+      "before": "PageDown",
+      "after": "None"
+    },
+    {
+      "section": "CameraHotkeys",
+      "key": "PitchDown",
+      "before": "Home",
+      "after": "None"
+    },
+    {
+      "section": "CameraHotkeys",
+      "key": "PitchUp",
+      "before": "End",
+      "after": "None"
+    },
+    {
+      "section": "CameraHotkeys",
+      "key": "YawLeft",
+      "before": "Left",
+      "after": "None"
+    },
+    {
+      "section": "CameraHotkeys",
+      "key": "YawRight",
+      "before": "Right",
+      "after": "None"
+    },
+    {
+      "section": "Controls",
+      "key": "SheatheKeyboardKey",
+      "before": "None",
+      "after": "L"
+    },
+    {
+      "section": "Controls",
+      "key": "SheathePadButtonA",
+      "before": "0",
+      "after": "256"
+    },
+    {
+      "section": "Controls",
+      "key": "SheathePadButtonB",
+      "before": "0",
+      "after": "64"
+    }
+  ]
+}

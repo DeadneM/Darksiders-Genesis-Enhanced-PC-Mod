@@ -89,14 +89,14 @@ void Configuration(){
     wchar_t directory[MAX_PATH]{},path[MAX_PATH]{};
     Check(GetTempPathW(MAX_PATH,directory)&&GetTempFileNameW(directory,L"DGP",0,path),"temporary profile created");
     dg::config::Store a;a.SetPath(path);a.Load();
-    Check(a.warArmAppearance==0&&a.mouseReticleHideMode==0,"old profiles retain native appearance and cursor");
+    Check(a.warArmAppearance==0&&a.mouseReticleHideMode==1,"missing keys retain native models and approved TPS cursor setting");
     a.warArmAppearance=2;a.mouseReticleHideMode=3;Check(a.SaveNow(),"presentation settings saved");
     dg::config::Store b;b.SetPath(path);Check(b.Load()&&b.warArmAppearance==2&&b.mouseReticleHideMode==3,"presentation settings round trip");
     Check(dg::runtime::Get().warArmAppearance==2&&dg::runtime::Get().mouseReticleHideMode==3,"runtime publication");
     WritePrivateProfileStringW(L"Values",L"WarArmAppearance",L"99",path);
     WritePrivateProfileStringW(L"Values",L"MouseReticleHideMode",L"-1",path);b.Load();
     Check(b.warArmAppearance==0&&b.mouseReticleHideMode==0,"corrupt profile values restore Native");
-    b.ResetDefaults(false);Check(b.warArmAppearance==0&&b.mouseReticleHideMode==0,"Native reset");
+    b.ResetDefaults(false);Check(b.warArmAppearance==0&&b.mouseReticleHideMode==1,"approved presentation reset");
     DeleteFileW(path);
 }
 }

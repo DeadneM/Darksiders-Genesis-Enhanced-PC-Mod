@@ -232,15 +232,15 @@ constexpr unsigned UnlimitedMask(Action action){
     }
 }
 inline constexpr std::array<int, 8> kDefaultCameraKeys{{
-    0x26,0x28,0x21,0x22,0x24,0x23,0x25,0x27
+    0,0,0,0,0,0,0,0
 }};
 inline constexpr std::array<int, 6> kDefaultTpsKeyboardKeys{{
     'H','Z','Z','E','G',0x09
 }};
 inline constexpr std::array<Action, 12> kDefaultHotkeys{{
-    Action::RefillAllGauges,Action::RefillUltimate,Action::RefillSynergy,
-    Action::RefillWrath,Action::UnlimitedAllGauges,Action::UnlimitedUltimate,
-    Action::UnlimitedSynergy,Action::UnlimitedWrath,Action::UnlimitedAmmo,
+    Action::RefillAllGauges,Action::RefillAmmo,Action::RefillHotstreak,
+    Action::RefillPotions,Action::None,Action::None,
+    Action::None,Action::None,Action::None,
     Action::None,Action::None,Action::ToggleHUD
 }};
 const char* ActionLabel(Action action);
@@ -259,39 +259,39 @@ public:
     int menuKey = defaults::MenuKey;
     float menuFontSize = menu::DefaultFontSize;
     int graphicsAdapter = 0;
-    bool updaterAutoCheck = false;
+    bool updaterAutoCheck = defaults::AutoCheckUpdates;
     bool updaterBeta = defaults::UpdaterBeta; // OFF=main stable, ON=debug beta
 
     bool toggleHudEnabled = true;
     bool interactionHudScaleEnabled = true;
-    float interactionHudScale = 0.65f;
-    bool mountedHolstersEnabled = false;
+    float interactionHudScale = defaults::InteractionHudScale;
+    bool mountedHolstersEnabled = defaults::MountedHolsters;
     int pistolRightModel = 0;
     int pistolLeftModel = 0;
     int strifeBladeVisibility = 0;
-    int warArmAppearance=0,mouseReticleHideMode=0;
-    bool mountedJumpEnabled = false;
+    int warArmAppearance=0,mouseReticleHideMode=defaults::MouseReticleHideMode;
+    bool mountedJumpEnabled = defaults::MountedJump;
     int mountedJumpSound = 0;
-    bool bonusMountSkinsEnabled = false;
+    bool bonusMountSkinsEnabled = defaults::BonusMountSkins;
     bool progressionSkinsEnabled = false;
     bool leviathanVisualEnabled = false;
     int leviathanVisualMode = 0;
     effect_appearance::Choices effectAppearances{};
-    bool weaponSheathingEnabled = false;
-    bool heavyLandingRecoveryEnabled = false;
+    bool weaponSheathingEnabled = defaults::WeaponSheathing;
+    bool heavyLandingRecoveryEnabled = defaults::HeavyLandingRecovery;
     float heavyLandingDelaySeconds = .15f,heavyLandingGroundSeconds = .05f;
-    bool recoveryDashTailEnabled = false,recoveryChestTailEnabled = false;
+    bool recoveryDashTailEnabled = defaults::RecoveryTail,recoveryChestTailEnabled = defaults::RecoveryTail;
     float recoveryTailDelaySeconds = 0;
     wrath_slots::Choices wrathSlots{};
-    bool sheathNeverEnabled = true;
+    bool sheathNeverEnabled = defaults::NeverAutoSheathe;
     float sheathDelaySeconds = 10.0f;
     bool sheathStrifeMeleeNeverEnabled = false;
     float sheathStrifeMeleeDelaySeconds = 0.0f;
-    bool sheathWarNeverEnabled = true;
+    bool sheathWarNeverEnabled = defaults::NeverAutoSheathe;
     float sheathWarDelaySeconds = 10.0f;
-    int sheathKeyboardKey = 0;
-    int sheathPadButtonA = 0;
-    int sheathPadButtonB = 0;
+    int sheathKeyboardKey = defaults::SheatheKeyboardKey;
+    int sheathPadButtonA = defaults::SheathePadButtonA;
+    int sheathPadButtonB = defaults::SheathePadButtonB;
     int aimPadButtonA = 0;
     int aimPadButtonB = 0;
     bool movementSpeedEnabled = true;
@@ -301,7 +301,7 @@ public:
     bool thirdPersonEnabled = true;
     bool thirdPersonFovEnabled = true;
     bool tpsLensFocusEnabled = true;
-    camera_blur::Profile nativeBlur{},tpsBlur{};
+    camera_blur::Profile nativeBlur=camera_blur::NativeDefaults,tpsBlur=camera_blur::TpsDefaults;
     bool cameraOrbitInputEnabled = true; // derived: controller-only TPS camera
     bool cameraControllerOrbitEnabled = true;
     int tpsCameraStickMode = 2; // 0 OFF, 1 left, 2 right
@@ -310,7 +310,7 @@ public:
     bool tpsLongPressToggleEnabled = true;
     bool tpsGrenadeHoldEnabled = true;
     int aimIndicatorHideMode = 2; // 0 Everywhere, 1 Default Only, 2 TPS Only, 3 Never
-    bool tpsAimAssistEnabled=false;int tpsAimAssistMode=0;float tpsAimAssistGlobal=100;std::array<float,aim_assist::Count> tpsAimAssistAmmo=aim_assist::Defaults;
+    bool tpsAimAssistEnabled=defaults::AimAssistEnabled;int tpsAimAssistMode=0;float tpsAimAssistGlobal=defaults::AimAssistGlobal;std::array<float,aim_assist::Count> tpsAimAssistAmmo=aim_assist::Defaults;
     bool tps3DAimEnabled = true;
     float tpsAimPitchOffsetDegrees = 12.0f;
     int tpsMountedAimMode = 0; // 0 camera-forward free, 1 native aim camera locked
@@ -344,7 +344,7 @@ public:
     bool ultimateChargeEnabled = true;
     bool ultimateDecreaseEnabled = false;
     bool ultimateInfiniteDurationEnabled = false;
-    float ultimateDurationMultiplier = 2.0f;
+    float ultimateDurationMultiplier = defaults::UltimateDuration;
     bool synergyChargeEnabled = true;
     bool unlimitedWrathEnabled = false;
     bool unlimitedUltimateEnabled = false;
@@ -352,20 +352,20 @@ public:
     bool finiteStandardAmmoEnabled = false;
     int standardAmmoCapacity = 200;
     bool grappleRangeEnabled = false;
-    float grappleRangeMultiplier = 2.0f;
+    float grappleRangeMultiplier = defaults::GrappleRange;
     int infiniteDoubleJumpMode = 0; // 0 Off, 1 rearm after each glide, 2 Always
     bool reduceAmmoEnabled = defaults::ReduceAmmo;
     bool unlimitedAmmoEnabled = false;
-    float ammoConsumptionDivisor = 2.0f;
+    float ammoConsumptionDivisor = defaults::AmmoDivisor;
     bool reduceHotstreakEnabled = false;
     bool unlimitedHotstreakEnabled = false;
-    float hotstreakDecreaseDivisor = 2.0f;
+    float hotstreakDecreaseDivisor = defaults::HotstreakDivisor;
     bool potionRechargeEnabled = false;
     bool unlimitedPotionsEnabled = false;
     bool unlimitedHealthEnabled = false;
     bool unlimitedGlideEnabled = false;
     bool unlimitedHorseSprintEnabled = false;
-    float potionRechargeMultiplier = 2.0f;
+    float potionRechargeMultiplier = defaults::PotionRecharge;
 
     float movementSpeedMultiplier = 1.50f;
     float pistolDamageMultiplier = 2.00f;
@@ -377,7 +377,7 @@ public:
     float horseSprintDurationMultiplier = 5.00f;
     float fovDegrees = 90.0f;
     float thirdPersonFovDegrees = 110.0f;
-    float thirdPersonCoopFovDegrees = 110.0f;
+    float thirdPersonCoopFovDegrees = defaults::TPSCoopFOV;
     float cameraZoomPercent = 0.0f;
     float cameraPitchDegrees = 0.0f;
     float cameraYawDegrees = 0.0f;
@@ -391,7 +391,7 @@ public:
     float tpsHorseHeightOffset = defaults::HorseHeight;
     float tpsFootAnchorOffset = 0.0f; // adjustable +/-500 units
     float cameraStickSpeed = 180.0f;
-    float hotstreakChargeMultiplier = 2.00f;
+    float hotstreakChargeMultiplier = defaults::HotstreakGain;
     float wrathChargeMultiplier = defaults::WrathGain;
     float ultimateChargeMultiplier = defaults::UltimateGain;
     float synergyChargeMultiplier = defaults::SynergyGain;

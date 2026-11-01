@@ -323,22 +323,22 @@ void Store::ResetDefaults(bool persist) {
     menuKey = defaults::MenuKey;
     menuFontSize = menu::DefaultFontSize;
     graphicsAdapter = 0;
-    updaterAutoCheck = false;
+    updaterAutoCheck = defaults::AutoCheckUpdates;
     updaterBeta = defaults::UpdaterBeta;
 
-    toggleHudEnabled = true;interactionHudScaleEnabled=true;interactionHudScale=0.65f;
-    weaponSheathingEnabled=false;sheathNeverEnabled=true;sheathDelaySeconds=10.0f;
-    heavyLandingRecoveryEnabled=false;
+    toggleHudEnabled = true;interactionHudScaleEnabled=true;interactionHudScale=defaults::InteractionHudScale;
+    weaponSheathingEnabled=defaults::WeaponSheathing;sheathNeverEnabled=defaults::NeverAutoSheathe;sheathDelaySeconds=10.0f;
+    heavyLandingRecoveryEnabled=defaults::HeavyLandingRecovery;
     heavyLandingDelaySeconds=.15f;heavyLandingGroundSeconds=.05f;
-    recoveryDashTailEnabled=recoveryChestTailEnabled=false;recoveryTailDelaySeconds=0;
+    recoveryDashTailEnabled=recoveryChestTailEnabled=defaults::RecoveryTail;recoveryTailDelaySeconds=0;
     wrathSlots={};
-    mountedHolstersEnabled=false;
-    strifeBladeVisibility=0;warArmAppearance=mouseReticleHideMode=0;mountedJumpEnabled=false;mountedJumpSound=0;
-    pistolRightModel=0;pistolLeftModel=0;bonusMountSkinsEnabled=false;progressionSkinsEnabled=false;
+    mountedHolstersEnabled=defaults::MountedHolsters;
+    strifeBladeVisibility=0;warArmAppearance=0;mouseReticleHideMode=defaults::MouseReticleHideMode;mountedJumpEnabled=defaults::MountedJump;mountedJumpSound=0;
+    pistolRightModel=0;pistolLeftModel=0;bonusMountSkinsEnabled=defaults::BonusMountSkins;progressionSkinsEnabled=false;
     leviathanVisualEnabled=false;leviathanVisualMode=0;effectAppearances={};
     sheathStrifeMeleeNeverEnabled=false;sheathStrifeMeleeDelaySeconds=0.0f;
-    sheathWarNeverEnabled=true;sheathWarDelaySeconds=10.0f;
-    sheathKeyboardKey=0;sheathPadButtonA=0;sheathPadButtonB=0;
+    sheathWarNeverEnabled=defaults::NeverAutoSheathe;sheathWarDelaySeconds=10.0f;
+    sheathKeyboardKey=defaults::SheatheKeyboardKey;sheathPadButtonA=defaults::SheathePadButtonA;sheathPadButtonB=defaults::SheathePadButtonB;
     aimPadButtonA=0;aimPadButtonB=0;
     movementSpeedEnabled = true;
     skipLogosEnabled = true;
@@ -347,7 +347,7 @@ void Store::ResetDefaults(bool persist) {
     thirdPersonEnabled = true;
     thirdPersonFovEnabled = true;
     tpsLensFocusEnabled = true;
-    nativeBlur = {};tpsBlur = {};
+    nativeBlur=camera_blur::NativeDefaults;tpsBlur=camera_blur::TpsDefaults;
     cameraOrbitInputEnabled = true;
     cameraControllerOrbitEnabled = true;
     tpsCameraStickMode = 2;
@@ -356,7 +356,7 @@ void Store::ResetDefaults(bool persist) {
     tpsLongPressToggleEnabled = true;
     tpsGrenadeHoldEnabled = true;
     aimIndicatorHideMode = 2; // TPS Only (default)
-    tpsAimAssistEnabled=false;tpsAimAssistMode=0;tpsAimAssistGlobal=100;tpsAimAssistAmmo=aim_assist::Defaults;
+    tpsAimAssistEnabled=defaults::AimAssistEnabled;tpsAimAssistMode=0;tpsAimAssistGlobal=defaults::AimAssistGlobal;tpsAimAssistAmmo=aim_assist::Defaults;
     tps3DAimEnabled = true;
     tpsAimPitchOffsetDegrees = 12.0f;
     tpsMountedAimMode = 0;
@@ -387,16 +387,16 @@ void Store::ResetDefaults(bool persist) {
     hotstreakChargeEnabled = true;
     wrathChargeEnabled = true;
     ultimateChargeEnabled = true;
-    ultimateDecreaseEnabled=false;ultimateDurationMultiplier=2.0f;ultimateInfiniteDurationEnabled=false;
+    ultimateDecreaseEnabled=false;ultimateDurationMultiplier=defaults::UltimateDuration;ultimateInfiniteDurationEnabled=false;
     synergyChargeEnabled = true;
     unlimitedWrathEnabled = false;
     unlimitedUltimateEnabled = false;
     unlimitedSynergyEnabled = false;
     finiteStandardAmmoEnabled=false;standardAmmoCapacity=200;
-    grappleRangeEnabled=false;grappleRangeMultiplier=2.0f;infiniteDoubleJumpMode=0;
-    reduceAmmoEnabled = defaults::ReduceAmmo;unlimitedAmmoEnabled = false;ammoConsumptionDivisor = 2.0f;
-    reduceHotstreakEnabled=false;unlimitedHotstreakEnabled=false;hotstreakDecreaseDivisor=2.0f;
-    potionRechargeEnabled=false;unlimitedPotionsEnabled=false;potionRechargeMultiplier=2.0f;
+    grappleRangeEnabled=false;grappleRangeMultiplier=defaults::GrappleRange;infiniteDoubleJumpMode=0;
+    reduceAmmoEnabled = defaults::ReduceAmmo;unlimitedAmmoEnabled = false;ammoConsumptionDivisor = defaults::AmmoDivisor;
+    reduceHotstreakEnabled=false;unlimitedHotstreakEnabled=false;hotstreakDecreaseDivisor=defaults::HotstreakDivisor;
+    potionRechargeEnabled=false;unlimitedPotionsEnabled=false;potionRechargeMultiplier=defaults::PotionRecharge;
     unlimitedHealthEnabled=false;
     unlimitedGlideEnabled=false;
     unlimitedHorseSprintEnabled=false;
@@ -411,7 +411,7 @@ void Store::ResetDefaults(bool persist) {
     horseSprintDurationMultiplier = 5.00f;
     fovDegrees = 90.0f;
     thirdPersonFovDegrees = 110.0f;
-    thirdPersonCoopFovDegrees = 110.0f;
+    thirdPersonCoopFovDegrees = defaults::TPSCoopFOV;
     cameraZoomPercent = 0.0f;
     cameraPitchDegrees = 0.0f;
     cameraYawDegrees = 0.0f;
@@ -425,7 +425,7 @@ void Store::ResetDefaults(bool persist) {
     tpsHorseHeightOffset = defaults::HorseHeight;
     tpsFootAnchorOffset = 0.0f;
     cameraStickSpeed = 180.0f;
-    hotstreakChargeMultiplier = 2.00f;
+    hotstreakChargeMultiplier = defaults::HotstreakGain;
     wrathChargeMultiplier = defaults::WrathGain;
     ultimateChargeMultiplier = defaults::UltimateGain;
     synergyChargeMultiplier = defaults::SynergyGain;
@@ -511,7 +511,7 @@ void Store::ResetTpsCameraValues() {
     thirdPersonFovEnabled=true;
     tpsLensFocusEnabled=true;
     thirdPersonFovDegrees=110.0f;
-    thirdPersonCoopFovDegrees=110.0f;
+    thirdPersonCoopFovDegrees=defaults::TPSCoopFOV;
     thirdPersonDistanceMultiplier=0.15f;
     thirdPersonPitchDegrees=-12.0f;
     thirdPersonHeightOffset=0.0f;
@@ -525,7 +525,7 @@ void Store::ResetTpsCameraValues() {
     dg::runtime::Get().cameraOrbitPitchDegrees.store(0.0f);
     Save();
     char message[320]{};
-    sprintf_s(message,"TPS Camera Values Default: solo/coop TPS FOV 110, distance .15, pitch -12, height 0; Ultimate distance %.2f, height %.0f; Horse distance %.2f, height %.0f; foot 0, speed 180",
+    sprintf_s(message,"TPS Camera Values Default: solo TPS FOV 110, coop 80, distance .15, pitch -12, height 0; Ultimate distance %.2f, height %.0f; Horse distance %.2f, height %.0f; foot 0, speed 180",
         tpsUltimateDistanceMultiplier,tpsUltimateHeightOffset,tpsHorseDistanceMultiplier,tpsHorseHeightOffset);
     Log(message);
 }
@@ -561,7 +561,7 @@ bool Store::Load() {
     menuKey = ParseKeyToken(menuKeyText, defaults::MenuKey);
     menuFontSize=menu::FontSize(ReadFloat(L"Overlay",L"FontSize",menu::DefaultFontSize,path_));
 
-    updaterAutoCheck = ReadBool(L"Updater", L"AutoCheckUpdates", false, path_);
+    updaterAutoCheck = ReadBool(L"Updater", L"AutoCheckUpdates", defaults::AutoCheckUpdates, path_);
     updaterBeta = ReadBool(L"Updater", L"Beta", defaults::UpdaterBeta, path_);
     graphicsAdapter = GetPrivateProfileIntW(
         L"System",
@@ -577,18 +577,18 @@ bool Store::Load() {
     }
 
     toggleHudEnabled = true; // V0.54: hidden/visible is the only HUD state
-    weaponSheathingEnabled=ReadBool(L"Features",L"WeaponSheathing",false,path_);
-    heavyLandingRecoveryEnabled=ReadBool(L"Features",L"HeavyLandingRecovery",false,path_);
+    weaponSheathingEnabled=ReadBool(L"Features",L"WeaponSheathing",defaults::WeaponSheathing,path_);
+    heavyLandingRecoveryEnabled=ReadBool(L"Features",L"HeavyLandingRecovery",defaults::HeavyLandingRecovery,path_);
     heavyLandingDelaySeconds=recovery_settings::LandingDelay(ReadFloat(L"Values",L"HeavyLandingDelaySeconds",.15f,path_));
     heavyLandingGroundSeconds=recovery_settings::GroundTime(ReadFloat(L"Values",L"HeavyLandingGroundSeconds",.05f,path_));
-    recoveryDashTailEnabled=ReadBool(L"Features",L"RecoveryDashTail",false,path_);
-    recoveryChestTailEnabled=ReadBool(L"Features",L"RecoveryChestTail",false,path_);
+    recoveryDashTailEnabled=ReadBool(L"Features",L"RecoveryDashTail",defaults::RecoveryTail,path_);
+    recoveryChestTailEnabled=ReadBool(L"Features",L"RecoveryChestTail",defaults::RecoveryTail,path_);
     recoveryTailDelaySeconds=recovery_settings::TailDelay(ReadFloat(L"Values",L"RecoveryTailDelaySeconds",0.f,path_));
     for(unsigned family=0;family<2;++family)for(unsigned slot=0;slot<3;++slot)
         wrathSlots[family][slot]=wrath_slots::Normalize(family,GetPrivateProfileIntW(L"Values",wrath_slots::Keys[family][slot],0,path_.c_str()));
-    sheathNeverEnabled=ReadBool(L"Features",L"NeverAutoSheathe",true,path_);
+    sheathNeverEnabled=ReadBool(L"Features",L"NeverAutoSheathe",defaults::NeverAutoSheathe,path_);
     sheathDelaySeconds=std::clamp(ReadFloat(L"Values",L"SheathDelaySeconds",10.0f,path_),0.0f,300.0f);
-    mountedHolstersEnabled=ReadBool(L"Features",L"MountedPistolHolsters",false,path_);
+    mountedHolstersEnabled=ReadBool(L"Features",L"MountedPistolHolsters",defaults::MountedHolsters,path_);
     pistolRightModel=GetPrivateProfileIntW(L"Values",L"PistolRightModel",0,path_.c_str());
     pistolLeftModel=GetPrivateProfileIntW(L"Values",L"PistolLeftModel",0,path_.c_str());
     if(pistolRightModel<0||pistolRightModel>3)pistolRightModel=0;
@@ -597,12 +597,12 @@ bool Store::Load() {
     if(strifeBladeVisibility<0||strifeBladeVisibility>3)strifeBladeVisibility=0;
     warArmAppearance=GetPrivateProfileIntW(L"Values",L"WarArmAppearance",0,path_.c_str());
     if(warArmAppearance<0||warArmAppearance>2)warArmAppearance=0;
-    mouseReticleHideMode=GetPrivateProfileIntW(L"Values",L"MouseReticleHideMode",0,path_.c_str());
+    mouseReticleHideMode=GetPrivateProfileIntW(L"Values",L"MouseReticleHideMode",defaults::MouseReticleHideMode,path_.c_str());
     if(mouseReticleHideMode<0||mouseReticleHideMode>3)mouseReticleHideMode=0;
-    mountedJumpEnabled=GetPrivateProfileIntW(L"Features",L"MountedJump",0,path_.c_str())!=0;
+    mountedJumpEnabled=GetPrivateProfileIntW(L"Features",L"MountedJump",defaults::MountedJump,path_.c_str())!=0;
     mountedJumpSound=GetPrivateProfileIntW(L"Values",L"MountedJumpSound",0,path_.c_str());
     if(mountedJumpSound<0||mountedJumpSound>2)mountedJumpSound=0;
-    bonusMountSkinsEnabled=ReadBool(L"Features",L"BonusMountSkins",false,path_);
+    bonusMountSkinsEnabled=ReadBool(L"Features",L"BonusMountSkins",defaults::BonusMountSkins,path_);
     progressionSkinsEnabled=ReadBool(L"Features",L"ProgressionSkins",false,path_);
     leviathanVisualEnabled=ReadBool(L"Features",L"LeviathanVisual",false,path_);
     leviathanVisualMode=GetPrivateProfileIntW(L"Values",L"LeviathanVisualMode",0,path_.c_str());
@@ -616,11 +616,11 @@ bool Store::Load() {
     sheathWarNeverEnabled=ReadBool(L"Features",L"WarNeverAutoSheathe",sheathNeverEnabled,path_);
     sheathWarDelaySeconds=std::clamp(ReadFloat(L"Values",L"WarSheathDelaySeconds",sheathDelaySeconds,path_),0.0f,300.0f);
     wchar_t sheathKey[64]{};
-    GetPrivateProfileStringW(L"Controls",L"SheatheKeyboardKey",L"OFF",sheathKey,64,path_.c_str());
-    sheathKeyboardKey=ParseKeyToken(sheathKey,0);
+    GetPrivateProfileStringW(L"Controls",L"SheatheKeyboardKey",L"L",sheathKey,64,path_.c_str());
+    sheathKeyboardKey=ParseKeyToken(sheathKey,defaults::SheatheKeyboardKey);
     if(sheathKeyboardKey<0||sheathKeyboardKey>=256)sheathKeyboardKey=0;
-    sheathPadButtonA=GetPrivateProfileIntW(L"Controls",L"SheathePadButtonA",0,path_.c_str());
-    sheathPadButtonB=GetPrivateProfileIntW(L"Controls",L"SheathePadButtonB",0,path_.c_str());
+    sheathPadButtonA=GetPrivateProfileIntW(L"Controls",L"SheathePadButtonA",defaults::SheathePadButtonA,path_.c_str());
+    sheathPadButtonB=GetPrivateProfileIntW(L"Controls",L"SheathePadButtonB",defaults::SheathePadButtonB,path_.c_str());
     if(!ValidPadBind(sheathPadButtonA))sheathPadButtonA=0;
     if(!ValidPadBind(sheathPadButtonB))sheathPadButtonB=0;
     aimPadButtonA=GetPrivateProfileIntW(L"Controls",L"AimWithoutFirePadButtonA",0,path_.c_str());
@@ -628,7 +628,7 @@ bool Store::Load() {
     if(!ValidPadBind(aimPadButtonA))aimPadButtonA=0;
     if(!ValidPadBind(aimPadButtonB))aimPadButtonB=0;
     interactionHudScaleEnabled=ReadBool(L"Features",L"InteractionHudScale",true,path_);
-    interactionHudScale=std::clamp(ReadFloat(L"Values",L"InteractionHudScale",0.65f,path_),0.1f,2.0f);
+    interactionHudScale=std::clamp(ReadFloat(L"Values",L"InteractionHudScale",defaults::InteractionHudScale,path_),0.1f,2.0f);
     movementSpeedEnabled =
         ReadBool(L"Features", L"MovementSpeed", true, path_);
     skipLogosEnabled =
@@ -643,32 +643,32 @@ bool Store::Load() {
     finiteStandardAmmoEnabled=ReadBool(L"Features",L"FiniteStandardAmmo",false,path_);
     standardAmmoCapacity=std::clamp(int(GetPrivateProfileIntW(L"Values",L"StandardAmmoCapacity",200,path_.c_str())),1,10000);
     grappleRangeEnabled=ReadBool(L"Features",L"GrappleRange",false,path_);
-    grappleRangeMultiplier=std::clamp(ReadFloat(L"Values",L"GrappleRangeMultiplier",2.0f,path_),1.0f,10.0f);
+    grappleRangeMultiplier=std::clamp(ReadFloat(L"Values",L"GrappleRangeMultiplier",defaults::GrappleRange,path_),1.0f,10.0f);
     infiniteDoubleJumpMode=std::clamp(int(GetPrivateProfileIntW(L"Values",L"InfiniteDoubleJumpMode",0,path_.c_str())),0,2);
     reduceAmmoEnabled=ReadBool(L"Features",L"ReduceAmmoConsumption",defaults::ReduceAmmo,path_);
     unlimitedAmmoEnabled=ReadBool(L"Features",L"UnlimitedAmmo",false,path_);
     reduceHotstreakEnabled=ReadBool(L"Features",L"ReduceHotstreakDecrease",false,path_);
     unlimitedHotstreakEnabled=ReadBool(L"Features",L"UnlimitedHotstreak",false,path_);
-    hotstreakDecreaseDivisor=std::clamp(ReadFloat(L"Values",L"HotstreakDecreaseDivisor",2.0f,path_),0.0f,10.0f);
+    hotstreakDecreaseDivisor=std::clamp(ReadFloat(L"Values",L"HotstreakDecreaseDivisor",defaults::HotstreakDivisor,path_),0.0f,10.0f);
     potionRechargeEnabled=ReadBool(L"Features",L"PotionRecharge",false,path_);
     unlimitedPotionsEnabled=ReadBool(L"Features",L"UnlimitedPotions",false,path_);
     unlimitedHealthEnabled=ReadBool(L"Features",L"UnlimitedHealth",false,path_);
     unlimitedGlideEnabled=ReadBool(L"Features",L"UnlimitedGlide",false,path_);
     unlimitedHorseSprintEnabled=ReadBool(L"Features",L"UnlimitedHorseSprint",false,path_);
-    potionRechargeMultiplier=std::clamp(ReadFloat(L"Values",L"PotionRechargeMultiplier",2.0f,path_),0.0f,100.0f);
-    ammoConsumptionDivisor=std::clamp(ReadFloat(L"Values",L"AmmoConsumptionDivisor",2.0f,path_),0.0f,10.0f);
+    potionRechargeMultiplier=std::clamp(ReadFloat(L"Values",L"PotionRechargeMultiplier",defaults::PotionRecharge,path_),0.0f,100.0f);
+    ammoConsumptionDivisor=std::clamp(ReadFloat(L"Values",L"AmmoConsumptionDivisor",defaults::AmmoDivisor,path_),0.0f,10.0f);
     thirdPersonEnabled =
         ReadBool(L"Features", L"ThirdPerson", true, path_);
     thirdPersonFovEnabled=ReadBool(L"Features",L"TPSFOV",true,path_);
     tpsLensFocusEnabled=ReadBool(L"Features",L"TPSLensFocus",true,path_);
     nativeBlur.disabled=ReadBool(L"Features",L"DisableNativeDOF",false,path_);
-    nativeBlur.custom=ReadBool(L"Features",L"NativeCustomDOF",false,path_);
-    nativeBlur.distanceMeters=std::clamp(ReadFloat(L"Values",L"NativeDOFDistanceMeters",10.0f,path_),0.0f,camera_blur::MaxDistanceMeters);
-    nativeBlur.amount=std::clamp(ReadFloat(L"Values",L"NativeDOFAmount",0.6f,path_),0.0f,5.0f);
+    nativeBlur.custom=ReadBool(L"Features",L"NativeCustomDOF",camera_blur::NativeDefaults.custom,path_);
+    nativeBlur.distanceMeters=std::clamp(ReadFloat(L"Values",L"NativeDOFDistanceMeters",camera_blur::NativeDefaults.distanceMeters,path_),0.0f,camera_blur::MaxDistanceMeters);
+    nativeBlur.amount=std::clamp(ReadFloat(L"Values",L"NativeDOFAmount",camera_blur::NativeDefaults.amount,path_),0.0f,5.0f);
     tpsBlur.disabled=ReadBool(L"Features",L"DisableTPSDOF",false,path_);
-    tpsBlur.custom=ReadBool(L"Features",L"TPSCustomDOF",false,path_);
-    tpsBlur.distanceMeters=std::clamp(ReadFloat(L"Values",L"TPSDOFDistanceMeters",10.0f,path_),0.0f,camera_blur::MaxDistanceMeters);
-    tpsBlur.amount=std::clamp(ReadFloat(L"Values",L"TPSDOFAmount",0.6f,path_),0.0f,5.0f);
+    tpsBlur.custom=ReadBool(L"Features",L"TPSCustomDOF",camera_blur::TpsDefaults.custom,path_);
+    tpsBlur.distanceMeters=std::clamp(ReadFloat(L"Values",L"TPSDOFDistanceMeters",camera_blur::TpsDefaults.distanceMeters,path_),0.0f,camera_blur::MaxDistanceMeters);
+    tpsBlur.amount=std::clamp(ReadFloat(L"Values",L"TPSDOFAmount",camera_blur::TpsDefaults.amount,path_),0.0f,5.0f);
     const bool oldOrbit=ReadBool(L"Features",L"CameraControllerOrbit",true,path_);
     tpsCameraStickMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(
         L"Features",L"TPSCameraStickMode",oldOrbit?2:0,path_.c_str())),0,2);
@@ -679,9 +679,9 @@ bool Store::Load() {
     tpsLongPressToggleEnabled=ReadBool(L"Features",L"TPSHoldToggle",true,path_);
     tpsGrenadeHoldEnabled=ReadBool(L"Features",L"TPSGrenadeHold",true,path_);
     aimIndicatorHideMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(L"Features",L"AimIndicatorHideMode",2,path_.c_str())),0,3);
-    tpsAimAssistEnabled=ReadBool(L"Features",L"TPSNativeAimAssist",false,path_);
+    tpsAimAssistEnabled=ReadBool(L"Features",L"TPSNativeAimAssist",defaults::AimAssistEnabled,path_);
     tpsAimAssistMode=std::clamp(int(GetPrivateProfileIntW(L"Features",L"TPSNativeAimAssistMode",0,path_.c_str())),0,1);
-    tpsAimAssistGlobal=aim_assist::Strength(ReadFloat(L"Values",L"TPSNativeAimAssistGlobal",100,path_));
+    tpsAimAssistGlobal=aim_assist::Strength(ReadFloat(L"Values",L"TPSNativeAimAssistGlobal",defaults::AimAssistGlobal,path_));
     for(unsigned i=0;i<aim_assist::Count;++i)tpsAimAssistAmmo[i]=aim_assist::Strength(ReadFloat(L"Values",aim_assist::Keys[i],100,path_));
     tps3DAimEnabled=ReadBool(L"Features",L"TPS3DAim",true,path_);
     tpsAimPitchOffsetDegrees=std::clamp(ReadFloat(L"Values",L"TPSAimPitchOffsetDegrees",12.0f,path_),-45.0f,45.0f);
@@ -743,7 +743,7 @@ bool Store::Load() {
     ultimateChargeEnabled=ReadBool(L"Features",L"UltimateFormCharge",true,path_);
     ultimateDecreaseEnabled=ReadBool(L"Features",L"UltimateDecreaseRate",false,path_);
     ultimateInfiniteDurationEnabled=ReadBool(L"Features",L"InfiniteUltimateDuration",false,path_);
-    ultimateDurationMultiplier=std::clamp(ReadFloat(L"Values",L"UltimateDurationMultiplier",2.0f,path_),0.0f,10.0f);
+    ultimateDurationMultiplier=std::clamp(ReadFloat(L"Values",L"UltimateDurationMultiplier",defaults::UltimateDuration,path_),0.0f,10.0f);
     synergyChargeEnabled=ReadBool(L"Features",L"SynergyCharge",true,path_);
 
     movementSpeedMultiplier =
@@ -806,8 +806,8 @@ bool Store::Load() {
         thirdPersonHeightOffset,path_),-1000.0f,1000.0f);
     cameraStickSpeed=std::clamp(cameraStickSpeed,30.0f,360.0f);
     hotstreakChargeMultiplier =
-        ReadFloat(L"Values", L"HotstreakChargeMultiplier", 2.0f, path_);
-    if(!std::isfinite(hotstreakChargeMultiplier))hotstreakChargeMultiplier=2.0f;
+        ReadFloat(L"Values", L"HotstreakChargeMultiplier", defaults::HotstreakGain, path_);
+    if(!std::isfinite(hotstreakChargeMultiplier))hotstreakChargeMultiplier=defaults::HotstreakGain;
     hotstreakChargeMultiplier=std::clamp(hotstreakChargeMultiplier,0.0f,100.0f);
     wrathChargeMultiplier=std::clamp(ReadFloat(L"Values",L"WrathChargeMultiplier",defaults::WrathGain,path_),0.0f,100.0f);
     ultimateChargeMultiplier=std::clamp(ReadFloat(L"Values",L"UltimateFormChargeMultiplier",defaults::UltimateGain,path_),0.0f,100.0f);

@@ -139,10 +139,10 @@ void Run(){
     dg::runtime::Get().pistolRightModel=0;
     wchar_t directory[MAX_PATH]{},path[MAX_PATH]{};
     Check(GetTempPathW(MAX_PATH,directory)&&GetTempFileNameW(directory,L"DGH",0,path),"temporary INI");
-    dg::config::Store a;a.SetPath(path);Check(a.Load()&&!a.mountedHolstersEnabled,"missing key defaults OFF");
+    dg::config::Store a;a.SetPath(path);Check(a.Load()&&a.mountedHolstersEnabled,"missing key uses approved ON");
     a.mountedHolstersEnabled=true;a.hotkeys[5]=dg::config::Action::RefillWrath;Check(a.SaveNow(),"setting saves");
     dg::config::Store b;b.SetPath(path);Check(b.Load()&&b.mountedHolstersEnabled&&dg::runtime::Get().mountedHolstersEnabled&&b.hotkeys==a.hotkeys,"INI and runtime round trip retain bindings");
-    b.ResetDefaults(false);Check(!b.mountedHolstersEnabled&&!dg::runtime::Get().mountedHolstersEnabled,"reset returns native models");DeleteFileW(path);
+    b.ResetDefaults(false);Check(b.mountedHolstersEnabled&&dg::runtime::Get().mountedHolstersEnabled,"reset enables the approved mounted holster correction");DeleteFileW(path);
 }
 }
 namespace dg::native_tps {bool OnGameThread(){return gameThread;}bool IsWorldPaused(void*){return false;}bool CinematicActive(unsigned){return false;}}

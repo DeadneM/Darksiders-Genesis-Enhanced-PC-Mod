@@ -67,7 +67,11 @@ void DrawRefillResult(const char* player,dg::refill::Result result){
 }
 void DrawFeatureDescription(const char* note,bool ready,const char* status=nullptr){
     ImGui::Indent(layout::ValueIndent());
-    if(status||!ready)ImGui::TextWrapped("%s",status?status:"Unavailable in this session.");
+    if(status||!ready){
+        ImGui::PushStyleColor(ImGuiCol_Text,ready?ImVec4(.56f,.86f,.72f,1.f):ImVec4(1.f,.75f,.40f,1.f));
+        ImGui::TextWrapped("%s",status?status:"Unavailable in this session.");
+        ImGui::PopStyleColor();
+    }
     HelpText(note);
     ImGui::Unindent(layout::ValueIndent());
 }
@@ -95,9 +99,9 @@ void DrawTunableFeature(config::Store& config,const char* label,const char* id,
 
 void DrawSectionTitle(const char* title) {
     ImGui::Spacing();
-    ImGui::Separator();
-    ImGui::Spacing();
-    ImGui::TextUnformatted(title);
+    ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(.58f,.83f,1.f,1.f));
+    ImGui::SeparatorText(title);
+    ImGui::PopStyleColor();
     ImGui::Spacing();
 }
 
@@ -219,11 +223,11 @@ void Draw(Context& c) {
             ImGui::Spacing();
             HelpText("Multipliers: 0.5 = half, 1 = native, 2 = double. Cost divisors work in reverse; each option explains its rules.");
 
-            if(ImGui::CollapsingHeader("HUD / aiming effects")){
+            if(layout::Group("HUD / aiming effects")){
             ImGui::Indent();
 
             DrawTunableFeature(config,"Interaction prompt size","InteractionHudScale",&config.interactionHudScaleEnabled,
-                &config.interactionHudScale,0.1f,2.0f,0.65f,"%.2fx",
+                &config.interactionHudScale,0.1f,2.0f,defaults::InteractionHudScale,"%.2fx",
                 "Scales only the interaction prompt above your character. 0.5 is half size; 1 is native. OFF restores its native size. Each local player's prompt follows its own camera; shared world sprites are unchanged.",interaction_hud::Ready());
             bool hudHidden=c.hudHidden->load();
             if (ImGui::Checkbox("HUD Hidden", &hudHidden)) {
@@ -246,7 +250,7 @@ void Draw(Context& c) {
                 aimShaders.hooksReady ? "Ready" : "Unavailable",aimShaders.blockedDraws);
             ImGui::Unindent();
             }
-            if(ImGui::CollapsingHeader("Aim without firing")){
+            if(layout::Group("Aim without firing")){
                 ImGui::Indent();ImGui::PushID("ManualAimBindings");
                 ImGui::BeginDisabled(!manual_aim::Ready());
                 DrawManualPadRow(config,"Controller input 1",config.aimPadButtonA);
@@ -257,7 +261,7 @@ void Draw(Context& c) {
                 if(!manual_aim::Ready())ImGui::TextWrapped("Unavailable for this executable; native controls remain active.");
                 ImGui::PopID();ImGui::Unindent();
             }
-            if(ImGui::CollapsingHeader("Weapon sheathing")){
+            if(layout::Group("Weapon sheathing")){
             ImGui::Indent();
             DrawToggleFeature(config,"Mounted pistol holsters (experimental)","MountedPistolHolsters",&config.mountedHolstersEnabled,
                 "Uses the stowed pistol models while Strife is mounted. Turn OFF to restore the previous appearance. Per-hand appearance choices use the corresponding stowed models. Experimental: check alignment in the holsters.",mounted_holsters::Ready());
@@ -279,7 +283,7 @@ void Draw(Context& c) {
             ImGui::PushID("SheatheBindings");
             ImGui::TextUnformatted("Sheathe weapons shortcuts");
             if(BeginKeyboardTable("Keyboard")){
-                DrawKeyboardRow(c,config,"Sheathe weapons",config.sheathKeyboardKey,0,config::kSheathKeyboardBindingIndex);
+                DrawKeyboardRow(c,config,"Sheathe weapons",config.sheathKeyboardKey,defaults::SheatheKeyboardKey,config::kSheathKeyboardBindingIndex);
                 ImGui::EndTable();
             }
             DrawManualPadRow(config,"Controller input 1",config.sheathPadButtonA);
@@ -290,7 +294,7 @@ void Draw(Context& c) {
 
             ImGui::Unindent();
             }
-            if(ImGui::CollapsingHeader("Wrath ability slots (experimental)")){
+            if(layout::Group("Wrath ability slots (experimental)")){
                 ImGui::Indent();
                 HelpText("Choose any of the six powers for each slot. Native restores the original power. Transferred powers keep their costs; character-specific animations and visuals are adapted. Local co-op still needs a separate test.");
                 int status[7]={2,wrath_slots::ForeignStatus(1),wrath_slots::ForeignStatus(2),wrath_slots::ForeignStatus(3),wrath_slots::ForeignStatus(4),wrath_slots::ForeignStatus(5),wrath_slots::ForeignStatus(6)};
@@ -328,7 +332,7 @@ void Draw(Context& c) {
                 }
                 ImGui::Unindent();
             }
-            if(ImGui::CollapsingHeader("Player movement")){
+            if(layout::Group("Player movement")){
             ImGui::Indent();
             DrawTunableFeature(config,"Heavy landing movement recovery","HeavyLandingRecovery",&config.heavyLandingRecoveryEnabled,
                 &config.heavyLandingDelaySeconds,.05f,.8f,.15f,"%.3f s",
@@ -344,7 +348,7 @@ void Draw(Context& c) {
                 DrawToggleFeature(config,"Chest after-animation recovery (experimental)","RecoveryChestTail",&config.recoveryChestTailEnabled,
                     "Only exact chest interactions, after observing their native montage play then stop. Loot and animation remain native. Opens MOVE interruption if the action is still running. Check loot, movement and a second interaction; OFF restores a window owned by this experiment.",recovery_tail::Ready());
                 if(NumberRow("Wait after animation stops","RecoveryTailDelaySeconds",&config.recoveryTailDelaySeconds,0.f,1.f,0.f,"%.3f s","%.3f"))config.Save();
-                HelpText("Dash and chest experiments default OFF. The last delay is shared by dash and chest; 0 adds no wait beyond a 30 ms stopped-animation confirmation. Unknown actions, menus, transformations and cinematics keep native behavior. Test Native and TPS separately.");
+                HelpText("Dash and chest recovery are experimental. The last delay is shared by dash and chest; 0 adds no wait beyond a 30 ms stopped-animation confirmation. Unknown actions, menus, transformations and cinematics keep native behavior. Test Native and TPS separately.");
                 ImGui::TreePop();
             }
             DrawTunableFeature(
@@ -395,11 +399,11 @@ void Draw(Context& c) {
             if(Choice("Infinite double jump",&config.infiniteDoubleJumpMode,jumpModes,3))config.Save();
             DrawFeatureDescription("After gliding rearms one double jump per glide. Always on allows repeated air jumps. In either mode, pressing your jump control ends a glide before requesting the jump. OFF restores normal behavior. Experimental.",dg::air_jump::Ready());
             DrawTunableFeature(config,"Grapple range","GrappleRange",&config.grappleRangeEnabled,
-                &config.grappleRangeMultiplier,1.0f,10.0f,2.0f,"%.2fx",
+                &config.grappleRangeMultiplier,1.0f,10.0f,defaults::GrappleRange,"%.2fx",
                 "Scales native acquisition, relay and pull distances together. Applies on the next use; target rules and obstacles remain native. Experimental: traversal limits still require in-game checks.",dg::grapple::Ready());
             ImGui::Unindent();
             }
-            if(ImGui::CollapsingHeader("Combat and resource gauges")){
+            if(layout::Group("Combat and resource gauges")){
             ImGui::Indent();
             DrawSectionTitle("Combat damage");
 
@@ -503,7 +507,7 @@ void Draw(Context& c) {
                 ImGui::TextDisabled("Refill unavailable or cancelled; retry during gameplay.");
             DrawTunableFeature(config,"Potion recharge rate","PotionRecharge",
                 &config.potionRechargeEnabled,&config.potionRechargeMultiplier,
-                0.0f,100.0f,2.0f,"%.2fx",
+                0.0f,100.0f,defaults::PotionRecharge,"%.2fx",
                 "From excess healing at full health. 0 or 1: normal. 0.5: half recharge rate. 2: double rate. Keeps the native reserve limit and healing amount.",potions.supported);
             DrawToggleFeature(config,"Unlimited potions","UnlimitedPotions",&config.unlimitedPotionsEnabled,
                 "Keeps the health-potion reserve full. Healing, cooldown and use conditions stay native. Assign the refill, recharge and Unlimited actions in Hotkeys.",potions.supported);
@@ -516,7 +520,7 @@ void Draw(Context& c) {
             ImGui::EndDisabled();
             DrawRefillResult("P1 ammunition",ammo1.result);DrawRefillResult("P2 ammunition",ammo2.result);
             DrawTunableFeature(config,"Reduce ammo consumption","ReduceAmmo",&config.reduceAmmoEnabled,
-                &config.ammoConsumptionDivisor,0.0f,10.0f,2.0f,"%.2f",
+                &config.ammoConsumptionDivisor,0.0f,10.0f,defaults::AmmoDivisor,"%.2f",
                 "Consumption divisor: 0 or 1 is normal. 0.5 spends twice as much; 2 spends half; 10 spends one tenth. Unlimited takes priority. Assign a toggle in Hotkeys.",
                 ammoReady,nullptr,"Consumption divisor");
             DrawToggleFeature(config,"Limited Standard ammunition","FiniteStandardAmmo",&config.finiteStandardAmmoEnabled,
@@ -546,13 +550,13 @@ void Draw(Context& c) {
             ImGui::TextDisabled("For working gain paths: x0 stops gains, x1 is vanilla. Settings save to INI.");
             DrawTunableFeature(config,"Hotstreak charge","HotstreakCharge",
                 &config.hotstreakChargeEnabled,&config.hotstreakChargeMultiplier,
-                0.0f,100.0f,2.0f,"%.2fx",
+                0.0f,100.0f,defaults::HotstreakGain,"%.2fx",
                 "Multiplier for earned Hotstreak charge.",
                 t.hotstreakHookReady);
             const auto hotstreak1=dg::hotstreak::GetTelemetry(0),hotstreak2=dg::hotstreak::GetTelemetry(1);
             const bool hotstreakReady=hotstreak1.supported;
             DrawTunableFeature(config,"Reduce Hotstreak decrease","ReduceHotstreak",&config.reduceHotstreakEnabled,
-                &config.hotstreakDecreaseDivisor,0.0f,10.0f,2.0f,"%.2f",
+                &config.hotstreakDecreaseDivisor,0.0f,10.0f,defaults::HotstreakDivisor,"%.2f",
                 "Decrease divisor: 0 or 1 is normal. 0.5 doubles decay/costs, giving a shorter Hotstreak; 2 halves them; 10 gives one tenth. Resets stay native. Assign a toggle in Hotkeys.",
                 hotstreakReady,nullptr,"Decrease divisor");
             DrawToggleFeature(config,"Unlimited Hotstreak","UnlimitedHotstreak",&config.unlimitedHotstreakEnabled,
@@ -571,7 +575,7 @@ void Draw(Context& c) {
                 rewards.ready[0],rewards.ready[0]?"Gains validated by user":"Gain path unavailable");
             DrawTunableFeature(config,"Ultimate decrease rate","UltimateDecreaseRate",
                 &config.ultimateDecreaseEnabled,&config.ultimateDurationMultiplier,
-                0.0f,10.0f,2.0f,"%.2fx duration",
+                0.0f,10.0f,defaults::UltimateDuration,"%.2fx duration",
                 "Duration multiplier: 0.5 halves the duration, 1 is native, 2 doubles it, 10 lasts ten times longer. 0 ends on the next positive native drain tick. Gains and refills stay unchanged; Unlimited Ultimate takes priority.",
                 dg::ultimate_duration::Ready());
             DrawToggleFeature(config,"Infinite Ultimate duration","InfiniteUltimateDuration",&config.ultimateInfiniteDurationEnabled,
@@ -597,7 +601,7 @@ void Draw(Context& c) {
 
             ImGui::Unindent();
             }
-            if(ImGui::CollapsingHeader("Horse and riding")){
+            if(layout::Group("Horse and riding")){
             ImGui::Indent();
 
             const horse::Telemetry horseTelemetry =
@@ -717,7 +721,7 @@ void Draw(Context& c) {
 
             ImGui::Unindent();
             }
-            if(ImGui::CollapsingHeader("System and startup")){
+            if(layout::Group("System and startup")){
             ImGui::Indent();
 
             ImGui::Text("Graphics Adapter");
@@ -822,11 +826,11 @@ void Draw(Context& c) {
         if (ImGui::BeginTabItem("Appearance")) {
             ImGui::TextWrapped("Choose ability, weapon, mount and core effects below. Model and armor controls follow the effect library.");
             ImGui::PushID("AppearanceTab");
-            if(ImGui::CollapsingHeader("Effect appearances (experimental)")){
+            if(layout::Group("Effect appearances (experimental)")){
                 ImGui::Indent();
                 HelpText("Visual effects only. Native keeps the game and equipped cores. Alternatives change new emitted effects; Hidden keeps their native lifetime and hides their rendering. Models, materials, damage, cost and controls stay native. Some single-look families offer Native/Hidden only.");
                 constexpr const char* categories[]={"Tools","Powers","Strife ammunition","War weapons","Mounts and forms","Creature cores","Other effects"};
-                for(const auto* category:categories)if(ImGui::CollapsingHeader(category)){
+                for(const auto* category:categories)if(layout::Group(category)){
                     ImGui::Indent();ImGui::BeginDisabled(!effect_appearance::Ready());
                     for(unsigned family=0;family<effect_appearance::FamilyCount;++family){const auto& info=effect_appearance::Families[family];
                         if(std::strcmp(category,info.category))continue;ImGui::PushID(int(family));if(Choice(info.label,&config.effectAppearances[family],info.choices.data(),int(info.count)))config.Save();
@@ -840,7 +844,7 @@ void Draw(Context& c) {
                 ImGui::Unindent();
             }
 
-            if(ImGui::CollapsingHeader("Character models")){
+            if(layout::Group("Character models")){
             ImGui::Indent();
             constexpr const char* pistolModels[]={"Native (original for this hand)","Right pistol model","Left pistol model","OFF (experimental)"};
             const auto pistolChoice=[&](const char* label,int& value){
@@ -872,14 +876,14 @@ void Draw(Context& c) {
             HelpText("Visual arm variant only, normal War on foot, both local players. Does not grant the Tremor Gauntlet or change equipment. Armor that replaces child meshes keeps its native appearance. Native restores the game's choice.");
             if(Choice("Mouse reticle",&config.mouseReticleHideMode,reticles,4))config.Save();
             ImGui::EndDisabled();
-            HelpText("Hide the gameplay mouse crosshair in the selected view. Native menus, wheels and the mod menu keep their cursors. Mouse movement, aiming and controller inputs stay unchanged. Vanilla is the default.");
+            HelpText("Hide the gameplay mouse crosshair in the selected view. Native menus, wheels and the mod menu keep their cursors. Mouse movement, aiming and controller inputs stay unchanged. The approved default hides it in TPS.");
             constexpr const char* bladeModes[]={"Native","Hide left blade","Hide right blade","Hide both blades"};
             ImGui::BeginDisabled(!pistol_visual::Ready());if(Choice("Strife melee blades",&config.strifeBladeVisibility,bladeModes,4))config.Save();
             ImGui::EndDisabled();
             HelpText("Hide each melee blade model independently. Attacks, damage, hand animations and weapon sheathing stay native. Both local players; normal Strife only.");
             ImGui::Unindent();
             }
-            if(ImGui::CollapsingHeader("Unlockable skins")){
+            if(layout::Group("Unlockable skins")){
             ImGui::Indent();
             DrawToggleFeature(config,"Bonus mount skins (experimental)","BonusMountSkins",&config.bonusMountSkinsEnabled,
                 "Makes Rampage (War) and Despair (Strife) available in the game's Skins page without the optional PAK. A bonus mount already selected stays equipped when loading, even with this option OFF, like armor skins. The native mount remains selectable. No automatic equip. OFF restores native menu availability; a PAK or an existing unlock can still keep them available.",cosmetics::Ready());
@@ -890,7 +894,7 @@ void Draw(Context& c) {
 
             ImGui::Unindent();
             }
-            if(ImGui::CollapsingHeader("Leviathan lightning")){
+            if(layout::Group("Leviathan lightning")){
             ImGui::Indent();
             DrawToggleFeature(config,"Override Leviathan lightning (experimental)","LeviathanVisual",&config.leviathanVisualEnabled,
                 "Visual only, for both local players. Select OFF or one of the three native lightning effects without granting the core, its stats or its status effect. Uncheck to restore native visuals. Requires the chosen effect asset to be loaded; otherwise leaves native lightning unchanged. Test foot, mount and Ultimate transitions.",leviathan_visual::Ready());
@@ -921,7 +925,7 @@ void Draw(Context& c) {
 
             // Temporary V1.28 debugger. These are *heuristic camera*
             // events, never asset / LevelSequence names or proof of dialogue.
-            if(ImGui::CollapsingHeader("Cutscenes: detection history (DEBUG)")){
+            if(layout::Group("Cutscenes: detection history (DEBUG)")){
                 const auto history=dg::camera_trace::GetCinematicDebugSnapshot();
                 ImGui::Indent();
                 HelpText("Shows up to 24 recent camera-transition events. "
@@ -1015,7 +1019,7 @@ void Draw(Context& c) {
                 ImGui::Unindent();
             }
 
-            if(ImGui::CollapsingHeader("Depth of field")){
+            if(layout::Group("Depth of field")){
                 ImGui::Indent();
                 HelpText("Independent settings for each gameplay view and both local players. Cinematics keep their authored effect. Motion blur and fog are unchanged.");
                 for(int i=0;i<2;++i){
@@ -1027,15 +1031,15 @@ void Draw(Context& c) {
                     ImGui::BeginDisabled(profile.disabled);
                     if(ImGui::Checkbox("Customize background blur",&profile.custom))config.Save();
                     if(profile.custom){
-                        if(NumberRow("Clear distance behind character","Distance",&profile.distanceMeters,0,camera_blur::MaxDistanceMeters,10,"%.1f m","%.2f"))config.Save();
-                        if(NumberRow("Blur amount","Amount",&profile.amount,0,5,0.6f,"%.2f %%","%.2f"))config.Save();
+                        if(NumberRow("Clear distance behind character","Distance",&profile.distanceMeters,0,camera_blur::MaxDistanceMeters,(i==0?camera_blur::NativeDefaults:camera_blur::TpsDefaults).distanceMeters,"%.1f m","%.2f"))config.Save();
+                        if(NumberRow("Blur amount","Amount",&profile.amount,0,5,(i==0?camera_blur::NativeDefaults:camera_blur::TpsDefaults).amount,"%.2f %%","%.2f"))config.Save();
                         HelpText("The whole character stays sharp. More distance pushes the background blur farther away. Amount is an absolute Gaussian blur size, not a multiplier; zero removes it. Custom mode replaces the level's DOF method for this view.");
                     }else ImGui::TextDisabled("Level effect%s",i==0?"":" with your TPS character-focus setting");
                     ImGui::EndDisabled();ImGui::PopID();
                 }
                 ImGui::Unindent();
             }
-            if(ImGui::CollapsingHeader("Third Person camera")){
+            if(layout::Group("Third Person camera")){
             ImGui::Indent();
             if (ImGui::Checkbox("Third Person", &config.thirdPersonEnabled)) {
                 config.Save();
@@ -1062,7 +1066,7 @@ void Draw(Context& c) {
                     "Solo and local co-op have separate values. Coop FOV applies to both split-screen views.",camera.viewReady);
                 if(config.thirdPersonFovEnabled){
                     if(NumberRow("FOV solo","TPSFovSolo",&config.thirdPersonFovDegrees,40,140,110,"%.0f deg","%.1f"))config.Save();
-                    if(NumberRow("FOV coop","TPSFovCoop",&config.thirdPersonCoopFovDegrees,40,140,110,"%.0f deg","%.1f"))config.Save();
+                    if(NumberRow("FOV coop","TPSFovCoop",&config.thirdPersonCoopFovDegrees,40,140,defaults::TPSCoopFOV,"%.0f deg","%.1f"))config.Save();
                 }
                 DrawSectionTitle("TPS depth of field");
                 DrawToggleFeature(config,"TPS character focus (experimental)","TPSLensFocus",&config.tpsLensFocusEnabled,
@@ -1117,7 +1121,7 @@ void Draw(Context& c) {
                     constexpr const char* modes[]={"Global","Per ammunition"};
                     if(Choice("Adjustment mode##AimAssist",&config.tpsAimAssistMode,modes,2))config.Save();
                     if(config.tpsAimAssistMode==0){
-                        if(NumberRow("Acquisition","TPSNativeAimAssistGlobal",&config.tpsAimAssistGlobal,0,200,100,"%.0f %%","%.1f"))config.Save();
+                        if(NumberRow("Acquisition","TPSNativeAimAssistGlobal",&config.tpsAimAssistGlobal,0,200,defaults::AimAssistGlobal,"%.0f %%","%.1f"))config.Save();
                     }else for(unsigned i=0;i<aim_assist::Count;++i){
                         ImGui::PushID(int(i));
                         if(NumberRow(aim_assist::Names[i],"TPSNativeAimAssistAmmo",&config.tpsAimAssistAmmo[i],0,200,100,"%.0f %%","%.1f"))config.Save();
@@ -1255,7 +1259,7 @@ void Draw(Context& c) {
             }
             ImGui::Unindent();
             }
-            if(ImGui::CollapsingHeader("Original game camera")){
+            if(layout::Group("Original game camera")){
             ImGui::Indent();
             ImGui::TextDisabled("Normal aiming and camera return when TPS is OFF.");
             if(config.thirdPersonEnabled)
@@ -1568,7 +1572,7 @@ void Draw(Context& c) {
 
         if (ImGui::BeginTabItem("About")) {
             ImGui::Spacing();
-            if(ImGui::CollapsingHeader("Menu appearance")){
+            if(layout::Group("Menu appearance")){
                 if(NumberRow("Font size","MenuFontSize",&config.menuFontSize,menu::MinFontSize,menu::MaxFontSize,menu::DefaultFontSize,"%.1f px","%.1f"))config.Save();
                 ImGui::TextWrapped("Changes mod menu text and its popups only. 13 px is the original size. Saved in the INI; takes effect on the next frame.");
             }

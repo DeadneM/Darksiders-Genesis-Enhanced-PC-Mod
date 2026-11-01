@@ -95,7 +95,7 @@ void Run(){
     Fresh();dg::runtime::Get().heavyLandingDelaySeconds=.1f;dg::runtime::Get().heavyLandingGroundSeconds=.2f;
     Tick();now+=199;Tick();Check(!Released(),"custom ground-contact requirement respected");++now;Tick();Check(Released(),"custom stable ground requirement expires");
     wchar_t folder[MAX_PATH]{},path[MAX_PATH]{};Check(GetTempPathW(MAX_PATH,folder)&&GetTempFileNameW(folder,L"DGL",0,path),"temporary INI");
-    dg::config::Store c;c.SetPath(path);Check(c.Load()&&!c.heavyLandingRecoveryEnabled,"legacy INI defaults to native landing");
+    dg::config::Store c;c.SetPath(path);Check(c.Load()&&c.heavyLandingRecoveryEnabled,"missing recovery key uses approved enabled default");
     c.heavyLandingRecoveryEnabled=true;c.aimPadButtonA=0x40;c.sheathKeyboardKey='K';Check(c.SaveNow(),"landing option saves");
     dg::config::Store loaded;loaded.SetPath(path);Check(loaded.Load()&&loaded.heavyLandingRecoveryEnabled&&dg::runtime::Get().heavyLandingRecoveryEnabled.load(),"option reaches the runtime and survives reload");
     Check(loaded.aimPadButtonA==0x40&&loaded.sheathKeyboardKey=='K',"manual aim and previous shortcuts survive landing profile I/O");
@@ -103,7 +103,7 @@ void Run(){
     loaded.heavyLandingDelaySeconds=.22f;loaded.heavyLandingGroundSeconds=.08f;Check(loaded.SaveNow(),"save retires duplicate checkbox");
     wchar_t retired[8]{};Check(!GetPrivateProfileStringW(L"Features",L"HeavyLandingCustomTiming",L"",retired,8,path),"duplicate key removed");
     dg::config::Store migrated;migrated.SetPath(path);Check(migrated.Load()&&migrated.heavyLandingRecoveryEnabled&&migrated.heavyLandingDelaySeconds==.22f&&migrated.heavyLandingGroundSeconds==.08f&&migrated.sheathKeyboardKey=='K',"unified landing preserves master, timing and bindings");
-    loaded.ResetDefaults(false);Check(!loaded.heavyLandingRecoveryEnabled,"reset returns the experimental recovery to OFF");
+    loaded.ResetDefaults(false);Check(loaded.heavyLandingRecoveryEnabled,"reset returns the experimental recovery to approved ON");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,path);DeleteFileW(path);
     Shutdown();Check(!Ready(),"shutdown disables callbacks without off-thread restoration");
 }

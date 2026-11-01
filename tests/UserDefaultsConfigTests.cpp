@@ -34,12 +34,25 @@ int main(int argc,char** argv){
     if(!DeleteFileW(path))return 1; // only this test's empty file, to exercise missing-INI generation
     dg::config::Store generated;generated.SetPath(path);
     check(generated.Load(),"missing INI generated from compiled defaults");
-    check(!generated.updaterAutoCheck,"automatic network checks remain opt-in for old and missing profiles");
+    check(generated.updaterAutoCheck,"approved defaults check the selected update channel at startup");
     check(generated.tps3DAimEnabled&&dg::runtime::Get().tps3DAimEnabled.load(),"missing option enables 3D aiming by default");
     check(generated.tpsLensFocusEnabled&&dg::runtime::Get().tpsLensFocusEnabled.load(),"TPS lens experiment defaults ON in store and runtime");
-    check(!generated.nativeBlur.disabled&&!generated.tpsBlur.disabled&&!generated.nativeBlur.custom&&!generated.tpsBlur.custom&&
-        !dg::runtime::Get().nativeBlur.Get().custom&&!dg::runtime::Get().tpsBlur.Get().disabled,
-        "old and missing profiles keep both independent blur controls opt-in");
+    check(!generated.nativeBlur.disabled&&!generated.tpsBlur.disabled&&generated.nativeBlur.custom&&generated.tpsBlur.custom&&
+        dg::runtime::Get().nativeBlur.Get().custom&&!dg::runtime::Get().tpsBlur.Get().disabled,
+        "approved custom blur controls reach both view profiles");
+    check(generated.mountedJumpEnabled&&generated.mountedHolstersEnabled&&generated.bonusMountSkinsEnabled,"approved horse defaults enabled");
+    check(!generated.progressionSkinsEnabled&&!generated.leviathanVisualEnabled&&generated.leviathanVisualMode==0,"progression/Leviathan remain native");
+    check(generated.weaponSheathingEnabled&&!generated.sheathNeverEnabled&&!generated.sheathWarNeverEnabled&&generated.sheathDelaySeconds==10&&generated.sheathWarDelaySeconds==10,"approved automatic sheathing and delays");
+    check(generated.heavyLandingRecoveryEnabled&&generated.recoveryDashTailEnabled&&generated.recoveryChestTailEnabled,"approved experimental recoveries enabled");
+    check(generated.tpsAimAssistEnabled&&generated.tpsAimAssistGlobal==50&&generated.mouseReticleHideMode==1&&generated.thirdPersonCoopFovDegrees==80&&generated.interactionHudScale==.5f,"approved aim, reticle, FOV and HUD defaults");
+    check(!generated.ultimateDecreaseEnabled&&!generated.finiteStandardAmmoEnabled&&!generated.grappleRangeEnabled&&!generated.reduceHotstreakEnabled&&!generated.potionRechargeEnabled&&!generated.unlimitedGlideEnabled&&!generated.unlimitedHorseSprintEnabled,"approved optional gameplay modifiers remain off");
+    check(generated.hotstreakChargeMultiplier==1&&generated.wrathChargeMultiplier==1&&generated.ultimateChargeMultiplier==1&&generated.ultimateDurationMultiplier==1&&generated.synergyChargeMultiplier==1&&generated.grappleRangeMultiplier==1&&generated.ammoConsumptionDivisor==1&&generated.hotstreakDecreaseDivisor==1&&generated.potionRechargeMultiplier==1,"all nine chosen gains, rates and divisors are neutral");
+    check(generated.pistolRightModel==0&&generated.pistolLeftModel==0&&generated.strifeBladeVisibility==0&&generated.warArmAppearance==0,"models stay native after a full reset");
+    for(const auto& slots:generated.wrathSlots)for(const auto value:slots)check(value==0,"all power slots stay native");
+    check(generated.sheathKeyboardKey=='L'&&generated.sheathPadButtonA==256&&generated.sheathPadButtonB==64&&generated.aimPadButtonA==0&&generated.aimPadButtonB==0,"approved sheathing chord and disabled manual aim shortcut");
+    check(generated.hotkeys[0]==dg::config::Action::RefillAllGauges&&generated.hotkeys[1]==dg::config::Action::RefillAmmo&&generated.hotkeys[2]==dg::config::Action::RefillHotstreak&&generated.hotkeys[3]==dg::config::Action::RefillPotions&&generated.hotkeys[11]==dg::config::Action::ToggleHUD,"F1-F4 and F12 match approval");
+    for(unsigned i=4;i<11;++i)check(generated.hotkeys[i]==dg::config::Action::None,"F5-F11 unbound");
+    for(const auto key:generated.cameraKeys)check(key==0,"native camera shortcuts unbound");
     const auto actual=ReadIni(path);
     size_t keys=0;
     check(actual.size()==shipped.size(),"generated and shipped sections match");
@@ -58,12 +71,16 @@ int main(int argc,char** argv){
     check(keys>100,"complete profile parity checked");
     auto& rt=dg::runtime::Get();
     check(rt.reduceAmmoEnabled.load()&&!rt.unlimitedAmmoEnabled.load(),"runtime receives requested ammo defaults");
-    check(rt.wrathChargeMultiplier.load()==4&&rt.ultimateChargeMultiplier.load()==4&&rt.synergyChargeMultiplier.load()==4,"runtime receives x4 gains");
+    check(rt.wrathChargeMultiplier.load()==1&&rt.ultimateChargeMultiplier.load()==1&&rt.synergyChargeMultiplier.load()==1,"approved resource gains are neutral");
     check(rt.tpsUltimateDistanceMultiplier.load()==0.30f&&rt.tpsUltimateHeightOffset.load()==80,"runtime receives Ultimate camera defaults");
     check(rt.tpsHorseDistanceMultiplier.load()==0.25f&&rt.tpsHorseHeightOffset.load()==40,"runtime receives user-chosen Horse camera defaults");
+    WritePrivateProfileStringW(L"Updater",L"AutoCheckUpdates",L"0",path);
+    WritePrivateProfileStringW(L"Features",L"NativeCustomDOF",L"0",path);
+    WritePrivateProfileStringW(L"Features",L"MountedJump",L"0",path);
+    WritePrivateProfileStringW(L"Features",L"WeaponSheathing",L"0",path);
     WritePrivateProfileStringW(L"Overlay",L"MenuKey",L"VK_C0",path);
     WritePrivateProfileStringW(L"Updater",L"Beta",L"0",path);
-    WritePrivateProfileStringW(L"Updater",L"AutoCheckUpdates",L"1",path);
+    WritePrivateProfileStringW(L"Updater",L"AutoCheckUpdates",L"0",path);
     WritePrivateProfileStringW(L"Features",L"ReduceAmmoConsumption",L"0",path);
     WritePrivateProfileStringW(L"Features",L"TPSLensFocus",L"0",path);
     WritePrivateProfileStringW(L"Features",L"DisableNativeDOF",L"1",path);
@@ -75,8 +92,9 @@ int main(int argc,char** argv){
     WritePrivateProfileStringW(L"Values",L"WrathChargeMultiplier",L"2.000",path);
     WritePrivateProfileStringW(L"Hotkeys",L"F9",L"FOV",path);
     dg::config::Store personal;personal.SetPath(path);check(personal.Load(),"explicit older personal profile loads");
+    check(!personal.mountedJumpEnabled&&!personal.weaponSheathingEnabled,"explicit personal OFF survives approved ON defaults");
     check(personal.menuKey==0xC0&&!personal.updaterBeta&&!personal.reduceAmmoEnabled,"explicit older toggles/menu retained");
-    check(personal.updaterAutoCheck&&!personal.updaterBeta,"auto check loads independently of the selected stable channel");
+    check(!personal.updaterAutoCheck&&!personal.updaterBeta,"explicit auto-check OFF loads independently of the selected stable channel");
     check(personal.tpsUltimateDistanceMultiplier==0.9f&&personal.tpsUltimateHeightOffset==123&&personal.wrathChargeMultiplier==2,"explicit personal values retained");
     check(personal.hotkeys[8]==dg::config::Action::FOV,"explicit older hotkey retained");
     check(!personal.tpsLensFocusEnabled&&!rt.tpsLensFocusEnabled.load(),"explicit lens OFF survives load and runtime publication");
@@ -96,7 +114,7 @@ int main(int argc,char** argv){
     check(generated.menuKey==VK_INSERT,"Insert is the authoritative menu default");
     personal.tps3DAimEnabled=false;personal.tpsAimPitchOffsetDegrees=17.5f;check(personal.SaveNow(),"simple aim option and independent shot angle save");
     dg::config::Store reloaded;reloaded.SetPath(path);check(reloaded.Load()&&!reloaded.tps3DAimEnabled&&!rt.tps3DAimEnabled.load()&&reloaded.tpsAimPitchOffsetDegrees==17.5f&&rt.tpsAimPitchOffsetDegrees.load()==17.5f,"explicit simple aim and manual shot angle survive reload and runtime publication");
-    check(reloaded.updaterAutoCheck&&!reloaded.updaterBeta,"auto check and stable channel survive save and reload");
+    check(!reloaded.updaterAutoCheck&&!reloaded.updaterBeta,"explicit auto-check OFF and stable channel survive save and reload");
     check(reloaded.nativeBlur.disabled&&reloaded.tpsBlur.custom&&reloaded.tpsBlur.distanceMeters==17.25f&&reloaded.tpsBlur.amount==1.125f&&
         !reloaded.nativeBlur.custom&&!reloaded.tpsBlur.disabled,
         "both view profiles survive save/reload independently of lens focus and bindings");
@@ -116,10 +134,10 @@ int main(int argc,char** argv){
     check(personal.tpsLensFocusEnabled&&rt.tpsLensFocusEnabled.load(),"TPS camera reset restores the lens option default");
     check(personal.tpsUltimateDistanceMultiplier==0.30f&&personal.tpsUltimateHeightOffset==80,"camera reset uses requested Ultimate defaults");
     personal.ResetDefaults(false);check(personal.SaveNow(),"full compiled defaults reset saves");
-    check(!personal.updaterAutoCheck,"full defaults reset restores manual update checks");
-    check(!personal.nativeBlur.disabled&&!personal.tpsBlur.custom&&!rt.nativeBlur.Get().disabled&&!rt.tpsBlur.Get().custom&&
-        personal.tpsBlur.distanceMeters==10.0f&&personal.nativeBlur.amount==0.6f,
-        "full defaults restore both authored view policies and their inactive numeric defaults");
+    check(personal.updaterAutoCheck,"full defaults reset restores startup update checks");
+    check(!personal.nativeBlur.disabled&&personal.nativeBlur.custom&&personal.tpsBlur.custom&&!rt.nativeBlur.Get().disabled&&rt.tpsBlur.Get().custom&&
+        personal.tpsBlur.distanceMeters==250.0f&&personal.nativeBlur.distanceMeters==10.0f&&personal.nativeBlur.amount==0.5f&&personal.tpsBlur.amount==0.5f,
+        "full defaults restore both approved custom view profiles");
     const auto reset=ReadIni(path);
     for(const auto& [section,values]:shipped){
         const auto sectionIt=reset.find(section);check(sectionIt!=reset.end(),"reset section retained");
@@ -132,7 +150,7 @@ int main(int argc,char** argv){
     WritePrivateProfileStringW(L"Values",L"NativeDOFAmount",L"nan",path);
     WritePrivateProfileStringW(L"Values",L"TPSDOFAmount",L"9",path);
     dg::config::Store bounded;bounded.SetPath(path);check(bounded.Load(),"out-of-range blur profile loads safely");
-    check(bounded.nativeBlur.distanceMeters==0&&bounded.tpsBlur.distanceMeters==dg::camera_blur::MaxDistanceMeters&&bounded.nativeBlur.amount==0.6f&&bounded.tpsBlur.amount==5,
+    check(bounded.nativeBlur.distanceMeters==0&&bounded.tpsBlur.distanceMeters==dg::camera_blur::MaxDistanceMeters&&bounded.nativeBlur.amount==0.5f&&bounded.tpsBlur.amount==5,
         "distance and amount reject NaN and clamp each independent view to its documented bounds");
     bounded.nativeBlur.distanceMeters=1250.5f;bounded.tpsBlur.distanceMeters=5000.0f;
     check(bounded.SaveNow(),"long native and TPS distances save");

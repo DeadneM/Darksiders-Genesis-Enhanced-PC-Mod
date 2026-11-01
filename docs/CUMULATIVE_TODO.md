@@ -1,3 +1,11 @@
+## V1.141 — défauts approuvés et lisibilité du menu
+
+**PRÉPARÉE / EXPÉRIMENTALE pour la présentation, contrôles Windows GitHub en attente.** Base cumulative V1.140. Les 72 choix de défauts sont approuvés par l'utilisateur : 48 valeurs changent, les 180 autres clés restent identiques. ASI, création/reset INI, valeurs de repli, runtime et boutons Default mis en cohérence. Palette plus contrastée, groupes plus visibles, contrôles et états mieux lisibles ; mêmes identifiants et groupes fermés par défaut. [Périmètre, limites et essais](V1_141_APPROVED_DEFAULTS_MENU_REFRESH_TEST.md).
+
+Compilation exclusivement GitHub, canal debug conservé. Aucune promotion main ni installation ; INI personnel et raccourcis existants conservés. Les nouveaux défauts s'appliquent à un nouveau profil ou à une remise à zéro volontaire. Les états expérimentaux des fonctions ne deviennent pas validés par l'approbation de leurs défauts.
+
+---
+
 ## V1.140 — coût Strife et Stoneskin Abyssal
 
 **CONSTRUITE / CONTRÔLÉE : [70/70 contrôles Windows, zéro avertissement/erreur MSVC](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41323327523). EXPÉRIMENTALE, À VALIDER EN JEU.** [ZIP cumulatif vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/35428f8142a685bf8833d4268be14c99a4187e02/downloads/DarksidersGenesis_V1.140_STRIFE_COST_ABYSSAL_STONESKIN_TEST.zip) — [Reçu et essais](V1_140_DELIVERY_RECEIPT.md). Base source V1.139 ; cause Abyssale confirmée par capture en lecture seule et noms de slots exacts pris en charge. Allègements du contrôle trait/arc et du cache de champs, mesures de coût échantillonnées. Aucun gain de FPS ni rendu corrigé déclaré validé ; visée/animations et INI/55 Hotkeys conservés. [Périmètre et limites](V1_140_STRIFE_COST_ABYSSAL_STONESKIN_TEST.md).

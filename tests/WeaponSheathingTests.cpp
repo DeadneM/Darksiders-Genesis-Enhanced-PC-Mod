@@ -59,14 +59,14 @@ void Run(){
     WritePrivateProfileStringW(L"Controls",L"SheatheKeyboardKey",nullptr,path);
     WritePrivateProfileStringW(L"Controls",L"SheathePadButtonA",L"3",path);
     WritePrivateProfileStringW(L"Controls",L"SheathePadButtonB",L"-1",path);
-    Check(b.Load()&&b.sheathKeyboardKey==0&&b.sheathPadButtonA==0&&b.sheathPadButtonB==0,"missing keyboard and invalid pad masks remain OFF");
+    Check(b.Load()&&b.sheathKeyboardKey=='L'&&b.sheathPadButtonA==0&&b.sheathPadButtonB==0,"missing keyboard uses approved L; invalid pad masks still fail closed");
     Check(b.hotkeys==a.hotkeys&&b.weaponSheathingEnabled&&b.sheathDelaySeconds==.5f,"legacy hotkeys and validated sheathing options survive binding load");
     b.sheathKeyboardKey='K';b.sheathPadButtonA=0x0100;b.sheathPadButtonB=0x0200;
     Check(b.SaveNow()&&b.Load()&&b.sheathKeyboardKey=='K'&&b.sheathPadButtonA==0x0100&&b.sheathPadButtonB==0x0200,"two-button combination round-trip");
     static_assert(int(dg::config::Action::SheatheWeapons)==48&&int(dg::config::Action::RefillAmmo)==47);
-    b.ResetDefaults(false);Check(!b.weaponSheathingEnabled&&b.sheathNeverEnabled&&b.sheathDelaySeconds==10,"new automatic behavior remains opt-in");
-    Check(!b.sheathStrifeMeleeNeverEnabled&&b.sheathStrifeMeleeDelaySeconds==0&&b.sheathWarNeverEnabled&&b.sheathWarDelaySeconds==10,"reset has native Strife blade delay and separate War defaults");
-    Check(!b.sheathKeyboardKey&&!b.sheathPadButtonA&&!b.sheathPadButtonB,"new shortcuts default to OFF");
+    b.ResetDefaults(false);Check(b.weaponSheathingEnabled&&!b.sheathNeverEnabled&&b.sheathDelaySeconds==10,"approved automatic sheathing is enabled with native delays");
+    Check(!b.sheathStrifeMeleeNeverEnabled&&b.sheathStrifeMeleeDelaySeconds==0&&!b.sheathWarNeverEnabled&&b.sheathWarDelaySeconds==10,"reset has native Strife blade delay and separate War defaults");
+    Check(b.sheathKeyboardKey=='L'&&b.sheathPadButtonA==256&&b.sheathPadButtonB==64,"approved L and LB plus L3 shortcuts are restored");
     Tick(); // Refresh eligibility after profile I/O; never depend on disk timing.
     rt.weaponSheathingEnabled=true;rt.sheathStrifeMeleeNeverEnabled=false;rt.sheathStrifeMeleeDelaySeconds=1.25f;
     rt.sheathNeverEnabled=false;rt.sheathDelaySeconds=2;Tick();

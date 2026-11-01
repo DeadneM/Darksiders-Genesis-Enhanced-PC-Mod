@@ -8,18 +8,50 @@
 
 namespace dg::overlay::layout {
 class StyleScope {
+    int colors_=0;
 public:
     StyleScope(){
         const float scale=ImGui::GetFontSize()/13.f;
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,ImVec2(14*scale,12*scale));
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2(7*scale,4*scale));
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,ImVec2(9*scale,6*scale));
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2(8*scale,5*scale));
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,ImVec2(10*scale,8*scale));
         ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing,ImVec2(6*scale,4*scale));
         ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing,18*scale);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding,4*scale);
+        ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding,3*scale);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize,1.f);
+        ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize,16*scale);
+        const std::pair<ImGuiCol,ImVec4> colors[]={
+            {ImGuiCol_Text,{.94f,.96f,.99f,1}},
+            {ImGuiCol_TextDisabled,{.66f,.72f,.80f,1}},
+            {ImGuiCol_WindowBg,{.055f,.075f,.105f,.98f}},
+            {ImGuiCol_PopupBg,{.07f,.095f,.13f,.99f}},
+            {ImGuiCol_Border,{.24f,.32f,.43f,1}},
+            {ImGuiCol_FrameBg,{.11f,.16f,.22f,1}},
+            {ImGuiCol_FrameBgHovered,{.17f,.26f,.36f,1}},
+            {ImGuiCol_FrameBgActive,{.19f,.31f,.44f,1}},
+            {ImGuiCol_Header,{.14f,.23f,.33f,1}},
+            {ImGuiCol_HeaderHovered,{.20f,.35f,.49f,1}},
+            {ImGuiCol_HeaderActive,{.22f,.39f,.55f,1}},
+            {ImGuiCol_Button,{.16f,.30f,.44f,1}},
+            {ImGuiCol_ButtonHovered,{.22f,.42f,.60f,1}},
+            {ImGuiCol_ButtonActive,{.16f,.35f,.53f,1}},
+            {ImGuiCol_CheckMark,{.43f,.84f,1.f,1}},
+            {ImGuiCol_SliderGrab,{.36f,.70f,.93f,1}},
+            {ImGuiCol_SliderGrabActive,{.55f,.87f,1.f,1}},
+            {ImGuiCol_Separator,{.24f,.36f,.48f,1}}
+        };
+        for(const auto& color:colors){ImGui::PushStyleColor(color.first,color.second);++colors_;}
     }
-    ~StyleScope(){ImGui::PopStyleVar(5);}
+    ~StyleScope(){ImGui::PopStyleColor(colors_);ImGui::PopStyleVar(9);}
     StyleScope(const StyleScope&)=delete;StyleScope& operator=(const StyleScope&)=delete;
 };
+inline bool Group(const char* title){
+    ImGui::Spacing();const float scale=ImGui::GetFontSize()/13.f;
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2(9*scale,7*scale));
+    const bool open=ImGui::CollapsingHeader(title); // Retain IDs and closed-by-default policy.
+    ImGui::PopStyleVar();return open;
+}
 inline float ValueIndent(){return ImGui::GetFrameHeight()+ImGui::GetStyle().ItemInnerSpacing.x;}
 inline float ControlWidth(float maximum=360.f){
     return std::max(1.f,std::min(ImGui::GetContentRegionAvail().x,maximum*ImGui::GetFontSize()/13.f));

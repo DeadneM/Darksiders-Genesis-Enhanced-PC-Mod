@@ -154,7 +154,7 @@ void Run(){
 
     wchar_t directory[MAX_PATH]{},path[MAX_PATH]{};
     Check(GetTempPathW(MAX_PATH,directory)&&GetTempFileNameW(directory,L"DGC",0,path),"temporary INI");
-    dg::config::Store a;a.SetPath(path);Check(a.Load()&&!a.bonusMountSkinsEnabled&&!a.progressionSkinsEnabled&&a.pistolLeftModel==0&&a.pistolRightModel==0,"old INI defaults preserve native appearances");
+    dg::config::Store a;a.SetPath(path);Check(a.Load()&&a.bonusMountSkinsEnabled&&!a.progressionSkinsEnabled&&a.pistolLeftModel==0&&a.pistolRightModel==0,"approved defaults enable bonus mounts while models/progression remain native");
     a.pistolRightModel=2;a.pistolLeftModel=1;a.bonusMountSkinsEnabled=true;a.progressionSkinsEnabled=true;
     a.menuKey=VK_F10;a.hotkeys[4]=dg::config::Action::RefillWrath;Check(a.SaveNow(),"cosmetic settings save");
     dg::config::Store b;b.SetPath(path);Check(b.Load()&&b.pistolRightModel==2&&b.pistolLeftModel==1&&b.bonusMountSkinsEnabled&&b.progressionSkinsEnabled&&b.hotkeys==a.hotkeys&&b.menuKey==VK_F10,"independent settings and personal bindings round trip");
@@ -162,7 +162,7 @@ void Run(){
     WritePrivateProfileStringW(L"Values",L"PistolRightModel",L"999",path);
     WritePrivateProfileStringW(L"Values",L"PistolLeftModel",L"-1",path);
     Check(b.Load()&&b.pistolRightModel==0&&b.pistolLeftModel==0,"invalid style values safely return to Native");
-    b.ResetDefaults(false);Check(!b.bonusMountSkinsEnabled&&!b.progressionSkinsEnabled&&b.pistolRightModel==0&&b.pistolLeftModel==0&&!rt.progressionSkinsEnabled.load(),"reset clears cosmetic opt-ins");
+    b.ResetDefaults(false);Check(b.bonusMountSkinsEnabled&&!b.progressionSkinsEnabled&&b.pistolRightModel==0&&b.pistolLeftModel==0&&!rt.progressionSkinsEnabled.load(),"reset restores approved bonus mounts and native character appearances");
     DeleteFileW(path);
 }
 }

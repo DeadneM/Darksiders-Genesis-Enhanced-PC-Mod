@@ -1,0 +1,1142 @@
+[
+  {
+    "section": "Meta",
+    "key": "ConfigRevision",
+    "value": "2140"
+  },
+  {
+    "section": "Overlay",
+    "key": "Enabled",
+    "value": "1"
+  },
+  {
+    "section": "Overlay",
+    "key": "MenuKey",
+    "value": "Insert"
+  },
+  {
+    "section": "Overlay",
+    "key": "FontSize",
+    "value": "13.000"
+  },
+  {
+    "section": "Updater",
+    "key": "Beta",
+    "value": "1"
+  },
+  {
+    "section": "Updater",
+    "key": "AutoCheckUpdates",
+    "value": "1"
+  },
+  {
+    "section": "System",
+    "key": "GraphicsAdapter",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "MountedJump",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "InteractionHudScale",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "MountedPistolHolsters",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "BonusMountSkins",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "ProgressionSkins",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "LeviathanVisual",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "WeaponSheathing",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "NeverAutoSheathe",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "StrifeMeleeNeverAutoSheathe",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "WarNeverAutoSheathe",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "SkipLogos",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "SkipIntroVideos",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "SkipWarning",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "MovementSpeed",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "HeavyLandingRecovery",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "RecoveryDashTail",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "RecoveryChestTail",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "ThirdPerson",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "TPSFOV",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "TPSLensFocus",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "DisableNativeDOF",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "NativeCustomDOF",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "DisableTPSDOF",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "TPSCustomDOF",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "TPSCameraStickMode",
+    "value": "2"
+  },
+  {
+    "section": "Features",
+    "key": "CameraControllerOrbit",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "TPSAutoCutscene",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "TPSHoldSuspend",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "TPSHoldToggle",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "TPSGrenadeHold",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "AimIndicatorHideMode",
+    "value": "2"
+  },
+  {
+    "section": "Features",
+    "key": "TPSNativeAimAssist",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "TPSNativeAimAssistMode",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "TPS3DAim",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "TPSMountedAimMode",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "PistolDamage",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "MeleeDamage",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "JumpHeight",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "GlideDuration",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "HorseEverywhere",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "HorseAreaMode",
+    "value": "2"
+  },
+  {
+    "section": "Features",
+    "key": "HorseSpeed",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "HorseSprintSpeed",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "HorseSprintDuration",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "FOV",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "HotstreakCharge",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "WrathCharge",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "UltimateFormCharge",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "UltimateDecreaseRate",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "InfiniteUltimateDuration",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "SynergyCharge",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "UnlimitedWrath",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "UnlimitedUltimate",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "UnlimitedSynergy",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "FiniteStandardAmmo",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "GrappleRange",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "ReduceAmmoConsumption",
+    "value": "1"
+  },
+  {
+    "section": "Features",
+    "key": "UnlimitedAmmo",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "ReduceHotstreakDecrease",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "UnlimitedHotstreak",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "PotionRecharge",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "UnlimitedPotions",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "UnlimitedHealth",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "UnlimitedGlide",
+    "value": "0"
+  },
+  {
+    "section": "Features",
+    "key": "UnlimitedHorseSprint",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "TremorSurfaceAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "HeavyLandingDelaySeconds",
+    "value": "0.150"
+  },
+  {
+    "section": "Values",
+    "key": "HeavyLandingGroundSeconds",
+    "value": "0.050"
+  },
+  {
+    "section": "Values",
+    "key": "RecoveryTailDelaySeconds",
+    "value": "0.000"
+  },
+  {
+    "section": "Values",
+    "key": "StrifeWrathSlot1",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "StrifeWrathSlot2",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "StrifeWrathSlot3",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "WarWrathSlot1",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "WarWrathSlot2",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "WarWrathSlot3",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "PistolRightModel",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "PistolLeftModel",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "StrifeBladeVisibility",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "WarArmAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "MouseReticleHideMode",
+    "value": "1"
+  },
+  {
+    "section": "Values",
+    "key": "MountedJumpSound",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "LeviathanVisualMode",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "CaltropsAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "CaltropsAmbientAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "TremorAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "VorpalAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "GhostHookAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "VoidBombAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "AetherSparkAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "GeyserAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "WorldEnderAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "WorldEnderBlastAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "RampageAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "StoneskinFxAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "ShadowAuraAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "SynergyCloneAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "BeamAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "BeamImpactAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "ChargeShotAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "GravitonAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "LavaMuzzleAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "LavaAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "NatureShotAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "StaticShotAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "StandardShotAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "EarthsplitterAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "FlamebrandAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "GraspingShadowsAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "ThunderclapAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "VampiricAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "VortexAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "MountFxAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "UltimateFxAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "MoltenCoreAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "JailerCoreAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "TidehunterCoreAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "WickedCoreAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "NephilimCoreAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "AstarteCoreAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "ScarabCoreAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "ShieldDemonCoreAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "LegionCoreAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "OtherStrifeFxAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "OtherWarFxAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "OtherMountFxAppearance",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "InteractionHudScale",
+    "value": "0.500"
+  },
+  {
+    "section": "Values",
+    "key": "SheathDelaySeconds",
+    "value": "10.000"
+  },
+  {
+    "section": "Values",
+    "key": "StrifeMeleeSheathDelaySeconds",
+    "value": "0.000"
+  },
+  {
+    "section": "Values",
+    "key": "WarSheathDelaySeconds",
+    "value": "10.000"
+  },
+  {
+    "section": "Values",
+    "key": "MovementSpeedMultiplier",
+    "value": "1.500"
+  },
+  {
+    "section": "Values",
+    "key": "PistolDamageMultiplier",
+    "value": "2.000"
+  },
+  {
+    "section": "Values",
+    "key": "MeleeDamageMultiplier",
+    "value": "2.000"
+  },
+  {
+    "section": "Values",
+    "key": "JumpHeightMultiplier",
+    "value": "1.250"
+  },
+  {
+    "section": "Values",
+    "key": "GlideDurationMultiplier",
+    "value": "10.000"
+  },
+  {
+    "section": "Values",
+    "key": "HorseSpeedMultiplier",
+    "value": "1.250"
+  },
+  {
+    "section": "Values",
+    "key": "HorseSprintSpeedMultiplier",
+    "value": "1.250"
+  },
+  {
+    "section": "Values",
+    "key": "HorseSprintDurationMultiplier",
+    "value": "5.000"
+  },
+  {
+    "section": "Values",
+    "key": "FOVDegrees",
+    "value": "90.000"
+  },
+  {
+    "section": "Values",
+    "key": "TPSFOVDegrees",
+    "value": "110.000"
+  },
+  {
+    "section": "Values",
+    "key": "TPSCoopFOVDegrees",
+    "value": "80.000"
+  },
+  {
+    "section": "Values",
+    "key": "NativeDOFDistanceMeters",
+    "value": "10.000"
+  },
+  {
+    "section": "Values",
+    "key": "NativeDOFAmount",
+    "value": "0.500"
+  },
+  {
+    "section": "Values",
+    "key": "TPSDOFDistanceMeters",
+    "value": "250.000"
+  },
+  {
+    "section": "Values",
+    "key": "TPSDOFAmount",
+    "value": "0.500"
+  },
+  {
+    "section": "Values",
+    "key": "CameraZoomPercent",
+    "value": "0.000"
+  },
+  {
+    "section": "Values",
+    "key": "CameraPitchDegrees",
+    "value": "0.000"
+  },
+  {
+    "section": "Values",
+    "key": "CameraYawDegrees",
+    "value": "0.000"
+  },
+  {
+    "section": "Values",
+    "key": "CameraHeightOffset",
+    "value": "0.000"
+  },
+  {
+    "section": "Values",
+    "key": "ThirdPersonDistanceMultiplier",
+    "value": "0.150"
+  },
+  {
+    "section": "Values",
+    "key": "ThirdPersonPitchDegrees",
+    "value": "-12.000"
+  },
+  {
+    "section": "Values",
+    "key": "TPSNativeAimAssistGlobal",
+    "value": "50.000"
+  },
+  {
+    "section": "Values",
+    "key": "TPSNativeAimAssistStandard",
+    "value": "100.000"
+  },
+  {
+    "section": "Values",
+    "key": "TPSNativeAimAssistCharge",
+    "value": "100.000"
+  },
+  {
+    "section": "Values",
+    "key": "TPSNativeAimAssistGraviton",
+    "value": "100.000"
+  },
+  {
+    "section": "Values",
+    "key": "TPSNativeAimAssistLava",
+    "value": "100.000"
+  },
+  {
+    "section": "Values",
+    "key": "TPSNativeAimAssistBeam",
+    "value": "100.000"
+  },
+  {
+    "section": "Values",
+    "key": "TPSNativeAimAssistNature",
+    "value": "100.000"
+  },
+  {
+    "section": "Values",
+    "key": "TPSNativeAimAssistStatic",
+    "value": "100.000"
+  },
+  {
+    "section": "Values",
+    "key": "TPSAimPitchOffsetDegrees",
+    "value": "12.000"
+  },
+  {
+    "section": "Values",
+    "key": "ThirdPersonHeightOffset",
+    "value": "0.000"
+  },
+  {
+    "section": "Values",
+    "key": "TPSFootAnchorOffset",
+    "value": "0.000"
+  },
+  {
+    "section": "Values",
+    "key": "CameraStickSpeed",
+    "value": "180.000"
+  },
+  {
+    "section": "Values",
+    "key": "HotstreakChargeMultiplier",
+    "value": "1.000"
+  },
+  {
+    "section": "Values",
+    "key": "WrathChargeMultiplier",
+    "value": "1.000"
+  },
+  {
+    "section": "Values",
+    "key": "UltimateFormChargeMultiplier",
+    "value": "1.000"
+  },
+  {
+    "section": "Values",
+    "key": "UltimateDurationMultiplier",
+    "value": "1.000"
+  },
+  {
+    "section": "Values",
+    "key": "SynergyChargeMultiplier",
+    "value": "1.000"
+  },
+  {
+    "section": "Values",
+    "key": "TPSUltimateDistanceMultiplier",
+    "value": "0.300"
+  },
+  {
+    "section": "Values",
+    "key": "TPSUltimateHeightOffset",
+    "value": "80.000"
+  },
+  {
+    "section": "Values",
+    "key": "StandardAmmoCapacity",
+    "value": "200"
+  },
+  {
+    "section": "Values",
+    "key": "GrappleRangeMultiplier",
+    "value": "1.000"
+  },
+  {
+    "section": "Values",
+    "key": "InfiniteDoubleJumpMode",
+    "value": "0"
+  },
+  {
+    "section": "Values",
+    "key": "AmmoConsumptionDivisor",
+    "value": "1.000"
+  },
+  {
+    "section": "Values",
+    "key": "HotstreakDecreaseDivisor",
+    "value": "1.000"
+  },
+  {
+    "section": "Values",
+    "key": "PotionRechargeMultiplier",
+    "value": "1.000"
+  },
+  {
+    "section": "Values",
+    "key": "TPSHorseDistanceMultiplier",
+    "value": "0.250"
+  },
+  {
+    "section": "Values",
+    "key": "TPSHorseHeightOffset",
+    "value": "40.000"
+  },
+  {
+    "section": "Hotkeys",
+    "key": "F1",
+    "value": "RefillAllGauges"
+  },
+  {
+    "section": "Hotkeys",
+    "key": "F2",
+    "value": "RefillAmmo"
+  },
+  {
+    "section": "Hotkeys",
+    "key": "F3",
+    "value": "RefillHotstreak"
+  },
+  {
+    "section": "Hotkeys",
+    "key": "F4",
+    "value": "RefillPotions"
+  },
+  {
+    "section": "Hotkeys",
+    "key": "F5",
+    "value": "None"
+  },
+  {
+    "section": "Hotkeys",
+    "key": "F6",
+    "value": "None"
+  },
+  {
+    "section": "Hotkeys",
+    "key": "F7",
+    "value": "None"
+  },
+  {
+    "section": "Hotkeys",
+    "key": "F8",
+    "value": "None"
+  },
+  {
+    "section": "Hotkeys",
+    "key": "F9",
+    "value": "None"
+  },
+  {
+    "section": "Hotkeys",
+    "key": "F10",
+    "value": "None"
+  },
+  {
+    "section": "Hotkeys",
+    "key": "F11",
+    "value": "None"
+  },
+  {
+    "section": "Hotkeys",
+    "key": "F12",
+    "value": "ToggleHUD"
+  },
+  {
+    "section": "CameraHotkeys",
+    "key": "HeightUp",
+    "value": "None"
+  },
+  {
+    "section": "CameraHotkeys",
+    "key": "HeightDown",
+    "value": "None"
+  },
+  {
+    "section": "CameraHotkeys",
+    "key": "ZoomOut",
+    "value": "None"
+  },
+  {
+    "section": "CameraHotkeys",
+    "key": "ZoomIn",
+    "value": "None"
+  },
+  {
+    "section": "CameraHotkeys",
+    "key": "PitchDown",
+    "value": "None"
+  },
+  {
+    "section": "CameraHotkeys",
+    "key": "PitchUp",
+    "value": "None"
+  },
+  {
+    "section": "CameraHotkeys",
+    "key": "YawLeft",
+    "value": "None"
+  },
+  {
+    "section": "CameraHotkeys",
+    "key": "YawRight",
+    "value": "None"
+  },
+  {
+    "section": "TPSKeyboardHotkeys",
+    "key": "Horse",
+    "value": "H"
+  },
+  {
+    "section": "TPSKeyboardHotkeys",
+    "key": "ToggleTPS",
+    "value": "Z"
+  },
+  {
+    "section": "TPSKeyboardHotkeys",
+    "key": "RecenterTPS",
+    "value": "Z"
+  },
+  {
+    "section": "TPSKeyboardHotkeys",
+    "key": "TemporaryView",
+    "value": "E"
+  },
+  {
+    "section": "TPSKeyboardHotkeys",
+    "key": "RadialG",
+    "value": "G"
+  },
+  {
+    "section": "TPSKeyboardHotkeys",
+    "key": "RadialTab",
+    "value": "Tab"
+  },
+  {
+    "section": "Controls",
+    "key": "SheatheKeyboardKey",
+    "value": "L"
+  },
+  {
+    "section": "Controls",
+    "key": "SheathePadButtonA",
+    "value": "256"
+  },
+  {
+    "section": "Controls",
+    "key": "SheathePadButtonB",
+    "value": "64"
+  },
+  {
+    "section": "Controls",
+    "key": "AimWithoutFirePadButtonA",
+    "value": "0"
+  },
+  {
+    "section": "Controls",
+    "key": "AimWithoutFirePadButtonB",
+    "value": "0"
+  },
+  {
+    "section": "Controls",
+    "key": "HorsePadButtonA",
+    "value": "256"
+  },
+  {
+    "section": "Controls",
+    "key": "HorsePadButtonB",
+    "value": "512"
+  },
+  {
+    "section": "Controls",
+    "key": "TPSRecenterButtonMask",
+    "value": "64"
+  },
+  {
+    "section": "Controls",
+    "key": "TPSGrenadeButtonMask",
+    "value": "128"
+  },
+  {
+    "section": "Controls",
+    "key": "TPSSuspendButtonMask",
+    "value": "128"
+  },
+  {
+    "section": "Controls",
+    "key": "TPSSuspendDelayMs",
+    "value": "300"
+  },
+  {
+    "section": "Controls",
+    "key": "TPSToggleHoldButtonMask",
+    "value": "64"
+  },
+  {
+    "section": "Controls",
+    "key": "TPSToggleHoldMs",
+    "value": "500"
+  },
+  {
+    "section": "Controls",
+    "key": "TPSFirePrimaryMask",
+    "value": "131072"
+  },
+  {
+    "section": "Controls",
+    "key": "TPSFireSecondaryMask",
+    "value": "512"
+  },
+  {
+    "section": "Controls",
+    "key": "TPSMousePrimaryButton",
+    "value": "1"
+  },
+  {
+    "section": "Controls",
+    "key": "TPSMouseSecondaryButton",
+    "value": "2"
+  },
+  {
+    "section": "Controls",
+    "key": "TPSWheelPadMask",
+    "value": "256"
+  }
+]
