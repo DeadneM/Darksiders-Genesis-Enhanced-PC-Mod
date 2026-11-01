@@ -101,6 +101,7 @@ int main(int argc,char** argv){
     check(personal.nativeBlur.disabled&&!personal.tpsBlur.disabled&&personal.tpsBlur.custom&&!personal.nativeBlur.custom&&
         rt.nativeBlur.Get().disabled&&rt.tpsBlur.Get().custom&&rt.tpsBlur.Get().distanceMeters==17.25f&&rt.tpsBlur.Get().amount==1.125f,
         "separate native suppression and TPS numeric controls reach the runtime independently");
+    personal.cameraKeys={VK_UP,VK_DOWN,VK_PRIOR,VK_NEXT,VK_HOME,VK_END,VK_LEFT,VK_RIGHT};
     const auto originalBindings=personal.cameraKeys;
     for(size_t i=0;i<personal.cameraKeys.size();++i){
         personal.cameraKeys=originalBindings;personal.cameraKeys[i]=0;
