@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.139_NATIVE_AMMO_ACQUISITION_TEST.zip",
+  "blobSha": "2c0d13af90c97d3b25c881b99e8cd6c5793af0f5",
+  "httpStatus": 200,
+  "sha256": "6B7C84558CBD13BE37A995114966946BB7E4B46ECA66A603D67BB0C0F6B9E51F",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}

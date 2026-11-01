@@ -1,0 +1,49 @@
+{
+  "sourceCommit": "bb25d844cdb4b1c1f59af478a139ed8786ffea48",
+  "archiveCommit": "a21569fa47ef6c4072c7af5290366fa0de3c5abf",
+  "name": "DarksidersGenesis_V1.139_NATIVE_AMMO_ACQUISITION_TEST.zip",
+  "size": 2432847,
+  "sha256": "6B7C84558CBD13BE37A995114966946BB7E4B46ECA66A603D67BB0C0F6B9E51F",
+  "files": {
+    "DarksidersGenesisMod.asi": {
+      "size": 2116096,
+      "sha256": "C3D1F008200702D7C4242EF11955948DC42EDA48F532873387824B8F9C5E202F",
+      "method": 0
+    },
+    "DarksidersGenesisMod.ini": {
+      "size": 6380,
+      "sha256": "1C73C0D1EA5936D601205CC94544B2B41451FCFCE63E5B8F39726687110E762D",
+      "method": 0
+    },
+    "dxgi.dll": {
+      "size": 155136,
+      "sha256": "1A429B44A72BA30104FF07A33312834E9C01A68ED5D3F379A1557B2B2C252462",
+      "method": 0
+    },
+    "README.md": {
+      "size": 154779,
+      "sha256": "52552919D44AD9D3718536F0E023E9CFD05F82031FDC4143CB193E7C66D064D7",
+      "method": 0
+    }
+  },
+  "oldArchiveGitBlobsUnchanged": 203,
+  "archiveCount": 204,
+  "iniKeys": 228,
+  "iniUnchanged": true,
+  "hotkeyIdsUnchanged": 55,
+  "amd64": true,
+  "crcValid": true,
+  "noCompression": true,
+  "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/a21569fa47ef6c4072c7af5290366fa0de3c5abf/downloads/DarksidersGenesis_V1.139_NATIVE_AMMO_ACQUISITION_TEST.zip",
+  "httpStatus": 200,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "e2e519f7ea84d4b773fd7a31611779ae68308696",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "localBuild": false,
+  "localInstall": false,
+  "gameplayValidated": false,
+  "staticBugFixed": false,
+  "stoneskinDaganCauseConfirmed": false
+}

@@ -1,0 +1,15 @@
+# V1.139 — reçu de livraison
+
+**CONSTRUITE / CONTRÔLÉE ; EXPÉRIMENTALE, À VALIDER EN JEU.** Base cumulative V1.138. Correction de couverture du réglage natif par munition ; aucune correction rétroactive de la visée par défaut annoncée. Le test sans ASI a donné « identique je pense », résultat utilisateur probable, non mesuré. V1.138 rétablie après cet essai, empreintes/INI conservés.
+
+Source `bb25d844cdb4b1c1f59af478a139ed8786ffea48` ; archive `a21569fa47ef6c4072c7af5290366fa0de3c5abf`. [GitHub Actions : 70/70, zéro avertissement/erreur MSVC](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41302161292). Construction Windows x64 Release avec analyse statique, uniquement sur GitHub. Notices externes MinHook/CMake et Actions/Node séparées des diagnostics du compilateur.
+
+[ZIP cumulatif — quatre fichiers racine](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/a21569fa47ef6c4072c7af5290366fa0de3c5abf/downloads/DarksidersGenesis_V1.139_NATIVE_AMMO_ACQUISITION_TEST.zip) — 2432847 octets ; SHA256 `6B7C84558CBD13BE37A995114966946BB7E4B46ECA66A603D67BB0C0F6B9E51F`. ASI/DXGI AMD64, CRC et contenu relus ; 228 clés INI, 55 identifiants Hotkeys inchangés. 203 anciennes archives conservées en Git, 204 au total. main/archive/tag v1.43 vérifiés intacts. Updater debug : sélection et téléchargement HTTP 200 vérifiés, mêmes octets ; UI en jeu non observée. Defender : ZIP et contenu extrait sans menace, protections conservées.
+
+**Non installée par l'agent.** L'installation reste V1.138, fichiers rétablis avec leurs empreintes exactes. Aucun INI, raccourci, sauvegarde ou PAK remplacé. Pas de lancement du jeu par l'agent. Les recherches mémoire antérieures restaient en lecture seule.
+
+Le profil commun suit désormais la munition enregistrée d'après les actions natives de tir 18/20 en mode par munition. OFF/100 %, Global, portée, contacts, poids, chaînes Statique, correction Charge/Lava, caméra/input et acquis restent inchangés. Aucun nouveau hook ou appel moteur. Repos/deux munitions différentes simultanées : requête commune conservée native si ambiguë. Les requêtes spécifiques gardent leurs réglages.
+
+À tester après installation via l'updater debug, en conservant l'INI : Strife à pied en TPS, ajustement coché et mode par munition, Statique à 0/50/100/200 % avec relâchement entre les tirs ; puis Standard dans l'autre emplacement avec une valeur différente, OFF et Global. Position/direction/ennemi aussi constants que possible. 100 %/OFF doivent retrouver la référence ; seuls les angles d'acquisition changent. Les chaînes électriques natives ne sont pas supprimées. P2 et commandes réaffectées restent à confirmer ultérieurement. Le défaut intermittent Stoneskin reste indépendant, non validé par ces contrôles.
+
+[Périmètre et limites](V1_139_NATIVE_AMMO_ACQUISITION_TEST.md) — preuves : [CI](evidence/V1_139_CI_CHECK.json), [package](evidence/V1_139_PACKAGE_CHECK.json), [updater](evidence/V1_139_UPDATER_CHECK.json), [Defender](evidence/V1_139_DEFENDER_CHECK.json), [installation](evidence/V1_139_NO_INSTALL_CHECK.json).

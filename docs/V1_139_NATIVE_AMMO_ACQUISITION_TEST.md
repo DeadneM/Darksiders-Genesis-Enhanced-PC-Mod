@@ -1,6 +1,6 @@
 # V1.139 — acquisition native par munition
 
-**PRÉPARÉE / EXPÉRIMENTALE, contrôles GitHub et jeu en attente.** Base cumulative V1.138 (`9a5e9b8`). V1.130 reste une référence explicitement validée pour les deux défauts de l'époque ; V1.138/Stoneskin reste en essai, pas promue stable. L'installation locale V1.138 a été rétablie après le comparatif sans mod, empreintes et INI conservés.
+**CONSTRUITE / CONTRÔLÉE : 70/70 contrôles Windows x64, zéro avertissement/erreur MSVC. EXPÉRIMENTALE, NON VALIDÉE EN JEU.** [ZIP et preuves](V1_139_DELIVERY_RECEIPT.md). Base cumulative V1.138 (`9a5e9b8`). V1.130 reste une référence explicitement validée pour les deux défauts de l'époque ; V1.138/Stoneskin reste en essai, pas promue stable. L'installation locale V1.138 a été rétablie après le comparatif sans mod, empreintes et INI conservés.
 
 ## Résultat qui motive le changement
 

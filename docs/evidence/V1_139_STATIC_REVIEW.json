@@ -17,9 +17,10 @@
   "gameMemoryWritesByExternalReader": 0,
   "iniChanged": false,
   "hotkeysChanged": false,
-  "ciPending": true,
+  "ciPending": false,
   "gameplayValidated": false,
   "originalStaticRegressionEstablished": false,
   "nativeBaselineUserReport": "identique je pense",
-  "installedVersion": "V1.138 restored, ASI/proxy exact package hashes"
+  "installedVersion": "V1.138 restored, ASI/proxy exact package hashes",
+  "ciEvidence": "V1_139_CI_CHECK.json"
 }

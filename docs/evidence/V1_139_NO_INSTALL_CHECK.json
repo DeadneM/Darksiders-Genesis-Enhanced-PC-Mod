@@ -1,0 +1,14 @@
+{
+  "installedVersion": "V1.138 restored",
+  "hashes": {
+    "DarksidersGenesisMod.asi": "B08AFDCE2208E82A99042CA7C7F7F965AD86DDF264B30A7F940B85171E48DAC4",
+    "dxgi.dll": "0F34B924C04AC1394EF6040D852D3AF208874C8454EBF5B39E82DC8842075F73"
+  },
+  "newVersion": "V1.139",
+  "newVersionInstalledByAgent": false,
+  "personalIniWritten": false,
+  "gameLaunchedByAgent": false,
+  "nativeBaselineTestCompletedQualitatively": true,
+  "nativeBaselineUserReport": "identique je pense",
+  "gameplayValidated": false
+}
