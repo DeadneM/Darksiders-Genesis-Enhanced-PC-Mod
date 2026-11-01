@@ -2,8 +2,8 @@
   "version": "V1.137",
   "status": "SOURCE_REVIEWED_CI_PENDING_GAMEPLAY_UNVALIDATED",
   "baseCommit": "d7416770d54d45770c151b3a944f44972acb54b7",
-  "pass1": "Compare installed native paths with complete 1124-observation log; preserve ability/Lava consumption; remove only inapplicable ordinary cached-rotation pistol scope; OFF native selector arguments untouched.",
-  "pass2": "Trace active Stoneskin source dependencies and completed discovery with fixed-size UObject index reuse; meaningful regression fixtures cover missing base body, unused Molten body, late FX, bounded retry/idle/cooldown and no unsafe native override replacement.",
+  "pass1": "Compare installed native paths with complete 1124-observation log; preserve original scopes for all interfaces including horse/ultimate; ordinary foot-Strife fixture no longer simulates a resolver absent from its observed native route; OFF native selector arguments untouched.",
+  "pass2": "Trace active Stoneskin source dependencies and completed discovery with fixed-size UObject index reuse; meaningful regression fixtures cover missing base body, unused Molten body, late FX, bounded retry/idle/cooldown and no unsafe native override replacement. Retry demand follows only the current player, so a departed P2 cannot drive repeated passes for P1.",
   "comparison": "Both reviews reject global dead-code removal; new tests and source comparisons validate candidate mechanics only, not appearance during Dagan or a Static targeting fix.",
   "preservedShotFunctions": [
     "TypedClass",

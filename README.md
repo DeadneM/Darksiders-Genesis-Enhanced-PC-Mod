@@ -2,7 +2,7 @@
 
 **PRÉPARÉE / EXPÉRIMENTALE ; contrôles GitHub en attente.** Correction du scan de ressources manquant des objets réutilisés et des vrais matériaux requis par Stoneskin sur Strife. Boss Dagan à retester, cause exacte encore non capturée. Aucun geste/statistique modifié. [Périmètre, limites et essai](docs/V1_137_STONESKIN_ASSET_RECOVERY_TEST.md).
 
-Le comparatif complet confirme l'accrochage Statique dans les deux vues, ajustement OFF. Le journal complet compte 1 124 points observés : le retrait global de l'observateur dans le précédent nettoyage est annulé ; seuls la portée du pistolet normal et son test fictif sont retirés. Les chemins utilisés des capacités/Lava restent. Option OFF : sélecteur original direct ; aucun filtre de portée/chaînes. Aucune correction Statique annoncée. [Relevé et rectification](docs/evidence/NATIVE_COMPARISON_2026_11_01.json).
+Le comparatif complet confirme l'accrochage Statique dans les deux vues, ajustement OFF. Le journal complet compte 1 124 points observés : le retrait global de l'observateur dans le précédent nettoyage est annulé ; seul le test fictif du pistolet normal est retiré ; les portées des autres interfaces ne sont pas supprimées sans preuve. Les chemins utilisés des capacités/Lava restent. Option OFF : sélecteur original direct ; aucun filtre de portée/chaînes. Aucune correction Statique annoncée. [Relevé et rectification](docs/evidence/NATIVE_COMPARISON_2026_11_01.json).
 
 Compilation GitHub uniquement, INI/55 Hotkeys et autres acquis conservés ; aucune installation ni lecture d'un nouveau jeu lancée. main/archive et anciennes archives protégées. Les états suivants sont historiques.
 

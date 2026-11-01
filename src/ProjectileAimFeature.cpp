@@ -115,9 +115,10 @@ void Observe(const char* path,const local_players::Context& owner,unsigned n,con
             path,owner.index+1,n,result.pitch,result.yaw);g_log(line);}
 }
 Rotator* Rotation(void* weapon,Rotator* out,const void* input,uintptr_t caller){
-    // The observed Strife interface returns its cached control rotation;
-    // it does not resolve an ability target inside this native call.
-    auto* result=g_original?g_original(weapon,out,input):out;++g_calls;
+    // The observed foot-Strife interface only returns cached rotation.
+    // Keep the scope for other native interfaces (e.g. transformed pawns).
+    native_assist::ShotScope native;
+    auto* result=g_original?g_original(weapon,out,input):out;native.Close();++g_calls;
     if(!result||caller!=0x7CFA3B||!native_tps::OnGameThread())return result;
     void* actor=nullptr;local_players::Context owner{};
     if(!Read(weapon,0xE8,actor)||!Owner(weapon,actor,owner))return result;
@@ -125,7 +126,7 @@ Rotator* Rotation(void* weapon,Rotator* out,const void* input,uintptr_t caller){
     // parameter (3640478); 7CF9B0 forwards that actual value as R8.
     Vec3 origin{};if(!Read(input,0,origin)||!Finite(origin))return result;
     Rotator adjusted=*result;
-    if(AimAt(owner,origin,adjusted)){*result=adjusted;Observe("PISTOL",owner,owner.index==0?++g_adjusted[0]:++g_adjusted[1],adjusted);}
+    if(AimAt(owner,origin,adjusted,false,native.used?&native.point:nullptr)){*result=adjusted;Observe("PISTOL",owner,owner.index==0?++g_adjusted[0]:++g_adjusted[1],adjusted);}
     return result;
 }
 Rotator* HookRotation(void* weapon,Rotator* out,const void* input){
@@ -279,7 +280,7 @@ void Initialize(LogFn log,bool exactExecutable,RayProvider provider){
 void Report(){
     native_assist::Report();
     if(!g_log)return;char line[260]{};
-    sprintf_s(line,"TPS V1.137 NATIVE_POINT_APPLIED P1=%u P2=%u sameOriginalAbilityCall=1 observerCountIsNotAppliedCount=1",g_nativePoints[0].load(),g_nativePoints[1].load());g_log(line);
+    sprintf_s(line,"TPS V1.137 NATIVE_POINT_ACCEPTED P1=%u P2=%u sameOriginalAbilityCall=1 observerCountIsNotAppliedCount=1",g_nativePoints[0].load(),g_nativePoints[1].load());g_log(line);
     sprintf_s(line,"TPS V1.53 TARGET3D totals native=%u pistolP1=%u P2=%u finishP1=%u P2=%u lavaP1=%u P2=%u lavaRejected=%u impactValidation=USER_REQUIRED",
         g_calls.load(),g_adjusted[0].load(),g_adjusted[1].load(),g_finished[0].load(),g_finished[1].load(),g_lobbed[0].load(),g_lobbed[1].load(),g_lavaRejected.load());g_log(line);
     sprintf_s(line,"TPS V1.53 BEAM_FORWARD totals P1=%u P2=%u rootForwardConsumerOnly=1 socketAndTargetChainsNative=1 gameplayValidation=USER_REQUIRED",g_beams[0].load(),g_beams[1].load());g_log(line);

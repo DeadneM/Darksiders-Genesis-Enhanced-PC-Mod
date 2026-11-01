@@ -146,7 +146,7 @@
     "[2026-10-31 21:50:52.293] TPS V1.53 TARGET3D totals native=384 pistolP1=378 P2=0 finishP1=6202 P2=0 lavaP1=0 P2=0 lavaRejected=0 impactValidation=USER_REQUIRED",
     "[2026-10-31 21:50:52.341] Shutdown: complete"
   ],
-  "cleanupCorrection": "The complete session has 1124 observer hits. Global removal of resolver/ShotScope is withdrawn; ordinary cached-rotation pistol route remains separately inapplicable. No cleanup binary was delivered or installed.",
+  "cleanupCorrection": "The complete session has 1124 observer hits. Global removal is withdrawn; ordinary foot-Strife cached-rotation fixture is corrected. Scopes remain for other interfaces, avoiding an unsupported horse/ultimate generalization. No cleanup binary was delivered or installed.",
   "limitations": [
     "Native view still has ASI loaded; not an unmodified-game baseline",
     "Observer hits are not accepted assisted points or projectile impacts",
