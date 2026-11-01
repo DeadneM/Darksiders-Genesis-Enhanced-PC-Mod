@@ -1,0 +1,29 @@
+{
+  "base": "95e0373032dd30fb0bb8d234b561346947324e0c",
+  "logSha256": "23f4339dcdfb7ed2e25925dfb402c559bdf2a681912f7bd565a74676ca511d9c",
+  "userSlowdown": "apparently constant, including idle Strife on foot",
+  "userSkin": "activation after changing to Abyssal armor",
+  "readOnlyCapture": "v247-armor-20261101-164639.jsonl",
+  "captureRights": "QUERY_LIMITED_INFORMATION|VM_READ",
+  "engineCallsByReader": false,
+  "memoryWritesByReader": false,
+  "rootCauseArmor": "runtime Strife_Abyssal_Body and Strife_Abyssal_Cloth absent from Surface allowlist",
+  "performanceCauseProven": false,
+  "changes": [
+    "same exact Abyssal named slots, original material lifecycle preserved",
+    "matching field-cache entry validation only; stale entry reclaimed on miss",
+    "draw view/timing policy only evaluated for a matched aim shader",
+    "one-in-64 sampled inclusive cost probes, seven cumulative lines per minute maximum"
+  ],
+  "nativeAimUnchanged": true,
+  "iniUnchanged": true,
+  "validatedInGame": false,
+  "secondReview": [
+    "Shader candidate check and native PSGetShader retained; only policy ordering changes",
+    "same-address class serial invalidates cache, no cached-object dereference before identity check",
+    "Abyssal body/cloth exact observed names; null third slot untouched",
+    "one-in-64 thread-local sampling, atomic counters and thread-local reporting cadence",
+    "no aim, animation sampling, INI or hotkey behavior modification; lifecycle restoration retained"
+  ],
+  "reviewAgreement": "Only demonstrated redundant work and exact armor names changed; slowdown cause and visible improvement remain unproven."
+}

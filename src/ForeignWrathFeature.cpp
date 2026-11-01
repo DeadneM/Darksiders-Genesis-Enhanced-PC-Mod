@@ -8,6 +8,7 @@
 #include "NativeObjectName.h"
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
+#include "NativeCostProbe.h"
 #include <MinHook.h>
 #include <atomic>
 #include <algorithm>
@@ -81,6 +82,7 @@ bool Source(uintptr_t actor,Animation& out){
         native_objects::NameValueIs(g_base,out.slot.index,out.slot.number,"TPS")&&(out.sequence=idle.sequence)!=0;
 }
 void Scan(uintptr_t generatedClass,uint64_t nowMs,bool refreshMissing){
+    cost_probe::Scope measured(cost_probe::WrathScan);
     const bool beamChanged=foreign_beam::InvalidateAssets(),rampageChanged=foreign_rampage::InvalidateAssets();
     const bool caltropsChanged=foreign_caltrops::InvalidateAssets(),cloneChanged=foreign_power::InvalidateAssets();
     if(stone_visual::InvalidateAssets()||beamChanged||rampageChanged||caltropsChanged||cloneChanged){g_cursor=0;g_complete=false;}

@@ -7,6 +7,7 @@
 #include "RuntimeSettings.h"
 #include "DashCombatFeature.h"
 #include "ForeignRampageFeature.h"
+#include "NativeCostProbe.h"
 #include <MinHook.h>
 #include <atomic>
 #include <cstdio>
@@ -279,6 +280,7 @@ bool Source(const Snapshot& s,AnimationSource& source){
 }
 bool SampleAnimation(uintptr_t node,PoseContext* output,uint64_t now){
     if(!Ready()||!g_animationReady||!ChoiceMask()||!output||!g_initContext||!g_sample)return false;
+    cost_probe::Scope measured(cost_probe::PistolSample);
     // One reusable private buffer per animation worker. No per-frame heap
     // allocation or large stack frame; recursive evaluation fails open.
     struct Scratch {AnimationSource source{};std::array<LocalTransform,BoneCount> local{};Matrices skin{};ArmPose pose{};bool busy=false;};
@@ -393,6 +395,7 @@ void Initialize(LogFn log,bool exactExecutable){
 }
 void OnLivePlayer(const local_players::Context& owner,uint32_t generation,bool focused){
     if(!native_tps::OnGameThread()||owner.index<0||owner.index>1)return;
+    cost_probe::Scope measured(cost_probe::PistolObserve);
     const unsigned index=unsigned(owner.index);Snapshot next{};const auto now=GetTickCount64();
     const bool cinema=native_tps::CinematicActive(index);bool mayFreeze=false;
     if(Ready()&&Normal(owner,next)){

@@ -1,3 +1,11 @@
+## V1.140 — coût Strife et Stoneskin Abyssal
+
+**PRÉPARÉE / EXPÉRIMENTALE ; contrôles Windows GitHub en attente.** Base source V1.139, fonctions validées conservées. Cause Abyssale confirmée en lecture seule : deux noms de matériaux non reconnus, maintenant pris en charge. Allègement du contrôle de trait/arc hors shaders concernés et des validations de cache de champs ; mesures échantillonnées du coût des traitements. Aucun gain de FPS ni rendu final déclaré validé ; aucun changement de visée native, animation, INI ou raccourci. [Preuves, limites et essais](docs/V1_140_STRIFE_COST_ABYSSAL_STONESKIN_TEST.md).
+
+Ralentissement apparemment constant à pied selon l'utilisateur ; origine exacte non mesurée. Compilation exclusivement GitHub, aucune installation/lancement automatique ; main/archive et anciens ZIP préservés. La revue des paramètres par défaut est mise de côté.
+
+---
+
 ## V1.139 — réglage natif par munition
 
 **CONSTRUITE / CONTRÔLÉE : [70/70 contrôles Windows, zéro avertissement/erreur MSVC](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41302161292). EXPÉRIMENTALE, À VALIDER EN JEU.** [ZIP vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/a21569fa47ef6c4072c7af5290366fa0de3c5abf/downloads/DarksidersGenesis_V1.139_NATIVE_AMMO_ACQUISITION_TEST.zip) — [Reçu et essais](docs/V1_139_DELIVERY_RECEIPT.md). Updater debug et Defender vérifiés ; non installée par l'agent. Base cumulative V1.138 ; aucun changement du ciblage à OFF/100 %. Correction de la couverture des requêtes communes : identification de la munition par les actions natives, sans touches imposées, nouvel appel moteur ou hook. Portée/chaînes Statique et acquis conservés. [Périmètre, limites et essais](docs/V1_139_NATIVE_AMMO_ACQUISITION_TEST.md).

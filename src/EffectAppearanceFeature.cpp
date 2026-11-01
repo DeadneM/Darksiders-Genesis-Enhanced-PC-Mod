@@ -3,6 +3,7 @@
 #include "NativeObjectName.h"
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
+#include "NativeCostProbe.h"
 #include <MinHook.h>
 #include <algorithm>
 #include <atomic>
@@ -62,6 +63,7 @@ void Availability(uint64_t now,bool force){
     }
 }
 void Scan(uint64_t now){
+    cost_probe::Scope measured(cost_probe::EffectScan);
     Availability(now,false);if(g_available.all()||(now>=g_scanTick&&now-g_scanTick<16))return;g_scanTick=now;
     uintptr_t chunks=0;int count=0;if(!Read(g_base,0x3959680,chunks)||!Read(g_base,0x3959694,count)||count<=0||count>2000000)return;
     if(count<g_count)g_cursor=0;if(count!=g_count){g_count=count;g_complete=false;}if(g_complete)return;

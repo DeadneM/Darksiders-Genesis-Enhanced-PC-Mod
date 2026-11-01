@@ -2,6 +2,7 @@
 #include "NativeMemoryReader.h"
 #include "NativeObjectName.h"
 #include "RuntimeSettings.h"
+#include "NativeCostProbe.h"
 #include <MinHook.h>
 #include <intrin.h>
 #include <atomic>
@@ -87,6 +88,7 @@ struct Angles {
     ~Angles(){if(pointer)std::memcpy(pointer,original,sizeof(original));}
 };
 void* SelectTarget(void* finder,void* actor,const Vec* direction,void* predicate){
+    cost_probe::Scope measured(cost_probe::NativeAssist);
     if(!g_select)return nullptr;
     if(!runtime::Get().tpsAimAssistEnabled.load()){++g_disabled;return g_select(finder,actor,direction,predicate);}
     local_players::Context owner{};uintptr_t weapon=0;int kind=-1;native_tps::MouseRay ray{};

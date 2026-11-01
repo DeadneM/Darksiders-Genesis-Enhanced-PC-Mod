@@ -62,6 +62,17 @@ void Fresh(){
 }
 void Run(){
  std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(chunks));for(int i=0;i<64;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);objectChunks[0]=reinterpret_cast<uintptr_t>(f.items);Put(image.data(),0x3959680,reinterpret_cast<uintptr_t>(objectChunks));Put(image.data(),0x3959694,32);
+ Fresh();const auto classId=Live(f.classes[0]);int cachedOffset=-1;
+ Check(Field(owner.character,"m_pStatusEffectComponent","ObjectProperty",8,cachedOffset)&&cachedOffset==0x990&&g_fields[0].cls==classId,"known reflected field caches complete class identity");
+ Put(f.fields[0],0x44,0x998);Check(Field(owner.character,"m_pStatusEffectComponent","ObjectProperty",8,cachedOffset)&&cachedOffset==0x990,"live matching class reuses its verified immutable schema");
+ Put(f.items,size_t(classId.index)*24+16,classId.serial+1);
+ Check(Field(owner.character,"m_pStatusEffectComponent","ObjectProperty",8,cachedOffset)&&cachedOffset==0x998&&g_fields[0].cls.serial==classId.serial+1,"reused class address cannot reuse an old cached offset");
+ Fresh();Label(f.fields[8],53,"Strife_Abyssal_Body");Label(f.fields[9],54,"Strife_Abyssal_Cloth");Label(f.asset,40,"Strife_Abyssal");
+ Put(f.skinSlots,8,dg::foreign_wrath::Name{53,0});Put(f.skinSlots,48,dg::foreign_wrath::Name{54,0});
+ Put(f.asset,0xA0,Array{reinterpret_cast<uintptr_t>(f.skinSlots),2,2});Cast(owner);Observe(owner);
+ uintptr_t abyssBody=0,abyssCloth=0;std::memcpy(&abyssBody,f.mid[0]+0x40,8);std::memcpy(&abyssCloth,f.mid[1]+0x40,8);
+ Check(creates==2&&abyssBody==reinterpret_cast<uintptr_t>(f.materials[0])&&abyssCloth==reinterpret_cast<uintptr_t>(f.materials[1]),"Abyssal named body and cloth use distinct accepted parents after armor selection");
+ Put(f.component,0x138,0);Observe(owner);Check(sets==2&&!f.overrides[0]&&!f.overrides[1]&&fx[2]==1,"Abyssal expiration restores armor inheritance without changing unknown slots");
  auto parents=[](int variant){for(int i=0;i<4;++i){uintptr_t parent=0;std::memcpy(&parent,f.mid[i]+0x40,8);Check(parent==reinterpret_cast<uintptr_t>(f.materials[(i<2?0:variant*2+1)]),"body/gear A and cloth B retain full native shaders, including fire switches");}};
  Fresh();const auto materials=std::vector<unsigned char>(reinterpret_cast<unsigned char*>(f.materials),reinterpret_cast<unsigned char*>(f.materials)+sizeof(f.materials));Observe(owner);Check(creates==4&&!copies&&scalarCalls==4,"private mineral body/gear suppress only their two emissive parameters; cloth retains its native shader");parents(0);Check(!std::memcmp(materials.data(),f.materials,sizeof(f.materials)),"source shader/material parameters remain byte-identical");Observe(owner);Check(creates==4,"no per-frame recreation");Put(f.component,0x138,0);Observe(owner);Check(sets==4&&!g_visual[0].actor,"accepted status expiration and native inheritance restoration retained");for(auto x:f.overrides)Check(!x,"native materials restored");
  Fresh();Put(f.component,0x138,2);Observe(owner);parents(1);Check(g_visual[0].variant==1&&scalarCalls==4&&!copies,"Molten cloth remains fiery while body and gear retain mineral parents");

@@ -2,6 +2,7 @@
 #include "StoneTransitionFx.h"
 #include "NativePropertyField.h"
 #include "NativeTpsFeature.h"
+#include "NativeCostProbe.h"
 #include <array>
 #include <cstdio>
 
@@ -28,11 +29,14 @@ std::array<CachedField,24> g_fields{};
 bool Field(uintptr_t p,const char* name,const char* kind,int size,int& offset){
     uintptr_t cls=0;if(!Read(p,0x10,cls))return false;
     CachedField* free=nullptr;
+    // Validate only the matching cached contract on a hit. Other classes
+    // cannot supply this field and are reclaimed only on a cache miss.
     for(auto& f:g_fields){
-        if(f.cls&&!Alive(f.cls))f={};
-        if(!f.cls){if(!free)free=&f;continue;}
-        if(f.cls.address==cls&&f.size==size&&!std::strcmp(f.name,name)&&!std::strcmp(f.kind,kind)){offset=f.offset;return true;}
+        if(f.cls.address==cls&&f.size==size&&f.name&&f.kind&&!std::strcmp(f.name,name)&&!std::strcmp(f.kind,kind)){
+            if(Alive(f.cls)){offset=f.offset;return true;}f={};
+        }
     }
+    for(auto& f:g_fields)if(!f.cls||!Alive(f.cls)){free=&f;f={};break;}
     if(!native_objects::PropertyField(g_base,cls,name,kind,size,offset))return false;
     Id identity{};if(free&&Capture(cls,identity))*free={identity,name,kind,size,offset};return true;
 }
@@ -75,8 +79,10 @@ int Surface(uintptr_t asset,unsigned index,uintptr_t& original){
     int at=-1;Array slots{};uintptr_t cls=0;foreign_wrath::Name slot{};original=0;
     if(!Read(asset,0x10,cls)||!Is(cls,"SkeletalMesh")||!Field(asset,"Materials","ArrayProperty",16,at)||!List(asset,at,slots,32)||
        index>=unsigned(slots.count)||!Read(slots.data,size_t(index)*40,original)||!original||!Read(slots.data,size_t(index)*40+8,slot))return -1;
-    if(native_objects::NameValueIs(g_base,slot.index,slot.number,"Strife_Body")||native_objects::NameValueIs(g_base,slot.index,slot.number,"Strife_Gear"))return 0;
+    if(native_objects::NameValueIs(g_base,slot.index,slot.number,"Strife_Body")||native_objects::NameValueIs(g_base,slot.index,slot.number,"Strife_Gear")||
+       native_objects::NameValueIs(g_base,slot.index,slot.number,"Strife_Abyssal_Body"))return 0;
     if(native_objects::NameValueIs(g_base,slot.index,slot.number,"Strife_Cloth")||
+       native_objects::NameValueIs(g_base,slot.index,slot.number,"Strife_Abyssal_Cloth")||
        (slot.number==2&&native_objects::NameValueIs(g_base,slot.index,0,"Strife_Cloth_ncl1"))||
        native_objects::NameValueIs(g_base,slot.index,slot.number,"Strife_Cloth_ncl1_1"))return 1;
     return -1;
@@ -158,6 +164,7 @@ void Cast(const local_players::Context& c){
 
 void Observe(const local_players::Context& c){
     if(!g_event||!native_tps::OnGameThread()||c.index<0||c.index>1)return;
+    cost_probe::Scope measured(cost_probe::StoneObserve);
     const bool wasMissing=g_missing[c.index];g_missing[c.index]=false;
     auto& v=g_visual[c.index];uintptr_t cls=0,pc=0,pawn=0,mesh=0,owner=0,asset=0;unsigned char role=0;int at=-1;
     const bool owned=c.localPlayer&&c.world&&c.kind==local_players::PoseKind::Foot&&c.character&&c.pawn==c.character&&

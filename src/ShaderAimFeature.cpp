@@ -106,13 +106,17 @@ void STDMETHODCALLTYPE HookSetPS(
 }
 
 bool Skip(ID3D11DeviceContext* ctx) {
-    if (!g_ready.load(std::memory_order_relaxed) || !EnabledByExistingMode()) return false;
+    if (!g_ready.load(std::memory_order_relaxed)) return false;
     if (g_matchCount.load(std::memory_order_relaxed) == 0) return false;
     AcquireSRWLockShared(&g_lock);
     const auto it = g_contextTargetPS.find(ctx);
     const bool matched = it != g_contextTargetPS.end() && it->second;
     ReleaseSRWLockShared(&g_lock);
     if (matched) {
+        // View/time/settings are irrelevant to every non-aim shader. Keep
+        // their evaluation on the rare candidate path, with the same native
+        // shader verification for ClearState/command-list invalidation.
+        if(!EnabledByExistingMode())return false;
         // ClearState and command lists can bypass our PSSetShader observer.
         // Verify only would-be blocked draws, retaining the fast path for
         // ordinary rendering; a stale context entry cannot hide other PSs.

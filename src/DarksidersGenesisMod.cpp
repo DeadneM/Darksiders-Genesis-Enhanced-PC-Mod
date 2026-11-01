@@ -26,6 +26,7 @@
 #include "HotstreakFeature.h"
 #include "PotionFeature.h"
 #include "BuildInfo.h"
+#include "NativeCostProbe.h"
 #include "HorseFeature.h"
 #include "NativeTpsFeature.h"
 #include "TpsStickRoles.h"
@@ -1427,6 +1428,8 @@ bool PresentationFocused(){
     return hwnd&&GetForegroundWindow()==hwnd&&!IsIconic(hwnd)&&!g_overlayVisible.load()&&!g_shuttingDown.load();
 }
 void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t generation){
+    dg::cost_probe::Report(&FeatureLog);
+    dg::cost_probe::Scope measured(dg::cost_probe::Gameplay);
     dg::presentation::OnLivePlayer(owner);
     void* character=reinterpret_cast<void*>(owner.character);
     if(owner.index==0){
@@ -4172,6 +4175,7 @@ void ShutdownMod() {
         return;
     }
 
+    dg::cost_probe::Report(&FeatureLog,true);
     Log("Shutdown: begin");
     dg::native_tps::Report();
     dg::health::Shutdown();
