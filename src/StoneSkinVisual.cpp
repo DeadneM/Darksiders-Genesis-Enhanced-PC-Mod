@@ -149,7 +149,7 @@ void ObserveObject(uintptr_t p){
     }
 }
 bool AssetsReady(){for(const auto& variant:g_materials)for(const auto& id:variant)if(!Alive(id))return false;return stone_fx::AssetsReady();}
-bool NeedsAssetScan(){return g_missing[0]||g_missing[1];}
+bool NeedsAssetScan(const local_players::Context& c){return c.index>=0&&c.index<2&&g_missing[c.index];}
 bool InvalidateAssets(){bool changed=stone_fx::InvalidateAssets();for(auto& variant:g_materials)for(auto& id:variant)if(id&&!Alive(id)){id={};changed=true;}return changed;}
 void Cast(const local_players::Context& c){
     if(!g_event||!native_tps::OnGameThread()||c.index<0||c.index>1)return;
