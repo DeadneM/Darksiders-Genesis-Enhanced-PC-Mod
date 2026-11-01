@@ -4,9 +4,10 @@
 #include <iostream>
 namespace {
 using Vec=dg::native_tps::Vec3;
-unsigned char actor[0x1000]{},ability[0x230]{},finder[0x80]{},weapon[0x700]{},registry[0x120]{},victim[0x200]{};
-unsigned char finderClass[0x80]{},ammoClass[0x80]{},package[0x40]{},table[0x300]{},names[3][128]{};
-uintptr_t entries[3]{},chunks[1]{},ammo[4]{};
+unsigned char actor[0x1100]{},ability[0x230]{},finder[0x80]{},weapon[0x700]{},registry[0x120]{},victim[0x200]{};
+unsigned char finderClass[0x80]{},ammoClass[0x80]{},package[0x40]{},table[0x300]{},names[7][128]{};
+unsigned char common[0x700]{},commonClass[0x80]{},otherAmmo[0x700]{},otherClass[0x80]{},otherPackage[0x40]{},actionTable[0x20]{};
+uintptr_t entries[7]{},chunks[1]{},ammo[6]{};
 dg::local_players::Context context{};bool gameThread=true,paused=false,wheel=false,provider=true,throwSelect=false;
 unsigned generation=7,calls=0,providerCalls=0;float expectV=90,expectH=45,expectX=0;void* returned=victim;
 template<class T>void Put(void* p,size_t n,T value){std::memcpy(static_cast<unsigned char*>(p)+n,&value,sizeof(value));}
@@ -23,7 +24,7 @@ Vec* Point(Vec* out,void* target,uint64_t bone){Check(target==victim&&bone==0x88
 void Run(){
     using namespace dg::native_assist;
     std::vector<unsigned char> image(0x3B00000);g_base=reinterpret_cast<uintptr_t>(image.data());
-    for(unsigned i=0;i<3;++i)entries[i]=reinterpret_cast<uintptr_t>(names[i]);chunks[0]=reinterpret_cast<uintptr_t>(entries);
+    for(unsigned i=0;i<7;++i)entries[i]=reinterpret_cast<uintptr_t>(names[i]);chunks[0]=reinterpret_cast<uintptr_t>(entries);
     Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(chunks));
     strcpy_s(reinterpret_cast<char*>(names[0]+12),116,"MayhemTargetFinder");Put(finderClass,0x18,0);
     Put(ammoClass,0x18,1);Put(ammoClass,0x20,reinterpret_cast<uintptr_t>(package));Put(package,0x18,2);
@@ -48,6 +49,36 @@ void Run(){
         rt.tpsAimAssistMode=0;rt.tpsAimAssistGlobal=100;
     }
     expectV=90;expectH=45;invoke();
+    // Native common targeting must follow actual firing actions, not a
+    // fixed mouse button, controller trigger or a previous ammo's setting.
+    strcpy_s(reinterpret_cast<char*>(names[3]+12),116,"MayhemWeapon_DualPistols_Blueprint_C");Put(commonClass,0x18,3);
+    strcpy_s(reinterpret_cast<char*>(names[5]+12),116,dg::aim_assist::Classes[0]);Put(otherClass,0x18,5);
+    strcpy_s(reinterpret_cast<char*>(names[6]+12),116,dg::aim_assist::Packages[0]);Put(otherPackage,0x18,6);Put(otherClass,0x20,reinterpret_cast<uintptr_t>(otherPackage));
+    Put(common,0x10,reinterpret_cast<uintptr_t>(commonClass));Put(common,0xE8,reinterpret_cast<uintptr_t>(actor));
+    Put(otherAmmo,0x10,reinterpret_cast<uintptr_t>(otherClass));Put(otherAmmo,0xE8,reinterpret_cast<uintptr_t>(actor));
+    ammo[3]=reinterpret_cast<uintptr_t>(otherAmmo);ammo[5]=reinterpret_cast<uintptr_t>(common);
+    Put(registry,0x110,6);Put(registry,0x114,6);Put(actor,0x1038,reinterpret_cast<uintptr_t>(common));
+    Put(actor,0x8D0,reinterpret_cast<uintptr_t>(actionTable));Put(actionTable,0x18,g_base+0x669D30);g_actionLayoutKnown=true;
+    Put(ability,0x1D8,reinterpret_cast<uintptr_t>(common));rt.tpsAimAssistMode=1;rt.tpsAimAssistAmmo[6]=25;rt.tpsAimAssistAmmo[0]=200;
+    Put(actor,0xE10+18,uint8_t(1));expectV=22.5f;expectH=11.25f;invoke();
+    Check(CommonAmmo(reinterpret_cast<uintptr_t>(actor),reinterpret_cast<uintptr_t>(common))==6,"native primary action resolves registered Static ammo");
+    Put(actor,0xE10+18,uint8_t(0));Put(actor,0xE10+20,uint8_t(1));expectV=180;expectH=90;invoke();
+    Check(CommonAmmo(reinterpret_cast<uintptr_t>(actor),reinterpret_cast<uintptr_t>(common))==0,"native secondary action independently resolves registered Standard ammo");
+    context.index=1;invoke();context.index=0;
+    Put(actor,0xE10+18,uint8_t(1));expectV=90;expectH=45;invoke();
+    Check(CommonAmmo(reinterpret_cast<uintptr_t>(actor),reinterpret_cast<uintptr_t>(common))==-1,"different simultaneous ammo leaves the shared query native");
+    ammo[3]=reinterpret_cast<uintptr_t>(weapon);expectV=22.5f;expectH=11.25f;invoke();
+    Put(actor,0xE10+18,uint8_t(0));Put(actor,0xE10+20,uint8_t(0));expectV=90;expectH=45;invoke();
+    Put(actor,0xE10+18,uint8_t(2));invoke();Put(actor,0xE10+18,uint8_t(1));
+    Put(actionTable,0x18,g_base+0x669D31);invoke();Put(actionTable,0x18,g_base+0x669D30);
+    g_actionLayoutKnown=false;invoke();g_actionLayoutKnown=true;
+    ammo[5]=0;invoke();ammo[5]=reinterpret_cast<uintptr_t>(common);
+    Put(actor,0x1038,uintptr_t(0));invoke();Put(actor,0x1038,reinterpret_cast<uintptr_t>(common));
+    Put(weapon,0xE8,uintptr_t(0));invoke();Put(weapon,0xE8,reinterpret_cast<uintptr_t>(actor));
+    rt.tpsAimAssistEnabled=false;invoke();rt.tpsAimAssistEnabled=true;
+    rt.tpsAimAssistAmmo[6]=100;invoke();
+    rt.tpsAimAssistAmmo[6]=0;expectV=0;expectH=0;invoke();
+    Put(ability,0x1D8,reinterpret_cast<uintptr_t>(weapon));rt.tpsAimAssistMode=0;rt.tpsAimAssistGlobal=100;expectV=90;expectH=45;invoke();
     Vec point{};
     ResolvePoint(&point,victim,0x888,0x59D3BD);
     Check(!g_shot,"unscoped native resolver cannot retain a point for later shots");

@@ -27,3 +27,9 @@ Après demande et fermeture vérifiée du jeu, **ASI et `dxgi.dll` V1.138 ont é
 Le test demandé : même munition Statique, même caisse/pot et ennemi latéral, observer si l'attraction est identique, plus faible ou absente. Après fermeture du jeu, rétablir **exactement les deux fichiers V1.138** avec contrôle de leurs empreintes ; ne jamais restaurer automatiquement l'INI de sauvegarde. Les détails et l'état sont dans le reçu privé `audit-v131/native-baseline-backups/V1.138-20261101-121109/`.
 
 L'inventaire récursif ne trouve aucun PAK supplémentaire ; le contenu intégral du PAK principal n'a pas été revérifié contre Steam. Le résultat sans ASI est **en attente**, pas annoncé validé. Les branches main/archive, anciennes archives et le défaut intermittent Stoneskin restent inchangés.
+
+## Retour et restauration — 12 h 16
+
+Sans ASI ni chargeur, l'utilisateur répond « identique je pense ». Cela oriente vers une attraction native, sans constituer une équivalence mesurée ni une validation ferme. Ne plus présenter une régression TPS comme établie. Après fermeture effectivement vérifiée du jeu, les deux fichiers V1.138 ont été rétablis par renommage, empreintes identiques au package et INI inchangé. Aucun lancement par l'agent ; aucune installation laissée désactivée.
+
+Suite retenue : conserver les fonctions natives à OFF/100 %, puis réparer la couverture des requêtes communes en mode par munition. Aucun changement d'angle par défaut, de portée, de contacts ou de chaînes Statique n'est justifié par ce retour.

@@ -4,10 +4,11 @@
   "sourceBase": "9a5e9b8a880287ceb73b9b6eff2f1cff1f20e90e",
   "codeChanged": false,
   "newBuild": false,
-  "status": "DIAGNOSTIC_RECORDED_NATIVE_BASELINE_AWAITING_USER",
+  "status": "NATIVE_BASELINE_USER_REPORT_PROBABLE_SAME_RESTORED_V1.138",
   "userReports": {
     "stoneskin": "Absent bug in V1.136 reported, intermittent across levels; V1.138 under user test, not validated.",
-    "static": "Same attraction in Camera Forward, Vanilla Aim and both 3D aiming settings; also observed in native view with ASI loaded."
+    "static": "Same attraction in Camera Forward, Vanilla Aim and both 3D aiming settings; also observed in native view with ASI loaded.",
+    "withoutMod": "identique je pense; qualitative, uncertain, not a measured or confirmed equivalence"
   },
   "offline": {
     "exeSha256": "9F4702024DF5EEA1D51DF7745B0AD1EA95B97009982F73DDC1218C53DFF33D54",
@@ -388,7 +389,7 @@
     "Absence of hard lock rules it out only for the recorded eligible samples."
   ],
   "nativeBaseline": {
-    "state": "DISABLED_FOR_NATIVE_BASELINE",
+    "state": "RESTORED_V1.138",
     "time": "2026-11-01T12:12:47.7862942+01:00",
     "gameWasClosed": true,
     "gameLaunchedByAgent": false,
@@ -406,11 +407,13 @@
         "sha256": "0F34B924C04AC1394EF6040D852D3AF208874C8454EBF5B39E82DC8842075F73"
       }
     ],
-    "restorationRequiredAfterTestGameClosed": true,
+    "restorationRequiredAfterTestGameClosed": false,
     "savesTouched": false,
     "paksTouched": false,
     "additionalPakInventoryRecursive": [],
-    "pakIntegrityVerified": false
+    "pakIntegrityVerified": false,
+    "restoredAt": "2026-11-01T12:16:38.0179169+01:00",
+    "restorationIniPreserved": true
   },
-  "next": "Compare Static with both ASI and DXGI proxy absent, then restore exact V1.138 files after game exit before any further build or install."
+  "next": "Preserve native OFF/100% targeting; repair optional per-ammunition coverage of common native queries. Do not claim initial regression established."
 }

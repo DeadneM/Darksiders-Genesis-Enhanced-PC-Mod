@@ -1,0 +1,25 @@
+{
+  "base": "9a5e9b8a880287ceb73b9b6eff2f1cff1f20e90e",
+  "passes": [
+    "native action getter/thunk/leaf and owner/registry correspondence",
+    "source diff, OFF/global paths, ambiguous contexts, integration fixtures"
+  ],
+  "agreement": "No new hook/engine call/default/INI/hotkey/trajectory/contact/range change; only per-ammunition common query coverage and bounded logs/UI clarification.",
+  "nativeActionBytesVerified": true,
+  "sourceFiles": [
+    "src/BuildInfo.h",
+    "src/NativeAimAssistFeature.cpp",
+    "src/OverlayUi.cpp",
+    "tests/NativeAimAssistTests.cpp"
+  ],
+  "newHooks": 0,
+  "newEngineCalls": 0,
+  "gameMemoryWritesByExternalReader": 0,
+  "iniChanged": false,
+  "hotkeysChanged": false,
+  "ciPending": true,
+  "gameplayValidated": false,
+  "originalStaticRegressionEstablished": false,
+  "nativeBaselineUserReport": "identique je pense",
+  "installedVersion": "V1.138 restored, ASI/proxy exact package hashes"
+}

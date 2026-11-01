@@ -1,4 +1,12 @@
-> 2026-11-01 : enquête Statique sans nouveau build. Comparaison sans ASI en cours ; ASI/chargeur V1.138 temporairement désactivés sur l'installation locale après sauvegarde, à restaurer après l'essai. [État et limites](docs/STATIC_LOCK_AND_BASELINE_2026_11_01.md).
+## V1.139 — réglage natif par munition
+
+**PRÉPARÉE / EXPÉRIMENTALE, contrôle GitHub en attente.** Base cumulative V1.138 ; aucun changement du ciblage à OFF/100 %. Correction de la couverture des requêtes communes : identification de la munition par les actions natives, sans touches imposées, nouvel appel moteur ou hook. Portée/chaînes Statique et acquis conservés. [Périmètre, limites et essais](docs/V1_139_NATIVE_AMMO_ACQUISITION_TEST.md).
+
+L'essai sans ASI donne « identique je pense » selon l'utilisateur ; une régression native imputable au TPS n'est pas établie. V1.138 a été rétablie, empreintes et INI préservés. Stoneskin reste intermittent, V1.138 en cours de test ; aucune validation déduite. Compilation exclusivement GitHub ; aucune installation V1.139 prévue automatiquement.
+
+---
+
+> 2026-11-01 : enquête Statique sans nouveau build. Essai sans ASI : attraction jugée probablement identique par l'utilisateur. V1.138 rétablie après fermeture du jeu, empreintes et INI préservés. Réglages optionnels encore en étude. [État et limites](docs/STATIC_LOCK_AND_BASELINE_2026_11_01.md).
 
 ## V1.138 — revêtement Stoneskin après chargement
 

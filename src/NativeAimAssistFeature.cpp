@@ -15,8 +15,10 @@ using AimPoint=Vec*(*)(Vec*,void*,uint64_t);
 Select g_select=nullptr;AimPoint g_point=nullptr;
 uintptr_t g_base=0;projectile_aim::LogFn g_log=nullptr;projectile_aim::RayProvider g_ray=nullptr;
 std::atomic_bool g_ready{false};thread_local bool g_nested=false;
+bool g_actionLayoutKnown=false;
 std::atomic_uint32_t g_queries[2]{},g_scaled[2]{},g_unmapped{0};
 std::atomic_uint32_t g_disabled{0};
+std::atomic_uint32_t g_commonMapped{0},g_commonNative{0};
 thread_local ShotScope* g_shot=nullptr;
 std::atomic_uint32_t g_consumed{0};
 struct Observation {bool known=false;float percent=100;unsigned changes=0;};
@@ -28,6 +30,28 @@ int Kind(uintptr_t weapon){
     if(!Read(weapon,8,flags)||(flags&0x18030u)||!Read(weapon,0x10,cls)||!Read(cls,0x20,package))return -1;
     for(unsigned i=0;i<aim_assist::Count;++i)if(Name(cls,aim_assist::Classes[i])&&Name(package,aim_assist::Packages[i]))return int(i);
     return -1;
+}
+int CommonAmmo(uintptr_t actor,uintptr_t common){
+    // The native GetActionState interface at actor+8D0 adds 540 and reads
+    // one byte at E10+action. Read that exact verified layout: no engine
+    // call, physical key/button, target cache or additional hook.
+    uintptr_t table=0,query=0,registry=0,list=0,other=0;int n=0,cap=0;
+    unsigned char primary=0,secondary=0;
+    if(!g_actionLayoutKnown||!Read(actor,0x8D0,table)||!Read(table,0x18,query)||query!=g_base+0x669D30||
+       !Read(actor,0xE10+18,primary)||!Read(actor,0xE10+20,secondary)||primary>1||secondary>1||
+       (!primary&&!secondary)||!Read(actor,0x1038,other)||other!=common||
+       !Read(actor,0xC78,registry)||!Read(registry,0xE8,other)||other!=actor||
+       !Read(registry,0x108,list)||!list||!Read(registry,0x110,n)||!Read(registry,0x114,cap)||
+       n<6||n>cap||cap>32||!Read(list,5*8,other)||other!=common)return -1;
+    auto equipped=[&](unsigned slot){
+        uintptr_t weapon=0,owner=0;
+        return Read(list,size_t(slot)*8,weapon)&&weapon&&Read(weapon,0xE8,owner)&&owner==actor?Kind(weapon):-1;
+    };
+    const int a=primary?equipped(2):-1,b=secondary?equipped(3):-1;
+    // Simultaneous different ammunition has one shared acquisition query.
+    // Keep that ambiguous query native; each ammo-specific query still has
+    // its own setting. The same ammo in both slots is unambiguous.
+    return primary&&secondary?(a>=0&&a==b?a:-1):primary?a:b;
 }
 float Percent(int kind){const auto& r=runtime::Get();if(!r.tpsAimAssistEnabled.load())return 100;
     if(r.tpsAimAssistMode.load()==1)return kind>=0?aim_assist::Strength(r.tpsAimAssistAmmo[unsigned(kind)].load()):100;
@@ -71,6 +95,11 @@ void* SelectTarget(void* finder,void* actor,const Vec* direction,void* predicate
     }
     const auto p=unsigned(owner.index);
     if(p>=2||kind< -1||kind>=int(aim_assist::Count))return g_select(finder,actor,direction,predicate);
+    const bool common=kind<0;
+    if(common&&runtime::Get().tpsAimAssistMode.load()==1){
+        kind=CommonAmmo(reinterpret_cast<uintptr_t>(actor),weapon);
+        if(kind>=0)++g_commonMapped;else ++g_commonNative;
+    }
     const auto slot=kind<0?aim_assist::Count:unsigned(kind);
     if(slot>aim_assist::Count)return g_select(finder,actor,direction,predicate);
     const float percent=Percent(kind);
@@ -86,7 +115,7 @@ void* SelectTarget(void* finder,void* actor,const Vec* direction,void* predicate
     auto& observed=g_observed[p][slot];const bool changed=!observed.known||observed.percent!=percent;
     observed.known=true;observed.percent=percent;
     if(g_log&&(g_queries[p].load()<=8||(changed&&observed.changes++<16))){float radius=0,v=0,h=0;Read(reinterpret_cast<uintptr_t>(finder),0x28,radius);Read(reinterpret_cast<uintptr_t>(finder),0x2C,v);Read(reinterpret_cast<uintptr_t>(finder),0x30,h);
-        char line[300]{};sprintf_s(line,"TPS V1.137 NATIVE_ASSIST player=%u ammo=%d percent=%.1f scaled=%d nativeRadius=%.1f nativeAngles=%.1f/%.1f restored=1 originalDirection=1 selected=%d",p+1,kind,percent,scaled?1:0,radius,v,h,selected?1:0);g_log(line);}
+        char line[340]{};sprintf_s(line,"TPS V1.139 NATIVE_ASSIST player=%u ammo=%d source=%s percent=%.1f scaled=%d nativeRadius=%.1f nativeAngles=%.1f/%.1f restored=1 originalDirection=1 selected=%d",p+1,kind,common?"COMMON_ACTION":"AMMO",percent,scaled?1:0,radius,v,h,selected?1:0);g_log(line);}
     return selected;
 }
 Vec* ResolvePoint(Vec* out,void* actor,uint64_t bone,uintptr_t caller){
@@ -111,10 +140,14 @@ void Initialize(projectile_aim::LogFn log,bool exact,projectile_aim::RayProvider
     constexpr unsigned char selector[]={0x48,0x8B,0xC4,0x4C,0x89,0x48,0x20,0x55,0x56,0x57,0x41,0x54,0x41,0x55,0x41,0x56};
     constexpr unsigned char point[]={0x40,0x56,0x57,0x41,0x56,0x48,0x81,0xEC,0x90,0x00,0x00,0x00,0x48,0xC7,0x44,0x24};
     constexpr unsigned char getter[]={0x48,0x8B,0x81,0x18,0x02,0x00,0x00,0xC3};
+    constexpr unsigned char action[]={0x48,0x81,0xC1,0x40,0x05,0x00,0x00,0xE9,0xC4,0xB3,0xFC,0xFF};
+    constexpr unsigned char state[]={0x0F,0xB6,0xC2,0x0F,0xB6,0x04,0x08,0xC3};
     // Getter bytes are verified alongside the live ABI before delivery.
     if(std::memcmp(reinterpret_cast<void*>(base+0x6C3520),selector,sizeof(selector))||std::memcmp(reinterpret_cast<void*>(base+0x66A620),point,sizeof(point))||
        std::memcmp(reinterpret_cast<void*>(base+0x5A1620),getter,sizeof(getter))){if(log)log("TPS V1.137 NATIVE_ASSIST signatures unavailable; native selector retained");return;}
     g_base=base;
+    g_actionLayoutKnown=!std::memcmp(reinterpret_cast<void*>(base+0x669D30),action,sizeof(action))&&
+        !std::memcmp(reinterpret_cast<void*>(base+0x635100),state,sizeof(state));
     struct Hook {uintptr_t rva;void* callback;void** original;};
     const Hook hooks[]={{0x6C3520,reinterpret_cast<void*>(&SelectTarget),reinterpret_cast<void**>(&g_select)},
         {0x66A620,reinterpret_cast<void*>(&HookPoint),reinterpret_cast<void**>(&g_point)}};
@@ -122,7 +155,7 @@ void Initialize(projectile_aim::LogFn log,bool exact,projectile_aim::RayProvider
     for(const auto& h:hooks){if(MH_CreateHook(reinterpret_cast<void*>(base+h.rva),h.callback,h.original)!=MH_OK){ok=false;break;}++created;}
     if(ok)for(const auto& h:hooks)if(MH_EnableHook(reinterpret_cast<void*>(base+h.rva))!=MH_OK){ok=false;break;}
     if(!ok){for(unsigned i=0;i<created;++i){MH_DisableHook(reinterpret_cast<void*>(base+hooks[i].rva));MH_RemoveHook(reinterpret_cast<void*>(base+hooks[i].rva));}g_select=nullptr;g_point=nullptr;return;}
-    g_ready=true;if(log)log("TPS V1.137 NATIVE_ASSIST READY: original direction and observed ability consumer; angular scale only; no actor/point cache; EXPERIMENTAL");
+    g_ready=true;if(log){char line[240]{};sprintf_s(line,"TPS V1.139 NATIVE_ASSIST READY: native selector, angular scale only, commonActionLayout=%d; no actor/point cache; EXPERIMENTAL",g_actionLayoutKnown?1:0);log(line);}
 }
-void Report(){if(!g_log)return;char line[260]{};sprintf_s(line,"TPS V1.137 NATIVE_ASSIST totals queries=%u/%u scaled=%u/%u observedAbilityPoints=%u disabledNative=%u passthrough=%u impactValidation=USER_REQUIRED",g_queries[0].load(),g_queries[1].load(),g_scaled[0].load(),g_scaled[1].load(),g_consumed.load(),g_disabled.load(),g_unmapped.load());g_log(line);}
+void Report(){if(!g_log)return;char line[340]{};sprintf_s(line,"TPS V1.139 NATIVE_ASSIST totals queries=%u/%u scaled=%u/%u observedAbilityPoints=%u disabledNative=%u passthrough=%u commonMapped=%u commonNative=%u impactValidation=USER_REQUIRED",g_queries[0].load(),g_queries[1].load(),g_scaled[0].load(),g_scaled[1].load(),g_consumed.load(),g_disabled.load(),g_unmapped.load(),g_commonMapped.load(),g_commonNative.load());g_log(line);}
 }

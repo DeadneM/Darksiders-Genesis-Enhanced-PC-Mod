@@ -1,6 +1,14 @@
+## V1.139 — réglage natif par munition
+
+**PRÉPARÉE / EXPÉRIMENTALE, contrôle GitHub en attente.** Base cumulative V1.138 ; aucun changement du ciblage à OFF/100 %. Correction de la couverture des requêtes communes : identification de la munition par les actions natives, sans touches imposées, nouvel appel moteur ou hook. Portée/chaînes Statique et acquis conservés. [Périmètre, limites et essais](V1_139_NATIVE_AMMO_ACQUISITION_TEST.md).
+
+L'essai sans ASI donne « identique je pense » selon l'utilisateur ; une régression native imputable au TPS n'est pas établie. V1.138 a été rétablie, empreintes et INI préservés. Stoneskin reste intermittent, V1.138 en cours de test ; aucune validation déduite. Compilation exclusivement GitHub ; aucune installation V1.139 prévue automatiquement.
+
+---
+
 ## 1er novembre 2026 — Statique : test natif en cours
 
-**ATTENTION INSTALLATION TEMPORAIRE : ASI et chargeur V1.138 désactivés après sauvegarde et fermeture autorisée du jeu. Rétablir les deux fichiers V1.138 après l'essai natif et fermeture du jeu ; INI conservé.** Aucun nouveau build/C++ ; Statique reste ouverte. La capture enregistre les déviations sans verrouillage forcé, et le défaut persiste avec Vanilla Aim / 3D ON/OFF. [Résultats, limites et restauration](STATIC_LOCK_AND_BASELINE_2026_11_01.md). Retour utilisateur : Stoneskin sans défaut en V1.136 lors d'un essai, mais intermittent ; V1.138 en cours, non validée.
+**V1.138 RÉTABLIE après l'essai sans ASI, jeu fermé et empreintes/INI vérifiés.** Retour utilisateur sans mod : « identique je pense », comparaison probable à confirmer. Le ciblage natif est conservé ; la couverture optionnelle par munition reste à réparer. Aucun nouveau build/C++ ; Statique reste ouverte. La capture enregistre les déviations sans verrouillage forcé, et le défaut persiste avec Vanilla Aim / 3D ON/OFF. [Résultats, limites et restauration](STATIC_LOCK_AND_BASELINE_2026_11_01.md). Retour utilisateur : Stoneskin sans défaut en V1.136 lors d'un essai, mais intermittent ; V1.138 en cours, non validée.
 
 ---
 
