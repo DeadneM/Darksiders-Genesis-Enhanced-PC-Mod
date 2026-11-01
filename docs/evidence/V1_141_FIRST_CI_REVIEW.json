@@ -14,5 +14,5 @@
     "OverlayLayout: Default button bounds in narrow large-font window"
   ],
   "packagePublished": false,
-  "response": "Three approval expectations corrected; scrollbar width capped at 16px, retaining all layout interaction/bounds checks."
+  "response": "Three approval expectations corrected; scrollbar width capped at 16px and Default button width/padding bounded by available space, retaining its label/ID and all layout interaction/bounds checks."
 }

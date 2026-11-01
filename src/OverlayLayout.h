@@ -106,7 +106,8 @@ inline bool NumberRow(const char* label,const char* id,float* value,
     ImGui::PushID(id);Label(label);
     const float available=std::max(1.f,ImGui::GetContentRegionAvail().x);
     const float scale=ImGui::GetFontSize()/13.f,gap=ImGui::GetStyle().ItemSpacing.x;
-    const float resetWidth=ImGui::CalcTextSize("Default").x+2*ImGui::GetStyle().FramePadding.x;
+    const float resetText=ImGui::CalcTextSize("Default").x;
+    const float resetWidth=std::min(available,resetText+2*ImGui::GetStyle().FramePadding.x);
     const float manualWidth=std::min(100.f*scale,available);
     const bool oneLine=available>=160.f*scale+manualWidth+resetWidth+2*gap;
     ImGui::SetNextItemWidth(oneLine?available-manualWidth-resetWidth-2*gap:available);
@@ -115,7 +116,12 @@ inline bool NumberRow(const char* label,const char* id,float* value,
     ImGui::SetNextItemWidth(manualWidth);changed|=ImGui::InputFloat("##Manual",value,0,0,inputFormat);
     if(ImGui::IsItemHovered())ImGui::SetTooltip("Enter an exact value.");
     SameLineIfFits(resetWidth);
-    if(ImGui::Button("Default")){*value=original;changed=true;}
+    // At the largest font in a narrow window, reduce padding before letting
+    // the reset control overflow. Keep its full label, ID and click behavior.
+    const auto padding=ImGui::GetStyle().FramePadding;
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2(std::max(0.f,std::min(padding.x,(resetWidth-resetText)*.5f)),padding.y));
+    if(ImGui::Button("Default",ImVec2(resetWidth,0))){*value=original;changed=true;}
+    ImGui::PopStyleVar();
     if(changed){if(!std::isfinite(*value))*value=original;*value=std::clamp(*value,minimum,maximum);}
     ImGui::PopID();return changed;
 }
