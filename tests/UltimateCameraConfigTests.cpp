@@ -54,7 +54,7 @@ int main(){
     WritePrivateProfileStringW(L"Values",L"TPSHorseHeightOffset",L"inf",path);
     check(read.Load()&&almostEqual(read.tpsHorseDistanceMultiplier,0.25f)&&almostEqual(read.tpsHorseHeightOffset,10),"invalid Horse values fall back to current normal camera");
     read.ResetTpsCameraValues();
-    check(almostEqual(read.thirdPersonFovDegrees,110)&&almostEqual(read.thirdPersonCoopFovDegrees,110),"TPS reset includes solo and coop FOV");
+    check(almostEqual(read.thirdPersonFovDegrees,110)&&almostEqual(read.thirdPersonCoopFovDegrees,80),"TPS reset includes independent approved solo and coop FOV");
     check(almostEqual(read.tpsUltimateDistanceMultiplier,0.30f)&&almostEqual(read.tpsUltimateHeightOffset,80),"TPS reset includes Ultimate values");
     check(almostEqual(read.tpsHorseDistanceMultiplier,0.25f)&&almostEqual(read.tpsHorseHeightOffset,40),"TPS reset includes user-chosen Horse values");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,path);DeleteFileW(path);

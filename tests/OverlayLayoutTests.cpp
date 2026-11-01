@@ -15,6 +15,7 @@ FrameResult Frame(float width,float font,float& value,int& choice){
         ImGui::Begin("Menu layout test",nullptr,ImGuiWindowFlags_NoSavedSettings|ImGuiWindowFlags_NoMove);
         const float right=ImGui::GetCursorScreenPos().x+ImGui::GetContentRegionAvail().x;
         result.changed=dg::overlay::layout::NumberRow("Value with a wrapping label","value",&value,0,10,1,"%.2f");
+        if(ImGui::GetItemRectMax().x>right+.5f)std::cerr<<"Default bounds font="<<font<<" width="<<width<<" right="<<right<<" item="<<ImGui::GetItemRectMax().x<<'\n';
         Check(ImGui::GetItemRectMax().x<=right+.5f,"Default button fits at every font/window width");
         const auto lo=ImGui::GetItemRectMin(),hi=ImGui::GetItemRectMax();result.click={(lo.x+hi.x)/2,(lo.y+hi.y)/2};
         const char* choices[]={"Native","Alternative"};

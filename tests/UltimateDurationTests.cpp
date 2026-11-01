@@ -49,7 +49,7 @@ void Run(){
     rt.ultimateDecreaseEnabled=true;Use();Check(received==2,"infinite OFF restores the retained multiplier when enabled");
 
     wchar_t folder[MAX_PATH]{},path[MAX_PATH]{};Check(GetTempPathW(MAX_PATH,folder)&&GetTempFileNameW(folder,L"DGU",0,path),"temporary INI");
-    dg::config::Store config;config.SetPath(path);config.Load();Check(!config.ultimateDecreaseEnabled&&config.ultimateDurationMultiplier==2,"duration option is opt-in with x2 parameter default");
+    dg::config::Store config;config.SetPath(path);config.Load();Check(!config.ultimateDecreaseEnabled&&config.ultimateDurationMultiplier==1,"duration option is opt-in with approved neutral parameter default");
     config.ultimateDecreaseEnabled=true;config.ultimateDurationMultiplier=.5f;config.hotkeys[10]=dg::config::Action::InfiniteUltimateDuration;
     config.ultimateInfiniteDurationEnabled=true;
     Check(config.SaveNow(),"duration saved");dg::config::Store loaded;loaded.SetPath(path);
@@ -58,7 +58,7 @@ void Run(){
     static_assert(int(dg::config::Action::InfiniteDoubleJump)==51&&int(dg::config::Action::UltimateDecreaseRate)==52);
     static_assert(int(dg::config::Action::InfiniteUltimateDuration)==53);
     loaded.ultimateDurationMultiplier=0;Check(loaded.SaveNow()&&loaded.Load()&&loaded.ultimateDurationMultiplier==0,"zero survives profile load");
-    loaded.ResetDefaults(false);Check(!loaded.ultimateDecreaseEnabled&&!loaded.ultimateInfiniteDurationEnabled&&loaded.ultimateDurationMultiplier==2,"reset preserves opt-in defaults");
+    loaded.ResetDefaults(false);Check(!loaded.ultimateDecreaseEnabled&&!loaded.ultimateInfiniteDurationEnabled&&loaded.ultimateDurationMultiplier==1,"reset preserves approved opt-in defaults");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,path);DeleteFileW(path);
 }
 }

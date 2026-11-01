@@ -23,7 +23,7 @@ Un INI existant reste prioritaire, y compris OFF/None. L'updater le conserve : i
 
 ## Présentation
 
-Palette bleu sombre plus contrastée, descriptions secondaires plus lisibles, cases cochées/curseurs accentués, bordures et espacements homogènes, barre de défilement adaptée à la police. Groupes plus hauts et sous-titres colorés avec séparateur. États disponibles/indisponibles distingués par couleur et texte existant. Pas de fonction nouvelle, d'animation ni scan ajouté.
+Palette bleu sombre plus contrastée, descriptions secondaires plus lisibles, cases cochées/curseurs accentués, bordures et espacements homogènes, barre de défilement plus large mais bornée pour les fenêtres étroites. Groupes plus hauts et sous-titres colorés avec séparateur. États disponibles/indisponibles distingués par couleur et texte existant. Pas de fonction nouvelle, d'animation ni scan ajouté.
 
 Identifiants des onglets/groupes/contrôles conservés ; groupes fermés par défaut, état ouvert conservé si l'utilisateur le mémorise. Aide courte et détails au survol maintenus. Toutes les couleurs/variables de style sont restaurées à la sortie de l'overlay.
 

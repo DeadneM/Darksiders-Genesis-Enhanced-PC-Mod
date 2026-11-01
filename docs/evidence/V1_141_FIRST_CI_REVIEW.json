@@ -1,0 +1,18 @@
+{
+  "runId": 41331182231,
+  "jobId": 124921480835,
+  "sourceCommit": "7118e6015637a5f47ddf5b45813df2f068cf6ab9",
+  "compiled": true,
+  "warnings": 0,
+  "errors": 0,
+  "suites": 70,
+  "passed": 66,
+  "failed": [
+    "PistolVisual: old missing-key jump OFF expectation",
+    "UltimateDuration: old x2 default expectation",
+    "UltimateCameraConfig: old coop reset 110 expectation",
+    "OverlayLayout: Default button bounds in narrow large-font window"
+  ],
+  "packagePublished": false,
+  "response": "Three approval expectations corrected; scrollbar width capped at 16px, retaining all layout interaction/bounds checks."
+}

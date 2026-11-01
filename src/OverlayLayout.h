@@ -20,7 +20,9 @@ public:
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding,4*scale);
         ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding,3*scale);
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize,1.f);
-        ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize,16*scale);
+        // Keep the scrollbar legible without consuming a large-font narrow
+        // window's whole value/reset area.
+        ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize,16.f);
         const std::pair<ImGuiCol,ImVec4> colors[]={
             {ImGuiCol_Text,{.94f,.96f,.99f,1}},
             {ImGuiCol_TextDisabled,{.66f,.72f,.80f,1}},
