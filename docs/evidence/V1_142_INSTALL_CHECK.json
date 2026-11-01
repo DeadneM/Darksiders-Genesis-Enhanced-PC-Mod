@@ -1,0 +1,32 @@
+{
+  "version": "V1.142",
+  "installed": true,
+  "time": "2026-11-01T23:18:28.3715562+01:00",
+  "backup": "C:\\Users\\deadn\\.codex\\.chatgpt-projects\\g-p-6ac1496f81ec8191b55c0e4db2eefebd\\audit-v131\\install-backups\\before-V1.142-20261101-231817-8451d5",
+  "files": {
+    "DarksidersGenesisMod.asi": "3BC4F499DCB913B2E25436FD8A1E5EEADF6009B88EF5905F2D5D76BFB725CBB7",
+    "dxgi.dll": "25C1F614CAD78CA862475B09D718FCB1890649942628D8D6FCAE1548A84DC4FA"
+  },
+  "previous": {
+    "DarksidersGenesisMod.asi": "6DD13E03EB3BF929DD3F57A4D95C6B363DC5283A4A76D78E86B96441722160E6",
+    "dxgi.dll": "CE5D53BB69A880C1BC07ADD210DDCA5902BA0AF0F64E2CD8D07C7C27BA4A5839"
+  },
+  "protectedBefore": {
+    "C:\\Program Files (x86)\\Steam\\steamapps\\common\\DarksidersGenesis\\ProjectMayhem\\Binaries\\Win64\\DarksidersGenesisMod.ini": "5242C280F30CA323EE484B7194315DADB255372819677F1BC027B63FE65AABB1",
+    "C:\\Program Files (x86)\\Steam\\steamapps\\common\\DarksidersGenesis\\ProjectMayhem\\Binaries\\Win64\\README.md": "693FCBC3040BEE22A58D76E9D0DECC8116A891A1898162FD4A956F2984A0A799",
+    "C:\\Program Files (x86)\\Steam\\steamapps\\common\\DarksidersGenesis\\ProjectMayhem\\Binaries\\Win64\\DarksidersGenesis-Win64-Shipping.exe": "9F4702024DF5EEA1D51DF7745B0AD1EA95B97009982F73DDC1218C53DFF33D54",
+    "C:\\Users\\deadn\\AppData\\Local\\THQ Nordic\\Darksiders Genesis\\Saved\\Config\\WindowsNoEditor\\Engine.ini": "20E45AFDB8D2B526164CD4CCE8724C1B1C96A27B781286451701143DA994AC31"
+  },
+  "protectedAfter": {
+    "C:\\Program Files (x86)\\Steam\\steamapps\\common\\DarksidersGenesis\\ProjectMayhem\\Binaries\\Win64\\DarksidersGenesisMod.ini": "5242C280F30CA323EE484B7194315DADB255372819677F1BC027B63FE65AABB1",
+    "C:\\Program Files (x86)\\Steam\\steamapps\\common\\DarksidersGenesis\\ProjectMayhem\\Binaries\\Win64\\README.md": "693FCBC3040BEE22A58D76E9D0DECC8116A891A1898162FD4A956F2984A0A799",
+    "C:\\Program Files (x86)\\Steam\\steamapps\\common\\DarksidersGenesis\\ProjectMayhem\\Binaries\\Win64\\DarksidersGenesis-Win64-Shipping.exe": "9F4702024DF5EEA1D51DF7745B0AD1EA95B97009982F73DDC1218C53DFF33D54",
+    "C:\\Users\\deadn\\AppData\\Local\\THQ Nordic\\Darksiders Genesis\\Saved\\Config\\WindowsNoEditor\\Engine.ini": "20E45AFDB8D2B526164CD4CCE8724C1B1C96A27B781286451701143DA994AC31"
+  },
+  "personalIniPreserved": true,
+  "paksUnchanged": true,
+  "gameLaunched": false,
+  "gameplayValidated": false,
+  "previousVersion": "V1.141",
+  "backupDirectoryName": "before-V1.142-20261101-231817-8451d5"
+}
