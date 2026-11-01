@@ -1,3 +1,9 @@
+## 1er novembre 2026 — Statique : test natif en cours
+
+**ATTENTION INSTALLATION TEMPORAIRE : ASI et chargeur V1.138 désactivés après sauvegarde et fermeture autorisée du jeu. Rétablir les deux fichiers V1.138 après l'essai natif et fermeture du jeu ; INI conservé.** Aucun nouveau build/C++ ; Statique reste ouverte. La capture enregistre les déviations sans verrouillage forcé, et le défaut persiste avec Vanilla Aim / 3D ON/OFF. [Résultats, limites et restauration](STATIC_LOCK_AND_BASELINE_2026_11_01.md). Retour utilisateur : Stoneskin sans défaut en V1.136 lors d'un essai, mais intermittent ; V1.138 en cours, non validée.
+
+---
+
 ## V1.138 — revêtement Stoneskin après chargement
 
 **CONSTRUITE / CONTRÔLÉE : [70/70 contrôles Windows, zéro avertissement/erreur MSVC](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41297934297). EXPÉRIMENTALE, À VALIDER EN JEU.** [ZIP cumulatif vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/9f9d97875443f29d806c059cec158a1e47e953cd/downloads/DarksidersGenesis_V1.138_STONESKIN_ASSET_RECOVERY_TEST.zip) — [Reçu et tests](V1_138_DELIVERY_RECEIPT.md). Updater debug et Defender vérifiés ; aucune installation par l'agent. Même correction candidate que V1.137 : retrouver les ressources tardives et vérifier le vrai matériau minéral requis, avec recherche limitée au joueur concerné. Deux avertissements de nommage V1.137 corrigés par renommage du paramètre de temps. Son archive et ses 70/70 contrôles sont conservés. [Périmètre, limites et tests](V1_138_STONESKIN_ASSET_RECOVERY_TEST.md).

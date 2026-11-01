@@ -1,0 +1,416 @@
+{
+  "date": "2026-11-01",
+  "branch": "debug",
+  "sourceBase": "9a5e9b8a880287ceb73b9b6eff2f1cff1f20e90e",
+  "codeChanged": false,
+  "newBuild": false,
+  "status": "DIAGNOSTIC_RECORDED_NATIVE_BASELINE_AWAITING_USER",
+  "userReports": {
+    "stoneskin": "Absent bug in V1.136 reported, intermittent across levels; V1.138 under user test, not validated.",
+    "static": "Same attraction in Camera Forward, Vanilla Aim and both 3D aiming settings; also observed in native view with ASI loaded."
+  },
+  "offline": {
+    "exeSha256": "9F4702024DF5EEA1D51DF7745B0AD1EA95B97009982F73DDC1218C53DFF33D54",
+    "hardLockWeak": "actor+0xE90",
+    "autoSelectionWeak": "actor+0xE98",
+    "targetGetterRva": "0x66A5B0",
+    "priority": [
+      "live hard-lock target",
+      "live auto-selected target"
+    ],
+    "setAction": 62,
+    "clearAction": 63,
+    "setCaseRva": "0x665666",
+    "clearCaseRva": "0x665682",
+    "nativeAngleMultiplier": 0.008726646192371845,
+    "meaning": "pi/360, full cone in degrees; 45 field means +/-22.5 degrees"
+  },
+  "capture": {
+    "privateFile": "v245-hardlock-20261101-120256.jsonl",
+    "sha256": "5CE22A451EF56155A8BB93351AC82CC9C401793133BA8BCA408FF0FF41499BE8",
+    "samples": 5290,
+    "seconds": 538.23,
+    "rejectedSamples": 147,
+    "ineligibleSamples": {
+      "War_Blueprint_C": 610
+    },
+    "beamSamples": 475,
+    "assignedBeamSamples": 185,
+    "hardLockSamples": 0,
+    "settingsKeys": [
+      "ThirdPerson",
+      "TPSMountedAimMode",
+      "TPS3DAim",
+      "TPSAimPitchOffsetDegrees",
+      "TPSNativeAimAssist",
+      "TPSNativeAimAssistGlobal"
+    ],
+    "phases": [
+      {
+        "settings": [
+          "1",
+          "0",
+          "1",
+          "12.000",
+          "0",
+          "100.000"
+        ],
+        "firstSeconds": 0.0,
+        "lastSeconds": 423.8440000000119,
+        "samples": 1862,
+        "players": 1772,
+        "hardLock": 0,
+        "beams": 173,
+        "assignedBeams": 66,
+        "selectedMatches": 66,
+        "profiles": [
+          {
+            "ability": "MayhemAbility_Strife_DualPistols_Aim_Blueprint_C",
+            "offset": "0x218",
+            "floats": [
+              7500.0,
+              90.0,
+              45.0,
+              0.75,
+              1.0
+            ]
+          },
+          {
+            "ability": "MayhemAbility_Strife_StaticShot_Aim_Blueprint_C",
+            "offset": "0x218",
+            "floats": [
+              7500.0,
+              90.0,
+              45.0,
+              0.75,
+              1.0
+            ]
+          }
+        ]
+      },
+      {
+        "settings": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "firstSeconds": 135.23400000002584,
+        "lastSeconds": 427.9220000000205,
+        "samples": 12,
+        "players": 12,
+        "hardLock": 0,
+        "beams": 0,
+        "assignedBeams": 0,
+        "selectedMatches": 0,
+        "profiles": [
+          {
+            "ability": "MayhemAbility_Strife_DualPistols_Aim_Blueprint_C",
+            "offset": "0x218",
+            "floats": [
+              7500.0,
+              90.0,
+              45.0,
+              0.75,
+              1.0
+            ]
+          }
+        ]
+      },
+      {
+        "settings": [
+          "0",
+          "0",
+          "1",
+          "12.000",
+          "0",
+          "100.000"
+        ],
+        "firstSeconds": 135.34400000001187,
+        "lastSeconds": 272.98400000002584,
+        "samples": 1355,
+        "players": 1355,
+        "hardLock": 0,
+        "beams": 63,
+        "assignedBeams": 36,
+        "selectedMatches": 36,
+        "profiles": [
+          {
+            "ability": "MayhemAbility_Strife_DualPistols_Aim_Blueprint_C",
+            "offset": "0x218",
+            "floats": [
+              7500.0,
+              90.0,
+              45.0,
+              0.75,
+              1.0
+            ]
+          },
+          {
+            "ability": "MayhemAbility_Strife_StaticShot_Aim_Blueprint_C",
+            "offset": "0x218",
+            "floats": [
+              7500.0,
+              90.0,
+              45.0,
+              0.75,
+              1.0
+            ]
+          },
+          {
+            "ability": "MayhemAbility_Strife_StandardShot_Aim_Blueprint_C",
+            "offset": "0x218",
+            "floats": [
+              7500.0,
+              90.0,
+              45.0,
+              0.75,
+              1.0
+            ]
+          }
+        ]
+      },
+      {
+        "settings": [
+          "1",
+          "0",
+          "0",
+          "12.000",
+          "0",
+          "100.000"
+        ],
+        "firstSeconds": 282.93700000000536,
+        "lastSeconds": 418.9690000000119,
+        "samples": 389,
+        "players": 389,
+        "hardLock": 0,
+        "beams": 72,
+        "assignedBeams": 52,
+        "selectedMatches": 52,
+        "profiles": [
+          {
+            "ability": "MayhemAbility_Strife_DualPistols_Aim_Blueprint_C",
+            "offset": "0x218",
+            "floats": [
+              7500.0,
+              90.0,
+              45.0,
+              0.75,
+              1.0
+            ]
+          },
+          {
+            "ability": "MayhemAbility_Strife_StaticShot_Aim_Blueprint_C",
+            "offset": "0x218",
+            "floats": [
+              7500.0,
+              90.0,
+              45.0,
+              0.75,
+              1.0
+            ]
+          }
+        ]
+      },
+      {
+        "settings": [
+          "1",
+          "1",
+          "1",
+          "12.000",
+          "0",
+          "100.000"
+        ],
+        "firstSeconds": 288.8440000000119,
+        "lastSeconds": 379.625,
+        "samples": 547,
+        "players": 501,
+        "hardLock": 0,
+        "beams": 112,
+        "assignedBeams": 23,
+        "selectedMatches": 23,
+        "profiles": [
+          {
+            "ability": "MayhemAbility_Strife_DualPistols_Aim_Blueprint_C",
+            "offset": "0x218",
+            "floats": [
+              7500.0,
+              90.0,
+              45.0,
+              0.75,
+              1.0
+            ]
+          },
+          {
+            "ability": "MayhemAbility_Strife_StandardShot_Aim_Blueprint_C",
+            "offset": "0x218",
+            "floats": [
+              7500.0,
+              90.0,
+              45.0,
+              0.75,
+              1.0
+            ]
+          },
+          {
+            "ability": "MayhemAbility_Strife_StaticShot_Aim_Blueprint_C",
+            "offset": "0x218",
+            "floats": [
+              7500.0,
+              90.0,
+              45.0,
+              0.75,
+              1.0
+            ]
+          }
+        ]
+      },
+      {
+        "settings": [
+          "1",
+          "0",
+          "1",
+          "12.000",
+          "1",
+          "100.000"
+        ],
+        "firstSeconds": 423.93700000000536,
+        "lastSeconds": 427.0940000000119,
+        "samples": 32,
+        "players": 32,
+        "hardLock": 0,
+        "beams": 0,
+        "assignedBeams": 0,
+        "selectedMatches": 0,
+        "profiles": []
+      },
+      {
+        "settings": [
+          "1",
+          "0",
+          "1",
+          "12.000",
+          "1",
+          "26.000"
+        ],
+        "firstSeconds": 427.2970000000205,
+        "lastSeconds": 428.01500000001397,
+        "samples": 7,
+        "players": 7,
+        "hardLock": 0,
+        "beams": 0,
+        "assignedBeams": 0,
+        "selectedMatches": 0,
+        "profiles": []
+      },
+      {
+        "settings": [
+          "1",
+          "0",
+          "1",
+          "12.000",
+          "1",
+          "0.000"
+        ],
+        "firstSeconds": 428.125,
+        "lastSeconds": 431.48400000002584,
+        "samples": 34,
+        "players": 34,
+        "hardLock": 0,
+        "beams": 0,
+        "assignedBeams": 0,
+        "selectedMatches": 0,
+        "profiles": []
+      },
+      {
+        "settings": [
+          "1",
+          "0",
+          "1",
+          "12.000",
+          "1",
+          "50.000"
+        ],
+        "firstSeconds": 431.5780000000086,
+        "lastSeconds": 538.2340000000258,
+        "samples": 1052,
+        "players": 431,
+        "hardLock": 0,
+        "beams": 55,
+        "assignedBeams": 8,
+        "selectedMatches": 8,
+        "profiles": [
+          {
+            "ability": "MayhemAbility_Strife_DualPistols_Aim_Blueprint_C",
+            "offset": "0x218",
+            "floats": [
+              7500.0,
+              90.0,
+              45.0,
+              0.75,
+              1.0
+            ]
+          },
+          {
+            "ability": "MayhemAbility_Strife_StaticShot_Aim_Blueprint_C",
+            "offset": "0x218",
+            "floats": [
+              7500.0,
+              90.0,
+              45.0,
+              0.75,
+              1.0
+            ]
+          },
+          {
+            "ability": "MayhemAbility_Strife_GhostHook_Weapon_Aim_Blueprint_C",
+            "offset": "0x218",
+            "floats": [
+              7200.0,
+              110.0,
+              50.0,
+              1.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "limitations": [
+    "Samples are not unique shots or impacts.",
+    "Read failures/state transitions are rejected, not counted as valid negative target observations.",
+    "Positions, directions and targets varied: phase ratios are not causal A/B measurements.",
+    "Parameters were read between calls; temporary scaling is restored inside the original selector call.",
+    "No unmodified-game targeting result yet.",
+    "Absence of hard lock rules it out only for the recorded eligible samples."
+  ],
+  "nativeBaseline": {
+    "state": "DISABLED_FOR_NATIVE_BASELINE",
+    "time": "2026-11-01T12:12:47.7862942+01:00",
+    "gameWasClosed": true,
+    "gameLaunchedByAgent": false,
+    "iniPreserved": true,
+    "iniSha256": "39D536A03082F175136EC5E9B9C5CE26329B8F77097A5A483EB9A05B619B062C",
+    "files": [
+      {
+        "name": "DarksidersGenesisMod.asi",
+        "disabledName": "DarksidersGenesisMod.asi.disabled-native-baseline-V1.138",
+        "sha256": "B08AFDCE2208E82A99042CA7C7F7F965AD86DDF264B30A7F940B85171E48DAC4"
+      },
+      {
+        "name": "dxgi.dll",
+        "disabledName": "dxgi.dll.disabled-native-baseline-V1.138",
+        "sha256": "0F34B924C04AC1394EF6040D852D3AF208874C8454EBF5B39E82DC8842075F73"
+      }
+    ],
+    "restorationRequiredAfterTestGameClosed": true,
+    "savesTouched": false,
+    "paksTouched": false,
+    "additionalPakInventoryRecursive": [],
+    "pakIntegrityVerified": false
+  },
+  "next": "Compare Static with both ASI and DXGI proxy absent, then restore exact V1.138 files after game exit before any further build or install."
+}
