@@ -24,7 +24,8 @@ namespace DarksidersGenesisUpdater {
         internal const string GameExe="DarksidersGenesis-Win64-Shipping.exe";
         private const string GameSha256="9f4702024df5eea1d51df7745b0ad1ea95b97009982f73ddc1218c53dff33d54";
         private const long MaxZip=32L*1024*1024;
-        internal static readonly string[] Files={"dxgi.dll","DarksidersGenesisMod.asi",
+        internal static readonly string[] Binaries={"dxgi.dll","DarksidersGenesisMod.asi"};
+        private static readonly string[] LegacyFiles={"dxgi.dll","DarksidersGenesisMod.asi",
             "DarksidersGenesisMod.ini","README.md"};
         private static readonly string DataRoot=Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -173,13 +174,13 @@ namespace DarksidersGenesisUpdater {
                     throw new InvalidDataException("Not a Windows AMD64 module");
             }
         }
-        private static void Extract(string zipfile,string stage) {
+        internal static void Extract(string zipfile,string stage) {
             Directory.CreateDirectory(stage);
             var found=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             using(var zip=ZipFile.OpenRead(zipfile)){
                 foreach(ZipArchiveEntry e in zip.Entries){
                     string name=e.FullName;
-                    if(!Files.Any(x=>string.Equals(x,name,StringComparison.Ordinal)) ||
+                    if(!LegacyFiles.Any(x=>string.Equals(x,name,StringComparison.Ordinal)) ||
                         !found.Add(name))
                         throw new InvalidDataException("Unexpected, nested or duplicate ZIP entry: "+name);
                     long max=name=="README.md"?3L*1024*1024:
@@ -190,7 +191,8 @@ namespace DarksidersGenesisUpdater {
                         FileAccess.Write,FileShare.None))input.CopyTo(dest);
                 }
             }
-            if(found.Count!=4)throw new InvalidDataException("Expected precisely four root mod files");
+            if(!found.SetEquals(Binaries)&&!found.SetEquals(LegacyFiles))
+                throw new InvalidDataException("Expected two root binaries or the exact legacy four-file layout");
             CheckPe(Path.Combine(stage,"dxgi.dll"));
             CheckPe(Path.Combine(stage,"DarksidersGenesisMod.asi"));
         }
@@ -212,7 +214,7 @@ namespace DarksidersGenesisUpdater {
             File.WriteAllText(Path.Combine(backup,"state.txt"),previous??"",Encoding.UTF8);
             var manifest=new Dictionary<string,string>(StringComparer.Ordinal);
             foreach(string name in changed){
-                if(!Files.Contains(name))throw new InvalidDataException("Invalid backup filename");
+                if(!LegacyFiles.Contains(name))throw new InvalidDataException("Invalid backup filename");
                 string source=Path.Combine(folder,name),saved=Path.Combine(backup,name);
                 if(File.Exists(source)){
                     File.Copy(source,saved);
@@ -234,11 +236,12 @@ namespace DarksidersGenesisUpdater {
             string complete=Path.Combine(backup,"backup.complete.json");
             if(!File.Exists(complete))throw new InvalidDataException("Backup is incomplete or predates verified backups");
             var manifest=new JavaScriptSerializer().Deserialize<Dictionary<string,string>>(File.ReadAllText(complete));
-            if(manifest==null||manifest.Count<4||manifest.Count>5||
-               !new[]{"dxgi.dll","DarksidersGenesisMod.asi","README.md","state.txt"}.All(manifest.ContainsKey))
+            if(manifest==null||manifest.Count<3||manifest.Count>5||
+               !Binaries.Concat(new[]{"state.txt"}).All(manifest.ContainsKey)||
+               (manifest.Count>3&&!manifest.ContainsKey("README.md")))
                 throw new InvalidDataException("Incomplete backup manifest");
             foreach(var entry in manifest){
-                if(entry.Key!="state.txt"&&!Files.Contains(entry.Key))throw new InvalidDataException("Unexpected backup filename");
+                if(entry.Key!="state.txt"&&!LegacyFiles.Contains(entry.Key))throw new InvalidDataException("Unexpected backup filename");
                 string saved=Path.Combine(backup,entry.Key);
                 if(entry.Value=="MISSING"&&entry.Key!="state.txt"){
                     if(File.Exists(saved)||!File.Exists(saved+".missing"))throw new InvalidDataException("Invalid missing-file record");
@@ -251,14 +254,14 @@ namespace DarksidersGenesisUpdater {
         internal static void RestoreVerifiedBackup(string folder,string backup) {
             var manifest=VerifyBackup(backup); // check ALL files before any write
             foreach(var entry in manifest){
-                if(entry.Key=="state.txt"||entry.Key=="DarksidersGenesisMod.ini")continue;
+                if(!Binaries.Contains(entry.Key))continue;
                 string dest=Path.Combine(folder,entry.Key);
                 if(entry.Value=="MISSING"){
                     if(File.Exists(dest))File.Delete(dest);
                 }else File.Copy(Path.Combine(backup,entry.Key),dest,true);
             }
             foreach(var entry in manifest){
-                if(entry.Key=="state.txt"||entry.Key=="DarksidersGenesisMod.ini")continue;
+                if(!Binaries.Contains(entry.Key))continue;
                 string dest=Path.Combine(folder,entry.Key);
                 if(entry.Value=="MISSING"?File.Exists(dest):!File.Exists(dest)||FileDigest(dest)!=entry.Value)
                     throw new IOException("Restored file verification failed: "+entry.Key);
@@ -277,7 +280,7 @@ namespace DarksidersGenesisUpdater {
                 Download(p,archive);
                 Extract(archive,stage);
                 ValidateFolder(folder);
-                progress("GitHub checksum and four ZIP entries verified.");
+                progress("GitHub checksum, ZIP layout and both x64 binaries verified.");
                 bool hasIni=File.Exists(Path.Combine(folder,"DarksidersGenesisMod.ini"));
                 if(EqualBinary(Path.Combine(stage,"dxgi.dll"),Path.Combine(folder,"dxgi.dll")) &&
                     EqualBinary(Path.Combine(stage,"DarksidersGenesisMod.asi"),Path.Combine(folder,"DarksidersGenesisMod.asi"))){
@@ -289,9 +292,8 @@ namespace DarksidersGenesisUpdater {
                 string backup=Path.Combine(root,DateTime.Now.ToString("yyyyMMdd-HHmmss-fff")+"-"+
                     Guid.NewGuid().ToString("N").Substring(0,6));
                 string previous=ReadState(folder);
-                var changed=new List<string>{"dxgi.dll","DarksidersGenesisMod.asi","README.md"};
-                if(!hasIni)changed.Add("DarksidersGenesisMod.ini");
-                CompleteBackup(folder,backup,changed.ToArray(),previous);
+                var changed=Binaries;
+                CompleteBackup(folder,backup,changed,previous);
                 progress("Previous files backed up under LocalAppData.");
                 try {
                     ValidateFolder(folder);
@@ -307,7 +309,7 @@ namespace DarksidersGenesisUpdater {
                     }
                     SaveState(folder,p.Token);
                     return "Installed "+p.Version+" from "+p.Channel+
-                        (hasIni?". Existing INI preserved.":". Default INI created.");
+                        (hasIni?". Existing INI preserved.":". The ASI will create its INI on the next game launch.");
                 } catch {
                     try {RestoreVerifiedBackup(folder,backup);}
                     catch(Exception ex){throw new IOException("Install failed; restore incomplete. Verified backup retained at "+backup,ex);}

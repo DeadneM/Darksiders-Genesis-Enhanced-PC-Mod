@@ -1,0 +1,27 @@
+{
+  "base": "693cdd00e2f34d35fc7f58f9e27b829edb0605af",
+  "menuBaseAccepted": true,
+  "manualTransitionExplicitlyAccepted": true,
+  "newRootFiles": [
+    "DarksidersGenesisMod.asi",
+    "dxgi.dll"
+  ],
+  "newStandaloneRequired": false,
+  "automaticStandalonePublishing": false,
+  "legacyArchiveAndBackupSupport": true,
+  "updaterInstallsOnlyBinaryPair": true,
+  "iniAndReadmeNeverRestored": true,
+  "iniDefaultsUnchanged": true,
+  "keys": 228,
+  "hotkeyIds": 55,
+  "newHooks": 0,
+  "protectedBranchesChanged": false,
+  "localBuild": false,
+  "localInstall": false,
+  "workflowShapeReviewed": true,
+  "workflowYamlParserUnavailable": true,
+  "githubValidationPending": true,
+  "reviewOne": "Standard checkbox presentation and unchanged aim fields; exact package layout and binary-only install plan",
+  "reviewTwo": "Strict old/new extraction, paths/duplicates/PE bounds, old/new verified backups, no INI/README copy, immutable archive publication and accepted manual transition",
+  "gameplayValidationPending": true
+}

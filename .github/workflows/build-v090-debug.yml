@@ -9,6 +9,7 @@ on:
       - "config/**"
       - "CMakeLists.txt"
       - "README.md"
+      - ".github/scripts/package-mod.ps1"
       - ".github/workflows/build-v090-debug.yml"
 permissions:
   contents: write
@@ -46,42 +47,11 @@ jobs:
         run: |
           ctest --test-dir build -C Release --output-on-failure
           if ($LASTEXITCODE -ne 0) { throw "Policy or configuration tests failed" }
-      - name: Package verified four root files
+      - name: Package verified two root binaries
         if: ${{ !contains(github.event.head_commit.message, '[check only]') }}
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Stop'
-          New-Item -ItemType Directory -Path dist -Force | Out-Null
-          Copy-Item build/out/dxgi.dll dist/
-          Copy-Item build/out/DarksidersGenesisMod.asi dist/
-          Copy-Item config/DarksidersGenesisMod.ini dist/
-          Copy-Item README.md dist/
-          New-Item -ItemType Directory -Path downloads -Force | Out-Null
-          $zipPath = 'downloads/' + $env:DG_ARCHIVE
-          if (Test-Path -LiteralPath $zipPath) { throw "A numbered ZIP already exists; use a new build version" }
-          # Transparent ZIP payload: V1.108's compressed container was flagged
-          # while the same four files and NoCompression container scanned clean.
-          Compress-Archive -Path 'dist/*' -DestinationPath $zipPath -CompressionLevel NoCompression
-          Add-Type -AssemblyName System.IO.Compression.FileSystem
-          $zip = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $zipPath))
-          try {
-            $names = @($zip.Entries | ForEach-Object { $_.FullName })
-            $expected = @('dxgi.dll','DarksidersGenesisMod.asi','DarksidersGenesisMod.ini','README.md')
-            foreach ($name in $expected) { if ($names -notcontains $name) { throw "Missing root entry $name" } }
-            if ($names.Count -ne 4) { throw "ZIP root requires 4 files; got $($names.Count)" }
-            if ($names | Where-Object { $_.Contains('/') -or $_.Contains('\') }) { throw 'Nested path in ZIP' }
-            foreach ($entry in $zip.Entries) {
-              $input = $entry.Open()
-              $memory = [System.IO.MemoryStream]::new()
-              try {
-                $input.CopyTo($memory)
-                $archived = $memory.ToArray()
-                $source = [System.IO.File]::ReadAllBytes((Join-Path (Resolve-Path dist) $entry.FullName))
-                if ($archived.Length -ne $source.Length -or [Convert]::ToBase64String($archived) -ne [Convert]::ToBase64String($source)) { throw "ZIP bytes differ: $($entry.FullName)" }
-              } finally { $input.Dispose(); $memory.Dispose() }
-            }
-          } finally { $zip.Dispose() }
-          Get-FileHash $zipPath -Algorithm SHA256
+          ./.github/scripts/package-mod.ps1 -ZipPath ('downloads/' + $env:DG_ARCHIVE)
       - name: Upload verified Windows x64 ZIP
         if: ${{ !contains(github.event.head_commit.message, '[check only]') }}
         uses: actions/upload-artifact@v4
@@ -103,7 +73,7 @@ jobs:
           for ($i=0; $i -lt 5; $i++) {
             git fetch origin debug
             if ($LASTEXITCODE -ne 0) { throw 'Fetch failed' }
-            git diff --quiet $env:GITHUB_SHA origin/debug -- src tests config CMakeLists.txt README.md .github/workflows/build-v090-debug.yml
+            git diff --quiet $env:GITHUB_SHA origin/debug -- src tests config updater CMakeLists.txt README.md .github/scripts/package-mod.ps1 .github/workflows/build-v090-debug.yml
             if ($LASTEXITCODE -eq 1) { throw 'Compiled sources have changed on debug; do not publish an obsolete numbered ZIP' }
             if ($LASTEXITCODE -ne 0) { throw 'Compiled source identity check failed' }
             $archivePath = 'downloads/' + $env:DG_ARCHIVE

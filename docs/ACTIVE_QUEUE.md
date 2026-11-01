@@ -1,3 +1,11 @@
+## V1.142 — aim assist accessible et ZIP à deux fichiers
+
+**PRÉPARÉE / EXPÉRIMENTALE, contrôles Windows GitHub en attente.** Base V1.141 acceptée : aim assist présenté comme les autres options, sans TreeNode caché. Nouveaux ZIP limités à l'ASI et dxgi.dll ; INI généré par l'ASI, README conservé sur GitHub. Updater embarqué compatible deux fichiers et anciennes archives, installation/restauration limitées aux binaires. [Périmètre, transition et essais](V1_142_AIM_ASSIST_MENU_BINARY_PACKAGE_TEST.md).
+
+Première mise à jour manuelle depuis V1.141 explicitement acceptée par l'utilisateur ; aucune installation automatique ni updater autonome requis. Défauts/228 clés/55 Hotkeys, acquis et anciennes archives conservés ; main/archive intactes. Pas de nouvel appel moteur ni changement de tir.
+
+---
+
 ## V1.141 — défauts approuvés et lisibilité du menu
 
 **CONSTRUITE / CONTRÔLÉE : [70/70 contrôles Windows, zéro avertissement/erreur MSVC](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41332088332). Défauts APPROUVÉS ; présentation EXPÉRIMENTALE, à valider en jeu.** [ZIP cumulatif vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/89a973bd2c0dcf09ef0148c893d5fba4bd04c3cb/downloads/DarksidersGenesis_V1.141_APPROVED_DEFAULTS_MENU_REFRESH_TEST.zip) — [Reçu et essais](V1_141_DELIVERY_RECEIPT.md). Base V1.140. Les 72 choix confirmés sont intégrés : 48 valeurs changent, 180 restent identiques. INI généré/livré, reset, runtime et boutons Default cohérents. Menu plus contrasté, groupes et états plus visibles, style entièrement restauré à la fermeture. [Périmètre et limites](V1_141_APPROVED_DEFAULTS_MENU_REFRESH_TEST.md).

@@ -1116,8 +1116,10 @@ void Draw(Context& c) {
                 ImGui::TextDisabled("Native movement and camera isolation are automatic in TPS.");
                 ImGui::Separator();
                 ImGui::TextDisabled("Unified TPS aiming (on foot + mounted)");
-                if(ImGui::TreeNode("Native TPS aim assist")){
-                    if(ImGui::Checkbox("Adjust native acquisition",&config.tpsAimAssistEnabled))config.Save();
+                DrawToggleFeature(config,"TPS aim assist","TPSNativeAimAssist",&config.tpsAimAssistEnabled,
+                    "Adjust native target acquisition angles. OFF or 100% keeps native angles. Range and Static chains stay native. Shared queries follow the native firing action; idle or ambiguous mixed fire stays native. Strife on foot, P1/P2; experimental.");
+                if(config.tpsAimAssistEnabled){
+                    ImGui::Indent(layout::ValueIndent());
                     constexpr const char* modes[]={"Global","Per ammunition"};
                     if(Choice("Adjustment mode##AimAssist",&config.tpsAimAssistMode,modes,2))config.Save();
                     if(config.tpsAimAssistMode==0){
@@ -1127,8 +1129,7 @@ void Draw(Context& c) {
                         if(NumberRow(aim_assist::Names[i],"TPSNativeAimAssistAmmo",&config.tpsAimAssistAmmo[i],0,200,100,"%.0f %%","%.1f"))config.Save();
                         ImGui::PopID();
                     }
-                    HelpText("OFF/100%: native angles. Other values change acquisition angles, preserving range and Static chains. Shared queries follow the native firing action; idle or ambiguous mixed fire stays native. Strife on foot, P1/P2; experimental.");
-                    ImGui::TreePop();
+                    ImGui::Unindent(layout::ValueIndent());
                 }
                 if(ImGui::Checkbox("3D aiming (experimental)",&config.tps3DAimEnabled))config.Save();
                 HelpText("Same camera and charged-shot correction in both modes. ON adds vertical aiming; OFF keeps native vertical aiming/arc. Mouse/controller, P1/P2, Camera Forward only.");

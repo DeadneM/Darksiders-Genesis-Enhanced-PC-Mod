@@ -1,10 +1,6 @@
-﻿name: Standalone updater V1.2 verified rollback TEST
+﻿name: Standalone updater V1.3 binary-only packages TEST
+# The ASI build embeds and tests the updater. Standalone packaging is manual.
 on:
-  push:
-    branches: [debug]
-    paths:
-      - "updater/**"
-      - ".github/workflows/build-updater-debug.yml"
   workflow_dispatch:
 permissions:
   contents: write
@@ -31,29 +27,38 @@ jobs:
           if ($bytes[0] -ne 77 -or $bytes[1] -ne 90) { throw 'Invalid PE executable' }
           $pe = [BitConverter]::ToInt32($bytes, 0x3C)
           if ([BitConverter]::ToUInt16($bytes, $pe+4) -ne 0x8664) { throw 'Not AMD64' }
+      - name: Check package and rollback safety
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+          & $csc /nologo /target:exe /platform:x64 /optimize+ /out:updater/bin/UpdateEngineSafetyTests.exe /r:System.dll /r:System.Core.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll /r:System.Web.Extensions.dll tests/UpdateEngineSafetyTests.cs updater/UpdateEngine.cs
+          if ($LASTEXITCODE -ne 0) { throw 'Safety test compile failed' }
+          $env:DGE_UPDATER_TEST_ROOT = Join-Path $PWD 'updater-safety-test'
+          & updater/bin/UpdateEngineSafetyTests.exe
+          if ($LASTEXITCODE -ne 0) { throw 'Updater safety tests failed' }
       - name: Package verified updater ZIP
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Path updater/dist,downloads -Force | Out-Null
           Copy-Item updater/bin/DarksidersGenesisUpdater.exe updater/dist/
-          Copy-Item updater/README.md updater/dist/README.md
-          $zipFile = 'downloads/DarksidersGenesisUpdater_V1.2_Windows.zip'
+          $zipFile = 'downloads/DarksidersGenesisUpdater_V1.3_Windows.zip'
           if (Test-Path -LiteralPath $zipFile) { throw "Numbered updater archive already exists; bump its version" }
-          Compress-Archive -Path 'updater/dist/*' -DestinationPath $zipFile -CompressionLevel Optimal
+          Compress-Archive -Path 'updater/dist/*' -DestinationPath $zipFile -CompressionLevel NoCompression
           Add-Type -AssemblyName System.IO.Compression.FileSystem
           $zip = [IO.Compression.ZipFile]::OpenRead((Resolve-Path $zipFile))
           try {
             $items = @($zip.Entries | ForEach-Object { $_.FullName })
-            if ($items.Count -ne 2 -or $items -notcontains 'DarksidersGenesisUpdater.exe' -or $items -notcontains 'README.md') { throw 'Invalid updater ZIP entries' }
+            if ($items.Count -ne 1 -or $items -cnotcontains 'DarksidersGenesisUpdater.exe') { throw 'Invalid updater ZIP entries' }
             if ($items | Where-Object { $_.Contains('/') -or $_.Contains('\') }) { throw 'Nested ZIP path' }
           } finally { $zip.Dispose() }
           Get-FileHash $zipFile -Algorithm SHA256
       - name: Upload updater test ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: DarksidersGenesisUpdater_V1.2_Windows
-          path: downloads/DarksidersGenesisUpdater_V1.2_Windows.zip
+          name: DarksidersGenesisUpdater_V1.3_Windows
+          path: downloads/DarksidersGenesisUpdater_V1.3_Windows.zip
           if-no-files-found: error
       - name: Preserve numbered updater ZIP in debug
         shell: pwsh
@@ -64,13 +69,21 @@ jobs:
           for ($i = 0; $i -lt 5; $i++) {
             git fetch origin debug
             if ($LASTEXITCODE -ne 0) { throw 'Fetch failed' }
+            git diff --quiet $env:GITHUB_SHA origin/debug -- updater tests/UpdateEngineSafetyTests.cs .github/workflows/build-updater-debug.yml
+            if ($LASTEXITCODE -ne 0) { throw 'Updater source identity changed; refusing obsolete archive' }
+            $path = 'downloads/DarksidersGenesisUpdater_V1.3_Windows.zip'
+            $prior = git ls-tree --format='%(objectname)' origin/debug -- $path
+            if ($prior) {
+              $built = git hash-object -- $path
+              if ($prior -ne $built) { throw 'Numbered updater archive differs; refusing overwrite' }
+            }
             git reset --mixed origin/debug
             if ($LASTEXITCODE -ne 0) { throw 'Reset failed' }
-            git add -- downloads/DarksidersGenesisUpdater_V1.2_Windows.zip
+            git add -- downloads/DarksidersGenesisUpdater_V1.3_Windows.zip
             if ($LASTEXITCODE -ne 0) { throw 'Add failed' }
             git diff --cached --quiet
             if ($LASTEXITCODE -eq 0) { Write-Host 'Updater ZIP already published'; exit 0 }
-            git commit -m "downloads: preserve compiled standalone updater V1.2"
+            git commit -m "downloads: preserve compiled standalone updater V1.3"
             if ($LASTEXITCODE -ne 0) { throw 'Commit failed' }
             git push origin HEAD:debug
             if ($LASTEXITCODE -eq 0) { exit 0 }

@@ -42,19 +42,8 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $tag = "${{ steps.version.outputs.tag }}"
-          $dist = Join-Path $PWD "release-dist"
-          New-Item -ItemType Directory -Path $dist -Force | Out-Null
-
-          Copy-Item "build/out/dxgi.dll" $dist
-          Copy-Item "build/out/DarksidersGenesisMod.asi" $dist
-          Copy-Item "config/DarksidersGenesisMod.ini" $dist
-          Copy-Item "README.md" $dist
-
           $zip = Join-Path $PWD "Darksiders_Genesis_Enhanced_PC_Mod_$tag.zip"
-          if (Test-Path $zip) { Remove-Item $zip -Force }
-          Compress-Archive -Path "$dist\*" -DestinationPath $zip -CompressionLevel Optimal
-
-          Get-FileHash $zip -Algorithm SHA256
+          ./.github/scripts/package-mod.ps1 -ZipPath $zip
           "zip=$zip" >> $env:GITHUB_OUTPUT
         id: package
 
