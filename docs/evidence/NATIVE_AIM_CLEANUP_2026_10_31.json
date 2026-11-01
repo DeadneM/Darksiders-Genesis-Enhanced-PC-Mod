@@ -1,5 +1,5 @@
 {
-  "status": "COMPILED_AND_CHECKED_NOT_A_GAMEPLAY_FIX",
+  "status": "GLOBAL_REMOVAL_WITHDRAWN_AFTER_COMPLETE_SESSION_LOG",
   "base": "d7416770d54d45770c151b3a944f44972acb54b7",
   "sourceFilesChanged": [
     "NativeAimAssistFeature.cpp",
@@ -170,5 +170,7 @@
   "gameFilesModified": false,
   "newArchivePublished": false,
   "userQuestionPending": "User confirms excess lock only in TPS; actual native/TPS beam comparison pending game readiness, game closed at attempted preflight.",
-  "ciEvidence": "NATIVE_AIM_CLEANUP_CI_2026_10_31.json"
+  "ciEvidence": "NATIVE_AIM_CLEANUP_CI_2026_10_31.json",
+  "supersededBy": "V1_137_STATIC_REVIEW.json",
+  "reason": "1124 originalConsumerPoints in later complete V1.136 log; global removal was not justified by its earlier zero observation; no cleanup build delivered"
 }

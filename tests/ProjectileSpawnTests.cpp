@@ -12,6 +12,10 @@ unsigned char projectileClass[0x100]{},defaults[0x100]{},movement[0x180]{},root[
 unsigned char beam[0x650]{},volume[0x300]{};
 void* tree[1]{cls+0x30};void* foreignTree[1]{foreignClass+0x30};void* lavaTree[2]{cls+0x30,lavaClass+0x30};
 uintptr_t componentTable[0x5E8/8]{};
+bool nativeChoice=false;
+thread_local dg::native_assist::ShotScope* shot=nullptr;
+void Consume(){if(nativeChoice&&shot){shot->point={1200,0,400};shot->used=true;}}
+Vec3 nativeChosen{1200,0,400};
 bool validRay=true;
 bool providerEnabled=true,gameThread=true,paused=false,wheel=false,collision=true,badSpeed=false;
 dg::local_players::Context context{};
@@ -26,11 +30,12 @@ bool Close(float a,float b){return std::fabs(a-b)<0.001f;}
 Rotator* Original(void*,Rotator* out,const void* in){forwarded=in;*out={4,23,7};return out;}
 Vec3* OriginalForward(void*,Vec3* out){*out={0.9659258f,0,0.258819f};return out;}
 Rotator* OriginalFinish(void* a,Rotator* out){
+    Consume();
     *out=Get<void*>(a,0x10)==lavaClass?Get<Rotator>(a,0x20C):Rotator{-12,-70,7};
     out->yaw=-70; // native final helper replaces the early yaw with movement
     return out;
 }
-void OriginalLava(void* a){++lavaCalls;Put(a,0x20C,Rotator{-20,23,7});Put(a,0x218,2222.0f);}
+void OriginalLava(void* a){Consume();++lavaCalls;Put(a,0x20C,Rotator{-20,23,7});Put(a,0x218,2222.0f);}
 bool Provider(const dg::local_players::Context& c,dg::native_tps::MouseRay& ray){
     Check(c.character==reinterpret_cast<uintptr_t>(character),"provider receives current native owner");
     ray.origin={-300,0,300};ray.direction=validRay?Vec3{1,0,0}:Vec3{0,0,0};return providerEnabled;
@@ -140,6 +145,20 @@ void Run(){
     Put(character,0xF98,static_cast<void*>(nullptr));hitTarget={1000,1000,500};
     gameThread=false;Finish(ability,&out);Check(out.yaw==-70,"other threads stay native");
     Check(lavaCalls==5,"native Lava update runs once per request");
+    gameThread=true;nativeChoice=true;dg::runtime::Get().tps3DAimEnabled=true;
+    Rotation(weapon,&out,&in,0x7CFA3B);Check(Close(out.yaw,45)&&!shot,"ordinary cached-rotation interface does not simulate an ability target resolver");
+    const auto points=g_nativePoints[context.index].load();
+    Finish(ability,&out);Check(Close(out.yaw,0),"charged release uses the same native selected point");
+    Put(ability,0x10,static_cast<void*>(lavaClass));UpdateLava(ability);
+    Check(Close(speedTarget.x,nativeChosen.x)&&Close(speedTarget.z,nativeChosen.z),"native chosen point feeds unchanged Lava paired solver");
+    Check(g_nativePoints[context.index]==points+2,"only accepted current ability points count as applied, not ordinary cached rotation");
+    nativeChoice=false;
+    Put(ability,0x10,static_cast<void*>(cls));Finish(ability,&out);
+    Check(Close(out.yaw,45)&&!shot,"a subsequent free shot cannot inherit the previous native target");
+    hitTarget={1000,1000,500};BeamForward(volume,&beamDirection,0x61D5E5);
+    Check(Close(beamDirection.y,1),"free beam cannot borrow a pistol or ability selected actor");
+
+
 }
 }
 namespace dg::native_tps {
@@ -157,5 +176,8 @@ int main(){try{Run();std::cout<<"Actual projectile/Finish/Lava target and paired
 
 namespace dg::native_assist {
 void Initialize(dg::projectile_aim::LogFn,bool,dg::projectile_aim::RayProvider){}
+ShotScope::ShotScope():previous_(shot){shot=this;}
+ShotScope::~ShotScope(){Close();}
+void ShotScope::Close(){if(open_){shot=previous_;open_=false;}}
 void Report(){}
 }

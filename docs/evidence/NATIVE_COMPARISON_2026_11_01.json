@@ -1,0 +1,157 @@
+{
+  "status": "OBSERVED_NOT_A_VANILLA_COMPARISON",
+  "capture": "v242-native-tps-comparison-20261031-211606.jsonl",
+  "captureSha256": "4474FB049436601CC85E4FCAC576B54C9A15182AF7EFB68B5811BC543DC8C250",
+  "samples": 1770,
+  "readErrors": 0,
+  "durationSeconds": 180.06299999999464,
+  "phases": [
+    {
+      "settings": [
+        "1",
+        "1",
+        "200.000"
+      ],
+      "samples": 217,
+      "firstSeconds": 0.0,
+      "lastSeconds": 21.98399999999674,
+      "beams": 6,
+      "assigned": 6,
+      "selectedMatches": 6,
+      "explicitPoints": 0,
+      "targets": {
+        "Goblin_Armored_Character_C": 6
+      },
+      "lookGapsRange": [
+        42.64378804019649,
+        43.66104736201371
+      ],
+      "controlGapsRange": [
+        42.743426970998776,
+        43.7307909580241
+      ]
+    },
+    {
+      "settings": [
+        "1",
+        "1",
+        "100.000"
+      ],
+      "samples": 370,
+      "firstSeconds": 22.078000000008615,
+      "lastSeconds": 59.562999999994645,
+      "beams": 0,
+      "assigned": 0,
+      "selectedMatches": 0,
+      "explicitPoints": 0,
+      "targets": {},
+      "lookGapsRange": null,
+      "controlGapsRange": null
+    },
+    {
+      "settings": [
+        "1",
+        "0",
+        "100.000"
+      ],
+      "samples": 949,
+      "firstSeconds": 59.655999999988126,
+      "lastSeconds": 180.06299999999464,
+      "beams": 65,
+      "assigned": 60,
+      "selectedMatches": 60,
+      "explicitPoints": 0,
+      "targets": {
+        "Goblin_Armored_Character_C": 60,
+        "none": 5
+      },
+      "lookGapsRange": [
+        2.200997903920853,
+        22.934585955034766
+      ],
+      "controlGapsRange": [
+        0.4155860325071067,
+        26.437552030336576
+      ]
+    },
+    {
+      "settings": [
+        null,
+        null,
+        null
+      ],
+      "samples": 6,
+      "firstSeconds": 69.82800000000861,
+      "lastSeconds": 104.95300000000861,
+      "beams": 0,
+      "assigned": 0,
+      "selectedMatches": 0,
+      "explicitPoints": 0,
+      "targets": {},
+      "lookGapsRange": null,
+      "controlGapsRange": null
+    },
+    {
+      "settings": [
+        "0",
+        "0",
+        "100.000"
+      ],
+      "samples": 228,
+      "firstSeconds": 70.03099999998813,
+      "lastSeconds": 109.85899999999674,
+      "beams": 84,
+      "assigned": 55,
+      "selectedMatches": 55,
+      "explicitPoints": 0,
+      "targets": {
+        "Goblin_Armored_Character_C": 55,
+        "none": 29
+      },
+      "lookGapsRange": [
+        2.355334057053338,
+        22.983783797723135
+      ],
+      "controlGapsRange": [
+        2.3553646950176708,
+        22.657218075498857
+      ]
+    }
+  ],
+  "latestUserObservation": "Excessive Static targeting also occurs in native top-down view, superseding earlier TPS-only answer",
+  "completedLogSha256": "DE7EDA453141AF17FEF67625CA7B1934B48B5F0B5864188A9A80DC8F7BC10CDC",
+  "observedResolverPointsInEntireSession": 1124,
+  "relevantLogLines": [
+    "[2026-10-31 21:15:27.614] Foreign Wrath V1.105 READY: accepted Geyser/Caltrops/Clone/War beam/Stoneskin preserved; Rampage Strife native-motion candidate",
+    "[2026-10-31 21:42:13.714] Stoneskin V1.123 CAST: accepted 1.25s gesture retained; explosion/crumble follow coating/status edges; EXPERIMENTAL FX",
+    "[2026-10-31 21:42:18.609] Stoneskin V1.123 CAST: accepted 1.25s gesture retained; explosion/crumble follow coating/status edges; EXPERIMENTAL FX",
+    "[2026-10-31 21:42:20.948] Stoneskin V1.123 CAST: accepted 1.25s gesture retained; explosion/crumble follow coating/status edges; EXPERIMENTAL FX",
+    "[2026-10-31 21:42:23.010] Stoneskin V1.123 CAST: accepted 1.25s gesture retained; explosion/crumble follow coating/status edges; EXPERIMENTAL FX",
+    "[2026-10-31 21:43:42.901] Stoneskin V1.123 CAST: accepted 1.25s gesture retained; explosion/crumble follow coating/status edges; EXPERIMENTAL FX",
+    "[2026-10-31 21:43:42.912] Stoneskin V1.117 visual: mineral body/gear, native fire on cloth only; private MIDs and status-owned restoration; EXPERIMENTAL UV fit",
+    "[2026-10-31 21:43:42.917] Stoneskin V1.117 visual: mineral body/gear, native fire on cloth only; private MIDs and status-owned restoration; EXPERIMENTAL UV fit",
+    "[2026-10-31 21:43:42.922] Stoneskin V1.117 visual: mineral body/gear, native fire on cloth only; private MIDs and status-owned restoration; EXPERIMENTAL UV fit",
+    "[2026-10-31 21:43:42.927] Stoneskin V1.117 visual: mineral body/gear, native fire on cloth only; private MIDs and status-owned restoration; EXPERIMENTAL UV fit",
+    "[2026-10-31 21:43:42.928] Stoneskin V1.123 launch: native explosion at coating appearance",
+    "[2026-10-31 21:43:45.133] Stoneskin V1.123 CAST: accepted 1.25s gesture retained; explosion/crumble follow coating/status edges; EXPERIMENTAL FX",
+    "[2026-10-31 21:43:45.140] Stoneskin V1.123 launch: native explosion at coating appearance",
+    "[2026-10-31 21:43:55.102] Stoneskin V1.123 expiry: native crumble at complete coating removal",
+    "[2026-10-31 21:44:43.640] Stoneskin V1.123 CAST: accepted 1.25s gesture retained; explosion/crumble follow coating/status edges; EXPERIMENTAL FX",
+    "[2026-10-31 21:44:43.651] Stoneskin V1.117 visual: mineral body/gear, native fire on cloth only; private MIDs and status-owned restoration; EXPERIMENTAL UV fit",
+    "[2026-10-31 21:44:43.666] Stoneskin V1.123 launch: native explosion at coating appearance",
+    "[2026-10-31 21:44:53.644] Stoneskin V1.123 expiry: native crumble at complete coating removal",
+    "[2026-10-31 21:48:17.399] Stoneskin V1.123 CAST: accepted 1.25s gesture retained; explosion/crumble follow coating/status edges; EXPERIMENTAL FX",
+    "[2026-10-31 21:50:51.931] Shutdown: begin",
+    "[2026-10-31 21:50:52.293] TPS V1.136 NATIVE_ASSIST totals queries=9235/0 scaled=134/0 originalConsumerPoints=1124 passthrough=3094 impactValidation=USER_REQUIRED",
+    "[2026-10-31 21:50:52.293] TPS V1.53 TARGET3D totals native=384 pistolP1=378 P2=0 finishP1=6202 P2=0 lavaP1=0 P2=0 lavaRejected=0 impactValidation=USER_REQUIRED",
+    "[2026-10-31 21:50:52.341] Shutdown: complete"
+  ],
+  "cleanupCorrection": "The complete session has 1124 observer hits. Global removal of resolver/ShotScope is withdrawn; ordinary cached-rotation pistol route remains separately inapplicable. No cleanup binary was delivered or installed.",
+  "limitations": [
+    "Native view still has ASI loaded; not an unmodified-game baseline",
+    "Observer hits are not accepted assisted points or projectile impacts",
+    "Different directions and targets prevent attributing every difference solely to strength",
+    "Dagan material cause unconfirmed; no live Dagan capture on this turn",
+    "FLT_MAX triple is the beam unset-point sentinel, not an explicit target"
+  ]
+}

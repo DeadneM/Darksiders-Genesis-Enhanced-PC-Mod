@@ -6,6 +6,7 @@ void ObserveObject(uintptr_t);
 void Cast(const local_players::Context&);
 void Observe(const local_players::Context&);
 bool AssetsReady();
+bool NeedsAssetScan();
 bool InvalidateAssets();
 void Shutdown();
 }

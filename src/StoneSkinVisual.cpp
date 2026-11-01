@@ -11,12 +11,14 @@ using Id=native_objects::Identity;
 struct Array {uintptr_t data=0;int count=0,capacity=0;};
 using Event=void(*)(void*,void*,void*);
 Event g_event=nullptr;uintptr_t g_base=0;foreign_wrath::LogFn g_log=nullptr;unsigned g_events=0;
+unsigned g_deferredEvents=0;
 Id g_materials[2][2]{}; // [base/Molten][body/cloth]
 struct Slot {Id material{},original{};bool inherited=false,failed=false;uintptr_t observed=0;};
 struct Visual {Id actor{},mesh{},asset{};uintptr_t world=0;int variant=-1;std::array<Slot,4> slots{};};
 Visual g_visual[2]{};
 struct Transition {Id actor{};uintptr_t world=0;bool pending=false;};
 Transition g_transitions[2]{};
+bool g_missing[2]{};
 template<class T>bool Read(uintptr_t p,size_t at,T& v){native_objects::MemoryReader r;return r.Read(p,at,v);}
 template<size_t N>bool Is(uintptr_t p,const char(&s)[N]){return native_objects::NameIs(g_base,p,s);}
 bool Alive(const Id& id){native_objects::MemoryReader r;return native_objects::Alive(r,g_base,id);}
@@ -147,6 +149,7 @@ void ObserveObject(uintptr_t p){
     }
 }
 bool AssetsReady(){for(const auto& variant:g_materials)for(const auto& id:variant)if(!Alive(id))return false;return stone_fx::AssetsReady();}
+bool NeedsAssetScan(){return g_missing[0]||g_missing[1];}
 bool InvalidateAssets(){bool changed=stone_fx::InvalidateAssets();for(auto& variant:g_materials)for(auto& id:variant)if(id&&!Alive(id)){id={};changed=true;}return changed;}
 void Cast(const local_players::Context& c){
     if(!g_event||!native_tps::OnGameThread()||c.index<0||c.index>1)return;
@@ -155,6 +158,7 @@ void Cast(const local_players::Context& c){
 
 void Observe(const local_players::Context& c){
     if(!g_event||!native_tps::OnGameThread()||c.index<0||c.index>1)return;
+    const bool wasMissing=g_missing[c.index];g_missing[c.index]=false;
     auto& v=g_visual[c.index];uintptr_t cls=0,pc=0,pawn=0,mesh=0,owner=0,asset=0;unsigned char role=0;int at=-1;
     const bool owned=c.localPlayer&&c.world&&c.kind==local_players::PoseKind::Foot&&c.character&&c.pawn==c.character&&
         Read(c.character,0x10,cls)&&Is(cls,"Strife_Blueprint_C")&&Read(c.character,0x118,role)&&role==3&&
@@ -168,7 +172,13 @@ void Observe(const local_players::Context& c){
         if(g_log&&g_events++<16)g_log(ok?"Stoneskin V1.123 expiry: native crumble at complete coating removal":"Stoneskin V1.123 expiry effect unavailable; native material restoration retained");}
     if(v.actor&&(variant<0||variant!=v.variant||v.world!=c.world||v.actor.address!=c.character||v.mesh.address!=mesh||v.asset.address!=asset||!Alive(v.actor)||!Alive(v.mesh)||!Alive(v.asset)))Restore(v);
     if(!owned||variant<0){if(!owned||statusKnown)transition={};return;}
-    if(!Alive(g_materials[variant][0])||!Alive(g_materials[variant][1]))return;
+    // Body always uses the base mineral material, even with Molten cloth.
+    // Wait for these actual sources before invoking/caching a factory result.
+    const bool sourcesReady=Alive(g_materials[0][0])&&Alive(g_materials[variant][1]);
+    g_missing[c.index]=!sourcesReady||!stone_fx::AssetsReady();
+    if(!sourcesReady&&!wasMissing&&g_log&&g_deferredEvents++<12){char line[180]{};
+        sprintf_s(line,"Stoneskin V1.137 deferred: player=%d variant=%d baseBody=%d cloth=%d; bounded rediscovery requested",c.index+1,variant,Alive(g_materials[0][0])?1:0,Alive(g_materials[variant][1])?1:0);g_log(line);}
+    if(!sourcesReady)return;
     if(!v.actor){
         if(!Capture(c.character,v.actor)||!Capture(mesh,v.mesh)||!Capture(asset,v.asset)){v={};return;}
         v.world=c.world;v.variant=variant;
@@ -189,7 +199,9 @@ void Observe(const local_players::Context& c){
         struct Args {int index=0,pad=0;uintptr_t result=0;} args{int(i)};
         g_event(reinterpret_cast<void*>(mesh),reinterpret_cast<void*>(f),&args);
         Id original{};if(!args.result||!Capture(args.result,original))continue;
-        if(args.result!=nativeOriginal){slot.failed=true;slot.observed=current;continue;}
+        if(args.result!=nativeOriginal){slot.failed=true;slot.observed=current;
+            if(g_log&&g_deferredEvents++<12)g_log("Stoneskin V1.137 deferred slot: native/user material override retained; no replacement or factory call");
+            continue;}
         // War's UV emissive masks illuminate the wrong regions on Strife.
         // Body/gear use the mineral base shader without its private glow;
         // cloth retains the native base/Molten shader and its fire.
@@ -213,6 +225,6 @@ void Observe(const local_players::Context& c){
 }
 void Shutdown(){
     if(native_tps::OnGameThread())for(auto& v:g_visual)Restore(v);
-    g_event=nullptr;g_fields={};g_transitions[0]=g_transitions[1]={};stone_fx::Shutdown();
+    g_event=nullptr;g_fields={};g_transitions[0]=g_transitions[1]={};g_missing[0]=g_missing[1]=false;stone_fx::Shutdown();
 }
 }

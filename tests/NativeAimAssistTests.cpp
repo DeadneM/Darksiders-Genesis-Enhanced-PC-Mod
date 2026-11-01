@@ -8,17 +8,18 @@ unsigned char actor[0x1000]{},ability[0x230]{},finder[0x80]{},weapon[0x700]{},re
 unsigned char finderClass[0x80]{},ammoClass[0x80]{},package[0x40]{},table[0x300]{},names[3][128]{};
 uintptr_t entries[3]{},chunks[1]{},ammo[4]{};
 dg::local_players::Context context{};bool gameThread=true,paused=false,wheel=false,provider=true,throwSelect=false;
-unsigned generation=7,calls=0;float expectV=90,expectH=45,expectX=0;void* returned=victim;
+unsigned generation=7,calls=0,providerCalls=0;float expectV=90,expectH=45,expectX=0;void* returned=victim;
 template<class T>void Put(void* p,size_t n,T value){std::memcpy(static_cast<unsigned char*>(p)+n,&value,sizeof(value));}
 template<class T>T Get(void* p,size_t n){T value{};std::memcpy(&value,static_cast<unsigned char*>(p)+n,sizeof(value));return value;}
 void Check(bool good,const char* label){if(!good)throw std::runtime_error(label);}
-bool Ray(const dg::local_players::Context&,dg::native_tps::MouseRay& out){out.origin={-300,0,300};out.direction={1,0,0};return provider;}
+bool Ray(const dg::local_players::Context&,dg::native_tps::MouseRay& out){++providerCalls;out.origin={-300,0,300};out.direction={1,0,0};return provider;}
 void* Select(void* f,void* a,const Vec* dir,void* callback){
     ++calls;Check(f==finder&&a==actor&&callback==reinterpret_cast<void*>(0x123),"same native helper, owner and callback");
     Check(Get<float>(finder,0x2C)==expectV&&Get<float>(finder,0x30)==expectH,"only requested native angular limits changed during original call");
     Check(Get<float>(finder,0x28)==7500&&dir&&dir->x==expectX,"search radius preserved and direction belongs to the selected mode");
     if(throwSelect)throw std::runtime_error("native callback exception simulation");return returned;
 }
+Vec* Point(Vec* out,void* target,uint64_t bone){Check(target==victim&&bone==0x888,"same selected native actor and native bone key");*out={2000,200,400};return out;}
 void Run(){
     using namespace dg::native_assist;
     std::vector<unsigned char> image(0x3B00000);g_base=reinterpret_cast<uintptr_t>(image.data());
@@ -34,11 +35,12 @@ void Run(){
     Put(actor,0xC78,reinterpret_cast<uintptr_t>(registry));Put(registry,0xE8,reinterpret_cast<uintptr_t>(actor));Put(registry,0x108,reinterpret_cast<uintptr_t>(ammo));
     Put(registry,0x110,4);Put(registry,0x114,4);ammo[2]=reinterpret_cast<uintptr_t>(weapon);
     context.index=0;context.character=context.pawn=reinterpret_cast<uintptr_t>(actor);context.localPlayer=0x100;context.controller=0x200;
-    g_ready=true;g_select=Select;g_ray=Ray;auto& rt=dg::runtime::Get();rt.tpsAimAssistEnabled=false;
+    g_ready=true;g_select=Select;g_point=Point;g_ray=Ray;auto& rt=dg::runtime::Get();rt.tpsAimAssistEnabled=false;
     const Vec input{0,1,0};auto invoke=[&](){const auto n=calls;auto result=SelectTarget(finder,actor,&input,reinterpret_cast<void*>(0x123));Check(calls==n+1&&result==returned,"original runs exactly once and selected actor is unchanged");Check(Get<float>(finder,0x2C)==90&&Get<float>(finder,0x30)==45,"native angles restored before hook returns");};
     for(unsigned i=0;i<dg::aim_assist::Count;++i){
         strcpy_s(reinterpret_cast<char*>(names[1]+12),116,dg::aim_assist::Classes[i]);strcpy_s(reinterpret_cast<char*>(names[2]+12),116,dg::aim_assist::Packages[i]);
-        rt.tpsAimAssistEnabled=false;expectV=90;expectH=45;invoke();
+        rt.tpsAimAssistEnabled=false;expectV=90;expectH=45;const auto before=providerCalls;const auto disabled=g_disabled.load();invoke();
+        Check(providerCalls==before&&g_disabled==disabled+1,"OFF calls the native selector directly without evaluating the TPS ray or changing its arguments");
         rt.tpsAimAssistEnabled=true;rt.tpsAimAssistGlobal=50;expectV=45;expectH=22.5f;invoke();
         rt.tpsAimAssistGlobal=200;expectV=180;expectH=90;invoke();
         rt.tpsAimAssistMode=1;rt.tpsAimAssistAmmo[i]=100;expectV=90;expectH=45;invoke();
@@ -46,6 +48,24 @@ void Run(){
         rt.tpsAimAssistMode=0;rt.tpsAimAssistGlobal=100;
     }
     expectV=90;expectH=45;invoke();
+    Vec point{};
+    ResolvePoint(&point,victim,0x888,0x59D3BD);
+    Check(!g_shot,"unscoped native resolver cannot retain a point for later shots");
+    {
+        ShotScope outer;
+        ResolvePoint(&point,victim,0x888,0x123);
+        Check(!outer.used,"unrelated native callers cannot authorize a shot point");
+        {
+            ShotScope inner;
+            ResolvePoint(&point,victim,0x888,0x59D3BD);
+            Check(inner.used&&!outer.used&&inner.point.y==200,"nested native consumer keeps its point in its own call");
+        }
+        Check(g_shot==&outer&&!outer.used,"nested completion restores outer scope without inheriting another point");
+        ResolvePoint(&point,victim,0x888,0x59D3BD);outer.Close();
+        Check(outer.used&&outer.point.z==400&&!g_shot,"original-consumed point is copied then observation closes synchronously");
+    }
+    {ShotScope next;Check(!next.used,"next shot cannot reuse a previous target");}
+    Check(!g_shot,"no cross-frame target cache");
     context.index=1;context.localPlayer=0x300;invoke();
     rt.tpsAimAssistGlobal=50;expectV=45;expectH=22.5f;throwSelect=true;try{invoke();}catch(const std::runtime_error&){}throwSelect=false;
     Check(!g_nested&&Get<float>(finder,0x2C)==90&&Get<float>(finder,0x30)==45,"angular transaction and nesting restored during C++ callback unwind");
@@ -58,4 +78,4 @@ void Run(){
 }
 namespace dg::native_tps {bool OnGameThread(){return gameThread;}bool CinematicActive(unsigned){return false;}bool IsWorldPaused(void*){return paused;}bool RadialActive(unsigned){return wheel;}}
 namespace dg::local_players {bool ResolveActor(void* a,Context& c){if(a!=actor)return false;c=context;return true;}Slot PublishedSlot(unsigned){Slot s;s.generation=generation;return s;}}
-int main(){try{Run();std::cout<<"Native acquisition ownership and original-call angular transactions passed\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
+int main(){try{Run();std::cout<<"Native acquisition ownership, original-call transaction and selected point scopes passed\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

@@ -34,7 +34,7 @@ void* CreateNative(void* sequence,Name slot,float in,float out,float rate,int lo
 void Fresh(){
  f={};owner={};gameThread=local=buildOK=playing=helperReady=true;throwResolve=false;plays=finishes=builds=getters=resolves=0;played=nullptr;playedRate=0;
  g_ready=g_geyserReady=true;g_requested=g_geyserFailed=g_stoneFailed=false;g_stone={};g_create=CreateNative;creates=0;createOK=true;reassign=false;g_getter=Getter;g_play=PlayNative;g_finish=FinishNative;g_playing=PlayingNative;g_log=nullptr;g_override=nullptr;
- g_sequenceClass=g_nativeClass={};g_cursor=g_count=0;g_complete=false;g_scanTick=0;g_world=0;g_events=0;g_geyserActors[0]=g_geyserActors[1]={};
+ g_sequenceClass=g_nativeClass=g_materialClass={};g_cursor=g_count=0;g_complete=false;g_scanTick=g_assetRetryAt=0;g_world=0;g_events=0;g_geyserActors[0]=g_geyserActors[1]={};
  const char* labels[]={"Strife_Blueprint_C","StrifeAnim_Blueprint_C","BlendSpace1D","AnimSequence","AnimMontage","BlueprintGeneratedClass"};
  for(int i=0;i<6;++i)Label(f.classes[i],i+1,labels[i]);
  Put(f.classes[0],0x10,reinterpret_cast<uintptr_t>(f.classes[5]));
@@ -79,6 +79,10 @@ void Run(){
   Cast();Check(!builds&&!finishes&&played==f.montage,"native/nonlocal/foreign-pose/default path passes through");}
  Fresh();buildOK=false;Cast();Check(g_geyserFailed&&finishes==1&&Status(4)==0,"failed compatible montage stops only Geyser");Cast();Check(builds==1,"failed constructor not retried");
  Fresh();g_geyser={};g_geyserReady=false;g_requested=true;std::memset(f.items,0,sizeof(f.items));Register(598,f.power,41);Observe(owner);Check(g_cursor>0&&g_cursor<=256&&!g_geyserReady,"single shared scan stays within object and elapsed-time bounds");for(int i=0;i<40&&!g_geyserReady;++i){g_scanTick=0;Observe(owner);}Check(g_geyserReady,"successive bounded shared slices find the loaded class");
+ Fresh();g_geyser={};g_geyserReady=false;g_cursor=g_count=640;g_complete=true;std::memset(f.items,0,sizeof(f.items));Register(9,f.power,51);
+ Scan(reinterpret_cast<uintptr_t>(f.classes[5]),100,false);Check(g_complete&&g_cursor==640&&!g_geyserReady,"completed inventory does not rescan without an active missing coating");
+ g_assetRetryAt=1000;Scan(reinterpret_cast<uintptr_t>(f.classes[5]),999,true);Check(g_complete&&g_cursor==640&&!g_geyserReady,"missing resource retry observes its cooldown");
+ Scan(reinterpret_cast<uintptr_t>(f.classes[5]),1000,true);Check(g_geyserReady&&g_cursor>0&&g_cursor<=256&&g_assetRetryAt==2000,"same-size UObject table with reused earlier index is rediscovered in a bounded slice");
  Stone();Check(Prepare(f.actor,cls,6)&&cls==reinterpret_cast<uintptr_t>(f.stone),"Stoneskin ready on owned Strife with class default and compatible animation");
  const auto before=std::vector<unsigned char>(f.montage,f.montage+sizeof(f.montage));Cast();
  Check(plays==1&&creates==1&&!finishes&&!builds&&std::fabs(playedRate-(.75f*2.666667f/1.25f))<.0001f,"Stoneskin keeps own gesture/fades and native finish delegate, shortening activation to 1.25s; no Geyser path");

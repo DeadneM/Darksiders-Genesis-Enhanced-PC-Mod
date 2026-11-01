@@ -28,7 +28,7 @@ native_objects::Identity g_geyser{},g_geyserActors[2]{};
 native_objects::Identity g_stone{};std::atomic_bool g_stoneFailed{false};unsigned g_stoneEvents=0;
 std::atomic_bool g_geyserReady{false},g_geyserFailed{false};
 native_objects::Identity g_sequenceClass{},g_nativeClass{},g_materialClass{};
-int g_cursor=0,g_count=0;bool g_complete=false;uint64_t g_scanTick=0;unsigned g_events=0;
+int g_cursor=0,g_count=0;bool g_complete=false;uint64_t g_scanTick=0,g_assetRetryAt=0;unsigned g_events=0;
 struct Array {uintptr_t data=0;int count=0,capacity=0;};
 struct Override {void* actor=nullptr;uintptr_t abilityClass=0;Name id{};};
 thread_local const Override* g_override=nullptr;
@@ -80,7 +80,7 @@ bool Source(uintptr_t actor,Animation& out){
         Read(idle.sequence,0x94,rate)&&rate==1&&Read(anim,0x3740,out.slot)&&
         native_objects::NameValueIs(g_base,out.slot.index,out.slot.number,"TPS")&&(out.sequence=idle.sequence)!=0;
 }
-void Scan(uintptr_t generatedClass){
+void Scan(uintptr_t generatedClass,uint64_t now,bool refreshMissing){
     const bool beamChanged=foreign_beam::InvalidateAssets(),rampageChanged=foreign_rampage::InvalidateAssets();
     const bool caltropsChanged=foreign_caltrops::InvalidateAssets(),cloneChanged=foreign_power::InvalidateAssets();
     if(stone_visual::InvalidateAssets()||beamChanged||rampageChanged||caltropsChanged||cloneChanged){g_cursor=0;g_complete=false;}
@@ -90,7 +90,12 @@ void Scan(uintptr_t generatedClass){
     uintptr_t chunks=0;int count=0;
     if(!Read(g_base,0x3959680,chunks)||!Read(g_base,0x3959694,count)||count<=0||count>2000000)return;
     if(count!=g_count){if(count<g_count)g_cursor=0;g_count=count;g_complete=false;}
-    if(g_complete)return;
+    if(g_complete){
+        // UObject indices can be reused without changing NumElements.
+        // Only an active coating missing its resources requests a new pass.
+        if(!refreshMissing||now<g_assetRetryAt)return;
+        g_cursor=0;g_complete=false;g_assetRetryAt=now+1000;
+    }
     // One shared discovery pass instead of three independent 512-object scans.
     // At most 256 objects, checking a 1 ms high-resolution budget every 16.
     LARGE_INTEGER started{},frequency{};
@@ -258,13 +263,13 @@ int Status(int choice){
 void Observe(const local_players::Context& owner){
     foreign_rampage::Observe(owner);stone_visual::Observe(owner);foreign_caltrops::Observe(owner);
     if(!g_ready||!native_tps::OnGameThread())return;
-    bool wanted=g_requested.load();for(const auto& slots:runtime::Get().wrathSlots)for(const auto& choice:slots)wanted=wanted||((choice.load()>=1&&choice.load()<=5)||choice.load()==6);
+    bool wanted=g_requested.load()||stone_visual::NeedsAssetScan();for(const auto& slots:runtime::Get().wrathSlots)for(const auto& choice:slots)wanted=wanted||((choice.load()>=1&&choice.load()<=5)||choice.load()==6);
     if(!wanted||owner.index<0||owner.index>1||!owner.localPlayer||!owner.world||owner.kind!=local_players::PoseKind::Foot)return;
     if(g_world!=owner.world){g_world=owner.world;g_cursor=0;g_count=0;g_complete=false;}
     if(auto* recent=GeyserActor(owner.index);recent&&recent->address&&recent->address!=owner.character)*recent={};
     const auto now=GetTickCount64();if(now>=g_scanTick&&now-g_scanTick<15)return;g_scanTick=now;
     uintptr_t cls=0,kind=0;if(!Read(owner.character,0x10,cls)||!Read(cls,0x10,kind)||!Is(kind,"BlueprintGeneratedClass"))return;
-    Scan(kind);
+    Scan(kind,now,stone_visual::NeedsAssetScan());
 }
 bool Prepare(void* actor,uintptr_t& abilityClass,int choice){
     if(choice==6){

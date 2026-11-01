@@ -27,7 +27,7 @@ void Dispatch(void* object,void* function,void* args){
  Check(function==f.functions[3]&&object!=f.materials[0]&&object!=f.materials[1],"parameter copy only on private MID");++copies;
 }
 void Fresh(){
- f={};g_visual[0]=g_visual[1]={};g_transitions[0]=g_transitions[1]={};g_fields={};for(auto& variant:g_materials)for(auto& m:variant)m={};g_event=Dispatch;g_log=nullptr;g_events=0;owner={};id=0;copies=creates=sets=scalarCalls=0;thread=true;failFactory=false;for(auto& n:fx)n=0;fxReady=true;
+ f={};g_visual[0]=g_visual[1]={};g_transitions[0]=g_transitions[1]={};g_missing[0]=g_missing[1]=false;g_fields={};for(auto& variant:g_materials)for(auto& m:variant)m={};g_event=Dispatch;g_log=nullptr;g_events=g_deferredEvents=0;owner={};id=0;copies=creates=sets=scalarCalls=0;thread=true;failFactory=false;for(auto& n:fx)n=0;fxReady=true;
  const char* labels[]={"Strife_Blueprint_C","MeshClass","StatusComponent","MayhemStatusEffect_StoneSkin_Base_Blueprint_C","MaterialInstanceDynamic","Function","ObjectProperty","ArrayProperty","IntProperty","NameProperty","BoolProperty","MayhemStatusEffect_Core_FallenDog_Molten_2_Blueprint_C"};
  for(int i=0;i<12;++i)Label(f.classes[i],i+1,labels[i]);
  Label(f.classes[12],44,"FloatProperty");Label(f.classes[13],45,"SkeletalMesh");Label(f.asset,40,"Strife");Put(f.asset,0x10,reinterpret_cast<uintptr_t>(f.classes[13]));Put(f.mesh,0x5A0,reinterpret_cast<uintptr_t>(f.asset));
@@ -65,6 +65,11 @@ void Run(){
  auto parents=[](int variant){for(int i=0;i<4;++i){uintptr_t parent=0;std::memcpy(&parent,f.mid[i]+0x40,8);Check(parent==reinterpret_cast<uintptr_t>(f.materials[(i<2?0:variant*2+1)]),"body/gear A and cloth B retain full native shaders, including fire switches");}};
  Fresh();const auto materials=std::vector<unsigned char>(reinterpret_cast<unsigned char*>(f.materials),reinterpret_cast<unsigned char*>(f.materials)+sizeof(f.materials));Observe(owner);Check(creates==4&&!copies&&scalarCalls==4,"private mineral body/gear suppress only their two emissive parameters; cloth retains its native shader");parents(0);Check(!std::memcmp(materials.data(),f.materials,sizeof(f.materials)),"source shader/material parameters remain byte-identical");Observe(owner);Check(creates==4,"no per-frame recreation");Put(f.component,0x138,0);Observe(owner);Check(sets==4&&!g_visual[0].actor,"accepted status expiration and native inheritance restoration retained");for(auto x:f.overrides)Check(!x,"native materials restored");
  Fresh();Put(f.component,0x138,2);Observe(owner);parents(1);Check(g_visual[0].variant==1&&scalarCalls==4&&!copies,"Molten cloth remains fiery while body and gear retain mineral parents");
+ Fresh();Put(f.component,0x138,2);g_materials[1][0]={};Observe(owner);parents(1);Check(creates==4&&!NeedsAssetScan(),"unused Molten body is not a dependency of base mineral body with Molten cloth");
+ Fresh();Put(f.component,0x138,2);const auto body=g_materials[0][0];g_materials[0][0]={};Observe(owner);
+ Check(!creates&&NeedsAssetScan()&&!g_visual[0].actor,"missing actual base body defers the factory and requests rediscovery, even when Molten body exists");
+ g_materials[0][0]=body;Observe(owner);parents(1);Check(creates==4&&!NeedsAssetScan(),"late base material applies during the same status without a cached factory refusal");
+ Fresh();g_materials[0][1]={};Observe(owner);Check(!creates&&NeedsAssetScan(),"missing current cloth also requests bounded rediscovery");owner.kind=dg::local_players::PoseKind::Horse;Observe(owner);Check(!NeedsAssetScan(),"transformation cancels missing-coating demand");
  Fresh();f.overrides[1]=reinterpret_cast<uintptr_t>(f.original[1]);Observe(owner);f.overrides[0]=reinterpret_cast<uintptr_t>(f.original[0]);Put(f.component,0x138,0);Observe(owner);Check(sets==3&&f.overrides[1]==reinterpret_cast<uintptr_t>(f.original[1]),"explicit original restored and native replacement wins");
  Fresh();f.overrides[0]=reinterpret_cast<uintptr_t>(f.original[2]);Observe(owner);Check(creates==3&&f.overrides[0]==reinterpret_cast<uintptr_t>(f.original[2]),"unsupported overrides never lose their last strong reference");
  Fresh();Put(f.functions[1],0xC0,uintptr_t(0));Observe(owner);Check(!creates&&!sets,"unrecognized material factory fails closed");Observe(owner);Check(!creates&&!sets,"failed factory contract is not retried per frame");
@@ -77,7 +82,7 @@ void Run(){
  Cast(owner);Observe(owner);Check(fx[0]==2&&creates==4,"recast can emit one explosion without recreating accepted material state");
  Put(f.component,0x138,0);Observe(owner);Observe(owner);Check(fx[2]==1&&sets==4,"one crumble at complete status expiry, not cast animation end");
  Fresh();Put(f.component,0x138,2);Cast(owner);Observe(owner);Check(fx[1]==1&&!fx[0],"Molten status chooses Molten launch");Put(f.component,0x138,1);Observe(owner);Check(!fx[2],"Molten-to-base transition is not full expiration");
- Fresh();fxReady=false;Cast(owner);Observe(owner);Check(!fx[0]&&g_transitions[0].pending,"late assets defer explosion without replaying cast or altering materials");fxReady=true;Observe(owner);Check(fx[0]==1&&!g_transitions[0].pending,"bounded shared discovery completing emits deferred launch once");
+ Fresh();fxReady=false;Cast(owner);Observe(owner);Check(!fx[0]&&g_transitions[0].pending&&NeedsAssetScan(),"late FX request rediscovery and defer explosion without replaying cast or altering materials");fxReady=true;Observe(owner);Check(fx[0]==1&&!g_transitions[0].pending&&!NeedsAssetScan(),"bounded shared discovery completing emits deferred launch once and stops retries");
  for(int change=0;change<4;++change){Fresh();Cast(owner);Observe(owner);
   if(change==0)owner.kind=dg::local_players::PoseKind::Horse;if(change==1)owner.world=99;if(change==2)Put(f.component,0x138,129);if(change==3){Shutdown();Check(!fx[2],"shutdown never emits expiry");continue;}
   Observe(owner);Check(!fx[2],"transformation/world loss/unknown status read does not fake expiration");}
