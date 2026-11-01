@@ -1,6 +1,6 @@
 # V1.138 — Stoneskin après chargement, compilation sans masquage de variable
 
-1er novembre 2026. **PRÉPARÉE / EXPÉRIMENTALE ; contrôles GitHub en attente.** Base cumulative V1.136 et correction candidate V1.137, avec les mêmes fonctions. V1.137 a passé 70/70 contrôles, mais émis deux avertissements MSVC de nommage. Cette version renomme uniquement le paramètre de temps du scan pour les éliminer ; l'archive précédente reste intacte. [Périmètre fonctionnel et tests](V1_137_STONESKIN_ASSET_RECOVERY_TEST.md).
+1er novembre 2026. **CONSTRUITE / CONTRÔLÉE : 70/70 contrôles Windows x64, zéro avertissement/erreur MSVC. EXPÉRIMENTALE, NON VALIDÉE EN JEU.** [ZIP et preuves](V1_138_DELIVERY_RECEIPT.md). Base cumulative V1.136 et correction candidate V1.137, avec les mêmes fonctions. V1.137 a passé 70/70 contrôles, mais émis deux avertissements MSVC de nommage. Cette version renomme uniquement le paramètre de temps du scan pour les éliminer ; l'archive précédente reste intacte. [Périmètre fonctionnel et tests](V1_137_STONESKIN_ASSET_RECOVERY_TEST.md).
 
 L'utilisateur confirme que le défaut chez Dagan concerne la peau de pierre et le feu. Il compare d'autres niveaux ; aucune validation du correctif à ce boss n'est annoncée. Les ressources tardives et la dépendance de corps incorrecte sont corrigées en source, les matériaux inconnus du niveau restent protégés. Le scan garde son budget et sa demande par joueur.
 

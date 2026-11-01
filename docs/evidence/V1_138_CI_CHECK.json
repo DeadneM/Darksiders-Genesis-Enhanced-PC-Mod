@@ -1,0 +1,19 @@
+{
+  "version": "V1.138",
+  "sourceCommit": "ed96bc2d4f857e948753bd04f611fdb7b0dbb3c4",
+  "runId": 41297934297,
+  "jobId": 124822630899,
+  "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41297934297",
+  "conclusion": "success",
+  "testsPassed": 70,
+  "msvcWarnings": [],
+  "msvcErrors": [],
+  "externalToolNotices": [
+    "MinHook upstream CMake minimum-version deprecation",
+    "GitHub Actions Node.js runtime deprecation notices"
+  ],
+  "platform": "Windows x64 Release; MSVC /analyze",
+  "gameplayValidated": false,
+  "staticBugFixed": false,
+  "stoneskinDaganCauseConfirmed": false
+}

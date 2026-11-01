@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.138_STONESKIN_ASSET_RECOVERY_TEST.zip",
+  "blobSha": "8f6725c837cd7d45b81bc049ecc4ce097213ef07",
+  "httpStatus": 200,
+  "sha256": "C931955ADE379F790F91ACEFC3877EA56B3A92A709C8EE324DEA263E788781BF",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}
