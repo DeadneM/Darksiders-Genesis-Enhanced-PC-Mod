@@ -2,6 +2,7 @@
 #include <vector>
 #include <stdexcept>
 #include <iostream>
+#include <string>
 namespace {
 using Vec=dg::native_tps::Vec3;
 unsigned char actor[0x1100]{},ability[0x230]{},finder[0x80]{},weapon[0x700]{},registry[0x120]{},victim[0x200]{};
@@ -16,7 +17,8 @@ void Check(bool good,const char* label){if(!good)throw std::runtime_error(label)
 bool Ray(const dg::local_players::Context&,dg::native_tps::MouseRay& out){++providerCalls;out.origin={-300,0,300};out.direction={1,0,0};return provider;}
 void* Select(void* f,void* a,const Vec* dir,void* callback){
     ++calls;Check(f==finder&&a==actor&&callback==reinterpret_cast<void*>(0x123),"same native helper, owner and callback");
-    Check(Get<float>(finder,0x2C)==expectV&&Get<float>(finder,0x30)==expectH,"only requested native angular limits changed during original call");
+    if(Get<float>(finder,0x2C)!=expectV||Get<float>(finder,0x30)!=expectH)
+        throw std::runtime_error("native angular transaction call="+std::to_string(calls)+" expected="+std::to_string(expectV)+"/"+std::to_string(expectH)+" actual="+std::to_string(Get<float>(finder,0x2C))+"/"+std::to_string(Get<float>(finder,0x30)));
     Check(Get<float>(finder,0x28)==7500&&dir&&dir->x==expectX,"search radius preserved and direction belongs to the selected mode");
     if(throwSelect)throw std::runtime_error("native callback exception simulation");return returned;
 }
@@ -79,6 +81,10 @@ void Run(){
     rt.tpsAimAssistAmmo[6]=100;invoke();
     rt.tpsAimAssistAmmo[6]=0;expectV=0;expectH=0;invoke();
     Put(ability,0x1D8,reinterpret_cast<uintptr_t>(weapon));rt.tpsAimAssistMode=0;rt.tpsAimAssistGlobal=100;expectV=90;expectH=45;invoke();
+    // Return the fixture to one registered ammo before the original tests
+    // remove that ammo. The simultaneous-fire case above populated slot 3.
+    ammo[3]=0;ammo[5]=0;Put(registry,0x110,4);Put(registry,0x114,4);
+    Put(actor,0x1038,uintptr_t(0));Put(actor,0xE10+18,uint8_t(0));Put(actor,0xE10+20,uint8_t(0));
     Vec point{};
     ResolvePoint(&point,victim,0x888,0x59D3BD);
     Check(!g_shot,"unscoped native resolver cannot retain a point for later shots");
