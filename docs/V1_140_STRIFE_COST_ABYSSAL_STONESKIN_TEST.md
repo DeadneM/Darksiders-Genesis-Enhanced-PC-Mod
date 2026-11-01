@@ -1,6 +1,6 @@
 # V1.140 — coût des traitements Strife et Stoneskin Abyssal
 
-Statut : **PRÉPARÉE / EXPÉRIMENTALE**, compilation Windows GitHub en attente. Base source cumulative V1.139 ; cette base n'est pas déclarée globalement validée. Les fonctions précédemment acceptées sont conservées. Branche `debug` uniquement.
+Statut : **CONSTRUITE / CONTRÔLÉE**, [70/70 contrôles Windows, zéro avertissement/erreur MSVC](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41323327523). **EXPÉRIMENTALE, à valider en jeu.** Base source cumulative V1.139 ; cette base n'est pas déclarée globalement validée. Les fonctions précédemment acceptées sont conservées. Branche `debug` uniquement.
 
 ## Objectif et réussite
 

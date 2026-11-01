@@ -1,0 +1,51 @@
+{
+  "sourceCommit": "ee92a00b06d0871aa1557a65dbe308e36e8554d5",
+  "archiveCommit": "35428f8142a685bf8833d4268be14c99a4187e02",
+  "name": "DarksidersGenesis_V1.140_STRIFE_COST_ABYSSAL_STONESKIN_TEST.zip",
+  "size": 2438344,
+  "sha256": "F6830EE1A8020F8464F789EB5EE41986BBCD59BB414630A84771556EB35DF9DC",
+  "files": {
+    "DarksidersGenesisMod.asi": {
+      "size": 2120192,
+      "sha256": "F46B8DC5FD8E1186C6E0F2314FEBE935579D0959517475E9C3EFDADEE5758B0C",
+      "method": 0
+    },
+    "DarksidersGenesisMod.ini": {
+      "size": 6380,
+      "sha256": "1C73C0D1EA5936D601205CC94544B2B41451FCFCE63E5B8F39726687110E762D",
+      "method": 0
+    },
+    "dxgi.dll": {
+      "size": 155136,
+      "sha256": "717BED8A1F8796911DF2165468C0C546B7873739F9AEE3A2699F1AB5D647DFC4",
+      "method": 0
+    },
+    "README.md": {
+      "size": 156180,
+      "sha256": "6A6170EE7DE8951C54EABA35DBF8A252B45FE4F1E417A00FCEEBD5D161EC18DF",
+      "method": 0
+    }
+  },
+  "oldArchiveGitBlobsUnchanged": 204,
+  "archiveCount": 205,
+  "iniKeys": 228,
+  "iniUnchanged": true,
+  "hotkeyIdsUnchanged": 55,
+  "amd64": true,
+  "crcValid": true,
+  "noCompression": true,
+  "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/35428f8142a685bf8833d4268be14c99a4187e02/downloads/DarksidersGenesis_V1.140_STRIFE_COST_ABYSSAL_STONESKIN_TEST.zip",
+  "httpStatus": 200,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "e2e519f7ea84d4b773fd7a31611779ae68308696",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "localBuild": false,
+  "localInstall": false,
+  "gameplayValidated": false,
+  "staticBugFixed": false,
+  "stoneskinDaganCauseConfirmed": false,
+  "abyssalSlotCauseConfirmed": true,
+  "performanceImprovementMeasured": false
+}

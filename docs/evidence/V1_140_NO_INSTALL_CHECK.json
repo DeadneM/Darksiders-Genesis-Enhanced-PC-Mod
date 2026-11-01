@@ -1,0 +1,14 @@
+{
+  "time": "2026-11-01T15:57:34.790575+00:00",
+  "files": {
+    "DarksidersGenesisMod.asi": "C3D1F008200702D7C4242EF11955948DC42EDA48F532873387824B8F9C5E202F",
+    "dxgi.dll": "1A429B44A72BA30104FF07A33312834E9C01A68ED5D3F379A1557B2B2C252462",
+    "DarksidersGenesisMod.ini": "39D536A03082F175136EC5E9B9C5CE26329B8F77097A5A483EB9A05B619B062C"
+  },
+  "identicalToBefore": true,
+  "agentInstall": false,
+  "gameLaunch": false,
+  "personalIniPreserved": true,
+  "installedAsi": "V1.139",
+  "reader": "VM_READ only; stopped after 180 seconds"
+}

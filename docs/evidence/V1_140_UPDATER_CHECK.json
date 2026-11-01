@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.140_STRIFE_COST_ABYSSAL_STONESKIN_TEST.zip",
+  "blobSha": "ebcb7a3cc740b57556e417439c14f1a34a9caac6",
+  "httpStatus": 200,
+  "sha256": "F6830EE1A8020F8464F789EB5EE41986BBCD59BB414630A84771556EB35DF9DC",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}

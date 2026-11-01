@@ -1,0 +1,47 @@
+{
+  "readOnly": true,
+  "externalMemoryWrites": false,
+  "externalEngineCalls": false,
+  "durationSeconds": 180,
+  "readErrors": 0,
+  "stateChanges": 14,
+  "activeAbyssalStates": 4,
+  "assetsObserved": [
+    "Strife_Abyssal",
+    "Strife_Gold",
+    "Strife_Silver"
+  ],
+  "asset": "Strife_Abyssal",
+  "slots": [
+    {
+      "index": 0,
+      "name": "Strife_Abyssal_Body",
+      "material": {
+        "cls": "MaterialInstanceConstant",
+        "name": "Strife_Abyssal_Inst_A"
+      }
+    },
+    {
+      "index": 1,
+      "name": "Strife_Abyssal_Cloth",
+      "material": {
+        "cls": "MaterialInstanceConstant",
+        "name": "Strife_Abyssal_Inst_A"
+      }
+    },
+    {
+      "index": 2,
+      "name": "Cloth_LP",
+      "material": null
+    }
+  ],
+  "activeCoatingTypes": [
+    "MayhemStatusEffect_Core_FallenDog_Molten_2_Blueprint_C",
+    "MayhemStatusEffect_StoneSkin_Core_SteamRoller_3_Blueprint_C"
+  ],
+  "overridesAlwaysEmptyDuringAbyssalStatus": true,
+  "captureSha256": "DB98FA9DCDD6C9F52A9C2AA8A8A65F2B30743B61B8208C237470E0AF8FF66ECC",
+  "cause": "Exact two named body/cloth slots not present in source allowlist",
+  "visualCorrectionValidated": false,
+  "performanceMeasured": false
+}

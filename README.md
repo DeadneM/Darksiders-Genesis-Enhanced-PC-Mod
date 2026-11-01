@@ -1,8 +1,8 @@
 ## V1.140 — coût Strife et Stoneskin Abyssal
 
-**PRÉPARÉE / EXPÉRIMENTALE ; contrôles Windows GitHub en attente.** Base source V1.139, fonctions validées conservées. Cause Abyssale confirmée en lecture seule : deux noms de matériaux non reconnus, maintenant pris en charge. Allègement du contrôle de trait/arc hors shaders concernés et des validations de cache de champs ; mesures échantillonnées du coût des traitements. Aucun gain de FPS ni rendu final déclaré validé ; aucun changement de visée native, animation, INI ou raccourci. [Preuves, limites et essais](docs/V1_140_STRIFE_COST_ABYSSAL_STONESKIN_TEST.md).
+**CONSTRUITE / CONTRÔLÉE : [70/70 contrôles Windows, zéro avertissement/erreur MSVC](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41323327523). EXPÉRIMENTALE, À VALIDER EN JEU.** [ZIP cumulatif vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/35428f8142a685bf8833d4268be14c99a4187e02/downloads/DarksidersGenesis_V1.140_STRIFE_COST_ABYSSAL_STONESKIN_TEST.zip) — [Reçu et essais](docs/V1_140_DELIVERY_RECEIPT.md). Base source V1.139 ; cause Abyssale confirmée par capture en lecture seule et noms de slots exacts pris en charge. Allègements du contrôle trait/arc et du cache de champs, mesures de coût échantillonnées. Aucun gain de FPS ni rendu corrigé déclaré validé ; visée/animations et INI/55 Hotkeys conservés. [Périmètre et limites](docs/V1_140_STRIFE_COST_ABYSSAL_STONESKIN_TEST.md).
 
-Ralentissement apparemment constant à pied selon l'utilisateur ; origine exacte non mesurée. Compilation exclusivement GitHub, aucune installation/lancement automatique ; main/archive et anciens ZIP préservés. La revue des paramètres par défaut est mise de côté.
+Updater debug et Defender vérifiés. Aucune installation/lancement automatique : V1.139 et INI personnel inchangés. Main/archive, anciennes archives et PAK conservés. Prochain essai : fluidité à pied et revêtement Stoneskin après sélection Abyssale ; la revue des défauts reste mise de côté.
 
 ---
 
