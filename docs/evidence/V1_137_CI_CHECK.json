@@ -1,0 +1,18 @@
+{
+  "version": "V1.137",
+  "sourceCommit": "51b0c9a5196aa6ef91846f7bb0dc6c0f88b9675f",
+  "archiveCommit": "231298373f802e7fe332e987fa810ec65b4062d2",
+  "runId": 41297191464,
+  "jobId": 124820587015,
+  "testsPassed": 70,
+  "conclusion": "success",
+  "msvcWarnings": [
+    "2026-11-01T10:25:54.9578366Z D:\\a\\Darksiders-Genesis-Enhanced-PC-Mod\\Darksiders-Genesis-Enhanced-PC-Mod\\src\\ForeignWrathFeature.cpp(107,45): warning C4457: declaration of 'now' hides function parameter [D:\\a\\Darksiders-Genesis-Enhanced-PC-Mod\\Darksiders-Genesis-Enhanced-PC-Mod\\build\\DarksidersGenesisMod.vcxproj]",
+    "2026-11-01T10:26:44.8502719Z D:\\a\\Darksiders-Genesis-Enhanced-PC-Mod\\Darksiders-Genesis-Enhanced-PC-Mod\\src\\ForeignWrathFeature.cpp(107): warning C6246: Local declaration of 'now' hides declaration of the same name in outer scope. For additional information, see previous declaration at line '83' of 'd:\\a\\darksiders-genesis-enhanced-pc-mod\\darksiders-genesis-enhanced-pc-mod\\src\\foreignwrathfeature.cpp'.: Lines: 83 [D:\\a\\Darksiders-Genesis-Enhanced-PC-Mod\\Darksiders-Genesis-Enhanced-PC-Mod\\build\\DarksidersGenesisMod.vcxproj]"
+  ],
+  "msvcErrors": [],
+  "supersededForFinalDeliveryBy": "V1.138",
+  "archivePreserved": true,
+  "installed": false,
+  "gameplayValidated": false
+}

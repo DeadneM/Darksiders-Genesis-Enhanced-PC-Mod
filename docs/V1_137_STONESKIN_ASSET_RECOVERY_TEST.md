@@ -37,3 +37,7 @@ Compilation Windows x64 via GitHub Actions uniquement. ZIP cumulatif à quatre f
 3. Contrôle de non-régression court : Geyser, Rampage et un tir chargé/Lava en TPS. Vérifier Statique/chaînes sans annoncer son bug résolu ; conserver son retour pour l'enquête native.
 
 Rollback : archive V1.136 conservée, avec l'INI personnel. La coopération reste à vérifier séparément quand l'utilisateur le souhaite.
+
+## Contrôle de V1.137 et livraison suivante
+
+Les 70 contrôles Windows passent, mais MSVC signale C4457 et C6246 : le compteur de temps local `now` masque le nouveau paramètre du même nom. V1.138 renomme uniquement ce paramètre `nowMs`, sans changement fonctionnel. L'archive V1.137 est conservée ; la livraison finale utilise un nouveau numéro. [Reçu](evidence/V1_137_CI_CHECK.json).

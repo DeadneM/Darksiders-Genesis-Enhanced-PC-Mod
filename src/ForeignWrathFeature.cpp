@@ -80,7 +80,7 @@ bool Source(uintptr_t actor,Animation& out){
         Read(idle.sequence,0x94,rate)&&rate==1&&Read(anim,0x3740,out.slot)&&
         native_objects::NameValueIs(g_base,out.slot.index,out.slot.number,"TPS")&&(out.sequence=idle.sequence)!=0;
 }
-void Scan(uintptr_t generatedClass,uint64_t now,bool refreshMissing){
+void Scan(uintptr_t generatedClass,uint64_t nowMs,bool refreshMissing){
     const bool beamChanged=foreign_beam::InvalidateAssets(),rampageChanged=foreign_rampage::InvalidateAssets();
     const bool caltropsChanged=foreign_caltrops::InvalidateAssets(),cloneChanged=foreign_power::InvalidateAssets();
     if(stone_visual::InvalidateAssets()||beamChanged||rampageChanged||caltropsChanged||cloneChanged){g_cursor=0;g_complete=false;}
@@ -93,8 +93,8 @@ void Scan(uintptr_t generatedClass,uint64_t now,bool refreshMissing){
     if(g_complete){
         // UObject indices can be reused without changing NumElements.
         // Only an active coating missing its resources requests a new pass.
-        if(!refreshMissing||now<g_assetRetryAt)return;
-        g_cursor=0;g_complete=false;g_assetRetryAt=now+1000;
+        if(!refreshMissing||nowMs<g_assetRetryAt)return;
+        g_cursor=0;g_complete=false;g_assetRetryAt=nowMs+1000;
     }
     // One shared discovery pass instead of three independent 512-object scans.
     // At most 256 objects, checking a 1 ms high-resolution budget every 16.

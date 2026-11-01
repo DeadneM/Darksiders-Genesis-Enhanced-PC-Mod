@@ -1,3 +1,11 @@
+## V1.138 — revêtement Stoneskin après chargement
+
+**PRÉPARÉE / EXPÉRIMENTALE ; contrôle GitHub en attente.** Même correction candidate que V1.137 : retrouver les ressources tardives et vérifier le vrai matériau minéral requis, avec recherche limitée au joueur concerné. Deux avertissements de nommage V1.137 corrigés par renommage du paramètre de temps. Son archive et ses 70/70 contrôles sont conservés. [Périmètre, limites et tests](V1_138_STONESKIN_ASSET_RECOVERY_TEST.md).
+
+Peau de pierre/feu absente chez Dagan selon l'utilisateur, à retester ; aucune réparation visuelle validée en jeu. Statique observée dans les deux vues avec ASI, enquête native encore ouverte. INI/55 Hotkeys et autres acquis préservés, aucune installation ; main/archive inchangées.
+
+---
+
 ## V1.137 — Stoneskin après chargement, visée encore ouverte
 
 **PRÉPARÉE / EXPÉRIMENTALE ; contrôles GitHub en attente.** Correction du scan de ressources manquant des objets réutilisés et des vrais matériaux requis par Stoneskin sur Strife. Boss Dagan à retester, cause exacte encore non capturée. Aucun geste/statistique modifié. [Périmètre, limites et essai](V1_137_STONESKIN_ASSET_RECOVERY_TEST.md).
