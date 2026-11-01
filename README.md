@@ -1,8 +1,8 @@
 ## V1.142 — aim assist accessible et ZIP à deux fichiers
 
-**PRÉPARÉE / EXPÉRIMENTALE, contrôles Windows GitHub en attente.** Base V1.141 acceptée : aim assist présenté comme les autres options, sans TreeNode caché. Nouveaux ZIP limités à l'ASI et dxgi.dll ; INI généré par l'ASI, README conservé sur GitHub. Updater embarqué compatible deux fichiers et anciennes archives, installation/restauration limitées aux binaires. [Périmètre, transition et essais](docs/V1_142_AIM_ASSIST_MENU_BINARY_PACKAGE_TEST.md).
+**CONSTRUITE / CONTRÔLÉE : [70/70 contrôles Windows, zéro avertissement/erreur MSVC](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41336835208). À VALIDER EN JEU.** [ZIP cumulatif à deux binaires vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/78229baae6258fa8bb51750a2f4134d6604cfb63/downloads/DarksidersGenesis_V1.142_AIM_ASSIST_MENU_BINARY_PACKAGE_TEST.zip) — [Reçu et transition](docs/V1_142_DELIVERY_RECEIPT.md). Base V1.141 acceptée : aim assist présenté comme les autres options, avec case visible et réglages Global/Per ammunition. INI et README retirés des nouveaux ZIP ; documentation et référence des défauts conservées sur GitHub. Updater embarqué compatible nouveau format et archives historiques, copie/restauration uniquement de l'ASI et du proxy. [Périmètre et limites](docs/V1_142_AIM_ASSIST_MENU_BINARY_PACKAGE_TEST.md).
 
-Première mise à jour manuelle depuis V1.141 explicitement acceptée par l'utilisateur ; aucune installation automatique ni updater autonome requis. Défauts/228 clés/55 Hotkeys, acquis et anciennes archives conservés ; main/archive intactes. Pas de nouvel appel moteur ni changement de tir.
+Transition manuelle unique depuis V1.141 explicitement acceptée par l'utilisateur, sans nouvel updater autonome. INI personnel conservé ; s'il est absent, création par l'ASI au prochain lancement. Valeurs approuvées, 228 clés, 55 Hotkeys, anciennes archives et branches protégées inchangées. Updater debug/Defender vérifiés ; aucun lancement, installation ou promotion main par l'agent.
 
 ---
 

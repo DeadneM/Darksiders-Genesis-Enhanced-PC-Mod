@@ -1,6 +1,6 @@
 # V1.142 — aim assist accessible et ZIP binaire
 
-**PRÉPARÉE / EXPÉRIMENTALE ; contrôles GitHub en attente.** Base V1.141 : menu et défauts acceptés par l'utilisateur, seul l'accès à l'aim assist est demandé plus visible. Branche debug uniquement, aucune installation ou promotion main.
+**CONSTRUITE / CONTRÔLÉE : [70/70 suites Windows, zéro avertissement/erreur MSVC](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41336835208). À VALIDER EN JEU.** Base V1.141 : menu et défauts acceptés par l'utilisateur, seul l'accès à l'aim assist est demandé plus visible. Branche debug uniquement, aucune installation ou promotion main.
 
 ## Objectif et critère
 
