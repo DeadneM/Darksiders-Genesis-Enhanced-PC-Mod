@@ -1,6 +1,6 @@
 # V1.141 — valeurs par défaut approuvées et menu
 
-**PRÉPARÉE ; CONSTRUCTION/CONTRÔLES GitHub en attente. Présentation EXPÉRIMENTALE, à vérifier en jeu.** Les valeurs de configuration sont approuvées par l'utilisateur ; cela ne valide pas les fonctions encore expérimentales. Base cumulative V1.140, debug uniquement.
+**CONSTRUITE / CONTRÔLÉE : [70/70 suites Windows, zéro avertissement/erreur MSVC](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41332088332). Présentation EXPÉRIMENTALE, à vérifier en jeu.** Les valeurs de configuration sont approuvées par l'utilisateur ; cela ne valide pas les fonctions encore expérimentales. Base cumulative V1.140, debug uniquement.
 
 ## Objectif et réussite
 

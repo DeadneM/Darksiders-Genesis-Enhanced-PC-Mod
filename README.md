@@ -1,8 +1,8 @@
 ## V1.141 — défauts approuvés et lisibilité du menu
 
-**PRÉPARÉE / EXPÉRIMENTALE pour la présentation, contrôles Windows GitHub en attente.** Base cumulative V1.140. Les 72 choix de défauts sont approuvés par l'utilisateur : 48 valeurs changent, les 180 autres clés restent identiques. ASI, création/reset INI, valeurs de repli, runtime et boutons Default mis en cohérence. Palette plus contrastée, groupes plus visibles, contrôles et états mieux lisibles ; mêmes identifiants et groupes fermés par défaut. [Périmètre, limites et essais](docs/V1_141_APPROVED_DEFAULTS_MENU_REFRESH_TEST.md).
+**CONSTRUITE / CONTRÔLÉE : [70/70 contrôles Windows, zéro avertissement/erreur MSVC](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41332088332). Défauts APPROUVÉS ; présentation EXPÉRIMENTALE, à valider en jeu.** [ZIP cumulatif vérifié](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/89a973bd2c0dcf09ef0148c893d5fba4bd04c3cb/downloads/DarksidersGenesis_V1.141_APPROVED_DEFAULTS_MENU_REFRESH_TEST.zip) — [Reçu et essais](docs/V1_141_DELIVERY_RECEIPT.md). Base V1.140. Les 72 choix confirmés sont intégrés : 48 valeurs changent, 180 restent identiques. INI généré/livré, reset, runtime et boutons Default cohérents. Menu plus contrasté, groupes et états plus visibles, style entièrement restauré à la fermeture. [Périmètre et limites](docs/V1_141_APPROVED_DEFAULTS_MENU_REFRESH_TEST.md).
 
-Compilation exclusivement GitHub, canal debug conservé. Aucune promotion main ni installation ; INI personnel et raccourcis existants conservés. Les nouveaux défauts s'appliquent à un nouveau profil ou à une remise à zéro volontaire. Les états expérimentaux des fonctions ne deviennent pas validés par l'approbation de leurs défauts.
+Updater debug et Defender contrôlés ; aucune installation, lancement ou promotion main par l'agent. INI personnel conservé : ses valeurs explicites restent prioritaires. Les nouveaux défauts s'appliquent à un nouveau profil ou à une remise à zéro volontaire après sauvegarde. Fonctions natives, 55 identifiants Hotkeys, anciens ZIP et branches protégées conservés.
 
 ---
 
