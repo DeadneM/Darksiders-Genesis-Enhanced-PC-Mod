@@ -5,14 +5,12 @@
 #include "OwnedParticleTransform.h"
 #include <array>
 #include <atomic>
-#include <cmath>
-#include <cstdio>
 namespace dg::shield_visual {
 namespace {
 using Id=native_objects::Identity;
 struct Array {uintptr_t data=0;int count=0,capacity=0;};
-struct Effect {Id component{},source{},target{},world{},status{},actor{};uint64_t born=0;bool hidden=false;float preset=1;owned_particle::State transform{};};
-struct Player {Id actor{},mesh{},world{},actorClass{},componentClass{};int componentOffset=-1,statusesOffset=-1;uint64_t tick=0,next=0;};
+struct Effect {Id component{},source{},target{},world{},status{},actor{};uint64_t born=0;bool hidden=false,transformReported=false;float preset=1;owned_particle::State transform{};};
+struct Player {Id actor{},mesh{},world{},actorClass{},componentClass{};int componentOffset=-1,statusesOffset=-1;uint64_t next=0;};
 std::array<Effect,32> g_effects{};std::array<Player,2> g_players{};
 uintptr_t g_base=0;VisibleFn g_visible=nullptr;LogFn g_log=nullptr;
 std::atomic_bool g_ready{false};unsigned g_count=0,g_binds=0,g_ends=0;uint64_t g_poll=0;
@@ -46,7 +44,7 @@ bool Fields(Player& p,uintptr_t actor,uintptr_t& component){
     }
     return p.statusesOffset>=0;
 }
-bool Publish(const local_players::Context& c,Player& p,uint64_t now){
+bool Publish(const local_players::Context& c,Player& p){
     uintptr_t pawn=0,mesh=0,owner=0;unsigned char role=0;
     if(!c.localPlayer||!c.controller||!c.character||!c.pawn||!c.world||!Read(c.controller,0x350,pawn)||pawn!=c.pawn||
        !Read(c.character,0x118,role)||role!=3||!Read(c.character,0x380,mesh)||!Read(mesh,0xE8,owner)||owner!=c.character)return false;
@@ -54,7 +52,7 @@ bool Publish(const local_players::Context& c,Player& p,uint64_t now){
         Id actor{},body{},world{};if(!Capture(c.character,actor)||!Capture(mesh,body)||!Capture(c.world,world))return false;
         p.actor=actor;p.mesh=body;p.world=world;
     }
-    p.tick=now;return true;
+    return true;
 }
 void Bind(Player& p,uint64_t now){
     bool pending=false;for(const auto& e:g_effects)pending=pending||(e.component&&!e.status&&e.world==p.world&&now>=e.born&&now-e.born<=2000);
@@ -93,8 +91,11 @@ void Poll(uint64_t now){
             if(e.hidden)Visibility(e,true);
             int hero=0;uintptr_t parent=0,owner=0;
             if(Read(e.actor.address,0xC18,hero)&&hero>=1&&hero<=2&&
-               Read(e.component.address,0x108,parent)&&Read(parent,0xE8,owner)&&owner==e.actor.address)
-                owned_particle::Apply(g_base,e.component,runtime::Get().shieldTransforms[unsigned(hero-1)].Load(),e.preset,e.transform);
+               Read(e.component.address,0x108,parent)&&Read(parent,0xE8,owner)&&owner==e.actor.address){
+                const bool ready=owned_particle::Apply(g_base,e.component,runtime::Get().shieldTransforms[unsigned(hero-1)].Load(),e.preset,e.transform);
+                if(!e.transformReported&&g_log)g_log(ready?"Shield transform V1.146: owned component contract verified":"Shield transform V1.146 unavailable: component contract refused; native transform retained");
+                e.transformReported=true;
+            }
         }
         else {const bool before=e.hidden;Visibility(e,false);if(!before&&e.hidden&&g_log&&g_ends++<8)g_log("Shield visual V1.145: native shield particle reference cleared; private replacement hidden");}
     }
@@ -128,8 +129,8 @@ void Track(void* component,void* original,void* rendered,void* world){
 void OnLivePlayer(const local_players::Context& c){
     if(!g_ready||!native_tps::OnGameThread()||c.index<0||c.index>1)return;
     auto& p=g_players[unsigned(c.index)];const auto now=GetTickCount64();if(now<p.next)return;p.next=now+100;
-    if(Choice()<=1&&!g_count){p.tick=0;return;}
-    if(Publish(c,p,now)){if(g_count)Bind(p,now);}else p.tick=0;
+    if(Choice()<=1&&!g_count)return;
+    if(Publish(c,p)&&g_count)Bind(p,now);
     if(now>=g_poll){g_poll=now+100;Poll(now);}
 }
 void Shutdown(){g_ready=false;if(native_tps::OnGameThread()){g_effects={};g_players={};g_count=0;}}

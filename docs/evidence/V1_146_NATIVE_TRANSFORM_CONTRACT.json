@@ -1,0 +1,101 @@
+{
+  "source": "offline supported Windows executable, no process handle",
+  "nativeExecRVAs": {
+    "SetRelativeScale3D": "0x1DD9E30",
+    "K2_SetRelativeLocation": "0x1DD8A90"
+  },
+  "metadata": {
+    "K2_SetRelativeLocation": {
+      "parameterBytes": 156,
+      "props": [
+        {
+          "name": "bTeleport",
+          "rva": "0x379ce38",
+          "qwords": [
+            "0x2651d38",
+            "0x0",
+            "0x10000000000080",
+            "0x450000002c",
+            "0x100000001",
+            "0x9c",
+            "0x37e330",
+            "0x2dfcef0"
+          ]
+        },
+        {
+          "name": "SweepHitResult",
+          "rva": "0x379ce70",
+          "qwords": [
+            "0x2dfcef0",
+            "0x0",
+            "0x10008000000180",
+            "0x4500000019",
+            "0x1000000001",
+            "0x1d0a9f0",
+            "0x2dfcf00",
+            "0x0"
+          ]
+        },
+        {
+          "name": "bSweep",
+          "rva": "0x379cea0",
+          "qwords": [
+            "0x2dfcf00",
+            "0x0",
+            "0x10000000000080",
+            "0x450000002c",
+            "0x100000001",
+            "0x9c",
+            "0x3cbae0",
+            "0x2dfa2e8"
+          ]
+        },
+        {
+          "name": "NewLocation",
+          "rva": "0x379ced8",
+          "qwords": [
+            "0x2dfa2e8",
+            "0x0",
+            "0x10000000000080",
+            "0x4500000019",
+            "0x1",
+            "0xad7ec0",
+            "0x1dd4d70",
+            "0x0"
+          ]
+        }
+      ]
+    },
+    "SetRelativeScale3D": {
+      "parameterBytes": 12,
+      "props": [
+        {
+          "name": "NewScale3D",
+          "rva": "0x379dac0",
+          "qwords": [
+            "0x2dfa8a0",
+            "0x0",
+            "0x10000000000080",
+            "0x4500000019",
+            "0x1",
+            "0xad7ec0",
+            "0x1dd4d70",
+            "0x0"
+          ]
+        }
+      ]
+    }
+  },
+  "boolOffsetThunks": {
+    "bSweep": {
+      "rva": "0x3CBAE0",
+      "fieldOffset": 12
+    },
+    "bTeleport": {
+      "rva": "0x37E330",
+      "fieldOffset": 152
+    }
+  },
+  "runtimeRequirements": "exact named UFunction/native entry + each property kind/size/offset + current owned PSC identity; ProcessEvent only on game thread; otherwise no call",
+  "notGameplayProof": true
+}

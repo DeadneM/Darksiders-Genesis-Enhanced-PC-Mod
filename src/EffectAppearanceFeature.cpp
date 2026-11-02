@@ -89,7 +89,7 @@ void Scan(uint64_t now){
         }
         g_cursor+=n;inspected+=unsigned(n);
     }
-    if(g_cursor>=count)g_complete=true;if(changed)Availability(now,true);
+    if(g_cursor>=count){g_complete=true;g_retryTick=now;}if(changed)Availability(now,true);
 }
 const World* CurrentWorld(uintptr_t address,uint64_t now){
     for(const auto& world:g_worlds)if(world.id.address==address&&world.tick&&now>=world.tick&&now-world.tick<=500&&Alive(world.id))return &world;
