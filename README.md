@@ -1,3 +1,11 @@
+## V1.143 — préparation Stoneskin, bouclier et pose
+
+**CHECK ONLY / EXPÉRIMENTAL, contrôles GitHub en attente. Aucun ZIP ni installation.** Le journal V1.142 mesure un coût CPU important dans stoneskin-observe ; classification des classes de statut désormais mémorisée avec identités vérifiées, sans changer rendu/cadence/capacité. Gain en jeu non validé. [Preuves, tests et sujets ouverts](docs/V1_143_STONESKIN_STATUS_CACHE_REVIEW.md).
+
+Cœur responsable du bouclier à identifier ; blocage de pose en attente du relevé autorisé après « prêt ». Aucun remplacement visuel ou correctif de pose annoncé. V1.142 reste l'installation et le téléchargement courant ; INI/raccourcis, anciens ZIP et branches protégées conservés.
+
+---
+
 ## Installation locale V1.142 — 1er novembre 2026
 
 **INSTALLÉE à la demande explicite de l'utilisateur, jeu fermé ; empreintes ASI/proxy conformes au ZIP contrôlé.** Sauvegarde V1.141 et INI dans le dossier local before-V1.142-20261101-231817-8451d5. INI personnel/raccourcis, README local, EXE original, Engine.ini et inventaire PAK conservés. Aucun lancement du jeu ni validation du menu déduit de la copie. [Preuve d'installation](docs/evidence/V1_142_INSTALL_CHECK.json).

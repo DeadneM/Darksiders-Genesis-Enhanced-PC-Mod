@@ -1,0 +1,45 @@
+{
+  "logSha256": "4BA4EF2D0CC52D7078B25557A7CD64ACD42BC241EBDE7898ABB9A489AE81844B",
+  "metrics": {
+    "gameplay-service": {
+      "samples": 20190,
+      "avgUs": 1668.85,
+      "maxUs": 16177.9
+    },
+    "pistol-observe": {
+      "samples": 20190,
+      "avgUs": 89.32,
+      "maxUs": 570.8
+    },
+    "pistol-animation": {
+      "samples": 43221,
+      "avgUs": 3.01,
+      "maxUs": 364.5
+    },
+    "stoneskin-observe": {
+      "samples": 20190,
+      "avgUs": 1025.51,
+      "maxUs": 15040.7
+    },
+    "wrath-discovery": {
+      "samples": 5290,
+      "avgUs": 370.52,
+      "maxUs": 1423.1
+    },
+    "native-assist-inclusive": {
+      "samples": 582,
+      "avgUs": 329.39,
+      "maxUs": 772.2
+    }
+  },
+  "fpsMeasured": false,
+  "gpuMeasured": false,
+  "cumulativeInclusiveSamples": true,
+  "performanceRegressionUserObserved": true,
+  "cacheCandidateRuntimeValidated": false,
+  "shieldCoreAwaitingIdentification": true,
+  "poseCaptureAwaitingReadiness": true,
+  "gameMemoryWritten": false,
+  "iniChanged": false,
+  "archivePublished": false
+}

@@ -20,6 +20,9 @@ Visual g_visual[2]{};
 struct Transition {Id actor{};uintptr_t world=0;bool pending=false;};
 Transition g_transitions[2]{};
 bool g_missing[2]{};
+struct StatusClass {Id identity{};unsigned kind=0;};
+std::array<StatusClass,128> g_statusClasses{};
+size_t g_statusClassNext=0;uint64_t g_statusClassHits=0,g_statusClassMisses=0;
 template<class T>bool Read(uintptr_t p,size_t at,T& v){native_objects::MemoryReader r;return r.Read(p,at,v);}
 template<size_t N>bool Is(uintptr_t p,const char(&s)[N]){return native_objects::NameIs(g_base,p,s);}
 bool Alive(const Id& id){native_objects::MemoryReader r;return native_objects::Alive(r,g_base,id);}
@@ -113,6 +116,27 @@ void Restore(Visual& v){
     }
     v={};
 }
+unsigned StatusKind(uintptr_t cls,bool& complete){
+    if(!cls){complete=false;return 0;}
+    for(auto& cached:g_statusClasses)if(cached.identity.address==cls){
+        if(Alive(cached.identity)){++g_statusClassHits;complete=true;return cached.kind;}
+        cached={};
+    }
+    ++g_statusClassMisses;const auto original=cls;unsigned kind=0;complete=true;
+    for(unsigned depth=0;cls&&depth<12;++depth){
+        if(Is(cls,"MayhemStatusEffect_StoneSkin_Base_Blueprint_C"))kind|=1;
+        if(Is(cls,"MayhemStatusEffect_Core_FallenDog_Molten_1_Blueprint_C")||Is(cls,"MayhemStatusEffect_Core_FallenDog_Molten_2_Blueprint_C")||
+           Is(cls,"MayhemStatusEffect_Core_FallenDog_Molten_3_Blueprint_C"))kind|=2;
+        if(!Read(cls,0x40,cls)){complete=false;break;}
+    }
+    if(cls)complete=false;
+    Id identity{};
+    if(complete&&Capture(original,identity)){
+        g_statusClasses[g_statusClassNext]={identity,kind};
+        g_statusClassNext=(g_statusClassNext+1)%g_statusClasses.size();
+    }
+    return kind;
+}
 int Status(uintptr_t actor,bool* known=nullptr){
     int at=-1;uintptr_t component=0,owner=0;Array statuses{};bool stone=false,molten=false,complete=true;
     if(!Field(actor,"m_pStatusEffectComponent","ObjectProperty",8,at)||!Read(actor,at,component)||
@@ -121,15 +145,15 @@ int Status(uintptr_t actor,bool* known=nullptr){
         uintptr_t status=0,cls=0,instigator=0;
         if(!Read(statuses.data,size_t(i)*8,status)){complete=false;continue;}
         if(!status)continue;
-        if(!Read(status,0x10,cls)||
-           !Field(status,"m_pInstigatorActor","ObjectProperty",8,at)||!Read(status,at,instigator)){complete=false;continue;}
+        if(!Read(status,0x10,cls)){complete=false;continue;}
+        bool classKnown=false;const unsigned kind=StatusKind(cls,classKnown);
+        complete=complete&&classKnown;
+        // Irrelevant status classes cannot provide this coating. Their native
+        // instigator need not be reflected on every movement/camera callback.
+        if(!kind)continue;
+        if(!Field(status,"m_pInstigatorActor","ObjectProperty",8,at)||!Read(status,at,instigator)){complete=false;continue;}
         if(instigator!=actor)continue;
-        for(int n=0;cls&&n<12;++n){
-            if(Is(cls,"MayhemStatusEffect_StoneSkin_Base_Blueprint_C"))stone=true;
-            if(Is(cls,"MayhemStatusEffect_Core_FallenDog_Molten_1_Blueprint_C")||Is(cls,"MayhemStatusEffect_Core_FallenDog_Molten_2_Blueprint_C")||
-               Is(cls,"MayhemStatusEffect_Core_FallenDog_Molten_3_Blueprint_C"))molten=true;
-            if(!Read(cls,0x40,cls)){complete=false;break;}
-        }
+        stone=stone||((kind&1u)!=0);molten=molten||((kind&2u)!=0);
     }
     if(known)*known=complete||stone;
     return stone?(molten?1:0):-1;
@@ -232,6 +256,8 @@ void Observe(const local_players::Context& c){
 }
 void Shutdown(){
     if(native_tps::OnGameThread())for(auto& v:g_visual)Restore(v);
+    if(g_log){char line[180]{};sprintf_s(line,"Stoneskin status-class cache hits=%llu misses=%llu capacity=128; identity checked on every hit",static_cast<unsigned long long>(g_statusClassHits),static_cast<unsigned long long>(g_statusClassMisses));g_log(line);}
+    g_statusClasses={};g_statusClassNext=0;g_statusClassHits=g_statusClassMisses=0;
     g_event=nullptr;g_fields={};g_transitions[0]=g_transitions[1]={};g_missing[0]=g_missing[1]=false;stone_fx::Shutdown();
 }
 }

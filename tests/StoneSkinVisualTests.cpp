@@ -27,6 +27,7 @@ void Dispatch(void* object,void* function,void* args){
  Check(function==f.functions[3]&&object!=f.materials[0]&&object!=f.materials[1],"parameter copy only on private MID");++copies;
 }
 void Fresh(){
+ g_statusClasses={};g_statusClassNext=0;g_statusClassHits=g_statusClassMisses=0;
  f={};g_visual[0]=g_visual[1]={};g_transitions[0]=g_transitions[1]={};g_missing[0]=g_missing[1]=false;g_fields={};for(auto& variant:g_materials)for(auto& m:variant)m={};g_event=Dispatch;g_log=nullptr;g_events=g_deferredEvents=0;owner={};id=0;copies=creates=sets=scalarCalls=0;thread=true;failFactory=false;for(auto& n:fx)n=0;fxReady=true;
  const char* labels[]={"Strife_Blueprint_C","MeshClass","StatusComponent","MayhemStatusEffect_StoneSkin_Base_Blueprint_C","MaterialInstanceDynamic","Function","ObjectProperty","ArrayProperty","IntProperty","NameProperty","BoolProperty","MayhemStatusEffect_Core_FallenDog_Molten_2_Blueprint_C"};
  for(int i=0;i<12;++i)Label(f.classes[i],i+1,labels[i]);
@@ -62,6 +63,16 @@ void Fresh(){
 }
 void Run(){
  std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(chunks));for(int i=0;i<64;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);objectChunks[0]=reinterpret_cast<uintptr_t>(f.items);Put(image.data(),0x3959680,reinterpret_cast<uintptr_t>(objectChunks));Put(image.data(),0x3959694,32);
+ Fresh();const auto statusClass=Live(f.classes[3]);bool classKnown=false;
+ Check(StatusKind(statusClass.address,classKnown)==1&&classKnown&&g_statusClassMisses==1,"Stoneskin class classified once");
+ Check(StatusKind(statusClass.address,classKnown)==1&&classKnown&&g_statusClassMisses==1&&g_statusClassHits==1,"repeated class hierarchy work avoided");
+ Label(f.classes[3],54,"UnrelatedStatusClass");Put(f.items,size_t(statusClass.index)*24+16,statusClass.serial+1);
+ Check(StatusKind(statusClass.address,classKnown)==0&&classKnown&&g_statusClassMisses==2,"reused class address invalidates cached kind");
+ for(unsigned i=0;i<g_statusClasses.size();++i)g_statusClasses[i]={statusClass,1};g_statusClassNext=g_statusClasses.size()-1;
+ const auto moltenClass=Live(f.classes[11]);
+ Check(StatusKind(moltenClass.address,classKnown)==2&&classKnown&&g_statusClassNext==0&&g_statusClasses.back().identity==moltenClass,"full bounded cache replaces an entry rather than permanently missing");
+ Fresh();Put(f.classes[3],0x40,reinterpret_cast<uintptr_t>(f.classes[3]));
+ StatusKind(reinterpret_cast<uintptr_t>(f.classes[3]),classKnown);Check(!classKnown&&!g_statusClasses[0].identity,"truncated/cyclic unknown hierarchy is never cached");
  Fresh();const auto classId=Live(f.classes[0]);int cachedOffset=-1;
  Check(Field(owner.character,"m_pStatusEffectComponent","ObjectProperty",8,cachedOffset)&&cachedOffset==0x990&&g_fields[0].cls==classId,"known reflected field caches complete class identity");
  Put(f.fields[0],0x44,0x998);Check(Field(owner.character,"m_pStatusEffectComponent","ObjectProperty",8,cachedOffset)&&cachedOffset==0x990,"live matching class reuses its verified immutable schema");
