@@ -1,0 +1,29 @@
+{
+  "captures": [
+    {
+      "file": "v253-animation-20261102-120927.jsonl",
+      "sha256": "423101A34C0CF6210729646AFECEC2597E3DD62E51FBCD673252E20D7312E68E",
+      "samples": 894,
+      "lastSeconds": 179.98,
+      "transitions": 111
+    },
+    {
+      "file": "v253-animation-20261102-121337.jsonl",
+      "sha256": "FD696FD32DFE6873A9320AEC04AA4D635C48AF741F930BE80B431733DDEABC87",
+      "samples": 807,
+      "lastSeconds": 179.92,
+      "transitions": 178
+    }
+  ],
+  "externalMemoryWrites": false,
+  "runtimeNativeCalls": false,
+  "userReportedTrigger": "ammunition change; dash initially suspected; not Stoneskin",
+  "userComparedBeforeAndAfterFire": true,
+  "stuckAIMCommandProven": false,
+  "animationCauseProven": false,
+  "readRejectionsSecondCapture": 87,
+  "errorReasonsNotRecorded": true,
+  "rawMontageHelperOffsetsNotUsedAsProof": true,
+  "poseFixApplied": false,
+  "airDashDeferredByUser": true
+}

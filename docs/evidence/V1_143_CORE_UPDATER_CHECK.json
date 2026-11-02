@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.143_STONESKIN_CORE_VISUALS_TEST.zip",
+  "blobSha": "282c9f9637d5fb6eb9a2b89214ed1167233303bd",
+  "httpStatus": 200,
+  "sha256": "A0AB45769222DBF03ED530735D5B53A5F91E6CECFE3D08AF1AC682C244303A59",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}

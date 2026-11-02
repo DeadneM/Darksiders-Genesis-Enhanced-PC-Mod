@@ -1,8 +1,10 @@
+**Livraison V1.143 disponible sur debug, non installée.** [ZIP, contrôles et essais](V1_143_CORE_DELIVERY_RECEIPT.md).
+
 ## V1.143 - lot Stoneskin et visuels de cœurs
 
-**EXPÉRIMENTAL, nouveaux ajouts en attente de compilation/livraison.** Optimisation CPU Stoneskin, bouclier Porte-bouclier de la Légion (ShieldDemon : Native/Hidden/Fire aura) et cristal Stinger (Native/Hidden). Deux groupes en bas d’Appearance après Leviathan, dans les deux vues. [Objectif, preuves, limites, essais et repli](V1_143_STONESKIN_CORE_VISUALS_TEST.md).
+**CONSTRUIT / CONTRÔLÉ, EXPÉRIMENTAL en jeu. GitHub Windows : 70/70 contrôles et ZIP publié, aucun avertissement détecté.** Optimisation CPU Stoneskin, bouclier Porte-bouclier de la Légion (ShieldDemon : Native/Hidden/Fire aura) et cristal Stinger (Native/Hidden). Deux groupes en bas d’Appearance après Leviathan, dans les deux vues. [Objectif, preuves, limites, essais et repli](V1_143_STONESKIN_CORE_VISUALS_TEST.md).
 
-Pose de visée après changement de munition encore ouverte ; aucune correction sans preuve. Dash aérien reporté explicitement. V1.142 reste installée ; aucun fichier de jeu ni INI personnel remplacé. Le contrôle 70/70 ci-dessous concerne uniquement l’étape cache CPU antérieure, pas ce lot visuel.
+Pose de visée après changement de munition encore ouverte ; aucune correction sans preuve. Dash aérien reporté explicitement. V1.142 reste installée ; aucun fichier de jeu ni INI personnel remplacé. Le lot complet passe aussi 70/70 contrôles ; aucun gain de fluidité ou rendu visuel n’est encore validé en jeu.
 
 ---
 

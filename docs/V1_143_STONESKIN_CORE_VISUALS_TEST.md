@@ -1,6 +1,6 @@
 # V1.143 - Stoneskin CPU et visuels de cœurs
 
-**EXPÉRIMENTAL, compilation/livraison en attente pour ce lot.** Base installée V1.142. Le cache CPU seul du commit a391b5a a déjà passé 70/70 contrôles Windows ; ce résultat ne valide pas les ajouts suivants, leur rendu ou les FPS.
+**CONSTRUIT / CONTRÔLÉ, EXPÉRIMENTAL en jeu, non installé.** Base installée V1.142. Le cache CPU seul du commit a391b5a a déjà passé 70/70 contrôles Windows ; ce résultat ne valide pas les ajouts suivants, leur rendu ou les FPS.
 
 ## Objectif et modifications
 
@@ -16,7 +16,7 @@ Chemin existant de création de particules conservé : aucun nouveau hook ou ABI
 
 ## Pose et sujets différés
 
-Utilisateur : pose parfois figée en visée, rétablie en tirant ; changement de munition reproduit, dash initialement suspecté ; Stoneskin ne déclenche pas ce défaut. Deux captures externes VM_READ uniquement ont été effectuées après signal prêt, puis reproduction/comparaison demandées. Les échantillons enregistrent des périodes sans AIM maintenu, sans tir et sans capacité active : ils ne démontrent pas une commande AIM bloquée, ni une cause dans le montage Stoneskin. Les dernières lectures invalides ont été rejetées par les contrôles de propriétaire. Aucun déblocage forcé, réinitialisation d’animation ou patch de touche appliqué ; bug ouvert. Dash aérien explicitement remis à plus tard par l’utilisateur.
+Utilisateur : pose parfois figée en visée, rétablie en tirant ; changement de munition reproduit, dash initialement suspecté ; Stoneskin ne déclenche pas ce défaut. Deux captures externes VM_READ uniquement ont été effectuées après signal prêt, puis reproduction/comparaison demandées. Les échantillons enregistrent des périodes sans AIM maintenu, sans tir et sans capacité active : ils ne démontrent pas une commande AIM bloquée, ni une cause dans le montage Stoneskin. La seconde capture a rejeté 87 lectures ; leurs causes détaillées n’étaient pas enregistrées et elles ne sont pas exploitées comme preuve du défaut. Aucun déblocage forcé, réinitialisation d’animation ou patch de touche appliqué ; bug ouvert. Dash aérien explicitement remis à plus tard par l’utilisateur.
 
 ## Critères et essais à faire
 
@@ -26,3 +26,7 @@ Utilisateur : pose parfois figée en visée, rétablie en tirant ; changement de
 4. Confirmer les deux groupes en bas d’Appearance après Leviathan, fermés initialement. Choix conservés après sauvegarde/rechargement ; pas de doublon dans la bibliothèque.
 
 P2 visuel non validé. Caméras, tirs, manette/rebinds, roues, pouvoirs et timings validés, HUD, jauges, skins, holsters, sauts et updater préservés. INI personnel et fichiers du jeu non modifiés. Rollback : V1.142 et sauvegarde d’installation existante. ZIP prévu : exactement ASI et dxgi.dll à la racine, sans INI ni README ; toutes les anciennes archives et branches main/archive conservées.
+
+## Livraison contrôlée
+
+Le lot complet passe 70/70 contrôles Windows, sans avertissement détecté ; ZIP et catalogue debug contrôlés, Defender sans menace détectée. [Reçu, lien direct et limites](V1_143_CORE_DELIVERY_RECEIPT.md). V1.142 demeure installée.

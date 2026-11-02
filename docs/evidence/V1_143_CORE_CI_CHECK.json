@@ -1,0 +1,22 @@
+{
+  "sourceCommit": "c3f3b67200746bafc913db546339587acb969a0e",
+  "run": 41436489123,
+  "job": 125247411992,
+  "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41436489123",
+  "conclusion": "success",
+  "windowsX64Compiled": true,
+  "testsPassed": 70,
+  "testsFailed": 0,
+  "compilerWarnings": [],
+  "testEvidence": [
+    "2026-11-02T11:28:11.3022489Z  4/70 Test  #4: EffectAppearance .................   Passed    0.20 sec",
+    "2026-11-02T11:28:11.3438486Z  5/70 Test  #5: StoneSkinVisual ..................   Passed    0.04 sec",
+    "2026-11-02T11:28:16.6509388Z 100% tests passed out of 70",
+    "2026-11-02T11:28:16.6510027Z Total Test time (real) =   5.75 sec"
+  ],
+  "zipPublished": true,
+  "localBuild": false,
+  "installed": false,
+  "runtimeValidated": false,
+  "fpsMeasured": false
+}
