@@ -1,0 +1,103 @@
+{
+  "baseVersion": "V1.144",
+  "stingerValidatedByUser": true,
+  "rampageAndChaosShieldChoicesRejected": true,
+  "borrowerChoice4Preserved": true,
+  "native0AndHidden1Preserved": true,
+  "newChoices": {
+    "2": "Belial barrier",
+    "3": "Dagon shield",
+    "4": "Sphere shield (Borrower)",
+    "5": "Water sphere"
+  },
+  "attachmentFactors": {
+    "2": 0.35,
+    "3": 0.25,
+    "4": 0.6,
+    "5": 0.35
+  },
+  "newTargetsOnly": true,
+  "oldRoleMappingsUnchangedExceptRejectedChoices": true,
+  "oldAssetsPreserved": 457,
+  "totalAssets": 460,
+  "newHooks": 0,
+  "newEngineAPIs": 0,
+  "newIniKeys": 0,
+  "assets": [
+    {
+      "name": "P_Borrower_Shield",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/Borrower/P_Borrower_Shield.uasset",
+      "sha1": "39e10c5b00d2bd4b955d100699637ec23c9e9f42",
+      "particleSystemVerified": true,
+      "meshes": [
+        "SM_VFX_Sphere_Twist_01",
+        "SM_VFX_WideRing"
+      ],
+      "parseErrors": []
+    },
+    {
+      "name": "P_CreatureCore_ShieldDemon",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/Generic/P_CreatureCore_ShieldDemon.uasset",
+      "sha1": "e8fc3e765b11e0e1a7dc1e809b89c37f79487059",
+      "particleSystemVerified": true,
+      "meshes": [
+        "SM_VFX_Sphere_Twist_01"
+      ],
+      "parseErrors": []
+    },
+    {
+      "name": "P_Belial_Barrier_Loop_01",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/Belial/P_Belial_Barrier_Loop_01.uasset",
+      "sha1": "39bc0675a45a1bb2cf364a0a639205862b2ebd57",
+      "particleSystemVerified": true,
+      "meshes": [
+        "SM_VFX_Sphere_Twist_01"
+      ],
+      "parseErrors": []
+    },
+    {
+      "name": "P_Dagon_Shield",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/Dagon/P_Dagon_Shield.uasset",
+      "sha1": "ed3c0ee3e8ebb7d316c62774525da6588aacef6c",
+      "particleSystemVerified": true,
+      "meshes": [
+        "SM_VFX_Cylinder_Curved_Twist_CW_01",
+        "SM_VFX_Dagon_CloudRing",
+        "SM_VFX_Dagon_WaterShield",
+        "SM_VFX_EdenRipples",
+        "SM_VFX_Vortex_Cyclone_01",
+        "SM_VFX_Wave_TremorGauntlet_03"
+      ],
+      "parseErrors": []
+    },
+    {
+      "name": "P_Dagon_WaterSphere_Base",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/Dagon/P_Dagon_WaterSphere_Base.uasset",
+      "sha1": "513f8290ff5903c19050e052ce6bc31ad2fd1849",
+      "particleSystemVerified": true,
+      "meshes": [
+        "SM_VFX_Plane_Circle_01",
+        "SM_VFX_TransformShell_Splats",
+        "SM_VFX_Weapon_Swipe"
+      ],
+      "parseErrors": []
+    }
+  ],
+  "indexSha1": "5d0982cd46a5221290cb6ed24696e3962e9dddff",
+  "nativeLifecycleProof": {
+    "type": "MayhemStatusEffect_DamageShield",
+    "classGlobal": "0x3812750",
+    "damageMethod": "0x6D0860",
+    "nativeStop": "0x69FB90",
+    "receiver": "0x68",
+    "sourceParticle": "0x58",
+    "activeParticle": "0x78",
+    "instigator": "0x70",
+    "particleBoneInProperties": "0x18",
+    "propertiesAt": "0x38",
+    "signaturesCheckedBeforeEnabling": true
+  },
+  "runtimeValidated": false,
+  "stoneskinIntermittentNotAttributedToShield": true,
+  "stoneskinGuardChanged": false
+}

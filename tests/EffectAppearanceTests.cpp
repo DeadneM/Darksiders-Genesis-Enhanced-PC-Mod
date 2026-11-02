@@ -16,6 +16,10 @@ void* CreateNative(void* asset,void* world,void* outer,bool autoDestroy,unsigned
 void Visibility(void* component,bool show,unsigned char propagation){Check(component==f.component&&propagation==1,"only the returned native PSC visibility changes");++visibleCalls;unsigned char value=0;std::memcpy(&value,f.component+0x1CC,1);value=show?static_cast<unsigned char>(value|0x20):static_cast<unsigned char>(value&~0x20);Put(f.component,0x1CC,value);}
 void Fresh(){
  std::memset(&f,0,sizeof(f));owner={};thread=true;failCreate=false;calls=visibleCalls=0;g_assets={};g_particleClass={};g_worlds={};g_hidden={};g_hiddenCount=0;g_changes=0;g_available.reset();g_cursor=g_count=0;g_complete=false;g_generation=0;g_scanTick=g_checkTick=g_restoreTick=0;g_ready=true;g_log=nullptr;g_create=CreateNative;g_visible=Visibility;for(auto& mask:g_loaded)mask=0;
+ dg::shield_visual::Shutdown();
+ constexpr unsigned char shieldStop[]={0x40,0x53,0x48,0x83,0xEC,0x20,0x48,0x8B,0xD9,0x48,0x8B,0x49,0x78,0x48,0x85,0xC9};
+ constexpr unsigned char shieldDamage[]={0x48,0x89,0x5C,0x24,0x08,0x57,0x48,0x83,0xEC,0x50,0x48,0x8B,0x79,0x68,0x48,0x8B};
+ std::memcpy(reinterpret_cast<void*>(g_base+0x69FB90),shieldStop,sizeof(shieldStop));std::memcpy(reinterpret_cast<void*>(g_base+0x6D0860),shieldDamage,sizeof(shieldDamage));dg::shield_visual::Initialize(g_base,Visibility,nullptr);
  dg::runtime::Publish(dg::runtime::Snapshot{});
  for(unsigned i=0;i<Names;++i)f.names[i]=reinterpret_cast<uintptr_t>(f.entries[i].data());f.nameChunks[0]=reinterpret_cast<uintptr_t>(f.names.data());f.objectChunks[0]=reinterpret_cast<uintptr_t>(f.items.data());
  Put(reinterpret_cast<void*>(g_base),0x3955198,reinterpret_cast<uintptr_t>(f.nameChunks));Put(reinterpret_cast<void*>(g_base),0x3959680,reinterpret_cast<uintptr_t>(f.objectChunks));Put(reinterpret_cast<void*>(g_base),0x3959694,int(Items));
@@ -58,10 +62,11 @@ void Run(){
  Select(legion,1);HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);
  Check(sentAsset==f.assets[shield].bytes&&g_hiddenCount==1,"old Legion Hidden remains hidden, never becomes a replacement");
  Select(legion,0);g_restoreTick=0;OnLivePlayer(owner);Check(!g_hiddenCount,"old Legion Native restores hidden visibility");
- Select(legion,2);Check((LoadedMask(legion)&31u)==31u,"alternatives after persisted Hidden are available when their exact assets are loaded");
- HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[Find("P_Rampage_Shield")].bytes&&!g_hiddenCount,"rejected fire aura becomes the Rampage shield, retaining native lifetime");
- Select(legion,3);HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[Find("P_Chaos_Rampage_Shield")].bytes,"Chaos shield uses its exact verified template");
+ Select(legion,2);Check((LoadedMask(legion)&63u)==63u,"alternatives after persisted Hidden are available when their exact assets are loaded");
+ HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[Find("P_Belial_Barrier_Loop_01")].bytes&&!g_hiddenCount,"rejected Rampage becomes Belial without changing protection");
+ Select(legion,3);HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[Find("P_Dagon_Shield")].bytes,"rejected Chaos becomes the verified Dagon shield");
  Select(legion,4);HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);const auto borrower=Find("P_Borrower_Shield");Check(sentAsset==f.assets[borrower].bytes&&Assets[borrower].targetOnly,"sphere shield is a replacement-only asset");
+ Select(legion,5);HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[Find("P_Dagon_WaterSphere_Base")].bytes,"water sphere is a replacement-only native template");
  Select(legion,1);const auto hiddenBefore=g_hiddenCount.load();HookCreate(f.assets[borrower].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[borrower].bytes&&g_hiddenCount==hiddenBefore,"enemy Borrower shield never inherits the core hide setting");
  const auto nativeShield=g_assets[shield];g_assets[shield]={};Availability(GetTickCount64(),true);Check(!(LoadedMask(legion)&2u),"a loaded replacement alone never reports the native shield hide source ready");g_assets[shield]=nativeShield;
  const auto coating=Find("P_WarStoneSkin_Base");Select(stinger,1);HookCreate(f.assets[coating].bytes,f.worlds[0].bytes,nullptr,true,0);

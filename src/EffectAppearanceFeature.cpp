@@ -4,6 +4,7 @@
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
 #include "NativeCostProbe.h"
+#include "ShieldVisualFeature.h"
 #include <MinHook.h>
 #include <algorithm>
 #include <atomic>
@@ -96,6 +97,7 @@ Plan Resolve(void* asset,void* world){
     const auto family=Roles[entry.role].family;if(family>=FamilyCount)return plan;
     const int choice=Normalize(family,runtime::Get().effectAppearances[family].load(std::memory_order_relaxed));
     if(!choice||!CurrentWorld(reinterpret_cast<uintptr_t>(world),GetTickCount64()))return plan;
+    if(family==unsigned(Family::ShieldDemonCore)&&choice!=Hidden(family)&&!shield_visual::CanTrack())return plan;
     plan.source=source;plan.family=family;plan.hidden=choice==Hidden(family);
     if(!plan.hidden){const int target=Target(entry.role,choice);if(target>=0&&Alive(g_assets[unsigned(target)]))plan.asset=reinterpret_cast<void*>(g_assets[unsigned(target)].address);}
     return plan;
@@ -116,7 +118,9 @@ void Created(void* component,const Plan& plan){
 }
 void* HookCreate(void* asset,void* world,void* outer,bool autoDestroy,unsigned char pooling){
     const auto plan=Resolve(asset,world);void* result=g_create?g_create(plan.asset,world,outer,autoDestroy,pooling):nullptr;
+    shield_visual::ReleaseReused(result);
     if(plan.hidden||g_hiddenCount)Created(result,plan);
+    if(plan.source>=0&&plan.family==unsigned(Family::ShieldDemonCore)&&!plan.hidden&&plan.asset!=asset)shield_visual::Track(result,asset,plan.asset,world);
     if(g_log&&(plan.hidden||plan.asset!=asset)&&g_changes++<16){char line[160]{};sprintf_s(line,"Effect appearance V1.116: family=%u role=%d hidden=%u; native factory/lifecycle retained; EXPERIMENTAL",plan.family,plan.source,unsigned(plan.hidden));g_log(line);}
     return result;
 }
@@ -128,11 +132,12 @@ void Initialize(LogFn log,bool exact){
     if(std::memcmp(reinterpret_cast<void*>(g_base+0x187E600),factory,sizeof(factory))||std::memcmp(reinterpret_cast<void*>(g_base+0x17B1840),visible,sizeof(visible)))return;
     auto* entry=reinterpret_cast<void*>(g_base+0x187E600);if(MH_CreateHook(entry,reinterpret_cast<void*>(&HookCreate),reinterpret_cast<void**>(&g_create))!=MH_OK)return;
     if(MH_EnableHook(entry)!=MH_OK){MH_RemoveHook(entry);g_create=nullptr;return;}
-    g_visible=reinterpret_cast<Visible>(g_base+0x17B1840);g_ready=true;
+    g_visible=reinterpret_cast<Visible>(g_base+0x17B1840);shield_visual::Initialize(g_base,g_visible,log);g_ready=true;
     if(log)log("Effect appearances V1.116 READY: shared template library, Native defaults, no startup scan or gameplay class changes; EXPERIMENTAL");
 }
 void OnLivePlayer(const local_players::Context& c){
     if(!g_ready||!native_tps::OnGameThread()||c.index<0||c.index>1)return;
+    shield_visual::OnLivePlayer(c);
     const auto now=GetTickCount64();if(now-g_restoreTick>=100){g_restoreTick=now;for(auto& saved:g_hidden)if(saved.component){uintptr_t asset=0;
         if(!Alive(saved.component)){saved={};if(g_hiddenCount)--g_hiddenCount;continue;}
         if(Normalize(saved.family,runtime::Get().effectAppearances[saved.family].load())!=Hidden(saved.family)||!Read(saved.component.address,0x578,asset)||asset!=saved.asset.address)Restore(saved);
@@ -147,5 +152,5 @@ void OnLivePlayer(const local_players::Context& c){
 }
 bool Ready(){return g_ready.load(std::memory_order_relaxed);}
 unsigned LoadedMask(unsigned family){return family<FamilyCount?g_loaded[family].load(std::memory_order_relaxed):0;}
-void Shutdown(){if(native_tps::OnGameThread())for(auto& saved:g_hidden)if(saved.component)Restore(saved);g_ready=false;}
+void Shutdown(){if(native_tps::OnGameThread())for(auto& saved:g_hidden)if(saved.component)Restore(saved);shield_visual::Shutdown();g_ready=false;}
 }

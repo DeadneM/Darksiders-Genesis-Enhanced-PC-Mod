@@ -923,7 +923,7 @@ void Draw(Context& c) {
                 }
             };
             coreAppearance(effect_appearance::Family::ShieldDemonCore,"Legion shieldbearer",
-                "Normal view and TPS. Changes the core's shield visual only; its protection stays native. Replacements require loaded assets and apply on the next activation.");
+                "Normal view and TPS. Borrower is smaller; replacements follow the native shield's end. Loaded assets only, next activation. Protection stays native.");
             coreAppearance(effect_appearance::Family::StingerCore,"Stinger crystal",
                 "Normal view and TPS. Hide the Stinger crystal during Stoneskin; its damage and the body coating stay native. Applies on the next activation.");
             ImGui::PopID();

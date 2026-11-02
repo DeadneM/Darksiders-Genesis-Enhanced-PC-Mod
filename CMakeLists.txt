@@ -24,10 +24,14 @@ if(BUILD_TESTING)
   target_include_directories(CastReturnTests PRIVATE tests/stubs src)
   target_compile_definitions(CastReturnTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
   add_test(NAME CastReturn COMMAND CastReturnTests)
-  add_executable(EffectAppearanceTests tests/EffectAppearanceTests.cpp src/RuntimeSettings.cpp)
+  add_executable(EffectAppearanceTests tests/EffectAppearanceTests.cpp src/RuntimeSettings.cpp src/ShieldVisualFeature.cpp)
   target_include_directories(EffectAppearanceTests PRIVATE tests/stubs src)
   target_compile_definitions(EffectAppearanceTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
   add_test(NAME EffectAppearance COMMAND EffectAppearanceTests)
+  add_executable(ShieldVisualTests tests/ShieldVisualTests.cpp src/RuntimeSettings.cpp)
+  target_include_directories(ShieldVisualTests PRIVATE tests/stubs src)
+  target_compile_definitions(ShieldVisualTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+  add_test(NAME ShieldVisual COMMAND ShieldVisualTests)
   add_executable(StoneSkinVisualTests tests/StoneSkinVisualTests.cpp)
   target_include_directories(StoneSkinVisualTests PRIVATE tests/stubs src)
   target_compile_definitions(StoneSkinVisualTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
@@ -77,7 +81,7 @@ if(BUILD_TESTING)
   target_include_directories(ExecutionCameraTests PRIVATE src)
   target_compile_definitions(ExecutionCameraTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
   add_test(NAME ExecutionCamera COMMAND ExecutionCameraTests)
-  add_executable(MeleeEffectTests tests/MeleeEffectTests.cpp src/RuntimeSettings.cpp)
+  add_executable(MeleeEffectTests tests/MeleeEffectTests.cpp src/RuntimeSettings.cpp src/ShieldVisualFeature.cpp)
   target_include_directories(MeleeEffectTests PRIVATE tests/stubs src)
   target_compile_definitions(MeleeEffectTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
   add_test(NAME MeleeEffect COMMAND MeleeEffectTests)
@@ -419,6 +423,7 @@ add_library(DarksidersGenesisMod SHARED
   src/CosmeticUnlockFeature.cpp
   src/LeviathanVisualFeature.cpp
   src/EffectAppearanceFeature.cpp
+  src/ShieldVisualFeature.cpp
   src/UltimateDurationFeature.cpp
   src/ProjectileAimFeature.cpp
   src/NativeAimAssistFeature.cpp
