@@ -62,7 +62,7 @@ void Run(){
  HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[Find("P_Rampage_Shield")].bytes&&!g_hiddenCount,"rejected fire aura becomes the Rampage shield, retaining native lifetime");
  Select(legion,3);HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[Find("P_Chaos_Rampage_Shield")].bytes,"Chaos shield uses its exact verified template");
  Select(legion,4);HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);const auto borrower=Find("P_Borrower_Shield");Check(sentAsset==f.assets[borrower].bytes&&Assets[borrower].targetOnly,"sphere shield is a replacement-only asset");
- Select(legion,1);const auto hiddenBefore=g_hiddenCount;HookCreate(f.assets[borrower].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[borrower].bytes&&g_hiddenCount==hiddenBefore,"enemy Borrower shield never inherits the core hide setting");
+ Select(legion,1);const auto hiddenBefore=g_hiddenCount.load();HookCreate(f.assets[borrower].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[borrower].bytes&&g_hiddenCount==hiddenBefore,"enemy Borrower shield never inherits the core hide setting");
  const auto nativeShield=g_assets[shield];g_assets[shield]={};Availability(GetTickCount64(),true);Check(!(LoadedMask(legion)&2u),"a loaded replacement alone never reports the native shield hide source ready");g_assets[shield]=nativeShield;
  const auto coating=Find("P_WarStoneSkin_Base");Select(stinger,1);HookCreate(f.assets[coating].bytes,f.worlds[0].bytes,nullptr,true,0);
  Check(!g_hiddenCount&&sentAsset==f.assets[coating].bytes,"Stinger hide leaves the ordinary Stoneskin effect native");

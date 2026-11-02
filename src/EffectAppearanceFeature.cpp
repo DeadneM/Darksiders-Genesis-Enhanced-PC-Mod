@@ -90,11 +90,14 @@ struct Plan {void* asset=nullptr;int source=-1;unsigned family=0;bool hidden=fal
 Plan Resolve(void* asset,void* world){
     Plan plan{asset};if(!g_ready.load(std::memory_order_relaxed)||!runtime::Get().effectAppearanceMask.load(std::memory_order_relaxed)||!asset||!world||!native_tps::OnGameThread())return plan;
     int source=-1;for(unsigned i=0;i<g_assets.size();++i)if(g_assets[i].address==reinterpret_cast<uintptr_t>(asset)){if(Alive(g_assets[i]))source=int(i);break;}
-    if(source<0||Assets[unsigned(source)].targetOnly)return plan;const auto role=Assets[unsigned(source)].role,family=Roles[role].family;
+    if(source<0)return plan;
+    const auto sourceIndex=unsigned(source);if(sourceIndex>=Assets.size())return plan;
+    const auto& entry=Assets[sourceIndex];if(entry.targetOnly||entry.role>=Roles.size())return plan;
+    const auto family=Roles[entry.role].family;if(family>=FamilyCount)return plan;
     const int choice=Normalize(family,runtime::Get().effectAppearances[family].load(std::memory_order_relaxed));
     if(!choice||!CurrentWorld(reinterpret_cast<uintptr_t>(world),GetTickCount64()))return plan;
     plan.source=source;plan.family=family;plan.hidden=choice==Hidden(family);
-    if(!plan.hidden){const int target=Target(role,choice);if(target>=0&&Alive(g_assets[unsigned(target)]))plan.asset=reinterpret_cast<void*>(g_assets[unsigned(target)].address);}
+    if(!plan.hidden){const int target=Target(entry.role,choice);if(target>=0&&Alive(g_assets[unsigned(target)]))plan.asset=reinterpret_cast<void*>(g_assets[unsigned(target)].address);}
     return plan;
 }
 void Restore(HiddenEffect& saved){
