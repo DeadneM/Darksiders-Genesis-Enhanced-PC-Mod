@@ -4,7 +4,6 @@
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
 #include "NativePropertyField.h"
-#include "ShieldVisualFeature.h"
 #include <MinHook.h>
 #include <atomic>
 #include <cstdio>
@@ -56,9 +55,6 @@ void* HookAttach(void* asset,void* mesh,native_bone::Name socket,const native_bo
         Changed(*plan);
         return g_attach?g_attach(asset,mesh,socket,&outPosition,rotation,&outSize,attachType,autoDestroy,pooling):nullptr;
     }
-    native_bone::Point shieldScale{};
-    if(shield_visual::AdjustAttached(asset,mesh,socket,scale,shieldScale))
-        return g_attach?g_attach(asset,mesh,socket,location,rotation,&shieldScale,attachType,autoDestroy,pooling):nullptr;
     return g_attach?g_attach(asset,mesh,socket,location,rotation,scale,attachType,autoDestroy,pooling):nullptr;
 }
 bool Prepare(void* notify,void* liveMesh,void* animation,Plan& plan){

@@ -2,6 +2,7 @@
 #include "NativeObjectName.h"
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
+#include "OwnedParticleTransform.h"
 #include <array>
 #include <algorithm>
 #include <atomic>
@@ -23,10 +24,11 @@ struct Hidden {native_objects::Identity component{},owner{};};
 struct Player {
     native_objects::Identity actor{},effect{};uintptr_t parent=0;
     int selection=-2;unsigned attempts=0;ULONGLONG tick=0;
+    owned_particle::State transform{};
     std::array<Hidden,8> hidden{};
 };
 Player g_players[2]{};
-int g_cursor=0;bool g_scanComplete=false;ULONGLONG g_scanTick=0;
+int g_cursor=0;bool g_scanComplete=false;ULONGLONG g_scanTick=0,g_retryTick=0;
 template<class T> bool Read(uintptr_t p,size_t at,T& value){native_objects::MemoryReader r;return r.Read(p,at,value);}
 template<size_t N> bool Name(uintptr_t p,const char(&s)[N]){return native_objects::NameIs(g_base,p,s);}
 bool Particle(uintptr_t p){uintptr_t cls=0;return Read(p,0x10,cls)&&Name(cls,"ParticleSystemComponent");}
@@ -45,7 +47,12 @@ void Scan(ULONGLONG now){
         else mask|=1u<<i;
     }
     g_loaded.store(mask);
-    if(complete||g_scanComplete||now-g_scanTick<16)return;
+    if(complete||now-g_scanTick<16)return;
+    if(g_scanComplete){
+        const int choice=runtime::Get().leviathanVisualMode.load();
+        if(choice<1||choice>3||(mask&(1u<<unsigned(choice-1)))||(now>=g_retryTick&&now-g_retryTick<5000))return;
+        g_cursor=0;g_scanComplete=false;g_retryTick=now;
+    }
     g_scanTick=now;int count=0;uintptr_t chunks=0;
     if(!Read(g_base+0x3959694,0,count)||count<=0||count>2000000||!Read(g_base+0x3959680,0,chunks))return;
     // One bounded pass over loaded objects per selection/owner change. Never
@@ -73,7 +80,7 @@ void Remove(Player& state){
     if(state.effect&&native_objects::Alive(reader,g_base,state.effect)&&
        native_objects::Alive(reader,g_base,state.actor)&&Read(state.effect.address,0xE8,owner)&&owner==state.actor.address&&g_destroy)
         g_destroy(reinterpret_cast<void*>(owner),reinterpret_cast<void*>(state.effect.address));
-    state.effect={};state.parent=0;
+    state.effect={};state.parent=0;state.transform={};
 }
 void Clear(Player& state){Remove(state);for(auto& hidden:state.hidden)Restore(hidden);}
 void Hide(Player& state,uintptr_t component){
@@ -168,6 +175,12 @@ void OnLivePlayer(const local_players::Context& owner){
             if(g_log&&state.attempts==3){g_log("Leviathan visual V1.69 stopped after three unsuccessful spawns; native effect retained");++state.attempts;}
             return;
         }
+    }
+    if(state.effect){
+        int hero=0;uintptr_t parent=0,componentOwner=0;
+        if(Read(owner.character,0xC18,hero)&&hero>=1&&hero<=2&&
+           Read(state.effect.address,0x108,parent)&&parent==root&&Read(state.effect.address,0xE8,componentOwner)&&componentOwner==owner.pawn)
+            owned_particle::Apply(g_base,state.effect,rt.leviathanTransforms[unsigned(hero-1)].Load(),1,state.transform);
     }
     HideChildren(state,root);
 }

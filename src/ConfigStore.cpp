@@ -335,7 +335,7 @@ void Store::ResetDefaults(bool persist) {
     mountedHolstersEnabled=defaults::MountedHolsters;
     strifeBladeVisibility=0;warArmAppearance=0;mouseReticleHideMode=defaults::MouseReticleHideMode;mountedJumpEnabled=defaults::MountedJump;mountedJumpSound=0;
     pistolRightModel=0;pistolLeftModel=0;bonusMountSkinsEnabled=defaults::BonusMountSkins;progressionSkinsEnabled=false;
-    leviathanVisualEnabled=false;leviathanVisualMode=0;effectAppearances={};
+    leviathanVisualEnabled=false;leviathanVisualMode=0;effectAppearances={};shieldTransforms={};leviathanTransforms={};
     sheathStrifeMeleeNeverEnabled=false;sheathStrifeMeleeDelaySeconds=0.0f;
     sheathWarNeverEnabled=defaults::NeverAutoSheathe;sheathWarDelaySeconds=10.0f;
     sheathKeyboardKey=defaults::SheatheKeyboardKey;sheathPadButtonA=defaults::SheathePadButtonA;sheathPadButtonB=defaults::SheathePadButtonB;
@@ -607,6 +607,11 @@ bool Store::Load() {
     leviathanVisualEnabled=ReadBool(L"Features",L"LeviathanVisual",false,path_);
     leviathanVisualMode=GetPrivateProfileIntW(L"Values",L"LeviathanVisualMode",0,path_.c_str());
     if(leviathanVisualMode<0||leviathanVisualMode>3)leviathanVisualMode=0;
+    for(unsigned effect=0;effect<2;++effect)for(unsigned hero=0;hero<2;++hero){
+        const auto* keys=effect_transform::Keys[effect][hero];
+        auto& v=(effect?leviathanTransforms:shieldTransforms)[hero];
+        v=effect_transform::Normalize({ReadFloat(L"Values",keys[0],1,path_),ReadFloat(L"Values",keys[1],0,path_),ReadFloat(L"Values",keys[2],0,path_),ReadFloat(L"Values",keys[3],0,path_)});
+    }
     for(unsigned family=0;family<effect_appearance::FamilyCount;++family)
         effectAppearances[family]=effect_appearance::Normalize(family,GetPrivateProfileIntW(L"Values",effect_appearance::Families[family].key,0,path_.c_str()));
     sheathStrifeMeleeNeverEnabled=ReadBool(L"Features",L"StrifeMeleeNeverAutoSheathe",false,path_);
@@ -972,6 +977,7 @@ void Store::PublishRuntime() const {
     runtime.progressionSkinsEnabled=progressionSkinsEnabled;
     runtime.leviathanVisualEnabled=leviathanVisualEnabled;runtime.leviathanVisualMode=leviathanVisualMode;
     runtime.effectAppearances=effectAppearances;
+    runtime.shieldTransforms=shieldTransforms;runtime.leviathanTransforms=leviathanTransforms;
     runtime.sheathStrifeMeleeNeverEnabled=sheathStrifeMeleeNeverEnabled;
     runtime.sheathStrifeMeleeDelaySeconds=sheathStrifeMeleeDelaySeconds;
     runtime.sheathWarNeverEnabled=sheathWarNeverEnabled;
@@ -1159,6 +1165,11 @@ bool Store::SaveNow() {
     WriteBool(L"Features",L"ProgressionSkins",progressionSkinsEnabled,path_);
     WriteBool(L"Features",L"LeviathanVisual",leviathanVisualEnabled,path_);
     WriteInt(L"Values",L"LeviathanVisualMode",leviathanVisualMode,path_);
+    for(unsigned effect=0;effect<2;++effect)for(unsigned hero=0;hero<2;++hero){
+        const auto* keys=effect_transform::Keys[effect][hero];
+        const auto v=effect_transform::Normalize((effect?leviathanTransforms:shieldTransforms)[hero]);
+        WriteFloat(L"Values",keys[0],v.size,path_);WriteFloat(L"Values",keys[1],v.x,path_);WriteFloat(L"Values",keys[2],v.y,path_);WriteFloat(L"Values",keys[3],v.z,path_);
+    }
     for(unsigned family=0;family<effect_appearance::FamilyCount;++family)
         WriteInt(L"Values",effect_appearance::Families[family].key,effect_appearance::Normalize(family,effectAppearances[family]),path_);
     WriteBool(L"Features",L"StrifeMeleeNeverAutoSheathe",sheathStrifeMeleeNeverEnabled,path_);

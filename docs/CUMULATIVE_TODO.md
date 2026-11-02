@@ -1,3 +1,7 @@
+## Reprise V1.146
+
+Water sphere retenue. Réglages taille/position bouclier et Léviathan par personnage, relance assets tardifs en préparation. Retour au natif après chargement confirmé avec message asset absent ; rendu/reprise encore expérimentaux. Belial/Dagon non chargés. Voir V1_146_CORE_EFFECT_TRANSFORM_RELOAD_TEST.md. Aucun autre sujet déclaré résolu.
+
 **V1.145 disponible sur debug, non installée par l’agent.** [Livraison et essais](V1_145_DELIVERY_RECEIPT.md).
 
 ## V1.145 - Borrower réduit et disparition liée au bouclier natif

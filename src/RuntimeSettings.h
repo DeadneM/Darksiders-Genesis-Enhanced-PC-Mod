@@ -5,6 +5,7 @@
 #include "CameraBlurSettings.h"
 #include "WrathSlotSettings.h"
 #include "EffectAppearanceSettings.h"
+#include "EffectTransformSettings.h"
 #include <atomic>
 
 namespace dg::runtime {
@@ -26,6 +27,7 @@ struct Snapshot {
     bool leviathanVisualEnabled = false;
     int leviathanVisualMode = 0;
     effect_appearance::Choices effectAppearances{};
+    effect_transform::Profiles shieldTransforms{},leviathanTransforms{};
     bool weaponSheathingEnabled = defaults::WeaponSheathing;
     bool heavyLandingRecoveryEnabled = defaults::HeavyLandingRecovery;
     float heavyLandingDelaySeconds = .15f,heavyLandingGroundSeconds = .05f;
@@ -151,6 +153,7 @@ struct State {
     std::atomic_bool leviathanVisualEnabled{false};
     std::atomic_int leviathanVisualMode{0};
     std::array<std::atomic_int,effect_appearance::FamilyCount> effectAppearances{};
+    std::array<effect_transform::AtomicValues,2> shieldTransforms{},leviathanTransforms{};
     std::atomic_uint64_t effectAppearanceMask{0};
     std::atomic_uint effectAppearanceGeneration{0};
     std::atomic_bool weaponSheathingEnabled{defaults::WeaponSheathing};

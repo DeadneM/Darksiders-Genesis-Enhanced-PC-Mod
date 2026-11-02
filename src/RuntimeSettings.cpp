@@ -28,6 +28,7 @@ void Publish(const Snapshot& s) {
     g_state.progressionSkinsEnabled.store(s.progressionSkinsEnabled);
     g_state.leviathanVisualEnabled.store(s.leviathanVisualEnabled);
     g_state.leviathanVisualMode.store(s.leviathanVisualMode);
+    for(unsigned i=0;i<2;++i){g_state.shieldTransforms[i].Store(s.shieldTransforms[i]);g_state.leviathanTransforms[i].Store(s.leviathanTransforms[i]);}
     uint64_t appearanceMask=0;bool appearanceChanged=false;
     for(unsigned family=0;family<effect_appearance::FamilyCount;++family){
         const int choice=effect_appearance::Normalize(family,s.effectAppearances[family]);

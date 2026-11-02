@@ -173,6 +173,19 @@ int main(int argc,char** argv){
     check(appearance.Load()&&appearance.effectAppearances[0]==4&&rt.effectAppearances[0].load()==4,"selected visual survives reload and reaches runtime");
     WritePrivateProfileStringW(L"Values",L"CaltropsAppearance",L"99",path);
     check(appearance.Load()&&appearance.effectAppearances[0]==0&&rt.effectAppearances[0].load()==0,"unsupported appearance safely restores Native");
+    for(unsigned hero=0;hero<2;++hero){
+        check(generated.shieldTransforms[hero].size==1&&generated.leviathanTransforms[hero].size==1&&generated.shieldTransforms[hero].z==0,"missing transform profiles preserve native defaults");
+        appearance.shieldTransforms[hero]={float(hero+2),10.f*hero,-20.f*hero,30.f*hero};
+        appearance.leviathanTransforms[hero]={.5f+float(hero),-10.f*hero,20.f*hero,-30.f*hero};
+    }
+    check(appearance.SaveNow(),"independent hero/effect profiles save");
+    dg::config::Store transforms;transforms.SetPath(path);check(transforms.Load(),"transform profiles reload");
+    for(unsigned hero=0;hero<2;++hero){
+        check(transforms.shieldTransforms[hero].size==float(hero+2)&&transforms.leviathanTransforms[hero].size==.5f+float(hero)&&
+              rt.shieldTransforms[hero].Load().z==30.f*hero&&rt.leviathanTransforms[hero].Load().z==-30.f*hero,"profiles remain independent and reach the runtime");
+    }
+    WritePrivateProfileStringW(L"Values",L"ShieldStrifeSize",L"nan",path);WritePrivateProfileStringW(L"Values",L"LeviathanWarZ",L"9999",path);
+    check(transforms.Load()&&transforms.shieldTransforms[0].size==1&&transforms.leviathanTransforms[1].z==500,"invalid manual profile values fall back or clamp safely");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,path);DeleteFileW(path);
     std::printf("User defaults: %zu keys checked, %u failures\n",keys,failed);return failed?1:0;
 }

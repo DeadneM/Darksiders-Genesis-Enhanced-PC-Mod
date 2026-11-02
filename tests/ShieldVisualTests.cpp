@@ -55,10 +55,7 @@ void Run(){
  Fresh(image);Tick();Created();Tick();Put(f.particles[0],0x578,reinterpret_cast<uintptr_t>(f.source));Put<unsigned char>(f.particles[0],0x1CC,0);Tick();Check(!g_count&&!visibleCalls&&!Shown(),"native template reuse wins without restoring an unowned flag");
  Fresh(image);Created(1);Tick(0);Check(!g_effects[0].status,"P2 shield cannot bind P1 status");Tick(1);Check(g_effects[0].actor.address==reinterpret_cast<uintptr_t>(f.actor[1]),"P2 binds its own status");Put(f.status[1],0x78,uintptr_t(0));Tick(1);Check(!Shown(1)&&Shown(0),"P2 end never hides P1 effect");
  Fresh(image);Tick();Created();Tick();Put(f.status[0],0x78,uintptr_t(0));dg::runtime::Publish(dg::runtime::Snapshot{});Tick();Check(!Shown(),"outstanding replacements are cleaned after selecting Native");
- Fresh(image);Tick();dg::native_bone::Point input{2,3,4},output{};Check(AdjustAttached(f.source,f.mesh[0],{16,0},&input,output)&&std::abs(output.x-1.2f)<.001f&&std::abs(output.y-1.8f)<.001f&&std::abs(output.z-2.4f)<.001f,"Borrower reduced to 60 percent without cumulative scaling");
- Check(!AdjustAttached(f.target,f.mesh[0],{16,0},&input,output)&&!AdjustAttached(f.source,f.mesh[0],{0,0},&input,output),"other templates and sockets retain native attachment scale");
- g_players[0].tick=GetTickCount64()-501;Check(!AdjustAttached(f.source,f.mesh[0],{16,0},&input,output),"stale ownership cannot scale effects");
- Fresh(image);Tick();input.x=std::numeric_limits<float>::quiet_NaN();Check(!AdjustAttached(f.source,f.mesh[0],{16,0},&input,output),"nonfinite scale fails open");thread=false;Created();Check(!g_count,"worker thread cannot register a visual mutation");thread=true;
+ Fresh(image);thread=false;Created();Check(!g_count,"worker thread cannot register a visual mutation");thread=true;
  Fresh(image);for(int i=0;i<32;++i)Created(i);Check(!CanTrack(),"full bounded tracking rejects new substitutions");
  Fresh(image);Put<unsigned char>(image.data(),0x69FB90,0);Initialize(g_base,Visible,nullptr);Check(!CanTrack(),"unverified native lifecycle keeps original appearance");
 }

@@ -2,6 +2,7 @@
 #include "NativePropertyField.h"
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
+#include "OwnedParticleTransform.h"
 #include <array>
 #include <atomic>
 #include <cmath>
@@ -10,7 +11,7 @@ namespace dg::shield_visual {
 namespace {
 using Id=native_objects::Identity;
 struct Array {uintptr_t data=0;int count=0,capacity=0;};
-struct Effect {Id component{},source{},target{},world{},status{},actor{};uint64_t born=0;bool hidden=false;};
+struct Effect {Id component{},source{},target{},world{},status{},actor{};uint64_t born=0;bool hidden=false;float preset=1;owned_particle::State transform{};};
 struct Player {Id actor{},mesh{},world{},actorClass{},componentClass{};int componentOffset=-1,statusesOffset=-1;uint64_t tick=0,next=0;};
 std::array<Effect,32> g_effects{};std::array<Player,2> g_players{};
 uintptr_t g_base=0;VisibleFn g_visible=nullptr;LogFn g_log=nullptr;
@@ -88,7 +89,13 @@ void Poll(uint64_t now){
             active=known&&particle==e.component.address&&actor==e.actor.address&&source==e.source.address;
         }
         if(!known)continue;
-        if(active){if(e.hidden)Visibility(e,true);}
+        if(active){
+            if(e.hidden)Visibility(e,true);
+            int hero=0;uintptr_t parent=0,owner=0;
+            if(Read(e.actor.address,0xC18,hero)&&hero>=1&&hero<=2&&
+               Read(e.component.address,0x108,parent)&&Read(parent,0xE8,owner)&&owner==e.actor.address)
+                owned_particle::Apply(g_base,e.component,runtime::Get().shieldTransforms[unsigned(hero-1)].Load(),e.preset,e.transform);
+        }
         else {const bool before=e.hidden;Visibility(e,false);if(!before&&e.hidden&&g_log&&g_ends++<8)g_log("Shield visual V1.145: native shield particle reference cleared; private replacement hidden");}
     }
 }
@@ -115,7 +122,7 @@ void Track(void* component,void* original,void* rendered,void* world){
     Effect next{};
     if(!Capture(reinterpret_cast<uintptr_t>(component),next.component)||!Capture(reinterpret_cast<uintptr_t>(original),next.source)||
        !Capture(reinterpret_cast<uintptr_t>(rendered),next.target)||!Capture(reinterpret_cast<uintptr_t>(world),next.world)||!Template(next))return;
-    next.born=GetTickCount64();
+    next.born=GetTickCount64();next.preset=Scale(Choice());
     for(auto& e:g_effects)if(!e.component||!Alive(e.component)){Clear(e);e=next;++g_count;return;}
 }
 void OnLivePlayer(const local_players::Context& c){
@@ -124,17 +131,6 @@ void OnLivePlayer(const local_players::Context& c){
     if(Choice()<=1&&!g_count){p.tick=0;return;}
     if(Publish(c,p,now)){if(g_count)Bind(p,now);}else p.tick=0;
     if(now>=g_poll){g_poll=now+100;Poll(now);}
-}
-bool AdjustAttached(void* asset,void* mesh,native_bone::Name socket,const native_bone::Point* original,native_bone::Point& output){
-    if(!g_ready||!native_tps::OnGameThread()||Choice()<=1||!original||!Source(reinterpret_cast<uintptr_t>(asset))||
-       !native_objects::NameValueIs(g_base,socket.index,socket.number,"VFX_Aura"))return false;
-    const auto now=GetTickCount64();bool owned=false;
-    for(const auto& p:g_players)if(p.tick&&now>=p.tick&&now-p.tick<=500&&Alive(p.actor)&&Alive(p.mesh)&&Alive(p.world)){
-        uintptr_t actor=0;if(Read(reinterpret_cast<uintptr_t>(mesh),0xE8,actor)&&actor==p.actor.address)owned=true;
-    }
-    native_bone::Point size{};if(!owned||!Read(reinterpret_cast<uintptr_t>(original),0,size))return false;
-    for(float v:{size.x,size.y,size.z})if(!std::isfinite(v)||v<=0||v>100)return false;
-    const float factor=Scale(Choice());output={size.x*factor,size.y*factor,size.z*factor};return true;
 }
 void Shutdown(){g_ready=false;if(native_tps::OnGameThread()){g_effects={};g_players={};g_count=0;}}
 }

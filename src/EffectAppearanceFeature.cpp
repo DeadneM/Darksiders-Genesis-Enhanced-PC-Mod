@@ -24,7 +24,7 @@ struct HiddenEffect {Id component{},asset{};unsigned family=0;};
 std::array<HiddenEffect,128> g_hidden{};std::atomic_uint g_hiddenCount{0};unsigned g_changes=0;
 std::bitset<Assets.size()> g_available{};
 int g_cursor=0,g_count=0;bool g_complete=false;unsigned g_generation=0;
-uint64_t g_scanTick=0,g_checkTick=0,g_restoreTick=0;
+uint64_t g_scanTick=0,g_checkTick=0,g_restoreTick=0,g_retryTick=0;
 template<class T>bool Read(uintptr_t p,size_t at,T& v){native_objects::MemoryReader r;return r.Read(p,at,v);}
 bool Alive(const Id& id){native_objects::MemoryReader r;return native_objects::Alive(r,g_base,id);}
 bool Capture(uintptr_t p,Id& id){return native_objects::CaptureLive(g_base,reinterpret_cast<void*>(p),id);}
@@ -54,7 +54,7 @@ int Classify(uintptr_t p,const Object& object){
 void Availability(uint64_t now,bool force){
     if(!force&&now>=g_checkTick&&now-g_checkTick<200)return;g_checkTick=now;bool invalid=false;g_available.reset();
     for(unsigned i=0;i<g_assets.size();++i)if(Alive(g_assets[i]))g_available.set(i);else if(g_assets[i]){g_assets[i]={};invalid=true;}
-    if(g_particleClass&&!Alive(g_particleClass))g_particleClass={};
+    if(g_particleClass&&!Alive(g_particleClass)){g_particleClass={};invalid=true;}
     if(invalid){g_cursor=0;g_complete=false;}
     for(unsigned family=0;family<FamilyCount;++family){
         unsigned mask=1;bool any=false;for(unsigned i=0;i<Assets.size();++i)if(!Assets[i].targetOnly&&Roles[Assets[i].role].family==family&&g_available[i]){any=true;break;}
@@ -67,7 +67,15 @@ void Scan(uint64_t now){
     cost_probe::Scope measured(cost_probe::EffectScan);
     Availability(now,false);if(g_available.all()||(now>=g_scanTick&&now-g_scanTick<16))return;g_scanTick=now;
     uintptr_t chunks=0;int count=0;if(!Read(g_base,0x3959680,chunks)||!Read(g_base,0x3959694,count)||count<=0||count>2000000)return;
-    if(count<g_count)g_cursor=0;if(count!=g_count){g_count=count;g_complete=false;}if(g_complete)return;
+    if(count<g_count)g_cursor=0;if(count!=g_count){g_count=count;g_complete=false;}
+    if(g_complete){
+        bool missing=false;for(unsigned family=0;family<FamilyCount;++family){
+            const int selected=Normalize(family,runtime::Get().effectAppearances[family].load());
+            if(selected&&!(g_loaded[family].load()&(1u<<unsigned(selected))))missing=true;
+        }
+        if(!missing||(now>=g_retryTick&&now-g_retryTick<5000))return;
+        g_cursor=0;g_complete=false;g_retryTick=now;
+    }
     struct Item {uintptr_t pointer=0;unsigned flags=0,pad=0;int serial=0,pad1=0;};static_assert(sizeof(Item)==24);
     unsigned inspected=0;bool changed=false;
     while(inspected<512&&g_cursor<count){

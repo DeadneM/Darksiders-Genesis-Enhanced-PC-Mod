@@ -1,6 +1,7 @@
 #pragma once
 #include "WrathSlotSettings.h"
 #include "EffectAppearanceSettings.h"
+#include "EffectTransformSettings.h"
 
 #include "DefaultSettings.h"
 #include "AimAssistSettings.h"
@@ -277,6 +278,7 @@ public:
     bool leviathanVisualEnabled = false;
     int leviathanVisualMode = 0;
     effect_appearance::Choices effectAppearances{};
+    effect_transform::Profiles shieldTransforms{},leviathanTransforms{};
     bool weaponSheathingEnabled = defaults::WeaponSheathing;
     bool heavyLandingRecoveryEnabled = defaults::HeavyLandingRecovery;
     float heavyLandingDelaySeconds = .15f,heavyLandingGroundSeconds = .05f;

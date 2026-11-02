@@ -1,3 +1,9 @@
+## V1.146 — effets : taille, position et chargement
+
+**En préparation / EXPÉRIMENTAL.** Base V1.145, Water sphere retenue ; profils Strife/War indépendants pour bouclier et Léviathan, mise à jour de l'effet actif sans dérive, relance bornée de recherche des assets manquants. Un effet non chargé reste natif ; reprise après chargement à vérifier en jeu. Stinger et chemins gameplay préservés. [Objectif, limites et essais](docs/V1_146_CORE_EFFECT_TRANSFORM_RELOAD_TEST.md). Aucune installation ni capture mémoire effectuée.
+
+---
+
 **V1.145 disponible sur debug, non installée par l’agent.** [Livraison et essais](docs/V1_145_DELIVERY_RECEIPT.md).
 
 ## V1.145 - Borrower réduit et disparition liée au bouclier natif

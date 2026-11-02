@@ -835,7 +835,7 @@ void Draw(Context& c) {
                     for(unsigned family=0;family<effect_appearance::FamilyCount;++family){const auto& info=effect_appearance::Families[family];
                         if(std::strcmp(category,info.category)||family==unsigned(effect_appearance::Family::ShieldDemonCore)||family==unsigned(effect_appearance::Family::StingerCore))continue;ImGui::PushID(int(family));if(Choice(info.label,&config.effectAppearances[family],info.choices.data(),int(info.count)))config.Save();
                         const int choice=effect_appearance::Normalize(family,config.effectAppearances[family]);
-                        if(choice&&!(effect_appearance::LoadedMask(family)&(1u<<choice)))ImGui::TextColored(ImVec4(1,.85f,.25f,1),"Effect assets not ready: native appearance retained.");
+                        if(choice&&!(effect_appearance::LoadedMask(family)&(1u<<choice)))ImGui::TextColored(ImVec4(1,.85f,.25f,1),"Effect not loaded here: native visual retained; automatic retry.");
                         ImGui::PopID();
                     }
                     ImGui::EndDisabled();ImGui::Unindent();
@@ -894,6 +894,17 @@ void Draw(Context& c) {
 
             ImGui::Unindent();
             }
+            const auto effectTransform=[&](effect_transform::Profiles& profiles,int& hero,bool enabled){
+                constexpr const char* heroes[]={"Strife","War"};
+                Choice("Character",&hero,heroes,2);hero=std::clamp(hero,0,1);
+                auto& v=profiles[unsigned(hero)];ImGui::BeginDisabled(!enabled);
+                if(NumberRow("Size","effect_size",&v.size,.05f,5,1,"%.2f x","%.3f"))config.Save();
+                if(NumberRow("Position X","effect_x",&v.x,-500,500,0,"%.1f units","%.3f"))config.Save();
+                if(NumberRow("Position Y","effect_y",&v.y,-500,500,0,"%.1f units","%.3f"))config.Save();
+                if(NumberRow("Height","effect_z",&v.z,-500,500,0,"%.1f units","%.3f"))config.Save();
+                HelpText("Offsets follow the attachment. Separate Strife/War settings, for both local players.");
+                ImGui::EndDisabled();
+            };
             if(layout::Group("Leviathan lightning")){
             ImGui::Indent();
             DrawToggleFeature(config,"Override Leviathan lightning (experimental)","LeviathanVisual",&config.leviathanVisualEnabled,
@@ -904,10 +915,12 @@ void Draw(Context& c) {
                 ImGui::EndDisabled();
                 if(config.leviathanVisualMode>0&&config.leviathanVisualMode<=3&&
                    !(leviathan_visual::LoadedMask()&(1u<<unsigned(config.leviathanVisualMode-1))))
-                    ImGui::TextColored(ImVec4(1,.85f,.25f,1),"Selected effect unavailable here; native visual retained. Change selection or re-enable to retry.");
+                    ImGui::TextColored(ImVec4(1,.85f,.25f,1),"Effect not loaded here: native lightning retained; automatic retry.");
             }
 
-            ImGui::Unindent();
+            ImGui::PushID("Leviathan transform");static int leviathanHero=0;
+            effectTransform(config.leviathanTransforms,leviathanHero,config.leviathanVisualEnabled&&config.leviathanVisualMode>0&&leviathan_visual::Ready());
+            ImGui::PopID();ImGui::Unindent();
             }
             const auto coreAppearance=[&](effect_appearance::Family selected,const char* title,const char* help){
                 if(layout::Group(title)){
@@ -918,12 +931,15 @@ void Draw(Context& c) {
                     ImGui::EndDisabled();
                     const int choice=effect_appearance::Normalize(family,config.effectAppearances[family]);
                     if(choice&&!(effect_appearance::LoadedMask(family)&(1u<<choice)))
-                        ImGui::TextColored(ImVec4(1,.85f,.25f,1),"Effect assets not ready: native appearance retained.");
+                        ImGui::TextColored(ImVec4(1,.85f,.25f,1),"Effect not loaded here: native visual retained; automatic retry.");
+                    if(selected==effect_appearance::Family::ShieldDemonCore){
+                        static int shieldHero=0;effectTransform(config.shieldTransforms,shieldHero,choice>1&&effect_appearance::Ready());
+                    }
                     ImGui::PopID();ImGui::Unindent();
                 }
             };
             coreAppearance(effect_appearance::Family::ShieldDemonCore,"Legion shieldbearer",
-                "Normal view and TPS. Borrower is smaller; replacements follow the native shield's end. Loaded assets only, next activation. Protection stays native.");
+                "Normal view and TPS. Size and position apply to the active shield. Effect selection applies on next activation. Protection stays native.");
             coreAppearance(effect_appearance::Family::StingerCore,"Stinger crystal",
                 "Normal view and TPS. Hide the Stinger crystal during Stoneskin; its damage and the body coating stay native. Applies on the next activation.");
             ImGui::PopID();
