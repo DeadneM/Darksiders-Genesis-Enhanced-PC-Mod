@@ -1,0 +1,129 @@
+{
+  "indexSha1": "5d0982cd46a5221290cb6ed24696e3962e9dddff",
+  "assets": [
+    {
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/War/Flamebrand/P_flamebrand_aura.uasset",
+      "sha1": "43a5398f83c96e83dbb9c89605137b95199d5820",
+      "exports": [
+        {
+          "name": "P_flamebrand_aura",
+          "cls": "ParticleSystem"
+        }
+      ],
+      "particleImports": [
+        "Default__ParticleSystem"
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Blueprints/StatusEffects/CreatureCores/MayhemStatusEffect_Core_Stinger_3_Blueprint.uasset",
+      "sha1": "1b0c8f2d99980b0b477f4ee880795a6135d875ed",
+      "exports": [
+        {
+          "name": "MayhemStatusEffect_Core_Stinger_3_Blueprint_C",
+          "cls": "BlueprintGeneratedClass"
+        }
+      ],
+      "particleImports": [
+        "P_Stinger_CreatureCore_StoneSkin"
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Blueprints/StatusEffects/CreatureCores/MayhemStatusEffect_Core_Stinger_2_Blueprint.uasset",
+      "sha1": "2fcf0ff45432f41026b5a98313b0515fcb0a945b",
+      "exports": [
+        {
+          "name": "MayhemStatusEffect_Core_Stinger_2_Blueprint_C",
+          "cls": "BlueprintGeneratedClass"
+        }
+      ],
+      "particleImports": [
+        "P_Stinger_CreatureCore_StoneSkin"
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Blueprints/StatusEffects/CreatureCores/MayhemStatusEffect_Core_Stinger_1_Blueprint.uasset",
+      "sha1": "4607b977c584e421daff9a82920eae0a658ed6a2",
+      "exports": [
+        {
+          "name": "MayhemStatusEffect_Core_Stinger_1_Blueprint_C",
+          "cls": "BlueprintGeneratedClass"
+        }
+      ],
+      "particleImports": [
+        "P_Stinger_CreatureCore_StoneSkin"
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/War/StoneSkin/P_Stinger_CreatureCore_StoneSkin.uasset",
+      "sha1": "b39c6a9d5ae41f97b6581ed32a452791e01b4ef2",
+      "exports": [
+        {
+          "name": "P_Stinger_CreatureCore_StoneSkin",
+          "cls": "ParticleSystem"
+        }
+      ],
+      "particleImports": [
+        "Default__ParticleSystem"
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Blueprints/StatusEffects/CreatureCores/MayhemStatusEffect_Core_ShieldDemon_3_Blueprint.uasset",
+      "sha1": "a3953bc6a19f873526743e05c51f18adc277030b",
+      "exports": [
+        {
+          "name": "MayhemStatusEffect_Core_ShieldDemon_3_Blueprint_C",
+          "cls": "BlueprintGeneratedClass"
+        }
+      ],
+      "particleImports": [
+        "P_CreatureCore_ShieldDemon"
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Blueprints/StatusEffects/CreatureCores/MayhemStatusEffect_Core_ShieldDemon_2_Blueprint.uasset",
+      "sha1": "98003cc12fd4dc7dd3b0b2fad8ebb5169780b9ef",
+      "exports": [
+        {
+          "name": "MayhemStatusEffect_Core_ShieldDemon_2_Blueprint_C",
+          "cls": "BlueprintGeneratedClass"
+        }
+      ],
+      "particleImports": [
+        "P_CreatureCore_ShieldDemon"
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Blueprints/StatusEffects/CreatureCores/MayhemStatusEffect_Core_ShieldDemon_1_Blueprint.uasset",
+      "sha1": "b853344c68451f06b19dbc27317ff3c710ddbc25",
+      "exports": [
+        {
+          "name": "MayhemStatusEffect_Core_ShieldDemon_1_Blueprint_C",
+          "cls": "BlueprintGeneratedClass"
+        }
+      ],
+      "particleImports": [
+        "P_CreatureCore_ShieldDemon"
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/Generic/P_CreatureCore_ShieldDemon.uasset",
+      "sha1": "e8fc3e765b11e0e1a7dc1e809b89c37f79487059",
+      "exports": [
+        {
+          "name": "P_CreatureCore_ShieldDemon",
+          "cls": "ParticleSystem"
+        }
+      ],
+      "particleImports": [
+        "Default__ParticleSystem"
+      ]
+    }
+  ],
+  "localizedIdentity": {
+    "file": "ExportedStringTables.locres",
+    "namespace": "AICharacters",
+    "key": "ShieldDemon",
+    "text": "Porte-bouclier de la Légion"
+  },
+  "localeSha256": "482A1C48F6E405A2EE52073A32E2B50829C2369B0D650E0A1BC545413D288DDB"
+}

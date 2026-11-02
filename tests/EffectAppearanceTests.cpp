@@ -34,7 +34,7 @@ void Run(){
  const auto assets=f.assets,packages=f.packages;const auto items=f.items;
  unsigned checked=0;
  for(unsigned source=0;source<N;++source){const auto family=Roles[Assets[source].role].family;
-  for(int choice=0;choice<Hidden(family);++choice){dg::runtime::Snapshot s{};s.effectAppearances[family]=choice;dg::runtime::Publish(s);g_worlds[0].tick=GetTickCount64();const auto before=calls;HookCreate(f.assets[source].bytes,f.worlds[0].bytes,f.packages[2].bytes,true,3);const int target=Target(Assets[source].role,choice);
+  for(int choice=0;choice<int(Families[family].count);++choice){if(choice==Hidden(family))continue;dg::runtime::Snapshot s{};s.effectAppearances[family]=choice;dg::runtime::Publish(s);g_worlds[0].tick=GetTickCount64();const auto before=calls;HookCreate(f.assets[source].bytes,f.worlds[0].bytes,f.packages[2].bytes,true,3);const int target=Target(Assets[source].role,choice);
    Check(calls==before+1&&sentAsset==(target>=0?f.assets[unsigned(target)].bytes:f.assets[source].bytes)&&sentWorld==f.worlds[0].bytes&&sentOuter==f.packages[2].bytes&&sentAuto&&sentPool==3,"every role/preset changes only the intended template; one native call, original ABI");++checked;
   }
  }
@@ -52,6 +52,18 @@ void Run(){
  Select(0,Hidden(0));HookCreate(f.assets[glyph].bytes,f.worlds[0].bytes,nullptr,true,0);dg::runtime::Publish(dg::runtime::Snapshot{});const auto oldCalls=visibleCalls;HookCreate(unknown,f.worlds[0].bytes,nullptr,true,0);Check(visibleCalls==oldCalls+1&&!g_hiddenCount,"native pool reuse cannot carry over the previous mod-hidden flag");
  Fresh();Select(0,Hidden(0));failCreate=true;HookCreate(f.assets[glyph].bytes,f.worlds[0].bytes,nullptr,true,0);Check(!g_hiddenCount&&!visibleCalls,"failed factory produces no visibility side effect");
  Fresh();Select(0,Hidden(0));Put<unsigned char>(f.component,0x1CC,0);HookCreate(f.assets[glyph].bytes,f.worlds[0].bytes,nullptr,true,0);Select(0,0);g_restoreTick=0;OnLivePlayer(owner);Check(!visibleCalls,"already native-hidden components are never made visible");
+ Fresh();const auto legion=unsigned(Family::ShieldDemonCore),stinger=unsigned(Family::StingerCore);
+ const auto shield=Find("P_CreatureCore_ShieldDemon"),crystal=Find("P_Stinger_CreatureCore_StoneSkin");
+ Check(legion==38&&stinger==44&&Hidden(legion)==1&&Normalize(legion,1)==1,"old family numbers and persisted Legion Hidden=1 preserved");
+ Select(legion,1);HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);
+ Check(sentAsset==f.assets[shield].bytes&&g_hiddenCount==1,"old Legion Hidden remains hidden, never becomes a replacement");
+ Select(legion,0);g_restoreTick=0;OnLivePlayer(owner);Check(!g_hiddenCount,"old Legion Native restores hidden visibility");
+ Select(legion,2);Check((LoadedMask(legion)&7u)==7u,"alternatives after persisted Hidden are available when their exact assets are loaded");
+ HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[Find("P_flamebrand_aura")].bytes&&!g_hiddenCount,"Legion shield alternative changes only the template");
+ const auto coating=Find("P_WarStoneSkin_Base");Select(stinger,1);HookCreate(f.assets[coating].bytes,f.worlds[0].bytes,nullptr,true,0);
+ Check(!g_hiddenCount&&sentAsset==f.assets[coating].bytes,"Stinger hide leaves the ordinary Stoneskin effect native");
+ HookCreate(f.assets[crystal].bytes,f.worlds[0].bytes,nullptr,true,0);Check(g_hiddenCount==1&&sentAsset==f.assets[crystal].bytes,"Stinger hide preserves original component and native lifetime");
+ Select(stinger,0);g_restoreTick=0;OnLivePlayer(owner);Check(!g_hiddenCount,"Stinger Native restores only the visibility we changed");
  Fresh();dg::runtime::Snapshot invalid{};for(auto& x:invalid.effectAppearances)x=999;dg::runtime::Publish(invalid);Check(!dg::runtime::Get().effectAppearanceMask.load(),"all unsupported config choices normalize to Native");
  Select(0,Hidden(0));HookCreate(f.assets[glyph].bytes,f.worlds[0].bytes,nullptr,true,0);Shutdown();Check(!g_hiddenCount&&visibleCalls==2,"game-thread shutdown restores owned visibility");
  std::cout<<FamilyCount<<" families, "<<N<<" assets, "<<checked<<" preset cases; Native ABI, expiry, pool reuse and visibility restoration passed\n";

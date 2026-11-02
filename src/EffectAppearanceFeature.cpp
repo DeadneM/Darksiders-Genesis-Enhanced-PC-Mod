@@ -58,7 +58,7 @@ void Availability(uint64_t now,bool force){
     for(unsigned family=0;family<FamilyCount;++family){
         unsigned mask=1;bool any=false;for(unsigned i=0;i<Assets.size();++i)if(Roles[Assets[i].role].family==family&&g_available[i]){any=true;break;}
         if(any)mask|=1u<<Hidden(family);
-        for(int choice=1;choice<Hidden(family);++choice){bool needed=false,complete=true;for(unsigned role=0;role<Roles.size();++role)if(Roles[role].family==family){const int target=Target(role,choice);if(target>=0){needed=true;complete=complete&&g_available[unsigned(target)];}}if(needed&&complete)mask|=1u<<choice;}
+        for(int choice=1;choice<int(Families[family].count);++choice){if(choice==Hidden(family))continue;bool needed=false,complete=true;for(unsigned role=0;role<Roles.size();++role)if(Roles[role].family==family){const int target=Target(role,choice);if(target>=0){needed=true;complete=complete&&g_available[unsigned(target)];}}if(needed&&complete)mask|=1u<<choice;}
         g_loaded[family].store(mask,std::memory_order_relaxed);
     }
 }

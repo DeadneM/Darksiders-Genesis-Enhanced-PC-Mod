@@ -833,7 +833,7 @@ void Draw(Context& c) {
                 for(const auto* category:categories)if(layout::Group(category)){
                     ImGui::Indent();ImGui::BeginDisabled(!effect_appearance::Ready());
                     for(unsigned family=0;family<effect_appearance::FamilyCount;++family){const auto& info=effect_appearance::Families[family];
-                        if(std::strcmp(category,info.category))continue;ImGui::PushID(int(family));if(Choice(info.label,&config.effectAppearances[family],info.choices.data(),int(info.count)))config.Save();
+                        if(std::strcmp(category,info.category)||family==unsigned(effect_appearance::Family::ShieldDemonCore)||family==unsigned(effect_appearance::Family::StingerCore))continue;ImGui::PushID(int(family));if(Choice(info.label,&config.effectAppearances[family],info.choices.data(),int(info.count)))config.Save();
                         const int choice=effect_appearance::Normalize(family,config.effectAppearances[family]);
                         if(choice&&!(effect_appearance::LoadedMask(family)&(1u<<choice)))ImGui::TextColored(ImVec4(1,.85f,.25f,1),"Effect assets not ready: native appearance retained.");
                         ImGui::PopID();
@@ -909,6 +909,23 @@ void Draw(Context& c) {
 
             ImGui::Unindent();
             }
+            const auto coreAppearance=[&](effect_appearance::Family selected,const char* title,const char* help){
+                if(layout::Group(title)){
+                    const auto family=unsigned(selected);const auto& info=effect_appearance::Families[family];
+                    ImGui::Indent();ImGui::PushID(int(family));HelpText(help);
+                    ImGui::BeginDisabled(!effect_appearance::Ready());
+                    if(Choice("Effect",&config.effectAppearances[family],info.choices.data(),int(info.count)))config.Save();
+                    ImGui::EndDisabled();
+                    const int choice=effect_appearance::Normalize(family,config.effectAppearances[family]);
+                    if(choice&&!(effect_appearance::LoadedMask(family)&(1u<<choice)))
+                        ImGui::TextColored(ImVec4(1,.85f,.25f,1),"Effect assets not ready: native appearance retained.");
+                    ImGui::PopID();ImGui::Unindent();
+                }
+            };
+            coreAppearance(effect_appearance::Family::ShieldDemonCore,"Legion shieldbearer",
+                "Normal view and TPS. Changes the core's shield visual only; its protection stays native. Replacements require loaded assets and apply on the next activation.");
+            coreAppearance(effect_appearance::Family::StingerCore,"Stinger crystal",
+                "Normal view and TPS. Hide the Stinger crystal during Stoneskin; its damage and the body coating stay native. Applies on the next activation.");
             ImGui::PopID();
             ImGui::EndTabItem();
         }

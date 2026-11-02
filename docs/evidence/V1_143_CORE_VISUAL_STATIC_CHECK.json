@@ -1,0 +1,43 @@
+{
+  "oldFamiliesPreserved": 44,
+  "newFamilyIndex": 44,
+  "oldAssetsUnchanged": 455,
+  "newAssets": 1,
+  "totalAssets": 456,
+  "totalRoles": 100,
+  "oldLegionNative0AndHidden1Preserved": true,
+  "newChoices": {
+    "ShieldDemonCoreAppearance": {
+      "0": "Native",
+      "1": "Hidden",
+      "2": "Fire aura"
+    },
+    "StingerCoreAppearance": {
+      "0": "Native",
+      "1": "Hidden"
+    }
+  },
+  "stingerDefault": "Native",
+  "gameplayOrStatusWritesAdded": false,
+  "newHooksAdded": false,
+  "externalReaderWrites": false,
+  "visualsRuntimeValidated": false,
+  "limitation": "newly-created retained particle factory only; selected targets must already be loaded; no active-effect template rewrite",
+  "oldRoleFamiliesPreserved": 99,
+  "oldShieldDemonNative0AndHidden1Preserved": true,
+  "legionFamilyUnchanged": true,
+  "localizedIdentity": {
+    "file": "ExportedStringTables.locres",
+    "namespace": "AICharacters",
+    "key": "ShieldDemon",
+    "text": "Porte-bouclier de la Légion"
+  },
+  "allLegacyValidChoicesPreserved": true,
+  "allOldMappingsUnchangedExceptPreviouslyInvalidShieldChoice2": true,
+  "oldCoreClassesAndStatusParametersModified": false,
+  "views": [
+    "TPS",
+    "native"
+  ],
+  "menuPlacement": "Appearance bottom, two groups after Leviathan, no duplicate library rows"
+}

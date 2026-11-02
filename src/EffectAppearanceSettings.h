@@ -47,11 +47,12 @@ OtherStrifeFx,
 OtherWarFx,
 OtherMountFx,
 TremorSurface,
+StingerCore,
 Count };
 inline constexpr unsigned FamilyCount=unsigned(Family::Count);
 static_assert(FamilyCount<=64);
 using Choices=std::array<int,FamilyCount>;
-struct FamilyInfo {const wchar_t* key;const char* label;const char* category;std::array<const char*,8> choices;unsigned count;};
+struct FamilyInfo {const wchar_t* key;const char* label;const char* category;std::array<const char*,8> choices;unsigned count;int hiddenChoice=-1;}; // Keep persisted Hidden indices when adding later alternatives.
 inline constexpr std::array<FamilyInfo,FamilyCount> Families={{
 {L"CaltropsAppearance","Caltrops burst","Tools",{"Native","Base","Frost 1","Frost 2","Frost 3","Hidden"},6},
 {L"CaltropsAmbientAppearance","Caltrops ground effects","Tools",{"Native","Hidden"},2},
@@ -91,13 +92,14 @@ inline constexpr std::array<FamilyInfo,FamilyCount> Families={{
 {L"NephilimCoreAppearance","Nephilim blast","Creature cores",{"Native","Level 1","Level 2","Level 3","Hidden"},5},
 {L"AstarteCoreAppearance","Astarte","Creature cores",{"Native","Hidden"},2},
 {L"ScarabCoreAppearance","Scarab acid","Creature cores",{"Native","Hidden"},2},
-{L"ShieldDemonCoreAppearance","Shield Demon","Creature cores",{"Native","Hidden"},2},
+{L"ShieldDemonCoreAppearance","Legion shieldbearer","Creature cores",{"Native","Hidden","Fire aura"},3,1},
 {L"LegionCoreAppearance","Legion","Creature cores",{"Native","Hidden"},2},
 {L"OtherStrifeFxAppearance","Other Strife effects","Other effects",{"Native","Hidden"},2},
 {L"OtherWarFxAppearance","Other War effects","Other effects",{"Native","Hidden"},2},
 {L"OtherMountFxAppearance","Other mount effects","Other effects",{"Native","Hidden"},2},
 {L"TremorSurfaceAppearance","Tremor surface impact","Tools",{"Native","Gold debris","Metal debris","Stone debris","Water splash","Hidden"},6},
+{L"StingerCoreAppearance","Stinger crystal","Creature cores",{"Native","Hidden"},2},
 }};
 inline constexpr int Normalize(unsigned family,int choice){return family<FamilyCount&&choice>=0&&unsigned(choice)<Families[family].count?choice:0;}
-inline constexpr int Hidden(unsigned family){return int(Families[family].count)-1;}
+inline constexpr int Hidden(unsigned family){return Families[family].hiddenChoice>=0?Families[family].hiddenChoice:int(Families[family].count)-1;}
 }
