@@ -1,3 +1,11 @@
+## V1.144 - barrières alternatives et Stinger validé
+
+**EXPÉRIMENTAL, compilation/livraison en attente.** Remplace la Fire aura rejetée par trois véritables boucliers : Rampage, Chaos et sphère Borrower, dans le groupe dédié en bas d’Appearance et pour les deux vues. Native=0/Hidden=1 conservés ; Stinger validé inchangé. [Objectif, preuves, limites et essais](V1_144_SHIELD_VARIANTS_TEST.md).
+
+Pose après changement de munition toujours en diagnostic, aucun correctif annoncé. Le défaut concerne tout le haut du corps avec un ou deux pistolets. Dash aérien reporté. V1.143 observée dans le dernier journal ; baisse du coût CPU Stoneskin échantillonné, sans preuve FPS/GPU. Aucun fichier de jeu/INI personnel remplacé par l’agent.
+
+---
+
 **Livraison V1.143 disponible sur debug, non installée.** [ZIP, contrôles et essais](V1_143_CORE_DELIVERY_RECEIPT.md).
 
 ## V1.143 - lot Stoneskin et visuels de cœurs

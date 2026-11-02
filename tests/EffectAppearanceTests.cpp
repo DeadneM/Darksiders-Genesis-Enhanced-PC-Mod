@@ -34,7 +34,7 @@ void Run(){
  const auto assets=f.assets,packages=f.packages;const auto items=f.items;
  unsigned checked=0;
  for(unsigned source=0;source<N;++source){const auto family=Roles[Assets[source].role].family;
-  for(int choice=0;choice<int(Families[family].count);++choice){if(choice==Hidden(family))continue;dg::runtime::Snapshot s{};s.effectAppearances[family]=choice;dg::runtime::Publish(s);g_worlds[0].tick=GetTickCount64();const auto before=calls;HookCreate(f.assets[source].bytes,f.worlds[0].bytes,f.packages[2].bytes,true,3);const int target=Target(Assets[source].role,choice);
+  for(int choice=0;choice<int(Families[family].count);++choice){if(choice==Hidden(family))continue;dg::runtime::Snapshot s{};s.effectAppearances[family]=choice;dg::runtime::Publish(s);g_worlds[0].tick=GetTickCount64();const auto before=calls;HookCreate(f.assets[source].bytes,f.worlds[0].bytes,f.packages[2].bytes,true,3);const int target=Assets[source].targetOnly?-1:Target(Assets[source].role,choice);
    Check(calls==before+1&&sentAsset==(target>=0?f.assets[unsigned(target)].bytes:f.assets[source].bytes)&&sentWorld==f.worlds[0].bytes&&sentOuter==f.packages[2].bytes&&sentAuto&&sentPool==3,"every role/preset changes only the intended template; one native call, original ABI");++checked;
   }
  }
@@ -58,8 +58,12 @@ void Run(){
  Select(legion,1);HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);
  Check(sentAsset==f.assets[shield].bytes&&g_hiddenCount==1,"old Legion Hidden remains hidden, never becomes a replacement");
  Select(legion,0);g_restoreTick=0;OnLivePlayer(owner);Check(!g_hiddenCount,"old Legion Native restores hidden visibility");
- Select(legion,2);Check((LoadedMask(legion)&7u)==7u,"alternatives after persisted Hidden are available when their exact assets are loaded");
- HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[Find("P_flamebrand_aura")].bytes&&!g_hiddenCount,"Legion shield alternative changes only the template");
+ Select(legion,2);Check((LoadedMask(legion)&31u)==31u,"alternatives after persisted Hidden are available when their exact assets are loaded");
+ HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[Find("P_Rampage_Shield")].bytes&&!g_hiddenCount,"rejected fire aura becomes the Rampage shield, retaining native lifetime");
+ Select(legion,3);HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[Find("P_Chaos_Rampage_Shield")].bytes,"Chaos shield uses its exact verified template");
+ Select(legion,4);HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);const auto borrower=Find("P_Borrower_Shield");Check(sentAsset==f.assets[borrower].bytes&&Assets[borrower].targetOnly,"sphere shield is a replacement-only asset");
+ Select(legion,1);const auto hiddenBefore=g_hiddenCount;HookCreate(f.assets[borrower].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[borrower].bytes&&g_hiddenCount==hiddenBefore,"enemy Borrower shield never inherits the core hide setting");
+ const auto nativeShield=g_assets[shield];g_assets[shield]={};Availability(GetTickCount64(),true);Check(!(LoadedMask(legion)&2u),"a loaded replacement alone never reports the native shield hide source ready");g_assets[shield]=nativeShield;
  const auto coating=Find("P_WarStoneSkin_Base");Select(stinger,1);HookCreate(f.assets[coating].bytes,f.worlds[0].bytes,nullptr,true,0);
  Check(!g_hiddenCount&&sentAsset==f.assets[coating].bytes,"Stinger hide leaves the ordinary Stoneskin effect native");
  HookCreate(f.assets[crystal].bytes,f.worlds[0].bytes,nullptr,true,0);Check(g_hiddenCount==1&&sentAsset==f.assets[crystal].bytes,"Stinger hide preserves original component and native lifetime");

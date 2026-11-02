@@ -92,7 +92,7 @@ inline constexpr std::array<FamilyInfo,FamilyCount> Families={{
 {L"NephilimCoreAppearance","Nephilim blast","Creature cores",{"Native","Level 1","Level 2","Level 3","Hidden"},5},
 {L"AstarteCoreAppearance","Astarte","Creature cores",{"Native","Hidden"},2},
 {L"ScarabCoreAppearance","Scarab acid","Creature cores",{"Native","Hidden"},2},
-{L"ShieldDemonCoreAppearance","Legion shieldbearer","Creature cores",{"Native","Hidden","Fire aura"},3,1},
+{L"ShieldDemonCoreAppearance","Legion shieldbearer","Creature cores",{"Native","Hidden","Rampage shield","Chaos shield","Sphere shield (Borrower)"},5,1},
 {L"LegionCoreAppearance","Legion","Creature cores",{"Native","Hidden"},2},
 {L"OtherStrifeFxAppearance","Other Strife effects","Other effects",{"Native","Hidden"},2},
 {L"OtherWarFxAppearance","Other War effects","Other effects",{"Native","Hidden"},2},

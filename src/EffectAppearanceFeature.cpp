@@ -56,7 +56,7 @@ void Availability(uint64_t now,bool force){
     if(g_particleClass&&!Alive(g_particleClass))g_particleClass={};
     if(invalid){g_cursor=0;g_complete=false;}
     for(unsigned family=0;family<FamilyCount;++family){
-        unsigned mask=1;bool any=false;for(unsigned i=0;i<Assets.size();++i)if(Roles[Assets[i].role].family==family&&g_available[i]){any=true;break;}
+        unsigned mask=1;bool any=false;for(unsigned i=0;i<Assets.size();++i)if(!Assets[i].targetOnly&&Roles[Assets[i].role].family==family&&g_available[i]){any=true;break;}
         if(any)mask|=1u<<Hidden(family);
         for(int choice=1;choice<int(Families[family].count);++choice){if(choice==Hidden(family))continue;bool needed=false,complete=true;for(unsigned role=0;role<Roles.size();++role)if(Roles[role].family==family){const int target=Target(role,choice);if(target>=0){needed=true;complete=complete&&g_available[unsigned(target)];}}if(needed&&complete)mask|=1u<<choice;}
         g_loaded[family].store(mask,std::memory_order_relaxed);
@@ -90,7 +90,7 @@ struct Plan {void* asset=nullptr;int source=-1;unsigned family=0;bool hidden=fal
 Plan Resolve(void* asset,void* world){
     Plan plan{asset};if(!g_ready.load(std::memory_order_relaxed)||!runtime::Get().effectAppearanceMask.load(std::memory_order_relaxed)||!asset||!world||!native_tps::OnGameThread())return plan;
     int source=-1;for(unsigned i=0;i<g_assets.size();++i)if(g_assets[i].address==reinterpret_cast<uintptr_t>(asset)){if(Alive(g_assets[i]))source=int(i);break;}
-    if(source<0)return plan;const auto role=Assets[unsigned(source)].role,family=Roles[role].family;
+    if(source<0||Assets[unsigned(source)].targetOnly)return plan;const auto role=Assets[unsigned(source)].role,family=Roles[role].family;
     const int choice=Normalize(family,runtime::Get().effectAppearances[family].load(std::memory_order_relaxed));
     if(!choice||!CurrentWorld(reinterpret_cast<uintptr_t>(world),GetTickCount64()))return plan;
     plan.source=source;plan.family=family;plan.hidden=choice==Hidden(family);

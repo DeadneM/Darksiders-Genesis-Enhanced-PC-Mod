@@ -1,0 +1,49 @@
+{
+  "logSha256": "46686EC059667E481CC2CF0CE7A9BD4E055B5E3A07B5766EFF12345ACDEE278E",
+  "buildV143Observed": true,
+  "metrics": {
+    "gameplay-service": {
+      "samples": 1437,
+      "avgUs": 1074.91,
+      "maxUs": 15418.2
+    },
+    "pistol-observe": {
+      "samples": 1437,
+      "avgUs": 97.09,
+      "maxUs": 313.8
+    },
+    "pistol-animation": {
+      "samples": 2100,
+      "avgUs": 4.13,
+      "maxUs": 236.9
+    },
+    "stoneskin-observe": {
+      "samples": 1437,
+      "avgUs": 278.08,
+      "maxUs": 9064.3
+    },
+    "wrath-discovery": {
+      "samples": 325,
+      "avgUs": 416.75,
+      "maxUs": 1422.2
+    },
+    "appearance-discovery": {
+      "samples": 1262,
+      "avgUs": 105.86,
+      "maxUs": 4742.3
+    },
+    "native-assist-inclusive": {
+      "samples": 32,
+      "avgUs": 227.51,
+      "maxUs": 734.4
+    }
+  },
+  "cacheCounters": [
+    "Stoneskin status-class cache hits=1182181 misses=22 capacity=128"
+  ],
+  "fpsMeasured": false,
+  "gpuMeasured": false,
+  "controlledScenesCompared": false,
+  "stingerValidatedByUser": true,
+  "fireAuraRejectedByUser": true
+}
