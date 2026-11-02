@@ -1,0 +1,35 @@
+{
+  "sourceCommit": "ca590ab9c1911b6fc6898ce23713f9ce420f8e2f",
+  "run": 41496324365,
+  "job": 125452134768,
+  "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41496324365",
+  "conclusion": "success",
+  "windowsX64Compiled": true,
+  "testsPassed": 71,
+  "testsFailed": 0,
+  "compilerWarnings": [],
+  "testEvidence": [
+    "2026-11-02T18:05:56.8846063Z  4/71 Test  #4: EffectAppearance .................   Passed    0.29 sec",
+    "2026-11-02T18:05:56.9096599Z  5/71 Test  #5: ShieldVisual .....................   Passed    0.02 sec",
+    "2026-11-02T18:05:56.9615351Z  6/71 Test  #6: StoneSkinVisual ..................   Passed    0.05 sec",
+    "2026-11-02T18:05:57.4601171Z 18/71 Test #18: MeleeEffect ......................   Passed    0.02 sec",
+    "2026-11-02T18:05:57.4796664Z 19/71 Test #19: LavaMuzzle .......................   Passed    0.02 sec",
+    "2026-11-02T18:06:04.4909199Z 100% tests passed out of 71",
+    "2026-11-02T18:06:04.4909641Z Total Test time (real) =   8.28 sec"
+  ],
+  "zipPublished": true,
+  "localBuild": false,
+  "installedByAgent": false,
+  "newShieldBehaviorRuntimeValidated": false,
+  "stingerPreviouslyValidatedByUser": true,
+  "stoneskinMaterialFixClaimed": false,
+  "externalCaptureStarted": false,
+  "earlierAttempt": {
+    "sourceCommit": "c50beaf5ac1ba61fa6dcf36e50bfff5503204c4a",
+    "run": 41494906220,
+    "job": 125447171761,
+    "conclusion": "failure",
+    "reason": "LavaMuzzle test target omitted the linked shield adapter; corrected in CMake",
+    "zipPublished": false
+  }
+}

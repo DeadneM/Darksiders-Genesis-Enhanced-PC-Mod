@@ -1,6 +1,6 @@
 # V1.145 - bouclier adapté et cycle natif
 
-**EXPÉRIMENTAL, compilation/livraison en attente.** Base V1.144 avec Stinger Native/Hidden VALIDÉ et conservé. Pour le Porte-bouclier de la Légion, Rampage/Chaos sont REJETÉS et retirés de la sélection ; leurs templates restent dans la bibliothèque pour les pouvoirs qui les utilisent déjà.
+**CONSTRUIT / CONTRÔLÉ, EXPÉRIMENTAL en jeu.** Base V1.144 avec Stinger Native/Hidden VALIDÉ et conservé. Pour le Porte-bouclier de la Légion, Rampage/Chaos sont REJETÉS et retirés de la sélection ; leurs templates restent dans la bibliothèque pour les pouvoirs qui les utilisent déjà.
 
 ## Objectif et rendu
 
@@ -30,3 +30,7 @@ Pose bloquée après changement de munition : toujours ouverte, non reproduite a
 4. Retour Native/Hidden, changement de zone, cheval/ultime et coop restent à valider pour ce nouveau suivi. Les fixtures P1/P2 ne constituent pas une validation coop en jeu.
 
 ZIP attendu à deux fichiers racine ASI et dxgi.dll, sans INI/README. Build GitHub uniquement, aucun lancement ou remplacement de fichiers du jeu par l’agent. Préserver archives, main/archive, INI/raccourcis/PAK/sauvegardes. Repli : V1.144 en gardant son INI, Native/Hidden ou Borrower ; éviter les choix Rampage/Chaos rejetés.
+
+## Livraison
+
+71/71 contrôles Windows réussis, aucun avertissement détecté. ZIP et catalogue updater contrôlés, Defender sans menace détectée. [Reçu et lien direct](V1_145_DELIVERY_RECEIPT.md). Aucun gain/rendu en jeu déduit de ces contrôles.

@@ -1,0 +1,25 @@
+{
+  "defender": {
+    "AMProductVersion": "4.18.26100.4",
+    "AMEngineVersion": "1.1.26100.4",
+    "AntivirusSignatureVersion": "1.463.93.0",
+    "AntivirusSignatureLastUpdated": "/Date(1793612539000)/",
+    "RealTimeProtectionEnabled": true,
+    "OnAccessProtectionEnabled": true,
+    "AntivirusEnabled": true
+  },
+  "after": {
+    "RealTimeProtectionEnabled": true,
+    "OnAccessProtectionEnabled": true,
+    "AntivirusEnabled": true
+  },
+  "protectionSettingsChanged": false,
+  "zip": {
+    "exitCode": 0,
+    "result": "no threats"
+  },
+  "payload": {
+    "exitCode": 0,
+    "result": "no threats"
+  }
+}

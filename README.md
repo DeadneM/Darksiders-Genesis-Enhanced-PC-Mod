@@ -1,6 +1,8 @@
+**V1.145 disponible sur debug, non installée par l’agent.** [Livraison et essais](docs/V1_145_DELIVERY_RECEIPT.md).
+
 ## V1.145 - Borrower réduit et disparition liée au bouclier natif
 
-**EXPÉRIMENTAL, compilation/livraison en attente.** Stinger validé conservé ; Rampage/Chaos retirés du choix de barrière, remplacés par Belial/Dagon/eau. Borrower=4 conservé, taille 60 %. Suivi borné des seuls composants de remplacement, fin liée à la référence de particules du statut natif. [Preuves, périmètre et essais](docs/V1_145_OWNED_SHIELD_TEST.md).
+**CONSTRUIT / CONTRÔLÉ, EXPÉRIMENTAL en jeu. GitHub : 71/71 contrôles, aucun avertissement détecté ; ZIP publié.** Stinger validé conservé ; Rampage/Chaos retirés du choix de barrière, remplacés par Belial/Dagon/eau. Borrower=4 conservé, taille 60 %. Suivi borné des seuls composants de remplacement, fin liée à la référence de particules du statut natif. [Preuves, périmètre et essais](docs/V1_145_OWNED_SHIELD_TEST.md).
 
 Stoneskin pierre/feu intermittent, cause non établie ; pas de lien confirmé avec le choix de barrière. Garde des matériaux inchangé ; aucun relevé VM_READ démarré après la demande d’attendre. Pose et dash aérien toujours ouverts/reportés. Aucun fichier de jeu/INI personnel modifié par l’agent.
 

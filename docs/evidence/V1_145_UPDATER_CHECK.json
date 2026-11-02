@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.145_OWNED_SHIELD_LIFECYCLE_TEST.zip",
+  "blobSha": "6d1f14648327695c5bd9c09c28742c17cf904dda",
+  "httpStatus": 200,
+  "sha256": "829C2C46A6D495B8E26A81C7C4A863815EF207BFDE9F1D17B66F5281F8A7AA92",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}
