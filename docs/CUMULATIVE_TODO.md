@@ -1,6 +1,6 @@
 ## V1.143 — préparation Stoneskin, bouclier et pose
 
-**CHECK ONLY / EXPÉRIMENTAL, contrôles GitHub en attente. Aucun ZIP ni installation.** Le journal V1.142 mesure un coût CPU important dans stoneskin-observe ; classification des classes de statut désormais mémorisée avec identités vérifiées, sans changer rendu/cadence/capacité. Gain en jeu non validé. [Preuves, tests et sujets ouverts](V1_143_STONESKIN_STATUS_CACHE_REVIEW.md).
+**CONSTRUIT / CONTRÔLÉ sur GitHub : 70/70 contrôles, aucun avertissement détecté. EXPÉRIMENTAL en jeu. Aucun ZIP ni installation.** Le journal V1.142 mesure un coût CPU important dans stoneskin-observe ; classification des classes de statut désormais mémorisée avec identités vérifiées, sans changer rendu/cadence/capacité. Gain en jeu non validé. [Preuves, tests et sujets ouverts](V1_143_STONESKIN_STATUS_CACHE_REVIEW.md).
 
 Cœur responsable du bouclier à identifier ; blocage de pose en attente du relevé autorisé après « prêt ». Aucun remplacement visuel ou correctif de pose annoncé. V1.142 reste l'installation et le téléchargement courant ; INI/raccourcis, anciens ZIP et branches protégées conservés.
 

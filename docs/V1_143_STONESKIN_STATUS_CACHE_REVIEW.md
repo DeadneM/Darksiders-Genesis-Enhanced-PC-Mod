@@ -1,6 +1,6 @@
 # V1.143 — Stoneskin et suivi des anomalies
 
-**PRÉPARATION / CHECK ONLY. Aucun ZIP livré ou installation.** Base V1.142 installée et acceptée hors anomalies suivantes : ralentissement pendant Stoneskin Strife ; effet de cœur/bouclier inadapté en TPS ; pose de tir parfois bloquée, un nouveau tir la rétablit.
+**CONSTRUIT / CONTRÔLÉ, EXPÉRIMENTAL. Aucun ZIP livré ou installation.** Base V1.142 installée et acceptée hors anomalies suivantes : ralentissement pendant Stoneskin Strife ; effet de cœur/bouclier inadapté en TPS ; pose de tir parfois bloquée, un nouveau tir la rétablit.
 
 ## Preuve et optimisation CPU
 
@@ -18,3 +18,9 @@ Tests ciblés ajoutés : classification réutilisée, changement de série à m�
 - Pose : capture en lecture seule préparée et en attente du signal utilisateur « prêt ». Elle comparera états de combat/visée, capacités et variables d'animation pendant tir, déplacement et Stoneskin. Aucune réparation de touche, réinitialisation forcée du personnage ou correction du moteur sans preuve.
 
 Compilation/contrôles GitHub uniquement, sans publication de ZIP pour cette passe. INI, 228 clés/55 Hotkeys, archives, main/archive et fichiers de jeu conservés. Suite : exploiter le relevé de pose et l'identification du cœur, puis regrouper les corrections retenues dans une build test. Les deux sujets ouverts ne sont pas annoncés corrigés.
+
+## Contrôle Windows terminé
+
+Le commit a391b5ad962f6229e71a408b8b84dba3ecbeca98 est compilé sur GitHub Actions Windows x64 : 70/70 contrôles passent, aucun avertissement C/CS/LNK/D détecté dans le journal du job terminé. Les étapes ZIP/publication ont été ignorées conformément à `[check only]`. [Exécution vérifiée](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41365417863), [preuve structurée](evidence/V1_143_CI_CHECK.json). Aucun gain FPS ou rendu runtime déduit des fixtures.
+
+Le profil personnel courant masque le pistolet gauche ; le diagnostic doit donc distinguer la pose privée du bras désarmé, le montage d’un pouvoir et le véritable état de tir natif. Aucun correctif de pose appliqué à l’aveugle. Le cache CPU pourra être comparé aux mêmes mesures après une future livraison groupée, avec Stoneskin actif et inactif.
