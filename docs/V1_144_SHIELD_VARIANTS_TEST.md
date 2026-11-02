@@ -1,6 +1,6 @@
 # V1.144 - variantes de barrière et suivi de la pose
 
-**EXPÉRIMENTAL, compilation/livraison en attente.** Base V1.143, masquage du cristal Stinger expressément VALIDÉ par l’utilisateur. Fire aura comme remplacement du Porte-bouclier de la Légion est REJETÉE et retirée de cette sélection. Le Stinger natif/masqué et le cache CPU Stoneskin restent dans leurs chemins précédents.
+**CONSTRUIT / CONTRÔLÉ, variantes EXPÉRIMENTALES en jeu.** Base V1.143, masquage du cristal Stinger expressément VALIDÉ par l’utilisateur. Fire aura comme remplacement du Porte-bouclier de la Légion est REJETÉE et retirée de cette sélection. Le Stinger natif/masqué et le cache CPU Stoneskin restent dans leurs chemins précédents.
 
 ## Objectif et choix
 
@@ -25,3 +25,7 @@ Précision utilisateur : tout le haut du corps reste en visée, y compris les de
 Essayer les trois variantes quand elles sont chargées, à la prochaine apparition du bouclier, en vue normale et TPS. Vérifier orientation, position, taille, continuité, lisibilité près de la caméra, disparition avec le statut et retour Native/Hidden. La protection doit rester native. Stinger validé : vérifier son masquage et le retour Native sans affecter les autres visuels Stoneskin. P2 différé. Les variations de FPS seront rapportées séparément des contrôles de fixtures.
 
 ZIP attendu : ASI et dxgi.dll seulement à la racine. Compilation exclusivement GitHub ; pas d’installation ni lancement du jeu par l’agent. INI personnel, raccourcis, PAK, sauvegardes, anciennes archives, main/archive conservés. Repli : ZIP V1.143, sans utiliser sa variante Fire aura rejetée ; garder l’INI.
+
+## Livraison et dernier retour
+
+L’utilisateur n’a pas réussi à reproduire de nouveau la pose bloquée ; les essais de reproduction sont arrêtés, sans déclarer le bug corrigé. Le lot passe 70/70 contrôles GitHub après correction du premier échec de compilation. [Reçu de livraison, preuves et ZIP](V1_144_DELIVERY_RECEIPT.md). Les nouvelles variantes sont à tester ; Stinger demeure validé.

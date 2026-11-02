@@ -1,0 +1,33 @@
+{
+  "sourceCommit": "3f18a8ea98e1e856e9e7fed0aa4a6325b2d034af",
+  "run": 41481881615,
+  "job": 125402053030,
+  "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41481881615",
+  "conclusion": "success",
+  "windowsX64Compiled": true,
+  "testsPassed": 70,
+  "testsFailed": 0,
+  "compilerWarnings": [],
+  "testEvidence": [
+    "2026-11-02T16:32:38.7199964Z  4/70 Test  #4: EffectAppearance .................   Passed    0.16 sec",
+    "2026-11-02T16:32:38.7541523Z  5/70 Test  #5: StoneSkinVisual ..................   Passed    0.03 sec",
+    "2026-11-02T16:32:42.5870990Z 100% tests passed out of 70",
+    "2026-11-02T16:32:42.5871762Z Total Test time (real) =   4.20 sec"
+  ],
+  "zipPublished": true,
+  "localBuild": false,
+  "installed": false,
+  "newShieldVisualsRuntimeValidated": false,
+  "stingerPreviouslyValidatedByUser": true,
+  "earlierAttempt": {
+    "sourceCommit": "e250dcbcf83b32ec57b40aa328b0ebb399e12160",
+    "run": 41480698327,
+    "job": 125397900207,
+    "conclusion": "failure",
+    "issues": [
+      "C2280: test attempted to copy atomic counter; corrected with load()",
+      "C28020: explicit source-index bound and role/family guards added"
+    ],
+    "zipPublished": false
+  }
+}

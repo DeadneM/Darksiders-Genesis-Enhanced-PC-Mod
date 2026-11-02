@@ -1,0 +1,19 @@
+{
+  "exeSha256": "9F4702024DF5EEA1D51DF7745B0AD1EA95B97009982F73DDC1218C53DFF33D54",
+  "readOnlyDisassembly": true,
+  "nativeCallsPerformed": false,
+  "nativeStateNameCallChain": [
+    "reflected GetCurrentStateName -> exec 0x1CC2C00",
+    "native handler 0x166AEA0",
+    "state-name lookup 0x1692230"
+  ],
+  "currentStateOffset": "0x1C",
+  "bakedMachineOffset": "0x28",
+  "statesOffset": "0x10",
+  "stateCountOffset": "0x18",
+  "stateRecordStride": 72,
+  "readerPreparedNotRun": true,
+  "readerFile": "v256_pose_capture.py",
+  "bugCauseEstablished": false,
+  "poseFixApplied": false
+}

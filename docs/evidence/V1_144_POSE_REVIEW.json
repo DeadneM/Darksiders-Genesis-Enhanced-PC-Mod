@@ -1,0 +1,23 @@
+{
+  "file": "v255-animation-20261102-171530.jsonl",
+  "sha256": "6B0BBFA853ED46EB6BA54CD5E34CDDB7C1B22D17FF5F50BCE0409504AE7A01CC",
+  "samples": 1371,
+  "lastSeconds": 139.09,
+  "readFailures": 10,
+  "stoppedAfterRepeatedReadFailures": true,
+  "errorReasonsNotDetailed": true,
+  "userCouldNotReproduceStuckPose": true,
+  "userReportsBothArmsWithOneOrTwoVisiblePistols": true,
+  "VMReadOnly": true,
+  "targetWrites": false,
+  "nativeFunctionsCalled": false,
+  "poseFixApplied": false,
+  "airDashDeferred": true,
+  "observedMontages": [
+    "Strife_Aim_Charge",
+    "Strife_Aim_Charge_Fire_Level1_Montage",
+    "Strife_Aim_Fire_Montage",
+    "Strife_Aim_Idle_to_Combat_Montage"
+  ],
+  "firingAndEndTransitionsObserved": true
+}

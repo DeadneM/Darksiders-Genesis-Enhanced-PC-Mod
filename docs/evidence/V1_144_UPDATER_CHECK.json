@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.144_SHIELD_BARRIER_VARIANTS_TEST.zip",
+  "blobSha": "130b076b3f24a7991e2310ed1ed8269074fa3ded",
+  "httpStatus": 200,
+  "sha256": "30C9E92086D16323F78AE4493056A78D3FAA40995F75D1509D73727D2574694D",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}
