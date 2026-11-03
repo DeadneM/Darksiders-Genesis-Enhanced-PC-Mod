@@ -1,3 +1,17 @@
+## 3 novembre 2026 — V1.150, ressources sélectionnées et limite du correctif sous-titres
+
+Reprise après clarification utilisateur : « indisponible » concerne les effets de cœurs, la pierre/feu Stoneskin Strife et le message assets not ready. Bibliothèque jusqu'ici passive : la présence dans le PAK ne suffit pas à rendre l'objet disponible dans le niveau. Réemploi ciblé du chargeur natif déjà vérifié ; contexte Kismet observé/revalidé et partagé, observations ajoutées au scan existant, pas de nouvelle passe indépendante. Trois tentatives par ressource, temporisation et budget commun, état par joueur pour Stoneskin. Dépendances limitées au revêtement actif ; sources natives et variantes inutilisées préservées. Vérification des466 chemins contre l'index PAK hors ligne. Une charge synchrone peut créer une pause initiale ; aucun gain FPS annoncé. Les défauts visuels et changements d'armure restent à valider en jeu.
+
+Deux passes de revue comparées : périmètre/configuration puis identités/appels/budget. Ajustements issus de la seconde : requêtes séparées P1/P2, poll bibliothèque250 ms, explosion inutilisée retirée des dépendances actives. Pas de moteur appelé depuis le lecteur externe, pas d'installation.
+
+Question utilisateur sur les sous-titres : leur désactivation évite le parcours qui déclenche la demande invalide capturée. Le garde annule seulement clearStencil quand aucune cible n'existe dans cette combinaison précise. Producteur initial non identifié ; protection légère validée sur Moloch, pas une preuve de correction universelle ou d'optimalité absolue. Aucun changement du garde. Preuve documentaire V1.148 :0x128=296 octets, corrige seulement l'ancien nombre décimal312.
+
+Dash aérien : OnFinish Strife, cause LAND38, enchaîne CreateDashInfoForPlayer puis GroundDashStartLevel1 sans test MOVE explicite dans ce script. MOVE29 confirmé distinct de MOVE_RELEASE53. War a une réception différente. Aucune manipulation de Cause, de curseur script ou de mode de mouvement ajoutée. Pose : attendre le défaut spontané selon l'utilisateur.
+
+[Périmètre et tests](V1_150_SELECTED_EFFECT_RESOURCE_RECOVERY_TEST.md).
+
+---
+
 ## 3 novembre 2026 — validation sous-titres et reprise V1.149
 
 **V1.148 VALIDÉ par l'utilisateur pour la transition de Moloch, sous-titres conservés.** Le journal du 3 novembre 17:39 enregistre au moins sept effacements stencil sans cible interceptés. La condition et la copie privée du paquet RHI restent strictement identiques ; seul le texte du log annonce le nouvel emplacement Gameplay → System and startup. Préparation de la note Nexus, sans publication externe.

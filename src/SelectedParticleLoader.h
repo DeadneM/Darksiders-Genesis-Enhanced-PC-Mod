@@ -2,10 +2,11 @@
 #include "OwnedParticleTransform.h"
 #include <array>
 namespace dg::selected_particle {
-// Only the selected cosmetic ParticleSystem is requested, once per choice/world.
+// Explicit cosmetic asset paths only; each caller verifies package/name/class.
 // Observed native CDO is revalidated through its rooted class and UObject slot;
 // CDO serials can legitimately remain zero. No guessed ClassDefaultObject offset.
 struct State {native_objects::Identity cls{},make{},load{};uintptr_t context=0;int index=-1,serial=0;bool busy=false;};
+inline State sharedContext{}; // game thread only; one revalidated native CDO
 inline bool Context(uintptr_t base,const State& s){
     native_objects::MemoryReader r;uintptr_t object=0,cls=0;int serial=0;uint32_t flags=0,ownFlags=0;
     return owned_particle::Alive(base,s.cls)&&native_objects::Item(r,base,s.index,object,serial,flags)&&object==s.context&&serial==s.serial&&

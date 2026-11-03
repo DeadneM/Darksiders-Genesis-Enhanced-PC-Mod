@@ -10,5 +10,6 @@ unsigned LoadedMask(unsigned family);
 void* ShieldAsset(int choice,bool requestLoad);
 bool ShieldLoaderReady();
 bool ShieldLoadFailed(int choice);
+bool SelectionLoadFailed(unsigned family);
 void Shutdown();
 }

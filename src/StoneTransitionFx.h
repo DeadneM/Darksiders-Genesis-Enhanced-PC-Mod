@@ -6,6 +6,7 @@ void Initialize(uintptr_t base,Event existingDispatcher);
 void ObserveObject(uintptr_t);
 bool AssetsReady();
 bool Ready(int kind);
+bool TemplateReady(int kind);
 bool InvalidateAssets();
 bool Spawn(const local_players::Context&,int kind); // base, molten, expiry
 void Shutdown();

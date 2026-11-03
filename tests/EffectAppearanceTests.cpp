@@ -15,7 +15,7 @@ Id Live(void* p,unsigned i){Put(p,0xC,int(i));Put(f.items.data(),size_t(i)*24,re
 void* CreateNative(void* asset,void* world,void* outer,bool autoDestroy,unsigned char pool){++calls;sentAsset=asset;sentWorld=world;sentOuter=outer;sentAuto=autoDestroy;sentPool=pool;if(failCreate)return nullptr;Put(f.component,0x578,reinterpret_cast<uintptr_t>(asset));return f.component;}
 void Visibility(void* component,bool show,unsigned char propagation){Check(component==f.component&&propagation==1,"only the returned native PSC visibility changes");++visibleCalls;unsigned char value=0;std::memcpy(&value,f.component+0x1CC,1);value=show?static_cast<unsigned char>(value|0x20):static_cast<unsigned char>(value&~0x20);Put(f.component,0x1CC,value);}
 void Fresh(){
- std::memset(&f,0,sizeof(f));owner={};thread=true;failCreate=false;calls=visibleCalls=0;g_assets={};g_particleClass={};g_worlds={};g_hidden={};g_hiddenCount=0;g_changes=0;g_shieldLoader={};g_available.reset();g_cursor=g_count=0;g_complete=false;g_generation=0;g_scanTick=g_checkTick=g_restoreTick=g_retryTick=0;g_ready=true;g_log=nullptr;g_create=CreateNative;g_visible=Visibility;for(auto& mask:g_loaded)mask=0;
+ std::memset(&f,0,sizeof(f));owner={};thread=true;failCreate=false;calls=visibleCalls=0;g_assets={};g_particleClass={};g_worlds={};g_hidden={};g_hiddenCount=0;g_changes=0;g_shieldLoader={};g_recovery={};for(auto& failed:g_loadFailed)failed=false;g_available.reset();g_cursor=g_count=0;g_complete=false;g_generation=0;g_scanTick=g_checkTick=g_restoreTick=g_retryTick=g_recoveryTick=0;g_ready=true;g_log=nullptr;g_create=CreateNative;g_visible=Visibility;for(auto& mask:g_loaded)mask=0;
  dg::shield_visual::Shutdown();
  constexpr unsigned char shieldStop[]={0x40,0x53,0x48,0x83,0xEC,0x20,0x48,0x8B,0xD9,0x48,0x8B,0x49,0x78,0x48,0x85,0xC9};
  constexpr unsigned char shieldDamage[]={0x48,0x89,0x5C,0x24,0x08,0x57,0x48,0x83,0xEC,0x50,0x48,0x8B,0x79,0x68,0x48,0x8B};
@@ -90,5 +90,5 @@ void Run(){
  std::cout<<FamilyCount<<" families, "<<N<<" assets, "<<checked<<" preset cases; Native ABI, expiry, pool reuse and visibility restoration passed\n";
 }
 }
-namespace dg::native_tps {bool OnGameThread(){return thread;}bool IsWorldPaused(void*){return false;}bool CinematicActive(unsigned){return false;}}
+namespace dg::native_tps {bool OnGameThread(){return thread;}bool IsWorldPaused(void*){return false;}bool CinematicActive(unsigned){return false;}bool RadialActive(unsigned){return false;}}
 int main(){try{Run();return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

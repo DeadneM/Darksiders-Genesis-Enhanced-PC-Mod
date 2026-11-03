@@ -1,3 +1,9 @@
+## V1.150 — reprise ciblée des ressources visuelles
+
+**En préparation EXPÉRIMENTALE sur debug, base V1.149.** Chargement des seules ressources sélectionnées absentes, reprise Stoneskin liée au joueur/armure et à sa variante active. API déjà vérifiée, budgets bornés, hors menus/cinématiques ; aucun nouveau hook ni réglage par défaut. Correctif sous-titres validé conservé. [Périmètre, limites et test groupé](docs/V1_150_SELECTED_EFFECT_RESOURCE_RECOVERY_TEST.md). Pose et choix dash/stomp encore ouverts ; aucune installation automatique.
+
+---
+
 ## V1.149 — correctif sous-titres validé, menu System et préférence GPU au démarrage
 
 **CONSTRUIT / CONTRÔLÉ sur debug : 77/77 suites GitHub, aucun avertissement de compilation détecté.** Base V1.148 et correctif sous-titres VALIDÉ par l'utilisateur, conservé ; case déplacée dans Gameplay → System and startup. GPU appliqué avant lecture de la configuration UE et préférence sauvegardée immédiatement ; filtre de visée invalidé lors des changements de contexte natifs. Ces deux corrections restent **EXPÉRIMENTALES en jeu**. ZIP/updater/Defender contrôlés, 246 clés et 55 actions conservées, main/archive intacts. [Livraison et essais](docs/V1_149_DELIVERY_RECEIPT.md). [Pose, Stoneskin et dash aérien encore ouverts](docs/V1_149_OPEN_REPAIRS_AUDIT.md).

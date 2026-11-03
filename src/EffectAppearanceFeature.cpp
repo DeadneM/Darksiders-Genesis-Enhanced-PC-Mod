@@ -6,6 +6,7 @@
 #include "NativeCostProbe.h"
 #include "ShieldVisualFeature.h"
 #include "SelectedParticleLoader.h"
+#include "SelectedAssetRecovery.h"
 #include <MinHook.h>
 #include <algorithm>
 #include <atomic>
@@ -17,7 +18,9 @@ namespace {
 using Id=native_objects::Identity;
 using Create=void*(*)(void*,void*,void*,bool,unsigned char);
 using Visible=void(*)(void*,bool,unsigned char);
-selected_particle::State g_shieldLoader{};std::atomic_int g_loadChoice{-1},g_loadResult{0};
+selected_particle::State& g_shieldLoader=selected_particle::sharedContext;
+selected_recovery::Requests<Assets.size()> g_recovery{};
+std::array<std::atomic_bool,FamilyCount> g_loadFailed{};std::atomic_int g_loadChoice{-1},g_loadResult{0};
 Create g_create=nullptr;Visible g_visible=nullptr;uintptr_t g_base=0;LogFn g_log=nullptr;
 std::atomic_bool g_ready{false};std::array<std::atomic_uint,FamilyCount> g_loaded{};
 std::array<Id,Assets.size()> g_assets{};Id g_particleClass{};
@@ -26,7 +29,7 @@ struct HiddenEffect {Id component{},asset{};unsigned family=0;};
 std::array<HiddenEffect,128> g_hidden{};std::atomic_uint g_hiddenCount{0};unsigned g_changes=0;
 std::bitset<Assets.size()> g_available{};
 int g_cursor=0,g_count=0;bool g_complete=false;unsigned g_generation=0;
-uint64_t g_scanTick=0,g_checkTick=0,g_restoreTick=0,g_retryTick=0;
+uint64_t g_scanTick=0,g_checkTick=0,g_restoreTick=0,g_retryTick=0,g_recoveryTick=0;
 template<class T>bool Read(uintptr_t p,size_t at,T& v){native_objects::MemoryReader r;return r.Read(p,at,v);}
 bool Alive(const Id& id){native_objects::MemoryReader r;return native_objects::Alive(r,g_base,id);}
 bool Capture(uintptr_t p,Id& id){return native_objects::CaptureLive(g_base,reinterpret_cast<void*>(p),id);}
@@ -55,7 +58,7 @@ int Classify(uintptr_t p,const Object& object){
 }
 void Availability(uint64_t now,bool force){
     if(!force&&now>=g_checkTick&&now-g_checkTick<200)return;g_checkTick=now;bool invalid=false;g_available.reset();
-    for(unsigned i=0;i<g_assets.size();++i)if(Alive(g_assets[i]))g_available.set(i);else if(g_assets[i]){g_assets[i]={};invalid=true;}
+    for(unsigned i=0;i<g_assets.size();++i)if(Alive(g_assets[i]))g_available.set(i);else if(g_assets[i]){g_assets[i]={};g_recovery.Forget(i);invalid=true;}
     if(g_particleClass&&!Alive(g_particleClass)){g_particleClass={};invalid=true;}
     if(invalid){g_cursor=0;g_complete=false;}
     for(unsigned family=0;family<FamilyCount;++family){
@@ -94,6 +97,45 @@ void Scan(uint64_t now){
         g_cursor+=n;inspected+=unsigned(n);
     }
     if(g_cursor>=count){g_complete=true;g_retryTick=now;}if(changed)Availability(now,true);
+}
+void RecoverSelected(const local_players::Context& c,const Id& world,uint64_t now){
+    const auto generation=runtime::Get().effectAppearanceGeneration.load();
+    const selected_recovery::Scope scope{world.address,0,uint32_t(world.serial),generation};
+    if(g_recovery.scoped&&g_recovery.scope==scope&&now>=g_recoveryTick&&now-g_recoveryTick<250)return;
+    g_recoveryTick=now;
+    g_recovery.Enter(scope,now);
+    std::bitset<Assets.size()> needed;
+    static_assert(FamilyCount<=64);
+    std::array<uint64_t,Assets.size()> wantedBy{};
+    for(unsigned family=0;family<FamilyCount;++family){
+        g_loadFailed[family].store(false,std::memory_order_relaxed);
+        if(family==unsigned(Family::ShieldDemonCore))continue; // validated status-owned loader
+        const int choice=Normalize(family,runtime::Get().effectAppearances[family].load());
+        if(!choice||choice==Hidden(family))continue;
+        for(unsigned role=0;role<Roles.size();++role)if(Roles[role].family==family){
+            const int target=Target(role,choice);if(target>=0){needed.set(unsigned(target));wantedBy[unsigned(target)]|=uint64_t(1)<<family;}
+        }
+    }
+    if(needed.none())return;
+    const bool context=selected_particle::Context(g_base,g_shieldLoader);
+    const bool safe=selected_recovery::loadingAllowed&&context&&
+        !native_tps::IsWorldPaused(reinterpret_cast<void*>(c.pawn))&&
+        !native_tps::CinematicActive(unsigned(c.index))&&!native_tps::RadialActive(unsigned(c.index));
+    bool attempted=false;
+    for(unsigned i=0;i<Assets.size();++i){
+        if(!needed[i]||g_available[i])continue;
+        if(!attempted&&g_recovery.Begin(i,now,safe,context)){
+            attempted=true;const auto& entry=Assets[i];
+            auto* result=selected_particle::Load(g_base,entry.package,entry.name,g_shieldLoader);
+            const auto p=reinterpret_cast<uintptr_t>(result);Object object{};
+            const bool accepted=result&&Read(p,0,object)&&Classify(p,object)==int(i)&&Capture(p,g_assets[i]);
+            if(accepted){g_available.set(i);Availability(now,true);}
+            if(g_log){char message[224]{};sprintf_s(message,"Selected effect V1.150: asset=%s attempt=%u %s",entry.name,g_recovery.entries[i].count,accepted?"loaded and verified":"load unavailable; native retained");g_log(message);}
+        }
+        if(!g_available[i]&&g_recovery.Exhausted(i)){
+            for(unsigned family=0;family<FamilyCount;++family)if(wantedBy[i]&(uint64_t(1)<<family))g_loadFailed[family].store(true,std::memory_order_relaxed);
+        }
+    }
 }
 const World* CurrentWorld(uintptr_t address,uint64_t now){
     for(const auto& world:g_worlds)if(world.id.address==address&&world.tick&&now>=world.tick&&now-world.tick<=500&&Alive(world.id))return &world;
@@ -157,8 +199,9 @@ void OnLivePlayer(const local_players::Context& c){
     if(g_generation!=generation||w.id.address!=c.world||!Alive(w.id)){
         if(!Capture(c.world,w.id)){w={};return;}g_cursor=0;g_count=0;g_complete=false;g_generation=generation;
     }
-    w.tick=now;Scan(now);
+    w.tick=now;Scan(now);RecoverSelected(c,w.id,now);
 }
+bool SelectionLoadFailed(unsigned family){return family<FamilyCount&&g_loadFailed[family].load(std::memory_order_relaxed);}
 bool ShieldLoadFailed(int choice){return g_loadChoice.load()==choice&&g_loadResult.load()<0;}
 bool ShieldLoaderReady(){return selected_particle::Context(g_base,g_shieldLoader);}
 void* ShieldAsset(int choice,bool requestLoad){

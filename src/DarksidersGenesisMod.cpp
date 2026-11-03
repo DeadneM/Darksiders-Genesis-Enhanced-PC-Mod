@@ -57,6 +57,7 @@
 #include "CosmeticUnlockFeature.h"
 #include "LeviathanVisualFeature.h"
 #include "EffectAppearanceFeature.h"
+#include "SelectedAssetRecovery.h"
 #include "RenderSafetyFeature.h"
 #include "UltimateDurationFeature.h"
 #include "ManualActionBinding.h"
@@ -1454,6 +1455,8 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     dg::sheathing::OnLivePlayer(owner,generation);
     dg::manual_aim::OnLivePlayer(owner,generation);
     const HWND gameplayWindow=reinterpret_cast<HWND>(g_gameWindowTrace.load());
+    dg::selected_recovery::loadingAllowed=!g_overlayVisible.load()&&gameplayWindow&&
+        GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load();
     dg::heavy_landing::OnLivePlayer(owner,generation,!g_overlayVisible.load()&&gameplayWindow&&
         GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load());
     dg::recovery_tail::OnLivePlayer(owner,generation,!g_overlayVisible.load()&&gameplayWindow&&

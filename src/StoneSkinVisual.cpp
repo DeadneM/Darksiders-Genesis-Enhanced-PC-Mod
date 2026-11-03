@@ -3,6 +3,8 @@
 #include "NativePropertyField.h"
 #include "NativeTpsFeature.h"
 #include "NativeCostProbe.h"
+#include "SelectedParticleLoader.h"
+#include "SelectedAssetRecovery.h"
 #include <array>
 #include <cstdio>
 
@@ -13,6 +15,8 @@ struct Array {uintptr_t data=0;int count=0,capacity=0;};
 using Event=void(*)(void*,void*,void*);
 Event g_event=nullptr;uintptr_t g_base=0;foreign_wrath::LogFn g_log=nullptr;unsigned g_events=0;
 unsigned g_deferredEvents=0;
+std::array<selected_recovery::Requests<6>,2> g_resourceRequests{};
+std::array<Id,2> g_resourceActor{},g_resourceMesh{};
 Id g_materials[2][2]{}; // [base/Molten][body/cloth]
 struct Slot {Id material{},original{};bool inherited=false,failed=false;uintptr_t observed=0;};
 struct Visual {Id actor{},mesh{},asset{};uintptr_t world=0;int variant=-1;std::array<Slot,4> slots{};};
@@ -166,7 +170,9 @@ void Initialize(foreign_wrath::LogFn log,bool exact){
     g_event=reinterpret_cast<Event>(g_base+0xAC0630);
     stone_fx::Initialize(g_base,g_event);
 }
+bool NeedsLoaderContext(){return g_base&&!selected_particle::Context(g_base,selected_particle::sharedContext);}
 void ObserveObject(uintptr_t p){
+    if(g_event&&native_tps::OnGameThread()&&NeedsLoaderContext())selected_particle::Observe(g_base,p,selected_particle::sharedContext);
     stone_fx::ObserveObject(p);
     if(!g_event||!native_tps::OnGameThread())return;uintptr_t cls=0,package=0;
     if(!Read(p,0x10,cls)||!Is(cls,"MaterialInstanceConstant")||!Read(p,0x20,package))return;
@@ -180,12 +186,41 @@ void ObserveObject(uintptr_t p){
 }
 bool AssetsReady(){for(const auto& variant:g_materials)for(const auto& id:variant)if(!Alive(id))return false;return stone_fx::AssetsReady();}
 bool NeedsAssetScan(const local_players::Context& c){return c.index>=0&&c.index<2&&g_missing[c.index];}
-bool InvalidateAssets(){bool changed=stone_fx::InvalidateAssets();for(auto& variant:g_materials)for(auto& id:variant)if(id&&!Alive(id)){id={};changed=true;}return changed;}
+bool InvalidateAssets(){bool changed=stone_fx::InvalidateAssets();for(auto& variant:g_materials)for(auto& id:variant)if(id&&!Alive(id)){id={};changed=true;}if(changed)for(auto& request:g_resourceRequests)request.entries={};return changed;}
 void Cast(const local_players::Context& c){
     if(!g_event||!native_tps::OnGameThread()||c.index<0||c.index>1)return;
-    Transition next{};if(Capture(c.character,next.actor)){next.world=c.world;next.pending=true;g_transitions[c.index]=next;}
+    Transition next{};if(Capture(c.character,next.actor)){next.world=c.world;next.pending=true;g_transitions[c.index]=next;g_resourceRequests[c.index].Reset();}
 }
 
+void RecoverResources(const local_players::Context& c,uintptr_t meshAsset,int variant){
+    const auto now=GetTickCount64();
+    auto& requests=g_resourceRequests[c.index];auto& actor=g_resourceActor[c.index];auto& mesh=g_resourceMesh[c.index];
+    if(actor.address!=c.character||mesh.address!=meshAsset||!Alive(actor)||!Alive(mesh)){
+        if(!Capture(c.character,actor)||!Capture(meshAsset,mesh))return;
+        requests.Reset();
+    }
+    const uint64_t selection=(uint64_t(uint32_t(mesh.serial))<<32)|unsigned(variant);
+    requests.Enter({c.world,c.character,uint32_t(actor.serial),selection},now);
+    auto& loader=selected_particle::sharedContext;const bool context=selected_particle::Context(g_base,loader);
+    const bool safe=selected_recovery::loadingAllowed&&context&&
+        !native_tps::IsWorldPaused(reinterpret_cast<void*>(c.pawn))&&
+        !native_tps::CinematicActive(unsigned(c.index))&&!native_tps::RadialActive(unsigned(c.index));
+    constexpr const char* materials[]={"War_Inst_StoneSkin_A","War_Inst_StoneSkin_B","War_Inst_StoneSkin_Molten_B"};
+    constexpr const char* effects[]={"P_WarStoneSkin_Base","P_WarStoneSkin_Molten","P_War_StoneSkin_Base_Crumble_Expiration"};
+    const unsigned wanted[]={0u,variant?2u:1u,3u+unsigned(variant),5u};
+    for(const auto index:wanted){
+        const bool material=index<3;
+        const bool ready=material?Alive(g_materials[index==2?1:0][index?1:0]):stone_fx::TemplateReady(int(index-3));
+        if(ready||!requests.Begin(index,now,safe,context))continue;
+        const char* name=material?materials[index]:effects[index-3];char package[220]{};
+        sprintf_s(package,material?"/Game/Characters/Heroes/Hero_War/Textures/%s":"/Game/VFX/Particles/Characters/War/StoneSkin/%s",name);
+        auto* result=selected_particle::Load(g_base,package,name,loader,g_event);
+        if(result)ObserveObject(reinterpret_cast<uintptr_t>(result));
+        const bool accepted=material?Alive(g_materials[index==2?1:0][index?1:0]):stone_fx::TemplateReady(int(index-3));
+        if(g_log){char message[224]{};sprintf_s(message,"Stoneskin resources V1.150: asset=%s attempt=%u %s",name,requests.entries[index].count,accepted?"loaded and verified":"unavailable; native materials retained");g_log(message);}
+        break; // shared budget: at most one requested resource per service call
+    }
+}
 void Observe(const local_players::Context& c){
     if(!g_event||!native_tps::OnGameThread()||c.index<0||c.index>1)return;
     cost_probe::Scope measured(cost_probe::StoneObserve);
@@ -205,8 +240,13 @@ void Observe(const local_players::Context& c){
     if(!owned||variant<0){if(!owned||statusKnown)transition={};return;}
     // Body always uses the base mineral material, even with Molten cloth.
     // Wait for these actual sources before invoking/caching a factory result.
-    const bool sourcesReady=Alive(g_materials[0][0])&&Alive(g_materials[variant][1]);
-    g_missing[c.index]=!sourcesReady||!stone_fx::AssetsReady();
+    bool sourcesReady=Alive(g_materials[0][0])&&Alive(g_materials[variant][1]);
+    if(!sourcesReady||!stone_fx::Ready(variant)||!stone_fx::Ready(2)){
+        RecoverResources(c,asset,variant);
+        sourcesReady=Alive(g_materials[0][0])&&Alive(g_materials[variant][1]);
+    }
+    // Missing unused variants must not make the active coating unavailable.
+    g_missing[c.index]=!sourcesReady||!stone_fx::Ready(variant)||!stone_fx::Ready(2);
     if(!sourcesReady&&!wasMissing&&g_log&&g_deferredEvents++<12){char line[180]{};
         sprintf_s(line,"Stoneskin V1.137 deferred: player=%d variant=%d baseBody=%d cloth=%d; bounded rediscovery requested",c.index+1,variant,Alive(g_materials[0][0])?1:0,Alive(g_materials[variant][1])?1:0);g_log(line);}
     if(!sourcesReady)return;
@@ -258,6 +298,7 @@ void Shutdown(){
     if(native_tps::OnGameThread())for(auto& v:g_visual)Restore(v);
     if(g_log){char line[180]{};sprintf_s(line,"Stoneskin status-class cache hits=%llu misses=%llu capacity=128; identity checked on every hit",static_cast<unsigned long long>(g_statusClassHits),static_cast<unsigned long long>(g_statusClassMisses));g_log(line);}
     g_statusClasses={};g_statusClassNext=0;g_statusClassHits=g_statusClassMisses=0;
+    g_resourceRequests={};g_resourceActor={};g_resourceMesh={};
     g_event=nullptr;g_fields={};g_transitions[0]=g_transitions[1]={};g_missing[0]=g_missing[1]=false;stone_fx::Shutdown();
 }
 }

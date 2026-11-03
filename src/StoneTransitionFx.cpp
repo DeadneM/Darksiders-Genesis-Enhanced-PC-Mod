@@ -35,6 +35,7 @@ void ObserveObject(uintptr_t p){
         if(native_objects::NameValueEquals(g_base,index,number,names[i])&&native_objects::NameValueEquals(g_base,pindex,pnumber,path))Capture(p,g_assets[i]);}
 }
 bool AssetsReady(){return Alive(g_class)&&Alive(g_assets[0])&&Alive(g_assets[1])&&Alive(g_assets[2]);}
+bool TemplateReady(int kind){return kind>=0&&kind<3&&Alive(g_assets[kind]);}
 bool Ready(int kind){return g_event&&kind>=0&&kind<3&&Alive(g_class)&&Alive(g_assets[kind]);}
 bool InvalidateAssets(){bool changed=false;for(auto* id:{&g_class,&g_assets[0],&g_assets[1],&g_assets[2]})if(*id&&!Alive(*id)){*id={};changed=true;}return changed;}
 bool Spawn(const local_players::Context& c,int kind){

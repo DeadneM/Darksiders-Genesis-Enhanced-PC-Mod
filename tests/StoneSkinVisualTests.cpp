@@ -13,7 +13,7 @@ struct Fixture {
  uintptr_t overrides[4]{},statuses[2]{};
 } f;
 uintptr_t objectChunks[1]{};dg::local_players::Context owner{};unsigned copies=0,creates=0,sets=0,scalarCalls=0;int id=0;bool thread=true,failFactory=false;
-unsigned fx[3]{};bool fxReady=true;
+unsigned fx[3]{};bool fxReady=true;bool missingFx[3]{};
 template<class T>void Put(void* p,size_t at,const T& v){std::memcpy(static_cast<unsigned char*>(p)+at,&v,sizeof(v));}
 void Check(bool ok,const char* why){if(!ok)throw std::runtime_error(why);}
 void Label(void* p,int i,const char* s){Put(p,0x18,i);strcpy_s(reinterpret_cast<char*>(entries[i]+12),244,s);}
@@ -27,6 +27,7 @@ void Dispatch(void* object,void* function,void* args){
  Check(function==f.functions[3]&&object!=f.materials[0]&&object!=f.materials[1],"parameter copy only on private MID");++copies;
 }
 void Fresh(){
+ g_resourceRequests={};g_resourceActor={};g_resourceMesh={};dg::selected_particle::sharedContext={};for(auto& missing:missingFx)missing=false;
  g_statusClasses={};g_statusClassNext=0;g_statusClassHits=g_statusClassMisses=0;
  f={};g_visual[0]=g_visual[1]={};g_transitions[0]=g_transitions[1]={};g_missing[0]=g_missing[1]=false;g_fields={};for(auto& variant:g_materials)for(auto& m:variant)m={};g_event=Dispatch;g_log=nullptr;g_events=g_deferredEvents=0;owner={};id=0;copies=creates=sets=scalarCalls=0;thread=true;failFactory=false;for(auto& n:fx)n=0;fxReady=true;
  const char* labels[]={"Strife_Blueprint_C","MeshClass","StatusComponent","MayhemStatusEffect_StoneSkin_Base_Blueprint_C","MaterialInstanceDynamic","Function","ObjectProperty","ArrayProperty","IntProperty","NameProperty","BoolProperty","MayhemStatusEffect_Core_FallenDog_Molten_2_Blueprint_C"};
@@ -88,6 +89,8 @@ void Run(){
  Fresh();const auto materials=std::vector<unsigned char>(reinterpret_cast<unsigned char*>(f.materials),reinterpret_cast<unsigned char*>(f.materials)+sizeof(f.materials));Observe(owner);Check(creates==4&&!copies&&scalarCalls==4,"private mineral body/gear suppress only their two emissive parameters; cloth retains its native shader");parents(0);Check(!std::memcmp(materials.data(),f.materials,sizeof(f.materials)),"source shader/material parameters remain byte-identical");Observe(owner);Check(creates==4,"no per-frame recreation");Put(f.component,0x138,0);Observe(owner);Check(sets==4&&!g_visual[0].actor,"accepted status expiration and native inheritance restoration retained");for(auto x:f.overrides)Check(!x,"native materials restored");
  Fresh();Put(f.component,0x138,2);Observe(owner);parents(1);Check(g_visual[0].variant==1&&scalarCalls==4&&!copies,"Molten cloth remains fiery while body and gear retain mineral parents");
  Fresh();Put(f.component,0x138,2);g_materials[1][0]={};Observe(owner);parents(1);Check(creates==4&&!NeedsAssetScan(owner),"unused Molten body is not a dependency of base mineral body with Molten cloth");
+ Fresh();missingFx[1]=true;Observe(owner);Check(creates==4&&!NeedsAssetScan(owner),"unused Molten explosion does not block or request loading for a base coating");
+ Fresh();Put(f.component,0x138,2);missingFx[0]=true;Observe(owner);Check(creates==4&&!NeedsAssetScan(owner),"unused base explosion does not request loading for a Molten coating");
  Fresh();Put(f.component,0x138,2);const auto body=g_materials[0][0];g_materials[0][0]={};Observe(owner);
  Check(!creates&&NeedsAssetScan(owner)&&!g_visual[0].actor,"missing actual base body defers the factory and requests rediscovery, even when Molten body exists");
  auto other=owner;other.index=1;Check(!NeedsAssetScan(other),"missing P1 coating never drives retries for P2 or a departed slot");
@@ -111,9 +114,9 @@ void Run(){
   Observe(owner);Check(!fx[2],"transformation/world loss/unknown status read does not fake expiration");}
 }
 }
-namespace dg::native_tps {bool OnGameThread(){return thread;}}
+namespace dg::native_tps {bool OnGameThread(){return thread;}bool IsWorldPaused(void*){return false;}bool CinematicActive(unsigned){return false;}bool RadialActive(unsigned){return false;}}
 namespace dg::stone_fx {
-void Initialize(uintptr_t,Event){}void ObserveObject(uintptr_t){}bool AssetsReady(){return fxReady;}bool Ready(int){return fxReady;}bool InvalidateAssets(){return false;}void Shutdown(){}
+void Initialize(uintptr_t,Event){}void ObserveObject(uintptr_t){}bool AssetsReady(){return fxReady&&!missingFx[0]&&!missingFx[1]&&!missingFx[2];}bool Ready(int kind){return fxReady&&!missingFx[kind];}bool TemplateReady(int kind){return Ready(kind);}bool InvalidateAssets(){return false;}void Shutdown(){}
 bool Spawn(const local_players::Context& c,int kind){Check(c.character==owner.character&&kind>=0&&kind<3,"cosmetic edge uses current owner and exact known effect");++fx[kind];return fxReady;}
 }
 int main(){try{Run();std::cout<<"Stoneskin owned material lifecycle, restoration, API guards and isolation passed\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

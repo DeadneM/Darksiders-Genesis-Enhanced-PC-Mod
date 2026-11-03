@@ -99,6 +99,7 @@ void Scan(uintptr_t generatedClass,uint64_t nowMs,bool refreshMissing){
         g_cursor=0;g_complete=false;g_assetRetryAt=nowMs+1000;
     }
     // One shared discovery pass instead of three independent 512-object scans.
+    const bool needVisualLoader=stone_visual::NeedsLoaderContext();
     // At most 256 objects, checking a 1 ms high-resolution budget every 16.
     LARGE_INTEGER started{},frequency{};
     const bool timed=QueryPerformanceFrequency(&frequency)&&frequency.QuadPart>=1000&&QueryPerformanceCounter(&started);
@@ -115,7 +116,7 @@ void Scan(uintptr_t generatedClass,uint64_t nowMs,bool refreshMissing){
         if(!g_nativeClass&&Is(cls,"Class"))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(cls),g_nativeClass);
         if(!g_materialClass&&Is(cls,"MaterialInstanceConstant"))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(cls),g_materialClass);
         const unsigned kind=cls==generatedClass?1u:cls==g_nativeClass.address?2u:cls==g_sequenceClass.address?3u:0u;
-        if(cls==g_materialClass.address||kind==2||Is(cls,"ParticleSystem"))stone_visual::ObserveObject(object);
+        if((needVisualLoader&&Is(cls,"KismetSystemLibrary"))||cls==g_materialClass.address||kind==2||Is(cls,"ParticleSystem"))stone_visual::ObserveObject(object);
         if(!kind)continue;
         foreign_caltrops::ObserveObject(object,kind);foreign_power::ObserveObject(object,kind);
         if(kind==1||kind==3){foreign_beam::ObserveObject(object);foreign_rampage::ObserveObject(object);}
