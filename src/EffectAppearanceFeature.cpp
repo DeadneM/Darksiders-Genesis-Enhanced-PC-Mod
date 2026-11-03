@@ -5,6 +5,7 @@
 #include "RuntimeSettings.h"
 #include "NativeCostProbe.h"
 #include "ShieldVisualFeature.h"
+#include "SelectedParticleLoader.h"
 #include <MinHook.h>
 #include <algorithm>
 #include <atomic>
@@ -16,6 +17,7 @@ namespace {
 using Id=native_objects::Identity;
 using Create=void*(*)(void*,void*,void*,bool,unsigned char);
 using Visible=void(*)(void*,bool,unsigned char);
+selected_particle::State g_shieldLoader{};std::atomic_int g_loadChoice{-1},g_loadResult{0};
 Create g_create=nullptr;Visible g_visible=nullptr;uintptr_t g_base=0;LogFn g_log=nullptr;
 std::atomic_bool g_ready{false};std::array<std::atomic_uint,FamilyCount> g_loaded{};
 std::array<Id,Assets.size()> g_assets{};Id g_particleClass{};
@@ -84,7 +86,9 @@ void Scan(uint64_t now){
         if(n==16){if(!Read(chunk,size_t(g_cursor%65536)*24,items))break;}
         else {bool valid=true;for(int i=0;i<n;++i)valid=Read(chunk,size_t(g_cursor%65536+i)*24,items[i])&&valid;if(!valid)break;}
         for(int i=0;i<n;++i){const auto& item=items[i];Object object{};
-            if(!item.pointer||(item.flags&0x30000000u)||!Read(item.pointer,0,object)||(object.flags&0x30u))continue;
+            if(!item.pointer||(item.flags&0x30000000u)||!Read(item.pointer,0,object))continue;
+            if((object.flags&0x10)&&!selected_particle::Context(g_base,g_shieldLoader))selected_particle::Observe(g_base,item.pointer,g_shieldLoader);
+            if(object.flags&0x30u)continue;
             const int kind=Classify(item.pointer,object);if(kind>=0&&!g_available[unsigned(kind)]&&Capture(item.pointer,g_assets[unsigned(kind)])){g_available.set(unsigned(kind));changed=true;}
         }
         g_cursor+=n;inspected+=unsigned(n);
@@ -97,15 +101,14 @@ const World* CurrentWorld(uintptr_t address,uint64_t now){
 }
 struct Plan {void* asset=nullptr;int source=-1;unsigned family=0;bool hidden=false;};
 Plan Resolve(void* asset,void* world){
-    Plan plan{asset};if(!g_ready.load(std::memory_order_relaxed)||!runtime::Get().effectAppearanceMask.load(std::memory_order_relaxed)||!asset||!world||!native_tps::OnGameThread())return plan;
+    Plan plan{asset};if(shield_visual::OwnSpawnActive())return plan;if(!g_ready.load(std::memory_order_relaxed)||!runtime::Get().effectAppearanceMask.load(std::memory_order_relaxed)||!asset||!world||!native_tps::OnGameThread())return plan;
     int source=-1;for(unsigned i=0;i<g_assets.size();++i)if(g_assets[i].address==reinterpret_cast<uintptr_t>(asset)){if(Alive(g_assets[i]))source=int(i);break;}
     if(source<0)return plan;
     const auto sourceIndex=unsigned(source);if(sourceIndex>=Assets.size())return plan;
     const auto& entry=Assets[sourceIndex];if(entry.targetOnly||entry.role>=Roles.size())return plan;
-    const auto family=Roles[entry.role].family;if(family>=FamilyCount)return plan;
+    const auto family=Roles[entry.role].family;if(family>=FamilyCount||family==unsigned(Family::ShieldDemonCore))return plan;
     const int choice=Normalize(family,runtime::Get().effectAppearances[family].load(std::memory_order_relaxed));
     if(!choice||!CurrentWorld(reinterpret_cast<uintptr_t>(world),GetTickCount64()))return plan;
-    if(family==unsigned(Family::ShieldDemonCore)&&choice!=Hidden(family)&&!shield_visual::CanTrack())return plan;
     plan.source=source;plan.family=family;plan.hidden=choice==Hidden(family);
     if(!plan.hidden){const int target=Target(entry.role,choice);if(target>=0&&Alive(g_assets[unsigned(target)]))plan.asset=reinterpret_cast<void*>(g_assets[unsigned(target)].address);}
     return plan;
@@ -126,9 +129,7 @@ void Created(void* component,const Plan& plan){
 }
 void* HookCreate(void* asset,void* world,void* outer,bool autoDestroy,unsigned char pooling){
     const auto plan=Resolve(asset,world);void* result=g_create?g_create(plan.asset,world,outer,autoDestroy,pooling):nullptr;
-    shield_visual::ReleaseReused(result);
     if(plan.hidden||g_hiddenCount)Created(result,plan);
-    if(plan.source>=0&&plan.family==unsigned(Family::ShieldDemonCore)&&!plan.hidden&&plan.asset!=asset)shield_visual::Track(result,asset,plan.asset,world);
     if(g_log&&(plan.hidden||plan.asset!=asset)&&g_changes++<16){char line[160]{};sprintf_s(line,"Effect appearance V1.116: family=%u role=%d hidden=%u; native factory/lifecycle retained; EXPERIMENTAL",plan.family,plan.source,unsigned(plan.hidden));g_log(line);}
     return result;
 }
@@ -157,6 +158,21 @@ void OnLivePlayer(const local_players::Context& c){
         if(!Capture(c.world,w.id)){w={};return;}g_cursor=0;g_count=0;g_complete=false;g_generation=generation;
     }
     w.tick=now;Scan(now);
+}
+bool ShieldLoadFailed(int choice){return g_loadChoice.load()==choice&&g_loadResult.load()<0;}
+bool ShieldLoaderReady(){return selected_particle::Context(g_base,g_shieldLoader);}
+void* ShieldAsset(int choice,bool requestLoad){
+    if(!g_ready||!native_tps::OnGameThread())return nullptr;
+    const int target=Target(93,choice);if(target<0||unsigned(target)>=Assets.size())return nullptr;const auto i=unsigned(target);
+    if(Alive(g_assets[i]))return reinterpret_cast<void*>(g_assets[i].address);
+    if(!requestLoad)return nullptr;
+    g_loadChoice=choice;g_loadResult=0;
+    const auto& asset=Assets[i];void* loaded=selected_particle::Load(g_base,asset.package,asset.name,g_shieldLoader);
+    Object object{};const auto p=reinterpret_cast<uintptr_t>(loaded);
+    if(!loaded||!Read(p,0,object)||Classify(p,object)!=target||!Capture(p,g_assets[i])){
+        g_loadResult=-1;if(g_log)g_log("Shield asset V1.147: selected cosmetic load failed or contract unavailable; native retained");return nullptr;
+    }
+    g_loadResult=1;Availability(GetTickCount64(),true);if(g_log)g_log("Shield asset V1.147: selected ParticleSystem loaded and package/name/class verified");return loaded;
 }
 bool Ready(){return g_ready.load(std::memory_order_relaxed);}
 unsigned LoadedMask(unsigned family){return family<FamilyCount?g_loaded[family].load(std::memory_order_relaxed):0;}

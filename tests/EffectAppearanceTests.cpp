@@ -15,7 +15,7 @@ Id Live(void* p,unsigned i){Put(p,0xC,int(i));Put(f.items.data(),size_t(i)*24,re
 void* CreateNative(void* asset,void* world,void* outer,bool autoDestroy,unsigned char pool){++calls;sentAsset=asset;sentWorld=world;sentOuter=outer;sentAuto=autoDestroy;sentPool=pool;if(failCreate)return nullptr;Put(f.component,0x578,reinterpret_cast<uintptr_t>(asset));return f.component;}
 void Visibility(void* component,bool show,unsigned char propagation){Check(component==f.component&&propagation==1,"only the returned native PSC visibility changes");++visibleCalls;unsigned char value=0;std::memcpy(&value,f.component+0x1CC,1);value=show?static_cast<unsigned char>(value|0x20):static_cast<unsigned char>(value&~0x20);Put(f.component,0x1CC,value);}
 void Fresh(){
- std::memset(&f,0,sizeof(f));owner={};thread=true;failCreate=false;calls=visibleCalls=0;g_assets={};g_particleClass={};g_worlds={};g_hidden={};g_hiddenCount=0;g_changes=0;g_available.reset();g_cursor=g_count=0;g_complete=false;g_generation=0;g_scanTick=g_checkTick=g_restoreTick=g_retryTick=0;g_ready=true;g_log=nullptr;g_create=CreateNative;g_visible=Visibility;for(auto& mask:g_loaded)mask=0;
+ std::memset(&f,0,sizeof(f));owner={};thread=true;failCreate=false;calls=visibleCalls=0;g_assets={};g_particleClass={};g_worlds={};g_hidden={};g_hiddenCount=0;g_changes=0;g_shieldLoader={};g_available.reset();g_cursor=g_count=0;g_complete=false;g_generation=0;g_scanTick=g_checkTick=g_restoreTick=g_retryTick=0;g_ready=true;g_log=nullptr;g_create=CreateNative;g_visible=Visibility;for(auto& mask:g_loaded)mask=0;
  dg::shield_visual::Shutdown();
  constexpr unsigned char shieldStop[]={0x40,0x53,0x48,0x83,0xEC,0x20,0x48,0x8B,0xD9,0x48,0x8B,0x49,0x78,0x48,0x85,0xC9};
  constexpr unsigned char shieldDamage[]={0x48,0x89,0x5C,0x24,0x08,0x57,0x48,0x83,0xEC,0x50,0x48,0x8B,0x79,0x68,0x48,0x8B};
@@ -38,7 +38,7 @@ void Run(){
  const auto assets=f.assets,packages=f.packages;const auto items=f.items;
  unsigned checked=0;
  for(unsigned source=0;source<N;++source){const auto family=Roles[Assets[source].role].family;
-  for(int choice=0;choice<int(Families[family].count);++choice){if(choice==Hidden(family))continue;dg::runtime::Snapshot s{};s.effectAppearances[family]=choice;dg::runtime::Publish(s);g_worlds[0].tick=GetTickCount64();const auto before=calls;HookCreate(f.assets[source].bytes,f.worlds[0].bytes,f.packages[2].bytes,true,3);const int target=Assets[source].targetOnly?-1:Target(Assets[source].role,choice);
+  for(int choice=0;choice<int(Families[family].count);++choice){if(choice==Hidden(family))continue;dg::runtime::Snapshot s{};s.effectAppearances[family]=choice;dg::runtime::Publish(s);g_worlds[0].tick=GetTickCount64();const auto before=calls;HookCreate(f.assets[source].bytes,f.worlds[0].bytes,f.packages[2].bytes,true,3);const int target=(Assets[source].targetOnly||family==unsigned(Family::ShieldDemonCore))?-1:Target(Assets[source].role,choice);
    Check(calls==before+1&&sentAsset==(target>=0?f.assets[unsigned(target)].bytes:f.assets[source].bytes)&&sentWorld==f.worlds[0].bytes&&sentOuter==f.packages[2].bytes&&sentAuto&&sentPool==3,"every role/preset changes only the intended template; one native call, original ABI");++checked;
   }
  }
@@ -59,15 +59,13 @@ void Run(){
  Fresh();const auto legion=unsigned(Family::ShieldDemonCore),stinger=unsigned(Family::StingerCore);
  const auto shield=Find("P_CreatureCore_ShieldDemon"),crystal=Find("P_Stinger_CreatureCore_StoneSkin");
  Check(legion==38&&stinger==44&&Hidden(legion)==1&&Normalize(legion,1)==1,"old family numbers and persisted Legion Hidden=1 preserved");
- Select(legion,1);HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);
- Check(sentAsset==f.assets[shield].bytes&&g_hiddenCount==1,"old Legion Hidden remains hidden, never becomes a replacement");
- Select(legion,0);g_restoreTick=0;OnLivePlayer(owner);Check(!g_hiddenCount,"old Legion Native restores hidden visibility");
- Select(legion,2);Check((LoadedMask(legion)&63u)==63u,"alternatives after persisted Hidden are available when their exact assets are loaded");
- HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[Find("P_Belial_Barrier_Loop_01")].bytes&&!g_hiddenCount,"rejected Rampage becomes Belial without changing protection");
- Select(legion,3);HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[Find("P_Dagon_Shield")].bytes,"rejected Chaos becomes the verified Dagon shield");
- Select(legion,4);HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);const auto borrower=Find("P_Borrower_Shield");Check(sentAsset==f.assets[borrower].bytes&&Assets[borrower].targetOnly,"sphere shield is a replacement-only asset");
- Select(legion,5);HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[Find("P_Dagon_WaterSphere_Base")].bytes,"water sphere is a replacement-only native template");
- Select(legion,1);const auto hiddenBefore=g_hiddenCount.load();HookCreate(f.assets[borrower].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[borrower].bytes&&g_hiddenCount==hiddenBefore,"enemy Borrower shield never inherits the core hide setting");
+ for(int choice=0;choice<int(Families[legion].count);++choice){
+  Select(legion,choice);const auto before=visibleCalls;HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);
+  Check(sentAsset==f.assets[shield].bytes&&visibleCalls==before,"native shield factory and lifetime remain completely native for every choice");
+  if(choice>1)Check(ShieldAsset(choice,false)==f.assets[unsigned(Target(93,choice))].bytes,"each independent shield selection resolves the expected verified particle");
+ }
+ const auto borrower=Find("P_Borrower_Shield");Select(legion,1);HookCreate(f.assets[borrower].bytes,f.worlds[0].bytes,nullptr,true,0);
+ Check(sentAsset==f.assets[borrower].bytes&&!g_hiddenCount,"enemy shields do not inherit local core hiding");
  const auto nativeShield=g_assets[shield];g_assets[shield]={};Availability(GetTickCount64(),true);Check(!(LoadedMask(legion)&2u),"a loaded replacement alone never reports the native shield hide source ready");g_assets[shield]=nativeShield;
  const auto coating=Find("P_WarStoneSkin_Base");Select(stinger,1);HookCreate(f.assets[coating].bytes,f.worlds[0].bytes,nullptr,true,0);
  Check(!g_hiddenCount&&sentAsset==f.assets[coating].bytes,"Stinger hide leaves the ordinary Stoneskin effect native");
@@ -81,11 +79,11 @@ void Run(){
  g_scanTick=g_checkTick=0;g_retryTick=GetTickCount64()-5001;Scan(GetTickCount64());
  Check(LoadedMask(legion)&(1u<<5),"late water load at unchanged UObject count is rediscovered");
  g_worlds[0].tick=GetTickCount64();HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);
- Check(sentAsset==f.assets[water].bytes,"next native activation reapplies the persisted water choice");
+ Check(sentAsset==f.assets[shield].bytes&&ShieldAsset(5,false)==f.assets[water].bytes,"late water resource resolves independently without replacing the native status factory");
  Fresh();dg::runtime::Snapshot invalid{};for(auto& x:invalid.effectAppearances)x=999;dg::runtime::Publish(invalid);Check(!dg::runtime::Get().effectAppearanceMask.load(),"all unsupported config choices normalize to Native");
  Select(0,Hidden(0));HookCreate(f.assets[glyph].bytes,f.worlds[0].bytes,nullptr,true,0);Shutdown();Check(!g_hiddenCount&&visibleCalls==2,"game-thread shutdown restores owned visibility");
  std::cout<<FamilyCount<<" families, "<<N<<" assets, "<<checked<<" preset cases; Native ABI, expiry, pool reuse and visibility restoration passed\n";
 }
 }
-namespace dg::native_tps {bool OnGameThread(){return thread;}}
+namespace dg::native_tps {bool OnGameThread(){return thread;}bool IsWorldPaused(void*){return false;}bool CinematicActive(unsigned){return false;}}
 int main(){try{Run();return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

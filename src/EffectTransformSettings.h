@@ -8,7 +8,7 @@ namespace dg::effect_transform {
 struct Values {float size=1,x=0,y=0,z=0;};
 using Profiles=std::array<Values,2>; // Strife, War; independent of local player number.
 inline float Finite(float value,float fallback,float lo,float hi){return std::isfinite(value)?std::clamp(value,lo,hi):fallback;}
-inline Values Normalize(Values v){return {Finite(v.size,1,.05f,5),Finite(v.x,0,-500,500),Finite(v.y,0,-500,500),Finite(v.z,0,-500,500)};}
+inline Values Normalize(Values v){return {Finite(v.size,1,0,5),Finite(v.x,0,-500,500),Finite(v.y,0,-500,500),Finite(v.z,0,-500,500)};}
 struct AtomicValues {
     std::atomic<float> size{1},x{0},y{0},z{0};
     void Store(Values v){v=Normalize(v);size.store(v.size);x.store(v.x);y.store(v.y);z.store(v.z);}

@@ -1,0 +1,21 @@
+{
+  "exception": "0xc0000005",
+  "fault": {
+    "module": "DarksidersGenesis-Win64-Shipping.exe",
+    "rva": "0xd5d0a1"
+  },
+  "parameters": [
+    "0x0",
+    "0x20"
+  ],
+  "asiSha256": "f8ed2ce3b677ab62a89a2c76608dcd3d3c3743cd7c91b4ebc224eb656c0b9f21",
+  "localTime": "2026-11-03 14:01:59 Europe/Paris",
+  "thread": "RenderThread 1",
+  "map": "Level_17",
+  "shieldChoiceAtCrash": 0,
+  "lastCinematicEndLocalTime": "14:01:57.999",
+  "noASIFrameInReportedCallstack": true,
+  "rootCauseConfirmed": false,
+  "rendererPatchApplied": false,
+  "rawEvidenceKeptPrivate": true
+}

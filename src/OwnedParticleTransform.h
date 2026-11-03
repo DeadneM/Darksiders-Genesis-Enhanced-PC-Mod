@@ -62,7 +62,7 @@ inline bool Apply(uintptr_t base,const Id& component,effect_transform::Values va
     values=effect_transform::Normalize(values);const float factor=values.size*preset;
     Vector wantedScale{s.baseScale.x*factor,s.baseScale.y*factor,s.baseScale.z*factor};
     const Vector wantedLocation{s.baseLocation.x+values.x,s.baseLocation.y+values.y,s.baseLocation.z+values.z};
-    if(!Finite(wantedScale)||!Finite(wantedLocation)||factor<=0||factor>25)return false;
+    if(!Finite(wantedScale)||!Finite(wantedLocation)||factor<0||factor>25)return false;
     if(!event)event=reinterpret_cast<Event>(base+0xAC0630);
     if(!Same(scale,wantedScale))event(reinterpret_cast<void*>(component.address),reinterpret_cast<void*>(s.scaleFunction.address),&wantedScale);
     if(!Same(location,wantedLocation)){

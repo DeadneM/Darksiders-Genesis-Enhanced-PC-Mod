@@ -898,7 +898,7 @@ void Draw(Context& c) {
                 constexpr const char* heroes[]={"Strife","War"};
                 Choice("Character",&hero,heroes,2);hero=std::clamp(hero,0,1);
                 auto& v=profiles[unsigned(hero)];ImGui::BeginDisabled(!enabled);
-                if(NumberRow("Size","effect_size",&v.size,.05f,5,1,"%.2f x","%.3f"))config.Save();
+                if(NumberRow("Size","effect_size",&v.size,0,5,1,"%.2f x","%.3f"))config.Save();
                 if(NumberRow("Position X","effect_x",&v.x,-500,500,0,"%.1f units","%.3f"))config.Save();
                 if(NumberRow("Position Y","effect_y",&v.y,-500,500,0,"%.1f units","%.3f"))config.Save();
                 if(NumberRow("Height","effect_z",&v.z,-500,500,0,"%.1f units","%.3f"))config.Save();
@@ -931,7 +931,8 @@ void Draw(Context& c) {
                     ImGui::EndDisabled();
                     const int choice=effect_appearance::Normalize(family,config.effectAppearances[family]);
                     if(choice&&!(effect_appearance::LoadedMask(family)&(1u<<choice)))
-                        ImGui::TextColored(ImVec4(1,.85f,.25f,1),"Effect not loaded here: native visual retained; automatic retry.");
+                        ImGui::TextColored(ImVec4(1,.85f,.25f,1),selected==effect_appearance::Family::ShieldDemonCore?
+                            (effect_appearance::ShieldLoadFailed(choice)?"Effect loading failed; native kept. See log.":"Preparing selected effect; native kept until ready."):"Effect not loaded here: native visual retained; automatic retry.");
                     if(selected==effect_appearance::Family::ShieldDemonCore){
                         static int shieldHero=0;effectTransform(config.shieldTransforms,shieldHero,choice>1&&effect_appearance::Ready());
                     }
@@ -939,7 +940,7 @@ void Draw(Context& c) {
                 }
             };
             coreAppearance(effect_appearance::Family::ShieldDemonCore,"Legion shieldbearer",
-                "Normal view and TPS. Size and position apply to the active shield. Effect selection applies on next activation. Protection stays native.");
+                "Native keeps game behavior. Original effect is adjustable. Other choices are experimental. Only the selected effect is loaded; a brief pause is possible. Protection stays native.");
             coreAppearance(effect_appearance::Family::StingerCore,"Stinger crystal",
                 "Normal view and TPS. Hide the Stinger crystal during Stoneskin; its damage and the body coating stay native. Applies on the next activation.");
             ImGui::PopID();

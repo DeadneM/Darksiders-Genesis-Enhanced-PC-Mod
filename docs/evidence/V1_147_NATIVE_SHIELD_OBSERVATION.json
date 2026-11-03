@@ -1,0 +1,15 @@
+{
+  "readOnly": true,
+  "processWrites": false,
+  "externalEngineCalls": false,
+  "supportedBuildObserved": "V1.146",
+  "nativeStatusClass": "MayhemStatusEffect_Core_ShieldDemon_3_Blueprint_C",
+  "sourceAtStatus58": "0x0",
+  "nativeComponentReferenceOffset": "0x78",
+  "nativeRecipientOffset": "0x68",
+  "nativeParticle": "P_CreatureCore_ShieldDemon",
+  "parentClass": "AltPlayerSkinSkeletalMeshComponent",
+  "parentOwnerMatchesActor": true,
+  "observationSha256": "3e163d3417d93a6d3169d34c250b855cb30a54bc15865b612c86b0f425cf27ff",
+  "renderValidated": false
+}

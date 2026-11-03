@@ -44,6 +44,8 @@ void Run(){
     Apply(base,id,{2,10,-2,5},.6f,s,EventCall);Check(calls==2,"unchanged settings neither drift nor call setters repeatedly");
     Apply(base,id,{1,0,0,0},1,s,EventCall);Read(id.address,0x150,scale);Read(id.address,0x140,location);
     Check(calls==4&&Same(scale,{2,3,4})&&Same(location,{1,2,3}),"reset restores baseline without accumulating offsets");
+    const auto preZero=calls;Apply(base,id,{0,0,0,0},1,s,EventCall);Read(id.address,0x150,scale);
+    Check(calls==preZero+1&&Same(scale,{0,0,0}),"zero size is accepted without clamping to 0.05");Apply(base,id,{1,0,0,0},1,s,EventCall);
     Put(component.b,0x150,Vector{5,5,5});Apply(base,id,{2,0,0,0},1,s,EventCall);Read(id.address,0x150,scale);Check(Same(scale,{10,10,10}),"native attachment changes rebase size");
     State rejected{};Put(properties[6].b,0x44,153);const auto before=calls;Check(!Apply(base,id,{2,0,0,0},1,rejected,EventCall)&&calls==before,"unexpected ABI layout refuses every call");Put(properties[6].b,0x44,152);
     Put(items,size_t(id.index)*24+16,99);Check(!Apply(base,id,{2,0,0,0},1,s,EventCall)&&calls==before,"expired identity never modifies a reused object");

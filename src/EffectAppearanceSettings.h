@@ -52,7 +52,7 @@ Count };
 inline constexpr unsigned FamilyCount=unsigned(Family::Count);
 static_assert(FamilyCount<=64);
 using Choices=std::array<int,FamilyCount>;
-struct FamilyInfo {const wchar_t* key;const char* label;const char* category;std::array<const char*,8> choices;unsigned count;int hiddenChoice=-1;}; // Keep persisted Hidden indices when adding later alternatives.
+struct FamilyInfo {const wchar_t* key;const char* label;const char* category;std::array<const char*,32> choices;unsigned count;int hiddenChoice=-1;}; // Keep persisted Hidden indices when adding later alternatives.
 inline constexpr std::array<FamilyInfo,FamilyCount> Families={{
 {L"CaltropsAppearance","Caltrops burst","Tools",{"Native","Base","Frost 1","Frost 2","Frost 3","Hidden"},6},
 {L"CaltropsAmbientAppearance","Caltrops ground effects","Tools",{"Native","Hidden"},2},
@@ -92,7 +92,7 @@ inline constexpr std::array<FamilyInfo,FamilyCount> Families={{
 {L"NephilimCoreAppearance","Nephilim blast","Creature cores",{"Native","Level 1","Level 2","Level 3","Hidden"},5},
 {L"AstarteCoreAppearance","Astarte","Creature cores",{"Native","Hidden"},2},
 {L"ScarabCoreAppearance","Scarab acid","Creature cores",{"Native","Hidden"},2},
-{L"ShieldDemonCoreAppearance","Legion shieldbearer","Creature cores",{"Native","Hidden","Belial barrier","Dagon shield","Sphere shield (Borrower)","Water sphere"},6,1},
+{L"ShieldDemonCoreAppearance","Legion shieldbearer","Creature cores",{"Native (game behavior)","Hidden","Belial barrier","Dagon shield","Sphere shield (Borrower)","Water sphere","Original effect (adjustable)","Grasping shadows","Nature healing aura","Molten core 1","Molten core 2","Molten core 3","Vampiric light","Vampiric 1","Vampiric 2","Vampiric 3","Hotstreak aura","Charge body","Gravity body","Charge aura 1","Charge aura 2","Vortex charge","Tremor ground charge","Caltrops ground glyph","Revive Strife","Revive War","Earthsplitter charge","Tremor fist charge"},28,1},
 {L"LegionCoreAppearance","Legion","Creature cores",{"Native","Hidden"},2},
 {L"OtherStrifeFxAppearance","Other Strife effects","Other effects",{"Native","Hidden"},2},
 {L"OtherWarFxAppearance","Other War effects","Other effects",{"Native","Hidden"},2},

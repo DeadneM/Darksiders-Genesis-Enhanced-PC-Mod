@@ -24,7 +24,7 @@ struct Hidden {native_objects::Identity component{},owner{};};
 struct Player {
     native_objects::Identity actor{},effect{};uintptr_t parent=0;
     int selection=-2;unsigned attempts=0;ULONGLONG tick=0;
-    owned_particle::State transform{};bool transformReported=false;
+    owned_particle::State transform{};bool transformReported=false,zero=false;
     std::array<Hidden,8> hidden{};
 };
 Player g_players[2]{};
@@ -80,7 +80,7 @@ void Remove(Player& state){
     if(state.effect&&native_objects::Alive(reader,g_base,state.effect)&&
        native_objects::Alive(reader,g_base,state.actor)&&Read(state.effect.address,0xE8,owner)&&owner==state.actor.address&&g_destroy)
         g_destroy(reinterpret_cast<void*>(owner),reinterpret_cast<void*>(state.effect.address));
-    state.effect={};state.parent=0;state.transform={};state.transformReported=false;
+    state.effect={};state.parent=0;state.transform={};state.transformReported=false;state.zero=false;
 }
 void Clear(Player& state){Remove(state);for(auto& hidden:state.hidden)Restore(hidden);}
 void Hide(Player& state,uintptr_t component){
@@ -177,13 +177,16 @@ void OnLivePlayer(const local_players::Context& owner){
         }
     }
     if(state.effect){
-        int hero=0;uintptr_t parent=0,componentOwner=0,asset=0;
+        unsigned char hero=0;uintptr_t parent=0,componentOwner=0,asset=0;
         if(Read(owner.character,0xC18,hero)&&hero>=1&&hero<=2&&choice>=1&&choice<=3&&
            Read(state.effect.address,0x578,asset)&&asset==g_templates[choice-1].address&&
            Read(state.effect.address,0x108,parent)&&parent==root&&Read(state.effect.address,0xE8,componentOwner)&&componentOwner==owner.pawn){
             const bool ready=owned_particle::Apply(g_base,state.effect,rt.leviathanTransforms[unsigned(hero-1)].Load(),1,state.transform);
             if(!state.transformReported&&g_log)g_log(ready?"Leviathan transform V1.146: owned component contract verified":"Leviathan transform V1.146 unavailable: component contract refused; native transform retained");
             state.transformReported=true;
+            if(ready){const bool zero=rt.leviathanTransforms[unsigned(hero-1)].Load().size==0;unsigned char flags=0;
+                if((zero||state.zero)&&Read(state.effect.address,0x1CC,flags)&&bool(flags&0x20)==zero)g_visible(reinterpret_cast<void*>(state.effect.address),!zero,1);state.zero=zero;
+            }
         }
     }
     HideChildren(state,root);

@@ -1,0 +1,68 @@
+{
+  "LoadAsset_Blocking": {
+    "parameterBytes": 48,
+    "props": [
+      {
+        "name": "ReturnValue",
+        "rva": "0x3752188",
+        "qwords": [
+          "0x260c640",
+          "0x0",
+          "0x10000000000580",
+          "0x4500000012",
+          "0x2800000001",
+          "0xad7f20",
+          "0x2acc270",
+          "0x0"
+        ]
+      },
+      {
+        "name": "Asset",
+        "rva": "0x37521b8",
+        "qwords": [
+          "0x2acc270",
+          "0x0",
+          "0x14000000000080",
+          "0x4500000010",
+          "0x1",
+          "0xad7f20",
+          "0x1d67ad0",
+          "0x0"
+        ]
+      }
+    ]
+  },
+  "MakeSoftObjectPath": {
+    "parameterBytes": 40,
+    "props": [
+      {
+        "name": "ReturnValue",
+        "rva": "0x37527f0",
+        "qwords": [
+          "0x260c640",
+          "0x0",
+          "0x10000000000580",
+          "0x4500000019",
+          "0x1000000001",
+          "0xad7ef0",
+          "0x2e6f708",
+          "0x0"
+        ]
+      },
+      {
+        "name": "PathString",
+        "rva": "0x3752820",
+        "qwords": [
+          "0x2e6f708",
+          "0x0",
+          "0x10000000000080",
+          "0x4500000015",
+          "0x1",
+          "0x1d67ad0",
+          "0x0",
+          "0x2e6e360"
+        ]
+      }
+    ]
+  }
+}

@@ -1,3 +1,9 @@
+## V1.147 — bouclier : véritable référence native, rendu réglable et ressources
+
+**EN PRÉPARATION / EXPÉRIMENTAL.** V1.146 bouclier non validé par le joueur ; cause observée : +0x58 est nul, le suivi ne s'appliquait pas. Nouveau visuel privé lié à la vraie référence+0x78 ; Native/Original réglable distincts, 28 choix, chargement du seul effet sélectionné et taille0 pour bouclier/Léviathan. [Périmètre, preuves et essais](docs/V1_147_SHIELD_NATIVE_STATUS_PRESENTATION_TEST.md). Crash RenderThread du 3 novembre conservé et analysé, cause non confirmée, aucun correctif RHI annoncé. Aucun autre sujet déclaré résolu.
+
+---
+
 ## V1.146 — effets : taille, position et reprise après chargement
 
 **CONSTRUIT / CONTRÔLÉ, EXPÉRIMENTAL en jeu ; disponible sur debug, non installé par l'agent.** Base V1.145, Water sphere retenue et Stinger validé conservés. Réglages indépendants Strife/War pour taille et position du bouclier et de Léviathan ; suppression de l'ancien ajustement de création, recherche bornée des assets chargés tardivement. Une ressource réellement absente conserve le visuel natif ; reprise après chargement à tester. **72/72 contrôles GitHub, aucun avertissement détecté**, ZIP deux fichiers et téléchargement updater vérifiés. [Livraison, limites et essais](docs/V1_146_DELIVERY_RECEIPT.md). 229 anciennes valeurs et 55 actions Hotkeys conservées, 16 clés ajoutées ; 210 anciennes archives et branches protégées intactes.

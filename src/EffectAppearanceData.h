@@ -2,7 +2,7 @@
 #include "EffectAppearanceSettings.h"
 namespace dg::effect_appearance {
 struct AssetInfo {const char* name;const char* package;unsigned role;bool targetOnly=false;};
-struct RoleInfo {unsigned family;std::array<int,6> targets;};
+struct RoleInfo {unsigned family;std::array<int,31> targets;};
 inline constexpr std::array<AssetInfo,460> Assets={{
 {"P_Aether_Spark_Impact","/Game/VFX/Particles/Interactives/Aether/P_Aether_Spark_Impact",12},
 {"P_AetherSpark_hip_fizzle","/Game/VFX/Particles/Interactives/Aether/P_AetherSpark_hip_fizzle",12},
@@ -559,7 +559,7 @@ inline constexpr std::array<RoleInfo,100> Roles={{
 {35,{146,147,148,-1,-1,-1}},
 {36,{-1,-1,-1,-1,-1,-1}},
 {37,{-1,-1,-1,-1,-1,-1}},
-{38,{-1,9,45,10,46,-1}},
+{38,{-1,9,45,10,46,38,83,137,134,135,136,406,407,408,409,223,202,203,204,205,416,66,190,162,163,451,64,-1,-1,-1,-1}},
 {39,{-1,-1,-1,-1,-1,-1}},
 {40,{-1,-1,-1,-1,-1,-1}},
 {41,{-1,-1,-1,-1,-1,-1}},
