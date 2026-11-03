@@ -1,0 +1,11 @@
+{
+  "sourceCommit": "7ca33f0366c0a3d5d9a950bb8f78a113cc3e4b00",
+  "runId": 41505383162,
+  "jobId": 125483229690,
+  "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41505383162",
+  "conclusion": "success",
+  "testsPassed": 72,
+  "compilerWarnings": [],
+  "localCompile": false,
+  "gameplayValidated": false
+}

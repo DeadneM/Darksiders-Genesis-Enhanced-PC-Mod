@@ -1,6 +1,6 @@
-## V1.146 — effets : taille, position et chargement
+## V1.146 — effets : taille, position et reprise après chargement
 
-**Candidat envoyé à GitHub pour construction et contrôles / EXPÉRIMENTAL.** Base V1.145, Water sphere retenue ; profils Strife/War indépendants pour bouclier et Léviathan, mise à jour de l'effet actif sans dérive, relance bornée de recherche des assets manquants. Un effet non chargé reste natif ; reprise après chargement à vérifier en jeu. Stinger et chemins gameplay préservés. [Objectif, limites et essais](V1_146_CORE_EFFECT_TRANSFORM_RELOAD_TEST.md). Aucune installation ni capture mémoire effectuée.
+**CONSTRUIT / CONTRÔLÉ, EXPÉRIMENTAL en jeu ; disponible sur debug, non installé par l'agent.** Base V1.145, Water sphere retenue et Stinger validé conservés. Réglages indépendants Strife/War pour taille et position du bouclier et de Léviathan ; suppression de l'ancien ajustement de création, recherche bornée des assets chargés tardivement. Une ressource réellement absente conserve le visuel natif ; reprise après chargement à tester. **72/72 contrôles GitHub, aucun avertissement détecté**, ZIP deux fichiers et téléchargement updater vérifiés. [Livraison, limites et essais](V1_146_DELIVERY_RECEIPT.md). 229 anciennes valeurs et 55 actions Hotkeys conservées, 16 clés ajoutées ; 210 anciennes archives et branches protégées intactes.
 
 ---
 

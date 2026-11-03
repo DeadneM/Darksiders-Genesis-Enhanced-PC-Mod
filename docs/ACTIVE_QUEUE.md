@@ -1,6 +1,6 @@
-## Reprise V1.146
+## V1.146 livrée — contrôles terminés, essai en jeu attendu
 
-Water sphere retenue. Réglages taille/position bouclier et Léviathan par personnage, relance assets tardifs en préparation. Retour au natif après chargement confirmé avec message asset absent ; rendu/reprise encore expérimentaux. Belial/Dagon non chargés. Voir V1_146_CORE_EFFECT_TRANSFORM_RELOAD_TEST.md. Aucun autre sujet déclaré résolu.
+Profils taille/position bouclier et Léviathan Strife/War, recherche des assets tardifs : 72/72 contrôles GitHub, ZIP/updater vérifiés. Water sphere retenue et Stinger validé conservés. Retour au natif après chargement encore à tester ; Belial/Dagon restent indisponibles si non chargés. Voir [livraison et suite](V1_146_DELIVERY_RECEIPT.md). Stoneskin intermittent, pose et dash aérien restent ouverts/reportés. Aucune installation ni capture mémoire.
 
 **V1.145 disponible sur debug, non installée par l’agent.** [Livraison et essais](V1_145_DELIVERY_RECEIPT.md).
 

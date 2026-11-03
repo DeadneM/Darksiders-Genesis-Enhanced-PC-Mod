@@ -28,4 +28,4 @@ Construction uniquement GitHub Actions. Tests nouveaux : transformation sans dé
 4. Léviathan : mêmes réglages indépendants, reset, changement de personnage et rechargement ; vérifier pied/cheval/ultime. L'option désactivée restaure le natif.
 5. Régression courte : Stinger masqué et Stoneskin pierre/feu ; les deux vues. Coop plus tard selon disponibilité du joueur.
 
-Statut initial : EXPÉRIMENTAL, préparation ; aucune validation en jeu prétendue.
+Statut final : CONSTRUIT / CONTRÔLÉ, 72/72 tests GitHub ; EXPÉRIMENTAL en jeu, aucune validation de rendu prétendue. [Livraison et preuves](V1_146_DELIVERY_RECEIPT.md).

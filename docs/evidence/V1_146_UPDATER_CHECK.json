@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.146_CORE_EFFECT_TRANSFORM_RELOAD_TEST.zip",
+  "blobSha": "3edcccd0fd45bfa489e77345419752698a12686f",
+  "httpStatus": 200,
+  "sha256": "E6957C55EC43AF9319BB7496D69C47CEECEA22B02AEECB74C4965C42C93F4EDC",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}
