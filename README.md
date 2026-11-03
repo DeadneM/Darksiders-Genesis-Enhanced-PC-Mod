@@ -1,6 +1,7 @@
 ## V1.149 — correctif sous-titres validé, menu System et préférence GPU au démarrage
 
-**PRÉPARÉ / contrôles GitHub en attente.** Base V1.148 : crash Moloch avec sous-titres corrigé et **VALIDÉ par l'utilisateur**, commande fautive interceptée dans le journal. Case déplacée dans Gameplay → System and startup. Application du choix GPU avant le chargement de la configuration UE, sauvegarde immédiate du choix ; filtre trait/arc corrigé pour les états graphiques invalidés par les listes de commandes. Ces deux derniers changements restent **EXPÉRIMENTAUX en jeu**. [Périmètre, essais et sujets ouverts](docs/V1_149_SYSTEM_GPU_AIM_STATE_TEST.md).
+**CONSTRUIT / CONTRÔLÉ sur debug : 77/77 suites GitHub, aucun avertissement de compilation détecté.** Base V1.148 et correctif sous-titres VALIDÉ par l'utilisateur, conservé ; case déplacée dans Gameplay → System and startup. GPU appliqué avant lecture de la configuration UE et préférence sauvegardée immédiatement ; filtre de visée invalidé lors des changements de contexte natifs. Ces deux corrections restent **EXPÉRIMENTALES en jeu**. ZIP/updater/Defender contrôlés, 246 clés et 55 actions conservées, main/archive intacts. [Livraison et essais](docs/V1_149_DELIVERY_RECEIPT.md). [Pose, Stoneskin et dash aérien encore ouverts](docs/V1_149_OPEN_REPAIRS_AUDIT.md).
+
 
 ---
 

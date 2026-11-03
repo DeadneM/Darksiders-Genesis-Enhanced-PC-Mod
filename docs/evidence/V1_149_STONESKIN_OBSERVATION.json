@@ -1,0 +1,85 @@
+{
+  "readOnly": true,
+  "memoryWrites": false,
+  "nativeCalls": false,
+  "frames": 2878,
+  "readFailures": 38,
+  "coatingSamples": 38,
+  "classHierarchy": [
+    {
+      "asset": "MayhemStatusEffect_StoneSkin_Base_Blueprint",
+      "classes": [
+        {
+          "name": "MayhemStatusEffect_StoneSkin_Base_Blueprint_C",
+          "super": "MayhemStatusEffect_DamageTakenModifier"
+        }
+      ]
+    },
+    {
+      "asset": "MayhemStatusEffect_StoneSkin_Core_SteamRoller_1_Blueprint",
+      "classes": [
+        {
+          "name": "MayhemStatusEffect_StoneSkin_Core_SteamRoller_1_Blueprint_C",
+          "super": "MayhemStatusEffect_StoneSkin_Base_Blueprint_C"
+        }
+      ]
+    },
+    {
+      "asset": "MayhemStatusEffect_StoneSkin_Core_SteamRoller_2_Blueprint",
+      "classes": [
+        {
+          "name": "MayhemStatusEffect_StoneSkin_Core_SteamRoller_2_Blueprint_C",
+          "super": "MayhemStatusEffect_StoneSkin_Base_Blueprint_C"
+        }
+      ]
+    },
+    {
+      "asset": "MayhemStatusEffect_StoneSkin_Core_SteamRoller_3_Blueprint",
+      "classes": [
+        {
+          "name": "MayhemStatusEffect_StoneSkin_Core_SteamRoller_3_Blueprint_C",
+          "super": "MayhemStatusEffect_StoneSkin_Base_Blueprint_C"
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "seconds": 45.625,
+      "armor": "Strife_Silver",
+      "slotNames": [
+        "Strife_Body",
+        "Strife_Gear",
+        "Strife_Cloth",
+        "Strife_Cloth_ncl1_1",
+        "Cloth_LP"
+      ],
+      "currentMaterialParents": [
+        "War_Inst_StoneSkin_A",
+        "War_Inst_StoneSkin_A",
+        "War_Inst_StoneSkin_Molten_B",
+        "War_Inst_StoneSkin_Molten_B",
+        null
+      ]
+    },
+    {
+      "seconds": 52.359,
+      "armor": "Strife_Abyssal",
+      "slotNames": [
+        "Strife_Abyssal_Body",
+        "Strife_Abyssal_Cloth",
+        "Cloth_LP"
+      ],
+      "currentMaterialParents": [
+        "War_Inst_StoneSkin_A",
+        "War_Inst_StoneSkin_Molten_B",
+        null,
+        null,
+        null
+      ]
+    }
+  ],
+  "screenAppearanceValidated": false,
+  "intermittentFailureExplained": false,
+  "noStoneskinCodeChange": true
+}

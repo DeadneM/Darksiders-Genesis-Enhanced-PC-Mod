@@ -1,6 +1,6 @@
 # Note pour la future publication Nexus — crash sous-titres
 
-**Préparation documentaire seulement, rien publié sur Nexus.** Correctif introduit en V1.148, validé par l'utilisateur le3 novembre2026 sur le passage de la cinématique d'introduction de Moloch avec les sous-titres activés. Le journal montre la protection effectivement déclenchée ; pas seulement un passage sans interception.
+**Préparation documentaire seulement, rien publié sur Nexus.** Correctif introduit en V1.148, validé par l'utilisateur le 3 novembre 2026 sur le passage de la cinématique d'introduction de Moloch avec les sous-titres activés. Le journal montre la protection effectivement déclenchée ; pas seulement un passage sans interception.
 
 ## Formulation publique proposée
 

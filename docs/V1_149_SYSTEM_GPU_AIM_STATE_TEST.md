@@ -18,7 +18,7 @@ Les deux interceptions D3D11 ajoutées utilisent les entrées58 et110 du [ID3D11
 
 Nouveaux tests GPU (fichiers temporaires uniquement) : choix0..4, clamp, valeurs étrangères conservées, refus de chemins/fichiers absents, scénario de sauvegarde après lecture initiale. Nouveau test filtre : changement de shader non observé, faux positif évité, modeOFF, chemin rapide des dessins ordinaires. Suites existantes conservées. **Ces tests ne constituent pas un test en jeu.** [Revue du périmètre](evidence/V1_149_SCOPE_REVIEW.json).
 
-246 anciennes clés et55 identifiants Hotkeys inchangés. ZIP deux fichiers racine ASI/dxgi.dll, sans INI/README. Le nouveau couple de binaires est nécessaire à l'application GPU précoce ; avec un chargeur tiers/ancien, l'ASI indique l'absence de confirmation et ne réécrit pas Engine.ini tardivement au démarrage.
+246 anciennes clés et 55 identifiants Hotkeys inchangés. ZIP deux fichiers racine ASI/dxgi.dll, sans INI/README. Le nouveau couple de binaires est nécessaire à l'application GPU précoce ; avec un chargeur tiers/ancien, l'ASI indique l'absence de confirmation et ne réécrit pas Engine.ini tardivement au démarrage.
 
 ## Essais groupés
 
