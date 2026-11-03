@@ -14,6 +14,7 @@
 #include "CosmeticUnlockFeature.h"
 #include "LeviathanVisualFeature.h"
 #include "EffectAppearanceFeature.h"
+#include "ShieldVisualFeature.h"
 #include <cstring>
 #include "UltimateDurationFeature.h"
 #include "GaugeChargeFeature.h"
@@ -926,7 +927,8 @@ void Draw(Context& c) {
                 if(layout::Group(title)){
                     const auto family=unsigned(selected);const auto& info=effect_appearance::Families[family];
                     ImGui::Indent();ImGui::PushID(int(family));HelpText(help);
-                    ImGui::BeginDisabled(!effect_appearance::Ready());
+                    const bool coreReady=effect_appearance::Ready()&&(selected!=effect_appearance::Family::ShieldDemonCore||shield_visual::Ready());
+                    ImGui::BeginDisabled(!coreReady);
                     if(Choice("Effect",&config.effectAppearances[family],info.choices.data(),int(info.count)))config.Save();
                     ImGui::EndDisabled();
                     const int choice=effect_appearance::Normalize(family,config.effectAppearances[family]);
@@ -934,7 +936,8 @@ void Draw(Context& c) {
                         ImGui::TextColored(ImVec4(1,.85f,.25f,1),selected==effect_appearance::Family::ShieldDemonCore?
                             (effect_appearance::ShieldLoadFailed(choice)?"Effect loading failed; native kept. See log.":"Preparing selected effect; native kept until ready."):"Effect not loaded here: native visual retained; automatic retry.");
                     if(selected==effect_appearance::Family::ShieldDemonCore){
-                        static int shieldHero=0;effectTransform(config.shieldTransforms,shieldHero,choice>1&&effect_appearance::Ready());
+                        static int shieldHero=0;effectTransform(config.shieldTransforms,shieldHero,choice>1&&coreReady);
+                        if(!coreReady)ImGui::TextDisabled("Owned shield override unavailable; see log.");
                     }
                     ImGui::PopID();ImGui::Unindent();
                 }

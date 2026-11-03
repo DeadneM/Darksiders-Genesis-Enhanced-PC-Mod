@@ -4459,8 +4459,8 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::execution_camera::Initialize(&FeatureLog,g_targetValidation.exact);
     // Validate the original shared emitter before the blade FX detour is installed.
     dg::leviathan_visual::Initialize(&FeatureLog,g_targetValidation.exact);
-    dg::melee_effect::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::effect_appearance::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::melee_effect::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::presentation::Initialize(&FeatureLog,g_targetValidation.exact,&PresentationFocused);
     dg::cosmetics::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::ultimate_duration::Initialize(&FeatureLog,g_targetValidation.exact);

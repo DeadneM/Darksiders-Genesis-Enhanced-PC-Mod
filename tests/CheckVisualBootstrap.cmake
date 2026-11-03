@@ -1,0 +1,7 @@
+file(READ "${SOURCE}" code)
+string(FIND "${code}" "dg::leviathan_visual::Initialize(" leviathan)
+string(FIND "${code}" "dg::effect_appearance::Initialize(" appearances)
+string(FIND "${code}" "dg::melee_effect::Initialize(" detour)
+if(leviathan LESS 0 OR appearances LESS 0 OR detour LESS 0 OR leviathan GREATER_EQUAL detour OR appearances GREATER_EQUAL detour)
+  message(FATAL_ERROR "Shared emitter signatures must be verified before the blade/Lava detour is installed")
+endif()

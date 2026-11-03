@@ -68,9 +68,9 @@ void Run(){
  std::vector<unsigned char> image(0x3960000);Fresh(image);const auto status=std::vector<unsigned char>(f.status[0],f.status[0]+sizeof(f.status[0]));Active();
  Check(spawns==1&&!Shown(0)&&Shown(2),"real native source+58 zero binds via owned status+78 and presents stock");
  Check(!std::memcmp(status.data(),f.status[0],status.size()),"no status, damage, cost or recharge bytes changed");
- dg::runtime::Get().shieldTransforms[0].Store({2,10,20,30});Tick();Vector scale{},position{};Read(reinterpret_cast<uintptr_t>(f.particles[2]),0x150,scale);Read(reinterpret_cast<uintptr_t>(f.particles[2]),0x140,position);
+ dg::runtime::Get().shieldTransforms[0].Store({2,10,20,30});Tick();Vector scale{},position{};ReadShield(reinterpret_cast<uintptr_t>(f.particles[2]),0x150,scale);ReadShield(reinterpret_cast<uintptr_t>(f.particles[2]),0x140,position);
  Check(dg::owned_particle::Same(scale,{2,2,2})&&dg::owned_particle::Same(position,{10,20,30})&&spawns==1,"live size/position update without recreating status or accumulating offsets");
- Tick();Read(reinterpret_cast<uintptr_t>(f.particles[2]),0x150,scale);Check(dg::owned_particle::Same(scale,{2,2,2}),"no repeated multiplication");
+ Tick();ReadShield(reinterpret_cast<uintptr_t>(f.particles[2]),0x150,scale);Check(dg::owned_particle::Same(scale,{2,2,2}),"no repeated multiplication");
  dg::runtime::Get().shieldTransforms[0].Store({0,0,0,0});Tick();Check(!Shown(2)&&!Shown(0),"size0 hides only the visual while keeping native protection");
  dg::runtime::Get().shieldTransforms[0].Store({1,0,0,0});Tick();Check(Shown(2),"size above zero restores our private effect");
  Select(4);Tick();Check(spawns==2&&destroys==1&&!Shown(0),"choice changes on existing shield, no native reactivation required");
