@@ -1,0 +1,10 @@
+{
+  "sourceCommit": "041b9bd72bc8318ad0687871791fdc0c71920250",
+  "runId": 41725892925,
+  "jobId": 126230442015,
+  "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41725892925",
+  "conclusion": "success",
+  "testsPassed": 78,
+  "compilerWarnings": [],
+  "workflowNotice": "GitHub actions Node.js 20 deprecation notice; not a compiler warning or game runtime result."
+}

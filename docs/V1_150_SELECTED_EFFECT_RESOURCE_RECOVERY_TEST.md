@@ -1,6 +1,6 @@
 # V1.150 — reprise des ressources visuelles sélectionnées
 
-**Base cumulative : V1.149 ; correctif sous-titres V1.148 VALIDÉ conservé. Préparation EXPÉRIMENTALE sur debug, pas encore validée en jeu.**
+**Base cumulative : V1.149 ; correctif sous-titres V1.148 VALIDÉ conservé. CONSTRUIT / CONTRÔLÉ sur debug (78/78), toujours EXPÉRIMENTAL en jeu.**
 
 Objectif : reprendre un effet sélectionné et le revêtement Stoneskin de Strife quand leurs ressources manquent après un chargement ou un changement d'armure. Réussite en jeu : choix conservé, effet retrouvé à la prochaine utilisation, pierre/feu présents après changement d'armure et restaurés à l'expiration, sans ralentissement permanent.
 
@@ -10,7 +10,7 @@ L'ancienne bibliothèque cherchait seulement les objets déjà chargés. Elle ne
 
 Pour Stoneskin : corps minéral de base, tissu du statut actif, explosion correspondante et cendres seulement. La variante inutilisée n'est plus une dépendance de disponibilité. Demandes séparées par joueur, acteur, armure, monde et variante ; protections des matériaux natifs/utilisateur et restauration inchangées.
 
-Chargements sur le thread du jeu, hors pause/cinématique/roue/menu du mod/Alt-Tab. Stabilisation de750 ms, au plus un nouveau chargement partagé toutes les250 ms ; trois tentatives par ressource espacées de5 secondes. Une nouvelle sélection, une nouvelle identité ou une ressource observée puis déchargée réarme le budget. Le chargeur du bouclier conserve son cycle validé ; seul son contexte moteur déjà vérifié est partagé. Aucun hook supplémentaire, aucun préchargement massif au démarrage, aucun chargement dans la fabrique des émetteurs.
+Chargements sur le thread du jeu, hors pause/cinématique/roue/menu du mod/Alt-Tab. Stabilisation de750 ms, au plus un nouveau chargement partagé toutes les250 ms ; trois tentatives par ressource espacées de5 secondes. Une nouvelle sélection, une nouvelle identité ou une ressource observée puis déchargée réarme le budget ; un nouveau lancement de Stoneskin réarme aussi ses seules demandes manquantes. Le chargeur du bouclier conserve son cycle validé ; seul son contexte moteur déjà vérifié est partagé. Aucun hook supplémentaire, aucun préchargement massif au démarrage, aucun chargement dans la fabrique des émetteurs.
 
 ## Preuves et limites
 

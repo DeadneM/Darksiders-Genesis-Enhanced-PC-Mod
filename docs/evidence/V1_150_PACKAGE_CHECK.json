@@ -1,0 +1,57 @@
+{
+  "sourceCommit": "041b9bd72bc8318ad0687871791fdc0c71920250",
+  "archiveCommit": "f657ae4a1e186ff07e321762d2446247082671b6",
+  "name": "DarksidersGenesis_V1.150_SELECTED_EFFECT_RESOURCE_RECOVERY_TEST.zip",
+  "size": 2361582,
+  "sha256": "4D21060DBFD32B133DCEE9BD9C1AD8F0FE3E9D3797944603DB384434742FD684",
+  "files": {
+    "dxgi.dll": {
+      "size": 157696,
+      "sha256": "EAB97F65452E912664E490EF174A5C382B5C989FCC1788853729949B369D999D",
+      "method": 0
+    },
+    "DarksidersGenesisMod.asi": {
+      "size": 2203648,
+      "sha256": "2C76943D3C9EDDC897697E943CFCA06E2F98E94F7ED0DCA2C840C9A881B03987",
+      "method": 0
+    }
+  },
+  "rootFileCount": 2,
+  "iniIncluded": false,
+  "readmeIncluded": false,
+  "oldArchiveGitBlobsUnchanged": 214,
+  "archiveCount": 215,
+  "approvedExistingDefaultsUnchanged": true,
+  "iniKeys": 246,
+  "newIniKeys": 0,
+  "hotkeyIdsUnchanged": 55,
+  "embeddedUpdaterBinaryLayoutVerified": true,
+  "amd64": true,
+  "crcValid": true,
+  "noCompression": true,
+  "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/f657ae4a1e186ff07e321762d2446247082671b6/downloads/DarksidersGenesis_V1.150_SELECTED_EFFECT_RESOURCE_RECOVERY_TEST.zip",
+  "httpStatus": 200,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "e2e519f7ea84d4b773fd7a31611779ae68308696",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "localBuild": false,
+  "localInstall": false,
+  "gameplayValidated": false,
+  "fpsMeasured": false,
+  "unchangedPaths": [
+    "src/DefaultSettings.h",
+    "src/NativeTpsFeature.cpp",
+    "src/NativeAimAssistFeature.cpp",
+    "src/DashCombatFeature.cpp",
+    "src/PistolVisualFeature.cpp",
+    "src/RenderSafetyPolicy.h",
+    "src/RenderSafetyFeature.cpp",
+    "src/ShaderAimFeature.cpp",
+    "src/GraphicsAdapterStartup.h",
+    "src/dxgi_proxy.cpp",
+    "src/ShieldVisualFeature.cpp",
+    "src/LeviathanVisualFeature.cpp"
+  ]
+}

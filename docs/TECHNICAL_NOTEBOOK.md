@@ -1,5 +1,7 @@
 ## 3 novembre 2026 — V1.150, ressources sélectionnées et limite du correctif sous-titres
 
+Livraison CONSTRUITE / CONTRÔLÉE : 78/78 suites GitHub, aucun avertissement de compilation détecté, ZIP et sélection updater vérifiés, Defender sans détection. Source041b9bd, archivef657ae4 ; rendu et coût en jeu toujours EXPÉRIMENTAUX. [Reçu et essais](V1_150_DELIVERY_RECEIPT.md). Aucun fichier de jeu installé.
+
 Reprise après clarification utilisateur : « indisponible » concerne les effets de cœurs, la pierre/feu Stoneskin Strife et le message assets not ready. Bibliothèque jusqu'ici passive : la présence dans le PAK ne suffit pas à rendre l'objet disponible dans le niveau. Réemploi ciblé du chargeur natif déjà vérifié ; contexte Kismet observé/revalidé et partagé, observations ajoutées au scan existant, pas de nouvelle passe indépendante. Trois tentatives par ressource, temporisation et budget commun, état par joueur pour Stoneskin. Dépendances limitées au revêtement actif ; sources natives et variantes inutilisées préservées. Vérification des466 chemins contre l'index PAK hors ligne. Une charge synchrone peut créer une pause initiale ; aucun gain FPS annoncé. Les défauts visuels et changements d'armure restent à valider en jeu.
 
 Deux passes de revue comparées : périmètre/configuration puis identités/appels/budget. Ajustements issus de la seconde : requêtes séparées P1/P2, poll bibliothèque250 ms, explosion inutilisée retirée des dépendances actives. Pas de moteur appelé depuis le lecteur externe, pas d'installation.

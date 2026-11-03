@@ -1,6 +1,6 @@
 ## V1.150 — reprise ciblée des ressources visuelles
 
-**En préparation EXPÉRIMENTALE sur debug, base V1.149.** Chargement des seules ressources sélectionnées absentes, reprise Stoneskin liée au joueur/armure et à sa variante active. API déjà vérifiée, budgets bornés, hors menus/cinématiques ; aucun nouveau hook ni réglage par défaut. Correctif sous-titres validé conservé. [Périmètre, limites et test groupé](docs/V1_150_SELECTED_EFFECT_RESOURCE_RECOVERY_TEST.md). Pose et choix dash/stomp encore ouverts ; aucune installation automatique.
+**CONSTRUIT / CONTRÔLÉ sur debug : 78/78 suites GitHub, aucun avertissement de compilation détecté.** Base cumulative V1.149 et garde sous-titres V1.148 VALIDÉ conservés. Reprise ciblée des ressources sélectionnées et des dépendances actives Stoneskin, demandes bornées et séparées par joueur/armure. **EXPÉRIMENTAL en jeu** : ni disponibilité/rendu ni coût FPS validés. ZIP/updater/Defender contrôlés ; 246 clés et 55 actions conservées, main/archive intacts. [Livraison et test groupé](docs/V1_150_DELIVERY_RECEIPT.md). Pose et dash/stomp restent ouverts ; aucune installation automatique.
 
 ---
 
