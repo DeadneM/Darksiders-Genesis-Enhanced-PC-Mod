@@ -103,6 +103,17 @@ std::wstring ResolveEngineIniPath() {
 
 } // namespace
 
+void ReportStartupGraphicsAdapter(int requested){
+    using PreparedFn=int(WINAPI*)();
+    const auto proxy=GetModuleHandleW(L"dxgi.dll");
+    const auto query=proxy?reinterpret_cast<PreparedFn>(GetProcAddress(proxy,"DGStartupGraphicsAdapter")):nullptr;
+    const int prepared=query?query():-1;
+    char line[192]{};
+    sprintf_s(line,"Engine.ini GraphicsAdapter V1.149: preference=%d earlyPrepared=%d; %s",requested,prepared,
+        prepared==requested?"confirmed before engine config initialization":"not confirmed; matching proxy/restart required, no late startup write");
+    FeatureLog(line);
+}
+
 void Initialize(LogFn logger) {
     g_logger = logger;
 }

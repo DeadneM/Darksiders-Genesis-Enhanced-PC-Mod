@@ -248,8 +248,8 @@ void Draw(Context& c) {
                     &config.aimIndicatorHideMode,kAimModes,4))config.Save();
             ImGui::TextDisabled("TPS Only is the default. Default Only means normal/non-TPS camera.");
             const auto aimShaders = dg::aim_shader::GetTelemetry();
-            ImGui::TextDisabled("Aim-effect filter: %s | suppressed draws: %u",
-                aimShaders.hooksReady ? "Ready" : "Unavailable",aimShaders.blockedDraws);
+            ImGui::TextDisabled("Aim-effect filter: %s | recognized: %u | hidden draws: %u",
+                aimShaders.hooksReady ? "Ready" : "Unavailable",aimShaders.matchedShaders,aimShaders.blockedDraws);
             ImGui::Unindent();
             }
             if(layout::Group("Aim without firing")){
@@ -726,6 +726,14 @@ void Draw(Context& c) {
             if(layout::Group("System and startup")){
             ImGui::Indent();
 
+            ImGui::BeginDisabled(!render_safety::Ready());
+            if(ImGui::Checkbox("Subtitle crash fix",&config.renderCrashGuardEnabled))config.Save();
+            ImGui::EndDisabled();
+            HelpText("Prevents the known subtitle crash at the Moloch cutscene transition. Applies immediately.");
+            ImGui::TextDisabled("%s | prevented invalid clears: %llu",render_safety::Ready()?"Ready":"Unavailable",
+                static_cast<unsigned long long>(render_safety::AvoidedClears()));
+            ImGui::Spacing();
+
             ImGui::Text("Graphics Adapter");
             ImGui::TextDisabled(
                 "Select which GPU the game uses. Requires a restart to take effect."
@@ -745,10 +753,10 @@ void Draw(Context& c) {
                     IM_ARRAYSIZE(graphicsAdapters))) {
                 config.graphicsAdapter =
                     selectedGraphicsAdapter;
-                config.Save();
+                const bool preferenceSaved=config.SaveNow();
 
                 const bool applied =
-                    c.applyGraphicsAdapter
+                    preferenceSaved&&c.applyGraphicsAdapter
                         ? c.applyGraphicsAdapter(
                             config.graphicsAdapter)
                         : false;
@@ -757,9 +765,9 @@ void Draw(Context& c) {
                     std::string("Graphics Adapter ") +
                     std::to_string(
                         config.graphicsAdapter) +
-                    (applied
-                        ? " written to Engine.ini (restart required)"
-                        : " Engine.ini write failed");
+                    (!preferenceSaved?" preference save failed":applied
+                        ? " saved for next startup (restart required)"
+                        : " preference saved; Engine.ini staging failed");
             }
             ImGui::Unindent();
 
@@ -818,7 +826,7 @@ void Draw(Context& c) {
                 t.skipWarningApplied?"observed":"not observed");
 
             ImGui::Spacing();
-            ImGui::TextDisabled("Startup options take effect after a game restart.");
+            ImGui::TextDisabled("GPU and startup video changes take effect after a game restart.");
             ImGui::Unindent();
             }
 
@@ -958,14 +966,6 @@ void Draw(Context& c) {
         if (ImGui::BeginTabItem("Camera")) {
             ImGui::Spacing();
             DrawSectionTitle("Camera controls");
-            if(layout::Group("Render stability")){
-                ImGui::Indent();ImGui::BeginDisabled(!render_safety::Ready());
-                if(ImGui::Checkbox("Subtitle crash workaround (experimental)",&config.renderCrashGuardEnabled))config.Save();
-                ImGui::EndDisabled();HelpText("Guards the captured crash triggered by subtitles. Keeps game subtitle options and valid rendering unchanged.");
-                ImGui::TextDisabled("Guard: %s | avoided clears: %llu",render_safety::Ready()?"Ready":"Unavailable",
-                    static_cast<unsigned long long>(render_safety::AvoidedClears()));
-                ImGui::Unindent();
-            }
             ImGui::TextWrapped("TPS and the original game camera have independent saved settings.");
 
             const dg::camera_trace::Telemetry camera = dg::camera_trace::GetTelemetry();

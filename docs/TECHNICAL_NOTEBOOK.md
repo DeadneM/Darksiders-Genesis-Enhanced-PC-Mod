@@ -1,3 +1,17 @@
+## 3 novembre 2026 — validation sous-titres et reprise V1.149
+
+**V1.148 VALIDÉ par l'utilisateur pour la transition de Moloch, sous-titres conservés.** Le journal du 3 novembre17:39 enregistre au moins sept effacements stencil sans cible interceptés. La condition et la copie privée du paquet RHI restent strictement identiques ; seul le texte du log annonce le nouvel emplacement Gameplay → System and startup. Préparation de la note Nexus, sans publication externe.
+
+GPU : l'ancien MainThread appliquait r.GraphicsAdapter après le début de l'initialisation UE. L'utilisateur observe une valeur écrite puis perdue, alors qu'une édition avant lancement fonctionne. Reprise de l'application dans le proxy DXGI importé statiquement par le binaire supporté, lors de PROCESS_ATTACH, avant la lecture de la configuration. Win32 seulement, fichiers existants seulement, aucune nouvelle interception moteur ; même clé System.GraphicsAdapter0..4, même défaut0. Sauvegarde immédiate de cette préférence depuis le menu ; suppression de l'ancienne écriture ASI tardive, export de confirmation optionnel. L'hypothèse d'écrasement par le cache UE reste à confirmer par un redémarrage contrôlé. Premier démarrage sans INI existant : aucune fabrication de configuration depuis DllMain.
+
+Trait/arc visible à Moloch même avec Hide Everywhere. Lecture VM_READ des compteurs de l'ASI exacte : ready1, matchedShaders2, plus de84 millions de draws observés et280 bloqués. Le chargement des deux shaders connus fonctionne ; cela ne démontre pas que tous les effets de ce niveau utilisent ces deux shaders. Défaut réel de cache trouvé : Other était conservé si ExecuteCommandList modifiait le shader sans PSSetShader observé. V1.149 invalide avant/après ExecuteCommandList58 et remet Other après ClearState110 ; premier dessin d'un état inconnu vérifie le vrai shader. Chemin rapide conservé pour les autres dessins. Slots vérifiés dans le d3d11.h officiel Microsoft (115 méthodes). Aucun nouveau CRC ajouté à l'aveugle ; résultat à retester dans Moloch.
+
+Capture groupée VM_READ cinq minutes terminée, handles fermés :2878 trames lisibles,38 lectures rejetées pendant des transitions ; aucun appel moteur ni écriture mémoire. Matériaux privés pierre/feu observés avec Silver puis Abyssal, sans preuve d'un échec visuel dans cette capture. Le cœur SteamRoller3 hérite bien du statut Stoneskin de base : piste d'une classe oubliée écartée hors ligne. Pas de correction Stoneskin annoncée. Pose : réutiliser les relevés V1.253 et attendre le prochain défaut spontané selon la demande utilisateur, pas de reproduction répétitive. Dash aérien réouvert : stomp par défaut sans déplacement maintenu, dash directionnel si déplacement maintenu ; étudier le choix de la capacité native, aucun correctif par touche ou direction mémorisée ajouté.
+
+[Périmètre V1.149](V1_149_SYSTEM_GPU_AIM_STATE_TEST.md), [note Nexus](NEXUS_SUBTITLE_CRASH_FIX.md). Config246 clés et55 actions inchangées ; main/archive protégés, aucune installation/lancement automatique.
+
+---
+
 ## V1.148 — livraison contrôlée
 
 75/75 suites sur les deux passes GitHub ; avertissement C4312 du seul test nettoyé lors du second contrôle, production identique et archive originale inchangée. ZIP/updater/Defender et branches protégées vérifiés. 212 anciennes archives conservées. Proxy .text et exports identiques à V1.147. Aucun essai/installation en jeu par l'agent ; passage Moloch avec sous-titres ON attendu. [Reçu complet](V1_148_DELIVERY_RECEIPT.md).

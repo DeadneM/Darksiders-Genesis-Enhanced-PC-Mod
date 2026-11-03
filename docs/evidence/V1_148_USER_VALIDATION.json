@@ -1,0 +1,18 @@
+{
+  "base": "8020e964b940994340d594db35b776eb32a7d0a3",
+  "validatedByUser": "V1.148 subtitle crash fix works",
+  "runtimeEvidence": [
+    "[2026-11-03 17:38:12.287] Render safety V1.148: ready; experimental guard for captured stencil clear without depth target, toggle in Camera",
+    "[2026-11-03 17:39:14.358] Render safety V1.148: skipped absent-target stencil clear; total=1 (valid targets unchanged)",
+    "[2026-11-03 17:39:14.372] Render safety V1.148: skipped absent-target stencil clear; total=2 (valid targets unchanged)",
+    "[2026-11-03 17:39:14.389] Render safety V1.148: skipped absent-target stencil clear; total=3 (valid targets unchanged)",
+    "[2026-11-03 17:39:14.406] Render safety V1.148: skipped absent-target stencil clear; total=4 (valid targets unchanged)",
+    "[2026-11-03 17:39:14.423] Render safety V1.148: skipped absent-target stencil clear; total=5 (valid targets unchanged)",
+    "[2026-11-03 17:39:14.442] Render safety V1.148: skipped absent-target stencil clear; total=6 (valid targets unchanged)",
+    "[2026-11-03 17:39:14.457] Render safety V1.148: skipped absent-target stencil clear; total=7 (valid targets unchanged)"
+  ],
+  "confirmation": "Scene passes with both subtitle types enabled, confirmed by user",
+  "scope": "One reproduced Moloch transition on supported Windows executable; no claim for every crash/cinematic",
+  "nextUi": "Gameplay -> System and startup -> Subtitle crash fix",
+  "localGameFilesChanged": false
+}

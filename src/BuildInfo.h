@@ -1,7 +1,7 @@
 #pragma once
 namespace dg::build {
-inline constexpr int Major=1,Minor=148;
-inline constexpr char Version[]="V1.148";
-inline constexpr char Id[]="1.148-stencil-target-guard-test";
-inline constexpr char Archive[]="DarksidersGenesis_V1.148_STENCIL_TARGET_GUARD_TEST.zip";
+inline constexpr int Major=1,Minor=149;
+inline constexpr char Version[]="V1.149";
+inline constexpr char Id[]="1.149-subtitle-system-menu-test";
+inline constexpr char Archive[]="DarksidersGenesis_V1.149_SUBTITLE_SYSTEM_MENU_TEST.zip";
 }

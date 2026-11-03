@@ -1,3 +1,9 @@
+## V1.149 — correctif sous-titres validé, menu System et préférence GPU au démarrage
+
+**PRÉPARÉ / contrôles GitHub en attente.** Base V1.148 : crash Moloch avec sous-titres corrigé et **VALIDÉ par l'utilisateur**, commande fautive interceptée dans le journal. Case déplacée dans Gameplay → System and startup. Application du choix GPU avant le chargement de la configuration UE, sauvegarde immédiate du choix ; filtre trait/arc corrigé pour les états graphiques invalidés par les listes de commandes. Ces deux derniers changements restent **EXPÉRIMENTAUX en jeu**. [Périmètre, essais et sujets ouverts](docs/V1_149_SYSTEM_GPU_AIM_STATE_TEST.md).
+
+---
+
 ## V1.148 — essai du crash sous-titres et palette du bouclier épurée
 
 **CONSTRUIT / CONTRÔLÉ sur debug : 75/75 suites GitHub ; correctif EXPÉRIMENTAL en jeu, non installé par l'agent.** Base V1.147 validée hors crash. Garde désactivable de la commande stencil invalide capturée ; sous-titres conservés, aucun réglage du jeu forcé. Quatre variantes Vampiric et Grasping shadows retirées de la seule palette Legion : 23 choix visibles et IDs restants stables. ZIP/updater vérifiés, 245 anciennes valeurs et 55 actions conservées ; code machine du proxy identique à V1.147. [Livraison et essai avec sous-titres réactivés](docs/V1_148_DELIVERY_RECEIPT.md).

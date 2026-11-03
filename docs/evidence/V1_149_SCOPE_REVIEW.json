@@ -1,0 +1,43 @@
+{
+  "base": "8020e96",
+  "validatedBase": "V1.148 user confirmed subtitle crash fix; intercepted clears in log",
+  "unchangedSources": [
+    "src/RenderSafetyPolicy.h",
+    "src/DefaultSettings.h",
+    "src/ConfigStore.h",
+    "src/ConfigStore.cpp",
+    "config/DarksidersGenesisMod.ini",
+    "src/RuntimeSettings.h",
+    "src/RuntimeSettings.cpp",
+    "src/NativeTpsFeature.cpp",
+    "src/NativeAimAssistFeature.cpp",
+    "src/PistolVisualFeature.cpp",
+    "src/StoneSkinVisual.cpp",
+    "src/DashCombatFeature.cpp",
+    "src/AirJumpFeature.cpp",
+    "src/RecoveryTailFeature.cpp",
+    "src/ForeignWrathFeature.cpp",
+    "src/ShieldVisualFeature.cpp",
+    "src/LeviathanVisualFeature.cpp",
+    "src/CameraTraceFeature.cpp"
+  ],
+  "existingIniKeysUnchanged": 246,
+  "hotkeyIdsUnchanged": 55,
+  "renderSafetyLogicUnchanged": true,
+  "renderSafetyDifference": "log/menu location only",
+  "gpuChange": "persist preference immediately; apply existing choice from statically imported proxy before UE initialization; remove late ASI startup write",
+  "gpuExtraNativeHooks": 0,
+  "aimChange": "invalidate pixel-shader context state around ExecuteCommandList and after ClearState; unknown state queried once, ordinary known draws keep fast path",
+  "shaderHashesUnchanged": true,
+  "platformVtableSource": "https://raw.githubusercontent.com/microsoft/win32metadata/main/generation/WinSDK/RecompiledIdlHeaders/um/d3d11.h",
+  "platformVtableSlots": {
+    "ExecuteCommandList": 58,
+    "ClearState": 110
+  },
+  "poseFixed": false,
+  "stoneskinFixed": false,
+  "airDashFixed": false,
+  "newExperimentsValidatedInGame": false,
+  "localBuild": false,
+  "localInstall": false
+}

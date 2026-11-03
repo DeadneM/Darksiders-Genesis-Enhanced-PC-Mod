@@ -1,3 +1,9 @@
+## Validation en jeu — 3 novembre 2026
+
+**VALIDÉ par l'utilisateur : la transition de Moloch passe avec le correctif et les sous-titres.** Le journal enregistre la protection déclenchée, au moins sept effacements invalides ignorés. Validation limitée au cas reproduit ; le déplacement du menu est prévu dans V1.149. [Preuve](evidence/V1_148_USER_VALIDATION.json), [note pour Nexus](NEXUS_SUBTITLE_CRASH_FIX.md).
+
+---
+
 # V1.148 — livraison debug, 3 novembre 2026
 
 **CONSTRUIT / CONTRÔLÉ. Garde de crash EXPÉRIMENTAL, à valider en jeu.** Base V1.147 dont le reste est validé par l'utilisateur ; aucune installation, relance ou écriture de fichiers du jeu par l'agent.

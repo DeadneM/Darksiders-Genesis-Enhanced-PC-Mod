@@ -7,6 +7,7 @@ using LogFn = void(*)(const char*, ...);
 struct Telemetry {
     bool hooksReady = false;
     unsigned blockedDraws = 0;
+    unsigned matchedShaders = 0;
 };
 // Install on the EXISTING early D3D11 probe vtables, before the real game
 // creates its pixel shaders. Do not initialize ImGui, touch aim or game data.

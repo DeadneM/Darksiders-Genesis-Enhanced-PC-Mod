@@ -4360,12 +4360,9 @@ DWORD WINAPI MainThread(LPVOID) {
         g_config.synergyChargeEnabled?1:0,g_config.synergyChargeMultiplier);
 
     dg::engine_ini::Initialize(&FeatureLog);
-    if (!dg::engine_ini::ApplyGraphicsAdapter(
-            g_config.graphicsAdapter)) {
-        Log(
-            "Engine.ini GraphicsAdapter: startup apply failed; remaining mod features continue normally."
-        );
-    }
+    // The proxy applies this before UE reads Engine.ini. A late ASI write
+    // can be overwritten by UE's already-loaded config cache at shutdown.
+    dg::engine_ini::ReportStartupGraphicsAdapter(g_config.graphicsAdapter);
 
     g_targetValidation = dg::target::ValidateCurrentExecutable();
     Log(

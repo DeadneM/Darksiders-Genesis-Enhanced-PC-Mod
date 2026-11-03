@@ -7,8 +7,10 @@
 #include <limits>
 #include <climits>
 #include <initializer_list>
+#include "GraphicsAdapterStartup.h"
 
 static HMODULE g_self = nullptr;
+static std::atomic_int g_startupGraphicsAdapter{-1};
 static HMODULE g_realDxgi = nullptr;
 static INIT_ONCE g_dxgiOnce = INIT_ONCE_STATIC_INIT;
 static INIT_ONCE g_asiOnce = INIT_ONCE_STATIC_INIT;
@@ -715,6 +717,9 @@ HRESULT WINAPI DXGIDisableVBlankVirtualization() {
     return fn ? fn() : E_NOTIMPL;
 }
 
+extern "C" __declspec(dllexport)
+int WINAPI DGStartupGraphicsAdapter(){return g_startupGraphicsAdapter.load(std::memory_order_acquire);}
+
 BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
     if (reason == DLL_PROCESS_ATTACH) {
         g_self = module;
@@ -732,6 +737,14 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
         g_skipLogosEnabled.store(enabled,std::memory_order_relaxed);
         LogLoader(L"Skip Warning V1.05: native loop untouched, passive screen-definition probe only");
         const bool valid = HasSupportedNativeCode();
+        if(valid){
+            const auto adapter=dg::graphics_adapter::Prepare(module);
+            g_startupGraphicsAdapter.store(adapter.verified,std::memory_order_release);
+            wchar_t message[192]{};
+            swprintf_s(message,L"GPU startup V1.149: requested=%d prepared=%d error=%lu; before UE config cache and RHI initialization",
+                adapter.requested,adapter.verified,adapter.error);
+            LogLoader(message);
+        }
         g_skipLogosTargetValid.store(valid,std::memory_order_release);
         if (enabled && valid && !InstallSelectiveLogoHook())
             LogLoader(L"Skip Logos V0.55: logo hook failed, native logo movies preserved");

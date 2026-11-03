@@ -48,7 +48,7 @@ void Initialize(LogFn log,bool exactExecutable){
         return;
     }
     g_ready.store(true,std::memory_order_release);
-    if(g_log)g_log("Render safety V1.148: ready; experimental guard for captured stencil clear without depth target, toggle in Camera");
+    if(g_log)g_log("Render safety V1.148: ready; guard for captured stencil clear without depth target, toggle in Gameplay / System and startup");
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}
 uint64_t AvoidedClears(){return g_avoided.load(std::memory_order_relaxed);}

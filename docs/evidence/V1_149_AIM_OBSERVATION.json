@@ -1,0 +1,13 @@
+{
+  "readOnly": true,
+  "pid": 35264,
+  "version": "V1.148",
+  "ready": true,
+  "matchedShaders": 2,
+  "observedDraws": 84134991,
+  "blockedDraws": 280,
+  "contract": "Offline DDAC0 shutdown loads ready, matches, draws, blocked; exact installed ASI SHA checked",
+  "userReportsArcInMolochEvenHideEverywhere": true,
+  "nativeCalls": false,
+  "memoryWrites": false
+}
