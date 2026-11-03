@@ -1,0 +1,17 @@
+{
+  "sourceCommit": "28266fdfe2609e19497ea0c4c7d27e994084c317",
+  "runId": 41646034085,
+  "jobId": 125951485649,
+  "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41646034085",
+  "conclusion": "success",
+  "testsPassed": 74,
+  "compilerWarnings": [],
+  "priorAttempt": {
+    "source": "cc854a76cb1a599f0f12c5ba8d639792a296b268",
+    "runId": 41644872861,
+    "conclusion": "failure",
+    "reason": "C2668 vector helper ADL ambiguity; fixed before any ZIP publication"
+  },
+  "localCompile": false,
+  "gameplayValidated": false
+}

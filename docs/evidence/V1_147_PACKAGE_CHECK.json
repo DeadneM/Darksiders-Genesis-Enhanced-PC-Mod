@@ -1,0 +1,52 @@
+{
+  "sourceCommit": "28266fdfe2609e19497ea0c4c7d27e994084c317",
+  "archiveCommit": "8149f5a99c5c8ecc795bc2975419a781c4a44bb9",
+  "name": "DarksidersGenesis_V1.147_SHIELD_NATIVE_STATUS_PRESENTATION_TEST.zip",
+  "size": 2351342,
+  "sha256": "CD019F7E03A68B62236ACFEAC98841C0E356BE6D9CF74210019F190070017E04",
+  "files": {
+    "dxgi.dll": {
+      "size": 155136,
+      "sha256": "A9F2D89BF69C60AAE47E64C0AC508C2DD0D55FBFBC686107CAD7CBCD14C03079",
+      "method": 0
+    },
+    "DarksidersGenesisMod.asi": {
+      "size": 2195968,
+      "sha256": "7938B775B5852B9D8878EEEA7136D49B897CED6FA2784AF3F659ABA46E500198",
+      "method": 0
+    }
+  },
+  "rootFileCount": 2,
+  "iniIncluded": false,
+  "readmeIncluded": false,
+  "oldArchiveGitBlobsUnchanged": 211,
+  "archiveCount": 212,
+  "approvedExistingDefaultsUnchanged": true,
+  "iniKeys": 245,
+  "newIniKeys": 0,
+  "hotkeyIdsUnchanged": 55,
+  "embeddedUpdaterBinaryLayoutVerified": true,
+  "amd64": true,
+  "crcValid": true,
+  "noCompression": true,
+  "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/8149f5a99c5c8ecc795bc2975419a781c4a44bb9/downloads/DarksidersGenesis_V1.147_SHIELD_NATIVE_STATUS_PRESENTATION_TEST.zip",
+  "httpStatus": 200,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "e2e519f7ea84d4b773fd7a31611779ae68308696",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "localBuild": false,
+  "localInstall": false,
+  "gameplayValidated": false,
+  "fpsMeasured": false,
+  "unchangedPaths": [
+    "src/DefaultSettings.h",
+    "src/NativeTpsFeature.cpp",
+    "src/NativeAimAssistFeature.cpp",
+    "src/DashCombatFeature.cpp",
+    "src/ForeignWrathFeature.cpp",
+    "src/StoneSkinVisual.cpp",
+    "src/PistolVisualFeature.cpp"
+  ]
+}

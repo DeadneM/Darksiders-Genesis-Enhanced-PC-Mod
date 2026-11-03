@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.147_SHIELD_NATIVE_STATUS_PRESENTATION_TEST.zip",
+  "blobSha": "c6f12f704fc97557bcc98a986d655cfb4d6f1508",
+  "httpStatus": 200,
+  "sha256": "CD019F7E03A68B62236ACFEAC98841C0E356BE6D9CF74210019F190070017E04",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}

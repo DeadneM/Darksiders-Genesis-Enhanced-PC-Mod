@@ -1,6 +1,6 @@
-## V1.147 — bouclier : véritable référence native, rendu réglable et ressources
+## V1.147 — bouclier : référence native réelle, original réglable et chargement ciblé
 
-**EN PRÉPARATION / EXPÉRIMENTAL.** V1.146 bouclier non validé par le joueur ; cause observée : +0x58 est nul, le suivi ne s'appliquait pas. Nouveau visuel privé lié à la vraie référence+0x78 ; Native/Original réglable distincts, 28 choix, chargement du seul effet sélectionné et taille0 pour bouclier/Léviathan. [Périmètre, preuves et essais](V1_147_SHIELD_NATIVE_STATUS_PRESENTATION_TEST.md). Crash RenderThread du 3 novembre conservé et analysé, cause non confirmée, aucun correctif RHI annoncé. Aucun autre sujet déclaré résolu.
+**CONSTRUIT / CONTRÔLÉ, EXPÉRIMENTAL en jeu ; disponible sur debug, non installé par l'agent.** Base V1.146 bouclier repris après retour non validé : vrai composant+0x78, ancien garde+0x58 nul corrigé, rendu privé et réglages actifs. Taille0 bouclier/Léviathan ; Native et Original réglable distincts ; 28 choix/26 effets, chargement du seul effet sélectionné. **74/74 suites GitHub**, ZIP/updater contrôlés, 245 valeurs et 55 actions conservées, main/archive intacts. [Livraison, limites et essais](V1_147_DELIVERY_RECEIPT.md). Crash RenderThread après cinématique du 3 novembre analysé et sauvegardé, cause non confirmée ; aucun correctif RHI annoncé. Autres sujets ouverts inchangés.
 
 ---
 
@@ -190,7 +190,7 @@ Base acceptee V1.130 ; mode Global / sept munitions V1.131, valeurs par defaut e
 
 **CONSTRUITE / CONTROLEE ; NOUVELLE AIDE NON VALIDEE EN JEU.** V1.130 explicitement validee par l'utilisateur devient la base. Ajout demande : aide TPS0..100%, Global ou Per ammunition (sept valeurs), saisie manuelle/Default ;0 par defaut conserve V1.130. Meme calcul de cible3D pour les consommateurs, cible native visible dans un cone borne ; aucune rotation d'acteur ou nouveau hook.
 
-Neuf nouvelles cles /227 au total ;218 anciennes valeurs et55ID Hotkeys conserves. Modeles/pose UI/Statique V1.130, cameras/input et autres acquis preserves. [Perimetre, limites et essai](V1_131_TPS_AIM_ASSIST_TEST.md), [validation V1.130](evidence/V1_130_USER_VALIDATION.json). Construction GitHub seulement ; V1.131 installee sur demande, INI conserve, jeu non lance. main reste V1.124, archive et anciens ZIP intacts. Les sections suivantes sont historiques.
+Neuf nouvelles cles /227 au total ;218 anciennes valeurs et 55ID Hotkeys conserves. Modeles/pose UI/Statique V1.130, cameras/input et autres acquis preserves. [Perimetre, limites et essai](V1_131_TPS_AIM_ASSIST_TEST.md), [validation V1.130](evidence/V1_130_USER_VALIDATION.json). Construction GitHub seulement ; V1.131 installee sur demande, INI conserve, jeu non lance. main reste V1.124, archive et anciens ZIP intacts. Les sections suivantes sont historiques.
 
 Installation V1.131 demandee et verifiee : sauvegarde V1.130 `before-V1.131-20261029-212759-8dd7d05e`, ASI/DXGI/README relus, INI personnel byte-identique, PAK/EXE preserves. [Preuve](evidence/V1_131_INSTALL_CHECK.json).
 

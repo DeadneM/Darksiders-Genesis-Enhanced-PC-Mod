@@ -1,0 +1,36 @@
+{
+  "base": "44ec0ba",
+  "unchangedSources": [
+    "src/DefaultSettings.h",
+    "src/ConfigStore.h",
+    "src/ConfigStore.cpp",
+    "config/DarksidersGenesisMod.ini",
+    "src/NativeTpsFeature.cpp",
+    "src/NativeAimAssistFeature.cpp",
+    "src/PistolVisualFeature.cpp",
+    "src/StoneSkinVisual.cpp",
+    "src/DashCombatFeature.cpp",
+    "src/ForeignWrathFeature.cpp",
+    "src/CameraTraceFeature.cpp",
+    "src/TpsCameraFocus.h"
+  ],
+  "existingIniKeys": 245,
+  "newIniKeys": 0,
+  "hotkeyIdsUnchanged": 55,
+  "assetsUnchanged": 460,
+  "rolesUnchangedExceptShield": 99,
+  "shieldChoices": 28,
+  "priorShieldChoice0to5Preserved": true,
+  "oldFactoryTrackingRemoved": true,
+  "crashRendererNotPatched": true,
+  "localCompile": false,
+  "localInstall": false,
+  "gameplayValidated": false,
+  "bootstrapOnlyChange": "effect appearance API signature validation before existing blade/Lava detour",
+  "bootstrapTestPassed": true,
+  "twoPassComparison": {
+    "pass1": "VM_READ native status vs old source guard; +58 null demonstrated, fixture corrected",
+    "pass2": "ABI/ownership/cleanup and startup-order review; removed obsolete factory tracking, bootstrap guard added"
+  },
+  "compiledSource": "28266fdfe2609e19497ea0c4c7d27e994084c317"
+}
