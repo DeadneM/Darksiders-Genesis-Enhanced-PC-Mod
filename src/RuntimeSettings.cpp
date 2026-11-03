@@ -60,6 +60,7 @@ void Publish(const Snapshot& s) {
     g_state.thirdPersonEnabled.store(s.thirdPersonEnabled, std::memory_order_relaxed);
     g_state.thirdPersonFovEnabled.store(s.thirdPersonFovEnabled);
     g_state.tpsLensFocusEnabled.store(s.tpsLensFocusEnabled);
+    g_state.renderCrashGuardEnabled.store(s.renderCrashGuardEnabled,std::memory_order_relaxed);
     g_state.nativeBlur.Publish(s.nativeBlur);
     g_state.tpsBlur.Publish(s.tpsBlur);
     g_state.cameraOrbitInputEnabled.store(s.cameraOrbitInputEnabled, std::memory_order_relaxed);

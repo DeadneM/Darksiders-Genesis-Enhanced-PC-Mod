@@ -92,7 +92,7 @@ inline constexpr std::array<FamilyInfo,FamilyCount> Families={{
 {L"NephilimCoreAppearance","Nephilim blast","Creature cores",{"Native","Level 1","Level 2","Level 3","Hidden"},5},
 {L"AstarteCoreAppearance","Astarte","Creature cores",{"Native","Hidden"},2},
 {L"ScarabCoreAppearance","Scarab acid","Creature cores",{"Native","Hidden"},2},
-{L"ShieldDemonCoreAppearance","Legion shieldbearer","Creature cores",{"Native (game behavior)","Hidden","Belial barrier","Dagon shield","Sphere shield (Borrower)","Water sphere","Original effect (adjustable)","Grasping shadows","Nature healing aura","Molten core 1","Molten core 2","Molten core 3","Vampiric light","Vampiric 1","Vampiric 2","Vampiric 3","Hotstreak aura","Charge body","Gravity body","Charge aura 1","Charge aura 2","Vortex charge","Tremor ground charge","Caltrops ground glyph","Revive Strife","Revive War","Earthsplitter charge","Tremor fist charge"},28,1},
+{L"ShieldDemonCoreAppearance","Legion shieldbearer","Creature cores",{"Native (game behavior)","Hidden","Belial barrier","Dagon shield","Sphere shield (Borrower)","Water sphere","Original effect (adjustable)",nullptr,"Nature healing aura","Molten core 1","Molten core 2","Molten core 3",nullptr,nullptr,nullptr,nullptr,"Hotstreak aura","Charge body","Gravity body","Charge aura 1","Charge aura 2","Vortex charge","Tremor ground charge","Caltrops ground glyph","Revive Strife","Revive War","Earthsplitter charge","Tremor fist charge"},28,1},
 {L"LegionCoreAppearance","Legion","Creature cores",{"Native","Hidden"},2},
 {L"OtherStrifeFxAppearance","Other Strife effects","Other effects",{"Native","Hidden"},2},
 {L"OtherWarFxAppearance","Other War effects","Other effects",{"Native","Hidden"},2},
@@ -100,6 +100,15 @@ inline constexpr std::array<FamilyInfo,FamilyCount> Families={{
 {L"TremorSurfaceAppearance","Tremor surface impact","Tools",{"Native","Gold debris","Metal debris","Stone debris","Water splash","Hidden"},6},
 {L"StingerCoreAppearance","Stinger crystal","Creature cores",{"Native","Hidden"},2},
 }};
-inline constexpr int Normalize(unsigned family,int choice){return family<FamilyCount&&choice>=0&&unsigned(choice)<Families[family].count?choice:0;}
+inline constexpr bool RetiredChoice(unsigned family,int choice){return family==unsigned(Family::ShieldDemonCore)&&(choice==7||(choice>=12&&choice<=15));}
+inline constexpr int Normalize(unsigned family,int choice){return family<FamilyCount&&choice>=0&&unsigned(choice)<Families[family].count&&!RetiredChoice(family,choice)?choice:0;}
+struct ChoiceMenu {std::array<const char*,32> labels{};std::array<int,32> values{};int count=0;};
+inline constexpr ChoiceMenu VisibleChoices(unsigned family){
+    ChoiceMenu menu;if(family>=FamilyCount)return menu;
+    for(int value=0;value<int(Families[family].count);++value)if(Normalize(family,value)==value&&Families[family].choices[value]){
+        menu.labels[menu.count]=Families[family].choices[value];menu.values[menu.count++]=value;
+    }
+    return menu;
+}
 inline constexpr int Hidden(unsigned family){return Families[family].hiddenChoice>=0?Families[family].hiddenChoice:int(Families[family].count)-1;}
 }

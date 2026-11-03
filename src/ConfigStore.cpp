@@ -347,6 +347,7 @@ void Store::ResetDefaults(bool persist) {
     thirdPersonEnabled = true;
     thirdPersonFovEnabled = true;
     tpsLensFocusEnabled = true;
+    renderCrashGuardEnabled = true;
     nativeBlur=camera_blur::NativeDefaults;tpsBlur=camera_blur::TpsDefaults;
     cameraOrbitInputEnabled = true;
     cameraControllerOrbitEnabled = true;
@@ -666,6 +667,7 @@ bool Store::Load() {
         ReadBool(L"Features", L"ThirdPerson", true, path_);
     thirdPersonFovEnabled=ReadBool(L"Features",L"TPSFOV",true,path_);
     tpsLensFocusEnabled=ReadBool(L"Features",L"TPSLensFocus",true,path_);
+    renderCrashGuardEnabled=ReadBool(L"Features",L"RenderCrashGuard",true,path_);
     nativeBlur.disabled=ReadBool(L"Features",L"DisableNativeDOF",false,path_);
     nativeBlur.custom=ReadBool(L"Features",L"NativeCustomDOF",camera_blur::NativeDefaults.custom,path_);
     nativeBlur.distanceMeters=std::clamp(ReadFloat(L"Values",L"NativeDOFDistanceMeters",camera_blur::NativeDefaults.distanceMeters,path_),0.0f,camera_blur::MaxDistanceMeters);
@@ -990,6 +992,7 @@ void Store::PublishRuntime() const {
     runtime.thirdPersonEnabled = thirdPersonEnabled;
     runtime.thirdPersonFovEnabled = thirdPersonFovEnabled;
     runtime.tpsLensFocusEnabled = tpsLensFocusEnabled;
+    runtime.renderCrashGuardEnabled = renderCrashGuardEnabled;
     runtime.nativeBlur = nativeBlur;
     runtime.tpsBlur = tpsBlur;
     // Mouse TPS orbit shares the existing orbit result; it does not need
@@ -1205,6 +1208,7 @@ bool Store::SaveNow() {
     WriteBool(L"Features", L"ThirdPerson", thirdPersonEnabled, path_);
     WriteBool(L"Features",L"TPSFOV",thirdPersonFovEnabled,path_);
     WriteBool(L"Features",L"TPSLensFocus",tpsLensFocusEnabled,path_);
+    WriteBool(L"Features",L"RenderCrashGuard",renderCrashGuardEnabled,path_);
     WriteBool(L"Features",L"DisableNativeDOF",nativeBlur.disabled,path_);
     WriteBool(L"Features",L"NativeCustomDOF",nativeBlur.custom,path_);
     WriteFloat(L"Values",L"NativeDOFDistanceMeters",nativeBlur.distanceMeters,path_);

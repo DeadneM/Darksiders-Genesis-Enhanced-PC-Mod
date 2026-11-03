@@ -57,6 +57,7 @@
 #include "CosmeticUnlockFeature.h"
 #include "LeviathanVisualFeature.h"
 #include "EffectAppearanceFeature.h"
+#include "RenderSafetyFeature.h"
 #include "UltimateDurationFeature.h"
 #include "ManualActionBinding.h"
 #include "TpsCameraFocus.h"
@@ -3851,6 +3852,7 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     if(!once.exchange(true))ReportStartupPhase(4,flags);
     ApplySkipIntroSetting(false);
     UpdateCameraDof();
+    dg::render_safety::Report();
 
     ProcessInput();
     g_config.FlushIfDue(false);
@@ -4457,6 +4459,7 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::mounted_holsters::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::pistol_visual::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::execution_camera::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::render_safety::Initialize(&FeatureLog,g_targetValidation.exact);
     // Validate the original shared emitter before the blade FX detour is installed.
     dg::leviathan_visual::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::effect_appearance::Initialize(&FeatureLog,g_targetValidation.exact);

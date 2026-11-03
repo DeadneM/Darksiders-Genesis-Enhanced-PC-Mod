@@ -303,6 +303,7 @@ public:
     bool thirdPersonEnabled = true;
     bool thirdPersonFovEnabled = true;
     bool tpsLensFocusEnabled = true;
+    bool renderCrashGuardEnabled = true;
     camera_blur::Profile nativeBlur=camera_blur::NativeDefaults,tpsBlur=camera_blur::TpsDefaults;
     bool cameraOrbitInputEnabled = true; // derived: controller-only TPS camera
     bool cameraControllerOrbitEnabled = true;

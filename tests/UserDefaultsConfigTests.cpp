@@ -36,6 +36,7 @@ int main(int argc,char** argv){
     check(generated.Load(),"missing INI generated from compiled defaults");
     check(generated.updaterAutoCheck,"approved defaults check the selected update channel at startup");
     check(generated.tps3DAimEnabled&&dg::runtime::Get().tps3DAimEnabled.load(),"missing option enables 3D aiming by default");
+    check(generated.renderCrashGuardEnabled&&dg::runtime::Get().renderCrashGuardEnabled.load(),"captured subtitle crash guard defaults ON in store and runtime");
     check(generated.tpsLensFocusEnabled&&dg::runtime::Get().tpsLensFocusEnabled.load(),"TPS lens experiment defaults ON in store and runtime");
     check(!generated.nativeBlur.disabled&&!generated.tpsBlur.disabled&&generated.nativeBlur.custom&&generated.tpsBlur.custom&&
         dg::runtime::Get().nativeBlur.Get().custom&&!dg::runtime::Get().tpsBlur.Get().disabled,

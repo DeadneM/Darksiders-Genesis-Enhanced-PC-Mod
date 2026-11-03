@@ -11,6 +11,10 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(RenderSafetyTests tests/RenderSafetyTests.cpp src/RuntimeSettings.cpp)
+  target_include_directories(RenderSafetyTests PRIVATE tests/stubs src)
+  target_compile_definitions(RenderSafetyTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+  add_test(NAME RenderSafety COMMAND RenderSafetyTests)
   add_executable(NativeAimAssistTests tests/NativeAimAssistTests.cpp src/RuntimeSettings.cpp)
   target_include_directories(NativeAimAssistTests PRIVATE tests/stubs src)
   target_compile_definitions(NativeAimAssistTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
@@ -408,6 +412,7 @@ file(WRITE "${DG_UPDATER_RC}" "101 RCDATA \"DarksidersGenesisUpdaterCLI.exe\"\n"
 set_source_files_properties("${DG_UPDATER_RC}" PROPERTIES OBJECT_DEPENDS "${DG_HELPER_EXE}")
 
 add_library(DarksidersGenesisMod SHARED
+  src/RenderSafetyFeature.cpp
   src/NativeTpsFeature.cpp
   src/DashCombatFeature.cpp
   src/InteractionHudFeature.cpp

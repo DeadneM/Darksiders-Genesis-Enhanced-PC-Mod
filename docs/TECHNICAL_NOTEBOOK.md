@@ -1,3 +1,17 @@
+## 3 novembre 2026 — V1.148 : sous-titres, cible stencil absente et cinq retraits
+
+V1.147 : autres fonctions expressément VALIDÉES par l'utilisateur. Quatre captures ont la même faute READ0x20 à RVA D5D0A1, dont une sans aucune ASI ni dxgi locale chargée. Désactiver le flou TPS ne change pas le crash ; essai iGPU également infructueux selon l'utilisateur. **Désactiver les deux catégories de sous-titres permet de passer la scène**, résultat confirmé par l'utilisateur. Cela établit un déclencheur dans cette scène, pas encore l'origine exacte de la commande invalide.
+
+Le paquet RHI contient une cible couleur, aucune texture profondeur/stencil, clearDepth=0, clearStencil=1, NumUAVs=0. Le moteur lit pourtant cette texture nulle à +0x20. Le paquet complet mesure **0x128** octets, avec huit pointeurs UAV à +0xE0 et leur compte à +0x120 : aucune copie tronquée à 0xE0. Nouveau garde expérimental à l'entrée D5CDD0 : exécutable exact et quatre signatures requises ; pour la seule combinaison capturée, copie privée complète puis seul clearStencil+0xD9 passe à zéro. Appel natif unique ; tous les autres cas gardent le pointeur d'origine. Aucune allocation, journalisation, réflexion UObject ou API graphique supplémentaire dans le hook. Compteur atomique et rapport différé depuis Present. Case Camera désactivable, nouvelle clé Features.RenderCrashGuard=1 ; 245 anciennes valeurs et 55 actions conservées.
+
+Important : l'ASI écrit bien **[SystemSettings] r.GraphicsAdapter** dans le fichier persistant Engine.ini au démarrage et depuis son menu (EngineIniFeature, inchangé). Retirer le chargeur n'annule pas cette écriture antérieure. Ne pas présenter le test sans ASI comme une remise à zéro de la configuration. Le crash au démarrage du chargeur alternatif est un échec distinct ; sa cause n'est pas établie, son binaire n'est plus présent pour comparaison. Aucun changement du proxy accepté.
+
+Palette Legion uniquement : IDs 7 et 12–15 retirés ; autres numéros stockés stables, anciens choix retirés normalisés vers Native. Le menu compact convertit ses index en IDs ; Hotstreak reste ID16. 23 choix visibles. Les 460 assets et 99 autres rôles de bibliothèque restent identiques, notamment les pouvoirs Vampiric/Grasping de War. Deux revues : périmètre source/configuration puis concordance indépendante des quatre dumps et des instructions binaires. Tests C++ à exécuter sur GitHub ; aucune compilation locale, installation ou validation en jeu.
+
+Voir [essai, limites et repli](V1_148_SUBTITLE_CRASH_TEST.md). Pose après munition, Stoneskin intermittent et dash aérien restent ouverts/reportés ; aucun correctif ajouté pour ces sujets.
+
+---
+
 ## V1.147 — bouclier : référence native réelle, original réglable et chargement ciblé
 
 **CONSTRUIT / CONTRÔLÉ, EXPÉRIMENTAL en jeu ; disponible sur debug, non installé par l'agent.** Base V1.146 bouclier repris après retour non validé : vrai composant+0x78, ancien garde+0x58 nul corrigé, rendu privé et réglages actifs. Taille0 bouclier/Léviathan ; Native et Original réglable distincts ; 28 choix/26 effets, chargement du seul effet sélectionné. **74/74 suites GitHub**, ZIP/updater contrôlés, 245 valeurs et 55 actions conservées, main/archive intacts. [Livraison, limites et essais](V1_147_DELIVERY_RECEIPT.md). Crash RenderThread après cinématique du 3 novembre analysé et sauvegardé, cause non confirmée ; aucun correctif RHI annoncé. Autres sujets ouverts inchangés.

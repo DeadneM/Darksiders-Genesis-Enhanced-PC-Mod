@@ -1,0 +1,106 @@
+[
+  {
+    "capture": "v260",
+    "fault": {
+      "module": "DarksidersGenesis-Win64-Shipping.exe",
+      "rva": "0xd5d0a1"
+    },
+    "asiLoaded": true,
+    "color0NonNull": true,
+    "colorTargets": 1,
+    "clearColor": 0,
+    "depthTexture": "0x0",
+    "depthActions": "0000020120000000",
+    "clearDepth": 0,
+    "clearStencil": 1,
+    "uavCount": 0,
+    "uavPointers": [
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0"
+    ]
+  },
+  {
+    "capture": "v261",
+    "fault": {
+      "module": "DarksidersGenesis-Win64-Shipping.exe",
+      "rva": "0xd5d0a1"
+    },
+    "asiLoaded": true,
+    "color0NonNull": true,
+    "colorTargets": 1,
+    "clearColor": 0,
+    "depthTexture": "0x0",
+    "depthActions": "0000020120000000",
+    "clearDepth": 0,
+    "clearStencil": 1,
+    "uavCount": 0,
+    "uavPointers": [
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0"
+    ]
+  },
+  {
+    "capture": "v261b",
+    "fault": {
+      "module": "DarksidersGenesis-Win64-Shipping.exe",
+      "rva": "0xd5d0a1"
+    },
+    "asiLoaded": true,
+    "color0NonNull": true,
+    "colorTargets": 1,
+    "clearColor": 0,
+    "depthTexture": "0x0",
+    "depthActions": "0000020120000000",
+    "clearDepth": 0,
+    "clearStencil": 1,
+    "uavCount": 0,
+    "uavPointers": [
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0"
+    ]
+  },
+  {
+    "capture": "v261n",
+    "fault": {
+      "module": "DarksidersGenesis-Win64-Shipping.exe",
+      "rva": "0xd5d0a1"
+    },
+    "asiLoaded": false,
+    "color0NonNull": true,
+    "colorTargets": 1,
+    "clearColor": 0,
+    "depthTexture": "0x0",
+    "depthActions": "0000020120000000",
+    "clearDepth": 0,
+    "clearStencil": 1,
+    "uavCount": 0,
+    "uavPointers": [
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0"
+    ]
+  }
+]

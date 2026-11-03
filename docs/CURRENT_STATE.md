@@ -1,3 +1,9 @@
+## V1.148 — essai du crash sous-titres et palette du bouclier épurée
+
+**PRÉPARÉ / EXPÉRIMENTAL, compilation GitHub en attente.** Base V1.147 validée par l'utilisateur hors crash : le même défaut natif existe sans chargeur/ASI ; les deux types de sous-titres désactivés permettent de passer la scène de Moloch. Garde désactivable du seul effacement stencil invalide capturé, sans couper les sous-titres ; quatre variantes Vampiric et Grasping shadows retirées de la seule palette Legion, autres identifiants conservés. Aucun changement des options de sous-titres, du chargeur, d'Engine.ini ou des fichiers du jeu par l'agent. [Périmètre, preuves et essais](V1_148_SUBTITLE_CRASH_TEST.md).
+
+---
+
 ## V1.147 — bouclier : référence native réelle, original réglable et chargement ciblé
 
 **CONSTRUIT / CONTRÔLÉ, EXPÉRIMENTAL en jeu ; disponible sur debug, non installé par l'agent.** Base V1.146 bouclier repris après retour non validé : vrai composant+0x78, ancien garde+0x58 nul corrigé, rendu privé et réglages actifs. Taille0 bouclier/Léviathan ; Native et Original réglable distincts ; 28 choix/26 effets, chargement du seul effet sélectionné. **74/74 suites GitHub**, ZIP/updater contrôlés, 245 valeurs et 55 actions conservées, main/archive intacts. [Livraison, limites et essais](V1_147_DELIVERY_RECEIPT.md). Crash RenderThread après cinématique du 3 novembre analysé et sauvegardé, cause non confirmée ; aucun correctif RHI annoncé. Autres sujets ouverts inchangés.

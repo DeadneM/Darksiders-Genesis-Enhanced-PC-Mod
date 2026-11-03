@@ -62,8 +62,13 @@ void Run(){
  for(int choice=0;choice<int(Families[legion].count);++choice){
   Select(legion,choice);const auto before=visibleCalls;HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);
   Check(sentAsset==f.assets[shield].bytes&&visibleCalls==before,"native shield factory and lifetime remain completely native for every choice");
-  if(choice>1)Check(ShieldAsset(choice,false)==f.assets[unsigned(Target(93,choice))].bytes,"each independent shield selection resolves the expected verified particle");
+  if(choice>1&&!RetiredChoice(legion,choice))Check(ShieldAsset(choice,false)==f.assets[unsigned(Target(93,choice))].bytes,"each independent shield selection resolves the expected verified particle");
  }
+ constexpr auto menu=VisibleChoices(unsigned(Family::ShieldDemonCore));
+ Check(menu.count==23&&menu.values[11]==16,"five retired choices removed without changing retained stored IDs");
+ for(int i=0;i<menu.count;++i)Check(menu.labels[i]&&Normalize(legion,menu.values[i])==menu.values[i]&&!RetiredChoice(legion,menu.values[i]),"compact menu contains only selectable stable IDs");
+ for(const auto retired:{7,12,13,14,15})Check(Normalize(legion,retired)==0&&Target(93,retired)==-1,"old removed presets safely fall back to Native");
+ Check(Normalize(unsigned(Family::Vampiric),2)==2,"normal War Vampiric library is preserved");
  const auto borrower=Find("P_Borrower_Shield");Select(legion,1);HookCreate(f.assets[borrower].bytes,f.worlds[0].bytes,nullptr,true,0);
  Check(sentAsset==f.assets[borrower].bytes&&!g_hiddenCount,"enemy shields do not inherit local core hiding");
  const auto nativeShield=g_assets[shield];g_assets[shield]={};Availability(GetTickCount64(),true);Check(!(LoadedMask(legion)&2u),"a loaded replacement alone never reports the native shield hide source ready");g_assets[shield]=nativeShield;

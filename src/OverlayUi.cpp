@@ -15,6 +15,7 @@
 #include "LeviathanVisualFeature.h"
 #include "EffectAppearanceFeature.h"
 #include "ShieldVisualFeature.h"
+#include "RenderSafetyFeature.h"
 #include <cstring>
 #include "UltimateDurationFeature.h"
 #include "GaugeChargeFeature.h"
@@ -925,11 +926,15 @@ void Draw(Context& c) {
             }
             const auto coreAppearance=[&](effect_appearance::Family selected,const char* title,const char* help){
                 if(layout::Group(title)){
-                    const auto family=unsigned(selected);const auto& info=effect_appearance::Families[family];
+                    const auto family=unsigned(selected);
                     ImGui::Indent();ImGui::PushID(int(family));HelpText(help);
                     const bool coreReady=effect_appearance::Ready()&&(selected!=effect_appearance::Family::ShieldDemonCore||shield_visual::Ready());
                     ImGui::BeginDisabled(!coreReady);
-                    if(Choice("Effect",&config.effectAppearances[family],info.choices.data(),int(info.count)))config.Save();
+                    const auto menu=effect_appearance::VisibleChoices(family);int selectedIndex=0;
+                    for(int i=0;i<menu.count;++i)if(menu.values[i]==config.effectAppearances[family])selectedIndex=i;
+                    if(Choice("Effect",&selectedIndex,menu.labels.data(),menu.count)){
+                        config.effectAppearances[family]=menu.values[selectedIndex];config.Save();
+                    }
                     ImGui::EndDisabled();
                     const int choice=effect_appearance::Normalize(family,config.effectAppearances[family]);
                     if(choice&&!(effect_appearance::LoadedMask(family)&(1u<<choice)))
@@ -953,6 +958,14 @@ void Draw(Context& c) {
         if (ImGui::BeginTabItem("Camera")) {
             ImGui::Spacing();
             DrawSectionTitle("Camera controls");
+            if(layout::Group("Render stability")){
+                ImGui::Indent();ImGui::BeginDisabled(!render_safety::Ready());
+                if(ImGui::Checkbox("Subtitle crash workaround (experimental)",&config.renderCrashGuardEnabled))config.Save();
+                ImGui::EndDisabled();HelpText("Guards the captured crash triggered by subtitles. Keeps game subtitle options and valid rendering unchanged.");
+                ImGui::TextDisabled("Guard: %s | avoided clears: %llu",render_safety::Ready()?"Ready":"Unavailable",
+                    static_cast<unsigned long long>(render_safety::AvoidedClears()));
+                ImGui::Unindent();
+            }
             ImGui::TextWrapped("TPS and the original game camera have independent saved settings.");
 
             const dg::camera_trace::Telemetry camera = dg::camera_trace::GetTelemetry();
