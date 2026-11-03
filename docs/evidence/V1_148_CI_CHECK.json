@@ -1,0 +1,27 @@
+{
+  "publication": {
+    "sourceCommit": "004b9f49216c5869944ec08d2d1c1bb391e2b4ae",
+    "runId": 41670091124,
+    "jobId": 126035821699,
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41670091124",
+    "conclusion": "success",
+    "testsPassed": 75,
+    "testsFailed": 0,
+    "compilerWarnings": [
+      "2026-11-03T16:05:55.4471884Z D:\\a\\Darksiders-Genesis-Enhanced-PC-Mod\\Darksiders-Genesis-Enhanced-PC-Mod\\tests\\RenderSafetyTests.cpp(17,46): warning C4312: 'reinterpret_cast': conversion from 'unsigned int' to 'void *' of greater size [D:\\a\\Darksiders-Genesis-Enhanced-PC-Mod\\Darksiders-Genesis-Enhanced-PC-Mod\\build\\RenderSafetyTests.vcxproj]"
+    ],
+    "note": "One C4312 in isolated test address fixture only; follow-up check-only run verifies explicit uintptr_t. Published runtime sources and ZIP remain unchanged."
+  },
+  "cleanTestOnlyFollowUp": {
+    "sourceCommit": "436d26736442636e8f818b3ccc67ce264471be7a",
+    "runId": 41671452502,
+    "jobId": 126040599037,
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/41671452502",
+    "conclusion": "success",
+    "testsPassed": 75,
+    "compilerWarnings": [],
+    "archivePublicationSkipped": true
+  },
+  "productionSourcesIdenticalBetweenRuns": true,
+  "archiveUnchanged": true
+}

@@ -1,10 +1,16 @@
+## V1.148 — livraison contrôlée
+
+75/75 suites sur les deux passes GitHub ; avertissement C4312 du seul test nettoyé lors du second contrôle, production identique et archive originale inchangée. ZIP/updater/Defender et branches protégées vérifiés. 212 anciennes archives conservées. Proxy .text et exports identiques à V1.147. Aucun essai/installation en jeu par l'agent ; passage Moloch avec sous-titres ON attendu. [Reçu complet](V1_148_DELIVERY_RECEIPT.md).
+
+---
+
 ## 3 novembre 2026 — V1.148 : sous-titres, cible stencil absente et cinq retraits
 
 V1.147 : autres fonctions expressément VALIDÉES par l'utilisateur. Quatre captures ont la même faute READ0x20 à RVA D5D0A1, dont une sans aucune ASI ni dxgi locale chargée. Désactiver le flou TPS ne change pas le crash ; essai iGPU également infructueux selon l'utilisateur. **Désactiver les deux catégories de sous-titres permet de passer la scène**, résultat confirmé par l'utilisateur. Cela établit un déclencheur dans cette scène, pas encore l'origine exacte de la commande invalide.
 
 Le paquet RHI contient une cible couleur, aucune texture profondeur/stencil, clearDepth=0, clearStencil=1, NumUAVs=0. Le moteur lit pourtant cette texture nulle à +0x20. Le paquet complet mesure **0x128** octets, avec huit pointeurs UAV à +0xE0 et leur compte à +0x120 : aucune copie tronquée à 0xE0. Nouveau garde expérimental à l'entrée D5CDD0 : exécutable exact et quatre signatures requises ; pour la seule combinaison capturée, copie privée complète puis seul clearStencil+0xD9 passe à zéro. Appel natif unique ; tous les autres cas gardent le pointeur d'origine. Aucune allocation, journalisation, réflexion UObject ou API graphique supplémentaire dans le hook. Compteur atomique et rapport différé depuis Present. Case Camera désactivable, nouvelle clé Features.RenderCrashGuard=1 ; 245 anciennes valeurs et 55 actions conservées.
 
-Important : l'ASI écrit bien **[SystemSettings] r.GraphicsAdapter** dans le fichier persistant Engine.ini au démarrage et depuis son menu (EngineIniFeature, inchangé). Retirer le chargeur n'annule pas cette écriture antérieure. Ne pas présenter le test sans ASI comme une remise à zéro de la configuration. Le crash au démarrage du chargeur alternatif est un échec distinct ; sa cause n'est pas établie, son binaire n'est plus présent pour comparaison. Aucun changement du proxy accepté.
+Important : l'ASI écrit bien **[SystemSettings] r.GraphicsAdapter** dans le fichier persistant Engine.ini au démarrage et depuis son menu (EngineIniFeature, inchangé). Retirer le chargeur n'annule pas cette écriture antérieure. Ne pas présenter le test sans ASI comme une remise à zéro de la configuration. Le crash au démarrage du chargeur alternatif est un échec distinct ; sa cause n'est pas établie, son binaire a ensuite été retrouvé dans Downloads (Ultimate ASI Loader 10.0.2 x64, exports DXGI requis présents), sans cause du blocage démontrée. Aucun changement du proxy accepté.
 
 Palette Legion uniquement : IDs 7 et 12–15 retirés ; autres numéros stockés stables, anciens choix retirés normalisés vers Native. Le menu compact convertit ses index en IDs ; Hotstreak reste ID16. 23 choix visibles. Les 460 assets et 99 autres rôles de bibliothèque restent identiques, notamment les pouvoirs Vampiric/Grasping de War. Deux revues : périmètre source/configuration puis concordance indépendante des quatre dumps et des instructions binaires. Tests C++ à exécuter sur GitHub ; aucune compilation locale, installation ou validation en jeu.
 

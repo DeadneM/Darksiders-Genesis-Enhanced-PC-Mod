@@ -1,0 +1,59 @@
+{
+  "archive": "dxgi-x64.zip",
+  "archiveSize": 7468154,
+  "entries": [
+    "dxgi.dll",
+    "dxgi-x64.SHA512"
+  ],
+  "dllName": "dxgi.dll",
+  "dllSize": 7467688,
+  "dllSha256": "FA2B9BD317BB597906BC2C4CC2008C1444E50BFDC367E648D18F36F015812E27",
+  "machine": "0x8664",
+  "version": {
+    "CompanyName": "ThirteenAG",
+    "FileDescription": "Ultimate ASI Loader",
+    "FileVersion": "10.0.2",
+    "InternalName": "Ultimate-ASI-Loader",
+    "LegalCopyright": "Copyright (C) ThirteenAG. MIT License",
+    "OriginalFilename": "dinput8.dll",
+    "ProductName": "Ultimate-ASI-Loader",
+    "ProductVersion": "10.0.2.0-56fa0b0",
+    "UpdateUrl": "https://github.com/ThirteenAG/Ultimate-ASI-Loader",
+    "GitHash": "56fa0b0"
+  },
+  "gameImports": {
+    "WINMM.dll": [
+      "timeEndPeriod",
+      "timeBeginPeriod",
+      "waveOutGetNumDevs"
+    ],
+    "dxgi.dll": [
+      "CreateDXGIFactory1",
+      "CreateDXGIFactory"
+    ]
+  },
+  "missingRequiredDxgiNames": [],
+  "alternativeExportCount": 861,
+  "ourMissingFromAlternative": [
+    "DGReportStartupPhase",
+    "DGSetSkipLogosEnabled",
+    "DGSetSkipWarningEnabled",
+    "DGSkipLogosEnabled",
+    "DGSkipLogosPatched",
+    "DGSkipLogosTargetValid",
+    "DGSkipWarningApplied",
+    "DGSkipWarningAttempted",
+    "DGUnifiedLogActive"
+  ],
+  "alternativeImports": [
+    "USER32.dll",
+    "KERNEL32.dll",
+    "GDI32.dll",
+    "ADVAPI32.dll",
+    "SHELL32.dll",
+    "ole32.dll"
+  ],
+  "nativeExecuted": false,
+  "installationChanged": false,
+  "causeEstablished": false
+}

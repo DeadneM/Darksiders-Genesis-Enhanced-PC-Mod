@@ -1,6 +1,7 @@
 ## V1.148 — essai du crash sous-titres et palette du bouclier épurée
 
-**PRÉPARÉ / EXPÉRIMENTAL, compilation GitHub en attente.** Base V1.147 validée par l'utilisateur hors crash : le même défaut natif existe sans chargeur/ASI ; les deux types de sous-titres désactivés permettent de passer la scène de Moloch. Garde désactivable du seul effacement stencil invalide capturé, sans couper les sous-titres ; quatre variantes Vampiric et Grasping shadows retirées de la seule palette Legion, autres identifiants conservés. Aucun changement des options de sous-titres, du chargeur, d'Engine.ini ou des fichiers du jeu par l'agent. [Périmètre, preuves et essais](docs/V1_148_SUBTITLE_CRASH_TEST.md).
+**CONSTRUIT / CONTRÔLÉ sur debug : 75/75 suites GitHub ; correctif EXPÉRIMENTAL en jeu, non installé par l'agent.** Base V1.147 validée hors crash. Garde désactivable de la commande stencil invalide capturée ; sous-titres conservés, aucun réglage du jeu forcé. Quatre variantes Vampiric et Grasping shadows retirées de la seule palette Legion : 23 choix visibles et IDs restants stables. ZIP/updater vérifiés, 245 anciennes valeurs et 55 actions conservées ; code machine du proxy identique à V1.147. [Livraison et essai avec sous-titres réactivés](docs/V1_148_DELIVERY_RECEIPT.md).
+
 
 ---
 

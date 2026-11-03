@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.148_STENCIL_TARGET_GUARD_TEST.zip",
+  "blobSha": "3e2490f451557161de6ab605abca5203bf492a1c",
+  "httpStatus": 200,
+  "sha256": "FD32078FD0E60602AFB6CD545984BEA76E89DB5FC490F203059AADD39DB34B94",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}
