@@ -14,7 +14,7 @@ void Run(){
     const unsigned char actions[]={0,0,2,1,0x20,0,0,0};std::memcpy(b.data()+0xD0,actions,8);b[0xD9]=1;
     // Preserve even unused/padding/UAV bytes. The count is zero in all four dumps.
     for(size_t i=0xE0;i<0x120;++i)b[i]=static_cast<unsigned char>(i);
-    const auto before=captured;void* context=reinterpret_cast<void*>(0x87654321);
+    const auto before=captured;void* context=reinterpret_cast<void*>(uintptr_t{0x87654321});
     Check(Forward(Original,context,b.data(),true)&&calls==1&&seenContext==context&&seenInput!=b.data(),"one call with the same context and a private packet");
     Check(captured.bytes==before.bytes,"caller input and full UAV tail remain unchanged");
     unsigned differences=0;for(size_t i=0;i<TargetsBytes;++i)if(seen.bytes[i]!=before.bytes[i]){++differences;Check(i==0xD9&&seen.bytes[i]==0,"only the impossible stencil clear is removed");}
