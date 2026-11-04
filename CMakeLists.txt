@@ -45,6 +45,13 @@ if(BUILD_TESTING)
   target_include_directories(RangedStateFeatureTests PRIVATE tests/stubs src)
   target_compile_definitions(RangedStateFeatureTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
   add_test(NAME RangedStateFeature COMMAND RangedStateFeatureTests)
+  add_executable(AirDashGestureTests tests/AirDashGestureTests.cpp)
+  target_include_directories(AirDashGestureTests PRIVATE src)
+  add_test(NAME AirDashGesture COMMAND AirDashGestureTests)
+  add_executable(AirDashFeatureTests tests/AirDashFeatureTests.cpp)
+  target_include_directories(AirDashFeatureTests PRIVATE tests/stubs src)
+  target_compile_definitions(AirDashFeatureTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+  add_test(NAME AirDashFeature COMMAND AirDashFeatureTests)
 
   add_executable(AimShaderCatalogTests tests/AimShaderCatalogTests.cpp)
   target_include_directories(AimShaderCatalogTests PRIVATE src)
@@ -432,6 +439,7 @@ add_library(DarksidersGenesisMod SHARED
   src/NativeTpsFeature.cpp
   src/DashCombatFeature.cpp
   src/RangedStateFeature.cpp
+  src/AirDashFeature.cpp
   src/InteractionHudFeature.cpp
   src/WeaponSheathingFeature.cpp
   src/ManualAimFeature.cpp

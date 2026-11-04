@@ -34,10 +34,17 @@
   "airDash": {
     "performDashScriptBytes": 716,
     "fallSpeed": 5000,
-    "forwardSpeed": 0,
+    "forwardSpeed": 3000,
     "timeout": 3,
-    "timeoutSemanticsProven": false,
-    "shortLongRuleImplemented": false,
-    "newRequest": "short downward; held forward even airborne"
+    "timeoutSemanticsProven": true,
+    "shortLongRuleImplemented": true,
+    "newRequest": "short downward; held forward even airborne",
+    "scope": "Strife on foot; both views; native ground/horse/War unchanged",
+    "holdMilliseconds": 180,
+    "forwardSeconds": 0.24,
+    "fallSpeedForward": 0,
+    "newHook": false,
+    "movementModeWrite": false,
+    "gameValidated": false
   }
 }

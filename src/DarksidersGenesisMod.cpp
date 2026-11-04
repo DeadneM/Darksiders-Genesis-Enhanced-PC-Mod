@@ -43,6 +43,7 @@
 #include "GlideFeature.h"
 #include "DashCombatFeature.h"
 #include "RangedStateFeature.h"
+#include "AirDashFeature.h"
 #include "InteractionHudFeature.h"
 #include "WeaponSheathingFeature.h"
 #include "ManualAimFeature.h"
@@ -1459,6 +1460,7 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     dg::selected_recovery::loadingAllowed=!g_overlayVisible.load()&&gameplayWindow&&
         GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load();
     dg::ranged_state::OnLivePlayer(owner,generation,dg::selected_recovery::loadingAllowed);
+    dg::air_dash::OnLivePlayer(owner,generation,dg::selected_recovery::loadingAllowed);
     dg::heavy_landing::OnLivePlayer(owner,generation,!g_overlayVisible.load()&&gameplayWindow&&
         GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load());
     dg::recovery_tail::OnLivePlayer(owner,generation,!g_overlayVisible.load()&&gameplayWindow&&
@@ -4204,6 +4206,7 @@ void ShutdownMod() {
     dg::effect_appearance::Shutdown();
     dg::dash_combat::Shutdown();
     dg::ranged_state::Shutdown();
+    dg::air_dash::Shutdown();
     dg::dash_combat::Report();
     // Release the supported synthetic horse key before teardown.
     if(g_horseSyntheticHDown.exchange(false))EmitKeyboardVirtualKey('H',false);
@@ -4453,6 +4456,7 @@ DWORD WINAPI MainThread(LPVOID) {
     // Validate the native sound entry before the shared dash audio detour.
     dg::wrath_slots::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::dash_combat::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::air_dash::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::interaction_hud::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::sheathing::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::manual_aim::Initialize(&FeatureLog,g_targetValidation.exact);

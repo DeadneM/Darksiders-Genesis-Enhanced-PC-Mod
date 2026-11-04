@@ -8,4 +8,5 @@ void Shutdown();
 void OnLivePlayer(void* actor);
 void Report();
 bool PresentationReady();
+bool TickReady();
 }

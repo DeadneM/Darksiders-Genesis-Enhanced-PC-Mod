@@ -118,6 +118,7 @@ namespace dg::native_tps {
 bool OnGameThread(){return gameThread;}bool IsWorldPaused(void*){return paused;}
 bool CinematicActive(unsigned i){return i<2&&cinema[i];}bool RadialActive(unsigned i){return i<2&&radial[i];}
 }
+namespace dg::air_dash {bool ProcessAction(Dispatch,void*,unsigned char){return false;}}
 namespace dg::local_players {
 bool Matches(unsigned i,uintptr_t character,uint32_t generation){return i<2&&character==owners[i].character&&generation==7+i;}
 Slot PublishedSlot(unsigned i){if(i>1)return {};const auto& o=owners[i];return {o.localPlayer,o.character,o.controllerId,now,7+i};}

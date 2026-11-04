@@ -65,7 +65,7 @@ void Initialize(LogFn log,bool exactExecutable){
     g_query=reinterpret_cast<Query>(g_base+0x669D30);g_event=reinterpret_cast<Event>(g_base+0xAC0630);g_ready=true;
 }
 void OnLivePlayer(const local_players::Context& c,uint32_t generation,bool gameplayAllowed){
-    if(!g_ready.load()||g_servicing||!native_tps::OnGameThread()||c.index<0||c.index>=2)return;
+    if(!g_ready.load()||!native_tps::OnGameThread()||g_servicing||c.index<0||c.index>=2)return;
     auto& state=g_players[unsigned(c.index)];
     if(c.kind!=local_players::PoseKind::Foot||c.character!=c.pawn||!c.character||!c.world||!c.localPlayer||!c.controller){state={};return;}
     uintptr_t cls=0,package=0,controller=0,pawn=0,resource=0;unsigned char role=0;float health=0;

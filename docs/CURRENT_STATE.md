@@ -1,6 +1,6 @@
-## 4 novembre 2026 — retour V1.151 et préparation V1.152
+## 4 novembre 2026 — lot V1.152 préparé
 
-**Non livré ; expérimental, contrôles GitHub à effectuer.** Trait/arc validé utilisateur et conservé. Ancien garde LAND/MOVE rejeté retiré ; cible dash aérien court/long demandée, pas encore implémentée. Préparation de la sortie de visée indépendante du déclencheur (garde natif refusait `Mode`/`mode`) et de Stoneskin sur les matériaux dynamiques natifs fortement retenus. GPU V1.151 reste à tester. Aucun jeu lancé, appel moteur par le lecteur externe ou installation. [Preuves, limites et suite](V1_152_LIFECYCLE_PREPARATION.md).
+**Non livré ; EXPÉRIMENTAL en jeu.** Premier contrôle GitHub de visée/Stoneskin : 79/79 ; complément court/long à contrôler. Trait/arc validé conservé. Ancien garde LAND/MOVE retiré ; court/long aérien Strife implémenté : seuil180ms, physique avant et durée natives0,24s. Sortie de visée indépendante du déclencheur (`Mode`/`mode`) et Stoneskin compatible avec les enveloppes natives de matériaux. Aucun nouveau hook, commande imposée, changement d'INI ou installation. GPU V1.151 reste à tester. [Preuves, limites et suite](V1_152_LIFECYCLE_PREPARATION.md).
 
 ---
 

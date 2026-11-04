@@ -1,4 +1,5 @@
 #include "DashCombatFeature.h"
+#include "AirDashFeature.h"
 #include "PistolVisualFeature.h"
 #include "MeleeEffectFeature.h"
 #include "ForeignCaltropsFeature.h"
@@ -233,8 +234,9 @@ void Tick(void* ability,float dt,ULONGLONG now){
         g_resume[owner.index].Observe(owner.localPlayer,owner.character,
             reinterpret_cast<uintptr_t>(ability),elapsedDash,now);
 }
-void HookTick(void* ability,float dt){Tick(ability,dt,GetTickCount64());}
+void HookTick(void* ability,float dt){air_dash::BeforeTick(ability);Tick(ability,dt,GetTickCount64());air_dash::AfterTick(ability);}
 }
+bool TickReady(){return g_ready.load(std::memory_order_acquire);}
 void Initialize(LogFn log,bool exactExecutable){
     g_log=log;if(!exactExecutable)return;
     g_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));

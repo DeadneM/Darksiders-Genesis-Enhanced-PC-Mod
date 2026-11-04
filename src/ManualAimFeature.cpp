@@ -1,4 +1,5 @@
 #include "ManualAimFeature.h"
+#include "AirDashFeature.h"
 #include "NativeMemoryReader.h"
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
@@ -56,6 +57,7 @@ void Reset(unsigned index,State& state,bool armed){
     Active(index,false);
 }
 void HookDispatch(void* iface,unsigned char action){
+    if(air_dash::ProcessAction(g_dispatch,iface,action))return;
     if(g_ready.load(std::memory_order_acquire)&&(action==Aim||action==ReleaseAim)&&native_tps::OnGameThread()){
         const auto address=reinterpret_cast<uintptr_t>(iface);
         native_objects::MemoryReader reader;

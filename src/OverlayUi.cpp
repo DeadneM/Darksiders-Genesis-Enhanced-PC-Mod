@@ -336,6 +336,7 @@ void Draw(Context& c) {
             }
             if(layout::Group("Player movement")){
             ImGui::Indent();
+            ImGui::TextDisabled("Strife air dash: tap down / hold forward (0.18 s).");
             DrawTunableFeature(config,"Heavy landing movement recovery","HeavyLandingRecovery",&config.heavyLandingRecoveryEnabled,
                 &config.heavyLandingDelaySeconds,.05f,.8f,.15f,"%.3f s",
                 "Delay from the start of a heavy landing before movement can interrupt it. Uses the timing accepted in V1.126. Staying still keeps the animation; the game handles cancellation. Native and TPS views. Does not change dashes or attacks.",heavy_landing::Ready(),nullptr,"Recovery delay");
