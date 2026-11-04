@@ -407,6 +407,7 @@ bool SuppressAirLandingEvent(void* ability,void* function,void* parameters){
        !Read(table,0x2A8,cleanup)||cleanup!=g_base+0x59BF80||!Read(ability,0x48,actor)||!Read(ability,0x1B0,character)||
        character!=actor||!CombatOwner(actor,owner)||native_tps::RadialActive(unsigned(owner.index))||
        !Read(actor,0x8D0,table)||!Read(table,0x18,query)||query!=reinterpret_cast<uintptr_t>(g_actionQuery))return false;
+    if(owner.index<0||owner.index>=2)return false;
     // Native Finish already ran AirDash cleanup. This verified void event
     // only starts the ground-dash follow-up. No cause, movement, VM frame,
     // dash info or physical button is changed; MOVE is the rebindable action.
@@ -434,6 +435,7 @@ void OnLivePlayer(void* actor){
             g_resume[owner.index]={};
         return;
     }
+    if(owner.index<0||owner.index>=2)return;
     auto& resume=g_resume[owner.index];
     if(!resume.seen||resume.requested)return;
     if(now<resume.seen||now-resume.seen>3000||resume.local!=owner.localPlayer||

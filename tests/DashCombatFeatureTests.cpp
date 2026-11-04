@@ -220,6 +220,7 @@ namespace dg::native_tps {
 bool OnGameThread(){return gameThread;}
 bool IsWorldPaused(void*){return paused;}
 bool CinematicActive(unsigned){return cinema;}
+bool RadialActive(unsigned){return false;}
 }
 namespace dg::local_players {
 bool ResolveActor(void* a,Context& result){for(int i=0;i<2;++i)if(a==players[i].actor){result=owners[i];return true;}return false;}
