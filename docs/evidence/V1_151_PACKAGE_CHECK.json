@@ -1,0 +1,57 @@
+{
+  "sourceCommit": "02f9eac97a90e09106604d582311c9b52ff6b020",
+  "archiveCommit": "375dd3d029798570413320954f33c038f3b16487",
+  "name": "DarksidersGenesis_V1.151_GPU_EXIT_AIR_LANDING_MOLOCH_TEST.zip",
+  "size": 2399470,
+  "sha256": "E0CED166F21022FC9DD56FEE9E7F9D5B85B5A641179E5EC4FB8E83B536D79C45",
+  "files": {
+    "dxgi.dll": {
+      "size": 155136,
+      "sha256": "EDD5F39021B081AECD36FBAB1BFC4845ABEDE2494745C8C6F0D554C0D8A10D8A",
+      "method": 0
+    },
+    "DarksidersGenesisMod.asi": {
+      "size": 2244096,
+      "sha256": "5E0EEE933538B9627F938044769FBBA85626FAB835B282E2B8918A7C969E4CDC",
+      "method": 0
+    }
+  },
+  "rootFileCount": 2,
+  "iniIncluded": false,
+  "readmeIncluded": false,
+  "oldArchiveGitBlobsUnchanged": 215,
+  "archiveCount": 216,
+  "approvedDefaultsPreservedApartFromRequestedKeyRename": true,
+  "iniKeys": 246,
+  "onlyRenamedKey": "Features.RenderCrashGuard -> Features.MolochBossCrashFix (default ON)",
+  "hotkeyIdsUnchanged": 55,
+  "embeddedUpdaterBinaryLayoutVerified": true,
+  "amd64": true,
+  "crcValid": true,
+  "noCompression": true,
+  "publicUrl": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/375dd3d029798570413320954f33c038f3b16487/downloads/DarksidersGenesis_V1.151_GPU_EXIT_AIR_LANDING_MOLOCH_TEST.zip",
+  "httpStatus": 200,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "e2e519f7ea84d4b773fd7a31611779ae68308696",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "localBuild": false,
+  "localInstall": false,
+  "gameplayValidated": false,
+  "fpsMeasured": false,
+  "unchangedPaths": [
+    "src/DefaultSettings.h",
+    "src/NativeTpsFeature.cpp",
+    "src/NativeAimAssistFeature.cpp",
+    "src/PistolVisualFeature.cpp",
+    "src/RenderSafetyPolicy.h",
+    "src/ShieldVisualFeature.cpp",
+    "src/LeviathanVisualFeature.cpp",
+    "src/StoneSkinVisual.cpp",
+    "src/EffectAppearanceFeature.cpp",
+    "src/ProjectileAimFeature.cpp",
+    "src/CoopCameraFeature.cpp",
+    "src/AirJumpFeature.cpp"
+  ]
+}

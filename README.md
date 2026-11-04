@@ -1,6 +1,6 @@
 ## V1.151 — trait/arc natif, réception aérienne et GPU après fermeture
 
-**Build cumulative demandée le 4 novembre, en attente des contrôles GitHub. EXPÉRIMENTAL en jeu.** Variantes natives des deux matériaux du trait/arc, essais dash/stomp et sortie de pose Strife ; GPU écrit après fermeture, Moloch Boss Crash Fix renommé et défaut ON. Base livrée V1.150 et protection Moloch validée conservées ; anciennes expériences GPU/shader V1.149 retirées. Pas de build locale ni installation. [Périmètre et test groupé](docs/V1_151_TEST_PLAN.md).
+**CONSTRUIT / CONTRÔLÉ sur debug : 78/78 suites GitHub, aucun avertissement de compilation détecté sur la source finale. EXPÉRIMENTAL en jeu.** Base cumulative V1.150, protection Moloch validée conservée. Catalogue des 168 variantes natives du trait/arc ; essais dash/stomp et sortie de pose Strife ; écriture GPU après fermeture ; Moloch Boss Crash Fix renommé, défaut ON. ZIP deux binaires sans INI/README, 246 valeurs et 55 actions conservées, anciennes archives/main/archive intacts. [Livraison et test groupé](docs/V1_151_DELIVERY_RECEIPT.md). Aucun jeu lancé ni fichier du jeu installé par l'agent.
 
 ---
 

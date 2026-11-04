@@ -1,0 +1,10 @@
+{
+  "channel": "debug",
+  "listingUrl": "https://api.github.com/repos/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/contents/downloads?ref=debug",
+  "selectedArchive": "DarksidersGenesis_V1.151_GPU_EXIT_AIR_LANDING_MOLOCH_TEST.zip",
+  "blobSha": "6e5fac9b1c1fa2fc4d1cba620765aa0ab3f578e8",
+  "httpStatus": 200,
+  "sha256": "E0CED166F21022FC9DD56FEE9E7F9D5B85B5A641179E5EC4FB8E83B536D79C45",
+  "matchesCurrentUpdaterSelectionRules": true,
+  "gameUiObserved": false
+}
