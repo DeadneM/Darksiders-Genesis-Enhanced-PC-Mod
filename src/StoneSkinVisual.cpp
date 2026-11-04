@@ -82,6 +82,30 @@ uintptr_t Create(uintptr_t mesh,int index,uintptr_t original){
     static_assert(sizeof(Args)==32);
     g_event(reinterpret_cast<void*>(mesh),reinterpret_cast<void*>(f),&args);return args.result;
 }
+bool NativeBaseline(uintptr_t actor,uintptr_t mesh,uintptr_t current,uintptr_t assetMaterial){
+    // Native character effects can wrap the equipped material in actor-owned
+    // MIDs later in the same level. Accept that lineage, preserving the exact
+    // current MID for restoration. Never accept a different material root,
+    // foreign owner, unknown class, cycle or unbounded chain.
+    if(current==assetMaterial&&current)return true;
+    int at=-1;Array native{};bool retained=false;
+    // Outer alone is not a strong GC reference. The observed native UPROPERTY
+    // m_dynMaterials array must retain this exact baseline after replacement.
+    if(!Field(actor,"m_dynMaterials","ArrayProperty",16,at)||!List(actor,at,native,32))return false;
+    for(int i=0;i<native.count;++i){uintptr_t item=0;if(!Read(native.data,size_t(i)*8,item))return false;retained=retained||item==current;}
+    if(!retained)return false;
+    std::array<uintptr_t,8> seen{};
+    for(unsigned depth=0;current&&depth<seen.size();++depth){
+        if(current==assetMaterial)return true;
+        uintptr_t cls=0,outer=0,parent=0;at=-1;
+        for(unsigned i=0;i<depth;++i)if(seen[i]==current)return false;
+        seen[depth]=current;
+        if(!Read(current,0x10,cls)||!Is(cls,"MaterialInstanceDynamic")||!Read(current,0x20,outer)||
+           (outer!=actor&&outer!=mesh)||!Field(current,"Parent","ObjectProperty",8,at)||!Read(current,at,parent))return false;
+        current=parent;
+    }
+    return current==assetMaterial&&current!=0;
+}
 int Surface(uintptr_t asset,unsigned index,uintptr_t& original){
     int at=-1;Array slots{};uintptr_t cls=0;foreign_wrath::Name slot{};original=0;
     if(!Read(asset,0x10,cls)||!Is(cls,"SkeletalMesh")||!Field(asset,"Materials","ArrayProperty",16,at)||!List(asset,at,slots,32)||
@@ -255,8 +279,8 @@ void Observe(const local_players::Context& c){
         v.world=c.world;v.variant=variant;
     }
     // Preserve the native material's full shader, including its static fire
-    // switches. The original material must remain strongly owned by this
-    // skeletal asset; arbitrary overrides are refused rather than orphaned.
+    // switches. Original constants stay on the equipped asset; a native MID
+    // must remain in the actor's strong material cache during replacement.
     for(unsigned i=0;i<v.slots.size();++i){
         auto& slot=v.slots[i];uintptr_t current=0;
         if(!Override(mesh,int(i),current))continue;
@@ -270,8 +294,8 @@ void Observe(const local_players::Context& c){
         struct Args {int index=0,pad=0;uintptr_t result=0;} args{int(i)};
         g_event(reinterpret_cast<void*>(mesh),reinterpret_cast<void*>(f),&args);
         Id original{};if(!args.result||!Capture(args.result,original))continue;
-        if(args.result!=nativeOriginal){slot.failed=true;slot.observed=current;
-            if(g_log&&g_deferredEvents++<12)g_log("Stoneskin V1.137 deferred slot: native/user material override retained; no replacement or factory call");
+        if(!NativeBaseline(c.character,mesh,args.result,nativeOriginal)){slot.failed=true;slot.observed=current;
+            if(g_log&&g_deferredEvents++<12)g_log("Stoneskin V1.152 deferred slot: unrelated material root or foreign wrapper retained");
             continue;}
         // War's UV emissive masks illuminate the wrong regions on Strife.
         // Body/gear use the mineral base shader without its private glow;

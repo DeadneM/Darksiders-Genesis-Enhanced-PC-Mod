@@ -6,7 +6,12 @@
 namespace dg::native_objects {
 // Bounded lookup for the new transfer tables; literal-name callers below keep
 // their existing implementation and overload resolution unchanged.
-inline bool NameValueEquals(uintptr_t base,int index,int number,std::string_view expected){
+inline constexpr bool IdentifierCharEquals(wchar_t actual,char expected,bool fold){
+    wchar_t wanted=static_cast<unsigned char>(expected);
+    if(fold){if(actual>=L'A'&&actual<=L'Z')actual+=L'a'-L'A';if(wanted>=L'A'&&wanted<=L'Z')wanted+=L'a'-L'A';}
+    return actual==wanted;
+}
+inline bool NameValueCompare(uintptr_t base,int index,int number,std::string_view expected,bool fold){
     MemoryReader r;uintptr_t names=0,chunk=0,entry=0;uint32_t flags=0;
     if(!base||number||index<0||index>=2000000||expected.empty()||expected.size()>255||
        !r.Read(base+0x3955198,0,names)||!r.Read(names,size_t(index/16384)*8,chunk)||
@@ -17,8 +22,21 @@ inline bool NameValueEquals(uintptr_t base,int index,int number,std::string_view
     const auto access=m.Protect&255;
     if(access!=PAGE_READONLY&&access!=PAGE_READWRITE&&access!=PAGE_WRITECOPY&&access!=PAGE_EXECUTE_READ&&access!=PAGE_EXECUTE_READWRITE&&access!=PAGE_EXECUTE_WRITECOPY)return false;
     const auto offset=address-reinterpret_cast<uintptr_t>(m.BaseAddress);if(offset>m.RegionSize||bytes>m.RegionSize-offset)return false;
-    if(flags&1){const auto* text=reinterpret_cast<const wchar_t*>(address);for(size_t i=0;i<expected.size();++i)if(text[i]!=wchar_t(expected[i]))return false;return text[expected.size()]==0;}
-    const auto* text=reinterpret_cast<const char*>(address);return !std::memcmp(text,expected.data(),expected.size())&&text[expected.size()]==0;
+    if(flags&1){const auto* text=reinterpret_cast<const wchar_t*>(address);for(size_t i=0;i<expected.size();++i){
+        if(fold?!IdentifierCharEquals(text[i],expected[i],true):text[i]!=wchar_t(expected[i]))return false;}return text[expected.size()]==0;}
+    const auto* text=reinterpret_cast<const char*>(address);
+    if(!fold)return !std::memcmp(text,expected.data(),expected.size())&&text[expected.size()]==0;
+    for(size_t i=0;i<expected.size();++i)if(!IdentifierCharEquals(static_cast<unsigned char>(text[i]),expected[i],fold))return false;
+    return text[expected.size()]==0;
+}
+inline bool NameValueEquals(uintptr_t base,int index,int number,std::string_view expected){
+    return NameValueCompare(base,index,number,expected,false);
+}
+// Property/parameter identifiers can resolve to a differently cased spelling
+// in the runtime FName pool (observed: cooked Mode -> runtime mode). Keep
+// legacy exact object/package comparisons separate; length/number stay exact.
+inline bool NameValueIdentifierEquals(uintptr_t base,int index,int number,std::string_view expected){
+    return NameValueCompare(base,index,number,expected,true);
 }
 template<size_t N> bool NameValueIs(uintptr_t base,int index,int number,const char (&expected)[N]){
     MemoryReader r;uintptr_t names=0,chunk=0,entry=0;uint32_t flags=0;

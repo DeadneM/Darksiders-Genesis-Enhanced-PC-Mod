@@ -209,6 +209,11 @@ void Batch(){
           !dg::native_objects::NameValueEquals(g_base,19,1,"Bone_Strife_Root")&&!dg::native_objects::NameValueEquals(g_base,-1,0,"X"),"dynamic names require exact full value, valid index and no instance number");
     Put(entries[39],8,uint32_t(1));const wchar_t wide[]=L"WideName";std::memcpy(entries[39]+12,wide,sizeof(wide));
     Check(dg::native_objects::NameValueEquals(g_base,39,0,"WideName")&&!dg::native_objects::NameValueEquals(g_base,39,0,"Wide"),"bounded dynamic name lookup supports wide names");
+    Check(dg::native_objects::NameValueIdentifierEquals(g_base,19,0,"bone_STRIFE_root")&&
+          !dg::native_objects::NameValueEquals(g_base,19,0,"bone_STRIFE_root"),"identifier case folding does not weaken exact object/package matching");
+    Check(dg::native_objects::NameValueIdentifierEquals(g_base,39,0,"widename")&&
+          !dg::native_objects::NameValueIdentifierEquals(g_base,39,1,"widename")&&
+          !dg::native_objects::NameValueIdentifierEquals(g_base,39,0,"wide"),"wide identifiers still require full length and exact instance number");
 }
 void GestureFixture(bool war=false,bool reset=true){
     if(reset)Fresh();

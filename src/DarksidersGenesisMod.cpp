@@ -42,6 +42,7 @@
 #include "HealthFeature.h"
 #include "GlideFeature.h"
 #include "DashCombatFeature.h"
+#include "RangedStateFeature.h"
 #include "InteractionHudFeature.h"
 #include "WeaponSheathingFeature.h"
 #include "ManualAimFeature.h"
@@ -1454,10 +1455,10 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     dg::health::OnLivePlayer(character,generation);
     dg::sheathing::OnLivePlayer(owner,generation);
     dg::manual_aim::OnLivePlayer(owner,generation);
-    dg::dash_combat::ObserveAirLanding(owner);
     const HWND gameplayWindow=reinterpret_cast<HWND>(g_gameWindowTrace.load());
     dg::selected_recovery::loadingAllowed=!g_overlayVisible.load()&&gameplayWindow&&
         GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load();
+    dg::ranged_state::OnLivePlayer(owner,generation,dg::selected_recovery::loadingAllowed);
     dg::heavy_landing::OnLivePlayer(owner,generation,!g_overlayVisible.load()&&gameplayWindow&&
         GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load());
     dg::recovery_tail::OnLivePlayer(owner,generation,!g_overlayVisible.load()&&gameplayWindow&&
@@ -1782,7 +1783,7 @@ bool InstallNativeTPSRotationHook() {
 // event cannot leave the observer dereferencing a freed/reused widget.
 void HookAimUiEventDispatch(void* object,void* function,void* parameters,void* outParameters){
     const auto identity=dg::native_tps::CaptureUiEvent(object);
-    if(g_originalAimUiEventDispatch&&!dg::dash_combat::SuppressAirLandingEvent(object,function,parameters))
+    if(g_originalAimUiEventDispatch)
         g_originalAimUiEventDispatch(object,function,parameters,outParameters);
     dg::native_tps::ObserveUiEvent(identity);
 }
@@ -4202,6 +4203,7 @@ void ShutdownMod() {
     dg::leviathan_visual::Shutdown();
     dg::effect_appearance::Shutdown();
     dg::dash_combat::Shutdown();
+    dg::ranged_state::Shutdown();
     dg::dash_combat::Report();
     // Release the supported synthetic horse key before teardown.
     if(g_horseSyntheticHDown.exchange(false))EmitKeyboardVirtualKey('H',false);
@@ -4454,6 +4456,7 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::interaction_hud::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::sheathing::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::manual_aim::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::ranged_state::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::heavy_landing::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::recovery_tail::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::mounted_holsters::Initialize(&FeatureLog,g_targetValidation.exact);

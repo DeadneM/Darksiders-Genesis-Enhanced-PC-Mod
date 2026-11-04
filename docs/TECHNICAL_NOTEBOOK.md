@@ -1,3 +1,9 @@
+## 4 novembre 2026 — retour V1.151 et préparation V1.152
+
+**Non livré ; expérimental, contrôles GitHub à effectuer.** Trait/arc validé utilisateur et conservé. Ancien garde LAND/MOVE rejeté retiré ; cible dash aérien court/long demandée, pas encore implémentée. Préparation de la sortie de visée indépendante du déclencheur (garde natif refusait `Mode`/`mode`) et de Stoneskin sur les matériaux dynamiques natifs fortement retenus. GPU V1.151 reste à tester. Aucun jeu lancé, appel moteur par le lecteur externe ou installation. [Preuves, limites et suite](V1_152_LIFECYCLE_PREPARATION.md).
+
+---
+
 ## 4 novembre 2026 — V1.151 construite et contrôlée
 
 Source finale 02f9eac97a90e09106604d582311c9b52ff6b020, archive 375dd3d029798570413320954f33c038f3b16487. GitHub78/78, aucun avertissement sur le log final ; première tentative sans package corrigée (stub RadialActive et bornes d'index explicites). ZIP deux binaires, SHA256 E0CED166F21022FC9DD56FEE9E7F9D5B85B5A641179E5EC4FB8E83B536D79C45, HTTP200/updater debug/AMD64/CRC/Defender contrôlés ; 215 anciens blobs ZIP et références protégées inchangés. Aucun build local ni installation. Tous les nouveaux comportements restent EXPÉRIMENTAUX en jeu ; détail V1_151_DELIVERY_RECEIPT.md. Ne pas confondre les valeurs de mode avant tir manquantes et la vérification des scripts avec une réparation de pose validée.

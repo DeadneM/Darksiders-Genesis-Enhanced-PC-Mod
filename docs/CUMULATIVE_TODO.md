@@ -1,3 +1,9 @@
+## 4 novembre 2026 — retour V1.151 et préparation V1.152
+
+**Non livré ; expérimental, contrôles GitHub à effectuer.** Trait/arc validé utilisateur et conservé. Ancien garde LAND/MOVE rejeté retiré ; cible dash aérien court/long demandée, pas encore implémentée. Préparation de la sortie de visée indépendante du déclencheur (garde natif refusait `Mode`/`mode`) et de Stoneskin sur les matériaux dynamiques natifs fortement retenus. GPU V1.151 reste à tester. Aucun jeu lancé, appel moteur par le lecteur externe ou installation. [Preuves, limites et suite](V1_152_LIFECYCLE_PREPARATION.md).
+
+---
+
 ## V1.151 — trait/arc natif, réception aérienne et GPU après fermeture
 
 **CONSTRUIT / CONTRÔLÉ sur debug : 78/78 suites GitHub, aucun avertissement de compilation détecté sur la source finale. EXPÉRIMENTAL en jeu.** Base cumulative V1.150, protection Moloch validée conservée. Catalogue des 168 variantes natives du trait/arc ; essais dash/stomp et sortie de pose Strife ; écriture GPU après fermeture ; Moloch Boss Crash Fix renommé, défaut ON. ZIP deux binaires sans INI/README, 246 valeurs et 55 actions conservées, anciennes archives/main/archive intacts. [Livraison et test groupé](V1_151_DELIVERY_RECEIPT.md). Aucun jeu lancé ni fichier du jeu installé par l'agent.

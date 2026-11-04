@@ -1,0 +1,43 @@
+{
+  "date": "2026-11-04",
+  "readOnly": true,
+  "engineCalls": false,
+  "sourceSHA256": {
+    "v268-release-aim-contract-20261104-203434.json": "deda0ffbdb8b4caa9a9c4a9e9fa130c384fc82f05d4acb3413fdd377b539a0b3",
+    "v270-material-owners-20261104-205304.json": "454b1a5daf83b36ebc2284ac724324343f666d648ac5365eaf909a42a7e526e4",
+    "v270-current-state-20261104-203620.json": "a9ad0ec60f6ff5b0a87516f36c7cc80761774f7e128d3760ca1686740fc36410",
+    "v270-feedback-log-summary.json": "06e8141a38d7ae65f7032e42b946e315e01206ba4c178ecc759414749bda2492",
+    "v270-dash-defaults-20261104-205739.json": "a21183093c684021e44f421a2eb25d64d316d08997b3ea82d0e6c8332a7e1944"
+  },
+  "aimSetter": {
+    "size": 30,
+    "normalizedHash": 4422810318088863023,
+    "expectedParameter": "Mode",
+    "runtimeParameter": "mode",
+    "parameterType": "ByteProperty",
+    "parameterSize": 1,
+    "parameterOffset": 0,
+    "actorAimModeOffset": 4248,
+    "oldCaseSensitiveGuardAccepted": false,
+    "newGameEffectValidated": false
+  },
+  "stoneskin": {
+    "observedSkin": "Strife_Silver",
+    "nativeWrappers": 4,
+    "nativeRetentionArray": "m_dynMaterials",
+    "retentionOffset": 2576,
+    "innerType": "ObjectProperty",
+    "sameAsMeshOverrides": true,
+    "cacheOuter": "current Strife actor",
+    "newGameEffectValidated": false
+  },
+  "airDash": {
+    "performDashScriptBytes": 716,
+    "fallSpeed": 5000,
+    "forwardSpeed": 0,
+    "timeout": 3,
+    "timeoutSemanticsProven": false,
+    "shortLongRuleImplemented": false,
+    "newRequest": "short downward; held forward even airborne"
+  }
+}

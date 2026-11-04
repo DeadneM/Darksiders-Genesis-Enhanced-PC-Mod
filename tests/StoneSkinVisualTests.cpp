@@ -7,10 +7,11 @@ using namespace dg::stone_visual;
 unsigned char entries[64][256]{};uintptr_t names[64]{},chunks[1]{reinterpret_cast<uintptr_t>(names)};
 struct Fixture {
  unsigned char actor[0x1100]{},controller[0x400]{},mesh[0x800]{},component[0x180]{},status[0x100]{},molten[0x100]{};
- unsigned char classes[14][0x80]{},fields[10][0x80]{},functions[5][0x110]{},parameters[16][0x80]{};
+ unsigned char classes[14][0x80]{},fields[11][0x80]{},functions[5][0x110]{},parameters[16][0x80]{};
  unsigned char original[4][0x100]{},mid[4][0x100]{},materials[4][0x100]{},items[32*24]{};
+ unsigned char nativeMids[4][0x100]{};
  unsigned char asset[0x140]{},skinSlots[160]{},scalars[72]{};
- uintptr_t overrides[4]{},statuses[2]{};
+ uintptr_t overrides[4]{},statuses[2]{},retainedMaterials[4]{};
 } f;
 uintptr_t objectChunks[1]{};dg::local_players::Context owner{};unsigned copies=0,creates=0,sets=0,scalarCalls=0;int id=0;bool thread=true,failFactory=false;
 unsigned fx[3]{};bool fxReady=true;bool missingFx[3]{};
@@ -46,6 +47,7 @@ void Fresh(){
  Put(f.status,0x10,reinterpret_cast<uintptr_t>(f.classes[3]));Put(f.status,0x60,reinterpret_cast<uintptr_t>(f.actor));f.statuses[0]=reinterpret_cast<uintptr_t>(f.status);
  Put(f.molten,0x10,reinterpret_cast<uintptr_t>(f.classes[11]));Put(f.molten,0x60,reinterpret_cast<uintptr_t>(f.actor));f.statuses[1]=reinterpret_cast<uintptr_t>(f.molten);
  Property(f.fields[0],14,"m_pStatusEffectComponent",f.classes[6],8,0x990);Put(f.classes[0],0x48,reinterpret_cast<uintptr_t>(f.fields[0]));
+ Property(f.fields[10],55,"m_dynMaterials",f.classes[7],16,0xA10);Put(f.fields[0],0x28,reinterpret_cast<uintptr_t>(f.fields[10]));Put(f.actor,0xA10,Array{reinterpret_cast<uintptr_t>(f.retainedMaterials),4,4});
  Property(f.fields[1],15,"OverrideMaterials",f.classes[7],16,0x100,f.functions[0]);Put(f.classes[1],0x48,reinterpret_cast<uintptr_t>(f.fields[5]));
  Property(f.fields[2],16,"m_statusEffects",f.classes[7],16,0x130);Put(f.classes[2],0x48,reinterpret_cast<uintptr_t>(f.fields[2]));
  Property(f.fields[3],17,"m_pInstigatorActor",f.classes[6],8,0x60);Put(f.classes[3],0x48,reinterpret_cast<uintptr_t>(f.fields[3]));Put(f.classes[11],0x48,reinterpret_cast<uintptr_t>(f.fields[3]));
@@ -98,6 +100,22 @@ void Run(){
  Fresh();g_materials[0][1]={};Observe(owner);Check(!creates&&NeedsAssetScan(owner),"missing current cloth also requests bounded rediscovery");owner.kind=dg::local_players::PoseKind::Horse;Observe(owner);Check(!NeedsAssetScan(owner),"transformation cancels missing-coating demand");
  Fresh();f.overrides[1]=reinterpret_cast<uintptr_t>(f.original[1]);Observe(owner);f.overrides[0]=reinterpret_cast<uintptr_t>(f.original[0]);Put(f.component,0x138,0);Observe(owner);Check(sets==3&&f.overrides[1]==reinterpret_cast<uintptr_t>(f.original[1]),"explicit original restored and native replacement wins");
  Fresh();f.overrides[0]=reinterpret_cast<uintptr_t>(f.original[2]);Observe(owner);Check(creates==3&&f.overrides[0]==reinterpret_cast<uintptr_t>(f.original[2]),"unsupported overrides never lose their last strong reference");
+    Fresh();
+    for(int i=0;i<4;++i){auto* native=f.nativeMids[i];Put(native,0x10,reinterpret_cast<uintptr_t>(f.classes[4]));Put(native,0x20,reinterpret_cast<uintptr_t>(f.actor));Put(native,0x40,reinterpret_cast<uintptr_t>(f.original[i]));Live(native);f.overrides[i]=f.retainedMaterials[i]=reinterpret_cast<uintptr_t>(native);}
+    Observe(owner);Check(creates==4,"native actor-owned MID wrappers of the equipped skin accept coating");
+    Put(f.component,0x138,0);Observe(owner);
+    for(int i=0;i<4;++i)Check(f.overrides[i]==reinterpret_cast<uintptr_t>(f.nativeMids[i]),"expiration restores exact native wrappers and their parameters, not asset defaults");
+    Fresh();auto* native=f.nativeMids[0];Put(native,0x10,reinterpret_cast<uintptr_t>(f.classes[4]));Put(native,0x20,reinterpret_cast<uintptr_t>(f.controller));Put(native,0x40,reinterpret_cast<uintptr_t>(f.original[0]));Live(native);f.overrides[0]=f.retainedMaterials[0]=reinterpret_cast<uintptr_t>(native);
+    Observe(owner);Check(creates==3&&f.overrides[0]==reinterpret_cast<uintptr_t>(native),"same material root with a foreign owner remains untouched");
+    Fresh();native=f.nativeMids[0];Put(native,0x10,reinterpret_cast<uintptr_t>(f.classes[4]));Put(native,0x20,reinterpret_cast<uintptr_t>(f.actor));Put(native,0x40,reinterpret_cast<uintptr_t>(f.original[0]));Live(native);f.overrides[0]=reinterpret_cast<uintptr_t>(native);
+    Observe(owner);Check(creates==3&&f.overrides[0]==reinterpret_cast<uintptr_t>(native),"Outer alone never substitutes for a proven strong native baseline reference");
+    for(int invalid=0;invalid<3;++invalid){
+        Fresh();native=f.nativeMids[0];Put(native,0x10,reinterpret_cast<uintptr_t>(f.classes[4]));Put(native,0x20,reinterpret_cast<uintptr_t>(f.actor));Live(native);
+        f.overrides[0]=f.retainedMaterials[0]=reinterpret_cast<uintptr_t>(native);
+        const uintptr_t parent=invalid==0?reinterpret_cast<uintptr_t>(native):invalid==1?reinterpret_cast<uintptr_t>(f.original[1]):0;
+        Put(native,0x40,parent);Observe(owner);
+        Check(creates==3&&f.overrides[0]==reinterpret_cast<uintptr_t>(native),"retained wrappers with a cycle, another skin-slot root or a missing parent remain untouched");
+    }
  Fresh();Put(f.functions[1],0xC0,uintptr_t(0));Observe(owner);Check(!creates&&!sets,"unrecognized material factory fails closed");Observe(owner);Check(!creates&&!sets,"failed factory contract is not retried per frame");
  Fresh();failFactory=true;Observe(owner);Check(creates==4&&sets==4,"failed dynamic factory source assignments are rolled back");for(auto x:f.overrides)Check(!x,"failure preserves original native inheritance");Observe(owner);Check(creates==4&&sets==4,"failed creation is cached after rollback");
  Fresh();Put(f.skinSlots,8,dg::foreign_wrath::Name{43,0});Observe(owner);uintptr_t parent=0;std::memcpy(&parent,f.mid[0]+0x40,8);Check(parent==reinterpret_cast<uintptr_t>(f.materials[1]),"role follows material slot name, not its index");

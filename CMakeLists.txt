@@ -38,9 +38,13 @@ if(BUILD_TESTING)
   target_compile_definitions(SelectedParticleLoaderTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
   add_test(NAME SelectedParticleLoader COMMAND SelectedParticleLoaderTests)
 
-  add_executable(DashScriptTests tests/DashScriptTests.cpp)
-  target_include_directories(DashScriptTests PRIVATE src)
-  add_test(NAME DashScript COMMAND DashScriptTests)
+  add_executable(RangedStatePolicyTests tests/RangedStatePolicyTests.cpp)
+  target_include_directories(RangedStatePolicyTests PRIVATE src)
+  add_test(NAME RangedStatePolicy COMMAND RangedStatePolicyTests)
+  add_executable(RangedStateFeatureTests tests/RangedStateFeatureTests.cpp)
+  target_include_directories(RangedStateFeatureTests PRIVATE tests/stubs src)
+  target_compile_definitions(RangedStateFeatureTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+  add_test(NAME RangedStateFeature COMMAND RangedStateFeatureTests)
 
   add_executable(AimShaderCatalogTests tests/AimShaderCatalogTests.cpp)
   target_include_directories(AimShaderCatalogTests PRIVATE src)
@@ -427,6 +431,7 @@ add_library(DarksidersGenesisMod SHARED
   src/RenderSafetyFeature.cpp
   src/NativeTpsFeature.cpp
   src/DashCombatFeature.cpp
+  src/RangedStateFeature.cpp
   src/InteractionHudFeature.cpp
   src/WeaponSheathingFeature.cpp
   src/ManualAimFeature.cpp

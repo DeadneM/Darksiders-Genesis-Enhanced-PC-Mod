@@ -5,9 +5,6 @@
 #include "LocalPlayerOwnership.h"
 #include "NativeTpsFeature.h"
 #include "DashCombatPolicy.h"
-#include "DashScriptGuard.h"
-#include "NativeObjectName.h"
-#include "NativePropertyField.h"
 #include <windows.h>
 #include <MinHook.h>
 #include <atomic>
@@ -35,11 +32,6 @@ using StartAimFn=void(*)(void*);
 ActionQueryFn g_actionQuery=nullptr;
 StartAimFn g_startAim=nullptr;
 thread_local bool g_resuming=false;
-native_objects::Identity g_airClass{},g_airFinish{};
-std::atomic_uint32_t g_airStopped{0},g_airDirectional{0};
-native_objects::Identity g_aimClass{},g_clearAim{};
-int g_aimModeOffset=-1;
-std::atomic_uint32_t g_aimCleared{0};
 bool Readable(const void* p,size_t bytes){
     MEMORY_BASIC_INFORMATION m{};
     if(!p||!VirtualQuery(p,&m,sizeof(m))||m.State!=MEM_COMMIT||
@@ -114,67 +106,6 @@ template<size_t N> bool NameIs(void* object,const char (&expected)[N]){
 }
 template<size_t N> bool ClassNameIs(void* object,const char (&expected)[N]){
     void* cls=nullptr;return Read(object,0x10,cls)&&NameIs(cls,expected);
-}
-template<unsigned Size,size_t N> bool ScriptMatches(void* function,uint64_t hash,const std::array<dash_script::Block,N>& blocks){
-    struct Code {uintptr_t data=0;int count=0,capacity=0;} code;
-    std::array<unsigned char,Size> bytes{};
-    if(!Read(function,0x58,code)||code.count!=int(Size)||code.capacity<code.count||code.capacity>65536||
-       !Read(reinterpret_cast<void*>(code.data),0,bytes))return false;
-    return dash_script::Matches(bytes,Size,hash,blocks,[&](const auto& block){
-        if(block.width==8){uintptr_t object=0;int name=-1,number=-1;
-            return Read(bytes.data(),block.offset,object)&&Read(reinterpret_cast<void*>(object),0x18,name)&&
-                Read(reinterpret_cast<void*>(object),0x1C,number)&&native_objects::NameValueEquals(g_base,name,number,block.name);}
-        int name=-1,number=-1;return block.width==12&&Read(bytes.data(),block.offset,name)&&
-            Read(bytes.data(),block.offset+8,number)&&native_objects::NameValueEquals(g_base,name,number,block.name);
-    });
-}
-// Used only after a recorded native dash has fully finished, with no ability
-// or held aim/fire. Do not clear ranged-idle, stop a montage or synthesize input.
-void ClearReleasedAim(void* actor){
-    void* cls=nullptr;void* package=nullptr;int lockIndex=0;
-    // Native hard-lock getter 66A5B0 resolves the weak target at E90. Only
-    // canonical empty (-1) is eligible; held/expired/unknown locks stay native.
-    if(!Read(actor,0x10,cls)||!NameIs(cls,"Strife_Blueprint_C")||
-       !Read(cls,0x20,package)||!NameIs(package,"/Game/Blueprints/Strife_Blueprint")||
-       !Read(actor,0xE90,lockIndex)||lockIndex!=-1)return;
-    native_objects::MemoryReader reader;
-    if(!native_objects::Alive(reader,g_base,g_aimClass)||
-       g_aimClass.address!=reinterpret_cast<uintptr_t>(cls)){
-        g_clearAim={};g_aimModeOffset=-1;
-        if(!native_objects::CaptureLive(g_base,cls,g_aimClass))return;
-        void* field=nullptr;void* function=nullptr;
-        if(!Read(cls,0x48,field))return;
-        for(unsigned n=0;field&&n<1024;++n){
-            if(NameIs(field,"SetAimMode")){if(function)return;function=field;}
-            void* next=nullptr;if(!Read(field,0x28,next)||next==field)return;field=next;
-        }
-        int mode=-1,aim=-1;void* outer=nullptr;void* code=nullptr;
-        void* property=nullptr;void* other=nullptr;void* parameter=nullptr;void* next=nullptr;
-        using namespace dash_script;
-        const bool valid=!field&&function&&Read(function,0x20,outer)&&outer==cls&&
-            native_objects::PropertyField(g_base,reinterpret_cast<uintptr_t>(cls),"AimMode","ByteProperty",1,aim)&&
-            native_objects::PropertyField(g_base,reinterpret_cast<uintptr_t>(function),"Mode","ByteProperty",1,mode)&&mode==0&&
-            ScriptMatches<ReleasedAimSize>(function,ReleasedAimHash,ReleasedAimBlocks)&&
-            Read(function,0x58,code)&&Read(code,1,property)&&Read(code,10,other)&&property==other&&
-            Read(property,0x20,outer)&&outer==cls&&Read(property,0x44,mode)&&mode==aim&&
-            Read(code,19,parameter)&&Read(parameter,0x20,outer)&&outer==function&&
-            Read(function,0x48,other)&&other==parameter&&Read(parameter,0x28,next)&&!next&&
-            native_objects::CaptureLive(g_base,function,g_clearAim);
-        if(valid)g_aimModeOffset=aim;
-        else if(g_log)g_log("Dash pose V1.151: pure SetAimMode contract unavailable; native retained, no retry for this class");
-    }
-    unsigned char mode=0;
-    if(g_aimModeOffset<0||!native_objects::Alive(reader,g_base,g_clearAim)||
-       !Read(actor,size_t(g_aimModeOffset),mode)||mode!=1)return;
-    // The exact supported ProcessEvent boundary is already used by the mod.
-    // The checked 30-byte script only assigns the one-byte Mode parameter.
-    // No new hook or native action is generated. This remains a runtime trial.
-    using Event=void(*)(void*,void*,void*,void*);
-    struct Scope {Scope(){g_resuming=true;}~Scope(){g_resuming=false;}} scope;
-    unsigned char released=0;
-    reinterpret_cast<Event>(g_base+0xAC0630)(actor,reinterpret_cast<void*>(g_clearAim.address),&released,nullptr);
-    const unsigned n=++g_aimCleared;
-    if(g_log&&n<=8)g_log("Dash pose V1.151: released idle Strife native SetAimMode(0) requested once after dash; EXPERIMENTAL");
 }
 bool CombatOwner(void* actor,local_players::Context& owner){
     unsigned char type=0,role=0;
@@ -366,61 +297,6 @@ void Initialize(LogFn log,bool exactExecutable){
     if(log)log("Dash combat V1.56 READY: live-player held-AIM resume via registered DualPistolsBP after idle ground dash; V1.55 forced-standard scope retained; TPS/Recovery independent; EXPERIMENTAL");
 }
 void Shutdown(){g_presentationReady.store(false,std::memory_order_release);g_combatReady.store(false,std::memory_order_release);g_ready.store(false,std::memory_order_release);}
-void ObserveAirLanding(const local_players::Context& owner){
-    if(!g_ready.load()||!g_actionQuery||!native_tps::OnGameThread()||owner.index<0||owner.index>1||
-       owner.kind!=local_players::PoseKind::Foot||owner.character!=owner.pawn)return;
-    native_objects::MemoryReader reader;
-    if(native_objects::Alive(reader,g_base,g_airClass))return; // one contract check per class identity, including refusal
-    void* movement=nullptr;unsigned char mode=0;
-    if(!Read(reinterpret_cast<void*>(owner.character),0x388,movement)||!Read(movement,0x1B0,mode)||(mode!=3&&mode!=6))return;
-    void* array=nullptr;int count=0;if(!AbilityArray(reinterpret_cast<void*>(owner.character),array,count))return;
-    for(int i=0;i<count;++i){void* ability=nullptr;void* cls=nullptr;void* package=nullptr;
-        if(!Read(array,size_t(i)*8,ability)||!Read(ability,0x10,cls)||!NameIs(cls,"MayhemAbility_Strife_AirDash_Blueprint_C")||
-           !Read(cls,0x20,package)||!NameIs(package,"/Game/Blueprints/Abilities/Dash/MayhemAbility_Strife_AirDash_Blueprint"))continue;
-        g_airFinish={};if(!native_objects::CaptureLive(g_base,cls,g_airClass))return;
-        void* field=nullptr;void* finish=nullptr;void* graph=nullptr;if(!Read(cls,0x48,field))return;
-        for(unsigned n=0;field&&n<128;++n){
-            if(NameIs(field,"OnFinish"))finish=field;
-            if(NameIs(field,"ExecuteUbergraph_MayhemAbility_Strife_AirDash_Blueprint"))graph=field;
-            void* next=nullptr;if(!Read(field,0x28,next)||next==field)return;field=next;
-        }
-        int cause=-1;
-        const bool parameter=native_objects::PropertyField(g_base,reinterpret_cast<uintptr_t>(finish),"Cause","ByteProperty",1,cause)||
-            native_objects::PropertyField(g_base,reinterpret_cast<uintptr_t>(finish),"Cause","EnumProperty",1,cause);
-        using namespace dash_script;
-        if(field||!parameter||cause!=0||!ScriptMatches<FinishSize>(finish,FinishHash,FinishBlocks)||!ScriptMatches<GraphSize>(graph,GraphHash,GraphBlocks)){
-            if(g_log)g_log("Air landing V1.151: script/schema contract unavailable; native retained, no per-frame retry");return;
-        }
-        if(native_objects::CaptureLive(g_base,finish,g_airFinish)&&g_log)
-            g_log("Air landing V1.151: complete Strife finish/graph verified; experimental no-MOVE follow-up gate ready");
-        return;
-    }
-}
-bool SuppressAirLandingEvent(void* ability,void* function,void* parameters){
-    if(!g_ready.load()||!g_actionQuery||!native_tps::OnGameThread()||!g_airFinish.address||reinterpret_cast<uintptr_t>(function)!=g_airFinish.address)return false;
-    native_objects::MemoryReader reader;native_objects::Identity live{};unsigned char cause=0,state=0;
-    void* cls=nullptr;void* actor=nullptr;void* character=nullptr;void* table=nullptr;uintptr_t cleanup=0,query=0;
-    local_players::Context owner{};
-    if(!native_objects::Alive(reader,g_base,g_airFinish)||!native_objects::Alive(reader,g_base,g_airClass)||
-       !native_objects::CaptureLive(g_base,ability,live)||!Read(ability,0x10,cls)||reinterpret_cast<uintptr_t>(cls)!=g_airClass.address||
-       !Read(parameters,0,cause)||cause!=38||!Read(ability,0xD8,state)||state!=5||!Read(ability,0,table)||
-       !Read(table,0x2A8,cleanup)||cleanup!=g_base+0x59BF80||!Read(ability,0x48,actor)||!Read(ability,0x1B0,character)||
-       character!=actor||!CombatOwner(actor,owner)||native_tps::RadialActive(unsigned(owner.index))||
-       !Read(actor,0x8D0,table)||!Read(table,0x18,query)||query!=reinterpret_cast<uintptr_t>(g_actionQuery))return false;
-    if(owner.index<0||owner.index>=2)return false;
-    // Native Finish already ran AirDash cleanup. This verified void event
-    // only starts the ground-dash follow-up. No cause, movement, VM frame,
-    // dash info or physical button is changed; MOVE is the rebindable action.
-    const bool moving=g_actionQuery(static_cast<unsigned char*>(actor)+0x8D0,29)!=0;
-    if(!moving){float elapsed=0;
-        if(Read(ability,0xDC,elapsed)&&std::isfinite(elapsed)&&elapsed>=0)
-            g_resume[owner.index].Observe(owner.localPlayer,owner.character,reinterpret_cast<uintptr_t>(ability),elapsed,GetTickCount64());
-    }
-    const unsigned n=moving?++g_airDirectional:++g_airStopped;
-    if(g_log&&n<=8){char line[180]{};sprintf_s(line,"Air landing V1.151: player=%d heldMOVE=%u followUp=%s count=%u; impact validation required",
-        owner.index+1,unsigned(moving),moving?"native":"filtered",n);g_log(line);}
-    return !moving;
-}
 void OnLivePlayer(void* actor){
     if(!g_ready.load()||!g_combatReady.load()||!g_startAim||g_resuming||!native_tps::OnGameThread())return;
     const auto now=GetTickCount64();bool pending=false;
@@ -444,10 +320,7 @@ void OnLivePlayer(void* actor){
     bool aim=false,primary=false,secondary=false;
     if(!AbilityArray(actor,array,count)||count||!Read(actor,0x388,movement)||
        !Read(movement,0x1B0,mode)||(mode!=1&&mode!=2)||!AimActions(actor,aim,primary,secondary))return;
-    if(!aim){
-        if(!primary&&!secondary&&!native_tps::RadialActive(unsigned(owner.index)))ClearReleasedAim(actor);
-        resume={};return;
-    }
+    if(!aim){resume={};return;}
     // The native player-camera callback runs even without an aim ability.
     // A nested callback cannot request a second ability.
     struct Scope {Scope(){g_resuming=true;}~Scope(){g_resuming=false;}} scope;
@@ -465,6 +338,5 @@ void OnLivePlayer(void* actor){
         sprintf_s(line,"Dash combat V1.56 AIM_RESTART_REQUEST player=%d n=%u nativeHeldAim=1 oncePerDash=1 gameplay=EXPERIMENTAL",owner.index+1,n);g_log(line);}
 }
 bool PresentationReady(){return g_presentationReady.load(std::memory_order_acquire);}
-void Report(){if(g_log){char line[240]{};sprintf_s(line,"Dash combat totals aimRestartRequests=%u forcedStandardSkipped=%u soundSkipped=%u effectSkipped=%u; request counts are not gameplay validation",g_resumed.load(),g_suppressed.load(),g_soundSkipped.load(),g_particleSkipped.load());g_log(line);
-    sprintf_s(line,"Dash V1.151 trial totals noMoveFollowUpFiltered=%u directionalFollowUpNative=%u releasedPoseRequests=%u; gameplay validation required",g_airStopped.load(),g_airDirectional.load(),g_aimCleared.load());g_log(line);}}
+void Report(){if(g_log){char line[240]{};sprintf_s(line,"Dash combat totals aimRestartRequests=%u forcedStandardSkipped=%u soundSkipped=%u effectSkipped=%u; request counts are not gameplay validation",g_resumed.load(),g_suppressed.load(),g_soundSkipped.load(),g_particleSkipped.load());g_log(line);}}
 }
