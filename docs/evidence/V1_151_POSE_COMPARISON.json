@@ -1,0 +1,36 @@
+{
+  "date": "2026-11-04",
+  "readOnly": true,
+  "sourceSHA256": "7aad4213aedf4d8c1df75a63450cde9f22921ef6ae4e1d8409f46d55e5d936c0",
+  "foregroundSamples": 204,
+  "activeSeconds": 21.188,
+  "userConfirmed": {
+    "controller": true,
+    "poseBlockedBeforeShot": true,
+    "poseRestoredByShot": true
+  },
+  "observation": {
+    "lastAimGroundDash": 7.782,
+    "shot": 13.641,
+    "walkingWithoutAimOrFireSamples": 48,
+    "walkingWindow": [
+      7.875,
+      12.719
+    ],
+    "aimEndPresentBeforeShot": false,
+    "aimEndPresentAfterShot": true,
+    "rangedIdleRemainsTrueBeforeAndAfter": true,
+    "noAirDashAbilitySampled": true
+  },
+  "offlineNativeScripts": {
+    "generalAim": "Sets actor AimMode to 1. OnFinish cause 0 starts Aim_End; cause 13 delegates dash. Other causes do not run that Aim_End path.",
+    "aimEnd": "OnStart ClearAimMode calls actor SetAimMode(0), then plays Strife_Aim_Idle_to_Combat_Montage unless falling.",
+    "aimGroundDash": "Its decoded graph plays directional dash montages; no SetAimMode call in this graph."
+  },
+  "limits": [
+    "10 Hz sampling can miss a short ability or dispatch. Ground aim dash sampled; earlier jump/fall is present, but AirDash ability not sampled in this window.",
+    "AimMode is ByteProperty and was omitted by the scalar reader. Therefore its suspected stale value BEFORE the shot is not proven.",
+    "One read-only post-test metadata check sees actor AimMode=0 and animation AimMode=0. bIsInRangedIdle remains true even after user-confirmed recovery, so clearing it blindly is not justified.",
+    "No pose state write, synthetic release, new hook, build or installation performed."
+  ]
+}

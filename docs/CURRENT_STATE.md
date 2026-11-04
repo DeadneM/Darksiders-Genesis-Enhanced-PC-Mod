@@ -1,3 +1,9 @@
+## V1.151 — trait/arc natif, réception aérienne et GPU après fermeture
+
+**Build cumulative demandée le 4 novembre, en attente des contrôles GitHub. EXPÉRIMENTAL en jeu.** Variantes natives des deux matériaux du trait/arc, essais dash/stomp et sortie de pose Strife ; GPU écrit après fermeture, Moloch Boss Crash Fix renommé et défaut ON. Base livrée V1.150 et protection Moloch validée conservées ; anciennes expériences GPU/shader V1.149 retirées. Pas de build locale ni installation. [Périmètre et test groupé](V1_151_TEST_PLAN.md).
+
+---
+
 ## V1.150 — reprise ciblée des ressources visuelles
 
 **CONSTRUIT / CONTRÔLÉ sur debug : 78/78 suites GitHub, aucun avertissement de compilation détecté.** Base cumulative V1.149 et garde sous-titres V1.148 VALIDÉ conservés. Reprise ciblée des ressources sélectionnées et des dépendances actives Stoneskin, demandes bornées et séparées par joueur/armure. **EXPÉRIMENTAL en jeu** : ni disponibilité/rendu ni coût FPS validés. ZIP/updater/Defender contrôlés ; 246 clés et 55 actions conservées, main/archive intacts. [Livraison et test groupé](V1_150_DELIVERY_RECEIPT.md). Pose et dash/stomp restent ouverts ; aucune installation automatique.

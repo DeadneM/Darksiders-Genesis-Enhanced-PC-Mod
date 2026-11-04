@@ -6,10 +6,9 @@ using LogFn = void(*)(const char*);
 
 void Initialize(LogFn logger);
 
-// Writes [SystemSettings] r.GraphicsAdapter=N to the game's Engine.ini.
-// Valid values are 0..4. Existing unrelated Engine.ini content is preserved.
-bool ApplyGraphicsAdapter(int adapter);
-void ReportStartupGraphicsAdapter(int requested);
+// Queues the embedded helper. It writes the final saved choice to Engine.ini
+// only after the game exits; valid values remain 0..4.
+bool QueueGraphicsAdapter(int adapter);
 
 
 } // namespace dg::engine_ini

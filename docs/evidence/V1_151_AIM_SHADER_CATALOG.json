@@ -1,0 +1,1053 @@
+{
+  "source": "Original native PAK only; no process access or game calls",
+  "pakIndexSha1": "5d0982cd46a5221290cb6ed24696e3962e9dddff",
+  "materials": [
+    {
+      "name": "ProjectMayhem/Content/Particles/Materials/VFX_beam_aimBeam.uexp",
+      "bytes": 311286,
+      "sha256": "41264494cd7e7b39c1ee47f003336bb055a0814fa2db81a4f2897cc629eb177b"
+    },
+    {
+      "name": "ProjectMayhem/Content/Particles/Materials/VFX_beam_aimArc.uexp",
+      "bytes": 655101,
+      "sha256": "923a044fae6d3babd7724a3077f035aed91273523a4ea742272c88db9624eb39"
+    }
+  ],
+  "knownCapturedCRCs": {
+    "1212955419": "VFX_beam_aimArc",
+    "2294978555": "VFX_beam_aimBeam"
+  },
+  "signatureCount": 168,
+  "beam": 56,
+  "arc": 112,
+  "uniquenessScan": {
+    "readOnly": true,
+    "pakIndexSha1": "5d0982cd46a5221290cb6ed24696e3962e9dddff",
+    "entries": 40163,
+    "allShaderBearingExtensions": [
+      ".uexp",
+      ".bin",
+      ".ushaderbytecode"
+    ],
+    "rawBytes": 7097520997,
+    "dxbcHeaders": 1157203,
+    "targetPixelShaderCount": 168,
+    "allTargetShadersObserved": true,
+    "elapsedSeconds": 85.5,
+    "limitation": "Native PAK entry payloads and nested zlib streams checked; external PAKs excluded. Exact Moloch permutation and final game image still require user test."
+  },
+  "sharedCRCCount": 0,
+  "matching": "Exact CRC32, byte length and full-bytecode FNV1a64; only CreatePixelShader path changes",
+  "signatures": [
+    {
+      "crc": 7671317,
+      "bytes": 4580,
+      "fingerprint": 16411166695491831103,
+      "kind": "Beam"
+    },
+    {
+      "crc": 8059754,
+      "bytes": 5640,
+      "fingerprint": 16684026090905604891,
+      "kind": "Beam"
+    },
+    {
+      "crc": 11860055,
+      "bytes": 4048,
+      "fingerprint": 16450657106553595550,
+      "kind": "Arc"
+    },
+    {
+      "crc": 31950125,
+      "bytes": 6416,
+      "fingerprint": 1625195821936291842,
+      "kind": "Arc"
+    },
+    {
+      "crc": 46596403,
+      "bytes": 3996,
+      "fingerprint": 3838242232064595609,
+      "kind": "Arc"
+    },
+    {
+      "crc": 86607471,
+      "bytes": 4140,
+      "fingerprint": 10529143240350505061,
+      "kind": "Arc"
+    },
+    {
+      "crc": 88604315,
+      "bytes": 4928,
+      "fingerprint": 15003962809818207890,
+      "kind": "Beam"
+    },
+    {
+      "crc": 118421545,
+      "bytes": 4640,
+      "fingerprint": 14424716685187154364,
+      "kind": "Arc"
+    },
+    {
+      "crc": 193506816,
+      "bytes": 5360,
+      "fingerprint": 13567784867192767779,
+      "kind": "Beam"
+    },
+    {
+      "crc": 228163354,
+      "bytes": 1364,
+      "fingerprint": 4982751976183043186,
+      "kind": "Beam"
+    },
+    {
+      "crc": 236181121,
+      "bytes": 1208,
+      "fingerprint": 5090416471613776422,
+      "kind": "Arc"
+    },
+    {
+      "crc": 259375484,
+      "bytes": 3544,
+      "fingerprint": 847795987321792675,
+      "kind": "Arc"
+    },
+    {
+      "crc": 264896609,
+      "bytes": 5184,
+      "fingerprint": 2938612313529510133,
+      "kind": "Arc"
+    },
+    {
+      "crc": 266943881,
+      "bytes": 3600,
+      "fingerprint": 3473612933962199460,
+      "kind": "Arc"
+    },
+    {
+      "crc": 333434232,
+      "bytes": 3836,
+      "fingerprint": 15628260007505836455,
+      "kind": "Beam"
+    },
+    {
+      "crc": 340525892,
+      "bytes": 3544,
+      "fingerprint": 14804271264717929614,
+      "kind": "Arc"
+    },
+    {
+      "crc": 397632079,
+      "bytes": 1160,
+      "fingerprint": 7013741896759211807,
+      "kind": "Arc"
+    },
+    {
+      "crc": 472545152,
+      "bytes": 1340,
+      "fingerprint": 15726418727906076800,
+      "kind": "Beam"
+    },
+    {
+      "crc": 478600264,
+      "bytes": 1200,
+      "fingerprint": 6153285043628691428,
+      "kind": "Arc"
+    },
+    {
+      "crc": 487948407,
+      "bytes": 6040,
+      "fingerprint": 4966996767872489167,
+      "kind": "Arc"
+    },
+    {
+      "crc": 557958123,
+      "bytes": 3204,
+      "fingerprint": 14708456681658566714,
+      "kind": "Arc"
+    },
+    {
+      "crc": 558652556,
+      "bytes": 5188,
+      "fingerprint": 8551454326679510593,
+      "kind": "Arc"
+    },
+    {
+      "crc": 576640424,
+      "bytes": 4712,
+      "fingerprint": 9498846592806491103,
+      "kind": "Arc"
+    },
+    {
+      "crc": 597097912,
+      "bytes": 3564,
+      "fingerprint": 11464491055619190853,
+      "kind": "Arc"
+    },
+    {
+      "crc": 605283468,
+      "bytes": 5536,
+      "fingerprint": 14420125444562376610,
+      "kind": "Arc"
+    },
+    {
+      "crc": 635023186,
+      "bytes": 4452,
+      "fingerprint": 10166536584600641387,
+      "kind": "Beam"
+    },
+    {
+      "crc": 638781771,
+      "bytes": 4460,
+      "fingerprint": 12003960289261206759,
+      "kind": "Arc"
+    },
+    {
+      "crc": 645781095,
+      "bytes": 4324,
+      "fingerprint": 6029977884153409935,
+      "kind": "Arc"
+    },
+    {
+      "crc": 667107152,
+      "bytes": 4840,
+      "fingerprint": 16178038137167409636,
+      "kind": "Beam"
+    },
+    {
+      "crc": 695744683,
+      "bytes": 4364,
+      "fingerprint": 6748146426541999496,
+      "kind": "Arc"
+    },
+    {
+      "crc": 709441291,
+      "bytes": 6052,
+      "fingerprint": 14804299690505826221,
+      "kind": "Beam"
+    },
+    {
+      "crc": 718458385,
+      "bytes": 4180,
+      "fingerprint": 14123509852908550169,
+      "kind": "Arc"
+    },
+    {
+      "crc": 718494465,
+      "bytes": 4828,
+      "fingerprint": 12420928509697421879,
+      "kind": "Arc"
+    },
+    {
+      "crc": 774285559,
+      "bytes": 5420,
+      "fingerprint": 6401184744770201791,
+      "kind": "Beam"
+    },
+    {
+      "crc": 792359637,
+      "bytes": 4156,
+      "fingerprint": 17006829777110593732,
+      "kind": "Arc"
+    },
+    {
+      "crc": 803877019,
+      "bytes": 3692,
+      "fingerprint": 3276981702382960802,
+      "kind": "Arc"
+    },
+    {
+      "crc": 822905436,
+      "bytes": 4212,
+      "fingerprint": 13267669953348608604,
+      "kind": "Beam"
+    },
+    {
+      "crc": 853849499,
+      "bytes": 5368,
+      "fingerprint": 1069978050173752847,
+      "kind": "Arc"
+    },
+    {
+      "crc": 905368165,
+      "bytes": 4412,
+      "fingerprint": 12869279127354395924,
+      "kind": "Beam"
+    },
+    {
+      "crc": 908294230,
+      "bytes": 1172,
+      "fingerprint": 5203054272987756492,
+      "kind": "Arc"
+    },
+    {
+      "crc": 918780535,
+      "bytes": 5424,
+      "fingerprint": 17504523537145426363,
+      "kind": "Beam"
+    },
+    {
+      "crc": 936757489,
+      "bytes": 1376,
+      "fingerprint": 10413335427366339141,
+      "kind": "Beam"
+    },
+    {
+      "crc": 946519909,
+      "bytes": 1392,
+      "fingerprint": 11629508536606110235,
+      "kind": "Beam"
+    },
+    {
+      "crc": 989975306,
+      "bytes": 5372,
+      "fingerprint": 12836931010029311674,
+      "kind": "Arc"
+    },
+    {
+      "crc": 1009164520,
+      "bytes": 5276,
+      "fingerprint": 6528715534495647796,
+      "kind": "Arc"
+    },
+    {
+      "crc": 1026466375,
+      "bytes": 5500,
+      "fingerprint": 1822636307813473550,
+      "kind": "Beam"
+    },
+    {
+      "crc": 1042779453,
+      "bytes": 5028,
+      "fingerprint": 17181257911931627327,
+      "kind": "Beam"
+    },
+    {
+      "crc": 1094441460,
+      "bytes": 1224,
+      "fingerprint": 12403929380028780252,
+      "kind": "Arc"
+    },
+    {
+      "crc": 1212955419,
+      "bytes": 4756,
+      "fingerprint": 13171695295451980982,
+      "kind": "Arc"
+    },
+    {
+      "crc": 1216464505,
+      "bytes": 5208,
+      "fingerprint": 10119733531429072575,
+      "kind": "Arc"
+    },
+    {
+      "crc": 1236951947,
+      "bytes": 3304,
+      "fingerprint": 14733825268507830830,
+      "kind": "Arc"
+    },
+    {
+      "crc": 1278075803,
+      "bytes": 4976,
+      "fingerprint": 13345377533722669357,
+      "kind": "Arc"
+    },
+    {
+      "crc": 1345164507,
+      "bytes": 6128,
+      "fingerprint": 14286216755238284101,
+      "kind": "Beam"
+    },
+    {
+      "crc": 1368705147,
+      "bytes": 5984,
+      "fingerprint": 3478619244652185111,
+      "kind": "Arc"
+    },
+    {
+      "crc": 1404406053,
+      "bytes": 4680,
+      "fingerprint": 9123933075962099594,
+      "kind": "Arc"
+    },
+    {
+      "crc": 1406829250,
+      "bytes": 3976,
+      "fingerprint": 3268989763960112310,
+      "kind": "Arc"
+    },
+    {
+      "crc": 1440323645,
+      "bytes": 5188,
+      "fingerprint": 1751501718926995849,
+      "kind": "Arc"
+    },
+    {
+      "crc": 1454712228,
+      "bytes": 3708,
+      "fingerprint": 3358203707315299610,
+      "kind": "Arc"
+    },
+    {
+      "crc": 1477305005,
+      "bytes": 4604,
+      "fingerprint": 7500121179021492343,
+      "kind": "Arc"
+    },
+    {
+      "crc": 1478837128,
+      "bytes": 4396,
+      "fingerprint": 17383198319503878437,
+      "kind": "Beam"
+    },
+    {
+      "crc": 1623533370,
+      "bytes": 3780,
+      "fingerprint": 13794058861767740561,
+      "kind": "Beam"
+    },
+    {
+      "crc": 1638622007,
+      "bytes": 4416,
+      "fingerprint": 2210373779647706497,
+      "kind": "Arc"
+    },
+    {
+      "crc": 1712878702,
+      "bytes": 1136,
+      "fingerprint": 8529720645274839027,
+      "kind": "Arc"
+    },
+    {
+      "crc": 1761064118,
+      "bytes": 4480,
+      "fingerprint": 15572990788461810346,
+      "kind": "Arc"
+    },
+    {
+      "crc": 1767057456,
+      "bytes": 4624,
+      "fingerprint": 3005144325866590985,
+      "kind": "Arc"
+    },
+    {
+      "crc": 1767591529,
+      "bytes": 4332,
+      "fingerprint": 11123687300224554235,
+      "kind": "Beam"
+    },
+    {
+      "crc": 1820216089,
+      "bytes": 4116,
+      "fingerprint": 1299377119120930419,
+      "kind": "Arc"
+    },
+    {
+      "crc": 1834823494,
+      "bytes": 4776,
+      "fingerprint": 5108424651785605503,
+      "kind": "Arc"
+    },
+    {
+      "crc": 1860792053,
+      "bytes": 4532,
+      "fingerprint": 10587941205422002354,
+      "kind": "Arc"
+    },
+    {
+      "crc": 1877356773,
+      "bytes": 4812,
+      "fingerprint": 4118341062709292527,
+      "kind": "Arc"
+    },
+    {
+      "crc": 1883937394,
+      "bytes": 1160,
+      "fingerprint": 6110408869848015160,
+      "kind": "Arc"
+    },
+    {
+      "crc": 1915575781,
+      "bytes": 5444,
+      "fingerprint": 16703473387357522895,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2001132875,
+      "bytes": 4148,
+      "fingerprint": 8520862830323722339,
+      "kind": "Beam"
+    },
+    {
+      "crc": 2052123785,
+      "bytes": 1160,
+      "fingerprint": 1242611004388304512,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2056277044,
+      "bytes": 4776,
+      "fingerprint": 643131318563543273,
+      "kind": "Beam"
+    },
+    {
+      "crc": 2076209746,
+      "bytes": 1236,
+      "fingerprint": 1054371548356019826,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2090428635,
+      "bytes": 6352,
+      "fingerprint": 16804049150466018486,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2094434486,
+      "bytes": 6568,
+      "fingerprint": 3378558005697032219,
+      "kind": "Beam"
+    },
+    {
+      "crc": 2141524151,
+      "bytes": 4632,
+      "fingerprint": 14485604973555154798,
+      "kind": "Beam"
+    },
+    {
+      "crc": 2146946556,
+      "bytes": 4160,
+      "fingerprint": 13533552167439110880,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2160394393,
+      "bytes": 4756,
+      "fingerprint": 3855449566195905099,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2169913509,
+      "bytes": 6396,
+      "fingerprint": 13903259804264309868,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2180742150,
+      "bytes": 4604,
+      "fingerprint": 10292244280685977285,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2188215434,
+      "bytes": 6856,
+      "fingerprint": 1881350518436441170,
+      "kind": "Beam"
+    },
+    {
+      "crc": 2209899491,
+      "bytes": 3484,
+      "fingerprint": 18158928756859290189,
+      "kind": "Beam"
+    },
+    {
+      "crc": 2220229043,
+      "bytes": 5608,
+      "fingerprint": 10553661864897268662,
+      "kind": "Beam"
+    },
+    {
+      "crc": 2270877722,
+      "bytes": 5808,
+      "fingerprint": 8611523817351323917,
+      "kind": "Beam"
+    },
+    {
+      "crc": 2279421362,
+      "bytes": 5628,
+      "fingerprint": 13911134232038625941,
+      "kind": "Beam"
+    },
+    {
+      "crc": 2294978555,
+      "bytes": 4900,
+      "fingerprint": 8065336416276211598,
+      "kind": "Beam"
+    },
+    {
+      "crc": 2314560200,
+      "bytes": 5680,
+      "fingerprint": 15527743887909703076,
+      "kind": "Beam"
+    },
+    {
+      "crc": 2314624347,
+      "bytes": 5412,
+      "fingerprint": 405335319412031743,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2316677961,
+      "bytes": 5392,
+      "fingerprint": 3497209794112423023,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2360561802,
+      "bytes": 5424,
+      "fingerprint": 11624651607867859012,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2371173425,
+      "bytes": 6600,
+      "fingerprint": 9585175540803466845,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2388624496,
+      "bytes": 1252,
+      "fingerprint": 15269024601073778005,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2421730587,
+      "bytes": 1148,
+      "fingerprint": 7170539641886646011,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2427910259,
+      "bytes": 5372,
+      "fingerprint": 6976937720428725042,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2438772897,
+      "bytes": 3248,
+      "fingerprint": 15217052575970964495,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2524522832,
+      "bytes": 5836,
+      "fingerprint": 5351176528528123595,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2543058970,
+      "bytes": 4772,
+      "fingerprint": 15100566949010783363,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2547890088,
+      "bytes": 6396,
+      "fingerprint": 13133911339434084473,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2568647152,
+      "bytes": 1176,
+      "fingerprint": 1612909756067301055,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2580885522,
+      "bytes": 5356,
+      "fingerprint": 10165259049210875592,
+      "kind": "Beam"
+    },
+    {
+      "crc": 2593980628,
+      "bytes": 3748,
+      "fingerprint": 14485624153741228841,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2619983422,
+      "bytes": 3248,
+      "fingerprint": 5334116465543266205,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2620603159,
+      "bytes": 4560,
+      "fingerprint": 4646125128409756690,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2704573380,
+      "bytes": 6640,
+      "fingerprint": 4436834979002859945,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2710184382,
+      "bytes": 1312,
+      "fingerprint": 11773914570093344629,
+      "kind": "Beam"
+    },
+    {
+      "crc": 2749791274,
+      "bytes": 3668,
+      "fingerprint": 3212765142815178887,
+      "kind": "Beam"
+    },
+    {
+      "crc": 2754518470,
+      "bytes": 4216,
+      "fingerprint": 1509957456686690996,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2777074089,
+      "bytes": 4284,
+      "fingerprint": 15676199844844804740,
+      "kind": "Beam"
+    },
+    {
+      "crc": 2807510851,
+      "bytes": 5372,
+      "fingerprint": 4689776927455631948,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2817802131,
+      "bytes": 5544,
+      "fingerprint": 9576040357008231882,
+      "kind": "Beam"
+    },
+    {
+      "crc": 2864583071,
+      "bytes": 4992,
+      "fingerprint": 6980167723294045397,
+      "kind": "Beam"
+    },
+    {
+      "crc": 2920179154,
+      "bytes": 4460,
+      "fingerprint": 473558058424203753,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2976584204,
+      "bytes": 4308,
+      "fingerprint": 15371028495778911751,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2979025993,
+      "bytes": 5264,
+      "fingerprint": 7704258969983228601,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2982119409,
+      "bytes": 5892,
+      "fingerprint": 6517737214762294842,
+      "kind": "Arc"
+    },
+    {
+      "crc": 2986424957,
+      "bytes": 3976,
+      "fingerprint": 2526095095467321715,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3002738785,
+      "bytes": 6728,
+      "fingerprint": 1981197932620440659,
+      "kind": "Beam"
+    },
+    {
+      "crc": 3019940252,
+      "bytes": 5988,
+      "fingerprint": 6928904782304496733,
+      "kind": "Beam"
+    },
+    {
+      "crc": 3035098665,
+      "bytes": 1132,
+      "fingerprint": 6994680267398276846,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3070547300,
+      "bytes": 4696,
+      "fingerprint": 15783008015825182887,
+      "kind": "Beam"
+    },
+    {
+      "crc": 3104919141,
+      "bytes": 6632,
+      "fingerprint": 15725263530933196668,
+      "kind": "Beam"
+    },
+    {
+      "crc": 3152428035,
+      "bytes": 6584,
+      "fingerprint": 8477977920875320728,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3218972484,
+      "bytes": 5356,
+      "fingerprint": 6419951753509603572,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3226149911,
+      "bytes": 4896,
+      "fingerprint": 7380994687056260528,
+      "kind": "Beam"
+    },
+    {
+      "crc": 3253743159,
+      "bytes": 3540,
+      "fingerprint": 1531218751628496522,
+      "kind": "Beam"
+    },
+    {
+      "crc": 3271881340,
+      "bytes": 3412,
+      "fingerprint": 1962085126746090602,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3278741859,
+      "bytes": 3932,
+      "fingerprint": 9364155389670110311,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3291566224,
+      "bytes": 1364,
+      "fingerprint": 15353329304411401121,
+      "kind": "Beam"
+    },
+    {
+      "crc": 3321201342,
+      "bytes": 1336,
+      "fingerprint": 11991835078549235424,
+      "kind": "Beam"
+    },
+    {
+      "crc": 3333454747,
+      "bytes": 5192,
+      "fingerprint": 5039251818757857755,
+      "kind": "Beam"
+    },
+    {
+      "crc": 3396111082,
+      "bytes": 4664,
+      "fingerprint": 11783327780594685365,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3412549219,
+      "bytes": 3500,
+      "fingerprint": 1907678357192595375,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3445653252,
+      "bytes": 4756,
+      "fingerprint": 14852202063710319799,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3495595974,
+      "bytes": 5816,
+      "fingerprint": 10624973240570549583,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3518741094,
+      "bytes": 4624,
+      "fingerprint": 2607338461516756239,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3535371453,
+      "bytes": 5512,
+      "fingerprint": 5346756411801946094,
+      "kind": "Beam"
+    },
+    {
+      "crc": 3535807358,
+      "bytes": 1404,
+      "fingerprint": 2910911493101372275,
+      "kind": "Beam"
+    },
+    {
+      "crc": 3553889175,
+      "bytes": 5552,
+      "fingerprint": 5173459280843127463,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3584672453,
+      "bytes": 6000,
+      "fingerprint": 6055564783056637103,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3600541252,
+      "bytes": 1108,
+      "fingerprint": 15981148702500913700,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3619951106,
+      "bytes": 5384,
+      "fingerprint": 16002325685999318319,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3638555595,
+      "bytes": 3964,
+      "fingerprint": 9495586913946450288,
+      "kind": "Beam"
+    },
+    {
+      "crc": 3725003147,
+      "bytes": 4936,
+      "fingerprint": 10016693100696653447,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3770643200,
+      "bytes": 6256,
+      "fingerprint": 12172537766805866810,
+      "kind": "Beam"
+    },
+    {
+      "crc": 3793490966,
+      "bytes": 5772,
+      "fingerprint": 8427397274826560918,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3872980518,
+      "bytes": 3396,
+      "fingerprint": 9690155554916285633,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3874769879,
+      "bytes": 5140,
+      "fingerprint": 13774809130894499365,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3880945497,
+      "bytes": 5592,
+      "fingerprint": 9123087681832075626,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3881856934,
+      "bytes": 3716,
+      "fingerprint": 5896283353622925455,
+      "kind": "Beam"
+    },
+    {
+      "crc": 3893768984,
+      "bytes": 5328,
+      "fingerprint": 15836771968422346744,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3902273639,
+      "bytes": 4160,
+      "fingerprint": 2744896694065401314,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3946399036,
+      "bytes": 5204,
+      "fingerprint": 12071548345221447244,
+      "kind": "Arc"
+    },
+    {
+      "crc": 3952059335,
+      "bytes": 3420,
+      "fingerprint": 7699949878289223865,
+      "kind": "Beam"
+    },
+    {
+      "crc": 4063230856,
+      "bytes": 4768,
+      "fingerprint": 13165649055160722609,
+      "kind": "Beam"
+    },
+    {
+      "crc": 4071910013,
+      "bytes": 5144,
+      "fingerprint": 3555450248223265673,
+      "kind": "Arc"
+    },
+    {
+      "crc": 4097429655,
+      "bytes": 4196,
+      "fingerprint": 1860119774675234156,
+      "kind": "Arc"
+    },
+    {
+      "crc": 4108354894,
+      "bytes": 3452,
+      "fingerprint": 4889303384186067650,
+      "kind": "Arc"
+    },
+    {
+      "crc": 4115754644,
+      "bytes": 3268,
+      "fingerprint": 6660497908561692896,
+      "kind": "Arc"
+    },
+    {
+      "crc": 4169299758,
+      "bytes": 1188,
+      "fingerprint": 3149389462352906343,
+      "kind": "Arc"
+    },
+    {
+      "crc": 4177678597,
+      "bytes": 6492,
+      "fingerprint": 5462838658793665195,
+      "kind": "Arc"
+    },
+    {
+      "crc": 4195911582,
+      "bytes": 4920,
+      "fingerprint": 6784472019433558068,
+      "kind": "Arc"
+    },
+    {
+      "crc": 4197628978,
+      "bytes": 1132,
+      "fingerprint": 221029894243846108,
+      "kind": "Arc"
+    },
+    {
+      "crc": 4207918870,
+      "bytes": 5064,
+      "fingerprint": 13254437940112001296,
+      "kind": "Beam"
+    },
+    {
+      "crc": 4247119992,
+      "bytes": 5816,
+      "fingerprint": 16787251098119407286,
+      "kind": "Arc"
+    },
+    {
+      "crc": 4286926885,
+      "bytes": 5184,
+      "fingerprint": 12537323408162079609,
+      "kind": "Arc"
+    }
+  ],
+  "runtimeMolochShaderObserved": false,
+  "visualResultValidated": false
+}

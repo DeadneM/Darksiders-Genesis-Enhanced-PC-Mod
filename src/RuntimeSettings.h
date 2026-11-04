@@ -48,7 +48,7 @@ struct Snapshot {
     bool thirdPersonEnabled = true;
     bool thirdPersonFovEnabled = true;
     bool tpsLensFocusEnabled = true;
-    bool renderCrashGuardEnabled = true;
+    bool molochBossCrashFixEnabled = true;
     camera_blur::Profile nativeBlur=camera_blur::NativeDefaults,tpsBlur=camera_blur::TpsDefaults;
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
     bool cameraControllerOrbitEnabled = true;
@@ -177,7 +177,7 @@ struct State {
     std::atomic_bool thirdPersonEnabled{true};
     std::atomic_bool thirdPersonFovEnabled{true};
     std::atomic_bool tpsLensFocusEnabled{true};
-    std::atomic_bool renderCrashGuardEnabled{true};
+    std::atomic_bool molochBossCrashFixEnabled{true};
     camera_blur::SharedProfile nativeBlur{camera_blur::NativeDefaults},tpsBlur{camera_blur::TpsDefaults};
     std::atomic_bool tpsViewGameplay{false};
     std::atomic_ullong tpsGameplayViewTick{0};

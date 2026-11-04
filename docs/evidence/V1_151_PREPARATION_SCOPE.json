@@ -1,0 +1,29 @@
+{
+  "iniKeys": 246,
+  "onlyDefaultKeyRenamed": "Features.RenderCrashGuard -> Features.MolochBossCrashFix",
+  "defaultOn": true,
+  "guardLogicUnchanged": true,
+  "unchangedSources": [
+    "src/RenderSafetyPolicy.h",
+    "src/DefaultSettings.h",
+    "src/EffectAppearanceFeature.cpp",
+    "src/StoneSkinVisual.cpp",
+    "src/SelectedParticleLoader.h",
+    "src/PistolVisualFeature.cpp",
+    "src/CoopCameraFeature.cpp",
+    "src/LeviathanVisualFeature.cpp",
+    "src/ShieldVisualFeature.cpp",
+    "src/AirJumpFeature.cpp",
+    "src/ProjectileAimFeature.cpp",
+    "src/NativeTpsFeature.cpp"
+  ],
+  "shaderDrawAndVisibilityModePathUnchanged": true,
+  "shaderRecognition": "168 native permutations from the two captured aim materials; CRC/length/FNV checked; no new hook",
+  "existingGroundDashHeldAimResumeUnchanged": true,
+  "releasedAimTrial": "Only new branch: no AIM/FIRE, no ability or hard-lock, foot idle after an observed dash; native pure SetAimMode script guarded in full, one request, no synthetic input",
+  "tpsLookHooksUnchanged": true,
+  "airLandingPrototype": "Strife only, complete scripts and ownership checked; no new hook or raw state write",
+  "buildStarted": false,
+  "gameFilesModified": false,
+  "gameplayValidated": false
+}

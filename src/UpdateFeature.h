@@ -19,5 +19,6 @@ uint64_t NoticeId(bool beta);
 void Check(bool beta);
 void InstallAfterExit(bool beta);
 void RestoreAfterExit();
+bool QueueGraphicsAdapterAfterExit(std::string& error);
 void Invalidate();
 }

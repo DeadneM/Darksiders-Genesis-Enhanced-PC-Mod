@@ -1,0 +1,14 @@
+{
+  "review": "V1.151 prepared delta; offline checks only",
+  "completeScriptModelsCompared": 3,
+  "testFixturesMatchNativeModels": true,
+  "cppOrCSharpTestsExecuted": false,
+  "declaredSuitesAwaitingGitHub": 78,
+  "pose": "guarded experimental source; user before/after comparison captured, stale AimMode before shot not proven",
+  "gpu": "three running checks, after-exit worker, helper reuse and balanced module handle checked in source only",
+  "heldAimTpsProjectilesVisualsPreserved": true,
+  "gameFilesWritten": false,
+  "buildStarted": false,
+  "pushPerformed": false,
+  "stagedFiles": []
+}

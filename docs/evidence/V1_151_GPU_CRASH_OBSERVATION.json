@@ -1,0 +1,42 @@
+{
+  "crash": "UE4CC-Windows-4C4E7A0A405D1C4506533480F6401384_0000",
+  "crashType": "GPUCrash",
+  "errorMessage": "Assertion failed: [File:Unknown] [Line: 198] Unreal Engine is exiting due to D3D device being lost. (Error: 0x887A0006 - 'HUNG')",
+  "nativeStack": "DarksidersGenesis-Win64-Shipping 0x000000000b8f0000 + 922f05 DarksidersGenesis-Win64-Shipping 0x000000000b8f0000 + 8e739a DarksidersGenesis-Win64-Shipping 0x000000000b8f0000 + 8aefe7 DarksidersGenesis-Win64-Shipping 0x000000000b8f0000 + d6289c DarksidersGenesis-Win64-Shipping 0x000000000b8f0000 + d63d01 DarksidersGenesis-Win64-Shipping 0x000000000b8f0000 + d50321 DarksidersGenesis-Win64-Shipping 0x000000000b8f0000 + d5a46a DarksidersGenesis-Win64-Shipping 0x000000000b8f0000 + 109953a DarksidersGenesis-Win64-Shipping 0x000000000b8f0000 + 10b08c8 DarksidersGenesis-Win64-Shipping 0x000000000b8f0000 + 10ba1b2 DarksidersGenesis-Win64-Shipping 0x000000000b8f0000 + 10a8be4 DarksidersGenesis-Win64-Shipping 0x000000000b8f0000 + 10b67fb DarksidersGenesis-Win64-Shipping 0x000000000b8f0000 + e355ca DarksidersGenesis-Win64-Shipping 0x000000000b8f0000 + 1087bf9 DarksidersGenesis-Win64-Shipping 0x000000000b8f0000 + 1079ef2 DarksidersGenesis-Win64-Shipping 0x000000000b8f0000 + 7ffff3 DarksidersGenesis-Win64-Shipping 0x000000000b8f0000 + 12fdff2 DarksidersGenesis-Win64-Shipping 0x000000000b8f0000 + 12fec38 DarksidersGenesis-Win64-Shipping 0x000000000b8f0000 + 92b3cb DarksidersGenesis-Win64-Shipping 0x000000000b8f0000 + 928b6c KERNEL32 0x0000000076890000 + 2dda7 ntdll 0x0000000076dd0000 + c9c5c",
+  "graphicsLog": [
+    "[2026.11.04-10.24.40:991][  0]LogD3D11RHI: Chosen D3D11 Adapter: 0",
+    "[2026.11.04-10.24.41:030][  0]LogD3D11RHI:     Adapter Name: Intel(R) Arc(TM) B580 Graphics",
+    "[2026.11.04-10.24.41:030][  0]LogD3D11RHI:   Driver Version: 32.0.101.8991 (internal:32.0.101.8991, unified:32.0.101.8991)",
+    "[2026.11.04-10.28.12:880][244]LogD3D11RHI: Timed out while waiting for GPU to catch up. (0.5 s)",
+    "[2026.11.04-10.28.27:714][885]LogD3D11RHI: Timed out while waiting for GPU to catch up. (0.5 s)",
+    "[2026.11.04-10.28.51:133][986]LogD3D11RHI: Timed out while waiting for GPU to catch up. (0.5 s)",
+    "[2026.11.04-10.33.01:458][ 56]LogD3D11RHI: Timed out while waiting for GPU to catch up. (0.5 s)",
+    " at C:\\TeamCity\\BuildAgent\\work\\f0ec8df08a4251ca\\Unreal\\Engine\\Source\\Runtime\\Windows\\D3D11RHI\\Private\\D3D11Query.cpp:296 ",
+    " with error DXGI_ERROR_DEVICE_REMOVED DXGI_ERROR_DEVICE_HUNG"
+  ],
+  "asiLoaded": true,
+  "installedAsiSha256": "2C76943D3C9EDDC897697E943CFCA06E2F98E94F7ED0DCA2C840C9A881B03987",
+  "installedMatchesPublishedV150": true,
+  "readerStartedLocal": "2026-11-04 11:30:04",
+  "firstGpuTimeoutLocal": "2026-11-04 11:28:12",
+  "crashLocal": "2026-11-04 11:33:01",
+  "timeoutPrecedesReader": true,
+  "readerMemoryWrites": false,
+  "readerNativeCalls": false,
+  "readerOriginalPid": 32276,
+  "firstCaptureReadableFrames": 1744,
+  "firstCaptureReadFailuresAfterProcessLoss": 1201,
+  "firstCaptureAirDashSamples": 0,
+  "userReportedOtherGameRunning": true,
+  "initialCauseEstablished": false,
+  "otherGameCausalityEstablished": false,
+  "matchesPreviousMolochNullDepthSignature": false,
+  "prototypeV151Installed": false,
+  "newBuildStarted": false,
+  "hashes": {
+    "CrashContext.runtime-xml": "C626D242AA07DFB83831EB34181083D5AB6902F939D66AC442B70EEF605F9E5F",
+    "CrashReportClient.ini": "B205E9155F8E5F6C1B74EF0C68B397C3DF210BB81EB3E0F7341EBC90E1996FF9",
+    "ProjectMayhem.log": "94C5FE4F11CAE689E9CAA098D7CA1B76CCD8E807CB2BFB49E44F275FC6E5B165",
+    "UE4Minidump.dmp": "AA87487838428CE5E2B9589F2A3042F7BDF502F0C81418AF0D3C8246AD2E5A69"
+  }
+}

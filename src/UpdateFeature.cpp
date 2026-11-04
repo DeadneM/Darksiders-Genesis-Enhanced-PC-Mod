@@ -27,6 +27,8 @@ struct Package {
     std::string name,url,sha;
 };
 std::mutex g_lock;
+std::mutex g_helperLock,g_gpuLock;
+bool g_gpuQueued=false;
 Status g_status{};
 Package g_package{};
 std::atomic_bool g_busy{false};
@@ -163,8 +165,9 @@ fs::path GameDir(){
     return folder;
 }
 fs::path ExtractHelper(){
+    std::lock_guard<std::mutex> guard(g_helperLock);
     HMODULE module=nullptr;
-    if(!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+    if(!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
             reinterpret_cast<LPCWSTR>(&ExtractHelper),&module))
         throw std::runtime_error("Helper resource module unavailable");
     HRSRC resource=FindResourceW(module,MAKEINTRESOURCEW(kResourceId),RT_RCDATA);
@@ -179,7 +182,17 @@ fs::path ExtractHelper(){
     if(!count||count>=32768)throw std::runtime_error("LOCALAPPDATA not configured");
     fs::path dir=fs::path(local.data())/L"DarksidersGenesisEnhancedUpdater"/L"embedded";
     fs::create_directories(dir);
-    fs::path target=dir/(L"Updater-1.14-"+std::to_wstring(GetCurrentProcessId())+L".exe");
+    fs::path target=dir/(L"Updater-"+Widen(build::Id)+L"-"+std::to_wstring(GetCurrentProcessId())+L".exe");
+    // GPU waiting and an update can share this helper. Never truncate a
+    // running executable: reuse it only after checking its embedded bytes.
+    if(fs::exists(target)){
+        std::ifstream existing(target,std::ios::binary|std::ios::ate);
+        if(existing&&existing.tellg()==static_cast<std::streamoff>(length)){
+            std::vector<char> bytes(length);existing.seekg(0);
+            if(existing.read(bytes.data(),length)&&std::equal(bytes.begin(),bytes.end(),static_cast<const char*>(raw)))return target;
+        }
+        throw std::runtime_error("Existing embedded helper differs; game files unchanged");
+    }
     {
         std::ofstream out(target,std::ios::binary|std::ios::trunc);
         if(!out)throw std::runtime_error("Cannot write embedded updater");
@@ -252,6 +265,15 @@ void DoRestore(){
     }catch(const std::exception& e){Error(std::string("Rollback staging failed: ")+e.what());}
 }
 } // anonymous namespace
+
+bool QueueGraphicsAdapterAfterExit(std::string& error){
+    std::lock_guard<std::mutex> guard(g_gpuLock);
+    if(g_gpuQueued)return true;
+    try{
+        StartHelperCommand(L"--graphics-adapter-on-exit \""+GameDir().wstring()+L"\"");
+        g_gpuQueued=true;return true;
+    }catch(const std::exception& e){error=e.what();return false;}
+}
 
 Status GetStatus(){
     std::lock_guard<std::mutex> guard(g_lock);

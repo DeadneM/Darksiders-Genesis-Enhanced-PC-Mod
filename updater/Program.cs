@@ -11,10 +11,33 @@ namespace DarksidersGenesisUpdater {
                 return RunQuietInstall(args);
             if (args.Length > 0 && string.Equals(args[0], "--restore-on-exit", StringComparison.Ordinal))
                 return RunQuietRestore(args);
+            if (args.Length > 0 && string.Equals(args[0], "--graphics-adapter-on-exit", StringComparison.Ordinal))
+                return RunQuietGraphicsAdapter(args);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new UpdaterForm());
             return 0;
+        }
+
+        private static int RunQuietGraphicsAdapter(string[] args) {
+            if(args.Length!=2||!Directory.Exists(args[1]))return 2;
+            string result;int code=1;
+            try {
+                // This process survives the ASI. UE must finish its final
+                // cached config save before the single Engine.ini write.
+                do {
+                    while(UpdateEngine.Running())Thread.Sleep(1000);
+                    Thread.Sleep(500);
+                }while(UpdateEngine.Running());
+                int adapter=UpdateEngine.ApplyGraphicsAdapterAfterExit(args[1]);
+                result="GPU written after game exit: r.GraphicsAdapter="+adapter;
+                code=0;
+            }catch(Exception ex){result="GPU write FAILED: "+ex.Message;}
+            try {
+                string state=UpdateEngine.StateFolder(args[1]);Directory.CreateDirectory(state);
+                File.WriteAllText(Path.Combine(state,"gpu-result.txt"),result);
+            }catch{}
+            return code;
         }
 
         private static int RunQuietRestore(string[] args) {

@@ -36,7 +36,7 @@ int main(int argc,char** argv){
     check(generated.Load(),"missing INI generated from compiled defaults");
     check(generated.updaterAutoCheck,"approved defaults check the selected update channel at startup");
     check(generated.tps3DAimEnabled&&dg::runtime::Get().tps3DAimEnabled.load(),"missing option enables 3D aiming by default");
-    check(generated.renderCrashGuardEnabled&&dg::runtime::Get().renderCrashGuardEnabled.load(),"captured subtitle crash guard defaults ON in store and runtime");
+    check(generated.molochBossCrashFixEnabled&&dg::runtime::Get().molochBossCrashFixEnabled.load(),"captured subtitle crash guard defaults ON in store and runtime");
     check(generated.tpsLensFocusEnabled&&dg::runtime::Get().tpsLensFocusEnabled.load(),"TPS lens experiment defaults ON in store and runtime");
     check(!generated.nativeBlur.disabled&&!generated.tpsBlur.disabled&&generated.nativeBlur.custom&&generated.tpsBlur.custom&&
         dg::runtime::Get().nativeBlur.Get().custom&&!dg::runtime::Get().tpsBlur.Get().disabled,
@@ -187,6 +187,18 @@ int main(int argc,char** argv){
     }
     WritePrivateProfileStringW(L"Values",L"ShieldStrifeSize",L"nan",path);WritePrivateProfileStringW(L"Values",L"LeviathanWarZ",L"9999",path);
     check(transforms.Load()&&transforms.shieldTransforms[0].size==1&&transforms.leviathanTransforms[1].z==500,"invalid manual profile values fall back or clamp safely");
+    WritePrivateProfileStringW(L"Features",L"MolochBossCrashFix",nullptr,path);
+    WritePrivateProfileStringW(L"Features",L"RenderCrashGuard",L"0",path);
+    dg::config::Store renamed;renamed.SetPath(path);
+    check(renamed.Load()&&!renamed.molochBossCrashFixEnabled,"legacy explicit OFF migrates without overriding a personal choice");
+    check(renamed.SaveNow()&&GetPrivateProfileIntW(L"Features",L"MolochBossCrashFix",-1,path)==0&&
+        GetPrivateProfileIntW(L"Features",L"RenderCrashGuard",-1,path)==UINT(-1),"new crash-fix key saves before retiring the old key");
+    WritePrivateProfileStringW(L"Features",L"RenderCrashGuard",L"0",path);
+    WritePrivateProfileStringW(L"Features",L"MolochBossCrashFix",L"1",path);
+    check(renamed.Load()&&renamed.molochBossCrashFixEnabled,"new key wins if both names exist");
+    WritePrivateProfileStringW(L"Features",L"MolochBossCrashFix",nullptr,path);
+    WritePrivateProfileStringW(L"Features",L"RenderCrashGuard",nullptr,path);
+    check(renamed.Load()&&renamed.molochBossCrashFixEnabled&&dg::runtime::Get().molochBossCrashFixEnabled.load(),"missing crash-fix keys default ON in ASI store and runtime");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,path);DeleteFileW(path);
     std::printf("User defaults: %zu keys checked, %u failures\n",keys,failed);return failed?1:0;
 }

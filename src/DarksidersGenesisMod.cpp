@@ -1454,6 +1454,7 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     dg::health::OnLivePlayer(character,generation);
     dg::sheathing::OnLivePlayer(owner,generation);
     dg::manual_aim::OnLivePlayer(owner,generation);
+    dg::dash_combat::ObserveAirLanding(owner);
     const HWND gameplayWindow=reinterpret_cast<HWND>(g_gameWindowTrace.load());
     dg::selected_recovery::loadingAllowed=!g_overlayVisible.load()&&gameplayWindow&&
         GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load();
@@ -1781,7 +1782,8 @@ bool InstallNativeTPSRotationHook() {
 // event cannot leave the observer dereferencing a freed/reused widget.
 void HookAimUiEventDispatch(void* object,void* function,void* parameters,void* outParameters){
     const auto identity=dg::native_tps::CaptureUiEvent(object);
-    if(g_originalAimUiEventDispatch)g_originalAimUiEventDispatch(object,function,parameters,outParameters);
+    if(g_originalAimUiEventDispatch&&!dg::dash_combat::SuppressAirLandingEvent(object,function,parameters))
+        g_originalAimUiEventDispatch(object,function,parameters,outParameters);
     dg::native_tps::ObserveUiEvent(identity);
 }
 void InstallAimUiEventProbe(){
@@ -3235,8 +3237,8 @@ dg::overlay::Context BuildOverlayContext() {
     context.applySkipWarning = &dg::skip_warning::Apply;
     context.applySkipLogos =
         &dg::skip_logos::Apply;
-    context.applyGraphicsAdapter =
-        &dg::engine_ini::ApplyGraphicsAdapter;
+    context.queueGraphicsAdapter =
+        &dg::engine_ini::QueueGraphicsAdapter;
     context.log = &Log;
 
     return context;
@@ -4363,10 +4365,6 @@ DWORD WINAPI MainThread(LPVOID) {
         g_config.synergyChargeEnabled?1:0,g_config.synergyChargeMultiplier);
 
     dg::engine_ini::Initialize(&FeatureLog);
-    // The proxy applies this before UE reads Engine.ini. A late ASI write
-    // can be overwritten by UE's already-loaded config cache at shutdown.
-    dg::engine_ini::ReportStartupGraphicsAdapter(g_config.graphicsAdapter);
-
     g_targetValidation = dg::target::ValidateCurrentExecutable();
     Log(
         "Target validation: exact=%d size=%llu sha256=%s reason=%s",
@@ -4377,6 +4375,8 @@ DWORD WINAPI MainThread(LPVOID) {
             : g_targetValidation.sha256.c_str(),
         g_targetValidation.reason.c_str()
     );
+
+    if(g_targetValidation.exact)dg::engine_ini::QueueGraphicsAdapter(g_config.graphicsAdapter);
 
     ReportStartupPhase(5,g_targetValidation.exact?1u:0u);
     // Install early on this worker after exact executable validation, so the

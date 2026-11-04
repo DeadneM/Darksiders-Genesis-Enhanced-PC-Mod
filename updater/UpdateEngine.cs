@@ -9,6 +9,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
+using System.Runtime.InteropServices;
 
 namespace DarksidersGenesisUpdater {
     internal sealed class Package {
@@ -39,6 +40,41 @@ namespace DarksidersGenesisUpdater {
             }
         }
         internal static string BackupRoot(string folder) {return Path.Combine(StateFolder(folder),"backups");}
+
+        [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)]
+        private static extern bool WritePrivateProfileString(string section,string key,string value,string path);
+        [DllImport("kernel32.dll",CharSet=CharSet.Unicode)]
+        private static extern uint GetPrivateProfileInt(string section,string key,int fallback,string path);
+
+        internal static int ApplyGraphicsAdapterAfterExit(string folder) {
+            ValidateFolder(folder);
+            string engine=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                @"THQ Nordic\Darksiders Genesis\Saved\Config\WindowsNoEditor\Engine.ini");
+            return ApplyGraphicsAdapterFiles(Path.Combine(folder,"DarksidersGenesisMod.ini"),engine,Running);
+        }
+        // Same Win32 INI writer as the former ASI function, now called only
+        // after UE has stopped. Latest saved choice wins; no startup write.
+        internal static int ApplyGraphicsAdapterFiles(string modIni,string engineIni,Func<bool> running) {
+            if(running())throw new InvalidOperationException("Game is running; Engine.ini left untouched");
+            if(!File.Exists(modIni)||!File.Exists(engineIni))throw new FileNotFoundException("Existing mod INI and Engine.ini required");
+            int adapter=unchecked((int)GetPrivateProfileInt("System","GraphicsAdapter",-1,modIni));
+            if(adapter<0||adapter>4)throw new InvalidDataException("GraphicsAdapter must be 0..4");
+            byte[] original=File.ReadAllBytes(engineIni);
+            if(running())throw new InvalidOperationException("Game restarted; Engine.ini left untouched");
+            File.Copy(engineIni,engineIni+".DGE-GPU.bak",true);
+            try {
+                if(running())throw new InvalidOperationException("Game restarted before GPU write; Engine.ini left untouched");
+                if(!WritePrivateProfileString("SystemSettings","r.GraphicsAdapter",adapter.ToString(),engineIni))
+                    throw new IOException("Engine.ini write failed",new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error()));
+                WritePrivateProfileString(null,null,null,engineIni);
+                if(unchecked((int)GetPrivateProfileInt("SystemSettings","r.GraphicsAdapter",-1,engineIni))!=adapter)
+                    throw new IOException("Engine.ini GPU readback mismatch");
+                return adapter;
+            }catch {
+                if(!running()){WritePrivateProfileString(null,null,null,engineIni);File.WriteAllBytes(engineIni,original);}
+                throw;
+            }
+        }
         private static string BinaryFingerprint(string folder) {
             var result=new StringBuilder();
             foreach(string name in new[]{"DarksidersGenesisMod.asi","dxgi.dll"}){

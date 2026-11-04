@@ -15,7 +15,7 @@ std::atomic_uint64_t g_avoided{0};
 static_assert(std::atomic_uint64_t::is_always_lock_free);
 uint64_t g_reported=0;
 void HookSetTargets(void* context,const void* input){
-    if(Forward(g_original,context,input,runtime::Get().renderCrashGuardEnabled.load(std::memory_order_relaxed)))
+    if(Forward(g_original,context,input,runtime::Get().molochBossCrashFixEnabled.load(std::memory_order_relaxed)))
         g_avoided.fetch_add(1,std::memory_order_relaxed);
 }
 bool Boundary(uintptr_t base){
@@ -34,21 +34,21 @@ void Initialize(LogFn log,bool exactExecutable){
     if(g_ready.load())return;
     const auto base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     if(!exactExecutable||!Boundary(base)){
-        if(g_log)g_log("Render safety V1.148: unavailable; unsupported executable or RHI boundary");
+        if(g_log)g_log("Moloch Boss Crash Fix V1.151: unavailable; unsupported executable or RHI boundary");
         return;
     }
     auto* target=reinterpret_cast<void*>(base+0xD5CDD0);
     if(MH_CreateHook(target,reinterpret_cast<void*>(&HookSetTargets),reinterpret_cast<void**>(&g_original))!=MH_OK){
-        if(g_log)g_log("Render safety V1.148: hook creation failed; native path retained");
+        if(g_log)g_log("Moloch Boss Crash Fix V1.151: hook creation failed; native path retained");
         return;
     }
     if(MH_EnableHook(target)!=MH_OK){
         MH_RemoveHook(target);g_original=nullptr;
-        if(g_log)g_log("Render safety V1.148: hook enable failed; native path retained");
+        if(g_log)g_log("Moloch Boss Crash Fix V1.151: hook enable failed; native path retained");
         return;
     }
     g_ready.store(true,std::memory_order_release);
-    if(g_log)g_log("Render safety V1.148: ready; guard for captured stencil clear without depth target, toggle in Gameplay / System and startup");
+    if(g_log)g_log("Moloch Boss Crash Fix V1.151: ready; guard for captured stencil clear without depth target, toggle in Gameplay / System and startup");
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}
 uint64_t AvoidedClears(){return g_avoided.load(std::memory_order_relaxed);}
@@ -59,7 +59,7 @@ void Report(){
     g_reported=count;
     if(report&&g_log){
         char line[192]{};
-        sprintf_s(line,"Render safety V1.148: skipped absent-target stencil clear; total=%llu (valid targets unchanged)",static_cast<unsigned long long>(count));
+        sprintf_s(line,"Moloch Boss Crash Fix V1.151: skipped absent-target stencil clear; total=%llu (valid targets unchanged)",static_cast<unsigned long long>(count));
         g_log(line);
     }
 }

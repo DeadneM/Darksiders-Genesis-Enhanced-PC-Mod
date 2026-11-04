@@ -1,6 +1,6 @@
 #include "ShaderAimFeature.h"
 #include "RuntimeSettings.h"
-#include "AimShaderStatePolicy.h"
+#include "AimShaderCatalog.h"
 
 #include <MinHook.h>
 #include <windows.h>
@@ -13,16 +13,10 @@
 namespace dg::aim_shader {
 namespace {
 
-// Captured by user with ShaderToggler: CRC32 of pixel shader bytecode.
-constexpr uint32_t kAimingLineHash = 1212955419u; // 0x484C3B1B
-constexpr uint32_t kAimingArcHash  = 2294978555u; // 0x88CA97FB
-
 using CreatePSFn = HRESULT(STDMETHODCALLTYPE*)(
     ID3D11Device*, const void*, SIZE_T, ID3D11ClassLinkage*, ID3D11PixelShader**);
 using SetPSFn = void(STDMETHODCALLTYPE*)(
     ID3D11DeviceContext*, ID3D11PixelShader*, ID3D11ClassInstance* const*, UINT);
-using ClearStateFn=void(STDMETHODCALLTYPE*)(ID3D11DeviceContext*);
-using ExecuteListFn=void(STDMETHODCALLTYPE*)(ID3D11DeviceContext*,ID3D11CommandList*,BOOL);
 using DrawFn = void(STDMETHODCALLTYPE*)(ID3D11DeviceContext*, UINT, UINT);
 using DrawIndexedFn = void(STDMETHODCALLTYPE*)(ID3D11DeviceContext*, UINT, UINT, INT);
 using DrawInstancedFn = void(STDMETHODCALLTYPE*)(ID3D11DeviceContext*, UINT, UINT, UINT, UINT);
@@ -33,8 +27,6 @@ using DrawIndirectFn = void(STDMETHODCALLTYPE*)(ID3D11DeviceContext*, ID3D11Buff
 
 CreatePSFn g_originalCreatePS = nullptr;
 SetPSFn g_originalSetPS = nullptr;
-ClearStateFn g_originalClearState=nullptr;
-ExecuteListFn g_originalExecuteList=nullptr;
 DrawFn g_originalDraw = nullptr;
 DrawIndexedFn g_originalDrawIndexed = nullptr;
 DrawInstancedFn g_originalDrawInstanced = nullptr;
@@ -45,9 +37,10 @@ DrawIndirectFn g_originalDrawIndirect = nullptr;
 
 SRWLOCK g_lock = SRWLOCK_INIT;
 std::unordered_set<ID3D11PixelShader*> g_targetShaders;
-std::unordered_map<ID3D11DeviceContext*, PixelState> g_contextTargetPS;
+std::unordered_map<ID3D11DeviceContext*, bool> g_contextTargetPS;
 std::atomic_bool g_ready{false};
 std::atomic_uint32_t g_matchCount{0}, g_drawCount{0}, g_blockCount{0};
+std::atomic_uint32_t g_creationCount{0},g_lineCount{0},g_arcCount{0};
 LogFn g_logger = nullptr;
 
 // ShaderToggler's bytecode hash: standard reflected CRC32 (0xEDB88320).
@@ -82,12 +75,16 @@ HRESULT STDMETHODCALLTYPE HookCreatePS(
     // Compute hashes ONLY for real creations, never for failed validation calls.
     const HRESULT result = original(device, code, length, linkage, out);
     if (SUCCEEDED(result) && out && *out && code && length && length < 4u * 1024u * 1024u) {
+        ++g_creationCount;
         const uint32_t hash = BytecodeCRC32(code, length);
-        if (hash == kAimingLineHash || hash == kAimingArcHash) {
+        const auto* signature=aim_shader_catalog::Find(hash);
+        if (signature&&aim_shader_catalog::Matches(*signature,
+                {static_cast<const uint8_t*>(code),length})) {
+            if(signature->kind==aim_shader_catalog::Kind::Beam)++g_lineCount;else ++g_arcCount;
             AcquireSRWLockExclusive(&g_lock);
             // Keep a reference so a freed COM pointer cannot be reused as a
             // false match. Very small and bounded: only matched shaders.
-            if (g_targetShaders.size() < 64 && g_targetShaders.insert(*out).second) {
+            if (g_targetShaders.size() < aim_shader_catalog::MaxTrackedShaders && g_targetShaders.insert(*out).second) {
                 (*out)->AddRef();
                 ++g_matchCount;
             }
@@ -97,50 +94,45 @@ HRESULT STDMETHODCALLTYPE HookCreatePS(
     return result;
 }
 
-void RememberState(ID3D11DeviceContext* ctx,PixelState state){
-    AcquireSRWLockExclusive(&g_lock);
-    if(g_contextTargetPS.count(ctx)||g_contextTargetPS.size()<64)g_contextTargetPS[ctx]=state;
-    ReleaseSRWLockExclusive(&g_lock);
-}
 void STDMETHODCALLTYPE HookSetPS(
     ID3D11DeviceContext* ctx, ID3D11PixelShader* shader,
     ID3D11ClassInstance* const* classes, UINT count) {
-    if(g_originalSetPS)g_originalSetPS(ctx,shader,classes,count);
-    if(!g_ready.load(std::memory_order_relaxed)||!ctx)return;
+    if (g_originalSetPS) g_originalSetPS(ctx, shader, classes, count);
+    if (!g_ready.load(std::memory_order_relaxed) || !ctx) return;
     AcquireSRWLockShared(&g_lock);
-    const bool matched=shader&&g_targetShaders.count(shader)!=0;
+    const bool matched = shader && g_targetShaders.count(shader) != 0;
     ReleaseSRWLockShared(&g_lock);
-    RememberState(ctx,matched?PixelState::Aim:PixelState::Other);
+    AcquireSRWLockExclusive(&g_lock);
+    if(g_contextTargetPS.count(ctx)||g_contextTargetPS.size()<64)g_contextTargetPS[ctx] = matched;
+    ReleaseSRWLockExclusive(&g_lock);
 }
-void STDMETHODCALLTYPE HookClearState(ID3D11DeviceContext* ctx){
-    if(g_originalClearState)g_originalClearState(ctx);
-    if(g_ready.load(std::memory_order_relaxed)&&ctx)RememberState(ctx,PixelState::Other);
-}
-void STDMETHODCALLTYPE HookExecuteList(ID3D11DeviceContext* ctx,ID3D11CommandList* list,BOOL restore){
-    const bool track=g_ready.load(std::memory_order_relaxed)&&ctx;
-    // Replay and state restoration can bypass the PSSetShader observer.
-    // Invalidate before native replay AND after its final/restored state.
-    if(track)RememberState(ctx,PixelState::Unknown);
-    if(g_originalExecuteList)g_originalExecuteList(ctx,list,restore);
-    if(track)RememberState(ctx,PixelState::Unknown);
-}
+
 bool Skip(ID3D11DeviceContext* ctx) {
-    if(!ctx||!g_ready.load(std::memory_order_relaxed)||!g_matchCount.load(std::memory_order_relaxed))return false;
+    if (!g_ready.load(std::memory_order_relaxed)) return false;
+    if (g_matchCount.load(std::memory_order_relaxed) == 0) return false;
     AcquireSRWLockShared(&g_lock);
-    const auto it=g_contextTargetPS.find(ctx);
-    const auto state=it==g_contextTargetPS.end()?PixelState::Unknown:it->second;
+    const auto it = g_contextTargetPS.find(ctx);
+    const bool matched = it != g_contextTargetPS.end() && it->second;
     ReleaseSRWLockShared(&g_lock);
-    if(state==PixelState::Other)return false;
-    const bool skipped=ShouldSkip(state,EnabledByExistingMode(),[&]{
-        ID3D11PixelShader* actual=nullptr;ctx->PSGetShader(&actual,nullptr,nullptr);
+    if (matched) {
+        // View/time/settings are irrelevant to every non-aim shader. Keep
+        // their evaluation on the rare candidate path, with the same native
+        // shader verification for ClearState/command-list invalidation.
+        if(!EnabledByExistingMode())return false;
+        // ClearState and command lists can bypass our PSSetShader observer.
+        // Verify only would-be blocked draws, retaining the fast path for
+        // ordinary rendering; a stale context entry cannot hide other PSs.
+        ID3D11PixelShader* actual=nullptr;
+        ctx->PSGetShader(&actual,nullptr,nullptr);
         AcquireSRWLockShared(&g_lock);
-        const bool matched=actual&&g_targetShaders.count(actual)!=0;
+        const bool stillMatched=actual&&g_targetShaders.count(actual)!=0;
         ReleaseSRWLockShared(&g_lock);
         if(actual)actual->Release();
-        return matched;
-    },[&](PixelState value){RememberState(ctx,value);});
-    if(skipped)++g_blockCount;
-    return skipped;
+        if(!stillMatched)return false;
+        ++g_blockCount;
+        return true;
+    }
+    return false;
 }
 
 void STDMETHODCALLTYPE HookDraw(ID3D11DeviceContext* ctx, UINT vertices, UINT first) {
@@ -189,9 +181,6 @@ bool Install(ID3D11Device* device, ID3D11DeviceContext* context, LogFn logger) {
     const Target targets[] = {
         {dv[15], reinterpret_cast<void*>(&HookCreatePS), reinterpret_cast<void**>(&g_originalCreatePS)},
         {cv[9], reinterpret_cast<void*>(&HookSetPS), reinterpret_cast<void**>(&g_originalSetPS)},
-        // Microsoft d3d11.h ID3D11DeviceContextVtbl: ExecuteCommandList=58, ClearState=110.
-        {cv[58], reinterpret_cast<void*>(&HookExecuteList), reinterpret_cast<void**>(&g_originalExecuteList)},
-        {cv[110], reinterpret_cast<void*>(&HookClearState), reinterpret_cast<void**>(&g_originalClearState)},
         {cv[12], reinterpret_cast<void*>(&HookDrawIndexed), reinterpret_cast<void**>(&g_originalDrawIndexed)},
         {cv[13], reinterpret_cast<void*>(&HookDraw), reinterpret_cast<void**>(&g_originalDraw)},
         {cv[20], reinterpret_cast<void*>(&HookDrawIndexedInstanced), reinterpret_cast<void**>(&g_originalDrawIndexedInstanced)},
@@ -210,7 +199,8 @@ bool Install(ID3D11Device* device, ID3D11DeviceContext* context, LogFn logger) {
         created.push_back(t.address);
     }
     g_ready.store(true, std::memory_order_release);
-    if (logger) logger("Aim shaders V1.149: CRC32 PS capture, 7 draw hooks and native context reset/replay invalidation; existing visibility mode");
+    if (logger) logger("Aim shaders V0.90: CRC32 PS capture and 7 draw call hooks installed, using existing visibility mode");
+    if (logger) logger("Aim shaders V1.151: 168 native aim-material permutations, exact CRC/size/fingerprint; no shared native CRCs; Moloch visual validation required");
     return true;
 }
 
@@ -226,6 +216,8 @@ void Shutdown() {
     g_ready.store(false, std::memory_order_release);
     if (g_logger) g_logger("Aim shaders V0.90 totals: matchedPS=%u drawCalls=%u blockedDraws=%u",
         g_matchCount.load(), g_drawCount.load(), g_blockCount.load());
+    if(g_logger)g_logger("Aim shader capture V1.151: successfulCreations=%u lineCRCSeen=%u arcCRCSeen=%u; counters only, Moloch repair NOT validated",
+        g_creationCount.load(),g_lineCount.load(),g_arcCount.load());
     AcquireSRWLockExclusive(&g_lock);
     g_contextTargetPS.clear();
     for (auto* shader : g_targetShaders) shader->Release();

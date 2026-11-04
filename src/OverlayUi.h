@@ -13,7 +13,7 @@ namespace dg::overlay {
 using ApplySkipIntroFn = bool(*)(bool);
 using ApplySkipLogosFn = bool(*)(bool);
 using ApplySkipWarningFn = bool(*)(bool);
-using ApplyGraphicsAdapterFn = bool(*)(int);
+using QueueGraphicsAdapterFn = bool(*)(int);
 using LogFn = void(*)(const char*, ...);
 
 struct Telemetry {
@@ -56,7 +56,7 @@ struct Context {
     ApplySkipIntroFn applySkipIntro = nullptr;
     ApplySkipLogosFn applySkipLogos = nullptr;
     ApplySkipWarningFn applySkipWarning = nullptr;
-    ApplyGraphicsAdapterFn applyGraphicsAdapter = nullptr;
+    QueueGraphicsAdapterFn queueGraphicsAdapter = nullptr;
     LogFn log = nullptr;
 };
 

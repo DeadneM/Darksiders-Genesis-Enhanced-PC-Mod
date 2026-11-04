@@ -7,6 +7,43 @@ using DarksidersGenesisUpdater;
 internal static class UpdateEngineSafetyTests {
     private static int failures;
     private static void Check(bool ok,string label){if(!ok){failures++;Console.WriteLine("FAIL "+label);}}
+    private static void GraphicsAdapterCases(string folder){
+        string mod=Path.Combine(folder,"gpu-mod.ini"),engine=Path.Combine(folder,"gpu-engine.ini"),backup=engine+".DGE-GPU.bak";
+        try {
+            foreach(Encoding encoding in new[]{new UTF8Encoding(false),(Encoding)Encoding.Unicode}){
+                string cached="[Core.System]\r\nPaths=keep-me\r\n[SystemSettings]\r\nr.GraphicsAdapter=1\r\nr.Unrelated=42\r\n; préservé\r\n";
+                File.WriteAllText(mod,"[Meta]\r\nRevision=1\r\n[System]\r\nGraphicsAdapter=2\r\n",encoding);
+                File.WriteAllText(engine,cached,encoding);
+                byte[] before=File.ReadAllBytes(engine);bool rejected=false;
+                try{UpdateEngine.ApplyGraphicsAdapterFiles(mod,engine,delegate{return true;});}catch(InvalidOperationException){rejected=true;}
+                Check(rejected&&Convert.ToBase64String(before)==Convert.ToBase64String(File.ReadAllBytes(engine)),"GPU never writes while game runs");
+                // Final UE save still contains its old choice. The menu has
+                // since selected another value: the helper must read it now.
+                File.WriteAllText(mod,"[Meta]\r\nRevision=1\r\n[System]\r\nGraphicsAdapter=3\r\n",encoding);
+                File.WriteAllText(engine,cached,encoding);
+                Check(UpdateEngine.ApplyGraphicsAdapterFiles(mod,engine,delegate{return false;})==3,"post-exit writer reads latest saved selection");
+                string after=File.ReadAllText(engine,encoding);
+                Check(after.Contains("r.GraphicsAdapter=3")&&after.Contains("Paths=keep-me")&&after.Contains("r.Unrelated=42")&&after.Contains("préservé"),"engine GPU changes while other UTF8/UTF16 values and comments survive");
+                Check(Convert.ToBase64String(before)==Convert.ToBase64String(File.ReadAllBytes(backup)),"backup contains exact final native engine save");
+                for(int n=0;n<=4;n++){
+                    File.WriteAllText(mod,"[Meta]\r\nRevision=1\r\n[System]\r\nGraphicsAdapter="+n+"\r\n",encoding);
+                    Check(UpdateEngine.ApplyGraphicsAdapterFiles(mod,engine,delegate{return false;})==n&&File.ReadAllText(engine,encoding).Contains("r.GraphicsAdapter="+n),"all existing GPU choices reach physical file");
+                }
+                byte[] kept=File.ReadAllBytes(engine);File.WriteAllText(mod,"[System]\r\nGraphicsAdapter=99\r\n",encoding);rejected=false;
+                try{UpdateEngine.ApplyGraphicsAdapterFiles(mod,engine,delegate{return false;});}catch(InvalidDataException){rejected=true;}
+                Check(rejected&&Convert.ToBase64String(kept)==Convert.ToBase64String(File.ReadAllBytes(engine)),"invalid selection leaves engine file intact");
+                File.WriteAllText(mod,"[Meta]\r\nRevision=1\r\n[System]\r\nGraphicsAdapter=2\r\n",encoding);int checks=0;rejected=false;
+                try{UpdateEngine.ApplyGraphicsAdapterFiles(mod,engine,delegate{return ++checks>1;});}catch(InvalidOperationException){rejected=true;}
+                Check(rejected&&Convert.ToBase64String(kept)==Convert.ToBase64String(File.ReadAllBytes(engine)),"restart before write cancels pending change");
+                checks=0;rejected=false;
+                try{UpdateEngine.ApplyGraphicsAdapterFiles(mod,engine,delegate{return ++checks>=3;});}catch(InvalidOperationException){rejected=true;}
+                Check(rejected&&Convert.ToBase64String(kept)==Convert.ToBase64String(File.ReadAllBytes(engine)),"restart after backup cancels GPU write without reverting a running game file");
+            }
+            File.Delete(engine);bool missing=false;
+            try{UpdateEngine.ApplyGraphicsAdapterFiles(mod,engine,delegate{return false;});}catch(FileNotFoundException){missing=true;}
+            Check(missing&&!File.Exists(engine),"missing Engine.ini is not fabricated");
+        }finally{foreach(string file in new[]{mod,engine,backup})if(File.Exists(file))File.Delete(file);}
+    }
     private static void PackageCases(string folder){
         string[][] layouts={
             new[]{"dxgi.dll","DarksidersGenesisMod.asi"},
@@ -47,6 +84,7 @@ internal static class UpdateEngineSafetyTests {
             .SetValue(null,Path.Combine(testRoot,"updater-state"));
         string folder=Path.Combine(string.IsNullOrEmpty(testRoot)?Path.GetTempPath():testRoot,"DGE-State-Test-"+Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
+        GraphicsAdapterCases(folder);
         string state=UpdateEngine.StateFolder(folder);
         string asi=Path.Combine(folder,"DarksidersGenesisMod.asi"),dll=Path.Combine(folder,"dxgi.dll");
         string ini=Path.Combine(folder,"DarksidersGenesisMod.ini");

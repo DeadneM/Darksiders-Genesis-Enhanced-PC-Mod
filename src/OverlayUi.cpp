@@ -727,7 +727,7 @@ void Draw(Context& c) {
             ImGui::Indent();
 
             ImGui::BeginDisabled(!render_safety::Ready());
-            if(ImGui::Checkbox("Subtitle crash fix",&config.renderCrashGuardEnabled))config.Save();
+            if(ImGui::Checkbox("Moloch Boss Crash Fix",&config.molochBossCrashFixEnabled))config.Save();
             ImGui::EndDisabled();
             HelpText("Prevents the known subtitle crash at the Moloch cutscene transition. Applies immediately.");
             ImGui::TextDisabled("%s | prevented invalid clears: %llu",render_safety::Ready()?"Ready":"Unavailable",
@@ -736,7 +736,7 @@ void Draw(Context& c) {
 
             ImGui::Text("Graphics Adapter");
             ImGui::TextDisabled(
-                "Select which GPU the game uses. Requires a restart to take effect."
+                "Writes Engine.ini after closing the game. Restart afterwards."
             );
 
             ImGui::Indent();
@@ -755,9 +755,9 @@ void Draw(Context& c) {
                     selectedGraphicsAdapter;
                 const bool preferenceSaved=config.SaveNow();
 
-                const bool applied =
-                    preferenceSaved&&c.applyGraphicsAdapter
-                        ? c.applyGraphicsAdapter(
+                const bool queued =
+                    preferenceSaved&&c.queueGraphicsAdapter
+                        ? c.queueGraphicsAdapter(
                             config.graphicsAdapter)
                         : false;
 
@@ -765,9 +765,9 @@ void Draw(Context& c) {
                     std::string("Graphics Adapter ") +
                     std::to_string(
                         config.graphicsAdapter) +
-                    (!preferenceSaved?" preference save failed":applied
-                        ? " saved for next startup (restart required)"
-                        : " preference saved; Engine.ini staging failed");
+                    (!preferenceSaved?" preference save failed":queued
+                        ? " queued for game exit (restart afterwards)"
+                        : " preference saved; post-exit queue failed");
             }
             ImGui::Unindent();
 

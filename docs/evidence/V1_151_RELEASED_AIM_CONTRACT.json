@@ -1,0 +1,64 @@
+{
+  "source": "cached original Strife_Blueprint SetAimMode asset",
+  "assetSHA256": "595a2a57b1e058ab10fabbaa3c994c823c9cec286d8e20f9efdf8721179f9492",
+  "script": {
+    "name": "SetAimMode",
+    "size": 30,
+    "hash": 4422810318088863023,
+    "blocks": [
+      [
+        1,
+        8,
+        "AimMode"
+      ],
+      [
+        10,
+        8,
+        "AimMode"
+      ],
+      [
+        19,
+        8,
+        "Mode"
+      ]
+    ],
+    "raw": [
+      15,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      4,
+      11,
+      83
+    ]
+  },
+  "semantics": "AimMode = Mode; return; endScript",
+  "runtimeSetterVerified": false,
+  "readOnlyAttempt": "Game was closed; no engine call made",
+  "trial": "Only idle released local Strife after recorded dash; mode1, no active ability or hard-lock; guarded one-shot native setter",
+  "buildStarted": false,
+  "validatedInGame": false
+}

@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-04",
+  "capture": "read-only VM_READ; no writes, injection or engine calls",
+  "installedVersion": "V1.150",
+  "sourceSHA256": "651dfd666efd65e640aac5156e3f589b84ac04d4f5a96787cb597d6d9d536ab4",
+  "recordCount": 2924,
+  "airDashSampledFrames": 59,
+  "contracts": [
+    {
+      "name": "OnFinish",
+      "scriptCount": 36,
+      "normalizedHash": 9167806210151048089,
+      "expectedHash": 9167806210151048089,
+      "contractMatches": true,
+      "referenceCount": 3,
+      "allReferencesMatch": true
+    },
+    {
+      "name": "ExecuteUbergraph_MayhemAbility_Strife_AirDash_Blueprint",
+      "scriptCount": 185,
+      "normalizedHash": 15091677296391271832,
+      "expectedHash": 15091677296391271832,
+      "contractMatches": true,
+      "referenceCount": 16,
+      "allReferencesMatch": true
+    }
+  ],
+  "limitation": "Script identity proof only. V1.151 source prototype has not been built or run; landing dispatch timing and gameplay remain unvalidated.",
+  "pose": "User reproduced aim + stomp leaving Strife in aiming pose. Earlier unfocused frozen samples do not prove a live persistent lock. Foreground walk-before / one-shot / walk-after comparison still required."
+}

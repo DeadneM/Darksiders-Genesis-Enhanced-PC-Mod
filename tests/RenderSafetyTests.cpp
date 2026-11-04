@@ -30,7 +30,7 @@ void Run(){
     auto other=captured;other.bytes[0xD4]=0;pass(other.bytes.data(),true);
     g_original=Original;dg::runtime::Snapshot settings{};dg::runtime::Publish(settings);
     const auto n=calls;HookSetTargets(context,b.data());Check(calls==n+1&&AvoidedClears()==1,"hook integrates the single correction and counter");
-    settings.renderCrashGuardEnabled=false;dg::runtime::Publish(settings);HookSetTargets(context,b.data());Check(AvoidedClears()==1&&seenInput==b.data(),"runtime checkbox disables correction");
+    settings.molochBossCrashFixEnabled=false;dg::runtime::Publish(settings);HookSetTargets(context,b.data());Check(AvoidedClears()==1&&seenInput==b.data(),"runtime checkbox disables correction");
     std::vector<unsigned char> image(0xD5D100);auto base=reinterpret_cast<uintptr_t>(image.data());
     const unsigned char entry[]={0x48,0x89,0x5C,0x24,0x18,0x48,0x89,0x74,0x24,0x20,0x55,0x57,0x41,0x56,0x48,0x8D};
     const unsigned char uavs[]={0x48,0x63,0xBA,0x20,0x01,0,0};
