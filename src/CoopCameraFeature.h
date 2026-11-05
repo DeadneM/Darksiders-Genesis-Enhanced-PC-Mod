@@ -13,7 +13,7 @@ bool ObserveArm(void* liveArm,float nativeLength);
 // Render/input thread: only published identities/values, no UObject reads.
 // Returns a shared TPS-toggle request; the main config owner applies it.
 bool UpdateInput(const XINPUT_GAMEPAD* physical,bool focused,float dt,
-    int recenterMask,int suspendMask,int suspendDelayMs,int toggleMask=0,int toggleHoldMs=500);
+    int recenterMask,int suspendMask,int suspendDelayMs,int toggleMask=0,int toggleHoldMs=500,bool inputCaptured=false);
 bool FilterPad(DWORD controllerId,XINPUT_GAMEPAD& pad,bool focusedGameplay=true);
 bool AdjustLook(void* actor,float& a,float& b,float& c,bool rotation);
 bool ShotRay(const local_players::Context& owner,native_tps::MouseRay& ray);

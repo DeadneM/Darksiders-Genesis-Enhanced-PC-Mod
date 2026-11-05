@@ -1,0 +1,11 @@
+#pragma once
+namespace dg::gameplay_menu {
+struct Focus {
+    bool window=false,foreground=false,minimized=false,closing=false,menu=false;
+};
+// Opening our editor does not change the game's gameplay rules. Native pause,
+// radial and cinematic ownership are still checked by each native feature.
+inline constexpr bool Runtime(const Focus& s){return s.window&&s.foreground&&!s.minimized&&!s.closing;}
+// UI navigation, rebinding and new mod commands must not share input edges.
+inline constexpr bool Commands(const Focus& s){return Runtime(s)&&!s.menu;}
+}

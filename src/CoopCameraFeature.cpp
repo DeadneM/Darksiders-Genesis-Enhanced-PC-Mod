@@ -27,7 +27,7 @@ struct State {
     camera_focus::Point focus{};
     camera_focus::Bounds focusBounds{};
     ULONGLONG viewTick=0,inputTick=0,suspendStarted=0;
-    bool focused=false,wheel=false,fire=false,stick=false,temporary=false;
+    bool focused=false,wheel=false,fire=false,stick=false,temporary=false,inputCaptured=false;
     bool recenterPending=false,form=false,horseChordDown=false;
     int lastSuspend=-1;
     tps_input::CameraPressState cameraPress{};
@@ -170,30 +170,30 @@ bool ObserveArm(void* arm,float nativeLength){
     Unlock();return true;
 }
 bool UpdateInput(const XINPUT_GAMEPAD* pad,bool focused,float dt,
-                 int recenterMask,int suspendMask,int suspendDelayMs,int toggleMask,int toggleHoldMs){
+                 int recenterMask,int suspendMask,int suspendDelayMs,int toggleMask,int toggleHoldMs,bool inputCaptured){
     const auto slot=local_players::PublishedSlot(1);
     const auto now=GetTickCount64();const auto& rt=runtime::Get();
     AcquireSRWLockExclusive(&g_lock);auto& s=g_state;
     // A long press must also enable TPS before P2 has ever emitted a TPS
     // view. Only the published local identity is needed; no object reads.
     if(s.pressLocal!=slot.localPlayer){s.cameraPress={};s.pressLocal=slot.localPlayer;}
-    const auto press=tps_input::CameraPress(s.cameraPress,pad,focused&&pad&&slot.localPlayer,now,
+    const auto press=tps_input::CameraPress(s.cameraPress,pad,focused&&pad&&slot.localPlayer&&!inputCaptured,now,
         toggleMask,toggleHoldMs,recenterMask,rt.thirdPersonEnabled.load());
     if(!SameOwner(s,slot)){s.focused=false;s.inputTick=0;s.equipment={};Unlock();return press.toggle;}
-    s.focused=focused&&pad;s.inputTick=now;
+    s.focused=focused&&pad;s.inputTick=now;s.inputCaptured=inputCaptured;
     s.wheel=native_tps::RadialActive(1)||(pad&&Binding(rt.tpsWheelPadMask.load(),*pad));
     s.fire=pad&&Fire(*pad);s.stick=false;
     if(!rt.thirdPersonEnabled.load()){
         s.yaw=0;s.pitch=0;s.baseValid=false;s.held=false;s.gameplay=false;
     }
     if(s.lastSuspend!=suspendMask){s.suspendStarted=0;s.lastSuspend=suspendMask;}
-    const bool suspend=s.focused&&rt.thirdPersonEnabled.load()&&!s.wheel&&Binding(suspendMask,*pad);
+    const bool suspend=s.focused&&!inputCaptured&&rt.thirdPersonEnabled.load()&&!s.wheel&&Binding(suspendMask,*pad);
     if(suspend&&!s.suspendStarted)s.suspendStarted=now;
     if(!suspend)s.suspendStarted=0;
     s.temporary=suspend&&now>=s.suspendStarted&&
         now-s.suspendStarted>=static_cast<ULONGLONG>(std::clamp(suspendDelayMs,0,3000));
     if(press.recenter)s.recenterPending=true;
-    if(!s.focused||s.temporary||s.wheel||s.paused||s.cinema||!rt.thirdPersonEnabled.load()||
+    if(inputCaptured||!s.focused||s.temporary||s.wheel||s.paused||s.cinema||!rt.thirdPersonEnabled.load()||
        !rt.cameraControllerOrbitEnabled.load()||rt.tpsCameraStickMode.load()==0||
        (rt.tpsMountedAimMode.load()==1&&s.fire)){Unlock();return press.toggle;}
     const bool left=rt.tpsCameraStickMode.load()==1;
@@ -222,7 +222,7 @@ bool FilterPad(DWORD id,XINPUT_GAMEPAD& pad,bool focusedGameplay){
         now>=state.inputTick&&now-state.inputTick<250;
     const bool active=owned&&Active(state,now);
     state.fire=Fire(pad); // physical firing state, before any equipment remap
-    if(owned&&!state.paused&&!state.cinema&&!state.form){
+    if(owned&&!state.inputCaptured&&!state.paused&&!state.cinema&&!state.form){
         const bool horse=tps_input::MapHorseChord(pad,rt.horsePadButtonA.load(),rt.horsePadButtonB.load());
         if(horse&&!state.horseChordDown&&rt.horseEverywhereEnabled.load()){
             rt.horseSummonIntentTick.store(now,std::memory_order_release);
@@ -234,7 +234,7 @@ bool FilterPad(DWORD id,XINPUT_GAMEPAD& pad,bool focusedGameplay){
     // Preserve native wheel selection. Equipment hold/stow must run BEFORE
     // the temporary-view gate, just as on P1: that action can share its button.
     const bool wheel=native_tps::RadialActive(1)||Binding(rt.tpsWheelPadMask.load(),pad);
-    if(!owned||!rt.thirdPersonEnabled.load()||state.paused||state.cinema||state.form)state.equipment={};
+    if(!owned||state.inputCaptured||!rt.thirdPersonEnabled.load()||state.paused||state.cinema||state.form)state.equipment={};
     else if(!wheel){
         const int mask=rt.tpsGrenadeButtonMask.load();
         const auto event=tps_input::ApplyEquipmentHold(pad,mask,now,state.equipment);

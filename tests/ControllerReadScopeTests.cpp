@@ -1,4 +1,5 @@
 #include "ControllerReadScope.h"
+#include "GameplayMenuPolicy.h"
 #include "TpsStickRoles.h"
 #include <cstdio>
 #include <stdexcept>
@@ -36,6 +37,18 @@ void Run(){
     try{dg::controller_input::PhysicalRead raw;throw 1;}catch(int){}
     Check(GamePoll(ForwardingProvider,pad)&&transforms==4,"exception cleanup cannot leave all sticks bypassed");
     Check(dg::controller_input::gameReadDepth==0&&dg::controller_input::physicalReadDepth==0,"scopes leave no persistent input state");
+    dg::gameplay_menu::Focus editor{true,true,false,false,true};
+    Check(dg::gameplay_menu::Runtime(editor)&&!dg::gameplay_menu::Commands(editor),"open editor keeps gameplay rules active but owns new mod commands");
+    {
+        dg::controller_input::PhysicalRead navigation;
+        Check(GamePoll(ForwardingProvider,pad)&&transforms==4&&pad.sThumbRX==300,"editor navigation reads physical axes, never camera-forward injection");
+    }
+    Check(GamePoll(ForwardingProvider,pad)&&transforms==5&&pad.sThumbRY==32767,"next game read keeps the TPS rule even while editor remains open");
+    editor.menu=false;Check(dg::gameplay_menu::Runtime(editor)&&dg::gameplay_menu::Commands(editor),"closing editor re-enables bindings without toggling gameplay rules");
+    editor.foreground=false;Check(!dg::gameplay_menu::Runtime(editor)&&!dg::gameplay_menu::Commands(editor),"Alt-Tab blocks runtime interaction and new commands");
+    editor.foreground=true;editor.minimized=true;Check(!dg::gameplay_menu::Runtime(editor),"minimized window remains protected");
+    editor.minimized=false;editor.closing=true;Check(!dg::gameplay_menu::Runtime(editor),"shutdown remains protected");
+    editor.closing=false;editor.window=false;Check(!dg::gameplay_menu::Runtime(editor),"missing game window never qualifies as gameplay");
 }
 }
 int main(){try{Run();std::puts("Nested controller API reads: raw camera data and single game transform passed");return 0;}catch(const std::exception& e){std::puts(e.what());return 1;}}

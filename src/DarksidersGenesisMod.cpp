@@ -65,6 +65,7 @@
 #include "ManualActionBinding.h"
 #include "TpsCameraFocus.h"
 #include "ControllerReadScope.h"
+#include "GameplayMenuPolicy.h"
 #include "TpsAimDirection.h"
 #include "NativeObjectIdentity.h"
 #include "NativeMemoryReader.h"
@@ -1427,10 +1428,12 @@ void CaptureLiveTPSActorYaw(void* actor) {
 
 // Called only from a synchronous native movement/camera callback. The
 // context supplies this player's current native state during possession.
-bool PresentationFocused(){
+dg::gameplay_menu::Focus InteractionFocus(){
     const auto hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
-    return hwnd&&GetForegroundWindow()==hwnd&&!IsIconic(hwnd)&&!g_overlayVisible.load()&&!g_shuttingDown.load();
+    return {hwnd!=nullptr,hwnd&&GetForegroundWindow()==hwnd,hwnd&&IsIconic(hwnd),g_shuttingDown.load(),g_overlayVisible.load()};
 }
+bool GameplayFocused(){return dg::gameplay_menu::Runtime(InteractionFocus());}
+bool PresentationFocused(){return dg::gameplay_menu::Commands(InteractionFocus());}
 void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t generation){
     dg::cost_probe::Report(&FeatureLog);
     dg::cost_probe::Scope measured(dg::cost_probe::Gameplay);
@@ -1456,22 +1459,21 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     dg::health::OnLivePlayer(character,generation);
     dg::sheathing::OnLivePlayer(owner,generation);
     dg::manual_aim::OnLivePlayer(owner,generation);
-    const HWND gameplayWindow=reinterpret_cast<HWND>(g_gameWindowTrace.load());
-    dg::selected_recovery::loadingAllowed=!g_overlayVisible.load()&&gameplayWindow&&
-        GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load();
-    dg::ranged_state::OnLivePlayer(owner,generation,dg::selected_recovery::loadingAllowed);
+    const auto interaction=InteractionFocus();
+    const bool runtimeAllowed=dg::gameplay_menu::Runtime(interaction);
+    const bool commandsAllowed=dg::gameplay_menu::Commands(interaction);
+    dg::selected_recovery::loadingAllowed=commandsAllowed;
+    dg::ranged_state::OnLivePlayer(owner,generation,runtimeAllowed);
     dg::air_dash::OnLivePlayer(owner,generation,dg::selected_recovery::loadingAllowed);
-    dg::heavy_landing::OnLivePlayer(owner,generation,!g_overlayVisible.load()&&gameplayWindow&&
-        GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load());
-    dg::recovery_tail::OnLivePlayer(owner,generation,!g_overlayVisible.load()&&gameplayWindow&&
-        GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load());
+    dg::heavy_landing::OnLivePlayer(owner,generation,runtimeAllowed);
+    dg::recovery_tail::OnLivePlayer(owner,generation,runtimeAllowed);
     dg::mounted_holsters::OnLivePlayer(owner);
-    dg::pistol_visual::OnLivePlayer(owner,generation,gameplayWindow&&GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load());
+    dg::pistol_visual::OnLivePlayer(owner,generation,runtimeAllowed);
     dg::leviathan_visual::OnLivePlayer(owner);
     dg::effect_appearance::OnLivePlayer(owner);
     dg::wrath_slots::OnLivePlayer(owner);
     dg::air_jump::OnLivePlayer(owner,generation);
-    dg::mounted_jump::OnLivePlayer(owner,generation,!g_overlayVisible.load()&&gameplayWindow&&GetForegroundWindow()==gameplayWindow&&!IsIconic(gameplayWindow)&&!g_shuttingDown.load());
+    dg::mounted_jump::OnLivePlayer(owner,generation,commandsAllowed);
 }
 
 // V0.75: use the game's verified UMayhemCharacter native look functions,
@@ -1526,7 +1528,7 @@ bool IsLiveTPSLookActor(void* actor) {
         dg::runtime::Get().tpsCutsceneSuspended.load() ||
         dg::runtime::Get().tpsUiViewHeld.load() ||
         (dg::chaos_pose::ActiveNow()&&!dg::chaos_pose::RangedOwner(actor)) ||
-        g_overlayVisible.load()||!IsTPSLookViewFresh())
+        !GameplayFocused()||!IsTPSLookViewFresh())
         return false;
     const auto* player=g_localPlayerCharacter.load(std::memory_order_acquire);
     if(actor!=player || !player)return false;
@@ -1543,8 +1545,7 @@ bool MouseAnyFireHeld(){return MousePrimaryFireHeld()||MouseSecondaryFireHeld();
 // V1.33: camera-center forward ray, independent of physical cursor pixels.
 // Keep V1.32 native collision/local-owner scopes; never simulate XInput.
 bool ComputeNativeMouseRay(dg::native_tps::MouseRay& ray){
-    const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load(std::memory_order_acquire));
-    if(!hwnd||GetForegroundWindow()!=hwnd||IsIconic(hwnd)||g_overlayVisible.load())return false;
+    if(!GameplayFocused())return false;
     const auto view=dg::camera_trace::GetAppliedView();
     const auto owner=dg::local_players::PublishedSlot(0);
     const auto now=GetTickCount64();
@@ -1579,7 +1580,7 @@ bool ProvideNativeMouseRay(void* actor,dg::native_tps::MouseRay& ray){
        rt.tpsMountedAimMode.load()!=0||!rt.thirdPersonEnabled.load()||rt.tpsTemporarilySuspended.load()||
        rt.tpsCutsceneSuspended.load()||rt.tpsUiViewHeld.load()||
        (dg::chaos_pose::ActiveNow()&&!dg::chaos_pose::RangedActor(actor))||
-       g_overlayVisible.load()||IsTPSRadialInputActive()||
+       !GameplayFocused()||IsTPSRadialInputActive()||
        IsPadFiringNow()||rt.manualAimHeld[0].load()||IsCameraStickActiveNow()||
        !IsTPSLookViewFresh())return false;
     const bool mounted=IsMountedTPSNow();
@@ -2424,8 +2425,8 @@ void ReleaseRenderTarget() {
 }
 
 bool ShouldSuppressNativeAim() {
-    // Fail open outside the exact supported game, on Alt-Tab and in the menu.
-    const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load(std::memory_order_relaxed));
+    // Native gameplay rules stay active under the mod editor. Its own hardware
+    // polling uses PhysicalRead and never receives this gameplay transform.
     return g_targetValidation.exact && !g_shuttingDown.load(std::memory_order_relaxed) &&
         dg::runtime::Get().thirdPersonEnabled.load(std::memory_order_relaxed) &&
         !dg::runtime::Get().tpsTemporarilySuspended.load(std::memory_order_relaxed) &&
@@ -2433,8 +2434,7 @@ bool ShouldSuppressNativeAim() {
         !dg::runtime::Get().tpsUiViewHeld.load(std::memory_order_relaxed) &&
         !IsTPSRadialInputActive() &&
         IsTPSLookViewFresh() && (!dg::chaos_pose::ActiveNow()||dg::chaos_pose::RangedActive()) &&
-        hwnd && hwnd==GetForegroundWindow() && !IsIconic(hwnd) &&
-        !g_overlayVisible.load(std::memory_order_relaxed);
+        GameplayFocused();
 }
 
 // Filtering happens only in the native controller API: our own camera
@@ -2495,9 +2495,7 @@ DWORD FilterNativeXInput(int slot,DWORD user,XINPUT_STATE* state) {
     if(realStatus!=ERROR_SUCCESS||!state||!read.CanFilter())return realStatus;
     // P2 filters only its verified native ControllerId, with its own view.
     // The existing primary path below keeps every validated button policy.
-    const HWND coopWindow=reinterpret_cast<HWND>(g_gameWindowTrace.load());
-    const bool coopFocused=g_targetValidation.exact&&coopWindow&&GetForegroundWindow()==coopWindow&&
-        !IsIconic(coopWindow)&&!g_overlayVisible.load()&&!g_shuttingDown.load();
+    const bool coopFocused=g_targetValidation.exact&&GameplayFocused();
     if(dg::coop_camera::FilterPad(user,state->Gamepad,coopFocused))return realStatus;
     if(user!=static_cast<DWORD>(dg::local_players::PrimaryControllerId()))return realStatus;
     const DWORD status=realStatus;
@@ -3479,8 +3477,9 @@ void UpdateOrbitInput() {
     auto& rt=dg::runtime::Get();
     const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
     const ULONGLONG now=GetTickCount64();
-    const bool focused=hwnd && hwnd==GetForegroundWindow() &&
-        !IsIconic(hwnd) && !g_overlayVisible.load();
+    const auto interaction=InteractionFocus();
+    const bool gameplayFocused=dg::gameplay_menu::Runtime(interaction);
+    const bool focused=dg::gameplay_menu::Commands(interaction);
     // Always sample unmodified physical buttons, including when TPS is OFF,
     // so a LONG L3 press can enable TPS without a keyboard/F5 toggle.
     XINPUT_STATE physical{};
@@ -3552,7 +3551,7 @@ void UpdateOrbitInput() {
             g_config.thirdPersonEnabled?"ON":"OFF");
     }
     if(!kbToggle&&kbTogglePrev){
-        if(!kbConsumed&&kbRecenterVK&&kbRecenterVK==kbToggleVK&&
+        if(focused&&!kbConsumed&&kbRecenterVK&&kbRecenterVK==kbToggleVK&&
            g_config.thirdPersonEnabled)
             dg::camera_trace::RecenterOnPlayer();
         kbToggleStart=0;kbConsumed=false;
@@ -3589,7 +3588,7 @@ void UpdateOrbitInput() {
     if(!toggling && toggleHeld){
         // Preserve short-L3 recenter, but do it on RELEASE so a long
         // press does not first recenter the camera unexpectedly.
-        if(!toggleConsumed && g_config.thirdPersonEnabled &&
+        if(focused && !toggleConsumed && g_config.thirdPersonEnabled &&
            g_config.tpsRecenterButtonMask==toggleMask){
             const bool ok=dg::camera_trace::RecenterOnPlayer();
             Log("TPS V0.76: short-press recenter mask=0x%04X success=%d",
@@ -3639,7 +3638,7 @@ void UpdateOrbitInput() {
     const bool active=g_config.thirdPersonEnabled && !temporaryVanilla &&
         !rt.tpsUiViewHeld.load(std::memory_order_relaxed) &&
         !rt.tpsCutsceneSuspended.load(std::memory_order_relaxed) &&
-        focused;
+        gameplayFocused;
     // V1.27: annotate real mouse fire separately from native gamepad fire.
     // No mouse movement, WndProc routing, aim vector or XInput writes here.
     const bool mouseHeld=active && !g_overlayVisible.load() &&
@@ -3651,15 +3650,19 @@ void UpdateOrbitInput() {
     g_orbitLastPresentTick=now;
     XINPUT_STATE coopPhysical{};
     const auto coopSlot=dg::local_players::PublishedSlot(1);
-    const bool coopConnected=focused&&coopSlot.controllerId>=0&&
+    const bool coopConnected=gameplayFocused&&coopSlot.controllerId>=0&&
         GetCameraXInputState(static_cast<DWORD>(coopSlot.controllerId),&coopPhysical)==ERROR_SUCCESS;
-    const bool secondaryToggle=dg::coop_camera::UpdateInput(coopConnected?&coopPhysical.Gamepad:nullptr,focused,dt,
+    const bool secondaryToggle=dg::coop_camera::UpdateInput(coopConnected?&coopPhysical.Gamepad:nullptr,gameplayFocused,dt,
         g_config.tpsRecenterButtonMask,g_config.tpsSuspendButtonMask,g_config.tpsSuspendDelayMs,
-        g_config.tpsToggleHoldButtonMask,g_config.tpsToggleHoldMs);
+        g_config.tpsToggleHoldButtonMask,g_config.tpsToggleHoldMs,interaction.menu);
     if(secondaryToggle&&!primaryToggledThisFrame){
         g_config.thirdPersonEnabled=!g_config.thirdPersonEnabled;g_config.Save();
         Log("TPS V1.47 P2 long-press shared TPS toggle mask=0x%X TPS=%d",
             g_config.tpsToggleHoldButtonMask,g_config.thirdPersonEnabled?1:0);
+    }
+    if(active&&!focused){
+        g_v119MouseDeltaX.exchange(0);g_v119MouseDeltaY.exchange(0);
+        return; // edit controls without moving the orbit or replaying UI deltas
     }
     if (!active||!g_config.thirdPersonEnabled) {
         if(!g_config.thirdPersonEnabled) {
@@ -3895,7 +3898,10 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
             io.WantSetMousePos=false;
         }
         ImGui_ImplDX11_NewFrame();
-        ImGui_ImplWin32_NewFrame();
+        {
+            dg::controller_input::PhysicalRead editorInput;
+            ImGui_ImplWin32_NewFrame();
+        }
         ImGui::NewFrame();
         ImGui::GetIO().MouseDrawCursor=menuVisible;
         if(menuVisible){auto context=BuildOverlayContext();dg::overlay::Draw(context);}
