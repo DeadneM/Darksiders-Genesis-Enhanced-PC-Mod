@@ -359,7 +359,8 @@ void ObserveCurrent(const local_players::Context& c,uint64_t now){
         if(!mid||mid==source||!Field(mid,"Parent","ObjectProperty",8,parentAt)||!Read(mid,parentAt,parent)||parent!=source||!Capture(mid,identity)||
            (surface==0&&!MineralBody(mid,source))){
             // Factory may install its source or MID before validation.
-            uintptr_t now=0;if(Override(mesh,int(i),now)&&((mid&&now==mid)||now==source))Set(mesh,int(i),current);
+            uintptr_t installed=0;
+            if(Override(mesh,int(i),installed)&&((mid&&installed==mid)||installed==source))Set(mesh,int(i),current);
             slot.failed=true;slot.observed=current;slot.retryAt=now+1000;
             continue;
         }
