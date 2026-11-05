@@ -266,20 +266,20 @@ inline constexpr std::array<AssetInfo,460> Assets={{
 {"P_Strife_worldenderFrost_scale2","/Game/VFX/Particles/Characters/Strife/WorldEnder/P_Strife_worldenderFrost_scale2",17},
 {"P_Strife_worldenderFrost_scale3","/Game/VFX/Particles/Characters/Strife/WorldEnder/P_Strife_worldenderFrost_scale3",18},
 {"P_StrifeDash","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash",95},
-{"P_StrifeDash_Coins","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Coins",95},
-{"P_StrifeDash_Default","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Default",95},
+{"P_StrifeDash_Coins","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Coins",100},
+{"P_StrifeDash_Default","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Default",100},
 {"P_StrifeDash_Fall_Loop","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Fall_Loop",95},
 {"P_StrifeDash_Jump","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Jump",95},
 {"P_StrifeDash_Jump_Low","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Jump_Low",95},
 {"P_StrifeDash_Jump_Low_Water","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Jump_Low_Water",95},
 {"P_StrifeDash_Jump_Water","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Jump_Water",95},
 {"P_StrifeDash_Land","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Land",95},
-{"P_StrifeDash_Metal","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Metal",95},
-{"P_StrifeDash_Sand","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Sand",95},
-{"P_StrifeDash_Snow","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Snow",95},
-{"P_StrifeDash_Stone","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Stone",95},
-{"P_StrifeDash_Water","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Water",95},
-{"P_StrifeDash_Wood","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Wood",95},
+{"P_StrifeDash_Metal","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Metal",100},
+{"P_StrifeDash_Sand","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Sand",100},
+{"P_StrifeDash_Snow","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Snow",100},
+{"P_StrifeDash_Stone","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Stone",100},
+{"P_StrifeDash_Water","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Water",100},
+{"P_StrifeDash_Wood","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Wood",100},
 {"P_StrifeDashShort","/Game/VFX/Particles/Characters/Strife/Generic/P_StrifeDashShort",95},
 {"P_Synergy_War_Smash_01","/Game/VFX/Particles/Characters/War/SynergyMove_War/P_Synergy_War_Smash_01",29},
 {"P_Tremor_Gold_Explosion","/Game/VFX/Particles/Characters/PlayerGear/TremorGauntlet/Ground/P_Tremor_Gold_Explosion",98},
@@ -465,7 +465,7 @@ inline constexpr std::array<AssetInfo,460> Assets={{
 {"VFX_war_wrath_bladeGeyser_bladeFar_Lvl3","/Game/VFX/Particles/Characters/War/Generic/VFX_war_wrath_bladeGeyser_bladeFar_Lvl3",13},
 {"VFX_war_wrath_bladeGeyser_nova","/Game/VFX/Particles/Characters/War/Generic/VFX_war_wrath_bladeGeyser_nova",14},
 }};
-inline constexpr std::array<RoleInfo,100> Roles={{
+inline constexpr std::array<RoleInfo,101> Roles={{
 {0,{188,189,189,189,-1,-1}},
 {0,{193,194,195,196,-1,-1}},
 {1,{-1,-1,-1,-1,-1,-1}},
@@ -566,6 +566,7 @@ inline constexpr std::array<RoleInfo,100> Roles={{
 {42,{-1,-1,-1,-1,-1,-1}},
 {43,{278,279,280,281,-1,-1}},
 {44,{-1,-1,-1,-1,-1,-1}},
+{45,{263,262,270,271,272,273,274,275,-1}},
 }};
 inline constexpr int Target(unsigned role,int choice){if(role>=Roles.size())return -1;const auto family=Roles[role].family;const int value=Normalize(family,choice);return value>0&&value!=Hidden(family)&&unsigned(value-1)<Roles[role].targets.size()?Roles[role].targets[unsigned(value-1)]:-1;}
 }

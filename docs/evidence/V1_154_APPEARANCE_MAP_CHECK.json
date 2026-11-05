@@ -1,0 +1,40 @@
+{
+  "base": "563ae9ca8c2647689af8464d320544afe55b1894",
+  "newFamily": 45,
+  "newRole": 100,
+  "nativeDefault": 0,
+  "hiddenChoice": 9,
+  "newKey": "Values.DashSurfaceAppearance",
+  "oldFamiliesPreserved": 45,
+  "oldRolesUnchanged": 100,
+  "assetsUnchanged": 460,
+  "sourceRolesMoved": [
+    "P_StrifeDash_Coins",
+    "P_StrifeDash_Default",
+    "P_StrifeDash_Metal",
+    "P_StrifeDash_Sand",
+    "P_StrifeDash_Snow",
+    "P_StrifeDash_Stone",
+    "P_StrifeDash_Water",
+    "P_StrifeDash_Wood"
+  ],
+  "selectedAssets": [
+    "P_StrifeDash_Default",
+    "P_StrifeDash_Coins",
+    "P_StrifeDash_Metal",
+    "P_StrifeDash_Sand",
+    "P_StrifeDash_Snow",
+    "P_StrifeDash_Stone",
+    "P_StrifeDash_Water",
+    "P_StrifeDash_Wood"
+  ],
+  "existingFactoryReused": true,
+  "newHooks": false,
+  "gameplayValidated": false,
+  "oldIniKeysPreserved": 247,
+  "iniKeys": 248,
+  "oldSettingsRowsPreserved": 45,
+  "actionTokensUnchanged": true,
+  "protectedGameplayModulesUnchanged": true,
+  "mainPromotedTo": "563ae9ca8c2647689af8464d320544afe55b1894"
+}

@@ -85,6 +85,31 @@ void Run(){
  Check(LoadedMask(legion)&(1u<<5),"late water load at unchanged UObject count is rediscovered");
  g_worlds[0].tick=GetTickCount64();HookCreate(f.assets[shield].bytes,f.worlds[0].bytes,nullptr,true,0);
  Check(sentAsset==f.assets[shield].bytes&&ShieldAsset(5,false)==f.assets[water].bytes,"late water resource resolves independently without replacing the native status factory");
+ // Shared native surface notifies use the same eight templates for both heroes.
+ Fresh();const auto dash=unsigned(Family::DashSurface),legacy=unsigned(Family::OtherStrifeFx);
+ Check(dash==45&&Hidden(dash)==9&&FamilyCount==46,"new family appends without shifting persisted IDs");
+ const char* surfaces[]={"P_StrifeDash_Default","P_StrifeDash_Coins","P_StrifeDash_Metal","P_StrifeDash_Sand","P_StrifeDash_Snow","P_StrifeDash_Stone","P_StrifeDash_Water","P_StrifeDash_Wood"};
+ for(const auto* source:surfaces)for(int choice=1;choice<=8;++choice){
+  Select(dash,choice);const auto before=calls;HookCreate(f.assets[Find(source)].bytes,f.worlds[0].bytes,nullptr,true,2);
+  Check(calls==before+1&&sentAsset==f.assets[Find(surfaces[choice-1])].bytes&&sentPool==2,"all eight native surface sources select the requested native template with one factory call");
+ }
+ const auto dust=Find(surfaces[0]),blur=Find("P_StrifeDash"),warBlur=Find("P_WarDash"),charge=Find("P_ChargeUp_LvL2");
+ for(const auto source:{blur,warBlur,charge}){
+  HookCreate(f.assets[source].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[source].bytes,"surface choice does not replace motion blur or unrelated body effects");
+ }
+ Select(dash,0);HookCreate(f.assets[dust].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[dust].bytes&&!g_hiddenCount,"Native keeps the exact surface-selected template");
+ Select(legacy,Hidden(legacy));HookCreate(f.assets[dust].bytes,f.worlds[0].bytes,nullptr,true,0);
+ Check(g_hiddenCount==1&&Selected(dash)==Hidden(dash),"old INIs still hide shared surface dust, including War's native usage");
+ g_restoreTick=0;Select(legacy,0);Check(!g_hiddenCount,"removing the old hide request restores owned surface visibility");
+ dg::runtime::Snapshot both{};both.effectAppearances[dash]=7;both.effectAppearances[legacy]=Hidden(legacy);dg::runtime::Publish(both);OnLivePlayer(owner);
+ HookCreate(f.assets[dust].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[dust].bytes&&g_hiddenCount==1,"broad legacy hide takes priority over a new cosmetic selection");
+ both.effectAppearances[dash]=Hidden(dash);both.effectAppearances[legacy]=0;dg::runtime::Publish(both);g_restoreTick=0;OnLivePlayer(owner);
+ Check(g_hiddenCount==1,"switching from inherited to explicit hide keeps a living effect hidden");
+ g_restoreTick=0;Select(dash,0);Check(!g_hiddenCount,"Native restores only the surface visibility owned by this module");
+ const auto retainedDust=g_assets[dust];g_assets={};g_assets[dust]=retainedDust;Availability(GetTickCount64(),true);
+ Check(LoadedMask(legacy)&(1u<<Hidden(legacy)),"legacy hide availability still includes shared dust when no other Strife asset is loaded");
+ Fresh();Select(dash,7);const auto selectedWater=Find("P_StrifeDash_Water");Put(f.items.data(),size_t(selectedWater)*24+16,999);
+ HookCreate(f.assets[dust].bytes,f.worlds[0].bytes,nullptr,true,0);Check(sentAsset==f.assets[dust].bytes,"expired water target falls back to native without using a stale object");
  Fresh();dg::runtime::Snapshot invalid{};for(auto& x:invalid.effectAppearances)x=999;dg::runtime::Publish(invalid);Check(!dg::runtime::Get().effectAppearanceMask.load(),"all unsupported config choices normalize to Native");
  Select(0,Hidden(0));HookCreate(f.assets[glyph].bytes,f.worlds[0].bytes,nullptr,true,0);Shutdown();Check(!g_hiddenCount&&visibleCalls==2,"game-thread shutdown restores owned visibility");
  std::cout<<FamilyCount<<" families, "<<N<<" assets, "<<checked<<" preset cases; Native ABI, expiry, pool reuse and visibility restoration passed\n";

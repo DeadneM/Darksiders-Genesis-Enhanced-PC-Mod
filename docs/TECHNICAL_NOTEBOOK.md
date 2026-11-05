@@ -1,3 +1,9 @@
+## V1.154 en préparation sur debug — 5 novembre 2026
+
+Base V1.153 acceptée désormais sur main. Nouvelle bêta : huit rendus natifs de poussière de dash, communs aux deux héros, dans Appearance → Effect appearances → Other effects. Défaut Native, ancien masquage prioritaire, mêmes 460 assets et fabrique existante. Aucun changement du dash, de la visée ou de Stoneskin. **EXPÉRIMENTAL, contrôles GitHub et essai en jeu à venir.** [Périmètre et test groupé](V1_154_NATIVE_DASH_APPEARANCES_REVIEW.md).
+
+---
+
 ## V1.153 sur main - 5 novembre 2026
 
 Promotion explicitement autorisee de la derniere beta acceptee. Sources et ZIP V1.153 identiques, 81/81 controles GitHub existants ; pas de recompilation. Les nouveaux effets restent sur debug pour la prochaine beta. [Base, livraison et limites](V1_153_MAIN_PROMOTION.md).

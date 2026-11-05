@@ -56,13 +56,24 @@ int Classify(uintptr_t p,const Object& object){
     if(found==Assets.end()||Compare(found->name,name.data())||!ObjectName(object.outer,package)||Compare(found->package,package.data()))return -1;
     return int(found-Assets.begin());
 }
+int Selected(unsigned family){
+    if(family>=FamilyCount)return 0;
+    // These surface templates were part of Other Strife effects in older INIs,
+    // even when emitted by War. Keep that broad hide request authoritative.
+    const auto legacy=unsigned(Family::OtherStrifeFx);
+    if(family==unsigned(Family::DashSurface)&&Normalize(legacy,runtime::Get().effectAppearances[legacy].load(std::memory_order_relaxed))==Hidden(legacy))return Hidden(family);
+    return Normalize(family,runtime::Get().effectAppearances[family].load(std::memory_order_relaxed));
+}
 void Availability(uint64_t now,bool force){
     if(!force&&now>=g_checkTick&&now-g_checkTick<200)return;g_checkTick=now;bool invalid=false;g_available.reset();
     for(unsigned i=0;i<g_assets.size();++i)if(Alive(g_assets[i]))g_available.set(i);else if(g_assets[i]){g_assets[i]={};g_recovery.Forget(i);invalid=true;}
     if(g_particleClass&&!Alive(g_particleClass)){g_particleClass={};invalid=true;}
     if(invalid){g_cursor=0;g_complete=false;}
     for(unsigned family=0;family<FamilyCount;++family){
-        unsigned mask=1;bool any=false;for(unsigned i=0;i<Assets.size();++i)if(!Assets[i].targetOnly&&Roles[Assets[i].role].family==family&&g_available[i]){any=true;break;}
+        unsigned mask=1;bool any=false;for(unsigned i=0;i<Assets.size();++i)if(!Assets[i].targetOnly&&g_available[i]){
+            const auto source=Roles[Assets[i].role].family;
+            if(source==family||(family==unsigned(Family::OtherStrifeFx)&&source==unsigned(Family::DashSurface))){any=true;break;}
+        }
         if(any)mask|=1u<<Hidden(family);
         for(int choice=1;choice<int(Families[family].count);++choice){if(choice==Hidden(family))continue;bool needed=false,complete=true;for(unsigned role=0;role<Roles.size();++role)if(Roles[role].family==family){const int target=Target(role,choice);if(target>=0){needed=true;complete=complete&&g_available[unsigned(target)];}}if(needed&&complete)mask|=1u<<choice;}
         g_loaded[family].store(mask,std::memory_order_relaxed);
@@ -75,7 +86,7 @@ void Scan(uint64_t now){
     if(count<g_count)g_cursor=0;if(count!=g_count){g_count=count;g_complete=false;}
     if(g_complete){
         bool missing=false;for(unsigned family=0;family<FamilyCount;++family){
-            const int selected=Normalize(family,runtime::Get().effectAppearances[family].load());
+            const int selected=Selected(family);
             if(selected&&!(g_loaded[family].load()&(1u<<unsigned(selected))))missing=true;
         }
         if(!missing||(now>=g_retryTick&&now-g_retryTick<5000))return;
@@ -110,7 +121,7 @@ void RecoverSelected(const local_players::Context& c,const Id& world,uint64_t no
     for(unsigned family=0;family<FamilyCount;++family){
         g_loadFailed[family].store(false,std::memory_order_relaxed);
         if(family==unsigned(Family::ShieldDemonCore))continue; // validated status-owned loader
-        const int choice=Normalize(family,runtime::Get().effectAppearances[family].load());
+        const int choice=Selected(family);
         if(!choice||choice==Hidden(family))continue;
         for(unsigned role=0;role<Roles.size();++role)if(Roles[role].family==family){
             const int target=Target(role,choice);if(target>=0){needed.set(unsigned(target));wantedBy[unsigned(target)]|=uint64_t(1)<<family;}
@@ -149,7 +160,7 @@ Plan Resolve(void* asset,void* world){
     const auto sourceIndex=unsigned(source);if(sourceIndex>=Assets.size())return plan;
     const auto& entry=Assets[sourceIndex];if(entry.targetOnly||entry.role>=Roles.size())return plan;
     const auto family=Roles[entry.role].family;if(family>=FamilyCount||family==unsigned(Family::ShieldDemonCore))return plan;
-    const int choice=Normalize(family,runtime::Get().effectAppearances[family].load(std::memory_order_relaxed));
+    const int choice=Selected(family);
     if(!choice||!CurrentWorld(reinterpret_cast<uintptr_t>(world),GetTickCount64()))return plan;
     plan.source=source;plan.family=family;plan.hidden=choice==Hidden(family);
     if(!plan.hidden){const int target=Target(entry.role,choice);if(target>=0&&Alive(g_assets[unsigned(target)]))plan.asset=reinterpret_cast<void*>(g_assets[unsigned(target)].address);}
@@ -191,7 +202,7 @@ void OnLivePlayer(const local_players::Context& c){
     shield_visual::OnLivePlayer(c);
     const auto now=GetTickCount64();if(now-g_restoreTick>=100){g_restoreTick=now;for(auto& saved:g_hidden)if(saved.component){uintptr_t asset=0;
         if(!Alive(saved.component)){saved={};if(g_hiddenCount)--g_hiddenCount;continue;}
-        if(Normalize(saved.family,runtime::Get().effectAppearances[saved.family].load())!=Hidden(saved.family)||!Read(saved.component.address,0x578,asset)||asset!=saved.asset.address)Restore(saved);
+        if(Selected(saved.family)!=Hidden(saved.family)||!Read(saved.component.address,0x578,asset)||asset!=saved.asset.address)Restore(saved);
     }}
     if(!runtime::Get().effectAppearanceMask.load()){g_worlds={};return;}auto& w=g_worlds[unsigned(c.index)];uintptr_t cls=0;
     if(!c.localPlayer||!c.controller||!c.pawn||!c.world||!Read(c.world,0x10,cls)||!native_objects::NameIs(g_base,cls,"World")){w={};return;}

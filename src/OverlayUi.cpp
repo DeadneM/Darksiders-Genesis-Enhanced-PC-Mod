@@ -849,7 +849,10 @@ void Draw(Context& c) {
                     for(unsigned family=0;family<effect_appearance::FamilyCount;++family){const auto& info=effect_appearance::Families[family];
                         if(std::strcmp(category,info.category)||family==unsigned(effect_appearance::Family::ShieldDemonCore)||family==unsigned(effect_appearance::Family::StingerCore))continue;ImGui::PushID(int(family));if(Choice(info.label,&config.effectAppearances[family],info.choices.data(),int(info.count)))config.Save();
                         const int choice=effect_appearance::Normalize(family,config.effectAppearances[family]);
-                        if(choice&&!(effect_appearance::LoadedMask(family)&(1u<<choice)))ImGui::TextColored(ImVec4(1,.85f,.25f,1),(choice==effect_appearance::Hidden(family)?"Waiting for native effect; hide request retained":effect_appearance::SelectionLoadFailed(family)?"Effect load unavailable; native kept. Reselect to retry.":"Preparing selected effect; native kept until ready."));
+                        const auto legacy=unsigned(effect_appearance::Family::OtherStrifeFx);
+                        if(family==unsigned(effect_appearance::Family::DashSurface)&&config.effectAppearances[legacy]==effect_appearance::Hidden(legacy))
+                            HelpText("Hidden by Other Strife effects. Set that entry to Native to preview dash dust.");
+                        else if(choice&&!(effect_appearance::LoadedMask(family)&(1u<<choice)))ImGui::TextColored(ImVec4(1,.85f,.25f,1),(choice==effect_appearance::Hidden(family)?"Waiting for native effect; hide request retained":effect_appearance::SelectionLoadFailed(family)?"Effect load unavailable; native kept. Reselect to retry.":"Preparing selected effect; native kept until ready."));
                         ImGui::PopID();
                     }
                     ImGui::EndDisabled();ImGui::Unindent();

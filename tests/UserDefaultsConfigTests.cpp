@@ -172,6 +172,15 @@ int main(int argc,char** argv){
     longDistance.effectAppearances[0]=4;check(longDistance.SaveNow(),"Caltrops appearance saves independently");
     dg::config::Store appearance;appearance.SetPath(path);
     check(appearance.Load()&&appearance.effectAppearances[0]==4&&rt.effectAppearances[0].load()==4,"selected visual survives reload and reaches runtime");
+    const auto dashSurface=unsigned(dg::effect_appearance::Family::DashSurface);
+    const auto legacyStrife=unsigned(dg::effect_appearance::Family::OtherStrifeFx);
+    check(generated.effectAppearances[dashSurface]==0,"new shared dash surface option defaults Native");
+    appearance.effectAppearances[dashSurface]=7;appearance.effectAppearances[legacyStrife]=1;
+    check(appearance.SaveNow(),"water selection and old hide setting save independently");
+    dg::config::Store surfaceReload;surfaceReload.SetPath(path);
+    check(surfaceReload.Load()&&surfaceReload.effectAppearances[dashSurface]==7&&surfaceReload.effectAppearances[legacyStrife]==1&&rt.effectAppearances[dashSurface].load()==7,"new surface selection survives reload without changing the old hide request");
+    WritePrivateProfileStringW(L"Values",L"DashSurfaceAppearance",nullptr,path);
+    check(surfaceReload.Load()&&surfaceReload.effectAppearances[dashSurface]==0&&surfaceReload.effectAppearances[legacyStrife]==1,"old INI gains Native surface default and preserves its broad hide");
     WritePrivateProfileStringW(L"Values",L"CaltropsAppearance",L"99",path);
     check(appearance.Load()&&appearance.effectAppearances[0]==0&&rt.effectAppearances[0].load()==0,"unsupported appearance safely restores Native");
     for(unsigned hero=0;hero<2;++hero){

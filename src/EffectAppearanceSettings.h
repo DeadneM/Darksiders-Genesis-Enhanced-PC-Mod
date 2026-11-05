@@ -48,6 +48,7 @@ OtherWarFx,
 OtherMountFx,
 TremorSurface,
 StingerCore,
+DashSurface,
 Count };
 inline constexpr unsigned FamilyCount=unsigned(Family::Count);
 static_assert(FamilyCount<=64);
@@ -99,6 +100,7 @@ inline constexpr std::array<FamilyInfo,FamilyCount> Families={{
 {L"OtherMountFxAppearance","Other mount effects","Other effects",{"Native","Hidden"},2},
 {L"TremorSurfaceAppearance","Tremor surface impact","Tools",{"Native","Gold debris","Metal debris","Stone debris","Water splash","Hidden"},6},
 {L"StingerCoreAppearance","Stinger crystal","Creature cores",{"Native","Hidden"},2},
+{L"DashSurfaceAppearance","Ground dash dust (both heroes)","Other effects",{"Native","Dry dust","Coins","Metal sparks","Sand","Snow","Stone debris","Water","Wood debris","Hidden"},10},
 }};
 inline constexpr bool RetiredChoice(unsigned family,int choice){return family==unsigned(Family::ShieldDemonCore)&&(choice==7||(choice>=12&&choice<=15));}
 inline constexpr int Normalize(unsigned family,int choice){return family<FamilyCount&&choice>=0&&unsigned(choice)<Families[family].count&&!RetiredChoice(family,choice)?choice:0;}
