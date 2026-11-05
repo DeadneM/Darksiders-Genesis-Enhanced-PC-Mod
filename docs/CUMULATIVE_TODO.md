@@ -1,3 +1,9 @@
+## V1.157 installée — menu, cheval et écharpe
+
+**CONSTRUIT / CONTRÔLÉ / INSTALLÉ : 82/82 tests GitHub, aucun avertissement C++ détecté. EXPÉRIMENTAL en jeu.** Clics souris et F1–F12 sous le menu, lifecycle dash/stomp ; corrections cheval/écharpe V1.156 cumulées. Sauvegarde V1.155 vérifiée, INI/raccourcis/Engine.ini/PAK préservés, pas de relance du jeu. GPU accepté, coop différée. 248 valeurs et 221 anciennes archives conservées, main reste V1.153. [ZIP, reçu et essais](V1_157_DELIVERY_RECEIPT.md).
+
+---
+
 ## V1.157 en préparation — menu à reprendre avant installation
 
 Retour V1.155 : clics souris cassés et fonctions encore suspendues sous l'éditeur. Réparation du routage DOWN/UP, maintien du lifecycle dash via Runtime, raccourcis F1–F12 hors saisie/capture. Cheval et écharpe V1.156 repris. **GPU après fermeture/redémarrage VALIDÉ par l'utilisateur ; coop différée.** Nouvelle compilation GitHub à venir, rien installé. [Périmètre et limites](V1_157_MENU_INPUT_REVIEW.md).

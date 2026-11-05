@@ -1,0 +1,40 @@
+{
+  "base": "415c8bfefbbdd03715cc0656da9e178c9b14f091",
+  "source": "6b382f3d410826a13f189b2eabcccf7dfe58a0a4",
+  "scope": [
+    "MountedPassiveFx",
+    "StoneSkinVisual additions",
+    "DarksidersGenesisMod menu dispatcher",
+    "MouseFireRouting",
+    "GameplayMenuPolicy"
+  ],
+  "passes": [
+    {
+      "method": "Callers and identifier/API contracts",
+      "result": "Native passive array and original cloth texture contracts verified; menu input ownership separated from native runtime."
+    },
+    {
+      "method": "Lifecycle and before/after source comparison",
+      "result": "One mounted activation attempt, exact private cloth restoration, mouse DOWN/UP ownership, typed/rebound hotkey consumption; repeated dispatcher refusals removed."
+    }
+  ],
+  "comparison": "Both passes retain source identity/restore/cadence guards; no further demonstrated dead production code removed.",
+  "unchangedFiles": {
+    "src/ConfigStore.cpp": "bc187d9a9915de8a180aeccb45bbcb75cf79df6861edd27302474d5cc9d0c337",
+    "src/RuntimeSettings.cpp": "f2dcbd3f14ba60678ac5514898a7299237cdc83e8c7997b1c7c9f6a8a076f17c",
+    "src/RuntimeSettings.h": "037ffcd453195cb279c4f7e19019bdf776511c43fbdc421077a7ab072bdd55db",
+    "config/DarksidersGenesisMod.ini": "e5938b68ea710769ca67163bd82170b7689ec2be3d338439749a2f0769bb2cfa",
+    "src/NativeTpsFeature.cpp": "3b255ff836a216fd5e12ba061a21dc616939af4ad7c315c1a95b02cea2edc7d2",
+    "src/ShaderAimFeature.cpp": "16ab22d84fb18a058ad20975dba1221653bed740ecfadb053aca5148a5449659",
+    "src/AimShaderCatalog.h": "f5213cec9181500c23d45446a233839a89a0904b73b7631d58d555d3a155a541",
+    "src/EffectAppearanceFeature.cpp": "1a1329f3d9bd71ec92766d315b2a12b7f7f004c9739e972521d735b081603170",
+    "src/EffectAppearanceData.h": "74c997b14492296f023b8df2806b5f78344ba3d5e464cf27cc06d0dd9f9ce8a1",
+    "src/EngineIniFeature.cpp": "cdebf33e3245f69749a65d7561e7714eec8a0d353f73ce48d078b6c1abd7f5a9",
+    "src/CoopCameraFeature.cpp": "b782aac5792fbf6abdceceddc8d11b17ba1bd50ffa385dc0a11b85008b647f12"
+  },
+  "limits": [
+    "Two passes by the same agent, not independent agents or whole-program compiler reachability.",
+    "Fixtures and package checks do not prove in-game visuals, UI clicks or performance."
+  ],
+  "gameplayValidated": false
+}

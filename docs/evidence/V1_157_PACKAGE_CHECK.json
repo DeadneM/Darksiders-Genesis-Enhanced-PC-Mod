@@ -1,0 +1,32 @@
+{
+  "source": "6b382f3d410826a13f189b2eabcccf7dfe58a0a4",
+  "archive": "eef98d95f7eb24389b9990db69b2178a60293ef8",
+  "download": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/eef98d95f7eb24389b9990db69b2178a60293ef8/downloads/DarksidersGenesis_V1.157_MENU_INPUT_LIFECYCLE_TEST.zip",
+  "sha256": "A8AC7E494E22D26AEF74CD764054BAC8751B3981B39F561CA99C2E81502EFAA8",
+  "bytes": 2433774,
+  "files": {
+    "dxgi.dll": {
+      "bytes": 155136,
+      "sha256": "2B695BA9530F7FBEE6B34A15831F4F969DAFF4B642F4B9609BFBCD9F3E861E71"
+    },
+    "DarksidersGenesisMod.asi": {
+      "bytes": 2278400,
+      "sha256": "080ACFE3F2B541E5A3DC2F504F755211960E9D20A346D30DA3BFEB29CBF0541C"
+    }
+  },
+  "crcVerified": true,
+  "amd64": true,
+  "oldArchivesUnchanged": 221,
+  "totalArchives": 222,
+  "iniKeys": 248,
+  "oldIniKeysPreserved": 248,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "563ae9ca8c2647689af8464d320544afe55b1894",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "updaterSelection": "DarksidersGenesis_V1.157_MENU_INPUT_LIFECYCLE_TEST.zip",
+  "publicHttpStatus": 200,
+  "installed": false,
+  "gameplayValidated": false
+}
