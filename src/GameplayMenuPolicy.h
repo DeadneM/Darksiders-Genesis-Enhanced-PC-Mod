@@ -8,4 +8,7 @@ struct Focus {
 inline constexpr bool Runtime(const Focus& s){return s.window&&s.foreground&&!s.minimized&&!s.closing;}
 // UI navigation, rebinding and new mod commands must not share input edges.
 inline constexpr bool Commands(const Focus& s){return Runtime(s)&&!s.menu;}
+// Function keys are not editor navigation. Only text entry or rebinding owns
+// them; displaying the editor alone must not suspend configured mod actions.
+inline constexpr bool Hotkeys(const Focus& s,bool capturingKeys){return Runtime(s)&&!capturingKeys;}
 }

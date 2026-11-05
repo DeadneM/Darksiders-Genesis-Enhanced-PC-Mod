@@ -44,8 +44,10 @@ void Run(){
         Check(GamePoll(ForwardingProvider,pad)&&transforms==4&&pad.sThumbRX==300,"editor navigation reads physical axes, never camera-forward injection");
     }
     Check(GamePoll(ForwardingProvider,pad)&&transforms==5&&pad.sThumbRY==32767,"next game read keeps the TPS rule even while editor remains open");
+    Check(dg::gameplay_menu::Hotkeys(editor,false),"configured function keys remain available while editor is displayed");
+    Check(!dg::gameplay_menu::Hotkeys(editor,true)&&dg::gameplay_menu::Runtime(editor),"text/rebinding capture blocks commands without disabling gameplay rules");
     editor.menu=false;Check(dg::gameplay_menu::Runtime(editor)&&dg::gameplay_menu::Commands(editor),"closing editor re-enables bindings without toggling gameplay rules");
-    editor.foreground=false;Check(!dg::gameplay_menu::Runtime(editor)&&!dg::gameplay_menu::Commands(editor),"Alt-Tab blocks runtime interaction and new commands");
+    editor.foreground=false;Check(!dg::gameplay_menu::Hotkeys(editor,false),"background function keys stay inactive");Check(!dg::gameplay_menu::Runtime(editor)&&!dg::gameplay_menu::Commands(editor),"Alt-Tab blocks runtime interaction and new commands");
     editor.foreground=true;editor.minimized=true;Check(!dg::gameplay_menu::Runtime(editor),"minimized window remains protected");
     editor.minimized=false;editor.closing=true;Check(!dg::gameplay_menu::Runtime(editor),"shutdown remains protected");
     editor.closing=false;editor.window=false;Check(!dg::gameplay_menu::Runtime(editor),"missing game window never qualifies as gameplay");

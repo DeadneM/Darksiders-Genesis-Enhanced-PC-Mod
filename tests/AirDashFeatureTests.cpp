@@ -1,5 +1,6 @@
 #include "../src/AirDashFeature.cpp"
 #include <iostream>
+#include "GameplayMenuPolicy.h"
 #include <stdexcept>
 #include <vector>
 namespace {
@@ -43,6 +44,9 @@ void Run(){
     Check(g_players[0].saved.ability&&!g_players[0].await,"only the queued owner's active AirDash is adopted once");
     Check(At<float>(f.ability,0x1F8)==0&&At<float>(f.ability,0x1FC)==3000&&std::abs(At<float>(f.ability,0x44)-.29f)<.00001f,"native forward physics has a finite deadline relative to native elapsed time");
     BeforeTick(f.ability);Put<unsigned char>(f.ability,0xD8,4);AfterTick(f.ability);NativeValues();Check(!g_players[0].saved.ability,"native completion restores original parameters");
+    Fresh(image);const dg::gameplay_menu::Focus editor{true,true,false,false,true};
+    OnLivePlayer(g_players[0].context,7,dg::gameplay_menu::Runtime(editor));BeforeTick(f.ability);
+    Check(bool(g_players[0].saved.ability),"displaying editor does not disable an already dispatched native air-dash action");
     Fresh(image);BeforeTick(f.ability);Put<unsigned char>(f.ability,0xD8,5);const auto c=g_players[0].context;OnLivePlayer(c,7,true);NativeValues();
     Check(!g_players[0].saved.ability,"completion after the tick wrapper is restored by the live service too");
     Fresh(image);BeforeTick(f.ability);Put(f.ability,0x1FC,123.f);Put<unsigned char>(f.ability,0xD8,4);AfterTick(f.ability);

@@ -1,3 +1,9 @@
+## V1.157 en préparation — menu à reprendre avant installation
+
+Retour V1.155 : clics souris cassés et fonctions encore suspendues sous l'éditeur. Réparation du routage DOWN/UP, maintien du lifecycle dash via Runtime, raccourcis F1–F12 hors saisie/capture. Cheval et écharpe V1.156 repris. **GPU après fermeture/redémarrage VALIDÉ par l'utilisateur ; coop différée.** Nouvelle compilation GitHub à venir, rien installé. [Périmètre et limites](V1_157_MENU_INPUT_REVIEW.md).
+
+---
+
 ## V1.156 en préparation — cheval natif et écharpe
 
 Capture en lecture seule : effets du premier Despair chargés mais inactifs ; rappel natif rétablit les effets selon l'utilisateur. Reprise unique de la liste passive native après possession stable, et texture propre à l'écharpe conservée dans le MID Stoneskin. **EXPÉRIMENTAL, contrôles GitHub et validation en jeu à venir.** INI/défauts conservés, main V1.153 intacte. [Périmètre, preuves et limites](V1_156_NATIVE_MOUNT_SCARF_REVIEW.md).

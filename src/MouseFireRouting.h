@@ -5,8 +5,8 @@ namespace dg::tps_input {
 // transitions so the native action ALWAYS receives its matching release.
 struct MouseFireRouting {
     std::array<int,7> held{}; // five Win32 mouse VKs, zero=unowned, -1=suppressed
-    int Begin(int physical,int destination){
-        if(physical<=0||physical>=int(held.size()))return 0;
+    int Begin(int physical,int destination,bool editorOwns=false){
+        if(editorOwns||physical<=0||physical>=int(held.size()))return 0;
         if(!held[physical])held[physical]=destination;
         return held[physical];
     }

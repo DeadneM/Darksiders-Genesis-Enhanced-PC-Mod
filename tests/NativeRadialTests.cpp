@@ -48,6 +48,9 @@ void Run(){
     Check(mouse.Begin(5,1)==1&&mouse.Begin(5,2)==1,"held mouse route survives a binding change");
     Check(mouse.Release(5)==1&&mouse.Release(5)==0,"route releases its original native button exactly once");
     Check(mouse.Begin(1,-1)==-1&&mouse.Release(1)==-1,"suppressed DOWN keeps its UP suppressed");
+    Check(mouse.Begin(1,2,true)==0&&mouse.Release(1)==0,"editor DOWN never steals its UP for a native shooting route");
+    Check(mouse.Begin(5,1)==1&&mouse.Begin(5,2,true)==0&&mouse.Release(5)==1,"an earlier game-owned release remains balanced across opening the editor");
+    Check(mouse.Begin(2,1,true)==0&&mouse.Begin(2,1)==1&&mouse.Release(2)==1,"closing editor restores configurable gameplay button routing");
     Check(mouse.Begin(99,1)==0&&mouse.Release(-1)==0,"invalid physical buttons cannot index routing memory");
 }
 }

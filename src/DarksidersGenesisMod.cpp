@@ -1465,7 +1465,7 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     const bool commandsAllowed=dg::gameplay_menu::Commands(interaction);
     dg::selected_recovery::loadingAllowed=commandsAllowed;
     dg::ranged_state::OnLivePlayer(owner,generation,runtimeAllowed);
-    dg::air_dash::OnLivePlayer(owner,generation,dg::selected_recovery::loadingAllowed);
+    dg::air_dash::OnLivePlayer(owner,generation,runtimeAllowed);
     dg::heavy_landing::OnLivePlayer(owner,generation,runtimeAllowed);
     dg::recovery_tail::OnLivePlayer(owner,generation,runtimeAllowed);
     dg::mounted_holsters::OnLivePlayer(owner);
@@ -1540,7 +1540,7 @@ bool IsLiveTPSLookActor(void* actor) {
     const ULONGLONG now=GetTickCount64();
     return (tick&&now>=tick&&now-tick<250ull)||IsMountedTPSNow()||dg::chaos_pose::RangedOwner(actor);
 }
-bool MousePhysicalHeld(int vk){return vk && (GetAsyncKeyState(vk)&0x8000)!=0;}
+bool MousePhysicalHeld(int vk){return !g_overlayVisible.load()&&vk&&(GetAsyncKeyState(vk)&0x8000)!=0;}
 bool MousePrimaryFireHeld(){return MousePhysicalHeld(dg::runtime::Get().tpsMousePrimaryButton.load(std::memory_order_relaxed));}
 bool MouseSecondaryFireHeld(){return MousePhysicalHeld(dg::runtime::Get().tpsMouseSecondaryButton.load(std::memory_order_relaxed));}
 bool MouseAnyFireHeld(){return MousePrimaryFireHeld()||MouseSecondaryFireHeld();}
@@ -2002,23 +2002,19 @@ bool KeyPressed(int vk) {
 }
 
 void TriggerAction(Action action, int functionKey,unsigned playerTargets=3) {
-    if (action == Action::None) {
+    if (action == Action::None || !GameplayFocused()) {
         return;
     }
 
     const char* label = ActionLabel(action);
 
     if(action==Action::SheatheWeapons){
-        const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
-        if(!hwnd||GetForegroundWindow()!=hwnd||IsIconic(hwnd)||g_overlayVisible.load()||g_shuttingDown.load())return;
         bool queued=false;
         for(unsigned i=0;i<2;++i)if(playerTargets&(1u<<i))queued=dg::sheathing::RequestSheathe(int(i))||queued;
         g_lastAction=std::string(label)+(queued?" [queued]":" [unavailable]");return;
     }
     if(action==Action::RefillHealth||action==Action::UnlimitedHealth||
        action==Action::UnlimitedGlide||action==Action::UnlimitedHorseSprint){
-        const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
-        if(!hwnd||GetForegroundWindow()!=hwnd||IsIconic(hwnd)||g_overlayVisible.load()||g_shuttingDown.load())return;
         if(action==Action::RefillHealth){
             const bool queued=dg::health::RequestRefill();
             g_lastAction=std::string(label)+(queued?" [queued]":" [unavailable]");
@@ -2030,8 +2026,6 @@ void TriggerAction(Action action, int functionKey,unsigned playerTargets=3) {
         Log("Sustain V1.46 HOTKEY F%d action=%s",functionKey,label);return;
     }
     if(action==Action::RefillPotions||action==Action::PotionRecharge||action==Action::UnlimitedPotions){
-        const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
-        if(!hwnd||GetForegroundWindow()!=hwnd||IsIconic(hwnd)||g_overlayVisible.load()||g_shuttingDown.load())return;
         if(action==Action::RefillPotions){
             const bool queued=dg::potions::RequestRefill();
             g_lastAction=std::string(label)+(queued?" [queued]":" [unavailable]");
@@ -2046,8 +2040,6 @@ void TriggerAction(Action action, int functionKey,unsigned playerTargets=3) {
     }
     if(action==Action::ReduceHotstreak||action==Action::UnlimitedHotstreak||
        action==Action::RefillHotstreak||action==Action::RefillAmmo){
-        const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
-        if(!hwnd||GetForegroundWindow()!=hwnd||IsIconic(hwnd)||g_overlayVisible.load()||g_shuttingDown.load())return;
         if(action==Action::RefillHotstreak||action==Action::RefillAmmo){
             const bool queued=action==Action::RefillAmmo?dg::ammo::RequestRefill():dg::hotstreak::RequestRefill();
             g_lastAction=std::string(label)+(queued?" [queued]":" [unavailable]");
@@ -2065,8 +2057,6 @@ void TriggerAction(Action action, int functionKey,unsigned playerTargets=3) {
         return;
     }
     if(const unsigned mask=dg::config::UnlimitedMask(action)){
-        const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
-          if(!hwnd||GetForegroundWindow()!=hwnd||IsIconic(hwnd)||g_overlayVisible.load()||g_shuttingDown.load())return;
         const bool enable=mask==7?!(g_config.unlimitedWrathEnabled&&
             g_config.unlimitedUltimateEnabled&&g_config.unlimitedSynergyEnabled):
             mask==1?!g_config.unlimitedWrathEnabled:
@@ -2080,9 +2070,7 @@ void TriggerAction(Action action, int functionKey,unsigned playerTargets=3) {
         return;
     }
     if(const unsigned refill=dg::config::GaugeRefillMask(action)){
-        const HWND hwnd=reinterpret_cast<HWND>(g_gameWindowTrace.load());
-        const bool allowed=hwnd&&GetForegroundWindow()==hwnd&&!IsIconic(hwnd)&&
-            !g_overlayVisible.load()&&!g_shuttingDown.load();
+        const bool allowed=GameplayFocused();
         const bool queued=allowed&&dg::manual_gauges::RequestSet(refill,100.0f);
         g_lastAction=std::string(label)+(queued?" requested":" unavailable here");
         Log("Gauge V1.36 HOTKEY F%d action=%s mask=%u percent=100 queued=%d focusedGameplay=%d",
@@ -2307,25 +2295,12 @@ void ProcessInput() {
 
     unsigned sheathTargets=SampleSheathingBindings();
     SampleManualAimBindings();
-    if (g_overlayVisible.load()) {
-        // Discard refill edges while editing the menu, including held keys
-        // across its close. Existing non-refill F-key behavior is preserved.
-        for(int i=0;i<12;++i)
-            if(dg::config::GaugeRefillMask(g_config.hotkeys[static_cast<size_t>(i)])||
-               g_config.hotkeys[static_cast<size_t>(i)]==Action::RefillPotions||
-               g_config.hotkeys[static_cast<size_t>(i)]==Action::PotionRecharge||
-               g_config.hotkeys[static_cast<size_t>(i)]==Action::UnlimitedPotions||
-               g_config.hotkeys[static_cast<size_t>(i)]==Action::RefillHealth||
-               g_config.hotkeys[static_cast<size_t>(i)]==Action::UnlimitedHealth||
-               g_config.hotkeys[static_cast<size_t>(i)]==Action::UnlimitedGlide||
-               g_config.hotkeys[static_cast<size_t>(i)]==Action::UnlimitedHorseSprint||
-               g_config.hotkeys[static_cast<size_t>(i)]==Action::ReduceHotstreak||
-               g_config.hotkeys[static_cast<size_t>(i)]==Action::UnlimitedHotstreak||
-               g_config.hotkeys[static_cast<size_t>(i)]==Action::RefillHotstreak||
-               g_config.hotkeys[static_cast<size_t>(i)]==Action::RefillAmmo||
-               g_config.hotkeys[static_cast<size_t>(i)]==Action::SheatheWeapons)
-                KeyPressed(VK_F1+i);
-        return;
+    const bool capturesKeys=g_captureMenuKey.load()||g_captureCameraKeyIndex.load()>=0||
+        capturedCamera!=0||capturedMenuKey>0||
+        (g_overlayVisible.load()&&g_imguiReady.load()&&ImGui::GetIO().WantTextInput);
+    if(!dg::gameplay_menu::Hotkeys(InteractionFocus(),capturesKeys)){
+        for(int i=0;i<12;++i)KeyPressed(VK_F1+i);
+        return; // captured presses never replay after editing or Alt-Tab
     }
 
     for (int i = 0; i < 12; ++i) {
@@ -2781,6 +2756,9 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     if(released){
         const int target=g_mouseFireRouting.Release(physicalButton);
         if(target){
+            // A game-owned UP still balances its native DOWN, but it must not
+            // strand the editor's button state when the menu opened meanwhile.
+            if(g_imguiReady.load()&&g_overlayVisible.load())ImGui_ImplWin32_WndProcHandler(hwnd,msg,wParam,lParam);
             if(target>0&&g_originalWndProc)return CallWindowProcW(g_originalWndProc,hwnd,
                 target==VK_LBUTTON?WM_LBUTTONUP:WM_RBUTTONUP,
                 LOWORD(wParam)&~(MK_LBUTTON|MK_RBUTTON|MK_MBUTTON|MK_XBUTTON1|MK_XBUTTON2),lParam);
@@ -3062,7 +3040,7 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             ((msg == WM_SYSKEYDOWN || msg == WM_SYSKEYUP) && !altSystemKey) ||
             msg == WM_CHAR;
 
-        if ((mouseMessage && io.WantCaptureMouse) ||
+        if (mouseMessage ||
             (keyboardMessage && io.WantCaptureKeyboard) ||
             msg == WM_INPUT) {
             return TRUE;
@@ -3076,7 +3054,7 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         const int selected=physicalButton==rt.tpsMousePrimaryButton.load()?VK_LBUTTON:
             physicalButton==rt.tpsMouseSecondaryButton.load()?VK_RBUTTON:
             (physicalButton==VK_LBUTTON||physicalButton==VK_RBUTTON)?-1:0;
-        const int target=g_mouseFireRouting.Begin(physicalButton,selected);
+        const int target=g_mouseFireRouting.Begin(physicalButton,selected,g_overlayVisible.load());
         if(target<0){++g_v124NativeButtonSuppressed;return 0;}
         if(target>0){
             msg=target==VK_LBUTTON?(twice?WM_LBUTTONDBLCLK:WM_LBUTTONDOWN):(twice?WM_RBUTTONDBLCLK:WM_RBUTTONDOWN);

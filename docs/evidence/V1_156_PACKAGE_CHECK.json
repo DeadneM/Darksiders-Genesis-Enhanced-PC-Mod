@@ -1,0 +1,32 @@
+{
+  "source": "d70d8aa52291fb196f370bfffde3d6b307e3ce8b",
+  "archive": "b3669c9ce373d699cef7a725da8191ddb62f342d",
+  "download": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/b3669c9ce373d699cef7a725da8191ddb62f342d/downloads/DarksidersGenesis_V1.156_NATIVE_MOUNT_SCARF_TEST.zip",
+  "sha256": "281B694A0B9F7F50A1D1B3BE6D4103297442501A7E5E552DB52501E528B2FC4F",
+  "bytes": 2433774,
+  "files": {
+    "dxgi.dll": {
+      "bytes": 155136,
+      "sha256": "D7528F225D58FE42DAEB42D7855A53351C0BCF721CB9C15A3D5E6B9C00C45740"
+    },
+    "DarksidersGenesisMod.asi": {
+      "bytes": 2278400,
+      "sha256": "DD0344AE31CD3BC4C549B6A140E2C448F2A677E7B94DA0D19F3BFCBC66B91CF8"
+    }
+  },
+  "crcVerified": true,
+  "amd64": true,
+  "oldArchivesUnchanged": 220,
+  "totalArchives": 221,
+  "iniKeys": 248,
+  "oldIniKeysPreserved": 248,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "563ae9ca8c2647689af8464d320544afe55b1894",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "updaterSelection": "DarksidersGenesis_V1.156_NATIVE_MOUNT_SCARF_TEST.zip",
+  "publicHttpStatus": 200,
+  "installed": false,
+  "gameplayValidated": false
+}
