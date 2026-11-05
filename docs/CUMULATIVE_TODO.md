@@ -1,3 +1,9 @@
+## V1.153 sur main - 5 novembre 2026
+
+Promotion explicitement autorisee de la derniere beta acceptee. Sources et ZIP V1.153 identiques, 81/81 controles GitHub existants ; pas de recompilation. Les nouveaux effets restent sur debug pour la prochaine beta. [Base, livraison et limites](V1_153_MAIN_PROMOTION.md).
+
+---
+
 ## 5 novembre 2026 — retour V1.153 et suite apparences
 
 **VALIDÉ par l'utilisateur sur ses derniers essais, sans problème majeur observé.** Récupérations coffre/dash acceptées avec sa réserve sur le résultat ; aucun gain chronométré annoncé. Deux passes sur 11 fichiers récents (1 121 lignes) : aucune nouvelle suppression démontrée, code conservé. Recherche native : huit rendus de poussière de dash partagés par les deux héros, exports et notifications vérifiés ; aucun nouveau choix au menu dans ce relevé. Coop/P2 reste différé, persistance GPU à confirmer. [Double audit](V1_153_DOUBLE_AUDIT.md) · [Inventaire et limites](NATIVE_APPEARANCE_RESEARCH_2026_11_05.md).
