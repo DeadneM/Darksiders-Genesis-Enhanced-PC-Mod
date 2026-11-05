@@ -381,10 +381,10 @@ void ObserveAt(const local_players::Context& c,uint64_t now){
         previous.pawn==c.pawn&&previous.controller==c.controller&&previous.localPlayer==c.localPlayer&&previous.kind==c.kind;
     if(same&&!sample.force&&now<sample.next&&sample.next-now<=250){++g_skipped;return;}
     sample.owner=c;sample.entered=true;sample.force=false;
-    sample.next=now+(g_visual[c.index].actor?50:250);
+    sample.next=now+(g_visual[c.index].actor||g_missing[c.index]?50:250);
     ++g_observed;
     ObserveCurrent(c,now);
-    sample.next=now+(g_visual[c.index].actor?50:250);
+    sample.next=now+(g_visual[c.index].actor||g_missing[c.index]?50:250);
 }
 void Observe(const local_players::Context& c){ObserveAt(c,GetTickCount64());}
 void Shutdown(){
