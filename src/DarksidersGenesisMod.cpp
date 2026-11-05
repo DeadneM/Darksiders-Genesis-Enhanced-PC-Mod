@@ -3642,7 +3642,7 @@ void UpdateOrbitInput() {
     }
     if(active&&!focused){
         g_v119MouseDeltaX.exchange(0);g_v119MouseDeltaY.exchange(0);
-        return; // edit controls without moving the orbit or replaying UI deltas
+        // The editor owns the mouse, not the configured camera joystick.
     }
     if (!active||!g_config.thirdPersonEnabled) {
         if(!g_config.thirdPersonEnabled) {
@@ -3667,7 +3667,7 @@ void UpdateOrbitInput() {
         std::memory_order_acquire);
     const ULONGLONG gameplayAt=rt.tpsGameplayViewTick.load(
         std::memory_order_acquire);
-    if(!relativeStreamHealthy && physicalAt && now>=physicalAt && now-physicalAt<180ull &&
+    if(focused && !relativeStreamHealthy && physicalAt && now>=physicalAt && now-physicalAt<180ull &&
        (!recenteredAt || (now>=recenteredAt &&
                           now-recenteredAt>=350ull)) &&
        rt.tpsViewGameplay.load(std::memory_order_relaxed) &&
@@ -3780,7 +3780,7 @@ void UpdateOrbitInput() {
         static int previousRecenterBinding=-1;
         const bool pressed=GamepadBindingDown(mask,primary.Gamepad);
         if(previousRecenterBinding!=mask)previousRecenterPressed=false;
-        if(mask && !(g_config.tpsToggleHoldButtonMask!=0 &&
+        if(focused && mask && !(g_config.tpsToggleHoldButtonMask!=0 &&
             mask==g_config.tpsToggleHoldButtonMask) &&
             pressed && !previousRecenterPressed) {
             const bool success=dg::camera_trace::RecenterOnPlayer();
@@ -3823,8 +3823,9 @@ void UpdateOrbitInput() {
     constexpr float kMouseDegPerPixel=0.13f;
     const float stick=g_config.cameraStickSpeed;
     if (!std::isfinite(stick)) return;
-    const float dyaw=ax*stick*dt + static_cast<float>(mx)*kMouseDegPerPixel;
-    const float dpitch=ay*stick*dt - static_cast<float>(my)*kMouseDegPerPixel;
+    const auto orbit=dg::gameplay_menu::Orbit(interaction,ax*stick*dt,ay*stick*dt,
+        static_cast<float>(mx)*kMouseDegPerPixel,-static_cast<float>(my)*kMouseDegPerPixel);
+    const float dyaw=orbit.yaw,dpitch=orbit.pitch;
     if(mx||my) {
         const unsigned n=++g_v119MouseCameraFrames;
         if(n<=5 || n%5000==0)

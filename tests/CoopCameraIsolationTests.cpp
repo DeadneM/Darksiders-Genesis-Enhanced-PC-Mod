@@ -51,12 +51,12 @@ void Run(){
     Check(dg::coop_camera::FilterPad(1,pad)&&pad.sThumbRX==0&&pad.sThumbRY==32767&&pad.wButtons==buttons,"rebindable secondary fire points forward without modifying buttons");
     const float editorYaw=view[4];pad=unchanged;pad.wButtons=0x10;
     Check(!dg::coop_camera::UpdateInput(&pad,true,0.016f,0x20,0x40,0,0x20,500,true),"editor capture never starts a TPS-toggle command");
-    View(view);Check(Close(view[4],editorYaw),"P2 editor navigation does not rotate its camera");
+    View(view);Check(!Close(view[4],editorYaw),"P2 camera joystick remains available under the editor");const float movedEditorYaw=view[4];
     Check(dg::coop_camera::FilterPad(1,pad)&&pad.sThumbRX==0&&pad.sThumbRY==32767&&pad.wButtons==0x10,"P2 game-facing TPS aim stays active under the editor");
-    pad=unchanged;pad.wButtons=0x20;
+    pad={};pad.wButtons=0x20;
     dg::coop_camera::UpdateInput(&pad,true,0.016f,0x20,0x40,0,0x20,500,true);
-    pad=unchanged;dg::coop_camera::UpdateInput(&pad,true,0.016f,0x20,0x40,0,0x20,500,true);
-    View(view);Check(Close(view[4],editorYaw),"editor press/release cannot recenter P2 on release");
+    pad={};dg::coop_camera::UpdateInput(&pad,true,0.016f,0x20,0x40,0,0x20,500,true);
+    View(view);Check(Close(view[4],movedEditorYaw),"editor press/release cannot recenter P2 on release");
     pad=unchanged;pad.wButtons=0x10;Input(&pad,0.f);View(view);
     float x=0,y=0,z=0;
     Check(dg::coop_camera::AdjustLook(g_character,x,y,z,true)&&Close(y,view[4]),"P2 firing uses its own emitted yaw");

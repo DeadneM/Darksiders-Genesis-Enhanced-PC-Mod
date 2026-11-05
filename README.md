@@ -1,3 +1,9 @@
+## V1.158 en préparation — feu, chargement à cheval et orbite manette
+
+Clics du menu V1.157 validés, actions favorables avec réserve ; feu de l'écharpe absent et cheval sans flammes restent ouverts. Substitution de texture rejetée retirée, deux sources Stoneskin A natives, reprise bornée de l'initialisation des passifs du cheval, orbite au stick sous le menu avec souris réservée à l'édition. **EXPÉRIMENTAL, contrôles GitHub à venir.** GPU accepté, coop différée, main V1.153 conservée. [Périmètre et preuves](docs/V1_158_MOUNT_CLOTH_PAD_REVIEW.md).
+
+---
+
 ## V1.157 installée — menu, cheval et écharpe
 
 **CONSTRUIT / CONTRÔLÉ / INSTALLÉ : 82/82 tests GitHub, aucun avertissement C++ détecté. EXPÉRIMENTAL en jeu.** Clics souris et F1–F12 sous le menu, lifecycle dash/stomp ; corrections cheval/écharpe V1.156 cumulées. Sauvegarde V1.155 vérifiée, INI/raccourcis/Engine.ini/PAK préservés, pas de relance du jeu. GPU accepté, coop différée. 248 valeurs et 221 anciennes archives conservées, main reste V1.153. [ZIP, reçu et essais](docs/V1_157_DELIVERY_RECEIPT.md).

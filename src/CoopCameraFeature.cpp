@@ -193,7 +193,7 @@ bool UpdateInput(const XINPUT_GAMEPAD* pad,bool focused,float dt,
     s.temporary=suspend&&now>=s.suspendStarted&&
         now-s.suspendStarted>=static_cast<ULONGLONG>(std::clamp(suspendDelayMs,0,3000));
     if(press.recenter)s.recenterPending=true;
-    if(inputCaptured||!s.focused||s.temporary||s.wheel||s.paused||s.cinema||!rt.thirdPersonEnabled.load()||
+    if(!s.focused||s.temporary||s.wheel||s.paused||s.cinema||!rt.thirdPersonEnabled.load()||
        !rt.cameraControllerOrbitEnabled.load()||rt.tpsCameraStickMode.load()==0||
        (rt.tpsMountedAimMode.load()==1&&s.fire)){Unlock();return press.toggle;}
     const bool left=rt.tpsCameraStickMode.load()==1;

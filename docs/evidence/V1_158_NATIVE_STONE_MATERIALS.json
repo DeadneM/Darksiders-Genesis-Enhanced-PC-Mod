@@ -1,0 +1,129 @@
+{
+  "source": "native retail PAK, previously verified read-only extracted exports",
+  "materials": [
+    {
+      "name": "War_Inst_StoneSkin_A",
+      "parent": "MM_Basic",
+      "baseOverrides": {
+        "OpacityMaskClipValue": 0.33329999446868896
+      },
+      "staticSwitches": {
+        "Detail_Normal:0": true,
+        "Emissive:0": true,
+        "Emissive_Scroll:0": false
+      },
+      "textures": {
+        "Base_Color:0": "War_StoneSkin_D_A",
+        "Metal/Rough/Emissive:0": "War_StoneSkin_mre_packed_A",
+        "Normal:0": "War_StoneSkin_n_A",
+        "Detail_Normal:0": "DN_EN_Cracked_Stone_A_N"
+      },
+      "scalars": {
+        "Base_Texture_Tile:0": 1.0,
+        "Emissive_Power_Base:0": 10.0,
+        "Emissive_Power_Scroll:0": 50.0,
+        "Detail_Normal_Power:0": 2.0,
+        "Detail_Normal_Tile:0": 0.75,
+        "Fresnel_Amount:0": 0.75,
+        "Fresnel_Color_Power:0": 5.0,
+        "Reflection_Amount:0": -1.0,
+        "RefractionDepthBias:0": 0.0
+      }
+    },
+    {
+      "name": "War_Inst_StoneSkin_B",
+      "parent": "MM_Basic",
+      "baseOverrides": {
+        "bOverride_BlendMode": true,
+        "BlendMode": "BLEND_Masked:0",
+        "OpacityMaskClipValue": 0.33329999446868896
+      },
+      "staticSwitches": {
+        "Base_Color_Tint:0": true,
+        "Detail_Normal:0": true,
+        "Emissive:0": false,
+        "Emissive_Scroll:0": false
+      },
+      "textures": {
+        "Base_Color:0": "War_StoneSkin_D_A",
+        "Metal/Rough/Emissive:0": "War_StoneSkin_mre_packed_A",
+        "Normal:0": "War_StoneSkin_n_A",
+        "Detail_Normal:0": "DN_EN_Cracked_Stone_A_N"
+      },
+      "scalars": {
+        "Base_Texture_Tile:0": 1.0,
+        "Emissive_Power_Base:0": 10.0,
+        "Emissive_Power_Scroll:0": 5.0,
+        "Detail_Normal_Power:0": 2.0,
+        "Detail_Normal_Tile:0": 0.75,
+        "Fresnel_Amount:0": 0.75,
+        "Fresnel_Color_Power:0": 5.0,
+        "Reflection_Amount:0": -1.0,
+        "RefractionDepthBias:0": 0.0
+      }
+    },
+    {
+      "name": "War_Inst_StoneSkin_Molten_A",
+      "parent": "MM_Basic",
+      "baseOverrides": {
+        "OpacityMaskClipValue": 0.33329999446868896
+      },
+      "staticSwitches": {
+        "Detail_Normal:0": true,
+        "Emissive:0": true,
+        "Emissive_Scroll:0": true
+      },
+      "textures": {
+        "Base_Color:0": "War_StoneSkin_D_A",
+        "Metal/Rough/Emissive:0": "War_StoneSkin_mre_packed_B",
+        "Normal:0": "War_StoneSkin_n_B",
+        "Detail_Normal:0": "DN_EN_Cracked_Stone_A_N"
+      },
+      "scalars": {
+        "Base_Texture_Tile:0": 1.0,
+        "Emissive_Power_Base:0": 10.0,
+        "Emissive_Power_Scroll:0": 50.0,
+        "Detail_Normal_Power:0": 2.0,
+        "Detail_Normal_Tile:0": 0.75,
+        "Fresnel_Amount:0": 0.75,
+        "Fresnel_Color_Power:0": 5.0,
+        "Reflection_Amount:0": -1.0,
+        "RefractionDepthBias:0": 0.0
+      }
+    },
+    {
+      "name": "War_Inst_StoneSkin_Molten_B",
+      "parent": "MM_Basic",
+      "baseOverrides": {
+        "bOverride_BlendMode": true,
+        "BlendMode": "BLEND_Masked:0",
+        "OpacityMaskClipValue": 0.33329999446868896
+      },
+      "staticSwitches": {
+        "Base_Color_Tint:0": true,
+        "Detail_Normal:0": true,
+        "Emissive:0": true,
+        "Emissive_Scroll:0": true
+      },
+      "textures": {
+        "Base_Color:0": "War_StoneSkin_D_A",
+        "Metal/Rough/Emissive:0": "War_StoneSkin_mre_packed_B",
+        "Normal:0": "War_StoneSkin_n_A",
+        "Detail_Normal:0": "DN_EN_Cracked_Stone_A_N"
+      },
+      "scalars": {
+        "Base_Texture_Tile:0": 1.0,
+        "Emissive_Power_Base:0": 10.0,
+        "Emissive_Power_Scroll:0": 50.0,
+        "Detail_Normal_Power:0": 2.0,
+        "Detail_Normal_Tile:0": 0.75,
+        "Fresnel_Amount:0": 0.75,
+        "Fresnel_Color_Power:0": 5.0,
+        "Reflection_Amount:0": -1.0,
+        "RefractionDepthBias:0": 0.0
+      }
+    }
+  ],
+  "observation": "Base B disables Emissive and Emissive_Scroll; A retains Emissive, Molten A retains both. A does not force masked blending; B does.",
+  "limits": "Static material contracts and prior captures, not a rendered validation of this new scarf assignment."
+}

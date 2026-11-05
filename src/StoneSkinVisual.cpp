@@ -15,10 +15,10 @@ struct Array {uintptr_t data=0;int count=0,capacity=0;};
 using Event=void(*)(void*,void*,void*);
 Event g_event=nullptr;uintptr_t g_base=0;foreign_wrath::LogFn g_log=nullptr;unsigned g_events=0;
 unsigned g_deferredEvents=0;
-std::array<selected_recovery::Requests<6>,2> g_resourceRequests{};
+std::array<selected_recovery::Requests<5>,2> g_resourceRequests{};
 std::array<Id,2> g_resourceActor{},g_resourceMesh{};
-enum MaterialSource : unsigned {BaseBody,BaseCloth,MoltenCloth};
-std::array<Id,3> g_materials{};
+enum MaterialSource : unsigned {BaseBody,MoltenCloth};
+std::array<Id,2> g_materials{};
 struct Slot {Id material{},original{};bool inherited=false,failed=false;uintptr_t observed=0;uint64_t retryAt=0;};
 struct Visual {Id actor{},mesh{},asset{};uintptr_t world=0;int variant=-1;std::array<Slot,4> slots{};};
 Visual g_visual[2]{};
@@ -161,37 +161,6 @@ int Surface(uintptr_t asset,unsigned index,uintptr_t& original){
        native_objects::NameValueIdentifierEquals(g_base,slot.index,slot.number,"Strife_Cloth_ncl1_1"))return 1;
     return -1;
 }
-bool BaseColor(uintptr_t material,foreign_wrath::Name& name,Id& texture){
-    std::array<uintptr_t,8> seen{};
-    for(unsigned depth=0;material&&depth<seen.size();++depth){
-        for(unsigned i=0;i<depth;++i)if(seen[i]==material)return false;
-        seen[depth]=material;uintptr_t cls=0;int at=-1;Array values{};
-        if(!Read(material,0x10,cls)||(!Is(cls,"MaterialInstanceDynamic")&&!Is(cls,"MaterialInstanceConstant"))||
-           !Field(material,"TextureParameterValues","ArrayProperty",16,at)||!List(material,at,values,64))return false;
-        for(int i=0;i<values.count;++i){
-            foreign_wrath::Name key{};int association=0,index=0;uintptr_t value=0;const auto p=values.data+size_t(i)*40;
-            if(!Read(p,0,key)||!Read(p,8,association)||!Read(p,12,index))return false;
-            if(association!=2||index!=-1||!native_objects::NameValueIdentifierEquals(g_base,key.index,key.number,"Base_Color"))continue;
-            if(!Read(p,16,value)||!Read(value,0x10,cls)||!Is(cls,"Texture2D")||!Capture(value,texture))return false;
-            name=key;return true;
-        }
-        if(!Field(material,"Parent","ObjectProperty",8,at)||!Read(material,at,material))return false;
-    }
-    return false;
-}
-bool ClothTexture(uintptr_t material,uintptr_t original){
-    // War's masked base texture cuts holes in Strife's differently mapped scarf.
-    // Retain this skin's color/alpha only; the private parent's fire stays native.
-    foreign_wrath::Name name{};Id texture{};
-    if(!BaseColor(original,name,texture))return false;
-    const auto f=Function(material,"SetTextureParameterValue",0x1D97360);uint16_t bytes=0;
-    if(!f||!Read(f,0x9E,bytes)||bytes!=16||!Parameter(f,"ParameterName","NameProperty",8,0)||!Parameter(f,"Value","ObjectProperty",8,8))return false;
-    struct Args {foreign_wrath::Name name{};uintptr_t value=0;} args{name,texture.address};
-    static_assert(sizeof(Args)==16);
-    g_event(reinterpret_cast<void*>(material),reinterpret_cast<void*>(f),&args);
-    foreign_wrath::Name applied{};Id result{};
-    return BaseColor(material,applied,result)&&result==texture;
-}
 bool MineralBody(uintptr_t material,uintptr_t source){
     const auto f=Function(material,"SetScalarParameterValue",0x1D97290);int at=-1;Array values{};unsigned found=0;
     if(!f||!Parameter(f,"ParameterName","NameProperty",8,0)||!Parameter(f,"Value","FloatProperty",4,8)||
@@ -274,7 +243,7 @@ void ObserveObject(uintptr_t p){
     stone_fx::ObserveObject(p);
     if(!g_event||!native_tps::OnGameThread())return;uintptr_t cls=0,package=0;
     if(!Read(p,0x10,cls)||!Is(cls,"MaterialInstanceConstant")||!Read(p,0x20,package))return;
-    constexpr const char* names[]={"War_Inst_StoneSkin_A","War_Inst_StoneSkin_B","War_Inst_StoneSkin_Molten_B"};
+    constexpr const char* names[]={"War_Inst_StoneSkin_A","War_Inst_StoneSkin_Molten_A"};
     int nameIndex=0,number=0,packageIndex=0,packageNumber=0;
     if(!Read(p,0x18,nameIndex)||!Read(p,0x1C,number)||!Read(package,0x18,packageIndex)||!Read(package,0x1C,packageNumber))return;
     for(unsigned i=0;i<g_materials.size();++i){char path[180]{};sprintf_s(path,"/Game/Characters/Heroes/Hero_War/Textures/%s",names[i]);
@@ -307,18 +276,18 @@ void RecoverResources(const local_players::Context& c,uintptr_t meshAsset,int va
     const bool safe=selected_recovery::loadingAllowed&&context&&
         !native_tps::IsWorldPaused(reinterpret_cast<void*>(c.pawn))&&
         !native_tps::CinematicActive(unsigned(c.index))&&!native_tps::RadialActive(unsigned(c.index));
-    constexpr const char* materials[]={"War_Inst_StoneSkin_A","War_Inst_StoneSkin_B","War_Inst_StoneSkin_Molten_B"};
+    constexpr const char* materials[]={"War_Inst_StoneSkin_A","War_Inst_StoneSkin_Molten_A"};
     constexpr const char* effects[]={"P_WarStoneSkin_Base","P_WarStoneSkin_Molten","P_War_StoneSkin_Base_Crumble_Expiration"};
-    const unsigned wanted[]={0u,variant?2u:1u,3u+unsigned(variant),5u};
+    const unsigned wanted[]={0u,variant?1u:0u,2u+unsigned(variant),4u};
     for(const auto index:wanted){
-        const bool material=index<3;
-        const bool ready=material?Alive(g_materials[index]):stone_fx::TemplateReady(int(index-3));
+        const bool material=index<2;
+        const bool ready=material?Alive(g_materials[index]):stone_fx::TemplateReady(int(index-2));
         if(ready||!requests.Begin(index,now,safe,context))continue;
-        const char* name=material?materials[index]:effects[index-3];char package[220]{};
+        const char* name=material?materials[index]:effects[index-2];char package[220]{};
         sprintf_s(package,material?"/Game/Characters/Heroes/Hero_War/Textures/%s":"/Game/VFX/Particles/Characters/War/StoneSkin/%s",name);
         auto* result=selected_particle::Load(g_base,package,name,loader,g_event);
         if(result)ObserveObject(reinterpret_cast<uintptr_t>(result));
-        const bool accepted=material?Alive(g_materials[index]):stone_fx::TemplateReady(int(index-3));
+        const bool accepted=material?Alive(g_materials[index]):stone_fx::TemplateReady(int(index-2));
         if(g_log){char message[224]{};sprintf_s(message,"Stoneskin resources V1.150: asset=%s attempt=%u %s",name,requests.entries[index].count,accepted?"loaded and verified":"unavailable; native materials retained");g_log(message);}
         break; // shared budget: at most one requested resource per service call
     }
@@ -345,15 +314,15 @@ void ObserveCurrent(const local_players::Context& c,uint64_t now){
     if(!owned||variant<0){if(!owned||statusKnown)transition={};return;}
     // Body always uses the base mineral material, even with Molten cloth.
     // Wait for these actual sources before invoking/caching a factory result.
-    bool sourcesReady=Alive(g_materials[BaseBody])&&Alive(g_materials[variant?MoltenCloth:BaseCloth]);
+    bool sourcesReady=Alive(g_materials[BaseBody])&&(!variant||Alive(g_materials[MoltenCloth]));
     if(!sourcesReady||!stone_fx::Ready(variant)||!stone_fx::Ready(2)){
         RecoverResources(c,asset,variant);
-        sourcesReady=Alive(g_materials[BaseBody])&&Alive(g_materials[variant?MoltenCloth:BaseCloth]);
+        sourcesReady=Alive(g_materials[BaseBody])&&(!variant||Alive(g_materials[MoltenCloth]));
     }
     // Missing unused variants must not make the active coating unavailable.
     g_missing[c.index]=!sourcesReady||!stone_fx::Ready(variant)||!stone_fx::Ready(2);
     if(!sourcesReady&&!wasMissing&&g_log&&g_deferredEvents++<12){char line[180]{};
-        sprintf_s(line,"Stoneskin V1.137 deferred: player=%d variant=%d baseBody=%d cloth=%d; bounded rediscovery requested",c.index+1,variant,Alive(g_materials[BaseBody])?1:0,Alive(g_materials[variant?MoltenCloth:BaseCloth])?1:0);g_log(line);}
+        sprintf_s(line,"Stoneskin V1.137 deferred: player=%d variant=%d baseBody=%d cloth=%d; bounded rediscovery requested",c.index+1,variant,Alive(g_materials[BaseBody])?1:0,Alive(g_materials[variant?MoltenCloth:BaseBody])?1:0);g_log(line);}
     if(!sourcesReady)return;
     if(!v.actor){
         if(!Capture(c.character,v.actor)||!Capture(mesh,v.mesh)||!Capture(asset,v.asset)){v={};return;}
@@ -384,11 +353,12 @@ void ObserveCurrent(const local_players::Context& c,uint64_t now){
             continue;}
         // War's UV emissive masks illuminate the wrong regions on Strife.
         // Body/gear use the mineral base shader without its private glow;
-        // cloth retains the native base/Molten shader and its fire.
-        const auto source=g_materials[surface==0?BaseBody:(variant?MoltenCloth:BaseCloth)].address;
+        // Cloth uses the native opaque A shader: its emission remains enabled,
+        // with no foreign alpha mask and no replacement of its fire texture.
+        const auto source=g_materials[surface==0?BaseBody:(variant?MoltenCloth:BaseBody)].address;
         const auto mid=Create(mesh,int(i),source);uintptr_t parent=0;int parentAt=-1;Id identity{};
         if(!mid||mid==source||!Field(mid,"Parent","ObjectProperty",8,parentAt)||!Read(mid,parentAt,parent)||parent!=source||!Capture(mid,identity)||
-           (surface==0?!MineralBody(mid,source):!ClothTexture(mid,args.result))){
+           (surface==0&&!MineralBody(mid,source))){
             // Factory may install its source or MID before validation.
             uintptr_t installed=0;
             if(Override(mesh,int(i),installed)&&((mid&&installed==mid)||installed==source))Set(mesh,int(i),current);
@@ -396,7 +366,7 @@ void ObserveCurrent(const local_players::Context& c,uint64_t now){
             continue;
         }
         slot={identity,original,current==0};
-        if(g_log&&g_events++<8)g_log("Stoneskin V1.117 visual: mineral body/gear, native fire on cloth only; private MIDs and status-owned restoration; EXPERIMENTAL UV fit");
+        if(g_log&&g_events++<8)g_log("Stoneskin V1.158 visual: private mineral body, native emissive opaque cloth; no texture override; visual validation required");
     }
     if(transition.pending&&transition.world==c.world&&transition.actor.address==c.character&&Alive(transition.actor)){
         bool coated=false;for(const auto& slot:v.slots)coated=coated||Alive(slot.material);

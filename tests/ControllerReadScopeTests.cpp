@@ -46,6 +46,12 @@ void Run(){
     Check(GamePoll(ForwardingProvider,pad)&&transforms==5&&pad.sThumbRY==32767,"next game read keeps the TPS rule even while editor remains open");
     Check(dg::gameplay_menu::Hotkeys(editor,false),"configured function keys remain available while editor is displayed");
     Check(!dg::gameplay_menu::Hotkeys(editor,true)&&dg::gameplay_menu::Runtime(editor),"text/rebinding capture blocks commands without disabling gameplay rules");
+    auto orbit=dg::gameplay_menu::Orbit(editor,2,3,5,7);
+    Check(orbit.yaw==2&&orbit.pitch==3,"open editor preserves camera joystick but discards editing mouse deltas");
+    auto gameplay=editor;gameplay.menu=false;orbit=dg::gameplay_menu::Orbit(gameplay,2,3,5,7);
+    Check(orbit.yaw==7&&orbit.pitch==10,"closed editor retains combined native mouse/controller orbit");
+    gameplay.foreground=false;orbit=dg::gameplay_menu::Orbit(gameplay,2,3,5,7);
+    Check(orbit.yaw==0&&orbit.pitch==0,"Alt-Tab cannot rotate either camera input");
     editor.menu=false;Check(dg::gameplay_menu::Runtime(editor)&&dg::gameplay_menu::Commands(editor),"closing editor re-enables bindings without toggling gameplay rules");
     editor.foreground=false;Check(!dg::gameplay_menu::Hotkeys(editor,false),"background function keys stay inactive");Check(!dg::gameplay_menu::Runtime(editor)&&!dg::gameplay_menu::Commands(editor),"Alt-Tab blocks runtime interaction and new commands");
     editor.foreground=true;editor.minimized=true;Check(!dg::gameplay_menu::Runtime(editor),"minimized window remains protected");

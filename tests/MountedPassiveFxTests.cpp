@@ -42,8 +42,14 @@ void Run(){
  std::vector<unsigned char> image(0x3960000);Fresh(image);
  ObserveAt(c,1000);ObserveAt(c,2999);Check(!calls,"native mount initialization gets two seconds");ObserveAt(c,3250);Check(calls==3,"wholly inactive assigned native set is requested once, empty slot ignored");
  Put<unsigned char>(f.particles[0],0xAE,0);for(int i=0;i<100;++i)ObserveAt(c,4000+i*250);Check(calls==3,"no permanent force-active loop after the single request");
- for(int failure=0;failure<12;++failure){Fresh(image);
-  if(failure==0)Put<unsigned char>(f.particles[0],0xAE,1);
+ Fresh(image);c.kind=dg::local_players::PoseKind::Foot;c.character=c.pawn;ObserveAt(c,1000);ObserveAt(c,4000);Check(calls==3,"direct mounted-state alias uses verified horse class/possession, not a prior foot-character identity");
+ Fresh(image);Put<unsigned char>(f.particles[0],0xAE,1);ObserveAt(c,1000);ObserveAt(c,4000);Check(calls==2,"an active hoof does not block missing passive flames; active entries are untouched");
+ Fresh(image);Put(f.horse,0xB40,Array{});ObserveAt(c,1000);ObserveAt(c,4000);Check(!calls&&!g_states[0].checked,"loading with mount does not finalize an uninitialized passive array");
+ Put(f.horse,0xB40,Array{reinterpret_cast<uintptr_t>(f.passive),4,27});ObserveAt(c,4500);Check(calls==3,"late native array with normal allocator slack is accepted without a resummon");
+ Fresh(image);for(int i=0;i<4;++i)Put(f.particles[i],0x578,uintptr_t(0));ObserveAt(c,1000);ObserveAt(c,4000);Check(!calls&&!g_states[0].checked,"unassigned initial templates keep the readiness window open");
+ Put(f.particles[0],0x578,reinterpret_cast<uintptr_t>(f.asset));ObserveAt(c,4500);Check(calls==1,"late first assigned template can be activated once");
+ Fresh(image);Put(f.horse,0xB40,Array{});ObserveAt(c,1000);for(int i=0;i<40;++i)ObserveAt(c,4000+i*250);Check(!calls&&g_states[0].checked,"missing native readiness is bounded rather than polled indefinitely");
+ for(int failure=1;failure<12;++failure){Fresh(image);
   if(failure==1)Put(f.particles[1],0xE8,uintptr_t(1));
   if(failure==2)Put(f.function,0xC0,uintptr_t(0));
   if(failure==3)Put<uint16_t>(f.function,0x9E,8);
@@ -52,7 +58,7 @@ void Run(){
   if(failure==6)f.passive[1]=f.passive[0];
   if(failure==7)Put(f.controller,0x350,uintptr_t(0));
   if(failure==8)Put<unsigned char>(f.horse,0xA66,1);
-  if(failure==9)c.kind=dg::local_players::PoseKind::Foot;
+  if(failure==9){c.kind=dg::local_players::PoseKind::Foot;c.pawn=reinterpret_cast<uintptr_t>(f.mesh);}
   if(failure==10)thread=false;
   if(failure==11)c.index=2;
   ObserveAt(c,1000);ObserveAt(c,4000);Check(!calls,"active, foreign, invalid, off-thread and despawning states never activated");
