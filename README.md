@@ -1,3 +1,9 @@
+## 5 novembre 2026 — retour V1.153 et suite apparences
+
+**VALIDÉ par l'utilisateur sur ses derniers essais, sans problème majeur observé.** Récupérations coffre/dash acceptées avec sa réserve sur le résultat ; aucun gain chronométré annoncé. Deux passes sur 11 fichiers récents (1 121 lignes) : aucune nouvelle suppression démontrée, code conservé. Recherche native : huit rendus de poussière de dash partagés par les deux héros, exports et notifications vérifiés ; aucun nouveau choix au menu dans ce relevé. Coop/P2 reste différé, persistance GPU à confirmer. [Double audit](docs/V1_153_DOUBLE_AUDIT.md) · [Inventaire et limites](docs/NATIVE_APPEARANCE_RESEARCH_2026_11_05.md).
+
+---
+
 ## 5 novembre 2026 — V1.153 disponible sur debug
 
 **CONSTRUIT et CONTRÔLÉ**, 81 tests Windows GitHub. Le rework dash/stomp V1.152 est VALIDÉ par l'utilisateur et dispose maintenant de sa case ON par défaut. Player Movement est réorganisé. Stoneskin reçoit une reprise bornée des refus, une protection des statuts incomplets et des caches de fonctions. **EXPÉRIMENTAL en jeu** pour ces modifications et le coût CPU. [Livraison et essais](docs/V1_153_DELIVERY_RECEIPT.md).

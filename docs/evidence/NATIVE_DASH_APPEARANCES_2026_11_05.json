@@ -1,0 +1,2090 @@
+{
+  "date": "2026-11-05",
+  "indexSha1": "5d0982cd46a5221290cb6ed24696e3962e9dddff",
+  "readOnly": true,
+  "particleAssetsInspected": 14,
+  "animationPackagesInspected": 57,
+  "nativeNotifiesInspected": 36,
+  "parseLimits": 0,
+  "assets": [
+    {
+      "name": "P_StrifeDash_Default",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Default.uasset",
+      "sha1": "999b1191340828b52e88f9dac19b530762464de7",
+      "exportClass": "ParticleSystem",
+      "existingRole": 95,
+      "moduleCount": 4,
+      "requiredModules": [
+        {
+          "Material": "M_Dash_smoke_2x2",
+          "ScreenAlignment": "PSA_Velocity:0",
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Dash_Smoke_4x4",
+          "EmitterDuration": 0.20000000298023224,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Dash_smoke_2x2",
+          "ScreenAlignment": "PSA_Rectangle:0",
+          "bUseLocalSpace": true,
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Dash_Smoke_4x4",
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        }
+      ]
+    },
+    {
+      "name": "P_StrifeDash_Coins",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Coins.uasset",
+      "sha1": "ec138974299f6117525253e2d5ef44a475830220",
+      "exportClass": "ParticleSystem",
+      "existingRole": 95,
+      "moduleCount": 6,
+      "requiredModules": [
+        {
+          "Material": "M_VFX_Coin_Footsteps_01",
+          "EmitterDuration": 0.10000000149011612,
+          "EmitterLoops": 3
+        },
+        {
+          "Material": "M_VFX_Coin_Footsteps_01",
+          "EmitterDuration": 0.10000000149011612,
+          "EmitterLoops": 3
+        },
+        {
+          "Material": "M_VFX_Coin_Footsteps_01",
+          "EmitterDuration": 0.10000000149011612,
+          "EmitterLoops": 3
+        },
+        {
+          "Material": "M_VFX_Coin_Footsteps_01",
+          "EmitterDuration": 0.10000000149011612,
+          "EmitterLoops": 3
+        },
+        {
+          "Material": "M_Strife_Flare_Stylized",
+          "EmitterDuration": 0.10000000149011612,
+          "EmitterLoops": 3
+        },
+        {
+          "Material": "M_Strife_Flare_Stylized",
+          "EmitterDuration": 0.10000000149011612,
+          "EmitterLoops": 3
+        }
+      ]
+    },
+    {
+      "name": "P_StrifeDash_Metal",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Metal.uasset",
+      "sha1": "c757f5c9e0ea1e83a33bf07a83bc1fea2a5f0443",
+      "exportClass": "ParticleSystem",
+      "existingRole": 95,
+      "moduleCount": 3,
+      "requiredModules": [
+        {
+          "Material": "M_Snow_Particle2",
+          "ScreenAlignment": "PSA_Velocity:0",
+          "EmitterDuration": 0.4000000059604645,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Snow_Particle2",
+          "ScreenAlignment": "PSA_Velocity:0",
+          "EmitterDuration": 0.4000000059604645,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Spark_Drag",
+          "EmitterLoops": 1
+        }
+      ]
+    },
+    {
+      "name": "P_StrifeDash_Sand",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Sand.uasset",
+      "sha1": "1167c271de366afbb234af311f99e9eecdd2d203",
+      "exportClass": "ParticleSystem",
+      "existingRole": 95,
+      "moduleCount": 4,
+      "requiredModules": [
+        {
+          "Material": "M_Snow_CloudStep",
+          "EmitterDuration": 0.20000000298023224,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Grit",
+          "EmitterDuration": 0.20000000298023224,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_VFX_debrisBits",
+          "EmitterDuration": 0.20000000298023224,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Snow_Chunk_FootSteps",
+          "EmitterDuration": 0.20000000298023224,
+          "EmitterLoops": 1
+        }
+      ]
+    },
+    {
+      "name": "P_StrifeDash_Snow",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Snow.uasset",
+      "sha1": "689f3be11b50f3fd7d08545025c7400c80444dba",
+      "exportClass": "ParticleSystem",
+      "existingRole": 95,
+      "moduleCount": 5,
+      "requiredModules": [
+        {
+          "Material": "M_Snow_CloudStep",
+          "EmitterDuration": 0.20000000298023224,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Grit",
+          "EmitterDuration": 0.25,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Snow_Chunk_FootSteps",
+          "EmitterDuration": 0.20000000298023224,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Dissolve_Ink",
+          "EmitterDuration": 0.25,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Snow_Particle_FootSteps",
+          "EmitterDuration": 0.20000000298023224,
+          "EmitterLoops": 1
+        }
+      ]
+    },
+    {
+      "name": "P_StrifeDash_Stone",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Stone.uasset",
+      "sha1": "ba119865973ec024f4f0b5928e29488e14cc1dde",
+      "exportClass": "ParticleSystem",
+      "existingRole": 95,
+      "moduleCount": 5,
+      "requiredModules": [
+        {
+          "Material": "M_DCS_CrysalRocks_4x4",
+          "EmitterDuration": 0.20000000298023224,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Grit",
+          "EmitterDuration": 0.20000000298023224,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_VFX_debrisBits",
+          "EmitterDuration": 0.20000000298023224,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_DCS_CrysalRocks_4x4",
+          "EmitterDuration": 0.20000000298023224,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_DCS_CrysalRocks_4x4",
+          "EmitterDuration": 0.20000000298023224,
+          "EmitterLoops": 1
+        }
+      ]
+    },
+    {
+      "name": "P_StrifeDash_Water",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Water.uasset",
+      "sha1": "50cdf7ed785e40a19417afba21f053720e986d90",
+      "exportClass": "ParticleSystem",
+      "existingRole": 95,
+      "moduleCount": 5,
+      "requiredModules": [
+        {
+          "Material": "M_Dagon_Liquid_02_A",
+          "EmitterDuration": 0.20000000298023224,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Dash_smoke_2x2",
+          "ScreenAlignment": "PSA_Rectangle:0",
+          "bUseLocalSpace": true,
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Dissolve_Ink",
+          "ScreenAlignment": "PSA_Rectangle:0",
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Dagon_WaterDroplet",
+          "ScreenAlignment": "PSA_Velocity:0",
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Dagon_Liquid_02_A",
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        }
+      ]
+    },
+    {
+      "name": "P_StrifeDash_Wood",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/Strife/Generic/P_StrifeDash_Wood.uasset",
+      "sha1": "2b78781192a04eaa649da93a1b6db34dc76d5cdc",
+      "exportClass": "ParticleSystem",
+      "existingRole": 95,
+      "moduleCount": 2,
+      "requiredModules": [
+        {
+          "Material": "M_Grit",
+          "ScreenAlignment": "PSA_Rectangle:0",
+          "EmitterDuration": 0.20000000298023224,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_VFX_debrisBits",
+          "ScreenAlignment": "PSA_Rectangle:0",
+          "EmitterDuration": 0.20000000298023224,
+          "EmitterLoops": 1
+        }
+      ]
+    },
+    {
+      "name": "P_WarDash_WS",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/War/Generic/P_WarDash_WS.uasset",
+      "sha1": "e85ee0156782f1560fd87c616f0c811db1f7fe33",
+      "exportClass": "ParticleSystem",
+      "existingRole": 96,
+      "moduleCount": 4,
+      "requiredModules": [
+        {
+          "Material": "M_Dash_Smoke_4x4",
+          "EmitterDuration": 0.20000000298023224,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Dash_smoke_2x2",
+          "ScreenAlignment": "PSA_Velocity:0",
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_StrifeDashBlur",
+          "ScreenAlignment": "PSA_Velocity:0",
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Dash_Smoke_4x4",
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        }
+      ]
+    },
+    {
+      "name": "P_WarDash_Coins_WS",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/War/Generic/P_WarDash_Coins_WS.uasset",
+      "sha1": "a7321a71ce0582e3f84e35b612d356556fec08c2",
+      "exportClass": "ParticleSystem",
+      "existingRole": 96,
+      "moduleCount": 10,
+      "requiredModules": [
+        {
+          "Material": "M_VFX_Coin_Footsteps_01",
+          "EmitterDuration": 0.10000000149011612,
+          "EmitterLoops": 3
+        },
+        {
+          "Material": "M_VFX_Coin_Footsteps_01",
+          "EmitterDuration": 0.10000000149011612,
+          "EmitterLoops": 3
+        },
+        {
+          "Material": "M_Dash_Smoke_4x4",
+          "EmitterDuration": 0.20000000298023224,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Dash_smoke_2x2",
+          "ScreenAlignment": "PSA_Velocity:0",
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_StrifeDashBlur",
+          "ScreenAlignment": "PSA_Velocity:0",
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_VFX_Coin_Footsteps_01",
+          "EmitterDuration": 0.10000000149011612,
+          "EmitterLoops": 3
+        },
+        {
+          "Material": "M_VFX_Coin_Footsteps_01",
+          "EmitterDuration": 0.10000000149011612,
+          "EmitterLoops": 3
+        },
+        {
+          "Material": "M_Strife_Flare_Stylized",
+          "EmitterDuration": 0.10000000149011612,
+          "EmitterLoops": 3
+        },
+        {
+          "Material": "M_Strife_Flare_Stylized",
+          "EmitterDuration": 0.10000000149011612,
+          "EmitterLoops": 3
+        },
+        {
+          "Material": "M_Dash_Smoke_4x4",
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        }
+      ]
+    },
+    {
+      "name": "P_WarDash_Water_WS",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/War/Generic/P_WarDash_Water_WS.uasset",
+      "sha1": "b8a3c03fa30e706136068be1a131b470b7af9b45",
+      "exportClass": "ParticleSystem",
+      "existingRole": 96,
+      "moduleCount": 8,
+      "requiredModules": [
+        {
+          "Material": "M_Dash_smoke_2x2",
+          "ScreenAlignment": "PSA_Velocity:0",
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Dagon_Liquid_02_A",
+          "EmitterDuration": 0.20000000298023224,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Dissolve_Ink",
+          "ScreenAlignment": "PSA_Rectangle:0",
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_StrifeDashBlur",
+          "ScreenAlignment": "PSA_Velocity:0",
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Dagon_WaterDroplet",
+          "ScreenAlignment": "PSA_Velocity:0",
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Dagon_Liquid_02_A",
+          "EmitterDuration": 0.4000000059604645,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Dash_Smoke_4x4",
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Dagon_Liquid_02_A",
+          "EmitterDuration": 0.4000000059604645,
+          "EmitterLoops": 1
+        }
+      ]
+    },
+    {
+      "name": "P_WarDash",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/War/Generic/P_WarDash.uasset",
+      "sha1": "aaa902850c05894277230de5709c5a65b4b26a38",
+      "exportClass": "ParticleSystem",
+      "existingRole": 96,
+      "moduleCount": 1,
+      "requiredModules": [
+        {
+          "Material": "M_StrifeDashBlur",
+          "ScreenAlignment": "PSA_Rectangle:0",
+          "bUseLocalSpace": true,
+          "EmitterDuration": 1.5,
+          "EmitterLoops": 1
+        }
+      ]
+    },
+    {
+      "name": "P_WarDash_Coins",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/War/Generic/P_WarDash_Coins.uasset",
+      "sha1": "dc3ad695ff6873580e24d4f911ed76b6cac2c093",
+      "exportClass": "ParticleSystem",
+      "existingRole": 96,
+      "moduleCount": 6,
+      "requiredModules": [
+        {
+          "Material": "M_VFX_Coin_Footsteps_01",
+          "EmitterDuration": 0.10000000149011612,
+          "EmitterLoops": 3
+        },
+        {
+          "Material": "M_VFX_Coin_Footsteps_01",
+          "EmitterDuration": 0.10000000149011612,
+          "EmitterLoops": 3
+        },
+        {
+          "Material": "M_VFX_Coin_Footsteps_01",
+          "EmitterDuration": 0.10000000149011612,
+          "EmitterLoops": 3
+        },
+        {
+          "Material": "M_VFX_Coin_Footsteps_01",
+          "EmitterDuration": 0.10000000149011612,
+          "EmitterLoops": 3
+        },
+        {
+          "Material": "M_Strife_Flare_Stylized",
+          "EmitterDuration": 0.10000000149011612,
+          "EmitterLoops": 3
+        },
+        {
+          "Material": "M_Strife_Flare_Stylized",
+          "EmitterDuration": 0.10000000149011612,
+          "EmitterLoops": 3
+        }
+      ]
+    },
+    {
+      "name": "P_WarDash_Water",
+      "path": "ProjectMayhem/Content/VFX/Particles/Characters/War/Generic/P_WarDash_Water.uasset",
+      "sha1": "d653ba65be8447040576a43f6d643d2a5ac4d394",
+      "exportClass": "ParticleSystem",
+      "existingRole": 96,
+      "moduleCount": 6,
+      "requiredModules": [
+        {
+          "Material": "M_Dagon_Liquid_02_A",
+          "EmitterDuration": 0.20000000298023224,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Dash_smoke_2x2",
+          "ScreenAlignment": "PSA_Rectangle:0",
+          "bUseLocalSpace": true,
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Dissolve_Ink",
+          "ScreenAlignment": "PSA_Rectangle:0",
+          "bUseLocalSpace": true,
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Dagon_WaterDroplet",
+          "ScreenAlignment": "PSA_Velocity:0",
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Dagon_Liquid_02_A",
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        },
+        {
+          "Material": "M_Dagon_Liquid_02_A",
+          "EmitterDuration": 0.30000001192092896,
+          "EmitterLoops": 1
+        }
+      ]
+    }
+  ],
+  "nativeNotifies": [
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_DashTo_Montage.uasset",
+      "sha1": "24096a22e32e70f0feaa4ba625e62006ecc4bb73",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "P_StrifeDash_Water"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Coins"
+            },
+            {
+              "surface": "SurfaceType2:0",
+              "asset": "P_StrifeDash_Metal"
+            },
+            {
+              "surface": "SurfaceType5:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType3:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType14:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType9:0",
+              "asset": "P_StrifeDash_Wood"
+            },
+            {
+              "surface": "SurfaceType7:0",
+              "asset": "P_StrifeDash_Snow"
+            },
+            {
+              "surface": "SurfaceType11:0",
+              "asset": "P_StrifeDash_Snow"
+            }
+          ]
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_Strife_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_DashTo_Montage.uasset",
+      "sha1": "24096a22e32e70f0feaa4ba625e62006ecc4bb73",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "None"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType2:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType7:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType11:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType3:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType5:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType14:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType9:0",
+              "asset": "P_StrifeDash_Default"
+            }
+          ]
+        },
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_StrifeDash_Default"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_Strife_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_DashTo_Back_Montage.uasset",
+      "sha1": "8d10c119739664d438f97e9638a8d012d4f75013",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "P_StrifeDash_Water"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Coins"
+            },
+            {
+              "surface": "SurfaceType2:0",
+              "asset": "P_StrifeDash_Metal"
+            },
+            {
+              "surface": "SurfaceType5:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType3:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType14:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType9:0",
+              "asset": "P_StrifeDash_Wood"
+            },
+            {
+              "surface": "SurfaceType7:0",
+              "asset": "P_StrifeDash_Snow"
+            },
+            {
+              "surface": "SurfaceType11:0",
+              "asset": "P_StrifeDash_Sand"
+            }
+          ]
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_Strife_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_DashTo_Back_Montage.uasset",
+      "sha1": "8d10c119739664d438f97e9638a8d012d4f75013",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "None"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType2:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType7:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType11:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType3:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType5:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType14:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType9:0",
+              "asset": "P_StrifeDash_Default"
+            }
+          ]
+        },
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_StrifeDash_Default"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_Strife_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_Dash_Back_Level1_Montage.uasset",
+      "sha1": "24b5bc34bcf54b8ed9d9ce9f385d9e7e63b2fabd",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "P_StrifeDash_Water"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Coins"
+            }
+          ]
+        },
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_StrifeDash"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_Strife_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_Dash_Level1_Montage.uasset",
+      "sha1": "c830b00bc4724b41840618b6fc069bf078763934",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "P_StrifeDash_Water"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Coins"
+            },
+            {
+              "surface": "SurfaceType2:0",
+              "asset": "P_StrifeDash_Metal"
+            },
+            {
+              "surface": "SurfaceType5:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType3:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType14:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType9:0",
+              "asset": "P_StrifeDash_Wood"
+            },
+            {
+              "surface": "SurfaceType7:0",
+              "asset": "P_StrifeDash_Snow"
+            },
+            {
+              "surface": "SurfaceType11:0",
+              "asset": "P_StrifeDash_Sand"
+            }
+          ]
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_Strife_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_Dash_Level1_Montage.uasset",
+      "sha1": "c830b00bc4724b41840618b6fc069bf078763934",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "None"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType2:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType7:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType11:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType3:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType5:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType14:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType9:0",
+              "asset": "P_StrifeDash_Default"
+            }
+          ]
+        },
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_StrifeDash_Default"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_Strife_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_Aim_Dash_Fire_R_Montage.uasset",
+      "sha1": "61565448eb3b12f5093975e7cec638615468ca90",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "P_StrifeDash_Water"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Coins"
+            }
+          ]
+        },
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_StrifeDash"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_Strife_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_Aim_Dash_Fire_L_Montage.uasset",
+      "sha1": "70a80648a1c0c3ccaba992e45f3dfa5746d7dd61",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "P_StrifeDash_Water"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Coins"
+            }
+          ]
+        },
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_StrifeDash"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_Strife_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_Aim_Dash_Fire_F_Montage.uasset",
+      "sha1": "c7a19e7be7e91cc37dc285cd04939d746b638bf2",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "P_StrifeDash_Water"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Coins"
+            }
+          ]
+        },
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_StrifeDash"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_Strife_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_Aim_Dash_Fire_B_Montage.uasset",
+      "sha1": "ef197976a7ca697dc99a95ca4f54104885f9baa8",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "P_StrifeDash_Water"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Coins"
+            }
+          ]
+        },
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_StrifeDash"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_Strife_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_Aim_Dash_R_Level1_Montage.uasset",
+      "sha1": "9d9e92451420774b0cb5201e14dce27a3cb9c1d1",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "P_StrifeDash_Water"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Coins"
+            }
+          ]
+        },
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_StrifeDash"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_Strife_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_Aim_Dash_L_Level1_Montage.uasset",
+      "sha1": "9b23e8f49b3f657c381255ff8d5718a90534ac8c",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "P_StrifeDash_Water"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Coins"
+            }
+          ]
+        },
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_StrifeDash"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_Strife_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_Aim_Dash_F_Level1_Montage.uasset",
+      "sha1": "bccbd31c04fb2a2c7def84a2d191a17daf849cf3",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "P_StrifeDash_Water"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Coins"
+            }
+          ]
+        },
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_StrifeDash"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_Strife_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_Strife/Animations/Strife_Aim_Dash_B_Level1_Montage.uasset",
+      "sha1": "7d4b7932b05ed8ea59f0c00c1efcd087a1f4a51e",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "P_StrifeDash_Water"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Coins"
+            }
+          ]
+        },
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_StrifeDash"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_Strife_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_DashTo_F_Montage.uasset",
+      "sha1": "cfa2778a81451a1ca3c0685ed7628841fd91cb3c",
+      "name": "AnimNotify_PlayParticleEffect",
+      "cls": "AnimNotify_PlayParticleEffect",
+      "properties": [
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_WarDash"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_War_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_DashTo_F_Montage.uasset",
+      "sha1": "cfa2778a81451a1ca3c0685ed7628841fd91cb3c",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "P_StrifeDash_Water"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Coins"
+            },
+            {
+              "surface": "SurfaceType2:0",
+              "asset": "P_StrifeDash_Metal"
+            },
+            {
+              "surface": "SurfaceType5:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType3:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType14:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType9:0",
+              "asset": "P_StrifeDash_Wood"
+            },
+            {
+              "surface": "SurfaceType7:0",
+              "asset": "P_StrifeDash_Snow"
+            },
+            {
+              "surface": "SurfaceType11:0",
+              "asset": "P_StrifeDash_Sand"
+            }
+          ]
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_War_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_DashTo_F_Montage.uasset",
+      "sha1": "cfa2778a81451a1ca3c0685ed7628841fd91cb3c",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "None"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType2:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType7:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType11:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType3:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType5:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType14:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType9:0",
+              "asset": "P_StrifeDash_Default"
+            }
+          ]
+        },
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_StrifeDash_Default"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_War_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_DashTo_Back_Montage.uasset",
+      "sha1": "f55884d88e5458dd95ff5f29d8e468491460f04c",
+      "name": "AnimNotify_PlayParticleEffect",
+      "cls": "AnimNotify_PlayParticleEffect",
+      "properties": [
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_WarDash"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_War_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_DashTo_Back_Montage.uasset",
+      "sha1": "f55884d88e5458dd95ff5f29d8e468491460f04c",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "P_StrifeDash_Water"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Coins"
+            },
+            {
+              "surface": "SurfaceType2:0",
+              "asset": "P_StrifeDash_Metal"
+            },
+            {
+              "surface": "SurfaceType5:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType3:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType14:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType9:0",
+              "asset": "P_StrifeDash_Wood"
+            },
+            {
+              "surface": "SurfaceType7:0",
+              "asset": "P_StrifeDash_Snow"
+            },
+            {
+              "surface": "SurfaceType11:0",
+              "asset": "P_StrifeDash_Sand"
+            }
+          ]
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_War_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_DashTo_Back_Montage.uasset",
+      "sha1": "f55884d88e5458dd95ff5f29d8e468491460f04c",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "None"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType2:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType7:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType11:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType3:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType5:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType14:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType9:0",
+              "asset": "P_StrifeDash_Default"
+            }
+          ]
+        },
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_StrifeDash_Default"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_War_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_Dash_F_Level2_Montage.uasset",
+      "sha1": "f046ccc6eb176db5e577ddb0eac7fe0960469cc0",
+      "name": "AnimNotify_PlayParticleEffect",
+      "cls": "AnimNotify_PlayParticleEffect",
+      "properties": [
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_WarDash"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_War_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_Dash_F_Level2_Montage.uasset",
+      "sha1": "f046ccc6eb176db5e577ddb0eac7fe0960469cc0",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "P_StrifeDash_Water"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Coins"
+            },
+            {
+              "surface": "SurfaceType2:0",
+              "asset": "P_StrifeDash_Metal"
+            },
+            {
+              "surface": "SurfaceType5:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType3:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType14:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType9:0",
+              "asset": "P_StrifeDash_Wood"
+            },
+            {
+              "surface": "SurfaceType7:0",
+              "asset": "P_StrifeDash_Snow"
+            },
+            {
+              "surface": "SurfaceType11:0",
+              "asset": "P_StrifeDash_Sand"
+            }
+          ]
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_War_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_Dash_F_Level2_Montage.uasset",
+      "sha1": "f046ccc6eb176db5e577ddb0eac7fe0960469cc0",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "None"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType2:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType7:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType11:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType3:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType5:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType14:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType9:0",
+              "asset": "P_StrifeDash_Default"
+            }
+          ]
+        },
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_StrifeDash_Default"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_War_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_Dash_F_Level1_Montage.uasset",
+      "sha1": "1d761944645f1b40d350fc794314581de1fad4dd",
+      "name": "AnimNotify_PlayParticleEffect",
+      "cls": "AnimNotify_PlayParticleEffect",
+      "properties": [
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_WarDash"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_War_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_Dash_F_Level1_Montage.uasset",
+      "sha1": "1d761944645f1b40d350fc794314581de1fad4dd",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "P_StrifeDash_Water"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Coins"
+            },
+            {
+              "surface": "SurfaceType2:0",
+              "asset": "P_StrifeDash_Metal"
+            },
+            {
+              "surface": "SurfaceType5:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType3:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType14:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType9:0",
+              "asset": "P_StrifeDash_Wood"
+            },
+            {
+              "surface": "SurfaceType7:0",
+              "asset": "P_StrifeDash_Snow"
+            },
+            {
+              "surface": "SurfaceType11:0",
+              "asset": "P_StrifeDash_Sand"
+            }
+          ]
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_War_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_Dash_F_Level1_Montage.uasset",
+      "sha1": "1d761944645f1b40d350fc794314581de1fad4dd",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "None"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType2:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType7:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType11:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType3:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType5:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType14:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType9:0",
+              "asset": "P_StrifeDash_Default"
+            }
+          ]
+        },
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_StrifeDash_Default"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_War_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_Atk_Dash_Level3_Montage.uasset",
+      "sha1": "c4220117a99ea20e266bfa0ff87101aab2e9975b",
+      "name": "AnimNotify_PlayParticleEffect",
+      "cls": "AnimNotify_PlayParticleEffect",
+      "properties": [
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_WarDash"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_War_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_Atk_Dash_Level3_Montage.uasset",
+      "sha1": "c4220117a99ea20e266bfa0ff87101aab2e9975b",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "None"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType2:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType7:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType11:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType3:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType5:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType14:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType9:0",
+              "asset": "P_StrifeDash_Default"
+            }
+          ]
+        },
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_StrifeDash_Default"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_War_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_Atk_Dash_Level3_Montage.uasset",
+      "sha1": "c4220117a99ea20e266bfa0ff87101aab2e9975b",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "P_StrifeDash_Water"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Coins"
+            },
+            {
+              "surface": "SurfaceType2:0",
+              "asset": "P_StrifeDash_Metal"
+            },
+            {
+              "surface": "SurfaceType5:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType3:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType14:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType9:0",
+              "asset": "P_StrifeDash_Wood"
+            },
+            {
+              "surface": "SurfaceType7:0",
+              "asset": "P_StrifeDash_Snow"
+            },
+            {
+              "surface": "SurfaceType11:0",
+              "asset": "P_StrifeDash_Sand"
+            }
+          ]
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_War_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_Atk_Dash_Level2_Montage.uasset",
+      "sha1": "95ed310e865c2fbcfb730b33f52b76cd5313d527",
+      "name": "AnimNotify_PlayParticleEffect",
+      "cls": "AnimNotify_PlayParticleEffect",
+      "properties": [
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_WarDash"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_War_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_Atk_Dash_Level2_Montage.uasset",
+      "sha1": "95ed310e865c2fbcfb730b33f52b76cd5313d527",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "P_StrifeDash_Water"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Coins"
+            },
+            {
+              "surface": "SurfaceType2:0",
+              "asset": "P_StrifeDash_Metal"
+            },
+            {
+              "surface": "SurfaceType5:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType3:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType14:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType9:0",
+              "asset": "P_StrifeDash_Wood"
+            },
+            {
+              "surface": "SurfaceType7:0",
+              "asset": "P_StrifeDash_Snow"
+            },
+            {
+              "surface": "SurfaceType11:0",
+              "asset": "P_StrifeDash_Sand"
+            }
+          ]
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_War_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_Atk_Dash_Level2_Montage.uasset",
+      "sha1": "95ed310e865c2fbcfb730b33f52b76cd5313d527",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "None"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType2:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType7:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType11:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType3:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType5:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType14:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType9:0",
+              "asset": "P_StrifeDash_Default"
+            }
+          ]
+        },
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_StrifeDash_Default"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_War_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_Atk_Dash_Level1_Montage.uasset",
+      "sha1": "4b60190f252f67c9b05c7c55231ada023dedaf67",
+      "name": "AnimNotify_PlayParticleEffect",
+      "cls": "AnimNotify_PlayParticleEffect",
+      "properties": [
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_WarDash"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_War_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_Atk_Dash_Level1_Montage.uasset",
+      "sha1": "4b60190f252f67c9b05c7c55231ada023dedaf67",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "P_StrifeDash_Water"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Coins"
+            },
+            {
+              "surface": "SurfaceType2:0",
+              "asset": "P_StrifeDash_Metal"
+            },
+            {
+              "surface": "SurfaceType5:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType3:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType14:0",
+              "asset": "P_StrifeDash_Stone"
+            },
+            {
+              "surface": "SurfaceType9:0",
+              "asset": "P_StrifeDash_Wood"
+            },
+            {
+              "surface": "SurfaceType7:0",
+              "asset": "P_StrifeDash_Snow"
+            },
+            {
+              "surface": "SurfaceType11:0",
+              "asset": "P_StrifeDash_Sand"
+            }
+          ]
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_War_Root:0"
+        }
+      ]
+    },
+    {
+      "path": "ProjectMayhem/Content/Characters/Heroes/Hero_War/Animation/War_Atk_Dash_Level1_Montage.uasset",
+      "sha1": "4b60190f252f67c9b05c7c55231ada023dedaf67",
+      "name": "AnimNotify_PlaySurfaceParticleEffect",
+      "cls": "AnimNotify_PlaySurfaceParticleEffect",
+      "properties": [
+        {
+          "name": "m_SurfaceOverrides",
+          "kind": "MapProperty",
+          "value": [
+            {
+              "surface": "SurfaceType6:0",
+              "asset": "None"
+            },
+            {
+              "surface": "SurfaceType13:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType2:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType7:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType11:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType3:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType5:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType14:0",
+              "asset": "P_StrifeDash_Default"
+            },
+            {
+              "surface": "SurfaceType9:0",
+              "asset": "P_StrifeDash_Default"
+            }
+          ]
+        },
+        {
+          "name": "PSTemplate",
+          "kind": "ObjectProperty",
+          "value": "P_StrifeDash_Default"
+        },
+        {
+          "name": "SocketName",
+          "kind": "NameProperty",
+          "value": "Bone_War_Root:0"
+        }
+      ]
+    }
+  ],
+  "result": "Eight shared native surface dust appearances confirmed; no option added in this audit-only commit.",
+  "warWorldSpaceCandidates": "Exports verified, native consumer not established in this bounded animation search.",
+  "gameplayValidated": false
+}

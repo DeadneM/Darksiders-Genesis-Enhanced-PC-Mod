@@ -1,0 +1,59 @@
+{
+  "date": "2026-11-05",
+  "base": "17946db24b5454d0777b2d4fed4207377570fcab",
+  "method": "two passes by the same agent: references, then lifecycle and consumers",
+  "scopeFiles": 11,
+  "scopeLines": 1121,
+  "files": {
+    "src/AirDashFeature.cpp": "ef4e90823615748bf62a05a72b1ba1be2725a64b09701c1f9f3c00826310f349",
+    "src/AirDashFeature.h": "cd5046e0ffac3d8a67e38d7c9b397d94b47b897b5e1980c24e2fe294e3f771c2",
+    "src/RangedStateFeature.cpp": "8a2abe38b5e7139fe3eb589887b9dfa3ad296b2595df236743fe27099c687b3b",
+    "src/RangedStateFeature.h": "85d4f4831fc6da792a17b06d143f4cd8f544483f511b046c18835c61bdf86dc8",
+    "src/StoneSkinVisual.cpp": "88acba6c3a78753de568d4afe99fa2e3cbd233e46d7dc46ee9d339a62824e0c3",
+    "src/StoneSkinVisual.h": "2739787a372f74e14951a240dcc816780a53dc9e6a87489f6928e70935339943",
+    "src/StoneTransitionFx.cpp": "4f6ebeb46f0ea15d65b32f33a2b5c59257d4127f04dbc5c93b1ebad781dc60c4",
+    "src/StoneTransitionFx.h": "ef3f6dd31d224d5c0aaf53ee5208f04c489a0730a503b21e5598f0b01b552dd9",
+    "src/SelectedAssetRecovery.h": "39bb3732f41b60a05d3f694c9f877efc3e29ad923742706b9c55a157a6956b1c",
+    "src/SelectedParticleLoader.h": "81fbea3f2ab4deb1ec4f397ecdae39cb4c006b5202b3cfee8b506e669a8ab6ad",
+    "src/AimShaderCatalog.h": "7cd44b3bc211c3ef0b63c312479c0ce7e54748216f003f512020bf13569ca4c6"
+  },
+  "referencePass": {
+    "lowReferenceGlobals": [
+      {
+        "file": "AirDashFeature.cpp",
+        "name": "g_events",
+        "occurrences": 2
+      },
+      {
+        "file": "RangedStateFeature.cpp",
+        "name": "g_requests",
+        "occurrences": 2
+      }
+    ],
+    "singleOccurrenceGlobals": 0,
+    "retiredTrialSymbolsPresent": {
+      "SuppressAirLandingEvent": false,
+      "ObserveAirLanding": false,
+      "ClearReleasedAim": false
+    }
+  },
+  "lifecyclePass": {
+    "AirDashFeature.cpp:g_events": "read-modify-compare limits log volume",
+    "RangedStateFeature.cpp:g_requests": "read-modify-compare limits native release log volume",
+    "SelectedAssetRecovery.Forget": "rearms recovery after observed asset invalidation",
+    "SelectedAssetRecovery.Exhausted": "caps repeated native loading in EffectAppearanceFeature",
+    "materialOriginals": "exact captured originals retained for status-owned restoration",
+    "legacySettings": "existing action tokens and migration keys are compatibility inputs"
+  },
+  "comparison": {
+    "removalsProven": 0,
+    "productionChanges": false,
+    "additionalBinaryRequired": false
+  },
+  "userFeedback": {
+    "V1.153": "no major problem observed during the requested tests",
+    "scope": "last Stoneskin and Player Movement lot, not all historical options or co-op",
+    "recoveryChestAndDash": "Accepted by user with an explicit reservation: not fully certain of the observed gain. Do not reclassify as measured improvement."
+  },
+  "gameplayPerformanceMeasured": false
+}
