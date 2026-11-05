@@ -1,3 +1,9 @@
+## V1.154 disponible sur debug — 5 novembre 2026
+
+**CONSTRUIT et CONTRÔLÉ**, 81/81 tests Windows GitHub, aucun avertissement de compilation détecté. Base V1.153 désormais sur main. Nouveau choix commun aux deux héros : huit poussières de dash natives, Native et Hidden ; compatibilité de l'ancien masquage conservée. ZIP deux binaires sans INI/README, téléchargement/updater/Defender vérifiés, 247 anciens défauts préservés. **EXPÉRIMENTAL en jeu pour ces apparences.** [ZIP, limites et essais](V1_154_DELIVERY_RECEIPT.md).
+
+---
+
 ## V1.154 en préparation sur debug — 5 novembre 2026
 
 Base V1.153 acceptée désormais sur main. Nouvelle bêta : huit rendus natifs de poussière de dash, communs aux deux héros, dans Appearance → Effect appearances → Other effects. Défaut Native, ancien masquage prioritaire, mêmes 460 assets et fabrique existante. Aucun changement du dash, de la visée ou de Stoneskin. **EXPÉRIMENTAL, contrôles GitHub et essai en jeu à venir.** [Périmètre et test groupé](V1_154_NATIVE_DASH_APPEARANCES_REVIEW.md).

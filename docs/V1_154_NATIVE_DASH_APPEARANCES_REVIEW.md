@@ -1,5 +1,7 @@
 # V1.154 — choix des effets natifs de poussière de dash
 
+Le lot est maintenant **CONSTRUIT et CONTRÔLÉ** : 81/81 tests Windows GitHub, aucun avertissement de compilation détecté. Le rendu reste **EXPÉRIMENTAL en jeu**. [ZIP et reçu final](V1_154_DELIVERY_RECEIPT.md).
+
 Base : V1.153 acceptée, promue sur main au commit `563ae9ca8c2647689af8464d320544afe55b1894` avec le ZIP existant. Objectif de cette bêta debug : sélectionner les rendus de poussière déjà présents dans les notifications natives, sans changer le dash validé. Réussite attendue : le choix est visible pour Strife et War dans les deux vues, Native retrouve les surfaces d'origine, Hidden masque ces poussières, et l'ancien masquage reste effectif.
 
 ## Apparence et compatibilité

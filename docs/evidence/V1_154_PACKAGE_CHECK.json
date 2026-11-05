@@ -1,0 +1,32 @@
+{
+  "source": "9bc7441735f37acb21390a04a1ae44334e7cca23",
+  "archive": "4d5791c1ec86dd10e7a0570bc6869249ce4f15f0",
+  "download": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/4d5791c1ec86dd10e7a0570bc6869249ce4f15f0/downloads/DarksidersGenesis_V1.154_NATIVE_DASH_APPEARANCES_TEST.zip",
+  "sha256": "26B0913C00F71FC03D9FDC95F7016AC91965B40DAB4E64CEB16A802B37291CFE",
+  "bytes": 2419950,
+  "files": {
+    "dxgi.dll": {
+      "bytes": 155136,
+      "sha256": "C9968B3EBBCB888640D672AF818116C93ED4172DAE96BA8981A1AE10CB625B68"
+    },
+    "DarksidersGenesisMod.asi": {
+      "bytes": 2264576,
+      "sha256": "49FA4B6CBAE9192B9A475905BBDE9F80F44C79150401AAA452B4D157B62F6561"
+    }
+  },
+  "crcVerified": true,
+  "amd64": true,
+  "oldArchivesUnchanged": 218,
+  "totalArchives": 219,
+  "iniKeys": 248,
+  "oldIniKeysPreserved": 247,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "563ae9ca8c2647689af8464d320544afe55b1894",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "updaterSelection": "DarksidersGenesis_V1.154_NATIVE_DASH_APPEARANCES_TEST.zip",
+  "publicHttpStatus": 200,
+  "installed": false,
+  "gameplayValidated": false
+}
