@@ -1,0 +1,68 @@
+[
+  {
+    "name": "War_Inst_StoneSkin_B",
+    "parent": "MM_Basic",
+    "textures": [
+      {
+        "name": "Base_Color:0",
+        "value": "War_StoneSkin_D_A"
+      },
+      {
+        "name": "Metal/Rough/Emissive:0",
+        "value": "War_StoneSkin_mre_packed_A"
+      },
+      {
+        "name": "Normal:0",
+        "value": "War_StoneSkin_n_A"
+      },
+      {
+        "name": "Detail_Normal:0",
+        "value": "DN_EN_Cracked_Stone_A_N"
+      }
+    ],
+    "overrides": [
+      {
+        "bOverride_BlendMode": true
+      },
+      {
+        "BlendMode": "BLEND_Masked:0"
+      },
+      {
+        "OpacityMaskClipValue": 0.33329999446868896
+      }
+    ]
+  },
+  {
+    "name": "War_Inst_StoneSkin_Molten_B",
+    "parent": "MM_Basic",
+    "textures": [
+      {
+        "name": "Base_Color:0",
+        "value": "War_StoneSkin_D_A"
+      },
+      {
+        "name": "Metal/Rough/Emissive:0",
+        "value": "War_StoneSkin_mre_packed_B"
+      },
+      {
+        "name": "Normal:0",
+        "value": "War_StoneSkin_n_A"
+      },
+      {
+        "name": "Detail_Normal:0",
+        "value": "DN_EN_Cracked_Stone_A_N"
+      }
+    ],
+    "overrides": [
+      {
+        "bOverride_BlendMode": true
+      },
+      {
+        "BlendMode": "BLEND_Masked:0"
+      },
+      {
+        "OpacityMaskClipValue": 0.33329999446868896
+      }
+    ]
+  }
+]

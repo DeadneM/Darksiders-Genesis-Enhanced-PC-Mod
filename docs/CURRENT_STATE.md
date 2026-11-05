@@ -1,3 +1,9 @@
+## V1.155 disponible sur debug — 5 novembre 2026
+
+**CONSTRUIT et CONTRÔLÉ : 81/81 tests GitHub, aucun avertissement de compilation détecté. EXPÉRIMENTAL en jeu.** Séparation des règles de gameplay et de la capture des commandes du menu ; navigation manette brute, maintien des règles TPS et reprises d'état. 248 valeurs conservées, ZIP deux binaires, updater/Defender contrôlés ; main reste V1.153. Poussières V1.154 validées sur Strife à pied. Flammes natives du cheval et transparence d'écharpe Stoneskin restent ouverts. [Livraison et essais](V1_155_DELIVERY_RECEIPT.md) · [Suivi des effets natifs](V1_155_OPEN_NATIVE_VISUALS.md).
+
+---
+
 ## V1.155 en préparation — menu et règles de gameplay
 
 V1.154 : poussières de dash validées par l'utilisateur sur Strife à pied ; confusion avec le stomp levée. Capture en lecture seule : huit rendus, Hidden et Native observés, 1 124 échantillons sans erreur. Nouvelle bêta V1.155 : séparation du maintien des règles de gameplay et de la capture des commandes par le menu ; contrôles GitHub en cours. Main reste sur V1.153. Flammes manquantes à la première apparition du cheval et transparence de l'écharpe sous Stoneskin sont ajoutées à la file d'analyse. [Périmètre et limites](V1_155_MENU_RUNTIME_REVIEW.md).

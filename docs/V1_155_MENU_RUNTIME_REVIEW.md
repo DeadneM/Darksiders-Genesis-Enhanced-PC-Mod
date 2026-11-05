@@ -1,5 +1,7 @@
 # V1.155 — continuité des règles de gameplay sous le menu
 
+Le lot final est **CONSTRUIT et CONTRÔLÉ**, 81/81 tests Windows GitHub. Le comportement en jeu reste **EXPÉRIMENTAL**. [Téléchargement et reçu final](V1_155_DELIVERY_RECEIPT.md).
+
 Base de travail : V1.154 sur debug ; main reste sur V1.153 acceptée. L'utilisateur confirme finalement les poussières de dash sur Strife à pied : il les avait prises pour des effets de stomp. Le défaut restant concerne les comportements de code qui cessent pendant l'affichage du menu du mod.
 
 ## Cause établie dans le code et correction préparée

@@ -1,0 +1,42 @@
+{
+  "source": "041e5a7003b00901504268b1770b174bba04a7b7",
+  "archive": "1771ab1aeeceaf0321d66ed0e4ae0eb685baa087",
+  "download": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/1771ab1aeeceaf0321d66ed0e4ae0eb685baa087/downloads/DarksidersGenesis_V1.155_MENU_RUNTIME_CONTINUITY_TEST.zip",
+  "sha256": "2DB2814B4AC501F22A5FCA448B407E3A2C29875309113A72B8276D1D116C9EA2",
+  "bytes": 2420462,
+  "files": {
+    "dxgi.dll": {
+      "bytes": 155136,
+      "sha256": "D16AE53457FA9007E0AC16CCF3D54F6A7FB2494630ACFE86966577BCE42E86C5"
+    },
+    "DarksidersGenesisMod.asi": {
+      "bytes": 2265088,
+      "sha256": "E338BC732F5CF92E5EA50365D3DD5D0B9064C45B4E9FB9AFD61465F656D3171F"
+    }
+  },
+  "crcVerified": true,
+  "amd64": true,
+  "oldArchivesUnchanged": 219,
+  "totalArchives": 220,
+  "iniKeys": 248,
+  "oldIniKeysPreserved": 248,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "563ae9ca8c2647689af8464d320544afe55b1894",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "updaterSelection": "DarksidersGenesis_V1.155_MENU_RUNTIME_CONTINUITY_TEST.zip",
+  "publicHttpStatus": 200,
+  "installed": false,
+  "gameplayValidated": false,
+  "unchangedSourceFiles": {
+    "src/EffectAppearanceData.h": "74c997b14492296f023b8df2806b5f78344ba3d5e464cf27cc06d0dd9f9ce8a1",
+    "src/EffectAppearanceSettings.h": "aea16982065594cb5394e7b57c3b3f69287b69306a5c2c557750098080e555d5",
+    "src/EffectAppearanceFeature.cpp": "1a1329f3d9bd71ec92766d315b2a12b7f7f004c9739e972521d735b081603170",
+    "src/ShaderAimFeature.cpp": "16ab22d84fb18a058ad20975dba1221653bed740ecfadb053aca5148a5449659",
+    "src/AimShaderCatalog.h": "f5213cec9181500c23d45446a233839a89a0904b73b7631d58d555d3a155a541",
+    "src/StoneSkinVisual.cpp": "88acba6c3a78753de568d4afe99fa2e3cbd233e46d7dc46ee9d339a62824e0c3",
+    "src/ConfigStore.cpp": "bc187d9a9915de8a180aeccb45bbcb75cf79df6861edd27302474d5cc9d0c337",
+    "config/DarksidersGenesisMod.ini": "e5938b68ea710769ca67163bd82170b7689ec2be3d338439749a2f0769bb2cfa"
+  }
+}
