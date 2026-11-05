@@ -33,6 +33,7 @@
 #include "GlideFeature.h"
 #include "GrappleRangeFeature.h"
 #include "AirJumpFeature.h"
+#include "AirDashFeature.h"
 #include "MountedJumpFeature.h"
 #include "DashCombatFeature.h"
 
@@ -336,23 +337,25 @@ void Draw(Context& c) {
             }
             if(layout::Group("Player movement")){
             ImGui::Indent();
-            ImGui::TextDisabled("Strife air dash: tap down / hold forward (0.18 s).");
+            DrawToggleFeature(config,"Tap / hold air dash","AirDashRework",&config.airDashReworkEnabled,
+                "Strife in the air: tap to stomp, hold 0.18 s to dash forward.",air_dash::Ready());
             DrawTunableFeature(config,"Heavy landing movement recovery","HeavyLandingRecovery",&config.heavyLandingRecoveryEnabled,
                 &config.heavyLandingDelaySeconds,.05f,.8f,.15f,"%.3f s",
-                "Delay from the start of a heavy landing before movement can interrupt it. Uses the timing accepted in V1.126. Staying still keeps the animation; the game handles cancellation. Native and TPS views. Does not change dashes or attacks.",heavy_landing::Ready(),nullptr,"Recovery delay");
-            if(config.heavyLandingRecoveryEnabled&&ImGui::TreeNode("Advanced landing settings")){
+                "Hold a direction to regain movement after a heavy landing.",heavy_landing::Ready(),nullptr,"Recovery delay");
+            if(config.heavyLandingRecoveryEnabled){
+                ImGui::Indent(layout::ValueIndent());
                 if(NumberRow("Ground stability time","HeavyLandingGroundSeconds",&config.heavyLandingGroundSeconds,0.f,.25f,.05f,"%.3f s","%.3f"))config.Save();
-                HelpText("Minimum continuous contact with the ground. 0.05 s filters brief contacts before recovery can open.");
-                ImGui::TreePop();
+                HelpText("Continuous ground contact needed before movement recovery.");
+                ImGui::Unindent(layout::ValueIndent());
             }
-            if(ImGui::TreeNode("Recovery experiments")){
-                DrawToggleFeature(config,"Ground dash after-animation recovery (experimental)","RecoveryDashTail",&config.recoveryDashTailEnabled,
-                    "Only after an observed native montage stops completely and forced dash motion has ended. Opens native MOVE interruption; hold movement to test. Does not shorten an active dash, change ammo or simulate a button. May do nothing if native cleanup has already finished.",recovery_tail::Ready());
-                DrawToggleFeature(config,"Chest after-animation recovery (experimental)","RecoveryChestTail",&config.recoveryChestTailEnabled,
-                    "Only exact chest interactions, after observing their native montage play then stop. Loot and animation remain native. Opens MOVE interruption if the action is still running. Check loot, movement and a second interaction; OFF restores a window owned by this experiment.",recovery_tail::Ready());
-                if(NumberRow("Wait after animation stops","RecoveryTailDelaySeconds",&config.recoveryTailDelaySeconds,0.f,1.f,0.f,"%.3f s","%.3f"))config.Save();
-                HelpText("Dash and chest recovery are experimental. The last delay is shared by dash and chest; 0 adds no wait beyond a 30 ms stopped-animation confirmation. Unknown actions, menus, transformations and cinematics keep native behavior. Test Native and TPS separately.");
-                ImGui::TreePop();
+            DrawToggleFeature(config,"Ground dash recovery (experimental)","RecoveryDashTail",&config.recoveryDashTailEnabled,
+                "Allows movement once the dash animation and forced motion have ended.",recovery_tail::Ready());
+            DrawToggleFeature(config,"Chest recovery (experimental)","RecoveryChestTail",&config.recoveryChestTailEnabled,
+                "Allows movement after the chest animation ends.",recovery_tail::Ready());
+            if(config.recoveryDashTailEnabled||config.recoveryChestTailEnabled){
+                ImGui::Indent(layout::ValueIndent());
+                if(NumberRow("Shared recovery delay","RecoveryTailDelaySeconds",&config.recoveryTailDelaySeconds,0.f,1.f,0.f,"%.3f s","%.3f"))config.Save();
+                ImGui::Unindent(layout::ValueIndent());
             }
             DrawTunableFeature(
                 config,

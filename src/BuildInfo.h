@@ -1,7 +1,7 @@
 #pragma once
 namespace dg::build {
-inline constexpr int Major=1,Minor=152;
-inline constexpr char Version[]="V1.152";
-inline constexpr char Id[]="1.152-air-gesture-ranged-materials-test";
-inline constexpr char Archive[]="DarksidersGenesis_V1.152_AIR_GESTURE_RANGED_MATERIALS_TEST.zip";
+inline constexpr int Major=1,Minor=153;
+inline constexpr char Version[]="V1.153";
+inline constexpr char Id[]="1.153-stoneskin-lifecycle-cost-test";
+inline constexpr char Archive[]="DarksidersGenesis_V1.153_STONESKIN_LIFECYCLE_COST_TEST.zip";
 }

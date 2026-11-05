@@ -16,6 +16,7 @@ void Check(bool ok,const char* why){if(!ok)throw std::runtime_error(why);}
 Id Live(void* object,int i){Put(object,0xC,i);Put(f.items,size_t(i)*24,reinterpret_cast<uintptr_t>(object));Put(f.items,size_t(i)*24+16,i+1);return {reinterpret_cast<uintptr_t>(object),i,i+1};}
 void Fresh(std::vector<unsigned char>& image){
     f={};g_players={};thread=matches=true;paused=cinema=radial=false;g_ready=true;g_base=reinterpret_cast<uintptr_t>(image.data());
+    dg::runtime::Get().airDashReworkEnabled=true;
     f.chunks[0]=reinterpret_cast<uintptr_t>(f.items);Put(image.data(),0x3959680,reinterpret_cast<uintptr_t>(f.chunks));Put(image.data(),0x3959694,4);
     auto& p=g_players[0];p.actor=Live(f.actor,0);g_air=Live(f.airClass,1);Live(f.ability,2);g_finish=Live(f.finish,3);
     p.allowed=p.strife=p.await=true;p.request=Gesture::Forward;p.until=GetTickCount64()+1000;p.generation=7;
@@ -34,6 +35,11 @@ void Run(){
     Check(Reference(reference,{0,8,"None"})&&!Reference(reference,{0,8,"ARealObject"}),"a null cooked reference is allowed only where None is explicitly expected");
     Put(reference,0,reinterpret_cast<uintptr_t>(f.airClass));Check(!Reference(reference,{0,8,"None"}),"a non-null object cannot substitute for a declared null property");
     Fresh(image);BeforeTick(f.ability);
+    dg::runtime::Get().airDashReworkEnabled=false;
+    auto nativeDispatch=+[](void*,unsigned char){};
+    Check(!ProcessAction(nativeDispatch,reinterpret_cast<void*>(g_players[0].context.character+0x8D0),14),"disabled option forwards new native actions immediately");
+    Check(bool(g_players[0].saved.ability),"disabling the option allows an already-started dash to finish safely");
+    dg::runtime::Get().airDashReworkEnabled=true;
     Check(g_players[0].saved.ability&&!g_players[0].await,"only the queued owner's active AirDash is adopted once");
     Check(At<float>(f.ability,0x1F8)==0&&At<float>(f.ability,0x1FC)==3000&&std::abs(At<float>(f.ability,0x44)-.29f)<.00001f,"native forward physics has a finite deadline relative to native elapsed time");
     BeforeTick(f.ability);Put<unsigned char>(f.ability,0xD8,4);AfterTick(f.ability);NativeValues();Check(!g_players[0].saved.ability,"native completion restores original parameters");

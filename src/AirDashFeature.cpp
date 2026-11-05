@@ -5,6 +5,7 @@
 #include "LocalPlayerOwnership.h"
 #include "NativePropertyField.h"
 #include "NativeTpsFeature.h"
+#include "RuntimeSettings.h"
 #include <array>
 #include <atomic>
 #include <cmath>
@@ -141,6 +142,7 @@ void OnLivePlayer(const local_players::Context& c,uint32_t generation,bool gamep
         if(!Alive(p.saved.ability)||!Read(p.saved.ability.address,0xD8,state)||state!=2)Restore(p.saved);
     }
     if(p.gestureAbility&&!Alive(p.gestureAbility))p.gestureAbility={};
+    if(!runtime::Get().airDashReworkEnabled.load())p.press={};
     if(p.press.down){
         const bool safe=Gameplay(p);
         if(!safe)p.press={}; // focus/menu loss must not swallow the next real press
@@ -151,6 +153,10 @@ bool ProcessAction(Dispatch native,void* iface,unsigned char action){
     // ABILITY_ONE / ABILITY_ONE_RELEASE route to Strife's native PerformDash.
     // No physical key, XInput bit, camera mode or movement-axis test is used.
     if((action!=14&&action!=15)||!g_ready||!native||!native_tps::OnGameThread()||g_dispatching||!dash_combat::TickReady())return false;
+    if(!runtime::Get().airDashReworkEnabled.load()){
+        for(auto& player:g_players)player.press={};
+        return false;
+    }
     const auto now=GetTickCount64();
     for(auto& p:g_players){
         if(!p.strife||reinterpret_cast<uintptr_t>(iface)!=p.context.character+0x8D0)continue;
@@ -212,4 +218,5 @@ void Shutdown(){
         g_players={};g_air={};g_finish={};g_source={};g_contract=false;g_dispatch=nullptr;
     } // Process-exit worker never dereferences or edits live gameplay state.
 }
+bool Ready(){return g_ready.load()&&dash_combat::TickReady();}
 }

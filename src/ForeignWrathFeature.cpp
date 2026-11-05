@@ -266,13 +266,16 @@ int Status(int choice){
 void Observe(const local_players::Context& owner){
     foreign_rampage::Observe(owner);stone_visual::Observe(owner);foreign_caltrops::Observe(owner);
     if(!g_ready||!native_tps::OnGameThread())return;
-    bool wanted=g_requested.load()||stone_visual::NeedsAssetScan(owner);for(const auto& slots:runtime::Get().wrathSlots)for(const auto& choice:slots)wanted=wanted||((choice.load()>=1&&choice.load()<=5)||choice.load()==6);
+    const bool refreshMissing=stone_visual::NeedsAssetScan(owner);
+    bool wanted=g_requested.load()||refreshMissing;for(const auto& slots:runtime::Get().wrathSlots)for(const auto& choice:slots)wanted=wanted||((choice.load()>=1&&choice.load()<=5)||choice.load()==6);
     if(!wanted||owner.index<0||owner.index>1||!owner.localPlayer||!owner.world||owner.kind!=local_players::PoseKind::Foot)return;
     if(g_world!=owner.world){g_world=owner.world;g_cursor=0;g_count=0;g_complete=false;}
     if(auto* recent=GeyserActor(owner.index);recent&&recent->address&&recent->address!=owner.character)*recent={};
-    const auto now=GetTickCount64();if(now>=g_scanTick&&now-g_scanTick<15)return;g_scanTick=now;
+    const auto now=GetTickCount64();
+    const uint64_t interval=g_complete&&!refreshMissing?250:15;
+    if(now>=g_scanTick&&now-g_scanTick<interval)return;g_scanTick=now;
     uintptr_t cls=0,kind=0;if(!Read(owner.character,0x10,cls)||!Read(cls,0x10,kind)||!Is(kind,"BlueprintGeneratedClass"))return;
-    Scan(kind,now,stone_visual::NeedsAssetScan(owner));
+    Scan(kind,now,refreshMissing);
 }
 bool Prepare(void* actor,uintptr_t& abilityClass,int choice){
     if(choice==6){

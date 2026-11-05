@@ -281,6 +281,7 @@ public:
     effect_transform::Profiles shieldTransforms{},leviathanTransforms{};
     bool weaponSheathingEnabled = defaults::WeaponSheathing;
     bool heavyLandingRecoveryEnabled = defaults::HeavyLandingRecovery;
+    bool airDashReworkEnabled = defaults::AirDashRework;
     float heavyLandingDelaySeconds = .15f,heavyLandingGroundSeconds = .05f;
     bool recoveryDashTailEnabled = defaults::RecoveryTail,recoveryChestTailEnabled = defaults::RecoveryTail;
     float recoveryTailDelaySeconds = 0;

@@ -30,6 +30,7 @@ struct Snapshot {
     effect_transform::Profiles shieldTransforms{},leviathanTransforms{};
     bool weaponSheathingEnabled = defaults::WeaponSheathing;
     bool heavyLandingRecoveryEnabled = defaults::HeavyLandingRecovery;
+    bool airDashReworkEnabled = defaults::AirDashRework;
     float heavyLandingDelaySeconds = .15f,heavyLandingGroundSeconds = .05f;
     bool recoveryDashTailEnabled = defaults::RecoveryTail,recoveryChestTailEnabled = defaults::RecoveryTail;
     float recoveryTailDelaySeconds = 0;
@@ -159,6 +160,7 @@ struct State {
     std::atomic_uint effectAppearanceGeneration{0};
     std::atomic_bool weaponSheathingEnabled{defaults::WeaponSheathing};
     std::atomic_bool heavyLandingRecoveryEnabled{defaults::HeavyLandingRecovery};
+    std::atomic_bool airDashReworkEnabled{defaults::AirDashRework};
     std::atomic<float> heavyLandingDelaySeconds{.15f},heavyLandingGroundSeconds{.05f};
     std::atomic_bool recoveryDashTailEnabled{defaults::RecoveryTail},recoveryChestTailEnabled{defaults::RecoveryTail};
     std::atomic<float> recoveryTailDelaySeconds{0};

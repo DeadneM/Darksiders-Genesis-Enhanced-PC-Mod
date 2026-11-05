@@ -199,6 +199,10 @@ int main(int argc,char** argv){
     WritePrivateProfileStringW(L"Features",L"MolochBossCrashFix",nullptr,path);
     WritePrivateProfileStringW(L"Features",L"RenderCrashGuard",nullptr,path);
     check(renamed.Load()&&renamed.molochBossCrashFixEnabled&&dg::runtime::Get().molochBossCrashFixEnabled.load(),"missing crash-fix keys default ON in ASI store and runtime");
+    WritePrivateProfileStringW(L"Features",L"AirDashRework",nullptr,path);
+    check(renamed.Load()&&renamed.airDashReworkEnabled&&dg::runtime::Get().airDashReworkEnabled.load(),"existing INI defaults the new air dash checkbox to ON");
+    renamed.airDashReworkEnabled=false;
+    check(renamed.SaveNow()&&renamed.Load()&&!renamed.airDashReworkEnabled&&!dg::runtime::Get().airDashReworkEnabled.load(),"air dash OFF persists and reaches gameplay");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,path);DeleteFileW(path);
     std::printf("User defaults: %zu keys checked, %u failures\n",keys,failed);return failed?1:0;
 }
