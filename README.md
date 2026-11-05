@@ -1,3 +1,9 @@
+## V1.158 installée — feu natif, chargement à cheval, caméra sous le menu
+
+**CONSTRUIT / CONTRÔLÉ / INSTALLÉ : 82/82 tests GitHub, aucun avertissement C++ détecté. EXPÉRIMENTAL en jeu.** Substitution de texture rejetée retirée, deux sources natives Stoneskin A ; disponibilité des passifs du cheval au chargement ; orbite manette sous le menu et souris réservée à l'édition. Sauvegarde V1.157, INI/raccourcis/Engine.ini/PAK préservés. Clics acceptés, GPU validé, coop différée. 248 valeurs et 222 anciennes archives conservées, main V1.153 intacte. [Livraison et trois essais](docs/V1_158_DELIVERY_RECEIPT.md).
+
+---
+
 ## V1.158 en préparation — feu, chargement à cheval et orbite manette
 
 Clics du menu V1.157 validés, actions favorables avec réserve ; feu de l'écharpe absent et cheval sans flammes restent ouverts. Substitution de texture rejetée retirée, deux sources Stoneskin A natives, reprise bornée de l'initialisation des passifs du cheval, orbite au stick sous le menu avec souris réservée à l'édition. **EXPÉRIMENTAL, contrôles GitHub à venir.** GPU accepté, coop différée, main V1.153 conservée. [Périmètre et preuves](docs/V1_158_MOUNT_CLOTH_PAD_REVIEW.md).

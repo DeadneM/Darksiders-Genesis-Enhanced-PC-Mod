@@ -1,0 +1,47 @@
+{
+  "base": "6ff63f2bde6016e15df64ead28eda77b66ea294b",
+  "source": "5f1591a85630ea0af128b4bd5c25996072bd5e3a",
+  "removedBinaryLiterals": [
+    "SetTextureParameterValue",
+    "War_Inst_StoneSkin_B",
+    "War_Inst_StoneSkin_Molten_B"
+  ],
+  "sourceAndTextureSetterRemoved": true,
+  "nativeMaterialSources": 2,
+  "resourceRequests": 5,
+  "scope": [
+    "private Stoneskin material sources",
+    "mounted passive readiness and actual possessed pawn",
+    "P1/P2 orbit under editor"
+  ],
+  "passes": [
+    {
+      "method": "Native asset contracts and code usages",
+      "result": "Base B emissive switches false; A sources retain emissive. Rejected texture setter and dependencies removed. Configured joystick contribution separated from mouse edit deltas."
+    },
+    {
+      "method": "Lifecycle and before/after comparison",
+      "result": "Late arrays, allocator slack, partial activity, mounted-state alias, bounded retry and private restoration covered; no further demonstrated dead code removed."
+    }
+  ],
+  "unchangedFiles": {
+    "src/ConfigStore.cpp": "bc187d9a9915de8a180aeccb45bbcb75cf79df6861edd27302474d5cc9d0c337",
+    "src/RuntimeSettings.cpp": "f2dcbd3f14ba60678ac5514898a7299237cdc83e8c7997b1c7c9f6a8a076f17c",
+    "src/RuntimeSettings.h": "037ffcd453195cb279c4f7e19019bdf776511c43fbdc421077a7ab072bdd55db",
+    "config/DarksidersGenesisMod.ini": "e5938b68ea710769ca67163bd82170b7689ec2be3d338439749a2f0769bb2cfa",
+    "src/NativeTpsFeature.cpp": "3b255ff836a216fd5e12ba061a21dc616939af4ad7c315c1a95b02cea2edc7d2",
+    "src/ShaderAimFeature.cpp": "16ab22d84fb18a058ad20975dba1221653bed740ecfadb053aca5148a5449659",
+    "src/AimShaderCatalog.h": "f5213cec9181500c23d45446a233839a89a0904b73b7631d58d555d3a155a541",
+    "src/EffectAppearanceFeature.cpp": "1a1329f3d9bd71ec92766d315b2a12b7f7f004c9739e972521d735b081603170",
+    "src/EffectAppearanceData.h": "74c997b14492296f023b8df2806b5f78344ba3d5e464cf27cc06d0dd9f9ce8a1",
+    "src/EngineIniFeature.cpp": "cdebf33e3245f69749a65d7561e7714eec8a0d353f73ce48d078b6c1abd7f5a9",
+    "src/RangedStateFeature.cpp": "8a2abe38b5e7139fe3eb589887b9dfa3ad296b2595df236743fe27099c687b3b",
+    "src/AirDashFeature.cpp": "ef4e90823615748bf62a05a72b1ba1be2725a64b09701c1f9f3c00826310f349"
+  },
+  "limits": [
+    "Two passes by the same agent, not independent agent audits.",
+    "No new read-only game capture; reused the already requested test/capture.",
+    "No in-game visual or performance result claimed for V1.158."
+  ],
+  "gameplayValidated": false
+}

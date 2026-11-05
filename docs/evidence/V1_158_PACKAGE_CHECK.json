@@ -1,0 +1,32 @@
+{
+  "source": "5f1591a85630ea0af128b4bd5c25996072bd5e3a",
+  "archive": "39acc77193470acf40fc0f6e8fd253fbcdca24f0",
+  "download": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/39acc77193470acf40fc0f6e8fd253fbcdca24f0/downloads/DarksidersGenesis_V1.158_MOUNT_CLOTH_PAD_ORBIT_TEST.zip",
+  "sha256": "202670EBA556CED21056A4A16D36C7C38F2AA0DEA8AE584C14DF2443B6F55862",
+  "bytes": 2430702,
+  "files": {
+    "dxgi.dll": {
+      "bytes": 155136,
+      "sha256": "7B2FEB893F773436287F7B04E9E75DC9F66FEA72DAA1F9CF5DE87CFBA2063C53"
+    },
+    "DarksidersGenesisMod.asi": {
+      "bytes": 2275328,
+      "sha256": "8F4E75386DEE6E07947B3DD05FB378C69AD14A93A42B85DBCCF4445F7FF58B1E"
+    }
+  },
+  "crcVerified": true,
+  "amd64": true,
+  "oldArchivesUnchanged": 222,
+  "totalArchives": 223,
+  "iniKeys": 248,
+  "oldIniKeysPreserved": 248,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "563ae9ca8c2647689af8464d320544afe55b1894",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "updaterSelection": "DarksidersGenesis_V1.158_MOUNT_CLOTH_PAD_ORBIT_TEST.zip",
+  "publicHttpStatus": 200,
+  "installed": false,
+  "gameplayValidated": false
+}
