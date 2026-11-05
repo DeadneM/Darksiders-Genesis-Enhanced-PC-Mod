@@ -1,3 +1,9 @@
+## V1.156 en préparation — cheval natif et écharpe
+
+Capture en lecture seule : effets du premier Despair chargés mais inactifs ; rappel natif rétablit les effets selon l'utilisateur. Reprise unique de la liste passive native après possession stable, et texture propre à l'écharpe conservée dans le MID Stoneskin. **EXPÉRIMENTAL, contrôles GitHub et validation en jeu à venir.** INI/défauts conservés, main V1.153 intacte. [Périmètre, preuves et limites](V1_156_NATIVE_MOUNT_SCARF_REVIEW.md).
+
+---
+
 ## V1.155 disponible sur debug — 5 novembre 2026
 
 **CONSTRUIT et CONTRÔLÉ : 81/81 tests GitHub, aucun avertissement de compilation détecté. EXPÉRIMENTAL en jeu.** Séparation des règles de gameplay et de la capture des commandes du menu ; navigation manette brute, maintien des règles TPS et reprises d'état. 248 valeurs conservées, ZIP deux binaires, updater/Defender contrôlés ; main reste V1.153. Poussières V1.154 validées sur Strife à pied. Flammes natives du cheval et transparence d'écharpe Stoneskin restent ouverts. [Livraison et essais](V1_155_DELIVERY_RECEIPT.md) · [Suivi des effets natifs](V1_155_OPEN_NATIVE_VISUALS.md).

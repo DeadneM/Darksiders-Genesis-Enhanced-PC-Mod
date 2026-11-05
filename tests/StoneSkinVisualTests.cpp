@@ -7,13 +7,13 @@ using namespace dg::stone_visual;
 unsigned char entries[64][256]{};uintptr_t names[64]{},chunks[1]{reinterpret_cast<uintptr_t>(names)};
 struct Fixture {
  unsigned char actor[0x1100]{},controller[0x400]{},mesh[0x800]{},component[0x180]{},status[0x100]{},molten[0x100]{};
- unsigned char classes[14][0x80]{},fields[11][0x80]{},functions[5][0x110]{},parameters[16][0x80]{};
+ unsigned char classes[16][0x80]{},fields[12][0x80]{},functions[6][0x110]{},parameters[16][0x80]{};
  unsigned char original[4][0x100]{},mid[4][0x100]{},materials[4][0x100]{},items[128*24]{};
- unsigned char nativeMids[4][0x100]{};
+ unsigned char nativeMids[4][0x100]{},textures[4][0x80]{},textureValues[4][40]{},midTextures[4][40]{};
  unsigned char asset[0x140]{},skinSlots[160]{},scalars[72]{};
  uintptr_t overrides[4]{},statuses[2]{},retainedMaterials[4]{};
 } f;
-uintptr_t objectChunks[1]{};dg::local_players::Context owner{};unsigned copies=0,creates=0,sets=0,scalarCalls=0;int id=0;bool thread=true,failFactory=false;
+uintptr_t objectChunks[1]{};dg::local_players::Context owner{};unsigned copies=0,creates=0,sets=0,scalarCalls=0,textureCalls=0;int id=0;bool thread=true,failFactory=false;
 unsigned fx[3]{};bool fxReady=true;bool missingFx[3]{};
 template<class T>void Put(void* p,size_t at,const T& v){std::memcpy(static_cast<unsigned char*>(p)+at,&v,sizeof(v));}
 void Check(bool ok,const char* why){if(!ok)throw std::runtime_error(why);}
@@ -25,6 +25,14 @@ void Dispatch(void* object,void* function,void* args){
  if(function==f.functions[1]){Check(object==f.mesh,"only owned mesh factory");int index=0;std::memcpy(&index,args,4);uintptr_t parent=0;std::memcpy(&parent,static_cast<unsigned char*>(args)+8,8);++creates;if(failFactory){f.overrides[index]=parent;return;}Put(f.mid[index],0x10,reinterpret_cast<uintptr_t>(f.classes[4]));Put(f.mid[index],0x40,parent);Live(f.mid[index]);f.overrides[index]=reinterpret_cast<uintptr_t>(f.mid[index]);Put(args,24,f.overrides[index]);return;}
  if(function==f.functions[2]){Check(object==f.mesh,"only owned mesh SetMaterial");int index=0;uintptr_t value=0;std::memcpy(&index,args,4);std::memcpy(&value,static_cast<unsigned char*>(args)+8,8);f.overrides[index]=value;++sets;return;}
  if(function==f.functions[4]){bool own=false;for(auto& m:f.mid)own=own||object==m;Check(own,"body emission only on private MID");float value=1;std::memcpy(&value,static_cast<unsigned char*>(args)+8,4);Check(value==0,"body emission disabled without changing the source texture");++scalarCalls;return;}
+ if(function==f.functions[5]){
+  int index=-1;for(int i=0;i<4;++i)if(object==f.mid[i])index=i;
+  Check(index>=0,"texture setter only targets a private coating MID");
+  dg::foreign_wrath::Name key{};uintptr_t texture=0;std::memcpy(&key,args,8);std::memcpy(&texture,static_cast<unsigned char*>(args)+8,8);
+  Check(key.index==56&&key.number==0&&texture==reinterpret_cast<uintptr_t>(f.textures[index]),"original skin base texture is preserved exactly");
+  Put(f.midTextures[index],0,key);Put(f.midTextures[index],8,2);Put(f.midTextures[index],12,-1);Put(f.midTextures[index],16,texture);
+  Put(object,0x80,Array{reinterpret_cast<uintptr_t>(f.midTextures[index]),1,1});++textureCalls;return;
+ }
  Check(function==f.functions[3]&&object!=f.materials[0]&&object!=f.materials[1],"parameter copy only on private MID");++copies;
 }
 uint64_t observationTime=1000;
@@ -33,7 +41,7 @@ void Fresh(){
  g_resourceRequests={};g_resourceActor={};g_resourceMesh={};dg::selected_particle::sharedContext={};for(auto& missing:missingFx)missing=false;
  g_statusClasses={};g_statusClassNext=0;g_statusClassHits=g_statusClassMisses=0;
  g_observations={};g_observed=g_skipped=0;g_functions={};g_parameters={};g_nextFunction=g_nextParameter=0;g_functionLookups=g_parameterLookups=0;observationTime=1000;
- f={};g_visual[0]=g_visual[1]={};g_transitions[0]=g_transitions[1]={};g_missing[0]=g_missing[1]=false;g_fields={};g_materials={};g_event=Dispatch;g_log=nullptr;g_events=g_deferredEvents=0;owner={};id=0;copies=creates=sets=scalarCalls=0;thread=true;failFactory=false;for(auto& n:fx)n=0;fxReady=true;
+ f={};g_visual[0]=g_visual[1]={};g_transitions[0]=g_transitions[1]={};g_missing[0]=g_missing[1]=false;g_fields={};g_materials={};g_event=Dispatch;g_log=nullptr;g_events=g_deferredEvents=0;owner={};id=0;copies=creates=sets=scalarCalls=textureCalls=0;thread=true;failFactory=false;for(auto& n:fx)n=0;fxReady=true;
  const char* labels[]={"Strife_Blueprint_C","MeshClass","StatusComponent","MayhemStatusEffect_StoneSkin_Base_Blueprint_C","MaterialInstanceDynamic","Function","ObjectProperty","ArrayProperty","IntProperty","NameProperty","BoolProperty","MayhemStatusEffect_Core_FallenDog_Molten_2_Blueprint_C"};
  for(int i=0;i<12;++i)Label(f.classes[i],i+1,labels[i]);
  Label(f.classes[12],44,"FloatProperty");Label(f.classes[13],45,"SkeletalMesh");Label(f.asset,40,"Strife");Put(f.asset,0x10,reinterpret_cast<uintptr_t>(f.classes[13]));Put(f.mesh,0x5A0,reinterpret_cast<uintptr_t>(f.asset));
@@ -54,9 +62,16 @@ void Fresh(){
  Property(f.fields[1],15,"OverrideMaterials",f.classes[7],16,0x100,f.functions[0]);Put(f.classes[1],0x48,reinterpret_cast<uintptr_t>(f.fields[5]));
  Property(f.fields[2],16,"m_statusEffects",f.classes[7],16,0x130);Put(f.classes[2],0x48,reinterpret_cast<uintptr_t>(f.fields[2]));
  Property(f.fields[3],17,"m_pInstigatorActor",f.classes[6],8,0x60);Put(f.classes[3],0x48,reinterpret_cast<uintptr_t>(f.fields[3]));Put(f.classes[11],0x48,reinterpret_cast<uintptr_t>(f.fields[3]));
- Property(f.fields[4],18,"Parent",f.classes[6],8,0x40,f.fields[7]);Put(f.classes[4],0x48,reinterpret_cast<uintptr_t>(f.fields[4]));
- const char* fn[]={"GetMaterial","CreateDynamicMaterialInstance","SetMaterial","K2_CopyMaterialInstanceParameters","SetScalarParameterValue"};const uintptr_t rv[]={0x1DC9CB0,0x1DC92E0,0x1DCCC80,0x1D96D80,0x1D97290};
- for(int i=0;i<5;++i){Label(f.functions[i],20+i,fn[i]);Put(f.functions[i],0x10,reinterpret_cast<uintptr_t>(f.classes[5]));Put(f.functions[i],0xC0,g_base+rv[i]);if(i<2||i==3)Put(f.functions[i],0x28,reinterpret_cast<uintptr_t>(f.functions[i+1]));}
+ Label(f.classes[14],57,"MaterialInstanceConstant");Label(f.classes[15],58,"Texture2D");Label(f.fields[11],56,"Base_Color");
+ Property(f.fields[11],59,"TextureParameterValues",f.classes[7],16,0x80,f.fields[7]);
+ for(int i=0;i<4;++i){
+  Put(f.original[i],0x10,reinterpret_cast<uintptr_t>(f.classes[14]));Put(f.textures[i],0x10,reinterpret_cast<uintptr_t>(f.classes[15]));Live(f.textures[i]);
+  Put(f.textureValues[i],0,dg::foreign_wrath::Name{56,0});Put(f.textureValues[i],8,2);Put(f.textureValues[i],12,-1);Put(f.textureValues[i],16,reinterpret_cast<uintptr_t>(f.textures[i]));
+  Put(f.original[i],0x80,Array{reinterpret_cast<uintptr_t>(f.textureValues[i]),1,1});
+ }
+ Property(f.fields[4],18,"Parent",f.classes[6],8,0x40,f.fields[11]);Put(f.classes[14],0x48,reinterpret_cast<uintptr_t>(f.fields[4]));Put(f.classes[4],0x48,reinterpret_cast<uintptr_t>(f.fields[4]));
+ const char* fn[]={"GetMaterial","CreateDynamicMaterialInstance","SetMaterial","K2_CopyMaterialInstanceParameters","SetScalarParameterValue","SetTextureParameterValue"};const uintptr_t rv[]={0x1DC9CB0,0x1DC92E0,0x1DCCC80,0x1D96D80,0x1D97290,0x1D97360};
+ for(int i=0;i<6;++i){Label(f.functions[i],i==5?60:20+i,fn[i]);Put(f.functions[i],0x10,reinterpret_cast<uintptr_t>(f.classes[5]));Put(f.functions[i],0xC0,g_base+rv[i]);if(i<2||i==3||i==4)Put(f.functions[i],0x28,reinterpret_cast<uintptr_t>(f.functions[i+1]));}
  int n=0;auto parameter=[&](int label,const char* name,int kind,int bytes,int at){auto* p=f.parameters[n++];Property(p,label,name,f.classes[kind],bytes,at);return p;};
  auto chain=[&](int fn,std::initializer_list<unsigned char*> list){unsigned char* prev=nullptr;for(auto* p:list){if(prev)Put(prev,0x28,reinterpret_cast<uintptr_t>(p));else Put(f.functions[fn],0x48,reinterpret_cast<uintptr_t>(p));prev=p;}};
  chain(0,{parameter(25,"ElementIndex",8,4,0),parameter(26,"ReturnValue",6,8,8)});
@@ -64,6 +79,7 @@ void Fresh(){
  chain(2,{parameter(25,"ElementIndex",8,4,0),parameter(29,"Material",6,8,8)});
  chain(3,{parameter(30,"Source",6,8,0),parameter(31,"bQuickParametersOnly",10,1,8)});
  chain(4,{parameter(51,"ParameterName",9,8,0),parameter(52,"Value",12,4,8)});
+ chain(5,{parameter(51,"ParameterName",9,8,0),parameter(52,"Value",6,8,8)});Put<uint16_t>(f.functions[5],0x9E,16);
  Live(f.actor);Live(f.mesh);Live(f.asset);for(auto& m:f.original)Live(m);g_materials[BaseBody]=Live(f.materials[0]);g_materials[BaseCloth]=Live(f.materials[1]);g_materials[MoltenCloth]=Live(f.materials[3]);
  owner.index=0;owner.world=1;owner.localPlayer=2;owner.character=owner.pawn=reinterpret_cast<uintptr_t>(f.actor);owner.controller=reinterpret_cast<uintptr_t>(f.controller);
 }
@@ -130,6 +146,13 @@ void Run(){
  Check(creates==2&&abyssBody==reinterpret_cast<uintptr_t>(f.materials[0])&&abyssCloth==reinterpret_cast<uintptr_t>(f.materials[1]),"Abyssal named body and cloth use distinct accepted parents after armor selection");
  Put(f.component,0x138,0);Step(owner);Check(sets==2&&!f.overrides[0]&&!f.overrides[1]&&fx[2]==1,"Abyssal expiration restores armor inheritance without changing unknown slots");
  auto parents=[](int variant){for(int i=0;i<4;++i){uintptr_t parent=0;std::memcpy(&parent,f.mid[i]+0x40,8);Check(parent==reinterpret_cast<uintptr_t>(f.materials[(i<2?0:variant*2+1)]),"body/gear A and cloth B retain full native shaders, including fire switches");}};
+ Fresh();const auto originalTextures=std::vector<unsigned char>(reinterpret_cast<unsigned char*>(f.textureValues),reinterpret_cast<unsigned char*>(f.textureValues)+sizeof(f.textureValues));
+ Step(owner);Check(textureCalls==2,"both scarf slots keep their own original alpha texture");Step(owner);Check(textureCalls==2,"no per-frame texture setter calls");
+ Check(!std::memcmp(originalTextures.data(),f.textureValues,sizeof(f.textureValues)),"shared original texture parameters remain unchanged");
+ Fresh();Put(f.functions[5],0xC0,uintptr_t(0));Step(owner);Check(textureCalls==0&&creates==4&&sets==2,"missing texture API rolls back cloth only, mineral body still works");
+ Check(!f.overrides[2]&&!f.overrides[3],"unverified cloth never remains installed");
+ Fresh();Put(f.original[2],0x80,Array{});Step(owner);Check(textureCalls==1&&sets==1&&!f.overrides[2],"missing source alpha keeps the original scarf rather than a foreign masked texture");
+ Fresh();Put(f.textureValues[2],8,0);Step(owner);Check(textureCalls==1&&!f.overrides[2],"non-global texture parameters are not mistaken for skin alpha");
  Fresh();const auto materials=std::vector<unsigned char>(reinterpret_cast<unsigned char*>(f.materials),reinterpret_cast<unsigned char*>(f.materials)+sizeof(f.materials));Step(owner);Check(creates==4&&!copies&&scalarCalls==4,"private mineral body/gear suppress only their two emissive parameters; cloth retains its native shader");parents(0);Check(!std::memcmp(materials.data(),f.materials,sizeof(f.materials)),"source shader/material parameters remain byte-identical");Step(owner);Check(creates==4,"no per-frame recreation");Put(f.component,0x138,0);Step(owner);Check(sets==4&&!g_visual[0].actor,"accepted status expiration and native inheritance restoration retained");for(auto x:f.overrides)Check(!x,"native materials restored");
  Fresh();Put(f.component,0x138,2);Step(owner);parents(1);Check(g_visual[0].variant==1&&scalarCalls==4&&!copies,"Molten cloth remains fiery while body and gear retain mineral parents");
  Fresh();Put(f.component,0x138,2);Check(AssetsReady(),"only the three used material sources are discovery dependencies");Step(owner);parents(1);Check(creates==4&&!NeedsAssetScan(owner),"unused Molten body is not a dependency of base mineral body with Molten cloth");

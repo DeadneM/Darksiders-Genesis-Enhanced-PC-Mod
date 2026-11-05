@@ -161,6 +161,37 @@ int Surface(uintptr_t asset,unsigned index,uintptr_t& original){
        native_objects::NameValueIdentifierEquals(g_base,slot.index,slot.number,"Strife_Cloth_ncl1_1"))return 1;
     return -1;
 }
+bool BaseColor(uintptr_t material,foreign_wrath::Name& name,Id& texture){
+    std::array<uintptr_t,8> seen{};
+    for(unsigned depth=0;material&&depth<seen.size();++depth){
+        for(unsigned i=0;i<depth;++i)if(seen[i]==material)return false;
+        seen[depth]=material;uintptr_t cls=0;int at=-1;Array values{};
+        if(!Read(material,0x10,cls)||(!Is(cls,"MaterialInstanceDynamic")&&!Is(cls,"MaterialInstanceConstant"))||
+           !Field(material,"TextureParameterValues","ArrayProperty",16,at)||!List(material,at,values,64))return false;
+        for(int i=0;i<values.count;++i){
+            foreign_wrath::Name key{};int association=0,index=0;uintptr_t value=0;const auto p=values.data+size_t(i)*40;
+            if(!Read(p,0,key)||!Read(p,8,association)||!Read(p,12,index))return false;
+            if(association!=2||index!=-1||!native_objects::NameValueIdentifierEquals(g_base,key.index,key.number,"Base_Color"))continue;
+            if(!Read(p,16,value)||!Read(value,0x10,cls)||!Is(cls,"Texture2D")||!Capture(value,texture))return false;
+            name=key;return true;
+        }
+        if(!Field(material,"Parent","ObjectProperty",8,at)||!Read(material,at,material))return false;
+    }
+    return false;
+}
+bool ClothTexture(uintptr_t material,uintptr_t original){
+    // War's masked base texture cuts holes in Strife's differently mapped scarf.
+    // Retain this skin's color/alpha only; the private parent's fire stays native.
+    foreign_wrath::Name name{};Id texture{};
+    if(!BaseColor(original,name,texture))return false;
+    const auto f=Function(material,"SetTextureParameterValue",0x1D97360);uint16_t bytes=0;
+    if(!f||!Read(f,0x9E,bytes)||bytes!=16||!Parameter(f,"ParameterName","NameProperty",8,0)||!Parameter(f,"Value","ObjectProperty",8,8))return false;
+    struct Args {foreign_wrath::Name name{};uintptr_t value=0;} args{name,texture.address};
+    static_assert(sizeof(Args)==16);
+    g_event(reinterpret_cast<void*>(material),reinterpret_cast<void*>(f),&args);
+    foreign_wrath::Name applied{};Id result{};
+    return BaseColor(material,applied,result)&&result==texture;
+}
 bool MineralBody(uintptr_t material,uintptr_t source){
     const auto f=Function(material,"SetScalarParameterValue",0x1D97290);int at=-1;Array values{};unsigned found=0;
     if(!f||!Parameter(f,"ParameterName","NameProperty",8,0)||!Parameter(f,"Value","FloatProperty",4,8)||
@@ -357,7 +388,7 @@ void ObserveCurrent(const local_players::Context& c,uint64_t now){
         const auto source=g_materials[surface==0?BaseBody:(variant?MoltenCloth:BaseCloth)].address;
         const auto mid=Create(mesh,int(i),source);uintptr_t parent=0;int parentAt=-1;Id identity{};
         if(!mid||mid==source||!Field(mid,"Parent","ObjectProperty",8,parentAt)||!Read(mid,parentAt,parent)||parent!=source||!Capture(mid,identity)||
-           (surface==0&&!MineralBody(mid,source))){
+           (surface==0?!MineralBody(mid,source):!ClothTexture(mid,args.result))){
             // Factory may install its source or MID before validation.
             uintptr_t installed=0;
             if(Override(mesh,int(i),installed)&&((mid&&installed==mid)||installed==source))Set(mesh,int(i),current);

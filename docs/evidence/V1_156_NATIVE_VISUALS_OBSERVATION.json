@@ -1,0 +1,546 @@
+{
+  "readOnly": true,
+  "frames": 848,
+  "errors": 0,
+  "initialCapture": "v278-native-visuals-20261105-180905",
+  "timeline": {
+    "Despair_Blueprint_C_0": {
+      "first": 0.0,
+      "last": 161.9690000000046,
+      "samples": 541,
+      "activeTemplates": [],
+      "inactiveTemplates": [
+        "P_Despair_BodyTrail",
+        "P_Despair_Despawn",
+        "P_Despair_Gallop_Fast_Loop_01",
+        "P_Despair_Gallop_Fast_Start_01",
+        "P_Despair_GroundDespawn",
+        "P_Despair_Hoof_01",
+        "P_Despair_Mane",
+        "P_Despair_ManeTrail",
+        "P_Despair_Spawn",
+        "P_Despair_Tail"
+      ]
+    },
+    "Despair_Blueprint_C_1": {
+      "first": 189.90600000000268,
+      "last": 207.0940000000046,
+      "samples": 65,
+      "activeTemplates": [
+        "P_Despair_BodyTrail",
+        "P_Despair_Hoof_01",
+        "P_Despair_Mane",
+        "P_Despair_ManeTrail",
+        "P_Despair_Tail"
+      ],
+      "inactiveTemplates": [
+        "P_Despair_BodyTrail",
+        "P_Despair_Despawn",
+        "P_Despair_Gallop_Fast_Loop_01",
+        "P_Despair_Gallop_Fast_Start_01",
+        "P_Despair_GroundDespawn",
+        "P_Despair_Hoof_01",
+        "P_Despair_Mane",
+        "P_Despair_ManeTrail",
+        "P_Despair_Spawn",
+        "P_Despair_Tail"
+      ]
+    }
+  },
+  "laterHealthyHorse": [
+    {
+      "actor": "Despair_Blueprint_C",
+      "array": "PassiveFXArray",
+      "offset": 2880,
+      "parts": [
+        {
+          "name": "VFX_Eyes",
+          "template": null,
+          "active": false,
+          "ownerMatches": true,
+          "parentOwnerMatches": true,
+          "activeLayout": {
+            "name": "bIsActive",
+            "kind": "BoolProperty",
+            "size": 1,
+            "offset": 174,
+            "boolLayout": [
+              1,
+              0,
+              1,
+              1
+            ]
+          },
+          "activate": {
+            "owner": "ActorComponent",
+            "entry": "0x1cbe4d0",
+            "size": 1,
+            "fields": [
+              {
+                "name": "bReset",
+                "kind": "BoolProperty",
+                "size": 1,
+                "offset": 0,
+                "boolLayout": [
+                  1,
+                  0,
+                  1,
+                  255
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "VFX_Hoof_R_Front",
+          "template": "P_Despair_Hoof_01",
+          "active": true,
+          "ownerMatches": true,
+          "parentOwnerMatches": true,
+          "activeLayout": {
+            "name": "bIsActive",
+            "kind": "BoolProperty",
+            "size": 1,
+            "offset": 174,
+            "boolLayout": [
+              1,
+              0,
+              1,
+              1
+            ]
+          },
+          "activate": {
+            "owner": "ActorComponent",
+            "entry": "0x1cbe4d0",
+            "size": 1,
+            "fields": [
+              {
+                "name": "bReset",
+                "kind": "BoolProperty",
+                "size": 1,
+                "offset": 0,
+                "boolLayout": [
+                  1,
+                  0,
+                  1,
+                  255
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "VFX_Hoof_L_Front",
+          "template": "P_Despair_Hoof_01",
+          "active": true,
+          "ownerMatches": true,
+          "parentOwnerMatches": true,
+          "activeLayout": {
+            "name": "bIsActive",
+            "kind": "BoolProperty",
+            "size": 1,
+            "offset": 174,
+            "boolLayout": [
+              1,
+              0,
+              1,
+              1
+            ]
+          },
+          "activate": {
+            "owner": "ActorComponent",
+            "entry": "0x1cbe4d0",
+            "size": 1,
+            "fields": [
+              {
+                "name": "bReset",
+                "kind": "BoolProperty",
+                "size": 1,
+                "offset": 0,
+                "boolLayout": [
+                  1,
+                  0,
+                  1,
+                  255
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "VFX_Hoof_R_Rear",
+          "template": "P_Despair_Hoof_01",
+          "active": true,
+          "ownerMatches": true,
+          "parentOwnerMatches": true,
+          "activeLayout": {
+            "name": "bIsActive",
+            "kind": "BoolProperty",
+            "size": 1,
+            "offset": 174,
+            "boolLayout": [
+              1,
+              0,
+              1,
+              1
+            ]
+          },
+          "activate": {
+            "owner": "ActorComponent",
+            "entry": "0x1cbe4d0",
+            "size": 1,
+            "fields": [
+              {
+                "name": "bReset",
+                "kind": "BoolProperty",
+                "size": 1,
+                "offset": 0,
+                "boolLayout": [
+                  1,
+                  0,
+                  1,
+                  255
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "VFX_Hoof_L_Rear",
+          "template": "P_Despair_Hoof_01",
+          "active": true,
+          "ownerMatches": true,
+          "parentOwnerMatches": true,
+          "activeLayout": {
+            "name": "bIsActive",
+            "kind": "BoolProperty",
+            "size": 1,
+            "offset": 174,
+            "boolLayout": [
+              1,
+              0,
+              1,
+              1
+            ]
+          },
+          "activate": {
+            "owner": "ActorComponent",
+            "entry": "0x1cbe4d0",
+            "size": 1,
+            "fields": [
+              {
+                "name": "bReset",
+                "kind": "BoolProperty",
+                "size": 1,
+                "offset": 0,
+                "boolLayout": [
+                  1,
+                  0,
+                  1,
+                  255
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "VFX_Trail_Ground",
+          "template": "P_Despair_BodyTrail",
+          "active": true,
+          "ownerMatches": true,
+          "parentOwnerMatches": true,
+          "activeLayout": {
+            "name": "bIsActive",
+            "kind": "BoolProperty",
+            "size": 1,
+            "offset": 174,
+            "boolLayout": [
+              1,
+              0,
+              1,
+              1
+            ]
+          },
+          "activate": {
+            "owner": "ActorComponent",
+            "entry": "0x1cbe4d0",
+            "size": 1,
+            "fields": [
+              {
+                "name": "bReset",
+                "kind": "BoolProperty",
+                "size": 1,
+                "offset": 0,
+                "boolLayout": [
+                  1,
+                  0,
+                  1,
+                  255
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "VFX_Tail",
+          "template": null,
+          "active": false,
+          "ownerMatches": true,
+          "parentOwnerMatches": true,
+          "activeLayout": {
+            "name": "bIsActive",
+            "kind": "BoolProperty",
+            "size": 1,
+            "offset": 174,
+            "boolLayout": [
+              1,
+              0,
+              1,
+              1
+            ]
+          },
+          "activate": {
+            "owner": "ActorComponent",
+            "entry": "0x1cbe4d0",
+            "size": 1,
+            "fields": [
+              {
+                "name": "bReset",
+                "kind": "BoolProperty",
+                "size": 1,
+                "offset": 0,
+                "boolLayout": [
+                  1,
+                  0,
+                  1,
+                  255
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "P_Despair_Mane",
+          "template": "P_Despair_Mane",
+          "active": true,
+          "ownerMatches": true,
+          "parentOwnerMatches": true,
+          "activeLayout": {
+            "name": "bIsActive",
+            "kind": "BoolProperty",
+            "size": 1,
+            "offset": 174,
+            "boolLayout": [
+              1,
+              0,
+              1,
+              1
+            ]
+          },
+          "activate": {
+            "owner": "ActorComponent",
+            "entry": "0x1cbe4d0",
+            "size": 1,
+            "fields": [
+              {
+                "name": "bReset",
+                "kind": "BoolProperty",
+                "size": 1,
+                "offset": 0,
+                "boolLayout": [
+                  1,
+                  0,
+                  1,
+                  255
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "P_Despair_BodyTrail",
+          "template": null,
+          "active": false,
+          "ownerMatches": true,
+          "parentOwnerMatches": true,
+          "activeLayout": {
+            "name": "bIsActive",
+            "kind": "BoolProperty",
+            "size": 1,
+            "offset": 174,
+            "boolLayout": [
+              1,
+              0,
+              1,
+              1
+            ]
+          },
+          "activate": {
+            "owner": "ActorComponent",
+            "entry": "0x1cbe4d0",
+            "size": 1,
+            "fields": [
+              {
+                "name": "bReset",
+                "kind": "BoolProperty",
+                "size": 1,
+                "offset": 0,
+                "boolLayout": [
+                  1,
+                  0,
+                  1,
+                  255
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "P_Despair_Tail",
+          "template": "P_Despair_Tail",
+          "active": true,
+          "ownerMatches": true,
+          "parentOwnerMatches": true,
+          "activeLayout": {
+            "name": "bIsActive",
+            "kind": "BoolProperty",
+            "size": 1,
+            "offset": 174,
+            "boolLayout": [
+              1,
+              0,
+              1,
+              1
+            ]
+          },
+          "activate": {
+            "owner": "ActorComponent",
+            "entry": "0x1cbe4d0",
+            "size": 1,
+            "fields": [
+              {
+                "name": "bReset",
+                "kind": "BoolProperty",
+                "size": 1,
+                "offset": 0,
+                "boolLayout": [
+                  1,
+                  0,
+                  1,
+                  255
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "P_Despair_ManeTrail",
+          "template": "P_Despair_ManeTrail",
+          "active": true,
+          "ownerMatches": true,
+          "parentOwnerMatches": true,
+          "activeLayout": {
+            "name": "bIsActive",
+            "kind": "BoolProperty",
+            "size": 1,
+            "offset": 174,
+            "boolLayout": [
+              1,
+              0,
+              1,
+              1
+            ]
+          },
+          "activate": {
+            "owner": "ActorComponent",
+            "entry": "0x1cbe4d0",
+            "size": 1,
+            "fields": [
+              {
+                "name": "bReset",
+                "kind": "BoolProperty",
+                "size": 1,
+                "offset": 0,
+                "boolLayout": [
+                  1,
+                  0,
+                  1,
+                  255
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "actor": "Despair_Blueprint_C",
+      "array": "PassiveSkelArray",
+      "offset": 2896,
+      "parts": [
+        {
+          "name": "Skel_VFX_Despair_Tail_Dark",
+          "template": null,
+          "active": true,
+          "ownerMatches": true,
+          "parentOwnerMatches": true,
+          "activeLayout": null,
+          "activate": null
+        },
+        {
+          "name": "Skel_VFX_Despair_Mane",
+          "template": null,
+          "active": true,
+          "ownerMatches": true,
+          "parentOwnerMatches": true,
+          "activeLayout": null,
+          "activate": null
+        },
+        {
+          "name": "Skel_VFX_Despair_Mane_Dark",
+          "template": null,
+          "active": true,
+          "ownerMatches": true,
+          "parentOwnerMatches": true,
+          "activeLayout": null,
+          "activate": null
+        },
+        {
+          "name": "Skel_VFX_Despair_Tail",
+          "template": null,
+          "active": true,
+          "ownerMatches": true,
+          "parentOwnerMatches": true,
+          "activeLayout": null,
+          "activate": null
+        }
+      ]
+    }
+  ],
+  "textureSetter": {
+    "name": "SetTextureParameterValue",
+    "owner": "MaterialInstanceDynamic",
+    "entry": "0x1d97360",
+    "parmsSize": 16,
+    "fields": [
+      {
+        "name": "ParameterName",
+        "kind": "NameProperty",
+        "size": 8,
+        "offset": 0
+      },
+      {
+        "name": "Value",
+        "kind": "ObjectProperty",
+        "size": 8,
+        "offset": 8
+      }
+    ]
+  },
+  "limits": [
+    "Different horse instances before/after recall; not a controlled unmodded comparison.",
+    "No engine calls or writes by either external reader.",
+    "User reports recall restored apparently all effects.",
+    "The exact cause of the initial deactivation is not established."
+  ]
+}

@@ -23,6 +23,7 @@
 #include "GrappleRangeFeature.h"
 #include "AirJumpFeature.h"
 #include "MountedJumpFeature.h"
+#include "MountedPassiveFx.h"
 #include "HotstreakFeature.h"
 #include "PotionFeature.h"
 #include "BuildInfo.h"
@@ -1468,6 +1469,7 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     dg::heavy_landing::OnLivePlayer(owner,generation,runtimeAllowed);
     dg::recovery_tail::OnLivePlayer(owner,generation,runtimeAllowed);
     dg::mounted_holsters::OnLivePlayer(owner);
+    dg::mounted_fx::OnLivePlayer(owner);
     dg::pistol_visual::OnLivePlayer(owner,generation,runtimeAllowed);
     dg::leviathan_visual::OnLivePlayer(owner);
     dg::effect_appearance::OnLivePlayer(owner);
@@ -4209,6 +4211,7 @@ void ShutdownMod() {
     dg::melee_effect::Shutdown();
     dg::wrath_slots::Shutdown();
     dg::mounted_holsters::Shutdown();
+    dg::mounted_fx::Shutdown();
     dg::cosmetics::Shutdown();
     dg::leviathan_visual::Shutdown();
     dg::effect_appearance::Shutdown();
@@ -4472,6 +4475,7 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::heavy_landing::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::recovery_tail::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::mounted_holsters::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::mounted_fx::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::pistol_visual::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::execution_camera::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::render_safety::Initialize(&FeatureLog,g_targetValidation.exact);

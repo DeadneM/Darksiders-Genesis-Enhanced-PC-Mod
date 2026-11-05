@@ -72,6 +72,10 @@ if(BUILD_TESTING)
   target_include_directories(StoneSkinVisualTests PRIVATE tests/stubs src)
   target_compile_definitions(StoneSkinVisualTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
   add_test(NAME StoneSkinVisual COMMAND StoneSkinVisualTests)
+  add_executable(MountedPassiveFxTests tests/MountedPassiveFxTests.cpp)
+  target_include_directories(MountedPassiveFxTests PRIVATE tests/stubs src)
+  target_compile_definitions(MountedPassiveFxTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+  add_test(NAME MountedPassiveFx COMMAND MountedPassiveFxTests)
   add_executable(PlayerPresentationTests tests/PlayerPresentationTests.cpp tests/NativeCursorConsumer.cpp src/RuntimeSettings.cpp src/ConfigStore.cpp)
   target_include_directories(PlayerPresentationTests PRIVATE tests/stubs src)
   target_compile_definitions(PlayerPresentationTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
@@ -483,6 +487,7 @@ add_library(DarksidersGenesisMod SHARED
   src/GrappleRangeFeature.cpp
   src/AirJumpFeature.cpp
   src/MountedJumpFeature.cpp
+  src/MountedPassiveFx.cpp
   src/HotstreakFeature.cpp
   src/HorseFeature.cpp
   src/OverlayUi.cpp
