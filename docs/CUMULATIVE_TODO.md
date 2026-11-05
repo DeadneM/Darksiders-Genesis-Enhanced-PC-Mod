@@ -1,3 +1,9 @@
+## 5 novembre 2026 — V1.153 disponible sur debug
+
+**CONSTRUIT et CONTRÔLÉ**, 81 tests Windows GitHub. Le rework dash/stomp V1.152 est VALIDÉ par l'utilisateur et dispose maintenant de sa case ON par défaut. Player Movement est réorganisé. Stoneskin reçoit une reprise bornée des refus, une protection des statuts incomplets et des caches de fonctions. **EXPÉRIMENTAL en jeu** pour ces modifications et le coût CPU. [Livraison et essais](V1_153_DELIVERY_RECEIPT.md).
+
+---
+
 ## 5 novembre 2026 — V1.152 disponible sur debug
 
 **CONSTRUIT et CONTRÔLÉ** par 81 tests Windows GitHub. **EXPÉRIMENTAL en jeu.** Appui court/maintenu pour le dash aérien de Strife, reprise de visée après interruption, matériaux natifs de Stoneskin. Le filtre Moloch validé est repris de V1.151. GPU après fermeture à tester. [ZIP, contrôles et essais](V1_152_DELIVERY_RECEIPT.md).

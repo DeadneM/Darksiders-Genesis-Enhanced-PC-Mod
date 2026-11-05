@@ -1,0 +1,32 @@
+{
+  "source": "1a4bbe29f65e8533ba8741cd9a93e3ee30b42a28",
+  "archive": "6063efc6a06e2f760dec404fe67d5a19ae451fb9",
+  "download": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/6063efc6a06e2f760dec404fe67d5a19ae451fb9/downloads/DarksidersGenesis_V1.153_STONESKIN_LIFECYCLE_COST_TEST.zip",
+  "sha256": "BAAB9A9D41096983349B5650F4FE01F1DF7E073FDD9B42795FD3A0F52E67A9CD",
+  "bytes": 2419438,
+  "files": {
+    "dxgi.dll": {
+      "bytes": 155136,
+      "sha256": "BEDD472B25D43C275A857F2DB206D9A869162302E8E80422D542725E12882622"
+    },
+    "DarksidersGenesisMod.asi": {
+      "bytes": 2264064,
+      "sha256": "2D7DA00C4B27BE3FC802718BE8164A7BA04C8493C2726B763D785B5C3B383408"
+    }
+  },
+  "crcVerified": true,
+  "amd64": true,
+  "oldArchivesUnchanged": 217,
+  "totalArchives": 218,
+  "iniKeys": 247,
+  "oldIniKeysPreserved": 246,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "e2e519f7ea84d4b773fd7a31611779ae68308696",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "updaterSelection": "DarksidersGenesis_V1.153_STONESKIN_LIFECYCLE_COST_TEST.zip",
+  "publicHttpStatus": 200,
+  "installed": false,
+  "gameplayValidated": false
+}

@@ -1,5 +1,7 @@
 # V1.153 — Stoneskin et Player Movement
 
+Le lot a passé les contrôles GitHub. Le [reçu de livraison](V1_153_DELIVERY_RECEIPT.md) fournit le ZIP et les résultats.
+
 Base cumulative V1.152. L'utilisateur a validé le rework dash/stomp et demande une case activée par défaut dans Gameplay → Player Movement. Il signale encore un rendu Stoneskin intermittent et demande de réduire le coût des changements de ressources. Le dernier journal accessible contient le démarrage de V1.152, sans activation Stoneskin ou mesure de performance correspondante. La cause précise de son dernier incident reste à confirmer.
 
 ## Méthode conservée et corrections
