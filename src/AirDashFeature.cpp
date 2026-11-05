@@ -13,11 +13,12 @@ namespace dg::air_dash {
 namespace {
 using Id=native_objects::Identity;
 uintptr_t g_base=0;std::atomic_bool g_ready{false};bool g_dispatching=false;LogFn g_log=nullptr;Dispatch g_dispatch=nullptr;
-Id g_source{},g_air{};bool g_contract=false;unsigned g_events=0;
+Id g_source{},g_air{},g_finish{};bool g_contract=false;unsigned g_events=0;
 struct Saved {Id ability{};float fall=0,forward=0,timeout=0,oursTimeout=0;};
 struct Player {
     local_players::Context context{};uint32_t generation=0;Id actor{};
     Press press{};bool allowed=false,strife=false,await=false;uint64_t observed=0,until=0;
+    Gesture request=Gesture::Native;Id gestureAbility{};
     Saved saved{};
 };
 std::array<Player,2> g_players{};
@@ -51,36 +52,46 @@ uintptr_t Function(uintptr_t cls,const char* wanted){
         if(!Read(f,0x28,next)||next==f)return 0;f=next;
     }return 0;
 }
+bool Reference(const unsigned char* code,const ranged_script::Block& b){
+    const auto address=reinterpret_cast<uintptr_t>(code);int name=-1,number=-1;
+    if(b.width==8){
+        uintptr_t p=0;if(!Read(address,b.offset,p))return false;
+        // EX_Let can carry an explicitly null UProperty (cooked index None).
+        // A null pointer is admissible only at that exact declared reference.
+        if(std::strcmp(b.name,"None")==0)return p==0;
+        if(!Read(p,0x18,name)||!Read(p,0x1C,number))return false;
+    }else if(b.width==12){if(!Read(address,b.offset,name)||!Read(address,b.offset+8,number))return false;}
+    else return false;
+    return native_objects::NameValueIdentifierEquals(g_base,name,number,b.name);
+}
 template<unsigned Size,size_t N>bool Script(uintptr_t function,uint64_t hash,const std::array<ranged_script::Block,N>& blocks){
     struct Array {uintptr_t data=0;int count=0,capacity=0;} a;std::array<unsigned char,Size> code{};
     if(!Read(function,0x58,a)||a.count!=int(Size)||a.capacity<a.count||a.capacity>65536||!Read(a.data,0,code))return false;
-    return ranged_script::Matches(code,Size,hash,blocks,[&](const auto& b){
-        int name=-1,number=-1;
-        if(b.width==8){uintptr_t p=0;if(!Read(reinterpret_cast<uintptr_t>(code.data()),b.offset,p)||!Read(p,0x18,name)||!Read(p,0x1C,number))return false;}
-        else if(b.width==12){if(!Read(reinterpret_cast<uintptr_t>(code.data()),b.offset,name)||!Read(reinterpret_cast<uintptr_t>(code.data()),b.offset+8,number))return false;}
-        else return false;
-        return native_objects::NameValueIdentifierEquals(g_base,name,number,b.name);
-    });
+    return ranged_script::Matches(code,Size,hash,blocks,[&](const auto& b){return Reference(code.data(),b);});
 }
 bool Contract(uintptr_t actor){
     uintptr_t cls=0;if(!Read(actor,0x10,cls))return false;
     if(Alive(g_source)&&g_source.address==cls)return g_contract&&Alive(g_air);
-    g_contract=false;g_air={};g_source={};if(!Capture(cls,g_source))return false;
+    g_contract=false;g_air={};g_finish={};g_source={};if(!Capture(cls,g_source))return false;
     using namespace air_dash_contract;
     const auto perform=Function(cls,"PerformDash");uintptr_t code=0,air=0,package=0,cdo=0,table=0,physics=0,cancel=0,cleanup=0;int fall=-1,forward=-1,timeout=-1;
     if(!perform||!Script<PerformSize>(perform,PerformHash,PerformBlocks)||!Read(perform,0x58,code))return false;
     for(const auto& b:PerformBlocks)if(std::strcmp(b.name,"MayhemAbility_Strife_AirDash_Blueprint_C")==0){if(!Read(code,b.offset,air))return false;break;}
     const auto finish=Function(air,"OnFinish"),graph=Function(air,"ExecuteUbergraph_MayhemAbility_Strife_AirDash_Blueprint");
-    uintptr_t defaultClass=0;uint32_t defaultFlags=0;
+    uintptr_t defaultClass=0,parameter=0,parameterOwner=0,next=0;uint32_t defaultFlags=0;int causeAt=-1;
+    uint16_t parameterBytes=0;
     const bool valid=air&&Is(air,"MayhemAbility_Strife_AirDash_Blueprint_C")&&Read(air,0x20,package)&&
         Is(package,"/Game/Blueprints/Abilities/Dash/MayhemAbility_Strife_AirDash_Blueprint")&&
         finish&&graph&&Script<FinishSize>(finish,FinishHash,FinishBlocks)&&Script<GraphSize>(graph,GraphHash,GraphBlocks)&&
+        Read(finish,0x9E,parameterBytes)&&parameterBytes==1&& // ProcessEvent copies exactly this size.
+        native_objects::PropertyField(g_base,finish,"Cause","EnumProperty",1,causeAt)&&causeAt==0&&
+        Read(finish,0x48,parameter)&&Read(parameter,0x20,parameterOwner)&&parameterOwner==finish&&Read(parameter,0x28,next)&&!next&&
         Read(air,0xF8,cdo)&&Read(cdo,0x10,defaultClass)&&defaultClass==air&&Read(cdo,8,defaultFlags)&&(defaultFlags&0x10u)&&
         Read(cdo,0,table)&&Read(table,0x2E0,physics)&&physics==g_base+0x5B9180&&
         Read(table,0x290,cancel)&&cancel==g_base+0x59C660&&Read(table,0x2A8,cleanup)&&cleanup==g_base+0x59BF80&&
         native_objects::PropertyField(g_base,air,"FallSpeed","FloatProperty",4,fall)&&fall==0x1F8&&
         native_objects::PropertyField(g_base,air,"ForwardSpeed","FloatProperty",4,forward)&&forward==0x1FC&&
-        native_objects::PropertyField(g_base,air,"AbilityTimeout","FloatProperty",4,timeout)&&timeout==0x44&&Capture(air,g_air);
+        native_objects::PropertyField(g_base,air,"AbilityTimeout","FloatProperty",4,timeout)&&timeout==0x44&&Capture(air,g_air)&&Capture(finish,g_finish);
     g_contract=valid;
     if(g_log)g_log(valid?"Air dash V1.152: complete native selection/finish scripts and native timeout/physics verified; tap/hold EXPERIMENTAL":
         "Air dash V1.152: contract unavailable; immediate native action retained");
@@ -100,13 +111,13 @@ bool Airborne(const Player& p){
         (mode==3||(mode==6&&custom==2)); // the same falling/gliding branch as native PerformDash
 }
 void Send(Player& p,Gesture gesture,uint64_t now){
-    p.await=gesture==Gesture::Forward;p.until=now+250;
+    p.await=true;p.request=gesture;p.until=now+250;
     struct Guard{Guard(){g_dispatching=true;}~Guard(){g_dispatching=false;}} guard;
     g_dispatch(reinterpret_cast<void*>(p.context.character+0x8D0),14);
 }
 }
-void Initialize(LogFn log,bool exactExecutable){
-    g_log=log;if(!exactExecutable)return;g_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+void Initialize(LogFn log,bool exactExecutable,bool finishBoundaryReady){
+    g_log=log;if(!exactExecutable||!finishBoundaryReady)return;g_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     struct Guard{uintptr_t rva;unsigned char bytes[16];};
     const Guard guards[]={
         {0x5B46C0,{0x40,0x53,0x48,0x83,0xEC,0x30,0xF3,0x0F,0x10,0x51,0x44,0x0F,0x57,0xC0,0x0F,0x2F}},
@@ -129,12 +140,17 @@ void OnLivePlayer(const local_players::Context& c,uint32_t generation,bool gamep
     if(p.saved.ability){unsigned char state=0;
         if(!Alive(p.saved.ability)||!Read(p.saved.ability.address,0xD8,state)||state!=2)Restore(p.saved);
     }
-    if(p.press.pending){const auto action=p.press.Update(now,Gameplay(p)&&Airborne(p));if(action==Gesture::Forward&&g_dispatch)Send(p,action,now);}
+    if(p.gestureAbility&&!Alive(p.gestureAbility))p.gestureAbility={};
+    if(p.press.down){
+        const bool safe=Gameplay(p);
+        if(!safe)p.press={}; // focus/menu loss must not swallow the next real press
+        else if(p.press.pending){const auto action=p.press.Update(now,Airborne(p));if(action==Gesture::Forward&&g_dispatch)Send(p,action,now);}
+    }
 }
 bool ProcessAction(Dispatch native,void* iface,unsigned char action){
     // ABILITY_ONE / ABILITY_ONE_RELEASE route to Strife's native PerformDash.
     // No physical key, XInput bit, camera mode or movement-axis test is used.
-    if(!g_ready||!native||!native_tps::OnGameThread()||g_dispatching||!dash_combat::TickReady()||(action!=14&&action!=15))return false;
+    if((action!=14&&action!=15)||!g_ready||!native||!native_tps::OnGameThread()||g_dispatching||!dash_combat::TickReady())return false;
     const auto now=GetTickCount64();
     for(auto& p:g_players){
         if(!p.strife||reinterpret_cast<uintptr_t>(iface)!=p.context.character+0x8D0)continue;
@@ -150,15 +166,17 @@ void BeforeTick(void* liveAbility){
     if(!Read(ability,0x10,cls)||cls!=g_air.address||!Read(ability,0x48,actor)||!Read(ability,0x1B0,character)||actor!=character)return;
     const auto now=GetTickCount64();
     for(auto& p:g_players){
-        if(!p.await||now>p.until||p.context.character!=actor||p.saved.ability||!Gameplay(p))continue;
+        if(!p.await||now>p.until||(p.request!=Gesture::Down&&p.request!=Gesture::Forward)||p.context.character!=actor||p.gestureAbility||!Gameplay(p))continue;
         uintptr_t component=0,owner=0,array=0;int count=-1,capacity=0;bool active=false;unsigned char state=0;float elapsed=0,fall=0,forward=0,timeout=0;
         if(!Read(actor,0xC70,component)||!Read(component,0xE8,owner)||owner!=actor||!Read(component,0xF8,array)||
            !Read(component,0x100,count)||!Read(component,0x104,capacity)||count<=0||count>capacity||capacity>64)continue;
         for(int i=0;i<count;++i){uintptr_t item=0;if(Read(array,size_t(i)*8,item)&&item==ability)active=true;}
         if(!active||!Read(ability,0xD8,state)||state!=2||!Read(ability,0xDC,elapsed)||!std::isfinite(elapsed)||elapsed<0||elapsed>.25f||
            !Read(ability,0x1F8,fall)||fall!=5000||!Read(ability,0x1FC,forward)||forward!=0||!Read(ability,0x44,timeout)||timeout!=3||
-           !Writable(ability+0x1F8,8)||!Writable(ability+0x44,4)||!Capture(ability,p.saved.ability))continue;
-        p.saved={p.saved.ability,fall,forward,timeout,elapsed+.24f};p.await=false;
+           !Writable(ability+0x1F8,8)||!Writable(ability+0x44,4)||!Capture(ability,p.gestureAbility))continue;
+        p.await=false;
+        if(p.request==Gesture::Down)return; // untouched native descending physics
+        p.saved={p.gestureAbility,fall,forward,timeout,elapsed+.24f};
         // Only this live instance: native physics and native TIMEOUT (47)
         // terminate it. No CDO, velocity, movement mode or montage is edited.
         Float(ability,0x1F8,0);Float(ability,0x1FC,3000);Float(ability,0x44,p.saved.oursTimeout);
@@ -172,11 +190,26 @@ void AfterTick(void* ability){
         unsigned char state=0;if(!Alive(p.saved.ability)||!Read(p.saved.ability.address,0xD8,state)||state!=2)Restore(p.saved);
     }
 }
+bool FinishParameters(void* ability,void* function,void* parameters,unsigned char& cause){
+    if(!g_ready||!native_tps::OnGameThread()||reinterpret_cast<uintptr_t>(function)!=g_finish.address||!Alive(g_finish))return false;
+    for(auto& p:g_players)if(p.gestureAbility.address==reinterpret_cast<uintptr_t>(ability)&&Alive(p.gestureAbility)&&
+        local_players::Matches(unsigned(p.context.index),p.context.character,p.generation)){
+        unsigned char state=0,original=0;
+        if(!Read(p.gestureAbility.address,0xD8,state)||state!=5||
+           !Read(reinterpret_cast<uintptr_t>(parameters),0,original))return false;
+        p.gestureAbility={};Restore(p.saved);
+        if(original!=38)return false;
+        // Native cleanup and completion already ran. This one Blueprint
+        // branch would add a second ground dash after the chosen gesture.
+        // Keep its verified OnFinish call, with a private non-LAND cause.
+        cause=0;return true;
+    }return false;
+}
 void Shutdown(){
     g_ready=false;
     if(native_tps::OnGameThread()){
         for(auto& p:g_players)Restore(p.saved);
-        g_players={};g_air={};g_source={};g_contract=false;g_dispatch=nullptr;
+        g_players={};g_air={};g_finish={};g_source={};g_contract=false;g_dispatch=nullptr;
     } // Process-exit worker never dereferences or edits live gameplay state.
 }
 }

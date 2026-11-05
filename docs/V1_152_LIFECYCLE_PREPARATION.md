@@ -32,6 +32,8 @@ Les scripts intégraux PerformDash716/Graph185/OnFinish36, les signatures physiq
 
 ## Contrôles et réussite attendue
 
+Le retour au sol natif peut lancer un deuxième dash même après un appui court. Pour les instances démarrées par ce geste, le module transmet un paramètre privé d'un octet au Blueprint après la fin native. Cette copie empêche uniquement l'enchaînement automatique au sol. Le module vérifie la taille des paramètres lue par ProcessEvent et refuse les appels avant la fin native. Le relevé en lecture seule a confirmé les 88 références et les empreintes des trois scripts. Deux références explicitement nulles de PerformDash sont acceptées à leur emplacement prévu. La trace précédente montre les états complémentaires appui/relâchement 14 et 15 pendant les essais manette. La pose d'atterrissage et le retour aux commandes restent à essayer en jeu.
+
 Tests significatifs : refus des scripts/paramètres inconnus, casse des identifiants sans assouplir les noms d'objets, sortie au plus une fois et indépendance des joueurs ; frontières natives du service avec faux répartiteur ; cycle complet Stoneskin avec conservation/restauration des matériaux natifs et refus des filiations étrangères/cycliques. Ces fixtures et la compilation ne constituent pas une validation en jeu.
 
 Avant livraison cumulative : vérifier CI Windows, absence d'avertissements et conservation des chemins validés ; livrer uniquement deux binaires à la racine. Après livraison : tester pose interrompue par plusieurs actions, Stoneskin après changement d'armure et plus tard dans la mission, dash court/long en l'air (sans tir, en visant, en tirant, puis saut/déplacement à la fin), puis GPU après fermeture. Pas de promotion main/archive.

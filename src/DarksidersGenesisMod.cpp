@@ -1785,8 +1785,10 @@ bool InstallNativeTPSRotationHook() {
 // event cannot leave the observer dereferencing a freed/reused widget.
 void HookAimUiEventDispatch(void* object,void* function,void* parameters,void* outParameters){
     const auto identity=dg::native_tps::CaptureUiEvent(object);
+    unsigned char finishCause=0;
+    void* forwarded=dg::air_dash::FinishParameters(object,function,parameters,finishCause)?&finishCause:parameters;
     if(g_originalAimUiEventDispatch)
-        g_originalAimUiEventDispatch(object,function,parameters,outParameters);
+        g_originalAimUiEventDispatch(object,function,forwarded,outParameters);
     dg::native_tps::ObserveUiEvent(identity);
 }
 void InstallAimUiEventProbe(){
@@ -4456,7 +4458,7 @@ DWORD WINAPI MainThread(LPVOID) {
     // Validate the native sound entry before the shared dash audio detour.
     dg::wrath_slots::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::dash_combat::Initialize(&FeatureLog,g_targetValidation.exact);
-    dg::air_dash::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::air_dash::Initialize(&FeatureLog,g_targetValidation.exact,g_originalAimUiEventDispatch!=nullptr);
     dg::interaction_hud::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::sheathing::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::manual_aim::Initialize(&FeatureLog,g_targetValidation.exact);

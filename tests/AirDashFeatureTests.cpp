@@ -6,7 +6,7 @@ namespace {
 using namespace dg::air_dash;
 struct Fixture {
     unsigned char actor[0x1100]{},controller[0x400]{},resource[0x400]{},component[0x120]{};
-    unsigned char ability[0x240]{},airClass[0x100]{},items[4*24]{};
+    unsigned char ability[0x240]{},airClass[0x100]{},finish[0x100]{},items[4*24]{};
     uintptr_t active[1]{},chunks[1]{};
 } f;
 bool thread=true,paused=false,cinema=false,radial=false,matches=true;
@@ -17,8 +17,8 @@ Id Live(void* object,int i){Put(object,0xC,i);Put(f.items,size_t(i)*24,reinterpr
 void Fresh(std::vector<unsigned char>& image){
     f={};g_players={};thread=matches=true;paused=cinema=radial=false;g_ready=true;g_base=reinterpret_cast<uintptr_t>(image.data());
     f.chunks[0]=reinterpret_cast<uintptr_t>(f.items);Put(image.data(),0x3959680,reinterpret_cast<uintptr_t>(f.chunks));Put(image.data(),0x3959694,4);
-    auto& p=g_players[0];p.actor=Live(f.actor,0);g_air=Live(f.airClass,1);Live(f.ability,2);
-    p.allowed=p.strife=p.await=true;p.until=GetTickCount64()+1000;p.generation=7;
+    auto& p=g_players[0];p.actor=Live(f.actor,0);g_air=Live(f.airClass,1);Live(f.ability,2);g_finish=Live(f.finish,3);
+    p.allowed=p.strife=p.await=true;p.request=Gesture::Forward;p.until=GetTickCount64()+1000;p.generation=7;
     auto& c=p.context;c.index=0;c.localPlayer=1;c.world=2;c.character=c.pawn=reinterpret_cast<uintptr_t>(f.actor);c.controller=reinterpret_cast<uintptr_t>(f.controller);
     Put(f.actor,0x348,reinterpret_cast<uintptr_t>(f.controller));Put(f.controller,0x350,reinterpret_cast<uintptr_t>(f.actor));Put<unsigned char>(f.actor,0x118,3);
     Put(f.actor,0xEA0,reinterpret_cast<uintptr_t>(f.resource));Put(f.resource,0x37C,100.f);
@@ -30,6 +30,9 @@ void Fresh(std::vector<unsigned char>& image){
 void NativeValues(){Check(At<float>(f.ability,0x44)==3&&At<float>(f.ability,0x1F8)==5000&&At<float>(f.ability,0x1FC)==0,"rejected instance retains all original native parameters");}
 void Run(){
     std::vector<unsigned char> image(0x3960000);
+    Fresh(image);unsigned char reference[16]{};
+    Check(Reference(reference,{0,8,"None"})&&!Reference(reference,{0,8,"ARealObject"}),"a null cooked reference is allowed only where None is explicitly expected");
+    Put(reference,0,reinterpret_cast<uintptr_t>(f.airClass));Check(!Reference(reference,{0,8,"None"}),"a non-null object cannot substitute for a declared null property");
     Fresh(image);BeforeTick(f.ability);
     Check(g_players[0].saved.ability&&!g_players[0].await,"only the queued owner's active AirDash is adopted once");
     Check(At<float>(f.ability,0x1F8)==0&&At<float>(f.ability,0x1FC)==3000&&std::abs(At<float>(f.ability,0x44)-.29f)<.00001f,"native forward physics has a finite deadline relative to native elapsed time");
@@ -38,6 +41,22 @@ void Run(){
     Check(!g_players[0].saved.ability,"completion after the tick wrapper is restored by the live service too");
     Fresh(image);BeforeTick(f.ability);Put(f.ability,0x1FC,123.f);Put<unsigned char>(f.ability,0xD8,4);AfterTick(f.ability);
     Check(At<float>(f.ability,0x1FC)==123&&At<float>(f.ability,0x1F8)==5000,"restoration preserves a later external parameter change");
+    for(auto gesture:{Gesture::Down,Gesture::Forward}){
+        Fresh(image);g_players[0].request=gesture;BeforeTick(f.ability);
+        if(gesture==Gesture::Down)NativeValues();
+        Put<unsigned char>(f.ability,0xD8,5);AfterTick(f.ability);
+        Check(bool(g_players[0].gestureAbility),"completion marker survives parameter restoration until the actual native callback");
+        unsigned char original=38,copy=255;
+        Check(FinishParameters(f.ability,f.finish,&original,copy)&&original==38&&copy==0,"touchdown uses a private cause copy to prevent an unwanted second ground dash");
+        Check(!g_players[0].gestureAbility&&!FinishParameters(f.ability,f.finish,&original,copy),"one callback consumes its own gesture marker only once");NativeValues();
+    }
+    Fresh(image);BeforeTick(f.ability);Put<unsigned char>(f.ability,0xD8,5);unsigned char original=47,copy=255;
+    Check(!FinishParameters(f.ability,f.finish,&original,copy)&&original==47&&copy==255&&!g_players[0].gestureAbility,"timeout and cancellation preserve their original callback cause");NativeValues();
+    Fresh(image);BeforeTick(f.ability);original=38;
+    Check(!FinishParameters(f.ability,f.finish,&original,copy)&&g_players[0].gestureAbility,"callback before native cleanup cannot replace the cause");
+    Put<unsigned char>(f.ability,0xD8,5);
+    Check(!FinishParameters(f.ability,f.airClass,&original,copy)&&g_players[0].gestureAbility,"another callback is never filtered");
+    matches=false;Check(!FinishParameters(f.ability,f.finish,&original,copy)&&g_players[0].gestureAbility,"ownership change cannot rewrite a callback");
     for(int guard=0;guard<15;++guard){Fresh(image);auto& p=g_players[0];
         switch(guard){
         case 0:thread=false;break;case 1:p.await=false;break;case 2:p.until=0;break;
