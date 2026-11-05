@@ -13,7 +13,7 @@ struct Array {uintptr_t data=0;int count=0,capacity=0;};
 struct State {Id horse{};uintptr_t world=0;uint64_t start=0,next=0;bool checked=false;};
 std::array<State,2> g_states{};
 template<class T>bool Read(uintptr_t p,size_t at,T& v){native_objects::MemoryReader r;return r.Read(p,at,v);}
-bool Is(uintptr_t p,const char* name){return native_objects::NameIs(g_base,p,name);}
+template<size_t N>bool Is(uintptr_t p,const char(&name)[N]){return native_objects::NameIs(g_base,p,name);}
 bool Alive(const Id& id){native_objects::MemoryReader r;return native_objects::Alive(r,g_base,id);}
 bool Field(uintptr_t object,const char* name,const char* kind,int size,int& at){
     uintptr_t cls=0;return Read(object,0x10,cls)&&native_objects::PropertyField(g_base,cls,name,kind,size,at);
