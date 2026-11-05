@@ -1,6 +1,6 @@
-## 4 novembre 2026 — lot V1.152 préparé
+## 5 novembre 2026 — V1.152 disponible sur debug
 
-**Non livré ; EXPÉRIMENTAL en jeu.** Premier contrôle GitHub de visée/Stoneskin : 79/79 ; complément court/long à contrôler. Trait/arc validé conservé. Ancien garde LAND/MOVE retiré ; court/long aérien Strife implémenté : seuil180ms, physique avant et durée natives0,24s. Sortie de visée indépendante du déclencheur (`Mode`/`mode`) et Stoneskin compatible avec les enveloppes natives de matériaux. Aucun nouveau hook, commande imposée, changement d'INI ou installation. GPU V1.151 reste à tester. [Preuves, limites et suite](docs/V1_152_LIFECYCLE_PREPARATION.md).
+**CONSTRUIT et CONTRÔLÉ** par 81 tests Windows GitHub. **EXPÉRIMENTAL en jeu.** Appui court/maintenu pour le dash aérien de Strife, reprise de visée après interruption, matériaux natifs de Stoneskin. Le filtre Moloch validé est repris de V1.151. GPU après fermeture à tester. [ZIP, contrôles et essais](docs/V1_152_DELIVERY_RECEIPT.md).
 
 ---
 

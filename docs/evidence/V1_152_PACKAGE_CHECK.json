@@ -1,0 +1,30 @@
+{
+  "source": "2dd6ef891dd48dd221d66d21dbfeb2ca80452ec7",
+  "archive": "635e422dacff9a04381b13e6a9e909cb9639d14c",
+  "download": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/635e422dacff9a04381b13e6a9e909cb9639d14c/downloads/DarksidersGenesis_V1.152_AIR_GESTURE_RANGED_MATERIALS_TEST.zip",
+  "sha256": "4F587ABE1CCD624487636C0804E20D12E5A4A78A354DC990B1D12E4CD57B1510",
+  "bytes": 2410734,
+  "files": {
+    "dxgi.dll": {
+      "bytes": 155136,
+      "sha256": "F5E2C8DE61ACEF9CF3C63F3E21B08B7F46EF75CD1085F75E8E7A2F8BE44FFDE7"
+    },
+    "DarksidersGenesisMod.asi": {
+      "bytes": 2255360,
+      "sha256": "03BD401919DC5DFB65823981703DC3742DB5C2A5595B97683D22F5D532472597"
+    }
+  },
+  "crcVerified": true,
+  "amd64": true,
+  "oldArchivesUnchanged": 216,
+  "totalArchives": 217,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/main": "e2e519f7ea84d4b773fd7a31611779ae68308696",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "updaterSelection": "DarksidersGenesis_V1.152_AIR_GESTURE_RANGED_MATERIALS_TEST.zip",
+  "publicHttpStatus": 200,
+  "installed": false,
+  "gameplayValidated": false
+}

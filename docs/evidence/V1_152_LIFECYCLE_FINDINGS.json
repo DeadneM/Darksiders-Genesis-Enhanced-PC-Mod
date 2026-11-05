@@ -33,9 +33,6 @@
   },
   "airDash": {
     "performDashScriptBytes": 716,
-    "fallSpeed": 5000,
-    "forwardSpeed": 3000,
-    "timeout": 3,
     "timeoutSemanticsProven": true,
     "shortLongRuleImplemented": true,
     "newRequest": "short downward; held forward even airborne",
@@ -45,6 +42,21 @@
     "fallSpeedForward": 0,
     "newHook": false,
     "movementModeWrite": false,
-    "gameValidated": false
+    "gameValidated": false,
+    "nativeDefaults": {
+      "fallSpeed": 5000,
+      "forwardSpeed": 0,
+      "timeoutSeconds": 3
+    },
+    "experimentalForwardSpeed": 3000,
+    "nativeScriptReferencesVerified": 88,
+    "explicitNullReferences": 2,
+    "noSecondGroundDash": true,
+    "finishParameter": {
+      "name": "Cause",
+      "kind": "EnumProperty",
+      "size": 1,
+      "offset": 0
+    }
   }
 }

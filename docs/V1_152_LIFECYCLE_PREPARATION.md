@@ -1,4 +1,6 @@
-# V1.152 — lot préparé, en attente des contrôles finaux
+# V1.152 — préparation et preuves
+
+Le contrôle final et le ZIP sont détaillés dans le [reçu de livraison](V1_152_DELIVERY_RECEIPT.md).
 
 Base cumulative : source V1.151 `02f9eac97a90e09106604d582311c9b52ff6b020`, documents à `2c5bc9f3fa0561c947a981100754166e779bdf7d`. Travail exclusivement sur debug. Aucun fichier de jeu, INI personnel, sauvegarde ou PAK remplacé. Le premier contrôle GitHub, sans ZIP, de la visée et des matériaux a réussi **79/79** sur `2e26daf5dad5ef392520a668aebe6db7c24094b4` (run41905160063). Le complément court/long doit encore passer ses propres contrôles avant toute livraison cumulative. Aucune validation en jeu de ces trois corrections.
 
