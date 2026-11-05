@@ -57,7 +57,7 @@ void Run(){
     dg::coop_camera::UpdateInput(&pad,true,0.016f,0x20,0x40,0,0x20,500,true);
     pad=unchanged;dg::coop_camera::UpdateInput(&pad,true,0.016f,0x20,0x40,0,0x20,500,true);
     View(view);Check(Close(view[4],editorYaw),"editor press/release cannot recenter P2 on release");
-    Input(&pad);View(view);
+    pad=unchanged;pad.wButtons=0x10;Input(&pad,0.f);View(view);
     float x=0,y=0,z=0;
     Check(dg::coop_camera::AdjustLook(g_character,x,y,z,true)&&Close(y,view[4]),"P2 firing uses its own emitted yaw");
     dg::native_tps::MouseRay shot{};

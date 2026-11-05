@@ -1,3 +1,9 @@
+## V1.155 en préparation — menu et règles de gameplay
+
+V1.154 : poussières de dash validées par l'utilisateur sur Strife à pied ; confusion avec le stomp levée. Capture en lecture seule : huit rendus, Hidden et Native observés, 1 124 échantillons sans erreur. Nouvelle bêta V1.155 : séparation du maintien des règles de gameplay et de la capture des commandes par le menu ; contrôles GitHub en cours. Main reste sur V1.153. Flammes manquantes à la première apparition du cheval et transparence de l'écharpe sous Stoneskin sont ajoutées à la file d'analyse. [Périmètre et limites](V1_155_MENU_RUNTIME_REVIEW.md).
+
+---
+
 ## V1.154 disponible sur debug — 5 novembre 2026
 
 **CONSTRUIT et CONTRÔLÉ**, 81/81 tests Windows GitHub, aucun avertissement de compilation détecté. Base V1.153 désormais sur main. Nouveau choix commun aux deux héros : huit poussières de dash natives, Native et Hidden ; compatibilité de l'ancien masquage conservée. ZIP deux binaires sans INI/README, téléchargement/updater/Defender vérifiés, 247 anciens défauts préservés. **EXPÉRIMENTAL en jeu pour ces apparences.** [ZIP, limites et essais](V1_154_DELIVERY_RECEIPT.md).

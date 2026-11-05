@@ -1,6 +1,6 @@
 # V1.155 — continuité des règles de gameplay sous le menu
 
-Base de travail : V1.154 sur debug ; main reste sur V1.153 acceptée. Retour utilisateur : les effets au sol ne fonctionnent pas et de nombreux comportements de code cessent pendant l'affichage du menu du mod. V1.154 n'est donc pas validée pour les nouvelles poussières.
+Base de travail : V1.154 sur debug ; main reste sur V1.153 acceptée. L'utilisateur confirme finalement les poussières de dash sur Strife à pied : il les avait prises pour des effets de stomp. Le défaut restant concerne les comportements de code qui cessent pendant l'affichage du menu du mod.
 
 ## Cause établie dans le code et correction préparée
 
@@ -16,12 +16,16 @@ Cette correction ne nécessite aucun nouveau hook, aucun changement de touche et
 
 ## Contrôles
 
-Le premier passage GitHub de cette préparation utilise **[check only]** : compilation et tests Windows, sans publier de ZIP. Les tests vérifient la séparation runtime/commandes, l'isolation des lectures de navigation, le maintien du traitement manette du jeu et celui de P2 sans rotation ou recentrage provenant du menu. Ce ne sont pas des validations de gameplay.
+Le premier passage GitHub utilise **[check only]** : compilation réussie sans nouveau ZIP, 80/81 tests réussis. Le scénario ajouté à CoopCameraIsolation avait relâché le tir avant l'ancienne assertion de tir ; l'entrée de ce scénario est rétablie avec un delta nul pour reprendre le test existant. Le nouveau contrôle complet doit confirmer cette correction. Les tests vérifient la séparation runtime/commandes, l'isolation des lectures de navigation, le maintien du traitement manette du jeu et celui de P2 sans rotation ou recentrage provenant du menu. Ce ne sont pas des validations de gameplay.
 
-## Effets au sol encore en cours d'analyse
+## Effets de dash vérifiés avec l'utilisateur
 
 Le dernier journal V1.154 confirme un passage de substitution de la famille 45 mais pas son rendu final. La sélection finale de ce journal était Native ; cela ne remet pas en cause le retour utilisateur. L'analyse native confirme la chaîne : notification de surface 0x5D7760 → sélection dans la table m_SurfaceOverrides → notification parente 0x16977C0 → émission 0x169D0D0 → fabrique existante 0x187E600, via les fonctions attachée ou mondiale. Aucun nouveau point d'interception n'est ajouté sur cette seule base.
 
-L'utilisateur a préparé une nouvelle session : le relevé externe en lecture seule confirme Strife à pied, Water=7, OtherStrifeFx=0 et les huit exports chargés. La comparaison Water/Hidden est en cours sur les composants natifs réels, avant de décider d'un correctif. Le lecteur n'appelle aucune API moteur et ne modifie aucun état du jeu.
+Le relevé externe en lecture seule confirme Strife à pied, Water=7, OtherStrifeFx=0 et les huit exports chargés. Il a ensuite observé chaque choix 1 à 8 avec le bon template actif et visible, Hidden avec les templates natifs actifs mais masqués, et Native avec les templates de surface du jeu. Capture de 180 secondes : 1 124 échantillons, aucune erreur. Le lecteur n'a appelé aucune API moteur et n'a modifié aucun état du jeu. [Preuve compacte et retour utilisateur](evidence/V1_154_DASH_USER_VALIDATION.json). L'absence de serial sur les particules non masquées est native : le jeu initialise ce serial à la création d'une référence faible ; aucune faiblesse de CaptureLive n'a été démontrée. Le code des effets reste inchangé.
+
+## Nouveaux signalements ajoutés au suivi
+
+Des flammes manquent à la première apparition du cheval dans le premier niveau ; un rappel du cheval en rétablit une partie. Sous Stoneskin, certains éléments de l'écharpe de Strife paraissent transparents. La qualité d'effets enregistrée du jeu vaut 3 et les choix MountFx/OtherMountFx sont Native. Le mod n'a pas de correctif démontré pour ces symptômes. Vérifier disponibilité, parents/activité des particules et matériaux d'opacité avant de modifier le rendu, sans confondre ces signalements avec la poussière de dash validée.
 
 Statut : préparation expérimentale, pas de nouveau ZIP livré à ce stade. Main/archive et les anciennes archives restent inchangés.

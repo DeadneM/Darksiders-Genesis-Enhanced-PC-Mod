@@ -1,0 +1,107 @@
+{
+  "date": "2026-11-05",
+  "version": "V1.154",
+  "readOnly": true,
+  "engineCalls": false,
+  "captureSha256": "34857129df6d97e05e3834fd4c2fb9da8426e5d9b7f7c71541e57dda9fc61911",
+  "frames": 1124,
+  "seconds": 180.11000000000058,
+  "readerErrors": 0,
+  "player": "P1 Strife on foot",
+  "selectedTemplateAndVisibility": {
+    "7": [
+      [
+        "P_StrifeDash_Water",
+        true,
+        false
+      ]
+    ],
+    "9": [
+      [
+        "P_StrifeDash_Default",
+        false,
+        false
+      ],
+      [
+        "P_StrifeDash_Stone",
+        false,
+        false
+      ]
+    ],
+    "5": [
+      [
+        "P_StrifeDash_Snow",
+        true,
+        false
+      ]
+    ],
+    "3": [
+      [
+        "P_StrifeDash_Metal",
+        true,
+        false
+      ]
+    ],
+    "2": [
+      [
+        "P_StrifeDash_Coins",
+        true,
+        false
+      ]
+    ],
+    "1": [
+      [
+        "P_StrifeDash_Default",
+        true,
+        false
+      ]
+    ],
+    "4": [
+      [
+        "P_StrifeDash_Sand",
+        true,
+        false
+      ]
+    ],
+    "6": [
+      [
+        "P_StrifeDash_Stone",
+        true,
+        false
+      ]
+    ],
+    "8": [
+      [
+        "P_StrifeDash_Wood",
+        true,
+        false
+      ]
+    ],
+    "0": [
+      [
+        "P_StrifeDash_Default",
+        true,
+        false
+      ],
+      [
+        "P_StrifeDash_Stone",
+        true,
+        false
+      ]
+    ]
+  },
+  "activeSamplesByChoice": {
+    "7": 151,
+    "9": 79,
+    "5": 49,
+    "3": 71,
+    "2": 135,
+    "1": 135,
+    "4": 21,
+    "6": 25,
+    "8": 65,
+    "0": 190
+  },
+  "userFeedback": "All seem to work; had understood the option as stomp rather than dash.",
+  "limitations": "Component metadata is not an image or FPS measurement. No validation of War/co-op from this capture."
+}
