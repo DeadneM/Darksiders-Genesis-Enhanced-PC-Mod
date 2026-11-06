@@ -1,3 +1,9 @@
+## V1.159 stable — promotion de la V1.158 acceptée
+
+Publication sur main et compilation Windows x64 explicitement demandées. Même code de gameplay que la dernière bêta, nouveau numéro stable pour conserver son archive. **CONSTRUCTION ET CONTRÔLES À VENIR.** Écharpe/menu acceptés, cheval favorable avec réserve ; aura Molten passée sur le dernier essai, intermittence historique non reproduite, coop différée. Réglages et anciennes archives conservés. [Périmètre et limites](docs/V1_159_MAIN_PROMOTION.md).
+
+---
+
 ## Finition V1.158 — aura Molten retestée avec succès
 
 Retour utilisateur : « ca a marcher a chaque fois » pour l'aura de lave de Strife. Capture autorisée en lecture seule : aura Molten niveau 2 active et non masquée ; aucun nouveau correctif nécessaire démontré. Ancien défaut intermittent non reproduit, sans cause annoncée réparée. Écharpe/menu validés, cheval favorable avec réserve ; coop différée. **Même binaire V1.158, aucun build ni réglage modifié.** [Essai et limites](docs/V1_158_FINAL_REVIEW.md).
