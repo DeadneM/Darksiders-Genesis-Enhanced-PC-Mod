@@ -1,0 +1,39 @@
+{
+  "version": "V1.159",
+  "base": "063219c788e83686abaee0e46ab70f3fdc3d5473",
+  "source": "7ce851b20326ce811226bcd804bb14a8344469ae",
+  "archive": "327a913a91af57980fc2e6b3471e3999484a89ed",
+  "download": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/327a913a91af57980fc2e6b3471e3999484a89ed/downloads/DarksidersGenesis_V1.159_STABLE_CUMULATIVE.zip",
+  "sha256": "6AB63FC3D5BCBDE979D3880636D2ECC290A3965ED97AE461A4D87CFE35C3CF15",
+  "bytes": 2430702,
+  "files": {
+    "dxgi.dll": {
+      "bytes": 155136,
+      "sha256": "D6F9C45EA637DAF330220A01BE6C61B3F62AA2091CC696ACB8BC407E19D8CD83"
+    },
+    "DarksidersGenesisMod.asi": {
+      "bytes": 2275328,
+      "sha256": "A093BEFB4A8D1D4ED4BADC19A84ABF39104EF2F2DBCA7E72A973C0BB68C2F5D9"
+    }
+  },
+  "amd64": true,
+  "crcVerified": true,
+  "rootBinariesOnly": true,
+  "publicHttpStatus": 200,
+  "updaterSelection": "DarksidersGenesis_V1.159_STABLE_CUMULATIVE.zip",
+  "gitBlob": "a51b1671a8e8b78d1b91cd73a1f8e33b3bb90ef2",
+  "oldArchivesUnchanged": 223,
+  "totalArchives": 224,
+  "iniKeys": 248,
+  "defaultsPreserved": true,
+  "gameplaySourcesUnchanged": true,
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/debug": "063219c788e83686abaee0e46ab70f3fdc3d5473",
+    "refs/heads/main": "327a913a91af57980fc2e6b3471e3999484a89ed",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "installed": false,
+  "localBuild": false,
+  "gameplayValidated": false
+}

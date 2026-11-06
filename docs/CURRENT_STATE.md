@@ -1,3 +1,9 @@
+## V1.159 stable disponible sur main
+
+**CONSTRUIT / CONTRÔLÉ / PUBLIÉ : 82/82 suites GitHub Windows x64, aucun avertissement C++ détecté.** Même code de gameplay que la V1.158 acceptée, identifiant stable ; réglages conservés. ZIP deux binaires sans INI/README, lien public et découverte updater vérifiés, anciennes archives préservées. Écharpe/menu acceptés, cheval favorable avec réserve ; ancienne intermittence Molten non reproduite, coop différée. Aucun nouvel essai en jeu du binaire recompilé ni installation automatique. [ZIP stable](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/327a913a91af57980fc2e6b3471e3999484a89ed/downloads/DarksidersGenesis_V1.159_STABLE_CUMULATIVE.zip) · [Reçu et limites](V1_159_DELIVERY_RECEIPT.md).
+
+---
+
 ## V1.159 stable — promotion de la V1.158 acceptée
 
 Publication sur main et compilation Windows x64 explicitement demandées. Même code de gameplay que la dernière bêta, nouveau numéro stable pour conserver son archive. **CONSTRUCTION ET CONTRÔLES À VENIR.** Écharpe/menu acceptés, cheval favorable avec réserve ; aura Molten passée sur le dernier essai, intermittence historique non reproduite, coop différée. Réglages et anciennes archives conservés. [Périmètre et limites](V1_159_MAIN_PROMOTION.md).
