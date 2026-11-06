@@ -1,0 +1,53 @@
+{
+  "date": "2026-11-06",
+  "build": "V1.158",
+  "source": "5f1591a85630ea0af128b4bd5c25996072bd5e3a",
+  "readOnly": true,
+  "memoryWrites": false,
+  "nativeCalls": false,
+  "newCaptureRequired": false,
+  "capture": {
+    "file": "v284-aura-20261106-123820.jsonl",
+    "sha256": "bd53450416301432b2aeb5a3d0479957eae1b04fd443933d01fbe2dc2b38000b",
+    "durationSeconds": 180,
+    "successfulSamples": 733,
+    "refusedSamples": 127,
+    "changedRecords": 98,
+    "recordsWithPartialAttachmentRead": 3,
+    "limitation": "Refused and partial observations do not prove missing effects; no writes or engine calls."
+  },
+  "native": {
+    "core": "Molten Hound",
+    "status": "MayhemStatusEffect_Core_FallenDog_Molten_2_Blueprint_C",
+    "visual": "P_MoltenFallen_CreatureCore_Status_Lvl2",
+    "damageBlast": "MayhemBlast_StoneSkin_Aura_Level2_Blueprint_C",
+    "damageRadius": 300,
+    "damageUpdateSeconds": 1,
+    "damageAndVisualSeparate": true,
+    "attachSocket": "VFX_Aura",
+    "socketBone": "Bone_Strife_Root",
+    "socketZ": 125,
+    "observedSocketSkin": "Strife_Silver",
+    "observedMoltenStatusIdentities": 6
+  },
+  "observedParticles": {
+    "P_Stinger_CreatureCore_StoneSkin": 6,
+    "P_WarStoneSkin_Molten": 6,
+    "P_MoltenFallen_CreatureCore_Status_Lvl2": 6,
+    "P_War_StoneSkin_Base_Crumble_Expiration": 1
+  },
+  "moltenVisualObservations": 63,
+  "moltenVisualUnexpectedVisibilityOrActivation": [],
+  "userFeedback": "ca a marcher a chaque fois",
+  "result": "Test passed according to user; earlier intermittent symptom not reproduced. No cause or repair claimed.",
+  "productionChanges": false,
+  "newBuild": false,
+  "cooperativeGameplay": "deferred by user",
+  "sourceHashes": {
+    "src/StoneSkinVisual.cpp": "d1a3afd78efba1fce79316e31fc532f7710367022928176ccebe1bb5ad34439a",
+    "src/StoneTransitionFx.cpp": "4f6ebeb46f0ea15d65b32f33a2b5c59257d4127f04dbc5c93b1ebad781dc60c4",
+    "src/MountedPassiveFx.cpp": "ed3fc254fac5ada53c2689405aeaf7f994b5e27abe21da35b1f49e1274e5f47d",
+    "src/GameplayMenuPolicy.h": "4f0dd2e811677e40ee62e13f4dae86fc08bde373ba3d6b1eba6cf13f662b0c09",
+    "src/EffectAppearanceFeature.cpp": "1a1329f3d9bd71ec92766d315b2a12b7f7f004c9739e972521d735b081603170"
+  }
+}

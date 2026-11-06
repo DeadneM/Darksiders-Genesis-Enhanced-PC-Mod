@@ -1,3 +1,9 @@
+## Finition V1.158 — aura Molten retestée avec succès
+
+Retour utilisateur : « ca a marcher a chaque fois » pour l'aura de lave de Strife. Capture autorisée en lecture seule : aura Molten niveau 2 active et non masquée ; aucun nouveau correctif nécessaire démontré. Ancien défaut intermittent non reproduit, sans cause annoncée réparée. Écharpe/menu validés, cheval favorable avec réserve ; coop différée. **Même binaire V1.158, aucun build ni réglage modifié.** [Essai et limites](V1_158_FINAL_REVIEW.md).
+
+---
+
 ## Retour utilisateur V1.158 — écharpe et menu acceptés
 
 **VALIDÉ par l'utilisateur : écharpe, menu.** Cheval : retour favorable « a l'air OK », à conserver avec cette réserve. Nouveau suivi distinct : effet de lave au sol parfois absent pendant Stoneskin, probablement lié à un cœur ; cause non établie. Les données natives identifient une aura Molten Hound séparée des matériaux pierre/feu. Aucun nouveau correctif, build ou relevé en jeu dans ce retour. GPU déjà accepté ; coop différée. [Retour, piste native et références des quatre chevaux](V1_158_USER_FEEDBACK_AURA.md).
