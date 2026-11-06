@@ -1,3 +1,9 @@
+## Retour utilisateur V1.158 — écharpe et menu acceptés
+
+**VALIDÉ par l'utilisateur : écharpe, menu.** Cheval : retour favorable « a l'air OK », à conserver avec cette réserve. Nouveau suivi distinct : effet de lave au sol parfois absent pendant Stoneskin, probablement lié à un cœur ; cause non établie. Les données natives identifient une aura Molten Hound séparée des matériaux pierre/feu. Aucun nouveau correctif, build ou relevé en jeu dans ce retour. GPU déjà accepté ; coop différée. [Retour, piste native et références des quatre chevaux](docs/V1_158_USER_FEEDBACK_AURA.md).
+
+---
+
 ## V1.158 installée — feu natif, chargement à cheval, caméra sous le menu
 
 **CONSTRUIT / CONTRÔLÉ / INSTALLÉ : 82/82 tests GitHub, aucun avertissement C++ détecté. EXPÉRIMENTAL en jeu.** Substitution de texture rejetée retirée, deux sources natives Stoneskin A ; disponibilité des passifs du cheval au chargement ; orbite manette sous le menu et souris réservée à l'édition. Sauvegarde V1.157, INI/raccourcis/Engine.ini/PAK préservés. Clics acceptés, GPU validé, coop différée. 248 valeurs et 222 anciennes archives conservées, main V1.153 intacte. [Livraison et trois essais](docs/V1_158_DELIVERY_RECEIPT.md).
