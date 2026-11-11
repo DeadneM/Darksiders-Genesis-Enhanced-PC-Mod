@@ -165,6 +165,22 @@ void Run(){
  Fresh();Step(owner);owner.kind=dg::local_players::PoseKind::Horse;Step(owner);Check(sets==4&&!g_visual[0].actor,"transformation restores only own visual state");
  for(int bad=0;bad<5;++bad){Fresh();if(bad==0)thread=false;if(bad==1)owner.index=2;if(bad==2)owner.localPlayer=0;if(bad==3)Put<unsigned char>(f.actor,0x118,2);if(bad==4)Label(f.classes[0],1,"War_Blueprint_C");Step(owner);Check(!creates&&!sets,"War, off-thread, remote and invalid owners untouched");}
  Fresh();owner.index=1;Step(owner);Check(g_visual[1].actor&&!g_visual[0].actor,"independent per-player observation");Shutdown();Check(sets==4&&!g_event,"game-thread shutdown restores originals");
+ Fresh();Put(f.component,0x138,0);Cast(owner);Step(owner);Step(owner);
+ Check(g_transitions[0].pending&&!launchAttempts&&!creates,"cast before native status publication keeps a cosmetic ticket without inventing a coating");
+ Put(f.component,0x138,1);Step(owner);Step(owner);
+ Check(launchAttempts==1&&fx[0]==1&&!g_transitions[0].pending,"first delayed native status produces exactly one explosion");
+ Fresh();Put(f.component,0x138,129);Cast(owner);Step(owner);Put(f.component,0x138,1);Step(owner);
+ Check(fx[0]==1,"inconclusive first status list can settle before the one-second wait expires");
+ Fresh();Put(f.component,0x138,0);Cast(owner);for(int i=0;i<25;++i)Step(owner);
+ Check(!g_transitions[0].pending&&!launchAttempts&&!creates,"absent status expires the short wait without spawning anything");
+ Put(f.component,0x138,1);for(int i=0;i<6;++i)Step(owner);Check(!fx[0],"status arriving after timeout cannot replay an old cast");
+ Fresh();Put(f.component,0x138,0);Cast(owner);Step(owner);Put(f.component,0x138,1);ObserveAt(owner,observationTime+1001);
+ Check(!g_transitions[0].pending&&!launchAttempts,"first status after a long service gap cannot revive the expired ticket");
+ for(int change=0;change<2;++change){Fresh();Put(f.component,0x138,0);Cast(owner);Step(owner);
+  if(change==0)owner.kind=dg::local_players::PoseKind::Horse;else owner.world=99;
+  Step(owner);Check(!g_transitions[0].pending&&!launchAttempts,"pending first status is cancelled on form or world loss");}
+ Fresh();Put(f.component,0x138,0);Cast(owner);Step(owner);Put(f.component,0x138,2);Step(owner);
+ Check(fx[1]==1&&!fx[0],"first delayed Molten status selects its own explosion");
  Fresh();Cast(owner);Step(owner);Step(owner);Check(fx[0]==1&&!fx[1]&&!fx[2]&&creates==4,"one explosion exactly when accepted coating appears, no per-frame burst or material recreation");
  Cast(owner);Step(owner);Check(fx[0]==2&&creates==4,"recast can emit one explosion without recreating accepted material state");
  Put(f.component,0x138,0);Step(owner);Step(owner);Check(fx[2]==1&&sets==4,"one crumble at complete status expiry, not cast animation end");

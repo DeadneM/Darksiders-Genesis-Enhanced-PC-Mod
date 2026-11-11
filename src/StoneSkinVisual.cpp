@@ -22,7 +22,7 @@ std::array<Id,2> g_materials{};
 struct Slot {Id material{},original{};bool inherited=false,failed=false;uintptr_t observed=0;uint64_t retryAt=0;};
 struct Visual {Id actor{},mesh{},asset{};uintptr_t world=0;int variant=-1;std::array<Slot,4> slots{};};
 Visual g_visual[2]{};
-struct Transition {Id actor{};uintptr_t world=0;bool pending=false;uint64_t serial=0,started=0,next=0;unsigned attempts=0;};
+struct Transition {Id actor{};uintptr_t world=0;bool pending=false;uint64_t serial=0,started=0,next=0;unsigned attempts=0;bool statusSeen=false;uint64_t waitStarted=0;};
 Transition g_transitions[2]{};
 uint64_t g_castSerial=0;
 bool g_missing[2]{};
@@ -303,6 +303,15 @@ void ObserveCurrent(const local_players::Context& c,uint64_t now){
     bool statusKnown=false;const int variant=owned?Status(c.character,&statusKnown):-1;
     auto& transition=g_transitions[c.index];
     if(transition.pending&&(!owned||transition.world!=c.world||transition.actor.address!=c.character||!Alive(transition.actor)))transition={};
+    if(transition.pending){
+        if(!transition.statusSeen&&transition.waitStarted&&(now<transition.waitStarted||now-transition.waitStarted>=1000)){
+            transition={};if(g_log&&g_events++<16)g_log("Stoneskin V1.161 launch: native status wait expired; no effect spawned");
+        }else if(statusKnown&&variant>=0)transition.statusSeen=true;
+        else if(!transition.statusSeen){
+            if(!transition.waitStarted){transition.waitStarted=now;
+                if(g_log&&g_events++<16)g_log("Stoneskin V1.161 launch: waiting briefly for native status before first creation");}
+        }
+    }
     const bool same=owned&&v.actor.address==c.character&&v.world==c.world&&v.mesh.address==mesh&&v.asset.address==asset&&
         Alive(v.actor)&&Alive(v.mesh)&&Alive(v.asset);
     if(v.actor&&!same)Restore(v);
@@ -313,7 +322,7 @@ void ObserveCurrent(const local_players::Context& c,uint64_t now){
     if(same&&statusKnown&&variant<0){const bool ok=stone_fx::Spawn(c,2);
         if(g_log&&g_events++<16)g_log(ok?"Stoneskin V1.123 expiry: native crumble at complete coating removal":"Stoneskin V1.123 expiry effect unavailable; native material restoration retained");}
     if(v.actor&&(variant<0||variant!=v.variant||v.world!=c.world||v.actor.address!=c.character||v.mesh.address!=mesh||v.asset.address!=asset||!Alive(v.actor)||!Alive(v.mesh)||!Alive(v.asset)))Restore(v);
-    if(!owned||variant<0){if(!owned||statusKnown)transition={};return;}
+    if(!owned||variant<0){if(!owned||(statusKnown&&transition.statusSeen))transition={};return;}
     // Body always uses the base mineral material, even with Molten cloth.
     // Wait for these actual sources before invoking/caching a factory result.
     bool sourcesReady=Alive(g_materials[BaseBody])&&(!variant||Alive(g_materials[MoltenCloth]));
@@ -382,9 +391,9 @@ void ObserveCurrent(const local_players::Context& c,uint64_t now){
             const auto serial=transition.serial;transition.pending=false; // native callbacks cannot replay this request
             const bool ok=stone_fx::Spawn(c,variant);
             if(!ok&&transition.serial==serial&&transition.attempts<3)transition.pending=true;
-            if(g_log&&g_events++<16)g_log(ok?"Stoneskin V1.160 launch: native explosion accepted; visual validation required":
-                transition.serial==serial&&transition.pending?"Stoneskin V1.160 launch: cosmetic creation refused; bounded retry pending":
-                "Stoneskin V1.160 launch: cosmetic creation refused; no further retry for this request");
+            if(g_log&&g_events++<16)g_log(ok?"Stoneskin V1.161 launch: native explosion accepted; visual validation required":
+                transition.serial==serial&&transition.pending?"Stoneskin V1.161 launch: cosmetic creation refused; bounded retry pending":
+                "Stoneskin V1.161 launch: cosmetic creation refused; no further retry for this request");
         }
     }
 }
@@ -397,10 +406,10 @@ void ObserveAt(const local_players::Context& c,uint64_t now){
         previous.pawn==c.pawn&&previous.controller==c.controller&&previous.localPlayer==c.localPlayer&&previous.kind==c.kind;
     if(same&&!sample.force&&now<sample.next&&sample.next-now<=250){++g_skipped;return;}
     sample.owner=c;sample.entered=true;sample.force=false;
-    sample.next=now+(g_visual[c.index].actor||g_missing[c.index]?50:250);
+    sample.next=now+(g_visual[c.index].actor||g_missing[c.index]||g_transitions[c.index].pending?50:250);
     ++g_observed;
     ObserveCurrent(c,now);
-    sample.next=now+(g_visual[c.index].actor||g_missing[c.index]?50:250);
+    sample.next=now+(g_visual[c.index].actor||g_missing[c.index]||g_transitions[c.index].pending?50:250);
 }
 void Observe(const local_players::Context& c){ObserveAt(c,GetTickCount64());}
 void Shutdown(){

@@ -1,3 +1,9 @@
+## V1.161 — première explosion Stoneskin
+
+V1.160 : saut validé, raccourci OK ; première explosion absente, suivantes présentes. Attente bornée du premier statut natif pour éviter l'abandon prématuré du ticket. **EXPÉRIMENTAL, contrôles GitHub à venir.** Aucun changement des acquis. [Périmètre](docs/V1_161_REVIEW.md).
+
+---
+
 ## V1.160 bêta disponible sur debug
 
 **CONSTRUIT / CONTRÔLÉ : 82/82 suites GitHub Windows, aucun avertissement C++ détecté. EXPÉRIMENTAL en jeu pour ce lot.** Saut Mayhem/Rampage, défaut D-pad bas sans écraser les profils existants, reprise bornée des explosions Stoneskin refusées. Écharpe/aura/dégâts conservés ; coop de base acceptée. Main reste V1.159 ; aucun jeu installé/lancé ni ancien paquet retéléchargé. [ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/1e8c3b672e86e4ad95bb1948faf7add96bae047c/downloads/DarksidersGenesis_V1.160_MOUNT_JUMP_STONE_RETRY_TEST.zip) · [Reçu et trois essais](docs/V1_160_DELIVERY_RECEIPT.md).
