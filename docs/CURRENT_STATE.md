@@ -1,3 +1,9 @@
+## V1.161 disponible sur debug — premier lancement Stoneskin
+
+**CONSTRUIT / CONTRÔLÉ : 82/82 suites Windows GitHub, aucun avertissement C++ détecté. EXPÉRIMENTAL en jeu pour ce correctif.** Courte attente du premier statut natif avant création de l'explosion ; pas de relance du pouvoir. Saut/raccourci validés et coop acceptée conservés, peau/écharpe/aura/dégâts inchangés. Main reste V1.159. [ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/050ff8edf221d4bf21763e7da0eb071adba12078/downloads/DarksidersGenesis_V1.161_STONESKIN_FIRST_STATUS_TEST.zip) · [Reçu et test ciblé](V1_161_DELIVERY_RECEIPT.md).
+
+---
+
 ## V1.161 — première explosion Stoneskin
 
 V1.160 : saut validé, raccourci OK ; première explosion absente, suivantes présentes. Attente bornée du premier statut natif pour éviter l'abandon prématuré du ticket. **EXPÉRIMENTAL, contrôles GitHub à venir.** Aucun changement des acquis. [Périmètre](V1_161_REVIEW.md).
