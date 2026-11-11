@@ -22,6 +22,8 @@ struct Snapshot {
     int warArmAppearance=0,mouseReticleHideMode=defaults::MouseReticleHideMode;
     bool mountedJumpEnabled = defaults::MountedJump;
     int mountedJumpSound = 0;
+    bool mountedAirWalkEnabled = defaults::MountedAirWalk;
+    float mountedAirWalkReleaseDelay = defaults::MountedAirWalkReleaseDelay;
     bool bonusMountSkinsEnabled = defaults::BonusMountSkins;
     bool progressionSkinsEnabled = false;
     bool leviathanVisualEnabled = false;
@@ -150,6 +152,8 @@ struct State {
     std::atomic_int warArmAppearance{0},mouseReticleHideMode{defaults::MouseReticleHideMode};
     std::atomic_bool mountedJumpEnabled{defaults::MountedJump};
     std::atomic_int mountedJumpSound{0};
+    std::atomic_bool mountedAirWalkEnabled{defaults::MountedAirWalk};
+    std::atomic<float> mountedAirWalkReleaseDelay{defaults::MountedAirWalkReleaseDelay};
     std::atomic_bool bonusMountSkinsEnabled{defaults::BonusMountSkins};
     std::atomic_bool progressionSkinsEnabled{false};
     std::atomic_bool leviathanVisualEnabled{false};

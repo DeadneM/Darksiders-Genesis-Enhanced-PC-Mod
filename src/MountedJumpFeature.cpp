@@ -1,4 +1,5 @@
 #include "MountedJumpFeature.h"
+#include "MountedAirWalkNative.h"
 #include "LocalPlayerOwnership.h"
 #include "NativeMemoryReader.h"
 #include "NativeObjectName.h"
@@ -8,12 +9,13 @@
 #include <atomic>
 #include <cstdio>
 #include <cmath>
+#include <algorithm>
 
 namespace dg::mounted_jump {
 namespace {
 using FindKey=int*(*)(void*,int*,const void*);
 using Jump=bool(*)(void*,bool);
-FindKey g_find=nullptr;Jump g_jump=nullptr;
+FindKey g_find=nullptr;Jump g_jump=nullptr;mounted_air::Event g_event=nullptr;
 struct Vector {float x=0,y=0,z=0;};
 // execPlaySoundAtLocation 1D16FA0 -> 18911C0. Ten arguments, vector and
 // rotation by const reference. No borrowed FString, FKey or shared ownership.
@@ -21,7 +23,7 @@ using PlaySound=void(*)(void*,void*,const Vector*,const Vector*,float,float,floa
 PlaySound g_sound=nullptr;
 native_objects::Identity g_sounds[3]{};std::atomic_uint g_soundMask{0};
 int g_soundCursor=0,g_soundCount=0;bool g_soundComplete=false;
-uintptr_t g_base=0;LogFn g_log=nullptr;std::atomic_bool g_ready{false};unsigned g_jumps=0;
+uintptr_t g_base=0;LogFn g_log=nullptr;std::atomic_bool g_ready{false};unsigned g_jumps=0,g_airEvents=0;
 struct Name {int index=0,number=0;};
 struct Mapping {Name action{};unsigned char modifiers=0,padding[7]{};Name key{};uintptr_t details=0,reference=0;};
 struct Array {uintptr_t data=0;int count=0,capacity=0;};
@@ -29,7 +31,7 @@ static_assert(sizeof(Mapping)==40&&offsetof(Mapping,key)==16);
 struct Bindings {uintptr_t settings=0,data=0;int count=0;uint64_t refresh=0;std::array<int,8> indices{};unsigned size=0;};
 Bindings g_bindings{};
 struct Landing {uint64_t tick=0;bool airborne=false;};
-struct State {uintptr_t pawn=0,controller=0;uint32_t generation=0;uint64_t signature=0,tick=0;bool seen=false,down=false;Landing landing{};};
+struct State {uintptr_t pawn=0,controller=0;uint32_t generation=0;uint64_t signature=0,tick=0;bool seen=false,down=false;Landing landing{};mounted_air::State air{};bool blockedInput=false;};
 State g_players[2]{}; // synchronous native game-thread observations only
 template<class T> bool Read(uintptr_t object,size_t offset,T& value){
     native_objects::MemoryReader reader;return reader.Read(object,offset,value);
@@ -139,20 +141,24 @@ bool Held(const local_players::Context& owner,bool& down,uint64_t& signature,uin
     return true;
 }
 }
-void OnLivePlayer(const local_players::Context& owner,uint32_t generation,bool focused){
+void OnLivePlayer(const local_players::Context& owner,uint32_t generation,bool focused,bool commandsAllowed){
     if(!native_tps::OnGameThread()||owner.index<0||owner.index>1)return;
     auto& state=g_players[owner.index];uintptr_t movement=0;
-    if(!Ready()||!runtime::Get().mountedJumpEnabled.load()||!focused||
+    const bool air=runtime::Get().mountedAirWalkEnabled.load();
+    const auto cancel=[&]{mounted_air::Release(g_base,g_event,state.air,owner.world);state={};};
+    if(!Ready()||(!runtime::Get().mountedJumpEnabled.load()&&!air)||!focused||
        !local_players::Matches(unsigned(owner.index),owner.character,generation)||!Owned(owner,movement)||
        native_tps::IsWorldPaused(reinterpret_cast<void*>(owner.pawn))||native_tps::CinematicActive(unsigned(owner.index))||
-       native_tps::RadialActive(unsigned(owner.index))){state={};return;}
+       native_tps::RadialActive(unsigned(owner.index))){cancel();return;}
     const auto now=GetTickCount64();
     if(state.seen&&state.pawn==owner.pawn&&state.controller==owner.controller&&state.generation==generation&&now>=state.tick&&now-state.tick<8)return;
     bool down=false;uint64_t signature=0;
-    if(!Held(owner,down,signature,now)){state={};return;}
+    if(!Held(owner,down,signature,now)){cancel();return;}
     const bool same=state.seen&&state.pawn==owner.pawn&&state.controller==owner.controller&&state.generation==generation&&state.signature==signature;
-    const bool edge=same&&!state.down&&down;const auto landing=same?state.landing:Landing{};
-    state={owner.pawn,owner.controller,generation,signature,now,true,down,landing};
+    const bool edge=same&&!state.blockedInput&&commandsAllowed&&!state.down&&down;
+    if(!same||!air)mounted_air::Release(g_base,g_event,state.air,owner.world);
+    const auto landing=same?state.landing:Landing{};const auto airState=state.air;
+    state={owner.pawn,owner.controller,generation,signature,now,true,down,landing,airState,!commandsAllowed};
     if(!same&&!g_soundMask.load()){g_soundCursor=0;g_soundComplete=false;}
     Sounds();unsigned char mode=0;if(!Read(movement,0x1B0,mode))return;
     if(state.landing.tick){
@@ -160,7 +166,37 @@ void OnLivePlayer(const local_players::Context& owner,uint32_t generation,bool f
         else if((mode==1||mode==2)&&state.landing.airborne){Sound(owner,true);state.landing={};}
         if(now<state.landing.tick||now-state.landing.tick>30000)state.landing={};
     }
-    if(edge&&(mode==1||mode==2)&&g_jump(reinterpret_cast<void*>(movement),false)){
+    // Opening the editor reserves commands, not the already-owned air walk.
+    // Returning from it while Jump is held cannot create a fresh press.
+    if(!commandsAllowed){state.air.policy.released=0;return;}
+    if(state.air.lease.active&&mode!=5)state.air={}; // native physics took ownership again
+    mounted_air::Action action=mounted_air::Action::None;
+    if(air){
+        float vertical=0;
+        if(!Read(movement,0x114,vertical)||!std::isfinite(vertical)){cancel();return;}
+        const float seconds=runtime::Get().mountedAirWalkReleaseDelay.load();
+        const unsigned delay=unsigned((std::isfinite(seconds)?std::clamp(seconds,0.0f,1.0f):defaults::MountedAirWalkReleaseDelay)*1000.0f);
+        action=mounted_air::Decide(state.air.policy,state.air.lease.active,mode,vertical,down,edge,now,delay);
+        if(action==mounted_air::Action::Hover){
+            const bool acquired=mounted_air::Hover(g_base,g_event,owner,movement,state.air);
+            if(!acquired)state.air.policy.blocked=true;
+            if(g_log&&g_airEvents++<12)g_log(acquired?
+                "Mounted air walk V1.162: native Flying acquired; movement stopped once; EXPERIMENTAL":
+                "Mounted air walk V1.162: native contract unavailable or callback rejected; no held-input retry");
+            return;
+        }
+        if(action==mounted_air::Action::Fall){mounted_air::Release(g_base,g_event,state.air,owner.world);return;}
+        // Horse DoJump is the existing native animation/velocity path. Leave
+        // our flying mode first; never call it on a foreign flying component.
+        if(action==mounted_air::Action::Jump){
+            const auto lease=state.air.lease;
+            if(!mounted_air::Possessed(g_base,lease)){cancel();return;}
+            mounted_air::Release(g_base,g_event,state.air,owner.world);
+            if(!Read(movement,0x1B0,mode)||mode!=3)return;
+        }
+    }
+    if(((edge&&(mode==1||mode==2))||action==mounted_air::Action::Jump)&&g_jump(reinterpret_cast<void*>(movement),false)){
+        if(air)mounted_air::Jumped(state.air.policy);
         Sound(owner,false);unsigned char after=0;
         state.landing={now,Read(movement,0x1B0,after)&&after==3};
         if(g_log&&++g_jumps<=8){char line[180]{};sprintf_s(line,
@@ -177,7 +213,8 @@ void Initialize(LogFn log,bool exactExecutable){
     g_find=reinterpret_cast<FindKey>(g_base+0x1C75E60);g_jump=reinterpret_cast<Jump>(g_base+0x667510);
     constexpr unsigned char sound[]={0x48,0x85,0xD2,0x0F,0x84,0xFE,0x00,0x00,0x00,0x48,0x89,0x5C,0x24,0x08,0x48,0x89};
     if(!std::memcmp(reinterpret_cast<void*>(g_base+0x18911C0),sound,sizeof(sound)))g_sound=reinterpret_cast<PlaySound>(g_base+0x18911C0);
-    g_ready=true;if(log)log("Mounted jump V1.80 READY: rebindable Jump and native horse DoJump retained; loaded native varied sounds; no new hook; OFF by default; sounds EXPERIMENTAL");
+    g_event=reinterpret_cast<mounted_air::Event>(g_base+0xAC0630);
+    g_ready=true;if(log)log("Mounted jump V1.80 READY: rebindable Jump and native horse DoJump retained; loaded native varied sounds; no new hook; air walk OFF by default, independent of ground jump; sounds EXPERIMENTAL");
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}
 unsigned SoundAssetsReady(){return g_soundMask.load(std::memory_order_acquire);}

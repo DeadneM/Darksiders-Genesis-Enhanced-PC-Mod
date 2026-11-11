@@ -1,0 +1,72 @@
+{
+  "readOnly": true,
+  "nativeCalls": false,
+  "memoryWrites": false,
+  "source": "existing local executable and mounted observation 11 Nov 2026",
+  "executableSha256": "9F4702024DF5EEA1D51DF7745B0AD1EA95B97009982F73DDC1218C53DFF33D54",
+  "mount": "Despair_Blueprint_C",
+  "movementClass": "MayhemHorseCharacterMovementComponent",
+  "methods": [
+    {
+      "name": "SetMovementMode",
+      "outer": "CharacterMovementComponent",
+      "nativeRva": "0x1cf1600",
+      "flags": "0x4020400",
+      "size": 2,
+      "parameters": [
+        {
+          "name": "NewMovementMode",
+          "kind": "ByteProperty",
+          "size": 1,
+          "offset": 0
+        },
+        {
+          "name": "NewCustomMode",
+          "kind": "ByteProperty",
+          "size": 1,
+          "offset": 1
+        }
+      ]
+    },
+    {
+      "name": "StopMovementImmediately",
+      "outer": "MovementComponent",
+      "nativeRva": "0x752220",
+      "flags": "0x4020400",
+      "size": 0,
+      "parameters": []
+    }
+  ],
+  "fields": [
+    {
+      "name": "GravityScale",
+      "kind": "FloatProperty",
+      "size": 4,
+      "offset": 408,
+      "raw": "00004040"
+    },
+    {
+      "name": "MaxWalkSpeed",
+      "kind": "FloatProperty",
+      "size": 4,
+      "offset": 476,
+      "raw": "0020cb44"
+    },
+    {
+      "name": "MaxFlySpeed",
+      "kind": "FloatProperty",
+      "size": 4,
+      "offset": 488,
+      "raw": "00001644"
+    },
+    {
+      "name": "BrakingDecelerationFlying",
+      "kind": "FloatProperty",
+      "size": 4,
+      "offset": 528,
+      "raw": "00000000"
+    }
+  ],
+  "newImplementation": "optional ASI game-thread calls; not executed by the external reader",
+  "gameplayValidated": false
+}

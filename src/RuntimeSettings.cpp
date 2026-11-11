@@ -1,5 +1,7 @@
 #include "RuntimeSettings.h"
 #include "RecoverySettings.h"
+#include <algorithm>
+#include <cmath>
 
 
 namespace dg::runtime {
@@ -24,6 +26,8 @@ void Publish(const Snapshot& s) {
     g_state.warArmAppearance.store(s.warArmAppearance);g_state.mouseReticleHideMode.store(s.mouseReticleHideMode);
     g_state.mountedJumpEnabled.store(s.mountedJumpEnabled);
     g_state.mountedJumpSound.store(s.mountedJumpSound);
+    g_state.mountedAirWalkEnabled.store(s.mountedAirWalkEnabled);
+    g_state.mountedAirWalkReleaseDelay.store(std::isfinite(s.mountedAirWalkReleaseDelay)?std::clamp(s.mountedAirWalkReleaseDelay,0.0f,1.0f):defaults::MountedAirWalkReleaseDelay);
     g_state.bonusMountSkinsEnabled.store(s.bonusMountSkinsEnabled);
     g_state.progressionSkinsEnabled.store(s.progressionSkinsEnabled);
     g_state.leviathanVisualEnabled.store(s.leviathanVisualEnabled);

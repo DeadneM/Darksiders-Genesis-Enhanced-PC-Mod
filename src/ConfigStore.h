@@ -273,6 +273,8 @@ public:
     int warArmAppearance=0,mouseReticleHideMode=defaults::MouseReticleHideMode;
     bool mountedJumpEnabled = defaults::MountedJump;
     int mountedJumpSound = 0;
+    bool mountedAirWalkEnabled = defaults::MountedAirWalk;
+    float mountedAirWalkReleaseDelay = defaults::MountedAirWalkReleaseDelay;
     bool bonusMountSkinsEnabled = defaults::BonusMountSkins;
     bool progressionSkinsEnabled = false;
     bool leviathanVisualEnabled = false;

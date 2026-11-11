@@ -1475,7 +1475,7 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     dg::effect_appearance::OnLivePlayer(owner);
     dg::wrath_slots::OnLivePlayer(owner);
     dg::air_jump::OnLivePlayer(owner,generation);
-    dg::mounted_jump::OnLivePlayer(owner,generation,commandsAllowed);
+    dg::mounted_jump::OnLivePlayer(owner,generation,runtimeAllowed,commandsAllowed);
 }
 
 // V0.75: use the game's verified UMayhemCharacter native look functions,

@@ -8,6 +8,8 @@ inline constexpr bool ReduceAmmo=true;
 inline constexpr bool AutoCheckUpdates=true,MountedJump=true,MountedHolsters=true,BonusMountSkins=true;
 inline constexpr bool WeaponSheathing=true,NeverAutoSheathe=false,HeavyLandingRecovery=true,RecoveryTail=true;
 inline constexpr bool AirDashRework=true;
+inline constexpr bool MountedAirWalk=false;
+inline constexpr float MountedAirWalkReleaseDelay=0.2f;
 inline constexpr bool CustomDOF=true,AimAssistEnabled=true;
 inline constexpr int MouseReticleHideMode=1;
 inline constexpr int SheatheKeyboardKey='L',SheathePadButtonA=0x0100,SheathePadButtonB=0x0040;

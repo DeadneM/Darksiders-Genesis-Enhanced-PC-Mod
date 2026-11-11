@@ -334,7 +334,7 @@ void Store::ResetDefaults(bool persist) {
     recoveryDashTailEnabled=recoveryChestTailEnabled=defaults::RecoveryTail;recoveryTailDelaySeconds=0;
     wrathSlots={};
     mountedHolstersEnabled=defaults::MountedHolsters;
-    strifeBladeVisibility=0;warArmAppearance=0;mouseReticleHideMode=defaults::MouseReticleHideMode;mountedJumpEnabled=defaults::MountedJump;mountedJumpSound=0;
+    strifeBladeVisibility=0;warArmAppearance=0;mouseReticleHideMode=defaults::MouseReticleHideMode;mountedJumpEnabled=defaults::MountedJump;mountedJumpSound=0;mountedAirWalkEnabled=defaults::MountedAirWalk;mountedAirWalkReleaseDelay=defaults::MountedAirWalkReleaseDelay;
     pistolRightModel=0;pistolLeftModel=0;bonusMountSkinsEnabled=defaults::BonusMountSkins;progressionSkinsEnabled=false;
     leviathanVisualEnabled=false;leviathanVisualMode=0;effectAppearances={};shieldTransforms={};leviathanTransforms={};
     sheathStrifeMeleeNeverEnabled=false;sheathStrifeMeleeDelaySeconds=0.0f;
@@ -605,6 +605,8 @@ bool Store::Load() {
     mountedJumpEnabled=GetPrivateProfileIntW(L"Features",L"MountedJump",defaults::MountedJump,path_.c_str())!=0;
     mountedJumpSound=GetPrivateProfileIntW(L"Values",L"MountedJumpSound",0,path_.c_str());
     if(mountedJumpSound<0||mountedJumpSound>2)mountedJumpSound=0;
+    mountedAirWalkEnabled=ReadBool(L"Features",L"MountedAirWalk",defaults::MountedAirWalk,path_);
+    mountedAirWalkReleaseDelay=std::clamp(ReadFloat(L"Values",L"MountedAirWalkReleaseDelay",defaults::MountedAirWalkReleaseDelay,path_),0.0f,1.0f);
     bonusMountSkinsEnabled=ReadBool(L"Features",L"BonusMountSkins",defaults::BonusMountSkins,path_);
     progressionSkinsEnabled=ReadBool(L"Features",L"ProgressionSkins",false,path_);
     leviathanVisualEnabled=ReadBool(L"Features",L"LeviathanVisual",false,path_);
@@ -978,6 +980,8 @@ void Store::PublishRuntime() const {
     runtime.warArmAppearance=warArmAppearance;runtime.mouseReticleHideMode=mouseReticleHideMode;
     runtime.mountedJumpEnabled=mountedJumpEnabled;
     runtime.mountedJumpSound=mountedJumpSound;
+    runtime.mountedAirWalkEnabled=mountedAirWalkEnabled;
+    runtime.mountedAirWalkReleaseDelay=mountedAirWalkReleaseDelay;
     runtime.bonusMountSkinsEnabled=bonusMountSkinsEnabled;
     runtime.progressionSkinsEnabled=progressionSkinsEnabled;
     runtime.leviathanVisualEnabled=leviathanVisualEnabled;runtime.leviathanVisualMode=leviathanVisualMode;
@@ -1168,6 +1172,8 @@ bool Store::SaveNow() {
     WriteInt(L"Values",L"MouseReticleHideMode",mouseReticleHideMode,path_);
     WriteInt(L"Features",L"MountedJump",mountedJumpEnabled?1:0,path_);
     WriteInt(L"Values",L"MountedJumpSound",mountedJumpSound,path_);
+    WriteInt(L"Features",L"MountedAirWalk",mountedAirWalkEnabled?1:0,path_);
+    WriteFloat(L"Values",L"MountedAirWalkReleaseDelay",mountedAirWalkReleaseDelay,path_);
     WriteBool(L"Features",L"BonusMountSkins",bonusMountSkinsEnabled,path_);
     WriteBool(L"Features",L"ProgressionSkins",progressionSkinsEnabled,path_);
     WriteBool(L"Features",L"LeviathanVisual",leviathanVisualEnabled,path_);

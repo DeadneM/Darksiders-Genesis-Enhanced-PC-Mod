@@ -659,7 +659,11 @@ void Draw(Context& c) {
                 ImGui::TextDisabled("Choose two DIFFERENT buttons.");
 
             DrawToggleFeature(config,"Jump on horseback","MountedJump",&config.mountedJumpEnabled,
-                "Use the game's rebindable Jump action while riding either mount. A new press requests a native ground leap, with native animations and landing. No air jump. OFF restores the original behavior. Confirmed in the user's solo test; co-op remains to be checked.",mounted_jump::Ready());
+                "Use the rebindable Jump action on all four horses. Native ground leap and landing; OFF restores the game behavior.",mounted_jump::Ready());
+
+            DrawTunableFeature(config,"Walk in the air (experimental)","MountedAirWalk",&config.mountedAirWalkEnabled,
+                &config.mountedAirWalkReleaseDelay,0.0f,1.0f,defaults::MountedAirWalkReleaseDelay,"%.2f s",
+                "Hold Jump after a leap or press again in the air to walk there. Release to fall after this delay; press again during the delay to jump. Native collisions stay active.",mounted_jump::Ready());
 
             constexpr const char* horseJumpSounds[]={"Native jump (varied)","Horse snort (varied)","Off"};
             if(Choice("Horse jump sound",&config.mountedJumpSound,horseJumpSounds,3))config.Save();

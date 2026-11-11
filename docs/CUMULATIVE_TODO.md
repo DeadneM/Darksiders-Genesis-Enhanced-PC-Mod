@@ -1,3 +1,9 @@
+## V1.162 — marche aérienne expérimentale des chevaux
+
+Option indépendante OFF par défaut, action Jump native, délai de chute réglable 0–1 s (0,2 s par défaut). Base V1.161 conservée ; saut et coop acceptés, main V1.159 intacte. Lecture native réussie sans modification du jeu. Implantation prête pour contrôles GitHub, PAS encore validée en jeu. Envers d’écharpe et étude de performance restent ouverts. [Périmètre et tests](V1_162_REVIEW.md).
+
+---
+
 ## V1.161 disponible sur debug — premier lancement Stoneskin
 
 **CONSTRUIT / CONTRÔLÉ : 82/82 suites Windows GitHub, aucun avertissement C++ détecté. EXPÉRIMENTAL en jeu pour ce correctif.** Courte attente du premier statut natif avant création de l'explosion ; pas de relance du pouvoir. Saut/raccourci validés et coop acceptée conservés, peau/écharpe/aura/dégâts inchangés. Main reste V1.159. [ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/050ff8edf221d4bf21763e7da0eb071adba12078/downloads/DarksidersGenesis_V1.161_STONESKIN_FIRST_STATUS_TEST.zip) · [Reçu et test ciblé](V1_161_DELIVERY_RECEIPT.md).
