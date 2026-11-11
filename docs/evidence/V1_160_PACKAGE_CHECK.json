@@ -1,0 +1,44 @@
+{
+  "version": "V1.160",
+  "base": "d6414404ba268add00834323c6da064af5d5ce42",
+  "source": "eef048ac69c7181a36f4e260003cc9fc8a4bcd4c",
+  "archive": "1e8c3b672e86e4ad95bb1948faf7add96bae047c",
+  "download": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/1e8c3b672e86e4ad95bb1948faf7add96bae047c/downloads/DarksidersGenesis_V1.160_MOUNT_JUMP_STONE_RETRY_TEST.zip",
+  "sha256": "395731235F8530ACF5FF1A12A931F61CE8F375E4F73BBE48C5393E036EFC38D8",
+  "bytes": 2431726,
+  "files": {
+    "dxgi.dll": {
+      "bytes": 155136,
+      "sha256": "D9AEB6FE2BC8B3633C794B2FE36C2B962485DBBF612FBE0B17885261102232E0"
+    },
+    "DarksidersGenesisMod.asi": {
+      "bytes": 2276352,
+      "sha256": "4FC168D1F86A22E671D43B350E028701D2E7D2A9D4A9C4BCE223F8686E9A7E09"
+    }
+  },
+  "crcVerified": true,
+  "amd64": true,
+  "rootBinariesOnly": true,
+  "oldArchivesUnchanged": 224,
+  "totalArchives": 225,
+  "iniKeys": 248,
+  "defaultDelta": {
+    "AimWithoutFirePadButtonA": [
+      0,
+      2
+    ]
+  },
+  "updaterSelection": "DarksidersGenesis_V1.160_MOUNT_JUMP_STONE_RETRY_TEST.zip",
+  "gitBlob": "0770c9d18d192197960308c33071d406cfbfe98f",
+  "publicHttpStatus": 200,
+  "binaryDownload": "new ZIP retrieved once through Git; no duplicate HTTP GET or old package download",
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/debug": "1e8c3b672e86e4ad95bb1948faf7add96bae047c",
+    "refs/heads/main": "d6414404ba268add00834323c6da064af5d5ce42",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "installed": false,
+  "localBuild": false,
+  "gameplayValidated": false
+}

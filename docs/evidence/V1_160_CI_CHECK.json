@@ -1,0 +1,23 @@
+{
+  "source": "eef048ac69c7181a36f4e260003cc9fc8a4bcd4c",
+  "runId": 43034241054,
+  "jobId": 130568815516,
+  "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/43034241054",
+  "status": "completed",
+  "conclusion": "success",
+  "tests": 82,
+  "testsExcerpt": [
+    "2026-11-11T14:06:19.2988524Z 100% tests passed out of 82",
+    "2026-11-11T14:06:19.2989075Z Total Test time (real) =   8.78 sec"
+  ],
+  "compilerWarnings": [],
+  "errors": [],
+  "toolingWarnings": [
+    "2026-11-11T14:00:36.3514696Z CMake Warning (deprecated) at build/_deps/minhook-src/CMakeLists.txt:27 (cmake_minimum_required):",
+    "2026-11-11T14:06:20.7475296Z (node:9780) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.",
+    "2026-11-11T14:06:21.0740727Z (node:9780) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.",
+    "2026-11-11T14:06:29.0722885Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/"
+  ],
+  "localBuild": false,
+  "gameplayValidated": false
+}
