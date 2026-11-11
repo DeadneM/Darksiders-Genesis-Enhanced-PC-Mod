@@ -295,8 +295,8 @@ public:
     int sheathKeyboardKey = defaults::SheatheKeyboardKey;
     int sheathPadButtonA = defaults::SheathePadButtonA;
     int sheathPadButtonB = defaults::SheathePadButtonB;
-    int aimPadButtonA = 0;
-    int aimPadButtonB = 0;
+    int aimPadButtonA = defaults::AimPadButtonA;
+    int aimPadButtonB = defaults::AimPadButtonB;
     bool movementSpeedEnabled = true;
     bool skipLogosEnabled = true;
     bool skipIntroEnabled = true;

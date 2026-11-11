@@ -340,7 +340,7 @@ void Store::ResetDefaults(bool persist) {
     sheathStrifeMeleeNeverEnabled=false;sheathStrifeMeleeDelaySeconds=0.0f;
     sheathWarNeverEnabled=defaults::NeverAutoSheathe;sheathWarDelaySeconds=10.0f;
     sheathKeyboardKey=defaults::SheatheKeyboardKey;sheathPadButtonA=defaults::SheathePadButtonA;sheathPadButtonB=defaults::SheathePadButtonB;
-    aimPadButtonA=0;aimPadButtonB=0;
+    aimPadButtonA=defaults::AimPadButtonA;aimPadButtonB=defaults::AimPadButtonB;
     movementSpeedEnabled = true;
     skipLogosEnabled = true;
     skipIntroEnabled = true;
@@ -631,8 +631,8 @@ bool Store::Load() {
     sheathPadButtonB=GetPrivateProfileIntW(L"Controls",L"SheathePadButtonB",defaults::SheathePadButtonB,path_.c_str());
     if(!ValidPadBind(sheathPadButtonA))sheathPadButtonA=0;
     if(!ValidPadBind(sheathPadButtonB))sheathPadButtonB=0;
-    aimPadButtonA=GetPrivateProfileIntW(L"Controls",L"AimWithoutFirePadButtonA",0,path_.c_str());
-    aimPadButtonB=GetPrivateProfileIntW(L"Controls",L"AimWithoutFirePadButtonB",0,path_.c_str());
+    aimPadButtonA=GetPrivateProfileIntW(L"Controls",L"AimWithoutFirePadButtonA",defaults::AimPadButtonA,path_.c_str());
+    aimPadButtonB=GetPrivateProfileIntW(L"Controls",L"AimWithoutFirePadButtonB",defaults::AimPadButtonB,path_.c_str());
     if(!ValidPadBind(aimPadButtonA))aimPadButtonA=0;
     if(!ValidPadBind(aimPadButtonB))aimPadButtonB=0;
     interactionHudScaleEnabled=ReadBool(L"Features",L"InteractionHudScale",true,path_);

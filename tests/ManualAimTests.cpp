@@ -101,7 +101,9 @@ void Run(){
     Fresh();Input(0,true);Tick();Shutdown();Check(!Ready()&&!dg::runtime::Get().manualAimHeld[0].load(),"shutdown clears publication without an off-thread native call");
     wchar_t folder[MAX_PATH]{},path[MAX_PATH]{};
     Check(GetTempPathW(MAX_PATH,folder)&&GetTempFileNameW(folder,L"DGA",0,path),"temporary INI");
-    dg::config::Store config;config.SetPath(path);Check(config.Load()&&!config.aimPadButtonA&&!config.aimPadButtonB,"old profiles default both added inputs to OFF");
+    dg::config::Store config;config.SetPath(path);Check(config.Load()&&config.aimPadButtonA==0x0002&&!config.aimPadButtonB,"missing shortcut defaults to D-pad down alone");
+    WritePrivateProfileStringW(L"Controls",L"AimWithoutFirePadButtonA",L"0",path);
+    Check(config.Load()&&!config.aimPadButtonA&&!config.aimPadButtonB,"explicit personal OFF stays OFF");
     config.aimPadButtonA=0x0040;config.aimPadButtonB=0x0080;config.menuKey=VK_HOME;config.sheathKeyboardKey='K';
     config.hotkeys[2]=dg::config::Action::SheatheWeapons;WritePrivateProfileStringW(L"Personal",L"Keep",L"yes",path);
     Check(config.SaveNow(),"new bindings save");dg::config::Store loaded;loaded.SetPath(path);Check(loaded.Load(),"bindings reload");
@@ -110,7 +112,7 @@ void Run(){
     wchar_t kept[8]{};GetPrivateProfileStringW(L"Personal",L"Keep",L"",kept,8,path);Check(std::wcscmp(kept,L"yes")==0,"unknown personal INI entries are retained");
     WritePrivateProfileStringW(L"Controls",L"AimWithoutFirePadButtonA",L"3",path);WritePrivateProfileStringW(L"Controls",L"AimWithoutFirePadButtonB",L"-1",path);
     Check(loaded.Load()&&!loaded.aimPadButtonA&&!loaded.aimPadButtonB,"invalid multi-bit and negative values fail to OFF");
-    loaded.aimPadButtonA=0x80;loaded.ResetDefaults(false);Check(!loaded.aimPadButtonA&&!loaded.aimPadButtonB,"reset disables both new inputs");
+    loaded.aimPadButtonA=0x80;loaded.ResetDefaults(false);Check(loaded.aimPadButtonA==0x0002&&!loaded.aimPadButtonB,"reset restores D-pad down alone");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,path);DeleteFileW(path);
 }
 }

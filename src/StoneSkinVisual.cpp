@@ -22,8 +22,9 @@ std::array<Id,2> g_materials{};
 struct Slot {Id material{},original{};bool inherited=false,failed=false;uintptr_t observed=0;uint64_t retryAt=0;};
 struct Visual {Id actor{},mesh{},asset{};uintptr_t world=0;int variant=-1;std::array<Slot,4> slots{};};
 Visual g_visual[2]{};
-struct Transition {Id actor{};uintptr_t world=0;bool pending=false;};
+struct Transition {Id actor{};uintptr_t world=0;bool pending=false;uint64_t serial=0,started=0,next=0;unsigned attempts=0;};
 Transition g_transitions[2]{};
+uint64_t g_castSerial=0;
 bool g_missing[2]{};
 struct Observation {local_players::Context owner{};uint64_t next=0;bool entered=false,force=false;};
 std::array<Observation,2> g_observations{};
@@ -257,7 +258,7 @@ bool InvalidateAssets(){bool changed=stone_fx::InvalidateAssets();for(auto& id:g
 void Cast(const local_players::Context& c){
     if(!g_event||!native_tps::OnGameThread()||c.index<0||c.index>1)return;
     Transition next{};if(Capture(c.character,next.actor)){
-        next.world=c.world;next.pending=true;g_transitions[c.index]=next;g_resourceRequests[c.index].Reset();
+        next.world=c.world;next.pending=true;next.serial=++g_castSerial;g_transitions[c.index]=next;g_resourceRequests[c.index].Reset();
         g_observations[c.index].force=true;
         for(auto& slot:g_visual[c.index].slots)if(slot.failed){slot.failed=false;slot.retryAt=0;}
     }
@@ -301,6 +302,7 @@ void ObserveCurrent(const local_players::Context& c,uint64_t now){
         Read(c.character,0x380,mesh)&&Read(mesh,0xE8,owner)&&owner==c.character&&Field(mesh,"SkeletalMesh","ObjectProperty",8,at)&&Read(mesh,at,asset)&&asset;
     bool statusKnown=false;const int variant=owned?Status(c.character,&statusKnown):-1;
     auto& transition=g_transitions[c.index];
+    if(transition.pending&&(!owned||transition.world!=c.world||transition.actor.address!=c.character||!Alive(transition.actor)))transition={};
     const bool same=owned&&v.actor.address==c.character&&v.world==c.world&&v.mesh.address==mesh&&v.asset.address==asset&&
         Alive(v.actor)&&Alive(v.mesh)&&Alive(v.asset);
     if(v.actor&&!same)Restore(v);
@@ -369,9 +371,21 @@ void ObserveCurrent(const local_players::Context& c,uint64_t now){
         if(g_log&&g_events++<8)g_log("Stoneskin V1.158 visual: private mineral body, native emissive opaque cloth; no texture override; visual validation required");
     }
     if(transition.pending&&transition.world==c.world&&transition.actor.address==c.character&&Alive(transition.actor)){
+        // Retry only a refused cosmetic creation, never an accepted emitter.
+        // A short bounded window cannot replay an old burst after a long pause.
+        if(transition.attempts&&(now<transition.started||now-transition.started>=1000)){transition.pending=false;return;}
         bool coated=false;for(const auto& slot:v.slots)coated=coated||Alive(slot.material);
-        if(coated&&stone_fx::Ready(variant)){transition.pending=false;const bool ok=stone_fx::Spawn(c,variant);
-            if(g_log&&g_events++<16)g_log(ok?"Stoneskin V1.123 launch: native explosion at coating appearance":"Stoneskin V1.123 launch effect unavailable; accepted gesture/materials retained");}
+        if(coated&&stone_fx::Ready(variant)&&now>=transition.next&&
+           !native_tps::IsWorldPaused(reinterpret_cast<void*>(c.pawn))&&!native_tps::CinematicActive(unsigned(c.index))&&!native_tps::RadialActive(unsigned(c.index))){
+            if(!transition.attempts)transition.started=now;
+            ++transition.attempts;transition.next=now+150;
+            const auto serial=transition.serial;transition.pending=false; // native callbacks cannot replay this request
+            const bool ok=stone_fx::Spawn(c,variant);
+            if(!ok&&transition.serial==serial&&transition.attempts<3)transition.pending=true;
+            if(g_log&&g_events++<16)g_log(ok?"Stoneskin V1.160 launch: native explosion accepted; visual validation required":
+                transition.serial==serial&&transition.pending?"Stoneskin V1.160 launch: cosmetic creation refused; bounded retry pending":
+                "Stoneskin V1.160 launch: cosmetic creation refused; no further retry for this request");
+        }
     }
 }
 void ObserveAt(const local_players::Context& c,uint64_t now){

@@ -14,7 +14,7 @@ struct Fixture {
  uintptr_t overrides[4]{},statuses[2]{},retainedMaterials[4]{};
 } f;
 uintptr_t objectChunks[1]{};dg::local_players::Context owner{};unsigned copies=0,creates=0,sets=0,scalarCalls=0;int id=0;bool thread=true,failFactory=false;
-unsigned fx[3]{};bool fxReady=true;bool missingFx[3]{};
+unsigned fx[3]{},launchAttempts=0,launchFailures=0;bool fxReady=true,paused=false,cinema=false,radial=false,recastInSpawn=false;bool missingFx[3]{};
 template<class T>void Put(void* p,size_t at,const T& v){std::memcpy(static_cast<unsigned char*>(p)+at,&v,sizeof(v));}
 void Check(bool ok,const char* why){if(!ok)throw std::runtime_error(why);}
 void Label(void* p,int i,const char* s){Put(p,0x18,i);strcpy_s(reinterpret_cast<char*>(entries[i]+12),244,s);}
@@ -30,6 +30,7 @@ void Dispatch(void* object,void* function,void* args){
 uint64_t observationTime=1000;
 void Step(const dg::local_players::Context& c){observationTime+=50;ObserveAt(c,observationTime);}
 void Fresh(){
+ launchAttempts=launchFailures=0;paused=cinema=radial=recastInSpawn=false;
  g_resourceRequests={};g_resourceActor={};g_resourceMesh={};dg::selected_particle::sharedContext={};for(auto& missing:missingFx)missing=false;
  g_statusClasses={};g_statusClassNext=0;g_statusClassHits=g_statusClassMisses=0;
  g_observations={};g_observed=g_skipped=0;g_functions={};g_parameters={};g_nextFunction=g_nextParameter=0;g_functionLookups=g_parameterLookups=0;observationTime=1000;
@@ -169,14 +170,34 @@ void Run(){
  Put(f.component,0x138,0);Step(owner);Step(owner);Check(fx[2]==1&&sets==4,"one crumble at complete status expiry, not cast animation end");
  Fresh();Put(f.component,0x138,2);Cast(owner);Step(owner);Check(fx[1]==1&&!fx[0],"Molten status chooses Molten launch");Put(f.component,0x138,1);Step(owner);Check(!fx[2],"Molten-to-base transition is not full expiration");
  Fresh();fxReady=false;Cast(owner);Step(owner);Check(!fx[0]&&g_transitions[0].pending&&NeedsAssetScan(owner),"late FX request rediscovery and defer explosion without replaying cast or altering materials");fxReady=true;Step(owner);Check(fx[0]==1&&!g_transitions[0].pending&&!NeedsAssetScan(owner),"bounded shared discovery completing emits deferred launch once and stops retries");
+ Fresh();launchFailures=1;Cast(owner);Step(owner);Step(owner);Step(owner);
+ Check(launchAttempts==1&&!fx[0]&&g_transitions[0].pending,"refused cosmetic creation waits for its retry interval");
+ Step(owner);Step(owner);Check(launchAttempts==2&&fx[0]==1&&!g_transitions[0].pending&&creates==4,"one later successful explosion without recreating coating");
+ Fresh();launchFailures=10;Cast(owner);for(int i=0;i<30;++i)Step(owner);
+ Check(launchAttempts==3&&!fx[0]&&!g_transitions[0].pending&&creates==4,"three refused requests exhaust the budget without touching native damage or materials");
+ Fresh();launchFailures=1;Cast(owner);Step(owner);Put(f.component,0x138,0);for(int i=0;i<6;++i)Step(owner);
+ Check(launchAttempts==1&&!fx[0]&&!g_transitions[0].pending,"expiry cancels a refused burst instead of replaying it after removal");
+ Fresh();launchFailures=1;Cast(owner);Step(owner);ObserveAt(owner,observationTime+1000);
+ Check(launchAttempts==1&&!fx[0]&&!g_transitions[0].pending,"long service gap expires a pending retry");
+ for(int gate=0;gate<3;++gate){Fresh();launchFailures=1;Cast(owner);Step(owner);
+  if(gate==0)paused=true;if(gate==1)cinema=true;if(gate==2)radial=true;
+  for(int i=0;i<4;++i)Step(owner);Check(launchAttempts==1,"native pause, cinema and radial gates suspend cosmetic retries");
+  paused=cinema=radial=false;Step(owner);Check(launchAttempts==2&&fx[0]==1,"release inside the short window permits one successful retry");}
+ for(int change=0;change<2;++change){Fresh();launchFailures=1;Cast(owner);Step(owner);
+  if(change==0)owner.kind=dg::local_players::PoseKind::Horse;else owner.world=99;
+  for(int i=0;i<5;++i)Step(owner);Check(launchAttempts==1,"form or world loss cannot retry an old cast");}
+ Fresh();recastInSpawn=true;Cast(owner);Step(owner);Step(owner);
+ Check(launchAttempts==2&&fx[0]==1&&!g_transitions[0].pending,"reentrant recast keeps its own ticket, not the previous refusal");
  for(int change=0;change<4;++change){Fresh();Cast(owner);Step(owner);
   if(change==0)owner.kind=dg::local_players::PoseKind::Horse;if(change==1)owner.world=99;if(change==2)Put(f.component,0x138,129);if(change==3){Shutdown();Check(!fx[2],"shutdown never emits expiry");continue;}
   Step(owner);Check(!fx[2],"transformation/world loss/unknown status read does not fake expiration");}
 }
 }
-namespace dg::native_tps {bool OnGameThread(){return thread;}bool IsWorldPaused(void*){return false;}bool CinematicActive(unsigned){return false;}bool RadialActive(unsigned){return false;}}
+namespace dg::native_tps {bool OnGameThread(){return thread;}bool IsWorldPaused(void*){return paused;}bool CinematicActive(unsigned){return cinema;}bool RadialActive(unsigned){return radial;}}
 namespace dg::stone_fx {
 void Initialize(uintptr_t,Event){}void ObserveObject(uintptr_t){}bool AssetsReady(){return fxReady&&!missingFx[0]&&!missingFx[1]&&!missingFx[2];}bool Ready(int kind){return fxReady&&!missingFx[kind];}bool TemplateReady(int kind){return Ready(kind);}bool InvalidateAssets(){return false;}void Shutdown(){}
-bool Spawn(const local_players::Context& c,int kind){Check(c.character==owner.character&&kind>=0&&kind<3,"cosmetic edge uses current owner and exact known effect");++fx[kind];return fxReady;}
+bool Spawn(const local_players::Context& c,int kind){Check(c.character==owner.character&&kind>=0&&kind<3,"cosmetic edge uses current owner and exact known effect");
+ if(kind<2){++launchAttempts;if(recastInSpawn){recastInSpawn=false;dg::stone_visual::Cast(c);return false;}if(launchFailures){--launchFailures;return false;}}
+ ++fx[kind];return fxReady;}
 }
 int main(){try{Run();std::cout<<"Stoneskin owned material lifecycle, restoration, API guards and isolation passed\n";return 0;}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

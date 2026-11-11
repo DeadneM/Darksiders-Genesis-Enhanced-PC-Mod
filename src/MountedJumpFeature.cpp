@@ -83,7 +83,8 @@ bool Owned(const local_players::Context& owner,uintptr_t& movement){
     const auto actor=owner.pawn;
     uintptr_t cls=0,controller=0,pawn=0,table=0,entry=0,reciprocal=0;unsigned char role=0,despawn=0;
     return owner.kind==local_players::PoseKind::Horse&&owner.localPlayer&&owner.character&&actor&&actor!=owner.character&&
-        Read(actor,0x10,cls)&&(native_objects::NameIs(g_base,cls,"Despair_Blueprint_C")||native_objects::NameIs(g_base,cls,"Ruin_Blueprint_C"))&&
+        Read(actor,0x10,cls)&&(native_objects::NameIs(g_base,cls,"Mayhem_Blueprint_C")||native_objects::NameIs(g_base,cls,"Despair_Blueprint_C")||
+        native_objects::NameIs(g_base,cls,"Ruin_Blueprint_C")||native_objects::NameIs(g_base,cls,"Rampage_Blueprint_C"))&&
         Read(actor,0x118,role)&&role==3&&Read(actor,0x348,controller)&&controller==owner.controller&&
         Read(controller,0x350,pawn)&&pawn==actor&&Read(actor,0xA66,despawn)&&!despawn&&
         Read(actor,0x388,movement)&&Read(movement,0xE8,reciprocal)&&reciprocal==actor&&Read(movement,0,table)&&

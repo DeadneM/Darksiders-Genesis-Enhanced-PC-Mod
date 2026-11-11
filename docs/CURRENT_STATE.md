@@ -1,3 +1,21 @@
+## V1.160 bêta en préparation
+
+Base V1.159 ; saut Mayhem/Rampage, visée sans tir sur D-pad bas par défaut et reprise bornée des créations d'explosion Stoneskin refusées. Coop/P2 validée par l'utilisateur. **EXPÉRIMENTAL, compilation GitHub à venir.** Main et anciens ZIP conservés. [Périmètre](V1_160_REVIEW.md).
+
+---
+
+## 11 novembre — coop/P2 validée
+
+L'utilisateur confirme le point coop/P2 : « cest verifier tout est ok ». Validation enregistrée ; saut des quatre chevaux et D-pad bas restent préparés localement, explosion Stoneskin à finaliser avant compilation. Aucun nouveau build livré.
+
+---
+
+## 11 novembre — suite locale de V1.159
+
+Saut : Mayhem/Rampage ajoutés au filtre existant ; visée sans tir : D-pad bas seul par défaut, réglages personnels conservés. **PRÉPARÉ LOCAL / NON COMPILÉ / NON VALIDÉ EN JEU.** Explosion Stoneskin intermittente distincte de l'aura Molten, à traiter ; coop/P2 différée. Aucun téléchargement ni installation. [État et suite](OPEN_REPAIRS_2026_11_11.md).
+
+---
+
 ## V1.159 stable disponible sur main
 
 **CONSTRUIT / CONTRÔLÉ / PUBLIÉ : 82/82 suites GitHub Windows x64, aucun avertissement C++ détecté.** Même code de gameplay que la V1.158 acceptée, identifiant stable ; réglages conservés. ZIP deux binaires sans INI/README, lien public et découverte updater vérifiés, anciennes archives préservées. Écharpe/menu acceptés, cheval favorable avec réserve ; ancienne intermittence Molten non reproduite, coop différée. Aucun nouvel essai en jeu du binaire recompilé ni installation automatique. [ZIP stable](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/327a913a91af57980fc2e6b3471e3999484a89ed/downloads/DarksidersGenesis_V1.159_STABLE_CUMULATIVE.zip) · [Reçu et limites](V1_159_DELIVERY_RECEIPT.md).

@@ -56,6 +56,17 @@ void Run(){
     owner.index=1;Put(classes[2],0x18,3);Down(0,false);Down(1,false);Tick();Press(1);Check(jumps==7,"War's mount and P2 use the same independent action path");
     Ground();owner.kind=dg::local_players::PoseKind::Foot;Press();Check(jumps==7,"validated foot jump path remains untouched");
     owner.kind=dg::local_players::PoseKind::Horse;matched=false;Press();Check(jumps==7,"stale generation/owner cannot jump");matched=true;
+    // Each native mount appearance must reach the same guarded Jump action.
+    Put(classes[2],0x18,2);
+    for(const char* mount:{"Mayhem_Blueprint_C","Despair_Blueprint_C","Ruin_Blueprint_C","Rampage_Blueprint_C"}){
+        strcpy_s(reinterpret_cast<char*>(nameData[2]+12),sizeof(nameData[2])-12,mount);
+        Ground();Down(0,false);Down(1,false);Tick();const auto before=jumps;Press();
+        Check(jumps==before+1,"each of the four mount classes reaches native DoJump");
+        Ground();Down(0,false);Down(1,false);Tick();Put(horse,0x348,uintptr_t(0));Press();
+        Check(jumps==before+1,"every mount class still requires reciprocal local possession");
+        Put(horse,0x348,reinterpret_cast<uintptr_t>(pc));
+    }
+    strcpy_s(reinterpret_cast<char*>(nameData[2]+12),sizeof(nameData[2])-12,"Despair_Blueprint_C");
     // Loaded native SoundCue contracts and per-leap audio lifecycle.
     const char* audioNames[]={"SoundCue","char_ruin_jump","char_ruin_jump_land","char_ruin_snort_low_vo",
         "/Game/Audio/Sfx/Character/Ruin/char_ruin_jump","/Game/Audio/Sfx/Character/Ruin/char_ruin_jump_land",

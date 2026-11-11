@@ -50,7 +50,7 @@ int main(int argc,char** argv){
     check(generated.hotstreakChargeMultiplier==1&&generated.wrathChargeMultiplier==1&&generated.ultimateChargeMultiplier==1&&generated.ultimateDurationMultiplier==1&&generated.synergyChargeMultiplier==1&&generated.grappleRangeMultiplier==1&&generated.ammoConsumptionDivisor==1&&generated.hotstreakDecreaseDivisor==1&&generated.potionRechargeMultiplier==1,"all nine chosen gains, rates and divisors are neutral");
     check(generated.pistolRightModel==0&&generated.pistolLeftModel==0&&generated.strifeBladeVisibility==0&&generated.warArmAppearance==0,"models stay native after a full reset");
     for(const auto& slots:generated.wrathSlots)for(const auto value:slots)check(value==0,"all power slots stay native");
-    check(generated.sheathKeyboardKey=='L'&&generated.sheathPadButtonA==256&&generated.sheathPadButtonB==64&&generated.aimPadButtonA==0&&generated.aimPadButtonB==0,"approved sheathing chord and disabled manual aim shortcut");
+    check(generated.sheathKeyboardKey=='L'&&generated.sheathPadButtonA==256&&generated.sheathPadButtonB==64&&generated.aimPadButtonA==0x0002&&generated.aimPadButtonB==0,"approved sheathing chord and D-pad down manual aim shortcut");
     check(generated.hotkeys[0]==dg::config::Action::RefillAllGauges&&generated.hotkeys[1]==dg::config::Action::RefillAmmo&&generated.hotkeys[2]==dg::config::Action::RefillHotstreak&&generated.hotkeys[3]==dg::config::Action::RefillPotions&&generated.hotkeys[11]==dg::config::Action::ToggleHUD,"F1-F4 and F12 match approval");
     for(unsigned i=4;i<11;++i)check(generated.hotkeys[i]==dg::config::Action::None,"F5-F11 unbound");
     for(const auto key:generated.cameraKeys)check(key==0,"native camera shortcuts unbound");
