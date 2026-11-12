@@ -1,3 +1,9 @@
+## V1.163 disponible sur debug — réponse au sol de la marche aérienne
+
+**CONSTRUIT / CONTRÔLÉ : 83/83 suites Windows GitHub, aucun avertissement C++ détecté ; EXPÉRIMENTAL en jeu.** Friction/freinage au sol et vitesse de marche appliqués pendant la marche aérienne, sprint natif conservé. Maintien, sauts, délai et 250 valeurs de configuration inchangés. Base V1.162 appréciée, main V1.159 et anciennes archives intactes. [ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/b1177206ad04c5d11df9886e5f89982c50089f79/downloads/DarksidersGenesis_V1.163_MOUNTED_GROUND_RESPONSE_TEST.zip) · [Reçu et test comparatif](V1_163_DELIVERY_RECEIPT.md).
+
+---
+
 ## V1.163 — marche aérienne, réponse au sol
 
 Base V1.162 appréciée ; correction ciblée du flottement : valeurs natives de friction/freinage au sol et vitesse de marche, sprint natif conservé. Maintien, sauts et délai de relâchement inchangés ; aucun paramètre INI ajouté. EXPÉRIMENTAL, contrôles Windows GitHub à venir. Main V1.159 intacte, écharpe toujours ouverte. [Périmètre et test](V1_163_REVIEW.md).
