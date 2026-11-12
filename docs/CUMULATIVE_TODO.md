@@ -1,3 +1,9 @@
+## V1.163 — marche aérienne, réponse au sol
+
+Base V1.162 appréciée ; correction ciblée du flottement : valeurs natives de friction/freinage au sol et vitesse de marche, sprint natif conservé. Maintien, sauts et délai de relâchement inchangés ; aucun paramètre INI ajouté. EXPÉRIMENTAL, contrôles Windows GitHub à venir. Main V1.159 intacte, écharpe toujours ouverte. [Périmètre et test](V1_163_REVIEW.md).
+
+---
+
 ## V1.162 disponible sur debug — chevaux dans le vide
 
 **CONSTRUIT / CONTRÔLÉ : 83/83 suites Windows GitHub, aucun avertissement C++ détecté ; EXPÉRIMENTAL en jeu.** Gameplay → Horse : marche aérienne OFF par défaut, action Saut native et délai de chute réglable 0–1 s (0,2 s par défaut). Base V1.161 conservée ; deux nouvelles clés, anciennes valeurs/commandes identiques, main V1.159 et 226 anciennes archives intactes. Envers d'écharpe toujours ouvert ; pas d'optimisation moteur annoncée. [ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/772b831f6e67750e2e951fa299dfbe67c7211051/downloads/DarksidersGenesis_V1.162_MOUNTED_AIR_WALK_TEST.zip) · [Reçu et tests](V1_162_DELIVERY_RECEIPT.md).

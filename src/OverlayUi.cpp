@@ -663,7 +663,7 @@ void Draw(Context& c) {
 
             DrawTunableFeature(config,"Walk in the air (experimental)","MountedAirWalk",&config.mountedAirWalkEnabled,
                 &config.mountedAirWalkReleaseDelay,0.0f,1.0f,defaults::MountedAirWalkReleaseDelay,"%.2f s",
-                "Hold Jump after a leap or press again in the air to walk there. Release to fall after this delay; press again during the delay to jump. Native collisions stay active.",mounted_jump::Ready());
+                "Hold Jump after a leap or press again in the air to walk there. Release to fall after this delay; press again during the delay to jump. Uses ground speed and braking; native collisions stay active.",mounted_jump::AirWalkReady());
 
             constexpr const char* horseJumpSounds[]={"Native jump (varied)","Horse snort (varied)","Off"};
             if(Choice("Horse jump sound",&config.mountedJumpSound,horseJumpSounds,3))config.Save();

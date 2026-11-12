@@ -1,5 +1,6 @@
 #include "MountedJumpFeature.h"
-#include "MountedAirWalkNative.h"
+#include "MountedAirWalkGroundMotion.h"
+#include <MinHook.h>
 #include "LocalPlayerOwnership.h"
 #include "NativeMemoryReader.h"
 #include "NativeObjectName.h"
@@ -33,6 +34,10 @@ Bindings g_bindings{};
 struct Landing {uint64_t tick=0;bool airborne=false;};
 struct State {uintptr_t pawn=0,controller=0;uint32_t generation=0;uint64_t signature=0,tick=0;bool seen=false,down=false;Landing landing{};mounted_air::State air{};bool blockedInput=false;};
 State g_players[2]{}; // synchronous native game-thread observations only
+using CalcVelocity=void(*)(void*,float,float,bool,float);
+using MaxSpeed=float(*)(void*);
+CalcVelocity g_calc=nullptr;MaxSpeed g_speed=nullptr;
+std::atomic_bool g_motionReady{false};
 template<class T> bool Read(uintptr_t object,size_t offset,T& value){
     native_objects::MemoryReader reader;return reader.Read(object,offset,value);
 }
@@ -92,6 +97,45 @@ bool Owned(const local_players::Context& owner,uintptr_t& movement){
         Read(actor,0x388,movement)&&Read(movement,0xE8,reciprocal)&&reciprocal==actor&&Read(movement,0,table)&&
         table==g_base+0x270ABF0&&Read(table,0x600,entry)&&entry==g_base+0x667510;
 }
+bool GroundMotion(void* live,mounted_air::Ground& ground){
+    if(!live||!runtime::Get().mountedAirWalkEnabled.load()||!native_tps::OnGameThread())return false;
+    const auto movement=reinterpret_cast<uintptr_t>(live);const auto now=GetTickCount64();
+    for(const auto& player:g_players){
+        const auto& lease=player.air.lease;
+        if(!lease.active||lease.movement.address!=movement||now<player.tick||now-player.tick>250)continue;
+        unsigned char mode=0,custom=0;
+        return mounted_air::Possessed(g_base,lease)&&Read(movement,0x1B0,mode)&&mode==5&&Read(movement,0x1B1,custom)&&!custom&&
+            mounted_air::GroundValues(g_base,movement,ground);
+    }
+    return false;
+}
+void GroundCalcVelocity(void* movement,float delta,float friction,bool fluid,float brake){
+    mounted_air::Ground ground{};
+    if(GroundMotion(movement,ground)){friction=ground.friction;fluid=false;brake=ground.brake;}
+    if(g_calc)g_calc(movement,delta,friction,fluid,brake); // exactly one ordinary native update
+}
+float GroundMaxSpeed(void* movement){
+    const float native=g_speed?g_speed(movement):0;
+    mounted_air::Ground ground{};uintptr_t horse=0;unsigned char sprinting=0;
+    if(GroundMotion(movement,ground)&&Read(reinterpret_cast<uintptr_t>(movement),0xE8,horse)&&Read(horse,0x8D0,sprinting)&&!sprinting)return ground.walk;
+    return native; // native horse sprint getter already returns SprintingMaxSpeed
+}
+void InitializeGroundMotion(){
+    constexpr unsigned char calc[]={0x48,0x8B,0xC4,0x48,0x89,0x58,0x10,0x57,0x48,0x81,0xEC,0xA0,0x00,0x00,0x00,0xF3,0x0F,0x10,0x84,0x24};
+    constexpr unsigned char speed[]={0x48,0x8B,0x81,0xE8,0x00,0x00,0x00,0x80,0xB8,0xD0,0x08,0x00,0x00,0x00,0x74,0x09};
+    uintptr_t velocityEntry=0,speedEntry=0;
+    if(!Read(g_base+0x270ABF0,0x670,velocityEntry)||velocityEntry!=g_base+0x6625E0||
+       !Read(g_base+0x270ABF0,0x3D0,speedEntry)||speedEntry!=g_base+0x670210||
+       std::memcmp(reinterpret_cast<void*>(velocityEntry),calc,sizeof(calc))||std::memcmp(reinterpret_cast<void*>(speedEntry),speed,sizeof(speed)))return;
+    const auto initialized=MH_Initialize();if(initialized!=MH_OK&&initialized!=MH_ERROR_ALREADY_INITIALIZED)return;
+    auto* velocityTarget=reinterpret_cast<void*>(velocityEntry);auto* speedTarget=reinterpret_cast<void*>(speedEntry);
+    if(MH_CreateHook(velocityTarget,reinterpret_cast<void*>(&GroundCalcVelocity),reinterpret_cast<void**>(&g_calc))!=MH_OK)return;
+    if(MH_CreateHook(speedTarget,reinterpret_cast<void*>(&GroundMaxSpeed),reinterpret_cast<void**>(&g_speed))!=MH_OK){MH_RemoveHook(velocityTarget);g_calc=nullptr;return;}
+    if(MH_EnableHook(velocityTarget)!=MH_OK||MH_EnableHook(speedTarget)!=MH_OK){
+        MH_DisableHook(velocityTarget);MH_DisableHook(speedTarget);MH_RemoveHook(velocityTarget);MH_RemoveHook(speedTarget);g_calc=nullptr;g_speed=nullptr;return;
+    }
+    g_motionReady=true;
+}
 bool Keys(std::array<Mapping,8>& keys,unsigned& count,uint64_t now){
     uintptr_t cls=0,settings=0;Array mappings{};
     if(!Read(g_base,0x3A5E1C0,cls)||!native_objects::NameIs(g_base,cls,"InputSettings")||!Read(cls,0xF8,settings)||
@@ -144,7 +188,7 @@ bool Held(const local_players::Context& owner,bool& down,uint64_t& signature,uin
 void OnLivePlayer(const local_players::Context& owner,uint32_t generation,bool focused,bool commandsAllowed){
     if(!native_tps::OnGameThread()||owner.index<0||owner.index>1)return;
     auto& state=g_players[owner.index];uintptr_t movement=0;
-    const bool air=runtime::Get().mountedAirWalkEnabled.load();
+    const bool air=runtime::Get().mountedAirWalkEnabled.load()&&g_motionReady.load();
     const auto cancel=[&]{mounted_air::Release(g_base,g_event,state.air,owner.world);state={};};
     if(!Ready()||(!runtime::Get().mountedJumpEnabled.load()&&!air)||!focused||
        !local_players::Matches(unsigned(owner.index),owner.character,generation)||!Owned(owner,movement)||
@@ -214,8 +258,12 @@ void Initialize(LogFn log,bool exactExecutable){
     constexpr unsigned char sound[]={0x48,0x85,0xD2,0x0F,0x84,0xFE,0x00,0x00,0x00,0x48,0x89,0x5C,0x24,0x08,0x48,0x89};
     if(!std::memcmp(reinterpret_cast<void*>(g_base+0x18911C0),sound,sizeof(sound)))g_sound=reinterpret_cast<PlaySound>(g_base+0x18911C0);
     g_event=reinterpret_cast<mounted_air::Event>(g_base+0xAC0630);
+    InitializeGroundMotion();
+    if(log)log(g_motionReady?"Mounted air walk V1.163 ground response READY: live ground friction, walking brake and walk/sprint speed; two horse-only native callbacks; EXPERIMENTAL":
+        "Mounted air walk V1.163 ground response unavailable: air walk disabled, existing ground jump retained");
     g_ready=true;if(log)log("Mounted jump V1.80 READY: rebindable Jump and native horse DoJump retained; loaded native varied sounds; no new hook; air walk OFF by default, independent of ground jump; sounds EXPERIMENTAL");
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}
+bool AirWalkReady(){return Ready()&&g_motionReady.load(std::memory_order_acquire);}
 unsigned SoundAssetsReady(){return g_soundMask.load(std::memory_order_acquire);}
 }
