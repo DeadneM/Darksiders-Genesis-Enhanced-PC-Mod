@@ -1,0 +1,27 @@
+{
+  "zip": {
+    "exitCode": 0,
+    "result": "no threats",
+    "output": "Scan starting...\r\nScan finished.\r\nScanning C:\\Users\\deadn\\.codex\\.chatgpt-projects\\g-p-6ac1496f81ec8191b55c0e4db2eefebd\\work-debug\\downloads\\DarksidersGenesis_V1.164_MOUNTED_PRIVATE_FLOOR_TEST.zip found no threats.\r\n"
+  },
+  "after": {
+    "RealTimeProtectionEnabled": true,
+    "OnAccessProtectionEnabled": true,
+    "AntivirusEnabled": true
+  },
+  "protectionSettingsChanged": false,
+  "defender": {
+    "AMProductVersion": "4.18.26100.4",
+    "AMEngineVersion": "1.1.26100.4",
+    "AntivirusSignatureVersion": "1.463.261.0",
+    "AntivirusSignatureLastUpdated": "2026-11-12T02:33:20+01:00",
+    "RealTimeProtectionEnabled": true,
+    "OnAccessProtectionEnabled": true,
+    "AntivirusEnabled": true
+  },
+  "payload": {
+    "exitCode": 0,
+    "result": "no threats",
+    "output": "Scan starting...\r\nScan finished.\r\nScanning C:\\Users\\deadn\\.codex\\.chatgpt-projects\\g-p-6ac1496f81ec8191b55c0e4db2eefebd\\audit-v131\\v292-verified found no threats.\r\n"
+  }
+}

@@ -1,3 +1,9 @@
+## V1.164 disponible sur debug — sol invisible sous le cheval
+
+**CONSTRUIT / CONTRÔLÉ : 83/83 suites Windows, aucun avertissement C++ détecté ; EXPÉRIMENTAL en jeu.** Remplace le vol et les réglages V1.163 rejetés par Walking natif sur un plan privé. Même option/Saut/délai, 250 valeurs inchangées, main et archives intactes. Aucun acteur/asset créé. [ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/1b081e9b34b27ff2082227469414a2d9e096a541/downloads/DarksidersGenesis_V1.164_MOUNTED_PRIVATE_FLOOR_TEST.zip) · [Reçu et test de marche/course](V1_164_DELIVERY_RECEIPT.md).
+
+---
+
 ## V1.164 — marche native sur un sol invisible
 
 V1.163 rejetée comme correction du flottement. Remplacement du vol par Walking natif sur un plan privé sous la capsule ; retrait des deux hooks de réglage V1.163. Maintien/sauts/délai conservés, aucun acteur/asset créé, configuration inchangée. EXPÉRIMENTAL, contrôles Windows GitHub à venir ; animations et physique à vérifier en jeu. [Périmètre et preuves](V1_164_REVIEW.md).
