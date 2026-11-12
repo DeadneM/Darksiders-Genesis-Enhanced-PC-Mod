@@ -1,3 +1,9 @@
+## V1.165 debug — optimisation globale et candidat écharpe
+
+Réduction des lectures de découverte des capacités, reprise de ressources en attente/épuisée allégée, candidat écharpe double face cumulé. Étude des bugs natifs effectuée ; pas de nouveau patch moteur sans preuve. **PRÉPARÉ / EXPÉRIMENTAL, compilation et contrôles GitHub à venir.** 250 valeurs et acquis V1.164 conservés ; main inchangée. [Périmètre, limites et test regroupé](V1_165_REVIEW.md).
+
+---
+
 ## Suite complète rétablie
 
 Priorité : optimisation globale (recherche des capacités/chargements), étude des bugs natifs applicables, autres apparences et nettoyage démontré. Le candidat écharpe reste prêt pour un futur build, sans monopoliser la suite. [File actuelle et validations conservées](ACTIVE_QUEUE.md).

@@ -9,6 +9,7 @@
 #include "NativeTpsFeature.h"
 #include "RuntimeSettings.h"
 #include "NativeCostProbe.h"
+#include "DiscoveryObjectBatch.h"
 #include <MinHook.h>
 #include <atomic>
 #include <algorithm>
@@ -28,7 +29,7 @@ uintptr_t g_base=0,g_world=0;LogFn g_log=nullptr;std::atomic_bool g_ready{false}
 native_objects::Identity g_geyser{},g_geyserActors[2]{};
 native_objects::Identity g_stone{};std::atomic_bool g_stoneFailed{false};unsigned g_stoneEvents=0;
 std::atomic_bool g_geyserReady{false},g_geyserFailed{false};
-native_objects::Identity g_sequenceClass{},g_nativeClass{},g_materialClass{};
+native_objects::Identity g_sequenceClass{},g_nativeClass{},g_materialClass{},g_particleClass{};
 int g_cursor=0,g_count=0;bool g_complete=false;uint64_t g_scanTick=0,g_assetRetryAt=0;unsigned g_events=0;
 struct Array {uintptr_t data=0;int count=0,capacity=0;};
 struct Override {void* actor=nullptr;uintptr_t abilityClass=0;Name id{};};
@@ -106,17 +107,19 @@ void Scan(uintptr_t generatedClass,uint64_t nowMs,bool refreshMissing){
     if(g_sequenceClass&&!Alive(g_sequenceClass))g_sequenceClass={};
     if(g_nativeClass&&!Alive(g_nativeClass))g_nativeClass={};
     if(g_materialClass&&!Alive(g_materialClass))g_materialClass={};
+    if(g_particleClass&&!Alive(g_particleClass))g_particleClass={};
+    native_objects::MemoryReader scanReader;native_objects::DiscoveryObjectBatch batch(chunks,count);
     for(unsigned n=0;n<256&&g_cursor<count;++n,++g_cursor){
         if(n&&!(n%16)&&timed){LARGE_INTEGER now{};
             if(QueryPerformanceCounter(&now)&&now.QuadPart-started.QuadPart>=frequency.QuadPart/1000)break;}
-        uintptr_t chunk=0,object=0,cls=0;uint32_t flags=0;
-        if(!Read(chunks,size_t(g_cursor/65536)*8,chunk)||!Read(chunk,size_t(g_cursor%65536)*24,object)||!object||
-           !Read(chunk,size_t(g_cursor%65536)*24+8,flags)||(flags&0x30000000u)||!Read(object,0x10,cls))continue;
+        uintptr_t object=0,cls=0;
+        if(!batch.Read(scanReader,g_cursor,object)||!Read(object,0x10,cls)||!cls)continue;
         if(!g_sequenceClass&&Is(cls,"AnimSequence"))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(cls),g_sequenceClass);
         if(!g_nativeClass&&Is(cls,"Class"))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(cls),g_nativeClass);
         if(!g_materialClass&&Is(cls,"MaterialInstanceConstant"))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(cls),g_materialClass);
+        if(!g_particleClass&&Is(cls,"ParticleSystem"))native_objects::CaptureLive(g_base,reinterpret_cast<void*>(cls),g_particleClass);
         const unsigned kind=cls==generatedClass?1u:cls==g_nativeClass.address?2u:cls==g_sequenceClass.address?3u:0u;
-        if((needVisualLoader&&Is(cls,"KismetSystemLibrary"))||cls==g_materialClass.address||kind==2||Is(cls,"ParticleSystem"))stone_visual::ObserveObject(object);
+        if((needVisualLoader&&Is(cls,"KismetSystemLibrary"))||cls==g_materialClass.address||kind==2||cls==g_particleClass.address)stone_visual::ObserveObject(object);
         if(!kind)continue;
         foreign_caltrops::ObserveObject(object,kind);foreign_power::ObserveObject(object,kind);
         if(kind==1||kind==3){foreign_beam::ObserveObject(object);foreign_rampage::ObserveObject(object);}

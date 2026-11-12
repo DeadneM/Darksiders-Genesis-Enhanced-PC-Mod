@@ -1,6 +1,6 @@
 # File actuelle — reprise du 12 novembre 2026
 
-Cette liste remplace les anciens états actifs ci-dessous ; l'historique reste conservé. Base VALIDÉE : V1.164 sur main `e0ac8a44a9fc79425218c452efab7128acecb56f`. Travaux suivants sur debug uniquement. Compilation toujours différée par l'utilisateur.
+Cette liste remplace les anciens états actifs ci-dessous ; l'historique reste conservé. Base VALIDÉE : V1.164 sur main `e0ac8a44a9fc79425218c452efab7128acecb56f`. Travaux suivants sur debug uniquement. Compilation debug V1.165 désormais autorisée pour les points optimisation/bugs natifs et le candidat cumulé ; contrôles à venir.
 
 | Chantier | Situation et prochaine étape |
 | --- | --- |

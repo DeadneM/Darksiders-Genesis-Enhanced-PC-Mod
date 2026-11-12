@@ -34,7 +34,7 @@ void* CreateNative(void* sequence,Name slot,float in,float out,float rate,int lo
 void Fresh(){
  f={};owner={};gameThread=local=buildOK=playing=helperReady=true;throwResolve=false;plays=finishes=builds=getters=resolves=0;played=nullptr;playedRate=0;
  g_ready=g_geyserReady=true;g_requested=g_geyserFailed=g_stoneFailed=false;g_stone={};g_create=CreateNative;creates=0;createOK=true;reassign=false;g_getter=Getter;g_play=PlayNative;g_finish=FinishNative;g_playing=PlayingNative;g_log=nullptr;g_override=nullptr;
- g_sequenceClass=g_nativeClass=g_materialClass={};g_cursor=g_count=0;g_complete=false;g_scanTick=g_assetRetryAt=0;g_world=0;g_events=0;g_geyserActors[0]=g_geyserActors[1]={};
+ g_sequenceClass=g_nativeClass=g_materialClass=g_particleClass={};g_cursor=g_count=0;g_complete=false;g_scanTick=g_assetRetryAt=0;g_world=0;g_events=0;g_geyserActors[0]=g_geyserActors[1]={};
  const char* labels[]={"Strife_Blueprint_C","StrifeAnim_Blueprint_C","BlendSpace1D","AnimSequence","AnimMontage","BlueprintGeneratedClass"};
  for(int i=0;i<6;++i)Label(f.classes[i],i+1,labels[i]);
  Put(f.classes[0],0x10,reinterpret_cast<uintptr_t>(f.classes[5]));
@@ -83,6 +83,10 @@ void Run(){
  Scan(reinterpret_cast<uintptr_t>(f.classes[5]),100,false);Check(g_complete&&g_cursor==640&&!g_geyserReady,"completed inventory does not rescan without an active missing coating");
  g_assetRetryAt=1000;Scan(reinterpret_cast<uintptr_t>(f.classes[5]),999,true);Check(g_complete&&g_cursor==640&&!g_geyserReady,"missing resource retry observes its cooldown");
  Scan(reinterpret_cast<uintptr_t>(f.classes[5]),1000,true);Check(g_geyserReady&&g_cursor>0&&g_cursor<=256&&g_assetRetryAt==2000,"same-size UObject table with reused earlier index is rediscovered in a bounded slice");
+ Fresh();Label(f.classes[4],19,"ParticleSystem");Register(4,f.classes[4],77);Put(f.montage,0x10,reinterpret_cast<uintptr_t>(f.classes[4]));Register(5,f.montage,78);
+ Scan(reinterpret_cast<uintptr_t>(f.classes[5]),200,false);Check(g_particleClass.address==reinterpret_cast<uintptr_t>(f.classes[4])&&g_particleClass.serial==77,"particle class is discovered once with a live identity");
+ Put(f.items,4*24+16,78);Label(f.classes[4],19,"UnrelatedReusedClass");g_cursor=0;g_complete=false;
+ Scan(reinterpret_cast<uintptr_t>(f.classes[5]),300,false);Check(!g_particleClass,"a reused class address cannot keep the particle fast path");
  Stone();Check(Prepare(f.actor,cls,6)&&cls==reinterpret_cast<uintptr_t>(f.stone),"Stoneskin ready on owned Strife with class default and compatible animation");
  const auto before=std::vector<unsigned char>(f.montage,f.montage+sizeof(f.montage));Cast();
  Check(plays==1&&creates==1&&!finishes&&!builds&&std::fabs(playedRate-(.75f*2.666667f/1.25f))<.0001f,"Stoneskin keeps own gesture/fades and native finish delegate, shortening activation to 1.25s; no Geyser path");

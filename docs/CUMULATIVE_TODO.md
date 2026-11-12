@@ -1,3 +1,9 @@
+## V1.165 debug — optimisation globale et candidat écharpe
+
+Réduction des lectures de découverte des capacités, reprise de ressources en attente/épuisée allégée, candidat écharpe double face cumulé. Étude des bugs natifs effectuée ; pas de nouveau patch moteur sans preuve. **PRÉPARÉ / EXPÉRIMENTAL, compilation et contrôles GitHub à venir.** 250 valeurs et acquis V1.164 conservés ; main inchangée. [Périmètre, limites et test regroupé](V1_165_REVIEW.md).
+
+---
+
 ## Seconde revue du candidat écharpe — sans compilation
 
 Contrôles préparés pour Abyssal et la restauration exacte. Le chemin de recherche évite désormais les vérifications du chargeur/menus pendant les délais de reprise ou après épuisement des essais ; budget et règles de reprise conservés. Copie complète toujours unique par MID. Aucun build ni test C++ exécuté, aucun gain de FPS mesuré. [Résultats comparés et file de suite](SCARF_PREBUILD_SECOND_REVIEW.md).
