@@ -1,3 +1,9 @@
+## Suite complète rétablie
+
+Priorité : optimisation globale (recherche des capacités/chargements), étude des bugs natifs applicables, autres apparences et nettoyage démontré. Le candidat écharpe reste prêt pour un futur build, sans monopoliser la suite. [File actuelle et validations conservées](ACTIVE_QUEUE.md).
+
+---
+
 ## Seconde revue du candidat écharpe — sans compilation
 
 Contrôles préparés pour Abyssal et la restauration exacte. Le chemin de recherche évite désormais les vérifications du chargeur/menus pendant les délais de reprise ou après épuisement des essais ; budget et règles de reprise conservés. Copie complète toujours unique par MID. Aucun build ni test C++ exécuté, aucun gain de FPS mesuré. [Résultats comparés et file de suite](SCARF_PREBUILD_SECOND_REVIEW.md).

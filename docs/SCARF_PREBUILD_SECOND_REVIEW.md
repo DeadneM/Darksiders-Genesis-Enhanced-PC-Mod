@@ -20,7 +20,7 @@ Ordre de suite :
 2. Mesurer les éventuelles saccades à l'activation et la fluidité en état actif, dans une même scène. L'optimisation se basera sur cette comparaison, plutôt que sur des réglages moteur génériques.
 3. Régression du sol privé des chevaux et du lifecycle skin/chargement ; ce contrôle d'une nouvelle bêta ne remet pas en question la validation V1.164 déjà donnée.
 
-Le feu de l'écharpe, les explosions/cendres et l'aura de lave au sol sont trois chemins distincts : ne pas les présenter comme un seul correctif. Pas de nouvelle panne de l'aura démontrée depuis les essais positifs précédents. Aucun autre défaut fonctionnel confirmé ajouté à cette file. Main, configuration, raccourcis, fichiers du jeu et anciens ZIP restent intacts.
+Le feu de l'écharpe, les explosions/cendres et l'aura de lave au sol sont trois chemins distincts : ne pas les présenter comme un seul correctif. Pas de nouvelle panne de l'aura démontrée depuis les essais positifs précédents. Ce relevé ne couvre que l’écharpe ; les autres chantiers restent suivis dans ACTIVE_QUEUE.md. Main, configuration, raccourcis, fichiers du jeu et anciens ZIP restent intacts.
 
 
 ## Suite : limiter la recherche des ressources au moment utile

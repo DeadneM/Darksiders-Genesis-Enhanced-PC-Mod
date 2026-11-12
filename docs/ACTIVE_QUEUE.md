@@ -1,3 +1,23 @@
+# File actuelle — reprise du 12 novembre 2026
+
+Cette liste remplace les anciens états actifs ci-dessous ; l'historique reste conservé. Base VALIDÉE : V1.164 sur main `e0ac8a44a9fc79425218c452efab7128acecb56f`. Travaux suivants sur debug uniquement. Compilation toujours différée par l'utilisateur.
+
+| Chantier | Situation et prochaine étape |
+| --- | --- |
+| Optimisation globale du mod | À REPRENDRE EN PRIORITÉ, au-delà de Stoneskin. Examiner recherche des capacités, catalogue d'apparences et chargements ; confronter ensuite coût CPU, rendu/GPU et pics de temps d'image. Le relevé précédent orientait surtout vers wrath-discovery ; ce n'est ni une mesure actuelle ni la preuve d'un gain disponible. [Note d'origine](NEXT_WORK_2026_11_11.md). |
+| Bugs natifs du jeu / UE4.22.2 | RECHERCHE demandée, distincte de l'optimisation ASI. Identifier des défauts documentés applicables à cet EXE et un moyen de les reproduire avant patch. Moloch déjà corrigé et validé ; aucun autre bug moteur précis n'est déclaré confirmé/corrigé ici. |
+| Autres apparences natives | EXPLORATION à poursuivre au-delà des poussières de dash déjà livrées/acceptées : outils, capacités et variantes de cœurs. Conserver Léviathan et les rendus validés. Ne pas transformer de simples matériaux ou phases de particules en faux choix de skins complets. [Recherche précédente](NATIVE_APPEARANCE_RESEARCH_2026_11_05.md). |
+| Nettoyage du code ajouté récemment | Accompagne les chantiers : deux lectures comparées des usages et du lifecycle, retrait des seuls restes démontrés inutiles. Ne pas refaire passer les nettoyages antérieurs pour des suppressions nouvelles et ne pas retirer une fonction validée. |
+| Écharpe Stoneskin double face | CANDIDAT PRÉPARÉ sur debug, NON CONSTRUIT / NON VALIDÉ en jeu. Mettre de côté les relectures supplémentaires ; prochain passage utile : compilation puis rendu face/envers/feu et coût mesuré lorsque le build sera demandé. [Candidat et limites](NEXT_STONESKIN_SCARF_REVIEW.md). |
+
+## Déjà acceptés, à préserver
+
+Marche aérienne sur sol privé V1.164, saut des quatre chevaux, D-pad bas pour la visée sans tir, coop/P2, fonctions précédemment validées. Récupérations coffre/dash acceptées avec la réserve utilisateur déjà enregistrée. GPU, menu, visée et fix Moloch ne sont pas remis artificiellement en attente. Les anciennes intermittences de l'aura Molten restent en surveillance ; les derniers essais étaient positifs.
+
+Pas de nouveau build, installation, lancement du jeu ou transfert de paquet existant pour cette remise en ordre. La suite ne doit plus être réduite aux seules relectures du candidat écharpe.
+
+---
+
 ## V1.147 — bouclier : référence native réelle, original réglable et chargement ciblé
 
 **CONSTRUIT / CONTRÔLÉ, EXPÉRIMENTAL en jeu ; disponible sur debug, non installé par l'agent.** Base V1.146 bouclier repris après retour non validé : vrai composant+0x78, ancien garde+0x58 nul corrigé, rendu privé et réglages actifs. Taille0 bouclier/Léviathan ; Native et Original réglable distincts ; 28 choix/26 effets, chargement du seul effet sélectionné. **74/74 suites GitHub**, ZIP/updater contrôlés, 245 valeurs et 55 actions conservées, main/archive intacts. [Livraison, limites et essais](V1_147_DELIVERY_RECEIPT.md). Crash RenderThread après cinématique du 3 novembre analysé et sauvegardé, cause non confirmée ; aucun correctif RHI annoncé. Autres sujets ouverts inchangés.
