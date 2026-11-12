@@ -138,7 +138,7 @@ bool AirFootstep(void* notify,void* mesh){
                !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(cls),api.moveClass))return false;
         }
         mounted_air::Floor floor{};
-        if(!Read(lease.movement.address,size_t(api.floor),floor)||!mounted_air::Walkable(floor)||
+        if(!reader.Read(lease.movement.address,size_t(api.floor),floor)||!mounted_air::Walkable(floor)||
            floor.hit.component.index>=0||floor.hit.component.serial||!std::isfinite(floor.hit.impact.z)||
            std::abs(floor.hit.impact.z-lease.plane.z)>.1f||
            !native_objects::Alive(reader,g_base,g_sounds[3])||SoundKind(g_sounds[3].address)!=3)return false;
