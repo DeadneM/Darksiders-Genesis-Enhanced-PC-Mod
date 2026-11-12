@@ -1,3 +1,9 @@
+## V1.162 disponible sur debug — chevaux dans le vide
+
+**CONSTRUIT / CONTRÔLÉ : 83/83 suites Windows GitHub, aucun avertissement C++ détecté ; EXPÉRIMENTAL en jeu.** Gameplay → Horse : marche aérienne OFF par défaut, action Saut native et délai de chute réglable 0–1 s (0,2 s par défaut). Base V1.161 conservée ; deux nouvelles clés, anciennes valeurs/commandes identiques, main V1.159 et 226 anciennes archives intactes. Envers d'écharpe toujours ouvert ; pas d'optimisation moteur annoncée. [ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/772b831f6e67750e2e951fa299dfbe67c7211051/downloads/DarksidersGenesis_V1.162_MOUNTED_AIR_WALK_TEST.zip) · [Reçu et tests](V1_162_DELIVERY_RECEIPT.md).
+
+---
+
 ## V1.162 — marche aérienne expérimentale des chevaux
 
 Option indépendante OFF par défaut, action Jump native, délai de chute réglable 0–1 s (0,2 s par défaut). Base V1.161 conservée ; saut et coop acceptés, main V1.159 intacte. Lecture native réussie sans modification du jeu. Implantation prête pour contrôles GitHub, PAS encore validée en jeu. Envers d’écharpe et étude de performance restent ouverts. [Périmètre et tests](V1_162_REVIEW.md).

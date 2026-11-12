@@ -1,0 +1,42 @@
+{
+  "version": "V1.162",
+  "base": "96388c7f9265fb13d4c16cdf513d5fa7cfb4287e",
+  "source": "0539b6f5f5eacdf48d94cd7b4a6178dd3ed50e60",
+  "archive": "772b831f6e67750e2e951fa299dfbe67c7211051",
+  "download": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/772b831f6e67750e2e951fa299dfbe67c7211051/downloads/DarksidersGenesis_V1.162_MOUNTED_AIR_WALK_TEST.zip",
+  "sha256": "79504228AF148D6B42DD8AF0FDE9258AD9EA38C6F4C4425C6EA9AA857D518F68",
+  "bytes": 2445038,
+  "files": {
+    "dxgi.dll": {
+      "bytes": 155136,
+      "sha256": "25B3C0124C3687ADC5C6D1DE97F9AFDE56CA6CF91F6110FFC0F5A688829B4DD0"
+    },
+    "DarksidersGenesisMod.asi": {
+      "bytes": 2289664,
+      "sha256": "7C79097013DC067BE98B0239D3831FDFB0B734ED05DA788BDFD9C7652E255802"
+    }
+  },
+  "crcVerified": true,
+  "amd64": true,
+  "rootBinariesOnly": true,
+  "oldArchivesUnchanged": 226,
+  "totalArchives": 227,
+  "iniKeys": 250,
+  "defaultDelta": {
+    "Features/MountedAirWalk": "0",
+    "Values/MountedAirWalkReleaseDelay": "0.200"
+  },
+  "updaterSelection": "DarksidersGenesis_V1.162_MOUNTED_AIR_WALK_TEST.zip",
+  "gitBlob": "fab05bda2952488c01c5444d89c21af765a6acd6",
+  "publicHttpStatus": 200,
+  "binaryDownload": "new ZIP retrieved once through Git; no duplicate HTTP GET or old package download",
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/debug": "772b831f6e67750e2e951fa299dfbe67c7211051",
+    "refs/heads/main": "d6414404ba268add00834323c6da064af5d5ce42",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "installed": false,
+  "localBuild": false,
+  "gameplayValidated": false
+}
