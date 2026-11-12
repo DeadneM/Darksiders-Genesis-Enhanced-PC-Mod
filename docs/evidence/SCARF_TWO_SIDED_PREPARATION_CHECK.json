@@ -1,0 +1,52 @@
+{
+  "status": "PREPARED_NOT_BUILT_NOT_RUNTIME_VALIDATED",
+  "base": "e91c2ab5ecf8e5086c662cc3c5e302f3af59ad5d",
+  "main": "e0ac8a44a9fc79425218c452efab7128acecb56f",
+  "template": "/Game/Characters/Heroes/Hero_War/Textures/War_Cloth_Gold_Inst_A",
+  "cooked": {
+    "twoSided": true,
+    "blendMode": "Masked",
+    "scrollPermutation": true
+  },
+  "nativeExeSha256": "9F4702024DF5EEA1D51DF7745B0AD1EA95B97009982F73DDC1218C53DFF33D54",
+  "nativeEntries": {
+    "copy": "0x1D96D80",
+    "copyDispatcher": "0x197FDF0",
+    "fullCopy": "0x196E930",
+    "setVector": "0x1D97420"
+  },
+  "copy": {
+    "source": "exact native equipped cloth interface",
+    "quick": false,
+    "perPrivateClothCreation": 1,
+    "perFrame": false,
+    "runtimeCostMeasured": false
+  },
+  "safety": [
+    "private MID only",
+    "shared materials untouched",
+    "one asset request per service",
+    "optional asset requested last",
+    "legacy fallback",
+    "exact native restoration",
+    "no new hooks or configuration",
+    "optional absence never accelerates global missing-asset scan"
+  ],
+  "checks": {
+    "whitespace": "passed",
+    "testSourcesPrepared": true,
+    "cppTestsRun": false,
+    "gameTest": false,
+    "build": false,
+    "nativeExeIdentity": "matched",
+    "scope": "source/tests isolated; no config, build identity, hook, workflow or archive change staged"
+  },
+  "localOnlyAssetResearch": true,
+  "newArchive": false,
+  "personalIniTouched": false,
+  "limitations": [
+    "masked alpha/fire distribution unvalidated",
+    "native cloth appearance differs from former opaque coating",
+    "full copy can be slow; profiling required"
+  ]
+}

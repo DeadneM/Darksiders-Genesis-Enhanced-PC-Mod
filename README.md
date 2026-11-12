@@ -1,3 +1,9 @@
+## Écharpe double face — candidat debug, sans build
+
+Implémentation préparée : matériau privé double face cuit, textures natives du skin équipé, émission Molten ciblée et repli vers le revêtement précédent. Corps/particules/marche aérienne/configuration inchangés. NON CONSTRUIT, NON VALIDÉ ; tests ajoutés mais pas exécutés, coût de copie et rendu à vérifier. Main reste la V1.164 validée, compilation toujours différée. [Périmètre, limites et tests](docs/NEXT_STONESKIN_SCARF_REVIEW.md).
+
+---
+
 ## V1.164 validée — promotion main sans nouvelle compilation
 
 Marche/course aérienne sur sol privé validée par l’utilisateur le 12 novembre 2026. Publication de la base exacte testée sur main demandée, sans build ; ZIP et sources V1.164 existants réutilisés, réglages inchangés. Suite sur debug : envers de l’écharpe Stoneskin, sans build pour l’instant. [Validation, périmètre et absence de compilation](docs/V1_164_MAIN_PROMOTION.md).
