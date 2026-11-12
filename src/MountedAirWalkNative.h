@@ -97,11 +97,12 @@ inline bool Possessed(uintptr_t base,const Lease& lease){
 }
 inline void Release(uintptr_t base,Event event,State& s,uintptr_t currentWorld){
     const auto saved=s.lease;s={}; // remove support before requesting native falling
-    if(!saved.active||!currentWorld||saved.world!=currentWorld||!Alive(base,saved.horse)||!Alive(base,saved.movement))return;
-    uintptr_t owner=0,controller=0;unsigned char role=0,despawning=0,mode=0,custom=0;
+    if(!saved.active||!currentWorld||saved.world!=currentWorld||!Alive(base,saved.horse)||!Alive(base,saved.movement)||!Alive(base,saved.capsule))return;
+    uintptr_t owner=0,controller=0,root=0,updated=0;unsigned char role=0,despawning=0,mode=0,custom=0;
     if(!Read(saved.movement.address,0xE8,owner)||owner!=saved.horse.address||!Read(owner,0x118,role)||role!=3||
        !Read(owner,0xA66,despawning)||despawning||!Read(owner,0x348,controller)||
        (controller&&(controller!=saved.controller.address||!Alive(base,saved.controller)))||
+       !Read(owner,0x158,root)||root!=saved.capsule.address||!Read(saved.movement.address,0xF8,updated)||updated!=root||
        !Read(saved.movement.address,0x1B0,mode)||mode!=1||!Read(saved.movement.address,0x1B1,custom)||custom)return;
     SetMode(base,event,saved.movement.address,3);
 }
