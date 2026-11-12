@@ -1,5 +1,5 @@
 {
-  "status": "PREPARED_NOT_BUILT_NOT_RUNTIME_VALIDATED",
+  "status": "BUILT_CHECKED_NOT_RUNTIME_VALIDATED",
   "base": "e91c2ab5ecf8e5086c662cc3c5e302f3af59ad5d",
   "main": "e0ac8a44a9fc79425218c452efab7128acecb56f",
   "template": "/Game/Characters/Heroes/Hero_War/Textures/War_Cloth_Gold_Inst_A",
@@ -35,9 +35,9 @@
   "checks": {
     "whitespace": "passed",
     "testSourcesPrepared": true,
-    "cppTestsRun": false,
+    "cppTestsRun": true,
     "gameTest": false,
-    "build": false,
+    "build": true,
     "nativeExeIdentity": "matched",
     "scope": "source/tests isolated; no config, build identity, hook, workflow or archive change staged"
   },
@@ -77,9 +77,17 @@
     "sharedBudgetUnchanged": true,
     "nativeGatesUnchanged": true,
     "testsPrepared": true,
-    "testsExecuted": false,
+    "testsExecuted": true,
     "cpuOrFpsMeasured": false,
     "newHooks": false,
     "newConfig": false
+  },
+  "buildV165": {
+    "runtimePerformanceMeasured": false,
+    "passed": 83,
+    "source": "f716eb65cfa222055d0b136a0f8d5ae368aa7c76",
+    "tests": 83,
+    "gameplayValidated": false,
+    "runId": 43280608528
   }
 }

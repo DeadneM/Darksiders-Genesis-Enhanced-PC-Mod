@@ -1,3 +1,5 @@
+**État après build V1.165 : CONSTRUIT et CONTRÔLÉ, 83/83 suites réussies ; NON VALIDÉ en jeu. Le report de compilation a été levé par l’utilisateur pour ce lot. [Livraison et essais](V1_165_DELIVERY_RECEIPT.md). Les mentions de tests non exécutés ci-dessous décrivent la préparation historique.**
+
 # Écharpe Stoneskin — seconde revue avant build
 
 Base stable : V1.164 validée, main `e0ac8a44a9fc79425218c452efab7128acecb56f`. Candidat debug `20dc020911d0f1e80c7ebfff214f632684f1d7b1`. Le report de compilation reste appliqué.

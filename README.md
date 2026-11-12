@@ -1,3 +1,9 @@
+## V1.165 disponible sur debug — découverte allégée et écharpe double face
+
+**CONSTRUIT / CONTRÔLÉ : 83/83 suites Windows, aucun avertissement C++ détecté. EXPÉRIMENTAL en jeu.** Optimisation des lectures de découverte et des reprises d'assets ; candidat écharpe cumulé. Bugs natifs étudiés, aucun nouveau patch moteur sans preuve. 250 valeurs et acquis V1.164 conservés, main inchangée. [ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/78c13a4f6240fd7c5e9b730188e31f7087a6ecf1/downloads/DarksidersGenesis_V1.165_DISCOVERY_CLOTH_TEST.zip) · [Contrôles, limites et test regroupé](docs/V1_165_DELIVERY_RECEIPT.md).
+
+---
+
 ## V1.165 debug — optimisation globale et candidat écharpe
 
 Réduction des lectures de découverte des capacités, reprise de ressources en attente/épuisée allégée, candidat écharpe double face cumulé. Étude des bugs natifs effectuée ; pas de nouveau patch moteur sans preuve. **PRÉPARÉ / EXPÉRIMENTAL, compilation et contrôles GitHub à venir.** 250 valeurs et acquis V1.164 conservés ; main inchangée. [Périmètre, limites et test regroupé](docs/V1_165_REVIEW.md).

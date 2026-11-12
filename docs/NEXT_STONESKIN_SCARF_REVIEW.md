@@ -1,3 +1,5 @@
+**État après build V1.165 : CONSTRUIT et CONTRÔLÉ, 83/83 suites réussies ; NON VALIDÉ en jeu. Le report de compilation a été levé par l’utilisateur pour ce lot. [Livraison et essais](V1_165_DELIVERY_RECEIPT.md). Les mentions de tests non exécutés ci-dessous décrivent la préparation historique.**
+
 # Suite après V1.164 validée — envers de l'écharpe
 
 **CANDIDAT PRÉPARÉ sur debug ; NON CONSTRUIT, NON VALIDÉ en jeu.** Main conserve exactement la V1.164 validée. Priorité restante : afficher les deux faces de l'écharpe Stoneskin Strife en gardant son feu, sa forme complète et la restauration du matériau natif.
