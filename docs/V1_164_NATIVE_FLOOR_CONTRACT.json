@@ -1,0 +1,167 @@
+{
+  "executableSha256": "9F4702024DF5EEA1D51DF7745B0AD1EA95B97009982F73DDC1218C53DFF33D54",
+  "source": "local retail EXE generated struct descriptors, setters and native wrappers",
+  "liveObservation": false,
+  "nativeCalls": false,
+  "memoryWrites": false,
+  "structs": [
+    {
+      "name": "FindFloorResult",
+      "size": 148,
+      "alignment": 4,
+      "fields": [
+        {
+          "name": "HitResult",
+          "codegenKind": 25,
+          "offset": 12
+        },
+        {
+          "name": "LineDist",
+          "codegenKind": 10,
+          "offset": 8
+        },
+        {
+          "name": "FloorDist",
+          "codegenKind": 10,
+          "offset": 4
+        },
+        {
+          "name": "bLineTrace",
+          "codegenKind": 12,
+          "offset": 0,
+          "mask": 4,
+          "setter": "0x4143a0"
+        },
+        {
+          "name": "bWalkableFloor",
+          "codegenKind": 12,
+          "offset": 0,
+          "mask": 2,
+          "setter": "0x414370"
+        },
+        {
+          "name": "bBlockingHit",
+          "codegenKind": 12,
+          "offset": 0,
+          "mask": 1,
+          "setter": "0x4143b0"
+        }
+      ]
+    },
+    {
+      "name": "HitResult",
+      "size": 136,
+      "alignment": 4,
+      "fields": [
+        {
+          "name": "MyBoneName",
+          "codegenKind": 20,
+          "offset": 128
+        },
+        {
+          "name": "BoneName",
+          "codegenKind": 20,
+          "offset": 120
+        },
+        {
+          "name": "Component",
+          "codegenKind": 14,
+          "offset": 112
+        },
+        {
+          "name": "Actor",
+          "codegenKind": 14,
+          "offset": 104
+        },
+        {
+          "name": "PhysMaterial",
+          "codegenKind": 14,
+          "offset": 96
+        },
+        {
+          "name": "Item",
+          "codegenKind": 3,
+          "offset": 92
+        },
+        {
+          "name": "PenetrationDepth",
+          "codegenKind": 10,
+          "offset": 88
+        },
+        {
+          "name": "TraceEnd",
+          "codegenKind": 25,
+          "offset": 76
+        },
+        {
+          "name": "TraceStart",
+          "codegenKind": 25,
+          "offset": 64
+        },
+        {
+          "name": "ImpactNormal",
+          "codegenKind": 25,
+          "offset": 52
+        },
+        {
+          "name": "Normal",
+          "codegenKind": 25,
+          "offset": 40
+        },
+        {
+          "name": "ImpactPoint",
+          "codegenKind": 25,
+          "offset": 28
+        },
+        {
+          "name": "Location",
+          "codegenKind": 25,
+          "offset": 16
+        },
+        {
+          "name": "Distance",
+          "codegenKind": 10,
+          "offset": 12
+        },
+        {
+          "name": "Time",
+          "codegenKind": 10,
+          "offset": 8
+        },
+        {
+          "name": "FaceIndex",
+          "codegenKind": 3,
+          "offset": 4
+        },
+        {
+          "name": "bStartPenetrating",
+          "codegenKind": 12,
+          "offset": 0,
+          "mask": 2,
+          "setter": "0x4143c0"
+        },
+        {
+          "name": "bBlockingHit",
+          "codegenKind": 12,
+          "offset": 0,
+          "mask": 1,
+          "setter": "0x414310"
+        }
+      ]
+    }
+  ],
+  "floorCallback": {
+    "rva": "0x173C300",
+    "horseVtable": "0x270ABF0",
+    "slot": "0x870",
+    "prologue": "488bc45556574154415541564157488da868feffff",
+    "abi": "this, const FVector&, float LineDistance, float SweepDistance, FFindFloorResult&, float SweepRadius, const FHitResult*",
+    "wrapperProof": "K2 thunk 0x1CF0E70 -> K2 wrapper 0x1746DB0 -> virtual +0x870"
+  },
+  "height": {
+    "thunk": "0x1CED210",
+    "result": "float ReturnValue, 4 bytes",
+    "body": "component +0x590 multiplied by scale Z +0x1B8"
+  },
+  "gameplayValidated": false
+}

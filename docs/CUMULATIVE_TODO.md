@@ -1,3 +1,9 @@
+## V1.164 — marche native sur un sol invisible
+
+V1.163 rejetée comme correction du flottement. Remplacement du vol par Walking natif sur un plan privé sous la capsule ; retrait des deux hooks de réglage V1.163. Maintien/sauts/délai conservés, aucun acteur/asset créé, configuration inchangée. EXPÉRIMENTAL, contrôles Windows GitHub à venir ; animations et physique à vérifier en jeu. [Périmètre et preuves](V1_164_REVIEW.md).
+
+---
+
 ## V1.163 disponible sur debug — réponse au sol de la marche aérienne
 
 **CONSTRUIT / CONTRÔLÉ : 83/83 suites Windows GitHub, aucun avertissement C++ détecté ; EXPÉRIMENTAL en jeu.** Friction/freinage au sol et vitesse de marche appliqués pendant la marche aérienne, sprint natif conservé. Maintien, sauts, délai et 250 valeurs de configuration inchangés. Base V1.162 appréciée, main V1.159 et anciennes archives intactes. [ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/b1177206ad04c5d11df9886e5f89982c50089f79/downloads/DarksidersGenesis_V1.163_MOUNTED_GROUND_RESPONSE_TEST.zip) · [Reçu et test comparatif](V1_163_DELIVERY_RECEIPT.md).
