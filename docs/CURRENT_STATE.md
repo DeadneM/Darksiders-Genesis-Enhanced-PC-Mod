@@ -1,3 +1,9 @@
+## V1.166 debug — lot cumulatif prêt pour GitHub
+
+Écharpe : refus de V1.165 identifié (padding lu comme association), lecture à un octet corrigée. Sons natifs des sabots sur le sol privé, Contre-esquive Vanilla/OFF et synergie Vanilla/Inverted/No Swap ajoutés. Defaults natifs pour les nouvelles options ; 250 anciennes valeurs conservées, 252 au total. **PRÉPARÉ / EXPÉRIMENTAL, pas encore validé en jeu.** Main V1.164 et INI personnel intacts. [Périmètre, preuves, tests et limites](V1_166_REVIEW.md).
+
+---
+
 ## V1.165 disponible sur debug — découverte allégée et écharpe double face
 
 **CONSTRUIT / CONTRÔLÉ : 83/83 suites Windows, aucun avertissement C++ détecté. EXPÉRIMENTAL en jeu.** Optimisation des lectures de découverte et des reprises d'assets ; candidat écharpe cumulé. Bugs natifs étudiés, aucun nouveau patch moteur sans preuve. 250 valeurs et acquis V1.164 conservés, main inchangée. [ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/78c13a4f6240fd7c5e9b730188e31f7087a6ecf1/downloads/DarksidersGenesis_V1.165_DISCOVERY_CLOTH_TEST.zip) · [Contrôles, limites et test regroupé](V1_165_DELIVERY_RECEIPT.md).

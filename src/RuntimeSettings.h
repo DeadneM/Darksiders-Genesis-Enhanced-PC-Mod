@@ -33,6 +33,8 @@ struct Snapshot {
     bool weaponSheathingEnabled = defaults::WeaponSheathing;
     bool heavyLandingRecoveryEnabled = defaults::HeavyLandingRecovery;
     bool airDashReworkEnabled = defaults::AirDashRework;
+    bool strifeCounterEvadeEnabled = true;
+    int synergySwapMode = 0;
     float heavyLandingDelaySeconds = .15f,heavyLandingGroundSeconds = .05f;
     bool recoveryDashTailEnabled = defaults::RecoveryTail,recoveryChestTailEnabled = defaults::RecoveryTail;
     float recoveryTailDelaySeconds = 0;
@@ -165,6 +167,8 @@ struct State {
     std::atomic_bool weaponSheathingEnabled{defaults::WeaponSheathing};
     std::atomic_bool heavyLandingRecoveryEnabled{defaults::HeavyLandingRecovery};
     std::atomic_bool airDashReworkEnabled{defaults::AirDashRework};
+    std::atomic_bool strifeCounterEvadeEnabled{true};
+    std::atomic_int synergySwapMode{0};
     std::atomic<float> heavyLandingDelaySeconds{.15f},heavyLandingGroundSeconds{.05f};
     std::atomic_bool recoveryDashTailEnabled{defaults::RecoveryTail},recoveryChestTailEnabled{defaults::RecoveryTail};
     std::atomic<float> recoveryTailDelaySeconds{0};

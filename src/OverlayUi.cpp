@@ -34,6 +34,7 @@
 #include "GrappleRangeFeature.h"
 #include "AirJumpFeature.h"
 #include "AirDashFeature.h"
+#include "PlayerAbilityOptions.h"
 #include "MountedJumpFeature.h"
 #include "DashCombatFeature.h"
 
@@ -296,6 +297,21 @@ void Draw(Context& c) {
             ImGui::PopID();
 
             ImGui::Unindent();
+            }
+            if(layout::Group("Passives and synergy")){
+                ImGui::Indent();
+                ImGui::BeginDisabled(!player_abilities::CounterReady());
+                int counter=config.strifeCounterEvadeEnabled?0:1;
+                if(ImGui::Combo("Strife counter-evade",&counter,"Vanilla\0OFF\0")){
+                    config.strifeCounterEvadeEnabled=counter==0;config.Save();
+                }
+                ImGui::EndDisabled();
+                HelpText("OFF disables Counter-evade I and II without removing purchased skills.");
+                ImGui::BeginDisabled(!player_abilities::SynergyReady());
+                if(ImGui::Combo("Synergy swap",&config.synergySwapMode,"Vanilla\0Inverted\0No Swap\0"))config.Save();
+                ImGui::EndDisabled();
+                HelpText("Hold the native swap action. Inverted: current hero uses synergy, then swaps. No Swap: current hero uses synergy and stays. Co-op keeps its native behavior.");
+                ImGui::Unindent();
             }
             if(layout::Group("Wrath ability slots (experimental)")){
                 ImGui::Indent();

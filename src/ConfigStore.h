@@ -284,6 +284,8 @@ public:
     bool weaponSheathingEnabled = defaults::WeaponSheathing;
     bool heavyLandingRecoveryEnabled = defaults::HeavyLandingRecovery;
     bool airDashReworkEnabled = defaults::AirDashRework;
+    bool strifeCounterEvadeEnabled = true; // Vanilla; OFF suppresses both purchased levels at runtime
+    int synergySwapMode = 0; // Vanilla / current hero then swap / current hero without swap
     float heavyLandingDelaySeconds = .15f,heavyLandingGroundSeconds = .05f;
     bool recoveryDashTailEnabled = defaults::RecoveryTail,recoveryChestTailEnabled = defaults::RecoveryTail;
     float recoveryTailDelaySeconds = 0;

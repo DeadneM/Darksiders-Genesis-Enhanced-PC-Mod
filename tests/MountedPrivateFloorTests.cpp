@@ -94,6 +94,38 @@ void Geometry(){
     Check(!ApplyFloor(p,{0,0,490},30,50,40,empty)&&!ApplyFloor(p,{0,0,502},0,0,40,empty),"deep penetration and empty sweep refused");
     Check(!ApplyFloor(p,{0,0,std::numeric_limits<float>::quiet_NaN()},30,50,40,empty),"nonfinite geometry refused");
 }
+unsigned footNotify=0,footMesh=0,footCue=0,footCalls=0,nativeFootCalls=0;
+void FootstepScenarios(){
+    using namespace dg::mounted_jump;
+    gameThread=matched=true;paused=cinema=radial=false;g_footstepApi={};g_steps=0;g_log=nullptr;
+    const unsigned notifyClass=nextObject++;footNotify=nextObject++;footMesh=nextObject++;
+    const unsigned soundClass=nextObject++,soundPackage=nextObject++;footCue=nextObject++;
+    Named(notifyClass,"AnimNotify_PlayFootstep");Named(soundClass,"SoundCue");Named(soundPackage,"/Game/Audio/Sfx/Character/Ruin/char_ruin_foot_base");Named(footCue,"char_ruin_foot_base");
+    Put(objects[footNotify],0x10,P(notifyClass));Put(objects[footNotify],0,g_base+0x10000);Put(image.data(),0x10240,g_base+0x5D6E50);
+    Field(notifyClass,"bPlaySounds",BoolClass,1,200);Field(notifyClass,"bPlayVFX",BoolClass,1,201);Field(notifyClass,"bPlayDecals",BoolClass,1,202);
+    Put<unsigned char>(objects[footNotify],200,1);Put(objects[footCue],0x10,P(soundClass));Put(objects[footCue],0x20,P(soundPackage));
+    Put(objects[Horse],0x380,P(footMesh));Put(objects[footMesh],0xE8,P(Horse));Put(objects[Horse],0x348,P(Controller));Put(objects[Controller],0x350,P(Horse));
+    Put<unsigned char>(objects[Horse],0x118,3);Put<unsigned char>(objects[Horse],0xA66,0);Put(objects[Horse],0x158,P(Capsule));Put(objects[Movement],0xE8,P(Horse));Put(objects[Movement],0xF8,P(Capsule));Put(objects[Capsule],0xE8,P(Horse));
+    Put(objects[Capsule],0x1A0,Vector{10,20,300});Put(objects[Movement],0x10C,Vector{120,0,0});Mode(1);
+    g_players[0]={};g_players[1]={};auto& s=g_players[0];s.pawn=P(Horse);s.controller=P(Controller);s.character=P(Character);s.generation=7;s.tick=GetTickCount64();
+    s.air.lease={{P(Horse),Horse,Horse+1},{P(Movement),Movement,Movement+1},{P(Controller),Controller,Controller+1},{P(Capsule),Capsule,Capsule+1},100,{200,100},true};
+    Floor floor{};floor.flags=3;floor.hit.flags=1;floor.hit.impact.z=200;Put(objects[Movement],0x350,floor);
+    g_sounds[3]={P(footCue),int(footCue),int(footCue+1)};dg::runtime::Get().mountedAirWalkEnabled=true;
+    g_sound=+[](void* actor,void* cue,const dg::mounted_jump::Vector* p,const dg::mounted_jump::Vector*,float volume,float pitch,float start,void* attenuation,void* concurrency,void* source){
+        Check(actor==objects[Horse]&&source==actor&&cue==objects[footCue]&&p->z==200&&volume==1&&pitch==1&&!start&&!attenuation&&!concurrency,"hoof cue uses native Sfx route at private floor height");++footCalls;};
+    g_footstep=+[](void*,void*,void*){++nativeFootCalls;};
+    const auto fire=[](){HookFootstep(objects[footNotify],objects[footMesh],nullptr);};
+    for(const char* horse:{"Mayhem_Blueprint_C","Despair_Blueprint_C","Ruin_Blueprint_C","Rampage_Blueprint_C"}){Named(HorseClass,horse);s.tick=GetTickCount64();fire();}
+    Check(footCalls==4&&!nativeFootCalls,"all four mounted skins use one native hoof sound per sound-only animation event");
+    Put<unsigned char>(objects[footNotify],201,1);fire();Put<unsigned char>(objects[footNotify],201,0);Check(nativeFootCalls==1&&footCalls==4,"VFX notifications remain native, no duplicate sound");
+    floor.hit.component={1,2};Put(objects[Movement],0x350,floor);fire();floor.hit.component={};Put(objects[Movement],0x350,floor);Check(nativeFootCalls==2,"real terrain keeps native material-specific footsteps");
+    matched=false;fire();matched=true;Mode(3);fire();Mode(1);Check(nativeFootCalls==4,"foreign generation and airborne jump never use private-floor audio");
+    s.tick=GetTickCount64()-251;fire();s.tick=GetTickCount64();Check(nativeFootCalls==5,"stale focus/menu lifecycle cannot emit a hoof sound");
+    const auto cue=g_sounds[3];g_sounds[3]={};fire();g_sounds[3]=cue;Check(nativeFootCalls==6,"missing native cue fails open instead of consuming the notify");
+    dg::runtime::Get().mountedAirWalkEnabled=false;fire();dg::runtime::Get().mountedAirWalkEnabled=true;Check(nativeFootCalls==7,"option OFF is entirely native");
+    Put(objects[Movement],0x10C,Vector{});fire();Put(objects[Movement],0x10C,Vector{120,0,0});Check(nativeFootCalls==8,"stationary mount has no artificial footstep cadence");
+    g_players[1]=s;g_players[0]={};g_players[1].tick=GetTickCount64();fire();Check(footCalls==5&&nativeFootCalls==8,"P2's own live lease emits independently");
+}
 void Run(){
     using namespace dg::mounted_air;Geometry();Setup();const auto base=dg::mounted_jump::g_base;auto& air=dg::mounted_jump::g_players[0].air;
     dg::mounted_jump::g_players[0].tick=GetTickCount64();
@@ -122,6 +154,7 @@ void Run(){
     Down(false);Tick();Press();owner.world=200;owner.kind=dg::local_players::PoseKind::Foot;const auto old=modeCalls;Tick();Check(modeCalls==old&&!air.lease.active,"world/form change discards plane");
     Policy p{};Check(Decide(p,false,3,-1,true,false,100,200)==Action::None,"held enable requires edge");Jumped(p);Check(Decide(p,false,3,2,true,false,100,200)==Action::None&&Decide(p,false,3,0,true,false,101,200)==Action::Support,"apex decision");
     p={};Check(Decide(p,true,1,0,false,false,100,200)==Action::None&&Decide(p,true,1,0,false,false,300,200)==Action::Fall,"Walking grace expires");p={};Check(Decide(p,true,1,0,false,false,100,0)==Action::Fall,"zero delay falls immediately");
+    FootstepScenarios();
 }
 }
 namespace dg::native_tps {bool OnGameThread(){return gameThread;}bool IsWorldPaused(void*){return paused;}bool CinematicActive(unsigned){return cinema;}bool RadialActive(unsigned){return radial;}}

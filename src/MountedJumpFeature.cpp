@@ -22,7 +22,7 @@ struct Vector {float x=0,y=0,z=0;};
 // rotation by const reference. No borrowed FString, FKey or shared ownership.
 using PlaySound=void(*)(void*,void*,const Vector*,const Vector*,float,float,float,void*,void*,void*);
 PlaySound g_sound=nullptr;
-native_objects::Identity g_sounds[3]{};std::atomic_uint g_soundMask{0};
+native_objects::Identity g_sounds[4]{};std::atomic_uint g_soundMask{0};
 int g_soundCursor=0,g_soundCount=0;bool g_soundComplete=false;
 uintptr_t g_base=0;LogFn g_log=nullptr;std::atomic_bool g_ready{false};unsigned g_jumps=0,g_airEvents=0;
 struct Name {int index=0,number=0;};
@@ -32,10 +32,14 @@ static_assert(sizeof(Mapping)==40&&offsetof(Mapping,key)==16);
 struct Bindings {uintptr_t settings=0,data=0;int count=0;uint64_t refresh=0;std::array<int,8> indices{};unsigned size=0;};
 Bindings g_bindings{};
 struct Landing {uint64_t tick=0;bool airborne=false;};
-struct State {uintptr_t pawn=0,controller=0;uint32_t generation=0;uint64_t signature=0,tick=0;bool seen=false,down=false;Landing landing{};mounted_air::State air{};bool blockedInput=false;};
+struct State {uintptr_t pawn=0,controller=0;uint32_t generation=0;uint64_t signature=0,tick=0;bool seen=false,down=false;Landing landing{};mounted_air::State air{};bool blockedInput=false;uintptr_t character=0;};
 State g_players[2]{}; // synchronous native game-thread observations only
 using ComputeFloor=void(*)(void*,const mounted_air::Vector*,float,float,mounted_air::Floor*,float,const mounted_air::Hit*);
 ComputeFloor g_compute=nullptr;std::atomic_bool g_floorReady{false};
+using Footstep=void(*)(void*,void*,void*);
+Footstep g_footstep=nullptr;
+struct FootstepApi {native_objects::Identity notifyClass{},moveClass{};int floor=-1;};
+FootstepApi g_footstepApi{};unsigned g_steps=0;
 
 template<class T> bool Read(uintptr_t object,size_t offset,T& value){
     native_objects::MemoryReader reader;return reader.Read(object,offset,value);
@@ -46,18 +50,19 @@ int SoundKind(uintptr_t object){
     if(native_objects::NameIs(g_base,object,"char_ruin_jump")&&native_objects::NameIs(g_base,package,"/Game/Audio/Sfx/Character/Ruin/char_ruin_jump"))return 0;
     if(native_objects::NameIs(g_base,object,"char_ruin_jump_land")&&native_objects::NameIs(g_base,package,"/Game/Audio/Sfx/Character/Ruin/char_ruin_jump_land"))return 1;
     if(native_objects::NameIs(g_base,object,"char_ruin_snort_low_vo")&&native_objects::NameIs(g_base,package,"/Game/Audio/Sfx/Character/Ruin/char_ruin_snort_low_vo"))return 2;
+    if(native_objects::NameIs(g_base,object,"char_ruin_foot_base")&&native_objects::NameIs(g_base,package,"/Game/Audio/Sfx/Character/Ruin/char_ruin_foot_base"))return 3;
     return -1;
 }
 void Sounds(){
     if(!g_sound)return;
     native_objects::MemoryReader reader;unsigned mask=0;bool expired=false;
-    for(unsigned i=0;i<3;++i){
+    for(unsigned i=0;i<4;++i){
         if(native_objects::Alive(reader,g_base,g_sounds[i]))mask|=1u<<i;
         else if(g_sounds[i]){g_sounds[i]={};expired=true;}
     }
     if(expired){g_soundCursor=0;g_soundComplete=false;}
     int count=0;uintptr_t chunks=0;
-    if(mask!=7&&Read(g_base,0x3959694,count)&&count>0&&count<=2000000&&Read(g_base,0x3959680,chunks)){
+    if(mask!=15&&Read(g_base,0x3959694,count)&&count>0&&count<=2000000&&Read(g_base,0x3959680,chunks)){
         if(count!=g_soundCount){g_soundCount=count;g_soundComplete=false;}
         // One bounded pass over loaded assets, with new appended objects read
         // if the object table grows. Never load packages or spin on a miss.
@@ -95,6 +100,68 @@ bool Owned(const local_players::Context& owner,uintptr_t& movement){
         Read(controller,0x350,pawn)&&pawn==actor&&Read(actor,0xA66,despawn)&&!despawn&&
         Read(actor,0x388,movement)&&Read(movement,0xE8,reciprocal)&&reciprocal==actor&&Read(movement,0,table)&&
         table==g_base+0x270ABF0&&Read(table,0x600,entry)&&entry==g_base+0x667510;
+}
+// Replace only sound-only hoof notifications on this player's private floor.
+// Calling both paths would double the sound when real terrain is within the
+// native foot trace. VFX/decal notifications always keep their native path.
+bool AirFootstep(void* notify,void* mesh){
+    if(!g_sound||!native_tps::OnGameThread()||!runtime::Get().mountedAirWalkEnabled.load()||
+       (!g_players[0].air.lease.active&&!g_players[1].air.lease.active))return false;
+    const auto now=GetTickCount64();uintptr_t actor=0;
+    if(!Read(reinterpret_cast<uintptr_t>(mesh),0xE8,actor))return false;
+    for(unsigned i=0;i<2;++i){const auto& state=g_players[i];const auto& lease=state.air.lease;
+        if(!lease.active||lease.horse.address!=actor||!state.character||now<state.tick||now-state.tick>250||
+           !local_players::Matches(i,state.character,state.generation)||!mounted_air::Possessed(g_base,lease))continue;
+        uintptr_t actualMesh=0,cls=0,table=0,entry=0;unsigned char mode=0,custom=0;Vector velocity{};
+        if(!Read(actor,0x380,actualMesh)||actualMesh!=reinterpret_cast<uintptr_t>(mesh)||
+           !Read(lease.movement.address,0x1B0,mode)||mode!=1||!Read(lease.movement.address,0x1B1,custom)||custom||
+           !Read(lease.movement.address,0x10C,velocity)||!std::isfinite(velocity.x)||!std::isfinite(velocity.y)||
+           velocity.x*velocity.x+velocity.y*velocity.y<=1.f)return false;
+        native_objects::MemoryReader reader;
+        if(!Read(reinterpret_cast<uintptr_t>(notify),0x10,cls)||!Read(reinterpret_cast<uintptr_t>(notify),0,table)||
+           !Read(table,0x240,entry)||entry!=g_base+0x5D6E50)return false;
+        auto& api=g_footstepApi;
+        if(api.notifyClass.address!=cls||!native_objects::Alive(reader,g_base,api.notifyClass)){
+            api.notifyClass={};int at=-1;
+            if(!native_objects::NameIs(g_base,cls,"AnimNotify_PlayFootstep")||
+               !native_objects::PropertyField(g_base,cls,"bPlaySounds","BoolProperty",1,at)||at!=200||
+               !native_objects::PropertyField(g_base,cls,"bPlayVFX","BoolProperty",1,at)||at!=201||
+               !native_objects::PropertyField(g_base,cls,"bPlayDecals","BoolProperty",1,at)||at!=202||
+               !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(cls),api.notifyClass))return false;
+        }
+        unsigned char flags[3]{};
+        if(!Read(reinterpret_cast<uintptr_t>(notify),200,flags)||!flags[0]||flags[1]||flags[2])return false;
+        if(!Read(lease.movement.address,0x10,cls))return false;
+        if(api.moveClass.address!=cls||!native_objects::Alive(reader,g_base,api.moveClass)){
+            api.moveClass={};api.floor=-1;
+            if(!native_objects::PropertyField(g_base,cls,"CurrentFloor","StructProperty",148,api.floor)||
+               !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(cls),api.moveClass))return false;
+        }
+        mounted_air::Floor floor{};
+        if(!Read(lease.movement.address,size_t(api.floor),floor)||!mounted_air::Walkable(floor)||
+           floor.hit.component.index>=0||floor.hit.component.serial||!std::isfinite(floor.hit.impact.z)||
+           std::abs(floor.hit.impact.z-lease.plane.z)>.1f||
+           !native_objects::Alive(reader,g_base,g_sounds[3])||SoundKind(g_sounds[3].address)!=3)return false;
+        Vector position{},rotation{};
+        if(!Read(lease.capsule.address,0x1A0,position)||!std::isfinite(position.x)||!std::isfinite(position.y))return false;
+        position.z=lease.plane.z;
+        g_sound(reinterpret_cast<void*>(actor),reinterpret_cast<void*>(g_sounds[3].address),&position,&rotation,1.f,1.f,0.f,nullptr,nullptr,reinterpret_cast<void*>(actor));
+        if(g_log&&g_steps++<4)g_log("Mounted air footsteps: native hoof cue follows own sound-only notify; real ground/VFX remain native");
+        return true;
+    }
+    return false;
+}
+void HookFootstep(void* notify,void* mesh,void* animation){
+    if(!AirFootstep(notify,mesh)&&g_footstep)g_footstep(notify,mesh,animation);
+}
+void InitializeFootsteps(){
+    if(!g_sound||!g_floorReady)return;
+    constexpr unsigned char code[]={0x48,0x8B,0xC4,0x55,0x56,0x57,0x41,0x54,0x41,0x55,0x41,0x56,0x41,0x57,0x48,0x8D,0xA8,0x68,0xFB,0xFF,0xFF};
+    auto* entry=reinterpret_cast<void*>(g_base+0x5D6E50);
+    if(std::memcmp(entry,code,sizeof(code)))return;
+    if(MH_CreateHook(entry,reinterpret_cast<void*>(&HookFootstep),reinterpret_cast<void**>(&g_footstep))!=MH_OK)return;
+    if(MH_EnableHook(entry)!=MH_OK){MH_RemoveHook(entry);g_footstep=nullptr;return;}
+    if(g_log)g_log("Mounted air footsteps READY: native notify ABI +0x240; only own private floor sound-only events");
 }
 void ComputePrivateFloor(void* live,const mounted_air::Vector* position,float line,float sweep,mounted_air::Floor* floor,float radius,const mounted_air::Hit* downward){
     if(g_compute)g_compute(live,position,line,sweep,floor,radius,downward);
@@ -185,7 +252,7 @@ void OnLivePlayer(const local_players::Context& owner,uint32_t generation,bool f
     const bool edge=same&&!state.blockedInput&&commandsAllowed&&!state.down&&down;
     if(!same||!air)mounted_air::Release(g_base,g_event,state.air,owner.world);
     const auto landing=same?state.landing:Landing{};const auto airState=state.air;
-    state={owner.pawn,owner.controller,generation,signature,now,true,down,landing,airState,!commandsAllowed};
+    state={owner.pawn,owner.controller,generation,signature,now,true,down,landing,airState,!commandsAllowed,owner.character};
     if(!same&&!g_soundMask.load()){g_soundCursor=0;g_soundComplete=false;}
     Sounds();unsigned char mode=0;if(!Read(movement,0x1B0,mode))return;
     if(state.landing.tick){
@@ -240,12 +307,12 @@ void Initialize(LogFn log,bool exactExecutable){
     constexpr unsigned char sound[]={0x48,0x85,0xD2,0x0F,0x84,0xFE,0x00,0x00,0x00,0x48,0x89,0x5C,0x24,0x08,0x48,0x89};
     if(!std::memcmp(reinterpret_cast<void*>(g_base+0x18911C0),sound,sizeof(sound)))g_sound=reinterpret_cast<PlaySound>(g_base+0x18911C0);
     g_event=reinterpret_cast<mounted_air::Event>(g_base+0xAC0630);
-    InitializeFloor();
+    InitializeFloor();InitializeFootsteps();
     if(log)log(g_floorReady?"Mounted air walk V1.164 private floor READY: native Walking over own support; no Flying or motion tuning; EXPERIMENTAL":
         "Mounted air walk V1.164 floor adapter unavailable: air walk disabled, existing ground jump retained");
     g_ready=true;if(log)log("Mounted jump READY: rebindable Jump and native horse DoJump retained; private floor optional and OFF by default; loaded native sounds");
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}
 bool AirWalkReady(){return Ready()&&g_floorReady.load(std::memory_order_acquire);}
-unsigned SoundAssetsReady(){return g_soundMask.load(std::memory_order_acquire);}
+unsigned SoundAssetsReady(){return g_soundMask.load(std::memory_order_acquire)&7u;}
 }

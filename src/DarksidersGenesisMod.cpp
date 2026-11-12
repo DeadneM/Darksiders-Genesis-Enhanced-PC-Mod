@@ -45,6 +45,7 @@
 #include "DashCombatFeature.h"
 #include "RangedStateFeature.h"
 #include "AirDashFeature.h"
+#include "PlayerAbilityOptions.h"
 #include "InteractionHudFeature.h"
 #include "WeaponSheathingFeature.h"
 #include "ManualAimFeature.h"
@@ -1476,6 +1477,7 @@ void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t gener
     dg::wrath_slots::OnLivePlayer(owner);
     dg::air_jump::OnLivePlayer(owner,generation);
     dg::mounted_jump::OnLivePlayer(owner,generation,runtimeAllowed,commandsAllowed);
+    dg::player_abilities::OnLivePlayer(owner,generation,commandsAllowed);
 }
 
 // V0.75: use the game's verified UMayhemCharacter native look functions,
@@ -1788,6 +1790,7 @@ bool InstallNativeTPSRotationHook() {
 // event cannot leave the observer dereferencing a freed/reused widget.
 void HookAimUiEventDispatch(void* object,void* function,void* parameters,void* outParameters){
     const auto identity=dg::native_tps::CaptureUiEvent(object);
+    dg::player_abilities::ObserveFinish(object,function);
     unsigned char finishCause=0;
     void* forwarded=dg::air_dash::FinishParameters(object,function,parameters,finishCause)?&finishCause:parameters;
     if(g_originalAimUiEventDispatch)
@@ -4197,6 +4200,7 @@ void ShutdownMod() {
     dg::dash_combat::Shutdown();
     dg::ranged_state::Shutdown();
     dg::air_dash::Shutdown();
+    dg::player_abilities::Shutdown();
     dg::dash_combat::Report();
     // Release the supported synthetic horse key before teardown.
     if(g_horseSyntheticHDown.exchange(false))EmitKeyboardVirtualKey('H',false);
@@ -4447,6 +4451,7 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::wrath_slots::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::dash_combat::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::air_dash::Initialize(&FeatureLog,g_targetValidation.exact,g_originalAimUiEventDispatch!=nullptr);
+    dg::player_abilities::Initialize(&FeatureLog,g_targetValidation.exact,g_originalAimUiEventDispatch!=nullptr);
     dg::interaction_hud::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::sheathing::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::manual_aim::Initialize(&FeatureLog,g_targetValidation.exact);

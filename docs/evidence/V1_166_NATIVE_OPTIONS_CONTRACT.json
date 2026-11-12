@@ -1,0 +1,45 @@
+{
+  "scope": "retail Windows x64 local metadata and complete cooked scripts; VM_READ only, no gameplay changes by readers",
+  "executableSha256": "9F4702024DF5EEA1D51DF7745B0AD1EA95B97009982F73DDC1218C53DFF33D54",
+  "nativeHooks": {
+    "IsUnlockableActive": {
+      "thunk": "0x7AD910",
+      "body": "0x676730",
+      "abi": "this, uint8 Type, FName value; bool return",
+      "runtimeParameterBytes": 13,
+      "typeOffset": 0,
+      "idOffset": 4,
+      "returnOffset": 12,
+      "affectedIds": [
+        "Strife_Ability_Counter1",
+        "Strife_Ability_Counter2"
+      ],
+      "type": 0
+    },
+    "ServerRequestCharacterSwap": {
+      "thunk": "0x7B9460",
+      "body": "0x5812F0",
+      "nativeVtableSlot": "0xF30",
+      "parameterBytes": 1,
+      "enum": "ECharacterSpawnType",
+      "values": {
+        "INSTANT": 0,
+        "KILL_ORIGINAL": 1,
+        "DEFAULT": 2,
+        "SYNERGY": 3
+      }
+    }
+  },
+  "reuse": {
+    "currentHeroSynergy": "0x65CD00(this,3), existing native co-op branch at 0x581437; dispatch DoSynergyAbility then native gauge consumption",
+    "afterCompletion": "same native request with DEFAULT=2; no second synergy",
+    "hoofNotify": "0x5D6E50(this, mesh, animation); native virtual slot 0x240",
+    "sound": "/Game/Audio/Sfx/Character/Ruin/char_ruin_foot_base; existing PlaySoundAtLocation native body 0x18911C0"
+  },
+  "limits": [
+    "No visual or gameplay validation of the new build yet",
+    "No measured FPS claim",
+    "Inverted/No Swap customize solo only; co-op retains native no-swap synergy",
+    "Readers never called engine functions or wrote game memory"
+  ]
+}

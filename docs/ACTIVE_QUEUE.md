@@ -1,3 +1,18 @@
+## V1.166 debug — lot cumulatif prêt pour GitHub
+
+Écharpe : refus de V1.165 identifié (padding lu comme association), lecture à un octet corrigée. Sons natifs des sabots sur le sol privé, Contre-esquive Vanilla/OFF et synergie Vanilla/Inverted/No Swap ajoutés. Defaults natifs pour les nouvelles options ; 250 anciennes valeurs conservées, 252 au total. **PRÉPARÉ / EXPÉRIMENTAL, pas encore validé en jeu.** Main V1.164 et INI personnel intacts. [Périmètre, preuves, tests et limites](V1_166_REVIEW.md).
+
+---
+
+## Retour V1.165 et lot suivant
+
+- **VALIDÉ par l'utilisateur :** point 1 fluidité de ses essais ; point 3 capacités après chargement et régression cheval. Aucun chiffre de gain FPS inventé.
+- **REJETÉ :** résultat écharpe du point 2, envers invisible et bouts qui disparaissent. Le journal montre Gold chargé puis repli opaque ; il ne démontre pas que le shader Gold a été rendu. La cause du refus interne doit être distinguée du résultat visuel avant un autre remplacement.
+- **Après l'écharpe, avant le prochain build :** sons pendant marche/sprint des quatre chevaux dans le vide. Privilégier les pas natifs synchronisés aux foulées, ou une ambiance de vent si cette voie n'est pas exploitable. Aucun son sélectionné ou fonction annoncée livrée à ce stade.
+- **Livraison :** un lot regroupé après ces travaux, pas de build de diagnostic isolé. Réutiliser les assets/archives locaux, limiter les lectures à ce qui départage les causes et conserver les optimisations validées.
+
+---
+
 **État après build V1.165 : CONSTRUIT et CONTRÔLÉ, 83/83 suites réussies ; NON VALIDÉ en jeu. Le report de compilation a été levé par l’utilisateur pour ce lot. [Livraison et essais](V1_165_DELIVERY_RECEIPT.md). Les mentions de tests non exécutés ci-dessous décrivent la préparation historique.**
 
 # File actuelle — reprise du 12 novembre 2026

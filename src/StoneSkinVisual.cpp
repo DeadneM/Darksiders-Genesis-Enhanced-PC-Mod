@@ -167,7 +167,7 @@ bool MineralBody(uintptr_t material,uintptr_t source){
     const auto f=Function(material,"SetScalarParameterValue",0x1D97290);int at=-1;Array values{};unsigned found=0;
     if(!f||!Parameter(f,"ParameterName","NameProperty",8,0)||!Parameter(f,"Value","FloatProperty",4,8)||
        !Field(source,"ScalarParameterValues","ArrayProperty",16,at)||!List(source,at,values,64))return false;
-    for(int i=0;i<values.count;++i){foreign_wrath::Name name{};int association=-1,index=0;const auto p=values.data+size_t(i)*36;
+    for(int i=0;i<values.count;++i){foreign_wrath::Name name{};unsigned char association=0;int index=0;const auto p=values.data+size_t(i)*36;
         if(!Read(p,0,name)||!Read(p,8,association)||!Read(p,12,index)||association!=2||index!=-1)continue;
         const unsigned bit=native_objects::NameValueIs(g_base,name.index,name.number,"Emissive_Power_Base")?1u:
             (native_objects::NameValueIs(g_base,name.index,name.number,"Emissive_Power_Scroll")?2u:0u);
@@ -191,7 +191,7 @@ bool ClothMaterial(uintptr_t material,uintptr_t original,uintptr_t fire,bool mol
     foreign_wrath::Name scalarNames[2]{},vectorNames[3]{};float powers[2]{};Color colors[3]{};
     int at=-1;Array values{};unsigned mask=0;
     if(!Field(fire,"ScalarParameterValues","ArrayProperty",16,at)||!List(fire,at,values,64))return false;
-    for(int i=0;i<values.count;++i){foreign_wrath::Name name{};int association=-1,index=0;float value=0;const auto item=values.data+size_t(i)*36;
+    for(int i=0;i<values.count;++i){foreign_wrath::Name name{};unsigned char association=0;int index=0;float value=0;const auto item=values.data+size_t(i)*36;
         if(!Read(item,0,name)||!Read(item,8,association)||!Read(item,12,index)||association!=2||index!=-1)continue;
         const int which=native_objects::NameValueIdentifierEquals(g_base,name.index,name.number,"Emissive_Power_Base")?0:
             native_objects::NameValueIdentifierEquals(g_base,name.index,name.number,"Emissive_Power_Scroll")?1:-1;
@@ -202,7 +202,7 @@ bool ClothMaterial(uintptr_t material,uintptr_t original,uintptr_t fire,bool mol
     if(molten){
         if(!Field(fire,"VectorParameterValues","ArrayProperty",16,at)||!List(fire,at,values,64))return false;
         mask=0;
-        for(int i=0;i<values.count;++i){foreign_wrath::Name name{};int association=-1,index=0;const auto item=values.data+size_t(i)*48;
+        for(int i=0;i<values.count;++i){foreign_wrath::Name name{};unsigned char association=0;int index=0;const auto item=values.data+size_t(i)*48;
             if(!Read(item,0,name)||!Read(item,8,association)||!Read(item,12,index)||association!=2||index!=-1)continue;
             constexpr const char* names[]={"Emissive Color_Base","Emissive Color_Scroll","Emissive_Scroll_Speed"};
             for(unsigned n=0;n<3;++n)if(native_objects::NameValueIdentifierEquals(g_base,name.index,name.number,names[n])){
@@ -216,11 +216,13 @@ bool ClothMaterial(uintptr_t material,uintptr_t original,uintptr_t fire,bool mol
     // and could leave War's foreign alpha/emission masks on Strife.
     struct CopyArgs {uintptr_t source=0;unsigned char quick=0,pad[7]{};} copyArgs{original};static_assert(sizeof(CopyArgs)==16);
     g_event(reinterpret_cast<void*>(material),reinterpret_cast<void*>(copy),&copyArgs);
+    // Association is a byte; the following three bytes are native padding
+    // and may contain nonzero data after the engine copies a hierarchy.
     // The multi-colour branch also has its own base-power parameter. Obtain
     // its actual FName from the copied hierarchy, never invent a name index.
     if(!Field(material,"ScalarParameterValues","ArrayProperty",16,at)||!List(material,at,values,64))return false;
     bool alias=false;
-    for(int i=0;i<values.count;++i){foreign_wrath::Name name{};int association=-1,index=0;const auto item=values.data+size_t(i)*36;
+    for(int i=0;i<values.count;++i){foreign_wrath::Name name{};unsigned char association=0;int index=0;const auto item=values.data+size_t(i)*36;
         if(!Read(item,0,name)||!Read(item,8,association)||!Read(item,12,index)||association!=2||index!=-1||
            !native_objects::NameValueIdentifierEquals(g_base,name.index,name.number,"Emissive_Power"))continue;
         struct Args {foreign_wrath::Name name{};float value=0;int pad=0;} args{name,powers[0]};

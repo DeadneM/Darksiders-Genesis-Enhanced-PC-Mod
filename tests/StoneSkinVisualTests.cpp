@@ -82,7 +82,8 @@ void Fresh(){
  for(int i=0;i<3;++i){Label(f.vectors+size_t(i)*48,59+i,vecNames[i]);Put(f.vectors,size_t(i)*48,dg::foreign_wrath::Name{59+i,0});Put(f.vectors,size_t(i)*48+8,2);Put(f.vectors,size_t(i)*48+12,-1);const float value[]={.1f,.2f,.3f,1.f};std::memcpy(f.vectors+size_t(i)*48+16,value,16);}
  Put(f.materials[1],0x70,Array{reinterpret_cast<uintptr_t>(f.vectors),3,3});
  Label(f.copiedScalars,62,"Emissive_Power");
- for(int i=0;i<3;++i){Put(f.copiedScalars,size_t(i)*36,dg::foreign_wrath::Name{i==2?62:48+i,0});Put(f.copiedScalars,size_t(i)*36+8,2);Put(f.copiedScalars,size_t(i)*36+12,-1);}
+ // Captured native copy: Global=2 followed by unrelated 2d/31/27 padding.
+ for(int i=0;i<3;++i){Put(f.copiedScalars,size_t(i)*36,dg::foreign_wrath::Name{i==2?62:48+i,0});Put(f.copiedScalars,size_t(i)*36+8,0x27312d02);Put(f.copiedScalars,size_t(i)*36+12,-1);}
 
  Live(f.actor);Live(f.mesh);Live(f.asset);for(auto& m:f.original)Live(m);g_materials[BaseBody]=Live(f.materials[0]);g_materials[MoltenCloth]=Live(f.materials[1]);
  owner.index=0;owner.world=1;owner.localPlayer=2;owner.character=owner.pawn=reinterpret_cast<uintptr_t>(f.actor);owner.controller=reinterpret_cast<uintptr_t>(f.controller);
@@ -251,6 +252,13 @@ void Run(){
  for(int i=0;i<100;++i)Step(owner);Check(creates==6&&copies==2,"a rejected completed copy is not repeated during the same active coating");
  Put(f.component,0x138,0);Step(owner);Check(!f.overrides[0]&&!f.overrides[1]&&!f.overrides[2]&&!f.overrides[3],"failed candidate fallback still restores original inheritance");
 
+ // Padding is not part of the association enum, on source arrays either.
+ Fresh();TwoSidedTemplate();Put(f.component,0x138,2);
+ for(int i=0;i<2;++i)Put(f.scalars,size_t(i)*36+8,0x27312d02);
+ for(int i=0;i<3;++i)Put(f.vectors,size_t(i)*48+8,0x27312d02);
+ Step(owner);Check(creates==4&&copies==2&&vectorCalls==6&&g_visual[0].slots[2].doubleSided,"captured nonzero padding cannot reject valid source or copied parameters");
+ Fresh();TwoSidedTemplate();Put(f.copiedScalars,2*36+8,0x27312d00);Step(owner);
+ Check(creates==6&&copies==2&&!g_visual[0].slots[2].doubleSided,"the actual non-global association byte still rejects the alias");
  // Recovery preflight must save the native context/UI checks, not merely skip
  // LoadAsset_Blocking later. A valid loader CDO makes that distinction visible.
  Fresh();Label(f.loaderClass,63,"KismetSystemLibrary");Label(f.loader,64,"Default__KismetSystemLibrary");

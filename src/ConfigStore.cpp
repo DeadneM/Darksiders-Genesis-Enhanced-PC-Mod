@@ -330,6 +330,7 @@ void Store::ResetDefaults(bool persist) {
     weaponSheathingEnabled=defaults::WeaponSheathing;sheathNeverEnabled=defaults::NeverAutoSheathe;sheathDelaySeconds=10.0f;
     heavyLandingRecoveryEnabled=defaults::HeavyLandingRecovery;
     airDashReworkEnabled=defaults::AirDashRework;
+    strifeCounterEvadeEnabled=true;synergySwapMode=0;
     heavyLandingDelaySeconds=.15f;heavyLandingGroundSeconds=.05f;
     recoveryDashTailEnabled=recoveryChestTailEnabled=defaults::RecoveryTail;recoveryTailDelaySeconds=0;
     wrathSlots={};
@@ -582,6 +583,8 @@ bool Store::Load() {
     weaponSheathingEnabled=ReadBool(L"Features",L"WeaponSheathing",defaults::WeaponSheathing,path_);
     heavyLandingRecoveryEnabled=ReadBool(L"Features",L"HeavyLandingRecovery",defaults::HeavyLandingRecovery,path_);
     airDashReworkEnabled=ReadBool(L"Features",L"AirDashRework",defaults::AirDashRework,path_);
+    strifeCounterEvadeEnabled=ReadBool(L"Features",L"StrifeCounterEvade",true,path_);
+    synergySwapMode=std::clamp(int(GetPrivateProfileIntW(L"Values",L"SynergySwapMode",0,path_.c_str())),0,2);
     heavyLandingDelaySeconds=recovery_settings::LandingDelay(ReadFloat(L"Values",L"HeavyLandingDelaySeconds",.15f,path_));
     heavyLandingGroundSeconds=recovery_settings::GroundTime(ReadFloat(L"Values",L"HeavyLandingGroundSeconds",.05f,path_));
     recoveryDashTailEnabled=ReadBool(L"Features",L"RecoveryDashTail",defaults::RecoveryTail,path_);
@@ -968,6 +971,7 @@ void Store::PublishRuntime() const {
     runtime.weaponSheathingEnabled=weaponSheathingEnabled;
     runtime.heavyLandingRecoveryEnabled=heavyLandingRecoveryEnabled;
     runtime.airDashReworkEnabled=airDashReworkEnabled;
+    runtime.strifeCounterEvadeEnabled=strifeCounterEvadeEnabled;runtime.synergySwapMode=synergySwapMode;
     runtime.heavyLandingDelaySeconds=heavyLandingDelaySeconds;runtime.heavyLandingGroundSeconds=heavyLandingGroundSeconds;
     runtime.recoveryDashTailEnabled=recoveryDashTailEnabled;runtime.recoveryChestTailEnabled=recoveryChestTailEnabled;runtime.recoveryTailDelaySeconds=recoveryTailDelaySeconds;
     runtime.wrathSlots=wrathSlots;
@@ -1147,6 +1151,8 @@ bool Store::SaveNow() {
     WriteBool(L"Features",L"WeaponSheathing",weaponSheathingEnabled,path_);
     WriteBool(L"Features",L"HeavyLandingRecovery",heavyLandingRecoveryEnabled,path_);
     WriteBool(L"Features",L"AirDashRework",airDashReworkEnabled,path_);
+    WriteBool(L"Features",L"StrifeCounterEvade",strifeCounterEvadeEnabled,path_);
+    WriteInt(L"Values",L"SynergySwapMode",synergySwapMode,path_);
     WriteProfileString(L"Features",L"HeavyLandingCustomTiming",nullptr,path_.c_str()); // Retired V1.126 duplicate; preserve master and timing values.
     WriteFloat(L"Values",L"HeavyLandingDelaySeconds",recovery_settings::LandingDelay(heavyLandingDelaySeconds),path_);
     WriteFloat(L"Values",L"HeavyLandingGroundSeconds",recovery_settings::GroundTime(heavyLandingGroundSeconds),path_);

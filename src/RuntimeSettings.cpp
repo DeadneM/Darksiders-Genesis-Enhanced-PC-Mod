@@ -45,6 +45,8 @@ void Publish(const Snapshot& s) {
     g_state.weaponSheathingEnabled.store(s.weaponSheathingEnabled);
     g_state.heavyLandingRecoveryEnabled.store(s.heavyLandingRecoveryEnabled);
     g_state.airDashReworkEnabled.store(s.airDashReworkEnabled);
+    g_state.strifeCounterEvadeEnabled.store(s.strifeCounterEvadeEnabled);
+    g_state.synergySwapMode.store(std::clamp(s.synergySwapMode,0,2));
     g_state.heavyLandingDelaySeconds.store(recovery_settings::LandingDelay(s.heavyLandingDelaySeconds));
     g_state.heavyLandingGroundSeconds.store(recovery_settings::GroundTime(s.heavyLandingGroundSeconds));
     g_state.recoveryDashTailEnabled.store(s.recoveryDashTailEnabled);g_state.recoveryChestTailEnabled.store(s.recoveryChestTailEnabled);

@@ -1,0 +1,24 @@
+{
+  "versionObserved": "V1.165",
+  "userFeedback": {
+    "fluidity": "accepted for reported test",
+    "cloth": "rejected: back face invisible and ends disappear",
+    "capabilitiesAndHorse": "accepted for reported test"
+  },
+  "captureReadOnly": true,
+  "nativeCalls": false,
+  "memoryWrites": false,
+  "copiedGoldMidsObserved": 2,
+  "copiedScalars": 17,
+  "copiedAlias": "Emissive_Power",
+  "associationByte": 2,
+  "alignmentPaddingHex": "2d3127",
+  "previousFourByteRead": 657534210,
+  "parameterIndex": -1,
+  "cause": "association byte compared as an int including uninitialized alignment padding; false rejection restored legacy opaque cloth",
+  "fix": "read the actual byte, keep enum/index/name/ABI/owner guards; no shader swap or culling override added",
+  "regressionPrepared": true,
+  "newBuild": false,
+  "visualFixValidated": false,
+  "horseAudioQueuedBeforeNextBuild": true
+}
