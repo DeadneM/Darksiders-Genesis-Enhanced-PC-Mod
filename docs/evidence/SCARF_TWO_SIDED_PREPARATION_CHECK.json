@@ -69,5 +69,17 @@
     "cppTestsRun": false,
     "build": false,
     "runtimePerformanceMeasured": false
+  },
+  "recoveryPreflight": {
+    "prepared": true,
+    "skipWhenAllMissingCoolingDownOrExhausted": true,
+    "scopeRefreshBeforeEarlyReturn": true,
+    "sharedBudgetUnchanged": true,
+    "nativeGatesUnchanged": true,
+    "testsPrepared": true,
+    "testsExecuted": false,
+    "cpuOrFpsMeasured": false,
+    "newHooks": false,
+    "newConfig": false
   }
 }

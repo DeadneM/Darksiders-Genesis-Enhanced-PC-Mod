@@ -1,6 +1,6 @@
 ## Seconde revue du candidat écharpe — sans compilation
 
-Contrôles préparés pour le tissu Abyssal, les matériaux natifs déjà actifs et la restauration ; simulation de test rendue indépendante des numéros de slots du skin standard. Aucun changement de production supplémentaire, aucun build ni test C++ exécuté. [Résultats comparés et file de suite](SCARF_PREBUILD_SECOND_REVIEW.md).
+Contrôles préparés pour Abyssal et la restauration exacte. Le chemin de recherche évite désormais les vérifications du chargeur/menus pendant les délais de reprise ou après épuisement des essais ; budget et règles de reprise conservés. Copie complète toujours unique par MID. Aucun build ni test C++ exécuté, aucun gain de FPS mesuré. [Résultats comparés et file de suite](SCARF_PREBUILD_SECOND_REVIEW.md).
 
 ---
 

@@ -330,17 +330,25 @@ void RecoverResources(const local_players::Context& c,uintptr_t meshAsset,int va
     }
     const uint64_t selection=(uint64_t(uint32_t(mesh.serial))<<32)|unsigned(variant);
     requests.Enter({c.world,c.character,uint32_t(actor.serial),selection},now);
+    constexpr const char* materials[]={"War_Inst_StoneSkin_A","War_Inst_StoneSkin_Molten_A","War_Cloth_Gold_Inst_A"};
+    constexpr const char* effects[]={"P_WarStoneSkin_Base","P_WarStoneSkin_Molten","P_War_StoneSkin_Base_Crumble_Expiration"};
+    const unsigned wanted[]={BaseBody,variant?MoltenCloth:BaseBody,MaterialCount+unsigned(variant),MaterialCount+2,DoubleSidedCloth};
+    // No loader/context/UI polling while every missing resource is cooling
+    // down or has exhausted its attempts. Keep scope refresh above this gate.
+    std::array<unsigned,5> pending{};unsigned count=0;
+    for(const auto index:wanted){
+        const bool material=index<MaterialCount;
+        const bool ready=material?Alive(g_materials[index]):stone_fx::TemplateReady(int(index-MaterialCount));
+        if(!ready&&!requests.Exhausted(index)&&now>=requests.entries[index].next)pending[count++]=index;
+    }
+    if(!count)return;
     auto& loader=selected_particle::sharedContext;const bool context=selected_particle::Context(g_base,loader);
     const bool safe=selected_recovery::loadingAllowed&&context&&
         !native_tps::IsWorldPaused(reinterpret_cast<void*>(c.pawn))&&
         !native_tps::CinematicActive(unsigned(c.index))&&!native_tps::RadialActive(unsigned(c.index));
-    constexpr const char* materials[]={"War_Inst_StoneSkin_A","War_Inst_StoneSkin_Molten_A","War_Cloth_Gold_Inst_A"};
-    constexpr const char* effects[]={"P_WarStoneSkin_Base","P_WarStoneSkin_Molten","P_War_StoneSkin_Base_Crumble_Expiration"};
-    const unsigned wanted[]={BaseBody,variant?MoltenCloth:BaseBody,MaterialCount+unsigned(variant),MaterialCount+2,DoubleSidedCloth};
-    for(const auto index:wanted){
-        const bool material=index<MaterialCount;
-        const bool ready=material?Alive(g_materials[index]):stone_fx::TemplateReady(int(index-MaterialCount));
-        if(ready||!requests.Begin(index,now,safe,context))continue;
+    for(unsigned i=0;i<count;++i){
+        const auto index=pending[i];const bool material=index<MaterialCount;
+        if(!requests.Begin(index,now,safe,context))continue;
         const char* name=material?materials[index]:effects[index-MaterialCount];char package[220]{};
         sprintf_s(package,material?"/Game/Characters/Heroes/Hero_War/Textures/%s":"/Game/VFX/Particles/Characters/War/StoneSkin/%s",name);
         auto* result=selected_particle::Load(g_base,package,name,loader,g_event);

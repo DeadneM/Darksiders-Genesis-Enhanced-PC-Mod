@@ -4,12 +4,12 @@
 #include <vector>
 namespace {
 using namespace dg::stone_visual;
-unsigned char entries[64][256]{};uintptr_t names[64]{},chunks[1]{reinterpret_cast<uintptr_t>(names)};
+unsigned char entries[96][256]{};uintptr_t names[96]{},chunks[1]{reinterpret_cast<uintptr_t>(names)};
 struct Fixture {
  unsigned char actor[0x1100]{},controller[0x400]{},mesh[0x800]{},component[0x180]{},status[0x100]{},molten[0x100]{};
  unsigned char classes[15][0x80]{},fields[12][0x80]{},functions[6][0x110]{},parameters[16][0x80]{};
  unsigned char original[4][0x100]{},mid[4][0x100]{},materials[3][0x100]{},items[128*24]{};
- unsigned char nativeMids[4][0x100]{};
+ unsigned char nativeMids[4][0x100]{},loaderClass[0x80]{},loader[0x100]{};
  unsigned char asset[0x140]{},skinSlots[160]{},scalars[72]{},vectors[144]{},copiedScalars[108]{};
  uintptr_t overrides[4]{},statuses[2]{},retainedMaterials[4]{};
 } f;
@@ -20,7 +20,7 @@ void Check(bool ok,const char* why){if(!ok)throw std::runtime_error(why);}
 void Label(void* p,int i,const char* s){Put(p,0x18,i);strcpy_s(reinterpret_cast<char*>(entries[i]+12),244,s);}
 Id Live(void* p){const int n=id++;Put(p,0xC,n);Put(f.items,size_t(n)*24,reinterpret_cast<uintptr_t>(p));Put(f.items,size_t(n)*24+16,n+100);return {reinterpret_cast<uintptr_t>(p),n,n+100};}
 void Property(void* p,int label,const char* name,void* kind,int size,int at,void* next=nullptr){Label(p,label,name);Put(p,0x10,reinterpret_cast<uintptr_t>(kind));Put(p,0x34,size);Put(p,0x44,at);Put(p,0x28,reinterpret_cast<uintptr_t>(next));}
-uintptr_t copySources[4]{};int copiedScalarCount=3;
+uintptr_t copySources[4]{};int copiedScalarCount=3;unsigned pauseChecks=0;
 void Dispatch(void* object,void* function,void* args){
  if(function==f.functions[0]){Check(object==f.mesh,"only owned mesh GetMaterial");auto* raw=static_cast<unsigned char*>(args);int index=0;std::memcpy(&index,raw,4);Put(raw,8,f.overrides[index]?f.overrides[index]:reinterpret_cast<uintptr_t>(f.original[index]));return;}
  if(function==f.functions[1]){Check(object==f.mesh,"only owned mesh factory");int index=0;std::memcpy(&index,args,4);uintptr_t parent=0;std::memcpy(&parent,static_cast<unsigned char*>(args)+8,8);++creates;if(failFactory){f.overrides[index]=parent;return;}Put(f.mid[index],0x10,reinterpret_cast<uintptr_t>(f.classes[4]));Put(f.mid[index],0x40,parent);Live(f.mid[index]);f.overrides[index]=reinterpret_cast<uintptr_t>(f.mid[index]);Put(args,24,f.overrides[index]);return;}
@@ -40,6 +40,7 @@ uint64_t observationTime=1000;
 void Step(const dg::local_players::Context& c){observationTime+=50;ObserveAt(c,observationTime);}
 void Fresh(){
  for(auto& source:copySources)source=0;copiedScalarCount=3;
+ pauseChecks=0;dg::selected_recovery::loadingAllowed=false;dg::selected_recovery::nextLoadAt=0;
  launchAttempts=launchFailures=0;paused=cinema=radial=recastInSpawn=false;
  g_resourceRequests={};g_resourceActor={};g_resourceMesh={};dg::selected_particle::sharedContext={};for(auto& missing:missingFx)missing=false;
  g_statusClasses={};g_statusClassNext=0;g_statusClassHits=g_statusClassMisses=0;
@@ -88,7 +89,7 @@ void Fresh(){
 }
 void TwoSidedTemplate(){Put(f.materials[2],0x10,reinterpret_cast<uintptr_t>(f.classes[4]));g_materials[DoubleSidedCloth]=Live(f.materials[2]);}
 void Run(){
- std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(chunks));for(int i=0;i<64;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);objectChunks[0]=reinterpret_cast<uintptr_t>(f.items);Put(image.data(),0x3959680,reinterpret_cast<uintptr_t>(objectChunks));Put(image.data(),0x3959694,128);
+ std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(chunks));for(int i=0;i<96;++i)names[i]=reinterpret_cast<uintptr_t>(entries[i]);objectChunks[0]=reinterpret_cast<uintptr_t>(f.items);Put(image.data(),0x3959680,reinterpret_cast<uintptr_t>(objectChunks));Put(image.data(),0x3959694,128);
  Fresh();const auto meshClass=Live(f.classes[1]);const auto getFunction=Live(f.functions[0]);
  for(int i=0;i<100;++i){
   Check(Function(reinterpret_cast<uintptr_t>(f.mesh),"GetMaterial",0x1DC9CB0)==reinterpret_cast<uintptr_t>(f.functions[0]),"verified native function is reused");
@@ -250,9 +251,28 @@ void Run(){
  for(int i=0;i<100;++i)Step(owner);Check(creates==6&&copies==2,"a rejected completed copy is not repeated during the same active coating");
  Put(f.component,0x138,0);Step(owner);Check(!f.overrides[0]&&!f.overrides[1]&&!f.overrides[2]&&!f.overrides[3],"failed candidate fallback still restores original inheritance");
 
+ // Recovery preflight must save the native context/UI checks, not merely skip
+ // LoadAsset_Blocking later. A valid loader CDO makes that distinction visible.
+ Fresh();Label(f.loaderClass,63,"KismetSystemLibrary");Label(f.loader,64,"Default__KismetSystemLibrary");
+ auto& loader=dg::selected_particle::sharedContext;loader.cls=Live(f.loaderClass);const auto loaderId=Live(f.loader);
+ Put(f.loader,0x10,loader.cls.address);Put<unsigned>(f.loader,8,0x10);loader.context=loaderId.address;loader.index=loaderId.index;loader.serial=loaderId.serial;
+ Check(dg::selected_particle::Context(g_base,loader),"recovery fixture has a valid native loader context");
+ auto& requests=g_resourceRequests[0];Capture(owner.character,g_resourceActor[0]);Capture(reinterpret_cast<uintptr_t>(f.asset),g_resourceMesh[0]);
+ const uint64_t selection=uint64_t(uint32_t(g_resourceMesh[0].serial))<<32;
+ requests.Enter({owner.world,owner.character,uint32_t(g_resourceActor[0].serial),selection},GetTickCount64());
+ dg::selected_recovery::loadingAllowed=true;dg::selected_recovery::nextLoadAt=~uint64_t(0);
+ requests.entries[DoubleSidedCloth]={3,0};for(int i=0;i<100;++i)RecoverResources(owner,reinterpret_cast<uintptr_t>(f.asset),0);
+ Check(!pauseChecks&&requests.entries[DoubleSidedCloth].count==3,"exhausted optional cloth stops context/UI polling and consumes no further attempts");
+ requests.entries[DoubleSidedCloth]={1,~uint64_t(0)};RecoverResources(owner,reinterpret_cast<uintptr_t>(f.asset),0);
+ Check(!pauseChecks&&requests.entries[DoubleSidedCloth].count==1,"retry cooldown also stops native context/UI polling");
+ requests.entries[DoubleSidedCloth]={1,0};RecoverResources(owner,reinterpret_cast<uintptr_t>(f.asset),0);
+ Check(pauseChecks==1&&requests.entries[DoubleSidedCloth].count==1,"due retry still validates native UI state and respects the shared load budget");
+ requests.entries[DoubleSidedCloth]={3,0};++owner.world;RecoverResources(owner,reinterpret_cast<uintptr_t>(f.asset),0);
+ Check(!requests.entries[DoubleSidedCloth].count&&pauseChecks==2,"world change refreshes the request scope before the early return");
+
 }
 }
-namespace dg::native_tps {bool OnGameThread(){return thread;}bool IsWorldPaused(void*){return paused;}bool CinematicActive(unsigned){return cinema;}bool RadialActive(unsigned){return radial;}}
+namespace dg::native_tps {bool OnGameThread(){return thread;}bool IsWorldPaused(void*){++pauseChecks;return paused;}bool CinematicActive(unsigned){return cinema;}bool RadialActive(unsigned){return radial;}}
 namespace dg::stone_fx {
 void Initialize(uintptr_t,Event){}void ObserveObject(uintptr_t){}bool AssetsReady(){return fxReady&&!missingFx[0]&&!missingFx[1]&&!missingFx[2];}bool Ready(int kind){return fxReady&&!missingFx[kind];}bool TemplateReady(int kind){return Ready(kind);}bool InvalidateAssets(){return false;}void Shutdown(){}
 bool Spawn(const local_players::Context& c,int kind){Check(c.character==owner.character&&kind>=0&&kind<3,"cosmetic edge uses current owner and exact known effect");
