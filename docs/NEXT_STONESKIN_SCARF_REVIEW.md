@@ -46,3 +46,6 @@ La [documentation Epic de la copie](https://dev.epicgames.com/documentation/en-u
 ### Réussite et retour arrière du futur essai
 
 Critère : face ET envers visibles, silhouette complète sans trous étrangers, feu sur l'écharpe Molten, extinction/restauration normales, skins Native/Abyssal/bonus et changement de skin, sans nouvelle saccade sensible. Contrôler également pause/roues, rappel de monture et fin d'effet. Tant que cela n'est pas testé, l'ancien ZIP V1.164 reste la base validée ; aucun numéro de build, INI, raccourci, ZIP, tag ou release n'a changé.
+
+
+[Seconde revue avant compilation : skins, sources exactes et repli](SCARF_PREBUILD_SECOND_REVIEW.md). Les nouveaux scénarios restent préparés, non exécutés.

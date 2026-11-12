@@ -1,3 +1,9 @@
+## Seconde revue du candidat écharpe — sans compilation
+
+Contrôles préparés pour le tissu Abyssal, les matériaux natifs déjà actifs et la restauration ; simulation de test rendue indépendante des numéros de slots du skin standard. Aucun changement de production supplémentaire, aucun build ni test C++ exécuté. [Résultats comparés et file de suite](SCARF_PREBUILD_SECOND_REVIEW.md).
+
+---
+
 ## Écharpe double face — candidat debug, sans build
 
 Implémentation préparée : matériau privé double face cuit, textures natives du skin équipé, émission Molten ciblée et repli vers le revêtement précédent. Corps/particules/marche aérienne/configuration inchangés. NON CONSTRUIT, NON VALIDÉ ; tests ajoutés mais pas exécutés, coût de copie et rendu à vérifier. Main reste la V1.164 validée, compilation toujours différée. [Périmètre, limites et tests](NEXT_STONESKIN_SCARF_REVIEW.md).

@@ -48,5 +48,26 @@
     "masked alpha/fire distribution unvalidated",
     "native cloth appearance differs from former opaque coating",
     "full copy can be slow; profiling required"
-  ]
+  ],
+  "secondReview": {
+    "methods": [
+      "shader/resources/native contracts",
+      "per-slot material ownership/restoration/fallback"
+    ],
+    "productionChanged": false,
+    "fixtureIssuesCorrected": [
+      "standard-only cloth slots",
+      "source identity not exact per slot"
+    ],
+    "newScenariosPrepared": [
+      "retained native MID copy and exact restoration",
+      "Abyssal cloth slot one",
+      "native vector payload",
+      "shared source immutability",
+      "post-copy missing parameter fallback and no repeated copies"
+    ],
+    "cppTestsRun": false,
+    "build": false,
+    "runtimePerformanceMeasured": false
+  }
 }

@@ -20,21 +20,26 @@ void Check(bool ok,const char* why){if(!ok)throw std::runtime_error(why);}
 void Label(void* p,int i,const char* s){Put(p,0x18,i);strcpy_s(reinterpret_cast<char*>(entries[i]+12),244,s);}
 Id Live(void* p){const int n=id++;Put(p,0xC,n);Put(f.items,size_t(n)*24,reinterpret_cast<uintptr_t>(p));Put(f.items,size_t(n)*24+16,n+100);return {reinterpret_cast<uintptr_t>(p),n,n+100};}
 void Property(void* p,int label,const char* name,void* kind,int size,int at,void* next=nullptr){Label(p,label,name);Put(p,0x10,reinterpret_cast<uintptr_t>(kind));Put(p,0x34,size);Put(p,0x44,at);Put(p,0x28,reinterpret_cast<uintptr_t>(next));}
+uintptr_t copySources[4]{};int copiedScalarCount=3;
 void Dispatch(void* object,void* function,void* args){
  if(function==f.functions[0]){Check(object==f.mesh,"only owned mesh GetMaterial");auto* raw=static_cast<unsigned char*>(args);int index=0;std::memcpy(&index,raw,4);Put(raw,8,f.overrides[index]?f.overrides[index]:reinterpret_cast<uintptr_t>(f.original[index]));return;}
  if(function==f.functions[1]){Check(object==f.mesh,"only owned mesh factory");int index=0;std::memcpy(&index,args,4);uintptr_t parent=0;std::memcpy(&parent,static_cast<unsigned char*>(args)+8,8);++creates;if(failFactory){f.overrides[index]=parent;return;}Put(f.mid[index],0x10,reinterpret_cast<uintptr_t>(f.classes[4]));Put(f.mid[index],0x40,parent);Live(f.mid[index]);f.overrides[index]=reinterpret_cast<uintptr_t>(f.mid[index]);Put(args,24,f.overrides[index]);return;}
  if(function==f.functions[2]){Check(object==f.mesh,"only owned mesh SetMaterial");int index=0;uintptr_t value=0;std::memcpy(&index,args,4);std::memcpy(&value,static_cast<unsigned char*>(args)+8,8);f.overrides[index]=value;++sets;return;}
  if(function==f.functions[4]){bool own=false;for(auto& m:f.mid)own=own||object==m;Check(own,"emission setters only on private MID");float value=1;uintptr_t parent=0;std::memcpy(&value,static_cast<unsigned char*>(args)+8,4);std::memcpy(&parent,static_cast<unsigned char*>(object)+0x40,8);
   Check(value==0||(parent==reinterpret_cast<uintptr_t>(f.materials[2])&&value==10),"body stays dark; only candidate cloth receives native fire power");++scalarCalls;return;}
- if(function==f.functions[5]){bool own=false;for(auto& m:f.mid)own=own||object==m;Check(own,"vector setters only on private MID");++vectorCalls;return;}
- Check(function==f.functions[3],"only the verified copy function");bool cloth=false;for(int i=2;i<4;++i)cloth=cloth||object==f.mid[i];Check(cloth,"hierarchy copy never touches body or shared source");
+ if(function==f.functions[5]){bool own=false;for(auto& m:f.mid)own=own||object==m;Check(own,"vector setters only on private MID");
+  dg::foreign_wrath::Name name{};float value[4]{};std::memcpy(&name,args,8);std::memcpy(value,static_cast<unsigned char*>(args)+8,16);
+  Check(name.index>=59&&name.index<=61&&!name.number&&value[0]==.1f&&value[1]==.2f&&value[2]==.3f&&value[3]==1.f,"vector marshalling preserves the actual source colour and scroll values");++vectorCalls;return;}
+ Check(function==f.functions[3],"only the verified copy function");int slot=-1;for(int i=0;i<4;++i)if(object==f.mid[i])slot=i;
+ uintptr_t assetMaterial=0;Check(slot>=0&&Surface(reinterpret_cast<uintptr_t>(f.asset),unsigned(slot),assetMaterial)==1,"hierarchy copy only targets a cloth slot, including Abyssal slot one");
  uintptr_t source=0;unsigned char quick=1;std::memcpy(&source,args,8);std::memcpy(&quick,static_cast<unsigned char*>(args)+8,1);Check(!quick,"copy includes inherited native defaults, not War masks");
- bool native=false;for(int i=0;i<4;++i)native=native||source==reinterpret_cast<uintptr_t>(f.original[i])||source==reinterpret_cast<uintptr_t>(f.nativeMids[i]);Check(native,"source is the exact native equipped material");
- Put(object,0x60,Array{reinterpret_cast<uintptr_t>(f.copiedScalars),3,3});++copies;
+ const auto expected=f.retainedMaterials[slot]?f.retainedMaterials[slot]:reinterpret_cast<uintptr_t>(f.original[slot]);Check(source==expected,"copy uses this exact slot's retained native material, never another slot's texture");
+ copySources[slot]=source;Put(object,0x60,Array{reinterpret_cast<uintptr_t>(f.copiedScalars),copiedScalarCount,3});++copies;
 }
 uint64_t observationTime=1000;
 void Step(const dg::local_players::Context& c){observationTime+=50;ObserveAt(c,observationTime);}
 void Fresh(){
+ for(auto& source:copySources)source=0;copiedScalarCount=3;
  launchAttempts=launchFailures=0;paused=cinema=radial=recastInSpawn=false;
  g_resourceRequests={};g_resourceActor={};g_resourceMesh={};dg::selected_particle::sharedContext={};for(auto& missing:missingFx)missing=false;
  g_statusClasses={};g_statusClassNext=0;g_statusClassHits=g_statusClassMisses=0;
@@ -147,7 +152,7 @@ void Run(){
  auto parents=[](int variant){for(int i=0;i<4;++i){uintptr_t parent=0;std::memcpy(&parent,f.mid[i]+0x40,8);Check(parent==reinterpret_cast<uintptr_t>(f.materials[(i<2||variant==0?0:1)]),"body/gear mineral A and opaque A cloth retain native fire switches; no texture setter");}};
  Fresh();const auto materials=std::vector<unsigned char>(reinterpret_cast<unsigned char*>(f.materials),reinterpret_cast<unsigned char*>(f.materials)+sizeof(f.materials));Step(owner);Check(creates==4&&!copies&&scalarCalls==4,"private mineral body/gear suppress only their two emissive parameters; cloth retains its native shader");parents(0);Check(!std::memcmp(materials.data(),f.materials,sizeof(f.materials)),"source shader/material parameters remain byte-identical");Step(owner);Check(creates==4,"no per-frame recreation");Put(f.component,0x138,0);Step(owner);Check(sets==4&&!g_visual[0].actor,"accepted status expiration and native inheritance restoration retained");for(auto x:f.overrides)Check(!x,"native materials restored");
  Fresh();Put(f.component,0x138,2);Step(owner);parents(1);Check(g_visual[0].variant==1&&scalarCalls==4&&!copies,"Molten cloth remains fiery while body and gear retain mineral parents");
- Fresh();Put(f.component,0x138,2);Check(AssetsReady(),"only the three used material sources are discovery dependencies");Step(owner);parents(1);Check(creates==4&&!NeedsAssetScan(owner),"opaque Molten cloth and base mineral body are the only material dependencies");
+ Fresh();Put(f.component,0x138,2);Check(AssetsReady(),"mandatory material dependencies remain the validated base and Molten sources");Step(owner);parents(1);Check(creates==4&&!NeedsAssetScan(owner),"opaque Molten cloth and base mineral body are the only material dependencies");
  Fresh();missingFx[1]=true;Step(owner);Check(creates==4&&!NeedsAssetScan(owner),"unused Molten explosion does not block or request loading for a base coating");
  Fresh();Put(f.component,0x138,2);missingFx[0]=true;Step(owner);Check(creates==4&&!NeedsAssetScan(owner),"unused base explosion does not request loading for a Molten coating");
  Fresh();Put(f.component,0x138,2);const auto body=g_materials[BaseBody];g_materials[BaseBody]={};Step(owner);
@@ -230,6 +235,21 @@ void Run(){
  Fresh();TwoSidedTemplate();Put(f.component,0x138,2);Put(f.functions[5],0xC0,uintptr_t(0));Step(owner);
  Check(creates==6&&!copies&&!vectorCalls&&!g_visual[0].slots[2].doubleSided,"rejected vector ABI restores known legacy fire without touching shared sources");
  Step(owner);Check(creates==6,"failed candidate is not retried every active observation");
+ Fresh();TwoSidedTemplate();Put(f.component,0x138,2);
+ const auto shared=std::vector<unsigned char>(reinterpret_cast<unsigned char*>(f.materials),reinterpret_cast<unsigned char*>(f.materials)+sizeof(f.materials));
+ auto* clothNative=f.nativeMids[2];Put(clothNative,0x10,reinterpret_cast<uintptr_t>(f.classes[4]));Put(clothNative,0x20,reinterpret_cast<uintptr_t>(f.actor));Put(clothNative,0x40,reinterpret_cast<uintptr_t>(f.original[2]));Live(clothNative);
+ f.overrides[2]=f.retainedMaterials[2]=reinterpret_cast<uintptr_t>(clothNative);const auto nativeBytes=std::vector<unsigned char>(clothNative,clothNative+sizeof(f.nativeMids[2]));
+ Step(owner);Check(copies==2&&copySources[2]==reinterpret_cast<uintptr_t>(clothNative),"active native wrapper is the actual copy source");
+ Check(!std::memcmp(shared.data(),f.materials,sizeof(f.materials))&&!std::memcmp(nativeBytes.data(),clothNative,nativeBytes.size()),"candidate setup never modifies shared templates or the retained native wrapper");
+ Put(f.component,0x138,0);Step(owner);Check(f.overrides[2]==reinterpret_cast<uintptr_t>(clothNative),"candidate expiry restores the exact retained wrapper");
+ Fresh();TwoSidedTemplate();Put(f.component,0x138,2);Put(f.skinSlots,8,dg::foreign_wrath::Name{53,0});Put(f.skinSlots,48,dg::foreign_wrath::Name{54,0});
+ Label(f.fields[8],53,"Strife_Abyssal_Body");Label(f.fields[9],54,"Strife_Abyssal_Cloth");Put(f.asset,0xA0,Array{reinterpret_cast<uintptr_t>(f.skinSlots),2,2});
+ Step(owner);Check(creates==2&&copies==1&&vectorCalls==3&&copySources[1]==reinterpret_cast<uintptr_t>(f.original[1]),"Abyssal's cloth slot one receives its own texture hierarchy");
+ Put(f.component,0x138,0);Step(owner);Check(sets==2&&!f.overrides[0]&&!f.overrides[1],"Abyssal candidate restores both inherited slots");
+ Fresh();TwoSidedTemplate();copiedScalarCount=2;Step(owner);Check(creates==6&&copies==2&&!g_visual[0].slots[2].doubleSided,"copy missing the required emission alias falls back per cloth slot");
+ for(int i=0;i<100;++i)Step(owner);Check(creates==6&&copies==2,"a rejected completed copy is not repeated during the same active coating");
+ Put(f.component,0x138,0);Step(owner);Check(!f.overrides[0]&&!f.overrides[1]&&!f.overrides[2]&&!f.overrides[3],"failed candidate fallback still restores original inheritance");
+
 }
 }
 namespace dg::native_tps {bool OnGameThread(){return thread;}bool IsWorldPaused(void*){return paused;}bool CinematicActive(unsigned){return cinema;}bool RadialActive(unsigned){return radial;}}
