@@ -1,0 +1,27 @@
+{
+  "zip": {
+    "exitCode": 0,
+    "result": "no threats",
+    "output": "Scan starting...\r\nScan finished.\r\nScanning C:\\Users\\deadn\\.codex\\.chatgpt-projects\\g-p-6ac1496f81ec8191b55c0e4db2eefebd\\work-debug\\downloads\\DarksidersGenesis_V1.166_NATIVE_ABILITY_OPTIONS_TEST.zip found no threats.\r\n"
+  },
+  "payload": {
+    "exitCode": 0,
+    "result": "no threats",
+    "output": "Scan starting...\r\nScan finished.\r\nScanning C:\\Users\\deadn\\.codex\\.chatgpt-projects\\g-p-6ac1496f81ec8191b55c0e4db2eefebd\\audit-v131\\v306-verified found no threats.\r\n"
+  },
+  "after": {
+    "RealTimeProtectionEnabled": true,
+    "OnAccessProtectionEnabled": true,
+    "AntivirusEnabled": true
+  },
+  "protectionSettingsChanged": false,
+  "defender": {
+    "AMProductVersion": "4.18.26100.4",
+    "AMEngineVersion": "1.1.26100.4",
+    "AntivirusSignatureVersion": "1.463.269.0",
+    "AntivirusSignatureLastUpdated": "2026-11-12T14:57:31+01:00",
+    "RealTimeProtectionEnabled": true,
+    "OnAccessProtectionEnabled": true,
+    "AntivirusEnabled": true
+  }
+}

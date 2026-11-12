@@ -1,0 +1,42 @@
+{
+  "version": "V1.166",
+  "base": "2f279f595ccc90b035711088b7a83b79a9abb5ea",
+  "source": "df2dedb2f84abc34dd9ff2577dd5b9c6e0c4c0a5",
+  "archive": "c8834113d659aa0e7daf4762cf17f0af4565ac55",
+  "download": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/c8834113d659aa0e7daf4762cf17f0af4565ac55/downloads/DarksidersGenesis_V1.166_NATIVE_ABILITY_OPTIONS_TEST.zip",
+  "sha256": "179B6E1BE4932B905630C9D967389A05EB815CD11FAA850D5F48201F51C8259A",
+  "bytes": 2488558,
+  "files": {
+    "dxgi.dll": {
+      "bytes": 155136,
+      "sha256": "8DAB8049278ADA691B18EC9D3C3B1D77500D37C57C6916C6FDC38A07E36B17F9"
+    },
+    "DarksidersGenesisMod.asi": {
+      "bytes": 2333184,
+      "sha256": "6466EBE527D42CA5480297614D8D855DD492B5976FA6664F021703300D0A1E22"
+    }
+  },
+  "crcVerified": true,
+  "amd64": true,
+  "rootBinariesOnly": true,
+  "oldArchivesUnchanged": 230,
+  "totalArchives": 231,
+  "iniKeys": 252,
+  "defaultDelta": {
+    "Features.StrifeCounterEvade": "1",
+    "Values.SynergySwapMode": "0"
+  },
+  "updaterSelection": "DarksidersGenesis_V1.166_NATIVE_ABILITY_OPTIONS_TEST.zip",
+  "gitBlob": "7a8c5f81a9c603de4269df60a8b870767542505e",
+  "publicHttpStatus": 200,
+  "binaryDownload": "new ZIP retrieved once through Git; no duplicate HTTP GET or old archive download",
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/debug": "c8834113d659aa0e7daf4762cf17f0af4565ac55",
+    "refs/heads/main": "e0ac8a44a9fc79425218c452efab7128acecb56f",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "installed": false,
+  "localBuild": false,
+  "gameplayValidated": false
+}

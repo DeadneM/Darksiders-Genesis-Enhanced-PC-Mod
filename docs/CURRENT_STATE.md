@@ -1,3 +1,9 @@
+## V1.166 disponible sur debug — lot options natives, écharpe et sabots
+
+**CONSTRUIT / CONTRÔLÉ : 84/84 suites Windows ; EXPÉRIMENTAL en jeu.** Refus écharpe par padding corrigé, sabots sur le sol privé, Contre-esquive Vanilla/OFF et synergie Vanilla/Inverted/No Swap. Deux nouvelles clés natives par défaut, 250 anciennes valeurs conservées ; main V1.164 et INI personnel intacts. [ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/c8834113d659aa0e7daf4762cf17f0af4565ac55/downloads/DarksidersGenesis_V1.166_NATIVE_ABILITY_OPTIONS_TEST.zip) · [Livraison, limites et tests](V1_166_DELIVERY_RECEIPT.md).
+
+---
+
 ## V1.166 debug — lot cumulatif prêt pour GitHub
 
 Écharpe : refus de V1.165 identifié (padding lu comme association), lecture à un octet corrigée. Sons natifs des sabots sur le sol privé, Contre-esquive Vanilla/OFF et synergie Vanilla/Inverted/No Swap ajoutés. Defaults natifs pour les nouvelles options ; 250 anciennes valeurs conservées, 252 au total. **PRÉPARÉ / EXPÉRIMENTAL, pas encore validé en jeu.** Main V1.164 et INI personnel intacts. [Périmètre, preuves, tests et limites](V1_166_REVIEW.md).
