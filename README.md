@@ -1,3 +1,9 @@
+## V1.164 validée — promotion main sans nouvelle compilation
+
+Marche/course aérienne sur sol privé validée par l’utilisateur le 12 novembre 2026. Publication de la base exacte testée sur main demandée, sans build ; ZIP et sources V1.164 existants réutilisés, réglages inchangés. Suite sur debug : envers de l’écharpe Stoneskin, sans build pour l’instant. [Validation, périmètre et absence de compilation](docs/V1_164_MAIN_PROMOTION.md).
+
+---
+
 ## V1.164 disponible sur debug — sol invisible sous le cheval
 
 **CONSTRUIT / CONTRÔLÉ : 83/83 suites Windows, aucun avertissement C++ détecté ; EXPÉRIMENTAL en jeu.** Remplace le vol et les réglages V1.163 rejetés par Walking natif sur un plan privé. Même option/Saut/délai, 250 valeurs inchangées, main et archives intactes. Aucun acteur/asset créé. [ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/1b081e9b34b27ff2082227469414a2d9e096a541/downloads/DarksidersGenesis_V1.164_MOUNTED_PRIVATE_FLOOR_TEST.zip) · [Reçu et test de marche/course](docs/V1_164_DELIVERY_RECEIPT.md).
