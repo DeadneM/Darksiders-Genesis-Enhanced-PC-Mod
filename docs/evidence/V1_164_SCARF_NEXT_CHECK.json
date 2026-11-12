@@ -1,0 +1,368 @@
+{
+  "scope": "57 named cloth/stone/fire/lava material headers from the original main PAK; not exhaustive whole-game shader inventory",
+  "headersChecked": 57,
+  "eligibleBasicHeaders": 27,
+  "newLocalPairs": 12,
+  "noDownloads": true,
+  "productionChanged": false,
+  "twoSidedCandidates": [
+    {
+      "asset": "War_Cloth_Inst_A_Dissolve",
+      "parent": "MM_Basic_Character",
+      "overrides": {
+        "bOverride_BlendMode": true,
+        "bOverride_TwoSided": true,
+        "TwoSided": true,
+        "BlendMode": "BLEND_Masked:0",
+        "OpacityMaskClipValue": 0.33329999446868896
+      },
+      "switches": {
+        "Use_Dissolve:0": true
+      },
+      "pristineCheckedAgainstLocalPak": true
+    },
+    {
+      "asset": "War_Cloth_Inst_A",
+      "parent": "MM_Basic",
+      "overrides": {
+        "bOverride_BlendMode": true,
+        "bOverride_TwoSided": true,
+        "TwoSided": true,
+        "BlendMode": "BLEND_Masked:0",
+        "OpacityMaskClipValue": 0.33329999446868896
+      },
+      "switches": {
+        "Fresnel_Glow:0": true
+      },
+      "pristineCheckedAgainstLocalPak": true
+    },
+    {
+      "asset": "Strife_Cloth_Inst_A_Dissolve",
+      "parent": "MM_Basic_Character",
+      "overrides": {
+        "bOverride_BlendMode": true,
+        "bOverride_TwoSided": true,
+        "TwoSided": true,
+        "BlendMode": "BLEND_Masked:0",
+        "OpacityMaskClipValue": 0.33329999446868896
+      },
+      "switches": {
+        "Use_Dissolve:0": true
+      },
+      "pristineCheckedAgainstLocalPak": true
+    },
+    {
+      "asset": "Strife_Cloth_Inst_A",
+      "parent": "MM_Basic_Character",
+      "overrides": {
+        "bOverride_BlendMode": true,
+        "bOverride_TwoSided": true,
+        "TwoSided": true,
+        "BlendMode": "BLEND_Masked:0",
+        "OpacityMaskClipValue": 0.33329999446868896
+      },
+      "switches": {
+        "Use_Base_Character_Fresnel:0": true
+      },
+      "pristineCheckedAgainstLocalPak": true
+    },
+    {
+      "asset": "War_Cloth_Gold_Inst_A",
+      "parent": "MM_Basic_Character",
+      "overrides": {
+        "bOverride_BlendMode": true,
+        "bOverride_TwoSided": true,
+        "TwoSided": true,
+        "BlendMode": "BLEND_Masked:0",
+        "OpacityMaskClipValue": 0.33329999446868896
+      },
+      "switches": {
+        "Emissive_Multi_Color:0": true,
+        "Emissive_Multi_Color_Scroll:0": true
+      },
+      "pristineCheckedAgainstLocalPak": true
+    },
+    {
+      "asset": "Strife_Gold_Cloth_Inst_A",
+      "parent": "MM_Basic_Character",
+      "overrides": {
+        "bOverride_BlendMode": true,
+        "bOverride_TwoSided": true,
+        "TwoSided": true,
+        "BlendMode": "BLEND_Masked:0",
+        "OpacityMaskClipValue": 0.33329999446868896
+      },
+      "switches": {
+        "Emissive_Multi_Color:0": true
+      },
+      "pristineCheckedAgainstLocalPak": true
+    },
+    {
+      "asset": "Strife_Silver_Cloth_Inst_A",
+      "parent": "MM_Basic_Character",
+      "overrides": {
+        "bOverride_BlendMode": true,
+        "bOverride_TwoSided": true,
+        "TwoSided": true,
+        "BlendMode": "BLEND_Masked:0",
+        "OpacityMaskClipValue": 0.33329999446868896
+      },
+      "switches": {
+        "Emissive_Multi_Color:0": true
+      },
+      "pristineCheckedAgainstLocalPak": true
+    },
+    {
+      "asset": "War_Cloth_Silver_Inst_A",
+      "parent": "MM_Basic_Character",
+      "overrides": {
+        "bOverride_BlendMode": true,
+        "bOverride_TwoSided": true,
+        "TwoSided": true,
+        "BlendMode": "BLEND_Masked:0",
+        "OpacityMaskClipValue": 0.33329999446868896
+      },
+      "switches": {
+        "Emissive_Multi_Color:0": true,
+        "Emissive_Multi_Color_Scroll:0": true
+      },
+      "pristineCheckedAgainstLocalPak": true
+    },
+    {
+      "asset": "Angel_Inst_B_Cloth",
+      "parent": "MM_Basic_Character",
+      "overrides": {
+        "bOverride_BlendMode": true,
+        "bOverride_TwoSided": true,
+        "TwoSided": true,
+        "BlendMode": "BLEND_Masked:0",
+        "OpacityMaskClipValue": 0.33329999446868896
+      },
+      "switches": {
+        "Emissive_Multi_Color:0": true
+      },
+      "pristineCheckedAgainstLocalPak": true
+    },
+    {
+      "asset": "Angel_Inst_B_Cloth_01",
+      "parent": "MM_Basic_Character",
+      "overrides": {
+        "bOverride_BlendMode": true,
+        "bOverride_TwoSided": true,
+        "TwoSided": true,
+        "BlendMode": "BLEND_Masked:0",
+        "OpacityMaskClipValue": 0.33329999446868896
+      },
+      "switches": {
+        "Emissive_Multi_Color:0": true,
+        "Emissive_Multi_Color_Scroll:0": true
+      },
+      "pristineCheckedAgainstLocalPak": true
+    }
+  ],
+  "parameterComparison": [
+    {
+      "asset": "War_Cloth_Gold_Inst_A",
+      "parent": "MM_Basic_Character",
+      "overrides": {
+        "bOverride_BlendMode": true,
+        "bOverride_TwoSided": true,
+        "TwoSided": true,
+        "BlendMode": "BLEND_Masked:0",
+        "OpacityMaskClipValue": 0.33329999446868896
+      },
+      "static": {
+        "StaticSwitchParameters": [
+          {
+            "ParameterInfo": {
+              "Name": "Emissive_Multi_Color:0",
+              "Association": "GlobalParameter:0",
+              "Index": -1
+            },
+            "Value": true,
+            "bOverride": true,
+            "ExpressionGUID": "f4bb06363cc4cf469f58f1dbae355c48"
+          },
+          {
+            "ParameterInfo": {
+              "Name": "Emissive_Multi_Color_Scroll:0",
+              "Association": "GlobalParameter:0",
+              "Index": -1
+            },
+            "Value": true,
+            "bOverride": true,
+            "ExpressionGUID": "474daba93931ba48ac8447933eb8132b"
+          }
+        ]
+      },
+      "parameters": {
+        "TextureParameterValues": {
+          "Emissive_Scroll:0": "T_Tiling_Stylized",
+          "Base_Color:0": "War_Cloak_Gold_d",
+          "Metal/Rough/Emissive:0": "War_Cloak_Gold_mre_packed",
+          "Normal:0": "War_Cloak_n",
+          "Emissive_Color_Texture:0": "War_Cloak_Gold_e"
+        },
+        "ScalarParameterValues": {
+          "Emissive_Scroll_Tile:0": 2.0,
+          "Emissive_Power_Scroll:0": 3.0,
+          "RefractionDepthBias:0": 0.0
+        },
+        "VectorParameterValues": {
+          "Emissive_Scroll_Speed:0": "04ab2a3d04ab2a3d0000000000000000"
+        }
+      }
+    },
+    {
+      "asset": "War_Inst_StoneSkin_Molten_A",
+      "parent": "MM_Basic",
+      "overrides": {
+        "OpacityMaskClipValue": 0.33329999446868896
+      },
+      "static": {
+        "StaticSwitchParameters": [
+          {
+            "ParameterInfo": {
+              "Name": "Detail_Normal:0",
+              "Association": "GlobalParameter:0",
+              "Index": -1
+            },
+            "Value": true,
+            "bOverride": true,
+            "ExpressionGUID": "f2c91043aecede4c8bc2df47e6d8f785"
+          },
+          {
+            "ParameterInfo": {
+              "Name": "Emissive:0",
+              "Association": "GlobalParameter:0",
+              "Index": -1
+            },
+            "Value": true,
+            "bOverride": true,
+            "ExpressionGUID": "030f7d2e14dcbf459c134c464e725921"
+          },
+          {
+            "ParameterInfo": {
+              "Name": "Emissive_Scroll:0",
+              "Association": "GlobalParameter:0",
+              "Index": -1
+            },
+            "Value": true,
+            "bOverride": true,
+            "ExpressionGUID": "aa6f5b5ec33dd440939a21ee3006722e"
+          }
+        ]
+      },
+      "parameters": {
+        "TextureParameterValues": {
+          "Base_Color:0": "War_StoneSkin_D_A",
+          "Metal/Rough/Emissive:0": "War_StoneSkin_mre_packed_B",
+          "Normal:0": "War_StoneSkin_n_B",
+          "Detail_Normal:0": "DN_EN_Cracked_Stone_A_N"
+        },
+        "ScalarParameterValues": {
+          "Base_Texture_Tile:0": 1.0,
+          "Emissive_Power_Base:0": 10.0,
+          "Emissive_Power_Scroll:0": 50.0,
+          "Detail_Normal_Power:0": 2.0,
+          "Detail_Normal_Tile:0": 0.75,
+          "Fresnel_Amount:0": 0.75,
+          "Fresnel_Color_Power:0": 5.0,
+          "Reflection_Amount:0": -1.0,
+          "RefractionDepthBias:0": 0.0
+        },
+        "VectorParameterValues": {
+          "Fresnel_Color:0": "0000000000000000000000000000803f",
+          "Color_Tint:0": "0000203f0000203f0000203f0000803f",
+          "Emissive Color_Base:0": "0000803f0324fa3d000000000000803f",
+          "Emissive Color_Scroll:0": "0000003f452a8c3d0000000000000000",
+          "Emissive_Scroll_Speed:0": "cdcccc3dcdcccc3d0000000000000000"
+        }
+      }
+    },
+    {
+      "asset": "Strife_Cloth_Inst_A",
+      "parent": "MM_Basic_Character",
+      "overrides": {
+        "bOverride_BlendMode": true,
+        "bOverride_TwoSided": true,
+        "TwoSided": true,
+        "BlendMode": "BLEND_Masked:0",
+        "OpacityMaskClipValue": 0.33329999446868896
+      },
+      "static": {
+        "StaticSwitchParameters": [
+          {
+            "ParameterInfo": {
+              "Name": "Use_Base_Character_Fresnel:0",
+              "Association": "GlobalParameter:0",
+              "Index": -1
+            },
+            "Value": true,
+            "bOverride": true,
+            "ExpressionGUID": "787bc3859b49344d82eb857f69c9c939"
+          }
+        ]
+      },
+      "parameters": {
+        "TextureParameterValues": {
+          "Base_Color:0": "Strife_Cloth_Diff",
+          "Normal:0": "Strife_Cloth_Norm"
+        },
+        "ScalarParameterValues": {
+          "Fresnel_Amount:0": 0.75,
+          "Fresnel_Color_Power:0": 5.0,
+          "Reflection_Amount:0": -1.0,
+          "Emissive_Power_Base:0": 20.0,
+          "RefractionDepthBias:0": 0.0
+        },
+        "VectorParameterValues": {
+          "Fresnel_Color:0": "0000000000000000000000000000803f",
+          "Emissive Color_Base:0": "6aa5c03e5b5e813e000000000000803f"
+        }
+      }
+    },
+    {
+      "asset": "Strife_Gold_Cloth_Inst_A",
+      "parent": "MM_Basic_Character",
+      "overrides": {
+        "bOverride_BlendMode": true,
+        "bOverride_TwoSided": true,
+        "TwoSided": true,
+        "BlendMode": "BLEND_Masked:0",
+        "OpacityMaskClipValue": 0.33329999446868896
+      },
+      "static": {
+        "StaticSwitchParameters": [
+          {
+            "ParameterInfo": {
+              "Name": "Emissive_Multi_Color:0",
+              "Association": "GlobalParameter:0",
+              "Index": -1
+            },
+            "Value": true,
+            "bOverride": true,
+            "ExpressionGUID": "f4bb06363cc4cf469f58f1dbae355c48"
+          }
+        ]
+      },
+      "parameters": {
+        "TextureParameterValues": {
+          "Base_Color:0": "Strife_Gold_Cloth_d",
+          "Metal/Rough/Emissive:0": "Strife_Gold_Cloth_mre_packed",
+          "Normal:0": "Strife_Gold_Cloth_n",
+          "Emissive_Color_Texture:0": "Strife_Gold_Cloth_e"
+        },
+        "ScalarParameterValues": {
+          "Emissive_Power_Base:0": 20.0,
+          "RefractionDepthBias:0": 0.0
+        },
+        "VectorParameterValues": {
+          "Emissive Color_Base:0": "6aa5c03e5b5e813e000000000000803f"
+        }
+      }
+    }
+  ],
+  "correctionValidated": false,
+  "buildDeferredByUser": true
+}

@@ -1,3 +1,9 @@
+## Suite debug sans build — écharpe Stoneskin
+
+Main V1.164 publié au commit e0ac8a44a9fc79425218c452efab7128acecb56f, sources/ZIP inchangés et aucune exécution Actions déclenchée. Recherche de tissu double face poursuivie sur les fichiers locaux : candidats identifiés, compatibilité des masques/du feu à résoudre avant modification. Aucun correctif de rendu annoncé ni binaire créé. [Étude et prochaine étape](NEXT_STONESKIN_SCARF_REVIEW.md).
+
+---
+
 ## V1.164 validée — promotion main sans nouvelle compilation
 
 Marche/course aérienne sur sol privé validée par l’utilisateur le 12 novembre 2026. Publication de la base exacte testée sur main demandée, sans build ; ZIP et sources V1.164 existants réutilisés, réglages inchangés. Suite sur debug : envers de l’écharpe Stoneskin, sans build pour l’instant. [Validation, périmètre et absence de compilation](V1_164_MAIN_PROMOTION.md).

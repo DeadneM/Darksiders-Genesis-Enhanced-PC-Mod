@@ -1,0 +1,20 @@
+{
+  "mainBefore": "d6414404ba268add00834323c6da064af5d5ce42",
+  "mainAfter": "e0ac8a44a9fc79425218c452efab7128acecb56f",
+  "validatedDebug": "7ee4312516fbcff23c3f04213748ac690165bf60",
+  "compiledSource": "6e8fc9339454303f242cf82f7c111ac8b6241eff",
+  "packageBlob": "a756e0a599c81af980747398d8c147b07e8afee4",
+  "packageSha256": "05141D09759CFA41B85E4CD64DDF9EBBE2BD93E2CADCFA3C2949FF346ABCA3DF",
+  "sourceChanged": false,
+  "packageChanged": false,
+  "oldArchivesPreserved": 224,
+  "totalArchives": 229,
+  "newBuild": false,
+  "workflowRunsForPromotion": 0,
+  "tagOrReleaseCreated": false,
+  "refs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/debug": "e0ac8a44a9fc79425218c452efab7128acecb56f",
+    "refs/heads/main": "e0ac8a44a9fc79425218c452efab7128acecb56f"
+  }
+}
