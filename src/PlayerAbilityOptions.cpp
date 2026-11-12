@@ -28,6 +28,12 @@ bool Hero(const local_players::Context& c){
         Read(c.character,0x118,role)&&role==3&&Read(c.character,0xEA0,resource)&&
         Read(resource,0x37C,health)&&std::isfinite(health)&&health>0;
 }
+bool Solo(const local_players::Context& c){
+    // Match the retail request's single-player branch, not merely one local
+    // viewport: network co-op may also have LocalPlayers.Num()==1.
+    uintptr_t instance=0;unsigned char type=255;
+    return c.localCount==1&&Read(c.world,0x160,instance)&&Read(instance,0x188,type)&&type==0;
+}
 bool Gameplay(const local_players::Context& c){
     return Hero(c)&&!native_tps::IsWorldPaused(reinterpret_cast<void*>(c.character))&&
         !native_tps::CinematicActive(unsigned(c.index))&&!native_tps::RadialActive(unsigned(c.index));
@@ -69,7 +75,7 @@ void HookRequest(void* controller,unsigned char spawnType){
     }
     uintptr_t pawn=0;local_players::Context c;
     if(!Read(reinterpret_cast<uintptr_t>(controller),0x350,pawn)||!local_players::ResolveActor(reinterpret_cast<void*>(pawn),c)||
-       c.controller!=reinterpret_cast<uintptr_t>(controller)||c.localCount!=1||!Gameplay(c)){
+       c.controller!=reinterpret_cast<uintptr_t>(controller)||!Solo(c)||!Gameplay(c)){
         if(g_request)g_request(controller,spawnType);return;
     }
     auto& pending=g_pending[unsigned(c.index)];
@@ -102,7 +108,7 @@ void OnLivePlayer(const local_players::Context& c,uint32_t generation,bool comma
     if(!native_tps::OnGameThread()||c.index<0||c.index>1)return;
     auto& pending=g_pending[unsigned(c.index)];if(!pending.actor)return;
     const auto now=GetTickCount64();
-    if(!commandsAllowed||!Gameplay(c)||c.localCount!=1||c.character!=pending.actor.address||c.controller!=pending.controller.address||
+    if(!commandsAllowed||!Gameplay(c)||!Solo(c)||c.character!=pending.actor.address||c.controller!=pending.controller.address||
        c.world!=pending.world||generation!=pending.generation||!local_players::Matches(unsigned(c.index),c.character,generation)||
        !Alive(pending.actor)||!Alive(pending.controller)||runtime::Get().synergySwapMode.load()!=pending.mode||
        now<pending.started||now-pending.started>15000){Clear(pending);return;}
