@@ -1,0 +1,55 @@
+{
+  "feedbackDate": "2026-11-13",
+  "baselineDebug": "cbf9fb0f81a7f47ef1d0c628a8f55c1912149a33",
+  "userValidated": [
+    "synergy modes",
+    "air-walk hoof sounds"
+  ],
+  "userNotYetTested": [
+    "Strife counter evade I/II OFF"
+  ],
+  "userRejected": "V1.166 scarf loses molten/lava appearance",
+  "logSha256": "c03232edc25fb888730ee95ad159178e17a85e933e5ee67cb621d402146b4037",
+  "relevantLog": [],
+  "offlineInventory": {
+    "headers": 39560,
+    "materials": 948,
+    "explicitTwoSided": 41,
+    "parseErrors": 0,
+    "scope": "all local PAK uasset headers; MaterialInstanceConstant with MM_Basic dependency; not other master families",
+    "network": false,
+    "noRunningGameChanges": true
+  },
+  "candidate": {
+    "asset": "Dn_HL_Inst_DemonBanners_B_Singed",
+    "path": "ProjectMayhem/Content/Environment/Eden/Materials/Eden_Materials_Destroyed/Dn_HL_Inst_DemonBanners_B_Singed.uasset",
+    "parent": "MM_Basic",
+    "overrides": {
+      "bOverride_BlendMode": true,
+      "bOverride_TwoSided": true,
+      "TwoSided": true,
+      "BlendMode": "BLEND_Masked:0",
+      "OpacityMaskClipValue": 0.33329999446868896
+    },
+    "switches": {
+      "Emissive": true,
+      "Emissive_Scroll": true
+    }
+  },
+  "sourceCoating": {
+    "asset": "War_Inst_StoneSkin_Molten_A",
+    "parent": "MM_Basic",
+    "switches": {
+      "Detail_Normal": true,
+      "Emissive": true,
+      "Emissive_Scroll": true
+    }
+  },
+  "newMethod": "private MID: identical MM_Basic parent required, full native Stoneskin coating copy once, non-Molten emission explicitly suppressed; no Gold alias/vector transfer",
+  "limits": [
+    "Visual back-face/fire result unvalidated",
+    "New shader has Masked blend and Detail_Normal disabled versus source; must inspect scarf silhouette and lighting",
+    "No other master families scanned; inventory is bounded to MM_Basic dependency",
+    "No FPS gain measured"
+  ]
+}

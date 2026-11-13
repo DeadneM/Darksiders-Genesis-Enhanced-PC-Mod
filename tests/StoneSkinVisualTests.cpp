@@ -7,48 +7,45 @@ using namespace dg::stone_visual;
 unsigned char entries[96][256]{};uintptr_t names[96]{},chunks[1]{reinterpret_cast<uintptr_t>(names)};
 struct Fixture {
  unsigned char actor[0x1100]{},controller[0x400]{},mesh[0x800]{},component[0x180]{},status[0x100]{},molten[0x100]{};
- unsigned char classes[15][0x80]{},fields[12][0x80]{},functions[6][0x110]{},parameters[16][0x80]{};
+ unsigned char classes[14][0x80]{},fields[11][0x80]{},functions[5][0x110]{},parameters[12][0x80]{};
  unsigned char original[4][0x100]{},mid[4][0x100]{},materials[3][0x100]{},items[128*24]{};
  unsigned char nativeMids[4][0x100]{},loaderClass[0x80]{},loader[0x100]{};
- unsigned char asset[0x140]{},skinSlots[160]{},scalars[72]{},vectors[144]{},copiedScalars[108]{};
+ unsigned char asset[0x140]{},skinSlots[160]{},scalars[72]{},master[0x100]{};
  uintptr_t overrides[4]{},statuses[2]{},retainedMaterials[4]{};
 } f;
-uintptr_t objectChunks[1]{};dg::local_players::Context owner{};unsigned copies=0,creates=0,sets=0,scalarCalls=0,vectorCalls=0;int id=0;bool thread=true,failFactory=false;
+uintptr_t objectChunks[1]{};dg::local_players::Context owner{};unsigned copies=0,creates=0,sets=0,scalarCalls=0;int id=0;bool thread=true,failFactory=false;
 unsigned fx[3]{},launchAttempts=0,launchFailures=0;bool fxReady=true,paused=false,cinema=false,radial=false,recastInSpawn=false;bool missingFx[3]{};
 template<class T>void Put(void* p,size_t at,const T& v){std::memcpy(static_cast<unsigned char*>(p)+at,&v,sizeof(v));}
 void Check(bool ok,const char* why){if(!ok)throw std::runtime_error(why);}
 void Label(void* p,int i,const char* s){Put(p,0x18,i);strcpy_s(reinterpret_cast<char*>(entries[i]+12),244,s);}
 Id Live(void* p){const int n=id++;Put(p,0xC,n);Put(f.items,size_t(n)*24,reinterpret_cast<uintptr_t>(p));Put(f.items,size_t(n)*24+16,n+100);return {reinterpret_cast<uintptr_t>(p),n,n+100};}
 void Property(void* p,int label,const char* name,void* kind,int size,int at,void* next=nullptr){Label(p,label,name);Put(p,0x10,reinterpret_cast<uintptr_t>(kind));Put(p,0x34,size);Put(p,0x44,at);Put(p,0x28,reinterpret_cast<uintptr_t>(next));}
-uintptr_t copySources[4]{};int copiedScalarCount=3;unsigned pauseChecks=0;
+uintptr_t copySources[4]{};unsigned pauseChecks=0;
 void Dispatch(void* object,void* function,void* args){
  if(function==f.functions[0]){Check(object==f.mesh,"only owned mesh GetMaterial");auto* raw=static_cast<unsigned char*>(args);int index=0;std::memcpy(&index,raw,4);Put(raw,8,f.overrides[index]?f.overrides[index]:reinterpret_cast<uintptr_t>(f.original[index]));return;}
  if(function==f.functions[1]){Check(object==f.mesh,"only owned mesh factory");int index=0;std::memcpy(&index,args,4);uintptr_t parent=0;std::memcpy(&parent,static_cast<unsigned char*>(args)+8,8);++creates;if(failFactory){f.overrides[index]=parent;return;}Put(f.mid[index],0x10,reinterpret_cast<uintptr_t>(f.classes[4]));Put(f.mid[index],0x40,parent);Live(f.mid[index]);f.overrides[index]=reinterpret_cast<uintptr_t>(f.mid[index]);Put(args,24,f.overrides[index]);return;}
  if(function==f.functions[2]){Check(object==f.mesh,"only owned mesh SetMaterial");int index=0;uintptr_t value=0;std::memcpy(&index,args,4);std::memcpy(&value,static_cast<unsigned char*>(args)+8,8);f.overrides[index]=value;++sets;return;}
- if(function==f.functions[4]){bool own=false;for(auto& m:f.mid)own=own||object==m;Check(own,"emission setters only on private MID");float value=1;uintptr_t parent=0;std::memcpy(&value,static_cast<unsigned char*>(args)+8,4);std::memcpy(&parent,static_cast<unsigned char*>(object)+0x40,8);
-  Check(value==0||(parent==reinterpret_cast<uintptr_t>(f.materials[2])&&value==10),"body stays dark; only candidate cloth receives native fire power");++scalarCalls;return;}
- if(function==f.functions[5]){bool own=false;for(auto& m:f.mid)own=own||object==m;Check(own,"vector setters only on private MID");
-  dg::foreign_wrath::Name name{};float value[4]{};std::memcpy(&name,args,8);std::memcpy(value,static_cast<unsigned char*>(args)+8,16);
-  Check(name.index>=59&&name.index<=61&&!name.number&&value[0]==.1f&&value[1]==.2f&&value[2]==.3f&&value[3]==1.f,"vector marshalling preserves the actual source colour and scroll values");++vectorCalls;return;}
+ if(function==f.functions[4]){bool own=false;for(auto& m:f.mid)own=own||object==m;Check(own,"emission setters only on private MID");float value=1;std::memcpy(&value,static_cast<unsigned char*>(args)+8,4);
+  Check(value==0,"body and non-Molten cloth emission suppression stays private");++scalarCalls;return;}
  Check(function==f.functions[3],"only the verified copy function");int slot=-1;for(int i=0;i<4;++i)if(object==f.mid[i])slot=i;
  uintptr_t assetMaterial=0;Check(slot>=0&&Surface(reinterpret_cast<uintptr_t>(f.asset),unsigned(slot),assetMaterial)==1,"hierarchy copy only targets a cloth slot, including Abyssal slot one");
- uintptr_t source=0;unsigned char quick=1;std::memcpy(&source,args,8);std::memcpy(&quick,static_cast<unsigned char*>(args)+8,1);Check(!quick,"copy includes inherited native defaults, not War masks");
- const auto expected=f.retainedMaterials[slot]?f.retainedMaterials[slot]:reinterpret_cast<uintptr_t>(f.original[slot]);Check(source==expected,"copy uses this exact slot's retained native material, never another slot's texture");
- copySources[slot]=source;Put(object,0x60,Array{reinterpret_cast<uintptr_t>(f.copiedScalars),copiedScalarCount,3});++copies;
+ uintptr_t source=0;unsigned char quick=1;std::memcpy(&source,args,8);std::memcpy(&quick,static_cast<unsigned char*>(args)+8,1);Check(!quick,"full copy includes the native coating emission masks and inherited textures");
+ Check(source==reinterpret_cast<uintptr_t>(f.materials[0])||source==reinterpret_cast<uintptr_t>(f.materials[1]),"copy uses a complete native coating, not an unrelated unlit cloth hierarchy");
+ copySources[slot]=source;++copies;
 }
 uint64_t observationTime=1000;
 void Step(const dg::local_players::Context& c){observationTime+=50;ObserveAt(c,observationTime);}
 void Fresh(){
- for(auto& source:copySources)source=0;copiedScalarCount=3;
+ for(auto& source:copySources)source=0;
  pauseChecks=0;dg::selected_recovery::loadingAllowed=false;dg::selected_recovery::nextLoadAt=0;
  launchAttempts=launchFailures=0;paused=cinema=radial=recastInSpawn=false;
  g_resourceRequests={};g_resourceActor={};g_resourceMesh={};dg::selected_particle::sharedContext={};for(auto& missing:missingFx)missing=false;
  g_statusClasses={};g_statusClassNext=0;g_statusClassHits=g_statusClassMisses=0;
  g_observations={};g_observed=g_skipped=0;g_functions={};g_parameters={};g_nextFunction=g_nextParameter=0;g_functionLookups=g_parameterLookups=0;observationTime=1000;
- f={};g_visual[0]=g_visual[1]={};g_transitions[0]=g_transitions[1]={};g_missing[0]=g_missing[1]=false;g_fields={};g_materials={};g_event=Dispatch;g_log=nullptr;g_events=g_deferredEvents=0;owner={};id=0;copies=creates=sets=scalarCalls=vectorCalls=0;thread=true;failFactory=false;for(auto& n:fx)n=0;fxReady=true;
+ f={};g_visual[0]=g_visual[1]={};g_transitions[0]=g_transitions[1]={};g_missing[0]=g_missing[1]=false;g_fields={};g_materials={};g_event=Dispatch;g_log=nullptr;g_events=g_deferredEvents=0;owner={};id=0;copies=creates=sets=scalarCalls=0;thread=true;failFactory=false;for(auto& n:fx)n=0;fxReady=true;
  const char* labels[]={"Strife_Blueprint_C","MeshClass","StatusComponent","MayhemStatusEffect_StoneSkin_Base_Blueprint_C","MaterialInstanceDynamic","Function","ObjectProperty","ArrayProperty","IntProperty","NameProperty","BoolProperty","MayhemStatusEffect_Core_FallenDog_Molten_2_Blueprint_C"};
  for(int i=0;i<12;++i)Label(f.classes[i],i+1,labels[i]);
- Label(f.classes[14],56,"StructProperty");Label(f.classes[12],44,"FloatProperty");Label(f.classes[13],45,"SkeletalMesh");Label(f.asset,40,"Strife");Put(f.asset,0x10,reinterpret_cast<uintptr_t>(f.classes[13]));Put(f.mesh,0x5A0,reinterpret_cast<uintptr_t>(f.asset));
+ Label(f.classes[12],44,"FloatProperty");Label(f.classes[13],45,"SkeletalMesh");Label(f.asset,40,"Strife");Put(f.asset,0x10,reinterpret_cast<uintptr_t>(f.classes[13]));Put(f.mesh,0x5A0,reinterpret_cast<uintptr_t>(f.asset));
  Label(f.fields[8],41,"Strife_Body");Label(f.fields[9],42,"Strife_Gear");Label(f.functions[4],43,"Strife_Cloth");
  for(int i=0;i<4;++i){dg::foreign_wrath::Name n{i==0?41:i==1?42:43,0};Put(f.skinSlots,size_t(i)*40,reinterpret_cast<uintptr_t>(f.original[i]));Put(f.skinSlots,size_t(i)*40+8,n);}
  Put(f.asset,0xA0,Array{reinterpret_cast<uintptr_t>(f.skinSlots),4,4});
@@ -67,8 +64,8 @@ void Fresh(){
  Property(f.fields[2],16,"m_statusEffects",f.classes[7],16,0x130);Put(f.classes[2],0x48,reinterpret_cast<uintptr_t>(f.fields[2]));
  Property(f.fields[3],17,"m_pInstigatorActor",f.classes[6],8,0x60);Put(f.classes[3],0x48,reinterpret_cast<uintptr_t>(f.fields[3]));Put(f.classes[11],0x48,reinterpret_cast<uintptr_t>(f.fields[3]));
  Property(f.fields[4],18,"Parent",f.classes[6],8,0x40,f.fields[7]);Put(f.classes[4],0x48,reinterpret_cast<uintptr_t>(f.fields[4]));
- const char* fn[]={"GetMaterial","CreateDynamicMaterialInstance","SetMaterial","K2_CopyMaterialInstanceParameters","SetScalarParameterValue","SetVectorParameterValue"};const uintptr_t rv[]={0x1DC9CB0,0x1DC92E0,0x1DCCC80,0x1D96D80,0x1D97290,0x1D97420};
- for(int i=0;i<6;++i){Label(f.functions[i],i==5?58:20+i,fn[i]);Put(f.functions[i],0x10,reinterpret_cast<uintptr_t>(f.classes[5]));Put(f.functions[i],0xC0,g_base+rv[i]);if(i<2||i==3||i==4)Put(f.functions[i],0x28,reinterpret_cast<uintptr_t>(f.functions[i+1]));}
+ const char* fn[]={"GetMaterial","CreateDynamicMaterialInstance","SetMaterial","K2_CopyMaterialInstanceParameters","SetScalarParameterValue"};const uintptr_t rv[]={0x1DC9CB0,0x1DC92E0,0x1DCCC80,0x1D96D80,0x1D97290};
+ for(int i=0;i<5;++i){Label(f.functions[i],20+i,fn[i]);Put(f.functions[i],0x10,reinterpret_cast<uintptr_t>(f.classes[5]));Put(f.functions[i],0xC0,g_base+rv[i]);if(i<2||i==3)Put(f.functions[i],0x28,reinterpret_cast<uintptr_t>(f.functions[i+1]));}
  int n=0;auto parameter=[&](int label,const char* name,int kind,int bytes,int at){auto* p=f.parameters[n++];Property(p,label,name,f.classes[kind],bytes,at);return p;};
  auto chain=[&](int fn,std::initializer_list<unsigned char*> list){unsigned char* prev=nullptr;for(auto* p:list){if(prev)Put(prev,0x28,reinterpret_cast<uintptr_t>(p));else Put(f.functions[fn],0x48,reinterpret_cast<uintptr_t>(p));prev=p;}};
  chain(0,{parameter(25,"ElementIndex",8,4,0),parameter(26,"ReturnValue",6,8,8)});
@@ -76,14 +73,8 @@ void Fresh(){
  chain(2,{parameter(25,"ElementIndex",8,4,0),parameter(29,"Material",6,8,8)});
  chain(3,{parameter(30,"Source",6,8,0),parameter(31,"bQuickParametersOnly",10,1,8)});
  chain(4,{parameter(51,"ParameterName",9,8,0),parameter(52,"Value",12,4,8)});
- chain(5,{parameter(51,"ParameterName",9,8,0),parameter(52,"Value",14,16,8)});
- Property(f.fields[11],57,"VectorParameterValues",f.classes[7],16,0x70,f.fields[4]);Put(f.classes[4],0x48,reinterpret_cast<uintptr_t>(f.fields[11]));
- const char* vecNames[]={"Emissive Color_Base","Emissive Color_Scroll","Emissive_Scroll_Speed"};
- for(int i=0;i<3;++i){Label(f.vectors+size_t(i)*48,59+i,vecNames[i]);Put(f.vectors,size_t(i)*48,dg::foreign_wrath::Name{59+i,0});Put(f.vectors,size_t(i)*48+8,2);Put(f.vectors,size_t(i)*48+12,-1);const float value[]={.1f,.2f,.3f,1.f};std::memcpy(f.vectors+size_t(i)*48+16,value,16);}
- Put(f.materials[1],0x70,Array{reinterpret_cast<uintptr_t>(f.vectors),3,3});
- Label(f.copiedScalars,62,"Emissive_Power");
- // Captured native copy: Global=2 followed by unrelated 2d/31/27 padding.
- for(int i=0;i<3;++i){Put(f.copiedScalars,size_t(i)*36,dg::foreign_wrath::Name{i==2?62:48+i,0});Put(f.copiedScalars,size_t(i)*36+8,0x27312d02);Put(f.copiedScalars,size_t(i)*36+12,-1);}
+ Label(f.master,65,"MM_Basic");
+ for(auto& material:f.materials)Put(material,0x40,reinterpret_cast<uintptr_t>(f.master));
 
  Live(f.actor);Live(f.mesh);Live(f.asset);for(auto& m:f.original)Live(m);g_materials[BaseBody]=Live(f.materials[0]);g_materials[MoltenCloth]=Live(f.materials[1]);
  owner.index=0;owner.world=1;owner.localPlayer=2;owner.character=owner.pawn=reinterpret_cast<uintptr_t>(f.actor);owner.controller=reinterpret_cast<uintptr_t>(f.controller);
@@ -228,37 +219,35 @@ void Run(){
  for(int change=0;change<4;++change){Fresh();Cast(owner);Step(owner);
   if(change==0)owner.kind=dg::local_players::PoseKind::Horse;if(change==1)owner.world=99;if(change==2)Put(f.component,0x138,129);if(change==3){Shutdown();Check(!fx[2],"shutdown never emits expiry");continue;}
   Step(owner);Check(!fx[2],"transformation/world loss/unknown status read does not fake expiration");}
- Fresh();TwoSidedTemplate();Step(owner);Check(creates==4&&copies==2&&scalarCalls==10&&!vectorCalls,"base coating: body path unchanged, one native hierarchy copy per cloth, all three cloth emission powers off");
+ Fresh();TwoSidedTemplate();Step(owner);Check(creates==4&&copies==2&&scalarCalls==8,"base coating: full native copy and both emission powers zero on cloth and body");
+ Check(copySources[2]==reinterpret_cast<uintptr_t>(f.materials[0])&&copySources[3]==reinterpret_cast<uintptr_t>(f.materials[0]),"plain Stoneskin keeps its full native coating");
  for(int i=0;i<4;++i){uintptr_t parent=0;std::memcpy(&parent,f.mid[i]+0x40,8);Check(parent==reinterpret_cast<uintptr_t>(f.materials[i<2?0:2]),"only cloth changes its cooked shader parent");}
  for(int i=0;i<100;++i)Step(owner);Check(creates==4&&copies==2,"active material observations never recopy or recreate cloth");
  Put(f.component,0x138,0);Step(owner);Check(sets==4,"candidate restores original material inheritance on expiry");
- Fresh();TwoSidedTemplate();Put(f.component,0x138,2);Step(owner);Check(copies==2&&vectorCalls==6&&scalarCalls==10,"Molten keeps source power/colour/scroll uniforms on two-sided cloth only");
+ Fresh();TwoSidedTemplate();Put(f.component,0x138,2);Step(owner);Check(copies==2&&scalarCalls==4,"Molten is copied completely, without manual aliases or fire suppression on cloth");
+ Check(copySources[2]==reinterpret_cast<uintptr_t>(f.materials[1])&&copySources[3]==reinterpret_cast<uintptr_t>(f.materials[1]),"regression: both cloth slots receive Molten emission masks, not native Strife's unlit defaults");
  Fresh();Step(owner);Check(!NeedsAssetScan(owner),"optional missing cloth never accelerates the global scan");TwoSidedTemplate();Step(owner);Check(creates==6&&copies==2&&g_visual[0].slots[2].doubleSided,"late template upgrades legacy cloth without rebuilding body");
- Fresh();TwoSidedTemplate();Put(f.component,0x138,2);Put(f.functions[5],0xC0,uintptr_t(0));Step(owner);
- Check(creates==6&&!copies&&!vectorCalls&&!g_visual[0].slots[2].doubleSided,"rejected vector ABI restores known legacy fire without touching shared sources");
+ Fresh();TwoSidedTemplate();Put(f.component,0x138,2);Put(f.functions[3],0xC0,uintptr_t(0));Step(owner);
+ Check(creates==6&&!copies&&!g_visual[0].slots[2].doubleSided,"rejected copy ABI retains the known Molten cloth without shared writes");
  Step(owner);Check(creates==6,"failed candidate is not retried every active observation");
  Fresh();TwoSidedTemplate();Put(f.component,0x138,2);
  const auto shared=std::vector<unsigned char>(reinterpret_cast<unsigned char*>(f.materials),reinterpret_cast<unsigned char*>(f.materials)+sizeof(f.materials));
  auto* clothNative=f.nativeMids[2];Put(clothNative,0x10,reinterpret_cast<uintptr_t>(f.classes[4]));Put(clothNative,0x20,reinterpret_cast<uintptr_t>(f.actor));Put(clothNative,0x40,reinterpret_cast<uintptr_t>(f.original[2]));Live(clothNative);
  f.overrides[2]=f.retainedMaterials[2]=reinterpret_cast<uintptr_t>(clothNative);const auto nativeBytes=std::vector<unsigned char>(clothNative,clothNative+sizeof(f.nativeMids[2]));
- Step(owner);Check(copies==2&&copySources[2]==reinterpret_cast<uintptr_t>(clothNative),"active native wrapper is the actual copy source");
- Check(!std::memcmp(shared.data(),f.materials,sizeof(f.materials))&&!std::memcmp(nativeBytes.data(),clothNative,nativeBytes.size()),"candidate setup never modifies shared templates or the retained native wrapper");
- Put(f.component,0x138,0);Step(owner);Check(f.overrides[2]==reinterpret_cast<uintptr_t>(clothNative),"candidate expiry restores the exact retained wrapper");
+ Step(owner);Check(copies==2&&copySources[2]==reinterpret_cast<uintptr_t>(f.materials[1]),"native wrapper remains a restoration baseline, not the wrong emission source");
+ Check(!std::memcmp(shared.data(),f.materials,sizeof(f.materials))&&!std::memcmp(nativeBytes.data(),clothNative,nativeBytes.size()),"setup never modifies shared sources or the retained native wrapper");
+ Put(f.component,0x138,0);Step(owner);Check(f.overrides[2]==reinterpret_cast<uintptr_t>(clothNative),"expiry restores the exact retained wrapper");
  Fresh();TwoSidedTemplate();Put(f.component,0x138,2);Put(f.skinSlots,8,dg::foreign_wrath::Name{53,0});Put(f.skinSlots,48,dg::foreign_wrath::Name{54,0});
  Label(f.fields[8],53,"Strife_Abyssal_Body");Label(f.fields[9],54,"Strife_Abyssal_Cloth");Put(f.asset,0xA0,Array{reinterpret_cast<uintptr_t>(f.skinSlots),2,2});
- Step(owner);Check(creates==2&&copies==1&&vectorCalls==3&&copySources[1]==reinterpret_cast<uintptr_t>(f.original[1]),"Abyssal's cloth slot one receives its own texture hierarchy");
- Put(f.component,0x138,0);Step(owner);Check(sets==2&&!f.overrides[0]&&!f.overrides[1],"Abyssal candidate restores both inherited slots");
- Fresh();TwoSidedTemplate();copiedScalarCount=2;Step(owner);Check(creates==6&&copies==2&&!g_visual[0].slots[2].doubleSided,"copy missing the required emission alias falls back per cloth slot");
- for(int i=0;i<100;++i)Step(owner);Check(creates==6&&copies==2,"a rejected completed copy is not repeated during the same active coating");
- Put(f.component,0x138,0);Step(owner);Check(!f.overrides[0]&&!f.overrides[1]&&!f.overrides[2]&&!f.overrides[3],"failed candidate fallback still restores original inheritance");
-
- // Padding is not part of the association enum, on source arrays either.
- Fresh();TwoSidedTemplate();Put(f.component,0x138,2);
- for(int i=0;i<2;++i)Put(f.scalars,size_t(i)*36+8,0x27312d02);
- for(int i=0;i<3;++i)Put(f.vectors,size_t(i)*48+8,0x27312d02);
- Step(owner);Check(creates==4&&copies==2&&vectorCalls==6&&g_visual[0].slots[2].doubleSided,"captured nonzero padding cannot reject valid source or copied parameters");
- Fresh();TwoSidedTemplate();Put(f.copiedScalars,2*36+8,0x27312d00);Step(owner);
- Check(creates==6&&copies==2&&!g_visual[0].slots[2].doubleSided,"the actual non-global association byte still rejects the alias");
+ Step(owner);Check(creates==2&&copies==1&&copySources[1]==reinterpret_cast<uintptr_t>(f.materials[1]),"Abyssal cloth keeps the same complete Molten coating");
+ Put(f.component,0x138,0);Step(owner);Check(sets==2&&!f.overrides[0]&&!f.overrides[1],"Abyssal restores both original inherited slots");
+ Fresh();TwoSidedTemplate();Put(f.materials[2],0x40,reinterpret_cast<uintptr_t>(f.original[0]));Step(owner);
+ Check(creates==6&&!copies&&!g_visual[0].slots[2].doubleSided,"different material master cannot pass the same-family contract");
+ for(int i=0;i<100;++i)Step(owner);Check(creates==6&&!copies,"incompatible template stays bounded rather than being reapplied each frame");
+ Fresh();TwoSidedTemplate();Put(f.parameters[9],0x44,9);Step(owner);Check(creates==6&&!copies,"wrong quick-copy parameter offset fails open");
+ Fresh();TwoSidedTemplate();Put(f.component,0x138,2);for(int i=0;i<2;++i)Put(f.scalars,size_t(i)*36+8,0x27312d02);
+ Step(owner);Check(creates==4&&copies==2&&scalarCalls==4&&g_visual[0].slots[2].doubleSided,"nonzero padding still cannot reject the body's valid global parameters");
+ Fresh();Put(f.scalars,8,0x27312d00);Step(owner);Check(!g_visual[0].slots[0].material,"non-global association is still rejected by mineral-body suppression");
  // Recovery preflight must save the native context/UI checks, not merely skip
  // LoadAsset_Blocking later. A valid loader CDO makes that distinction visible.
  Fresh();Label(f.loaderClass,63,"KismetSystemLibrary");Label(f.loader,64,"Default__KismetSystemLibrary");

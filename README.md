@@ -1,3 +1,9 @@
+## V1.167 préparée — correction de la régression écharpe Molten
+
+V1.166 : synergie et sabots VALIDÉS par l'utilisateur ; Contre-esquive encore NON TESTÉE ; écharpe sans feu REJETÉE. Candidat Gold retiré au profit d'un shader double face de la même famille que Molten, avec copie complète du revêtement natif. Nettoyage de la traduction partielle, séparation sans feu/avec Molten, corps et fonctions validées conservés. **PRÉPARÉ / EXPÉRIMENTAL, contrôles Windows à venir.** Main V1.164 et 252 valeurs inchangées. [Diagnostic, périmètre et tests](docs/V1_167_REVIEW.md).
+
+---
+
 ## V1.166 disponible sur debug — lot options natives, écharpe et sabots
 
 **CONSTRUIT / CONTRÔLÉ : 84/84 suites Windows ; EXPÉRIMENTAL en jeu.** Refus écharpe par padding corrigé, sabots sur le sol privé, Contre-esquive Vanilla/OFF et synergie Vanilla/Inverted/No Swap. Deux nouvelles clés natives par défaut, 250 anciennes valeurs conservées ; main V1.164 et INI personnel intacts. [ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/c8834113d659aa0e7daf4762cf17f0af4565ac55/downloads/DarksidersGenesis_V1.166_NATIVE_ABILITY_OPTIONS_TEST.zip) · [Livraison, limites et tests](docs/V1_166_DELIVERY_RECEIPT.md).

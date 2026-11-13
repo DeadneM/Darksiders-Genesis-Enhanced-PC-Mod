@@ -19,6 +19,12 @@ unsigned g_deferredEvents=0;
 std::array<selected_recovery::Requests<6>,2> g_resourceRequests{};
 std::array<Id,2> g_resourceActor{},g_resourceMesh{};
 enum MaterialSource : unsigned {BaseBody,MoltenCloth,DoubleSidedCloth,MaterialCount};
+constexpr const char* MaterialNames[]={"War_Inst_StoneSkin_A","War_Inst_StoneSkin_Molten_A","Dn_HL_Inst_DemonBanners_B_Singed"};
+constexpr const char* MaterialPaths[]={
+    "/Game/Characters/Heroes/Hero_War/Textures/War_Inst_StoneSkin_A",
+    "/Game/Characters/Heroes/Hero_War/Textures/War_Inst_StoneSkin_Molten_A",
+    "/Game/Environment/Eden/Materials/Eden_Materials_Destroyed/Dn_HL_Inst_DemonBanners_B_Singed"};
+static_assert(std::size(MaterialNames)==MaterialCount&&std::size(MaterialPaths)==MaterialCount);
 std::array<Id,MaterialCount> g_materials{};
 struct Slot {Id material{},original{};bool inherited=false,failed=false;uintptr_t observed=0;uint64_t retryAt=0;int surface=-1;bool doubleSided=false,clothAttempted=false;};
 struct Visual {Id actor{},mesh{},asset{};uintptr_t world=0;int variant=-1;std::array<Slot,4> slots{};};
@@ -177,64 +183,23 @@ bool MineralBody(uintptr_t material,uintptr_t source){
     }
     return found==3;
 }
-// One setup per private cloth MID, never a per-frame parameter copy.
-// Keep the equipped Strife hierarchy (especially its alpha), then only apply
-// the shared fire uniforms. Static two-sided/scroll switches stay cooked.
-bool ClothMaterial(uintptr_t material,uintptr_t original,uintptr_t fire,bool molten){
+// Same cooked MM_Basic fire branches as the validated native coating.
+// Copy its complete uniforms ONCE, including the emission textures/masks.
+// Gold's multi-colour branch was incompatible with that coating (V1.166).
+bool ClothMaterial(uintptr_t material,uintptr_t coating,bool molten){
     const auto copy=Function(material,"K2_CopyMaterialInstanceParameters",0x1D96D80);
-    const auto scalar=Function(material,"SetScalarParameterValue",0x1D97290);
-    const auto vector=molten?Function(material,"SetVectorParameterValue",0x1D97420):0;
-    if(!copy||!scalar||!Parameter(copy,"Source","ObjectProperty",8,0)||!Parameter(copy,"bQuickParametersOnly","BoolProperty",1,8)||
-       !Parameter(scalar,"ParameterName","NameProperty",8,0)||!Parameter(scalar,"Value","FloatProperty",4,8)||
-       (molten&&(!vector||!Parameter(vector,"ParameterName","NameProperty",8,0)||!Parameter(vector,"Value","StructProperty",16,8))))return false;
-    struct Color {float v[4]{};};
-    foreign_wrath::Name scalarNames[2]{},vectorNames[3]{};float powers[2]{};Color colors[3]{};
-    int at=-1;Array values{};unsigned mask=0;
-    if(!Field(fire,"ScalarParameterValues","ArrayProperty",16,at)||!List(fire,at,values,64))return false;
-    for(int i=0;i<values.count;++i){foreign_wrath::Name name{};unsigned char association=0;int index=0;float value=0;const auto item=values.data+size_t(i)*36;
-        if(!Read(item,0,name)||!Read(item,8,association)||!Read(item,12,index)||association!=2||index!=-1)continue;
-        const int which=native_objects::NameValueIdentifierEquals(g_base,name.index,name.number,"Emissive_Power_Base")?0:
-            native_objects::NameValueIdentifierEquals(g_base,name.index,name.number,"Emissive_Power_Scroll")?1:-1;
-        if(which<0)continue;if(!Read(item,16,value)||!std::isfinite(value))return false;
-        scalarNames[which]=name;powers[which]=molten?value:0;mask|=1u<<which;
-    }
-    if(mask!=3)return false;
-    if(molten){
-        if(!Field(fire,"VectorParameterValues","ArrayProperty",16,at)||!List(fire,at,values,64))return false;
-        mask=0;
-        for(int i=0;i<values.count;++i){foreign_wrath::Name name{};unsigned char association=0;int index=0;const auto item=values.data+size_t(i)*48;
-            if(!Read(item,0,name)||!Read(item,8,association)||!Read(item,12,index)||association!=2||index!=-1)continue;
-            constexpr const char* names[]={"Emissive Color_Base","Emissive Color_Scroll","Emissive_Scroll_Speed"};
-            for(unsigned n=0;n<3;++n)if(native_objects::NameValueIdentifierEquals(g_base,name.index,name.number,names[n])){
-                Color value{};if(!Read(item,16,value))return false;for(float component:value.v)if(!std::isfinite(component))return false;
-                vectorNames[n]=name;colors[n]=value;mask|=1u<<n;break;
-            }
-        }
-        if(mask!=7)return false;
-    }
-    // False is intentional: quick copying misses inherited texture defaults
-    // and could leave War's foreign alpha/emission masks on Strife.
-    struct CopyArgs {uintptr_t source=0;unsigned char quick=0,pad[7]{};} copyArgs{original};static_assert(sizeof(CopyArgs)==16);
-    g_event(reinterpret_cast<void*>(material),reinterpret_cast<void*>(copy),&copyArgs);
-    // Association is a byte; the following three bytes are native padding
-    // and may contain nonzero data after the engine copies a hierarchy.
-    // The multi-colour branch also has its own base-power parameter. Obtain
-    // its actual FName from the copied hierarchy, never invent a name index.
-    if(!Field(material,"ScalarParameterValues","ArrayProperty",16,at)||!List(material,at,values,64))return false;
-    bool alias=false;
-    for(int i=0;i<values.count;++i){foreign_wrath::Name name{};unsigned char association=0;int index=0;const auto item=values.data+size_t(i)*36;
-        if(!Read(item,0,name)||!Read(item,8,association)||!Read(item,12,index)||association!=2||index!=-1||
-           !native_objects::NameValueIdentifierEquals(g_base,name.index,name.number,"Emissive_Power"))continue;
-        struct Args {foreign_wrath::Name name{};float value=0;int pad=0;} args{name,powers[0]};
-        g_event(reinterpret_cast<void*>(material),reinterpret_cast<void*>(scalar),&args);alias=true;break;
-    }
-    if(!alias)return false;
-    for(unsigned i=0;i<2;++i){struct Args {foreign_wrath::Name name{};float value=0;int pad=0;} args{scalarNames[i],powers[i]};
-        g_event(reinterpret_cast<void*>(material),reinterpret_cast<void*>(scalar),&args);}
-    if(molten)for(unsigned i=0;i<3;++i){struct Args {foreign_wrath::Name name{};Color value{};} args{vectorNames[i],colors[i]};static_assert(sizeof(Args)==24);
-        g_event(reinterpret_cast<void*>(material),reinterpret_cast<void*>(vector),&args);}
-    return true;
+    uintptr_t shader=0,targetRoot=0,sourceRoot=0;int at=-1;
+    if(!copy||!Parameter(copy,"Source","ObjectProperty",8,0)||!Parameter(copy,"bQuickParametersOnly","BoolProperty",1,8)||
+       !Field(material,"Parent","ObjectProperty",8,at)||!Read(material,at,shader)||
+       !Field(shader,"Parent","ObjectProperty",8,at)||!Read(shader,at,targetRoot)||!Is(targetRoot,"MM_Basic")||
+       !Field(coating,"Parent","ObjectProperty",8,at)||!Read(coating,at,sourceRoot)||sourceRoot!=targetRoot)return false;
+    struct CopyArgs {uintptr_t source=0;unsigned char quick=0,pad[7]{};} args{coating};static_assert(sizeof(CopyArgs)==16);
+    g_event(reinterpret_cast<void*>(material),reinterpret_cast<void*>(copy),&args);
+    // The target's fire switches are cooked ON. Non-Molten Stoneskin must
+    // explicitly disable both powers rather than inherit their nonzero defaults.
+    return molten||MineralBody(material,coating);
 }
+
 void Restore(Visual& v){
     uintptr_t owner=0,asset=0;int at=-1;
     if(g_event&&Alive(v.actor)&&Alive(v.mesh)&&Read(v.mesh.address,0xE8,owner)&&owner==v.actor.address){
@@ -303,12 +268,11 @@ void ObserveObject(uintptr_t p){
     stone_fx::ObserveObject(p);
     if(!g_event||!native_tps::OnGameThread())return;uintptr_t cls=0,package=0;
     if(!Read(p,0x10,cls)||!Is(cls,"MaterialInstanceConstant")||!Read(p,0x20,package))return;
-    constexpr const char* names[]={"War_Inst_StoneSkin_A","War_Inst_StoneSkin_Molten_A","War_Cloth_Gold_Inst_A"};
     int nameIndex=0,number=0,packageIndex=0,packageNumber=0;
     if(!Read(p,0x18,nameIndex)||!Read(p,0x1C,number)||!Read(package,0x18,packageIndex)||!Read(package,0x1C,packageNumber))return;
-    for(unsigned i=0;i<g_materials.size();++i){char path[180]{};sprintf_s(path,"/Game/Characters/Heroes/Hero_War/Textures/%s",names[i]);
-        if(!Alive(g_materials[i])&&native_objects::NameValueEquals(g_base,nameIndex,number,names[i])&&
-           native_objects::NameValueEquals(g_base,packageIndex,packageNumber,path))Capture(p,g_materials[i]);
+    for(unsigned i=0;i<g_materials.size();++i){
+        if(!Alive(g_materials[i])&&native_objects::NameValueEquals(g_base,nameIndex,number,MaterialNames[i])&&
+           native_objects::NameValueEquals(g_base,packageIndex,packageNumber,MaterialPaths[i]))Capture(p,g_materials[i]);
     }
 }
 bool AssetsReady(){return Alive(g_materials[BaseBody])&&Alive(g_materials[MoltenCloth])&&stone_fx::AssetsReady();}
@@ -332,7 +296,6 @@ void RecoverResources(const local_players::Context& c,uintptr_t meshAsset,int va
     }
     const uint64_t selection=(uint64_t(uint32_t(mesh.serial))<<32)|unsigned(variant);
     requests.Enter({c.world,c.character,uint32_t(actor.serial),selection},now);
-    constexpr const char* materials[]={"War_Inst_StoneSkin_A","War_Inst_StoneSkin_Molten_A","War_Cloth_Gold_Inst_A"};
     constexpr const char* effects[]={"P_WarStoneSkin_Base","P_WarStoneSkin_Molten","P_War_StoneSkin_Base_Crumble_Expiration"};
     const unsigned wanted[]={BaseBody,variant?MoltenCloth:BaseBody,MaterialCount+unsigned(variant),MaterialCount+2,DoubleSidedCloth};
     // No loader/context/UI polling while every missing resource is cooling
@@ -351,8 +314,8 @@ void RecoverResources(const local_players::Context& c,uintptr_t meshAsset,int va
     for(unsigned i=0;i<count;++i){
         const auto index=pending[i];const bool material=index<MaterialCount;
         if(!requests.Begin(index,now,safe,context))continue;
-        const char* name=material?materials[index]:effects[index-MaterialCount];char package[220]{};
-        sprintf_s(package,material?"/Game/Characters/Heroes/Hero_War/Textures/%s":"/Game/VFX/Particles/Characters/War/StoneSkin/%s",name);
+        const char* name=material?MaterialNames[index]:effects[index-MaterialCount];char package[220]{};
+        if(material)strcpy_s(package,MaterialPaths[index]);else sprintf_s(package,"/Game/VFX/Particles/Characters/War/StoneSkin/%s",name);
         auto* result=selected_particle::Load(g_base,package,name,loader,g_event);
         if(result)ObserveObject(reinterpret_cast<uintptr_t>(result));
         const bool accepted=material?Alive(g_materials[index]):stone_fx::TemplateReady(int(index-MaterialCount));
@@ -441,7 +404,7 @@ void ObserveCurrent(const local_players::Context& c,uint64_t now){
         const auto make=[&](uintptr_t source,bool cloth)->Id {
             const auto mid=Create(mesh,int(i),source);uintptr_t parent=0;int parentAt=-1;Id identity{};
             if(mid&&mid!=source&&Field(mid,"Parent","ObjectProperty",8,parentAt)&&Read(mid,parentAt,parent)&&parent==source&&Capture(mid,identity)&&
-               (cloth?ClothMaterial(mid,original.address,legacy,variant!=0):(surface!=0||MineralBody(mid,source)))&&
+               (cloth?ClothMaterial(mid,legacy,variant!=0):(surface!=0||MineralBody(mid,source)))&&
                Alive(identity)&&Read(mid,parentAt,parent)&&parent==source)return identity;
             uintptr_t installed=0;
             if(Override(mesh,int(i),installed)&&((mid&&installed==mid)||installed==source))Set(mesh,int(i),current);
@@ -453,7 +416,7 @@ void ObserveCurrent(const local_players::Context& c,uint64_t now){
         if(!identity){slot.failed=true;slot.observed=current;slot.retryAt=now+1000;continue;}
         slot={identity,original,current==0};slot.surface=surface;slot.doubleSided=doubleSided;slot.clothAttempted=candidate;
         if(g_log&&g_events++<8)g_log(surface==0?"Stoneskin visual: private mineral body retained":doubleSided?
-            "Stoneskin cloth candidate: cooked two-sided shader; equipped texture hierarchy and selected fire uniforms; NOT visually validated":
+            "Stoneskin cloth candidate: same-family two-sided shader; complete native coating uniforms; NOT visually validated":
             "Stoneskin cloth: legacy opaque coating retained; two-sided template missing or contract rejected");
     }
     if(transition.pending&&transition.world==c.world&&transition.actor.address==c.character&&Alive(transition.actor)){
