@@ -1,3 +1,9 @@
+## V1.168 préparée — TAA optionnel, chargeur inchangé, sans build
+
+Depuis main V1.167 validée : case TAA/netteté OFF par défaut, deux réglages globaux avec restauration native. Contrats EXE vérifiés hors jeu, 252 anciennes valeurs préservées. Aucun build/test C++ ni essai en jeu ; trois clés ajoutées au profil du dépôt seulement. Audit dxgi : proxy système + chargement ASI + Skip Logos précoce ; pas de dépendance privée obligatoire de l’ASI, cause de l’ancien échec Ultimate Loader non établie. [Périmètre, preuves et essais futurs](V1_168_TAA_LOADER_REVIEW.md).
+
+---
+
 ## Main V1.167 publié — recherche communautaire terminée, sans build
 
 Validation globale enregistrée, main `6795f47` publié avec le ZIP testé inchangé ; aucune exécution Actions déclenchée pour cette promotion. Étude sur debug : TAA/netteté et budget de textures sont des candidats optionnels ; DXVK exige d'abord un examen du chargeur, DX12 un backend compatible. Aucun nouveau correctif, réglage ou téléchargement de DLL appliqué. [Résultats, sources, compatibilité et suite](COMMUNITY_FIX_REVIEW_2026_11_13.md).

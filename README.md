@@ -1,3 +1,9 @@
+## V1.168 préparée — TAA optionnel, chargeur inchangé, sans build
+
+Depuis main V1.167 validée : case TAA/netteté OFF par défaut, deux réglages globaux avec restauration native. Contrats EXE vérifiés hors jeu, 252 anciennes valeurs préservées. Aucun build/test C++ ni essai en jeu ; trois clés ajoutées au profil du dépôt seulement. Audit dxgi : proxy système + chargement ASI + Skip Logos précoce ; pas de dépendance privée obligatoire de l’ASI, cause de l’ancien échec Ultimate Loader non établie. [Périmètre, preuves et essais futurs](docs/V1_168_TAA_LOADER_REVIEW.md).
+
+---
+
 ## V1.167 — validation globale, promotion main sans build
 
 L'utilisateur valide tout le lot le 13 novembre et demande sa publication sur main, sans compilation. Les réserves de test précédentes sont levées par cette validation globale ; les scénarios précis non décrits ne sont pas inventés. ZIP/sources V1.167 existants réutilisés à l'identique. Suite sur debug : recherche de correctifs communautaires, sans build pour l'instant. [Périmètre et promotion](docs/V1_167_MAIN_PROMOTION.md).

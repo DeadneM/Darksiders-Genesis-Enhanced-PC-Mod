@@ -41,6 +41,7 @@
 #include "HorseFeature.h"
 #include "CameraTraceFeature.h"
 #include "TpsCameraFocus.h"
+#include "TemporalAAFeature.h"
 
 #include "imgui.h"
 
@@ -1096,6 +1097,21 @@ void Draw(Context& c) {
                 ImGui::Unindent();
             }
 
+            if(layout::Group("Temporal anti-aliasing and sharpness")){
+                ImGui::Indent();
+                ImGui::BeginDisabled(!temporal_aa::Ready());
+                if(ImGui::Checkbox("Customize temporal AA",&config.temporalAA.enabled))config.Save();
+                HelpText("Global image settings, including cinematics. Uncheck to restore captured native values. Does not change depth of field or switch the game's anti-aliasing method.");
+                if(config.temporalAA.enabled){
+                    if(NumberRow("Current frame weight","TemporalAAWeight",&config.temporalAA.frameWeight,0.01f,1,0.08f,"%.3f","%.3f"))config.Save();
+                    HelpText("Higher values reduce trails but may increase shimmer. Test while moving the camera. This control only affects the game's TAA.");
+                    if(NumberRow("Sharpness","TemporalAASharpen",&config.temporalAA.sharpen,0,2,1,"%.2f","%.3f"))config.Save();
+                    HelpText("Zero adds no sharpening. High values can create bright outlines. Sharpening also applies when using other anti-aliasing methods.");
+                }
+                ImGui::EndDisabled();
+                ImGui::TextDisabled("%s | experimental",temporal_aa::Ready()?"Native parameters verified":"Parameters unavailable");
+                ImGui::Unindent();
+            }
             if(layout::Group("Depth of field")){
                 ImGui::Indent();
                 HelpText("Independent settings for each gameplay view and both local players. Cinematics keep their authored effect. Motion blur and fog are unchanged.");

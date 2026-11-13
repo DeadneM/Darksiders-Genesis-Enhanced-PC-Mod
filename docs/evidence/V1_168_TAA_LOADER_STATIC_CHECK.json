@@ -1,0 +1,101 @@
+{
+  "base": "V1.167 user validated / main 6795f47",
+  "status": "PREPARED ONLY; no compile, CI, install or process capture",
+  "exeSha256": "9F4702024DF5EEA1D51DF7745B0AD1EA95B97009982F73DDC1218C53DFF33D54",
+  "nativeContracts": [
+    {
+      "name": "weightRegister",
+      "rva": "0x18E3EF",
+      "length": 10,
+      "matches": true
+    },
+    {
+      "name": "sharpenRegister",
+      "rva": "0x18E6EA",
+      "length": 10,
+      "matches": true
+    },
+    {
+      "name": "weightSlot",
+      "rva": "0x18E417",
+      "length": 7,
+      "matches": true
+    },
+    {
+      "name": "sharpenSlot",
+      "rva": "0x18E712",
+      "length": 7,
+      "matches": true
+    },
+    {
+      "name": "flags",
+      "rva": "0x18E3D8",
+      "length": 8,
+      "matches": true
+    },
+    {
+      "name": "flags",
+      "rva": "0x18E6D8",
+      "length": 8,
+      "matches": true
+    },
+    {
+      "name": "weightRead",
+      "rva": "0xFBB488",
+      "length": 12,
+      "matches": true
+    },
+    {
+      "name": "sharpenRead",
+      "rva": "0xFB8474",
+      "length": 12,
+      "matches": true
+    },
+    {
+      "name": "r.TemporalAACurrentFrameWeight",
+      "rva": "0x2979810",
+      "length": 62,
+      "matches": true
+    },
+    {
+      "name": "r.Tonemapper.Sharpen",
+      "rva": "0x297cca0",
+      "length": 42,
+      "matches": true
+    }
+  ],
+  "weightSlot": "0x39CB138",
+  "sharpenSlot": "0x39CB168",
+  "nativeWeightDefault": 0.04,
+  "nativeSharpenDefault": 0,
+  "asi167ImportModules": [
+    "d3d11.dll",
+    "USER32.dll",
+    "IMM32.dll",
+    "bcrypt.dll",
+    "WINHTTP.dll",
+    "KERNEL32.dll",
+    "SHELL32.dll",
+    "D3DCOMPILER_47.dll"
+  ],
+  "asiHardImportsDGExports": false,
+  "asiInitializeASIExportPresent": false,
+  "loaderChanged": false,
+  "oldIniValuesPreserved": 252,
+  "newIniKeys": [
+    "Features.customizetemporalaa",
+    "Values.temporalaaframeweight",
+    "Values.tonemappersharpen"
+  ],
+  "buildStarted": false,
+  "cppTestsExecuted": false,
+  "secondPass": {
+    "registrationAndRenderSlotsIndependentlyDecoded": true,
+    "initializedBeforePresentHook": true,
+    "onePresentServiceAndShutdownRestore": true,
+    "noNewDetourOrCodePageWrite": true,
+    "disabledDefaultFastPath": true,
+    "existingProxyAndWorkflowsUntouched": true,
+    "cppTestsExecuted": false
+  }
+}

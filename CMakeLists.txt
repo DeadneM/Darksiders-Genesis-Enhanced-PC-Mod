@@ -11,6 +11,9 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(TemporalAASettingsTests tests/TemporalAASettingsTests.cpp)
+  target_include_directories(TemporalAASettingsTests PRIVATE src)
+  add_test(NAME TemporalAASettings COMMAND TemporalAASettingsTests)
   add_executable(RenderSafetyTests tests/RenderSafetyTests.cpp src/RuntimeSettings.cpp)
   target_include_directories(RenderSafetyTests PRIVATE tests/stubs src)
   target_compile_definitions(RenderSafetyTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
@@ -449,6 +452,7 @@ set_source_files_properties("${DG_UPDATER_RC}" PROPERTIES OBJECT_DEPENDS "${DG_H
 
 add_library(DarksidersGenesisMod SHARED
   src/RenderSafetyFeature.cpp
+  src/TemporalAAFeature.cpp
   src/NativeTpsFeature.cpp
   src/DashCombatFeature.cpp
   src/RangedStateFeature.cpp

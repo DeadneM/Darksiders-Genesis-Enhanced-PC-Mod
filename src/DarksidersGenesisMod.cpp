@@ -16,6 +16,7 @@
 #include "ChaosPoseFeature.h"
 #include "ConfigStore.h"
 #include "EngineIniFeature.h"
+#include "TemporalAAFeature.h"
 #include "GaugeChargeFeature.h"
 #include "ResourceGainFeature.h"
 #include "ManualGaugeFeature.h"
@@ -3849,6 +3850,7 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     if(!once.exchange(true))ReportStartupPhase(4,flags);
     ApplySkipIntroSetting(false);
     UpdateCameraDof();
+    dg::temporal_aa::Update(g_config.temporalAA);
     dg::render_safety::Report();
 
     ProcessInput();
@@ -4244,6 +4246,7 @@ void ShutdownMod() {
         scene.cinematicCandidateBegins,scene.cinematicMissingActorSamples,
         scene.cinematicFarViewSamples);
     RestoreCameraDof();
+    dg::temporal_aa::Restore();
     Log("TPS V0.69 totals: mouseInputNative=PASSTHROUGH rightStickReadsFiltered=%u whileFiring=%u",
         g_nativePadAimSuppressed.load(),g_nativePadAimSuppressedDuringFire.load());
 
@@ -4393,6 +4396,7 @@ DWORD WINAPI MainThread(LPVOID) {
 
     // The overlay remains available on an unknown executable so users receive
     // a useful compatibility diagnostic. Gameplay hooks are fail-closed.
+    dg::temporal_aa::Initialize(&FeatureLog,g_targetValidation.exact);
     if (!DiscoverAndHookD3D11()) {
         Log("Overlay hook setup FAILED. Mod stays fail-open; game should continue normally.");
         return 0;

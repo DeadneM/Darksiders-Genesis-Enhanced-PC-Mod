@@ -34,6 +34,8 @@ int main(int argc,char** argv){
     if(!DeleteFileW(path))return 1; // only this test's empty file, to exercise missing-INI generation
     dg::config::Store generated;generated.SetPath(path);
     check(generated.Load(),"missing INI generated from compiled defaults");
+    check(!generated.temporalAA.enabled&&generated.temporalAA.frameWeight==.08f&&generated.temporalAA.sharpen==1,
+        "TAA customization defaults OFF with editable trial values, preserving native output");
     check(generated.updaterAutoCheck,"approved defaults check the selected update channel at startup");
     check(generated.tps3DAimEnabled&&dg::runtime::Get().tps3DAimEnabled.load(),"missing option enables 3D aiming by default");
     check(generated.molochBossCrashFixEnabled&&dg::runtime::Get().molochBossCrashFixEnabled.load(),"captured subtitle crash guard defaults ON in store and runtime");
@@ -212,6 +214,17 @@ int main(int argc,char** argv){
     check(renamed.Load()&&renamed.airDashReworkEnabled&&dg::runtime::Get().airDashReworkEnabled.load(),"existing INI defaults the new air dash checkbox to ON");
     renamed.airDashReworkEnabled=false;
     check(renamed.SaveNow()&&renamed.Load()&&!renamed.airDashReworkEnabled&&!dg::runtime::Get().airDashReworkEnabled.load(),"air dash OFF persists and reaches gameplay");
+    WritePrivateProfileStringW(L"Features",L"CustomizeTemporalAA",L"1",path);
+    WritePrivateProfileStringW(L"Values",L"TemporalAAFrameWeight",L"nan",path);
+    WritePrivateProfileStringW(L"Values",L"TonemapperSharpen",L"99",path);
+    check(renamed.Load()&&renamed.temporalAA.enabled&&renamed.temporalAA.frameWeight==.08f&&renamed.temporalAA.sharpen==2,
+        "TAA reads reject NaN and bound sharpness");
+    renamed.temporalAA={true,.125f,.5f};
+    check(renamed.SaveNow()&&renamed.Load()&&renamed.temporalAA.enabled&&renamed.temporalAA.frameWeight==.125f&&renamed.temporalAA.sharpen==.5f,
+        "TAA customization round-trips without a runtime gameplay setting");
+    renamed.ResetDefaults(false);
+    check(!renamed.temporalAA.enabled&&renamed.temporalAA.frameWeight==.08f&&renamed.temporalAA.sharpen==1,
+        "factory defaults restore native TAA ownership");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,path);DeleteFileW(path);
     std::printf("User defaults: %zu keys checked, %u failures\n",keys,failed);return failed?1:0;
 }
