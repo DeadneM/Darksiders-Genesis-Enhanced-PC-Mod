@@ -1,0 +1,27 @@
+{
+  "protectionSettingsChanged": false,
+  "payload": {
+    "output": "Scan starting...\r\nScan finished.\r\nScanning C:\\Users\\deadn\\.codex\\.chatgpt-projects\\g-p-6ac1496f81ec8191b55c0e4db2eefebd\\audit-v131\\v310-verified found no threats.\r\n",
+    "exitCode": 0,
+    "result": "no threats"
+  },
+  "zip": {
+    "output": "Scan starting...\r\nScan finished.\r\nScanning C:\\Users\\deadn\\.codex\\.chatgpt-projects\\g-p-6ac1496f81ec8191b55c0e4db2eefebd\\work-debug\\downloads\\DarksidersGenesis_V1.167_NATIVE_MOLTEN_CLOTH_TEST.zip found no threats.\r\n",
+    "exitCode": 0,
+    "result": "no threats"
+  },
+  "defender": {
+    "AMProductVersion": "4.18.26100.4",
+    "AMEngineVersion": "1.1.26100.4",
+    "AntivirusSignatureVersion": "1.463.279.0",
+    "AntivirusSignatureLastUpdated": "2026-11-13T05:31:12+01:00",
+    "RealTimeProtectionEnabled": true,
+    "OnAccessProtectionEnabled": true,
+    "AntivirusEnabled": true
+  },
+  "after": {
+    "RealTimeProtectionEnabled": true,
+    "OnAccessProtectionEnabled": true,
+    "AntivirusEnabled": true
+  }
+}

@@ -1,3 +1,9 @@
+## V1.167 disponible sur debug — écharpe Molten de même famille
+
+**CONSTRUIT / CONTRÔLÉ : 84/84 suites Windows ; rendu EXPÉRIMENTAL.** Candidat Gold rejeté retiré : shader natif double face MM_Basic et copie complète du revêtement Molten, sans transfert partiel. Sans Molten, feu explicitement coupé. Corps/FX, synergie et sons validés conservés ; Contre-esquive encore non testée. 252 valeurs inchangées, main V1.164 intacte. [ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/700335bc5fa08bd4b579b512459dd738e9cfe77c/downloads/DarksidersGenesis_V1.167_NATIVE_MOLTEN_CLOTH_TEST.zip) · [Livraison, limites et essais](V1_167_DELIVERY_RECEIPT.md).
+
+---
+
 ## V1.167 préparée — correction de la régression écharpe Molten
 
 V1.166 : synergie et sabots VALIDÉS par l'utilisateur ; Contre-esquive encore NON TESTÉE ; écharpe sans feu REJETÉE. Candidat Gold retiré au profit d'un shader double face de la même famille que Molten, avec copie complète du revêtement natif. Nettoyage de la traduction partielle, séparation sans feu/avec Molten, corps et fonctions validées conservés. **PRÉPARÉ / EXPÉRIMENTAL, contrôles Windows à venir.** Main V1.164 et 252 valeurs inchangées. [Diagnostic, périmètre et tests](V1_167_REVIEW.md).
