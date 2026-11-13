@@ -1,3 +1,9 @@
+## V1.168 — construction debug demandée
+
+TAA/netteté optionnels, OFF par défaut, depuis V1.167 validée. Objectif : réglages globaux réversibles sans modifier la visée ni le chargeur. Réussite attendue : contrôles Windows, puis comparaison visuelle OFF/ON et retour natif par l’utilisateur. Installation autorisée avec sauvegarde et conservation de l’INI ; validation en jeu encore à faire. [Périmètre](docs/V1_168_TAA_LOADER_REVIEW.md).
+
+---
+
 ## V1.168 préparée — TAA optionnel, chargeur inchangé, sans build
 
 Depuis main V1.167 validée : case TAA/netteté OFF par défaut, deux réglages globaux avec restauration native. Contrats EXE vérifiés hors jeu, 252 anciennes valeurs préservées. Aucun build/test C++ ni essai en jeu ; trois clés ajoutées au profil du dépôt seulement. Audit dxgi : proxy système + chargement ASI + Skip Logos précoce ; pas de dépendance privée obligatoire de l’ASI, cause de l’ancien échec Ultimate Loader non établie. [Périmètre, preuves et essais futurs](docs/V1_168_TAA_LOADER_REVIEW.md).
