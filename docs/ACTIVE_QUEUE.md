@@ -1,3 +1,9 @@
+## Main V1.167 publié — recherche communautaire terminée, sans build
+
+Validation globale enregistrée, main `6795f47` publié avec le ZIP testé inchangé ; aucune exécution Actions déclenchée pour cette promotion. Étude sur debug : TAA/netteté et budget de textures sont des candidats optionnels ; DXVK exige d'abord un examen du chargeur, DX12 un backend compatible. Aucun nouveau correctif, réglage ou téléchargement de DLL appliqué. [Résultats, sources, compatibilité et suite](COMMUNITY_FIX_REVIEW_2026_11_13.md).
+
+---
+
 ## V1.167 — validation globale, promotion main sans build
 
 L'utilisateur valide tout le lot le 13 novembre et demande sa publication sur main, sans compilation. Les réserves de test précédentes sont levées par cette validation globale ; les scénarios précis non décrits ne sont pas inventés. ZIP/sources V1.167 existants réutilisés à l'identique. Suite sur debug : recherche de correctifs communautaires, sans build pour l'instant. [Périmètre et promotion](V1_167_MAIN_PROMOTION.md).

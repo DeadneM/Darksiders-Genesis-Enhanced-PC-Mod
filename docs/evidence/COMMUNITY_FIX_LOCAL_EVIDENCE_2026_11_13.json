@@ -1,0 +1,87 @@
+{
+  "scope": "read-only existing EXE/engine log/source; no process reads or config changes",
+  "exeSha256": "9F4702024DF5EEA1D51DF7745B0AD1EA95B97009982F73DDC1218C53DFF33D54",
+  "engineLogSha256": "3273df2df02d5657a1b6545f91d5d3ac1280944bdf1291f947babfb67d0d1016",
+  "cvarNamePresence": {
+    "r.TemporalAACurrentFrameWeight": {
+      "ascii": false,
+      "utf16": true
+    },
+    "r.Tonemapper.Sharpen": {
+      "ascii": false,
+      "utf16": true
+    },
+    "r.Streaming.PoolSize": {
+      "ascii": false,
+      "utf16": true
+    },
+    "r.Streaming.LimitPoolSizeToVRAM": {
+      "ascii": false,
+      "utf16": true
+    },
+    "r.ShaderPipelineCache.Enabled": {
+      "ascii": false,
+      "utf16": true
+    },
+    "r.ShaderPipelineCache.StartupMode": {
+      "ascii": false,
+      "utf16": true
+    },
+    "r.CreateShadersOnLoad": {
+      "ascii": false,
+      "utf16": true
+    },
+    "r.OneFrameThreadLag": {
+      "ascii": false,
+      "utf16": true
+    },
+    "r.GTSyncType": {
+      "ascii": false,
+      "utf16": true
+    },
+    "s.AsyncLoadingThreadEnabled": {
+      "ascii": false,
+      "utf16": true
+    },
+    "r.PSOPrecaching": {
+      "ascii": false,
+      "utf16": false
+    },
+    "r.Nanite": {
+      "ascii": false,
+      "utf16": false
+    }
+  },
+  "logFacts": [
+    "LogInit:  - supports SSL with OpenSSL/1.1.1",
+    "LogInit: Engine Version: 4.22.2-43953+++depot+MainlineBuildOnly",
+    "LogInit: Compatible Engine Version: 4.22.0-43953+++depot+MainlineBuildOnly",
+    "LogInit: OS: Windows 10 (Release 2009) (), CPU: AMD Ryzen 9 8945HS w/ Radeon 780M Graphics, GPU: Intel(R) Arc(TM) B580 Graphics",
+    "[2026.11.13-11.21.51:044][  0]LogConfig: Setting CVar [[r.Streaming.LimitPoolSizeToVRAM:0]]",
+    "[2026.11.13-11.21.51:044][  0]LogConfig: Setting CVar [[r.Streaming.PoolSize:1000]]",
+    "[2026.11.13-11.21.51:051][  0]LogConfig: Setting CVar [[r.Streaming.LimitPoolSizeToVRAM:0]]",
+    "[2026.11.13-11.21.51:051][  0]LogConfig: Setting CVar [[r.Streaming.PoolSize:1000]]",
+    "[2026.11.13-11.21.51:864][  0]LogD3D11RHI:    0. 'Intel(R) Arc(TM) B580 Graphics' (Feature Level 11_0)",
+    "[2026.11.13-11.21.51:986][  0]LogD3D11RHI: Chosen D3D11 Adapter: 0",
+    "[2026.11.13-11.21.51:999][  0]LogWindows:    0. 'Intel(R) Arc(TM) B580 Graphics' (P:1 D:1)",
+    "[2026.11.13-11.21.51:999][  0]LogWindows:    1. 'Intel(R) Arc(TM) B580 Graphics' (P:0 D:0)",
+    "[2026.11.13-11.21.52:000][  0]LogWindows:    2. 'Intel(R) Arc(TM) B580 Graphics' (P:0 D:0)",
+    "[2026.11.13-11.21.52:000][  0]LogWindows:    3. 'Intel(R) Arc(TM) B580 Graphics' (P:0 D:0)",
+    "[2026.11.13-11.21.52:001][  0]LogD3D11RHI:     Adapter Name: Intel(R) Arc(TM) B580 Graphics",
+    "[2026.11.13-11.21.58:329][  0]LogContentStreaming: Texture pool size now 1000 MB"
+  ],
+  "sourceCompatibility": {
+    "dxgi": "src/dxgi_proxy.cpp LoadRealDxgiOnce calls GetSystemDirectoryW then LoadLibraryW(systemDir+dxgi.dll)",
+    "overlay": "DarksidersGenesisMod.cpp InitializeOverlay queries ID3D11Device; D3D11 hooks and back-end only",
+    "shaderFilters": "src/ShaderAimFeature.cpp uses ID3D11Device and ID3D11DeviceContext"
+  },
+  "claimsNotMade": [
+    "Presence of a CVar name alone does not prove a performance gain",
+    "No DX12 or DXVK execution tested",
+    "1000 MB streaming pool is not evidence of an over-budget stall",
+    "Generic OpenSSL workaround not justified; local engine log uses OpenSSL/1.1.1 and launches successfully"
+  ],
+  "nativeHelpSummary": "Le poids TAA faible favorise flou et remanence ; un poids plus fort laisse davantage de scintillement. Aucune valeur imposee.",
+  "mainPromotion": "6795f478f2a43be490e0b69ed6f3dc71ebdcb95a",
+  "buildStarted": false
+}

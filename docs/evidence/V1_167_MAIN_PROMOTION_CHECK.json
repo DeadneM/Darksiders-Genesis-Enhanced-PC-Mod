@@ -1,0 +1,22 @@
+{
+  "validatedByUser": "all V1.167 on 2026-11-13",
+  "promotedCommit": "6795f478f2a43be490e0b69ed6f3dc71ebdcb95a",
+  "previousMain": "e0ac8a44a9fc79425218c452efab7128acecb56f",
+  "compiledSource": "df38da77fc8fe347c539567197e642584acba86b",
+  "fastForward": true,
+  "refsAtPromotionCheck": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/debug": "6795f478f2a43be490e0b69ed6f3dc71ebdcb95a",
+    "refs/heads/main": "6795f478f2a43be490e0b69ed6f3dc71ebdcb95a",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "zipSha256": "C2521B0FB13032C891AB2C260D7D97D78231969F522B9FA8B041039EFDDFB93E",
+  "oldArchiveTreesUnchanged": 232,
+  "compiledSourcesUnchanged": true,
+  "configurationUnchanged": true,
+  "workflowFilesUnchanged": true,
+  "actionsRunsForPromotionCommit": 0,
+  "buildStarted": false,
+  "releaseCreated": false,
+  "installationChanged": false
+}

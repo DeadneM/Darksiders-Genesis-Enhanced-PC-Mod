@@ -13,3 +13,7 @@ Branche archive `10e0f220b85022bc9269e0cb9390a811a3b1cf89`, tag v1.43 et toutes 
 Suite sur debug : recherche des correctifs communautaires applicables au jeu et à son moteur, avec sources et preuves locales. Aucun nouveau patch ou build autorisé implicitement par la recherche ; le report de build demandé reste actif.
 
 Après publication : vérifier les références distantes, l'identité du ZIP/sources et l'absence de nouvelle exécution Actions pour le commit promu. [Livraison existante](V1_167_DELIVERY_RECEIPT.md).
+
+## Résultat distant vérifié
+
+Main et debug publiés au commit `6795f478f2a43be490e0b69ed6f3dc71ebdcb95a` au contrôle de promotion. ZIP et sources compilées inchangés, 232 archives intactes ; requête GitHub Actions pour ce SHA : zéro exécution. Archive et tag v1.43 inchangés. La suite de recherche ajoute ensuite seulement des documents sur debug. [Preuve](evidence/V1_167_MAIN_PROMOTION_CHECK.json).
