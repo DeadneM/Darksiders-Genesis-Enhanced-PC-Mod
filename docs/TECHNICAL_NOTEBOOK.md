@@ -1,3 +1,9 @@
+## V1.167 — écharpe Stoneskin VALIDÉE
+
+Retour utilisateur du 13 novembre : correction réussie. Écharpe V1.167 retenue ; synergie et sons des chevaux V1.166 restent acquis. Base debug à préserver : V1.167. Contre-esquive encore à tester ; coop complète en dernier. Aucune nouvelle build, installation ou promotion main. [Validation et portée](V1_167_USER_VALIDATION.md).
+
+---
+
 ## V1.167 disponible sur debug — écharpe Molten de même famille
 
 **CONSTRUIT / CONTRÔLÉ : 84/84 suites Windows ; rendu EXPÉRIMENTAL.** Candidat Gold rejeté retiré : shader natif double face MM_Basic et copie complète du revêtement Molten, sans transfert partiel. Sans Molten, feu explicitement coupé. Corps/FX, synergie et sons validés conservés ; Contre-esquive encore non testée. 252 valeurs inchangées, main V1.164 intacte. [ZIP](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/700335bc5fa08bd4b579b512459dd738e9cfe77c/downloads/DarksidersGenesis_V1.167_NATIVE_MOLTEN_CLOTH_TEST.zip) · [Livraison, limites et essais](V1_167_DELIVERY_RECEIPT.md).
