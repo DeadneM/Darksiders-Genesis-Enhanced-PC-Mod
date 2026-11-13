@@ -1,3 +1,9 @@
+## V1.167 — validation globale, promotion main sans build
+
+L'utilisateur valide tout le lot le 13 novembre et demande sa publication sur main, sans compilation. Les réserves de test précédentes sont levées par cette validation globale ; les scénarios précis non décrits ne sont pas inventés. ZIP/sources V1.167 existants réutilisés à l'identique. Suite sur debug : recherche de correctifs communautaires, sans build pour l'instant. [Périmètre et promotion](V1_167_MAIN_PROMOTION.md).
+
+---
+
 ## V1.167 — écharpe Stoneskin VALIDÉE
 
 Retour utilisateur du 13 novembre : correction réussie. Écharpe V1.167 retenue ; synergie et sons des chevaux V1.166 restent acquis. Base debug à préserver : V1.167. Contre-esquive encore à tester ; coop complète en dernier. Aucune nouvelle build, installation ou promotion main. [Validation et portée](V1_167_USER_VALIDATION.md).
