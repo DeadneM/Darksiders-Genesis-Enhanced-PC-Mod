@@ -1,3 +1,9 @@
+## V1.168 installée — TAA optionnel à tester
+
+85/85 suites Windows, aucun avertissement/erreur C++ détecté. Deux binaires contrôlés et installés avec sauvegarde, INI personnel et raccourcis conservés. TAA/netteté OFF par défaut ; rendu EXPÉRIMENTAL, validation en jeu à faire. Main V1.167 et 232 anciennes archives intactes. [Livraison, ZIP et test](docs/V1_168_DELIVERY_RECEIPT.md).
+
+---
+
 ## V1.168 — construction debug demandée
 
 TAA/netteté optionnels, OFF par défaut, depuis V1.167 validée. Objectif : réglages globaux réversibles sans modifier la visée ni le chargeur. Réussite attendue : contrôles Windows, puis comparaison visuelle OFF/ON et retour natif par l’utilisateur. Installation autorisée avec sauvegarde et conservation de l’INI ; validation en jeu encore à faire. [Périmètre](docs/V1_168_TAA_LOADER_REVIEW.md).

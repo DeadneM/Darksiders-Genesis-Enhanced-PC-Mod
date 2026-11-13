@@ -1,3 +1,9 @@
+## V1.168 installée — TAA optionnel à tester
+
+85/85 suites Windows, aucun avertissement/erreur C++ détecté. Deux binaires contrôlés et installés avec sauvegarde, INI personnel et raccourcis conservés. TAA/netteté OFF par défaut ; rendu EXPÉRIMENTAL, validation en jeu à faire. Main V1.167 et 232 anciennes archives intactes. [Livraison, ZIP et test](V1_168_DELIVERY_RECEIPT.md).
+
+---
+
 ## V1.168 préparée — TAA optionnel, chargeur inchangé, sans build
 
 Depuis main V1.167 validée : case TAA/netteté OFF par défaut, deux réglages globaux avec restauration native. Contrats EXE vérifiés hors jeu, 252 anciennes valeurs préservées. Aucun build/test C++ ni essai en jeu ; trois clés ajoutées au profil du dépôt seulement. Audit dxgi : proxy système + chargement ASI + Skip Logos précoce ; pas de dépendance privée obligatoire de l’ASI, cause de l’ancien échec Ultimate Loader non établie. [Périmètre, preuves et essais futurs](V1_168_TAA_LOADER_REVIEW.md).

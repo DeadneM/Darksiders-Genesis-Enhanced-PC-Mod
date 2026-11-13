@@ -1,0 +1,31 @@
+{
+  "version": "V1.168",
+  "sourceCommit": "8db34a0d8cddd5cc4970a97fb3400e4605de694c",
+  "archiveCommit": "d54aadb682df5a2395338dc5e3bd17f55248aea2",
+  "name": "DarksidersGenesis_V1.168_OPTIONAL_TEMPORAL_AA_TEST.zip",
+  "size": 2485486,
+  "sha256": "7572BB6F2ADF9C7D9200578834CA3BDD9C3A3D244A8BA889C6AEC269653DFEB8",
+  "files": {
+    "dxgi.dll": "7380EB4C41950641444988A8E6D05F2B8EB9D6DE315271F240C713F27D1E911F",
+    "DarksidersGenesisMod.asi": "C91202685258B50A50AF0C2A3E3CBECA2360C157FFDC0ECAD4F55040438B4BD5"
+  },
+  "rootEntries": [
+    "dxgi.dll",
+    "DarksidersGenesisMod.asi"
+  ],
+  "amd64": true,
+  "crcValid": true,
+  "oldArchivesPreserved": 232,
+  "loaderTextIdenticalTo167": true,
+  "ciRun": 43456874935,
+  "testsPassed": 85,
+  "cppWarnings": 0,
+  "cppErrors": 0,
+  "gameplayValidated": false,
+  "installed": true,
+  "personalIniPreserved": true,
+  "protectedFilesUnchanged": true,
+  "paksUnchanged": true,
+  "defenderCandidateDetection": false,
+  "gameLaunched": false
+}
