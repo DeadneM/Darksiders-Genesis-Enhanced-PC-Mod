@@ -1,0 +1,17 @@
+{
+  "version": "V1.168",
+  "userValidated": true,
+  "tag": "v1.168",
+  "tagCommit": "582d7aa07063f3d5ca1f65a1d857273c206be83d",
+  "releaseUrl": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/releases/tag/v1.168",
+  "releaseId": 444443939,
+  "prerelease": false,
+  "assetUrl": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/releases/download/v1.168/Darksiders_Genesis_Enhanced_PC_Mod_v1.168.zip",
+  "assetSize": 2485486,
+  "assetSha256": "7572BB6F2ADF9C7D9200578834CA3BDD9C3A3D244A8BA889C6AEC269653DFEB8",
+  "assetDigest": "sha256:7572bb6f2adf9c7d9200578834ca3bdd9c3a3d244a8ba889c6aec269653dfeb8",
+  "sameTestedReleaseBuild": true,
+  "newBuildStarted": false,
+  "testsPassed": 85,
+  "mainCommitAtRelease": "582d7aa07063f3d5ca1f65a1d857273c206be83d"
+}

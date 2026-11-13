@@ -7,3 +7,7 @@ La build existante a déjà été compilée en configuration **Release x64** dan
 Archive du dépôt : `DarksidersGenesis_V1.168_OPTIONAL_TEMPORAL_AA_TEST.zip`, 2485486 octets, SHA256 `7572BB6F2ADF9C7D9200578834CA3BDD9C3A3D244A8BA889C6AEC269653DFEB8`. Le nom historique TEST est conservé pour ne pas modifier une archive numérotée ; son statut est maintenant VALIDÉ. L’asset de release porte un nom de distribution stable avec les mêmes octets. Deux fichiers à la racine : ASI et dxgi.dll ; aucun INI/README. Les 233 archives cumulatives, les raccourcis, l’INI personnel et la branche archive sont préservés. Le canal main de l’updater retrouve désormais V1.168.
 
 Release demandée : [v1.168](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/releases/tag/v1.168). La confirmation effective et les références distantes sont consignées dans la preuve de publication après vérification. Aucun lancement ni réinstallation du jeu nécessaire ; test futur uniquement en cas de nouveau changement.
+
+## Publication confirmée
+
+Release stable v1.168 publiée, tag sur `582d7aa07063f3d5ca1f65a1d857273c206be83d`. Asset vérifié côté GitHub : taille et SHA256 identiques au ZIP testé, aucune recompilation. [Téléchargement direct](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/releases/download/v1.168/Darksiders_Genesis_Enhanced_PC_Mod_v1.168.zip) · [Preuve de publication](evidence/V1_168_RELEASE_CHECK.json).
