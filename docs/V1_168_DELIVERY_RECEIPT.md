@@ -1,3 +1,5 @@
+**Mise à jour : V1.168 entièrement VALIDÉE par l’utilisateur ; promotion stable autorisée. Le statut expérimental ci-dessous décrit la livraison initiale.**
+
 # V1.168 — livraison et installation debug
 
 **CONSTRUIT / CONTRÔLÉ / INSTALLÉ ; TAA EXPÉRIMENTAL, non validé en jeu.** Base main V1.167 intégralement validée. Source `8db34a0d8cddd5cc4970a97fb3400e4605de694c`, archive `d54aadb682df5a2395338dc5e3bd17f55248aea2`. Main reste `6795f47` ; aucune promotion stable de ce candidat.

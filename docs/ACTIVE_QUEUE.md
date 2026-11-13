@@ -1,3 +1,9 @@
+## V1.168 — VALIDÉE, promotion main et release
+
+Validation globale de l’utilisateur enregistrée. Build Windows Release existante réutilisée à l’identique : 85/85 tests, TAA/netteté désormais validés en jeu. Publication stable sans recompilation ni remplacement des fichiers installés. [Périmètre et empreinte](V1_168_MAIN_RELEASE.md).
+
+---
+
 ## V1.168 installée — TAA optionnel à tester
 
 85/85 suites Windows, aucun avertissement/erreur C++ détecté. Deux binaires contrôlés et installés avec sauvegarde, INI personnel et raccourcis conservés. TAA/netteté OFF par défaut ; rendu EXPÉRIMENTAL, validation en jeu à faire. Main V1.167 et 232 anciennes archives intactes. [Livraison, ZIP et test](V1_168_DELIVERY_RECEIPT.md).
