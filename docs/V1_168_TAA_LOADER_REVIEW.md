@@ -43,3 +43,8 @@ Le binaire alternatif retrouvé était Ultimate ASI Loader 10.0.2 x64, GitHash `
 - Fixtures C++ préparées : valeurs invalides, copies jeu/rendu, restauration, changement externe, remplacement d'allocation, concurrence d'échange et persistance INI. **Non compilées et non exécutées**, conformément à l'absence de build ; aucun succès C++ ou en jeu annoncé.
 - Critère du futur build : comparer OFF/ON dans la même scène en mouvement puis immobile, en vue native et TPS ; inspecter cheveux, écharpe, flammes, contours et HUD. Vérifier plusieurs réglages, puis OFF et retour exact au comportement capturé. Tester un chargement et une cinématique. Aucun gain de FPS promis.
 - Retour : décocher la personnalisation ; si le candidat ne convient pas, revenir aux deux binaires V1.167 validés. Aucune édition de configuration du moteur nécessaire.
+
+
+## Relecture ciblée — diagnostic du chargeur
+
+Contrats TAA et anciennes valeurs revérifiés sans compilation. Le journal ne prétend plus que le chemin de chargement passe obligatoirement par notre proxy : son texte décrit le worker autonome de l’ASI et ses services de chargeur facultatifs. Changement de diagnostic uniquement, aucun comportement de chargement modifié. L’ancien échec Ultimate Loader n’a pas de preuve causale supplémentaire dans les éléments conservés ; pas de nouvel hook ni de faux initialiseur. TAA toujours PRÉPARÉ, tests C++ et en jeu non exécutés ; attente de build maintenue. Les prochaines vérifications pourront réutiliser le reçu natif et cibler uniquement les différences.

@@ -6639,3 +6639,8 @@ SHA256: DBE658AC84009ADA84D6A42701AD96F3706A0A6CA5522D732D210E244756548B.
 main 2bc3122c1ae07b7333798462f85c1d9fd3a739f7 and archive 10e0f220b85022bc9269e0cb9390a811a3b1cf89 unchanged after build.
 README bundled with build describes pre-CI status; this verified delivery entry supersedes that pending-build status.
 No fresh runtime tests; Wrath/Ultimate multipliers and Skip Warnings remain unresolved as documented.
+
+
+## Relecture ciblée — diagnostic du chargeur
+
+Contrats TAA et anciennes valeurs revérifiés sans compilation. Le journal ne prétend plus que le chemin de chargement passe obligatoirement par notre proxy : son texte décrit le worker autonome de l’ASI et ses services de chargeur facultatifs. Changement de diagnostic uniquement, aucun comportement de chargement modifié. L’ancien échec Ultimate Loader n’a pas de preuve causale supplémentaire dans les éléments conservés ; pas de nouvel hook ni de faux initialiseur. TAA toujours PRÉPARÉ, tests C++ et en jeu non exécutés ; attente de build maintenue. Les prochaines vérifications pourront réutiliser le reçu natif et cibler uniquement les différences.

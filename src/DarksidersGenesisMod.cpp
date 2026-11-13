@@ -4339,7 +4339,7 @@ DWORD WINAPI MainThread(LPVOID) {
     ResetLogFile();
     Log("============================================================");
     Log("Darksiders Genesis Enhanced ASI %s starting", kBuild);
-    Log("Architecture: DXGI proxy -> ASI -> D3D11 Present/ResizeBuffers -> Dear ImGui");
+    Log("Architecture: autonomous ASI worker -> D3D11 Present/ResizeBuffers -> Dear ImGui (loader services optional)");
     ReportStartupPhase(1,0);
 
     std::atexit(&ShutdownMod);
