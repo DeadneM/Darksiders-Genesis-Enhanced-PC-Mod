@@ -6661,3 +6661,8 @@ Contrats TAA et anciennes valeurs revérifiés sans compilation. Le journal ne p
 ## Reprise du 18 novembre — streaming natif et état compact
 
 V1.168 reste validée. Référence SourceControlHelpers confirmée dans SoulBarrier_Orb_Blueprint du PAK d’origine ; erreur unique au chargement Level_00, aucun temps de saccade mesuré. Aucun patch moteur ou d’asset. Les anciens ACTIVE_QUEUE/CURRENT_STATE sont archivés byte pour byte ; fichiers courants remplacés par un état et une file courts. [Constats et suite](NATIVE_STREAMING_REVIEW_2026_11_18.md). Aucun changement source/gameplay/build.
+
+
+## V1.169 — options d’image, diagnostic SoulBarrier et arbre des cœurs
+
+Deux filtres natifs facultatifs préparés avec contrats EXE vérifiés, réutilisation du service float, sans nouveau hook ; 255 anciennes valeurs inchangées. SoulBarrier est un orbe destructible et appelle réellement SourceControl.IsEnabled ; aucun patch d’asset. Nouveau bug visuel de niveaux des cœurs dans l’arbre laissé ouvert avant observation. Construction beta et tests demandés. [Périmètre](V1_169_REVIEW.md).

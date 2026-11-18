@@ -36,6 +36,8 @@ int main(int argc,char** argv){
     check(generated.Load(),"missing INI generated from compiled defaults");
     check(!generated.temporalAA.enabled&&generated.temporalAA.frameWeight==.08f&&generated.temporalAA.sharpen==1,
         "TAA customization defaults OFF with editable trial values, preserving native output");
+    check(!generated.temporalAA.disableMotionBlur&&!generated.temporalAA.disableColorFringe,
+        "new image filters default OFF in existing and generated configurations");
     check(generated.updaterAutoCheck,"approved defaults check the selected update channel at startup");
     check(generated.tps3DAimEnabled&&dg::runtime::Get().tps3DAimEnabled.load(),"missing option enables 3D aiming by default");
     check(generated.molochBossCrashFixEnabled&&dg::runtime::Get().molochBossCrashFixEnabled.load(),"captured subtitle crash guard defaults ON in store and runtime");
@@ -225,6 +227,14 @@ int main(int argc,char** argv){
     renamed.ResetDefaults(false);
     check(!renamed.temporalAA.enabled&&renamed.temporalAA.frameWeight==.08f&&renamed.temporalAA.sharpen==1,
         "factory defaults restore native TAA ownership");
+    renamed.temporalAA.disableMotionBlur=true;renamed.temporalAA.disableColorFringe=true;
+    check(renamed.SaveNow()&&renamed.Load()&&renamed.temporalAA.disableMotionBlur&&renamed.temporalAA.disableColorFringe&&!renamed.temporalAA.enabled,
+        "image filter toggles persist without enabling TAA customization");
+    renamed.temporalAA.disableMotionBlur=false;
+    check(renamed.SaveNow()&&renamed.Load()&&!renamed.temporalAA.disableMotionBlur&&renamed.temporalAA.disableColorFringe,
+        "image filters remain independently configurable");
+    renamed.ResetDefaults(false);
+    check(!renamed.temporalAA.disableMotionBlur&&!renamed.temporalAA.disableColorFringe,"factory reset returns image effects to native");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,path);DeleteFileW(path);
     std::printf("User defaults: %zu keys checked, %u failures\n",keys,failed);return failed?1:0;
 }

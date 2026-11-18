@@ -686,3 +686,8 @@ V1.117 delivered: 65/65 GitHub suites, package/updater/Defender controlled; game
 - Arena HUD disappearance: no longer reproducible in later user tests; monitor logs, no forced HUD restore.
 
 Preserve: accepted pistol OFF arms/holsters/blade effects, execution camera, horse jump/audio, War arm, cursor, Leviathan/Stinger, skins, gauges/ammo/hotkeys, blur controls and updater. Never treat older experimental feedback as blanket validation.
+
+
+## V1.169 — options d’image, diagnostic SoulBarrier et arbre des cœurs
+
+Deux filtres natifs facultatifs préparés avec contrats EXE vérifiés, réutilisation du service float, sans nouveau hook ; 255 anciennes valeurs inchangées. SoulBarrier est un orbe destructible et appelle réellement SourceControl.IsEnabled ; aucun patch d’asset. Nouveau bug visuel de niveaux des cœurs dans l’arbre laissé ouvert avant observation. Construction beta et tests demandés. [Périmètre](V1_169_REVIEW.md).

@@ -23,6 +23,9 @@ struct Access {
 void Run(){
     const Settings defaults;
     Check(!defaults.enabled,"existing installations retain native TAA by default");
+    Check(!defaults.disableMotionBlur&&!defaults.disableColorFringe,"native image effects retained by default");
+    const auto filters=Normalize({false,.08f,1,true,true});
+    Check(!filters.enabled&&filters.disableMotionBlur&&filters.disableColorFringe,"image filters independent of TAA customization");
     auto settings=Normalize({true,std::numeric_limits<float>::quiet_NaN(),9});
     Check(settings.enabled&&settings.frameWeight==.08f&&settings.sharpen==2,"invalid settings bounded without NaN");
     settings=Normalize({false,-1,-9});
@@ -49,6 +52,11 @@ void Run(){
     Check(racing.Value(0)==.2f,"failed compare-exchange never claims ownership");
     Access corrupt;corrupt.words.fill(std::bit_cast<int32_t>(std::numeric_limits<float>::infinity()));
     state.Update(corrupt,true,.08f,0,1);Check(corrupt.writes==0,"invalid native data never overwritten");
+    ShadowOverride filter;Access nativeEffects;nativeEffects.words.fill(std::bit_cast<int32_t>(-1.0f));
+    filter.Update(nativeEffects,true,0,-2,10);
+    Check(nativeEffects.Value(0)==0&&nativeEffects.Value(1)==0,"image filter suppresses game/render native amount");
+    filter.Update(nativeEffects,false,0,-2,10);
+    Check(nativeEffects.Value(0)==-1&&nativeEffects.Value(1)==-1,"native negative no-override sentinel restored exactly");
 }
 }
 int main(){try{Run();std::cout<<"Temporal AA ownership/settings checks passed\n";return 0;}

@@ -687,7 +687,9 @@ bool Store::Load() {
     temporalAA=temporal_aa::Normalize({
         ReadBool(L"Features",L"CustomizeTemporalAA",false,path_),
         ReadFloat(L"Values",L"TemporalAAFrameWeight",0.08f,path_),
-        ReadFloat(L"Values",L"TonemapperSharpen",1.0f,path_)});
+        ReadFloat(L"Values",L"TonemapperSharpen",1.0f,path_),
+        ReadBool(L"Features",L"DisableMotionBlur",false,path_),
+        ReadBool(L"Features",L"DisableColorFringe",false,path_)});
     const bool oldOrbit=ReadBool(L"Features",L"CameraControllerOrbit",true,path_);
     tpsCameraStickMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(
         L"Features",L"TPSCameraStickMode",oldOrbit?2:0,path_.c_str())),0,2);
@@ -1243,6 +1245,8 @@ bool Store::SaveNow() {
     WriteBool(L"Features",L"CustomizeTemporalAA",normalizedAA.enabled,path_);
     WriteFloat(L"Values",L"TemporalAAFrameWeight",normalizedAA.frameWeight,path_);
     WriteFloat(L"Values",L"TonemapperSharpen",normalizedAA.sharpen,path_);
+    WriteBool(L"Features",L"DisableMotionBlur",normalizedAA.disableMotionBlur,path_);
+    WriteBool(L"Features",L"DisableColorFringe",normalizedAA.disableColorFringe,path_);
     WriteProfileString(L"Features",L"TPSFollowPlayer",nullptr,path_.c_str());
     // Remove obsolete TPS switches from existing user INIs once migrated.
     for(const wchar_t* key : { L"TPSFixedCenterReticle",L"TPSLockZoneCamera",

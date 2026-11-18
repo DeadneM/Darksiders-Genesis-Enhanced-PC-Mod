@@ -1,3 +1,9 @@
+## V1.169 — beta d’options d’image en construction
+
+Depuis V1.168 validée : deux cases indépendantes et OFF par défaut pour retirer le flou de mouvement et les franges colorées. Aucune modification des anciens réglages, de l’arbre des cœurs ou de SoulBarrier ; ces deux recherches restent ouvertes. [Périmètre, limites et tests](docs/V1_169_REVIEW.md).
+
+---
+
 ## V1.168 — VALIDÉE, promotion main et release
 
 Validation globale de l’utilisateur enregistrée. Build Windows Release existante réutilisée à l’identique : 85/85 tests, TAA/netteté désormais validés en jeu. Publication stable sans recompilation ni remplacement des fichiers installés. [Périmètre et empreinte](docs/V1_168_MAIN_RELEASE.md).

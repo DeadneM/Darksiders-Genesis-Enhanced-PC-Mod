@@ -1109,7 +1109,18 @@ void Draw(Context& c) {
                     HelpText("Zero adds no sharpening. High values can create bright outlines. Sharpening also applies when using other anti-aliasing methods.");
                 }
                 ImGui::EndDisabled();
-                ImGui::TextDisabled("%s | experimental",temporal_aa::Ready()?"Native parameters verified":"Parameters unavailable");
+                ImGui::TextDisabled("%s",temporal_aa::Ready()?"Native parameters verified":"Parameters unavailable");
+                ImGui::Unindent();
+            }
+            if(layout::Group("Image effects")){
+                ImGui::Indent();
+                ImGui::BeginDisabled(!temporal_aa::Ready());
+                if(ImGui::Checkbox("Disable motion blur",&config.temporalAA.disableMotionBlur))config.Save();
+                HelpText("Removes movement smearing. Uncheck to restore the captured native amount. Does not change depth-of-field blur.");
+                if(ImGui::Checkbox("Disable chromatic aberration",&config.temporalAA.disableColorFringe))config.Save();
+                HelpText("Removes colored fringes near image edges. Uncheck to restore the captured native limit. Some scenes have no visible fringe.");
+                ImGui::EndDisabled();
+                HelpText("Both filters default OFF and work independently of TAA. Global settings, including cinematics and both local views.");
                 ImGui::Unindent();
             }
             if(layout::Group("Depth of field")){

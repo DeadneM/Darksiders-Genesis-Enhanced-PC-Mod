@@ -8,6 +8,7 @@ namespace dg::temporal_aa {
 struct Settings {
     bool enabled=false;
     float frameWeight=0.08f,sharpen=1.0f;
+    bool disableMotionBlur=false,disableColorFringe=false;
 };
 inline Settings Normalize(Settings value){
     value.frameWeight=std::isfinite(value.frameWeight)?std::clamp(value.frameWeight,0.01f,1.0f):0.08f;

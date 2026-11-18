@@ -1,18 +1,7 @@
-# État courant — V1.168
+# État courant — V1.169 beta en préparation
 
-- **VALIDÉE intégralement par l’utilisateur**, build Release x64, 85/85 contrôles Windows.
-- Main et debug vérifiés au départ : `3e731bd18198d214dee567bb682c9f7067990841` ; tag v1.168 : `582d7aa07063f3d5ca1f65a1d857273c206be83d`.
-- [Release stable](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/releases/tag/v1.168). ZIP publié identique à celui installé/testé : SHA256 `7572BB6F2ADF9C7D9200578834CA3BDD9C3A3D244A8BA889C6AEC269653DFEB8`.
-- ASI + dxgi.dll à la racine, aucun INI/README dans le ZIP. 255 valeurs de référence, 55 actions Hotkeys. INI personnel et installation conservés.
-- TAA et netteté optionnels validés, OFF par défaut. Fonctions antérieures conservées ; aucune exclusivité de chargeur ASI démontrée.
+Stable : V1.168 entièrement validée sur main et release v1.168, à conserver. Construction GitHub demandée pour V1.169 : filtres facultatifs de flou de mouvement et franges colorées, tous deux OFF. Contrats EXE contrôlés hors jeu, 255 anciennes valeurs et 55 Hotkeys conservées ; deux clés ajoutées. Aucun changement de PAK, chargeur ou installation personnelle.
 
-## Reprise du 18 novembre
+Les recherches SourceControl/SoulBarrier et niveaux des cœurs restent ouvertes et distinctes. La dépendance SourceControl est réellement appelée par le Blueprint, pas retirée. Le défaut de niveaux nécessite une observation du menu cassé puis rétabli. [Périmètre et tests](V1_169_REVIEW.md) · [File active](ACTIVE_QUEUE.md) · [Base stable](V1_168_MAIN_RELEASE.md).
 
-Recherche hors jeu uniquement. Une dépendance SourceControl absente est demandée au chargement Level_00 par un Blueprint natif ; la référence existe dans le PAK d’origine. Aucun coût précis mesuré et aucun patch appliqué. Pool final de textures toujours 1000 Mo, pas de dépassement signalé dans le journal examiné. [Diagnostic et preuves](NATIVE_STREAMING_REVIEW_2026_11_18.md).
-
-La file et l’état courant sont désormais courts. Leurs anciens contenus sont conservés byte pour byte dans les historiques liés ci-dessous. Aucun code, binaire, réglage ou fichier personnel modifié, aucune nouvelle build/install/capture du jeu.
-
-- [Prochaines étapes](ACTIVE_QUEUE.md)
-- [Livraison V1.168](V1_168_DELIVERY_RECEIPT.md) · [Publication stable](V1_168_MAIN_RELEASE.md)
-- [Ancien état complet](history/CURRENT_STATE_THROUGH_V1_168_2026_11_18.md)
-- [Ancienne file complète](history/ACTIVE_QUEUE_THROUGH_V1_168_2026_11_18.md)
+Tests C++/build en cours ; aucun succès en jeu annoncé pour les deux nouvelles options.
