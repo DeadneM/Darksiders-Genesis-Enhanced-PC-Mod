@@ -6656,3 +6656,8 @@ No fresh runtime tests; Wrath/Ultimate multipliers and Skip Warnings remain unre
 ## Relecture ciblée — diagnostic du chargeur
 
 Contrats TAA et anciennes valeurs revérifiés sans compilation. Le journal ne prétend plus que le chemin de chargement passe obligatoirement par notre proxy : son texte décrit le worker autonome de l’ASI et ses services de chargeur facultatifs. Changement de diagnostic uniquement, aucun comportement de chargement modifié. L’ancien échec Ultimate Loader n’a pas de preuve causale supplémentaire dans les éléments conservés ; pas de nouvel hook ni de faux initialiseur. TAA toujours PRÉPARÉ, tests C++ et en jeu non exécutés ; attente de build maintenue. Les prochaines vérifications pourront réutiliser le reçu natif et cibler uniquement les différences.
+
+
+## Reprise du 18 novembre — streaming natif et état compact
+
+V1.168 reste validée. Référence SourceControlHelpers confirmée dans SoulBarrier_Orb_Blueprint du PAK d’origine ; erreur unique au chargement Level_00, aucun temps de saccade mesuré. Aucun patch moteur ou d’asset. Les anciens ACTIVE_QUEUE/CURRENT_STATE sont archivés byte pour byte ; fichiers courants remplacés par un état et une file courts. [Constats et suite](NATIVE_STREAMING_REVIEW_2026_11_18.md). Aucun changement source/gameplay/build.
