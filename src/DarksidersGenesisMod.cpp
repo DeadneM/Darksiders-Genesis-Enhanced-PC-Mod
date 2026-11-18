@@ -17,6 +17,7 @@
 #include "ConfigStore.h"
 #include "EngineIniFeature.h"
 #include "TemporalAAFeature.h"
+#include "CoreUiLevelFeature.h"
 #include "GaugeChargeFeature.h"
 #include "ResourceGainFeature.h"
 #include "ManualGaugeFeature.h"
@@ -1791,12 +1792,14 @@ bool InstallNativeTPSRotationHook() {
 // event cannot leave the observer dereferencing a freed/reused widget.
 void HookAimUiEventDispatch(void* object,void* function,void* parameters,void* outParameters){
     const auto identity=dg::native_tps::CaptureUiEvent(object);
+    const auto coreWidget=dg::core_ui::CaptureTick(object,function);
     dg::player_abilities::ObserveFinish(object,function);
     unsigned char finishCause=0;
     void* forwarded=dg::air_dash::FinishParameters(object,function,parameters,finishCause)?&finishCause:parameters;
     if(g_originalAimUiEventDispatch)
         g_originalAimUiEventDispatch(object,function,forwarded,outParameters);
     dg::native_tps::ObserveUiEvent(identity);
+    dg::core_ui::AfterTick(coreWidget,g_originalAimUiEventDispatch);
 }
 void InstallAimUiEventProbe(){
     if(!g_targetValidation.exact)return;
@@ -4431,6 +4434,7 @@ DWORD WINAPI MainThread(LPVOID) {
     }
     // Passive UI observation only; no native ground-target visibility detour.
     InstallAimUiEventProbe();
+    dg::core_ui::Initialize(&FeatureLog,g_targetValidation.exact,g_originalAimUiEventDispatch!=nullptr);
     if (!InstallNativeTPSRotationHook()) {
         Log("TPS V0.75 native look hooks unavailable; vanilla look path untouched.");
     }

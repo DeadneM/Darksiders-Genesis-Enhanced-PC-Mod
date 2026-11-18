@@ -6666,3 +6666,8 @@ V1.168 reste validée. Référence SourceControlHelpers confirmée dans SoulBarr
 ## V1.169 — options d’image, diagnostic SoulBarrier et arbre des cœurs
 
 Deux filtres natifs facultatifs préparés avec contrats EXE vérifiés, réutilisation du service float, sans nouveau hook ; 255 anciennes valeurs inchangées. SoulBarrier est un orbe destructible et appelle réellement SourceControl.IsEnabled ; aucun patch d’asset. Nouveau bug visuel de niveaux des cœurs dans l’arbre laissé ouvert avant observation. Construction beta et tests demandés. [Périmètre](V1_169_REVIEW.md).
+
+
+## V1.170 — indicateurs des cœurs, preuve et correctif ciblé
+
+Deux captures hôte du même processus V1.168 : 205 widgets, aucune erreur ; 30 nœuds mineurs gardent leurs niveaux mais récupèrent leurs indicateurs après réouverture. Contrats de classe/package et RefreshNodes sans paramètres vérifiés. Candidat : un rafraîchissement natif après deux ticks complets de la page, identités faibles, pas de nouveau hook ni visibilité forcée. Désactivable ; effets d’image V1.169 cumulés. [Détails et tests](V1_170_REVIEW.md). Les journaux lus hors du contexte hôte étaient ceux du 16 novembre ; la capture et la version réellement chargée du 18 novembre ont été vérifiées via lecture hôte autorisée. Aucun fichier du jeu ni sauvegarde modifié par le lecteur externe.

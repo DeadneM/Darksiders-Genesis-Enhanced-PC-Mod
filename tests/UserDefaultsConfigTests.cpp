@@ -34,6 +34,7 @@ int main(int argc,char** argv){
     if(!DeleteFileW(path))return 1; // only this test's empty file, to exercise missing-INI generation
     dg::config::Store generated;generated.SetPath(path);
     check(generated.Load(),"missing INI generated from compiled defaults");
+    check(generated.coreLevelDisplayFixEnabled&&dg::runtime::Get().coreLevelDisplayFixEnabled.load(),"core UI repair defaults ON in store and runtime");
     check(!generated.temporalAA.enabled&&generated.temporalAA.frameWeight==.08f&&generated.temporalAA.sharpen==1,
         "TAA customization defaults OFF with editable trial values, preserving native output");
     check(!generated.temporalAA.disableMotionBlur&&!generated.temporalAA.disableColorFringe,
@@ -235,6 +236,8 @@ int main(int argc,char** argv){
         "image filters remain independently configurable");
     renamed.ResetDefaults(false);
     check(!renamed.temporalAA.disableMotionBlur&&!renamed.temporalAA.disableColorFringe,"factory reset returns image effects to native");
+    renamed.coreLevelDisplayFixEnabled=false;
+    check(renamed.SaveNow()&&renamed.Load()&&!renamed.coreLevelDisplayFixEnabled&&!dg::runtime::Get().coreLevelDisplayFixEnabled.load(),"core UI repair OFF persists and reaches runtime");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,path);DeleteFileW(path);
     std::printf("User defaults: %zu keys checked, %u failures\n",keys,failed);return failed?1:0;
 }

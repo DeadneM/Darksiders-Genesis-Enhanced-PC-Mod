@@ -42,6 +42,7 @@
 #include "CameraTraceFeature.h"
 #include "TpsCameraFocus.h"
 #include "TemporalAAFeature.h"
+#include "CoreUiLevelFeature.h"
 
 #include "imgui.h"
 
@@ -755,6 +756,8 @@ void Draw(Context& c) {
             if(ImGui::Checkbox("Moloch Boss Crash Fix",&config.molochBossCrashFixEnabled))config.Save();
             ImGui::EndDisabled();
             HelpText("Prevents the known subtitle crash at the Moloch cutscene transition. Applies immediately.");
+            DrawToggleFeature(config,"Creature core level display fix","CoreLevelDisplayFix",&config.coreLevelDisplayFixEnabled,
+                "Refreshes the core tree once after its first display so level indicators appear. Does not change core levels or equipment. Reopen the page to test after enabling.",core_ui::Ready());
             ImGui::TextDisabled("%s | prevented invalid clears: %llu",render_safety::Ready()?"Ready":"Unavailable",
                 static_cast<unsigned long long>(render_safety::AvoidedClears()));
             ImGui::Spacing();

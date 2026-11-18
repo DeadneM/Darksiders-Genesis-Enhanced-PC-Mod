@@ -1,3 +1,9 @@
+## V1.170 — beta cumulative en construction
+
+Arbre des cœurs : rafraîchissement natif unique après affichage initial, fondé sur deux captures comparées ; ON par défaut, encore EXPÉRIMENTAL. Inclut les deux filtres d’image OFF par défaut de V1.169. Base stable V1.168 conservée. [Périmètre, preuves et tests](docs/V1_170_REVIEW.md).
+
+---
+
 ## V1.169 — beta d’options d’image en construction
 
 Depuis V1.168 validée : deux cases indépendantes et OFF par défaut pour retirer le flou de mouvement et les franges colorées. Aucune modification des anciens réglages, de l’arbre des cœurs ou de SoulBarrier ; ces deux recherches restent ouvertes. [Périmètre, limites et tests](docs/V1_169_REVIEW.md).

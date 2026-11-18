@@ -1,7 +1,9 @@
-# État courant — V1.169 beta en préparation
+# État courant — V1.170 beta en préparation
 
-Stable : V1.168 entièrement validée sur main et release v1.168, à conserver. Construction GitHub demandée pour V1.169 : filtres facultatifs de flou de mouvement et franges colorées, tous deux OFF. Contrats EXE contrôlés hors jeu, 255 anciennes valeurs et 55 Hotkeys conservées ; deux clés ajoutées. Aucun changement de PAK, chargeur ou installation personnelle.
+Stable : V1.168 validée, main/release inchangées. V1.169 intermédiaire construite, 85/85 contrôles et deux filtres d’image OFF, archive conservée. La comparaison live des niveaux de cœurs a permis d’ajouter un correctif au lot cumulatif V1.170.
 
-Les recherches SourceControl/SoulBarrier et niveaux des cœurs restent ouvertes et distinctes. La dépendance SourceControl est réellement appelée par le Blueprint, pas retirée. Le défaut de niveaux nécessite une observation du menu cassé puis rétabli. [Périmètre et tests](V1_169_REVIEW.md) · [File active](ACTIVE_QUEUE.md) · [Base stable](V1_168_MAIN_RELEASE.md).
+Nouveautés à tester : rafraîchissement natif unique de l’arbre après deux ticks (ON, désactivable), filtres de flou de mouvement/franges colorées (OFF). 258 clés de référence, 55 Hotkeys, toutes les 255 valeurs V1.168 conservées. Aucune installation ou modification d’INI personnel dans ce travail. [Périmètre et tests](V1_170_REVIEW.md).
 
-Tests C++/build en cours ; aucun succès en jeu annoncé pour les deux nouvelles options.
+Diagnostic vérifié : 205 widgets comparés sans erreur, niveaux des nœuds stables mais 30 ensembles d’indicateurs auparavant cachés. Deux lectures externes sans appel ni écriture ; contrat de RefreshNodes = 0 paramètre vérifié. Correctif encore EXPÉRIMENTAL, pas de réussite en jeu annoncée avant retour.
+
+SourceControl/SoulBarrier reste en recherche ; aucun patch de PAK ni gain FPS annoncé. [File](ACTIVE_QUEUE.md) · [Base stable](V1_168_MAIN_RELEASE.md).

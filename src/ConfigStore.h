@@ -310,6 +310,7 @@ public:
     bool thirdPersonFovEnabled = true;
     bool tpsLensFocusEnabled = true;
     bool molochBossCrashFixEnabled = true;
+    bool coreLevelDisplayFixEnabled = true;
     camera_blur::Profile nativeBlur=camera_blur::NativeDefaults,tpsBlur=camera_blur::TpsDefaults;
     temporal_aa::Settings temporalAA{};
     bool cameraOrbitInputEnabled = true; // derived: controller-only TPS camera

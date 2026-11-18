@@ -350,6 +350,7 @@ void Store::ResetDefaults(bool persist) {
     thirdPersonFovEnabled = true;
     tpsLensFocusEnabled = true;
     molochBossCrashFixEnabled = true;
+    coreLevelDisplayFixEnabled = true;
     nativeBlur=camera_blur::NativeDefaults;tpsBlur=camera_blur::TpsDefaults;
     temporalAA={};
     cameraOrbitInputEnabled = true;
@@ -684,6 +685,7 @@ bool Store::Load() {
     tpsBlur.custom=ReadBool(L"Features",L"TPSCustomDOF",camera_blur::TpsDefaults.custom,path_);
     tpsBlur.distanceMeters=std::clamp(ReadFloat(L"Values",L"TPSDOFDistanceMeters",camera_blur::TpsDefaults.distanceMeters,path_),0.0f,camera_blur::MaxDistanceMeters);
     tpsBlur.amount=std::clamp(ReadFloat(L"Values",L"TPSDOFAmount",camera_blur::TpsDefaults.amount,path_),0.0f,5.0f);
+    coreLevelDisplayFixEnabled=ReadBool(L"Features",L"CoreLevelDisplayFix",true,path_);
     temporalAA=temporal_aa::Normalize({
         ReadBool(L"Features",L"CustomizeTemporalAA",false,path_),
         ReadFloat(L"Values",L"TemporalAAFrameWeight",0.08f,path_),
@@ -1011,6 +1013,7 @@ void Store::PublishRuntime() const {
     runtime.thirdPersonFovEnabled = thirdPersonFovEnabled;
     runtime.tpsLensFocusEnabled = tpsLensFocusEnabled;
     runtime.molochBossCrashFixEnabled = molochBossCrashFixEnabled;
+    runtime.coreLevelDisplayFixEnabled = coreLevelDisplayFixEnabled;
     runtime.nativeBlur = nativeBlur;
     runtime.tpsBlur = tpsBlur;
     // Mouse TPS orbit shares the existing orbit result; it does not need
@@ -1241,6 +1244,7 @@ bool Store::SaveNow() {
     WriteBool(L"Features",L"TPSCustomDOF",tpsBlur.custom,path_);
     WriteFloat(L"Values",L"TPSDOFDistanceMeters",tpsBlur.distanceMeters,path_);
     WriteFloat(L"Values",L"TPSDOFAmount",tpsBlur.amount,path_);
+    WriteBool(L"Features",L"CoreLevelDisplayFix",coreLevelDisplayFixEnabled,path_);
     const auto normalizedAA=temporal_aa::Normalize(temporalAA);
     WriteBool(L"Features",L"CustomizeTemporalAA",normalizedAA.enabled,path_);
     WriteFloat(L"Values",L"TemporalAAFrameWeight",normalizedAA.frameWeight,path_);
