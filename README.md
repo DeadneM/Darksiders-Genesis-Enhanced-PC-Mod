@@ -1,6 +1,6 @@
-## V1.173 — optimisation CPU préparée sur debug
+## V1.173 — beta disponible sur debug
 
-Rendu/réglages et réactivité conservés : moins de comptage et de calculs répétés, aucune temporisation ajoutée. Compilation Windows sur GitHub à venir ; gain de fluidité encore expérimental. [Périmètre et tests](docs/V1_173_REVIEW.md).
+Optimisations CPU sans délai ajouté aux changements dynamiques : compteur de draws retiré, empreintes shaders et lectures mémoire allégées, focus P2 partagé. Réglages et rythme de vérification préservés. 86/86 tests ; un avertissement d'analyse de table constexpr documenté. Gain de fluidité à tester. [ZIP, contrôles et tests](docs/V1_173_DELIVERY_RECEIPT.md).
 
 ---
 

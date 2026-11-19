@@ -1,6 +1,6 @@
-# État courant — V1.172 debug disponible
+# État courant — V1.173 debug disponible
 
-Base fonctionnelle V1.171 VALIDÉE par l’utilisateur ; main/release V1.168 inchangées. V1.172 construite sur GitHub : 86/86 tests, zéro avertissement/erreur C++, ZIP deux binaires et lien vérifiés, Defender sans détection. Aucune installation. [Livraison](V1_172_DELIVERY_RECEIPT.md).
+Base fonctionnelle V1.171 validée ; main/release V1.168 conservées. V1.173 construite sur GitHub, 86/86 tests, zéro erreur C++ et un avertissement d'analyse constexpr documenté. ZIP deux binaires vérifié, aucune installation. Aucun délai ni changement de réglages ajouté ; gain à mesurer. [Livraison](V1_173_DELIVERY_RECEIPT.md).
 
 Nouvelle case Summon horse in the air juste sous Horse Everywhere, OFF par défaut. Action native conservée, résultat de sol adapté uniquement pendant un appel aérien local ; règles de zone/déblocage inchangées. 259 clés dont 258 anciennes valeurs préservées, 55 actions inchangées. Fonction EXPÉRIMENTALE jusqu’au retour en jeu. [Périmètre et tests](V1_172_REVIEW.md).
 
@@ -39,3 +39,8 @@ Sources debug 0499f6f : inventaire 62 C++ / 125 headers, deux passes comparées 
 ## V1.173 — lot CPU demandé, réactivité à préserver
 
 Depuis V1.172/c11ea66 : comptage atomique par draw retiré (filtrage conservé), CRC/tailles shaders, lectures d'identité groupées avec fallback, focus P2 partagé. Aucun changement de réglage/défaut, rythme de scan/service/input ou interception. Pas de cache inter-image. PRÉPARÉ / EXPÉRIMENTAL avant CI GitHub ; aucun build local ni installation. Critère : même comportement/rendu et transitions skins/effets immédiates, puis gain à mesurer. [Périmètre, risques et tests](V1_173_REVIEW.md).
+
+
+## V1.173 — livraison vérifiée, réactivité à tester
+
+Source 28ab24f958084aa5982404888c3cebb1866685cc, archive d84168bd5184247f09088e61bbee529438eaf51f. GitHub :86/86 tests, zéro erreur C++, un avertissement C28020 de génération constexpr revu et documenté (aucun masquage). ZIP deux binaires contrôlé ; Defender aucune détection ; 259 clés/défauts/bindings préservés ; 237 anciennes archives et branches protégées inchangées. Aucune temporisation ou nouvelle réduction de cadence ; aucune installation. Gain de fluidité EXPÉRIMENTAL. Suite : essai groupé réactivité skins/effets/transitions, rendu/fluidité à réglages constants, coop en dernier. [Livraison et rollback](V1_173_DELIVERY_RECEIPT.md).
