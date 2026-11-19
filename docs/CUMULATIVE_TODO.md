@@ -726,3 +726,8 @@ Validation fonctionnelle utilisateur reçue, sans promotion main. Freezes confir
 ## V1.172 — appel aérien demandé
 
 Case indépendante OFF sous Horse Everywhere ; contrôle de sol de l’action native adapté uniquement en chute/saut ou plané local. Signatures natives, résultat et hausse de 100 unités contrôlés hors jeu. 259 clés dont les 258 anciennes inchangées, 55 actions conservées. Petite optimisation CPU précédente cumulée ; micro-saccades toujours ouvertes. Construction GitHub, aucun remplacement automatique du jeu. [Périmètre et tests](V1_172_REVIEW.md).
+
+
+## V1.172 — livraison vérifiée
+
+86/86 tests Windows, zéro avertissement/erreur C++, ZIP deux binaires contrôlé, lien vérifié et Defender sans détection. 259 clés, les 258 anciennes valeurs et 55 actions préservées ; aucune installation ou promotion main. Appel aérien OFF par défaut sous Horse Everywhere, validation utilisateur attendue. Optimisation CPU cumulée, micro-saccades non annoncées corrigées. [Reçu, ZIP et tests](V1_172_DELIVERY_RECEIPT.md).

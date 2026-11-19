@@ -1,16 +1,9 @@
-# État courant — V1.171 validée, freezes en diagnostic
+# État courant — V1.172 debug disponible
 
-L’utilisateur valide les fonctions V1.171 sur debug le 19 novembre. Main/release restent V1.168 ; aucune promotion demandée ici. V1.171 : 86/86 tests Windows, ZIP vérifié et conservé. [Livraison](V1_171_DELIVERY_RECEIPT.md).
+Base fonctionnelle V1.171 VALIDÉE par l’utilisateur ; main/release V1.168 inchangées. V1.172 construite sur GitHub : 86/86 tests, zéro avertissement/erreur C++, ZIP deux binaires et lien vérifiés, Defender sans détection. Aucune installation. [Livraison](V1_172_DELIVERY_RECEIPT.md).
 
-Nouveau sujet : freezes et 100 % GPU signalés, ancienneté inconnue. Relevé Windows autorisé de 31 secondes avec freezes confirmés : moteur 3D 51–65 %, mémoire dédiée environ 3,2 Gio. Pas de mesure de chaque image ; les pointes brèves ne sont pas exclues. 4K, qualité élevée, VSync ON. [Diagnostic et limites](GPU_FREEZE_REVIEW_2026_11_19.md).
+Nouvelle case Summon horse in the air juste sous Horse Everywhere, OFF par défaut. Action native conservée, résultat de sol adapté uniquement pendant un appel aérien local ; règles de zone/déblocage inchangées. 259 clés dont 258 anciennes valeurs préservées, 55 actions inchangées. Fonction EXPÉRIMENTALE jusqu’au retour en jeu. [Périmètre et tests](V1_172_REVIEW.md).
 
-Optimisation CPU préparée, non construite : ne pas verrouiller/mettre à jour le suivi des liaisons PS avant la reconnaissance d’un shader de visée. Liaison native conservée, comportement de filtrage cible inchangé. Pas de gain mesuré ni de correction des freezes annoncée. Aucun INI, réglage, fichier du jeu ou installation modifié pendant le diagnostic.
+Petite optimisation CPU du suivi des shaders cumulée, gain non mesuré. Micro-saccades toujours ouvertes : compteurs 3D 51–65 %, environ 3,2 Gio dédiés pendant le relevé ; 20 secondes DXGI sans intervalle API >25 ms, pas de temps d’affichage effectif mesuré. [Diagnostic et limites](GPU_FREEZE_REVIEW_2026_11_19.md). Identifiant GPU vérifié séparément : Intel Arc B580, pas Radeon 780M.
 
-SourceControl, autre chargeur, streaming/DXVK : pas de nouveau patch. [File](ACTIVE_QUEUE.md).
-
-Mesure DXGI complémentaire : 1204 présentations en 20 s, intervalle médian 16,68 ms, maximum 19,63 ms. Pas de pause de soumission >25 ms dans cette fenêtre distincte ; affichage effectif/GPU non mesurés. Micro-saccades toujours ouvertes. Session de trace arrêtée.
-
-
-## V1.172 — appel aérien demandé
-
-Case indépendante OFF sous Horse Everywhere ; contrôle de sol de l’action native adapté uniquement en chute/saut ou plané local. Signatures natives, résultat et hausse de 100 unités contrôlés hors jeu. 259 clés dont les 258 anciennes inchangées, 55 actions conservées. Petite optimisation CPU précédente cumulée ; micro-saccades toujours ouvertes. Construction GitHub, aucun remplacement automatique du jeu. [Périmètre et tests](V1_172_REVIEW.md).
+INI/raccourcis personnels et installation intacts. [File active](ACTIVE_QUEUE.md).

@@ -1,6 +1,6 @@
-## V1.172 — construction debug
+## V1.172 — beta disponible sur debug
 
-Case Summon horse in the air sous Horse Everywhere (OFF par défaut), action native et règles de zones conservées. Inclut la petite optimisation CPU du suivi des shaders ; aucun gain mesuré. Base V1.171 validée, main V1.168 préservée. [Périmètre, limites et tests](docs/V1_172_REVIEW.md).
+Case **Summon horse in the air** sous Horse Everywhere, OFF par défaut. Appel natif et règles de zone conservés ; fonction à tester en jeu. Petite optimisation CPU cumulée, gain non mesuré. Base V1.171 validée ; 86/86 tests Windows, ZIP vérifié, main V1.168 préservée. [Téléchargement et tests](docs/V1_172_DELIVERY_RECEIPT.md).
 
 ---
 
