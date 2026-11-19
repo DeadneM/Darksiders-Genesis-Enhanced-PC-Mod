@@ -18,6 +18,6 @@ Aucune occurrence de SoulBarrier ou SourceControl trouvée dans le code src du m
 
 Ne pas ajouter une fausse DLL de module, supprimer globalement la recherche de packages, masquer l’erreur ou modifier une dépendance sans analyser ses usages. L’absence de durée mesurée et l’occurrence unique ne permettent pas d’expliquer un ralentissement permanent de Strife.
 
-Suite technique possible : décoder les imports et leurs références dans ce seul Blueprint pour savoir s’ils sont inutilisés, puis seulement préparer un patch d’asset isolé et réversible si l’innocuité est démontrée. Un retrait aveugle peut changer les indices d’import et casser l’objet. Si les références sont nécessaires ou ambiguës, conserver le jeu intact et rechercher une autre piste. Aucun hook de chargement global retenu.
+Suite effectuée : les 13 fonctions sont intégralement décodées. IsEnabled est appelé par SetInitialAnimState et sélectionne réellement une branche d’état/effet ; ce n’est pas une référence inutilisée. Aucun patch d’asset ni hook de chargement global retenu pour cette occurrence non chronométrée. [Flux et décision du 19 novembre](CONTINUATION_REVIEW_2026_11_19.md).
 
 [Extraits et empreintes natifs](evidence/NATIVE_STREAMING_REVIEW_2026_11_18.json). Les deux extraits d’assets restent dans le cache local privé, pas dans GitHub. [Réduction des fichiers d’état, preuves de conservation](evidence/STATE_COMPACTION_2026_11_18.json).

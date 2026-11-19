@@ -571,8 +571,9 @@ static BOOL CALLBACK LoadAsiPlugins(PINIT_ONCE, PVOID, PVOID*) {
         SetLastError(ERROR_SUCCESS);
         StartupTimeline(L"ASI_LOADLIBRARY_BEGIN");
         HMODULE asiModule = LoadLibraryW(asiPath);
-        StartupTimeline(L"ASI_LOADLIBRARY_RETURN",asiModule?1u:0u);
+        // Logging opens/writes a file and can replace the Windows error.
         const DWORD loadError = asiModule ? ERROR_SUCCESS : GetLastError();
+        StartupTimeline(L"ASI_LOADLIBRARY_RETURN",asiModule?1u:0u);
         wchar_t detail[600]{};
         swprintf_s(detail, L"ASI LoadLibrary: %s result=%p error=%lu",
             asiPath, asiModule, loadError);

@@ -6676,3 +6676,8 @@ Deux captures hôte du même processus V1.168 : 205 widgets, aucune erreur ; 30 
 ## V1.170 — livraison du 19 novembre 2026
 
 Beta cumulative publiée sur debug : 86/86 tests Windows, zéro avertissement/erreur C++, ZIP deux binaires AMD64 vérifié et Defender sans détection. 234 anciennes archives, main V1.168 et profils préservés. Aucun essai/install supplémentaire ; validation utilisateur du premier accès à l’arbre et des deux filtres encore attendue. [Reçu et tests](V1_170_DELIVERY_RECEIPT.md). SourceControl demeure en recherche.
+
+
+## Suite du 19 novembre — hors jeu, sans build
+
+Deux passes sur les ajouts V1.169/170 : aucun retrait fonctionnel récent démontré. Flux SourceControl précisé depuis les assets locaux : choix d’état/effet via SetInitialAnimState, pas une boucle de visée. Petite correction préparée du diagnostic du chargeur : code Windows capturé avant le log qui pouvait le remplacer ; chargement inchangé, non construit. [Analyse, limites et suite](CONTINUATION_REVIEW_2026_11_19.md). V1.170 inchangée en attente du test utilisateur ; main V1.168 préservée.

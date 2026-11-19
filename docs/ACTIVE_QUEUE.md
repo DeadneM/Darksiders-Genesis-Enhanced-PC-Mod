@@ -16,3 +16,9 @@ Dernier point : 19 novembre 2026. V1.170 beta cumulative disponible, 86/86 tests
 Travailler sur debug, préserver main/release, INI et raccourcis. Build cumulative V1.170 autorisée par la demande utilisateur ; aucun lancement/installation automatique. Captures du menu effectuées en lecture seule ; aucun remplacement de fichiers pendant que le jeu est ouvert. Réutiliser les reçus et le cache local ; lire seulement les différences. Un diagnostic n’est pas une correction validée.
 
 L’ancienne file chronologique est conservée intégralement dans [l’historique](history/ACTIVE_QUEUE_THROUGH_V1_168_2026_11_18.md). Ses anciens statuts ne remplacent pas la validation globale V1.168. Les autres idées historiques restent consultables et ne deviennent pas automatiquement du travail actif.
+
+## Préparé depuis la livraison V1.170
+
+- Journal du chargeur : capturer GetLastError avant l’écriture de la chronologie. Correction préparée seulement ; aucun nouvel essai, build ou diagnostic de compatibilité annoncé.
+- SourceControl : flux SetInitialAnimState entièrement précisé ; le résultat choisit une branche d’état/effet. Aucun retrait natif retenu pour cette occurrence unique non chronométrée.
+- Deux passes sur le delta récent : aucune suppression fonctionnelle justifiée. [Revue et suite](CONTINUATION_REVIEW_2026_11_19.md).

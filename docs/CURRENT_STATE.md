@@ -7,3 +7,5 @@ Stable : V1.168 VALIDÉE, main/release inchangées. V1.170 cumulative construite
 Diagnostic : 205 widgets comparés sans erreur, niveaux des nœuds stables mais 30 ensembles d’indicateurs auparavant cachés. Contrat RefreshNodes sans paramètres vérifié. [Périmètre et tests](V1_170_REVIEW.md).
 
 SourceControl/SoulBarrier reste en recherche ; aucun patch de PAK ni gain FPS annoncé. [File](ACTIVE_QUEUE.md) · [Base stable](V1_168_MAIN_RELEASE.md).
+
+Suite hors jeu du 19 novembre : V1.170 reste inchangée en attente du test. Correction du code d’erreur du journal du chargeur préparée, non construite ; aucune modification de son chargement. Deux passes sur les ajouts récents sans suppression fonctionnelle justifiée. [Constats et limites](CONTINUATION_REVIEW_2026_11_19.md).

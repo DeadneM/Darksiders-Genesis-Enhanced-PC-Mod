@@ -1,0 +1,48 @@
+{
+  "baseStable": "V1.168 validated",
+  "beta": "V1.170 pending user test",
+  "reviewedSource": "b0a44f1533da98b717646091476f836cbd978eb2",
+  "passes": [
+    {
+      "scope": "recent function consumers and hot-path gates",
+      "deadCodeProven": false
+    },
+    {
+      "scope": "configuration lifecycle, weak identities and existing tests",
+      "deadCodeProven": false
+    }
+  ],
+  "comparison": "No safe functional deletion demonstrated; no performance claim",
+  "sourceControl": {
+    "assets": [
+      {
+        "name": "SoulBarrier_Orb_Blueprint.uasset",
+        "sha256": "52edc61ee227d70d59e92277a0cdd2069d40448362d257b9b0e13274a0c6d250"
+      },
+      {
+        "name": "SoulBarrier_Orb_Blueprint.uexp",
+        "sha256": "734db96b3691d01cff3ec6187e613770c7c25ded98b32342d2684fe11f764674"
+      }
+    ],
+    "functionsFullyDecoded": 13,
+    "memoryAndSerializedSizesVerified": true,
+    "entry": "SetInitialAnimState -> 0x421",
+    "falseBranch": "0x272 bStartEnabled / objective state",
+    "trueBranch": "0x37D burst effect / audio",
+    "beginPlay": "0x2E7 -> 0x140 damage delegate binding",
+    "assetModified": false
+  },
+  "loaderDiagnostic": {
+    "file": "src/dxgi_proxy.cpp",
+    "errorCapturedBeforeLogging": true,
+    "loadingBehaviorChanged": false,
+    "built": false,
+    "runtimeValidated": false
+  },
+  "archiveUnchanged": "1DB4FD8E400528B7F3890847D0FC75E89A318453048D46164BB27AAEE575B96D",
+  "gameLaunched": false,
+  "gameCaptured": false,
+  "installed": false,
+  "newBuild": false,
+  "binaryDownloaded": false
+}
