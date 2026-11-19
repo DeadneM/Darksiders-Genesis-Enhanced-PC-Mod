@@ -35,6 +35,7 @@ float AdjustSpeedResult(
     float nativeGetMaxSpeed);
 Telemetry GetTelemetry();
 bool IsValidatedMovement(void* movementComponent);
+bool AirSummonReady();
 void Shutdown();
 
 } // namespace dg::horse

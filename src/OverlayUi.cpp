@@ -638,6 +638,8 @@ void Draw(Context& c) {
                 config.horseEverywhereEnabled=config.horseAreaMode!=0;
                 config.Save();
             }
+            DrawToggleFeature(config,"Summon horse in the air","HorseAirSummon",&config.horseAirSummonEnabled,
+                "Allow the native horse action during jumps, falls or gliding. Area rules still apply.",horse::AirSummonReady());
             ImGui::TextDisabled("Default: Restricted only. In all area also enables native dismount protection.");
             ImGui::TextDisabled("Restricted = no native desummon flag; banned = native desummon flag.");
             ImGui::TextDisabled("Horse summon icon visibility is controlled in the game options.");

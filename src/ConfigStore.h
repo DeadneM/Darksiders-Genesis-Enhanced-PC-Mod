@@ -345,6 +345,7 @@ public:
     bool glideDurationEnabled = true;
     bool horseEverywhereEnabled = true;
     int horseAreaMode = 2; // 0 Off, 1 all, 2 restricted-only (default), 3 banned-only
+    bool horseAirSummonEnabled = false;
     bool horseSpeedEnabled = true;
     bool horseSprintSpeedEnabled = true;
     bool horseSprintDurationEnabled = true;

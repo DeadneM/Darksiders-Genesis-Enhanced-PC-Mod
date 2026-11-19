@@ -80,6 +80,7 @@ struct Snapshot {
     bool glideDurationEnabled = true;
     bool horseEverywhereEnabled = true;
     int horseAreaMode = 2; // restricted-only by default; native predicate classification
+    bool horseAirSummonEnabled = false;
     bool horseSpeedEnabled = true;
     bool horseSprintSpeedEnabled = true;
     bool horseSprintDurationEnabled = true;
@@ -247,6 +248,7 @@ struct State {
     std::atomic_bool glideDurationEnabled{true};
     std::atomic_bool horseEverywhereEnabled{true};
     std::atomic_int horseAreaMode{2};
+    std::atomic_bool horseAirSummonEnabled{false};
     std::atomic_ullong horseSummonIntentTick{0};
     std::atomic_bool horseSpeedEnabled{true};
     std::atomic_bool horseSprintSpeedEnabled{true};

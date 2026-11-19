@@ -34,6 +34,7 @@ int main(int argc,char** argv){
     if(!DeleteFileW(path))return 1; // only this test's empty file, to exercise missing-INI generation
     dg::config::Store generated;generated.SetPath(path);
     check(generated.Load(),"missing INI generated from compiled defaults");
+    check(!generated.horseAirSummonEnabled&&!dg::runtime::Get().horseAirSummonEnabled.load(),"air summon is opt-in for new and existing profiles");
     check(generated.coreLevelDisplayFixEnabled&&dg::runtime::Get().coreLevelDisplayFixEnabled.load(),"core UI repair defaults ON in store and runtime");
     check(!generated.temporalAA.enabled&&generated.temporalAA.frameWeight==.08f&&generated.temporalAA.sharpen==1,
         "TAA customization defaults OFF with editable trial values, preserving native output");
@@ -238,6 +239,10 @@ int main(int argc,char** argv){
     check(!renamed.temporalAA.disableMotionBlur&&!renamed.temporalAA.disableColorFringe,"factory reset returns image effects to native");
     renamed.coreLevelDisplayFixEnabled=false;
     check(renamed.SaveNow()&&renamed.Load()&&!renamed.coreLevelDisplayFixEnabled&&!dg::runtime::Get().coreLevelDisplayFixEnabled.load(),"core UI repair OFF persists and reaches runtime");
+    renamed.horseAirSummonEnabled=true;
+    check(renamed.SaveNow()&&renamed.Load()&&renamed.horseAirSummonEnabled&&dg::runtime::Get().horseAirSummonEnabled.load(),"air summon ON persists independently of the existing area mode");
+    renamed.ResetDefaults(false);
+    check(!renamed.horseAirSummonEnabled&&renamed.horseAreaMode==2,"reset restores native airborne summon and approved zone default");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,path);DeleteFileW(path);
     std::printf("User defaults: %zu keys checked, %u failures\n",keys,failed);return failed?1:0;
 }
