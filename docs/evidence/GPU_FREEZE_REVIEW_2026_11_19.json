@@ -1,0 +1,199 @@
+{
+  "validatedFunctionalBase": "V1.171 user validated",
+  "stableBranchUnchanged": "V1.168",
+  "symptom": "freezes and reported 100% GPU in Task Manager and Steam; onset unknown",
+  "renderSettings": {
+    "resolution": [
+      3840,
+      2160
+    ],
+    "quality": 3,
+    "vsync": true,
+    "separateFrameRateLimit": 0,
+    "tpsFov": 110
+  },
+  "windowsSample": {
+    "samples": 15,
+    "seconds": 31.2,
+    "gpu3D": {
+      "min": 51.0,
+      "median": 58.0,
+      "max": 65.0
+    },
+    "vramDedicatedGiB": {
+      "min": 3.19,
+      "median": 3.22,
+      "max": 3.24
+    },
+    "vramSharedGiB": {
+      "min": 0.06,
+      "median": 0.06,
+      "max": 0.06
+    },
+    "cpuAllCores": {
+      "min": 152,
+      "median": 227,
+      "max": 359
+    },
+    "readMiBps": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 5.09
+    },
+    "writeMiBps": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 0.0
+    },
+    "systemAvailableGiB": {
+      "min": 11.85,
+      "median": 11.89,
+      "max": 11.94
+    },
+    "systemPagesInputPerSec": {
+      "min": 0,
+      "median": 0,
+      "max": 570
+    },
+    "queryMs": {
+      "min": 986.36,
+      "median": 1014.99,
+      "max": 1856.2
+    },
+    "fpsMeasured": false
+  },
+  "freezesDuringSample": "confirmed by user",
+  "windowsCountersOnly": true,
+  "rawProcessMemoryRead": false,
+  "gameSettingsChanged": false,
+  "fpsMeasured": false,
+  "sourceReview": {
+    "permanentSceneRedrawFound": false,
+    "synchronousGameplayConsumers": [
+      "camera",
+      "GetMaxSpeed"
+    ],
+    "cpuServiceMeanMs": 1.05136,
+    "cpuServiceSampleMaxMs": 22.8712,
+    "cpuSamples": 550,
+    "cpuSampling": "1/64 inclusive native calls; no GPU/frame measurement"
+  },
+  "shaderTelemetry": {
+    "successfulCreations": 509,
+    "matchedShaders": 0,
+    "observedDrawCalls": 24683182,
+    "blockedDraws": 0
+  },
+  "candidate": {
+    "file": "src/ShaderAimFeature.cpp",
+    "change": "skip context locks/map update after native PS bind while no aim shader has been recognized",
+    "built": false,
+    "installed": false,
+    "runtimeValidated": false,
+    "performanceGainMeasured": false,
+    "freezeFixClaimed": false
+  },
+  "rawEvidenceHashes": {
+    "v320-engine.log": "5963c8adadd5b6ed0ce43a390296ed2ff82044d77fd4403891f9269ee821c757",
+    "v320-mod.log": "7f7ec025b082ffd74b6573b53278de187e552b3a43f7d0a39b82bb559d10ad13"
+  },
+  "freezeDescription": {
+    "duration": "fraction of a second",
+    "stationaryOccurrence": "unknown; easier to perceive in motion"
+  },
+  "presentTrace": {
+    "source": "Windows DXGI Present API start/stop events; not displayed-frame or GPU completion times",
+    "seconds": 20,
+    "events": 2408,
+    "completePairs": 1204,
+    "swapChains": 1,
+    "primaryFrames": 1204,
+    "syncIntervalCounts": {
+      "1": 1204
+    },
+    "flagCounts": {
+      "0": 1204
+    },
+    "apiStartIntervalMs": {
+      "n": 1203,
+      "min": 11.788,
+      "median": 16.6812,
+      "p95": 17.6461,
+      "p99": 18.3725,
+      "max": 19.626
+    },
+    "nativePresentCallMs": {
+      "n": 1204,
+      "min": 2.7847,
+      "median": 8.7523,
+      "p95": 9.3927,
+      "p99": 9.5575,
+      "max": 9.7499
+    },
+    "outsideDXGIMs": {
+      "n": 1203,
+      "min": 6.9236,
+      "median": 7.9133,
+      "p95": 9.7572,
+      "p99": 10.9873,
+      "max": 13.8295
+    },
+    "gapsOver25ms": 0,
+    "gapsOver50ms": 0,
+    "gapsOver100ms": 0,
+    "incompleteEvents": 0,
+    "largestGaps": [
+      {
+        "utc": "2026-11-19T13:18:57.6923667Z",
+        "gapMs": 19.626,
+        "previousPresentMs": 8.4563,
+        "outsideDXGIMs": 11.1697
+      },
+      {
+        "utc": "2026-11-19T13:18:51.2081272Z",
+        "gapMs": 19.2421,
+        "previousPresentMs": 8.9913,
+        "outsideDXGIMs": 10.2508
+      },
+      {
+        "utc": "2026-11-19T13:18:55.9580299Z",
+        "gapMs": 19.2185,
+        "previousPresentMs": 9.0571,
+        "outsideDXGIMs": 10.1614
+      },
+      {
+        "utc": "2026-11-19T13:18:48.4283946Z",
+        "gapMs": 19.1124,
+        "previousPresentMs": 5.2829,
+        "outsideDXGIMs": 13.8295
+      },
+      {
+        "utc": "2026-11-19T13:18:53.2249969Z",
+        "gapMs": 18.8469,
+        "previousPresentMs": 8.3866,
+        "outsideDXGIMs": 10.4603
+      },
+      {
+        "utc": "2026-11-19T13:18:53.4089021Z",
+        "gapMs": 18.8298,
+        "previousPresentMs": 7.7903,
+        "outsideDXGIMs": 11.0395
+      },
+      {
+        "utc": "2026-11-19T13:18:56.2409791Z",
+        "gapMs": 18.7285,
+        "previousPresentMs": 8.964,
+        "outsideDXGIMs": 9.7645
+      },
+      {
+        "utc": "2026-11-19T13:18:40.6246400Z",
+        "gapMs": 18.7103,
+        "previousPresentMs": 8.5691,
+        "outsideDXGIMs": 10.1412
+      }
+    ],
+    "traceStopped": true,
+    "etlBytes": 1507328,
+    "limits": "Submission intervals and native Present call duration only; no actual display/GPU completion timing, no CPU cause attribution."
+  }
+}

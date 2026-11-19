@@ -1,6 +1,6 @@
 ## V1.171 — beta cumulative disponible sur debug
 
-V1.170 reprise avec un journal d’erreur de chargement corrigé, sans changement du chargement lui-même. Correctif des niveaux des cœurs et filtres d’image encore à valider en jeu. 86/86 tests Windows, ZIP vérifié. Main V1.168 préservée ; aucune installation automatique. [Téléchargement et tests](docs/V1_171_DELIVERY_RECEIPT.md).
+V1.170 reprise avec un journal d’erreur de chargement corrigé, sans changement du chargement lui-même. Fonctions V1.171 validées par l’utilisateur ; micro-saccades en cours de diagnostic séparé. 86/86 tests Windows, ZIP vérifié. Main V1.168 préservée ; aucune installation automatique. [Téléchargement et tests](docs/V1_171_DELIVERY_RECEIPT.md).
 
 ---
 

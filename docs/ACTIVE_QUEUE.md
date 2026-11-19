@@ -1,6 +1,6 @@
-# File active — base V1.168 validée
+# File active — V1.171 validée sur debug, main V1.168
 
-Dernier point : 19 novembre 2026. V1.170 beta cumulative disponible, 86/86 tests : [livraison, arbre et options d’image](V1_170_DELIVERY_RECEIPT.md). Validation en jeu attendue, sans installation automatique. V1.169 intermédiaire conservée. V1.168 est entièrement VALIDÉE, publiée sur main et en release v1.168 ; 85/85 contrôles Windows. TAA/netteté terminé. Aucun ancien défaut validé n’est rouvert sans nouveau retour.
+Dernier point : 19 novembre 2026. Fonctions V1.171 VALIDÉES par l’utilisateur sur debug ; main/release V1.168 intactes. Nouveau sujet : micro-saccades, ancienneté inconnue. [Mesures, optimisation CPU préparée et limites](GPU_FREEZE_REVIEW_2026_11_19.md). Aucun réglage ou fichier du jeu modifié par le diagnostic. [Dernière livraison](V1_171_DELIVERY_RECEIPT.md).
 
 ## Suite, par ordre de preuve disponible
 
@@ -9,7 +9,7 @@ Dernier point : 19 novembre 2026. V1.170 beta cumulative disponible, 86/86 tests
 3. **Budget de textures** — 1000 Mo dans le dernier journal, aucune alerte de dépassement trouvée dans celui-ci. Pas de valeur forcée ni de curseur supplémentaire sans problème ou mesure correspondants.
 4. **DXVK** — expérience séparée éventuelle ; conflit de rôle autour de dxgi.dll à résoudre avant essai. DX12 demanderait un backend de rendu du mod adapté. [Étude](COMMUNITY_FIX_REVIEW_2026_11_13.md).
 
-5. **Niveaux des cœurs dans l’arbre** — affichage incomplet au premier accès, rétabli en rouvrant ; deux relevés comparés : données stables, indicateurs cachés puis visibles. Rafraîchissement natif unique expérimental dans V1.170 ; validation en jeu attendue.
+5. **Niveaux des cœurs dans l’arbre** — affichage incomplet au premier accès, rétabli en rouvrant ; deux relevés comparés : données stables, indicateurs cachés puis visibles. Rafraîchissement natif unique ajouté en V1.170 puis validé avec le lot V1.171.
 
 ## Règles de reprise
 
@@ -30,3 +30,8 @@ Construire le lot cumulatif et la correction de journal, puis vérifier CI/ZIP/l
 ## Livraison V1.171
 
 Construite et contrôlée : 86/86 tests. Correction de journal incluse ; archive V1.170 préservée. Tests utilisateur reportés sur le lot cumulatif V1.171, sans nouveau test de gameplay ajouté. [Livraison](V1_171_DELIVERY_RECEIPT.md). Les autres pistes restent sans patch démontré.
+
+
+## V1.171 validée — freezes et charge GPU
+
+Validation fonctionnelle utilisateur reçue, sans promotion main. Freezes confirmés pendant 31 secondes de compteurs Windows : 3D 51–65 %, mémoire dédiée environ 3,2 Gio ; pas de temps par image. Optimisation CPU de HookSetPS préparée sans build : éviter les verrous/table tant qu’aucun shader de visée n’est reconnu ; native transmise et filtrage existant préservés. Gain et cause des freezes non établis. [Preuves, limites et suite](GPU_FREEZE_REVIEW_2026_11_19.md).

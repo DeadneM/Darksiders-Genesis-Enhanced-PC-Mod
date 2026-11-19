@@ -98,7 +98,10 @@ void STDMETHODCALLTYPE HookSetPS(
     ID3D11DeviceContext* ctx, ID3D11PixelShader* shader,
     ID3D11ClassInstance* const* classes, UINT count) {
     if (g_originalSetPS) g_originalSetPS(ctx, shader, classes, count);
-    if (!g_ready.load(std::memory_order_relaxed) || !ctx) return;
+    // No known aim shader means no context can need filtering yet. Keep
+    // forwarding native bindings, but avoid two locks and a map update.
+    if (!g_ready.load(std::memory_order_relaxed) || !ctx ||
+        g_matchCount.load(std::memory_order_relaxed) == 0) return;
     AcquireSRWLockShared(&g_lock);
     const bool matched = shader && g_targetShaders.count(shader) != 0;
     ReleaseSRWLockShared(&g_lock);

@@ -31,3 +31,6 @@ Afficher les indicateurs de niveaux dès le premier accès à l’arbre des cœu
 4. Vérifier un chargement et une cinématique, avec réglages mémorisés et caméra/HUD habituels. Coop en dernier si disponible.
 
 Rollback : désactiver le correctif des cœurs et les deux filtres ; si nécessaire, rétablir les deux binaires V1.168 validés en gardant son INI. Aucun patch SourceControl/SoulBarrier, aucun gain de FPS annoncé. Suite : retour utilisateur avant toute promotion stable.
+
+
+Validation fonctionnelle utilisateur reçue le 19 novembre après livraison : « tout es ok ». Nouveau signalement de micro-saccades et de charge GPU, sans ancienneté établie ; [diagnostic distinct](GPU_FREEZE_REVIEW_2026_11_19.md). Main V1.168 reste inchangée. L’archive V1.171 ci-dessus reste identique ; l’optimisation préparée ensuite n’y est pas incluse.

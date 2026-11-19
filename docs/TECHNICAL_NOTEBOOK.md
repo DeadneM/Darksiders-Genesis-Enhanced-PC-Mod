@@ -6691,3 +6691,8 @@ Même périmètre expérimental que V1.170, plus capture du code Windows avant l
 ## V1.171 — livraison debug vérifiée
 
 86/86 tests Windows, zéro avertissement/erreur C++, ZIP deux binaires AMD64 et lien vérifiés, Defender sans détection. 235 anciennes archives conservées ; 258 clés, 55 actions et main V1.168 inchangées. Pas d’installation automatique ni validation en jeu annoncée. Seule différence fonctionnelle de source depuis V1.170 : code d’erreur du chargeur capturé avant le log. [Reçu, ZIP et tests](V1_171_DELIVERY_RECEIPT.md).
+
+
+## V1.171 validée — freezes et charge GPU
+
+Validation fonctionnelle utilisateur reçue, sans promotion main. Freezes confirmés pendant 31 secondes de compteurs Windows : 3D 51–65 %, mémoire dédiée environ 3,2 Gio ; pas de temps par image. Optimisation CPU de HookSetPS préparée sans build : éviter les verrous/table tant qu’aucun shader de visée n’est reconnu ; native transmise et filtrage existant préservés. Gain et cause des freezes non établis. [Preuves, limites et suite](GPU_FREEZE_REVIEW_2026_11_19.md).
