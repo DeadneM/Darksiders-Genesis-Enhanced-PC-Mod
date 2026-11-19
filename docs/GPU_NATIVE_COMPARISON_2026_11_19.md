@@ -42,3 +42,12 @@ TpsCameraFocus.h::ApplyBlur remplace explicitement la méthode/zone de profondeu
 Choix demandé à l’utilisateur : désactiver uniquement TPSCustomDOF dans son profil et les futurs défauts, en laissant l’option disponible. NativeCustomDOF et la correction de mise au point resteraient inchangés. À ce stade de rédaction, aucune modification de défauts ni de profil n’a encore été appliquée automatiquement.
 
 [Synthèse et empreintes](evidence/GPU_NATIVE_COMPARISON_2026_11_19.json). Journaux bruts, profils personnels et traces détaillées conservés uniquement dans le cache privé local.
+
+
+## Optimisation caméra sans changement de réglages — 19 novembre 2026
+
+Décision utilisateur : REJETÉ, le passage automatique de TPSCustomDOF sur OFF. Ne modifier ni le profil personnel ni les défauts. La suite porte exclusivement sur du travail CPU évitable, à rendu conservé.
+
+Depuis debug 3505391 / binaire V1.172 : les trois chemins TPS réutilisent leur compensation de mise au point réussie pour éviter son second calcul dans ApplyBlur. La projection des bornes est omise lorsque la région choisie atteint déjà 20000 unités, plafond du résultat qui aurait été calculé. Aucun hook, réglage, fréquence de service, qualité GPU ou ressource persistante ajouté. Le chemin natif conserve son contrat. Retour arrière : rétablir TpsCameraFocus.h et les trois appels de CameraTraceFeature.cpp depuis 3505391.
+
+CONTRÔLE À EFFECTUER sur GitHub uniquement : tests existants et 20 480 combinaisons comparant tous les octets de la sortie caméra avec l'ancienne implémentation, pour les chemins TPS et natif. Aucun gain FPS/GPU ni suppression des saccades annoncé ; validation en jeu encore requise. Pas de nouveau ZIP ni installation pour ce contrôle.

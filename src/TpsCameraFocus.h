@@ -106,18 +106,19 @@ inline bool Compensate(void* output,Point target,bool lens=false,Bounds bounds={
     }
     return true;
 }
-inline bool ApplyBlur(void* output,const camera_blur::Profile& profile,bool cinematic,
-                      const Point* target=nullptr,Bounds bounds={}){
+inline bool ApplyBlurPrepared(void* output,const camera_blur::Profile& profile,bool cinematic,
+                      const Point* target,Bounds bounds,bool focusPrepared){
     if(cinematic||!BlurReady()||!output)return false;
     if(profile.disabled)return DisableBlur(output,true);
     if(!profile.custom||!target||!std::isfinite(profile.distanceMeters)||
        profile.distanceMeters<0||profile.distanceMeters>camera_blur::MaxDistanceMeters||!std::isfinite(profile.amount)||
        profile.amount<0||profile.amount>5)return false;
     auto* p=static_cast<unsigned char*>(output);
-    if(p[0x40+0x23]>2||!Compensate(output,*target))return false;
+    if(p[0x40+0x23]>2||(!focusPrepared&&!Compensate(output,*target)))return false;
     float view[7]{},focus=0;std::memcpy(view,p,sizeof(view));std::memcpy(&focus,p+0x40+0x454,4);
     float region=profile.distanceMeters*100.0f;
-    if(bounds.valid){
+    // The projected floor is clamped to 20000; larger regions already win.
+    if(bounds.valid&&region<20000.0f){
         constexpr double rad=0.01745329251994329577;
         const double fx=std::cos(view[3]*rad)*std::cos(view[4]*rad),
             fy=std::cos(view[3]*rad)*std::sin(view[4]*rad),fz=std::sin(view[3]*rad);
@@ -138,4 +139,17 @@ inline bool ApplyBlur(void* output,const camera_blur::Profile& profile,bool cine
     p[0x40+0x17]|=0x84;p[0x40+0x18]|=0x03;p[0x40+0x23]=1;
     return true;
 }
+inline bool ApplyBlur(void* output,const camera_blur::Profile& profile,bool cinematic,
+                      const Point* target=nullptr,Bounds bounds={}){
+    return ApplyBlurPrepared(output,profile,cinematic,target,bounds,false);
+}
+// TPS already needs focus compensation even when custom blur is disabled.
+// Reuse that successful result instead of computing and writing it twice.
+inline bool ApplyFocusAndBlur(void* output,const camera_blur::Profile& profile,bool cinematic,
+                              const Point* target,bool lens,Bounds bounds={}){
+    const bool focused=target&&Compensate(output,*target,lens,bounds);
+    const bool blurred=ApplyBlurPrepared(output,profile,cinematic,target,bounds,focused);
+    return focused||blurred;
+}
+
 }
