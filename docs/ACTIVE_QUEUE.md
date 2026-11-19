@@ -22,3 +22,7 @@ L’ancienne file chronologique est conservée intégralement dans [l’historiq
 - Journal du chargeur : capturer GetLastError avant l’écriture de la chronologie. Correction préparée seulement ; aucun nouvel essai, build ou diagnostic de compatibilité annoncé.
 - SourceControl : flux SetInitialAnimState entièrement précisé ; le résultat choisit une branche d’état/effet. Aucun retrait natif retenu pour cette occurrence unique non chronométrée.
 - Deux passes sur le delta récent : aucune suppression fonctionnelle justifiée. [Revue et suite](CONTINUATION_REVIEW_2026_11_19.md).
+
+## V1.171 demandée
+
+Construire le lot cumulatif et la correction de journal, puis vérifier CI/ZIP/lien. Aucun autre défaut ne dispose de preuve suffisante pour un patch supplémentaire. Pas d’installation automatique ; V1.170 et main V1.168 préservées.

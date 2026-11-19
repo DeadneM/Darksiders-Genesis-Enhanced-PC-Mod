@@ -9,3 +9,5 @@ Diagnostic : 205 widgets comparés sans erreur, niveaux des nœuds stables mais 
 SourceControl/SoulBarrier reste en recherche ; aucun patch de PAK ni gain FPS annoncé. [File](ACTIVE_QUEUE.md) · [Base stable](V1_168_MAIN_RELEASE.md).
 
 Suite hors jeu du 19 novembre : V1.170 reste inchangée en attente du test. Correction du code d’erreur du journal du chargeur préparée, non construite ; aucune modification de son chargement. Deux passes sur les ajouts récents sans suppression fonctionnelle justifiée. [Constats et limites](CONTINUATION_REVIEW_2026_11_19.md).
+
+V1.171 : construction debug demandée par l’utilisateur ; lot cumulatif V1.170 et correction limitée du journal. Aucun autre comportement changé, aucun test en jeu supplémentaire. [Périmètre](V1_171_REVIEW.md).

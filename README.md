@@ -1,3 +1,9 @@
+## V1.171 — build debug demandée
+
+Lot cumulatif V1.170, avec correction du code d’erreur du journal du chargeur. Aucun changement de chargement ni nouvel effet ; tests en jeu V1.170 encore attendus. [Objectif, limites et tests](docs/V1_171_REVIEW.md).
+
+---
+
 ## V1.170 — beta cumulative disponible sur debug
 
 Arbre des cœurs : rafraîchissement natif unique après affichage initial, ON par défaut et désactivable. Deux filtres d’image OFF par défaut : flou de mouvement et franges colorées. Base stable V1.168 conservée. 86/86 tests Windows ; rendu et correctif restent à valider en jeu. Aucune installation automatique. [ZIP, contrôles et tests](docs/V1_170_DELIVERY_RECEIPT.md).

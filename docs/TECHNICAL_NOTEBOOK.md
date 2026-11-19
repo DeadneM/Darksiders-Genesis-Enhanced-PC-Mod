@@ -6681,3 +6681,8 @@ Beta cumulative publiée sur debug : 86/86 tests Windows, zéro avertissement/er
 ## Suite du 19 novembre — hors jeu, sans build
 
 Deux passes sur les ajouts V1.169/170 : aucun retrait fonctionnel récent démontré. Flux SourceControl précisé depuis les assets locaux : choix d’état/effet via SetInitialAnimState, pas une boucle de visée. Petite correction préparée du diagnostic du chargeur : code Windows capturé avant le log qui pouvait le remplacer ; chargement inchangé, non construit. [Analyse, limites et suite](CONTINUATION_REVIEW_2026_11_19.md). V1.170 inchangée en attente du test utilisateur ; main V1.168 préservée.
+
+
+## V1.171 — construction debug demandée
+
+Même périmètre expérimental que V1.170, plus capture du code Windows avant le log du chargeur. Aucun autre correctif démontré à intégrer. 258 clés et 55 actions inchangées ; main V1.168 préservée. [Critères et tests](V1_171_REVIEW.md). Build GitHub uniquement, sans installation automatique.

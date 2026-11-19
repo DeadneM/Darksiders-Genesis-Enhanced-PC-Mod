@@ -706,3 +706,8 @@ Beta cumulative publiée sur debug : 86/86 tests Windows, zéro avertissement/er
 ## Suite du 19 novembre — attente du test V1.170
 
 Correction de journal du chargeur préparée, non construite ; à regrouper avec un futur lot utile. Aucun retrait de code récent justifié après deux passes. SourceControl : branche native d’état/effet confirmée, aucun patch retenu sans mesure de saccade. [Revue](CONTINUATION_REVIEW_2026_11_19.md).
+
+
+## V1.171 — construction debug demandée
+
+Même périmètre expérimental que V1.170, plus capture du code Windows avant le log du chargeur. Aucun autre correctif démontré à intégrer. 258 clés et 55 actions inchangées ; main V1.168 préservée. [Critères et tests](V1_171_REVIEW.md). Build GitHub uniquement, sans installation automatique.
