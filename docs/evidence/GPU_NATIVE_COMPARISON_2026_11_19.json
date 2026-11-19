@@ -1,0 +1,273 @@
+{
+  "withMod": {
+    "counterFile": "v320-gpu-withmod-native-20261119-184905.json",
+    "traceFile": "v320-present-20261119-184906.json",
+    "counterSamples": 15,
+    "foregroundSamples": 9,
+    "gpu3D": {
+      "n": 9,
+      "min": 48.0,
+      "median": 50.0,
+      "p95": 54.0,
+      "p99": 54.0,
+      "max": 54.0
+    },
+    "dedicatedGiB": {
+      "n": 9,
+      "min": 3.3483,
+      "median": 3.3486,
+      "p95": 3.35,
+      "p99": 3.35,
+      "max": 3.35
+    },
+    "gpuLuids": [
+      "luid_0x00000000_0x0000FD21"
+    ],
+    "presentation": {
+      "totalCompletePairs": 1177,
+      "foregroundIntervalMs": {
+        "n": 939,
+        "min": 8.9275,
+        "median": 16.6833,
+        "p95": 18.7174,
+        "p99": 24.6541,
+        "max": 31.361
+      },
+      "outsidePresentMs": {
+        "n": 939,
+        "min": 4.3048,
+        "median": 5.165,
+        "p95": 7.446,
+        "p99": 10.9194,
+        "max": 24.1888
+      },
+      "over25ms": 6,
+      "over50ms": 0,
+      "over100ms": 0,
+      "syncIntervalCounts": {
+        "1": 1177
+      },
+      "incompleteEvents": 1,
+      "largestForegroundGaps": [
+        {
+          "utc": "2026-11-19T18:49:17.0856756Z",
+          "gapMs": 31.361,
+          "outsideMs": 24.1888
+        },
+        {
+          "utc": "2026-11-19T18:49:13.4339381Z",
+          "gapMs": 28.3565,
+          "outsideMs": 21.3455
+        },
+        {
+          "utc": "2026-11-19T18:49:18.9050650Z",
+          "gapMs": 26.2013,
+          "outsideMs": 17.1652
+        },
+        {
+          "utc": "2026-11-19T18:49:17.3644612Z",
+          "gapMs": 25.7823,
+          "outsideMs": 7.7783
+        },
+        {
+          "utc": "2026-11-19T18:49:13.6761414Z",
+          "gapMs": 25.2679,
+          "outsideMs": 5.4058
+        }
+      ]
+    }
+  },
+  "withoutMod": {
+    "counterFile": "v320-gpu-withoutmod-native-20261119-185619.json",
+    "traceFile": "v320-present-20261119-185618.json",
+    "counterSamples": 15,
+    "foregroundSamples": 14,
+    "gpu3D": {
+      "n": 14,
+      "min": 43.0,
+      "median": 47.5,
+      "p95": 58.0,
+      "p99": 58.0,
+      "max": 58.0
+    },
+    "dedicatedGiB": {
+      "n": 14,
+      "min": 2.8032,
+      "median": 2.8526,
+      "p95": 2.8881,
+      "p99": 2.8881,
+      "max": 2.8881
+    },
+    "gpuLuids": [
+      "luid_0x00000000_0x0000FD21"
+    ],
+    "presentation": {
+      "totalCompletePairs": 1174,
+      "foregroundIntervalMs": {
+        "n": 890,
+        "min": 12.4532,
+        "median": 16.7452,
+        "p95": 19.2311,
+        "p99": 24.9814,
+        "max": 26.1562
+      },
+      "outsidePresentMs": {
+        "n": 890,
+        "min": 3.8481,
+        "median": 5.5179,
+        "p95": 8.5647,
+        "p99": 11.1172,
+        "max": 13.3104
+      },
+      "over25ms": 8,
+      "over50ms": 0,
+      "over100ms": 0,
+      "syncIntervalCounts": {
+        "1": 1174
+      },
+      "incompleteEvents": 1,
+      "largestForegroundGaps": [
+        {
+          "utc": "2026-11-19T18:56:34.8514566Z",
+          "gapMs": 26.1562,
+          "outsideMs": 10.4033
+        },
+        {
+          "utc": "2026-11-19T18:56:28.4833048Z",
+          "gapMs": 25.4357,
+          "outsideMs": 6.2897
+        },
+        {
+          "utc": "2026-11-19T18:56:28.1134315Z",
+          "gapMs": 25.3581,
+          "outsideMs": 6.2615
+        },
+        {
+          "utc": "2026-11-19T18:56:30.5988702Z",
+          "gapMs": 25.3529,
+          "outsideMs": 6.1131
+        },
+        {
+          "utc": "2026-11-19T18:56:34.1584074Z",
+          "gapMs": 25.3439,
+          "outsideMs": 5.4327
+        }
+      ]
+    }
+  },
+  "view": "native in both runs",
+  "userReport": "Lower GPU usage and smoother without the mod",
+  "limits": [
+    "One run per condition; not a controlled repeated benchmark.",
+    "Foreground intervals bracketed by approximately 2-second Windows samples.",
+    "Present API events do not measure actual display or GPU completion times.",
+    "Options/effects differ with mod removal; this does not isolate a specific module or prove a loop."
+  ],
+  "gpu": "Intel(R) Arc(TM) B580 Graphics",
+  "filesRestored": true,
+  "filesStillDisabled": false,
+  "iniUnchangedDuringFileOperations": true,
+  "savesTouched": false,
+  "nativeAsiAbsenceVerified": true,
+  "nativeDxgiSystem32Verified": true,
+  "newBuild": false,
+  "nextExperiment": "NativeCustomDOF OFF only; await user readiness",
+  "evidenceHashes": {
+    "v320-gpu-withmod-native-20261119-184905.json": "bc55b0d843caf92975c04e527eb26a4d98caf0815b032d09871e3e6e47968e6e",
+    "v320-present-20261119-184906.json": "c0edf4bcfb5c30dfbcc0ef7215734fd284f99ddc8d56bc6cfd87138f48e4e2ec",
+    "v320-gpu-withoutmod-native-20261119-185619.json": "c9d9ab9566f75308a1449117326bad0bb5249d9ec4297b4c4a1d308f2df54a87",
+    "v320-present-20261119-185618.json": "056c3a9f5d16ed1a21bcc1dc5387255dfccbe24cf2623e7c3dd2e5bd52b4a5f8"
+  },
+  "tpsFollowup": {
+    "requestedInitialView": "Native",
+    "actualReadiness": {
+      "ThirdPerson": 1,
+      "NativeCustomDOF": 1,
+      "TPSCustomDOF": 0
+    },
+    "reclassifiedBeforeCapture": "TPS custom blur OFF",
+    "offMeasurement": {
+      "counterFile": "v320-gpu-withmod-tps-dof-off-20261119-190737.json",
+      "traceFile": "v320-present-20261119-190738.json",
+      "counterSamples": 15,
+      "foregroundSamples": 15,
+      "gpu3D": {
+        "n": 15,
+        "min": 43.0,
+        "median": 49.0,
+        "p95": 84.0,
+        "p99": 84.0,
+        "max": 84.0
+      },
+      "dedicatedGiB": {
+        "n": 15,
+        "min": 3.0211,
+        "median": 3.0375,
+        "p95": 3.2367,
+        "p99": 3.2367,
+        "max": 3.2367
+      },
+      "gpuLuids": [
+        "luid_0x00000000_0x0000FD21"
+      ],
+      "presentation": {
+        "totalCompletePairs": 1175,
+        "foregroundIntervalMs": {
+          "n": 1093,
+          "min": 11.1576,
+          "median": 16.7587,
+          "p95": 19.6827,
+          "p99": 25.1979,
+          "max": 29.6783
+        },
+        "outsidePresentMs": {
+          "n": 1093,
+          "min": 4.3588,
+          "median": 9.2193,
+          "p95": 12.3271,
+          "p99": 15.175,
+          "max": 18.1512
+        },
+        "over25ms": 11,
+        "over50ms": 0,
+        "over100ms": 0,
+        "syncIntervalCounts": {
+          "1": 1175
+        },
+        "incompleteEvents": 1,
+        "largestForegroundGaps": [
+          {
+            "utc": "2026-11-19T19:07:40.9995727Z",
+            "gapMs": 29.6783,
+            "outsideMs": 18.1512
+          },
+          {
+            "utc": "2026-11-19T19:07:48.7954266Z",
+            "gapMs": 28.8279,
+            "outsideMs": 10.4514
+          },
+          {
+            "utc": "2026-11-19T19:07:41.2696720Z",
+            "gapMs": 27.8708,
+            "outsideMs": 9.8523
+          },
+          {
+            "utc": "2026-11-19T19:07:55.9770284Z",
+            "gapMs": 26.2534,
+            "outsideMs": 8.4593
+          },
+          {
+            "utc": "2026-11-19T19:07:49.8315738Z",
+            "gapMs": 26.0343,
+            "outsideMs": 11.315
+          }
+        ]
+      }
+    },
+    "userConfirmed": "OFF more fluid, ON less fluid",
+    "hundredPercentDriverHypothesis": "possible according to user; not verified",
+    "controlledOnMeasurement": "not started: game was closed",
+    "proposedDefaultChange": "only TPSCustomDOF OFF; preserve Native profile and TPS focus correction",
+    "profileChangeApplied": false
+  }
+}

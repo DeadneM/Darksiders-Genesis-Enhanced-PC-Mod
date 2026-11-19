@@ -45,3 +45,13 @@ Case indépendante OFF sous Horse Everywhere ; contrôle de sol de l’action na
 ## V1.172 — livraison vérifiée
 
 86/86 tests Windows, zéro avertissement/erreur C++, ZIP deux binaires contrôlé, lien vérifié et Defender sans détection. 259 clés, les 258 anciennes valeurs et 55 actions préservées ; aucune installation ou promotion main. Appel aérien OFF par défaut sous Horse Everywhere, validation utilisateur attendue. Optimisation CPU cumulée, micro-saccades non annoncées corrigées. [Reçu, ZIP et tests](V1_172_DELIVERY_RECEIPT.md).
+
+
+## GPU — comparaison native du 19 novembre
+
+Comparaison autorisée V1.172 / sans ASI, carte Arc B580 identique et premier plan suivi. Retour utilisateur : charge plus basse et jeu plus fluide sans mod ; utilisation 3D médiane Windows 50 % / 47,5 %, mémoire dédiée environ 3,35 / 2,85 Gio, intervalles API proches sur ces fenêtres courtes. Cause non isolée. Deux fichiers V1.172 restaurés, INI et sauvegardes intacts ; aucun fichier ne reste désactivé. Prochain essai proposé : seul NativeCustomDOF OFF avec le mod, sans build et après préparation utilisateur. [Résultats et limites](GPU_NATIVE_COMPARISON_2026_11_19.md).
+
+
+## TPS — effet du flou confirmé par retour utilisateur
+
+L’essai suivant a porté sur TPSCustomDOF OFF, pas sur NativeCustomDOF : préparation lue TPS=1, NativeCustomDOF=1, TPSCustomDOF=0. 15 observations toutes au premier plan ; retour utilisateur répété : OFF plus fluide, ON moins fluide. Le chiffre 100 % pourrait selon lui relever du pilote, sans confirmation technique. Aucun relevé ON contrôlé capturé car jeu fermé. Choix demandé avant changement : uniquement TPSCustomDOF OFF dans le profil actuel et les futurs défauts ; garder le profil natif, la correction de mise au point et l’option réactivable. Aucun défaut/profil changé automatiquement à ce stade. Fichiers V1.172 restaurés, aucun fichier ne reste désactivé. [Analyse et limites](GPU_NATIVE_COMPARISON_2026_11_19.md).
