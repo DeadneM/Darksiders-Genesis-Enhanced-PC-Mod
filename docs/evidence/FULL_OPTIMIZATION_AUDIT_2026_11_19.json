@@ -1,0 +1,1022 @@
+{
+  "auditDate": "2026-11-19",
+  "branch": "debug",
+  "headReviewed": "0499f6f68e27ba8c3775b5039953c44bc623ef6c",
+  "validatedGameplayBase": "V1.171",
+  "latestPackage": "V1.172",
+  "stableMain": "V1.168",
+  "mode": "read-only source audit; existing log read; no capture, production patch, build or install",
+  "inventory": {
+    "cpp": 62,
+    "headers": 125,
+    "lines": 27404,
+    "allCppReferencedByCmake": true
+  },
+  "currentLog": {
+    "sha256": "DD7A08CC9617304ED6A492B7DD9493FD77FA37EAE1BCFCD97318EA6214C9CDB1",
+    "build": "V1.172",
+    "start": "2026-11-19 20:04:17",
+    "end": "2026-11-19 20:10:17",
+    "matchedPS": 2,
+    "drawCalls": 78589432,
+    "blockedDraws": 54,
+    "stages": {
+      "gameplay-service": {
+        "samples": 1205,
+        "avgUs": 858.62,
+        "maxUs": 22445.6,
+        "inclusive": true,
+        "sampling": "1/64"
+      },
+      "pistol-observe": {
+        "samples": 1205,
+        "avgUs": 82.97,
+        "maxUs": 329.4,
+        "inclusive": true,
+        "sampling": "1/64"
+      },
+      "pistol-animation": {
+        "samples": 1513,
+        "avgUs": 1.03,
+        "maxUs": 193.7,
+        "inclusive": true,
+        "sampling": "1/64"
+      },
+      "stoneskin-observe": {
+        "samples": 1205,
+        "avgUs": 5.9,
+        "maxUs": 3303.7,
+        "inclusive": true,
+        "sampling": "1/64"
+      },
+      "wrath-discovery": {
+        "samples": 308,
+        "avgUs": 449.67,
+        "maxUs": 1974.1,
+        "inclusive": true,
+        "sampling": "1/64"
+      },
+      "appearance-discovery": {
+        "samples": 1205,
+        "avgUs": 98.83,
+        "maxUs": 8231.2,
+        "inclusive": true,
+        "sampling": "1/64"
+      },
+      "native-assist-inclusive": {
+        "samples": 28,
+        "avgUs": 194.82,
+        "maxUs": 981.4,
+        "inclusive": true,
+        "sampling": "1/64"
+      }
+    },
+    "framesMeasured": false,
+    "gpuTimeMeasured": false
+  },
+  "previousLogSession": {
+    "start": "2026-11-19 13:57:53",
+    "end": "2026-11-19 14:00:54",
+    "drawCalls": 24683182,
+    "matchedPS": 0,
+    "blockedDraws": 0,
+    "separateSession": true
+  },
+  "sourceFiles": [
+    {
+      "path": "src/AimAssistSettings.h",
+      "lines": 18,
+      "sha256": "1b15140148cb4bb8f680b104cf2f5a4f56454436b35d27cfc603fd3f557e7ae5"
+    },
+    {
+      "path": "src/AimShaderCatalog.h",
+      "lines": 198,
+      "sha256": "7cd44b3bc211c3ef0b63c312479c0ce7e54748216f003f512020bf13569ca4c6"
+    },
+    {
+      "path": "src/AirDashFeature.cpp",
+      "lines": 222,
+      "sha256": "ef4e90823615748bf62a05a72b1ba1be2725a64b09701c1f9f3c00826310f349"
+    },
+    {
+      "path": "src/AirDashFeature.h",
+      "lines": 18,
+      "sha256": "cd5046e0ffac3d8a67e38d7c9b397d94b47b897b5e1980c24e2fe294e3f771c2"
+    },
+    {
+      "path": "src/AirDashGesture.h",
+      "lines": 29,
+      "sha256": "4096250bd25f4c2ea3fea5814db40047c8117349a036c54448b313cac909d14f"
+    },
+    {
+      "path": "src/AirDashScriptContract.h",
+      "lines": 106,
+      "sha256": "15fef43472719a2fb89d0135d6783be167987964119fa93efef3bf6ed3ca6f5b"
+    },
+    {
+      "path": "src/AirJumpFeature.cpp",
+      "lines": 201,
+      "sha256": "92bec6f01aa205cc2cae8766ec3bf1bb214a053472ea753eabc97b3a32c64a17"
+    },
+    {
+      "path": "src/AirJumpFeature.h",
+      "lines": 9,
+      "sha256": "c76e84387975bcee8d89f3e7fc0a9ee58071031486df419495d0ead76254fbed"
+    },
+    {
+      "path": "src/AmmoConsumptionFeature.cpp",
+      "lines": 262,
+      "sha256": "a43dc218a17b036355ca73696eb867966be191d07531e6dfd2d01b78a5a8cd1e"
+    },
+    {
+      "path": "src/AmmoConsumptionFeature.h",
+      "lines": 20,
+      "sha256": "df302640bdc9ac5a22b91a1e63f9c0feecc1ea465d4b133965558dfeed917a15"
+    },
+    {
+      "path": "src/AmmoConsumptionPolicy.h",
+      "lines": 36,
+      "sha256": "af9b14b2bd2fe6e3cdfe565d02ec491372c26d1814bace1446b1b45f2e071293"
+    },
+    {
+      "path": "src/BuildInfo.h",
+      "lines": 7,
+      "sha256": "25aae8cecd61cc3baa7e32f76ae35a42535486c2b3b25872383224df40773ea5"
+    },
+    {
+      "path": "src/CameraBlurSettings.h",
+      "lines": 26,
+      "sha256": "29b2fd202a72c84b9c4347be2ec400494896cc08a75cbb264f48871f5e0c57ef"
+    },
+    {
+      "path": "src/CameraContinuity.h",
+      "lines": 29,
+      "sha256": "058a6328b9a9cf3221410f3be70e00b7433de94fd366aa2b3b372447d349f3dd"
+    },
+    {
+      "path": "src/CameraTraceFeature.cpp",
+      "lines": 1072,
+      "sha256": "00ef24ef605ceb311e785fea756b7c69eb23f42f0ee2423775240a2521a47cc1"
+    },
+    {
+      "path": "src/CameraTraceFeature.h",
+      "lines": 91,
+      "sha256": "ec6e71fee2f004bc676cbedf81bcae6d710f57c7a9292b382f0746b38b074791"
+    },
+    {
+      "path": "src/ChaosPoseFeature.cpp",
+      "lines": 171,
+      "sha256": "f749762635ae19a99829018926faa857b027492c8e574862d4219eaccb623d55"
+    },
+    {
+      "path": "src/ChaosPoseFeature.h",
+      "lines": 17,
+      "sha256": "a574e73396931a3b46e2ee3668fcbb77946eeed79b61792bd08658374d24e945"
+    },
+    {
+      "path": "src/ConfigStore.cpp",
+      "lines": 1468,
+      "sha256": "1b6ec0258166ba6f8d64536c77ac91bf14efe5b43e4a3a781be490570653c5e3"
+    },
+    {
+      "path": "src/ConfigStore.h",
+      "lines": 450,
+      "sha256": "e3684d41ab7d863adb7e1de1d32c73b45b25f16f39465778e05971b0fbd4d466"
+    },
+    {
+      "path": "src/ControllerReadScope.h",
+      "lines": 24,
+      "sha256": "5c9397e1e62dffc3a47b3f019054769ad0c33e12c860bd028ef36d43fe840f09"
+    },
+    {
+      "path": "src/CoopCameraFeature.cpp",
+      "lines": 292,
+      "sha256": "e22709170f83a060e0559866eb0604682dacd4579bb93029f8ac3ff343ef2d25"
+    },
+    {
+      "path": "src/CoopCameraFeature.h",
+      "lines": 20,
+      "sha256": "3e4782c7086d4d80626fb5f87efdc944609d4d2d8aaf3136d3993f70bcf39dd2"
+    },
+    {
+      "path": "src/CoreUiLevelFeature.cpp",
+      "lines": 101,
+      "sha256": "0a0b438447e980d0ef3788f3b42206346edddf94935670862aba62e1d34becb0"
+    },
+    {
+      "path": "src/CoreUiLevelFeature.h",
+      "lines": 10,
+      "sha256": "daf769dbf5e280254af65588a91d7340f9ee8b1050773efa760ea7d9527b69b3"
+    },
+    {
+      "path": "src/CoreUiRefreshPolicy.h",
+      "lines": 12,
+      "sha256": "1edbf877206a34b5aec8bd2ac73f04f3fca512dc8c6400e53d81ae1bf3143ce3"
+    },
+    {
+      "path": "src/CosmeticNativeBoundary.h",
+      "lines": 41,
+      "sha256": "56b43f4f48bc76518b4f70dbe4996848c41358645f9d29e9e81c1d9c3147bb9b"
+    },
+    {
+      "path": "src/CosmeticSelectionList.h",
+      "lines": 27,
+      "sha256": "5f892ec6ebaa8004a88b15eaffc25e1788158e961e7e6035fed87aa03252e234"
+    },
+    {
+      "path": "src/CosmeticUnlockFeature.cpp",
+      "lines": 138,
+      "sha256": "213824d3d809c20f36f2333d40b8e3b93661db8123ea91ffe465c11a38950ee1"
+    },
+    {
+      "path": "src/CosmeticUnlockFeature.h",
+      "lines": 8,
+      "sha256": "fe3211d8d8ed636527d837f1459465516f4928a24458c827cc61541ff87efc40"
+    },
+    {
+      "path": "src/DarksidersGenesisMod.cpp",
+      "lines": 4507,
+      "sha256": "dbcf1f9b1ef103c62a07325aac400fd7f64f8f03c84a7f6c3bead11a3f1f6f65"
+    },
+    {
+      "path": "src/DashCombatFeature.cpp",
+      "lines": 344,
+      "sha256": "ee182add035f85ef2a41caca0e53fc619aef826e607038f6b00a26066d10ca7c"
+    },
+    {
+      "path": "src/DashCombatFeature.h",
+      "lines": 12,
+      "sha256": "440426f80c81a3d9b724cd3f9e78561dd1ee8f1fadd6b5c2470461c2d9c7a781"
+    },
+    {
+      "path": "src/DashCombatPolicy.h",
+      "lines": 39,
+      "sha256": "d1d595ea1ee20450b8b7017be1044d1265ab66493afc69e3b547961badb59097"
+    },
+    {
+      "path": "src/DefaultSettings.h",
+      "lines": 28,
+      "sha256": "62207ad25feafee17c56cea4aa52063b28add624551a8b2e6b32738fc35fe6c3"
+    },
+    {
+      "path": "src/DiscoveryObjectBatch.h",
+      "lines": 28,
+      "sha256": "dd663ed8bf0b13f682d38aa4e6d89dea3e2f7a16ce0494053ea2ba6fdd398ca9"
+    },
+    {
+      "path": "src/dxgi_proxy.cpp",
+      "lines": 744,
+      "sha256": "08200092a423284303447d052fefb7cb7093570adfe1c60667907d8535e846dd"
+    },
+    {
+      "path": "src/EffectAppearanceData.h",
+      "lines": 572,
+      "sha256": "74c997b14492296f023b8df2806b5f78344ba3d5e464cf27cc06d0dd9f9ce8a1"
+    },
+    {
+      "path": "src/EffectAppearanceFeature.cpp",
+      "lines": 234,
+      "sha256": "1a1329f3d9bd71ec92766d315b2a12b7f7f004c9739e972521d735b081603170"
+    },
+    {
+      "path": "src/EffectAppearanceFeature.h",
+      "lines": 15,
+      "sha256": "3fbfd3ae0d037eacdb994a402ac8f5e9376d6360c54d5e8348d7821c056e1297"
+    },
+    {
+      "path": "src/EffectAppearanceSettings.h",
+      "lines": 116,
+      "sha256": "aea16982065594cb5394e7b57c3b3f69287b69306a5c2c557750098080e555d5"
+    },
+    {
+      "path": "src/EffectTransformSettings.h",
+      "lines": 21,
+      "sha256": "f0149246b3da5d8a1a68cf8aab6f16a490a58796fba923ed9e8312f6e051ba4f"
+    },
+    {
+      "path": "src/EngineIniFeature.cpp",
+      "lines": 20,
+      "sha256": "cdebf33e3245f69749a65d7561e7714eec8a0d353f73ce48d078b6c1abd7f5a9"
+    },
+    {
+      "path": "src/EngineIniFeature.h",
+      "lines": 14,
+      "sha256": "703dff08e17948aa300c09fc4c8607ab365d958999ea118cde7adb7e2aaf6f73"
+    },
+    {
+      "path": "src/ExecutionCameraFeature.cpp",
+      "lines": 63,
+      "sha256": "88fc2c10aca4cb230f00b823253cbf4f71c113fcb984107b9930984d54bd3d47"
+    },
+    {
+      "path": "src/ExecutionCameraFeature.h",
+      "lines": 8,
+      "sha256": "581ac75caba529b71453450c00a710d1b0038866a6de4c8807d89b7418a56530"
+    },
+    {
+      "path": "src/ExecutionCameraPolicy.h",
+      "lines": 38,
+      "sha256": "f20b1eec1bd07fd81dcbe2add381defce44bb7c31e6e4145d70681fff7f61295"
+    },
+    {
+      "path": "src/ForeignBeamFeature.cpp",
+      "lines": 180,
+      "sha256": "30b7ecf9acdbe490bdd34597c99000d36e27f03d08ebdd5364dda6227c5c4d18"
+    },
+    {
+      "path": "src/ForeignBeamFeature.h",
+      "lines": 14,
+      "sha256": "08f4d7a72abccba676ce83fbf6422d19ad085113776b1ed78ced692089691ab0"
+    },
+    {
+      "path": "src/ForeignCaltropsFeature.cpp",
+      "lines": 273,
+      "sha256": "b87992ce05b29b65a14c67c35d39761a4e5bede2c5a3d1524072d969212b95c6"
+    },
+    {
+      "path": "src/ForeignCaltropsFeature.h",
+      "lines": 21,
+      "sha256": "28e03fe5531dba2c686791420db2b80e135b83a67522441c151a2c8305be3481"
+    },
+    {
+      "path": "src/ForeignMontage.cpp",
+      "lines": 825,
+      "sha256": "7bf201766d0032b51067c19e3511f99e2a7287ac83a240d0a89947853b47231f"
+    },
+    {
+      "path": "src/ForeignMontage.h",
+      "lines": 33,
+      "sha256": "5d1de6b2a24cb59d33e31e9937c24b4f42f5e4fb4cad242135a1ed2e659f7535"
+    },
+    {
+      "path": "src/ForeignPowerFeature.cpp",
+      "lines": 134,
+      "sha256": "714d4626cc0040c86e537b2575ec0d4602a32f96747ac15476832934e81dc7f4"
+    },
+    {
+      "path": "src/ForeignPowerFeature.h",
+      "lines": 14,
+      "sha256": "7faa3f1f6ae04ac91cbadc91a84507b983db4753a92788b7a9451e66c9c65b2e"
+    },
+    {
+      "path": "src/ForeignRampageFeature.cpp",
+      "lines": 270,
+      "sha256": "5c32d5a281bd04baf08aad37cd72a043e719a831b181024bfd6f764b6418c852"
+    },
+    {
+      "path": "src/ForeignRampageFeature.h",
+      "lines": 19,
+      "sha256": "520b3a0a84ff6b612dcd5b5a349bcdc2151edee8b58d2694990eada7c9557a6d"
+    },
+    {
+      "path": "src/ForeignWrathFeature.cpp",
+      "lines": 308,
+      "sha256": "b81e0f446a320afebc5b25c11dea6a942b36a1de4d172f818cfd4f9d0ce9412a"
+    },
+    {
+      "path": "src/ForeignWrathFeature.h",
+      "lines": 14,
+      "sha256": "6ca8f43ff446d156a206f50e5a383c1f48cf88f77fb777cee131a0c6101d3d05"
+    },
+    {
+      "path": "src/GameplayMenuPolicy.h",
+      "lines": 19,
+      "sha256": "4f0dd2e811677e40ee62e13f4dae86fc08bde373ba3d6b1eba6cf13f662b0c09"
+    },
+    {
+      "path": "src/GaugeChargeFeature.cpp",
+      "lines": 311,
+      "sha256": "d3999b1a49e6ba2d9dec45bb96c944f8ed9394e0968bad525c062ea54b4303cb"
+    },
+    {
+      "path": "src/GaugeChargeFeature.h",
+      "lines": 13,
+      "sha256": "eee2633484edfa6eecdb2ae0b0b403ac88a9c0f4324a85a1a42468d4c3c65361"
+    },
+    {
+      "path": "src/GaugeRequestPolicy.h",
+      "lines": 29,
+      "sha256": "94a8ed3212135549e4c465d89292ae1501b85ee84dc24637f1fb7b79b6b6e894"
+    },
+    {
+      "path": "src/GaugeUnlimitedPolicy.h",
+      "lines": 21,
+      "sha256": "75caeadc0dc6fe842f9804cd21f79dad16add14c58086ac5b850bd4fdf1273d7"
+    },
+    {
+      "path": "src/GlideFeature.cpp",
+      "lines": 83,
+      "sha256": "1d4554880bfa5a6195a67c0a5aea8d4176c86529b003a3c5add510770ecc16b6"
+    },
+    {
+      "path": "src/GlideFeature.h",
+      "lines": 7,
+      "sha256": "2800724cd6421569abc730aef8de7bfa2fb7c0f151c2951714d74b56e633fdaf"
+    },
+    {
+      "path": "src/GrappleRangeFeature.cpp",
+      "lines": 92,
+      "sha256": "3b0a547755fc03c319aa11d5440936ec87a4a2820495930cbeb2b854aaae8281"
+    },
+    {
+      "path": "src/GrappleRangeFeature.h",
+      "lines": 6,
+      "sha256": "3b0cfe027fbb901500f5456c3023a9d3956755df4f99a82ee426484a6bbb4d5d"
+    },
+    {
+      "path": "src/HealthFeature.cpp",
+      "lines": 152,
+      "sha256": "61b59a1d5b5a069b4ef33b269933ef765eec38f7feed5421e8e2e584cda14a7a"
+    },
+    {
+      "path": "src/HealthFeature.h",
+      "lines": 11,
+      "sha256": "83b95e605119ee2d76ad1cfde08af42c4df26048929e2eab265246b89c08a546"
+    },
+    {
+      "path": "src/HeavyLandingFeature.cpp",
+      "lines": 128,
+      "sha256": "1e1961787ba9db3e66fe122209c18c5be20e4a93ab4ac5e9ffa4a638c975dfb8"
+    },
+    {
+      "path": "src/HeavyLandingFeature.h",
+      "lines": 10,
+      "sha256": "cd8f93f9afd157d115d0178bf1793c18e94c24070ba0cb978b953da3aa78e6c9"
+    },
+    {
+      "path": "src/HorseFeature.cpp",
+      "lines": 1305,
+      "sha256": "4900142201f3242b2eebd9ee4efb83ddef86a908e55658b61d6b4351f4379748"
+    },
+    {
+      "path": "src/HorseFeature.h",
+      "lines": 41,
+      "sha256": "a5f344365c6bdc8808b68f6097d35e390c9feb13a5fd7eb308c3f92747ac637c"
+    },
+    {
+      "path": "src/HotstreakFeature.cpp",
+      "lines": 162,
+      "sha256": "3e87647020d5bfe69ab47eff3788b5aa415818798deb2f33ce179b19c52294da"
+    },
+    {
+      "path": "src/HotstreakFeature.h",
+      "lines": 17,
+      "sha256": "b791b2a80ba7e4db0ae4e30434e9d7d0e2fe70e577abe7c56fbcfaf81eb76db0"
+    },
+    {
+      "path": "src/HotstreakPolicy.h",
+      "lines": 20,
+      "sha256": "718c3abe4e08c9eedccb31d15895c34db0bdf6dbe650d064f3b66d0c4c8801e5"
+    },
+    {
+      "path": "src/InteractionHudFeature.cpp",
+      "lines": 117,
+      "sha256": "15ffdcaa4599cc67770f0ee97bc5999babcacbd773ca72cecf1a0a72d4d1a9d7"
+    },
+    {
+      "path": "src/InteractionHudFeature.h",
+      "lines": 7,
+      "sha256": "12dc72c66d4a357b7dee414b3081d07cf8d18e4c89b297b4d95de439adcee44f"
+    },
+    {
+      "path": "src/LeviathanVisualFeature.cpp",
+      "lines": 197,
+      "sha256": "cafa431746fdb5b6f40bae8c7f3c79d33792a4bf5c1e878d3a5ea83cba5999d4"
+    },
+    {
+      "path": "src/LeviathanVisualFeature.h",
+      "lines": 10,
+      "sha256": "fa3e9b30ccaba857bcf8b2e2d6ee6b6a1bfb2247962adc46b049c88ee532fc3d"
+    },
+    {
+      "path": "src/LocalPlayerLayout.h",
+      "lines": 137,
+      "sha256": "f896377b5f15501318246c7a0307577c84b9800361915d6d63555ed80ad2cb04"
+    },
+    {
+      "path": "src/LocalPlayerOwnership.cpp",
+      "lines": 186,
+      "sha256": "adf0cc257e075415e87d7464a249e36a536d87d6b97a208e5a64fd6f25a130cc"
+    },
+    {
+      "path": "src/LocalPlayerOwnership.h",
+      "lines": 40,
+      "sha256": "19f8d0029dd9d188c0cb4935f5900ed6560cf481c1c96d16e04c360d25d94c63"
+    },
+    {
+      "path": "src/ManualActionBinding.h",
+      "lines": 37,
+      "sha256": "8604b7abe400dedc0b17121c3a27cd389dfbd28b883f2dc80fe2d3a4a9654993"
+    },
+    {
+      "path": "src/ManualAimFeature.cpp",
+      "lines": 155,
+      "sha256": "fcc78a7d519e9657c3c87bf24fbf0d0606c1db81ce1b6babaaabf0bb3da86156"
+    },
+    {
+      "path": "src/ManualAimFeature.h",
+      "lines": 15,
+      "sha256": "123c5fb68dc49627855490cecf344dac1e0e3d6e89849556d58709e21b88eaeb"
+    },
+    {
+      "path": "src/ManualGaugeFeature.cpp",
+      "lines": 349,
+      "sha256": "ec402c6b393020e76494abd8ec9568ed03272572bd1b0b9472b086160bb4913c"
+    },
+    {
+      "path": "src/ManualGaugeFeature.h",
+      "lines": 29,
+      "sha256": "6924b2e9cef6a8e5c228508f32177384282abdc2c84385234a594047c95b53f1"
+    },
+    {
+      "path": "src/MeleeEffectFeature.cpp",
+      "lines": 169,
+      "sha256": "1ff79f8f64826578258889f6911f6f443461c487ad0e40bbb912b2b2900524ee"
+    },
+    {
+      "path": "src/MeleeEffectFeature.h",
+      "lines": 8,
+      "sha256": "c8d569b058ddbd16a7ef887d01f6330c3d284bbc41b2c96a9a2b120ac8fb6278"
+    },
+    {
+      "path": "src/MeleeEffectPolicy.h",
+      "lines": 74,
+      "sha256": "1bd8000a1607eafc8670359ed8f3324bb57208128ca3fd7f3bbc59da7c00c473"
+    },
+    {
+      "path": "src/MenuAppearance.h",
+      "lines": 7,
+      "sha256": "e43c6a42bcd87b5066473e7718bfaed2d88f4b3a55adcc28a361215ca2310ad1"
+    },
+    {
+      "path": "src/MenuFontScope.h",
+      "lines": 19,
+      "sha256": "efdeb6e1faa1f2867a3b54f984c07b1a9c5b78b4ba1c65ac818dd31fdbb6fe18"
+    },
+    {
+      "path": "src/MountedAirWalkFloor.h",
+      "lines": 40,
+      "sha256": "717c84c4ee93b77daec005ace389d213413b1cf336d566e9bb19c41e49c5d8d9"
+    },
+    {
+      "path": "src/MountedAirWalkNative.h",
+      "lines": 135,
+      "sha256": "b37fce0f05ce8bdd11147b947dd033371c9bd54b5a631608cfe43c304aaf0059"
+    },
+    {
+      "path": "src/MountedAirWalkPolicy.h",
+      "lines": 18,
+      "sha256": "2e0c73b80abe18b3748e17c1d035b66a67c85de9c09d386e68f92f86a869d593"
+    },
+    {
+      "path": "src/MountedHolsterFeature.cpp",
+      "lines": 220,
+      "sha256": "de26469fc44c15084e81ab98e0129c7776aa4facc00650be61d07b9aae0844d7"
+    },
+    {
+      "path": "src/MountedHolsterFeature.h",
+      "lines": 9,
+      "sha256": "296096f1d87e6791f7466610ae4a84d7ea505bb3baeb9075fdbba4ba0111265e"
+    },
+    {
+      "path": "src/MountedJumpFeature.cpp",
+      "lines": 318,
+      "sha256": "3cfde925e5fc70105b32280cd35d47c3adef0f954db8d7dd99af7007b2efa864"
+    },
+    {
+      "path": "src/MountedJumpFeature.h",
+      "lines": 11,
+      "sha256": "a955943ece5088a4d7641811cf63659cc29a241b029c2c3bde9dbddced63e0d2"
+    },
+    {
+      "path": "src/MountedPassiveFx.cpp",
+      "lines": 93,
+      "sha256": "ed3fc254fac5ada53c2689405aeaf7f994b5e27abe21da35b1f49e1274e5f47d"
+    },
+    {
+      "path": "src/MountedPassiveFx.h",
+      "lines": 7,
+      "sha256": "36ed08bab1d588b65455a3f12fa84b00e6aa00c22cbfa1711e4136e8a302fa8f"
+    },
+    {
+      "path": "src/MouseFireRouting.h",
+      "lines": 18,
+      "sha256": "574c01c2c637a98d16cb1c8021cb81ba1a0e85ed85145a00c3e925ee1ff44837"
+    },
+    {
+      "path": "src/NativeAimAssistFeature.cpp",
+      "lines": 163,
+      "sha256": "86c1a2eefa49488248c1da392e195926434cee2c9d2321669154d45182b0e33b"
+    },
+    {
+      "path": "src/NativeAimAssistFeature.h",
+      "lines": 20,
+      "sha256": "644b0d51be5e83b40a15b9a1f80c0bb6020c1903c2c220eda6761165933179cf"
+    },
+    {
+      "path": "src/NativeBonePoint.h",
+      "lines": 32,
+      "sha256": "716b4b62ebe25b344a7030515dafe9b06d0db8ff8925b6d155dea4b3bdb66a44"
+    },
+    {
+      "path": "src/NativeCostProbe.h",
+      "lines": 48,
+      "sha256": "da2433fff3689a181c0b618f596bcd1dcff453b125575fb9312ecd1d231323f4"
+    },
+    {
+      "path": "src/NativeMemoryReader.h",
+      "lines": 45,
+      "sha256": "15ecaa598c8966a61828a8192c705cbd3c93520263b1cbb7671b6f9818c4e348"
+    },
+    {
+      "path": "src/NativeObjectIdentity.h",
+      "lines": 67,
+      "sha256": "64c39abfc71708b289e6b364e018bb176976ac485cf2a47e7bf0dbac60446796"
+    },
+    {
+      "path": "src/NativeObjectName.h",
+      "lines": 57,
+      "sha256": "26639cf420ee9c6854a5e9a9b2fae32604b211802a56153b666e1d61ab71dbb7"
+    },
+    {
+      "path": "src/NativePropertyField.h",
+      "lines": 25,
+      "sha256": "399276cb28982cf28c5f754b4bb9c7abf260713460c0b327172acd06d10c53cf"
+    },
+    {
+      "path": "src/NativeTpsFeature.cpp",
+      "lines": 434,
+      "sha256": "76b56e427e33fb3c5a409321a4cd7b318f8930117ceaffcb66c4683a93fc27a3"
+    },
+    {
+      "path": "src/NativeTpsFeature.h",
+      "lines": 24,
+      "sha256": "2475f200286d600349a3f3db2b79afb53587cd7aabde0c34e366a55be1ba4957"
+    },
+    {
+      "path": "src/OverlayBindingScope.h",
+      "lines": 16,
+      "sha256": "16baa50f7285f29c9b39fac8de0efac464d56842f6bf9872a965f80a318dae70"
+    },
+    {
+      "path": "src/OverlayLayout.h",
+      "lines": 128,
+      "sha256": "a6db1ffd740c168d25d0776468f58f6d89bad6522a650568693a2601964cda0b"
+    },
+    {
+      "path": "src/OverlayUi.cpp",
+      "lines": 1794,
+      "sha256": "27b90903a9917cf525b2e745fa0ddd79a5a0fef9d6049d92b31bb71cfac3f096"
+    },
+    {
+      "path": "src/OverlayUi.h",
+      "lines": 65,
+      "sha256": "149e99a2c4fe0713821e3fa1f41507895900de7aa62a97763c5763b719b16023"
+    },
+    {
+      "path": "src/OwnedParticleTransform.h",
+      "lines": 75,
+      "sha256": "2cb791da0280570962c2424e976b8dc571561bb6538556cb8fb44c87175d7970"
+    },
+    {
+      "path": "src/PistolAnimationPolicy.h",
+      "lines": 76,
+      "sha256": "bcc5faab57d7c6843566383a05763e583362365d9df6147cb60204e7b7c2b641"
+    },
+    {
+      "path": "src/PistolAppearanceSlots.h",
+      "lines": 44,
+      "sha256": "a4d39deecc79538dd71df09cf82be302a1ebe8b6e5ed0fbce1a450bbeedc34cc"
+    },
+    {
+      "path": "src/PistolVisualFeature.cpp",
+      "lines": 483,
+      "sha256": "2b522ab2ce6db12537b41047761efdc9737a86adc4751e4b80c138cabf1acb4f"
+    },
+    {
+      "path": "src/PistolVisualFeature.h",
+      "lines": 12,
+      "sha256": "c4ba84a056c525391738ed07e054dd218493802fa4ee19fabd143d6b5075190e"
+    },
+    {
+      "path": "src/PistolVisualPolicy.h",
+      "lines": 122,
+      "sha256": "c46cb9730ed897f0656c2be6d3500b45e956eee547335b75bcbda753757d852d"
+    },
+    {
+      "path": "src/PlayerAbilityOptions.cpp",
+      "lines": 143,
+      "sha256": "53379ae885b0fb73ec456f7a40466f228b6262e366570640a803cbaa8494aa10"
+    },
+    {
+      "path": "src/PlayerAbilityOptions.h",
+      "lines": 12,
+      "sha256": "9692c4cf8ab17911e092610abe9bb008884f32b06bd3ad5343c53353a648cddc"
+    },
+    {
+      "path": "src/PlayerPresentationFeature.cpp",
+      "lines": 114,
+      "sha256": "592919c1b2142d7470c81b0fbb0ac111a156553726ff125edb4314477d778a04"
+    },
+    {
+      "path": "src/PlayerPresentationFeature.h",
+      "lines": 10,
+      "sha256": "5d46dab5e8e1fb0519a9b2d64e67ed0a36b718d7b8d42bdd3d4eeb50e6b7f881"
+    },
+    {
+      "path": "src/PotionFeature.cpp",
+      "lines": 216,
+      "sha256": "13221f2b2c4cae174e0a2f841d50d5544241e99c55c4ba2fcea45de8a11bd0af"
+    },
+    {
+      "path": "src/PotionFeature.h",
+      "lines": 20,
+      "sha256": "2077c642864612fb35428b13565af91846692de4bf35dd7ab98e0e9b1cb3c475"
+    },
+    {
+      "path": "src/PotionPolicy.h",
+      "lines": 17,
+      "sha256": "62b70c159b31105c69b3672cae9c9f86ab5a0f43b0f8a17b548c2a256b4e56c5"
+    },
+    {
+      "path": "src/ProjectileAimFeature.cpp",
+      "lines": 288,
+      "sha256": "9575993ce57e81dce3acf411d9283fb4ceb7207dd5fac5003f8e43dcab243b35"
+    },
+    {
+      "path": "src/ProjectileAimFeature.h",
+      "lines": 9,
+      "sha256": "307565df4fbaaa4c04cede3026fa9c3798717e16d811b53db23345ee134d0d9e"
+    },
+    {
+      "path": "src/RadialSelectionState.h",
+      "lines": 14,
+      "sha256": "ce85c0f867923ff77d7556efe8ac92d42e45784f904c963265ad86aa8dbf2c7e"
+    },
+    {
+      "path": "src/RangedScriptContract.h",
+      "lines": 33,
+      "sha256": "994c1c0475de03058f21dff6b029b6d7b635b584cf806828b9b38cca3f1077ce"
+    },
+    {
+      "path": "src/RangedStateFeature.cpp",
+      "lines": 98,
+      "sha256": "8a2abe38b5e7139fe3eb589887b9dfa3ad296b2595df236743fe27099c687b3b"
+    },
+    {
+      "path": "src/RangedStateFeature.h",
+      "lines": 9,
+      "sha256": "85d4f4831fc6da792a17b06d143f4cd8f544483f511b046c18835c61bdf86dc8"
+    },
+    {
+      "path": "src/RangedStatePolicy.h",
+      "lines": 14,
+      "sha256": "74ad7108dc3c33b23b664dbf459e8ebfc3f3bc45cca7a501d7c26c2d35fe202a"
+    },
+    {
+      "path": "src/RecoverySettings.h",
+      "lines": 8,
+      "sha256": "28fa8426fd5ea9bd93aa93a5bd210d06f8a516f85575e2e6e94a21cb5621138d"
+    },
+    {
+      "path": "src/RecoveryTailFeature.cpp",
+      "lines": 132,
+      "sha256": "69f436a75cf16f11ede543ee5a9cc3c8933d77f33cd98968e16e315bf5fbc916"
+    },
+    {
+      "path": "src/RecoveryTailFeature.h",
+      "lines": 9,
+      "sha256": "a7c05cb714d5bea5bc354812cb76855b0d8ddea4eb72e0abc3166a4ead858a8e"
+    },
+    {
+      "path": "src/RefillRequest.h",
+      "lines": 35,
+      "sha256": "375e2ef25ba44256251c1065ea70c7fa574686f8f2fcad34daf755222bf88b17"
+    },
+    {
+      "path": "src/RenderSafetyFeature.cpp",
+      "lines": 66,
+      "sha256": "a3f7f1ee387153593388f104ed1911347d9dfc775d9375b544e3a4469b36ab8a"
+    },
+    {
+      "path": "src/RenderSafetyFeature.h",
+      "lines": 9,
+      "sha256": "2ff16059eb56ee5ec6eb9d4d959571144afa783a701c6ea9bf85e806b0708d05"
+    },
+    {
+      "path": "src/RenderSafetyPolicy.h",
+      "lines": 36,
+      "sha256": "7f15a15d36e9aa771d406dea50eb045900458fbd17af7358b35bfc97aaddaa92"
+    },
+    {
+      "path": "src/ResourceGainFeature.cpp",
+      "lines": 174,
+      "sha256": "1ee1edec84a844f13e77055bba7fae42e3edff819e49d588bee2ccb1af1765a7"
+    },
+    {
+      "path": "src/ResourceGainFeature.h",
+      "lines": 11,
+      "sha256": "1ca189b0c74f515f36fbd4934b52e4012dfe772adba4f6965f62023f2d03e900"
+    },
+    {
+      "path": "src/ResourceGainPolicy.h",
+      "lines": 23,
+      "sha256": "d7d48cdb722697901a5ca6958ea7d9aa7c4c19c5fa71ce39ddbb71a7fb66f250"
+    },
+    {
+      "path": "src/RuntimeSettings.cpp",
+      "lines": 163,
+      "sha256": "e123d17ca69ec555e5ced5a5b5ecf0b901a4e9a5cfdeb6b0baa74bb61485f542"
+    },
+    {
+      "path": "src/RuntimeSettings.h",
+      "lines": 319,
+      "sha256": "01de593416755dbfd7ba9c9022fdb4aa41e300efa86e379ea1806664dfa92770"
+    },
+    {
+      "path": "src/SelectedAssetRecovery.h",
+      "lines": 29,
+      "sha256": "39bb3732f41b60a05d3f694c9f877efc3e29ad923742706b9c55a157a6956b1c"
+    },
+    {
+      "path": "src/SelectedParticleLoader.h",
+      "lines": 50,
+      "sha256": "81fbea3f2ab4deb1ec4f397ecdae39cb4c006b5202b3cfee8b506e669a8ab6ad"
+    },
+    {
+      "path": "src/ShaderAimFeature.cpp",
+      "lines": 231,
+      "sha256": "2f2e26506064b00049eefe0a92daa51d34be28284f3635e3730c836e2d64a3b7"
+    },
+    {
+      "path": "src/ShaderAimFeature.h",
+      "lines": 17,
+      "sha256": "d0544a498f47ed2109a6db41af45901a282f20ee9d5be1817dea2f7107fcd6bc"
+    },
+    {
+      "path": "src/ShieldVisualFeature.cpp",
+      "lines": 98,
+      "sha256": "45ab93ea43bc4e283f6a01792ec32c18035e605dc8e1da42f95016eb20987c36"
+    },
+    {
+      "path": "src/ShieldVisualFeature.h",
+      "lines": 11,
+      "sha256": "a9bffdf37cf21d6768f22c5ea9c2cba107b2a76da8bacaa6d5c0fc2382f941d0"
+    },
+    {
+      "path": "src/SkipLogosFeature.cpp",
+      "lines": 131,
+      "sha256": "bc39809212b17c487a24533fa5c775a8b4a9e3a78058ef4c7bf7f9b918e448bc"
+    },
+    {
+      "path": "src/SkipLogosFeature.h",
+      "lines": 21,
+      "sha256": "bc733b67c8f3d6226815d13314528156bb209eec65402d9ffc3c728a89ca464b"
+    },
+    {
+      "path": "src/SkipWarningFeature.cpp",
+      "lines": 192,
+      "sha256": "3d68bb4b5f19a60c99c758b66adc7d4c0d9ffae8953ade3a02e60d63fe295572"
+    },
+    {
+      "path": "src/SkipWarningFeature.h",
+      "lines": 10,
+      "sha256": "3add76f7fe2ed7ef2f4d7e8600f3df789ce0a34408dc8d8caadd081de5610f14"
+    },
+    {
+      "path": "src/StoneSkinVisual.cpp",
+      "lines": 467,
+      "sha256": "3d213ddd4faece11d498f044245ca07a9f49ffe5a3b81254c2b541b0a9d09b9a"
+    },
+    {
+      "path": "src/StoneSkinVisual.h",
+      "lines": 13,
+      "sha256": "2739787a372f74e14951a240dcc816780a53dc9e6a87489f6928e70935339943"
+    },
+    {
+      "path": "src/StoneTransitionFx.cpp",
+      "lines": 68,
+      "sha256": "4f6ebeb46f0ea15d65b32f33a2b5c59257d4127f04dbc5c93b1ebad781dc60c4"
+    },
+    {
+      "path": "src/StoneTransitionFx.h",
+      "lines": 13,
+      "sha256": "ef3f6dd31d224d5c0aaf53ee5208f04c489a0730a503b21e5598f0b01b552dd9"
+    },
+    {
+      "path": "src/TargetValidator.cpp",
+      "lines": 176,
+      "sha256": "55274bc430cf7e94c40f1a53b0a9ecd25cb5f9893292908dbb2bf5d14dda3f86"
+    },
+    {
+      "path": "src/TargetValidator.h",
+      "lines": 16,
+      "sha256": "bdeba701962a5ebb7b7b475310e3da7d8495336f3135e204002288134528ad7b"
+    },
+    {
+      "path": "src/TemporalAAFeature.cpp",
+      "lines": 120,
+      "sha256": "1cc58e48fdad3014f98e4eeeea7f7fc5e4ca8b4f6c091465144f80334d421a9f"
+    },
+    {
+      "path": "src/TemporalAAFeature.h",
+      "lines": 11,
+      "sha256": "65a77539aee42cf8c0d3815ca513b63359aed3ed74b232cf889c65ed117d4f13"
+    },
+    {
+      "path": "src/TemporalAASettings.h",
+      "lines": 48,
+      "sha256": "7e012f00207404cb018cc3e923b5a44e83c2baeb70f85a3a7a0abc50e7851c6a"
+    },
+    {
+      "path": "src/TpsAimDirection.h",
+      "lines": 18,
+      "sha256": "ed18c268898ecffc5576073871dad04c4068383a18e21b000129834d3938441b"
+    },
+    {
+      "path": "src/TpsAimTarget.h",
+      "lines": 34,
+      "sha256": "26db406e496c100c8dfa36011a3b5222b427f40f1f74996b13c4a370c23a2e0a"
+    },
+    {
+      "path": "src/TpsCameraFocus.h",
+      "lines": 155,
+      "sha256": "8ff791c5253ffe9e3c58994903170344f5c26fd3e9641eec29861e3f5de5ba68"
+    },
+    {
+      "path": "src/TpsPadActions.h",
+      "lines": 78,
+      "sha256": "0d3574f0fbe64d27ec63036b561b86b80efcc5b6adfc8fb095d51a631cca26f5"
+    },
+    {
+      "path": "src/TpsStickRoles.h",
+      "lines": 27,
+      "sha256": "2fcdce4b4cfa4bc5cc52cf1e8c57bc25f137997abae5fca482c6805f951522ce"
+    },
+    {
+      "path": "src/UltimateDurationFeature.cpp",
+      "lines": 70,
+      "sha256": "e1e90fc04fa1160e52f2d7143465b034750921b10a432f77bf27b01d0ac0f57b"
+    },
+    {
+      "path": "src/UltimateDurationFeature.h",
+      "lines": 6,
+      "sha256": "b225e9024e45b35789e4a7f6d30aab213955c749e600669503ad5f9c28452b75"
+    },
+    {
+      "path": "src/UpdateFeature.cpp",
+      "lines": 331,
+      "sha256": "3cf2f4296626ed223650c3e51ddc5ebe55581899eb145c744d9b71c0836c68e5"
+    },
+    {
+      "path": "src/UpdateFeature.h",
+      "lines": 24,
+      "sha256": "e612f98db185c0794af46bd348f948ccceee40665bb391265187b83cecaa0f58"
+    },
+    {
+      "path": "src/UpdateNoticePolicy.h",
+      "lines": 20,
+      "sha256": "e9423b12650f4e418a2577e4d5a9d3e0ca1e63258c7a5706450da35e5057742c"
+    },
+    {
+      "path": "src/UpdateNoticeUi.h",
+      "lines": 26,
+      "sha256": "8ae81e8cc66d3a699394a6d7b9b1d1e21c7d0339edbbcb6f880ab038382feeab"
+    },
+    {
+      "path": "src/UpdateVersionPolicy.h",
+      "lines": 11,
+      "sha256": "b72f448d96fed4e121cf77c6db118450ad5f86710fd9a0a1e694997246bbfab4"
+    },
+    {
+      "path": "src/WarningPresentationPolicy.h",
+      "lines": 18,
+      "sha256": "106de1275bddfe600e027ae167bda76d0c59be5ab959b3e9a09db9c8843ee7eb"
+    },
+    {
+      "path": "src/WeaponSheathingFeature.cpp",
+      "lines": 110,
+      "sha256": "681000c8a2bb7939025efb47d2bfe78d5b9fa8e5cf1049d62e14c8dc936ae392"
+    },
+    {
+      "path": "src/WeaponSheathingFeature.h",
+      "lines": 10,
+      "sha256": "2fcf6eef23ab010c5c4875230cf8d92d0dd683b311aaf088dace9a06749cede0"
+    },
+    {
+      "path": "src/WrathSlotFeature.cpp",
+      "lines": 118,
+      "sha256": "07b8a0272699a1193e13d3fc5e391448faf6d66e3a2799baae610c366eec1423"
+    },
+    {
+      "path": "src/WrathSlotFeature.h",
+      "lines": 11,
+      "sha256": "c0435b65bb746f8551f4979cd633555f2fe64e2cd1871d35004f6f0e8af36706"
+    },
+    {
+      "path": "src/WrathSlotSettings.h",
+      "lines": 20,
+      "sha256": "c8f0d732adf0a0a6b0ae34b2d1ea68ceb3cbf848033bdab98eb9ee5cd382328f"
+    }
+  ]
+}

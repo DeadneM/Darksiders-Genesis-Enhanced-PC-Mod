@@ -1,3 +1,9 @@
+## Audit global des optimisations — 19 novembre 2026
+
+Deux passes comparées sur les sources et le dernier journal V1.172 : pistes CPU priorisées, protections et réglages conservés. Aucun patch ni nouveau build pour cet audit ; aucun gain FPS/GPU annoncé. [Rapport, preuves et lots proposés](docs/FULL_OPTIMIZATION_AUDIT_2026_11_19.md).
+
+---
+
 ## V1.172 — beta disponible sur debug
 
 Case **Summon horse in the air** sous Horse Everywhere, OFF par défaut. Appel natif et règles de zone conservés ; fonction à tester en jeu. Petite optimisation CPU cumulée, gain non mesuré. Base V1.171 validée ; 86/86 tests Windows, ZIP vérifié, main V1.168 préservée. [Téléchargement et tests](docs/V1_172_DELIVERY_RECEIPT.md).
