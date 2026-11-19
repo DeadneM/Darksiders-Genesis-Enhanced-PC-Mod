@@ -1,6 +1,6 @@
 # File active — base V1.168 validée
 
-Dernier point : 18 novembre 2026. V1.170 beta cumulative en préparation : [arbre et options d’image](V1_170_REVIEW.md). V1.169 intermédiaire conservée. V1.168 est entièrement VALIDÉE, publiée sur main et en release v1.168 ; 85/85 contrôles Windows. TAA/netteté terminé. Aucun ancien défaut validé n’est rouvert sans nouveau retour.
+Dernier point : 19 novembre 2026. V1.170 beta cumulative disponible, 86/86 tests : [livraison, arbre et options d’image](V1_170_DELIVERY_RECEIPT.md). Validation en jeu attendue, sans installation automatique. V1.169 intermédiaire conservée. V1.168 est entièrement VALIDÉE, publiée sur main et en release v1.168 ; 85/85 contrôles Windows. TAA/netteté terminé. Aucun ancien défaut validé n’est rouvert sans nouveau retour.
 
 ## Suite, par ordre de preuve disponible
 
@@ -13,6 +13,6 @@ Dernier point : 18 novembre 2026. V1.170 beta cumulative en préparation : [arbr
 
 ## Règles de reprise
 
-Travailler sur debug, préserver main/release, INI et raccourcis. Build V1.169 autorisée par la nouvelle demande utilisateur ; aucun lancement/installation automatique. Captures du menu effectuées en lecture seule ; aucun remplacement de fichiers pendant que le jeu est ouvert. Réutiliser les reçus et le cache local ; lire seulement les différences. Un diagnostic n’est pas une correction validée.
+Travailler sur debug, préserver main/release, INI et raccourcis. Build cumulative V1.170 autorisée par la demande utilisateur ; aucun lancement/installation automatique. Captures du menu effectuées en lecture seule ; aucun remplacement de fichiers pendant que le jeu est ouvert. Réutiliser les reçus et le cache local ; lire seulement les différences. Un diagnostic n’est pas une correction validée.
 
 L’ancienne file chronologique est conservée intégralement dans [l’historique](history/ACTIVE_QUEUE_THROUGH_V1_168_2026_11_18.md). Ses anciens statuts ne remplacent pas la validation globale V1.168. Les autres idées historiques restent consultables et ne deviennent pas automatiquement du travail actif.

@@ -696,3 +696,8 @@ Deux filtres natifs facultatifs préparés avec contrats EXE vérifiés, réutil
 ## V1.170 — indicateurs des cœurs, preuve et correctif ciblé
 
 Deux captures hôte du même processus V1.168 : 205 widgets, aucune erreur ; 30 nœuds mineurs gardent leurs niveaux mais récupèrent leurs indicateurs après réouverture. Contrats de classe/package et RefreshNodes sans paramètres vérifiés. Candidat : un rafraîchissement natif après deux ticks complets de la page, identités faibles, pas de nouveau hook ni visibilité forcée. Désactivable ; effets d’image V1.169 cumulés. [Détails et tests](V1_170_REVIEW.md). Les journaux lus hors du contexte hôte étaient ceux du 16 novembre ; la capture et la version réellement chargée du 18 novembre ont été vérifiées via lecture hôte autorisée. Aucun fichier du jeu ni sauvegarde modifié par le lecteur externe.
+
+
+## V1.170 — livraison du 19 novembre 2026
+
+Beta cumulative publiée sur debug : 86/86 tests Windows, zéro avertissement/erreur C++, ZIP deux binaires AMD64 vérifié et Defender sans détection. 234 anciennes archives, main V1.168 et profils préservés. Aucun essai/install supplémentaire ; validation utilisateur du premier accès à l’arbre et des deux filtres encore attendue. [Reçu et tests](V1_170_DELIVERY_RECEIPT.md). SourceControl demeure en recherche.

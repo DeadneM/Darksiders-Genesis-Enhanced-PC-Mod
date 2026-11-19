@@ -1,12 +1,12 @@
-## V1.170 — beta cumulative en construction
+## V1.170 — beta cumulative disponible sur debug
 
-Arbre des cœurs : rafraîchissement natif unique après affichage initial, fondé sur deux captures comparées ; ON par défaut, encore EXPÉRIMENTAL. Inclut les deux filtres d’image OFF par défaut de V1.169. Base stable V1.168 conservée. [Périmètre, preuves et tests](docs/V1_170_REVIEW.md).
+Arbre des cœurs : rafraîchissement natif unique après affichage initial, ON par défaut et désactivable. Deux filtres d’image OFF par défaut : flou de mouvement et franges colorées. Base stable V1.168 conservée. 86/86 tests Windows ; rendu et correctif restent à valider en jeu. Aucune installation automatique. [ZIP, contrôles et tests](docs/V1_170_DELIVERY_RECEIPT.md).
 
 ---
 
-## V1.169 — beta d’options d’image en construction
+## V1.169 — beta intermédiaire conservée
 
-Depuis V1.168 validée : deux cases indépendantes et OFF par défaut pour retirer le flou de mouvement et les franges colorées. Aucune modification des anciens réglages, de l’arbre des cœurs ou de SoulBarrier ; ces deux recherches restent ouvertes. [Périmètre, limites et tests](docs/V1_169_REVIEW.md).
+Depuis V1.168 validée : deux cases indépendantes et OFF par défaut pour retirer le flou de mouvement et les franges colorées. Aucune modification des anciens réglages, de l’arbre des cœurs ou de SoulBarrier ; SourceControl reste en recherche et l’arbre reçoit un candidat dans V1.170. [Périmètre, limites et tests](docs/V1_169_REVIEW.md).
 
 ---
 

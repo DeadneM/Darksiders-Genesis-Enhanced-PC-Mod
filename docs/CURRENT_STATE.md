@@ -1,9 +1,9 @@
-# État courant — V1.170 beta en préparation
+# État courant — V1.170 beta disponible
 
-Stable : V1.168 validée, main/release inchangées. V1.169 intermédiaire construite, 85/85 contrôles et deux filtres d’image OFF, archive conservée. La comparaison live des niveaux de cœurs a permis d’ajouter un correctif au lot cumulatif V1.170.
+Stable : V1.168 VALIDÉE, main/release inchangées. V1.170 cumulative construite sur GitHub : 86/86 tests, aucun avertissement/erreur C++ détecté. ZIP et lien public contrôlés, Defender sans détection, 234 anciennes archives préservées. Aucune installation ni modification d’INI personnel. [Livraison et téléchargement](V1_170_DELIVERY_RECEIPT.md).
 
-Nouveautés à tester : rafraîchissement natif unique de l’arbre après deux ticks (ON, désactivable), filtres de flou de mouvement/franges colorées (OFF). 258 clés de référence, 55 Hotkeys, toutes les 255 valeurs V1.168 conservées. Aucune installation ou modification d’INI personnel dans ce travail. [Périmètre et tests](V1_170_REVIEW.md).
+À tester : rafraîchissement natif unique de l’arbre après deux ticks (ON, désactivable), filtres de flou de mouvement/franges colorées (OFF). 258 clés de référence, 55 Hotkeys et toutes les 255 valeurs V1.168 conservées. Statut en jeu : EXPÉRIMENTAL, pas de réussite annoncée avant retour utilisateur.
 
-Diagnostic vérifié : 205 widgets comparés sans erreur, niveaux des nœuds stables mais 30 ensembles d’indicateurs auparavant cachés. Deux lectures externes sans appel ni écriture ; contrat de RefreshNodes = 0 paramètre vérifié. Correctif encore EXPÉRIMENTAL, pas de réussite en jeu annoncée avant retour.
+Diagnostic : 205 widgets comparés sans erreur, niveaux des nœuds stables mais 30 ensembles d’indicateurs auparavant cachés. Contrat RefreshNodes sans paramètres vérifié. [Périmètre et tests](V1_170_REVIEW.md).
 
 SourceControl/SoulBarrier reste en recherche ; aucun patch de PAK ni gain FPS annoncé. [File](ACTIVE_QUEUE.md) · [Base stable](V1_168_MAIN_RELEASE.md).
