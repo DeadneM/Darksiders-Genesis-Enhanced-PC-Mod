@@ -1,3 +1,9 @@
+## V1.173 — optimisation CPU préparée sur debug
+
+Rendu/réglages et réactivité conservés : moins de comptage et de calculs répétés, aucune temporisation ajoutée. Compilation Windows sur GitHub à venir ; gain de fluidité encore expérimental. [Périmètre et tests](docs/V1_173_REVIEW.md).
+
+---
+
 ## Audit global des optimisations — 19 novembre 2026
 
 Deux passes comparées sur les sources et le dernier journal V1.172 : pistes CPU priorisées, protections et réglages conservés. Aucun patch ni nouveau build pour cet audit ; aucun gain FPS/GPU annoncé. [Rapport, preuves et lots proposés](docs/FULL_OPTIMIZATION_AUDIT_2026_11_19.md).

@@ -2,6 +2,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 namespace dg::native_objects {
 // Exact supported UE4 build: FUObjectItem is 24 bytes; serial at +16.
@@ -23,6 +24,16 @@ bool Item(Reader& reader,uintptr_t base,int32_t index,uintptr_t& address,
        !reader.Read(base+0x3959680,0,chunks)||!chunks||
        !reader.Read(chunks,size_t(index/65536)*8,chunk)||!chunk)return false;
     const auto offset=size_t(index%65536)*24;
+    // Read through the serial only, without the FUObjectItem's tail padding.
+    // Some readers/region boundaries permit the individual fields only.
+    std::array<unsigned char,20> item{};
+    if(reader.Read(chunk,offset,item)){
+        std::memcpy(&address,item.data(),sizeof(address));
+        if(!address)return false;
+        std::memcpy(&flags,item.data()+8,sizeof(flags));
+        std::memcpy(&serial,item.data()+16,sizeof(serial));
+        return serial>=0&&!(flags&0x30000000u);
+    }
     return reader.Read(chunk,offset,address)&&address&&reader.Read(chunk,offset+8,flags)&&
         reader.Read(chunk,offset+16,serial)&&serial>=0&&!(flags&0x30000000u);
 }

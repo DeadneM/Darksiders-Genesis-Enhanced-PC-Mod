@@ -4,23 +4,140 @@
 #include <iostream>
 #include <map>
 #include <stdexcept>
+#include <vector>
 
 namespace {
 struct Reader {
-    std::map<uintptr_t,unsigned char> bytes;unsigned reads=0;
+    std::map<uintptr_t,unsigned char> bytes;unsigned reads=0,blockReads=0;
+    bool rejectBlocks=false;uintptr_t refusedRead=0;size_t refusedSize=0;
     template<class T> void Put(uintptr_t at,const T& value){
         const auto* raw=reinterpret_cast<const unsigned char*>(&value);
         for(size_t i=0;i<sizeof(value);++i)bytes[at+i]=raw[i];
     }
     template<class T> bool Read(uintptr_t at,size_t offset,T& value){
         ++reads;auto* raw=reinterpret_cast<unsigned char*>(&value);
+        if(sizeof(value)==20){
+            ++blockReads;
+            if(rejectBlocks){std::memset(&value,0xA5,sizeof(value));return false;}
+        }
+        if(at+offset==refusedRead&&sizeof(value)==refusedSize)return false;
         for(size_t i=0;i<sizeof(value);++i){auto item=bytes.find(at+offset+i);if(item==bytes.end())return false;raw[i]=item->second;}
         return true;
     }
 };
+// Matches field-oriented template readers used by other native-layout tests:
+// a larger read at the same address is refused rather than synthesized.
+struct FieldReader {
+    std::map<uintptr_t,std::vector<unsigned char>> fields;unsigned reads=0,blockReads=0;
+    template<class T> void Put(uintptr_t at,const T& value){
+        auto& bytes=fields[at];bytes.resize(sizeof(value));std::memcpy(bytes.data(),&value,sizeof(value));
+    }
+    template<class T> bool Read(uintptr_t at,size_t offset,T& value){
+        ++reads;if(sizeof(value)==20)++blockReads;
+        const auto item=fields.find(at+offset);
+        if(item==fields.end()||item->second.size()!=sizeof(value))return false;
+        std::memcpy(&value,item->second.data(),sizeof(value));return true;
+    }
+};
 void Check(bool value,const char* message){if(!value)throw std::runtime_error(message);}
+// Reference implementation before the grouped read. Compare failure outputs as
+// well as the result, including the original short-circuit write order.
+template<class R>
+bool PreviousItem(R& reader,uintptr_t base,int32_t index,uintptr_t& address,int32_t& serial,uint32_t& flags){
+    int32_t count=0;uintptr_t chunks=0,chunk=0;
+    if(index<0||!reader.Read(base+0x3959694,0,count)||count<=0||count>2000000||index>=count||
+       !reader.Read(base+0x3959680,0,chunks)||!chunks||
+       !reader.Read(chunks,size_t(index/65536)*8,chunk)||!chunk)return false;
+    const auto offset=size_t(index%65536)*24;
+    return reader.Read(chunk,offset,address)&&address&&reader.Read(chunk,offset+8,flags)&&
+        reader.Read(chunk,offset+16,serial)&&serial>=0&&!(flags&0x30000000u);
+}
+constexpr uintptr_t Base=0x10000000,Chunks=0x20000000,Chunk=0x21000000,Object=0x30000200;
+constexpr int32_t Index=2;
+constexpr uintptr_t Entry=Chunk+size_t(Index)*24;
+template<class R> R IdentityReader(){
+    R reader;reader.Put(Base+0x3959694,int32_t(16));reader.Put(Base+0x3959680,Chunks);reader.Put(Chunks,Chunk);
+    reader.Put(Entry,Object);reader.Put(Entry+8,uint32_t(0x80));reader.Put(Entry+12,uint32_t(0xABCD));reader.Put(Entry+16,int32_t(7));
+    reader.Put(Object+8,uint32_t(0));reader.Put(Object+0xC,Index);return reader;
+}
+struct ReadCounts {unsigned previous,current,blocks;};
+template<class R> ReadCounts CompareItem(R reader,int32_t index,bool expected,const char* message){
+    auto previous=reader;
+    uintptr_t oldAddress=0xDEADBEEF,address=oldAddress;int32_t oldSerial=-123,serial=oldSerial;uint32_t oldFlags=0xA55AA55A,flags=oldFlags;
+    const bool oldResult=PreviousItem(previous,Base,index,oldAddress,oldSerial,oldFlags);
+    const bool result=dg::native_objects::Item(reader,Base,index,address,serial,flags);
+    Check(oldResult==expected&&result==oldResult&&address==oldAddress&&serial==oldSerial&&flags==oldFlags,message);
+    return {previous.reads,reader.reads,reader.blockReads};
+}
+template<class R> void CompareLifecycle(R reader,const dg::native_objects::Identity& identity,bool expectedAlive,bool expectedCapture){
+    using namespace dg::native_objects;
+    auto previous=reader;uintptr_t address=0;int32_t serial=0;uint32_t flags=0;
+    const bool oldAlive=identity&&PreviousItem(previous,Base,identity.index,address,serial,flags)&&address==identity.address&&serial==identity.serial;
+    Check(oldAlive==expectedAlive&&Alive(reader,Base,identity)==oldAlive,"old/new liveness and address-reuse guard agree");
+    previous=reader;int32_t index=-1;uint32_t objectFlags=0;Identity oldCapture{0xABC,99,99},capture=oldCapture;
+    const bool oldCaptured=previous.Read(Object,8,objectFlags)&&!(objectFlags&0x30u)&&previous.Read(Object,0xC,index)&&
+        PreviousItem(previous,Base,index,address,serial,flags)&&address==Object&&serial>0;
+    if(oldCaptured)oldCapture={address,index,serial};
+    const bool captured=Capture(reader,Base,Object,capture);
+    Check(oldCaptured==expectedCapture&&captured==oldCaptured&&capture==oldCapture,"old/new capture result and unchanged failure identity agree");
+}
+void RunItemBatchChecks(){
+    auto reader=IdentityReader<Reader>();
+    const auto success=CompareItem(reader,Index,true,"grouped item has the old success result and outputs");
+    Check(success.previous==6&&success.current==4&&success.blocks==1,"successful Item uses four reads instead of six and exactly one 20-byte read");
+    // No bytes at Entry+20: success also proves the request excludes tail padding.
+    auto refused=reader;refused.rejectBlocks=true;
+    const auto fallback=CompareItem(refused,Index,true,"a rejected and dirtied block falls back to the original field reads");
+    Check(fallback.previous==6&&fallback.current==7&&fallback.blocks==1,"block refusal adds one attempt and preserves the six original reads");
+    const auto fields=CompareItem(IdentityReader<FieldReader>(),Index,true,"sizeof-keyed field reader remains compatible");
+    Check(fields.previous==6&&fields.current==7&&fields.blocks==1,"field-only reader rejects the block and accepts the three separate fields");
+    for(const auto flags:{0x10000000u,0x20000000u,0x30000000u}){
+        auto gc=reader;gc.Put(Entry+8,flags);
+        CompareItem(gc,Index,false,"grouped read preserves both native GC rejection flags and all outputs");
+        CompareLifecycle(gc,{Object,Index,7},false,false);
+        gc.rejectBlocks=true;CompareItem(gc,Index,false,"fallback preserves native GC rejection and outputs");
+    }
+    for(const auto serial:{-1,0,7}){
+        auto generation=reader;generation.Put(Entry+16,int32_t(serial));
+        CompareItem(generation,Index,serial>=0,"Item preserves negative rejection and zero-serial acceptance");
+        CompareLifecycle(generation,{Object,Index,7},serial==7,serial>0);
+    }
+    CompareLifecycle(reader,{Object,Index,7},true,true);
+    auto reused=reader;reused.Put(Entry+16,int32_t(8));CompareLifecycle(reused,{Object,Index,7},false,true);
+    reused.Put(Entry,uintptr_t(Object+0x100));CompareLifecycle(reused,{Object,Index,8},false,false);
+    for(const auto flags:{0x10u,0x20u,0x30u}){
+        auto gc=reader;gc.Put(Object+8,flags);CompareLifecycle(gc,{Object,Index,7},true,false);
+    }
+    auto nullAddress=reader;nullAddress.Put(Entry,uintptr_t(0));
+    CompareItem(nullAddress,Index,false,"null address leaves flags and serial outputs untouched");
+    nullAddress.rejectBlocks=true;CompareItem(nullAddress,Index,false,"fallback keeps the null-address short circuit");
+    for(const auto offset:{size_t(0),size_t(8),size_t(16)}){
+        auto unreadable=refused;unreadable.refusedRead=Entry+offset;unreadable.refusedSize=offset?4:sizeof(uintptr_t);
+        CompareItem(unreadable,Index,false,"field refusal preserves every previously written output and skips later outputs");
+    }
+    auto partial=reader;partial.bytes.erase(Entry+18);
+    CompareItem(partial,Index,false,"partial block and serial failures preserve the original partial field output");
+    Check(CompareItem(reader,-1,false,"negative index stays rejected before any read").current==0,"negative index does not touch memory");
+    CompareItem(reader,16,false,"index equal to count stays rejected");
+    for(const auto count:{-1,0,2000001}){
+        auto bounded=reader;bounded.Put(Base+0x3959694,int32_t(count));
+        Check(CompareItem(bounded,Index,false,"invalid object count stays rejected").blocks==0,"count guard precedes item access");
+    }
+    for(const auto at:{Base+0x3959680,Chunks}){
+        auto missing=reader;missing.Put(at,uintptr_t(0));
+        Check(CompareItem(missing,Index,false,"null chunk pointers stay rejected").blocks==0,"chunk guards precede item access");
+    }
+    for(const auto at:{Base+0x3959694,Base+0x3959680,Chunks}){
+        auto missing=reader;missing.bytes.erase(at);
+        Check(CompareItem(missing,Index,false,"unreadable table metadata stays rejected").blocks==0,"metadata read refusals precede item access");
+    }
+    auto boundary=reader;boundary.Put(Base+0x3959694,int32_t(65537));boundary.Put(Chunks+8,Chunk);
+    boundary.Put(Chunk,Object);boundary.Put(Chunk+8,uint32_t(0));boundary.Put(Chunk+12,uint32_t(0));boundary.Put(Chunk+16,int32_t(7));
+    Check(CompareItem(boundary,65536,true,"chunk boundary preserves index division and 24-byte stride").current==4,"chunk-boundary item also uses four reads");
+}
 void Run(){
     using namespace dg::native_objects;
+    RunItemBatchChecks();
     Reader reader;const uintptr_t base=0x10000000,chunks=0x20000000,chunk=0x21000000;
     reader.Put(base+0x3959694,int32_t(16));reader.Put(base+0x3959680,chunks);reader.Put(chunks,chunk);
     const auto object=[&](int32_t index,int32_t serial,uint32_t flags=0){
