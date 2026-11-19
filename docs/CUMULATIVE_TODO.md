@@ -711,3 +711,8 @@ Correction de journal du chargeur préparée, non construite ; à regrouper avec
 ## V1.171 — construction debug demandée
 
 Même périmètre expérimental que V1.170, plus capture du code Windows avant le log du chargeur. Aucun autre correctif démontré à intégrer. 258 clés et 55 actions inchangées ; main V1.168 préservée. [Critères et tests](V1_171_REVIEW.md). Build GitHub uniquement, sans installation automatique.
+
+
+## V1.171 — livraison debug vérifiée
+
+86/86 tests Windows, zéro avertissement/erreur C++, ZIP deux binaires AMD64 et lien vérifiés, Defender sans détection. 235 anciennes archives conservées ; 258 clés, 55 actions et main V1.168 inchangées. Pas d’installation automatique ni validation en jeu annoncée. Seule différence fonctionnelle de source depuis V1.170 : code d’erreur du chargeur capturé avant le log. [Reçu, ZIP et tests](V1_171_DELIVERY_RECEIPT.md).

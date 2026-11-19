@@ -1,6 +1,6 @@
-## V1.171 — build debug demandée
+## V1.171 — beta cumulative disponible sur debug
 
-Lot cumulatif V1.170, avec correction du code d’erreur du journal du chargeur. Aucun changement de chargement ni nouvel effet ; tests en jeu V1.170 encore attendus. [Objectif, limites et tests](docs/V1_171_REVIEW.md).
+V1.170 reprise avec un journal d’erreur de chargement corrigé, sans changement du chargement lui-même. Correctif des niveaux des cœurs et filtres d’image encore à valider en jeu. 86/86 tests Windows, ZIP vérifié. Main V1.168 préservée ; aucune installation automatique. [Téléchargement et tests](docs/V1_171_DELIVERY_RECEIPT.md).
 
 ---
 

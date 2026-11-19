@@ -1,0 +1,64 @@
+{
+  "package": {
+    "version": "V1.171",
+    "base": "051c7227b31e34cedce0ccff206b77abd050e291",
+    "source": "cf0273f25522d3c58e48a6df398a081d2db30a71",
+    "archive": "f1842511b13f5c3984c69b298e8975fcea007e0d",
+    "download": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/f1842511b13f5c3984c69b298e8975fcea007e0d/downloads/DarksidersGenesis_V1.171_CORE_TREE_LOADER_DIAGNOSTICS_TEST.zip",
+    "sha256": "BB1AA512C8618F39DF1AA7719213CA3EEC4A3AF87E9EE203B0CC6E3379F595D9",
+    "bytes": 2483438,
+    "files": {
+      "dxgi.dll": {
+        "bytes": 155648,
+        "sha256": "CEFE1CC460BADC048C528585EF3070C7E01002E01D463CC63DDF638F49A11FCB"
+      },
+      "DarksidersGenesisMod.asi": {
+        "bytes": 2327552,
+        "sha256": "36B276613228F57D0BCED135D1D4787356A06832CBEE48E3F13B1E322CE855F5"
+      }
+    },
+    "crcVerified": true,
+    "amd64": true,
+    "rootBinariesOnly": true,
+    "oldArchivesUnchanged": 235,
+    "totalArchives": 236,
+    "iniKeys": 258,
+    "defaultDelta": {},
+    "updaterSelection": "DarksidersGenesis_V1.171_CORE_TREE_LOADER_DIAGNOSTICS_TEST.zip",
+    "gitBlob": "07ea3a7aaa9dd0cadc2ab51d638181f9c35a4cee",
+    "publicHttpStatus": 200,
+    "binaryDownload": "new ZIP retrieved once through Git; no duplicate HTTP GET or old archive download",
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/debug": "f1842511b13f5c3984c69b298e8975fcea007e0d",
+      "refs/heads/main": "3e731bd18198d214dee567bb682c9f7067990841",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "installed": false,
+    "localBuild": false,
+    "gameplayValidated": false
+  },
+  "ci": {
+    "source": "cf0273f25522d3c58e48a6df398a081d2db30a71",
+    "runId": 44523095786,
+    "jobId": 135556516301,
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/44523095786",
+    "testsPassed": 86,
+    "cppWarnings": 0,
+    "cppErrors": 0,
+    "configuration": "Windows x64 Release",
+    "gameplayValidated": false
+  },
+  "defender": {
+    "scan": "Microsoft Defender custom scan",
+    "completed": true,
+    "candidateDetections": 0,
+    "checkedAt": "2026-11-19T12:30:36.9912036Z"
+  },
+  "stableBase": "V1.168",
+  "referenceKeys": 258,
+  "hotkeyActions": 55,
+  "status": "BUILT_CHECKED_PUBLISHED_EXPERIMENTAL",
+  "installed": false,
+  "gameplayValidated": false
+}

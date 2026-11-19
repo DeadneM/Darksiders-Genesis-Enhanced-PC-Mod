@@ -26,3 +26,7 @@ L’ancienne file chronologique est conservée intégralement dans [l’historiq
 ## V1.171 demandée
 
 Construire le lot cumulatif et la correction de journal, puis vérifier CI/ZIP/lien. Aucun autre défaut ne dispose de preuve suffisante pour un patch supplémentaire. Pas d’installation automatique ; V1.170 et main V1.168 préservées.
+
+## Livraison V1.171
+
+Construite et contrôlée : 86/86 tests. Correction de journal incluse ; archive V1.170 préservée. Tests utilisateur reportés sur le lot cumulatif V1.171, sans nouveau test de gameplay ajouté. [Livraison](V1_171_DELIVERY_RECEIPT.md). Les autres pistes restent sans patch démontré.
