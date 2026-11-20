@@ -182,6 +182,51 @@ inline constexpr std::array<Signature,168> Signatures={{
 {4286926885u,5184u,12537323408162079609ull,Kind::Arc},
 }};
 inline constexpr std::size_t MaxTrackedShaders=Signatures.size()*2;
+namespace detail {
+// Exact size membership, derived solely from the catalog. Check bounds before
+// indexing so a rejected bytecode size never requires reading its contents.
+inline constexpr auto BytecodeSizeBounds=[] {
+    std::array<std::size_t,2> bounds{Signatures[0].bytes,Signatures[0].bytes};
+    for(const auto& signature:Signatures){
+        if(signature.bytes<bounds[0])bounds[0]=signature.bytes;
+        if(signature.bytes>bounds[1])bounds[1]=signature.bytes;
+    }
+    return bounds;
+}();
+inline constexpr auto BytecodeSizeBits=[] {
+    std::array<uint64_t,(BytecodeSizeBounds[1]-BytecodeSizeBounds[0])/64+1> bits{};
+    for(const auto& signature:Signatures){
+        const auto offset=signature.bytes-BytecodeSizeBounds[0];
+        bits[offset/64]|=uint64_t{1}<<(offset%64);
+    }
+    return bits;
+}();
+// IEEE reflected CRC32, as used by the original bit-at-a-time shader hash.
+// Build the byte table at compile time; no first-call initialization or locks.
+inline constexpr auto CRC32Table=[] {
+    std::array<uint32_t,256> table{};
+    for(std::size_t byte=0;byte<table.size();++byte){
+        uint32_t crc=static_cast<uint32_t>(byte);
+        for(unsigned bit=0;bit<8;++bit)
+            crc=(crc>>1)^((crc&1u)?0xEDB88320u:0u);
+        table[byte]=crc;
+    }
+    return table;
+}();
+}
+constexpr bool MayMatchSize(std::size_t bytes) noexcept {
+    if(bytes<detail::BytecodeSizeBounds[0]||bytes>detail::BytecodeSizeBounds[1])return false;
+    const auto offset=bytes-detail::BytecodeSizeBounds[0];
+    return (detail::BytecodeSizeBits[offset/64]&(uint64_t{1}<<(offset%64)))!=0;
+}
+constexpr uint32_t BytecodeCRC32(std::span<const uint8_t> code) noexcept {
+    uint32_t crc=0xFFFFFFFFu;
+    for(const auto byte:code)crc=(crc>>8)^detail::CRC32Table[(crc^byte)&0xFFu];
+    return ~crc;
+}
+inline uint32_t BytecodeCRC32(const void* bytes,std::size_t length) noexcept {
+    return BytecodeCRC32({static_cast<const uint8_t*>(bytes),length});
+}
 constexpr const Signature* Find(uint32_t crc){
     std::size_t lo=0,hi=Signatures.size();
     while(lo<hi){const auto mid=lo+(hi-lo)/2;if(Signatures[mid].crc<crc)lo=mid+1;else hi=mid;}

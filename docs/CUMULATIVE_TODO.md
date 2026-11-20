@@ -686,3 +686,90 @@ V1.117 delivered: 65/65 GitHub suites, package/updater/Defender controlled; game
 - Arena HUD disappearance: no longer reproducible in later user tests; monitor logs, no forced HUD restore.
 
 Preserve: accepted pistol OFF arms/holsters/blade effects, execution camera, horse jump/audio, War arm, cursor, Leviathan/Stinger, skins, gauges/ammo/hotkeys, blur controls and updater. Never treat older experimental feedback as blanket validation.
+
+
+## V1.169 — options d’image, diagnostic SoulBarrier et arbre des cœurs
+
+Deux filtres natifs facultatifs préparés avec contrats EXE vérifiés, réutilisation du service float, sans nouveau hook ; 255 anciennes valeurs inchangées. SoulBarrier est un orbe destructible et appelle réellement SourceControl.IsEnabled ; aucun patch d’asset. Nouveau bug visuel de niveaux des cœurs dans l’arbre laissé ouvert avant observation. Construction beta et tests demandés. [Périmètre](V1_169_REVIEW.md).
+
+
+## V1.170 — indicateurs des cœurs, preuve et correctif ciblé
+
+Deux captures hôte du même processus V1.168 : 205 widgets, aucune erreur ; 30 nœuds mineurs gardent leurs niveaux mais récupèrent leurs indicateurs après réouverture. Contrats de classe/package et RefreshNodes sans paramètres vérifiés. Candidat : un rafraîchissement natif après deux ticks complets de la page, identités faibles, pas de nouveau hook ni visibilité forcée. Désactivable ; effets d’image V1.169 cumulés. [Détails et tests](V1_170_REVIEW.md). Les journaux lus hors du contexte hôte étaient ceux du 16 novembre ; la capture et la version réellement chargée du 18 novembre ont été vérifiées via lecture hôte autorisée. Aucun fichier du jeu ni sauvegarde modifié par le lecteur externe.
+
+
+## V1.170 — livraison du 19 novembre 2026
+
+Beta cumulative publiée sur debug : 86/86 tests Windows, zéro avertissement/erreur C++, ZIP deux binaires AMD64 vérifié et Defender sans détection. 234 anciennes archives, main V1.168 et profils préservés. Aucun essai/install supplémentaire ; validation utilisateur du premier accès à l’arbre et des deux filtres encore attendue. [Reçu et tests](V1_170_DELIVERY_RECEIPT.md). SourceControl demeure en recherche.
+
+
+## Suite du 19 novembre — attente du test V1.170
+
+Correction de journal du chargeur préparée, non construite ; à regrouper avec un futur lot utile. Aucun retrait de code récent justifié après deux passes. SourceControl : branche native d’état/effet confirmée, aucun patch retenu sans mesure de saccade. [Revue](CONTINUATION_REVIEW_2026_11_19.md).
+
+
+## V1.171 — construction debug demandée
+
+Même périmètre expérimental que V1.170, plus capture du code Windows avant le log du chargeur. Aucun autre correctif démontré à intégrer. 258 clés et 55 actions inchangées ; main V1.168 préservée. [Critères et tests](V1_171_REVIEW.md). Build GitHub uniquement, sans installation automatique.
+
+
+## V1.171 — livraison debug vérifiée
+
+86/86 tests Windows, zéro avertissement/erreur C++, ZIP deux binaires AMD64 et lien vérifiés, Defender sans détection. 235 anciennes archives conservées ; 258 clés, 55 actions et main V1.168 inchangées. Pas d’installation automatique ni validation en jeu annoncée. Seule différence fonctionnelle de source depuis V1.170 : code d’erreur du chargeur capturé avant le log. [Reçu, ZIP et tests](V1_171_DELIVERY_RECEIPT.md).
+
+
+## V1.171 validée — freezes et charge GPU
+
+Validation fonctionnelle utilisateur reçue, sans promotion main. Freezes confirmés pendant 31 secondes de compteurs Windows : 3D 51–65 %, mémoire dédiée environ 3,2 Gio ; pas de temps par image. Optimisation CPU de HookSetPS préparée sans build : éviter les verrous/table tant qu’aucun shader de visée n’est reconnu ; native transmise et filtrage existant préservés. Gain et cause des freezes non établis. [Preuves, limites et suite](GPU_FREEZE_REVIEW_2026_11_19.md).
+
+
+## V1.172 — appel aérien demandé
+
+Case indépendante OFF sous Horse Everywhere ; contrôle de sol de l’action native adapté uniquement en chute/saut ou plané local. Signatures natives, résultat et hausse de 100 unités contrôlés hors jeu. 259 clés dont les 258 anciennes inchangées, 55 actions conservées. Petite optimisation CPU précédente cumulée ; micro-saccades toujours ouvertes. Construction GitHub, aucun remplacement automatique du jeu. [Périmètre et tests](V1_172_REVIEW.md).
+
+
+## V1.172 — livraison vérifiée
+
+86/86 tests Windows, zéro avertissement/erreur C++, ZIP deux binaires contrôlé, lien vérifié et Defender sans détection. 259 clés, les 258 anciennes valeurs et 55 actions préservées ; aucune installation ou promotion main. Appel aérien OFF par défaut sous Horse Everywhere, validation utilisateur attendue. Optimisation CPU cumulée, micro-saccades non annoncées corrigées. [Reçu, ZIP et tests](V1_172_DELIVERY_RECEIPT.md).
+
+
+## GPU — comparaison native du 19 novembre
+
+Comparaison autorisée V1.172 / sans ASI, carte Arc B580 identique et premier plan suivi. Retour utilisateur : charge plus basse et jeu plus fluide sans mod ; utilisation 3D médiane Windows 50 % / 47,5 %, mémoire dédiée environ 3,35 / 2,85 Gio, intervalles API proches sur ces fenêtres courtes. Cause non isolée. Deux fichiers V1.172 restaurés, INI et sauvegardes intacts ; aucun fichier ne reste désactivé. Prochain essai proposé : seul NativeCustomDOF OFF avec le mod, sans build et après préparation utilisateur. [Résultats et limites](GPU_NATIVE_COMPARISON_2026_11_19.md).
+
+
+## TPS — effet du flou confirmé par retour utilisateur
+
+L’essai suivant a porté sur TPSCustomDOF OFF, pas sur NativeCustomDOF : préparation lue TPS=1, NativeCustomDOF=1, TPSCustomDOF=0. 15 observations toutes au premier plan ; retour utilisateur répété : OFF plus fluide, ON moins fluide. Le chiffre 100 % pourrait selon lui relever du pilote, sans confirmation technique. Aucun relevé ON contrôlé capturé car jeu fermé. Choix demandé avant changement : uniquement TPSCustomDOF OFF dans le profil actuel et les futurs défauts ; garder le profil natif, la correction de mise au point et l’option réactivable. Aucun défaut/profil changé automatiquement à ce stade. Fichiers V1.172 restaurés, aucun fichier ne reste désactivé. [Analyse et limites](GPU_NATIVE_COMPARISON_2026_11_19.md).
+
+
+## Optimisation caméra sans changement de réglages — 19 novembre 2026
+
+Décision utilisateur : REJETÉ, le passage automatique de TPSCustomDOF sur OFF. Ne modifier ni le profil personnel ni les défauts. La suite porte exclusivement sur du travail CPU évitable, à rendu conservé.
+
+Depuis debug 3505391 / binaire V1.172 : les trois chemins TPS réutilisent leur compensation de mise au point réussie pour éviter son second calcul dans ApplyBlur. La projection des bornes est omise lorsque la région choisie atteint déjà 20000 unités, plafond du résultat qui aurait été calculé. Aucun hook, réglage, fréquence de service, qualité GPU ou ressource persistante ajouté. Le chemin natif conserve son contrat. Retour arrière : rétablir TpsCameraFocus.h et les trois appels de CameraTraceFeature.cpp depuis 3505391.
+
+CONTRÔLE À EFFECTUER sur GitHub uniquement : tests existants et 20 480 combinaisons comparant tous les octets de la sortie caméra avec l'ancienne implémentation, pour les chemins TPS et natif. Aucun gain FPS/GPU ni suppression des saccades annoncé ; validation en jeu encore requise. Pas de nouveau ZIP ni installation pour ce contrôle.
+
+
+Contrôle terminé : Windows x64 Release, 86/86 tests réussis, zéro avertissement/erreur C++. Les 20 480 combinaisons du test de parité comparent le chemin TPS combiné et le chemin natif indépendant, octet par octet, avec le calcul précédent. Source 4e3265180592a447d5de3c74c12504895b9b6fbe. [GitHub Actions](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/44600037723). Statut : CONSTRUIT et CONTRÔLÉ, gain de fluidité EXPÉRIMENTAL, non validé en jeu. Vérifier dans la même scène, avec les mêmes réglages : aspect/mise au point inchangés et éventuelle différence de saccades, à pied/cheval/ultime et pendant les roues. Aucun ZIP publié ou installé ; V1.172 reste la dernière livraison. Main/archive/v1.168 inchangés après vérification distante.
+
+
+## Audit global des optimisations — 19 novembre 2026
+
+Sources debug 0499f6f : inventaire 62 C++ / 125 headers, deux passes comparées (chemins fréquents puis garde-fous/invalidation/mesures). Dernier journal V1.172 lu, sans capture : gameplay inclusif avg858,62µs/max22,45ms ; appearance-discovery max8,23ms ; 78 589 432 draws comptés, deux shaders reconnus, 54 masqués. Pas de causalité freeze ni temps GPU déduits. Priorités : télémétrie/gestion des shaders, lectures d'identité groupées, contexte gameplay partagé, scans encore sans budget temps ; petits candidats CRC, focusP2 et fallbackDOF. Aucune suppression de production démontrée sûre. Propositions non implémentées ; aucun profil/défaut, source, binaire ou ZIP modifié. Dernier contrôle 86/86 reste celui de 4e32651. [Audit, comparaison et prochaines étapes](FULL_OPTIMIZATION_AUDIT_2026_11_19.md).
+
+
+## V1.173 — lot CPU demandé, réactivité à préserver
+
+Depuis V1.172/c11ea66 : comptage atomique par draw retiré (filtrage conservé), CRC/tailles shaders, lectures d'identité groupées avec fallback, focus P2 partagé. Aucun changement de réglage/défaut, rythme de scan/service/input ou interception. Pas de cache inter-image. PRÉPARÉ / EXPÉRIMENTAL avant CI GitHub ; aucun build local ni installation. Critère : même comportement/rendu et transitions skins/effets immédiates, puis gain à mesurer. [Périmètre, risques et tests](V1_173_REVIEW.md).
+
+
+## V1.173 — livraison vérifiée, réactivité à tester
+
+Source 28ab24f958084aa5982404888c3cebb1866685cc, archive d84168bd5184247f09088e61bbee529438eaf51f. GitHub :86/86 tests, zéro erreur C++, un avertissement C28020 de génération constexpr revu et documenté (aucun masquage). ZIP deux binaires contrôlé ; Defender aucune détection ; 259 clés/défauts/bindings préservés ; 237 anciennes archives et branches protégées inchangées. Aucune temporisation ou nouvelle réduction de cadence ; aucune installation. Gain de fluidité EXPÉRIMENTAL. Suite : essai groupé réactivité skins/effets/transitions, rendu/fluidité à réglages constants, coop en dernier. [Livraison et rollback](V1_173_DELIVERY_RECEIPT.md).
+
+
+## Publication V1.173 demandée — 20 novembre
+
+Promotion main autorisée, binaires Release V1.173 réutilisés sans recompilation. Aucun gain de fluidité ni correction du crash GPU déclarés validés. Archives/configuration conservées. [Périmètre et limites](V1_173_MAIN_RELEASE.md).

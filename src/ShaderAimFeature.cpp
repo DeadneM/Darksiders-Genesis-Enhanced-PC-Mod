@@ -39,21 +39,9 @@ SRWLOCK g_lock = SRWLOCK_INIT;
 std::unordered_set<ID3D11PixelShader*> g_targetShaders;
 std::unordered_map<ID3D11DeviceContext*, bool> g_contextTargetPS;
 std::atomic_bool g_ready{false};
-std::atomic_uint32_t g_matchCount{0}, g_drawCount{0}, g_blockCount{0};
+std::atomic_uint32_t g_matchCount{0}, g_blockCount{0};
 std::atomic_uint32_t g_creationCount{0},g_lineCount{0},g_arcCount{0};
 LogFn g_logger = nullptr;
-
-// ShaderToggler's bytecode hash: standard reflected CRC32 (0xEDB88320).
-uint32_t BytecodeCRC32(const void* bytes, size_t length) {
-    auto* p = static_cast<const uint8_t*>(bytes);
-    uint32_t crc = 0xFFFFFFFFu;
-    for (size_t i = 0; i < length; ++i) {
-        crc ^= p[i];
-        for (unsigned bit = 0; bit < 8; ++bit)
-            crc = (crc >> 1) ^ ((crc & 1u) ? 0xEDB88320u : 0u);
-    }
-    return ~crc;
-}
 
 bool EnabledByExistingMode() {
     const auto& rt = dg::runtime::Get();
@@ -76,7 +64,8 @@ HRESULT STDMETHODCALLTYPE HookCreatePS(
     const HRESULT result = original(device, code, length, linkage, out);
     if (SUCCEEDED(result) && out && *out && code && length && length < 4u * 1024u * 1024u) {
         ++g_creationCount;
-        const uint32_t hash = BytecodeCRC32(code, length);
+        if(!aim_shader_catalog::MayMatchSize(length))return result;
+        const uint32_t hash = aim_shader_catalog::BytecodeCRC32(code, length);
         const auto* signature=aim_shader_catalog::Find(hash);
         if (signature&&aim_shader_catalog::Matches(*signature,
                 {static_cast<const uint8_t*>(code),length})) {
@@ -98,7 +87,10 @@ void STDMETHODCALLTYPE HookSetPS(
     ID3D11DeviceContext* ctx, ID3D11PixelShader* shader,
     ID3D11ClassInstance* const* classes, UINT count) {
     if (g_originalSetPS) g_originalSetPS(ctx, shader, classes, count);
-    if (!g_ready.load(std::memory_order_relaxed) || !ctx) return;
+    // No known aim shader means no context can need filtering yet. Keep
+    // forwarding native bindings, but avoid two locks and a map update.
+    if (!g_ready.load(std::memory_order_relaxed) || !ctx ||
+        g_matchCount.load(std::memory_order_relaxed) == 0) return;
     AcquireSRWLockShared(&g_lock);
     const bool matched = shader && g_targetShaders.count(shader) != 0;
     ReleaseSRWLockShared(&g_lock);
@@ -136,35 +128,28 @@ bool Skip(ID3D11DeviceContext* ctx) {
 }
 
 void STDMETHODCALLTYPE HookDraw(ID3D11DeviceContext* ctx, UINT vertices, UINT first) {
-    ++g_drawCount;
     if (!Skip(ctx) && g_originalDraw) g_originalDraw(ctx, vertices, first);
 }
 void STDMETHODCALLTYPE HookDrawIndexed(ID3D11DeviceContext* ctx, UINT count, UINT first, INT base) {
-    ++g_drawCount;
     if (!Skip(ctx) && g_originalDrawIndexed) g_originalDrawIndexed(ctx, count, first, base);
 }
 void STDMETHODCALLTYPE HookDrawInstanced(
     ID3D11DeviceContext* ctx, UINT verts, UINT instances, UINT startVertex, UINT startInstance) {
-    ++g_drawCount;
     if (!Skip(ctx) && g_originalDrawInstanced)
         g_originalDrawInstanced(ctx, verts, instances, startVertex, startInstance);
 }
 void STDMETHODCALLTYPE HookDrawIndexedInstanced(ID3D11DeviceContext* ctx,
     UINT indices, UINT instances, UINT first, INT base, UINT start) {
-    ++g_drawCount;
     if (!Skip(ctx) && g_originalDrawIndexedInstanced)
         g_originalDrawIndexedInstanced(ctx, indices, instances, first, base, start);
 }
 void STDMETHODCALLTYPE HookDrawAuto(ID3D11DeviceContext* ctx) {
-    ++g_drawCount;
     if (!Skip(ctx) && g_originalDrawAuto) g_originalDrawAuto(ctx);
 }
 void STDMETHODCALLTYPE HookDrawIndexedIndirect(ID3D11DeviceContext* ctx, ID3D11Buffer* args, UINT offset) {
-    ++g_drawCount;
     if (!Skip(ctx) && g_originalDrawIndexedIndirect) g_originalDrawIndexedIndirect(ctx, args, offset);
 }
 void STDMETHODCALLTYPE HookDrawIndirect(ID3D11DeviceContext* ctx, ID3D11Buffer* args, UINT offset) {
-    ++g_drawCount;
     if (!Skip(ctx) && g_originalDrawIndirect) g_originalDrawIndirect(ctx, args, offset);
 }
 } // namespace
@@ -214,8 +199,8 @@ Telemetry GetTelemetry() {
 
 void Shutdown() {
     g_ready.store(false, std::memory_order_release);
-    if (g_logger) g_logger("Aim shaders V0.90 totals: matchedPS=%u drawCalls=%u blockedDraws=%u",
-        g_matchCount.load(), g_drawCount.load(), g_blockCount.load());
+    if (g_logger) g_logger("Aim shaders totals: matchedPS=%u blockedDraws=%u drawCalls=not-collected",
+        g_matchCount.load(), g_blockCount.load());
     if(g_logger)g_logger("Aim shader capture V1.151: successfulCreations=%u lineCRCSeen=%u arcCRCSeen=%u; counters only, Moloch repair NOT validated",
         g_creationCount.load(),g_lineCount.load(),g_arcCount.load());
     AcquireSRWLockExclusive(&g_lock);

@@ -1,0 +1,68 @@
+{
+  "version": "V1.173",
+  "base": "c11ea66",
+  "source": "28ab24f958084aa5982404888c3cebb1866685cc",
+  "archive": "d84168bd5184247f09088e61bbee529438eaf51f",
+  "download": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/d84168bd5184247f09088e61bbee529438eaf51f/downloads/DarksidersGenesis_V1.173_REACTIVE_CPU_OPTIMIZATION_TEST.zip",
+  "sha256": "9CAD7BC844E97E0DA74570EB9662F6DCDC3DC67FEF6246F50F92C6A8E5544292",
+  "bytes": 2504942,
+  "files": {
+    "dxgi.dll": {
+      "bytes": 155136,
+      "sha256": "739B8729E1748095D2DEE755528223F08EA3F71F19C0CA782D631D9B345CF06E"
+    },
+    "DarksidersGenesisMod.asi": {
+      "bytes": 2349568,
+      "sha256": "58C949743ABCC08CD00B11F2EB2E7DB1AB39019BFA4FB2C0B302836F9B55EC77"
+    }
+  },
+  "crcVerified": true,
+  "amd64": true,
+  "rootBinariesOnly": true,
+  "oldArchivesUnchanged": 237,
+  "totalArchives": 238,
+  "iniKeys": 259,
+  "defaultDelta": {},
+  "updaterSelection": "DarksidersGenesis_V1.173_REACTIVE_CPU_OPTIMIZATION_TEST.zip",
+  "gitBlob": "132eb8ce05a4125a760f2ac4a4007eec75f6d4ab",
+  "publicHttpStatus": 200,
+  "binaryDownload": "new ZIP retrieved once through Git; no duplicate HTTP GET or old archive download",
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/debug": "d84168bd5184247f09088e61bbee529438eaf51f",
+    "refs/heads/main": "3e731bd18198d214dee567bb682c9f7067990841",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "installed": false,
+  "localBuild": false,
+  "gameplayValidated": false,
+  "ci": {
+    "source": "28ab24f958084aa5982404888c3cebb1866685cc",
+    "runId": 44609069811,
+    "jobId": 135860489460,
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/44609069811",
+    "testsPassed": 86,
+    "cppErrors": 0,
+    "cppWarnings": 1,
+    "warnings": [
+      {
+        "code": "C28020",
+        "file": "src/AimShaderCatalog.h",
+        "line": 212,
+        "classification": "reviewed static-analysis false positive: constexpr CRC32 table index bounded by byte<table.size(); runtime CRC index masked by 0xFF",
+        "mitigation": "no warning suppression; immutable V1.173 retained; no duplicate rebuild solely for this diagnostic"
+      }
+    ],
+    "configuration": "Windows x64 Release",
+    "gameplayValidated": false
+  },
+  "defender": {
+    "completed": true,
+    "matchingDetections": 0,
+    "time": "2026-11-19T21:36:21.9647290+01:00"
+  },
+  "updateCadenceChanged": false,
+  "newDelayOrInterFrameCache": false,
+  "settingsAndDefaultsChanged": false,
+  "additionalNote": "The previous P1 focus optimization is cumulative; P2 paths now also reuse it. Existing identity safety checks and hooks retained. Per-draw diagnostic total intentionally no longer collected."
+}

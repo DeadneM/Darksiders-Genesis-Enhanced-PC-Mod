@@ -310,6 +310,7 @@ public:
     bool thirdPersonFovEnabled = true;
     bool tpsLensFocusEnabled = true;
     bool molochBossCrashFixEnabled = true;
+    bool coreLevelDisplayFixEnabled = true;
     camera_blur::Profile nativeBlur=camera_blur::NativeDefaults,tpsBlur=camera_blur::TpsDefaults;
     temporal_aa::Settings temporalAA{};
     bool cameraOrbitInputEnabled = true; // derived: controller-only TPS camera
@@ -344,6 +345,7 @@ public:
     bool glideDurationEnabled = true;
     bool horseEverywhereEnabled = true;
     int horseAreaMode = 2; // 0 Off, 1 all, 2 restricted-only (default), 3 banned-only
+    bool horseAirSummonEnabled = false;
     bool horseSpeedEnabled = true;
     bool horseSprintSpeedEnabled = true;
     bool horseSprintDurationEnabled = true;

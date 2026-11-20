@@ -350,6 +350,7 @@ void Store::ResetDefaults(bool persist) {
     thirdPersonFovEnabled = true;
     tpsLensFocusEnabled = true;
     molochBossCrashFixEnabled = true;
+    coreLevelDisplayFixEnabled = true;
     nativeBlur=camera_blur::NativeDefaults;tpsBlur=camera_blur::TpsDefaults;
     temporalAA={};
     cameraOrbitInputEnabled = true;
@@ -384,6 +385,7 @@ void Store::ResetDefaults(bool persist) {
     glideDurationEnabled = true;
     horseEverywhereEnabled = true;
     horseAreaMode = 2;
+    horseAirSummonEnabled = false;
     horseSpeedEnabled = true;
     horseSprintSpeedEnabled = true;
     horseSprintDurationEnabled = true;
@@ -684,10 +686,13 @@ bool Store::Load() {
     tpsBlur.custom=ReadBool(L"Features",L"TPSCustomDOF",camera_blur::TpsDefaults.custom,path_);
     tpsBlur.distanceMeters=std::clamp(ReadFloat(L"Values",L"TPSDOFDistanceMeters",camera_blur::TpsDefaults.distanceMeters,path_),0.0f,camera_blur::MaxDistanceMeters);
     tpsBlur.amount=std::clamp(ReadFloat(L"Values",L"TPSDOFAmount",camera_blur::TpsDefaults.amount,path_),0.0f,5.0f);
+    coreLevelDisplayFixEnabled=ReadBool(L"Features",L"CoreLevelDisplayFix",true,path_);
     temporalAA=temporal_aa::Normalize({
         ReadBool(L"Features",L"CustomizeTemporalAA",false,path_),
         ReadFloat(L"Values",L"TemporalAAFrameWeight",0.08f,path_),
-        ReadFloat(L"Values",L"TonemapperSharpen",1.0f,path_)});
+        ReadFloat(L"Values",L"TonemapperSharpen",1.0f,path_),
+        ReadBool(L"Features",L"DisableMotionBlur",false,path_),
+        ReadBool(L"Features",L"DisableColorFringe",false,path_)});
     const bool oldOrbit=ReadBool(L"Features",L"CameraControllerOrbit",true,path_);
     tpsCameraStickMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(
         L"Features",L"TPSCameraStickMode",oldOrbit?2:0,path_.c_str())),0,2);
@@ -747,6 +752,7 @@ bool Store::Load() {
     horseAreaMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(
         L"Features",L"HorseAreaMode",horseEverywhereEnabled?2:0,path_.c_str())),0,3);
     horseEverywhereEnabled=horseAreaMode!=0;
+    horseAirSummonEnabled=ReadBool(L"Features",L"HorseAirSummon",false,path_);
     horseSpeedEnabled =
         ReadBool(L"Features", L"HorseSpeed", true, path_);
     horseSprintSpeedEnabled =
@@ -1009,6 +1015,7 @@ void Store::PublishRuntime() const {
     runtime.thirdPersonFovEnabled = thirdPersonFovEnabled;
     runtime.tpsLensFocusEnabled = tpsLensFocusEnabled;
     runtime.molochBossCrashFixEnabled = molochBossCrashFixEnabled;
+    runtime.coreLevelDisplayFixEnabled = coreLevelDisplayFixEnabled;
     runtime.nativeBlur = nativeBlur;
     runtime.tpsBlur = tpsBlur;
     // Mouse TPS orbit shares the existing orbit result; it does not need
@@ -1046,6 +1053,7 @@ void Store::PublishRuntime() const {
     runtime.glideDurationEnabled = glideDurationEnabled;
     runtime.horseEverywhereEnabled = horseEverywhereEnabled;
     runtime.horseAreaMode = horseAreaMode;
+    runtime.horseAirSummonEnabled = horseAirSummonEnabled;
     runtime.horseSpeedEnabled = horseSpeedEnabled;
     runtime.horseSprintSpeedEnabled = horseSprintSpeedEnabled;
     runtime.horseSprintDurationEnabled = horseSprintDurationEnabled;
@@ -1239,10 +1247,13 @@ bool Store::SaveNow() {
     WriteBool(L"Features",L"TPSCustomDOF",tpsBlur.custom,path_);
     WriteFloat(L"Values",L"TPSDOFDistanceMeters",tpsBlur.distanceMeters,path_);
     WriteFloat(L"Values",L"TPSDOFAmount",tpsBlur.amount,path_);
+    WriteBool(L"Features",L"CoreLevelDisplayFix",coreLevelDisplayFixEnabled,path_);
     const auto normalizedAA=temporal_aa::Normalize(temporalAA);
     WriteBool(L"Features",L"CustomizeTemporalAA",normalizedAA.enabled,path_);
     WriteFloat(L"Values",L"TemporalAAFrameWeight",normalizedAA.frameWeight,path_);
     WriteFloat(L"Values",L"TonemapperSharpen",normalizedAA.sharpen,path_);
+    WriteBool(L"Features",L"DisableMotionBlur",normalizedAA.disableMotionBlur,path_);
+    WriteBool(L"Features",L"DisableColorFringe",normalizedAA.disableColorFringe,path_);
     WriteProfileString(L"Features",L"TPSFollowPlayer",nullptr,path_.c_str());
     // Remove obsolete TPS switches from existing user INIs once migrated.
     for(const wchar_t* key : { L"TPSFixedCenterReticle",L"TPSLockZoneCamera",
@@ -1337,6 +1348,7 @@ bool Store::SaveNow() {
     WriteProfileString(L"Features",L"HorsePreventForcedDesummon",nullptr,path_.c_str());
     wchar_t horseMode[8]{}; swprintf_s(horseMode,L"%d",std::clamp(horseAreaMode,0,3));
     WriteProfileString(L"Features",L"HorseAreaMode",horseMode,path_.c_str());
+    WriteBool(L"Features",L"HorseAirSummon",horseAirSummonEnabled,path_);
     WriteBool(L"Features", L"HorseSpeed", horseSpeedEnabled, path_);
     WriteBool(L"Features", L"HorseSprintSpeed", horseSprintSpeedEnabled, path_);
     WriteBool(L"Features", L"HorseSprintDuration", horseSprintDurationEnabled, path_);

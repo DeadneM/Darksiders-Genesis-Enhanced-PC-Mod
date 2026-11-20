@@ -42,6 +42,7 @@
 #include "CameraTraceFeature.h"
 #include "TpsCameraFocus.h"
 #include "TemporalAAFeature.h"
+#include "CoreUiLevelFeature.h"
 
 #include "imgui.h"
 
@@ -637,6 +638,8 @@ void Draw(Context& c) {
                 config.horseEverywhereEnabled=config.horseAreaMode!=0;
                 config.Save();
             }
+            DrawToggleFeature(config,"Summon horse in the air","HorseAirSummon",&config.horseAirSummonEnabled,
+                "Allow the native horse action during jumps, falls or gliding. Area rules still apply.",horse::AirSummonReady());
             ImGui::TextDisabled("Default: Restricted only. In all area also enables native dismount protection.");
             ImGui::TextDisabled("Restricted = no native desummon flag; banned = native desummon flag.");
             ImGui::TextDisabled("Horse summon icon visibility is controlled in the game options.");
@@ -755,6 +758,8 @@ void Draw(Context& c) {
             if(ImGui::Checkbox("Moloch Boss Crash Fix",&config.molochBossCrashFixEnabled))config.Save();
             ImGui::EndDisabled();
             HelpText("Prevents the known subtitle crash at the Moloch cutscene transition. Applies immediately.");
+            DrawToggleFeature(config,"Creature core level display fix","CoreLevelDisplayFix",&config.coreLevelDisplayFixEnabled,
+                "Refreshes the core tree once after its first display so level indicators appear. Does not change core levels or equipment. Reopen the page to test after enabling.",core_ui::Ready());
             ImGui::TextDisabled("%s | prevented invalid clears: %llu",render_safety::Ready()?"Ready":"Unavailable",
                 static_cast<unsigned long long>(render_safety::AvoidedClears()));
             ImGui::Spacing();
@@ -1109,7 +1114,18 @@ void Draw(Context& c) {
                     HelpText("Zero adds no sharpening. High values can create bright outlines. Sharpening also applies when using other anti-aliasing methods.");
                 }
                 ImGui::EndDisabled();
-                ImGui::TextDisabled("%s | experimental",temporal_aa::Ready()?"Native parameters verified":"Parameters unavailable");
+                ImGui::TextDisabled("%s",temporal_aa::Ready()?"Native parameters verified":"Parameters unavailable");
+                ImGui::Unindent();
+            }
+            if(layout::Group("Image effects")){
+                ImGui::Indent();
+                ImGui::BeginDisabled(!temporal_aa::Ready());
+                if(ImGui::Checkbox("Disable motion blur",&config.temporalAA.disableMotionBlur))config.Save();
+                HelpText("Removes movement smearing. Uncheck to restore the captured native amount. Does not change depth-of-field blur.");
+                if(ImGui::Checkbox("Disable chromatic aberration",&config.temporalAA.disableColorFringe))config.Save();
+                HelpText("Removes colored fringes near image edges. Uncheck to restore the captured native limit. Some scenes have no visible fringe.");
+                ImGui::EndDisabled();
+                HelpText("Both filters default OFF and work independently of TAA. Global settings, including cinematics and both local views.");
                 ImGui::Unindent();
             }
             if(layout::Group("Depth of field")){

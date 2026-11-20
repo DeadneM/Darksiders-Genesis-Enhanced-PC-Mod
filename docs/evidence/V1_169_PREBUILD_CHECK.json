@@ -1,0 +1,131 @@
+{
+  "base": "V1.168 validated",
+  "exeSha256": "9F4702024DF5EEA1D51DF7745B0AD1EA95B97009982F73DDC1218C53DFF33D54",
+  "nativeContracts": [
+    {
+      "name": "weightRegister",
+      "rva": "0x18E3EF",
+      "matches": true
+    },
+    {
+      "name": "sharpenRegister",
+      "rva": "0x18E6EA",
+      "matches": true
+    },
+    {
+      "name": "weightSlot",
+      "rva": "0x18E417",
+      "matches": true
+    },
+    {
+      "name": "sharpenSlot",
+      "rva": "0x18E712",
+      "matches": true
+    },
+    {
+      "name": "flags",
+      "rva": "0x18E3D8",
+      "matches": true
+    },
+    {
+      "name": "flags",
+      "rva": "0x18E6D8",
+      "matches": true
+    },
+    {
+      "name": "weightRead",
+      "rva": "0xFBB488",
+      "matches": true
+    },
+    {
+      "name": "sharpenRead",
+      "rva": "0xFB8474",
+      "matches": true
+    },
+    {
+      "name": "motionRegister",
+      "rva": "0x1F401F",
+      "matches": true
+    },
+    {
+      "name": "fringeRegister",
+      "rva": "0x1F459F",
+      "matches": true
+    },
+    {
+      "name": "motionSlot",
+      "rva": "0x1F4047",
+      "matches": true
+    },
+    {
+      "name": "fringeSlot",
+      "rva": "0x1F45C7",
+      "matches": true
+    },
+    {
+      "name": "flags",
+      "rva": "0x1F4008",
+      "matches": true
+    },
+    {
+      "name": "flags",
+      "rva": "0x1F4588",
+      "matches": true
+    },
+    {
+      "name": "motionRead",
+      "rva": "0x1B22B9E",
+      "matches": true
+    },
+    {
+      "name": "fringeRead",
+      "rva": "0x1B22BCE",
+      "matches": true
+    },
+    {
+      "name": "r.TemporalAACurrentFrameWeight",
+      "rva": "0x2979810",
+      "matches": true
+    },
+    {
+      "name": "r.Tonemapper.Sharpen",
+      "rva": "0x297CCA0",
+      "matches": true
+    },
+    {
+      "name": "r.MotionBlur.Amount",
+      "rva": "0x2DB0248",
+      "matches": true
+    },
+    {
+      "name": "r.SceneColorFringe.Max",
+      "rva": "0x2DB0588",
+      "matches": true
+    }
+  ],
+  "oldIniValuesPreserved": 255,
+  "newIniKeys": [
+    "Features.disablemotionblur",
+    "Features.disablecolorfringe"
+  ],
+  "sourceControlAnalysis": {
+    "functionCountDecoded": 13,
+    "allFunctionsDecoded": true,
+    "actorClass": "SoulBarrier",
+    "components": [
+      "OrbCollision",
+      "AutoTargeting",
+      "Objective",
+      "P_SoulCache_Main",
+      "P_SoulCache_Destroyed",
+      "ActiveChargeFX"
+    ],
+    "actualSourceControlCall": [
+      "letBool[local[CallFunc_IsEnabled_ReturnValue] = context[object[Default__SourceControlHelpers] skip 0xa field CallFunc_IsEnabled_ReturnValue : call[IsEnabled()]]]"
+    ],
+    "conclusion": "dependency is used by script; not removed; no streaming fix claimed"
+  },
+  "noNewHook": true,
+  "gameFilesChanged": false,
+  "gameplayValidated": false
+}

@@ -11,6 +11,9 @@ endif()
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(CoreUiRefreshTests tests/CoreUiRefreshTests.cpp)
+  target_include_directories(CoreUiRefreshTests PRIVATE src)
+  add_test(NAME CoreUiRefresh COMMAND CoreUiRefreshTests)
   add_executable(TemporalAASettingsTests tests/TemporalAASettingsTests.cpp)
   target_include_directories(TemporalAASettingsTests PRIVATE src)
   add_test(NAME TemporalAASettings COMMAND TemporalAASettingsTests)
@@ -453,6 +456,7 @@ set_source_files_properties("${DG_UPDATER_RC}" PROPERTIES OBJECT_DEPENDS "${DG_H
 add_library(DarksidersGenesisMod SHARED
   src/RenderSafetyFeature.cpp
   src/TemporalAAFeature.cpp
+  src/CoreUiLevelFeature.cpp
   src/NativeTpsFeature.cpp
   src/DashCombatFeature.cpp
   src/RangedStateFeature.cpp

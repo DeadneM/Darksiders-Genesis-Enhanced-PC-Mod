@@ -1,0 +1,29 @@
+{
+  "version": "V1.169",
+  "sourceCommit": "578e89a83632a8ce7a5f499b7d00c9e158565cea",
+  "archiveCommit": "95a2a72e905b10266ae10b57faddaae527d40151",
+  "name": "DarksidersGenesis_V1.169_OPTIONAL_IMAGE_FILTERS_TEST.zip",
+  "size": 2487022,
+  "sha256": "A01A933F7BCD90EA667FBCE918FEC2A967622F41245336DDC8B75F6B832A823E",
+  "files": {
+    "dxgi.dll": "2FD6596009F029FB0574703F79E84A90AFCB67AA2C9864B04553D008D13728DD",
+    "DarksidersGenesisMod.asi": "21FA0AC74C787A175F43D6CD8E32D584B34449977F313819788A9348BC62779C"
+  },
+  "rootEntries": [
+    "dxgi.dll",
+    "DarksidersGenesisMod.asi"
+  ],
+  "amd64": true,
+  "crcValid": true,
+  "oldArchivesPreserved": 233,
+  "ciRun": 44364175636,
+  "testsPassed": 85,
+  "cppWarnings": 0,
+  "cppErrors": 0,
+  "newDefaultsOff": true,
+  "oldIniValuesPreserved": 255,
+  "referenceIniKeys": 257,
+  "gameplayValidated": false,
+  "installedByAgent": false,
+  "defenderCandidateDetection": false
+}

@@ -12,6 +12,40 @@ View Native(){
     View v{};v.fill(0xA5);float frame[7]{0,0,0,0,0,0,90};
     std::memcpy(v.data(),frame,sizeof(frame));Put(v,0x38,1.0f);Put(v,0x494,1000.0f);return v;
 }
+using namespace dg::camera_focus;
+namespace camera_blur=dg::camera_blur;
+bool LegacyBlur(void* output,const camera_blur::Profile& profile,bool cinematic,
+                      const Point* target=nullptr,Bounds bounds={}){
+    if(cinematic||!BlurReady()||!output)return false;
+    if(profile.disabled)return DisableBlur(output,true);
+    if(!profile.custom||!target||!std::isfinite(profile.distanceMeters)||
+       profile.distanceMeters<0||profile.distanceMeters>camera_blur::MaxDistanceMeters||!std::isfinite(profile.amount)||
+       profile.amount<0||profile.amount>5)return false;
+    auto* p=static_cast<unsigned char*>(output);
+    if(p[0x40+0x23]>2||!Compensate(output,*target))return false;
+    float view[7]{},focus=0;std::memcpy(view,p,sizeof(view));std::memcpy(&focus,p+0x40+0x454,4);
+    float region=profile.distanceMeters*100.0f;
+    if(bounds.valid){
+        constexpr double rad=0.01745329251994329577;
+        const double fx=std::cos(view[3]*rad)*std::cos(view[4]*rad),
+            fy=std::cos(view[3]*rad)*std::sin(view[4]*rad),fz=std::sin(view[3]*rad);
+        const double radius=std::fabs(fx)*bounds.extent.x+std::fabs(fy)*bounds.extent.y+std::fabs(fz)*bounds.extent.z;
+        const double center=(bounds.center.x-view[0])*fx+(bounds.center.y-view[1])*fy+(bounds.center.z-view[2])*fz;
+        const double dx=bounds.center.x-target->x,dy=bounds.center.y-target->y,dz=bounds.center.z-target->z;
+        const double extent2=double(bounds.extent.x)*bounds.extent.x+double(bounds.extent.y)*bounds.extent.y+double(bounds.extent.z)*bounds.extent.z;
+        if(std::isfinite(center)&&std::isfinite(radius)&&radius>0&&radius<=20000&&
+           dx*dx+dy*dy+dz*dz<=extent2)
+            region=std::max(region,static_cast<float>(std::clamp(center+radius-focus,0.0,20000.0)));
+    }
+    // Explicit custom mode deliberately replaces the authored method/region.
+    // Gaussian near=0 protects the foreground; the rear mesh bound is a floor
+    // for the selected clear distance. The level's transition stays authored.
+    const float zero=0;
+    std::memcpy(p+0x40+0x460,&region,4);std::memcpy(p+0x40+0x474,&zero,4);
+    std::memcpy(p+0x40+0x478,&profile.amount,4);
+    p[0x40+0x17]|=0x84;p[0x40+0x18]|=0x03;p[0x40+0x23]=1;
+    return true;
+}
 struct Reader {
         std::array<unsigned char,0x400> actor{},mesh{};
         template<class T> bool Read(uintptr_t object,size_t offset,T& result){
@@ -178,5 +212,37 @@ void Run(){
     Check(regionP1==500&&regionP2==2000,"native and TPS profiles can be applied to independent player outputs without shared render state");
 }
 }
-int main(){try{Run();std::cout<<"TPS per-view focus and native postprocess preservation passed\n";return 0;}
+
+void Parity(){
+    using namespace dg::camera_focus;
+    const Point target{400,0,0};
+    const Bounds body{{400,0,0},{50,60,120},true};
+    const float nan=std::numeric_limits<float>::quiet_NaN();
+    for(int mask=0;mask<128;++mask){
+        layoutReady=(mask&1)!=0;lensLayoutReady=(mask&2)!=0;blurLayoutReady=(mask&4)!=0;
+        const bool lens=(mask&8)!=0,cinematic=(mask&16)!=0;
+        const Point* aim=(mask&32)?nullptr:&target;
+        Bounds bounds=body;bounds.valid=(mask&64)!=0;
+        for(float meters:{0.0f,10.0f,199.999f,200.0f,250.0f,5000.0f,5001.0f,nan})
+        for(int mode=0;mode<5;++mode)
+        for(int method=0;method<4;++method){
+            camera_blur::Profile profile{mode==1,mode!=2,meters,mode==3?nan:.5f};
+            View initial=Native();initial[0x63]=static_cast<unsigned char>(method);
+            Put(initial,0x38,mode==4?.5f:1.0f);
+            float view[7]{0,0,0,-12,17,0,90};std::memcpy(initial.data(),view,sizeof(view));
+            View legacy=initial,optimized=initial;
+            const bool focused=aim&&Compensate(legacy.data(),*aim,lens,bounds);
+            const bool blurred=LegacyBlur(legacy.data(),profile,cinematic,aim,bounds);
+            const bool result=ApplyFocusAndBlur(optimized.data(),profile,cinematic,aim,lens,bounds);
+            Check(legacy==optimized&&result==(focused||blurred),"TPS optimization preserves every camera byte and result");
+            legacy=initial;optimized=initial;
+            const bool oldResult=LegacyBlur(legacy.data(),profile,cinematic,aim,bounds);
+            const bool newResult=ApplyBlur(optimized.data(),profile,cinematic,aim,bounds);
+            Check(legacy==optimized&&oldResult==newResult,"standalone native blur remains byte-identical");
+        }
+    }
+    Check(!ApplyFocusAndBlur(nullptr,{false,true,250,.5f},false,&target,true,body),"missing output remains safe");
+}
+
+int main(){try{Run();Parity();std::cout<<"TPS per-view focus and native postprocess preservation passed\n";return 0;}
 catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

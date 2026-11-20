@@ -1,3 +1,45 @@
+## V1.173 — publication main / Release
+
+Promotion demandée par l'utilisateur ; binaires Release existants réutilisés sans recompilation. 86/86 tests, réglages et réactivité préservés. Gain de fluidité et crash GPU signalé restent non établis. [Publication, limites et archive](docs/V1_173_MAIN_RELEASE.md).
+
+---
+
+## V1.173 — beta disponible sur debug
+
+Optimisations CPU sans délai ajouté aux changements dynamiques : compteur de draws retiré, empreintes shaders et lectures mémoire allégées, focus P2 partagé. Réglages et rythme de vérification préservés. 86/86 tests ; un avertissement d'analyse de table constexpr documenté. Gain de fluidité à tester. [ZIP, contrôles et tests](docs/V1_173_DELIVERY_RECEIPT.md).
+
+---
+
+## Audit global des optimisations — 19 novembre 2026
+
+Deux passes comparées sur les sources et le dernier journal V1.172 : pistes CPU priorisées, protections et réglages conservés. Aucun patch ni nouveau build pour cet audit ; aucun gain FPS/GPU annoncé. [Rapport, preuves et lots proposés](docs/FULL_OPTIMIZATION_AUDIT_2026_11_19.md).
+
+---
+
+## V1.172 — beta disponible sur debug
+
+Case **Summon horse in the air** sous Horse Everywhere, OFF par défaut. Appel natif et règles de zone conservés ; fonction à tester en jeu. Petite optimisation CPU cumulée, gain non mesuré. Base V1.171 validée ; 86/86 tests Windows, ZIP vérifié, main V1.168 préservée. [Téléchargement et tests](docs/V1_172_DELIVERY_RECEIPT.md).
+
+---
+
+## V1.171 — beta cumulative disponible sur debug
+
+V1.170 reprise avec un journal d’erreur de chargement corrigé, sans changement du chargement lui-même. Fonctions V1.171 validées par l’utilisateur ; micro-saccades en cours de diagnostic séparé. 86/86 tests Windows, ZIP vérifié. Main V1.168 préservée ; aucune installation automatique. [Téléchargement et tests](docs/V1_171_DELIVERY_RECEIPT.md).
+
+---
+
+## V1.170 — beta cumulative disponible sur debug
+
+Arbre des cœurs : rafraîchissement natif unique après affichage initial, ON par défaut et désactivable. Deux filtres d’image OFF par défaut : flou de mouvement et franges colorées. Base stable V1.168 conservée. 86/86 tests Windows ; rendu et correctif restent à valider en jeu. Aucune installation automatique. [ZIP, contrôles et tests](docs/V1_170_DELIVERY_RECEIPT.md).
+
+---
+
+## V1.169 — beta intermédiaire conservée
+
+Depuis V1.168 validée : deux cases indépendantes et OFF par défaut pour retirer le flou de mouvement et les franges colorées. Aucune modification des anciens réglages, de l’arbre des cœurs ou de SoulBarrier ; SourceControl reste en recherche et l’arbre reçoit un candidat dans V1.170. [Périmètre, limites et tests](docs/V1_169_REVIEW.md).
+
+---
+
 ## V1.168 — VALIDÉE, promotion main et release
 
 Validation globale de l’utilisateur enregistrée. Build Windows Release existante réutilisée à l’identique : 85/85 tests, TAA/netteté désormais validés en jeu. Publication stable sans recompilation ni remplacement des fichiers installés. [Périmètre et empreinte](docs/V1_168_MAIN_RELEASE.md).

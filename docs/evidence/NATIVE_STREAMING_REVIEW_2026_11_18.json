@@ -1,0 +1,32 @@
+{
+  "scope": "read-only native PAK and existing logs; no game/config change",
+  "pakIndexSha1": "5d0982cd46a5221290cb6ed24696e3962e9dddff",
+  "assets": [
+    {
+      "name": "ProjectMayhem/Content/Blueprints/Interactables/SoulBarrier_Orb_Blueprint.uasset",
+      "rawBytes": 19407,
+      "sha256": "52edc61ee227d70d59e92277a0cdd2069d40448362d257b9b0e13274a0c6d250",
+      "matchingNames": [
+        "/Script/SourceControl",
+        "Default__SourceControlHelpers",
+        "SourceControlHelpers"
+      ]
+    },
+    {
+      "name": "ProjectMayhem/Content/Blueprints/Interactables/SoulBarrier_Orb_Blueprint.uexp",
+      "rawBytes": 9359,
+      "sha256": "734db96b3691d01cff3ec6187e613770c7c25ded98b32342d2684fe11f764674",
+      "matchingNames": []
+    }
+  ],
+  "gameplayFixApplied": false,
+  "buildStarted": false,
+  "engineLogSha256": "e6b8ba90998a137c9f15d2a35d1a11276cdaf7fe877032aad1fd5300b2fe3b4e",
+  "errorOccurrences": 1,
+  "logEvidence": [
+    "[2026.11.16-19.48.14:316][  0]LogContentStreaming: Texture pool size now 1000 MB",
+    "[2026.11.16-19.48.22:087][392]LogStreaming: Error: Couldn't find file for package /Script/SourceControl requested by async loading code. NameToLoad: /Script/SourceControl",
+    "[2026.11.16-19.48.22:087][392]LogStreaming: Error: This will hitch streaming because it ends up searching the disk instead of finding the file in the pak file.",
+    "[2026.11.16-19.48.22:087][392]LogStreaming: Error:   /Game/Blueprints/Interactables/SoulBarrier_Orb_Blueprint"
+  ]
+}

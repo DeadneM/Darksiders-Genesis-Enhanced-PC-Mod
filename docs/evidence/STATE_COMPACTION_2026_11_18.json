@@ -1,0 +1,22 @@
+{
+  "historySnapshots": [
+    {
+      "source": "docs/ACTIVE_QUEUE.md",
+      "history": "docs/history/ACTIVE_QUEUE_THROUGH_V1_168_2026_11_18.md",
+      "sha256": "f5e8fcb547e341f75040965615df7c93429b06546120fc4397cfa40b4ee35dcc",
+      "bytesPreserved": 135445
+    },
+    {
+      "source": "docs/CURRENT_STATE.md",
+      "history": "docs/history/CURRENT_STATE_THROUGH_V1_168_2026_11_18.md",
+      "sha256": "8bcece0f345fb59eeea04467b98a6c267103dd577c51a21e5eb61d7f0480e40c",
+      "bytesPreserved": 220813
+    }
+  ],
+  "oldCurrentBytes": 356258,
+  "newCurrentBytes": 3678,
+  "historyByteIdentical": true,
+  "sourceCodeChanged": false,
+  "gameFilesChanged": false,
+  "buildStarted": false
+}

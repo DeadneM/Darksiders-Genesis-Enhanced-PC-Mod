@@ -68,6 +68,7 @@ void Publish(const Snapshot& s) {
     g_state.thirdPersonFovEnabled.store(s.thirdPersonFovEnabled);
     g_state.tpsLensFocusEnabled.store(s.tpsLensFocusEnabled);
     g_state.molochBossCrashFixEnabled.store(s.molochBossCrashFixEnabled,std::memory_order_relaxed);
+    g_state.coreLevelDisplayFixEnabled.store(s.coreLevelDisplayFixEnabled,std::memory_order_relaxed);
     g_state.nativeBlur.Publish(s.nativeBlur);
     g_state.tpsBlur.Publish(s.tpsBlur);
     g_state.cameraOrbitInputEnabled.store(s.cameraOrbitInputEnabled, std::memory_order_relaxed);
@@ -97,6 +98,7 @@ void Publish(const Snapshot& s) {
     g_state.glideDurationEnabled.store(s.glideDurationEnabled, std::memory_order_relaxed);
     g_state.horseEverywhereEnabled.store(s.horseEverywhereEnabled, std::memory_order_relaxed);
     g_state.horseAreaMode.store(s.horseAreaMode,std::memory_order_relaxed);
+    g_state.horseAirSummonEnabled.store(s.horseAirSummonEnabled,std::memory_order_relaxed);
     g_state.horseSpeedEnabled.store(s.horseSpeedEnabled, std::memory_order_relaxed);
     g_state.horseSprintSpeedEnabled.store(s.horseSprintSpeedEnabled, std::memory_order_relaxed);
     g_state.horseSprintDurationEnabled.store(s.horseSprintDurationEnabled, std::memory_order_relaxed);

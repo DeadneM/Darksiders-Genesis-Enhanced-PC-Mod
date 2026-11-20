@@ -110,8 +110,8 @@ void ApplyView(void* camera,void* outView,const local_players::Context& owner){
     if(paused){
         if(s.held&&s.camera==reinterpret_cast<uintptr_t>(camera)){
             std::memcpy(values,s.heldView,sizeof(s.heldView));
-            camera_focus::Compensate(values,s.focus,rt.tpsLensFocusEnabled.load(),s.focusBounds);
-            camera_focus::ApplyBlur(values,rt.tpsBlur.Get(),native_tps::CinematicActive(1),&s.focus,s.focusBounds);
+            camera_focus::ApplyFocusAndBlur(values,rt.tpsBlur.Get(),native_tps::CinematicActive(1),
+                &s.focus,rt.tpsLensFocusEnabled.load(),s.focusBounds);
         }
         s.gameplay=false;Unlock();return;
     }
@@ -149,8 +149,8 @@ void ApplyView(void* camera,void* outView,const local_players::Context& owner){
     native_objects::MemoryReader reader;
     s.focusBounds=(rt.tpsLensFocusEnabled.load()||rt.tpsBlur.custom.load())&&camera_focus::LensReady()?camera_focus::ReadBounds(reader,owner.pawn):camera_focus::Bounds{};
     if(s.focusBounds.valid&&owner.kind==local_players::PoseKind::Horse)s.focusBounds=camera_focus::Merge(s.focusBounds,camera_focus::ReadBounds(reader,owner.character));
-    camera_focus::Compensate(values,s.focus,rt.tpsLensFocusEnabled.load(),s.focusBounds);
-    camera_focus::ApplyBlur(values,rt.tpsBlur.Get(),native_tps::CinematicActive(1),&s.focus,s.focusBounds);
+    camera_focus::ApplyFocusAndBlur(values,rt.tpsBlur.Get(),native_tps::CinematicActive(1),
+        &s.focus,rt.tpsLensFocusEnabled.load(),s.focusBounds);
     std::memcpy(s.heldView,outgoing,sizeof(outgoing));
     s.camera=reinterpret_cast<uintptr_t>(camera);s.held=true;
     s.appliedYaw=yaw;s.gameplay=true;s.viewTick=now;

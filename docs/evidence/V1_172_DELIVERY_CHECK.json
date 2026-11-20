@@ -1,0 +1,65 @@
+{
+  "package": {
+    "version": "V1.172",
+    "base": "5fb27354394a6282df08b55760c2e7bf4df1246a",
+    "source": "025c79e1b44d8e2e022ce450d7a3cb6f0b4d93b6",
+    "archive": "9efaa3116784c80041e7e1c720296ee00c25bdc8",
+    "download": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/9efaa3116784c80041e7e1c720296ee00c25bdc8/downloads/DarksidersGenesis_V1.172_AIR_HORSE_SUMMON_TEST.zip",
+    "sha256": "1DFE88E65C8E1504C8416C56A81A8C0D9EF79569E2C1BCDF4C3872A9EC3AAF1A",
+    "bytes": 2486510,
+    "files": {
+      "dxgi.dll": {
+        "bytes": 155648,
+        "sha256": "0634D9A5A46AABAEC6FA46B2A624FD5034AB1EBBCED792C3FE14CBF8A3A52A40"
+      },
+      "DarksidersGenesisMod.asi": {
+        "bytes": 2330624,
+        "sha256": "610A72216888996D05E7612EBF7F7AF3A8955A48BC472B3DDA71BC417EC814D9"
+      }
+    },
+    "crcVerified": true,
+    "amd64": true,
+    "rootBinariesOnly": true,
+    "oldArchivesUnchanged": 236,
+    "totalArchives": 237,
+    "iniKeys": 259,
+    "defaultDelta": {
+      "Features.HorseAirSummon": "0"
+    },
+    "updaterSelection": "DarksidersGenesis_V1.172_AIR_HORSE_SUMMON_TEST.zip",
+    "gitBlob": "dfa11fb13a81cbe9415a5bdcda95618a5de51e28",
+    "publicHttpStatus": 200,
+    "binaryDownload": "new ZIP retrieved once through Git; no duplicate HTTP GET or old archive download",
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/debug": "9efaa3116784c80041e7e1c720296ee00c25bdc8",
+      "refs/heads/main": "3e731bd18198d214dee567bb682c9f7067990841",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "installed": false,
+    "localBuild": false,
+    "gameplayValidated": false
+  },
+  "ci": {
+    "source": "025c79e1b44d8e2e022ce450d7a3cb6f0b4d93b6",
+    "runId": 44537363586,
+    "jobId": 135606236137,
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/44537363586",
+    "testsPassed": 86,
+    "cppWarnings": 0,
+    "cppErrors": 0,
+    "configuration": "Windows x64 Release",
+    "gameplayValidated": false
+  },
+  "defender": {
+    "scan": "Microsoft Defender custom scan",
+    "completed": true,
+    "candidateDetections": 0,
+    "checkedAt": "2026-11-19T14:00:58.1330195Z"
+  },
+  "base": "V1.171 user validated",
+  "status": "BUILT_CHECKED_PUBLISHED_EXPERIMENTAL",
+  "installed": false,
+  "airSummonGameplayValidated": false,
+  "cpuGainMeasured": false
+}

@@ -34,8 +34,12 @@ int main(int argc,char** argv){
     if(!DeleteFileW(path))return 1; // only this test's empty file, to exercise missing-INI generation
     dg::config::Store generated;generated.SetPath(path);
     check(generated.Load(),"missing INI generated from compiled defaults");
+    check(!generated.horseAirSummonEnabled&&!dg::runtime::Get().horseAirSummonEnabled.load(),"air summon is opt-in for new and existing profiles");
+    check(generated.coreLevelDisplayFixEnabled&&dg::runtime::Get().coreLevelDisplayFixEnabled.load(),"core UI repair defaults ON in store and runtime");
     check(!generated.temporalAA.enabled&&generated.temporalAA.frameWeight==.08f&&generated.temporalAA.sharpen==1,
         "TAA customization defaults OFF with editable trial values, preserving native output");
+    check(!generated.temporalAA.disableMotionBlur&&!generated.temporalAA.disableColorFringe,
+        "new image filters default OFF in existing and generated configurations");
     check(generated.updaterAutoCheck,"approved defaults check the selected update channel at startup");
     check(generated.tps3DAimEnabled&&dg::runtime::Get().tps3DAimEnabled.load(),"missing option enables 3D aiming by default");
     check(generated.molochBossCrashFixEnabled&&dg::runtime::Get().molochBossCrashFixEnabled.load(),"captured subtitle crash guard defaults ON in store and runtime");
@@ -225,6 +229,20 @@ int main(int argc,char** argv){
     renamed.ResetDefaults(false);
     check(!renamed.temporalAA.enabled&&renamed.temporalAA.frameWeight==.08f&&renamed.temporalAA.sharpen==1,
         "factory defaults restore native TAA ownership");
+    renamed.temporalAA.disableMotionBlur=true;renamed.temporalAA.disableColorFringe=true;
+    check(renamed.SaveNow()&&renamed.Load()&&renamed.temporalAA.disableMotionBlur&&renamed.temporalAA.disableColorFringe&&!renamed.temporalAA.enabled,
+        "image filter toggles persist without enabling TAA customization");
+    renamed.temporalAA.disableMotionBlur=false;
+    check(renamed.SaveNow()&&renamed.Load()&&!renamed.temporalAA.disableMotionBlur&&renamed.temporalAA.disableColorFringe,
+        "image filters remain independently configurable");
+    renamed.ResetDefaults(false);
+    check(!renamed.temporalAA.disableMotionBlur&&!renamed.temporalAA.disableColorFringe,"factory reset returns image effects to native");
+    renamed.coreLevelDisplayFixEnabled=false;
+    check(renamed.SaveNow()&&renamed.Load()&&!renamed.coreLevelDisplayFixEnabled&&!dg::runtime::Get().coreLevelDisplayFixEnabled.load(),"core UI repair OFF persists and reaches runtime");
+    renamed.horseAirSummonEnabled=true;
+    check(renamed.SaveNow()&&renamed.Load()&&renamed.horseAirSummonEnabled&&dg::runtime::Get().horseAirSummonEnabled.load(),"air summon ON persists independently of the existing area mode");
+    renamed.ResetDefaults(false);
+    check(!renamed.horseAirSummonEnabled&&renamed.horseAreaMode==2,"reset restores native airborne summon and approved zone default");
     WritePrivateProfileStringW(nullptr,nullptr,nullptr,path);DeleteFileW(path);
     std::printf("User defaults: %zu keys checked, %u failures\n",keys,failed);return failed?1:0;
 }

@@ -8,11 +8,13 @@
 #include "NativeMemoryReader.h"
 
 #include <MinHook.h>
+#include <intrin.h>
 
 #include <algorithm>
 #include <array>
 #include <atomic>
 #include <cmath>
+#include <cstddef>
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
@@ -175,6 +177,19 @@ void* g_horseRegionHookTarget=nullptr;
 void* g_horseDesummonHookTarget=nullptr;
 
 LogFn g_logger = nullptr;
+
+// Native summon input traces 1000 units down and requires a floor hit.
+// This helper is shared: only the proven horse-action call site may change.
+constexpr uintptr_t kSummonFloorRva=0x668D90,kSummonFloorReturnRva=0x665398;
+struct SummonVector {float x=0,y=0,z=0;};
+struct SummonFloor {SummonVector position{};bool valid=false;unsigned char padding[3]{};};
+static_assert(sizeof(SummonFloor)==16&&offsetof(SummonFloor,valid)==12);
+using SummonFloorFn=SummonFloor*(*)(SummonFloor*,void*,const SummonVector*,float,float);
+SummonFloorFn g_originalSummonFloor=nullptr;
+void* g_summonFloorTarget=nullptr;
+uintptr_t g_summonFloorBase=0;
+std::atomic_bool g_airSummonReady{false};
+unsigned g_airSummonEvents=0;
 
 void FeatureLog(const char* fmt, ...) {
     if (!g_logger) {
@@ -971,6 +986,38 @@ bool HookHorseDesummon(void* actor){
     return original;
 }
 
+bool AirSummonFloor(uintptr_t caller,void* actor,const SummonVector* origin,SummonFloor& floor){
+    if(!dg::runtime::Get().horseAirSummonEnabled.load(std::memory_order_relaxed)||
+       caller!=g_summonFloorBase+kSummonFloorReturnRva||!actor||!origin||!dg::native_tps::OnGameThread())return false;
+    dg::local_players::Context owner{};
+    uintptr_t movement=0,controller=0,pawn=0,reciprocal=0;unsigned char mode=0,custom=0,role=0,glide=0;
+    SummonVector point{};
+    if(!dg::local_players::ResolveActor(actor,owner)||owner.index<0||owner.index>1||
+       owner.kind!=dg::local_players::PoseKind::Foot||owner.pawn!=owner.character||
+       owner.character!=reinterpret_cast<uintptr_t>(actor)||!owner.controller||
+       !ReadAt(actor,0x348,controller)||controller!=owner.controller||
+       !ReadAt(reinterpret_cast<void*>(controller),0x350,pawn)||pawn!=owner.character||
+       !ReadAt(actor,0x118,role)||role!=3||!ReadAt(actor,0x388,movement)||
+       !ReadAt(reinterpret_cast<void*>(movement),0xE8,reciprocal)||reciprocal!=owner.character||
+       !ReadAt(reinterpret_cast<void*>(movement),0x1B0,mode)||!ReadAt(reinterpret_cast<void*>(movement),0x1B1,custom)||
+       !(mode==3||(mode==6&&custom==6&&ReadAt(actor,0xD14,glide)&&(glide&1)))||
+       dg::native_tps::IsWorldPaused(actor)||dg::native_tps::CinematicActive(unsigned(owner.index))||
+       !ReadAt(origin,0,point)||!std::isfinite(point.x)||!std::isfinite(point.y)||!std::isfinite(point.z)||
+       std::fabs(point.x)>1e7f||std::fabs(point.y)>1e7f||std::fabs(point.z)>1e7f)return false;
+    // The unchanged native caller adds exactly 100 to the traced floor Z.
+    // Compensate in this temporary result so its requested spawn stays at
+    // the player's current position. No movement-mode or UObject write.
+    floor.position={point.x,point.y,point.z-100.0f};floor.valid=true;
+    return true;
+}
+SummonFloor* HookSummonFloor(SummonFloor* out,void* actor,const SummonVector* origin,float depth,float argument){
+    const auto caller=reinterpret_cast<uintptr_t>(_ReturnAddress());
+    auto* result=g_originalSummonFloor?g_originalSummonFloor(out,actor,origin,depth,argument):nullptr;
+    if(result&&result==out&&AirSummonFloor(caller,actor,origin,*result)&&g_airSummonEvents++<4)
+        FeatureLog("Horse air summon: native action floor result adapted once; zone/unlock/spawn checks unchanged");
+    return result;
+}
+
 template <std::size_t N, typename Fn>
 bool InstallNativeHook(
     std::uintptr_t rva,
@@ -1115,6 +1162,22 @@ void Initialize(LogFn logger) {
         reinterpret_cast<void*>(&HookHorseDesummon),
         g_originalHorseDesummon,g_horseDesummonHookTarget,
         "PlayerCharacter::IsInHorseDesummonRegion (V0.89 scoped test)");
+    // Verify the caller, floor-result producer and native Z adjustment before
+    // installing the optional adapter. All other helper callers stay native.
+    const auto summonBase=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
+    constexpr std::array<unsigned char,16> floorEntry{0x48,0x8B,0xC4,0x55,0x56,0x57,0x48,0x8D,0xA8,0x48,0xFF,0xFF,0xFF,0x48,0x81,0xEC};
+    constexpr unsigned char floorCall[]={0xE8,0xF8,0x39,0,0,0x90,0x80,0x7D,0x03,0};
+    constexpr unsigned char nativeRise[]={0xF3,0x0F,0x58,0x05,0xC0,0xB2,0xF6,0x01};
+    float rise=0;
+    if(ReadAt(reinterpret_cast<void*>(summonBase),0x25D0670,rise)&&rise==100.0f&&
+       Readable(reinterpret_cast<void*>(summonBase+0x665393),sizeof(floorCall))&&
+       Readable(reinterpret_cast<void*>(summonBase+0x6653A8),sizeof(nativeRise))&&
+       !std::memcmp(reinterpret_cast<void*>(summonBase+0x665393),floorCall,sizeof(floorCall))&&
+       !std::memcmp(reinterpret_cast<void*>(summonBase+0x6653A8),nativeRise,sizeof(nativeRise))){
+        g_summonFloorBase=summonBase;
+        g_airSummonReady.store(InstallNativeHook(kSummonFloorRva,floorEntry,reinterpret_cast<void*>(&HookSummonFloor),
+            g_originalSummonFloor,g_summonFloorTarget,"Horse action::find summon floor (optional air summon)"));
+    }
     // Existing native server callback is always invoked unchanged.
     InstallNativeHook(
         kHorseServerSpawnImplRva,kHorseServerSpawnImplPrologue,
@@ -1208,7 +1271,10 @@ bool IsValidatedMovement(void* movementComponent) {
     return found;
 }
 
+bool AirSummonReady(){return g_airSummonReady.load(std::memory_order_acquire);}
 void Shutdown() {
+    g_airSummonReady=false;
+    RemoveHook(g_summonFloorTarget);
     RemoveHook(g_getNormalizedSpeedTarget);
     RemoveHook(g_getNormalizedSpeedInputTarget);
     RemoveHook(g_tryStartSprintingTarget);

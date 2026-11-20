@@ -1,0 +1,36 @@
+{
+  "base": "V1.168 validated",
+  "sameProcessComparisons": true,
+  "widgetsCompared": 205,
+  "minorNodesWithChangedIndicators": 30,
+  "coreNodeLevelsChanged": false,
+  "readErrors": 0,
+  "externalReadOnly": true,
+  "externalNativeCalls": false,
+  "runtimeContract": {
+    "class": "CharacterPage_CreatureCoresFullscreen_C",
+    "package": "/Game/UI/CharacterScreens/CharacterPage_CreatureCoresFullscreen",
+    "metaClass": "WidgetBlueprintGeneratedClass",
+    "functions": [
+      {
+        "name": "RefreshNodes",
+        "kind": "Function",
+        "outer": "CharacterPage_CreatureCoresFullscreen_C",
+        "parameterBytes": 0
+      },
+      {
+        "name": "Tick",
+        "kind": "Function",
+        "outer": "CharacterPage_CreatureCoresFullscreen_C",
+        "parameterBytes": 60
+      }
+    ]
+  },
+  "fix": "one native RefreshNodes call after two completed root ticks; weak identities, class/package/zero-param validation; no new hook",
+  "defaultEnabled": true,
+  "canDisable": true,
+  "oldIniValuesPreserved": 255,
+  "referenceIniValues": 258,
+  "newImageOptionsDefaultOff": true,
+  "gameplayValidated": false
+}

@@ -54,6 +54,7 @@ struct Snapshot {
     bool thirdPersonFovEnabled = true;
     bool tpsLensFocusEnabled = true;
     bool molochBossCrashFixEnabled = true;
+    bool coreLevelDisplayFixEnabled = true;
     camera_blur::Profile nativeBlur=camera_blur::NativeDefaults,tpsBlur=camera_blur::TpsDefaults;
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
     bool cameraControllerOrbitEnabled = true;
@@ -79,6 +80,7 @@ struct Snapshot {
     bool glideDurationEnabled = true;
     bool horseEverywhereEnabled = true;
     int horseAreaMode = 2; // restricted-only by default; native predicate classification
+    bool horseAirSummonEnabled = false;
     bool horseSpeedEnabled = true;
     bool horseSprintSpeedEnabled = true;
     bool horseSprintDurationEnabled = true;
@@ -188,6 +190,7 @@ struct State {
     std::atomic_bool thirdPersonFovEnabled{true};
     std::atomic_bool tpsLensFocusEnabled{true};
     std::atomic_bool molochBossCrashFixEnabled{true};
+    std::atomic_bool coreLevelDisplayFixEnabled{true};
     camera_blur::SharedProfile nativeBlur{camera_blur::NativeDefaults},tpsBlur{camera_blur::TpsDefaults};
     std::atomic_bool tpsViewGameplay{false};
     std::atomic_ullong tpsGameplayViewTick{0};
@@ -245,6 +248,7 @@ struct State {
     std::atomic_bool glideDurationEnabled{true};
     std::atomic_bool horseEverywhereEnabled{true};
     std::atomic_int horseAreaMode{2};
+    std::atomic_bool horseAirSummonEnabled{false};
     std::atomic_ullong horseSummonIntentTick{0};
     std::atomic_bool horseSpeedEnabled{true};
     std::atomic_bool horseSprintSpeedEnabled{true};

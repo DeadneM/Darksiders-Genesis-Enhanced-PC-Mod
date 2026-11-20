@@ -1,0 +1,37 @@
+{
+  "base": "V1.171 user validated",
+  "scope": "Native horse action floor result only; no input binding change",
+  "contracts": [
+    {
+      "name": "floorEntry",
+      "rva": "0x668d90",
+      "bytes": "488bc4555657488da848ffffff4881ec",
+      "matched": true
+    },
+    {
+      "name": "floorCall",
+      "rva": "0x665393",
+      "bytes": "e8f839000090807d0300",
+      "matched": true
+    },
+    {
+      "name": "nativeRise",
+      "rva": "0x6653a8",
+      "bytes": "f30f5805c0b2f601",
+      "matched": true
+    }
+  ],
+  "nativeRise": 100,
+  "nativeResultBytes": 16,
+  "nativeResultValidOffset": 12,
+  "callerReturn": "0x665398",
+  "originalHelperAlwaysCalled": true,
+  "zoneUnlockAndCooldownChecksRetained": true,
+  "defaultEnabled": false,
+  "oldKeysUnchanged": 258,
+  "newKey": "Features/HorseAirSummon=0",
+  "hotkeysChanged": false,
+  "gameMemoryRead": false,
+  "gameModified": false,
+  "gameplayValidated": false
+}
