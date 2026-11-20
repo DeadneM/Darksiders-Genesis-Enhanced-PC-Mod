@@ -5,3 +5,8 @@ Demandée par l'utilisateur le 20 novembre 2026, sans nouvelle validation global
 86/86 tests, zéro erreur C++, un avertissement C28020 de génération constexpr revu et documenté. La promotion ne transforme pas les essais expérimentaux en validations en jeu : gain de fluidité et appel aérien restent à vérifier. Crash du 20 novembre à 10h50 : perte périphérique D3D / 0x887A0006 HUNG, cause non attribuée ; aucune correction de ce crash annoncée ni réglage changé.
 
 Release prévue : https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/releases/tag/v1.173 . Asset de distribution Darksiders_Genesis_Enhanced_PC_Mod_v1.173.zip, mêmes octets que le ZIP historique TEST conservé. Deux fichiers à la racine, sans INI/README. Installation utilisateur V1.173 laissée intacte ; aucune opération dans le dossier du jeu.
+
+
+## Publication confirmée
+
+Main et tag v1.173 vérifiés sur 2c5528e8934c99163c6911ad1d9138f9cc3b6d0a. Release publique non draft/non prerelease, asset 2504942 octets, empreinte SHA256 calculée par GitHub identique au ZIP contrôlé. Aucune recompilation. 233 archives précédentes de main préservées, 238 cumulées ; debug et archive inchangées. [Téléchargement direct](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/releases/download/v1.173/Darksiders_Genesis_Enhanced_PC_Mod_v1.173.zip) · [Preuve de publication](evidence/V1_173_RELEASE_CHECK.json).
