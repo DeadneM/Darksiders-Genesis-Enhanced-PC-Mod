@@ -42,6 +42,7 @@
 #include "CameraTraceFeature.h"
 #include "TpsCameraFocus.h"
 #include "TemporalAAFeature.h"
+#include "ChromaticIntensity.h"
 #include "CoreUiLevelFeature.h"
 
 #include "imgui.h"
@@ -1126,12 +1127,15 @@ void Draw(Context& c) {
                 }
                 if(motionCustom&&NumberRow("Amount","MotionBlurAmount",&config.temporalAA.motionBlurAmount,0,1,.5f,"%.2f"))config.Save();
                 HelpText("Unchecked: Native (default), chosen by each scene. Zero removes motion blur. Does not change depth of field.");
-                bool fringeCustom=config.temporalAA.colorFringeMax>=0;
+                bool fringeCustom=config.temporalAA.colorFringeAmount>=0;
                 if(ImGui::Checkbox("Customize chromatic aberration",&fringeCustom)){
-                    config.temporalAA.colorFringeMax=fringeCustom?5.0f:-1.0f;config.Save();
+                    config.temporalAA.colorFringeAmount=fringeCustom?1.0f:-1.0f;config.Save();
                 }
-                if(fringeCustom&&NumberRow("Maximum amount","ColorFringeMax",&config.temporalAA.colorFringeMax,0,10,5,"%.2f"))config.Save();
-                HelpText("Unchecked: Native (default). Zero removes colored fringes; higher values allow the scene's effect up to this limit, without adding an absent effect.");
+                ImGui::BeginDisabled(!chromatic::Ready());
+                if(fringeCustom&&NumberRow("Amount","ColorFringeAmount",&config.temporalAA.colorFringeAmount,0,10,1,"%.2f"))config.Save();
+                ImGui::EndDisabled();
+                HelpText("Unchecked: Native (default). Zero removes colored fringes; positive values set their intensity on supported camera views. Partial camera transitions retain native blending.");
+                if(!chromatic::Ready())ImGui::TextDisabled("Chromatic intensity unavailable");
                 ImGui::EndDisabled();
                 HelpText("Independent of TAA. Global settings, including cinematics and both local views.");
                 ImGui::Unindent();

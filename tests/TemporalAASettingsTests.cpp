@@ -23,19 +23,19 @@ struct Access {
 void Run(){
     const Settings defaults;
     Check(!defaults.enabled,"existing installations retain native TAA by default");
-    Check(defaults.motionBlurAmount==-1&&defaults.colorFringeMax==-1,"native image effects retained by default");
+    Check(defaults.motionBlurAmount==-1&&defaults.colorFringeAmount==-1,"native image effects retained by default");
     const auto filters=Normalize({false,.08f,1,0,0});
-    Check(!filters.enabled&&filters.motionBlurAmount==0&&filters.colorFringeMax==0,"image filters independent of TAA customization");
+    Check(!filters.enabled&&filters.motionBlurAmount==0&&filters.colorFringeAmount==0,"image filters independent of TAA customization");
     auto settings=Normalize({true,std::numeric_limits<float>::quiet_NaN(),9});
     Check(settings.enabled&&settings.frameWeight==.08f&&settings.sharpen==2,"invalid settings bounded without NaN");
     settings=Normalize({false,-1,-9});
     Check(!settings.enabled&&settings.frameWeight==.01f&&settings.sharpen==0,"limits and disabled flag preserved");
     const auto explicitAmounts=Normalize({false,.08f,1,.25f,2.5f});
-    Check(explicitAmounts.motionBlurAmount==.25f&&explicitAmounts.colorFringeMax==2.5f,"independent explicit amounts retain exact values without enabling TAA");
+    Check(explicitAmounts.motionBlurAmount==.25f&&explicitAmounts.colorFringeAmount==2.5f,"independent explicit amounts retain exact values without enabling TAA");
     const auto bounded=Normalize({false,.08f,1,9,99});
-    Check(bounded.motionBlurAmount==1&&bounded.colorFringeMax==10,"image amounts bounded to the UI/native consumer ranges");
+    Check(bounded.motionBlurAmount==1&&bounded.colorFringeAmount==10,"image amounts bounded to the UI/native consumer ranges");
     const auto invalid=Normalize({false,.08f,1,std::numeric_limits<float>::quiet_NaN(),-9});
-    Check(invalid.motionBlurAmount==-1&&invalid.colorFringeMax==-1,"invalid/negative image amounts return to native ownership");
+    Check(invalid.motionBlurAmount==-1&&invalid.colorFringeAmount==-1,"invalid/negative image amounts return to native ownership");
     Access access;ShadowOverride state;
     state.Update(access,false,.08f,0,1);
     Check(access.writes==0,"disabled path leaves both native shadows untouched");

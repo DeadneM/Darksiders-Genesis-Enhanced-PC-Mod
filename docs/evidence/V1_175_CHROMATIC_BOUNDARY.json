@@ -1,0 +1,27 @@
+{
+  "base": "d64041d901ffdd3ac56bbf5d8b0c2c0a23603274",
+  "property": "FPostProcessSettings.SceneFringeIntensity",
+  "ppOffset": "0x210",
+  "minimalViewPPOffset": "0x40",
+  "overrideByte": 5,
+  "overrideMask": "0x20",
+  "nativePropertyMetadataRva": "0x37965B8",
+  "nativeNameRva": "0x2EB7CB0",
+  "overrideSetterRva": "0x1DD2CA0",
+  "overrideSetterHex": "80490520c3",
+  "originalCapConsumerRva": "0x1B22BCE",
+  "capOperation": "minss authored intensity; not direct amount",
+  "oldCapNegativeDiagnosticValue": -2,
+  "interception": "existing CameraTraceFeature HookView only; no new hook",
+  "acceptedCameraWeight": 1,
+  "partialBlends": "unchanged; never force unrelated PP weights",
+  "newDelay": false,
+  "nativeDefault": -1,
+  "positiveAmount": "copied camera output only, no persistent UObject write",
+  "offlineSources": [
+    "v329-fringe-property.json",
+    "v329-fringe-consumer.json",
+    "v329-fringe-boundary.json"
+  ],
+  "runtimeValidated": false
+}

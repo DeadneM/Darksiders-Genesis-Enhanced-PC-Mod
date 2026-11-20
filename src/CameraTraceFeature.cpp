@@ -4,6 +4,7 @@
 #include "ExecutionCameraFeature.h"
 #include "CameraContinuity.h"
 #include "TpsCameraFocus.h"
+#include "ChromaticIntensity.h"
 #include "NativeMemoryReader.h"
 #include "DashCombatFeature.h"
 #include "RuntimeSettings.h"
@@ -143,6 +144,7 @@ void RecordCinematicEvent(CinematicDebugPhase phase,uint32_t candidate,
 void HookView(void* camera, float dt, void* outView) {
     if (g_view) g_view(camera, dt, outView);
     auto& settings=dg::runtime::Get();
+    if(g_view)dg::chromatic::Apply(outView,settings.chromaticIntensity.load(std::memory_order_acquire));
     dg::native_tps::SampleNativeStickSwap();
     dg::local_players::ObserveCameraViews(camera);
     // A cinematic may switch to a camera with no player component at all.

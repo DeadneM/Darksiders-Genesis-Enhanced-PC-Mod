@@ -1,3 +1,9 @@
+## V1.175 — intensité chromatique préparée sur debug
+
+Le plafond V1.174 est remplacé par l'intensité réelle sur les vues caméra vérifiées, Native par défaut. Motion blur conservé, aucun nouveau hook. [Contrat et tests](docs/V1_175_REVIEW.md).
+
+---
+
 ## V1.174 — beta disponible sur debug
 
 Flou de mouvement et limite d'aberration chromatique réglables avec curseur et saisie ; Native par défaut. Migration des anciennes cases, autres réglages et réactivité préservés. 86/86 tests, zéro avertissement C++. [ZIP, contrôles et test](docs/V1_174_DELIVERY_RECEIPT.md).

@@ -38,7 +38,7 @@ int main(int argc,char** argv){
     check(generated.coreLevelDisplayFixEnabled&&dg::runtime::Get().coreLevelDisplayFixEnabled.load(),"core UI repair defaults ON in store and runtime");
     check(!generated.temporalAA.enabled&&generated.temporalAA.frameWeight==.08f&&generated.temporalAA.sharpen==1,
         "TAA customization defaults OFF with editable trial values, preserving native output");
-    check(generated.temporalAA.motionBlurAmount==-1&&generated.temporalAA.colorFringeMax==-1,
+    check(generated.temporalAA.motionBlurAmount==-1&&generated.temporalAA.colorFringeAmount==-1,
         "new image filters default OFF in existing and generated configurations");
     check(generated.updaterAutoCheck,"approved defaults check the selected update channel at startup");
     check(generated.tps3DAimEnabled&&dg::runtime::Get().tps3DAimEnabled.load(),"missing option enables 3D aiming by default");
@@ -229,26 +229,37 @@ int main(int argc,char** argv){
     renamed.ResetDefaults(false);
     check(!renamed.temporalAA.enabled&&renamed.temporalAA.frameWeight==.08f&&renamed.temporalAA.sharpen==1,
         "factory defaults restore native TAA ownership");
-    renamed.temporalAA.motionBlurAmount=.35f;renamed.temporalAA.colorFringeMax=2.5f;
-    check(renamed.SaveNow()&&renamed.Load()&&renamed.temporalAA.motionBlurAmount==.35f&&renamed.temporalAA.colorFringeMax==2.5f&&!renamed.temporalAA.enabled,
+    renamed.temporalAA.motionBlurAmount=.35f;renamed.temporalAA.colorFringeAmount=2.5f;
+    check(renamed.SaveNow()&&renamed.Load()&&renamed.temporalAA.motionBlurAmount==.35f&&renamed.temporalAA.colorFringeAmount==2.5f&&!renamed.temporalAA.enabled,
         "adjustable image amounts persist without enabling TAA customization");
     renamed.temporalAA.motionBlurAmount=-1;
-    check(renamed.SaveNow()&&renamed.Load()&&renamed.temporalAA.motionBlurAmount==-1&&renamed.temporalAA.colorFringeMax==2.5f,
+    check(renamed.SaveNow()&&renamed.Load()&&renamed.temporalAA.motionBlurAmount==-1&&renamed.temporalAA.colorFringeAmount==2.5f,
         "native mode and explicit amount remain independently configurable");
     // Existing profiles may contain only the two Disable* flags.
     WritePrivateProfileStringW(L"Values",L"MotionBlurAmount",nullptr,path);
     WritePrivateProfileStringW(L"Values",L"ColorFringeMax",nullptr,path);
+    WritePrivateProfileStringW(L"Values",L"ColorFringeAmount",nullptr,path);
     WritePrivateProfileStringW(L"Features",L"DisableMotionBlur",L"1",path);
     WritePrivateProfileStringW(L"Features",L"DisableColorFringe",L"0",path);
-    check(renamed.Load()&&renamed.temporalAA.motionBlurAmount==0&&renamed.temporalAA.colorFringeMax==-1,
+    check(renamed.Load()&&renamed.temporalAA.motionBlurAmount==0&&renamed.temporalAA.colorFringeAmount==-1,
         "legacy disable flags migrate to zero/native without changing the selected effect");
     WritePrivateProfileStringW(L"Values",L"MotionBlurAmount",L"0.400",path);
     check(renamed.Load()&&renamed.temporalAA.motionBlurAmount==.4f,"explicit amount takes priority over a stale legacy flag");
-    renamed.temporalAA.motionBlurAmount=0;renamed.temporalAA.colorFringeMax=0;
+    WritePrivateProfileStringW(L"Values",L"ColorFringeAmount",nullptr,path);
+    WritePrivateProfileStringW(L"Values",L"ColorFringeMax",L"2.500",path);
+    check(renamed.Load()&&renamed.temporalAA.colorFringeAmount==2.5f&&dg::runtime::Get().chromaticIntensity.load()==2.5f,
+        "old V1.174 maximum migrates to actual intensity and is published atomically");
+    WritePrivateProfileStringW(L"Values",L"ColorFringeAmount",L"0.750",path);
+    check(renamed.Load()&&renamed.temporalAA.colorFringeAmount==.75f&&dg::runtime::Get().chromaticIntensity.load()==.75f,
+        "new intensity key wins over old cap without a delayed refresh");
+    WritePrivateProfileStringW(L"Values",L"ColorFringeAmount",L"-1",path);
+    check(renamed.Load()&&renamed.temporalAA.colorFringeAmount==-1&&dg::runtime::Get().chromaticIntensity.load()==-1,
+        "explicit Native overrides an old positive cap");
+    renamed.temporalAA.motionBlurAmount=0;renamed.temporalAA.colorFringeAmount=0;
     check(renamed.SaveNow()&&GetPrivateProfileIntW(L"Features",L"DisableMotionBlur",-1,path)==1&&GetPrivateProfileIntW(L"Features",L"DisableColorFringe",-1,path)==1,
         "zero keeps old binaries' disable flags compatible for rollback");
     renamed.ResetDefaults(false);
-    check(renamed.temporalAA.motionBlurAmount==-1&&renamed.temporalAA.colorFringeMax==-1,"factory reset returns both effects to native");
+    check(renamed.temporalAA.motionBlurAmount==-1&&renamed.temporalAA.colorFringeAmount==-1,"factory reset returns both effects to native");
     renamed.coreLevelDisplayFixEnabled=false;
     check(renamed.SaveNow()&&renamed.Load()&&!renamed.coreLevelDisplayFixEnabled&&!dg::runtime::Get().coreLevelDisplayFixEnabled.load(),"core UI repair OFF persists and reaches runtime");
     renamed.horseAirSummonEnabled=true;

@@ -191,6 +191,7 @@ struct State {
     std::atomic_bool tpsLensFocusEnabled{true};
     std::atomic_bool molochBossCrashFixEnabled{true};
     std::atomic_bool coreLevelDisplayFixEnabled{true};
+    std::atomic<float> chromaticIntensity{-1.0f};
     camera_blur::SharedProfile nativeBlur{camera_blur::NativeDefaults},tpsBlur{camera_blur::TpsDefaults};
     std::atomic_bool tpsViewGameplay{false};
     std::atomic_ullong tpsGameplayViewTick{0};

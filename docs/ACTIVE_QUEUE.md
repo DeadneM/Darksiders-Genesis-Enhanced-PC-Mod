@@ -110,3 +110,8 @@ Retour utilisateur : V1.173/coop/appel aérien acceptés ; TPS encore gourmand, 
 ## V1.174 — livraison contrôlée
 
 Source a4f27706d89118ac9c40066f2b0c59058aa79716, archive 69fe6bef946cfa5306bcfbace9fee6966fa1836c : 86/86 tests Windows, zéro avertissement/erreur C++, ZIP deux binaires vérifié, Defender aucune détection. Mode Native par défaut ; slider/saisie motion blur0–1 et limite chromatique0–10. 259 anciennes valeurs conservées,2nouvelles ; aucune cadence ou DOF changé, aucune installation. Nouvelle image à valider en jeu. Main V1.173/archives préservées. Prochaine priorité TPS : mesure ciblée des passes GPU, pas de changement de qualité à l'aveugle. [Livraison et rollback](V1_174_DELIVERY_RECEIPT.md).
+
+
+## V1.175 — chromatique et relevé GPU non concluant
+
+Motion blur validé, plafond chromatique sans effet apparent : le vrai champ d'intensité/bit est prouvé hors jeu et appliqué par le callback caméra existant, avec publication atomique. Native/poids partiels inchangés ; aucun nouveau hook ni délai. Tests préparés, rendu expérimental. WPR GPU refusé par Windows ; TPS0/12 au premier plan et pas de native mesurée, aucune comparaison exploitable ni conclusion GPU. [Contrat, limites et tests](V1_175_REVIEW.md).

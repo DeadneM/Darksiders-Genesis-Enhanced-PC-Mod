@@ -1,4 +1,5 @@
 #include "../src/TpsCameraFocus.h"
+#include "../src/ChromaticIntensity.h"
 #include <array>
 #include <iostream>
 #include <limits>
@@ -244,5 +245,38 @@ void Parity(){
     Check(!ApplyFocusAndBlur(nullptr,{false,true,250,.5f},false,&target,true,body),"missing output remains safe");
 }
 
-int main(){try{Run();Parity();std::cout<<"TPS per-view focus and native postprocess preservation passed\n";return 0;}
+
+void ChromaticChecks(){
+    using namespace dg::chromatic;
+    View original=Native();original[0x45]&=static_cast<unsigned char>(~0x20u);Put(original,0x250,.1f);
+    auto view=original;
+    dg::chromatic::layoutReady=false;Check(!Apply(view.data(),2)&&view==original,"unverified chromatic layout retains every byte");
+    dg::chromatic::layoutReady=true;
+    for(float native:{-1.0f,-2.0f,std::numeric_limits<float>::quiet_NaN(),std::numeric_limits<float>::infinity(),11.0f}){
+        view=original;Check(!Apply(view.data(),native)&&view==original,"native/invalid chromatic selection leaves camera untouched");
+    }
+    for(float weight:{0.0f,.5f,2.0f}){
+        view=original;Put(view,0x38,weight);const auto before=view;
+        Check(!Apply(view.data(),2)&&view==before,"chromatic control never raises unrelated partial blend influence");
+    }
+    for(float invalid:{-1.0f,11.0f,std::numeric_limits<float>::quiet_NaN()}){
+        view=original;Put(view,0x250,invalid);const auto before=view;
+        Check(!Apply(view.data(),2)&&view==before,"invalid authored chromatic data stays untouched");
+    }
+    for(float amount:{0.0f,.25f,1.0f,5.0f,10.0f}){
+        view=original;Check(Apply(view.data(),amount),"verified full-weight camera accepts exact intensity");
+        float actual=0;std::memcpy(&actual,view.data()+0x250,4);
+        Check(actual==amount&&(view[0x45]&0x20),"intensity overrides the authored amount instead of merely capping it");
+        for(size_t i=0;i<view.size();++i)
+            if(i!=0x45&&(i<0x250||i>=0x254))Check(view[i]==original[i],"chromatic override preserves geometry, blend weight, DOF and unrelated PP fields");
+    }
+    view=original;Put(view,0x250,0.0f);Check(Apply(view.data(),2),"zero authored intensity can be increased by the explicit control");
+    View p1=original,p2=original;Apply(p1.data(),1);Apply(p2.data(),3);
+    float a=0,b=0;std::memcpy(&a,p1.data()+0x250,4);std::memcpy(&b,p2.data()+0x250,4);
+    Check(a==1&&b==3,"no shared per-camera baseline or stale player output");
+    view=original;Check(!Apply(view.data(),-1)&&view==original,"native selection uses a fresh unmodified output without restoration writes");
+    Check(!Apply(nullptr,1),"missing chromatic output fails open");dg::chromatic::layoutReady=false;
+}
+
+int main(){try{Run();Parity();ChromaticChecks();std::cout<<"TPS per-view focus and native postprocess preservation passed\n";return 0;}
 catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

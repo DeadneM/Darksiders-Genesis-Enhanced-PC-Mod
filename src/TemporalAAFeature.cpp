@@ -1,4 +1,5 @@
 #include "TemporalAAFeature.h"
+#include "ChromaticIntensity.h"
 #include <windows.h>
 #include <atomic>
 #include <cstring>
@@ -94,6 +95,16 @@ void Initialize(LogFn log,bool exactExecutable){
         !std::memcmp(base+0x2DB0248,L"r.MotionBlur.Amount",sizeof(L"r.MotionBlur.Amount"))&&
         !std::memcmp(base+0x2DB0588,L"r.SceneColorFringe.Max",sizeof(L"r.SceneColorFringe.Max"));
     if(valid)g_base=reinterpret_cast<uintptr_t>(base);
+    constexpr unsigned char fringeField[]={1,0,0,0,0x10,2,0,0};
+    constexpr unsigned char fringeOverride[]={0x80,0x49,5,0x20,0xC3};
+    const bool fringeLayout=valid&&
+        !std::memcmp(base+0x37965B8,fringeField,sizeof(fringeField))&&
+        !std::memcmp(base+0x1DD2CA0,fringeOverride,sizeof(fringeOverride))&&
+        !std::memcmp(base+0x2EB7CB0,"SceneFringeIntensity",sizeof("SceneFringeIntensity"))&&
+        !std::memcmp(base+0x2EB9078,"bOverride_SceneFringeIntensity",sizeof("bOverride_SceneFringeIntensity"));
+    chromatic::layoutReady.store(fringeLayout,std::memory_order_release);
+    if(log)log(fringeLayout?"Chromatic intensity V1.175: camera PP field and override verified; native default, no new hook":
+        "Chromatic intensity: layout unavailable; native camera settings retained");
     g_ready.store(valid,std::memory_order_release);
     if(log)log(valid?"Temporal AA: float registration/render consumers verified; optional settings, native by default":
         "Temporal AA: unsupported registration/render consumers; native output retained");
@@ -101,7 +112,7 @@ void Initialize(LogFn log,bool exactExecutable){
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}
 void Update(const Settings& requested){
-    const bool any=requested.enabled||requested.motionBlurAmount>=0||requested.colorFringeMax>=0;
+    const bool any=requested.enabled||requested.motionBlurAmount>=0||requested.colorFringeAmount==0;
     if(!Ready()||(!any&&!g_active.load(std::memory_order_relaxed)))return;
     std::lock_guard<std::mutex> lock(g_mutex);
     if(!Ready())return;
@@ -110,10 +121,13 @@ void Update(const Settings& requested){
     Service(g_weight,settings.enabled,settings.frameWeight,0,1);
     Service(g_sharpen,settings.enabled,settings.sharpen,-1,10);
     Service(g_motionBlur,settings.motionBlurAmount>=0,settings.motionBlurAmount,-1,10);
-    Service(g_colorFringe,settings.colorFringeMax>=0,settings.colorFringeMax,-2,10);
+    // Only zero uses the old global cutoff. Positive amounts come from the
+    // camera PP intensity, not min(authored, cap); restore any owned cap.
+    Service(g_colorFringe,settings.colorFringeAmount==0,0,-2,10);
     g_active.store(true,std::memory_order_relaxed);
 }
 void Restore(){
+    chromatic::layoutReady.store(false,std::memory_order_release);
     if(!g_ready.exchange(false,std::memory_order_acq_rel))return;
     std::lock_guard<std::mutex> lock(g_mutex);RestoreLocked();
 }

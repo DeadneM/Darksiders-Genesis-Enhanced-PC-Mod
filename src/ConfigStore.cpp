@@ -692,7 +692,7 @@ bool Store::Load() {
         ReadFloat(L"Values",L"TemporalAAFrameWeight",0.08f,path_),
         ReadFloat(L"Values",L"TonemapperSharpen",1.0f,path_),
         ReadFloat(L"Values",L"MotionBlurAmount",ReadBool(L"Features",L"DisableMotionBlur",false,path_)?0.0f:-1.0f,path_),
-        ReadFloat(L"Values",L"ColorFringeMax",ReadBool(L"Features",L"DisableColorFringe",false,path_)?0.0f:-1.0f,path_)});
+        ReadFloat(L"Values",L"ColorFringeAmount",ReadFloat(L"Values",L"ColorFringeMax",ReadBool(L"Features",L"DisableColorFringe",false,path_)?0.0f:-1.0f,path_),path_)});
     const bool oldOrbit=ReadBool(L"Features",L"CameraControllerOrbit",true,path_);
     tpsCameraStickMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(
         L"Features",L"TPSCameraStickMode",oldOrbit?2:0,path_.c_str())),0,2);
@@ -1016,6 +1016,7 @@ void Store::PublishRuntime() const {
     runtime.tpsLensFocusEnabled = tpsLensFocusEnabled;
     runtime.molochBossCrashFixEnabled = molochBossCrashFixEnabled;
     runtime.coreLevelDisplayFixEnabled = coreLevelDisplayFixEnabled;
+    runtime.chromaticIntensity.store(temporal_aa::Normalize(temporalAA).colorFringeAmount,std::memory_order_release);
     runtime.nativeBlur = nativeBlur;
     runtime.tpsBlur = tpsBlur;
     // Mouse TPS orbit shares the existing orbit result; it does not need
@@ -1255,8 +1256,9 @@ bool Store::SaveNow() {
     WriteFloat(L"Values",L"MotionBlurAmount",normalizedAA.motionBlurAmount,path_);
     // Retain the old binary toggles for rollback and missing-key migration.
     WriteBool(L"Features",L"DisableMotionBlur",normalizedAA.motionBlurAmount==0,path_);
-    WriteFloat(L"Values",L"ColorFringeMax",normalizedAA.colorFringeMax,path_);
-    WriteBool(L"Features",L"DisableColorFringe",normalizedAA.colorFringeMax==0,path_);
+    WriteFloat(L"Values",L"ColorFringeAmount",normalizedAA.colorFringeAmount,path_);
+    WriteFloat(L"Values",L"ColorFringeMax",normalizedAA.colorFringeAmount,path_); // rollback / V1.174 migration
+    WriteBool(L"Features",L"DisableColorFringe",normalizedAA.colorFringeAmount==0,path_);
     WriteProfileString(L"Features",L"TPSFollowPlayer",nullptr,path_.c_str());
     // Remove obsolete TPS switches from existing user INIs once migrated.
     for(const wchar_t* key : { L"TPSFixedCenterReticle",L"TPSLockZoneCamera",
