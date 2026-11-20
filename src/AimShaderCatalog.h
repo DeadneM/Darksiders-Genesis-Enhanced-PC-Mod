@@ -205,11 +205,12 @@ inline constexpr auto BytecodeSizeBits=[] {
 // Build the byte table at compile time; no first-call initialization or locks.
 inline constexpr auto CRC32Table=[] {
     std::array<uint32_t,256> table{};
-    for(std::size_t byte=0;byte<table.size();++byte){
-        uint32_t crc=static_cast<uint32_t>(byte);
+    uint32_t byte=0;
+    for(auto& entry:table){
+        uint32_t crc=byte++;
         for(unsigned bit=0;bit<8;++bit)
             crc=(crc>>1)^((crc&1u)?0xEDB88320u:0u);
-        table[byte]=crc;
+        entry=crc;
     }
     return table;
 }();

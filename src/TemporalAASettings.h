@@ -8,11 +8,14 @@ namespace dg::temporal_aa {
 struct Settings {
     bool enabled=false;
     float frameWeight=0.08f,sharpen=1.0f;
-    bool disableMotionBlur=false,disableColorFringe=false;
+    // Negative selects native scene settings; nonnegative is an explicit override.
+    float motionBlurAmount=-1.0f,colorFringeMax=-1.0f;
 };
 inline Settings Normalize(Settings value){
     value.frameWeight=std::isfinite(value.frameWeight)?std::clamp(value.frameWeight,0.01f,1.0f):0.08f;
     value.sharpen=std::isfinite(value.sharpen)?std::clamp(value.sharpen,0.0f,2.0f):1.0f;
+    value.motionBlurAmount=std::isfinite(value.motionBlurAmount)&&value.motionBlurAmount>=0?std::clamp(value.motionBlurAmount,0.0f,1.0f):-1.0f;
+    value.colorFringeMax=std::isfinite(value.colorFringeMax)&&value.colorFringeMax>=0?std::clamp(value.colorFringeMax,0.0f,10.0f):-1.0f;
     return value;
 }
 

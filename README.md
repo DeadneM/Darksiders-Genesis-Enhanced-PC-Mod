@@ -1,3 +1,9 @@
+## V1.174 — réglages d'image préparés sur debug
+
+Flou de mouvement et limite d'aberration chromatique réglables ; Native par défaut, anciennes cases conservées par migration. Aucun changement DOF ou de réactivité. [Périmètre et tests](docs/V1_174_REVIEW.md).
+
+---
+
 ## V1.173 — publication main / Release
 
 Promotion demandée par l'utilisateur ; binaires Release existants réutilisés sans recompilation. 86/86 tests, réglages et réactivité préservés. Gain de fluidité et crash GPU signalé restent non établis. [Publication, limites et archive](docs/V1_173_MAIN_RELEASE.md).

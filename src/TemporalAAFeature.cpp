@@ -101,7 +101,7 @@ void Initialize(LogFn log,bool exactExecutable){
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}
 void Update(const Settings& requested){
-    const bool any=requested.enabled||requested.disableMotionBlur||requested.disableColorFringe;
+    const bool any=requested.enabled||requested.motionBlurAmount>=0||requested.colorFringeMax>=0;
     if(!Ready()||(!any&&!g_active.load(std::memory_order_relaxed)))return;
     std::lock_guard<std::mutex> lock(g_mutex);
     if(!Ready())return;
@@ -109,8 +109,8 @@ void Update(const Settings& requested){
     const auto settings=Normalize(requested);
     Service(g_weight,settings.enabled,settings.frameWeight,0,1);
     Service(g_sharpen,settings.enabled,settings.sharpen,-1,10);
-    Service(g_motionBlur,settings.disableMotionBlur,0,-1,10);
-    Service(g_colorFringe,settings.disableColorFringe,0,-2,10);
+    Service(g_motionBlur,settings.motionBlurAmount>=0,settings.motionBlurAmount,-1,10);
+    Service(g_colorFringe,settings.colorFringeMax>=0,settings.colorFringeMax,-2,10);
     g_active.store(true,std::memory_order_relaxed);
 }
 void Restore(){

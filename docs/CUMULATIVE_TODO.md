@@ -776,3 +776,8 @@ Promotion main autorisée, binaires Release V1.173 réutilisés sans recompilati
 
 
 Publication V1.173 CONFIRMÉE sur main et release v1.173 : asset vérifié par empreinte GitHub identique au build existant ; pas de recompilation. 86/86 tests antérieurs, un avertissement constexpr documenté ; crash GPU non attribué. [Preuve](evidence/V1_173_RELEASE_CHECK.json).
+
+
+## V1.174 — Native et réglages des deux effets d'image
+
+Retour utilisateur : V1.173/coop/appel aérien acceptés ; TPS encore gourmand, crash GPU non attribué. Lot limité aux curseurs motion blur / limite chromatique, Native par défaut, 0 désactive, sauvegarde et migration anciennes cases. Aucune modification de DOF/cadence/skins. Table CRC générée sans indice pour l'analyseur. PRÉPARÉ avant CI GitHub ; pas de build local ni installation. [Détail et tests](V1_174_REVIEW.md).

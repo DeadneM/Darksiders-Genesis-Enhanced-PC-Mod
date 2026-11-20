@@ -691,8 +691,8 @@ bool Store::Load() {
         ReadBool(L"Features",L"CustomizeTemporalAA",false,path_),
         ReadFloat(L"Values",L"TemporalAAFrameWeight",0.08f,path_),
         ReadFloat(L"Values",L"TonemapperSharpen",1.0f,path_),
-        ReadBool(L"Features",L"DisableMotionBlur",false,path_),
-        ReadBool(L"Features",L"DisableColorFringe",false,path_)});
+        ReadFloat(L"Values",L"MotionBlurAmount",ReadBool(L"Features",L"DisableMotionBlur",false,path_)?0.0f:-1.0f,path_),
+        ReadFloat(L"Values",L"ColorFringeMax",ReadBool(L"Features",L"DisableColorFringe",false,path_)?0.0f:-1.0f,path_)});
     const bool oldOrbit=ReadBool(L"Features",L"CameraControllerOrbit",true,path_);
     tpsCameraStickMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(
         L"Features",L"TPSCameraStickMode",oldOrbit?2:0,path_.c_str())),0,2);
@@ -1252,8 +1252,11 @@ bool Store::SaveNow() {
     WriteBool(L"Features",L"CustomizeTemporalAA",normalizedAA.enabled,path_);
     WriteFloat(L"Values",L"TemporalAAFrameWeight",normalizedAA.frameWeight,path_);
     WriteFloat(L"Values",L"TonemapperSharpen",normalizedAA.sharpen,path_);
-    WriteBool(L"Features",L"DisableMotionBlur",normalizedAA.disableMotionBlur,path_);
-    WriteBool(L"Features",L"DisableColorFringe",normalizedAA.disableColorFringe,path_);
+    WriteFloat(L"Values",L"MotionBlurAmount",normalizedAA.motionBlurAmount,path_);
+    // Retain the old binary toggles for rollback and missing-key migration.
+    WriteBool(L"Features",L"DisableMotionBlur",normalizedAA.motionBlurAmount==0,path_);
+    WriteFloat(L"Values",L"ColorFringeMax",normalizedAA.colorFringeMax,path_);
+    WriteBool(L"Features",L"DisableColorFringe",normalizedAA.colorFringeMax==0,path_);
     WriteProfileString(L"Features",L"TPSFollowPlayer",nullptr,path_.c_str());
     // Remove obsolete TPS switches from existing user INIs once migrated.
     for(const wchar_t* key : { L"TPSFixedCenterReticle",L"TPSLockZoneCamera",

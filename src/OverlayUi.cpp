@@ -1120,12 +1120,20 @@ void Draw(Context& c) {
             if(layout::Group("Image effects")){
                 ImGui::Indent();
                 ImGui::BeginDisabled(!temporal_aa::Ready());
-                if(ImGui::Checkbox("Disable motion blur",&config.temporalAA.disableMotionBlur))config.Save();
-                HelpText("Removes movement smearing. Uncheck to restore the captured native amount. Does not change depth-of-field blur.");
-                if(ImGui::Checkbox("Disable chromatic aberration",&config.temporalAA.disableColorFringe))config.Save();
-                HelpText("Removes colored fringes near image edges. Uncheck to restore the captured native limit. Some scenes have no visible fringe.");
+                bool motionCustom=config.temporalAA.motionBlurAmount>=0;
+                if(ImGui::Checkbox("Customize motion blur",&motionCustom)){
+                    config.temporalAA.motionBlurAmount=motionCustom?.5f:-1.0f;config.Save();
+                }
+                if(motionCustom&&NumberRow("Amount","MotionBlurAmount",&config.temporalAA.motionBlurAmount,0,1,.5f,"%.2f"))config.Save();
+                HelpText("Unchecked: Native (default), chosen by each scene. Zero removes motion blur. Does not change depth of field.");
+                bool fringeCustom=config.temporalAA.colorFringeMax>=0;
+                if(ImGui::Checkbox("Customize chromatic aberration",&fringeCustom)){
+                    config.temporalAA.colorFringeMax=fringeCustom?5.0f:-1.0f;config.Save();
+                }
+                if(fringeCustom&&NumberRow("Maximum amount","ColorFringeMax",&config.temporalAA.colorFringeMax,0,10,5,"%.2f"))config.Save();
+                HelpText("Unchecked: Native (default). Zero removes colored fringes; higher values allow the scene's effect up to this limit, without adding an absent effect.");
                 ImGui::EndDisabled();
-                HelpText("Both filters default OFF and work independently of TAA. Global settings, including cinematics and both local views.");
+                HelpText("Independent of TAA. Global settings, including cinematics and both local views.");
                 ImGui::Unindent();
             }
             if(layout::Group("Depth of field")){

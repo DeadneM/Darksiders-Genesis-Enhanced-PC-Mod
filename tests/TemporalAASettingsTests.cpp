@@ -23,13 +23,19 @@ struct Access {
 void Run(){
     const Settings defaults;
     Check(!defaults.enabled,"existing installations retain native TAA by default");
-    Check(!defaults.disableMotionBlur&&!defaults.disableColorFringe,"native image effects retained by default");
-    const auto filters=Normalize({false,.08f,1,true,true});
-    Check(!filters.enabled&&filters.disableMotionBlur&&filters.disableColorFringe,"image filters independent of TAA customization");
+    Check(defaults.motionBlurAmount==-1&&defaults.colorFringeMax==-1,"native image effects retained by default");
+    const auto filters=Normalize({false,.08f,1,0,0});
+    Check(!filters.enabled&&filters.motionBlurAmount==0&&filters.colorFringeMax==0,"image filters independent of TAA customization");
     auto settings=Normalize({true,std::numeric_limits<float>::quiet_NaN(),9});
     Check(settings.enabled&&settings.frameWeight==.08f&&settings.sharpen==2,"invalid settings bounded without NaN");
     settings=Normalize({false,-1,-9});
     Check(!settings.enabled&&settings.frameWeight==.01f&&settings.sharpen==0,"limits and disabled flag preserved");
+    const auto explicitAmounts=Normalize({false,.08f,1,.25f,2.5f});
+    Check(explicitAmounts.motionBlurAmount==.25f&&explicitAmounts.colorFringeMax==2.5f,"independent explicit amounts retain exact values without enabling TAA");
+    const auto bounded=Normalize({false,.08f,1,9,99});
+    Check(bounded.motionBlurAmount==1&&bounded.colorFringeMax==10,"image amounts bounded to the UI/native consumer ranges");
+    const auto invalid=Normalize({false,.08f,1,std::numeric_limits<float>::quiet_NaN(),-9});
+    Check(invalid.motionBlurAmount==-1&&invalid.colorFringeMax==-1,"invalid/negative image amounts return to native ownership");
     Access access;ShadowOverride state;
     state.Update(access,false,.08f,0,1);
     Check(access.writes==0,"disabled path leaves both native shadows untouched");
@@ -55,6 +61,10 @@ void Run(){
     ShadowOverride filter;Access nativeEffects;nativeEffects.words.fill(std::bit_cast<int32_t>(-1.0f));
     filter.Update(nativeEffects,true,0,-2,10);
     Check(nativeEffects.Value(0)==0&&nativeEffects.Value(1)==0,"image filter suppresses game/render native amount");
+    filter.Update(nativeEffects,true,.35f,-2,10);
+    Check(nativeEffects.Value(0)==.35f&&nativeEffects.Value(1)==.35f,"adjustable image amount reaches both native shadows");
+    const auto writes=nativeEffects.writes;filter.Update(nativeEffects,true,.35f,-2,10);
+    Check(nativeEffects.writes==writes,"unchanged image amount does not add writes");
     filter.Update(nativeEffects,false,0,-2,10);
     Check(nativeEffects.Value(0)==-1&&nativeEffects.Value(1)==-1,"native negative no-override sentinel restored exactly");
 }
