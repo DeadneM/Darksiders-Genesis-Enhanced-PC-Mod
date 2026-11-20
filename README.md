@@ -1,6 +1,6 @@
-## V1.175 — intensité chromatique préparée sur debug
+## V1.175 — beta disponible sur debug
 
-Le plafond V1.174 est remplacé par l'intensité réelle sur les vues caméra vérifiées, Native par défaut. Motion blur conservé, aucun nouveau hook. [Contrat et tests](docs/V1_175_REVIEW.md).
+La chromatique règle l'intensité réelle, plutôt que le seul plafond de V1.174. Native par défaut, motion blur conservé, aucun nouveau hook. 86/86 tests, zéro avertissement ; rendu à tester. [ZIP, contrôles et essai](docs/V1_175_DELIVERY_RECEIPT.md).
 
 ---
 

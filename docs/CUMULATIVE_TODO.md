@@ -791,3 +791,8 @@ Source a4f27706d89118ac9c40066f2b0c59058aa79716, archive 69fe6bef946cfa5306bcfba
 ## V1.175 — chromatique et relevé GPU non concluant
 
 Motion blur validé, plafond chromatique sans effet apparent : le vrai champ d'intensité/bit est prouvé hors jeu et appliqué par le callback caméra existant, avec publication atomique. Native/poids partiels inchangés ; aucun nouveau hook ni délai. Tests préparés, rendu expérimental. WPR GPU refusé par Windows ; TPS0/12 au premier plan et pas de native mesurée, aucune comparaison exploitable ni conclusion GPU. [Contrat, limites et tests](V1_175_REVIEW.md).
+
+
+## V1.175 — livraison contrôlée
+
+Source c740283326b05872c0677e7bdbc6374caa08c6ba, archive f32bdd5a94046def8a7d6a44cd8c976a5ed348ea. Après correction du Snapshot oublié dans le premier run :86/86 tests, zéro avertissement/erreur C++, ZIP deux binaires contrôlé, Defender aucune détection. Intensité chromatique réelle via caméra existante, Native et mélanges partiels conservés, aucun nouveau hook/cadence ; motion blur inchangé. Rendu expérimental à tester0/1/5/Native. 261 anciennes valeurs préservées,262 clés ;239 anciens ZIP conservés. Aucune installation, main V1.173 intacte. GPU : aucune comparaison exploitable (TPS0/12 premier plan, pas de native, WPR refusé), aucune conclusion de performance. [Livraison et rollback](V1_175_DELIVERY_RECEIPT.md).

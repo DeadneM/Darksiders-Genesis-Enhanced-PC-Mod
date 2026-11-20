@@ -1,0 +1,69 @@
+{
+  "version": "V1.175",
+  "base": "d64041d",
+  "source": "c740283326b05872c0677e7bdbc6374caa08c6ba",
+  "archive": "f32bdd5a94046def8a7d6a44cd8c976a5ed348ea",
+  "download": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/f32bdd5a94046def8a7d6a44cd8c976a5ed348ea/downloads/DarksidersGenesis_V1.175_CHROMATIC_INTENSITY_TEST.zip",
+  "sha256": "B1E7EA5E422ACB69C06F439A1ECD681F6A17D60887A7952F46BFEFCE20BD031C",
+  "bytes": 2495214,
+  "files": {
+    "dxgi.dll": {
+      "bytes": 155648,
+      "sha256": "D66BB28446532668E735B641AB59D3DA59D29A3B835F9BAF033B506AD80224C2"
+    },
+    "DarksidersGenesisMod.asi": {
+      "bytes": 2339328,
+      "sha256": "84BC0F8A38BAEFF1D31178029C2D1BFE65CD457AD5E50223D5790CA50810BE0D"
+    }
+  },
+  "crcVerified": true,
+  "amd64": true,
+  "rootBinariesOnly": true,
+  "oldArchivesUnchanged": 239,
+  "totalArchives": 240,
+  "iniKeys": 262,
+  "defaultDelta": {
+    "Values.ColorFringeAmount": "-1.000"
+  },
+  "updaterSelection": "DarksidersGenesis_V1.175_CHROMATIC_INTENSITY_TEST.zip",
+  "gitBlob": "98e58716003427fee09dcbaa07561c1d4f36f0e2",
+  "publicHttpStatus": 200,
+  "binaryDownload": "new ZIP retrieved once through Git; no duplicate HTTP GET or old archive download",
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/debug": "f32bdd5a94046def8a7d6a44cd8c976a5ed348ea",
+    "refs/heads/main": "0e5b182cd6e0b3cfe3b5d312fae3bd63914a41bd",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "installed": false,
+  "localBuild": false,
+  "gameplayValidated": false,
+  "ci": {
+    "source": "c740283326b05872c0677e7bdbc6374caa08c6ba",
+    "runId": 44831087633,
+    "jobId": 136615910896,
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/44831087633",
+    "testsPassed": 86,
+    "cppWarnings": 0,
+    "cppErrors": 0,
+    "configuration": "Windows x64 Release",
+    "gameplayValidated": false
+  },
+  "defender": {
+    "scan": "Microsoft Defender custom scan",
+    "completed": true,
+    "matchingDetections": 0,
+    "time": "2026-11-20T23:53:34.6859577+01:00"
+  },
+  "newHook": false,
+  "cameraIntensityOffset": "PP+0x210",
+  "override": "PP+5 mask0x20",
+  "runtimePublication": "Snapshot then atomic release/acquire",
+  "acceptedCameraWeight": 1,
+  "partialBlendsNative": true,
+  "motionBlurChanged": false,
+  "firstFailedRun": 44829828986,
+  "firstFailure": "Snapshot chromatic member missing; no package produced",
+  "GPUComparison": "excluded: TPS0/12 foreground; no native file; detailed WPR refused; no performance inference",
+  "visualValidated": false
+}
