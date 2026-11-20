@@ -55,6 +55,7 @@ struct Snapshot {
     bool tpsLensFocusEnabled = true;
     bool molochBossCrashFixEnabled = true;
     bool coreLevelDisplayFixEnabled = true;
+    float chromaticIntensity = -1.0f;
     camera_blur::Profile nativeBlur=camera_blur::NativeDefaults,tpsBlur=camera_blur::TpsDefaults;
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
     bool cameraControllerOrbitEnabled = true;

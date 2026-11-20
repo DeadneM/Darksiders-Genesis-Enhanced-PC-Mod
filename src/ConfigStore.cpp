@@ -1016,7 +1016,7 @@ void Store::PublishRuntime() const {
     runtime.tpsLensFocusEnabled = tpsLensFocusEnabled;
     runtime.molochBossCrashFixEnabled = molochBossCrashFixEnabled;
     runtime.coreLevelDisplayFixEnabled = coreLevelDisplayFixEnabled;
-    runtime.chromaticIntensity.store(temporal_aa::Normalize(temporalAA).colorFringeAmount,std::memory_order_release);
+    runtime.chromaticIntensity = temporal_aa::Normalize(temporalAA).colorFringeAmount;
     runtime.nativeBlur = nativeBlur;
     runtime.tpsBlur = tpsBlur;
     // Mouse TPS orbit shares the existing orbit result; it does not need

@@ -23,3 +23,6 @@ Tests préparés : tous les octets de caméra conservés sauf le float et son bi
 WPR détaillé refusé par Windows (0xc5585011), aucun enregistrement WPR laissé actif. Premier relevé TPS : 12 échantillons,0 au premier plan, EXCLU de toute conclusion. Les attentes suivantes de vue native n'ont produit aucun fichier de mesure ; aucun comparatif TPS/native valable disponible. Firefox a été observé au premier plan. L'autorisation automatique a ensuite temporairement refusé une commande pour quota, sans l'exécuter ; reprise autorisée après résolution. Aucun défaut GPU/driver ni passe coûteuse identifiés. Ne pas lancer de nouvelle mesure avant de garantir le premier plan ; ne pas remplacer un profilage détaillé par une fausse conclusion issue des compteurs.
 
 ZIP cumulatif prévu : DarksidersGenesis_V1.175_CHROMATIC_INTENSITY_TEST.zip (deux binaires racine, sans INI/README). Pas d'installation ou lancement automatique. Rollback : deux binaires V1.174 avec INI conservé. Main/archive et anciens ZIP préservés.
+
+
+Premier contrôle Windows44829828986 : échec de compilation, valeur chromatique absente de Snapshot. Corrigé en ajoutant le float à Snapshot, puis sa publication atomique dans runtime::Publish ; aucun ZIP issu du contrôle échoué. Nouveau contrôle requis avant livraison.
