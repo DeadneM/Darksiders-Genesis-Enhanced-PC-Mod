@@ -1,3 +1,13 @@
+# Priorité actuelle — V1.174 debug, main V1.173
+
+1. Valider les deux réglages d'image : Native / 0 / intermédiaire / retour Native.
+2. TPS encore gourmand : isoler la passe GPU coûteuse avant un nouveau correctif. Réglages et réactivité impérativement préservés.
+3. Crash HUNG à surveiller, cause non attribuée. Les autres recherches anciennes ci-dessous restent historiques, sans reprise automatique.
+
+V1.173, coop et appel aérien acceptés par l'utilisateur. [Dernière livraison](V1_174_DELIVERY_RECEIPT.md).
+
+---
+
 # File active — V1.171 validée sur debug, main V1.168
 
 Dernier point : 19 novembre 2026. Fonctions V1.171 VALIDÉES par l’utilisateur sur debug ; main/release V1.168 intactes. Nouveau sujet : micro-saccades, ancienneté inconnue. [Mesures, optimisation CPU préparée et limites](GPU_FREEZE_REVIEW_2026_11_19.md). Aucun réglage ou fichier du jeu modifié par le diagnostic. [Dernière livraison](V1_171_DELIVERY_RECEIPT.md).
@@ -95,3 +105,8 @@ Publication V1.173 CONFIRMÉE sur main et release v1.173 : asset vérifié par e
 ## V1.174 — Native et réglages des deux effets d'image
 
 Retour utilisateur : V1.173/coop/appel aérien acceptés ; TPS encore gourmand, crash GPU non attribué. Lot limité aux curseurs motion blur / limite chromatique, Native par défaut, 0 désactive, sauvegarde et migration anciennes cases. Aucune modification de DOF/cadence/skins. Table CRC générée sans indice pour l'analyseur. PRÉPARÉ avant CI GitHub ; pas de build local ni installation. [Détail et tests](V1_174_REVIEW.md).
+
+
+## V1.174 — livraison contrôlée
+
+Source a4f27706d89118ac9c40066f2b0c59058aa79716, archive 69fe6bef946cfa5306bcfbace9fee6966fa1836c : 86/86 tests Windows, zéro avertissement/erreur C++, ZIP deux binaires vérifié, Defender aucune détection. Mode Native par défaut ; slider/saisie motion blur0–1 et limite chromatique0–10. 259 anciennes valeurs conservées,2nouvelles ; aucune cadence ou DOF changé, aucune installation. Nouvelle image à valider en jeu. Main V1.173/archives préservées. Prochaine priorité TPS : mesure ciblée des passes GPU, pas de changement de qualité à l'aveugle. [Livraison et rollback](V1_174_DELIVERY_RECEIPT.md).

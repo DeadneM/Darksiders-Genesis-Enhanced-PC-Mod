@@ -1,0 +1,66 @@
+{
+  "version": "V1.174",
+  "base": "0e5b182",
+  "source": "a4f27706d89118ac9c40066f2b0c59058aa79716",
+  "archive": "69fe6bef946cfa5306bcfbace9fee6966fa1836c",
+  "download": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/69fe6bef946cfa5306bcfbace9fee6966fa1836c/downloads/DarksidersGenesis_V1.174_NATIVE_IMAGE_CONTROLS_TEST.zip",
+  "sha256": "9F8D9C92C362C31E3ABFFEE6BD9A5675388F490A616CB0D475F5FF267B4B88AC",
+  "bytes": 2493678,
+  "files": {
+    "dxgi.dll": {
+      "bytes": 155648,
+      "sha256": "C9E5C51B75133D0CC69DDC7DF3525D3EE5D39FA977BB72983C84667D426CE58D"
+    },
+    "DarksidersGenesisMod.asi": {
+      "bytes": 2337792,
+      "sha256": "8D768CBEBA83726CFDE63C06D5C693060D162B20B6C157782E48DADE0F44A1AE"
+    }
+  },
+  "crcVerified": true,
+  "amd64": true,
+  "rootBinariesOnly": true,
+  "oldArchivesUnchanged": 238,
+  "totalArchives": 239,
+  "iniKeys": 261,
+  "defaultDelta": {
+    "Values.MotionBlurAmount": "-1.000",
+    "Values.ColorFringeMax": "-1.000"
+  },
+  "updaterSelection": "DarksidersGenesis_V1.174_NATIVE_IMAGE_CONTROLS_TEST.zip",
+  "gitBlob": "d633917e734bb7583bde8f42c57f7f0612072623",
+  "publicHttpStatus": 200,
+  "binaryDownload": "new ZIP retrieved once through Git; no duplicate HTTP GET or old archive download",
+  "protectedRefs": {
+    "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+    "refs/heads/debug": "69fe6bef946cfa5306bcfbace9fee6966fa1836c",
+    "refs/heads/main": "0e5b182cd6e0b3cfe3b5d312fae3bd63914a41bd",
+    "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+  },
+  "installed": false,
+  "localBuild": false,
+  "gameplayValidated": false,
+  "ci": {
+    "source": "a4f27706d89118ac9c40066f2b0c59058aa79716",
+    "runId": 44777704991,
+    "jobId": 136431836972,
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/44777704991",
+    "testsPassed": 86,
+    "cppWarnings": 0,
+    "cppErrors": 0,
+    "configuration": "Windows x64 Release",
+    "gameplayValidated": false
+  },
+  "defender": {
+    "scan": "Microsoft Defender custom scan",
+    "completed": true,
+    "matchingDetections": 0,
+    "time": "2026-11-20T18:03:59.4417392+01:00"
+  },
+  "nativeDefaults": {
+    "MotionBlurAmount": -1,
+    "ColorFringeMax": -1
+  },
+  "legacyDisableFlagsMigrated": true,
+  "pollingCadenceChanged": false,
+  "newRenderBehaviorValidatedInGame": false
+}

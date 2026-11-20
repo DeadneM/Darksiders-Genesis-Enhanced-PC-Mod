@@ -1,6 +1,6 @@
-# État courant — V1.173 debug disponible
+# État courant — V1.174 debug, main V1.173
 
-Base fonctionnelle V1.171 validée ; main/release V1.168 conservées. V1.173 construite sur GitHub, 86/86 tests, zéro erreur C++ et un avertissement d'analyse constexpr documenté. ZIP deux binaires vérifié, aucune installation. Aucun délai ni changement de réglages ajouté ; gain à mesurer. [Livraison](V1_173_DELIVERY_RECEIPT.md).
+V1.173 confirmée par l'utilisateur et publiée sur main. V1.174 : réglages d'image Native/personnalisés construits et contrôlés 86/86, zéro avertissement ; rendu à tester en jeu. Aucun changement automatique de qualité ni installation. [Livraison](V1_174_DELIVERY_RECEIPT.md).
 
 Nouvelle case Summon horse in the air juste sous Horse Everywhere, OFF par défaut. Action native conservée, résultat de sol adapté uniquement pendant un appel aérien local ; règles de zone/déblocage inchangées. 259 clés dont 258 anciennes valeurs préservées, 55 actions inchangées. Fonction EXPÉRIMENTALE jusqu’au retour en jeu. [Périmètre et tests](V1_172_REVIEW.md).
 
@@ -57,3 +57,8 @@ Publication V1.173 CONFIRMÉE sur main et release v1.173 : asset vérifié par e
 ## V1.174 — Native et réglages des deux effets d'image
 
 Retour utilisateur : V1.173/coop/appel aérien acceptés ; TPS encore gourmand, crash GPU non attribué. Lot limité aux curseurs motion blur / limite chromatique, Native par défaut, 0 désactive, sauvegarde et migration anciennes cases. Aucune modification de DOF/cadence/skins. Table CRC générée sans indice pour l'analyseur. PRÉPARÉ avant CI GitHub ; pas de build local ni installation. [Détail et tests](V1_174_REVIEW.md).
+
+
+## V1.174 — livraison contrôlée
+
+Source a4f27706d89118ac9c40066f2b0c59058aa79716, archive 69fe6bef946cfa5306bcfbace9fee6966fa1836c : 86/86 tests Windows, zéro avertissement/erreur C++, ZIP deux binaires vérifié, Defender aucune détection. Mode Native par défaut ; slider/saisie motion blur0–1 et limite chromatique0–10. 259 anciennes valeurs conservées,2nouvelles ; aucune cadence ou DOF changé, aucune installation. Nouvelle image à valider en jeu. Main V1.173/archives préservées. Prochaine priorité TPS : mesure ciblée des passes GPU, pas de changement de qualité à l'aveugle. [Livraison et rollback](V1_174_DELIVERY_RECEIPT.md).

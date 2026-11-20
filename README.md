@@ -1,6 +1,6 @@
-## V1.174 — réglages d'image préparés sur debug
+## V1.174 — beta disponible sur debug
 
-Flou de mouvement et limite d'aberration chromatique réglables ; Native par défaut, anciennes cases conservées par migration. Aucun changement DOF ou de réactivité. [Périmètre et tests](docs/V1_174_REVIEW.md).
+Flou de mouvement et limite d'aberration chromatique réglables avec curseur et saisie ; Native par défaut. Migration des anciennes cases, autres réglages et réactivité préservés. 86/86 tests, zéro avertissement C++. [ZIP, contrôles et test](docs/V1_174_DELIVERY_RECEIPT.md).
 
 ---
 
