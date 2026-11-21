@@ -8,6 +8,7 @@
 #include "MenuAppearance.h"
 #include "CameraBlurSettings.h"
 #include "TemporalAASettings.h"
+#include "PostProcessEffects.h"
 #include <array>
 #include <atomic>
 #include <string>
@@ -313,6 +314,7 @@ public:
     bool coreLevelDisplayFixEnabled = true;
     camera_blur::Profile nativeBlur=camera_blur::NativeDefaults,tpsBlur=camera_blur::TpsDefaults;
     temporal_aa::Settings temporalAA{};
+    postprocess::Values postProcess=postprocess::NativeValues();
     bool cameraOrbitInputEnabled = true; // derived: controller-only TPS camera
     bool cameraControllerOrbitEnabled = true;
     int tpsCameraStickMode = 2; // 0 OFF, 1 left, 2 right

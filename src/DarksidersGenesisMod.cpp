@@ -3853,7 +3853,10 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     if(!once.exchange(true))ReportStartupPhase(4,flags);
     ApplySkipIntroSetting(false);
     UpdateCameraDof();
-    dg::temporal_aa::Update(g_config.temporalAA);
+    const auto& renderRuntime=dg::runtime::Get();
+    const float motionMaximum=(renderRuntime.postProcessMask.load(std::memory_order_acquire)&(uint64_t{1}<<dg::postprocess::MotionMaximumIndex))?
+        renderRuntime.postProcess[dg::postprocess::MotionMaximumIndex].load(std::memory_order_relaxed):-1.0f;
+    dg::temporal_aa::Update(g_config.temporalAA,motionMaximum);
     dg::render_safety::Report();
 
     ProcessInput();

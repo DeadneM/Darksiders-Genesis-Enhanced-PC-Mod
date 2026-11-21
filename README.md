@@ -1,3 +1,9 @@
+## V1.176 — catalogue post-traitement expérimental
+
+17 nouveaux paramètres Native/personnalisé ; bit chromatique V1.175 corrigé après vérification native. Plafonds exploratoires, rendu à tester. [Périmètre et tests](docs/V1_176_REVIEW.md).
+
+---
+
 ## V1.175 — beta disponible sur debug
 
 La chromatique règle l'intensité réelle, plutôt que le seul plafond de V1.174. Native par défaut, motion blur conservé, aucun nouveau hook. 86/86 tests, zéro avertissement ; rendu à tester. [ZIP, contrôles et essai](docs/V1_175_DELIVERY_RECEIPT.md).

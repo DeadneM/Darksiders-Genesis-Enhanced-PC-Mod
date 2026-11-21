@@ -1,5 +1,6 @@
 #include "../src/TpsCameraFocus.h"
 #include "../src/ChromaticIntensity.h"
+#include "../src/PostProcessEffects.h"
 #include <array>
 #include <iostream>
 #include <limits>
@@ -248,7 +249,7 @@ void Parity(){
 
 void ChromaticChecks(){
     using namespace dg::chromatic;
-    View original=Native();original[0x45]&=static_cast<unsigned char>(~0x20u);Put(original,0x250,.1f);
+    View original=Native();original[0x45]&=static_cast<unsigned char>(~0x30u);Put(original,0x250,.1f);
     auto view=original;
     dg::chromatic::layoutReady=false;Check(!Apply(view.data(),2)&&view==original,"unverified chromatic layout retains every byte");
     dg::chromatic::layoutReady=true;
@@ -266,7 +267,7 @@ void ChromaticChecks(){
     for(float amount:{0.0f,.25f,1.0f,5.0f,10.0f}){
         view=original;Check(Apply(view.data(),amount),"verified full-weight camera accepts exact intensity");
         float actual=0;std::memcpy(&actual,view.data()+0x250,4);
-        Check(actual==amount&&(view[0x45]&0x20),"intensity overrides the authored amount instead of merely capping it");
+        Check(actual==amount&&((view[0x45]&0x30)==0x10),"intensity overrides the authored amount instead of merely capping it");
         for(size_t i=0;i<view.size();++i)
             if(i!=0x45&&(i<0x250||i>=0x254))Check(view[i]==original[i],"chromatic override preserves geometry, blend weight, DOF and unrelated PP fields");
     }
@@ -278,5 +279,30 @@ void ChromaticChecks(){
     Check(!Apply(nullptr,1),"missing chromatic output fails open");dg::chromatic::layoutReady=false;
 }
 
-int main(){try{Run();Parity();ChromaticChecks();std::cout<<"TPS per-view focus and native postprocess preservation passed\n";return 0;}
+
+void PostProcessChecks(){
+    using namespace dg::postprocess;
+    auto values=NativeValues();View native=Native();
+    for(const auto& spec:Specs){Put(native,0x40+spec.offset,.5f);native[0x40+spec.flag]&=static_cast<unsigned char>(~spec.mask);}
+    const auto all=(uint64_t{1}<<Count)-1;
+    verifiedMask=all;auto view=native;
+    Check(!dg::postprocess::Apply(view.data(),0,[&](size_t i){return values[i];})&&view==native,"all Native skips every postprocess write");
+    for(size_t i=0;i<Count;++i){
+        Check(Normalize(i,-1)==-1&&Normalize(i,std::numeric_limits<float>::quiet_NaN())==-1,"negative/invalid catalog value selects Native");
+        Check(Normalize(i,Specs[i].maximum*2)==Specs[i].maximum,"catalog clamps only its declared exploratory ceiling");
+        for(float amount:{0.0f,Specs[i].maximum}){
+            values=NativeValues();values[i]=amount;view=native;
+            Check(dg::postprocess::Apply(view.data(),uint64_t{1}<<i,[&](size_t k){return values[k];}),"each verified catalog field accepts zero and its limit");
+            float actual=0;std::memcpy(&actual,view.data()+0x40+Specs[i].offset,4);
+            Check(actual==amount&&(view[0x40+Specs[i].flag]&Specs[i].mask),"exact value and associated override bit are written");
+            for(size_t byte=0;byte<view.size();++byte)if(byte!=0x40+Specs[i].flag&&(byte<0x40+Specs[i].offset||byte>=0x40+Specs[i].offset+4))
+                Check(view[byte]==native[byte],"other effects, geometry and native weights remain byte-identical");
+        }
+    }
+    for(float weight:{0.0f,.5f}){view=native;Put(view,0x38,weight);const auto before=view;
+        Check(!dg::postprocess::Apply(view.data(),all,[&](size_t){return 0.0f;})&&view==before,"partial camera blending remains native");}
+    verifiedMask=0;view=native;Check(!dg::postprocess::Apply(view.data(),all,[&](size_t){return 0.0f;})&&view==native,"unverified catalog cannot write");
+}
+
+int main(){try{Run();Parity();ChromaticChecks();PostProcessChecks();std::cout<<"TPS per-view focus and native postprocess preservation passed\n";return 0;}
 catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

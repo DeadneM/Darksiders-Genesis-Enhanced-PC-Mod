@@ -40,6 +40,8 @@ int main(int argc,char** argv){
         "TAA customization defaults OFF with editable trial values, preserving native output");
     check(generated.temporalAA.motionBlurAmount==-1&&generated.temporalAA.colorFringeAmount==-1,
         "new image filters default OFF in existing and generated configurations");
+    for(size_t i=0;i<dg::postprocess::Count;++i)check(generated.postProcess[i]==-1,"new postprocess entries default Native");
+    check(dg::runtime::Get().postProcessMask.load()==0,"Native catalog has no active per-frame work");
     check(generated.updaterAutoCheck,"approved defaults check the selected update channel at startup");
     check(generated.tps3DAimEnabled&&dg::runtime::Get().tps3DAimEnabled.load(),"missing option enables 3D aiming by default");
     check(generated.molochBossCrashFixEnabled&&dg::runtime::Get().molochBossCrashFixEnabled.load(),"captured subtitle crash guard defaults ON in store and runtime");
@@ -221,7 +223,7 @@ int main(int argc,char** argv){
     WritePrivateProfileStringW(L"Features",L"CustomizeTemporalAA",L"1",path);
     WritePrivateProfileStringW(L"Values",L"TemporalAAFrameWeight",L"nan",path);
     WritePrivateProfileStringW(L"Values",L"TonemapperSharpen",L"99",path);
-    check(renamed.Load()&&renamed.temporalAA.enabled&&renamed.temporalAA.frameWeight==.08f&&renamed.temporalAA.sharpen==2,
+    check(renamed.Load()&&renamed.temporalAA.enabled&&renamed.temporalAA.frameWeight==.08f&&renamed.temporalAA.sharpen==10,
         "TAA reads reject NaN and bound sharpness");
     renamed.temporalAA={true,.125f,.5f};
     check(renamed.SaveNow()&&renamed.Load()&&renamed.temporalAA.enabled&&renamed.temporalAA.frameWeight==.125f&&renamed.temporalAA.sharpen==.5f,
@@ -260,6 +262,13 @@ int main(int argc,char** argv){
         "zero keeps old binaries' disable flags compatible for rollback");
     renamed.ResetDefaults(false);
     check(renamed.temporalAA.motionBlurAmount==-1&&renamed.temporalAA.colorFringeAmount==-1,"factory reset returns both effects to native");
+    renamed.postProcess[0]=2.5f;renamed.postProcess[4]=0;
+    check(renamed.SaveNow()&&renamed.Load()&&renamed.postProcess[0]==2.5f&&renamed.postProcess[4]==0,
+        "postprocess custom and zero values persist independently");
+    check((dg::runtime::Get().postProcessMask.load()&0x11)==0x11&&dg::runtime::Get().postProcess[0].load()==2.5f,
+        "postprocess snapshot publishes exact active values without a timer");
+    renamed.postProcess[0]=-1;renamed.postProcess[4]=-1;
+    check(renamed.SaveNow()&&renamed.Load()&&dg::runtime::Get().postProcessMask.load()==0,"Native restores the inactive fast path");
     renamed.coreLevelDisplayFixEnabled=false;
     check(renamed.SaveNow()&&renamed.Load()&&!renamed.coreLevelDisplayFixEnabled&&!dg::runtime::Get().coreLevelDisplayFixEnabled.load(),"core UI repair OFF persists and reaches runtime");
     renamed.horseAirSummonEnabled=true;

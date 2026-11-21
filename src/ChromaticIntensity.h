@@ -16,7 +16,7 @@ inline bool Apply(void* output,float amount){
     float authored=0;std::memcpy(&authored,bytes+0x40+0x210,sizeof(authored));
     if(!std::isfinite(authored)||authored<0||authored>10)return false;
     std::memcpy(bytes+0x40+0x210,&amount,sizeof(amount));
-    bytes[0x40+5]|=0x20;
+    bytes[0x40+5]|=0x10;
     return true;
 }
 }

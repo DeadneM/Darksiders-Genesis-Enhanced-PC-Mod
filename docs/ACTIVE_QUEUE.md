@@ -1,3 +1,11 @@
+# Priorité — V1.176
+
+1. Construire et contrôler le catalogue post-traitement, puis test visuel groupé.
+2. Étendre uniquement les domaines/passes démontrés disponibles ; 119 champs candidats ne sont pas 119 contrôles utilisables.
+3. GPU : aucune nouvelle attribution sans mesure exploitable.
+
+---
+
 # Priorité actuelle — V1.175 debug, main V1.173
 
 1. Valider l'intensité chromatique 0/1/5/Native ; motion blur déjà accepté.

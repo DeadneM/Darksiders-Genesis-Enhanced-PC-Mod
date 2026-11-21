@@ -1,5 +1,7 @@
 #include "TemporalAAFeature.h"
 #include "ChromaticIntensity.h"
+#include "PostProcessEffects.h"
+#include <cstdio>
 #include <windows.h>
 #include <atomic>
 #include <cstring>
@@ -17,7 +19,8 @@ struct Channel {
     bool active=false;
 };
 Channel g_weight{0x39CB138},g_sharpen{0x39CB168};
-Channel g_motionBlur{0x3A47F80},g_colorFringe{0x3A47FB0};
+Channel g_motionBlur{0x3A47F80},g_motionMaximum{0x3A47F98},g_colorFringe{0x3A47FB0};
+std::atomic_bool g_motionMaximumReady{false};
 uintptr_t g_base=0;
 
 bool Writable(const LONG* data){
@@ -50,7 +53,7 @@ void Service(Channel& channel,bool enabled,float value,float minimum,float maxim
 void RestoreLocked(){
     if(!g_active.load(std::memory_order_relaxed))return;
     Service(g_weight,false,0,0,1);Service(g_sharpen,false,0,-1,10);
-    Service(g_motionBlur,false,0,-1,10);Service(g_colorFringe,false,0,-2,10);
+    Service(g_motionBlur,false,0,-1,10);Service(g_motionMaximum,false,0,-1,100);Service(g_colorFringe,false,0,-2,10);
     g_active.store(false,std::memory_order_relaxed);
 }
 }
@@ -96,23 +99,35 @@ void Initialize(LogFn log,bool exactExecutable){
         !std::memcmp(base+0x2DB0588,L"r.SceneColorFringe.Max",sizeof(L"r.SceneColorFringe.Max"));
     if(valid)g_base=reinterpret_cast<uintptr_t>(base);
     constexpr unsigned char fringeField[]={1,0,0,0,0x10,2,0,0};
-    constexpr unsigned char fringeOverride[]={0x80,0x49,5,0x20,0xC3};
-    const bool fringeLayout=valid&&
+    constexpr unsigned char fringeOverride[]={0x80,0x49,5,0x10,0xC3};
+    uintptr_t declaredSetter=0;std::memcpy(&declaredSetter,base+0x3798B18+48,sizeof(declaredSetter));
+    const bool fringeLayout=valid&&declaredSetter==reinterpret_cast<uintptr_t>(base)+0x1DD3150&&
         !std::memcmp(base+0x37965B8,fringeField,sizeof(fringeField))&&
-        !std::memcmp(base+0x1DD2CA0,fringeOverride,sizeof(fringeOverride))&&
+        !std::memcmp(base+0x1DD3150,fringeOverride,sizeof(fringeOverride))&&
         !std::memcmp(base+0x2EB7CB0,"SceneFringeIntensity",sizeof("SceneFringeIntensity"))&&
         !std::memcmp(base+0x2EB9078,"bOverride_SceneFringeIntensity",sizeof("bOverride_SceneFringeIntensity"));
     chromatic::layoutReady.store(fringeLayout,std::memory_order_release);
-    if(log)log(fringeLayout?"Chromatic intensity V1.175: camera PP field and override verified; native default, no new hook":
+    if(log)log(fringeLayout?"Chromatic intensity V1.176: camera PP field and override verified; native default, no new hook":
         "Chromatic intensity: layout unavailable; native camera settings retained");
+    constexpr unsigned char maxRegister[]={0x48,0x8D,0x15,0xCA,0xC2,0xBB,2,0xFF,0x50,8};
+    constexpr unsigned char maxSlot[]={0x48,0x89,5,0xCA,0x3E,0x85,3};
+    constexpr unsigned char maxRead[]={0x48,0x8B,5,0xDB,0x53,0xF2,1,0xF3,0x0F,0x10,0,0x0F,0x2F,0xC6,0x72,8,0xF3,0x0F,0x11,0x83,0xFC,0x11,0,0};
+    g_motionMaximumReady=valid&&!std::memcmp(base+0x1F409F,maxRegister,sizeof(maxRegister))&&
+        !std::memcmp(base+0x1F40C7,maxSlot,sizeof(maxSlot))&&!std::memcmp(base+0x1F4088,flags,sizeof(flags))&&
+        !std::memcmp(base+0x1B22BB6,maxRead,sizeof(maxRead))&&!std::memcmp(base+0x2DB0370,L"r.MotionBlur.Max",sizeof(L"r.MotionBlur.Max"));
+    const auto found=postprocess::Initialize(base,valid);
+    if(log){char line[128]{};sprintf_s(line,"Postprocess catalog V1.176: %u/%u native contracts verified; visual test required",found,unsigned(postprocess::Count));log(line);}
+    if(!g_motionMaximumReady)postprocess::verifiedMask.fetch_and(~(uint64_t{1}<<postprocess::MotionMaximumIndex),std::memory_order_release);
+    if(log)log(g_motionMaximumReady?"Motion blur maximum: native final-view CVar verified":"Motion blur maximum: unavailable, native retained");
     g_ready.store(valid,std::memory_order_release);
     if(log)log(valid?"Temporal AA: float registration/render consumers verified; optional settings, native by default":
         "Temporal AA: unsupported registration/render consumers; native output retained");
     if(log&&valid)log("Image effects V1.169: native motion blur amount/color fringe clamp verified; independent optional filters, no new hook");
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire);}
-void Update(const Settings& requested){
-    const bool any=requested.enabled||requested.motionBlurAmount>=0||requested.colorFringeAmount==0;
+void Update(const Settings& requested,float requestedMaximum){
+    const float maximum=postprocess::Normalize(postprocess::MotionMaximumIndex,requestedMaximum);
+    const bool any=requested.enabled||requested.motionBlurAmount>=0||requested.colorFringeAmount==0||(g_motionMaximumReady&&maximum>=0);
     if(!Ready()||(!any&&!g_active.load(std::memory_order_relaxed)))return;
     std::lock_guard<std::mutex> lock(g_mutex);
     if(!Ready())return;
@@ -121,6 +136,7 @@ void Update(const Settings& requested){
     Service(g_weight,settings.enabled,settings.frameWeight,0,1);
     Service(g_sharpen,settings.enabled,settings.sharpen,-1,10);
     Service(g_motionBlur,settings.motionBlurAmount>=0,settings.motionBlurAmount,-1,10);
+    Service(g_motionMaximum,g_motionMaximumReady&&maximum>=0,maximum,-1,100);
     // Only zero uses the old global cutoff. Positive amounts come from the
     // camera PP intensity, not min(authored, cap); restore any owned cap.
     Service(g_colorFringe,settings.colorFringeAmount==0,0,-2,10);
@@ -128,6 +144,7 @@ void Update(const Settings& requested){
 }
 void Restore(){
     chromatic::layoutReady.store(false,std::memory_order_release);
+    postprocess::verifiedMask.store(0,std::memory_order_release);
     if(!g_ready.exchange(false,std::memory_order_acq_rel))return;
     std::lock_guard<std::mutex> lock(g_mutex);RestoreLocked();
 }

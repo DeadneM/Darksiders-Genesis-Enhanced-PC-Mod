@@ -1,3 +1,9 @@
+# État courant — V1.176 préparée, main V1.173
+
+17 paramètres post-traitement supplémentaires Native par défaut. Contrat chromatique V1.175 corrigé (bit voisin rejeté). Aucune installation, rendu non validé. [Analyse et tests](V1_176_REVIEW.md).
+
+---
+
 # État courant — V1.175 debug, main V1.173
 
 V1.175 : véritable intensité chromatique, sans nouveau hook ; motion blur V1.174 validé conservé. 86/86 tests, zéro avertissement, rendu à tester. Aucune installation. GPU toujours sans comparaison exploitable. [Livraison](V1_175_DELIVERY_RECEIPT.md).

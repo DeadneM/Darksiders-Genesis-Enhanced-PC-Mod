@@ -12,9 +12,9 @@ struct Settings {
     float motionBlurAmount=-1.0f,colorFringeAmount=-1.0f;
 };
 inline Settings Normalize(Settings value){
-    value.frameWeight=std::isfinite(value.frameWeight)?std::clamp(value.frameWeight,0.01f,1.0f):0.08f;
-    value.sharpen=std::isfinite(value.sharpen)?std::clamp(value.sharpen,0.0f,2.0f):1.0f;
-    value.motionBlurAmount=std::isfinite(value.motionBlurAmount)&&value.motionBlurAmount>=0?std::clamp(value.motionBlurAmount,0.0f,1.0f):-1.0f;
+    value.frameWeight=std::isfinite(value.frameWeight)?std::clamp(value.frameWeight,0.0f,1.0f):0.08f;
+    value.sharpen=std::isfinite(value.sharpen)?std::clamp(value.sharpen,0.0f,10.0f):1.0f;
+    value.motionBlurAmount=std::isfinite(value.motionBlurAmount)&&value.motionBlurAmount>=0?std::clamp(value.motionBlurAmount,0.0f,10.0f):-1.0f;
     value.colorFringeAmount=std::isfinite(value.colorFringeAmount)&&value.colorFringeAmount>=0?std::clamp(value.colorFringeAmount,0.0f,10.0f):-1.0f;
     return value;
 }

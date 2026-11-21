@@ -353,6 +353,7 @@ void Store::ResetDefaults(bool persist) {
     coreLevelDisplayFixEnabled = true;
     nativeBlur=camera_blur::NativeDefaults;tpsBlur=camera_blur::TpsDefaults;
     temporalAA={};
+    postProcess=postprocess::NativeValues();
     cameraOrbitInputEnabled = true;
     cameraControllerOrbitEnabled = true;
     tpsCameraStickMode = 2;
@@ -693,6 +694,9 @@ bool Store::Load() {
         ReadFloat(L"Values",L"TonemapperSharpen",1.0f,path_),
         ReadFloat(L"Values",L"MotionBlurAmount",ReadBool(L"Features",L"DisableMotionBlur",false,path_)?0.0f:-1.0f,path_),
         ReadFloat(L"Values",L"ColorFringeAmount",ReadFloat(L"Values",L"ColorFringeMax",ReadBool(L"Features",L"DisableColorFringe",false,path_)?0.0f:-1.0f,path_),path_)});
+    for(size_t i=0;i<postprocess::Count;++i){wchar_t key[96]{};
+        swprintf_s(key,L"%hs",postprocess::Specs[i].key);
+        postProcess[i]=postprocess::Normalize(i,ReadFloat(L"PostProcess",key,-1,path_));}
     const bool oldOrbit=ReadBool(L"Features",L"CameraControllerOrbit",true,path_);
     tpsCameraStickMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(
         L"Features",L"TPSCameraStickMode",oldOrbit?2:0,path_.c_str())),0,2);
@@ -1017,6 +1021,7 @@ void Store::PublishRuntime() const {
     runtime.molochBossCrashFixEnabled = molochBossCrashFixEnabled;
     runtime.coreLevelDisplayFixEnabled = coreLevelDisplayFixEnabled;
     runtime.chromaticIntensity = temporal_aa::Normalize(temporalAA).colorFringeAmount;
+    runtime.postProcess=postProcess;
     runtime.nativeBlur = nativeBlur;
     runtime.tpsBlur = tpsBlur;
     // Mouse TPS orbit shares the existing orbit result; it does not need
@@ -1250,6 +1255,9 @@ bool Store::SaveNow() {
     WriteFloat(L"Values",L"TPSDOFAmount",tpsBlur.amount,path_);
     WriteBool(L"Features",L"CoreLevelDisplayFix",coreLevelDisplayFixEnabled,path_);
     const auto normalizedAA=temporal_aa::Normalize(temporalAA);
+    for(size_t i=0;i<postprocess::Count;++i){wchar_t key[96]{};
+        swprintf_s(key,L"%hs",postprocess::Specs[i].key);
+        WriteFloat(L"PostProcess",key,postprocess::Normalize(i,postProcess[i]),path_);}
     WriteBool(L"Features",L"CustomizeTemporalAA",normalizedAA.enabled,path_);
     WriteFloat(L"Values",L"TemporalAAFrameWeight",normalizedAA.frameWeight,path_);
     WriteFloat(L"Values",L"TonemapperSharpen",normalizedAA.sharpen,path_);

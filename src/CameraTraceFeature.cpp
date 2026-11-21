@@ -5,6 +5,7 @@
 #include "CameraContinuity.h"
 #include "TpsCameraFocus.h"
 #include "ChromaticIntensity.h"
+#include "PostProcessEffects.h"
 #include "NativeMemoryReader.h"
 #include "DashCombatFeature.h"
 #include "RuntimeSettings.h"
@@ -144,7 +145,24 @@ void RecordCinematicEvent(CinematicDebugPhase phase,uint32_t candidate,
 void HookView(void* camera, float dt, void* outView) {
     if (g_view) g_view(camera, dt, outView);
     auto& settings=dg::runtime::Get();
-    if(g_view)dg::chromatic::Apply(outView,settings.chromaticIntensity.load(std::memory_order_acquire));
+    const float fringe=settings.chromaticIntensity.load(std::memory_order_acquire);
+    const auto ppMask=settings.postProcessMask.load(std::memory_order_acquire);
+    const bool fringeApplied=g_view&&dg::chromatic::Apply(outView,fringe);
+    const bool ppApplied=g_view&&dg::postprocess::Apply(outView,ppMask,
+        [&](size_t i){return settings.postProcess[i].load(std::memory_order_relaxed);});
+    // Bounded evidence at the camera-output stage, NOT proof of final GPU use.
+    if(g_view&&outView&&(fringe>=0||ppMask)){
+        static thread_local void* observedCamera=nullptr;
+        static thread_local float observedFringe=-2,observedWeight=-2;
+        static thread_local uint64_t observedMask=0;
+        static thread_local unsigned reports=0;
+        float weight=0;std::memcpy(&weight,static_cast<unsigned char*>(outView)+0x38,4);
+        if(reports<64&&(observedCamera!=camera||observedFringe!=fringe||observedWeight!=weight||observedMask!=ppMask)){
+            observedCamera=camera;observedFringe=fringe;observedWeight=weight;observedMask=ppMask;++reports;
+            char line[256]{};sprintf_s(line,"PP V1.176 CAMERA_OUTPUT weight=%.3f fringe=%.3f fringeApplied=%u mask=%llX catalogApplied=%u finalRendererObserved=0",
+                weight,fringe,unsigned(fringeApplied),static_cast<unsigned long long>(ppMask),unsigned(ppApplied));Write(line);
+        }
+    }
     dg::native_tps::SampleNativeStickSwap();
     dg::local_players::ObserveCameraViews(camera);
     // A cinematic may switch to a camera with no player component at all.

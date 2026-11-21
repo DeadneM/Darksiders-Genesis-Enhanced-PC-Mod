@@ -43,6 +43,7 @@
 #include "TpsCameraFocus.h"
 #include "TemporalAAFeature.h"
 #include "ChromaticIntensity.h"
+#include "PostProcessEffects.h"
 #include "CoreUiLevelFeature.h"
 
 #include "imgui.h"
@@ -1109,9 +1110,9 @@ void Draw(Context& c) {
                 if(ImGui::Checkbox("Customize temporal AA",&config.temporalAA.enabled))config.Save();
                 HelpText("Global image settings, including cinematics. Uncheck to restore captured native values. Does not change depth of field or switch the game's anti-aliasing method.");
                 if(config.temporalAA.enabled){
-                    if(NumberRow("Current frame weight","TemporalAAWeight",&config.temporalAA.frameWeight,0.01f,1,0.08f,"%.3f","%.3f"))config.Save();
+                    if(NumberRow("Current frame weight","TemporalAAWeight",&config.temporalAA.frameWeight,0,1,0.08f,"%.3f","%.3f"))config.Save();
                     HelpText("Higher values reduce trails but may increase shimmer. Test while moving the camera. This control only affects the game's TAA.");
-                    if(NumberRow("Sharpness","TemporalAASharpen",&config.temporalAA.sharpen,0,2,1,"%.2f","%.3f"))config.Save();
+                    if(NumberRow("Sharpness","TemporalAASharpen",&config.temporalAA.sharpen,0,10,1,"%.2f","%.3f"))config.Save();
                     HelpText("Zero adds no sharpening. High values can create bright outlines. Sharpening also applies when using other anti-aliasing methods.");
                 }
                 ImGui::EndDisabled();
@@ -1125,7 +1126,7 @@ void Draw(Context& c) {
                 if(ImGui::Checkbox("Customize motion blur",&motionCustom)){
                     config.temporalAA.motionBlurAmount=motionCustom?.5f:-1.0f;config.Save();
                 }
-                if(motionCustom&&NumberRow("Amount","MotionBlurAmount",&config.temporalAA.motionBlurAmount,0,1,.5f,"%.2f"))config.Save();
+                if(motionCustom&&NumberRow("Amount","MotionBlurAmount",&config.temporalAA.motionBlurAmount,0,10,.5f,"%.2f"))config.Save();
                 HelpText("Unchecked: Native (default), chosen by each scene. Zero removes motion blur. Does not change depth of field.");
                 bool fringeCustom=config.temporalAA.colorFringeAmount>=0;
                 if(ImGui::Checkbox("Customize chromatic aberration",&fringeCustom)){
@@ -1138,6 +1139,25 @@ void Draw(Context& c) {
                 if(!chromatic::Ready())ImGui::TextDisabled("Chromatic intensity unavailable");
                 ImGui::EndDisabled();
                 HelpText("Independent of TAA. Global settings, including cinematics and both local views.");
+                ImGui::Unindent();
+            }
+            if(layout::Group("Additional post-processing")){
+                ImGui::Indent();HelpText("Unchecked = Native. Ranges are exploratory; the game may clamp values. Camera transitions keep native blending. Some effects need a native texture or an enabled rendering feature.");
+                const char* previous=nullptr;bool opened=false;
+                for(size_t i=0;i<postprocess::Count;++i){const auto& spec=postprocess::Specs[i];
+                    if(!previous||std::strcmp(previous,spec.group)){
+                        if(previous&&opened)ImGui::Unindent();
+                        previous=spec.group;opened=layout::Group(spec.group);if(opened)ImGui::Indent();
+                    }
+                    if(!opened)continue;
+                    ImGui::PushID(spec.key);ImGui::BeginDisabled(!postprocess::Ready(i));
+                    bool custom=config.postProcess[i]>=0;
+                    if(ImGui::Checkbox(spec.label,&custom)){config.postProcess[i]=custom?spec.trial:-1.0f;config.Save();}
+                    if(custom&&NumberRow("Value","Value",&config.postProcess[i],0,spec.maximum,spec.trial,"%.3f","%.3f"))config.Save();
+                    ImGui::EndDisabled();ImGui::PopID();
+                }
+                if(previous&&opened)ImGui::Unindent();
+                HelpText("Exposure 0 means neutral compensation, not darkness. Radius/threshold values are not intensities. Native LUT and dirt/cubemap controls require those assets in the scene.");
                 ImGui::Unindent();
             }
             if(layout::Group("Depth of field")){

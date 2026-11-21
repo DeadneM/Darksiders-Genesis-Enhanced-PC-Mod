@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DefaultSettings.h"
+#include "PostProcessEffects.h"
 #include "AimAssistSettings.h"
 #include "CameraBlurSettings.h"
 #include "WrathSlotSettings.h"
@@ -56,6 +57,7 @@ struct Snapshot {
     bool molochBossCrashFixEnabled = true;
     bool coreLevelDisplayFixEnabled = true;
     float chromaticIntensity = -1.0f;
+    postprocess::Values postProcess=postprocess::NativeValues();
     camera_blur::Profile nativeBlur=camera_blur::NativeDefaults,tpsBlur=camera_blur::TpsDefaults;
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
     bool cameraControllerOrbitEnabled = true;
@@ -193,6 +195,8 @@ struct State {
     std::atomic_bool molochBossCrashFixEnabled{true};
     std::atomic_bool coreLevelDisplayFixEnabled{true};
     std::atomic<float> chromaticIntensity{-1.0f};
+    std::array<std::atomic<float>,postprocess::Count> postProcess{}; // values valid only under postProcessMask
+    std::atomic_uint64_t postProcessMask{0};
     camera_blur::SharedProfile nativeBlur{camera_blur::NativeDefaults},tpsBlur{camera_blur::TpsDefaults};
     std::atomic_bool tpsViewGameplay{false};
     std::atomic_ullong tpsGameplayViewTick{0};

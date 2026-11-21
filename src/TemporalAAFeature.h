@@ -6,6 +6,6 @@ using LogFn=void(*)(const char*);
 void Initialize(LogFn log,bool exactExecutable);
 bool Ready();
 // Serviced by the existing Present callback, without a new detour or scan.
-void Update(const Settings& settings);
+void Update(const Settings& settings,float motionMaximum=-1.0f);
 void Restore();
 }
