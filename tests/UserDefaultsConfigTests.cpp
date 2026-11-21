@@ -28,7 +28,7 @@ int main(int argc,char** argv){
     if(argc!=2)return 1;
     wchar_t source[32768]{};
     if(!MultiByteToWideChar(CP_UTF8,0,argv[1],-1,source,32768))return 1;
-    const auto shipped=ReadIni(source);check(shipped.size()==11&&shipped.count("PostProcess")==1,"shipped profile includes the Native postprocess section");
+    const auto shipped=ReadIni(source);check(shipped.size()==11&&shipped.count(L"PostProcess")==1,"shipped profile includes the Native postprocess section");
     wchar_t directory[MAX_PATH]{},path[MAX_PATH]{};
     if(!GetTempPathW(MAX_PATH,directory)||!GetTempFileNameW(directory,L"DGP",0,path))return 1;
     if(!DeleteFileW(path))return 1; // only this test's empty file, to exercise missing-INI generation
