@@ -1,0 +1,64 @@
+{
+  "package": {
+    "version": "V1.176",
+    "base": "2575c38",
+    "source": "d46d1e52466da5b54a5e4f1d5267643c48d4d8ba",
+    "archive": "ce6bcbcc006c60dcf93a69c6eb5ae98b4639fe10",
+    "download": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/ce6bcbcc006c60dcf93a69c6eb5ae98b4639fe10/downloads/DarksidersGenesis_V1.176_NATIVE_POSTPROCESS_LIBRARY_TEST.zip",
+    "sha256": "E25D1BABAA4AADB1A9D98C35CD80200DB009DABC08FF5A70E9B0CE4455861AD3",
+    "bytes": 2501870,
+    "files": {
+      "dxgi.dll": {
+        "bytes": 155648,
+        "sha256": "6C0A8F39DA49BBAED04CC22546E38AF1F183D8205F994253D5ED2B9F8C7E43B6"
+      },
+      "DarksidersGenesisMod.asi": {
+        "bytes": 2345984,
+        "sha256": "0162A262F1B1FF4B39E90E433BE4E127CA26FB99EE1CAC43DE5DAD920600E0ED"
+      }
+    },
+    "crcVerified": true,
+    "amd64": true,
+    "rootBinariesOnly": true,
+    "oldArchivesUnchanged": 240,
+    "totalArchives": 241,
+    "iniKeys": 279,
+    "defaultDelta": {
+      "PostProcess": "17 Native keys; old values preserved"
+    },
+    "updaterSelection": "DarksidersGenesis_V1.176_NATIVE_POSTPROCESS_LIBRARY_TEST.zip",
+    "gitBlob": "7c9f83aa63829d8db9fbe4aaff1613a54b06e732",
+    "publicHttpStatus": 200,
+    "binaryDownload": "new ZIP retrieved once through Git; no duplicate HTTP GET or old archive download",
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/debug": "ce6bcbcc006c60dcf93a69c6eb5ae98b4639fe10",
+      "refs/heads/main": "0e5b182cd6e0b3cfe3b5d312fae3bd63914a41bd",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "installed": false,
+    "localBuild": false,
+    "gameplayValidated": false
+  },
+  "ci": {
+    "source": "d46d1e52466da5b54a5e4f1d5267643c48d4d8ba",
+    "runId": 44954467996,
+    "jobId": 136999422643,
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/44954467996",
+    "testsPassed": 86,
+    "cppWarnings": 0,
+    "cppErrors": 0,
+    "configuration": "Windows x64 Release",
+    "gameplayValidated": false
+  },
+  "defender": {
+    "zip": "no threats",
+    "payload": "no threats",
+    "protectionSettingsChanged": false
+  },
+  "rejectedRun": {
+    "runId": 44953475174,
+    "reason": "outdated expected INI section count; 85/86 tests; no ZIP"
+  },
+  "status": "CONSTRUIT / CONTROLE; rendu EXPERIMENTAL; aucune installation"
+}

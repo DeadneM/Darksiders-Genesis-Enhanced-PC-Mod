@@ -6794,3 +6794,8 @@ Tests : conservation Native octet par octet, champs/flags exacts isolés, limite
 Chromatique Native/0/1/5 puis Native, en observant les bords contrastés. Motion Amount 0/2 avec Max 5/20 puis Native, en mouvement. Ensuite un seul groupe à la fois : Native/0/valeur d'essai/Native (bloom, grain, vignette, AO, SSR, exposition). Vérifier retour Native, transitions et profils native/TPS. Une absence d'effet peut dépendre des passes/assets du niveau et doit être rapportée ; aucun gain GPU annoncé.
 
 Rollback : réinstaller les deux binaires de V1.175 en gardant l'INI (nouvelles clés ignorées), ou désactiver les nouveaux réglages pour retrouver Native. V1.175 conserve toutefois son défaut chromatique ; V1.173 reste la base stable publiée. Archives anciennes, main/archive et raccourcis inchangés.
+
+
+## V1.176 — livraison contrôlée
+
+Source d46d1e52466da5b54a5e4f1d5267643c48d4d8ba, ZIP ce6bcbcc006c60dcf93a69c6eb5ae98b4639fe10. 86/86, zéro avertissement, 240 archives préservées, 279 clés dont 17 nouvelles Native. [Reçu](V1_176_DELIVERY_RECEIPT.md). Première attente de nombre de sections corrigée avant publication. Contrats et fixtures ne prouvent pas le rendu final. Main/archive, profil personnel et installation intacts.

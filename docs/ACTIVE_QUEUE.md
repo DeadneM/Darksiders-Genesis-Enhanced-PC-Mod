@@ -1,3 +1,13 @@
+# Priorité — test groupé V1.176
+
+1. Chromatique corrigée et motion blur Amount/Maximum, puis un groupe post-traitement à la fois.
+2. Vérifier rendu et retour Native ; étendre ensuite les domaines/passes justifiés.
+3. GPU toujours sans nouveau diagnostic probant.
+
+[Livraison et limites](V1_176_DELIVERY_RECEIPT.md).
+
+---
+
 # Priorité — V1.176
 
 1. Construire et contrôler le catalogue post-traitement, puis test visuel groupé.

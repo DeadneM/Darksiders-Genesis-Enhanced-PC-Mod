@@ -1,3 +1,5 @@
+> Rectification V1.176 : le bit chromatique décrit ci-dessous était erroné (0x20 au lieu de 0x10). Les tests V1.175 ne prouvaient pas le rendu. Voir V1_176_REVIEW.md.
+
 # V1.175 — intensité chromatique livrée sur debug
 
 **CONSTRUIT / CONTRÔLÉ, rendu EXPÉRIMENTAL.** Base V1.174, motion blur retenu après retour utilisateur. Main/release V1.173 inchangées. Aucune installation automatique.

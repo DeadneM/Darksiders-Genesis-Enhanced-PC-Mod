@@ -1,3 +1,9 @@
+# État courant — V1.176 livrée, main V1.173
+
+86/86 tests, zéro avertissement C++, ZIP de deux binaires vérifié. 17 nouveaux réglages Native par défaut ; rendu à tester, aucun gain GPU annoncé. Aucune installation. [Livraison](V1_176_DELIVERY_RECEIPT.md).
+
+---
+
 # État courant — V1.176 préparée, main V1.173
 
 17 paramètres post-traitement supplémentaires Native par défaut. Contrat chromatique V1.175 corrigé (bit voisin rejeté). Aucune installation, rendu non validé. [Analyse et tests](V1_176_REVIEW.md).

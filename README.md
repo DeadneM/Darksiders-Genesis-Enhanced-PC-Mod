@@ -1,3 +1,9 @@
+## V1.176 — beta post-traitement disponible
+
+17 nouveaux paramètres Native/personnalisé et correction du bit chromatique V1.175. 86/86 tests, zéro avertissement ; rendu expérimental. [ZIP et essai groupé](docs/V1_176_DELIVERY_RECEIPT.md).
+
+---
+
 ## V1.176 — catalogue post-traitement expérimental
 
 17 nouveaux paramètres Native/personnalisé ; bit chromatique V1.175 corrigé après vérification native. Plafonds exploratoires, rendu à tester. [Périmètre et tests](docs/V1_176_REVIEW.md).
