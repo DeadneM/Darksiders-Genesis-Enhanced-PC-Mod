@@ -78,8 +78,8 @@ namespace DarksidersGenesisUpdater {
         // V1.177: only these verified native CVars are writable. No runtime memory calls.
         private static readonly string[] RenderKeys={"MaxAnisotropy","ScreenPercentage","ShadowQuality","ShadowMaxResolution","ShadowDistanceScale","ViewDistanceScale","SSRQuality"};
         private static readonly string[] RenderCVars={"r.MaxAnisotropy","r.ScreenPercentage","r.ShadowQuality","r.Shadow.MaxResolution","r.Shadow.DistanceScale","r.ViewDistanceScale","r.SSR.Quality","r.AllowHDR","r.HDR.EnableHDROutput","r.HDR.Display.OutputDevice","r.HDR.Display.ColorGamut","r.HDR.UI.CompositeMode","r.HDR.UI.Level","r.DefaultBackBufferPixelFormat"};
-        private static readonly double[] RenderMin={1,25,0,64,0,0,0,0,0,0,0,0,0},RenderMax={16,200,5,8192,5,5,4,1,1,6,4,1,4};
-        private static readonly bool[] RenderInt={true,false,true,true,false,false,true,true,true,true,true,true,false};
+        private static readonly double[] RenderMin={1,25,0,64,0,0,0,0,0,0,0,0,0,0},RenderMax={16,200,5,8192,5,5,4,1,1,6,4,1,4,4};
+        private static readonly bool[] RenderInt={true,false,true,true,false,false,true,true,true,true,true,true,false,true};
         [DllImport("kernel32.dll",CharSet=CharSet.Unicode)]
         private static extern uint GetPrivateProfileString(string section,string key,string fallback,StringBuilder value,uint size,string path);
         private static string RenderRead(string section,string key,string path) {
