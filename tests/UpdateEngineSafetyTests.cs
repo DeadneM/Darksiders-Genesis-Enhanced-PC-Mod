@@ -9,6 +9,7 @@ internal static class UpdateEngineSafetyTests {
     private static void Check(bool ok,string label){if(!ok){failures++;Console.WriteLine("FAIL "+label);}}
     private static void RenderingCases(string folder){
         string mod=Path.Combine(folder,"render-mod.ini"),engine=Path.Combine(folder,"render-engine.ini"),ledger=engine+".DGE-render-owned.json";
+        try {
         foreach(Encoding encoding in new[]{new UTF8Encoding(false),(Encoding)Encoding.Unicode}){
             string original="[Core.System]\r\nPaths=keep-me\r\n[SystemSettings]\r\nr.MaxAnisotropy=4\r\nr.Unrelated=42\r\n; préservé\r\n";
             File.WriteAllText(engine,original,encoding);File.WriteAllText(mod,"[RenderQuality]\r\n",encoding);
@@ -44,6 +45,10 @@ internal static class UpdateEngineSafetyTests {
             File.WriteAllText(ledger,"{broken",Encoding.UTF8);stable=File.ReadAllBytes(engine);rejected=false;
             try{UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;});}catch{rejected=true;}
             Check(rejected&&Convert.ToBase64String(stable)==Convert.ToBase64String(File.ReadAllBytes(engine)),"corrupt ownership ledger fails closed");File.Delete(ledger);
+        }
+        }finally{
+            foreach(string file in new[]{mod,engine,ledger,ledger+".tmp",engine+".DGE-render.bak"})
+                if(File.Exists(file))File.Delete(file);
         }
     }
     private static void GraphicsAdapterCases(string folder){
