@@ -1,3 +1,9 @@
+# État courant — V1.179 préparée, V1.178 retenue
+
+Onglet Graphics et état HDR en préparation ; aucune activation HDR ajoutée. Effets de mêlée validés à pied/cheval. Les lames sont déjà invisibles à cheval avec le choix Native selon le retour utilisateur ; visibilité tenue/rangée à étudier plus tard, sans toucher aux acquis. [Détails](V1_179_REVIEW.md).
+
+---
+
 # État courant — V1.178 livrée, main V1.173
 
 86/86 tests, zéro avertissement C++, ZIP contrôlé. Correction montée expérimentale, V1.177 et ses 286 valeurs conservées. HDR Intel D3D11 sans implémentation native dans le chemin étudié ; aucun forçage ajouté. Aucune installation. [Livraison](V1_178_DELIVERY_RECEIPT.md).

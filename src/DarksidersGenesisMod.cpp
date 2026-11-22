@@ -2,6 +2,7 @@
 #include <intrin.h>
 #include <d3d11.h>
 #include <dxgi.h>
+#include <dxgi1_6.h>
 #include <Xinput.h>
 
 #include <MinHook.h>
@@ -3077,6 +3078,56 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         : DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
+// Read-only display check, called on demand from Graphics > HDR.
+// Desktop HDR and back-buffer format do not prove the game's HDR metadata.
+dg::hdr::Status QueryHdrOutputStatus(){
+    dg::hdr::Status status{};status.checked=true;
+    if(!g_device||!g_gameSwapChain)return status;
+    LUID adapterId{};HMONITOR monitor=nullptr;
+    IDXGIDevice* dxgiDevice=nullptr;
+    if(SUCCEEDED(g_device->QueryInterface(__uuidof(IDXGIDevice),reinterpret_cast<void**>(&dxgiDevice)))){
+        IDXGIAdapter* adapter=nullptr;
+        if(SUCCEEDED(dxgiDevice->GetAdapter(&adapter))){DXGI_ADAPTER_DESC description{};
+            if(SUCCEEDED(adapter->GetDesc(&description))){status.deviceKnown=true;status.vendor=description.VendorId;adapterId=description.AdapterLuid;
+                status.nativePath=dg::hdr::PathFor(status.vendor,g_targetValidation.exact);
+                if(!WideCharToMultiByte(CP_UTF8,0,description.Description,-1,status.adapter,int(sizeof(status.adapter)),nullptr,nullptr))status.adapter[0]=0;}
+            adapter->Release();}
+        dxgiDevice->Release();
+    }
+    DXGI_SWAP_CHAIN_DESC swapDescription{};
+    if(SUCCEEDED(g_gameSwapChain->GetDesc(&swapDescription)))status.bufferFormat=unsigned(swapDescription.BufferDesc.Format);
+    IDXGIOutput* output=nullptr;
+    if(SUCCEEDED(g_gameSwapChain->GetContainingOutput(&output))){DXGI_OUTPUT_DESC description{};
+        if(SUCCEEDED(output->GetDesc(&description))){status.outputKnown=true;monitor=description.Monitor;
+            if(!WideCharToMultiByte(CP_UTF8,0,description.DeviceName,-1,status.display,int(sizeof(status.display)),nullptr,nullptr))status.display[0]=0;}
+        output->Release();
+    }
+    if(!status.deviceKnown||!monitor)return status;
+    // Refresh the factory so an HDR toggle/display change does not leave old
+    // output metadata cached by the game's original factory. Match the LIVE
+    // game's adapter LUID and containing monitor, never an adapter index.
+    IDXGIFactory4* factory=nullptr;
+    if(FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory4),reinterpret_cast<void**>(&factory))))return status;
+    IDXGIAdapter* freshAdapter=nullptr;
+    const HRESULT found=factory->EnumAdapterByLuid(adapterId,__uuidof(IDXGIAdapter),reinterpret_cast<void**>(&freshAdapter));
+    factory->Release();if(FAILED(found))return status;
+    for(UINT i=0;i<32;++i){IDXGIOutput* candidate=nullptr;
+        if(FAILED(freshAdapter->EnumOutputs(i,&candidate)))break;
+        DXGI_OUTPUT_DESC description{};
+        const bool match=SUCCEEDED(candidate->GetDesc(&description))&&description.Monitor==monitor;
+        if(match){IDXGIOutput6* advanced=nullptr;
+            if(SUCCEEDED(candidate->QueryInterface(__uuidof(IDXGIOutput6),reinterpret_cast<void**>(&advanced)))){
+                DXGI_OUTPUT_DESC1 details{};
+                if(SUCCEEDED(advanced->GetDesc1(&details))){status.advancedOutputKnown=true;
+                    status.desktopHdrActive=details.ColorSpace==DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
+                    status.bitsPerColor=details.BitsPerColor;status.peakNits=details.MaxLuminance;}
+                advanced->Release();}
+        }
+        candidate->Release();if(match)break;
+    }
+    freshAdapter->Release();return status;
+}
+
 bool InitializeImGui(IDXGISwapChain* swapChain) {
     if (g_imguiReady.load()) {
         return true;
@@ -3227,6 +3278,7 @@ dg::overlay::Context BuildOverlayContext() {
     context.applySkipWarning = &dg::skip_warning::Apply;
     context.applySkipLogos =
         &dg::skip_logos::Apply;
+    context.queryHdrStatus = &QueryHdrOutputStatus;
     context.queueGraphicsAdapter =
         &dg::engine_ini::QueueGraphicsAdapter;
     context.log = &Log;

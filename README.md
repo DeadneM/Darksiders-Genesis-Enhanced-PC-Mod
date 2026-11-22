@@ -1,3 +1,9 @@
+## V1.179 — Graphics en préparation
+
+Cinq groupes graphiques déplacés depuis Camera, noms et réglages conservés. Sous-menu HDR de vérification GPU/écran, sans activation native forcée sur Intel. [Périmètre et essai](docs/V1_179_REVIEW.md).
+
+---
+
 ## V1.178 — beta mêlée montée disponible
 
 Arcs de Strife à cheval réduits côté lame masquée, mains du cavalier vérifiées ; chemin à pied conservé. 86/86 tests, zéro avertissement C++, rendu à tester. HDR Intel D3D11 non forcé après examen natif. [ZIP et essai](docs/V1_178_DELIVERY_RECEIPT.md).

@@ -226,7 +226,7 @@ void Draw(Context& c) {
         ImGui::Separator();
     }
     ImGui::TextDisabled("Hover descriptions marked (?) for details.");
-    if (ImGui::BeginTabBar("MainTabs")) {
+    if (ImGui::BeginTabBar("MainTabs",ImGuiTabBarFlags_FittingPolicyScroll)) {
         if (ImGui::BeginTabItem("Gameplay")) {
             ImGui::Spacing();
             HelpText("Multipliers: 0.5 = half, 1 = native, 2 = double. Cost divisors work in reverse; each option explains its rules.");
@@ -1104,98 +1104,6 @@ void Draw(Context& c) {
                 ImGui::Unindent();
             }
 
-            if(layout::Group("Temporal anti-aliasing and sharpness")){
-                ImGui::Indent();
-                ImGui::BeginDisabled(!temporal_aa::Ready());
-                if(ImGui::Checkbox("Customize temporal AA",&config.temporalAA.enabled))config.Save();
-                HelpText("Global image settings, including cinematics. Uncheck to restore captured native values. Does not change depth of field or switch the game's anti-aliasing method.");
-                if(config.temporalAA.enabled){
-                    if(NumberRow("Current frame weight","TemporalAAWeight",&config.temporalAA.frameWeight,0,1,0.08f,"%.3f","%.3f"))config.Save();
-                    HelpText("Higher values reduce trails but may increase shimmer. Test while moving the camera. This control only affects the game's TAA.");
-                    if(NumberRow("Sharpness","TemporalAASharpen",&config.temporalAA.sharpen,0,10,1,"%.2f","%.3f"))config.Save();
-                    HelpText("Zero adds no sharpening. High values can create bright outlines. Sharpening also applies when using other anti-aliasing methods.");
-                }
-                ImGui::EndDisabled();
-                ImGui::TextDisabled("%s",temporal_aa::Ready()?"Native parameters verified":"Parameters unavailable");
-                ImGui::Unindent();
-            }
-            if(layout::Group("Image effects")){
-                ImGui::Indent();
-                ImGui::BeginDisabled(!temporal_aa::Ready());
-                bool motionCustom=config.temporalAA.motionBlurAmount>=0;
-                if(ImGui::Checkbox("Customize motion blur",&motionCustom)){
-                    config.temporalAA.motionBlurAmount=motionCustom?.5f:-1.0f;config.Save();
-                }
-                if(motionCustom&&NumberRow("Amount","MotionBlurAmount",&config.temporalAA.motionBlurAmount,0,10,.5f,"%.2f"))config.Save();
-                HelpText("Unchecked: Native (default), chosen by each scene. Zero removes motion blur. Does not change depth of field.");
-                bool fringeCustom=config.temporalAA.colorFringeAmount>=0;
-                if(ImGui::Checkbox("Customize chromatic aberration",&fringeCustom)){
-                    config.temporalAA.colorFringeAmount=fringeCustom?1.0f:-1.0f;config.Save();
-                }
-                ImGui::BeginDisabled(!chromatic::Ready());
-                if(fringeCustom&&NumberRow("Amount","ColorFringeAmount",&config.temporalAA.colorFringeAmount,0,10,1,"%.2f"))config.Save();
-                ImGui::EndDisabled();
-                HelpText("Unchecked: Native (default). Zero removes colored fringes; positive values set their intensity on supported camera views. Partial camera transitions retain native blending.");
-                if(!chromatic::Ready())ImGui::TextDisabled("Chromatic intensity unavailable");
-                ImGui::EndDisabled();
-                HelpText("Independent of TAA. Global settings, including cinematics and both local views.");
-                ImGui::Unindent();
-            }
-            if(layout::Group("Rendering quality (restart required)")){
-                ImGui::Indent();
-                HelpText("Unchecked = Native. Saved choices are written after closing the game and take effect at the next launch. Native restores the previous Engine.ini value if it is still owned by the mod.");
-                for(size_t i=0;i<render_quality::Specs.size();++i){const auto& spec=render_quality::Specs[i];
-                    ImGui::PushID(spec.key);bool changed=false,custom=config.renderQuality[i]>=0;
-                    if(ImGui::Checkbox(spec.label,&custom)){config.renderQuality[i]=custom?spec.trial:-1;changed=true;}
-                    if(custom&&NumberRow("Value","Value",&config.renderQuality[i],spec.minimum,spec.maximum,spec.trial,
-                        spec.integer?"%.0f":"%.2f",spec.integer?"%.0f":"%.2f")){
-                        config.renderQuality[i]=render_quality::Normalize(i,config.renderQuality[i]);changed=true;}
-                    if(changed){const bool saved=config.SaveNow();const bool queued=saved&&c.queueGraphicsAdapter&&c.queueGraphicsAdapter(config.graphicsAdapter);
-                        *c.lastAction=!saved?"Rendering preference save failed":queued?"Rendering settings queued; restart required":"Rendering preference saved; exit helper queue failed";}
-                    ImGui::PopID();
-                }
-                HelpText("Higher resolution and shadows can be expensive. 100% is native resolution; Native preserves your existing configuration. Texture/object limits and game quality presets can still restrict the result.");
-                ImGui::Unindent();
-            }
-            if(layout::Group("Additional post-processing")){
-                ImGui::Indent();HelpText("Unchecked = Native. Ranges are exploratory; the game may clamp values. Camera transitions keep native blending. Some effects need a native texture or an enabled rendering feature.");
-                const char* previous=nullptr;bool opened=false;
-                for(size_t i=0;i<postprocess::Count;++i){const auto& spec=postprocess::Specs[i];
-                    if(!previous||std::strcmp(previous,spec.group)){
-                        if(previous&&opened)ImGui::Unindent();
-                        previous=spec.group;opened=layout::Group(spec.group);if(opened)ImGui::Indent();
-                    }
-                    if(!opened)continue;
-                    ImGui::PushID(spec.key);ImGui::BeginDisabled(!postprocess::Ready(i));
-                    bool custom=config.postProcess[i]>=0;
-                    if(ImGui::Checkbox(spec.label,&custom)){config.postProcess[i]=custom?spec.trial:-1.0f;config.Save();}
-                    if(custom&&NumberRow("Value","Value",&config.postProcess[i],0,spec.maximum,spec.trial,"%.3f","%.3f"))config.Save();
-                    ImGui::EndDisabled();ImGui::PopID();
-                }
-                if(previous&&opened)ImGui::Unindent();
-                HelpText("Exposure 0 means neutral compensation, not darkness. Radius/threshold values are not intensities. Native LUT and dirt/cubemap controls require those assets in the scene.");
-                ImGui::Unindent();
-            }
-            if(layout::Group("Depth of field")){
-                ImGui::Indent();
-                HelpText("Independent settings for each gameplay view and both local players. Cinematics keep their authored effect. Motion blur and fog are unchanged.");
-                for(int i=0;i<2;++i){
-                    auto& profile=i==0?config.nativeBlur:config.tpsBlur;
-                    ImGui::PushID(i==0?"NativeDOF":"TPSDOF");
-                    ImGui::Separator();ImGui::TextUnformatted(i==0?"Native view":"TPS view");
-                    DrawToggleFeature(config,"Disable depth-of-field blur","Disable",&profile.disabled,
-                        "Takes precedence over custom settings. Uncheck to restore the effect below.",camera_focus::BlurReady());
-                    ImGui::BeginDisabled(profile.disabled);
-                    if(ImGui::Checkbox("Customize background blur",&profile.custom))config.Save();
-                    if(profile.custom){
-                        if(NumberRow("Clear distance behind character","Distance",&profile.distanceMeters,0,camera_blur::MaxDistanceMeters,(i==0?camera_blur::NativeDefaults:camera_blur::TpsDefaults).distanceMeters,"%.1f m","%.2f"))config.Save();
-                        if(NumberRow("Blur amount","Amount",&profile.amount,0,5,(i==0?camera_blur::NativeDefaults:camera_blur::TpsDefaults).amount,"%.2f %%","%.2f"))config.Save();
-                        HelpText("The whole character stays sharp. More distance pushes the background blur farther away. Amount is an absolute Gaussian blur size, not a multiplier; zero removes it. Custom mode replaces the level's DOF method for this view.");
-                    }else ImGui::TextDisabled("Level effect%s",i==0?"":" with your TPS character-focus setting");
-                    ImGui::EndDisabled();ImGui::PopID();
-                }
-                ImGui::Unindent();
-            }
             if(layout::Group("Third Person camera")){
             ImGui::Indent();
             if (ImGui::Checkbox("Third Person", &config.thirdPersonEnabled)) {
@@ -1225,9 +1133,6 @@ void Draw(Context& c) {
                     if(NumberRow("FOV solo","TPSFovSolo",&config.thirdPersonFovDegrees,40,140,110,"%.0f deg","%.1f"))config.Save();
                     if(NumberRow("FOV coop","TPSFovCoop",&config.thirdPersonCoopFovDegrees,40,140,defaults::TPSCoopFOV,"%.0f deg","%.1f"))config.Save();
                 }
-                DrawSectionTitle("TPS depth of field");
-                DrawToggleFeature(config,"TPS character focus (experimental)","TPSLensFocus",&config.tpsLensFocusEnabled,
-                    "Keep the level's depth-of-field method, clear region and distant blur. In TPS, disable the near Gaussian layer; only enlarge a clear region already overridden by the camera. Foot, mount and Ultimate; both local players. OFF keeps focal-distance correction alone. The separate depth-of-field controls can replace this effect.",camera_focus::LensReady());
                 DrawSectionTitle("Normal-form TPS camera");
                 if(NumberRow("Distance","TPSDistance",&config.thirdPersonDistanceMultiplier,0,3,0.15f,"%.2fx","%.3f"))config.Save();
                 if(NumberRow("View pitch","TPSPitch",&config.thirdPersonPitchDegrees,-75,65,-12,"%.1f deg","%.1f"))config.Save();
@@ -1473,6 +1378,132 @@ void Draw(Context& c) {
                 ImGui::SetTooltip("The native DOF quality is restored when native-view zoom is off. Supported TPS views retain the level method and per-player focus.");
             ImGui::TextDisabled("Native output changes. Actual framing requires in-game verification.");
             ImGui::Unindent();
+            }
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("Graphics")) {
+            ImGui::Spacing();
+            if(layout::Group("Temporal anti-aliasing and sharpness")){
+                ImGui::Indent();
+                ImGui::BeginDisabled(!temporal_aa::Ready());
+                if(ImGui::Checkbox("Customize temporal AA",&config.temporalAA.enabled))config.Save();
+                HelpText("Global image settings, including cinematics. Uncheck to restore captured native values. Does not change depth of field or switch the game's anti-aliasing method.");
+                if(config.temporalAA.enabled){
+                    if(NumberRow("Current frame weight","TemporalAAWeight",&config.temporalAA.frameWeight,0,1,0.08f,"%.3f","%.3f"))config.Save();
+                    HelpText("Higher values reduce trails but may increase shimmer. Test while moving the camera. This control only affects the game's TAA.");
+                    if(NumberRow("Sharpness","TemporalAASharpen",&config.temporalAA.sharpen,0,10,1,"%.2f","%.3f"))config.Save();
+                    HelpText("Zero adds no sharpening. High values can create bright outlines. Sharpening also applies when using other anti-aliasing methods.");
+                }
+                ImGui::EndDisabled();
+                ImGui::TextDisabled("%s",temporal_aa::Ready()?"Native parameters verified":"Parameters unavailable");
+                ImGui::Unindent();
+            }
+            if(layout::Group("Image effects")){
+                ImGui::Indent();
+                ImGui::BeginDisabled(!temporal_aa::Ready());
+                bool motionCustom=config.temporalAA.motionBlurAmount>=0;
+                if(ImGui::Checkbox("Customize motion blur",&motionCustom)){
+                    config.temporalAA.motionBlurAmount=motionCustom?.5f:-1.0f;config.Save();
+                }
+                if(motionCustom&&NumberRow("Amount","MotionBlurAmount",&config.temporalAA.motionBlurAmount,0,10,.5f,"%.2f"))config.Save();
+                HelpText("Unchecked: Native (default), chosen by each scene. Zero removes motion blur. Does not change depth of field.");
+                bool fringeCustom=config.temporalAA.colorFringeAmount>=0;
+                if(ImGui::Checkbox("Customize chromatic aberration",&fringeCustom)){
+                    config.temporalAA.colorFringeAmount=fringeCustom?1.0f:-1.0f;config.Save();
+                }
+                ImGui::BeginDisabled(!chromatic::Ready());
+                if(fringeCustom&&NumberRow("Amount","ColorFringeAmount",&config.temporalAA.colorFringeAmount,0,10,1,"%.2f"))config.Save();
+                ImGui::EndDisabled();
+                HelpText("Unchecked: Native (default). Zero removes colored fringes; positive values set their intensity on supported camera views. Partial camera transitions retain native blending.");
+                if(!chromatic::Ready())ImGui::TextDisabled("Chromatic intensity unavailable");
+                ImGui::EndDisabled();
+                HelpText("Independent of TAA. Global settings, including cinematics and both local views.");
+                ImGui::Unindent();
+            }
+            if(layout::Group("Rendering quality (restart required)")){
+                ImGui::Indent();
+                HelpText("Unchecked = Native. Saved choices are written after closing the game and take effect at the next launch. Native restores the previous Engine.ini value if it is still owned by the mod.");
+                for(size_t i=0;i<render_quality::Specs.size();++i){const auto& spec=render_quality::Specs[i];
+                    ImGui::PushID(spec.key);bool changed=false,custom=config.renderQuality[i]>=0;
+                    if(ImGui::Checkbox(spec.label,&custom)){config.renderQuality[i]=custom?spec.trial:-1;changed=true;}
+                    if(custom&&NumberRow("Value","Value",&config.renderQuality[i],spec.minimum,spec.maximum,spec.trial,
+                        spec.integer?"%.0f":"%.2f",spec.integer?"%.0f":"%.2f")){
+                        config.renderQuality[i]=render_quality::Normalize(i,config.renderQuality[i]);changed=true;}
+                    if(changed){const bool saved=config.SaveNow();const bool queued=saved&&c.queueGraphicsAdapter&&c.queueGraphicsAdapter(config.graphicsAdapter);
+                        *c.lastAction=!saved?"Rendering preference save failed":queued?"Rendering settings queued; restart required":"Rendering preference saved; exit helper queue failed";}
+                    ImGui::PopID();
+                }
+                HelpText("Higher resolution and shadows can be expensive. 100% is native resolution; Native preserves your existing configuration. Texture/object limits and game quality presets can still restrict the result.");
+                ImGui::Unindent();
+            }
+            if(layout::Group("Additional post-processing")){
+                ImGui::Indent();HelpText("Unchecked = Native. Ranges are exploratory; the game may clamp values. Camera transitions keep native blending. Some effects need a native texture or an enabled rendering feature.");
+                const char* previous=nullptr;bool opened=false;
+                for(size_t i=0;i<postprocess::Count;++i){const auto& spec=postprocess::Specs[i];
+                    if(!previous||std::strcmp(previous,spec.group)){
+                        if(previous&&opened)ImGui::Unindent();
+                        previous=spec.group;opened=layout::Group(spec.group);if(opened)ImGui::Indent();
+                    }
+                    if(!opened)continue;
+                    ImGui::PushID(spec.key);ImGui::BeginDisabled(!postprocess::Ready(i));
+                    bool custom=config.postProcess[i]>=0;
+                    if(ImGui::Checkbox(spec.label,&custom)){config.postProcess[i]=custom?spec.trial:-1.0f;config.Save();}
+                    if(custom&&NumberRow("Value","Value",&config.postProcess[i],0,spec.maximum,spec.trial,"%.3f","%.3f"))config.Save();
+                    ImGui::EndDisabled();ImGui::PopID();
+                }
+                if(previous&&opened)ImGui::Unindent();
+                HelpText("Exposure 0 means neutral compensation, not darkness. Radius/threshold values are not intensities. Native LUT and dirt/cubemap controls require those assets in the scene.");
+                ImGui::Unindent();
+            }
+            if(layout::Group("Depth of field")){
+                ImGui::Indent();
+                HelpText("Independent settings for each gameplay view and both local players. Cinematics keep their authored effect. Motion blur and fog are unchanged.");
+                for(int i=0;i<2;++i){
+                    auto& profile=i==0?config.nativeBlur:config.tpsBlur;
+                    ImGui::PushID(i==0?"NativeDOF":"TPSDOF");
+                    ImGui::Separator();ImGui::TextUnformatted(i==0?"Native view":"TPS view");
+                    DrawToggleFeature(config,"Disable depth-of-field blur","Disable",&profile.disabled,
+                        "Takes precedence over custom settings. Uncheck to restore the effect below.",camera_focus::BlurReady());
+                    ImGui::BeginDisabled(profile.disabled);
+                    if(ImGui::Checkbox("Customize background blur",&profile.custom))config.Save();
+                    if(profile.custom){
+                        if(NumberRow("Clear distance behind character","Distance",&profile.distanceMeters,0,camera_blur::MaxDistanceMeters,(i==0?camera_blur::NativeDefaults:camera_blur::TpsDefaults).distanceMeters,"%.1f m","%.2f"))config.Save();
+                        if(NumberRow("Blur amount","Amount",&profile.amount,0,5,(i==0?camera_blur::NativeDefaults:camera_blur::TpsDefaults).amount,"%.2f %%","%.2f"))config.Save();
+                        HelpText("The whole character stays sharp. More distance pushes the background blur farther away. Amount is an absolute Gaussian blur size, not a multiplier; zero removes it. Custom mode replaces the level's DOF method for this view.");
+                    }else ImGui::TextDisabled("Level effect%s",i==0?"":" with your TPS character-focus setting");
+                    ImGui::EndDisabled();ImGui::PopID();
+                }
+                if(config.thirdPersonEnabled){
+                    DrawSectionTitle("TPS depth of field");
+                    DrawToggleFeature(config,"TPS character focus (experimental)","TPSLensFocus",&config.tpsLensFocusEnabled,
+                    "Keep the level's depth-of-field method, clear region and distant blur. In TPS, disable the near Gaussian layer; only enlarge a clear region already overridden by the camera. Foot, mount and Ultimate; both local players. OFF keeps focal-distance correction alone. The separate depth-of-field controls can replace this effect.",camera_focus::LensReady());
+                }
+                ImGui::Unindent();
+            }
+            if(layout::Group("HDR")){
+                const bool newlyOpened=ImGui::IsItemToggledOpen();ImGui::Indent();
+                static hdr::Status status{};
+                if((newlyOpened||!status.checked)&&c.queryHdrStatus)status=c.queryHdrStatus();
+                if(layout::Button("Refresh HDR availability")&&c.queryHdrStatus)status=c.queryHdrStatus();
+                ImGui::TextDisabled("Output mode: Native (unchanged)");
+                if(status.deviceKnown)ImGui::TextWrapped("GPU: %s",status.adapter[0]?status.adapter:"Unknown adapter name");
+                else ImGui::TextDisabled("GPU information unavailable");
+                if(status.outputKnown)ImGui::Text("Display: %s",status.display);
+                if(status.advancedOutputKnown){
+                    ImGui::Text("Windows output: %s | %u bits/channel",status.desktopHdrActive?"HDR reported":"SDR reported",status.bitsPerColor);
+                    if(std::isfinite(status.peakNits)&&status.peakNits>0)ImGui::Text("Reported peak brightness: %.0f nits",status.peakNits);
+                }else ImGui::TextDisabled("Windows HDR state unavailable");
+                if(status.bufferFormat){const char* depth=status.bufferFormat==24?"10-bit":status.bufferFormat==10?"16-bit floating point":
+                    (status.bufferFormat==28||status.bufferFormat==29||status.bufferFormat==87||status.bufferFormat==91)?"8-bit":"Unknown";
+                    ImGui::TextDisabled("Game output buffer: %s",depth);}
+                if(status.nativePath==hdr::NativePath::IntelUnavailable)
+                    HelpText("Intel HDR output is not implemented by this game's D3D11 renderer. Windows HDR and monitor support are separate.");
+                else if(status.nativePath==hdr::NativePath::VendorImplementation)
+                    HelpText("The game includes an HDR path for this GPU vendor. HDR activation is not enabled in this build.");
+                else HelpText("Native game HDR has not been verified for this device. No HDR override is applied.");
+                HelpText("Read-only check. Windows HDR and buffer depth do not prove HDR game output. Refresh after changing displays; reported monitor values can be incomplete.");
+                ImGui::Unindent();
             }
             ImGui::EndTabItem();
         }

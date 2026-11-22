@@ -7,6 +7,7 @@
 
 #include "ConfigStore.h"
 #include "TargetValidator.h"
+#include "HdrOutputStatus.h"
 
 namespace dg::overlay {
 
@@ -57,6 +58,7 @@ struct Context {
     ApplySkipLogosFn applySkipLogos = nullptr;
     ApplySkipWarningFn applySkipWarning = nullptr;
     QueueGraphicsAdapterFn queueGraphicsAdapter = nullptr;
+    hdr::Status (*queryHdrStatus)() = nullptr;
     LogFn log = nullptr;
 };
 

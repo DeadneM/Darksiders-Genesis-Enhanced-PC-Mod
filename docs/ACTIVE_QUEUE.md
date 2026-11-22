@@ -1,3 +1,12 @@
+# Priorité — V1.179
+
+1. Livrer Graphics : cinq groupes déplacés et état HDR GPU/écran en lecture seule.
+2. Activation HDR réelle sur Intel : chemin natif manquant, travail séparé avant toute promesse.
+3. Plus tard : lames visibles tenues/rangées. Déjà invisibles à cheval avec le choix Native ; ne pas attribuer cela au seul choix OFF sans preuve.
+4. Effets de mêlée V1.178 validés, conserver le comportement.
+
+---
+
 # Priorité — essai V1.178
 
 1. À cheval : Native / gauche OFF / droite OFF / les deux OFF, attaques des deux côtés.
