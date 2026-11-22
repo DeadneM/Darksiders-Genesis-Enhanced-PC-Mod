@@ -1,0 +1,78 @@
+{
+  "package": {
+    "source": "90a1a51b238c3db38a2d48d9f8afb7f26448518a",
+    "archiveCommit": "ba11fdc977b49a236dc2205a20c5dc746f50c2e6",
+    "name": "DarksidersGenesis_V1.181_MOUNTED_PRESENTATION_HDR_TRANSPORT_TEST.zip",
+    "bytes": 2543342,
+    "sha256": "D33917D2881F58BF1C4E36E3FBB2275CCF0DB4190C8CCC12B4B04B9A037BA37F",
+    "files": {
+      "dxgi.dll": {
+        "bytes": 155648,
+        "sha256": "34279C3F4CCD829CFFEAC6EE73410A7E451D0CC77CB60A773FE6F2C8ED2353A9"
+      },
+      "DarksidersGenesisMod.asi": {
+        "bytes": 2387456,
+        "sha256": "F4D10DA2BD84D91F34913A6662F5F381EE366F78B1973CE8AFD8F303497B54CE"
+      }
+    },
+    "url": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/ba11fdc977b49a236dc2205a20c5dc746f50c2e6/downloads/DarksidersGenesis_V1.181_MOUNTED_PRESENTATION_HDR_TRANSPORT_TEST.zip",
+    "oldArchivesPreserved": 245,
+    "totalArchives": 246,
+    "oldPrefsPreserved": 288,
+    "newPrefs": 296,
+    "headerAndFormatChecks": true,
+    "http200": true,
+    "installed": false,
+    "runtimeValidated": false
+  },
+  "ci": {
+    "source": "90a1a51b238c3db38a2d48d9f8afb7f26448518a",
+    "runId": 45078359677,
+    "jobId": 137380583163,
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/45078359677",
+    "testsPassed": 86,
+    "cppWarnings": 0,
+    "cppErrors": 0,
+    "configuration": "Windows x64 Release",
+    "gameplayValidated": false
+  },
+  "defender": {
+    "after": {
+      "RealTimeProtectionEnabled": true,
+      "OnAccessProtectionEnabled": true,
+      "AntivirusEnabled": true
+    },
+    "zip": {
+      "exitCode": 0,
+      "output": "Scan starting...\r\nScan finished.\r\nScanning C:\\Users\\deadn\\.codex\\.chatgpt-projects\\g-p-6ac1496f81ec8191b55c0e4db2eefebd\\work-debug\\downloads\\DarksidersGenesis_V1.181_MOUNTED_PRESENTATION_HDR_TRANSPORT_TEST.zip found no threats.\r\n",
+      "result": "no threats"
+    },
+    "payload": {
+      "exitCode": 0,
+      "output": "Scan starting...\r\nScan finished.\r\nScanning C:\\Users\\deadn\\.codex\\.chatgpt-projects\\g-p-6ac1496f81ec8191b55c0e4db2eefebd\\audit-v131\\v342-verified found no threats.\r\n",
+      "result": "no threats"
+    },
+    "defender": {
+      "AMProductVersion": "4.18.26100.4",
+      "AMEngineVersion": "1.1.26100.4",
+      "AntivirusSignatureVersion": "1.463.414.0",
+      "AntivirusSignatureLastUpdated": "2026-11-22T05:11:47+01:00",
+      "RealTimeProtectionEnabled": true,
+      "OnAccessProtectionEnabled": true,
+      "AntivirusEnabled": true
+    },
+    "protectionSettingsChanged": false
+  },
+  "scope": {
+    "source": "90a1a51b238c3db38a2d48d9f8afb7f26448518a",
+    "readOnlyContractsMatched": true,
+    "meleeFXAndApprovedDefaultsUnchanged": true,
+    "newPreferences": 8,
+    "oldPreferences": 288,
+    "newTotal": 296,
+    "runtimeVisualValidation": false,
+    "noInstallation": true
+  },
+  "status": "BUILT_AND_CHECKED_NOT_GAMEPLAY_VALIDATED",
+  "remaining": "Native held mounted blades still open; decorative stowed blades and HDR need user validation"
+}

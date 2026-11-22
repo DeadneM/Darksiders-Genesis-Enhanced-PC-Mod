@@ -1,3 +1,9 @@
+# V1.181 livrée sur debug — main V1.173 préservée
+
+86/86 tests, zéro avertissement C++, ZIP de deux binaires et Defender vérifiés. Holsters montés, copies des lames rangées et transport HDR EXPÉRIMENTAUX : test visuel requis. Lames natives tenues à cheval encore ouvertes. Aucune installation. [Livraison](docs/V1_181_DELIVERY_RECEIPT.md).
+
+---
+
 # V1.181 en préparation
 
 Holsters montés, copies des lames rangées et transport HDR concordant. EXPÉRIMENTAL, CI à effectuer. FX de mêlée validé inchangé ; lames natives tenues montées encore ouvertes. [Périmètre et limites](docs/V1_181_REVIEW.md).

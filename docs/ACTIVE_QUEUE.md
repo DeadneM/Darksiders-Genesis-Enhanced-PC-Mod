@@ -1,3 +1,9 @@
+## V1.181 — livrée, essai utilisateur requis
+
+[Reçu](V1_181_DELIVERY_RECEIPT.md). Vérifier les holsters sur les deux chevaux et le placement des copies rangées. Lames natives tenues montées : toujours ouvert. HDR : vérifier couleurs, buffer et signaling. Paramètres de qualité en direct : faisabilité encore à étudier. Acquis FX de mêlée conservé.
+
+---
+
 ## V1.181 — préparation
 
 [Source et limites](V1_181_REVIEW.md). Essai des holsters des deux chevaux, copies de lames rangées et HDR. Lames natives tenues montées : diagnostic encore ouvert. Étudier graphismes à chaud pour les sept Rendering quality ; garder les valeurs et chemins validés.

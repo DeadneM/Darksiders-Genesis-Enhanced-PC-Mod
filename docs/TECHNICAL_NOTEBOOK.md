@@ -6967,3 +6967,7 @@ TAA, Image effects, post-processing et DOF sont déjà en direct. Les sept Rende
 CI Windows x64 à effectuer. Tests ajoutés : côtés croisés, deux classes de cheval, paquet 170 os / refus transactionnel, profil de buffer, métadonnées bornées, roundtrip INI, entrée C# invalide sans mutation.
 
 Tester droite seule/gauche seule/deux/OFF à pied et sur les deux chevaux, repos/tir/roues/pause. Puis case des lames rangées, côtés masqués, combat/retour au repos, montée/descente. HDR : matched + signaling ON + métadonnées auto, HDR10 1000 puis scRGB 1000, fermeture/reprise à chaque changement ; vérifier format, signaling, couleurs et menus. Aucun succès HDR visuel annoncé. Avant downgrade : Native puis fermeture pour rendre les clés possédées. Aucun lancement, installation, édition d'INI personnel/Windows/sauvegarde. ZIP deux binaires uniquement.
+
+
+## V1.181 — contrôle final
+Source 90a1a51b238c3db38a2d48d9f8afb7f26448518a, archive ba11fdc977b49a236dc2205a20c5dc746f50c2e6. 86/86, zéro avertissement C++, Defender sans détection, 245 anciennes archives et 288 anciennes valeurs conservées. Huit préférences nouvelles. Aucune installation ni validation de rendu. Erreur de bornes C# interceptée par les tests puis corrigée. [Reçu](V1_181_DELIVERY_RECEIPT.md).
