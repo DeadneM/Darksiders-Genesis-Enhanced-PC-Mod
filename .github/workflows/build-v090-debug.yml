@@ -37,6 +37,14 @@ jobs:
         run: |
           cmake -S . -B build -G "Visual Studio 18 2026" -A x64 -DDG_ENABLE_ANALYZE=ON
           if ($LASTEXITCODE -ne 0) { throw "Configure failed" }
+      - name: Focused mounted melee regression
+        if: ${{ contains(github.event.head_commit.message, 'V1.178') }}
+        shell: pwsh
+        run: |
+          cmake --build build --config Release --target MeleeEffectTests --parallel
+          if ($LASTEXITCODE -ne 0) { throw "Melee regression compile failed" }
+          ctest --test-dir build -C Release -R '^MeleeEffect$' --output-on-failure
+          if ($LASTEXITCODE -ne 0) { throw "Melee scope regression failed" }
       - name: Build Release
         shell: pwsh
         run: |

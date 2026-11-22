@@ -36,7 +36,7 @@ void* Attach(void* fx,void* m,dg::native_bone::Name socket,const dg::native_bone
 }
 void Notify(void* n,void* m,void* a){
     ++nativeNotifies;Check(n==notify&&m==mesh&&a==sequence,"original notify receives all three original arguments");
-    if(attachCall){dg::native_bone::Name socket{};std::memcpy(&socket,notify+0x84,sizeof(socket));
+    if(attachCall){const dg::native_bone::Name socket{owner.kind==dg::local_players::PoseKind::Horse?18:11,0};
         Check(HookAttach(particle,mesh,socket,&attachedPosition,&attachedRotation,&attachedScale,0,false,7)==reinterpret_cast<void*>(0xCAFE),"attached spawn return preserved");}
     else Check(HookSpawn(reinterpret_cast<void*>(owner.world),particle,&source,false,7)==reinterpret_cast<void*>(0xBEEF),"spawn return preserved");
 }
