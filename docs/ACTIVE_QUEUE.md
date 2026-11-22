@@ -1,3 +1,13 @@
+# Priorité — essai V1.177
+
+1. Résolution interne 75 %, fermeture/relance, puis Native et même cycle.
+2. Comparer ensuite anisotropie, ombres, visibilité et SSR dans des scènes adaptées.
+3. Aucun résultat GPU déduit des tests CI ; main reste V1.173.
+
+[Livraison](V1_177_DELIVERY_RECEIPT.md).
+
+---
+
 # Priorité — V1.177
 
 1. Contrôler et livrer les sept réglages de rendu au redémarrage.

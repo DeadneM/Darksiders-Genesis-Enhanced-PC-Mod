@@ -6832,3 +6832,8 @@ Statut PRÉPARÉ / EXPÉRIMENTAL avant CI. Builds uniquement GitHub, ZIP deux bi
 3. Vérifier éventuellement 100/125 % puis Native et les réglages individuellement ; éviter d'empiler les valeurs les plus coûteuses pendant le premier essai.
 
 Rollback : revenir Native et fermer le jeu avant de remettre les anciens binaires. Remplacer seulement l'ASI ne retire pas automatiquement des valeurs déjà écrites dans Engine.ini. La sauvegarde et le journal servent au retour contrôlé ; ne pas effacer le journal avant restauration.
+
+
+## V1.177 — livraison contrôlée
+
+Source f5417d74296e018cdce2a065c2828e4d28feba90, archive 4d21fadeac379915e5c024544255e24fc5ac9ff5. 86/86, zéro avertissement C++, 241 anciennes archives intactes, 286 clés. Premier échec de nettoyage des fixtures corrigé avant publication. Aucun vrai Engine.ini touché ; résultat en jeu et restauration réelle à tester. [Reçu](V1_177_DELIVERY_RECEIPT.md).

@@ -1,3 +1,9 @@
+## V1.177 — beta qualité de rendu disponible
+
+Sept contrôles Native/personnalisé : anisotropie, résolution interne, ombres, visibilité et reflets. Application au redémarrage avec restauration Native. 86/86 tests, zéro avertissement C++ ; rendu à tester. [ZIP et test court](docs/V1_177_DELIVERY_RECEIPT.md).
+
+---
+
 ## V1.177 — qualité de rendu en préparation
 
 Sept choix Native/personnalisé : anisotropie, résolution interne, ombres, visibilité et reflets. Application après fermeture, effet au prochain lancement ; aucun réglage personnel changé automatiquement. [Périmètre et tests](docs/V1_177_REVIEW.md).

@@ -1,3 +1,9 @@
+# État courant — V1.177 livrée, main V1.173
+
+86/86 tests, zéro avertissement C++, deux binaires contrôlés. Sept options Native au redémarrage ; aucun profil personnel ni Engine.ini modifié pendant le développement. Résultat visuel encore expérimental. [Livraison](V1_177_DELIVERY_RECEIPT.md).
+
+---
+
 # État courant — V1.177 préparée, main V1.173
 
 Qualité de rendu au redémarrage ; sept nouvelles options Native par défaut, helper existant étendu avec sauvegarde et restauration des seules valeurs possédées. CI à effectuer ; aucun fichier du jeu modifié. [Détails](V1_177_REVIEW.md).

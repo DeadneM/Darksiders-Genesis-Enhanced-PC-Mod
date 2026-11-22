@@ -1,0 +1,75 @@
+{
+  "package": {
+    "version": "V1.177",
+    "base": "e14fbb6",
+    "source": "f5417d74296e018cdce2a065c2828e4d28feba90",
+    "archive": "4d21fadeac379915e5c024544255e24fc5ac9ff5",
+    "download": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/4d21fadeac379915e5c024544255e24fc5ac9ff5/downloads/DarksidersGenesis_V1.177_RENDER_QUALITY_RESTART_TEST.zip",
+    "sha256": "0547ABE0BCE35853BF5DAFD989346377E5AEE25FCE6A829B56864696A1B54F4E",
+    "bytes": 2509550,
+    "files": {
+      "dxgi.dll": {
+        "bytes": 155648,
+        "sha256": "5D777D301AF4B5A22188C4C022272C8B7EB1C9EA17E4AB9F758536038E1F138D"
+      },
+      "DarksidersGenesisMod.asi": {
+        "bytes": 2353664,
+        "sha256": "8AC7DDEAFF95CE805E97E014D7014F5AA4294F89F59F0586DC3BFCC4CE7DC45E"
+      }
+    },
+    "crcVerified": true,
+    "amd64": true,
+    "rootBinariesOnly": true,
+    "oldArchivesUnchanged": 241,
+    "totalArchives": 242,
+    "iniKeys": 286,
+    "defaultDelta": {
+      "RenderQuality": "7 Native keys; old values preserved"
+    },
+    "updaterSelection": "DarksidersGenesis_V1.177_RENDER_QUALITY_RESTART_TEST.zip",
+    "gitBlob": "3d692e3df88afe3300a1903d016b8339d8c6d7a0",
+    "publicHttpStatus": 200,
+    "binaryDownload": "new ZIP retrieved once through Git; no duplicate HTTP GET or old archive download",
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/debug": "4d21fadeac379915e5c024544255e24fc5ac9ff5",
+      "refs/heads/main": "0e5b182cd6e0b3cfe3b5d312fae3bd63914a41bd",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "installed": false,
+    "localBuild": false,
+    "gameplayValidated": false
+  },
+  "ci": {
+    "source": "f5417d74296e018cdce2a065c2828e4d28feba90",
+    "runId": 45006971348,
+    "jobId": 137160617635,
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/45006971348",
+    "testsPassed": 86,
+    "cppWarnings": 0,
+    "cppErrors": 0,
+    "configuration": "Windows x64 Release",
+    "gameplayValidated": false
+  },
+  "catalogParity": {
+    "count": 7,
+    "cppAndHelperCatalogParity": true,
+    "oldDefaultsPreserved": 279,
+    "newDefaultsNative": 7,
+    "totalKeys": 286,
+    "sections": 12,
+    "renderingProvenInGame": false
+  },
+  "defender": {
+    "zip": "no threats",
+    "payload": "no threats",
+    "protectionSettingsChanged": false
+  },
+  "rejectedRun": {
+    "runId": 45005960013,
+    "reason": "test fixture cleanup omitted; 85/86 tests; no ZIP"
+  },
+  "installed": false,
+  "engineIniModifiedDuringDevelopment": false,
+  "runtimeRenderingValidated": false
+}
