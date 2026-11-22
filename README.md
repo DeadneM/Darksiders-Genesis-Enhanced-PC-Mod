@@ -1,3 +1,9 @@
+## V1.178 — beta mêlée montée disponible
+
+Arcs de Strife à cheval réduits côté lame masquée, mains du cavalier vérifiées ; chemin à pied conservé. 86/86 tests, zéro avertissement C++, rendu à tester. HDR Intel D3D11 non forcé après examen natif. [ZIP et essai](docs/V1_178_DELIVERY_RECEIPT.md).
+
+---
+
 ## V1.178 — correction mêlée montée en préparation
 
 Extension ciblée de la réduction des arcs de Strife à cheval, mains du cavalier et sélection par lame masquée. Rendu à tester ; HDR Intel D3D11 non forcé après examen natif. [Périmètre](docs/V1_178_REVIEW.md).

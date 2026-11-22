@@ -1,3 +1,13 @@
+# Priorité — essai V1.178
+
+1. À cheval : Native / gauche OFF / droite OFF / les deux OFF, attaques des deux côtés.
+2. Comparer à pied ; P2 en jeu reste à tester lorsque l'utilisateur sera prêt.
+3. HDR natif D3D11 Intel non forcé : limite d'implémentation démontrée, autres solutions hors de cette correction.
+
+[Livraison](V1_178_DELIVERY_RECEIPT.md).
+
+---
+
 # Priorité — V1.178
 
 1. CI puis essai des arcs montés Native / gauche OFF / droite OFF / les deux OFF, puis régression à pied.

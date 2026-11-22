@@ -6880,3 +6880,8 @@ Conséquence pour l'Intel Arc utilisée précédemment : pas de case de forçage
 Documentation Epic UE4.27 : https://dev.epicgames.com/documentation/en-us/unreal-engine/high-dynamic-range-display-output?application_version=4.27 (contrainte plein écran exclusif D3D11 et profils 1000/2000 nits). Ne pas confondre ces possibilités génériques avec leur implémentation dans ce jeu. Aucun essai HDR ni changement Windows/Engine.ini effectué.
 
 L'ancien blocage de lecture par quota a disparu au nouvel essai autorisé ; aucun contrôle n'a été contourné. Sources, PAK et EXE lus uniquement, sans lecture mémoire du processus ni appel externe au moteur.
+
+
+## V1.178 — livraison contrôlée
+
+Source 0a468033fd189747a7093679acdec7c170877db2, archive 9debf5b95150dea1e2b6db04ff3e3c09632e761c. 86/86, zéro avertissement C++, test mêlée ciblé réussi ; première fixture ABI à pied corrigée avant publication. 242 archives préservées, 286 valeurs identiques, aucune installation. HDR Intel D3D11 non forcé après examen natif. [Reçu](V1_178_DELIVERY_RECEIPT.md).

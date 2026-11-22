@@ -1,0 +1,50 @@
+{
+  "backend": "D3D11 native path under study",
+  "vendorChecks": [
+    {
+      "rva": "0x12bcca0",
+      "instructions": [
+        "12BCCA0 cmp dword ptr [rip + 0x2754696], 0x10de",
+        "12BCCAA sete al",
+        "12BCCAD ret "
+      ]
+    },
+    {
+      "rva": "0x12bcc80",
+      "instructions": [
+        "12BCC80 cmp dword ptr [rip + 0x27546b6], 0x1002",
+        "12BCC8A sete al",
+        "12BCC8D ret "
+      ]
+    },
+    {
+      "rva": "0x12bcc90",
+      "instructions": [
+        "12BCC90 cmp dword ptr [rip + 0x27546a6], 0x8086",
+        "12BCC9A sete al",
+        "12BCC9D ret "
+      ]
+    }
+  ],
+  "intelBranch": [
+    "D48AE4 call 0x1412bcc90",
+    "D48AE9 test al, al",
+    "D48AEB je 0x140d48b22",
+    "D48AED cmp byte ptr [rip + 0x2c233fc], 3",
+    "D48AF4 jb 0x140d48b22",
+    "D48AF6 mov rax, qword ptr [rip + 0x2c233f7]",
+    "D48AFD mov qword ptr [rsp + 0x78], rax",
+    "D48B02 lea rax, [rip + 0x1bba027]",
+    "D48B09 mov qword ptr [rsp + 0x20], rax",
+    "D48B0E mov r9d, 3",
+    "D48B14 lea r8, [rsp + 0x78]",
+    "D48B19 xor edx, edx",
+    "D48B1B xor ecx, ecx",
+    "D48B1D call 0x14089af80",
+    "D48B22 lea r11, [rsp + 0x60]"
+  ],
+  "messageRva": "0x2902B30",
+  "message": "There is no HDR output implementation currently available for this hardware.",
+  "hdrOverrideAdded": false,
+  "runtimeHdrValidated": false
+}

@@ -1,3 +1,9 @@
+# État courant — V1.178 livrée, main V1.173
+
+86/86 tests, zéro avertissement C++, ZIP contrôlé. Correction montée expérimentale, V1.177 et ses 286 valeurs conservées. HDR Intel D3D11 sans implémentation native dans le chemin étudié ; aucun forçage ajouté. Aucune installation. [Livraison](V1_178_DELIVERY_RECEIPT.md).
+
+---
+
 # État courant — V1.178 préparée, V1.177 validée
 
 Correction des FX de mêlée montée préparée, sans changement à pied ni au rendu V1.177. HDR natif D3D11 : branche Intel sans implémentation, aucun forçage ajouté. [Correction](V1_178_REVIEW.md) · [HDR](HDR_NATIVE_BACKEND_REVIEW.md).

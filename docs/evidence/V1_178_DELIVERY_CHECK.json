@@ -1,0 +1,79 @@
+{
+  "package": {
+    "version": "V1.178",
+    "base": "aacec1b",
+    "source": "0a468033fd189747a7093679acdec7c170877db2",
+    "archive": "9debf5b95150dea1e2b6db04ff3e3c09632e761c",
+    "download": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/9debf5b95150dea1e2b6db04ff3e3c09632e761c/downloads/DarksidersGenesis_V1.178_MOUNTED_MELEE_SCOPE_TEST.zip",
+    "sha256": "685097DF39FAAE9C39E9FA89F381C62FD5713B37C2C979E3BBA75419A98C6C80",
+    "bytes": 2514158,
+    "files": {
+      "dxgi.dll": {
+        "bytes": 155648,
+        "sha256": "711A70A8F4FC929384E22C2D9FF23FD937F52BD330D2A6A1053C0B9E51D97A93"
+      },
+      "DarksidersGenesisMod.asi": {
+        "bytes": 2358272,
+        "sha256": "A7F6527268553FE5968EA80408ECB2F89C64653F7A25D0CA574ADB180788FDD5"
+      }
+    },
+    "crcVerified": true,
+    "amd64": true,
+    "rootBinariesOnly": true,
+    "oldArchivesUnchanged": 242,
+    "totalArchives": 243,
+    "iniKeys": 286,
+    "defaultDelta": {},
+    "updaterSelection": "DarksidersGenesis_V1.178_MOUNTED_MELEE_SCOPE_TEST.zip",
+    "gitBlob": "e4c51ddffd7ef06a93ebbdb0776ed603fea7006d",
+    "publicHttpStatus": 200,
+    "binaryDownload": "new ZIP retrieved once through Git; no duplicate HTTP GET or old archive download",
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/debug": "9debf5b95150dea1e2b6db04ff3e3c09632e761c",
+      "refs/heads/main": "0e5b182cd6e0b3cfe3b5d312fae3bd63914a41bd",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "installed": false,
+    "localBuild": false,
+    "gameplayValidated": false
+  },
+  "ci": {
+    "source": "0a468033fd189747a7093679acdec7c170877db2",
+    "runId": 45035011517,
+    "jobId": 137246701450,
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/45035011517",
+    "testsPassed": 86,
+    "cppWarnings": 0,
+    "cppErrors": 0,
+    "configuration": "Windows x64 Release",
+    "gameplayValidated": false
+  },
+  "focusedMeleeRegression": {
+    "name": "Focused mounted melee regression",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "staticPreservation": {
+    "base": "aacec1b",
+    "footClassifierAndBoneQueriesUnchanged": true,
+    "lavaMuzzleFunctionUnchanged": true,
+    "defaultsConfigRuntimeUnchanged": true,
+    "newHooks": 0,
+    "newCvars": 0,
+    "meleeVisualRuntimeValidated": false,
+    "hdrForced": false
+  },
+  "defender": {
+    "zip": "no threats",
+    "payload": "no threats",
+    "protectionSettingsChanged": false
+  },
+  "rejectedRun": {
+    "runId": 45034346720,
+    "reason": "foot attached notify fixture socket changed; 85/86; fixture corrected before final run; no ZIP"
+  },
+  "installed": false,
+  "gameplayValidated": false,
+  "hdrOverrideAdded": false
+}
