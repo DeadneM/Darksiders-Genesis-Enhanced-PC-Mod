@@ -102,11 +102,13 @@ inline void Update(const local_players::Context& c){
     if(!Template())return;
     const int visibility=runtime::Get().strifeBladeVisibility.load();
     const unsigned off=visibility==1?2u:visibility==2?1u:visibility==3?3u:0u;
-    for(unsigned hand=0;hand<2;++hand){auto& copy=p.sides[hand];uintptr_t original=0,asset=0,owner=0;unsigned char flags=0;
+    for(unsigned hand=0;hand<2;++hand){auto& copy=p.sides[hand];uintptr_t original=0,asset=0;unsigned char flags=0;
         // Only the native hidden (sheathed) state is decorated. No original
         // component visibility, transform, animation, collision or trace changes.
-        const bool show=!(off&(1u<<hand))&&Read(c.character,hand?0x1018:0x1010,original)&&Read(original,0xE8,owner)&&owner==c.character&&
-            Read(original,0x1CC,flags)&&(flags&0x40)&&Read(original,0x5B0,asset)&&asset;
+        uintptr_t footBody=0,assetClass=0;
+        const bool show=!(off&(1u<<hand))&&Read(c.character,0x380,footBody)&&
+            pistol_appearance::Component(base,c.character,footBody,hand+6,original,flags)&&(flags&0x40)&&
+            Read(original,0x5B0,asset)&&asset&&Read(asset,0x10,assetClass)&&Name(assetClass,"StaticMesh");
         if(!show){HideCopy(copy);continue;}
         if(copy.component&&(!Alive(copy.component)||copy.asset.address!=asset)){Release(copy);}
         if(!copy.component){if(p.attempts>=4)continue;++p.attempts;if(!Create(c.pawn,c.character,asset,copy))continue;}

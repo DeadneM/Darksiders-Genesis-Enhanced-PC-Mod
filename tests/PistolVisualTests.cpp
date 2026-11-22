@@ -235,12 +235,12 @@ void Runtime(){
         Put(packets[0],0,g_base+0x2DC88A8);
         Put(packets[0],0x10,Array{reinterpret_cast<uintptr_t>(mountedCurrent.data()),170,170});
         Put(packets[0],0x20,Array{reinterpret_cast<uintptr_t>(mountedPrevious.data()),170,170});
-        g_mountedRender[0][0]={horseId,horseMeshId,g_players[1].snapshot.skeleton,170,{168,167}};
+        g_mountedRender[0][0]={horseId,horseMeshId,g_players[1].snapshot.skeleton,170,{168,167}};g_mountedRenderPlayers=1;
         Check(ProcessMountedPacket(reinterpret_cast<uintptr_t>(packets[0]),horseMeshId.address,0x1234,0),"mounted 170-bone packet is supported without foot bone indices");
         Check(mountedCurrent[168].m[0][0]==0&&mountedPrevious[168].m[0][0]==0&&Equal(mountedCurrent[167],pristine[167])&&Equal(mountedCurrent[132],pristine[132]),"right OFF hides only the left holster and keeps the mounted hand native");
         mountedCurrent=mountedPrevious=pristine;Put(packets[0],0x20,Array{reinterpret_cast<uintptr_t>(mountedPrevious.data()),169,170});
         Check(!ProcessMountedPacket(reinterpret_cast<uintptr_t>(packets[0]),horseMeshId.address,0x1234,0)&&Equal(mountedCurrent[168],pristine[168]),"invalid previous mounted packet cannot partially collapse current geometry");
-        g_mountedRender[0][0]={};
+        g_mountedRender[0][0]={};g_mountedRenderPlayers=0;
     }
     paused=radial=true;OnLivePlayer(horse,9,true);
     Check(Get<unsigned char>(horseGuns[0],0x1CC)==0x61,"wheel/pause cannot restore OFF models");

@@ -1499,6 +1499,7 @@ void Draw(Context& c) {
                 constexpr const char* bufferModes[]={"Match HDR profile","Keep native buffer","10-bit RGB / 2-bit alpha","16-bit float RGBA"};
                 if(Choice("HDR buffer format",&config.hdrOutput.buffer,bufferModes,4))hdrChanged=true;
                 if(ImGui::Checkbox("Use DXGI HDR signaling",&config.hdrOutput.dxgiSignaling))hdrChanged=true;
+                ImGui::BeginDisabled(!hdr::PQ(config.hdrOutput.mode));
                 if(ImGui::Checkbox("Customize HDR10 metadata",&config.hdrOutput.customMetadata))hdrChanged=true;
                 if(config.hdrOutput.customMetadata){
                     if(NumberRow("Mastering peak (nits)","HDRPeak",&config.hdrOutput.peakNits,80,10000,1000,"%.0f","%.0f"))hdrChanged=true;
@@ -1507,7 +1508,8 @@ void Draw(Context& c) {
                     if(NumberRow("Average peak (MaxFALL)","HDRFALL",&config.hdrOutput.maxFALL,1,10000,400,"%.0f","%.0f"))hdrChanged=true;
                     HelpText("HDR10 metadata describes the content to the display; it does not change the 1000/2000-nit tone curve. scRGB uses no HDR10 metadata.");
                 }
-                if(hdrChanged){const bool saved=config.SaveNow();const bool queued=saved&&c.queueGraphicsAdapter&&c.queueGraphicsAdapter(config.graphicsAdapter);
+                ImGui::EndDisabled();
+                if(hdrChanged){config.hdrOutput=hdr::Normalize(config.hdrOutput);const bool saved=config.SaveNow();const bool queued=saved&&c.queueGraphicsAdapter&&c.queueGraphicsAdapter(config.graphicsAdapter);
                     *c.lastAction=!saved?"HDR preference save failed":queued?"HDR request queued; restart required":"HDR preference saved; exit helper queue failed";}
                 HelpText("The profiles request the engine's HDR output; correct image, highlights and HUD need in-game validation. HUD brightness controls the native game HUD. Keep Windows HDR enabled for the test.");
                 if(status.deviceKnown)ImGui::TextWrapped("GPU: %s",status.adapter[0]?status.adapter:"Unknown adapter name");

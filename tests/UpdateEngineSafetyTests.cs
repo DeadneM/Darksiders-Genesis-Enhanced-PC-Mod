@@ -72,7 +72,7 @@ internal static class UpdateEngineSafetyTests {
             File.WriteAllText(mod,"[HDR]\r\nOutputMode=0\r\nUIBrightness=1.5\r\n",encoding);Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==4,"explicit SDR requests four output CVars and leaves HUD native");
             Check(File.ReadAllText(engine,encoding).Contains("r.HDR.EnableHDROutput=0")&&File.ReadAllText(engine,encoding).Contains("r.HDR.UI.Level=0.75"),"SDR does not leak the saved optional HDR HUD level");
             File.WriteAllText(mod,"[HDR]\r\nOutputMode=-1\r\n",encoding);UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;});
-            foreach(string invalid in new[]{"OutputMode=1\r\nBackBuffer=4","OutputMode=5","OutputMode=1.5","OutputMode=1\r\nUIBrightness=NaN","OutputMode=1\r\nUIBrightness=5"}){
+            foreach(string invalid in new[]{"OutputMode=1\r\nBackBuffer=4","OutputMode=1\r\nBackBuffer=NaN","OutputMode=5","OutputMode=1.5","OutputMode=1\r\nUIBrightness=NaN","OutputMode=1\r\nUIBrightness=5"}){
                 original=File.ReadAllBytes(engine);File.WriteAllText(mod,"[HDR]\r\n"+invalid+"\r\n",encoding);bool rejected=false;
                 try{UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;});}catch(InvalidDataException){rejected=true;}
                 Check(rejected&&!File.Exists(ledger)&&Convert.ToBase64String(original)==Convert.ToBase64String(File.ReadAllBytes(engine)),"invalid HDR preference causes no partial engine edit");

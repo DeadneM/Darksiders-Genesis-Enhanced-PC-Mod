@@ -44,7 +44,7 @@ struct Player {
 };
 Player g_players[2]{};
 struct MountedRender {native_objects::Identity actor{},mesh{},skeleton{};unsigned count=0;std::array<unsigned,2> holsters{};};
-MountedRender g_mountedRender[2][2]{};
+MountedRender g_mountedRender[2][2]{};std::atomic_uint g_mountedRenderPlayers{0};
 struct Hidden {native_objects::Identity component{},actor{};bool nativeHidden=false;};
 Hidden g_hidden[2][8]{};std::atomic_uint g_captures{0},g_uiHeld[2]{};
 template<class T> bool Read(uintptr_t p,size_t offset,T& value){native_objects::MemoryReader r;return r.Read(p,offset,value);}
@@ -109,7 +109,10 @@ bool Mounted(const local_players::Context& c,Snapshot& s);
 void ObserveMountedRender(const local_players::Context& owner){
     std::array<MountedRender,2> next{};
     if(owner.index<0||owner.index>1)return;
-    if(owner.kind==local_players::PoseKind::Horse&&ChoiceMask()){
+    const unsigned playerBit=1u<<unsigned(owner.index);
+    const bool wanted=owner.kind==local_players::PoseKind::Horse&&ChoiceMask();
+    if(!wanted&&!(g_mountedRenderPlayers.load(std::memory_order_acquire)&playerBit))return;
+    if(wanted){
         Snapshot horse{};
         if(Mounted(owner,horse))for(unsigned slot=0;slot<2;++slot){
             uintptr_t mesh=0,skeleton=0,parent=0;Array info{};
@@ -136,8 +139,11 @@ void ObserveMountedRender(const local_players::Context& owner){
         }
     }
     AcquireSRWLockExclusive(&g_lock);for(unsigned i=0;i<2;++i)g_mountedRender[owner.index][i]=next[i];ReleaseSRWLockExclusive(&g_lock);
+    if(next[0].count||next[1].count)g_mountedRenderPlayers.fetch_or(playerBit,std::memory_order_release);
+    else g_mountedRenderPlayers.fetch_and(~playerBit,std::memory_order_release);
 }
 bool ProcessMountedPacket(uintptr_t data,uintptr_t component,uintptr_t renderData,int lod){
+    if(!g_mountedRenderPlayers.load(std::memory_order_acquire))return false;
     const unsigned mask=ChoiceMask();if(!Ready()||!mask||lod<0||lod>8)return false;
     MountedRender saved{};AcquireSRWLockShared(&g_lock);
     for(const auto& player:g_mountedRender)for(const auto& r:player)if(r.mesh.address==component)saved=r;
