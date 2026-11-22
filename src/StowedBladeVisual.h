@@ -10,7 +10,7 @@ using Event=void(*)(void*,void*,void*);
 using Hide=void(*)(uintptr_t,bool);
 inline uintptr_t base=0;inline Event event=nullptr;inline Hide hide=nullptr;
 struct Function {Id id{};};inline Function functions[5]{};
-struct Copy {Id owner{},component{},asset{},parent{};uint64_t socket=0;bool visible=false;};
+struct Copy {Id owner{},component{},asset{},parent{},attemptedParent{};uint64_t socket=0,attemptedSocket=0;bool visible=false;};
 struct Player {Copy sides[2]{};Id actor{};unsigned attempts=0;bool enabled=false;};
 inline Player players[2]{};inline Id prototype{};inline int cursor=0;inline bool complete=false;
 template<class T>bool Read(uintptr_t p,size_t at,T& v){native_objects::MemoryReader r;return r.Read(p,at,v);}
@@ -54,6 +54,9 @@ inline void Release(Copy& c){
     }c={};
 }
 inline bool Create(uintptr_t owner,uintptr_t context,uintptr_t asset,Copy& c){
+    // Cleanup must be available before allocating a decorative component.
+    const auto destroy=Fn(4,owner,"K2_DestroyComponent",0x1CB91D0,8);
+    if(!destroy||!Param(destroy,"Component","ObjectProperty",8,0))return false;
     const auto f=Fn(0,owner,"AddComponent",0x1CB67F0,80);
     if(!f||!Param(f,"TemplateName","NameProperty",8,0)||!Param(f,"bManualAttachment","BoolProperty",1,8)||
        !Param(f,"RelativeTransform","StructProperty",48,16)||!Param(f,"ComponentTemplateContext","ObjectProperty",8,64)||
@@ -74,6 +77,8 @@ inline bool Create(uintptr_t owner,uintptr_t context,uintptr_t asset,Copy& c){
 inline bool Attach(Copy& c,uintptr_t parent,uint64_t socket){
     Id parentId{};if(!Capture(parent,parentId))return false;
     if(c.parent==parentId&&c.socket==socket)return true;
+    if(c.attemptedParent==parentId&&c.attemptedSocket==socket)return false;
+    c.attemptedParent=parentId;c.attemptedSocket=socket;
     const auto f=Fn(2,c.component.address,"K2_AttachToComponent",0x1DD86B0,21);
     if(!f||!Param(f,"Parent","ObjectProperty",8,0)||!Param(f,"SocketName","NameProperty",8,8)||
        !Param(f,"LocationRule","EnumProperty",1,16)||!Param(f,"RotationRule","EnumProperty",1,17)||
