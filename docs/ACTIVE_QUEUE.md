@@ -1,3 +1,21 @@
+# Priorité — V1.178
+
+1. CI puis essai des arcs montés Native / gauche OFF / droite OFF / les deux OFF, puis régression à pied.
+2. HDR : ne pas forcer le chemin natif Intel D3D11 sans implémentation ; étude hors jeu consignée.
+3. Main stable conservée ; aucune installation automatique.
+
+---
+
+# Priorité après validation V1.177
+
+1. Réparer uniquement les effets de mêlée Strife à cheval : relever les notifies/FX montés avant extension du filtre existant. À pied validé, à conserver.
+2. Évaluer HDR natif du jeu : Native / expérimental au redémarrage proposé, prise en charge réelle non démontrée.
+3. Accès EXE/assets du jeu en attente : contrôle automatique indisponible pour limite d'utilisation. Sources/cache analysés ; aucune build ni installation.
+
+[Analyse](NEXT_MOUNTED_MELEE_HDR_REVIEW.md).
+
+---
+
 # Priorité — essai V1.177
 
 1. Résolution interne 75 %, fermeture/relance, puis Native et même cycle.

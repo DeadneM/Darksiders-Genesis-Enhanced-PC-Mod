@@ -1,0 +1,166 @@
+[
+  {
+    "animation": "Strife_Horse_Attack_L",
+    "properties": [
+      {
+        "name": "PSTemplate",
+        "kind": "ObjectProperty",
+        "offset": "0x29",
+        "payload": "0x42",
+        "size": 4,
+        "extra": "",
+        "value": "P_Mayhem_Atk_L_01"
+      },
+      {
+        "name": "LocationOffset",
+        "kind": "StructProperty",
+        "offset": "0x46",
+        "payload": "0x77",
+        "size": 12,
+        "extra": "Vector",
+        "value": "000000000000000000004842"
+      },
+      {
+        "name": "RotationOffset",
+        "kind": "StructProperty",
+        "offset": "0x83",
+        "payload": "0xb4",
+        "size": 12,
+        "extra": "Rotator",
+        "value": "0000a0c10000b4c200002f43"
+      },
+      {
+        "name": "SocketName",
+        "kind": "NameProperty",
+        "offset": "0xc0",
+        "payload": "0xd9",
+        "size": 8,
+        "extra": "",
+        "value": "VFX_Master_Attack_01:0"
+      }
+    ]
+  },
+  {
+    "animation": "Strife_Horse_Attack_L",
+    "properties": [
+      {
+        "name": "PSTemplate",
+        "kind": "ObjectProperty",
+        "offset": "0xed",
+        "payload": "0x106",
+        "size": 4,
+        "extra": "",
+        "value": "P_Mayhem_Atk_L_01"
+      },
+      {
+        "name": "LocationOffset",
+        "kind": "StructProperty",
+        "offset": "0x10a",
+        "payload": "0x13b",
+        "size": 12,
+        "extra": "Vector",
+        "value": "000000000000000000004842"
+      },
+      {
+        "name": "RotationOffset",
+        "kind": "StructProperty",
+        "offset": "0x147",
+        "payload": "0x178",
+        "size": 12,
+        "extra": "Rotator",
+        "value": "000020c1000096c20000c8c1"
+      },
+      {
+        "name": "SocketName",
+        "kind": "NameProperty",
+        "offset": "0x184",
+        "payload": "0x19d",
+        "size": 8,
+        "extra": "",
+        "value": "VFX_Master_Attack_01:0"
+      }
+    ]
+  },
+  {
+    "animation": "Strife_Horse_Attack_R",
+    "properties": [
+      {
+        "name": "PSTemplate",
+        "kind": "ObjectProperty",
+        "offset": "0x29",
+        "payload": "0x42",
+        "size": 4,
+        "extra": "",
+        "value": "P_Mayhem_Atk_L_01"
+      },
+      {
+        "name": "LocationOffset",
+        "kind": "StructProperty",
+        "offset": "0x46",
+        "payload": "0x77",
+        "size": 12,
+        "extra": "Vector",
+        "value": "000000000000000000004842"
+      },
+      {
+        "name": "RotationOffset",
+        "kind": "StructProperty",
+        "offset": "0x83",
+        "payload": "0xb4",
+        "size": 12,
+        "extra": "Rotator",
+        "value": "0000a0c10000fa4200002f43"
+      },
+      {
+        "name": "SocketName",
+        "kind": "NameProperty",
+        "offset": "0xc0",
+        "payload": "0xd9",
+        "size": 8,
+        "extra": "",
+        "value": "VFX_Master_Attack_01:0"
+      }
+    ]
+  },
+  {
+    "animation": "Strife_Horse_Attack_R",
+    "properties": [
+      {
+        "name": "PSTemplate",
+        "kind": "ObjectProperty",
+        "offset": "0xed",
+        "payload": "0x106",
+        "size": 4,
+        "extra": "",
+        "value": "P_Mayhem_Atk_L_01"
+      },
+      {
+        "name": "LocationOffset",
+        "kind": "StructProperty",
+        "offset": "0x10a",
+        "payload": "0x13b",
+        "size": 12,
+        "extra": "Vector",
+        "value": "000000000000000000004842"
+      },
+      {
+        "name": "RotationOffset",
+        "kind": "StructProperty",
+        "offset": "0x147",
+        "payload": "0x178",
+        "size": 12,
+        "extra": "Rotator",
+        "value": "000020c10000dc420000c8c1"
+      },
+      {
+        "name": "SocketName",
+        "kind": "NameProperty",
+        "offset": "0x184",
+        "payload": "0x19d",
+        "size": 8,
+        "extra": "",
+        "value": "VFX_Master_Attack_01:0"
+      }
+    ]
+  }
+]

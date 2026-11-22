@@ -2,7 +2,7 @@
 #include "NativeBonePoint.h"
 #include <cmath>
 namespace dg::melee_effect {
-enum class Side {None,Right,Left,Shared,AuthoredHand};
+enum class Side {None,Right,Left,Shared,AuthoredHand,MountedHand};
 inline unsigned Mask(int choice){return choice==1?2u:choice==2?1u:choice==3?3u:0u;}
 inline bool Near(float a,float b){return std::isfinite(a)&&std::abs(a-b)<.05f;}
 inline Side Classify(unsigned sequence,native_bone::Point offset){
@@ -25,7 +25,7 @@ inline Side Classify(unsigned sequence,native_bone::Point offset){
     return Side::None;
 }
 inline bool Selected(Side side,unsigned mask){
-    return side==Side::Right?(mask&1)!=0:side==Side::Left?(mask&2)!=0:side==Side::Shared?mask==3:side==Side::AuthoredHand?mask!=0:false;
+    return side==Side::Right?(mask&1)!=0:side==Side::Left?(mask&2)!=0:side==Side::Shared?mask==3:(side==Side::AuthoredHand||side==Side::MountedHand)?mask!=0:false;
 }
 struct alignas(16) Transform {float rotation[4]{},position[4]{},scale[4]{};};
 static_assert(sizeof(Transform)==48);
@@ -36,10 +36,10 @@ inline bool Adjust(const Transform& source,Side side,unsigned mask,native_bone::
     for(unsigned i=0;i<3;++i)if(!std::isfinite(source.position[i])||std::abs(source.position[i])>1e7f||
        !std::isfinite(source.scale[i])||std::abs(source.scale[i])>1000)return false;
     auto hand=side==Side::Left?left:right;
-    if(side==Side::Shared||side==Side::AuthoredHand){
+    if(side==Side::Shared||side==Side::AuthoredHand||side==Side::MountedHand){
         auto distance=[&](native_bone::Point p){const double x=p.x-source.position[0],y=p.y-source.position[1],z=p.z-source.position[2];return x*x+y*y+z*z;};
         const bool useLeft=distance(left)<distance(right);
-        if(side==Side::AuthoredHand&&!Selected(useLeft?Side::Left:Side::Right,mask))return false;
+        if((side==Side::AuthoredHand||side==Side::MountedHand)&&!Selected(useLeft?Side::Left:Side::Right,mask))return false;
         if(useLeft)hand=left;
     }
     // These authored root-centred arcs cover a blade sweep. Keep their
@@ -54,7 +54,10 @@ inline bool Attached(const Transform& root,native_bone::Point offset,native_bone
                      Side side,unsigned mask,native_bone::Point right,native_bone::Point left,
                      native_bone::Point& outOffset,native_bone::Point& outScale){
     if(!native_bone::Finite(offset)||!native_bone::Finite(scale))return false;
-    Transform checked{};if(!Adjust(root,side,mask,right,left,checked))return false;
+    // Mounted per-hand selection belongs to the emitter origin after its offset,
+    // not the parent socket origin. Keep the established foot path unchanged.
+    Transform checked{};if(!Adjust(root,side==Side::MountedHand?Side::Shared:side,
+        side==Side::MountedHand?3u:mask,right,left,checked))return false;
     for(unsigned i=0;i<3;++i)if(std::abs(root.scale[i])<1e-4f)return false;
     const auto rotate=[](native_bone::Point p,const float* q,float sign){
         const float x=q[0]*sign,y=q[1]*sign,z=q[2]*sign;

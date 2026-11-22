@@ -1,3 +1,9 @@
+## V1.178 — correction mêlée montée en préparation
+
+Extension ciblée de la réduction des arcs de Strife à cheval, mains du cavalier et sélection par lame masquée. Rendu à tester ; HDR Intel D3D11 non forcé après examen natif. [Périmètre](docs/V1_178_REVIEW.md).
+
+---
+
 ## V1.177 — beta qualité de rendu disponible
 
 Sept contrôles Native/personnalisé : anisotropie, résolution interne, ombres, visibilité et reflets. Application au redémarrage avec restauration Native. 86/86 tests, zéro avertissement C++ ; rendu à tester. [ZIP et test court](docs/V1_177_DELIVERY_RECEIPT.md).

@@ -7,8 +7,8 @@
 namespace {
 using namespace dg::melee_effect;
 static_assert(sizeof(Plan)==128,"private per-notify plan remains compact without implicit alignment padding");
-unsigned char actor[0x1100]{},controller[0x400]{},mesh[0x800]{},asset[0x220]{},bones[44*12]{};
-unsigned char notify[0x90]{},sequence[0x80]{},particle[0x80]{},package[0x80]{},cls[3][0x80]{},entries[20][100]{};
+unsigned char actor[0x1100]{},controller[0x400]{},mesh[0x800]{},asset[0x220]{},bones[512*12]{},rider[0x1100]{},animationPackage[0x80]{};
+unsigned char notify[0x90]{},sequence[0x80]{},particle[0x80]{},package[0x80]{},cls[4][0x80]{},entries[20][100]{};
 uintptr_t names[20]{},chunks[1]{reinterpret_cast<uintptr_t>(names)},vt[0x400/8]{};
 dg::local_players::Context owner{};bool gameThread=true,local=true;unsigned nativeNotifies=0,spawns=0,locations=0;
 Transform sent{},source{};void* sentWorld=nullptr;void* sentAsset=nullptr;bool sentAuto=false;unsigned char sentPool=0;
@@ -27,7 +27,7 @@ void* Spawn(void* world,void* fx,const Transform* transform,bool autoDestroy,uns
     ++spawns;sent=*transform;sentWorld=world;sentAsset=fx;sentAuto=autoDestroy;sentPool=pool;return reinterpret_cast<void*>(0xBEEF);
 }
 Transform* Root(void* m,Transform* out,dg::native_bone::Name socket,int space){
-    Check(m==mesh&&socket.index==11&&!socket.number&&!space,"native world root transform contract");++roots;*out=rootTransform;return out;
+    Check(m==mesh&&socket.index==(owner.kind==dg::local_players::PoseKind::Horse?18:11)&&!socket.number&&!space,"native world source-socket transform contract");++roots;*out=rootTransform;return out;
 }
 void* Attach(void* fx,void* m,dg::native_bone::Name socket,const dg::native_bone::Point* location,
              const dg::native_bone::Point* rotation,const dg::native_bone::Point* scale,int type,bool autoDestroy,unsigned char pool){
@@ -36,7 +36,8 @@ void* Attach(void* fx,void* m,dg::native_bone::Name socket,const dg::native_bone
 }
 void Notify(void* n,void* m,void* a){
     ++nativeNotifies;Check(n==notify&&m==mesh&&a==sequence,"original notify receives all three original arguments");
-    if(attachCall)Check(HookAttach(particle,mesh,{11,0},&attachedPosition,&attachedRotation,&attachedScale,0,false,7)==reinterpret_cast<void*>(0xCAFE),"attached spawn return preserved");
+    if(attachCall){dg::native_bone::Name socket{};std::memcpy(&socket,notify+0x84,sizeof(socket));
+        Check(HookAttach(particle,mesh,socket,&attachedPosition,&attachedRotation,&attachedScale,0,false,7)==reinterpret_cast<void*>(0xCAFE),"attached spawn return preserved");}
     else Check(HookSpawn(reinterpret_cast<void*>(owner.world),particle,&source,false,7)==reinterpret_cast<void*>(0xBEEF),"spawn return preserved");
 }
 void Fresh(){
@@ -70,7 +71,19 @@ void InvokeAttached(){
     Particle(notify,mesh,sequence,Notify);
     Check(nativeNotifies==1&&spawns==1&&!g_plan,"attached path calls one original notify and emitter");
     Check(!std::memcmp(&before,&attachedPosition,sizeof(before))&&!std::memcmp(&beforeScale,&attachedScale,sizeof(beforeScale)),"attached caller vectors remain unchanged");
-    Check(sentAsset==particle&&sentWorld==mesh&&sentSocket.index==11&&!sentSocket.number&&sentRotation==&attachedRotation&&sentType==0&&!sentAuto&&sentPool==7,"all nine attached ABI arguments and root orientation retained");
+    Check(sentAsset==particle&&sentWorld==mesh&&sentSocket.index==(owner.kind==dg::local_players::PoseKind::Horse?18:11)&&!sentSocket.number&&sentRotation==&attachedRotation&&sentType==0&&!sentAuto&&sentPool==7,"all nine attached ABI arguments and root orientation retained");
+}
+void MountedFresh(bool left=false){
+    Fresh();owner.kind=dg::local_players::PoseKind::Horse;owner.character=reinterpret_cast<uintptr_t>(rider);
+    Put(rider,0x10,reinterpret_cast<uintptr_t>(cls[3]));Label(cls[3],16,"Strife_Blueprint_C");Put<unsigned char>(rider,0xC18,1);
+    Label(cls[0],0,"Despair_Blueprint_C");Label(particle,3,"P_Mayhem_Atk_L_01");
+    Label(package,4,"/Game/VFX/Particles/Characters/Horses/Mayhem/P_Mayhem_Atk_L_01");
+    Label(sequence,5,left?"Strife_Horse_Attack_L":"Strife_Horse_Attack_R");Put(sequence,0x20,reinterpret_cast<uintptr_t>(animationPackage));
+    Label(animationPackage,17,left?"/Game/Characters/Heroes/Hero_Strife/Animations/Horse/Strife_Horse_Attack_L":"/Game/Characters/Heroes/Hero_Strife/Animations/Horse/Strife_Horse_Attack_R");
+    Label(rider,18,"VFX_Master_Attack_01");Put(notify,0x84,dg::native_bone::Name{18,0});Put(notify,0x40,dg::native_bone::Point{0,0,50});attachedPosition={0,0,50};
+    Put(asset,0x190,dg::native_bone::Array{reinterpret_cast<uintptr_t>(bones),60,60});
+    Put(bones,20*12,dg::native_bone::Name{0,0});Put(bones,43*12,dg::native_bone::Name{0,0});
+    Put(bones,57*12,dg::native_bone::Name{9,0});Put(bones,58*12,dg::native_bone::Name{10,0});
 }
 void Run(){
     std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());Put(image.data(),0x3955198,reinterpret_cast<uintptr_t>(chunks));
@@ -111,7 +124,27 @@ void Run(){
     Fresh();gameThread=false;NativeOnly("off-thread callback stays native");
     Fresh();local=false;NativeOnly("unknown ownership stays native");
     Fresh();owner.index=1;Invoke();Check(sent.position[0]==10,"P2 uses the same owned-mesh contract");
-    Fresh();owner.kind=dg::local_players::PoseKind::Horse;NativeOnly("mounted effects remain native");
+    Fresh();owner.kind=dg::local_players::PoseKind::Horse;NativeOnly("incomplete mounted context remains native");
+    for(bool left:{false,true})for(int player:{0,1}){
+        MountedFresh(left);owner.index=player;dg::runtime::Get().strifeBladeVisibility=3;Invoke();
+        Check(sent.scale[0]==.8f&&sent.position[0]==10,"mounted attack both directions/P1/P2 uses actual mounted rider hand");
+        MountedFresh(left);dg::runtime::Get().strifeBladeVisibility=2;Invoke();Check(sent.scale[0]==.8f,"mounted nearest right bare hand is compacted");
+        MountedFresh(left);dg::runtime::Get().strifeBladeVisibility=1;NativeOnly("mounted visible right blade retains its authored effect");
+        MountedFresh(left);source.position[0]=100;source.position[1]=200;source.position[2]=300;dg::runtime::Get().strifeBladeVisibility=1;
+        Invoke();Check(sent.scale[0]==.8f&&sent.position[0]==100,"mounted left bare hand selected from live positions");
+        MountedFresh(left);dg::runtime::Get().strifeBladeVisibility=0;NativeOnly("mounted Native forwards every byte");
+    }
+    MountedFresh();Put(controller,0x350,uintptr_t(0));NativeOnly("mounted stale possession rejected");
+    MountedFresh();Label(cls[3],16,"War_Blueprint_C");NativeOnly("War mounted effects untouched");
+    MountedFresh();Label(animationPackage,17,"/Game/Other");NativeOnly("mounted same-named animation outside its native package rejected");
+    MountedFresh();Put(notify,0x40,dg::native_bone::Point{0,0,0});NativeOnly("mounted unknown offset rejected");
+    MountedFresh();InvokeAttached();Check(sentScale.x==.8f&&roots==1&&sentSocket.index==18,"attached mounted arc keeps the authored source-socket frame and native rotation");
+    MountedFresh();dg::runtime::Get().strifeBladeVisibility=1;rootTransform.position[0]=50;rootTransform.position[1]=100;rootTransform.position[2]=100;
+    rootTransform.rotation[2]=0;rootTransform.rotation[3]=1;InvokeAttached();
+    Check(sentScale.x==.8f,"mounted attached selection uses offset emitter origin rather than the parent socket origin");
+    MountedFresh();Put(notify,0x84,dg::native_bone::Name{11,0});NativeOnly("wrong mounted socket rejected");
+    MountedFresh();Put(bones,57*12,dg::native_bone::Name{0,0});NativeOnly("missing mounted hand retains native effect");
+    MountedFresh();Put(asset,0x190,dg::native_bone::Array{reinterpret_cast<uintptr_t>(bones),513,513});NativeOnly("oversize mounted skeleton rejected");
     Fresh();owner.kind=dg::local_players::PoseKind::Ultimate;NativeOnly("ultimate effects remain native");
     Fresh();Put<unsigned char>(actor,0x118,2);NativeOnly("remote role rejected");
     Fresh();Put(controller,0x350,uintptr_t(0));NativeOnly("stale controller ownership rejected");

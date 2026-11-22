@@ -1,7 +1,7 @@
 #pragma once
 namespace dg::build {
-inline constexpr int Major=1,Minor=177;
-inline constexpr char Version[]="V1.177";
-inline constexpr char Id[]="1.177-render-quality-restart-test";
-inline constexpr char Archive[]="DarksidersGenesis_V1.177_RENDER_QUALITY_RESTART_TEST.zip";
+inline constexpr int Major=1,Minor=178;
+inline constexpr char Version[]="V1.178";
+inline constexpr char Id[]="1.178-mounted-melee-scope-test";
+inline constexpr char Archive[]="DarksidersGenesis_V1.178_MOUNTED_MELEE_SCOPE_TEST.zip";
 }

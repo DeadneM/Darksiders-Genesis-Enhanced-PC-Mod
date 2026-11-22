@@ -1,3 +1,9 @@
+# État courant — V1.178 préparée, V1.177 validée
+
+Correction des FX de mêlée montée préparée, sans changement à pied ni au rendu V1.177. HDR natif D3D11 : branche Intel sans implémentation, aucun forçage ajouté. [Correction](V1_178_REVIEW.md) · [HDR](HDR_NATIVE_BACKEND_REVIEW.md).
+
+---
+
 # État courant — V1.177 livrée, main V1.173
 
 86/86 tests, zéro avertissement C++, deux binaires contrôlés. Sept options Native au redémarrage ; aucun profil personnel ni Engine.ini modifié pendant le développement. Résultat visuel encore expérimental. [Livraison](V1_177_DELIVERY_RECEIPT.md).

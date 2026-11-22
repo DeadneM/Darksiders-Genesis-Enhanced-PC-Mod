@@ -15,7 +15,7 @@ using AttachFn=void*(*)(void*,void*,native_bone::Name,const native_bone::Point*,
 using RootFn=Transform*(*)(void*,Transform*,native_bone::Name,int);
 SpawnFn g_spawn=nullptr;native_bone::LocationFn g_location=nullptr;
 AttachFn g_attach=nullptr;RootFn g_root=nullptr;
-uintptr_t g_base=0;LogFn g_log=nullptr;std::atomic_bool g_ready{false};unsigned g_changes=0;
+uintptr_t g_base=0;LogFn g_log=nullptr;std::atomic_bool g_ready{false};unsigned g_changes=0,g_mountedChanges=0;
 struct Plan {Transform root{};uintptr_t world=0,asset=0,mesh=0;native_bone::Point right{},left{},offset{};native_bone::Name socket{};Side side=Side::None;unsigned mask=0,attached=0;};
 thread_local const Plan* g_plan=nullptr;
 struct Lava {uintptr_t asset=0,mesh=0,weapon=0;native_bone::Name from{},to{};int side=-1;};
@@ -23,7 +23,8 @@ thread_local const Lava* g_lava=nullptr;
 template<class T> bool Read(uintptr_t p,size_t offset,T& value){native_objects::MemoryReader reader;return reader.Read(p,offset,value);}
 template<size_t N> bool Is(uintptr_t p,const char (&text)[N]){return native_objects::NameIs(g_base,p,text);}
 void Changed(const Plan& plan){
-    if(g_log&&++g_changes<=12){char line[160]{};sprintf_s(line,"Strife bare blade FX V1.85: side=%u mask=%u attached=%u hand origin, scale=0.4; damage trace unchanged; EXPERIMENTAL",unsigned(plan.side),plan.mask,unsigned(plan.attached));g_log(line);}
+    const bool mounted=plan.side==Side::MountedHand;auto& count=mounted?g_mountedChanges:g_changes;
+    if(g_log&&++count<=12){char line[192]{};sprintf_s(line,"Strife bare blade FX V1.178: mounted=%u side=%u mask=%u attached=%u hand origin, scale=0.4; damage trace unchanged; EXPERIMENTAL",unsigned(mounted),unsigned(plan.side),plan.mask,unsigned(plan.attached));g_log(line);}
 }
 void* HookSpawn(void* world,void* asset,const Transform* transform,bool autoDestroy,unsigned char pooling){
     Transform source{},out{};const auto* plan=g_plan;
@@ -57,50 +58,87 @@ void* HookAttach(void* asset,void* mesh,native_bone::Name socket,const native_bo
     }
     return g_attach?g_attach(asset,mesh,socket,location,rotation,scale,attachType,autoDestroy,pooling):nullptr;
 }
+// Mounted skeletons contain both horse and rider. Cache only bone indices;
+// Location revalidates the live mesh and exact bone names on every notify.
+bool MountedHands(uintptr_t mesh,uintptr_t actor,native_bone::Point& right,native_bone::Point& left){
+    native_objects::MemoryReader reader;uintptr_t asset=0;native_bone::Array bones{};
+    if(!Read(mesh,0x5A0,asset)||!Read(asset,0x190,bones)||!bones.data||bones.count<1||bones.count>bones.capacity||bones.capacity>512)return false;
+    struct Indices{uintptr_t asset=0;unsigned right=512,left=512;};static thread_local Indices cached;
+    const auto points=[&](){return cached.asset==asset&&cached.right<unsigned(bones.count)&&cached.left<unsigned(bones.count)&&
+        native_bone::Location(reader,g_base,g_location,mesh,actor,cached.right,"Bone_Strife_Hand_R",right)&&
+        native_bone::Location(reader,g_base,g_location,mesh,actor,cached.left,"Bone_Strife_Hand_L",left);};
+    if(points())return true;
+    cached={asset,512,512};
+    for(int i=0;i<bones.count;++i){struct Bone{native_bone::Name name;int parent;} bone{};
+        if(!Read(bones.data,size_t(i)*12,bone))return false;
+        if(native_objects::NameValueIs(g_base,bone.name.index,bone.name.number,"Bone_Strife_Hand_R"))cached.right=unsigned(i);
+        else if(native_objects::NameValueIs(g_base,bone.name.index,bone.name.number,"Bone_Strife_Hand_L"))cached.left=unsigned(i);
+        if(cached.right<512&&cached.left<512)break;
+    }
+    return points();
+}
 bool Prepare(void* notify,void* liveMesh,void* animation,Plan& plan){
     if(!g_ready||!native_tps::OnGameThread()||!Mask(runtime::Get().strifeBladeVisibility.load()))return false;
     const auto object=reinterpret_cast<uintptr_t>(notify),mesh=reinterpret_cast<uintptr_t>(liveMesh),anim=reinterpret_cast<uintptr_t>(animation);
     uintptr_t cls=0,outer=0,actor=0,package=0;native_bone::Point offset{};unsigned char attached=0;
     if(!Read(object,0x10,cls)||!Is(cls,"AnimNotify_PlayParticleEffect")||!Read(object,0x20,outer)||outer!=anim||
        !Read(object,0x38,plan.asset)||!Read(object,0x40,offset)||!Read(object,0x80,attached)||
-       !Read(plan.asset,0x10,cls)||!Is(cls,"ParticleSystem")||!Read(plan.asset,0x20,package)||
-       !((Is(plan.asset,"VFX_strife_meleeSlice")&&Is(package,"/Game/Particles/VFX_strife_meleeSlice"))||
-         (Is(plan.asset,"VFX_strife_meleeSlice_strong")&&Is(package,"/Game/Particles/VFX_strife_meleeSlice_strong"))||
-         (Is(plan.asset,"VFX_strife_stabSingle")&&Is(package,"/Game/Particles/VFX_strife_stabSingle")))||
-       !Read(mesh,0xE8,actor)||!Read(actor,0x10,cls)||!Is(cls,"Strife_Blueprint_C"))return false;
+       !Read(plan.asset,0x10,cls)||!Is(cls,"ParticleSystem")||!Read(plan.asset,0x20,package))return false;
+    const bool footAsset=(Is(plan.asset,"VFX_strife_meleeSlice")&&Is(package,"/Game/Particles/VFX_strife_meleeSlice"))||
+        (Is(plan.asset,"VFX_strife_meleeSlice_strong")&&Is(package,"/Game/Particles/VFX_strife_meleeSlice_strong"))||
+        (Is(plan.asset,"VFX_strife_stabSingle")&&Is(package,"/Game/Particles/VFX_strife_stabSingle"));
+    const bool horseAsset=!footAsset&&Is(plan.asset,"P_Mayhem_Atk_L_01")&&Is(package,"/Game/VFX/Particles/Characters/Horses/Mayhem/P_Mayhem_Atk_L_01");
+    if((!footAsset&&!horseAsset)||!Read(mesh,0xE8,actor))return false;
     local_players::Context c{};uintptr_t current=0,controller=0,pawn=0;unsigned char role=0,type=0;
-    if(!local_players::ResolveActor(reinterpret_cast<void*>(actor),c)||c.index<0||c.index>1||!c.localPlayer||
-       c.kind!=local_players::PoseKind::Foot||c.pawn!=actor||c.character!=actor||!c.world||
-       !Read(actor,0x380,current)||current!=mesh||!Read(actor,0x118,role)||role!=3||
-       !Read(actor,0xC18,type)||type!=1||!Read(actor,0x348,controller)||controller!=c.controller||
-       !Read(controller,0x350,pawn)||pawn!=actor)return false;
-    unsigned sequence=0;
-    if(Is(anim,"Strife_Atk_Melee_01"))sequence=1;
-    else if(Is(anim,"Strife_Atk_Melee_02"))sequence=2;
-    else if(Is(anim,"Strife_Atk_Melee_03")||Is(anim,"Strife_Atk_Melee_03_b"))sequence=3;
-    else if(Is(anim,"Strife_Air_Atk_Melee_01"))sequence=4;
-    else if(Is(anim,"Strife_Air_Atk_Melee_02"))sequence=5;
-    else if(Is(anim,"Strife_Atk_Melee_Kick_Launch_Level1_Montage")||Is(anim,"Strife_Atk_Melee_Kick_Launch_Level2_Montage"))sequence=6;
-    else if(Is(anim,"Strife_Atk_WingClip_F")||Is(anim,"Strife_Atk_WingClip_B")){
+    if(!local_players::ResolveActor(reinterpret_cast<void*>(actor),c)||c.index<0||c.index>1||!c.localPlayer||!c.world||
+       c.pawn!=actor||!Read(actor,0x380,current)||current!=mesh||!Read(actor,0x118,role)||role!=3||
+       !Read(actor,0x348,controller)||controller!=c.controller||!Read(controller,0x350,pawn)||pawn!=actor)return false;
+    if(c.kind==local_players::PoseKind::Horse){
         uintptr_t animationPackage=0;
-        if(!Read(anim,0x20,animationPackage)||
-           !(Is(animationPackage,"/Game/Characters/Heroes/Hero_Strife/Animations/Strife_Atk_WingClip_F")||
-             Is(animationPackage,"/Game/Characters/Heroes/Hero_Strife/Animations/Strife_Atk_WingClip_B")))return false;
-        sequence=7;
+        if(!c.character||c.character==actor||!Read(actor,0x10,cls)||!Is(cls,"Despair_Blueprint_C")||
+           !Read(c.character,0x10,cls)||!Is(cls,"Strife_Blueprint_C")||!Read(c.character,0xC18,type)||type!=1||
+           !Read(object,0x84,plan.socket)||
+           !native_objects::NameValueIs(g_base,plan.socket.index,plan.socket.number,"VFX_Master_Attack_01")||
+           !Near(offset.x,0)||!Near(offset.y,0)||!Near(offset.z,50)||
+           !horseAsset||
+           !Read(anim,0x20,animationPackage)||
+           !((Is(anim,"Strife_Horse_Attack_L")&&Is(animationPackage,"/Game/Characters/Heroes/Hero_Strife/Animations/Horse/Strife_Horse_Attack_L"))||
+             (Is(anim,"Strife_Horse_Attack_R")&&Is(animationPackage,"/Game/Characters/Heroes/Hero_Strife/Animations/Horse/Strife_Horse_Attack_R"))))return false;
+        plan.side=Side::MountedHand;plan.mask=Mask(runtime::Get().strifeBladeVisibility.load());
+        if(!Selected(plan.side,plan.mask)||!MountedHands(mesh,actor,plan.right,plan.left))return false;
+    }else{
+        if(c.kind!=local_players::PoseKind::Foot||c.character!=actor||!Read(actor,0x10,cls)||!Is(cls,"Strife_Blueprint_C")||
+           !Read(actor,0xC18,type)||type!=1||!footAsset)return false;
+        unsigned sequence=0;
+        if(Is(anim,"Strife_Atk_Melee_01"))sequence=1;
+        else if(Is(anim,"Strife_Atk_Melee_02"))sequence=2;
+        else if(Is(anim,"Strife_Atk_Melee_03")||Is(anim,"Strife_Atk_Melee_03_b"))sequence=3;
+        else if(Is(anim,"Strife_Air_Atk_Melee_01"))sequence=4;
+        else if(Is(anim,"Strife_Air_Atk_Melee_02"))sequence=5;
+        else if(Is(anim,"Strife_Atk_Melee_Kick_Launch_Level1_Montage")||Is(anim,"Strife_Atk_Melee_Kick_Launch_Level2_Montage"))sequence=6;
+        else if(Is(anim,"Strife_Atk_WingClip_F")||Is(anim,"Strife_Atk_WingClip_B")){
+            uintptr_t animationPackage=0;
+            if(!Read(anim,0x20,animationPackage)||
+               !(Is(animationPackage,"/Game/Characters/Heroes/Hero_Strife/Animations/Strife_Atk_WingClip_F")||
+                 Is(animationPackage,"/Game/Characters/Heroes/Hero_Strife/Animations/Strife_Atk_WingClip_B")))return false;
+            sequence=7;
+        }
+        plan.side=Classify(sequence,offset);plan.mask=Mask(runtime::Get().strifeBladeVisibility.load());
+        // The separate launcher has one common authored arc, not two blade
+        // emitters. With one blade OFF, its compact origin is that bare hand.
+        if(sequence==6&&plan.side==Side::Shared&&plan.mask!=3)plan.side=plan.mask==1?Side::Right:Side::Left;
+        if(!Selected(plan.side,plan.mask))return false;
+        native_objects::MemoryReader reader;
+        if(!native_bone::Location(reader,g_base,g_location,mesh,actor,43,"Bone_Strife_Hand_R",plan.right)||
+           !native_bone::Location(reader,g_base,g_location,mesh,actor,20,"Bone_Strife_Hand_L",plan.left))return false;
     }
-    plan.side=Classify(sequence,offset);plan.mask=Mask(runtime::Get().strifeBladeVisibility.load());
-    // The separate launcher has one common authored arc, not two blade
-    // emitters. With one blade OFF, its compact origin is that bare hand.
-    if(sequence==6&&plan.side==Side::Shared&&plan.mask!=3)plan.side=plan.mask==1?Side::Right:Side::Left;
-    if(!Selected(plan.side,plan.mask))return false;
-    native_objects::MemoryReader reader;
-    if(!native_bone::Location(reader,g_base,g_location,mesh,actor,43,"Bone_Strife_Hand_R",plan.right)||
-       !native_bone::Location(reader,g_base,g_location,mesh,actor,20,"Bone_Strife_Hand_L",plan.left))return false;
     plan.world=c.world;plan.mesh=mesh;plan.offset=offset;plan.attached=(attached&1)!=0;
     if(plan.attached){
         uintptr_t vt=0,entry=0;
         if(!g_root||!Read(object,0x84,plan.socket)||
-           !native_objects::NameValueIs(g_base,plan.socket.index,plan.socket.number,"Bone_Strife_Root")||
+           !(c.kind==local_players::PoseKind::Horse?
+               native_objects::NameValueIs(g_base,plan.socket.index,plan.socket.number,"VFX_Master_Attack_01"):
+               native_objects::NameValueIs(g_base,plan.socket.index,plan.socket.number,"Bone_Strife_Root"))||
            !Read(mesh,0,vt)||!Read(vt,0x3F0,entry)||entry!=g_base+0x17A2590||
            g_root(liveMesh,&plan.root,plan.socket,0)!=&plan.root)return false;
     }
@@ -157,7 +195,7 @@ void Initialize(LogFn log,bool exactExecutable){
         MH_DisableHook(target);MH_DisableHook(attachTarget);MH_RemoveHook(target);MH_RemoveHook(attachTarget);g_spawn=nullptr;g_attach=nullptr;return;
     }
     g_location=reinterpret_cast<native_bone::LocationFn>(g_base+0x17A2380);g_root=reinterpret_cast<RootFn>(g_base+0x17A2590);g_ready=true;
-    if(log)log("Strife bare blade FX V1.85 READY: scoped attached/detached slash/stab only, native damage and notify retained; EXPERIMENTAL");
+    if(log)log("Strife bare blade FX V1.178 READY: scoped foot/mounted slash, live rider hands, native damage and notify retained; EXPERIMENTAL");
 }
 void Particle(void* notify,void* mesh,void* animation,NotifyFn original){
     if(!original)return;

@@ -6837,3 +6837,46 @@ Rollback : revenir Native et fermer le jeu avant de remettre les anciens binaire
 ## V1.177 — livraison contrôlée
 
 Source f5417d74296e018cdce2a065c2828e4d28feba90, archive 4d21fadeac379915e5c024544255e24fc5ac9ff5. 86/86, zéro avertissement C++, 241 anciennes archives intactes, 286 clés. Premier échec de nettoyage des fixtures corrigé avant publication. Aucun vrai Engine.ini touché ; résultat en jeu et restauration réelle à tester. [Reçu](V1_177_DELIVERY_RECEIPT.md).
+
+
+## Après V1.177 — retour utilisateur et suite
+
+V1.177 retenue après retour utilisateur. Réduction des FX de mêlée : défaut exclusivement à cheval, exclusion Foot explicite et chemin de possession/squelette distinct confirmé par sources/cache. HDR : proposition seulement, support D3D11 du jeu à vérifier. Lecture EXE refusée faute de quota de contrôle ; aucun contournement ou build. [Analyse et prochaine étape](NEXT_MOUNTED_MELEE_HDR_REVIEW.md).
+
+
+# V1.178 — effets de mêlée Strife à cheval
+
+Base : debug V1.177 aacec1b, validée par l'utilisateur. Défaut exclusivement à cheval ; chemin à pied, y compris deux lames OFF, à conserver. Main V1.173 intacte.
+
+## Preuve et correction
+L'ancien filtre exigeait Foot + Strife_Blueprint_C et des animations à pied ; le test excluait même explicitement Horse. Le chemin monté possède Despair et son mesh combinant cheval/cavalier. Réutilisation de la chaîne locale réciproque existante, rôle local et personnage Strife normal ; aucun choix de touche.
+
+Index complet PAK réutilisé depuis le cache. Seuls huit fichiers manquants ont été extraits localement (quatre animations et leurs exports), aucun téléchargement ou export massif. Strife_Horse_Attack_L/R portent chacun deux AnimNotify_PlayParticleEffect ; montages sans notify additionnel. Asset P_Mayhem_Atk_L_01, package /Game/VFX/Particles/Characters/Horses/Mayhem/P_Mayhem_Atk_L_01 ; LocationOffset (0,0,50), socket VFX_Master_Attack_01. Les rotations natives diffèrent selon le côté et restent inchangées.
+
+Extension du même filtre à ce seul asset/package, ces deux animations/packages, offset et socket exacts. Mains du cavalier retrouvées par nom dans le squelette monté (limite 512), indices seuls en cache et revalidés à chaque notification ; aucune position cachée, aucun scan par image. Le mesh/asset courant est relu et les noms sont vérifiés avant l'appel natif déjà utilisé. Chemin chaud après découverte : deux positions actuelles, pas de scan supplémentaire.
+
+Arc ramené à 40 % et déplacé vers la main réelle la plus proche de l'origine de l'effet, uniquement si sa lame est masquée. Les deux lames OFF permettent de réduire les deux arcs. Même règle sur spawn monde ou attaché : pour le mode monté, sélectionner la main après l'offset de l'émetteur, pas depuis le socket parent seul. Frame du socket, quaternion, durée, rotation et options natives conservés. Aucun changement des blasts/dégâts/sons ni nouveau hook. Compteurs de diagnostic séparés pied/cheval, bornés à douze modifications chacun.
+
+Séquence de classification Foot et requêtes de mains conservées ; PrepareLava et initialisation des hooks antérieurs inchangés hors texte de readiness. Politique Foot garde ses anciennes branches et valeurs enum. Le nouveau mode MountedHand ne change que la sélection montée. Plan privé toujours 128 octets.
+
+## Contrôles et essai
+Tests ajoutés : monté gauche/droite, gauche OFF/droite OFF/les deux OFF/Native, P1/P2 simulés, os montés à des indices différents de Foot, frame attachée et origine d'émetteur décalée, possession périmée, War, mauvais package/socket/offset, os manquant, squelette trop grand. Tests à pied existants conservés. Fixtures et CI ne valident pas le rendu réel ni la coop en jeu.
+
+Statut PRÉPARÉ / EXPÉRIMENTAL avant GitHub Actions. Aucun changement d'INI/défaut/raccourci/rendu V1.177, aucune installation ou capture mémoire. ZIP deux binaires racine, sans INI/README.
+
+Essai : Strife à cheval, attaquer des deux côtés avec Native, gauche OFF, droite OFF puis les deux OFF. Vérifier que l'arc réduit part de la main masquée, que le côté encore armé garde son effet, et que dégâts/sons/anim restent normaux. Descendre et vérifier les attaques à pied inchangées. Vérifier deux skins de monture si possible ; P2 reste à confirmer séparément en jeu.
+
+Rollback : remettre les deux binaires V1.177, INI conservé. Aucun réglage supplémentaire écrit dans Engine.ini par ce lot.
+
+
+# HDR natif — vérification hors jeu, 22 novembre 2026
+
+Proposition initiale : Native / HDR expérimental au redémarrage, sortie réelle à vérifier. Les CVars r.AllowHDR, r.HDR.EnableHDROutput, r.HDR.Display.OutputDevice, r.HDR.Display.ColorGamut et les contrôles UI sont présents avec références natives. Leur seule présence ne démontre pas le support sur toutes les cartes.
+
+Dans le chemin D3D11 étudié (RVA D48980), les fonctions 12BCCA0/12BCC80/12BCC90 comparent le même identifiant GPU à 10DE (NVIDIA), 1002 (AMD) et 8086 (Intel). Les branches NVIDIA/AMD appellent respectivement D61640 et D61470. La branche Intel à D48AE4 conduit au message « There is no HDR output implementation currently available for this hardware. » référencé à D48B02 depuis RVA 2902B30. Ce constat concerne ce backend natif, pas les capacités physiques de la carte ou de l'écran. Le code contient aussi un autre chemin DXGI/D3D12 ; il ne prouve pas que notre chemin D3D11 ou tous les hooks du mod fonctionnent sous D3D12.
+
+Conséquence pour l'Intel Arc utilisée précédemment : pas de case de forçage HDR ajoutée. Éviter un tonemapping HDR sans transport correct, qui ne constituerait pas une sortie HDR fonctionnelle. Native reste intact. D3D12, injection/conversion externe et recréation forcée de swapchain hors périmètre de cette réparation. Un travail HDR futur doit vérifier GPU/backend/écran et sortie réelle avant d'être exposé.
+
+Documentation Epic UE4.27 : https://dev.epicgames.com/documentation/en-us/unreal-engine/high-dynamic-range-display-output?application_version=4.27 (contrainte plein écran exclusif D3D11 et profils 1000/2000 nits). Ne pas confondre ces possibilités génériques avec leur implémentation dans ce jeu. Aucun essai HDR ni changement Windows/Engine.ini effectué.
+
+L'ancien blocage de lecture par quota a disparu au nouvel essai autorisé ; aucun contrôle n'a été contourné. Sources, PAK et EXE lus uniquement, sans lecture mémoire du processus ni appel externe au moteur.
