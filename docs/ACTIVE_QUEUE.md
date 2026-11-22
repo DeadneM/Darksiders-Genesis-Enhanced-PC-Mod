@@ -1,3 +1,13 @@
+# Priorité — essai HDR V1.180
+
+1. HDR10 1000 / Native / scRGB 1000, fermeture et relance entre profils, Windows HDR actif.
+2. Comparer image, hautes lumières et menus ; aucun blocage par marque.
+3. Effets de mêlée validés et conservés. Plus tard : lames visibles tenues/rangées.
+
+[Livraison](V1_180_DELIVERY_RECEIPT.md).
+
+---
+
 # Priorité — V1.180
 
 1. Compiler/contrôler puis tester les profils HDR identiques sur toutes les marques, dans Graphics.

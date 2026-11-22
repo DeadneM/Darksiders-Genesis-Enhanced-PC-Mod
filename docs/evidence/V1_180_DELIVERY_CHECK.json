@@ -1,0 +1,72 @@
+{
+  "package": {
+    "version": "V1.180",
+    "base": "24d2b70",
+    "source": "fd47993dab8851761be9ac653365f6a3d4b2ada8",
+    "archive": "d4a14e458d183a429902bd7703af78e611da9792",
+    "download": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/d4a14e458d183a429902bd7703af78e611da9792/downloads/DarksidersGenesis_V1.180_NATIVE_HDR_REQUEST_TEST.zip",
+    "sha256": "71401679653BE5E94E2CA4BBB92ACF00F1A1124C3E8C9F265506B6978B2C0141",
+    "bytes": 2516718,
+    "files": {
+      "dxgi.dll": {
+        "bytes": 155648,
+        "sha256": "1BDF16D2B60776E9B21E0D4C2C6014958ED3F197FF629C741E33CC02A75E3860"
+      },
+      "DarksidersGenesisMod.asi": {
+        "bytes": 2360832,
+        "sha256": "A2326F03658DCF647ACA05DED3291480925485D211E07765AD83FCB2B1B1CEE7"
+      }
+    },
+    "crcVerified": true,
+    "amd64": true,
+    "rootBinariesOnly": true,
+    "oldArchivesUnchanged": 244,
+    "totalArchives": 245,
+    "iniKeys": 288,
+    "defaultDelta": {
+      "HDR.OutputMode": "-1",
+      "HDR.UIBrightness": "-1.000"
+    },
+    "updaterSelection": "DarksidersGenesis_V1.180_NATIVE_HDR_REQUEST_TEST.zip",
+    "gitBlob": "05b74e70d8db288d819a03907da86bb9239540f1",
+    "publicHttpStatus": 200,
+    "binaryDownload": "new ZIP retrieved once through Git; no duplicate HTTP GET or old archive download",
+    "protectedRefs": {
+      "refs/heads/archive": "10e0f220b85022bc9269e0cb9390a811a3b1cf89",
+      "refs/heads/debug": "d4a14e458d183a429902bd7703af78e611da9792",
+      "refs/heads/main": "0e5b182cd6e0b3cfe3b5d312fae3bd63914a41bd",
+      "refs/tags/v1.43": "902861eb1ff34c14dc5ded092581b360767da817"
+    },
+    "installed": false,
+    "localBuild": false,
+    "gameplayValidated": false
+  },
+  "ci": {
+    "source": "fd47993dab8851761be9ac653365f6a3d4b2ada8",
+    "runId": 45072460653,
+    "jobId": 137362270274,
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/45072460653",
+    "testsPassed": 86,
+    "cppWarnings": 0,
+    "cppErrors": 0,
+    "configuration": "Windows x64 Release",
+    "gameplayValidated": false
+  },
+  "static": {
+    "oldKeysPreserved": 286,
+    "totalKeys": 288,
+    "hdrDefaultsNative": true,
+    "hdrCvars": 6,
+    "vendorRestriction": false,
+    "meleeVisibilityRuntimeUnchanged": true,
+    "hdrRenderingValidated": false
+  },
+  "defender": {
+    "zip": "no threats",
+    "payload": "no threats",
+    "protectionSettingsChanged": false
+  },
+  "hdrRenderingValidated": false,
+  "installed": false,
+  "gameFilesModified": false
+}

@@ -1,3 +1,9 @@
+# État courant — V1.180 livrée, main V1.173
+
+86/86 tests, zéro avertissement C++, ZIP vérifié et Defender exécuté. HDR expérimental sans restriction de constructeur, Native par défaut. Graphics V1.179 cumulé ; acquis V1.178 conservés. Résultat réel à tester, aucune installation. [Livraison](V1_180_DELIVERY_RECEIPT.md).
+
+---
+
 # État courant — V1.180 préparée, main V1.173
 
 V1.179 Graphics construite/contrôlée, vérification Defender non exécutée faute de quota d'autorisation. V1.180 ajoute les mêmes requêtes HDR à toutes les cartes, sans filtre Intel ; Native par défaut, résultats à tester. Effets et visibilité des armes intacts. [Détails](V1_180_REVIEW.md).

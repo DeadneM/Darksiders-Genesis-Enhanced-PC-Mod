@@ -1,3 +1,9 @@
+## V1.180 — beta HDR disponible sur debug
+
+Graphics > HDR : Native / SDR / HDR10 / scRGB, mêmes choix sur Intel, AMD et NVIDIA. Profils expérimentaux au redémarrage avec retour Native. 86/86 tests, zéro avertissement C++ ; image HDR à tester. [ZIP et essai](docs/V1_180_DELIVERY_RECEIPT.md).
+
+---
+
 ## V1.180 — HDR expérimental en préparation
 
 Graphics > HDR : mêmes profils Native / SDR / HDR10 / scRGB sur Intel, AMD et NVIDIA, application au redémarrage avec restauration Native. Aucun blocage par marque ; rendu à tester. [Périmètre](docs/V1_180_REVIEW.md).

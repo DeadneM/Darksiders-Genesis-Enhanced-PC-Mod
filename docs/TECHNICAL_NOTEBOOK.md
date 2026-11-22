@@ -6937,3 +6937,8 @@ V1.179 : ZIP vérifié à deux binaires et lien HTTP200 ; l'analyse Defender dem
 Installer en conservant l'INI. Dans Graphics > HDR, essayer d'abord HDR10 1000 nits, fermer puis relancer, vérifier image/hautes lumières/couleurs et menus. Revenir Native avec le même cycle ; ensuite essayer scRGB 1000 nits si nécessaire. Éventuellement tester le plein écran exclusif. Vérifier l'état de sortie rapporté et la profondeur du buffer, sans les considérer seuls comme validation du HDR. Luminosité HUD Native puis 1.5 à comparer seulement si le HDR fonctionne. Retour souhaité : rendu correct/incorrect/inchangé pour chaque mode et type d'affichage.
 
 Avant tout downgrade : choisir Native et fermer le jeu pour restaurer les six CVars ; un ancien helper ne comprend pas les nouveaux champs de propriété HDR. Sauvegarde Engine.ini.DGE-render.bak et journal Engine.ini.DGE-render-owned.json conservés. Aucun fichier du jeu/personnel modifié pendant cette préparation, aucune installation automatique. ZIP deux binaires sans INI/README.
+
+
+## V1.180 — livraison contrôlée
+
+Source fd47993dab8851761be9ac653365f6a3d4b2ada8, archive d4a14e458d183a429902bd7703af78e611da9792. 86/86, zéro avertissement C++, Defender exécuté sans détection, 244 anciennes archives intactes. 288 clés dont deux HDR Native nouvelles ; ancien286 conservé. Profils identiques toutes marques, aucune installation. Rendu HDR à valider. [Reçu](V1_180_DELIVERY_RECEIPT.md).
