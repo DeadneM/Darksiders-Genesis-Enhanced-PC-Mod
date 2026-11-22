@@ -8,6 +8,7 @@
 #include "DashCombatFeature.h"
 #include "ForeignRampageFeature.h"
 #include "NativeCostProbe.h"
+#include "StowedBladeVisual.h"
 #include <MinHook.h>
 #include <atomic>
 #include <cstdio>
@@ -42,6 +43,8 @@ struct Player {
     ArmPose pose{};uint64_t sampleTick=0;
 };
 Player g_players[2]{};
+struct MountedRender {native_objects::Identity actor{},mesh{},skeleton{};unsigned count=0;std::array<unsigned,2> holsters{};};
+MountedRender g_mountedRender[2][2]{};
 struct Hidden {native_objects::Identity component{},actor{};bool nativeHidden=false;};
 Hidden g_hidden[2][8]{};std::atomic_uint g_captures{0},g_uiHeld[2]{};
 template<class T> bool Read(uintptr_t p,size_t offset,T& value){native_objects::MemoryReader r;return r.Read(p,offset,value);}
@@ -99,7 +102,70 @@ bool Packet(uintptr_t data,Array& current,Array& previous){
     if(previous.count&&(!previous.data||previous.data==current.data))return false;
     return Writable(current.data,sizeof(Matrices))&&(!previous.count||Writable(previous.data,sizeof(Matrices)));
 }
+bool Mounted(const local_players::Context& c,Snapshot& s);
+// Mounted body and rider are independent render meshes, with 170 and 80
+// bones in the observed skins. Resolve the leaf names once per full identity;
+// never reuse foot numeric indices on a mounted packet.
+void ObserveMountedRender(const local_players::Context& owner){
+    std::array<MountedRender,2> next{};
+    if(owner.index<0||owner.index>1)return;
+    if(owner.kind==local_players::PoseKind::Horse&&ChoiceMask()){
+        Snapshot horse{};
+        if(Mounted(owner,horse))for(unsigned slot=0;slot<2;++slot){
+            uintptr_t mesh=0,skeleton=0,parent=0;Array info{};
+            if(!Read(owner.pawn,slot?0xBB8:0x380,mesh)||!Read(mesh,0xE8,parent)||parent!=owner.pawn||
+               !Read(mesh,0x5A0,skeleton))continue;
+            MountedRender r{};
+            if(!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(owner.pawn),r.actor)||
+               !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(mesh),r.mesh)||
+               !native_objects::CaptureLive(g_base,reinterpret_cast<void*>(skeleton),r.skeleton))continue;
+            AcquireSRWLockShared(&g_lock);const auto before=g_mountedRender[owner.index][slot];ReleaseSRWLockShared(&g_lock);
+            if(before.actor==r.actor&&before.mesh==r.mesh&&before.skeleton==r.skeleton&&before.count){next[slot]=before;continue;}
+            if(!Read(skeleton,0x190,info)||!info.data||info.count<=0||info.count>512||info.capacity<info.count||info.capacity>1024)continue;
+            std::array<int,512> parents{};unsigned found=0;
+            for(int i=0;i<info.count;++i){
+                struct BoneInfo {int name,number,parent;} b{};
+                if(!Read(info.data,size_t(i)*12,b)||b.parent>=i||b.parent < -1){found=0;break;}
+                parents[size_t(i)]=b.parent;
+                for(unsigned hand=0;hand<2;++hand)if(native_objects::NameValueEquals(g_base,b.name,b.number,
+                   hand?"Bone_Strife_Holster_R":"Bone_Strife_Holster_L")){r.holsters[hand]=unsigned(i);found|=1u<<hand;}
+            }
+            if(found!=3)continue;
+            bool leaves=true;for(int i=0;i<info.count;++i)for(unsigned h:r.holsters)if(parents[size_t(i)]==int(h))leaves=false;
+            if(!leaves)continue;r.count=unsigned(info.count);next[slot]=r;
+        }
+    }
+    AcquireSRWLockExclusive(&g_lock);for(unsigned i=0;i<2;++i)g_mountedRender[owner.index][i]=next[i];ReleaseSRWLockExclusive(&g_lock);
+}
+bool ProcessMountedPacket(uintptr_t data,uintptr_t component,uintptr_t renderData,int lod){
+    const unsigned mask=ChoiceMask();if(!Ready()||!mask||lod<0||lod>8)return false;
+    MountedRender saved{};AcquireSRWLockShared(&g_lock);
+    for(const auto& player:g_mountedRender)for(const auto& r:player)if(r.mesh.address==component)saved=r;
+    ReleaseSRWLockShared(&g_lock);if(!saved.count||!Live(saved.actor)||!Live(saved.mesh)||!Live(saved.skeleton)||
+       !pistol_appearance::Controlled(saved.actor.address))return false;
+    uintptr_t actor=0,skeleton=0,render=0,vt=0,expected=0;
+    if(!Read(component,0xE8,actor)||actor!=saved.actor.address||!Read(component,0x5A0,skeleton)||skeleton!=saved.skeleton.address||
+       !Read(component,0x6C0,render)||!Read(render,0,vt)||vt!=g_base+0x2DC8930||
+       !Read(render,0x40,expected)||expected!=renderData||!Read(data,0,vt)||vt!=g_base+0x2DC88A8)return false;
+    Array current{},old{};if(!ArrayOf(data+0x10,int(saved.count),current)||!Read(data,0x20,old)||
+       old.count<0||old.capacity<old.count||old.capacity>1024||
+       (old.count&&(old.count!=int(saved.count)||!old.data||old.data==current.data))||
+       !Writable(current.data,size_t(saved.count)*sizeof(Matrix))||
+       (old.count&&!Writable(old.data,size_t(saved.count)*sizeof(Matrix))))return false;
+    std::array<Matrix,2> now{},before{};
+    for(unsigned hand=0;hand<2;++hand)if(mask&(1u<<hand)){
+        if(saved.holsters[hand]>=saved.count||!Read(current.data,saved.holsters[hand]*sizeof(Matrix),now[hand])||!Finite(now[hand])||
+           (old.count&&(!Read(old.data,saved.holsters[hand]*sizeof(Matrix),before[hand])||!Finite(before[hand]))))return false;
+    }
+    for(unsigned hand=0;hand<2;++hand)if(mask&(1u<<hand)){
+        for(unsigned i=0;i<3;++i)for(unsigned j=0;j<4;++j)now[hand].m[i][j]=before[hand].m[i][j]=0;
+        std::memcpy(reinterpret_cast<void*>(current.data+saved.holsters[hand]*sizeof(Matrix)),&now[hand],sizeof(Matrix));
+        if(old.count)std::memcpy(reinterpret_cast<void*>(old.data+saved.holsters[hand]*sizeof(Matrix)),&before[hand],sizeof(Matrix));
+    }
+    return true;
+}
 bool ProcessPacket(uintptr_t data,uintptr_t component,uintptr_t renderData,int lod,uint64_t now){
+    if(ProcessMountedPacket(data,component,renderData,lod))return true;
     if(!Ready()||lod<0||lod>8)return false;
     bool tracked=false;const auto mask=ChoiceMask();AcquireSRWLockShared(&g_lock);
     for(const auto& p:g_players)if(mask&&p.snapshot.mesh.address==component&&p.snapshot.present)tracked=true;
@@ -182,7 +248,7 @@ bool RetainVisibility(uintptr_t component,bool nativeHidden){
     auto& saved=g_hidden[player][owned.slot];
     if(saved.component&&saved.component!=owned.component)Restore(saved);
     const unsigned mask=owned.slot<6?ChoiceMask():BladeMask();
-    const bool off=(mask&(1u<<(owned.slot%2)))!=0;
+    const bool off=(mask&(1u<<pistol_appearance::HandForSlot(owned.slot)))!=0;
     if(off&&!saved.component)saved={owned.component,owned.actor,nativeHidden};
     if(saved.component==owned.component)saved.nativeHidden=nativeHidden;
     return off;
@@ -191,7 +257,7 @@ bool Mounted(const local_players::Context& c,Snapshot& s){
     uintptr_t cls=0,controller=0,pawn=0,mesh=0,owner=0;unsigned char type=0,role=0;
     if(c.kind!=local_players::PoseKind::Horse||!c.localPlayer||!c.character||!c.pawn||c.character==c.pawn||
        !Read(c.character,0x10,cls)||!NameIs(cls,"Strife_Blueprint_C")||!Read(c.character,0xC18,type)||type!=1||
-       !Read(c.pawn,0x10,cls)||!NameIs(cls,"Despair_Blueprint_C")||!Read(c.pawn,0x118,role)||role!=3||
+       !Read(c.pawn,0x10,cls)||!pistol_appearance::StrifeMountClass(g_base,cls)||!Read(c.pawn,0x118,role)||role!=3||
        !Read(c.pawn,0x348,controller)||controller!=c.controller||!Read(controller,0x350,pawn)||pawn!=c.pawn||
        !Read(c.pawn,0x380,mesh)||!Read(mesh,0xE8,owner)||owner!=c.pawn)return false;
     return native_objects::CaptureLive(g_base,reinterpret_cast<void*>(c.pawn),s.actor)&&
@@ -396,6 +462,8 @@ void Initialize(LogFn log,bool exactExecutable){
 void OnLivePlayer(const local_players::Context& owner,uint32_t generation,bool focused){
     if(!native_tps::OnGameThread()||owner.index<0||owner.index>1)return;
     cost_probe::Scope measured(cost_probe::PistolObserve);
+    if(Ready()){stowed_blades::base=g_base;stowed_blades::event=reinterpret_cast<stowed_blades::Event>(g_base+0xAC0630);stowed_blades::hide=&SetHidden;stowed_blades::Update(owner); }
+    ObserveMountedRender(owner);
     const unsigned index=unsigned(owner.index);Snapshot next{};const auto now=GetTickCount64();
     const bool cinema=native_tps::CinematicActive(index);bool mayFreeze=false;
     if(Ready()&&Normal(owner,next)){
@@ -440,7 +508,7 @@ void OnLivePlayer(const local_players::Context& owner,uint32_t generation,bool f
     const unsigned mountedMask=horse?ChoiceMask():0;
     const unsigned bladeMask=next.present?BladeMask():0;
     for(unsigned slot=0;slot<8;++slot){
-        const unsigned side=slot%2;
+        const unsigned side=pistol_appearance::HandForSlot(slot);
         if(slot<2&&(mask&(1u<<side)))HideAt(index,side,next);
         else if(slot>=2&&slot<6&&(mountedMask&(1u<<side)))HideAt(index,slot,mounted);
         else if(slot>=6&&(bladeMask&(1u<<side)))HideAt(index,slot,next);
@@ -468,7 +536,7 @@ void OnMeshAssigned(void* component){
     pistol_appearance::OwnedSlot owned{};if(!pistol_appearance::Resolve(g_base,reinterpret_cast<uintptr_t>(component),owned))return;
     const unsigned player=unsigned(owned.context.index);if(player>1||owned.slot>=8)return;
     const unsigned mask=owned.slot<6?ChoiceMask():BladeMask();
-    if(mask&(1u<<(owned.slot%2))){Snapshot s{};s.actor=owned.actor;s.mesh=owned.body;HideAt(player,owned.slot,s);}
+    if(mask&(1u<<pistol_appearance::HandForSlot(owned.slot))){Snapshot s{};s.actor=owned.actor;s.mesh=owned.body;HideAt(player,owned.slot,s);}
     else {auto& saved=g_hidden[player][owned.slot];if(saved.component==owned.component)Restore(saved);}
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire)&&dash_combat::PresentationReady();}

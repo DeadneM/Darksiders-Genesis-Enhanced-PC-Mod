@@ -1,3 +1,9 @@
+# État courant — V1.181 préparée, main V1.173
+
+Holsters montés, copies des lames rangées et transport HDR concordant. EXPÉRIMENTAL, CI à effectuer. FX de mêlée validé inchangé ; lames natives tenues montées encore ouvertes. [Périmètre et limites](V1_181_REVIEW.md).
+
+---
+
 # État courant — V1.180 livrée, main V1.173
 
 86/86 tests, zéro avertissement C++, ZIP vérifié et Defender exécuté. HDR expérimental sans restriction de constructeur, Native par défaut. Graphics V1.179 cumulé ; acquis V1.178 conservés. Résultat réel à tester, aucune installation. [Livraison](V1_180_DELIVERY_RECEIPT.md).

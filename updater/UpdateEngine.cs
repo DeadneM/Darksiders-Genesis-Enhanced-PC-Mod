@@ -77,7 +77,7 @@ namespace DarksidersGenesisUpdater {
         }
         // V1.177: only these verified native CVars are writable. No runtime memory calls.
         private static readonly string[] RenderKeys={"MaxAnisotropy","ScreenPercentage","ShadowQuality","ShadowMaxResolution","ShadowDistanceScale","ViewDistanceScale","SSRQuality"};
-        private static readonly string[] RenderCVars={"r.MaxAnisotropy","r.ScreenPercentage","r.ShadowQuality","r.Shadow.MaxResolution","r.Shadow.DistanceScale","r.ViewDistanceScale","r.SSR.Quality","r.AllowHDR","r.HDR.EnableHDROutput","r.HDR.Display.OutputDevice","r.HDR.Display.ColorGamut","r.HDR.UI.CompositeMode","r.HDR.UI.Level"};
+        private static readonly string[] RenderCVars={"r.MaxAnisotropy","r.ScreenPercentage","r.ShadowQuality","r.Shadow.MaxResolution","r.Shadow.DistanceScale","r.ViewDistanceScale","r.SSR.Quality","r.AllowHDR","r.HDR.EnableHDROutput","r.HDR.Display.OutputDevice","r.HDR.Display.ColorGamut","r.HDR.UI.CompositeMode","r.HDR.UI.Level","r.DefaultBackBufferPixelFormat"};
         private static readonly double[] RenderMin={1,25,0,64,0,0,0,0,0,0,0,0,0},RenderMax={16,200,5,8192,5,5,4,1,1,6,4,1,4};
         private static readonly bool[] RenderInt={true,false,true,true,false,false,true,true,true,true,true,true,false};
         [DllImport("kernel32.dll",CharSet=CharSet.Unicode)]
@@ -104,7 +104,10 @@ namespace DarksidersGenesisUpdater {
                 throw new InvalidDataException("HDR OutputMode must be Native (-1), SDR (0), or a profile 1..4");
             if(rawBrightness!=null&&(!double.TryParse(rawBrightness,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out brightness)||double.IsNaN(brightness)||double.IsInfinity(brightness)||brightness>4))
                 throw new InvalidDataException("Invalid HDR UI brightness");
-            var values=new double[]{-1,-1,-1,-1,-1,-1};
+            int buffer=0;string rawBuffer=RenderRead("HDR","BackBuffer",modIni);
+            if(rawBuffer!=null&&(!int.TryParse(rawBuffer,out buffer)||buffer<0||buffer>3))throw new InvalidDataException("Invalid HDR back buffer choice");
+            var values=new double[]{-1,-1,-1,-1,-1,-1,-1};
+            if(mode>0&&buffer!=1)values[6]=buffer==2?4:buffer==3?3:(mode==1||mode==2)?4:3;
             if(mode>=0){values[0]=values[1]=mode>0?1:0;values[2]=mode>0?mode+2:0;values[3]=(mode==1||mode==2)?2:0;}
             if(mode>0&&brightness>=0){values[4]=1;values[5]=brightness;}
             return values;

@@ -116,9 +116,9 @@ int CachedModel(uintptr_t model){
 }
 void* NativeMeshChoice(const pistol_appearance::OwnedSlot& owned,void* requested,int& incoming,int& target){
     incoming=CachedModel(reinterpret_cast<uintptr_t>(requested));target=-1;
-    const int choice=Choice(owned.slot%2);
+    const int choice=Choice(pistol_appearance::HandForSlot(owned.slot));
     if(owned.slot<4)target=choice?choice-1:-1;
-    else if(owned.slot<6)target=choice?choice+1:(runtime::Get().mountedHolstersEnabled.load()?int(owned.slot%2)+2:-1);
+    else if(owned.slot<6)target=choice?choice+1:(runtime::Get().mountedHolstersEnabled.load()?int(pistol_appearance::HandForSlot(owned.slot))+2:-1);
     native_objects::MemoryReader reader;
     return incoming>=0&&target>=0&&native_objects::Alive(reader,g_base,g_models[target])?
         reinterpret_cast<void*>(g_models[target].address):requested;
@@ -168,8 +168,9 @@ void Apply(unsigned player,uintptr_t horse){
        (meshes[i]!=g_models[0].address&&meshes[i]!=g_models[1].address&&
         meshes[i]!=g_models[2].address&&meshes[i]!=g_models[3].address))return;
     for(unsigned i=0;i<2;++i){
-        const int choice=Choice(i);
-        const int target=choice?choice+1:(runtime::Get().mountedHolstersEnabled.load()?int(i)+2:-1);
+        const unsigned hand=pistol_appearance::HandForSlot(i+4);
+        const int choice=Choice(hand);
+        const int target=choice?choice+1:(runtime::Get().mountedHolstersEnabled.load()?int(hand)+2:-1);
         SetModel(g_saved[player][i],components[i],target);
     }
 }
@@ -201,7 +202,7 @@ void OnLivePlayer(const local_players::Context& owner){
     if(!enabled)return; // Appearance stays selected during pause, wheels, menus and cinematics.
     uintptr_t cls=0,component=0;
     if(owner.kind==local_players::PoseKind::Horse&&
-       (!Read(owner.pawn,0x10,cls)||!NameIs(cls,"Despair_Blueprint_C")))return;
+       (!Read(owner.pawn,0x10,cls)||!pistol_appearance::StrifeMountClass(g_base,cls)))return;
     if(!SourceComponent(owner,component))return;
     native_objects::MemoryReader reader;
     if(!native_objects::Alive(reader,g_base,g_meshClass)){

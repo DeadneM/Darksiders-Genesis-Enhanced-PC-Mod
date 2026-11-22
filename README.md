@@ -1,3 +1,9 @@
+# V1.181 en préparation
+
+Holsters montés, copies des lames rangées et transport HDR concordant. EXPÉRIMENTAL, CI à effectuer. FX de mêlée validé inchangé ; lames natives tenues montées encore ouvertes. [Périmètre et limites](docs/V1_181_REVIEW.md).
+
+---
+
 ## V1.180 — beta HDR disponible sur debug
 
 Graphics > HDR : Native / SDR / HDR10 / scRGB, mêmes choix sur Intel, AMD et NVIDIA. Profils expérimentaux au redémarrage avec retour Native. 86/86 tests, zéro avertissement C++ ; image HDR à tester. [ZIP et essai](docs/V1_180_DELIVERY_RECEIPT.md).

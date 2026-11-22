@@ -17,6 +17,7 @@ dg::native_objects::Identity Register(void* p,int index){
 bool Setter(void* p,void* model){++calls;if(reject)return false;Put(p,0x5B0,model);return true;}
 void Run(){
     using namespace dg::mounted_holsters;
+    for(unsigned slot=0;slot<8;++slot)Check(dg::pistol_appearance::HandForSlot(slot)==(slot>=4&&slot<6?((slot%2)^1u):slot%2),"one logical hand policy covers held, stowed and blade components");
     std::vector<unsigned char> image(0x3960000);g_base=reinterpret_cast<uintptr_t>(image.data());
     Put(image.data(),0x3959680,chunks+0);Put(image.data(),0x3959694,64);
     g_ready=true;g_setMesh=Setter;
@@ -50,13 +51,13 @@ void Run(){
     Apply(0,reinterpret_cast<uintptr_t>(horses[0]));Apply(1,reinterpret_cast<uintptr_t>(horses[1]));
     Check(calls==4,"exactly two native model setters per local mount");
     for(unsigned i=0;i<2;++i)for(unsigned j=0;j<2;++j){
-        Check(Get<void*>(components[i][j],0x5B0)==assets[j+2],"correct left/right native stowed assets");
+        Check(Get<void*>(components[i][j],0x5B0)==assets[(j^1u)+2],"stowed geometry belongs to the opposite hand");
         Check(Get<uint64_t>(components[i][j],0x110)==0x1122334455667788&&Get<unsigned char>(components[i][j],0x1CC)==0x20,"sockets and visibility untouched");
     }
     Apply(0,reinterpret_cast<uintptr_t>(horses[0]));Check(calls==4,"no repeated setter when already applied");
     dg::local_players::Context owner{};owner.index=0;owner.kind=dg::local_players::PoseKind::Horse;
     dg::runtime::Get().mountedHolstersEnabled=false;OnLivePlayer(owner);
-    Check(Get<void*>(components[0][0],0x5B0)==assets[0]&&Get<void*>(components[1][0],0x5B0)==assets[2],"OFF restores this player's saved models without touching the other player");
+    Check(Get<void*>(components[0][0],0x5B0)==assets[0]&&Get<void*>(components[1][0],0x5B0)==assets[3],"OFF restores this player's saved models without touching the other player");
     owner.index=1;owner.kind=dg::local_players::PoseKind::Foot;OnLivePlayer(owner);
     Check(Get<void*>(components[1][1],0x5B0)==assets[1],"dismount restores native models");
     dg::runtime::Get().mountedHolstersEnabled=true;
@@ -88,7 +89,7 @@ void Run(){
     Put(components[0][1],0x5B0,static_cast<void*>(assets[1]));
     dg::runtime::Get().pistolRightModel=2;dg::runtime::Get().pistolLeftModel=1;
     Apply(0,reinterpret_cast<uintptr_t>(horses[0]));
-    Check(Get<void*>(components[0][0],0x5B0)==assets[3]&&Get<void*>(components[0][1],0x5B0)==assets[2],"swapped hands select matching stowed geometries independently");
+    Check(Get<void*>(components[0][0],0x5B0)==assets[2]&&Get<void*>(components[0][1],0x5B0)==assets[3],"cross-body stowed slots select the matching logical hand");
     dg::runtime::Get().mountedHolstersEnabled=false;
     dg::runtime::Get().pistolRightModel=0;dg::runtime::Get().pistolLeftModel=0;
     Apply(0,reinterpret_cast<uintptr_t>(horses[0]));

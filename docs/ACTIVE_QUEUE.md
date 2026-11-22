@@ -1,3 +1,21 @@
+## V1.181 — préparation
+
+[Source et limites](V1_181_REVIEW.md). Essai des holsters des deux chevaux, copies de lames rangées et HDR. Lames natives tenues montées : diagnostic encore ouvert. Étudier graphismes à chaud pour les sept Rendering quality ; garder les valeurs et chemins validés.
+
+---
+
+## Retour utilisateur — armes et holsters montés (après V1.180)
+
+- VALIDÉ utilisateur : effet des lames à cheval ; préserver le correctif FX.
+- OUVERT : lames toujours invisibles à cheval, y compris Native selon le retour précédent.
+- OUVERT : présentation pistolet/holster inversée entre pied et monture ; l'autre holster reste visible.
+- Règle confirmée : pistolet main droite → holster côté gauche, pistolet main gauche → holster côté droit. Distinguer côté de la main, côté visible du rangement et noms internes des os/composants. Appliquer aussi cette distinction au futur rangement des lames.
+- Audit initial : PistolVisualFeature.cpp applique slot%2 uniformément aux composants montés tenus et rangés (slots 2..5), sans correspondance explicite main/rangement. Le masquage des holsters par matrices de PistolVisualPolicy.h vise le squelette normal ; il ne suffit pas pour la monture. Ce constat explique une lacune de couverture, pas encore la correspondance exacte des composants montés.
+- Prochaine correction : cartographie explicite par rôle (main/rangement/holster), puis tests pied↔cheval avec droite seule, gauche seule, deux et OFF. Ne pas inverser globalement les côtés ni toucher aux FX validés. Visibilité des lames montée à traiter séparément après identification du modèle natif.
+- Aucun correctif runtime ni build annoncé pour ce seul relevé.
+
+---
+
 # Priorité — essai HDR V1.180
 
 1. HDR10 1000 / Native / scRGB 1000, fermeture et relance entre profils, Windows HDR actif.

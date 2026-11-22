@@ -60,9 +60,9 @@ internal static class UpdateEngineSafetyTests {
             Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==0&&!File.Exists(ledger)&&Convert.ToBase64String(original)==Convert.ToBase64String(File.ReadAllBytes(engine)),"HDR Native never edits existing engine settings");
             for(int mode=1;mode<=4;mode++){
                 File.WriteAllText(mod,"[HDR]\r\nOutputMode="+mode+"\r\nUIBrightness=1.5\r\n",encoding);
-                Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==6,"HDR profile applies six coupled CVars without a vendor qualification");
+                Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==7,"HDR profile couples output encoding and matching buffer without vendor gating");
                 string value=File.ReadAllText(engine,encoding);
-                foreach(string expected in new[]{"r.AllowHDR=1","r.HDR.EnableHDROutput=1","r.HDR.Display.OutputDevice="+(mode+2),"r.HDR.Display.ColorGamut="+((mode==1||mode==2)?2:0),"r.HDR.UI.CompositeMode=1","r.HDR.UI.Level=1.5","r.MaxAnisotropy=8"})
+                foreach(string expected in new[]{"r.AllowHDR=1","r.HDR.EnableHDROutput=1","r.HDR.Display.OutputDevice="+(mode+2),"r.HDR.Display.ColorGamut="+((mode==1||mode==2)?2:0),"r.HDR.UI.CompositeMode=1","r.HDR.UI.Level=1.5","r.DefaultBackBufferPixelFormat="+(mode<=2?4:3),"r.MaxAnisotropy=8"})
                     Check(value.Contains(expected),"HDR profile maps exact engine request: "+expected);
                 Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==0,"unchanged HDR profile is idempotent");
                 File.WriteAllText(mod,"[HDR]\r\nOutputMode=-1\r\nUIBrightness=1.5\r\n",encoding);UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;});
@@ -72,7 +72,7 @@ internal static class UpdateEngineSafetyTests {
             File.WriteAllText(mod,"[HDR]\r\nOutputMode=0\r\nUIBrightness=1.5\r\n",encoding);Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==4,"explicit SDR requests four output CVars and leaves HUD native");
             Check(File.ReadAllText(engine,encoding).Contains("r.HDR.EnableHDROutput=0")&&File.ReadAllText(engine,encoding).Contains("r.HDR.UI.Level=0.75"),"SDR does not leak the saved optional HDR HUD level");
             File.WriteAllText(mod,"[HDR]\r\nOutputMode=-1\r\n",encoding);UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;});
-            foreach(string invalid in new[]{"OutputMode=5","OutputMode=1.5","OutputMode=1\r\nUIBrightness=NaN","OutputMode=1\r\nUIBrightness=5"}){
+            foreach(string invalid in new[]{"OutputMode=1\r\nBackBuffer=4","OutputMode=5","OutputMode=1.5","OutputMode=1\r\nUIBrightness=NaN","OutputMode=1\r\nUIBrightness=5"}){
                 original=File.ReadAllBytes(engine);File.WriteAllText(mod,"[HDR]\r\n"+invalid+"\r\n",encoding);bool rejected=false;
                 try{UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;});}catch(InvalidDataException){rejected=true;}
                 Check(rejected&&!File.Exists(ledger)&&Convert.ToBase64String(original)==Convert.ToBase64String(File.ReadAllBytes(engine)),"invalid HDR preference causes no partial engine edit");

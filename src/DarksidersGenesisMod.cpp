@@ -16,6 +16,7 @@
 #include "CoopCameraFeature.h"
 #include "ChaosPoseFeature.h"
 #include "ConfigStore.h"
+#include "HdrTransport.h"
 #include "EngineIniFeature.h"
 #include "TemporalAAFeature.h"
 #include "CoreUiLevelFeature.h"
@@ -3082,6 +3083,8 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 // Desktop HDR and back-buffer format do not prove the game's HDR metadata.
 dg::hdr::Status QueryHdrOutputStatus(){
     dg::hdr::Status status{};status.checked=true;
+    status.transportAttempted=dg::hdr::transport.attempted;status.transportApplied=dg::hdr::transport.applied;
+    status.formatMismatch=dg::hdr::transport.formatMismatch;status.transportResult=dg::hdr::transport.result;
     if(!g_device||!g_gameSwapChain)return status;
     LUID adapterId{};HMONITOR monitor=nullptr;
     IDXGIDevice* dxgiDevice=nullptr;
@@ -3914,6 +3917,7 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     g_config.FlushIfDue(false);
 
     TraceGameWindowState(swapChain);
+    dg::hdr::ServiceTransport(swapChain,g_config.hdrOutput);
     ProcessCameraInput();
     EnsureOrbitWndProc(swapChain);
     if(g_originalWndProc && g_hwnd)EnsureRelativeMouse(g_hwnd);
@@ -3982,6 +3986,7 @@ HRESULT __stdcall HookResizeBuffers(
     DXGI_FORMAT newFormat,
     UINT swapChainFlags
 ) {
+    dg::hdr::InvalidateTransport();
     DXGI_SWAP_CHAIN_DESC beforeDesc{};
     HWND traceHwnd = nullptr;
     bool processSwapChain = false;

@@ -924,6 +924,7 @@ void Draw(Context& c) {
             HelpText("Hide the gameplay mouse crosshair in the selected view. Native menus, wheels and the mod menu keep their cursors. Mouse movement, aiming and controller inputs stay unchanged. The approved default hides it in TPS.");
             constexpr const char* bladeModes[]={"Native","Hide left blade","Hide right blade","Hide both blades"};
             ImGui::BeginDisabled(!pistol_visual::Ready());if(Choice("Strife melee blades",&config.strifeBladeVisibility,bladeModes,4))config.Save();
+            if(ImGui::Checkbox("Show Strife blades when sheathed",&config.showStrifeStowedBlades))config.Save();
             ImGui::EndDisabled();
             HelpText("Hide each melee blade model independently. Attacks, damage, hand animations and weapon sheathing stay native. Both local players; normal Strife only.");
             ImGui::Unindent();
@@ -1495,6 +1496,17 @@ void Draw(Context& c) {
                 if(ImGui::Checkbox("Customize HDR HUD brightness",&customBrightness)){config.hdrOutput.uiBrightness=customBrightness?1.5f:-1;hdrChanged=true;}
                 if(customBrightness&&NumberRow("HUD brightness","HDRUIBrightness",&config.hdrOutput.uiBrightness,0,4,1.5f,"%.2f","%.3f"))hdrChanged=true;
                 ImGui::EndDisabled();
+                constexpr const char* bufferModes[]={"Match HDR profile","Keep native buffer","10-bit RGB / 2-bit alpha","16-bit float RGBA"};
+                if(Choice("HDR buffer format",&config.hdrOutput.buffer,bufferModes,4))hdrChanged=true;
+                if(ImGui::Checkbox("Use DXGI HDR signaling",&config.hdrOutput.dxgiSignaling))hdrChanged=true;
+                if(ImGui::Checkbox("Customize HDR10 metadata",&config.hdrOutput.customMetadata))hdrChanged=true;
+                if(config.hdrOutput.customMetadata){
+                    if(NumberRow("Mastering peak (nits)","HDRPeak",&config.hdrOutput.peakNits,80,10000,1000,"%.0f","%.0f"))hdrChanged=true;
+                    if(NumberRow("Mastering black (nits)","HDRBlack",&config.hdrOutput.minNits,0,20,.001f,"%.4f","%.4f"))hdrChanged=true;
+                    if(NumberRow("Content peak (MaxCLL)","HDRCLL",&config.hdrOutput.maxCLL,1,10000,1000,"%.0f","%.0f"))hdrChanged=true;
+                    if(NumberRow("Average peak (MaxFALL)","HDRFALL",&config.hdrOutput.maxFALL,1,10000,400,"%.0f","%.0f"))hdrChanged=true;
+                    HelpText("HDR10 metadata describes the content to the display; it does not change the 1000/2000-nit tone curve. scRGB uses no HDR10 metadata.");
+                }
                 if(hdrChanged){const bool saved=config.SaveNow();const bool queued=saved&&c.queueGraphicsAdapter&&c.queueGraphicsAdapter(config.graphicsAdapter);
                     *c.lastAction=!saved?"HDR preference save failed":queued?"HDR request queued; restart required":"HDR preference saved; exit helper queue failed";}
                 HelpText("The profiles request the engine's HDR output; correct image, highlights and HUD need in-game validation. HUD brightness controls the native game HUD. Keep Windows HDR enabled for the test.");
@@ -1508,6 +1520,10 @@ void Draw(Context& c) {
                 if(status.bufferFormat){const char* depth=status.bufferFormat==24?"10-bit":status.bufferFormat==10?"16-bit floating point":
                     (status.bufferFormat==28||status.bufferFormat==29||status.bufferFormat==87||status.bufferFormat==91)?"8-bit":"Unknown";
                     ImGui::TextDisabled("Game output buffer: %s",depth);}
+                if(status.transportAttempted){
+                    ImGui::Text("HDR signaling: %s (0x%08X)",status.transportApplied?"accepted":status.formatMismatch?"buffer mismatch":"not accepted",unsigned(status.transportResult));
+                    if(status.formatMismatch)HelpText("The buffer does not match the HDR encoding. Use Match HDR profile and restart before judging colors.");
+                }
                 HelpText("Display information below reports the current output, not whether the requested HDR profile succeeded.");
                 HelpText("The availability check is read-only. Windows HDR and buffer depth do not prove HDR game output. Refresh after changing displays; reported monitor values can be incomplete.");
                 ImGui::Unindent();

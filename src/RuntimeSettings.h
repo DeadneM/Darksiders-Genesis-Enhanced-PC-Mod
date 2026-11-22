@@ -20,6 +20,7 @@ struct Snapshot {
     int pistolRightModel = 0;
     int pistolLeftModel = 0;
     int strifeBladeVisibility = 0;
+    bool showStrifeStowedBlades = false;
     int warArmAppearance=0,mouseReticleHideMode=defaults::MouseReticleHideMode;
     bool mountedJumpEnabled = defaults::MountedJump;
     int mountedJumpSound = 0;
@@ -156,6 +157,7 @@ struct State {
     std::atomic_int pistolRightModel{0};
     std::atomic_int pistolLeftModel{0};
     std::atomic_int strifeBladeVisibility{0};
+    std::atomic_bool showStrifeStowedBlades{false};
     std::atomic_int warArmAppearance{0},mouseReticleHideMode{defaults::MouseReticleHideMode};
     std::atomic_bool mountedJumpEnabled{defaults::MountedJump};
     std::atomic_int mountedJumpSound{0};

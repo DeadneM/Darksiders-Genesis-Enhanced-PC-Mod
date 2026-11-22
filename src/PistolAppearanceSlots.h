@@ -6,6 +6,11 @@
 
 namespace dg::pistol_appearance {
 inline constexpr std::array<size_t,8> Offsets={0x1040,0x1048,0xBA0,0xBA8,0xBF8,0xC00,0x1010,0x1018};
+// Logical hand ownership differs from the visible holster side.
+inline constexpr unsigned HandForSlot(unsigned slot){return slot>=4&&slot<6?(slot%2)^1u:slot%2;}
+inline bool StrifeMountClass(uintptr_t base,uintptr_t cls){
+    return native_objects::NameIs(base,cls,"Mayhem_Blueprint_C")||native_objects::NameIs(base,cls,"Despair_Blueprint_C");
+}
 struct OwnedSlot {local_players::Context context{};native_objects::Identity actor{},body{},component{};unsigned slot=0;};
 template<class T>bool Read(uintptr_t p,size_t offset,T& value){native_objects::MemoryReader r;return r.Read(p,offset,value);}
 inline bool Controlled(uintptr_t actor){uintptr_t controller=0,pawn=0;return Read(actor,0x348,controller)&&controller&&Read(controller,0x350,pawn)&&pawn==actor;}
@@ -21,14 +26,14 @@ inline bool Resolve(uintptr_t base,uintptr_t component,OwnedSlot& out){
     uintptr_t vt=0,actor=0,cls=0,controller=0,pawn=0,body=0,bodyOwner=0;unsigned char role=0,type=0;uint32_t flags=0;
     if(!Read(component,8,flags)||(flags&0x18030u)||!Read(component,0,vt)||(vt!=base+0x2A575C8&&vt!=base+0x2724250)||!Read(component,0xE8,actor)||!actor||
        !Read(actor,8,flags)||(flags&0x18030u)||!Read(actor,0x10,cls)||
-       (!native_objects::NameIs(base,cls,"Strife_Blueprint_C")&&!native_objects::NameIs(base,cls,"Despair_Blueprint_C")))return false;
+       (!native_objects::NameIs(base,cls,"Strife_Blueprint_C")&&!StrifeMountClass(base,cls)))return false;
     local_players::Context c{};
     if(!local_players::ResolveActor(reinterpret_cast<void*>(actor),c)||c.index<0||c.index>1||!c.localPlayer||actor!=c.pawn||
        !Read(actor,0x118,role)||role!=3||!Read(actor,0x348,controller)||controller!=c.controller||!Read(controller,0x350,pawn)||pawn!=actor||
        !Read(c.character,0xC18,type)||type!=1||!Read(c.character,0x10,cls)||!native_objects::NameIs(base,cls,"Strife_Blueprint_C")||
        !Read(actor,0x380,body)||!body||!Read(body,8,flags)||(flags&0x18030u)||!Read(body,0xE8,bodyOwner)||bodyOwner!=actor)return false;
     const bool foot=c.kind==local_players::PoseKind::Foot&&c.character==c.pawn;
-    const bool horse=c.kind==local_players::PoseKind::Horse&&c.character!=c.pawn&&Read(actor,0x10,cls)&&native_objects::NameIs(base,cls,"Despair_Blueprint_C");
+    const bool horse=c.kind==local_players::PoseKind::Horse&&c.character!=c.pawn&&Read(actor,0x10,cls)&&StrifeMountClass(base,cls);
     if(!foot&&!horse)return false;
     for(unsigned slot=0;slot<Offsets.size();++slot){
         if(foot?(slot>=2&&slot<6):(slot<2||slot>=6))continue;

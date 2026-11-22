@@ -220,9 +220,28 @@ void Runtime(){
         Put<unsigned char>(horseGuns[i],0x1CC,0x21);
     }
     dg::runtime::Get().pistolRightModel=3;dg::runtime::Get().pistolLeftModel=0;OnLivePlayer(horse,9,true);
-    Check(Get<unsigned char>(horseGuns[0],0x1CC)==0x61&&Get<unsigned char>(horseGuns[2],0x1CC)==0x61,"mounted OFF hides both owned right hand and stowed pistol");
-    Check(Get<unsigned char>(horseGuns[1],0x1CC)==0x21&&Get<unsigned char>(horseGuns[3],0x1CC)==0x21,"mounted opposite hand and stowed model remain native");
+    Check(Get<unsigned char>(horseGuns[0],0x1CC)==0x61&&Get<unsigned char>(horseGuns[3],0x1CC)==0x61,"mounted OFF hides both owned right hand and stowed pistol");
+    Check(Get<unsigned char>(horseGuns[1],0x1CC)==0x21&&Get<unsigned char>(horseGuns[2],0x1CC)==0x21,"mounted opposite hand and stowed model remain native");
     Check(!PoseReady(0),"mounted model hiding does not reuse foot arm pose or horse animation");
+    Name(8,"Mayhem_Blueprint_C");Snapshot baseMount{};Check(Mounted(horse,baseMount),"Strife base horse is covered like the bonus horse");
+    Name(8,"Despair_Blueprint_C");
+    {
+        std::array<Matrix,170> mountedCurrent{},mountedPrevious{};
+        for(unsigned bone=0;bone<170;++bone)mountedCurrent[bone]=mountedPrevious[bone]=Translation(float(bone),0,0);
+        const auto pristine=mountedCurrent;
+        Put(horseMesh,0x5A0,g_players[1].snapshot.skeleton.address);
+        Put(horseMesh,0x6C0,reinterpret_cast<uintptr_t>(renderObjects[0]));
+        Put(renderObjects[0],0,g_base+0x2DC8930);Put(renderObjects[0],0x40,uintptr_t(0x1234));
+        Put(packets[0],0,g_base+0x2DC88A8);
+        Put(packets[0],0x10,Array{reinterpret_cast<uintptr_t>(mountedCurrent.data()),170,170});
+        Put(packets[0],0x20,Array{reinterpret_cast<uintptr_t>(mountedPrevious.data()),170,170});
+        g_mountedRender[0][0]={horseId,horseMeshId,g_players[1].snapshot.skeleton,170,{168,167}};
+        Check(ProcessMountedPacket(reinterpret_cast<uintptr_t>(packets[0]),horseMeshId.address,0x1234,0),"mounted 170-bone packet is supported without foot bone indices");
+        Check(mountedCurrent[168].m[0][0]==0&&mountedPrevious[168].m[0][0]==0&&Equal(mountedCurrent[167],pristine[167])&&Equal(mountedCurrent[132],pristine[132]),"right OFF hides only the left holster and keeps the mounted hand native");
+        mountedCurrent=mountedPrevious=pristine;Put(packets[0],0x20,Array{reinterpret_cast<uintptr_t>(mountedPrevious.data()),169,170});
+        Check(!ProcessMountedPacket(reinterpret_cast<uintptr_t>(packets[0]),horseMeshId.address,0x1234,0)&&Equal(mountedCurrent[168],pristine[168]),"invalid previous mounted packet cannot partially collapse current geometry");
+        g_mountedRender[0][0]={};
+    }
     paused=radial=true;OnLivePlayer(horse,9,true);
     Check(Get<unsigned char>(horseGuns[0],0x1CC)==0x61,"wheel/pause cannot restore OFF models");
     Restore(g_hidden[0][2]);
@@ -232,10 +251,10 @@ void Runtime(){
           "first native visibility event discovers uncached OFF component and preserves child propagation");
     paused=radial=false;
     HookHidden(horseGuns[0],true,1);dg::runtime::Get().pistolRightModel=0;OnLivePlayer(horse,9,true);
-    Check(Get<unsigned char>(horseGuns[0],0x1CC)==0x61&&Get<unsigned char>(horseGuns[2],0x1CC)==0x21,"Native restores latest native mounted visibility independently per component");
+    Check(Get<unsigned char>(horseGuns[0],0x1CC)==0x61&&Get<unsigned char>(horseGuns[3],0x1CC)==0x21,"Native restores latest native mounted visibility independently per component");
     HookHidden(horseGuns[0],false,1);dg::runtime::Get().pistolLeftModel=3;OnLivePlayer(horse,9,true);
-    Check(Get<unsigned char>(horseGuns[1],0x1CC)==0x61&&Get<unsigned char>(horseGuns[3],0x1CC)==0x61,"left mounted OFF uses left offsets only");
-    OnLivePlayer(horse,9,false);Check(Get<unsigned char>(horseGuns[1],0x1CC)==0x61&&Get<unsigned char>(horseGuns[3],0x1CC)==0x61,"focus loss retains mounted OFF appearance");
+    Check(Get<unsigned char>(horseGuns[1],0x1CC)==0x61&&Get<unsigned char>(horseGuns[2],0x1CC)==0x61,"left mounted OFF uses the opposite stowed socket");
+    OnLivePlayer(horse,9,false);Check(Get<unsigned char>(horseGuns[1],0x1CC)==0x61&&Get<unsigned char>(horseGuns[2],0x1CC)==0x61,"focus loss retains mounted OFF appearance");
     const auto n=hiddenCalls;Put(horseActor,0x348,uintptr_t(0));OnLivePlayer(horse,9,true);
     Check(hiddenCalls==n+2&&Get<unsigned char>(horseGuns[1],0x1CC)==0x21,"invalid mounted controller restores only the existing leases");
     // Return to a normal pawn with no cached arm pose: OFF still applies now.

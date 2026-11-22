@@ -335,7 +335,7 @@ void Store::ResetDefaults(bool persist) {
     recoveryDashTailEnabled=recoveryChestTailEnabled=defaults::RecoveryTail;recoveryTailDelaySeconds=0;
     wrathSlots={};
     mountedHolstersEnabled=defaults::MountedHolsters;
-    strifeBladeVisibility=0;warArmAppearance=0;mouseReticleHideMode=defaults::MouseReticleHideMode;mountedJumpEnabled=defaults::MountedJump;mountedJumpSound=0;mountedAirWalkEnabled=defaults::MountedAirWalk;mountedAirWalkReleaseDelay=defaults::MountedAirWalkReleaseDelay;
+    showStrifeStowedBlades=false;strifeBladeVisibility=0;warArmAppearance=0;mouseReticleHideMode=defaults::MouseReticleHideMode;mountedJumpEnabled=defaults::MountedJump;mountedJumpSound=0;mountedAirWalkEnabled=defaults::MountedAirWalk;mountedAirWalkReleaseDelay=defaults::MountedAirWalkReleaseDelay;
     pistolRightModel=0;pistolLeftModel=0;bonusMountSkinsEnabled=defaults::BonusMountSkins;progressionSkinsEnabled=false;
     leviathanVisualEnabled=false;leviathanVisualMode=0;effectAppearances={};shieldTransforms={};leviathanTransforms={};
     sheathStrifeMeleeNeverEnabled=false;sheathStrifeMeleeDelaySeconds=0.0f;
@@ -605,6 +605,7 @@ bool Store::Load() {
     pistolLeftModel=GetPrivateProfileIntW(L"Values",L"PistolLeftModel",0,path_.c_str());
     if(pistolRightModel<0||pistolRightModel>3)pistolRightModel=0;
     if(pistolLeftModel<0||pistolLeftModel>3)pistolLeftModel=0;
+    showStrifeStowedBlades=ReadBool(L"Values",L"ShowStrifeStowedBlades",false,path_);
     strifeBladeVisibility=GetPrivateProfileIntW(L"Values",L"StrifeBladeVisibility",0,path_.c_str());
     if(strifeBladeVisibility<0||strifeBladeVisibility>3)strifeBladeVisibility=0;
     warArmAppearance=GetPrivateProfileIntW(L"Values",L"WarArmAppearance",0,path_.c_str());
@@ -703,6 +704,12 @@ bool Store::Load() {
         renderQuality[i]=render_quality::Normalize(i,ReadFloat(L"RenderQuality",key,-1,path_));}
     hdrOutput=hdr::Normalize({int(GetPrivateProfileIntW(L"HDR",L"OutputMode",-1,path_.c_str())),
         ReadFloat(L"HDR",L"UIBrightness",-1,path_)});
+    hdrOutput.buffer=int(GetPrivateProfileIntW(L"HDR",L"BackBuffer",0,path_.c_str()));
+    hdrOutput.dxgiSignaling=ReadBool(L"HDR",L"DXGISignaling",true,path_);
+    hdrOutput.customMetadata=ReadBool(L"HDR",L"CustomMetadata",false,path_);
+    hdrOutput.peakNits=ReadFloat(L"HDR",L"PeakNits",1000,path_);hdrOutput.minNits=ReadFloat(L"HDR",L"MinNits",.001f,path_);
+    hdrOutput.maxCLL=ReadFloat(L"HDR",L"MaxCLL",1000,path_);hdrOutput.maxFALL=ReadFloat(L"HDR",L"MaxFALL",400,path_);
+    hdrOutput=hdr::Normalize(hdrOutput);
     const bool oldOrbit=ReadBool(L"Features",L"CameraControllerOrbit",true,path_);
     tpsCameraStickMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(
         L"Features",L"TPSCameraStickMode",oldOrbit?2:0,path_.c_str())),0,2);
@@ -1002,6 +1009,7 @@ void Store::PublishRuntime() const {
     runtime.pistolRightModel=pistolRightModel;
     runtime.pistolLeftModel=pistolLeftModel;
     runtime.strifeBladeVisibility=strifeBladeVisibility;
+    runtime.showStrifeStowedBlades=showStrifeStowedBlades;
     runtime.warArmAppearance=warArmAppearance;runtime.mouseReticleHideMode=mouseReticleHideMode;
     runtime.mountedJumpEnabled=mountedJumpEnabled;
     runtime.mountedJumpSound=mountedJumpSound;
@@ -1199,6 +1207,7 @@ bool Store::SaveNow() {
     WriteInt(L"Values",L"PistolRightModel",pistolRightModel,path_);
     WriteInt(L"Values",L"PistolLeftModel",pistolLeftModel,path_);
     WriteInt(L"Values",L"StrifeBladeVisibility",strifeBladeVisibility,path_);
+    WriteBool(L"Values",L"ShowStrifeStowedBlades",showStrifeStowedBlades,path_);
     WriteInt(L"Values",L"WarArmAppearance",warArmAppearance,path_);
     WriteInt(L"Values",L"MouseReticleHideMode",mouseReticleHideMode,path_);
     WriteInt(L"Features",L"MountedJump",mountedJumpEnabled?1:0,path_);
@@ -1265,6 +1274,10 @@ bool Store::SaveNow() {
     const auto normalizedHdr=hdr::Normalize(hdrOutput);
     WriteInt(L"HDR",L"OutputMode",normalizedHdr.mode,path_);
     WriteFloat(L"HDR",L"UIBrightness",normalizedHdr.uiBrightness,path_);
+    WriteInt(L"HDR",L"BackBuffer",normalizedHdr.buffer,path_);
+    WriteBool(L"HDR",L"DXGISignaling",normalizedHdr.dxgiSignaling,path_);WriteBool(L"HDR",L"CustomMetadata",normalizedHdr.customMetadata,path_);
+    WriteFloat(L"HDR",L"PeakNits",normalizedHdr.peakNits,path_);WriteFloat(L"HDR",L"MinNits",normalizedHdr.minNits,path_);
+    WriteFloat(L"HDR",L"MaxCLL",normalizedHdr.maxCLL,path_);WriteFloat(L"HDR",L"MaxFALL",normalizedHdr.maxFALL,path_);
     const auto normalizedAA=temporal_aa::Normalize(temporalAA);
     for(size_t i=0;i<postprocess::Count;++i){wchar_t key[96]{};
         swprintf_s(key,L"%hs",postprocess::Specs[i].key);

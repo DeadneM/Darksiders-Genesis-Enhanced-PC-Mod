@@ -24,6 +24,12 @@ struct Access {
 };
 void Run(){
     const dg::hdr::Settings nativeHdr{};Check(nativeHdr.mode==-1&&nativeHdr.uiBrightness==-1,"HDR leaves existing engine settings native by default");
+    dg::hdr::Settings hdr10{1,-1},scrgb{3,-1};
+    Check(dg::hdr::BufferValue(hdr10)==4&&dg::hdr::BufferValue(scrgb)==3,"HDR10 selects RGB10 while scRGB selects float RGBA");
+    hdr10.mode=-1;Check(dg::hdr::BufferValue(hdr10)==-1,"Native does not own the buffer format");
+    hdr10={1,-1};hdr10.buffer=1;Check(dg::hdr::BufferValue(hdr10)==-1,"explicit native buffer stays untouched");
+    hdr10.maxCLL=200;hdr10.maxFALL=900;hdr10.minNits=-2;hdr10.peakNits=99999;
+    hdr10=dg::hdr::Normalize(hdr10);Check(hdr10.maxFALL==200&&hdr10.minNits==0&&hdr10.peakNits==10000,"metadata remains finite, bounded and FALL does not exceed CLL");
     const auto boundedHdr=dg::hdr::Normalize({4,9});Check(boundedHdr.mode==4&&boundedHdr.uiBrightness==4,"HDR UI range remains bounded");
     const auto invalidHdr=dg::hdr::Normalize({99,std::numeric_limits<float>::quiet_NaN()});Check(invalidHdr.mode==-1&&invalidHdr.uiBrightness==-1,"invalid HDR input fails to Native");
     for(size_t i=0;i<dg::render_quality::Specs.size();++i){const auto& spec=dg::render_quality::Specs[i];

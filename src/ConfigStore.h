@@ -274,6 +274,7 @@ public:
     int pistolRightModel = 0;
     int pistolLeftModel = 0;
     int strifeBladeVisibility = 0;
+    bool showStrifeStowedBlades = false;
     int warArmAppearance=0,mouseReticleHideMode=defaults::MouseReticleHideMode;
     bool mountedJumpEnabled = defaults::MountedJump;
     int mountedJumpSound = 0;
