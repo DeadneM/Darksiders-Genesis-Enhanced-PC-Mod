@@ -77,9 +77,9 @@ namespace DarksidersGenesisUpdater {
         }
         // V1.177: only these verified native CVars are writable. No runtime memory calls.
         private static readonly string[] RenderKeys={"MaxAnisotropy","ScreenPercentage","ShadowQuality","ShadowMaxResolution","ShadowDistanceScale","ViewDistanceScale","SSRQuality"};
-        private static readonly string[] RenderCVars={"r.MaxAnisotropy","r.ScreenPercentage","r.ShadowQuality","r.Shadow.MaxResolution","r.Shadow.DistanceScale","r.ViewDistanceScale","r.SSR.Quality"};
-        private static readonly double[] RenderMin={1,25,0,64,0,0,0},RenderMax={16,200,5,8192,5,5,4};
-        private static readonly bool[] RenderInt={true,false,true,true,false,false,true};
+        private static readonly string[] RenderCVars={"r.MaxAnisotropy","r.ScreenPercentage","r.ShadowQuality","r.Shadow.MaxResolution","r.Shadow.DistanceScale","r.ViewDistanceScale","r.SSR.Quality","r.AllowHDR","r.HDR.EnableHDROutput","r.HDR.Display.OutputDevice","r.HDR.Display.ColorGamut","r.HDR.UI.CompositeMode","r.HDR.UI.Level"};
+        private static readonly double[] RenderMin={1,25,0,64,0,0,0,0,0,0,0,0,0},RenderMax={16,200,5,8192,5,5,4,1,1,6,4,1,4};
+        private static readonly bool[] RenderInt={true,false,true,true,false,false,true,true,true,true,true,true,false};
         [DllImport("kernel32.dll",CharSet=CharSet.Unicode)]
         private static extern uint GetPrivateProfileString(string section,string key,string fallback,StringBuilder value,uint size,string path);
         private static string RenderRead(string section,string key,string path) {
@@ -94,6 +94,20 @@ namespace DarksidersGenesisUpdater {
         private static void RenderStateWrite(string path,byte[] bytes) {
             string temp=path+".tmp";File.WriteAllBytes(temp,bytes);
             if(File.Exists(path))File.Replace(temp,path,null);else File.Move(temp,path);
+        }
+        // Identical experimental engine requests on Intel, AMD and NVIDIA.
+        // Vendor-specific paths in the game are not a mod-side restriction.
+        private static double[] HdrRequestValues(string modIni) {
+            string rawMode=RenderRead("HDR","OutputMode",modIni),rawBrightness=RenderRead("HDR","UIBrightness",modIni);
+            int mode=-1;double brightness=-1;
+            if(rawMode!=null&&(!int.TryParse(rawMode,System.Globalization.NumberStyles.Integer,System.Globalization.CultureInfo.InvariantCulture,out mode)||mode < -1||mode > 4))
+                throw new InvalidDataException("HDR OutputMode must be Native (-1), SDR (0), or a profile 1..4");
+            if(rawBrightness!=null&&(!double.TryParse(rawBrightness,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out brightness)||double.IsNaN(brightness)||double.IsInfinity(brightness)||brightness>4))
+                throw new InvalidDataException("Invalid HDR UI brightness");
+            var values=new double[]{-1,-1,-1,-1,-1,-1};
+            if(mode>=0){values[0]=values[1]=mode>0?1:0;values[2]=mode>0?mode+2:0;values[3]=(mode==1||mode==2)?2:0;}
+            if(mode>0&&brightness>=0){values[4]=1;values[5]=brightness;}
+            return values;
         }
         internal static int ApplyRenderQualityAfterExit(string folder) {
             ValidateFolder(folder);
@@ -111,12 +125,16 @@ namespace DarksidersGenesisUpdater {
             if(owned==null||owned.Any(x=>!RenderCVars.Contains(x.Key)||x.Value==null||x.Value.Length!=2||x.Value[1]==null))
                 throw new InvalidDataException("Invalid render ownership ledger; no changes");
             var writes=new Dictionary<string,string>();
-            for(int i=0;i<RenderKeys.Length;i++) {
-                string raw=RenderRead("RenderQuality",RenderKeys[i],modIni);double desired=-1;
-                if(raw!=null&&(!double.TryParse(raw,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out desired)||double.IsNaN(desired)||double.IsInfinity(desired)))
-                    throw new InvalidDataException("Invalid rendering preference: "+RenderKeys[i]);
+            double[] hdr=HdrRequestValues(modIni);
+            for(int i=0;i<RenderCVars.Length;i++) {
+                double desired=-1;
+                if(i<RenderKeys.Length){
+                    string raw=RenderRead("RenderQuality",RenderKeys[i],modIni);
+                    if(raw!=null&&(!double.TryParse(raw,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out desired)||double.IsNaN(desired)||double.IsInfinity(desired)))
+                        throw new InvalidDataException("Invalid rendering preference: "+RenderKeys[i]);
+                }else desired=hdr[i-RenderKeys.Length];
                 if(desired>=0&&(desired<RenderMin[i]||desired>RenderMax[i]||(RenderInt[i]&&desired!=Math.Floor(desired))))
-                    throw new InvalidDataException("Rendering preference outside supported range: "+RenderKeys[i]);
+                    throw new InvalidDataException("Rendering preference outside supported range: "+RenderCVars[i]);
                 string key=RenderCVars[i],current=RenderRead("SystemSettings",key,engineIni);string[] prior;owned.TryGetValue(key,out prior);
                 if(desired<0) {
                     // External edits win: Native restores only a value still written by us.

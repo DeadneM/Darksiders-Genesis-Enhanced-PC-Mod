@@ -1,3 +1,9 @@
+# État courant — V1.180 préparée, main V1.173
+
+V1.179 Graphics construite/contrôlée, vérification Defender non exécutée faute de quota d'autorisation. V1.180 ajoute les mêmes requêtes HDR à toutes les cartes, sans filtre Intel ; Native par défaut, résultats à tester. Effets et visibilité des armes intacts. [Détails](V1_180_REVIEW.md).
+
+---
+
 # État courant — V1.179 préparée, V1.178 retenue
 
 Onglet Graphics et état HDR en préparation ; aucune activation HDR ajoutée. Effets de mêlée validés à pied/cheval. Les lames sont déjà invisibles à cheval avec le choix Native selon le retour utilisateur ; visibilité tenue/rangée à étudier plus tard, sans toucher aux acquis. [Détails](V1_179_REVIEW.md).

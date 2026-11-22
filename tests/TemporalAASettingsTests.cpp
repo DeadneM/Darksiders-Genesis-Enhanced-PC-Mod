@@ -1,5 +1,6 @@
 #include "TemporalAASettings.h"
 #include "RenderQualitySettings.h"
+#include "HdrSettings.h"
 #include <array>
 #include <iostream>
 #include <limits>
@@ -22,6 +23,9 @@ struct Access {
     float Value(unsigned i){return std::bit_cast<float>(words[i]);}
 };
 void Run(){
+    const dg::hdr::Settings nativeHdr{};Check(nativeHdr.mode==-1&&nativeHdr.uiBrightness==-1,"HDR leaves existing engine settings native by default");
+    const auto boundedHdr=dg::hdr::Normalize({4,9});Check(boundedHdr.mode==4&&boundedHdr.uiBrightness==4,"HDR UI range remains bounded");
+    const auto invalidHdr=dg::hdr::Normalize({99,std::numeric_limits<float>::quiet_NaN()});Check(invalidHdr.mode==-1&&invalidHdr.uiBrightness==-1,"invalid HDR input fails to Native");
     for(size_t i=0;i<dg::render_quality::Specs.size();++i){const auto& spec=dg::render_quality::Specs[i];
         Check(dg::render_quality::Normalize(i,-1)==-1&&dg::render_quality::Normalize(i,std::numeric_limits<float>::quiet_NaN())==-1,"Native and invalid rendering inputs stay Native");
         Check(dg::render_quality::Normalize(i,0)==spec.minimum&&dg::render_quality::Normalize(i,spec.maximum*2)==spec.maximum,"rendering range respects real nonzero minima and bounded ceilings");

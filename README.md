@@ -1,3 +1,9 @@
+## V1.180 — HDR expérimental en préparation
+
+Graphics > HDR : mêmes profils Native / SDR / HDR10 / scRGB sur Intel, AMD et NVIDIA, application au redémarrage avec restauration Native. Aucun blocage par marque ; rendu à tester. [Périmètre](docs/V1_180_REVIEW.md).
+
+---
+
 ## V1.179 — Graphics en préparation
 
 Cinq groupes graphiques déplacés depuis Camera, noms et réglages conservés. Sous-menu HDR de vérification GPU/écran, sans activation native forcée sur Intel. [Périmètre et essai](docs/V1_179_REVIEW.md).

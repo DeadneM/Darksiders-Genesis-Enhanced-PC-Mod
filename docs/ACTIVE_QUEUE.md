@@ -1,3 +1,12 @@
+# Priorité — V1.180
+
+1. Compiler/contrôler puis tester les profils HDR identiques sur toutes les marques, dans Graphics.
+2. HDR10 1000 / Native / scRGB 1000, fermeture et relance entre modes, menus/HUD à vérifier.
+3. Effets de mêlée validés, conserver. Plus tard : modèles de lames visibles tenues/rangées.
+4. Les anciennes branches natives observées ne justifient aucun blocage par constructeur.
+
+---
+
 # Priorité — V1.179
 
 1. Livrer Graphics : cinq groupes déplacés et état HDR GPU/écran en lecture seule.

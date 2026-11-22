@@ -51,6 +51,34 @@ internal static class UpdateEngineSafetyTests {
                 if(File.Exists(file))File.Delete(file);
         }
     }
+    private static void HdrCases(string folder){
+        string mod=Path.Combine(folder,"hdr-mod.ini"),engine=Path.Combine(folder,"hdr-engine.ini"),ledger=engine+".DGE-render-owned.json";
+        try{foreach(Encoding encoding in new[]{new UTF8Encoding(false),(Encoding)Encoding.Unicode}){
+            string initial="[SystemSettings]\r\nr.HDR.Display.OutputDevice=1\r\nr.HDR.Display.ColorGamut=1\r\nr.HDR.UI.Level=0.75\r\nr.MaxAnisotropy=8\r\n; preserved\r\n";
+            File.WriteAllText(engine,initial,encoding);File.WriteAllText(mod,"[HDR]\r\nOutputMode=-1\r\nUIBrightness=-1\r\n",encoding);
+            byte[] original=File.ReadAllBytes(engine);
+            Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==0&&!File.Exists(ledger)&&Convert.ToBase64String(original)==Convert.ToBase64String(File.ReadAllBytes(engine)),"HDR Native never edits existing engine settings");
+            for(int mode=1;mode<=4;mode++){
+                File.WriteAllText(mod,"[HDR]\r\nOutputMode="+mode+"\r\nUIBrightness=1.5\r\n",encoding);
+                Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==6,"HDR profile applies six coupled CVars without a vendor qualification");
+                string value=File.ReadAllText(engine,encoding);
+                foreach(string expected in new[]{"r.AllowHDR=1","r.HDR.EnableHDROutput=1","r.HDR.Display.OutputDevice="+(mode+2),"r.HDR.Display.ColorGamut="+((mode==1||mode==2)?2:0),"r.HDR.UI.CompositeMode=1","r.HDR.UI.Level=1.5","r.MaxAnisotropy=8"})
+                    Check(value.Contains(expected),"HDR profile maps exact engine request: "+expected);
+                Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==0,"unchanged HDR profile is idempotent");
+                File.WriteAllText(mod,"[HDR]\r\nOutputMode=-1\r\nUIBrightness=1.5\r\n",encoding);UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;});
+                value=File.ReadAllText(engine,encoding);
+                Check(!File.Exists(ledger)&&value.Contains("r.HDR.Display.OutputDevice=1")&&value.Contains("r.HDR.Display.ColorGamut=1")&&value.Contains("r.HDR.UI.Level=0.75")&&!value.Contains("r.AllowHDR=")&&!value.Contains("r.HDR.EnableHDROutput=")&&!value.Contains("r.HDR.UI.CompositeMode="),"HDR Native restores previous values and removes only originally absent keys");
+            }
+            File.WriteAllText(mod,"[HDR]\r\nOutputMode=0\r\nUIBrightness=1.5\r\n",encoding);Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==4,"explicit SDR requests four output CVars and leaves HUD native");
+            Check(File.ReadAllText(engine,encoding).Contains("r.HDR.EnableHDROutput=0")&&File.ReadAllText(engine,encoding).Contains("r.HDR.UI.Level=0.75"),"SDR does not leak the saved optional HDR HUD level");
+            File.WriteAllText(mod,"[HDR]\r\nOutputMode=-1\r\n",encoding);UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;});
+            foreach(string invalid in new[]{"OutputMode=5","OutputMode=1.5","OutputMode=1\r\nUIBrightness=NaN","OutputMode=1\r\nUIBrightness=5"}){
+                original=File.ReadAllBytes(engine);File.WriteAllText(mod,"[HDR]\r\n"+invalid+"\r\n",encoding);bool rejected=false;
+                try{UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;});}catch(InvalidDataException){rejected=true;}
+                Check(rejected&&!File.Exists(ledger)&&Convert.ToBase64String(original)==Convert.ToBase64String(File.ReadAllBytes(engine)),"invalid HDR preference causes no partial engine edit");
+            }
+        }}finally{foreach(string file in new[]{mod,engine,ledger,ledger+".tmp",engine+".DGE-render.bak"})if(File.Exists(file))File.Delete(file);}
+    }
     private static void GraphicsAdapterCases(string folder){
         string mod=Path.Combine(folder,"gpu-mod.ini"),engine=Path.Combine(folder,"gpu-engine.ini"),backup=engine+".DGE-GPU.bak";
         try {
@@ -130,6 +158,7 @@ internal static class UpdateEngineSafetyTests {
         Directory.CreateDirectory(folder);
         GraphicsAdapterCases(folder);
         RenderingCases(folder);
+        HdrCases(folder);
         string state=UpdateEngine.StateFolder(folder);
         string asi=Path.Combine(folder,"DarksidersGenesisMod.asi"),dll=Path.Combine(folder,"dxgi.dll");
         string ini=Path.Combine(folder,"DarksidersGenesisMod.ini");

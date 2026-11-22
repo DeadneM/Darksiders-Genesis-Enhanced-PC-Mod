@@ -1486,7 +1486,18 @@ void Draw(Context& c) {
                 static hdr::Status status{};
                 if((newlyOpened||!status.checked)&&c.queryHdrStatus)status=c.queryHdrStatus();
                 if(layout::Button("Refresh HDR availability")&&c.queryHdrStatus)status=c.queryHdrStatus();
-                ImGui::TextDisabled("Output mode: Native (unchanged)");
+                constexpr const char* hdrModes[]={"Native","SDR (HDR off)","HDR10 - 1000 nits","HDR10 - 2000 nits","scRGB - 1000 nits","scRGB - 2000 nits"};
+                int selected=hdr::Normalize(config.hdrOutput).mode+1;bool hdrChanged=false;
+                if(Choice("HDR output mode",&selected,hdrModes,6)){config.hdrOutput.mode=selected-1;hdrChanged=true;}
+                HelpText("Experimental on every GPU brand. Applied after closing the game; restart afterwards. Native restores previous settings. The game may require exclusive fullscreen.");
+                ImGui::BeginDisabled(config.hdrOutput.mode<=0);
+                bool customBrightness=config.hdrOutput.uiBrightness>=0;
+                if(ImGui::Checkbox("Customize HDR HUD brightness",&customBrightness)){config.hdrOutput.uiBrightness=customBrightness?1.5f:-1;hdrChanged=true;}
+                if(customBrightness&&NumberRow("HUD brightness","HDRUIBrightness",&config.hdrOutput.uiBrightness,0,4,1.5f,"%.2f","%.3f"))hdrChanged=true;
+                ImGui::EndDisabled();
+                if(hdrChanged){const bool saved=config.SaveNow();const bool queued=saved&&c.queueGraphicsAdapter&&c.queueGraphicsAdapter(config.graphicsAdapter);
+                    *c.lastAction=!saved?"HDR preference save failed":queued?"HDR request queued; restart required":"HDR preference saved; exit helper queue failed";}
+                HelpText("The profiles request the engine's HDR output; correct image, highlights and HUD need in-game validation. HUD brightness controls the native game HUD. Keep Windows HDR enabled for the test.");
                 if(status.deviceKnown)ImGui::TextWrapped("GPU: %s",status.adapter[0]?status.adapter:"Unknown adapter name");
                 else ImGui::TextDisabled("GPU information unavailable");
                 if(status.outputKnown)ImGui::Text("Display: %s",status.display);
@@ -1497,12 +1508,8 @@ void Draw(Context& c) {
                 if(status.bufferFormat){const char* depth=status.bufferFormat==24?"10-bit":status.bufferFormat==10?"16-bit floating point":
                     (status.bufferFormat==28||status.bufferFormat==29||status.bufferFormat==87||status.bufferFormat==91)?"8-bit":"Unknown";
                     ImGui::TextDisabled("Game output buffer: %s",depth);}
-                if(status.nativePath==hdr::NativePath::IntelUnavailable)
-                    HelpText("Intel HDR output is not implemented by this game's D3D11 renderer. Windows HDR and monitor support are separate.");
-                else if(status.nativePath==hdr::NativePath::VendorImplementation)
-                    HelpText("The game includes an HDR path for this GPU vendor. HDR activation is not enabled in this build.");
-                else HelpText("Native game HDR has not been verified for this device. No HDR override is applied.");
-                HelpText("Read-only check. Windows HDR and buffer depth do not prove HDR game output. Refresh after changing displays; reported monitor values can be incomplete.");
+                HelpText("Display information below reports the current output, not whether the requested HDR profile succeeded.");
+                HelpText("The availability check is read-only. Windows HDR and buffer depth do not prove HDR game output. Refresh after changing displays; reported monitor values can be incomplete.");
                 ImGui::Unindent();
             }
             ImGui::EndTabItem();

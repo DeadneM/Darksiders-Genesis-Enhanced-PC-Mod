@@ -10,6 +10,7 @@
 #include "TemporalAASettings.h"
 #include "PostProcessEffects.h"
 #include "RenderQualitySettings.h"
+#include "HdrSettings.h"
 #include <array>
 #include <atomic>
 #include <string>
@@ -317,6 +318,7 @@ public:
     temporal_aa::Settings temporalAA{};
     postprocess::Values postProcess=postprocess::NativeValues();
     render_quality::Values renderQuality=render_quality::NativeValues();
+    hdr::Settings hdrOutput{};
     bool cameraOrbitInputEnabled = true; // derived: controller-only TPS camera
     bool cameraControllerOrbitEnabled = true;
     int tpsCameraStickMode = 2; // 0 OFF, 1 left, 2 right

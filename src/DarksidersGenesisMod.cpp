@@ -3088,8 +3088,7 @@ dg::hdr::Status QueryHdrOutputStatus(){
     if(SUCCEEDED(g_device->QueryInterface(__uuidof(IDXGIDevice),reinterpret_cast<void**>(&dxgiDevice)))){
         IDXGIAdapter* adapter=nullptr;
         if(SUCCEEDED(dxgiDevice->GetAdapter(&adapter))){DXGI_ADAPTER_DESC description{};
-            if(SUCCEEDED(adapter->GetDesc(&description))){status.deviceKnown=true;status.vendor=description.VendorId;adapterId=description.AdapterLuid;
-                status.nativePath=dg::hdr::PathFor(status.vendor,g_targetValidation.exact);
+            if(SUCCEEDED(adapter->GetDesc(&description))){status.deviceKnown=true;adapterId=description.AdapterLuid;
                 if(!WideCharToMultiByte(CP_UTF8,0,description.Description,-1,status.adapter,int(sizeof(status.adapter)),nullptr,nullptr))status.adapter[0]=0;}
             adapter->Release();}
         dxgiDevice->Release();

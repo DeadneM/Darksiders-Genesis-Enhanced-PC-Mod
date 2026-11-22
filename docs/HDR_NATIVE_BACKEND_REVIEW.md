@@ -1,3 +1,5 @@
+> Mise à jour V1.180 : observations historiques du code natif, pas une interdiction pour Intel ni pour DX11. Les mêmes profils HDR expérimentaux sont désormais proposés pour toutes les marques ; résultat à tester. Voir V1_180_REVIEW.md.
+
 # HDR natif — vérification hors jeu, 22 novembre 2026
 
 Proposition initiale : Native / HDR expérimental au redémarrage, sortie réelle à vérifier. Les CVars r.AllowHDR, r.HDR.EnableHDROutput, r.HDR.Display.OutputDevice, r.HDR.Display.ColorGamut et les contrôles UI sont présents avec références natives. Leur seule présence ne démontre pas le support sur toutes les cartes.
