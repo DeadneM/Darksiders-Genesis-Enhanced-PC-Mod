@@ -28,7 +28,7 @@ int main(int argc,char** argv){
     if(argc!=2)return 1;
     wchar_t source[32768]{};
     if(!MultiByteToWideChar(CP_UTF8,0,argv[1],-1,source,32768))return 1;
-    const auto shipped=ReadIni(source);check(shipped.size()==11&&shipped.count(L"PostProcess")==1,"shipped profile includes the Native postprocess section");
+    const auto shipped=ReadIni(source);check(shipped.size()==12&&shipped.count(L"PostProcess")==1&&shipped.count(L"RenderQuality")==1,"shipped profile includes the Native postprocess section");
     wchar_t directory[MAX_PATH]{},path[MAX_PATH]{};
     if(!GetTempPathW(MAX_PATH,directory)||!GetTempFileNameW(directory,L"DGP",0,path))return 1;
     if(!DeleteFileW(path))return 1; // only this test's empty file, to exercise missing-INI generation
@@ -42,6 +42,7 @@ int main(int argc,char** argv){
         "new image filters default OFF in existing and generated configurations");
     for(size_t i=0;i<dg::postprocess::Count;++i)check(generated.postProcess[i]==-1,"new postprocess entries default Native");
     check(dg::runtime::Get().postProcessMask.load()==0,"Native catalog has no active per-frame work");
+    for(float v:generated.renderQuality)check(v==-1,"restart rendering choices default Native");
     check(generated.updaterAutoCheck,"approved defaults check the selected update channel at startup");
     check(generated.tps3DAimEnabled&&dg::runtime::Get().tps3DAimEnabled.load(),"missing option enables 3D aiming by default");
     check(generated.molochBossCrashFixEnabled&&dg::runtime::Get().molochBossCrashFixEnabled.load(),"captured subtitle crash guard defaults ON in store and runtime");
@@ -269,6 +270,11 @@ int main(int argc,char** argv){
         "postprocess snapshot publishes exact active values without a timer");
     renamed.postProcess[0]=-1;renamed.postProcess[4]=-1;
     check(renamed.SaveNow()&&renamed.Load()&&dg::runtime::Get().postProcessMask.load()==0,"Native restores the inactive fast path");
+    renamed.renderQuality[0]=16;renamed.renderQuality[1]=75;renamed.renderQuality[6]=0;
+    check(renamed.SaveNow()&&renamed.Load()&&renamed.renderQuality[0]==16&&renamed.renderQuality[1]==75&&renamed.renderQuality[6]==0,
+        "restart rendering preferences preserve custom, fractional-domain and off values");
+    renamed.renderQuality=dg::render_quality::NativeValues();
+    check(renamed.SaveNow()&&renamed.Load()&&renamed.renderQuality==dg::render_quality::NativeValues(),"Native rendering preference roundtrip");
     renamed.coreLevelDisplayFixEnabled=false;
     check(renamed.SaveNow()&&renamed.Load()&&!renamed.coreLevelDisplayFixEnabled&&!dg::runtime::Get().coreLevelDisplayFixEnabled.load(),"core UI repair OFF persists and reaches runtime");
     renamed.horseAirSummonEnabled=true;

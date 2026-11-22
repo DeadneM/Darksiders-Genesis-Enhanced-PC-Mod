@@ -1,0 +1,34 @@
+{
+  "nativeFieldsRechecked": 17,
+  "checksPerField": 9,
+  "allPassed": true,
+  "runtimeContractLines": [
+    "[2026-11-21 23:13:11.101] Chromatic intensity V1.176: camera PP field and override verified; native default, no new hook",
+    "[2026-11-21 23:13:11.102] Postprocess catalog V1.176: 17/17 native contracts verified; visual test required",
+    "[2026-11-21 23:13:11.102] Motion blur maximum: native final-view CVar verified"
+  ],
+  "cameraReports": 64,
+  "cameraWritesObserved": true,
+  "finalRendererObserved": false,
+  "codeChanged": false,
+  "buildPerformed": false,
+  "fields": [
+    "BloomIntensity",
+    "BloomDirtMaskIntensity",
+    "LensFlareIntensity",
+    "LensFlareThreshold",
+    "VignetteIntensity",
+    "GrainIntensity",
+    "GrainJitter",
+    "AmbientOcclusionIntensity",
+    "AmbientOcclusionRadius",
+    "AmbientOcclusionPower",
+    "ScreenSpaceReflectionIntensity",
+    "ScreenSpaceReflectionQuality",
+    "ScreenSpaceReflectionMaxRoughness",
+    "AutoExposureBias",
+    "AmbientCubemapIntensity",
+    "ColorGradingIntensity",
+    "MotionBlurMax"
+  ]
+}

@@ -1,3 +1,7 @@
+## V1.177 — préférences de rendu optionnelles après fermeture
+
+Le helper GPU existant peut aussi appliquer sept choix RenderQuality explicitement personnalisés. Sauvegarde Engine.ini.DGE-render.bak et journal de propriété ; Native restaure seulement nos valeurs encore présentes, sans écraser une édition externe. Jeu fermé obligatoire et redémarrage requis. Les opérations de téléchargement/installation seules restent sans écriture Engine.ini ; le profil mod et les sauvegardes restent conservés. Voir docs/V1_177_REVIEW.md dans le dépôt.
+
 ## V1.3 — binary-only mod packages
 
 The embedded updater accepts the new two-binary ZIP and the exact old four-file ZIP. It installs and restores only the ASI/proxy pair. INI and README are never replaced, including during legacy rollback; when absent, the INI is created by the ASI on the next game launch. Complete new and legacy backups are verified before any restore. Path, duplicate, size, checksum and AMD64 checks remain.

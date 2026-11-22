@@ -7,6 +7,45 @@ using DarksidersGenesisUpdater;
 internal static class UpdateEngineSafetyTests {
     private static int failures;
     private static void Check(bool ok,string label){if(!ok){failures++;Console.WriteLine("FAIL "+label);}}
+    private static void RenderingCases(string folder){
+        string mod=Path.Combine(folder,"render-mod.ini"),engine=Path.Combine(folder,"render-engine.ini"),ledger=engine+".DGE-render-owned.json";
+        foreach(Encoding encoding in new[]{new UTF8Encoding(false),(Encoding)Encoding.Unicode}){
+            string original="[Core.System]\r\nPaths=keep-me\r\n[SystemSettings]\r\nr.MaxAnisotropy=4\r\nr.Unrelated=42\r\n; préservé\r\n";
+            File.WriteAllText(engine,original,encoding);File.WriteAllText(mod,"[RenderQuality]\r\n",encoding);
+            byte[] initial=File.ReadAllBytes(engine);
+            Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==0&&!File.Exists(ledger)&&Convert.ToBase64String(initial)==Convert.ToBase64String(File.ReadAllBytes(engine)),"all Native makes no engine write or ownership file");
+            string choices="[RenderQuality]\r\nMaxAnisotropy=16\r\nScreenPercentage=75.5\r\nShadowQuality=5\r\nShadowMaxResolution=2048\r\nShadowDistanceScale=0\r\nViewDistanceScale=1.5\r\nSSRQuality=4\r\n";
+            File.WriteAllText(mod,choices,encoding);bool rejected=false;
+            try{UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return true;});}catch(InvalidOperationException){rejected=true;}
+            Check(rejected&&Convert.ToBase64String(initial)==Convert.ToBase64String(File.ReadAllBytes(engine)),"running game rejects all render changes");
+            Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==7,"all seven choices written after exit");
+            string changed=File.ReadAllText(engine,encoding);
+            foreach(string value in new[]{"r.MaxAnisotropy=16","r.ScreenPercentage=75.5","r.ShadowQuality=5","r.Shadow.MaxResolution=2048","r.Shadow.DistanceScale=0","r.ViewDistanceScale=1.5","r.SSR.Quality=4","r.Unrelated=42","Paths=keep-me","préservé"})
+                Check(changed.Contains(value),"render choices preserve values, names and unrelated UTF8/UTF16 text: "+value);
+            Check(Convert.ToBase64String(initial)==Convert.ToBase64String(File.ReadAllBytes(engine+".DGE-render.bak")),"render backup has exact prior engine bytes");
+            byte[] stable=File.ReadAllBytes(engine),stableLedger=File.ReadAllBytes(ledger);
+            Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==0&&Convert.ToBase64String(stable)==Convert.ToBase64String(File.ReadAllBytes(engine))&&Convert.ToBase64String(stableLedger)==Convert.ToBase64String(File.ReadAllBytes(ledger)),"unchanged choices add no writes");
+            File.WriteAllText(mod,"[RenderQuality]\r\n",encoding);
+            Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==7&&!File.Exists(ledger),"Native restores seven owned values and retires ownership");
+            string restored=File.ReadAllText(engine,encoding);
+            Check(restored.Contains("r.MaxAnisotropy=4")&&!restored.Contains("r.ScreenPercentage=")&&!restored.Contains("r.SSR.Quality=")&&restored.Contains("r.Unrelated=42"),"Native restores old key and removes only originally absent keys");
+            File.WriteAllText(mod,"[RenderQuality]\r\nMaxAnisotropy=16\r\n",encoding);UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;});
+            File.WriteAllText(engine,File.ReadAllText(engine,encoding).Replace("r.MaxAnisotropy=16","r.MaxAnisotropy=8"),encoding);
+            File.WriteAllText(mod,"[RenderQuality]\r\n",encoding);UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;});
+            Check(File.ReadAllText(engine,encoding).Contains("r.MaxAnisotropy=8")&&!File.Exists(ledger),"external edit wins during Native restoration");
+            foreach(string invalid in new[]{"MaxAnisotropy=17","MaxAnisotropy=0","ShadowQuality=1.5","ScreenPercentage=NaN","SSRQuality=5"}){
+                stable=File.ReadAllBytes(engine);File.WriteAllText(mod,"[RenderQuality]\r\n"+invalid+"\r\n",encoding);rejected=false;
+                try{UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;});}catch(InvalidDataException){rejected=true;}
+                Check(rejected&&!File.Exists(ledger)&&Convert.ToBase64String(stable)==Convert.ToBase64String(File.ReadAllBytes(engine)),"invalid choice causes no partial edit: "+invalid);
+            }
+            File.WriteAllText(mod,choices,encoding);stable=File.ReadAllBytes(engine);int calls=0;rejected=false;
+            try{UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{calls++;return calls==5;});}catch(InvalidOperationException){rejected=true;}
+            Check(rejected&&!File.Exists(ledger)&&Convert.ToBase64String(stable)==Convert.ToBase64String(File.ReadAllBytes(engine)),"interrupted multi-key write rolls back bytes and ownership after closure");
+            File.WriteAllText(ledger,"{broken",Encoding.UTF8);stable=File.ReadAllBytes(engine);rejected=false;
+            try{UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;});}catch{rejected=true;}
+            Check(rejected&&Convert.ToBase64String(stable)==Convert.ToBase64String(File.ReadAllBytes(engine)),"corrupt ownership ledger fails closed");File.Delete(ledger);
+        }
+    }
     private static void GraphicsAdapterCases(string folder){
         string mod=Path.Combine(folder,"gpu-mod.ini"),engine=Path.Combine(folder,"gpu-engine.ini"),backup=engine+".DGE-GPU.bak";
         try {
@@ -85,6 +124,7 @@ internal static class UpdateEngineSafetyTests {
         string folder=Path.Combine(string.IsNullOrEmpty(testRoot)?Path.GetTempPath():testRoot,"DGE-State-Test-"+Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
         GraphicsAdapterCases(folder);
+        RenderingCases(folder);
         string state=UpdateEngine.StateFolder(folder);
         string asi=Path.Combine(folder,"DarksidersGenesisMod.asi"),dll=Path.Combine(folder,"dxgi.dll");
         string ini=Path.Combine(folder,"DarksidersGenesisMod.ini");

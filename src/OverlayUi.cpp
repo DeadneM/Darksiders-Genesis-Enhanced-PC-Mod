@@ -1141,6 +1141,22 @@ void Draw(Context& c) {
                 HelpText("Independent of TAA. Global settings, including cinematics and both local views.");
                 ImGui::Unindent();
             }
+            if(layout::Group("Rendering quality (restart required)")){
+                ImGui::Indent();
+                HelpText("Unchecked = Native. Saved choices are written after closing the game and take effect at the next launch. Native restores the previous Engine.ini value if it is still owned by the mod.");
+                for(size_t i=0;i<render_quality::Specs.size();++i){const auto& spec=render_quality::Specs[i];
+                    ImGui::PushID(spec.key);bool changed=false,custom=config.renderQuality[i]>=0;
+                    if(ImGui::Checkbox(spec.label,&custom)){config.renderQuality[i]=custom?spec.trial:-1;changed=true;}
+                    if(custom&&NumberRow("Value","Value",&config.renderQuality[i],spec.minimum,spec.maximum,spec.trial,
+                        spec.integer?"%.0f":"%.2f",spec.integer?"%.0f":"%.2f")){
+                        config.renderQuality[i]=render_quality::Normalize(i,config.renderQuality[i]);changed=true;}
+                    if(changed){const bool saved=config.SaveNow();const bool queued=saved&&c.queueGraphicsAdapter&&c.queueGraphicsAdapter(config.graphicsAdapter);
+                        *c.lastAction=!saved?"Rendering preference save failed":queued?"Rendering settings queued; restart required":"Rendering preference saved; exit helper queue failed";}
+                    ImGui::PopID();
+                }
+                HelpText("Higher resolution and shadows can be expensive. 100% is native resolution; Native preserves your existing configuration. Texture/object limits and game quality presets can still restrict the result.");
+                ImGui::Unindent();
+            }
             if(layout::Group("Additional post-processing")){
                 ImGui::Indent();HelpText("Unchecked = Native. Ranges are exploratory; the game may clamp values. Camera transitions keep native blending. Some effects need a native texture or an enabled rendering feature.");
                 const char* previous=nullptr;bool opened=false;

@@ -31,8 +31,10 @@ namespace DarksidersGenesisUpdater {
                 }while(UpdateEngine.Running());
                 int adapter=UpdateEngine.ApplyGraphicsAdapterAfterExit(args[1]);
                 result="GPU written after game exit: r.GraphicsAdapter="+adapter;
+                int rendered=UpdateEngine.ApplyRenderQualityAfterExit(args[1]);
+                result+="; rendering settings changed="+rendered;
                 code=0;
-            }catch(Exception ex){result="GPU write FAILED: "+ex.Message;}
+            }catch(Exception ex){result="Post-exit settings FAILED: "+ex.Message;}
             try {
                 string state=UpdateEngine.StateFolder(args[1]);Directory.CreateDirectory(state);
                 File.WriteAllText(Path.Combine(state,"gpu-result.txt"),result);

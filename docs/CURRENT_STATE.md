@@ -1,3 +1,9 @@
+# État courant — V1.177 préparée, main V1.173
+
+Qualité de rendu au redémarrage ; sept nouvelles options Native par défaut, helper existant étendu avec sauvegarde et restauration des seules valeurs possédées. CI à effectuer ; aucun fichier du jeu modifié. [Détails](V1_177_REVIEW.md).
+
+---
+
 # État courant — V1.176 livrée, main V1.173
 
 86/86 tests, zéro avertissement C++, ZIP de deux binaires vérifié. 17 nouveaux réglages Native par défaut ; rendu à tester, aucun gain GPU annoncé. Aucune installation. [Livraison](V1_176_DELIVERY_RECEIPT.md).

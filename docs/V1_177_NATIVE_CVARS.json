@@ -1,0 +1,142 @@
+[
+  {
+    "name": "r.MaxAnisotropy",
+    "names": [
+      "0x28166e0"
+    ],
+    "references": [
+      {
+        "rva": "0x12309d",
+        "function": "0x123060"
+      },
+      {
+        "rva": "0xd554ab",
+        "function": "0xd55100"
+      },
+      {
+        "rva": "0xda720a",
+        "function": "0xda6e60"
+      },
+      {
+        "rva": "0x12395b5",
+        "function": "0x1239300"
+      },
+      {
+        "rva": "0x128944e",
+        "function": "0x1289040"
+      },
+      {
+        "rva": "0x1c52299",
+        "function": "0x1c51f60"
+      },
+      {
+        "rva": "0x1c56fe8",
+        "function": "0x1c56ab0"
+      }
+    ]
+  },
+  {
+    "name": "r.ScreenPercentage",
+    "names": [
+      "0x2814db8"
+    ],
+    "references": [
+      {
+        "rva": "0x12403f",
+        "function": "0x124000"
+      },
+      {
+        "rva": "0x11370ac",
+        "function": "0x1137020"
+      },
+      {
+        "rva": "0x190833e",
+        "function": "0x1908270"
+      },
+      {
+        "rva": "0x1b2d1bc",
+        "function": "0x1b2d140"
+      }
+    ]
+  },
+  {
+    "name": "r.ShadowQuality",
+    "names": [
+      "0x2813948"
+    ],
+    "references": [
+      {
+        "rva": "0x1243bd",
+        "function": "0x124380"
+      },
+      {
+        "rva": "0x10b4a24",
+        "function": "0x10b4990"
+      },
+      {
+        "rva": "0x1b4c214",
+        "function": "0x1b4be20"
+      }
+    ]
+  },
+  {
+    "name": "r.Shadow.MaxResolution",
+    "names": [
+      "0x28168c0"
+    ],
+    "references": [
+      {
+        "rva": "0x12433d",
+        "function": "0x124300"
+      },
+      {
+        "rva": "0x1c57043",
+        "function": "0x1c56ab0"
+      }
+    ]
+  },
+  {
+    "name": "r.Shadow.DistanceScale",
+    "names": [
+      "0x2818888"
+    ],
+    "references": [
+      {
+        "rva": "0x12423f",
+        "function": "0x124200"
+      },
+      {
+        "rva": "0x1773165",
+        "function": "0x1773050"
+      }
+    ]
+  },
+  {
+    "name": "r.ViewDistanceScale",
+    "names": [
+      "0x28176d8"
+    ],
+    "references": [
+      {
+        "rva": "0x1247bf",
+        "function": "0x124780"
+      },
+      {
+        "rva": "0x1c570f9",
+        "function": "0x1c56ab0"
+      }
+    ]
+  },
+  {
+    "name": "r.SSR.Quality",
+    "names": [
+      "0x2988660"
+    ],
+    "references": [
+      {
+        "rva": "0x19433d",
+        "function": "0x194300"
+      }
+    ]
+  }
+]

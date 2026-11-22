@@ -75,6 +75,89 @@ namespace DarksidersGenesisUpdater {
                 throw;
             }
         }
+        // V1.177: only these verified native CVars are writable. No runtime memory calls.
+        private static readonly string[] RenderKeys={"MaxAnisotropy","ScreenPercentage","ShadowQuality","ShadowMaxResolution","ShadowDistanceScale","ViewDistanceScale","SSRQuality"};
+        private static readonly string[] RenderCVars={"r.MaxAnisotropy","r.ScreenPercentage","r.ShadowQuality","r.Shadow.MaxResolution","r.Shadow.DistanceScale","r.ViewDistanceScale","r.SSR.Quality"};
+        private static readonly double[] RenderMin={1,25,0,64,0,0,0},RenderMax={16,200,5,8192,5,5,4};
+        private static readonly bool[] RenderInt={true,false,true,true,false,false,true};
+        [DllImport("kernel32.dll",CharSet=CharSet.Unicode)]
+        private static extern uint GetPrivateProfileString(string section,string key,string fallback,StringBuilder value,uint size,string path);
+        private static string RenderRead(string section,string key,string path) {
+            const string missing="__DGE_ABSENT_177__";var value=new StringBuilder(4096);
+            uint n=GetPrivateProfileString(section,key,missing,value,4096,path);
+            if(n>=4095)throw new InvalidDataException("INI value too long: "+key);
+            string text=value.ToString();return text==missing?null:text;
+        }
+        private static void RenderWrite(string section,string key,string value,string path) {
+            if(!WritePrivateProfileString(section,key,value,path))throw new IOException("Render INI write failed: "+key);
+        }
+        private static void RenderStateWrite(string path,byte[] bytes) {
+            string temp=path+".tmp";File.WriteAllBytes(temp,bytes);
+            if(File.Exists(path))File.Replace(temp,path,null);else File.Move(temp,path);
+        }
+        internal static int ApplyRenderQualityAfterExit(string folder) {
+            ValidateFolder(folder);
+            string engine=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                @"THQ Nordic\Darksiders Genesis\Saved\Config\WindowsNoEditor\Engine.ini");
+            return ApplyRenderQualityFiles(Path.Combine(folder,"DarksidersGenesisMod.ini"),engine,Running);
+        }
+        internal static int ApplyRenderQualityFiles(string modIni,string engineIni,Func<bool> running) {
+            if(running())throw new InvalidOperationException("Game is running; render settings untouched");
+            if(!File.Exists(modIni)||!File.Exists(engineIni))throw new FileNotFoundException("Existing INIs required");
+            string ledger=engineIni+".DGE-render-owned.json";
+            var serializer=new JavaScriptSerializer();
+            byte[] oldLedger=File.Exists(ledger)?File.ReadAllBytes(ledger):null;
+            var owned=oldLedger==null?new Dictionary<string,string[]>():serializer.Deserialize<Dictionary<string,string[]>>(Encoding.UTF8.GetString(oldLedger));
+            if(owned==null||owned.Any(x=>!RenderCVars.Contains(x.Key)||x.Value==null||x.Value.Length!=2||x.Value[1]==null))
+                throw new InvalidDataException("Invalid render ownership ledger; no changes");
+            var writes=new Dictionary<string,string>();
+            for(int i=0;i<RenderKeys.Length;i++) {
+                string raw=RenderRead("RenderQuality",RenderKeys[i],modIni);double desired=-1;
+                if(raw!=null&&(!double.TryParse(raw,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out desired)||double.IsNaN(desired)||double.IsInfinity(desired)))
+                    throw new InvalidDataException("Invalid rendering preference: "+RenderKeys[i]);
+                if(desired>=0&&(desired<RenderMin[i]||desired>RenderMax[i]||(RenderInt[i]&&desired!=Math.Floor(desired))))
+                    throw new InvalidDataException("Rendering preference outside supported range: "+RenderKeys[i]);
+                string key=RenderCVars[i],current=RenderRead("SystemSettings",key,engineIni);string[] prior;owned.TryGetValue(key,out prior);
+                if(desired<0) {
+                    // External edits win: Native restores only a value still written by us.
+                    if(prior!=null&&current==prior[1]&&current!=prior[0])writes[key]=prior[0];
+                    owned.Remove(key);continue;
+                }
+                string value=desired.ToString("0.###",System.Globalization.CultureInfo.InvariantCulture);
+                string original=prior!=null&&current==prior[1]?prior[0]:current;
+                if(current!=value)writes[key]=value;
+                // Already equal and never ours: no ownership to claim or restore.
+                if(prior!=null||current!=value)owned[key]=new[]{original,value};
+            }
+            var journal=oldLedger==null?new Dictionary<string,string[]>():serializer.Deserialize<Dictionary<string,string[]>>(Encoding.UTF8.GetString(oldLedger));
+            foreach(var item in owned)journal[item.Key]=item.Value;
+            byte[] nextLedger=Encoding.UTF8.GetBytes(serializer.Serialize(owned));
+            byte[] journalBytes=Encoding.UTF8.GetBytes(serializer.Serialize(journal));
+            if(writes.Count==0&&((oldLedger==null&&owned.Count==0)||(oldLedger!=null&&oldLedger.SequenceEqual(nextLedger))))return 0;
+            byte[] originalEngine=File.ReadAllBytes(engineIni);
+            if(running())throw new InvalidOperationException("Game restarted; render settings untouched");
+            if(writes.Count>0)File.Copy(engineIni,engineIni+".DGE-render.bak",true);
+            try {
+                if(running())throw new InvalidOperationException("Game restarted before render write");
+                // Journal ownership first: interruption cannot leave an untracked successful write.
+                RenderStateWrite(ledger,journalBytes);
+                foreach(var write in writes) {
+                    if(running())throw new InvalidOperationException("Game restarted during render write");
+                    RenderWrite("SystemSettings",write.Key,write.Value,engineIni);
+                }
+                WritePrivateProfileString(null,null,null,engineIni);
+                foreach(var write in writes)if(RenderRead("SystemSettings",write.Key,engineIni)!=write.Value)
+                    throw new IOException("Render readback mismatch: "+write.Key);
+                if(owned.Count==0)File.Delete(ledger);else RenderStateWrite(ledger,nextLedger);
+                return writes.Count;
+            }catch {
+                if(!running()) {
+                    WritePrivateProfileString(null,null,null,engineIni);File.WriteAllBytes(engineIni,originalEngine);
+                    if(oldLedger==null){if(File.Exists(ledger))File.Delete(ledger);}else RenderStateWrite(ledger,oldLedger);
+                }
+                throw;
+            }
+        }
         private static string BinaryFingerprint(string folder) {
             var result=new StringBuilder();
             foreach(string name in new[]{"DarksidersGenesisMod.asi","dxgi.dll"}){

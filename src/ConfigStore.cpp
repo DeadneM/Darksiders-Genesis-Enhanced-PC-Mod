@@ -354,6 +354,7 @@ void Store::ResetDefaults(bool persist) {
     nativeBlur=camera_blur::NativeDefaults;tpsBlur=camera_blur::TpsDefaults;
     temporalAA={};
     postProcess=postprocess::NativeValues();
+    renderQuality=render_quality::NativeValues();
     cameraOrbitInputEnabled = true;
     cameraControllerOrbitEnabled = true;
     tpsCameraStickMode = 2;
@@ -697,6 +698,8 @@ bool Store::Load() {
     for(size_t i=0;i<postprocess::Count;++i){wchar_t key[96]{};
         swprintf_s(key,L"%hs",postprocess::Specs[i].key);
         postProcess[i]=postprocess::Normalize(i,ReadFloat(L"PostProcess",key,-1,path_));}
+    for(size_t i=0;i<render_quality::Specs.size();++i){wchar_t key[96]{};swprintf_s(key,L"%hs",render_quality::Specs[i].key);
+        renderQuality[i]=render_quality::Normalize(i,ReadFloat(L"RenderQuality",key,-1,path_));}
     const bool oldOrbit=ReadBool(L"Features",L"CameraControllerOrbit",true,path_);
     tpsCameraStickMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(
         L"Features",L"TPSCameraStickMode",oldOrbit?2:0,path_.c_str())),0,2);
@@ -1254,6 +1257,8 @@ bool Store::SaveNow() {
     WriteFloat(L"Values",L"TPSDOFDistanceMeters",tpsBlur.distanceMeters,path_);
     WriteFloat(L"Values",L"TPSDOFAmount",tpsBlur.amount,path_);
     WriteBool(L"Features",L"CoreLevelDisplayFix",coreLevelDisplayFixEnabled,path_);
+    for(size_t i=0;i<render_quality::Specs.size();++i){wchar_t key[96]{};swprintf_s(key,L"%hs",render_quality::Specs[i].key);
+        WriteFloat(L"RenderQuality",key,render_quality::Normalize(i,renderQuality[i]),path_);}
     const auto normalizedAA=temporal_aa::Normalize(temporalAA);
     for(size_t i=0;i<postprocess::Count;++i){wchar_t key[96]{};
         swprintf_s(key,L"%hs",postprocess::Specs[i].key);

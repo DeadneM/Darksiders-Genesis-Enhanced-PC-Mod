@@ -1,3 +1,11 @@
+# Priorité — V1.177
+
+1. Contrôler et livrer les sept réglages de rendu au redémarrage.
+2. Test groupé puis Native ; rendu à confirmer, aucune conclusion GPU.
+3. Les quatre effets V1.176 conditionnels restent documentés, sans correction spéculative.
+
+---
+
 # Priorité — test groupé V1.176
 
 1. Chromatique corrigée et motion blur Amount/Maximum, puis un groupe post-traitement à la fois.

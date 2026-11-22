@@ -1,4 +1,5 @@
 #include "TemporalAASettings.h"
+#include "RenderQualitySettings.h"
 #include <array>
 #include <iostream>
 #include <limits>
@@ -21,6 +22,11 @@ struct Access {
     float Value(unsigned i){return std::bit_cast<float>(words[i]);}
 };
 void Run(){
+    for(size_t i=0;i<dg::render_quality::Specs.size();++i){const auto& spec=dg::render_quality::Specs[i];
+        Check(dg::render_quality::Normalize(i,-1)==-1&&dg::render_quality::Normalize(i,std::numeric_limits<float>::quiet_NaN())==-1,"Native and invalid rendering inputs stay Native");
+        Check(dg::render_quality::Normalize(i,0)==spec.minimum&&dg::render_quality::Normalize(i,spec.maximum*2)==spec.maximum,"rendering range respects real nonzero minima and bounded ceilings");
+        Check(dg::render_quality::Normalize(i,spec.trial)==spec.trial,"render trial choice is representable");}
+    Check(dg::render_quality::Normalize(0,3.6f)==4,"integer CVar choices cannot retain fractional values");
     const Settings defaults;
     Check(!defaults.enabled,"existing installations retain native TAA by default");
     Check(defaults.motionBlurAmount==-1&&defaults.colorFringeAmount==-1,"native image effects retained by default");
