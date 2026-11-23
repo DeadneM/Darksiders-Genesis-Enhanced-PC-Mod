@@ -7046,3 +7046,5 @@ Contrôle GitHub Windows x64 effectué. 86 tests passent. Le transfert des lames
 # V1.188 — format HDR à l'usage et pose commune des lames
 
 Le viewport interroge l'état HDR juste avant de lire son EPixelFormat sur les chemins de création et de redimensionnement. Le candidat y choisit le format PQ sur le RHI DX11 exact. Les lames rangées partagent les mêmes offsets de bassin, issus des attaches et des sommets analysés. [Preuves et essai](V1_188_VIEWPORT_HDR10_STRIFE_BLADES_REVIEW.md).
+
+Contrôle GitHub Windows x64 effectué. 86 tests passent, dont visibilité des deux mains et pose au bassin. Les quatre réglages sont exercés sur chaque montage, durant et après l'attaque. [Reçu du ZIP](V1_188_DELIVERY_RECEIPT.md).

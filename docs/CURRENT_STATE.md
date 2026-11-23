@@ -1,5 +1,7 @@
 # V1.188 sur debug — HDR10 et lames de Strife
 
+**Construite et contrôlée.** 86 tests passent sur Windows x64. [Livraison et statut](V1_188_DELIVERY_RECEIPT.md).
+
 Base V1.187. Le journal utilisateur confirme le retour SDR de V1.187. V1.188 sélectionne le format au viewport et reprend les lames dans les trois poses. [Périmètre](V1_188_VIEWPORT_HDR10_STRIFE_BLADES_REVIEW.md).
 
 # V1.187 sur debug — HDR10 et lames montées
