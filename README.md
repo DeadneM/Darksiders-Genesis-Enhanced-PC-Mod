@@ -1,4 +1,6 @@
-# V1.183 — HDR compatible avec le buffer du jeu
+# V1.183 livrée sur debug — HDR scRGB
+
+**Construite et contrôlée** en Windows x64. Les 86 tests passent. [ZIP V1.183](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/c4acfb16421cebdaf46065dfed70a2a3a893e7d4/downloads/DarksidersGenesis_V1.183_NATIVE_SCRGB_TEST.zip) · [Livraison et statut](docs/V1_183_DELIVERY_RECEIPT.md).
 
 V1.182 a confirmé la signalisation scRGB 1000 sur le buffer flottant 16 bits. V1.183 reprend ce chemin pour les profils 1000 et 2000 nits. Les anciennes sélections HDR10 gardent leur niveau de luminosité. [Diagnostic et essai](docs/V1_183_HDR_SCRGB_REVIEW.md).
 

@@ -1,0 +1,9 @@
+# V1.183 — livraison debug
+
+**Construite et contrôlée** sur GitHub en Windows x64 Release. Les 86 tests passent et le journal C++ ne contient aucun avertissement. Base cumulative V1.182. [GitHub Actions](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/45157865100).
+
+V1.183 transforme les anciens profils HDR10 en scRGB 1000 ou 2000, selon le choix enregistré. La signalisation scRGB 1000 a été acceptée en V1.182 sur la machine du joueur, avec le format flottant 16 bits et la sortie moteur 5. Les métadonnées PQ sont retirées du menu et des nouveaux profils. Leurs anciennes valeurs restent sur disque. Le chemin de restauration Native et les options HUD, buffer et signalisation sont préservés. [Diagnostic et critères](V1_183_HDR_SCRGB_REVIEW.md).
+
+Le ZIP contient `DarksidersGenesisMod.asi` et `dxgi.dll` à la racine. Defender a contrôlé le ZIP et les deux binaires. Les 247 archives précédentes et les 291 autres valeurs de référence sont conservées. Main V1.173 et archive restent à leurs révisions précédentes. Source `b5763f33ff225b6476193433d0aafb64163fc3bf`, archive `c4acfb16421cebdaf46065dfed70a2a3a893e7d4`, SHA-256 `3CC2CE2731D07DC4622288E3CC5D4ADBEDAF13E7EB67D65F6B06C9A0155B07AB`. [Télécharger V1.183](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/c4acfb16421cebdaf46065dfed70a2a3a893e7d4/downloads/DarksidersGenesis_V1.183_NATIVE_SCRGB_TEST.zip). [Contrôles détaillés](evidence/V1_183_DELIVERY_CHECK.json).
+
+**Essai en jeu.** Après relance avec Windows HDR activé, rafraîchir le statut de Graphics → HDR en scRGB 1000. Vérifier 16 bits flottant, HDR ON, sortie 5, gamut 0 et `accepted`. Comparer les couleurs, le HUD et les hautes lumières à SDR dans la même scène. La migration et le résultat visuel restent expérimentaux en V1.183. Les essais des deux chevaux de Strife et des lames rangées de V1.182 sont repris dans ce lot.

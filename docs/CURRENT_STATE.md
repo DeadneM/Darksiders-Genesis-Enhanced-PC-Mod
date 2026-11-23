@@ -1,4 +1,6 @@
-# V1.183 sur debug — HDR scRGB
+# V1.183 livrée sur debug — HDR scRGB
+
+**Construite et contrôlée**. [ZIP, contrôles et essai](V1_183_DELIVERY_RECEIPT.md).
 
 Base cumulative V1.182. Signalisation scRGB 1000 confirmée sur le PC du joueur en V1.182. La conversion automatique des anciens profils et le rendu en jeu restent à vérifier en V1.183. [Diagnostic et essai](V1_183_HDR_SCRGB_REVIEW.md).
 
