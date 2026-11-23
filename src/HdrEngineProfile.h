@@ -3,6 +3,7 @@
 #include "HdrSettings.h"
 #include "NativeMemoryReader.h"
 #include <MinHook.h>
+#include <intrin.h>
 #include <atomic>
 #include <cstdio>
 
@@ -45,7 +46,7 @@ inline int ReadRenderCapability() {
 
 inline bool EnableRenderCapability() {
     if(ReadRenderCapability()<0)return false;
-    InterlockedCompareExchange8(renderCapability,1,0);
+    _InterlockedCompareExchange8(renderCapability,1,0);
     return *renderCapability==1;
 }
 
