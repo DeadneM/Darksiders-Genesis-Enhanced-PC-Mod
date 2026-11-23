@@ -317,6 +317,7 @@ void Runtime(){
     unsigned char modelClass[0x40]{},componentClass[0x40]{},bladeModels[2][0x40]{};
     static unsigned char decorations[2][0x600]{};
     static unsigned created=0,rotated=0,registered=0,destroyed=0;
+    static bool mountedBladeTest=false;
     Put<unsigned char>(horseGuns[3],0x275,0x80);
     Put<unsigned char>(horseGuns[3],0x27B,2);
     Put(horseGuns[3],0x27C,41);
@@ -364,16 +365,20 @@ void Runtime(){
         ++rotated;
     };
     stow::setDepth=+[](void* component,bool enabled){
-        Put<unsigned char>(component,0x275,enabled?0x80:0);
+        Put<unsigned char>(component,0x275,static_cast<unsigned char>(enabled?0x80:0));
     };
     stow::setStencil=+[](void* component,int stencil){Put(component,0x27C,stencil);};
     stow::setStencilMask=+[](void* component,unsigned char mask){Put(component,0x27B,mask);};
     stow::registerComponent=+[](void* component){
         Check(rotated==registered+1&&Get<uintptr_t>(component,0x108)&&Get<uintptr_t>(component,0x5B0)&&
             (Get<unsigned char>(component,0x1CC)&0x40),"mesh and holster transform are ready before rendering registration");
-        Check(Get<unsigned char>(component,0x275)==(registered?0:0x80)&&
-            Get<unsigned char>(component,0x27B)==2+registered&&Get<int>(component,0x27C)==41+int(registered),
-            "mounted decorations inherit depth and stencil from the matching crossed holster");
+        const auto depth=Get<unsigned char>(component,0x275);
+        const auto stencil=Get<int>(component,0x27C);
+        const auto mask=Get<unsigned char>(component,0x27B);
+        if(mountedBladeTest){
+            Check(depth==(registered?0:0x80)&&mask==2+registered&&stencil==41+int(registered),
+                "mounted decorations inherit depth and stencil from the matching crossed holster");
+        }else Check(!depth&&!mask&&!stencil,"foot decorations keep native component defaults");
         ++registered;Put<unsigned char>(component,0xAC,1);
     };
     stow::destroy=+[](void*,void*){++destroyed;};
@@ -388,6 +393,20 @@ void Runtime(){
     dg::runtime::Get().showStrifeStowedBlades=false;OnLivePlayer(horse,10,true);
     Check(destroyed==2&&!stow::players[0].actor&&Get<unsigned char>(blade[0],0x1CC)==0x21,
         "disabling stowed models destroys both decorations and leaves the combat blade alone");
+    mountedBladeTest=true;
+    created=rotated=registered=destroyed=0;
+    std::memset(decorations,0,sizeof(decorations));
+    Put(pc,0x350,horseId.address);
+    Put(horseMesh,0x5A0,reinterpret_cast<uintptr_t>(skeletons[0]));
+    horse.kind=dg::local_players::PoseKind::Horse;
+    horse.pawn=horseId.address;
+    owners[0]=horse;
+    dg::runtime::Get().showStrifeStowedBlades=true;
+    OnLivePlayer(horse,11,true);
+    Check(registered==2&&stow::players[0].actor==horseId,"both mounted decorations are owned by the active mount");
+    dg::runtime::Get().showStrifeStowedBlades=false;
+    OnLivePlayer(horse,12,true);
+    Check(destroyed==2&&!stow::players[0].actor,"mounted decorations release their components on disable");
     stow::construct=nullptr;
     stow::setRelativeTransform=nullptr;
     stow::setDepth=nullptr;
