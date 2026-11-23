@@ -7025,3 +7025,5 @@ Compilation et ZIP contrôlés, 86/86 tests Windows x64. Le rendu HDR à l’éc
 # V1.185 — réglages en direct et lames montées
 
 Les lecteurs de résolution de la vue et de qualité SSR ont été retrouvés dans l’exécutable exact. Le candidat applique les deux choix au thread de jeu par les setters natifs, avec retour Native conditionné à la propriété de la valeur. Le helper retire ses anciens overrides au premier arrêt. Les montages gauche et droit de la mêlée montée et les os de dagues correspondants ont été retrouvés dans les assets déjà en cache. [Périmètre et critères](V1_185_LIVE_QUALITY_MOUNTED_BLADES_REVIEW.md).
+
+V1.185 construite et contrôlée, 86/86 tests Windows x64 et zéro avertissement C++. Contrôle de code uniquement. L’essai des quatre gestes montés et du rendu live reste à faire. [GitHub Actions](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/45177336441).

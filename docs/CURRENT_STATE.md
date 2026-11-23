@@ -1,4 +1,6 @@
-## V1.185 en vérification sur debug
+## V1.185 construite et contrôlée sur debug
+
+Les 86 tests Windows x64 passent sans avertissement C++. Le candidat reste à essayer en jeu. [Contrôle GitHub](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/45177336441).
 
 Résolution interne et reflets en mission, lames tenues pendant la mêlée montée. Le contrôle GitHub ne produit pas de ZIP. V1.184 reste la build publiée pendant l’essai HDR. [Périmètre et critères](V1_185_LIVE_QUALITY_MOUNTED_BLADES_REVIEW.md).
 

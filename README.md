@@ -1,4 +1,6 @@
-## Candidat V1.185 en vérification
+## Candidat V1.185 construit et contrôlé
+
+Les 86 tests Windows x64 passent sans avertissement C++. Le candidat reste à essayer en jeu. [Contrôle GitHub](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/45177336441).
 
 Le prochain lot porte sur la résolution interne, les reflets en direct et les lames tenues à cheval. V1.184 est le ZIP disponible pour l’essai HDR en cours. [Périmètre et critères](docs/V1_185_LIVE_QUALITY_MOUNTED_BLADES_REVIEW.md).
 

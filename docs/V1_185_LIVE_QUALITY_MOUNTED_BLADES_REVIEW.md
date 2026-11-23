@@ -19,3 +19,8 @@ Le Blueprint `MayhemAbility_Mayhem_MeleeAttack_Blueprint` référence les montag
 Le candidat emprunte le montage et l’os associés au côté indiqué par le nom de l’asset. Une copie visuelle de la lame de ce côté s’affiche pendant l’attaque et respecte l’option de masquage. L’option des lames rangées régit leur présence au repos, avec les attaches croisées existantes. Les modèles visuels réutilisent des composants sans collision, avec un cache par cavalier local. Les effets de mêlée, dégâts, armes natives et contrôles gardent leur chemin existant.
 
 Critère sur les deux montures. À l’attaque à gauche et à droite, vérifier la position de la lame, son orientation et sa disparition à la fin, puis les choix OFF. Avec les lames rangées activées, vérifier le retour visuel au holster et la transition à pied. La préparation des attaches à partir des assets ne confirme pas encore le résultat visuel.
+
+
+## Contrôles
+
+Source e590a2831115e98474a2a4e69806bbeee5645f1a. Vérification des contrats natifs dans le binaire pris en charge, compilation Windows x64 et 86/86 tests. Zéro avertissement C++. Les tests couvrent les préférences persistantes et la reprise de propriété des anciens overrides. Les 249 archives et les 291 valeurs de référence sont conservées. Les étapes ZIP et publication du workflow ont été désactivées pour ce contrôle. Le résultat en jeu reste expérimental. [GitHub Actions](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/45177336441).
