@@ -1,5 +1,7 @@
 # V1.187 sur debug — HDR10 et lames montées
 
+**Construite et contrôlée.** 86 tests passent sur Windows x64. [ZIP V1.187](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/f1cda7519ae928b481aecda05e0e68c797c40235/downloads/DarksidersGenesis_V1.187_NATIVE_HDR10_BLADES_TEST.zip) · [Livraison et statut](docs/V1_187_DELIVERY_RECEIPT.md).
+
 Le candidat sélectionne le format moteur 10 bits et négocie une sortie HDR10 avec DXGI. Les lames suivent la main pendant la mêlée montée et l'axe des holsters à pied. [Détails et essai](docs/V1_187_NATIVE_HDR10_MOVING_BLADES_REVIEW.md).
 
 # V1.186 sur debug — choix HDR et lames de Strife

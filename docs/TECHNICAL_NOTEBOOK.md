@@ -7039,3 +7039,5 @@ Contrôle GitHub Windows x64 effectué. 86 tests passent, dont la rotation et la
 # V1.187 — RGB10A2 natif et visibilité des lames montées
 
 Le viewport DX11 utilise une préférence interne en priorité sur le CVar de buffer par défaut. Correction à la création et prise en compte du cycle DXGI flip. Les deux maillages montés contiennent l'os de dague à échelle quasi nulle. Copie attachée à la main, à l'échelle normale. [Preuves et essai](V1_187_NATIVE_HDR10_MOVING_BLADES_REVIEW.md).
+
+Contrôle GitHub Windows x64 effectué. 86 tests passent. Le transfert des lames est simulé pour les deux montages, avec une animation superposée. [Reçu du ZIP](V1_187_DELIVERY_RECEIPT.md).
