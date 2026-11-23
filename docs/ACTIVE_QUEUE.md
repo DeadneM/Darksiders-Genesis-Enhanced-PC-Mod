@@ -1,3 +1,7 @@
+# V1.189 — essai en jeu
+
+Confirmer plusieurs Alt+Tab en HDR10, comparer les choix d'interface HDR et vérifier le tranchant des lames rangées à pied et à cheval. Vérifier la montée depuis le sol séparément de l'appel en l'air. [Critères](V1_189_HDR_WINDOW_UI_BLADE_ROLL_REVIEW.md).
+
 # V1.188 sur debug — HDR10 et lames de Strife
 
 Vérifier la négociation HDR10 et les quatre choix de lames à pied, sur Mayhem et sur Despair. [Critères](V1_188_VIEWPORT_HDR10_STRIFE_BLADES_REVIEW.md).

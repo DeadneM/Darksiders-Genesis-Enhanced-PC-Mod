@@ -17,6 +17,7 @@
 #include "ChaosPoseFeature.h"
 #include "ConfigStore.h"
 #include "HdrTransport.h"
+#include "HdrInterface.h"
 #include "RenderQualityFeature.h"
 #include "EngineIniFeature.h"
 #include "TemporalAAFeature.h"
@@ -4473,6 +4474,9 @@ DWORD WINAPI MainThread(LPVOID) {
             dg::hdr::viewport::Initialize(g_config.hdrOutput,g_targetValidation.exact,&FeatureLog);
         Log(hdrViewport?"HDR10: DX11 scene viewport hooks ready":"HDR10: DX11 scene viewport hooks unavailable");
     }
+    if(g_config.hdrOutput.mode>0&&g_targetValidation.exact&&
+       !dg::hdr::ui::Initialize(g_targetValidation.exact,g_config.hdrOutput.mode,&FeatureLog))
+        Log("HDR UI Level: native HDR compositor signature or hook unavailable");
     if(g_targetValidation.exact)dg::engine_ini::QueueGraphicsAdapter(g_config.graphicsAdapter);
 
     ReportStartupPhase(5,g_targetValidation.exact?1u:0u);

@@ -711,7 +711,8 @@ bool Store::Load() {
         ReadFloat(L"HDR",L"PeakNits",1000,path_),
         ReadFloat(L"HDR",L"MinNits",.001f,path_),
         ReadFloat(L"HDR",L"MaxCLL",1000,path_),
-        ReadFloat(L"HDR",L"MaxFALL",400,path_)
+        ReadFloat(L"HDR",L"MaxFALL",400,path_),
+        int(GetPrivateProfileIntW(L"HDR",L"UIComposition",-1,path_.c_str()))
     });
     const bool oldOrbit=ReadBool(L"Features",L"CameraControllerOrbit",true,path_);
     tpsCameraStickMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(
@@ -1041,6 +1042,7 @@ void Store::PublishRuntime() const {
     runtime.postProcess=postProcess;
     runtime.renderResolution=render_quality::Normalize(render_quality::ResolutionIndex,renderQuality[render_quality::ResolutionIndex]);
     runtime.renderReflections=render_quality::Normalize(render_quality::ReflectionsIndex,renderQuality[render_quality::ReflectionsIndex]);
+    runtime.hdrUiBrightness=hdrOutput.mode>0?hdr::Normalize(hdrOutput).uiBrightness:-1;
     runtime.nativeBlur = nativeBlur;
     runtime.tpsBlur = tpsBlur;
     // Mouse TPS orbit shares the existing orbit result; it does not need
@@ -1279,6 +1281,7 @@ bool Store::SaveNow() {
     const auto normalizedHdr=hdr::Normalize(hdrOutput);
     WriteInt(L"HDR",L"OutputMode",normalizedHdr.mode,path_);
     WriteFloat(L"HDR",L"UIBrightness",normalizedHdr.uiBrightness,path_);
+    WriteInt(L"HDR",L"UIComposition",normalizedHdr.uiComposition,path_);
     WriteInt(L"HDR",L"BackBuffer",normalizedHdr.buffer,path_);
     WriteBool(L"HDR",L"DXGISignaling",normalizedHdr.dxgiSignaling,path_);
     WriteBool(L"HDR",L"CustomMetadata",normalizedHdr.customMetadata,path_);

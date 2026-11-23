@@ -1507,16 +1507,25 @@ void Draw(Context& c) {
                 constexpr const char* hdrModes[]={"Native","SDR (HDR off)","HDR10 - 1000 nits","HDR10 - 2000 nits",
                     "scRGB - 1000 nits","scRGB - 2000 nits"};
                 int selected=hdr::Normalize(config.hdrOutput).mode+1;
-                bool hdrChanged=false;
+                bool hdrChanged=false,uiBrightnessChanged=false;
                 if(Choice("HDR output mode",&selected,hdrModes,IM_ARRAYSIZE(hdrModes))){
                     config.hdrOutput.mode=selected-1;
                     hdrChanged=true;
                 }
                 HelpText("HDR10 needs a 10-bit game buffer. scRGB needs a 16-bit float game buffer. Close and relaunch to apply changes.");
                 ImGui::BeginDisabled(config.hdrOutput.mode<=0);
+                constexpr const char* uiCompositions[]={"Auto","Standard","HDR blend"};
+                int composition=config.hdrOutput.uiComposition+1;
+                if(Choice("HDR interface composition",&composition,uiCompositions,IM_ARRAYSIZE(uiCompositions))){
+                    config.hdrOutput.uiComposition=composition-1;hdrChanged=true;
+                }
+                HelpText("Standard uses regular blending. HDR blend composites the SDR menus and HUD for HDR output. Auto follows the game and selects HDR blend when brightness is customized. Restart to apply.");
                 bool customBrightness=config.hdrOutput.uiBrightness>=0;
-                if(ImGui::Checkbox("Customize HDR HUD brightness",&customBrightness)){config.hdrOutput.uiBrightness=customBrightness?1.5f:-1;hdrChanged=true;}
-                if(customBrightness&&NumberRow("HUD brightness","HDRUIBrightness",&config.hdrOutput.uiBrightness,0,4,1.5f,"%.2f","%.3f"))hdrChanged=true;
+                if(ImGui::Checkbox("Customize HDR interface brightness",&customBrightness)){
+                    config.hdrOutput.uiBrightness=customBrightness?1.5f:-1;uiBrightnessChanged=true;
+                }
+                if(customBrightness&&NumberRow("Interface brightness","HDRUIBrightness",&config.hdrOutput.uiBrightness,0,4,1.5f,"%.2f","%.3f"))uiBrightnessChanged=true;
+                if(customBrightness)HelpText("Live brightness of the menu and HUD layer when HDR blend is active. 1.0 uses the engine's reference level.");
                 constexpr const char* bufferModes[]={"Match HDR profile","Keep native buffer","10-bit RGB10A2","16-bit float RGBA"};
                 if(Choice("HDR buffer format",&config.hdrOutput.buffer,bufferModes,IM_ARRAYSIZE(bufferModes)))hdrChanged=true;
                 if(!hdr::CompatibleBuffer(config.hdrOutput))
@@ -1537,7 +1546,9 @@ void Draw(Context& c) {
                 ImGui::EndDisabled();
                 if(hdrChanged){config.hdrOutput=hdr::Normalize(config.hdrOutput);const bool saved=config.SaveNow();const bool queued=saved&&c.queueGraphicsAdapter&&c.queueGraphicsAdapter(config.graphicsAdapter);
                     *c.lastAction=!saved?"HDR preference save failed":queued?"HDR request queued; restart required":"HDR preference saved; exit helper queue failed";}
-                HelpText("Keep Windows HDR enabled. HUD brightness adjusts the game's interface. Native restores the previous engine settings.");
+                else if(uiBrightnessChanged){config.Save();*c.lastAction="HDR interface brightness adjusted";}
+                if(hdr::ManagedPq(config.hdrOutput))HelpText("HDR10 uses borderless presentation for task switching.");
+                HelpText("Keep Windows HDR enabled. Native restores the previous engine settings.");
                 if(status.deviceKnown)ImGui::TextWrapped("GPU: %s",status.adapter[0]?status.adapter:"Unknown adapter name");
                 else ImGui::TextDisabled("GPU information unavailable");
                 if(status.outputKnown)ImGui::Text("Display: %s",status.display);

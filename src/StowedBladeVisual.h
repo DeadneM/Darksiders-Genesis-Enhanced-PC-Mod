@@ -97,11 +97,11 @@ inline void Report(unsigned hand,const char* outcome,bool held){
 }
 
 // Both meshes share these crossed holster offsets from the rider's pelvis.
-// The blade faces lie against the hips, with tips following the holster axis.
+// The faces lie against the hips, tips follow the holster axis and the cutting edges face down.
 // Using the pelvis keeps the decorations independent of hidden gun holsters.
 inline constexpr Transform stowedPose[]{
-    {{0.29184189f,-0.76540302f,0.53593780f,-0.20434580f},{9.482513f,-7.064043f,20.547066f}},
-    {{0.76540005f,0.29183815f,-0.20435133f,-0.53594198f},{9.482193f,-7.063946f,-20.547089f}},
+    {{-0.76540302f,-0.29184189f,-0.20434580f,-0.53593780f},{9.482513f,-7.064043f,20.547066f}},
+    {{0.29183815f,-0.76540005f,-0.53594198f,0.20435133f},{9.482193f,-7.063946f,-20.547089f}},
 };
 // The rider meshes shrink the dagger bones to 0.000099. Attach to their
 // animated parent hands and reuse the authored dagger-to-hand grip at unit scale.

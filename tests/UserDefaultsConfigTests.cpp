@@ -43,7 +43,8 @@ int main(int argc,char** argv){
     for(size_t i=0;i<dg::postprocess::Count;++i)check(generated.postProcess[i]==-1,"new postprocess entries default Native");
     check(dg::runtime::Get().postProcessMask.load()==0,"Native catalog has no active per-frame work");
     for(float v:generated.renderQuality)check(v==-1,"restart rendering choices default Native");
-    check(generated.hdrOutput.mode==-1&&generated.hdrOutput.uiBrightness==-1,"HDR requests default Native without changing old profiles");
+    check(generated.hdrOutput.mode==-1&&generated.hdrOutput.uiBrightness==-1&&generated.hdrOutput.uiComposition==-1,
+        "HDR requests default Native without changing old profiles");
     check(generated.updaterAutoCheck,"approved defaults check the selected update channel at startup");
     check(generated.tps3DAimEnabled&&dg::runtime::Get().tps3DAimEnabled.load(),"missing option enables 3D aiming by default");
     check(generated.molochBossCrashFixEnabled&&dg::runtime::Get().molochBossCrashFixEnabled.load(),"captured subtitle crash guard defaults ON in store and runtime");
@@ -280,17 +281,19 @@ int main(int argc,char** argv){
     check(renamed.SaveNow()&&renamed.Load()&&renamed.renderQuality==dg::render_quality::NativeValues(),"Native rendering preference roundtrip");
     WritePrivateProfileStringW(L"HDR",L"OutputMode",L"1",path);
     WritePrivateProfileStringW(L"HDR",L"UIBrightness",L"1.25",path);
+    WritePrivateProfileStringW(L"HDR",L"UIComposition",L"0",path);
     WritePrivateProfileStringW(L"HDR",L"BackBuffer",L"2",path);
     WritePrivateProfileStringW(L"HDR",L"DXGISignaling",L"0",path);
     WritePrivateProfileStringW(L"HDR",L"CustomMetadata",L"1",path);
     WritePrivateProfileStringW(L"HDR",L"PeakNits",L"800",path);
     check(renamed.Load()&&renamed.hdrOutput.mode==1&&renamed.hdrOutput.buffer==2&&
-        renamed.hdrOutput.uiBrightness==1.25f&&!renamed.hdrOutput.dxgiSignaling&&
+        renamed.hdrOutput.uiBrightness==1.25f&&renamed.hdrOutput.uiComposition==0&&!renamed.hdrOutput.dxgiSignaling&&
         renamed.hdrOutput.customMetadata&&renamed.hdrOutput.peakNits==800,
-        "existing HDR10 INI restores the profile, buffer and metadata");
+        "HDR10 INI restores interface, profile, buffer and metadata");
+    check(dg::runtime::Get().hdrUiBrightness.load()==1.25f,"HDR interface level publishes to the render thread");
     renamed.showStrifeStowedBlades=true;
     check(renamed.SaveNow()&&renamed.Load()&&renamed.hdrOutput.mode==1&&renamed.hdrOutput.uiBrightness==1.25f&&
-        renamed.hdrOutput.buffer==2&&renamed.hdrOutput.customMetadata&&renamed.hdrOutput.peakNits==800,
+        renamed.hdrOutput.uiComposition==0&&renamed.hdrOutput.buffer==2&&renamed.hdrOutput.customMetadata&&renamed.hdrOutput.peakNits==800,
         "HDR10 preferences survive a full save and load");
     check(renamed.showStrifeStowedBlades&&dg::runtime::Get().showStrifeStowedBlades.load(),
         "stowed blade setting still roundtrips into runtime");

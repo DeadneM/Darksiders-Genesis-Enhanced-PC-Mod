@@ -33,6 +33,8 @@ void Run(){
     Check(hdr::ManagedPq({1,-1,0,true})&&!hdr::ManagedPq({1,-1,0,false})&&
         !hdr::ManagedPq({1,-1,3,true})&&!hdr::ManagedPq({3,-1,0,true}),
         "only a compatible HDR10 profile opts in to native PQ creation");
+    Check(hdr::PqWindowMode(0)==1&&hdr::PqWindowMode(1)==1&&hdr::PqWindowMode(2)==2,
+        "managed HDR10 maps exclusive requests to borderless and preserves regular windowed");
     Check(hdr::CompatibleBuffer(pq)&&hdr::CompatibleBuffer({4,-1,3})&&hdr::CompatibleBuffer({2,-1,1})&&
         !hdr::CompatibleBuffer(hdr::Normalize({2,-1,3}))&&!hdr::CompatibleBuffer(hdr::Normalize({4,-1,2})),
         "explicit buffer conflicts are disabled without coercing profile or format");

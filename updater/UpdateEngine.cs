@@ -106,6 +106,9 @@ namespace DarksidersGenesisUpdater {
                 throw new InvalidDataException("Invalid HDR UI brightness");
             int buffer=0;string rawBuffer=RenderRead("HDR","BackBuffer",modIni);
             if(rawBuffer!=null&&(!int.TryParse(rawBuffer,out buffer)||buffer<0||buffer>3))throw new InvalidDataException("Invalid HDR back buffer choice");
+            int composition=-1;string rawComposition=RenderRead("HDR","UIComposition",modIni);
+            if(rawComposition!=null&&(!int.TryParse(rawComposition,out composition)||composition < -1||composition>1))
+                throw new InvalidDataException("Invalid HDR interface composition");
             bool pq=mode==1||mode==2;
             string signaling=RenderRead("HDR","DXGISignaling",modIni);
             int toggle;
@@ -120,7 +123,7 @@ namespace DarksidersGenesisUpdater {
                 values[3]=pq&&!managedPq?2:0;
             }
             if(mode>0&&buffer!=1)values[6]=pq?4:3;
-            if(mode>0&&brightness>=0){values[4]=1;values[5]=brightness;}
+            if(mode>0)values[4]=composition>=0?composition:brightness>=0?1:-1;
             return values;
         }
         internal static int ApplyRenderQualityAfterExit(string folder) {
@@ -150,9 +153,8 @@ namespace DarksidersGenesisUpdater {
                 if(desired>=0&&(desired<RenderMin[i]||desired>RenderMax[i]||(RenderInt[i]&&desired!=Math.Floor(desired))))
                     throw new InvalidDataException("Rendering preference outside supported range: "+RenderCVars[i]);
                 string key=RenderCVars[i],current=RenderRead("SystemSettings",key,engineIni);string[] prior;owned.TryGetValue(key,out prior);
-                // The ASI now applies these two settings in session. Restore
-                // any matching values owned by the older exit helper.
-                bool live=key=="r.ScreenPercentage"||key=="r.SSR.Quality";
+                // Live overrides use the ASI. Release values owned by older helpers.
+                bool live=key=="r.ScreenPercentage"||key=="r.SSR.Quality"||key=="r.HDR.UI.Level";
                 if(desired<0||live) {
                     // External edits win when releasing an owned value.
                     if(prior!=null&&current==prior[1]&&current!=prior[0])writes[key]=prior[0];

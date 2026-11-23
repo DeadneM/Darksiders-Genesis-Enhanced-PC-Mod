@@ -1,3 +1,7 @@
+# V1.189 sur debug — Alt+Tab HDR10 et interface
+
+Base V1.188. Rendu HDR10 en jeu et placement des lames validés par le joueur. V1.189 vise le retour après Alt+Tab, le réglage de la couche menus et HUD et le tranchant des lames rangées. [Diagnostic et critères d'essai](V1_189_HDR_WINDOW_UI_BLADE_ROLL_REVIEW.md).
+
 # V1.188 sur debug — HDR10 et lames de Strife
 
 **Construite et contrôlée.** 86 tests passent sur Windows x64. [Livraison et statut](V1_188_DELIVERY_RECEIPT.md).

@@ -9,14 +9,17 @@ namespace dg::hdr::viewport {
 using Microsoft::WRL::ComPtr;
 using Constructor=void*(*)(void*,void*,HWND,UINT,UINT,bool,int);
 using CreateChain=HRESULT(STDMETHODCALLTYPE*)(IDXGIFactory*,IUnknown*,DXGI_SWAP_CHAIN_DESC*,IDXGISwapChain**);
-using Reset=void(*)(void*,bool);
+using Resize=void(*)(void*,void*,UINT,UINT,bool,int);
+using SetResolution=void(*)(int,int,int);
 using HdrEnabled=bool(*)();
 
 inline uintptr_t base=0;
 inline engine_profile::LogFn logger=nullptr;
 inline Constructor construct=nullptr;
 inline CreateChain createChain=nullptr;
-inline Reset reset=nullptr;
+inline Resize resizeViewport=nullptr;
+inline SetResolution setResolution=nullptr;
+inline std::atomic_bool reportedBorderless{false};
 inline HdrEnabled nativeHdrEnabled=nullptr;
 inline bool requestRgb10=false;
 inline std::atomic_bool formatSelected{false};
@@ -118,11 +121,8 @@ inline HRESULT STDMETHODCALLTYPE CreateHdrChain(IDXGIFactory* factory,IUnknown* 
         desc.SwapEffect=DXGI_SWAP_EFFECT_FLIP_DISCARD;
         desc.AlphaMode=DXGI_ALPHA_MODE_IGNORE;
         desc.Flags=native->Flags;
-        const DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreen{
-            native->BufferDesc.RefreshRate,native->BufferDesc.ScanlineOrdering,native->BufferDesc.Scaling,native->Windowed
-        };
         ComPtr<IDXGISwapChain1> created;
-        hr=modernFactory->CreateSwapChainForHwnd(device.Get(),native->OutputWindow,&desc,&fullscreen,nullptr,&created);
+        hr=modernFactory->CreateSwapChainForHwnd(device.Get(),native->OutputWindow,&desc,nullptr,nullptr,&created);
         if(SUCCEEDED(hr)){
             hr=HasHdrDisplay(created.Get())?SetColorSpace(created.Get(),DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020):DXGI_ERROR_UNSUPPORTED;
             if(SUCCEEDED(hr)){
@@ -132,7 +132,6 @@ inline HRESULT STDMETHODCALLTYPE CreateHdrChain(IDXGIFactory* factory,IUnknown* 
                 if(logger)logger("HDR10: RGB10A2 flip swap chain created and PQ accepted");
                 return S_OK;
             }
-            if(!native->Windowed)created->SetFullscreenState(FALSE,nullptr);
         }
     }
     if(logger){
@@ -168,6 +167,8 @@ inline void* CreateViewport(void* viewport,void* rhi,HWND window,UINT width,UINT
         }
         if(format==RGB10A2&&!HookFactory(rhi)&&logger)logger("HDR10: DXGI factory hook unavailable");
     }
+    // Also cover a configuration request made before this module loaded.
+    if(game&&format==RGB10A2)fullscreen=false;
     auto* result=construct(viewport,rhi,window,width,height,fullscreen,format);
     if(game){
         IDXGISwapChain* chain=nullptr;
@@ -178,31 +179,21 @@ inline void* CreateViewport(void* viewport,void* rhi,HWND window,UINT width,UINT
     return result;
 }
 
-// D3D11's viewport resize releases its back buffer, sets the mode, then
-// rebuilds the RHI target. Flip swap chains need a resize in that same window
-// immediately after a successful fullscreen transition.
-inline void ResetViewport(void* viewport,bool ignoreFocus){
-    const auto caller=reinterpret_cast<uintptr_t>(_ReturnAddress());
+// The UE4 DX11 exclusive focus-reset path can switch modes without releasing
+// the RHI target. Keep the owned flip chain in composed presentation.
+inline void RequestResolution(int width,int height,int mode){
+    const int resolved=PqWindowMode(mode);
+    if(resolved!=mode&&!reportedBorderless.exchange(true)&&logger)
+        logger("HDR10: requested exclusive mode converted to borderless for task switching");
+    setResolution(width,height,resolved);
+}
+
+inline void ResizeViewport(void* rhi,void* viewport,UINT width,UINT height,bool fullscreen,int format){
     native_objects::MemoryReader reader;
-    const auto object=reinterpret_cast<uintptr_t>(viewport);
     IDXGISwapChain* chain=nullptr;
-    uintptr_t backBuffer=0;
-    BOOL before=FALSE;
-    const bool nativeResize=(caller==base+0xD60E61||caller==base+0xD60E97)&&
-        reader.Read(object,0x60,chain)&&OwnsFlip(chain)&&reader.Read(object,0x68,backBuffer)&&!backBuffer&&
-        SUCCEEDED(chain->GetFullscreenState(&before,nullptr));
-
-    reset(viewport,ignoreFocus);
-
-    BOOL after=FALSE;DXGI_SWAP_CHAIN_DESC desc{};
-    if(nativeResize&&SUCCEEDED(chain->GetFullscreenState(&after,nullptr))&&before!=after&&SUCCEEDED(chain->GetDesc(&desc))){
-        const auto hr=chain->ResizeBuffers(0,0,0,DXGI_FORMAT_UNKNOWN,desc.Flags);
-        if(FAILED(hr)&&logger){
-            char line[128]{};
-            sprintf_s(line,"HDR10: post-transition ResizeBuffers failed (0x%08lX)",static_cast<unsigned long>(hr));
-            logger(line);
-        }
-    }
+    if(fullscreen&&reader.Read(reinterpret_cast<uintptr_t>(viewport),0x60,chain)&&OwnsFlip(chain))
+        fullscreen=false;
+    resizeViewport(rhi,viewport,width,height,fullscreen,format);
 }
 
 inline bool Initialize(Settings choice,bool exact,engine_profile::LogFn log){
@@ -217,10 +208,13 @@ inline bool Initialize(Settings choice,bool exact,engine_profile::LogFn log){
     constexpr unsigned char createRhiSig[]={0x48,0x8B,0xC4,0x48,0x89,0x50,0x10,0x57,0x41,0x56,0x41,0x57};
     constexpr unsigned char ctorSig[]={0x48,0x8B,0xC4,0x55,0x41,0x54,0x41,0x55,0x41,0x56,0x41,0x57,0x48,0x8D,0x68,0xC8};
     constexpr unsigned char factoryCall[]={0x48,0x8B,0x88,0x80,0x01,0,0,0x4C,0x89,0x6B,0x60,0x48,0x8B,0x01};
-    constexpr unsigned char resetSig[]={0x40,0x56,0x57,0x41,0x56,0x48,0x83,0xEC,0x40,0x48,0xC7,0x44,0x24,0x30,0xFE,0xFF};
+    constexpr unsigned char resizeRhiSig[]={0x40,0x57,0x48,0x83,0xEC,0x40,0x48,0xC7,0x44,0x24,0x30,0xFE,0xFF,0xFF,0xFF};
+    constexpr unsigned char resolutionSig[]={0x48,0x8B,0xC4,0x55,0x48,0x8B,0xEC,0x48,0x83,0xEC,0x60,0x48,0xC7,0x45,0xD0,0xFE,0xFF,0xFF,0xFF};
+    constexpr unsigned char borderlessText[]={0x77,0,0x66,0,0,0};
     constexpr unsigned char resizeSig[]={0xBA,0x01,0,0,0,0x89,0x44,0x24,0x20,0x8B,0xF8,0x4C,0x8B,0x11,0x41,0xFF,0x52,0x68};
     auto* ctor=reinterpret_cast<void*>(base+0xD3F450);
-    auto* resetEntry=reinterpret_cast<void*>(base+0xD449A0);
+    auto* resizeEntry=reinterpret_cast<void*>(base+0xD5C260);
+    auto* resolution=reinterpret_cast<void*>(base+0x1C55DF0);
     auto* query=reinterpret_cast<void*>(base+0x12F5800);
     if(std::memcmp(query,querySig,sizeof(querySig))||
        std::memcmp(reinterpret_cast<void*>(base+0x145D23B),createQuery,sizeof(createQuery))||
@@ -228,7 +222,9 @@ inline bool Initialize(Settings choice,bool exact,engine_profile::LogFn log){
        std::memcmp(reinterpret_cast<void*>(base+0xD58AF0),createRhiSig,sizeof(createRhiSig))||
        std::memcmp(ctor,ctorSig,sizeof(ctorSig))||
        std::memcmp(reinterpret_cast<void*>(base+0xD3F8C1),factoryCall,sizeof(factoryCall))||
-       std::memcmp(resetEntry,resetSig,sizeof(resetSig))||
+       std::memcmp(resizeEntry,resizeRhiSig,sizeof(resizeRhiSig))||
+       std::memcmp(resolution,resolutionSig,sizeof(resolutionSig))||
+       std::memcmp(reinterpret_cast<void*>(base+0x2DE70A8),borderlessText,sizeof(borderlessText))||
        std::memcmp(reinterpret_cast<void*>(base+0xD60DC7),resizeSig,sizeof(resizeSig)))return false;
     hdrFormat=VerifyHdrFormat();
     if(!hdrFormat)return false;
@@ -238,7 +234,8 @@ inline bool Initialize(Settings choice,bool exact,engine_profile::LogFn log){
     const Hook hooks[]{
         {query,reinterpret_cast<void*>(&SelectViewportFormat),reinterpret_cast<void**>(&nativeHdrEnabled)},
         {ctor,reinterpret_cast<void*>(&CreateViewport),reinterpret_cast<void**>(&construct)},
-        {resetEntry,reinterpret_cast<void*>(&ResetViewport),reinterpret_cast<void**>(&reset)},
+        {resizeEntry,reinterpret_cast<void*>(&ResizeViewport),reinterpret_cast<void**>(&resizeViewport)},
+        {resolution,reinterpret_cast<void*>(&RequestResolution),reinterpret_cast<void**>(&setResolution)},
     };
     size_t created=0,queued=0;
     for(const auto& hook:hooks){

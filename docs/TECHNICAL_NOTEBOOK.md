@@ -7048,3 +7048,8 @@ Contrôle GitHub Windows x64 effectué. 86 tests passent. Le transfert des lames
 Le viewport interroge l'état HDR juste avant de lire son EPixelFormat sur les chemins de création et de redimensionnement. Le candidat y choisit le format PQ sur le RHI DX11 exact. Les lames rangées partagent les mêmes offsets de bassin, issus des attaches et des sommets analysés. [Preuves et essai](V1_188_VIEWPORT_HDR10_STRIFE_BLADES_REVIEW.md).
 
 Contrôle GitHub Windows x64 effectué. 86 tests passent, dont visibilité des deux mains et pose au bassin. Les quatre réglages sont exercés sur chaque montage, durant et après l'attaque. [Reçu du ZIP](V1_188_DELIVERY_RECEIPT.md).
+
+
+# V1.189 — focus DXGI et composition de l'interface HDR
+
+Les rapports V1.188 échouent sur le retour natif de Present. La chaîne flip HDR10 utilise désormais le mode sans bordure pour sortir du cycle de plein écran exclusif lors du changement de focus. Les deux variantes du compositeur Slate reçoivent le niveau d'interface en direct. Les signatures natives et le demi-tour local des lames sont vérifiés hors jeu. [Preuves, réglages et essai](V1_189_HDR_WINDOW_UI_BLADE_ROLL_REVIEW.md).

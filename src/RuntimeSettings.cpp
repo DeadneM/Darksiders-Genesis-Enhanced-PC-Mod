@@ -77,6 +77,7 @@ void Publish(const Snapshot& s) {
     g_state.postProcessMask.store(postMask,std::memory_order_release);
     g_state.renderResolution.store(s.renderResolution,std::memory_order_relaxed);
     g_state.renderReflections.store(s.renderReflections,std::memory_order_relaxed);
+    g_state.hdrUiBrightness.store(s.hdrUiBrightness,std::memory_order_relaxed);
     g_state.nativeBlur.Publish(s.nativeBlur);
     g_state.tpsBlur.Publish(s.tpsBlur);
     g_state.cameraOrbitInputEnabled.store(s.cameraOrbitInputEnabled, std::memory_order_relaxed);

@@ -1,3 +1,7 @@
+# V1.189 sur debug — HDR10 et lames de Strife
+
+Le HDR10 géré par le mod utilise la présentation sans bordure pour les changements de fenêtre. La luminosité de la couche menus et HUD se règle en direct avec la composition HDR. Les lames rangées gardent leur placement avec le tranchant tourné vers le bas. [Détails et essai](docs/V1_189_HDR_WINDOW_UI_BLADE_ROLL_REVIEW.md).
+
 # V1.188 sur debug — HDR10 et lames de Strife
 
 **Construite et contrôlée.** 86 tests passent sur Windows x64. [ZIP V1.188](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/514f411e3661ec3e2ff6e28c42f134962da107a1/downloads/DarksidersGenesis_V1.188_VIEWPORT_HDR10_STRIFE_BLADES_TEST.zip) · [Livraison et statut](docs/V1_188_DELIVERY_RECEIPT.md).
