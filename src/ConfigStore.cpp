@@ -702,14 +702,12 @@ bool Store::Load() {
         postProcess[i]=postprocess::Normalize(i,ReadFloat(L"PostProcess",key,-1,path_));}
     for(size_t i=0;i<render_quality::Specs.size();++i){wchar_t key[96]{};swprintf_s(key,L"%hs",render_quality::Specs[i].key);
         renderQuality[i]=render_quality::Normalize(i,ReadFloat(L"RenderQuality",key,-1,path_));}
-    hdrOutput=hdr::Normalize({int(GetPrivateProfileIntW(L"HDR",L"OutputMode",-1,path_.c_str())),
-        ReadFloat(L"HDR",L"UIBrightness",-1,path_)});
-    hdrOutput.buffer=int(GetPrivateProfileIntW(L"HDR",L"BackBuffer",0,path_.c_str()));
-    hdrOutput.dxgiSignaling=ReadBool(L"HDR",L"DXGISignaling",true,path_);
-    hdrOutput.customMetadata=ReadBool(L"HDR",L"CustomMetadata",false,path_);
-    hdrOutput.peakNits=ReadFloat(L"HDR",L"PeakNits",1000,path_);hdrOutput.minNits=ReadFloat(L"HDR",L"MinNits",.001f,path_);
-    hdrOutput.maxCLL=ReadFloat(L"HDR",L"MaxCLL",1000,path_);hdrOutput.maxFALL=ReadFloat(L"HDR",L"MaxFALL",400,path_);
-    hdrOutput=hdr::Normalize(hdrOutput);
+    hdrOutput=hdr::Normalize({
+        int(GetPrivateProfileIntW(L"HDR",L"OutputMode",-1,path_.c_str())),
+        ReadFloat(L"HDR",L"UIBrightness",-1,path_),
+        int(GetPrivateProfileIntW(L"HDR",L"BackBuffer",0,path_.c_str())),
+        ReadBool(L"HDR",L"DXGISignaling",true,path_)
+    });
     const bool oldOrbit=ReadBool(L"Features",L"CameraControllerOrbit",true,path_);
     tpsCameraStickMode=std::clamp(static_cast<int>(GetPrivateProfileIntW(
         L"Features",L"TPSCameraStickMode",oldOrbit?2:0,path_.c_str())),0,2);
@@ -1275,9 +1273,7 @@ bool Store::SaveNow() {
     WriteInt(L"HDR",L"OutputMode",normalizedHdr.mode,path_);
     WriteFloat(L"HDR",L"UIBrightness",normalizedHdr.uiBrightness,path_);
     WriteInt(L"HDR",L"BackBuffer",normalizedHdr.buffer,path_);
-    WriteBool(L"HDR",L"DXGISignaling",normalizedHdr.dxgiSignaling,path_);WriteBool(L"HDR",L"CustomMetadata",normalizedHdr.customMetadata,path_);
-    WriteFloat(L"HDR",L"PeakNits",normalizedHdr.peakNits,path_);WriteFloat(L"HDR",L"MinNits",normalizedHdr.minNits,path_);
-    WriteFloat(L"HDR",L"MaxCLL",normalizedHdr.maxCLL,path_);WriteFloat(L"HDR",L"MaxFALL",normalizedHdr.maxFALL,path_);
+    WriteBool(L"HDR",L"DXGISignaling",normalizedHdr.dxgiSignaling,path_);
     const auto normalizedAA=temporal_aa::Normalize(temporalAA);
     for(size_t i=0;i<postprocess::Count;++i){wchar_t key[96]{};
         swprintf_s(key,L"%hs",postprocess::Specs[i].key);

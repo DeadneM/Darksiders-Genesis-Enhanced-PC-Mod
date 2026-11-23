@@ -3926,10 +3926,9 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     if(dg::hdr::ServiceTransport(swapChain)){
         const auto engine=dg::hdr::engine_profile::Read(true);
         const auto& output=dg::hdr::transport;
-        Log("HDR V1.182 present mode=%d format=%u engine=%d/%d/%d matched=%d signaling=%d result=%08lX metadata=%08lX",
-            dg::hdr::engine_profile::startup.mode,output.format,engine.enabled,engine.outputDevice,engine.gamut,
-            !output.engineMismatch&&!output.formatMismatch,output.applied,static_cast<unsigned long>(output.result),
-            static_cast<unsigned long>(output.metadata));
+        Log("HDR %s present mode=%d format=%u engine=%d/%d/%d matched=%d signaling=%d result=%08lX",
+            dg::build::Version,dg::hdr::engine_profile::startup.mode,output.format,engine.enabled,engine.outputDevice,engine.gamut,
+            !output.engineMismatch&&!output.formatMismatch,output.applied,static_cast<unsigned long>(output.result));
     }
     ProcessCameraInput();
     EnsureOrbitWndProc(swapChain);

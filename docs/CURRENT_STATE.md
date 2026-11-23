@@ -1,3 +1,7 @@
+# V1.183 sur debug — HDR scRGB
+
+Base cumulative V1.182. Signalisation scRGB 1000 confirmée sur le PC du joueur en V1.182. La conversion automatique des anciens profils et le rendu en jeu restent à vérifier en V1.183. [Diagnostic et essai](V1_183_HDR_SCRGB_REVIEW.md).
+
 # V1.182 livrée sur debug
 
 **Construite et contrôlée**. Les trois corrections sont à valider en jeu. La sélection du format HDR est couplée à l’encodage moteur, les lames rangées sont créées séparément et la visibilité des pistolets suit la transition de monture. Main reste en V1.173. [Livraison et essais](V1_182_DELIVERY_RECEIPT.md).

@@ -1,3 +1,7 @@
+# V1.183 — HDR compatible avec le buffer du jeu
+
+V1.182 a confirmé la signalisation scRGB 1000 sur le buffer flottant 16 bits. V1.183 reprend ce chemin pour les profils 1000 et 2000 nits. Les anciennes sélections HDR10 gardent leur niveau de luminosité. [Diagnostic et essai](docs/V1_183_HDR_SCRGB_REVIEW.md).
+
 # V1.182 livrée sur debug
 
 **Construite et contrôlée**. Les trois corrections sont à valider en jeu. La sélection du format HDR est couplée à l’encodage moteur, les lames rangées sont créées séparément et la visibilité des pistolets suit la transition de monture. Main reste en V1.173. [Livraison et essais](docs/V1_182_DELIVERY_RECEIPT.md).

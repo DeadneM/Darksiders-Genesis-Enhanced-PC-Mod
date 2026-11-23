@@ -1,3 +1,7 @@
+## V1.183 à essayer
+
+Comparer le rendu scRGB 1000 à SDR dans la même scène. Vérifier la lisibilité du HUD et le résultat de **Refresh HDR availability** après relance. Les essais V1.182 des lames rangées et des transitions sur les deux chevaux de Strife restent ouverts. [Diagnostic HDR](V1_183_HDR_SCRGB_REVIEW.md).
+
 ## V1.182 à essayer
 
 Valider en jeu le HDR, les transitions des deux chevaux et la case des lames rangées. Lames tenues à cheval encore ouvertes. Étudier la résolution interne et les reflets en direct en premier, puis le cycle des samplers d’anisotropie. [Livraison](V1_182_DELIVERY_RECEIPT.md).

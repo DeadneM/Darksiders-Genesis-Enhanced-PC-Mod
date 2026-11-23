@@ -276,10 +276,20 @@ int main(int argc,char** argv){
         "restart rendering preferences preserve custom, fractional-domain and off values");
     renamed.renderQuality=dg::render_quality::NativeValues();
     check(renamed.SaveNow()&&renamed.Load()&&renamed.renderQuality==dg::render_quality::NativeValues(),"Native rendering preference roundtrip");
+    WritePrivateProfileStringW(L"HDR",L"OutputMode",L"1",path);
+    WritePrivateProfileStringW(L"HDR",L"UIBrightness",L"1.25",path);
+    WritePrivateProfileStringW(L"HDR",L"BackBuffer",L"3",path);
+    WritePrivateProfileStringW(L"HDR",L"DXGISignaling",L"0",path);
+    WritePrivateProfileStringW(L"HDR",L"PeakNits",L"800",path);
+    check(renamed.Load()&&renamed.hdrOutput.mode==3&&renamed.hdrOutput.buffer==0&&
+        renamed.hdrOutput.uiBrightness==1.25f&&!renamed.hdrOutput.dxgiSignaling,
+        "existing HDR10 INI loads scRGB without resetting other HDR preferences");
     renamed.showStrifeStowedBlades=true;
-    renamed.hdrOutput={3,1.25f};renamed.hdrOutput.buffer=3;renamed.hdrOutput.customMetadata=true;renamed.hdrOutput.peakNits=800;
-    check(renamed.SaveNow()&&renamed.Load()&&renamed.hdrOutput.mode==3&&renamed.hdrOutput.uiBrightness==1.25f,"HDR mode and HUD brightness persist without changing unrelated settings");
-    check(renamed.showStrifeStowedBlades&&dg::runtime::Get().showStrifeStowedBlades.load()&&renamed.hdrOutput.buffer==0&&renamed.hdrOutput.customMetadata&&renamed.hdrOutput.peakNits==800,"stowed blade and HDR calibration settings roundtrip into runtime");
+    check(renamed.SaveNow()&&renamed.Load()&&renamed.hdrOutput.mode==3&&renamed.hdrOutput.uiBrightness==1.25f&&
+        GetPrivateProfileIntW(L"HDR",L"OutputMode",-1,path)==3&&GetPrivateProfileIntW(L"HDR",L"PeakNits",-1,path)==800,
+        "scRGB persists after save and retired HDR10 metadata is preserved on disk");
+    check(renamed.showStrifeStowedBlades&&dg::runtime::Get().showStrifeStowedBlades.load(),
+        "stowed blade setting still roundtrips into runtime");
     renamed.hdrOutput={};check(renamed.SaveNow()&&renamed.Load()&&renamed.hdrOutput.mode==-1&&renamed.hdrOutput.uiBrightness==-1,"HDR Native roundtrip");
     renamed.coreLevelDisplayFixEnabled=false;
     check(renamed.SaveNow()&&renamed.Load()&&!renamed.coreLevelDisplayFixEnabled&&!dg::runtime::Get().coreLevelDisplayFixEnabled.load(),"core UI repair OFF persists and reaches runtime");

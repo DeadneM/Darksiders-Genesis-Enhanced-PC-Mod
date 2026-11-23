@@ -1,4 +1,5 @@
 #pragma once
+#include "BuildInfo.h"
 #include "HdrSettings.h"
 #include "NativeMemoryReader.h"
 #include <MinHook.h>
@@ -60,14 +61,14 @@ inline void ApplyOnGameThread(bool startupBoundary=false) {
         const wchar_t value[]={wchar_t(L'0'+(startup.mode>0?startup.mode+2:0)),0};
         const auto set=reinterpret_cast<SetFn>(base+IntSetter);
         set(reinterpret_cast<void*>(output.object),value,SetByCode);
-        set(reinterpret_cast<void*>(gamut.object),PQ(startup.mode)?L"2":L"0",SetByCode);
+        set(reinterpret_cast<void*>(gamut.object),L"0",SetByCode);
     }
     const auto after=Read(false);
     if(after.Matches(startup.mode))applied.store(true,std::memory_order_release);
     if(logger){
         char line[256]{};
-        sprintf_s(line,"HDR V1.182 startup profile=%d written=%d engine enabled=%d output=%d gamut=%d previous=%d/%d",
-            startup.mode,matchingStartup&&allowed?1:0,after.enabled,after.outputDevice,after.gamut,before.outputDevice,before.gamut);
+        sprintf_s(line,"HDR %s startup profile=%d written=%d engine enabled=%d output=%d gamut=%d previous=%d/%d",
+            build::Version,startup.mode,matchingStartup&&allowed?1:0,after.enabled,after.outputDevice,after.gamut,before.outputDevice,before.gamut);
         logger(line);
     }
 }

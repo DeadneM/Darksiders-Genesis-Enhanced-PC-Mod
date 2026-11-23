@@ -49,6 +49,7 @@
 #include "imgui.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdio>
 
@@ -1489,31 +1490,27 @@ void Draw(Context& c) {
                 static hdr::Status status{};
                 if((newlyOpened||!status.checked)&&c.queryHdrStatus)status=c.queryHdrStatus();
                 if(layout::Button("Refresh HDR availability")&&c.queryHdrStatus)status=c.queryHdrStatus();
-                constexpr const char* hdrModes[]={"Native","SDR (HDR off)","HDR10 - 1000 nits","HDR10 - 2000 nits","scRGB - 1000 nits","scRGB - 2000 nits"};
-                int selected=hdr::Normalize(config.hdrOutput).mode+1;bool hdrChanged=false;
-                if(Choice("HDR output mode",&selected,hdrModes,6)){config.hdrOutput.mode=selected-1;hdrChanged=true;}
-                HelpText("Experimental on every GPU brand. Applied after closing the game; restart afterwards. Native restores previous settings. The game may require exclusive fullscreen.");
+                constexpr const char* hdrModes[]={"Native","SDR (HDR off)","scRGB - 1000 nits","scRGB - 2000 nits"};
+                constexpr std::array hdrModeValues{-1,0,3,4};
+                const int mode=hdr::Normalize(config.hdrOutput).mode;
+                int selected=int(std::find(hdrModeValues.begin(),hdrModeValues.end(),mode)-hdrModeValues.begin());
+                bool hdrChanged=false;
+                if(Choice("HDR output mode",&selected,hdrModes,int(hdrModeValues.size()))){
+                    config.hdrOutput.mode=hdrModeValues[selected];
+                    hdrChanged=true;
+                }
+                HelpText("The game's DX11 HDR buffer is 16-bit floating point. Older HDR10 profiles open as scRGB at the same peak. Close and relaunch the game to apply changes.");
                 ImGui::BeginDisabled(config.hdrOutput.mode<=0);
                 bool customBrightness=config.hdrOutput.uiBrightness>=0;
                 if(ImGui::Checkbox("Customize HDR HUD brightness",&customBrightness)){config.hdrOutput.uiBrightness=customBrightness?1.5f:-1;hdrChanged=true;}
                 if(customBrightness&&NumberRow("HUD brightness","HDRUIBrightness",&config.hdrOutput.uiBrightness,0,4,1.5f,"%.2f","%.3f"))hdrChanged=true;
-                ImGui::EndDisabled();
                 constexpr const char* bufferModes[]={"Match HDR profile","Keep native buffer"};
                 if(Choice("HDR buffer format",&config.hdrOutput.buffer,bufferModes,2))hdrChanged=true;
                 if(ImGui::Checkbox("Use DXGI HDR signaling",&config.hdrOutput.dxgiSignaling))hdrChanged=true;
-                ImGui::BeginDisabled(!hdr::PQ(config.hdrOutput.mode));
-                if(ImGui::Checkbox("Customize HDR10 metadata",&config.hdrOutput.customMetadata))hdrChanged=true;
-                if(config.hdrOutput.customMetadata){
-                    if(NumberRow("Mastering peak (nits)","HDRPeak",&config.hdrOutput.peakNits,80,10000,1000,"%.0f","%.0f"))hdrChanged=true;
-                    if(NumberRow("Mastering black (nits)","HDRBlack",&config.hdrOutput.minNits,0,20,.001f,"%.4f","%.4f"))hdrChanged=true;
-                    if(NumberRow("Content peak (MaxCLL)","HDRCLL",&config.hdrOutput.maxCLL,1,10000,1000,"%.0f","%.0f"))hdrChanged=true;
-                    if(NumberRow("Average peak (MaxFALL)","HDRFALL",&config.hdrOutput.maxFALL,1,10000,400,"%.0f","%.0f"))hdrChanged=true;
-                    HelpText("HDR10 metadata describes the content to the display; it does not change the 1000/2000-nit tone curve. scRGB uses no HDR10 metadata.");
-                }
                 ImGui::EndDisabled();
                 if(hdrChanged){config.hdrOutput=hdr::Normalize(config.hdrOutput);const bool saved=config.SaveNow();const bool queued=saved&&c.queueGraphicsAdapter&&c.queueGraphicsAdapter(config.graphicsAdapter);
                     *c.lastAction=!saved?"HDR preference save failed":queued?"HDR request queued; restart required":"HDR preference saved; exit helper queue failed";}
-                HelpText("The profiles request the engine's HDR output; correct image, highlights and HUD need in-game validation. HUD brightness controls the native game HUD. Keep Windows HDR enabled for the test.");
+                HelpText("Keep Windows HDR enabled. HUD brightness adjusts the game's interface. Native restores the previous engine settings.");
                 if(status.deviceKnown)ImGui::TextWrapped("GPU: %s",status.adapter[0]?status.adapter:"Unknown adapter name");
                 else ImGui::TextDisabled("GPU information unavailable");
                 if(status.outputKnown)ImGui::Text("Display: %s",status.display);
@@ -1528,7 +1525,7 @@ void Draw(Context& c) {
                     const char* transport=status.transportApplied?"accepted":status.formatMismatch?"buffer mismatch":
                         status.engineMismatch?"engine profile not applied":"not accepted";
                     ImGui::Text("HDR signaling: %s (0x%08X)",transport,unsigned(status.transportResult));
-                    if(status.formatMismatch)HelpText("The buffer does not match the HDR encoding. Use Match HDR profile and restart before judging colors.");
+                    if(status.formatMismatch)HelpText("scRGB requires a 16-bit floating-point game buffer. Use Match HDR profile and restart.");
                 }
                 if(status.engineDevice>=0&&status.engineGamut>=0)
                     ImGui::TextDisabled("Engine output: %d | gamut: %d | HDR: %s",status.engineDevice,status.engineGamut,status.engineEnabled==1?"ON":"OFF");
