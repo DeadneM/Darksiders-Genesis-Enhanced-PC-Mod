@@ -7013,3 +7013,8 @@ Les trois correctifs sont expérimentaux. La compilation et le contrôle du ZIP 
 Le journal V1.182 et la capture du joueur confirment la signalisation scRGB 1000 en RGBA16F sur Arc B580. Le viewport natif demande explicitement ce format quand HDR est actif. Les anciennes sélections PQ gardent leur pic 1000/2000 nits et utilisent désormais la courbe scRGB du moteur. L’ASI et le helper appliquent la même migration. Les anciennes clés de métadonnées restent dans les profils existants pour le retour arrière. [Preuves, périmètre et essai](V1_183_HDR_SCRGB_REVIEW.md).
 
 Compilation et ZIP contrôlés, 86/86 tests et zéro avertissement C++. Signalisation scRGB observée sur V1.182. Essai du rendu V1.183 en jeu à venir. [Livraison](V1_183_DELIVERY_RECEIPT.md).
+
+
+# V1.184 — capacité HDR DX11 du rendu
+
+Le rendu V1.183 a été rejeté malgré un signal scRGB accepté. Sur la version PC étudiée, l’ancien détecteur DX11 laisse la branche HDR du post-traitement désactivée sur Arc. La capacité du rendu est mise à jour seulement après confirmation de la sortie HDR active et du format scRGB par DXGI. Le journal distingue la capacité avant/après, le signal DXGI et le mode de présentation. Le test visuel reste nécessaire. [Constats et retour arrière](V1_184_HDR_RENDER_PATH_REVIEW.md).

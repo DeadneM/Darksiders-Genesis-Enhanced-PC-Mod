@@ -3081,7 +3081,7 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 }
 
 // Read-only display check, called on demand from Graphics > HDR.
-// Desktop HDR and back-buffer format do not prove the game's HDR metadata.
+// Report the engine's rendering capability separately from DXGI signaling.
 dg::hdr::Status QueryHdrOutputStatus(){
     dg::hdr::Status status{};status.checked=true;
     status.transportAttempted=dg::hdr::transport.attempted;status.transportApplied=dg::hdr::transport.applied;
@@ -3091,6 +3091,7 @@ dg::hdr::Status QueryHdrOutputStatus(){
     status.startupMode=dg::hdr::engine_profile::startup.mode;
     const auto engine=dg::hdr::engine_profile::Read(true);
     status.engineEnabled=engine.enabled;status.engineDevice=engine.outputDevice;status.engineGamut=engine.gamut;
+    status.renderCapability=dg::hdr::engine_profile::ReadRenderCapability();
     if(!g_device||!g_gameSwapChain)return status;
     LUID adapterId{};HMONITOR monitor=nullptr;
     IDXGIDevice* dxgiDevice=nullptr;
@@ -3926,9 +3927,10 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     if(dg::hdr::ServiceTransport(swapChain)){
         const auto engine=dg::hdr::engine_profile::Read(true);
         const auto& output=dg::hdr::transport;
-        Log("HDR %s present mode=%d format=%u engine=%d/%d/%d matched=%d signaling=%d result=%08lX",
+        Log("HDR %s present mode=%d format=%u engine=%d/%d/%d matched=%d signaling=%d result=%08lX displayHdr=%d render=%d->%d swapEffect=%u",
             dg::build::Version,dg::hdr::engine_profile::startup.mode,output.format,engine.enabled,engine.outputDevice,engine.gamut,
-            !output.engineMismatch&&!output.formatMismatch,output.applied,static_cast<unsigned long>(output.result));
+            !output.engineMismatch&&!output.formatMismatch,output.applied,static_cast<unsigned long>(output.result),
+            output.hdrDisplay,output.renderBefore,output.renderAfter,output.swapEffect);
     }
     ProcessCameraInput();
     EnsureOrbitWndProc(swapChain);

@@ -21,6 +21,33 @@ inline BootFn original=nullptr;
 inline LogFn logger=nullptr;
 inline Settings startup{};
 inline std::atomic_bool supported{false}, attempted{false}, applied{false};
+inline volatile char* renderCapability=nullptr;
+
+// Match both the D3D11 capability writer and its consumer in post-processing.
+inline volatile char* FindRenderCapability() {
+    constexpr unsigned char writer[]={0x88,0x05,0xA0,0x2F,0xCC,0x02};
+    constexpr unsigned char reader[]={0x80,0x3D,0x94,0x1E,0xA8,0x02,0x00,0x74,0x0E};
+    if(std::memcmp(reinterpret_cast<const void*>(base+0xD4E3EF),writer,sizeof(writer))||
+       std::memcmp(reinterpret_cast<const void*>(base+0xF8F4FA),reader,sizeof(reader)))return nullptr;
+    auto* address=reinterpret_cast<char*>(base+0x3A11395);
+    MEMORY_BASIC_INFORMATION memory{};
+    if(!VirtualQuery(address,&memory,sizeof(memory))||memory.State!=MEM_COMMIT||
+       memory.AllocationBase!=reinterpret_cast<void*>(base)||memory.Type!=MEM_IMAGE||
+       (memory.Protect!=PAGE_READWRITE&&memory.Protect!=PAGE_WRITECOPY))return nullptr;
+    return address;
+}
+
+inline int ReadRenderCapability() {
+    if(!supported.load(std::memory_order_acquire)||!renderCapability)return -1;
+    const auto value=*renderCapability;
+    return value==0||value==1?value:-1;
+}
+
+inline bool EnableRenderCapability() {
+    if(ReadRenderCapability()<0)return false;
+    InterlockedCompareExchange8(renderCapability,1,0);
+    return *renderCapability==1;
+}
 
 struct Variable {uintptr_t object=0, values=0;};
 
@@ -86,6 +113,7 @@ inline void Initialize(Settings requested, bool exact, LogFn log) {
     constexpr unsigned char setter[]={0x48,0x89,0x6C,0x24,0x10,0x48,0x89,0x74,0x24,0x18,0x57,0x48,0x83,0xEC,0x20};
     if(!base || std::memcmp(reinterpret_cast<void*>(base+IntSetter),setter,sizeof(setter)) ||
         *reinterpret_cast<const uintptr_t*>(base+IntVtable+0x60)!=base+IntSetter)return;
+    if(startup.mode>0&&startup.dxgiSignaling)renderCapability=FindRenderCapability();
     supported.store(true,std::memory_order_release);
     if(startup.mode<0)return;
     constexpr unsigned char boot[]={0x48,0x83,0xEC,0x58,0x48,0xC7,0x44,0x24,0x20,0xFE,0xFF,0xFF,0xFF,0x48,0x8D,0x4C,0x24,0x28};

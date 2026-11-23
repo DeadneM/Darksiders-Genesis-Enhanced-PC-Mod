@@ -1528,7 +1528,11 @@ void Draw(Context& c) {
                     if(status.formatMismatch)HelpText("scRGB requires a 16-bit floating-point game buffer. Use Match HDR profile and restart.");
                 }
                 if(status.engineDevice>=0&&status.engineGamut>=0)
-                    ImGui::TextDisabled("Engine output: %d | gamut: %d | HDR: %s",status.engineDevice,status.engineGamut,status.engineEnabled==1?"ON":"OFF");
+                    ImGui::TextDisabled("Engine output: %d | gamut: %d | HDR requested: %s",status.engineDevice,status.engineGamut,status.engineEnabled==1?"ON":"OFF");
+                if(status.startupMode>0){
+                    const char* renderer=status.renderCapability<0?"unavailable":status.renderCapability==1?"enabled":"disabled";
+                    ImGui::Text("Native HDR render path: %s",renderer);
+                }
                 if(status.startupMode!=config.hdrOutput.mode)ImGui::TextDisabled("Restart to apply the selected HDR profile.");
                 HelpText("Refresh to check the active game buffer, the engine's color settings and the DXGI response.");
                 ImGui::Unindent();
