@@ -1,3 +1,7 @@
+# V1.188 sur debug — HDR10 et lames de Strife
+
+Vérifier la négociation HDR10 et les quatre choix de lames à pied, sur Mayhem et sur Despair. [Critères](V1_188_VIEWPORT_HDR10_STRIFE_BLADES_REVIEW.md).
+
 # V1.187 sur debug — HDR10 et lames montées
 
 Vérifier le HDR10 réellement présenté, le transfert des lames sur Mayhem et Despair et l'inclinaison des lames rangées à pied. [Critères](V1_187_NATIVE_HDR10_MOVING_BLADES_REVIEW.md).

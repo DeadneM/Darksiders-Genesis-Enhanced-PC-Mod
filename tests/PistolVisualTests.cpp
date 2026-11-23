@@ -276,6 +276,7 @@ void Runtime(){
     const unsigned anchors[]={14,17,18,20,40,41,43,78,79};
     const char* boneNames[]={"Bone_Strife_Spine2","Bone_Strife_Clavicle_L","Bone_Strife_UpperArm_L","Bone_Strife_Hand_L","Bone_Strife_Clavicle_R","Bone_Strife_UpperArm_R","Bone_Strife_Hand_R","Bone_Strife_Holster_R","Bone_Strife_Holster_L"};
     for(unsigned i=0;i<9;++i){Name(9+i,boneNames[i]);hierarchy[anchors[i]].name=int(9+i);}
+    Name(46,"Bone_Strife_Pelvis");hierarchy[1].name=46;
     hierarchy[14].parent=13;hierarchy[17].parent=hierarchy[40].parent=14;hierarchy[78].parent=hierarchy[79].parent=1;
     Put(skeletons[0],0x190,Array{reinterpret_cast<uintptr_t>(hierarchy.data()),80,80});
     unsigned char resource[0x380]{};Put<float>(resource,0x37C,100);
@@ -364,10 +365,9 @@ void Runtime(){
         Put(component,0x108,reinterpret_cast<uintptr_t>(parent));Put(component,0x110,socket);
     };
     stow::setRelativeTransform=+[](void* component,const stow::Transform* pose,bool sweep,void* hit,unsigned char teleport){
-        constexpr unsigned sockets[]{17,16,15,12};
+        constexpr unsigned sockets[]{46,46,15,12};
         Check(rotated<4,"bounded decoration count");
-        const auto* expected=rotated>=2?&stow::handGrip[rotated-2]:
-            mountedBladeTest?&stow::mountedHolster[rotated]:&stow::footHolster[rotated];
+        const auto* expected=rotated>=2?&stow::handGrip[rotated-2]:&stow::stowedPose[rotated];
         Check(component==decorations[rotated]&&pose==expected&&pose->scale[0]==1&&
             !sweep&&!hit&&teleport==0&&Get<uint64_t>(component,0x110)==sockets[rotated]&&
             !(Get<unsigned char>(component,0xAC)&1),"each transform uses the matching socket before registration");
@@ -393,9 +393,9 @@ void Runtime(){
     stow::destroy=+[](void*,void*){++destroyed;};
     dg::runtime::Get().showStrifeStowedBlades=true;
     OnLivePlayer(horse,10,true);
-    Check(registered==2&&created==2&&Get<uint64_t>(decorations[0],0x110)==17&&
-        Get<uint64_t>(decorations[1],0x110)==16&&!(Get<unsigned char>(decorations[0],0x1CC)&0x40),
-        "configured lames attach to the same crossed holster bones as the pistol policy");
+    Check(registered==2&&created==2&&Get<uint64_t>(decorations[0],0x110)==46&&
+        Get<uint64_t>(decorations[1],0x110)==46&&!(Get<unsigned char>(decorations[0],0x1CC)&0x40),
+        "both stowed blades use the pelvis and their own crossed belt offsets");
     Put<unsigned char>(blade[0],0x1CC,0x21);OnLivePlayer(horse,10,true);
     Check((Get<unsigned char>(decorations[0],0x1CC)&0x40)&&!(Get<unsigned char>(decorations[1],0x1CC)&0x40)&&
         registered==2,"drawing one native blade hides only its stowed duplicate without reallocating");
@@ -410,6 +410,7 @@ void Runtime(){
     horse.kind=dg::local_players::PoseKind::Horse;
     horse.pawn=horseId.address;
     owners[0]=horse;
+    dg::runtime::Get().pistolLeftModel=3;
     dg::runtime::Get().showStrifeStowedBlades=true;
     OnLivePlayer(horse,11,true);
     Check(registered==2&&stow::players[0].actor==horseId,"both mounted decorations are owned by the active mount");
@@ -427,22 +428,33 @@ void Runtime(){
     Put(other,0x20,reinterpret_cast<uintptr_t>(package));
     Put(swing,0,reinterpret_cast<uintptr_t>(attack));Put(layer,0,reinterpret_cast<uintptr_t>(other));
     Put(layer,0x150,1.0f);
+    const auto visibleMask=[](unsigned first){
+        const bool right=(Get<unsigned char>(decorations[first],0x1CC)&0x40)==0;
+        const bool left=(Get<unsigned char>(decorations[first+1],0x1CC)&0x40)==0;
+        return unsigned(right)|(unsigned(left)<<1);
+    };
+    Check(visibleMask(0)==3,"both stowed blades remain visible while a pistol is hidden");
     stow::mountedMontagesReady=true;
-    for(unsigned hand=0;hand<2;++hand){
-        Name(43,hand?"Strife_Horse_Attack_L_Montage":"Strife_Horse_Attack_R_Montage");
-        Name(44,hand?"/Game/Characters/Heroes/Hero_Strife/Animations/Horse/Strife_Horse_Attack_L_Montage":
+    constexpr unsigned expected[]{3,1,2,0};
+    for(unsigned montage=0;montage<2;++montage){
+        Name(43,montage?"Strife_Horse_Attack_L_Montage":"Strife_Horse_Attack_R_Montage");
+        Name(44,montage?"/Game/Characters/Heroes/Hero_Strife/Animations/Horse/Strife_Horse_Attack_L_Montage":
             "/Game/Characters/Heroes/Hero_Strife/Animations/Horse/Strife_Horse_Attack_R_Montage");
         Put(swing,0x150,.65f);
-        OnLivePlayer(horse,11,true);
-        Check(registered==3+hand&&(Get<unsigned char>(decorations[hand],0x1CC)&0x40)&&
-            !(Get<unsigned char>(decorations[hand^1u],0x1CC)&0x40)&&
-            !(Get<unsigned char>(decorations[2+hand],0x1CC)&0x40),
-            "mounted attack transfers the blade from its holster to the animated hand through another montage");
+        for(int choice=0;choice<4;++choice){
+            dg::runtime::Get().strifeBladeVisibility=choice;
+            OnLivePlayer(horse,11,true);
+            Check(registered==4&&visibleMask(0)==0&&visibleMask(2)==expected[choice],
+                "either mounted attack shows the requested blades in their own hands");
+        }
         Put(swing,0x150,0.0f);
-        OnLivePlayer(horse,11,true);
-        Check(!(Get<unsigned char>(decorations[hand],0x1CC)&0x40)&&
-            (Get<unsigned char>(decorations[2+hand],0x1CC)&0x40),
-            "ending the mounted attack returns the blade to its holster");
+        for(int choice=0;choice<4;++choice){
+            dg::runtime::Get().strifeBladeVisibility=choice;
+            OnLivePlayer(horse,11,true);
+            Check(registered==4&&visibleMask(2)==0&&visibleMask(0)==expected[choice],
+                "after either attack each enabled side returns to the belt");
+        }
+        dg::runtime::Get().strifeBladeVisibility=0;
     }
     dg::runtime::Get().showStrifeStowedBlades=false;
     Put(pc,0x350,horse.character);
@@ -455,6 +467,7 @@ void Runtime(){
     stow::setDepth=nullptr;
     stow::setStencil=nullptr;
     stow::setStencilMask=nullptr;
+    dg::runtime::Get().pistolLeftModel=0;
     g_ready=false;
 }
 void AnimationBoundary(){

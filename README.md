@@ -1,3 +1,7 @@
+# V1.188 sur debug — HDR10 et lames de Strife
+
+Sélection 10 bits au viewport DX11 et pose commune des lames rangées. Les deux attaques montées appliquent les choix de visibilité. [Détails et essai](docs/V1_188_VIEWPORT_HDR10_STRIFE_BLADES_REVIEW.md).
+
 # V1.187 sur debug — HDR10 et lames montées
 
 **Construite et contrôlée.** 86 tests passent sur Windows x64. [ZIP V1.187](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/f1cda7519ae928b481aecda05e0e68c797c40235/downloads/DarksidersGenesis_V1.187_NATIVE_HDR10_BLADES_TEST.zip) · [Livraison et statut](docs/V1_187_DELIVERY_RECEIPT.md).

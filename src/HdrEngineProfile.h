@@ -14,7 +14,6 @@ namespace engine_profile {
 using LogFn=void(*)(const char*);
 using BootFn=void(*)();
 using SetFn=void(*)(void*,const wchar_t*,unsigned);
-using SelectPqBuffer=bool(*)();
 inline constexpr uintptr_t OutputVar=0x39CB5B0, GamutVar=0x39CB440, EnabledVar=0x39CB5C8;
 inline constexpr uintptr_t IntVtable=0x2822458, IntSetter=0x81E5F0;
 inline constexpr unsigned SetByCode=0x08000000;
@@ -23,7 +22,6 @@ inline BootFn original=nullptr;
 inline LogFn logger=nullptr;
 inline Settings startup{};
 inline std::atomic_bool supported{false}, attempted{false}, applied{false}, pqReady{false};
-inline SelectPqBuffer selectPqBuffer=nullptr;
 inline volatile char* renderCapability=nullptr;
 
 // Match both the D3D11 capability writer and its consumer in post-processing.
@@ -109,33 +107,27 @@ inline void ApplyOnGameThread(bool startupBoundary=false) {
 }
 
 inline void SetPqReady(bool ready){
-    if(pqReady.exchange(ready,std::memory_order_acq_rel)==ready)return;
+    pqReady.store(ready,std::memory_order_release);
     attempted.store(false,std::memory_order_release);
     ApplyOnGameThread(!ready);
 }
 
 inline void AfterStartupCVars() {
     original();
-    if(selectPqBuffer&&startup.buffer!=1&&Read(false).enabled==1){
-        const bool selected=selectPqBuffer();
-        if(logger)logger(selected?"HDR10: selected native engine RGB10A2 before viewport creation":
-            "HDR10: engine buffer format selection rejected");
-    }
     ApplyOnGameThread(true);
 }
 
-inline void Initialize(Settings requested, bool exact, LogFn log,SelectPqBuffer selectBuffer) {
+inline void Initialize(Settings requested,bool exact,LogFn log) {
     if(!exact)return;
     base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     logger=log;
     startup=Normalize(requested);
-    selectPqBuffer=selectBuffer;
     constexpr unsigned char setter[]={0x48,0x89,0x6C,0x24,0x10,0x48,0x89,0x74,0x24,0x18,0x57,0x48,0x83,0xEC,0x20};
     if(!base || std::memcmp(reinterpret_cast<void*>(base+IntSetter),setter,sizeof(setter)) ||
         *reinterpret_cast<const uintptr_t*>(base+IntVtable+0x60)!=base+IntSetter)return;
     if(startup.mode>0&&startup.dxgiSignaling)renderCapability=FindRenderCapability();
     supported.store(true,std::memory_order_release);
-    if(startup.mode<0||!CompatibleBuffer(startup))return;
+    if(startup.mode<0||!CompatibleBuffer(startup)||ManagedPq(startup))return;
     constexpr unsigned char boot[]={0x48,0x83,0xEC,0x58,0x48,0xC7,0x44,0x24,0x20,0xFE,0xFF,0xFF,0xFF,0x48,0x8D,0x4C,0x24,0x28};
     auto* entry=reinterpret_cast<void*>(base+0x8BB4A0);
     if(std::memcmp(entry,boot,sizeof(boot)))return;

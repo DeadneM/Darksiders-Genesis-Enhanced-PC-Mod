@@ -47,7 +47,7 @@ struct Copy {
 };
 struct Player {
     Id actor{},body{},skeleton{};
-    uint64_t holsters[2]{},hands[2]{};
+    uint64_t pelvis=0,hands[2]{};
     Copy stowed[2]{},held[2]{};
 };
 inline Player players[2]{};
@@ -96,15 +96,12 @@ inline void Report(unsigned hand,const char* outcome,bool held){
     logger(line);
 }
 
-// Both meshes use crossed holsters. Foot blades follow the native holster
-// +Y axis, which points back, down and a little out on each side.
-inline constexpr Transform footHolster[]{
-    {{0.70522828f,0.05150795f,-0.05150795f,0.70522828f}},
-    {{-0.70522807f,-0.05150781f,-0.05150800f,0.70522851f}},
-};
-inline constexpr Transform mountedHolster[]{
-    {{0.909844f,0.160430f,0.066452f,0.376869f}},
-    {{-0.909844f,-0.160430f,0.066452f,0.376870f}},
+// Both meshes share these crossed holster offsets from the rider's pelvis.
+// The blade faces lie against the hips, with tips following the holster axis.
+// Using the pelvis keeps the decorations independent of hidden gun holsters.
+inline constexpr Transform stowedPose[]{
+    {{0.29184189f,-0.76540302f,0.53593780f,-0.20434580f},{9.482513f,-7.064043f,20.547066f}},
+    {{0.76540005f,0.29183815f,-0.20435133f,-0.53594198f},{9.482193f,-7.063946f,-20.547089f}},
 };
 // The rider meshes shrink the dagger bones to 0.000099. Attach to their
 // animated parent hands and reuse the authored dagger-to-hand grip at unit scale.
@@ -164,11 +161,10 @@ inline void FindSockets(Player& player,bool mounted){
         uint64_t value=0;
         if(!Read(info.data,size_t(i)*12,value))return;
         const int index=int(uint32_t(value)),number=int(value>>32);
-        if(native_objects::NameValueEquals(base,index,number,"Bone_Strife_Holster_L"))player.holsters[0]=value;
-        else if(native_objects::NameValueEquals(base,index,number,"Bone_Strife_Holster_R"))player.holsters[1]=value;
+        if(native_objects::NameValueEquals(base,index,number,"Bone_Strife_Pelvis"))player.pelvis=value;
         else if(mounted&&native_objects::NameValueEquals(base,index,number,"Bone_Strife_Hand_R"))player.hands[0]=value;
         else if(mounted&&native_objects::NameValueEquals(base,index,number,"Bone_Strife_Hand_L"))player.hands[1]=value;
-        if(player.holsters[0]&&player.holsters[1]&&(!mounted||(player.hands[0]&&player.hands[1])))return;
+        if(player.pelvis&&(!mounted||(player.hands[0]&&player.hands[1])))return;
     }
 }
 
@@ -180,30 +176,30 @@ inline bool AnimInstanceClass(uintptr_t cls){
     return false;
 }
 
-// Match the newest active horse attack even when another montage is layered over it.
-inline int MountedHand(uintptr_t body){
+// Both hands draw their enabled blades during either mounted attack.
+inline bool MountedAttack(uintptr_t body){
     uintptr_t anim=0,outer=0,cls=0;
     uint32_t flags=0;
     Array instances{};
     if(!Read(body,0x718,anim)||!Read(anim,0x78,instances)||!instances.data||
        instances.count<=0||instances.count>16||instances.capacity<instances.count||instances.capacity>64||
        !Read(anim,8,flags)||(flags&0x18030u)||!Read(anim,0x20,outer)||outer!=body||
-       !Read(anim,0x10,cls)||!AnimInstanceClass(cls))return -1;
+       !Read(anim,0x10,cls)||!AnimInstanceClass(cls))return false;
     for(int i=instances.count-1;i>=0;--i){
         uintptr_t instance=0,montage=0;
         float weight=0;
-        if(!Read(instances.data,size_t(i)*sizeof(uintptr_t),instance))return -1;
+        if(!Read(instances.data,size_t(i)*sizeof(uintptr_t),instance))return false;
         if(!instance)continue;
-        if(!Read(instance,0,montage)||!Read(instance,0x150,weight)||!std::isfinite(weight))return -1;
+        if(!Read(instance,0,montage)||!Read(instance,0x150,weight)||!std::isfinite(weight))return false;
         if(!montage||weight<=0)continue;
         uintptr_t package=0;
         if(!Read(montage,0x10,cls)||!Name(cls,"AnimMontage")||!Read(montage,0x20,package))continue;
         if(Name(montage,"Strife_Horse_Attack_R_Montage")&&
-           Name(package,"/Game/Characters/Heroes/Hero_Strife/Animations/Horse/Strife_Horse_Attack_R_Montage"))return 0;
+           Name(package,"/Game/Characters/Heroes/Hero_Strife/Animations/Horse/Strife_Horse_Attack_R_Montage"))return true;
         if(Name(montage,"Strife_Horse_Attack_L_Montage")&&
-           Name(package,"/Game/Characters/Heroes/Hero_Strife/Animations/Horse/Strife_Horse_Attack_L_Montage"))return 1;
+           Name(package,"/Game/Characters/Heroes/Hero_Strife/Animations/Horse/Strife_Horse_Attack_L_Montage"))return true;
     }
-    return -1;
+    return false;
 }
 
 inline bool PresentBlade(const Player& player,Copy& copy,uintptr_t character,uintptr_t sourceBody,
@@ -224,7 +220,7 @@ inline bool PresentBlade(const Player& player,Copy& copy,uintptr_t character,uin
             const unsigned slot=held?2+hand:4+(hand^1u);
             if(!pistol_appearance::Component(base,player.actor.address,player.body.address,slot,mountedDonor,donorFlags))mountedDonor=0;
         }
-        const auto& transform=held?handGrip[hand]:mounted?mountedHolster[hand]:footHolster[hand];
+        const auto& transform=held?handGrip[hand]:stowedPose[hand];
         const char* failure=Create(player,componentClass,asset,socket,transform,mountedDonor,copy);
         if(failure)Discard(player.actor,copy);
         copy.attempted=true;
@@ -284,8 +280,8 @@ inline void Update(const local_players::Context& owner,const Id& mountedActor,co
     const bool enabled=rt.showStrifeStowedBlades.load();
     const unsigned off=melee_effect::Mask(rt.strifeBladeVisibility.load());
     const bool mounted=mountedActor&&mountedBody;
-    const int held=mounted&&mountedMontagesReady&&off!=3?MountedHand(mountedBody.address):-1;
-    if(!enabled&&held<0&&!player.actor)return;
+    const bool attacking=mounted&&mountedMontagesReady&&off!=3&&MountedAttack(mountedBody.address);
+    if(!enabled&&!attacking&&!player.actor)return;
 
     const bool foot=owner.kind==local_players::PoseKind::Foot&&owner.pawn==owner.character;
     uintptr_t cls=0,bodyOwner=0,skeleton=0;
@@ -312,8 +308,8 @@ inline void Update(const local_players::Context& owner,const Id& mountedActor,co
     uintptr_t sourceBody=0;
     Read(owner.character,0x380,sourceBody);
     for(unsigned hand=0;hand<2;++hand){
-        const bool inHand=held==int(hand)&&player.hands[hand];
-        const bool stowed=enabled&&player.holsters[hand];
+        const bool inHand=attacking&&player.hands[hand];
+        const bool stowed=enabled&&player.pelvis;
         uintptr_t weapon=0,mesh=0;
         unsigned char flags=0;
         const bool show=sourceBody&&!(off&(1u<<hand))&&(inHand||stowed)&&
@@ -323,7 +319,7 @@ inline void Update(const local_players::Context& owner,const Id& mountedActor,co
         const bool drawn=PresentBlade(player,player.held[hand],owner.character,sourceBody,hand,
             inHand?mesh:0,player.hands[hand],true,mounted);
         PresentBlade(player,player.stowed[hand],owner.character,sourceBody,hand,
-            stowed&&!drawn?mesh:0,player.holsters[hand],false,mounted);
+            stowed&&!drawn?mesh:0,player.pelvis,false,mounted);
     }
 }
 }

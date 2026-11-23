@@ -92,7 +92,7 @@ bool Skeleton(uintptr_t mesh,uintptr_t skeleton){
     return Read(mesh,0x5A0,current)&&current==skeleton;
 }
 unsigned ChoiceMask(){const auto& rt=runtime::Get();return (rt.pistolRightModel.load()==3?1u:0u)|(rt.pistolLeftModel.load()==3?2u:0u);}
-unsigned BladeMask(){const auto choice=runtime::Get().strifeBladeVisibility.load();return choice==1?2u:choice==2?1u:choice==3?3u:0u;}
+unsigned BladeMask(){return melee_effect::Mask(runtime::Get().strifeBladeVisibility.load());}
 bool FreshPose(const Snapshot& s,uint64_t now){return s.gameplay&&now>=s.tick&&now-s.tick<=250;}
 bool Packet(uintptr_t data,Array& current,Array& previous){
     uintptr_t vt=0;

@@ -4467,9 +4467,12 @@ DWORD WINAPI MainThread(LPVOID) {
         g_targetValidation.reason.c_str()
     );
 
-    const bool hdrViewport=dg::hdr::viewport::Initialize(g_config.hdrOutput,g_targetValidation.exact,&FeatureLog);
-    dg::hdr::engine_profile::Initialize(g_config.hdrOutput,g_targetValidation.exact,&FeatureLog,
-        hdrViewport?&dg::hdr::viewport::SelectRgb10:nullptr);
+    dg::hdr::engine_profile::Initialize(g_config.hdrOutput,g_targetValidation.exact,&FeatureLog);
+    if(dg::hdr::ManagedPq(g_config.hdrOutput)){
+        const bool hdrViewport=dg::hdr::engine_profile::supported.load(std::memory_order_acquire)&&
+            dg::hdr::viewport::Initialize(g_config.hdrOutput,g_targetValidation.exact,&FeatureLog);
+        Log(hdrViewport?"HDR10: DX11 scene viewport hooks ready":"HDR10: DX11 scene viewport hooks unavailable");
+    }
     if(g_targetValidation.exact)dg::engine_ini::QueueGraphicsAdapter(g_config.graphicsAdapter);
 
     ReportStartupPhase(5,g_targetValidation.exact?1u:0u);

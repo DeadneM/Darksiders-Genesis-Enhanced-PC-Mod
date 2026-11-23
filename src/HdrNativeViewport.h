@@ -10,12 +10,16 @@ using Microsoft::WRL::ComPtr;
 using Constructor=void*(*)(void*,void*,HWND,UINT,UINT,bool,int);
 using CreateChain=HRESULT(STDMETHODCALLTYPE*)(IDXGIFactory*,IUnknown*,DXGI_SWAP_CHAIN_DESC*,IDXGISwapChain**);
 using Reset=void(*)(void*,bool);
+using HdrEnabled=bool(*)();
 
 inline uintptr_t base=0;
 inline engine_profile::LogFn logger=nullptr;
 inline Constructor construct=nullptr;
 inline CreateChain createChain=nullptr;
 inline Reset reset=nullptr;
+inline HdrEnabled nativeHdrEnabled=nullptr;
+inline bool requestRgb10=false;
+inline std::atomic_bool formatSelected{false};
 inline volatile long* hdrFormat=nullptr;
 inline std::atomic<IDXGISwapChain*> flipChain{nullptr};
 inline std::atomic_uint generation{0};
@@ -32,10 +36,25 @@ inline bool GameWindow(HWND window){
     return pid==GetCurrentProcessId()&&GetClassNameW(window,name,32)&&wcscmp(name,L"UnrealWindow")==0;
 }
 
-inline bool SelectRgb10(){
-    if(!hdrFormat)return false;
-    const auto prior=_InterlockedCompareExchange(hdrFormat,RGB10A2,FloatRGBA);
-    return prior==FloatRGBA||prior==RGB10A2;
+inline bool D3D11ViewportRhi(){
+    native_objects::MemoryReader reader;
+    uintptr_t rhi=0,table=0,createViewport=0;
+    return reader.Read(base,0x3A1E908,rhi)&&reader.Read(rhi,0,table)&&
+        reader.Read(table,0x378,createViewport)&&createViewport==base+0xD58AF0;
+}
+
+// Both scene viewport paths query HDR immediately before reading the native
+// pixel format. This also covers a worker that missed UE's earlier CVar setup.
+inline bool SelectViewportFormat(){
+    const auto caller=reinterpret_cast<uintptr_t>(_ReturnAddress());
+    const bool enabled=nativeHdrEnabled();
+    if(enabled&&requestRgb10&&(caller==base+0x145D240||caller==base+0x1459231)&&
+       !formatSelected.load(std::memory_order_acquire)&&D3D11ViewportRhi()){
+        const auto prior=_InterlockedCompareExchange(hdrFormat,RGB10A2,FloatRGBA);
+        if((prior==FloatRGBA||prior==RGB10A2)&&!formatSelected.exchange(true)&&logger)
+            logger("HDR10: selected native RGB10A2 at the DX11 scene viewport");
+    }
+    return enabled;
 }
 
 // Select the engine's own EPixelFormat before FSceneViewport caches it.
@@ -125,22 +144,29 @@ inline HRESULT STDMETHODCALLTYPE CreateHdrChain(IDXGIFactory* factory,IUnknown* 
     return createChain(factory,nativeDevice,native,out);
 }
 
-inline void HookFactory(void* rhi){
-    if(createChain)return;
+inline bool HookFactory(void* rhi){
+    if(createChain)return true;
     native_objects::MemoryReader reader;
     uintptr_t factory=0,table=0,entry=0;
     if(!reader.Read(reinterpret_cast<uintptr_t>(rhi),0x180,factory)||!reader.Read(factory,0,table)||
-       !reader.Read(table,0x50,entry)||!entry)return;
+       !reader.Read(table,0x50,entry)||!entry)return false;
     auto* fn=reinterpret_cast<void*>(entry);
-    if(MH_CreateHook(fn,reinterpret_cast<void*>(&CreateHdrChain),reinterpret_cast<void**>(&createChain))!=MH_OK)return;
-    if(MH_EnableHook(fn)!=MH_OK){MH_RemoveHook(fn);createChain=nullptr;}
+    if(MH_CreateHook(fn,reinterpret_cast<void*>(&CreateHdrChain),reinterpret_cast<void**>(&createChain))!=MH_OK)return false;
+    if(MH_EnableHook(fn)==MH_OK)return true;
+    MH_RemoveHook(fn);createChain=nullptr;
+    return false;
 }
 
 inline void* CreateViewport(void* viewport,void* rhi,HWND window,UINT width,UINT height,bool fullscreen,int format){
     const bool game=GameWindow(window);
     if(game){
         flipChain.store(nullptr,std::memory_order_release);
-        if(format==RGB10A2)HookFactory(rhi);
+        if(logger){
+            char line[128]{};
+            sprintf_s(line,"HDR10: DX11 viewport pixel format=%d fullscreen=%d",format,fullscreen);
+            logger(line);
+        }
+        if(format==RGB10A2&&!HookFactory(rhi)&&logger)logger("HDR10: DXGI factory hook unavailable");
     }
     auto* result=construct(viewport,rhi,window,width,height,fullscreen,format);
     if(game){
@@ -184,13 +210,23 @@ inline bool Initialize(Settings choice,bool exact,engine_profile::LogFn log){
     base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     if(!base)return false;
     logger=log;
+    requestRgb10=choice.buffer!=1;
+    constexpr unsigned char querySig[]={0x40,0x57,0x48,0x83,0xEC,0x30,0x48,0xC7,0x44,0x24,0x20,0xFE,0xFF,0xFF,0xFF};
+    constexpr unsigned char createQuery[]={0xE8,0xC0,0x85,0xE9,0xFF,0x84,0xC0,0x74,0x10};
+    constexpr unsigned char resizeQuery[]={0xE8,0xCF,0xC5,0xE9,0xFF,0x44,0x0F,0xB6,0xE8};
+    constexpr unsigned char createRhiSig[]={0x48,0x8B,0xC4,0x48,0x89,0x50,0x10,0x57,0x41,0x56,0x41,0x57};
     constexpr unsigned char ctorSig[]={0x48,0x8B,0xC4,0x55,0x41,0x54,0x41,0x55,0x41,0x56,0x41,0x57,0x48,0x8D,0x68,0xC8};
     constexpr unsigned char factoryCall[]={0x48,0x8B,0x88,0x80,0x01,0,0,0x4C,0x89,0x6B,0x60,0x48,0x8B,0x01};
     constexpr unsigned char resetSig[]={0x40,0x56,0x57,0x41,0x56,0x48,0x83,0xEC,0x40,0x48,0xC7,0x44,0x24,0x30,0xFE,0xFF};
     constexpr unsigned char resizeSig[]={0xBA,0x01,0,0,0,0x89,0x44,0x24,0x20,0x8B,0xF8,0x4C,0x8B,0x11,0x41,0xFF,0x52,0x68};
     auto* ctor=reinterpret_cast<void*>(base+0xD3F450);
     auto* resetEntry=reinterpret_cast<void*>(base+0xD449A0);
-    if(std::memcmp(ctor,ctorSig,sizeof(ctorSig))||
+    auto* query=reinterpret_cast<void*>(base+0x12F5800);
+    if(std::memcmp(query,querySig,sizeof(querySig))||
+       std::memcmp(reinterpret_cast<void*>(base+0x145D23B),createQuery,sizeof(createQuery))||
+       std::memcmp(reinterpret_cast<void*>(base+0x145922C),resizeQuery,sizeof(resizeQuery))||
+       std::memcmp(reinterpret_cast<void*>(base+0xD58AF0),createRhiSig,sizeof(createRhiSig))||
+       std::memcmp(ctor,ctorSig,sizeof(ctorSig))||
        std::memcmp(reinterpret_cast<void*>(base+0xD3F8C1),factoryCall,sizeof(factoryCall))||
        std::memcmp(resetEntry,resetSig,sizeof(resetSig))||
        std::memcmp(reinterpret_cast<void*>(base+0xD60DC7),resizeSig,sizeof(resizeSig)))return false;
@@ -198,14 +234,25 @@ inline bool Initialize(Settings choice,bool exact,engine_profile::LogFn log){
     if(!hdrFormat)return false;
     const auto state=MH_Initialize();
     if(state!=MH_OK&&state!=MH_ERROR_ALREADY_INITIALIZED)return false;
-    if(MH_CreateHook(resetEntry,reinterpret_cast<void*>(&ResetViewport),reinterpret_cast<void**>(&reset))!=MH_OK)return false;
-    if(MH_CreateHook(ctor,reinterpret_cast<void*>(&CreateViewport),reinterpret_cast<void**>(&construct))!=MH_OK){
-        MH_RemoveHook(resetEntry);reset=nullptr;return false;
+    struct Hook {void* target;void* detour;void** original;};
+    const Hook hooks[]{
+        {query,reinterpret_cast<void*>(&SelectViewportFormat),reinterpret_cast<void**>(&nativeHdrEnabled)},
+        {ctor,reinterpret_cast<void*>(&CreateViewport),reinterpret_cast<void**>(&construct)},
+        {resetEntry,reinterpret_cast<void*>(&ResetViewport),reinterpret_cast<void**>(&reset)},
+    };
+    size_t created=0,queued=0;
+    for(const auto& hook:hooks){
+        if(MH_CreateHook(hook.target,hook.detour,hook.original)!=MH_OK)break;
+        ++created;
+        if(MH_QueueEnableHook(hook.target)!=MH_OK)break;
+        ++queued;
     }
-    if(MH_EnableHook(resetEntry)==MH_OK&&MH_EnableHook(ctor)==MH_OK)return true;
-    MH_DisableHook(resetEntry);
-    MH_RemoveHook(resetEntry);MH_RemoveHook(ctor);
-    reset=nullptr;construct=nullptr;
+    if(queued==sizeof(hooks)/sizeof(hooks[0])&&MH_ApplyQueued()==MH_OK)return true;
+    for(size_t i=0;i<created;++i){
+        MH_DisableHook(hooks[i].target);
+        MH_RemoveHook(hooks[i].target);
+        *hooks[i].original=nullptr;
+    }
     return false;
 }
 }

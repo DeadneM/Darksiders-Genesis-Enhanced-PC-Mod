@@ -7041,3 +7041,8 @@ Contrôle GitHub Windows x64 effectué. 86 tests passent, dont la rotation et la
 Le viewport DX11 utilise une préférence interne en priorité sur le CVar de buffer par défaut. Correction à la création et prise en compte du cycle DXGI flip. Les deux maillages montés contiennent l'os de dague à échelle quasi nulle. Copie attachée à la main, à l'échelle normale. [Preuves et essai](V1_187_NATIVE_HDR10_MOVING_BLADES_REVIEW.md).
 
 Contrôle GitHub Windows x64 effectué. 86 tests passent. Le transfert des lames est simulé pour les deux montages, avec une animation superposée. [Reçu du ZIP](V1_187_DELIVERY_RECEIPT.md).
+
+
+# V1.188 — format HDR à l'usage et pose commune des lames
+
+Le viewport interroge l'état HDR juste avant de lire son EPixelFormat sur les chemins de création et de redimensionnement. Le candidat y choisit le format PQ sur le RHI DX11 exact. Les lames rangées partagent les mêmes offsets de bassin, issus des attaches et des sommets analysés. [Preuves et essai](V1_188_VIEWPORT_HDR10_STRIFE_BLADES_REVIEW.md).
