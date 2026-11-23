@@ -7053,3 +7053,5 @@ Contrôle GitHub Windows x64 effectué. 86 tests passent, dont visibilité des d
 # V1.189 — focus DXGI et composition de l'interface HDR
 
 Les rapports V1.188 échouent sur le retour natif de Present. La chaîne flip HDR10 utilise désormais le mode sans bordure pour sortir du cycle de plein écran exclusif lors du changement de focus. Les deux variantes du compositeur Slate reçoivent le niveau d'interface en direct. Les signatures natives et le demi-tour local des lames sont vérifiés hors jeu. [Preuves, réglages et essai](V1_189_HDR_WINDOW_UI_BLADE_ROLL_REVIEW.md).
+
+Compilation Windows x64 et ZIP contrôlés, 86 tests passés. La validation en jeu porte sur le retour après Alt+Tab, les deux modes d'interface et l'orientation des lames. [Reçu du ZIP](V1_189_DELIVERY_RECEIPT.md).
