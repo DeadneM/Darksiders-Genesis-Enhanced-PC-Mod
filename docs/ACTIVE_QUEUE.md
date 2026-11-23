@@ -1,3 +1,9 @@
+# V1.182 en préparation sur debug. Elle reprend les holsters croisés validés et ajuste leur transition, la création des lames rangées et le démarrage HDR. Validation en jeu attendue.
+
+[Périmètre et essai](V1_182_REVIEW.md).
+
+---
+
 ## V1.181 — livrée, essai utilisateur requis
 
 [Reçu](V1_181_DELIVERY_RECEIPT.md). Vérifier les holsters sur les deux chevaux et le placement des copies rangées. Lames natives tenues montées : toujours ouvert. HDR : vérifier couleurs, buffer et signaling. Paramètres de qualité en direct : faisabilité encore à étudier. Acquis FX de mêlée conservé.

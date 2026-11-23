@@ -256,7 +256,14 @@ void Runtime(){
     Check(Get<unsigned char>(horseGuns[1],0x1CC)==0x61&&Get<unsigned char>(horseGuns[2],0x1CC)==0x61,"left mounted OFF uses the opposite stowed socket");
     OnLivePlayer(horse,9,false);Check(Get<unsigned char>(horseGuns[1],0x1CC)==0x61&&Get<unsigned char>(horseGuns[2],0x1CC)==0x61,"focus loss retains mounted OFF appearance");
     const auto n=hiddenCalls;Put(horseActor,0x348,uintptr_t(0));OnLivePlayer(horse,9,true);
-    Check(hiddenCalls==n+2&&Get<unsigned char>(horseGuns[1],0x1CC)==0x21,"invalid mounted controller restores only the existing leases");
+    Check(hiddenCalls==n&&Get<unsigned char>(horseGuns[1],0x1CC)==0x61&&Get<unsigned char>(horseGuns[2],0x1CC)==0x61,
+        "departing horse does not unhide either outgoing pistol while the native transition still renders it");
+    dg::runtime::Get().pistolLeftModel=0;
+    OnLivePlayer(horse,9,true);
+    Check(hiddenCalls==n,"changing the option while the mount is unowned does not reveal the outgoing model");
+    Put(horseActor,0x348,reinterpret_cast<uintptr_t>(pc));OnLivePlayer(horse,9,true);
+    Check(hiddenCalls==n+2&&Get<unsigned char>(horseGuns[1],0x1CC)==0x21&&Get<unsigned char>(horseGuns[2],0x1CC)==0x21,
+        "Native restores the original visibility once the exact horse is active again");
     // Return to a normal pawn with no cached arm pose: OFF still applies now.
     struct Info {int name,number,parent;};std::array<Info,80> hierarchy{};
     constexpr int parents[ArmBones]={-1,0,1,2,3,4,2,6,7,2,9,10,2,12,13,2,15,16,2,2,1,0};
@@ -300,6 +307,65 @@ void Runtime(){
     Check(Get<unsigned char>(blade[0],0x1CC)==0x61&&Get<unsigned char>(blade[1],0x1CC)==0x61,"Hide both blades is independent from pistol choices");
     dg::runtime::Get().strifeBladeVisibility=0;OnLivePlayer(horse,10,true);
     Check(Get<unsigned char>(blade[0],0x1CC)==0x21&&Get<unsigned char>(blade[1],0x1CC)==0x21,"Native restores both blades independently");
+
+    // Exercise the new allocation path without calling the real game.
+    namespace stow=dg::stowed_blades;
+    unsigned char modelClass[0x40]{},componentClass[0x40]{},bladeModels[2][0x40]{};
+    static unsigned char decorations[2][0x600]{};
+    static unsigned created=0,registered=0,destroyed=0;
+    Name(31,"StaticMesh");Name(32,"StaticMeshComponent");
+    Name(33,"Strife_Weapon_Dagger_R");Name(34,"Strife_Weapon_Dagger_L");
+    Put(modelClass,0x18,31);Put(componentClass,0x18,32);
+    Put(guns[0][0],0x10,reinterpret_cast<uintptr_t>(componentClass));
+    for(unsigned hand=0;hand<2;++hand){
+        const auto model=Register(bladeModels[hand],35+int(hand));
+        Put(bladeModels[hand],0x10,reinterpret_cast<uintptr_t>(modelClass));
+        Put(bladeModels[hand],0x18,33+int(hand));
+        Put(blade[hand],0x5B0,model.address);
+        Put<unsigned char>(blade[hand],0x1CC,0x61);
+    }
+    stow::base=g_base;
+    stow::hide=&SetHidden;
+    stow::construct=+[](void*,void* owner,uint64_t,uint32_t flags,uint32_t,void* source,bool,void*,bool)->void*{
+        Check(!source&&flags==0x40&&created<2,"a transient empty component starts with no pistol template");
+        auto* component=decorations[created];
+        Register(component,37+int(created++));
+        Put(component,0,g_base+0x2A575C8);
+        Put(component,0xE8,reinterpret_cast<uintptr_t>(owner));
+        Put<unsigned char>(component,0x1CC,0x20);
+        return component;
+    };
+    stow::setCollision=+[](void* component,unsigned char mode){
+        Check(mode==0,"decorations have collision disabled before registration");
+        Put<unsigned char>(component,0x200,1);
+    };
+    stow::setMesh=+[](void* component,void* asset){
+        Check(!Get<uintptr_t>(component,0x5B0)&&Get<unsigned char>(component,0x200)==1&&
+            (Get<unsigned char>(component,0x1CC)&0x40)&&!(Get<unsigned char>(component,0xAC)&1),
+            "there is no intermediate visible or collidable pistol");
+        Put(component,0x5B0,reinterpret_cast<uintptr_t>(asset));return true;
+    };
+    stow::setupAttachment=+[](void* component,void* parent,uint64_t socket){
+        Put(component,0x108,reinterpret_cast<uintptr_t>(parent));Put(component,0x110,socket);
+    };
+    stow::registerComponent=+[](void* component){
+        Check(Get<uintptr_t>(component,0x108)&&Get<uint64_t>(component,0x110)&&Get<uintptr_t>(component,0x5B0)&&
+            (Get<unsigned char>(component,0x1CC)&0x40),"mesh and holster socket are set before rendering registration");
+        ++registered;Put<unsigned char>(component,0xAC,1);
+    };
+    stow::destroy=+[](void*,void*){++destroyed;};
+    dg::runtime::Get().showStrifeStowedBlades=true;
+    OnLivePlayer(horse,10,true);
+    Check(registered==2&&created==2&&Get<uint64_t>(decorations[0],0x110)==17&&
+        Get<uint64_t>(decorations[1],0x110)==16&&!(Get<unsigned char>(decorations[0],0x1CC)&0x40),
+        "configured lames attach to the same crossed holster bones as the pistol policy");
+    Put<unsigned char>(blade[0],0x1CC,0x21);OnLivePlayer(horse,10,true);
+    Check((Get<unsigned char>(decorations[0],0x1CC)&0x40)&&!(Get<unsigned char>(decorations[1],0x1CC)&0x40)&&
+        registered==2,"drawing one native blade hides only its stowed duplicate without reallocating");
+    dg::runtime::Get().showStrifeStowedBlades=false;OnLivePlayer(horse,10,true);
+    Check(destroyed==2&&!stow::players[0].actor&&Get<unsigned char>(blade[0],0x1CC)==0x21,
+        "disabling stowed models destroys both decorations and leaves the combat blade alone");
+    stow::construct=nullptr;
     g_ready=false;
 }
 void AnimationBoundary(){

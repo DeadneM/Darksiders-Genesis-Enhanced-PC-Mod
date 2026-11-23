@@ -1,125 +1,211 @@
 #pragma once
-#include "NativePropertyField.h"
 #include "PistolAppearanceSlots.h"
 #include "RuntimeSettings.h"
-// Decorative components only. Original weapon components, traces and sockets
-// remain untouched. All calls are game-thread ProcessEvent with live contracts.
+#include <cstdio>
+
 namespace dg::stowed_blades {
 using Id=native_objects::Identity;
-using Event=void(*)(void*,void*,void*);
+using LogFn=void(*)(const char*);
 using Hide=void(*)(uintptr_t,bool);
-inline uintptr_t base=0;inline Event event=nullptr;inline Hide hide=nullptr;
-struct Function {Id id{};};inline Function functions[5]{};
-struct Copy {Id owner{},component{},asset{},parent{},attemptedParent{};uint64_t socket=0,attemptedSocket=0;bool visible=false;};
-struct Player {Copy sides[2]{};Id actor{};unsigned attempts=0;bool enabled=false;};
-inline Player players[2]{};inline Id prototype{};inline int cursor=0;inline bool complete=false;
-template<class T>bool Read(uintptr_t p,size_t at,T& v){native_objects::MemoryReader r;return r.Read(p,at,v);}
-inline bool Alive(const Id& id){native_objects::MemoryReader r;return native_objects::Alive(r,base,id);}
-inline bool Capture(uintptr_t p,Id& id){return native_objects::CaptureLive(base,reinterpret_cast<void*>(p),id);}
-inline bool Name(uintptr_t p,std::string_view name){int index=0,number=0;return Read(p,0x18,index)&&Read(p,0x1C,number)&&native_objects::NameValueEquals(base,index,number,name);}
-inline uintptr_t Fn(unsigned key,uintptr_t object,const char* label,uintptr_t native,unsigned bytes){
-    auto& cached=functions[key];uintptr_t entry=0;uint16_t size=0;
-    if(Alive(cached.id)&&Read(cached.id.address,0xC0,entry)&&entry==base+native&&Read(cached.id.address,0x9E,size)&&size==bytes)return cached.id.address;
-    cached={};uintptr_t cls=0;if(!Read(object,0x10,cls))return 0;
-    for(unsigned depth=0;cls&&depth<16;++depth){uintptr_t field=0;if(!Read(cls,0x48,field))return 0;
-        for(unsigned n=0;field&&n<768;++n){
-            if(Name(field,label)){uintptr_t kind=0;
-                if(!Read(field,0x10,kind)||!Name(kind,"Function")||!Read(field,0xC0,entry)||entry!=base+native||
-                   !Read(field,0x9E,size)||size!=bytes||!Capture(field,cached.id))return 0;
-                return field;}
-            if(!Read(field,0x28,field))return 0;
-        }
-        if(field||!Read(cls,0x40,cls))return 0;
-    }return 0;
+using Construct=void*(*)(void*,void*,uint64_t,uint32_t,uint32_t,void*,bool,void*,bool);
+using Register=void(*)(void*);
+using SetMesh=bool(*)(void*,void*);
+using Destroy=void(*)(void*,void*);
+using Attach=void(*)(void*,void*,uint64_t);
+using Collision=void(*)(void*,unsigned char);
+inline uintptr_t base=0;
+inline Hide hide=nullptr;
+inline LogFn logger=nullptr;
+inline Construct construct=nullptr;
+inline Register registerComponent=nullptr;
+inline SetMesh setMesh=nullptr;
+inline Destroy destroy=nullptr;
+inline Attach setupAttachment=nullptr;
+inline Collision setCollision=nullptr;
+
+struct Copy {
+    Id component{},asset{};
+    bool visible=false;
+};
+struct Player {
+    Id actor{},body{},skeleton{};
+    uint64_t sockets[2]{};
+    Copy sides[2]{};
+    bool attempted[2]{};
+};
+inline Player players[2]{};
+
+template<class T>bool Read(uintptr_t p,size_t offset,T& value){
+    native_objects::MemoryReader reader;
+    return reader.Read(p,offset,value);
 }
-inline bool Param(uintptr_t f,const char* name,const char* type,int size,int expected){int at=-1;return native_objects::PropertyField(base,f,name,type,size,at)&&at==expected;}
-inline void Call(uintptr_t obj,uintptr_t fn,void* args){event(reinterpret_cast<void*>(obj),reinterpret_cast<void*>(fn),args);}
-inline bool Template(){
-    if(Alive(prototype))return true;if(complete)return false;
-    int count=0;uintptr_t chunks=0;if(!Read(base+0x3959694,0,count)||count<=0||count>2000000||!Read(base+0x3959680,0,chunks))return false;
-    for(unsigned n=0;n<512&&cursor<count;++n,++cursor){uintptr_t chunk=0,obj=0,cls=0,outer=0;
-        if(!Read(chunks,size_t(cursor/65536)*8,chunk)||!Read(chunk,size_t(cursor%65536)*24,obj))return false;
-        if(obj&&Name(obj,"LeftPistol_GEN_VARIABLE")&&Read(obj,0x10,cls)&&Name(cls,"StaticMeshComponent")&&
-           Read(obj,0x20,outer)&&Name(outer,"Strife_Blueprint_C")&&Capture(obj,prototype))return true;
+inline bool Alive(const Id& id){
+    native_objects::MemoryReader reader;
+    return native_objects::Alive(reader,base,id);
+}
+inline bool Capture(uintptr_t p,Id& id){
+    return native_objects::CaptureLive(base,reinterpret_cast<void*>(p),id);
+}
+inline bool Name(uintptr_t p,std::string_view expected){
+    int index=0,number=0;
+    return Read(p,0x18,index)&&Read(p,0x1C,number)&&native_objects::NameValueEquals(base,index,number,expected);
+}
+inline bool Owned(uintptr_t component,uintptr_t actor){
+    uintptr_t owner=0,vtable=0;
+    return Read(component,0xE8,owner)&&owner==actor&&Read(component,0,vtable)&&vtable==base+0x2A575C8;
+}
+inline void Discard(const Id& actor,Copy& copy){
+    if(Alive(actor)&&Alive(copy.component)&&Owned(copy.component.address,actor.address))
+        destroy(reinterpret_cast<void*>(actor.address),reinterpret_cast<void*>(copy.component.address));
+    copy={};
+}
+inline void Visibility(const Id& actor,Copy& copy,bool visible){
+    if(copy.visible==visible||!Alive(copy.component)||!Owned(copy.component.address,actor.address))return;
+    hide(copy.component.address,!visible);
+    copy.visible=visible;
+}
+inline bool BladeAsset(uintptr_t asset,unsigned hand){
+    uintptr_t cls=0;
+    return Read(asset,0x10,cls)&&Name(cls,"StaticMesh")&&
+        Name(asset,hand?"Strife_Weapon_Dagger_L":"Strife_Weapon_Dagger_R");
+}
+
+inline void Report(unsigned hand,const char* outcome){
+    static unsigned reports=0;
+    if(!logger||reports>=16)return;
+    ++reports;
+    char line[128]{};
+    sprintf_s(line,"Stowed blades V1.182 hand=%s result=%s",hand?"left":"right",outcome);
+    logger(line);
+}
+
+// Construct a meshless StaticMeshComponent of the exact native pistol
+// component class. It becomes renderable only after attachment and setup.
+inline const char* Create(const Player& player, uintptr_t cls, const Id& asset, unsigned hand, Copy& copy){
+    auto* actor=reinterpret_cast<void*>(player.actor.address);
+    auto* created=construct(reinterpret_cast<void*>(cls),actor,0,0x40u,0,nullptr,false,nullptr,false);
+    const auto component=reinterpret_cast<uintptr_t>(created);
+    if(!Owned(component,player.actor.address))return "component creation failed";
+    if(!Capture(component,copy.component)){
+        destroy(actor,created);
+        return "component identity unavailable";
     }
-    complete=cursor>=count;return false;
+    hide(component,true);
+    setCollision(created,0);
+    if(!setMesh(created,reinterpret_cast<void*>(asset.address)))return "mesh rejected";
+
+    setupAttachment(created,reinterpret_cast<void*>(player.body.address),player.sockets[hand]);
+    uintptr_t parent=0;
+    uint64_t socket=0;
+    if(!Read(component,0x108,parent)||parent!=player.body.address||
+        !Read(component,0x110,socket)||socket!=player.sockets[hand])return "holster attachment rejected";
+
+    registerComponent(created);
+    unsigned char flags=0;
+    if(!Read(component,0xAC,flags)||!(flags&1u))return "component registration rejected";
+    copy.asset=asset;
+    return nullptr;
 }
-inline void HideCopy(Copy& c){if(Alive(c.owner)&&Alive(c.component)&&c.visible){uintptr_t owner=0;if(Read(c.component.address,0xE8,owner)&&owner==c.owner.address)hide(c.component.address,true);}c.visible=false;}
-inline void Release(Copy& c){
-    HideCopy(c);if(Alive(c.owner)&&Alive(c.component)){uintptr_t owner=0;
-        if(Read(c.component.address,0xE8,owner)&&owner==c.owner.address){
-            const auto f=Fn(4,owner,"K2_DestroyComponent",0x1CB91D0,8);
-            if(f&&Param(f,"Component","ObjectProperty",8,0)){uintptr_t arg=c.component.address;Call(owner,f,&arg);}
+
+inline void FindHolsters(uintptr_t skeleton,uint64_t (&sockets)[2]){
+    struct Array {uintptr_t data;int count,capacity;} info{};
+    if(!Read(skeleton,0x190,info)||!info.data||info.count<=0||info.count>512||
+        info.capacity<info.count||info.capacity>1024)return;
+    for(int i=0;i<info.count&&(!sockets[0]||!sockets[1]);++i){
+        uint64_t value=0;
+        if(!Read(info.data,size_t(i)*12,value))return;
+        const int index=int(uint32_t(value)),number=int(value>>32);
+        if(native_objects::NameValueEquals(base,index,number,"Bone_Strife_Holster_L"))sockets[0]=value;
+        if(native_objects::NameValueEquals(base,index,number,"Bone_Strife_Holster_R"))sockets[1]=value;
+    }
+}
+
+inline void Initialize(uintptr_t module,Hide setHidden,LogFn log,bool verifiedMeshSetter){
+    base=module;
+    logger=log;
+    constexpr unsigned char constructSig[]={0x40,0x55,0x53,0x56,0x57,0x41,0x54,0x41,0x56,0x41,0x57,0x48,0x8D,0xAC,0x24,0x40};
+    constexpr unsigned char registerSig[]={0x40,0x53,0x48,0x83,0xEC,0x20,0x48,0x8B,0xD9,0x48,0x8B,0x89,0xE8,0,0,0};
+    constexpr unsigned char destroySig[]={0x4C,0x8B,0xC2,0x48,0x85,0xD2,0x74,0x18,0x48,0x39,0x8A,0xE8,0,0,0};
+    constexpr unsigned char attachSig[]={0xF6,0x81,0xAC,0,0,0,0x01,0x4C,0x8B,0xCA,0x75,0x7A,0x48,0x3B,0xD1};
+    constexpr unsigned char collisionSig[]={0x48,0x89,0x5C,0x24,0x08,0x48,0x89,0x74,0x24,0x10,0x57,0x48,0x83,0xEC,0x20};
+    // MountedHolsterFeature verified SetStaticMesh before installing its detour.
+    if(!base||!setHidden||!verifiedMeshSetter||
+        std::memcmp(reinterpret_cast<void*>(base+0xAC57A0),constructSig,sizeof(constructSig))||
+        std::memcmp(reinterpret_cast<void*>(base+0x1750780),registerSig,sizeof(registerSig))||
+        std::memcmp(reinterpret_cast<void*>(base+0x163EFA0),destroySig,sizeof(destroySig))||
+        std::memcmp(reinterpret_cast<void*>(base+0x17B2430),attachSig,sizeof(attachSig))||
+        std::memcmp(reinterpret_cast<void*>(base+0x1B10D20),collisionSig,sizeof(collisionSig))||
+        *reinterpret_cast<const uintptr_t*>(base+0x2A575C8+0x5E0)!=base+0x1B10D20)return;
+    hide=setHidden;
+    construct=reinterpret_cast<Construct>(base+0xAC57A0);
+    registerComponent=reinterpret_cast<Register>(base+0x1750780);
+    destroy=reinterpret_cast<Destroy>(base+0x163EFA0);
+    setupAttachment=reinterpret_cast<Attach>(base+0x17B2430);
+    setCollision=reinterpret_cast<Collision>(base+0x1B10D20);
+    setMesh=reinterpret_cast<SetMesh>(base+0x17DDBC0);
+}
+inline bool Ready(){return construct!=nullptr;}
+
+inline void Update(const local_players::Context& owner){
+    if(!Ready()||owner.index<0||owner.index>1)return;
+    auto& player=players[owner.index];
+    const auto& rt=runtime::Get();
+    const bool enabled=rt.showStrifeStowedBlades.load();
+    if(!enabled&&!player.actor)return;
+
+    const bool foot=owner.kind==local_players::PoseKind::Foot&&owner.pawn==owner.character;
+    const bool mounted=owner.kind==local_players::PoseKind::Horse&&owner.pawn!=owner.character;
+    uintptr_t cls=0,body=0,bodyOwner=0,skeleton=0;
+    Id actorId{},bodyId{},skeletonId{};
+    const bool valid=enabled&&owner.localPlayer&&(foot||mounted)&&
+        Read(owner.character,0x10,cls)&&Name(cls,"Strife_Blueprint_C")&&
+        (!mounted||(Read(owner.pawn,0x10,cls)&&pistol_appearance::StrifeMountClass(base,cls)))&&
+        pistol_appearance::Controlled(owner.pawn)&&Capture(owner.pawn,actorId)&&
+        Read(owner.pawn,0x380,body)&&Read(body,0xE8,bodyOwner)&&bodyOwner==owner.pawn&&Capture(body,bodyId)&&
+        Read(body,0x5A0,skeleton)&&Capture(skeleton,skeletonId);
+    if(!valid||player.actor!=actorId||player.body!=bodyId||player.skeleton!=skeletonId){
+        for(auto& side:player.sides)Discard(player.actor,side);
+        player={};
+        if(!valid)return;
+        player.actor=actorId;
+        player.body=bodyId;
+        player.skeleton=skeletonId;
+        FindHolsters(skeleton,player.sockets);
+    }
+
+    uintptr_t sourceBody=0;
+    if(!Read(owner.character,0x380,sourceBody))return;
+    const int choice=rt.strifeBladeVisibility.load();
+    const unsigned off=choice==1?2u:choice==2?1u:choice==3?3u:0u;
+    for(unsigned hand=0;hand<2;++hand){
+        auto& copy=player.sides[hand];
+        uintptr_t weapon=0,mesh=0;
+        unsigned char flags=0;
+        const bool show=!(off&(1u<<hand))&&player.sockets[hand]&&
+            pistol_appearance::Component(base,owner.character,sourceBody,hand+6,weapon,flags)&&
+            (mounted||(flags&0x40))&&Read(weapon,0x5B0,mesh)&&BladeAsset(mesh,hand);
+        if(!show){
+            Visibility(actorId,copy,false);
+            continue;
         }
-    }c={};
-}
-inline bool Create(uintptr_t owner,uintptr_t context,uintptr_t asset,Copy& c){
-    // Cleanup must be available before allocating a decorative component.
-    const auto destroy=Fn(4,owner,"K2_DestroyComponent",0x1CB91D0,8);
-    if(!destroy||!Param(destroy,"Component","ObjectProperty",8,0))return false;
-    const auto f=Fn(0,owner,"AddComponent",0x1CB67F0,80);
-    if(!f||!Param(f,"TemplateName","NameProperty",8,0)||!Param(f,"bManualAttachment","BoolProperty",1,8)||
-       !Param(f,"RelativeTransform","StructProperty",48,16)||!Param(f,"ComponentTemplateContext","ObjectProperty",8,64)||
-       !Param(f,"ReturnValue","ObjectProperty",8,72))return false;
-    alignas(16) std::array<unsigned char,80> args{};uint64_t name=0;if(!Read(prototype.address,0x18,name))return false;
-    std::memcpy(args.data(),&name,8);args[8]=1;const float identity[12]={0,0,0,1,0,0,0,0,1,1,1,0};
-    std::memcpy(args.data()+16,identity,48);std::memcpy(args.data()+64,&context,8);Call(owner,f,args.data());
-    uintptr_t comp=0,actual=0,vt=0;std::memcpy(&comp,args.data()+72,8);
-    if(!comp||!Read(comp,0xE8,actual)||actual!=owner||!Read(comp,0,vt)||vt!=base+0x2A575C8||!Capture(owner,c.owner)||!Capture(comp,c.component))return false;
-    hide(comp,true);
-    const auto collision=Fn(1,comp,"SetCollisionEnabled",0x1DCC3C0,1);
-    if(!collision||!Param(collision,"NewType","ByteProperty",1,0)){Release(c);return false;}
-    unsigned char noCollision=0;Call(comp,collision,&noCollision);
-    using Mesh=bool(*)(void*,void*);
-    if(!Capture(asset,c.asset)||!reinterpret_cast<Mesh>(base+0x17DDBC0)(reinterpret_cast<void*>(comp),reinterpret_cast<void*>(asset))){Release(c);return false;}
-    return true;
-}
-inline bool Attach(Copy& c,uintptr_t parent,uint64_t socket){
-    Id parentId{};if(!Capture(parent,parentId))return false;
-    if(c.parent==parentId&&c.socket==socket)return true;
-    if(c.attemptedParent==parentId&&c.attemptedSocket==socket)return false;
-    c.attemptedParent=parentId;c.attemptedSocket=socket;
-    const auto f=Fn(2,c.component.address,"K2_AttachToComponent",0x1DD86B0,21);
-    if(!f||!Param(f,"Parent","ObjectProperty",8,0)||!Param(f,"SocketName","NameProperty",8,8)||
-       !Param(f,"LocationRule","EnumProperty",1,16)||!Param(f,"RotationRule","EnumProperty",1,17)||
-       !Param(f,"ScaleRule","EnumProperty",1,18)||!Param(f,"bWeldSimulatedBodies","BoolProperty",1,19)||!Param(f,"ReturnValue","BoolProperty",1,20))return false;
-    alignas(16) std::array<unsigned char,32> args{};std::memcpy(args.data(),&parent,8);std::memcpy(args.data()+8,&socket,8);
-    args[16]=args[17]=args[18]=2;Call(c.component.address,f,args.data());if(!args[20])return false;
-    c.parent=parentId;c.socket=socket;return true;
-}
-inline uint64_t HolsterSocket(uintptr_t parent,unsigned hand){
-    uintptr_t mesh=0;struct Array {uintptr_t data;int count,capacity;} info{};
-    if(!Read(parent,0x5A0,mesh)||!Read(mesh,0x190,info)||!info.data||info.count<=0||info.count>512||info.capacity<info.count||info.capacity>1024)return 0;
-    for(int i=0;i<info.count;++i){uint64_t name=0;if(!Read(info.data,size_t(i)*12,name))return 0;
-        if(native_objects::NameValueEquals(base,int(uint32_t(name)),int(name>>32),hand?"Bone_Strife_Holster_R":"Bone_Strife_Holster_L"))return name;
-    }return 0;
-}
-inline void Update(const local_players::Context& c){
-    if(!event||!hide||c.index<0||c.index>1)return;
-    auto& p=players[c.index];const bool enabled=runtime::Get().showStrifeStowedBlades.load();
-    Id actor{};unsigned char type=0;uintptr_t cls=0,body=0;
-    const bool valid=enabled&&c.localPlayer&&c.character&&Read(c.character,0xC18,type)&&type==1&&Read(c.character,0x10,cls)&&Name(cls,"Strife_Blueprint_C")&&
-        ((c.kind==local_players::PoseKind::Foot&&c.pawn==c.character)||(c.kind==local_players::PoseKind::Horse&&c.pawn!=c.character&&
-        Read(c.pawn,0x10,cls)&&pistol_appearance::StrifeMountClass(base,cls)))&&Capture(c.pawn,actor)&&Read(c.pawn,0x380,body);
-    if(!valid||p.actor!=actor){for(auto& s:p.sides)Release(s);p={};}
-    if(!valid)return;
-    if(!p.enabled){cursor=0;complete=false;}p.enabled=true;p.actor=actor;
-    if(!Template())return;
-    const int visibility=runtime::Get().strifeBladeVisibility.load();
-    const unsigned off=visibility==1?2u:visibility==2?1u:visibility==3?3u:0u;
-    for(unsigned hand=0;hand<2;++hand){auto& copy=p.sides[hand];uintptr_t original=0,asset=0;unsigned char flags=0;
-        // Only the native hidden (sheathed) state is decorated. No original
-        // component visibility, transform, animation, collision or trace changes.
-        uintptr_t footBody=0,assetClass=0;
-        const bool show=!(off&(1u<<hand))&&Read(c.character,0x380,footBody)&&
-            pistol_appearance::Component(base,c.character,footBody,hand+6,original,flags)&&(flags&0x40)&&
-            Read(original,0x5B0,asset)&&asset&&Read(asset,0x10,assetClass)&&Name(assetClass,"StaticMesh");
-        if(!show){HideCopy(copy);continue;}
-        if(copy.component&&(!Alive(copy.component)||copy.asset.address!=asset)){Release(copy);}
-        if(!copy.component){if(p.attempts>=4)continue;++p.attempts;if(!Create(c.pawn,c.character,asset,copy))continue;}
-        const uint64_t socket=copy.parent.address==body?copy.socket:HolsterSocket(body,hand);
-        if(!socket||!Attach(copy,body,socket)){HideCopy(copy);continue;}
-        if(!copy.visible){hide(copy.component.address,false);copy.visible=true;}
+        if(copy.component&&(!Alive(copy.component)||copy.asset.address!=mesh)){
+            Discard(actorId,copy);
+            player.attempted[hand]=false;
+        }
+        if(!copy.component&&!player.attempted[hand]){
+            uintptr_t donor=0,componentClass=0;
+            unsigned char donorFlags=0;
+            Id asset{};
+            if(!pistol_appearance::Component(base,owner.character,sourceBody,0,donor,donorFlags)||
+                !Read(donor,0x10,componentClass)||!Name(componentClass,"StaticMeshComponent")||!Capture(mesh,asset))continue;
+            player.attempted[hand]=true;
+            const char* failure=Create(player,componentClass,asset,hand,copy);
+            if(failure){
+                Discard(actorId,copy);
+                Report(hand,failure);
+            }else Report(hand,"attached and registered");
+        }
+        Visibility(actorId,copy,true);
     }
 }
 }

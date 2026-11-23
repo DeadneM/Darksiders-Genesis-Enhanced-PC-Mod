@@ -238,21 +238,46 @@ void Restore(Hidden& saved){
         SetHidden(saved.component.address,saved.nativeHidden);
     saved={};
 }
+// An outgoing pistol can remain attached and rendered during a mount
+// animation. Only a current, fully attached component may be restored.
+// Keep its lease until native visibility takes over or the same pawn returns.
+void RestoreActivePistol(Hidden& saved, unsigned slot, const Snapshot& active){
+    if(!saved.component)return;
+    if(!Live(saved.actor)||!Live(saved.component)){saved={};return;}
+    uintptr_t component=0;unsigned char flags=0;
+    if(saved.actor==active.actor&&
+        pistol_appearance::Component(g_base,active.actor.address,active.mesh.address,slot,component,flags)&&
+        component==saved.component.address)Restore(saved);
+}
 void HideAt(unsigned player,unsigned slot,const Snapshot& snapshot){
     auto& saved=g_hidden[player][slot];uintptr_t component=0;unsigned char flags=0;
-    if(!pistol_appearance::Component(g_base,snapshot.actor.address,snapshot.mesh.address,slot,component,flags)){Restore(saved);return;}
+    if(!pistol_appearance::Component(g_base,snapshot.actor.address,snapshot.mesh.address,slot,component,flags)){
+        if(slot>=6)Restore(saved);
+        return;
+    }
     native_objects::Identity id{};
     if(!native_objects::CaptureLive(g_base,reinterpret_cast<void*>(component),id))return;
-    if(saved.component&&saved.component!=id)Restore(saved);
+    if(saved.component&&saved.component!=id){
+        if(slot>=6)Restore(saved);
+        else saved={};
+    }
     if(!saved.component)saved={id,snapshot.actor,bool(flags&0x40)};
     if(!(flags&0x40))SetHidden(component,true);
 }
 bool RetainVisibility(uintptr_t component,bool nativeHidden){
     pistol_appearance::OwnedSlot owned{};
-    if(!pistol_appearance::Resolve(g_base,component,owned))return false;
+    if(!pistol_appearance::Resolve(g_base,component,owned)){
+        // A native setter for a departing pistol supersedes our inactive lease.
+        for(auto& player:g_hidden)for(unsigned slot=0;slot<6;++slot)
+            if(player[slot].component.address==component)player[slot]={};
+        return false;
+    }
     const unsigned player=unsigned(owned.context.index);if(player>1||owned.slot>=8)return false;
     auto& saved=g_hidden[player][owned.slot];
-    if(saved.component&&saved.component!=owned.component)Restore(saved);
+    if(saved.component&&saved.component!=owned.component){
+        if(owned.slot>=6)Restore(saved);
+        else saved={};
+    }
     const unsigned mask=owned.slot<6?ChoiceMask():BladeMask();
     const bool off=(mask&(1u<<pistol_appearance::HandForSlot(owned.slot)))!=0;
     if(off&&!saved.component)saved={owned.component,owned.actor,nativeHidden};
@@ -432,7 +457,7 @@ bool Muzzle(uintptr_t asset){
         NameIs(asset,"P_NatureShotPellet_FiringJuiced");
 }
 }
-void Initialize(LogFn log,bool exactExecutable){
+void Initialize(LogFn log,bool exactExecutable,bool verifiedMeshSetter){
     g_log=log;if(!exactExecutable)return;g_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     if(!g_base)return;
     constexpr unsigned char initSig[]={0x48,0x89,0x5C,0x24,0x18,0x48,0x89,0x6C,0x24,0x20,0x48,0x89,0x54,0x24,0x10,0x56};
@@ -461,6 +486,7 @@ void Initialize(LogFn log,bool exactExecutable){
             else {MH_RemoveHook(root);g_evaluate=nullptr;g_initContext=nullptr;g_sample=nullptr;}
         }
     }
+    stowed_blades::Initialize(g_base,&SetHidden,log,verifiedMeshSetter);
     g_ready=true;
     if(log)log(g_animationReady?"Pistol OFF animated boundary READY (V1.81 experimental)":"Pistol OFF animated boundary unavailable: native arms retained");
     if(log)log("Pistol OFF model path READY; animated unarmed arms separately signature/owner gated; native melee/powers kept; EXPERIMENTAL");
@@ -468,7 +494,6 @@ void Initialize(LogFn log,bool exactExecutable){
 void OnLivePlayer(const local_players::Context& owner,uint32_t generation,bool focused){
     if(!native_tps::OnGameThread()||owner.index<0||owner.index>1)return;
     cost_probe::Scope measured(cost_probe::PistolObserve);
-    if(Ready()){stowed_blades::base=g_base;stowed_blades::event=reinterpret_cast<stowed_blades::Event>(g_base+0xAC0630);stowed_blades::hide=&SetHidden;stowed_blades::Update(owner); }
     ObserveMountedRender(owner);
     const unsigned index=unsigned(owner.index);Snapshot next{};const auto now=GetTickCount64();
     const bool cinema=native_tps::CinematicActive(index);bool mayFreeze=false;
@@ -518,8 +543,10 @@ void OnLivePlayer(const local_players::Context& owner,uint32_t generation,bool f
         if(slot<2&&(mask&(1u<<side)))HideAt(index,side,next);
         else if(slot>=2&&slot<6&&(mountedMask&(1u<<side)))HideAt(index,slot,mounted);
         else if(slot>=6&&(bladeMask&(1u<<side)))HideAt(index,slot,next);
+        else if(slot<6)RestoreActivePistol(g_hidden[index][slot],slot,slot<2?next:mounted);
         else Restore(g_hidden[index][slot]);
     }
+    if(Ready())stowed_blades::Update(owner);
 }
 bool SkipParticle(void* notify,void* mesh){
     if(!Ready()||!ChoiceMask()||!native_tps::OnGameThread())return false;
@@ -546,6 +573,7 @@ void OnMeshAssigned(void* component){
     else {auto& saved=g_hidden[player][owned.slot];if(saved.component==owned.component)Restore(saved);}
 }
 bool Ready(){return g_ready.load(std::memory_order_acquire)&&dash_combat::PresentationReady();}
+bool StowedReady(){return Ready()&&stowed_blades::Ready();}
 bool PoseReady(unsigned index){
     if(index>=2||!Ready())return false;
     const auto now=GetTickCount64();AcquireSRWLockShared(&g_lock);const auto& p=g_players[index];

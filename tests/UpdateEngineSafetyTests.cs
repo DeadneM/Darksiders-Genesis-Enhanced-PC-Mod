@@ -59,7 +59,8 @@ internal static class UpdateEngineSafetyTests {
             byte[] original=File.ReadAllBytes(engine);
             Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==0&&!File.Exists(ledger)&&Convert.ToBase64String(original)==Convert.ToBase64String(File.ReadAllBytes(engine)),"HDR Native never edits existing engine settings");
             for(int mode=1;mode<=4;mode++){
-                File.WriteAllText(mod,"[HDR]\r\nOutputMode="+mode+"\r\nUIBrightness=1.5\r\n",encoding);
+                int incompatibleLegacyBuffer=mode<=2?3:2;
+                File.WriteAllText(mod,"[HDR]\r\nOutputMode="+mode+"\r\nBackBuffer="+incompatibleLegacyBuffer+"\r\nUIBrightness=1.5\r\n",encoding);
                 Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==7,"HDR profile couples output encoding and matching buffer without vendor gating");
                 string value=File.ReadAllText(engine,encoding);
                 foreach(string expected in new[]{"r.AllowHDR=1","r.HDR.EnableHDROutput=1","r.HDR.Display.OutputDevice="+(mode+2),"r.HDR.Display.ColorGamut="+((mode==1||mode==2)?2:0),"r.HDR.UI.CompositeMode=1","r.HDR.UI.Level=1.5","r.DefaultBackBufferPixelFormat="+(mode<=2?4:3),"r.MaxAnisotropy=8"})

@@ -1,3 +1,9 @@
+# V1.182 en préparation sur debug. Elle reprend les holsters croisés validés et ajuste leur transition, la création des lames rangées et le démarrage HDR. Validation en jeu attendue.
+
+[Périmètre et essai](docs/V1_182_REVIEW.md).
+
+---
+
 # V1.181 livrée sur debug — main V1.173 préservée
 
 86/86 tests, zéro avertissement C++, ZIP de deux binaires et Defender vérifiés. Holsters montés, copies des lames rangées et transport HDR EXPÉRIMENTAUX : test visuel requis. Lames natives tenues à cheval encore ouvertes. Aucune installation. [Livraison](docs/V1_181_DELIVERY_RECEIPT.md).

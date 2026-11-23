@@ -1443,6 +1443,7 @@ bool PresentationFocused(){return dg::gameplay_menu::Commands(InteractionFocus()
 void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t generation){
     dg::cost_probe::Report(&FeatureLog);
     dg::cost_probe::Scope measured(dg::cost_probe::Gameplay);
+    if(owner.index==0&&dg::native_tps::OnGameThread())dg::hdr::engine_profile::ApplyOnGameThread();
     dg::presentation::OnLivePlayer(owner);
     void* character=reinterpret_cast<void*>(owner.character);
     if(owner.index==0){
@@ -3084,7 +3085,12 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 dg::hdr::Status QueryHdrOutputStatus(){
     dg::hdr::Status status{};status.checked=true;
     status.transportAttempted=dg::hdr::transport.attempted;status.transportApplied=dg::hdr::transport.applied;
-    status.formatMismatch=dg::hdr::transport.formatMismatch;status.transportResult=dg::hdr::transport.result;
+    status.formatMismatch=dg::hdr::transport.formatMismatch;
+    status.engineMismatch=dg::hdr::transport.engineMismatch;
+    status.transportResult=dg::hdr::transport.result;
+    status.startupMode=dg::hdr::engine_profile::startup.mode;
+    const auto engine=dg::hdr::engine_profile::Read(true);
+    status.engineEnabled=engine.enabled;status.engineDevice=engine.outputDevice;status.engineGamut=engine.gamut;
     if(!g_device||!g_gameSwapChain)return status;
     LUID adapterId{};HMONITOR monitor=nullptr;
     IDXGIDevice* dxgiDevice=nullptr;
@@ -3917,7 +3923,14 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
     g_config.FlushIfDue(false);
 
     TraceGameWindowState(swapChain);
-    dg::hdr::ServiceTransport(swapChain,g_config.hdrOutput);
+    if(dg::hdr::ServiceTransport(swapChain)){
+        const auto engine=dg::hdr::engine_profile::Read(true);
+        const auto& output=dg::hdr::transport;
+        Log("HDR V1.182 present mode=%d format=%u engine=%d/%d/%d matched=%d signaling=%d result=%08lX metadata=%08lX",
+            dg::hdr::engine_profile::startup.mode,output.format,engine.enabled,engine.outputDevice,engine.gamut,
+            !output.engineMismatch&&!output.formatMismatch,output.applied,static_cast<unsigned long>(output.result),
+            static_cast<unsigned long>(output.metadata));
+    }
     ProcessCameraInput();
     EnsureOrbitWndProc(swapChain);
     if(g_originalWndProc && g_hwnd)EnsureRelativeMouse(g_hwnd);
@@ -3986,7 +3999,6 @@ HRESULT __stdcall HookResizeBuffers(
     DXGI_FORMAT newFormat,
     UINT swapChainFlags
 ) {
-    dg::hdr::InvalidateTransport();
     DXGI_SWAP_CHAIN_DESC beforeDesc{};
     HWND traceHwnd = nullptr;
     bool processSwapChain = false;
@@ -4035,6 +4047,7 @@ HRESULT __stdcall HookResizeBuffers(
         ? g_originalResizeBuffers(swapChain, bufferCount, width, height, newFormat, swapChainFlags)
         : E_FAIL;
 
+    if(SUCCEEDED(hr)&&processSwapChain)dg::hdr::InvalidateTransport();
     if (SUCCEEDED(hr) && g_imguiReady.load() && swapChain == g_gameSwapChain) {
         CreateRenderTarget();
         ImGui_ImplDX11_CreateDeviceObjects();
@@ -4440,6 +4453,7 @@ DWORD WINAPI MainThread(LPVOID) {
         g_targetValidation.reason.c_str()
     );
 
+    dg::hdr::engine_profile::Initialize(g_config.hdrOutput,g_targetValidation.exact,&FeatureLog);
     if(g_targetValidation.exact)dg::engine_ini::QueueGraphicsAdapter(g_config.graphicsAdapter);
 
     ReportStartupPhase(5,g_targetValidation.exact?1u:0u);
@@ -4527,7 +4541,7 @@ DWORD WINAPI MainThread(LPVOID) {
     dg::recovery_tail::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::mounted_holsters::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::mounted_fx::Initialize(&FeatureLog,g_targetValidation.exact);
-    dg::pistol_visual::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::pistol_visual::Initialize(&FeatureLog,g_targetValidation.exact,dg::mounted_holsters::Ready());
     dg::execution_camera::Initialize(&FeatureLog,g_targetValidation.exact);
     dg::render_safety::Initialize(&FeatureLog,g_targetValidation.exact);
     // Validate the original shared emitter before the blade FX detour is installed.

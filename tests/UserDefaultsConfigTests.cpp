@@ -279,7 +279,7 @@ int main(int argc,char** argv){
     renamed.showStrifeStowedBlades=true;
     renamed.hdrOutput={3,1.25f};renamed.hdrOutput.buffer=3;renamed.hdrOutput.customMetadata=true;renamed.hdrOutput.peakNits=800;
     check(renamed.SaveNow()&&renamed.Load()&&renamed.hdrOutput.mode==3&&renamed.hdrOutput.uiBrightness==1.25f,"HDR mode and HUD brightness persist without changing unrelated settings");
-    check(renamed.showStrifeStowedBlades&&dg::runtime::Get().showStrifeStowedBlades.load()&&renamed.hdrOutput.buffer==3&&renamed.hdrOutput.customMetadata&&renamed.hdrOutput.peakNits==800,"stowed blade and HDR calibration settings roundtrip into runtime");
+    check(renamed.showStrifeStowedBlades&&dg::runtime::Get().showStrifeStowedBlades.load()&&renamed.hdrOutput.buffer==0&&renamed.hdrOutput.customMetadata&&renamed.hdrOutput.peakNits==800,"stowed blade and HDR calibration settings roundtrip into runtime");
     renamed.hdrOutput={};check(renamed.SaveNow()&&renamed.Load()&&renamed.hdrOutput.mode==-1&&renamed.hdrOutput.uiBrightness==-1,"HDR Native roundtrip");
     renamed.coreLevelDisplayFixEnabled=false;
     check(renamed.SaveNow()&&renamed.Load()&&!renamed.coreLevelDisplayFixEnabled&&!dg::runtime::Get().coreLevelDisplayFixEnabled.load(),"core UI repair OFF persists and reaches runtime");

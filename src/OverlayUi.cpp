@@ -924,7 +924,9 @@ void Draw(Context& c) {
             HelpText("Hide the gameplay mouse crosshair in the selected view. Native menus, wheels and the mod menu keep their cursors. Mouse movement, aiming and controller inputs stay unchanged. The approved default hides it in TPS.");
             constexpr const char* bladeModes[]={"Native","Hide left blade","Hide right blade","Hide both blades"};
             ImGui::BeginDisabled(!pistol_visual::Ready());if(Choice("Strife melee blades",&config.strifeBladeVisibility,bladeModes,4))config.Save();
+            ImGui::BeginDisabled(!pistol_visual::StowedReady());
             if(ImGui::Checkbox("Show Strife blades when sheathed",&config.showStrifeStowedBlades))config.Save();
+            ImGui::EndDisabled();
             ImGui::EndDisabled();
             HelpText("Hide each melee blade model independently. Attacks, damage, hand animations and weapon sheathing stay native. Both local players; normal Strife only.");
             ImGui::Unindent();
@@ -1496,8 +1498,8 @@ void Draw(Context& c) {
                 if(ImGui::Checkbox("Customize HDR HUD brightness",&customBrightness)){config.hdrOutput.uiBrightness=customBrightness?1.5f:-1;hdrChanged=true;}
                 if(customBrightness&&NumberRow("HUD brightness","HDRUIBrightness",&config.hdrOutput.uiBrightness,0,4,1.5f,"%.2f","%.3f"))hdrChanged=true;
                 ImGui::EndDisabled();
-                constexpr const char* bufferModes[]={"Match HDR profile","Keep native buffer","10-bit RGB / 2-bit alpha","16-bit float RGBA"};
-                if(Choice("HDR buffer format",&config.hdrOutput.buffer,bufferModes,4))hdrChanged=true;
+                constexpr const char* bufferModes[]={"Match HDR profile","Keep native buffer"};
+                if(Choice("HDR buffer format",&config.hdrOutput.buffer,bufferModes,2))hdrChanged=true;
                 if(ImGui::Checkbox("Use DXGI HDR signaling",&config.hdrOutput.dxgiSignaling))hdrChanged=true;
                 ImGui::BeginDisabled(!hdr::PQ(config.hdrOutput.mode));
                 if(ImGui::Checkbox("Customize HDR10 metadata",&config.hdrOutput.customMetadata))hdrChanged=true;
@@ -1523,11 +1525,15 @@ void Draw(Context& c) {
                     (status.bufferFormat==28||status.bufferFormat==29||status.bufferFormat==87||status.bufferFormat==91)?"8-bit":"Unknown";
                     ImGui::TextDisabled("Game output buffer: %s",depth);}
                 if(status.transportAttempted){
-                    ImGui::Text("HDR signaling: %s (0x%08X)",status.transportApplied?"accepted":status.formatMismatch?"buffer mismatch":"not accepted",unsigned(status.transportResult));
+                    const char* transport=status.transportApplied?"accepted":status.formatMismatch?"buffer mismatch":
+                        status.engineMismatch?"engine profile not applied":"not accepted";
+                    ImGui::Text("HDR signaling: %s (0x%08X)",transport,unsigned(status.transportResult));
                     if(status.formatMismatch)HelpText("The buffer does not match the HDR encoding. Use Match HDR profile and restart before judging colors.");
                 }
-                HelpText("Display information below reports the current output, not whether the requested HDR profile succeeded.");
-                HelpText("The availability check is read-only. Windows HDR and buffer depth do not prove HDR game output. Refresh after changing displays; reported monitor values can be incomplete.");
+                if(status.engineDevice>=0&&status.engineGamut>=0)
+                    ImGui::TextDisabled("Engine output: %d | gamut: %d | HDR: %s",status.engineDevice,status.engineGamut,status.engineEnabled==1?"ON":"OFF");
+                if(status.startupMode!=config.hdrOutput.mode)ImGui::TextDisabled("Restart to apply the selected HDR profile.");
+                HelpText("Refresh to check the active game buffer, the engine's color settings and the DXGI response.");
                 ImGui::Unindent();
             }
             ImGui::EndTabItem();
