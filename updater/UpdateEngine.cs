@@ -145,8 +145,11 @@ namespace DarksidersGenesisUpdater {
                 if(desired>=0&&(desired<RenderMin[i]||desired>RenderMax[i]||(RenderInt[i]&&desired!=Math.Floor(desired))))
                     throw new InvalidDataException("Rendering preference outside supported range: "+RenderCVars[i]);
                 string key=RenderCVars[i],current=RenderRead("SystemSettings",key,engineIni);string[] prior;owned.TryGetValue(key,out prior);
-                if(desired<0) {
-                    // External edits win: Native restores only a value still written by us.
+                // The ASI now applies these two settings in session. Restore
+                // any matching values owned by the older exit helper.
+                bool live=key=="r.ScreenPercentage"||key=="r.SSR.Quality";
+                if(desired<0||live) {
+                    // External edits win when releasing an owned value.
                     if(prior!=null&&current==prior[1]&&current!=prior[0])writes[key]=prior[0];
                     owned.Remove(key);continue;
                 }

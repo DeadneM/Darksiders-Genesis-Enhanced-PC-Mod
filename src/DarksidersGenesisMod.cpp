@@ -17,6 +17,7 @@
 #include "ChaosPoseFeature.h"
 #include "ConfigStore.h"
 #include "HdrTransport.h"
+#include "RenderQualityFeature.h"
 #include "EngineIniFeature.h"
 #include "TemporalAAFeature.h"
 #include "CoreUiLevelFeature.h"
@@ -1443,7 +1444,10 @@ bool PresentationFocused(){return dg::gameplay_menu::Commands(InteractionFocus()
 void ServiceLocalGameplay(const dg::local_players::Context& owner,uint32_t generation){
     dg::cost_probe::Report(&FeatureLog);
     dg::cost_probe::Scope measured(dg::cost_probe::Gameplay);
-    if(owner.index==0&&dg::native_tps::OnGameThread())dg::hdr::engine_profile::ApplyOnGameThread();
+    if(owner.index==0&&dg::native_tps::OnGameThread()){
+        dg::hdr::engine_profile::ApplyOnGameThread();
+        dg::render_quality::ApplyOnGameThread();
+    }
     dg::presentation::OnLivePlayer(owner);
     void* character=reinterpret_cast<void*>(owner.character);
     if(owner.index==0){
@@ -4474,6 +4478,7 @@ DWORD WINAPI MainThread(LPVOID) {
     // The overlay remains available on an unknown executable so users receive
     // a useful compatibility diagnostic. Gameplay hooks are fail-closed.
     dg::temporal_aa::Initialize(&FeatureLog,g_targetValidation.exact);
+    dg::render_quality::Initialize(&FeatureLog,g_targetValidation.exact);
     if (!DiscoverAndHookD3D11()) {
         Log("Overlay hook setup FAILED. Mod stays fail-open; game should continue normally.");
         return 0;

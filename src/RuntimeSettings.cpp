@@ -75,6 +75,8 @@ void Publish(const Snapshot& s) {
     for(size_t i=0;i<postprocess::Count;++i){const float v=postprocess::Normalize(i,s.postProcess[i]);
         g_state.postProcess[i].store(v,std::memory_order_relaxed);if(v>=0)postMask|=uint64_t{1}<<i;}
     g_state.postProcessMask.store(postMask,std::memory_order_release);
+    g_state.renderResolution.store(s.renderResolution,std::memory_order_relaxed);
+    g_state.renderReflections.store(s.renderReflections,std::memory_order_relaxed);
     g_state.nativeBlur.Publish(s.nativeBlur);
     g_state.tpsBlur.Publish(s.tpsBlur);
     g_state.cameraOrbitInputEnabled.store(s.cameraOrbitInputEnabled, std::memory_order_relaxed);

@@ -19,17 +19,27 @@ internal static class UpdateEngineSafetyTests {
             File.WriteAllText(mod,choices,encoding);bool rejected=false;
             try{UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return true;});}catch(InvalidOperationException){rejected=true;}
             Check(rejected&&Convert.ToBase64String(initial)==Convert.ToBase64String(File.ReadAllBytes(engine)),"running game rejects all render changes");
-            Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==7,"all seven choices written after exit");
+            Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==5,"only settings requiring a restart are written after exit");
             string changed=File.ReadAllText(engine,encoding);
-            foreach(string value in new[]{"r.MaxAnisotropy=16","r.ScreenPercentage=75.5","r.ShadowQuality=5","r.Shadow.MaxResolution=2048","r.Shadow.DistanceScale=0","r.ViewDistanceScale=1.5","r.SSR.Quality=4","r.Unrelated=42","Paths=keep-me","préservé"})
+            Check(!changed.Contains("r.ScreenPercentage=")&&!changed.Contains("r.SSR.Quality="),"live settings avoid persistent Engine.ini overrides");
+            foreach(string value in new[]{"r.MaxAnisotropy=16","r.ShadowQuality=5","r.Shadow.MaxResolution=2048","r.Shadow.DistanceScale=0","r.ViewDistanceScale=1.5","r.Unrelated=42","Paths=keep-me","préservé"})
                 Check(changed.Contains(value),"render choices preserve values, names and unrelated UTF8/UTF16 text: "+value);
             Check(Convert.ToBase64String(initial)==Convert.ToBase64String(File.ReadAllBytes(engine+".DGE-render.bak")),"render backup has exact prior engine bytes");
             byte[] stable=File.ReadAllBytes(engine),stableLedger=File.ReadAllBytes(ledger);
             Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==0&&Convert.ToBase64String(stable)==Convert.ToBase64String(File.ReadAllBytes(engine))&&Convert.ToBase64String(stableLedger)==Convert.ToBase64String(File.ReadAllBytes(ledger)),"unchanged choices add no writes");
             File.WriteAllText(mod,"[RenderQuality]\r\n",encoding);
-            Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==7&&!File.Exists(ledger),"Native restores seven owned values and retires ownership");
+            Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==5&&!File.Exists(ledger),"Native restores the restart settings and retires ownership");
             string restored=File.ReadAllText(engine,encoding);
             Check(restored.Contains("r.MaxAnisotropy=4")&&!restored.Contains("r.ScreenPercentage=")&&!restored.Contains("r.SSR.Quality=")&&restored.Contains("r.Unrelated=42"),"Native restores old key and removes only originally absent keys");
+            File.WriteAllText(engine,restored.Replace("r.MaxAnisotropy=4","r.MaxAnisotropy=4\r\nr.ScreenPercentage=120\r\nr.SSR.Quality=3"),encoding);
+            File.WriteAllText(ledger,"{\"r.ScreenPercentage\":[\"95\",\"120\"],\"r.SSR.Quality\":[null,\"4\"]}",new UTF8Encoding(false));
+            File.WriteAllText(mod,"[RenderQuality]\r\nScreenPercentage=120\r\nSSRQuality=4\r\n",encoding);
+            stable=File.ReadAllBytes(mod);
+            Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==1&&!File.Exists(ledger),
+                "legacy ownership is released even when the live controls stay enabled");
+            restored=File.ReadAllText(engine,encoding);
+            Check(restored.Contains("r.ScreenPercentage=95")&&restored.Contains("r.SSR.Quality=3")&&Convert.ToBase64String(stable)==Convert.ToBase64String(File.ReadAllBytes(mod)),
+                "migration restores old engine values, preserves intervening edits and leaves mod preferences intact");
             File.WriteAllText(mod,"[RenderQuality]\r\nMaxAnisotropy=16\r\n",encoding);UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;});
             File.WriteAllText(engine,File.ReadAllText(engine,encoding).Replace("r.MaxAnisotropy=16","r.MaxAnisotropy=8"),encoding);
             File.WriteAllText(mod,"[RenderQuality]\r\n",encoding);UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;});

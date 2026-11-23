@@ -1,3 +1,7 @@
+## Suite de V1.184
+
+Vérifier en mission l’application directe de la résolution interne et des reflets, puis les lames sur les deux montures de Strife. Identifier le renouvellement des samplers pour l’anisotropie. Le retour en jeu sur le HDR V1.184 est attendu. [Candidat V1.185](V1_185_LIVE_QUALITY_MOUNTED_BLADES_REVIEW.md).
+
 ## V1.184 à essayer
 
 En scRGB 1000, comparer l’image en mission à V1.183 ou à SDR. Le chemin de rendu HDR et la signalisation doivent être actifs. Les essais des lames rangées et des transitions montées de V1.182 restent ouverts. [Livraison et essai HDR](V1_184_DELIVERY_RECEIPT.md).

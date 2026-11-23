@@ -1,3 +1,7 @@
+## Candidat V1.185 en vérification
+
+Le prochain lot porte sur la résolution interne, les reflets en direct et les lames tenues à cheval. V1.184 est le ZIP disponible pour l’essai HDR en cours. [Périmètre et critères](docs/V1_185_LIVE_QUALITY_MOUNTED_BLADES_REVIEW.md).
+
 # V1.184 livrée sur debug — rendu HDR natif
 
 **Construite et contrôlée**. 86 tests Windows x64 passent. [ZIP V1.184](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/33458ebb73b8e991ea79fad6bf60a0323a117b3a/downloads/DarksidersGenesis_V1.184_NATIVE_HDR_RENDER_PATH_TEST.zip) · [Livraison et statut](docs/V1_184_DELIVERY_RECEIPT.md).

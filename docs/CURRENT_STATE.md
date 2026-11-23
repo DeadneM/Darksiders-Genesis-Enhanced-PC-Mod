@@ -1,3 +1,7 @@
+## V1.185 en vérification sur debug
+
+Résolution interne et reflets en mission, lames tenues pendant la mêlée montée. Le contrôle GitHub ne produit pas de ZIP. V1.184 reste la build publiée pendant l’essai HDR. [Périmètre et critères](V1_185_LIVE_QUALITY_MOUNTED_BLADES_REVIEW.md).
+
 # V1.184 livrée sur debug — HDR natif
 
 **Construite et contrôlée**. L’image HDR reste expérimentale. [Livraison et essai](V1_184_DELIVERY_RECEIPT.md).

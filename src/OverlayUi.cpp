@@ -42,6 +42,7 @@
 #include "CameraTraceFeature.h"
 #include "TpsCameraFocus.h"
 #include "TemporalAAFeature.h"
+#include "RenderQualityFeature.h"
 #include "ChromaticIntensity.h"
 #include "PostProcessEffects.h"
 #include "CoreUiLevelFeature.h"
@@ -1425,17 +1426,30 @@ void Draw(Context& c) {
                 HelpText("Independent of TAA. Global settings, including cinematics and both local views.");
                 ImGui::Unindent();
             }
-            if(layout::Group("Rendering quality (restart required)")){
+            if(layout::Group("Rendering quality")){
                 ImGui::Indent();
-                HelpText("Unchecked = Native. Saved choices are written after closing the game and take effect at the next launch. Native restores the previous Engine.ini value if it is still owned by the mod.");
+                HelpText("Internal resolution and reflection quality apply in mission. Other settings apply at the next launch. Unchecked restores Native.");
                 for(size_t i=0;i<render_quality::Specs.size();++i){const auto& spec=render_quality::Specs[i];
+                    const bool live=render_quality::IsLiveOption(i);
+                    const bool available=!live||render_quality::Ready(i);
                     ImGui::PushID(spec.key);bool changed=false,custom=config.renderQuality[i]>=0;
+                    ImGui::BeginDisabled(!available);
                     if(ImGui::Checkbox(spec.label,&custom)){config.renderQuality[i]=custom?spec.trial:-1;changed=true;}
                     if(custom&&NumberRow("Value","Value",&config.renderQuality[i],spec.minimum,spec.maximum,spec.trial,
                         spec.integer?"%.0f":"%.2f",spec.integer?"%.0f":"%.2f")){
                         config.renderQuality[i]=render_quality::Normalize(i,config.renderQuality[i]);changed=true;}
-                    if(changed){const bool saved=config.SaveNow();const bool queued=saved&&c.queueGraphicsAdapter&&c.queueGraphicsAdapter(config.graphicsAdapter);
-                        *c.lastAction=!saved?"Rendering preference save failed":queued?"Rendering settings queued; restart required":"Rendering preference saved; exit helper queue failed";}
+                    ImGui::EndDisabled();
+                    if(!available)ImGui::TextDisabled("Live control unavailable for this executable");
+                    if(changed){
+                        if(live){
+                            config.Save();
+                            *c.lastAction="Rendering preference updated for the next gameplay frame";
+                        }else{
+                            const bool saved=config.SaveNow();
+                            const bool queued=saved&&c.queueGraphicsAdapter&&c.queueGraphicsAdapter(config.graphicsAdapter);
+                            *c.lastAction=!saved?"Rendering preference save failed":queued?"Rendering settings queued; restart required":"Rendering preference saved; exit helper queue failed";
+                        }
+                    }
                     ImGui::PopID();
                 }
                 HelpText("Higher resolution and shadows can be expensive. 100% is native resolution; Native preserves your existing configuration. Texture/object limits and game quality presets can still restrict the result.");

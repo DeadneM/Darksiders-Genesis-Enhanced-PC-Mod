@@ -1034,6 +1034,8 @@ void Store::PublishRuntime() const {
     runtime.coreLevelDisplayFixEnabled = coreLevelDisplayFixEnabled;
     runtime.chromaticIntensity = temporal_aa::Normalize(temporalAA).colorFringeAmount;
     runtime.postProcess=postProcess;
+    runtime.renderResolution=render_quality::Normalize(render_quality::ResolutionIndex,renderQuality[render_quality::ResolutionIndex]);
+    runtime.renderReflections=render_quality::Normalize(render_quality::ReflectionsIndex,renderQuality[render_quality::ReflectionsIndex]);
     runtime.nativeBlur = nativeBlur;
     runtime.tpsBlur = tpsBlur;
     // Mouse TPS orbit shares the existing orbit result; it does not need

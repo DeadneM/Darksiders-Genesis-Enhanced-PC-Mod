@@ -7020,3 +7020,8 @@ Compilation et ZIP contrôlés, 86/86 tests et zéro avertissement C++. Signalis
 Le rendu V1.183 a été rejeté malgré un signal scRGB accepté. Sur la version PC étudiée, l’ancien détecteur DX11 laisse la branche HDR du post-traitement désactivée sur Arc. La capacité du rendu est mise à jour seulement après confirmation de la sortie HDR active et du format scRGB par DXGI. Le journal distingue la capacité avant/après, le signal DXGI et le mode de présentation. Le test visuel reste nécessaire. [Constats et retour arrière](V1_184_HDR_RENDER_PATH_REVIEW.md).
 
 Compilation et ZIP contrôlés, 86/86 tests Windows x64. Le rendu HDR à l’écran reste à éprouver en mission. [Livraison](V1_184_DELIVERY_RECEIPT.md).
+
+
+# V1.185 — réglages en direct et lames montées
+
+Les lecteurs de résolution de la vue et de qualité SSR ont été retrouvés dans l’exécutable exact. Le candidat applique les deux choix au thread de jeu par les setters natifs, avec retour Native conditionné à la propriété de la valeur. Le helper retire ses anciens overrides au premier arrêt. Les montages gauche et droit de la mêlée montée et les os de dagues correspondants ont été retrouvés dans les assets déjà en cache. [Périmètre et critères](V1_185_LIVE_QUALITY_MOUNTED_BLADES_REVIEW.md).

@@ -59,6 +59,7 @@ struct Snapshot {
     bool coreLevelDisplayFixEnabled = true;
     float chromaticIntensity = -1.0f;
     postprocess::Values postProcess=postprocess::NativeValues();
+    float renderResolution=-1,renderReflections=-1;
     camera_blur::Profile nativeBlur=camera_blur::NativeDefaults,tpsBlur=camera_blur::TpsDefaults;
     bool cameraOrbitInputEnabled = true; // derived: mouse OR controller
     bool cameraControllerOrbitEnabled = true;
@@ -199,6 +200,7 @@ struct State {
     std::atomic<float> chromaticIntensity{-1.0f};
     std::array<std::atomic<float>,postprocess::Count> postProcess{}; // values valid only under postProcessMask
     std::atomic_uint64_t postProcessMask{0};
+    std::atomic<float> renderResolution{-1},renderReflections{-1};
     camera_blur::SharedProfile nativeBlur{camera_blur::NativeDefaults},tpsBlur{camera_blur::TpsDefaults};
     std::atomic_bool tpsViewGameplay{false};
     std::atomic_ullong tpsGameplayViewTick{0};

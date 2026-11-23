@@ -456,6 +456,7 @@ set_source_files_properties("${DG_UPDATER_RC}" PROPERTIES OBJECT_DEPENDS "${DG_H
 add_library(DarksidersGenesisMod SHARED
   src/RenderSafetyFeature.cpp
   src/TemporalAAFeature.cpp
+  src/RenderQualityFeature.cpp
   src/CoreUiLevelFeature.cpp
   src/NativeTpsFeature.cpp
   src/DashCombatFeature.cpp

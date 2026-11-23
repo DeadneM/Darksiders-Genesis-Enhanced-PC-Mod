@@ -43,6 +43,19 @@ void Run(){
         Check(dg::render_quality::Normalize(i,0)==spec.minimum&&dg::render_quality::Normalize(i,spec.maximum*2)==spec.maximum,"rendering range respects real nonzero minima and bounded ceilings");
         Check(dg::render_quality::Normalize(i,spec.trial)==spec.trial,"render trial choice is representable");}
     Check(dg::render_quality::Normalize(0,3.6f)==4,"integer CVar choices cannot retain fractional values");
+    using dg::render_quality::ConsoleValue;
+    dg::render_quality::LiveOverride renderOverride;
+    ConsoleValue actual{3,0x01000000};
+    auto set=[&](ConsoleValue value){actual=value;return true;};
+    renderOverride.Update(actual,0,set);
+    Check(actual==ConsoleValue{0,0x01000000},"SSR zero applies with the engine's original priority");
+    renderOverride.Update(actual,4,set);
+    renderOverride.Update(actual,std::nullopt,set);
+    Check(actual==ConsoleValue{3,0x01000000},"Native restores the original value across slider changes");
+    renderOverride.Update(actual,4,set);
+    actual.priority=0x02000000;
+    renderOverride.Update(actual,std::nullopt,set);
+    Check(actual==ConsoleValue{4,0x02000000},"Native preserves an intervening engine write of equal value at a different priority");
     const Settings defaults;
     Check(!defaults.enabled,"existing installations retain native TAA by default");
     Check(defaults.motionBlurAmount==-1&&defaults.colorFringeAmount==-1,"native image effects retained by default");

@@ -550,7 +550,7 @@ void OnLivePlayer(const local_players::Context& owner,uint32_t generation,bool f
             // Retain its lease until he returns to that body or native visibility takes over.
         }else Restore(g_hidden[index][slot]);
     }
-    if(Ready())stowed_blades::Update(owner);
+    if(Ready())stowed_blades::Update(owner,mounted.actor,mounted.mesh);
 }
 bool SkipParticle(void* notify,void* mesh){
     if(!Ready()||!ChoiceMask()||!native_tps::OnGameThread())return false;

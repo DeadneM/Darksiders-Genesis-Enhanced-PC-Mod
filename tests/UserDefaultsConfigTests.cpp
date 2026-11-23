@@ -273,7 +273,9 @@ int main(int argc,char** argv){
     check(renamed.SaveNow()&&renamed.Load()&&dg::runtime::Get().postProcessMask.load()==0,"Native restores the inactive fast path");
     renamed.renderQuality[0]=16;renamed.renderQuality[1]=75;renamed.renderQuality[6]=0;
     check(renamed.SaveNow()&&renamed.Load()&&renamed.renderQuality[0]==16&&renamed.renderQuality[1]==75&&renamed.renderQuality[6]==0,
-        "restart rendering preferences preserve custom, fractional-domain and off values");
+        "rendering preferences preserve custom, fractional-domain and off values");
+    check(dg::runtime::Get().renderResolution.load()==75&&dg::runtime::Get().renderReflections.load()==0,
+        "internal resolution and zero SSR publish live values after reload");
     renamed.renderQuality=dg::render_quality::NativeValues();
     check(renamed.SaveNow()&&renamed.Load()&&renamed.renderQuality==dg::render_quality::NativeValues(),"Native rendering preference roundtrip");
     WritePrivateProfileStringW(L"HDR",L"OutputMode",L"1",path);
