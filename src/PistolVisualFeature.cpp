@@ -543,8 +543,12 @@ void OnLivePlayer(const local_players::Context& owner,uint32_t generation,bool f
         if(slot<2&&(mask&(1u<<side)))HideAt(index,side,next);
         else if(slot>=2&&slot<6&&(mountedMask&(1u<<side)))HideAt(index,slot,mounted);
         else if(slot>=6&&(bladeMask&(1u<<side)))HideAt(index,slot,next);
-        else if(slot<6)RestoreActivePistol(g_hidden[index][slot],slot,slot<2?next:mounted);
-        else Restore(g_hidden[index][slot]);
+        else if(slot>=2&&slot<6)RestoreActivePistol(g_hidden[index][slot],slot,mounted);
+        else if(slot<2&&owner.kind==local_players::PoseKind::Horse&&owner.character&&owner.pawn&&
+            owner.pawn!=owner.character&&g_hidden[index][slot].actor.address==owner.character){
+            // The foot model can still be rendered while Strife mounts.
+            // Retain its lease until he returns to that body or native visibility takes over.
+        }else Restore(g_hidden[index][slot]);
     }
     if(Ready())stowed_blades::Update(owner);
 }

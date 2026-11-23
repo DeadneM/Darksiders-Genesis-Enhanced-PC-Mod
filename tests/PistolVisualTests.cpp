@@ -204,8 +204,9 @@ void Runtime(){
     Check(!SkipParticle(notify,meshes[0]),"World Ender lifecycle notification is never a muzzle particle");Put(klass,0x18,0);gameThread=false;
     Check(!SkipParticle(notify,meshes[0]),"notify outside game thread retained");gameThread=true;
     dg::local_players::Context horse{};horse.index=0;horse.kind=dg::local_players::PoseKind::Horse;
+    const Snapshot footBeforeMount=s;
     HideAt(0,0,s);OnLivePlayer(horse,9,true);
-    Check(!PoseReady(0)&&Get<unsigned char>(guns[0][0],0x1CC)==0x21,"leaving normal Strife restores model and discards pose");
+    Check(!PoseReady(0)&&Get<unsigned char>(guns[0][0],0x1CC)==0x21,"an unknown destination restores the foot model and discards pose");
     unsigned char horseActor[0xC10]{},horseMesh[0x800]{},horseGuns[4][0x600]{},pc[0x360]{},strifeClass[0x40]{},horseClass[0x40]{};
     const auto horseId=Register(horseActor,10),horseMeshId=Register(horseMesh,11);
     Name(7,"Strife_Blueprint_C");Name(8,"Despair_Blueprint_C");Put(strifeClass,0x18,7);Put(horseClass,0x18,8);
@@ -219,7 +220,10 @@ void Runtime(){
         Put(horseGuns[i],0,g_base+0x2A575C8);Put(horseGuns[i],0xE8,horseId.address);Put(horseGuns[i],0x108,horseMeshId.address);
         Put<unsigned char>(horseGuns[i],0x1CC,0x21);
     }
+    HideAt(0,0,footBeforeMount);
     dg::runtime::Get().pistolRightModel=3;dg::runtime::Get().pistolLeftModel=0;OnLivePlayer(horse,9,true);
+    Check(Get<unsigned char>(guns[0][0],0x1CC)==0x61,
+        "an identified mount transition does not reveal the departing foot pistol");
     Check(Get<unsigned char>(horseGuns[0],0x1CC)==0x61&&Get<unsigned char>(horseGuns[3],0x1CC)==0x61,"mounted OFF hides both owned right hand and stowed pistol");
     Check(Get<unsigned char>(horseGuns[1],0x1CC)==0x21&&Get<unsigned char>(horseGuns[2],0x1CC)==0x21,"mounted opposite hand and stowed model remain native");
     Check(!PoseReady(0),"mounted model hiding does not reuse foot arm pose or horse animation");
