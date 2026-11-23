@@ -316,7 +316,12 @@ void Runtime(){
     namespace stow=dg::stowed_blades;
     unsigned char modelClass[0x40]{},componentClass[0x40]{},bladeModels[2][0x40]{};
     static unsigned char decorations[2][0x600]{};
-    static unsigned created=0,registered=0,destroyed=0;
+    static unsigned created=0,rotated=0,registered=0,destroyed=0;
+    Put<unsigned char>(horseGuns[3],0x275,0x80);
+    Put<unsigned char>(horseGuns[3],0x27B,2);
+    Put(horseGuns[3],0x27C,41);
+    Put<unsigned char>(horseGuns[2],0x27B,3);
+    Put(horseGuns[2],0x27C,42);
     Name(31,"StaticMesh");Name(32,"StaticMeshComponent");
     Name(33,"Strife_Weapon_Dagger_R");Name(34,"Strife_Weapon_Dagger_L");
     Put(modelClass,0x18,31);Put(componentClass,0x18,32);
@@ -352,9 +357,23 @@ void Runtime(){
     stow::setupAttachment=+[](void* component,void* parent,uint64_t socket){
         Put(component,0x108,reinterpret_cast<uintptr_t>(parent));Put(component,0x110,socket);
     };
+    stow::setRelativeTransform=+[](void* component,const stow::Transform* pose,bool sweep,void* hit,unsigned char teleport){
+        Check(rotated<2&&component==decorations[rotated]&&pose==&stow::holsterTransform[rotated]&&
+            !sweep&&!hit&&teleport==0&&Get<uint64_t>(component,0x110)==17-rotated&&
+            !(Get<unsigned char>(component,0xAC)&1),"each holster rotation follows attachment and precedes registration");
+        ++rotated;
+    };
+    stow::setDepth=+[](void* component,bool enabled){
+        Put<unsigned char>(component,0x275,enabled?0x80:0);
+    };
+    stow::setStencil=+[](void* component,int stencil){Put(component,0x27C,stencil);};
+    stow::setStencilMask=+[](void* component,unsigned char mask){Put(component,0x27B,mask);};
     stow::registerComponent=+[](void* component){
-        Check(Get<uintptr_t>(component,0x108)&&Get<uint64_t>(component,0x110)&&Get<uintptr_t>(component,0x5B0)&&
-            (Get<unsigned char>(component,0x1CC)&0x40),"mesh and holster socket are set before rendering registration");
+        Check(rotated==registered+1&&Get<uintptr_t>(component,0x108)&&Get<uintptr_t>(component,0x5B0)&&
+            (Get<unsigned char>(component,0x1CC)&0x40),"mesh and holster transform are ready before rendering registration");
+        Check(Get<unsigned char>(component,0x275)==(registered?0:0x80)&&
+            Get<unsigned char>(component,0x27B)==2+registered&&Get<int>(component,0x27C)==41+int(registered),
+            "mounted decorations inherit depth and stencil from the matching crossed holster");
         ++registered;Put<unsigned char>(component,0xAC,1);
     };
     stow::destroy=+[](void*,void*){++destroyed;};
@@ -370,6 +389,10 @@ void Runtime(){
     Check(destroyed==2&&!stow::players[0].actor&&Get<unsigned char>(blade[0],0x1CC)==0x21,
         "disabling stowed models destroys both decorations and leaves the combat blade alone");
     stow::construct=nullptr;
+    stow::setRelativeTransform=nullptr;
+    stow::setDepth=nullptr;
+    stow::setStencil=nullptr;
+    stow::setStencilMask=nullptr;
     g_ready=false;
 }
 void AnimationBoundary(){

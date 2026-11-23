@@ -264,7 +264,7 @@ inline void Initialize(uintptr_t module,Hide setHidden,LogFn log,bool verifiedMe
     mountedMontagesReady=!std::memcmp(reinterpret_cast<void*>(base+0x166AE50),activeArray,sizeof(activeArray))&&
         !std::memcmp(reinterpret_cast<void*>(base+0x166AE83),activeWeight,sizeof(activeWeight));
 }
-inline bool Ready(){return construct!=nullptr;}
+inline bool Ready(){return construct&&setRelativeTransform;}
 
 inline void Update(const local_players::Context& owner,const Id& mountedActor,const Id& mountedBody){
     if(!Ready()||owner.index<0||owner.index>1)return;
