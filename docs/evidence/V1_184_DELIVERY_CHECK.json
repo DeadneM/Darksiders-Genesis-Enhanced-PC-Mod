@@ -1,0 +1,80 @@
+{
+  "package": {
+    "source": "daf02be328dae4daeb944580dc4af5b7b42fe448",
+    "archiveCommit": "33458ebb73b8e991ea79fad6bf60a0323a117b3a",
+    "name": "DarksidersGenesis_V1.184_NATIVE_HDR_RENDER_PATH_TEST.zip",
+    "bytes": 2549486,
+    "sha256": "674985F10A458D5BD388742AE1FDDC7D74306CE410163A9D1787F2747BD8FDF7",
+    "files": {
+      "dxgi.dll": {
+        "bytes": 155648,
+        "sha256": "DE461D41C063CB76C4D42A4B22500FB2111BDE707BBEF5E5073C489FB953691B"
+      },
+      "DarksidersGenesisMod.asi": {
+        "bytes": 2393600,
+        "sha256": "BC06842DBD7B4F3562AB977FEE68788C2879716D3CC5C749AE1340CB2BF10DF8"
+      }
+    },
+    "url": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/33458ebb73b8e991ea79fad6bf60a0323a117b3a/downloads/DarksidersGenesis_V1.184_NATIVE_HDR_RENDER_PATH_TEST.zip",
+    "oldArchivesPreserved": 248,
+    "totalArchives": 249,
+    "oldPrefsPreserved": 291,
+    "newPrefs": 291,
+    "headerAndFormatChecks": true,
+    "http200": true,
+    "installed": false,
+    "runtimeValidated": false
+  },
+  "ci": {
+    "source": "daf02be328dae4daeb944580dc4af5b7b42fe448",
+    "runId": 45166108423,
+    "jobId": 137663345618,
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/45166108423",
+    "testsPassed": 86,
+    "cppWarnings": 0,
+    "cppErrors": 0,
+    "configuration": "Windows x64 Release",
+    "gameplayValidated": false
+  },
+  "defender": {
+    "zip": {
+      "result": "no threats",
+      "exitCode": 0
+    },
+    "after": {
+      "RealTimeProtectionEnabled": true,
+      "OnAccessProtectionEnabled": true,
+      "AntivirusEnabled": true
+    },
+    "defender": {
+      "AMProductVersion": "4.18.26100.4",
+      "AMEngineVersion": "1.1.26100.4",
+      "AntivirusSignatureVersion": "1.463.429.0",
+      "AntivirusSignatureLastUpdated": "2026-11-23T04:16:06+01:00",
+      "RealTimeProtectionEnabled": true,
+      "OnAccessProtectionEnabled": true,
+      "AntivirusEnabled": true
+    },
+    "payload": {
+      "result": "no threats",
+      "exitCode": 0
+    },
+    "protectionSettingsChanged": false
+  },
+  "firstBuild": {
+    "source": "ca5befb80ae7da981a80c02c163c0fa70cf47b78",
+    "runId": 45164456155,
+    "error": "C3861",
+    "correctedBy": "_InterlockedCompareExchange8"
+  },
+  "targetEvidence": {
+    "sourceVersion": "V1.183",
+    "reportedResult": "visual HDR rejected",
+    "rendererCapabilityRva": "0x3A11395",
+    "nativeWriterRva": "0xD4E3EF",
+    "consumerRva": "0xF8F4FA",
+    "bothReferencesVerified": true,
+    "writablePEDataVerified": true,
+    "runtimeValidated": false
+  }
+}

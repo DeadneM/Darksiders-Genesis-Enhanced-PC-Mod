@@ -1,0 +1,9 @@
+# V1.184 — livraison debug
+
+**Construite et contrôlée** en Windows x64 Release. Les 86 tests passent, avec zéro avertissement C++. La première compilation a signalé un mauvais nom pour l’opération atomique 8 bits. L’appel utilise désormais l’intrinsic MSVC déclaré par intrin.h. [GitHub Actions](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/45166108423).
+
+Base cumulative V1.183. Le retour du joueur rejette le rendu V1.183 malgré le signal scRGB accepté. V1.184 intervient sur la capacité que lit le post-traitement natif. Elle est établie sur l’exécutable exact si le jeu utilise une sortie D3D11 HDR active et a négocié un signal scRGB cohérent. Les autres réglages et acquis de V1.183 sont repris. [Preuves et périmètre](V1_184_HDR_RENDER_PATH_REVIEW.md).
+
+Le ZIP contient `DarksidersGenesisMod.asi` et `dxgi.dll` à la racine. Defender a contrôlé le ZIP et les deux modules. Les 248 archives précédentes et les 291 valeurs de référence sont conservées. Main V1.173 et archive conservent leurs révisions. Source `daf02be328dae4daeb944580dc4af5b7b42fe448`, archive `33458ebb73b8e991ea79fad6bf60a0323a117b3a`, SHA-256 `674985F10A458D5BD388742AE1FDDC7D74306CE410163A9D1787F2747BD8FDF7`. [Télécharger V1.184](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/33458ebb73b8e991ea79fad6bf60a0323a117b3a/downloads/DarksidersGenesis_V1.184_NATIVE_HDR_RENDER_PATH_TEST.zip). [Contrôles détaillés](evidence/V1_184_DELIVERY_CHECK.json).
+
+**Essai en jeu.** Démarrer en scRGB 1000 avec Windows HDR actif, puis comparer en mission l’image et le HUD à SDR. Les couleurs doivent rester lisibles et les hautes lumières distinctes. Le journal renseigne la capacité du rendu avant et après ainsi que le mode de présentation du jeu. V1.184 reste expérimentale jusqu’à validation de l’image.

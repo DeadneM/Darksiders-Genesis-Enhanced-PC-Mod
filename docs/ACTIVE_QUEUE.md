@@ -1,6 +1,6 @@
 ## V1.184 à essayer
 
-En scRGB 1000, comparer l’image en mission à V1.183 ou à SDR. Le chemin de rendu HDR et la signalisation doivent être actifs. Les essais des lames rangées et des transitions montées de V1.182 restent ouverts. [Diagnostic HDR](V1_184_HDR_RENDER_PATH_REVIEW.md).
+En scRGB 1000, comparer l’image en mission à V1.183 ou à SDR. Le chemin de rendu HDR et la signalisation doivent être actifs. Les essais des lames rangées et des transitions montées de V1.182 restent ouverts. [Livraison et essai HDR](V1_184_DELIVERY_RECEIPT.md).
 
 ## V1.183 à essayer
 

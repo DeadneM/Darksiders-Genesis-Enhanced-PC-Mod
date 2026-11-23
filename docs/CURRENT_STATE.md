@@ -1,4 +1,6 @@
-# V1.184 sur debug — HDR natif
+# V1.184 livrée sur debug — HDR natif
+
+**Construite et contrôlée**. L’image HDR reste expérimentale. [Livraison et essai](V1_184_DELIVERY_RECEIPT.md).
 
 V1.183 a été rejetée en jeu malgré la signalisation scRGB acceptée. V1.184 rétablit l’accès du post-traitement au chemin HDR après détection d’une sortie HDR active. [Périmètre et essai](V1_184_HDR_RENDER_PATH_REVIEW.md).
 

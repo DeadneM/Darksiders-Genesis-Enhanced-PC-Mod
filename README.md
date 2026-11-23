@@ -1,4 +1,6 @@
-# V1.184 — activation du rendu HDR natif
+# V1.184 livrée sur debug — rendu HDR natif
+
+**Construite et contrôlée**. 86 tests Windows x64 passent. [ZIP V1.184](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/33458ebb73b8e991ea79fad6bf60a0323a117b3a/downloads/DarksidersGenesis_V1.184_NATIVE_HDR_RENDER_PATH_TEST.zip) · [Livraison et statut](docs/V1_184_DELIVERY_RECEIPT.md).
 
 Le joueur a rejeté le résultat visuel V1.183. V1.184 vise le chemin de rendu HDR du jeu, avec contrôle de la capacité de l’écran et du signal DXGI. [Diagnostic et essai](docs/V1_184_HDR_RENDER_PATH_REVIEW.md).
 

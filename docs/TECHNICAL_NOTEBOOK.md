@@ -7018,3 +7018,5 @@ Compilation et ZIP contrôlés, 86/86 tests et zéro avertissement C++. Signalis
 # V1.184 — capacité HDR DX11 du rendu
 
 Le rendu V1.183 a été rejeté malgré un signal scRGB accepté. Sur la version PC étudiée, l’ancien détecteur DX11 laisse la branche HDR du post-traitement désactivée sur Arc. La capacité du rendu est mise à jour seulement après confirmation de la sortie HDR active et du format scRGB par DXGI. Le journal distingue la capacité avant/après, le signal DXGI et le mode de présentation. Le test visuel reste nécessaire. [Constats et retour arrière](V1_184_HDR_RENDER_PATH_REVIEW.md).
+
+Compilation et ZIP contrôlés, 86/86 tests Windows x64. Le rendu HDR à l’écran reste à éprouver en mission. [Livraison](V1_184_DELIVERY_RECEIPT.md).
