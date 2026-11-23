@@ -1,0 +1,72 @@
+{
+  "package": {
+    "source": "67c3fa0611053ae8b5bed7ae53775130f103863b",
+    "archiveCommit": "0233ee744d70fb298bf3439883dcba4f1597f9ba",
+    "name": "DarksidersGenesis_V1.182_HDR_STARTUP_STOWED_BLADES_TEST.zip",
+    "bytes": 2552046,
+    "sha256": "CAAE52EEE76013F2EB858729169FA5B517B628B805D7478341E96314902D691C",
+    "files": {
+      "dxgi.dll": {
+        "bytes": 155648,
+        "sha256": "83440D3CBD2E4AA690B93B92281FBA99521FD5E9CFE1A374206BE5C7FAEBC773"
+      },
+      "DarksidersGenesisMod.asi": {
+        "bytes": 2396160,
+        "sha256": "3EB8D0487D24718962DB6197BE9AAEBC6BC5E665A6FD920606E0FBD1E1487CFC"
+      }
+    },
+    "url": "https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/0233ee744d70fb298bf3439883dcba4f1597f9ba/downloads/DarksidersGenesis_V1.182_HDR_STARTUP_STOWED_BLADES_TEST.zip",
+    "oldArchivesPreserved": 246,
+    "totalArchives": 247,
+    "oldPrefsPreserved": 296,
+    "newPrefs": 296,
+    "headerAndFormatChecks": true,
+    "http200": true,
+    "installed": false,
+    "runtimeValidated": false
+  },
+  "ci": {
+    "source": "67c3fa0611053ae8b5bed7ae53775130f103863b",
+    "runId": 45113579838,
+    "jobId": 137491216263,
+    "url": "https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/45113579838",
+    "testsPassed": 86,
+    "cppWarnings": 0,
+    "cppErrors": 0,
+    "configuration": "Windows x64 Release",
+    "gameplayValidated": false
+  },
+  "defender": {
+    "zip": {
+      "result": "no threats",
+      "output": "Scan starting...\r\nScan finished.\r\nScanning C:\\Users\\deadn\\.codex\\.chatgpt-projects\\g-p-6ac1496f81ec8191b55c0e4db2eefebd\\work-debug\\downloads\\DarksidersGenesis_V1.182_HDR_STARTUP_STOWED_BLADES_TEST.zip found no threats.\r\n",
+      "exitCode": 0
+    },
+    "payload": {
+      "result": "no threats",
+      "output": "Scan starting...\r\nScan finished.\r\nScanning C:\\Users\\deadn\\.codex\\.chatgpt-projects\\g-p-6ac1496f81ec8191b55c0e4db2eefebd\\audit-v131\\v343-verified found no threats.\r\n",
+      "exitCode": 0
+    },
+    "after": {
+      "RealTimeProtectionEnabled": true,
+      "OnAccessProtectionEnabled": true,
+      "AntivirusEnabled": true
+    },
+    "defender": {
+      "AMProductVersion": "4.18.26100.4",
+      "AMEngineVersion": "1.1.26100.4",
+      "AntivirusSignatureVersion": "1.463.424.0",
+      "AntivirusSignatureLastUpdated": "2026-11-22T20:42:47+01:00",
+      "RealTimeProtectionEnabled": true,
+      "OnAccessProtectionEnabled": true,
+      "AntivirusEnabled": true
+    },
+    "protectionSettingsChanged": false
+  },
+  "status": "BUILT_AND_CHECKED_NOT_GAMEPLAY_VALIDATED",
+  "nativeChecks": {
+    "functionSignatures": 7,
+    "vtableTargets": 2,
+    "hdrRegistrationSlots": 3
+  }
+}

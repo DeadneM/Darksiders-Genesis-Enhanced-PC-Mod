@@ -1,3 +1,9 @@
+## V1.182 à essayer
+
+Valider en jeu le HDR, les transitions des deux chevaux et la case des lames rangées. Lames tenues à cheval encore ouvertes. Étudier la résolution interne et les reflets en direct en premier, puis le cycle des samplers d’anisotropie. [Livraison](V1_182_DELIVERY_RECEIPT.md).
+
+---
+
 # V1.182 en préparation sur debug. Elle reprend les holsters croisés validés et ajuste leur transition, la création des lames rangées et le démarrage HDR. Validation en jeu attendue.
 
 [Périmètre et essai](V1_182_REVIEW.md).

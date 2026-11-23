@@ -7001,3 +7001,8 @@ Le modèle de pistolet retenu auparavant appartient au script de construction de
 - Avant un retour à une ancienne version, choisir HDR Native et fermer le jeu pour que le helper rende les valeurs précédentes.
 
 Les trois correctifs sont expérimentaux. La compilation et le contrôle du ZIP sont suivis séparément de la validation visuelle. Les réglages de qualité encore appliqués au redémarrage restent à étudier en direct.
+
+
+## Contrôles V1.182
+
+86/86 tests, zéro avertissement C++, ZIP Windows x64 et Defender contrôlés. Le rendu et les transitions restent expérimentaux en jeu. [Reçu](V1_182_DELIVERY_RECEIPT.md).

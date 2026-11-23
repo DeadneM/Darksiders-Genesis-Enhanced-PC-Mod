@@ -1,3 +1,9 @@
+# V1.182 livrée sur debug
+
+**Construite et contrôlée**. Les trois corrections sont à valider en jeu. La sélection du format HDR est couplée à l’encodage moteur, les lames rangées sont créées séparément et la visibilité des pistolets suit la transition de monture. Main reste en V1.173. [Livraison et essais](V1_182_DELIVERY_RECEIPT.md).
+
+---
+
 # V1.182 en préparation sur debug. Elle reprend les holsters croisés validés et ajuste leur transition, la création des lames rangées et le démarrage HDR. Validation en jeu attendue.
 
 [Périmètre et essai](V1_182_REVIEW.md).
