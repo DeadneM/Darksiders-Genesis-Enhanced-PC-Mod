@@ -69,12 +69,11 @@ internal static class UpdateEngineSafetyTests {
             byte[] original=File.ReadAllBytes(engine);
             Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==0&&!File.Exists(ledger)&&Convert.ToBase64String(original)==Convert.ToBase64String(File.ReadAllBytes(engine)),"HDR Native never edits existing engine settings");
             for(int mode=1;mode<=4;mode++){
-                int incompatibleLegacyBuffer=mode<=2?3:2;
-                File.WriteAllText(mod,"[HDR]\r\nOutputMode="+mode+"\r\nBackBuffer="+incompatibleLegacyBuffer+"\r\nUIBrightness=1.5\r\n",encoding);
-                Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==7,"legacy and current HDR profiles use the native float buffer");
+                bool pq=mode<=2;
+                File.WriteAllText(mod,"[HDR]\r\nOutputMode="+mode+"\r\nBackBuffer="+(pq?2:3)+"\r\nUIBrightness=1.5\r\n",encoding);
+                Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==7,"HDR requests the buffer matching the selected encoding");
                 string value=File.ReadAllText(engine,encoding);
-                int outputDevice=mode<=2?mode+4:mode+2;
-                foreach(string expected in new[]{"r.AllowHDR=1","r.HDR.EnableHDROutput=1","r.HDR.Display.OutputDevice="+outputDevice,"r.HDR.Display.ColorGamut=0","r.HDR.UI.CompositeMode=1","r.HDR.UI.Level=1.5","r.DefaultBackBufferPixelFormat=3","r.MaxAnisotropy=8"})
+                foreach(string expected in new[]{"r.AllowHDR=1","r.HDR.EnableHDROutput=1","r.HDR.Display.OutputDevice="+(mode+2),"r.HDR.Display.ColorGamut="+(pq?2:0),"r.HDR.UI.CompositeMode=1","r.HDR.UI.Level=1.5","r.DefaultBackBufferPixelFormat="+(pq?4:3),"r.MaxAnisotropy=8"})
                     Check(value.Contains(expected),"HDR profile maps exact engine request: "+expected);
                 Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==0,"unchanged HDR profile is idempotent");
                 File.WriteAllText(mod,"[HDR]\r\nOutputMode=-1\r\nUIBrightness=1.5\r\n",encoding);UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;});
@@ -83,9 +82,13 @@ internal static class UpdateEngineSafetyTests {
             }
             File.WriteAllText(mod,"[HDR]\r\nOutputMode=1\r\nBackBuffer=1\r\n",encoding);
             Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==4&&
-                File.ReadAllText(engine,encoding).Contains("r.HDR.Display.OutputDevice=5")&&
+                File.ReadAllText(engine,encoding).Contains("r.HDR.Display.OutputDevice=3")&&
                 !File.ReadAllText(engine,encoding).Contains("r.DefaultBackBufferPixelFormat="),
-                "legacy HDR10 with native buffer requests scRGB and leaves the buffer CVar alone");
+                "HDR10 with native buffer requests PQ and leaves the buffer CVar alone");
+            File.WriteAllText(mod,"[HDR]\r\nOutputMode=1\r\nBackBuffer=3\r\n",encoding);
+            Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==4&&!File.Exists(ledger)&&
+                File.ReadAllText(engine,encoding).Contains("r.HDR.Display.OutputDevice=1"),
+                "an explicit buffer conflict releases the previous profile");
             File.WriteAllText(mod,"[HDR]\r\nOutputMode=-1\r\n",encoding);UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;});
             File.WriteAllText(mod,"[HDR]\r\nOutputMode=0\r\nUIBrightness=1.5\r\n",encoding);Check(UpdateEngine.ApplyRenderQualityFiles(mod,engine,delegate{return false;})==4,"explicit SDR requests four output CVars and leaves HUD native");
             Check(File.ReadAllText(engine,encoding).Contains("r.HDR.EnableHDROutput=0")&&File.ReadAllText(engine,encoding).Contains("r.HDR.UI.Level=0.75"),"SDR does not leak the saved optional HDR HUD level");

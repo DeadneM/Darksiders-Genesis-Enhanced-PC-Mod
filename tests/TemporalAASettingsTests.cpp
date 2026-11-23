@@ -24,18 +24,21 @@ struct Access {
 };
 void Run(){
     const dg::hdr::Settings nativeHdr{};Check(nativeHdr.mode==-1&&nativeHdr.uiBrightness==-1,"HDR leaves existing engine settings native by default");
-    const auto legacy1000=dg::hdr::Normalize({1,1.25f,2,false});
-    const auto legacy2000=dg::hdr::Normalize({2,-1,1});
-    Check(legacy1000.mode==3&&legacy1000.buffer==0&&legacy1000.uiBrightness==1.25f&&!legacy1000.dxgiSignaling,
-        "legacy 1000-nit HDR10 uses scRGB and retains HUD and signaling choices");
-    Check(legacy2000.mode==4&&legacy2000.buffer==1,"legacy 2000-nit HDR10 keeps peak and native buffer preference");
-    Check(dg::hdr::Normalize(legacy1000).mode==3&&dg::hdr::Normalize(legacy2000).mode==4,
-        "scRGB migration is idempotent");
-    Check(!dg::hdr::EngineProfile{1,0,0}.Matches(3)&&!dg::hdr::EngineProfile{1,3,2}.Matches(3)&&
-        !dg::hdr::EngineProfile{0,5,0}.Matches(3)&&!dg::hdr::EngineProfile{1,5,2}.Matches(3),
-        "DXGI signaling requires the matching enabled scRGB encoding");
-    Check(dg::hdr::EngineProfile{1,5,0}.Matches(3)&&dg::hdr::EngineProfile{1,6,0}.Matches(4),
-        "each scRGB peak requires its own engine tone curve");
+    namespace hdr=dg::hdr;
+    const auto pq=hdr::Normalize({1,1.25f,2,false,true,800,0,500,700});
+    Check(pq.mode==1&&pq.buffer==2&&pq.uiBrightness==1.25f&&!pq.dxgiSignaling,
+        "HDR10, explicit RGB10, HUD and signaling persist");
+    Check(pq.customMetadata&&pq.peakNits==800&&pq.minNits==0&&pq.maxCLL==500&&pq.maxFALL==500,
+        "restored HDR10 metadata bounds MaxFALL by MaxCLL");
+    Check(hdr::CompatibleBuffer(pq)&&hdr::CompatibleBuffer({4,-1,3})&&hdr::CompatibleBuffer({2,-1,1})&&
+        !hdr::CompatibleBuffer(hdr::Normalize({2,-1,3}))&&!hdr::CompatibleBuffer(hdr::Normalize({4,-1,2})),
+        "explicit buffer conflicts are disabled without coercing profile or format");
+    Check(!hdr::EngineProfile{1,0,0}.Matches(3)&&!hdr::EngineProfile{1,3,2}.Matches(3)&&
+        !hdr::EngineProfile{0,5,0}.Matches(3)&&!hdr::EngineProfile{1,5,2}.Matches(3)&&!hdr::EngineProfile{1,3,0}.Matches(1),
+        "DXGI signaling requires the matching enabled encoding");
+    Check(hdr::EngineProfile{1,3,2}.Matches(1)&&hdr::EngineProfile{1,4,2}.Matches(2)&&
+        hdr::EngineProfile{1,5,0}.Matches(3)&&hdr::EngineProfile{1,6,0}.Matches(4),
+        "each HDR peak requires its own engine tone curve and gamut");
     const auto boundedHdr=dg::hdr::Normalize({4,9});Check(boundedHdr.mode==4&&boundedHdr.uiBrightness==4,"HDR UI range remains bounded");
     const auto invalidHdr=dg::hdr::Normalize({99,std::numeric_limits<float>::quiet_NaN()});Check(invalidHdr.mode==-1&&invalidHdr.uiBrightness==-1,"invalid HDR input fails to Native");
     for(size_t i=0;i<dg::render_quality::Specs.size();++i){const auto& spec=dg::render_quality::Specs[i];

@@ -3092,6 +3092,7 @@ dg::hdr::Status QueryHdrOutputStatus(){
     status.formatMismatch=dg::hdr::transport.formatMismatch;
     status.engineMismatch=dg::hdr::transport.engineMismatch;
     status.transportResult=dg::hdr::transport.result;
+    status.metadataResult=dg::hdr::transport.metadata;
     status.startupMode=dg::hdr::engine_profile::startup.mode;
     const auto engine=dg::hdr::engine_profile::Read(true);
     status.engineEnabled=engine.enabled;status.engineDevice=engine.outputDevice;status.engineGamut=engine.gamut;

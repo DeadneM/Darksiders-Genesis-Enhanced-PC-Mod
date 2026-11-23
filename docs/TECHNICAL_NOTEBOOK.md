@@ -7027,3 +7027,8 @@ Compilation et ZIP contrôlés, 86/86 tests Windows x64. Le rendu HDR à l’éc
 Les lecteurs de résolution de la vue et de qualité SSR ont été retrouvés dans l’exécutable exact. Le candidat applique les deux choix au thread de jeu par les setters natifs, avec retour Native conditionné à la propriété de la valeur. Le helper retire ses anciens overrides au premier arrêt. Les montages gauche et droit de la mêlée montée et les os de dagues correspondants ont été retrouvés dans les assets déjà en cache. [Périmètre et critères](V1_185_LIVE_QUALITY_MOUNTED_BLADES_REVIEW.md).
 
 V1.185 construite et contrôlée, 86/86 tests Windows x64 et zéro avertissement C++. Contrôle de code uniquement. L’essai des quatre gestes montés et du rendu live reste à faire. [GitHub Actions](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/45177336441).
+
+
+# V1.186 — choix HDR et présentation des lames
+
+Capture JXR V1.184 en scRGB avec plage de luminance HDR. Profils et métadonnées rétablis avec contrôle du format effectif. Axes des lames et attaches vérifiés hors jeu. Les copies montées reprennent profondeur/stencil du holster ou du pistolet du même côté. [Preuves, limites et essai](V1_186_HDR_CHOICES_BLADE_PRESENTATION_REVIEW.md).

@@ -74,7 +74,7 @@ inline EngineProfile Read(bool render) {
 // The cooked Windows profile wins over both Engine.ini sections in this
 // build. Use the same typed int setter and priority as native engine code.
 inline void ApplyOnGameThread(bool startupBoundary=false) {
-    if(!supported.load(std::memory_order_acquire) || startup.mode<0 || attempted.load(std::memory_order_relaxed))return;
+    if(!supported.load(std::memory_order_acquire) || startup.mode<0 || !CompatibleBuffer(startup) || attempted.load(std::memory_order_relaxed))return;
     native_objects::MemoryReader reader;
     Variable output{}, gamut{}, enabled{};
     if(!Resolve(OutputVar,output) || !Resolve(GamutVar,gamut) || !Resolve(EnabledVar,enabled))return;
@@ -86,10 +86,11 @@ inline void ApplyOnGameThread(bool startupBoundary=false) {
     const bool allowed=reader.Read(output.object,0x18,outputFlags) && reader.Read(gamut.object,0x18,gamutFlags) &&
         (outputFlags&0xFF000000)<=SetByCode && (gamutFlags&0xFF000000)<=SetByCode;
     if(matchingStartup&&allowed){
-        const wchar_t value[]={wchar_t(L'0'+(startup.mode>0?startup.mode+2:0)),0};
+        const wchar_t deviceValue[]={wchar_t(L'0'+OutputDevice(startup.mode)),0};
+        const wchar_t gamutValue[]={wchar_t(L'0'+Gamut(startup.mode)),0};
         const auto set=reinterpret_cast<SetFn>(base+IntSetter);
-        set(reinterpret_cast<void*>(output.object),value,SetByCode);
-        set(reinterpret_cast<void*>(gamut.object),L"0",SetByCode);
+        set(reinterpret_cast<void*>(output.object),deviceValue,SetByCode);
+        set(reinterpret_cast<void*>(gamut.object),gamutValue,SetByCode);
     }
     const auto after=Read(false);
     if(after.Matches(startup.mode))applied.store(true,std::memory_order_release);
@@ -116,7 +117,7 @@ inline void Initialize(Settings requested, bool exact, LogFn log) {
         *reinterpret_cast<const uintptr_t*>(base+IntVtable+0x60)!=base+IntSetter)return;
     if(startup.mode>0&&startup.dxgiSignaling)renderCapability=FindRenderCapability();
     supported.store(true,std::memory_order_release);
-    if(startup.mode<0)return;
+    if(startup.mode<0||!CompatibleBuffer(startup))return;
     constexpr unsigned char boot[]={0x48,0x83,0xEC,0x58,0x48,0xC7,0x44,0x24,0x20,0xFE,0xFF,0xFF,0xFF,0x48,0x8D,0x4C,0x24,0x28};
     auto* entry=reinterpret_cast<void*>(base+0x8BB4A0);
     if(std::memcmp(entry,boot,sizeof(boot)))return;

@@ -15,6 +15,16 @@ using SetMesh=bool(*)(void*,void*);
 using Destroy=void(*)(void*,void*);
 using Attach=void(*)(void*,void*,uint64_t);
 using Collision=void(*)(void*,unsigned char);
+struct alignas(16) Transform {
+    float rotation[4];
+    float translation[4]{};
+    float scale[4]{1,1,1,0};
+};
+static_assert(sizeof(Transform)==48);
+using SetTransform=void(*)(void*,const Transform*,bool,void*,unsigned char);
+using SetDepth=void(*)(void*,bool);
+using SetStencil=void(*)(void*,int);
+using SetStencilMask=void(*)(void*,unsigned char);
 inline uintptr_t base=0;
 inline Hide hide=nullptr;
 inline LogFn logger=nullptr;
@@ -24,6 +34,10 @@ inline SetMesh setMesh=nullptr;
 inline Destroy destroy=nullptr;
 inline Attach setupAttachment=nullptr;
 inline Collision setCollision=nullptr;
+inline SetTransform setRelativeTransform=nullptr;
+inline SetDepth setDepth=nullptr;
+inline SetStencil setStencil=nullptr;
+inline SetStencilMask setStencilMask=nullptr;
 inline bool mountedMontagesReady=false;
 
 struct Array {uintptr_t data;int count,capacity;};
@@ -82,9 +96,29 @@ inline void Report(unsigned hand,const char* outcome,bool held){
     logger(line);
 }
 
-// Construct a meshless StaticMeshComponent of the exact native pistol
-// component class. It becomes renderable only after attachment and setup.
-inline const char* Create(const Player& player,uintptr_t cls,const Id& asset,uint64_t socketName,Copy& copy){
+// Both rider skeletons use the same crossed holster basis. The dagger
+// assets point in opposite directions, so each uses its own rotation.
+inline constexpr Transform holsterTransform[]{
+    {{0.909844f,0.160430f,0.066452f,0.376869f}},
+    {{-0.909844f,-0.160430f,0.066452f,0.376870f}},
+};
+
+// The native weapon on this rider supplies the settings used by the
+// occlusion pass. Apply those to the new component before registration.
+inline void CopyDepthSettings(uintptr_t donor,void* created){
+    if(!setDepth||!setStencil||!setStencilMask)return;
+    unsigned char depth=0,mask=0;
+    int stencil=0;
+    if(!Read(donor,0x275,depth)||!Read(donor,0x27B,mask)||!Read(donor,0x27C,stencil)||
+       mask>9||stencil<0||stencil>255)return;
+    setStencil(created,stencil);
+    setStencilMask(created,mask);
+    setDepth(created,(depth&0x80u)!=0);
+}
+
+// Make the new mesh renderable only after attachment and setup.
+inline const char* Create(const Player& player,uintptr_t cls,const Id& asset,uint64_t socketName,
+                          unsigned hand,bool held,uintptr_t mountedDonor,Copy& copy){
     auto* actor=reinterpret_cast<void*>(player.actor.address);
     auto* created=construct(reinterpret_cast<void*>(cls),actor,0,0x40u,0,nullptr,false,nullptr,false);
     const auto component=reinterpret_cast<uintptr_t>(created);
@@ -103,6 +137,8 @@ inline const char* Create(const Player& player,uintptr_t cls,const Id& asset,uin
     if(!Read(component,0x108,parent)||parent!=player.body.address||
         !Read(component,0x110,socket)||socket!=socketName)return "blade attachment rejected";
 
+    if(!held)setRelativeTransform(created,&holsterTransform[hand],false,nullptr,0);
+    if(mountedDonor)CopyDepthSettings(mountedDonor,created);
     registerComponent(created);
     unsigned char flags=0;
     if(!Read(component,0xAC,flags)||!(flags&1u))return "component registration rejected";
@@ -162,7 +198,7 @@ inline int MountedHand(uintptr_t body){
 }
 
 inline void PresentBlade(const Player& player,Copy& copy,uintptr_t character,uintptr_t sourceBody,
-                         unsigned hand,uintptr_t mesh,uint64_t socket,bool held){
+                         unsigned hand,uintptr_t mesh,uint64_t socket,bool held,bool mounted){
     if(!mesh||!socket){
         Visibility(player.actor,copy,false);
         return;
@@ -174,7 +210,12 @@ inline void PresentBlade(const Player& player,Copy& copy,uintptr_t character,uin
         Id asset{};
         if(!pistol_appearance::Component(base,character,sourceBody,0,donor,donorFlags)||
            !Read(donor,0x10,componentClass)||!Name(componentClass,"StaticMeshComponent")||!Capture(mesh,asset))return;
-        const char* failure=Create(player,componentClass,asset,socket,copy);
+        uintptr_t mountedDonor=0;
+        if(mounted){
+            const unsigned slot=held?2+hand:4+(hand^1u);
+            if(!pistol_appearance::Component(base,player.actor.address,player.body.address,slot,mountedDonor,donorFlags))mountedDonor=0;
+        }
+        const char* failure=Create(player,componentClass,asset,socket,hand,held,mountedDonor,copy);
         if(failure)Discard(player.actor,copy);
         copy.attempted=true;
         Report(hand,failure?failure:"attached and registered",held);
@@ -190,6 +231,7 @@ inline void Initialize(uintptr_t module,Hide setHidden,LogFn log,bool verifiedMe
     constexpr unsigned char destroySig[]={0x4C,0x8B,0xC2,0x48,0x85,0xD2,0x74,0x18,0x48,0x39,0x8A,0xE8,0,0,0};
     constexpr unsigned char attachSig[]={0xF6,0x81,0xAC,0,0,0,0x01,0x4C,0x8B,0xCA,0x75,0x7A,0x48,0x3B,0xD1};
     constexpr unsigned char collisionSig[]={0x48,0x89,0x5C,0x24,0x08,0x48,0x89,0x74,0x24,0x10,0x57,0x48,0x83,0xEC,0x20};
+    constexpr unsigned char transformSig[]={0x49,0x8B,0xC1,0x45,0x33,0xC9,0x45,0x84,0xC0,0x4C,0x0F,0x45,0xC8,0x0F,0xB6,0x44,0x24,0x28};
     // MountedHolsterFeature verified SetStaticMesh before installing its detour.
     if(!base||!setHidden||!verifiedMeshSetter||
         std::memcmp(reinterpret_cast<void*>(base+0xAC57A0),constructSig,sizeof(constructSig))||
@@ -197,6 +239,7 @@ inline void Initialize(uintptr_t module,Hide setHidden,LogFn log,bool verifiedMe
         std::memcmp(reinterpret_cast<void*>(base+0x163EFA0),destroySig,sizeof(destroySig))||
         std::memcmp(reinterpret_cast<void*>(base+0x17B2430),attachSig,sizeof(attachSig))||
         std::memcmp(reinterpret_cast<void*>(base+0x1B10D20),collisionSig,sizeof(collisionSig))||
+        std::memcmp(reinterpret_cast<void*>(base+0x17A77C0),transformSig,sizeof(transformSig))||
         *reinterpret_cast<const uintptr_t*>(base+0x2A575C8+0x5E0)!=base+0x1B10D20)return;
     hide=setHidden;
     construct=reinterpret_cast<Construct>(base+0xAC57A0);
@@ -205,6 +248,17 @@ inline void Initialize(uintptr_t module,Hide setHidden,LogFn log,bool verifiedMe
     setupAttachment=reinterpret_cast<Attach>(base+0x17B2430);
     setCollision=reinterpret_cast<Collision>(base+0x1B10D20);
     setMesh=reinterpret_cast<SetMesh>(base+0x17DDBC0);
+    setRelativeTransform=reinterpret_cast<SetTransform>(base+0x17A77C0);
+    constexpr unsigned char depthSig[]={0x44,0x0F,0xB6,0xC2,0x0F,0xB6,0x91,0x75,0x02,0,0};
+    constexpr unsigned char stencilSig[]={0x8B,0xC2,0x85,0xD2,0x79,0x04,0x33,0xD2,0xEB,0x0A,0xBA,0xFF,0,0,0,0x3B,0xC2,0x0F,0x4C,0xD0,0x39,0x91,0x7C,0x02,0,0};
+    constexpr unsigned char maskSig[]={0x38,0x91,0x7B,0x02,0,0,0x74,0x0B,0x88,0x91,0x7B,0x02,0,0};
+    if(!std::memcmp(reinterpret_cast<void*>(base+0x17842D0),depthSig,sizeof(depthSig))&&
+       !std::memcmp(reinterpret_cast<void*>(base+0x1782F50),stencilSig,sizeof(stencilSig))&&
+       !std::memcmp(reinterpret_cast<void*>(base+0x1782F90),maskSig,sizeof(maskSig))){
+        setDepth=reinterpret_cast<SetDepth>(base+0x17842D0);
+        setStencil=reinterpret_cast<SetStencil>(base+0x1782F50);
+        setStencilMask=reinterpret_cast<SetStencilMask>(base+0x1782F90);
+    }
     constexpr unsigned char activeArray[]={0x48,0x63,0x81,0x80,0,0,0,0x85,0xC0,0x7E,0x3D,0x48,0x8D,0x50,0xFF,0x0F,0x57,0xC0,0x48,0x8B,0x41,0x78};
     constexpr unsigned char activeWeight[]={0x0F,0x2E,0x80,0x50,0x01,0,0,0x75,0x0F};
     mountedMontagesReady=!std::memcmp(reinterpret_cast<void*>(base+0x166AE50),activeArray,sizeof(activeArray))&&
@@ -255,8 +309,8 @@ inline void Update(const local_players::Context& owner,const Id& mountedActor,co
             pistol_appearance::Component(base,owner.character,sourceBody,hand+6,weapon,flags)&&
             (mounted||(flags&0x40))&&Read(weapon,0x5B0,mesh)&&BladeAsset(mesh,hand);
         if(!show)mesh=0;
-        PresentBlade(player,player.stowed[hand],owner.character,sourceBody,hand,stowed?mesh:0,player.holsters[hand],false);
-        PresentBlade(player,player.held[hand],owner.character,sourceBody,hand,inHand?mesh:0,player.daggers[hand],true);
+        PresentBlade(player,player.stowed[hand],owner.character,sourceBody,hand,stowed?mesh:0,player.holsters[hand],false,mounted);
+        PresentBlade(player,player.held[hand],owner.character,sourceBody,hand,inHand?mesh:0,player.daggers[hand],true,mounted);
     }
 }
 }

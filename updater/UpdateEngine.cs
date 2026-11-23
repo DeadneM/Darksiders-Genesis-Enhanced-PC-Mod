@@ -106,15 +106,16 @@ namespace DarksidersGenesisUpdater {
                 throw new InvalidDataException("Invalid HDR UI brightness");
             int buffer=0;string rawBuffer=RenderRead("HDR","BackBuffer",modIni);
             if(rawBuffer!=null&&(!int.TryParse(rawBuffer,out buffer)||buffer<0||buffer>3))throw new InvalidDataException("Invalid HDR back buffer choice");
-            // Match the ASI's legacy HDR10 migration to the retail DX11 float HDR buffer.
-            if(mode==1||mode==2)mode+=2;
+            bool pq=mode==1||mode==2;
             var values=new double[]{-1,-1,-1,-1,-1,-1,-1};
+            // Preserve a conflicting choice without applying it to the renderer.
+            if(mode>0&&buffer>=2&&buffer!=(pq?2:3))return values;
             if(mode>=0){
                 values[0]=values[1]=mode>0?1:0;
                 values[2]=mode>0?mode+2:0;
-                values[3]=0;
+                values[3]=pq?2:0;
             }
-            if(mode>0&&buffer!=1)values[6]=3;
+            if(mode>0&&buffer!=1)values[6]=pq?4:3;
             if(mode>0&&brightness>=0){values[4]=1;values[5]=brightness;}
             return values;
         }

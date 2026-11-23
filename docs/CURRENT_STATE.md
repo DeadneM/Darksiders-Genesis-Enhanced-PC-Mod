@@ -1,3 +1,7 @@
+# V1.186 sur debug — choix HDR et lames de Strife
+
+Base V1.185 contrôlée. V1.184 a généré la capture HDR scRGB. Les choix HDR d'origine reviennent, les lames rangées sont réorientées et reprennent les paramètres de profondeur natifs à cheval. Vérification en jeu à faire. [Périmètre](V1_186_HDR_CHOICES_BLADE_PRESENTATION_REVIEW.md).
+
 ## V1.185 construite et contrôlée sur debug
 
 Les 86 tests Windows x64 passent sans avertissement C++. Le candidat reste à essayer en jeu. [Contrôle GitHub](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/45177336441).

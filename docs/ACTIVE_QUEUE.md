@@ -1,3 +1,7 @@
+# V1.186 sur debug — choix HDR et lames de Strife
+
+Priorité aux lames rangées gauche/droite à pied et à cheval, puis aux lames tenues dans les montages de mêlée. Valider les réglages graphiques en direct de V1.185. Vérifier le format réel si HDR10 est sélectionné. [Critères](V1_186_HDR_CHOICES_BLADE_PRESENTATION_REVIEW.md).
+
 ## Suite de V1.184
 
 Vérifier en mission l’application directe de la résolution interne et des reflets, puis les lames sur les deux montures de Strife. Identifier le renouvellement des samplers pour l’anisotropie. Le retour en jeu sur le HDR V1.184 est attendu. [Candidat V1.185](V1_185_LIVE_QUALITY_MOUNTED_BLADES_REVIEW.md).

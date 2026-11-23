@@ -1,3 +1,7 @@
+# V1.186 sur debug — choix HDR et lames de Strife
+
+Profils HDR10 et scRGB rétablis. Orientation des lames rangées et profondeur des copies montées corrigées dans le candidat. Rendu des armes et HDR10 à vérifier en jeu. [Détails et essai](docs/V1_186_HDR_CHOICES_BLADE_PRESENTATION_REVIEW.md).
+
 ## Candidat V1.185 construit et contrôlé
 
 Les 86 tests Windows x64 passent sans avertissement C++. Le candidat reste à essayer en jeu. [Contrôle GitHub](https://github.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/actions/runs/45177336441).

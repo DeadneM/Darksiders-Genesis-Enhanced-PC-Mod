@@ -11,7 +11,7 @@ struct TransportStatus {
     bool hdrDisplay=false;
     unsigned format=0,swapEffect=0;
     int renderBefore=-1,renderAfter=-1;
-    HRESULT result=S_FALSE;
+    HRESULT result=S_FALSE,metadata=S_FALSE;
 };
 inline TransportStatus transport{};inline IDXGISwapChain* attemptedChain=nullptr;
 inline std::atomic_uint resizeGeneration{0};
@@ -31,10 +31,25 @@ inline bool HasActiveHdrDisplay(IDXGISwapChain* chain) {
         desc.AttachedToDesktop&&desc.ColorSpace==DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
 }
 
+inline HRESULT ApplyHDR10Metadata(IDXGISwapChain* chain,const Settings& settings){
+    Microsoft::WRL::ComPtr<IDXGISwapChain4> output;
+    const auto hr=chain->QueryInterface(IID_PPV_ARGS(output.GetAddressOf()));
+    if(FAILED(hr))return hr;
+    DXGI_HDR_METADATA_HDR10 m{};
+    m.RedPrimary[0]=35400;m.RedPrimary[1]=14600;m.GreenPrimary[0]=8500;m.GreenPrimary[1]=39850;
+    m.BluePrimary[0]=6550;m.BluePrimary[1]=2300;m.WhitePoint[0]=15635;m.WhitePoint[1]=16450;
+    const float profile=settings.mode==2?2000.0f:1000.0f;
+    m.MaxMasteringLuminance=UINT(settings.customMetadata?settings.peakNits:profile);
+    m.MinMasteringLuminance=UINT((settings.customMetadata?settings.minNits:.001f)*10000.0f);
+    m.MaxContentLightLevel=UINT16(settings.customMetadata?settings.maxCLL:profile);
+    m.MaxFrameAverageLightLevel=UINT16(settings.customMetadata?settings.maxFALL:400);
+    return output->SetHDRMetaData(DXGI_HDR_METADATA_TYPE_HDR10,sizeof(m),&m);
+}
+
 inline bool ServiceTransport(IDXGISwapChain* chain){
     if(!chain||!engine_profile::supported.load(std::memory_order_acquire))return false;
     const auto& startup=engine_profile::startup;
-    if(startup.mode<=0||!startup.dxgiSignaling)return false;
+    if(startup.mode<=0||!CompatibleBuffer(startup)||!startup.dxgiSignaling)return false;
     const unsigned generation=resizeGeneration.load(std::memory_order_acquire);
     const bool same=attemptedChain==chain&&attemptedGeneration==generation;
     if(same){
@@ -52,18 +67,20 @@ inline bool ServiceTransport(IDXGISwapChain* chain){
     if(!same){engineRetryAt=0;retriedAfterEngineApply=false;}
     attemptedGeneration=generation;
     attemptedChain=chain;transport={};transport.attempted=true;transport.format=unsigned(d.BufferDesc.Format);
-    if(d.BufferDesc.Format!=DXGI_FORMAT_R16G16B16A16_FLOAT){
-        transport.formatMismatch=true;transport.result=DXGI_ERROR_UNSUPPORTED;return true;
-    }
+    const bool pq=PQ(startup.mode);
+    const auto expectedFormat=pq?DXGI_FORMAT_R10G10B10A2_UNORM:DXGI_FORMAT_R16G16B16A16_FLOAT;
     transport.swapEffect=unsigned(d.SwapEffect);
     transport.renderBefore=transport.renderAfter=engine_profile::ReadRenderCapability();
-    // Require the engine's scRGB profile before announcing its encoding.
+    if(d.BufferDesc.Format!=expectedFormat){
+        transport.formatMismatch=true;transport.result=DXGI_ERROR_UNSUPPORTED;return true;
+    }
+    // Require the actual engine encoding before announcing it.
     if(!engine_profile::Read(true).Matches(startup.mode)){
         transport.engineMismatch=true;transport.result=S_FALSE;return true;
     }
     IDXGISwapChain3* modern=nullptr;
     transport.result=chain->QueryInterface(__uuidof(IDXGISwapChain3),reinterpret_cast<void**>(&modern));if(FAILED(transport.result))return true;
-    constexpr auto color=DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709;
+    const auto color=pq?DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020:DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709;
     UINT support=0;transport.result=modern->CheckColorSpaceSupport(color,&support);
     if(SUCCEEDED(transport.result)&&!(support&DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT))transport.result=DXGI_ERROR_UNSUPPORTED;
     if(SUCCEEDED(transport.result))transport.result=modern->SetColorSpace1(color);
@@ -73,6 +90,7 @@ inline bool ServiceTransport(IDXGISwapChain* chain){
     if(transport.applied){
         transport.hdrDisplay=HasActiveHdrDisplay(chain);
         if(transport.hdrDisplay&&engine_profile::EnableRenderCapability())transport.renderAfter=1;
+        if(pq)transport.metadata=ApplyHDR10Metadata(chain,startup);
     }
     return true;
 }

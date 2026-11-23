@@ -280,16 +280,18 @@ int main(int argc,char** argv){
     check(renamed.SaveNow()&&renamed.Load()&&renamed.renderQuality==dg::render_quality::NativeValues(),"Native rendering preference roundtrip");
     WritePrivateProfileStringW(L"HDR",L"OutputMode",L"1",path);
     WritePrivateProfileStringW(L"HDR",L"UIBrightness",L"1.25",path);
-    WritePrivateProfileStringW(L"HDR",L"BackBuffer",L"3",path);
+    WritePrivateProfileStringW(L"HDR",L"BackBuffer",L"2",path);
     WritePrivateProfileStringW(L"HDR",L"DXGISignaling",L"0",path);
+    WritePrivateProfileStringW(L"HDR",L"CustomMetadata",L"1",path);
     WritePrivateProfileStringW(L"HDR",L"PeakNits",L"800",path);
-    check(renamed.Load()&&renamed.hdrOutput.mode==3&&renamed.hdrOutput.buffer==0&&
-        renamed.hdrOutput.uiBrightness==1.25f&&!renamed.hdrOutput.dxgiSignaling,
-        "existing HDR10 INI loads scRGB without resetting other HDR preferences");
+    check(renamed.Load()&&renamed.hdrOutput.mode==1&&renamed.hdrOutput.buffer==2&&
+        renamed.hdrOutput.uiBrightness==1.25f&&!renamed.hdrOutput.dxgiSignaling&&
+        renamed.hdrOutput.customMetadata&&renamed.hdrOutput.peakNits==800,
+        "existing HDR10 INI restores the profile, buffer and metadata");
     renamed.showStrifeStowedBlades=true;
-    check(renamed.SaveNow()&&renamed.Load()&&renamed.hdrOutput.mode==3&&renamed.hdrOutput.uiBrightness==1.25f&&
-        GetPrivateProfileIntW(L"HDR",L"OutputMode",-1,path)==3&&GetPrivateProfileIntW(L"HDR",L"PeakNits",-1,path)==800,
-        "scRGB persists after save and retired HDR10 metadata is preserved on disk");
+    check(renamed.SaveNow()&&renamed.Load()&&renamed.hdrOutput.mode==1&&renamed.hdrOutput.uiBrightness==1.25f&&
+        renamed.hdrOutput.buffer==2&&renamed.hdrOutput.customMetadata&&renamed.hdrOutput.peakNits==800,
+        "HDR10 preferences survive a full save and load");
     check(renamed.showStrifeStowedBlades&&dg::runtime::Get().showStrifeStowedBlades.load(),
         "stowed blade setting still roundtrips into runtime");
     renamed.hdrOutput={};check(renamed.SaveNow()&&renamed.Load()&&renamed.hdrOutput.mode==-1&&renamed.hdrOutput.uiBrightness==-1,"HDR Native roundtrip");
