@@ -3091,6 +3091,7 @@ dg::hdr::Status QueryHdrOutputStatus(){
     status.transportAttempted=dg::hdr::transport.attempted;status.transportApplied=dg::hdr::transport.applied;
     status.formatMismatch=dg::hdr::transport.formatMismatch;
     status.engineMismatch=dg::hdr::transport.engineMismatch;
+    status.presentationMismatch=dg::hdr::transport.presentationMismatch;
     status.transportResult=dg::hdr::transport.result;
     status.metadataResult=dg::hdr::transport.metadata;
     status.startupMode=dg::hdr::engine_profile::startup.mode;
@@ -3109,7 +3110,11 @@ dg::hdr::Status QueryHdrOutputStatus(){
         dxgiDevice->Release();
     }
     DXGI_SWAP_CHAIN_DESC swapDescription{};
-    if(SUCCEEDED(g_gameSwapChain->GetDesc(&swapDescription)))status.bufferFormat=unsigned(swapDescription.BufferDesc.Format);
+    if(SUCCEEDED(g_gameSwapChain->GetDesc(&swapDescription))){
+        status.bufferFormat=unsigned(swapDescription.BufferDesc.Format);
+        status.flipPresentation=swapDescription.SwapEffect==DXGI_SWAP_EFFECT_FLIP_DISCARD||
+            swapDescription.SwapEffect==DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+    }
     IDXGIOutput* output=nullptr;
     if(SUCCEEDED(g_gameSwapChain->GetContainingOutput(&output))){DXGI_OUTPUT_DESC description{};
         if(SUCCEEDED(output->GetDesc(&description))){status.outputKnown=true;monitor=description.Monitor;
@@ -3934,7 +3939,8 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
         const auto& output=dg::hdr::transport;
         Log("HDR %s present mode=%d format=%u engine=%d/%d/%d matched=%d signaling=%d result=%08lX displayHdr=%d render=%d->%d swapEffect=%u",
             dg::build::Version,dg::hdr::engine_profile::startup.mode,output.format,engine.enabled,engine.outputDevice,engine.gamut,
-            !output.engineMismatch&&!output.formatMismatch,output.applied,static_cast<unsigned long>(output.result),
+            !output.engineMismatch&&!output.formatMismatch&&!output.presentationMismatch,output.applied,
+            static_cast<unsigned long>(output.result),
             output.hdrDisplay,output.renderBefore,output.renderAfter,output.swapEffect);
     }
     ProcessCameraInput();
@@ -4049,6 +4055,8 @@ HRESULT __stdcall HookResizeBuffers(
         ReleaseRenderTarget();
     }
 
+    // The native DX11 resize asks for one buffer. Our PQ flip chain needs two.
+    if(bufferCount==1&&dg::hdr::viewport::OwnsFlip(swapChain))bufferCount=2;
     const HRESULT hr = g_originalResizeBuffers
         ? g_originalResizeBuffers(swapChain, bufferCount, width, height, newFormat, swapChainFlags)
         : E_FAIL;
@@ -4459,7 +4467,9 @@ DWORD WINAPI MainThread(LPVOID) {
         g_targetValidation.reason.c_str()
     );
 
-    dg::hdr::engine_profile::Initialize(g_config.hdrOutput,g_targetValidation.exact,&FeatureLog);
+    const bool hdrViewport=dg::hdr::viewport::Initialize(g_config.hdrOutput,g_targetValidation.exact,&FeatureLog);
+    dg::hdr::engine_profile::Initialize(g_config.hdrOutput,g_targetValidation.exact,&FeatureLog,
+        hdrViewport?&dg::hdr::viewport::SelectRgb10:nullptr);
     if(g_targetValidation.exact)dg::engine_ini::QueueGraphicsAdapter(g_config.graphicsAdapter);
 
     ReportStartupPhase(5,g_targetValidation.exact?1u:0u);

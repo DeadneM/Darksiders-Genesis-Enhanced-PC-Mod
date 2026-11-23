@@ -47,7 +47,7 @@ struct Copy {
 };
 struct Player {
     Id actor{},body{},skeleton{};
-    uint64_t holsters[2]{},daggers[2]{};
+    uint64_t holsters[2]{},hands[2]{};
     Copy stowed[2]{},held[2]{};
 };
 inline Player players[2]{};
@@ -96,11 +96,21 @@ inline void Report(unsigned hand,const char* outcome,bool held){
     logger(line);
 }
 
-// Both rider skeletons use the same crossed holster basis. The dagger
-// assets point in opposite directions, so each uses its own rotation.
-inline constexpr Transform holsterTransform[]{
+// Both meshes use crossed holsters. Foot blades follow the native holster
+// +Y axis, which points back, down and a little out on each side.
+inline constexpr Transform footHolster[]{
+    {{0.70522828f,0.05150795f,-0.05150795f,0.70522828f}},
+    {{-0.70522807f,-0.05150781f,-0.05150800f,0.70522851f}},
+};
+inline constexpr Transform mountedHolster[]{
     {{0.909844f,0.160430f,0.066452f,0.376869f}},
     {{-0.909844f,-0.160430f,0.066452f,0.376870f}},
+};
+// The rider meshes shrink the dagger bones to 0.000099. Attach to their
+// animated parent hands and reuse the authored dagger-to-hand grip at unit scale.
+inline constexpr Transform handGrip[]{
+    {{0.0000115f,0.0002871f,0.9999826f,-0.0058919f},{-0.0079193f,-0.0017624f,0.0352688f}},
+    {{0.0002350f,-0.0000311f,-0.0000808f,-0.9999999f},{-0.0000076f,0.0000229f,0.0000057f}},
 };
 
 // The native weapon on this rider supplies the settings used by the
@@ -118,7 +128,7 @@ inline void CopyDepthSettings(uintptr_t donor,void* created){
 
 // Make the new mesh renderable only after attachment and setup.
 inline const char* Create(const Player& player,uintptr_t cls,const Id& asset,uint64_t socketName,
-                          unsigned hand,bool held,uintptr_t mountedDonor,Copy& copy){
+                          const Transform& transform,uintptr_t mountedDonor,Copy& copy){
     auto* actor=reinterpret_cast<void*>(player.actor.address);
     auto* created=construct(reinterpret_cast<void*>(cls),actor,0,0x40u,0,nullptr,false,nullptr,false);
     const auto component=reinterpret_cast<uintptr_t>(created);
@@ -137,7 +147,7 @@ inline const char* Create(const Player& player,uintptr_t cls,const Id& asset,uin
     if(!Read(component,0x108,parent)||parent!=player.body.address||
         !Read(component,0x110,socket)||socket!=socketName)return "blade attachment rejected";
 
-    if(!held)setRelativeTransform(created,&holsterTransform[hand],false,nullptr,0);
+    setRelativeTransform(created,&transform,false,nullptr,0);
     if(mountedDonor)CopyDepthSettings(mountedDonor,created);
     registerComponent(created);
     unsigned char flags=0;
@@ -156,9 +166,9 @@ inline void FindSockets(Player& player,bool mounted){
         const int index=int(uint32_t(value)),number=int(value>>32);
         if(native_objects::NameValueEquals(base,index,number,"Bone_Strife_Holster_L"))player.holsters[0]=value;
         else if(native_objects::NameValueEquals(base,index,number,"Bone_Strife_Holster_R"))player.holsters[1]=value;
-        else if(mounted&&native_objects::NameValueEquals(base,index,number,"Bone_Strife_Weapon_Dagger_R"))player.daggers[0]=value;
-        else if(mounted&&native_objects::NameValueEquals(base,index,number,"Bone_Strife_Weapon_Dagger_L"))player.daggers[1]=value;
-        if(player.holsters[0]&&player.holsters[1]&&(!mounted||(player.daggers[0]&&player.daggers[1])))return;
+        else if(mounted&&native_objects::NameValueEquals(base,index,number,"Bone_Strife_Hand_R"))player.hands[0]=value;
+        else if(mounted&&native_objects::NameValueEquals(base,index,number,"Bone_Strife_Hand_L"))player.hands[1]=value;
+        if(player.holsters[0]&&player.holsters[1]&&(!mounted||(player.hands[0]&&player.hands[1])))return;
     }
 }
 
@@ -170,7 +180,7 @@ inline bool AnimInstanceClass(uintptr_t cls){
     return false;
 }
 
-// Match the newest active montage as the retail AnimInstance getter does.
+// Match the newest active horse attack even when another montage is layered over it.
 inline int MountedHand(uintptr_t body){
     uintptr_t anim=0,outer=0,cls=0;
     uint32_t flags=0;
@@ -185,23 +195,22 @@ inline int MountedHand(uintptr_t body){
         if(!Read(instances.data,size_t(i)*sizeof(uintptr_t),instance))return -1;
         if(!instance)continue;
         if(!Read(instance,0,montage)||!Read(instance,0x150,weight)||!std::isfinite(weight))return -1;
-        if(!montage||weight==0)continue;
+        if(!montage||weight<=0)continue;
         uintptr_t package=0;
-        if(!Read(montage,0x10,cls)||!Name(cls,"AnimMontage")||!Read(montage,0x20,package))return -1;
+        if(!Read(montage,0x10,cls)||!Name(cls,"AnimMontage")||!Read(montage,0x20,package))continue;
         if(Name(montage,"Strife_Horse_Attack_R_Montage")&&
            Name(package,"/Game/Characters/Heroes/Hero_Strife/Animations/Horse/Strife_Horse_Attack_R_Montage"))return 0;
         if(Name(montage,"Strife_Horse_Attack_L_Montage")&&
            Name(package,"/Game/Characters/Heroes/Hero_Strife/Animations/Horse/Strife_Horse_Attack_L_Montage"))return 1;
-        return -1;
     }
     return -1;
 }
 
-inline void PresentBlade(const Player& player,Copy& copy,uintptr_t character,uintptr_t sourceBody,
+inline bool PresentBlade(const Player& player,Copy& copy,uintptr_t character,uintptr_t sourceBody,
                          unsigned hand,uintptr_t mesh,uint64_t socket,bool held,bool mounted){
     if(!mesh||!socket){
         Visibility(player.actor,copy,false);
-        return;
+        return false;
     }
     if(copy.component&&(!Alive(copy.component)||copy.asset.address!=mesh))Discard(player.actor,copy);
     if(!copy.component&&!copy.attempted){
@@ -209,18 +218,20 @@ inline void PresentBlade(const Player& player,Copy& copy,uintptr_t character,uin
         unsigned char donorFlags=0;
         Id asset{};
         if(!pistol_appearance::Component(base,character,sourceBody,0,donor,donorFlags)||
-           !Read(donor,0x10,componentClass)||!Name(componentClass,"StaticMeshComponent")||!Capture(mesh,asset))return;
+           !Read(donor,0x10,componentClass)||!Name(componentClass,"StaticMeshComponent")||!Capture(mesh,asset))return false;
         uintptr_t mountedDonor=0;
         if(mounted){
             const unsigned slot=held?2+hand:4+(hand^1u);
             if(!pistol_appearance::Component(base,player.actor.address,player.body.address,slot,mountedDonor,donorFlags))mountedDonor=0;
         }
-        const char* failure=Create(player,componentClass,asset,socket,hand,held,mountedDonor,copy);
+        const auto& transform=held?handGrip[hand]:mounted?mountedHolster[hand]:footHolster[hand];
+        const char* failure=Create(player,componentClass,asset,socket,transform,mountedDonor,copy);
         if(failure)Discard(player.actor,copy);
         copy.attempted=true;
         Report(hand,failure?failure:"attached and registered",held);
     }
     Visibility(player.actor,copy,true);
+    return copy.visible;
 }
 
 inline void Initialize(uintptr_t module,Hide setHidden,LogFn log,bool verifiedMeshSetter){
@@ -301,16 +312,18 @@ inline void Update(const local_players::Context& owner,const Id& mountedActor,co
     uintptr_t sourceBody=0;
     Read(owner.character,0x380,sourceBody);
     for(unsigned hand=0;hand<2;++hand){
-        const bool inHand=held==int(hand)&&player.daggers[hand];
-        const bool stowed=enabled&&!inHand&&player.holsters[hand];
+        const bool inHand=held==int(hand)&&player.hands[hand];
+        const bool stowed=enabled&&player.holsters[hand];
         uintptr_t weapon=0,mesh=0;
         unsigned char flags=0;
         const bool show=sourceBody&&!(off&(1u<<hand))&&(inHand||stowed)&&
             pistol_appearance::Component(base,owner.character,sourceBody,hand+6,weapon,flags)&&
             (mounted||(flags&0x40))&&Read(weapon,0x5B0,mesh)&&BladeAsset(mesh,hand);
         if(!show)mesh=0;
-        PresentBlade(player,player.stowed[hand],owner.character,sourceBody,hand,stowed?mesh:0,player.holsters[hand],false,mounted);
-        PresentBlade(player,player.held[hand],owner.character,sourceBody,hand,inHand?mesh:0,player.daggers[hand],true,mounted);
+        const bool drawn=PresentBlade(player,player.held[hand],owner.character,sourceBody,hand,
+            inHand?mesh:0,player.hands[hand],true,mounted);
+        PresentBlade(player,player.stowed[hand],owner.character,sourceBody,hand,
+            stowed&&!drawn?mesh:0,player.holsters[hand],false,mounted);
     }
 }
 }

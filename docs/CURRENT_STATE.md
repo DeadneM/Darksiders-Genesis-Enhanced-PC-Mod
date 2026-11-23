@@ -1,3 +1,7 @@
+# V1.187 sur debug — HDR10 et lames montées
+
+Base V1.186. Rangement monté validé, transfert en main et HDR10 à retester. [Périmètre](V1_187_NATIVE_HDR10_MOVING_BLADES_REVIEW.md).
+
 # V1.186 sur debug — choix HDR et lames de Strife
 
 **Construite et contrôlée.** 86 tests passent sur Windows x64. [Livraison et statut](V1_186_DELIVERY_RECEIPT.md).

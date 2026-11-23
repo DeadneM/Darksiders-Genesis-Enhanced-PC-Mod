@@ -1547,14 +1547,18 @@ void Draw(Context& c) {
                 }else ImGui::TextDisabled("Windows HDR state unavailable");
                 if(status.bufferFormat){const char* depth=status.bufferFormat==24?"10-bit":status.bufferFormat==10?"16-bit floating point":
                     (status.bufferFormat==28||status.bufferFormat==29||status.bufferFormat==87||status.bufferFormat==91)?"8-bit":"Unknown";
-                    ImGui::TextDisabled("Game output buffer: %s",depth);}
+                    ImGui::TextDisabled("Game output buffer: %s",depth);
+                    if(status.startupMode>0)ImGui::TextDisabled("Game presentation: %s",status.flipPresentation?"DXGI flip":"Legacy");
+                }
                 if(status.transportAttempted){
                     const char* transport=status.transportApplied?"accepted":status.formatMismatch?"buffer mismatch":
+                        status.presentationMismatch?"flip presentation unavailable":
                         status.engineMismatch?"engine profile not applied":"not accepted";
                     ImGui::Text("HDR signaling: %s (0x%08X)",transport,unsigned(status.transportResult));
                     if(status.formatMismatch)HelpText(hdr::PQ(status.startupMode)?
                         "The game did not create an RGB10A2 buffer for HDR10.":
                         "The game did not create a floating-point buffer for scRGB.");
+                    if(status.presentationMismatch)HelpText("HDR10 needs a flip swap chain and an active HDR display. The game uses SDR if this setup is rejected.");
                     if(status.transportApplied&&hdr::PQ(status.startupMode))
                         ImGui::TextDisabled("HDR10 metadata: %s (0x%08X)",status.metadataResult==0?"accepted":"unavailable",unsigned(status.metadataResult));
                 }

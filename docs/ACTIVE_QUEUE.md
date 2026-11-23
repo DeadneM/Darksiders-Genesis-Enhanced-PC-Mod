@@ -1,3 +1,7 @@
+# V1.187 sur debug — HDR10 et lames montées
+
+Vérifier le HDR10 réellement présenté, le transfert des lames sur Mayhem et Despair et l'inclinaison des lames rangées à pied. [Critères](V1_187_NATIVE_HDR10_MOVING_BLADES_REVIEW.md).
+
 # V1.186 sur debug — choix HDR et lames de Strife
 
 Priorité aux lames rangées gauche/droite à pied et à cheval, puis aux lames tenues dans les montages de mêlée. Valider les réglages graphiques en direct de V1.185. Vérifier le format réel si HDR10 est sélectionné. [Critères](V1_186_HDR_CHOICES_BLADE_PRESENTATION_REVIEW.md).

@@ -7034,3 +7034,8 @@ V1.185 construite et contrôlée, 86/86 tests Windows x64 et zéro avertissement
 Capture JXR V1.184 en scRGB avec plage de luminance HDR. Profils et métadonnées rétablis avec contrôle du format effectif. Axes des lames et attaches vérifiés hors jeu. Les copies montées reprennent profondeur/stencil du holster ou du pistolet du même côté. [Preuves, limites et essai](V1_186_HDR_CHOICES_BLADE_PRESENTATION_REVIEW.md).
 
 Contrôle GitHub Windows x64 effectué. 86 tests passent, dont la rotation et la copie des paramètres de profondeur dans les simulations distinctes à pied et montée. [Reçu du ZIP](V1_186_DELIVERY_RECEIPT.md).
+
+
+# V1.187 — RGB10A2 natif et visibilité des lames montées
+
+Le viewport DX11 utilise une préférence interne en priorité sur le CVar de buffer par défaut. Correction à la création et prise en compte du cycle DXGI flip. Les deux maillages montés contiennent l'os de dague à échelle quasi nulle. Copie attachée à la main, à l'échelle normale. [Preuves et essai](V1_187_NATIVE_HDR10_MOVING_BLADES_REVIEW.md).

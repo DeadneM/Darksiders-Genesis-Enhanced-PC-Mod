@@ -315,7 +315,7 @@ void Runtime(){
     // Exercise the new allocation path without calling the real game.
     namespace stow=dg::stowed_blades;
     unsigned char modelClass[0x40]{},componentClass[0x40]{},bladeModels[2][0x40]{};
-    static unsigned char decorations[2][0x600]{};
+    static unsigned char decorations[4][0x600]{};
     static unsigned created=0,rotated=0,registered=0,destroyed=0;
     static bool mountedBladeTest=false;
     Put<unsigned char>(horseGuns[3],0x275,0x80);
@@ -323,6 +323,11 @@ void Runtime(){
     Put(horseGuns[3],0x27C,41);
     Put<unsigned char>(horseGuns[2],0x27B,3);
     Put(horseGuns[2],0x27C,42);
+    Put<unsigned char>(horseGuns[0],0x275,0x80);
+    Put<unsigned char>(horseGuns[0],0x27B,4);
+    Put(horseGuns[0],0x27C,43);
+    Put<unsigned char>(horseGuns[1],0x27B,5);
+    Put(horseGuns[1],0x27C,44);
     Name(31,"StaticMesh");Name(32,"StaticMeshComponent");
     Name(33,"Strife_Weapon_Dagger_R");Name(34,"Strife_Weapon_Dagger_L");
     Put(modelClass,0x18,31);Put(componentClass,0x18,32);
@@ -337,7 +342,7 @@ void Runtime(){
     stow::base=g_base;
     stow::hide=&SetHidden;
     stow::construct=+[](void*,void* owner,uint64_t,uint32_t flags,uint32_t,void* source,bool,void*,bool)->void*{
-        Check(!source&&flags==0x40&&created<2,"a transient empty component starts with no pistol template");
+        Check(!source&&flags==0x40&&created<4,"a transient empty component starts with no pistol template");
         auto* component=decorations[created];
         Register(component,37+int(created++));
         Put(component,0,g_base+0x2A575C8);
@@ -359,9 +364,13 @@ void Runtime(){
         Put(component,0x108,reinterpret_cast<uintptr_t>(parent));Put(component,0x110,socket);
     };
     stow::setRelativeTransform=+[](void* component,const stow::Transform* pose,bool sweep,void* hit,unsigned char teleport){
-        Check(rotated<2&&component==decorations[rotated]&&pose==&stow::holsterTransform[rotated]&&
-            !sweep&&!hit&&teleport==0&&Get<uint64_t>(component,0x110)==17-rotated&&
-            !(Get<unsigned char>(component,0xAC)&1),"each holster rotation follows attachment and precedes registration");
+        constexpr unsigned sockets[]{17,16,15,12};
+        Check(rotated<4,"bounded decoration count");
+        const auto* expected=rotated>=2?&stow::handGrip[rotated-2]:
+            mountedBladeTest?&stow::mountedHolster[rotated]:&stow::footHolster[rotated];
+        Check(component==decorations[rotated]&&pose==expected&&pose->scale[0]==1&&
+            !sweep&&!hit&&teleport==0&&Get<uint64_t>(component,0x110)==sockets[rotated]&&
+            !(Get<unsigned char>(component,0xAC)&1),"each transform uses the matching socket before registration");
         ++rotated;
     };
     stow::setDepth=+[](void* component,bool enabled){
@@ -376,8 +385,8 @@ void Runtime(){
         const auto stencil=Get<int>(component,0x27C);
         const auto mask=Get<unsigned char>(component,0x27B);
         if(mountedBladeTest){
-            Check(depth==(registered?0:0x80)&&mask==2+registered&&stencil==41+int(registered),
-                "mounted decorations inherit depth and stencil from the matching crossed holster");
+            Check(depth==((registered%2)?0:0x80)&&mask==2+registered&&stencil==41+int(registered),
+                "mounted decorations inherit depth and stencil from the matching weapon");
         }else Check(!depth&&!mask&&!stencil,"foot decorations keep native component defaults");
         ++registered;Put<unsigned char>(component,0xAC,1);
     };
@@ -404,9 +413,43 @@ void Runtime(){
     dg::runtime::Get().showStrifeStowedBlades=true;
     OnLivePlayer(horse,11,true);
     Check(registered==2&&stow::players[0].actor==horseId,"both mounted decorations are owned by the active mount");
+    unsigned char anim[0x90]{},animClass[0x48]{},montageClass[0x40]{},attack[0x40]{},other[0x40]{},package[0x40]{};
+    unsigned char swing[0x158]{},layer[0x158]{};
+    Name(41,"AnimInstance");Name(42,"AnimMontage");Name(45,"UnrelatedMontage");
+    Put(animClass,0x18,41);Put(montageClass,0x18,42);
+    Put(horseMesh,0x718,reinterpret_cast<uintptr_t>(anim));
+    Put(anim,0x10,reinterpret_cast<uintptr_t>(animClass));Put(anim,0x20,horseMeshId.address);
+    const uintptr_t active[]{reinterpret_cast<uintptr_t>(swing),reinterpret_cast<uintptr_t>(layer)};
+    Put(anim,0x78,Array{reinterpret_cast<uintptr_t>(active),2,2});
+    Put(attack,0x10,reinterpret_cast<uintptr_t>(montageClass));Put(attack,0x18,43);
+    Put(attack,0x20,reinterpret_cast<uintptr_t>(package));Put(package,0x18,44);
+    Put(other,0x10,reinterpret_cast<uintptr_t>(montageClass));Put(other,0x18,45);
+    Put(other,0x20,reinterpret_cast<uintptr_t>(package));
+    Put(swing,0,reinterpret_cast<uintptr_t>(attack));Put(layer,0,reinterpret_cast<uintptr_t>(other));
+    Put(layer,0x150,1.0f);
+    stow::mountedMontagesReady=true;
+    for(unsigned hand=0;hand<2;++hand){
+        Name(43,hand?"Strife_Horse_Attack_L_Montage":"Strife_Horse_Attack_R_Montage");
+        Name(44,hand?"/Game/Characters/Heroes/Hero_Strife/Animations/Horse/Strife_Horse_Attack_L_Montage":
+            "/Game/Characters/Heroes/Hero_Strife/Animations/Horse/Strife_Horse_Attack_R_Montage");
+        Put(swing,0x150,.65f);
+        OnLivePlayer(horse,11,true);
+        Check(registered==3+hand&&(Get<unsigned char>(decorations[hand],0x1CC)&0x40)&&
+            !(Get<unsigned char>(decorations[hand^1u],0x1CC)&0x40)&&
+            !(Get<unsigned char>(decorations[2+hand],0x1CC)&0x40),
+            "mounted attack transfers the blade from its holster to the animated hand through another montage");
+        Put(swing,0x150,0.0f);
+        OnLivePlayer(horse,11,true);
+        Check(!(Get<unsigned char>(decorations[hand],0x1CC)&0x40)&&
+            (Get<unsigned char>(decorations[2+hand],0x1CC)&0x40),
+            "ending the mounted attack returns the blade to its holster");
+    }
     dg::runtime::Get().showStrifeStowedBlades=false;
+    Put(pc,0x350,horse.character);
+    horse.kind=dg::local_players::PoseKind::Foot;horse.pawn=horse.character;owners[0]=horse;
     OnLivePlayer(horse,12,true);
-    Check(destroyed==2&&!stow::players[0].actor,"mounted decorations release their components on disable");
+    Check(destroyed==4&&!stow::players[0].actor,"dismounting releases the four mounted decorations");
+    stow::mountedMontagesReady=false;
     stow::construct=nullptr;
     stow::setRelativeTransform=nullptr;
     stow::setDepth=nullptr;

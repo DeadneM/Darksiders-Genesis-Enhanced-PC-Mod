@@ -14,6 +14,7 @@ namespace engine_profile {
 using LogFn=void(*)(const char*);
 using BootFn=void(*)();
 using SetFn=void(*)(void*,const wchar_t*,unsigned);
+using SelectPqBuffer=bool(*)();
 inline constexpr uintptr_t OutputVar=0x39CB5B0, GamutVar=0x39CB440, EnabledVar=0x39CB5C8;
 inline constexpr uintptr_t IntVtable=0x2822458, IntSetter=0x81E5F0;
 inline constexpr unsigned SetByCode=0x08000000;
@@ -21,7 +22,8 @@ inline uintptr_t base=0;
 inline BootFn original=nullptr;
 inline LogFn logger=nullptr;
 inline Settings startup{};
-inline std::atomic_bool supported{false}, attempted{false}, applied{false};
+inline std::atomic_bool supported{false}, attempted{false}, applied{false}, pqReady{false};
+inline SelectPqBuffer selectPqBuffer=nullptr;
 inline volatile char* renderCapability=nullptr;
 
 // Match both the D3D11 capability writer and its consumer in post-processing.
@@ -75,6 +77,9 @@ inline EngineProfile Read(bool render) {
 // build. Use the same typed int setter and priority as native engine code.
 inline void ApplyOnGameThread(bool startupBoundary=false) {
     if(!supported.load(std::memory_order_acquire) || startup.mode<0 || !CompatibleBuffer(startup) || attempted.load(std::memory_order_relaxed))return;
+    const bool waitingForPq=ManagedPq(startup)&&!pqReady.load(std::memory_order_acquire);
+    if(waitingForPq&&!startupBoundary)return;
+    const int mode=waitingForPq?0:startup.mode;
     native_objects::MemoryReader reader;
     Variable output{}, gamut{}, enabled{};
     if(!Resolve(OutputVar,output) || !Resolve(GamutVar,gamut) || !Resolve(EnabledVar,enabled))return;
@@ -82,36 +87,49 @@ inline void ApplyOnGameThread(bool startupBoundary=false) {
     unsigned outputFlags=0,gamutFlags=0;
     const bool matchingStartup=before.enabled==(startup.mode>0?1:0);
     if(startupBoundary&&!matchingStartup)return;
-    if(attempted.exchange(true))return;
+    if(!waitingForPq&&attempted.exchange(true))return;
     const bool allowed=reader.Read(output.object,0x18,outputFlags) && reader.Read(gamut.object,0x18,gamutFlags) &&
         (outputFlags&0xFF000000)<=SetByCode && (gamutFlags&0xFF000000)<=SetByCode;
     if(matchingStartup&&allowed){
-        const wchar_t deviceValue[]={wchar_t(L'0'+OutputDevice(startup.mode)),0};
-        const wchar_t gamutValue[]={wchar_t(L'0'+Gamut(startup.mode)),0};
+        const wchar_t deviceValue[]={wchar_t(L'0'+OutputDevice(mode)),0};
+        const wchar_t gamutValue[]={wchar_t(L'0'+Gamut(mode)),0};
         const auto set=reinterpret_cast<SetFn>(base+IntSetter);
         set(reinterpret_cast<void*>(output.object),deviceValue,SetByCode);
         set(reinterpret_cast<void*>(gamut.object),gamutValue,SetByCode);
     }
     const auto after=Read(false);
-    if(after.Matches(startup.mode))applied.store(true,std::memory_order_release);
+    applied.store(after.Matches(startup.mode),std::memory_order_release);
     if(logger){
         char line[256]{};
-        sprintf_s(line,"HDR %s startup profile=%d written=%d engine enabled=%d output=%d gamut=%d previous=%d/%d",
-            build::Version,startup.mode,matchingStartup&&allowed?1:0,after.enabled,after.outputDevice,after.gamut,before.outputDevice,before.gamut);
+        sprintf_s(line,"HDR %s startup profile=%d written=%d engine enabled=%d output=%d gamut=%d previous=%d/%d waitingForPq=%d",
+            build::Version,startup.mode,matchingStartup&&allowed?1:0,after.enabled,after.outputDevice,after.gamut,
+            before.outputDevice,before.gamut,waitingForPq);
         logger(line);
     }
 }
 
+inline void SetPqReady(bool ready){
+    if(pqReady.exchange(ready,std::memory_order_acq_rel)==ready)return;
+    attempted.store(false,std::memory_order_release);
+    ApplyOnGameThread(!ready);
+}
+
 inline void AfterStartupCVars() {
     original();
+    if(selectPqBuffer&&startup.buffer!=1&&Read(false).enabled==1){
+        const bool selected=selectPqBuffer();
+        if(logger)logger(selected?"HDR10: selected native engine RGB10A2 before viewport creation":
+            "HDR10: engine buffer format selection rejected");
+    }
     ApplyOnGameThread(true);
 }
 
-inline void Initialize(Settings requested, bool exact, LogFn log) {
+inline void Initialize(Settings requested, bool exact, LogFn log,SelectPqBuffer selectBuffer) {
     if(!exact)return;
     base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     logger=log;
     startup=Normalize(requested);
+    selectPqBuffer=selectBuffer;
     constexpr unsigned char setter[]={0x48,0x89,0x6C,0x24,0x10,0x48,0x89,0x74,0x24,0x18,0x57,0x48,0x83,0xEC,0x20};
     if(!base || std::memcmp(reinterpret_cast<void*>(base+IntSetter),setter,sizeof(setter)) ||
         *reinterpret_cast<const uintptr_t*>(base+IntVtable+0x60)!=base+IntSetter)return;

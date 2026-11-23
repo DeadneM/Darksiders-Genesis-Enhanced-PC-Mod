@@ -15,6 +15,9 @@ inline constexpr bool PQ(int mode){return mode==1||mode==2;}
 inline constexpr bool CompatibleBuffer(const Settings& s){
     return s.mode<=0||s.buffer<2||s.buffer==(PQ(s.mode)?2:3);
 }
+inline constexpr bool ManagedPq(const Settings& s){
+    return PQ(s.mode)&&s.dxgiSignaling&&CompatibleBuffer(s);
+}
 inline constexpr int OutputDevice(int mode){return mode>0?mode+2:0;}
 inline constexpr int Gamut(int mode){return PQ(mode)?2:0;}
 struct EngineProfile {
