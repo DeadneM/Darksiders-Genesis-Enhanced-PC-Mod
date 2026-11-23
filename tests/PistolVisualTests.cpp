@@ -419,8 +419,8 @@ void Runtime(){
     Put(animClass,0x18,41);Put(montageClass,0x18,42);
     Put(horseMesh,0x718,reinterpret_cast<uintptr_t>(anim));
     Put(anim,0x10,reinterpret_cast<uintptr_t>(animClass));Put(anim,0x20,horseMeshId.address);
-    const uintptr_t active[]{reinterpret_cast<uintptr_t>(swing),reinterpret_cast<uintptr_t>(layer)};
-    Put(anim,0x78,Array{reinterpret_cast<uintptr_t>(active),2,2});
+    const uintptr_t mountedInstances[]{reinterpret_cast<uintptr_t>(swing),reinterpret_cast<uintptr_t>(layer)};
+    Put(anim,0x78,Array{reinterpret_cast<uintptr_t>(mountedInstances),2,2});
     Put(attack,0x10,reinterpret_cast<uintptr_t>(montageClass));Put(attack,0x18,43);
     Put(attack,0x20,reinterpret_cast<uintptr_t>(package));Put(package,0x18,44);
     Put(other,0x10,reinterpret_cast<uintptr_t>(montageClass));Put(other,0x18,45);
