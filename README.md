@@ -1,3 +1,7 @@
+# V1.190 sur debug — interface HDR et protection ciblée
+
+Le traitement du changement de fenêtre suit le viewport HDR10 effectivement accepté. Le panneau sépare les profils des réglages avancés. Le menu du mod encode sa palette pour la sortie HDR active. [Périmètre et essai](docs/V1_190_SCOPED_HDR_OUTPUT_INTERFACE_REVIEW.md).
+
 # V1.189 sur debug — HDR10 et lames de Strife
 
 **Construite et contrôlée.** 86 tests passent sur Windows x64. [ZIP V1.189](https://raw.githubusercontent.com/DeadneM/Darksiders-Genesis-Enhanced-PC-Mod/5d5d3849fcf8d587fb54750c0e5e24ece1d1d76c/downloads/DarksidersGenesis_V1.189_HDR_WINDOW_UI_BLADE_ROLL_TEST.zip) · [Livraison et statut](docs/V1_189_DELIVERY_RECEIPT.md).

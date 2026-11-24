@@ -163,6 +163,115 @@ void DrawKeyboardRow(Context& c,config::Store& config,const char* label,
         value=original;c.captureCameraKeyIndex->store(-1);config.Save();
     }
 }
+constexpr const char* hdrModes[]={"Native","SDR (HDR off)","HDR10 - 1000 nits","HDR10 - 2000 nits",
+    "scRGB - 1000 nits","scRGB - 2000 nits"};
+
+void DrawHdrDiagnostics(const hdr::Status& status){
+    if(status.deviceKnown)ImGui::TextWrapped("GPU: %s",status.adapter);
+    if(status.outputKnown)ImGui::Text("Display: %s",status.display);
+    if(status.advancedOutputKnown){
+        ImGui::Text("Windows output: %s | %u bits/channel",status.desktopHdrActive?"HDR":"SDR",status.bitsPerColor);
+        if(std::isfinite(status.peakNits)&&status.peakNits>0)
+            ImGui::TextDisabled("Display's reported peak: %.0f nits",status.peakNits);
+    }else ImGui::TextDisabled("Windows output status unavailable");
+    if(status.bufferFormat){
+        const char* format=status.bufferFormat==24?"RGB10A2":
+            status.bufferFormat==10?"RGBA16F":
+            (status.bufferFormat==28||status.bufferFormat==29||status.bufferFormat==87||status.bufferFormat==91)?"8-bit":"Unknown";
+        ImGui::Text("Game buffer: %s | %s",format,status.flipPresentation?"DXGI flip":"Legacy");
+    }
+    if(status.transportAttempted){
+        const char* signal=status.transportApplied?"accepted":status.formatMismatch?"buffer mismatch":
+            status.presentationMismatch?"flip presentation unavailable":status.engineMismatch?"profile not applied":"unavailable";
+        ImGui::Text("HDR signaling: %s (0x%08X)",signal,unsigned(status.transportResult));
+        if(status.transportApplied&&hdr::PQ(status.startup.mode))
+            ImGui::TextDisabled("HDR10 metadata: %s (0x%08X)",status.metadataResult==0?"accepted":"unavailable",unsigned(status.metadataResult));
+    }
+    constexpr const char* gamuts[]={"Rec.709 / sRGB","P3-D65","BT.2020","ACES","ACEScg"};
+    if(status.engineGamut>=0&&status.engineGamut<IM_ARRAYSIZE(gamuts))
+        ImGui::TextWrapped("Engine gamut: %s",gamuts[status.engineGamut]);
+    if(status.engineDevice>=0)
+        ImGui::TextDisabled("Engine output: %d | HDR rendering: %s",status.engineDevice,status.renderCapability==1?"enabled":"unavailable");
+    if(status.protectedViewport)ImGui::TextDisabled("Windowed focus recovery: mod HDR10 viewport");
+}
+
+void DrawHdr(Context& c){
+    static hdr::Status status{};
+    if((ImGui::IsItemToggledOpen()||!status.checked)&&c.queryHdrStatus)status=c.queryHdrStatus();
+    auto& config=*c.config;
+    auto& output=config.hdrOutput;
+    const auto before=output;
+    int mode=output.mode+1;
+    bool changed=Choice("Output profile",&mode,hdrModes,IM_ARRAYSIZE(hdrModes));
+    if(changed)output.mode=mode-1;
+    if(status.modHdrActive){
+        ImGui::TextWrapped("Active: %s | %s",hdrModes[status.startup.mode+1],
+            hdr::PQ(status.startup.mode)?"BT.2020 / PQ":"Linear Rec.709");
+    }else if(status.startup.mode>0)ImGui::TextWrapped("HDR output unconfirmed. See Diagnostics.");
+    if(status.checked&&hdr::NeedsRestart(output,status.startup))
+        ImGui::TextColored(ImVec4(1.f,.82f,.47f,1.f),"Restart to apply HDR changes.");
+
+    if(output.mode>0){
+        if(layout::Group("Interface")){
+            ImGui::Indent();
+            constexpr const char* compositions[]={"Auto","Standard","HDR blend"};
+            int selection=output.uiComposition+1;
+            if(Choice("Game interface composition",&selection,compositions,IM_ARRAYSIZE(compositions))){
+                output.uiComposition=selection-1;
+                changed=true;
+            }
+            HelpText("Composition changes apply after restart. Auto selects HDR blend when the interface level is customized.");
+            if(output.uiComposition!=0){
+                bool custom=output.uiBrightness>=0;
+                if(ImGui::Checkbox("Customize game interface brightness",&custom)){
+                    output.uiBrightness=custom?1.5f:-1;
+                    changed=true;
+                }
+                if(custom){
+                    changed|=NumberRow("Game menu and HUD brightness","HDRUIBrightness",&output.uiBrightness,0,4,1.5f,"%.2f","%.3f");
+                    if(status.modHdrActive&&status.uiBlendSeen)HelpText("Live with the game's HDR blend. 1.0 is the engine reference level.");
+                    else HelpText("Applies when the game's HDR blend is active.");
+                }
+            }
+            ImGui::Unindent();
+        }
+        if(layout::Group("Advanced output")){
+            ImGui::Indent();
+            constexpr const char* buffers[]={"Match output profile","Keep native buffer","10-bit RGB10A2","16-bit float RGBA"};
+            changed|=Choice("Buffer format",&output.buffer,buffers,IM_ARRAYSIZE(buffers));
+            if(!hdr::CompatibleBuffer(output))
+                ImGui::TextWrapped("Choose a buffer compatible with this output profile.");
+            changed|=ImGui::Checkbox("Use DXGI HDR signaling",&output.dxgiSignaling);
+            if(hdr::PQ(output.mode)&&output.dxgiSignaling){
+                changed|=ImGui::Checkbox("Customize HDR10 metadata",&output.customMetadata);
+                if(output.customMetadata){
+                    changed|=NumberRow("Mastering peak (nits)","HDRPeak",&output.peakNits,80,10000,1000,"%.0f","%.0f");
+                    changed|=NumberRow("Mastering black (nits)","HDRBlack",&output.minNits,0,20,.001f,"%.4f","%.4f");
+                    changed|=NumberRow("Content peak (MaxCLL)","HDRCLL",&output.maxCLL,1,10000,1000,"%.0f","%.0f");
+                    changed|=NumberRow("Frame-average peak (MaxFALL)","HDRFALL",&output.maxFALL,1,output.maxCLL,400,"%.0f","%.0f");
+                    HelpText("Metadata describes the content to the display. The selected profile sets the game's tone curve.");
+                }
+            }
+            ImGui::Unindent();
+        }
+    }
+    if(layout::Group("Diagnostics")){
+        ImGui::Indent();
+        if(layout::Button("Refresh display status")&&c.queryHdrStatus)status=c.queryHdrStatus();
+        DrawHdrDiagnostics(status);
+        ImGui::Unindent();
+    }
+    if(!changed)return;
+    output=hdr::Normalize(output);
+    if(hdr::NeedsRestart(output,before)){
+        const bool saved=config.SaveNow();
+        const bool queued=saved&&c.queueGraphicsAdapter&&c.queueGraphicsAdapter(config.graphicsAdapter);
+        *c.lastAction=!saved?"HDR preference save failed":queued?"HDR preferences saved for restart":"HDR preferences saved; exit helper unavailable";
+    }else{
+        config.Save();
+        *c.lastAction="HDR interface preference saved";
+    }
+}
 } // namespace
 
 void Draw(Context& c) {
@@ -1500,87 +1609,8 @@ void Draw(Context& c) {
                 ImGui::Unindent();
             }
             if(layout::Group("HDR")){
-                const bool newlyOpened=ImGui::IsItemToggledOpen();ImGui::Indent();
-                static hdr::Status status{};
-                if((newlyOpened||!status.checked)&&c.queryHdrStatus)status=c.queryHdrStatus();
-                if(layout::Button("Refresh HDR availability")&&c.queryHdrStatus)status=c.queryHdrStatus();
-                constexpr const char* hdrModes[]={"Native","SDR (HDR off)","HDR10 - 1000 nits","HDR10 - 2000 nits",
-                    "scRGB - 1000 nits","scRGB - 2000 nits"};
-                int selected=hdr::Normalize(config.hdrOutput).mode+1;
-                bool hdrChanged=false,uiBrightnessChanged=false;
-                if(Choice("HDR output mode",&selected,hdrModes,IM_ARRAYSIZE(hdrModes))){
-                    config.hdrOutput.mode=selected-1;
-                    hdrChanged=true;
-                }
-                HelpText("HDR10 needs a 10-bit game buffer. scRGB needs a 16-bit float game buffer. Close and relaunch to apply changes.");
-                ImGui::BeginDisabled(config.hdrOutput.mode<=0);
-                constexpr const char* uiCompositions[]={"Auto","Standard","HDR blend"};
-                int composition=config.hdrOutput.uiComposition+1;
-                if(Choice("HDR interface composition",&composition,uiCompositions,IM_ARRAYSIZE(uiCompositions))){
-                    config.hdrOutput.uiComposition=composition-1;hdrChanged=true;
-                }
-                HelpText("Standard uses regular blending. HDR blend composites the SDR menus and HUD for HDR output. Auto follows the game and selects HDR blend when brightness is customized. Restart to apply.");
-                bool customBrightness=config.hdrOutput.uiBrightness>=0;
-                if(ImGui::Checkbox("Customize HDR interface brightness",&customBrightness)){
-                    config.hdrOutput.uiBrightness=customBrightness?1.5f:-1;uiBrightnessChanged=true;
-                }
-                if(customBrightness&&NumberRow("Interface brightness","HDRUIBrightness",&config.hdrOutput.uiBrightness,0,4,1.5f,"%.2f","%.3f"))uiBrightnessChanged=true;
-                if(customBrightness)HelpText("Live brightness of the menu and HUD layer when HDR blend is active. 1.0 uses the engine's reference level.");
-                constexpr const char* bufferModes[]={"Match HDR profile","Keep native buffer","10-bit RGB10A2","16-bit float RGBA"};
-                if(Choice("HDR buffer format",&config.hdrOutput.buffer,bufferModes,IM_ARRAYSIZE(bufferModes)))hdrChanged=true;
-                if(!hdr::CompatibleBuffer(config.hdrOutput))
-                    ImGui::TextWrapped("The profile and buffer conflict. The game keeps its own output on restart.");
-                if(ImGui::Checkbox("Use DXGI HDR signaling",&config.hdrOutput.dxgiSignaling))hdrChanged=true;
-                if(hdr::PQ(config.hdrOutput.mode)){
-                    ImGui::BeginDisabled(!config.hdrOutput.dxgiSignaling);
-                    if(ImGui::Checkbox("Customize HDR10 metadata",&config.hdrOutput.customMetadata))hdrChanged=true;
-                    if(config.hdrOutput.customMetadata){
-                        if(NumberRow("Mastering peak (nits)","HDRPeak",&config.hdrOutput.peakNits,80,10000,1000,"%.0f","%.0f"))hdrChanged=true;
-                        if(NumberRow("Mastering black (nits)","HDRBlack",&config.hdrOutput.minNits,0,20,.001f,"%.4f","%.4f"))hdrChanged=true;
-                        if(NumberRow("Content peak (MaxCLL)","HDRCLL",&config.hdrOutput.maxCLL,1,10000,1000,"%.0f","%.0f"))hdrChanged=true;
-                        if(NumberRow("Average peak (MaxFALL)","HDRFALL",&config.hdrOutput.maxFALL,1,config.hdrOutput.maxCLL,400,"%.0f","%.0f"))hdrChanged=true;
-                        HelpText("These values describe the content to the display. The selected profile sets the game's tone curve.");
-                    }
-                    ImGui::EndDisabled();
-                }
-                ImGui::EndDisabled();
-                if(hdrChanged){config.hdrOutput=hdr::Normalize(config.hdrOutput);const bool saved=config.SaveNow();const bool queued=saved&&c.queueGraphicsAdapter&&c.queueGraphicsAdapter(config.graphicsAdapter);
-                    *c.lastAction=!saved?"HDR preference save failed":queued?"HDR request queued; restart required":"HDR preference saved; exit helper queue failed";}
-                else if(uiBrightnessChanged){config.Save();*c.lastAction="HDR interface brightness adjusted";}
-                if(hdr::ManagedPq(config.hdrOutput))HelpText("HDR10 uses borderless presentation for task switching.");
-                HelpText("Keep Windows HDR enabled. Native restores the previous engine settings.");
-                if(status.deviceKnown)ImGui::TextWrapped("GPU: %s",status.adapter[0]?status.adapter:"Unknown adapter name");
-                else ImGui::TextDisabled("GPU information unavailable");
-                if(status.outputKnown)ImGui::Text("Display: %s",status.display);
-                if(status.advancedOutputKnown){
-                    ImGui::Text("Windows output: %s | %u bits/channel",status.desktopHdrActive?"HDR reported":"SDR reported",status.bitsPerColor);
-                    if(std::isfinite(status.peakNits)&&status.peakNits>0)ImGui::Text("Reported peak brightness: %.0f nits",status.peakNits);
-                }else ImGui::TextDisabled("Windows HDR state unavailable");
-                if(status.bufferFormat){const char* depth=status.bufferFormat==24?"10-bit":status.bufferFormat==10?"16-bit floating point":
-                    (status.bufferFormat==28||status.bufferFormat==29||status.bufferFormat==87||status.bufferFormat==91)?"8-bit":"Unknown";
-                    ImGui::TextDisabled("Game output buffer: %s",depth);
-                    if(status.startupMode>0)ImGui::TextDisabled("Game presentation: %s",status.flipPresentation?"DXGI flip":"Legacy");
-                }
-                if(status.transportAttempted){
-                    const char* transport=status.transportApplied?"accepted":status.formatMismatch?"buffer mismatch":
-                        status.presentationMismatch?"flip presentation unavailable":
-                        status.engineMismatch?"engine profile not applied":"not accepted";
-                    ImGui::Text("HDR signaling: %s (0x%08X)",transport,unsigned(status.transportResult));
-                    if(status.formatMismatch)HelpText(hdr::PQ(status.startupMode)?
-                        "The game did not create an RGB10A2 buffer for HDR10.":
-                        "The game did not create a floating-point buffer for scRGB.");
-                    if(status.presentationMismatch)HelpText("HDR10 needs a flip swap chain and an active HDR display. The game uses SDR if this setup is rejected.");
-                    if(status.transportApplied&&hdr::PQ(status.startupMode))
-                        ImGui::TextDisabled("HDR10 metadata: %s (0x%08X)",status.metadataResult==0?"accepted":"unavailable",unsigned(status.metadataResult));
-                }
-                if(status.engineDevice>=0&&status.engineGamut>=0)
-                    ImGui::TextDisabled("Engine output: %d | gamut: %d | HDR requested: %s",status.engineDevice,status.engineGamut,status.engineEnabled==1?"ON":"OFF");
-                if(status.startupMode>0){
-                    const char* renderer=status.renderCapability<0?"unavailable":status.renderCapability==1?"enabled":"disabled";
-                    ImGui::Text("Native HDR render path: %s",renderer);
-                }
-                if(status.startupMode!=config.hdrOutput.mode)ImGui::TextDisabled("Restart to apply the selected HDR profile.");
-                HelpText("Refresh to check the active game buffer, the engine's color settings and the DXGI response.");
+                ImGui::Indent();
+                DrawHdr(c);
                 ImGui::Unindent();
             }
             ImGui::EndTabItem();

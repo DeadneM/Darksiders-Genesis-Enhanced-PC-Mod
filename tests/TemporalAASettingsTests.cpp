@@ -33,8 +33,27 @@ void Run(){
     Check(hdr::ManagedPq({1,-1,0,true})&&!hdr::ManagedPq({1,-1,0,false})&&
         !hdr::ManagedPq({1,-1,3,true})&&!hdr::ManagedPq({3,-1,0,true}),
         "only a compatible HDR10 profile opts in to native PQ creation");
-    Check(hdr::PqWindowMode(0)==1&&hdr::PqWindowMode(1)==1&&hdr::PqWindowMode(2)==2,
-        "managed HDR10 maps exclusive requests to borderless and preserves regular windowed");
+    Check(hdr::ViewportFullscreen(true,false)&&!hdr::ViewportFullscreen(false,false)&&
+        !hdr::ViewportFullscreen(true,true)&&!hdr::ViewportFullscreen(false,true),
+        "only a negotiated mod HDR10 viewport overrides a fullscreen request");
+    auto next=pq;
+    next.uiBrightness=2;
+    Check(!hdr::NeedsRestart(next,pq),"brightness level changes are live with an existing Auto blend");
+    next.uiBrightness=-1;
+    Check(hdr::NeedsRestart(next,pq),"turning off a custom level changes Auto composition after restart");
+    next.uiComposition=1;
+    Check(!hdr::NeedsRestart(next,pq),"explicit HDR blend keeps the same effective composition");
+    next.uiComposition=0;
+    Check(hdr::NeedsRestart(next,pq),"Standard composition requires restart");
+    next=pq;
+    next.dxgiSignaling=true;
+    next.peakNits=1100;
+    auto active=pq;
+    active.dxgiSignaling=true;
+    Check(hdr::NeedsRestart(next,active),"HDR10 metadata is a startup change");
+    next=active={};
+    next.buffer=2;
+    Check(!hdr::NeedsRestart(next,active),"dormant HDR controls do not signal a restart in Native");
     Check(hdr::CompatibleBuffer(pq)&&hdr::CompatibleBuffer({4,-1,3})&&hdr::CompatibleBuffer({2,-1,1})&&
         !hdr::CompatibleBuffer(hdr::Normalize({2,-1,3}))&&!hdr::CompatibleBuffer(hdr::Normalize({4,-1,2})),
         "explicit buffer conflicts are disabled without coercing profile or format");

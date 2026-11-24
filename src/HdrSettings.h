@@ -19,8 +19,22 @@ inline constexpr bool CompatibleBuffer(const Settings& s){
 inline constexpr bool ManagedPq(const Settings& s){
     return PQ(s.mode)&&s.dxgiSignaling&&CompatibleBuffer(s);
 }
-// Exclusive, borderless and windowed are the engine's modes 0, 1 and 2.
-inline constexpr int PqWindowMode(int mode){return mode==0?1:mode;}
+inline constexpr bool ViewportFullscreen(bool requested,bool acceptedModHdr10){
+    return requested&&!acceptedModHdr10;
+}
+inline constexpr int UiCompositionRequest(const Settings& s){
+    return s.uiComposition>=0?s.uiComposition:s.uiBrightness>=0?1:-1;
+}
+inline constexpr bool NeedsRestart(const Settings& chosen,const Settings& session){
+    if(chosen.mode!=session.mode)return true;
+    if(chosen.mode<=0)return false;
+    if(chosen.buffer!=session.buffer||chosen.dxgiSignaling!=session.dxgiSignaling||
+       UiCompositionRequest(chosen)!=UiCompositionRequest(session))return true;
+    if(!PQ(chosen.mode)||!chosen.dxgiSignaling)return false;
+    if(chosen.customMetadata!=session.customMetadata)return true;
+    return chosen.customMetadata&&(chosen.peakNits!=session.peakNits||chosen.minNits!=session.minNits||
+        chosen.maxCLL!=session.maxCLL||chosen.maxFALL!=session.maxFALL);
+}
 inline constexpr int OutputDevice(int mode){return mode>0?mode+2:0;}
 inline constexpr int Gamut(int mode){return PQ(mode)?2:0;}
 struct EngineProfile {

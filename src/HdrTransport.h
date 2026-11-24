@@ -15,6 +15,12 @@ inline TransportStatus transport{};inline IDXGISwapChain* attemptedChain=nullptr
 inline unsigned attemptedGeneration=0;
 inline ULONGLONG engineRetryAt=0;
 inline bool retriedAfterEngineApply=false;
+
+inline bool ModHdrActive(IDXGISwapChain* chain){
+    return chain&&chain==attemptedChain&&attemptedGeneration==viewport::generation.load(std::memory_order_acquire)&&
+        transport.applied&&transport.hdrDisplay&&transport.renderAfter==1;
+}
+
 inline void InvalidateTransport(){viewport::generation.fetch_add(1,std::memory_order_release);}
 
 inline HRESULT ApplyHDR10Metadata(IDXGISwapChain* chain,const Settings& settings){

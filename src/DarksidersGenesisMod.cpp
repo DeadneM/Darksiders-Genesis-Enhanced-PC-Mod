@@ -18,6 +18,7 @@
 #include "ConfigStore.h"
 #include "HdrTransport.h"
 #include "HdrInterface.h"
+#include "HdrOverlayColor.h"
 #include "RenderQualityFeature.h"
 #include "EngineIniFeature.h"
 #include "TemporalAAFeature.h"
@@ -3095,9 +3096,12 @@ dg::hdr::Status QueryHdrOutputStatus(){
     status.presentationMismatch=dg::hdr::transport.presentationMismatch;
     status.transportResult=dg::hdr::transport.result;
     status.metadataResult=dg::hdr::transport.metadata;
-    status.startupMode=dg::hdr::engine_profile::startup.mode;
+    status.startup=dg::hdr::engine_profile::startup;
+    status.modHdrActive=dg::hdr::ModHdrActive(g_gameSwapChain);
+    status.uiBlendSeen=dg::hdr::ui::blendSeen.load(std::memory_order_relaxed);
+    status.protectedViewport=dg::hdr::viewport::OwnsFlip(g_gameSwapChain);
     const auto engine=dg::hdr::engine_profile::Read(true);
-    status.engineEnabled=engine.enabled;status.engineDevice=engine.outputDevice;status.engineGamut=engine.gamut;
+    status.engineDevice=engine.outputDevice;status.engineGamut=engine.gamut;
     status.renderCapability=dg::hdr::engine_profile::ReadRenderCapability();
     if(!g_device||!g_gameSwapChain)return status;
     LUID adapterId{};HMONITOR monitor=nullptr;
@@ -3920,6 +3924,8 @@ void UpdateOrbitInput() {
 // V1.19: fresh TPS mouse orbit uses original WndProc data, shared camera
 // direction, and original native input dispatch. No mouse-mode toggle.
 
+dg::hdr::overlay_color::PixelShader g_hdrOverlayColor;
+
 HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT flags) {
     static std::atomic_bool once{false};
     if(!once.exchange(true))ReportStartupPhase(4,flags);
@@ -3976,6 +3982,10 @@ HRESULT __stdcall HookPresent(IDXGISwapChain* swapChain, UINT syncInterval, UINT
             ImGui_ImplWin32_NewFrame();
         }
         ImGui::NewFrame();
+        if(dg::hdr::ModHdrActive(swapChain)){
+            const bool pq=dg::hdr::PQ(dg::hdr::engine_profile::startup.mode);
+            g_hdrOverlayColor.Use(g_device,pq);
+        }
         ImGui::GetIO().MouseDrawCursor=menuVisible;
         if(menuVisible){auto context=BuildOverlayContext();dg::overlay::Draw(context);}
         if(toastVisible){
@@ -4297,6 +4307,7 @@ void ShutdownMod() {
     // Release the supported synthetic horse key before teardown.
     if(g_horseSyntheticHDown.exchange(false))EmitKeyboardVirtualKey('H',false);
     g_config.FlushIfDue(true);
+    g_hdrOverlayColor.Reset();
     dg::skip_logos::Shutdown();
     dg::skip_warning::Shutdown();
     dg::horse::Shutdown();

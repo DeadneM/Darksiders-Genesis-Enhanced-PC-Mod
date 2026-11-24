@@ -297,6 +297,9 @@ int main(int argc,char** argv){
         "HDR10 preferences survive a full save and load");
     check(renamed.showStrifeStowedBlades&&dg::runtime::Get().showStrifeStowedBlades.load(),
         "stowed blade setting still roundtrips into runtime");
+    renamed.hdrOutput.mode=-1;
+    check(renamed.SaveNow()&&renamed.Load()&&dg::runtime::Get().hdrUiBrightness.load()==1.25f,
+        "a pending Native profile leaves the live brightness of an already launched HDR session alone");
     renamed.hdrOutput={};check(renamed.SaveNow()&&renamed.Load()&&renamed.hdrOutput.mode==-1&&renamed.hdrOutput.uiBrightness==-1,"HDR Native roundtrip");
     renamed.coreLevelDisplayFixEnabled=false;
     check(renamed.SaveNow()&&renamed.Load()&&!renamed.coreLevelDisplayFixEnabled&&!dg::runtime::Get().coreLevelDisplayFixEnabled.load(),"core UI repair OFF persists and reaches runtime");

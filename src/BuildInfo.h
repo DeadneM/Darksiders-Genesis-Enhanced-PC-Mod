@@ -1,7 +1,7 @@
 #pragma once
 namespace dg::build {
-inline constexpr int Major=1,Minor=189;
-inline constexpr char Version[]="V1.189";
-inline constexpr char Id[]="1.189-hdr-window-ui-blade-roll-test";
-inline constexpr char Archive[]="DarksidersGenesis_V1.189_HDR_WINDOW_UI_BLADE_ROLL_TEST.zip";
+inline constexpr int Major=1,Minor=190;
+inline constexpr char Version[]="V1.190";
+inline constexpr char Id[]="1.190-scoped-hdr-output-interface-test";
+inline constexpr char Archive[]="DarksidersGenesis_V1.190_SCOPED_HDR_OUTPUT_INTERFACE_TEST.zip";
 }

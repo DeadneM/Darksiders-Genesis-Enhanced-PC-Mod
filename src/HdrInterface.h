@@ -10,12 +10,14 @@ using LogFn=void(*)(const char*);
 using Upload=void(*)(void*,void*,const void*,const void*,unsigned);
 inline Upload original=nullptr;
 inline uintptr_t base=0;
+inline std::atomic_bool blendSeen{false};
 
 // Both Slate HDR composite variants copy the UILevel scalar into the
 // command list here. Leave all other shader parameters to the engine.
 inline void UploadUiLevel(void* commands,void* shader,const void* parameter,const void* value,unsigned index){
     const auto caller=reinterpret_cast<uintptr_t>(_ReturnAddress());
     if(index==0&&(caller==base+0x1472755||caller==base+0x1472CB5)){
+        if(!blendSeen.load(std::memory_order_relaxed))blendSeen.store(true,std::memory_order_relaxed);
         const float level=runtime::Get().hdrUiBrightness.load(std::memory_order_relaxed);
         if(level>=0){original(commands,shader,parameter,&level,index);return;}
     }

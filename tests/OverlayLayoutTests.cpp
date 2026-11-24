@@ -1,5 +1,6 @@
 #include "OverlayLayout.h"
 #include "MenuFontScope.h"
+#include "HdrOverlayColor.h"
 #include <array>
 #include <iostream>
 #include <stdexcept>
@@ -39,6 +40,11 @@ FrameResult Frame(float width,float font,float& value,int& choice){
 }
 void Run(){
     using dg::overlay::layout::Summary;
+    for(bool pq:{false,true}){
+        Microsoft::WRL::ComPtr<ID3DBlob> shader;
+        Check(SUCCEEDED(dg::hdr::overlay_color::Compile(pq,&shader))&&shader&&shader->GetBufferSize()>0,
+            "the overlay pixel shader compiles for scRGB and HDR10");
+    }
     Check(Summary("0.05 seconds of ground contact. More details.")=="0.05 seconds of ground contact.","decimal values remain intact in short help");
     Check(Summary("Short help")=="Short help","short explanation retained");
     ImGui::CreateContext();auto& io=ImGui::GetIO();io.IniFilename=nullptr;io.DisplaySize={1800,1400};io.DeltaTime=1.f/60;

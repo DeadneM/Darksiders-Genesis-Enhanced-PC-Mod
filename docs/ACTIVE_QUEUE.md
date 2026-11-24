@@ -1,3 +1,7 @@
+# V1.190 — retour après changement de fenêtre et menu HDR
+
+Comparer le HDR10 et le SDR/Native en plein écran lors du changement de fenêtre. Contrôler le menu du mod en HDR et les réglages de la couche des menus du jeu. [Critères](V1_190_SCOPED_HDR_OUTPUT_INTERFACE_REVIEW.md).
+
 # V1.189 — essai en jeu
 
 Confirmer plusieurs Alt+Tab en HDR10, comparer les choix d'interface HDR et vérifier le tranchant des lames rangées à pied et à cheval. Vérifier la montée depuis le sol séparément de l'appel en l'air. [Critères](V1_189_HDR_WINDOW_UI_BLADE_ROLL_REVIEW.md).

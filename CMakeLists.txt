@@ -387,7 +387,7 @@ target_include_directories(imgui_static PUBLIC
   ${imgui_SOURCE_DIR}/backends
 )
 target_compile_definitions(imgui_static PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
-target_link_libraries(imgui_static PUBLIC d3d11 dxgi user32 gdi32 imm32 dwmapi)
+target_link_libraries(imgui_static PUBLIC d3d11 dxgi d3dcompiler user32 gdi32 imm32 dwmapi)
 
 if(BUILD_TESTING)
   add_executable(OverlayLayoutTests tests/OverlayLayoutTests.cpp)

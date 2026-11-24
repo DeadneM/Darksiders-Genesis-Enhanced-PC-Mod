@@ -1,3 +1,7 @@
+# V1.190 sur debug — HDR limité au viewport actif
+
+Base V1.189. Lames et montée à cheval validées par le joueur. Le traitement du focus concerne la chaîne HDR10 reconnue par le mod. Le panneau HDR distingue profil, image du jeu, interface et diagnostic. [Périmètre et essai](V1_190_SCOPED_HDR_OUTPUT_INTERFACE_REVIEW.md).
+
 # V1.189 sur debug — Alt+Tab HDR10 et interface
 
 **Construite et contrôlée.** 86 tests passent sur Windows x64. [Livraison et statut](V1_189_DELIVERY_RECEIPT.md).
