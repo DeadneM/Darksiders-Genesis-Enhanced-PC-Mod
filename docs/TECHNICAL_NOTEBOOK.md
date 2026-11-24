@@ -7060,3 +7060,5 @@ Compilation Windows x64 et ZIP contrôlés, 86 tests passés. La validation en j
 # V1.190 — viewport HDR10 détenu et palette d'interface
 
 L'appel de résolution global a été retiré. Le viewport reçoit le drapeau natif en entrée et reste fenêtré après création PQ confirmée de la chaîne flip. Les deux variantes du shader d'interface du mod sont vérifiées par le compilateur D3D. Le panneau distingue l'encodage du contenu, la composition de l'interface et les métadonnées. [Analyse et essai](V1_190_SCOPED_HDR_OUTPUT_INTERFACE_REVIEW.md).
+
+Compilation Windows x64 et ZIP contrôlés, 86 tests passés. La validation en jeu porte sur le focus HDR10, le plein écran SDR et la lisibilité du panneau. [Reçu du ZIP](V1_190_DELIVERY_RECEIPT.md).
